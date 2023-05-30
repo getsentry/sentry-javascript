@@ -417,6 +417,15 @@ export class ReplayContainer implements ReplayContainerInterface {
     // Once this session ends, we do not want to refresh it
     if (this.session) {
       this.session.shouldRefresh = false;
+
+      // It's possible that the session lifespan is > max session lifespan
+      // because we have been buffering (which ignores expiration given that
+      // `shouldRefresh` is true). Since we flip `shouldRefresh`, the session
+      // could be considered expired due to lifespan. Update session start date
+      // to the earliest event in buffer, or current timestamp.
+      this._updateUserActivity();
+      this._updateSessionActivity();
+      this.session.started = Date.now();
       this._maybeSaveSession();
     }
 
@@ -657,7 +666,7 @@ export class ReplayContainer implements ReplayContainerInterface {
       stickySession: Boolean(this._options.stickySession),
       currentSession: this.session,
       sessionSampleRate: this._options.sessionSampleRate,
-      allowBuffering: this._options.errorSampleRate > 0,
+      allowBuffering: this._options.errorSampleRate > 0 || this.recordingMode === 'buffer',
     });
 
     // If session was newly created (i.e. was not loaded from storage), then

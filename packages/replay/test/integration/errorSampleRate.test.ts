@@ -432,6 +432,9 @@ describe('Integration | errorSampleRate', () => {
     ['MAX_SESSION_LIFE', MAX_SESSION_LIFE],
     ['SESSION_IDLE_EXPIRE_DURATION', SESSION_IDLE_EXPIRE_DURATION],
   ])('continues buffering replay if session had no error and exceeds %s', async (_label, waitTime) => {
+    const oldSessionId = replay.session?.id;
+    expect(oldSessionId).toBeDefined();
+
     expect(replay).not.toHaveLastSentReplay();
 
     // Idle for given time
@@ -475,8 +478,19 @@ describe('Integration | errorSampleRate', () => {
     jest.advanceTimersByTime(DEFAULT_FLUSH_MIN_DELAY);
     await new Promise(process.nextTick);
 
-    expect(replay).toHaveLastSentReplay({
+    expect(replay.session?.id).toBe(oldSessionId);
+
+    // Flush of buffered events
+    expect(replay).toHaveSentReplay({
       recordingPayloadHeader: { segment_id: 0 },
+      replayEventPayload: expect.objectContaining({
+        replay_type: 'buffer',
+      }),
+    });
+
+    // Checkout from `startRecording`
+    expect(replay).toHaveLastSentReplay({
+      recordingPayloadHeader: { segment_id: 1 },
       replayEventPayload: expect.objectContaining({
         replay_type: 'buffer',
       }),
@@ -491,6 +505,9 @@ describe('Integration | errorSampleRate', () => {
 
   // Should behave the same as above test
   it('stops replay if user has been idle for more than SESSION_IDLE_EXPIRE_DURATION and does not start a new session thereafter', async () => {
+    const oldSessionId = replay.session?.id;
+    expect(oldSessionId).toBeDefined();
+
     // Idle for 15 minutes
     jest.advanceTimersByTime(SESSION_IDLE_EXPIRE_DURATION + 1);
 
@@ -517,9 +534,19 @@ describe('Integration | errorSampleRate', () => {
     await new Promise(process.nextTick);
     jest.advanceTimersByTime(DEFAULT_FLUSH_MIN_DELAY);
     await new Promise(process.nextTick);
+    expect(replay.session?.id).toBe(oldSessionId);
 
-    expect(replay).toHaveLastSentReplay({
+    // buffered events
+    expect(replay).toHaveSentReplay({
       recordingPayloadHeader: { segment_id: 0 },
+      replayEventPayload: expect.objectContaining({
+        replay_type: 'buffer',
+      }),
+    });
+
+    // `startRecording` full checkout
+    expect(replay).toHaveLastSentReplay({
+      recordingPayloadHeader: { segment_id: 1 },
       replayEventPayload: expect.objectContaining({
         replay_type: 'buffer',
       }),
@@ -605,7 +632,7 @@ describe('Integration | errorSampleRate', () => {
     jest.advanceTimersByTime(20);
     await new Promise(process.nextTick);
 
-    expect(replay.session?.started).toBe(BASE_TIMESTAMP + ELAPSED + 20);
+    expect(replay.session?.started).toBe(BASE_TIMESTAMP + ELAPSED + 100);
 
     // Does not capture mouse click
     expect(replay).toHaveSentReplay({
@@ -667,7 +694,8 @@ describe('Integration | errorSampleRate', () => {
     expect(replay.isEnabled()).toBe(false);
   });
 
-  it('stops replay when session exceeds max length', async () => {
+  it('stops replay when session exceeds max length after latest captured error', async () => {
+    const sessionId = replay.session?.id;
     jest.setSystemTime(BASE_TIMESTAMP);
 
     const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 3 };
@@ -679,37 +707,40 @@ describe('Integration | errorSampleRate', () => {
     jest.runAllTimers();
     await new Promise(process.nextTick);
 
+    jest.advanceTimersByTime(2 * MAX_SESSION_LIFE);
+
     captureException(new Error('testing'));
 
+    // Flush due to exception
+    await new Promise(process.nextTick);
     jest.advanceTimersByTime(DEFAULT_FLUSH_MIN_DELAY);
     await new Promise(process.nextTick);
-    expect(replay).not.toHaveLastSentReplay();
-
-    // Wait a bit, shortly before session expires
-    jest.advanceTimersByTime(MAX_SESSION_LIFE - 1000);
-    await new Promise(process.nextTick);
-
-    mockRecord._emitter(TEST_EVENT);
-    replay.triggerUserActivity();
-
+    expect(replay.session?.id).toBe(sessionId);
     expect(replay).toHaveLastSentReplay();
 
-    // Now wait after session expires - should stop recording
+    // Now wait after session expires - should re-start into buffering mode
     mockRecord.takeFullSnapshot.mockClear();
     (getCurrentHub().getClient()!.getTransport()!.send as unknown as jest.SpyInstance<any>).mockClear();
 
-    jest.advanceTimersByTime(10_000);
+    jest.advanceTimersByTime(MAX_SESSION_LIFE);
     await new Promise(process.nextTick);
 
     mockRecord._emitter(TEST_EVENT);
-    replay.triggerUserActivity();
-
-    jest.advanceTimersByTime(DEFAULT_FLUSH_MIN_DELAY);
+    jest.runAllTimers();
     await new Promise(process.nextTick);
 
     expect(replay).not.toHaveLastSentReplay();
     expect(mockRecord.takeFullSnapshot).toHaveBeenCalledTimes(0);
     expect(replay.isEnabled()).toBe(false);
+
+    // Once the session is stopped after capturing a replay already
+    // (buffer-mode), another error should trigger a new replay
+    captureException(new Error('testing'));
+
+    await new Promise(process.nextTick);
+    jest.advanceTimersByTime(DEFAULT_FLUSH_MIN_DELAY);
+    await new Promise(process.nextTick);
+    expect(replay).not.toHaveLastSentReplay();
   });
 });
 

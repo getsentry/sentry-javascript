@@ -600,7 +600,7 @@ describe('Integration | errorSampleRate with delayed flush', () => {
 
     await waitForBufferFlush();
 
-    expect(replay.session?.started).toBe(BASE_TIMESTAMP + ELAPSED + 20);
+    expect(replay.session?.started).toBe(BASE_TIMESTAMP + ELAPSED + DEFAULT_FLUSH_MIN_DELAY + 80);
 
     // Does not capture mouse click
     expect(replay).toHaveSentReplay({
@@ -662,7 +662,8 @@ describe('Integration | errorSampleRate with delayed flush', () => {
     expect(replay.isEnabled()).toBe(false);
   });
 
-  it('stops replay when session exceeds max length', async () => {
+  it('stops replay when session exceeds max length after latest captured error', async () => {
+    const sessionId = replay.session?.id;
     jest.setSystemTime(BASE_TIMESTAMP);
 
     const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 3 };
@@ -674,38 +675,57 @@ describe('Integration | errorSampleRate with delayed flush', () => {
     jest.runAllTimers();
     await new Promise(process.nextTick);
 
+    jest.advanceTimersByTime(2 * MAX_SESSION_LIFE);
+
     captureException(new Error('testing'));
 
-    jest.advanceTimersByTime(DEFAULT_FLUSH_MIN_DELAY);
+    // Flush due to exception
     await new Promise(process.nextTick);
+    await waitForFlush();
 
-    expect(replay).not.toHaveLastSentReplay();
+    expect(replay.session?.id).toBe(sessionId);
+    expect(replay).toHaveLastSentReplay({
+      recordingPayloadHeader: { segment_id: 0 },
+    });
 
-    // Wait a bit, shortly before session expires
-    jest.advanceTimersByTime(MAX_SESSION_LIFE - 1000);
-    await new Promise(process.nextTick);
-
-    mockRecord._emitter(TEST_EVENT);
-    replay.triggerUserActivity();
-
-    expect(replay).toHaveLastSentReplay();
+    // This comes from `startRecording()` in `sendBufferedReplayOrFlush()`
+    await waitForFlush();
+    expect(replay).toHaveLastSentReplay({
+      recordingPayloadHeader: { segment_id: 1 },
+      recordingData: JSON.stringify([
+        {
+          data: {
+            isCheckout: true,
+          },
+          timestamp: BASE_TIMESTAMP + 2 * MAX_SESSION_LIFE + DEFAULT_FLUSH_MIN_DELAY + 40,
+          type: 2,
+        },
+      ]),
+    });
 
     // Now wait after session expires - should stop recording
     mockRecord.takeFullSnapshot.mockClear();
     (getCurrentHub().getClient()!.getTransport()!.send as unknown as jest.SpyInstance<any>).mockClear();
 
-    jest.advanceTimersByTime(10_000);
+    jest.advanceTimersByTime(MAX_SESSION_LIFE);
     await new Promise(process.nextTick);
 
     mockRecord._emitter(TEST_EVENT);
-    replay.triggerUserActivity();
-
-    jest.advanceTimersByTime(DEFAULT_FLUSH_MIN_DELAY);
+    jest.runAllTimers();
     await new Promise(process.nextTick);
 
     expect(replay).not.toHaveLastSentReplay();
     expect(mockRecord.takeFullSnapshot).toHaveBeenCalledTimes(0);
     expect(replay.isEnabled()).toBe(false);
+
+    // Once the session is stopped after capturing a replay already
+    // (buffer-mode), another error will not trigger a new replay
+    captureException(new Error('testing'));
+
+    await new Promise(process.nextTick);
+    jest.advanceTimersByTime(DEFAULT_FLUSH_MIN_DELAY);
+    await new Promise(process.nextTick);
+    expect(replay).not.toHaveLastSentReplay();
   });
 });
 
