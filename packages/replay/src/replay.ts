@@ -481,6 +481,18 @@ export class ReplayContainer implements ReplayContainerInterface {
   }
 
   /**
+   * Updates the user activity timestamp *without* resuming
+   * recording. Some user events (e.g. keydown) can be create
+   * low-value replays that only contain the keypress as a
+   * breadcrumb. Instead this would require other events to
+   * create a new replay after a session has expired.
+   */
+  public updateUserActivity(): void {
+    this._updateUserActivity();
+    this._updateSessionActivity();
+  }
+
+  /**
    * Only flush if `this.recordingMode === 'session'`
    */
   public conditionalFlush(): Promise<void> {

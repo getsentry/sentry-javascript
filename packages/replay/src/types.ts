@@ -542,6 +542,7 @@ export interface ReplayContainer {
   flushImmediate(): Promise<void>;
   cancelFlush(): void;
   triggerUserActivity(): void;
+  updateUserActivity(): void;
   addUpdate(cb: AddUpdateCallback): void;
   getOptions(): ReplayPluginOptions;
   getSessionId(): string | undefined;
