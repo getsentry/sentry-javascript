@@ -42,6 +42,9 @@ const testRoutes: Record<string, Route> = {
     params: {},
     path: '/login',
     query: {},
+    meta: {
+      title: 'custom-name',
+    },
   },
   unmatchedRoute: {
     matched: [],
@@ -217,6 +220,40 @@ describe('vueRouterInstrumentation()', () => {
     // first startTx call happens when the instrumentation is initialized (for pageloads)
     expect(mockStartTransaction).toHaveBeenLastCalledWith({
       name: 'login-screen',
+      metadata: {
+        source: 'custom',
+      },
+      data: {
+        params: to.params,
+        query: to.query,
+      },
+      op: 'navigation',
+      tags: {
+        'routing.instrumentation': 'vue-router',
+      },
+    });
+  });
+
+  it('allows to configure routeLabel=custom', () => {
+    // create instrumentation
+    const instrument = vueRouterInstrumentation(mockVueRouter, {
+      routeLabel: 'custom',
+      customMethod: route => route?.meta?.customName,
+    });
+
+    // instrument
+    instrument(mockStartTransaction, true, true);
+
+    // check
+    const beforeEachCallback = mockVueRouter.beforeEach.mock.calls[0][0];
+
+    const from = testRoutes.normalRoute1;
+    const to = testRoutes.namedRoute;
+    beforeEachCallback(to, from, mockNext);
+
+    // first startTx call happens when the instrumentation is initialized (for pageloads)
+    expect(mockStartTransaction).toHaveBeenLastCalledWith({
+      name: 'custom-name',
       metadata: {
         source: 'custom',
       },

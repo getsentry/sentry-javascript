@@ -10,7 +10,8 @@ interface VueRouterInstrumationOptions {
    *
    * Default: 'name'
    */
-  routeLabel: 'name' | 'path';
+  routeLabel: 'name' | 'path' | 'custom';
+  customMethod: (route: Route) => unknown;
 }
 
 export type VueRouterInstrumentation = <T extends Transaction>(
@@ -35,6 +36,7 @@ export type Route = {
   params: Record<string, string | string[]>;
   /** All the matched route objects as defined in VueRouter constructor */
   matched: { path: string }[];
+  meta?: Record<string, unknown>;
 };
 
 interface VueRouter {
@@ -100,6 +102,9 @@ export function vueRouterInstrumentation(
       let transactionSource: TransactionSource = 'url';
       if (to.name && options.routeLabel !== 'path') {
         transactionName = to.name.toString();
+        transactionSource = 'custom';
+      } else if (options.routeLabel === 'custom' && typeof options.customMethod === 'function') {
+        transactionName = options.customMethod(to) as string;
         transactionSource = 'custom';
       } else if (to.matched[0] && to.matched[0].path) {
         transactionName = to.matched[0].path;
