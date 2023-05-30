@@ -53,13 +53,14 @@ jobs:
           cd packages/e2e-tests
           yarn test:e2e
       - name: Create Issue
-        if: failure()
+        if: failure() && github.event_name == 'schedule'
         uses: JasonEtco/create-an-issue@e27dddc79c92bc6e4562f268fffa5ed752639abd
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RUN_LINK: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         with:
           filename: .github/CANARY_FAILURE_TEMPLATE.md
+          update_existing: true
 
   job_ember_canary_test:
     name: Ember Canary Tests
@@ -92,10 +93,12 @@ jobs:
           yarn ember try:one ${{ matrix.scenario }} --skip-cleanup=true
 
       - name: Create Issue
-        if: failure()
+        if: failure() && github.event_name == 'schedule'
         uses: JasonEtco/create-an-issue@e27dddc79c92bc6e4562f268fffa5ed752639abd
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RUN_LINK: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         with:
           filename: .github/CANARY_FAILURE_TEMPLATE.md
+          update_existing: true
+          title: 'Ember Canary tests failed'
