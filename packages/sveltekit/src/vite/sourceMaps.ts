@@ -72,7 +72,7 @@ export async function makeCustomSentryVitePlugin(options?: CustomSentryVitePlugi
   const sentryPlugin: Plugin = sentryVitePlugin(mergedOptions);
 
   const { debug } = mergedOptions;
-  const { buildStart, resolveId, transform, renderChunk } = sentryPlugin;
+  const { buildStart, resolveId, renderChunk } = sentryPlugin;
 
   let isSSRBuild = true;
 
@@ -114,10 +114,10 @@ export async function makeCustomSentryVitePlugin(options?: CustomSentryVitePlugi
 
     transform: async (code, id) => {
       let modifiedCode = code;
-      const isServerHooksFile = new RegExp(`\/${escapeStringForRegex(serverHooksFile)}(.(js|ts|mjs|mts))?`).test(id);
+      const isServerHooksFile = new RegExp(`/${escapeStringForRegex(serverHooksFile)}(.(js|ts|mjs|mts))?`).test(id);
 
       if (isServerHooksFile) {
-        let injectedCode = `global.__sentry_sveltekit_output_dir = "${outputDir || 'undefined'}";\n`;
+        const injectedCode = `global.__sentry_sveltekit_output_dir = "${outputDir || 'undefined'}";\n`;
         modifiedCode = `${code}\n${injectedCode}`;
       }
       // @ts-ignore - this hook exists on the plugin!

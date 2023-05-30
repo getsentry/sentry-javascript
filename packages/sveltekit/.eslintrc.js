@@ -18,8 +18,10 @@ module.exports = {
       },
     },
     {
-      files: ['./src/vite/**', './src/server/**'],
-      '@sentry-internal/sdk/no-optional-chaining': 'off',
+      files: ['src/vite/**', 'src/server/**'],
+      rules: {
+        '@sentry-internal/sdk/no-optional-chaining': 'off',
+      },
     },
   ],
   extends: ['../../.eslintrc.js'],

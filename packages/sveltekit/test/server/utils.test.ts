@@ -2,7 +2,8 @@ import { RewriteFrames } from '@sentry/integrations';
 import type { StackFrame } from '@sentry/types';
 import { basename } from '@sentry/utils';
 
-import { getTracePropagationData, GlobalWithSentryValues, rewriteFramesIteratee } from '../../src/server/utils';
+import type { GlobalWithSentryValues } from '../../src/server/utils';
+import { getTracePropagationData, rewriteFramesIteratee } from '../../src/server/utils';
 
 const MOCK_REQUEST_EVENT: any = {
   request: {
@@ -107,7 +108,7 @@ describe('rewriteFramesIteratee', () => {
   ])(
     'removes the absolut path to the server output dir, if the output dir is available (%s)',
     (_, outputDir, frameFilename, modifiedFilename) => {
-      (global as GlobalWithSentryValues).__sentry_sveltekit_output_dir = outputDir;
+      (globalThis as GlobalWithSentryValues).__sentry_sveltekit_output_dir = outputDir;
 
       const frame: StackFrame = {
         filename: frameFilename,
@@ -124,7 +125,7 @@ describe('rewriteFramesIteratee', () => {
         colno: 1,
       });
 
-      delete (global as GlobalWithSentryValues).__sentry_sveltekit_output_dir;
+      delete (globalThis as GlobalWithSentryValues).__sentry_sveltekit_output_dir;
     },
   );
 });

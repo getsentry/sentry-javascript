@@ -65,7 +65,7 @@ export function rewriteFramesIteratee(frame: StackFrame): StackFrame {
 
     let strippedFilename;
     if (svelteKitBuildOutDir) {
-      strippedFilename = filename.replace(new RegExp(`^.*${escapeStringForRegex(svelteKitBuildOutDir)}\/server\/`), '');
+      strippedFilename = filename.replace(new RegExp(`^.*${escapeStringForRegex(svelteKitBuildOutDir)}/server/`), '');
     } else {
       strippedFilename = basename(filename);
     }

@@ -1,6 +1,6 @@
 import { vi } from 'vitest';
-import { SupportedSvelteKitAdapters } from '../../src/vite/detectAdapter';
 
+import type { SupportedSvelteKitAdapters } from '../../src/vite/detectAdapter';
 import { getAdapterOutputDir, getHooksFileName, loadSvelteConfig } from '../../src/vite/svelteConfig';
 
 let existsFile;

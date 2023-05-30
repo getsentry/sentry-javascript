@@ -4,7 +4,8 @@ import type { Builder, Config } from '@sveltejs/kit';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as url from 'url';
-import { SupportedSvelteKitAdapters } from './detectAdapter';
+
+import type { SupportedSvelteKitAdapters } from './detectAdapter';
 
 /**
  * Imports the svelte.config.js file and returns the config object.
@@ -40,7 +41,7 @@ export async function loadSvelteConfig(): Promise<Config> {
  * Reads a custom hooks directory from the SvelteKit config. In case no custom hooks
  * directory is specified, the default directory is returned.
  */
-export function getHooksFileName(svelteConfig: Config, hookType: 'client' | 'server') {
+export function getHooksFileName(svelteConfig: Config, hookType: 'client' | 'server'): string {
   return svelteConfig.kit?.files?.hooks?.[hookType] || `src/hooks.${hookType}`;
 }
 
