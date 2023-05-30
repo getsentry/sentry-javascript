@@ -1032,10 +1032,10 @@
   resolved "https://registry.yarnpkg.com/@babel/parser/-/parser-7.20.15.tgz#eec9f36d8eaf0948bb88c87a46784b5ee9fd0c89"
   integrity sha512-DI4a1oZuf8wC+oAJA9RW6ga3Zbe8RZFt7kD9i4qAspz3I/yHet1VvC3DiSy/fsUvv5pvJuNPh0LPOdCcqinDPg==
 
-"@babel/parser@^7.21.8":
-  version "7.21.8"
-  resolved "https://registry.yarnpkg.com/@babel/parser/-/parser-7.21.8.tgz#642af7d0333eab9c0ad70b14ac5e76dbde7bfdf8"
-  integrity sha512-6zavDGdzG3gUqAdWvlLFfk+36RilI+Pwyuuh7HItyeScCWP3k6i8vKclAQ0bM/0y/Kz/xiwvxhMv9MgTJP5gmA==
+"@babel/parser@^7.21.9":
+  version "7.22.4"
+  resolved "https://registry.yarnpkg.com/@babel/parser/-/parser-7.22.4.tgz#a770e98fd785c231af9d93f6459d36770993fb32"
+  integrity sha512-VLLsx06XkEYqBtE5YGPwfSGwfrjnyPP5oiGty3S8pQLFDFLaS8VwWSIxkTXpcvr5zeYLE6+MBNl2npl/YnfofA==
 
 "@babel/plugin-bugfix-safari-id-destructuring-collision-in-function-expression@^7.18.6":
   version "7.18.6"
@@ -6584,10 +6584,10 @@ ast-types@0.14.2:
   dependencies:
     tslib "^2.0.1"
 
-ast-types@0.15.2:
-  version "0.15.2"
-  resolved "https://registry.yarnpkg.com/ast-types/-/ast-types-0.15.2.tgz#39ae4809393c4b16df751ee563411423e85fb49d"
-  integrity sha512-c27loCv9QkZinsa5ProX751khO9DJl/AcB5c2KNtA6NRvHKS0PgLfcftz72KVq504vB0Gku5s2kUZzDBvQWvHg==
+ast-types@^0.16.1:
+  version "0.16.1"
+  resolved "https://registry.yarnpkg.com/ast-types/-/ast-types-0.16.1.tgz#7a9da1617c9081bc121faafe91711b4c8bb81da2"
+  integrity sha512-6t10qk83GOG8p0vKmaCr8eiilZwO171AvbROMtvvNiwrTly62t+7XkA8RdIIVbpMhCASAsxgAzdRSwh6nw/5Dg==
   dependencies:
     tslib "^2.0.1"
 
@@ -17998,14 +17998,14 @@ magic-string@^0.30.0:
   dependencies:
     "@jridgewell/sourcemap-codec" "^1.4.13"
 
-magicast@0.2.6:
-  version "0.2.6"
-  resolved "https://registry.yarnpkg.com/magicast/-/magicast-0.2.6.tgz#08c9f1900177ca1896e9c07981912171d4ed8ec1"
-  integrity sha512-6bX0nVjGrA41o+qHSv9Duiv3VuF7jUyjT7dIb3E61YW/5mucvCBMgyZssUznRc+xlUMPYyXZZluZjE1k5z+2yQ==
+magicast@0.2.8:
+  version "0.2.8"
+  resolved "https://registry.yarnpkg.com/magicast/-/magicast-0.2.8.tgz#02b298c65fbc5b7d1fce52ef779c59caf68cc9cf"
+  integrity sha512-zEnqeb3E6TfMKYXGyHv3utbuHNixr04o3/gVGviSzVQkbFiU46VZUd+Ea/1npKfvEsEWxBYuIksKzoztTDPg0A==
   dependencies:
-    "@babel/parser" "^7.21.8"
+    "@babel/parser" "^7.21.9"
     "@babel/types" "^7.21.5"
-    recast "^0.22.0"
+    recast "^0.23.2"
 
 make-dir@3.1.0, make-dir@^3.0.0, make-dir@^3.0.2, make-dir@^3.1.0, make-dir@~3.1.0:
   version "3.1.0"
@@ -22937,13 +22937,13 @@ recast@^0.20.5:
     source-map "~0.6.1"
     tslib "^2.0.1"
 
-recast@^0.22.0:
-  version "0.22.0"
-  resolved "https://registry.yarnpkg.com/recast/-/recast-0.22.0.tgz#1dd3bf1b86e5eb810b044221a1a734234ed3e9c0"
-  integrity sha512-5AAx+mujtXijsEavc5lWXBPQqrM4+Dl5qNH96N2aNeuJFUzpiiToKPsxQD/zAIJHspz7zz0maX0PCtCTFVlixQ==
+recast@^0.23.2:
+  version "0.23.2"
+  resolved "https://registry.yarnpkg.com/recast/-/recast-0.23.2.tgz#d3dda3e8f0a3366860d7508c00e34a338ac52b41"
+  integrity sha512-Qv6cPfVZyMOtPszK6PgW70pUgm7gPlFitAPf0Q69rlOA0zLw2XdDcNmPbVGYicFGT9O8I7TZ/0ryJD+6COvIPw==
   dependencies:
     assert "^2.0.0"
-    ast-types "0.15.2"
+    ast-types "^0.16.1"
     esprima "~4.0.0"
     source-map "~0.6.1"
     tslib "^2.0.1"
