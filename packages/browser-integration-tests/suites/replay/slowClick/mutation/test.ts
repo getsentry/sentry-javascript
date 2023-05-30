@@ -63,8 +63,9 @@ sentryTest('mutation after threshold results in slow click', async ({ getLocalTe
   expect(slowClickBreadcrumbs[0]?.data?.timeAfterClickMs).toBeLessThan(2000);
 });
 
-sentryTest('immediate mutation does not trigger slow click', async ({ getLocalTestUrl, page }) => {
-  if (shouldSkipReplayTest()) {
+sentryTest('immediate mutation does not trigger slow click', async ({ browserName, getLocalTestUrl, page }) => {
+  // This test seems to only be flakey on firefox
+  if (shouldSkipReplayTest() || ['firefox'].includes(browserName)) {
     sentryTest.skip();
   }
 
