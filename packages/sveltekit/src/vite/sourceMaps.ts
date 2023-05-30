@@ -10,6 +10,7 @@ import * as path from 'path';
 import * as sorcery from 'sorcery';
 import type { Plugin } from 'vite';
 
+import type { GlobalSentryValues } from '../server/utils';
 import { WRAPPED_MODULE_SUFFIX } from './autoInstrument';
 import type { SupportedSvelteKitAdapters } from './detectAdapter';
 import { getAdapterOutputDir, getHooksFileName, loadSvelteConfig } from './svelteConfig';
@@ -78,6 +79,10 @@ export async function makeCustomSentryVitePlugin(options?: CustomSentryVitePlugi
 
   const serverHooksFile = getHooksFileName(svelteConfig, 'server');
 
+  const globalSentryValues: GlobalSentryValues = {
+    __sentry_sveltekit_output_dir: outputDir,
+  };
+
   const customPlugin: Plugin = {
     name: 'sentry-upload-source-maps',
     apply: 'build', // only apply this plugin at build time
@@ -117,8 +122,10 @@ export async function makeCustomSentryVitePlugin(options?: CustomSentryVitePlugi
       const isServerHooksFile = new RegExp(`/${escapeStringForRegex(serverHooksFile)}(.(js|ts|mjs|mts))?`).test(id);
 
       if (isServerHooksFile) {
-        const injectedCode = `global.__sentry_sveltekit_output_dir = "${outputDir || 'undefined'}";\n`;
-        modifiedCode = `${code}\n${injectedCode}`;
+        const injectedCode = Object.entries(globalSentryValues)
+          .map(([key, value]) => `globalThis["${key}"] = ${JSON.stringify(value)};`)
+          .join('\n');
+        modifiedCode = `${code}\n${injectedCode}\n`;
       }
       // @ts-ignore - this hook exists on the plugin!
       return sentryPlugin.transform(modifiedCode, id);

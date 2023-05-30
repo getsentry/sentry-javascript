@@ -9,14 +9,16 @@ import type { RequestEvent } from '@sveltejs/kit';
 
 import { WRAPPED_MODULE_SUFFIX } from '../vite/autoInstrument';
 
+export type GlobalSentryValues = {
+  __sentry_sveltekit_output_dir?: string;
+};
+
 /**
  * Extend the `global` type with custom properties that are
  * injected by the SvelteKit SDK at build time.
  * @see packages/sveltekit/src/vite/sourcemaps.ts
  */
-export type GlobalWithSentryValues = typeof globalThis & {
-  __sentry_sveltekit_output_dir?: string;
-};
+export type GlobalWithSentryValues = typeof globalThis & GlobalSentryValues;
 
 /**
  * Takes a request event and extracts traceparent and DSC data
