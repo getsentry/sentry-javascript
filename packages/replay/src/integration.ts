@@ -141,22 +141,6 @@ export class Replay implements Integration {
       _experiments,
     };
 
-    if (typeof _experiments.mutationBreadcrumbLimit === 'number') {
-      // eslint-disable-next-line
-      console.warn(
-        `[Replay] \`mutationBreadcrumbLimit\` is no longer an experiment. To configure, pass to the
-Replay constructor. e.g.: Sentry.Replay({ mutationBreadcrumbLimit: 750 });`,
-      );
-    }
-
-    if (typeof _experiments.mutationLimit === 'number') {
-      // eslint-disable-next-line
-      console.warn(
-        `[Replay] \`mutationLimit\` is no longer an experiment. To configure, pass to the
-Replay constructor. e.g.: Sentry.Replay({ mutationLimit: 1500 });`,
-      );
-    }
-
     if (typeof sessionSampleRate === 'number') {
       // eslint-disable-next-line
       console.warn(
