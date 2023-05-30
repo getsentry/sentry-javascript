@@ -286,9 +286,6 @@ export interface ReplayPluginOptions extends ReplayNetworkOptions {
   beforeAddRecordingEvent?: BeforeAddRecordingEvent;
 
   /**
-   * Threshold of number of mutations that will be processed before creating a warning breadcrumb.
-   */
-  /**
    * A high number of DOM mutations (in a single event loop) can cause
    * performance regressions in end-users' browsers. This setting will create
    * a breadcrumb in the recording when the limit has been reached.
