@@ -1,5 +1,4 @@
 import type { DynamicSamplingContext, StackFrame, TraceparentData } from '@sentry/types';
-import type { InternalGlobal } from '@sentry/utils';
 import {
   baggageHeaderToDynamicSamplingContext,
   basename,
@@ -11,17 +10,7 @@ import {
 import type { RequestEvent } from '@sveltejs/kit';
 
 import { WRAPPED_MODULE_SUFFIX } from '../vite/autoInstrument';
-
-export type GlobalSentryValues = {
-  __sentry_sveltekit_output_dir?: string;
-};
-
-/**
- * Extend the `global` type with custom properties that are
- * injected by the SvelteKit SDK at build time.
- * @see packages/sveltekit/src/vite/sourcemaps.ts
- */
-export type GlobalWithSentryValues = InternalGlobal & GlobalSentryValues;
+import type { GlobalWithSentryValues } from '../vite/injectGLobalValues';
 
 /**
  * Takes a request event and extracts traceparent and DSC data
@@ -71,7 +60,7 @@ export function rewriteFramesIteratee(frame: StackFrame): StackFrame {
     let strippedFilename;
     if (svelteKitBuildOutDir) {
       strippedFilename = filename.replace(
-        new RegExp(`^.*${escapeStringForRegex(join(svelteKitBuildOutDir, 'server'))}`),
+        new RegExp(`^.*${escapeStringForRegex(join(svelteKitBuildOutDir, 'server'))}/`),
         '',
       );
     } else {

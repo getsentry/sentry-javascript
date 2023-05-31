@@ -10,9 +10,10 @@ import * as path from 'path';
 import * as sorcery from 'sorcery';
 import type { Plugin } from 'vite';
 
-import type { GlobalSentryValues } from '../server/utils';
 import { WRAPPED_MODULE_SUFFIX } from './autoInstrument';
 import type { SupportedSvelteKitAdapters } from './detectAdapter';
+import type { GlobalSentryValues } from './injectGLobalValues';
+import { getGlobalValueInjectionCode, VIRTUAL_GLOBAL_VALUES_FILE } from './injectGLobalValues';
 import { getAdapterOutputDir, getHooksFileName, loadSvelteConfig } from './svelteConfig';
 
 // sorcery has no types, so these are some basic type definitions:
@@ -73,7 +74,7 @@ export async function makeCustomSentryVitePlugin(options?: CustomSentryVitePlugi
   const sentryPlugin: Plugin = sentryVitePlugin(mergedOptions);
 
   const { debug } = mergedOptions;
-  const { buildStart, resolveId, renderChunk } = sentryPlugin;
+  const { buildStart, renderChunk } = sentryPlugin;
 
   let isSSRBuild = true;
 
@@ -91,7 +92,6 @@ export async function makeCustomSentryVitePlugin(options?: CustomSentryVitePlugi
     // These hooks are copied from the original Sentry Vite plugin.
     // They're mostly responsible for options parsing and release injection.
     buildStart,
-    resolveId,
     renderChunk,
 
     // Modify the config to generate source maps
@@ -105,6 +105,27 @@ export async function makeCustomSentryVitePlugin(options?: CustomSentryVitePlugi
           sourcemap: true,
         },
       };
+    },
+
+    resolveId: (id, _importer, _ref) => {
+      if (id === VIRTUAL_GLOBAL_VALUES_FILE) {
+        return {
+          id: VIRTUAL_GLOBAL_VALUES_FILE,
+          external: false,
+          moduleSideEffects: true,
+        };
+      }
+      // @ts-ignore - this hook exists on the plugin!
+      return sentryPlugin.resolveId(id, _importer, _ref);
+    },
+
+    load: id => {
+      if (id === VIRTUAL_GLOBAL_VALUES_FILE) {
+        return {
+          code: getGlobalValueInjectionCode(globalSentryValues),
+        };
+      }
+      return null;
     },
 
     configResolved: config => {
@@ -122,10 +143,8 @@ export async function makeCustomSentryVitePlugin(options?: CustomSentryVitePlugi
       const isServerHooksFile = new RegExp(`/${escapeStringForRegex(serverHooksFile)}(.(js|ts|mjs|mts))?`).test(id);
 
       if (isServerHooksFile) {
-        const injectedCode = Object.entries(globalSentryValues)
-          .map(([key, value]) => `globalThis["${key}"] = ${JSON.stringify(value)};`)
-          .join('\n');
-        modifiedCode = `${code}\n${injectedCode}\n`;
+        const globalValuesImport = `; import "${VIRTUAL_GLOBAL_VALUES_FILE}";`;
+        modifiedCode = `${code}\n${globalValuesImport}\n`;
       }
       // @ts-ignore - this hook exists on the plugin!
       return sentryPlugin.transform(modifiedCode, id);

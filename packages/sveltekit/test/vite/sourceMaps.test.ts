@@ -58,7 +58,7 @@ describe('makeCustomSentryVitePlugin()', () => {
       const plugin = await makeCustomSentryVitePlugin();
       // @ts-ignore this function exists!
       const transformedCode = await plugin.transform('foo', '/src/hooks.server.ts');
-      const expectedtransformedCode = 'foo\nglobalThis["__sentry_sveltekit_output_dir"] = ".svelte-kit/output";\n';
+      const expectedtransformedCode = 'foo\n; import "\0sentry-inject-global-values-file";\n';
       expect(mockedSentryVitePlugin.transform).toHaveBeenCalledWith(expectedtransformedCode, '/src/hooks.server.ts');
       expect(transformedCode).toEqual(expectedtransformedCode);
     });
