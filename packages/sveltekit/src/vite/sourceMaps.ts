@@ -61,7 +61,7 @@ export async function makeCustomSentryVitePlugin(options?: CustomSentryVitePlugi
   const hasSentryProperties = fs.existsSync(path.resolve(process.cwd(), 'sentry.properties'));
 
   const defaultPluginOptions: SentryVitePluginOptions = {
-    include: [{ paths: [`${outputDir}/client`] }, { paths: [`${outputDir}/server`] }],
+    include: [`${outputDir}/client`, `${outputDir}/server`],
     configFile: hasSentryProperties ? 'sentry.properties' : undefined,
     release,
   };
