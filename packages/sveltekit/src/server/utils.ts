@@ -1,9 +1,12 @@
 import type { DynamicSamplingContext, StackFrame, TraceparentData } from '@sentry/types';
+import type { InternalGlobal } from '@sentry/utils';
 import {
   baggageHeaderToDynamicSamplingContext,
   basename,
   escapeStringForRegex,
   extractTraceparentData,
+  GLOBAL_OBJ,
+  join,
 } from '@sentry/utils';
 import type { RequestEvent } from '@sveltejs/kit';
 
@@ -18,7 +21,7 @@ export type GlobalSentryValues = {
  * injected by the SvelteKit SDK at build time.
  * @see packages/sveltekit/src/vite/sourcemaps.ts
  */
-export type GlobalWithSentryValues = typeof globalThis & GlobalSentryValues;
+export type GlobalWithSentryValues = InternalGlobal & GlobalSentryValues;
 
 /**
  * Takes a request event and extracts traceparent and DSC data
@@ -51,7 +54,7 @@ export function rewriteFramesIteratee(frame: StackFrame): StackFrame {
   if (!frame.filename) {
     return frame;
   }
-  const globalWithSentryValues: GlobalWithSentryValues = globalThis;
+  const globalWithSentryValues: GlobalWithSentryValues = GLOBAL_OBJ;
   const svelteKitBuildOutDir = globalWithSentryValues.__sentry_sveltekit_output_dir;
   const prefix = 'app:///';
 
@@ -67,7 +70,10 @@ export function rewriteFramesIteratee(frame: StackFrame): StackFrame {
 
     let strippedFilename;
     if (svelteKitBuildOutDir) {
-      strippedFilename = filename.replace(new RegExp(`^.*${escapeStringForRegex(svelteKitBuildOutDir)}/server/`), '');
+      strippedFilename = filename.replace(
+        new RegExp(`^.*${escapeStringForRegex(join(svelteKitBuildOutDir, 'server'))}`),
+        '',
+      );
     } else {
       strippedFilename = basename(filename);
     }
