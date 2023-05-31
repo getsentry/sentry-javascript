@@ -272,7 +272,6 @@ export interface ReplayPluginOptions extends ReplayNetworkOptions {
    */
   maskAllText: boolean;
 
-
   /**
    * A high number of DOM mutations (in a single event loop) can cause
    * performance regressions in end-users' browsers. This setting will create
