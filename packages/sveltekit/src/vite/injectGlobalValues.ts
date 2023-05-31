@@ -14,7 +14,7 @@ export type GlobalWithSentryValues = InternalGlobal & GlobalSentryValues;
 export const VIRTUAL_GLOBAL_VALUES_FILE = '\0sentry-inject-global-values-file';
 
 /**
- * @returns code that injects @param globalSentryValues into the global scope.
+ * @returns code that injects @param globalSentryValues into the global object.
  */
 export function getGlobalValueInjectionCode(globalSentryValues: GlobalSentryValues): string {
   if (Object.keys(globalSentryValues).length === 0) {
