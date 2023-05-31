@@ -273,6 +273,20 @@ export interface ReplayPluginOptions extends ReplayNetworkOptions {
   maskAllText: boolean;
 
   /**
+   * A high number of DOM mutations (in a single event loop) can cause
+   * performance regressions in end-users' browsers. This setting will create
+   * a breadcrumb in the recording when the limit has been reached.
+   */
+  mutationBreadcrumbLimit: number;
+
+  /**
+   * A high number of DOM mutations (in a single event loop) can cause
+   * performance regressions in end-users' browsers. This setting will cause
+   * recording to stop when the limit has been reached.
+   */
+  mutationLimit: number;
+
+  /**
    * Callback before adding a custom recording event
    *
    * Events added by the underlying DOM recording library can *not* be modified,
@@ -295,8 +309,6 @@ export interface ReplayPluginOptions extends ReplayNetworkOptions {
   _experiments: Partial<{
     captureExceptions: boolean;
     traceInternals: boolean;
-    mutationLimit: number;
-    mutationBreadcrumbLimit: number;
     slowClicks: {
       threshold: number;
       timeout: number;

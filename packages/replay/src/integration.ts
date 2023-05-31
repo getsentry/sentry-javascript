@@ -60,6 +60,9 @@ export class Replay implements Integration {
     maskAllInputs = true,
     blockAllMedia = true,
 
+    mutationBreadcrumbLimit = 750,
+    mutationLimit = 10_000,
+
     networkDetailAllowUrls = [],
     networkCaptureBodies = true,
     networkRequestHeaders = [],
@@ -127,6 +130,8 @@ export class Replay implements Integration {
       blockAllMedia,
       maskAllInputs,
       maskAllText,
+      mutationBreadcrumbLimit,
+      mutationLimit,
       networkDetailAllowUrls,
       networkCaptureBodies,
       networkRequestHeaders: _getMergedNetworkHeaders(networkRequestHeaders),

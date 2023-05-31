@@ -1056,8 +1056,8 @@ export class ReplayContainer implements ReplayContainerInterface {
   private _onMutationHandler = (mutations: unknown[]): boolean => {
     const count = mutations.length;
 
-    const mutationLimit = this._options._experiments.mutationLimit || 0;
-    const mutationBreadcrumbLimit = this._options._experiments.mutationBreadcrumbLimit || 1000;
+    const mutationLimit = this._options.mutationLimit;
+    const mutationBreadcrumbLimit = this._options.mutationBreadcrumbLimit;
     const overMutationLimit = mutationLimit && count > mutationLimit;
 
     // Create a breadcrumb if a lot of mutations happen at the same time
@@ -1067,15 +1067,15 @@ export class ReplayContainer implements ReplayContainerInterface {
         category: 'replay.mutations',
         data: {
           count,
+          limit: overMutationLimit,
         },
       });
       this._createCustomBreadcrumb(breadcrumb);
     }
 
+    // Stop replay if over the mutation limit
     if (overMutationLimit) {
-      // We want to skip doing an incremental snapshot if there are too many mutations
-      // Instead, we do a full snapshot
-      this._triggerFullSnapshot(false);
+      void this.stop('mutationLimit');
       return false;
     }
 
