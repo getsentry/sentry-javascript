@@ -1056,8 +1056,8 @@ export class ReplayContainer implements ReplayContainerInterface {
   private _onMutationHandler = (mutations: unknown[]): boolean => {
     const count = mutations.length;
 
-    const mutationLimit = this._options.mutationLimit || 0;
-    const mutationBreadcrumbLimit = this._options.mutationBreadcrumbLimit || 1000;
+    const mutationLimit = this._options.mutationLimit;
+    const mutationBreadcrumbLimit = this._options.mutationBreadcrumbLimit;
     const overMutationLimit = mutationLimit && count > mutationLimit;
 
     // Create a breadcrumb if a lot of mutations happen at the same time
