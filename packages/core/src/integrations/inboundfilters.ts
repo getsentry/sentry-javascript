@@ -79,7 +79,7 @@ export function _mergeOptions(
     ignoreTransactions: [
       ...(internalOptions.ignoreTransactions || []),
       ...(clientOptions.ignoreTransactions || []),
-      ...(internalOptions.disableTransactionDefaults === true ? [] : DEFAULT_IGNORE_TRANSACTIONS),
+      ...(internalOptions.disableTransactionDefaults ? [] : DEFAULT_IGNORE_TRANSACTIONS),
     ],
     ignoreInternal: internalOptions.ignoreInternal !== undefined ? internalOptions.ignoreInternal : true,
   };
