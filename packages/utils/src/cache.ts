@@ -1,5 +1,3 @@
-import type { Event } from '@sentry/types';
-
 /**
  * Creates a cache that evicts keys in fifo order
  * @param size {Number}
