@@ -101,7 +101,7 @@ function handleSlowClick(
   const breadcrumb = {
     message: clickBreadcrumb.message,
     timestamp: clickBreadcrumb.timestamp,
-    category: 'ui.slowClickDetected' as const,
+    category: 'ui.slowClickDetected',
     data: {
       ...clickBreadcrumb.data,
       url: WINDOW.location.href,

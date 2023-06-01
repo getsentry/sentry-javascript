@@ -779,7 +779,7 @@ export class ReplayContainer implements ReplayContainerInterface {
    */
   private _handleWindowBlur: () => void = () => {
     const breadcrumb = createBreadcrumb({
-      category: 'ui.blur' as const,
+      category: 'ui.blur',
     });
 
     // Do not count blur as a user action -- it's part of the process of them
@@ -792,7 +792,7 @@ export class ReplayContainer implements ReplayContainerInterface {
    */
   private _handleWindowFocus: () => void = () => {
     const breadcrumb = createBreadcrumb({
-      category: 'ui.focus' as const,
+      category: 'ui.focus',
     });
 
     // Do not count focus as a user action -- instead wait until they focus and
@@ -1095,7 +1095,7 @@ export class ReplayContainer implements ReplayContainerInterface {
     // We can show this in the UI as an information with potential performance improvements
     if (count > mutationBreadcrumbLimit || overMutationLimit) {
       const breadcrumb = createBreadcrumb({
-        category: 'replay.mutations' as const,
+        category: 'replay.mutations',
         data: {
           count,
           limit: overMutationLimit,
