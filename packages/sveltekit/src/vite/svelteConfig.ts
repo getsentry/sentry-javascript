@@ -5,6 +5,8 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as url from 'url';
 
+import type { SupportedSvelteKitAdapters } from './detectAdapter';
+
 /**
  * Imports the svelte.config.js file and returns the config object.
  * The sveltekit plugins import the config in the same way.
@@ -36,19 +38,37 @@ export async function loadSvelteConfig(): Promise<Config> {
 }
 
 /**
+ * Reads a custom hooks directory from the SvelteKit config. In case no custom hooks
+ * directory is specified, the default directory is returned.
+ */
+export function getHooksFileName(svelteConfig: Config, hookType: 'client' | 'server'): string {
+  return svelteConfig.kit?.files?.hooks?.[hookType] || `src/hooks.${hookType}`;
+}
+
+/**
  * Attempts to read a custom output directory that can be specidied in the options
  * of a SvelteKit adapter. If no custom output directory is specified, the default
  * directory is returned.
- *
- * To get the directory, we have to apply a hack and call the adapter's adapt method
+ */
+export async function getAdapterOutputDir(svelteConfig: Config, adapter: SupportedSvelteKitAdapters): Promise<string> {
+  if (adapter === 'node') {
+    return await getNodeAdapterOutputDir(svelteConfig);
+  }
+
+  // Auto and Vercel adapters simply use config.kit.outDir
+  // Let's also use this directory for the 'other' case
+  return path.join(svelteConfig.kit?.outDir || '.svelte-kit', 'output');
+}
+
+/**
+ * To get the Node adapter output directory, we have to apply a hack and call the adapter's adapt method
  * with a custom adapter `Builder` that only calls the `writeClient` method.
  * This method is the first method that is called with the output directory.
  * Once we obtained the output directory, we throw an error to exit the adapter.
  *
  * see: https://github.com/sveltejs/kit/blob/master/packages/adapter-node/index.js#L17
- *
  */
-export async function getAdapterOutputDir(svelteConfig: Config): Promise<string> {
+async function getNodeAdapterOutputDir(svelteConfig: Config): Promise<string> {
   // 'build' is the default output dir for the node adapter
   let outputDir = 'build';
 
@@ -56,7 +76,7 @@ export async function getAdapterOutputDir(svelteConfig: Config): Promise<string>
     return outputDir;
   }
 
-  const adapter = svelteConfig.kit.adapter;
+  const nodeAdapter = svelteConfig.kit.adapter;
 
   const adapterBuilder: Builder = {
     writeClient(dest: string) {
@@ -85,7 +105,7 @@ export async function getAdapterOutputDir(svelteConfig: Config): Promise<string>
   };
 
   try {
-    await adapter.adapt(adapterBuilder);
+    await nodeAdapter.adapt(adapterBuilder);
   } catch (_) {
     // We expect the adapter to throw in writeClient!
   }

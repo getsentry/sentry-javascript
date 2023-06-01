@@ -103,6 +103,7 @@ export async function sentrySvelteKit(options: SentrySvelteKitPluginOptions = {}
     const pluginOptions = {
       ...mergedOptions.sourceMapsUploadOptions,
       debug: mergedOptions.debug, // override the plugin's debug flag with the one from the top-level options
+      adapter: mergedOptions.adapter,
     };
     sentryPlugins.push(await makeCustomSentryVitePlugin(pluginOptions));
   }
