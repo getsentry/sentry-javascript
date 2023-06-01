@@ -1,8 +1,16 @@
 import type { DynamicSamplingContext, StackFrame, TraceparentData } from '@sentry/types';
-import { baggageHeaderToDynamicSamplingContext, basename, extractTraceparentData } from '@sentry/utils';
+import {
+  baggageHeaderToDynamicSamplingContext,
+  basename,
+  escapeStringForRegex,
+  extractTraceparentData,
+  GLOBAL_OBJ,
+  join,
+} from '@sentry/utils';
 import type { RequestEvent } from '@sveltejs/kit';
 
 import { WRAPPED_MODULE_SUFFIX } from '../vite/autoInstrument';
+import type { GlobalWithSentryValues } from '../vite/injectGlobalValues';
 
 /**
  * Takes a request event and extracts traceparent and DSC data
@@ -35,7 +43,8 @@ export function rewriteFramesIteratee(frame: StackFrame): StackFrame {
   if (!frame.filename) {
     return frame;
   }
-
+  const globalWithSentryValues: GlobalWithSentryValues = GLOBAL_OBJ;
+  const svelteKitBuildOutDir = globalWithSentryValues.__sentry_sveltekit_output_dir;
   const prefix = 'app:///';
 
   // Check if the frame filename begins with `/` or a Windows-style prefix such as `C:\`
@@ -48,8 +57,16 @@ export function rewriteFramesIteratee(frame: StackFrame): StackFrame {
           .replace(/\\/g, '/') // replace all `\\` instances with `/`
       : frame.filename;
 
-    const base = basename(filename);
-    frame.filename = `${prefix}${base}`;
+    let strippedFilename;
+    if (svelteKitBuildOutDir) {
+      strippedFilename = filename.replace(
+        new RegExp(`^.*${escapeStringForRegex(join(svelteKitBuildOutDir, 'server'))}/`),
+        '',
+      );
+    } else {
+      strippedFilename = basename(filename);
+    }
+    frame.filename = `${prefix}${strippedFilename}`;
   }
 
   delete frame.module;

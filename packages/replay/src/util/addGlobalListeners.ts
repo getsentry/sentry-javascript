@@ -40,6 +40,16 @@ export function addGlobalListeners(replay: ReplayContainer): void {
         dsc.replay_id = replayId;
       }
     });
+
+    client.on('startTransaction', transaction => {
+      replay.lastTransaction = transaction;
+    });
+
+    // We may be missing the initial startTransaction due to timing issues,
+    // so we capture it on finish again.
+    client.on('finishTransaction', transaction => {
+      replay.lastTransaction = transaction;
+    });
   }
 }
 

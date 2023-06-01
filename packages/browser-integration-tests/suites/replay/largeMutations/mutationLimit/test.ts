@@ -1,10 +1,15 @@
 import { expect } from '@playwright/test';
 
 import { sentryTest } from '../../../../utils/fixtures';
-import { getReplayRecordingContent, shouldSkipReplayTest, waitForReplayRequest } from '../../../../utils/replayHelpers';
+import {
+  getReplayRecordingContent,
+  getReplaySnapshot,
+  shouldSkipReplayTest,
+  waitForReplayRequest,
+} from '../../../../utils/replayHelpers';
 
 sentryTest(
-  'handles large mutations with _experiments.mutationLimit configured',
+  'handles large mutations by stopping replay when `mutationLimit` configured',
   async ({ getLocalTestPath, page, forceFlushReplay, browserName }) => {
     if (shouldSkipReplayTest() || ['webkit', 'firefox'].includes(browserName)) {
       sentryTest.skip();
@@ -34,36 +39,29 @@ sentryTest(
     await forceFlushReplay();
     const res1 = await reqPromise1;
 
-    const reqPromise2 = waitForReplayRequest(page);
+    // replay should be stopped due to mutation limit
+    let replay = await getReplaySnapshot(page);
+    expect(replay.session).toBe(undefined);
+    expect(replay._isEnabled).toBe(false);
 
     void page.click('#button-modify');
     await forceFlushReplay();
-    const res2 = await reqPromise2;
 
-    const reqPromise3 = waitForReplayRequest(page);
-
-    void page.click('#button-remove');
+    await page.click('#button-remove');
     await forceFlushReplay();
-    const res3 = await reqPromise3;
 
     const replayData0 = getReplayRecordingContent(res0);
-    const replayData1 = getReplayRecordingContent(res1);
-    const replayData2 = getReplayRecordingContent(res2);
-    const replayData3 = getReplayRecordingContent(res3);
-
     expect(replayData0.fullSnapshots.length).toBe(1);
     expect(replayData0.incrementalSnapshots.length).toBe(0);
 
-    // This includes both a full snapshot as well as some incremental snapshots
-    expect(replayData1.fullSnapshots.length).toBe(1);
+    // Breadcrumbs (click and mutation);
+    const replayData1 = getReplayRecordingContent(res1);
+    expect(replayData1.fullSnapshots.length).toBe(0);
     expect(replayData1.incrementalSnapshots.length).toBeGreaterThan(0);
+    expect(replayData1.breadcrumbs.map(({ category }) => category).sort()).toEqual(['replay.mutations', 'ui.click']);
 
-    // This does not trigger mutations, for whatever reason - so no full snapshot either!
-    expect(replayData2.fullSnapshots.length).toBe(0);
-    expect(replayData2.incrementalSnapshots.length).toBeGreaterThan(0);
-
-    // This includes both a full snapshot as well as some incremental snapshots
-    expect(replayData3.fullSnapshots.length).toBe(1);
-    expect(replayData3.incrementalSnapshots.length).toBeGreaterThan(0);
+    replay = await getReplaySnapshot(page);
+    expect(replay.session).toBe(undefined);
+    expect(replay._isEnabled).toBe(false);
   },
 );
