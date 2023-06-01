@@ -396,6 +396,8 @@ export class ReplayContainer implements ReplayContainerInterface {
       return this.flushImmediate();
     }
 
+    const activityTime = Date.now();
+
     // Allow flush to complete before resuming as a session recording, otherwise
     // the checkout from `startRecording` may be included in the payload.
     // Prefer to keep the error replay as a separate (and smaller) segment
@@ -419,13 +421,16 @@ export class ReplayContainer implements ReplayContainerInterface {
       this.session.shouldRefresh = false;
 
       // It's possible that the session lifespan is > max session lifespan
-      // because we have been buffering (which ignores expiration given that
-      // `shouldRefresh` is true). Since we flip `shouldRefresh`, the session
-      // could be considered expired due to lifespan. Update session start date
-      // to the earliest event in buffer, or current timestamp.
-      this._updateUserActivity();
-      this._updateSessionActivity();
-      this.session.started = Date.now();
+      // because we have been buffering beyond max session lifespan (we ignore
+      // expiration given that `shouldRefresh` is true). Since we flip
+      // `shouldRefresh`, the session could be considered expired due to
+      // lifespan, which is not what we want. Update session start date to be
+      // the current timestamp, so that session is not considered to be
+      // expired. This means that max replay duration can be MAX_SESSION_LIFE +
+      // (length of buffer), which we are ok with.
+      this._updateUserActivity(activityTime);
+      this._updateSessionActivity(activityTime);
+      this.session.started = activityTime;
       this._maybeSaveSession();
     }
 

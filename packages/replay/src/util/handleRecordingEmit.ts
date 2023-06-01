@@ -89,6 +89,10 @@ export function getHandleRecordingEmit(replay: ReplayContainer): RecordingEmitCa
         // a previous session ID. In this case, we want to buffer events
         // for a set amount of time before flushing. This can help avoid
         // capturing replays of users that immediately close the window.
+        // TODO: We should check `recordingMode` here and do nothing if it's
+        // buffer, instead of checking inside of timeout, this will make our
+        // tests a bit cleaner as we will need to wait on the delay in order to
+        // do nothing.
         setTimeout(() => replay.conditionalFlush(), options._experiments.delayFlushOnCheckout);
 
         // Cancel any previously debounced flushes to ensure there are no [near]

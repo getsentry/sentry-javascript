@@ -622,17 +622,15 @@ describe('Integration | errorSampleRate', () => {
     const optionsEvent = createOptionsEvent(replay);
 
     jest.runAllTimers();
-    jest.advanceTimersByTime(20);
     await new Promise(process.nextTick);
 
     captureException(new Error('testing'));
 
     await new Promise(process.nextTick);
     jest.runAllTimers();
-    jest.advanceTimersByTime(20);
     await new Promise(process.nextTick);
 
-    expect(replay.session?.started).toBe(BASE_TIMESTAMP + ELAPSED + 100);
+    expect(replay.session?.started).toBe(BASE_TIMESTAMP + ELAPSED + 40);
 
     // Does not capture mouse click
     expect(replay).toHaveSentReplay({
