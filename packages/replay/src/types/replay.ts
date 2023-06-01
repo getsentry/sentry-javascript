@@ -193,7 +193,6 @@ export interface ReplayPluginOptions extends ReplayNetworkOptions {
   _experiments: Partial<{
     captureExceptions: boolean;
     traceInternals: boolean;
-    delayFlushOnCheckout: number;
   }>;
 }
 
@@ -430,6 +429,7 @@ export interface ReplayContainer {
   stopRecording(): boolean;
   sendBufferedReplayOrFlush(options?: SendBufferedReplayOptions): Promise<void>;
   conditionalFlush(): Promise<void>;
+  flush(): Promise<void>;
   flushImmediate(): Promise<void>;
   cancelFlush(): void;
   triggerUserActivity(): void;

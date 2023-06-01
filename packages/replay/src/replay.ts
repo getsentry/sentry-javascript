@@ -525,6 +525,13 @@ export class ReplayContainer implements ReplayContainerInterface {
   }
 
   /**
+   * Flush using debounce flush
+   */
+  public flush(): Promise<void> {
+    return this._debouncedFlush() as Promise<void>;
+  }
+
+  /**
    * Always flush via `_debouncedFlush` so that we do not have flushes triggered
    * from calling both `flush` and `_debouncedFlush`. Otherwise, there could be
    * cases of mulitple flushes happening closely together.
