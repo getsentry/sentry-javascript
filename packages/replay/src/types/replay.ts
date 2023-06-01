@@ -8,13 +8,12 @@ import type {
   XhrBreadcrumbHint,
 } from '@sentry/types';
 
+import type { SKIPPED, THROTTLED } from '../util/throttle';
 import type { AllPerformanceEntry } from './performance';
-import type { eventWithTime, recordOptions } from './types/rrweb';
-import type { SKIPPED, THROTTLED } from './util/throttle';
+import type { ReplayFrameEvent } from './replayFrame';
+import type { eventWithTime, recordOptions } from './rrweb';
 
-export * from './types/replayFrame';
-
-export type RecordingEvent = eventWithTime;
+export type RecordingEvent = ReplayFrameEvent | eventWithTime;
 export type RecordingOptions = recordOptions;
 
 export interface SendReplayData {
@@ -55,7 +54,7 @@ export interface WorkerResponse {
 export type AddEventResult = void;
 
 export interface BeforeAddRecordingEvent {
-  (event: RecordingEvent): RecordingEvent | null | undefined;
+  (event: ReplayFrameEvent): ReplayFrameEvent | null | undefined;
 }
 
 export interface ReplayNetworkOptions {

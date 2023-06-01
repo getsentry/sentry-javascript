@@ -1,7 +1,7 @@
-import type { customEvent } from '@sentry-internal/rrweb';
 import type { Breadcrumb, FetchBreadcrumbData, XhrBreadcrumbData } from '@sentry/types';
 
 import type { AllEntryData } from './performance';
+import type { EventType } from './rrweb';
 
 interface BaseReplayFrame {
   timestamp: number;
@@ -10,7 +10,7 @@ interface BaseReplayFrame {
    */
   type: string;
   category: string;
-  data?: Record<string, any>;
+  data?: Record<string, unknown>;
   message?: string;
 }
 
@@ -24,10 +24,10 @@ interface BaseDomFrameData {
   };
 }
 
-/* Crumbs from Core SDK */
+/* Breadcrumbs from Core SDK */
 interface ConsoleFrameData {
   logger: string;
-  arguments?: any[];
+  arguments?: unknown[];
 }
 interface ConsoleFrame extends BaseReplayFrame {
   category: 'console';
@@ -60,7 +60,7 @@ interface XhrFrame extends BaseReplayFrame {
   data: XhrBreadcrumbData;
 }
 
-/* Crumbs from Replay */
+/* Breadcrumbs from Replay */
 interface MutationFrameData {
   count: number;
   limit: boolean;
@@ -100,7 +100,21 @@ interface SlowClickFrame extends BaseReplayFrame {
   data: SlowClickFrameData;
 }
 
-export type CrumbFrame =
+interface OptionFrame {
+  sessionSampleRate: number;
+  errorSampleRate: number;
+  useCompressionOption: boolean;
+  blockAllMedia: boolean;
+  maskAllText: boolean;
+  maskAllInputs: boolean;
+  useCompression: boolean;
+  networkDetailHasUrls: boolean;
+  networkCaptureBodies: boolean;
+  networkRequestHasHeaders: boolean;
+  networkResponseHasHeaders: boolean;
+}
+
+export type BreadcrumbFrame =
   | ConsoleFrame
   | ClickFrame
   | FetchFrame
@@ -121,17 +135,40 @@ export interface SpanFrame {
   data: AllEntryData;
 }
 
-export type ReplayFrame = CrumbFrame | SpanFrame;
+export type ReplayFrame = BreadcrumbFrame | SpanFrame;
 
-export interface CrumbFrameEventData {
-  tag: 'breadcrumb';
-  payload: CrumbFrame;
-}
-export interface SpanFrameEventData {
-  tag: 'performanceSpan';
-  payload: SpanFrame;
+interface RecordingCustomEvent {
+  type: EventType.Custom;
+  timestamp: number;
+  data: {
+    tag: string;
+    payload: unknown;
+  };
 }
 
-export type CrumbFrameEvent = customEvent<CrumbFrameEventData>;
-export type SpanFrameEvent = customEvent<SpanFrameEventData>;
-export type ReplayFrameEvent = CrumbFrameEvent | SpanFrameEvent;
+export interface BreadcrumbFrameEvent extends RecordingCustomEvent {
+  data: {
+    tag: 'breadcrumb';
+    payload: BreadcrumbFrame;
+    /**
+     * This will indicate to backend to additionally log as a metric
+     */
+    metric?: boolean;
+  };
+}
+
+export interface SpanFrameEvent extends RecordingCustomEvent {
+  data: {
+    tag: 'performanceSpan';
+    payload: SpanFrame;
+  };
+}
+
+export interface OptionFrameEvent extends RecordingCustomEvent {
+  data: {
+    tag: 'options';
+    payload: OptionFrame;
+  };
+}
+
+export type ReplayFrameEvent = BreadcrumbFrameEvent | SpanFrameEvent | OptionFrameEvent;

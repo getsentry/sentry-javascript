@@ -1,9 +1,9 @@
 export { Replay } from './integration';
 export type {
+  BreadcrumbFrame,
+  BreadcrumbFrameEvent,
   ReplayFrame,
   ReplayFrameEvent,
-  CrumbFrame,
-  CrumbFrameEvent,
   SpanFrame,
   SpanFrameEvent,
 } from './types/replayFrame';

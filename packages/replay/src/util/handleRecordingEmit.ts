@@ -1,7 +1,7 @@
 import { logger } from '@sentry/utils';
 
 import { saveSession } from '../session/saveSession';
-import type { AddEventResult, RecordingEvent, ReplayContainer } from '../types';
+import type { AddEventResult, OptionFrameEvent, RecordingEvent, ReplayContainer } from '../types';
 import { EventType } from '../types/rrweb';
 import { addEvent } from './addEvent';
 
@@ -121,7 +121,7 @@ export function getHandleRecordingEmit(replay: ReplayContainer): RecordingEmitCa
 /**
  * Exported for tests
  */
-export function createOptionsEvent(replay: ReplayContainer): RecordingEvent {
+export function createOptionsEvent(replay: ReplayContainer): OptionFrameEvent {
   const options = replay.getOptions();
   return {
     type: EventType.Custom,

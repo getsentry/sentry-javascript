@@ -1,11 +1,11 @@
-import type { CrumbFrame } from '../types/replayFrame';
+import type { BreadcrumbFrame } from '../types/replayFrame';
 
 /**
  * Create a breadcrumb for a replay.
  */
 export function createBreadcrumb(
-  breadcrumb: Omit<CrumbFrame, 'timestamp' | 'type'> & Partial<Pick<CrumbFrame, 'timestamp'>>,
-): CrumbFrame {
+  breadcrumb: Omit<BreadcrumbFrame, 'timestamp' | 'type'> & Partial<Pick<BreadcrumbFrame, 'timestamp'>>,
+): BreadcrumbFrame {
   return {
     timestamp: Date.now() / 1000,
     type: 'default',
