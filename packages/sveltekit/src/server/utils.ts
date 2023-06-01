@@ -10,7 +10,7 @@ import {
 import type { RequestEvent } from '@sveltejs/kit';
 
 import { WRAPPED_MODULE_SUFFIX } from '../vite/autoInstrument';
-import type { GlobalWithSentryValues } from '../vite/injectGLobalValues';
+import type { GlobalWithSentryValues } from '../vite/injectGlobalValues';
 
 /**
  * Takes a request event and extracts traceparent and DSC data

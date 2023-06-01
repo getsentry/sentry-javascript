@@ -12,8 +12,8 @@ import type { Plugin } from 'vite';
 
 import { WRAPPED_MODULE_SUFFIX } from './autoInstrument';
 import type { SupportedSvelteKitAdapters } from './detectAdapter';
-import type { GlobalSentryValues } from './injectGLobalValues';
-import { getGlobalValueInjectionCode, VIRTUAL_GLOBAL_VALUES_FILE } from './injectGLobalValues';
+import type { GlobalSentryValues } from './injectGlobalValues';
+import { getGlobalValueInjectionCode, VIRTUAL_GLOBAL_VALUES_FILE } from './injectGlobalValues';
 import { getAdapterOutputDir, getHooksFileName, loadSvelteConfig } from './svelteConfig';
 
 // sorcery has no types, so these are some basic type definitions:
