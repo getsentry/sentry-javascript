@@ -10,7 +10,7 @@ interface BaseReplayFrame {
    */
   type: string;
   category: string;
-  data?: Record<string, unknown>;
+  data?: Record<string, any>;
   message?: string;
 }
 
@@ -20,7 +20,7 @@ interface BaseDomFrameData {
     id: number;
     tagName: string;
     textContent: string;
-    attributes: Record<string, unknown>;
+    attributes: Record<string, any>;
   };
 }
 
