@@ -12,6 +12,10 @@ let _LAST_BREADCRUMB: null | Breadcrumb = null;
 
 type BreadcrumbWithCategory = Required<Pick<Breadcrumb, 'category'>>;
 
+function isBreadcrumbWithCategory(breadcrumb: Breadcrumb): breadcrumb is BreadcrumbWithCategory {
+  return !!breadcrumb.category;
+}
+
 export const handleScopeListener: (replay: ReplayContainer) => (scope: Scope) => void =
   (replay: ReplayContainer) =>
   (scope: Scope): void => {
@@ -47,7 +51,7 @@ export function handleScope(scope: Scope): Breadcrumb | null {
   _LAST_BREADCRUMB = newBreadcrumb;
 
   if (
-    typeof newBreadcrumb.category !== 'string' ||
+    !isBreadcrumbWithCategory(newBreadcrumb) ||
     ['fetch', 'xhr', 'sentry.event', 'sentry.transaction'].includes(newBreadcrumb.category) ||
     newBreadcrumb.category.startsWith('ui.')
   ) {
@@ -55,10 +59,10 @@ export function handleScope(scope: Scope): Breadcrumb | null {
   }
 
   if (newBreadcrumb.category === 'console') {
-    return normalizeConsoleBreadcrumb(newBreadcrumb as BreadcrumbWithCategory);
+    return normalizeConsoleBreadcrumb(newBreadcrumb);
   }
 
-  return createBreadcrumb(newBreadcrumb as BreadcrumbWithCategory);
+  return createBreadcrumb(newBreadcrumb);
 }
 
 /** exported for tests only */
