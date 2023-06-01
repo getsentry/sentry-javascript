@@ -134,7 +134,14 @@ function makeWrappedDocumentRequestFunction(
         },
       });
 
-      res = await origDocumentRequestFunction.call(this, request, responseStatusCode, responseHeaders, context, loadContext);
+      res = await origDocumentRequestFunction.call(
+        this,
+        request,
+        responseStatusCode,
+        responseHeaders,
+        context,
+        loadContext,
+      );
 
       span?.finish();
     } catch (err) {
