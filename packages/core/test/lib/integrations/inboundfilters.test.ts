@@ -208,6 +208,21 @@ const TRANSACTION_EVENT_3: Event = {
   type: 'transaction',
 };
 
+const TRANSACTION_EVENT_HEALTH: Event = {
+  transaction: 'GET /health',
+  type: 'transaction',
+};
+
+const TRANSACTION_EVENT_HEALTH_2: Event = {
+  transaction: 'GET /healthy',
+  type: 'transaction',
+};
+
+const TRANSACTION_EVENT_HEALTH_3: Event = {
+  transaction: 'GET /live',
+  type: 'transaction',
+};
+
 describe('InboundFilters', () => {
   describe('_isSentryError', () => {
     it('should work as expected', () => {
@@ -372,7 +387,28 @@ describe('InboundFilters', () => {
 
     it('uses default filters', () => {
       const eventProcessor = createInboundFiltersEventProcessor();
+      expect(eventProcessor(SCRIPT_ERROR_EVENT, {})).toBe(null);
       expect(eventProcessor(TRANSACTION_EVENT, {})).toBe(TRANSACTION_EVENT);
+      expect(eventProcessor(TRANSACTION_EVENT_HEALTH, {})).toBe(null);
+      expect(eventProcessor(TRANSACTION_EVENT_HEALTH_2, {})).toBe(null);
+      expect(eventProcessor(TRANSACTION_EVENT_HEALTH_3, {})).toBe(null);
+    });
+
+    it('disable default error filters', () => {
+      const eventProcessor = createInboundFiltersEventProcessor({ disableErrorDefaults: true });
+      expect(eventProcessor(SCRIPT_ERROR_EVENT, {})).toBe(SCRIPT_ERROR_EVENT);
+      expect(eventProcessor(TRANSACTION_EVENT_HEALTH, {})).toBe(null);
+      expect(eventProcessor(TRANSACTION_EVENT_HEALTH_2, {})).toBe(null);
+      expect(eventProcessor(TRANSACTION_EVENT_HEALTH_3, {})).toBe(null);
+    });
+
+    it('disable default transaction filters', () => {
+      const eventProcessor = createInboundFiltersEventProcessor({ disableTransactionDefaults: true });
+      expect(eventProcessor(SCRIPT_ERROR_EVENT, {})).toBe(null);
+      expect(eventProcessor(TRANSACTION_EVENT, {})).toBe(TRANSACTION_EVENT);
+      expect(eventProcessor(TRANSACTION_EVENT_HEALTH, {})).toBe(TRANSACTION_EVENT_HEALTH);
+      expect(eventProcessor(TRANSACTION_EVENT_HEALTH_2, {})).toBe(TRANSACTION_EVENT_HEALTH_2);
+      expect(eventProcessor(TRANSACTION_EVENT_HEALTH_3, {})).toBe(TRANSACTION_EVENT_HEALTH_3);
     });
   });
 
