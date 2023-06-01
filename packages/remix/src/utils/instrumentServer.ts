@@ -113,6 +113,7 @@ function makeWrappedDocumentRequestFunction(
     responseStatusCode: number,
     responseHeaders: Headers,
     context: Record<symbol, unknown>,
+    loadContext?: Record<string, unknown>,
   ): Promise<Response> {
     let res: Response;
 
@@ -120,7 +121,7 @@ function makeWrappedDocumentRequestFunction(
     const currentScope = getCurrentHub().getScope();
 
     if (!currentScope) {
-      return origDocumentRequestFunction.call(this, request, responseStatusCode, responseHeaders, context);
+      return origDocumentRequestFunction.call(this, request, responseStatusCode, responseHeaders, context, loadContext);
     }
 
     try {
@@ -133,7 +134,14 @@ function makeWrappedDocumentRequestFunction(
         },
       });
 
-      res = await origDocumentRequestFunction.call(this, request, responseStatusCode, responseHeaders, context);
+      res = await origDocumentRequestFunction.call(
+        this,
+        request,
+        responseStatusCode,
+        responseHeaders,
+        context,
+        loadContext,
+      );
 
       span?.finish();
     } catch (err) {
