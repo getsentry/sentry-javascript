@@ -1,7 +1,7 @@
 /* eslint-disable max-lines */ // TODO: We might want to split this file up
 import { EventType, record } from '@sentry-internal/rrweb';
 import { captureException, getCurrentHub } from '@sentry/core';
-import type { Breadcrumb, ReplayRecordingMode } from '@sentry/types';
+import type { Breadcrumb, ReplayRecordingMode, Transaction } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
 import {
@@ -67,6 +67,12 @@ export class ReplayContainer implements ReplayContainerInterface {
    *     - or calling `flush()` to send the replay
    */
   public recordingMode: ReplayRecordingMode = 'session';
+
+  /**
+   * The current or last active transcation.
+   * This is only available when performance is enabled.
+   */
+  public lastTransaction?: Transaction;
 
   /**
    * These are here so we can overwrite them in tests etc.
@@ -612,6 +618,19 @@ export class ReplayContainer implements ReplayContainerInterface {
     }
 
     return res;
+  }
+
+  /**
+   * This will get the parametrized route name of the current page.
+   * This is only available if performance is enabled, and if an instrumented router is used.
+   */
+  public getCurrentRoute(): string | undefined {
+    const lastTransaction = this.lastTransaction || getCurrentHub().getScope().getTransaction();
+    if (!lastTransaction || !['route', 'custom'].includes(lastTransaction.metadata.source)) {
+      return undefined;
+    }
+
+    return lastTransaction.name;
   }
 
   /**
