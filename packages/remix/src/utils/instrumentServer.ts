@@ -113,7 +113,7 @@ function makeWrappedDocumentRequestFunction(
     responseStatusCode: number,
     responseHeaders: Headers,
     context: Record<symbol, unknown>,
-    loadContext: Record<string, unknown>,
+    loadContext?: Record<string, unknown>,
   ): Promise<Response> {
     let res: Response;
 
