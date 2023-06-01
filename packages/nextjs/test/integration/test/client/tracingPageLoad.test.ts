@@ -4,7 +4,7 @@ import { Transaction } from '@sentry/types';
 
 test('should report a `pageload` transaction', async ({ page }) => {
   const transaction = await getMultipleSentryEnvelopeRequests<Transaction>(page, 1, {
-    url: '/healthy',
+    url: '/testy',
     envelopeType: 'transaction',
   });
 
@@ -16,5 +16,5 @@ test('should report a `pageload` transaction', async ({ page }) => {
     },
   });
 
-  expect(await countEnvelopes(page, { url: '/healthy', envelopeType: 'transaction', timeout: 4000 })).toBe(1);
+  expect(await countEnvelopes(page, { url: '/testy', envelopeType: 'transaction', timeout: 4000 })).toBe(1);
 });

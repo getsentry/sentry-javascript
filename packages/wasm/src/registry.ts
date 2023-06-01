@@ -45,11 +45,22 @@ export function registerModule(module: WebAssembly.Module, url: string): void {
     if (oldIdx >= 0) {
       IMAGES.splice(oldIdx, 1);
     }
+
+    let debugFileUrl = null;
+    if (debugFile) {
+      try {
+        debugFileUrl = new URL(debugFile, url).href;
+      } catch {
+        // debugFile could be a blob URL which causes the URL constructor to throw
+        // for now we just ignore this case
+      }
+    }
+
     IMAGES.push({
       type: 'wasm',
       code_id: buildId,
       code_file: url,
-      debug_file: debugFile ? new URL(debugFile, url).href : null,
+      debug_file: debugFileUrl,
       debug_id: `${buildId.padEnd(32, '0').slice(0, 32)}0`,
     });
   }

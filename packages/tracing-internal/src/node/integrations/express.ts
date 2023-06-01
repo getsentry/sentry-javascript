@@ -1,6 +1,12 @@
 /* eslint-disable max-lines */
 import type { Hub, Integration, PolymorphicRequest, Transaction } from '@sentry/types';
-import { extractPathForTransaction, getNumberOfUrlSegments, isRegExp, logger } from '@sentry/utils';
+import {
+  extractPathForTransaction,
+  getNumberOfUrlSegments,
+  isRegExp,
+  logger,
+  stripUrlQueryAndFragment,
+} from '@sentry/utils';
 
 import { shouldDisableAutoInstrumentation } from './utils/node-utils';
 
@@ -335,7 +341,7 @@ function instrumentRouter(appOrRouter: ExpressRouter): void {
     if (urlLength === routeLength) {
       if (!req._hasParameters) {
         if (req._reconstructedRoute !== req.originalUrl) {
-          req._reconstructedRoute = req.originalUrl;
+          req._reconstructedRoute = req.originalUrl ? stripUrlQueryAndFragment(req.originalUrl) : req.originalUrl;
         }
       }
 

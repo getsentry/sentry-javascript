@@ -1,7 +1,7 @@
 /* eslint-disable max-lines */ // TODO: We might want to split this file up
 import { EventType, record } from '@sentry-internal/rrweb';
 import { captureException, getCurrentHub } from '@sentry/core';
-import type { Breadcrumb, ReplayRecordingMode } from '@sentry/types';
+import type { Breadcrumb, ReplayRecordingMode, Transaction } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
 import {
@@ -24,6 +24,7 @@ import type {
   EventBuffer,
   InternalEventContext,
   PopEventContext,
+  RecordingEvent,
   RecordingOptions,
   ReplayContainer as ReplayContainerInterface,
   ReplayPluginOptions,
@@ -42,6 +43,8 @@ import { getHandleRecordingEmit } from './util/handleRecordingEmit';
 import { isExpired } from './util/isExpired';
 import { isSessionExpired } from './util/isSessionExpired';
 import { sendReplay } from './util/sendReplay';
+import type { SKIPPED } from './util/throttle';
+import { throttle, THROTTLED } from './util/throttle';
 
 /**
  * The main replay container class, which holds all the state and methods for recording and sending replays.
@@ -66,6 +69,12 @@ export class ReplayContainer implements ReplayContainerInterface {
   public recordingMode: ReplayRecordingMode = 'session';
 
   /**
+   * The current or last active transcation.
+   * This is only available when performance is enabled.
+   */
+  public lastTransaction?: Transaction;
+
+  /**
    * These are here so we can overwrite them in tests etc.
    * @hidden
    */
@@ -74,6 +83,11 @@ export class ReplayContainer implements ReplayContainerInterface {
     sessionIdleExpire: SESSION_IDLE_EXPIRE_DURATION,
     maxSessionLife: MAX_SESSION_LIFE,
   } as const;
+
+  private _throttledAddEvent: (
+    event: RecordingEvent,
+    isCheckout?: boolean,
+  ) => typeof THROTTLED | typeof SKIPPED | Promise<AddEventResult | null>;
 
   /**
    * Options to pass to `rrweb.record()`
@@ -136,6 +150,14 @@ export class ReplayContainer implements ReplayContainerInterface {
     this._debouncedFlush = debounce(() => this._flush(), this._options.flushMinDelay, {
       maxWait: this._options.flushMaxDelay,
     });
+
+    this._throttledAddEvent = throttle(
+      (event: RecordingEvent, isCheckout?: boolean) => addEvent(this, event, isCheckout),
+      // Max 300 events...
+      300,
+      // ... per 5s
+      5,
+    );
   }
 
   /** Get the event context. */
@@ -566,6 +588,52 @@ export class ReplayContainer implements ReplayContainerInterface {
   }
 
   /**
+   * Add a breadcrumb event, that may be throttled.
+   * If it was throttled, we add a custom breadcrumb to indicate that.
+   */
+  public throttledAddEvent(
+    event: RecordingEvent,
+    isCheckout?: boolean,
+  ): typeof THROTTLED | typeof SKIPPED | Promise<AddEventResult | null> {
+    const res = this._throttledAddEvent(event, isCheckout);
+
+    // If this is THROTTLED, it means we have throttled the event for the first time
+    // In this case, we want to add a breadcrumb indicating that something was skipped
+    if (res === THROTTLED) {
+      const breadcrumb = createBreadcrumb({
+        category: 'replay.throttled',
+      });
+
+      this.addUpdate(() => {
+        void addEvent(this, {
+          type: EventType.Custom,
+          timestamp: breadcrumb.timestamp || 0,
+          data: {
+            tag: 'breadcrumb',
+            payload: breadcrumb,
+            metric: true,
+          },
+        });
+      });
+    }
+
+    return res;
+  }
+
+  /**
+   * This will get the parametrized route name of the current page.
+   * This is only available if performance is enabled, and if an instrumented router is used.
+   */
+  public getCurrentRoute(): string | undefined {
+    const lastTransaction = this.lastTransaction || getCurrentHub().getScope().getTransaction();
+    if (!lastTransaction || !['route', 'custom'].includes(lastTransaction.metadata.source)) {
+      return undefined;
+    }
+
+    return lastTransaction.name;
+  }
+
+  /**
    * Initialize and start all listeners to varying events (DOM,
    * Performance Observer, Recording, Sentry SDK, etc)
    */
@@ -803,7 +871,7 @@ export class ReplayContainer implements ReplayContainerInterface {
    */
   private _createCustomBreadcrumb(breadcrumb: Breadcrumb): void {
     this.addUpdate(() => {
-      void addEvent(this, {
+      void this.throttledAddEvent({
         type: EventType.Custom,
         timestamp: breadcrumb.timestamp || 0,
         data: {
@@ -1007,8 +1075,8 @@ export class ReplayContainer implements ReplayContainerInterface {
   private _onMutationHandler = (mutations: unknown[]): boolean => {
     const count = mutations.length;
 
-    const mutationLimit = this._options._experiments.mutationLimit || 0;
-    const mutationBreadcrumbLimit = this._options._experiments.mutationBreadcrumbLimit || 1000;
+    const mutationLimit = this._options.mutationLimit;
+    const mutationBreadcrumbLimit = this._options.mutationBreadcrumbLimit;
     const overMutationLimit = mutationLimit && count > mutationLimit;
 
     // Create a breadcrumb if a lot of mutations happen at the same time
@@ -1018,15 +1086,15 @@ export class ReplayContainer implements ReplayContainerInterface {
         category: 'replay.mutations',
         data: {
           count,
+          limit: overMutationLimit,
         },
       });
       this._createCustomBreadcrumb(breadcrumb);
     }
 
+    // Stop replay if over the mutation limit
     if (overMutationLimit) {
-      // We want to skip doing an incremental snapshot if there are too many mutations
-      // Instead, we do a full snapshot
-      this._triggerFullSnapshot(false);
+      void this.stop('mutationLimit');
       return false;
     }
 

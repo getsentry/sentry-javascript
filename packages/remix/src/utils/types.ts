@@ -127,9 +127,13 @@ export interface ServerBuild {
 }
 
 export interface HandleDocumentRequestFunction {
-  (request: RemixRequest, responseStatusCode: number, responseHeaders: Headers, context: EntryContext):
-    | Promise<Response>
-    | Response;
+  (
+    request: RemixRequest,
+    responseStatusCode: number,
+    responseHeaders: Headers,
+    context: EntryContext,
+    loadContext?: AppLoadContext,
+  ): Promise<Response> | Response;
 }
 
 export interface HandleDataRequestFunction {

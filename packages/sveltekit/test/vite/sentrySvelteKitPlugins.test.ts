@@ -17,7 +17,14 @@ vi.mock('fs', async () => {
   };
 });
 
-describe('sentryVite()', () => {
+vi.spyOn(console, 'log').mockImplementation(() => {
+  /* noop */
+});
+vi.spyOn(console, 'warn').mockImplementation(() => {
+  /* noop */
+});
+
+describe('sentrySvelteKit()', () => {
   it('returns an array of Vite plugins', async () => {
     const plugins = await sentrySvelteKit();
 
@@ -65,6 +72,7 @@ describe('sentryVite()', () => {
         ignore: ['bar.js'],
       },
       autoInstrument: false,
+      adapter: 'vercel',
     });
     const plugin = plugins[0];
 
@@ -73,6 +81,7 @@ describe('sentryVite()', () => {
       debug: true,
       ignore: ['bar.js'],
       include: ['foo.js'],
+      adapter: 'vercel',
     });
   });
 

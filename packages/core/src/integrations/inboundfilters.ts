@@ -5,6 +5,16 @@ import { getEventDescription, logger, stringMatchesSomePattern } from '@sentry/u
 // this is the result of a script being pulled in from an external domain and CORS.
 const DEFAULT_IGNORE_ERRORS = [/^Script error\.?$/, /^Javascript error: Script error\.? on line 0$/];
 
+const DEFAULT_IGNORE_TRANSACTIONS = [
+  /^.*healthcheck.*$/,
+  /^.*healthy.*$/,
+  /^.*live.*$/,
+  /^.*ready.*$/,
+  /^.*heartbeat.*$/,
+  /^.*\/health$/,
+  /^.*\/healthz$/,
+];
+
 /** Options for the InboundFilters integration */
 export interface InboundFiltersOptions {
   allowUrls: Array<string | RegExp>;
@@ -12,6 +22,8 @@ export interface InboundFiltersOptions {
   ignoreErrors: Array<string | RegExp>;
   ignoreTransactions: Array<string | RegExp>;
   ignoreInternal: boolean;
+  disableErrorDefaults: boolean;
+  disableTransactionDefaults: boolean;
 }
 
 /** Inbound filters configurable by the user */
@@ -62,9 +74,13 @@ export function _mergeOptions(
     ignoreErrors: [
       ...(internalOptions.ignoreErrors || []),
       ...(clientOptions.ignoreErrors || []),
-      ...DEFAULT_IGNORE_ERRORS,
+      ...(internalOptions.disableErrorDefaults ? [] : DEFAULT_IGNORE_ERRORS),
     ],
-    ignoreTransactions: [...(internalOptions.ignoreTransactions || []), ...(clientOptions.ignoreTransactions || [])],
+    ignoreTransactions: [
+      ...(internalOptions.ignoreTransactions || []),
+      ...(clientOptions.ignoreTransactions || []),
+      ...(internalOptions.disableTransactionDefaults ? [] : DEFAULT_IGNORE_TRANSACTIONS),
+    ],
     ignoreInternal: internalOptions.ignoreInternal !== undefined ? internalOptions.ignoreInternal : true,
   };
 }

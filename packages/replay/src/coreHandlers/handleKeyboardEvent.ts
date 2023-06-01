@@ -28,7 +28,7 @@ export function getKeyboardBreadcrumb(event: KeyboardEvent): Breadcrumb | null {
   const { metaKey, shiftKey, ctrlKey, altKey, key, target } = event;
 
   // never capture for input fields
-  if (!target || isInputElement(target as HTMLElement)) {
+  if (!target || isInputElement(target as HTMLElement) || !key) {
     return null;
   }
 

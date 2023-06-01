@@ -3,6 +3,8 @@ import type { Plugin } from 'vite';
 
 import type { AutoInstrumentSelection } from './autoInstrument';
 import { makeAutoInstrumentationPlugin } from './autoInstrument';
+import type { SupportedSvelteKitAdapters } from './detectAdapter';
+import { detectAdapter } from './detectAdapter';
 import { makeCustomSentryVitePlugin } from './sourceMaps';
 
 type SourceMapsUploadOptions = {
@@ -39,6 +41,24 @@ export type SentrySvelteKitPluginOptions = {
    * @default false.
    */
   debug?: boolean;
+
+  /**
+   * Specify which SvelteKit adapter you're using.
+   * By default, the SDK will attempt auto-detect the used adapter at build time and apply the
+   * correct config for source maps upload or auto-instrumentation.
+   *
+   * Currently, the SDK supports the following adapters:
+   * - node (@sveltejs/adapter-node)
+   * - auto (@sveltejs/adapter-auto) only Vercel
+   * - vercel (@sveltejs/adapter-auto) only Serverless functions, no edge runtime
+   *
+   * Set this option, if the SDK detects the wrong adapter or you want to use an adapter
+   * that is not in this list. If you specify 'other', you'll most likely need to configure
+   * source maps upload yourself.
+   *
+   * @default {} the SDK attempts to auto-detect the used adapter at build time
+   */
+  adapter?: SupportedSvelteKitAdapters;
 } & SourceMapsUploadOptions &
   AutoInstrumentOptions;
 
@@ -59,6 +79,7 @@ export async function sentrySvelteKit(options: SentrySvelteKitPluginOptions = {}
   const mergedOptions = {
     ...DEFAULT_PLUGIN_OPTIONS,
     ...options,
+    adapter: options.adapter || (await detectAdapter(options.debug || false)),
   };
 
   const sentryPlugins: Plugin[] = [];
@@ -82,6 +103,7 @@ export async function sentrySvelteKit(options: SentrySvelteKitPluginOptions = {}
     const pluginOptions = {
       ...mergedOptions.sourceMapsUploadOptions,
       debug: mergedOptions.debug, // override the plugin's debug flag with the one from the top-level options
+      adapter: mergedOptions.adapter,
     };
     sentryPlugins.push(await makeCustomSentryVitePlugin(pluginOptions));
   }

@@ -4,10 +4,12 @@ import type {
   ReplayRecordingData,
   ReplayRecordingMode,
   SentryWrappedXMLHttpRequest,
+  Transaction,
   XhrBreadcrumbHint,
 } from '@sentry/types';
 
 import type { eventWithTime, recordOptions } from './types/rrweb';
+import type { SKIPPED, THROTTLED } from './util/throttle';
 
 export type RecordingEvent = eventWithTime;
 export type RecordingOptions = recordOptions;
@@ -272,6 +274,20 @@ export interface ReplayPluginOptions extends ReplayNetworkOptions {
   maskAllText: boolean;
 
   /**
+   * A high number of DOM mutations (in a single event loop) can cause
+   * performance regressions in end-users' browsers. This setting will create
+   * a breadcrumb in the recording when the limit has been reached.
+   */
+  mutationBreadcrumbLimit: number;
+
+  /**
+   * A high number of DOM mutations (in a single event loop) can cause
+   * performance regressions in end-users' browsers. This setting will cause
+   * recording to stop when the limit has been reached.
+   */
+  mutationLimit: number;
+
+  /**
    * Callback before adding a custom recording event
    *
    * Events added by the underlying DOM recording library can *not* be modified,
@@ -294,8 +310,6 @@ export interface ReplayPluginOptions extends ReplayNetworkOptions {
   _experiments: Partial<{
     captureExceptions: boolean;
     traceInternals: boolean;
-    mutationLimit: number;
-    mutationBreadcrumbLimit: number;
     slowClicks: {
       threshold: number;
       timeout: number;
@@ -522,6 +536,11 @@ export interface ReplayContainer {
   session: Session | undefined;
   recordingMode: ReplayRecordingMode;
   timeouts: Timeouts;
+  lastTransaction?: Transaction;
+  throttledAddEvent: (
+    event: RecordingEvent,
+    isCheckout?: boolean,
+  ) => typeof THROTTLED | typeof SKIPPED | Promise<AddEventResult | null>;
   isEnabled(): boolean;
   isPaused(): boolean;
   getContext(): InternalEventContext;
@@ -542,6 +561,7 @@ export interface ReplayContainer {
   getSessionId(): string | undefined;
   checkAndHandleExpiredSession(): boolean | void;
   setInitialState(): void;
+  getCurrentRoute(): string | undefined;
 }
 
 export interface ReplayPerformanceEntry<T> {
