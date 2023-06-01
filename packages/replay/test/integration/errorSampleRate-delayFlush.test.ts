@@ -767,7 +767,7 @@ describe('Integration | errorSampleRate with delayed flush', () => {
     // 3 DEFAULT_FLUSH_MIN_DELAY is to account for the `waitForFlush` that has
     // happened, and for the next two that will happen. The first following
     // `waitForFlush` does not expire session, but the following one will.
-    jest.advanceTimersByTime(SESSION_IDLE_EXPIRE_DURATION - 60000 - (3 * DEFAULT_FLUSH_MIN_DELAY) - TICKS);
+    jest.advanceTimersByTime(SESSION_IDLE_EXPIRE_DURATION - 60000 - 3 * DEFAULT_FLUSH_MIN_DELAY - TICKS);
     await new Promise(process.nextTick);
 
     mockRecord._emitter(TEST_EVENT);
@@ -789,7 +789,7 @@ describe('Integration | errorSampleRate with delayed flush', () => {
     // It's hard to test, but if we advance the below time less 1 ms, it should
     // be enabled, but we can't trigger a session check via flush without
     // incurring another DEFAULT_FLUSH_MIN_DELAY timeout.
-    jest.advanceTimersByTime(60000 - DEFAULT_FLUSH_MIN_DELAY)
+    jest.advanceTimersByTime(60000 - DEFAULT_FLUSH_MIN_DELAY);
     mockRecord._emitter(TEST_EVENT);
     expect(replay).not.toHaveLastSentReplay();
     await waitForFlush();
