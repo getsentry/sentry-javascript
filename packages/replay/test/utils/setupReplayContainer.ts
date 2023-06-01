@@ -15,6 +15,8 @@ const DEFAULT_OPTIONS = {
   networkCaptureBodies: true,
   networkRequestHeaders: [],
   networkResponseHeaders: [],
+  mutationLimit: 1500,
+  mutationBreadcrumbLimit: 500,
   _experiments: {},
 };
 
@@ -54,6 +56,8 @@ export const DEFAULT_OPTIONS_EVENT_PAYLOAD = {
   maskAllText: false,
   maskAllInputs: false,
   useCompression: DEFAULT_OPTIONS.useCompression,
+  mutationLimit: DEFAULT_OPTIONS.mutationLimit,
+  mutationBreadcrumbLimit: DEFAULT_OPTIONS.mutationBreadcrumbLimit,
   networkDetailHasUrls: DEFAULT_OPTIONS.networkDetailAllowUrls.length > 0,
   networkCaptureBodies: DEFAULT_OPTIONS.networkCaptureBodies,
   networkRequestHeaders: DEFAULT_OPTIONS.networkRequestHeaders.length > 0,

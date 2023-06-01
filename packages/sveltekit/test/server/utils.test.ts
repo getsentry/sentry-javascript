@@ -1,6 +1,8 @@
 import { RewriteFrames } from '@sentry/integrations';
 import type { StackFrame } from '@sentry/types';
+import { basename } from '@sentry/utils';
 
+import type { GlobalWithSentryValues } from '../../src/server/utils';
 import { getTracePropagationData, rewriteFramesIteratee } from '../../src/server/utils';
 
 const MOCK_REQUEST_EVENT: any = {
@@ -69,7 +71,7 @@ describe('rewriteFramesIteratee', () => {
     expect(result).not.toHaveProperty('module');
   });
 
-  it('does the same filename modification as the default RewriteFrames iteratee', () => {
+  it('does the same filename modification as the default RewriteFrames iteratee if no output dir is available', () => {
     const frame: StackFrame = {
       filename: '/some/path/to/server/chunks/3-ab34d22f.js',
       lineno: 1,
@@ -94,4 +96,36 @@ describe('rewriteFramesIteratee', () => {
 
     expect(result).toStrictEqual(defaultResult);
   });
+
+  it.each([
+    ['adapter-node', 'build', '/absolute/path/to/build/server/chunks/3-ab34d22f.js', 'app:///chunks/3-ab34d22f.js'],
+    [
+      'adapter-auto',
+      '.svelte-kit/output',
+      '/absolute/path/to/.svelte-kit/output/server/entries/pages/page.ts.js',
+      'app:///entries/pages/page.ts.js',
+    ],
+  ])(
+    'removes the absolut path to the server output dir, if the output dir is available (%s)',
+    (_, outputDir, frameFilename, modifiedFilename) => {
+      (globalThis as GlobalWithSentryValues).__sentry_sveltekit_output_dir = outputDir;
+
+      const frame: StackFrame = {
+        filename: frameFilename,
+        lineno: 1,
+        colno: 1,
+        module: basename(frameFilename),
+      };
+
+      const result = rewriteFramesIteratee({ ...frame });
+
+      expect(result).toStrictEqual({
+        filename: modifiedFilename,
+        lineno: 1,
+        colno: 1,
+      });
+
+      delete (globalThis as GlobalWithSentryValues).__sentry_sveltekit_output_dir;
+    },
+  );
 });

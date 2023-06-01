@@ -1,7 +1,7 @@
 /* eslint-disable max-lines */ // TODO: We might want to split this file up
 import { EventType, record } from '@sentry-internal/rrweb';
 import { captureException, getCurrentHub } from '@sentry/core';
-import type { Breadcrumb, ReplayRecordingMode } from '@sentry/types';
+import type { Breadcrumb, ReplayRecordingMode, Transaction } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
 import {
@@ -67,6 +67,12 @@ export class ReplayContainer implements ReplayContainerInterface {
    *     - or calling `flush()` to send the replay
    */
   public recordingMode: ReplayRecordingMode = 'session';
+
+  /**
+   * The current or last active transcation.
+   * This is only available when performance is enabled.
+   */
+  public lastTransaction?: Transaction;
 
   /**
    * These are here so we can overwrite them in tests etc.
@@ -615,6 +621,19 @@ export class ReplayContainer implements ReplayContainerInterface {
   }
 
   /**
+   * This will get the parametrized route name of the current page.
+   * This is only available if performance is enabled, and if an instrumented router is used.
+   */
+  public getCurrentRoute(): string | undefined {
+    const lastTransaction = this.lastTransaction || getCurrentHub().getScope().getTransaction();
+    if (!lastTransaction || !['route', 'custom'].includes(lastTransaction.metadata.source)) {
+      return undefined;
+    }
+
+    return lastTransaction.name;
+  }
+
+  /**
    * Initialize and start all listeners to varying events (DOM,
    * Performance Observer, Recording, Sentry SDK, etc)
    */
@@ -1056,8 +1075,8 @@ export class ReplayContainer implements ReplayContainerInterface {
   private _onMutationHandler = (mutations: unknown[]): boolean => {
     const count = mutations.length;
 
-    const mutationLimit = this._options._experiments.mutationLimit || 0;
-    const mutationBreadcrumbLimit = this._options._experiments.mutationBreadcrumbLimit || 1000;
+    const mutationLimit = this._options.mutationLimit;
+    const mutationBreadcrumbLimit = this._options.mutationBreadcrumbLimit;
     const overMutationLimit = mutationLimit && count > mutationLimit;
 
     // Create a breadcrumb if a lot of mutations happen at the same time
@@ -1067,15 +1086,15 @@ export class ReplayContainer implements ReplayContainerInterface {
         category: 'replay.mutations',
         data: {
           count,
+          limit: overMutationLimit,
         },
       });
       this._createCustomBreadcrumb(breadcrumb);
     }
 
+    // Stop replay if over the mutation limit
     if (overMutationLimit) {
-      // We want to skip doing an incremental snapshot if there are too many mutations
-      // Instead, we do a full snapshot
-      this._triggerFullSnapshot(false);
+      void this.stop('mutationLimit');
       return false;
     }
 
