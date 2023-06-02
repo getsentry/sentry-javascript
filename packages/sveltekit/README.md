@@ -16,9 +16,18 @@
 
 ## Compatibility
 
-Currently, the minimum supported version of SvelteKit is `1.0.0`.
+The minimum supported version of SvelteKit is `1.0.0`.
 The SDK works best with Vite 4.2 and newer.
 Older Vite versions might not generate source maps correctly.
+
+The SDK supports the following SvelteKit adapters:
+- `@sveltejs/adapter-auto` - for Vercel with the Node runtime. Other deployment targets might work but we don't guarantee compatibility.
+- `@sveltejs/adapter-vercel` - only for Node (Lambda) runtimes, not yet Vercel's edge runtime
+- `@sveltejs/adapter-node`
+
+If you use the SDK with other adapters, we cannot guarantee that everything works as expected.
+You might need to [manually configure source maps upload](#-configuring-source-maps-upload).
+The SDK is currently not compatible with none-Node server runtimes, such as Vercel's Edge runtime or Cloudflare workers.
 
 ## General
 
@@ -40,9 +49,7 @@ If the setup through the wizard doesn't work for you, you can also set up the SD
 
 ### 1. Prerequesits & Installation
 
-1. Ensure you've set up the [`@sveltejs/adapter-node` adapter](https://kit.svelte.dev/docs/adapter-node)
-
-2. Install the Sentry SvelteKit SDK:
+1. Install the Sentry SvelteKit SDK:
 
    ```bash
    # Using npm
@@ -310,12 +317,3 @@ export const load = wrapServerLoadWithSentry((event) => {
 });
 ```
 
-
-## Known Limitations
-
-This SDK is still under active development.
-Take a look at our [SvelteKit SDK Development Roadmap](https://github.com/getsentry/sentry-javascript/issues/6692) to follow the progress.
-
-- **Adapters** other than `@sveltejs/adapter-node` are currently not supported.
-  We haven't yet tested other platforms like Vercel.
-  This is on our roadmap but it will come at a later time.
