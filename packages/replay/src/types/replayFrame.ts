@@ -29,7 +29,7 @@ interface ConsoleFrameData {
   logger: string;
   arguments?: unknown[];
 }
-interface ConsoleFrame extends BaseReplayFrame {
+export interface ConsoleFrame extends BaseReplayFrame {
   category: 'console';
   level: Breadcrumb['level'];
   message: string;
@@ -37,24 +37,24 @@ interface ConsoleFrame extends BaseReplayFrame {
 }
 
 type ClickFrameData = BaseDomFrameData;
-interface ClickFrame extends BaseReplayFrame {
+export interface ClickFrame extends BaseReplayFrame {
   category: 'ui.click';
   message: string;
   data: ClickFrameData;
 }
 
-interface FetchFrame extends BaseReplayFrame {
+export interface FetchFrame extends BaseReplayFrame {
   category: 'fetch';
   type: 'http';
   data: FetchBreadcrumbData;
 }
 
-interface InputFrame extends BaseReplayFrame {
+export interface InputFrame extends BaseReplayFrame {
   category: 'ui.input';
   message: string;
 }
 
-interface XhrFrame extends BaseReplayFrame {
+export interface XhrFrame extends BaseReplayFrame {
   category: 'xhr';
   type: 'http';
   data: XhrBreadcrumbData;
@@ -65,7 +65,7 @@ interface MutationFrameData {
   count: number;
   limit: boolean;
 }
-interface MutationFrame extends BaseReplayFrame {
+export interface MutationFrame extends BaseReplayFrame {
   category: 'replay.mutations';
   data: MutationFrameData;
 }
@@ -77,16 +77,16 @@ interface KeyboardEventFrameData extends BaseDomFrameData {
   altKey: boolean;
   key: string;
 }
-interface KeyboardEventFrame extends BaseReplayFrame {
+export interface KeyboardEventFrame extends BaseReplayFrame {
   category: 'ui.keyDown';
   data: KeyboardEventFrameData;
 }
 
-interface BlurFrame extends BaseReplayFrame {
+export interface BlurFrame extends BaseReplayFrame {
   category: 'ui.blur';
 }
 
-interface FocusFrame extends BaseReplayFrame {
+export interface FocusFrame extends BaseReplayFrame {
   category: 'ui.focus';
 }
 
@@ -95,7 +95,7 @@ interface SlowClickFrameData extends ClickFrameData {
   timeAfterClickFs: number;
   endReason: string;
 }
-interface SlowClickFrame extends BaseReplayFrame {
+export interface SlowClickFrame extends BaseReplayFrame {
   category: 'ui.slowClickDetected';
   data: SlowClickFrameData;
 }
