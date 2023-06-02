@@ -28,6 +28,7 @@ The SDK supports the following SvelteKit adapters:
 If you use the SDK with other adapters, we cannot guarantee that everything works as expected.
 You might need to [manually configure source maps upload](#-configuring-source-maps-upload).
 The SDK is currently not compatible with none-Node server runtimes, such as Vercel's Edge runtime or Cloudflare workers.
+
 ## General
 
 This package is a wrapper around `@sentry/node` for the server and `@sentry/svelte` for the client side, with added functionality related to SvelteKit.
