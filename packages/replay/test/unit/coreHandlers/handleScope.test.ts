@@ -63,21 +63,21 @@ describe('Unit | coreHandlers | handleScope', () => {
 
   describe('normalizeConsoleBreadcrumb', () => {
     it('handles console messages with no arguments', () => {
-      const breadcrumb: Breadcrumb = { category: 'console', message: 'test' };
+      const breadcrumb = { category: 'console', message: 'test' };
       const actual = HandleScope.normalizeConsoleBreadcrumb(breadcrumb);
 
       expect(actual).toMatchObject({ category: 'console', message: 'test' });
     });
 
     it('handles console messages with empty arguments', () => {
-      const breadcrumb: Breadcrumb = { category: 'console', message: 'test', data: { arguments: [] } };
+      const breadcrumb = { category: 'console', message: 'test', data: { arguments: [] } };
       const actual = HandleScope.normalizeConsoleBreadcrumb(breadcrumb);
 
       expect(actual).toMatchObject({ category: 'console', message: 'test', data: { arguments: [] } });
     });
 
     it('handles console messages with simple arguments', () => {
-      const breadcrumb: Breadcrumb = {
+      const breadcrumb = {
         category: 'console',
         message: 'test',
         data: { arguments: [1, 'a', true, null, undefined] },
@@ -94,7 +94,7 @@ describe('Unit | coreHandlers | handleScope', () => {
     });
 
     it('truncates large strings', () => {
-      const breadcrumb: Breadcrumb = {
+      const breadcrumb = {
         category: 'console',
         message: 'test',
         data: {
@@ -114,7 +114,7 @@ describe('Unit | coreHandlers | handleScope', () => {
     });
 
     it('truncates large JSON objects', () => {
-      const breadcrumb: Breadcrumb = {
+      const breadcrumb = {
         category: 'console',
         message: 'test',
         data: {

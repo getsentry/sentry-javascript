@@ -1,13 +1,11 @@
-import type { Breadcrumb } from '@sentry/types';
-
-type RequiredProperties = 'category' | 'message';
+import type { BreadcrumbFrame } from '../types/replayFrame';
 
 /**
  * Create a breadcrumb for a replay.
  */
 export function createBreadcrumb(
-  breadcrumb: Pick<Breadcrumb, RequiredProperties> & Partial<Omit<Breadcrumb, RequiredProperties>>,
-): Breadcrumb {
+  breadcrumb: Omit<BreadcrumbFrame, 'timestamp' | 'type'> & Partial<Pick<BreadcrumbFrame, 'timestamp'>>,
+): BreadcrumbFrame {
   return {
     timestamp: Date.now() / 1000,
     type: 'default',

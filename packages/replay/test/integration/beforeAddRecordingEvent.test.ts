@@ -37,7 +37,7 @@ describe('Integration | beforeAddRecordingEvent', () => {
     ({ replay, integration } = await mockSdk({
       replayOptions: {
         beforeAddRecordingEvent: event => {
-          const eventData = event.data as Record<string, any>;
+          const eventData = event.data;
 
           if (eventData.tag === 'breadcrumb' && eventData.payload.category === 'ui.click') {
             return {

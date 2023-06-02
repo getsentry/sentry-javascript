@@ -1,7 +1,7 @@
 /* eslint-disable max-lines */ // TODO: We might want to split this file up
 import { EventType, record } from '@sentry-internal/rrweb';
 import { captureException, getCurrentHub } from '@sentry/core';
-import type { Breadcrumb, ReplayRecordingMode, Transaction } from '@sentry/types';
+import type { ReplayRecordingMode, Transaction } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
 import {
@@ -21,6 +21,7 @@ import type {
   AddEventResult,
   AddUpdateCallback,
   AllPerformanceEntry,
+  BreadcrumbFrame,
   EventBuffer,
   InternalEventContext,
   PopEventContext,
@@ -808,7 +809,7 @@ export class ReplayContainer implements ReplayContainerInterface {
   /**
    * Tasks to run when we consider a page to be hidden (via blurring and/or visibility)
    */
-  private _doChangeToBackgroundTasks(breadcrumb?: Breadcrumb): void {
+  private _doChangeToBackgroundTasks(breadcrumb?: BreadcrumbFrame): void {
     if (!this.session) {
       return;
     }
@@ -828,7 +829,7 @@ export class ReplayContainer implements ReplayContainerInterface {
   /**
    * Tasks to run when we consider a page to be visible (via focus and/or visibility)
    */
-  private _doChangeToForegroundTasks(breadcrumb?: Breadcrumb): void {
+  private _doChangeToForegroundTasks(breadcrumb?: BreadcrumbFrame): void {
     if (!this.session) {
       return;
     }
@@ -881,7 +882,7 @@ export class ReplayContainer implements ReplayContainerInterface {
   /**
    * Helper to create (and buffer) a replay breadcrumb from a core SDK breadcrumb
    */
-  private _createCustomBreadcrumb(breadcrumb: Breadcrumb): void {
+  private _createCustomBreadcrumb(breadcrumb: BreadcrumbFrame): void {
     this.addUpdate(() => {
       void this.throttledAddEvent({
         type: EventType.Custom,
