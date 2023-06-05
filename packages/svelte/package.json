@@ -23,7 +23,7 @@
     "tslib": "^1.9.3"
   },
   "peerDependencies": {
-    "svelte": "3.x"
+    "svelte": "3.x || 4.x"
   },
   "devDependencies": {
     "@testing-library/svelte": "^3.2.1",
