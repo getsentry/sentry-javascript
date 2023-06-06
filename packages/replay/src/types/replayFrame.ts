@@ -1,5 +1,5 @@
 import type { EventType } from '@sentry-internal/rrweb';
-import type { Breadcrumb, FetchBreadcrumbData, XhrBreadcrumbData } from '@sentry/types';
+import type { Breadcrumb } from '@sentry/types';
 
 import type {
   HistoryData,
@@ -10,7 +10,6 @@ import type {
   PaintData,
   ResourceData,
 } from './performance';
-import type { ReplayNetworkRequestData } from './replay';
 
 interface BaseBreadcrumbFrame {
   timestamp: number;
@@ -52,21 +51,9 @@ interface ClickFrame extends BaseBreadcrumbFrame {
   data: ClickFrameData;
 }
 
-interface FetchFrame extends BaseBreadcrumbFrame {
-  category: 'fetch';
-  type: 'http';
-  data: FetchBreadcrumbData;
-}
-
 interface InputFrame extends BaseBreadcrumbFrame {
   category: 'ui.input';
   message: string;
-}
-
-interface XhrFrame extends BaseBreadcrumbFrame {
-  category: 'xhr';
-  type: 'http';
-  data: XhrBreadcrumbData;
 }
 
 /* Breadcrumbs from Replay */
@@ -126,9 +113,7 @@ interface OptionFrame {
 export type BreadcrumbFrame =
   | ConsoleFrame
   | ClickFrame
-  | FetchFrame
   | InputFrame
-  | XhrFrame
   | KeyboardEventFrame
   | BlurFrame
   | FocusFrame
@@ -142,6 +127,11 @@ interface BaseSpanFrame {
   startTimestamp: number;
   endTimestamp: number;
   data?: undefined | Record<string, any>;
+}
+
+interface FetchFrame extends BaseSpanFrame {
+  data: NetworkRequestData;
+  op: 'resource.fetch'
 }
 
 interface HistoryFrame extends BaseSpanFrame {
@@ -161,12 +151,7 @@ interface MemoryFrame extends BaseSpanFrame {
 
 interface NavigationFrame extends BaseSpanFrame {
   data: NavigationData
-  op: 'navigation.navigate' | 'navigation.reload' | 'navigation.back';
-}
-
-interface NetworkRequestFrame extends BaseSpanFrame {
-  data: NetworkRequestData | ReplayNetworkRequestData;
-  op: 'resource.fetch'
+  op: 'navigation.navigate' | 'navigation.reload' | 'navigation.back_forward';
 }
 
 interface PaintFrame extends BaseSpanFrame {
@@ -182,19 +167,24 @@ interface ResourceFrame extends BaseSpanFrame {
     | 'resource.img'
     | 'resource.link'
     | 'resource.other'
-    | 'resource.script'
-    | 'resource.xhr';
+    | 'resource.script';
+}
+
+interface XHRFrame extends BaseSpanFrame {
+  data: NetworkRequestData;
+  op: 'resource.xhr'
 }
 
 export type SpanFrame =
   | BaseSpanFrame
+  | FetchFrame
   | HistoryFrame
   | LargestContentfulPaintFrame
   | MemoryFrame
   | NavigationFrame
-  | NetworkRequestFrame
   | PaintFrame
-  | ResourceFrame;
+  | ResourceFrame
+  | XHRFrame;
 
 export type ReplayFrame = BreadcrumbFrame | SpanFrame;
 

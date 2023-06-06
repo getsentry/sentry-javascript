@@ -9,4 +9,3 @@ export type {
   SpanFrameEvent,
   EventType,
 } from './types';
-

@@ -1,4 +1,4 @@
-import type { ReplayNetworkRequestData } from './replay';
+import type { ReplayNetworkRequestOrResponse } from './replay';
 
 export type AllPerformanceEntry = PerformancePaintTiming | PerformanceResourceTiming | PerformanceNavigationTiming;
 
@@ -126,13 +126,15 @@ export interface NetworkRequestData {
   statusCode?: number;
   requestBodySize?: number;
   responseBodySize?: number;
+  request?: ReplayNetworkRequestOrResponse;
+  response?: ReplayNetworkRequestOrResponse;
 }
 
 export interface HistoryData {
   previous: string;
 }
 
-export type AllEntryData = AllPerformanceEntryData | MemoryData | NetworkRequestData | ReplayNetworkRequestData | HistoryData;
+export type AllEntryData = AllPerformanceEntryData | MemoryData | NetworkRequestData | HistoryData;
 
 export interface ReplayPerformanceEntry<T> {
   /**
