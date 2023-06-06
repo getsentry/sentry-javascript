@@ -110,17 +110,17 @@ interface SlowClickFrame extends BaseBreadcrumbFrame {
 }
 
 interface OptionFrame {
-  sessionSampleRate: number;
-  errorSampleRate: number;
-  useCompressionOption: boolean;
   blockAllMedia: boolean;
-  maskAllText: boolean;
+  errorSampleRate: number;
   maskAllInputs: boolean;
-  useCompression: boolean;
-  networkDetailHasUrls: boolean;
+  maskAllText: boolean;
   networkCaptureBodies: boolean;
+  networkDetailHasUrls: boolean;
   networkRequestHasHeaders: boolean;
   networkResponseHasHeaders: boolean;
+  sessionSampleRate: number;
+  useCompression: boolean;
+  useCompressionOption: boolean;
 }
 
 export type BreadcrumbFrame =
@@ -141,7 +141,7 @@ interface BaseSpanFrame {
   description: string;
   startTimestamp: number;
   endTimestamp: number;
-  data?: Record<string, any>;
+  data?: undefined | Record<string, any>;
 }
 
 interface HistoryFrame extends BaseSpanFrame {
