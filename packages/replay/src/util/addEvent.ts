@@ -1,8 +1,8 @@
+import { EventType } from '@sentry-internal/rrweb';
 import { getCurrentHub } from '@sentry/core';
 import { logger } from '@sentry/utils';
 
 import type { AddEventResult, RecordingEvent, ReplayContainer, ReplayFrameEvent } from '../types';
-import { EventType } from '../types/rrweb';
 import { timestampToMs } from './timestampToMs';
 
 function isCustomEvent(event: RecordingEvent): event is ReplayFrameEvent {

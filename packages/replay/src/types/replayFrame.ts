@@ -1,7 +1,7 @@
+import type { EventType } from '@sentry-internal/rrweb';
 import type { Breadcrumb, FetchBreadcrumbData, XhrBreadcrumbData } from '@sentry/types';
 
 import type { AllEntryData } from './performance';
-import type { EventType } from './rrweb';
 
 interface BaseReplayFrame {
   timestamp: number;
