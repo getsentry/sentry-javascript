@@ -180,8 +180,7 @@ export function constructWebpackConfigFunction(
           }
         }
       } catch (e) {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        if (e.code === 'ENOENT') {
+        if ((e as { code: string }).code === 'ENOENT') {
           // noop if file does not exist
         } else {
           // log but noop

@@ -5,12 +5,17 @@
   "main": "build/cjs/index.js",
   "module": "build/esm/index.js",
   "types": "build/types/index.d.ts",
+  "typesVersions": {
+    "<4.9": { "build/types/index.d.ts": ["build/types-ts3.8/index.d.ts"] }
+  },
   "sideEffects": false,
   "private": true,
   "scripts": {
     "build": "run-p build:transpile build:types",
     "build:transpile": "rollup -c rollup.npm.config.js",
-    "build:types": "tsc -p tsconfig.types.json",
+    "build:types": "run-s build:types:core build:types:downlevel",
+    "build:types:core": "tsc -p tsconfig.types.json",
+    "build:types:downlevel": "yarn downlevel-dts build/types build/types-ts3.8 --to ts3.8",
     "build:dev": "yarn build",
     "build:watch": "run-p build:transpile:watch build:types:watch",
     "build:dev:watch": "run-p build:watch",

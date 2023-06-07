@@ -34,7 +34,7 @@ export function createEnvelope<E extends Envelope>(headers: E[0], items: E[1] = 
  */
 export function addItemToEnvelope<E extends Envelope>(envelope: E, newItem: E[1][number]): E {
   const [headers, items] = envelope;
-  return [headers, [...items, newItem]] as E;
+  return [headers, [...items, newItem]] as unknown as E;
 }
 
 /**
