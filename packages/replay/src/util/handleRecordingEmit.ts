@@ -1,8 +1,8 @@
+import { EventType } from '@sentry-internal/rrweb';
 import { logger } from '@sentry/utils';
 
 import { saveSession } from '../session/saveSession';
 import type { AddEventResult, OptionFrameEvent, RecordingEvent, ReplayContainer } from '../types';
-import { EventType } from '../types/rrweb';
 import { addEvent } from './addEvent';
 
 type RecordingEmitCallback = (event: RecordingEvent, isCheckout?: boolean) => void;

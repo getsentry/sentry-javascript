@@ -11,6 +11,7 @@ import type {
 import type { SKIPPED, THROTTLED } from '../util/throttle';
 import type { AllPerformanceEntry } from './performance';
 import type { ReplayFrameEvent } from './replayFrame';
+import type { ReplayNetworkRequestOrResponse } from './request';
 import type { eventWithTime, recordOptions } from './rrweb';
 
 export type RecordingEvent = ReplayFrameEvent | eventWithTime;
@@ -451,24 +452,6 @@ export type FetchHint = FetchBreadcrumbHint & {
   input: HandlerDataFetch['args'];
   response: Response;
 };
-
-type JsonObject = Record<string, unknown>;
-type JsonArray = unknown[];
-
-export type NetworkBody = JsonObject | JsonArray | string;
-
-export type NetworkMetaWarning = 'JSON_TRUNCATED' | 'TEXT_TRUNCATED' | 'INVALID_JSON' | 'URL_SKIPPED';
-
-interface NetworkMeta {
-  warnings?: NetworkMetaWarning[];
-}
-
-export interface ReplayNetworkRequestOrResponse {
-  size?: number;
-  body?: NetworkBody;
-  headers: Record<string, string>;
-  _meta?: NetworkMeta;
-}
 
 export type ReplayNetworkRequestData = {
   startTimestamp: number;

@@ -1,3 +1,5 @@
+import type { ReplayNetworkRequestOrResponse } from './request';
+
 export type AllPerformanceEntry = PerformancePaintTiming | PerformanceResourceTiming | PerformanceNavigationTiming;
 
 // PerformancePaintTiming and PerformanceNavigationTiming are only available with TS 4.4 and newer
@@ -124,6 +126,8 @@ export interface NetworkRequestData {
   statusCode?: number;
   requestBodySize?: number;
   responseBodySize?: number;
+  request?: ReplayNetworkRequestOrResponse;
+  response?: ReplayNetworkRequestOrResponse;
 }
 
 export interface HistoryData {

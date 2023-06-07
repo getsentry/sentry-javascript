@@ -1,9 +1,17 @@
-import type { Breadcrumb, FetchBreadcrumbData, XhrBreadcrumbData } from '@sentry/types';
+import type { EventType } from '@sentry-internal/rrweb';
+import type { Breadcrumb } from '@sentry/types';
 
-import type { AllEntryData } from './performance';
-import type { EventType } from './rrweb';
+import type {
+  HistoryData,
+  LargestContentfulPaintData,
+  MemoryData,
+  NavigationData,
+  NetworkRequestData,
+  PaintData,
+  ResourceData,
+} from './performance';
 
-interface BaseReplayFrame {
+interface BaseBreadcrumbFrame {
   timestamp: number;
   /**
    * For compatibility reasons
@@ -29,7 +37,7 @@ interface ConsoleFrameData {
   logger: string;
   arguments?: unknown[];
 }
-interface ConsoleFrame extends BaseReplayFrame {
+interface ConsoleFrame extends BaseBreadcrumbFrame {
   category: 'console';
   level: Breadcrumb['level'];
   message: string;
@@ -37,27 +45,15 @@ interface ConsoleFrame extends BaseReplayFrame {
 }
 
 type ClickFrameData = BaseDomFrameData;
-interface ClickFrame extends BaseReplayFrame {
+interface ClickFrame extends BaseBreadcrumbFrame {
   category: 'ui.click';
   message: string;
   data: ClickFrameData;
 }
 
-interface FetchFrame extends BaseReplayFrame {
-  category: 'fetch';
-  type: 'http';
-  data: FetchBreadcrumbData;
-}
-
-interface InputFrame extends BaseReplayFrame {
+interface InputFrame extends BaseBreadcrumbFrame {
   category: 'ui.input';
   message: string;
-}
-
-interface XhrFrame extends BaseReplayFrame {
-  category: 'xhr';
-  type: 'http';
-  data: XhrBreadcrumbData;
 }
 
 /* Breadcrumbs from Replay */
@@ -65,7 +61,7 @@ interface MutationFrameData {
   count: number;
   limit: boolean;
 }
-interface MutationFrame extends BaseReplayFrame {
+interface MutationFrame extends BaseBreadcrumbFrame {
   category: 'replay.mutations';
   data: MutationFrameData;
 }
@@ -77,16 +73,16 @@ interface KeyboardEventFrameData extends BaseDomFrameData {
   altKey: boolean;
   key: string;
 }
-interface KeyboardEventFrame extends BaseReplayFrame {
+interface KeyboardEventFrame extends BaseBreadcrumbFrame {
   category: 'ui.keyDown';
   data: KeyboardEventFrameData;
 }
 
-interface BlurFrame extends BaseReplayFrame {
+interface BlurFrame extends BaseBreadcrumbFrame {
   category: 'ui.blur';
 }
 
-interface FocusFrame extends BaseReplayFrame {
+interface FocusFrame extends BaseBreadcrumbFrame {
   category: 'ui.focus';
 }
 
@@ -95,45 +91,88 @@ interface SlowClickFrameData extends ClickFrameData {
   timeAfterClickFs: number;
   endReason: string;
 }
-interface SlowClickFrame extends BaseReplayFrame {
+interface SlowClickFrame extends BaseBreadcrumbFrame {
   category: 'ui.slowClickDetected';
   data: SlowClickFrameData;
 }
 
 interface OptionFrame {
-  sessionSampleRate: number;
-  errorSampleRate: number;
-  useCompressionOption: boolean;
   blockAllMedia: boolean;
-  maskAllText: boolean;
+  errorSampleRate: number;
   maskAllInputs: boolean;
-  useCompression: boolean;
-  networkDetailHasUrls: boolean;
+  maskAllText: boolean;
   networkCaptureBodies: boolean;
+  networkDetailHasUrls: boolean;
   networkRequestHasHeaders: boolean;
   networkResponseHasHeaders: boolean;
+  sessionSampleRate: number;
+  useCompression: boolean;
+  useCompressionOption: boolean;
 }
 
 export type BreadcrumbFrame =
   | ConsoleFrame
   | ClickFrame
-  | FetchFrame
   | InputFrame
-  | XhrFrame
   | KeyboardEventFrame
   | BlurFrame
   | FocusFrame
   | SlowClickFrame
   | MutationFrame
-  | BaseReplayFrame;
+  | BaseBreadcrumbFrame;
 
-export interface SpanFrame {
+interface BaseSpanFrame {
   op: string;
   description: string;
   startTimestamp: number;
   endTimestamp: number;
-  data: AllEntryData;
+  data?: undefined | Record<string, any>;
 }
+
+interface HistoryFrame extends BaseSpanFrame {
+  data: HistoryData;
+  op: 'navigation.push';
+}
+
+interface LargestContentfulPaintFrame extends BaseSpanFrame {
+  data: LargestContentfulPaintData;
+  op: 'largest-contentful-paint';
+}
+
+interface MemoryFrame extends BaseSpanFrame {
+  data: MemoryData;
+  op: 'memory';
+}
+
+interface NavigationFrame extends BaseSpanFrame {
+  data: NavigationData;
+  op: 'navigation.navigate' | 'navigation.reload' | 'navigation.back_forward';
+}
+
+interface PaintFrame extends BaseSpanFrame {
+  data: PaintData;
+  op: 'paint';
+}
+
+interface RequestFrame extends BaseSpanFrame {
+  data: NetworkRequestData;
+  op: 'resource.fetch' | 'resource.xhr';
+}
+
+interface ResourceFrame extends BaseSpanFrame {
+  data: ResourceData;
+  op: 'resource.css' | 'resource.iframe' | 'resource.img' | 'resource.link' | 'resource.other' | 'resource.script';
+}
+
+export type SpanFrame =
+  | BaseSpanFrame
+  | HistoryFrame
+  | RequestFrame
+  | LargestContentfulPaintFrame
+  | MemoryFrame
+  | NavigationFrame
+  | PaintFrame
+  | ResourceFrame;
 
 export type ReplayFrame = BreadcrumbFrame | SpanFrame;
 
