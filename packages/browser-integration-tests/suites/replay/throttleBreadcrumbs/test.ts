@@ -1,7 +1,7 @@
 import { expect } from '@playwright/test';
 
 import { sentryTest } from '../../../utils/fixtures';
-import { getCustomRecordingEvents, shouldSkipReplayTest, waitForReplayRequest } from '../../../utils/replayHelpers';
+import { getCustomRecordingEvents, getReplayRecordingContent, shouldSkipReplayTest, waitForReplayRequest } from '../../../utils/replayHelpers';
 
 const THROTTLE_LIMIT = 300;
 
@@ -26,16 +26,19 @@ sentryTest(
     const url = await getLocalTestUrl({ testDir: __dirname });
 
     await page.goto(url);
-    await reqPromise0;
+    await forceFlushReplay();
+    const res0 = getCustomRecordingEvents(await reqPromise0)
 
     await page.click('[data-console]');
     await forceFlushReplay();
 
-    const { breadcrumbs } = getCustomRecordingEvents(await reqPromise1);
+    const res1 = getCustomRecordingEvents(await reqPromise1);
 
-    // 1 click breadcrumb + 1 throttled breadcrumb is why console logs are less
-    // than throttle limit
-    expect(breadcrumbs.length).toBe(THROTTLE_LIMIT);
+    const breadcrumbs = [...res0.breadcrumbs, ...res1.breadcrumbs];
+    const spans = [...res0.performanceSpans, ...res1.performanceSpans];
     expect(breadcrumbs.filter(breadcrumb => breadcrumb.category === 'replay.throttled').length).toBe(1);
+    // replay.throttled breadcrumb does *not* use the throttledAddEvent as we
+    // alwants want that breadcrumb to be present in replay
+    expect(breadcrumbs.length + spans.length).toBe(THROTTLE_LIMIT + 1);
   },
 );
