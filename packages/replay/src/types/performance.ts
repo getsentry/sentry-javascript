@@ -1,4 +1,4 @@
-import type { ReplayNetworkRequestOrResponse } from './replay';
+import type { ReplayNetworkRequestOrResponse } from './request';
 
 export type AllPerformanceEntry = PerformancePaintTiming | PerformanceResourceTiming | PerformanceNavigationTiming;
 
