@@ -1,4 +1,3 @@
-
 type JsonObject = Record<string, unknown>;
 type JsonArray = unknown[];
 

@@ -131,7 +131,7 @@ interface BaseSpanFrame {
 
 interface FetchFrame extends BaseSpanFrame {
   data: NetworkRequestData;
-  op: 'resource.fetch'
+  op: 'resource.fetch';
 }
 
 interface HistoryFrame extends BaseSpanFrame {
@@ -145,12 +145,12 @@ interface LargestContentfulPaintFrame extends BaseSpanFrame {
 }
 
 interface MemoryFrame extends BaseSpanFrame {
-  data: MemoryData,
-  op: 'memory',
+  data: MemoryData;
+  op: 'memory';
 }
 
 interface NavigationFrame extends BaseSpanFrame {
-  data: NavigationData
+  data: NavigationData;
   op: 'navigation.navigate' | 'navigation.reload' | 'navigation.back_forward';
 }
 
@@ -161,18 +161,12 @@ interface PaintFrame extends BaseSpanFrame {
 
 interface ResourceFrame extends BaseSpanFrame {
   data: ResourceData;
-  op:
-    | 'resource.css'
-    | 'resource.iframe'
-    | 'resource.img'
-    | 'resource.link'
-    | 'resource.other'
-    | 'resource.script';
+  op: 'resource.css' | 'resource.iframe' | 'resource.img' | 'resource.link' | 'resource.other' | 'resource.script';
 }
 
 interface XHRFrame extends BaseSpanFrame {
   data: NetworkRequestData;
-  op: 'resource.xhr'
+  op: 'resource.xhr';
 }
 
 export type SpanFrame =
