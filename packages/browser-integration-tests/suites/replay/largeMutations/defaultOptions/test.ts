@@ -11,7 +11,6 @@ sentryTest(
     }
 
     const reqPromise0 = waitForReplayRequest(page, 0);
-    const reqPromise0b = waitForReplayRequest(page, 1);
 
     await page.route('https://dsn.ingest.sentry.io/**/*', route => {
       return route.fulfill({
@@ -26,22 +25,20 @@ sentryTest(
     await page.goto(url);
     await forceFlushReplay();
     const res0 = await reqPromise0;
-    await reqPromise0b;
-    // A second request is sent right after initial snapshot, we want to wait for that to settle before we continue
 
-    const reqPromise1 = waitForReplayRequest(page);
+    const reqPromise1 = waitForReplayRequest(page, 2);
 
     void page.click('#button-add');
     await forceFlushReplay();
     const res1 = await reqPromise1;
 
-    const reqPromise2 = waitForReplayRequest(page);
+    const reqPromise2 = waitForReplayRequest(page, 3);
 
     void page.click('#button-modify');
     await forceFlushReplay();
     const res2 = await reqPromise2;
 
-    const reqPromise3 = waitForReplayRequest(page);
+    const reqPromise3 = waitForReplayRequest(page, 4);
 
     void page.click('#button-remove');
     await forceFlushReplay();
