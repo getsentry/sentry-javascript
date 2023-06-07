@@ -129,11 +129,6 @@ interface BaseSpanFrame {
   data?: undefined | Record<string, any>;
 }
 
-interface FetchFrame extends BaseSpanFrame {
-  data: NetworkRequestData;
-  op: 'resource.fetch';
-}
-
 interface HistoryFrame extends BaseSpanFrame {
   data: HistoryData;
   op: 'navigation.push';
@@ -159,26 +154,25 @@ interface PaintFrame extends BaseSpanFrame {
   op: 'paint';
 }
 
+interface RequestFrame extends BaseSpanFrame {
+  data: NetworkRequestData;
+  op: 'resource.fetch' | 'resource.xhr';
+}
+
 interface ResourceFrame extends BaseSpanFrame {
   data: ResourceData;
   op: 'resource.css' | 'resource.iframe' | 'resource.img' | 'resource.link' | 'resource.other' | 'resource.script';
 }
 
-interface XHRFrame extends BaseSpanFrame {
-  data: NetworkRequestData;
-  op: 'resource.xhr';
-}
-
 export type SpanFrame =
   | BaseSpanFrame
-  | FetchFrame
   | HistoryFrame
+  | RequestFrame
   | LargestContentfulPaintFrame
   | MemoryFrame
   | NavigationFrame
   | PaintFrame
-  | ResourceFrame
-  | XHRFrame;
+  | ResourceFrame;
 
 export type ReplayFrame = BreadcrumbFrame | SpanFrame;
 
