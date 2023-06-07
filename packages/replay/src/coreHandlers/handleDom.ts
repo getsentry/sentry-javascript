@@ -3,6 +3,7 @@ import { NodeType } from '@sentry-internal/rrweb-snapshot';
 import type { Breadcrumb } from '@sentry/types';
 import { htmlTreeAsString } from '@sentry/utils';
 
+import { SLOW_CLICK_SCROLL_TIMEOUT, SLOW_CLICK_THRESHOLD } from '../constants';
 import type { ReplayContainer, SlowClickConfig } from '../types';
 import { createBreadcrumb } from '../util/createBreadcrumb';
 import { detectSlowClick } from './handleSlowClick';
@@ -17,14 +18,14 @@ export interface DomHandlerData {
 export const handleDomListener: (replay: ReplayContainer) => (handlerData: DomHandlerData) => void = (
   replay: ReplayContainer,
 ) => {
-  const slowClickExperiment = replay.getOptions()._experiments.slowClicks;
+  const { slowClickTimeout, slowClickIgnoreSelectors } = replay.getOptions();
 
-  const slowClickConfig: SlowClickConfig | undefined = slowClickExperiment
+  const slowClickConfig: SlowClickConfig | undefined = slowClickTimeout
     ? {
-        threshold: slowClickExperiment.threshold,
-        timeout: slowClickExperiment.timeout,
-        scrollTimeout: slowClickExperiment.scrollTimeout,
-        ignoreSelector: slowClickExperiment.ignoreSelectors ? slowClickExperiment.ignoreSelectors.join(',') : '',
+        threshold: Math.min(SLOW_CLICK_THRESHOLD, slowClickTimeout),
+        timeout: slowClickTimeout,
+        scrollTimeout: SLOW_CLICK_SCROLL_TIMEOUT,
+        ignoreSelector: slowClickIgnoreSelectors ? slowClickIgnoreSelectors.join(',') : '',
       }
     : undefined;
 
