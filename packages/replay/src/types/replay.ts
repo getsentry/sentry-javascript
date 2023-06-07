@@ -156,6 +156,20 @@ export interface ReplayPluginOptions extends ReplayNetworkOptions {
   mutationLimit: number;
 
   /**
+   * The max. time in ms to wait for a slow click to finish.
+   * After this amount of time we stop waiting for actions after a click happened.
+   * Set this to 0 to disable slow click capture.
+   *
+   * Default: 7000ms
+   */
+  slowClickTimeout: number;
+
+  /**
+   * Ignore clicks on elements matching the given selectors for slow click detection.
+   */
+  slowClickIgnoreSelectors: string[];
+
+  /**
    * Callback before adding a custom recording event
    *
    * Events added by the underlying DOM recording library can *not* be modified,
@@ -178,12 +192,6 @@ export interface ReplayPluginOptions extends ReplayNetworkOptions {
   _experiments: Partial<{
     captureExceptions: boolean;
     traceInternals: boolean;
-    slowClicks: {
-      threshold: number;
-      timeout: number;
-      scrollTimeout: number;
-      ignoreSelectors: string[];
-    };
     delayFlushOnCheckout: number;
   }>;
 }

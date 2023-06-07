@@ -36,22 +36,22 @@
       document.getElementById('mutationButton').addEventListener('click', () => {
         setTimeout(() => {
           document.getElementById('out').innerHTML += 'mutationButton clicked<br>';
-        }, 400);
+        }, 3001);
       });
       document.getElementById('mutationIgnoreButton').addEventListener('click', () => {
         setTimeout(() => {
           document.getElementById('out').innerHTML += 'mutationIgnoreButton clicked<br>';
-        }, 400);
+        }, 3001);
       });
       document.getElementById('mutationDiv').addEventListener('click', () => {
         setTimeout(() => {
           document.getElementById('out').innerHTML += 'mutationDiv clicked<br>';
-        }, 400);
+        }, 3001);
       });
       document.getElementById('mutationButtonLate').addEventListener('click', () => {
         setTimeout(() => {
           document.getElementById('out').innerHTML += 'mutationButtonLate clicked<br>';
-        }, 3000);
+        }, 3101);
       });
       document.getElementById('mutationButtonImmediately').addEventListener('click', () => {
         document.getElementById('out').innerHTML += 'mutationButtonImmediately clicked<br>';
@@ -62,12 +62,12 @@
       document.getElementById('scrollLateButton').addEventListener('click', () => {
         setTimeout(() => {
           document.getElementById('h2').scrollIntoView({ behavior: 'smooth' });
-        }, 400);
+        }, 3001);
       });
       document.getElementById('consoleLogButton').addEventListener('click', () => {
         setTimeout(() => {
           console.log('DONE');
-        }, 400);
+        }, 3001);
       });
 
       // Do nothing on these elements
