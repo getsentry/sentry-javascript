@@ -1,7 +1,7 @@
 import { expect } from '@playwright/test';
 
 import { sentryTest } from '../../../utils/fixtures';
-import { getCustomRecordingEvents, getReplayRecordingContent, shouldSkipReplayTest, waitForReplayRequest } from '../../../utils/replayHelpers';
+import { getCustomRecordingEvents, shouldSkipReplayTest, waitForReplayRequest } from '../../../utils/replayHelpers';
 
 const THROTTLE_LIMIT = 300;
 
@@ -27,7 +27,7 @@ sentryTest(
 
     await page.goto(url);
     await forceFlushReplay();
-    const res0 = getCustomRecordingEvents(await reqPromise0)
+    const res0 = getCustomRecordingEvents(await reqPromise0);
 
     await page.click('[data-console]');
     await forceFlushReplay();
