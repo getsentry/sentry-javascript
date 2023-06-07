@@ -1,4 +1,4 @@
-import type { EventEnvelope } from '@sentry/types';
+import type { Event, EventEnvelope } from '@sentry/types';
 import { TextDecoder, TextEncoder } from 'util';
 
 const encoder = new TextEncoder();
@@ -68,8 +68,8 @@ describe('envelope', () => {
     });
 
     it("doesn't throw when being passed a an envelope that contains a circular item payload", () => {
-      const chicken: { egg?: unknown } = {};
-      const egg = { chicken };
+      const chicken: { egg?: any } = {};
+      const egg = { chicken } as unknown as Event;
       chicken.egg = chicken;
 
       const env = createEnvelope<EventEnvelope>({ event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2', sent_at: '123' }, [

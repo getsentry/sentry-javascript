@@ -57,7 +57,7 @@ describe('SentryErrorHandler', () => {
   describe('handleError method', () => {
     it('handleError method assigns the correct mechanism', () => {
       const addEventProcessorSpy = jest.spyOn(FakeScope, 'addEventProcessor').mockImplementationOnce(callback => {
-        void callback({}, { event_id: 'fake-event-id' });
+        void (callback as (event: any, hint: any) => void)({}, { event_id: 'fake-event-id' });
         return FakeScope;
       });
 

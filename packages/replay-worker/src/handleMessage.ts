@@ -54,7 +54,7 @@ export function handleMessage(e: MessageEvent): void {
         id,
         method,
         success: false,
-        response: err.message,
+        response: (err as Error).message,
       });
 
       // eslint-disable-next-line no-console

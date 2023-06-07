@@ -16,13 +16,13 @@ export function wrapApiHandlerWithSentryVercelCrons<F extends (...args: any[]) =
   vercelCronsConfig: VercelCronsConfig,
 ): F {
   return new Proxy(handler, {
-    apply: (originalFunction, thisArg, args: [NextApiRequest | EdgeRequest | undefined] | undefined) => {
+    apply: (originalFunction, thisArg, args: any[]) => {
       return runWithAsyncContext(() => {
         if (!args || !args[0]) {
           return originalFunction.apply(thisArg, args);
         }
 
-        const [req] = args;
+        const [req] = args as [NextApiRequest | EdgeRequest];
 
         let maybePromiseResult;
         const cronsKey = 'nextUrl' in req ? req.nextUrl.pathname : req.url;

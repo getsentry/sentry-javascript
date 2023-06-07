@@ -47,7 +47,7 @@ export const createTestTransport = (...sendResults: MockResult<TransportMakeRequ
             reject(next);
           } else {
             sendCount += 1;
-            resolve(next as TransportMakeRequestResponse | undefined);
+            resolve(next as TransportMakeRequestResponse);
           }
         });
       }),

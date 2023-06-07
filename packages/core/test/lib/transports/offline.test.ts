@@ -98,7 +98,7 @@ const createTestTransport = (
             reject(next);
           } else {
             sendCount += 1;
-            resolve(next as TransportMakeRequestResponse | undefined);
+            resolve(next as TransportMakeRequestResponse);
           }
         });
       }),

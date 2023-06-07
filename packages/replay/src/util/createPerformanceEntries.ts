@@ -9,8 +9,6 @@ import type {
   LargestContentfulPaintData,
   NavigationData,
   PaintData,
-  PerformanceNavigationTiming,
-  PerformancePaintTiming,
   ReplayPerformanceEntry,
   ResourceData,
 } from '../types';

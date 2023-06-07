@@ -63,6 +63,7 @@ describe('React Router v6.4', () => {
         },
       );
 
+      // @ts-ignore router is fine
       render(<RouterProvider router={router} />);
 
       expect(mockStartTransaction).toHaveBeenCalledTimes(1);
@@ -98,6 +99,7 @@ describe('React Router v6.4', () => {
         },
       );
 
+      // @ts-ignore router is fine
       render(<RouterProvider router={router} />);
 
       expect(mockStartTransaction).toHaveBeenCalledTimes(2);
@@ -135,6 +137,7 @@ describe('React Router v6.4', () => {
         },
       );
 
+      // @ts-ignore router is fine
       render(<RouterProvider router={router} />);
 
       expect(mockStartTransaction).toHaveBeenCalledTimes(2);
@@ -172,6 +175,7 @@ describe('React Router v6.4', () => {
         },
       );
 
+      // @ts-ignore router is fine
       render(<RouterProvider router={router} />);
 
       expect(mockStartTransaction).toHaveBeenCalledTimes(2);
@@ -221,6 +225,7 @@ describe('React Router v6.4', () => {
         },
       );
 
+      // @ts-ignore router is fine
       render(<RouterProvider router={router} />);
 
       expect(mockStartTransaction).toHaveBeenCalledTimes(2);
@@ -254,6 +259,7 @@ describe('React Router v6.4', () => {
         },
       );
 
+      // @ts-ignore router is fine
       render(<RouterProvider router={router} />);
 
       expect(mockStartTransaction).toHaveBeenCalledTimes(1);

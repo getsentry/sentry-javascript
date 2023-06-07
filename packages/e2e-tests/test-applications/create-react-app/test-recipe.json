@@ -3,6 +3,13 @@
   "testApplicationName": "create-react-app",
   "buildCommand": "pnpm install && pnpm build",
   "tests": [],
+  "versions": [
+    {
+      "dependencyOverrides": {
+        "typescript": "3.8.3"
+      }
+    }
+  ],
   "canaryVersions": [
     {
       "dependencyOverrides": {

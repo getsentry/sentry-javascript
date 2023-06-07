@@ -21,6 +21,7 @@ function findIntegrationByName(integrations: Integration[] = [], name: string): 
 describe('Server init()', () => {
   afterEach(() => {
     jest.clearAllMocks();
+    // @ts-ignore for testing
     delete GLOBAL_OBJ.__SENTRY__;
     delete process.env.VERCEL;
   });
