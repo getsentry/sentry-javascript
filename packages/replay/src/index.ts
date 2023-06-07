@@ -7,5 +7,8 @@ export type {
   ReplayFrameEvent,
   SpanFrame,
   SpanFrameEvent,
-  EventType,
 } from './types';
+export { EventType } from '@sentry-internal/rrweb';
+export { NodeType } from '@sentry-internal/rrweb-snapshot';
+export type { eventWithTime, fullSnapshotEvent } from '@sentry-internal/rrweb';
+export type { serializedNodeWithId } from '@sentry-internal/rrweb-snapshot';
