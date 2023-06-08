@@ -1,3 +1,4 @@
+import { EventType } from '@sentry-internal/rrweb';
 import * as SentryCore from '@sentry/core';
 import type { Transport } from '@sentry/types';
 import * as SentryUtils from '@sentry/utils';
@@ -5,7 +6,6 @@ import * as SentryUtils from '@sentry/utils';
 import type { Replay } from '../../src';
 import type { ReplayContainer } from '../../src/replay';
 import { clearSession } from '../../src/session/clearSession';
-import { EventType } from '../../src/types';
 import * as SendReplayRequest from '../../src/util/sendReplayRequest';
 import { BASE_TIMESTAMP, mockRrweb, mockSdk } from '../index';
 import { useFakeTimers } from '../utils/use-fake-timers';
