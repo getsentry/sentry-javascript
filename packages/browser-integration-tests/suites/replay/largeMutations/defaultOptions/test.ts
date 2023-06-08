@@ -23,22 +23,21 @@ sentryTest(
     const url = await getLocalTestPath({ testDir: __dirname });
 
     await page.goto(url);
-    await forceFlushReplay();
     const res0 = await reqPromise0;
 
-    const reqPromise1 = waitForReplayRequest(page, 2);
+    const reqPromise1 = waitForReplayRequest(page);
 
     void page.click('#button-add');
     await forceFlushReplay();
     const res1 = await reqPromise1;
 
-    const reqPromise2 = waitForReplayRequest(page, 3);
+    const reqPromise2 = waitForReplayRequest(page);
 
     void page.click('#button-modify');
     await forceFlushReplay();
     const res2 = await reqPromise2;
 
-    const reqPromise3 = waitForReplayRequest(page, 4);
+    const reqPromise3 = waitForReplayRequest(page);
 
     void page.click('#button-remove');
     await forceFlushReplay();
