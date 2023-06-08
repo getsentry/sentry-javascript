@@ -1,7 +1,7 @@
 import { test, expect, Page } from '@playwright/test';
 
 async function getRouteData(page: Page): Promise<any> {
-  return page.evaluate('window.__remixContext.routeData').catch(err => {
+  return page.evaluate('window.__remixContext.state.loaderData').catch(err => {
     console.warn(err);
 
     return {};
