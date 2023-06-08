@@ -72,6 +72,22 @@ test('should inject `sentry-trace` and `baggage` into root loader returning a `J
   });
 });
 
+test('should inject `sentry-trace` and `baggage` into root loader returning a deferred response', async ({ page }) => {
+  await page.goto('/?type=defer');
+
+  const { sentryTrace, sentryBaggage } = await extractTraceAndBaggageFromMeta(page);
+
+  expect(sentryTrace).toEqual(expect.any(String));
+  expect(sentryBaggage).toEqual(expect.any(String));
+
+  const rootData = (await getRouteData(page))['root'];
+
+  expect(rootData).toMatchObject({
+    sentryTrace: sentryTrace,
+    sentryBaggage: sentryBaggage,
+  });
+});
+
 test('should inject `sentry-trace` and `baggage` into root loader returning `null`.', async ({ page }) => {
   await page.goto('/?type=null');
 

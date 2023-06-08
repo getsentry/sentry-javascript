@@ -27,7 +27,7 @@ import type {
   ServerRoute,
   ServerRouteManifest,
 } from './types';
-import { extractData, getRequestMatch, isResponse, json, matchServerRoutes } from './vendor/response';
+import { extractData, getRequestMatch, isDeferredData, isResponse, json, matchServerRoutes } from './vendor/response';
 import { normalizeRemixRequest } from './web-fetch';
 
 // Flag to track if the core request handler is instrumented.
@@ -228,6 +228,13 @@ function makeWrappedRootLoader(origLoader: DataFunction): DataFunction {
   return async function (this: unknown, args: DataFunctionArgs): Promise<Response | AppData> {
     const res = await origLoader.call(this, args);
     const traceAndBaggage = getTraceAndBaggage();
+
+    if (isDeferredData(res)) {
+      return {
+        ...res.data,
+        ...traceAndBaggage,
+      };
+    }
 
     // Note: `redirect` and `catch` responses do not have bodies to extract
     if (isResponse(res) && !isRedirectResponse(res) && !isCatchResponse(res)) {
