@@ -573,6 +573,7 @@ describe('Integration | errorSampleRate with delayed flush', () => {
 
   it('has correct timestamps when error occurs much later than initial pageload/checkout', async () => {
     const ELAPSED = BUFFER_CHECKOUT_TIME;
+    const TICK = 20;
     const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 3 };
     mockRecord._emitter(TEST_EVENT);
 
@@ -593,26 +594,29 @@ describe('Integration | errorSampleRate with delayed flush', () => {
     const optionsEvent = createOptionsEvent(replay);
 
     jest.runAllTimers();
-    jest.advanceTimersByTime(20);
     await new Promise(process.nextTick);
+
+    expect(replay).not.toHaveLastSentReplay();
 
     captureException(new Error('testing'));
 
     await waitForBufferFlush();
 
-    expect(replay.session?.started).toBe(BASE_TIMESTAMP + ELAPSED + 20);
+    // See comments in `handleRecordingEmit.ts`, we perform a setTimeout into a
+    // noop when it can be skipped altogether
+    expect(replay.session?.started).toBe(BASE_TIMESTAMP + ELAPSED + DEFAULT_FLUSH_MIN_DELAY + TICK + TICK);
 
     // Does not capture mouse click
     expect(replay).toHaveSentReplay({
       recordingPayloadHeader: { segment_id: 0 },
       replayEventPayload: expect.objectContaining({
         // Make sure the old performance event is thrown out
-        replay_start_timestamp: (BASE_TIMESTAMP + ELAPSED + 20) / 1000,
+        replay_start_timestamp: (BASE_TIMESTAMP + ELAPSED + TICK) / 1000,
       }),
       recordingData: JSON.stringify([
         {
           data: { isCheckout: true },
-          timestamp: BASE_TIMESTAMP + ELAPSED + 20,
+          timestamp: BASE_TIMESTAMP + ELAPSED + TICK,
           type: 2,
         },
         optionsEvent,
@@ -662,7 +666,8 @@ describe('Integration | errorSampleRate with delayed flush', () => {
     expect(replay.isEnabled()).toBe(false);
   });
 
-  it('stops replay when session exceeds max length', async () => {
+  it('stops replay when session exceeds max length after latest captured error', async () => {
+    const sessionId = replay.session?.id;
     jest.setSystemTime(BASE_TIMESTAMP);
 
     const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 3 };
@@ -674,34 +679,120 @@ describe('Integration | errorSampleRate with delayed flush', () => {
     jest.runAllTimers();
     await new Promise(process.nextTick);
 
+    jest.advanceTimersByTime(2 * MAX_SESSION_LIFE);
+
     captureException(new Error('testing'));
 
-    jest.advanceTimersByTime(DEFAULT_FLUSH_MIN_DELAY);
+    // Flush due to exception
     await new Promise(process.nextTick);
+    await waitForFlush();
 
-    expect(replay).not.toHaveLastSentReplay();
+    expect(replay.session?.id).toBe(sessionId);
+    expect(replay).toHaveLastSentReplay({
+      recordingPayloadHeader: { segment_id: 0 },
+    });
 
-    // Wait a bit, shortly before session expires
-    jest.advanceTimersByTime(MAX_SESSION_LIFE - 1000);
-    await new Promise(process.nextTick);
-
-    mockRecord._emitter(TEST_EVENT);
-    replay.triggerUserActivity();
-
-    expect(replay).toHaveLastSentReplay();
+    // This comes from `startRecording()` in `sendBufferedReplayOrFlush()`
+    await waitForFlush();
+    expect(replay).toHaveLastSentReplay({
+      recordingPayloadHeader: { segment_id: 1 },
+      recordingData: JSON.stringify([
+        {
+          data: {
+            isCheckout: true,
+          },
+          timestamp: BASE_TIMESTAMP + 2 * MAX_SESSION_LIFE + DEFAULT_FLUSH_MIN_DELAY + 40,
+          type: 2,
+        },
+      ]),
+    });
 
     // Now wait after session expires - should stop recording
     mockRecord.takeFullSnapshot.mockClear();
     (getCurrentHub().getClient()!.getTransport()!.send as unknown as jest.SpyInstance<any>).mockClear();
 
-    jest.advanceTimersByTime(10_000);
+    jest.advanceTimersByTime(MAX_SESSION_LIFE);
     await new Promise(process.nextTick);
 
     mockRecord._emitter(TEST_EVENT);
-    replay.triggerUserActivity();
+    jest.runAllTimers();
+    await new Promise(process.nextTick);
 
+    expect(replay).not.toHaveLastSentReplay();
+    expect(mockRecord.takeFullSnapshot).toHaveBeenCalledTimes(0);
+    expect(replay.isEnabled()).toBe(false);
+
+    // Once the session is stopped after capturing a replay already
+    // (buffer-mode), another error will not trigger a new replay
+    captureException(new Error('testing'));
+
+    await new Promise(process.nextTick);
     jest.advanceTimersByTime(DEFAULT_FLUSH_MIN_DELAY);
     await new Promise(process.nextTick);
+    expect(replay).not.toHaveLastSentReplay();
+  });
+
+  it('does not stop replay based on earliest event in buffer', async () => {
+    jest.setSystemTime(BASE_TIMESTAMP);
+
+    const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP - 60000, type: 3 };
+    mockRecord._emitter(TEST_EVENT);
+
+    expect(mockRecord.takeFullSnapshot).not.toHaveBeenCalled();
+    expect(replay).not.toHaveLastSentReplay();
+
+    jest.runAllTimers();
+    await new Promise(process.nextTick);
+
+    expect(replay).not.toHaveLastSentReplay();
+    captureException(new Error('testing'));
+
+    await waitForBufferFlush();
+
+    expect(replay).toHaveLastSentReplay();
+
+    // Flush from calling `stopRecording`
+    await waitForFlush();
+
+    // Now wait after session expires - should stop recording
+    mockRecord.takeFullSnapshot.mockClear();
+    (getCurrentHub().getClient()!.getTransport()!.send as unknown as jest.SpyInstance<any>).mockClear();
+
+    expect(replay).not.toHaveLastSentReplay();
+
+    const TICKS = 80;
+
+    // We advance time so that we are on the border of expiring, taking into
+    // account that TEST_EVENT timestamp is 60000 ms before BASE_TIMESTAMP. The
+    // 3 DEFAULT_FLUSH_MIN_DELAY is to account for the `waitForFlush` that has
+    // happened, and for the next two that will happen. The first following
+    // `waitForFlush` does not expire session, but the following one will.
+    jest.advanceTimersByTime(SESSION_IDLE_EXPIRE_DURATION - 60000 - 3 * DEFAULT_FLUSH_MIN_DELAY - TICKS);
+    await new Promise(process.nextTick);
+
+    mockRecord._emitter(TEST_EVENT);
+    expect(replay).not.toHaveLastSentReplay();
+    await waitForFlush();
+
+    expect(replay).not.toHaveLastSentReplay();
+    expect(mockRecord.takeFullSnapshot).toHaveBeenCalledTimes(0);
+    expect(replay.isEnabled()).toBe(true);
+
+    mockRecord._emitter(TEST_EVENT);
+    expect(replay).not.toHaveLastSentReplay();
+    await waitForFlush();
+
+    expect(replay).not.toHaveLastSentReplay();
+    expect(mockRecord.takeFullSnapshot).toHaveBeenCalledTimes(0);
+    expect(replay.isEnabled()).toBe(true);
+
+    // It's hard to test, but if we advance the below time less 1 ms, it should
+    // be enabled, but we can't trigger a session check via flush without
+    // incurring another DEFAULT_FLUSH_MIN_DELAY timeout.
+    jest.advanceTimersByTime(60000 - DEFAULT_FLUSH_MIN_DELAY);
+    mockRecord._emitter(TEST_EVENT);
+    expect(replay).not.toHaveLastSentReplay();
+    await waitForFlush();
 
     expect(replay).not.toHaveLastSentReplay();
     expect(mockRecord.takeFullSnapshot).toHaveBeenCalledTimes(0);

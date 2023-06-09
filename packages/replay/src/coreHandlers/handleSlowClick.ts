@@ -114,15 +114,16 @@ function handleSlowClick(
   addBreadcrumbEvent(replay, breadcrumb);
 }
 
-const SLOW_CLICK_IGNORE_TAGS = ['SELECT', 'OPTION'];
+const SLOW_CLICK_TAGS = ['A', 'BUTTON', 'INPUT'];
 
-function ignoreElement(node: HTMLElement, config: SlowClickConfig): boolean {
-  // If <input> tag, we only want to consider input[type='submit'] & input[type='button']
-  if (node.tagName === 'INPUT' && !['submit', 'button'].includes(node.getAttribute('type') || '')) {
+/** exported for tests only */
+export function ignoreElement(node: HTMLElement, config: SlowClickConfig): boolean {
+  if (!SLOW_CLICK_TAGS.includes(node.tagName)) {
     return true;
   }
 
-  if (SLOW_CLICK_IGNORE_TAGS.includes(node.tagName)) {
+  // If <input> tag, we only want to consider input[type='submit'] & input[type='button']
+  if (node.tagName === 'INPUT' && !['submit', 'button'].includes(node.getAttribute('type') || '')) {
     return true;
   }
 

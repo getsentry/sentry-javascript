@@ -8,13 +8,14 @@ import type {
   XhrBreadcrumbHint,
 } from '@sentry/types';
 
-import type { eventWithTime, recordOptions } from './types/rrweb';
-import type { SKIPPED, THROTTLED } from './util/throttle';
+import type { SKIPPED, THROTTLED } from '../util/throttle';
+import type { AllPerformanceEntry } from './performance';
+import type { ReplayFrameEvent } from './replayFrame';
+import type { ReplayNetworkRequestOrResponse } from './request';
+import type { eventWithTime, recordOptions } from './rrweb';
 
-export type RecordingEvent = eventWithTime;
+export type RecordingEvent = ReplayFrameEvent | eventWithTime;
 export type RecordingOptions = recordOptions;
-
-export type AllPerformanceEntry = PerformancePaintTiming | PerformanceResourceTiming | PerformanceNavigationTiming;
 
 export interface SendReplayData {
   recordingData: ReplayRecordingData;
@@ -41,138 +42,6 @@ export interface WorkerRequest {
   arg?: string;
 }
 
-// PerformancePaintTiming and PerformanceNavigationTiming are only available with TS 4.4 and newer
-// Therefore, we're exporting them here to make them available in older TS versions
-export type PerformancePaintTiming = PerformanceEntry;
-export type PerformanceNavigationTiming = PerformanceEntry &
-  PerformanceResourceTiming & {
-    type: string;
-    transferSize: number;
-
-    /**
-     * A DOMHighResTimeStamp representing the time immediately before the user agent
-     * sets the document's readyState to "interactive".
-     */
-    domInteractive: number;
-
-    /**
-     * A DOMHighResTimeStamp representing the time immediately before the current
-     * document's DOMContentLoaded event handler starts.
-     */
-    domContentLoadedEventStart: number;
-    /**
-     * A DOMHighResTimeStamp representing the time immediately after the current
-     * document's DOMContentLoaded event handler completes.
-     */
-    domContentLoadedEventEnd: number;
-
-    /**
-     * A DOMHighResTimeStamp representing the time immediately before the current
-     * document's load event handler starts.
-     */
-    loadEventStart: number;
-
-    /**
-     * A DOMHighResTimeStamp representing the time immediately after the current
-     * document's load event handler completes.
-     */
-    loadEventEnd: number;
-
-    /**
-     * A DOMHighResTimeStamp representing the time immediately before the user agent
-     * sets the document's readyState to "complete".
-     */
-    domComplete: number;
-
-    /**
-     * A number representing the number of redirects since the last non-redirect
-     * navigation in the current browsing context.
-     */
-    redirectCount: number;
-  };
-export type ExperimentalPerformanceResourceTiming = PerformanceResourceTiming & {
-  // Experimental, see: https://developer.mozilla.org/en-US/docs/Web/API/PerformanceResourceTiming/responseStatus
-  // Requires Chrome 109
-  responseStatus?: number;
-};
-
-export type PaintData = undefined;
-
-/**
- * See https://developer.mozilla.org/en-US/docs/Web/API/PerformanceNavigationTiming
- *
- * Note `navigation.push` will not have any data
- */
-export type NavigationData = Partial<
-  Pick<
-    PerformanceNavigationTiming,
-    | 'decodedBodySize'
-    | 'encodedBodySize'
-    | 'duration'
-    | 'domInteractive'
-    | 'domContentLoadedEventEnd'
-    | 'domContentLoadedEventStart'
-    | 'loadEventStart'
-    | 'loadEventEnd'
-    | 'domComplete'
-    | 'redirectCount'
-  >
-> & {
-  /**
-   * Transfer size of resource
-   */
-  size?: number;
-};
-
-export type ResourceData = Pick<PerformanceResourceTiming, 'decodedBodySize' | 'encodedBodySize'> & {
-  /**
-   * Transfer size of resource
-   */
-  size: number;
-  /**
-   * HTTP status code. Note this is experimental and not available on all browsers.
-   */
-  statusCode?: number;
-};
-
-export interface LargestContentfulPaintData {
-  /**
-   * Render time (in ms) of the LCP
-   */
-  value: number;
-  size: number;
-  /**
-   * The recording id of the LCP node. -1 if not found
-   */
-  nodeId?: number;
-}
-
-/**
- * Entries that come from window.performance
- */
-export type AllPerformanceEntryData = PaintData | NavigationData | ResourceData | LargestContentfulPaintData;
-
-export interface MemoryData {
-  memory: {
-    jsHeapSizeLimit: number;
-    totalJSHeapSize: number;
-    usedJSHeapSize: number;
-  };
-}
-
-export interface NetworkRequestData {
-  method?: string;
-  statusCode?: number;
-  requestBodySize?: number;
-  responseBodySize?: number;
-}
-
-export interface HistoryData {
-  previous: string;
-}
-
-export type AllEntryData = AllPerformanceEntryData | MemoryData | NetworkRequestData | HistoryData;
-
 /**
  * The response from the worker
  */
@@ -186,7 +55,7 @@ export interface WorkerResponse {
 export type AddEventResult = void;
 
 export interface BeforeAddRecordingEvent {
-  (event: RecordingEvent): RecordingEvent | null | undefined;
+  (event: ReplayFrameEvent): ReplayFrameEvent | null | undefined;
 }
 
 export interface ReplayNetworkOptions {
@@ -288,6 +157,20 @@ export interface ReplayPluginOptions extends ReplayNetworkOptions {
   mutationLimit: number;
 
   /**
+   * The max. time in ms to wait for a slow click to finish.
+   * After this amount of time we stop waiting for actions after a click happened.
+   * Set this to 0 to disable slow click capture.
+   *
+   * Default: 7000ms
+   */
+  slowClickTimeout: number;
+
+  /**
+   * Ignore clicks on elements matching the given selectors for slow click detection.
+   */
+  slowClickIgnoreSelectors: string[];
+
+  /**
    * Callback before adding a custom recording event
    *
    * Events added by the underlying DOM recording library can *not* be modified,
@@ -310,12 +193,6 @@ export interface ReplayPluginOptions extends ReplayNetworkOptions {
   _experiments: Partial<{
     captureExceptions: boolean;
     traceInternals: boolean;
-    slowClicks: {
-      threshold: number;
-      timeout: number;
-      scrollTimeout: number;
-      ignoreSelectors: string[];
-    };
     delayFlushOnCheckout: number;
   }>;
 }
@@ -556,39 +433,13 @@ export interface ReplayContainer {
   flushImmediate(): Promise<void>;
   cancelFlush(): void;
   triggerUserActivity(): void;
+  updateUserActivity(): void;
   addUpdate(cb: AddUpdateCallback): void;
   getOptions(): ReplayPluginOptions;
   getSessionId(): string | undefined;
   checkAndHandleExpiredSession(): boolean | void;
   setInitialState(): void;
   getCurrentRoute(): string | undefined;
-}
-
-export interface ReplayPerformanceEntry<T> {
-  /**
-   * One of these types https://developer.mozilla.org/en-US/docs/Web/API/PerformanceEntry/entryType
-   */
-  type: string;
-
-  /**
-   * A more specific description of the performance entry
-   */
-  name: string;
-
-  /**
-   * The start timestamp in seconds
-   */
-  start: number;
-
-  /**
-   * The end timestamp in seconds
-   */
-  end: number;
-
-  /**
-   * Additional unstructured data to be included
-   */
-  data: T;
 }
 
 type RequestBody = null | Blob | BufferSource | FormData | URLSearchParams | string;
@@ -601,24 +452,6 @@ export type FetchHint = FetchBreadcrumbHint & {
   input: HandlerDataFetch['args'];
   response: Response;
 };
-
-type JsonObject = Record<string, unknown>;
-type JsonArray = unknown[];
-
-export type NetworkBody = JsonObject | JsonArray | string;
-
-export type NetworkMetaWarning = 'JSON_TRUNCATED' | 'TEXT_TRUNCATED' | 'INVALID_JSON' | 'URL_SKIPPED';
-
-interface NetworkMeta {
-  warnings?: NetworkMetaWarning[];
-}
-
-export interface ReplayNetworkRequestOrResponse {
-  size?: number;
-  body?: NetworkBody;
-  headers: Record<string, string>;
-  _meta?: NetworkMeta;
-}
 
 export type ReplayNetworkRequestData = {
   startTimestamp: number;

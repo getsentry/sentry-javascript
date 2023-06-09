@@ -231,6 +231,7 @@ describe('nextRouterInstrumentation', () => {
       ['/news', '/news', 'route'],
       ['/news/', '/news', 'route'],
       ['/some-route-that-is-not-defined-12332', '/some-route-that-is-not-defined-12332', 'url'], // unknown route
+      ['/some-route-that-is-not-defined-12332?q=42', '/some-route-that-is-not-defined-12332', 'url'], // unknown route w/ query param
       ['/posts/42', '/posts/[id]', 'route'],
       ['/posts/42/', '/posts/[id]', 'route'],
       ['/posts/42?someParam=1', '/posts/[id]', 'route'], // query params are ignored

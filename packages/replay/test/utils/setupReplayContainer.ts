@@ -17,6 +17,8 @@ const DEFAULT_OPTIONS = {
   networkResponseHeaders: [],
   mutationLimit: 1500,
   mutationBreadcrumbLimit: 500,
+  slowClickTimeout: 7_000,
+  slowClickIgnoreSelectors: [],
   _experiments: {},
 };
 

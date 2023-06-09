@@ -1,7 +1,7 @@
 /* eslint-disable max-lines */ // TODO: We might want to split this file up
 import { EventType, record } from '@sentry-internal/rrweb';
 import { captureException, getCurrentHub } from '@sentry/core';
-import type { Breadcrumb, ReplayRecordingMode, Transaction } from '@sentry/types';
+import type { ReplayRecordingMode, Transaction } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
 import {
@@ -21,6 +21,7 @@ import type {
   AddEventResult,
   AddUpdateCallback,
   AllPerformanceEntry,
+  BreadcrumbFrame,
   EventBuffer,
   InternalEventContext,
   PopEventContext,
@@ -402,6 +403,8 @@ export class ReplayContainer implements ReplayContainerInterface {
       return this.flushImmediate();
     }
 
+    const activityTime = Date.now();
+
     // Allow flush to complete before resuming as a session recording, otherwise
     // the checkout from `startRecording` may be included in the payload.
     // Prefer to keep the error replay as a separate (and smaller) segment
@@ -423,6 +426,18 @@ export class ReplayContainer implements ReplayContainerInterface {
     // Once this session ends, we do not want to refresh it
     if (this.session) {
       this.session.shouldRefresh = false;
+
+      // It's possible that the session lifespan is > max session lifespan
+      // because we have been buffering beyond max session lifespan (we ignore
+      // expiration given that `shouldRefresh` is true). Since we flip
+      // `shouldRefresh`, the session could be considered expired due to
+      // lifespan, which is not what we want. Update session start date to be
+      // the current timestamp, so that session is not considered to be
+      // expired. This means that max replay duration can be MAX_SESSION_LIFE +
+      // (length of buffer), which we are ok with.
+      this._updateUserActivity(activityTime);
+      this._updateSessionActivity(activityTime);
+      this.session.started = activityTime;
       this._maybeSaveSession();
     }
 
@@ -483,6 +498,18 @@ export class ReplayContainer implements ReplayContainerInterface {
     // Otherwise... recording was never suspended, continue as normalish
     this.checkAndHandleExpiredSession();
 
+    this._updateSessionActivity();
+  }
+
+  /**
+   * Updates the user activity timestamp *without* resuming
+   * recording. Some user events (e.g. keydown) can be create
+   * low-value replays that only contain the keypress as a
+   * breadcrumb. Instead this would require other events to
+   * create a new replay after a session has expired.
+   */
+  public updateUserActivity(): void {
+    this._updateUserActivity();
     this._updateSessionActivity();
   }
 
@@ -676,7 +703,7 @@ export class ReplayContainer implements ReplayContainerInterface {
       stickySession: Boolean(this._options.stickySession),
       currentSession: this.session,
       sessionSampleRate: this._options.sessionSampleRate,
-      allowBuffering: this._options.errorSampleRate > 0,
+      allowBuffering: this._options.errorSampleRate > 0 || this.recordingMode === 'buffer',
     });
 
     // If session was newly created (i.e. was not loaded from storage), then
@@ -796,7 +823,7 @@ export class ReplayContainer implements ReplayContainerInterface {
   /**
    * Tasks to run when we consider a page to be hidden (via blurring and/or visibility)
    */
-  private _doChangeToBackgroundTasks(breadcrumb?: Breadcrumb): void {
+  private _doChangeToBackgroundTasks(breadcrumb?: BreadcrumbFrame): void {
     if (!this.session) {
       return;
     }
@@ -816,7 +843,7 @@ export class ReplayContainer implements ReplayContainerInterface {
   /**
    * Tasks to run when we consider a page to be visible (via focus and/or visibility)
    */
-  private _doChangeToForegroundTasks(breadcrumb?: Breadcrumb): void {
+  private _doChangeToForegroundTasks(breadcrumb?: BreadcrumbFrame): void {
     if (!this.session) {
       return;
     }
@@ -869,7 +896,7 @@ export class ReplayContainer implements ReplayContainerInterface {
   /**
    * Helper to create (and buffer) a replay breadcrumb from a core SDK breadcrumb
    */
-  private _createCustomBreadcrumb(breadcrumb: Breadcrumb): void {
+  private _createCustomBreadcrumb(breadcrumb: BreadcrumbFrame): void {
     this.addUpdate(() => {
       void this.throttledAddEvent({
         type: EventType.Custom,
