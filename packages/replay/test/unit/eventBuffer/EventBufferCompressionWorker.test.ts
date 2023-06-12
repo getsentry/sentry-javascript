@@ -3,8 +3,9 @@ import 'jsdom-worker';
 import pako from 'pako';
 
 import { BASE_TIMESTAMP } from '../..';
+import { REPLAY_MAX_EVENT_BUFFER_SIZE } from '../../../src/constants';
 import { EventBufferProxy } from '../../../src/eventBuffer/EventBufferProxy';
-import { createEventBuffer } from './../../../src/eventBuffer';
+import { createEventBuffer, EventBufferSizeExceededError } from './../../../src/eventBuffer';
 
 const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 3 };
 
@@ -145,5 +146,72 @@ describe('Unit | eventBuffer | EventBufferCompressionWorker', () => {
     });
 
     await expect(() => buffer.addEvent({ data: { o: 3 }, timestamp: BASE_TIMESTAMP, type: 3 })).rejects.toBeDefined();
+  });
+
+  describe('size limit', () => {
+    it('rejects if size exceeds limit', async function () {
+      const buffer = createEventBuffer({
+        useCompression: true,
+      }) as EventBufferProxy;
+
+      expect(buffer).toBeInstanceOf(EventBufferProxy);
+      await buffer.ensureWorkerIsLoaded();
+
+      const largeEvent = {
+        data: { a: 'a'.repeat(REPLAY_MAX_EVENT_BUFFER_SIZE / 3) },
+        timestamp: BASE_TIMESTAMP,
+        type: 3,
+      };
+
+      await buffer.addEvent(largeEvent);
+      await buffer.addEvent(largeEvent);
+
+      // Now it should error
+      await expect(() => buffer.addEvent(largeEvent)).rejects.toThrowError(EventBufferSizeExceededError);
+    });
+
+    it('resets size limit on clear', async function () {
+      const buffer = createEventBuffer({
+        useCompression: true,
+      }) as EventBufferProxy;
+
+      expect(buffer).toBeInstanceOf(EventBufferProxy);
+      await buffer.ensureWorkerIsLoaded();
+
+      const largeEvent = {
+        data: { a: 'a'.repeat(REPLAY_MAX_EVENT_BUFFER_SIZE / 3) },
+        timestamp: BASE_TIMESTAMP,
+        type: 3,
+      };
+
+      await buffer.addEvent(largeEvent);
+      await buffer.addEvent(largeEvent);
+
+      await buffer.clear();
+
+      await buffer.addEvent(largeEvent);
+    });
+
+    it('resets size limit on finish', async function () {
+      const buffer = createEventBuffer({
+        useCompression: true,
+      }) as EventBufferProxy;
+
+      expect(buffer).toBeInstanceOf(EventBufferProxy);
+      await buffer.ensureWorkerIsLoaded();
+
+      const largeEvent = {
+        data: { a: 'a'.repeat(REPLAY_MAX_EVENT_BUFFER_SIZE / 3) },
+        timestamp: BASE_TIMESTAMP,
+        type: 3,
+      };
+
+      await buffer.addEvent(largeEvent);
+      await buffer.addEvent(largeEvent);
+
+      await buffer.finish();
+
+      await buffer.addEvent(largeEvent);
+    });
   });
 });
