@@ -155,8 +155,6 @@ export const ReplayRecordingData = [
       data: { source: 5, text: 'Capture Exception', isChecked: false, id: 16 },
       timestamp: expect.any(Number),
     },
-  ],
-  [
     {
       type: 5,
       timestamp: expect.any(Number),
