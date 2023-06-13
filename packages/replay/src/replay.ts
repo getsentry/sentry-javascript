@@ -7,10 +7,14 @@ import { logger } from '@sentry/utils';
 import {
   BUFFER_CHECKOUT_TIME,
   MAX_SESSION_LIFE,
+  MULTI_CLICK_TIMEOUT,
   SESSION_IDLE_EXPIRE_DURATION,
   SESSION_IDLE_PAUSE_DURATION,
+  SLOW_CLICK_SCROLL_TIMEOUT,
+  SLOW_CLICK_THRESHOLD,
   WINDOW,
 } from './constants';
+import { ClickDetector } from './coreHandlers/handleClick';
 import { handleKeyboardEvent } from './coreHandlers/handleKeyboardEvent';
 import { setupPerformanceObserver } from './coreHandlers/performanceObserver';
 import { createEventBuffer } from './eventBuffer';
@@ -31,6 +35,7 @@ import type {
   ReplayPluginOptions,
   SendBufferedReplayOptions,
   Session,
+  SlowClickConfig,
   Timeouts,
 } from './types';
 import { addEvent } from './util/addEvent';
@@ -59,6 +64,8 @@ export class ReplayContainer implements ReplayContainerInterface {
   public performanceEvents: AllPerformanceEntry[] = [];
 
   public session: Session | undefined;
+
+  public clickDetector: ClickDetector | undefined;
 
   /**
    * Recording can happen in one of three modes:
@@ -159,6 +166,22 @@ export class ReplayContainer implements ReplayContainerInterface {
       // ... per 5s
       5,
     );
+
+    const { slowClickTimeout, slowClickIgnoreSelectors } = this.getOptions();
+
+    const slowClickConfig: SlowClickConfig | undefined = slowClickTimeout
+      ? {
+          threshold: Math.min(SLOW_CLICK_THRESHOLD, slowClickTimeout),
+          timeout: slowClickTimeout,
+          scrollTimeout: SLOW_CLICK_SCROLL_TIMEOUT,
+          ignoreSelector: slowClickIgnoreSelectors ? slowClickIgnoreSelectors.join(',') : '',
+          multiClickTimeout: MULTI_CLICK_TIMEOUT,
+        }
+      : undefined;
+
+    if (slowClickConfig) {
+      this.clickDetector = new ClickDetector(this, slowClickConfig);
+    }
   }
 
   /** Get the event context. */
@@ -737,6 +760,10 @@ export class ReplayContainer implements ReplayContainerInterface {
       WINDOW.addEventListener('focus', this._handleWindowFocus);
       WINDOW.addEventListener('keydown', this._handleKeyboardEvent);
 
+      if (this.clickDetector) {
+        this.clickDetector.addListeners();
+      }
+
       // There is no way to remove these listeners, so ensure they are only added once
       if (!this._hasInitializedCoreListeners) {
         addGlobalListeners(this);
@@ -765,6 +792,10 @@ export class ReplayContainer implements ReplayContainerInterface {
       WINDOW.removeEventListener('blur', this._handleWindowBlur);
       WINDOW.removeEventListener('focus', this._handleWindowFocus);
       WINDOW.removeEventListener('keydown', this._handleKeyboardEvent);
+
+      if (this.clickDetector) {
+        this.clickDetector.removeListeners();
+      }
 
       if (this._performanceObserver) {
         this._performanceObserver.disconnect();

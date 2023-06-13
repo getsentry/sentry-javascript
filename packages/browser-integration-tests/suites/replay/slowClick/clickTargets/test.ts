@@ -67,6 +67,7 @@ import { getCustomRecordingEvents, shouldSkipReplayTest, waitForReplayRequest } 
           category: 'ui.slowClickDetected',
           data: {
             endReason: 'timeout',
+            clickCount: 1,
             node: {
               attributes: expect.objectContaining({
                 id,

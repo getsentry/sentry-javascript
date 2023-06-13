@@ -91,6 +91,7 @@ sentryTest('late scroll triggers slow click', async ({ getLocalTestUrl, page }) 
       category: 'ui.slowClickDetected',
       data: {
         endReason: 'timeout',
+        clickCount: 1,
         node: {
           attributes: {
             id: 'scrollLateButton',

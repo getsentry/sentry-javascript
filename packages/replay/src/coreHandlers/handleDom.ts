@@ -3,32 +3,17 @@ import { NodeType } from '@sentry-internal/rrweb-snapshot';
 import type { Breadcrumb } from '@sentry/types';
 import { htmlTreeAsString } from '@sentry/utils';
 
-import { SLOW_CLICK_SCROLL_TIMEOUT, SLOW_CLICK_THRESHOLD } from '../constants';
-import type { ReplayContainer, SlowClickConfig } from '../types';
+import type { ReplayContainer } from '../types';
 import { createBreadcrumb } from '../util/createBreadcrumb';
-import { detectSlowClick } from './handleSlowClick';
+import { handleClick } from './handleClick';
 import { addBreadcrumbEvent } from './util/addBreadcrumbEvent';
+import type { DomHandlerData } from './util/domUtils';
+import { getClickTargetNode, getTargetNode } from './util/domUtils';
 import { getAttributesToRecord } from './util/getAttributesToRecord';
-
-export interface DomHandlerData {
-  name: string;
-  event: Node | { target: EventTarget };
-}
 
 export const handleDomListener: (replay: ReplayContainer) => (handlerData: DomHandlerData) => void = (
   replay: ReplayContainer,
 ) => {
-  const { slowClickTimeout, slowClickIgnoreSelectors } = replay.getOptions();
-
-  const slowClickConfig: SlowClickConfig | undefined = slowClickTimeout
-    ? {
-        threshold: Math.min(SLOW_CLICK_THRESHOLD, slowClickTimeout),
-        timeout: slowClickTimeout,
-        scrollTimeout: SLOW_CLICK_SCROLL_TIMEOUT,
-        ignoreSelector: slowClickIgnoreSelectors ? slowClickIgnoreSelectors.join(',') : '',
-      }
-    : undefined;
-
   return (handlerData: DomHandlerData): void => {
     if (!replay.isEnabled()) {
       return;
@@ -43,11 +28,10 @@ export const handleDomListener: (replay: ReplayContainer) => (handlerData: DomHa
     const isClick = handlerData.name === 'click';
     const event = isClick && (handlerData.event as PointerEvent);
     // Ignore clicks if ctrl/alt/meta keys are held down as they alter behavior of clicks (e.g. open in new tab)
-    if (isClick && slowClickConfig && event && !event.altKey && !event.metaKey && !event.ctrlKey) {
-      detectSlowClick(
-        replay,
-        slowClickConfig,
-        result as Breadcrumb & { timestamp: number },
+    if (isClick && replay.clickDetector && event && !event.altKey && !event.metaKey && !event.ctrlKey) {
+      handleClick(
+        replay.clickDetector,
+        result as Breadcrumb & { timestamp: number; data: { nodeId: number } },
         getClickTargetNode(handlerData.event) as HTMLElement,
       );
     }
@@ -117,33 +101,4 @@ function getDomTarget(handlerData: DomHandlerData): { target: Node | INode | nul
 
 function isRrwebNode(node: EventTarget): node is INode {
   return '__sn' in node;
-}
-
-function getTargetNode(event: Node | { target: EventTarget | null }): Node | INode | null {
-  if (isEventWithTarget(event)) {
-    return event.target as Node | null;
-  }
-
-  return event;
-}
-
-const INTERACTIVE_SELECTOR = 'button,a';
-
-// For clicks, we check if the target is inside of a button or link
-// If so, we use this as the target instead
-// This is useful because if you click on the image in <button><img></button>,
-// The target will be the image, not the button, which we don't want here
-function getClickTargetNode(event: DomHandlerData['event']): Node | INode | null {
-  const target = getTargetNode(event);
-
-  if (!target || !(target instanceof Element)) {
-    return target;
-  }
-
-  const closestInteractive = target.closest(INTERACTIVE_SELECTOR);
-  return closestInteractive || target;
-}
-
-function isEventWithTarget(event: unknown): event is { target: EventTarget | null } {
-  return typeof event === 'object' && !!event && 'target' in event;
 }

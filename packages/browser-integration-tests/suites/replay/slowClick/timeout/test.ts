@@ -40,6 +40,7 @@ sentryTest('mutation after timeout results in slow click', async ({ getLocalTest
       category: 'ui.slowClickDetected',
       data: {
         endReason: 'timeout',
+        clickCount: 1,
         node: {
           attributes: {
             id: 'mutationButtonLate',
@@ -95,6 +96,7 @@ sentryTest('console.log results in slow click', async ({ getLocalTestUrl, page }
       category: 'ui.slowClickDetected',
       data: {
         endReason: 'timeout',
+        clickCount: 1,
         node: {
           attributes: {
             id: 'consoleLogButton',
