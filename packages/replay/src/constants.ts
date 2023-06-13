@@ -37,3 +37,8 @@ export const NETWORK_BODY_MAX_SIZE = 150_000;
 
 /* The max size of a single console arg that is captured. Any arg larger than this will be truncated. */
 export const CONSOLE_ARG_MAX_SIZE = 5_000;
+
+/* Min. time to wait before we consider something a slow click. */
+export const SLOW_CLICK_THRESHOLD = 3_000;
+/* For scroll actions after a click, we only look for a very short time period to detect programmatic scrolling. */
+export const SLOW_CLICK_SCROLL_TIMEOUT = 300;

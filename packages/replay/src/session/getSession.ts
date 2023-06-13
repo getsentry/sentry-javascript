@@ -34,11 +34,13 @@ export function getSession({
     // within "max session time").
     const isExpired = isSessionExpired(session, timeouts);
 
-    if (!isExpired) {
+    if (!isExpired || (allowBuffering && session.shouldRefresh)) {
       return { type: 'saved', session };
     } else if (!session.shouldRefresh) {
-      // In this case, stop
-      // This is the case if we have an error session that is completed (=triggered an error)
+      // This is the case if we have an error session that is completed
+      // (=triggered an error). Session will continue as session-based replay,
+      // and when this session is expired, it will not be renewed until user
+      // reloads.
       const discardedSession = makeSession({ sampled: false });
       return { type: 'new', session: discardedSession };
     } else {

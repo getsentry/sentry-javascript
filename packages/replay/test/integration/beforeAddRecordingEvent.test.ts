@@ -2,7 +2,7 @@ import * as SentryCore from '@sentry/core';
 import type { Transport } from '@sentry/types';
 import * as SentryUtils from '@sentry/utils';
 
-import type { Replay } from '../../src';
+import type { EventType, Replay } from '../../src';
 import type { ReplayContainer } from '../../src/replay';
 import { clearSession } from '../../src/session/clearSession';
 import * as SendReplayRequest from '../../src/util/sendReplayRequest';
@@ -37,7 +37,7 @@ describe('Integration | beforeAddRecordingEvent', () => {
     ({ replay, integration } = await mockSdk({
       replayOptions: {
         beforeAddRecordingEvent: event => {
-          const eventData = event.data as Record<string, any>;
+          const eventData = event.data;
 
           if (eventData.tag === 'breadcrumb' && eventData.payload.category === 'ui.click') {
             return {
@@ -53,8 +53,8 @@ describe('Integration | beforeAddRecordingEvent', () => {
           }
 
           // This should not do anything because callback should not be called
-          // for `event.type != 5`
-          if (event.type === 2) {
+          // for `event.type != 5` - but we guard anyhow to be safe
+          if ((event.type as EventType) === 2) {
             return null;
           }
 

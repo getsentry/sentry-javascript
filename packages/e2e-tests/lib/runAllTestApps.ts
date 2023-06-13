@@ -8,7 +8,11 @@ export async function runAllTestApps(
   recipePaths: string[],
   envVarsToInject: Record<string, string | undefined>,
 ): Promise<void> {
-  const maxParallel = process.env.CI ? 3 : 6;
+  const maxParallel = process.env.CANARY_E2E_TEST
+    ? 1 // TODO: figure out why concurrent tests fail for Next.js and remove this concurrency limitation
+    : process.env.CI
+    ? 3
+    : 6;
 
   const recipeInstances = constructRecipeInstances(recipePaths);
 
