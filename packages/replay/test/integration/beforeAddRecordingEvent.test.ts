@@ -3,7 +3,7 @@ import * as SentryCore from '@sentry/core';
 import type { Transport } from '@sentry/types';
 import * as SentryUtils from '@sentry/utils';
 
-import type { Replay } from '../../src';
+import type { EventType, Replay } from '../../src';
 import type { ReplayContainer } from '../../src/replay';
 import { clearSession } from '../../src/session/clearSession';
 import * as SendReplayRequest from '../../src/util/sendReplayRequest';
@@ -55,7 +55,7 @@ describe('Integration | beforeAddRecordingEvent', () => {
 
           // This should not do anything because callback should not be called
           // for `event.type != 5` - but we guard anyhow to be safe
-          if ((event.type as EventType) === EventType.FullSnapshot) {
+          if ((event.type as EventType) === 2) {
             return null;
           }
 
