@@ -3,7 +3,7 @@ import * as SentryCore from '@sentry/core';
 import type { Transport } from '@sentry/types';
 import * as SentryUtils from '@sentry/utils';
 
-import { Replay } from '../../src';
+import type { Replay } from '../../src';
 import type { ReplayContainer } from '../../src/replay';
 import { clearSession } from '../../src/session/clearSession';
 import * as SendReplayRequest from '../../src/util/sendReplayRequest';
