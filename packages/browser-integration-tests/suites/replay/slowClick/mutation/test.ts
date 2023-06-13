@@ -3,7 +3,7 @@ import { expect } from '@playwright/test';
 import { sentryTest } from '../../../../utils/fixtures';
 import { getCustomRecordingEvents, shouldSkipReplayTest, waitForReplayRequest } from '../../../../utils/replayHelpers';
 
-sentryTest('mutation after threshold results in slow click', async ({ getLocalTestUrl, page }) => {
+sentryTest('mutation after threshold results in slow click', async ({ forceFlushReplay, getLocalTestUrl, page }) => {
   if (shouldSkipReplayTest()) {
     sentryTest.skip();
   }
@@ -21,6 +21,7 @@ sentryTest('mutation after threshold results in slow click', async ({ getLocalTe
   const url = await getLocalTestUrl({ testDir: __dirname });
 
   await page.goto(url);
+  await forceFlushReplay();
   await reqPromise0;
 
   const reqPromise1 = waitForReplayRequest(page, (event, res) => {
@@ -63,7 +64,7 @@ sentryTest('mutation after threshold results in slow click', async ({ getLocalTe
   expect(slowClickBreadcrumbs[0]?.data?.timeAfterClickMs).toBeLessThan(3100);
 });
 
-sentryTest('immediate mutation does not trigger slow click', async ({ browserName, getLocalTestUrl, page }) => {
+sentryTest('immediate mutation does not trigger slow click', async ({ browserName, forceFlushReplay, getLocalTestUrl, page }) => {
   // This test seems to only be flakey on firefox
   if (shouldSkipReplayTest() || ['firefox'].includes(browserName)) {
     sentryTest.skip();
@@ -82,6 +83,7 @@ sentryTest('immediate mutation does not trigger slow click', async ({ browserNam
   const url = await getLocalTestUrl({ testDir: __dirname });
 
   await page.goto(url);
+  await forceFlushReplay();
   await reqPromise0;
 
   const reqPromise1 = waitForReplayRequest(page, (event, res) => {
@@ -115,7 +117,7 @@ sentryTest('immediate mutation does not trigger slow click', async ({ browserNam
   ]);
 });
 
-sentryTest('inline click handler does not trigger slow click', async ({ getLocalTestUrl, page }) => {
+sentryTest('inline click handler does not trigger slow click', async ({ forceFlushReplay, getLocalTestUrl, page }) => {
   if (shouldSkipReplayTest()) {
     sentryTest.skip();
   }
@@ -133,6 +135,7 @@ sentryTest('inline click handler does not trigger slow click', async ({ getLocal
   const url = await getLocalTestUrl({ testDir: __dirname });
 
   await page.goto(url);
+  await forceFlushReplay();
   await reqPromise0;
 
   const reqPromise1 = waitForReplayRequest(page, (event, res) => {
