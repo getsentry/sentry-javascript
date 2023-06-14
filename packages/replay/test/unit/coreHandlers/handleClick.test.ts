@@ -216,10 +216,12 @@ describe('Unit | coreHandlers | handleClick', () => {
           nodeId: 3,
         },
       };
-      const node = document.createElement('button');
-      detector.handleClick(breadcrumb1, node);
-      detector.handleClick(breadcrumb2, node);
-      detector.handleClick(breadcrumb3, node);
+      const node1 = document.createElement('button');
+      const node2 = document.createElement('button');
+      const node3 = document.createElement('button');
+      detector.handleClick(breadcrumb1, node1);
+      detector.handleClick(breadcrumb2, node2);
+      detector.handleClick(breadcrumb3, node3);
 
       expect(mockAddBreadcrumbEvent).toHaveBeenCalledTimes(0);
 
@@ -268,10 +270,12 @@ describe('Unit | coreHandlers | handleClick', () => {
           nodeId: 3,
         },
       };
-      const node = document.createElement('div');
-      detector.handleClick(breadcrumb1, node);
-      detector.handleClick(breadcrumb2, node);
-      detector.handleClick(breadcrumb3, node);
+      const node1 = document.createElement('div');
+      const node2 = document.createElement('div');
+      const node3 = document.createElement('div');
+      detector.handleClick(breadcrumb1, node1);
+      detector.handleClick(breadcrumb2, node2);
+      detector.handleClick(breadcrumb3, node3);
 
       expect(mockAddBreadcrumbEvent).toHaveBeenCalledTimes(0);
 
