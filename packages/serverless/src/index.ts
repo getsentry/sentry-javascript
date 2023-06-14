@@ -18,6 +18,7 @@ export {
   captureEvent,
   captureException,
   captureMessage,
+  captureCheckIn,
   configureScope,
   createTransport,
   getActiveTransaction,
