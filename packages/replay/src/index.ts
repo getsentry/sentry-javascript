@@ -1,5 +1,6 @@
 export { Replay } from './integration';
 export type {
+  EventType,
   eventWithTime,
   BreadcrumbFrame,
   BreadcrumbFrameEvent,
