@@ -4,6 +4,11 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.55.2
+
+- fix(replay): Stop exporting `EventType` from `@sentry-internal/rrweb` (#8334)
+- fix(serverless): Export captureCheckIn (#8333)
+
 ## 7.55.1
 
 - fix(replay): Do not export types from `@sentry-internal/rrweb` (#8329)
