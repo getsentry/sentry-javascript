@@ -1,9 +1,18 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 
-import type { EventType } from '@sentry-internal/rrweb';
-
 type blockClass = string | RegExp;
 type maskTextClass = string | RegExp;
+
+/** Duplicate this from @sentry-internal/rrweb so we can export this as well. */
+export enum EventType {
+  DomContentLoaded = 0,
+  Load = 1,
+  FullSnapshot = 2,
+  IncrementalSnapshot = 3,
+  Meta = 4,
+  Custom = 5,
+  Plugin = 6,
+}
 
 /**
  * This is a partial copy of rrweb's eventWithTime type which only contains the properties
