@@ -1,4 +1,3 @@
-import type { EventType } from '@sentry-internal/rrweb';
 import type { Breadcrumb } from '@sentry/types';
 
 import type {
@@ -10,6 +9,7 @@ import type {
   PaintData,
   ResourceData,
 } from './performance';
+import type { EventType } from './rrweb';
 
 interface BaseBreadcrumbFrame {
   timestamp: number;
