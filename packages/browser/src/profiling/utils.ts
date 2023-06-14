@@ -1,20 +1,35 @@
-import { DEFAULT_ENVIRONMENT } from '@sentry/core';
+/* eslint-disable max-lines */
+
+import { DEFAULT_ENVIRONMENT, getCurrentHub } from '@sentry/core';
 import type {
+  DebugImage,
   DsnComponents,
   DynamicSamplingContext,
+  Envelope,
   Event,
   EventEnvelope,
   EventEnvelopeHeaders,
   EventItem,
   SdkInfo,
   SdkMetadata,
+  StackFrame,
+  StackParser,
 } from '@sentry/types';
-import { createEnvelope, dropUndefinedKeys, dsnToString, logger, uuid4 } from '@sentry/utils';
+import {
+  createEnvelope,
+  dropUndefinedKeys,
+  dsnToString,
+  forEachEnvelopeItem,
+  GLOBAL_OBJ,
+  logger,
+  uuid4,
+} from '@sentry/utils';
 
 import { WINDOW } from '../helpers';
 import type {
   JSSelfProfile,
   JSSelfProfileStack,
+  ProcessedJSSelfProfile,
   RawThreadCpuProfile,
   SentryProfile,
   ThreadCpuProfile,
@@ -187,7 +202,7 @@ export function createProfilingEventEnvelope(
     throw new TypeError('Profiling events may only be attached to transactions, this should never occur.');
   }
 
-  const rawProfile = event.sdkProcessingMetadata['profile'];
+  const rawProfile = event.sdkProcessingMetadata['profile'] as ProcessedJSSelfProfile | null;
 
   if (rawProfile === undefined || rawProfile === null) {
     throw new TypeError(
@@ -240,6 +255,9 @@ export function createProfilingEventEnvelope(
       architecture: OS_ARCH,
       is_emulator: false,
     },
+    debug_meta: {
+      images: applyDebugMetadata(rawProfile.resources),
+    },
     profile: enrichedThreadProfile,
     transactions: [
       {
@@ -290,12 +308,12 @@ export function maybeRemoveProfileFromSdkMetadata(event: Event | ProfiledEvent):
  * Converts a JSSelfProfile to a our sampled format.
  * Does not currently perform stack indexing.
  */
-export function convertJSSelfProfileToSampledFormat(input: JSSelfProfile): ThreadCpuProfile {
+export function convertJSSelfProfileToSampledFormat(input: JSSelfProfile): SentryProfile['profile'] {
   let EMPTY_STACK_ID: undefined | number = undefined;
   let STACK_ID = 0;
 
   // Initialize the profile that we will fill with data
-  const profile: ThreadCpuProfile = {
+  const profile: SentryProfile['profile'] = {
     samples: [],
     stacks: [],
     frames: [],
@@ -355,7 +373,7 @@ export function convertJSSelfProfileToSampledFormat(input: JSSelfProfile): Threa
       stackTop = stackTop.parentId === undefined ? undefined : input.stacks[stackTop.parentId];
     }
 
-    const sample: ThreadCpuProfile['samples'][0] = {
+    const sample: SentryProfile['profile']['samples'][0] = {
       // convert ms timestamp to ns
       elapsed_since_start_ns: ((jsSample.timestamp - start) * MS_TO_NS).toFixed(0),
       stack_id: STACK_ID,
@@ -368,4 +386,149 @@ export function convertJSSelfProfileToSampledFormat(input: JSSelfProfile): Threa
   }
 
   return profile;
+}
+
+/**
+ * Adds items to envelope if they are not already present - mutates the envelope.
+ * @param envelope
+ */
+export function addProfilesToEnvelope(envelope: Envelope, profiles: SentryProfile[]): Envelope {
+  if (!profiles.length) {
+    return envelope;
+  }
+
+  for (const profile of profiles) {
+    // @ts-ignore untyped envelope
+    envelope[1].push([{ type: 'profile' }, profile]);
+  }
+  return envelope;
+}
+
+/**
+ * Finds transactions with profile_id context in the envelope
+ * @param envelope
+ * @returns
+ */
+export function findProfiledTransactionsFromEnvelope(envelope: Envelope): Event[] {
+  const events: Event[] = [];
+
+  forEachEnvelopeItem(envelope, (item, type) => {
+    if (type !== 'transaction') {
+      return;
+    }
+
+    for (let j = 1; j < item.length; j++) {
+      const event = item[j] as Event;
+
+      if (event && event.contexts && event.contexts['profile'] && event.contexts['profile']['profile_id']) {
+        events.push(item[j] as Event);
+      }
+    }
+  });
+
+  return events;
+}
+
+const debugIdStackParserCache = new WeakMap<StackParser, Map<string, StackFrame[]>>();
+/**
+ * Applies debug meta data to an event from a list of paths to resources (sourcemaps)
+ */
+export function applyDebugMetadata(resource_paths: ReadonlyArray<string>): DebugImage[] {
+  const debugIdMap = GLOBAL_OBJ._sentryDebugIds;
+
+  if (!debugIdMap) {
+    return [];
+  }
+
+  const hub = getCurrentHub();
+  if (!hub) {
+    return [];
+  }
+  const client = hub.getClient();
+  if (!client) {
+    return [];
+  }
+  const options = client.getOptions();
+  if (!options) {
+    return [];
+  }
+  const stackParser = options.stackParser;
+  if (!stackParser) {
+    return [];
+  }
+
+  let debugIdStackFramesCache: Map<string, StackFrame[]>;
+  const cachedDebugIdStackFrameCache = debugIdStackParserCache.get(stackParser);
+  if (cachedDebugIdStackFrameCache) {
+    debugIdStackFramesCache = cachedDebugIdStackFrameCache;
+  } else {
+    debugIdStackFramesCache = new Map<string, StackFrame[]>();
+    debugIdStackParserCache.set(stackParser, debugIdStackFramesCache);
+  }
+
+  // Build a map of filename -> debug_id
+  const filenameDebugIdMap = Object.keys(debugIdMap).reduce<Record<string, string>>((acc, debugIdStackTrace) => {
+    let parsedStack: StackFrame[];
+
+    const cachedParsedStack = debugIdStackFramesCache.get(debugIdStackTrace);
+    if (cachedParsedStack) {
+      parsedStack = cachedParsedStack;
+    } else {
+      parsedStack = stackParser(debugIdStackTrace);
+      debugIdStackFramesCache.set(debugIdStackTrace, parsedStack);
+    }
+
+    for (let i = parsedStack.length - 1; i >= 0; i--) {
+      const stackFrame = parsedStack[i];
+      const file = stackFrame && stackFrame.filename;
+
+      if (stackFrame && file) {
+        acc[file] = debugIdMap[debugIdStackTrace] as string;
+        break;
+      }
+    }
+    return acc;
+  }, {});
+
+  const images: DebugImage[] = [];
+  for (const path of resource_paths) {
+    if (path && filenameDebugIdMap[path]) {
+      images.push({
+        type: 'sourcemap',
+        code_file: path,
+        debug_id: filenameDebugIdMap[path] as string,
+      });
+    }
+  }
+
+  return images;
+}
+
+/**
+ * Checks the given sample rate to make sure it is valid type and value (a boolean, or a number between 0 and 1).
+ */
+export function isValidSampleRate(rate: unknown): boolean {
+  // we need to check NaN explicitly because it's of type 'number' and therefore wouldn't get caught by this typecheck
+  if ((typeof rate !== 'number' && typeof rate !== 'boolean') || (typeof rate === 'number' && isNaN(rate))) {
+    __DEBUG_BUILD__ &&
+      logger.warn(
+        `[Profiling] Invalid sample rate. Sample rate must be a boolean or a number between 0 and 1. Got ${JSON.stringify(
+          rate,
+        )} of type ${JSON.stringify(typeof rate)}.`,
+      );
+    return false;
+  }
+
+  // Boolean sample rates are always valid
+  if (rate === true || rate === false) {
+    return true;
+  }
+
+  // in case sampleRate is a boolean, it will get automatically cast to 1 if it's true and 0 if it's false
+  if (rate < 0 || rate > 1) {
+    __DEBUG_BUILD__ &&
+      logger.warn(`[Profiling] Invalid sample rate. Sample rate must be between 0 and 1. Got ${rate}.`);
+    return false;
+  }
+  return true;
 }

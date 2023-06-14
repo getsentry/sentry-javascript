@@ -1,7 +1,8 @@
-import { getCurrentHub, getMainCarrier } from '@sentry/core';
-import type { CustomSamplingContext, Hub, Transaction, TransactionContext } from '@sentry/types';
+import { getCurrentHub } from '@sentry/core';
+import type { CustomSamplingContext, Transaction } from '@sentry/types';
 import { logger, uuid4 } from '@sentry/utils';
 
+import type { BrowserClient } from '../client';
 import { WINDOW } from '../helpers';
 import type {
   JSSelfProfile,
@@ -9,20 +10,126 @@ import type {
   JSSelfProfilerConstructor,
   ProcessedJSSelfProfile,
 } from './jsSelfProfiling';
-import { sendProfile } from './sendProfile';
+import { isValidSampleRate } from './utils';
 
-// Max profile duration.
-const MAX_PROFILE_DURATION_MS = 30_000;
+export const MAX_PROFILE_DURATION_MS = 30_000;
 // Keep a flag value to avoid re-initializing the profiler constructor. If it fails
 // once, it will always fail and this allows us to early return.
 let PROFILING_CONSTRUCTOR_FAILED = false;
 
-// While we experiment, per transaction sampling interval will be more flexible to work with.
-type StartTransaction = (
-  this: Hub,
-  transactionContext: TransactionContext,
+// Takes a transaction and determines if it should be profiled or not. If it should be profiled, it returns the
+// profile_id, otherwise returns undefined. Takes care of setting profile context on transaction as well
+/**
+ *
+ */
+export function maybeProfileTransaction(
+  client: BrowserClient,
+  transaction: Transaction,
   customSamplingContext?: CustomSamplingContext,
-) => Transaction | undefined;
+): string | undefined {
+  // profilesSampleRate is multiplied with tracesSampleRate to get the final sampling rate. We dont perform
+  // the actual multiplication to get the final rate, but we discard the profile if the transaction was sampled,
+  // so anything after this block from here is based on the transaction sampling.
+  if (!transaction.sampled) {
+    return;
+  }
+
+  // Client and options are required for profiling
+  if (!client) {
+    __DEBUG_BUILD__ && logger.log('[Profiling] Profiling disabled, no client found.');
+    return;
+  }
+
+  const options = client.getOptions();
+  if (!options) {
+    __DEBUG_BUILD__ && logger.log('[Profiling] Profiling disabled, no options found.');
+    return;
+  }
+
+  // @ts-ignore profilesSampler is not part of the browser options yet
+  const profilesSampler = options.profilesSampler;
+  // @ts-ignore profilesSampleRate is not part of the browser options yet
+  let profilesSampleRate: number | boolean | undefined = options.profilesSampleRate;
+
+  // Prefer sampler to sample rate if both are provided.
+  if (typeof profilesSampler === 'function') {
+    profilesSampleRate = profilesSampler({ transactionContext: transaction.toContext(), ...customSamplingContext });
+  }
+
+  // Since this is coming from the user (or from a function provided by the user), who knows what we might get. (The
+  // only valid values are booleans or numbers between 0 and 1.)
+  if (!isValidSampleRate(profilesSampleRate)) {
+    __DEBUG_BUILD__ && logger.warn('[Profiling] Discarding profile because of invalid sample rate.');
+    return;
+  }
+
+  // if the function returned 0 (or false), or if `profileSampleRate` is 0, it's a sign the profile should be dropped
+  if (!profilesSampleRate) {
+    __DEBUG_BUILD__ &&
+      logger.log(
+        `[Profiling] Discarding profile because ${
+          typeof profilesSampler === 'function'
+            ? 'profileSampler returned 0 or false'
+            : 'a negative sampling decision was inherited or profileSampleRate is set to 0'
+        }`,
+      );
+    return;
+  }
+
+  // Now we roll the dice. Math.random is inclusive of 0, but not of 1, so strict < is safe here. In case sampleRate is
+  // a boolean, the < comparison will cause it to be automatically cast to 1 if it's true and 0 if it's false.
+  const sampled = profilesSampleRate === true ? true : Math.random() < profilesSampleRate;
+  // Check if we should sample this profile
+  if (!sampled) {
+    __DEBUG_BUILD__ &&
+      logger.log(
+        `[Profiling] Discarding profile because it's not included in the random sample (sampling rate = ${Number(
+          profilesSampleRate,
+        )})`,
+      );
+    return;
+  }
+
+  const profile_id = uuid4();
+  CpuProfilerBindings.startProfiling(profile_id);
+
+  __DEBUG_BUILD__ && logger.log(`[Profiling] started profiling transaction: ${transaction.name}`);
+
+  // set transaction context - do this regardless if profiling fails down the line
+  // so that we can still see the profile_id in the transaction context
+  return profile_id;
+}
+
+/**
+ *
+ */
+export function stopTransactionProfile(
+  transaction: Transaction,
+  profile_id: string | undefined,
+): ReturnType<(typeof CpuProfilerBindings)['stopProfiling']> | null {
+  // Should not happen, but satisfy the type checker and be safe regardless.
+  if (!profile_id) {
+    return null;
+  }
+
+  const profile = CpuProfilerBindings.stopProfiling(profile_id);
+
+  __DEBUG_BUILD__ && logger.log(`[Profiling] stopped profiling of transaction: ${transaction.name}`);
+
+  // In case of an overlapping transaction, stopProfiling may return null and silently ignore the overlapping profile.
+  if (!profile) {
+    __DEBUG_BUILD__ &&
+      logger.log(
+        `[Profiling] profiler returned null profile for: ${transaction.name}`,
+        'this may indicate an overlapping transaction or a call to stopProfiling with a profile title that was never started',
+      );
+    return null;
+  }
+
+  // Assign profile_id to the profile
+  profile.profile_id = profile_id;
+  return profile;
+}
 
 /**
  * Check if profiler constructor is available.
@@ -246,57 +353,4 @@ function wrapTransactionWithProfiling(transaction: Transaction): Transaction {
 
   transaction.finish = profilingWrappedTransactionFinish;
   return transaction;
-}
-
-/**
- * Wraps startTransaction with profiling logic. This is done automatically by the profiling integration.
- */
-function __PRIVATE__wrapStartTransactionWithProfiling(startTransaction: StartTransaction): StartTransaction {
-  return function wrappedStartTransaction(
-    this: Hub,
-    transactionContext: TransactionContext,
-    customSamplingContext?: CustomSamplingContext,
-  ): Transaction | undefined {
-    const transaction: Transaction | undefined = startTransaction.call(this, transactionContext, customSamplingContext);
-    if (transaction === undefined) {
-      if (__DEBUG_BUILD__) {
-        logger.log('[Profiling] Transaction is undefined, skipping profiling');
-      }
-      return transaction;
-    }
-
-    return wrapTransactionWithProfiling(transaction);
-  };
-}
-
-/**
- * Patches startTransaction and stopTransaction with profiling logic.
- */
-export function addProfilingExtensionMethods(): void {
-  const carrier = getMainCarrier();
-  if (!carrier.__SENTRY__) {
-    if (__DEBUG_BUILD__) {
-      logger.log("[Profiling] Can't find main carrier, profiling won't work.");
-    }
-    return;
-  }
-  carrier.__SENTRY__.extensions = carrier.__SENTRY__.extensions || {};
-
-  if (!carrier.__SENTRY__.extensions['startTransaction']) {
-    if (__DEBUG_BUILD__) {
-      logger.log(
-        '[Profiling] startTransaction does not exists, profiling will not work. Make sure you import @sentry/tracing package before @sentry/profiling-node as import order matters.',
-      );
-    }
-    return;
-  }
-
-  if (__DEBUG_BUILD__) {
-    logger.log('[Profiling] startTransaction exists, patching it with profiling functionality...');
-  }
-
-  carrier.__SENTRY__.extensions['startTransaction'] = __PRIVATE__wrapStartTransactionWithProfiling(
-    // This is already patched by sentry/tracing, we are going to re-patch it...
-    carrier.__SENTRY__.extensions['startTransaction'] as StartTransaction,
-  );
 }

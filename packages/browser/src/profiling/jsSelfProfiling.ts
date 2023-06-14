@@ -1,3 +1,4 @@
+import type { DebugImage } from '@sentry/types';
 // Type definitions for https://wicg.github.io/js-self-profiling/
 type JSSelfProfileSampleMarker = 'script' | 'gc' | 'style' | 'layout' | 'paint' | 'other';
 
@@ -95,14 +96,7 @@ export interface SentryProfile {
   platform: string;
   profile: ThreadCpuProfile;
   debug_meta?: {
-    images: {
-      debug_id: string;
-      image_addr: string;
-      code_file: string;
-      type: string;
-      image_size: number;
-      image_vmaddr: string;
-    }[];
+    images: DebugImage[];
   };
   transactions: {
     name: string;
