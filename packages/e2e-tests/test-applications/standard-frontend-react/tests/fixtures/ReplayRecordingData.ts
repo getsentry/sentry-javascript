@@ -96,26 +96,6 @@ export const ReplayRecordingData = [
       timestamp: expect.any(Number),
     },
     {
-      type: 5,
-      timestamp: expect.any(Number),
-      data: {
-        tag: 'performanceSpan',
-        payload: {
-          op: 'memory',
-          description: 'memory',
-          startTimestamp: expect.any(Number),
-          endTimestamp: expect.any(Number),
-          data: {
-            memory: {
-              jsHeapSizeLimit: expect.any(Number),
-              totalJSHeapSize: expect.any(Number),
-              usedJSHeapSize: expect.any(Number),
-            },
-          },
-        },
-      },
-    },
-    {
       type: 3,
       data: {
         source: 0,
