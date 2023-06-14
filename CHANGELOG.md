@@ -4,6 +4,10 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.55.1
+
+- fix(replay): Do not export types from `@sentry-internal/rrweb` (#8329)
+
 ## 7.55.0
 
 - feat(replay): Capture slow clicks (GA) (#8298)
