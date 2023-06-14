@@ -1,4 +1,3 @@
-import type { EventType } from '@sentry-internal/rrweb';
 import * as SentryCore from '@sentry/core';
 import type { Transport } from '@sentry/types';
 import * as SentryUtils from '@sentry/utils';
