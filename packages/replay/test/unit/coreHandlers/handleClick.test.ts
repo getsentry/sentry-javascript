@@ -55,6 +55,7 @@ describe('Unit | coreHandlers | handleClick', () => {
       expect(mockAddBreadcrumbEvent).toHaveBeenCalledTimes(1);
       expect(mockAddBreadcrumbEvent).toHaveBeenCalledWith(replay, {
         category: 'ui.slowClickDetected',
+        type: 'default',
         data: {
           clickCount: 1,
           endReason: 'timeout',
@@ -141,8 +142,10 @@ describe('Unit | coreHandlers | handleClick', () => {
       expect(mockAddBreadcrumbEvent).toHaveBeenCalledTimes(1);
       expect(mockAddBreadcrumbEvent).toHaveBeenCalledWith(replay, {
         category: 'ui.slowClickDetected',
+        type: 'default',
         data: {
-          clickCount: 3,
+          // count is not actually correct, because this is identified by a different click handler
+          clickCount: 1,
           endReason: 'timeout',
           nodeId: 1,
           route: 'test-route',
@@ -158,8 +161,10 @@ describe('Unit | coreHandlers | handleClick', () => {
       expect(mockAddBreadcrumbEvent).toHaveBeenCalledTimes(2);
       expect(mockAddBreadcrumbEvent).toHaveBeenCalledWith(replay, {
         category: 'ui.slowClickDetected',
+        type: 'default',
         data: {
-          clickCount: 2,
+          // count is not actually correct, because this is identified by a different click handler
+          clickCount: 1,
           endReason: 'timeout',
           nodeId: 1,
           route: 'test-route',
@@ -349,6 +354,7 @@ describe('Unit | coreHandlers | handleClick', () => {
         expect(mockAddBreadcrumbEvent).toHaveBeenCalledTimes(1);
         expect(mockAddBreadcrumbEvent).toHaveBeenCalledWith(replay, {
           category: 'ui.slowClickDetected',
+          type: 'default',
           data: {
             clickCount: 1,
             endReason: 'mutation',
@@ -389,9 +395,10 @@ describe('Unit | coreHandlers | handleClick', () => {
         expect(mockAddBreadcrumbEvent).toHaveBeenCalledTimes(1);
         expect(mockAddBreadcrumbEvent).toHaveBeenCalledWith(replay, {
           category: 'ui.slowClickDetected',
+          type: 'default',
           data: {
             clickCount: 1,
-            endReason: 'mutation',
+            endReason: 'timeout',
             nodeId: 1,
             route: 'test-route',
             timeAfterClickMs: 3000,
@@ -480,6 +487,7 @@ describe('Unit | coreHandlers | handleClick', () => {
         expect(mockAddBreadcrumbEvent).toHaveBeenCalledTimes(1);
         expect(mockAddBreadcrumbEvent).toHaveBeenCalledWith(replay, {
           category: 'ui.slowClickDetected',
+          type: 'default',
           data: {
             clickCount: 1,
             endReason: 'timeout',

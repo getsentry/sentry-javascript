@@ -26,7 +26,7 @@ sentryTest('captures rage click when not detecting slow click', async ({ getLoca
   const reqPromise1 = waitForReplayRequest(page, (event, res) => {
     const { breadcrumbs } = getCustomRecordingEvents(res);
 
-    return breadcrumbs.some(breadcrumb => breadcrumb.category === 'ui.rageClickDetected');
+    return breadcrumbs.some(breadcrumb => breadcrumb.category === 'ui.multiClick');
   });
 
   await page.click('#mutationButtonImmediately');
@@ -36,11 +36,12 @@ sentryTest('captures rage click when not detecting slow click', async ({ getLoca
 
   const { breadcrumbs } = getCustomRecordingEvents(await reqPromise1);
 
-  const slowClickBreadcrumbs = breadcrumbs.filter(breadcrumb => breadcrumb.category === 'ui.rageClickDetected');
+  const slowClickBreadcrumbs = breadcrumbs.filter(breadcrumb => breadcrumb.category === 'ui.multiClick');
 
   expect(slowClickBreadcrumbs).toEqual([
     {
-      category: 'ui.rageClickDetected',
+      category: 'ui.multiClick',
+      type: 'default',
       data: {
         clickCount: 4,
         metric: true,

@@ -38,6 +38,7 @@ sentryTest('mutation after threshold results in slow click', async ({ getLocalTe
   expect(slowClickBreadcrumbs).toEqual([
     {
       category: 'ui.slowClickDetected',
+      type: 'default',
       data: {
         endReason: 'mutation',
         clickCount: 1,
@@ -96,11 +97,12 @@ sentryTest('multiple clicks are counted', async ({ getLocalTestUrl, page }) => {
   const { breadcrumbs } = getCustomRecordingEvents(await reqPromise1);
 
   const slowClickBreadcrumbs = breadcrumbs.filter(breadcrumb => breadcrumb.category === 'ui.slowClickDetected');
-  const rageClickBreadcrumbs = breadcrumbs.filter(breadcrumb => breadcrumb.category === 'ui.rageClickDetected');
+  const multiClickBreadcrumbs = breadcrumbs.filter(breadcrumb => breadcrumb.category === 'ui.multiClick');
 
   expect(slowClickBreadcrumbs).toEqual([
     {
       category: 'ui.slowClickDetected',
+      type: 'default',
       data: {
         endReason: 'mutation',
         clickCount: 4,
@@ -120,7 +122,7 @@ sentryTest('multiple clicks are counted', async ({ getLocalTestUrl, page }) => {
       timestamp: expect.any(Number),
     },
   ]);
-  expect(rageClickBreadcrumbs.length).toEqual(0);
+  expect(multiClickBreadcrumbs.length).toEqual(0);
 
   expect(slowClickBreadcrumbs[0]?.data?.timeAfterClickMs).toBeGreaterThan(3000);
   expect(slowClickBreadcrumbs[0]?.data?.timeAfterClickMs).toBeLessThan(3100);

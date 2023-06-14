@@ -65,6 +65,7 @@ import { getCustomRecordingEvents, shouldSkipReplayTest, waitForReplayRequest } 
       expect(slowClickBreadcrumbs).toEqual([
         {
           category: 'ui.slowClickDetected',
+          type: 'default',
           data: {
             endReason: 'timeout',
             clickCount: 1,
