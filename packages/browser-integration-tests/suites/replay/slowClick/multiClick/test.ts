@@ -3,7 +3,7 @@ import { expect } from '@playwright/test';
 import { sentryTest } from '../../../../utils/fixtures';
 import { getCustomRecordingEvents, shouldSkipReplayTest, waitForReplayRequest } from '../../../../utils/replayHelpers';
 
-sentryTest('captures rage click when not detecting slow click', async ({ getLocalTestUrl, page }) => {
+sentryTest('captures multi click when not detecting slow click', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipReplayTest()) {
     sentryTest.skip();
   }
@@ -29,10 +29,7 @@ sentryTest('captures rage click when not detecting slow click', async ({ getLoca
     return breadcrumbs.some(breadcrumb => breadcrumb.category === 'ui.multiClick');
   });
 
-  await page.click('#mutationButtonImmediately');
-  await page.click('#mutationButtonImmediately');
-  await page.click('#mutationButtonImmediately');
-  await page.click('#mutationButtonImmediately');
+  await page.click('#mutationButtonImmediately', { clickCount: 4 });
 
   const { breadcrumbs } = getCustomRecordingEvents(await reqPromise1);
 

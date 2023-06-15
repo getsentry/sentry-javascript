@@ -175,9 +175,9 @@ export class ClickDetector implements ReplayClickDetector {
         click.scrollAfter = click.timestamp <= this._lastScroll ? this._lastScroll - click.timestamp : undefined;
       }
 
-      // If an action happens within the multi click threshold, we can skip waiting and handle the click right away
+      // If an action happens after the multi click threshold, we can skip waiting and handle the click right away
       const actionTime = click.scrollAfter || click.mutationAfter || 0;
-      if (actionTime && actionTime <= this._multiClickTimeout) {
+      if (actionTime && actionTime >= this._multiClickTimeout) {
         timedOutClicks.push(click);
         return;
       }
