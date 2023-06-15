@@ -5,7 +5,7 @@ import * as SentryUtils from '@sentry/utils';
 import type { Replay } from '../../src';
 import type { ReplayContainer } from '../../src/replay';
 import { clearSession } from '../../src/session/clearSession';
-import { EventType } from '../../src/types';
+import type { EventType } from '../../src/types';
 import * as SendReplayRequest from '../../src/util/sendReplayRequest';
 import { BASE_TIMESTAMP, mockRrweb, mockSdk } from '../index';
 import { useFakeTimers } from '../utils/use-fake-timers';
@@ -55,7 +55,7 @@ describe('Integration | beforeAddRecordingEvent', () => {
 
           // This should not do anything because callback should not be called
           // for `event.type != 5` - but we guard anyhow to be safe
-          if ((event.type as EventType) === EventType.FullSnapshot) {
+          if ((event.type as EventType) === 2) {
             return null;
           }
 

@@ -9,6 +9,7 @@ export {
   captureException,
   captureEvent,
   captureMessage,
+  captureCheckIn,
   configureScope,
   createTransport,
   extractTraceparentData,
