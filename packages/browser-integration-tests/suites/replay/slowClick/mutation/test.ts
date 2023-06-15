@@ -89,10 +89,7 @@ sentryTest('multiple clicks are counted', async ({ getLocalTestUrl, page }) => {
     return breadcrumbs.some(breadcrumb => breadcrumb.category === 'ui.slowClickDetected');
   });
 
-  await page.click('#mutationButton');
-  await page.click('#mutationButton');
-  await page.click('#mutationButton');
-  await page.click('#mutationButton');
+  void page.click('#mutationButton', { clickCount: 4 });
 
   const { breadcrumbs } = getCustomRecordingEvents(await reqPromise1);
 
