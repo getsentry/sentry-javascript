@@ -38,9 +38,9 @@ export function prepareEvent(
   applyClientOptions(prepared, options);
   applyIntegrationsMetadata(prepared, integrations);
 
-  // Only apply debug metadata to error events.
+  // Only put debug IDs onto frames for error events.
   if (event.type === undefined) {
-    applyDebugMetadata(prepared, options.stackParser);
+    applyDebugIds(prepared, options.stackParser);
   }
 
   // If we have scope given to us, use it as the base for further modifications.
@@ -75,6 +75,11 @@ export function prepareEvent(
   }
 
   return result.then(evt => {
+    // TODO explain why this is here
+    if (evt) {
+      applyDebugMeta(evt);
+    }
+
     if (typeof normalizeDepth === 'number' && normalizeDepth > 0) {
       return normalizeEvent(evt, normalizeDepth, normalizeMaxBreadth);
     }
@@ -121,9 +126,9 @@ function applyClientOptions(event: Event, options: ClientOptions): void {
 const debugIdStackParserCache = new WeakMap<StackParser, Map<string, StackFrame[]>>();
 
 /**
- * Applies debug metadata images to the event in order to apply source maps by looking up their debug ID.
+ * Puts debug IDs into the stack frames of an error event.
  */
-export function applyDebugMetadata(event: Event, stackParser: StackParser): void {
+export function applyDebugIds(event: Event, stackParser: StackParser): void {
   const debugIdMap = GLOBAL_OBJ._sentryDebugIds;
 
   if (!debugIdMap) {
@@ -160,15 +165,39 @@ export function applyDebugMetadata(event: Event, stackParser: StackParser): void
     return acc;
   }, {});
 
-  // Get a Set of filenames in the stack trace
-  const errorFileNames = new Set<string>();
   try {
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     event!.exception!.values!.forEach(exception => {
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       exception.stacktrace!.frames!.forEach(frame => {
         if (frame.filename) {
-          errorFileNames.add(frame.filename);
+          frame.debug_id = filenameDebugIdMap[frame.filename];
+        }
+      });
+    });
+  } catch (e) {
+    // To save bundle size we're just try catching here instead of checking for the existence of all the different objects.
+  }
+}
+
+/**
+ * Moves debug IDs from the stack frames of an error event into the debug_meta field.
+ */
+export function applyDebugMeta(event: Event): void {
+  // Extract debug IDs and filenames from the stack frames on the event.
+  const filenameDebugIdMap: Record<string, string> = {};
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    event.exception!.values!.forEach(exception => {
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      exception.stacktrace!.frames!.forEach(frame => {
+        if (frame.debug_id) {
+          if (frame.abs_path) {
+            filenameDebugIdMap[frame.abs_path] = frame.debug_id;
+          } else if (frame.filename) {
+            filenameDebugIdMap[frame.filename] = frame.debug_id;
+          }
+          delete frame.debug_id;
         }
       });
     });
@@ -176,11 +205,15 @@ export function applyDebugMetadata(event: Event, stackParser: StackParser): void
     // To save bundle size we're just try catching here instead of checking for the existence of all the different objects.
   }
 
+  if (Object.keys(filenameDebugIdMap).length === 0) {
+    return;
+  }
+
   // Fill debug_meta information
   event.debug_meta = event.debug_meta || {};
   event.debug_meta.images = event.debug_meta.images || [];
   const images = event.debug_meta.images;
-  errorFileNames.forEach(filename => {
+  Object.keys(filenameDebugIdMap).forEach(filename => {
     if (filenameDebugIdMap[filename]) {
       images.push({
         type: 'sourcemap',
