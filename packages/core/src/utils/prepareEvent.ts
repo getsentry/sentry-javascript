@@ -214,13 +214,11 @@ export function applyDebugMeta(event: Event): void {
   event.debug_meta.images = event.debug_meta.images || [];
   const images = event.debug_meta.images;
   Object.keys(filenameDebugIdMap).forEach(filename => {
-    if (filenameDebugIdMap[filename]) {
-      images.push({
-        type: 'sourcemap',
-        code_file: filename,
-        debug_id: filenameDebugIdMap[filename],
-      });
-    }
+    images.push({
+      type: 'sourcemap',
+      code_file: filename,
+      debug_id: filenameDebugIdMap[filename],
+    });
   });
 }
 
