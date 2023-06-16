@@ -187,4 +187,32 @@ describe.each(['builtin', 'express'])('Remix API Loaders with adapter = %s', ada
       },
     });
   });
+
+  it('correctly instruments a deferred loader', async () => {
+    const env = await RemixTestEnv.init(adapter);
+    const url = `${env.url}/loader-defer-response`;
+    const envelope = await env.getEnvelopeRequest({ url, envelopeType: 'transaction' });
+    const transaction = envelope[2];
+
+    assertSentryTransaction(transaction, {
+      transaction: 'root',
+      transaction_info: {
+        source: 'route',
+      },
+      spans: [
+        {
+          description: 'root',
+          op: 'function.remix.loader',
+        },
+        {
+          description: 'routes/loader-defer-response/index',
+          op: 'function.remix.loader',
+        },
+        {
+          description: 'root',
+          op: 'function.remix.document_request',
+        },
+      ],
+    });
+  });
 });
