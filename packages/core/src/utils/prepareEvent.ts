@@ -75,8 +75,11 @@ export function prepareEvent(
   }
 
   return result.then(evt => {
-    // TODO explain why this is here
     if (evt) {
+      // We apply the debug_meta field only after all event processors have ran, so that if any event processors modified
+      // file names (e.g.the RewriteFrames integration) the filename -> debug ID relationship isn't destroyed.
+      // This should not cause any PII issues, since we're only moving data that is already on the event and not adding
+      // any new data
       applyDebugMeta(evt);
     }
 
