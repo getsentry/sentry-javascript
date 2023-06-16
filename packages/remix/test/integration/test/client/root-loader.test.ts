@@ -1,7 +1,7 @@
 import { test, expect, Page } from '@playwright/test';
 
 async function getRouteData(page: Page): Promise<any> {
-  return page.evaluate('window.__remixContext.routeData').catch(err => {
+  return page.evaluate('window.__remixContext.state.loaderData').catch(err => {
     console.warn(err);
 
     return {};
@@ -67,6 +67,22 @@ test('should inject `sentry-trace` and `baggage` into root loader returning a `J
   expect(rootData).toMatchObject({
     data_one: [],
     data_two: 'a string',
+    sentryTrace: sentryTrace,
+    sentryBaggage: sentryBaggage,
+  });
+});
+
+test('should inject `sentry-trace` and `baggage` into root loader returning a deferred response', async ({ page }) => {
+  await page.goto('/?type=defer');
+
+  const { sentryTrace, sentryBaggage } = await extractTraceAndBaggageFromMeta(page);
+
+  expect(sentryTrace).toEqual(expect.any(String));
+  expect(sentryBaggage).toEqual(expect.any(String));
+
+  const rootData = (await getRouteData(page))['root'];
+
+  expect(rootData).toMatchObject({
     sentryTrace: sentryTrace,
     sentryBaggage: sentryBaggage,
   });

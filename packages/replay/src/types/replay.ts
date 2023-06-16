@@ -1,4 +1,5 @@
 import type {
+  Breadcrumb,
   FetchBreadcrumbHint,
   HandlerDataFetch,
   ReplayRecordingData,
@@ -406,8 +407,15 @@ export interface SendBufferedReplayOptions {
   continueRecording?: boolean;
 }
 
+export interface ReplayClickDetector {
+  addListeners(): void;
+  removeListeners(): void;
+  handleClick(breadcrumb: Breadcrumb, node: HTMLElement): void;
+}
+
 export interface ReplayContainer {
   eventBuffer: EventBuffer | null;
+  clickDetector: ReplayClickDetector | undefined;
   performanceEvents: AllPerformanceEntry[];
   session: Session | undefined;
   recordingMode: ReplayRecordingMode;
@@ -468,4 +476,5 @@ export interface SlowClickConfig {
   timeout: number;
   scrollTimeout: number;
   ignoreSelector: string;
+  multiClickTimeout: number;
 }
