@@ -126,11 +126,13 @@ sentryTest('multiple clicks are counted', async ({ getLocalTestUrl, page }) => {
   expect(slowClickBreadcrumbs[0]?.data?.timeAfterClickMs).toBeLessThan(3100);
 });
 
-sentryTest('immediate mutation does not trigger slow click', async ({ forceFlushReplay, browserName, getLocalTestUrl, page }) => {
-  // This test seems to only be flakey on firefox
-  if (shouldSkipReplayTest() || ['firefox'].includes(browserName)) {
-    sentryTest.skip();
-  }
+sentryTest(
+  'immediate mutation does not trigger slow click',
+  async ({ forceFlushReplay, browserName, getLocalTestUrl, page }) => {
+    // This test seems to only be flakey on firefox
+    if (shouldSkipReplayTest() || ['firefox'].includes(browserName)) {
+      sentryTest.skip();
+    }
 
     const reqPromise0 = waitForReplayRequest(page, 0);
 
