@@ -9,7 +9,7 @@ const captureExceptionSpy = jest.spyOn(SentryBrowser, 'captureException');
 
 const mockVueRouter = {
   onError: jest.fn<void, [(error: Error) => void]>(),
-  beforeEach: jest.fn<void, [(from: Route, to: Route, next: () => void) => void]>(),
+  beforeEach: jest.fn<void, [(from: Route, to: Route, next?: () => void) => void]>(),
 };
 
 const mockStartTransaction = jest.fn();
@@ -324,4 +324,30 @@ describe('vueRouterInstrumentation()', () => {
       expect(mockStartTransaction).toHaveBeenCalledTimes(expectedCallsAmount + 1);
     },
   );
+
+  it("doesn't throw when `next` is not available in the beforeEach callback (Vue Router 4)", () => {
+    const instrument = vueRouterInstrumentation(mockVueRouter, { routeLabel: 'path' });
+    instrument(mockStartTransaction, true, true);
+    const beforeEachCallback = mockVueRouter.beforeEach.mock.calls[0][0];
+
+    const from = testRoutes.normalRoute1;
+    const to = testRoutes.namedRoute;
+    beforeEachCallback(to, from, undefined);
+
+    // first startTx call happens when the instrumentation is initialized (for pageloads)
+    expect(mockStartTransaction).toHaveBeenLastCalledWith({
+      name: '/login',
+      metadata: {
+        source: 'route',
+      },
+      data: {
+        params: to.params,
+        query: to.query,
+      },
+      op: 'navigation',
+      tags: {
+        'routing.instrumentation': 'vue-router',
+      },
+    });
+  });
 });
