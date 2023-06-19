@@ -4,6 +4,15 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.56.0
+
+- feat(replay): Rework slow click & multi click detection (#8322)
+- feat(replay): Stop replay when event buffer exceeds max. size (#8315)
+- feat(replay): Consider `window.open` for slow clicks (#8308)
+- fix(core): Temporarily store debug IDs in stack frame and only put them into `debug_meta` before sending (#8347)
+- fix(remix): Extract deferred responses correctly in root loaders. (#8305)
+- fix(vue): Don't call `next` in Vue router 4 instrumentation (#8351)
+
 ## 7.55.2
 
 - fix(replay): Stop exporting `EventType` from `@sentry-internal/rrweb` (#8334)
