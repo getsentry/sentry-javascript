@@ -19,6 +19,7 @@
     <button id="scrollLateButton">Trigger scroll late</button>
     <button id="mutationIgnoreButton" class="ignore-class">Trigger scroll late</button>
     <button id="mouseDownButton">Trigger mutation on mouse down</button>
+    <button id="windowOpenButton">Window open</button>
 
     <a href="#" id="link">Link</a>
     <a href="#" target="_blank" id="linkExternal">Link external</a>
@@ -72,6 +73,9 @@
       });
       document.getElementById('mouseDownButton').addEventListener('mousedown', () => {
         document.getElementById('out').innerHTML += 'mutationButton clicked<br>';
+      });
+      document.getElementById('windowOpenButton').addEventListener('click', () => {
+        window.open('https://example.com/', '_blank');
       });
 
       // Do nothing on these elements

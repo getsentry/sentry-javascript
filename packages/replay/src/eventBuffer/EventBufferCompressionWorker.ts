@@ -1,7 +1,9 @@
 import type { ReplayRecordingData } from '@sentry/types';
 
+import { REPLAY_MAX_EVENT_BUFFER_SIZE } from '../constants';
 import type { AddEventResult, EventBuffer, EventBufferType, RecordingEvent } from '../types';
 import { timestampToMs } from '../util/timestampToMs';
+import { EventBufferSizeExceededError } from '.';
 import { WorkerHandler } from './WorkerHandler';
 
 /**
@@ -11,6 +13,7 @@ import { WorkerHandler } from './WorkerHandler';
 export class EventBufferCompressionWorker implements EventBuffer {
   private _worker: WorkerHandler;
   private _earliestTimestamp: number | null;
+  private _totalSize = 0;
 
   public constructor(worker: Worker) {
     this._worker = new WorkerHandler(worker);
@@ -53,7 +56,14 @@ export class EventBufferCompressionWorker implements EventBuffer {
       this._earliestTimestamp = timestamp;
     }
 
-    return this._sendEventToWorker(event);
+    const data = JSON.stringify(event);
+    this._totalSize += data.length;
+
+    if (this._totalSize > REPLAY_MAX_EVENT_BUFFER_SIZE) {
+      return Promise.reject(new EventBufferSizeExceededError());
+    }
+
+    return this._sendEventToWorker(data);
   }
 
   /**
@@ -66,6 +76,7 @@ export class EventBufferCompressionWorker implements EventBuffer {
   /** @inheritdoc */
   public clear(): void {
     this._earliestTimestamp = null;
+    this._totalSize = 0;
     // We do not wait on this, as we assume the order of messages is consistent for the worker
     void this._worker.postMessage('clear');
   }
@@ -78,8 +89,8 @@ export class EventBufferCompressionWorker implements EventBuffer {
   /**
    * Send the event to the worker.
    */
-  private _sendEventToWorker(event: RecordingEvent): Promise<AddEventResult> {
-    return this._worker.postMessage<void>('addEvent', JSON.stringify(event));
+  private _sendEventToWorker(data: string): Promise<AddEventResult> {
+    return this._worker.postMessage<void>('addEvent', data);
   }
 
   /**
@@ -89,6 +100,7 @@ export class EventBufferCompressionWorker implements EventBuffer {
     const response = await this._worker.postMessage<Uint8Array>('finish');
 
     this._earliestTimestamp = null;
+    this._totalSize = 0;
 
     return response;
   }
