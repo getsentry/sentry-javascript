@@ -39,7 +39,7 @@ export type Route = {
 
 interface VueRouter {
   onError: (fn: (err: Error) => void) => void;
-  beforeEach: (fn: (to: Route, from: Route, next: () => void) => void) => void;
+  beforeEach: (fn: (to: Route, from: Route, next?: () => void) => void) => void;
 }
 
 /**
@@ -129,7 +129,12 @@ export function vueRouterInstrumentation(
         });
       }
 
-      next();
+      // Vue Router 4 no longer exposes the `next` function, so we need to
+      // check if it's available before calling it.
+      // `next` needs to be called in Vue Router 3 so that the hook is resolved.
+      if (next) {
+        next();
+      }
     });
   };
 }

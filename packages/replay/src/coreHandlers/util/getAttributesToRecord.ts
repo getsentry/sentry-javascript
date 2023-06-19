@@ -10,6 +10,8 @@ const ATTRIBUTES_TO_RECORD = new Set([
   'title',
   'data-test-id',
   'data-testid',
+  'disabled',
+  'aria-disabled',
 ]);
 
 /**

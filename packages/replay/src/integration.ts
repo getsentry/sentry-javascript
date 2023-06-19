@@ -63,6 +63,9 @@ export class Replay implements Integration {
     mutationBreadcrumbLimit = 750,
     mutationLimit = 10_000,
 
+    slowClickTimeout = 7_000,
+    slowClickIgnoreSelectors = [],
+
     networkDetailAllowUrls = [],
     networkCaptureBodies = true,
     networkRequestHeaders = [],
@@ -132,6 +135,8 @@ export class Replay implements Integration {
       maskAllText,
       mutationBreadcrumbLimit,
       mutationLimit,
+      slowClickTimeout,
+      slowClickIgnoreSelectors,
       networkDetailAllowUrls,
       networkCaptureBodies,
       networkRequestHeaders: _getMergedNetworkHeaders(networkRequestHeaders),

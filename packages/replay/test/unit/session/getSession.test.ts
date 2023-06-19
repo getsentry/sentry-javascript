@@ -229,4 +229,63 @@ describe('Unit | session | getSession', () => {
     expect(session.id).toBe('test_session_uuid_2');
     expect(session.segmentId).toBe(0);
   });
+
+  it('re-uses the same "buffer" session if it is expired and has never sent a buffered replay', function () {
+    const { type, session } = getSession({
+      timeouts: {
+        sessionIdlePause: SESSION_IDLE_PAUSE_DURATION,
+        sessionIdleExpire: 1000,
+        maxSessionLife: MAX_SESSION_LIFE,
+      },
+      stickySession: false,
+      ...SAMPLE_OPTIONS,
+      currentSession: makeSession({
+        id: 'test_session_uuid_2',
+        lastActivity: +new Date() - MAX_SESSION_LIFE - 1,
+        started: +new Date() - MAX_SESSION_LIFE - 1,
+        segmentId: 0,
+        sampled: 'buffer',
+      }),
+      allowBuffering: true,
+    });
+
+    expect(FetchSession.fetchSession).not.toHaveBeenCalled();
+    expect(CreateSession.createSession).not.toHaveBeenCalled();
+
+    expect(type).toBe('saved');
+    expect(session.id).toBe('test_session_uuid_2');
+    expect(session.sampled).toBe('buffer');
+    expect(session.segmentId).toBe(0);
+  });
+
+  it('creates a new session if it is expired and it was a "buffer" session that has sent a replay', function () {
+    const currentSession = makeSession({
+      id: 'test_session_uuid_2',
+      lastActivity: +new Date() - MAX_SESSION_LIFE - 1,
+      started: +new Date() - MAX_SESSION_LIFE - 1,
+      segmentId: 0,
+      sampled: 'buffer',
+    });
+    currentSession.shouldRefresh = false;
+
+    const { type, session } = getSession({
+      timeouts: {
+        sessionIdlePause: SESSION_IDLE_PAUSE_DURATION,
+        sessionIdleExpire: 1000,
+        maxSessionLife: MAX_SESSION_LIFE,
+      },
+      stickySession: false,
+      ...SAMPLE_OPTIONS,
+      currentSession,
+      allowBuffering: true,
+    });
+
+    expect(FetchSession.fetchSession).not.toHaveBeenCalled();
+    expect(CreateSession.createSession).not.toHaveBeenCalled();
+
+    expect(type).toBe('new');
+    expect(session.id).not.toBe('test_session_uuid_2');
+    expect(session.sampled).toBe(false);
+    expect(session.segmentId).toBe(0);
+  });
 });

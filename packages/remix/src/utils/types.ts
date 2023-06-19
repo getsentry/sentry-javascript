@@ -62,6 +62,15 @@ export interface RouteData {
   [routeId: string]: AppData;
 }
 
+export type DeferredData = {
+  data: Record<string, unknown>;
+  init?: ResponseInit;
+  deferredKeys: string[];
+  subscribe(fn: (aborted: boolean, settledKey?: string) => void): () => boolean;
+  cancel(): void;
+  resolveData(signal: AbortSignal): Promise<boolean>;
+};
+
 export interface MetaFunction {
   (args: { data: AppData; parentsData: RouteData; params: Params; location: Location }): HtmlMetaDescriptor;
 }
@@ -127,9 +136,13 @@ export interface ServerBuild {
 }
 
 export interface HandleDocumentRequestFunction {
-  (request: RemixRequest, responseStatusCode: number, responseHeaders: Headers, context: EntryContext):
-    | Promise<Response>
-    | Response;
+  (
+    request: RemixRequest,
+    responseStatusCode: number,
+    responseHeaders: Headers,
+    context: EntryContext,
+    loadContext?: AppLoadContext,
+  ): Promise<Response> | Response;
 }
 
 export interface HandleDataRequestFunction {

@@ -3,11 +3,18 @@ import { normalize } from '@sentry/utils';
 
 import { CONSOLE_ARG_MAX_SIZE } from '../constants';
 import type { ReplayContainer } from '../types';
+import type { ReplayFrame } from '../types/replayFrame';
 import { createBreadcrumb } from '../util/createBreadcrumb';
 import { fixJson } from '../util/truncateJson/fixJson';
 import { addBreadcrumbEvent } from './util/addBreadcrumbEvent';
 
 let _LAST_BREADCRUMB: null | Breadcrumb = null;
+
+type BreadcrumbWithCategory = Required<Pick<Breadcrumb, 'category'>>;
+
+function isBreadcrumbWithCategory(breadcrumb: Breadcrumb): breadcrumb is BreadcrumbWithCategory {
+  return !!breadcrumb.category;
+}
 
 export const handleScopeListener: (replay: ReplayContainer) => (scope: Scope) => void =
   (replay: ReplayContainer) =>
@@ -44,9 +51,9 @@ export function handleScope(scope: Scope): Breadcrumb | null {
   _LAST_BREADCRUMB = newBreadcrumb;
 
   if (
-    newBreadcrumb.category &&
-    (['fetch', 'xhr', 'sentry.event', 'sentry.transaction'].includes(newBreadcrumb.category) ||
-      newBreadcrumb.category.startsWith('ui.'))
+    !isBreadcrumbWithCategory(newBreadcrumb) ||
+    ['fetch', 'xhr', 'sentry.event', 'sentry.transaction'].includes(newBreadcrumb.category) ||
+    newBreadcrumb.category.startsWith('ui.')
   ) {
     return null;
   }
@@ -59,7 +66,9 @@ export function handleScope(scope: Scope): Breadcrumb | null {
 }
 
 /** exported for tests only */
-export function normalizeConsoleBreadcrumb(breadcrumb: Breadcrumb): Breadcrumb {
+export function normalizeConsoleBreadcrumb(
+  breadcrumb: Omit<Breadcrumb, 'category'> & BreadcrumbWithCategory,
+): ReplayFrame {
   const args = breadcrumb.data && breadcrumb.data.arguments;
 
   if (!Array.isArray(args) || args.length === 0) {

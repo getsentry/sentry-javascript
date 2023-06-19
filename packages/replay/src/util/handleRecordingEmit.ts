@@ -1,8 +1,8 @@
+import { EventType } from '@sentry-internal/rrweb';
 import { logger } from '@sentry/utils';
 
 import { saveSession } from '../session/saveSession';
-import type { AddEventResult, RecordingEvent, ReplayContainer } from '../types';
-import { EventType } from '../types/rrweb';
+import type { AddEventResult, OptionFrameEvent, RecordingEvent, ReplayContainer } from '../types';
 import { addEvent } from './addEvent';
 
 type RecordingEmitCallback = (event: RecordingEvent, isCheckout?: boolean) => void;
@@ -89,6 +89,10 @@ export function getHandleRecordingEmit(replay: ReplayContainer): RecordingEmitCa
         // a previous session ID. In this case, we want to buffer events
         // for a set amount of time before flushing. This can help avoid
         // capturing replays of users that immediately close the window.
+        // TODO: We should check `recordingMode` here and do nothing if it's
+        // buffer, instead of checking inside of timeout, this will make our
+        // tests a bit cleaner as we will need to wait on the delay in order to
+        // do nothing.
         setTimeout(() => replay.conditionalFlush(), options._experiments.delayFlushOnCheckout);
 
         // Cancel any previously debounced flushes to ensure there are no [near]
@@ -121,7 +125,7 @@ export function getHandleRecordingEmit(replay: ReplayContainer): RecordingEmitCa
 /**
  * Exported for tests
  */
-export function createOptionsEvent(replay: ReplayContainer): RecordingEvent {
+export function createOptionsEvent(replay: ReplayContainer): OptionFrameEvent {
   const options = replay.getOptions();
   return {
     type: EventType.Custom,

@@ -4,6 +4,87 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.55.2
+
+- fix(replay): Stop exporting `EventType` from `@sentry-internal/rrweb` (#8334)
+- fix(serverless): Export captureCheckIn (#8333)
+
+## 7.55.1
+
+- fix(replay): Do not export types from `@sentry-internal/rrweb` (#8329)
+
+## 7.55.0
+
+- feat(replay): Capture slow clicks (GA) (#8298)
+- feat(replay): Improve types for replay recording events (#8224)
+- fix(nextjs): Strip query params from transaction names of navigations to unknown routes (#8278)
+- fix(replay): Ignore max session life for buffered sessions (#8258)
+- fix(sveltekit): Export captureCheckIn (#8313)
+- ref(svelte): Add Svelte 4 as a peer dependency (#8280)
+
+## 7.54.0
+
+### Important Changes
+
+- **feat(core): Add default entries to `ignoreTransactions` for Healthchecks #8191**
+
+  All SDKs now filter out health check transactions by default.
+  These are transactions where the transaction name matches typical API health check calls, such as `/^.*healthy.*$/` or `/^.  *heartbeat.*$/`. Take a look at [this list](https://github.com/getsentry/sentry-javascript/blob/8c6ad156829f7c4eec34e4a67e6dd866ba482d5d/packages/core/src/integrations/inboundfilters.ts#L8C2-L16) to learn which regexes we currently use to match transaction names.
+  We believe that these transactions do not provide value in most cases and we want to save you some of your quota by   filtering them out by default.
+  These filters are implemented as default values for the top level `ignoreTransactions` option.
+
+  You can disable this filtering by manually specifiying the `InboundFilters` integration and setting the   `disableTransactionDefaults` option:
+  ```js
+  Sentry.init({
+    //...
+    integrations: [new InboundFilters({ disableTransactionDefaults: true })],
+  })
+  ```
+
+- **feat(replay): Add `mutationBreadcrumbLimit` and `mutationLimit` to Replay Options (#8228)**
+
+  The previously experimental options `mutationBreadcumbLimit` and `mutationLimit` have been promoted to regular Replay   integration options.
+
+  A high number of DOM mutations (in a single event loop) can cause performance regressions in end-users' browsers.
+  Use `mutationBreadcrumbLimit` to send a breadcrumb along with your recording if the mutation limit was reached.
+  Use `mutationLimit` to stop recording if the mutation limit was reached.
+
+- **feat(sveltekit): Add source maps support for Vercel (lambda) (#8256)**
+  - feat(sveltekit): Auto-detect SvelteKit adapters (#8193)
+
+  The SvelteKit SDK can now be used if you deploy your SvelteKit app to Vercel.
+  By default, the SDK's Vite plugin will detect the used adapter and adjust the source map uploading config as necessary.
+  If you want to override the default adapter detection, you can specify the `adapter` option in the `sentrySvelteKit`  options:
+
+  ```js
+  // vite.config.js
+  export default defineConfig({
+    plugins: [
+      sentrySvelteKit({
+        adapter: 'vercel',
+      }),
+      sveltekit(),
+    ],
+  });
+  ```
+
+  Currently, the Vite plugin will configure itself correctly for `@sveltejs/adapter-auto`, `@sveltejs/adapter-vercel` and `@sveltejs/adapter-node`.
+
+  **Important:** The SvelteKit SDK is not yet compatible with Vercel's edge runtime.
+  It will only work for lambda functions.
+
+### Other Changes
+
+- feat(replay): Throttle breadcrumbs to max 300/5s (#8086)
+- feat(sveltekit): Add option to control handling of unknown server routes (#8201)
+- fix(node): Strip query and fragment from request URLs without route parameters (#8213)
+- fix(remix): Don't log missing parameters warning on server-side. (#8269)
+- fix(remix): Pass `loadContext` through wrapped document request function (#8268)
+- fix(replay): Guard against missing key (#8246)
+- fix(sveltekit): Avoid capturing redirects and 4xx Http errors in request Handlers (#8215)
+- fix(sveltekit): Bump `magicast` to support `satisfied` keyword (#8254)
+- fix(wasm): Avoid throwing an error when WASM modules are loaded from blobs (#8263)
+
 ## 7.53.1
 
 - chore(deps): bump socket.io-parser from 4.2.1 to 4.2.3 (#8196)
