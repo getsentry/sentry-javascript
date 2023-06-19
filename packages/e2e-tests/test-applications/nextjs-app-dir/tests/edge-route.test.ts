@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 import { waitForTransaction, waitForError } from '../../../test-utils/event-proxy-server';
 
 test('Should create a transaction for edge routes', async ({ request }) => {
-  // test.skip(process.env.TEST_ENV === 'development', "Doesn't work in dev mode.");
+  test.skip(process.env.TEST_ENV === 'development', "Doesn't work in dev mode.");
 
   const edgerouteTransactionPromise = waitForTransaction('nextjs-13-app-dir', async transactionEvent => {
     return (
@@ -21,7 +21,7 @@ test('Should create a transaction for edge routes', async ({ request }) => {
 });
 
 test('Should create a transaction with error status for faulty edge routes', async ({ request }) => {
-  // test.skip(process.env.TEST_ENV === 'development', "Doesn't work in dev mode.");
+  test.skip(process.env.TEST_ENV === 'development', "Doesn't work in dev mode.");
 
   const edgerouteTransactionPromise = waitForTransaction('nextjs-13-app-dir', async transactionEvent => {
     return (
@@ -42,7 +42,7 @@ test('Should create a transaction with error status for faulty edge routes', asy
 });
 
 test('Should record exceptions for faulty edge routes', async ({ request }) => {
-  // test.skip(process.env.TEST_ENV === 'development', "Doesn't work in dev mode.");
+  test.skip(process.env.TEST_ENV === 'development', "Doesn't work in dev mode.");
 
   const errorEventPromise = waitForError('nextjs-13-app-dir', errorEvent => {
     return errorEvent?.exception?.values?.[0]?.value === 'Edge Route Error';
