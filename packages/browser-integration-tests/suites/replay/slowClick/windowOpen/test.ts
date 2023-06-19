@@ -3,7 +3,7 @@ import { expect } from '@playwright/test';
 import { sentryTest } from '../../../../utils/fixtures';
 import { getCustomRecordingEvents, shouldSkipReplayTest, waitForReplayRequest } from '../../../../utils/replayHelpers';
 
-sentryTest('window.open() is considered for slow click', async ({ getLocalTestUrl, page }) => {
+sentryTest('window.open() is considered for slow click', async ({ getLocalTestUrl, page, browser }) => {
   if (shouldSkipReplayTest()) {
     sentryTest.skip();
   }
@@ -29,8 +29,11 @@ sentryTest('window.open() is considered for slow click', async ({ getLocalTestUr
     return breadcrumbs.some(breadcrumb => breadcrumb.category === 'ui.click');
   });
 
+  // Ensure window.open() still works as expected
+  const context = browser.contexts()[0];
+  const waitForNewPage = context.waitForEvent('page');
+
   await page.click('#windowOpenButton');
-  const navPromise = page.waitForURL('https://example.com/');
 
   const { breadcrumbs } = getCustomRecordingEvents(await reqPromise1);
 
@@ -54,8 +57,10 @@ sentryTest('window.open() is considered for slow click', async ({ getLocalTestUr
     },
   ]);
 
-  await navPromise;
+  await waitForNewPage;
 
-  // Ensure window.open() still works as expected
-  expect(await page.url()).toBe('https://example.com/');
+  const pages = context.pages();
+
+  expect(pages.length).toBe(2);
+  expect(pages[1].url()).toBe('https://example.com/');
 });
