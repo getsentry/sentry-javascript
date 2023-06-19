@@ -1,4 +1,4 @@
-import { MetaFunction, LoaderFunction, json, redirect } from '@remix-run/node';
+import { MetaFunction, LoaderFunction, json, defer, redirect } from '@remix-run/node';
 import { Links, LiveReload, Meta, Outlet, Scripts, ScrollRestoration } from '@remix-run/react';
 import { withSentry } from '@sentry/remix';
 
@@ -24,6 +24,8 @@ export const loader: LoaderFunction = async ({ request }) => {
       };
     case 'json':
       return json({ data_one: [], data_two: 'a string' }, { headers: { 'Cache-Control': 'max-age=300' } });
+    case 'defer':
+      return defer({ data_one: [], data_two: 'a string' });
     case 'null':
       return null;
     case 'undefined':

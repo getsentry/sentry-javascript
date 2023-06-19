@@ -88,12 +88,26 @@ interface FocusFrame extends BaseBreadcrumbFrame {
 
 interface SlowClickFrameData extends ClickFrameData {
   url: string;
-  timeAfterClickFs: number;
+  route?: string;
+  timeAfterClickMs: number;
   endReason: string;
+  clickCount: number;
 }
-interface SlowClickFrame extends BaseBreadcrumbFrame {
+export interface SlowClickFrame extends BaseBreadcrumbFrame {
   category: 'ui.slowClickDetected';
   data: SlowClickFrameData;
+}
+
+interface MultiClickFrameData extends ClickFrameData {
+  url: string;
+  route?: string;
+  clickCount: number;
+  metric: true;
+}
+
+export interface MultiClickFrame extends BaseBreadcrumbFrame {
+  category: 'ui.multiClick';
+  data: MultiClickFrameData;
 }
 
 interface OptionFrame {
@@ -118,6 +132,7 @@ export type BreadcrumbFrame =
   | BlurFrame
   | FocusFrame
   | SlowClickFrame
+  | MultiClickFrame
   | MutationFrame
   | BaseBreadcrumbFrame;
 

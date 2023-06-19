@@ -2,6 +2,7 @@ import { EventType } from '@sentry-internal/rrweb';
 import { getCurrentHub } from '@sentry/core';
 import { logger } from '@sentry/utils';
 
+import { EventBufferSizeExceededError } from '../eventBuffer';
 import type { AddEventResult, RecordingEvent, ReplayContainer, ReplayFrameEvent } from '../types';
 import { timestampToMs } from './timestampToMs';
 
@@ -56,8 +57,10 @@ export async function addEvent(
 
     return await replay.eventBuffer.addEvent(eventAfterPossibleCallback);
   } catch (error) {
+    const reason = error && error instanceof EventBufferSizeExceededError ? 'addEventSizeExceeded' : 'addEvent';
+
     __DEBUG_BUILD__ && logger.error(error);
-    await replay.stop('addEvent');
+    await replay.stop(reason);
 
     const client = getCurrentHub().getClient();
 

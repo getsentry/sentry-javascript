@@ -1,6 +1,7 @@
 import { getWorkerURL } from '@sentry-internal/replay-worker';
 import { logger } from '@sentry/utils';
 
+import { REPLAY_MAX_EVENT_BUFFER_SIZE } from '../constants';
 import type { EventBuffer } from '../types';
 import { EventBufferArray } from './EventBufferArray';
 import { EventBufferProxy } from './EventBufferProxy';
@@ -29,4 +30,11 @@ export function createEventBuffer({ useCompression }: CreateEventBufferParams): 
 
   __DEBUG_BUILD__ && logger.log('[Replay] Using simple buffer');
   return new EventBufferArray();
+}
+
+/** This error indicates that the event buffer size exceeded the limit.. */
+export class EventBufferSizeExceededError extends Error {
+  public constructor() {
+    super(`Event buffer exceeded maximum size of ${REPLAY_MAX_EVENT_BUFFER_SIZE}.`);
+  }
 }

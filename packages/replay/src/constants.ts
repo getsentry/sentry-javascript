@@ -42,3 +42,8 @@ export const CONSOLE_ARG_MAX_SIZE = 5_000;
 export const SLOW_CLICK_THRESHOLD = 3_000;
 /* For scroll actions after a click, we only look for a very short time period to detect programmatic scrolling. */
 export const SLOW_CLICK_SCROLL_TIMEOUT = 300;
+/* Clicks in this time period are considered e.g. double/triple clicks. */
+export const MULTI_CLICK_TIMEOUT = 1_000;
+
+/** When encountering a total segment size exceeding this size, stop the replay (as we cannot properly ingest it). */
+export const REPLAY_MAX_EVENT_BUFFER_SIZE = 20_000_000; // ~20MB
