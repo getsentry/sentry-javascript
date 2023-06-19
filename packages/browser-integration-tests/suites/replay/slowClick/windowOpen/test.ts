@@ -37,7 +37,10 @@ sentryTest('window.open() is considered for slow click', async ({ getLocalTestUr
 
   const { breadcrumbs } = getCustomRecordingEvents(await reqPromise1);
 
-  expect(breadcrumbs).toEqual([
+  // Filter out potential blur breadcrumb, as otherwise this can be flaky
+  const filteredBreadcrumb = breadcrumbs.filter(breadcrumb => breadcrumb.category !== 'ui.blur');
+
+  expect(filteredBreadcrumb).toEqual([
     {
       category: 'ui.click',
       data: {
