@@ -1,4 +1,4 @@
 import type { Event } from '@sentry/types';
-import { makeProfilingCache } from '@sentry/utils';
+import { makeFifoCache } from '@sentry/utils';
 
-export const PROFILING_EVENT_CACHE = makeProfilingCache<string, Event>(20);
+export const PROFILING_EVENT_CACHE = makeFifoCache<string, Event>(20);

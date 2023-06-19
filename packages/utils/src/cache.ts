@@ -2,7 +2,7 @@
  * Creates a cache that evicts keys in fifo order
  * @param size {Number}
  */
-export function makeProfilingCache<Key extends string, Value>(
+export function makeFifoCache<Key extends string, Value>(
   size: number,
 ): {
   get: (key: Key) => Value | undefined;
