@@ -112,3 +112,18 @@ if (process.env.TEST_ENV === 'production') {
     expect((await serverComponentTransactionPromise).contexts?.trace?.status).toBe('not_found');
   });
 }
+
+test('Should create a transaction for middleware', async ({ request }) => {
+  const middlewareTransactionPromise = waitForTransaction('nextjs-13-app-dir', async transactionEvent => {
+    return transactionEvent?.transaction === 'middleware';
+  });
+
+  const response = await request.get('/api/endpoint-behind-middleware');
+  expect(await response.json()).toStrictEqual({ name: 'John Doe' });
+
+  const middlewareTransaction = await middlewareTransactionPromise;
+
+  expect(middlewareTransaction.contexts?.trace?.status).toBe('ok');
+  expect(middlewareTransaction.contexts?.trace?.op).toBe('middleware.nextjs');
+  expect(middlewareTransaction.contexts?.runtime?.name).toBe('edge');
+});
