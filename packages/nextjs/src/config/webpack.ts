@@ -123,7 +123,6 @@ export function constructWebpackConfigFunction(
       pagesDir: pagesDirPath,
       pageExtensionRegex,
       excludeServerRoutes: userSentryOptions.excludeServerRoutes,
-      sentryConfigFilePath: getUserConfigFilePath(projectDir, runtime),
     };
 
     const normalizeLoaderResourcePath = (resourcePath: string): string => {
@@ -247,6 +246,32 @@ export function constructWebpackConfigFunction(
             options: {
               ...staticWrappingLoaderOptions,
               wrappingTargetKind: 'server-component',
+            },
+          },
+        ],
+      });
+    }
+
+    const sentryConfigFilePath = getUserConfigFilePath(projectDir, runtime);
+    if (sentryConfigFilePath) {
+      newConfig.module.rules.unshift({
+        test: resourcePath => {
+          const normalizedAbsoluteResourcePath = normalizeLoaderResourcePath(resourcePath);
+          const isPagesRouterComponent =
+            normalizedAbsoluteResourcePath.startsWith(pagesDirPath) &&
+            dotPrefixedPageExtensions.some(ext => normalizedAbsoluteResourcePath.endsWith(ext));
+          const isAppRouterComponent =
+            normalizedAbsoluteResourcePath.startsWith(appDirPath) &&
+            !!normalizedAbsoluteResourcePath.match(/[\\/](page|layout|loading|head|not-found)\.(js|jsx|tsx)$/);
+          const isMiddleware =
+            normalizedAbsoluteResourcePath === middlewareJsPath || normalizedAbsoluteResourcePath === middlewareTsPath;
+          return isPagesRouterComponent || isAppRouterComponent || isMiddleware;
+        },
+        use: [
+          {
+            loader: path.resolve(__dirname, 'loaders', 'configInjectionLoader.js'),
+            options: {
+              sentryConfigFilePath,
             },
           },
         ],
