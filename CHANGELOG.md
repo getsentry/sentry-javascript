@@ -4,6 +4,18 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.57.0-beta.0
+
+This beta version [bumps the internally used typescript version from 3.8.x to 4.9.x](https://github.com/getsentry/sentry-javascript/pull/8255).
+We use ds-downlevel to generate two versions of our types, one for >=3.8, one for >=4.9.
+This means that this change should be fully backwards compatible and not have any noticable user impact.
+
+However, since this touches the whole code base, we decided to release this as a beta first in order to ensure this is fully stable.
+
+### Other Changes
+
+- feat(replay): Do not capture replays < 5 seconds (GA) (#8277)
+
 ## 7.56.0
 
 - feat(replay): Rework slow click & multi click detection (#8322)
