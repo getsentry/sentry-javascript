@@ -40,7 +40,8 @@
     "lint:eslint": "eslint . --format stylish",
     "lint:prettier": "prettier --check \"{src,test,scripts}/**/**.ts\"",
     "test": "jest",
-    "test:watch": "jest --watch"
+    "test:watch": "jest --watch",
+    "yalc:publish": "ts-node ../../scripts/prepack.ts && yalc publish build --push"
   },
   "volta": {
     "extends": "../../package.json"

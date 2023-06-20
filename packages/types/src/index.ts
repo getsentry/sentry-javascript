@@ -49,6 +49,16 @@ export type { ExtractedNodeRequestData, HttpHeaderValue, Primitive, WorkerLocati
 export type { ClientOptions, Options } from './options';
 export type { Package } from './package';
 export type { PolymorphicEvent, PolymorphicRequest } from './polymorphics';
+export type {
+  ThreadId,
+  FrameId,
+  StackId,
+  ThreadCpuSample,
+  ThreadCpuStack,
+  ThreadCpuFrame,
+  ThreadCpuProfile,
+  Profile,
+} from './profiling';
 export type { ReplayEvent, ReplayRecordingData, ReplayRecordingMode } from './replay';
 export type { QueryParams, Request, SanitizedRequestData } from './request';
 export type { Runtime } from './runtime';
