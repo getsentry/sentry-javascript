@@ -255,32 +255,6 @@ export function constructWebpackConfigFunction(
       });
     }
 
-    const sentryConfigFilePath = getUserConfigFilePath(projectDir, runtime);
-    if (isServer && sentryConfigFilePath) {
-      newConfig.module.rules.push({
-        test: resourcePath => {
-          const normalizedAbsoluteResourcePath = normalizeLoaderResourcePath(resourcePath);
-          const isPagesRouterComponent =
-            normalizedAbsoluteResourcePath.startsWith(pagesDirPath) &&
-            dotPrefixedPageExtensions.some(ext => normalizedAbsoluteResourcePath.endsWith(ext));
-          const isAppRouterComponent =
-            normalizedAbsoluteResourcePath.startsWith(appDirPath) &&
-            !!normalizedAbsoluteResourcePath.match(/[\\/](page|layout|loading|head|not-found)\.(js|jsx|tsx)$/);
-          const isMiddleware =
-            normalizedAbsoluteResourcePath === middlewareJsPath || normalizedAbsoluteResourcePath === middlewareTsPath;
-          return isPagesRouterComponent || isAppRouterComponent || isMiddleware;
-        },
-        use: [
-          {
-            loader: path.resolve(__dirname, 'loaders', 'configInjectionLoader.js'),
-            options: {
-              sentryConfigFilePath,
-            },
-          },
-        ],
-      });
-    }
-
     // The SDK uses syntax (ES6 and ES6+ features like object spread) which isn't supported by older browsers. For users
     // who want to support such browsers, `transpileClientSDK` allows them to force the SDK code to go through the same
     // transpilation that their code goes through. We don't turn this on by default because it increases bundle size
