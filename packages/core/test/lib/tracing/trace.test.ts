@@ -186,7 +186,7 @@ describe('trace', () => {
       expect(onError).toHaveBeenCalledTimes(isError ? 1 : 0);
     });
 
-    it("doesn't create spans but calles onError if tracing is disabled", async () => {
+    it("doesn't create spans but calls onError if tracing is disabled", async () => {
       const options = getDefaultTestClientOptions({
         /* we don't set tracesSampleRate or tracesSampler */
       });
