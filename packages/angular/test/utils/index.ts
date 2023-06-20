@@ -61,7 +61,7 @@ export class TestEnv {
     TestBed.configureTestingModule({
       imports: [AppModule, RouterTestingModule.withRoutes(routes)],
       declarations: [...(conf.components || []), AppComponent],
-      providers: useTraceService
+      providers: (useTraceService
         ? [
             {
               provide: TraceService,
@@ -69,7 +69,8 @@ export class TestEnv {
             },
             ...(conf.additionalProviders || []),
           ]
-        : [...(conf.additionalProviders || [])],
+        : []
+      ).concat(...(conf.additionalProviders || [])),
     });
 
     const router: Router = TestBed.inject(Router);
@@ -88,9 +89,7 @@ export class TestEnv {
             this.fixture.detectChanges();
             resolve();
           })
-          .catch(err => {
-            console.log({ err });
-
+          .catch(() => {
             this.fixture.detectChanges();
             resolve();
           });
