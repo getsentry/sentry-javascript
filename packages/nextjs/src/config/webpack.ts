@@ -12,12 +12,14 @@ import type { VercelCronsConfig } from '../common/types';
 // circular dependency check thinks this file is importing from itself. See https://github.com/pahen/madge/issues/306.
 import type {
   BuildContext,
+  EntryPropertyObject,
   NextConfigObject,
   SentryWebpackPluginOptions,
   UserSentryOptions,
   WebpackConfigFunction,
   WebpackConfigObject,
   WebpackConfigObjectWithModuleRules,
+  WebpackEntryProperty,
   WebpackModuleRule,
 } from './types';
 
@@ -123,6 +125,7 @@ export function constructWebpackConfigFunction(
       pagesDir: pagesDirPath,
       pageExtensionRegex,
       excludeServerRoutes: userSentryOptions.excludeServerRoutes,
+      sentryConfigFilePath: getUserConfigFilePath(projectDir, runtime),
     };
 
     const normalizeLoaderResourcePath = (resourcePath: string): string => {
@@ -253,7 +256,7 @@ export function constructWebpackConfigFunction(
     }
 
     const sentryConfigFilePath = getUserConfigFilePath(projectDir, runtime);
-    if (sentryConfigFilePath) {
+    if (isServer && sentryConfigFilePath) {
       newConfig.module.rules.push({
         test: resourcePath => {
           const normalizedAbsoluteResourcePath = normalizeLoaderResourcePath(resourcePath);
@@ -305,6 +308,17 @@ export function constructWebpackConfigFunction(
         }
       });
     }
+
+    // Tell webpack to inject user config files (containing the two `Sentry.init()` calls) into the appropriate output
+    // bundles. Store a separate reference to the original `entry` value to avoid an infinite loop. (If we don't do
+    // this, we'll have a statement of the form `x.y = () => f(x.y)`, where one of the things `f` does is call `x.y`.
+    // Since we're setting `x.y` to be a callback (which, by definition, won't run until some time later), by the time
+    // the function runs (causing `f` to run, causing `x.y` to run), `x.y` will point to the callback itself, rather
+    // than its original value. So calling it will call the callback which will call `f` which will call `x.y` which
+    // will call the callback which will call `f` which will call `x.y`... and on and on. Theoretically this could also
+    // be fixed by using `bind`, but this is way simpler.)
+    const origEntryProperty = newConfig.entry;
+    newConfig.entry = async () => addSentryToEntryProperty(origEntryProperty, buildContext, userSentryOptions);
 
     // Enable the Sentry plugin (which uploads source maps to Sentry when not in dev) by default
     if (shouldEnableWebpackPlugin(buildContext, userSentryOptions)) {
@@ -415,6 +429,63 @@ function findTranspilationRules(rules: WebpackModuleRule[] | undefined, projectD
 }
 
 /**
+ * Modify the webpack `entry` property so that the code in `sentry.server.config.js` and `sentry.client.config.js` is
+ * included in the the necessary bundles.
+ *
+ * @param currentEntryProperty The value of the property before Sentry code has been injected
+ * @param buildContext Object passed by nextjs containing metadata about the build
+ * @returns The value which the new `entry` property (which will be a function) will return (TODO: this should return
+ * the function, rather than the function's return value)
+ */
+async function addSentryToEntryProperty(
+  currentEntryProperty: WebpackEntryProperty,
+  buildContext: BuildContext,
+  userSentryOptions: UserSentryOptions,
+): Promise<EntryPropertyObject> {
+  // The `entry` entry in a webpack config can be a string, array of strings, object, or function. By default, nextjs
+  // sets it to an async function which returns the promise of an object of string arrays. Because we don't know whether
+  // someone else has come along before us and changed that, we need to check a few things along the way. The one thing
+  // we know is that it won't have gotten *simpler* in form, so we only need to worry about the object and function
+  // options. See https://webpack.js.org/configuration/entry-context/#entry.
+
+  const { isServer, dir: projectDir, nextRuntime } = buildContext;
+  const runtime = isServer ? (buildContext.nextRuntime === 'edge' ? 'edge' : 'node') : 'browser';
+
+  const newEntryProperty =
+    typeof currentEntryProperty === 'function' ? await currentEntryProperty() : { ...currentEntryProperty };
+
+  // `sentry.server.config.js` or `sentry.client.config.js` (or their TS equivalents)
+  const userConfigFile =
+    nextRuntime === 'edge'
+      ? getUserConfigFile(projectDir, 'edge')
+      : isServer
+      ? getUserConfigFile(projectDir, 'server')
+      : getUserConfigFile(projectDir, 'client');
+
+  // we need to turn the filename into a path so webpack can find it
+  const filesToInject = userConfigFile ? [`./${userConfigFile}`] : [];
+
+  // inject into all entry points which might contain user's code
+  for (const entryPointName in newEntryProperty) {
+    if (shouldAddSentryToEntryPoint(entryPointName, runtime)) {
+      addFilesToExistingEntryPoint(newEntryProperty, entryPointName, filesToInject);
+    } else {
+      if (
+        isServer &&
+        // If the user has asked to exclude pages, confirm for them that it's worked
+        userSentryOptions.excludeServerRoutes &&
+        // We always skip these, so it's not worth telling the user that we've done so
+        !['pages/_app', 'pages/_document'].includes(entryPointName)
+      ) {
+        __DEBUG_BUILD__ && logger.log(`Skipping Sentry injection for ${entryPointName.replace(/^pages/, '')}`);
+      }
+    }
+  }
+
+  return newEntryProperty;
+}
+
+/**
  * Search the project directory for a valid user config file for the given platform, allowing for it to be either a
  * TypeScript or JavaScript file.
  *
@@ -461,6 +532,58 @@ export function getUserConfigFilePath(projectDir: string, platform: 'server' | '
 }
 
 /**
+ * Add files to a specific element of the given `entry` webpack config property.
+ *
+ * @param entryProperty The existing `entry` config object
+ * @param entryPointName The key where the file should be injected
+ * @param filepaths An array of paths to the injected files
+ */
+function addFilesToExistingEntryPoint(
+  entryProperty: EntryPropertyObject,
+  entryPointName: string,
+  filepaths: string[],
+): void {
+  // can be a string, array of strings, or object whose `import` property is one of those two
+  const currentEntryPoint = entryProperty[entryPointName];
+  let newEntryPoint = currentEntryPoint;
+
+  if (typeof currentEntryPoint === 'string') {
+    newEntryPoint = [...filepaths, currentEntryPoint];
+  } else if (Array.isArray(currentEntryPoint)) {
+    newEntryPoint = [...filepaths, ...currentEntryPoint];
+  }
+  // descriptor object (webpack 5+)
+  else if (typeof currentEntryPoint === 'object' && 'import' in currentEntryPoint) {
+    const currentImportValue = currentEntryPoint.import;
+    let newImportValue;
+
+    if (typeof currentImportValue === 'string') {
+      newImportValue = [...filepaths, currentImportValue];
+    } else {
+      newImportValue = [...filepaths, ...currentImportValue];
+    }
+
+    newEntryPoint = {
+      ...currentEntryPoint,
+      import: newImportValue,
+    };
+  }
+  // malformed entry point (use `console.error` rather than `logger.error` because it will always be printed, regardless
+  // of SDK settings)
+  else {
+    // eslint-disable-next-line no-console
+    console.error(
+      'Sentry Logger [Error]:',
+      `Could not inject SDK initialization code into entry point ${entryPointName}, as its current value is not in a recognized format.\n`,
+      'Expected: string | Array<string> | { [key:string]: any, import: string | Array<string> }\n',
+      `Got: ${currentEntryPoint}`,
+    );
+  }
+
+  entryProperty[entryPointName] = newEntryPoint;
+}
+
+/**
  * Check the SentryWebpackPlugin options provided by the user against the options we set by default, and warn if any of
  * our default options are getting overridden. (Note: If any of our default values is undefined, it won't be included in
  * the warning.)
@@ -482,6 +605,23 @@ function checkWebpackPluginOverrides(
           "which has the possibility of breaking source map upload and application. This is only a good idea if you know what you're doing.",
       );
   }
+}
+
+/**
+ * Determine if this is an entry point into which both `Sentry.init()` code and the release value should be injected
+ *
+ * @param entryPointName The name of the entry point in question
+ * @param isServer Whether or not this function is being called in the context of a server build
+ * @param excludeServerRoutes A list of excluded serverside entrypoints provided by the user
+ * @returns `true` if sentry code should be injected, and `false` otherwise
+ */
+function shouldAddSentryToEntryPoint(entryPointName: string, runtime: 'node' | 'browser' | 'edge'): boolean {
+  return (
+    runtime === 'browser' &&
+    (entryPointName === 'pages/_app' ||
+      // entrypoint for `/app` pages
+      entryPointName === 'main-app')
+  );
 }
 
 /**
