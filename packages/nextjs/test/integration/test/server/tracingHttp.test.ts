@@ -20,6 +20,9 @@ describe('Tracing HTTP', () => {
           op: 'http.server',
           status: 'ok',
           tags: { 'http.status_code': '200' },
+          data: {
+            'http.response.status_code': 200,
+          },
         },
       },
       spans: [
@@ -28,6 +31,9 @@ describe('Tracing HTTP', () => {
           op: 'http.client',
           status: 'ok',
           tags: { 'http.status_code': '200' },
+          data: {
+            'http.response.status_code': 200,
+          },
         },
       ],
       transaction: 'GET /api/http',

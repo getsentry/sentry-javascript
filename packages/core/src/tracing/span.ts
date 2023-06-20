@@ -227,6 +227,7 @@ export class Span implements SpanInterface {
    */
   public setHttpStatus(httpStatus: number): this {
     this.setTag('http.status_code', String(httpStatus));
+    this.setData('http.response.status_code', httpStatus);
     const spanStatus = spanStatusfromHttpCode(httpStatus);
     if (spanStatus !== 'unknown_error') {
       this.setStatus(spanStatus);

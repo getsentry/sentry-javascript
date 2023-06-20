@@ -21,6 +21,9 @@ describe.each(['builtin', 'express'])('Remix API Loaders with adapter = %s', ada
           tags: {
             'http.status_code': '500',
           },
+          data: {
+            'http.response.status_code': 500,
+          },
         },
       },
     });
@@ -95,6 +98,9 @@ describe.each(['builtin', 'express'])('Remix API Loaders with adapter = %s', ada
             method: 'GET',
             'http.status_code': '302',
           },
+          data: {
+            'http.response.status_code': 302,
+          },
         },
       },
       tags: {
@@ -110,6 +116,9 @@ describe.each(['builtin', 'express'])('Remix API Loaders with adapter = %s', ada
           tags: {
             method: 'GET',
             'http.status_code': '500',
+          },
+          data: {
+            'http.response.status_code': 500,
           },
         },
       },
