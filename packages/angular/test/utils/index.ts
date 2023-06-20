@@ -1,4 +1,5 @@
-import { Component, NgModule, Provider } from '@angular/core';
+import type { Provider } from '@angular/core';
+import { Component, NgModule } from '@angular/core';
 import type { ComponentFixture } from '@angular/core/testing';
 import { TestBed } from '@angular/core/testing';
 import type { Routes } from '@angular/router';
