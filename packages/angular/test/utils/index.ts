@@ -1,4 +1,4 @@
-import { Component, NgModule } from '@angular/core';
+import { Component, NgModule, Provider } from '@angular/core';
 import type { ComponentFixture } from '@angular/core/testing';
 import { TestBed } from '@angular/core/testing';
 import type { Routes } from '@angular/router';
@@ -47,6 +47,7 @@ export class TestEnv {
     startTransactionOnPageLoad?: boolean;
     startTransactionOnNavigation?: boolean;
     useTraceService?: boolean;
+    additionalProviders?: Provider[];
   }): Promise<TestEnv> {
     instrumentAngularRouting(
       conf.customStartTransaction || jest.fn(),
@@ -66,8 +67,9 @@ export class TestEnv {
               provide: TraceService,
               deps: [Router],
             },
+            ...(conf.additionalProviders || []),
           ]
-        : [],
+        : [...(conf.additionalProviders || [])],
     });
 
     const router: Router = TestBed.inject(Router);
@@ -80,10 +82,18 @@ export class TestEnv {
   public async navigateInAngular(url: string): Promise<void> {
     return new Promise(resolve => {
       return this.fixture.ngZone?.run(() => {
-        void this.router.navigateByUrl(url).then(() => {
-          this.fixture.detectChanges();
-          resolve();
-        });
+        void this.router
+          .navigateByUrl(url)
+          .then(() => {
+            this.fixture.detectChanges();
+            resolve();
+          })
+          .catch(err => {
+            console.log({ err });
+
+            this.fixture.detectChanges();
+            resolve();
+          });
       });
     });
   }
