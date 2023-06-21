@@ -77,7 +77,7 @@ describe('window.onunhandledrejection', function () {
         // non-error rejections don't provide stacktraces so we can skip that assertion
         assert.equal(
           summary.events[0].exception.values[0].value,
-          'Non-Error promise rejection captured with keys: currentTarget, isTrusted, target, type'
+          'Event `Event` (unhandledrejection) captured as promise rejection with keys: currentTarget, isTrusted, target, type'
         );
         assert.equal(summary.events[0].exception.values[0].type, 'Event');
         assert.equal(summary.events[0].exception.values[0].mechanism.handled, false);
@@ -144,7 +144,7 @@ describe('window.onunhandledrejection', function () {
         // non-error rejections don't provide stacktraces so we can skip that assertion
         assert.equal(
           summary.events[0].exception.values[0].value,
-          'Non-Error promise rejection captured with keys: a, b, c'
+          'Object captured as promise rejection with keys: a, b, c'
         );
         assert.equal(summary.events[0].exception.values[0].type, 'UnhandledRejection');
         assert.equal(summary.events[0].exception.values[0].mechanism.handled, false);
@@ -172,7 +172,7 @@ describe('window.onunhandledrejection', function () {
         // non-error rejections don't provide stacktraces so we can skip that assertion
         assert.equal(
           summary.events[0].exception.values[0].value,
-          'Non-Error promise rejection captured with keys: a, b, c, d, e'
+          'Object captured as promise rejection with keys: a, b, c, d, e'
         );
         assert.equal(summary.events[0].exception.values[0].type, 'UnhandledRejection');
         assert.equal(summary.events[0].exception.values[0].mechanism.handled, false);
