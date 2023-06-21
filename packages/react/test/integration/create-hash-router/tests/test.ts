@@ -1,6 +1,7 @@
-import { Transaction } from '@sentry/types';
+import { expect, test } from '@playwright/test';
+import type { Transaction } from '@sentry/types';
+
 import { getMultipleSentryEnvelopeRequests } from '../../utils';
-import { test, expect } from '@playwright/test';
 
 test('Sends an error to Sentry', async ({ page }) => {
   await page.goto('/');

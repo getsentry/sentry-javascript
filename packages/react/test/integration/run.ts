@@ -1,7 +1,11 @@
+/* eslint-disable no-console */
 import { exec } from 'child_process';
 import * as fs from 'fs';
 
 async function run(): Promise<void> {
+  // The ESLint plugin `react-scripts` uses is not compatible with our setup.
+  process.env.DISABLE_ESLINT_PLUGIN = 'true';
+
   fs.readdirSync(__dirname, { withFileTypes: true })
     .filter(testApp => testApp.isDirectory())
     .forEach(testApp => {
