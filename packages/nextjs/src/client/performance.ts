@@ -143,7 +143,8 @@ export function nextRouterInstrumentation(
 
   if (startTransactionOnLocationChange) {
     Router.events.on('routeChangeStart', (navigationTarget: string) => {
-      const matchedRoute = getNextRouteFromPathname(stripUrlQueryAndFragment(navigationTarget));
+      const strippedNavigationTarget = stripUrlQueryAndFragment(navigationTarget);
+      const matchedRoute = getNextRouteFromPathname(strippedNavigationTarget);
 
       let transactionName: string;
       let transactionSource: TransactionSource;
@@ -152,7 +153,7 @@ export function nextRouterInstrumentation(
         transactionName = matchedRoute;
         transactionSource = 'route';
       } else {
-        transactionName = navigationTarget;
+        transactionName = strippedNavigationTarget;
         transactionSource = 'url';
       }
 

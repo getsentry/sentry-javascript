@@ -3,6 +3,7 @@
 type blockClass = string | RegExp;
 type maskTextClass = string | RegExp;
 
+/** Duplicate this from @sentry-internal/rrweb so we can export this as well. */
 export enum EventType {
   DomContentLoaded = 0,
   Load = 1,

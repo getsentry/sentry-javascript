@@ -424,7 +424,7 @@ jobs:
     name: Nextjs (Node ${{ matrix.node }}) Tests
     needs: [job_get_metadata, job_build]
     if: needs.job_get_metadata.outputs.changed_nextjs == 'true' || github.event_name != 'pull_request'
-    timeout-minutes: 15
+    timeout-minutes: 25
     runs-on: ubuntu-20.04
     strategy:
       fail-fast: false

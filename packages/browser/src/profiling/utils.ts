@@ -2,16 +2,11 @@
 
 import { DEFAULT_ENVIRONMENT, getCurrentHub } from '@sentry/core';
 import type { DebugImage, Envelope, Event, StackFrame, StackParser } from '@sentry/types';
+import type { Profile, ThreadCpuProfile } from '@sentry/types/src/profiling';
 import { forEachEnvelopeItem, GLOBAL_OBJ, logger, uuid4 } from '@sentry/utils';
 
 import { WINDOW } from '../helpers';
-import type {
-  JSSelfProfile,
-  JSSelfProfileStack,
-  ProcessedJSSelfProfile,
-  SentryProfile,
-  ThreadCpuProfile,
-} from './jsSelfProfiling';
+import type { JSSelfProfile, JSSelfProfileStack, ProcessedJSSelfProfile } from './jsSelfProfiling';
 
 const MS_TO_NS = 1e6;
 // Use 0 as main thread id which is identical to threadId in node:worker_threads
@@ -125,7 +120,7 @@ function getTraceId(event: Event): string {
 /**
  * Creates a profiling event envelope from a Sentry event.
  */
-export function createProfilePayload(event: ProfiledEvent, processedProfile: ProcessedJSSelfProfile): SentryProfile {
+export function createProfilePayload(event: ProfiledEvent, processedProfile: ProcessedJSSelfProfile): Profile {
   if (event.type !== 'transaction') {
     // createProfilingEventEnvelope should only be called for transactions,
     // we type guard this behavior with isProfiledTransactionEvent.
@@ -147,7 +142,7 @@ export function createProfilePayload(event: ProfiledEvent, processedProfile: Pro
   const transactionStartMs = typeof event.start_timestamp === 'number' ? event.start_timestamp * 1000 : Date.now();
   const transactionEndMs = typeof event.timestamp === 'number' ? event.timestamp * 1000 : Date.now();
 
-  const profile: SentryProfile = {
+  const profile: Profile = {
     event_id: processedProfile.profile_id,
     timestamp: new Date(transactionStartMs).toISOString(),
     platform: 'javascript',
@@ -200,12 +195,12 @@ export function isProfiledTransactionEvent(event: Event): event is ProfiledEvent
  * Converts a JSSelfProfile to a our sampled format.
  * Does not currently perform stack indexing.
  */
-export function convertJSSelfProfileToSampledFormat(input: JSSelfProfile): SentryProfile['profile'] {
+export function convertJSSelfProfileToSampledFormat(input: JSSelfProfile): Profile['profile'] {
   let EMPTY_STACK_ID: undefined | number = undefined;
   let STACK_ID = 0;
 
   // Initialize the profile that we will fill with data
-  const profile: SentryProfile['profile'] = {
+  const profile: Profile['profile'] = {
     samples: [],
     stacks: [],
     frames: [],
@@ -265,7 +260,7 @@ export function convertJSSelfProfileToSampledFormat(input: JSSelfProfile): Sentr
       stackTop = stackTop.parentId === undefined ? undefined : input.stacks[stackTop.parentId];
     }
 
-    const sample: SentryProfile['profile']['samples'][0] = {
+    const sample: Profile['profile']['samples'][0] = {
       // convert ms timestamp to ns
       elapsed_since_start_ns: ((jsSample.timestamp - start) * MS_TO_NS).toFixed(0),
       stack_id: STACK_ID,
@@ -284,7 +279,7 @@ export function convertJSSelfProfileToSampledFormat(input: JSSelfProfile): Sentr
  * Adds items to envelope if they are not already present - mutates the envelope.
  * @param envelope
  */
-export function addProfilesToEnvelope(envelope: Envelope, profiles: SentryProfile[]): Envelope {
+export function addProfilesToEnvelope(envelope: Envelope, profiles: Profile[]): Envelope {
   if (!profiles.length) {
     return envelope;
   }
@@ -448,7 +443,7 @@ function isValidProfile(profile: ProcessedJSSelfProfile): profile is ProcessedJS
  * @param event
  * @returns {Profile | null}
  */
-export function createProfilingEvent(profile: ProcessedJSSelfProfile, event: ProfiledEvent): SentryProfile | null {
+export function createProfilingEvent(profile: ProcessedJSSelfProfile, event: ProfiledEvent): Profile | null {
   if (!isValidProfile(profile)) {
     return null;
   }

@@ -38,8 +38,10 @@ sentryTest('mutation after timeout results in slow click', async ({ getLocalTest
   expect(slowClickBreadcrumbs).toEqual([
     {
       category: 'ui.slowClickDetected',
+      type: 'default',
       data: {
         endReason: 'timeout',
+        clickCount: 1,
         node: {
           attributes: {
             id: 'mutationButtonLate',
@@ -49,7 +51,7 @@ sentryTest('mutation after timeout results in slow click', async ({ getLocalTest
           textContent: '******* ******** ****',
         },
         nodeId: expect.any(Number),
-        timeAfterClickMs: 2000,
+        timeAfterClickMs: 3100,
         url: 'http://sentry-test.io/index.html',
       },
       message: 'body > button#mutationButtonLate',
@@ -93,8 +95,10 @@ sentryTest('console.log results in slow click', async ({ getLocalTestUrl, page }
   expect(slowClickBreadcrumbs).toEqual([
     {
       category: 'ui.slowClickDetected',
+      type: 'default',
       data: {
         endReason: 'timeout',
+        clickCount: 1,
         node: {
           attributes: {
             id: 'consoleLogButton',
@@ -104,7 +108,7 @@ sentryTest('console.log results in slow click', async ({ getLocalTestUrl, page }
           textContent: '******* ******* ***',
         },
         nodeId: expect.any(Number),
-        timeAfterClickMs: 2000,
+        timeAfterClickMs: 3100,
         url: 'http://sentry-test.io/index.html',
       },
       message: 'body > button#consoleLogButton',

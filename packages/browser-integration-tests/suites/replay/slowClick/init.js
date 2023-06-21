@@ -4,14 +4,8 @@ window.Sentry = Sentry;
 window.Replay = new Sentry.Replay({
   flushMinDelay: 500,
   flushMaxDelay: 500,
-  _experiments: {
-    slowClicks: {
-      threshold: 300,
-      scrollThreshold: 300,
-      timeout: 2000,
-      ignoreSelectors: ['.ignore-class', '[ignore-attribute]'],
-    },
-  },
+  slowClickTimeout: 3100,
+  slowClickIgnoreSelectors: ['.ignore-class', '[ignore-attribute]'],
 });
 
 Sentry.init({

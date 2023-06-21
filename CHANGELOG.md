@@ -4,6 +4,33 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.56.0
+
+- feat(replay): Rework slow click & multi click detection (#8322)
+- feat(replay): Stop replay when event buffer exceeds max. size (#8315)
+- feat(replay): Consider `window.open` for slow clicks (#8308)
+- fix(core): Temporarily store debug IDs in stack frame and only put them into `debug_meta` before sending (#8347)
+- fix(remix): Extract deferred responses correctly in root loaders. (#8305)
+- fix(vue): Don't call `next` in Vue router 4 instrumentation (#8351)
+
+## 7.55.2
+
+- fix(replay): Stop exporting `EventType` from `@sentry-internal/rrweb` (#8334)
+- fix(serverless): Export captureCheckIn (#8333)
+
+## 7.55.1
+
+- fix(replay): Do not export types from `@sentry-internal/rrweb` (#8329)
+
+## 7.55.0
+
+- feat(replay): Capture slow clicks (GA) (#8298)
+- feat(replay): Improve types for replay recording events (#8224)
+- fix(nextjs): Strip query params from transaction names of navigations to unknown routes (#8278)
+- fix(replay): Ignore max session life for buffered sessions (#8258)
+- fix(sveltekit): Export captureCheckIn (#8313)
+- ref(svelte): Add Svelte 4 as a peer dependency (#8280)
+
 ## 7.54.0
 
 ### Important Changes

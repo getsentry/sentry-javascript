@@ -28,3 +28,4 @@ export * from './ratelimit';
 export * from './baggage';
 export * from './url';
 export * from './userIntegrations';
+export * from './cache';

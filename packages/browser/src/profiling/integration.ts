@@ -1,9 +1,10 @@
 import type { EventProcessor, Hub, Integration, Transaction } from '@sentry/types';
+import type { Profile } from '@sentry/types/src/profiling';
 import { logger } from '@sentry/utils';
 
 import type { BrowserClient } from './../client';
 import { wrapTransactionWithProfiling } from './hubextensions';
-import type { ProcessedJSSelfProfile, SentryProfile } from './jsSelfProfiling';
+import type { ProcessedJSSelfProfile } from './jsSelfProfiling';
 import type { ProfiledEvent } from './utils';
 import { addProfilesToEnvelope, createProfilingEvent, findProfiledTransactionsFromEnvelope } from './utils';
 
@@ -59,7 +60,7 @@ export class BrowserProfilingIntegration implements Integration {
           return;
         }
 
-        const profilesToAddToEnvelope: SentryProfile[] = [];
+        const profilesToAddToEnvelope: Profile[] = [];
 
         for (const profiledTransaction of profiledTransactionEvents) {
           const profile_id =
