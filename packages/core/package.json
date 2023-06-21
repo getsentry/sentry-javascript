@@ -1,6 +1,6 @@
 {
   "name": "@sentry/core",
-  "version": "7.56.0",
+  "version": "7.57.0-beta.0",
   "description": "Base implementation for all Sentry JavaScript SDKs",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/core",
@@ -13,14 +13,18 @@
   "module": "build/esm/index.js",
   "types": "build/types/index.d.ts",
   "typesVersions": {
-    "<4.9": { "build/types/index.d.ts": ["build/types-ts3.8/index.d.ts"] }
+    "<4.9": {
+      "build/types/index.d.ts": [
+        "build/types-ts3.8/index.d.ts"
+      ]
+    }
   },
   "publishConfig": {
     "access": "public"
   },
   "dependencies": {
-    "@sentry/types": "7.56.0",
-    "@sentry/utils": "7.56.0",
+    "@sentry/types": "7.57.0-beta.0",
+    "@sentry/utils": "7.57.0-beta.0",
     "tslib": "^2.4.1 || ^1.9.3"
   },
   "scripts": {

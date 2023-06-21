@@ -1,6 +1,6 @@
 {
   "name": "@sentry/tracing",
-  "version": "7.56.0",
+  "version": "7.57.0-beta.0",
   "description": "Sentry Performance Monitoring Package",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/tracing",
@@ -13,20 +13,24 @@
   "module": "build/npm/esm/index.js",
   "types": "build/npm/types/index.d.ts",
   "typesVersions": {
-    "<4.9": { "build/npm/types/index.d.ts": ["build/npm/types-ts3.8/index.d.ts"] }
+    "<4.9": {
+      "build/npm/types/index.d.ts": [
+        "build/npm/types-ts3.8/index.d.ts"
+      ]
+    }
   },
   "publishConfig": {
     "access": "public"
   },
   "dependencies": {
-    "@sentry-internal/tracing": "7.56.0"
+    "@sentry-internal/tracing": "7.57.0-beta.0"
   },
   "devDependencies": {
-    "@sentry-internal/integration-shims": "7.56.0",
-    "@sentry/browser": "7.56.0",
-    "@sentry/core": "7.56.0",
-    "@sentry/types": "7.56.0",
-    "@sentry/utils": "7.56.0",
+    "@sentry-internal/integration-shims": "7.57.0-beta.0",
+    "@sentry/browser": "7.57.0-beta.0",
+    "@sentry/core": "7.57.0-beta.0",
+    "@sentry/types": "7.57.0-beta.0",
+    "@sentry/utils": "7.57.0-beta.0",
     "@types/express": "^4.17.14"
   },
   "scripts": {
