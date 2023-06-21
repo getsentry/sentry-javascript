@@ -1,36 +1,14 @@
 /* eslint-disable max-lines */
 
 import { DEFAULT_ENVIRONMENT, getCurrentHub } from '@sentry/core';
-import type {
-  DebugImage,
-  DsnComponents,
-  DynamicSamplingContext,
-  Envelope,
-  Event,
-  EventEnvelope,
-  EventEnvelopeHeaders,
-  EventItem,
-  SdkInfo,
-  SdkMetadata,
-  StackFrame,
-  StackParser,
-} from '@sentry/types';
-import {
-  createEnvelope,
-  dropUndefinedKeys,
-  dsnToString,
-  forEachEnvelopeItem,
-  GLOBAL_OBJ,
-  logger,
-  uuid4,
-} from '@sentry/utils';
+import type { DebugImage, Envelope, Event, StackFrame, StackParser } from '@sentry/types';
+import { forEachEnvelopeItem, GLOBAL_OBJ, logger, uuid4 } from '@sentry/utils';
 
 import { WINDOW } from '../helpers';
 import type {
   JSSelfProfile,
   JSSelfProfileStack,
   ProcessedJSSelfProfile,
-  RawThreadCpuProfile,
   SentryProfile,
   ThreadCpuProfile,
 } from './jsSelfProfiling';
@@ -42,9 +20,9 @@ const THREAD_ID_STRING = String(0);
 const THREAD_NAME = 'main';
 
 // Machine properties (eval only once)
-let OS_PLATFORM = ''; // macos
-let OS_PLATFORM_VERSION = ''; // 13.2
-let OS_ARCH = ''; // arm64
+let OS_PLATFORM = '';
+let OS_PLATFORM_VERSION = '';
+let OS_ARCH = '';
 let OS_BROWSER = (WINDOW.navigator && WINDOW.navigator.userAgent) || '';
 let OS_MODEL = '';
 const OS_LOCALE =
@@ -91,7 +69,9 @@ if (isUserAgentData(userAgentData)) {
     .catch(e => void e);
 }
 
-function isRawThreadCpuProfile(profile: ThreadCpuProfile | RawThreadCpuProfile): profile is RawThreadCpuProfile {
+function isProcessedJSSelfProfile(
+  profile: ThreadCpuProfile | ProcessedJSSelfProfile,
+): profile is ProcessedJSSelfProfile {
   return !('thread_metadata' in profile);
 }
 
@@ -100,8 +80,8 @@ function isRawThreadCpuProfile(profile: ThreadCpuProfile | RawThreadCpuProfile):
 /**
  *
  */
-export function enrichWithThreadInformation(profile: ThreadCpuProfile | RawThreadCpuProfile): ThreadCpuProfile {
-  if (!isRawThreadCpuProfile(profile)) {
+export function enrichWithThreadInformation(profile: ThreadCpuProfile | ProcessedJSSelfProfile): ThreadCpuProfile {
+  if (!isProcessedJSSelfProfile(profile)) {
     return profile;
   }
 
@@ -112,52 +92,7 @@ export function enrichWithThreadInformation(profile: ThreadCpuProfile | RawThrea
 // by the integration before the event is processed by other integrations.
 export interface ProfiledEvent extends Event {
   sdkProcessingMetadata: {
-    profile?: RawThreadCpuProfile;
-  };
-}
-
-/** Extract sdk info from from the API metadata */
-function getSdkMetadataForEnvelopeHeader(metadata?: SdkMetadata): SdkInfo | undefined {
-  if (!metadata || !metadata.sdk) {
-    return undefined;
-  }
-
-  return { name: metadata.sdk.name, version: metadata.sdk.version } as SdkInfo;
-}
-
-/**
- * Apply SdkInfo (name, version, packages, integrations) to the corresponding event key.
- * Merge with existing data if any.
- **/
-function enhanceEventWithSdkInfo(event: Event, sdkInfo?: SdkInfo): Event {
-  if (!sdkInfo) {
-    return event;
-  }
-  event.sdk = event.sdk || {};
-  event.sdk.name = event.sdk.name || sdkInfo.name || 'unknown sdk';
-  event.sdk.version = event.sdk.version || sdkInfo.version || 'unknown sdk version';
-  event.sdk.integrations = [...(event.sdk.integrations || []), ...(sdkInfo.integrations || [])];
-  event.sdk.packages = [...(event.sdk.packages || []), ...(sdkInfo.packages || [])];
-  return event;
-}
-
-function createEventEnvelopeHeaders(
-  event: Event,
-  sdkInfo: SdkInfo | undefined,
-  tunnel: string | undefined,
-  dsn: DsnComponents,
-): EventEnvelopeHeaders {
-  const dynamicSamplingContext = event.sdkProcessingMetadata && event.sdkProcessingMetadata['dynamicSamplingContext'];
-
-  return {
-    event_id: event.event_id as string,
-    sent_at: new Date().toISOString(),
-    ...(sdkInfo && { sdk: sdkInfo }),
-    ...(!!tunnel && { dsn: dsnToString(dsn) }),
-    ...(event.type === 'transaction' &&
-      dynamicSamplingContext && {
-        trace: dropUndefinedKeys({ ...dynamicSamplingContext }) as DynamicSamplingContext,
-      }),
+    profile?: ProcessedJSSelfProfile;
   };
 }
 
@@ -190,50 +125,30 @@ function getTraceId(event: Event): string {
 /**
  * Creates a profiling event envelope from a Sentry event.
  */
-export function createProfilingEventEnvelope(
-  event: ProfiledEvent,
-  dsn: DsnComponents,
-  metadata?: SdkMetadata,
-  tunnel?: string,
-): EventEnvelope | null {
+export function createProfilePayload(event: ProfiledEvent, processedProfile: ProcessedJSSelfProfile): SentryProfile {
   if (event.type !== 'transaction') {
     // createProfilingEventEnvelope should only be called for transactions,
     // we type guard this behavior with isProfiledTransactionEvent.
     throw new TypeError('Profiling events may only be attached to transactions, this should never occur.');
   }
 
-  const rawProfile = event.sdkProcessingMetadata['profile'] as ProcessedJSSelfProfile | null;
-
-  if (rawProfile === undefined || rawProfile === null) {
+  if (processedProfile === undefined || processedProfile === null) {
     throw new TypeError(
-      `Cannot construct profiling event envelope without a valid profile. Got ${rawProfile} instead.`,
+      `Cannot construct profiling event envelope without a valid profile. Got ${processedProfile} instead.`,
     );
   }
 
-  if (!rawProfile.profile_id) {
+  if (!processedProfile.profile_id) {
     throw new TypeError('Profile is missing profile_id');
   }
 
-  if (rawProfile.samples.length <= 1) {
-    if (__DEBUG_BUILD__) {
-      // Log a warning if the profile has less than 2 samples so users can know why
-      // they are not seeing any profiling data and we cant avoid the back and forth
-      // of asking them to provide us with a dump of the profile data.
-      logger.log('[Profiling] Discarding profile because it contains less than 2 samples');
-    }
-    return null;
-  }
-
   const traceId = getTraceId(event);
-  const sdkInfo = getSdkMetadataForEnvelopeHeader(metadata);
-  enhanceEventWithSdkInfo(event, metadata && metadata.sdk);
-  const envelopeHeaders = createEventEnvelopeHeaders(event, sdkInfo, tunnel, dsn);
-  const enrichedThreadProfile = enrichWithThreadInformation(rawProfile);
+  const enrichedThreadProfile = enrichWithThreadInformation(processedProfile);
   const transactionStartMs = typeof event.start_timestamp === 'number' ? event.start_timestamp * 1000 : Date.now();
   const transactionEndMs = typeof event.timestamp === 'number' ? event.timestamp * 1000 : Date.now();
 
   const profile: SentryProfile = {
-    event_id: rawProfile.profile_id,
+    event_id: processedProfile.profile_id,
     timestamp: new Date(transactionStartMs).toISOString(),
     platform: 'javascript',
     version: '1',
@@ -256,7 +171,7 @@ export function createProfilingEventEnvelope(
       is_emulator: false,
     },
     debug_meta: {
-      images: applyDebugMetadata(rawProfile.resources),
+      images: applyDebugMetadata(processedProfile.resources),
     },
     profile: enrichedThreadProfile,
     transactions: [
@@ -271,15 +186,7 @@ export function createProfilingEventEnvelope(
     ],
   };
 
-  const envelopeItem: EventItem = [
-    {
-      type: 'profile',
-    },
-    // @ts-ignore this is missing in typedef
-    profile,
-  ];
-
-  return createEnvelope<EventEnvelope>(envelopeHeaders, [envelopeItem]);
+  return profile;
 }
 
 /**
@@ -287,21 +194,6 @@ export function createProfilingEventEnvelope(
  */
 export function isProfiledTransactionEvent(event: Event): event is ProfiledEvent {
   return !!(event.sdkProcessingMetadata && event.sdkProcessingMetadata['profile']);
-}
-
-// Due to how profiles are attached to event metadata, we may sometimes want to remove them to ensure
-// they are not processed by other Sentry integrations. This can be the case when we cannot construct a valid
-// profile from the data we have or some of the mechanisms to send the event (Hub, Transport etc) are not available to us.
-/**
- *
- */
-export function maybeRemoveProfileFromSdkMetadata(event: Event | ProfiledEvent): Event {
-  if (!isProfiledTransactionEvent(event)) {
-    return event;
-  }
-
-  delete event.sdkProcessingMetadata.profile;
-  return event;
 }
 
 /**
@@ -531,4 +423,35 @@ export function isValidSampleRate(rate: unknown): boolean {
     return false;
   }
   return true;
+}
+
+function isValidProfile(profile: ProcessedJSSelfProfile): profile is ProcessedJSSelfProfile & { profile_id: string } {
+  if (profile.samples.length <= 1) {
+    if (__DEBUG_BUILD__) {
+      // Log a warning if the profile has less than 2 samples so users can know why
+      // they are not seeing any profiling data and we cant avoid the back and forth
+      // of asking them to provide us with a dump of the profile data.
+      logger.log('[Profiling] Discarding profile because it contains less than 2 samples');
+    }
+    return false;
+  }
+
+  if (!profile.profile_id) {
+    return false;
+  }
+
+  return true;
+}
+
+/**
+ * Creates a profiling envelope item, if the profile does not pass validation, returns null.
+ * @param event
+ * @returns {Profile | null}
+ */
+export function createProfilingEvent(profile: ProcessedJSSelfProfile, event: ProfiledEvent): SentryProfile | null {
+  if (!isValidProfile(profile)) {
+    return null;
+  }
+
+  return createProfilePayload(event, profile);
 }

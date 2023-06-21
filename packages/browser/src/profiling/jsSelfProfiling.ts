@@ -51,9 +51,6 @@ declare global {
   }
 }
 
-export interface RawThreadCpuProfile extends JSSelfProfile {
-  profile_id: string;
-}
 export interface ThreadCpuProfile {
   samples: {
     stack_id: number;

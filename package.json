@@ -33,7 +33,7 @@
     "yalc:publish": "lerna run yalc:publish"
   },
   "volta": {
-    "node": "16.19.0",
+    "node": "18.12.1",
     "yarn": "1.22.19"
   },
   "workspaces": [
