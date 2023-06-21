@@ -1,0 +1,66 @@
+{
+  "name": "react-create-hash-router-test",
+  "version": "0.1.0",
+  "private": true,
+  "dependencies": {
+    "@sentry/react": "file:../../..",
+    "@testing-library/jest-dom": "5.14.1",
+    "@testing-library/react": "13.0.0",
+    "@testing-library/user-event": "13.2.1",
+    "@types/jest": "27.0.1",
+    "@types/node": "16.7.13",
+    "@types/react": "18.0.0",
+    "@types/react-dom": "18.0.0",
+    "react": "18.2.0",
+    "react-dom": "18.2.0",
+    "react-router-dom": "^6.4.1",
+    "react-scripts": "5.0.1",
+    "typescript": "4.4.2",
+    "web-vitals": "2.1.0"
+  },
+  "scripts": {
+    "build": "react-scripts build",
+    "start": "serve -s build",
+    "pretest": "run-s build",
+    "test": "playwright test",
+    "posttest": "rimraf build node_modules"
+  },
+  "eslintConfig": {
+    "extends": [
+      "react-app",
+      "react-app/jest"
+    ]
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
+  "devDependencies": {
+    "@playwright/test": "1.31.1",
+    "serve": "14.0.1"
+  },
+  "resolutions": {
+    "@sentry/browser": "file:../../../../browser",
+    "@sentry/core": "file:../../../../core",
+    "@sentry/integrations": "file:../../../../integrations",
+    "@sentry/node": "file:../../../../node",
+    "@sentry/react": "file:../../../../react",
+    "@sentry/replay": "file:../../../../replay",
+    "@sentry/tracing": "file:../../../../tracing",
+    "@sentry-internal/tracing": "file:../../../../tracing-internal",
+    "@sentry/types": "file:../../../../types",
+    "@sentry/utils": "file:../../../../utils"
+  },
+  "volta": {
+    "node": "16.19.0",
+    "yarn": "1.22.19"
+  }
+}

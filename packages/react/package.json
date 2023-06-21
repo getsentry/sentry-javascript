@@ -68,7 +68,9 @@
     "lint": "run-s lint:prettier lint:eslint",
     "lint:eslint": "eslint . --format stylish",
     "lint:prettier": "prettier --check \"{src,test,scripts}/**/**.ts\"",
-    "test": "jest",
+    "test": "run-s test:unit test:integration",
+    "test:unit": "jest",
+    "test:integration": "ts-node ./test/integration/run.ts",
     "test:watch": "jest --watch",
     "yalc:publish": "ts-node ../../scripts/prepack.ts && yalc publish build --push"
   },
