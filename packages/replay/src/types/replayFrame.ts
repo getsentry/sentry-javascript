@@ -91,7 +91,7 @@ interface SlowClickFrameData extends ClickFrameData {
   route?: string;
   timeAfterClickMs: number;
   endReason: string;
-  clickCount: number;
+  clickCount?: number;
 }
 export interface SlowClickFrame extends BaseBreadcrumbFrame {
   category: 'ui.slowClickDetected';
