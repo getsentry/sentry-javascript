@@ -216,6 +216,12 @@ export function wrapTransactionWithProfiling(transaction: Transaction): Transact
           return null;
         }
 
+        // Discard a profile if it has no frames - happens if code was idling or sampling
+        // did not collect any frames.
+        if(!p.frames.length){
+          return null;
+        }
+
         addToProfileQueue({ ...p, profile_id: profileId });
         return null;
       })
