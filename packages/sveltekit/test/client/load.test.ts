@@ -1,3 +1,4 @@
+import * as sentryCore from '@sentry/core';
 import { addTracingExtensions, Scope } from '@sentry/svelte';
 import { baggageHeaderToDynamicSamplingContext } from '@sentry/utils';
 import type { Load } from '@sveltejs/kit';
@@ -52,6 +53,12 @@ const mockedGetIntegrationById = vi.fn(id => {
   return undefined;
 });
 
+const mockedGetClient = vi.fn(() => {
+  return {
+    getIntegrationById: mockedGetIntegrationById,
+  };
+});
+
 vi.mock('@sentry/core', async () => {
   const original = (await vi.importActual('@sentry/core')) as any;
   return {
@@ -62,11 +69,7 @@ vi.mock('@sentry/core', async () => {
     },
     getCurrentHub: () => {
       return {
-        getClient: () => {
-          return {
-            getIntegrationById: mockedGetIntegrationById,
-          };
-        },
+        getClient: mockedGetClient,
         getScope: () => {
           return {
             getSpan: () => {
@@ -425,6 +428,28 @@ describe('wrapLoadWithSentry', () => {
         mockedBreadcrumbs.options.fetch = true;
       });
     });
+  });
+
+  it.each([
+    ['is undefined', undefined],
+    ["doesn't have a `getClientById` method", {}],
+  ])("doesn't instrument fetch if the client %s", async (_, client) => {
+    // @ts-expect-error: we're mocking the client
+    mockedGetClient.mockImplementationOnce(() => client);
+
+    async function load(_event: Parameters<Load>[0]): Promise<ReturnType<Load>> {
+      return {
+        msg: 'hi',
+      };
+    }
+    const wrappedLoad = wrapLoadWithSentry(load);
+
+    const originalFetch = MOCK_LOAD_ARGS.fetch;
+    await wrappedLoad(MOCK_LOAD_ARGS);
+
+    expect(MOCK_LOAD_ARGS.fetch).toStrictEqual(originalFetch);
+
+    expect(mockTrace).toHaveBeenCalledTimes(1);
   });
 
   it('adds an exception mechanism', async () => {
