@@ -41,7 +41,7 @@ function isBuiltin(wat: unknown, className: string): boolean {
  * @param wat A value to be checked.
  * @returns A boolean representing the result.
  */
-export function isErrorEvent(wat: unknown): wat is ErrorEvent {
+export function isErrorEvent(wat: unknown): boolean {
   return isBuiltin(wat, 'ErrorEvent');
 }
 
