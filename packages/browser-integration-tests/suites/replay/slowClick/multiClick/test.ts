@@ -1,7 +1,12 @@
 import { expect } from '@playwright/test';
 
 import { sentryTest } from '../../../../utils/fixtures';
-import { getCustomRecordingEvents, shouldSkipReplayTest, waitForReplayRequest } from '../../../../utils/replayHelpers';
+import {
+  getCustomRecordingEvents,
+  shouldSkipReplayTest,
+  waitForReplayRequest,
+  waitForReplayRequests,
+} from '../../../../utils/replayHelpers';
 
 sentryTest('captures multi click when not detecting slow click', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipReplayTest()) {
@@ -79,47 +84,34 @@ sentryTest('captures multiple multi clicks', async ({ getLocalTestUrl, page, for
   await page.goto(url);
   await reqPromise0;
 
-  let lastMultiClickSegmentId: number | undefined;
+  let multiClickBreadcrumbCount = 0;
 
-  const reqPromise1 = waitForReplayRequest(page, (event, res) => {
+  const reqsPromise = waitForReplayRequests(page, (_event, res) => {
     const { breadcrumbs } = getCustomRecordingEvents(res);
+    const count = breadcrumbs.filter(breadcrumb => breadcrumb.category === 'ui.multiClick').length;
 
-    const check = !lastMultiClickSegmentId && breadcrumbs.some(breadcrumb => breadcrumb.category === 'ui.multiClick');
-    if (check) {
-      lastMultiClickSegmentId = event.segment_id;
+    multiClickBreadcrumbCount += count;
+
+    if (multiClickBreadcrumbCount === 2) {
+      return true;
     }
-    return check;
+
+    return false;
   });
-
-  const reqPromise2 = waitForReplayRequest(page, (event, res) => {
-    const { breadcrumbs } = getCustomRecordingEvents(res);
-
-    const check =
-      !!lastMultiClickSegmentId &&
-      event.segment_id > lastMultiClickSegmentId &&
-      breadcrumbs.some(breadcrumb => breadcrumb.category === 'ui.multiClick');
-    if (check) {
-      lastMultiClickSegmentId = event.segment_id;
-    }
-    return check;
-  });
-
-  const time = Date.now();
 
   await page.click('#mutationButtonImmediately', { clickCount: 4 });
-
-  // Ensure we waited at least 1s, which is the threshold to create a new ui.click breadcrumb
-  await waitForFunction(() => Date.now() - time > 1000);
-
-  await page.click('#mutationButtonImmediately', { clickCount: 2 });
-
-  const { breadcrumbs } = getCustomRecordingEvents(await reqPromise1);
   await forceFlushReplay();
 
-  const { breadcrumbs: breadcrumb2 } = getCustomRecordingEvents(await reqPromise2);
+  // Ensure we waited at least 1s, which is the threshold to create a new ui.click breadcrumb
+  await new Promise(resolve => setTimeout(resolve, 1001));
 
-  const slowClickBreadcrumbs = breadcrumbs
-    .concat(breadcrumb2)
+  await page.click('#mutationButtonImmediately', { clickCount: 2 });
+  await forceFlushReplay();
+
+  const responses = await reqsPromise;
+
+  const slowClickBreadcrumbs = responses
+    .flatMap(res => getCustomRecordingEvents(res).breadcrumbs)
     .filter(breadcrumb => breadcrumb.category === 'ui.multiClick');
 
   expect(slowClickBreadcrumbs).toEqual([
@@ -165,10 +157,3 @@ sentryTest('captures multiple multi clicks', async ({ getLocalTestUrl, page, for
     },
   ]);
 });
-
-async function waitForFunction(cb: () => boolean, timeout = 2000, increment = 100) {
-  while (timeout > 0 && !cb()) {
-    await new Promise(resolve => setTimeout(resolve, increment));
-    await waitForFunction(cb, timeout - increment, increment);
-  }
-}

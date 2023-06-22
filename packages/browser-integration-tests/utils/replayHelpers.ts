@@ -101,6 +101,46 @@ export function waitForReplayRequest(
   );
 }
 
+/**
+ * Wait until a callback returns true, collecting all replay responses along the way.
+ * This can be useful when you don't know if stuff will be in one or multiple replay requests.
+ */
+export function waitForReplayRequests(
+  page: Page,
+  callback: (event: ReplayEvent, res: Response) => boolean,
+  timeout?: number,
+): Promise<Response[]> {
+  const responses: Response[] = [];
+
+  return new Promise<Response[]>(resolve => {
+    void page.waitForResponse(
+      res => {
+        const req = res.request();
+
+        const event = getReplayEventFromRequest(req);
+
+        if (!event) {
+          return false;
+        }
+
+        responses.push(res);
+
+        try {
+          if (callback(event, res)) {
+            resolve(responses);
+            return true;
+          }
+
+          return false;
+        } catch {
+          return false;
+        }
+      },
+      timeout ? { timeout } : undefined,
+    );
+  });
+}
+
 export function isReplayEvent(event: Event): event is ReplayEvent {
   return event.type === 'replay_event';
 }
