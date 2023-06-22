@@ -15,6 +15,7 @@ export {
   Scope,
   addBreadcrumb,
   addGlobalEventProcessor,
+  autoDiscoverNodePerformanceMonitoringIntegrations,
   captureEvent,
   captureException,
   captureMessage,
