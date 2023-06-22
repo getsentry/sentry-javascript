@@ -59,7 +59,7 @@ sentryTest('captures multi click when not detecting slow click', async ({ getLoc
   ]);
 });
 
-sentryTest('captures multiple multi clicks', async ({ getLocalTestUrl, page }) => {
+sentryTest('captures multiple multi clicks', async ({ getLocalTestUrl, page, forceFlushReplay }) => {
   if (shouldSkipReplayTest()) {
     sentryTest.skip();
   }
@@ -104,13 +104,18 @@ sentryTest('captures multiple multi clicks', async ({ getLocalTestUrl, page }) =
     return check;
   });
 
+  const time = Date.now();
+
   await page.click('#mutationButtonImmediately', { clickCount: 4 });
 
-  await new Promise(resolve => setTimeout(resolve, 1001));
+  // Ensure we waited at least 1s, which is the threshold to create a new ui.click breadcrumb
+  await waitForFunction(() => Date.now() - time > 1000);
 
   await page.click('#mutationButtonImmediately', { clickCount: 2 });
 
   const { breadcrumbs } = getCustomRecordingEvents(await reqPromise1);
+  await forceFlushReplay();
+
   const { breadcrumbs: breadcrumb2 } = getCustomRecordingEvents(await reqPromise2);
 
   const slowClickBreadcrumbs = breadcrumbs
@@ -160,3 +165,10 @@ sentryTest('captures multiple multi clicks', async ({ getLocalTestUrl, page }) =
     },
   ]);
 });
+
+async function waitForFunction(cb: () => boolean, timeout = 2000, increment = 100) {
+  while (timeout > 0 && !cb()) {
+    await new Promise(resolve => setTimeout(resolve, increment));
+    await waitForFunction(cb, timeout - increment, increment);
+  }
+}
