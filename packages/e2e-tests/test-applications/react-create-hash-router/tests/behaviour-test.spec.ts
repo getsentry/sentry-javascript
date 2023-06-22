@@ -79,6 +79,7 @@ test('Sends a pageload transaction to Sentry', async ({ page }) => {
               );
 
               if (response.data.contexts.trace.op === 'pageload') {
+                expect(response.data.title).toBe('/');
                 hadPageLoadTransaction = true;
               }
 
@@ -144,6 +145,7 @@ test('Sends a navigation transaction to Sentry', async ({ page }) => {
               );
 
               if (response.data.contexts.trace.op === 'navigation') {
+                expect(response.data.title).toBe('/user/:id');
                 hadPageNavigationTransaction = true;
               }
 
