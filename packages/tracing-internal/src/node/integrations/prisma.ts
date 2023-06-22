@@ -67,12 +67,11 @@ export class Prisma implements Integration {
     if (isValidPrismaClient(options.client) && !options.client._sentryInstrumented) {
       addNonEnumerableProperty(options.client as any, '_sentryInstrumented', true);
 
-      if (shouldDisableAutoInstrumentation(getCurrentHub)) {
-        __DEBUG_BUILD__ && logger.log('Prisma Integration is skipped because of instrumenter configuration.');
-        return;
-      }
-
       options.client.$use((params, next: (params: PrismaMiddlewareParams) => Promise<unknown>) => {
+        if (shouldDisableAutoInstrumentation(getCurrentHub)) {
+          return next(params);
+        }
+
         const action = params.action;
         const model = params.model;
         return trace(

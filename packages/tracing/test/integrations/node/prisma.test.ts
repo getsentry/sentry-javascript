@@ -1,7 +1,10 @@
 /* eslint-disable deprecation/deprecation */
+import * as sentryCore from '@sentry/core';
+import { Hub } from '@sentry/core';
 import { logger } from '@sentry/utils';
 
 import { Integrations } from '../../../src';
+import { getTestClient } from '../../testutils';
 
 const mockTrace = jest.fn();
 
@@ -35,18 +38,15 @@ class PrismaClient {
 }
 
 describe('setupOnce', function () {
-  const Client: PrismaClient = new PrismaClient();
-
-  beforeAll(() => {
-    new Integrations.Prisma({ client: Client });
-  });
-
   beforeEach(() => {
     mockTrace.mockClear();
+    mockTrace.mockReset();
   });
 
   it('should add middleware with $use method correctly', done => {
-    void Client.user.create()?.then(() => {
+    const prismaClient = new PrismaClient();
+    new Integrations.Prisma({ client: prismaClient });
+    void prismaClient.user.create()?.then(() => {
       expect(mockTrace).toHaveBeenCalledTimes(1);
       expect(mockTrace).toHaveBeenLastCalledWith(
         { name: 'user create', op: 'db.sql.prisma', data: { 'db.system': 'prisma' } },
@@ -56,11 +56,18 @@ describe('setupOnce', function () {
     });
   });
 
-  it("doesn't attach when using otel instrumenter", () => {
-    const loggerLogSpy = jest.spyOn(logger, 'log');
+  it("doesn't trace when using otel instrumenter", done => {
+    const prismaClient = new PrismaClient();
+    new Integrations.Prisma({ client: prismaClient });
 
-    new Integrations.Prisma({ client: Client });
+    const client = getTestClient({ instrumenter: 'otel' });
+    const hub = new Hub(client);
 
-    expect(loggerLogSpy).toBeCalledWith('Prisma Integration is skipped because of instrumenter configuration.');
+    jest.spyOn(sentryCore, 'getCurrentHub').mockReturnValue(hub);
+
+    void prismaClient.user.create()?.then(() => {
+      expect(mockTrace).not.toHaveBeenCalled();
+      done();
+    });
   });
 });
