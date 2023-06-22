@@ -58,11 +58,12 @@ export class BrowserProfilingIntegration implements Integration {
             profiledTransaction.contexts['profile']['profile_id'] as string
 
           if (!profile_id) {
-            throw new TypeError('[Profiling] cannot find profile for a transaction without a profile context');
+            __DEBUG_BUILD__ && logger.log('[Profiling] cannot find profile for a transaction without a profile context');
+            continue;
           }
 
           // Remove the profile from the transaction context before sending, relay will take care of the rest.
-          if (profiledTransaction && profiledTransaction.contexts && profiledTransaction.contexts['.profile']) {
+          if (profiledTransaction && profiledTransaction.contexts && profiledTransaction.contexts['profile']) {
             delete profiledTransaction.contexts.profile;
           }
 
@@ -73,8 +74,8 @@ export class BrowserProfilingIntegration implements Integration {
           }
 
           PROFILE_MAP.delete(profile_id);
-          const profileEvent = createProfilingEvent(profile, profiledTransaction as ProfiledEvent);
-          
+          const profileEvent = createProfilingEvent(profile_id, profile, profiledTransaction as ProfiledEvent);
+
           if (profileEvent) {
             profilesToAddToEnvelope.push(profileEvent);
           }

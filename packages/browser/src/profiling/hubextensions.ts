@@ -8,7 +8,6 @@ import type {
   JSSelfProfile,
   JSSelfProfiler,
   JSSelfProfilerConstructor,
-  ProcessedJSSelfProfile,
 } from './jsSelfProfiling';
 import { addProfileToMap,isValidSampleRate } from './utils';
 
@@ -163,7 +162,7 @@ export function wrapTransactionWithProfiling(transaction: Transaction): Transact
   // event of an error or user mistake (calling transaction.finish multiple times), it is important that the behavior of onProfileHandler
   // is idempotent as we do not want any timings or profiles to be overriden by the last call to onProfileHandler.
   // After the original finish method is called, the event will be reported through the integration and delegated to transport.
-  const processedProfile: ProcessedJSSelfProfile | null = null;
+  const processedProfile: JSSelfProfile | null = null;
 
   /**
    * Idempotent handler for profile stop
@@ -211,19 +210,7 @@ export function wrapTransactionWithProfiling(transaction: Transaction): Transact
           return null;
         }
 
-        // If a profile has less than 2 samples, it is not useful and should be discarded.
-        if (p.samples.length < 2) {
-          return null;
-        }
-
-        // Discard a profile if it has no frames - happens if code was idling or sampling
-        // did not collect any frames.
-        if(!p.frames.length){
-          return null;
-        }
-
-
-        addProfileToMap({...p, profile_id: profileId });
+        addProfileToMap(profileId, p);
         return null;
       })
       .catch(error => {

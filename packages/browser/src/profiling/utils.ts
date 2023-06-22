@@ -6,7 +6,7 @@ import type { Profile, ThreadCpuProfile } from '@sentry/types/src/profiling';
 import { forEachEnvelopeItem, GLOBAL_OBJ, logger, uuid4 } from '@sentry/utils';
 
 import { WINDOW } from '../helpers';
-import type { JSSelfProfile, JSSelfProfileStack, ProcessedJSSelfProfile } from './jsSelfProfiling';
+import type { JSSelfProfile, JSSelfProfileStack } from './jsSelfProfiling';
 
 const MS_TO_NS = 1e6;
 // Use 0 as main thread id which is identical to threadId in node:worker_threads
@@ -64,9 +64,7 @@ if (isUserAgentData(userAgentData)) {
     .catch(e => void e);
 }
 
-function isProcessedJSSelfProfile(
-  profile: ThreadCpuProfile | ProcessedJSSelfProfile,
-): profile is ProcessedJSSelfProfile {
+function isProcessedJSSelfProfile(profile: ThreadCpuProfile | JSSelfProfile): profile is JSSelfProfile {
   return !('thread_metadata' in profile);
 }
 
@@ -75,7 +73,7 @@ function isProcessedJSSelfProfile(
 /**
  *
  */
-export function enrichWithThreadInformation(profile: ThreadCpuProfile | ProcessedJSSelfProfile): ThreadCpuProfile {
+export function enrichWithThreadInformation(profile: ThreadCpuProfile | JSSelfProfile): ThreadCpuProfile {
   if (!isProcessedJSSelfProfile(profile)) {
     return profile;
   }
@@ -87,7 +85,7 @@ export function enrichWithThreadInformation(profile: ThreadCpuProfile | Processe
 // by the integration before the event is processed by other integrations.
 export interface ProfiledEvent extends Event {
   sdkProcessingMetadata: {
-    profile?: ProcessedJSSelfProfile;
+    profile?: JSSelfProfile;
   };
 }
 
@@ -120,7 +118,11 @@ function getTraceId(event: Event): string {
 /**
  * Creates a profiling event envelope from a Sentry event.
  */
-export function createProfilePayload(event: ProfiledEvent, processedProfile: ProcessedJSSelfProfile): Profile {
+export function createProfilePayload(
+  event: ProfiledEvent,
+  processedProfile: JSSelfProfile,
+  profile_id: string,
+): Profile {
   if (event.type !== 'transaction') {
     // createProfilingEventEnvelope should only be called for transactions,
     // we type guard this behavior with isProfiledTransactionEvent.
@@ -133,17 +135,13 @@ export function createProfilePayload(event: ProfiledEvent, processedProfile: Pro
     );
   }
 
-  if (!processedProfile.profile_id) {
-    throw new TypeError('Profile is missing profile_id');
-  }
-
   const traceId = getTraceId(event);
   const enrichedThreadProfile = enrichWithThreadInformation(processedProfile);
   const transactionStartMs = typeof event.start_timestamp === 'number' ? event.start_timestamp * 1000 : Date.now();
   const transactionEndMs = typeof event.timestamp === 'number' ? event.timestamp * 1000 : Date.now();
 
   const profile: Profile = {
-    event_id: processedProfile.profile_id,
+    event_id: profile_id,
     timestamp: new Date(transactionStartMs).toISOString(),
     platform: 'javascript',
     version: '1',
@@ -420,8 +418,8 @@ export function isValidSampleRate(rate: unknown): boolean {
   return true;
 }
 
-function isValidProfile(profile: ProcessedJSSelfProfile): profile is ProcessedJSSelfProfile & { profile_id: string } {
-  if (profile.samples.length <= 1) {
+function isValidProfile(profile: JSSelfProfile): profile is JSSelfProfile & { profile_id: string } {
+  if (profile.samples.length < 2) {
     if (__DEBUG_BUILD__) {
       // Log a warning if the profile has less than 2 samples so users can know why
       // they are not seeing any profiling data and we cant avoid the back and forth
@@ -431,7 +429,10 @@ function isValidProfile(profile: ProcessedJSSelfProfile): profile is ProcessedJS
     return false;
   }
 
-  if (!profile.profile_id) {
+  if (!profile.frames.length) {
+    if(__DEBUG_BUILD__) {
+      logger.log('[Profiling] Discarding profile because it contains no frames');
+    }
     return false;
   }
 
@@ -443,24 +444,23 @@ function isValidProfile(profile: ProcessedJSSelfProfile): profile is ProcessedJS
  * @param event
  * @returns {Profile | null}
  */
-export function createProfilingEvent(profile: ProcessedJSSelfProfile, event: ProfiledEvent): Profile | null {
+export function createProfilingEvent(profile_id: string, profile: JSSelfProfile, event: ProfiledEvent): Profile | null {
   if (!isValidProfile(profile)) {
     return null;
   }
 
-  return createProfilePayload(event, profile);
+  return createProfilePayload(event, profile, profile_id);
 }
 
-
-export const PROFILE_MAP: Map<string, ProcessedJSSelfProfile> = new Map();
+export const PROFILE_MAP: Map<string, JSSelfProfile> = new Map();
 /**
  *
  */
-export function addProfileToMap(profile: ProcessedJSSelfProfile): void{
-  PROFILE_MAP.set(profile.profile_id, profile);
+export function addProfileToMap(profile_id: string, profile: JSSelfProfile): void {
+  PROFILE_MAP.set(profile_id, profile);
 
-  if(PROFILE_MAP.size > 30){
-    const last: string = [...PROFILE_MAP.keys()].pop() as string;
+  if (PROFILE_MAP.size > 30) {
+    const last: string = PROFILE_MAP.keys().next().value;
     PROFILE_MAP.delete(last);
   }
 }
