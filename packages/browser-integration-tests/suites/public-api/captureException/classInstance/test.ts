@@ -12,7 +12,7 @@ sentryTest('should capture an POJO', async ({ getLocalTestPath, page }) => {
   expect(eventData.exception?.values).toHaveLength(1);
   expect(eventData.exception?.values?.[0]).toMatchObject({
     type: 'Error',
-    value: '`MyTestClass` captured as exception with keys: prop1, prop2',
+    value: 'Object captured as exception with keys: prop1, prop2',
     mechanism: {
       type: 'generic',
       handled: true,

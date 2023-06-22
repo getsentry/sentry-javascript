@@ -12,7 +12,7 @@ sentryTest('should capture an Event', async ({ getLocalTestPath, page }) => {
   expect(eventData.exception?.values).toHaveLength(1);
   expect(eventData.exception?.values?.[0]).toMatchObject({
     type: 'Event',
-    value: 'Event `Event` (custom) captured as exception with keys: currentTarget, isTrusted, target, type',
+    value: 'Event `Event` (type=custom) captured as exception',
     mechanism: {
       type: 'generic',
       handled: true,

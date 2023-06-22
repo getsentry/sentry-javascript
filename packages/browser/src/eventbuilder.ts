@@ -290,7 +290,6 @@ function getNonErrorObjectExceptionValue(
 ): string {
   const keys = extractExceptionKeysForMessage(exception);
   const captureType = isUnhandledRejection ? 'promise rejection' : 'exception';
-  const className = getObjectClassName(exception);
 
   // Some ErrorEvent instances do not have an `error` property, which is why they are not handled before
   // We still want to try to get a decent message for these cases
@@ -298,15 +297,12 @@ function getNonErrorObjectExceptionValue(
     return `Event \`ErrorEvent\` captured as ${captureType} with message \`${exception.message}\``;
   }
 
-  const name = isEvent(exception)
-    ? `Event \`${className}\` (${exception.type})`
-    : className && className !== 'Object'
-    ? `\`${className}\``
-    : 'Object';
+  if (isEvent(exception)) {
+    const className = getObjectClassName(exception);
+    return `Event \`${className}\` (type=${exception.type}) captured as ${captureType}`;
+  }
 
-  const label = `${name} captured as ${captureType}`;
-
-  return `${label} with keys: ${keys}`;
+  return `Object captured as ${captureType} with keys: ${keys}`;
 }
 
 function getObjectClassName(obj: unknown): string | undefined | void {

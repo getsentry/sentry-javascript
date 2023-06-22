@@ -77,7 +77,7 @@ describe('window.onunhandledrejection', function () {
         // non-error rejections don't provide stacktraces so we can skip that assertion
         assert.equal(
           summary.events[0].exception.values[0].value,
-          'Event `Event` (unhandledrejection) captured as promise rejection with keys: currentTarget, isTrusted, target, type'
+          'Event `Event` (type=unhandledrejection) captured as promise rejection'
         );
         assert.equal(summary.events[0].exception.values[0].type, 'Event');
         assert.equal(summary.events[0].exception.values[0].mechanism.handled, false);
