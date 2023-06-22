@@ -450,3 +450,17 @@ export function createProfilingEvent(profile: ProcessedJSSelfProfile, event: Pro
 
   return createProfilePayload(event, profile);
 }
+
+const MAX_PROFILE_QUEUE_SIZE = 50;
+export const PROFILE_QUEUE: ProcessedJSSelfProfile[] = [];
+/**
+ * Adds the profile to the queue of profiles to be sent
+ */
+export function addToProfileQueue(profile: ProcessedJSSelfProfile): void {
+  PROFILE_QUEUE.push(profile);
+
+  // We only want to keep the last n profiles in the queue.
+  if (PROFILE_QUEUE.length > MAX_PROFILE_QUEUE_SIZE) {
+    PROFILE_QUEUE.shift();
+  }
+}

@@ -4,24 +4,8 @@ import { logger } from '@sentry/utils';
 
 import type { BrowserClient } from './../client';
 import { wrapTransactionWithProfiling } from './hubextensions';
-import type { ProcessedJSSelfProfile } from './jsSelfProfiling';
 import type { ProfiledEvent } from './utils';
-import { addProfilesToEnvelope, createProfilingEvent, findProfiledTransactionsFromEnvelope } from './utils';
-
-const MAX_PROFILE_QUEUE_SIZE = 50;
-const PROFILE_QUEUE: ProcessedJSSelfProfile[] = [];
-
-/**
- * Adds the profile to the queue of profiles to be sent
- */
-export function addToProfileQueue(profile: ProcessedJSSelfProfile): void {
-  PROFILE_QUEUE.push(profile);
-
-  // We only want to keep the last n profiles in the queue.
-  if (PROFILE_QUEUE.length > MAX_PROFILE_QUEUE_SIZE) {
-    PROFILE_QUEUE.shift();
-  }
-}
+import { addProfilesToEnvelope, createProfilingEvent, findProfiledTransactionsFromEnvelope,PROFILE_QUEUE } from './utils';
 
 /**
  * Browser profiling integration. Stores any event that has contexts["profile"]["profile_id"]
