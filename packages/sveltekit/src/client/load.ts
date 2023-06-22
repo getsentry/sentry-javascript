@@ -3,7 +3,7 @@ import type { BaseClient } from '@sentry/core';
 import { getCurrentHub, trace } from '@sentry/core';
 import type { Breadcrumbs, BrowserTracing } from '@sentry/svelte';
 import { captureException } from '@sentry/svelte';
-import type { ClientOptions, SanitizedRequestData } from '@sentry/types';
+import type { Client, ClientOptions, SanitizedRequestData } from '@sentry/types';
 import {
   addExceptionMechanism,
   addNonEnumerableProperty,
@@ -122,12 +122,14 @@ type SvelteKitFetch = LoadEvent['fetch'];
  * @returns a proxy of SvelteKit's fetch implementation
  */
 function instrumentSvelteKitFetch(originalFetch: SvelteKitFetch): SvelteKitFetch {
-  const client = getCurrentHub().getClient() as BaseClient<ClientOptions>;
+  const client = getCurrentHub().getClient();
 
-  const browserTracingIntegration =
-    client.getIntegrationById && (client.getIntegrationById('BrowserTracing') as BrowserTracing | undefined);
-  const breadcrumbsIntegration =
-    client.getIntegrationById && (client.getIntegrationById('Breadcrumbs') as Breadcrumbs | undefined);
+  if (!isValidClient(client)) {
+    return originalFetch;
+  }
+
+  const browserTracingIntegration = client.getIntegrationById('BrowserTracing') as BrowserTracing | undefined;
+  const breadcrumbsIntegration = client.getIntegrationById('Breadcrumbs') as Breadcrumbs | undefined;
 
   const browserTracingOptions = browserTracingIntegration && browserTracingIntegration.options;
 
@@ -269,4 +271,15 @@ function addFetchBreadcrumb(
       );
     },
   );
+}
+
+type MaybeClientWithGetIntegrationsById =
+  | (Client & { getIntegrationById?: BaseClient<ClientOptions>['getIntegrationById'] })
+  | undefined;
+
+type ClientWithGetIntegrationById = Required<MaybeClientWithGetIntegrationsById> &
+  Exclude<MaybeClientWithGetIntegrationsById, undefined>;
+
+function isValidClient(client: MaybeClientWithGetIntegrationsById): client is ClientWithGetIntegrationById {
+  return !!client && typeof client.getIntegrationById === 'function';
 }
