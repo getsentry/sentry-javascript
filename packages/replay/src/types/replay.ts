@@ -476,5 +476,4 @@ export interface SlowClickConfig {
   timeout: number;
   scrollTimeout: number;
   ignoreSelector: string;
-  multiClickTimeout: number;
 }
