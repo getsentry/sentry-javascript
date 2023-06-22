@@ -9,7 +9,7 @@ import {
   addProfilesToEnvelope,
   createProfilingEvent,
   findProfiledTransactionsFromEnvelope,
-  PROFILE_QUEUE,
+  PROFILE_MAP,
 } from './utils';
 
 /**
@@ -39,8 +39,7 @@ export class BrowserProfilingIntegration implements Integration {
 
       client.on('beforeEnvelope', (envelope): void => {
         // if not profiles are in queue, there is nothing to add to the envelope.
-
-        if (!PROFILE_QUEUE.length) {
+        if (!PROFILE_MAP.size) {
           return;
         }
 
@@ -56,7 +55,7 @@ export class BrowserProfilingIntegration implements Integration {
             profiledTransaction &&
             profiledTransaction.contexts &&
             profiledTransaction.contexts['profile'] &&
-            profiledTransaction.contexts['profile']['profile_id'];
+            profiledTransaction.contexts['profile']['profile_id'] as string
 
           if (!profile_id) {
             throw new TypeError('[Profiling] cannot find profile for a transaction without a profile context');
@@ -67,23 +66,15 @@ export class BrowserProfilingIntegration implements Integration {
             delete profiledTransaction.contexts.profile;
           }
 
-          // We need to find both a profile and a transaction event for the same profile_id.
-          const profileIndex = PROFILE_QUEUE.findIndex(p => p.profile_id === profile_id);
-          if (profileIndex === -1) {
+          const profile = PROFILE_MAP.get(profile_id);
+          if (!profile) {
             __DEBUG_BUILD__ && logger.log(`[Profiling] Could not retrieve profile for transaction: ${profile_id}`);
             continue;
           }
 
-          const cpuProfile = PROFILE_QUEUE[profileIndex];
-          if (!cpuProfile) {
-            __DEBUG_BUILD__ && logger.log(`[Profiling] Could not retrieve profile for transaction: ${profile_id}`);
-            continue;
-          }
-
-          // Remove the profile from the queue.
-          PROFILE_QUEUE.splice(profileIndex, 1);
-          const profileEvent = createProfilingEvent(cpuProfile, profiledTransaction as ProfiledEvent);
-
+          PROFILE_MAP.delete(profile_id);
+          const profileEvent = createProfilingEvent(profile, profiledTransaction as ProfiledEvent);
+          
           if (profileEvent) {
             profilesToAddToEnvelope.push(profileEvent);
           }
