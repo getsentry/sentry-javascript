@@ -1,5 +1,6 @@
 import { addTracingExtensions, Scope } from '@sentry/svelte';
 import { baggageHeaderToDynamicSamplingContext } from '@sentry/utils';
+import * as utils from '@sentry/utils';
 import type { Load } from '@sveltejs/kit';
 import { redirect } from '@sveltejs/kit';
 import { vi } from 'vitest';
@@ -24,6 +25,12 @@ vi.mock('@sentry/svelte', async () => {
       mockCaptureException(err, cb);
       return original.captureException(err, cb);
     },
+  };
+});
+
+vi.spyOn(utils, 'getDomElement').mockImplementation(() => {
+  return {
+    textContent: 'test',
   };
 });
 

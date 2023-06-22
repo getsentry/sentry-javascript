@@ -11,3 +11,9 @@ export function setup() {
     };
   });
 }
+
+if (!globalThis.fetch) {
+  // @ts-ignore dfsf
+  globalThis.Request = class Request {};
+}
+console.log(globalThis.fetch, globalThis.Response, globalThis.Request);

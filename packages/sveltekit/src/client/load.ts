@@ -17,6 +17,7 @@ import type { LoadEvent } from '@sveltejs/kit';
 
 import type { SentryWrappedFlag } from '../common/utils';
 import { isRedirect } from '../common/utils';
+import { isRequestCached } from './vendor/lookUpCache';
 
 type PatchedLoadEvent = LoadEvent & Partial<SentryWrappedFlag>;
 
@@ -153,6 +154,11 @@ function instrumentSvelteKitFetch(originalFetch: SvelteKitFetch): SvelteKitFetch
   return new Proxy(originalFetch, {
     apply: (wrappingTarget, thisArg, args: Parameters<LoadEvent['fetch']>) => {
       const [input, init] = args;
+
+      if (isRequestCached(input, init)) {
+        return wrappingTarget.apply(thisArg, args);
+      }
+
       const { url: rawUrl, method } = parseFetchArgs(args);
 
       // TODO: extract this to a util function (and use it in breadcrumbs integration as well)
@@ -196,6 +202,7 @@ function instrumentSvelteKitFetch(originalFetch: SvelteKitFetch): SvelteKitFetch
 
         patchedInit.headers = headers;
       }
+
       let fetchPromise: Promise<Response>;
 
       const patchedFetchArgs = [input, patchedInit];
