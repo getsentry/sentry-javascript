@@ -10,8 +10,7 @@ import type {
   JSSelfProfilerConstructor,
   ProcessedJSSelfProfile,
 } from './jsSelfProfiling';
-import { addToProfileQueue , isValidSampleRate } from './utils';
-
+import { addToProfileQueue, isValidSampleRate } from './utils';
 
 export const MAX_PROFILE_DURATION_MS = 30_000;
 // Keep a flag value to avoid re-initializing the profiler constructor. If it fails
@@ -270,5 +269,3 @@ export function wrapTransactionWithProfiling(transaction: Transaction): Transact
   transaction.finish = profilingWrappedTransactionFinish;
   return transaction;
 }
-
-

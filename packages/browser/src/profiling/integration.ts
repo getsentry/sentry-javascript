@@ -5,7 +5,12 @@ import { logger } from '@sentry/utils';
 import type { BrowserClient } from './../client';
 import { wrapTransactionWithProfiling } from './hubextensions';
 import type { ProfiledEvent } from './utils';
-import { addProfilesToEnvelope, createProfilingEvent, findProfiledTransactionsFromEnvelope,PROFILE_QUEUE } from './utils';
+import {
+  addProfilesToEnvelope,
+  createProfilingEvent,
+  findProfiledTransactionsFromEnvelope,
+  PROFILE_QUEUE,
+} from './utils';
 
 /**
  * Browser profiling integration. Stores any event that has contexts["profile"]["profile_id"]
