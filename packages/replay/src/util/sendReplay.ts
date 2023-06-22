@@ -57,7 +57,7 @@ export async function sendReplay(
     // will retry in intervals of 5, 10, 30
     retryConfig.interval *= ++retryConfig.count;
 
-    return await new Promise((resolve, reject) => {
+    return new Promise((resolve, reject) => {
       setTimeout(async () => {
         try {
           await sendReplay(replayData, retryConfig);

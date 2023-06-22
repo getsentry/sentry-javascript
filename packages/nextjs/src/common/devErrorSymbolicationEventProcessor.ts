@@ -116,7 +116,7 @@ export async function devErrorSymbolicationEventProcessor(event: Event, hint: Ev
       const frames = stackTraceParser.parse(hint.originalException.stack);
 
       const resolvedFrames = await Promise.all(
-        frames.map(async frame => await resolveStackFrame(frame, hint.originalException as Error)),
+        frames.map(frame => resolveStackFrame(frame, hint.originalException as Error)),
       );
 
       if (event.exception?.values?.[0].stacktrace?.frames) {

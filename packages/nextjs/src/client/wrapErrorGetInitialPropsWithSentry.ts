@@ -11,8 +11,8 @@ export function wrapErrorGetInitialPropsWithSentry(
   origErrorGetInitialProps: ErrorGetInitialProps,
 ): ErrorGetInitialProps {
   return new Proxy(origErrorGetInitialProps, {
-    apply: async (wrappingTarget, thisArg, args: Parameters<ErrorGetInitialProps>) => {
-      return await wrappingTarget.apply(thisArg, args);
+    apply: (wrappingTarget, thisArg, args: Parameters<ErrorGetInitialProps>) => {
+      return wrappingTarget.apply(thisArg, args);
     },
   });
 }
