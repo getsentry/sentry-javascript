@@ -1,4 +1,3 @@
-import * as sentryCore from '@sentry/core';
 import { addTracingExtensions, Scope } from '@sentry/svelte';
 import { baggageHeaderToDynamicSamplingContext } from '@sentry/utils';
 import type { Load } from '@sveltejs/kit';
