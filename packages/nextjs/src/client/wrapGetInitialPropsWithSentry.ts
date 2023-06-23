@@ -8,8 +8,8 @@ type GetInitialProps = Required<NextPage>['getInitialProps'];
  */
 export function wrapGetInitialPropsWithSentry(origGetInitialProps: GetInitialProps): GetInitialProps {
   return new Proxy(origGetInitialProps, {
-    apply: async (wrappingTarget, thisArg, args: Parameters<GetInitialProps>) => {
-      return await wrappingTarget.apply(thisArg, args);
+    apply: (wrappingTarget, thisArg, args: Parameters<GetInitialProps>) => {
+      return wrappingTarget.apply(thisArg, args);
     },
   });
 }

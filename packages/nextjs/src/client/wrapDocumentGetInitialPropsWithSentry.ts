@@ -10,8 +10,8 @@ export function wrapDocumentGetInitialPropsWithSentry(
   origDocumentGetInitialProps: DocumentGetInitialProps,
 ): DocumentGetInitialProps {
   return new Proxy(origDocumentGetInitialProps, {
-    apply: async (wrappingTarget, thisArg, args: Parameters<DocumentGetInitialProps>) => {
-      return await wrappingTarget.apply(thisArg, args);
+    apply: (wrappingTarget, thisArg, args: Parameters<DocumentGetInitialProps>) => {
+      return wrappingTarget.apply(thisArg, args);
     },
   });
 }

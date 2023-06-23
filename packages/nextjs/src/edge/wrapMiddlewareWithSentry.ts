@@ -11,7 +11,7 @@ export function wrapMiddlewareWithSentry<H extends EdgeRouteHandler>(
   middleware: H,
 ): (...params: Parameters<H>) => Promise<ReturnType<H>> {
   return new Proxy(middleware, {
-    apply: async (wrappingTarget, thisArg, args: Parameters<H>) => {
+    apply: (wrappingTarget, thisArg, args: Parameters<H>) => {
       return withEdgeWrapping(wrappingTarget, {
         spanDescription: 'middleware',
         spanOp: 'middleware.nextjs',

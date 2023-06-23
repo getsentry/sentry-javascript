@@ -132,14 +132,14 @@ export async function waitForReplayRunning(page: Page): Promise<void> {
  * Note that due to how this works with playwright, this is a POJO copy of replay.
  * This means that we cannot access any methods on it, and also not mutate it in any way.
  */
-export async function getReplaySnapshot(page: Page): Promise<{
+export function getReplaySnapshot(page: Page): Promise<{
   _isPaused: boolean;
   _isEnabled: boolean;
   _context: InternalEventContext;
   session: Session | undefined;
   recordingMode: ReplayRecordingMode;
 }> {
-  return await page.evaluate(() => {
+  return page.evaluate(() => {
     const replayIntegration = (window as unknown as Window & { Replay: { _replay: ReplayContainer } }).Replay;
     const replay = replayIntegration._replay;
 
