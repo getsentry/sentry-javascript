@@ -1,7 +1,7 @@
 import { REPLAY_MAX_EVENT_BUFFER_SIZE } from '../constants';
 import type { AddEventResult, EventBuffer, EventBufferType, RecordingEvent } from '../types';
 import { timestampToMs } from '../util/timestampToMs';
-import { EventBufferSizeExceededError } from '.';
+import { EventBufferSizeExceededError } from './error';
 
 /**
  * A basic event buffer that does not do any compression.
