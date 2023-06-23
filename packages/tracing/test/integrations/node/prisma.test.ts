@@ -1,7 +1,6 @@
 /* eslint-disable deprecation/deprecation */
 import * as sentryCore from '@sentry/core';
 import { Hub } from '@sentry/core';
-import { logger } from '@sentry/utils';
 
 import { Integrations } from '../../../src';
 import { getTestClient } from '../../testutils';
