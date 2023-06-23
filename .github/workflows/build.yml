@@ -89,6 +89,7 @@ jobs:
               - 'scripts/**'
               - 'packages/core/**'
               - 'packages/tracing/**'
+              - 'packages/tracing-internal/**'
               - 'packages/utils/**'
               - 'packages/types/**'
               - 'packages/integrations/**'
