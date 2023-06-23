@@ -1,6 +1,5 @@
 import { addTracingExtensions, Scope } from '@sentry/svelte';
 import { baggageHeaderToDynamicSamplingContext } from '@sentry/utils';
-import * as utils from '@sentry/utils';
 import type { Load } from '@sveltejs/kit';
 import { redirect } from '@sveltejs/kit';
 import { vi } from 'vitest';
@@ -28,9 +27,9 @@ vi.mock('@sentry/svelte', async () => {
   };
 });
 
-vi.spyOn(utils, 'getDomElement').mockImplementation(() => {
+vi.mock('../../src/client/vendor/lookUpCache', () => {
   return {
-    textContent: 'test',
+    isRequestCached: () => false,
   };
 });
 
@@ -440,7 +439,6 @@ describe('wrapLoadWithSentry', () => {
     ['is undefined', undefined],
     ["doesn't have a `getClientById` method", {}],
   ])("doesn't instrument fetch if the client %s", async (_, client) => {
-    // @ts-expect-error: we're mocking the client
     mockedGetClient.mockImplementationOnce(() => client);
 
     async function load(_event: Parameters<Load>[0]): Promise<ReturnType<Load>> {

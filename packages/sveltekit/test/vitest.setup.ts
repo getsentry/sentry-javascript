@@ -13,7 +13,6 @@ export function setup() {
 }
 
 if (!globalThis.fetch) {
-  // @ts-ignore dfsf
+  // @ts-ignore - Needed for vitest to work with SvelteKit fetch instrumentation
   globalThis.Request = class Request {};
 }
-console.log(globalThis.fetch, globalThis.Response, globalThis.Request);
