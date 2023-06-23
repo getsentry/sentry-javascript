@@ -49,7 +49,7 @@ describe('tracing', () => {
       ...customContext,
     });
 
-    hub.getScope()?.setSpan(transaction);
+    hub.getScope().setSpan(transaction);
 
     return transaction;
   }
@@ -266,7 +266,7 @@ describe('tracing', () => {
     function createTransactionAndPutOnScope(hub: Hub) {
       addTracingExtensions();
       const transaction = hub.startTransaction({ name: 'dogpark' });
-      hub.getScope()?.setSpan(transaction);
+      hub.getScope().setSpan(transaction);
       return transaction;
     }
 

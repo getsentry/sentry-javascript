@@ -14,7 +14,7 @@ export function wrapApiHandlerWithSentry<H extends EdgeRouteHandler>(
     apply: (wrappingTarget, thisArg, args: Parameters<H>) => {
       const req = args[0];
 
-      const activeSpan = !!getCurrentHub().getScope()?.getSpan();
+      const activeSpan = getCurrentHub().getScope().getSpan();
 
       const wrappedHandler = withEdgeWrapping(wrappingTarget, {
         spanDescription:

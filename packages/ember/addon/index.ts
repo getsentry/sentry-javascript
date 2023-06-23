@@ -63,7 +63,7 @@ export function InitSentryForEmber(_runtimeConfig?: BrowserOptions) {
 }
 
 export const getActiveTransaction = () => {
-  return Sentry.getCurrentHub()?.getScope()?.getTransaction();
+  return Sentry.getCurrentHub().getScope().getTransaction();
 };
 
 export const instrumentRoutePerformance = (BaseRoute: any) => {

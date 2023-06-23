@@ -306,7 +306,7 @@ export function startRequestHandlerTransaction(
     },
   });
 
-  hub.getScope()?.setSpan(transaction);
+  hub.getScope().setSpan(transaction);
   return transaction;
 }
 

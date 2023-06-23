@@ -44,7 +44,7 @@ describe('Hub', () => {
         scope.setSpan(transaction);
       });
 
-      expect(hub.getScope()?.getTransaction()).toBe(transaction);
+      expect(hub.getScope().getTransaction()).toBe(transaction);
     });
 
     it('should find a transaction which has been set on the scope if sampled = false', () => {
@@ -57,7 +57,7 @@ describe('Hub', () => {
         scope.setSpan(transaction);
       });
 
-      expect(hub.getScope()?.getTransaction()).toBe(transaction);
+      expect(hub.getScope().getTransaction()).toBe(transaction);
     });
 
     it("should not find an open transaction if it's not on the scope", () => {
@@ -66,7 +66,7 @@ describe('Hub', () => {
       makeMain(hub);
       hub.startTransaction({ name: 'dogpark' });
 
-      expect(hub.getScope()?.getTransaction()).toBeUndefined();
+      expect(hub.getScope().getTransaction()).toBeUndefined();
     });
   });
 

@@ -29,7 +29,7 @@ export function TransactionContextProvider({ children }: PropsWithChildren) {
               transactionActive: false,
               start: (transactionName: string) => {
                 const t = startTransaction({ name: transactionName });
-                getCurrentHub().getScope()?.setSpan(t);
+                getCurrentHub().getScope().setSpan(t);
                 setTransaction(t);
               },
             }
