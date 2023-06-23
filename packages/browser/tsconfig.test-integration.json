@@ -1,12 +1,11 @@
 {
   "extends": "./tsconfig.json",
 
-  "include": ["test/**/*"],
-  "exclude": ["test/integration/**/*"],
+  "include": ["test/integration/**/*"],
 
   "compilerOptions": {
     // should include all types from `./tsconfig.json` plus types for all test frameworks used
-    "types": ["node", "jest"]
+    "types": ["node", "mocha", "chai", "sinon"]
 
     // other package-specific, test-specific options
   }
