@@ -61,8 +61,8 @@ export class BrowserProfilingIntegration implements Integration {
           }
 
           // Remove the profile from the transaction context before sending, relay will take care of the rest.
-          if (profiledTransaction && profiledTransaction.contexts && profiledTransaction.contexts['profile']) {
-            delete profiledTransaction.contexts.profile;
+          if (context && context['profile']) {
+            delete context.profile;
           }
 
           const profile = PROFILE_MAP.get(profile_id);

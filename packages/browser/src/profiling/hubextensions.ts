@@ -71,20 +71,8 @@ export function wrapTransactionWithProfiling(transaction: Transaction): Transact
     return transaction;
   }
 
-  // @ts-ignore profilesSampler is not part of the browser options yet
-  const profilesSampler = options.profilesSampler;
   // @ts-ignore profilesSampleRate is not part of the browser options yet
-  let profilesSampleRate: number | boolean | undefined = options.profilesSampleRate;
-
-  // Prefer sampler to sample rate if both are provided.
-  if (typeof profilesSampler === 'function') {
-    const transactionContext = transaction.toContext();
-    profilesSampleRate = profilesSampler({
-      parentSampled: transactionContext.parentSampled,
-      transactionContext: transactionContext,
-      ...transaction.getDynamicSamplingContext(),
-    });
-  }
+  const profilesSampleRate: number | boolean | undefined = options.profilesSampleRate;
 
   // Since this is coming from the user (or from a function provided by the user), who knows what we might get. (The
   // only valid values are booleans or numbers between 0 and 1.)
@@ -97,11 +85,7 @@ export function wrapTransactionWithProfiling(transaction: Transaction): Transact
   if (!profilesSampleRate) {
     __DEBUG_BUILD__ &&
       logger.log(
-        `[Profiling] Discarding profile because ${
-          typeof profilesSampler === 'function'
-            ? 'profileSampler returned 0 or false'
-            : 'a negative sampling decision was inherited or profileSampleRate is set to 0'
-        }`,
+        '[Profiling] Discarding profile because a negative sampling decision was inherited or profileSampleRate is set to 0',
       );
     return transaction;
   }
