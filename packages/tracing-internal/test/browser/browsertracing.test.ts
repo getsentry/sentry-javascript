@@ -250,6 +250,22 @@ describe('BrowserTracing', () => {
           tracePropagationTargets: ['something'],
         });
       });
+
+      it('uses `tracePropagationTargets` set by client over integration set targets', () => {
+        jest.clearAllMocks();
+        hub.getClient()!.getOptions().tracePropagationTargets = ['something-else'];
+        const sampleTracePropagationTargets = ['something'];
+        createBrowserTracing(true, {
+          routingInstrumentation: customInstrumentRouting,
+          tracePropagationTargets: sampleTracePropagationTargets,
+        });
+
+        expect(instrumentOutgoingRequestsMock).toHaveBeenCalledWith({
+          traceFetch: true,
+          traceXHR: true,
+          tracePropagationTargets: ['something-else'],
+        });
+      });
     });
 
     describe('beforeNavigate', () => {

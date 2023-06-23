@@ -214,6 +214,9 @@ export class BrowserTracing implements Integration {
    */
   public setupOnce(_: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
     this._getCurrentHub = getCurrentHub;
+    const hub = getCurrentHub();
+    const client = hub.getClient();
+    const clientOptions = client && client.getOptions();
 
     const {
       routingInstrumentation: instrumentRouting,
@@ -222,10 +225,12 @@ export class BrowserTracing implements Integration {
       markBackgroundTransactions,
       traceFetch,
       traceXHR,
-      tracePropagationTargets,
       shouldCreateSpanForRequest,
       _experiments,
     } = this.options;
+
+    const tracePropagationTargets =
+      (clientOptions && clientOptions.tracePropagationTargets) || this.options.tracePropagationTargets;
 
     instrumentRouting(
       (context: TransactionContext) => {
