@@ -5,6 +5,7 @@ import type { Integration } from './integration';
 import type { CaptureContext } from './scope';
 import type { SdkMetadata } from './sdkmetadata';
 import type { StackLineParser, StackParser } from './stacktrace';
+import type { TracePropagationTargets } from './tracing';
 import type { SamplingContext } from './transaction';
 import type { BaseTransportOptions, Transport } from './transport';
 
@@ -220,6 +221,24 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
    * Requires the use of the `InboundFilters` integration.
    */
   denyUrls?: Array<string | RegExp>;
+
+  /**
+   * List of strings/regex controlling to which outgoing requests
+   * the SDK will attach tracing headers.
+   *
+   * By default the SDK will attach those headers to all outgoing
+   * requests. If this option is provided, the SDK will match the
+   * request URL of outgoing requests against the items in this
+   * array, and only attach tracing headers if a match was found.
+   *
+   * @example
+   * ```js
+   * Sentry.init({
+   *   tracePropagationTargets: ['api.site.com'],
+   * });
+   * ```
+   */
+  tracePropagationTargets?: TracePropagationTargets;
 
   /**
    * Function to compute tracing sample rate dynamically and filter unwanted traces.
