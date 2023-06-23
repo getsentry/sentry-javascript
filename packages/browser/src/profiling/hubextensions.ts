@@ -232,15 +232,16 @@ export function wrapTransactionWithProfiling(transaction: Transaction): Transact
     }
     // onProfileHandler should always return the same profile even if this is called multiple times.
     // Always call onProfileHandler to ensure stopProfiling is called and the timeout is cleared.
-    void onProfileHandler()
-      .then(() => {
+    void onProfileHandler().then(
+      () => {
         transaction.setContext('profile', { profile_id: profileId });
         originalFinish();
-      })
-      .catch(() => {
+      },
+      () => {
         // If onProfileHandler fails, we still want to call the original finish method.
         originalFinish();
-      });
+      },
+    );
 
     return transaction;
   }
