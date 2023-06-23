@@ -430,7 +430,7 @@ function isValidProfile(profile: JSSelfProfile): profile is JSSelfProfile & { pr
   }
 
   if (!profile.frames.length) {
-    if(__DEBUG_BUILD__) {
+    if (__DEBUG_BUILD__) {
       logger.log('[Profiling] Discarding profile because it contains no frames');
     }
     return false;

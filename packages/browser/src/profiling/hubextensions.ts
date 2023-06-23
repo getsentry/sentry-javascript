@@ -4,12 +4,8 @@ import type { Transaction } from '@sentry/types';
 import { logger, uuid4 } from '@sentry/utils';
 
 import { WINDOW } from '../helpers';
-import type {
-  JSSelfProfile,
-  JSSelfProfiler,
-  JSSelfProfilerConstructor,
-} from './jsSelfProfiling';
-import { addProfileToMap,isValidSampleRate } from './utils';
+import type { JSSelfProfile, JSSelfProfiler, JSSelfProfilerConstructor } from './jsSelfProfiling';
+import { addProfileToMap, isValidSampleRate } from './utils';
 
 export const MAX_PROFILE_DURATION_MS = 30_000;
 // Keep a flag value to avoid re-initializing the profiler constructor. If it fails
@@ -82,7 +78,12 @@ export function wrapTransactionWithProfiling(transaction: Transaction): Transact
 
   // Prefer sampler to sample rate if both are provided.
   if (typeof profilesSampler === 'function') {
-    profilesSampleRate = profilesSampler({ transactionContext: transaction.toContext() });
+    const transactionContext = transaction.toContext();
+    profilesSampleRate = profilesSampler({
+      parentSampled: transactionContext.parentSampled,
+      transactionContext: transactionContext,
+      ...transaction.getDynamicSamplingContext(),
+    });
   }
 
   // Since this is coming from the user (or from a function provided by the user), who knows what we might get. (The

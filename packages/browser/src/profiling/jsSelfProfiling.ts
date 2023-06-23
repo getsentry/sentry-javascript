@@ -45,4 +45,3 @@ declare global {
     Profiler: typeof JSSelfProfilerConstructor | undefined;
   }
 }
-

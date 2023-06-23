@@ -39,7 +39,7 @@ export class BrowserProfilingIntegration implements Integration {
 
       client.on('beforeEnvelope', (envelope): void => {
         // if not profiles are in queue, there is nothing to add to the envelope.
-        if (!PROFILE_MAP.size) {
+        if (!PROFILE_MAP['size']) {
           return;
         }
 
@@ -51,14 +51,12 @@ export class BrowserProfilingIntegration implements Integration {
         const profilesToAddToEnvelope: Profile[] = [];
 
         for (const profiledTransaction of profiledTransactionEvents) {
-          const profile_id =
-            profiledTransaction &&
-            profiledTransaction.contexts &&
-            profiledTransaction.contexts['profile'] &&
-            profiledTransaction.contexts['profile']['profile_id'] as string
+          const context = profiledTransaction && profiledTransaction.contexts;
+          const profile_id = context && context['profile'] && (context['profile']['profile_id'] as string);
 
           if (!profile_id) {
-            __DEBUG_BUILD__ && logger.log('[Profiling] cannot find profile for a transaction without a profile context');
+            __DEBUG_BUILD__ &&
+              logger.log('[Profiling] cannot find profile for a transaction without a profile context');
             continue;
           }
 
