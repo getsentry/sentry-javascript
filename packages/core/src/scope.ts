@@ -11,6 +11,7 @@ import type {
   Extra,
   Extras,
   Primitive,
+  PropagationContext,
   RequestSession,
   Scope as ScopeInterface,
   ScopeContext,
@@ -29,6 +30,7 @@ import {
   isThenable,
   logger,
   SyncPromise,
+  uuid4,
 } from '@sentry/utils';
 
 import { updateSession } from './session';
@@ -95,6 +97,8 @@ export class Scope implements ScopeInterface {
   /** Request Mode Session Status */
   protected _requestSession?: RequestSession;
 
+  protected _propagationContext?: PropagationContext;
+
   // NOTE: Any field which gets added here should get added not only to the constructor but also to the `clone` method.
 
   public constructor() {
@@ -108,6 +112,11 @@ export class Scope implements ScopeInterface {
     this._extra = {};
     this._contexts = {};
     this._sdkProcessingMetadata = {};
+    this._propagationContext = {
+      traceId: uuid4(),
+      spanId: uuid4().substring(16),
+      sampled: false,
+    };
   }
 
   /**
@@ -131,6 +140,9 @@ export class Scope implements ScopeInterface {
       newScope._requestSession = scope._requestSession;
       newScope._attachments = [...scope._attachments];
       newScope._sdkProcessingMetadata = { ...scope._sdkProcessingMetadata };
+      if (scope._propagationContext) {
+        newScope._propagationContext = { ...scope._propagationContext };
+      }
     }
     return newScope;
   }
