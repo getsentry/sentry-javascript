@@ -2,7 +2,7 @@ import { EventType } from '@sentry-internal/rrweb';
 import { getCurrentHub } from '@sentry/core';
 import { logger } from '@sentry/utils';
 
-import { EventBufferSizeExceededError } from '../eventBuffer';
+import { EventBufferSizeExceededError } from '../eventBuffer/error';
 import type { AddEventResult, RecordingEvent, ReplayContainer, ReplayFrameEvent } from '../types';
 import { timestampToMs } from './timestampToMs';
 
