@@ -266,6 +266,49 @@ describe('BrowserTracing', () => {
           tracePropagationTargets: ['something-else'],
         });
       });
+
+      it.each([
+        [true, 'tracePropagationTargets', 'defined', { tracePropagationTargets: ['something'] }],
+        [false, 'tracePropagationTargets', 'undefined', { tracePropagationTargets: undefined }],
+        [true, 'tracingOrigins', 'defined', { tracingOrigins: ['something'] }],
+        [false, 'tracingOrigins', 'undefined', { tracingOrigins: undefined }],
+        [
+          true,
+          'tracePropagationTargets and tracingOrigins',
+          'defined',
+          { tracePropagationTargets: ['something'], tracingOrigins: ['something-else'] },
+        ],
+        [
+          false,
+          'tracePropagationTargets and tracingOrigins',
+          'undefined',
+          { tracePropagationTargets: undefined, tracingOrigins: undefined },
+        ],
+        [
+          true,
+          'tracePropagationTargets and tracingOrigins',
+          'defined and undefined',
+          { tracePropagationTargets: ['something'], tracingOrigins: undefined },
+        ],
+        [
+          true,
+          'tracePropagationTargets and tracingOrigins',
+          'undefined and defined',
+          { tracePropagationTargets: undefined, tracingOrigins: ['something'] },
+        ],
+      ])(
+        'sets `_hasSetTracePropagationTargets` to %s if %s is %s',
+        (hasSet: boolean, _: string, __: string, options: Partial<BrowserTracingOptions>) => {
+          jest.clearAllMocks();
+          const inst = createBrowserTracing(true, {
+            routingInstrumentation: customInstrumentRouting,
+            ...options,
+          });
+
+          // @ts-ignore accessing private property
+          expect(inst._hasSetTracePropagationTargets).toBe(hasSet);
+        },
+      );
     });
 
     describe('beforeNavigate', () => {

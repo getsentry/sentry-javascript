@@ -177,8 +177,18 @@ export class BrowserTracing implements Integration {
 
   private _collectWebVitals: () => void;
 
+  private _hasSetTracePropagationTargets: boolean = false;
+
   public constructor(_options?: Partial<BrowserTracingOptions>) {
     addTracingExtensions();
+
+    if (__DEBUG_BUILD__) {
+      this._hasSetTracePropagationTargets = !!(
+        _options &&
+        // eslint-disable-next-line deprecation/deprecation
+        (_options.tracePropagationTargets || _options.tracingOrigins)
+      );
+    }
 
     this.options = {
       ...DEFAULT_BROWSER_TRACING_OPTIONS,
@@ -229,8 +239,23 @@ export class BrowserTracing implements Integration {
       _experiments,
     } = this.options;
 
-    const tracePropagationTargets =
-      (clientOptions && clientOptions.tracePropagationTargets) || this.options.tracePropagationTargets;
+    const clientOptionsTracePropagationTargets = clientOptions && clientOptions.tracePropagationTargets;
+    // There are three ways to configure tracePropagationTargets:
+    // 1. via top level client option `tracePropagationTargets`
+    // 2. via BrowserTracing option `tracePropagationTargets`
+    // 3. via BrowserTracing option `tracingOrigins` (deprecated)
+    //
+    // To avoid confusion, favour top level client option `tracePropagationTargets`, and fallback to
+    // BrowserTracing option `tracePropagationTargets` and then `tracingOrigins` (deprecated).
+    // This is done as it minimizes bundle size (we don't have to have undefined checks).
+    //
+    // If both 1 and either one of 2 or 3 are set (from above), we log out a warning.
+    const tracePropagationTargets = clientOptionsTracePropagationTargets || this.options.tracePropagationTargets;
+    if (__DEBUG_BUILD__ && this._hasSetTracePropagationTargets && clientOptionsTracePropagationTargets) {
+      logger.warn(
+        '[Tracing] The `tracePropagationTargets` option was set in the BrowserTracing integration and top level `Sentry.init`. The top level `Sentry.init` value is being used.',
+      );
+    }
 
     instrumentRouting(
       (context: TransactionContext) => {
