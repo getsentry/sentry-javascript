@@ -15,6 +15,7 @@ import { DEFAULT_ENVIRONMENT } from '../constants';
 import type { Hub } from '../hub';
 import { getCurrentHub } from '../hub';
 import { Span as SpanClass, SpanRecorder } from './span';
+import { dynamicSamplingContextFromHub } from '../utils/dynamicSampling';
 
 /** JSDoc */
 export class Transaction extends SpanClass implements TransactionInterface {
@@ -23,7 +24,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
   /**
    * The reference to the current hub.
    */
-  public _hub: Hub;
+  public hub: Hub;
 
   private _name: string;
 
@@ -45,7 +46,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
   public constructor(transactionContext: TransactionContext, hub?: Hub) {
     super(transactionContext);
 
-    this._hub = hub || getCurrentHub();
+    this.hub = hub || getCurrentHub();
 
     this._name = transactionContext.name || '';
 
@@ -141,7 +142,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
     // just sets the end timestamp
     super.finish(endTimestamp);
 
-    const client = this._hub.getClient();
+    const client = this.hub.getClient();
     if (client && client.emit) {
       client.emit('finishTransaction', this);
     }
@@ -206,7 +207,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
 
     __DEBUG_BUILD__ && logger.log(`[Tracing] Finishing ${this.op} transaction: ${this.name}.`);
 
-    return this._hub.captureEvent(transaction);
+    return this.hub.captureEvent(transaction);
   }
 
   /**
@@ -245,31 +246,19 @@ export class Transaction extends SpanClass implements TransactionInterface {
       return this._frozenDynamicSamplingContext;
     }
 
-    const hub: Hub = this._hub || getCurrentHub();
-    const client = hub && hub.getClient();
-
-    if (!client) return {};
-
-    const { environment, release } = client.getOptions() || {};
-    const { publicKey: public_key } = client.getDsn() || {};
+    const hub = this.hub || getCurrentHub();
+    const client = hub.getClient();
 
     const maybeSampleRate = this.metadata.sampleRate;
     const sample_rate = maybeSampleRate !== undefined ? maybeSampleRate.toString() : undefined;
 
-    const { segment: user_segment } = hub.getScope().getUser() || {};
-
     const source = this.metadata.source;
-
     // We don't want to have a transaction name in the DSC if the source is "url" because URLs might contain PII
     const transaction = source && source !== 'url' ? this.name : undefined;
 
     const dsc = dropUndefinedKeys({
-      environment: environment || DEFAULT_ENVIRONMENT,
-      release,
+      ...dynamicSamplingContextFromHub(this.traceId, hub),
       transaction,
-      user_segment,
-      public_key,
-      trace_id: this.traceId,
       sample_rate,
     });
 
@@ -288,6 +277,6 @@ export class Transaction extends SpanClass implements TransactionInterface {
    * @internal
    */
   public setHub(hub: Hub): void {
-    this._hub = hub;
+    this.hub = hub;
   }
 }

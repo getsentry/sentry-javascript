@@ -7,6 +7,7 @@ import type { Primitive } from './misc';
 import type { RequestSession, Session } from './session';
 import type { Severity, SeverityLevel } from './severity';
 import type { Span } from './span';
+import type { PropagationContext } from './tracing';
 import type { Transaction } from './transaction';
 import type { User } from './user';
 
@@ -185,4 +186,19 @@ export interface Scope {
    * Add data which will be accessible during event processing but won't get sent to Sentry
    */
   setSDKProcessingMetadata(newData: { [key: string]: unknown }): this;
+
+  /**
+   * Set current propagation context for the current scope.
+   *
+   * Setting a new propagation context will overwrite all previously
+   * set values.
+   */
+  setPropagationContext(context: PropagationContext): this;
+
+  /**
+   * Get current propagation context for the current scope.
+   *
+   * There will always be a propagation context for the current scope.
+   */
+  getPropagationContext(): PropagationContext;
 }

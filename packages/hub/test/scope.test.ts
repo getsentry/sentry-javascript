@@ -137,6 +137,23 @@ describe('Scope', () => {
       expect((scope as any)._sdkProcessingMetadata.dogs).toEqual('are great!');
     });
 
+    test('setPropagationContext', () => {
+      const scope = new Scope();
+      scope.setPropagationContext({
+        traceId: '12312012123120121231201212312012',
+        spanId: '1121201211212012',
+        sampled: false,
+        dsc: { trace_id: '12312012123120121231201212312012', public_key: 'public' },
+      });
+
+      expect((scope as any)._propagationContext).toEqual({
+        traceId: '12312012123120121231201212312012',
+        spanId: '1121201211212012',
+        sampled: false,
+        dsc: { trace_id: '12312012123120121231201212312012', public_key: 'public' },
+      });
+    });
+
     test('chaining', () => {
       const scope = new Scope();
       scope.setLevel('fatal').setUser({ id: '1' });
@@ -315,7 +332,7 @@ describe('Scope', () => {
       });
     });
 
-    test('adds trace context', async () => {
+    test('adds trace context based on span on scope', async () => {
       expect.assertions(1);
       const scope = new Scope();
       const span = {
@@ -324,8 +341,20 @@ describe('Scope', () => {
       } as any;
       scope.setSpan(span);
       const event: Event = {};
-      return scope.applyToEvent(event).then(processedEvent => {
-        expect((processedEvent!.contexts!.trace as any).a).toEqual('b');
+      const processedEvent = await scope.applyToEvent(event);
+      expect((processedEvent!.contexts!.trace as any).a).toEqual('b');
+    });
+
+    test('adds trace context based on propagation context on scope', async () => {
+      expect.assertions(1);
+      const scope = new Scope();
+      const event: Event = {};
+      const processedEvent = await scope.applyToEvent(event);
+
+      const ctx = scope.getPropagationContext();
+      expect((processedEvent!.contexts!.trace as any).a).toEqual({
+        trace_id: ctx.traceId,
+        span_id: ctx.spanId,
       });
     });
 

@@ -72,6 +72,9 @@ export class Scope implements ScopeInterface {
   /** Attachments */
   protected _attachments: Attachment[];
 
+  /** Propagation Context */
+  protected _propagationContext: PropagationContext;
+
   /**
    * A place to stash data which is needed at some point in the SDK's event processing pipeline but which shouldn't get
    * sent to Sentry
@@ -96,8 +99,6 @@ export class Scope implements ScopeInterface {
 
   /** Request Mode Session Status */
   protected _requestSession?: RequestSession;
-
-  protected _propagationContext?: PropagationContext;
 
   // NOTE: Any field which gets added here should get added not only to the constructor but also to the `clone` method.
 
@@ -505,6 +506,16 @@ export class Scope implements ScopeInterface {
           event.tags = { transaction: transactionName, ...event.tags };
         }
       }
+    } else {
+      const { traceId, spanId, parentSpanId, dsc } = this._propagationContext;
+      event.contexts = {
+        trace: { trace_id: traceId, span_id: spanId, parent_span_id: parentSpanId },
+        ...event.contexts,
+      };
+      if (dsc) {
+        event.sdkProcessingMetadata = { dynamicSamplingContext: dsc, ...event.sdkProcessingMetadata };
+      } else {
+      }
     }
 
     this._applyFingerprint(event);
@@ -524,6 +535,21 @@ export class Scope implements ScopeInterface {
     this._sdkProcessingMetadata = { ...this._sdkProcessingMetadata, ...newData };
 
     return this;
+  }
+
+  /**
+   * @inheritdoc
+   */
+  public setPropagationContext(ctx: PropagationContext): this {
+    this._propagationContext = { ...ctx };
+    return this;
+  }
+
+  /**
+   * @inheritdoc
+   **/
+  public getPropagationContext(): PropagationContext {
+    return this._propagationContext;
   }
 
   /**
