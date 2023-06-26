@@ -1,4 +1,3 @@
-import * as utils from '@sentry/utils';
 import { JSDOM } from 'jsdom';
 import { vi } from 'vitest';
 
