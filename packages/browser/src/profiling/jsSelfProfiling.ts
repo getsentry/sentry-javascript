@@ -26,10 +26,6 @@ export type JSSelfProfile = {
   samples: JSSelfProfileSample[];
 };
 
-export interface ProcessedJSSelfProfile extends JSSelfProfile {
-  profile_id: string;
-}
-
 type BufferFullCallback = (trace: JSSelfProfile) => void;
 
 export interface JSSelfProfiler {
@@ -48,8 +44,4 @@ declare global {
   interface Window {
     Profiler: typeof JSSelfProfilerConstructor | undefined;
   }
-}
-
-export interface RawThreadCpuProfile extends JSSelfProfile {
-  profile_id: string;
 }

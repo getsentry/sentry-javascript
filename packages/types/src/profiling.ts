@@ -1,3 +1,4 @@
+import type { DebugImage } from './debugMeta';
 export type ThreadId = string;
 export type FrameId = number;
 export type StackId = number;
@@ -50,14 +51,7 @@ export interface Profile {
   platform: string;
   profile: ThreadCpuProfile;
   debug_meta?: {
-    images: {
-      debug_id: string;
-      image_addr: string;
-      code_file: string;
-      type: string;
-      image_size: number;
-      image_vmaddr: string;
-    }[];
+    images: DebugImage[];
   };
   transaction?: {
     name: string;
