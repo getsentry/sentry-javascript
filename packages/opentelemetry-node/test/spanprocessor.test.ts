@@ -114,7 +114,7 @@ describe('SentrySpanProcessor', () => {
         expect(sentrySpan?.spanId).toEqual(childOtelSpan.spanContext().spanId);
         expect(sentrySpan?.parentSpanId).toEqual(sentrySpanTransaction?.spanId);
 
-        expect(hub.getScope()?.getSpan()).toBeUndefined();
+        expect(hub.getScope().getSpan()).toBeUndefined();
 
         child.end(endTime);
 

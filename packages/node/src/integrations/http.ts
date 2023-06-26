@@ -192,9 +192,7 @@ function _createWrappedRequestMethodFactory(
       }
 
       let requestSpan: Span | undefined;
-      let parentSpan: Span | undefined;
-
-      const scope = getCurrentHub().getScope();
+      const parentSpan = getCurrentHub().getScope().getSpan();
 
       const method = requestOptions.method || 'GET';
       const requestSpanData: SanitizedRequestData = {
@@ -210,9 +208,7 @@ function _createWrappedRequestMethodFactory(
         requestSpanData['http.query'] = requestOptions.search.substring(1);
       }
 
-      if (scope && tracingOptions && shouldCreateSpan(rawRequestUrl)) {
-        parentSpan = scope.getSpan();
-
+      if (tracingOptions && shouldCreateSpan(rawRequestUrl)) {
         if (parentSpan) {
           requestSpan = parentSpan.startChild({
             description: `${method} ${requestSpanData.url}`,
