@@ -27,6 +27,12 @@ vi.mock('@sentry/svelte', async () => {
   };
 });
 
+vi.mock('../../src/client/vendor/lookUpCache', () => {
+  return {
+    isRequestCached: () => false,
+  };
+});
+
 const mockTrace = vi.fn();
 
 const mockedBrowserTracing = {
@@ -433,7 +439,6 @@ describe('wrapLoadWithSentry', () => {
     ['is undefined', undefined],
     ["doesn't have a `getClientById` method", {}],
   ])("doesn't instrument fetch if the client %s", async (_, client) => {
-    // @ts-expect-error: we're mocking the client
     mockedGetClient.mockImplementationOnce(() => client);
 
     async function load(_event: Parameters<Load>[0]): Promise<ReturnType<Load>> {

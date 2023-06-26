@@ -11,3 +11,8 @@ export function setup() {
     };
   });
 }
+
+if (!globalThis.fetch) {
+  // @ts-ignore - Needed for vitest to work with SvelteKit fetch instrumentation
+  globalThis.Request = class Request {};
+}
