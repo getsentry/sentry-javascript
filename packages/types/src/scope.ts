@@ -7,6 +7,7 @@ import type { Primitive } from './misc';
 import type { RequestSession, Session } from './session';
 import type { Severity, SeverityLevel } from './severity';
 import type { Span } from './span';
+import type { PropagationContext } from './tracing';
 import type { Transaction } from './transaction';
 import type { User } from './user';
 
@@ -23,6 +24,7 @@ export interface ScopeContext {
   tags: { [key: string]: Primitive };
   fingerprint: string[];
   requestSession: RequestSession;
+  propagationContext: PropagationContext;
 }
 
 /**
