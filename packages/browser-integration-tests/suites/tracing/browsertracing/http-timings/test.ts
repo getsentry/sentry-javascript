@@ -37,9 +37,9 @@ sentryTest('should create fetch spans with http timing', async ({ getLocalTestPa
       timestamp: expect.any(Number),
       trace_id: tracingEvent.contexts?.trace?.trace_id,
       data: expect.objectContaining({
-        'http.client.connectStart': expect.any(Number),
-        'http.client.requestStart': expect.any(Number),
-        'http.client.responseStart': expect.any(Number),
+        'http.client.connect_start': expect.any(Number),
+        'http.client.request_start': expect.any(Number),
+        'http.client.response_start': expect.any(Number),
         'network.protocol.version': expect.any(String),
       }),
     }),
