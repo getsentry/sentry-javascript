@@ -182,7 +182,7 @@ function addHTTPTimings(span: Span): void {
 }
 
 function resourceTimingEntryToSpanData(resourceTiming: PerformanceResourceTiming): [string, string | number][] {
-  const version = resourceTiming.nextHopProtocol.split('/')[1];
+  const version = resourceTiming.nextHopProtocol.split('/')[1] || 'none';
 
   const timingSpanData: [string, string | number][] = [];
   if (version) {

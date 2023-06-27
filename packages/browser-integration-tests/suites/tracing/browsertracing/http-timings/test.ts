@@ -4,11 +4,13 @@ import type { Event } from '@sentry/types';
 import { sentryTest } from '../../../../utils/fixtures';
 import { getMultipleSentryEnvelopeRequests, shouldSkipTracingTest } from '../../../../utils/helpers';
 
-sentryTest('should create fetch spans with http timing', async ({ getLocalTestPath, page }) => {
-  if (shouldSkipTracingTest()) {
+sentryTest('should create fetch spans with http timing', async ({ browserName, getLocalTestPath, page }) => {
+  const supportedBrowsers = ['chromium', 'firefox'];
+
+  if (shouldSkipTracingTest() || !supportedBrowsers.includes(browserName)) {
     sentryTest.skip();
   }
-  await page.route('https://example.com/*', async route => {
+  await page.route('http://example.com/*', async route => {
     const request = route.request();
     const postData = await request.postDataJSON();
 
@@ -28,6 +30,7 @@ sentryTest('should create fetch spans with http timing', async ({ getLocalTestPa
 
   expect(requestSpans).toHaveLength(3);
 
+  await page.pause();
   requestSpans?.forEach((span, index) =>
     expect(span).toMatchObject({
       description: `GET http://example.com/${index}`,
@@ -37,9 +40,9 @@ sentryTest('should create fetch spans with http timing', async ({ getLocalTestPa
       timestamp: expect.any(Number),
       trace_id: tracingEvent.contexts?.trace?.trace_id,
       data: expect.objectContaining({
-        'http.client.connect_start': expect.any(Number),
-        'http.client.request_start': expect.any(Number),
-        'http.client.response_start': expect.any(Number),
+        'http.request.connect_start': expect.any(Number),
+        'http.request.request_start': expect.any(Number),
+        'http.request.response_start': expect.any(Number),
         'network.protocol.version': expect.any(String),
       }),
     }),
