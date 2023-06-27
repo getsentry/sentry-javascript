@@ -20,6 +20,12 @@ interface TracingOptions {
    * requests. If this option is provided, the SDK will match the
    * request URL of outgoing requests against the items in this
    * array, and only attach tracing headers if a match was found.
+   *
+   * @deprecated Use top level `tracePropagationTargets` option instead.
+   * ```
+   * Sentry.init({
+   *   tracePropagationTargets: ['api.site.com'],
+   * })
    */
   tracePropagationTargets?: TracePropagationTargets;
 
@@ -156,6 +162,7 @@ function _createWrappedRequestMethodFactory(
   };
 
   const shouldAttachTraceData = (url: string): boolean => {
+    // eslint-disable-next-line deprecation/deprecation
     if (tracingOptions?.tracePropagationTargets === undefined) {
       return true;
     }
@@ -165,6 +172,7 @@ function _createWrappedRequestMethodFactory(
       return cachedDecision;
     }
 
+    // eslint-disable-next-line deprecation/deprecation
     const decision = stringMatchesSomePattern(url, tracingOptions.tracePropagationTargets);
     headersUrlMap.set(url, decision);
     return decision;
@@ -184,9 +192,7 @@ function _createWrappedRequestMethodFactory(
       }
 
       let requestSpan: Span | undefined;
-      let parentSpan: Span | undefined;
-
-      const scope = getCurrentHub().getScope();
+      const parentSpan = getCurrentHub().getScope().getSpan();
 
       const method = requestOptions.method || 'GET';
       const requestSpanData: SanitizedRequestData = {
@@ -202,9 +208,7 @@ function _createWrappedRequestMethodFactory(
         requestSpanData['http.query'] = requestOptions.search.substring(1);
       }
 
-      if (scope && tracingOptions && shouldCreateSpan(rawRequestUrl)) {
-        parentSpan = scope.getSpan();
-
+      if (tracingOptions && shouldCreateSpan(rawRequestUrl)) {
         if (parentSpan) {
           requestSpan = parentSpan.startChild({
             description: `${method} ${requestSpanData.url}`,

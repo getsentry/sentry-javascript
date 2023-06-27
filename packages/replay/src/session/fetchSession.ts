@@ -1,14 +1,13 @@
 import { REPLAY_SESSION_KEY, WINDOW } from '../constants';
 import type { Session } from '../types';
+import { hasSessionStorage } from '../util/hasSessionStorage';
 import { makeSession } from './Session';
 
 /**
  * Fetches a session from storage
  */
 export function fetchSession(): Session | null {
-  const hasSessionStorage = 'sessionStorage' in WINDOW;
-
-  if (!hasSessionStorage) {
+  if (!hasSessionStorage()) {
     return null;
   }
 

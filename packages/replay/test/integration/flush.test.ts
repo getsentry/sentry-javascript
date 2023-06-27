@@ -135,8 +135,8 @@ describe('Integration | flush', () => {
 
   it('long first flush enqueues following events', async () => {
     // Mock this to resolve after 20 seconds so that we can queue up following flushes
-    mockAddPerformanceEntries.mockImplementationOnce(async () => {
-      return await new Promise(resolve => setTimeout(resolve, 20000));
+    mockAddPerformanceEntries.mockImplementationOnce(() => {
+      return new Promise(resolve => setTimeout(resolve, 20000));
     });
 
     expect(mockAddPerformanceEntries).not.toHaveBeenCalled();

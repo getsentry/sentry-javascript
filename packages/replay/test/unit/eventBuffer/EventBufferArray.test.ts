@@ -1,6 +1,7 @@
 import { REPLAY_MAX_EVENT_BUFFER_SIZE } from '../../../src/constants';
-import { createEventBuffer, EventBufferSizeExceededError } from './../../../src/eventBuffer';
-import { BASE_TIMESTAMP } from './../../index';
+import { createEventBuffer } from '../../../src/eventBuffer';
+import { EventBufferSizeExceededError } from '../../../src/eventBuffer/error';
+import { BASE_TIMESTAMP } from '../../index';
 
 const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 3 };
 

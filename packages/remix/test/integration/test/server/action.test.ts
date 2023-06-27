@@ -1,5 +1,7 @@
 import { assertSentryTransaction, assertSentryEvent, RemixTestEnv } from './utils/helpers';
 
+const useV2 = process.env.REMIX_VERSION === '2';
+
 jest.spyOn(console, 'error').mockImplementation();
 
 // Repeat tests for each adapter
@@ -11,10 +13,10 @@ describe.each(['builtin', 'express'])('Remix API Actions with adapter = %s', ada
     const transaction = envelope[2];
 
     assertSentryTransaction(transaction, {
-      transaction: 'routes/action-json-response/$id',
+      transaction: `routes/action-json-response${useV2 ? '.' : '/'}$id`,
       spans: [
         {
-          description: 'routes/action-json-response/$id',
+          description: `routes/action-json-response${useV2 ? '.' : '/'}$id`,
           op: 'function.remix.action',
         },
         {
@@ -22,11 +24,11 @@ describe.each(['builtin', 'express'])('Remix API Actions with adapter = %s', ada
           op: 'function.remix.loader',
         },
         {
-          description: 'routes/action-json-response/$id',
+          description: `routes/action-json-response${useV2 ? '.' : '/'}$id`,
           op: 'function.remix.loader',
         },
         {
-          description: 'routes/action-json-response/$id',
+          description: `routes/action-json-response${useV2 ? '.' : '/'}$id`,
           op: 'function.remix.document_request',
         },
       ],
@@ -105,7 +107,7 @@ describe.each(['builtin', 'express'])('Remix API Actions with adapter = %s', ada
     const [event] = envelopes.filter(envelope => envelope[1].type === 'event');
 
     assertSentryTransaction(transaction[2], {
-      transaction: 'routes/action-json-response/$id',
+      transaction: `routes/action-json-response${useV2 ? '.' : '/'}$id`,
       request: {
         method: 'POST',
         url,
@@ -167,7 +169,7 @@ describe.each(['builtin', 'express'])('Remix API Actions with adapter = %s', ada
         },
       },
       tags: {
-        transaction: 'routes/action-json-response/$id',
+        transaction: `routes/action-json-response${useV2 ? '.' : '/'}$id`,
       },
     });
 
@@ -186,7 +188,7 @@ describe.each(['builtin', 'express'])('Remix API Actions with adapter = %s', ada
         },
       },
       tags: {
-        transaction: 'routes/action-json-response/$id',
+        transaction: `routes/action-json-response${useV2 ? '.' : '/'}$id`,
       },
     });
 
@@ -239,7 +241,7 @@ describe.each(['builtin', 'express'])('Remix API Actions with adapter = %s', ada
         },
       },
       tags: {
-        transaction: 'routes/action-json-response/$id',
+        transaction: `routes/action-json-response${useV2 ? '.' : '/'}$id`,
       },
     });
 
@@ -292,7 +294,7 @@ describe.each(['builtin', 'express'])('Remix API Actions with adapter = %s', ada
         },
       },
       tags: {
-        transaction: 'routes/action-json-response/$id',
+        transaction: `routes/action-json-response${useV2 ? '.' : '/'}$id`,
       },
     });
 
@@ -345,7 +347,7 @@ describe.each(['builtin', 'express'])('Remix API Actions with adapter = %s', ada
         },
       },
       tags: {
-        transaction: 'routes/action-json-response/$id',
+        transaction: `routes/action-json-response${useV2 ? '.' : '/'}$id`,
       },
     });
 
@@ -398,7 +400,7 @@ describe.each(['builtin', 'express'])('Remix API Actions with adapter = %s', ada
         },
       },
       tags: {
-        transaction: 'routes/action-json-response/$id',
+        transaction: `routes/action-json-response${useV2 ? '.' : '/'}$id`,
       },
     });
 

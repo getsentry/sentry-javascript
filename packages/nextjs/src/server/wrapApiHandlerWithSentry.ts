@@ -26,7 +26,7 @@ import { autoEndTransactionOnResponseEnd, finishTransaction, flushQueue } from '
  */
 export function wrapApiHandlerWithSentry(apiHandler: NextApiHandler, parameterizedRoute: string): NextApiHandler {
   return new Proxy(apiHandler, {
-    apply: async (wrappingTarget, thisArg, args: Parameters<NextApiHandler>) => {
+    apply: (wrappingTarget, thisArg, args: Parameters<NextApiHandler>) => {
       // eslint-disable-next-line deprecation/deprecation
       return withSentry(wrappingTarget, parameterizedRoute).apply(thisArg, args);
     },
@@ -49,7 +49,7 @@ export const withSentryAPI = wrapApiHandlerWithSentry;
  */
 export function withSentry(apiHandler: NextApiHandler, parameterizedRoute?: string): NextApiHandler {
   return new Proxy(apiHandler, {
-    apply: async (wrappingTarget, thisArg, args: [AugmentedNextApiRequest, AugmentedNextApiResponse]) => {
+    apply: (wrappingTarget, thisArg, args: [AugmentedNextApiRequest, AugmentedNextApiResponse]) => {
       const [req, res] = args;
 
       // We're now auto-wrapping API route handlers using `wrapApiHandlerWithSentry` (which uses `withSentry` under the hood), but

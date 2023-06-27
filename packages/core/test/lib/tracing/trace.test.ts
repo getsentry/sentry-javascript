@@ -185,5 +185,33 @@ describe('trace', () => {
       }
       expect(onError).toHaveBeenCalledTimes(isError ? 1 : 0);
     });
+
+    it("doesn't create spans but calls onError if tracing is disabled", async () => {
+      const options = getDefaultTestClientOptions({
+        /* we don't set tracesSampleRate or tracesSampler */
+      });
+      client = new TestClient(options);
+      hub = new Hub(client);
+      makeMain(hub);
+
+      const startTxnSpy = jest.spyOn(hub, 'startTransaction');
+
+      const onError = jest.fn();
+      try {
+        await trace(
+          { name: 'GET users/[id]' },
+          () => {
+            return callback();
+          },
+          onError,
+        );
+      } catch (e) {
+        expect(onError).toHaveBeenCalledTimes(1);
+        expect(onError).toHaveBeenCalledWith(e);
+      }
+      expect(onError).toHaveBeenCalledTimes(isError ? 1 : 0);
+
+      expect(startTxnSpy).not.toHaveBeenCalled();
+    });
   });
 });

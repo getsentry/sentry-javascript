@@ -23,7 +23,7 @@ describe('Integration | coreHandlers | handleScope', () => {
 
     expect(mockHandleScopeListener).toHaveBeenCalledTimes(1);
 
-    getCurrentHub().getScope()?.addBreadcrumb({ category: 'console', message: 'testing' });
+    getCurrentHub().getScope().addBreadcrumb({ category: 'console', message: 'testing' });
 
     expect(mockHandleScope).toHaveBeenCalledTimes(1);
     expect(mockHandleScope).toHaveReturnedWith(expect.objectContaining({ category: 'console', message: 'testing' }));
@@ -32,7 +32,7 @@ describe('Integration | coreHandlers | handleScope', () => {
 
     // This will trigger breadcrumb/scope listener, but handleScope should return
     // null because breadcrumbs has not changed
-    getCurrentHub().getScope()?.setUser({ email: 'foo@foo.com' });
+    getCurrentHub().getScope().setUser({ email: 'foo@foo.com' });
     expect(mockHandleScope).toHaveBeenCalledTimes(1);
     expect(mockHandleScope).toHaveReturnedWith(null);
   });

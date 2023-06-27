@@ -1,5 +1,5 @@
 import { Component } from '@angular/core';
-import type { ActivatedRouteSnapshot } from '@angular/router';
+import type { ActivatedRouteSnapshot, CanActivate, RouterStateSnapshot } from '@angular/router';
 import type { Hub } from '@sentry/types';
 
 import { instrumentAngularRouting, TraceClassDecorator, TraceDirective, TraceMethodDecorator } from '../src';
@@ -179,6 +179,66 @@ describe('Angular Tracing', () => {
       }));
 
       await env.navigateInAngular('/');
+
+      expect(finishMock).toHaveBeenCalledTimes(1);
+
+      env.destroy();
+    });
+
+    it('finishes routing span on navigation error', async () => {
+      const customStartTransaction = jest.fn(defaultStartTransaction);
+
+      const env = await TestEnv.setup({
+        customStartTransaction,
+        routes: [
+          {
+            path: '',
+            component: AppComponent,
+          },
+        ],
+        useTraceService: true,
+      });
+
+      const finishMock = jest.fn();
+      transaction.startChild = jest.fn(() => ({
+        finish: finishMock,
+      }));
+
+      await env.navigateInAngular('/somewhere');
+
+      expect(finishMock).toHaveBeenCalledTimes(1);
+
+      env.destroy();
+    });
+
+    it('finishes routing span on navigation cancel', async () => {
+      const customStartTransaction = jest.fn(defaultStartTransaction);
+
+      class CanActivateGuard implements CanActivate {
+        canActivate(_route: ActivatedRouteSnapshot, _state: RouterStateSnapshot): boolean {
+          return false;
+        }
+      }
+
+      const env = await TestEnv.setup({
+        customStartTransaction,
+        routes: [
+          {
+            path: 'cancel',
+            component: AppComponent,
+            canActivate: [CanActivateGuard],
+          },
+        ],
+        useTraceService: true,
+        additionalProviders: [{ provide: CanActivateGuard, useClass: CanActivateGuard }],
+      });
+
+      const finishMock = jest.fn();
+      transaction.startChild = jest.fn(() => ({
+        finish: finishMock,
+      }));
+
+      await env.navigateInAngular('/cancel');
 
       expect(finishMock).toHaveBeenCalledTimes(1);
 
