@@ -11,9 +11,9 @@ import type {
 } from '@sentry/types';
 import { dropUndefinedKeys, logger } from '@sentry/utils';
 
-import { DEFAULT_ENVIRONMENT } from '../constants';
 import type { Hub } from '../hub';
 import { getCurrentHub } from '../hub';
+import { getDynamicSamplingContextFromHub } from '../utils/dynamicSamplingContext';
 import { Span as SpanClass, SpanRecorder } from './span';
 
 /** JSDoc */
@@ -245,18 +245,11 @@ export class Transaction extends SpanClass implements TransactionInterface {
       return this._frozenDynamicSamplingContext;
     }
 
-    const hub: Hub = this._hub || getCurrentHub();
-    const client = hub && hub.getClient();
-
-    if (!client) return {};
-
-    const { environment, release } = client.getOptions() || {};
-    const { publicKey: public_key } = client.getDsn() || {};
+    const hub = this._hub || getCurrentHub();
+    const partialDsc = getDynamicSamplingContextFromHub(hub);
 
     const maybeSampleRate = this.metadata.sampleRate;
     const sample_rate = maybeSampleRate !== undefined ? maybeSampleRate.toString() : undefined;
-
-    const { segment: user_segment } = hub.getScope().getUser() || {};
 
     const source = this.metadata.source;
 
@@ -264,19 +257,19 @@ export class Transaction extends SpanClass implements TransactionInterface {
     const transaction = source && source !== 'url' ? this.name : undefined;
 
     const dsc = dropUndefinedKeys({
-      environment: environment || DEFAULT_ENVIRONMENT,
-      release,
+      ...partialDsc,
       transaction,
-      user_segment,
-      public_key,
       trace_id: this.traceId,
       sample_rate,
-    });
+    }) as DynamicSamplingContext;
 
     // Uncomment if we want to make DSC immutable
     // this._frozenDynamicSamplingContext = dsc;
 
-    client.emit && client.emit('createDsc', dsc);
+    const client = hub.getClient();
+    if (client && client.emit) {
+      client.emit('createDsc', dsc);
+    }
 
     return dsc;
   }

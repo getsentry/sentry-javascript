@@ -11,6 +11,7 @@ import type {
   Extra,
   Extras,
   Primitive,
+  PropagationContext,
   RequestSession,
   Scope as ScopeInterface,
   ScopeContext,
@@ -29,6 +30,7 @@ import {
   isThenable,
   logger,
   SyncPromise,
+  uuid4,
 } from '@sentry/utils';
 
 import { updateSession } from './session';
@@ -70,6 +72,9 @@ export class Scope implements ScopeInterface {
   /** Attachments */
   protected _attachments: Attachment[];
 
+  /** Propagation Context for distributed tracing */
+  protected _propagationContext: PropagationContext;
+
   /**
    * A place to stash data which is needed at some point in the SDK's event processing pipeline but which shouldn't get
    * sent to Sentry
@@ -108,6 +113,11 @@ export class Scope implements ScopeInterface {
     this._extra = {};
     this._contexts = {};
     this._sdkProcessingMetadata = {};
+    this._propagationContext = {
+      traceId: uuid4(),
+      spanId: uuid4().substring(16),
+      sampled: false,
+    };
   }
 
   /**
@@ -131,6 +141,7 @@ export class Scope implements ScopeInterface {
       newScope._requestSession = scope._requestSession;
       newScope._attachments = [...scope._attachments];
       newScope._sdkProcessingMetadata = { ...scope._sdkProcessingMetadata };
+      newScope._propagationContext = { ...scope._propagationContext };
     }
     return newScope;
   }
@@ -347,6 +358,9 @@ export class Scope implements ScopeInterface {
       if (captureContext._requestSession) {
         this._requestSession = captureContext._requestSession;
       }
+      if (captureContext._propagationContext) {
+        this._propagationContext = captureContext._propagationContext;
+      }
     } else if (isPlainObject(captureContext)) {
       // eslint-disable-next-line no-param-reassign
       captureContext = captureContext as ScopeContext;
@@ -364,6 +378,9 @@ export class Scope implements ScopeInterface {
       }
       if (captureContext.requestSession) {
         this._requestSession = captureContext.requestSession;
+      }
+      if (captureContext.propagationContext) {
+        this._propagationContext = captureContext.propagationContext;
       }
     }
 

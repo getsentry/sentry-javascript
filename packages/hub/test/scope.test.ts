@@ -12,6 +12,21 @@ describe('Scope', () => {
     GLOBAL_OBJ.__SENTRY__.globalEventProcessors = undefined;
   });
 
+  describe('init', () => {
+    test('it creates a propagation context', () => {
+      const scope = new Scope();
+
+      // @ts-ignore asserting on private properties
+      expect(scope._propagationContext).toEqual({
+        traceId: expect.any(String),
+        spanId: expect.any(String),
+        sampled: false,
+        dsc: undefined,
+        parentSpanId: undefined,
+      });
+    });
+  });
+
   describe('attributes modification', () => {
     test('setFingerprint', () => {
       const scope = new Scope();
@@ -192,6 +207,14 @@ describe('Scope', () => {
 
       expect(parentScope.getRequestSession()).toEqual({ status: 'ok' });
       expect(scope.getRequestSession()).toEqual({ status: 'ok' });
+    });
+
+    test('should clone propagation context', () => {
+      const parentScope = new Scope();
+      const scope = Scope.clone(parentScope);
+
+      // @ts-ignore accessing private property for test
+      expect(scope._propagationContext).toEqual(parentScope._propagationContext);
     });
   });
 
@@ -393,6 +416,12 @@ describe('Scope', () => {
     scope.clear();
     expect((scope as any)._extra).toEqual({});
     expect((scope as any)._requestSession).toEqual(undefined);
+    // @ts-ignore acessing private property for test
+    expect(scope._propagationContext).toEqual({
+      traceId: expect.any(String),
+      spanId: expect.any(String),
+      sampled: false,
+    });
   });
 
   test('clearBreadcrumbs', () => {
@@ -486,6 +515,8 @@ describe('Scope', () => {
       expect(updatedScope._level).toEqual('warning');
       expect(updatedScope._fingerprint).toEqual(['bar']);
       expect(updatedScope._requestSession.status).toEqual('ok');
+      // @ts-ignore accessing private property for test
+      expect(updatedScope._propagationContext).toEqual(localScope._propagationContext);
     });
 
     test('given an empty instance of Scope, it should preserve all the original scope data', () => {
@@ -518,7 +549,13 @@ describe('Scope', () => {
         tags: { bar: '3', baz: '4' },
         user: { id: '42' },
         requestSession: { status: 'errored' as RequestSessionStatus },
+        propagationContext: {
+          traceId: '8949daf83f4a4a70bee4c1eb9ab242ed',
+          spanId: 'a024ad8fea82680e',
+          sampled: true,
+        },
       };
+
       const updatedScope = scope.update(localAttributes) as any;
 
       expect(updatedScope._tags).toEqual({
@@ -540,6 +577,11 @@ describe('Scope', () => {
       expect(updatedScope._level).toEqual('warning');
       expect(updatedScope._fingerprint).toEqual(['bar']);
       expect(updatedScope._requestSession).toEqual({ status: 'errored' });
+      expect(updatedScope._propagationContext).toEqual({
+        traceId: '8949daf83f4a4a70bee4c1eb9ab242ed',
+        spanId: 'a024ad8fea82680e',
+        sampled: true,
+      });
     });
   });
 
