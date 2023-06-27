@@ -73,7 +73,7 @@ describe('wrapApiHandlerWithSentry', () => {
 
   it('should return a function that starts a span on the current transaction with the correct description when there is an active transaction and no request is being passed', async () => {
     const testTransaction = coreSdk.startTransaction({ name: 'testTransaction' });
-    coreSdk.getCurrentHub().getScope()?.setSpan(testTransaction);
+    coreSdk.getCurrentHub().getScope().setSpan(testTransaction);
 
     const startChildSpy = jest.spyOn(testTransaction, 'startChild');
 
@@ -92,6 +92,6 @@ describe('wrapApiHandlerWithSentry', () => {
     );
 
     testTransaction.finish();
-    coreSdk.getCurrentHub().getScope()?.setSpan(undefined);
+    coreSdk.getCurrentHub().getScope().setSpan(undefined);
   });
 });

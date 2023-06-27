@@ -89,6 +89,7 @@ jobs:
               - 'scripts/**'
               - 'packages/core/**'
               - 'packages/tracing/**'
+              - 'packages/tracing-internal/**'
               - 'packages/utils/**'
               - 'packages/types/**'
               - 'packages/integrations/**'
@@ -424,7 +425,7 @@ jobs:
     name: Nextjs (Node ${{ matrix.node }}) Tests
     needs: [job_get_metadata, job_build]
     if: needs.job_get_metadata.outputs.changed_nextjs == 'true' || github.event_name != 'pull_request'
-    timeout-minutes: 15
+    timeout-minutes: 25
     runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
@@ -684,7 +685,7 @@ jobs:
           yarn test
 
   job_remix_integration_tests:
-    name: Remix (Node ${{ matrix.node }}) Tests
+    name: Remix v${{ matrix.remix }} (Node ${{ matrix.node }}) Tests
     needs: [job_get_metadata, job_build]
     if: needs.job_get_metadata.outputs.changed_remix == 'true' || github.event_name != 'pull_request'
     runs-on: ubuntu-20.04
@@ -693,6 +694,7 @@ jobs:
       fail-fast: false
       matrix:
         node: [14, 16, 18]
+        remix: [1, 2]
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v3
@@ -709,6 +711,7 @@ jobs:
       - name: Run integration tests
         env:
           NODE_VERSION: ${{ matrix.node }}
+          REMIX_VERSION: ${{ matrix.remix }}
         run: |
           cd packages/remix
           yarn test:integration:ci

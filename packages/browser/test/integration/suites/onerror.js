@@ -61,7 +61,7 @@ describe('window.onerror', function () {
       } else {
         assert.equal(
           summary.events[0].exception.values[0].value,
-          'Non-Error exception captured with keys: error, somekey'
+          'Object captured as exception with keys: error, somekey'
         );
       }
       assert.equal(summary.events[0].exception.values[0].stacktrace.frames.length, 1); // always 1 because thrown objects can't provide > 1 frame
@@ -119,7 +119,7 @@ describe('window.onerror', function () {
       assert.equal(summary.events[0].exception.values[0].type, 'Error');
       assert.equal(
         summary.events[0].exception.values[0].value,
-        'Non-Error exception captured with keys: otherKey, type'
+        'Object captured as exception with keys: otherKey, type'
       );
       assert.deepEqual(summary.events[0].extra.__serialized__, {
         type: 'error',

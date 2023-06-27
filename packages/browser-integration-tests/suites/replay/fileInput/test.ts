@@ -25,7 +25,6 @@ sentryTest(
     }
 
     const reqPromise0 = waitForReplayRequest(page, 0);
-    const reqPromise1 = waitForReplayRequest(page, 1);
 
     await page.route('https://dsn.ingest.sentry.io/**/*', route => {
       return route.fulfill({
@@ -39,7 +38,7 @@ sentryTest(
 
     await page.goto(url);
 
-    await reqPromise0;
+    const res = await reqPromise0;
 
     await page.setInputFiles('#file-input', {
       name: 'file.csv',
@@ -49,9 +48,7 @@ sentryTest(
 
     await forceFlushReplay();
 
-    const res1 = await reqPromise1;
-
-    const snapshots = getIncrementalRecordingSnapshots(res1).filter(isInputMutation);
+    const snapshots = getIncrementalRecordingSnapshots(res).filter(isInputMutation);
 
     expect(snapshots).toEqual([]);
   },

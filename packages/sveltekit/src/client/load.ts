@@ -3,7 +3,7 @@ import type { BaseClient } from '@sentry/core';
 import { getCurrentHub, trace } from '@sentry/core';
 import type { Breadcrumbs, BrowserTracing } from '@sentry/svelte';
 import { captureException } from '@sentry/svelte';
-import type { ClientOptions, SanitizedRequestData } from '@sentry/types';
+import type { Client, ClientOptions, SanitizedRequestData } from '@sentry/types';
 import {
   addExceptionMechanism,
   addNonEnumerableProperty,
@@ -17,6 +17,7 @@ import type { LoadEvent } from '@sveltejs/kit';
 
 import type { SentryWrappedFlag } from '../common/utils';
 import { isRedirect } from '../common/utils';
+import { isRequestCached } from './vendor/lookUpCache';
 
 type PatchedLoadEvent = LoadEvent & Partial<SentryWrappedFlag>;
 
@@ -122,12 +123,14 @@ type SvelteKitFetch = LoadEvent['fetch'];
  * @returns a proxy of SvelteKit's fetch implementation
  */
 function instrumentSvelteKitFetch(originalFetch: SvelteKitFetch): SvelteKitFetch {
-  const client = getCurrentHub().getClient() as BaseClient<ClientOptions>;
+  const client = getCurrentHub().getClient();
 
-  const browserTracingIntegration =
-    client.getIntegrationById && (client.getIntegrationById('BrowserTracing') as BrowserTracing | undefined);
-  const breadcrumbsIntegration =
-    client.getIntegrationById && (client.getIntegrationById('Breadcrumbs') as Breadcrumbs | undefined);
+  if (!isValidClient(client)) {
+    return originalFetch;
+  }
+
+  const browserTracingIntegration = client.getIntegrationById('BrowserTracing') as BrowserTracing | undefined;
+  const breadcrumbsIntegration = client.getIntegrationById('Breadcrumbs') as Breadcrumbs | undefined;
 
   const browserTracingOptions = browserTracingIntegration && browserTracingIntegration.options;
 
@@ -151,6 +154,11 @@ function instrumentSvelteKitFetch(originalFetch: SvelteKitFetch): SvelteKitFetch
   return new Proxy(originalFetch, {
     apply: (wrappingTarget, thisArg, args: Parameters<LoadEvent['fetch']>) => {
       const [input, init] = args;
+
+      if (isRequestCached(input, init)) {
+        return wrappingTarget.apply(thisArg, args);
+      }
+
       const { url: rawUrl, method } = parseFetchArgs(args);
 
       // TODO: extract this to a util function (and use it in breadcrumbs integration as well)
@@ -194,6 +202,7 @@ function instrumentSvelteKitFetch(originalFetch: SvelteKitFetch): SvelteKitFetch
 
         patchedInit.headers = headers;
       }
+
       let fetchPromise: Promise<Response>;
 
       const patchedFetchArgs = [input, patchedInit];
@@ -269,4 +278,15 @@ function addFetchBreadcrumb(
       );
     },
   );
+}
+
+type MaybeClientWithGetIntegrationsById =
+  | (Client & { getIntegrationById?: BaseClient<ClientOptions>['getIntegrationById'] })
+  | undefined;
+
+type ClientWithGetIntegrationById = Required<MaybeClientWithGetIntegrationsById> &
+  Exclude<MaybeClientWithGetIntegrationsById, undefined>;
+
+function isValidClient(client: MaybeClientWithGetIntegrationsById): client is ClientWithGetIntegrationById {
+  return !!client && typeof client.getIntegrationById === 'function';
 }

@@ -4,6 +4,7 @@ import { WINDOW } from '../constants';
 import type { MultiClickFrame, ReplayClickDetector, ReplayContainer, SlowClickConfig, SlowClickFrame } from '../types';
 import { addBreadcrumbEvent } from './util/addBreadcrumbEvent';
 import { getClickTargetNode } from './util/domUtils';
+import { onWindowOpen } from './util/onWindowOpen';
 
 type ClickBreadcrumb = Breadcrumb & {
   timestamp: number;
@@ -68,6 +69,11 @@ export class ClickDetector implements ReplayClickDetector {
       this._lastScroll = nowInSeconds();
     };
 
+    const cleanupWindowOpen = onWindowOpen(() => {
+      // Treat window.open as mutation
+      this._lastMutation = nowInSeconds();
+    });
+
     const clickHandler = (event: MouseEvent): void => {
       if (!event.target) {
         return;
@@ -94,6 +100,7 @@ export class ClickDetector implements ReplayClickDetector {
     this._teardown = () => {
       WINDOW.removeEventListener('scroll', scrollHandler);
       WINDOW.removeEventListener('click', clickHandler);
+      cleanupWindowOpen();
 
       obs.disconnect();
       this._clicks = [];

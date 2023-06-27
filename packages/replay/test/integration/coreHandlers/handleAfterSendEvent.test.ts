@@ -148,9 +148,13 @@ describe('Integration | coreHandlers | handleAfterSendEvent', () => {
 
     jest.runAllTimers();
     await new Promise(process.nextTick);
-
     // Send twice, one for the error & one right after for the session conversion
+    expect(mockSend).toHaveBeenCalledTimes(1);
+
+    jest.runAllTimers();
+    await new Promise(process.nextTick);
     expect(mockSend).toHaveBeenCalledTimes(2);
+
     // This is removed now, because it has been converted to a "session" session
     expect(Array.from(replay.getContext().errorIds)).toEqual([]);
     expect(replay.isEnabled()).toBe(true);

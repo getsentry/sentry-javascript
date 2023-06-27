@@ -319,7 +319,7 @@ describe('tracingHandler', () => {
 
     sentryTracingMiddleware(req, res, next);
 
-    const transaction = sentryCore.getCurrentHub().getScope()?.getTransaction();
+    const transaction = sentryCore.getCurrentHub().getScope().getTransaction();
 
     expect(transaction).toBeDefined();
     expect(transaction).toEqual(
@@ -439,7 +439,7 @@ describe('tracingHandler', () => {
 
     sentryTracingMiddleware(req, res, next);
 
-    const transaction = sentryCore.getCurrentHub().getScope()?.getTransaction();
+    const transaction = sentryCore.getCurrentHub().getScope().getTransaction();
 
     expect(transaction?.metadata.request).toEqual(req);
   });

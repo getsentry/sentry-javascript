@@ -8,8 +8,8 @@ type Props = { [key: string]: unknown };
  */
 export function wrapGetStaticPropsWithSentry(origGetStaticProps: GetStaticProps<Props>): GetStaticProps<Props> {
   return new Proxy(origGetStaticProps, {
-    apply: async (wrappingTarget, thisArg, args: Parameters<GetStaticProps<Props>>) => {
-      return await wrappingTarget.apply(thisArg, args);
+    apply: (wrappingTarget, thisArg, args: Parameters<GetStaticProps<Props>>) => {
+      return wrappingTarget.apply(thisArg, args);
     },
   });
 }

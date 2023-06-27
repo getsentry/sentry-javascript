@@ -268,7 +268,7 @@ async function injectScriptAndGetEvents(page: Page, url: string, scriptPath: str
   await page.goto(url);
   await runScriptInSandbox(page, scriptPath);
 
-  return await getSentryEvents(page);
+  return getSentryEvents(page);
 }
 
 export {

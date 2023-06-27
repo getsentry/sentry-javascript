@@ -6,8 +6,8 @@ import type { GetServerSideProps } from 'next';
  */
 export function wrapGetServerSidePropsWithSentry(origGetServerSideProps: GetServerSideProps): GetServerSideProps {
   return new Proxy(origGetServerSideProps, {
-    apply: async (wrappingTarget, thisArg, args: Parameters<GetServerSideProps>) => {
-      return await wrappingTarget.apply(thisArg, args);
+    apply: (wrappingTarget, thisArg, args: Parameters<GetServerSideProps>) => {
+      return wrappingTarget.apply(thisArg, args);
     },
   });
 }

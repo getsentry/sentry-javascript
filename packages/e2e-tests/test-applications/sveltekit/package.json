@@ -27,5 +27,11 @@
     "vite": "^4.2.0",
     "wait-port": "1.0.4"
   },
+  "pnpm": {
+    "overrides": {
+      "@sentry/node": "*",
+      "@sentry/tracing": "*"
+    }
+  },
   "type": "module"
 }

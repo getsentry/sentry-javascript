@@ -5,7 +5,7 @@ import type { ActivatedRouteSnapshot, Event, RouterState } from '@angular/router
 // Duplicated import to work around a TypeScript bug where it'd complain that `Router` isn't imported as a type.
 // We need to import it as a value to satisfy Angular dependency injection. So:
 // eslint-disable-next-line @typescript-eslint/consistent-type-imports, import/no-duplicates
-import { Router } from '@angular/router';
+import { NavigationCancel, NavigationError, Router } from '@angular/router';
 // eslint-disable-next-line import/no-duplicates
 import { NavigationEnd, NavigationStart, ResolveEnd } from '@angular/router';
 import { getCurrentHub, WINDOW } from '@sentry/browser';
@@ -131,7 +131,9 @@ export class TraceService implements OnDestroy {
   );
 
   public navEnd$: Observable<Event> = this._router.events.pipe(
-    filter(event => event instanceof NavigationEnd),
+    filter(
+      event => event instanceof NavigationEnd || event instanceof NavigationCancel || event instanceof NavigationError,
+    ),
     tap(() => {
       if (this._routingSpan) {
         runOutsideAngular(() => {

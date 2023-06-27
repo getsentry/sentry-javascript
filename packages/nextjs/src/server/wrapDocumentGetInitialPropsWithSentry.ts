@@ -19,7 +19,7 @@ export function wrapDocumentGetInitialPropsWithSentry(
   origDocumentGetInitialProps: DocumentGetInitialProps,
 ): DocumentGetInitialProps {
   return new Proxy(origDocumentGetInitialProps, {
-    apply: async (wrappingTarget, thisArg, args: Parameters<DocumentGetInitialProps>) => {
+    apply: (wrappingTarget, thisArg, args: Parameters<DocumentGetInitialProps>) => {
       if (isBuild()) {
         return wrappingTarget.apply(thisArg, args);
       }
@@ -41,7 +41,7 @@ export function wrapDocumentGetInitialPropsWithSentry(
           dataFetchingMethodName: 'getInitialProps',
         });
 
-        return await tracedGetInitialProps.apply(thisArg, args);
+        return tracedGetInitialProps.apply(thisArg, args);
       } else {
         return errorWrappedGetInitialProps.apply(thisArg, args);
       }

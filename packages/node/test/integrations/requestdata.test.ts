@@ -126,7 +126,7 @@ describe('`RequestData` integration', () => {
       type GCPHandler = (req: PolymorphicRequest, res: http.ServerResponse) => void;
       const mockGCPWrapper = (origHandler: GCPHandler, options: Record<string, unknown>): GCPHandler => {
         const wrappedHandler: GCPHandler = (req, res) => {
-          getCurrentHub().getScope()?.setSDKProcessingMetadata({
+          getCurrentHub().getScope().setSDKProcessingMetadata({
             request: req,
             requestDataOptionsFromGCPWrapper: options,
           });

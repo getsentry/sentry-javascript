@@ -1,5 +1,7 @@
-import { createEventBuffer } from './../../../src/eventBuffer';
-import { BASE_TIMESTAMP } from './../../index';
+import { REPLAY_MAX_EVENT_BUFFER_SIZE } from '../../../src/constants';
+import { createEventBuffer } from '../../../src/eventBuffer';
+import { EventBufferSizeExceededError } from '../../../src/eventBuffer/error';
+import { BASE_TIMESTAMP } from '../../index';
 
 const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 3 };
 
@@ -43,5 +45,57 @@ describe('Unit | eventBuffer | EventBufferArray', () => {
 
     expect(result1).toEqual(JSON.stringify([TEST_EVENT]));
     expect(result2).toEqual(JSON.stringify([]));
+  });
+
+  describe('size limit', () => {
+    it('rejects if size exceeds limit', async function () {
+      const buffer = createEventBuffer({ useCompression: false });
+
+      const largeEvent = {
+        data: { a: 'a'.repeat(REPLAY_MAX_EVENT_BUFFER_SIZE / 3) },
+        timestamp: BASE_TIMESTAMP,
+        type: 3,
+      };
+
+      await buffer.addEvent(largeEvent);
+      await buffer.addEvent(largeEvent);
+
+      // Now it should error
+      await expect(() => buffer.addEvent(largeEvent)).rejects.toThrowError(EventBufferSizeExceededError);
+    });
+
+    it('resets size limit on clear', async function () {
+      const buffer = createEventBuffer({ useCompression: false });
+
+      const largeEvent = {
+        data: { a: 'a'.repeat(REPLAY_MAX_EVENT_BUFFER_SIZE / 3) },
+        timestamp: BASE_TIMESTAMP,
+        type: 3,
+      };
+
+      await buffer.addEvent(largeEvent);
+      await buffer.addEvent(largeEvent);
+
+      await buffer.clear();
+
+      await buffer.addEvent(largeEvent);
+    });
+
+    it('resets size limit on finish', async function () {
+      const buffer = createEventBuffer({ useCompression: false });
+
+      const largeEvent = {
+        data: { a: 'a'.repeat(REPLAY_MAX_EVENT_BUFFER_SIZE / 3) },
+        timestamp: BASE_TIMESTAMP,
+        type: 3,
+      };
+
+      await buffer.addEvent(largeEvent);
+      await buffer.addEvent(largeEvent);
+
+      await buffer.finish();
+
+      await buffer.addEvent(largeEvent);
+    });
   });
 });

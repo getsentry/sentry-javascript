@@ -195,8 +195,7 @@ export function fetchCallback(
     return;
   }
 
-  const currentScope = getCurrentHub().getScope();
-  const currentSpan = currentScope && currentScope.getSpan();
+  const currentSpan = getCurrentHub().getScope().getSpan();
   const activeTransaction = currentSpan && currentSpan.transaction;
 
   if (currentSpan && activeTransaction) {
@@ -336,8 +335,7 @@ export function xhrCallback(
     return;
   }
 
-  const currentScope = getCurrentHub().getScope();
-  const currentSpan = currentScope && currentScope.getSpan();
+  const currentSpan = getCurrentHub().getScope().getSpan();
   const activeTransaction = currentSpan && currentSpan.transaction;
 
   if (currentSpan && activeTransaction) {

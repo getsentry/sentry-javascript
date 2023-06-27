@@ -1,5 +1,7 @@
+import { REPLAY_MAX_EVENT_BUFFER_SIZE } from '../constants';
 import type { AddEventResult, EventBuffer, EventBufferType, RecordingEvent } from '../types';
 import { timestampToMs } from '../util/timestampToMs';
+import { EventBufferSizeExceededError } from './error';
 
 /**
  * A basic event buffer that does not do any compression.
@@ -8,6 +10,7 @@ import { timestampToMs } from '../util/timestampToMs';
 export class EventBufferArray implements EventBuffer {
   /** All the events that are buffered to be sent. */
   public events: RecordingEvent[];
+  private _totalSize = 0;
 
   public constructor() {
     this.events = [];
@@ -30,6 +33,12 @@ export class EventBufferArray implements EventBuffer {
 
   /** @inheritdoc */
   public async addEvent(event: RecordingEvent): Promise<AddEventResult> {
+    const eventSize = JSON.stringify(event).length;
+    this._totalSize += eventSize;
+    if (this._totalSize > REPLAY_MAX_EVENT_BUFFER_SIZE) {
+      throw new EventBufferSizeExceededError();
+    }
+
     this.events.push(event);
   }
 
@@ -40,7 +49,7 @@ export class EventBufferArray implements EventBuffer {
       // events member so that we do not lose new events while uploading
       // attachment.
       const eventsRet = this.events;
-      this.events = [];
+      this.clear();
       resolve(JSON.stringify(eventsRet));
     });
   }
@@ -48,6 +57,7 @@ export class EventBufferArray implements EventBuffer {
   /** @inheritdoc */
   public clear(): void {
     this.events = [];
+    this._totalSize = 0;
   }
 
   /** @inheritdoc */

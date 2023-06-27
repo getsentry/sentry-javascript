@@ -261,5 +261,8 @@ module.exports = {
     'array-callback-return': ['error', { allowImplicit: true }],
 
     quotes: ['error', 'single', { avoidEscape: true }],
+
+    // Remove uncessary usages of async await to prevent extra micro-tasks
+    'no-return-await': 'error',
   },
 };

@@ -1,6 +1,6 @@
 import { VERSION } from '@angular/core';
 import type { BrowserOptions } from '@sentry/browser';
-import { init as browserInit, SDK_VERSION, setContext } from '@sentry/browser';
+import { defaultIntegrations, init as browserInit, SDK_VERSION, setContext } from '@sentry/browser';
 import { logger } from '@sentry/utils';
 
 import { IS_DEBUG_BUILD } from './flags';
@@ -20,6 +20,18 @@ export function init(options: BrowserOptions): void {
     ],
     version: SDK_VERSION,
   };
+
+  // Filter out TryCatch integration as it interferes with our Angular `ErrorHandler`:
+  // TryCatch would catch certain errors before they reach the `ErrorHandler` and thus provide a
+  // lower fidelity error than what `SentryErrorHandler` (see errorhandler.ts) would provide.
+  // see:
+  //  - https://github.com/getsentry/sentry-javascript/issues/5417#issuecomment-1453407097
+  //  - https://github.com/getsentry/sentry-javascript/issues/2744
+  if (options.defaultIntegrations === undefined) {
+    options.defaultIntegrations = defaultIntegrations.filter(integration => {
+      return integration.name !== 'TryCatch';
+    });
+  }
 
   checkAndSetAngularVersion();
   browserInit(options);

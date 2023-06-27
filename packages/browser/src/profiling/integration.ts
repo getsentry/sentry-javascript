@@ -1,8 +1,16 @@
-import type { Event, EventProcessor, Integration } from '@sentry/types';
+import type { EventProcessor, Hub, Integration, Transaction } from '@sentry/types';
+import type { Profile } from '@sentry/types/src/profiling';
 import { logger } from '@sentry/utils';
 
-import { PROFILING_EVENT_CACHE } from './cache';
-import { addProfilingExtensionMethods } from './hubextensions';
+import type { BrowserClient } from './../client';
+import { wrapTransactionWithProfiling } from './hubextensions';
+import type { ProfiledEvent } from './utils';
+import {
+  addProfilesToEnvelope,
+  createProfilingEvent,
+  findProfiledTransactionsFromEnvelope,
+  PROFILE_MAP,
+} from './utils';
 
 /**
  * Browser profiling integration. Stores any event that has contexts["profile"]["profile_id"]
@@ -15,34 +23,66 @@ import { addProfilingExtensionMethods } from './hubextensions';
  */
 export class BrowserProfilingIntegration implements Integration {
   public readonly name: string = 'BrowserProfilingIntegration';
+  public getCurrentHub?: () => Hub = undefined;
 
   /**
    * @inheritDoc
    */
-  public setupOnce(addGlobalEventProcessor: (callback: EventProcessor) => void): void {
-    // Patching the hub to add the extension methods.
-    // Warning: we have an implicit dependency on import order and we will fail patching if the constructor of
-    // BrowserProfilingIntegration is called before @sentry/tracing is imported. This is because we need to patch
-    // the methods of @sentry/tracing which are patched as a side effect of importing @sentry/tracing.
-    addProfilingExtensionMethods();
+  public setupOnce(addGlobalEventProcessor: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
+    this.getCurrentHub = getCurrentHub;
+    const client = this.getCurrentHub().getClient() as BrowserClient;
 
-    // Add our event processor
-    addGlobalEventProcessor(this.handleGlobalEvent.bind(this));
-  }
+    if (client && typeof client.on === 'function') {
+      client.on('startTransaction', (transaction: Transaction) => {
+        wrapTransactionWithProfiling(transaction);
+      });
 
-  /**
-   * @inheritDoc
-   */
-  public handleGlobalEvent(event: Event): Event {
-    const profileId = event.contexts && event.contexts['profile'] && event.contexts['profile']['profile_id'];
+      client.on('beforeEnvelope', (envelope): void => {
+        // if not profiles are in queue, there is nothing to add to the envelope.
+        if (!PROFILE_MAP['size']) {
+          return;
+        }
 
-    if (profileId && typeof profileId === 'string') {
-      if (__DEBUG_BUILD__) {
-        logger.log('[Profiling] Profiling event found, caching it.');
-      }
-      PROFILING_EVENT_CACHE.add(profileId, event);
+        const profiledTransactionEvents = findProfiledTransactionsFromEnvelope(envelope);
+        if (!profiledTransactionEvents.length) {
+          return;
+        }
+
+        const profilesToAddToEnvelope: Profile[] = [];
+
+        for (const profiledTransaction of profiledTransactionEvents) {
+          const context = profiledTransaction && profiledTransaction.contexts;
+          const profile_id = context && context['profile'] && (context['profile']['profile_id'] as string);
+
+          if (!profile_id) {
+            __DEBUG_BUILD__ &&
+              logger.log('[Profiling] cannot find profile for a transaction without a profile context');
+            continue;
+          }
+
+          // Remove the profile from the transaction context before sending, relay will take care of the rest.
+          if (context && context['profile']) {
+            delete context.profile;
+          }
+
+          const profile = PROFILE_MAP.get(profile_id);
+          if (!profile) {
+            __DEBUG_BUILD__ && logger.log(`[Profiling] Could not retrieve profile for transaction: ${profile_id}`);
+            continue;
+          }
+
+          PROFILE_MAP.delete(profile_id);
+          const profileEvent = createProfilingEvent(profile_id, profile, profiledTransaction as ProfiledEvent);
+
+          if (profileEvent) {
+            profilesToAddToEnvelope.push(profileEvent);
+          }
+        }
+
+        addProfilesToEnvelope(envelope, profilesToAddToEnvelope);
+      });
+    } else {
+      logger.warn('[Profiling] Client does not support hooks, profiling will be disabled');
     }
-
-    return event;
   }
 }

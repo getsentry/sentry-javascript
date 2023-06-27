@@ -23,6 +23,11 @@ jest.mock('@sentry/core', () => {
   };
 });
 
+class MyTestClass {
+  prop1 = 'hello';
+  prop2 = 2;
+}
+
 afterEach(() => {
   jest.resetAllMocks();
 });
@@ -61,4 +66,18 @@ describe('eventFromPlainObject', () => {
       },
     });
   });
+
+  it.each([
+    ['empty object', {}, 'Object captured as exception with keys: [object has no keys]'],
+    ['pojo', { prop1: 'hello', prop2: 2 }, 'Object captured as exception with keys: prop1, prop2'],
+    ['Custom Class', new MyTestClass(), 'Object captured as exception with keys: prop1, prop2'],
+    ['Event', new Event('custom'), 'Event `Event` (type=custom) captured as exception'],
+    ['MouseEvent', new MouseEvent('click'), 'Event `MouseEvent` (type=click) captured as exception'],
+  ] as [string, Record<string, unknown>, string][])(
+    'has correct exception value for %s',
+    (_name, exception, expected) => {
+      const actual = eventFromPlainObject(defaultStackParser, exception);
+      expect(actual.exception?.values?.[0]?.value).toEqual(expected);
+    },
+  );
 });

@@ -11,10 +11,10 @@ export function wrapApiHandlerWithSentry<H extends EdgeRouteHandler>(
   parameterizedRoute: string,
 ): (...params: Parameters<H>) => Promise<ReturnType<H>> {
   return new Proxy(handler, {
-    apply: async (wrappingTarget, thisArg, args: Parameters<H>) => {
+    apply: (wrappingTarget, thisArg, args: Parameters<H>) => {
       const req = args[0];
 
-      const activeSpan = !!getCurrentHub().getScope()?.getSpan();
+      const activeSpan = getCurrentHub().getScope().getSpan();
 
       const wrappedHandler = withEdgeWrapping(wrappingTarget, {
         spanDescription:
@@ -25,7 +25,7 @@ export function wrapApiHandlerWithSentry<H extends EdgeRouteHandler>(
         mechanismFunctionName: 'wrapApiHandlerWithSentry',
       });
 
-      return await wrappedHandler.apply(thisArg, args);
+      return wrappedHandler.apply(thisArg, args);
     },
   });
 }

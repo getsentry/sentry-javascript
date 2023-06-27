@@ -1,6 +1,8 @@
 import { assertSentryTransaction, RemixTestEnv, assertSentryEvent } from './utils/helpers';
 import { Event } from '@sentry/types';
 
+const useV2 = process.env.REMIX_VERSION === '2';
+
 jest.spyOn(console, 'error').mockImplementation();
 
 // Repeat tests for each adapter
@@ -52,7 +54,7 @@ describe.each(['builtin', 'express'])('Remix API Loaders with adapter = %s', ada
     const transaction = envelope[2];
 
     assertSentryTransaction(transaction, {
-      transaction: 'routes/loader-json-response/$id',
+      transaction: `routes/loader-json-response${useV2 ? '.' : '/'}$id`,
       transaction_info: {
         source: 'route',
       },
@@ -62,11 +64,11 @@ describe.each(['builtin', 'express'])('Remix API Loaders with adapter = %s', ada
           op: 'function.remix.loader',
         },
         {
-          description: 'routes/loader-json-response/$id',
+          description: `routes/loader-json-response${useV2 ? '.' : '/'}$id`,
           op: 'function.remix.loader',
         },
         {
-          description: 'routes/loader-json-response/$id',
+          description: `routes/loader-json-response${useV2 ? '.' : '/'}$id`,
           op: 'function.remix.document_request',
         },
       ],
@@ -98,7 +100,7 @@ describe.each(['builtin', 'express'])('Remix API Loaders with adapter = %s', ada
         },
       },
       tags: {
-        transaction: 'routes/loader-json-response/$id',
+        transaction: `routes/loader-json-response${useV2 ? '.' : '/'}$id`,
       },
     });
 
@@ -114,7 +116,7 @@ describe.each(['builtin', 'express'])('Remix API Loaders with adapter = %s', ada
         },
       },
       tags: {
-        transaction: 'routes/loader-json-response/$id',
+        transaction: `routes/loader-json-response${useV2 ? '.' : '/'}$id`,
       },
     });
 
@@ -195,24 +197,39 @@ describe.each(['builtin', 'express'])('Remix API Loaders with adapter = %s', ada
     const transaction = envelope[2];
 
     assertSentryTransaction(transaction, {
-      transaction: 'root',
+      transaction: useV2 ? 'routes/loader-defer-response' : 'root',
       transaction_info: {
         source: 'route',
       },
-      spans: [
-        {
-          description: 'root',
-          op: 'function.remix.loader',
-        },
-        {
-          description: 'routes/loader-defer-response/index',
-          op: 'function.remix.loader',
-        },
-        {
-          description: 'root',
-          op: 'function.remix.document_request',
-        },
-      ],
+      spans: useV2
+        ? [
+            {
+              description: 'root',
+              op: 'function.remix.loader',
+            },
+            {
+              description: 'routes/loader-defer-response',
+              op: 'function.remix.loader',
+            },
+            {
+              description: 'routes/loader-defer-response',
+              op: 'function.remix.document_request',
+            },
+          ]
+        : [
+            {
+              description: 'root',
+              op: 'function.remix.loader',
+            },
+            {
+              description: 'routes/loader-defer-response/index',
+              op: 'function.remix.loader',
+            },
+            {
+              description: 'root',
+              op: 'function.remix.document_request',
+            },
+          ],
     });
   });
 });

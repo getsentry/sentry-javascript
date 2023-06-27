@@ -243,7 +243,7 @@ async function registerCallbackServerPort(serverName: string, port: string): Pro
   await writeFile(tmpFilePath, port, { encoding: 'utf8' });
 }
 
-async function retrieveCallbackServerPort(serverName: string): Promise<string> {
+function retrieveCallbackServerPort(serverName: string): Promise<string> {
   const tmpFilePath = path.join(os.tmpdir(), `${TEMP_FILE_PREFIX}${serverName}`);
-  return await readFile(tmpFilePath, 'utf8');
+  return readFile(tmpFilePath, 'utf8');
 }

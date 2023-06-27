@@ -90,7 +90,5 @@ function recordUpdateSpans(componentName: string, initSpan?: Span): void {
 }
 
 function getActiveTransaction(): Transaction | undefined {
-  const currentHub = getCurrentHub();
-  const scope = currentHub && currentHub.getScope();
-  return scope && scope.getTransaction();
+  return getCurrentHub().getScope().getTransaction();
 }
