@@ -172,9 +172,13 @@ export function wrapTransactionWithProfiling(transaction: Transaction): Transact
       return null;
     }
 
+    const stopProfilerSpan = transaction.startChild({ description: 'profiler.stop' });
+
     return profiler
       .stop()
       .then((p: JSSelfProfile): null => {
+        stopProfilerSpan.finish();
+
         if (maxDurationTimeoutID) {
           WINDOW.clearTimeout(maxDurationTimeoutID);
           maxDurationTimeoutID = undefined;
@@ -199,6 +203,7 @@ export function wrapTransactionWithProfiling(transaction: Transaction): Transact
         return null;
       })
       .catch(error => {
+        stopProfilerSpan.finish();
         if (__DEBUG_BUILD__) {
           logger.log('[Profiling] error while stopping profiler:', error);
         }
