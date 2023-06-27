@@ -184,7 +184,7 @@ function addHTTPTimings(span: Span): void {
 function resourceTimingEntryToSpanData(resourceTiming: PerformanceResourceTiming): [string, string | number][] {
   const version = resourceTiming.nextHopProtocol.split('/')[1];
 
-  const timingSpanData : [string, string | number][] = [];
+  const timingSpanData: [string, string | number][] = [];
   if (version) {
     timingSpanData.push(['network.protocol.version', version]);
   }
