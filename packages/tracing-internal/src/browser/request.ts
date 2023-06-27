@@ -182,14 +182,21 @@ function addHTTPTimings(span: Span): void {
 }
 
 function resourceTimingEntryToSpanData(resourceTiming: PerformanceResourceTiming): [string, string | number][] {
+  const version = resourceTiming.nextHopProtocol.split('/')[1];
+
+  const timingSpanData : [string, string | number][] = [];
+  if (version) {
+    timingSpanData.push(['network.protocol.version', version]);
+  }
+
   if (!browserPerformanceTimeOrigin) {
-    return [['network.protocol.version', resourceTiming.nextHopProtocol]];
+    return timingSpanData;
   }
   return [
-    ['network.protocol.version', resourceTiming.nextHopProtocol],
-    ['http.client.connectStart', (browserPerformanceTimeOrigin + resourceTiming.connectStart) / 1000],
-    ['http.client.requestStart', (browserPerformanceTimeOrigin + resourceTiming.requestStart) / 1000],
-    ['http.client.responseStart', (browserPerformanceTimeOrigin + resourceTiming.responseStart) / 1000],
+    ...timingSpanData,
+    ['http.request.connect_start', (browserPerformanceTimeOrigin + resourceTiming.connectStart) / 1000],
+    ['http.request.request_start', (browserPerformanceTimeOrigin + resourceTiming.requestStart) / 1000],
+    ['http.request.response_start', (browserPerformanceTimeOrigin + resourceTiming.responseStart) / 1000],
   ];
 }
 
