@@ -172,9 +172,15 @@ export function wrapTransactionWithProfiling(transaction: Transaction): Transact
       return null;
     }
 
+    // This is temporary - we will use the collected span data to evaluate
+    // if deferring txn.finish until profiler resolves is a viable approach.
+    const stopProfilerSpan = transaction.startChild({ description: 'profiler.stop', op: 'profiler' });
+
     return profiler
       .stop()
       .then((p: JSSelfProfile): null => {
+        stopProfilerSpan.finish();
+
         if (maxDurationTimeoutID) {
           WINDOW.clearTimeout(maxDurationTimeoutID);
           maxDurationTimeoutID = undefined;
@@ -199,6 +205,7 @@ export function wrapTransactionWithProfiling(transaction: Transaction): Transact
         return null;
       })
       .catch(error => {
+        stopProfilerSpan.finish();
         if (__DEBUG_BUILD__) {
           logger.log('[Profiling] error while stopping profiler:', error);
         }
