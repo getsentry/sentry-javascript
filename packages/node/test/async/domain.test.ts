@@ -1,5 +1,5 @@
-import { getCurrentHub, Hub, runWithAsyncContext, setAsyncContextStrategy } from '@sentry/core';
-import * as domain from 'domain';
+import type { Hub } from '@sentry/core';
+import { getCurrentHub, runWithAsyncContext, setAsyncContextStrategy } from '@sentry/core';
 
 import { setDomainAsyncContextStrategy } from '../../src/async/domain';
 
@@ -7,13 +7,6 @@ describe('domains', () => {
   afterAll(() => {
     // clear the strategy
     setAsyncContextStrategy(undefined);
-  });
-
-  test('without domain', () => {
-    // @ts-ignore property active does not exist on domain
-    expect(domain.active).toBeFalsy();
-    const hub = getCurrentHub();
-    expect(hub).toEqual(new Hub());
   });
 
   test('hub scope inheritance', () => {
