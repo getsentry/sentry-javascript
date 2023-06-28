@@ -6,14 +6,20 @@ import {
   initAndBind,
   Integrations as CoreIntegrations,
 } from '@sentry/core';
-import type { SessionStatus, StackParser } from '@sentry/types';
+import type { DynamicSamplingContext, PropagationContext, SessionStatus, StackParser } from '@sentry/types';
 import {
+  baggageHeaderToDynamicSamplingContext,
   createStackParser,
+  extractTraceparentData,
   GLOBAL_OBJ,
   logger,
   nodeStackLineParser,
   stackParserFromStackParserOptions,
+<<<<<<< HEAD
   tracingContextFromHeaders,
+=======
+  uuid4,
+>>>>>>> 9ca434fc5 (feat(node): Populate propagation context using env variables)
 } from '@sentry/utils';
 
 import { setNodeAsyncContextStrategy } from './async';
