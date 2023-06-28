@@ -6,13 +6,16 @@ import {
   initAndBind,
   Integrations as CoreIntegrations,
 } from '@sentry/core';
-import type { SessionStatus, StackParser } from '@sentry/types';
+import type { DynamicSamplingContext, PropagationContext, SessionStatus, StackParser } from '@sentry/types';
 import {
+  baggageHeaderToDynamicSamplingContext,
   createStackParser,
+  extractTraceparentData,
   GLOBAL_OBJ,
   logger,
   nodeStackLineParser,
   stackParserFromStackParserOptions,
+  uuid4,
 } from '@sentry/utils';
 
 import { setNodeAsyncContextStrategy } from './async';
@@ -129,8 +132,9 @@ export function init(options: NodeOptions = {}): void {
     options.dsn = process.env.SENTRY_DSN;
   }
 
-  if (options.tracesSampleRate === undefined && process.env.SENTRY_TRACES_SAMPLE_RATE) {
-    const tracesSampleRate = parseFloat(process.env.SENTRY_TRACES_SAMPLE_RATE);
+  const sentryTracesSampleRate = process.env.SENTRY_TRACES_SAMPLE_RATE;
+  if (options.tracesSampleRate === undefined && sentryTracesSampleRate) {
+    const tracesSampleRate = parseFloat(sentryTracesSampleRate);
     if (isFinite(tracesSampleRate)) {
       options.tracesSampleRate = tracesSampleRate;
     }
@@ -171,6 +175,8 @@ export function init(options: NodeOptions = {}): void {
   if (options.autoSessionTracking) {
     startSessionTracking();
   }
+
+  updateScopeFromEnvVariables();
 }
 
 /**
@@ -284,4 +290,36 @@ function startSessionTracking(): void {
     // Ref: https://develop.sentry.dev/sdk/sessions/
     if (session && !terminalStates.includes(session.status)) hub.endSession();
   });
+}
+
+/**
+ * Update scope and propagation context based on environmental variables.
+ *
+ * See https://github.com/getsentry/rfcs/blob/main/text/0071-continue-trace-over-process-boundaries.md
+ * for more details.
+ */
+function updateScopeFromEnvVariables(): void {
+  const sentryUseEnvironment = process.env.SENTRY_USE_ENVIRONMENT;
+  if (
+    !['false', 'False', 'FALSE', 'n', 'no', 'No', 'NO', 'off', 'Off', 'OFF', '0'].includes(
+      sentryUseEnvironment as string,
+    )
+  ) {
+    const sentryTraceEnv = process.env.SENTRY_TRACE || '';
+    const baggageEnv = process.env.SENTRY_BAGGAGE;
+
+    const traceparentData = extractTraceparentData(sentryTraceEnv) || {};
+    const { traceId, parentSpanId, parentSampled } = traceparentData;
+    const propagationContext: PropagationContext = {
+      traceId: traceId || uuid4(),
+      spanId: uuid4().substring(16),
+      parentSpanId,
+      sampled: parentSampled === undefined ? false : parentSampled,
+    };
+    const dynamicSamplingContext = baggageHeaderToDynamicSamplingContext(baggageEnv);
+    if (dynamicSamplingContext) {
+      propagationContext.dsc = dynamicSamplingContext as DynamicSamplingContext;
+    }
+    getCurrentHub().getScope().setPropagationContext(propagationContext);
+  }
 }
