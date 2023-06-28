@@ -56,10 +56,6 @@ sentryTest('should capture replays (@sentry/replay export)', async ({ getLocalTe
       version: SDK_VERSION,
       name: 'sentry.javascript.browser',
     },
-<<<<<<< HEAD
-=======
-    sdkProcessingMetadata: expect.any(Object),
->>>>>>> 929289c22 (update tests)
     request: {
       url: expect.stringContaining('/dist/index.html'),
       headers: {
