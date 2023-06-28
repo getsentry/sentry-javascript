@@ -492,6 +492,28 @@ describe('BaseClient', () => {
       );
     });
 
+    test('it adds a trace context all events', () => {
+      expect.assertions(1);
+
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
+      const client = new TestClient(options);
+      const scope = new Scope();
+
+      client.captureEvent({ message: 'message' }, { event_id: 'wat' }, scope);
+
+      expect(TestClient.instance!.event!).toEqual(
+        expect.objectContaining({
+          contexts: {
+            trace: {
+              parent_span_id: undefined,
+              span_id: expect.any(String),
+              trace_id: expect.any(String),
+            },
+          },
+        }),
+      );
+    });
+
     test('adds `event_id` from hint if available', () => {
       expect.assertions(1);
 

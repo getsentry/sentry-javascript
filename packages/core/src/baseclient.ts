@@ -15,6 +15,7 @@ import type {
   Integration,
   IntegrationClass,
   Outcome,
+  PropagationContext,
   SdkMetadata,
   Session,
   SessionAggregates,
@@ -29,6 +30,7 @@ import {
   addItemToEnvelope,
   checkOrSetAlreadyCaught,
   createAttachmentEnvelopeItem,
+  dropUndefinedKeys,
   isPlainObject,
   isPrimitive,
   isThenable,
@@ -41,6 +43,7 @@ import {
 } from '@sentry/utils';
 
 import { getEnvelopeEndpointWithUrlEncodedAuth } from './api';
+import { DEFAULT_ENVIRONMENT } from './constants';
 import { createEventEnvelope, createSessionEnvelope } from './envelope';
 import type { IntegrationIndex } from './integration';
 import { setupIntegration, setupIntegrations } from './integration';
@@ -507,7 +510,49 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
     if (!hint.integrations && integrations.length > 0) {
       hint.integrations = integrations;
     }
-    return prepareEvent(options, event, hint, scope);
+    return prepareEvent(options, event, hint, scope).then(evt => {
+      if (evt === null) {
+        return evt;
+      }
+
+      // If a trace context is not set on the event, we use the propagationContext set on the event to
+      // generate a trace context. If the propagationContext does not have a dynamic sampling context, we
+      // also generate one for it.
+      const { propagationContext } = evt.sdkProcessingMetadata || {};
+      const trace = evt.contexts && evt.contexts.trace;
+      if (!trace && propagationContext) {
+        const { traceId: trace_id, spanId, parentSpanId, dsc } = propagationContext as PropagationContext;
+        evt.contexts = {
+          trace: {
+            trace_id,
+            span_id: spanId,
+            parent_span_id: parentSpanId,
+          },
+          ...evt.contexts,
+        };
+
+        const { publicKey: public_key } = this.getDsn() || {};
+        const { segment: user_segment } = (scope && scope.getUser()) || {};
+
+        let dynamicSamplingContext = dsc;
+        if (!dsc) {
+          dynamicSamplingContext = dropUndefinedKeys({
+            environment: options.environment || DEFAULT_ENVIRONMENT,
+            release: options.release,
+            user_segment,
+            public_key,
+            trace_id,
+          });
+          this.emit && this.emit('createDsc', dynamicSamplingContext);
+        }
+
+        evt.sdkProcessingMetadata = {
+          dynamicSamplingContext,
+          ...evt.sdkProcessingMetadata,
+        };
+      }
+      return evt;
+    });
   }
 
   /**
