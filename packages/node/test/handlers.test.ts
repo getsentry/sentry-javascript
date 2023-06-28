@@ -319,7 +319,7 @@ describe('tracingHandler', () => {
 
     sentryTracingMiddleware(req, res, next);
 
-    const transaction = sentryCore.getCurrentHub().getScope()?.getTransaction();
+    const transaction = sentryCore.getCurrentHub().getScope().getTransaction();
 
     expect(transaction).toBeDefined();
     expect(transaction).toEqual(
@@ -351,6 +351,7 @@ describe('tracingHandler', () => {
       expect(finishTransaction).toHaveBeenCalled();
       expect(transaction.status).toBe('ok');
       expect(transaction.tags).toEqual(expect.objectContaining({ 'http.status_code': '200' }));
+      expect(transaction.data).toEqual(expect.objectContaining({ 'http.response.status_code': 200 }));
       done();
     });
   });
@@ -439,7 +440,7 @@ describe('tracingHandler', () => {
 
     sentryTracingMiddleware(req, res, next);
 
-    const transaction = sentryCore.getCurrentHub().getScope()?.getTransaction();
+    const transaction = sentryCore.getCurrentHub().getScope().getTransaction();
 
     expect(transaction?.metadata.request).toEqual(req);
   });

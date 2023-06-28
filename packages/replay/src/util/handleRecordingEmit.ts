@@ -80,41 +80,12 @@ export function getHandleRecordingEmit(replay: ReplayContainer): RecordingEmitCa
         }
       }
 
-      const options = replay.getOptions();
-
-      // TODO: We want this as an experiment so that we can test
-      // internally and create metrics before making this the default
-      if (options._experiments.delayFlushOnCheckout) {
+      if (replay.recordingMode === 'session') {
         // If the full snapshot is due to an initial load, we will not have
         // a previous session ID. In this case, we want to buffer events
         // for a set amount of time before flushing. This can help avoid
         // capturing replays of users that immediately close the window.
-        // TODO: We should check `recordingMode` here and do nothing if it's
-        // buffer, instead of checking inside of timeout, this will make our
-        // tests a bit cleaner as we will need to wait on the delay in order to
-        // do nothing.
-        setTimeout(() => replay.conditionalFlush(), options._experiments.delayFlushOnCheckout);
-
-        // Cancel any previously debounced flushes to ensure there are no [near]
-        // simultaneous flushes happening. The latter request should be
-        // insignificant in this case, so wait for additional user interaction to
-        // trigger a new flush.
-        //
-        // This can happen because there's no guarantee that a recording event
-        // happens first. e.g. a mouse click can happen and trigger a debounced
-        // flush before the checkout.
-        replay.cancelFlush();
-
-        return true;
-      }
-
-      // Flush immediately so that we do not miss the first segment, otherwise
-      // it can prevent loading on the UI. This will cause an increase in short
-      // replays (e.g. opening and closing a tab quickly), but these can be
-      // filtered on the UI.
-      if (replay.recordingMode === 'session') {
-        // We want to ensure the worker is ready, as otherwise we'd always send the first event uncompressed
-        void replay.flushImmediate();
+        void replay.flush();
       }
 
       return true;

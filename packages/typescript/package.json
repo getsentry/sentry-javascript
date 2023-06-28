@@ -11,7 +11,7 @@
     "access": "public"
   },
   "peerDependencies": {
-    "typescript": "3.8.3"
+    "typescript": "4.9.5"
   },
   "scripts": {
     "clean": "yarn rimraf sentry-internal-typescript-*.tgz",

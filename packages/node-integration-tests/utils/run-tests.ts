@@ -13,7 +13,7 @@ const workers = os.cpus().map(async (_, i) => {
   while (testPaths.length > 0) {
     const testPath = testPaths.pop();
     console.log(`(Worker ${i}) Running test "${testPath}"`);
-    await new Promise(resolve => {
+    await new Promise<void>(resolve => {
       const jestProcess = childProcess.spawn('jest', ['--runTestsByPath', testPath as string, '--forceExit']);
 
       // We're collecting the output and logging it all at once instead of inheriting stdout and stderr, so that

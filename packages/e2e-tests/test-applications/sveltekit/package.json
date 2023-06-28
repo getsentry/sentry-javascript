@@ -22,10 +22,16 @@
     "svelte": "^3.54.0",
     "svelte-check": "^3.0.1",
     "ts-node": "10.9.1",
-    "tslib": "^2.4.1",
+    "tslib": "2.4.1",
     "typescript": "^5.0.0",
     "vite": "^4.2.0",
     "wait-port": "1.0.4"
+  },
+  "pnpm": {
+    "overrides": {
+      "@sentry/node": "*",
+      "@sentry/tracing": "*"
+    }
   },
   "type": "module"
 }

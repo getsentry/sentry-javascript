@@ -163,7 +163,7 @@ export function requestHandler(
 
     // If Scope contains a Single mode Session, it is removed in favor of using Session Aggregates mode
     const scope = currentHub.getScope();
-    if (scope && scope.getSession()) {
+    if (scope.getSession()) {
       scope.setSession();
     }
   }
@@ -339,7 +339,7 @@ export function trpcMiddleware(options: SentryTrpcMiddlewareOptions = {}) {
   return function <T>({ path, type, next, rawInput }: TrpcMiddlewareArguments<T>): T {
     const hub = getCurrentHub();
     const clientOptions = hub.getClient()?.getOptions();
-    const sentryTransaction = hub.getScope()?.getTransaction();
+    const sentryTransaction = hub.getScope().getTransaction();
 
     if (sentryTransaction) {
       sentryTransaction.setName(`trpc/${path}`, 'route');

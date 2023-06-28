@@ -1,7 +1,6 @@
-import type { Hub } from '@sentry/core';
-import { trace } from '@sentry/core';
-import type { EventProcessor, Integration } from '@sentry/types';
-import { logger } from '@sentry/utils';
+import { getCurrentHub, trace } from '@sentry/core';
+import type { Integration } from '@sentry/types';
+import { addNonEnumerableProperty, logger } from '@sentry/utils';
 
 import { shouldDisableAutoInstrumentation } from './utils/node-utils';
 
@@ -36,11 +35,12 @@ type PrismaMiddleware<T = unknown> = (
 ) => Promise<T>;
 
 interface PrismaClient {
+  _sentryInstrumented?: boolean;
   $use: (cb: PrismaMiddleware) => void;
 }
 
 function isValidPrismaClient(possibleClient: unknown): possibleClient is PrismaClient {
-  return possibleClient && !!(possibleClient as PrismaClient)['$use'];
+  return !!possibleClient && !!(possibleClient as PrismaClient)['$use'];
 }
 
 /** Tracing integration for @prisma/client package */
@@ -56,16 +56,29 @@ export class Prisma implements Integration {
   public name: string = Prisma.id;
 
   /**
-   * Prisma ORM Client Instance
-   */
-  private readonly _client?: PrismaClient;
-
-  /**
    * @inheritDoc
    */
   public constructor(options: { client?: unknown } = {}) {
-    if (isValidPrismaClient(options.client)) {
-      this._client = options.client;
+    // We instrument the PrismaClient inside the constructor and not inside `setupOnce` because in some cases of server-side
+    // bundling (Next.js) multiple Prisma clients can be instantiated, even though users don't intend to. When instrumenting
+    // in setupOnce we can only ever instrument one client.
+    // https://github.com/getsentry/sentry-javascript/issues/7216#issuecomment-1602375012
+    // In the future we might explore providing a dedicated PrismaClient middleware instead of this hack.
+    if (isValidPrismaClient(options.client) && !options.client._sentryInstrumented) {
+      addNonEnumerableProperty(options.client as any, '_sentryInstrumented', true);
+
+      options.client.$use((params, next: (params: PrismaMiddlewareParams) => Promise<unknown>) => {
+        if (shouldDisableAutoInstrumentation(getCurrentHub)) {
+          return next(params);
+        }
+
+        const action = params.action;
+        const model = params.model;
+        return trace(
+          { name: model ? `${model} ${action}` : action, op: 'db.sql.prisma', data: { 'db.system': 'prisma' } },
+          () => next(params),
+        );
+      });
     } else {
       __DEBUG_BUILD__ &&
         logger.warn(
@@ -77,24 +90,7 @@ export class Prisma implements Integration {
   /**
    * @inheritDoc
    */
-  public setupOnce(_: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
-    if (!this._client) {
-      __DEBUG_BUILD__ && logger.error('PrismaIntegration is missing a Prisma Client Instance');
-      return;
-    }
-
-    if (shouldDisableAutoInstrumentation(getCurrentHub)) {
-      __DEBUG_BUILD__ && logger.log('Prisma Integration is skipped because of instrumenter configuration.');
-      return;
-    }
-
-    this._client.$use((params, next: (params: PrismaMiddlewareParams) => Promise<unknown>) => {
-      const action = params.action;
-      const model = params.model;
-      return trace(
-        { name: model ? `${model} ${action}` : action, op: 'db.sql.prisma', data: { 'db.system': 'prisma' } },
-        () => next(params),
-      );
-    });
+  public setupOnce(): void {
+    // Noop - here for backwards compatibility
   }
 }

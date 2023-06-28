@@ -21,7 +21,7 @@ export function handleFetch(handlerData: HandlerDataFetch): null | ReplayPerform
     name: url,
     data: {
       method,
-      statusCode: response && (response as Response).status,
+      statusCode: response ? (response as Response).status : undefined,
     },
   };
 }

@@ -1,5 +1,6 @@
 import { REPLAY_SESSION_KEY, WINDOW } from '../../src/constants';
 import type { ReplayContainer } from '../../src/types';
+import { hasSessionStorage } from '../util/hasSessionStorage';
 
 /**
  * Removes the session from Session Storage and unsets session in replay instance
@@ -13,9 +14,7 @@ export function clearSession(replay: ReplayContainer): void {
  * Deletes a session from storage
  */
 function deleteSession(): void {
-  const hasSessionStorage = 'sessionStorage' in WINDOW;
-
-  if (!hasSessionStorage) {
+  if (!hasSessionStorage()) {
     return;
   }
 

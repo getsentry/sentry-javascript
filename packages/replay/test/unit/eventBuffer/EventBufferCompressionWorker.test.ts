@@ -4,8 +4,9 @@ import pako from 'pako';
 
 import { BASE_TIMESTAMP } from '../..';
 import { REPLAY_MAX_EVENT_BUFFER_SIZE } from '../../../src/constants';
+import { createEventBuffer } from '../../../src/eventBuffer';
+import { EventBufferSizeExceededError } from '../../../src/eventBuffer/error';
 import { EventBufferProxy } from '../../../src/eventBuffer/EventBufferProxy';
-import { createEventBuffer, EventBufferSizeExceededError } from './../../../src/eventBuffer';
 
 const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 3 };
 

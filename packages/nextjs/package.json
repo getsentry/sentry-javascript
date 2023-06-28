@@ -13,6 +13,9 @@
   "module": "build/esm/index.server.js",
   "browser": "build/esm/index.client.js",
   "types": "build/types/index.types.d.ts",
+  "typesVersions": {
+    "<4.9": { "build/npm/types/index.d.ts": ["build/npm/types-ts3.8/index.d.ts"] }
+  },
   "publishConfig": {
     "access": "public"
   },
@@ -28,7 +31,7 @@
     "chalk": "3.0.0",
     "rollup": "2.78.0",
     "stacktrace-parser": "^0.1.10",
-    "tslib": "^1.9.3"
+    "tslib": "^2.4.1 || ^1.9.3"
   },
   "devDependencies": {
     "@types/webpack": "^4.41.31",
@@ -49,7 +52,9 @@
     "build": "run-p build:transpile build:types",
     "build:dev": "yarn build",
     "build:transpile": "ts-node scripts/buildRollup.ts",
-    "build:types": "tsc -p tsconfig.types.json",
+    "build:types": "run-s build:types:core build:types:downlevel",
+    "build:types:core": "tsc -p tsconfig.types.json",
+    "build:types:downlevel": "yarn downlevel-dts build/types build/types-ts3.8 --to ts3.8",
     "build:watch": "run-p build:transpile:watch build:types:watch",
     "build:dev:watch": "yarn build:watch",
     "build:transpile:watch": "nodemon --ext ts --watch src scripts/buildRollup.ts",

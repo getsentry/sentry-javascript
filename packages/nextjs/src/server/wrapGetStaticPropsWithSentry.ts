@@ -19,7 +19,7 @@ export function wrapGetStaticPropsWithSentry(
   parameterizedRoute: string,
 ): GetStaticProps<Props> {
   return new Proxy(origGetStaticPropsa, {
-    apply: async (wrappingTarget, thisArg, args: Parameters<GetStaticProps<Props>>) => {
+    apply: (wrappingTarget, thisArg, args: Parameters<GetStaticProps<Props>>) => {
       if (isBuild()) {
         return wrappingTarget.apply(thisArg, args);
       }

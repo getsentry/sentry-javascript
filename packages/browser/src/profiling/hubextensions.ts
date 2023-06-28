@@ -1,28 +1,16 @@
-import { getCurrentHub, getMainCarrier } from '@sentry/core';
-import type { CustomSamplingContext, Hub, Transaction, TransactionContext } from '@sentry/types';
+/* eslint-disable complexity */
+import { getCurrentHub } from '@sentry/core';
+import type { Transaction } from '@sentry/types';
 import { logger, uuid4 } from '@sentry/utils';
 
 import { WINDOW } from '../helpers';
-import type {
-  JSSelfProfile,
-  JSSelfProfiler,
-  JSSelfProfilerConstructor,
-  ProcessedJSSelfProfile,
-} from './jsSelfProfiling';
-import { sendProfile } from './sendProfile';
+import type { JSSelfProfile, JSSelfProfiler, JSSelfProfilerConstructor } from './jsSelfProfiling';
+import { addProfileToMap, isValidSampleRate } from './utils';
 
-// Max profile duration.
-const MAX_PROFILE_DURATION_MS = 30_000;
+export const MAX_PROFILE_DURATION_MS = 30_000;
 // Keep a flag value to avoid re-initializing the profiler constructor. If it fails
 // once, it will always fail and this allows us to early return.
 let PROFILING_CONSTRUCTOR_FAILED = false;
-
-// While we experiment, per transaction sampling interval will be more flexible to work with.
-type StartTransaction = (
-  this: Hub,
-  transactionContext: TransactionContext,
-  customSamplingContext?: CustomSamplingContext,
-) => Transaction | undefined;
 
 /**
  * Check if profiler constructor is available.
@@ -55,7 +43,7 @@ export function onProfilingStartRouteTransaction(transaction: Transaction | unde
  * startProfiling is called after the call to startTransaction in order to avoid our own code from
  * being profiled. Because of that same reason, stopProfiling is called before the call to stopTransaction.
  */
-function wrapTransactionWithProfiling(transaction: Transaction): Transaction {
+export function wrapTransactionWithProfiling(transaction: Transaction): Transaction {
   // Feature support check first
   const JSProfilerConstructor = WINDOW.Profiler;
 
@@ -64,14 +52,6 @@ function wrapTransactionWithProfiling(transaction: Transaction): Transaction {
       logger.log(
         '[Profiling] Profiling is not supported by this browser, Profiler interface missing on window object.',
       );
-    }
-    return transaction;
-  }
-
-  // profilesSampleRate is multiplied with tracesSampleRate to get the final sampling rate.
-  if (!transaction.sampled) {
-    if (__DEBUG_BUILD__) {
-      logger.log('[Profiling] Transaction is not sampled, skipping profiling');
     }
     return transaction;
   }
@@ -86,21 +66,41 @@ function wrapTransactionWithProfiling(transaction: Transaction): Transaction {
 
   const client = getCurrentHub().getClient();
   const options = client && client.getOptions();
-
-  // @ts-ignore not part of the browser options yet
-  const profilesSampleRate = (options && options.profilesSampleRate) || 0;
-  if (profilesSampleRate === undefined) {
-    if (__DEBUG_BUILD__) {
-      logger.log('[Profiling] Profiling disabled, enable it by setting `profilesSampleRate` option to SDK init call.');
-    }
+  if (!options) {
+    __DEBUG_BUILD__ && logger.log('[Profiling] Profiling disabled, no options found.');
     return transaction;
   }
 
+  // @ts-ignore profilesSampleRate is not part of the browser options yet
+  const profilesSampleRate: number | boolean | undefined = options.profilesSampleRate;
+
+  // Since this is coming from the user (or from a function provided by the user), who knows what we might get. (The
+  // only valid values are booleans or numbers between 0 and 1.)
+  if (!isValidSampleRate(profilesSampleRate)) {
+    __DEBUG_BUILD__ && logger.warn('[Profiling] Discarding profile because of invalid sample rate.');
+    return transaction;
+  }
+
+  // if the function returned 0 (or false), or if `profileSampleRate` is 0, it's a sign the profile should be dropped
+  if (!profilesSampleRate) {
+    __DEBUG_BUILD__ &&
+      logger.log(
+        '[Profiling] Discarding profile because a negative sampling decision was inherited or profileSampleRate is set to 0',
+      );
+    return transaction;
+  }
+
+  // Now we roll the dice. Math.random is inclusive of 0, but not of 1, so strict < is safe here. In case sampleRate is
+  // a boolean, the < comparison will cause it to be automatically cast to 1 if it's true and 0 if it's false.
+  const sampled = profilesSampleRate === true ? true : Math.random() < profilesSampleRate;
   // Check if we should sample this profile
-  if (Math.random() > profilesSampleRate) {
-    if (__DEBUG_BUILD__) {
-      logger.log('[Profiling] Skip profiling transaction due to sampling.');
-    }
+  if (!sampled) {
+    __DEBUG_BUILD__ &&
+      logger.log(
+        `[Profiling] Discarding profile because it's not included in the random sample (sampling rate = ${Number(
+          profilesSampleRate,
+        )})`,
+      );
     return transaction;
   }
 
@@ -147,19 +147,19 @@ function wrapTransactionWithProfiling(transaction: Transaction): Transaction {
   // event of an error or user mistake (calling transaction.finish multiple times), it is important that the behavior of onProfileHandler
   // is idempotent as we do not want any timings or profiles to be overriden by the last call to onProfileHandler.
   // After the original finish method is called, the event will be reported through the integration and delegated to transport.
-  let processedProfile: ProcessedJSSelfProfile | null = null;
+  const processedProfile: JSSelfProfile | null = null;
 
   /**
    * Idempotent handler for profile stop
    */
-  function onProfileHandler(): void {
+  async function onProfileHandler(): Promise<null> {
     // Check if the profile exists and return it the behavior has to be idempotent as users may call transaction.finish multiple times.
     if (!transaction) {
-      return;
+      return null;
     }
     // Satisfy the type checker, but profiler will always be defined here.
     if (!profiler) {
-      return;
+      return null;
     }
     if (processedProfile) {
       if (__DEBUG_BUILD__) {
@@ -169,12 +169,18 @@ function wrapTransactionWithProfiling(transaction: Transaction): Transaction {
           'already exists, returning early',
         );
       }
-      return;
+      return null;
     }
 
-    profiler
+    // This is temporary - we will use the collected span data to evaluate
+    // if deferring txn.finish until profiler resolves is a viable approach.
+    const stopProfilerSpan = transaction.startChild({ description: 'profiler.stop', op: 'profiler' });
+
+    return profiler
       .stop()
-      .then((p: JSSelfProfile): void => {
+      .then((p: JSSelfProfile): null => {
+        stopProfilerSpan.finish();
+
         if (maxDurationTimeoutID) {
           WINDOW.clearTimeout(maxDurationTimeoutID);
           maxDurationTimeoutID = undefined;
@@ -192,18 +198,14 @@ function wrapTransactionWithProfiling(transaction: Transaction): Transaction {
               'this may indicate an overlapping transaction or a call to stopProfiling with a profile title that was never started',
             );
           }
-          return;
+          return null;
         }
 
-        // If a profile has less than 2 samples, it is not useful and should be discarded.
-        if (p.samples.length < 2) {
-          return;
-        }
-
-        processedProfile = { ...p, profile_id: profileId };
-        sendProfile(profileId, processedProfile);
+        addProfileToMap(profileId, p);
+        return null;
       })
       .catch(error => {
+        stopProfilerSpan.finish();
         if (__DEBUG_BUILD__) {
           logger.log('[Profiling] error while stopping profiler:', error);
         }
@@ -219,6 +221,7 @@ function wrapTransactionWithProfiling(transaction: Transaction): Transaction {
         transaction.name || transaction.description,
       );
     }
+    // If the timeout exceeds, we want to stop profiling, but not finish the transaction
     void onProfileHandler();
   }, MAX_PROFILE_DURATION_MS);
 
@@ -230,73 +233,26 @@ function wrapTransactionWithProfiling(transaction: Transaction): Transaction {
    * startProfiling is called after the call to startTransaction in order to avoid our own code from
    * being profiled. Because of that same reason, stopProfiling is called before the call to stopTransaction.
    */
-  function profilingWrappedTransactionFinish(): Promise<Transaction> {
+  function profilingWrappedTransactionFinish(): Transaction {
     if (!transaction) {
       return originalFinish();
     }
     // onProfileHandler should always return the same profile even if this is called multiple times.
     // Always call onProfileHandler to ensure stopProfiling is called and the timeout is cleared.
-    onProfileHandler();
+    void onProfileHandler().then(
+      () => {
+        transaction.setContext('profile', { profile_id: profileId });
+        originalFinish();
+      },
+      () => {
+        // If onProfileHandler fails, we still want to call the original finish method.
+        originalFinish();
+      },
+    );
 
-    // Set profile context
-    transaction.setContext('profile', { profile_id: profileId });
-
-    return originalFinish();
+    return transaction;
   }
 
   transaction.finish = profilingWrappedTransactionFinish;
   return transaction;
-}
-
-/**
- * Wraps startTransaction with profiling logic. This is done automatically by the profiling integration.
- */
-function __PRIVATE__wrapStartTransactionWithProfiling(startTransaction: StartTransaction): StartTransaction {
-  return function wrappedStartTransaction(
-    this: Hub,
-    transactionContext: TransactionContext,
-    customSamplingContext?: CustomSamplingContext,
-  ): Transaction | undefined {
-    const transaction: Transaction | undefined = startTransaction.call(this, transactionContext, customSamplingContext);
-    if (transaction === undefined) {
-      if (__DEBUG_BUILD__) {
-        logger.log('[Profiling] Transaction is undefined, skipping profiling');
-      }
-      return transaction;
-    }
-
-    return wrapTransactionWithProfiling(transaction);
-  };
-}
-
-/**
- * Patches startTransaction and stopTransaction with profiling logic.
- */
-export function addProfilingExtensionMethods(): void {
-  const carrier = getMainCarrier();
-  if (!carrier.__SENTRY__) {
-    if (__DEBUG_BUILD__) {
-      logger.log("[Profiling] Can't find main carrier, profiling won't work.");
-    }
-    return;
-  }
-  carrier.__SENTRY__.extensions = carrier.__SENTRY__.extensions || {};
-
-  if (!carrier.__SENTRY__.extensions['startTransaction']) {
-    if (__DEBUG_BUILD__) {
-      logger.log(
-        '[Profiling] startTransaction does not exists, profiling will not work. Make sure you import @sentry/tracing package before @sentry/profiling-node as import order matters.',
-      );
-    }
-    return;
-  }
-
-  if (__DEBUG_BUILD__) {
-    logger.log('[Profiling] startTransaction exists, patching it with profiling functionality...');
-  }
-
-  carrier.__SENTRY__.extensions['startTransaction'] = __PRIVATE__wrapStartTransactionWithProfiling(
-    // This is already patched by sentry/tracing, we are going to re-patch it...
-    carrier.__SENTRY__.extensions['startTransaction'] as StartTransaction,
-  );
 }

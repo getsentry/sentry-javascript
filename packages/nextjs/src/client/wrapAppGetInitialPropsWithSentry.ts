@@ -8,8 +8,8 @@ type AppGetInitialProps = (typeof App)['getInitialProps'];
  */
 export function wrapAppGetInitialPropsWithSentry(origAppGetInitialProps: AppGetInitialProps): AppGetInitialProps {
   return new Proxy(origAppGetInitialProps, {
-    apply: async (wrappingTarget, thisArg, args: Parameters<AppGetInitialProps>) => {
-      return await wrappingTarget.apply(thisArg, args);
+    apply: (wrappingTarget, thisArg, args: Parameters<AppGetInitialProps>) => {
+      return wrappingTarget.apply(thisArg, args);
     },
   });
 }

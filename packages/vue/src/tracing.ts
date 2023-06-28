@@ -30,8 +30,7 @@ const HOOKS: { [key in Operation]: Hook[] } = {
 
 /** Grabs active transaction off scope, if any */
 export function getActiveTransaction(): Transaction | undefined {
-  const scope = getCurrentHub().getScope();
-  return scope && scope.getTransaction();
+  return getCurrentHub().getScope().getTransaction();
 }
 
 /** Finish top-level span and activity with a debounce configured using `timeout` option */

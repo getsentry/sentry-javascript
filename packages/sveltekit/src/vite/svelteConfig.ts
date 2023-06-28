@@ -52,7 +52,7 @@ export function getHooksFileName(svelteConfig: Config, hookType: 'client' | 'ser
  */
 export async function getAdapterOutputDir(svelteConfig: Config, adapter: SupportedSvelteKitAdapters): Promise<string> {
   if (adapter === 'node') {
-    return await getNodeAdapterOutputDir(svelteConfig);
+    return getNodeAdapterOutputDir(svelteConfig);
   }
 
   // Auto and Vercel adapters simply use config.kit.outDir

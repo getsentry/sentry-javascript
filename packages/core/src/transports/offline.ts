@@ -131,10 +131,10 @@ export function makeOfflineTransport<TO>(
         retryDelay = START_DELAY;
         return result;
       } catch (e) {
-        if (store && (await shouldQueue(envelope, e, retryDelay))) {
+        if (store && (await shouldQueue(envelope, e as Error, retryDelay))) {
           await store.insert(envelope);
           flushWithBackOff();
-          log('Error sending. Event queued', e);
+          log('Error sending. Event queued', e as Error);
           return {};
         } else {
           throw e;

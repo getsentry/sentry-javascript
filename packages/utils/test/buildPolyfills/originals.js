@@ -2,11 +2,11 @@
 // the modified versions do the same thing the originals do.
 
 // From Sucrase
-export async function _asyncNullishCoalesce(lhs, rhsFn) {
+export function _asyncNullishCoalesce(lhs, rhsFn) {
   if (lhs != null) {
     return lhs;
   } else {
-    return await rhsFn();
+    return rhsFn();
   }
 }
 

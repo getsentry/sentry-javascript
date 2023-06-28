@@ -1,24 +1,12 @@
-import { DEFAULT_ENVIRONMENT } from '@sentry/core';
-import type {
-  DsnComponents,
-  DynamicSamplingContext,
-  Event,
-  EventEnvelope,
-  EventEnvelopeHeaders,
-  EventItem,
-  SdkInfo,
-  SdkMetadata,
-} from '@sentry/types';
-import { createEnvelope, dropUndefinedKeys, dsnToString, logger, uuid4 } from '@sentry/utils';
+/* eslint-disable max-lines */
+
+import { DEFAULT_ENVIRONMENT, getCurrentHub } from '@sentry/core';
+import type { DebugImage, Envelope, Event, StackFrame, StackParser } from '@sentry/types';
+import type { Profile, ThreadCpuProfile } from '@sentry/types/src/profiling';
+import { forEachEnvelopeItem, GLOBAL_OBJ, logger, uuid4 } from '@sentry/utils';
 
 import { WINDOW } from '../helpers';
-import type {
-  JSSelfProfile,
-  JSSelfProfileStack,
-  RawThreadCpuProfile,
-  SentryProfile,
-  ThreadCpuProfile,
-} from './jsSelfProfiling';
+import type { JSSelfProfile, JSSelfProfileStack } from './jsSelfProfiling';
 
 const MS_TO_NS = 1e6;
 // Use 0 as main thread id which is identical to threadId in node:worker_threads
@@ -27,9 +15,9 @@ const THREAD_ID_STRING = String(0);
 const THREAD_NAME = 'main';
 
 // Machine properties (eval only once)
-let OS_PLATFORM = ''; // macos
-let OS_PLATFORM_VERSION = ''; // 13.2
-let OS_ARCH = ''; // arm64
+let OS_PLATFORM = '';
+let OS_PLATFORM_VERSION = '';
+let OS_ARCH = '';
 let OS_BROWSER = (WINDOW.navigator && WINDOW.navigator.userAgent) || '';
 let OS_MODEL = '';
 const OS_LOCALE =
@@ -76,7 +64,7 @@ if (isUserAgentData(userAgentData)) {
     .catch(e => void e);
 }
 
-function isRawThreadCpuProfile(profile: ThreadCpuProfile | RawThreadCpuProfile): profile is RawThreadCpuProfile {
+function isProcessedJSSelfProfile(profile: ThreadCpuProfile | JSSelfProfile): profile is JSSelfProfile {
   return !('thread_metadata' in profile);
 }
 
@@ -85,8 +73,8 @@ function isRawThreadCpuProfile(profile: ThreadCpuProfile | RawThreadCpuProfile):
 /**
  *
  */
-export function enrichWithThreadInformation(profile: ThreadCpuProfile | RawThreadCpuProfile): ThreadCpuProfile {
-  if (!isRawThreadCpuProfile(profile)) {
+export function enrichWithThreadInformation(profile: ThreadCpuProfile | JSSelfProfile): ThreadCpuProfile {
+  if (!isProcessedJSSelfProfile(profile)) {
     return profile;
   }
 
@@ -97,52 +85,7 @@ export function enrichWithThreadInformation(profile: ThreadCpuProfile | RawThrea
 // by the integration before the event is processed by other integrations.
 export interface ProfiledEvent extends Event {
   sdkProcessingMetadata: {
-    profile?: RawThreadCpuProfile;
-  };
-}
-
-/** Extract sdk info from from the API metadata */
-function getSdkMetadataForEnvelopeHeader(metadata?: SdkMetadata): SdkInfo | undefined {
-  if (!metadata || !metadata.sdk) {
-    return undefined;
-  }
-
-  return { name: metadata.sdk.name, version: metadata.sdk.version } as SdkInfo;
-}
-
-/**
- * Apply SdkInfo (name, version, packages, integrations) to the corresponding event key.
- * Merge with existing data if any.
- **/
-function enhanceEventWithSdkInfo(event: Event, sdkInfo?: SdkInfo): Event {
-  if (!sdkInfo) {
-    return event;
-  }
-  event.sdk = event.sdk || {};
-  event.sdk.name = event.sdk.name || sdkInfo.name || 'unknown sdk';
-  event.sdk.version = event.sdk.version || sdkInfo.version || 'unknown sdk version';
-  event.sdk.integrations = [...(event.sdk.integrations || []), ...(sdkInfo.integrations || [])];
-  event.sdk.packages = [...(event.sdk.packages || []), ...(sdkInfo.packages || [])];
-  return event;
-}
-
-function createEventEnvelopeHeaders(
-  event: Event,
-  sdkInfo: SdkInfo | undefined,
-  tunnel: string | undefined,
-  dsn: DsnComponents,
-): EventEnvelopeHeaders {
-  const dynamicSamplingContext = event.sdkProcessingMetadata && event.sdkProcessingMetadata['dynamicSamplingContext'];
-
-  return {
-    event_id: event.event_id as string,
-    sent_at: new Date().toISOString(),
-    ...(sdkInfo && { sdk: sdkInfo }),
-    ...(!!tunnel && { dsn: dsnToString(dsn) }),
-    ...(event.type === 'transaction' &&
-      dynamicSamplingContext && {
-        trace: dropUndefinedKeys({ ...dynamicSamplingContext }) as DynamicSamplingContext,
-      }),
+    profile?: JSSelfProfile;
   };
 }
 
@@ -175,50 +118,30 @@ function getTraceId(event: Event): string {
 /**
  * Creates a profiling event envelope from a Sentry event.
  */
-export function createProfilingEventEnvelope(
+export function createProfilePayload(
   event: ProfiledEvent,
-  dsn: DsnComponents,
-  metadata?: SdkMetadata,
-  tunnel?: string,
-): EventEnvelope | null {
+  processedProfile: JSSelfProfile,
+  profile_id: string,
+): Profile {
   if (event.type !== 'transaction') {
     // createProfilingEventEnvelope should only be called for transactions,
     // we type guard this behavior with isProfiledTransactionEvent.
     throw new TypeError('Profiling events may only be attached to transactions, this should never occur.');
   }
 
-  const rawProfile = event.sdkProcessingMetadata['profile'];
-
-  if (rawProfile === undefined || rawProfile === null) {
+  if (processedProfile === undefined || processedProfile === null) {
     throw new TypeError(
-      `Cannot construct profiling event envelope without a valid profile. Got ${rawProfile} instead.`,
+      `Cannot construct profiling event envelope without a valid profile. Got ${processedProfile} instead.`,
     );
   }
 
-  if (!rawProfile.profile_id) {
-    throw new TypeError('Profile is missing profile_id');
-  }
-
-  if (rawProfile.samples.length <= 1) {
-    if (__DEBUG_BUILD__) {
-      // Log a warning if the profile has less than 2 samples so users can know why
-      // they are not seeing any profiling data and we cant avoid the back and forth
-      // of asking them to provide us with a dump of the profile data.
-      logger.log('[Profiling] Discarding profile because it contains less than 2 samples');
-    }
-    return null;
-  }
-
   const traceId = getTraceId(event);
-  const sdkInfo = getSdkMetadataForEnvelopeHeader(metadata);
-  enhanceEventWithSdkInfo(event, metadata && metadata.sdk);
-  const envelopeHeaders = createEventEnvelopeHeaders(event, sdkInfo, tunnel, dsn);
-  const enrichedThreadProfile = enrichWithThreadInformation(rawProfile);
+  const enrichedThreadProfile = enrichWithThreadInformation(processedProfile);
   const transactionStartMs = typeof event.start_timestamp === 'number' ? event.start_timestamp * 1000 : Date.now();
   const transactionEndMs = typeof event.timestamp === 'number' ? event.timestamp * 1000 : Date.now();
 
-  const profile: SentryProfile = {
-    event_id: rawProfile.profile_id,
+  const profile: Profile = {
+    event_id: profile_id,
     timestamp: new Date(transactionStartMs).toISOString(),
     platform: 'javascript',
     version: '1',
@@ -240,6 +163,9 @@ export function createProfilingEventEnvelope(
       architecture: OS_ARCH,
       is_emulator: false,
     },
+    debug_meta: {
+      images: applyDebugMetadata(processedProfile.resources),
+    },
     profile: enrichedThreadProfile,
     transactions: [
       {
@@ -253,15 +179,7 @@ export function createProfilingEventEnvelope(
     ],
   };
 
-  const envelopeItem: EventItem = [
-    {
-      type: 'profile',
-    },
-    // @ts-ignore this is missing in typedef
-    profile,
-  ];
-
-  return createEnvelope<EventEnvelope>(envelopeHeaders, [envelopeItem]);
+  return profile;
 }
 
 /**
@@ -271,31 +189,16 @@ export function isProfiledTransactionEvent(event: Event): event is ProfiledEvent
   return !!(event.sdkProcessingMetadata && event.sdkProcessingMetadata['profile']);
 }
 
-// Due to how profiles are attached to event metadata, we may sometimes want to remove them to ensure
-// they are not processed by other Sentry integrations. This can be the case when we cannot construct a valid
-// profile from the data we have or some of the mechanisms to send the event (Hub, Transport etc) are not available to us.
-/**
- *
- */
-export function maybeRemoveProfileFromSdkMetadata(event: Event | ProfiledEvent): Event {
-  if (!isProfiledTransactionEvent(event)) {
-    return event;
-  }
-
-  delete event.sdkProcessingMetadata.profile;
-  return event;
-}
-
 /**
  * Converts a JSSelfProfile to a our sampled format.
  * Does not currently perform stack indexing.
  */
-export function convertJSSelfProfileToSampledFormat(input: JSSelfProfile): ThreadCpuProfile {
+export function convertJSSelfProfileToSampledFormat(input: JSSelfProfile): Profile['profile'] {
   let EMPTY_STACK_ID: undefined | number = undefined;
   let STACK_ID = 0;
 
   // Initialize the profile that we will fill with data
-  const profile: ThreadCpuProfile = {
+  const profile: Profile['profile'] = {
     samples: [],
     stacks: [],
     frames: [],
@@ -355,7 +258,7 @@ export function convertJSSelfProfileToSampledFormat(input: JSSelfProfile): Threa
       stackTop = stackTop.parentId === undefined ? undefined : input.stacks[stackTop.parentId];
     }
 
-    const sample: ThreadCpuProfile['samples'][0] = {
+    const sample: Profile['profile']['samples'][0] = {
       // convert ms timestamp to ns
       elapsed_since_start_ns: ((jsSample.timestamp - start) * MS_TO_NS).toFixed(0),
       stack_id: STACK_ID,
@@ -368,4 +271,196 @@ export function convertJSSelfProfileToSampledFormat(input: JSSelfProfile): Threa
   }
 
   return profile;
+}
+
+/**
+ * Adds items to envelope if they are not already present - mutates the envelope.
+ * @param envelope
+ */
+export function addProfilesToEnvelope(envelope: Envelope, profiles: Profile[]): Envelope {
+  if (!profiles.length) {
+    return envelope;
+  }
+
+  for (const profile of profiles) {
+    // @ts-ignore untyped envelope
+    envelope[1].push([{ type: 'profile' }, profile]);
+  }
+  return envelope;
+}
+
+/**
+ * Finds transactions with profile_id context in the envelope
+ * @param envelope
+ * @returns
+ */
+export function findProfiledTransactionsFromEnvelope(envelope: Envelope): Event[] {
+  const events: Event[] = [];
+
+  forEachEnvelopeItem(envelope, (item, type) => {
+    if (type !== 'transaction') {
+      return;
+    }
+
+    for (let j = 1; j < item.length; j++) {
+      const event = item[j] as Event;
+
+      if (event && event.contexts && event.contexts['profile'] && event.contexts['profile']['profile_id']) {
+        events.push(item[j] as Event);
+      }
+    }
+  });
+
+  return events;
+}
+
+const debugIdStackParserCache = new WeakMap<StackParser, Map<string, StackFrame[]>>();
+/**
+ * Applies debug meta data to an event from a list of paths to resources (sourcemaps)
+ */
+export function applyDebugMetadata(resource_paths: ReadonlyArray<string>): DebugImage[] {
+  const debugIdMap = GLOBAL_OBJ._sentryDebugIds;
+
+  if (!debugIdMap) {
+    return [];
+  }
+
+  const hub = getCurrentHub();
+  if (!hub) {
+    return [];
+  }
+  const client = hub.getClient();
+  if (!client) {
+    return [];
+  }
+  const options = client.getOptions();
+  if (!options) {
+    return [];
+  }
+  const stackParser = options.stackParser;
+  if (!stackParser) {
+    return [];
+  }
+
+  let debugIdStackFramesCache: Map<string, StackFrame[]>;
+  const cachedDebugIdStackFrameCache = debugIdStackParserCache.get(stackParser);
+  if (cachedDebugIdStackFrameCache) {
+    debugIdStackFramesCache = cachedDebugIdStackFrameCache;
+  } else {
+    debugIdStackFramesCache = new Map<string, StackFrame[]>();
+    debugIdStackParserCache.set(stackParser, debugIdStackFramesCache);
+  }
+
+  // Build a map of filename -> debug_id
+  const filenameDebugIdMap = Object.keys(debugIdMap).reduce<Record<string, string>>((acc, debugIdStackTrace) => {
+    let parsedStack: StackFrame[];
+
+    const cachedParsedStack = debugIdStackFramesCache.get(debugIdStackTrace);
+    if (cachedParsedStack) {
+      parsedStack = cachedParsedStack;
+    } else {
+      parsedStack = stackParser(debugIdStackTrace);
+      debugIdStackFramesCache.set(debugIdStackTrace, parsedStack);
+    }
+
+    for (let i = parsedStack.length - 1; i >= 0; i--) {
+      const stackFrame = parsedStack[i];
+      const file = stackFrame && stackFrame.filename;
+
+      if (stackFrame && file) {
+        acc[file] = debugIdMap[debugIdStackTrace] as string;
+        break;
+      }
+    }
+    return acc;
+  }, {});
+
+  const images: DebugImage[] = [];
+  for (const path of resource_paths) {
+    if (path && filenameDebugIdMap[path]) {
+      images.push({
+        type: 'sourcemap',
+        code_file: path,
+        debug_id: filenameDebugIdMap[path] as string,
+      });
+    }
+  }
+
+  return images;
+}
+
+/**
+ * Checks the given sample rate to make sure it is valid type and value (a boolean, or a number between 0 and 1).
+ */
+export function isValidSampleRate(rate: unknown): boolean {
+  // we need to check NaN explicitly because it's of type 'number' and therefore wouldn't get caught by this typecheck
+  if ((typeof rate !== 'number' && typeof rate !== 'boolean') || (typeof rate === 'number' && isNaN(rate))) {
+    __DEBUG_BUILD__ &&
+      logger.warn(
+        `[Profiling] Invalid sample rate. Sample rate must be a boolean or a number between 0 and 1. Got ${JSON.stringify(
+          rate,
+        )} of type ${JSON.stringify(typeof rate)}.`,
+      );
+    return false;
+  }
+
+  // Boolean sample rates are always valid
+  if (rate === true || rate === false) {
+    return true;
+  }
+
+  // in case sampleRate is a boolean, it will get automatically cast to 1 if it's true and 0 if it's false
+  if (rate < 0 || rate > 1) {
+    __DEBUG_BUILD__ &&
+      logger.warn(`[Profiling] Invalid sample rate. Sample rate must be between 0 and 1. Got ${rate}.`);
+    return false;
+  }
+  return true;
+}
+
+function isValidProfile(profile: JSSelfProfile): profile is JSSelfProfile & { profile_id: string } {
+  if (profile.samples.length < 2) {
+    if (__DEBUG_BUILD__) {
+      // Log a warning if the profile has less than 2 samples so users can know why
+      // they are not seeing any profiling data and we cant avoid the back and forth
+      // of asking them to provide us with a dump of the profile data.
+      logger.log('[Profiling] Discarding profile because it contains less than 2 samples');
+    }
+    return false;
+  }
+
+  if (!profile.frames.length) {
+    if (__DEBUG_BUILD__) {
+      logger.log('[Profiling] Discarding profile because it contains no frames');
+    }
+    return false;
+  }
+
+  return true;
+}
+
+/**
+ * Creates a profiling envelope item, if the profile does not pass validation, returns null.
+ * @param event
+ * @returns {Profile | null}
+ */
+export function createProfilingEvent(profile_id: string, profile: JSSelfProfile, event: ProfiledEvent): Profile | null {
+  if (!isValidProfile(profile)) {
+    return null;
+  }
+
+  return createProfilePayload(event, profile, profile_id);
+}
+
+export const PROFILE_MAP: Map<string, JSSelfProfile> = new Map();
+/**
+ *
+ */
+export function addProfileToMap(profile_id: string, profile: JSSelfProfile): void {
+  PROFILE_MAP.set(profile_id, profile);
+
+  if (PROFILE_MAP.size > 30) {
+    const last: string = PROFILE_MAP.keys().next().value;
+    PROFILE_MAP.delete(last);
+  }
 }

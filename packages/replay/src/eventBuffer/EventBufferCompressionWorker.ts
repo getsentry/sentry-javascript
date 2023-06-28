@@ -3,7 +3,7 @@ import type { ReplayRecordingData } from '@sentry/types';
 import { REPLAY_MAX_EVENT_BUFFER_SIZE } from '../constants';
 import type { AddEventResult, EventBuffer, EventBufferType, RecordingEvent } from '../types';
 import { timestampToMs } from '../util/timestampToMs';
-import { EventBufferSizeExceededError } from '.';
+import { EventBufferSizeExceededError } from './error';
 import { WorkerHandler } from './WorkerHandler';
 
 /**
