@@ -1,6 +1,15 @@
 import { V2_MetaFunction, LoaderFunction, json, defer, redirect } from '@remix-run/node';
-import { Links, LiveReload, Meta, Outlet, Scripts, ScrollRestoration } from '@remix-run/react';
-import { withSentry } from '@sentry/remix';
+import { Links, LiveReload, Meta, Outlet, Scripts, ScrollRestoration, useRouteError } from '@remix-run/react';
+import { V2_ErrorBoundaryComponent } from '@remix-run/react/dist/routeModules';
+import { captureRemixErrorBoundaryError, withSentry } from '@sentry/remix';
+
+export const ErrorBoundary: V2_ErrorBoundaryComponent = () => {
+  const error = useRouteError();
+
+  captureRemixErrorBoundaryError(error);
+
+  return <div>error</div>;
+};
 
 export const meta: V2_MetaFunction = ({ data }) => [
   { charset: 'utf-8' },
