@@ -75,7 +75,6 @@
     "loader.js": "~4.7.0",
     "qunit": "~2.19.2",
     "qunit-dom": "~2.0.0",
-    "typescript": "~4.5.2",
     "webpack": "~5.74.0"
   },
   "engines": {

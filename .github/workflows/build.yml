@@ -655,7 +655,9 @@ jobs:
           yarn test:package
 
   job_node_integration_tests:
-    name: Node (${{ matrix.node }}) Integration Tests
+    name:
+      Node (${{ matrix.node }})${{ (matrix.typescript && format(' (TS {0})', matrix.typescript)) || '' }} Integration
+      Tests
     needs: [job_get_metadata, job_build]
     if: needs.job_get_metadata.outputs.changed_node == 'true' || github.event_name != 'pull_request'
     runs-on: ubuntu-20.04
@@ -664,6 +666,12 @@ jobs:
       fail-fast: false
       matrix:
         node: [10, 12, 14, 16, 18, 20]
+        typescript:
+          - false
+        include:
+          # Only check typescript for latest version (to streamline CI)
+          - node: 20
+            typescript: '3.8'
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v3
@@ -677,6 +685,11 @@ jobs:
         uses: ./.github/actions/restore-cache
         env:
           DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
+
+      - name: Overwrite typescript version
+        if: matrix.typescript
+        run: yarn add --dev --ignore-workspace-root-check typescript@${{ matrix.typescript }}
+
       - name: Run integration tests
         env:
           NODE_VERSION: ${{ matrix.node }}
@@ -717,7 +730,7 @@ jobs:
           yarn test:integration:ci
 
   job_e2e_tests:
-    name: E2E Tests (Shard ${{ matrix.shard }})
+    name: E2E (Shard ${{ matrix.shard }}) Tests
     # We only run E2E tests for non-fork PRs because the E2E tests require secrets to work and they can't be accessed from forks
     # Dependabot PRs sadly also don't have access to secrets, so we skip them as well
     if:
@@ -730,6 +743,7 @@ jobs:
       fail-fast: false
       matrix:
         shard: [1, 2, 3]
+
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v3
@@ -746,6 +760,7 @@ jobs:
         uses: ./.github/actions/restore-cache
         env:
           DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
+
       - name: Get node version
         id: versions
         run: |

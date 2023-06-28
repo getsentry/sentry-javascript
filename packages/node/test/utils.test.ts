@@ -38,7 +38,7 @@ describe('deepReadDirSync', () => {
         expect(deepReadDirSync(dirPath)).toEqual([]);
         done();
       } catch (error) {
-        done(error);
+        done(error as Error);
       }
     });
   });

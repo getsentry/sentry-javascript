@@ -24,7 +24,7 @@
     "@sentry/browser": "7.56.0",
     "@sentry/types": "7.56.0",
     "@sentry/utils": "7.56.0",
-    "tslib": "^2.0.0"
+    "tslib": "^2.4.1"
   },
   "devDependencies": {
     "@angular-devkit/build-angular": "~0.1002.4",
@@ -38,7 +38,7 @@
     "@angular/router": "~10.2.5",
     "ng-packagr": "^10.1.0",
     "rxjs": "6.5.5",
-    "typescript": "~4.0.2",
+    "typescript": "4.0.2",
     "zone.js": "^0.11.8"
   },
   "scripts": {

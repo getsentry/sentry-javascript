@@ -1,5 +1,3 @@
-import type { PerformanceNavigationTiming } from '../../../src/types';
-
 export function PerformanceEntryNavigation(obj?: Partial<PerformanceNavigationTiming>): PerformanceNavigationTiming {
   const entry = {
     activationStart: 0,
@@ -33,10 +31,10 @@ export function PerformanceEntryNavigation(obj?: Partial<PerformanceNavigationTi
     domComplete: 682.5,
     loadEventStart: 682.5,
     loadEventEnd: 682.6999999284744,
-    type: 'navigate' as NavigationType,
+    type: 'navigate',
     redirectCount: 0,
     ...obj,
-  };
+  } as const;
 
   return {
     ...entry,
