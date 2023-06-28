@@ -1,12 +1,16 @@
 {
   "name": "@sentry-internal/replay-worker",
-  "version": "7.56.0",
+  "version": "7.57.0",
   "description": "Worker for @sentry/replay",
   "main": "build/npm/esm/index.js",
   "module": "build/npm/esm/index.js",
   "types": "build/npm/types/index.d.ts",
   "typesVersions": {
-    "<4.9": { "build/npm/types/index.d.ts": ["build/npm/types-ts3.8/index.d.ts"] }
+    "<4.9": {
+      "build/npm/types/index.d.ts": [
+        "build/npm/types-ts3.8/index.d.ts"
+      ]
+    }
   },
   "sideEffects": false,
   "private": true,

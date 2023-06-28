@@ -4,6 +4,61 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.57.0
+
+### Important Changes
+
+- **build: Update typescript from 3.8.3 to 4.9.5 (#8255)**
+
+This release version [bumps the internally used typescript version from 3.8.x to 4.9.x](https://github.com/getsentry/sentry-javascript/pull/8255).
+We use ds-downlevel to generate two versions of our types, one for >=3.8, one for >=4.9.
+This means that this change should be fully backwards compatible and not have any noticable user impact,
+but if you still encounter issues please let us know.
+
+- **feat(types): Add tracePropagationTargets to top level options (#8395)**
+
+Instead of passing `tracePropagationTargets` to the `BrowserTracing` integration, you can now define them on the top level:
+
+```js
+Sentry.init({
+  tracePropagationTargets: ['api.site.com'],
+});
+```
+
+- **fix(angular): Filter out `TryCatch` integration by default (#8367)**
+
+The Angular and Angular-ivy SDKs will not install the TryCatch integration anymore by default.
+This integration conflicted with the `SentryErrorHander`, sometimes leading to duplicated errors and/or missing data on events.
+
+- **feat(browser): Better event name handling for non-Error objects (#8374)**
+
+When capturing non-errors via `Sentry.captureException()`, e.g. `Sentry.captureException({ prop: "custom object" })`,
+we now generate a more helpful value for the synthetic exception. Instead of e.g. `Non-Error exception captured with keys: currentTarget, isTrusted, target, type`, you'll now get messages like:
+
+```
+Object captured as exception with keys: prop1, prop2
+Event `MouseEvent` (type=click) captured as exception
+Event `ErrorEvent` captured as exception with message `Script error.`
+```
+
+### Other Changes
+
+- feat(browser): Send profiles in same envelope as transactions (#8375)
+- feat(profiling): Collect timings on profiler stop calls (#8409)
+- feat(replay): Do not capture replays < 5 seconds (GA) (#8277)
+- feat(tracing): Add experiment to capture http timings (#8371)
+- feat(tracing): Add `http.response.status_code` to `span.data` (#8366)
+- fix(angular): Stop routing spans on navigation cancel and error events (#8369)
+- fix(core): Only start spans in `trace` if tracing is enabled (#8357)
+- fix(nextjs): Inject init calls via loader instead of via entrypoints (#8368)
+- fix(replay): Mark ui.slowClickDetected `clickCount` as optional (#8376)
+- fix(serverless): Export `autoDiscoverNodePerformanceMonitoringIntegrations` from SDK (#8382)
+- fix(sveltekit): Check for cached requests in client-side fetch instrumentation (#8391)
+- fix(sveltekit): Only instrument SvelteKit `fetch` if the SDK client is valid (#8381)
+- fix(tracing): Instrument Prisma client in constructor of integration (#8383)
+- ref(replay): More graceful `sessionStorage` check (#8394)
+- ref(replay): Remove circular dep in replay eventBuffer (#8389)
+
 ## 7.56.0
 
 - feat(replay): Rework slow click & multi click detection (#8322)
