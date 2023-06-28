@@ -4,6 +4,7 @@ import type { DynamicSamplingContext, Span } from '@sentry/types';
 import {
   addInstrumentationHandler,
   BAGGAGE_HEADER_NAME,
+  browserPerformanceTimeOrigin,
   dynamicSamplingContextToSentryBaggageHeader,
   isInstanceOf,
   SENTRY_XHR_DATA_KEY,
@@ -14,6 +15,13 @@ export const DEFAULT_TRACE_PROPAGATION_TARGETS = ['localhost', /^\/(?!\/)/];
 
 /** Options for Request Instrumentation */
 export interface RequestInstrumentationOptions {
+  /**
+   * Allow experiments for the request instrumentation.
+   */
+  _experiments: Partial<{
+    enableHTTPTimings: boolean;
+  }>;
+
   /**
    * @deprecated Will be removed in v8.
    * Use `shouldCreateSpanForRequest` to control span creation and `tracePropagationTargets` to control
@@ -108,12 +116,13 @@ export const defaultRequestInstrumentationOptions: RequestInstrumentationOptions
   // TODO (v8): Remove this property
   tracingOrigins: DEFAULT_TRACE_PROPAGATION_TARGETS,
   tracePropagationTargets: DEFAULT_TRACE_PROPAGATION_TARGETS,
+  _experiments: {},
 };
 
 /** Registers span creators for xhr and fetch requests  */
 export function instrumentOutgoingRequests(_options?: Partial<RequestInstrumentationOptions>): void {
   // eslint-disable-next-line deprecation/deprecation
-  const { traceFetch, traceXHR, tracePropagationTargets, tracingOrigins, shouldCreateSpanForRequest } = {
+  const { traceFetch, traceXHR, tracePropagationTargets, tracingOrigins, shouldCreateSpanForRequest, _experiments } = {
     traceFetch: defaultRequestInstrumentationOptions.traceFetch,
     traceXHR: defaultRequestInstrumentationOptions.traceXHR,
     ..._options,
@@ -132,15 +141,63 @@ export function instrumentOutgoingRequests(_options?: Partial<RequestInstrumenta
 
   if (traceFetch) {
     addInstrumentationHandler('fetch', (handlerData: FetchData) => {
-      fetchCallback(handlerData, shouldCreateSpan, shouldAttachHeadersWithTargets, spans);
+      const createdSpan = fetchCallback(handlerData, shouldCreateSpan, shouldAttachHeadersWithTargets, spans);
+      if (_experiments?.enableHTTPTimings && createdSpan) {
+        addHTTPTimings(createdSpan);
+      }
     });
   }
 
   if (traceXHR) {
     addInstrumentationHandler('xhr', (handlerData: XHRData) => {
-      xhrCallback(handlerData, shouldCreateSpan, shouldAttachHeadersWithTargets, spans);
+      const createdSpan = xhrCallback(handlerData, shouldCreateSpan, shouldAttachHeadersWithTargets, spans);
+      if (_experiments?.enableHTTPTimings && createdSpan) {
+        addHTTPTimings(createdSpan);
+      }
     });
   }
+}
+
+/**
+ * Creates a temporary observer to listen to the next fetch/xhr resourcing timings,
+ * so that when timings hit their per-browser limit they don't need to be removed.
+ *
+ * @param span A span that has yet to be finished, must contain `url` on data.
+ */
+function addHTTPTimings(span: Span): void {
+  const url = span.data.url;
+  const observer = new PerformanceObserver(list => {
+    const entries = list.getEntries() as PerformanceResourceTiming[];
+    entries.forEach(entry => {
+      if ((entry.initiatorType === 'fetch' || entry.initiatorType === 'xmlhttprequest') && entry.name.endsWith(url)) {
+        const spanData = resourceTimingEntryToSpanData(entry);
+        spanData.forEach(data => span.setData(...data));
+        observer.disconnect();
+      }
+    });
+  });
+  observer.observe({
+    entryTypes: ['resource'],
+  });
+}
+
+function resourceTimingEntryToSpanData(resourceTiming: PerformanceResourceTiming): [string, string | number][] {
+  const version = resourceTiming.nextHopProtocol.split('/')[1] || 'none';
+
+  const timingSpanData: [string, string | number][] = [];
+  if (version) {
+    timingSpanData.push(['network.protocol.version', version]);
+  }
+
+  if (!browserPerformanceTimeOrigin) {
+    return timingSpanData;
+  }
+  return [
+    ...timingSpanData,
+    ['http.request.connect_start', (browserPerformanceTimeOrigin + resourceTiming.connectStart) / 1000],
+    ['http.request.request_start', (browserPerformanceTimeOrigin + resourceTiming.requestStart) / 1000],
+    ['http.request.response_start', (browserPerformanceTimeOrigin + resourceTiming.responseStart) / 1000],
+  ];
 }
 
 /**
@@ -154,13 +211,15 @@ export function shouldAttachHeaders(url: string, tracePropagationTargets: (strin
 
 /**
  * Create and track fetch request spans
+ *
+ * @returns Span if a span was created, otherwise void.
  */
-export function fetchCallback(
+function fetchCallback(
   handlerData: FetchData,
   shouldCreateSpan: (url: string) => boolean,
   shouldAttachHeaders: (url: string) => boolean,
   spans: Record<string, Span>,
-): void {
+): Span | void {
   if (!hasTracingEnabled() || !(handlerData.fetchData && shouldCreateSpan(handlerData.fetchData.url))) {
     return;
   }
@@ -229,6 +288,7 @@ export function fetchCallback(
         options,
       );
     }
+    return span;
   }
 }
 
@@ -301,13 +361,15 @@ export function addTracingHeadersToFetchRequest(
 
 /**
  * Create and track xhr request spans
+ *
+ * @returns Span if a span was created, otherwise void.
  */
-export function xhrCallback(
+function xhrCallback(
   handlerData: XHRData,
   shouldCreateSpan: (url: string) => boolean,
   shouldAttachHeaders: (url: string) => boolean,
   spans: Record<string, Span>,
-): void {
+): Span | void {
   const xhr = handlerData.xhr;
   const sentryXhrData = xhr && xhr[SENTRY_XHR_DATA_KEY];
 
@@ -370,5 +432,7 @@ export function xhrCallback(
         // Error: InvalidStateError: Failed to execute 'setRequestHeader' on 'XMLHttpRequest': The object's state must be OPENED.
       }
     }
+
+    return span;
   }
 }

@@ -111,6 +111,7 @@ export interface BrowserTracingOptions extends RequestInstrumentationOptions {
   _experiments: Partial<{
     enableLongTask: boolean;
     enableInteractions: boolean;
+    enableHTTPTimings: boolean;
     onStartRouteTransaction: (t: Transaction | undefined, ctx: TransactionContext, getCurrentHub: () => Hub) => void;
   }>;
 
@@ -145,7 +146,6 @@ const DEFAULT_BROWSER_TRACING_OPTIONS: BrowserTracingOptions = {
   startTransactionOnLocationChange: true,
   startTransactionOnPageLoad: true,
   enableLongTask: true,
-  _experiments: {},
   ...defaultRequestInstrumentationOptions,
 };
 
@@ -283,6 +283,9 @@ export class BrowserTracing implements Integration {
       traceXHR,
       tracePropagationTargets,
       shouldCreateSpanForRequest,
+      _experiments: {
+        enableHTTPTimings: _experiments.enableHTTPTimings,
+      },
     });
   }
 
