@@ -243,7 +243,11 @@ describe('Scope', () => {
         expect(processedEvent!.transaction).toEqual('/abc');
         expect(processedEvent!.breadcrumbs![0]).toHaveProperty('message', 'test');
         expect(processedEvent!.contexts).toEqual({ os: { id: '1' } });
-        expect(processedEvent!.sdkProcessingMetadata).toEqual({ dogs: 'are great!' });
+        expect(processedEvent!.sdkProcessingMetadata).toEqual({
+          dogs: 'are great!',
+          // @ts-expect-error accessing private property for test
+          propagationContext: scope._propagationContext,
+        });
       });
     });
 
