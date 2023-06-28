@@ -187,4 +187,9 @@ export interface Scope {
    * Add data which will be accessible during event processing but won't get sent to Sentry
    */
   setSDKProcessingMetadata(newData: { [key: string]: unknown }): this;
+
+  /**
+   * Add propagation context to the scope, used for distributed tracing
+   */
+  setPropagationContext(context: PropagationContext): this;
 }
