@@ -14,12 +14,15 @@ import type {
   EventHint,
   Integration,
   IntegrationClass,
+  Options,
   Outcome,
+  PropagationContext,
   SdkMetadata,
   Session,
   SessionAggregates,
   Severity,
   SeverityLevel,
+  TraceContext,
   Transaction,
   TransactionEvent,
   Transport,
@@ -585,6 +588,8 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
           throw new SentryError('An event processor returned `null`, will not send event.', 'log');
         }
 
+        addPropagationContextToEvent(prepared, options, this.getDsn());
+
         const isInternalException = hint.data && (hint.data as { __sentry__: boolean }).__sentry__ === true;
         if (isInternalException) {
           return prepared;
@@ -754,4 +759,26 @@ function isErrorEvent(event: Event): event is ErrorEvent {
 
 function isTransactionEvent(event: Event): event is TransactionEvent {
   return event.type === 'transaction';
+}
+
+function addPropagationContextToEvent(event: Event, options: Options, dsn: DsnComponents | undefined): void {
+  const propagationContext: PropagationContext | undefined =
+    event.sdkProcessingMetadata && event.sdkProcessingMetadata.propagationContext;
+  const trace = event.contexts && event.contexts.trace;
+  if (!trace && propagationContext) {
+    const { traceId, spanId, parentSpanId, dsc } = propagationContext;
+    event.contexts = {
+      trace: {
+        trace_id: traceId,
+        span_id: spanId,
+        parent_span_id: parentSpanId,
+      },
+      ...event.contexts,
+    };
+
+    event.sdkProcessingMetadata = {
+      ...event.sdkProcessingMetadata,
+      dynamicSamplingContext: dsc,
+    };
+  }
 }
