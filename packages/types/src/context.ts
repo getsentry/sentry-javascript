@@ -8,6 +8,7 @@ export interface Contexts extends Record<string, Context | undefined> {
   os?: OsContext;
   culture?: CultureContext;
   response?: ResponseContext;
+  trace?: TraceContext;
 }
 
 export interface AppContext extends Record<string, unknown> {
