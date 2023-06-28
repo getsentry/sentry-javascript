@@ -351,6 +351,7 @@ describe('tracingHandler', () => {
       expect(finishTransaction).toHaveBeenCalled();
       expect(transaction.status).toBe('ok');
       expect(transaction.tags).toEqual(expect.objectContaining({ 'http.status_code': '200' }));
+      expect(transaction.data).toEqual(expect.objectContaining({ 'http.response.status_code': 200 }));
       done();
     });
   });

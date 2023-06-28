@@ -59,6 +59,7 @@ export function Transaction(traceId?: string, obj?: Partial<Event>): any {
           method: 'GET',
           url: '/api/0/projects/sentry-emerging-tech/billy-test/replays/c11bd625b0e14081a0827a22a0a9be4e/',
           type: 'fetch',
+          'http.response.status_code': 200,
         },
         description: 'GET /api/0/projects/sentry-emerging-tech/billy-test/replays/c11bd625b0e14081a0827a22a0a9be4e/',
         op: 'http.client',

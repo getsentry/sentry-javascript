@@ -96,6 +96,7 @@ describe('Span', () => {
       span.setHttpStatus(404);
       expect((span.getTraceContext() as any).status).toBe('not_found');
       expect(span.tags['http.status_code']).toBe('404');
+      expect(span.data['http.response.status_code']).toBe(404);
     });
 
     test('isSuccess', () => {

@@ -18,6 +18,9 @@ describe('CommonJS API Endpoints', () => {
           op: 'http.server',
           status: 'ok',
           tags: { 'http.status_code': '200' },
+          data: {
+            'http.response.status_code': 200,
+          },
         },
       },
       transaction: `GET ${unwrappedRoute}`,
@@ -51,6 +54,9 @@ describe('CommonJS API Endpoints', () => {
           op: 'http.server',
           status: 'ok',
           tags: { 'http.status_code': '200' },
+          data: {
+            'http.response.status_code': 200,
+          },
         },
       },
       transaction: `GET ${wrappedRoute}`,
@@ -84,6 +90,9 @@ describe('CommonJS API Endpoints', () => {
           op: 'http.server',
           status: 'ok',
           tags: { 'http.status_code': '200' },
+          data: {
+            'http.response.status_code': 200,
+          },
         },
       },
       transaction: `GET ${route}`,

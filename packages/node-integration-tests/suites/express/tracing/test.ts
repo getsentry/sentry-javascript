@@ -11,6 +11,7 @@ test('should create and send transactions for Express routes and spans for middl
       trace: {
         data: {
           url: '/test/express',
+          'http.response.status_code': 200,
         },
         op: 'http.server',
         status: 'ok',
@@ -43,6 +44,7 @@ test('should set a correct transaction name for routes specified in RegEx', asyn
       trace: {
         data: {
           url: '/test/regex',
+          'http.response.status_code': 200,
         },
         op: 'http.server',
         status: 'ok',
@@ -71,6 +73,7 @@ test.each([['array1'], ['array5']])(
         trace: {
           data: {
             url: `/test/${segment}`,
+            'http.response.status_code': 200,
           },
           op: 'http.server',
           status: 'ok',
@@ -107,6 +110,7 @@ test.each([
       trace: {
         data: {
           url: `/test/${segment}`,
+          'http.response.status_code': 200,
         },
         op: 'http.server',
         status: 'ok',

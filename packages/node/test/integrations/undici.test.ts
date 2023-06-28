@@ -56,9 +56,9 @@ conditionalTest({ min: 16 })('Undici integration', () => {
       {
         description: 'GET http://localhost:18099/',
         op: 'http.client',
-        data: {
+        data: expect.objectContaining({
           'http.method': 'GET',
-        },
+        }),
       },
     ],
     [
@@ -68,10 +68,10 @@ conditionalTest({ min: 16 })('Undici integration', () => {
       {
         description: 'GET http://localhost:18099/',
         op: 'http.client',
-        data: {
+        data: expect.objectContaining({
           'http.method': 'GET',
           'http.query': '?foo=bar',
-        },
+        }),
       },
     ],
     [
@@ -80,9 +80,9 @@ conditionalTest({ min: 16 })('Undici integration', () => {
       { method: 'POST' },
       {
         description: 'POST http://localhost:18099/',
-        data: {
+        data: expect.objectContaining({
           'http.method': 'POST',
-        },
+        }),
       },
     ],
     [
@@ -91,9 +91,9 @@ conditionalTest({ min: 16 })('Undici integration', () => {
       { method: 'POST' },
       {
         description: 'POST http://localhost:18099/',
-        data: {
+        data: expect.objectContaining({
           'http.method': 'POST',
-        },
+        }),
       },
     ],
     [
