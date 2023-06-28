@@ -762,11 +762,22 @@ function isTransactionEvent(event: Event): event is TransactionEvent {
 }
 
 function addPropagationContextToEvent(event: Event, options: Options, dsn: DsnComponents | undefined): void {
-  const propagationContext: PropagationContext | undefined =
-    event.sdkProcessingMetadata && event.sdkProcessingMetadata.propagationContext;
+  const { propagationContext } = event.sdkProcessingMetadata || {};
+  if (!propagationContext) {
+    return;
+  }
+
+  const {
+    traceId: trace_id,
+    spanId: span_id,
+    parentSpanId: parent_span_id,
+    dsc,
+  } = propagationContext as PropagationContext;
+
+  const dynamicSamplingContext = dsc ? dsc : { trace_id };
+
   const trace = event.contexts && event.contexts.trace;
-  if (!trace && propagationContext) {
-    const { traceId, spanId, parentSpanId, dsc } = propagationContext;
+  if (!trace) {
     event.contexts = {
       trace: {
         trace_id: traceId,
@@ -778,7 +789,7 @@ function addPropagationContextToEvent(event: Event, options: Options, dsn: DsnCo
 
     event.sdkProcessingMetadata = {
       ...event.sdkProcessingMetadata,
-      dynamicSamplingContext: dsc,
+      dynamicSamplingContext: dsc as DynamicSamplingContext,
     };
   }
 }
