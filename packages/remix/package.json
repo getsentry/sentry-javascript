@@ -1,6 +1,6 @@
 {
   "name": "@sentry/remix",
-  "version": "7.56.0",
+  "version": "7.57.0",
   "description": "Official Sentry SDK for Remix",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/remix",
@@ -17,18 +17,22 @@
   "browser": "build/esm/index.client.js",
   "types": "build/types/index.types.d.ts",
   "typesVersions": {
-    "<4.9": { "build/types/index.d.ts": ["build/types-ts3.8/index.d.ts"] }
+    "<4.9": {
+      "build/types/index.d.ts": [
+        "build/types-ts3.8/index.d.ts"
+      ]
+    }
   },
   "publishConfig": {
     "access": "public"
   },
   "dependencies": {
     "@sentry/cli": "2.2.0",
-    "@sentry/core": "7.56.0",
-    "@sentry/node": "7.56.0",
-    "@sentry/react": "7.56.0",
-    "@sentry/types": "7.56.0",
-    "@sentry/utils": "7.56.0",
+    "@sentry/core": "7.57.0",
+    "@sentry/node": "7.57.0",
+    "@sentry/react": "7.57.0",
+    "@sentry/types": "7.57.0",
+    "@sentry/utils": "7.57.0",
     "tslib": "^2.4.1 || ^1.9.3",
     "yargs": "^17.6.0"
   },
