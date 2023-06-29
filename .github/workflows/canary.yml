@@ -53,7 +53,7 @@ jobs:
           cd packages/e2e-tests
           yarn test:e2e
       - name: Create Issue
-        if: failure()
+        if: failure() && github.event_name == 'schedule'
         uses: JasonEtco/create-an-issue@e27dddc79c92bc6e4562f268fffa5ed752639abd
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -91,7 +91,7 @@ jobs:
           yarn ember try:one ${{ matrix.scenario }} --skip-cleanup=true
 
       - name: Create Issue
-        if: failure()
+        if: failure() && github.event_name == 'schedule'
         uses: JasonEtco/create-an-issue@e27dddc79c92bc6e4562f268fffa5ed752639abd
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
