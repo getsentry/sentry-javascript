@@ -1,14 +1,8 @@
 /* eslint-disable max-lines */
 import type { Hub, IdleTransaction } from '@sentry/core';
-import {
-  addTracingExtensions,
-  extractTraceparentData,
-  getActiveTransaction,
-  startIdleTransaction,
-  TRACING_DEFAULTS,
-} from '@sentry/core';
+import { addTracingExtensions, getActiveTransaction, startIdleTransaction, TRACING_DEFAULTS } from '@sentry/core';
 import type { EventProcessor, Integration, Transaction, TransactionContext, TransactionSource } from '@sentry/types';
-import { baggageHeaderToDynamicSamplingContext, getDomElement, logger } from '@sentry/utils';
+import { getDomElement, logger, tracingContextFromHeaders } from '@sentry/utils';
 
 import { registerBackgroundTabDetection } from './backgroundtab';
 import {
@@ -297,24 +291,29 @@ export class BrowserTracing implements Integration {
       return undefined;
     }
 
+    const hub = this._getCurrentHub();
+
     const { beforeNavigate, idleTimeout, finalTimeout, heartbeatInterval } = this.options;
 
     const isPageloadTransaction = context.op === 'pageload';
 
-    const sentryTraceMetaTagValue = isPageloadTransaction ? getMetaContent('sentry-trace') : null;
-    const baggageMetaTagValue = isPageloadTransaction ? getMetaContent('baggage') : null;
-
-    const traceParentData = sentryTraceMetaTagValue ? extractTraceparentData(sentryTraceMetaTagValue) : undefined;
-    const dynamicSamplingContext = baggageMetaTagValue
-      ? baggageHeaderToDynamicSamplingContext(baggageMetaTagValue)
-      : undefined;
+    const sentryTrace = isPageloadTransaction ? getMetaContent('sentry-trace') : '';
+    const baggage = isPageloadTransaction ? getMetaContent('baggage') : '';
+    const { traceparentData, dynamicSamplingContext, propagationContext } = tracingContextFromHeaders(
+      sentryTrace,
+      baggage,
+    );
+    // Only set propagation context on pageload transactions.
+    if (isPageloadTransaction) {
+      hub.getScope().setPropagationContext(propagationContext);
+    }
 
     const expandedContext: TransactionContext = {
       ...context,
-      ...traceParentData,
+      ...traceparentData,
       metadata: {
         ...context.metadata,
-        dynamicSamplingContext: traceParentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
+        dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
       },
       trimEnd: true,
     };
@@ -341,7 +340,6 @@ export class BrowserTracing implements Integration {
 
     __DEBUG_BUILD__ && logger.log(`[Tracing] Starting ${finalContext.op} transaction on scope`);
 
-    const hub = this._getCurrentHub();
     const { location } = WINDOW;
 
     const idleTransaction = startIdleTransaction(
@@ -424,11 +422,11 @@ export class BrowserTracing implements Integration {
 }
 
 /** Returns the value of a meta tag */
-export function getMetaContent(metaName: string): string | null {
+export function getMetaContent(metaName: string): string | undefined {
   // Can't specify generic to `getDomElement` because tracing can be used
   // in a variety of environments, have to disable `no-unsafe-member-access`
   // as a result.
   const metaTag = getDomElement(`meta[name=${metaName}]`);
   // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-  return metaTag ? metaTag.getAttribute('content') : null;
+  return metaTag ? metaTag.getAttribute('content') : undefined;
 }

@@ -94,7 +94,6 @@ describe('BrowserTracing', () => {
     const browserTracing = createBrowserTracing();
 
     expect(browserTracing.options).toEqual({
-      _experiments: {},
       enableLongTask: true,
       ...TRACING_DEFAULTS,
       markBackgroundTransactions: true,
@@ -113,9 +112,6 @@ describe('BrowserTracing', () => {
     });
 
     expect(browserTracing.options).toEqual({
-      _experiments: {
-        enableLongTask: false,
-      },
       enableLongTask: false,
       ...TRACING_DEFAULTS,
       markBackgroundTransactions: true,
@@ -123,6 +119,9 @@ describe('BrowserTracing', () => {
       startTransactionOnLocationChange: true,
       startTransactionOnPageLoad: true,
       ...defaultRequestInstrumentationOptions,
+      _experiments: {
+        enableLongTask: false,
+      },
     });
   });
 
@@ -132,7 +131,6 @@ describe('BrowserTracing', () => {
     });
 
     expect(browserTracing.options).toEqual({
-      _experiments: {},
       enableLongTask: false,
       ...TRACING_DEFAULTS,
       markBackgroundTransactions: true,
@@ -248,6 +246,7 @@ describe('BrowserTracing', () => {
           traceFetch: true,
           traceXHR: true,
           tracePropagationTargets: ['something'],
+          _experiments: {},
         });
       });
 
@@ -261,6 +260,7 @@ describe('BrowserTracing', () => {
         });
 
         expect(instrumentOutgoingRequestsMock).toHaveBeenCalledWith({
+          _experiments: {},
           traceFetch: true,
           traceXHR: true,
           tracePropagationTargets: ['something-else'],
@@ -546,7 +546,7 @@ describe('BrowserTracing', () => {
         document.head.innerHTML = '<meta name="cat-cafe">';
 
         const metaTagValue = getMetaContent('dogpark');
-        expect(metaTagValue).toBe(null);
+        expect(metaTagValue).toBe(undefined);
       });
 
       it('can pick the correct tag out of multiple options', () => {
