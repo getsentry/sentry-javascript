@@ -299,12 +299,8 @@ function startSessionTracking(): void {
  * for more details.
  */
 function updateScopeFromEnvVariables(): void {
-  const sentryUseEnvironment = process.env.SENTRY_USE_ENVIRONMENT;
-  if (
-    !['false', 'False', 'FALSE', 'n', 'no', 'No', 'NO', 'off', 'Off', 'OFF', '0'].includes(
-      sentryUseEnvironment as string,
-    )
-  ) {
+  const sentryUseEnvironment = (process.env.SENTRY_USE_ENVIRONMENT || '').toLowerCase();
+  if (!['false', 'n', 'no', 'off', '0'].includes(sentryUseEnvironment)) {
     const sentryTraceEnv = process.env.SENTRY_TRACE || '';
     const baggageEnv = process.env.SENTRY_BAGGAGE;
 
