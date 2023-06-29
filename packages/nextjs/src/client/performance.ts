@@ -1,12 +1,14 @@
 import { getCurrentHub } from '@sentry/core';
 import { WINDOW } from '@sentry/react';
-import type { Primitive, TraceparentData, Transaction, TransactionContext, TransactionSource } from '@sentry/types';
-import {
-  baggageHeaderToDynamicSamplingContext,
-  extractTraceparentData,
-  logger,
-  stripUrlQueryAndFragment,
-} from '@sentry/utils';
+import type {
+  DynamicSamplingContext,
+  Primitive,
+  TraceparentData,
+  Transaction,
+  TransactionContext,
+  TransactionSource,
+} from '@sentry/types';
+import { logger, stripUrlQueryAndFragment, tracingContextFromHeaders } from '@sentry/utils';
 import type { NEXT_DATA as NextData } from 'next/dist/next-server/lib/utils';
 import { default as Router } from 'next/router';
 import type { ParsedUrlQuery } from 'querystring';
@@ -38,7 +40,7 @@ interface SentryEnhancedNextData extends NextData {
 interface NextDataTagInfo {
   route?: string;
   traceParentData?: TraceparentData;
-  baggage?: string;
+  dynamicSamplingContext?: Partial<DynamicSamplingContext>;
   params?: ParsedUrlQuery;
 }
 
@@ -83,13 +85,23 @@ function extractNextDataTagInformation(): NextDataTagInfo {
   nextDataTagInfo.params = query;
 
   if (props && props.pageProps) {
-    if (props.pageProps._sentryBaggage) {
-      nextDataTagInfo.baggage = props.pageProps._sentryBaggage;
+    const sentryTrace = props.pageProps._sentryTraceData;
+    const baggage = props.pageProps._sentryBaggage;
+
+    const { traceparentData, dynamicSamplingContext, propagationContext } = tracingContextFromHeaders(
+      sentryTrace,
+      baggage,
+    );
+
+    if (dynamicSamplingContext) {
+      nextDataTagInfo.dynamicSamplingContext = dynamicSamplingContext;
     }
 
-    if (props.pageProps._sentryTraceData) {
-      nextDataTagInfo.traceParentData = extractTraceparentData(props.pageProps._sentryTraceData);
+    if (traceparentData) {
+      nextDataTagInfo.traceParentData = traceparentData;
     }
+
+    getCurrentHub().getScope().setPropagationContext(propagationContext);
   }
 
   return nextDataTagInfo;
@@ -121,13 +133,11 @@ export function nextRouterInstrumentation(
   startTransactionOnPageLoad: boolean = true,
   startTransactionOnLocationChange: boolean = true,
 ): void {
-  const { route, traceParentData, baggage, params } = extractNextDataTagInformation();
+  const { route, traceParentData, dynamicSamplingContext, params } = extractNextDataTagInformation();
   prevLocationName = route || globalObject.location.pathname;
 
   if (startTransactionOnPageLoad) {
     const source = route ? 'route' : 'url';
-    const dynamicSamplingContext = baggageHeaderToDynamicSamplingContext(baggage);
-
     activeTransaction = startTransactionCb({
       name: prevLocationName,
       op: 'pageload',
