@@ -57,6 +57,10 @@ module.exports = async function () {
 
   return {
     useYarn: true,
+    // Opt-out of `--no-lockfile`
+    buildManagerOptions() {
+      return ['--ignore-engines'];
+    },
     scenarios,
   };
 };
