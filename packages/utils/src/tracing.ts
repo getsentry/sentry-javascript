@@ -47,8 +47,8 @@ export function tracingContextFromHeaders(
   sentryTrace: Parameters<typeof extractTraceparentData>[0] = '',
   baggage: Parameters<typeof baggageHeaderToDynamicSamplingContext>[0] = '',
 ): {
-  traceparentData: TraceparentData | undefined;
-  dynamicSamplingContext: Partial<DynamicSamplingContext> | undefined;
+  traceparentData: ReturnType<typeof extractTraceparentData>;
+  dynamicSamplingContext: ReturnType<typeof baggageHeaderToDynamicSamplingContext>;
   propagationContext: PropagationContext;
 } {
   const traceparentData = extractTraceparentData(sentryTrace);
