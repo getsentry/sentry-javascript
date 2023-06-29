@@ -303,10 +303,6 @@ export class BrowserTracing implements Integration {
       sentryTrace,
       baggage,
     );
-    // Only set propagation context on pageload transactions.
-    if (isPageloadTransaction) {
-      hub.getScope().setPropagationContext(propagationContext);
-    }
 
     const expandedContext: TransactionContext = {
       ...context,
@@ -351,6 +347,24 @@ export class BrowserTracing implements Integration {
       { location }, // for use in the tracesSampler
       heartbeatInterval,
     );
+
+    const scope = hub.getScope();
+
+    // If it's a pageload and there is a meta tag set
+    // use the traceparentData as the propagation context
+    if (isPageloadTransaction && traceparentData) {
+      scope.setPropagationContext(propagationContext);
+    } else {
+      // Navigation transactions should set a new propagation context based on the
+      // created idle transaction.
+      scope.setPropagationContext({
+        traceId: idleTransaction.traceId,
+        spanId: idleTransaction.spanId,
+        parentSpanId: idleTransaction.parentSpanId,
+        sampled: !!idleTransaction.sampled,
+      });
+    }
+
     idleTransaction.registerBeforeFinishCallback(transaction => {
       this._collectWebVitals();
       addPerformanceEntries(transaction);
