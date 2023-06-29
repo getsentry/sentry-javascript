@@ -541,6 +541,13 @@ export class Scope implements ScopeInterface {
   }
 
   /**
+   * @inheritdoc
+   */
+  public getPropagationContext(): PropagationContext {
+    return this._propagationContext;
+  }
+
+  /**
    * This will be called after {@link applyToEvent} is finished.
    */
   protected _notifyEventProcessors(

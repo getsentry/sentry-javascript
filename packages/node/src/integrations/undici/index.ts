@@ -1,5 +1,6 @@
 import type { Hub } from '@sentry/core';
-import type { EventProcessor, Integration } from '@sentry/types';
+import { spanContextToTraceparent } from '@sentry/core';
+import type { EventProcessor, Integration, Span } from '@sentry/types';
 import {
   dynamicRequire,
   dynamicSamplingContextToSentryBaggageHeader,
@@ -12,7 +13,13 @@ import { LRUMap } from 'lru_map';
 import type { NodeClient } from '../../client';
 import { NODE_VERSION } from '../../nodeVersion';
 import { isSentryRequest } from '../utils/http';
-import type { DiagnosticsChannel, RequestCreateMessage, RequestEndMessage, RequestErrorMessage } from './types';
+import type {
+  DiagnosticsChannel,
+  RequestCreateMessage,
+  RequestEndMessage,
+  RequestErrorMessage,
+  RequestWithSentry,
+} from './types';
 
 export enum ChannelName {
   // https://github.com/nodejs/undici/blob/e6fc80f809d1217814c044f52ed40ef13f21e43c/docs/api/DiagnosticsChannel.md#undicirequestcreate
@@ -124,7 +131,6 @@ export class Undici implements Integration {
       const { request } = message as RequestCreateMessage;
 
       const stringUrl = request.origin ? request.origin.toString() + request.path : request.path;
-      const url = parseUrl(stringUrl);
 
       if (isSentryRequest(stringUrl) || request.__sentry__ !== undefined) {
         return;
@@ -133,52 +139,45 @@ export class Undici implements Integration {
       const client = hub.getClient<NodeClient>();
       const scope = hub.getScope();
 
-      const activeSpan = scope.getSpan();
+      const parentSpan = scope.getSpan();
 
-      if (activeSpan && client) {
+      if (client) {
         const clientOptions = client.getOptions();
 
-        if (shouldCreateSpan(stringUrl)) {
-          const method = request.method || 'GET';
-          const data: Record<string, unknown> = {
-            'http.method': method,
-          };
-          if (url.search) {
-            data['http.query'] = url.search;
+        const shouldAttachTraceData = (url: string): boolean => {
+          if (clientOptions.tracePropagationTargets === undefined) {
+            return true;
           }
-          if (url.hash) {
-            data['http.fragment'] = url.hash;
+
+          const cachedDecision = this._headersUrlMap.get(url);
+          if (cachedDecision !== undefined) {
+            return cachedDecision;
           }
-          const span = activeSpan.startChild({
-            op: 'http.client',
-            description: `${method} ${getSanitizedUrlString(url)}`,
-            data,
-          });
+
+          const decision = stringMatchesSomePattern(url, clientOptions.tracePropagationTargets);
+          this._headersUrlMap.set(url, decision);
+          return decision;
+        };
+
+        const span = shouldCreateSpan(stringUrl) ? createRequestSpan(request, stringUrl, parentSpan) : undefined;
+        if (span) {
           request.__sentry__ = span;
+        }
 
-          const shouldAttachTraceData = (url: string): boolean => {
-            if (clientOptions.tracePropagationTargets === undefined) {
-              return true;
-            }
-
-            const cachedDecision = this._headersUrlMap.get(url);
-            if (cachedDecision !== undefined) {
-              return cachedDecision;
-            }
-
-            const decision = stringMatchesSomePattern(url, clientOptions.tracePropagationTargets);
-            this._headersUrlMap.set(url, decision);
-            return decision;
-          };
-
-          if (shouldAttachTraceData(stringUrl)) {
+        if (shouldAttachTraceData(stringUrl)) {
+          if (span) {
             request.addHeader('sentry-trace', span.toTraceparent());
-            if (span.transaction) {
-              const dynamicSamplingContext = span.transaction.getDynamicSamplingContext();
-              const sentryBaggageHeader = dynamicSamplingContextToSentryBaggageHeader(dynamicSamplingContext);
-              if (sentryBaggageHeader) {
-                request.addHeader('baggage', sentryBaggageHeader);
-              }
+            const dynamicSamplingContext = span.transaction?.getDynamicSamplingContext();
+            const sentryBaggageHeader = dynamicSamplingContextToSentryBaggageHeader(dynamicSamplingContext);
+            if (sentryBaggageHeader) {
+              request.addHeader('baggage', sentryBaggageHeader);
+            }
+          } else {
+            const { traceId, sampled, dsc } = scope.getPropagationContext();
+            request.addHeader('sentry-trace', spanContextToTraceparent(traceId, undefined, sampled));
+            const sentryBaggageHeader = dynamicSamplingContextToSentryBaggageHeader(dsc);
+            if (sentryBaggageHeader) {
+              request.addHeader('baggage', sentryBaggageHeader);
             }
           }
         }
@@ -264,4 +263,25 @@ export class Undici implements Integration {
       }
     });
   }
+}
+
+/** */
+function createRequestSpan(request: RequestWithSentry, stringUrl: string, parentSpan?: Span): Span | undefined {
+  const url = parseUrl(stringUrl);
+  const method = request.method || 'GET';
+  const data: Record<string, unknown> = {
+    'http.method': method,
+  };
+  if (url.search) {
+    data['http.query'] = url.search;
+  }
+  if (url.hash) {
+    data['http.fragment'] = url.hash;
+  }
+  const span = parentSpan?.startChild({
+    op: 'http.client',
+    description: `${method} ${getSanitizedUrlString(url)}`,
+    data,
+  });
+  return span;
 }

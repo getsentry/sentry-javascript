@@ -1,6 +1,6 @@
 export { startIdleTransaction, addTracingExtensions } from './hubextensions';
 export { IdleTransaction, TRACING_DEFAULTS } from './idletransaction';
-export { Span, spanStatusfromHttpCode } from './span';
+export { Span, spanStatusfromHttpCode, spanContextToTraceparent } from './span';
 export { Transaction } from './transaction';
 export { extractTraceparentData, getActiveTransaction } from './utils';
 // eslint-disable-next-line deprecation/deprecation

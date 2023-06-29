@@ -265,11 +265,7 @@ export class Span implements SpanInterface {
    * @inheritDoc
    */
   public toTraceparent(): string {
-    let sampledString = '';
-    if (this.sampled !== undefined) {
-      sampledString = this.sampled ? '-1' : '-0';
-    }
-    return `${this.traceId}-${this.spanId}${sampledString}`;
+    return spanContextToTraceparent(this.traceId, this.spanId, this.sampled);
   }
 
   /**
@@ -437,4 +433,14 @@ export function spanStatusfromHttpCode(httpStatus: number): SpanStatusType {
   }
 
   return 'unknown_error';
+}
+
+/** Generate sentry-trace header from span context */
+export function spanContextToTraceparent(traceId: string, maybeSpanId?: string, sampled?: boolean): string {
+  let sampledString = '';
+  if (sampled !== undefined) {
+    sampledString = sampled ? '-1' : '-0';
+  }
+  const spanId = maybeSpanId || uuid4().substring(16);
+  return `${traceId}-${spanId}${sampledString}`;
 }

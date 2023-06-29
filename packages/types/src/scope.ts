@@ -189,6 +189,11 @@ export interface Scope {
   setSDKProcessingMetadata(newData: { [key: string]: unknown }): this;
 
   /**
+   * Returns propagation context on the scope.
+   */
+  getPropagationContext(): PropagationContext;
+
+  /**
    * Add propagation context to the scope, used for distributed tracing
    */
   setPropagationContext(context: PropagationContext): this;
