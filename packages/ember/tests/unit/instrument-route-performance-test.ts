@@ -4,6 +4,8 @@ import Route from '@ember/routing/route';
 import { instrumentRoutePerformance } from '@sentry/ember';
 import sinon from 'sinon';
 import { setupSentryTest } from '../helpers/setup-sentry';
+import Transition from '@ember/routing/transition';
+import Controller from '@ember/controller';
 
 module('Unit | Utility | instrument-route-performance', function (hooks) {
   setupTest(hooks);
@@ -16,20 +18,20 @@ module('Unit | Utility | instrument-route-performance', function (hooks) {
     const setupController = sinon.spy();
 
     class DummyRoute extends Route {
-      beforeModel(...args: any[]) {
-        return beforeModel.call(this, ...args);
+      beforeModel() {
+        return beforeModel.call(this, ...arguments);
       }
 
-      model(...args: any[]) {
-        return model.call(this, ...args);
+      model() {
+        return model.call(this, ...arguments);
       }
 
-      afterModel(...args: any[]) {
-        return afterModel.call(this, ...args);
+      afterModel() {
+        return afterModel.call(this, ...arguments);
       }
 
-      setupController(...args: any[]) {
-        return setupController.call(this, ...args);
+      setupController() {
+        return setupController.call(this, ...arguments);
       }
     }
 
@@ -37,26 +39,32 @@ module('Unit | Utility | instrument-route-performance', function (hooks) {
 
     this.owner.register('route:dummy', InstrumentedDummyRoute);
 
-    const route = this.owner.lookup('route:dummy');
+    const route = this.owner.lookup('route:dummy') as Route;
+    const transition = {} as Transition;
+    const modelObj = { name: 'test model' };
+    const controller = new Controller();
 
-    route.beforeModel('foo');
+    route.beforeModel(transition);
 
     assert.ok(beforeModel.calledOn(route), 'The context for `beforeModel` is the route');
-    assert.ok(beforeModel.calledWith('foo'), 'The arguments for `beforeModel` are passed through');
+    assert.ok(beforeModel.calledWith(transition), 'The arguments for `beforeModel` are passed through');
 
-    route.model('bar');
+    route.model(modelObj, transition);
 
     assert.ok(model.calledOn(route), 'The context for `model` is the route');
-    assert.ok(model.calledWith('bar'), 'The arguments for `model` are passed through');
+    assert.ok(model.calledWith(modelObj, transition), 'The arguments for `model` are passed through');
 
-    route.afterModel('bax');
+    route.afterModel(modelObj, transition);
 
     assert.ok(afterModel.calledOn(route), 'The context for `afterModel` is the route');
-    assert.ok(afterModel.calledWith('bax'), 'The arguments for `afterModel` are passed through');
+    assert.ok(afterModel.calledWith(modelObj, transition), 'The arguments for `afterModel` are passed through');
 
-    route.setupController('baz');
+    route.setupController(controller, modelObj, transition);
 
     assert.ok(setupController.calledOn(route), 'The context for `setupController` is the route');
-    assert.ok(setupController.calledWith('baz'), 'The arguments for `setupController` are passed through');
+    assert.ok(
+      setupController.calledWith(controller, modelObj, transition),
+      'The arguments for `setupController` are passed through',
+    );
   });
 });

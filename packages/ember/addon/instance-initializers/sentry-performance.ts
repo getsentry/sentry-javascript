@@ -27,7 +27,7 @@ function getSentryConfig() {
 
 export function initialize(appInstance: ApplicationInstance): void {
   // Disable in fastboot - we only want to run Sentry client-side
-  const fastboot = appInstance.lookup('service:fastboot') as { isFastBoot: boolean } | undefined;
+  const fastboot = appInstance.lookup('service:fastboot') as unknown as { isFastBoot: boolean } | undefined;
   if (fastboot?.isFastBoot) {
     return;
   }
@@ -44,11 +44,11 @@ export function initialize(appInstance: ApplicationInstance): void {
 
 function getBackburner(): Pick<ExtendedBackburner, 'on' | 'off'> {
   if (_backburner) {
-    return _backburner;
+    return _backburner as unknown as Pick<ExtendedBackburner, 'on' | 'off'>;
   }
 
-  if (run.backburner) {
-    return run.backburner;
+  if ((run as unknown as { backburner?: Pick<ExtendedBackburner, 'on' | 'off'> }).backburner) {
+    return (run as unknown as { backburner: Pick<ExtendedBackburner, 'on' | 'off'> }).backburner;
   }
 
   return {
@@ -344,7 +344,7 @@ function _instrumentInitialLoad(config: EmberSentryConfig) {
 
   performance.measure(measureName, startName, endName);
   const measures = performance.getEntriesByName(measureName);
-  const measure = measures[0];
+  const measure = measures[0]!;
 
   const startTimestamp = (measure.startTime + browserPerformanceTimeOrigin!) / 1000;
   const endTimestamp = startTimestamp + measure.duration / 1000;

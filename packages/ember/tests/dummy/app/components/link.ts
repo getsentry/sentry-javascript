@@ -14,7 +14,7 @@ interface Args {
  Since glimmer components are, as of now, not instrumented, this leads to different test results.
 */
 export default class LinkComponent extends Component<Args> {
-  @service router: RouterService;
+  @service declare router: RouterService;
 
   get href() {
     return this.router.urlFor(this.args.route);

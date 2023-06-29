@@ -83,7 +83,7 @@
     "@types/jsdom": "^16.2.3",
     "@types/mocha": "^5.2.0",
     "@types/node": "~10.17.0",
-    "@types/rimraf": "^3.0.2",
+    "@types/rimraf": "^2.0.2",
     "@types/sinon": "^7.0.11",
     "@vitest/coverage-c8": "^0.29.2",
     "acorn": "^8.7.0",

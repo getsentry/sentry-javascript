@@ -6,6 +6,7 @@ import { assert, warn } from '@ember/debug';
 import Ember from 'ember';
 import { timestampInSeconds, GLOBAL_OBJ } from '@sentry/utils';
 import { GlobalConfig, OwnConfig } from './types';
+import Route from '@ember/routing/route';
 
 function _getSentryInitConfig() {
   const _global = GLOBAL_OBJ as typeof GLOBAL_OBJ & GlobalConfig;
@@ -66,7 +67,9 @@ export const getActiveTransaction = () => {
   return Sentry.getCurrentHub().getScope().getTransaction();
 };
 
-export const instrumentRoutePerformance = (BaseRoute: any) => {
+type RouteConstructor = new (...args: any[]) => Route;
+
+export const instrumentRoutePerformance = <T extends RouteConstructor>(BaseRoute: T): T => {
   const instrumentFunction = async (op: string, description: string, fn: Function, args: any) => {
     const startTimestamp = timestampInSeconds();
     const result = await fn(...args);
@@ -79,8 +82,10 @@ export const instrumentRoutePerformance = (BaseRoute: any) => {
     return result;
   };
 
+  const routeName = BaseRoute.name;
+
   return {
-    [BaseRoute.name]: class extends BaseRoute {
+    [routeName]: class extends BaseRoute {
       beforeModel(...args: any[]) {
         return instrumentFunction(
           'ui.ember.route.before_model',
@@ -112,7 +117,7 @@ export const instrumentRoutePerformance = (BaseRoute: any) => {
         );
       }
     },
-  }[BaseRoute.name];
+  }[routeName] as T;
 };
 
 export * from '@sentry/browser';

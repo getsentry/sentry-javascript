@@ -83,9 +83,7 @@ jobs:
         run: yarn install --ignore-engines --frozen-lockfile
 
       - name: Build dependencies
-        run: |
-          yarn lerna run build:types --scope=@sentry/ember --include-dependencies
-          yarn lerna run build:transpile --scope=@sentry/ember --include-dependencies
+        run: yarn lerna run build:types,build:transpile --scope=@sentry/ember --include-dependencies
 
       - name: Run Ember tests
         run: |

@@ -50,11 +50,11 @@ module('Acceptance | Sentry Errors', function (hooks) {
     assertSentryCall(assert, 0, { errorBodyContains: [...this.errorMessages] });
   });
 
-  test('Check "Throw EmberError"', async function (assert) {
+  test('Check "Throw Error"', async function (assert) {
     assert.expect(3);
 
     await visit('/');
-    const button = find('[data-test-button="Throw EmberError"]');
+    const button = find('[data-test-button="Throw Error"]');
 
     await click(button);
 
@@ -62,11 +62,11 @@ module('Acceptance | Sentry Errors', function (hooks) {
     assertSentryCall(assert, 0, { errorBodyContains: [...this.errorMessages] });
   });
 
-  test('Check "Caught Thrown EmberError"', async function (assert) {
+  test('Check "Caught Thrown Error"', async function (assert) {
     assert.expect(1);
 
     await visit('/');
-    const button = find('[data-test-button="Caught Thrown EmberError"]');
+    const button = find('[data-test-button="Caught Thrown Error"]');
 
     await click(button);
 

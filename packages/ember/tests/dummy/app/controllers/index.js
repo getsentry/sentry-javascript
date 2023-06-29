@@ -1,7 +1,6 @@
 import Controller from '@ember/controller';
 import { tracked } from '@glimmer/tracking';
 import { action } from '@ember/object';
-import EmberError from '@ember/error';
 import { scheduleOnce } from '@ember/runloop';
 import RSVP from 'rsvp';
 
@@ -14,14 +13,14 @@ export default class IndexController extends Controller {
   }
 
   @action
-  createEmberError() {
-    throw new EmberError('Whoops, looks like you have an EmberError');
+  createManualError() {
+    throw new Error('Whoops, looks like you have an Error');
   }
 
   @action
-  createCaughtEmberError() {
+  createCaughtError() {
     try {
-      throw new EmberError('Looks like you have a caught EmberError');
+      throw new Error('Looks like you have a caught Error');
     } catch (e) {
       console.log(e);
     }
