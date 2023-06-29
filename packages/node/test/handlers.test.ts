@@ -278,8 +278,6 @@ describe('tracingHandler', () => {
 
     sentryTracingMiddleware(req, res, next);
 
-    console.log(getPropagationContext());
-
     expect(getPropagationContext()).toEqual({
       traceId: '12312012123120121231201212312012',
       parentSpanId: '1121201211212012',
