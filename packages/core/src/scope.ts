@@ -533,11 +533,18 @@ export class Scope implements ScopeInterface {
   }
 
   /**
-   * @inheritdoc
+   * @inheritDoc
    */
   public setPropagationContext(context: PropagationContext): this {
     this._propagationContext = context;
     return this;
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public getPropagationContext(): PropagationContext {
+    return this._propagationContext;
   }
 
   /**

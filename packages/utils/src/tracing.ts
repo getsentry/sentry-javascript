@@ -18,11 +18,13 @@ export const TRACEPARENT_REGEXP = new RegExp(
  *
  * @returns Object containing data from the header, or undefined if traceparent string is malformed
  */
-export function extractTraceparentData(traceparent: string): TraceparentData | undefined {
-  const matches = traceparent.match(TRACEPARENT_REGEXP);
+export function extractTraceparentData(traceparent?: string): TraceparentData | undefined {
+  if (!traceparent) {
+    return undefined;
+  }
 
-  if (!traceparent || !matches) {
-    // empty string or no matches is invalid traceparent data
+  const matches = traceparent.match(TRACEPARENT_REGEXP);
+  if (!matches) {
     return undefined;
   }
 
@@ -44,8 +46,8 @@ export function extractTraceparentData(traceparent: string): TraceparentData | u
  * Create tracing context from incoming headers.
  */
 export function tracingContextFromHeaders(
-  sentryTrace: Parameters<typeof extractTraceparentData>[0] = '',
-  baggage: Parameters<typeof baggageHeaderToDynamicSamplingContext>[0] = '',
+  sentryTrace: Parameters<typeof extractTraceparentData>[0],
+  baggage: Parameters<typeof baggageHeaderToDynamicSamplingContext>[0],
 ): {
   traceparentData: ReturnType<typeof extractTraceparentData>;
   dynamicSamplingContext: ReturnType<typeof baggageHeaderToDynamicSamplingContext>;
