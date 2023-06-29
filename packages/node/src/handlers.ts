@@ -11,13 +11,12 @@ import type { Span } from '@sentry/types';
 import type { AddRequestDataToEventOptions } from '@sentry/utils';
 import {
   addRequestDataToTransaction,
-  baggageHeaderToDynamicSamplingContext,
   dropUndefinedKeys,
   extractPathForTransaction,
-  extractTraceparentData,
   isString,
   logger,
   normalize,
+  tracingContextFromHeaders,
 } from '@sentry/utils';
 import type * as http from 'http';
 
@@ -62,11 +61,13 @@ export function tracingHandler(): (
       return next();
     }
 
-    // If there is a trace header set, we extract the data from it (parentSpanId, traceId, and sampling decision)
-    const traceparentData =
-      req.headers && isString(req.headers['sentry-trace']) && extractTraceparentData(req.headers['sentry-trace']);
-    const incomingBaggageHeaders = req.headers?.baggage;
-    const dynamicSamplingContext = baggageHeaderToDynamicSamplingContext(incomingBaggageHeaders);
+    const sentryTrace = req.headers && isString(req.headers['sentry-trace']) ? req.headers['sentry-trace'] : undefined;
+    const baggage = req.headers?.baggage;
+    const { traceparentData, dynamicSamplingContext, propagationContext } = tracingContextFromHeaders(
+      sentryTrace,
+      baggage,
+    );
+    hub.getScope().setPropagationContext(propagationContext);
 
     const [name, source] = extractPathForTransaction(req, { path: true, method: true });
     const transaction = startTransaction(

@@ -1,7 +1,7 @@
 import type { Hub } from '@sentry/core';
 import * as sentryCore from '@sentry/core';
 import { setAsyncContextStrategy, Transaction } from '@sentry/core';
-import type { Event } from '@sentry/types';
+import type { Event, PropagationContext } from '@sentry/types';
 import { SentryError } from '@sentry/utils';
 import * as http from 'http';
 
@@ -209,6 +209,11 @@ describe('tracingHandler', () => {
     jest.restoreAllMocks();
   });
 
+  function getPropagationContext(): PropagationContext {
+    // @ts-expect-error accesing private property for test
+    return hub.getScope()._propagationContext;
+  }
+
   it('creates a transaction when handling a request', () => {
     const startTransaction = jest.spyOn(sentryCore, 'startTransaction');
 
@@ -251,6 +256,13 @@ describe('tracingHandler', () => {
 
     const transaction = (res as any).__sentry_transaction;
 
+    expect(getPropagationContext()).toEqual({
+      traceId: '12312012123120121231201212312012',
+      parentSpanId: '1121201211212012',
+      spanId: expect.any(String),
+      sampled: false,
+    });
+
     // since we have no tracesSampler defined, the default behavior (inherit if possible) applies
     expect(transaction.traceId).toEqual('12312012123120121231201212312012');
     expect(transaction.parentSpanId).toEqual('1121201211212012');
@@ -260,18 +272,28 @@ describe('tracingHandler', () => {
 
   it("pulls parent's data from tracing and baggage headers on the request", () => {
     req.headers = {
-      'sentry-trace': '12312012123120121231201212312012-1121201211212012-0',
+      'sentry-trace': '12312012123120121231201212312012-1121201211212012-1',
       baggage: 'sentry-version=1.0,sentry-environment=production',
     };
 
     sentryTracingMiddleware(req, res, next);
+
+    console.log(getPropagationContext());
+
+    expect(getPropagationContext()).toEqual({
+      traceId: '12312012123120121231201212312012',
+      parentSpanId: '1121201211212012',
+      spanId: expect.any(String),
+      sampled: true,
+      dsc: { version: '1.0', environment: 'production' },
+    });
 
     const transaction = (res as any).__sentry_transaction;
 
     // since we have no tracesSampler defined, the default behavior (inherit if possible) applies
     expect(transaction.traceId).toEqual('12312012123120121231201212312012');
     expect(transaction.parentSpanId).toEqual('1121201211212012');
-    expect(transaction.sampled).toEqual(false);
+    expect(transaction.sampled).toEqual(true);
     expect(transaction.metadata?.dynamicSamplingContext).toStrictEqual({ version: '1.0', environment: 'production' });
   });
 
@@ -282,6 +304,8 @@ describe('tracingHandler', () => {
     };
 
     sentryTracingMiddleware(req, res, next);
+
+    expect(getPropagationContext().dsc).toEqual({ version: '1.0', environment: 'production' });
 
     const transaction = (res as any).__sentry_transaction;
     expect(transaction.metadata?.dynamicSamplingContext).toStrictEqual({ version: '1.0', environment: 'production' });
