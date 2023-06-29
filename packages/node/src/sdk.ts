@@ -15,6 +15,7 @@ import {
   logger,
   nodeStackLineParser,
   stackParserFromStackParserOptions,
+  tracingContextFromHeaders,
   uuid4,
 } from '@sentry/utils';
 
@@ -301,21 +302,9 @@ function startSessionTracking(): void {
 function updateScopeFromEnvVariables(): void {
   const sentryUseEnvironment = (process.env.SENTRY_USE_ENVIRONMENT || '').toLowerCase();
   if (!['false', 'n', 'no', 'off', '0'].includes(sentryUseEnvironment)) {
-    const sentryTraceEnv = process.env.SENTRY_TRACE || '';
+    const sentryTraceEnv = process.env.SENTRY_TRACE;
     const baggageEnv = process.env.SENTRY_BAGGAGE;
-
-    const traceparentData = extractTraceparentData(sentryTraceEnv) || {};
-    const { traceId, parentSpanId, parentSampled } = traceparentData;
-    const propagationContext: PropagationContext = {
-      traceId: traceId || uuid4(),
-      spanId: uuid4().substring(16),
-      parentSpanId,
-      sampled: parentSampled === undefined ? false : parentSampled,
-    };
-    const dynamicSamplingContext = baggageHeaderToDynamicSamplingContext(baggageEnv);
-    if (dynamicSamplingContext) {
-      propagationContext.dsc = dynamicSamplingContext as DynamicSamplingContext;
-    }
+    const { propagationContext } = tracingContextFromHeaders(sentryTraceEnv, baggageEnv);
     getCurrentHub().getScope().setPropagationContext(propagationContext);
   }
 }
