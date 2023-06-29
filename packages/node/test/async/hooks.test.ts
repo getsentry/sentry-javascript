@@ -1,4 +1,5 @@
-import { getCurrentHub, Hub, runWithAsyncContext, setAsyncContextStrategy } from '@sentry/core';
+import type { Hub } from '@sentry/core';
+import { getCurrentHub, runWithAsyncContext, setAsyncContextStrategy } from '@sentry/core';
 
 import { setHooksAsyncContextStrategy } from '../../src/async/hooks';
 import { conditionalTest } from '../utils';
@@ -7,11 +8,6 @@ conditionalTest({ min: 12 })('async_hooks', () => {
   afterAll(() => {
     // clear the strategy
     setAsyncContextStrategy(undefined);
-  });
-
-  test('without context', () => {
-    const hub = getCurrentHub();
-    expect(hub).toEqual(new Hub());
   });
 
   test('without strategy hubs should be equal', () => {

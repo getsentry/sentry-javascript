@@ -83,7 +83,7 @@ export type { Span, SpanContext } from './span';
 export type { StackFrame } from './stackframe';
 export type { Stacktrace, StackParser, StackLineParser, StackLineParserFn } from './stacktrace';
 export type { TextEncoderInternal } from './textencoder';
-export type { TracePropagationTargets } from './tracing';
+export type { PropagationContext, TracePropagationTargets } from './tracing';
 export type {
   CustomSamplingContext,
   SamplingContext,

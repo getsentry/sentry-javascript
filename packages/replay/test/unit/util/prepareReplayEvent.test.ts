@@ -82,7 +82,7 @@ describe('Unit | util | prepareReplayEvent', () => {
         name: 'sentry.javascript.testSdk',
         version: '1.0.0',
       },
-      sdkProcessingMetadata: {},
+      sdkProcessingMetadata: expect.any(Object),
       breadcrumbs: undefined,
     });
   });

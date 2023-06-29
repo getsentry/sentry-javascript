@@ -70,6 +70,9 @@ export interface Hub {
   /** Returns the client of the top stack. */
   getClient(): Client | undefined;
 
+  /** Returns the scope of the top stack */
+  getScope(): Scope;
+
   /**
    * Captures an exception event and sends it to Sentry.
    *
