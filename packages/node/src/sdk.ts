@@ -305,7 +305,7 @@ function startSessionTracking(): void {
 function updateScopeFromEnvVariables(): void {
   const sentryUseEnvironment = (process.env.SENTRY_USE_ENVIRONMENT || '').toLowerCase();
   if (!['false', 'n', 'no', 'off', '0'].includes(sentryUseEnvironment)) {
-    const sentryTraceEnv = process.env.SENTRY_TRACE;
+    const sentryTraceEnv = process.env.SENTRY_TRACE || '';
     const baggageEnv = process.env.SENTRY_BAGGAGE;
     const { propagationContext } = tracingContextFromHeaders(sentryTraceEnv, baggageEnv);
     getCurrentHub().getScope().setPropagationContext(propagationContext);
