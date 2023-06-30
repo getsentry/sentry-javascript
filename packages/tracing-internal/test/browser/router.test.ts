@@ -46,6 +46,7 @@ describe('instrumentRoutingWithDefaults', () => {
       name: 'blank',
       op: 'pageload',
       metadata: { source: 'url' },
+      startTimestamp: expect.any(Number),
     });
   });
 

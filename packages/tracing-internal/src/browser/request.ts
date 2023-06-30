@@ -214,7 +214,7 @@ export function shouldAttachHeaders(url: string, tracePropagationTargets: (strin
  *
  * @returns Span if a span was created, otherwise void.
  */
-function fetchCallback(
+export function fetchCallback(
   handlerData: FetchData,
   shouldCreateSpan: (url: string) => boolean,
   shouldAttachHeaders: (url: string) => boolean,
@@ -364,7 +364,7 @@ export function addTracingHeadersToFetchRequest(
  *
  * @returns Span if a span was created, otherwise void.
  */
-function xhrCallback(
+export function xhrCallback(
   handlerData: XHRData,
   shouldCreateSpan: (url: string) => boolean,
   shouldAttachHeaders: (url: string) => boolean,

@@ -240,6 +240,7 @@ describe('callbacks', () => {
       expect(finishedSpan.data).toEqual({
         'http.response_content_length': 123,
         'http.method': 'GET',
+        'http.response.status_code': 404,
         type: 'fetch',
         url: 'http://dogs.are.great/',
       });
