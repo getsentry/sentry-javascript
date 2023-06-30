@@ -1,4 +1,4 @@
-import type { InstrumentHandlerCallback, InstrumentHandlerType } from '@sentry/utils';
+import { InstrumentHandlerCallback, InstrumentHandlerType, parseSemver } from '@sentry/utils';
 import { JSDOM } from 'jsdom';
 
 import { instrumentRoutingWithDefaults } from '../../src/browser/router';
@@ -15,6 +15,17 @@ jest.mock('@sentry/utils', () => {
     },
   };
 });
+
+const NODE_VERSION = parseSemver(process.versions.node).major || 20;
+
+/**
+ * Since startTimestamp is created using browserPerformanceTimeOrigin, which requires Node 14+
+ * we need to expect a different value for older versions of Node. This is not a problem for browser
+ * environments, but we need to run this test in multiple Node versions.
+ */
+function expectStartTimestamp() {
+  return NODE_VERSION > 14 ? expect.any(Number) : undefined;
+}
 
 describe('instrumentRoutingWithDefaults', () => {
   const mockFinish = jest.fn();
@@ -46,7 +57,7 @@ describe('instrumentRoutingWithDefaults', () => {
       name: 'blank',
       op: 'pageload',
       metadata: { source: 'url' },
-      startTimestamp: expect.any(Number),
+      startTimestamp: expectStartTimestamp(),
     });
   });
 
