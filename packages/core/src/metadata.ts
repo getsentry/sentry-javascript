@@ -1,6 +1,11 @@
 import type { Event, StackParser } from '@sentry/types';
 import { GLOBAL_OBJ } from '@sentry/utils';
 
+/**
+ * Keys are source filenames/urls, values are metadata objects.
+ */
+let filenameMetadataMap: Record<string, object> | undefined;
+
 function ensureMetadataStacksAreParsed(parser: StackParser): void {
   if (!GLOBAL_OBJ.__MODULE_METADATA__) {
     return;
@@ -9,7 +14,7 @@ function ensureMetadataStacksAreParsed(parser: StackParser): void {
   for (const stack of Object.keys(GLOBAL_OBJ.__MODULE_METADATA__)) {
     const metadata = GLOBAL_OBJ.__MODULE_METADATA__[stack];
 
-    // If this stack has already been parsed, skip it
+    // If this stack has already been parsed, we can skip it
     if (metadata == false) {
       continue;
     }
@@ -22,9 +27,9 @@ function ensureMetadataStacksAreParsed(parser: StackParser): void {
     // Go through the frames starting from the top of the stack and find the first one with a filename
     for (const frame of frames.reverse()) {
       if (frame.filename) {
+        filenameMetadataMap = filenameMetadataMap || {};
         // Save the metadata for this filename
-        GLOBAL_OBJ.__MODULE_METADATA_PARSED__ = GLOBAL_OBJ.__MODULE_METADATA_PARSED__ || {};
-        GLOBAL_OBJ.__MODULE_METADATA_PARSED__[frame.filename] = metadata;
+        filenameMetadataMap[frame.filename] = metadata;
         break;
       }
     }
@@ -38,10 +43,7 @@ function ensureMetadataStacksAreParsed(parser: StackParser): void {
  */
 export function getMetadataForUrl(parser: StackParser, url: string): object | undefined {
   ensureMetadataStacksAreParsed(parser);
-
-  const metadataObj = GLOBAL_OBJ.__MODULE_METADATA_PARSED__ || {};
-
-  return metadataObj[url];
+  return filenameMetadataMap ? filenameMetadataMap[url] : undefined;
 }
 
 /**

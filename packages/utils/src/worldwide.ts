@@ -62,12 +62,6 @@ export interface InternalGlobal {
    * Once the stack has been parsed, the value is set to `false` so they do not get parsed multiple times.
    */
   __MODULE_METADATA__?: Record<string, object | false>;
-  /**
-   * Parsed module metadata.
-   *
-   * Keys are source filenames/urls, values are metadata objects.
-   */
-  __MODULE_METADATA_PARSED__?: Record<string, object>;
 }
 
 // The code below for 'isGlobalObj' and 'GLOBAL_OBJ' was copied from core-js before modification
