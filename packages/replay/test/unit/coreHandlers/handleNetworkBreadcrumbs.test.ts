@@ -1464,6 +1464,85 @@ other-header: test`;
           },
         ]);
       });
+
+      it('correctly excludes URL for xhr request', async () => {
+        options.networkDetailExcludeUrls = [
+          'https://example.com/foo',
+          'com/bar',
+          /^http:\/\/example.com\/exact$/,
+          /^http:\/\/example.com\/partial/,
+        ];
+
+        const breadcrumb: Breadcrumb = {
+          category: 'xhr',
+          data: {
+            method: 'GET',
+            url,
+            status_code: 200,
+          },
+        };
+        const xhr = new XMLHttpRequest();
+        Object.defineProperty(xhr, 'response', {
+          value: 'test response',
+        });
+        Object.defineProperty(xhr, 'responseText', {
+          value: 'test response',
+        });
+        const hint: XhrBreadcrumbHint = {
+          xhr,
+          input: 'test input',
+          startTimestamp: BASE_TIMESTAMP + 1000,
+          endTimestamp: BASE_TIMESTAMP + 2000,
+        };
+        beforeAddNetworkBreadcrumb(options, breadcrumb, hint);
+
+        expect(breadcrumb).toEqual({
+          category: 'xhr',
+          data: {
+            method: 'GET',
+            request_body_size: 10,
+            response_body_size: 13,
+            status_code: 200,
+            url,
+          },
+        });
+
+        await waitForReplayEventBuffer();
+
+        expect((options.replay.eventBuffer as EventBufferArray).events).toEqual([
+          {
+            data: {
+              payload: {
+                data: {
+                  method: 'GET',
+                  request: {
+                    _meta: {
+                      warnings: ['URL_SKIPPED'],
+                    },
+                    headers: {},
+                    size: 10,
+                  },
+                  response: {
+                    _meta: {
+                      warnings: ['URL_SKIPPED'],
+                    },
+                    headers: {},
+                    size: 13,
+                  },
+                  statusCode: 200,
+                },
+                description: url,
+                endTimestamp: 1580598002,
+                op: 'resource.xhr',
+                startTimestamp: 1580598001,
+              },
+              tag: 'performanceSpan',
+            },
+            timestamp: 1580598001,
+            type: 5,
+          },
+        ]);
+      });
     });
   });
 });
