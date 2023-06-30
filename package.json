@@ -98,7 +98,7 @@
     "jsdom": "^19.0.0",
     "karma-browserstack-launcher": "^1.5.1",
     "karma-firefox-launcher": "^1.1.0",
-    "lerna": "6.5.0-alpha.2",
+    "lerna": "7.1.1",
     "madge": "4.0.2",
     "mocha": "^6.1.4",
     "nodemon": "^2.0.16",
