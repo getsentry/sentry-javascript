@@ -1,13 +1,6 @@
 import { getCurrentHub } from '@sentry/core';
 import { WINDOW } from '@sentry/react';
-import type {
-  DynamicSamplingContext,
-  Primitive,
-  TraceparentData,
-  Transaction,
-  TransactionContext,
-  TransactionSource,
-} from '@sentry/types';
+import type { Primitive, Transaction, TransactionContext, TransactionSource } from '@sentry/types';
 import { logger, stripUrlQueryAndFragment, tracingContextFromHeaders } from '@sentry/utils';
 import type { NEXT_DATA as NextData } from 'next/dist/next-server/lib/utils';
 import { default as Router } from 'next/router';
@@ -39,9 +32,9 @@ interface SentryEnhancedNextData extends NextData {
 
 interface NextDataTagInfo {
   route?: string;
-  traceParentData?: TraceparentData;
-  dynamicSamplingContext?: Partial<DynamicSamplingContext>;
   params?: ParsedUrlQuery;
+  sentryTrace?: string;
+  baggage?: string;
 }
 
 /**
@@ -85,23 +78,8 @@ function extractNextDataTagInformation(): NextDataTagInfo {
   nextDataTagInfo.params = query;
 
   if (props && props.pageProps) {
-    const sentryTrace = props.pageProps._sentryTraceData;
-    const baggage = props.pageProps._sentryBaggage;
-
-    const { traceparentData, dynamicSamplingContext, propagationContext } = tracingContextFromHeaders(
-      sentryTrace,
-      baggage,
-    );
-
-    if (dynamicSamplingContext) {
-      nextDataTagInfo.dynamicSamplingContext = dynamicSamplingContext;
-    }
-
-    if (traceparentData) {
-      nextDataTagInfo.traceParentData = traceparentData;
-    }
-
-    getCurrentHub().getScope().setPropagationContext(propagationContext);
+    nextDataTagInfo.sentryTrace = props.pageProps._sentryTraceData;
+    nextDataTagInfo.baggage = props.pageProps._sentryBaggage;
   }
 
   return nextDataTagInfo;
@@ -133,7 +111,13 @@ export function nextRouterInstrumentation(
   startTransactionOnPageLoad: boolean = true,
   startTransactionOnLocationChange: boolean = true,
 ): void {
-  const { route, traceParentData, dynamicSamplingContext, params } = extractNextDataTagInformation();
+  const { route, params, sentryTrace, baggage } = extractNextDataTagInformation();
+  const { traceparentData, dynamicSamplingContext, propagationContext } = tracingContextFromHeaders(
+    sentryTrace,
+    baggage,
+  );
+
+  getCurrentHub().getScope().setPropagationContext(propagationContext);
   prevLocationName = route || globalObject.location.pathname;
 
   if (startTransactionOnPageLoad) {
@@ -143,10 +127,10 @@ export function nextRouterInstrumentation(
       op: 'pageload',
       tags: DEFAULT_TAGS,
       ...(params && client && client.getOptions().sendDefaultPii && { data: params }),
-      ...traceParentData,
+      ...traceparentData,
       metadata: {
         source,
-        dynamicSamplingContext: traceParentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
+        dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
       },
     });
   }
