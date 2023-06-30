@@ -11,9 +11,9 @@ import type {
 } from '@sentry/types';
 import { dropUndefinedKeys, logger } from '@sentry/utils';
 
-import { DEFAULT_ENVIRONMENT } from '../constants';
 import type { Hub } from '../hub';
 import { getCurrentHub } from '../hub';
+import { getDynamicSamplingContextFromClient } from './dynamicSamplingContext';
 import { Span as SpanClass, SpanRecorder } from './span';
 
 /** JSDoc */
@@ -245,33 +245,24 @@ export class Transaction extends SpanClass implements TransactionInterface {
       return this._frozenDynamicSamplingContext;
     }
 
-    const hub: Hub = this._hub || getCurrentHub();
-    const client = hub && hub.getClient();
+    const hub = this._hub || getCurrentHub();
+    const client = hub.getClient();
 
     if (!client) return {};
 
-    const { environment, release } = client.getOptions() || {};
-    const { publicKey: public_key } = client.getDsn() || {};
+    const scope = hub.getScope();
+    const dsc = getDynamicSamplingContextFromClient(this.traceId, client, scope);
 
     const maybeSampleRate = this.metadata.sampleRate;
-    const sample_rate = maybeSampleRate !== undefined ? maybeSampleRate.toString() : undefined;
-
-    const { segment: user_segment } = hub.getScope().getUser() || {};
-
-    const source = this.metadata.source;
+    if (maybeSampleRate !== undefined) {
+      dsc.sample_rate = maybeSampleRate.toString();
+    }
 
     // We don't want to have a transaction name in the DSC if the source is "url" because URLs might contain PII
-    const transaction = source && source !== 'url' ? this.name : undefined;
-
-    const dsc = dropUndefinedKeys({
-      environment: environment || DEFAULT_ENVIRONMENT,
-      release,
-      transaction,
-      user_segment,
-      public_key,
-      trace_id: this.traceId,
-      sample_rate,
-    });
+    const source = this.metadata.source;
+    if (source && source !== 'url') {
+      dsc.transaction = this.name;
+    }
 
     // Uncomment if we want to make DSC immutable
     // this._frozenDynamicSamplingContext = dsc;
