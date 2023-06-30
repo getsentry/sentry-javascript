@@ -78,3 +78,18 @@ export function tracingContextFromHeaders(
     propagationContext,
   };
 }
+
+/**
+ * Create sentry-trace header from span context values.
+ */
+export function generateSentryTraceHeader(
+  traceId: string = uuid4(),
+  spanId: string = uuid4().substring(16),
+  sampled?: boolean,
+): string {
+  let sampledString = '';
+  if (sampled !== undefined) {
+    sampledString = sampled ? '-1' : '-0';
+  }
+  return `${traceId}-${spanId}${sampledString}`;
+}
