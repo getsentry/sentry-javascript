@@ -1,6 +1,6 @@
 import { createTransport } from '@sentry/browser';
 import type { Client, ClientOptions } from '@sentry/types';
-import { GLOBAL_OBJ, resolvedSyncPromise } from '@sentry/utils';
+import { GLOBAL_OBJ, parseSemver, resolvedSyncPromise } from '@sentry/utils';
 import { JSDOM } from 'jsdom';
 
 /**
