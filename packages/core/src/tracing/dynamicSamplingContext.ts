@@ -24,7 +24,7 @@ export function getDynamicSamplingContextFromClient(
     user_segment,
     public_key,
     trace_id,
-  });
+  }) as DynamicSamplingContext;
 
   client.emit && client.emit('createDsc', dsc);
 
