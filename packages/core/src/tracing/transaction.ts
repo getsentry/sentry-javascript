@@ -255,7 +255,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
 
     const maybeSampleRate = this.metadata.sampleRate;
     if (maybeSampleRate !== undefined) {
-      dsc.sample_rate = maybeSampleRate.toString();
+      dsc.sample_rate = `${maybeSampleRate}`;
     }
 
     // We don't want to have a transaction name in the DSC if the source is "url" because URLs might contain PII
