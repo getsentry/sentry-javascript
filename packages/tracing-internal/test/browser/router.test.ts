@@ -1,4 +1,5 @@
-import { InstrumentHandlerCallback, InstrumentHandlerType, parseSemver } from '@sentry/utils';
+import type { InstrumentHandlerCallback, InstrumentHandlerType} from '@sentry/utils';
+import { parseSemver } from '@sentry/utils';
 import { JSDOM } from 'jsdom';
 
 import { instrumentRoutingWithDefaults } from '../../src/browser/router';
