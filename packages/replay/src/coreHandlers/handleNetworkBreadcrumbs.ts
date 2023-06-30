@@ -31,13 +31,19 @@ export function handleNetworkBreadcrumbs(replay: ReplayContainer): void {
   try {
     const textEncoder = new TextEncoder();
 
-    const { networkDetailAllowUrls, networkCaptureBodies, networkRequestHeaders, networkResponseHeaders } =
-      replay.getOptions();
+    const {
+      networkDetailAllowUrls,
+      networkDetailExcludeUrls,
+      networkCaptureBodies,
+      networkRequestHeaders,
+      networkResponseHeaders,
+    } = replay.getOptions();
 
     const options: ExtendedNetworkBreadcrumbsOptions = {
       replay,
       textEncoder,
       networkDetailAllowUrls,
+      networkDetailExcludeUrls,
       networkCaptureBodies,
       networkRequestHeaders,
       networkResponseHeaders,

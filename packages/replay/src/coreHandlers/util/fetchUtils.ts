@@ -85,7 +85,8 @@ async function _prepareFetchData(
     response_body_size: responseBodySize,
   } = breadcrumb.data;
 
-  const captureDetails = urlMatches(url, options.networkDetailAllowUrls);
+  const captureDetails =
+    urlMatches(url, options.networkDetailAllowUrls) && !urlMatches(url, options.networkDetailExcludeUrls);
 
   const request = captureDetails
     ? _getRequestInfo(options, hint.input, requestBodySize)
