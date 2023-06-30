@@ -5,13 +5,12 @@ import { captureException, getCurrentHub } from '@sentry/node';
 import type { Transaction, TransactionSource, WrappedFunction } from '@sentry/types';
 import {
   addExceptionMechanism,
-  baggageHeaderToDynamicSamplingContext,
   dynamicSamplingContextToSentryBaggageHeader,
-  extractTraceparentData,
   fill,
   isNodeEnv,
   loadModule,
   logger,
+  tracingContextFromHeaders,
 } from '@sentry/utils';
 
 import type {
@@ -290,9 +289,11 @@ export function startRequestHandlerTransaction(
     method: string;
   },
 ): Transaction {
-  // If there is a trace header set, we extract the data from it (parentSpanId, traceId, and sampling decision)
-  const traceparentData = extractTraceparentData(request.headers['sentry-trace']);
-  const dynamicSamplingContext = baggageHeaderToDynamicSamplingContext(request.headers.baggage);
+  const { traceparentData, dynamicSamplingContext, propagationContext } = tracingContextFromHeaders(
+    request.headers['sentry-trace'],
+    request.headers.baggage,
+  );
+  hub.getScope().setPropagationContext(propagationContext);
 
   const transaction = hub.startTransaction({
     name,
