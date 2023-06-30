@@ -15,4 +15,5 @@ export interface StackFrame {
   addr_mode?: string;
   vars?: { [key: string]: any };
   debug_id?: string;
+  module_metadata?: object;
 }

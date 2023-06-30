@@ -46,6 +46,7 @@ export { prepareEvent } from './utils/prepareEvent';
 export { createCheckInEnvelope } from './checkin';
 export { hasTracingEnabled } from './utils/hasTracingEnabled';
 export { DEFAULT_ENVIRONMENT } from './constants';
+export { getMetadataForUrl, addMetadataToStackFrames, stripMetadataFromStackFrames } from './metadata';
 
 import * as Integrations from './integrations';
 
