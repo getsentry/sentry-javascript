@@ -1,4 +1,4 @@
-import type { Event, StackFrame, StackParser } from '@sentry/types';
+import type { Event, StackParser } from '@sentry/types';
 import { GLOBAL_OBJ } from '@sentry/utils';
 
 function ensureMetadataStacksAreParsed(parser: StackParser): void {
