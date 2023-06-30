@@ -1,4 +1,4 @@
-import type { InstrumentHandlerCallback, InstrumentHandlerType} from '@sentry/utils';
+import type { InstrumentHandlerCallback, InstrumentHandlerType } from '@sentry/utils';
 import { parseSemver } from '@sentry/utils';
 import { JSDOM } from 'jsdom';
 
