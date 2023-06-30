@@ -58,6 +58,23 @@ export const testOnlyIfNodeVersionAtLeast = (minVersion: number): jest.It => {
   return it;
 };
 
+/**
+ * Returns`describe` or `describe.skip` depending on allowed major versions of Node.
+ *
+ * @param {{ min?: number; max?: number }} allowedVersion
+ * @return {*}  {jest.Describe}
+ */
+export const conditionalTest = (allowedVersion: { min?: number; max?: number }): jest.Describe => {
+  const NODE_VERSION = parseSemver(process.versions.node).major;
+  if (!NODE_VERSION) {
+    return describe.skip;
+  }
+
+  return NODE_VERSION < (allowedVersion.min || -Infinity) || NODE_VERSION > (allowedVersion.max || Infinity)
+    ? describe.skip
+    : describe;
+};
+
 export function getDefaultBrowserClientOptions(options: Partial<ClientOptions> = {}): ClientOptions {
   return {
     integrations: [],

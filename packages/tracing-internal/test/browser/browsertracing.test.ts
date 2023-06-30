@@ -7,7 +7,7 @@ import { JSDOM } from 'jsdom';
 
 import type { IdleTransaction } from '../../../tracing/src';
 import { getActiveTransaction } from '../../../tracing/src';
-import { getDefaultBrowserClientOptions } from '../../../tracing/test/testutils';
+import { conditionalTest, getDefaultBrowserClientOptions } from '../../../tracing/test/testutils';
 import type { BrowserTracingOptions } from '../../src/browser/browsertracing';
 import { BrowserTracing, getMetaContent } from '../../src/browser/browsertracing';
 import { defaultRequestInstrumentationOptions } from '../../src/browser/request';
@@ -58,7 +58,7 @@ beforeAll(() => {
   WINDOW.location = dom.window.location;
 });
 
-describe('BrowserTracing', () => {
+conditionalTest({ min: 10 })('BrowserTracing', () => {
   let hub: Hub;
   beforeEach(() => {
     jest.useFakeTimers();
