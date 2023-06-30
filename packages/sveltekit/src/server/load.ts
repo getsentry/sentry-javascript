@@ -1,5 +1,5 @@
 /* eslint-disable @sentry-internal/sdk/no-optional-chaining */
-import { trace } from '@sentry/core';
+import { getCurrentHub, trace } from '@sentry/core';
 import { captureException } from '@sentry/node';
 import type { TransactionContext } from '@sentry/types';
 import { addExceptionMechanism, addNonEnumerableProperty, objectify } from '@sentry/utils';
@@ -121,7 +121,8 @@ export function wrapServerLoadWithSentry<T extends (...args: any) => any>(origSe
 
       const routeId = event.route && event.route.id;
 
-      const { dynamicSamplingContext, traceparentData } = getTracePropagationData(event);
+      const { dynamicSamplingContext, traceparentData, propagationContext } = getTracePropagationData(event);
+      getCurrentHub().getScope().setPropagationContext(propagationContext);
 
       const traceLoadContext: TransactionContext = {
         op: 'function.sveltekit.server.load',

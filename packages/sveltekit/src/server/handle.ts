@@ -112,7 +112,8 @@ function instrumentHandle({ event, resolve }: Parameters<Handle>[0], options: Se
     return resolve(event);
   }
 
-  const { traceparentData, dynamicSamplingContext } = getTracePropagationData(event);
+  const { dynamicSamplingContext, traceparentData, propagationContext } = getTracePropagationData(event);
+  getCurrentHub().getScope().setPropagationContext(propagationContext);
 
   return trace(
     {
