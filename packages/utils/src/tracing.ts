@@ -46,8 +46,8 @@ export function extractTraceparentData(traceparent?: string): TraceparentData | 
  * Create tracing context from incoming headers.
  */
 export function tracingContextFromHeaders(
-  sentryTrace: Parameters<typeof extractTraceparentData>[0] = '',
-  baggage: Parameters<typeof baggageHeaderToDynamicSamplingContext>[0] = '',
+  sentryTrace: Parameters<typeof extractTraceparentData>[0],
+  baggage: Parameters<typeof baggageHeaderToDynamicSamplingContext>[0],
 ): {
   traceparentData: ReturnType<typeof extractTraceparentData>;
   dynamicSamplingContext: ReturnType<typeof baggageHeaderToDynamicSamplingContext>;
@@ -77,4 +77,19 @@ export function tracingContextFromHeaders(
     dynamicSamplingContext,
     propagationContext,
   };
+}
+
+/**
+ * Create sentry-trace header from span context values.
+ */
+export function generateSentryTraceHeader(
+  traceId: string = uuid4(),
+  spanId: string = uuid4().substring(16),
+  sampled?: boolean,
+): string {
+  let sampledString = '';
+  if (sampled !== undefined) {
+    sampledString = sampled ? '-1' : '-0';
+  }
+  return `${traceId}-${spanId}${sampledString}`;
 }
