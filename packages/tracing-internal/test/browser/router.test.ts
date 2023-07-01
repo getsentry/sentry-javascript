@@ -1,6 +1,7 @@
 import type { InstrumentHandlerCallback, InstrumentHandlerType } from '@sentry/utils';
 import { JSDOM } from 'jsdom';
 
+import { conditionalTest } from '../../../tracing/test/testutils';
 import { instrumentRoutingWithDefaults } from '../../src/browser/router';
 
 let mockChangeHistory: ({ to, from }: { to: string; from?: string }) => void = () => undefined;
@@ -16,7 +17,7 @@ jest.mock('@sentry/utils', () => {
   };
 });
 
-describe('instrumentRoutingWithDefaults', () => {
+conditionalTest({ min: 16 })('instrumentRoutingWithDefaults', () => {
   const mockFinish = jest.fn();
   const customStartTransaction = jest.fn().mockReturnValue({ finish: mockFinish });
   beforeEach(() => {
