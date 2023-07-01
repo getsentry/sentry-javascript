@@ -49,3 +49,5 @@ tmp.js
 # eslint
 .eslintcache
 **/eslintcache/*
+
+typedoc/docs/

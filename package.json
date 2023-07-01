@@ -30,7 +30,8 @@
     "test-ci-browser": "lerna run test --ignore \"@sentry/{node,opentelemetry-node,serverless,nextjs,remix,gatsby,sveltekit}\" --ignore @sentry-internal/*",
     "test-ci-node": "ts-node ./scripts/node-unit-tests.ts",
     "test:update-snapshots": "lerna run test:update-snapshots",
-    "yalc:publish": "lerna run yalc:publish"
+    "yalc:publish": "lerna run yalc:publish",
+    "generate:typedoc": "yarn typedoc --options ./typedoc.js"
   },
   "volta": {
     "node": "16.19.0",
@@ -116,7 +117,7 @@
     "ts-jest": "^27.1.4",
     "ts-node": "10.9.1",
     "tslib": "2.4.1",
-    "typedoc": "^0.18.0",
+    "typedoc": "^0.24.8",
     "typescript": "4.9.5",
     "vitest": "^0.29.2",
     "yalc": "^1.0.0-pre.53"

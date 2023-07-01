@@ -1,0 +1,4 @@
+{
+  "extends": ["../../typedoc.base.json"],
+  "entryPoints": ["src/index.ts", "./gatsby-browser.js", "./gatsby-node.js"]
+}

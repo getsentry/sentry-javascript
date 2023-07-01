@@ -1,0 +1,9 @@
+{
+  "$schema": "https://typedoc.org/schema.json",
+  "includeVersion": true,
+  "excludePrivate": true,
+  "excludeExternals": true,
+  "excludeReferences": true,
+  "excludeNotDocumented": true,
+  "plugin": ["./typedoc/plugin-remove-references.js"],
+}
