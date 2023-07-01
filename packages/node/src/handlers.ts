@@ -10,6 +10,7 @@ import {
 import type { Span } from '@sentry/types';
 import type { AddRequestDataToEventOptions } from '@sentry/utils';
 import {
+  addExceptionMechanism,
   addRequestDataToTransaction,
   baggageHeaderToDynamicSamplingContext,
   dropUndefinedKeys,
@@ -303,6 +304,11 @@ export function errorHandler(options?: {
             }
           }
         }
+
+        _scope.addEventProcessor(event => {
+          addExceptionMechanism(event, { type: 'middleware', handled: false });
+          return event;
+        });
 
         const eventId = captureException(error);
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
