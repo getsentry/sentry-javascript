@@ -5,5 +5,6 @@
   "excludeExternals": true,
   "excludeReferences": true,
   "excludeNotDocumented": true,
+  "githubPages": true,
   "plugin": ["./typedoc/plugin-remove-references.js"],
 }

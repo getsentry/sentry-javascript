@@ -6,6 +6,6 @@ module.exports = {
   entryPoints: ['packages/*'],
   exclude: ['./packages/typescript'],
   entryPointStrategy: 'packages',
+  githubPages: true,
   // logLevel: 'Verbose',
-  // excludeExternals: true,
 };
