@@ -1,0 +1,159 @@
+<!DOCTYPE html><html class="default" lang="en"><head><meta charSet="utf-8"/><meta http-equiv="x-ua-compatible" content="IE=edge"/><title>@sentry/ember | Sentry JavaScript SDKs</title><meta name="description" content="Documentation for Sentry JavaScript SDKs"/><meta name="viewport" content="width=device-width, initial-scale=1"/><link rel="stylesheet" href="../assets/style.css"/><link rel="stylesheet" href="../assets/highlight.css"/><script defer src="../assets/main.js"></script><script async src="../assets/search.js" id="tsd-search-script"></script></head><body><script>document.documentElement.dataset.theme = localStorage.getItem("tsd-theme") || "os"</script><header class="tsd-page-toolbar">
+<div class="tsd-toolbar-contents container">
+<div class="table-cell" id="tsd-search" data-base="..">
+<div class="field"><label for="tsd-search-field" class="tsd-widget tsd-toolbar-icon search no-caption"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M15.7824 13.833L12.6666 10.7177C12.5259 10.5771 12.3353 10.499 12.1353 10.499H11.6259C12.4884 9.39596 13.001 8.00859 13.001 6.49937C13.001 2.90909 10.0914 0 6.50048 0C2.90959 0 0 2.90909 0 6.49937C0 10.0896 2.90959 12.9987 6.50048 12.9987C8.00996 12.9987 9.39756 12.4863 10.5008 11.6239V12.1332C10.5008 12.3332 10.5789 12.5238 10.7195 12.6644L13.8354 15.7797C14.1292 16.0734 14.6042 16.0734 14.8948 15.7797L15.7793 14.8954C16.0731 14.6017 16.0731 14.1267 15.7824 13.833ZM6.50048 10.499C4.29094 10.499 2.50018 8.71165 2.50018 6.49937C2.50018 4.29021 4.28781 2.49976 6.50048 2.49976C8.71001 2.49976 10.5008 4.28708 10.5008 6.49937C10.5008 8.70852 8.71314 10.499 6.50048 10.499Z" fill="var(--color-text)"></path></svg></label><input type="text" id="tsd-search-field" aria-label="Search"/></div>
+<div class="field">
+<div id="tsd-toolbar-links"></div></div>
+<ul class="results">
+<li class="state loading">Preparing search index...</li>
+<li class="state failure">The search index is not available</li></ul><a href="../index.html" class="title">Sentry JavaScript SDKs</a></div>
+<div class="table-cell" id="tsd-widgets"><a href="#" class="tsd-widget tsd-toolbar-icon menu no-caption" data-toggle="menu" aria-label="Menu"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="2" fill="var(--color-text)"></rect><rect x="1" y="7" width="14" height="2" fill="var(--color-text)"></rect><rect x="1" y="11" width="14" height="2" fill="var(--color-text)"></rect></svg></a></div></div></header>
+<div class="container container-main">
+<div class="col-content">
+<div class="tsd-page-title">
+<ul class="tsd-breadcrumb">
+<li><a href="../index.html">Sentry JavaScript SDKs</a></li>
+<li><a href="_sentry_ember.html">@sentry/ember</a></li></ul>
+<h1>Module @sentry/ember</h1></div>
+<section class="tsd-panel tsd-typography"><p align="center">
+  <a href="https://sentry.io/?utm_source=github&utm_medium=logo" target="_blank">
+    <img src="https://sentry-brand.storage.googleapis.com/sentry-wordmark-dark-280x84.png" alt="Sentry" width="280" height="84">
+  </a>
+</p>
+
+<a id="md:official-sentry-sdk-for-emberjs" class="tsd-anchor"></a><h1><a href="#md:official-sentry-sdk-for-emberjs">Official Sentry SDK for Ember.js</a></h1><a id="md:links" class="tsd-anchor"></a><h2><a href="#md:links">Links</a></h2><ul>
+<li><a href="https://docs.sentry.io/quickstart/">Official SDK Docs</a></li>
+<li><a href="http://getsentry.github.io/sentry-javascript/">TypeDoc</a></li>
+</ul>
+<a id="md:general" class="tsd-anchor"></a><h2><a href="#md:general">General</a></h2><p>This package is an Ember addon that wraps <code>@sentry/browser</code>, with added functionality related to Ember. All methods available in
+<code>@sentry/browser</code> can be imported from <code>@sentry/ember</code>.</p>
+<a id="md:installation" class="tsd-anchor"></a><h3><a href="#md:installation">Installation</a></h3><p>As with other Ember addons, run:
+<code>ember install @sentry/ember</code></p>
+<p>Then add the following to your <code>&lt;your-app&gt;/app.js</code></p>
+<pre><code class="language-javascript"><span class="hl-1">  </span><span class="hl-4">import</span><span class="hl-1"> </span><span class="hl-3">*</span><span class="hl-1"> </span><span class="hl-4">as</span><span class="hl-1"> </span><span class="hl-5">Sentry</span><span class="hl-1"> </span><span class="hl-4">from</span><span class="hl-1"> </span><span class="hl-2">&quot;@sentry/ember&quot;</span><span class="hl-1">;</span><br/><br/><span class="hl-1">  </span><span class="hl-5">Sentry</span><span class="hl-1">.</span><span class="hl-0">init</span><span class="hl-1">({</span><br/><span class="hl-1">    </span><span class="hl-5">dsn:</span><span class="hl-1"> </span><span class="hl-2">&#39;__DSN__&#39;</span><span class="hl-1"> </span><span class="hl-6">// replace __DSN__ with your DSN,</span><br/><br/><span class="hl-1">    </span><span class="hl-6">// Set tracesSampleRate to 1.0 to capture 100%</span><br/><span class="hl-1">    </span><span class="hl-6">// of transactions for performance monitoring.</span><br/><span class="hl-1">    </span><span class="hl-6">// We recommend adjusting this value in production,</span><br/><span class="hl-1">    </span><span class="hl-5">tracesSampleRate</span><span class="hl-1">: </span><span class="hl-8">1.0</span><span class="hl-1">,</span><br/><span class="hl-1">  });</span>
+</code><button>Copy</button></pre>
+<a id="md:usage" class="tsd-anchor"></a><h3><a href="#md:usage">Usage</a></h3><p>To use this SDK, call <code>Sentry.init</code> before the application is initialized, in <code>app.js</code>. This will allow Sentry to capture information while your app is starting.
+Any additional SDK settings can be modified via the usual config in <code>environment.js</code> for you, see the Additional Configuration section for more details.</p>
+<pre><code class="language-javascript"><span class="hl-4">import</span><span class="hl-1"> </span><span class="hl-5">Application</span><span class="hl-1"> </span><span class="hl-4">from</span><span class="hl-1"> </span><span class="hl-2">&#39;@ember/application&#39;</span><span class="hl-1">;</span><br/><span class="hl-4">import</span><span class="hl-1"> </span><span class="hl-5">Resolver</span><span class="hl-1"> </span><span class="hl-4">from</span><span class="hl-1"> </span><span class="hl-2">&#39;ember-resolver&#39;</span><span class="hl-1">;</span><br/><span class="hl-4">import</span><span class="hl-1"> </span><span class="hl-5">loadInitializers</span><span class="hl-1"> </span><span class="hl-4">from</span><span class="hl-1"> </span><span class="hl-2">&#39;ember-load-initializers&#39;</span><span class="hl-1">;</span><br/><span class="hl-4">import</span><span class="hl-1"> </span><span class="hl-5">config</span><span class="hl-1"> </span><span class="hl-4">from</span><span class="hl-1"> </span><span class="hl-2">&#39;./config/environment&#39;</span><span class="hl-1">;</span><br/><span class="hl-4">import</span><span class="hl-1"> </span><span class="hl-3">*</span><span class="hl-1"> </span><span class="hl-4">as</span><span class="hl-1"> </span><span class="hl-5">Sentry</span><span class="hl-1"> </span><span class="hl-4">from</span><span class="hl-1"> </span><span class="hl-2">&quot;@sentry/ember&quot;</span><span class="hl-1">;</span><br/><br/><span class="hl-5">Sentry</span><span class="hl-1">.</span><span class="hl-0">init</span><span class="hl-1">({</span><br/><span class="hl-1">  </span><span class="hl-5">dsn:</span><span class="hl-1"> </span><span class="hl-2">&#39;__DSN__&#39;</span><span class="hl-1"> </span><span class="hl-6">// replace __DSN__ with your DSN,</span><br/><br/><span class="hl-1">  </span><span class="hl-6">// Set tracesSampleRate to 1.0 to capture 100%</span><br/><span class="hl-1">  </span><span class="hl-6">// of transactions for performance monitoring.</span><br/><span class="hl-1">  </span><span class="hl-6">// We recommend adjusting this value in production,</span><br/><span class="hl-1">  </span><span class="hl-5">tracesSampleRate</span><span class="hl-1">: </span><span class="hl-8">1.0</span><span class="hl-1">,</span><br/><span class="hl-1">});</span><br/><br/><span class="hl-4">export</span><span class="hl-1"> </span><span class="hl-4">default</span><span class="hl-1"> </span><span class="hl-3">class</span><span class="hl-1"> </span><span class="hl-7">App</span><span class="hl-1"> </span><span class="hl-3">extends</span><span class="hl-1"> </span><span class="hl-7">Application</span><span class="hl-1"> {</span><br/><span class="hl-1">  </span><span class="hl-5">modulePrefix</span><span class="hl-1"> = </span><span class="hl-5">config</span><span class="hl-1">.</span><span class="hl-5">modulePrefix</span><span class="hl-1">;</span><br/><span class="hl-1">  </span><span class="hl-5">podModulePrefix</span><span class="hl-1"> = </span><span class="hl-5">config</span><span class="hl-1">.</span><span class="hl-5">podModulePrefix</span><span class="hl-1">;</span><br/><span class="hl-1">  </span><span class="hl-5">Resolver</span><span class="hl-1"> = </span><span class="hl-5">Resolver</span><span class="hl-1">;</span><br/><span class="hl-1">}</span>
+</code><button>Copy</button></pre>
+<a id="md:additional-configuration" class="tsd-anchor"></a><h3><a href="#md:additional-configuration">Additional Configuration</a></h3><p>Aside from configuration passed from this addon into <code>@sentry/browser</code> via the <code>sentry</code> property, there is also the following Ember specific configuration:</p>
+<pre><code class="language-javascript"><span class="hl-9">ENV</span><span class="hl-1">[</span><span class="hl-2">&#39;@sentry/ember&#39;</span><span class="hl-1">] = {</span><br/><span class="hl-1">  </span><span class="hl-6">// Will silence Ember.onError warning without the need of using Ember debugging tools.</span><br/><span class="hl-1">  </span><span class="hl-5">ignoreEmberOnErrorWarning:</span><span class="hl-1"> </span><span class="hl-3">false</span><span class="hl-1">,</span><br/><br/><span class="hl-1">  </span><span class="hl-6">// Will disable automatic instrumentation of performance.</span><br/><span class="hl-1">  </span><span class="hl-6">// Manual instrumentation will still be sent.</span><br/><span class="hl-1">  </span><span class="hl-5">disablePerformance:</span><span class="hl-1"> </span><span class="hl-3">true</span><span class="hl-1">,</span><br/><br/><span class="hl-1">  </span><span class="hl-6">// All runloop queue durations will be added as spans.</span><br/><span class="hl-1">  </span><span class="hl-5">minimumRunloopQueueDuration:</span><span class="hl-1"> </span><span class="hl-8">0</span><span class="hl-1">,</span><br/><br/><span class="hl-1">  </span><span class="hl-6">// Will disable automatic instrumentation for components.</span><br/><span class="hl-1">  </span><span class="hl-5">disableInstrumentComponents:</span><span class="hl-1"> </span><span class="hl-3">true</span><span class="hl-1">,</span><br/><br/><span class="hl-1">  </span><span class="hl-6">// All (non-glimmer) component render durations will be added as spans.</span><br/><span class="hl-1">  </span><span class="hl-5">minimumComponentRenderDuration:</span><span class="hl-1"> </span><span class="hl-8">0</span><span class="hl-1">,</span><br/><br/><span class="hl-1">  </span><span class="hl-6">// All component definitions will be added as spans.</span><br/><span class="hl-1">  </span><span class="hl-5">enableComponentDefinition:</span><span class="hl-1"> </span><span class="hl-3">true</span><span class="hl-1">,</span><br/><span class="hl-1">};</span>
+</code><button>Copy</button></pre>
+<a id="md:disabling-performance" class="tsd-anchor"></a><h4><a href="#md:disabling-performance">Disabling Performance</a></h4><p><code>@sentry/ember</code> captures performance by default, if you would like to disable the automatic performance instrumentation, you can add the following to your <code>config/environment.js</code>:</p>
+<pre><code class="language-javascript"><span class="hl-9">ENV</span><span class="hl-1">[</span><span class="hl-2">&#39;@sentry/ember&#39;</span><span class="hl-1">] = {</span><br/><span class="hl-1">  </span><span class="hl-5">disablePerformance:</span><span class="hl-1"> </span><span class="hl-3">true</span><span class="hl-1">, </span><span class="hl-6">// Will disable automatic instrumentation of performance. Manual instrumentation will still be sent.</span><br/><span class="hl-1">};</span>
+</code><button>Copy</button></pre>
+<a id="md:performance" class="tsd-anchor"></a><h3><a href="#md:performance">Performance</a></h3><a id="md:routes" class="tsd-anchor"></a><h4><a href="#md:routes">Routes</a></h4><p>If you would like to capture <code>beforeModel</code>, <code>model</code>, <code>afterModel</code> and <code>setupController</code> times for one of your routes,
+you can import <code>instrumentRoutePerformance</code> and wrap your route with it.</p>
+<pre><code class="language-javascript"><span class="hl-4">import</span><span class="hl-1"> </span><span class="hl-5">Route</span><span class="hl-1"> </span><span class="hl-4">from</span><span class="hl-1"> </span><span class="hl-2">&#39;@ember/routing/route&#39;</span><span class="hl-1">;</span><br/><span class="hl-4">import</span><span class="hl-1"> { </span><span class="hl-5">instrumentRoutePerformance</span><span class="hl-1"> } </span><span class="hl-4">from</span><span class="hl-1"> </span><span class="hl-2">&#39;@sentry/ember&#39;</span><span class="hl-1">;</span><br/><br/><span class="hl-3">class</span><span class="hl-1"> </span><span class="hl-7">MyRoute</span><span class="hl-1"> </span><span class="hl-3">extends</span><span class="hl-1"> </span><span class="hl-7">Route</span><span class="hl-1"> {</span><br/><span class="hl-1">  </span><span class="hl-0">model</span><span class="hl-1">() {</span><br/><span class="hl-1">    </span><span class="hl-6">//...</span><br/><span class="hl-1">  }</span><br/><span class="hl-1">}</span><br/><br/><span class="hl-4">export</span><span class="hl-1"> </span><span class="hl-4">default</span><span class="hl-1"> </span><span class="hl-0">instrumentRoutePerformance</span><span class="hl-1">(</span><span class="hl-5">MyRoute</span><span class="hl-1">);</span>
+</code><button>Copy</button></pre>
+<a id="md:runloop" class="tsd-anchor"></a><h4><a href="#md:runloop">Runloop</a></h4><p>The runloop queue durations are instrumented by default, as long as they are longer than a threshold (by default 5ms).
+This helps (via the render queue) capturing the entire render in case component render times aren&#39;t fully instrumented,
+such as when using glimmer components.</p>
+<p>If you would like to change the runloop queue threshold, add the following to your config:</p>
+<pre><code class="language-javascript"><span class="hl-9">ENV</span><span class="hl-1">[</span><span class="hl-2">&#39;@sentry/ember&#39;</span><span class="hl-1">] = {</span><br/><span class="hl-1">  </span><span class="hl-5">minimumRunloopQueueDuration:</span><span class="hl-1"> </span><span class="hl-8">0</span><span class="hl-1">, </span><span class="hl-6">// All runloop queue durations will be added as spans.</span><br/><span class="hl-1">};</span>
+</code><button>Copy</button></pre>
+<a id="md:components" class="tsd-anchor"></a><h4><a href="#md:components">Components</a></h4><p>Non-glimmer component render times will automatically get captured.</p>
+<p>If you would like to disable component render being instrumented, add the following to your config:</p>
+<pre><code class="language-javascript"><span class="hl-9">ENV</span><span class="hl-1">[</span><span class="hl-2">&#39;@sentry/ember&#39;</span><span class="hl-1">] = {</span><br/><span class="hl-1">  </span><span class="hl-5">disableInstrumentComponents:</span><span class="hl-1"> </span><span class="hl-3">true</span><span class="hl-1">, </span><span class="hl-6">// Will disable automatic instrumentation for components.</span><br/><span class="hl-1">};</span>
+</code><button>Copy</button></pre>
+<p>Additionally, components whose render time is below a threshold (by default 2ms) will not be included as spans.
+If you would like to change this threshold, add the following to your config:</p>
+<pre><code class="language-javascript"><span class="hl-9">ENV</span><span class="hl-1">[</span><span class="hl-2">&#39;@sentry/ember&#39;</span><span class="hl-1">] = {</span><br/><span class="hl-1">  </span><span class="hl-5">minimumComponentRenderDuration:</span><span class="hl-1"> </span><span class="hl-8">0</span><span class="hl-1">, </span><span class="hl-6">// All (non-glimmer) component render durations will be added as spans.</span><br/><span class="hl-1">};</span>
+</code><button>Copy</button></pre>
+<a id="md:glimmer-components" class="tsd-anchor"></a><h4><a href="#md:glimmer-components">Glimmer components</a></h4><p>Currently glimmer component render durations can only be captured indirectly via the runloop instrumentation. You can
+optionally enable a setting to show component definitions (which will indicate which components are being rendered) be
+adding the following to your config:</p>
+<pre><code class="language-javascript"><span class="hl-9">ENV</span><span class="hl-1">[</span><span class="hl-2">&#39;@sentry/ember&#39;</span><span class="hl-1">] = {</span><br/><span class="hl-1">  </span><span class="hl-5">enableComponentDefinition:</span><span class="hl-1"> </span><span class="hl-3">true</span><span class="hl-1">, </span><span class="hl-6">// All component definitions will be added as spans.</span><br/><span class="hl-1">};</span>
+</code><button>Copy</button></pre>
+<a id="md:supported-versions" class="tsd-anchor"></a><h3><a href="#md:supported-versions">Supported Versions</a></h3><ul>
+<li><strong>Ember.js</strong>: v4.0 or above</li>
+<li><strong>Node</strong>: v14 or above</li>
+</ul>
+<a id="md:previous-integration" class="tsd-anchor"></a><h3><a href="#md:previous-integration">Previous Integration</a></h3><p>Previously we&#39;ve recommended using the Ember integration from <code>@sentry/integrations</code> but moving forward we will be using
+this Ember addon to offer more Ember-specific error and performancing monitoring.</p>
+<a id="md:testing" class="tsd-anchor"></a><h2><a href="#md:testing">Testing</a></h2><p>For this package itself, you can find example instrumentation in the <code>dummy</code> application, which is also used for testing.
+To test with the dummy application, you must pass the dsn as an environment variable.</p>
+<pre><code class="language-javascript"><span class="hl-9">SENTRY_DSN</span><span class="hl-1">=</span><span class="hl-5">__DSN__</span><span class="hl-1"> </span><span class="hl-5">ember</span><span class="hl-1"> </span><span class="hl-5">serve</span>
+</code><button>Copy</button></pre>
+</section></div>
+<div class="col-sidebar">
+<div class="page-menu">
+<div class="tsd-navigation settings">
+<details class="tsd-index-accordion"><summary class="tsd-accordion-summary">
+<h3><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M4.93896 8.531L12 15.591L19.061 8.531L16.939 6.409L12 11.349L7.06098 6.409L4.93896 8.531Z" fill="var(--color-text)" id="icon-chevronDown"></path></svg>Settings</h3></summary>
+<div class="tsd-accordion-details">
+<div class="tsd-filter-visibility">
+<h4 class="uppercase">Member Visibility</h4><form>
+<ul id="tsd-filter-options">
+<li class="tsd-filter-item"><label class="tsd-filter-input"><input type="checkbox" id="tsd-filter-protected" name="protected"/><svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><rect class="tsd-checkbox-background" width="30" height="30" x="1" y="1" rx="6" fill="none"></rect><path class="tsd-checkbox-checkmark" d="M8.35422 16.8214L13.2143 21.75L24.6458 10.25" stroke="none" stroke-width="3.5" stroke-linejoin="round" fill="none"></path></svg><span>Protected</span></label></li>
+<li class="tsd-filter-item"><label class="tsd-filter-input"><input type="checkbox" id="tsd-filter-private" name="private"/><svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><rect class="tsd-checkbox-background" width="30" height="30" x="1" y="1" rx="6" fill="none"></rect><path class="tsd-checkbox-checkmark" d="M8.35422 16.8214L13.2143 21.75L24.6458 10.25" stroke="none" stroke-width="3.5" stroke-linejoin="round" fill="none"></path></svg><span>Private</span></label></li>
+<li class="tsd-filter-item"><label class="tsd-filter-input"><input type="checkbox" id="tsd-filter-inherited" name="inherited" checked/><svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><rect class="tsd-checkbox-background" width="30" height="30" x="1" y="1" rx="6" fill="none"></rect><path class="tsd-checkbox-checkmark" d="M8.35422 16.8214L13.2143 21.75L24.6458 10.25" stroke="none" stroke-width="3.5" stroke-linejoin="round" fill="none"></path></svg><span>Inherited</span></label></li>
+<li class="tsd-filter-item"><label class="tsd-filter-input"><input type="checkbox" id="tsd-filter-external" name="external"/><svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><rect class="tsd-checkbox-background" width="30" height="30" x="1" y="1" rx="6" fill="none"></rect><path class="tsd-checkbox-checkmark" d="M8.35422 16.8214L13.2143 21.75L24.6458 10.25" stroke="none" stroke-width="3.5" stroke-linejoin="round" fill="none"></path></svg><span>External</span></label></li></ul></form></div>
+<div class="tsd-theme-toggle">
+<h4 class="uppercase">Theme</h4><select id="tsd-theme"><option value="os">OS</option><option value="light">Light</option><option value="dark">Dark</option></select></div></div></details></div>
+<details open class="tsd-index-accordion tsd-page-navigation"><summary class="tsd-accordion-summary">
+<h3><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><use href="#icon-chevronDown"></use></svg>On This Page</h3></summary>
+<div class="tsd-accordion-details">
+<ul>
+<li>
+<ul>
+<li><a href="#md:official-sentry-sdk-for-emberjs"><span>Official <wbr/>Sentry SDK for <wbr/>Ember.js</span></a></li>
+<li>
+<ul>
+<li><a href="#md:links"><span>Links</span></a></li>
+<li><a href="#md:general"><span>General</span></a></li>
+<li>
+<ul>
+<li><a href="#md:installation"><span>Installation</span></a></li>
+<li><a href="#md:usage"><span>Usage</span></a></li>
+<li><a href="#md:additional-configuration"><span>Additional <wbr/>Configuration</span></a></li>
+<li>
+<ul>
+<li><a href="#md:disabling-performance"><span>Disabling <wbr/>Performance</span></a></li></ul></li>
+<li><a href="#md:performance"><span>Performance</span></a></li>
+<li>
+<ul>
+<li><a href="#md:routes"><span>Routes</span></a></li>
+<li><a href="#md:runloop"><span>Runloop</span></a></li>
+<li><a href="#md:components"><span>Components</span></a></li>
+<li><a href="#md:glimmer-components"><span>Glimmer components</span></a></li></ul></li>
+<li><a href="#md:supported-versions"><span>Supported <wbr/>Versions</span></a></li>
+<li><a href="#md:previous-integration"><span>Previous <wbr/>Integration</span></a></li></ul></li>
+<li><a href="#md:testing"><span>Testing</span></a></li></ul></li></ul></li></ul></div></details></div>
+<div class="site-menu">
+<nav class="tsd-navigation"><a href="../index.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><g id="icon-4"><rect fill="var(--color-icon-background)" stroke="var(--color-ts-namespace)" stroke-width="1.5" x="1" y="1" width="22" height="22" rx="6"></rect><path d="M9.33 16V7.24H10.77L13.446 14.74C13.43 14.54 13.41 14.296 13.386 14.008C13.37 13.712 13.354 13.404 13.338 13.084C13.33 12.756 13.326 12.448 13.326 12.16V7.24H14.37V16H12.93L10.266 8.5C10.282 8.692 10.298 8.936 10.314 9.232C10.33 9.52 10.342 9.828 10.35 10.156C10.366 10.476 10.374 10.784 10.374 11.08V16H9.33Z" fill="var(--color-text)"></path></g></svg><span>Sentry <wbr/>Java<wbr/>Script SDKs</span></a>
+<ul class="tsd-small-nested-navigation">
+<li><a href="_sentry_angular.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry/angular -<wbr/> v7.57.0</span></a></li>
+<li><a href="_sentry_angular_ivy.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry/angular-<wbr/>ivy -<wbr/> v7.57.0</span></a></li>
+<li><a href="_sentry_browser.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry/browser -<wbr/> v7.57.0</span></a></li>
+<li><a href="_sentry_internal_browser_integration_tests.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry-<wbr/>internal/browser-<wbr/>integration-<wbr/>tests</span></a></li>
+<li><a href="_sentry_core.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry/core -<wbr/> v7.57.0</span></a></li>
+<li><a href="_sentry_internal_e2e_tests.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry-<wbr/>internal/e2e-<wbr/>tests</span></a></li>
+<li><a href="_sentry_ember.html" class="current"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry/ember</span></a></li>
+<li><a href="_sentry_internal_eslint_config_sdk.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry-<wbr/>internal/eslint-<wbr/>config-<wbr/>sdk</span></a></li>
+<li><a href="_sentry_internal_eslint_plugin_sdk.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry-<wbr/>internal/eslint-<wbr/>plugin-<wbr/>sdk</span></a></li>
+<li><a href="_sentry_gatsby.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry/gatsby -<wbr/> v7.57.0</span></a></li>
+<li><a href="_sentry_hub.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry/hub -<wbr/> v7.57.0</span></a></li>
+<li><a href="_sentry_internal_integration_shims.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry-<wbr/>internal/integration-<wbr/>shims</span></a></li>
+<li><a href="_sentry_integrations.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry/integrations -<wbr/> v7.57.0</span></a></li>
+<li><a href="_sentry_nextjs.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry/nextjs</span></a></li>
+<li><a href="_sentry_node.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry/node -<wbr/> v7.57.0</span></a></li>
+<li><a href="_sentry_internal_node_integration_tests.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry-<wbr/>internal/node-<wbr/>integration-<wbr/>tests</span></a></li>
+<li><a href="_sentry_opentelemetry_node.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry/opentelemetry-<wbr/>node -<wbr/> v7.57.0</span></a></li>
+<li><a href="_sentry_internal_overhead_metrics.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry-<wbr/>internal/overhead-<wbr/>metrics</span></a></li>
+<li><a href="_sentry_react.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry/react -<wbr/> v7.57.0</span></a></li>
+<li><a href="_sentry_remix.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry/remix -<wbr/> v7.57.0</span></a></li>
+<li><a href="_sentry_replay.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry/replay -<wbr/> v7.57.0</span></a></li>
+<li><a href="_sentry_internal_replay_worker.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry-<wbr/>internal/replay-<wbr/>worker -<wbr/> v7.57.0</span></a></li>
+<li><a href="_sentry_serverless.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry/serverless -<wbr/> v7.57.0</span></a></li>
+<li><a href="_sentry_svelte.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry/svelte -<wbr/> v7.57.0</span></a></li>
+<li><a href="_sentry_sveltekit.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry/sveltekit -<wbr/> v7.57.0</span></a></li>
+<li><a href="_sentry_tracing.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry/tracing -<wbr/> v7.57.0</span></a></li>
+<li><a href="_sentry_internal_tracing.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry-<wbr/>internal/tracing -<wbr/> v7.57.0</span></a></li>
+<li><a href="_sentry_types.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry/types -<wbr/> v7.57.0</span></a></li>
+<li><a href="_sentry_utils.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry/utils -<wbr/> v7.57.0</span></a></li>
+<li><a href="_sentry_vue.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry/vue -<wbr/> v7.57.0</span></a></li>
+<li><a href="_sentry_wasm.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry/wasm -<wbr/> v7.57.0</span></a></li></ul></nav></div></div></div>
+<div class="tsd-generator">
+<p>Generated using <a href="https://typedoc.org/" target="_blank">TypeDoc</a></p></div>
+<div class="overlay"></div></body></html>

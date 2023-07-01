@@ -1,0 +1,231 @@
+<!DOCTYPE html><html class="default" lang="en"><head><meta charSet="utf-8"/><meta http-equiv="x-ua-compatible" content="IE=edge"/><title>addOrUpdateIntegration | Sentry JavaScript SDKs</title><meta name="description" content="Documentation for Sentry JavaScript SDKs"/><meta name="viewport" content="width=device-width, initial-scale=1"/><link rel="stylesheet" href="../assets/style.css"/><link rel="stylesheet" href="../assets/highlight.css"/><script defer src="../assets/main.js"></script><script async src="../assets/search.js" id="tsd-search-script"></script></head><body><script>document.documentElement.dataset.theme = localStorage.getItem("tsd-theme") || "os"</script><header class="tsd-page-toolbar">
+<div class="tsd-toolbar-contents container">
+<div class="table-cell" id="tsd-search" data-base="..">
+<div class="field"><label for="tsd-search-field" class="tsd-widget tsd-toolbar-icon search no-caption"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M15.7824 13.833L12.6666 10.7177C12.5259 10.5771 12.3353 10.499 12.1353 10.499H11.6259C12.4884 9.39596 13.001 8.00859 13.001 6.49937C13.001 2.90909 10.0914 0 6.50048 0C2.90959 0 0 2.90909 0 6.49937C0 10.0896 2.90959 12.9987 6.50048 12.9987C8.00996 12.9987 9.39756 12.4863 10.5008 11.6239V12.1332C10.5008 12.3332 10.5789 12.5238 10.7195 12.6644L13.8354 15.7797C14.1292 16.0734 14.6042 16.0734 14.8948 15.7797L15.7793 14.8954C16.0731 14.6017 16.0731 14.1267 15.7824 13.833ZM6.50048 10.499C4.29094 10.499 2.50018 8.71165 2.50018 6.49937C2.50018 4.29021 4.28781 2.49976 6.50048 2.49976C8.71001 2.49976 10.5008 4.28708 10.5008 6.49937C10.5008 8.70852 8.71314 10.499 6.50048 10.499Z" fill="var(--color-text)"></path></svg></label><input type="text" id="tsd-search-field" aria-label="Search"/></div>
+<div class="field">
+<div id="tsd-toolbar-links"></div></div>
+<ul class="results">
+<li class="state loading">Preparing search index...</li>
+<li class="state failure">The search index is not available</li></ul><a href="../index.html" class="title">Sentry JavaScript SDKs</a></div>
+<div class="table-cell" id="tsd-widgets"><a href="#" class="tsd-widget tsd-toolbar-icon menu no-caption" data-toggle="menu" aria-label="Menu"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="2" fill="var(--color-text)"></rect><rect x="1" y="7" width="14" height="2" fill="var(--color-text)"></rect><rect x="1" y="11" width="14" height="2" fill="var(--color-text)"></rect></svg></a></div></div></header>
+<div class="container container-main">
+<div class="col-content">
+<div class="tsd-page-title">
+<ul class="tsd-breadcrumb">
+<li><a href="../index.html">Sentry JavaScript SDKs</a></li>
+<li><a href="../modules/_sentry_utils.html">@sentry/utils</a></li>
+<li><a href="_sentry_utils.addOrUpdateIntegration.html">addOrUpdateIntegration</a></li></ul>
+<h1>Function addOrUpdateIntegration</h1></div>
+<section class="tsd-panel">
+<ul class="tsd-signatures">
+<li class="tsd-signature tsd-anchor-link" id="addOrUpdateIntegration"><span class="tsd-kind-call-signature">add<wbr/>Or<wbr/>Update<wbr/>Integration</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type tsd-kind-type-parameter">T</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">(</span><span class="tsd-kind-parameter">defaultIntegrationInstance</span>, <span class="tsd-kind-parameter">userIntegrations</span>, <span class="tsd-kind-parameter">forcedOptions</span><span class="tsd-signature-symbol">?</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type tsd-kind-type-parameter">T</span><a href="#addOrUpdateIntegration" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24"><g stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" id="icon-anchor"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M10 14a3.5 3.5 0 0 0 5 0l4 -4a3.5 3.5 0 0 0 -5 -5l-.5 .5"></path><path d="M14 10a3.5 3.5 0 0 0 -5 0l-4 4a3.5 3.5 0 0 0 5 5l.5 -.5"></path></g></svg></a></li>
+<li class="tsd-description">
+<div class="tsd-comment tsd-typography"><p>Enforces inclusion of a given integration with specified options in an integration array originally determined by the
+user, by either including the given default instance or by patching an existing user instance with the given options.</p>
+<p>Ideally this would happen when integrations are set up, but there isn&#39;t currently a mechanism there for merging
+options from a default integration instance with those from a user-provided instance of the same integration, only
+for allowing the user to override a default instance entirely. (TODO: Fix that.)</p>
+</div>
+<section class="tsd-panel">
+<h4>Type Parameters</h4>
+<ul class="tsd-type-parameter-list">
+<li>
+<h4><span class="tsd-kind-type-parameter">T</span><span class="tsd-signature-symbol"> extends </span><span class="tsd-signature-type ">UserIntegrations</span></h4></li></ul></section>
+<div class="tsd-parameters">
+<h4 class="tsd-parameters-title">Parameters</h4>
+<ul class="tsd-parameter-list">
+<li>
+<h5><span class="tsd-kind-parameter">defaultIntegrationInstance</span>: <a href="../interfaces/_sentry_types.Integration.html" class="tsd-signature-type tsd-kind-interface">Integration</a></h5>
+<div class="tsd-comment tsd-typography"><p>An instance of the integration with the correct options already set</p>
+</div>
+<div class="tsd-comment tsd-typography"></div></li>
+<li>
+<h5><span class="tsd-kind-parameter">userIntegrations</span>: <span class="tsd-signature-type tsd-kind-type-parameter">T</span></h5>
+<div class="tsd-comment tsd-typography"><p>Integrations defined by the user.</p>
+</div>
+<div class="tsd-comment tsd-typography"></div></li>
+<li>
+<h5><span class="tsd-kind-parameter">forcedOptions</span>: <span class="tsd-signature-type ">ForcedIntegrationOptions</span><span class="tsd-signature-symbol"> = {}</span></h5>
+<div class="tsd-comment tsd-typography"><p>Options with which to patch an existing user-derived instance on the integration.</p>
+</div>
+<div class="tsd-comment tsd-typography"></div></li></ul></div>
+<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type tsd-kind-type-parameter">T</span></h4><p>A final integrations array.</p>
+
+<div class="tsd-comment tsd-typography"></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/getsentry/sentry-javascript/blob/2fc766d23/packages/utils/src/userIntegrations.ts#L54">userIntegrations.ts:54</a></li></ul></aside></li></ul></section></div>
+<div class="col-sidebar">
+<div class="page-menu">
+<div class="tsd-navigation settings">
+<details class="tsd-index-accordion"><summary class="tsd-accordion-summary">
+<h3><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M4.93896 8.531L12 15.591L19.061 8.531L16.939 6.409L12 11.349L7.06098 6.409L4.93896 8.531Z" fill="var(--color-text)" id="icon-chevronDown"></path></svg>Settings</h3></summary>
+<div class="tsd-accordion-details">
+<div class="tsd-filter-visibility">
+<h4 class="uppercase">Member Visibility</h4><form>
+<ul id="tsd-filter-options">
+<li class="tsd-filter-item"><label class="tsd-filter-input"><input type="checkbox" id="tsd-filter-protected" name="protected"/><svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><rect class="tsd-checkbox-background" width="30" height="30" x="1" y="1" rx="6" fill="none"></rect><path class="tsd-checkbox-checkmark" d="M8.35422 16.8214L13.2143 21.75L24.6458 10.25" stroke="none" stroke-width="3.5" stroke-linejoin="round" fill="none"></path></svg><span>Protected</span></label></li>
+<li class="tsd-filter-item"><label class="tsd-filter-input"><input type="checkbox" id="tsd-filter-private" name="private"/><svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><rect class="tsd-checkbox-background" width="30" height="30" x="1" y="1" rx="6" fill="none"></rect><path class="tsd-checkbox-checkmark" d="M8.35422 16.8214L13.2143 21.75L24.6458 10.25" stroke="none" stroke-width="3.5" stroke-linejoin="round" fill="none"></path></svg><span>Private</span></label></li>
+<li class="tsd-filter-item"><label class="tsd-filter-input"><input type="checkbox" id="tsd-filter-inherited" name="inherited" checked/><svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><rect class="tsd-checkbox-background" width="30" height="30" x="1" y="1" rx="6" fill="none"></rect><path class="tsd-checkbox-checkmark" d="M8.35422 16.8214L13.2143 21.75L24.6458 10.25" stroke="none" stroke-width="3.5" stroke-linejoin="round" fill="none"></path></svg><span>Inherited</span></label></li>
+<li class="tsd-filter-item"><label class="tsd-filter-input"><input type="checkbox" id="tsd-filter-external" name="external"/><svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><rect class="tsd-checkbox-background" width="30" height="30" x="1" y="1" rx="6" fill="none"></rect><path class="tsd-checkbox-checkmark" d="M8.35422 16.8214L13.2143 21.75L24.6458 10.25" stroke="none" stroke-width="3.5" stroke-linejoin="round" fill="none"></path></svg><span>External</span></label></li></ul></form></div>
+<div class="tsd-theme-toggle">
+<h4 class="uppercase">Theme</h4><select id="tsd-theme"><option value="os">OS</option><option value="light">Light</option><option value="dark">Dark</option></select></div></div></details></div></div>
+<div class="site-menu">
+<nav class="tsd-navigation"><a href="../index.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><g id="icon-4"><rect fill="var(--color-icon-background)" stroke="var(--color-ts-namespace)" stroke-width="1.5" x="1" y="1" width="22" height="22" rx="6"></rect><path d="M9.33 16V7.24H10.77L13.446 14.74C13.43 14.54 13.41 14.296 13.386 14.008C13.37 13.712 13.354 13.404 13.338 13.084C13.33 12.756 13.326 12.448 13.326 12.16V7.24H14.37V16H12.93L10.266 8.5C10.282 8.692 10.298 8.936 10.314 9.232C10.33 9.52 10.342 9.828 10.35 10.156C10.366 10.476 10.374 10.784 10.374 11.08V16H9.33Z" fill="var(--color-text)"></path></g></svg><span>Sentry <wbr/>Java<wbr/>Script SDKs</span></a>
+<ul class="tsd-small-nested-navigation">
+<li><a href="../modules/_sentry_angular.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry/angular -<wbr/> v7.57.0</span></a></li>
+<li><a href="../modules/_sentry_angular_ivy.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry/angular-<wbr/>ivy -<wbr/> v7.57.0</span></a></li>
+<li><a href="../modules/_sentry_browser.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry/browser -<wbr/> v7.57.0</span></a></li>
+<li><a href="../modules/_sentry_internal_browser_integration_tests.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry-<wbr/>internal/browser-<wbr/>integration-<wbr/>tests</span></a></li>
+<li><a href="../modules/_sentry_core.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry/core -<wbr/> v7.57.0</span></a></li>
+<li><a href="../modules/_sentry_internal_e2e_tests.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry-<wbr/>internal/e2e-<wbr/>tests</span></a></li>
+<li><a href="../modules/_sentry_ember.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry/ember</span></a></li>
+<li><a href="../modules/_sentry_internal_eslint_config_sdk.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry-<wbr/>internal/eslint-<wbr/>config-<wbr/>sdk</span></a></li>
+<li><a href="../modules/_sentry_internal_eslint_plugin_sdk.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry-<wbr/>internal/eslint-<wbr/>plugin-<wbr/>sdk</span></a></li>
+<li><a href="../modules/_sentry_gatsby.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry/gatsby -<wbr/> v7.57.0</span></a></li>
+<li><a href="../modules/_sentry_hub.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry/hub -<wbr/> v7.57.0</span></a></li>
+<li><a href="../modules/_sentry_internal_integration_shims.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry-<wbr/>internal/integration-<wbr/>shims</span></a></li>
+<li><a href="../modules/_sentry_integrations.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry/integrations -<wbr/> v7.57.0</span></a></li>
+<li><a href="../modules/_sentry_nextjs.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry/nextjs</span></a></li>
+<li><a href="../modules/_sentry_node.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry/node -<wbr/> v7.57.0</span></a></li>
+<li><a href="../modules/_sentry_internal_node_integration_tests.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry-<wbr/>internal/node-<wbr/>integration-<wbr/>tests</span></a></li>
+<li><a href="../modules/_sentry_opentelemetry_node.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry/opentelemetry-<wbr/>node -<wbr/> v7.57.0</span></a></li>
+<li><a href="../modules/_sentry_internal_overhead_metrics.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry-<wbr/>internal/overhead-<wbr/>metrics</span></a></li>
+<li><a href="../modules/_sentry_react.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry/react -<wbr/> v7.57.0</span></a></li>
+<li><a href="../modules/_sentry_remix.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry/remix -<wbr/> v7.57.0</span></a></li>
+<li><a href="../modules/_sentry_replay.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry/replay -<wbr/> v7.57.0</span></a></li>
+<li><a href="../modules/_sentry_internal_replay_worker.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry-<wbr/>internal/replay-<wbr/>worker -<wbr/> v7.57.0</span></a></li>
+<li><a href="../modules/_sentry_serverless.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry/serverless -<wbr/> v7.57.0</span></a></li>
+<li><a href="../modules/_sentry_svelte.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry/svelte -<wbr/> v7.57.0</span></a></li>
+<li><a href="../modules/_sentry_sveltekit.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry/sveltekit -<wbr/> v7.57.0</span></a></li>
+<li><a href="../modules/_sentry_tracing.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry/tracing -<wbr/> v7.57.0</span></a></li>
+<li><a href="../modules/_sentry_internal_tracing.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry-<wbr/>internal/tracing -<wbr/> v7.57.0</span></a></li>
+<li><a href="../modules/_sentry_types.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry/types -<wbr/> v7.57.0</span></a></li>
+<li>
+<details class="tsd-index-accordion" open data-key="@sentry/utils"><summary class="tsd-accordion-summary"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><use href="#icon-chevronDown"></use></svg><a href="../modules/_sentry_utils.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry/utils -<wbr/> v7.57.0</span></a></summary>
+<div class="tsd-accordion-details">
+<ul class="tsd-nested-navigation">
+<li><a href="../classes/_sentry_utils.SentryError.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><g id="icon-128"><rect fill="var(--color-icon-background)" stroke="var(--color-ts-class)" stroke-width="1.5" x="1" y="1" width="22" height="22" rx="6"></rect><path d="M11.898 16.1201C11.098 16.1201 10.466 15.8961 10.002 15.4481C9.53803 15.0001 9.30603 14.3841 9.30603 13.6001V9.64012C9.30603 8.85612 9.53803 8.24012 10.002 7.79212C10.466 7.34412 11.098 7.12012 11.898 7.12012C12.682 7.12012 13.306 7.34812 13.77 7.80412C14.234 8.25212 14.466 8.86412 14.466 9.64012H13.386C13.386 9.14412 13.254 8.76412 12.99 8.50012C12.734 8.22812 12.37 8.09212 11.898 8.09212C11.426 8.09212 11.054 8.22412 10.782 8.48812C10.518 8.75212 10.386 9.13212 10.386 9.62812V13.6001C10.386 14.0961 10.518 14.4801 10.782 14.7521C11.054 15.0161 11.426 15.1481 11.898 15.1481C12.37 15.1481 12.734 15.0161 12.99 14.7521C13.254 14.4801 13.386 14.0961 13.386 13.6001H14.466C14.466 14.3761 14.234 14.9921 13.77 15.4481C13.306 15.8961 12.682 16.1201 11.898 16.1201Z" fill="var(--color-text)"></path></g></svg><span>Sentry<wbr/>Error</span></a></li>
+<li><a href="../classes/_sentry_utils.SyncPromise.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-128"></use></svg><span>Sync<wbr/>Promise</span></a></li>
+<li><a href="../interfaces/_sentry_utils.AddRequestDataToEventOptions.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><g id="icon-256"><rect fill="var(--color-icon-background)" stroke="var(--color-ts-interface)" stroke-width="1.5" x="1" y="1" width="22" height="22" rx="6"></rect><path d="M9.51 16V15.016H11.298V8.224H9.51V7.24H14.19V8.224H12.402V15.016H14.19V16H9.51Z" fill="var(--color-text)"></path></g></svg><span>Add<wbr/>Request<wbr/>Data<wbr/>To<wbr/>Event<wbr/>Options</span></a></li>
+<li><a href="../interfaces/_sentry_utils.InternalGlobal.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-256"></use></svg><span>Internal<wbr/>Global</span></a></li>
+<li><a href="../variables/_sentry_utils.GLOBAL_OBJ.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><g id="icon-32"><rect fill="var(--color-icon-background)" stroke="var(--color-ts-variable)" stroke-width="1.5" x="1" y="1" width="22" height="22" rx="6"></rect><path d="M11.106 16L8.85 7.24H9.966L11.454 13.192C11.558 13.608 11.646 13.996 11.718 14.356C11.79 14.708 11.842 14.976 11.874 15.16C11.906 14.976 11.954 14.708 12.018 14.356C12.09 13.996 12.178 13.608 12.282 13.192L13.758 7.24H14.85L12.582 16H11.106Z" fill="var(--color-text)"></path></g></svg><span>GLOBAL_<wbr/>OBJ</span></a></li>
+<li><a href="../variables/_sentry_utils.MAX_BAGGAGE_STRING_LENGTH.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-32"></use></svg><span>MAX_<wbr/>BAGGAGE_<wbr/>STRING_<wbr/>LENGTH</span></a></li>
+<li><a href="../variables/_sentry_utils._browserPerformanceTimeOriginMode.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-32"></use></svg><span>_browser<wbr/>Performance<wbr/>Time<wbr/>Origin<wbr/>Mode</span></a></li>
+<li><a href="../variables/_sentry_utils.browserPerformanceTimeOrigin.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-32"></use></svg><span>browser<wbr/>Performance<wbr/>Time<wbr/>Origin</span></a></li>
+<li><a href="../variables/_sentry_utils.usingPerformanceAPI.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-32"></use></svg><span>using<wbr/>PerformanceAPI</span></a></li>
+<li><a href="_sentry_utils.addContextToFrame.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><g id="icon-64"><rect fill="var(--color-icon-background)" stroke="var(--color-ts-function)" stroke-width="1.5" x="1" y="1" width="22" height="22" rx="6"></rect><path d="M9.39 16V7.24H14.55V8.224H10.446V11.128H14.238V12.112H10.47V16H9.39Z" fill="var(--color-text)"></path></g></svg><span>add<wbr/>Context<wbr/>To<wbr/>Frame</span></a></li>
+<li><a href="_sentry_utils.addItemToEnvelope.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-64"></use></svg><span>add<wbr/>Item<wbr/>To<wbr/>Envelope</span></a></li>
+<li><a href="_sentry_utils.addNonEnumerableProperty.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-64"></use></svg><span>add<wbr/>Non<wbr/>Enumerable<wbr/>Property</span></a></li>
+<li><a href="_sentry_utils.addOrUpdateIntegration.html" class="current"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-64"></use></svg><span>add<wbr/>Or<wbr/>Update<wbr/>Integration</span></a></li>
+<li><a href="_sentry_utils.addRequestDataToTransaction.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-64"></use></svg><span>add<wbr/>Request<wbr/>Data<wbr/>To<wbr/>Transaction</span></a></li>
+<li><a href="_sentry_utils.arrayify.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-64"></use></svg><span>arrayify</span></a></li>
+<li><a href="_sentry_utils.baggageHeaderToDynamicSamplingContext.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-64"></use></svg><span>baggage<wbr/>Header<wbr/>To<wbr/>Dynamic<wbr/>Sampling<wbr/>Context</span></a></li>
+<li><a href="_sentry_utils.basename.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-64"></use></svg><span>basename</span></a></li>
+<li><a href="_sentry_utils.checkOrSetAlreadyCaught.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-64"></use></svg><span>check<wbr/>Or<wbr/>Set<wbr/>Already<wbr/>Caught</span></a></li>
+<li><a href="_sentry_utils.consoleSandbox.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-64"></use></svg><span>console<wbr/>Sandbox</span></a></li>
+<li><a href="_sentry_utils.convertToPlainObject.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-64"></use></svg><span>convert<wbr/>To<wbr/>Plain<wbr/>Object</span></a></li>
+<li><a href="_sentry_utils.createAttachmentEnvelopeItem.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-64"></use></svg><span>create<wbr/>Attachment<wbr/>Envelope<wbr/>Item</span></a></li>
+<li><a href="_sentry_utils.createClientReportEnvelope.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-64"></use></svg><span>create<wbr/>Client<wbr/>Report<wbr/>Envelope</span></a></li>
+<li><a href="_sentry_utils.createEnvelope.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-64"></use></svg><span>create<wbr/>Envelope</span></a></li>
+<li><a href="_sentry_utils.createEventEnvelopeHeaders.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-64"></use></svg><span>create<wbr/>Event<wbr/>Envelope<wbr/>Headers</span></a></li>
+<li><a href="_sentry_utils.createStackParser.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-64"></use></svg><span>create<wbr/>Stack<wbr/>Parser</span></a></li>
+<li><a href="_sentry_utils.dateTimestampInSeconds.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-64"></use></svg><span>date<wbr/>Timestamp<wbr/>In<wbr/>Seconds</span></a></li>
+<li><a href="_sentry_utils.dirname.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-64"></use></svg><span>dirname</span></a></li>
+<li><a href="_sentry_utils.disabledUntil.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-64"></use></svg><span>disabled<wbr/>Until</span></a></li>
+<li><a href="_sentry_utils.dropUndefinedKeys.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-64"></use></svg><span>drop<wbr/>Undefined<wbr/>Keys</span></a></li>
+<li><a href="_sentry_utils.dsnFromString.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-64"></use></svg><span>dsn<wbr/>From<wbr/>String</span></a></li>
+<li><a href="_sentry_utils.dsnToString.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-64"></use></svg><span>dsn<wbr/>To<wbr/>String</span></a></li>
+<li><a href="_sentry_utils.dynamicRequire.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-64"></use></svg><span>dynamic<wbr/>Require</span></a></li>
+<li><a href="_sentry_utils.dynamicSamplingContextToSentryBaggageHeader.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-64"></use></svg><span>dynamic<wbr/>Sampling<wbr/>Context<wbr/>To<wbr/>Sentry<wbr/>Baggage<wbr/>Header</span></a></li>
+<li><a href="_sentry_utils.envelopeContainsItemType.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-64"></use></svg><span>envelope<wbr/>Contains<wbr/>Item<wbr/>Type</span></a></li>
+<li><a href="_sentry_utils.envelopeItemTypeToDataCategory.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-64"></use></svg><span>envelope<wbr/>Item<wbr/>Type<wbr/>To<wbr/>Data<wbr/>Category</span></a></li>
+<li><a href="_sentry_utils.escapeStringForRegex.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-64"></use></svg><span>escape<wbr/>String<wbr/>For<wbr/>Regex</span></a></li>
+<li><a href="_sentry_utils.extractExceptionKeysForMessage.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-64"></use></svg><span>extract<wbr/>Exception<wbr/>Keys<wbr/>For<wbr/>Message</span></a></li>
+<li><a href="_sentry_utils.extractPathForTransaction.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-64"></use></svg><span>extract<wbr/>Path<wbr/>For<wbr/>Transaction</span></a></li>
+<li><a href="_sentry_utils.extractRequestData.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-64"></use></svg><span>extract<wbr/>Request<wbr/>Data</span></a></li>
+<li><a href="_sentry_utils.extractTraceparentData.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-64"></use></svg><span>extract<wbr/>Traceparent<wbr/>Data</span></a></li>
+<li><a href="_sentry_utils.fill.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-64"></use></svg><span>fill</span></a></li>
+<li><a href="_sentry_utils.forEachEnvelopeItem.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-64"></use></svg><span>for<wbr/>Each<wbr/>Envelope<wbr/>Item</span></a></li>
+<li><a href="_sentry_utils.generateSentryTraceHeader.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-64"></use></svg><span>generate<wbr/>Sentry<wbr/>Trace<wbr/>Header</span></a></li>
+<li><a href="_sentry_utils.getDomElement.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-64"></use></svg><span>get<wbr/>Dom<wbr/>Element</span></a></li>
+<li><a href="_sentry_utils.getEventDescription.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-64"></use></svg><span>get<wbr/>Event<wbr/>Description</span></a></li>
+<li><a href="_sentry_utils.getFunctionName.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-64"></use></svg><span>get<wbr/>Function<wbr/>Name</span></a></li>
+<li><a href="_sentry_utils.getGlobalObject.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-64"></use></svg><span>get<wbr/>Global<wbr/>Object</span></a></li>
+<li><a href="_sentry_utils.getGlobalSingleton.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-64"></use></svg><span>get<wbr/>Global<wbr/>Singleton</span></a></li>
+<li><a href="_sentry_utils.getLocationHref.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-64"></use></svg><span>get<wbr/>Location<wbr/>Href</span></a></li>
+<li><a href="_sentry_utils.getNumberOfUrlSegments.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-64"></use></svg><span>get<wbr/>Number<wbr/>Of<wbr/>Url<wbr/>Segments</span></a></li>
+<li><a href="_sentry_utils.getOriginalFunction.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-64"></use></svg><span>get<wbr/>Original<wbr/>Function</span></a></li>
+<li><a href="_sentry_utils.getSDKSource.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-64"></use></svg><span>getSDKSource</span></a></li>
+<li><a href="_sentry_utils.getSanitizedUrlString.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-64"></use></svg><span>get<wbr/>Sanitized<wbr/>Url<wbr/>String</span></a></li>
+<li><a href="_sentry_utils.getSdkMetadataForEnvelopeHeader.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-64"></use></svg><span>get<wbr/>Sdk<wbr/>Metadata<wbr/>For<wbr/>Envelope<wbr/>Header</span></a></li>
+<li><a href="_sentry_utils.htmlTreeAsString.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-64"></use></svg><span>html<wbr/>Tree<wbr/>As<wbr/>String</span></a></li>
+<li><a href="_sentry_utils.isAbsolute.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-64"></use></svg><span>is<wbr/>Absolute</span></a></li>
+<li><a href="_sentry_utils.isBrowserBundle.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-64"></use></svg><span>is<wbr/>Browser<wbr/>Bundle</span></a></li>
+<li><a href="_sentry_utils.isDOMError.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-64"></use></svg><span>isDOMError</span></a></li>
+<li><a href="_sentry_utils.isDOMException.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-64"></use></svg><span>isDOMException</span></a></li>
+<li><a href="_sentry_utils.isElement.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-64"></use></svg><span>is<wbr/>Element</span></a></li>
+<li><a href="_sentry_utils.isError.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-64"></use></svg><span>is<wbr/>Error</span></a></li>
+<li><a href="_sentry_utils.isErrorEvent.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-64"></use></svg><span>is<wbr/>Error<wbr/>Event</span></a></li>
+<li><a href="_sentry_utils.isEvent.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-64"></use></svg><span>is<wbr/>Event</span></a></li>
+<li><a href="_sentry_utils.isInstanceOf.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-64"></use></svg><span>is<wbr/>Instance<wbr/>Of</span></a></li>
+<li><a href="_sentry_utils.isMatchingPattern.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-64"></use></svg><span>is<wbr/>Matching<wbr/>Pattern</span></a></li>
+<li><a href="_sentry_utils.isNaN.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-64"></use></svg><span>is<wbr/>NaN</span></a></li>
+<li><a href="_sentry_utils.isNativeFetch.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-64"></use></svg><span>is<wbr/>Native<wbr/>Fetch</span></a></li>
+<li><a href="_sentry_utils.isNodeEnv.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-64"></use></svg><span>is<wbr/>Node<wbr/>Env</span></a></li>
+<li><a href="_sentry_utils.isPlainObject.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-64"></use></svg><span>is<wbr/>Plain<wbr/>Object</span></a></li>
+<li><a href="_sentry_utils.isPrimitive.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-64"></use></svg><span>is<wbr/>Primitive</span></a></li>
+<li><a href="_sentry_utils.isRateLimited.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-64"></use></svg><span>is<wbr/>Rate<wbr/>Limited</span></a></li>
+<li><a href="_sentry_utils.isRegExp.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-64"></use></svg><span>is<wbr/>Reg<wbr/>Exp</span></a></li>
+<li><a href="_sentry_utils.isString.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-64"></use></svg><span>is<wbr/>String</span></a></li>
+<li><a href="_sentry_utils.isSyntheticEvent.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-64"></use></svg><span>is<wbr/>Synthetic<wbr/>Event</span></a></li>
+<li><a href="_sentry_utils.isThenable.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-64"></use></svg><span>is<wbr/>Thenable</span></a></li>
+<li><a href="_sentry_utils.join.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-64"></use></svg><span>join</span></a></li>
+<li><a href="_sentry_utils.loadModule.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-64"></use></svg><span>load<wbr/>Module</span></a></li>
+<li><a href="_sentry_utils.makeDsn.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-64"></use></svg><span>make<wbr/>Dsn</span></a></li>
+<li><a href="_sentry_utils.makeFifoCache.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-64"></use></svg><span>make<wbr/>Fifo<wbr/>Cache</span></a></li>
+<li><a href="_sentry_utils.makePromiseBuffer.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-64"></use></svg><span>make<wbr/>Promise<wbr/>Buffer</span></a></li>
+<li><a href="_sentry_utils.markFunctionWrapped.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-64"></use></svg><span>mark<wbr/>Function<wbr/>Wrapped</span></a></li>
+<li><a href="_sentry_utils.memoBuilder.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-64"></use></svg><span>memo<wbr/>Builder</span></a></li>
+<li><a href="_sentry_utils.nodeStackLineParser.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-64"></use></svg><span>node<wbr/>Stack<wbr/>Line<wbr/>Parser</span></a></li>
+<li><a href="_sentry_utils.normalize.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-64"></use></svg><span>normalize</span></a></li>
+<li><a href="_sentry_utils.normalizePath.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-64"></use></svg><span>normalize<wbr/>Path</span></a></li>
+<li><a href="_sentry_utils.normalizeToSize.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-64"></use></svg><span>normalize<wbr/>To<wbr/>Size</span></a></li>
+<li><a href="_sentry_utils.objectify.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-64"></use></svg><span>objectify</span></a></li>
+<li><a href="_sentry_utils.parseEnvelope.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-64"></use></svg><span>parse<wbr/>Envelope</span></a></li>
+<li><a href="_sentry_utils.parseFetchArgs.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-64"></use></svg><span>parse<wbr/>Fetch<wbr/>Args</span></a></li>
+<li><a href="_sentry_utils.parseRetryAfterHeader.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-64"></use></svg><span>parse<wbr/>Retry<wbr/>After<wbr/>Header</span></a></li>
+<li><a href="_sentry_utils.parseSemver.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-64"></use></svg><span>parse<wbr/>Semver</span></a></li>
+<li><a href="_sentry_utils.parseUrl.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-64"></use></svg><span>parse<wbr/>Url</span></a></li>
+<li><a href="_sentry_utils.rejectedSyncPromise.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-64"></use></svg><span>rejected<wbr/>Sync<wbr/>Promise</span></a></li>
+<li><a href="_sentry_utils.relative.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-64"></use></svg><span>relative</span></a></li>
+<li><a href="_sentry_utils.resolve.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-64"></use></svg><span>resolve</span></a></li>
+<li><a href="_sentry_utils.resolvedSyncPromise.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-64"></use></svg><span>resolved<wbr/>Sync<wbr/>Promise</span></a></li>
+<li><a href="_sentry_utils.safeJoin.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-64"></use></svg><span>safe<wbr/>Join</span></a></li>
+<li><a href="_sentry_utils.serializeEnvelope.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-64"></use></svg><span>serialize<wbr/>Envelope</span></a></li>
+<li><a href="_sentry_utils.severityFromString.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-64"></use></svg><span>severity<wbr/>From<wbr/>String</span></a></li>
+<li><a href="_sentry_utils.severityLevelFromString.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-64"></use></svg><span>severity<wbr/>Level<wbr/>From<wbr/>String</span></a></li>
+<li><a href="_sentry_utils.snipLine.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-64"></use></svg><span>snip<wbr/>Line</span></a></li>
+<li><a href="_sentry_utils.stackParserFromStackParserOptions.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-64"></use></svg><span>stack<wbr/>Parser<wbr/>From<wbr/>Stack<wbr/>Parser<wbr/>Options</span></a></li>
+<li><a href="_sentry_utils.stringMatchesSomePattern.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-64"></use></svg><span>string<wbr/>Matches<wbr/>Some<wbr/>Pattern</span></a></li>
+<li><a href="_sentry_utils.stripUrlQueryAndFragment.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-64"></use></svg><span>strip<wbr/>Url<wbr/>Query<wbr/>And<wbr/>Fragment</span></a></li>
+<li><a href="_sentry_utils.supportsDOMError.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-64"></use></svg><span>supportsDOMError</span></a></li>
+<li><a href="_sentry_utils.supportsDOMException.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-64"></use></svg><span>supportsDOMException</span></a></li>
+<li><a href="_sentry_utils.supportsErrorEvent.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-64"></use></svg><span>supports<wbr/>Error<wbr/>Event</span></a></li>
+<li><a href="_sentry_utils.supportsFetch.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-64"></use></svg><span>supports<wbr/>Fetch</span></a></li>
+<li><a href="_sentry_utils.supportsHistory.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-64"></use></svg><span>supports<wbr/>History</span></a></li>
+<li><a href="_sentry_utils.supportsNativeFetch.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-64"></use></svg><span>supports<wbr/>Native<wbr/>Fetch</span></a></li>
+<li><a href="_sentry_utils.supportsReferrerPolicy.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-64"></use></svg><span>supports<wbr/>Referrer<wbr/>Policy</span></a></li>
+<li><a href="_sentry_utils.supportsReportingObserver.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-64"></use></svg><span>supports<wbr/>Reporting<wbr/>Observer</span></a></li>
+<li><a href="_sentry_utils.timestampInSeconds.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-64"></use></svg><span>timestamp<wbr/>In<wbr/>Seconds</span></a></li>
+<li><a href="_sentry_utils.timestampWithMs.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-64"></use></svg><span>timestamp<wbr/>With<wbr/>Ms</span></a></li>
+<li><a href="_sentry_utils.tracingContextFromHeaders.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-64"></use></svg><span>tracing<wbr/>Context<wbr/>From<wbr/>Headers</span></a></li>
+<li><a href="_sentry_utils.truncate.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-64"></use></svg><span>truncate</span></a></li>
+<li><a href="_sentry_utils.updateRateLimits.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-64"></use></svg><span>update<wbr/>Rate<wbr/>Limits</span></a></li>
+<li><a href="_sentry_utils.urlEncode.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-64"></use></svg><span>url<wbr/>Encode</span></a></li>
+<li><a href="_sentry_utils.uuid4.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-64"></use></svg><span>uuid4</span></a></li>
+<li><a href="_sentry_utils.walk.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-64"></use></svg><span>walk</span></a></li></ul></div></details></li>
+<li><a href="../modules/_sentry_vue.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry/vue -<wbr/> v7.57.0</span></a></li>
+<li><a href="../modules/_sentry_wasm.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry/wasm -<wbr/> v7.57.0</span></a></li></ul></nav></div></div></div>
+<div class="tsd-generator">
+<p>Generated using <a href="https://typedoc.org/" target="_blank">TypeDoc</a></p></div>
+<div class="overlay"></div></body></html>

@@ -1,0 +1,129 @@
+<!DOCTYPE html><html class="default" lang="en"><head><meta charSet="utf-8"/><meta http-equiv="x-ua-compatible" content="IE=edge"/><title>@sentry-internal/browser-integration-tests | Sentry JavaScript SDKs</title><meta name="description" content="Documentation for Sentry JavaScript SDKs"/><meta name="viewport" content="width=device-width, initial-scale=1"/><link rel="stylesheet" href="../assets/style.css"/><link rel="stylesheet" href="../assets/highlight.css"/><script defer src="../assets/main.js"></script><script async src="../assets/search.js" id="tsd-search-script"></script></head><body><script>document.documentElement.dataset.theme = localStorage.getItem("tsd-theme") || "os"</script><header class="tsd-page-toolbar">
+<div class="tsd-toolbar-contents container">
+<div class="table-cell" id="tsd-search" data-base="..">
+<div class="field"><label for="tsd-search-field" class="tsd-widget tsd-toolbar-icon search no-caption"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M15.7824 13.833L12.6666 10.7177C12.5259 10.5771 12.3353 10.499 12.1353 10.499H11.6259C12.4884 9.39596 13.001 8.00859 13.001 6.49937C13.001 2.90909 10.0914 0 6.50048 0C2.90959 0 0 2.90909 0 6.49937C0 10.0896 2.90959 12.9987 6.50048 12.9987C8.00996 12.9987 9.39756 12.4863 10.5008 11.6239V12.1332C10.5008 12.3332 10.5789 12.5238 10.7195 12.6644L13.8354 15.7797C14.1292 16.0734 14.6042 16.0734 14.8948 15.7797L15.7793 14.8954C16.0731 14.6017 16.0731 14.1267 15.7824 13.833ZM6.50048 10.499C4.29094 10.499 2.50018 8.71165 2.50018 6.49937C2.50018 4.29021 4.28781 2.49976 6.50048 2.49976C8.71001 2.49976 10.5008 4.28708 10.5008 6.49937C10.5008 8.70852 8.71314 10.499 6.50048 10.499Z" fill="var(--color-text)"></path></svg></label><input type="text" id="tsd-search-field" aria-label="Search"/></div>
+<div class="field">
+<div id="tsd-toolbar-links"></div></div>
+<ul class="results">
+<li class="state loading">Preparing search index...</li>
+<li class="state failure">The search index is not available</li></ul><a href="../index.html" class="title">Sentry JavaScript SDKs</a></div>
+<div class="table-cell" id="tsd-widgets"><a href="#" class="tsd-widget tsd-toolbar-icon menu no-caption" data-toggle="menu" aria-label="Menu"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="2" fill="var(--color-text)"></rect><rect x="1" y="7" width="14" height="2" fill="var(--color-text)"></rect><rect x="1" y="11" width="14" height="2" fill="var(--color-text)"></rect></svg></a></div></div></header>
+<div class="container container-main">
+<div class="col-content">
+<div class="tsd-page-title">
+<ul class="tsd-breadcrumb">
+<li><a href="../index.html">Sentry JavaScript SDKs</a></li>
+<li><a href="_sentry_internal_browser_integration_tests.html">@sentry-internal/browser-integration-tests</a></li></ul>
+<h1>Module @sentry-internal/browser-integration-tests</h1></div>
+<section class="tsd-panel tsd-typography"><a id="md:integration-tests-for-sentry-browser-sdk" class="tsd-anchor"></a><h1><a href="#md:integration-tests-for-sentry-browser-sdk">Integration Tests for Sentry Browser SDK</a></h1><p>Integration tests for Sentry&#39;s Browser SDK use <a href="https://playwright.dev/">Playwright</a> internally. These tests are run on latest stable versions of Chromium, Firefox and Webkit.</p>
+<a id="md:structure" class="tsd-anchor"></a><h2><a href="#md:structure">Structure</a></h2><p>The tests are grouped by their scope such as <code>breadcrumbs</code> or <code>onunhandledrejection</code>. In every group of tests, there are multiple folders containing test cases with their optional supporting assets.</p>
+<p>Each case group has a default HTML skeleton named <code>template.hbs</code>, and also a default initialization script named <code>init.js </code>, which contains the <code>Sentry.init()</code> call. These defaults are used as fallbacks when a specific <code>template.hbs</code> or <code>init.js</code> is not defined in a case folder.</p>
+<p><code>subject.js</code> contains the logic that sets up the environment to be tested. It also can be defined locally and as a group fallback. Unlike <code>template.hbs</code> and <code>init.js</code>, it&#39;s not required to be defined for a group, as there may be cases that does not require a subject, instead the logic is injected using <code>injectScriptAndGetEvents</code> from <code>utils/helpers.ts</code>.</p>
+<p><code>test.ts</code> is required for each test case, which contains the assertions (and if required the script injection logic). For every case, any set of <code>init.js</code>, <code>template.hbs</code> and <code>subject.js</code> can be defined locally, and each one of them  will have precedence over the default definitions of the test group.</p>
+<p>To test page multi-page navigations, you can specify additional <code>page-*.html</code> (e.g. <code>page-0.html</code>, <code>page-1.html</code>) files. These will also be compiled and initialized with the same <code>init.js</code> and <code>subject.js</code> files that are applied to <code>template.hbs/html</code>. Note: <code>page-*.html</code> file lookup <strong>doesn not</strong> fall back to the
+parent directories, meaning that page files have to be directly in the <code>test.ts</code> directory.</p>
+<pre><code><span class="hl-5">suites</span><span class="hl-1">/</span><br/><span class="hl-1">|---- </span><span class="hl-5">breadcrumbs</span><span class="hl-1">/</span><br/><span class="hl-1">      |---- </span><span class="hl-5">template</span><span class="hl-1">.</span><span class="hl-5">hbs</span><span class="hl-1"> [</span><span class="hl-5">fallback</span><span class="hl-1"> </span><span class="hl-5">template</span><span class="hl-1"> </span><span class="hl-5">for</span><span class="hl-1"> </span><span class="hl-5">breadcrumb</span><span class="hl-1"> </span><span class="hl-5">tests</span><span class="hl-1">]</span><br/><span class="hl-1">      |---- </span><span class="hl-5">init</span><span class="hl-1">.</span><span class="hl-5">js</span><span class="hl-1"> [</span><span class="hl-5">fallback</span><span class="hl-1"> </span><span class="hl-5">init</span><span class="hl-1"> </span><span class="hl-5">for</span><span class="hl-1"> </span><span class="hl-5">breadcrumb</span><span class="hl-1"> </span><span class="hl-5">tests</span><span class="hl-1">]</span><br/><span class="hl-1">      |---- </span><span class="hl-5">subject</span><span class="hl-1">.</span><span class="hl-5">js</span><span class="hl-1"> [</span><span class="hl-5">optional</span><span class="hl-1"> </span><span class="hl-5">fallback</span><span class="hl-1"> </span><span class="hl-5">subject</span><span class="hl-1"> </span><span class="hl-5">for</span><span class="hl-1"> </span><span class="hl-5">breadcrumb</span><span class="hl-1"> </span><span class="hl-5">tests</span><span class="hl-1">]</span><br/><span class="hl-1">      |---- </span><span class="hl-5">click_event_tree</span><span class="hl-1">/</span><br/><span class="hl-1">            |---- </span><span class="hl-5">template</span><span class="hl-1">.</span><span class="hl-5">hbs</span><span class="hl-1"> [</span><span class="hl-5">optional</span><span class="hl-1"> </span><span class="hl-5">case</span><span class="hl-1"> </span><span class="hl-5">specific</span><span class="hl-1"> </span><span class="hl-5">template</span><span class="hl-1">]</span><br/><span class="hl-1">            |---- </span><span class="hl-5">init</span><span class="hl-1">.</span><span class="hl-5">js</span><span class="hl-1"> [</span><span class="hl-5">optional</span><span class="hl-1"> </span><span class="hl-5">case</span><span class="hl-1"> </span><span class="hl-5">specific</span><span class="hl-1"> </span><span class="hl-5">init</span><span class="hl-1">]</span><br/><span class="hl-1">            |---- </span><span class="hl-5">subject</span><span class="hl-1">.</span><span class="hl-5">js</span><span class="hl-1"> [</span><span class="hl-5">optional</span><span class="hl-1"> </span><span class="hl-5">case</span><span class="hl-1"> </span><span class="hl-5">specific</span><span class="hl-1"> </span><span class="hl-5">subject</span><span class="hl-1">]</span><br/><span class="hl-1">            |---- </span><span class="hl-5">test</span><span class="hl-1">.</span><span class="hl-5">ts</span><span class="hl-1"> [</span><span class="hl-5">assertions</span><span class="hl-1">]</span><br/><span class="hl-1">            |---- </span><span class="hl-5">page</span><span class="hl-1">-*.</span><span class="hl-5">html</span><span class="hl-1"> [</span><span class="hl-5">optional</span><span class="hl-1">, </span><span class="hl-9">NO</span><span class="hl-1"> </span><span class="hl-5">fallback</span><span class="hl-1">!]</span>
+</code><button>Copy</button></pre>
+<a id="md:writing-tests" class="tsd-anchor"></a><h2><a href="#md:writing-tests">Writing Tests</a></h2><a id="md:helpers" class="tsd-anchor"></a><h3><a href="#md:helpers">Helpers</a></h3><p><code>utils/helpers.ts</code> contains helpers that could be used in assertions (<code>test.ts</code>). These helpers define a convenient and reliable API to interact with Playwright&#39;s native API. It&#39;s highly recommended to define all common patterns of Playwright usage in helpers.</p>
+<a id="md:fixtures" class="tsd-anchor"></a><h3><a href="#md:fixtures">Fixtures</a></h3><p><a href="https://playwright.dev/docs/api/class-fixtures">Fixtures</a> allows us to define the globals and test-specific information in assertion groups (<code>test.ts</code> files). In it&#39;s current state, <code>fixtures.ts</code> contains an extension over the pure version of <code>test()</code> function of Playwright. All the tests should import <code>sentryTest</code> function from <code>utils/fixtures.ts</code> instead of <code>@playwright/test</code> to be able to access the extra fixtures.</p>
+<a id="md:running-tests-locally" class="tsd-anchor"></a><h2><a href="#md:running-tests-locally">Running Tests Locally</a></h2><p>Tests can be run locally using the latest version of Chromium with:</p>
+<p><code>yarn test</code></p>
+<p>To run tests with a different browser such as <code>firefox</code> or <code>webkit</code>:</p>
+<p><code>yarn test --browser=&#39;firefox&#39;</code>
+<code>yarn test --browser=&#39;webkit&#39;</code></p>
+<p>Or to run on all three browsers:</p>
+<p><code>yarn test --browser=&#39;all&#39;</code></p>
+<p>To filter tests by their title:</p>
+<p><code>yarn test -g &quot;XMLHttpRequest without any handlers set&quot;</code></p>
+<p>You can refer to <a href="https://playwright.dev/docs/test-cli">Playwright documentation</a> for other CLI options.</p>
+<p>You can set env variable <code>PW_BUNDLE</code> to set specific build or bundle to test against.
+Available options: <code>esm</code>, <code>cjs</code>, <code>bundle_es5</code>, <code>bundle_es5_min</code>, <code>bundle_es6</code>, <code>bundle_es6_min</code></p>
+<a id="md:troubleshooting" class="tsd-anchor"></a><h3><a href="#md:troubleshooting">Troubleshooting</a></h3><p>Apart from <a href="https://playwright.dev/docs/troubleshooting">Playwright-specific issues</a>, below are common issues that might occur while writing tests for Sentry Browser SDK.</p>
+<ul>
+<li><a id="md:flaky-tests" class="tsd-anchor"></a><h4><a href="#md:flaky-tests">Flaky Tests</a></h4><p>If a test fails randomly, giving a <code>Page Closed</code>, <code>Target Closed</code> or a similar error, most of the times, the reason is a race condition between the page action defined in the <code>subject</code> and the listeners of the Sentry event / request. It&#39;s recommended to firstly check <code>utils/helpers.ts</code> whether if that async logic can be replaced by one of the helpers. If not, whether the awaited (or non-awaited on purpose in some cases) Playwright methods can be orchestrated by <a href="http://mdn.io/promise.all"><code>Promise.all</code></a>. Manually-defined waiting logic such as timeouts are not recommended, and should not be required in most of the cases.</p>
+</li>
+<li><a id="md:build-errors" class="tsd-anchor"></a><h4><a href="#md:build-errors">Build Errors</a></h4><p>Before running, a page for each test case is built under the case folder inside <code>dist</code>. If a page build is failed, it&#39;s recommended to check:</p>
+<ul>
+<li>If both default <code>template.hbs</code> and <code>init.js</code> are defined for the test group.</li>
+<li>If a <code>subject.js</code> is defined for the test case.</li>
+<li>If either of <code>init.js</code> or <code>subject.js</code> contain non-browser code.</li>
+<li>If the webpack configuration is valid.</li>
+</ul>
+</li>
+</ul>
+</section></div>
+<div class="col-sidebar">
+<div class="page-menu">
+<div class="tsd-navigation settings">
+<details class="tsd-index-accordion"><summary class="tsd-accordion-summary">
+<h3><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M4.93896 8.531L12 15.591L19.061 8.531L16.939 6.409L12 11.349L7.06098 6.409L4.93896 8.531Z" fill="var(--color-text)" id="icon-chevronDown"></path></svg>Settings</h3></summary>
+<div class="tsd-accordion-details">
+<div class="tsd-filter-visibility">
+<h4 class="uppercase">Member Visibility</h4><form>
+<ul id="tsd-filter-options">
+<li class="tsd-filter-item"><label class="tsd-filter-input"><input type="checkbox" id="tsd-filter-protected" name="protected"/><svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><rect class="tsd-checkbox-background" width="30" height="30" x="1" y="1" rx="6" fill="none"></rect><path class="tsd-checkbox-checkmark" d="M8.35422 16.8214L13.2143 21.75L24.6458 10.25" stroke="none" stroke-width="3.5" stroke-linejoin="round" fill="none"></path></svg><span>Protected</span></label></li>
+<li class="tsd-filter-item"><label class="tsd-filter-input"><input type="checkbox" id="tsd-filter-private" name="private"/><svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><rect class="tsd-checkbox-background" width="30" height="30" x="1" y="1" rx="6" fill="none"></rect><path class="tsd-checkbox-checkmark" d="M8.35422 16.8214L13.2143 21.75L24.6458 10.25" stroke="none" stroke-width="3.5" stroke-linejoin="round" fill="none"></path></svg><span>Private</span></label></li>
+<li class="tsd-filter-item"><label class="tsd-filter-input"><input type="checkbox" id="tsd-filter-inherited" name="inherited" checked/><svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><rect class="tsd-checkbox-background" width="30" height="30" x="1" y="1" rx="6" fill="none"></rect><path class="tsd-checkbox-checkmark" d="M8.35422 16.8214L13.2143 21.75L24.6458 10.25" stroke="none" stroke-width="3.5" stroke-linejoin="round" fill="none"></path></svg><span>Inherited</span></label></li>
+<li class="tsd-filter-item"><label class="tsd-filter-input"><input type="checkbox" id="tsd-filter-external" name="external"/><svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><rect class="tsd-checkbox-background" width="30" height="30" x="1" y="1" rx="6" fill="none"></rect><path class="tsd-checkbox-checkmark" d="M8.35422 16.8214L13.2143 21.75L24.6458 10.25" stroke="none" stroke-width="3.5" stroke-linejoin="round" fill="none"></path></svg><span>External</span></label></li></ul></form></div>
+<div class="tsd-theme-toggle">
+<h4 class="uppercase">Theme</h4><select id="tsd-theme"><option value="os">OS</option><option value="light">Light</option><option value="dark">Dark</option></select></div></div></details></div>
+<details open class="tsd-index-accordion tsd-page-navigation"><summary class="tsd-accordion-summary">
+<h3><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><use href="#icon-chevronDown"></use></svg>On This Page</h3></summary>
+<div class="tsd-accordion-details">
+<ul>
+<li>
+<ul>
+<li><a href="#md:integration-tests-for-sentry-browser-sdk"><span>Integration <wbr/>Tests for <wbr/>Sentry <wbr/>Browser SDK</span></a></li>
+<li>
+<ul>
+<li><a href="#md:structure"><span>Structure</span></a></li>
+<li><a href="#md:writing-tests"><span>Writing <wbr/>Tests</span></a></li>
+<li>
+<ul>
+<li><a href="#md:helpers"><span>Helpers</span></a></li>
+<li><a href="#md:fixtures"><span>Fixtures</span></a></li></ul></li>
+<li><a href="#md:running-tests-locally"><span>Running <wbr/>Tests <wbr/>Locally</span></a></li>
+<li>
+<ul>
+<li><a href="#md:troubleshooting"><span>Troubleshooting</span></a></li>
+<li>
+<ul>
+<li><a href="#md:flaky-tests"><span>Flaky <wbr/>Tests</span></a></li>
+<li><a href="#md:build-errors"><span>Build <wbr/>Errors</span></a></li></ul></li></ul></li></ul></li></ul></li></ul></div></details></div>
+<div class="site-menu">
+<nav class="tsd-navigation"><a href="../index.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><g id="icon-4"><rect fill="var(--color-icon-background)" stroke="var(--color-ts-namespace)" stroke-width="1.5" x="1" y="1" width="22" height="22" rx="6"></rect><path d="M9.33 16V7.24H10.77L13.446 14.74C13.43 14.54 13.41 14.296 13.386 14.008C13.37 13.712 13.354 13.404 13.338 13.084C13.33 12.756 13.326 12.448 13.326 12.16V7.24H14.37V16H12.93L10.266 8.5C10.282 8.692 10.298 8.936 10.314 9.232C10.33 9.52 10.342 9.828 10.35 10.156C10.366 10.476 10.374 10.784 10.374 11.08V16H9.33Z" fill="var(--color-text)"></path></g></svg><span>Sentry <wbr/>Java<wbr/>Script SDKs</span></a>
+<ul class="tsd-small-nested-navigation">
+<li><a href="_sentry_angular.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry/angular -<wbr/> v7.57.0</span></a></li>
+<li><a href="_sentry_angular_ivy.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry/angular-<wbr/>ivy -<wbr/> v7.57.0</span></a></li>
+<li><a href="_sentry_browser.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry/browser -<wbr/> v7.57.0</span></a></li>
+<li><a href="_sentry_internal_browser_integration_tests.html" class="current"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry-<wbr/>internal/browser-<wbr/>integration-<wbr/>tests</span></a></li>
+<li><a href="_sentry_core.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry/core -<wbr/> v7.57.0</span></a></li>
+<li><a href="_sentry_internal_e2e_tests.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry-<wbr/>internal/e2e-<wbr/>tests</span></a></li>
+<li><a href="_sentry_ember.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry/ember</span></a></li>
+<li><a href="_sentry_internal_eslint_config_sdk.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry-<wbr/>internal/eslint-<wbr/>config-<wbr/>sdk</span></a></li>
+<li><a href="_sentry_internal_eslint_plugin_sdk.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry-<wbr/>internal/eslint-<wbr/>plugin-<wbr/>sdk</span></a></li>
+<li><a href="_sentry_gatsby.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry/gatsby -<wbr/> v7.57.0</span></a></li>
+<li><a href="_sentry_hub.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry/hub -<wbr/> v7.57.0</span></a></li>
+<li><a href="_sentry_internal_integration_shims.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry-<wbr/>internal/integration-<wbr/>shims</span></a></li>
+<li><a href="_sentry_integrations.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry/integrations -<wbr/> v7.57.0</span></a></li>
+<li><a href="_sentry_nextjs.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry/nextjs</span></a></li>
+<li><a href="_sentry_node.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry/node -<wbr/> v7.57.0</span></a></li>
+<li><a href="_sentry_internal_node_integration_tests.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry-<wbr/>internal/node-<wbr/>integration-<wbr/>tests</span></a></li>
+<li><a href="_sentry_opentelemetry_node.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry/opentelemetry-<wbr/>node -<wbr/> v7.57.0</span></a></li>
+<li><a href="_sentry_internal_overhead_metrics.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry-<wbr/>internal/overhead-<wbr/>metrics</span></a></li>
+<li><a href="_sentry_react.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry/react -<wbr/> v7.57.0</span></a></li>
+<li><a href="_sentry_remix.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry/remix -<wbr/> v7.57.0</span></a></li>
+<li><a href="_sentry_replay.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry/replay -<wbr/> v7.57.0</span></a></li>
+<li><a href="_sentry_internal_replay_worker.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry-<wbr/>internal/replay-<wbr/>worker -<wbr/> v7.57.0</span></a></li>
+<li><a href="_sentry_serverless.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry/serverless -<wbr/> v7.57.0</span></a></li>
+<li><a href="_sentry_svelte.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry/svelte -<wbr/> v7.57.0</span></a></li>
+<li><a href="_sentry_sveltekit.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry/sveltekit -<wbr/> v7.57.0</span></a></li>
+<li><a href="_sentry_tracing.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry/tracing -<wbr/> v7.57.0</span></a></li>
+<li><a href="_sentry_internal_tracing.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry-<wbr/>internal/tracing -<wbr/> v7.57.0</span></a></li>
+<li><a href="_sentry_types.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry/types -<wbr/> v7.57.0</span></a></li>
+<li><a href="_sentry_utils.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry/utils -<wbr/> v7.57.0</span></a></li>
+<li><a href="_sentry_vue.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry/vue -<wbr/> v7.57.0</span></a></li>
+<li><a href="_sentry_wasm.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry/wasm -<wbr/> v7.57.0</span></a></li></ul></nav></div></div></div>
+<div class="tsd-generator">
+<p>Generated using <a href="https://typedoc.org/" target="_blank">TypeDoc</a></p></div>
+<div class="overlay"></div></body></html>

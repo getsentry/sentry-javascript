@@ -1,0 +1,352 @@
+<!DOCTYPE html><html class="default" lang="en"><head><meta charSet="utf-8"/><meta http-equiv="x-ua-compatible" content="IE=edge"/><title>@sentry/replay - v7.57.0 | Sentry JavaScript SDKs</title><meta name="description" content="Documentation for Sentry JavaScript SDKs"/><meta name="viewport" content="width=device-width, initial-scale=1"/><link rel="stylesheet" href="../assets/style.css"/><link rel="stylesheet" href="../assets/highlight.css"/><script defer src="../assets/main.js"></script><script async src="../assets/search.js" id="tsd-search-script"></script></head><body><script>document.documentElement.dataset.theme = localStorage.getItem("tsd-theme") || "os"</script><header class="tsd-page-toolbar">
+<div class="tsd-toolbar-contents container">
+<div class="table-cell" id="tsd-search" data-base="..">
+<div class="field"><label for="tsd-search-field" class="tsd-widget tsd-toolbar-icon search no-caption"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M15.7824 13.833L12.6666 10.7177C12.5259 10.5771 12.3353 10.499 12.1353 10.499H11.6259C12.4884 9.39596 13.001 8.00859 13.001 6.49937C13.001 2.90909 10.0914 0 6.50048 0C2.90959 0 0 2.90909 0 6.49937C0 10.0896 2.90959 12.9987 6.50048 12.9987C8.00996 12.9987 9.39756 12.4863 10.5008 11.6239V12.1332C10.5008 12.3332 10.5789 12.5238 10.7195 12.6644L13.8354 15.7797C14.1292 16.0734 14.6042 16.0734 14.8948 15.7797L15.7793 14.8954C16.0731 14.6017 16.0731 14.1267 15.7824 13.833ZM6.50048 10.499C4.29094 10.499 2.50018 8.71165 2.50018 6.49937C2.50018 4.29021 4.28781 2.49976 6.50048 2.49976C8.71001 2.49976 10.5008 4.28708 10.5008 6.49937C10.5008 8.70852 8.71314 10.499 6.50048 10.499Z" fill="var(--color-text)"></path></svg></label><input type="text" id="tsd-search-field" aria-label="Search"/></div>
+<div class="field">
+<div id="tsd-toolbar-links"></div></div>
+<ul class="results">
+<li class="state loading">Preparing search index...</li>
+<li class="state failure">The search index is not available</li></ul><a href="../index.html" class="title">Sentry JavaScript SDKs</a></div>
+<div class="table-cell" id="tsd-widgets"><a href="#" class="tsd-widget tsd-toolbar-icon menu no-caption" data-toggle="menu" aria-label="Menu"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="2" fill="var(--color-text)"></rect><rect x="1" y="7" width="14" height="2" fill="var(--color-text)"></rect><rect x="1" y="11" width="14" height="2" fill="var(--color-text)"></rect></svg></a></div></div></header>
+<div class="container container-main">
+<div class="col-content">
+<div class="tsd-page-title">
+<ul class="tsd-breadcrumb">
+<li><a href="../index.html">Sentry JavaScript SDKs</a></li>
+<li><a href="_sentry_replay.html">@sentry/replay</a></li></ul>
+<h1>Module @sentry/replay - v7.57.0</h1></div>
+<section class="tsd-panel tsd-typography"><p align="center">
+  <a href="https://sentry.io/?utm_source=github&utm_medium=logo" target="_blank">
+    <img src="https://sentry-brand.storage.googleapis.com/sentry-wordmark-dark-280x84.png" alt="Sentry" width="280" height="84">
+  </a>
+</p>
+
+<a id="md:sentry-session-replay" class="tsd-anchor"></a><h1><a href="#md:sentry-session-replay">Sentry Session Replay</a></h1><p><a href="https://www.npmjs.com/package/@sentry/replay"><img src="https://img.shields.io/npm/v/@sentry/replay.svg" alt="npm version"></a>
+<a href="https://www.npmjs.com/package/@sentry/replay"><img src="https://img.shields.io/npm/dm/@sentry/replay.svg" alt="npm dm"></a>
+<a href="https://www.npmjs.com/package/@sentry/replay"><img src="https://img.shields.io/npm/dt/@sentry/replay.svg" alt="npm dt"></a></p>
+<a id="md:pre-requisites" class="tsd-anchor"></a><h2><a href="#md:pre-requisites">Pre-requisites</a></h2><p><code>@sentry/replay</code> requires Node 12+, and browsers newer than IE11.</p>
+<a id="md:installation" class="tsd-anchor"></a><h2><a href="#md:installation">Installation</a></h2><p>Replay can be imported from <code>@sentry/browser</code>, or a respective SDK package like <code>@sentry/react</code> or <code>@sentry/vue</code>.
+You don&#39;t need to install anything in order to use Session Replay. The minimum version that includes Replay is 7.27.0.</p>
+<p>For details on using Replay when using Sentry via the CDN bundles, see <a href="#loading-replay-as-a-cdn-bundle">CDN bundle</a>.</p>
+<a id="md:setup" class="tsd-anchor"></a><h2><a href="#md:setup">Setup</a></h2><p>To set up the integration, add the following to your Sentry initialization. Several options are supported and passable via the integration constructor.
+See the <a href="#configuration">configuration section</a> below for more details.</p>
+<pre><code class="language-javascript"><span class="hl-4">import</span><span class="hl-1"> </span><span class="hl-3">*</span><span class="hl-1"> </span><span class="hl-4">as</span><span class="hl-1"> </span><span class="hl-5">Sentry</span><span class="hl-1"> </span><span class="hl-4">from</span><span class="hl-1"> </span><span class="hl-2">&#39;@sentry/browser&#39;</span><span class="hl-1">;</span><br/><span class="hl-6">// or e.g. import * as Sentry from &#39;@sentry/react&#39;;</span><br/><br/><span class="hl-5">Sentry</span><span class="hl-1">.</span><span class="hl-0">init</span><span class="hl-1">({</span><br/><span class="hl-1">  </span><span class="hl-5">dsn:</span><span class="hl-1"> </span><span class="hl-2">&#39;__DSN__&#39;</span><span class="hl-1">,</span><br/><br/><span class="hl-1">  </span><span class="hl-6">// This sets the sample rate to be 10%. You may want this to be 100% while</span><br/><span class="hl-1">  </span><span class="hl-6">// in development and sample at a lower rate in production</span><br/><span class="hl-1">  </span><span class="hl-5">replaysSessionSampleRate:</span><span class="hl-1"> </span><span class="hl-8">0.1</span><span class="hl-1">,</span><br/><br/><span class="hl-1">  </span><span class="hl-6">// If the entire session is not sampled, use the below sample rate to sample</span><br/><span class="hl-1">  </span><span class="hl-6">// sessions when an error occurs.</span><br/><span class="hl-1">  </span><span class="hl-5">replaysOnErrorSampleRate:</span><span class="hl-1"> </span><span class="hl-8">1.0</span><span class="hl-1">,</span><br/><br/><span class="hl-1">  </span><span class="hl-5">integrations:</span><span class="hl-1"> [</span><br/><span class="hl-1">    </span><span class="hl-3">new</span><span class="hl-1"> </span><span class="hl-5">Sentry</span><span class="hl-1">.</span><span class="hl-0">Replay</span><span class="hl-1">({</span><br/><span class="hl-1">      </span><span class="hl-6">// Additional SDK configuration goes in here, for example:</span><br/><span class="hl-1">      </span><span class="hl-5">maskAllText:</span><span class="hl-1"> </span><span class="hl-3">true</span><span class="hl-1">,</span><br/><span class="hl-1">      </span><span class="hl-5">blockAllMedia:</span><span class="hl-1"> </span><span class="hl-3">true</span><br/><span class="hl-1">      </span><span class="hl-6">// See below for all available options</span><br/><span class="hl-1">    })</span><br/><span class="hl-1">  ],</span><br/><span class="hl-1">  </span><span class="hl-6">// ...</span><br/><span class="hl-1">});</span>
+</code><button>Copy</button></pre>
+<a id="md:lazy-loading-replay" class="tsd-anchor"></a><h3><a href="#md:lazy-loading-replay">Lazy loading Replay</a></h3><p>Replay will start automatically when you add the integration.
+If you do not want to start Replay immediately (e.g. if you want to lazy-load it),
+you can also use <code>addIntegration</code> to load it later:</p>
+<pre><code class="language-js"><span class="hl-4">import</span><span class="hl-1"> </span><span class="hl-3">*</span><span class="hl-1"> </span><span class="hl-4">as</span><span class="hl-1"> </span><span class="hl-5">Sentry</span><span class="hl-1"> </span><span class="hl-4">from</span><span class="hl-1"> </span><span class="hl-2">&quot;@sentry/react&quot;</span><span class="hl-1">;</span><br/><span class="hl-4">import</span><span class="hl-1"> { </span><span class="hl-5">BrowserClient</span><span class="hl-1"> } </span><span class="hl-4">from</span><span class="hl-1"> </span><span class="hl-2">&quot;@sentry/browser&quot;</span><span class="hl-1">;</span><br/><br/><span class="hl-5">Sentry</span><span class="hl-1">.</span><span class="hl-0">init</span><span class="hl-1">({</span><br/><span class="hl-1">  </span><span class="hl-6">// Do not load it initially</span><br/><span class="hl-1">  </span><span class="hl-5">integrations:</span><span class="hl-1"> []</span><br/><span class="hl-1">});</span><br/><br/><span class="hl-6">// Sometime later</span><br/><span class="hl-3">const</span><span class="hl-1"> { </span><span class="hl-9">Replay</span><span class="hl-1"> } = </span><span class="hl-4">await</span><span class="hl-1"> </span><span class="hl-3">import</span><span class="hl-1">(</span><span class="hl-2">&#39;@sentry/browser&#39;</span><span class="hl-1">);</span><br/><span class="hl-3">const</span><span class="hl-1"> </span><span class="hl-9">client</span><span class="hl-1"> = </span><span class="hl-5">Sentry</span><span class="hl-1">.</span><span class="hl-0">getCurrentHub</span><span class="hl-1">().</span><span class="hl-0">getClient</span><span class="hl-1">&lt;</span><span class="hl-7">BrowserClient</span><span class="hl-1">&gt;();</span><br/><br/><span class="hl-6">// Client can be undefined</span><br/><span class="hl-5">client</span><span class="hl-1">?.</span><span class="hl-0">addIntegration</span><span class="hl-1">(</span><span class="hl-3">new</span><span class="hl-1"> </span><span class="hl-0">Replay</span><span class="hl-1">());</span>
+</code><button>Copy</button></pre>
+<a id="md:identifying-users" class="tsd-anchor"></a><h3><a href="#md:identifying-users">Identifying Users</a></h3><p>If you have only followed the above instructions to setup session replays, you will only see IP addresses in Sentry&#39;s UI. In order to associate a user identity to a session replay, use <a href="https://docs.sentry.io/platforms/javascript/enriching-events/identify-user/"><code>setUser</code></a>.</p>
+<pre><code class="language-javascript"><span class="hl-4">import</span><span class="hl-1"> </span><span class="hl-3">*</span><span class="hl-1"> </span><span class="hl-4">as</span><span class="hl-1"> </span><span class="hl-5">Sentry</span><span class="hl-1"> </span><span class="hl-4">from</span><span class="hl-1"> </span><span class="hl-2">&quot;@sentry/browser&quot;</span><span class="hl-1">;</span><br/><br/><span class="hl-5">Sentry</span><span class="hl-1">.</span><span class="hl-0">setUser</span><span class="hl-1">({ </span><span class="hl-5">email:</span><span class="hl-1"> </span><span class="hl-2">&quot;jane.doe@example.com&quot;</span><span class="hl-1"> });</span>
+</code><button>Copy</button></pre>
+<a id="md:stopping-amp-starting-replays-manually" class="tsd-anchor"></a><h3><a href="#md:stopping-amp-starting-replays-manually">Stopping &amp; starting Replays manually</a></h3><p>Replay recording only starts when it is included in the <code>integrations</code> array when calling <code>Sentry.init</code> or calling <code>addIntegration</code> from the a Sentry client instance. To stop recording you can call <code>stop()</code>.</p>
+<pre><code class="language-js"><span class="hl-4">import</span><span class="hl-1"> </span><span class="hl-3">*</span><span class="hl-1"> </span><span class="hl-4">as</span><span class="hl-1"> </span><span class="hl-5">Sentry</span><span class="hl-1"> </span><span class="hl-4">from</span><span class="hl-1"> </span><span class="hl-2">&quot;@sentry/react&quot;</span><span class="hl-1">;</span><br/><span class="hl-4">import</span><span class="hl-1"> { </span><span class="hl-5">BrowserClient</span><span class="hl-1"> } </span><span class="hl-4">from</span><span class="hl-1"> </span><span class="hl-2">&quot;@sentry/browser&quot;</span><span class="hl-1">;</span><br/><br/><span class="hl-3">const</span><span class="hl-1"> </span><span class="hl-9">replay</span><span class="hl-1"> = </span><span class="hl-3">new</span><span class="hl-1"> </span><span class="hl-0">Replay</span><span class="hl-1">();</span><br/><br/><span class="hl-5">Sentry</span><span class="hl-1">.</span><span class="hl-0">init</span><span class="hl-1">({</span><br/><span class="hl-1">  </span><span class="hl-5">integrations:</span><span class="hl-1"> [</span><span class="hl-5">replay</span><span class="hl-1">]</span><br/><span class="hl-1">});</span><br/><br/><span class="hl-3">const</span><span class="hl-1"> </span><span class="hl-9">client</span><span class="hl-1"> = </span><span class="hl-5">Sentry</span><span class="hl-1">.</span><span class="hl-0">getCurrentHub</span><span class="hl-1">().</span><span class="hl-0">getClient</span><span class="hl-1">&lt;</span><span class="hl-7">BrowserClient</span><span class="hl-1">&gt;();</span><br/><br/><span class="hl-6">// Add replay integration, will start recoring</span><br/><span class="hl-5">client</span><span class="hl-1">?.</span><span class="hl-0">addIntegration</span><span class="hl-1">(</span><span class="hl-5">replay</span><span class="hl-1">);</span><br/><br/><span class="hl-6">// Stop recording</span><br/><span class="hl-5">replay</span><span class="hl-1">.</span><span class="hl-0">stop</span><span class="hl-1">();</span>
+</code><button>Copy</button></pre>
+<p>When both <code>replaysSessionSampleRate</code> and <code>replaysOnErrorSampleRate</code> are <code>0</code>, recording will <em>not</em> start.
+In this case, you can manually start recording:</p>
+<pre><code class="language-js"><span class="hl-5">replay</span><span class="hl-1">.</span><span class="hl-0">start</span><span class="hl-1">(); </span><span class="hl-6">// Will start a session in &quot;session&quot; mode, regardless of sample rates</span><br/><span class="hl-5">replay</span><span class="hl-1">.</span><span class="hl-0">startBuffering</span><span class="hl-1">(); </span><span class="hl-6">// Will start a session in &quot;buffer&quot; mode, regardless of sample rates</span>
+</code><button>Copy</button></pre>
+<a id="md:loading-replay-as-a-cdn-bundle" class="tsd-anchor"></a><h2><a href="#md:loading-replay-as-a-cdn-bundle">Loading Replay as a CDN Bundle</a></h2><p>As an alternative to the NPM package, you can use Replay as a CDN bundle.
+Please refer to the <a href="https://docs.sentry.io/platforms/javascript/session-replay/#install">Session Replay installation guide</a> for CDN bundle instructions.</p>
+<details>
+<summary>Deprecated Replay integration bundle</summary>
+Installing the replay integration as a secondary integration bundle to the SDK bundle was deprecated in favour of
+complete CDN bundles that already contain the replay integration. No need to keep two bundles in sync anymore.
+The `replay.(min.)js` bundle will be removed in v8 of the JS SDKs.
+
+<pre><code class="language-html"><span class="hl-10">&lt;</span><span class="hl-11">script</span><br/><span class="hl-16">  </span><span class="hl-12">src</span><span class="hl-16">=</span><span class="hl-13">&quot;https://browser.sentry-cdn.com/7.41.0/bundle.min.js&quot;</span><br/><span class="hl-16">  </span><span class="hl-12">crossorigin</span><span class="hl-16">=</span><span class="hl-13">&quot;anonymous&quot;</span><br/><span class="hl-10">&gt;&lt;/</span><span class="hl-11">script</span><span class="hl-10">&gt;</span><br/><span class="hl-10">&lt;</span><span class="hl-11">script</span><br/><span class="hl-16">  </span><span class="hl-12">src</span><span class="hl-16">=</span><span class="hl-13">&quot;https://browser.sentry-cdn.com/7.41.0/replay.min.js&quot;</span><br/><span class="hl-16">  </span><span class="hl-12">crossorigin</span><span class="hl-16">=</span><span class="hl-13">&quot;anonymous&quot;</span><br/><span class="hl-10">&gt;&lt;/</span><span class="hl-11">script</span><span class="hl-10">&gt;</span>
+</code><button>Copy</button></pre>
+</details>
+
+<a id="md:sessions" class="tsd-anchor"></a><h2><a href="#md:sessions">Sessions</a></h2><p>A session starts when the Session Replay SDK is first loaded and initialized. The session will continue until 5 minutes passes without any user interactions[^1] with the application <em>OR</em> until a maximum of 30 minutes have elapsed. Closing the browser tab will end the session immediately according to the rules for <a href="https://developer.mozilla.org/en-US/docs/Web/API/Window/sessionStorage">SessionStorage</a>.</p>
+<p>[^1]: An &#39;interaction&#39; refers to either a mouse click or a browser navigation event.</p>
+<a id="md:accessing-the-replay-session-id" class="tsd-anchor"></a><h3><a href="#md:accessing-the-replay-session-id">Accessing the Replay Session ID</a></h3><p>You can get the ID of the currently running session via <code>replay.getReplayId()</code>.
+This will return <code>undefined</code> if no session is ongoing.</p>
+<a id="md:replay-captures-only-on-errors" class="tsd-anchor"></a><h3><a href="#md:replay-captures-only-on-errors">Replay Captures Only on Errors</a></h3><p>Alternatively, rather than recording an entire session, you can capture a replay only when an error occurs. In this case, the integration will buffer up to one minute worth of events prior to the error being thrown. It will continue to record the session following the rules above regarding session life and activity. Read the <a href="#Sampling">sampling</a> section for configuration options.</p>
+<a id="md:sampling" class="tsd-anchor"></a><h2><a href="#md:sampling">Sampling</a></h2><p>Sampling allows you to control how much of your website&#39;s traffic will result in a Session Replay. There are two sample rates you can adjust to get the replays more relevant to your interests:</p>
+<ul>
+<li><code>replaysSessionSampleRate</code> - The sample rate for replays that begin recording immediately and last the entirety of the user&#39;s session.</li>
+<li><code>replaysOnErrorSampleRate</code> - The sample rate for replays that are recorded when an error happens. This type of replay will record up to a minute of events prior to the error and continue recording until the session ends.</li>
+</ul>
+<p>When Replay is initialized, we check the <code>replaysSessionSampleRate</code>.
+If it is sampled, then we start recording &amp; sending Replay data immediately.
+Else, if <code>replaysOnErrorSampleRate &gt; 0</code>, we&#39;ll start recording in buffering mode.
+In this mode, whenever an error occurs we&#39;ll check <code>replaysOnErrorSampleRate</code>.
+If it is sampled, when we&#39;ll upload the Replay to Sentry and continue recording normally.</p>
+<a id="md:configuration" class="tsd-anchor"></a><h2><a href="#md:configuration">Configuration</a></h2><a id="md:sdk-configuration" class="tsd-anchor"></a><h3><a href="#md:sdk-configuration">SDK Configuration</a></h3><p>The following options can be configured on the root level of your browser-based Sentry SDK, in <code>init({})</code>:</p>
+<table>
+<thead>
+<tr>
+<th>key</th>
+<th>type</th>
+<th>default</th>
+<th>description</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>replaysSessionSampleRate</td>
+<td>number</td>
+<td><code>0</code></td>
+<td>The sample rate for replays that begin recording immediately and last the entirety of the user&#39;s session. 1.0 will collect all replays, 0 will collect no replays.</td>
+</tr>
+<tr>
+<td>replaysOnErrorSampleRate</td>
+<td>number</td>
+<td><code>0</code></td>
+<td>The sample rate for replays that are recorded when an error happens. This type of replay will record up to a minute of events prior to the error and continue recording until the session ends. 1.0 capturing all sessions with an error, and 0 capturing none.</td>
+</tr>
+</tbody></table>
+<a id="md:general-integration-configuration" class="tsd-anchor"></a><h3><a href="#md:general-integration-configuration">General Integration Configuration</a></h3><p>The following options can be configured as options to the integration, in <code>new Replay({})</code>:</p>
+<table>
+<thead>
+<tr>
+<th>key</th>
+<th>type</th>
+<th>default</th>
+<th>description</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>stickySession</td>
+<td>boolean</td>
+<td><code>true</code></td>
+<td>Keep track of the user across page loads. Note a single user using multiple tabs will result in multiple sessions. Closing a tab will result in the session being closed as well.</td>
+</tr>
+</tbody></table>
+<a id="md:privacy-configuration" class="tsd-anchor"></a><h3><a href="#md:privacy-configuration">Privacy Configuration</a></h3><p>The following options can be configured as options to the integration, in <code>new Replay({})</code>:</p>
+<table>
+<thead>
+<tr>
+<th>key</th>
+<th>type</th>
+<th>default</th>
+<th>description</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>maskAllText</td>
+<td>boolean</td>
+<td><code>true</code></td>
+<td>Mask <em>all</em> text content. Will pass text content through <code>maskFn</code> before sending to server.</td>
+</tr>
+<tr>
+<td>maskAllInputs</td>
+<td>boolean</td>
+<td><code>true</code></td>
+<td>Mask values of <code>&lt;input&gt;</code> elements. Passes input values through <code>maskInputFn</code> before sending to server.</td>
+</tr>
+<tr>
+<td>blockAllMedia</td>
+<td>boolean</td>
+<td><code>true</code></td>
+<td>Block <em>all</em> media elements (<code>img, svg, video, object, picture, embed, map, audio</code>)</td>
+</tr>
+<tr>
+<td>maskFn</td>
+<td>(text: string) =&gt; string</td>
+<td><code>(text) =&gt; &#39;*&#39;.repeat(text.length)</code></td>
+<td>Function to customize how text content is masked before sending to server. By default, masks text with <code>*</code>.</td>
+</tr>
+<tr>
+<td>block</td>
+<td>Array<string></td>
+<td><code>.sentry-block, [data-sentry-block]</code></td>
+<td>Redact any elements that match the DOM selectors. See <a href="#blocking">privacy</a> section for an example.</td>
+</tr>
+<tr>
+<td>unblock</td>
+<td>Array<string></td>
+<td><code>.sentry-unblock, [data-sentry-unblock]</code></td>
+<td>Do not redact any elements that match the DOM selectors. Useful when using <code>blockAllMedia</code>. See <a href="#blocking">privacy</a> section for an example.</td>
+</tr>
+<tr>
+<td>mask</td>
+<td>Array<string></td>
+<td><code>.sentry-mask, [data-sentry-mask]</code></td>
+<td>Mask all elements that match the given DOM selectors. See <a href="#masking">privacy</a> section for an example.</td>
+</tr>
+<tr>
+<td>unmask</td>
+<td>Array<string></td>
+<td><code>.sentry-unmask, [data-sentry-unmask]</code></td>
+<td>Unmask all elements that match the given DOM selectors. Useful when using <code>maskAllText</code>. See <a href="#masking">privacy</a> section for an example.</td>
+</tr>
+<tr>
+<td>ignore</td>
+<td>Array<string></td>
+<td><code>.sentry-ignore, [data-sentry-ignore]</code></td>
+<td>Ignores all events on the matching input fields. See <a href="#ignoring">privacy</a> section for an example.</td>
+</tr>
+</tbody></table>
+<a id="md:deprecated-options" class="tsd-anchor"></a><h4><a href="#md:deprecated-options">Deprecated options</a></h4><p>In order to streamline our privacy options, the following have been deprecated in favor for the respective options above.</p>
+<table>
+<thead>
+<tr>
+<th>deprecated key</th>
+<th>replaced by</th>
+<th>description</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>maskInputOptions</td>
+<td>mask</td>
+<td>Use CSS selectors in <code>mask</code> in order to mask all inputs of a certain type. For example, <code>input[type=&quot;address&quot;]</code></td>
+</tr>
+<tr>
+<td>blockSelector</td>
+<td>block</td>
+<td>The selector(s) can be moved directly in the <code>block</code> array.</td>
+</tr>
+<tr>
+<td>blockClass</td>
+<td>block</td>
+<td>Convert the class name to a CSS selector and add to <code>block</code> array. For example, <code>first-name</code> becomes <code>.first-name</code>. Regexes can be moved as-is.</td>
+</tr>
+<tr>
+<td>maskClass</td>
+<td>mask</td>
+<td>Convert the class name to a CSS selector and add to <code>mask</code> array. For example, <code>first-name</code> becomes <code>.first-name</code>. Regexes can be moved as-is.</td>
+</tr>
+<tr>
+<td>maskSelector</td>
+<td>mask</td>
+<td>The selector(s) can be moved directly in the <code>mask</code> array.</td>
+</tr>
+<tr>
+<td>ignoreClass</td>
+<td>ignore</td>
+<td>Convert the class name to a CSS selector and add to <code>ignore</code> array. For example, <code>first-name</code> becomes <code>.first-name</code>. Regexes can be moved as-is.</td>
+</tr>
+</tbody></table>
+<a id="md:privacy" class="tsd-anchor"></a><h2><a href="#md:privacy">Privacy</a></h2><p>There are several ways to deal with PII. By default, the integration will mask all text content with <code>*</code> and block all media elements (<code>img, svg, video, object, picture, embed, map, audio</code>). This can be disabled by setting <code>maskAllText</code> to <code>false</code>. It is also possible to add the following CSS classes to specific DOM elements to prevent recording its contents: <code>sentry-block</code>, <code>sentry-ignore</code>, and <code>sentry-mask</code>. The following sections will show examples of how content is handled by the differing methods.</p>
+<a id="md:masking" class="tsd-anchor"></a><h3><a href="#md:masking">Masking</a></h3><p>Masking replaces the text content with something else. The default masking behavior is to replace each character with a <code>*</code>. In this example the relevant html code is: <code>&lt;table class=&quot;sentry-mask&quot;&gt;...&lt;/table&gt;</code>.
+<img src="https://user-images.githubusercontent.com/79684/193118192-dee1d3d8-5813-47e8-b532-f9ee1c8714b3.png" alt="Masking example"></p>
+<a id="md:blocking" class="tsd-anchor"></a><h3><a href="#md:blocking">Blocking</a></h3><p>Blocking replaces the element with a placeholder that has the same dimensions. The recording will show an empty space where the content was. In this example the relevant html code is: <code>&lt;table data-sentry-block&gt;...&lt;/table&gt;</code>.
+<img src="https://user-images.githubusercontent.com/79684/193118084-51a589fc-2160-476a-a8dc-b681eddb136c.png" alt="Blocking example"></p>
+<a id="md:ignoring" class="tsd-anchor"></a><h3><a href="#md:ignoring">Ignoring</a></h3><p>Ignoring only applies to form inputs. Events will be ignored on the input element so that the replay does not show what occurs inside of the input. In the below example, notice how the results in the table below the input changes, but no text is visible in the input.</p>
+<p><a href="https://user-images.githubusercontent.com/79684/192815134-a6451c3f-d3cb-455f-a699-7c3fe04d0a2e.mov">https://user-images.githubusercontent.com/79684/192815134-a6451c3f-d3cb-455f-a699-7c3fe04d0a2e.mov</a></p>
+<a id="md:error-linking" class="tsd-anchor"></a><h2><a href="#md:error-linking">Error Linking</a></h2><p>Currently, errors that happen on the page while a replay is running are linked to the Replay,
+making it as easy as possible to jump between related issues/replays.
+However, please note that it is <em>possible</em> that the error count reported on the Replay Detail page
+does not match the actual errors that have been captured.
+The reason for that is that errors <em>can</em> be lost, e.g. a network request fails, or similar.
+This should not happen to often, but be aware that it is theoretically possible.</p>
+<a id="md:manually-sending-replay-data" class="tsd-anchor"></a><h2><a href="#md:manually-sending-replay-data">Manually sending replay data</a></h2><p>You can use <code>replay.flush()</code> to immediately send all currently captured replay data.
+When Replay is currently in buffering mode, this will send up to the last 60 seconds of replay data,
+and also continue sending afterwards, similar to when an error happens &amp; is recorded.</p>
+</section>
+<section class="tsd-panel-group tsd-index-group">
+<section class="tsd-panel tsd-index-panel">
+<h3 class="tsd-index-heading uppercase">Index</h3>
+<section class="tsd-index-section">
+<h3 class="tsd-index-heading">Enumerations</h3>
+<div class="tsd-index-list"><a href="../enums/_sentry_replay.EventType.html" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><g id="icon-8"><rect fill="var(--color-icon-background)" stroke="var(--color-ts-enum)" stroke-width="1.5" x="1" y="1" width="22" height="22" rx="6"></rect><path d="M9.45 16V7.24H14.49V8.224H10.518V10.936H14.07V11.908H10.518V15.016H14.49V16H9.45Z" fill="var(--color-text)"></path></g></svg><span>Event<wbr/>Type</span></a>
+</div></section>
+<section class="tsd-index-section">
+<h3 class="tsd-index-heading">Classes</h3>
+<div class="tsd-index-list"><a href="../classes/_sentry_replay.Replay.html" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><g id="icon-128"><rect fill="var(--color-icon-background)" stroke="var(--color-ts-class)" stroke-width="1.5" x="1" y="1" width="22" height="22" rx="6"></rect><path d="M11.898 16.1201C11.098 16.1201 10.466 15.8961 10.002 15.4481C9.53803 15.0001 9.30603 14.3841 9.30603 13.6001V9.64012C9.30603 8.85612 9.53803 8.24012 10.002 7.79212C10.466 7.34412 11.098 7.12012 11.898 7.12012C12.682 7.12012 13.306 7.34812 13.77 7.80412C14.234 8.25212 14.466 8.86412 14.466 9.64012H13.386C13.386 9.14412 13.254 8.76412 12.99 8.50012C12.734 8.22812 12.37 8.09212 11.898 8.09212C11.426 8.09212 11.054 8.22412 10.782 8.48812C10.518 8.75212 10.386 9.13212 10.386 9.62812V13.6001C10.386 14.0961 10.518 14.4801 10.782 14.7521C11.054 15.0161 11.426 15.1481 11.898 15.1481C12.37 15.1481 12.734 15.0161 12.99 14.7521C13.254 14.4801 13.386 14.0961 13.386 13.6001H14.466C14.466 14.3761 14.234 14.9921 13.77 15.4481C13.306 15.8961 12.682 16.1201 11.898 16.1201Z" fill="var(--color-text)"></path></g></svg><span>Replay</span></a>
+</div></section>
+<section class="tsd-index-section">
+<h3 class="tsd-index-heading">Type Aliases</h3>
+<div class="tsd-index-list"><a href="../types/_sentry_replay.eventWithTime.html" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><g id="icon-4194304"><rect fill="var(--color-icon-background)" stroke="var(--color-ts-type-alias)" stroke-width="1.5" x="1" y="1" width="22" height="22" rx="6"></rect><path d="M11.31 16V8.224H8.91V7.24H14.79V8.224H12.39V16H11.31Z" fill="var(--color-text)"></path></g></svg><span>event<wbr/>With<wbr/>Time</span></a>
+</div></section></section></section></div>
+<div class="col-sidebar">
+<div class="page-menu">
+<div class="tsd-navigation settings">
+<details class="tsd-index-accordion"><summary class="tsd-accordion-summary">
+<h3><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M4.93896 8.531L12 15.591L19.061 8.531L16.939 6.409L12 11.349L7.06098 6.409L4.93896 8.531Z" fill="var(--color-text)" id="icon-chevronDown"></path></svg>Settings</h3></summary>
+<div class="tsd-accordion-details">
+<div class="tsd-filter-visibility">
+<h4 class="uppercase">Member Visibility</h4><form>
+<ul id="tsd-filter-options">
+<li class="tsd-filter-item"><label class="tsd-filter-input"><input type="checkbox" id="tsd-filter-protected" name="protected"/><svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><rect class="tsd-checkbox-background" width="30" height="30" x="1" y="1" rx="6" fill="none"></rect><path class="tsd-checkbox-checkmark" d="M8.35422 16.8214L13.2143 21.75L24.6458 10.25" stroke="none" stroke-width="3.5" stroke-linejoin="round" fill="none"></path></svg><span>Protected</span></label></li>
+<li class="tsd-filter-item"><label class="tsd-filter-input"><input type="checkbox" id="tsd-filter-private" name="private"/><svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><rect class="tsd-checkbox-background" width="30" height="30" x="1" y="1" rx="6" fill="none"></rect><path class="tsd-checkbox-checkmark" d="M8.35422 16.8214L13.2143 21.75L24.6458 10.25" stroke="none" stroke-width="3.5" stroke-linejoin="round" fill="none"></path></svg><span>Private</span></label></li>
+<li class="tsd-filter-item"><label class="tsd-filter-input"><input type="checkbox" id="tsd-filter-inherited" name="inherited" checked/><svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><rect class="tsd-checkbox-background" width="30" height="30" x="1" y="1" rx="6" fill="none"></rect><path class="tsd-checkbox-checkmark" d="M8.35422 16.8214L13.2143 21.75L24.6458 10.25" stroke="none" stroke-width="3.5" stroke-linejoin="round" fill="none"></path></svg><span>Inherited</span></label></li>
+<li class="tsd-filter-item"><label class="tsd-filter-input"><input type="checkbox" id="tsd-filter-external" name="external"/><svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><rect class="tsd-checkbox-background" width="30" height="30" x="1" y="1" rx="6" fill="none"></rect><path class="tsd-checkbox-checkmark" d="M8.35422 16.8214L13.2143 21.75L24.6458 10.25" stroke="none" stroke-width="3.5" stroke-linejoin="round" fill="none"></path></svg><span>External</span></label></li></ul></form></div>
+<div class="tsd-theme-toggle">
+<h4 class="uppercase">Theme</h4><select id="tsd-theme"><option value="os">OS</option><option value="light">Light</option><option value="dark">Dark</option></select></div></div></details></div>
+<details open class="tsd-index-accordion tsd-page-navigation"><summary class="tsd-accordion-summary">
+<h3><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><use href="#icon-chevronDown"></use></svg>On This Page</h3></summary>
+<div class="tsd-accordion-details">
+<ul>
+<li>
+<ul>
+<li><a href="#md:sentry-session-replay"><span>Sentry <wbr/>Session <wbr/>Replay</span></a></li>
+<li>
+<ul>
+<li><a href="#md:pre-requisites"><span>Pre-<wbr/>requisites</span></a></li>
+<li><a href="#md:installation"><span>Installation</span></a></li>
+<li><a href="#md:setup"><span>Setup</span></a></li>
+<li>
+<ul>
+<li><a href="#md:lazy-loading-replay"><span>Lazy loading <wbr/>Replay</span></a></li>
+<li><a href="#md:identifying-users"><span>Identifying <wbr/>Users</span></a></li>
+<li><a href="#md:stopping-amp-starting-replays-manually"><span>Stopping &amp; starting <wbr/>Replays manually</span></a></li></ul></li>
+<li><a href="#md:loading-replay-as-a-cdn-bundle"><span>Loading <wbr/>Replay as a CDN <wbr/>Bundle</span></a></li>
+<li><a href="#md:sessions"><span>Sessions</span></a></li>
+<li>
+<ul>
+<li><a href="#md:accessing-the-replay-session-id"><span>Accessing the <wbr/>Replay <wbr/>Session ID</span></a></li>
+<li><a href="#md:replay-captures-only-on-errors"><span>Replay <wbr/>Captures <wbr/>Only on <wbr/>Errors</span></a></li></ul></li>
+<li><a href="#md:sampling"><span>Sampling</span></a></li>
+<li><a href="#md:configuration"><span>Configuration</span></a></li>
+<li>
+<ul>
+<li><a href="#md:sdk-configuration"><span>SDK <wbr/>Configuration</span></a></li>
+<li><a href="#md:general-integration-configuration"><span>General <wbr/>Integration <wbr/>Configuration</span></a></li>
+<li><a href="#md:privacy-configuration"><span>Privacy <wbr/>Configuration</span></a></li>
+<li>
+<ul>
+<li><a href="#md:deprecated-options"><span>Deprecated options</span></a></li></ul></li></ul></li>
+<li><a href="#md:privacy"><span>Privacy</span></a></li>
+<li>
+<ul>
+<li><a href="#md:masking"><span>Masking</span></a></li>
+<li><a href="#md:blocking"><span>Blocking</span></a></li>
+<li><a href="#md:ignoring"><span>Ignoring</span></a></li></ul></li>
+<li><a href="#md:error-linking"><span>Error <wbr/>Linking</span></a></li>
+<li><a href="#md:manually-sending-replay-data"><span>Manually sending replay data</span></a></li></ul></li></ul></li></ul></div></details></div>
+<div class="site-menu">
+<nav class="tsd-navigation"><a href="../index.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><g id="icon-4"><rect fill="var(--color-icon-background)" stroke="var(--color-ts-namespace)" stroke-width="1.5" x="1" y="1" width="22" height="22" rx="6"></rect><path d="M9.33 16V7.24H10.77L13.446 14.74C13.43 14.54 13.41 14.296 13.386 14.008C13.37 13.712 13.354 13.404 13.338 13.084C13.33 12.756 13.326 12.448 13.326 12.16V7.24H14.37V16H12.93L10.266 8.5C10.282 8.692 10.298 8.936 10.314 9.232C10.33 9.52 10.342 9.828 10.35 10.156C10.366 10.476 10.374 10.784 10.374 11.08V16H9.33Z" fill="var(--color-text)"></path></g></svg><span>Sentry <wbr/>Java<wbr/>Script SDKs</span></a>
+<ul class="tsd-small-nested-navigation">
+<li><a href="_sentry_angular.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry/angular -<wbr/> v7.57.0</span></a></li>
+<li><a href="_sentry_angular_ivy.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry/angular-<wbr/>ivy -<wbr/> v7.57.0</span></a></li>
+<li><a href="_sentry_browser.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry/browser -<wbr/> v7.57.0</span></a></li>
+<li><a href="_sentry_internal_browser_integration_tests.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry-<wbr/>internal/browser-<wbr/>integration-<wbr/>tests</span></a></li>
+<li><a href="_sentry_core.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry/core -<wbr/> v7.57.0</span></a></li>
+<li><a href="_sentry_internal_e2e_tests.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry-<wbr/>internal/e2e-<wbr/>tests</span></a></li>
+<li><a href="_sentry_ember.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry/ember</span></a></li>
+<li><a href="_sentry_internal_eslint_config_sdk.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry-<wbr/>internal/eslint-<wbr/>config-<wbr/>sdk</span></a></li>
+<li><a href="_sentry_internal_eslint_plugin_sdk.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry-<wbr/>internal/eslint-<wbr/>plugin-<wbr/>sdk</span></a></li>
+<li><a href="_sentry_gatsby.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry/gatsby -<wbr/> v7.57.0</span></a></li>
+<li><a href="_sentry_hub.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry/hub -<wbr/> v7.57.0</span></a></li>
+<li><a href="_sentry_internal_integration_shims.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry-<wbr/>internal/integration-<wbr/>shims</span></a></li>
+<li><a href="_sentry_integrations.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry/integrations -<wbr/> v7.57.0</span></a></li>
+<li><a href="_sentry_nextjs.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry/nextjs</span></a></li>
+<li><a href="_sentry_node.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry/node -<wbr/> v7.57.0</span></a></li>
+<li><a href="_sentry_internal_node_integration_tests.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry-<wbr/>internal/node-<wbr/>integration-<wbr/>tests</span></a></li>
+<li><a href="_sentry_opentelemetry_node.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry/opentelemetry-<wbr/>node -<wbr/> v7.57.0</span></a></li>
+<li><a href="_sentry_internal_overhead_metrics.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry-<wbr/>internal/overhead-<wbr/>metrics</span></a></li>
+<li><a href="_sentry_react.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry/react -<wbr/> v7.57.0</span></a></li>
+<li><a href="_sentry_remix.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry/remix -<wbr/> v7.57.0</span></a></li>
+<li>
+<details class="tsd-index-accordion" open data-key="@sentry/replay"><summary class="tsd-accordion-summary"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><use href="#icon-chevronDown"></use></svg><a href="_sentry_replay.html" class="current"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry/replay -<wbr/> v7.57.0</span></a></summary>
+<div class="tsd-accordion-details">
+<ul class="tsd-nested-navigation">
+<li><a href="../enums/_sentry_replay.EventType.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-8"></use></svg><span>Event<wbr/>Type</span></a></li>
+<li><a href="../classes/_sentry_replay.Replay.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-128"></use></svg><span>Replay</span></a></li>
+<li><a href="../types/_sentry_replay.eventWithTime.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4194304"></use></svg><span>event<wbr/>With<wbr/>Time</span></a></li></ul></div></details></li>
+<li><a href="_sentry_internal_replay_worker.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry-<wbr/>internal/replay-<wbr/>worker -<wbr/> v7.57.0</span></a></li>
+<li><a href="_sentry_serverless.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry/serverless -<wbr/> v7.57.0</span></a></li>
+<li><a href="_sentry_svelte.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry/svelte -<wbr/> v7.57.0</span></a></li>
+<li><a href="_sentry_sveltekit.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry/sveltekit -<wbr/> v7.57.0</span></a></li>
+<li><a href="_sentry_tracing.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry/tracing -<wbr/> v7.57.0</span></a></li>
+<li><a href="_sentry_internal_tracing.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry-<wbr/>internal/tracing -<wbr/> v7.57.0</span></a></li>
+<li><a href="_sentry_types.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry/types -<wbr/> v7.57.0</span></a></li>
+<li><a href="_sentry_utils.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry/utils -<wbr/> v7.57.0</span></a></li>
+<li><a href="_sentry_vue.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry/vue -<wbr/> v7.57.0</span></a></li>
+<li><a href="_sentry_wasm.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry/wasm -<wbr/> v7.57.0</span></a></li></ul></nav></div></div></div>
+<div class="tsd-generator">
+<p>Generated using <a href="https://typedoc.org/" target="_blank">TypeDoc</a></p></div>
+<div class="overlay"></div></body></html>

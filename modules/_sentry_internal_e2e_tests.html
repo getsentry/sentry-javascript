@@ -1,0 +1,158 @@
+<!DOCTYPE html><html class="default" lang="en"><head><meta charSet="utf-8"/><meta http-equiv="x-ua-compatible" content="IE=edge"/><title>@sentry-internal/e2e-tests | Sentry JavaScript SDKs</title><meta name="description" content="Documentation for Sentry JavaScript SDKs"/><meta name="viewport" content="width=device-width, initial-scale=1"/><link rel="stylesheet" href="../assets/style.css"/><link rel="stylesheet" href="../assets/highlight.css"/><script defer src="../assets/main.js"></script><script async src="../assets/search.js" id="tsd-search-script"></script></head><body><script>document.documentElement.dataset.theme = localStorage.getItem("tsd-theme") || "os"</script><header class="tsd-page-toolbar">
+<div class="tsd-toolbar-contents container">
+<div class="table-cell" id="tsd-search" data-base="..">
+<div class="field"><label for="tsd-search-field" class="tsd-widget tsd-toolbar-icon search no-caption"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M15.7824 13.833L12.6666 10.7177C12.5259 10.5771 12.3353 10.499 12.1353 10.499H11.6259C12.4884 9.39596 13.001 8.00859 13.001 6.49937C13.001 2.90909 10.0914 0 6.50048 0C2.90959 0 0 2.90909 0 6.49937C0 10.0896 2.90959 12.9987 6.50048 12.9987C8.00996 12.9987 9.39756 12.4863 10.5008 11.6239V12.1332C10.5008 12.3332 10.5789 12.5238 10.7195 12.6644L13.8354 15.7797C14.1292 16.0734 14.6042 16.0734 14.8948 15.7797L15.7793 14.8954C16.0731 14.6017 16.0731 14.1267 15.7824 13.833ZM6.50048 10.499C4.29094 10.499 2.50018 8.71165 2.50018 6.49937C2.50018 4.29021 4.28781 2.49976 6.50048 2.49976C8.71001 2.49976 10.5008 4.28708 10.5008 6.49937C10.5008 8.70852 8.71314 10.499 6.50048 10.499Z" fill="var(--color-text)"></path></svg></label><input type="text" id="tsd-search-field" aria-label="Search"/></div>
+<div class="field">
+<div id="tsd-toolbar-links"></div></div>
+<ul class="results">
+<li class="state loading">Preparing search index...</li>
+<li class="state failure">The search index is not available</li></ul><a href="../index.html" class="title">Sentry JavaScript SDKs</a></div>
+<div class="table-cell" id="tsd-widgets"><a href="#" class="tsd-widget tsd-toolbar-icon menu no-caption" data-toggle="menu" aria-label="Menu"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="2" fill="var(--color-text)"></rect><rect x="1" y="7" width="14" height="2" fill="var(--color-text)"></rect><rect x="1" y="11" width="14" height="2" fill="var(--color-text)"></rect></svg></a></div></div></header>
+<div class="container container-main">
+<div class="col-content">
+<div class="tsd-page-title">
+<ul class="tsd-breadcrumb">
+<li><a href="../index.html">Sentry JavaScript SDKs</a></li>
+<li><a href="_sentry_internal_e2e_tests.html">@sentry-internal/e2e-tests</a></li></ul>
+<h1>Module @sentry-internal/e2e-tests</h1></div>
+<section class="tsd-panel tsd-typography"><a id="md:e2e-tests" class="tsd-anchor"></a><h1><a href="#md:e2e-tests">E2E Tests</a></h1><p>E2E tests enable us to verify the behavior of the packages in this repository as if they were to be published in their
+current state.</p>
+<a id="md:how-to-run" class="tsd-anchor"></a><h2><a href="#md:how-to-run">How to run</a></h2><p>Prerequisites: Docker</p>
+<ul>
+<li>Copy <code>.env.example</code> to <code>.env</code></li>
+<li>Fill in auth information in <code>.env</code> for an example Sentry project<ul>
+<li>The <code>E2E_TEST_AUTH_TOKEN</code> must have all the default permissions</li>
+</ul>
+</li>
+</ul>
+<pre><code class="language-bash"><span class="hl-0">yarn</span><span class="hl-1"> </span><span class="hl-2">test:e2e</span>
+</code><button>Copy</button></pre>
+<a id="md:how-they-work" class="tsd-anchor"></a><h2><a href="#md:how-they-work">How they work</a></h2><p>Before running any tests we launch a fake test registry (in our case <a href="https://verdaccio.org/docs/e2e/">Verdaccio</a>), we
+build our packages, pack them, and publish them to the fake registry. The fake registry is hosted in a Docker container,
+and the script to publish the packages is also run from within a container to ensure that the fake publishing happens
+with the same Node.js and npm versions as we&#39;re using in CI.</p>
+<p>After publishing our freshly built packages to the fake registry, the E2E test script will look for <code>test-recipe.json</code>
+files in test applications located in the <code>test-applications</code> folder. In this folder, we keep standalone test
+applications, that use our SDKs and can be used to verify their behavior. The <code>test-recipe.json</code> recipe files contain
+information on how to build the test applications and how to run tests on these applications.</p>
+<a id="md:how-to-set-up-a-new-test" class="tsd-anchor"></a><h2><a href="#md:how-to-set-up-a-new-test">How to set up a new test</a></h2><p>Test applications are completely standalone applications that can be used to verify our SDKs. To set one up, follow
+these commands:</p>
+<pre><code class="language-sh"><span class="hl-0">cd</span><span class="hl-1"> </span><span class="hl-2">packages/e2e-tests</span><br/><br/><span class="hl-6"># Create a new test application folder</span><br/><span class="hl-0">mkdir</span><span class="hl-1"> </span><span class="hl-2">test-applications/my-new-test-application</span><span class="hl-1"> </span><span class="hl-6"># Name of the new folder doesn&#39;t technically matter but choose something meaningful</span><br/><br/><span class="hl-6"># Create an npm configuration file that uses the fake test registry</span><br/><span class="hl-0">cat</span><span class="hl-1"> &gt; </span><span class="hl-2">test-applications/my-new-test-application/.npmrc</span><span class="hl-1"> &lt;&lt; </span><span class="hl-1">EOF</span><br/><span class="hl-2">@sentry:registry=http://localhost:4873</span><br/><span class="hl-2">@sentry-internal:registry=http://localhost:4873</span><br/><span class="hl-1">EOF</span><br/><br/><span class="hl-6"># Add a test recipe file to the test application</span><br/><span class="hl-0">touch</span><span class="hl-1"> </span><span class="hl-2">test-applications/my-new-test-application/test-recipe.json</span>
+</code><button>Copy</button></pre>
+<p>To get you started with the recipe, you can copy the following into <code>test-recipe.json</code>:</p>
+<pre><code class="language-json"><span class="hl-1">{</span><br/><span class="hl-1">  </span><span class="hl-14">&quot;$schema&quot;</span><span class="hl-1">: </span><span class="hl-2">&quot;../../test-recipe-schema.json&quot;</span><span class="hl-1">,</span><br/><span class="hl-1">  </span><span class="hl-14">&quot;testApplicationName&quot;</span><span class="hl-1">: </span><span class="hl-2">&quot;My New Test Application&quot;</span><span class="hl-1">,</span><br/><span class="hl-1">  </span><span class="hl-14">&quot;buildCommand&quot;</span><span class="hl-1">: </span><span class="hl-2">&quot;pnpm install&quot;</span><span class="hl-1">,</span><br/><span class="hl-1">  </span><span class="hl-14">&quot;tests&quot;</span><span class="hl-1">: [</span><br/><span class="hl-1">    {</span><br/><span class="hl-1">      </span><span class="hl-14">&quot;testName&quot;</span><span class="hl-1">: </span><span class="hl-2">&quot;My new test&quot;</span><span class="hl-1">,</span><br/><span class="hl-1">      </span><span class="hl-14">&quot;testCommand&quot;</span><span class="hl-1">: </span><span class="hl-2">&quot;pnpm test&quot;</span><span class="hl-1">,</span><br/><span class="hl-1">      </span><span class="hl-14">&quot;timeoutSeconds&quot;</span><span class="hl-1">: </span><span class="hl-8">60</span><br/><span class="hl-1">    }</span><br/><span class="hl-1">  ]</span><br/><span class="hl-1">}</span>
+</code><button>Copy</button></pre>
+<p>The <code>test-recipe.json</code> files follow a schema (<code>e2e-tests/test-recipe-schema.json</code>). Here is a basic explanation of the
+fields:</p>
+<ul>
+<li>The <code>buildCommand</code> command runs only once before any of the tests and is supposed to build the test application. If
+this command returns a non-zero exit code, it counts as a failed test and the test application&#39;s tests are not run. In
+the example above, we use the <code>--pure-lockfile</code> flag to install dependencies without modifiying the lockfile so that
+there aren&#39;t any changes in the git worktree after running the tests.</li>
+<li>The <code>testCommand</code> command is supposed to run tests on the test application. If the configured command returns a
+non-zero exit code, it counts as a failed test.</li>
+<li>A test timeout can be configured via <code>timeoutSeconds</code>, it defaults to <code>60</code>.</li>
+</ul>
+<p><strong>An important thing to note:</strong> In the context of the <code>buildCommand</code> the fake test registry is available at
+<code>http://localhost:4873</code>. It hosts all of our packages as if they were to be published with the state of the current
+branch. This means we can install the packages from this registry via the <code>.npmrc</code> configuration as seen above. If you
+add Sentry dependencies to your test application, you should set the dependency versions set to <code>*</code>:</p>
+<pre><code class="language-jsonc"><span class="hl-6">// package.json</span><br/><span class="hl-1">{</span><br/><span class="hl-1">  </span><span class="hl-14">&quot;name&quot;</span><span class="hl-1">: </span><span class="hl-2">&quot;my-new-test-application&quot;</span><span class="hl-1">,</span><br/><span class="hl-1">  </span><span class="hl-14">&quot;version&quot;</span><span class="hl-1">: </span><span class="hl-2">&quot;1.0.0&quot;</span><span class="hl-1">,</span><br/><span class="hl-1">  </span><span class="hl-14">&quot;private&quot;</span><span class="hl-1">: </span><span class="hl-3">true</span><span class="hl-1">,</span><br/><span class="hl-1">  </span><span class="hl-14">&quot;scripts&quot;</span><span class="hl-1">: {</span><br/><span class="hl-1">    </span><span class="hl-14">&quot;test&quot;</span><span class="hl-1">: </span><span class="hl-2">&quot;echo </span><span class="hl-15">\&quot;</span><span class="hl-2">Hello world!</span><span class="hl-15">\&quot;</span><span class="hl-2">&quot;</span><br/><span class="hl-1">  },</span><br/><span class="hl-1">  </span><span class="hl-14">&quot;dependencies&quot;</span><span class="hl-1">: {</span><br/><span class="hl-1">    </span><span class="hl-14">&quot;@sentry/node&quot;</span><span class="hl-1">: </span><span class="hl-2">&quot;*&quot;</span><br/><span class="hl-1">  }</span><br/><span class="hl-1">}</span>
+</code><button>Copy</button></pre>
+<p>All that is left for you to do now is to create a test app and run <code>yarn test:e2e</code>.</p>
+<a id="md:standardized-test-apps" class="tsd-anchor"></a><h2><a href="#md:standardized-test-apps">Standardized Test Apps</a></h2><p>For some of our E2E tests we define a standard for test applications as to how they should look and behave. Standardized
+test apps enables us to reuse the same test suite over a number of different frameworks/SDKs.</p>
+<a id="md:standardized-frontend-test-apps" class="tsd-anchor"></a><h3><a href="#md:standardized-frontend-test-apps">Standardized Frontend Test Apps</a></h3><p>A standardized frontend test application has the following features:</p>
+<ul>
+<li><p>Just for the sake of consistency we prefix the standardized frontend tests with <code>standard-frontend-</code>. For example
+<code>standard-frontend-nextjs</code>.</p>
+</li>
+<li><p>A page at path <code>/</code></p>
+<ul>
+<li>Having a <code>&lt;input type=&quot;button&quot; id=&quot;exception-button&quot;&gt;</code> that captures an Exception when clicked. The returned
+<code>eventId</code> from the <code>Sentry.captureException()</code> call must be written to <code>window.capturedExceptionId</code>. It does not
+matter what the captured error looks like.</li>
+<li>Having an link with <code>id=&quot;navigation&quot;</code> that navigates to <code>/user/5</code>. It doesn&#39;t have to be an <code>&lt;a&gt;</code> tag, for example
+if a framework has another way of doing routing, the important part is that the element to click for navigation has
+the correct <code>id</code>. Text of the link doesn&#39;t matter.</li>
+</ul>
+</li>
+<li><p>An empty page at <code>/user/5</code></p>
+</li>
+<li><p>Apps should write all pageload and navigation transaction IDs into an array at <code>window.recordedTransactions</code>. This can
+be done with an event processor:</p>
+<pre><code class="language-ts"><span class="hl-5">Sentry</span><span class="hl-1">.</span><span class="hl-0">addGlobalEventProcessor</span><span class="hl-1">(</span><span class="hl-5">event</span><span class="hl-1"> </span><span class="hl-3">=&gt;</span><span class="hl-1"> {</span><br/><span class="hl-1">  </span><span class="hl-4">if</span><span class="hl-1"> (</span><br/><span class="hl-1">    </span><span class="hl-5">event</span><span class="hl-1">.</span><span class="hl-5">type</span><span class="hl-1"> === </span><span class="hl-2">&#39;transaction&#39;</span><span class="hl-1"> &amp;&amp;</span><br/><span class="hl-1">    (</span><span class="hl-5">event</span><span class="hl-1">.</span><span class="hl-5">contexts</span><span class="hl-1">?.</span><span class="hl-5">trace</span><span class="hl-1">?.</span><span class="hl-5">op</span><span class="hl-1"> === </span><span class="hl-2">&#39;pageload&#39;</span><span class="hl-1"> || </span><span class="hl-5">event</span><span class="hl-1">.</span><span class="hl-5">contexts</span><span class="hl-1">?.</span><span class="hl-5">trace</span><span class="hl-1">?.</span><span class="hl-5">op</span><span class="hl-1"> === </span><span class="hl-2">&#39;navigation&#39;</span><span class="hl-1">)</span><br/><span class="hl-1">  ) {</span><br/><span class="hl-1">    </span><span class="hl-3">const</span><span class="hl-1"> </span><span class="hl-9">eventId</span><span class="hl-1"> = </span><span class="hl-5">event</span><span class="hl-1">.</span><span class="hl-5">event_id</span><span class="hl-1">;</span><br/><span class="hl-1">    </span><span class="hl-5">window</span><span class="hl-1">.</span><span class="hl-5">recordedTransactions</span><span class="hl-1"> = </span><span class="hl-5">window</span><span class="hl-1">.</span><span class="hl-5">recordedTransactions</span><span class="hl-1"> || [];</span><br/><span class="hl-1">    </span><span class="hl-5">window</span><span class="hl-1">.</span><span class="hl-5">recordedTransactions</span><span class="hl-1">.</span><span class="hl-0">push</span><span class="hl-1">(</span><span class="hl-5">eventId</span><span class="hl-1">);</span><br/><span class="hl-1">  }</span><br/><br/><span class="hl-1">  </span><span class="hl-4">return</span><span class="hl-1"> </span><span class="hl-5">event</span><span class="hl-1">;</span><br/><span class="hl-1">});</span>
+</code><button>Copy</button></pre>
+</li>
+</ul>
+<a id="md:standardized-backend-test-apps" class="tsd-anchor"></a><h3><a href="#md:standardized-backend-test-apps">Standardized Backend Test Apps</a></h3><p>TBD</p>
+</section></div>
+<div class="col-sidebar">
+<div class="page-menu">
+<div class="tsd-navigation settings">
+<details class="tsd-index-accordion"><summary class="tsd-accordion-summary">
+<h3><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M4.93896 8.531L12 15.591L19.061 8.531L16.939 6.409L12 11.349L7.06098 6.409L4.93896 8.531Z" fill="var(--color-text)" id="icon-chevronDown"></path></svg>Settings</h3></summary>
+<div class="tsd-accordion-details">
+<div class="tsd-filter-visibility">
+<h4 class="uppercase">Member Visibility</h4><form>
+<ul id="tsd-filter-options">
+<li class="tsd-filter-item"><label class="tsd-filter-input"><input type="checkbox" id="tsd-filter-protected" name="protected"/><svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><rect class="tsd-checkbox-background" width="30" height="30" x="1" y="1" rx="6" fill="none"></rect><path class="tsd-checkbox-checkmark" d="M8.35422 16.8214L13.2143 21.75L24.6458 10.25" stroke="none" stroke-width="3.5" stroke-linejoin="round" fill="none"></path></svg><span>Protected</span></label></li>
+<li class="tsd-filter-item"><label class="tsd-filter-input"><input type="checkbox" id="tsd-filter-private" name="private"/><svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><rect class="tsd-checkbox-background" width="30" height="30" x="1" y="1" rx="6" fill="none"></rect><path class="tsd-checkbox-checkmark" d="M8.35422 16.8214L13.2143 21.75L24.6458 10.25" stroke="none" stroke-width="3.5" stroke-linejoin="round" fill="none"></path></svg><span>Private</span></label></li>
+<li class="tsd-filter-item"><label class="tsd-filter-input"><input type="checkbox" id="tsd-filter-inherited" name="inherited" checked/><svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><rect class="tsd-checkbox-background" width="30" height="30" x="1" y="1" rx="6" fill="none"></rect><path class="tsd-checkbox-checkmark" d="M8.35422 16.8214L13.2143 21.75L24.6458 10.25" stroke="none" stroke-width="3.5" stroke-linejoin="round" fill="none"></path></svg><span>Inherited</span></label></li>
+<li class="tsd-filter-item"><label class="tsd-filter-input"><input type="checkbox" id="tsd-filter-external" name="external"/><svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><rect class="tsd-checkbox-background" width="30" height="30" x="1" y="1" rx="6" fill="none"></rect><path class="tsd-checkbox-checkmark" d="M8.35422 16.8214L13.2143 21.75L24.6458 10.25" stroke="none" stroke-width="3.5" stroke-linejoin="round" fill="none"></path></svg><span>External</span></label></li></ul></form></div>
+<div class="tsd-theme-toggle">
+<h4 class="uppercase">Theme</h4><select id="tsd-theme"><option value="os">OS</option><option value="light">Light</option><option value="dark">Dark</option></select></div></div></details></div>
+<details open class="tsd-index-accordion tsd-page-navigation"><summary class="tsd-accordion-summary">
+<h3><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><use href="#icon-chevronDown"></use></svg>On This Page</h3></summary>
+<div class="tsd-accordion-details">
+<ul>
+<li>
+<ul>
+<li><a href="#md:e2e-tests"><span>E2<wbr/>E <wbr/>Tests</span></a></li>
+<li>
+<ul>
+<li><a href="#md:how-to-run"><span>How to run</span></a></li>
+<li><a href="#md:how-they-work"><span>How they work</span></a></li>
+<li><a href="#md:how-to-set-up-a-new-test"><span>How to set up a new test</span></a></li>
+<li><a href="#md:standardized-test-apps"><span>Standardized <wbr/>Test <wbr/>Apps</span></a></li>
+<li>
+<ul>
+<li><a href="#md:standardized-frontend-test-apps"><span>Standardized <wbr/>Frontend <wbr/>Test <wbr/>Apps</span></a></li>
+<li><a href="#md:standardized-backend-test-apps"><span>Standardized <wbr/>Backend <wbr/>Test <wbr/>Apps</span></a></li></ul></li></ul></li></ul></li></ul></div></details></div>
+<div class="site-menu">
+<nav class="tsd-navigation"><a href="../index.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><g id="icon-4"><rect fill="var(--color-icon-background)" stroke="var(--color-ts-namespace)" stroke-width="1.5" x="1" y="1" width="22" height="22" rx="6"></rect><path d="M9.33 16V7.24H10.77L13.446 14.74C13.43 14.54 13.41 14.296 13.386 14.008C13.37 13.712 13.354 13.404 13.338 13.084C13.33 12.756 13.326 12.448 13.326 12.16V7.24H14.37V16H12.93L10.266 8.5C10.282 8.692 10.298 8.936 10.314 9.232C10.33 9.52 10.342 9.828 10.35 10.156C10.366 10.476 10.374 10.784 10.374 11.08V16H9.33Z" fill="var(--color-text)"></path></g></svg><span>Sentry <wbr/>Java<wbr/>Script SDKs</span></a>
+<ul class="tsd-small-nested-navigation">
+<li><a href="_sentry_angular.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry/angular -<wbr/> v7.57.0</span></a></li>
+<li><a href="_sentry_angular_ivy.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry/angular-<wbr/>ivy -<wbr/> v7.57.0</span></a></li>
+<li><a href="_sentry_browser.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry/browser -<wbr/> v7.57.0</span></a></li>
+<li><a href="_sentry_internal_browser_integration_tests.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry-<wbr/>internal/browser-<wbr/>integration-<wbr/>tests</span></a></li>
+<li><a href="_sentry_core.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry/core -<wbr/> v7.57.0</span></a></li>
+<li><a href="_sentry_internal_e2e_tests.html" class="current"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry-<wbr/>internal/e2e-<wbr/>tests</span></a></li>
+<li><a href="_sentry_ember.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry/ember</span></a></li>
+<li><a href="_sentry_internal_eslint_config_sdk.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry-<wbr/>internal/eslint-<wbr/>config-<wbr/>sdk</span></a></li>
+<li><a href="_sentry_internal_eslint_plugin_sdk.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry-<wbr/>internal/eslint-<wbr/>plugin-<wbr/>sdk</span></a></li>
+<li><a href="_sentry_gatsby.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry/gatsby -<wbr/> v7.57.0</span></a></li>
+<li><a href="_sentry_hub.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry/hub -<wbr/> v7.57.0</span></a></li>
+<li><a href="_sentry_internal_integration_shims.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry-<wbr/>internal/integration-<wbr/>shims</span></a></li>
+<li><a href="_sentry_integrations.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry/integrations -<wbr/> v7.57.0</span></a></li>
+<li><a href="_sentry_nextjs.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry/nextjs</span></a></li>
+<li><a href="_sentry_node.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry/node -<wbr/> v7.57.0</span></a></li>
+<li><a href="_sentry_internal_node_integration_tests.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry-<wbr/>internal/node-<wbr/>integration-<wbr/>tests</span></a></li>
+<li><a href="_sentry_opentelemetry_node.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry/opentelemetry-<wbr/>node -<wbr/> v7.57.0</span></a></li>
+<li><a href="_sentry_internal_overhead_metrics.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry-<wbr/>internal/overhead-<wbr/>metrics</span></a></li>
+<li><a href="_sentry_react.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry/react -<wbr/> v7.57.0</span></a></li>
+<li><a href="_sentry_remix.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry/remix -<wbr/> v7.57.0</span></a></li>
+<li><a href="_sentry_replay.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry/replay -<wbr/> v7.57.0</span></a></li>
+<li><a href="_sentry_internal_replay_worker.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry-<wbr/>internal/replay-<wbr/>worker -<wbr/> v7.57.0</span></a></li>
+<li><a href="_sentry_serverless.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry/serverless -<wbr/> v7.57.0</span></a></li>
+<li><a href="_sentry_svelte.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry/svelte -<wbr/> v7.57.0</span></a></li>
+<li><a href="_sentry_sveltekit.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry/sveltekit -<wbr/> v7.57.0</span></a></li>
+<li><a href="_sentry_tracing.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry/tracing -<wbr/> v7.57.0</span></a></li>
+<li><a href="_sentry_internal_tracing.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry-<wbr/>internal/tracing -<wbr/> v7.57.0</span></a></li>
+<li><a href="_sentry_types.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry/types -<wbr/> v7.57.0</span></a></li>
+<li><a href="_sentry_utils.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry/utils -<wbr/> v7.57.0</span></a></li>
+<li><a href="_sentry_vue.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry/vue -<wbr/> v7.57.0</span></a></li>
+<li><a href="_sentry_wasm.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4"></use></svg><span>@sentry/wasm -<wbr/> v7.57.0</span></a></li></ul></nav></div></div></div>
+<div class="tsd-generator">
+<p>Generated using <a href="https://typedoc.org/" target="_blank">TypeDoc</a></p></div>
+<div class="overlay"></div></body></html>
