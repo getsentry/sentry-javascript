@@ -1,7 +1,7 @@
 import type { InstrumentHandlerCallback, InstrumentHandlerType } from '@sentry/utils';
-import { parseSemver } from '@sentry/utils';
 import { JSDOM } from 'jsdom';
 
+import { conditionalTest } from '../../../tracing/test/testutils';
 import { instrumentRoutingWithDefaults } from '../../src/browser/router';
 
 let mockChangeHistory: ({ to, from }: { to: string; from?: string }) => void = () => undefined;
@@ -17,18 +17,7 @@ jest.mock('@sentry/utils', () => {
   };
 });
 
-const NODE_VERSION = parseSemver(process.versions.node).major || 20;
-
-/**
- * Since startTimestamp is created using browserPerformanceTimeOrigin, which requires Node 14+
- * we need to expect a different value for older versions of Node. This is not a problem for browser
- * environments, but we need to run this test in multiple Node versions.
- */
-function expectStartTimestamp() {
-  return NODE_VERSION > 14 ? expect.any(Number) : undefined;
-}
-
-describe('instrumentRoutingWithDefaults', () => {
+conditionalTest({ min: 16 })('instrumentRoutingWithDefaults', () => {
   const mockFinish = jest.fn();
   const customStartTransaction = jest.fn().mockReturnValue({ finish: mockFinish });
   beforeEach(() => {
@@ -58,7 +47,7 @@ describe('instrumentRoutingWithDefaults', () => {
       name: 'blank',
       op: 'pageload',
       metadata: { source: 'url' },
-      startTimestamp: expectStartTimestamp(),
+      startTimestamp: expect.any(Number),
     });
   });
 
