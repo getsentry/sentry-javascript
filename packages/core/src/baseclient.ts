@@ -30,7 +30,6 @@ import {
   addItemToEnvelope,
   checkOrSetAlreadyCaught,
   createAttachmentEnvelopeItem,
-  dropUndefinedKeys,
   isPlainObject,
   isPrimitive,
   isThenable,
@@ -43,12 +42,12 @@ import {
 } from '@sentry/utils';
 
 import { getEnvelopeEndpointWithUrlEncodedAuth } from './api';
-import { DEFAULT_ENVIRONMENT } from './constants';
 import { createEventEnvelope, createSessionEnvelope } from './envelope';
 import type { IntegrationIndex } from './integration';
 import { setupIntegration, setupIntegrations } from './integration';
 import type { Scope } from './scope';
 import { updateSession } from './session';
+import { getDynamicSamplingContextFromClient } from './tracing/dynamicSamplingContext';
 import { prepareEvent } from './utils/prepareEvent';
 
 const ALREADY_SEEN_ERROR = "Not capturing exception because it's already been captured.";
@@ -531,20 +530,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
           ...evt.contexts,
         };
 
-        const { publicKey: public_key } = this.getDsn() || {};
-        const { segment: user_segment } = (scope && scope.getUser()) || {};
-
-        let dynamicSamplingContext = dsc;
-        if (!dsc) {
-          dynamicSamplingContext = dropUndefinedKeys({
-            environment: options.environment || DEFAULT_ENVIRONMENT,
-            release: options.release,
-            user_segment,
-            public_key,
-            trace_id,
-          });
-          this.emit && this.emit('createDsc', dynamicSamplingContext);
-        }
+        const dynamicSamplingContext = dsc ? dsc : getDynamicSamplingContextFromClient(trace_id, this, scope);
 
         evt.sdkProcessingMetadata = {
           dynamicSamplingContext,

@@ -192,4 +192,9 @@ export interface Scope {
    * Add propagation context to the scope, used for distributed tracing
    */
   setPropagationContext(context: PropagationContext): this;
+
+  /**
+   * Get propagation context from the scope, used for distributed tracing
+   */
+  getPropagationContext(): PropagationContext;
 }

@@ -204,7 +204,7 @@ conditionalTest({ min: 16 })('Undici integration', () => {
 
     expect(requestHeaders['sentry-trace']).toEqual(span?.toTraceparent());
     expect(requestHeaders['baggage']).toEqual(
-      `sentry-environment=production,sentry-transaction=test-transaction,sentry-public_key=0,sentry-trace_id=${transaction.traceId},sentry-sample_rate=1`,
+      `sentry-environment=production,sentry-public_key=0,sentry-trace_id=${transaction.traceId},sentry-sample_rate=1,sentry-transaction=test-transaction`,
     );
   });
 

@@ -11,8 +11,8 @@ test('should capture and send Express controller error.', async () => {
       values: [
         {
           mechanism: {
-            type: 'generic',
-            handled: true,
+            type: 'middleware',
+            handled: false,
           },
           type: 'Error',
           value: 'test_error',

@@ -7,7 +7,7 @@ import type {
   TraceContext,
   Transaction,
 } from '@sentry/types';
-import { dropUndefinedKeys, logger, timestampInSeconds, uuid4 } from '@sentry/utils';
+import { dropUndefinedKeys, generateSentryTraceHeader, logger, timestampInSeconds, uuid4 } from '@sentry/utils';
 
 /**
  * Keeps track of finished spans for a given transaction
@@ -265,11 +265,7 @@ export class Span implements SpanInterface {
    * @inheritDoc
    */
   public toTraceparent(): string {
-    let sampledString = '';
-    if (this.sampled !== undefined) {
-      sampledString = this.sampled ? '-1' : '-0';
-    }
-    return `${this.traceId}-${this.spanId}${sampledString}`;
+    return generateSentryTraceHeader(this.traceId, this.spanId, this.sampled);
   }
 
   /**

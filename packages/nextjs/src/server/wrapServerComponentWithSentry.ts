@@ -5,7 +5,7 @@ import {
   runWithAsyncContext,
   startTransaction,
 } from '@sentry/core';
-import { baggageHeaderToDynamicSamplingContext, extractTraceparentData } from '@sentry/utils';
+import { tracingContextFromHeaders } from '@sentry/utils';
 
 import { isNotFoundNavigationError, isRedirectNavigationError } from '../common/nextNavigationErrorUtils';
 import type { ServerComponentContext } from '../common/types';
@@ -13,6 +13,7 @@ import type { ServerComponentContext } from '../common/types';
 /**
  * Wraps an `app` directory server component with Sentry error instrumentation.
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function wrapServerComponentWithSentry<F extends (...args: any[]) => any>(
   appDirComponent: F,
   context: ServerComponentContext,
@@ -28,14 +29,15 @@ export function wrapServerComponentWithSentry<F extends (...args: any[]) => any>
     apply: (originalFunction, thisArg, args) => {
       return runWithAsyncContext(() => {
         const hub = getCurrentHub();
+        const currentScope = hub.getScope();
 
         let maybePromiseResult;
 
-        const traceparentData = context.sentryTraceHeader
-          ? extractTraceparentData(context.sentryTraceHeader)
-          : undefined;
-
-        const dynamicSamplingContext = baggageHeaderToDynamicSamplingContext(context.baggageHeader);
+        const { traceparentData, dynamicSamplingContext, propagationContext } = tracingContextFromHeaders(
+          context.sentryTraceHeader,
+          context.baggageHeader,
+        );
+        currentScope.setPropagationContext(propagationContext);
 
         const transaction = startTransaction({
           op: 'function.nextjs',
@@ -48,7 +50,6 @@ export function wrapServerComponentWithSentry<F extends (...args: any[]) => any>
           },
         });
 
-        const currentScope = hub.getScope();
         if (currentScope) {
           currentScope.setSpan(transaction);
         }

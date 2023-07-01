@@ -77,6 +77,9 @@ describe('extractTraceparentData', () => {
   });
 
   test('invalid', () => {
+    // undefined
+    expect(extractTraceparentData(undefined)).toBeUndefined();
+
     // empty string
     expect(extractTraceparentData('')).toBeUndefined();
 
