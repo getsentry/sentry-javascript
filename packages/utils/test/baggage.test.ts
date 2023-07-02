@@ -28,6 +28,7 @@ test.each([
 });
 
 test.each([
+  [undefined, undefined],
   [{}, undefined],
   [{ release: 'abcdf' }, 'sentry-release=abcdf'],
   [{ release: 'abcdf', environment: '1234' }, 'sentry-release=abcdf,sentry-environment=1234'],

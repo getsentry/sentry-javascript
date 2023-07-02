@@ -1,12 +1,5 @@
-import type { DynamicSamplingContext, StackFrame, TraceparentData } from '@sentry/types';
-import {
-  baggageHeaderToDynamicSamplingContext,
-  basename,
-  escapeStringForRegex,
-  extractTraceparentData,
-  GLOBAL_OBJ,
-  join,
-} from '@sentry/utils';
+import type { StackFrame } from '@sentry/types';
+import { basename, escapeStringForRegex, GLOBAL_OBJ, join, tracingContextFromHeaders } from '@sentry/utils';
 import type { RequestEvent } from '@sveltejs/kit';
 
 import { WRAPPED_MODULE_SUFFIX } from '../vite/autoInstrument';
@@ -15,17 +8,13 @@ import type { GlobalWithSentryValues } from '../vite/injectGlobalValues';
 /**
  * Takes a request event and extracts traceparent and DSC data
  * from the `sentry-trace` and `baggage` DSC headers.
+ *
+ * Sets propagation context as a side effect.
  */
-export function getTracePropagationData(event: RequestEvent): {
-  traceparentData?: TraceparentData;
-  dynamicSamplingContext?: Partial<DynamicSamplingContext>;
-} {
-  const sentryTraceHeader = event.request.headers.get('sentry-trace');
+export function getTracePropagationData(event: RequestEvent): ReturnType<typeof tracingContextFromHeaders> {
+  const sentryTraceHeader = event.request.headers.get('sentry-trace') || '';
   const baggageHeader = event.request.headers.get('baggage');
-  const traceparentData = sentryTraceHeader ? extractTraceparentData(sentryTraceHeader) : undefined;
-  const dynamicSamplingContext = baggageHeaderToDynamicSamplingContext(baggageHeader);
-
-  return { traceparentData, dynamicSamplingContext };
+  return tracingContextFromHeaders(sentryTraceHeader, baggageHeader);
 }
 
 /**

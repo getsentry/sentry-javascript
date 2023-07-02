@@ -6,7 +6,7 @@ import {
   startTransaction,
 } from '@sentry/core';
 import type { Span, Transaction } from '@sentry/types';
-import { baggageHeaderToDynamicSamplingContext, extractTraceparentData } from '@sentry/utils';
+import { isString, tracingContextFromHeaders } from '@sentry/utils';
 import type { IncomingMessage, ServerResponse } from 'http';
 
 import { platformSupportsStreaming } from './platformSupportsStreaming';
@@ -38,6 +38,7 @@ function setTransactionOnRequest(transaction: Transaction, req: IncomingMessage)
  *
  * Note: This function turns the wrapped function into an asynchronous one.
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function withErrorInstrumentation<F extends (...args: any[]) => any>(
   origFunction: F,
 ): (...params: Parameters<F>) => Promise<ReturnType<F>> {
@@ -66,6 +67,7 @@ export function withErrorInstrumentation<F extends (...args: any[]) => any>(
  * @param options Options providing details for the created transaction and span.
  * @returns what the data fetching method call returned.
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function withTracedServerSideDataFetcher<F extends (...args: any[]) => Promise<any> | any>(
   origDataFetcher: F,
   req: IncomingMessage,
@@ -86,12 +88,14 @@ export function withTracedServerSideDataFetcher<F extends (...args: any[]) => Pr
       const previousSpan: Span | undefined = getTransactionFromRequest(req) ?? scope.getSpan();
       let dataFetcherSpan;
 
-      const sentryTraceHeader = req.headers['sentry-trace'];
-      const rawBaggageString = req.headers && req.headers.baggage;
-      const traceparentData =
-        typeof sentryTraceHeader === 'string' ? extractTraceparentData(sentryTraceHeader) : undefined;
-
-      const dynamicSamplingContext = baggageHeaderToDynamicSamplingContext(rawBaggageString);
+      const sentryTrace =
+        req.headers && isString(req.headers['sentry-trace']) ? req.headers['sentry-trace'] : undefined;
+      const baggage = req.headers?.baggage;
+      const { traceparentData, dynamicSamplingContext, propagationContext } = tracingContextFromHeaders(
+        sentryTrace,
+        baggage,
+      );
+      scope.setPropagationContext(propagationContext);
 
       if (platformSupportsStreaming()) {
         let spanToContinue: Span;
