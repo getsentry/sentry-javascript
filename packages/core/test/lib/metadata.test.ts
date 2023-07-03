@@ -1,7 +1,7 @@
 import type { Event } from '@sentry/types';
 import { createStackParser, GLOBAL_OBJ, nodeStackLineParser } from '@sentry/utils';
 
-import { addMetadataToStackFrames, getMetadataForUrl, stripMetadataFromStackFrames } from '../../src';
+import { addMetadataToStackFrames, getMetadataForUrl, stripMetadataFromStackFrames } from '../../src/metadata';
 
 const parser = createStackParser(nodeStackLineParser());
 
@@ -38,16 +38,14 @@ const event: Event = {
 
 describe('Metadata', () => {
   beforeEach(() => {
-    GLOBAL_OBJ.__MODULE_METADATA__ = GLOBAL_OBJ.__MODULE_METADATA__ || {};
-    GLOBAL_OBJ.__MODULE_METADATA__[stack] = { team: 'frontend' };
+    GLOBAL_OBJ._sentryModuleMetadata = GLOBAL_OBJ._sentryModuleMetadata || {};
+    GLOBAL_OBJ._sentryModuleMetadata[stack] = { team: 'frontend' };
   });
 
   it('is parsed', () => {
     const metadata = getMetadataForUrl(parser, __filename);
 
     expect(metadata).toEqual({ team: 'frontend' });
-    // should now be false so it doesn't get parsed again
-    expect(GLOBAL_OBJ.__MODULE_METADATA__?.[stack]).toBe(false);
   });
 
   it('is added and stripped from stack frames', () => {
@@ -74,9 +72,6 @@ describe('Metadata', () => {
         },
       },
     ]);
-
-    // should now be false so it doesn't get parsed again
-    expect(GLOBAL_OBJ.__MODULE_METADATA__?.[stack]).toBe(false);
 
     stripMetadataFromStackFrames(event);
 
