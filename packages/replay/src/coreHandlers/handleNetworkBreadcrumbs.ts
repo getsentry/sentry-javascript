@@ -33,7 +33,7 @@ export function handleNetworkBreadcrumbs(replay: ReplayContainer): void {
 
     const {
       networkDetailAllowUrls,
-      networkDetailExcludeUrls,
+      networkDetailDenyUrls,
       networkCaptureBodies,
       networkRequestHeaders,
       networkResponseHeaders,
@@ -43,7 +43,7 @@ export function handleNetworkBreadcrumbs(replay: ReplayContainer): void {
       replay,
       textEncoder,
       networkDetailAllowUrls,
-      networkDetailExcludeUrls,
+      networkDetailDenyUrls,
       networkCaptureBodies,
       networkRequestHeaders,
       networkResponseHeaders,

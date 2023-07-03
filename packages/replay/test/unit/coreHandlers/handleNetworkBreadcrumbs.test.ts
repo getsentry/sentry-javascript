@@ -63,7 +63,7 @@ describe('Unit | coreHandlers | handleNetworkBreadcrumbs', () => {
         textEncoder: new TextEncoder(),
         replay: setupReplayContainer(),
         networkDetailAllowUrls: ['https://example.com'],
-        networkDetailExcludeUrls: ['http://localhost:8080'],
+        networkDetailDenyUrls: ['http://localhost:8080'],
         networkCaptureBodies: false,
         networkRequestHeaders: ['content-type', 'accept', 'x-custom-header'],
         networkResponseHeaders: ['content-type', 'accept', 'x-custom-header'],
@@ -1390,8 +1390,8 @@ other-header: test`;
       ['exact regex match', 'http://example.com/exact'],
       ['partial regex match', 'http://example.com/partial/string'],
     ])('matching URL %s', (_label, url) => {
-      it('correctly excludes URL for fetch request', async () => {
-        options.networkDetailExcludeUrls = [
+      it('correctly deny URL for fetch request', async () => {
+        options.networkDetailDenyUrls = [
           'https://example.com/foo',
           'com/bar',
           /^http:\/\/example.com\/exact$/,
@@ -1465,8 +1465,8 @@ other-header: test`;
         ]);
       });
 
-      it('correctly excludes URL for xhr request', async () => {
-        options.networkDetailExcludeUrls = [
+      it('correctly deny URL for xhr request', async () => {
+        options.networkDetailDenyUrls = [
           'https://example.com/foo',
           'com/bar',
           /^http:\/\/example.com\/exact$/,

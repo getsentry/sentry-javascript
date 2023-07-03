@@ -12,7 +12,7 @@ const DEFAULT_OPTIONS = {
   useCompression: false,
   blockAllMedia: true,
   networkDetailAllowUrls: [],
-  networkDetailExcludeUrls: [],
+  networkDetailDenyUrls: [],
   networkCaptureBodies: true,
   networkRequestHeaders: [],
   networkResponseHeaders: [],

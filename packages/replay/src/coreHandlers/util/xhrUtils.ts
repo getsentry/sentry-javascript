@@ -78,7 +78,7 @@ function _prepareXhrData(
     return null;
   }
 
-  if (!urlMatches(url, options.networkDetailAllowUrls) || urlMatches(url, options.networkDetailExcludeUrls)) {
+  if (!urlMatches(url, options.networkDetailAllowUrls) || urlMatches(url, options.networkDetailDenyUrls)) {
     const request = buildSkippedNetworkRequestOrResponse(requestBodySize);
     const response = buildSkippedNetworkRequestOrResponse(responseBodySize);
     return {

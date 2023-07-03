@@ -71,31 +71,31 @@ export interface ReplayNetworkOptions {
   networkDetailAllowUrls: (string | RegExp)[];
 
   /**
-   * Exclude request/response details for XHR/Fetch requests that match the given URLs.
+   * Deny request/response details for XHR/Fetch requests that match the given URLs.
    * The URLs can be strings or regular expressions.
-   * When provided a string, we will exclude any URL that contains the given string.
+   * When provided a string, we will deny any URL that contains the given string.
    * You can use a Regex to handle exact matches or more complex matching.
    * URLs matching these patterns will not have bodies & additional headers captured.
    */
-  networkDetailExcludeUrls: (string | RegExp)[];
+  networkDetailDenyUrls: (string | RegExp)[];
 
   /**
    * If request & response bodies should be captured.
-   * Only applies to URLs matched by `networkDetailAllowUrls` and not matched by `networkDetailExcludeUrls`.
+   * Only applies to URLs matched by `networkDetailAllowUrls` and not matched by `networkDetailDenyUrls`.
    * Defaults to true.
    */
   networkCaptureBodies: boolean;
 
   /**
    * Capture the following request headers, in addition to the default ones.
-   * Only applies to URLs matched by `networkDetailAllowUrls` and not matched by `networkDetailExcludeUrls`.
+   * Only applies to URLs matched by `networkDetailAllowUrls` and not matched by `networkDetailDenyUrls`.
    * Any headers defined here will be captured in addition to the default headers.
    */
   networkRequestHeaders: string[];
 
   /**
    * Capture the following response headers, in addition to the default ones.
-   * Only applies to URLs matched by `networkDetailAllowUrls` and not matched by `networkDetailExcludeUrls`.
+   * Only applies to URLs matched by `networkDetailAllowUrls` and not matched by `networkDetailDenyUrls`.
    * Any headers defined here will be captured in addition to the default headers.
    */
   networkResponseHeaders: string[];
