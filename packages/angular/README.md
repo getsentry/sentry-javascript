@@ -21,7 +21,7 @@
 
 If you're using Angular 12 or newer, we recommend using `@sentry/angular-ivy` for native support with Angular's rendering engine Ivy.
 
-This SDK stilll officially supports Angular 10-15. If you are using an older version of Angular and experience problems with the Angular SDK, we recommend downgrading the SDK to version 6.x.
+This SDK still officially supports Angular 10-15. If you are using an older version of Angular and experience problems with the Angular SDK, we recommend downgrading the SDK to version 6.x.
 
 ## General
 
@@ -175,7 +175,7 @@ import { TraceModule } from '@sentry/angular';
 export class AppModule {}
 ```
 
-Then inside your components template (keep in mind that directive name attribute is required):
+Then, inside your component's template (keep in mind that the directive's name attribute is required):
 
 ```html
 <app-header trace="header"></app-header>
