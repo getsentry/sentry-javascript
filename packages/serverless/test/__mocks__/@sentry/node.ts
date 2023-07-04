@@ -22,6 +22,7 @@ export const fakeScope = {
   setSpan: jest.fn(),
   getTransaction: jest.fn(() => fakeTransaction),
   setSDKProcessingMetadata: jest.fn(),
+  setPropagationContext: jest.fn(),
 };
 export const fakeSpan = {
   finish: jest.fn(),
