@@ -175,7 +175,7 @@ import { TraceModule } from '@sentry/angular';
 export class AppModule {}
 ```
 
-Then inside your component's template (keep in mind that directive name attribute is required):
+Then, inside your component's template (keep in mind that the directive's name attribute is required):
 
 ```html
 <app-header trace="header"></app-header>
