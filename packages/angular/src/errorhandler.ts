@@ -70,7 +70,6 @@ function isErrorOrErrorLikeObject(value: unknown): value is Error {
 
   return (
     isString(candidate.name) &&
-    isString(candidate.name) &&
     isString(candidate.message) &&
     (undefined === candidate.stack || isString(candidate.stack))
   );
