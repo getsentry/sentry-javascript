@@ -49,7 +49,7 @@
     "karma-typescript-es6-transform": "^4.0.0",
     "karma-webkit-launcher": "^1.0.2",
     "node-fetch": "^2.6.0",
-    "playwright": "^1.31.1",
+    "playwright": "^1.35.1",
     "sinon": "^7.3.2",
     "webpack": "^4.30.0"
   },
