@@ -20,10 +20,9 @@ describe('LinkedErrors', () => {
       const event = {
         message: 'foo',
       };
-      return linkedErrors._handler(stackParser, event, {}).then((result: any) => {
-        expect(spy.mock.calls.length).toEqual(0);
-        expect(result).toEqual(event);
-      });
+      const result = linkedErrors._handler(stackParser, event, {});
+      expect(spy.mock.calls.length).toEqual(0);
+      expect(result).toEqual(event);
     });
 
     it('should bail out if event contains exception, but no hint', async () => {
@@ -47,24 +46,17 @@ describe('LinkedErrors', () => {
 
     it('should call walkErrorTree if event contains exception and hint with originalException', async () => {
       expect.assertions(1);
-      const spy = jest.spyOn(linkedErrors, '_walkErrorTree').mockImplementation(
-        async () =>
-          new Promise<[]>(resolve => {
-            resolve([]);
-          }),
-      );
+      const spy = jest.spyOn(linkedErrors, '_walkErrorTree').mockImplementation(() => []);
       const one = new Error('originalException');
       const options = getDefaultNodeClientOptions({ stackParser });
       const client = new NodeClient(options);
-      return client.eventFromException(one).then(event =>
-        linkedErrors
-          ._handler(stackParser, event, {
-            originalException: one,
-          })
-          .then((_: any) => {
-            expect(spy.mock.calls.length).toEqual(1);
-          }),
-      );
+      return client.eventFromException(one).then(event => {
+        linkedErrors._handler(stackParser, event, {
+          originalException: one,
+        });
+
+        expect(spy.mock.calls.length).toEqual(1);
+      });
     });
 
     it('should recursively walk error to find linked exceptions and assign them to the event', async () => {
@@ -77,24 +69,22 @@ describe('LinkedErrors', () => {
 
       const options = getDefaultNodeClientOptions({ stackParser });
       const client = new NodeClient(options);
-      return client.eventFromException(one).then(event =>
-        linkedErrors
-          ._handler(stackParser, event, {
-            originalException: one,
-          })
-          .then((result: any) => {
-            expect(result.exception.values.length).toEqual(3);
-            expect(result.exception.values[0].type).toEqual('SyntaxError');
-            expect(result.exception.values[0].value).toEqual('three');
-            expect(result.exception.values[0].stacktrace).toHaveProperty('frames');
-            expect(result.exception.values[1].type).toEqual('TypeError');
-            expect(result.exception.values[1].value).toEqual('two');
-            expect(result.exception.values[1].stacktrace).toHaveProperty('frames');
-            expect(result.exception.values[2].type).toEqual('Error');
-            expect(result.exception.values[2].value).toEqual('one');
-            expect(result.exception.values[2].stacktrace).toHaveProperty('frames');
-          }),
-      );
+      return client.eventFromException(one).then(event => {
+        const result = linkedErrors._handler(stackParser, event, {
+          originalException: one,
+        });
+
+        expect(result.exception.values.length).toEqual(3);
+        expect(result.exception.values[0].type).toEqual('SyntaxError');
+        expect(result.exception.values[0].value).toEqual('three');
+        expect(result.exception.values[0].stacktrace).toHaveProperty('frames');
+        expect(result.exception.values[1].type).toEqual('TypeError');
+        expect(result.exception.values[1].value).toEqual('two');
+        expect(result.exception.values[1].stacktrace).toHaveProperty('frames');
+        expect(result.exception.values[2].type).toEqual('Error');
+        expect(result.exception.values[2].value).toEqual('one');
+        expect(result.exception.values[2].stacktrace).toHaveProperty('frames');
+      });
     });
 
     it('should allow to change walk key', async () => {
@@ -111,24 +101,22 @@ describe('LinkedErrors', () => {
 
       const options = getDefaultNodeClientOptions({ stackParser });
       const client = new NodeClient(options);
-      return client.eventFromException(one).then(event =>
-        linkedErrors
-          ._handler(stackParser, event, {
-            originalException: one,
-          })
-          .then((result: any) => {
-            expect(result.exception.values.length).toEqual(3);
-            expect(result.exception.values[0].type).toEqual('SyntaxError');
-            expect(result.exception.values[0].value).toEqual('three');
-            expect(result.exception.values[0].stacktrace).toHaveProperty('frames');
-            expect(result.exception.values[1].type).toEqual('TypeError');
-            expect(result.exception.values[1].value).toEqual('two');
-            expect(result.exception.values[1].stacktrace).toHaveProperty('frames');
-            expect(result.exception.values[2].type).toEqual('Error');
-            expect(result.exception.values[2].value).toEqual('one');
-            expect(result.exception.values[2].stacktrace).toHaveProperty('frames');
-          }),
-      );
+      return client.eventFromException(one).then(event => {
+        const result = linkedErrors._handler(stackParser, event, {
+          originalException: one,
+        });
+
+        expect(result.exception.values.length).toEqual(3);
+        expect(result.exception.values[0].type).toEqual('SyntaxError');
+        expect(result.exception.values[0].value).toEqual('three');
+        expect(result.exception.values[0].stacktrace).toHaveProperty('frames');
+        expect(result.exception.values[1].type).toEqual('TypeError');
+        expect(result.exception.values[1].value).toEqual('two');
+        expect(result.exception.values[1].stacktrace).toHaveProperty('frames');
+        expect(result.exception.values[2].type).toEqual('Error');
+        expect(result.exception.values[2].value).toEqual('one');
+        expect(result.exception.values[2].stacktrace).toHaveProperty('frames');
+      });
     });
 
     it('should allow to change stack size limit', async () => {
@@ -145,21 +133,19 @@ describe('LinkedErrors', () => {
 
       const options = getDefaultNodeClientOptions({ stackParser });
       const client = new NodeClient(options);
-      return client.eventFromException(one).then(event =>
-        linkedErrors
-          ._handler(stackParser, event, {
-            originalException: one,
-          })
-          .then((result: any) => {
-            expect(result.exception.values.length).toEqual(2);
-            expect(result.exception.values[0].type).toEqual('TypeError');
-            expect(result.exception.values[0].value).toEqual('two');
-            expect(result.exception.values[0].stacktrace).toHaveProperty('frames');
-            expect(result.exception.values[1].type).toEqual('Error');
-            expect(result.exception.values[1].value).toEqual('one');
-            expect(result.exception.values[1].stacktrace).toHaveProperty('frames');
-          }),
-      );
+      return client.eventFromException(one).then(event => {
+        const result = linkedErrors._handler(stackParser, event, {
+          originalException: one,
+        });
+
+        expect(result.exception.values.length).toEqual(2);
+        expect(result.exception.values[0].type).toEqual('TypeError');
+        expect(result.exception.values[0].value).toEqual('two');
+        expect(result.exception.values[0].stacktrace).toHaveProperty('frames');
+        expect(result.exception.values[1].type).toEqual('Error');
+        expect(result.exception.values[1].value).toEqual('one');
+        expect(result.exception.values[1].stacktrace).toHaveProperty('frames');
+      });
     });
   });
 });
