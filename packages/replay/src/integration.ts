@@ -67,6 +67,7 @@ export class Replay implements Integration {
     slowClickIgnoreSelectors = [],
 
     networkDetailAllowUrls = [],
+    networkDetailDenyUrls = [],
     networkCaptureBodies = true,
     networkRequestHeaders = [],
     networkResponseHeaders = [],
@@ -138,6 +139,7 @@ export class Replay implements Integration {
       slowClickTimeout,
       slowClickIgnoreSelectors,
       networkDetailAllowUrls,
+      networkDetailDenyUrls,
       networkCaptureBodies,
       networkRequestHeaders: _getMergedNetworkHeaders(networkRequestHeaders),
       networkResponseHeaders: _getMergedNetworkHeaders(networkResponseHeaders),

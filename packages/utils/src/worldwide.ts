@@ -55,6 +55,12 @@ export interface InternalGlobal {
       [key: string]: Function;
     };
   };
+  /**
+   * Raw module metadata that is injected by bundler plugins.
+   *
+   * Keys are `error.stack` strings, values are the metadata.
+   */
+  _sentryModuleMetadata?: Record<string, any>;
 }
 
 // The code below for 'isGlobalObj' and 'GLOBAL_OBJ' was copied from core-js before modification
