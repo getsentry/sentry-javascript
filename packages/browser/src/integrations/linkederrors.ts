@@ -1,8 +1,7 @@
 import { addGlobalEventProcessor, getCurrentHub } from '@sentry/core';
-import type { Event, EventHint, Exception, ExtendedError, Integration, StackParser } from '@sentry/types';
-import { isInstanceOf } from '@sentry/utils';
+import type { Event, EventHint, ExtendedError, Integration, StackParser } from '@sentry/types';
+import { aggreagateExceptionsFromError, isInstanceOf } from '@sentry/utils';
 
-import type { BrowserClient } from '../client';
 import { exceptionFromError } from '../eventbuilder';
 
 const DEFAULT_KEY = 'cause';
@@ -47,7 +46,7 @@ export class LinkedErrors implements Integration {
    * @inheritDoc
    */
   public setupOnce(): void {
-    const client = getCurrentHub().getClient<BrowserClient>();
+    const client = getCurrentHub().getClient();
     if (!client) {
       return;
     }
@@ -71,24 +70,16 @@ export function _handler(
   if (!event.exception || !event.exception.values || !hint || !isInstanceOf(hint.originalException, Error)) {
     return event;
   }
-  const linkedErrors = _walkErrorTree(parser, limit, hint.originalException as ExtendedError, key);
-  event.exception.values = [...linkedErrors, ...event.exception.values];
-  return event;
-}
 
-/**
- * JSDOC
- */
-export function _walkErrorTree(
-  parser: StackParser,
-  limit: number,
-  error: ExtendedError,
-  key: string,
-  stack: Exception[] = [],
-): Exception[] {
-  if (!isInstanceOf(error[key], Error) || stack.length + 1 >= limit) {
-    return stack;
-  }
-  const exception = exceptionFromError(parser, error[key]);
-  return _walkErrorTree(parser, limit, error[key], key, [exception, ...stack]);
+  const linkedErrors = aggreagateExceptionsFromError(
+    exceptionFromError,
+    parser,
+    limit,
+    hint.originalException as ExtendedError,
+    key,
+  );
+
+  event.exception.values = [...linkedErrors, ...event.exception.values];
+
+  return event;
 }
