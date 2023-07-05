@@ -1,8 +1,7 @@
 import { addGlobalEventProcessor, getCurrentHub } from '@sentry/core';
 import type { Event, EventHint, Exception, ExtendedError, Integration, StackParser } from '@sentry/types';
-import { isInstanceOf, resolvedSyncPromise, SyncPromise } from '@sentry/utils';
+import { isInstanceOf } from '@sentry/utils';
 
-import type { NodeClient } from '../client';
 import { exceptionFromError } from '../eventbuilder';
 import { ContextLines } from './contextlines';
 
@@ -46,10 +45,18 @@ export class LinkedErrors implements Integration {
     addGlobalEventProcessor(async (event: Event, hint: EventHint) => {
       const hub = getCurrentHub();
       const self = hub.getIntegration(LinkedErrors);
-      const client = hub.getClient<NodeClient>();
+      const client = hub.getClient();
       if (client && self && self._handler && typeof self._handler === 'function') {
-        await self._handler(client.getOptions().stackParser, event, hint);
+        self._handler(client.getOptions().stackParser, event, hint);
       }
+
+      // If the ContextLines integration is enabled, we add source code context to linked errors
+      // because we can't guarantee the order that integrations are run.
+      const contextLines = getCurrentHub().getIntegration(ContextLines);
+      if (contextLines) {
+        await contextLines.addSourceContext(event);
+      }
+
       return event;
     });
   }
@@ -57,53 +64,31 @@ export class LinkedErrors implements Integration {
   /**
    * @inheritDoc
    */
-  private _handler(stackParser: StackParser, event: Event, hint: EventHint): PromiseLike<Event> {
-    if (!event.exception || !event.exception.values || !isInstanceOf(hint.originalException, Error)) {
-      return resolvedSyncPromise(event);
+  private _handler(stackParser: StackParser, event: Event, hint: EventHint): Event {
+    if (!event.exception || !event.exception.values || !hint || !isInstanceOf(hint.originalException, Error)) {
+      return event;
     }
 
-    return new SyncPromise<Event>(resolve => {
-      void this._walkErrorTree(stackParser, hint.originalException as Error, this._key)
-        .then((linkedErrors: Exception[]) => {
-          if (event && event.exception && event.exception.values) {
-            event.exception.values = [...linkedErrors, ...event.exception.values];
-          }
-          resolve(event);
-        })
-        .then(null, () => {
-          resolve(event);
-        });
-    });
+    const linkedErrors = this._walkErrorTree(stackParser, hint.originalException as ExtendedError, this._key);
+    event.exception.values = [...linkedErrors, ...event.exception.values];
+    return event;
   }
 
   /**
    * @inheritDoc
    */
-  private async _walkErrorTree(
+  private _walkErrorTree(
     stackParser: StackParser,
     error: ExtendedError,
     key: string,
     stack: Exception[] = [],
-  ): Promise<Exception[]> {
+  ): Exception[] {
     if (!isInstanceOf(error[key], Error) || stack.length + 1 >= this._limit) {
-      return Promise.resolve(stack);
+      return stack;
     }
 
     const exception = exceptionFromError(stackParser, error[key]);
 
-    // If the ContextLines integration is enabled, we add source code context to linked errors
-    // because we can't guarantee the order that integrations are run.
-    const contextLines = getCurrentHub().getIntegration(ContextLines);
-    if (contextLines && exception.stacktrace?.frames) {
-      await contextLines.addSourceContextToFrames(exception.stacktrace.frames);
-    }
-
-    return new Promise<Exception[]>((resolve, reject) => {
-      void this._walkErrorTree(stackParser, error[key], key, [exception, ...stack])
-        .then(resolve)
-        .then(null, () => {
-          reject();
-        });
-    });
+    return this._walkErrorTree(stackParser, error[key], key, [exception, ...stack]);
   }
 }
