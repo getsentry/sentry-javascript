@@ -1,11 +1,12 @@
 /* eslint-disable max-lines */
-import { getCurrentHub, hasTracingEnabled } from '@sentry/core';
-import type { DynamicSamplingContext, Span } from '@sentry/types';
+import { getCurrentHub, getDynamicSamplingContextFromClient, hasTracingEnabled } from '@sentry/core';
+import type { Client, DynamicSamplingContext, Hub, Scope, Span } from '@sentry/types';
 import {
   addInstrumentationHandler,
   BAGGAGE_HEADER_NAME,
   browserPerformanceTimeOrigin,
   dynamicSamplingContextToSentryBaggageHeader,
+  generateSentryTraceHeader,
   isInstanceOf,
   SENTRY_XHR_DATA_KEY,
   stringMatchesSomePattern,
@@ -219,12 +220,14 @@ export function fetchCallback(
   shouldCreateSpan: (url: string) => boolean,
   shouldAttachHeaders: (url: string) => boolean,
   spans: Record<string, Span>,
-): Span | void {
-  if (!hasTracingEnabled() || !(handlerData.fetchData && shouldCreateSpan(handlerData.fetchData.url))) {
-    return;
+): Span | undefined {
+  if (!hasTracingEnabled() || !handlerData.fetchData) {
+    return undefined;
   }
 
-  if (handlerData.endTimestamp) {
+  const shouldCreateSpanResult = shouldCreateSpan(handlerData.fetchData.url);
+
+  if (handlerData.endTimestamp && shouldCreateSpanResult) {
     const spanId = handlerData.fetchData.__span;
     if (!spanId) return;
 
@@ -251,27 +254,35 @@ export function fetchCallback(
       // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
       delete spans[spanId];
     }
-    return;
+    return undefined;
   }
 
-  const currentSpan = getCurrentHub().getScope().getSpan();
-  const activeTransaction = currentSpan && currentSpan.transaction;
+  const hub = getCurrentHub();
+  const scope = hub.getScope();
+  const client = hub.getClient();
+  const parentSpan = scope.getSpan();
 
-  if (currentSpan && activeTransaction) {
-    const { method, url } = handlerData.fetchData;
-    const span = currentSpan.startChild({
-      data: {
-        url,
-        type: 'fetch',
-        'http.method': method,
-      },
-      description: `${method} ${url}`,
-      op: 'http.client',
-    });
+  const { method, url } = handlerData.fetchData;
 
+  const span =
+    shouldCreateSpanResult && parentSpan
+      ? parentSpan.startChild({
+          data: {
+            url,
+            type: 'fetch',
+            'http.method': method,
+          },
+          description: `${method} ${url}`,
+          op: 'http.client',
+        })
+      : undefined;
+
+  if (span) {
     handlerData.fetchData.__span = span.spanId;
     spans[span.spanId] = span;
+  }
 
+  if (shouldAttachHeaders(handlerData.fetchData.url) && client) {
     const request: string | Request = handlerData.args[0];
 
     // In case the user hasn't set the second argument of a fetch call we default it to `{}`.
@@ -280,16 +291,11 @@ export function fetchCallback(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const options: { [key: string]: any } = handlerData.args[1];
 
-    if (shouldAttachHeaders(handlerData.fetchData.url)) {
-      options.headers = addTracingHeadersToFetchRequest(
-        request,
-        activeTransaction.getDynamicSamplingContext(),
-        span,
-        options,
-      );
-    }
-    return span;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    options.headers = addTracingHeadersToFetchRequest(request, client, scope, options);
   }
+
+  return span;
 }
 
 /**
@@ -297,8 +303,8 @@ export function fetchCallback(
  */
 export function addTracingHeadersToFetchRequest(
   request: string | unknown, // unknown is actually type Request but we can't export DOM types from this package,
-  dynamicSamplingContext: Partial<DynamicSamplingContext>,
-  span: Span,
+  client: Client,
+  scope: Scope,
   options: {
     headers?:
       | {
@@ -306,9 +312,21 @@ export function addTracingHeadersToFetchRequest(
         }
       | PolymorphicRequestHeaders;
   },
-): PolymorphicRequestHeaders {
+): PolymorphicRequestHeaders | undefined {
+  const span = scope.getSpan();
+
+  const transaction = span && span.transaction;
+
+  const { traceId, sampled, dsc } = scope.getPropagationContext();
+
+  const sentryTraceHeader = span ? span.toTraceparent() : generateSentryTraceHeader(traceId, undefined, sampled);
+  const dynamicSamplingContext = transaction
+    ? transaction.getDynamicSamplingContext()
+    : dsc
+    ? dsc
+    : getDynamicSamplingContextFromClient(traceId, client, scope);
+
   const sentryBaggageHeader = dynamicSamplingContextToSentryBaggageHeader(dynamicSamplingContext);
-  const sentryTraceHeader = span.toTraceparent();
 
   const headers =
     typeof Request !== 'undefined' && isInstanceOf(request, Request) ? (request as Request).headers : options.headers;
