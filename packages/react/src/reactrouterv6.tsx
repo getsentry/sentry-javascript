@@ -266,7 +266,7 @@ export function wrapCreateBrowserRouter<
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return function (routes: RouteObject[], opts?: Record<string, any> & { basename?: string }): TRouter {
     const router = createRouterFunction(routes, opts);
-    const basename = opts ? opts.basename : undefined;
+    const basename = opts && opts.basename;
 
     // The initial load ends when `createBrowserRouter` is called.
     // This is the earliest convenient time to update the transaction name.
