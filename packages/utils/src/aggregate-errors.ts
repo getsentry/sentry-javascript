@@ -17,7 +17,7 @@ export function applyAggregateErrorsToEvent(
     return event;
   }
 
-  const linkedErrors = aggreagateExceptionsFromError(
+  const linkedErrors = aggregateExceptionsFromError(
     exceptionFromErrorImplementation,
     parser,
     limit,
@@ -30,7 +30,7 @@ export function applyAggregateErrorsToEvent(
   return event;
 }
 
-function aggreagateExceptionsFromError(
+function aggregateExceptionsFromError(
   exceptionFromErrorImplementation: (stackParser: StackParser, ex: Error) => Exception,
   parser: StackParser,
   limit: number,
@@ -43,7 +43,7 @@ function aggreagateExceptionsFromError(
   }
 
   const exception = exceptionFromErrorImplementation(parser, error[key]);
-  return aggreagateExceptionsFromError(exceptionFromErrorImplementation, parser, limit, error[key], key, [
+  return aggregateExceptionsFromError(exceptionFromErrorImplementation, parser, limit, error[key], key, [
     exception,
     ...stack,
   ]);
