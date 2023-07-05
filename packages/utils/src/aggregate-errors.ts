@@ -3,7 +3,7 @@ import type { Event, EventHint, Exception, ExtendedError, StackParser } from '@s
 import { isInstanceOf } from './is';
 
 /**
- * TODO
+ * Creates exceptions inside `event.exception.values` for errors that are nested on properties based on the `key` parameter.
  */
 export function applyAggregateErrorsToEvent(
   exceptionFromErrorImplementation: (stackParser: StackParser, ex: Error) => Exception,
@@ -38,7 +38,7 @@ function aggreagateExceptionsFromError(
   key: string,
   stack: Exception[] = [],
 ): Exception[] {
-  if (!isInstanceOf(error[key], Error) || stack.length + 1 >= limit) {
+  if (!isInstanceOf(error[key], Error) || stack.length >= limit) {
     return stack;
   }
 
