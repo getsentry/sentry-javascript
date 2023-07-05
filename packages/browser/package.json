@@ -32,6 +32,7 @@
   },
   "devDependencies": {
     "@sentry-internal/integration-shims": "7.57.0",
+    "@playwright/test": "^1.35.1",
     "@types/md5": "2.1.33",
     "btoa": "^1.2.1",
     "chai": "^4.1.2",
