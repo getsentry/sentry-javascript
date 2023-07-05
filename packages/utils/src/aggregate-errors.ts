@@ -1,11 +1,36 @@
-import type { Exception, ExtendedError, StackParser } from '@sentry/types';
+import type { Event, EventHint, Exception, ExtendedError, StackParser } from '@sentry/types';
 
 import { isInstanceOf } from './is';
 
 /**
  * TODO
  */
-export function aggreagateExceptionsFromError(
+export function applyAggregateErrorsToEvent(
+  exceptionFromErrorImplementation: (stackParser: StackParser, ex: Error) => Exception,
+  parser: StackParser,
+  key: string,
+  limit: number,
+  event: Event,
+  hint?: EventHint,
+): Event | null {
+  if (!event.exception || !event.exception.values || !hint || !isInstanceOf(hint.originalException, Error)) {
+    return event;
+  }
+
+  const linkedErrors = aggreagateExceptionsFromError(
+    exceptionFromErrorImplementation,
+    parser,
+    limit,
+    hint.originalException as ExtendedError,
+    key,
+  );
+
+  event.exception.values = [...linkedErrors, ...event.exception.values];
+
+  return event;
+}
+
+function aggreagateExceptionsFromError(
   exceptionFromErrorImplementation: (stackParser: StackParser, ex: Error) => Exception,
   parser: StackParser,
   limit: number,

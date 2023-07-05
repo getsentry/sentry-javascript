@@ -1,6 +1,5 @@
-import { addGlobalEventProcessor, getCurrentHub } from '@sentry/core';
-import type { Event, EventHint, ExtendedError, Integration, StackParser } from '@sentry/types';
-import { aggreagateExceptionsFromError, isInstanceOf } from '@sentry/utils';
+import type { Event, EventHint, EventProcessor, Hub, Integration } from '@sentry/types';
+import { applyAggregateErrorsToEvent } from '@sentry/utils';
 
 import { exceptionFromError } from '../eventbuilder';
 
@@ -45,41 +44,26 @@ export class LinkedErrors implements Integration {
   /**
    * @inheritDoc
    */
-  public setupOnce(): void {
-    const client = getCurrentHub().getClient();
-    if (!client) {
-      return;
-    }
+  public setupOnce(addGlobalEventProcessor: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
     addGlobalEventProcessor((event: Event, hint?: EventHint) => {
-      const self = getCurrentHub().getIntegration(LinkedErrors);
-      return self ? _handler(client.getOptions().stackParser, self._key, self._limit, event, hint) : event;
+      const hub = getCurrentHub();
+      const client = hub.getClient();
+      const self = hub.getIntegration(LinkedErrors);
+
+      if (!client || !self) {
+        return event;
+      }
+
+      applyAggregateErrorsToEvent(
+        exceptionFromError,
+        client.getOptions().stackParser,
+        self._key,
+        self._limit,
+        event,
+        hint,
+      );
+
+      return event;
     });
   }
-}
-
-/**
- * @inheritDoc
- */
-export function _handler(
-  parser: StackParser,
-  key: string,
-  limit: number,
-  event: Event,
-  hint?: EventHint,
-): Event | null {
-  if (!event.exception || !event.exception.values || !hint || !isInstanceOf(hint.originalException, Error)) {
-    return event;
-  }
-
-  const linkedErrors = aggreagateExceptionsFromError(
-    exceptionFromError,
-    parser,
-    limit,
-    hint.originalException as ExtendedError,
-    key,
-  );
-
-  event.exception.values = [...linkedErrors, ...event.exception.values];
-
-  return event;
 }

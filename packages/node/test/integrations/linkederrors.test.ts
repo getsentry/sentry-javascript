@@ -6,17 +6,9 @@ import { LinkedErrors } from '../../src/integrations/linkederrors';
 import { defaultStackParser as stackParser } from '../../src/sdk';
 import { getDefaultNodeClientOptions } from '../helper/node-client-options';
 
-let linkedErrors: any;
-
 describe('LinkedErrors', () => {
-  beforeEach(() => {
-    linkedErrors = new LinkedErrors();
-  });
-
   describe('handler', () => {
     it('should bail out if event doesnt contain exception', async () => {
-      expect.assertions(2);
-      const spy = jest.spyOn(linkedErrors, '_walkErrorTree');
       const event = {
         message: 'foo',
       };
