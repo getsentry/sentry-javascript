@@ -30,7 +30,7 @@
     "fs-extra": "^11.1.0",
     "p-timeout": "^6.0.0",
     "playwright": "^1.35.1",
-    "playwright-core": "^1.29.1",
+    "playwright-core": "^1.35.1",
     "simple-git": "^3.16.0",
     "simple-statistics": "^7.8.0",
     "typescript": "4.9.5"
