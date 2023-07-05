@@ -26,7 +26,6 @@ describe('Unit | coreHandlers | handleClick', () => {
           timeout: 3_000,
           scrollTimeout: 200,
           ignoreSelector: '',
-          multiClickTimeout: 1_000,
         },
         mockAddBreadcrumbEvent,
       );
@@ -72,113 +71,6 @@ describe('Unit | coreHandlers | handleClick', () => {
       expect(mockAddBreadcrumbEvent).toHaveBeenCalledTimes(1);
     });
 
-    test('it groups multiple clicks together', async () => {
-      const replay = {
-        getCurrentRoute: () => 'test-route',
-      } as ReplayContainer;
-
-      const mockAddBreadcrumbEvent = jest.fn();
-
-      const detector = new ClickDetector(
-        replay,
-        {
-          threshold: 1_000,
-          timeout: 3_000,
-          scrollTimeout: 200,
-          ignoreSelector: '',
-          multiClickTimeout: 1_000,
-        },
-        mockAddBreadcrumbEvent,
-      );
-
-      const breadcrumb1: Breadcrumb = {
-        timestamp: BASE_TIMESTAMP / 1000,
-        data: {
-          nodeId: 1,
-        },
-      };
-      const breadcrumb2: Breadcrumb = {
-        timestamp: BASE_TIMESTAMP / 1000 + 0.2,
-        data: {
-          nodeId: 1,
-        },
-      };
-      const breadcrumb3: Breadcrumb = {
-        timestamp: BASE_TIMESTAMP / 1000 + 0.6,
-        data: {
-          nodeId: 1,
-        },
-      };
-      const breadcrumb4: Breadcrumb = {
-        timestamp: BASE_TIMESTAMP / 1000 + 2,
-        data: {
-          nodeId: 1,
-        },
-      };
-      const breadcrumb5: Breadcrumb = {
-        timestamp: BASE_TIMESTAMP / 1000 + 2.9,
-        data: {
-          nodeId: 1,
-        },
-      };
-      const node = document.createElement('button');
-      detector.handleClick(breadcrumb1, node);
-
-      detector.handleClick(breadcrumb2, node);
-
-      detector.handleClick(breadcrumb3, node);
-
-      expect(mockAddBreadcrumbEvent).toHaveBeenCalledTimes(0);
-
-      jest.advanceTimersByTime(2_000);
-
-      expect(mockAddBreadcrumbEvent).toHaveBeenCalledTimes(0);
-
-      detector.handleClick(breadcrumb4, node);
-      detector.handleClick(breadcrumb5, node);
-
-      jest.advanceTimersByTime(1_000);
-
-      expect(mockAddBreadcrumbEvent).toHaveBeenCalledTimes(1);
-      expect(mockAddBreadcrumbEvent).toHaveBeenCalledWith(replay, {
-        category: 'ui.slowClickDetected',
-        type: 'default',
-        data: {
-          // count is not actually correct, because this is identified by a different click handler
-          clickCount: 1,
-          endReason: 'timeout',
-          nodeId: 1,
-          route: 'test-route',
-          timeAfterClickMs: 3000,
-          url: 'http://localhost/',
-        },
-        message: undefined,
-        timestamp: expect.any(Number),
-      });
-
-      jest.advanceTimersByTime(2_000);
-
-      expect(mockAddBreadcrumbEvent).toHaveBeenCalledTimes(2);
-      expect(mockAddBreadcrumbEvent).toHaveBeenCalledWith(replay, {
-        category: 'ui.slowClickDetected',
-        type: 'default',
-        data: {
-          // count is not actually correct, because this is identified by a different click handler
-          clickCount: 1,
-          endReason: 'timeout',
-          nodeId: 1,
-          route: 'test-route',
-          timeAfterClickMs: 3000,
-          url: 'http://localhost/',
-        },
-        message: undefined,
-        timestamp: expect.any(Number),
-      });
-
-      jest.advanceTimersByTime(5_000);
-      expect(mockAddBreadcrumbEvent).toHaveBeenCalledTimes(2);
-    });
-
     test('it captures clicks on different elements', async () => {
       const replay = {
         getCurrentRoute: () => 'test-route',
@@ -193,7 +85,6 @@ describe('Unit | coreHandlers | handleClick', () => {
           timeout: 3_000,
           scrollTimeout: 200,
           ignoreSelector: '',
-          multiClickTimeout: 1_000,
         },
         mockAddBreadcrumbEvent,
       );
@@ -247,7 +138,6 @@ describe('Unit | coreHandlers | handleClick', () => {
           timeout: 3_000,
           scrollTimeout: 200,
           ignoreSelector: '',
-          multiClickTimeout: 1_000,
         },
         mockAddBreadcrumbEvent,
       );
@@ -304,7 +194,6 @@ describe('Unit | coreHandlers | handleClick', () => {
             timeout: 3_000,
             scrollTimeout: 200,
             ignoreSelector: '',
-            multiClickTimeout: 1_000,
           },
           mockAddBreadcrumbEvent,
         );
@@ -437,7 +326,6 @@ describe('Unit | coreHandlers | handleClick', () => {
             timeout: 3_000,
             scrollTimeout: 200,
             ignoreSelector: '',
-            multiClickTimeout: 1_000,
           },
           mockAddBreadcrumbEvent,
         );
