@@ -265,5 +265,44 @@ describe('React Router v6.4', () => {
       expect(mockStartTransaction).toHaveBeenCalledTimes(1);
       expect(mockSetName).toHaveBeenLastCalledWith('/about/:page', 'route');
     });
+
+    it('works with `basename` option', () => {
+      const [mockStartTransaction] = createInstrumentation();
+      const sentryCreateBrowserRouter = wrapCreateBrowserRouter(createMemoryRouter as CreateRouterFunction);
+
+      const router = sentryCreateBrowserRouter(
+        [
+          {
+            path: '/',
+            element: <Navigate to="/about/us" />,
+          },
+          {
+            path: 'about',
+            element: <div>About</div>,
+            children: [
+              {
+                path: 'us',
+                element: <div>Us</div>,
+              },
+            ],
+          },
+        ],
+        {
+          initialEntries: ['/app'],
+          basename: '/app',
+        },
+      );
+
+      // @ts-ignore router is fine
+      render(<RouterProvider router={router} />);
+
+      expect(mockStartTransaction).toHaveBeenCalledTimes(2);
+      expect(mockStartTransaction).toHaveBeenLastCalledWith({
+        name: '/app/about/us',
+        op: 'navigation',
+        tags: { 'routing.instrumentation': 'react-router-v6' },
+        metadata: { source: 'url' },
+      });
+    });
   });
 });
