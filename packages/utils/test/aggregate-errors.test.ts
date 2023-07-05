@@ -85,6 +85,11 @@ describe('applyAggregateErrorsToEvent()', () => {
 
     // 6 -> one for original exception + 5 linked
     expect(event.exception?.values).toHaveLength(5 + 1);
+
+    // Last exception in list should be the root exception
+    expect(event.exception?.values?.[event.exception?.values.length - 1]).toStrictEqual({
+      value: 'Root Error',
+    });
   });
 
   test.todo('should recursively walk AggregateErrors and add them as exceptions to the event');
