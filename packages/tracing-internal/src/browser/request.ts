@@ -1,6 +1,6 @@
 /* eslint-disable max-lines */
 import { getCurrentHub, getDynamicSamplingContextFromClient, hasTracingEnabled } from '@sentry/core';
-import type { Client, DynamicSamplingContext, Hub, Scope, Span } from '@sentry/types';
+import type { Client, Scope, Span } from '@sentry/types';
 import {
   addInstrumentationHandler,
   BAGGAGE_HEADER_NAME,
