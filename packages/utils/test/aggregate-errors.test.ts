@@ -56,12 +56,33 @@ describe('applyAggregateErrorsToEvent()', () => {
         values: [
           {
             value: 'Nested Error 2',
+            mechanism: {
+              exception_id: 2,
+              handled: true,
+              parent_id: 1,
+              source: 'cause',
+              type: 'chained',
+            },
           },
           {
             value: 'Nested Error 1',
+            mechanism: {
+              exception_id: 1,
+              handled: true,
+              parent_id: 0,
+              is_exception_group: true,
+              source: 'cause',
+              type: 'chained',
+            },
           },
           {
             value: 'Root Error',
+            mechanism: {
+              exception_id: 0,
+              handled: true,
+              is_exception_group: true,
+              type: 'generic',
+            },
           },
         ],
       },
@@ -89,9 +110,16 @@ describe('applyAggregateErrorsToEvent()', () => {
     // Last exception in list should be the root exception
     expect(event.exception?.values?.[event.exception?.values.length - 1]).toStrictEqual({
       value: 'Root Error',
+      mechanism: {
+        exception_id: 0,
+        handled: true,
+        is_exception_group: true,
+        type: 'generic',
+      },
     });
   });
 
   test.todo('should recursively walk AggregateErrors and add them as exceptions to the event');
   test.todo('should recursively walk mixed errors (Aggregate errors and based on `key`)');
+  test.todo('should keep the original mechanism type for the root exception');
 });
