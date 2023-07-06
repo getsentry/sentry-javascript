@@ -33,6 +33,7 @@ module.exports = {
     const addonConfig = config['@sentry/ember'] || {};
 
     if (!isSerializable(addonConfig)) {
+      // eslint-disable-next-line no-console
       console.warn(
         `Warning: You passed a non-serializable config to \`ENV['@sentry/ember'].sentry\`.
 Non-serializable config (e.g. RegExp, ...) can only be passed directly to \`Sentry.init()\`, which is usually defined in app/app.js.
@@ -73,6 +74,7 @@ function isSerializable(obj) {
   }
 
   if (isPlainObject(obj)) {
+    // eslint-disable-next-line guard-for-in
     for (let property in obj) {
       let value = obj[property];
       if (!isSerializable(value)) {
