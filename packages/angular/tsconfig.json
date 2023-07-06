@@ -5,6 +5,10 @@
 
   "compilerOptions": {
     // package-specific options
-    "experimentalDecorators": true
+    "experimentalDecorators": true,
+    // Avoid loading all @types/... packages as they may not be TS 4.0 compatible
+    // We have no types packages here we directly depend on,
+    // if we ever add some we need to allowlist them here
+    "types": []
   }
 }
