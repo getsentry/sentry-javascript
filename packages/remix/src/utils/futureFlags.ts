@@ -1,6 +1,6 @@
 import { GLOBAL_OBJ } from '@sentry/utils';
 
-import type { FutureConfig, ServerBuild } from './types';
+import type { FutureConfig, ServerBuild } from './vendor/types';
 
 export type EnhancedGlobal = typeof GLOBAL_OBJ & {
   __remixContext?: {

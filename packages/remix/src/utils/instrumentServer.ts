@@ -14,6 +14,7 @@ import {
 } from '@sentry/utils';
 
 import { getFutureFlagsServer } from './futureFlags';
+import { extractData, getRequestMatch, isDeferredData, isResponse, json, matchServerRoutes } from './vendor/response';
 import type {
   AppData,
   CreateRequestHandlerFunction,
@@ -28,8 +29,7 @@ import type {
   ServerBuild,
   ServerRoute,
   ServerRouteManifest,
-} from './types';
-import { extractData, getRequestMatch, isDeferredData, isResponse, json, matchServerRoutes } from './vendor/response';
+} from './vendor/types';
 import { normalizeRemixRequest } from './web-fetch';
 
 let FUTURE_FLAGS: FutureConfig | undefined;
