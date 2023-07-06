@@ -180,8 +180,7 @@ export function constructWebpackConfigFunction(
           }
         }
       } catch (e) {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        if (e.code === 'ENOENT') {
+        if ((e as { code: string }).code === 'ENOENT') {
           // noop if file does not exist
         } else {
           // log but noop
@@ -866,7 +865,10 @@ function addValueInjectionLoader(
 
   const isomorphicValues = {
     // `rewritesTunnel` set by the user in Next.js config
-    __sentryRewritesTunnelPath__: userSentryOptions.tunnelRoute,
+    __sentryRewritesTunnelPath__:
+      userSentryOptions.tunnelRoute !== undefined
+        ? `${userNextConfig.basePath ?? ''}${userSentryOptions.tunnelRoute}`
+        : undefined,
 
     // The webpack plugin's release injection breaks the `app` directory so we inject the release manually here instead.
     // Having a release defined in dev-mode spams releases in Sentry so we only set one in non-dev mode

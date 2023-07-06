@@ -142,7 +142,7 @@ async function finishSentryProcessing(res: AugmentedExpressResponse): Promise<vo
 
     // Push `transaction.finish` to the next event loop so open spans have a better chance of finishing before the
     // transaction closes, and make sure to wait until that's done before flushing events
-    await new Promise(resolve => {
+    await new Promise<void>(resolve => {
       setImmediate(() => {
         transaction.finish();
         resolve();

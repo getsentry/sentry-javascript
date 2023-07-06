@@ -1,6 +1,6 @@
 {
   "name": "@sentry/serverless",
-  "version": "7.56.0",
+  "version": "7.57.0",
   "description": "Official Sentry SDK for various serverless solutions",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/serverless",
@@ -12,17 +12,24 @@
   "main": "build/npm/cjs/index.js",
   "module": "build/npm/esm/index.js",
   "types": "build/npm/types/index.d.ts",
+  "typesVersions": {
+    "<4.9": {
+      "build/npm/types/index.d.ts": [
+        "build/npm/types-ts3.8/index.d.ts"
+      ]
+    }
+  },
   "publishConfig": {
     "access": "public"
   },
   "dependencies": {
-    "@sentry/core": "7.56.0",
-    "@sentry/node": "7.56.0",
-    "@sentry/types": "7.56.0",
-    "@sentry/utils": "7.56.0",
+    "@sentry/core": "7.57.0",
+    "@sentry/node": "7.57.0",
+    "@sentry/types": "7.57.0",
+    "@sentry/utils": "7.57.0",
     "@types/aws-lambda": "^8.10.62",
     "@types/express": "^4.17.14",
-    "tslib": "^1.9.3"
+    "tslib": "^2.4.1 || ^1.9.3"
   },
   "devDependencies": {
     "@google-cloud/bigquery": "^5.3.0",
@@ -41,7 +48,9 @@
     "build:bundle": "yarn ts-node scripts/buildLambdaLayer.ts",
     "build:dev": "run-p build:transpile build:types",
     "build:transpile": "rollup -c rollup.npm.config.js",
-    "build:types": "tsc -p tsconfig.types.json",
+    "build:types": "run-s build:types:core build:types:downlevel",
+    "build:types:core": "tsc -p tsconfig.types.json",
+    "build:types:downlevel": "yarn downlevel-dts build/npm/types build/npm/types-ts3.8 --to ts3.8",
     "build:watch": "run-p build:transpile:watch build:types:watch",
     "build:dev:watch": "yarn build:watch",
     "build:transpile:watch": "rollup -c rollup.npm.config.js --watch",

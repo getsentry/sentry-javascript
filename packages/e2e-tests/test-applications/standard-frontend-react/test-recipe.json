@@ -8,6 +8,13 @@
       "testCommand": "pnpm test"
     }
   ],
+  "versions": [
+    {
+      "dependencyOverrides": {
+        "typescript": "3.8.3"
+      }
+    }
+  ],
   "canaryVersions": [
     {
       "dependencyOverrides": {

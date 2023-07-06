@@ -348,5 +348,5 @@ function _historyBreadcrumb(handlerData: HandlerData & { from: string; to: strin
 }
 
 function _isEvent(event: unknown): event is Event {
-  return event && !!(event as Record<string, unknown>).target;
+  return !!event && !!(event as Record<string, unknown>).target;
 }

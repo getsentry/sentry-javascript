@@ -1,12 +1,7 @@
 import { getCurrentHub } from '@sentry/core';
 import { WINDOW } from '@sentry/react';
-import type { Primitive, TraceparentData, Transaction, TransactionContext, TransactionSource } from '@sentry/types';
-import {
-  baggageHeaderToDynamicSamplingContext,
-  extractTraceparentData,
-  logger,
-  stripUrlQueryAndFragment,
-} from '@sentry/utils';
+import type { Primitive, Transaction, TransactionContext, TransactionSource } from '@sentry/types';
+import { logger, stripUrlQueryAndFragment, tracingContextFromHeaders } from '@sentry/utils';
 import type { NEXT_DATA as NextData } from 'next/dist/next-server/lib/utils';
 import { default as Router } from 'next/router';
 import type { ParsedUrlQuery } from 'querystring';
@@ -37,9 +32,9 @@ interface SentryEnhancedNextData extends NextData {
 
 interface NextDataTagInfo {
   route?: string;
-  traceParentData?: TraceparentData;
-  baggage?: string;
   params?: ParsedUrlQuery;
+  sentryTrace?: string;
+  baggage?: string;
 }
 
 /**
@@ -83,13 +78,8 @@ function extractNextDataTagInformation(): NextDataTagInfo {
   nextDataTagInfo.params = query;
 
   if (props && props.pageProps) {
-    if (props.pageProps._sentryBaggage) {
-      nextDataTagInfo.baggage = props.pageProps._sentryBaggage;
-    }
-
-    if (props.pageProps._sentryTraceData) {
-      nextDataTagInfo.traceParentData = extractTraceparentData(props.pageProps._sentryTraceData);
-    }
+    nextDataTagInfo.sentryTrace = props.pageProps._sentryTraceData;
+    nextDataTagInfo.baggage = props.pageProps._sentryBaggage;
   }
 
   return nextDataTagInfo;
@@ -121,22 +111,26 @@ export function nextRouterInstrumentation(
   startTransactionOnPageLoad: boolean = true,
   startTransactionOnLocationChange: boolean = true,
 ): void {
-  const { route, traceParentData, baggage, params } = extractNextDataTagInformation();
+  const { route, params, sentryTrace, baggage } = extractNextDataTagInformation();
+  const { traceparentData, dynamicSamplingContext, propagationContext } = tracingContextFromHeaders(
+    sentryTrace,
+    baggage,
+  );
+
+  getCurrentHub().getScope().setPropagationContext(propagationContext);
   prevLocationName = route || globalObject.location.pathname;
 
   if (startTransactionOnPageLoad) {
     const source = route ? 'route' : 'url';
-    const dynamicSamplingContext = baggageHeaderToDynamicSamplingContext(baggage);
-
     activeTransaction = startTransactionCb({
       name: prevLocationName,
       op: 'pageload',
       tags: DEFAULT_TAGS,
       ...(params && client && client.getOptions().sendDefaultPii && { data: params }),
-      ...traceParentData,
+      ...traceparentData,
       metadata: {
         source,
-        dynamicSamplingContext: traceParentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
+        dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
       },
     });
   }

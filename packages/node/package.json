@@ -1,6 +1,6 @@
 {
   "name": "@sentry/node",
-  "version": "7.56.0",
+  "version": "7.57.0",
   "description": "Official Sentry SDK for Node.js",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/node",
@@ -12,18 +12,25 @@
   "main": "build/cjs/index.js",
   "module": "build/esm/index.js",
   "types": "build/types/index.d.ts",
+  "typesVersions": {
+    "<4.9": {
+      "build/npm/types/index.d.ts": [
+        "build/npm/types-ts3.8/index.d.ts"
+      ]
+    }
+  },
   "publishConfig": {
     "access": "public"
   },
   "dependencies": {
-    "@sentry-internal/tracing": "7.56.0",
-    "@sentry/core": "7.56.0",
-    "@sentry/types": "7.56.0",
-    "@sentry/utils": "7.56.0",
+    "@sentry-internal/tracing": "7.57.0",
+    "@sentry/core": "7.57.0",
+    "@sentry/types": "7.57.0",
+    "@sentry/utils": "7.57.0",
     "cookie": "^0.4.1",
     "https-proxy-agent": "^5.0.0",
     "lru_map": "^0.3.3",
-    "tslib": "^1.9.3"
+    "tslib": "^2.4.1 || ^1.9.3"
   },
   "devDependencies": {
     "@types/cookie": "0.3.2",
@@ -38,7 +45,9 @@
     "build": "run-p build:transpile build:types",
     "build:dev": "yarn build",
     "build:transpile": "rollup -c rollup.npm.config.js",
-    "build:types": "tsc -p tsconfig.types.json",
+    "build:types": "run-s build:types:core build:types:downlevel",
+    "build:types:core": "tsc -p tsconfig.types.json",
+    "build:types:downlevel": "yarn downlevel-dts build/types build/types-ts3.8 --to ts3.8",
     "build:watch": "run-p build:transpile:watch build:types:watch",
     "build:dev:watch": "yarn build:watch",
     "build:transpile:watch": "rollup -c rollup.npm.config.js --watch",

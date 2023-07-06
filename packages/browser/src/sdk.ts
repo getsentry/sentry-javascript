@@ -164,6 +164,7 @@ export function showReportDialog(options: ReportDialogOptions = {}, hub: Hub = g
 
   const script = WINDOW.document.createElement('script');
   script.async = true;
+  script.crossOrigin = 'anonymous';
   script.src = getReportDialogEndpoint(dsn, options);
 
   if (options.onLoad) {

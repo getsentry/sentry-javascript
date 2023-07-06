@@ -75,7 +75,11 @@ export type UseNavigationType = () => Action;
 export type RouteObjectArrayAlias = any;
 export type RouteMatchAlias = any;
 export type CreateRoutesFromChildren = (children: JSX.Element[]) => RouteObjectArrayAlias;
-export type MatchRoutes = (routes: RouteObjectArrayAlias, location: Location) => RouteMatchAlias[] | null;
+export type MatchRoutes = (
+  routes: RouteObjectArrayAlias,
+  location: Location,
+  basename?: string,
+) => RouteMatchAlias[] | null;
 
 // Types for react-router >= 6.4.2
 export type ShouldRevalidateFunction = (args: any) => boolean;
@@ -203,7 +207,7 @@ export declare enum HistoryAction {
 
 export interface RouterState {
   historyAction: Action | HistoryAction | any;
-  location: any;
+  location: Location;
 }
 export interface Router<TState extends RouterState = RouterState> {
   state: TState;

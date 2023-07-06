@@ -1,6 +1,6 @@
 {
   "name": "@sentry-internal/e2e-tests",
-  "version": "7.56.0",
+  "version": "7.57.0",
   "license": "MIT",
   "engines": {
     "node": ">=10"
@@ -26,7 +26,6 @@
     "fs-extra": "11.1.0",
     "glob": "8.0.3",
     "ts-node": "10.9.1",
-    "typescript": "3.8.3",
     "yaml": "2.2.2"
   },
   "volta": {

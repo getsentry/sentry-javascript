@@ -1,6 +1,6 @@
 {
   "name": "@sentry-internal/typescript",
-  "version": "7.56.0",
+  "version": "7.57.0",
   "description": "Typescript configuration used at Sentry",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/typescript",
@@ -11,7 +11,7 @@
     "access": "public"
   },
   "peerDependencies": {
-    "typescript": "3.8.3"
+    "typescript": "4.9.5"
   },
   "scripts": {
     "clean": "yarn rimraf sentry-internal-typescript-*.tgz",

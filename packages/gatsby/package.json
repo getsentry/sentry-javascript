@@ -1,6 +1,6 @@
 {
   "name": "@sentry/gatsby",
-  "version": "7.56.0",
+  "version": "7.57.0",
   "description": "Official Sentry SDK for Gatsby.js",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/gatsby",
@@ -16,14 +16,21 @@
   "main": "build/cjs/index.js",
   "module": "build/esm/index.js",
   "types": "build/types/index.d.ts",
+  "typesVersions": {
+    "<4.9": {
+      "build/types/index.d.ts": [
+        "build/types-ts3.8/index.d.ts"
+      ]
+    }
+  },
   "publishConfig": {
     "access": "public"
   },
   "dependencies": {
-    "@sentry/core": "7.56.0",
-    "@sentry/react": "7.56.0",
-    "@sentry/types": "7.56.0",
-    "@sentry/utils": "7.56.0",
+    "@sentry/core": "7.57.0",
+    "@sentry/react": "7.57.0",
+    "@sentry/types": "7.57.0",
+    "@sentry/utils": "7.57.0",
     "@sentry/webpack-plugin": "1.19.0"
   },
   "peerDependencies": {
@@ -40,7 +47,9 @@
     "build:plugin": "tsc -p tsconfig.plugin.json",
     "build:transpile": "run-p build:rollup build:plugin",
     "build:rollup": "rollup -c rollup.npm.config.js",
-    "build:types": "tsc -p tsconfig.types.json",
+    "build:types": "run-s build:types:core build:types:downlevel",
+    "build:types:core": "tsc -p tsconfig.types.json",
+    "build:types:downlevel": "yarn downlevel-dts build/types build/types-ts3.8 --to ts3.8",
     "build:watch": "run-p build:transpile:watch build:types:watch",
     "build:dev:watch": "yarn build:watch",
     "build:transpile:watch": "rollup -c rollup.npm.config.js --watch",

@@ -1,6 +1,6 @@
 {
   "name": "@sentry/utils",
-  "version": "7.56.0",
+  "version": "7.57.0",
   "description": "Utilities for all Sentry JavaScript SDKs",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/utils",
@@ -12,12 +12,19 @@
   "main": "build/cjs/index.js",
   "module": "build/esm/index.js",
   "types": "build/types/index.d.ts",
+  "typesVersions": {
+    "<4.9": {
+      "build/types/index.d.ts": [
+        "build/types-ts3.8/index.d.ts"
+      ]
+    }
+  },
   "publishConfig": {
     "access": "public"
   },
   "dependencies": {
-    "@sentry/types": "7.56.0",
-    "tslib": "^1.9.3"
+    "@sentry/types": "7.57.0",
+    "tslib": "^2.4.1 || ^1.9.3"
   },
   "devDependencies": {
     "@types/array.prototype.flat": "^1.2.1",
@@ -29,7 +36,9 @@
     "build:dev": "yarn build",
     "build:transpile": "yarn ts-node scripts/buildRollup.ts",
     "build:transpile:uncached": "yarn ts-node scripts/buildRollup.ts",
-    "build:types": "tsc -p tsconfig.types.json",
+    "build:types": "run-s build:types:core build:types:downlevel",
+    "build:types:core": "tsc -p tsconfig.types.json",
+    "build:types:downlevel": "yarn downlevel-dts build/types build/types-ts3.8 --to ts3.8",
     "build:watch": "run-p build:transpile:watch build:types:watch",
     "build:dev:watch": "yarn build:watch",
     "build:transpile:watch": "rollup -c rollup.npm.config.js --watch",

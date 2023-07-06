@@ -5,13 +5,12 @@ import { captureException, getCurrentHub } from '@sentry/node';
 import type { Transaction, TransactionSource, WrappedFunction } from '@sentry/types';
 import {
   addExceptionMechanism,
-  baggageHeaderToDynamicSamplingContext,
   dynamicSamplingContextToSentryBaggageHeader,
-  extractTraceparentData,
   fill,
   isNodeEnv,
   loadModule,
   logger,
+  tracingContextFromHeaders,
 } from '@sentry/utils';
 
 import type {
@@ -19,6 +18,7 @@ import type {
   CreateRequestHandlerFunction,
   DataFunction,
   DataFunctionArgs,
+  EntryContext,
   HandleDocumentRequestFunction,
   ReactRouterDomPkg,
   RemixRequest,
@@ -56,7 +56,7 @@ async function extractResponseError(response: Response): Promise<unknown> {
   return responseData;
 }
 
-async function captureRemixServerException(err: Error, name: string, request: Request): Promise<void> {
+async function captureRemixServerException(err: unknown, name: string, request: Request): Promise<void> {
   // Skip capturing if the thrown error is not a 5xx response
   // https://remix.run/docs/en/v1/api/conventions#throwing-responses-in-loaders
   if (isResponse(err) && err.status < 500) {
@@ -112,7 +112,7 @@ function makeWrappedDocumentRequestFunction(
     request: Request,
     responseStatusCode: number,
     responseHeaders: Headers,
-    context: Record<symbol, unknown>,
+    context: EntryContext,
     loadContext?: Record<string, unknown>,
   ): Promise<Response> {
     let res: Response;
@@ -289,9 +289,11 @@ export function startRequestHandlerTransaction(
     method: string;
   },
 ): Transaction {
-  // If there is a trace header set, we extract the data from it (parentSpanId, traceId, and sampling decision)
-  const traceparentData = extractTraceparentData(request.headers['sentry-trace']);
-  const dynamicSamplingContext = baggageHeaderToDynamicSamplingContext(request.headers.baggage);
+  const { traceparentData, dynamicSamplingContext, propagationContext } = tracingContextFromHeaders(
+    request.headers['sentry-trace'],
+    request.headers.baggage,
+  );
+  hub.getScope().setPropagationContext(propagationContext);
 
   const transaction = hub.startTransaction({
     name,

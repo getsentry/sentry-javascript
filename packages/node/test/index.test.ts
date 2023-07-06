@@ -239,7 +239,7 @@ describe('SentryNode', () => {
         try {
           throw new Error('cause');
         } catch (c) {
-          e.cause = c;
+          (e as any).cause = c;
           captureException(e);
         }
       }
@@ -487,5 +487,48 @@ describe('SentryNode initialization', () => {
 
       expect(instrumenter).toEqual('otel');
     });
+  });
+
+  describe('propagation context', () => {
+    beforeEach(() => {
+      process.env.SENTRY_TRACE = '12312012123120121231201212312012-1121201211212012-0';
+      process.env.SENTRY_BAGGAGE = 'sentry-release=1.0.0,sentry-environment=production';
+
+      getCurrentHub().getScope().clear();
+    });
+
+    afterEach(() => {
+      delete process.env.SENTRY_TRACE;
+      delete process.env.SENTRY_BAGGAGE;
+    });
+
+    it('reads from environmental variables', () => {
+      init({ dsn });
+
+      // @ts-expect-error accessing private method for test
+      expect(getCurrentHub().getScope()._propagationContext).toEqual({
+        traceId: '12312012123120121231201212312012',
+        parentSpanId: '1121201211212012',
+        spanId: expect.any(String),
+        sampled: false,
+        dsc: {
+          release: '1.0.0',
+          environment: 'production',
+        },
+      });
+    });
+
+    it.each(['false', 'False', 'FALSE', 'n', 'no', 'No', 'NO', 'off', 'Off', 'OFF', '0'])(
+      'does not read from environmental variable if SENTRY_USE_ENVIRONMENT is set to %s',
+      useEnvValue => {
+        process.env.SENTRY_USE_ENVIRONMENT = useEnvValue;
+        init({ dsn });
+
+        // @ts-expect-error accessing private method for test
+        expect(getCurrentHub().getScope()._propagationContext.traceId).not.toEqual('12312012123120121231201212312012');
+
+        delete process.env.SENTRY_USE_ENVIRONMENT;
+      },
+    );
   });
 });

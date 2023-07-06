@@ -7,6 +7,7 @@ import type { Primitive } from './misc';
 import type { RequestSession, Session } from './session';
 import type { Severity, SeverityLevel } from './severity';
 import type { Span } from './span';
+import type { PropagationContext } from './tracing';
 import type { Transaction } from './transaction';
 import type { User } from './user';
 
@@ -23,6 +24,7 @@ export interface ScopeContext {
   tags: { [key: string]: Primitive };
   fingerprint: string[];
   requestSession: RequestSession;
+  propagationContext: PropagationContext;
 }
 
 /**
@@ -185,4 +187,14 @@ export interface Scope {
    * Add data which will be accessible during event processing but won't get sent to Sentry
    */
   setSDKProcessingMetadata(newData: { [key: string]: unknown }): this;
+
+  /**
+   * Add propagation context to the scope, used for distributed tracing
+   */
+  setPropagationContext(context: PropagationContext): this;
+
+  /**
+   * Get propagation context from the scope, used for distributed tracing
+   */
+  getPropagationContext(): PropagationContext;
 }

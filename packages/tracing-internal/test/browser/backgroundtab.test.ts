@@ -2,11 +2,11 @@ import { Hub, makeMain } from '@sentry/core';
 import { JSDOM } from 'jsdom';
 
 import { addExtensionMethods } from '../../../tracing/src';
-import { getDefaultBrowserClientOptions } from '../../../tracing/test/testutils';
+import { conditionalTest, getDefaultBrowserClientOptions } from '../../../tracing/test/testutils';
 import { registerBackgroundTabDetection } from '../../src/browser/backgroundtab';
 import { TestClient } from '../utils/TestClient';
 
-describe('registerBackgroundTabDetection', () => {
+conditionalTest({ min: 10 })('registerBackgroundTabDetection', () => {
   let events: Record<string, any> = {};
   let hub: Hub;
   beforeEach(() => {
