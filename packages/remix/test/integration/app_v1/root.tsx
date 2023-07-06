@@ -34,6 +34,10 @@ export const loader: LoaderFunction = async ({ request }) => {
       throw redirect('/?type=plain');
     case 'returnRedirect':
       return redirect('/?type=plain');
+    case 'throwRedirectToExternal':
+      throw redirect('https://example.com');
+    case 'returnRedirectToExternal':
+      return redirect('https://example.com');
     default: {
       return {};
     }
