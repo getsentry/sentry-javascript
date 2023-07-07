@@ -129,6 +129,8 @@ function instrumentSvelteKitFetch(originalFetch: SvelteKitFetch): SvelteKitFetch
     return originalFetch;
   }
 
+  const options = client.getOptions();
+
   const browserTracingIntegration = client.getIntegrationById('BrowserTracing') as BrowserTracing | undefined;
   const breadcrumbsIntegration = client.getIntegrationById('Breadcrumbs') as Breadcrumbs | undefined;
 
@@ -147,7 +149,10 @@ function instrumentSvelteKitFetch(originalFetch: SvelteKitFetch): SvelteKitFetch
   const shouldAttachHeaders: (url: string) => boolean = url => {
     return (
       !!shouldTraceFetch &&
-      stringMatchesSomePattern(url, browserTracingOptions.tracePropagationTargets || ['localhost', /^\//])
+      stringMatchesSomePattern(
+        url,
+        options.tracePropagationTargets || browserTracingOptions.tracePropagationTargets || ['localhost', /^\//],
+      )
     );
   };
 
@@ -177,20 +182,15 @@ function instrumentSvelteKitFetch(originalFetch: SvelteKitFetch): SvelteKitFetch
       };
 
       const patchedInit: RequestInit = { ...init };
-      const activeSpan = getCurrentHub().getScope().getSpan();
-      const activeTransaction = activeSpan && activeSpan.transaction;
+      const hub = getCurrentHub();
+      const scope = hub.getScope();
+      const client = hub.getClient();
 
-      const createSpan = activeTransaction && shouldCreateSpan(rawUrl);
-      const attachHeaders = createSpan && activeTransaction && shouldAttachHeaders(rawUrl);
-
-      // only attach headers if we should create a span
-      if (attachHeaders) {
-        const dsc = activeTransaction.getDynamicSamplingContext();
-
+      if (client && shouldAttachHeaders(rawUrl)) {
         const headers = addTracingHeadersToFetchRequest(
           input as string | Request,
-          dsc,
-          activeSpan,
+          client,
+          scope,
           patchedInit as {
             headers:
               | {
@@ -207,7 +207,7 @@ function instrumentSvelteKitFetch(originalFetch: SvelteKitFetch): SvelteKitFetch
 
       const patchedFetchArgs = [input, patchedInit];
 
-      if (createSpan) {
+      if (shouldCreateSpan(rawUrl)) {
         fetchPromise = trace(
           {
             name: `${method} ${requestData.url}`, // this will become the description of the span

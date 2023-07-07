@@ -33,7 +33,6 @@ export class ClickDetector implements ReplayClickDetector {
   private _clicks: Click[] = [];
   private _teardown: undefined | (() => void);
 
-  private _multiClickTimeout: number;
   private _threshold: number;
   private _scollTimeout: number;
   private _timeout: number;
@@ -51,7 +50,6 @@ export class ClickDetector implements ReplayClickDetector {
   ) {
     // We want everything in s, but options are in ms
     this._timeout = slowClickConfig.timeout / 1000;
-    this._multiClickTimeout = slowClickConfig.multiClickTimeout / 1000;
     this._threshold = slowClickConfig.threshold / 1000;
     this._scollTimeout = slowClickConfig.scrollTimeout / 1000;
     this._replay = replay;
@@ -126,13 +124,6 @@ export class ClickDetector implements ReplayClickDetector {
       return;
     }
 
-    const click = this._getClick(node);
-
-    if (click) {
-      // this means a click on the same element was captured in the last 1s, so we consider this a multi click
-      return;
-    }
-
     const newClick: Click = {
       timestamp: breadcrumb.timestamp,
       clickBreadcrumb: breadcrumb,
@@ -150,22 +141,14 @@ export class ClickDetector implements ReplayClickDetector {
 
   /** Count multiple clicks on elements. */
   private _handleMultiClick(node: HTMLElement): void {
-    const click = this._getClick(node);
-
-    if (!click) {
-      return;
-    }
-
-    click.clickCount++;
+    this._getClicks(node).forEach(click => {
+      click.clickCount++;
+    });
   }
 
-  /** Try to get an existing click on the given element. */
-  private _getClick(node: HTMLElement): Click | undefined {
-    const now = nowInSeconds();
-
-    // Find any click on the same element in the last second
-    // If one exists, we consider this click as a double/triple/etc click
-    return this._clicks.find(click => click.node === node && now - click.timestamp < this._multiClickTimeout);
+  /** Get all pending clicks for a given node. */
+  private _getClicks(node: HTMLElement): Click[] {
+    return this._clicks.filter(click => click.node === node);
   }
 
   /** Check the clicks that happened. */
@@ -180,13 +163,6 @@ export class ClickDetector implements ReplayClickDetector {
       }
       if (!click.scrollAfter && this._lastScroll) {
         click.scrollAfter = click.timestamp <= this._lastScroll ? this._lastScroll - click.timestamp : undefined;
-      }
-
-      // If an action happens after the multi click threshold, we can skip waiting and handle the click right away
-      const actionTime = click.scrollAfter || click.mutationAfter || 0;
-      if (actionTime && actionTime >= this._multiClickTimeout) {
-        timedOutClicks.push(click);
-        return;
       }
 
       if (click.timestamp + this._timeout <= now) {
@@ -269,6 +245,10 @@ export class ClickDetector implements ReplayClickDetector {
 
   /** Schedule to check current clicks. */
   private _scheduleCheckClicks(): void {
+    if (this._checkClickTimeout) {
+      clearTimeout(this._checkClickTimeout);
+    }
+
     this._checkClickTimeout = setTimeout(() => this._checkClicks(), 1000);
   }
 }

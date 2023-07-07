@@ -98,9 +98,7 @@ describe('callbacks', () => {
       // each case is [shouldCreateSpanReturnValue, shouldAttachHeadersReturnValue, expectedSpan, expectedHeaderKeys]
       [true, true, expect.objectContaining(fetchSpan), ['sentry-trace', 'baggage']],
       [true, false, expect.objectContaining(fetchSpan), []],
-      // If there's no span then there's no parent span id to stick into a header, so no headers, even if there's a
-      // `tracingOrigins` match
-      [false, true, undefined, []],
+      [false, true, undefined, ['sentry-trace', 'baggage']],
       [false, false, undefined, []],
     ])(
       'span creation/header attachment interaction - shouldCreateSpan: %s, shouldAttachHeaders: %s',
@@ -240,6 +238,7 @@ describe('callbacks', () => {
       expect(finishedSpan.data).toEqual({
         'http.response_content_length': 123,
         'http.method': 'GET',
+        'http.response.status_code': 404,
         type: 'fetch',
         url: 'http://dogs.are.great/',
       });
@@ -283,9 +282,7 @@ describe('callbacks', () => {
       // each case is [shouldCreateSpanReturnValue, shouldAttachHeadersReturnValue, expectedSpan, expectedHeaderKeys]
       [true, true, expect.objectContaining(xhrSpan), ['sentry-trace', 'baggage']],
       [true, false, expect.objectContaining(xhrSpan), []],
-      // If there's no span then there's no parent span id to stick into a header, so no headers, even if there's a
-      // `tracingOrigins` match
-      [false, true, undefined, []],
+      [false, true, undefined, ['sentry-trace', 'baggage']],
       [false, false, undefined, []],
     ])(
       'span creation/header attachment interaction - shouldCreateSpan: %s, shouldAttachHeaders: %s',
