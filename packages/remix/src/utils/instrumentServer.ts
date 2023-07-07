@@ -236,18 +236,26 @@ function makeWrappedRootLoader(origLoader: DataFunction): DataFunction {
       };
     }
 
-    // Note: `redirect` and `catch` responses do not have bodies to extract
-    if (isResponse(res) && !isRedirectResponse(res) && !isCatchResponse(res)) {
-      const data = await extractData(res);
-
-      if (typeof data === 'object') {
-        return json(
-          { ...data, ...traceAndBaggage },
-          { headers: res.headers, statusText: res.statusText, status: res.status },
-        );
-      } else {
-        __DEBUG_BUILD__ && logger.warn('Skipping injection of trace and baggage as the response body is not an object');
+    if (isResponse(res)) {
+      // Note: `redirect` and `catch` responses do not have bodies to extract.
+      // We skip injection of trace and baggage in those cases.
+      // For `redirect`, a valid internal redirection target will have the trace and baggage injected.
+      if (isRedirectResponse(res) || isCatchResponse(res)) {
+        __DEBUG_BUILD__ && logger.warn('Skipping injection of trace and baggage as the response does not have a body');
         return res;
+      } else {
+        const data = await extractData(res);
+
+        if (typeof data === 'object') {
+          return json(
+            { ...data, ...traceAndBaggage },
+            { headers: res.headers, statusText: res.statusText, status: res.status },
+          );
+        } else {
+          __DEBUG_BUILD__ &&
+            logger.warn('Skipping injection of trace and baggage as the response body is not an object');
+          return res;
+        }
       }
     }
 

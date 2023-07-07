@@ -61,6 +61,7 @@ const mockedGetIntegrationById = vi.fn(id => {
 const mockedGetClient = vi.fn(() => {
   return {
     getIntegrationById: mockedGetIntegrationById,
+    getOptions: () => ({}),
   };
 });
 
@@ -77,6 +78,11 @@ vi.mock('@sentry/core', async () => {
         getClient: mockedGetClient,
         getScope: () => {
           return {
+            getPropagationContext: () => ({
+              traceId: '1234567890abcdef1234567890abcdef',
+              spanId: '1234567890abcdef',
+              sampled: false,
+            }),
             getSpan: () => {
               return {
                 transaction: {
@@ -371,7 +377,7 @@ describe('wrapLoadWithSentry', () => {
         mockedBrowserTracing.options.traceFetch = true;
       });
 
-      it("doesn't create a span nor propagate headers, if `shouldCreateSpanForRequest` returns false", async () => {
+      it("doesn't create a span if `shouldCreateSpanForRequest` returns false", async () => {
         mockedBrowserTracing.options.shouldCreateSpanForRequest = () => false;
 
         const wrappedLoad = wrapLoadWithSentry(load);
@@ -389,10 +395,6 @@ describe('wrapLoadWithSentry', () => {
           },
           expect.any(Function),
           expect.any(Function),
-        );
-
-        expect(mockedSveltekitFetch).toHaveBeenCalledWith(
-          ...[originalFetchArgs[0], originalFetchArgs.length === 2 ? originalFetchArgs[1] : {}],
         );
 
         mockedBrowserTracing.options.shouldCreateSpanForRequest = () => true;
