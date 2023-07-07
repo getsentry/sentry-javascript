@@ -50,7 +50,7 @@ export type NextConfigObject = {
   // File extensions that count as pages in the `pages/` directory
   pageExtensions?: string[];
   // Whether Next.js should do a static export
-  output?: 'export';
+  output?: string;
   // Paths to reroute when requested
   rewrites?: () => Promise<
     | NextRewrite[]
