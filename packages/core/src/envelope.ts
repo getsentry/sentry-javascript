@@ -17,6 +17,8 @@ import {
   getSdkMetadataForEnvelopeHeader,
 } from '@sentry/utils';
 
+import { stripMetadataFromStackFrames } from './metadata';
+
 /**
  * Apply SdkInfo (name, version, packages, integrations) to the corresponding event key.
  * Merge with existing data if any.
@@ -82,6 +84,10 @@ export function createEventEnvelope(
   // have temporarily added, etc. Even if we don't happen to be using it at some point in the future, let's not get rid
   // of this `delete`, lest we miss putting it back in the next time the property is in use.)
   delete event.sdkProcessingMetadata;
+
+  // Module metadata is only added to stack frames by the `ModuleMetadata` integration` to aid in tagging and routing
+  // of events. Sentry will ignore these properties on the server so we should strip them to save bandwidth.
+  stripMetadataFromStackFrames(event);
 
   const eventItem: EventItem = [{ type: eventType }, event];
   return createEnvelope<EventEnvelope>(envelopeHeaders, [eventItem]);
