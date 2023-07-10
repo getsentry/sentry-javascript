@@ -1,4 +1,4 @@
-import { Event, StackFrame } from '@sentry/types';
+import type { Event } from '@sentry/types';
 import { createStackParser, GLOBAL_OBJ, nodeStackLineParser, parseEnvelope } from '@sentry/utils';
 import { TextDecoder, TextEncoder } from 'util';
 
