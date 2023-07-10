@@ -49,6 +49,7 @@ sentryTest(
       trace_id: expect.any(String),
       public_key: 'public',
       replay_id: replay.session?.id,
+      sampled: 'true',
     });
   },
 );
@@ -93,6 +94,7 @@ sentryTest(
       sample_rate: '1',
       trace_id: expect.any(String),
       public_key: 'public',
+      sampled: 'true',
     });
   },
 );
@@ -152,6 +154,7 @@ sentryTest(
       trace_id: expect.any(String),
       public_key: 'public',
       replay_id: replay.session?.id,
+      sampled: 'true',
     });
   },
 );
@@ -199,6 +202,7 @@ sentryTest(
       sample_rate: '1',
       trace_id: expect.any(String),
       public_key: 'public',
+      sampled: 'true',
     });
   },
 );
