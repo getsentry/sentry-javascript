@@ -1,6 +1,7 @@
-import type { Event, EventProcessor, Hub, Integration } from '@sentry/types';
+import type { Event, EventItem, EventProcessor, Hub, Integration } from '@sentry/types';
+import { forEachEnvelopeItem } from '@sentry/utils';
 
-import { addMetadataToStackFrames } from '../metadata';
+import { addMetadataToStackFrames, stripMetadataFromStackFrames } from '../metadata';
 
 /**
  * Adds module metadata to stack frames.
@@ -24,9 +25,22 @@ export class ModuleMetadata implements Integration {
   public setupOnce(addGlobalEventProcessor: (processor: EventProcessor) => void, getCurrentHub: () => Hub): void {
     const client = getCurrentHub().getClient();
 
-    if (!client) {
+    if (!client || typeof client.on !== 'function') {
       return;
     }
+
+    client.on('beforeEnvelope', envelope => {
+      forEachEnvelopeItem(envelope, (item, type) => {
+        if (type === 'event' || type === 'transaction') {
+          const event = Array.isArray(item) ? (item as EventItem)[1] : undefined;
+
+          if (event) {
+            stripMetadataFromStackFrames(event);
+            (item as EventItem)[1] = event;
+          }
+        }
+      });
+    });
 
     const stackParser = client.getOptions().stackParser;
 
