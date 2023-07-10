@@ -28,7 +28,7 @@ beforeAll(async () => {
 
 const DEFAULT_OPTIONS = getDefaultNodeClientOptions({
   dsn: SENTRY_DSN,
-  tracesSampleRate: 1,
+  tracesSampler: () => true,
   integrations: [new Undici()],
 });
 
@@ -193,7 +193,7 @@ conditionalTest({ min: 16 })('Undici integration', () => {
     undoPatch();
   });
 
-  it('attaches the sentry trace and baggage headers', async () => {
+  it('attaches the sentry trace and baggage headers if there is an active span', async () => {
     const transaction = hub.startTransaction({ name: 'test-transaction' }) as Transaction;
     hub.getScope().setSpan(transaction);
 
@@ -208,21 +208,43 @@ conditionalTest({ min: 16 })('Undici integration', () => {
     );
   });
 
-  it('does not attach headers if `shouldCreateSpanForRequest` does not create a span', async () => {
+  it('attaches the sentry trace and baggage headers if there is no active span', async () => {
+    await fetch('http://localhost:18099', { method: 'POST' });
+
+    const propagationContext = hub.getScope().getPropagationContext();
+
+    expect(requestHeaders['sentry-trace'].includes(propagationContext.traceId)).toBe(true);
+    expect(requestHeaders['baggage']).toEqual(
+      `sentry-environment=production,sentry-public_key=0,sentry-trace_id=${propagationContext.traceId}`,
+    );
+  });
+
+  it('attaches headers if `shouldCreateSpanForRequest` does not create a span using propagation context', async () => {
     const transaction = hub.startTransaction({ name: 'test-transaction' }) as Transaction;
-    hub.getScope().setSpan(transaction);
+    const scope = hub.getScope();
+    const propagationContext = scope.getPropagationContext();
+
+    scope.setSpan(transaction);
 
     const undoPatch = patchUndici(hub, { shouldCreateSpanForRequest: url => url.includes('yes') });
 
     await fetch('http://localhost:18099/no', { method: 'POST' });
 
-    expect(requestHeaders['sentry-trace']).toBeUndefined();
-    expect(requestHeaders['baggage']).toBeUndefined();
+    expect(requestHeaders['sentry-trace']).toBeDefined();
+    expect(requestHeaders['baggage']).toBeDefined();
+
+    expect(requestHeaders['sentry-trace'].includes(propagationContext.traceId)).toBe(true);
+    const firstSpanId = requestHeaders['sentry-trace'].split('-')[1];
 
     await fetch('http://localhost:18099/yes', { method: 'POST' });
 
     expect(requestHeaders['sentry-trace']).toBeDefined();
     expect(requestHeaders['baggage']).toBeDefined();
+
+    expect(requestHeaders['sentry-trace'].includes(propagationContext.traceId)).toBe(false);
+
+    const secondSpanId = requestHeaders['sentry-trace'].split('-')[1];
+    expect(firstSpanId).not.toBe(secondSpanId);
 
     undoPatch();
   });
@@ -351,10 +373,10 @@ function setupTestServer() {
     res.end();
 
     // also terminate socket because keepalive hangs connection a bit
-    res.connection.end();
+    res.connection?.end();
   });
 
-  testServer.listen(18099, 'localhost');
+  testServer?.listen(18099, 'localhost');
 
   return new Promise(resolve => {
     testServer?.on('listening', resolve);

@@ -1,8 +1,10 @@
 import type { Hub } from '@sentry/core';
-import type { EventProcessor, Integration } from '@sentry/types';
+import { getDynamicSamplingContextFromClient } from '@sentry/core';
+import type { EventProcessor, Integration, Span } from '@sentry/types';
 import {
   dynamicRequire,
   dynamicSamplingContextToSentryBaggageHeader,
+  generateSentryTraceHeader,
   getSanitizedUrlString,
   parseUrl,
   stringMatchesSomePattern,
@@ -12,7 +14,13 @@ import { LRUMap } from 'lru_map';
 import type { NodeClient } from '../../client';
 import { NODE_VERSION } from '../../nodeVersion';
 import { isSentryRequest } from '../utils/http';
-import type { DiagnosticsChannel, RequestCreateMessage, RequestEndMessage, RequestErrorMessage } from './types';
+import type {
+  DiagnosticsChannel,
+  RequestCreateMessage,
+  RequestEndMessage,
+  RequestErrorMessage,
+  RequestWithSentry,
+} from './types';
 
 export enum ChannelName {
   // https://github.com/nodejs/undici/blob/e6fc80f809d1217814c044f52ed40ef13f21e43c/docs/api/DiagnosticsChannel.md#undicirequestcreate
@@ -124,63 +132,53 @@ export class Undici implements Integration {
       const { request } = message as RequestCreateMessage;
 
       const stringUrl = request.origin ? request.origin.toString() + request.path : request.path;
-      const url = parseUrl(stringUrl);
 
-      if (isSentryRequest(stringUrl) || request.__sentry__ !== undefined) {
+      if (isSentryRequest(stringUrl) || request.__sentry_span__ !== undefined) {
         return;
       }
 
       const client = hub.getClient<NodeClient>();
+      if (!client) {
+        return;
+      }
+
+      const clientOptions = client.getOptions();
       const scope = hub.getScope();
 
-      const activeSpan = scope.getSpan();
+      const parentSpan = scope.getSpan();
 
-      if (activeSpan && client) {
-        const clientOptions = client.getOptions();
+      const span = shouldCreateSpan(stringUrl) ? createRequestSpan(parentSpan, request, stringUrl) : undefined;
+      if (span) {
+        request.__sentry_span__ = span;
+      }
 
-        if (shouldCreateSpan(stringUrl)) {
-          const method = request.method || 'GET';
-          const data: Record<string, unknown> = {
-            'http.method': method,
-          };
-          if (url.search) {
-            data['http.query'] = url.search;
-          }
-          if (url.hash) {
-            data['http.fragment'] = url.hash;
-          }
-          const span = activeSpan.startChild({
-            op: 'http.client',
-            description: `${method} ${getSanitizedUrlString(url)}`,
-            data,
-          });
-          request.__sentry__ = span;
+      const shouldAttachTraceData = (url: string): boolean => {
+        if (clientOptions.tracePropagationTargets === undefined) {
+          return true;
+        }
 
-          const shouldAttachTraceData = (url: string): boolean => {
-            if (clientOptions.tracePropagationTargets === undefined) {
-              return true;
-            }
+        const cachedDecision = this._headersUrlMap.get(url);
+        if (cachedDecision !== undefined) {
+          return cachedDecision;
+        }
 
-            const cachedDecision = this._headersUrlMap.get(url);
-            if (cachedDecision !== undefined) {
-              return cachedDecision;
-            }
+        const decision = stringMatchesSomePattern(url, clientOptions.tracePropagationTargets);
+        this._headersUrlMap.set(url, decision);
+        return decision;
+      };
 
-            const decision = stringMatchesSomePattern(url, clientOptions.tracePropagationTargets);
-            this._headersUrlMap.set(url, decision);
-            return decision;
-          };
+      if (shouldAttachTraceData(stringUrl)) {
+        if (span) {
+          const dynamicSamplingContext = span?.transaction?.getDynamicSamplingContext();
+          const sentryBaggageHeader = dynamicSamplingContextToSentryBaggageHeader(dynamicSamplingContext);
 
-          if (shouldAttachTraceData(stringUrl)) {
-            request.addHeader('sentry-trace', span.toTraceparent());
-            if (span.transaction) {
-              const dynamicSamplingContext = span.transaction.getDynamicSamplingContext();
-              const sentryBaggageHeader = dynamicSamplingContextToSentryBaggageHeader(dynamicSamplingContext);
-              if (sentryBaggageHeader) {
-                request.addHeader('baggage', sentryBaggageHeader);
-              }
-            }
-          }
+          setHeadersOnRequest(request, span.toTraceparent(), sentryBaggageHeader);
+        } else {
+          const { traceId, sampled, dsc } = scope.getPropagationContext();
+          const sentryTrace = generateSentryTraceHeader(traceId, undefined, sampled);
+          const dynamicSamplingContext = dsc || getDynamicSamplingContextFromClient(traceId, client, scope);
+          const sentryBaggageHeader = dynamicSamplingContextToSentryBaggageHeader(dynamicSamplingContext);
+          setHeadersOnRequest(request, sentryTrace, sentryBaggageHeader);
         }
       }
     });
@@ -199,7 +197,7 @@ export class Undici implements Integration {
         return;
       }
 
-      const span = request.__sentry__;
+      const span = request.__sentry_span__;
       if (span) {
         span.setHttpStatus(response.statusCode);
         span.finish();
@@ -239,7 +237,7 @@ export class Undici implements Integration {
         return;
       }
 
-      const span = request.__sentry__;
+      const span = request.__sentry_span__;
       if (span) {
         span.setStatus('internal_error');
         span.finish();
@@ -264,4 +262,45 @@ export class Undici implements Integration {
       }
     });
   }
+}
+
+function setHeadersOnRequest(
+  request: RequestWithSentry,
+  sentryTrace: string,
+  sentryBaggageHeader: string | undefined,
+): void {
+  if (request.__sentry_has_headers__) {
+    return;
+  }
+
+  request.addHeader('sentry-trace', sentryTrace);
+  if (sentryBaggageHeader) {
+    request.addHeader('baggage', sentryBaggageHeader);
+  }
+
+  request.__sentry_has_headers__ = true;
+}
+
+function createRequestSpan(
+  activeSpan: Span | undefined,
+  request: RequestWithSentry,
+  stringUrl: string,
+): Span | undefined {
+  const url = parseUrl(stringUrl);
+
+  const method = request.method || 'GET';
+  const data: Record<string, unknown> = {
+    'http.method': method,
+  };
+  if (url.search) {
+    data['http.query'] = url.search;
+  }
+  if (url.hash) {
+    data['http.fragment'] = url.hash;
+  }
+  return activeSpan?.startChild({
+    op: 'http.client',
+    description: `${method} ${getSanitizedUrlString(url)}`,
+    data,
+  });
 }
