@@ -210,6 +210,12 @@ conditionalTest({ min: 16 })('Undici integration', () => {
     expect(transaction.spanRecorder?.spans.length).toBe(2);
     const span = transaction.spanRecorder?.spans[1];
 
+    console.log(
+      hub.getScope().getSpan(),
+      'attaches the sentry trace and baggage headers if there is an active span',
+      requestHeaders['sentry-trace'],
+    );
+
     expect(requestHeaders['sentry-trace']).toEqual(span?.toTraceparent());
     expect(requestHeaders['baggage']).toEqual(
       `sentry-environment=production,sentry-public_key=0,sentry-trace_id=${transaction.traceId},sentry-sample_rate=1,sentry-transaction=test-transaction`,
@@ -221,6 +227,11 @@ conditionalTest({ min: 16 })('Undici integration', () => {
 
     const propagationContext = hub.getScope().getPropagationContext();
 
+    console.log(
+      hub.getScope().getSpan(),
+      'attaches the sentry trace and baggage headers if there is no active span',
+      requestHeaders['sentry-trace'],
+    );
     expect(requestHeaders['sentry-trace'].includes(propagationContext.traceId)).toBe(true);
     expect(requestHeaders['baggage']).toEqual(
       `sentry-environment=production,sentry-public_key=0,sentry-trace_id=${propagationContext.traceId}`,
