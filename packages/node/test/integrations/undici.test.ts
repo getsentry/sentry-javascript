@@ -41,6 +41,14 @@ beforeEach(() => {
 afterEach(() => {
   requestHeaders = {};
   setTestServerOptions({ statusCode: 200 });
+  const client = hub.getClient();
+  if (client) {
+    const undici = client.getIntegration(Undici);
+    if (undici) {
+      undici['_createSpanUrlMap'].clear();
+      undici['_headersUrlMap'].clear();
+    }
+  }
 });
 
 afterAll(() => {
