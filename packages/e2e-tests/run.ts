@@ -17,6 +17,7 @@ async function run(): Promise<void> {
 
   const envVarsToInject = {
     REACT_APP_E2E_TEST_DSN: process.env.E2E_TEST_DSN,
+    REMIX_APP_E2E_TEST_DSN: process.env.E2E_TEST_DSN,
     NEXT_PUBLIC_E2E_TEST_DSN: process.env.E2E_TEST_DSN,
     PUBLIC_E2E_TEST_DSN: process.env.E2E_TEST_DSN,
     BASE_PORT: '27496', // just some random port
