@@ -193,7 +193,8 @@ conditionalTest({ min: 16 })('Undici integration', () => {
     undoPatch();
   });
 
-  it('attaches the sentry trace and baggage headers if there is an active span', async () => {
+  // This flakes on CI for some reason: https://github.com/getsentry/sentry-javascript/pull/8449
+  it.skip('attaches the sentry trace and baggage headers if there is an active span', async () => {
     expect.assertions(3);
 
     await runWithAsyncContext(async () => {
@@ -212,7 +213,8 @@ conditionalTest({ min: 16 })('Undici integration', () => {
     });
   });
 
-  it('attaches the sentry trace and baggage headers if there is no active span', async () => {
+  // This flakes on CI for some reason: https://github.com/getsentry/sentry-javascript/pull/8449
+  it.skip('attaches the sentry trace and baggage headers if there is no active span', async () => {
     const scope = hub.getScope();
 
     await fetch('http://localhost:18100', { method: 'POST' });
@@ -225,7 +227,8 @@ conditionalTest({ min: 16 })('Undici integration', () => {
     );
   });
 
-  it('attaches headers if `shouldCreateSpanForRequest` does not create a span using propagation context', async () => {
+  // This flakes on CI for some reason: https://github.com/getsentry/sentry-javascript/pull/8449
+  it.skip('attaches headers if `shouldCreateSpanForRequest` does not create a span using propagation context', async () => {
     const transaction = hub.startTransaction({ name: 'test-transaction' }) as Transaction;
     const scope = hub.getScope();
     const propagationContext = scope.getPropagationContext();
@@ -255,7 +258,8 @@ conditionalTest({ min: 16 })('Undici integration', () => {
     undoPatch();
   });
 
-  it('uses tracePropagationTargets', async () => {
+  // This flakes on CI for some reason: https://github.com/getsentry/sentry-javascript/pull/8449
+  it.skip('uses tracePropagationTargets', async () => {
     const transaction = hub.startTransaction({ name: 'test-transaction' }) as Transaction;
     hub.getScope().setSpan(transaction);
 
