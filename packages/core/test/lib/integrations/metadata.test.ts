@@ -22,7 +22,7 @@ describe('ModuleMetadata integration', () => {
     jest.clearAllMocks();
   });
 
-  test('Adds and removes metadata', done => {
+  test('Adds and removes metadata from stack frames', done => {
     const options = getDefaultTestClientOptions({
       dsn: 'https://username@domain/123',
       enableSend: true,

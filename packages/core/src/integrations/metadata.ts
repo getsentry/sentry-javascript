@@ -1,4 +1,4 @@
-import type { Event, EventItem, EventProcessor, Hub, Integration } from '@sentry/types';
+import type { EventItem, EventProcessor, Hub, Integration } from '@sentry/types';
 import { forEachEnvelopeItem } from '@sentry/utils';
 
 import { addMetadataToStackFrames, stripMetadataFromStackFrames } from '../metadata';
@@ -7,6 +7,10 @@ import { addMetadataToStackFrames, stripMetadataFromStackFrames } from '../metad
  * Adds module metadata to stack frames.
  *
  * Metadata can be injected by the Sentry bundler plugins using the `_experiments.moduleMetadata` config option.
+ *
+ * When this integration is added, the metadata passed to the bundler plugin is added to the stack frames of all events
+ * under the `module_metadata` property. This can be used to help in tagging or routing of events from different teams
+ * our sources
  */
 export class ModuleMetadata implements Integration {
   /*
@@ -29,6 +33,7 @@ export class ModuleMetadata implements Integration {
       return;
     }
 
+    // We need to strip metadata from stack frames before sending them to Sentry since these are client side only.
     client.on('beforeEnvelope', envelope => {
       forEachEnvelopeItem(envelope, (item, type) => {
         if (type === 'event' || type === 'transaction') {
@@ -36,7 +41,7 @@ export class ModuleMetadata implements Integration {
 
           if (event) {
             stripMetadataFromStackFrames(event);
-            (item as EventItem)[1] = event;
+            item[1] = event;
           }
         }
       });
@@ -44,7 +49,7 @@ export class ModuleMetadata implements Integration {
 
     const stackParser = client.getOptions().stackParser;
 
-    addGlobalEventProcessor((event: Event) => {
+    addGlobalEventProcessor(event => {
       addMetadataToStackFrames(stackParser, event);
       return event;
     });
