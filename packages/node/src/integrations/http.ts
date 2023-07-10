@@ -108,13 +108,20 @@ export class Http implements Integration {
       return;
     }
 
-    // TODO (v8): `tracePropagationTargets` and `shouldCreateSpanForRequest` will be removed from clientOptions
-    // and we will no longer have to do this optional merge, we can just pass `this._tracing` directly.
-    const tracingOptions = this._tracing ? { ...clientOptions, ...this._tracing } : undefined;
+    const shouldCreateSpanForRequest =
+      // eslint-disable-next-line deprecation/deprecation
+      this._tracing?.shouldCreateSpanForRequest || clientOptions?.shouldCreateSpanForRequest;
+    // eslint-disable-next-line deprecation/deprecation
+    const tracePropagationTargets = clientOptions?.tracePropagationTargets || this._tracing?.tracePropagationTargets;
 
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const httpModule = require('http');
-    const wrappedHttpHandlerMaker = _createWrappedRequestMethodFactory(this._breadcrumbs, tracingOptions, httpModule);
+    const wrappedHttpHandlerMaker = _createWrappedRequestMethodFactory(
+      httpModule,
+      this._breadcrumbs,
+      shouldCreateSpanForRequest,
+      tracePropagationTargets,
+    );
     fill(httpModule, 'get', wrappedHttpHandlerMaker);
     fill(httpModule, 'request', wrappedHttpHandlerMaker);
 
@@ -125,9 +132,10 @@ export class Http implements Integration {
       // eslint-disable-next-line @typescript-eslint/no-var-requires
       const httpsModule = require('https');
       const wrappedHttpsHandlerMaker = _createWrappedRequestMethodFactory(
-        this._breadcrumbs,
-        tracingOptions,
         httpsModule,
+        this._breadcrumbs,
+        shouldCreateSpanForRequest,
+        tracePropagationTargets,
       );
       fill(httpsModule, 'get', wrappedHttpsHandlerMaker);
       fill(httpsModule, 'request', wrappedHttpsHandlerMaker);
@@ -150,16 +158,17 @@ type WrappedRequestMethodFactory = (original: OriginalRequestMethod) => WrappedR
  * @returns A function which accepts the exiting handler and returns a wrapped handler
  */
 function _createWrappedRequestMethodFactory(
-  breadcrumbsEnabled: boolean,
-  tracingOptions: TracingOptions | undefined,
   httpModule: typeof http | typeof https,
+  breadcrumbsEnabled: boolean,
+  shouldCreateSpanForRequest: ((url: string) => boolean) | undefined,
+  tracePropagationTargets: TracePropagationTargets | undefined,
 ): WrappedRequestMethodFactory {
   // We're caching results so we don't have to recompute regexp every time we create a request.
   const createSpanUrlMap = new LRUMap<string, boolean>(100);
   const headersUrlMap = new LRUMap<string, boolean>(100);
 
   const shouldCreateSpan = (url: string): boolean => {
-    if (tracingOptions?.shouldCreateSpanForRequest === undefined) {
+    if (shouldCreateSpanForRequest === undefined) {
       return true;
     }
 
@@ -168,14 +177,13 @@ function _createWrappedRequestMethodFactory(
       return cachedDecision;
     }
 
-    const decision = tracingOptions.shouldCreateSpanForRequest(url);
+    const decision = shouldCreateSpanForRequest(url);
     createSpanUrlMap.set(url, decision);
     return decision;
   };
 
   const shouldAttachTraceData = (url: string): boolean => {
-    // eslint-disable-next-line deprecation/deprecation
-    if (tracingOptions?.tracePropagationTargets === undefined) {
+    if (tracePropagationTargets === undefined) {
       return true;
     }
 
@@ -184,8 +192,7 @@ function _createWrappedRequestMethodFactory(
       return cachedDecision;
     }
 
-    // eslint-disable-next-line deprecation/deprecation
-    const decision = stringMatchesSomePattern(url, tracingOptions.tracePropagationTargets);
+    const decision = stringMatchesSomePattern(url, tracePropagationTargets);
     headersUrlMap.set(url, decision);
     return decision;
   };

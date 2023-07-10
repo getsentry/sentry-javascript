@@ -330,7 +330,6 @@ describe('tracing', () => {
       return transaction;
     }
 
-    // TODO (v8): These can be removed once we remove these properties from client options
     describe('as client options', () => {
       it('creates span with propagation context if shouldCreateSpanForRequest returns false', () => {
         const url = 'http://dogs.are.great/api/v1/index/';
