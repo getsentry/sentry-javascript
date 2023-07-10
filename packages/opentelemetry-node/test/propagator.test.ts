@@ -161,7 +161,7 @@ describe('SentryPropagator', () => {
           const baggage = propagation.createBaggage({ foo: { value: 'bar' } });
           propagator.inject(propagation.setBaggage(context, baggage), carrier, defaultTextMapSetter);
           expect(carrier[SENTRY_BAGGAGE_HEADER]).toBe(
-            'foo=bar,sentry-environment=production,sentry-release=1.0.0,sentry-public_key=abc,sentry-trace_id=d4cda95b652f4a1592b449d5929fda1b,sentry-transaction=sampled-transaction',
+            'foo=bar,sentry-environment=production,sentry-release=1.0.0,sentry-public_key=abc,sentry-trace_id=d4cda95b652f4a1592b449d5929fda1b,sentry-transaction=sampled-transaction,sentry-sampled=true',
           );
         });
 
