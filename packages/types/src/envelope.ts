@@ -20,6 +20,7 @@ export type DynamicSamplingContext = {
   transaction?: string;
   user_segment?: string;
   replay_id?: string;
+  sampled?: string;
 };
 
 export type EnvelopeItemType =
