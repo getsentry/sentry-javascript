@@ -1,13 +1,22 @@
 import type { Scope } from '@sentry/core';
-import { addTracingExtensions, BaseClient, createCheckInEnvelope, SDK_VERSION, SessionFlusher } from '@sentry/core';
+import {
+  addTracingExtensions,
+  BaseClient,
+  createCheckInEnvelope,
+  getDynamicSamplingContextFromClient,
+  SDK_VERSION,
+  SessionFlusher,
+} from '@sentry/core';
 import type {
   CheckIn,
+  DynamicSamplingContext,
   Event,
   EventHint,
   MonitorConfig,
   SerializedCheckIn,
   Severity,
   SeverityLevel,
+  TraceContext,
 } from '@sentry/types';
 import { logger, resolvedSyncPromise, uuid4 } from '@sentry/utils';
 import * as os from 'os';
@@ -154,7 +163,7 @@ export class NodeClient extends BaseClient<NodeClientOptions> {
    * to create a monitor automatically when sending a check in.
    * @returns A string representing the id of the check in.
    */
-  public captureCheckIn(checkIn: CheckIn, monitorConfig?: MonitorConfig): string {
+  public captureCheckIn(checkIn: CheckIn, monitorConfig?: MonitorConfig, scope?: Scope): string {
     const id = checkIn.status !== 'in_progress' && checkIn.checkInId ? checkIn.checkInId : uuid4();
     if (!this._isEnabled()) {
       __DEBUG_BUILD__ && logger.warn('SDK not enabled, will not capture checkin.');
@@ -185,7 +194,20 @@ export class NodeClient extends BaseClient<NodeClientOptions> {
       };
     }
 
-    const envelope = createCheckInEnvelope(serializedCheckIn, this.getSdkMetadata(), tunnel, this.getDsn());
+    const [dynamicSamplingContext, traceContext] = this._getTraceInfoFromScope(scope);
+    if (traceContext) {
+      serializedCheckIn.contexts = {
+        trace: traceContext,
+      };
+    }
+
+    const envelope = createCheckInEnvelope(
+      serializedCheckIn,
+      dynamicSamplingContext,
+      this.getSdkMetadata(),
+      tunnel,
+      this.getDsn(),
+    );
 
     __DEBUG_BUILD__ && logger.info('Sending checkin:', checkIn.monitorSlug, checkIn.status);
     void this._sendEnvelope(envelope);
@@ -219,5 +241,31 @@ export class NodeClient extends BaseClient<NodeClientOptions> {
     } else {
       this._sessionFlusher.incrementSessionStatusCount();
     }
+  }
+
+  /** Extract trace information from scope */
+  private _getTraceInfoFromScope(
+    scope: Scope | undefined,
+  ): [dynamicSamplingContext: Partial<DynamicSamplingContext> | undefined, traceContext: TraceContext | undefined] {
+    if (!scope) {
+      return [undefined, undefined];
+    }
+
+    const span = scope.getSpan();
+    if (span) {
+      return [span?.transaction?.getDynamicSamplingContext(), span?.getTraceContext()];
+    }
+
+    const { traceId, spanId, parentSpanId, dsc } = scope.getPropagationContext();
+    const traceContext: TraceContext = {
+      trace_id: traceId,
+      span_id: spanId,
+      parent_span_id: parentSpanId,
+    };
+    if (dsc) {
+      return [dsc, traceContext];
+    }
+
+    return [getDynamicSamplingContextFromClient(traceId, this, scope), traceContext];
   }
 }

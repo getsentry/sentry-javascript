@@ -74,9 +74,10 @@ export interface Client<O extends ClientOptions = ClientOptions> {
    * @param checkIn An object that describes a check in.
    * @param upsertMonitorConfig An optional object that describes a monitor config. Use this if you want
    * to create a monitor automatically when sending a check in.
+   * @param scope An optional scope containing event metadata.
    * @returns A string representing the id of the check in.
    */
-  captureCheckIn?(checkIn: CheckIn, monitorConfig?: MonitorConfig): string;
+  captureCheckIn?(checkIn: CheckIn, monitorConfig?: MonitorConfig, scope?: Scope): string;
 
   /** Returns the current Dsn. */
   getDsn(): DsnComponents | undefined;
