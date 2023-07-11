@@ -738,7 +738,7 @@ jobs:
       github.actor != 'dependabot[bot]'
     needs: [job_get_metadata, job_build]
     runs-on: ubuntu-20.04
-    timeout-minutes: 30
+    timeout-minutes: 45
     strategy:
       fail-fast: false
       matrix:
