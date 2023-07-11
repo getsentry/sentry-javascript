@@ -742,7 +742,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3]
+        shard: [1, 2, 3, 4]
 
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
@@ -773,7 +773,7 @@ jobs:
           E2E_TEST_SENTRY_ORG_SLUG: 'sentry-javascript-sdks'
           E2E_TEST_SENTRY_TEST_PROJECT: 'sentry-javascript-e2e-tests'
           E2E_TEST_SHARD: ${{ matrix.shard }}
-          E2E_TEST_SHARD_AMOUNT: 3
+          E2E_TEST_SHARD_AMOUNT: 4
         run: |
           cd packages/e2e-tests
           yarn test:e2e
