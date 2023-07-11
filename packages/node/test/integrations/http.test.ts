@@ -192,7 +192,7 @@ describe('tracing', () => {
     expect(parts[2]).toEqual('1');
 
     expect(baggageHeader).toEqual(
-      'sentry-environment=production,sentry-release=1.0.0,sentry-user_segment=segmentA,sentry-public_key=dogsarebadatkeepingsecrets,sentry-trace_id=12312012123120121231201212312012,sentry-sample_rate=1',
+      'sentry-environment=production,sentry-release=1.0.0,sentry-user_segment=segmentA,sentry-public_key=dogsarebadatkeepingsecrets,sentry-trace_id=12312012123120121231201212312012,sentry-sample_rate=1,sentry-sampled=true',
     );
   });
 
