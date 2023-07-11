@@ -1,14 +1,26 @@
 import type { Hub } from '@sentry/core';
-import { getCurrentHub } from '@sentry/core';
-import type { EventProcessor, Integration, SanitizedRequestData, Span, TracePropagationTargets } from '@sentry/types';
-import { dynamicSamplingContextToSentryBaggageHeader, fill, logger, stringMatchesSomePattern } from '@sentry/utils';
+import { getCurrentHub, getDynamicSamplingContextFromClient } from '@sentry/core';
+import type {
+  DynamicSamplingContext,
+  EventProcessor,
+  Integration,
+  SanitizedRequestData,
+  TracePropagationTargets,
+} from '@sentry/types';
+import {
+  dynamicSamplingContextToSentryBaggageHeader,
+  fill,
+  generateSentryTraceHeader,
+  logger,
+  stringMatchesSomePattern,
+} from '@sentry/utils';
 import type * as http from 'http';
 import type * as https from 'https';
 import { LRUMap } from 'lru_map';
 
 import type { NodeClient } from '../client';
 import { NODE_VERSION } from '../nodeVersion';
-import type { RequestMethod, RequestMethodArgs } from './utils/http';
+import type { RequestMethod, RequestMethodArgs, RequestOptions } from './utils/http';
 import { cleanSpanDescription, extractRawUrl, extractUrl, isSentryRequest, normalizeRequestArgs } from './utils/http';
 
 interface TracingOptions {
@@ -96,13 +108,20 @@ export class Http implements Integration {
       return;
     }
 
-    // TODO (v8): `tracePropagationTargets` and `shouldCreateSpanForRequest` will be removed from clientOptions
-    // and we will no longer have to do this optional merge, we can just pass `this._tracing` directly.
-    const tracingOptions = this._tracing ? { ...clientOptions, ...this._tracing } : undefined;
+    const shouldCreateSpanForRequest =
+      // eslint-disable-next-line deprecation/deprecation
+      this._tracing?.shouldCreateSpanForRequest || clientOptions?.shouldCreateSpanForRequest;
+    // eslint-disable-next-line deprecation/deprecation
+    const tracePropagationTargets = clientOptions?.tracePropagationTargets || this._tracing?.tracePropagationTargets;
 
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const httpModule = require('http');
-    const wrappedHttpHandlerMaker = _createWrappedRequestMethodFactory(this._breadcrumbs, tracingOptions, httpModule);
+    const wrappedHttpHandlerMaker = _createWrappedRequestMethodFactory(
+      httpModule,
+      this._breadcrumbs,
+      shouldCreateSpanForRequest,
+      tracePropagationTargets,
+    );
     fill(httpModule, 'get', wrappedHttpHandlerMaker);
     fill(httpModule, 'request', wrappedHttpHandlerMaker);
 
@@ -113,9 +132,10 @@ export class Http implements Integration {
       // eslint-disable-next-line @typescript-eslint/no-var-requires
       const httpsModule = require('https');
       const wrappedHttpsHandlerMaker = _createWrappedRequestMethodFactory(
-        this._breadcrumbs,
-        tracingOptions,
         httpsModule,
+        this._breadcrumbs,
+        shouldCreateSpanForRequest,
+        tracePropagationTargets,
       );
       fill(httpsModule, 'get', wrappedHttpsHandlerMaker);
       fill(httpsModule, 'request', wrappedHttpsHandlerMaker);
@@ -138,16 +158,17 @@ type WrappedRequestMethodFactory = (original: OriginalRequestMethod) => WrappedR
  * @returns A function which accepts the exiting handler and returns a wrapped handler
  */
 function _createWrappedRequestMethodFactory(
-  breadcrumbsEnabled: boolean,
-  tracingOptions: TracingOptions | undefined,
   httpModule: typeof http | typeof https,
+  breadcrumbsEnabled: boolean,
+  shouldCreateSpanForRequest: ((url: string) => boolean) | undefined,
+  tracePropagationTargets: TracePropagationTargets | undefined,
 ): WrappedRequestMethodFactory {
   // We're caching results so we don't have to recompute regexp every time we create a request.
   const createSpanUrlMap = new LRUMap<string, boolean>(100);
   const headersUrlMap = new LRUMap<string, boolean>(100);
 
   const shouldCreateSpan = (url: string): boolean => {
-    if (tracingOptions?.shouldCreateSpanForRequest === undefined) {
+    if (shouldCreateSpanForRequest === undefined) {
       return true;
     }
 
@@ -156,14 +177,13 @@ function _createWrappedRequestMethodFactory(
       return cachedDecision;
     }
 
-    const decision = tracingOptions.shouldCreateSpanForRequest(url);
+    const decision = shouldCreateSpanForRequest(url);
     createSpanUrlMap.set(url, decision);
     return decision;
   };
 
   const shouldAttachTraceData = (url: string): boolean => {
-    // eslint-disable-next-line deprecation/deprecation
-    if (tracingOptions?.tracePropagationTargets === undefined) {
+    if (tracePropagationTargets === undefined) {
       return true;
     }
 
@@ -172,11 +192,40 @@ function _createWrappedRequestMethodFactory(
       return cachedDecision;
     }
 
-    // eslint-disable-next-line deprecation/deprecation
-    const decision = stringMatchesSomePattern(url, tracingOptions.tracePropagationTargets);
+    const decision = stringMatchesSomePattern(url, tracePropagationTargets);
     headersUrlMap.set(url, decision);
     return decision;
   };
+
+  /**
+   * Captures Breadcrumb based on provided request/response pair
+   */
+  function addRequestBreadcrumb(
+    event: string,
+    requestSpanData: SanitizedRequestData,
+    req: http.ClientRequest,
+    res?: http.IncomingMessage,
+  ): void {
+    if (!getCurrentHub().getIntegration(Http)) {
+      return;
+    }
+
+    getCurrentHub().addBreadcrumb(
+      {
+        category: 'http',
+        data: {
+          status_code: res && res.statusCode,
+          ...requestSpanData,
+        },
+        type: 'http',
+      },
+      {
+        event,
+        request: req,
+        response: res,
+      },
+    );
+  }
 
   return function wrappedRequestMethodFactory(originalRequestMethod: OriginalRequestMethod): WrappedRequestMethod {
     return function wrappedMethod(this: unknown, ...args: RequestMethodArgs): http.ClientRequest {
@@ -191,74 +240,38 @@ function _createWrappedRequestMethodFactory(
         return originalRequestMethod.apply(httpModule, requestArgs);
       }
 
-      let requestSpan: Span | undefined;
-      const parentSpan = getCurrentHub().getScope().getSpan();
+      const hub = getCurrentHub();
+      const scope = hub.getScope();
+      const parentSpan = scope.getSpan();
 
-      const method = requestOptions.method || 'GET';
-      const requestSpanData: SanitizedRequestData = {
-        url: requestUrl,
-        'http.method': method,
-      };
-      if (requestOptions.hash) {
-        // strip leading "#"
-        requestSpanData['http.fragment'] = requestOptions.hash.substring(1);
-      }
-      if (requestOptions.search) {
-        // strip leading "?"
-        requestSpanData['http.query'] = requestOptions.search.substring(1);
-      }
+      const data = getRequestSpanData(requestUrl, requestOptions);
 
-      if (tracingOptions && shouldCreateSpan(rawRequestUrl)) {
-        if (parentSpan) {
-          requestSpan = parentSpan.startChild({
-            description: `${method} ${requestSpanData.url}`,
+      const requestSpan = shouldCreateSpan(rawRequestUrl)
+        ? parentSpan?.startChild({
             op: 'http.client',
-            data: requestSpanData,
-          });
+            description: `${data['http.method']} ${data.url}`,
+            data,
+          })
+        : undefined;
 
-          if (shouldAttachTraceData(rawRequestUrl)) {
-            const sentryTraceHeader = requestSpan.toTraceparent();
-            __DEBUG_BUILD__ &&
-              logger.log(
-                `[Tracing] Adding sentry-trace header ${sentryTraceHeader} to outgoing request to "${requestUrl}": `,
-              );
-
-            requestOptions.headers = {
-              ...requestOptions.headers,
-              'sentry-trace': sentryTraceHeader,
-            };
-
-            if (parentSpan.transaction) {
-              const dynamicSamplingContext = parentSpan.transaction.getDynamicSamplingContext();
-              const sentryBaggageHeader = dynamicSamplingContextToSentryBaggageHeader(dynamicSamplingContext);
-
-              let newBaggageHeaderField;
-              if (!requestOptions.headers || !requestOptions.headers.baggage) {
-                newBaggageHeaderField = sentryBaggageHeader;
-              } else if (!sentryBaggageHeader) {
-                newBaggageHeaderField = requestOptions.headers.baggage;
-              } else if (Array.isArray(requestOptions.headers.baggage)) {
-                newBaggageHeaderField = [...requestOptions.headers.baggage, sentryBaggageHeader];
-              } else {
-                // Type-cast explanation:
-                // Technically this the following could be of type `(number | string)[]` but for the sake of simplicity
-                // we say this is undefined behaviour, since it would not be baggage spec conform if the user did this.
-                newBaggageHeaderField = [requestOptions.headers.baggage, sentryBaggageHeader] as string[];
-              }
-
-              requestOptions.headers = {
-                ...requestOptions.headers,
-                // Setting a hader to `undefined` will crash in node so we only set the baggage header when it's defined
-                ...(newBaggageHeaderField && { baggage: newBaggageHeaderField }),
-              };
-            }
-          } else {
-            __DEBUG_BUILD__ &&
-              logger.log(
-                `[Tracing] Not adding sentry-trace header to outgoing request (${requestUrl}) due to mismatching tracePropagationTargets option.`,
-              );
-          }
+      if (shouldAttachTraceData(rawRequestUrl)) {
+        if (requestSpan) {
+          const sentryTraceHeader = requestSpan.toTraceparent();
+          const dynamicSamplingContext = requestSpan?.transaction?.getDynamicSamplingContext();
+          addHeadersToRequestOptions(requestOptions, requestUrl, sentryTraceHeader, dynamicSamplingContext);
+        } else {
+          const client = hub.getClient();
+          const { traceId, sampled, dsc } = scope.getPropagationContext();
+          const sentryTraceHeader = generateSentryTraceHeader(traceId, undefined, sampled);
+          const dynamicSamplingContext =
+            dsc || (client ? getDynamicSamplingContextFromClient(traceId, client, scope) : undefined);
+          addHeadersToRequestOptions(requestOptions, requestUrl, sentryTraceHeader, dynamicSamplingContext);
         }
+      } else {
+        __DEBUG_BUILD__ &&
+          logger.log(
+            `[Tracing] Not adding sentry-trace header to outgoing request (${requestUrl}) due to mismatching tracePropagationTargets option.`,
+          );
       }
 
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
@@ -268,7 +281,7 @@ function _createWrappedRequestMethodFactory(
           // eslint-disable-next-line @typescript-eslint/no-this-alias
           const req = this;
           if (breadcrumbsEnabled) {
-            addRequestBreadcrumb('response', requestSpanData, req, res);
+            addRequestBreadcrumb('response', data, req, res);
           }
           if (requestSpan) {
             if (res.statusCode) {
@@ -283,7 +296,7 @@ function _createWrappedRequestMethodFactory(
           const req = this;
 
           if (breadcrumbsEnabled) {
-            addRequestBreadcrumb('error', requestSpanData, req);
+            addRequestBreadcrumb('error', data, req);
           }
           if (requestSpan) {
             requestSpan.setHttpStatus(500);
@@ -295,32 +308,55 @@ function _createWrappedRequestMethodFactory(
   };
 }
 
-/**
- * Captures Breadcrumb based on provided request/response pair
- */
-function addRequestBreadcrumb(
-  event: string,
-  requestSpanData: SanitizedRequestData,
-  req: http.ClientRequest,
-  res?: http.IncomingMessage,
+function addHeadersToRequestOptions(
+  requestOptions: RequestOptions,
+  requestUrl: string,
+  sentryTraceHeader: string,
+  dynamicSamplingContext: Partial<DynamicSamplingContext> | undefined,
 ): void {
-  if (!getCurrentHub().getIntegration(Http)) {
-    return;
+  __DEBUG_BUILD__ &&
+    logger.log(`[Tracing] Adding sentry-trace header ${sentryTraceHeader} to outgoing request to "${requestUrl}": `);
+  const sentryBaggage = dynamicSamplingContextToSentryBaggageHeader(dynamicSamplingContext);
+  const sentryBaggageHeader = normalizeBaggageHeader(requestOptions, sentryBaggage);
+  requestOptions.headers = {
+    ...requestOptions.headers,
+    'sentry-trace': sentryTraceHeader,
+    // Setting a header to `undefined` will crash in node so we only set the baggage header when it's defined
+    ...(sentryBaggageHeader && { baggage: sentryBaggageHeader }),
+  };
+}
+
+function getRequestSpanData(requestUrl: string, requestOptions: RequestOptions): SanitizedRequestData {
+  const method = requestOptions.method || 'GET';
+  const data: SanitizedRequestData = {
+    url: requestUrl,
+    'http.method': method,
+  };
+  if (requestOptions.hash) {
+    // strip leading "#"
+    data['http.fragment'] = requestOptions.hash.substring(1);
+  }
+  if (requestOptions.search) {
+    // strip leading "?"
+    data['http.query'] = requestOptions.search.substring(1);
+  }
+  return data;
+}
+
+function normalizeBaggageHeader(
+  requestOptions: RequestOptions,
+  sentryBaggageHeader: string | undefined,
+): string | string[] | undefined {
+  if (!requestOptions.headers || !requestOptions.headers.baggage) {
+    return sentryBaggageHeader;
+  } else if (!sentryBaggageHeader) {
+    return requestOptions.headers.baggage as string | string[];
+  } else if (Array.isArray(requestOptions.headers.baggage)) {
+    return [...requestOptions.headers.baggage, sentryBaggageHeader];
   }
 
-  getCurrentHub().addBreadcrumb(
-    {
-      category: 'http',
-      data: {
-        status_code: res && res.statusCode,
-        ...requestSpanData,
-      },
-      type: 'http',
-    },
-    {
-      event,
-      request: req,
-      response: res,
-    },
-  );
+  // Type-cast explanation:
+  // Technically this the following could be of type `(number | string)[]` but for the sake of simplicity
+  // we say this is undefined behaviour, since it would not be baggage spec conform if the user did this.
+  return [requestOptions.headers.baggage, sentryBaggageHeader] as string[];
 }

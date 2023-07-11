@@ -47,4 +47,4 @@ export interface RecipeTestResult extends RecipeInstance {
   tests: TestResult[];
 }
 
-export type Env = Record<string, string | string>;
+export type Env = Record<string, string | undefined>;
