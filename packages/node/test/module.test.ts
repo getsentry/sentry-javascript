@@ -1,4 +1,4 @@
-import { getModule } from '../src/module';
+import { getModuleFromFilename } from '../src/module';
 
 function withFilename(fn: () => void, filename: string) {
   const prevFilename = require.main?.filename;
@@ -15,16 +15,16 @@ function withFilename(fn: () => void, filename: string) {
   }
 }
 
-describe('getModule', () => {
+describe('getModuleFromFilename', () => {
   test('Windows', () => {
     withFilename(() => {
-      expect(getModule('C:\\Users\\users\\Tim\\Desktop\\node_modules\\module.js', true)).toEqual('module');
+      expect(getModuleFromFilename('C:\\Users\\users\\Tim\\Desktop\\node_modules\\module.js', true)).toEqual('module');
     }, 'C:\\Users\\Tim\\app.js');
   });
 
   test('POSIX', () => {
     withFilename(() => {
-      expect(getModule('/Users/users/Tim/Desktop/node_modules/module.js')).toEqual('module');
+      expect(getModuleFromFilename('/Users/users/Tim/Desktop/node_modules/module.js')).toEqual('module');
     }, '/Users/Tim/app.js');
   });
 });
