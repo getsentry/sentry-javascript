@@ -202,11 +202,11 @@ export class TestEnv {
    */
   public async getAPIResponse(
     url?: string,
-    headers?: Record<string, string>,
+    headers: Record<string, string> = {},
     endServer: boolean = true,
   ): Promise<unknown> {
     try {
-      const { data } = await axios.get(url || this.url, { headers: headers || {} });
+      const { data } = await axios.get(url || this.url, { headers });
       return data;
     } finally {
       await Sentry.flush();
