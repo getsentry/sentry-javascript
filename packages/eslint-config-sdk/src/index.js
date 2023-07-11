@@ -167,7 +167,7 @@ module.exports = {
       },
     },
     {
-      // Configuration for test files
+      // Configuration for files in test directories
       env: {
         jest: true,
       },
@@ -185,6 +185,23 @@ module.exports = {
         '@sentry-internal/sdk/no-optional-chaining': 'off',
         '@sentry-internal/sdk/no-nullish-coalescing': 'off',
 
+        // Prevent permanent usage of `it.only`, `fit`, `test.only` etc
+        // We want to avoid debugging leftovers making their way into the codebase
+        "jest/no-focused-tests": "error",
+
+        // Prevent permanent usage of `it.skip`, `xit`, `test.skip` etc
+        // We want to avoid debugging leftovers making their way into the codebase
+        // If there's a good reason to skip a test (e.g. bad flakiness), just add an ignore comment
+        "jest/no-disabled-tests": "error",
+      },
+    },
+    {
+      // Configuration only for test files (this won't apply to utils or other files in test directories)
+      env: {
+        jest: true,
+      },
+      files: ['test.ts', '*.test.ts', '*.test.tsx', '*.test.js', '*.test.jsx'],
+      rules: {
         // Prevent permanent usage of `it.only`, `fit`, `test.only` etc
         // We want to avoid debugging leftovers making their way into the codebase
         "jest/no-focused-tests": "error",
