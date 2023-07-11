@@ -31,7 +31,7 @@ import {
   RequestData,
   Undici,
 } from './integrations';
-import { getModule } from './module';
+import { getModuleFromFilename } from './module';
 import { makeNodeTransport } from './transports';
 import type { NodeClientOptions, NodeOptions } from './types';
 
@@ -267,7 +267,7 @@ export function getSentryRelease(fallback?: string): string | undefined {
 }
 
 /** Node.js stack parser */
-export const defaultStackParser: StackParser = createStackParser(nodeStackLineParser(getModule));
+export const defaultStackParser: StackParser = createStackParser(nodeStackLineParser(getModuleFromFilename));
 
 /**
  * Enable automatic Session Tracking for the node process.
