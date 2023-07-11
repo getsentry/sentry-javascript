@@ -4,7 +4,7 @@ module.exports = {
     node: true,
   },
   extends: ['prettier', 'eslint:recommended', 'plugin:import/errors', 'plugin:import/warnings'],
-  plugins: ['@sentry-internal/eslint-plugin-sdk', 'simple-import-sort', 'jest'],
+  plugins: ['@sentry-internal/eslint-plugin-sdk', 'simple-import-sort'],
   overrides: [
     {
       // Configuration for JavaScript files
@@ -184,19 +184,11 @@ module.exports = {
         '@typescript-eslint/no-empty-function': 'off',
         '@sentry-internal/sdk/no-optional-chaining': 'off',
         '@sentry-internal/sdk/no-nullish-coalescing': 'off',
-
-        // Prevent permanent usage of `it.only`, `fit`, `test.only` etc
-        // We want to avoid debugging leftovers making their way into the codebase
-        "jest/no-focused-tests": "error",
-
-        // Prevent permanent usage of `it.skip`, `xit`, `test.skip` etc
-        // We want to avoid debugging leftovers making their way into the codebase
-        // If there's a good reason to skip a test (e.g. bad flakiness), just add an ignore comment
-        "jest/no-disabled-tests": "error",
       },
     },
     {
       // Configuration only for test files (this won't apply to utils or other files in test directories)
+      plugins: ['jest'],
       env: {
         jest: true,
       },
@@ -204,12 +196,12 @@ module.exports = {
       rules: {
         // Prevent permanent usage of `it.only`, `fit`, `test.only` etc
         // We want to avoid debugging leftovers making their way into the codebase
-        "jest/no-focused-tests": "error",
+        'jest/no-focused-tests': 'error',
 
         // Prevent permanent usage of `it.skip`, `xit`, `test.skip` etc
         // We want to avoid debugging leftovers making their way into the codebase
         // If there's a good reason to skip a test (e.g. bad flakiness), just add an ignore comment
-        "jest/no-disabled-tests": "error",
+        'jest/no-disabled-tests': 'error',
       },
     },
     {
