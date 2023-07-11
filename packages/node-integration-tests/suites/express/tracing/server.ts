@@ -7,6 +7,8 @@ const app = express();
 Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
   release: '1.0',
+  // disable attaching headers to /test/* endpoints
+  tracePropagationTargets: [/^(?!.*test).*$/],
   integrations: [new Sentry.Integrations.Http({ tracing: true }), new Sentry.Integrations.Express({ app })],
   tracesSampleRate: 1.0,
 });
