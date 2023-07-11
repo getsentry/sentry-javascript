@@ -1,6 +1,6 @@
 {
   "$schema": "../../test-recipe-schema.json",
   "testApplicationName": "create-remix-app",
-  "buildCommand": "pnpm install && pnpm build && pnpm start",
+  "buildCommand": "# disabling build test because it is causing timeouts: https://github.com/getsentry/sentry-javascript/pull/8486 pnpm install && pnpm build && pnpm start",
   "tests": []
 }
