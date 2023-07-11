@@ -170,8 +170,15 @@ export class IdleTransaction extends Transaction {
       });
 
       __DEBUG_BUILD__ && logger.log('[Tracing] flushing IdleTransaction');
-    } else {
-      __DEBUG_BUILD__ && logger.log('[Tracing] No active IdleTransaction');
+
+      console.log(endTimestamp, this.startTimestamp, this._finalTimeout, this._idleTimeout);
+      console.log(endTimestamp - this.startTimestamp > this._finalTimeout + this._idleTimeout);
+
+      if (endTimestamp - this.startTimestamp < this._finalTimeout + this._idleTimeout) {
+        __DEBUG_BUILD__ && logger.log('[Tracing] IdleTransaction duration exceeded finalTimeout, dropping transaction');
+        this.endTimestamp = endTimestamp;
+        return;
+      }
     }
 
     // if `this._onScope` is `true`, the transaction put itself on the scope when it started
