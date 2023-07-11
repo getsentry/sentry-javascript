@@ -17,21 +17,49 @@ interface SpawnAsync {
   status: number | null;
 }
 
-export function spawnAsync(
-  cmd: string,
-  options?:
-    | childProcess.SpawnOptionsWithoutStdio
-    | childProcess.SpawnOptionsWithStdioTuple<childProcess.StdioPipe, childProcess.StdioPipe, childProcess.StdioPipe>,
-  input?: string,
-): Promise<SpawnAsync> {
-  const start = Date.now();
+interface SpawnOptions {
+  timeout?: number;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  env?: any;
+  cwd?: string;
+}
+
+export function spawnAsync(cmd: string, options?: SpawnOptions, input?: string): Promise<SpawnAsync> {
+  const timeoutMs = options?.timeout || 60_000 * 5;
 
   return new Promise<SpawnAsync>(resolve => {
     const cp = childProcess.spawn(cmd, { shell: true, ...options });
 
+    // Ensure we properly time out after max. 5 min per command
+    let timeout: ReturnType<typeof setTimeout> | undefined = setTimeout(() => {
+      console.log(`Command "${cmd}" timed out after 5 minutes.`);
+      cp.kill();
+      end(null, `ETDIMEDOUT: Process timed out after ${timeoutMs} ms.`);
+    }, timeoutMs);
+
     const stderr: unknown[] = [];
     const stdout: string[] = [];
     let error: Error | undefined;
+
+    function end(status: number | null, errorMessage?: string): void {
+      // This means we already ended
+      if (!timeout) {
+        return;
+      }
+
+      if (!error && errorMessage) {
+        error = new Error(errorMessage);
+      }
+
+      clearTimeout(timeout);
+      timeout = undefined;
+      resolve({
+        stdout: stdout.join(''),
+        stderr: stderr.join(''),
+        error: error || (status !== 0 ? new Error(`Process exited with status ${status}`) : undefined),
+        status,
+      });
+    }
 
     cp.stdout.on('data', data => {
       stdout.push(data ? (data as object).toString() : '');
@@ -46,19 +74,7 @@ export function spawnAsync(
     });
 
     cp.on('close', status => {
-      const end = Date.now();
-
-      // We manually mark this as timed out if the process takes too long
-      if (!error && status === 1 && options?.timeout && end >= start + options.timeout) {
-        error = new Error(`ETDIMEDOUT: Process timed out after ${options.timeout} ms.`);
-      }
-
-      resolve({
-        stdout: stdout.join(''),
-        stderr: stderr.join(''),
-        error: error || (status !== 0 ? new Error(`Process exited with status ${status}`) : undefined),
-        status,
-      });
+      end(status);
     });
 
     if (input) {
