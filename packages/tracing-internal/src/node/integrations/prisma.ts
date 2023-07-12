@@ -65,6 +65,7 @@ export class Prisma implements Integration {
     // https://github.com/getsentry/sentry-javascript/issues/7216#issuecomment-1602375012
     // In the future we might explore providing a dedicated PrismaClient middleware instead of this hack.
     if (isValidPrismaClient(options.client) && !options.client._sentryInstrumented) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       addNonEnumerableProperty(options.client as any, '_sentryInstrumented', true);
 
       options.client.$use((params, next: (params: PrismaMiddlewareParams) => Promise<unknown>) => {
