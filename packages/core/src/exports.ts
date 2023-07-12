@@ -196,13 +196,15 @@ export function startTransaction(
  * to create a monitor automatically when sending a check in.
  */
 export function captureCheckIn(checkIn: CheckIn, upsertMonitorConfig?: MonitorConfig): string {
-  const client = getCurrentHub().getClient();
+  const hub = getCurrentHub();
+  const scope = hub.getScope();
+  const client = hub.getClient();
   if (!client) {
     __DEBUG_BUILD__ && logger.warn('Cannot capture check-in. No client defined.');
   } else if (!client.captureCheckIn) {
     __DEBUG_BUILD__ && logger.warn('Cannot capture check-in. Client does not support sending check-ins.');
   } else {
-    return client.captureCheckIn(checkIn, upsertMonitorConfig);
+    return client.captureCheckIn(checkIn, upsertMonitorConfig, scope);
   }
 
   return uuid4();
