@@ -29,4 +29,29 @@ export interface Mechanism {
    * to recreate the stacktrace.
    */
   synthetic?: boolean;
+
+  /**
+   * Describes the source of the exception, in the case that this is a derived (linked or aggregate) error.
+   *
+   * This should be populated with the name of the property where the exception was found on the parent exception.
+   * E.g. "cause", "errors[0]", "errors[1]"
+   */
+  source?: string;
+
+  /**
+   * Indicates whether the exception is an `AggregateException`.
+   */
+  is_exception_group?: boolean;
+
+  /**
+   * An identifier for the exception inside the `event.exception.values` array. This identifier is referenced to via the
+   * `parent_id` attribute to link and aggregate errors.
+   */
+  exception_id?: number;
+
+  /**
+   * References another exception via the `exception_id` field to indicate that this excpetion is a child of that
+   * exception in the case of aggregate or linked errors.
+   */
+  parent_id?: number;
 }

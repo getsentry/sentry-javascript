@@ -8,6 +8,8 @@ import type {
 } from './types';
 import { constructWebpackConfigFunction } from './webpack';
 
+let showedExportModeTunnelWarning = false;
+
 /**
  * Add Sentry options to the config to be exported from the user's `next.config.js` file.
  *
@@ -48,7 +50,17 @@ function getFinalConfigObject(
   delete incomingUserNextConfigObject.sentry;
 
   if (userSentryOptions?.tunnelRoute) {
-    setUpTunnelRewriteRules(incomingUserNextConfigObject, userSentryOptions.tunnelRoute);
+    if (incomingUserNextConfigObject.output === 'export') {
+      if (!showedExportModeTunnelWarning) {
+        showedExportModeTunnelWarning = true;
+        // eslint-disable-next-line no-console
+        console.warn(
+          '[@sentry/nextjs] The Sentry Next.js SDK `tunnelRoute` option will not work in combination with Next.js static exports. The `tunnelRoute` option uses serverside features that cannot be accessed in export mode. If you still want to tunnel Sentry events, set up your own tunnel: https://docs.sentry.io/platforms/javascript/troubleshooting/#using-the-tunnel-option',
+        );
+      }
+    } else {
+      setUpTunnelRewriteRules(incomingUserNextConfigObject, userSentryOptions.tunnelRoute);
+    }
   }
 
   return {

@@ -7,7 +7,6 @@ import { logger } from '@sentry/utils';
 import {
   BUFFER_CHECKOUT_TIME,
   MAX_SESSION_LIFE,
-  MULTI_CLICK_TIMEOUT,
   SESSION_IDLE_EXPIRE_DURATION,
   SESSION_IDLE_PAUSE_DURATION,
   SLOW_CLICK_SCROLL_TIMEOUT,
@@ -175,7 +174,6 @@ export class ReplayContainer implements ReplayContainerInterface {
           timeout: slowClickTimeout,
           scrollTimeout: SLOW_CLICK_SCROLL_TIMEOUT,
           ignoreSelector: slowClickIgnoreSelectors ? slowClickIgnoreSelectors.join(',') : '',
-          multiClickTimeout: MULTI_CLICK_TIMEOUT,
         }
       : undefined;
 

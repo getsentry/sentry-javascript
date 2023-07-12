@@ -1,3 +1,5 @@
+import type { TraceContext } from './context';
+
 interface CrontabSchedule {
   type: 'crontab';
   // The crontab schedule string, e.g. 0 * * * *.
@@ -35,6 +37,9 @@ export interface SerializedCheckIn {
     // A tz database string representing the timezone which the monitor's execution schedule is in.
     // See: https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
     timezone?: string;
+  };
+  contexts?: {
+    trace?: TraceContext;
   };
 }
 

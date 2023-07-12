@@ -13,6 +13,7 @@ import {
   logger,
   nodeStackLineParser,
   stackParserFromStackParserOptions,
+  tracingContextFromHeaders,
 } from '@sentry/utils';
 
 import { setNodeAsyncContextStrategy } from './async';
@@ -30,7 +31,7 @@ import {
   RequestData,
   Undici,
 } from './integrations';
-import { getModule } from './module';
+import { getModuleFromFilename } from './module';
 import { makeNodeTransport } from './transports';
 import type { NodeClientOptions, NodeOptions } from './types';
 
@@ -129,8 +130,9 @@ export function init(options: NodeOptions = {}): void {
     options.dsn = process.env.SENTRY_DSN;
   }
 
-  if (options.tracesSampleRate === undefined && process.env.SENTRY_TRACES_SAMPLE_RATE) {
-    const tracesSampleRate = parseFloat(process.env.SENTRY_TRACES_SAMPLE_RATE);
+  const sentryTracesSampleRate = process.env.SENTRY_TRACES_SAMPLE_RATE;
+  if (options.tracesSampleRate === undefined && sentryTracesSampleRate) {
+    const tracesSampleRate = parseFloat(sentryTracesSampleRate);
     if (isFinite(tracesSampleRate)) {
       options.tracesSampleRate = tracesSampleRate;
     }
@@ -171,6 +173,8 @@ export function init(options: NodeOptions = {}): void {
   if (options.autoSessionTracking) {
     startSessionTracking();
   }
+
+  updateScopeFromEnvVariables();
 }
 
 /**
@@ -263,7 +267,7 @@ export function getSentryRelease(fallback?: string): string | undefined {
 }
 
 /** Node.js stack parser */
-export const defaultStackParser: StackParser = createStackParser(nodeStackLineParser(getModule));
+export const defaultStackParser: StackParser = createStackParser(nodeStackLineParser(getModuleFromFilename));
 
 /**
  * Enable automatic Session Tracking for the node process.
@@ -284,4 +288,20 @@ function startSessionTracking(): void {
     // Ref: https://develop.sentry.dev/sdk/sessions/
     if (session && !terminalStates.includes(session.status)) hub.endSession();
   });
+}
+
+/**
+ * Update scope and propagation context based on environmental variables.
+ *
+ * See https://github.com/getsentry/rfcs/blob/main/text/0071-continue-trace-over-process-boundaries.md
+ * for more details.
+ */
+function updateScopeFromEnvVariables(): void {
+  const sentryUseEnvironment = (process.env.SENTRY_USE_ENVIRONMENT || '').toLowerCase();
+  if (!['false', 'n', 'no', 'off', '0'].includes(sentryUseEnvironment)) {
+    const sentryTraceEnv = process.env.SENTRY_TRACE;
+    const baggageEnv = process.env.SENTRY_BAGGAGE;
+    const { propagationContext } = tracingContextFromHeaders(sentryTraceEnv, baggageEnv);
+    getCurrentHub().getScope().setPropagationContext(propagationContext);
+  }
 }

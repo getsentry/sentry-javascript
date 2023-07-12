@@ -63,6 +63,7 @@ describe('Unit | coreHandlers | handleNetworkBreadcrumbs', () => {
         textEncoder: new TextEncoder(),
         replay: setupReplayContainer(),
         networkDetailAllowUrls: ['https://example.com'],
+        networkDetailDenyUrls: ['http://localhost:8080'],
         networkCaptureBodies: false,
         networkRequestHeaders: ['content-type', 'accept', 'x-custom-header'],
         networkResponseHeaders: ['content-type', 'accept', 'x-custom-header'],
@@ -1378,6 +1379,167 @@ other-header: test`;
                 startTimestamp: (BASE_TIMESTAMP + 1000) / 1000,
               },
             },
+          },
+        ]);
+      });
+    });
+
+    describe.each([
+      ['exact string match', 'https://example.com/foo'],
+      ['partial string match', 'https://example.com/bar/what'],
+      ['exact regex match', 'http://example.com/exact'],
+      ['partial regex match', 'http://example.com/partial/string'],
+    ])('matching URL %s', (_label, url) => {
+      it('correctly deny URL for fetch request', async () => {
+        options.networkDetailDenyUrls = [
+          'https://example.com/foo',
+          'com/bar',
+          /^http:\/\/example.com\/exact$/,
+          /^http:\/\/example.com\/partial/,
+        ];
+
+        const breadcrumb: Breadcrumb = {
+          category: 'fetch',
+          data: {
+            method: 'GET',
+            url,
+            status_code: 200,
+          },
+        };
+
+        const mockResponse = getMockResponse('13', 'test response');
+
+        const hint: FetchBreadcrumbHint = {
+          input: ['GET', { body: 'test input' }],
+          response: mockResponse,
+          startTimestamp: BASE_TIMESTAMP + 1000,
+          endTimestamp: BASE_TIMESTAMP + 2000,
+        };
+        beforeAddNetworkBreadcrumb(options, breadcrumb, hint);
+
+        expect(breadcrumb).toEqual({
+          category: 'fetch',
+          data: {
+            method: 'GET',
+            request_body_size: 10,
+            response_body_size: 13,
+            status_code: 200,
+            url,
+          },
+        });
+
+        await waitForReplayEventBuffer();
+
+        expect((options.replay.eventBuffer as EventBufferArray).events).toEqual([
+          {
+            data: {
+              payload: {
+                data: {
+                  method: 'GET',
+                  request: {
+                    _meta: {
+                      warnings: ['URL_SKIPPED'],
+                    },
+                    headers: {},
+                    size: 10,
+                  },
+                  response: {
+                    _meta: {
+                      warnings: ['URL_SKIPPED'],
+                    },
+                    headers: {},
+                    size: 13,
+                  },
+                  statusCode: 200,
+                },
+                description: url,
+                endTimestamp: (BASE_TIMESTAMP + 2000) / 1000,
+                op: 'resource.fetch',
+                startTimestamp: (BASE_TIMESTAMP + 1000) / 1000,
+              },
+              tag: 'performanceSpan',
+            },
+            timestamp: (BASE_TIMESTAMP + 1000) / 1000,
+            type: 5,
+          },
+        ]);
+      });
+
+      it('correctly deny URL for xhr request', async () => {
+        options.networkDetailDenyUrls = [
+          'https://example.com/foo',
+          'com/bar',
+          /^http:\/\/example.com\/exact$/,
+          /^http:\/\/example.com\/partial/,
+        ];
+
+        const breadcrumb: Breadcrumb = {
+          category: 'xhr',
+          data: {
+            method: 'GET',
+            url,
+            status_code: 200,
+          },
+        };
+        const xhr = new XMLHttpRequest();
+        Object.defineProperty(xhr, 'response', {
+          value: 'test response',
+        });
+        Object.defineProperty(xhr, 'responseText', {
+          value: 'test response',
+        });
+        const hint: XhrBreadcrumbHint = {
+          xhr,
+          input: 'test input',
+          startTimestamp: BASE_TIMESTAMP + 1000,
+          endTimestamp: BASE_TIMESTAMP + 2000,
+        };
+        beforeAddNetworkBreadcrumb(options, breadcrumb, hint);
+
+        expect(breadcrumb).toEqual({
+          category: 'xhr',
+          data: {
+            method: 'GET',
+            request_body_size: 10,
+            response_body_size: 13,
+            status_code: 200,
+            url,
+          },
+        });
+
+        await waitForReplayEventBuffer();
+
+        expect((options.replay.eventBuffer as EventBufferArray).events).toEqual([
+          {
+            data: {
+              payload: {
+                data: {
+                  method: 'GET',
+                  request: {
+                    _meta: {
+                      warnings: ['URL_SKIPPED'],
+                    },
+                    headers: {},
+                    size: 10,
+                  },
+                  response: {
+                    _meta: {
+                      warnings: ['URL_SKIPPED'],
+                    },
+                    headers: {},
+                    size: 13,
+                  },
+                  statusCode: 200,
+                },
+                description: url,
+                endTimestamp: (BASE_TIMESTAMP + 2000) / 1000,
+                op: 'resource.xhr',
+                startTimestamp: (BASE_TIMESTAMP + 1000) / 1000,
+              },
+              tag: 'performanceSpan',
+            },
+            timestamp: (BASE_TIMESTAMP + 1000) / 1000,
+            type: 5,
           },
         ]);
       });

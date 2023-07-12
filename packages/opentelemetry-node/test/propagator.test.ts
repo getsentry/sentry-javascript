@@ -85,7 +85,7 @@ describe('SentryPropagator', () => {
               spanId: '6e0c63257de34c92',
               sampled: true,
             },
-            'sentry-environment=production,sentry-release=1.0.0,sentry-transaction=sampled-transaction,sentry-public_key=abc,sentry-trace_id=d4cda95b652f4a1592b449d5929fda1b',
+            'sentry-environment=production,sentry-release=1.0.0,sentry-public_key=abc,sentry-trace_id=d4cda95b652f4a1592b449d5929fda1b,sentry-transaction=sampled-transaction,sentry-sampled=true',
             'd4cda95b652f4a1592b449d5929fda1b-6e0c63257de34c92-1',
           ],
           [
@@ -101,7 +101,7 @@ describe('SentryPropagator', () => {
               spanId: '6e0c63257de34c92',
               sampled: false,
             },
-            'sentry-environment=production,sentry-release=1.0.0,sentry-transaction=not-sampled-transaction,sentry-public_key=abc,sentry-trace_id=d4cda95b652f4a1592b449d5929fda1b',
+            'sentry-environment=production,sentry-release=1.0.0,sentry-public_key=abc,sentry-trace_id=d4cda95b652f4a1592b449d5929fda1b,sentry-transaction=not-sampled-transaction,sentry-sampled=false',
             'd4cda95b652f4a1592b449d5929fda1b-6e0c63257de34c92-0',
           ],
           [
@@ -161,7 +161,7 @@ describe('SentryPropagator', () => {
           const baggage = propagation.createBaggage({ foo: { value: 'bar' } });
           propagator.inject(propagation.setBaggage(context, baggage), carrier, defaultTextMapSetter);
           expect(carrier[SENTRY_BAGGAGE_HEADER]).toBe(
-            'foo=bar,sentry-environment=production,sentry-release=1.0.0,sentry-transaction=sampled-transaction,sentry-public_key=abc,sentry-trace_id=d4cda95b652f4a1592b449d5929fda1b',
+            'foo=bar,sentry-environment=production,sentry-release=1.0.0,sentry-public_key=abc,sentry-trace_id=d4cda95b652f4a1592b449d5929fda1b,sentry-transaction=sampled-transaction,sentry-sampled=true',
           );
         });
 
@@ -232,7 +232,7 @@ describe('SentryPropagator', () => {
 
     it('sets defined dynamic sampling context on context', () => {
       const baggage =
-        'sentry-environment=production,sentry-release=1.0.0,sentry-transaction=dsc-transaction,sentry-public_key=abc,sentry-trace_id=d4cda95b652f4a1592b449d5929fda1b';
+        'sentry-environment=production,sentry-release=1.0.0,sentry-public_key=abc,sentry-trace_id=d4cda95b652f4a1592b449d5929fda1b,sentry-transaction=dsc-transaction';
       carrier[SENTRY_BAGGAGE_HEADER] = baggage;
       const context = propagator.extract(ROOT_CONTEXT, carrier, defaultTextMapGetter);
       expect(context.getValue(SENTRY_DYNAMIC_SAMPLING_CONTEXT_KEY)).toEqual({

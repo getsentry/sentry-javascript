@@ -1,13 +1,6 @@
 import type { AddRequestDataToEventOptions } from '@sentry/node';
 import { captureException, flush, getCurrentHub } from '@sentry/node';
-import {
-  baggageHeaderToDynamicSamplingContext,
-  extractTraceparentData,
-  isString,
-  isThenable,
-  logger,
-  stripUrlQueryAndFragment,
-} from '@sentry/utils';
+import { isString, isThenable, logger, stripUrlQueryAndFragment, tracingContextFromHeaders } from '@sentry/utils';
 
 import { domainify, proxyFunction } from './../utils';
 import type { HttpFunction, WrapperOptions } from './general';
@@ -68,21 +61,18 @@ function _wrapHttpFunction(fn: HttpFunction, wrapOptions: Partial<HttpFunctionWr
     ...wrapOptions,
   };
   return (req, res) => {
+    const hub = getCurrentHub();
+
     const reqMethod = (req.method || '').toUpperCase();
     const reqUrl = stripUrlQueryAndFragment(req.originalUrl || req.url || '');
 
-    // Applying `sentry-trace` to context
-    let traceparentData;
-    const reqWithHeaders = req as { headers?: { [key: string]: string } };
-    if (reqWithHeaders.headers && isString(reqWithHeaders.headers['sentry-trace'])) {
-      traceparentData = extractTraceparentData(reqWithHeaders.headers['sentry-trace']);
-    }
-
-    const baggageHeader = reqWithHeaders.headers?.baggage;
-
-    const dynamicSamplingContext = baggageHeaderToDynamicSamplingContext(baggageHeader);
-
-    const hub = getCurrentHub();
+    const sentryTrace = req.headers && isString(req.headers['sentry-trace']) ? req.headers['sentry-trace'] : undefined;
+    const baggage = req.headers?.baggage;
+    const { traceparentData, dynamicSamplingContext, propagationContext } = tracingContextFromHeaders(
+      sentryTrace,
+      baggage,
+    );
+    hub.getScope().setPropagationContext(propagationContext);
 
     const transaction = hub.startTransaction({
       name: `${reqMethod} ${reqUrl}`,

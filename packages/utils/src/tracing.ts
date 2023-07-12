@@ -1,4 +1,7 @@
-import type { TraceparentData } from '@sentry/types';
+import type { DynamicSamplingContext, PropagationContext, TraceparentData } from '@sentry/types';
+
+import { baggageHeaderToDynamicSamplingContext } from './baggage';
+import { uuid4 } from './misc';
 
 export const TRACEPARENT_REGEXP = new RegExp(
   '^[ \\t]*' + // whitespace
@@ -15,11 +18,13 @@ export const TRACEPARENT_REGEXP = new RegExp(
  *
  * @returns Object containing data from the header, or undefined if traceparent string is malformed
  */
-export function extractTraceparentData(traceparent: string): TraceparentData | undefined {
-  const matches = traceparent.match(TRACEPARENT_REGEXP);
+export function extractTraceparentData(traceparent?: string): TraceparentData | undefined {
+  if (!traceparent) {
+    return undefined;
+  }
 
-  if (!traceparent || !matches) {
-    // empty string or no matches is invalid traceparent data
+  const matches = traceparent.match(TRACEPARENT_REGEXP);
+  if (!matches) {
     return undefined;
   }
 
@@ -35,4 +40,56 @@ export function extractTraceparentData(traceparent: string): TraceparentData | u
     parentSampled,
     parentSpanId: matches[2],
   };
+}
+
+/**
+ * Create tracing context from incoming headers.
+ */
+export function tracingContextFromHeaders(
+  sentryTrace: Parameters<typeof extractTraceparentData>[0],
+  baggage: Parameters<typeof baggageHeaderToDynamicSamplingContext>[0],
+): {
+  traceparentData: ReturnType<typeof extractTraceparentData>;
+  dynamicSamplingContext: ReturnType<typeof baggageHeaderToDynamicSamplingContext>;
+  propagationContext: PropagationContext;
+} {
+  const traceparentData = extractTraceparentData(sentryTrace);
+  const dynamicSamplingContext = baggageHeaderToDynamicSamplingContext(baggage);
+
+  const { traceId, parentSpanId, parentSampled } = traceparentData || {};
+
+  const propagationContext: PropagationContext = {
+    traceId: traceId || uuid4(),
+    spanId: uuid4().substring(16),
+    sampled: parentSampled === undefined ? false : parentSampled,
+  };
+
+  if (parentSpanId) {
+    propagationContext.parentSpanId = parentSpanId;
+  }
+
+  if (dynamicSamplingContext) {
+    propagationContext.dsc = dynamicSamplingContext as DynamicSamplingContext;
+  }
+
+  return {
+    traceparentData,
+    dynamicSamplingContext,
+    propagationContext,
+  };
+}
+
+/**
+ * Create sentry-trace header from span context values.
+ */
+export function generateSentryTraceHeader(
+  traceId: string = uuid4(),
+  spanId: string = uuid4().substring(16),
+  sampled?: boolean,
+): string {
+  let sampledString = '';
+  if (sampled !== undefined) {
+    sampledString = sampled ? '-1' : '-0';
+  }
+  return `${traceId}-${spanId}${sampledString}`;
 }

@@ -179,7 +179,7 @@ jobs:
           key: ${{ steps.compute_lockfile_hash.outputs.hash }}
 
       - name: Install dependencies
-        if: steps.cache_dependencies.outputs.cache_hit != 'true'
+        if: steps.cache_dependencies.outputs.cache-hit != 'true'
         run: yarn install --ignore-engines --frozen-lockfile
     outputs:
       dependency_cache_key: ${{ steps.compute_lockfile_hash.outputs.hash }}
@@ -661,7 +661,7 @@ jobs:
     needs: [job_get_metadata, job_build]
     if: needs.job_get_metadata.outputs.changed_node == 'true' || github.event_name != 'pull_request'
     runs-on: ubuntu-20.04
-    timeout-minutes: 10
+    timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
@@ -738,11 +738,11 @@ jobs:
       github.actor != 'dependabot[bot]'
     needs: [job_get_metadata, job_build]
     runs-on: ubuntu-20.04
-    timeout-minutes: 20
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3]
+        shard: [1, 2, 3, 4]
 
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
@@ -773,7 +773,7 @@ jobs:
           E2E_TEST_SENTRY_ORG_SLUG: 'sentry-javascript-sdks'
           E2E_TEST_SENTRY_TEST_PROJECT: 'sentry-javascript-e2e-tests'
           E2E_TEST_SHARD: ${{ matrix.shard }}
-          E2E_TEST_SHARD_AMOUNT: 3
+          E2E_TEST_SHARD_AMOUNT: 4
         run: |
           cd packages/e2e-tests
           yarn test:e2e

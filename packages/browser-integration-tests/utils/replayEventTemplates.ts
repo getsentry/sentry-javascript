@@ -30,7 +30,6 @@ const DEFAULT_REPLAY_EVENT = {
     version: SDK_VERSION,
     name: 'sentry.javascript.browser',
   },
-  sdkProcessingMetadata: {},
   request: {
     url: expect.stringContaining('/dist/index.html'),
     headers: {

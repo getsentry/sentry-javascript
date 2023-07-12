@@ -1,12 +1,6 @@
 import { captureException, getCurrentHub, hasTracingEnabled, startTransaction } from '@sentry/core';
 import type { Span } from '@sentry/types';
-import {
-  addExceptionMechanism,
-  baggageHeaderToDynamicSamplingContext,
-  extractTraceparentData,
-  logger,
-  objectify,
-} from '@sentry/utils';
+import { addExceptionMechanism, logger, objectify, tracingContextFromHeaders } from '@sentry/utils';
 
 import type { EdgeRouteHandler } from '../types';
 import { flush } from './flush';
@@ -32,16 +26,16 @@ export function withEdgeWrapping<H extends EdgeRouteHandler>(
           op: options.spanOp,
         });
       } else if (req instanceof Request) {
-        // If there is a trace header set, extract the data from it (parentSpanId, traceId, and sampling decision)
-        let traceparentData;
-
-        const sentryTraceHeader = req.headers.get('sentry-trace');
-        if (sentryTraceHeader) {
-          traceparentData = extractTraceparentData(sentryTraceHeader);
-          __DEBUG_BUILD__ && logger.log(`[Tracing] Continuing trace ${traceparentData?.traceId}.`);
+        const sentryTrace = req.headers.get('sentry-trace') || '';
+        const baggage = req.headers.get('baggage');
+        const { traceparentData, dynamicSamplingContext, propagationContext } = tracingContextFromHeaders(
+          sentryTrace,
+          baggage,
+        );
+        currentScope.setPropagationContext(propagationContext);
+        if (traceparentData) {
+          __DEBUG_BUILD__ && logger.log(`[Tracing] Continuing trace ${traceparentData.traceId}.`);
         }
-
-        const dynamicSamplingContext = baggageHeaderToDynamicSamplingContext(req.headers.get('baggage'));
 
         span = startTransaction({
           name: options.spanDescription,

@@ -7,3 +7,4 @@ export { extractTraceparentData, getActiveTransaction } from './utils';
 export { SpanStatus } from './spanstatus';
 export type { SpanStatusType } from './span';
 export { trace } from './trace';
+export { getDynamicSamplingContextFromClient } from './dynamicSamplingContext';

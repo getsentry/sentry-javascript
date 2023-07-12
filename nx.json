@@ -3,65 +3,35 @@
     "default": {
       "runner": "nx/tasks-runners/default",
       "options": {
-        "cacheableOperations": [
-          "build:bundle",
-          "build:transpile",
-          "build:types",
-          "lint:eslint",
-          "test:unit"
-        ],
+        "cacheableOperations": ["build:bundle", "build:transpile", "build:types", "lint:eslint", "test:unit"],
         "cacheDirectory": ".nxcache"
       }
     }
   },
   "namedInputs": {
     "default": ["{projectRoot}/**/*", "sharedGlobals"],
-    "sharedGlobals": [
-      "{workspaceRoot}/*.js",
-      "{workspaceRoot}/*.json"
-    ],
-    "production": [
-      "default",
-      "!{projectRoot}/test/**/*",
-      "!{projectRoot}/**/*.md"
-    ]
+    "sharedGlobals": ["{workspaceRoot}/*.js", "{workspaceRoot}/*.json"],
+    "production": ["default", "!{projectRoot}/test/**/*", "!{projectRoot}/**/*.md"]
   },
   "targetDefaults": {
     "build:bundle": {
       "inputs": ["production", "^production"],
-      "dependsOn": [
-        "build:transpile"
-      ],
-      "outputs": [
-        "{projectRoot}/build/bundles"
-      ]
+      "dependsOn": ["build:transpile"],
+      "outputs": ["{projectRoot}/build/bundles"]
     },
     "build:tarball": {
       "inputs": ["production", "^production"],
-      "dependsOn": [
-        "build:transpile",
-        "build:types"
-      ],
+      "dependsOn": ["build:transpile", "build:types"],
       "outputs": []
     },
     "build:transpile": {
       "inputs": ["production", "^production"],
-      "dependsOn": [
-        "^build:transpile:uncached",
-        "^build:transpile",
-        "build:transpile:uncached"
-      ],
-      "outputs": [
-        "{projectRoot}/build/npm",
-        "{projectRoot}/build/esm",
-        "{projectRoot}/build/cjs"
-      ]
+      "dependsOn": ["^build:transpile:uncached", "^build:transpile", "build:transpile:uncached"],
+      "outputs": ["{projectRoot}/build/npm", "{projectRoot}/build/esm", "{projectRoot}/build/cjs"]
     },
     "build:types": {
       "inputs": ["production", "^production"],
-      "dependsOn": [
-        "^build:types"
-      ],
+      "dependsOn": ["^build:types"],
       "outputs": [
         "{projectRoot}/build/types",
         "{projectRoot}/build/types-ts3.8",
@@ -78,5 +48,6 @@
       "inputs": ["default"],
       "outputs": ["{projectRoot}/coverage"]
     }
-  }
+  },
+  "$schema": "./node_modules/nx/schemas/nx-schema.json"
 }

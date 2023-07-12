@@ -60,6 +60,7 @@ export { makeNodeTransport } from './transports';
 export { defaultIntegrations, init, defaultStackParser, lastEventId, flush, close, getSentryRelease } from './sdk';
 export { addRequestDataToEvent, DEFAULT_USER_INCLUDES, extractRequestData } from './requestdata';
 export { deepReadDirSync } from './utils';
+export { getModuleFromFilename } from './module';
 
 import { Integrations as CoreIntegrations } from '@sentry/core';
 

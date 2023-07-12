@@ -119,8 +119,15 @@ function getNormalizedName(
   return [location.pathname, 'url'];
 }
 
-function updatePageloadTransaction(location: Location, routes: RouteObject[], matches?: AgnosticDataRouteMatch): void {
-  const branches = Array.isArray(matches) ? matches : (_matchRoutes(routes, location) as unknown as RouteMatch[]);
+function updatePageloadTransaction(
+  location: Location,
+  routes: RouteObject[],
+  matches?: AgnosticDataRouteMatch,
+  basename?: string,
+): void {
+  const branches = Array.isArray(matches)
+    ? matches
+    : (_matchRoutes(routes, location, basename) as unknown as RouteMatch[]);
 
   if (activeTransaction && branches) {
     activeTransaction.setName(...getNormalizedName(routes, location, branches));
@@ -132,8 +139,9 @@ function handleNavigation(
   routes: RouteObject[],
   navigationType: Action,
   matches?: AgnosticDataRouteMatch,
+  basename?: string,
 ): void {
-  const branches = Array.isArray(matches) ? matches : _matchRoutes(routes, location);
+  const branches = Array.isArray(matches) ? matches : _matchRoutes(routes, location, basename);
 
   if (_startTransactionOnLocationChange && (navigationType === 'PUSH' || navigationType === 'POP') && branches) {
     if (activeTransaction) {
@@ -254,15 +262,17 @@ export function wrapCreateBrowserRouter<
   TRouter extends Router<TState> = Router<TState>,
 >(createRouterFunction: CreateRouterFunction<TState, TRouter>): CreateRouterFunction<TState, TRouter> {
   // `opts` for createBrowserHistory and createMemoryHistory are different, but also not relevant for us at the moment.
+  // `basename` is the only option that is relevant for us, and it is the same for all.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return function (routes: RouteObject[], opts?: any): TRouter {
+  return function (routes: RouteObject[], opts?: Record<string, any> & { basename?: string }): TRouter {
     const router = createRouterFunction(routes, opts);
+    const basename = opts && opts.basename;
 
     // The initial load ends when `createBrowserRouter` is called.
     // This is the earliest convenient time to update the transaction name.
     // Callbacks to `router.subscribe` are not called for the initial load.
     if (router.state.historyAction === 'POP' && activeTransaction) {
-      updatePageloadTransaction(router.state.location, routes);
+      updatePageloadTransaction(router.state.location, routes, undefined, basename);
     }
 
     router.subscribe((state: RouterState) => {
@@ -273,7 +283,7 @@ export function wrapCreateBrowserRouter<
         (state.historyAction === 'PUSH' || state.historyAction === 'POP') &&
         activeTransaction
       ) {
-        handleNavigation(location, routes, state.historyAction);
+        handleNavigation(location, routes, state.historyAction, undefined, basename);
       }
     });
 
