@@ -264,10 +264,12 @@ export class Transaction extends SpanClass implements TransactionInterface {
       dsc.transaction = this.name;
     }
 
+    if (this.sampled !== undefined) {
+      dsc.sampled = String(this.sampled);
+    }
+
     // Uncomment if we want to make DSC immutable
     // this._frozenDynamicSamplingContext = dsc;
-
-    client.emit && client.emit('createDsc', dsc);
 
     return dsc;
   }

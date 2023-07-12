@@ -30,6 +30,7 @@ sentryTest(
       sample_rate: '1',
       trace_id: expect.any(String),
       public_key: 'public',
+      sampled: 'true',
     });
   },
 );

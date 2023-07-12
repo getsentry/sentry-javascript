@@ -131,7 +131,8 @@ describe('tracing', () => {
     expect(baggageHeader).toEqual(
       'sentry-environment=production,sentry-release=1.0.0,' +
         'sentry-user_segment=segmentA,sentry-public_key=dogsarebadatkeepingsecrets,' +
-        'sentry-trace_id=12312012123120121231201212312012,sentry-sample_rate=1,sentry-transaction=dogpark',
+        'sentry-trace_id=12312012123120121231201212312012,sentry-sample_rate=1,' +
+        'sentry-transaction=dogpark,sentry-sampled=true',
     );
   });
 
@@ -143,10 +144,10 @@ describe('tracing', () => {
     const request = http.get({ host: 'http://dogs.are.great/', headers: { baggage: 'dog=great' } });
     const baggageHeader = request.getHeader('baggage') as string;
 
-    expect(baggageHeader).toEqual([
-      'dog=great',
-      'sentry-environment=production,sentry-release=1.0.0,sentry-user_segment=segmentA,sentry-public_key=dogsarebadatkeepingsecrets,sentry-trace_id=12312012123120121231201212312012,sentry-sample_rate=1,sentry-transaction=dogpark',
-    ]);
+    expect(baggageHeader[0]).toEqual('dog=great');
+    expect(baggageHeader[1]).toEqual(
+      'sentry-environment=production,sentry-release=1.0.0,sentry-user_segment=segmentA,sentry-public_key=dogsarebadatkeepingsecrets,sentry-trace_id=12312012123120121231201212312012,sentry-sample_rate=1,sentry-transaction=dogpark,sentry-sampled=true',
+    );
   });
 
   it('adds the transaction name to the the baggage header if a valid transaction source is set', async () => {
@@ -159,7 +160,7 @@ describe('tracing', () => {
 
     expect(baggageHeader).toEqual([
       'dog=great',
-      'sentry-environment=production,sentry-release=1.0.0,sentry-user_segment=segmentA,sentry-public_key=dogsarebadatkeepingsecrets,sentry-trace_id=12312012123120121231201212312012,sentry-sample_rate=1,sentry-transaction=dogpark',
+      'sentry-environment=production,sentry-release=1.0.0,sentry-user_segment=segmentA,sentry-public_key=dogsarebadatkeepingsecrets,sentry-trace_id=12312012123120121231201212312012,sentry-sample_rate=1,sentry-transaction=dogpark,sentry-sampled=true',
     ]);
   });
 
@@ -173,7 +174,7 @@ describe('tracing', () => {
 
     expect(baggageHeader).toEqual([
       'dog=great',
-      'sentry-environment=production,sentry-release=1.0.0,sentry-user_segment=segmentA,sentry-public_key=dogsarebadatkeepingsecrets,sentry-trace_id=12312012123120121231201212312012,sentry-sample_rate=1',
+      'sentry-environment=production,sentry-release=1.0.0,sentry-user_segment=segmentA,sentry-public_key=dogsarebadatkeepingsecrets,sentry-trace_id=12312012123120121231201212312012,sentry-sample_rate=1,sentry-sampled=true',
     ]);
   });
 
@@ -191,7 +192,7 @@ describe('tracing', () => {
     expect(parts[2]).toEqual('1');
 
     expect(baggageHeader).toEqual(
-      'sentry-environment=production,sentry-release=1.0.0,sentry-user_segment=segmentA,sentry-public_key=dogsarebadatkeepingsecrets,sentry-trace_id=12312012123120121231201212312012,sentry-sample_rate=1',
+      'sentry-environment=production,sentry-release=1.0.0,sentry-user_segment=segmentA,sentry-public_key=dogsarebadatkeepingsecrets,sentry-trace_id=12312012123120121231201212312012,sentry-sample_rate=1,sentry-sampled=true',
     );
   });
 

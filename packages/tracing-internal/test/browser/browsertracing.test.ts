@@ -636,6 +636,7 @@ conditionalTest({ min: 10 })('BrowserTracing', () => {
           release: '1.0.0',
           environment: 'production',
           public_key: 'pubKey',
+          sampled: 'false',
           trace_id: expect.not.stringMatching('12312012123120121231201212312012'),
         });
       });

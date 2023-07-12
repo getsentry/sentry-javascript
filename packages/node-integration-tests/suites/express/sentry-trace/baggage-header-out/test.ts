@@ -14,7 +14,8 @@ test('should attach a `baggage` header to an outgoing request.', async () => {
       host: 'somewhere.not.sentry',
       baggage:
         'sentry-environment=prod,sentry-release=1.0,sentry-user_segment=SegmentA,sentry-public_key=public' +
-        ',sentry-trace_id=86f39e84263a4de99c326acab3bfe3bd,sentry-sample_rate=1,sentry-transaction=GET%20%2Ftest%2Fexpress',
+        ',sentry-trace_id=86f39e84263a4de99c326acab3bfe3bd,sentry-sample_rate=1,sentry-transaction=GET%20%2Ftest%2Fexpress' +
+        ',sentry-sampled=true',
     },
   });
 });
