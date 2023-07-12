@@ -1,6 +1,6 @@
 {
   "name": "@sentry-internal/e2e-tests",
-  "version": "7.57.0",
+  "version": "7.58.0",
   "license": "MIT",
   "engines": {
     "node": ">=10"

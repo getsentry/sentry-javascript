@@ -1,6 +1,6 @@
 {
   "name": "@sentry/angular-ivy",
-  "version": "7.57.0",
+  "version": "7.58.0",
   "description": "Official Sentry SDK for Angular with full Ivy Support",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/angular-ivy",
@@ -21,9 +21,9 @@
     "rxjs": "^6.5.5 || ^7.x"
   },
   "dependencies": {
-    "@sentry/browser": "7.57.0",
-    "@sentry/types": "7.57.0",
-    "@sentry/utils": "7.57.0",
+    "@sentry/browser": "7.58.0",
+    "@sentry/types": "7.58.0",
+    "@sentry/utils": "7.58.0",
     "tslib": "^2.4.1"
   },
   "devDependencies": {
