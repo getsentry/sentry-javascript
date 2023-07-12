@@ -11,6 +11,7 @@ import type { RemixOptions } from './utils/remixOptions';
 export {
   addGlobalEventProcessor,
   addBreadcrumb,
+  captureCheckIn,
   captureException,
   captureEvent,
   captureMessage,
