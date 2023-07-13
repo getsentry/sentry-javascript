@@ -39,12 +39,14 @@ export function handleHistorySpanListener(replay: ReplayContainer): (handlerData
 
     // Need to collect visited URLs
     replay.getContext().urls.push(result.name);
-    replay.triggerUserActivity();
+    replay.updateUserActivity();
 
-    replay.addUpdate(() => {
-      createPerformanceSpans(replay, [result]);
-      // Returning false to flush
-      return false;
+    replay.checkSessionState(() => {
+      replay.addUpdate(() => {
+        createPerformanceSpans(replay, [result]);
+        // Returning false to flush
+        return false;
+      });
     });
   };
 }

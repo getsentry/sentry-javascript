@@ -30,7 +30,6 @@ export interface SendReplayData {
 
 export interface Timeouts {
   sessionIdlePause: number;
-  sessionIdleExpire: number;
   maxSessionLife: number;
 }
 
@@ -206,18 +205,6 @@ export interface ReplayPluginOptions extends ReplayNetworkOptions {
   }>;
 }
 
-/**
- * Session options that are configurable by the integration configuration
- */
-export interface SessionOptions extends Pick<ReplayPluginOptions, 'sessionSampleRate' | 'stickySession'> {
-  /**
-   * Should buffer recordings to be saved later either by error sampling, or by
-   * manually calling `flush()`. This is only a factor if not sampled for a
-   * session-based replay.
-   */
-  allowBuffering: boolean;
-}
-
 export interface ReplayIntegrationPrivacyOptions {
   /**
    * Mask text content for elements that match the CSS selectors in the list.
@@ -352,21 +339,9 @@ export interface Session {
   segmentId: number;
 
   /**
-   * The ID of the previous session.
-   * If this is empty, there was no previous session.
-   */
-  previousSessionId?: string;
-
-  /**
    * Is the session sampled? `false` if not sampled, otherwise, `session` or `buffer`
    */
   sampled: Sampled;
-
-  /**
-   * If this is false, the session should not be refreshed when it was inactive.
-   * This can be the case if you had a buffered session which is now recording because an error happened.
-   */
-  shouldRefresh: boolean;
 }
 
 export type EventBufferType = 'sync' | 'worker';
@@ -449,12 +424,11 @@ export interface ReplayContainer {
   flush(): Promise<void>;
   flushImmediate(): Promise<void>;
   cancelFlush(): void;
-  triggerUserActivity(): void;
   updateUserActivity(): void;
   addUpdate(cb: AddUpdateCallback): void;
   getOptions(): ReplayPluginOptions;
   getSessionId(): string | undefined;
-  checkAndHandleExpiredSession(): boolean | void;
+  checkSessionState(onContinue: () => void): void;
   setInitialState(): void;
   getCurrentRoute(): string | undefined;
 }

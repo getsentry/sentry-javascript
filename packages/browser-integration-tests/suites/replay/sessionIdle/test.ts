@@ -14,7 +14,7 @@ import {
 // Session should be paused after 2s - keep in sync with init.js
 const SESSION_PAUSED = 2000;
 
-sentryTest('handles an inactive session', async ({ getLocalTestPath, page }) => {
+sentryTest('pauses an idle session', async ({ getLocalTestPath, page }) => {
   if (shouldSkipReplayTest()) {
     sentryTest.skip();
   }
@@ -66,6 +66,7 @@ sentryTest('handles an inactive session', async ({ getLocalTestPath, page }) => 
 
   // Trigger an action, should resume the recording
   await page.click('#button2');
+
   const req1 = await reqPromise1;
 
   const replay3 = await getReplaySnapshot(page);

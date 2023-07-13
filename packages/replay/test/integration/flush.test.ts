@@ -95,7 +95,7 @@ describe('Integration | flush', () => {
     jest.setSystemTime(new Date(BASE_TIMESTAMP));
     sessionStorage.clear();
     clearSession(replay);
-    replay['_loadAndCheckSession']();
+    replay['_initializeSession']('session');
     mockRecord.takeFullSnapshot.mockClear();
     Object.defineProperty(WINDOW, 'location', {
       value: prevLocation,
