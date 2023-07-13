@@ -1,6 +1,6 @@
 {
   "name": "@sentry-internal/e2e-tests",
-  "version": "7.57.0",
+  "version": "7.58.1",
   "license": "MIT",
   "engines": {
     "node": ">=10"
@@ -10,9 +10,10 @@
     "fix": "run-s fix:eslint fix:prettier",
     "fix:eslint": "eslint . --format stylish --fix",
     "fix:prettier": "prettier --config ../../.prettierrc.json --write . ",
-    "lint": "run-s lint:prettier lint:eslint",
+    "lint": "run-s lint:prettier lint:eslint lint:ts",
     "lint:eslint": "eslint . --format stylish",
     "lint:prettier": "prettier --config ../../.prettierrc.json --check .",
+    "lint:ts": "tsc --noEmit",
     "test:e2e": "run-s test:validate-configuration test:validate-test-app-setups test:run",
     "test:run": "ts-node run.ts",
     "test:validate-configuration": "ts-node validate-verdaccio-configuration.ts",

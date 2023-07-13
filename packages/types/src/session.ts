@@ -6,7 +6,7 @@ export interface RequestSession {
 
 export interface Session {
   sid: string;
-  did?: string;
+  did?: string | number;
   init: boolean;
   // seconds since the UNIX epoch
   timestamp: number;

@@ -4,6 +4,8 @@ import type { Transaction, TransactionContext } from '@sentry/types';
 import { isNodeEnv, logger } from '@sentry/utils';
 import * as React from 'react';
 
+import { getFutureFlagsBrowser } from '../utils/futureFlags';
+
 const DEFAULT_TAGS = {
   'routing.instrumentation': 'remix-router',
 } as const;
@@ -93,7 +95,8 @@ export function withSentry<P extends Record<string, unknown>, R extends React.FC
     wrapWithErrorBoundary?: boolean;
     errorBoundaryOptions?: ErrorBoundaryProps;
   } = {
-    wrapWithErrorBoundary: true,
+    // We don't want to wrap application with Sentry's ErrorBoundary by default for Remix v2
+    wrapWithErrorBoundary: getFutureFlagsBrowser()?.v2_errorBoundary ? false : true,
     errorBoundaryOptions: {},
   },
 ): R {

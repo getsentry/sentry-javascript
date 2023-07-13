@@ -3,7 +3,7 @@ import { Integrations } from '@sentry/tracing';
 
 Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
-  tracesSampleRate: 1,
+  tracesSampler: () => true,
   debug: process.env.SDK_DEBUG,
 
   integrations: [

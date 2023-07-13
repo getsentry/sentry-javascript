@@ -10,7 +10,7 @@ function normalizeWindowsPath(path: string): string {
 }
 
 /** Gets the module from a filename */
-export function getModule(
+export function getModuleFromFilename(
   filename: string | undefined,
   normalizeWindowsPathSeparator: boolean = isWindowsPlatform,
 ): string | undefined {

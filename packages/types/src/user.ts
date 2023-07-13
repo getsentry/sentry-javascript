@@ -1,7 +1,7 @@
 /** JSDoc */
 export interface User {
   [key: string]: any;
-  id?: string;
+  id?: string | number;
   ip_address?: string;
   email?: string;
   username?: string;

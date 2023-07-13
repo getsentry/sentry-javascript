@@ -27,6 +27,7 @@ sentryTest(
       transaction: expect.stringContaining('/index.html'),
       trace_id: expect.any(String),
       public_key: 'public',
+      sampled: 'true',
     });
   },
 );
