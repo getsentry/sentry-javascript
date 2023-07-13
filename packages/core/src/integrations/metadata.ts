@@ -36,7 +36,7 @@ export class ModuleMetadata implements Integration {
     // We need to strip metadata from stack frames before sending them to Sentry since these are client side only.
     client.on('beforeEnvelope', envelope => {
       forEachEnvelopeItem(envelope, (item, type) => {
-        if (type === 'event' || type === 'transaction') {
+        if (type === 'event') {
           const event = Array.isArray(item) ? (item as EventItem)[1] : undefined;
 
           if (event) {
