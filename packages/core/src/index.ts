@@ -46,7 +46,7 @@ export { prepareEvent } from './utils/prepareEvent';
 export { createCheckInEnvelope } from './checkin';
 export { hasTracingEnabled } from './utils/hasTracingEnabled';
 export { DEFAULT_ENVIRONMENT } from './constants';
-
+export { ModuleMetadata } from './integrations/metadata';
 import * as Integrations from './integrations';
 
 export { Integrations };

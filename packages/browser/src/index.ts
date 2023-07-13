@@ -34,6 +34,7 @@ export {
   spanStatusfromHttpCode,
   trace,
   makeMultiplexedTransport,
+  ModuleMetadata,
 } from '@sentry/core';
 export type { SpanStatusType } from '@sentry/core';
 export type { Span } from '@sentry/types';
