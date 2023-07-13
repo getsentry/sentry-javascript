@@ -1,6 +1,6 @@
 import { logger } from '@sentry/utils';
 
-import type { Sampled, Session, SessionOptions } from '../types';
+import type { Sampled, Session } from '../types';
 import { isSampled } from '../util/isSampled';
 import { saveSession } from './saveSession';
 import { makeSession } from './Session';
@@ -17,8 +17,13 @@ export function getSessionSampleType(sessionSampleRate: number, allowBuffering: 
  * that all replays will be saved to as attachments. Currently, we only expect
  * one of these Sentry events per "replay session".
  */
-export function createSession({ sessionSampleRate, allowBuffering, stickySession = false }: SessionOptions): Session {
-  const sampled = getSessionSampleType(sessionSampleRate, allowBuffering);
+export function createSession({
+  sampled,
+  stickySession = false,
+}: {
+  sampled: Sampled;
+  stickySession: boolean;
+}): Session {
   const session = makeSession({
     sampled,
   });

@@ -20,6 +20,5 @@ export function makeSession(session: Partial<Session> & { sampled: Sampled }): S
     lastActivity,
     segmentId,
     sampled,
-    shouldRefresh: true,
   };
 }

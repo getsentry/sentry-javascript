@@ -129,21 +129,23 @@ function checkCallForSentReplay(
 }
 
 /**
-* Only want calls that send replay events, i.e. ignore error events
-*/
+ * Only want calls that send replay events, i.e. ignore error events
+ */
 function getReplayCalls(calls: any[][][]): any[][][] {
-  return calls.map(call => {
-    const arg = call[0];
+  return calls
+    .map(call => {
+      const arg = call[0];
       if (arg.length !== 2) {
         return [];
       }
 
-      if (!arg[1][0].find(({type}: {type: string}) => ['replay_event', 'replay_recording'].includes(type))) {
+      if (!arg[1][0].find(({ type }: { type: string }) => ['replay_event', 'replay_recording'].includes(type))) {
         return [];
       }
 
-      return [ arg ];
-  }).filter(Boolean);
+      return [arg];
+    })
+    .filter(Boolean);
 }
 
 /**
@@ -159,9 +161,11 @@ const toHaveSentReplay = function (
 
   let result: CheckCallForSentReplayResult;
 
-  const expectedKeysLength = expected ? ('sample' in expected ? Object.keys(expected.sample) : Object.keys(expected)).length : 0;
+  const expectedKeysLength = expected
+    ? ('sample' in expected ? Object.keys(expected.sample) : Object.keys(expected)).length
+    : 0;
 
-  const replayCalls = getReplayCalls(calls)
+  const replayCalls = getReplayCalls(calls);
 
   for (const currentCall of replayCalls) {
     result = checkCallForSentReplay.call(this, currentCall[0], expected);
@@ -213,7 +217,7 @@ const toHaveLastSentReplay = function (
   expected?: SentReplayExpected | { sample: SentReplayExpected; inverse: boolean },
 ) {
   const { calls } = (getCurrentHub().getClient()?.getTransport()?.send as MockTransport).mock;
-  const replayCalls = getReplayCalls(calls)
+  const replayCalls = getReplayCalls(calls);
 
   const lastCall = replayCalls[calls.length - 1]?.[0];
 

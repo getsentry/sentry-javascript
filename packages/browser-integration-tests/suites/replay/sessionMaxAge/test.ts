@@ -11,13 +11,8 @@ import {
   waitForReplayRequest,
 } from '../../../utils/replayHelpers';
 
-// Session should be max. 4s long
-const SESSION_MAX_AGE = 4000;
+const SESSION_MAX_AGE = 2000;
 
-/*
-  The main difference between this and sessionExpiry test, is that here we wait for the overall time (4s)
-  in multiple steps (2s, 2s) instead of waiting for the whole time at once (4s).
-*/
 sentryTest('handles session that exceeds max age', async ({ getLocalTestPath, page }) => {
   if (shouldSkipReplayTest()) {
     sentryTest.skip();

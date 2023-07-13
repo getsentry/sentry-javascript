@@ -18,6 +18,5 @@ Sentry.init({
 
 window.Replay._replay.timeouts = {
   sessionIdlePause: 300000, // default: 5min
-  sessionIdleExpire: 900000, // default: 15min
-  maxSessionLife: 4000, // this is usually 60min, but we want to test this with shorter times
+  maxSessionLife: 2000, // this is usually 60min, but we want to test this with shorter times
 };

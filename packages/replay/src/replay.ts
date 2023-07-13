@@ -7,7 +7,6 @@ import { logger } from '@sentry/utils';
 import {
   BUFFER_CHECKOUT_TIME,
   MAX_SESSION_LIFE,
-  SESSION_IDLE_EXPIRE_DURATION,
   SESSION_IDLE_PAUSE_DURATION,
   SLOW_CLICK_SCROLL_TIMEOUT,
   SLOW_CLICK_THRESHOLD,
@@ -17,8 +16,9 @@ import { ClickDetector } from './coreHandlers/handleClick';
 import { handleKeyboardEvent } from './coreHandlers/handleKeyboardEvent';
 import { setupPerformanceObserver } from './coreHandlers/performanceObserver';
 import { createEventBuffer } from './eventBuffer';
+import { checkSessionState } from './session/checkSessionState';
 import { clearSession } from './session/clearSession';
-import { getSession } from './session/getSession';
+import { restoreOrCreateSession } from './session/restoreOrCreateSession';
 import { saveSession } from './session/saveSession';
 import type {
   AddEventResult,
@@ -32,6 +32,7 @@ import type {
   RecordingOptions,
   ReplayContainer as ReplayContainerInterface,
   ReplayPluginOptions,
+  Sampled,
   SendBufferedReplayOptions,
   Session,
   SlowClickConfig,
@@ -45,8 +46,7 @@ import { createPerformanceEntries } from './util/createPerformanceEntries';
 import { createPerformanceSpans } from './util/createPerformanceSpans';
 import { debounce } from './util/debounce';
 import { getHandleRecordingEmit } from './util/handleRecordingEmit';
-import { isExpired } from './util/isExpired';
-import { isSessionExpired } from './util/isSessionExpired';
+import { sampleSession } from './util/sampleSession';
 import { sendReplay } from './util/sendReplay';
 import type { SKIPPED } from './util/throttle';
 import { throttle, THROTTLED } from './util/throttle';
@@ -87,7 +87,6 @@ export class ReplayContainer implements ReplayContainerInterface {
    */
   public readonly timeouts: Timeouts = {
     sessionIdlePause: SESSION_IDLE_PAUSE_DURATION,
-    sessionIdleExpire: SESSION_IDLE_EXPIRE_DURATION,
     maxSessionLife: MAX_SESSION_LIFE,
   } as const;
 
@@ -107,11 +106,6 @@ export class ReplayContainer implements ReplayContainerInterface {
 
   private _debouncedFlush: ReturnType<typeof debounce>;
   private _flushLock: Promise<unknown> | null = null;
-
-  /**
-   * Timestamp of the last user activity. This lives across sessions.
-   */
-  private _lastActivity: number = Date.now();
 
   /**
    * Is the integration currently active?
@@ -208,37 +202,13 @@ export class ReplayContainer implements ReplayContainerInterface {
    */
   public initializeSampling(): void {
     const { errorSampleRate, sessionSampleRate } = this._options;
+    const sampled = sampleSession({ errorSampleRate, sessionSampleRate });
 
-    // If neither sample rate is > 0, then do nothing - user will need to call one of
-    // `start()` or `startBuffering` themselves.
-    if (errorSampleRate <= 0 && sessionSampleRate <= 0) {
+    if (!sampled) {
       return;
     }
 
-    // Otherwise if there is _any_ sample rate set, try to load an existing
-    // session, or create a new one.
-    const isSessionSampled = this._loadAndCheckSession();
-
-    if (!isSessionSampled) {
-      // This should only occur if `errorSampleRate` is 0 and was unsampled for
-      // session-based replay. In this case there is nothing to do.
-      return;
-    }
-
-    if (!this.session) {
-      // This should not happen, something wrong has occurred
-      this._handleException(new Error('Unable to initialize and create session'));
-      return;
-    }
-
-    if (this.session.sampled && this.session.sampled !== 'session') {
-      // If not sampled as session-based, then recording mode will be `buffer`
-      // Note that we don't explicitly check if `sampled === 'buffer'` because we
-      // could have sessions from Session storage that are still `error` from
-      // prior SDK version.
-      this.recordingMode = 'buffer';
-    }
-
+    this._initializeSession(sampled);
     this._initializeRecording();
   }
 
@@ -258,20 +228,7 @@ export class ReplayContainer implements ReplayContainerInterface {
       throw new Error('Replay buffering is in progress, call `flush()` to save the replay');
     }
 
-    const previousSessionId = this.session && this.session.id;
-
-    const { session } = getSession({
-      timeouts: this.timeouts,
-      stickySession: Boolean(this._options.stickySession),
-      currentSession: this.session,
-      // This is intentional: create a new session-based replay when calling `start()`
-      sessionSampleRate: 1,
-      allowBuffering: false,
-    });
-
-    session.previousSessionId = previousSessionId;
-    this.session = session;
-
+    this._initializeSession('session', { forceSampled: true });
     this._initializeRecording();
   }
 
@@ -284,20 +241,7 @@ export class ReplayContainer implements ReplayContainerInterface {
       throw new Error('Replay recording is already in progress');
     }
 
-    const previousSessionId = this.session && this.session.id;
-
-    const { session } = getSession({
-      timeouts: this.timeouts,
-      stickySession: Boolean(this._options.stickySession),
-      currentSession: this.session,
-      sessionSampleRate: 0,
-      allowBuffering: true,
-    });
-
-    session.previousSessionId = previousSessionId;
-    this.session = session;
-
-    this.recordingMode = 'buffer';
+    this._initializeSession('buffer', { forceSampled: true });
     this._initializeRecording();
   }
 
@@ -379,8 +323,7 @@ export class ReplayContainer implements ReplayContainerInterface {
       this.eventBuffer && this.eventBuffer.destroy();
       this.eventBuffer = null;
 
-      // Clear session from session storage, note this means if a new session
-      // is started after, it will not have `previousSessionId`
+      // Clear session from session storage
       clearSession(this);
     } catch (err) {
       this._handleException(err);
@@ -393,6 +336,10 @@ export class ReplayContainer implements ReplayContainerInterface {
    * not as thorough of a shutdown as `stop()`.
    */
   public pause(): void {
+    if (this.isPaused()) {
+      return;
+    }
+
     this._isPaused = true;
     this.stopRecording();
   }
@@ -404,12 +351,14 @@ export class ReplayContainer implements ReplayContainerInterface {
    * new DOM checkout.`
    */
   public resume(): void {
-    if (!this._loadAndCheckSession()) {
+    if (!this.isPaused()) {
       return;
     }
 
     this._isPaused = false;
-    this.startRecording();
+    this.checkSessionState(() => {
+      this.startRecording();
+    });
   }
 
   /**
@@ -444,20 +393,8 @@ export class ReplayContainer implements ReplayContainerInterface {
     // starting a new recording
     this.recordingMode = 'session';
 
-    // Once this session ends, we do not want to refresh it
     if (this.session) {
-      this.session.shouldRefresh = false;
-
-      // It's possible that the session lifespan is > max session lifespan
-      // because we have been buffering beyond max session lifespan (we ignore
-      // expiration given that `shouldRefresh` is true). Since we flip
-      // `shouldRefresh`, the session could be considered expired due to
-      // lifespan, which is not what we want. Update session start date to be
-      // the current timestamp, so that session is not considered to be
-      // expired. This means that max replay duration can be MAX_SESSION_LIFE +
-      // (length of buffer), which we are ok with.
-      this._updateUserActivity(activityTime);
-      this._updateSessionActivity(activityTime);
+      this.session.lastActivity = activityTime;
       this.session.started = activityTime;
       this._maybeSaveSession();
     }
@@ -495,42 +432,9 @@ export class ReplayContainer implements ReplayContainerInterface {
   }
 
   /**
-   * Updates the user activity timestamp and resumes recording. This should be
-   * called in an event handler for a user action that we consider as the user
-   * being "active" (e.g. a mouse click).
-   */
-  public triggerUserActivity(): void {
-    this._updateUserActivity();
-
-    // This case means that recording was once stopped due to inactivity.
-    // Ensure that recording is resumed.
-    if (!this._stopRecording) {
-      // Create a new session, otherwise when the user action is flushed, it
-      // will get rejected due to an expired session.
-      if (!this._loadAndCheckSession()) {
-        return;
-      }
-
-      // Note: This will cause a new DOM checkout
-      this.resume();
-      return;
-    }
-
-    // Otherwise... recording was never suspended, continue as normalish
-    this.checkAndHandleExpiredSession();
-
-    this._updateSessionActivity();
-  }
-
-  /**
-   * Updates the user activity timestamp *without* resuming
-   * recording. Some user events (e.g. keydown) can be create
-   * low-value replays that only contain the keypress as a
-   * breadcrumb. Instead this would require other events to
-   * create a new replay after a session has expired.
+   * Updates the user activity timestamp.
    */
   public updateUserActivity(): void {
-    this._updateUserActivity();
     this._updateSessionActivity();
   }
 
@@ -573,54 +477,6 @@ export class ReplayContainer implements ReplayContainerInterface {
   /** Get the current sesion (=replay) ID */
   public getSessionId(): string | undefined {
     return this.session && this.session.id;
-  }
-
-  /**
-   * Checks if recording should be stopped due to user inactivity. Otherwise
-   * check if session is expired and create a new session if so. Triggers a new
-   * full snapshot on new session.
-   *
-   * Returns true if session is not expired, false otherwise.
-   * @hidden
-   */
-  public checkAndHandleExpiredSession(): boolean | void {
-    const oldSessionId = this.getSessionId();
-
-    // Prevent starting a new session if the last user activity is older than
-    // SESSION_IDLE_PAUSE_DURATION. Otherwise non-user activity can trigger a new
-    // session+recording. This creates noisy replays that do not have much
-    // content in them.
-    if (
-      this._lastActivity &&
-      isExpired(this._lastActivity, this.timeouts.sessionIdlePause) &&
-      this.session &&
-      this.session.sampled === 'session'
-    ) {
-      // Pause recording only for session-based replays. Otherwise, resuming
-      // will create a new replay and will conflict with users who only choose
-      // to record error-based replays only. (e.g. the resumed replay will not
-      // contain a reference to an error)
-      this.pause();
-      return;
-    }
-
-    // --- There is recent user activity --- //
-    // This will create a new session if expired, based on expiry length
-    if (!this._loadAndCheckSession()) {
-      return;
-    }
-
-    // Session was expired if session ids do not match
-    const expired = oldSessionId !== this.getSessionId();
-
-    if (!expired) {
-      return true;
-    }
-
-    // Session is expired, trigger a full snapshot (which will create a new session)
-    this._triggerFullSnapshot();
-
-    return false;
   }
 
   /**
@@ -676,6 +532,23 @@ export class ReplayContainer implements ReplayContainerInterface {
   }
 
   /**
+   * Check the state/expiration of the session.
+   * The callback is called when the session is neither paused nor expired.
+   */
+  public checkSessionState(onContinue: () => void): void {
+    if (!this.session || !this.session.sampled) {
+      return;
+    }
+
+    checkSessionState(this.session, this.recordingMode, this.timeouts, {
+      onPause: () => this.pause(),
+      ensureResumed: () => this.resume(),
+      onEnd: () => this._refreshSession(),
+      onContinue,
+    });
+  }
+
+  /**
    * This will get the parametrized route name of the current page.
    * This is only available if performance is enabled, and if an instrumented router is used.
    */
@@ -689,6 +562,31 @@ export class ReplayContainer implements ReplayContainerInterface {
   }
 
   /**
+   * Initialize a new session.
+   */
+  private _initializeSession(sampled: Sampled, { forceSampled = false }: { forceSampled?: boolean } = {}): void {
+    const { stickySession } = this._options;
+
+    // If neither sample rate is > 0, then do nothing - user will need to call one of
+    // `start()` or `startBuffering` themselves.
+    if (!sampled) {
+      return;
+    }
+
+    const session = restoreOrCreateSession({ stickySession, sampled, forceSampled });
+
+    // This shouldn't be possible really, but just in case...
+    if (!session.sampled) {
+      return;
+    }
+
+    this.session = session;
+    this.recordingMode = this.session.sampled === 'buffer' ? 'buffer' : 'session';
+
+    return;
+  }
+
+  /**
    * Initialize and start all listeners to varying events (DOM,
    * Performance Observer, Recording, Sentry SDK, etc)
    */
@@ -697,7 +595,7 @@ export class ReplayContainer implements ReplayContainerInterface {
 
     // this method is generally called on page load or manually - in both cases
     // we should treat it as an activity
-    this._updateSessionActivity();
+    this.updateUserActivity();
 
     this.eventBuffer = createEventBuffer({
       useCompression: this._options.useCompression,
@@ -708,6 +606,7 @@ export class ReplayContainer implements ReplayContainerInterface {
 
     // Need to set as enabled before we start recording, as `record()` can trigger a flush with a new checkout
     this._isEnabled = true;
+    this._isPaused = false;
 
     this.startRecording();
   }
@@ -722,37 +621,31 @@ export class ReplayContainer implements ReplayContainerInterface {
   }
 
   /**
-   * Loads (or refreshes) the current session.
-   * Returns false if session is not recorded.
+   * Refresh a session that has ended, either when it exceeded the max. age or when it was inactive for too long.
+   * This means there was a sampled & sent session before - this will never be called while the session is buffering.
    */
-  private _loadAndCheckSession(): boolean {
-    const { type, session } = getSession({
-      timeouts: this.timeouts,
-      stickySession: Boolean(this._options.stickySession),
-      currentSession: this.session,
-      sessionSampleRate: this._options.sessionSampleRate,
-      allowBuffering: this._options.errorSampleRate > 0 || this.recordingMode === 'buffer',
+  private _refreshSession(): void {
+    // To avoid firing this multiple times, we check if we are even recording
+    if (!this.isEnabled()) {
+      return;
+    }
+
+    const { errorSampleRate, sessionSampleRate } = this._options;
+    const sampled = sampleSession({ errorSampleRate, sessionSampleRate });
+
+    if (!sampled || !this.session) {
+      void this.stop('session expired without new session');
+      return;
+    }
+
+    void this.stop('session expired with refreshing').then(() => {
+      if (sampled === 'session') {
+        return this.start();
+      }
+      if (sampled === 'buffer') {
+        return this.startBuffering();
+      }
     });
-
-    // If session was newly created (i.e. was not loaded from storage), then
-    // enable flag to create the root replay
-    if (type === 'new') {
-      this.setInitialState();
-    }
-
-    const currentSessionId = this.getSessionId();
-    if (session.id !== currentSessionId) {
-      session.previousSessionId = currentSessionId;
-    }
-
-    this.session = session;
-
-    if (!this.session.sampled) {
-      void this.stop('session unsampled');
-      return false;
-    }
-
-    return true;
   }
 
   /**
@@ -860,71 +753,35 @@ export class ReplayContainer implements ReplayContainerInterface {
    * Tasks to run when we consider a page to be hidden (via blurring and/or visibility)
    */
   private _doChangeToBackgroundTasks(breadcrumb?: BreadcrumbFrame): void {
-    if (!this.session) {
-      return;
-    }
+    this.checkSessionState(() => {
+      if (breadcrumb) {
+        this._createCustomBreadcrumb(breadcrumb);
+      }
 
-    const expired = isSessionExpired(this.session, this.timeouts);
-
-    if (breadcrumb && !expired) {
-      this._createCustomBreadcrumb(breadcrumb);
-    }
-
-    // Send replay when the page/tab becomes hidden. There is no reason to send
-    // replay if it becomes visible, since no actions we care about were done
-    // while it was hidden
-    void this.conditionalFlush();
+      // Send replay when the page/tab becomes hidden. There is no reason to send
+      // replay if it becomes visible, since no actions we care about were done
+      // while it was hidden
+      void this.conditionalFlush();
+    });
   }
 
   /**
    * Tasks to run when we consider a page to be visible (via focus and/or visibility)
    */
   private _doChangeToForegroundTasks(breadcrumb?: BreadcrumbFrame): void {
-    if (!this.session) {
-      return;
-    }
-
-    const isSessionActive = this.checkAndHandleExpiredSession();
-
-    if (!isSessionActive) {
-      // If the user has come back to the page within SESSION_IDLE_PAUSE_DURATION
-      // ms, we will re-use the existing session, otherwise create a new
-      // session
-      __DEBUG_BUILD__ && logger.log('[Replay] Document has become active, but session has expired');
-      return;
-    }
-
-    if (breadcrumb) {
-      this._createCustomBreadcrumb(breadcrumb);
-    }
-  }
-
-  /**
-   * Trigger rrweb to take a full snapshot which will cause this plugin to
-   * create a new Replay event.
-   */
-  private _triggerFullSnapshot(checkout = true): void {
-    try {
-      __DEBUG_BUILD__ && logger.log('[Replay] Taking full rrweb snapshot');
-      record.takeFullSnapshot(checkout);
-    } catch (err) {
-      this._handleException(err);
-    }
-  }
-
-  /**
-   * Update user activity (across session lifespans)
-   */
-  private _updateUserActivity(_lastActivity: number = Date.now()): void {
-    this._lastActivity = _lastActivity;
+    this.checkSessionState(() => {
+      if (breadcrumb) {
+        this._createCustomBreadcrumb(breadcrumb);
+      }
+    });
   }
 
   /**
    * Updates the session's last activity timestamp
    */
-  private _updateSessionActivity(_lastActivity: number = Date.now()): void {
+  private _updateSessionActivity(lastActivity: number = Date.now()): void {
     if (this.session) {
-      this.session.lastActivity = _lastActivity;
+      this.session.lastActivity = lastActivity;
       this._maybeSaveSession();
     }
   }
@@ -1090,42 +947,58 @@ export class ReplayContainer implements ReplayContainerInterface {
       return;
     }
 
-    if (!this.checkAndHandleExpiredSession()) {
-      __DEBUG_BUILD__ && logger.error('[Replay] Attempting to finish replay event after session expired.');
-      return;
-    }
-
-    if (!this.session) {
-      __DEBUG_BUILD__ && logger.error('[Replay] No session found to flush.');
-      return;
-    }
-
-    // A flush is about to happen, cancel any queued flushes
-    this._debouncedFlush.cancel();
-
-    // this._flushLock acts as a lock so that future calls to `_flush()`
-    // will be blocked until this promise resolves
-    if (!this._flushLock) {
-      this._flushLock = this._runFlush();
-      await this._flushLock;
-      this._flushLock = null;
-      return;
-    }
-
-    // Wait for previous flush to finish, then call the debounced `_flush()`.
-    // It's possible there are other flush requests queued and waiting for it
-    // to resolve. We want to reduce all outstanding requests (as well as any
-    // new flush requests that occur within a second of the locked flush
-    // completing) into a single flush.
-
-    try {
-      await this._flushLock;
-    } catch (err) {
-      __DEBUG_BUILD__ && logger.error(err);
-    } finally {
-      this._debouncedFlush();
-    }
+    return new Promise(resolve => {
+      if (!this.session) {
+        resolve();
+        return;
+      }
+      checkSessionState(this.session, this.recordingMode, this.timeouts, {
+        onPause: () => {
+          this.pause();
+          resolve();
+        },
+        ensureResumed: () => this.resume(),
+        onEnd: () => {
+          __DEBUG_BUILD__ && logger.error('[Replay] Attempting to finish replay event after session expired.');
+          this._refreshSession();
+          resolve();
+        },
+        onContinue: () => {
+          void this._flushLocked().then(resolve);
+        },
+      });
+    });
   };
+
+  /**
+   * Flush, while locking so any future flush attemps while this is ongoing are queued.
+   */
+  private async _flushLocked(): Promise<void> {
+    try {
+      // A flush is about to happen, cancel any queued flushes
+      this._debouncedFlush.cancel();
+
+      // this._flushLock acts as a lock so that future calls to `_flush()`
+      // will be blocked until this promise resolves
+      if (!this._flushLock) {
+        this._flushLock = this._runFlush();
+        await this._flushLock;
+        this._flushLock = null;
+        return;
+      }
+
+      // Wait for previous flush to finish, then call the debounced `_flush()`.
+      // It's possible there are other flush requests queued and waiting for it
+      // to resolve. We want to reduce all outstanding requests (as well as any
+      // new flush requests that occur within a second of the locked flush
+      // completing) into a single flush.
+      await this._flushLock;
+    } catch (error) {
+      __DEBUG_BUILD__ && logger.error(error);
+    }
+
+    this._debouncedFlush();
+  }
 
   /** Save the session, if it is sticky */
   private _maybeSaveSession(): void {

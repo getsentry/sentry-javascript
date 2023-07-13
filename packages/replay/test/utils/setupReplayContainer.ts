@@ -41,9 +41,9 @@ export function setupReplayContainer({
   });
 
   clearSession(replay);
-  replay.setInitialState();
-  replay['_loadAndCheckSession']();
+  replay['_initializeSession']('session');
   replay['_isEnabled'] = true;
+  replay.setInitialState();
   replay.eventBuffer = createEventBuffer({
     useCompression: options?.useCompression || false,
   });

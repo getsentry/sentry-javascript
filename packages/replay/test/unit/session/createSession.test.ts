@@ -33,8 +33,7 @@ describe('Unit | session | createSession', () => {
   it('creates a new session with no sticky sessions', function () {
     const newSession = createSession({
       stickySession: false,
-      sessionSampleRate: 1.0,
-      allowBuffering: false,
+      sampled: 'session',
     });
     expect(captureEventMock).not.toHaveBeenCalled();
 
@@ -48,8 +47,7 @@ describe('Unit | session | createSession', () => {
   it('creates a new session with sticky sessions', function () {
     const newSession = createSession({
       stickySession: true,
-      sessionSampleRate: 1.0,
-      allowBuffering: false,
+      sampled: 'session',
     });
     expect(captureEventMock).not.toHaveBeenCalled();
 

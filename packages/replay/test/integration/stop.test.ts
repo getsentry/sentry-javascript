@@ -44,6 +44,7 @@ describe('Integration | stop', () => {
     jest.setSystemTime(new Date(BASE_TIMESTAMP));
     replay.eventBuffer?.destroy();
     jest.clearAllMocks();
+    replay['_initializeSession']('session');
   });
 
   afterEach(async () => {
@@ -52,7 +53,6 @@ describe('Integration | stop', () => {
     jest.setSystemTime(new Date(BASE_TIMESTAMP));
     sessionStorage.clear();
     clearSession(replay);
-    replay['_loadAndCheckSession']();
     mockRecord.takeFullSnapshot.mockClear();
     mockAddInstrumentationHandler.mockClear();
     Object.defineProperty(WINDOW, 'location', {
