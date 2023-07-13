@@ -4,6 +4,10 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.58.1
+
+- fix(node): Set propagation context even when tracingOptions are not defined (#8517)
+
 ## 7.58.0
 
 ### Important Changes
