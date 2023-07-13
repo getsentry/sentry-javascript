@@ -54,8 +54,10 @@ export {
 // Keeping the `*` exports for backwards compatibility and types
 export * from '@sentry/node';
 
+export { captureRemixServerException } from './utils/instrumentServer';
 export { ErrorBoundary, withErrorBoundary } from '@sentry/react';
-export { remixRouterInstrumentation, withSentry } from './performance/client';
+export { remixRouterInstrumentation, withSentry } from './client/performance';
+export { captureRemixErrorBoundaryError } from './client/errors';
 export { wrapExpressCreateRequestHandler } from './utils/serverAdapters/express';
 
 function sdkAlreadyInitialized(): boolean {
