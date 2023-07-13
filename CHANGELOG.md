@@ -4,6 +4,14 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.59.0-beta.0
+
+- **feat(replay): Re-sample sessions after they expire #8407**
+
+This pre-release contains a revamped replay session expiration handling.
+Now, when a session expires (because it ran for too long), we will always
+re-sample the session, and may start another one (or start buffering) based on the sample rates.
+
 ## 7.58.0
 
 ### Important Changes
