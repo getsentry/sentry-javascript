@@ -1,8 +1,9 @@
-import type { AttributeValue } from '@opentelemetry/api';
+import type { Attributes, AttributeValue } from '@opentelemetry/api';
 import { SpanKind } from '@opentelemetry/api';
 import type { Span as OtelSpan } from '@opentelemetry/sdk-trace-base';
 import { SemanticAttributes } from '@opentelemetry/semantic-conventions';
 import type { TransactionSource } from '@sentry/types';
+import { getSanitizedUrlString, parseUrl } from '@sentry/utils';
 
 interface SpanDescription {
   op: string | undefined;
@@ -87,21 +88,53 @@ function descriptionForHttpMethod(otelSpan: OtelSpan, httpMethod: AttributeValue
       break;
   }
 
-  const httpTarget = attributes[SemanticAttributes.HTTP_TARGET];
   const httpRoute = attributes[SemanticAttributes.HTTP_ROUTE];
+  const url = getSanitizedUrl(attributes, kind);
 
-  // Ex. /api/users
-  const httpPath = httpRoute || httpTarget;
-
-  if (!httpPath) {
+  if (!url) {
     return { op: opParts.join('.'), description: name, source: 'custom' };
   }
 
   // Ex. description="GET /api/users".
-  const description = `${httpMethod} ${httpPath}`;
+  const description = `${httpMethod} ${url}`;
 
   // If `httpPath` is a root path, then we can categorize the transaction source as route.
-  const source: TransactionSource = httpRoute || httpPath === '/' ? 'route' : 'url';
+  const source: TransactionSource = httpRoute || url === '/' ? 'route' : 'url';
 
   return { op: opParts.join('.'), description, source };
+}
+
+/** Exported for tests only */
+export function getSanitizedUrl(attributes: Attributes, kind: SpanKind): string | undefined {
+  // This is the relative path of the URL, e.g. /sub
+  const httpTarget = attributes[SemanticAttributes.HTTP_TARGET];
+  // This is the full URL, including host & query params etc., e.g. https://example.com/sub?foo=bar
+  const httpUrl = attributes[SemanticAttributes.HTTP_URL];
+  // This is the normalized route name - may not always be available!
+  const httpRoute = attributes[SemanticAttributes.HTTP_ROUTE];
+
+  if (typeof httpRoute === 'string') {
+    return httpRoute;
+  }
+
+  if (kind === SpanKind.SERVER && typeof httpTarget === 'string') {
+    return normalizeTarget(httpTarget);
+  }
+
+  if (typeof httpUrl === 'string') {
+    const url = parseUrl(httpUrl);
+    return getSanitizedUrlString(url);
+  }
+
+  // fall back to target even for client spans, if no URL is present
+  if (typeof httpTarget === 'string') {
+    return normalizeTarget(httpTarget);
+  }
+
+  return undefined;
+}
+
+// Remove trailing ? and # from the target
+function normalizeTarget(httpTarget: string): string {
+  return httpTarget.replace(/([?#].*)$/, '');
 }

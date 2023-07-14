@@ -7,9 +7,9 @@ import type { DynamicSamplingContext, Span as SentrySpan, TraceparentData, Trans
 import { isString, logger } from '@sentry/utils';
 
 import { SENTRY_DYNAMIC_SAMPLING_CONTEXT_KEY, SENTRY_TRACE_PARENT_CONTEXT_KEY } from './constants';
-import { isSentryRequestSpan } from './utils/is-sentry-request';
-import { mapOtelStatus } from './utils/map-otel-status';
-import { parseSpanDescription } from './utils/parse-otel-span-description';
+import { isSentryRequestSpan } from './utils/isSentryRequest';
+import { mapOtelStatus } from './utils/mapOtelStatus';
+import { parseSpanDescription } from './utils/parseOtelSpanDescription';
 
 export const SENTRY_SPAN_PROCESSOR_MAP: Map<SentrySpan['spanId'], SentrySpan> = new Map<
   SentrySpan['spanId'],
