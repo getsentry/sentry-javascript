@@ -182,12 +182,23 @@ function addHTTPTimings(span: Span): void {
   });
 }
 
+/**
+ * Converts ALPN protocol ids to name and version.
+ *
+ * (https://www.iana.org/assignments/tls-extensiontype-values/tls-extensiontype-values.xhtml#alpn-protocol-ids)
+ * @param nextHopProtocol PerformanceResourceTiming.nextHopProtocol
+ */
+export function extractNetworkProtocol(nextHopProtocol: string): { name: string; version: string } {
+  const name = nextHopProtocol.split('/')[0].toLowerCase() || (nextHopProtocol.startsWith('h') && 'http') || 'unknown';
+  const version = nextHopProtocol.split('/')[1] || nextHopProtocol.split('h')[1] || 'unknown';
+  return { name, version };
+}
+
 function resourceTimingEntryToSpanData(resourceTiming: PerformanceResourceTiming): [string, string | number][] {
-  const name = resourceTiming.nextHopProtocol.split('/')[0].toLowerCase() || (resourceTiming.nextHopProtocol.startsWith('h') && 'http') || 'unknown';
-  const version = resourceTiming.nextHopProtocol.split('/')[1] || resourceTiming.nextHopProtocol.split('h')[1] || 'unknown';
-  
+  const { name, version } = extractNetworkProtocol(resourceTiming.nextHopProtocol);
+
   const timingSpanData: [string, string | number][] = [];
-  
+
   timingSpanData.push(['network.protocol.version', version], ['network.protocol.name', name]);
 
   if (!browserPerformanceTimeOrigin) {

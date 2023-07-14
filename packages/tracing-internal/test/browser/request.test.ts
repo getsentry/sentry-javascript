@@ -7,7 +7,13 @@ import type { Transaction } from '../../../tracing/src';
 import { addExtensionMethods, Span, spanStatusfromHttpCode } from '../../../tracing/src';
 import { getDefaultBrowserClientOptions } from '../../../tracing/test/testutils';
 import type { FetchData, XHRData } from '../../src/browser/request';
-import { fetchCallback, instrumentOutgoingRequests, shouldAttachHeaders, xhrCallback } from '../../src/browser/request';
+import {
+  extractNetworkProtocol,
+  fetchCallback,
+  instrumentOutgoingRequests,
+  shouldAttachHeaders,
+  xhrCallback,
+} from '../../src/browser/request';
 import { TestClient } from '../utils/TestClient';
 
 beforeAll(() => {
@@ -385,6 +391,51 @@ describe('callbacks', () => {
 
       expect(newSpan).toBeUndefined();
     });
+  });
+});
+
+describe('HTTPTimings', () => {
+  describe('Extracting version from ALPN protocol', () => {
+    const nextHopToNetworkVersion = {
+      'http/0.9': { name: 'http', version: '0.9' },
+      'http/1.0': { name: 'http', version: '1.0' },
+      'http/1.1': { name: 'http', version: '1.1' },
+      'spdy/1': { name: 'spdy', version: '1' },
+      'spdy/2': { name: 'spdy', version: '2' },
+      'spdy/3': { name: 'spdy', version: '3' },
+      'stun.turn': { name: 'stun.turn', version: 'none' },
+      'stun.nat-discovery': { name: 'stun.nat-discovery', version: 'none' },
+      h2: { name: 'http', version: '2' },
+      h2c: { name: 'http', version: '2c' },
+      webrtc: { name: 'webrtc', version: 'none' },
+      'c-webrtc': { name: 'c-webrtc', version: 'none' },
+      ftp: { name: 'ftp', version: 'none' },
+      imap: { name: 'imap', version: 'none' },
+      pop3: { name: 'pop', version: '3' },
+      managesieve: { name: 'managesieve', version: 'none' },
+      coap: { name: 'coap', version: 'none' },
+      'xmpp-client': { name: 'xmpp-client', version: 'none' },
+      'xmpp-server': { name: 'xmpp-server', version: 'none' },
+      'acme-tls/1': { name: 'acme-tls', version: '1' },
+      mqtt: { name: 'mqtt', version: 'none' },
+      dot: { name: 'dot', version: 'none' },
+      'ntske/1': { name: 'ntske', version: '1' },
+      sunrpc: { name: 'sunrpc', version: 'none' },
+      h3: { name: 'http', version: '3' },
+      smb: { name: 'smb', version: 'none' },
+      irc: { name: 'irc', version: 'none' },
+      nntp: { name: 'nntp', version: 'none' },
+      nnsp: { name: 'nnsp', version: 'none' },
+      doq: { name: 'doq', version: 'none' },
+      'sip/2': { name: 'sip', version: '2' },
+      'tds/8.0': { name: 'tds', version: '8.0' },
+      dicom: { name: 'dicom', version: 'none' },
+    };
+
+    const protocols = Object.keys(nextHopToNetworkVersion);
+    for (const protocol of protocols) {
+      expect(extractNetworkProtocol(protocol)).toMatchObject(nextHopToNetworkVersion[protocol]);
+    }
   });
 });
 
