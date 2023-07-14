@@ -1,26 +1,42 @@
-import type { CheckInEvelope, CheckInItem, DsnComponents, SdkMetadata, SerializedCheckIn } from '@sentry/types';
-import { createEnvelope, dsnToString } from '@sentry/utils';
+import type {
+  CheckInEvelope,
+  CheckInItem,
+  DsnComponents,
+  DynamicSamplingContext,
+  SdkMetadata,
+  SerializedCheckIn,
+} from '@sentry/types';
+import { createEnvelope, dropUndefinedKeys, dsnToString } from '@sentry/utils';
 
 /**
  * Create envelope from check in item.
  */
 export function createCheckInEnvelope(
   checkIn: SerializedCheckIn,
+  dynamicSamplingContext?: Partial<DynamicSamplingContext>,
   metadata?: SdkMetadata,
   tunnel?: string,
   dsn?: DsnComponents,
 ): CheckInEvelope {
   const headers: CheckInEvelope[0] = {
     sent_at: new Date().toISOString(),
-    ...(metadata &&
-      metadata.sdk && {
-        sdk: {
-          name: metadata.sdk.name,
-          version: metadata.sdk.version,
-        },
-      }),
-    ...(!!tunnel && !!dsn && { dsn: dsnToString(dsn) }),
   };
+
+  if (metadata && metadata.sdk) {
+    headers.sdk = {
+      name: metadata.sdk.name,
+      version: metadata.sdk.version,
+    };
+  }
+
+  if (!!tunnel && !!dsn) {
+    headers.dsn = dsnToString(dsn);
+  }
+
+  if (dynamicSamplingContext) {
+    headers.trace = dropUndefinedKeys(dynamicSamplingContext) as DynamicSamplingContext;
+  }
+
   const item = createCheckInEnvelopeItem(checkIn);
   return createEnvelope<CheckInEvelope>(headers, [item]);
 }

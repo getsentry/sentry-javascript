@@ -1,6 +1,6 @@
 {
   "name": "@sentry/node",
-  "version": "7.57.0",
+  "version": "7.58.1",
   "description": "Official Sentry SDK for Node.js",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/node",
@@ -23,10 +23,10 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry-internal/tracing": "7.57.0",
-    "@sentry/core": "7.57.0",
-    "@sentry/types": "7.57.0",
-    "@sentry/utils": "7.57.0",
+    "@sentry-internal/tracing": "7.58.1",
+    "@sentry/core": "7.58.1",
+    "@sentry/types": "7.58.1",
+    "@sentry/utils": "7.58.1",
     "cookie": "^0.4.1",
     "https-proxy-agent": "^5.0.0",
     "lru_map": "^0.3.3",

@@ -53,15 +53,6 @@ export function tracingHandler(): (
       return next();
     }
 
-    if (!hasTracingEnabled(options)) {
-      __DEBUG_BUILD__ &&
-        logger.warn(
-          'Sentry `tracingHandler` is being used, but tracing is disabled. Please enable tracing by setting ' +
-            'either `tracesSampleRate` or `tracesSampler` in your `Sentry.init()` options.',
-        );
-      return next();
-    }
-
     const sentryTrace = req.headers && isString(req.headers['sentry-trace']) ? req.headers['sentry-trace'] : undefined;
     const baggage = req.headers?.baggage;
     const { traceparentData, dynamicSamplingContext, propagationContext } = tracingContextFromHeaders(
@@ -69,6 +60,10 @@ export function tracingHandler(): (
       baggage,
     );
     hub.getScope().setPropagationContext(propagationContext);
+
+    if (!hasTracingEnabled(options)) {
+      return next();
+    }
 
     const [name, source] = extractPathForTransaction(req, { path: true, method: true });
     const transaction = startTransaction(

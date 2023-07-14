@@ -5,7 +5,7 @@ type LoaderData = { id: string };
 
 export const loader: LoaderFunction = async ({ params: { id } }) => {
   if (id === '-2') {
-    throw new Error('Unexpected Server Error from Loader');
+    throw new Error('Unexpected Server Error');
   }
 
   if (id === '-1') {

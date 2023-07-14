@@ -13,12 +13,15 @@ import {
   tracingContextFromHeaders,
 } from '@sentry/utils';
 
+import { getFutureFlagsServer } from './futureFlags';
+import { extractData, getRequestMatch, isDeferredData, isResponse, json, matchServerRoutes } from './vendor/response';
 import type {
   AppData,
   CreateRequestHandlerFunction,
   DataFunction,
   DataFunctionArgs,
   EntryContext,
+  FutureConfig,
   HandleDocumentRequestFunction,
   ReactRouterDomPkg,
   RemixRequest,
@@ -26,9 +29,10 @@ import type {
   ServerBuild,
   ServerRoute,
   ServerRouteManifest,
-} from './types';
-import { extractData, getRequestMatch, isDeferredData, isResponse, json, matchServerRoutes } from './vendor/response';
+} from './vendor/types';
 import { normalizeRemixRequest } from './web-fetch';
+
+let FUTURE_FLAGS: FutureConfig | undefined;
 
 // Flag to track if the core request handler is instrumented.
 export let isRequestHandlerWrapped = false;
@@ -56,7 +60,16 @@ async function extractResponseError(response: Response): Promise<unknown> {
   return responseData;
 }
 
-async function captureRemixServerException(err: unknown, name: string, request: Request): Promise<void> {
+/**
+ * Captures an exception happened in the Remix server.
+ *
+ * @param err The error to capture.
+ * @param name The name of the origin function.
+ * @param request The request object.
+ *
+ * @returns A promise that resolves when the exception is captured.
+ */
+export async function captureRemixServerException(err: unknown, name: string, request: Request): Promise<void> {
   // Skip capturing if the thrown error is not a 5xx response
   // https://remix.run/docs/en/v1/api/conventions#throwing-responses-in-loaders
   if (isResponse(err) && err.status < 500) {
@@ -145,7 +158,10 @@ function makeWrappedDocumentRequestFunction(
 
       span?.finish();
     } catch (err) {
-      await captureRemixServerException(err, 'documentRequest', request);
+      if (!FUTURE_FLAGS?.v2_errorBoundary) {
+        await captureRemixServerException(err, 'documentRequest', request);
+      }
+
       throw err;
     }
 
@@ -182,7 +198,10 @@ function makeWrappedDataFunction(origFn: DataFunction, id: string, name: 'action
       currentScope.setSpan(activeTransaction);
       span?.finish();
     } catch (err) {
-      await captureRemixServerException(err, name, args.request);
+      if (!FUTURE_FLAGS?.v2_errorBoundary) {
+        await captureRemixServerException(err, name, args.request);
+      }
+
       throw err;
     }
 
@@ -439,6 +458,7 @@ function makeWrappedCreateRequestHandler(
   isRequestHandlerWrapped = true;
 
   return function (this: unknown, build: ServerBuild, ...args: unknown[]): RequestHandler {
+    FUTURE_FLAGS = getFutureFlagsServer(build);
     const newBuild = instrumentBuild(build);
     const requestHandler = origCreateRequestHandler.call(this, newBuild, ...args);
 

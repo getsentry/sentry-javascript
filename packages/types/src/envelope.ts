@@ -20,6 +20,7 @@ export type DynamicSamplingContext = {
   transaction?: string;
   user_segment?: string;
   replay_id?: string;
+  sampled?: string;
 };
 
 export type EnvelopeItemType =
@@ -86,7 +87,7 @@ type ReplayRecordingItem = BaseEnvelopeItem<ReplayRecordingItemHeaders, ReplayRe
 
 export type EventEnvelopeHeaders = { event_id: string; sent_at: string; trace?: DynamicSamplingContext };
 type SessionEnvelopeHeaders = { sent_at: string };
-type CheckInEnvelopeHeaders = BaseEnvelopeHeaders;
+type CheckInEnvelopeHeaders = { trace?: DynamicSamplingContext };
 type ClientReportEnvelopeHeaders = BaseEnvelopeHeaders;
 type ReplayEnvelopeHeaders = BaseEnvelopeHeaders;
 

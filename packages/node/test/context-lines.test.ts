@@ -107,7 +107,8 @@ describe('ContextLines', () => {
       expect(readFileSpy).toHaveBeenCalledTimes(0);
     });
   });
-  test.only('does not attempt to readfile multiple times if it fails', async () => {
+
+  test('does not attempt to readfile multiple times if it fails', async () => {
     expect.assertions(1);
     contextLines = new ContextLines({});
 

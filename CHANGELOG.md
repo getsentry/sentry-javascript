@@ -4,6 +4,68 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.58.1
+
+- fix(node): Set propagation context even when tracingOptions are not defined (#8517)
+
+## 7.58.0
+
+### Important Changes
+
+- **Performance Monitoring not required for Distributed Tracing**
+
+This release adds support for [distributed tracing](https://docs.sentry.io/platforms/javascript/usage/distributed-tracing/) without requiring performance monitoring to be active on the JavaScript SDKs (browser and node). This means even if there is no sampled transaction/span, the SDK will still propagate traces to downstream services. Distributed Tracing can be configured with the `tracePropagationTargets` option, which controls what requests to attach the `sentry-trace` and `baggage` HTTP headers to (which is what propagates tracing information).
+
+```js
+Sentry.init({
+  tracePropagationTargets: ["third-party-site.com", /^https:\/\/yourserver\.io\/api/],
+});
+```
+
+- feat(tracing): Add tracing without performance to browser and client Sveltekit (#8458)
+- feat(node): Add tracing without performance to Node http integration (#8450)
+- feat(node): Add tracing without performance to Node Undici (#8449)
+- feat(node): Populate propagation context using env variables (#8422)
+
+- **feat(core): Support `AggregateErrors` in `LinkedErrors` integration (#8463)**
+
+This release adds support for [`AggregateErrors`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/AggregateError). AggregateErrors are considered as Exception Groups by Sentry, and will be visualized and grouped differently. See the [Exception Groups Changelog Post](https://changelog.getsentry.com/announcements/exception-groups-now-supported-for-python-and-net) for more details.
+
+Exception Group support requires Self-Hosted Sentry [version 23.5.1](https://github.com/getsentry/self-hosted/releases/tag/23.5.1) or newer.
+
+- **feat(replay): Add a new option `networkDetailDenyUrls` (#8439)**
+
+This release adds a new option `networkDetailDenyUrls` to the `Replay` integration. This option allows you to specify a list of URLs that should not be captured by the `Replay` integration, which can be used alongside the existing `networkDetailAllowUrls` for finely grained control of which URLs should have network details captured.
+
+```js
+Sentry.init({
+  integrations: [
+    new Sentry.Integrations.Replay({
+      networkDetailDenyUrls: [/^http:\/\/example.com\/test$/],
+    }),
+  ],
+});
+```
+
+### Other Changes
+
+- feat(core): Add helpers to get module metadata from injected code (#8438)
+- feat(core): Add sampling decision to trace envelope header (#8483)
+- feat(node): Add trace context to checkin (#8503)
+- feat(node): Export `getModule` for Electron SDK (#8488)
+- feat(types): Allow `user.id` to be a number (#8330)
+- fix(browser): Set anonymous `crossorigin` attribute on report dialog (#8424)
+- fix(nextjs): Ignore `tunnelRoute` when doing static exports (#8471)
+- fix(nextjs): Use `basePath` option for `tunnelRoute` (#8454)
+- fix(node): Apply source context to linked errors even when it is uncached (#8453)
+- fix(node): report errorMiddleware errors as unhandled (#8048)
+- fix(react): Add support for `basename` option of `createBrowserRouter` (#8457)
+- fix(remix): Add explicit `@sentry/node` exports. (#8509)
+- fix(remix): Don't inject trace/baggage to `redirect` and `catch` responses (#8467)
+- fix(replay): Adjust slow/multi click handling (#8380)
+
+Work in this release contributed by @mrdulin, @donaldxdonald & @ziyad-elabid-nw. Thank you for your contributions!
+
 ## 7.57.0
 
 ### Important Changes
