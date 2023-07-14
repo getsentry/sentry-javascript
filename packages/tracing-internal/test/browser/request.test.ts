@@ -394,9 +394,14 @@ describe('callbacks', () => {
   });
 });
 
+interface ProtocolInfo {
+  name: string;
+  version: string;
+}
+
 describe('HTTPTimings', () => {
   describe('Extracting version from ALPN protocol', () => {
-    const nextHopToNetworkVersion = {
+    const nextHopToNetworkVersion: Record<string, ProtocolInfo> = {
       'http/0.9': { name: 'http', version: '0.9' },
       'http/1.0': { name: 'http', version: '1.0' },
       'http/1.1': { name: 'http', version: '1.1' },
@@ -434,7 +439,7 @@ describe('HTTPTimings', () => {
 
     const protocols = Object.keys(nextHopToNetworkVersion);
     for (const protocol of protocols) {
-      const expected: { name: string; version: string } = nextHopToNetworkVersion[protocol];
+      const expected: ProtocolInfo = nextHopToNetworkVersion[protocol];
       expect(extractNetworkProtocol(protocol)).toMatchObject(expected);
     }
   });
