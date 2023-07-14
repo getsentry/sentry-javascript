@@ -3,8 +3,10 @@ import { useActionData } from '@remix-run/react';
 
 export const loader: LoaderFunction = async ({ params: { id } }) => {
   if (id === '-1') {
-    throw new Error('Unexpected Server Error from Loader');
+    throw new Error('Unexpected Server Error');
   }
+
+  return null;
 };
 
 export const action: ActionFunction = async ({ params: { id } }) => {

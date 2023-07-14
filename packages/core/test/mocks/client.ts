@@ -54,7 +54,7 @@ export class TestClient extends BaseClient<TestClientOptions> {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/explicit-module-boundary-types
   public eventFromException(exception: any): PromiseLike<Event> {
-    return resolvedSyncPromise({
+    const event: Event = {
       exception: {
         values: [
           {
@@ -65,7 +65,14 @@ export class TestClient extends BaseClient<TestClientOptions> {
           },
         ],
       },
-    });
+    };
+
+    const frames = this._options.stackParser(exception.stack || '', 1);
+    if (frames.length && event?.exception?.values?.[0]) {
+      event.exception.values[0] = { ...event.exception.values[0], stacktrace: { frames } };
+    }
+
+    return resolvedSyncPromise(event);
   }
 
   public eventFromMessage(
