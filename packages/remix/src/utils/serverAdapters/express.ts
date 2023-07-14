@@ -20,7 +20,7 @@ import type {
   ExpressResponse,
   ReactRouterDomPkg,
   ServerBuild,
-} from '../types';
+} from '../vendor/types';
 
 let pkg: ReactRouterDomPkg;
 

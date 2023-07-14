@@ -11,6 +11,10 @@ describe('createCheckInEnvelope', () => {
         status: 'in_progress',
       },
       {
+        trace_id: '86f39e84263a4de99c326acab3bfe3bd',
+        public_key: 'testPublicKey',
+      },
+      {
         sdk: {
           name: 'testSdkName',
           version: 'testSdkVersion',
@@ -29,6 +33,10 @@ describe('createCheckInEnvelope', () => {
       sdk: {
         name: 'testSdkName',
         version: 'testSdkVersion',
+      },
+      trace: {
+        trace_id: '86f39e84263a4de99c326acab3bfe3bd',
+        public_key: 'testPublicKey',
       },
       sent_at: expect.any(String),
     });

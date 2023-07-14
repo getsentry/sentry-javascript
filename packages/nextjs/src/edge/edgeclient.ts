@@ -1,14 +1,22 @@
 import type { Scope } from '@sentry/core';
-import { addTracingExtensions, BaseClient, createCheckInEnvelope, SDK_VERSION } from '@sentry/core';
+import {
+  addTracingExtensions,
+  BaseClient,
+  createCheckInEnvelope,
+  getDynamicSamplingContextFromClient,
+  SDK_VERSION,
+} from '@sentry/core';
 import type {
   CheckIn,
   ClientOptions,
+  DynamicSamplingContext,
   Event,
   EventHint,
   MonitorConfig,
   SerializedCheckIn,
   Severity,
   SeverityLevel,
+  TraceContext,
 } from '@sentry/types';
 import { logger, uuid4 } from '@sentry/utils';
 
@@ -72,7 +80,7 @@ export class EdgeClient extends BaseClient<EdgeClientOptions> {
    * @param upsertMonitorConfig An optional object that describes a monitor config. Use this if you want
    * to create a monitor automatically when sending a check in.
    */
-  public captureCheckIn(checkIn: CheckIn, monitorConfig?: MonitorConfig): string {
+  public captureCheckIn(checkIn: CheckIn, monitorConfig?: MonitorConfig, scope?: Scope): string {
     const id = checkIn.status !== 'in_progress' && checkIn.checkInId ? checkIn.checkInId : uuid4();
     if (!this._isEnabled()) {
       __DEBUG_BUILD__ && logger.warn('SDK not enabled, will not capture checkin.');
@@ -103,7 +111,20 @@ export class EdgeClient extends BaseClient<EdgeClientOptions> {
       };
     }
 
-    const envelope = createCheckInEnvelope(serializedCheckIn, this.getSdkMetadata(), tunnel, this.getDsn());
+    const [dynamicSamplingContext, traceContext] = this._getTraceInfoFromScope(scope);
+    if (traceContext) {
+      serializedCheckIn.contexts = {
+        trace: traceContext,
+      };
+    }
+
+    const envelope = createCheckInEnvelope(
+      serializedCheckIn,
+      dynamicSamplingContext,
+      this.getSdkMetadata(),
+      tunnel,
+      this.getDsn(),
+    );
 
     __DEBUG_BUILD__ && logger.info('Sending checkin:', checkIn.monitorSlug, checkIn.status);
     void this._sendEnvelope(envelope);
@@ -123,5 +144,31 @@ export class EdgeClient extends BaseClient<EdgeClientOptions> {
     };
     event.server_name = event.server_name || process.env.SENTRY_NAME;
     return super._prepareEvent(event, hint, scope);
+  }
+
+  /** Extract trace information from scope */
+  private _getTraceInfoFromScope(
+    scope: Scope | undefined,
+  ): [dynamicSamplingContext: Partial<DynamicSamplingContext> | undefined, traceContext: TraceContext | undefined] {
+    if (!scope) {
+      return [undefined, undefined];
+    }
+
+    const span = scope.getSpan();
+    if (span) {
+      return [span?.transaction?.getDynamicSamplingContext(), span?.getTraceContext()];
+    }
+
+    const { traceId, spanId, parentSpanId, dsc } = scope.getPropagationContext();
+    const traceContext: TraceContext = {
+      trace_id: traceId,
+      span_id: spanId,
+      parent_span_id: parentSpanId,
+    };
+    if (dsc) {
+      return [dsc, traceContext];
+    }
+
+    return [getDynamicSamplingContextFromClient(traceId, this, scope), traceContext];
   }
 }
