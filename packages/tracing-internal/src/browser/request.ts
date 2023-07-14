@@ -195,9 +195,16 @@ function resourceTimingEntryToSpanData(resourceTiming: PerformanceResourceTiming
   }
   return [
     ...timingSpanData,
-    ['http.request.connect_start', (browserPerformanceTimeOrigin + resourceTiming.connectStart) / 1000],
-    ['http.request.request_start', (browserPerformanceTimeOrigin + resourceTiming.requestStart) / 1000],
-    ['http.request.response_start', (browserPerformanceTimeOrigin + resourceTiming.responseStart) / 1000],
+    ['http.request.redirect_start', resourceTiming.redirectStart],
+    ['http.request.fetch_start', resourceTiming.fetchStart],
+    ['http.request.domain_lookup_start', resourceTiming.domainLookupStart],
+    ['http.request.domain_lookup_end', resourceTiming.domainLookupEnd],
+    ['http.request.connect_start', resourceTiming.connectStart],
+    ['http.request.secure_connection_start', resourceTiming.secureConnectionStart],
+    ['http.request.connection_end', resourceTiming.connectEnd],
+    ['http.request.request_start', resourceTiming.requestStart],
+    ['http.request.response_start', resourceTiming.responseStart],
+    ['http.request.response_end', resourceTiming.responseEnd],
   ];
 }
 
