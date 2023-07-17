@@ -182,6 +182,10 @@ function addHTTPTimings(span: Span): void {
   });
 }
 
+function getAbsoluteTime(time: number): number {
+  return ((browserPerformanceTimeOrigin || performance.timeOrigin) + time) / 1000;
+}
+
 function resourceTimingEntryToSpanData(resourceTiming: PerformanceResourceTiming): [string, string | number][] {
   const version = resourceTiming.nextHopProtocol.split('/')[1] || 'none';
 
@@ -195,9 +199,16 @@ function resourceTimingEntryToSpanData(resourceTiming: PerformanceResourceTiming
   }
   return [
     ...timingSpanData,
-    ['http.request.connect_start', (browserPerformanceTimeOrigin + resourceTiming.connectStart) / 1000],
-    ['http.request.request_start', (browserPerformanceTimeOrigin + resourceTiming.requestStart) / 1000],
-    ['http.request.response_start', (browserPerformanceTimeOrigin + resourceTiming.responseStart) / 1000],
+    ['http.request.redirect_start', getAbsoluteTime(resourceTiming.redirectStart)],
+    ['http.request.fetch_start', getAbsoluteTime(resourceTiming.fetchStart)],
+    ['http.request.domain_lookup_start', getAbsoluteTime(resourceTiming.domainLookupStart)],
+    ['http.request.domain_lookup_end', getAbsoluteTime(resourceTiming.domainLookupEnd)],
+    ['http.request.connect_start', getAbsoluteTime(resourceTiming.connectStart)],
+    ['http.request.secure_connection_start', getAbsoluteTime(resourceTiming.secureConnectionStart)],
+    ['http.request.connection_end', getAbsoluteTime(resourceTiming.connectEnd)],
+    ['http.request.request_start', getAbsoluteTime(resourceTiming.requestStart)],
+    ['http.request.response_start', getAbsoluteTime(resourceTiming.responseStart)],
+    ['http.request.response_end', getAbsoluteTime(resourceTiming.responseEnd)],
   ];
 }
 
