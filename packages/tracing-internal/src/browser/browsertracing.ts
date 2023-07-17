@@ -81,6 +81,13 @@ export interface BrowserTracingOptions extends RequestInstrumentationOptions {
   enableLongTask: boolean;
 
   /**
+   * If true, Sentry will capture http timings and add them to the corresponding http spans.
+   *
+   * Default: true
+   */
+  enableHTTPTimings: boolean;
+
+  /**
    * _metricOptions allows the user to send options to change how metrics are collected.
    *
    * _metricOptions is currently experimental.
@@ -105,7 +112,6 @@ export interface BrowserTracingOptions extends RequestInstrumentationOptions {
   _experiments: Partial<{
     enableLongTask: boolean;
     enableInteractions: boolean;
-    enableHTTPTimings: boolean;
     onStartRouteTransaction: (t: Transaction | undefined, ctx: TransactionContext, getCurrentHub: () => Hub) => void;
   }>;
 
@@ -140,6 +146,7 @@ const DEFAULT_BROWSER_TRACING_OPTIONS: BrowserTracingOptions = {
   startTransactionOnLocationChange: true,
   startTransactionOnPageLoad: true,
   enableLongTask: true,
+  enableHTTPTimings: true,
   ...defaultRequestInstrumentationOptions,
 };
 
@@ -230,6 +237,7 @@ export class BrowserTracing implements Integration {
       traceFetch,
       traceXHR,
       shouldCreateSpanForRequest,
+      enableHTTPTimings,
       _experiments,
     } = this.options;
 
@@ -278,7 +286,7 @@ export class BrowserTracing implements Integration {
       tracePropagationTargets,
       shouldCreateSpanForRequest,
       _experiments: {
-        enableHTTPTimings: _experiments.enableHTTPTimings,
+        enableHTTPTimings,
       },
     });
   }
