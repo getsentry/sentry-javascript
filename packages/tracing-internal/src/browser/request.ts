@@ -206,6 +206,10 @@ export function extractNetworkProtocol(nextHopProtocol: string): { name: string;
     }
     _name += char;
   }
+  if (_name === nextHopProtocol) {
+    // webrtc, ftp, etc.
+    name = _name;
+  }
   return { name, version };
 }
 
