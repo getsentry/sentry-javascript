@@ -4,6 +4,10 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.59.0-beta.1
+
+- fix(nextjs): Avoid importing SentryWebpackPlugin in dev mode (#8543)
+
 ## 7.59.0-beta.0
 
 - **feat(replay): Re-sample sessions after they expire #8407**
