@@ -24,9 +24,15 @@ interface MatchParam {
   getEvent(types?: EnvelopeItemType[]): Event | undefined;
 }
 
-type Matcher = (param: MatchParam) => string[];
+type RouteTo = { dsn: string; release: string };
+type Matcher = (param: MatchParam) => (string | RouteTo)[];
 
-function eventFromEnvelope(env: Envelope, types: EnvelopeItemType[]): Event | undefined {
+/**
+ * Gets an event from an envelope.
+ *
+ * This is only exported for use in the tests
+ */
+export function eventFromEnvelope(env: Envelope, types: EnvelopeItemType[]): Event | undefined {
   let event: Event | undefined;
 
   forEachEnvelopeItem(env, (item, type) => {
@@ -41,6 +47,30 @@ function eventFromEnvelope(env: Envelope, types: EnvelopeItemType[]): Event | un
 }
 
 /**
+ * Creates a transport that overrides the release on all events.
+ */
+function makeOverrideReleaseTransport<TO extends BaseTransportOptions>(
+  createTransport: (options: TO) => Transport,
+  release: string,
+): (options: TO) => Transport {
+  return options => {
+    const transport = createTransport(options);
+
+    return {
+      send: async (envelope: Envelope): Promise<void | TransportMakeRequestResponse> => {
+        const event = eventFromEnvelope(envelope, ['event', 'transaction', 'profile', 'replay_event']);
+
+        if (event) {
+          event.release = release;
+        }
+        return transport.send(envelope);
+      },
+      flush: timeout => transport.flush(timeout),
+    };
+  };
+}
+
+/**
  * Creates a transport that can send events to different DSNs depending on the envelope contents.
  */
 export function makeMultiplexedTransport<TO extends BaseTransportOptions>(
@@ -51,17 +81,24 @@ export function makeMultiplexedTransport<TO extends BaseTransportOptions>(
     const fallbackTransport = createTransport(options);
     const otherTransports: Record<string, Transport> = {};
 
-    function getTransport(dsn: string): Transport | undefined {
-      if (!otherTransports[dsn]) {
+    function getTransport(dsn: string, release: string | undefined): Transport | undefined {
+      // We create a transport for every unique dsn/release combination as there may be code from multiple releases in
+      // use at the same time
+      const key = release ? `${dsn}:${release}` : dsn;
+
+      if (!otherTransports[key]) {
         const validatedDsn = dsnFromString(dsn);
         if (!validatedDsn) {
           return undefined;
         }
         const url = getEnvelopeEndpointWithUrlEncodedAuth(validatedDsn);
-        otherTransports[dsn] = createTransport({ ...options, url });
+
+        otherTransports[key] = release
+          ? makeOverrideReleaseTransport(createTransport, release)({ ...options, url })
+          : createTransport({ ...options, url });
       }
 
-      return otherTransports[dsn];
+      return otherTransports[key];
     }
 
     async function send(envelope: Envelope): Promise<void | TransportMakeRequestResponse> {
@@ -71,7 +108,13 @@ export function makeMultiplexedTransport<TO extends BaseTransportOptions>(
       }
 
       const transports = matcher({ envelope, getEvent })
-        .map(dsn => getTransport(dsn))
+        .map(result => {
+          if (typeof result === 'string') {
+            return getTransport(result, undefined);
+          } else {
+            return getTransport(result.dsn, result.release);
+          }
+        })
         .filter((t): t is Transport => !!t);
 
       // If we have no transports to send to, use the fallback transport
