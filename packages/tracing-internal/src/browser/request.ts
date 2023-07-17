@@ -182,17 +182,47 @@ function addHTTPTimings(span: Span): void {
   });
 }
 
+/**
+ * Converts ALPN protocol ids to name and version.
+ *
+ * (https://www.iana.org/assignments/tls-extensiontype-values/tls-extensiontype-values.xhtml#alpn-protocol-ids)
+ * @param nextHopProtocol PerformanceResourceTiming.nextHopProtocol
+ */
+export function extractNetworkProtocol(nextHopProtocol: string): { name: string; version: string } {
+  let name = 'unknown';
+  let version = 'unknown';
+  let _name = '';
+  for (const char of nextHopProtocol) {
+    // http/1.1 etc.
+    if (char === '/') {
+      [name, version] = nextHopProtocol.split('/');
+      break;
+    }
+    // h2, h3 etc.
+    if (!isNaN(Number(char))) {
+      name = _name === 'h' ? 'http' : _name;
+      version = nextHopProtocol.split(_name)[1];
+      break;
+    }
+    _name += char;
+  }
+  if (_name === nextHopProtocol) {
+    // webrtc, ftp, etc.
+    name = _name;
+  }
+  return { name, version };
+}
+
 function getAbsoluteTime(time: number): number {
   return ((browserPerformanceTimeOrigin || performance.timeOrigin) + time) / 1000;
 }
 
 function resourceTimingEntryToSpanData(resourceTiming: PerformanceResourceTiming): [string, string | number][] {
-  const version = resourceTiming.nextHopProtocol.split('/')[1] || 'none';
+  const { name, version } = extractNetworkProtocol(resourceTiming.nextHopProtocol);
 
   const timingSpanData: [string, string | number][] = [];
-  if (version) {
-    timingSpanData.push(['network.protocol.version', version]);
-  }
+
+  timingSpanData.push(['network.protocol.version', version], ['network.protocol.name', name]);
 
   if (!browserPerformanceTimeOrigin) {
     return timingSpanData;
