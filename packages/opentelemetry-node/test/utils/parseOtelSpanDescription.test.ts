@@ -5,7 +5,17 @@ import { getSanitizedUrl } from '../../src/utils/parseOtelSpanDescription';
 
 describe('getSanitizedUrl', () => {
   it.each([
-    ['works without attributes', {}, SpanKind.CLIENT, undefined],
+    [
+      'works without attributes',
+      {},
+      SpanKind.CLIENT,
+      {
+        urlPath: undefined,
+        url: undefined,
+        fragment: undefined,
+        query: undefined,
+      },
+    ],
     [
       'uses url without query for client request',
       {
@@ -16,7 +26,12 @@ describe('getSanitizedUrl', () => {
         [SemanticAttributes.HTTP_STATUS_CODE]: 200,
       },
       SpanKind.CLIENT,
-      'http://example.com/',
+      {
+        urlPath: 'http://example.com/',
+        url: 'http://example.com/',
+        fragment: undefined,
+        query: '?what=true',
+      },
     ],
     [
       'uses url without hash for client request',
@@ -28,7 +43,12 @@ describe('getSanitizedUrl', () => {
         [SemanticAttributes.HTTP_STATUS_CODE]: 200,
       },
       SpanKind.CLIENT,
-      'http://example.com/sub',
+      {
+        urlPath: 'http://example.com/sub',
+        url: 'http://example.com/sub',
+        fragment: '#hash',
+        query: undefined,
+      },
     ],
     [
       'uses route if available for client request',
@@ -41,7 +61,12 @@ describe('getSanitizedUrl', () => {
         [SemanticAttributes.HTTP_STATUS_CODE]: 200,
       },
       SpanKind.CLIENT,
-      '/my-route',
+      {
+        urlPath: '/my-route',
+        url: 'http://example.com/',
+        fragment: undefined,
+        query: '?what=true',
+      },
     ],
     [
       'falls back to target for client request if url not available',
@@ -52,7 +77,12 @@ describe('getSanitizedUrl', () => {
         [SemanticAttributes.HTTP_STATUS_CODE]: 200,
       },
       SpanKind.CLIENT,
-      '/',
+      {
+        urlPath: '/',
+        url: undefined,
+        fragment: undefined,
+        query: undefined,
+      },
     ],
     [
       'uses target without query for server request',
@@ -64,7 +94,12 @@ describe('getSanitizedUrl', () => {
         [SemanticAttributes.HTTP_STATUS_CODE]: 200,
       },
       SpanKind.SERVER,
-      '/',
+      {
+        urlPath: '/',
+        url: 'http://example.com/',
+        fragment: undefined,
+        query: '?what=true',
+      },
     ],
     [
       'uses target without hash for server request',
@@ -76,7 +111,12 @@ describe('getSanitizedUrl', () => {
         [SemanticAttributes.HTTP_STATUS_CODE]: 200,
       },
       SpanKind.SERVER,
-      '/sub',
+      {
+        urlPath: '/sub',
+        url: 'http://example.com/',
+        fragment: undefined,
+        query: '?what=true',
+      },
     ],
     [
       'uses route for server request if available',
@@ -89,7 +129,12 @@ describe('getSanitizedUrl', () => {
         [SemanticAttributes.HTTP_STATUS_CODE]: 200,
       },
       SpanKind.SERVER,
-      '/my-route',
+      {
+        urlPath: '/my-route',
+        url: 'http://example.com/',
+        fragment: undefined,
+        query: '?what=true',
+      },
     ],
   ])('%s', (_, attributes, kind, expected) => {
     const actual = getSanitizedUrl(attributes, kind);

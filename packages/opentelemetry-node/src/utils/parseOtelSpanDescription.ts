@@ -9,6 +9,7 @@ interface SpanDescription {
   op: string | undefined;
   description: string;
   source: TransactionSource;
+  data?: Record<string, string>;
 }
 
 /**
@@ -89,23 +90,48 @@ function descriptionForHttpMethod(otelSpan: OtelSpan, httpMethod: AttributeValue
   }
 
   const httpRoute = attributes[SemanticAttributes.HTTP_ROUTE];
-  const url = getSanitizedUrl(attributes, kind);
+  const { urlPath, url, query, fragment } = getSanitizedUrl(attributes, kind);
 
-  if (!url) {
+  if (!urlPath) {
     return { op: opParts.join('.'), description: name, source: 'custom' };
   }
 
   // Ex. description="GET /api/users".
-  const description = `${httpMethod} ${url}`;
+  const description = `${httpMethod} ${urlPath}`;
 
   // If `httpPath` is a root path, then we can categorize the transaction source as route.
-  const source: TransactionSource = httpRoute || url === '/' ? 'route' : 'url';
+  const source: TransactionSource = httpRoute || urlPath === '/' ? 'route' : 'url';
 
-  return { op: opParts.join('.'), description, source };
+  const data: Record<string, string> = {};
+
+  if (url) {
+    data.url = url;
+  }
+  if (query) {
+    data['http.query'] = query;
+  }
+  if (fragment) {
+    data['http.fragment'] = fragment;
+  }
+
+  return {
+    op: opParts.join('.'),
+    description,
+    source,
+    data,
+  };
 }
 
 /** Exported for tests only */
-export function getSanitizedUrl(attributes: Attributes, kind: SpanKind): string | undefined {
+export function getSanitizedUrl(
+  attributes: Attributes,
+  kind: SpanKind,
+): {
+  url: string | undefined;
+  urlPath: string | undefined;
+  query: string | undefined;
+  fragment: string | undefined;
+} {
   // This is the relative path of the URL, e.g. /sub
   const httpTarget = attributes[SemanticAttributes.HTTP_TARGET];
   // This is the full URL, including host & query params etc., e.g. https://example.com/sub?foo=bar
@@ -113,23 +139,27 @@ export function getSanitizedUrl(attributes: Attributes, kind: SpanKind): string 
   // This is the normalized route name - may not always be available!
   const httpRoute = attributes[SemanticAttributes.HTTP_ROUTE];
 
+  const parsedUrl = typeof httpUrl === 'string' ? parseUrl(httpUrl) : undefined;
+  const url = parsedUrl ? getSanitizedUrlString(parsedUrl) : undefined;
+  const query = parsedUrl && parsedUrl.search ? parsedUrl.search : undefined;
+  const fragment = parsedUrl && parsedUrl.hash ? parsedUrl.hash : undefined;
+
   if (typeof httpRoute === 'string') {
-    return httpRoute;
+    return { urlPath: httpRoute, url, query, fragment };
   }
 
   if (kind === SpanKind.SERVER && typeof httpTarget === 'string') {
-    return stripUrlQueryAndFragment(httpTarget);
+    return { urlPath: stripUrlQueryAndFragment(httpTarget), url, query, fragment };
   }
 
-  if (typeof httpUrl === 'string') {
-    const url = parseUrl(httpUrl);
-    return getSanitizedUrlString(url);
+  if (parsedUrl) {
+    return { urlPath: url, url, query, fragment };
   }
 
   // fall back to target even for client spans, if no URL is present
   if (typeof httpTarget === 'string') {
-    return stripUrlQueryAndFragment(httpTarget);
+    return { urlPath: stripUrlQueryAndFragment(httpTarget), url, query, fragment };
   }
 
-  return undefined;
+  return { urlPath: undefined, url, query, fragment };
 }
