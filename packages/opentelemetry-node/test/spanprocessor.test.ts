@@ -434,10 +434,19 @@ describe('SentrySpanProcessor', () => {
           child.setAttribute(SemanticAttributes.HTTP_METHOD, 'GET');
           child.setAttribute(SemanticAttributes.HTTP_ROUTE, '/my/route/{id}');
           child.setAttribute(SemanticAttributes.HTTP_TARGET, '/my/route/123');
+          child.setAttribute(SemanticAttributes.HTTP_URL, 'http://example.com/my/route/123');
 
           child.end();
 
           expect(sentrySpan?.description).toBe('GET /my/route/{id}');
+          expect(sentrySpan?.data).toEqual({
+            'http.method': 'GET',
+            'http.route': '/my/route/{id}',
+            'http.target': '/my/route/123',
+            'http.url': 'http://example.com/my/route/123',
+            'otel.kind': 'INTERNAL',
+            url: 'http://example.com/my/route/123',
+          });
 
           parentOtelSpan.end();
         });
@@ -453,10 +462,47 @@ describe('SentrySpanProcessor', () => {
 
           child.setAttribute(SemanticAttributes.HTTP_METHOD, 'GET');
           child.setAttribute(SemanticAttributes.HTTP_TARGET, '/my/route/123');
+          child.setAttribute(SemanticAttributes.HTTP_URL, 'http://example.com/my/route/123');
 
           child.end();
 
-          expect(sentrySpan?.description).toBe('GET /my/route/123');
+          expect(sentrySpan?.description).toBe('GET http://example.com/my/route/123');
+          expect(sentrySpan?.data).toEqual({
+            'http.method': 'GET',
+            'http.target': '/my/route/123',
+            'http.url': 'http://example.com/my/route/123',
+            'otel.kind': 'INTERNAL',
+            url: 'http://example.com/my/route/123',
+          });
+
+          parentOtelSpan.end();
+        });
+      });
+    });
+
+    it('Adds query & hash data based on HTTP_URL', async () => {
+      const tracer = provider.getTracer('default');
+
+      tracer.startActiveSpan('GET /users', parentOtelSpan => {
+        tracer.startActiveSpan('HTTP GET', child => {
+          const sentrySpan = getSpanForOtelSpan(child);
+
+          child.setAttribute(SemanticAttributes.HTTP_METHOD, 'GET');
+          child.setAttribute(SemanticAttributes.HTTP_TARGET, '/my/route/123');
+          child.setAttribute(SemanticAttributes.HTTP_URL, 'http://example.com/my/route/123?what=123#myHash');
+
+          child.end();
+
+          expect(sentrySpan?.description).toBe('GET http://example.com/my/route/123');
+          expect(sentrySpan?.data).toEqual({
+            'http.method': 'GET',
+            'http.target': '/my/route/123',
+            'http.url': 'http://example.com/my/route/123?what=123#myHash',
+            'otel.kind': 'INTERNAL',
+            url: 'http://example.com/my/route/123',
+            'http.query': '?what=123',
+            'http.fragment': '#myHash',
+          });
 
           parentOtelSpan.end();
         });
