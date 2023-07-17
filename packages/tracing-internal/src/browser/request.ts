@@ -189,8 +189,23 @@ function addHTTPTimings(span: Span): void {
  * @param nextHopProtocol PerformanceResourceTiming.nextHopProtocol
  */
 export function extractNetworkProtocol(nextHopProtocol: string): { name: string; version: string } {
-  const name = nextHopProtocol.split('/')[0].toLowerCase() || (nextHopProtocol.startsWith('h') && 'http') || 'unknown';
-  const version = nextHopProtocol.split('/')[1] || nextHopProtocol.split('h')[1] || 'unknown';
+  let name = 'unknown';
+  let version = 'unknown';
+  let _name = '';
+  for (const char of nextHopProtocol) {
+    // http/1.1 etc.
+    if (char === '/') {
+      [name, version] = nextHopProtocol.split('/');
+      break;
+    }
+    // h2, h3 etc.
+    if (!isNaN(Number(char))) {
+      name = _name === 'h' ? 'http' : _name;
+      version = nextHopProtocol.split(_name)[1];
+      break;
+    }
+    _name += char;
+  }
   return { name, version };
 }
 
