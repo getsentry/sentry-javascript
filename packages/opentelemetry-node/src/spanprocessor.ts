@@ -7,9 +7,9 @@ import type { DynamicSamplingContext, Span as SentrySpan, TraceparentData, Trans
 import { isString, logger } from '@sentry/utils';
 
 import { SENTRY_DYNAMIC_SAMPLING_CONTEXT_KEY, SENTRY_TRACE_PARENT_CONTEXT_KEY } from './constants';
-import { isSentryRequestSpan } from './utils/is-sentry-request';
-import { mapOtelStatus } from './utils/map-otel-status';
-import { parseSpanDescription } from './utils/parse-otel-span-description';
+import { isSentryRequestSpan } from './utils/isSentryRequest';
+import { mapOtelStatus } from './utils/mapOtelStatus';
+import { parseSpanDescription } from './utils/parseOtelSpanDescription';
 
 export const SENTRY_SPAN_PROCESSOR_MAP: Map<SentrySpan['spanId'], SentrySpan> = new Map<
   SentrySpan['spanId'],
@@ -207,6 +207,8 @@ function getTraceData(otelSpan: OtelSpan, parentContext: Context): Partial<Trans
 function updateSpanWithOtelData(sentrySpan: SentrySpan, otelSpan: OtelSpan): void {
   const { attributes, kind } = otelSpan;
 
+  const { op, description, data } = parseSpanDescription(otelSpan);
+
   sentrySpan.setStatus(mapOtelStatus(otelSpan));
   sentrySpan.setData('otel.kind', SpanKind[kind]);
 
@@ -215,20 +217,34 @@ function updateSpanWithOtelData(sentrySpan: SentrySpan, otelSpan: OtelSpan): voi
     sentrySpan.setData(prop, value);
   });
 
-  const { op, description } = parseSpanDescription(otelSpan);
+  if (data) {
+    Object.keys(data).forEach(prop => {
+      const value = data[prop];
+      sentrySpan.setData(prop, value);
+    });
+  }
+
   sentrySpan.op = op;
   sentrySpan.description = description;
 }
 
 function updateTransactionWithOtelData(transaction: Transaction, otelSpan: OtelSpan): void {
+  const { op, description, source, data } = parseSpanDescription(otelSpan);
+
   transaction.setContext('otel', {
     attributes: otelSpan.attributes,
     resource: otelSpan.resource.attributes,
   });
 
+  if (data) {
+    Object.keys(data).forEach(prop => {
+      const value = data[prop];
+      transaction.setData(prop, value);
+    });
+  }
+
   transaction.setStatus(mapOtelStatus(otelSpan));
 
-  const { op, description, source } = parseSpanDescription(otelSpan);
   transaction.op = op;
   transaction.setName(description, source);
 }

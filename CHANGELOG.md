@@ -4,6 +4,60 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.59.0
+
+### Important Changes
+
+- **- feat(remix): Add Remix v2 support (#8415)**
+
+This release adds support for Remix v2 future flags, in particular for new error handling utilities of Remix v2. We heavily recommend you switch to using `v2_errorBoundary` future flag to get the best error handling experience with Sentry.
+
+To capture errors from [v2 client-side ErrorBoundary](https://remix.run/docs/en/main/route/error-boundary-v2), you should define your own `ErrorBoundary` in `root.tsx` and use `Sentry.captureRemixErrorBoundaryError` helper to capture the error.
+
+```typescript
+// root.tsx
+import { captureRemixErrorBoundaryError } from "@sentry/remix";
+
+export const ErrorBoundary: V2_ErrorBoundaryComponent = () => {
+  const error = useRouteError();
+
+  captureRemixErrorBoundaryError(error);
+
+  return <div> ... </div>;
+};
+```
+
+For server-side errors, define a [`handleError`](https://remix.run/docs/en/main/file-conventions/entry.server#handleerror) function in your server entry point and use the `Sentry.captureRemixServerException` helper to capture the error.
+
+```ts
+// entry.server.tsx
+export function handleError(
+  error: unknown,
+  { request }: DataFunctionArgs
+): void {
+  if (error instanceof Error) {
+    Sentry.captureRemixServerException(error, "remix.server", request);
+  } else {
+    // Optionally capture non-Error objects
+    Sentry.captureException(error);
+  }
+}
+```
+
+For more details, see the Sentry [Remix SDK](https://docs.sentry.io/platforms/javascript/guides/remix/) documentation.
+
+### Other Changes
+
+- feat(core): Add `ModuleMetadata` integration (#8475)
+- feat(core): Allow multiplexed transport to send to multiple releases (#8559)
+- feat(tracing): Add more network timings to http calls (#8540)
+- feat(tracing): Bring http timings out of experiment (#8563)
+- fix(nextjs): Avoid importing `SentryWebpackPlugin` in dev mode (#8557)
+- fix(otel): Use `HTTP_URL` attribute for client requests (#8539)
+- fix(replay): Better session storage check (#8547)
+- fix(replay): Handle errors in `beforeAddRecordingEvent` callback (#8548)
+- fix(tracing): Improve network.protocol.version (#8502)
+
 ## 7.58.1
 
 - fix(node): Set propagation context even when tracingOptions are not defined (#8517)

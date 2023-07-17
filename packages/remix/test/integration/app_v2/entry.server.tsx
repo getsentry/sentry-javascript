@@ -1,4 +1,4 @@
-import type { EntryContext } from '@remix-run/node';
+import type { EntryContext, DataFunctionArgs } from '@remix-run/node';
 import { RemixServer } from '@remix-run/react';
 import { renderToString } from 'react-dom/server';
 import * as Sentry from '@sentry/remix';
@@ -10,6 +10,14 @@ Sentry.init({
   // Disabling to test series of envelopes deterministically.
   autoSessionTracking: false,
 });
+
+export function handleError(error: unknown, { request }: DataFunctionArgs): void {
+  if (error instanceof Error) {
+    Sentry.captureRemixServerException(error, 'remix.server', request);
+  } else {
+    Sentry.captureException(error);
+  }
+}
 
 export default function handleRequest(
   request: Request,

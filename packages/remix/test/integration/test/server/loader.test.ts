@@ -35,11 +35,11 @@ describe.each(['builtin', 'express'])('Remix API Loaders with adapter = %s', ada
         values: [
           {
             type: 'Error',
-            value: 'Unexpected Server Error from Loader',
+            value: 'Unexpected Server Error',
             stacktrace: expect.any(Object),
             mechanism: {
               data: {
-                function: 'loader',
+                function: useV2 ? 'remix.server' : 'loader',
               },
               handled: true,
               type: 'instrument',
@@ -134,11 +134,11 @@ describe.each(['builtin', 'express'])('Remix API Loaders with adapter = %s', ada
         values: [
           {
             type: 'Error',
-            value: 'Unexpected Server Error from Loader',
+            value: 'Unexpected Server Error',
             stacktrace: expect.any(Object),
             mechanism: {
               data: {
-                function: 'loader',
+                function: useV2 ? 'remix.server' : 'loader',
               },
               handled: true,
               type: 'instrument',

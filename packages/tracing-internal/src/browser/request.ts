@@ -17,13 +17,6 @@ export const DEFAULT_TRACE_PROPAGATION_TARGETS = ['localhost', /^\/(?!\/)/];
 /** Options for Request Instrumentation */
 export interface RequestInstrumentationOptions {
   /**
-   * Allow experiments for the request instrumentation.
-   */
-  _experiments: Partial<{
-    enableHTTPTimings: boolean;
-  }>;
-
-  /**
    * @deprecated Will be removed in v8.
    * Use `shouldCreateSpanForRequest` to control span creation and `tracePropagationTargets` to control
    * trace header attachment.
@@ -51,6 +44,13 @@ export interface RequestInstrumentationOptions {
    * Default: true
    */
   traceXHR: boolean;
+
+  /**
+   * If true, Sentry will capture http timings and add them to the corresponding http spans.
+   *
+   * Default: true
+   */
+  enableHTTPTimings: boolean;
 
   /**
    * This function will be called before creating a span for a request with the given url.
@@ -114,16 +114,23 @@ type PolymorphicRequestHeaders =
 export const defaultRequestInstrumentationOptions: RequestInstrumentationOptions = {
   traceFetch: true,
   traceXHR: true,
+  enableHTTPTimings: true,
   // TODO (v8): Remove this property
   tracingOrigins: DEFAULT_TRACE_PROPAGATION_TARGETS,
   tracePropagationTargets: DEFAULT_TRACE_PROPAGATION_TARGETS,
-  _experiments: {},
 };
 
 /** Registers span creators for xhr and fetch requests  */
 export function instrumentOutgoingRequests(_options?: Partial<RequestInstrumentationOptions>): void {
-  // eslint-disable-next-line deprecation/deprecation
-  const { traceFetch, traceXHR, tracePropagationTargets, tracingOrigins, shouldCreateSpanForRequest, _experiments } = {
+  const {
+    traceFetch,
+    traceXHR,
+    tracePropagationTargets,
+    // eslint-disable-next-line deprecation/deprecation
+    tracingOrigins,
+    shouldCreateSpanForRequest,
+    enableHTTPTimings,
+  } = {
     traceFetch: defaultRequestInstrumentationOptions.traceFetch,
     traceXHR: defaultRequestInstrumentationOptions.traceXHR,
     ..._options,
@@ -143,7 +150,7 @@ export function instrumentOutgoingRequests(_options?: Partial<RequestInstrumenta
   if (traceFetch) {
     addInstrumentationHandler('fetch', (handlerData: FetchData) => {
       const createdSpan = fetchCallback(handlerData, shouldCreateSpan, shouldAttachHeadersWithTargets, spans);
-      if (_experiments?.enableHTTPTimings && createdSpan) {
+      if (enableHTTPTimings && createdSpan) {
         addHTTPTimings(createdSpan);
       }
     });
@@ -152,7 +159,7 @@ export function instrumentOutgoingRequests(_options?: Partial<RequestInstrumenta
   if (traceXHR) {
     addInstrumentationHandler('xhr', (handlerData: XHRData) => {
       const createdSpan = xhrCallback(handlerData, shouldCreateSpan, shouldAttachHeadersWithTargets, spans);
-      if (_experiments?.enableHTTPTimings && createdSpan) {
+      if (enableHTTPTimings && createdSpan) {
         addHTTPTimings(createdSpan);
       }
     });
@@ -182,22 +189,63 @@ function addHTTPTimings(span: Span): void {
   });
 }
 
+/**
+ * Converts ALPN protocol ids to name and version.
+ *
+ * (https://www.iana.org/assignments/tls-extensiontype-values/tls-extensiontype-values.xhtml#alpn-protocol-ids)
+ * @param nextHopProtocol PerformanceResourceTiming.nextHopProtocol
+ */
+export function extractNetworkProtocol(nextHopProtocol: string): { name: string; version: string } {
+  let name = 'unknown';
+  let version = 'unknown';
+  let _name = '';
+  for (const char of nextHopProtocol) {
+    // http/1.1 etc.
+    if (char === '/') {
+      [name, version] = nextHopProtocol.split('/');
+      break;
+    }
+    // h2, h3 etc.
+    if (!isNaN(Number(char))) {
+      name = _name === 'h' ? 'http' : _name;
+      version = nextHopProtocol.split(_name)[1];
+      break;
+    }
+    _name += char;
+  }
+  if (_name === nextHopProtocol) {
+    // webrtc, ftp, etc.
+    name = _name;
+  }
+  return { name, version };
+}
+
+function getAbsoluteTime(time: number): number {
+  return ((browserPerformanceTimeOrigin || performance.timeOrigin) + time) / 1000;
+}
+
 function resourceTimingEntryToSpanData(resourceTiming: PerformanceResourceTiming): [string, string | number][] {
-  const version = resourceTiming.nextHopProtocol.split('/')[1] || 'none';
+  const { name, version } = extractNetworkProtocol(resourceTiming.nextHopProtocol);
 
   const timingSpanData: [string, string | number][] = [];
-  if (version) {
-    timingSpanData.push(['network.protocol.version', version]);
-  }
+
+  timingSpanData.push(['network.protocol.version', version], ['network.protocol.name', name]);
 
   if (!browserPerformanceTimeOrigin) {
     return timingSpanData;
   }
   return [
     ...timingSpanData,
-    ['http.request.connect_start', (browserPerformanceTimeOrigin + resourceTiming.connectStart) / 1000],
-    ['http.request.request_start', (browserPerformanceTimeOrigin + resourceTiming.requestStart) / 1000],
-    ['http.request.response_start', (browserPerformanceTimeOrigin + resourceTiming.responseStart) / 1000],
+    ['http.request.redirect_start', getAbsoluteTime(resourceTiming.redirectStart)],
+    ['http.request.fetch_start', getAbsoluteTime(resourceTiming.fetchStart)],
+    ['http.request.domain_lookup_start', getAbsoluteTime(resourceTiming.domainLookupStart)],
+    ['http.request.domain_lookup_end', getAbsoluteTime(resourceTiming.domainLookupEnd)],
+    ['http.request.connect_start', getAbsoluteTime(resourceTiming.connectStart)],
+    ['http.request.secure_connection_start', getAbsoluteTime(resourceTiming.secureConnectionStart)],
+    ['http.request.connection_end', getAbsoluteTime(resourceTiming.connectEnd)],
+    ['http.request.request_start', getAbsoluteTime(resourceTiming.requestStart)],
+    ['http.request.response_start', getAbsoluteTime(resourceTiming.responseStart)],
+    ['http.request.response_end', getAbsoluteTime(resourceTiming.responseEnd)],
   ];
 }
 

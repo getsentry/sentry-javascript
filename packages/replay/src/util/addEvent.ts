@@ -3,7 +3,7 @@ import { getCurrentHub } from '@sentry/core';
 import { logger } from '@sentry/utils';
 
 import { EventBufferSizeExceededError } from '../eventBuffer/error';
-import type { AddEventResult, RecordingEvent, ReplayContainer, ReplayFrameEvent } from '../types';
+import type { AddEventResult, RecordingEvent, ReplayContainer, ReplayFrameEvent, ReplayPluginOptions } from '../types';
 import { timestampToMs } from './timestampToMs';
 
 function isCustomEvent(event: RecordingEvent): event is ReplayFrameEvent {
@@ -46,10 +46,7 @@ export async function addEvent(
 
     const replayOptions = replay.getOptions();
 
-    const eventAfterPossibleCallback =
-      typeof replayOptions.beforeAddRecordingEvent === 'function' && isCustomEvent(event)
-        ? replayOptions.beforeAddRecordingEvent(event)
-        : event;
+    const eventAfterPossibleCallback = maybeApplyCallback(event, replayOptions.beforeAddRecordingEvent);
 
     if (!eventAfterPossibleCallback) {
       return;
@@ -68,4 +65,21 @@ export async function addEvent(
       client.recordDroppedEvent('internal_sdk_error', 'replay');
     }
   }
+}
+
+function maybeApplyCallback(
+  event: RecordingEvent,
+  callback: ReplayPluginOptions['beforeAddRecordingEvent'],
+): RecordingEvent | null | undefined {
+  try {
+    if (typeof callback === 'function' && isCustomEvent(event)) {
+      return callback(event);
+    }
+  } catch (error) {
+    __DEBUG_BUILD__ &&
+      logger.error('[Replay] An error occured in the `beforeAddRecordingEvent` callback, skipping the event...', error);
+    return null;
+  }
+
+  return event;
 }
