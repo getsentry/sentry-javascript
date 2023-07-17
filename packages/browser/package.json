@@ -64,7 +64,7 @@
     "build:types:core": "tsc -p tsconfig.types.json",
     "build:types:downlevel": "yarn downlevel-dts build/npm/types build/npm/types-ts3.8 --to ts3.8",
     "build:watch": "run-p build:transpile:watch build:bundle:watch build:types:watch",
-    "build:dev:watch": "yarn build:watch",
+    "build:dev:watch": "run-p build:transpile:watch build:types:watch",
     "build:bundle:watch": "rollup -c rollup.bundle.config.js --watch",
     "build:transpile:watch": "rollup -c rollup.npm.config.js --watch",
     "build:types:watch": "tsc -p tsconfig.types.json --watch",
