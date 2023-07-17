@@ -95,6 +95,7 @@ conditionalTest({ min: 10 })('BrowserTracing', () => {
 
     expect(browserTracing.options).toEqual({
       enableLongTask: true,
+      _experiments: {},
       ...TRACING_DEFAULTS,
       markBackgroundTransactions: true,
       routingInstrumentation: instrumentRoutingWithDefaults,
@@ -132,6 +133,7 @@ conditionalTest({ min: 10 })('BrowserTracing', () => {
 
     expect(browserTracing.options).toEqual({
       enableLongTask: false,
+      _experiments: {},
       ...TRACING_DEFAULTS,
       markBackgroundTransactions: true,
       routingInstrumentation: instrumentRoutingWithDefaults,
@@ -246,7 +248,7 @@ conditionalTest({ min: 10 })('BrowserTracing', () => {
           traceFetch: true,
           traceXHR: true,
           tracePropagationTargets: ['something'],
-          _experiments: {},
+          enableHTTPTimings: true,
         });
       });
 
@@ -260,7 +262,7 @@ conditionalTest({ min: 10 })('BrowserTracing', () => {
         });
 
         expect(instrumentOutgoingRequestsMock).toHaveBeenCalledWith({
-          _experiments: {},
+          enableHTTPTimings: true,
           traceFetch: true,
           traceXHR: true,
           tracePropagationTargets: ['something-else'],
