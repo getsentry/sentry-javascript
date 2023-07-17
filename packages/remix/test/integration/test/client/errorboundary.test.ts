@@ -21,16 +21,20 @@ test('should capture React component errors.', async ({ page }) => {
   expect(errorEnvelope.level).toBe('error');
   expect(errorEnvelope.sdk?.name).toBe('sentry.javascript.remix');
   expect(errorEnvelope.exception?.values).toMatchObject([
-    {
-      type: 'React ErrorBoundary Error',
-      value: 'Sentry React Component Error',
-      stacktrace: { frames: expect.any(Array) },
-    },
+    ...(!useV2
+      ? [
+          {
+            type: 'React ErrorBoundary Error',
+            value: 'Sentry React Component Error',
+            stacktrace: { frames: expect.any(Array) },
+          },
+        ]
+      : []),
     {
       type: 'Error',
       value: 'Sentry React Component Error',
       stacktrace: { frames: expect.any(Array) },
-      mechanism: { type: 'generic', handled: true },
+      mechanism: { type: useV2 ? 'instrument' : 'generic', handled: true },
     },
   ]);
 });
