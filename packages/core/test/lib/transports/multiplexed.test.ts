@@ -6,10 +6,11 @@ import type {
   TransactionEvent,
   Transport,
 } from '@sentry/types';
-import { createClientReportEnvelope, createEnvelope, dsnFromString } from '@sentry/utils';
-import { TextEncoder } from 'util';
+import { createClientReportEnvelope, createEnvelope, dsnFromString, parseEnvelope } from '@sentry/utils';
+import { TextDecoder, TextEncoder } from 'util';
 
 import { createTransport, getEnvelopeEndpointWithUrlEncodedAuth, makeMultiplexedTransport } from '../../../src';
+import { eventFromEnvelope } from '../../../src/transports/multiplexed';
 
 const DSN1 = 'https://1234@5678.ingest.sentry.io/4321';
 const DSN1_URL = getEnvelopeEndpointWithUrlEncodedAuth(dsnFromString(DSN1)!);
@@ -47,7 +48,7 @@ const CLIENT_REPORT_ENVELOPE = createClientReportEnvelope(
   123456,
 );
 
-type Assertion = (url: string, body: string | Uint8Array) => void;
+type Assertion = (url: string, release: string | undefined, body: string | Uint8Array) => void;
 
 const createTestTransport = (...assertions: Assertion[]): ((options: BaseTransportOptions) => Transport) => {
   return (options: BaseTransportOptions) =>
@@ -57,7 +58,10 @@ const createTestTransport = (...assertions: Assertion[]): ((options: BaseTranspo
         if (!assertion) {
           throw new Error('No assertion left');
         }
-        assertion(options.url, request.body);
+
+        const event = eventFromEnvelope(parseEnvelope(request.body, new TextEncoder(), new TextDecoder()), ['event']);
+
+        assertion(options.url, event?.release, request.body);
         resolve({ statusCode: 200 });
       });
     });
@@ -105,6 +109,21 @@ describe('makeMultiplexedTransport', () => {
         expect(url).toBe(DSN2_URL);
       }),
       () => [DSN2],
+    );
+
+    const transport = makeTransport({ url: DSN1_URL, ...transportOptions });
+    await transport.send(ERROR_ENVELOPE);
+  });
+
+  it('DSN and release can be overridden via match callback', async () => {
+    expect.assertions(2);
+
+    const makeTransport = makeMultiplexedTransport(
+      createTestTransport((url, release) => {
+        expect(url).toBe(DSN2_URL);
+        expect(release).toBe('something@1.0.0');
+      }),
+      () => [{ dsn: DSN2, release: 'something@1.0.0' }],
     );
 
     const transport = makeTransport({ url: DSN1_URL, ...transportOptions });
