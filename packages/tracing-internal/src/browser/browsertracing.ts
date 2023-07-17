@@ -81,13 +81,6 @@ export interface BrowserTracingOptions extends RequestInstrumentationOptions {
   enableLongTask: boolean;
 
   /**
-   * If true, Sentry will capture http timings and add them to the corresponding http spans.
-   *
-   * Default: true
-   */
-  enableHTTPTimings: boolean;
-
-  /**
    * _metricOptions allows the user to send options to change how metrics are collected.
    *
    * _metricOptions is currently experimental.
@@ -146,7 +139,7 @@ const DEFAULT_BROWSER_TRACING_OPTIONS: BrowserTracingOptions = {
   startTransactionOnLocationChange: true,
   startTransactionOnPageLoad: true,
   enableLongTask: true,
-  enableHTTPTimings: true,
+  _experiments: {},
   ...defaultRequestInstrumentationOptions,
 };
 
@@ -285,9 +278,7 @@ export class BrowserTracing implements Integration {
       traceXHR,
       tracePropagationTargets,
       shouldCreateSpanForRequest,
-      _experiments: {
-        enableHTTPTimings,
-      },
+      enableHTTPTimings,
     });
   }
 
