@@ -3,7 +3,7 @@ import { SpanKind } from '@opentelemetry/api';
 import type { Span as OtelSpan } from '@opentelemetry/sdk-trace-base';
 import { SemanticAttributes } from '@opentelemetry/semantic-conventions';
 import type { TransactionSource } from '@sentry/types';
-import { getSanitizedUrlString, parseUrl } from '@sentry/utils';
+import { getSanitizedUrlString, parseUrl, stripUrlQueryAndFragment } from '@sentry/utils';
 
 interface SpanDescription {
   op: string | undefined;
@@ -118,7 +118,7 @@ export function getSanitizedUrl(attributes: Attributes, kind: SpanKind): string 
   }
 
   if (kind === SpanKind.SERVER && typeof httpTarget === 'string') {
-    return normalizeTarget(httpTarget);
+    return stripUrlQueryAndFragment(httpTarget);
   }
 
   if (typeof httpUrl === 'string') {
@@ -128,13 +128,8 @@ export function getSanitizedUrl(attributes: Attributes, kind: SpanKind): string 
 
   // fall back to target even for client spans, if no URL is present
   if (typeof httpTarget === 'string') {
-    return normalizeTarget(httpTarget);
+    return stripUrlQueryAndFragment(httpTarget);
   }
 
   return undefined;
-}
-
-// Remove trailing ? and # from the target
-function normalizeTarget(httpTarget: string): string {
-  return httpTarget.replace(/([?#].*)$/, '');
 }
