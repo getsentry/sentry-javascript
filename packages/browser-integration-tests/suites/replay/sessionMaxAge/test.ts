@@ -13,8 +13,8 @@ import {
 
 const SESSION_MAX_AGE = 2000;
 
-sentryTest('handles session that exceeds max age', async ({ getLocalTestPath, page }) => {
-  if (shouldSkipReplayTest()) {
+sentryTest('handles session that exceeds max age', async ({ getLocalTestPath, page, browserName }) => {
+  if (shouldSkipReplayTest() || browserName === 'firefox') {
     sentryTest.skip();
   }
 
@@ -82,3 +82,102 @@ sentryTest('handles session that exceeds max age', async ({ getLocalTestPath, pa
   const stringifiedSnapshot2 = normalize(fullSnapshots2[0]);
   expect(stringifiedSnapshot2).toMatchSnapshot('snapshot-2.json');
 });
+
+sentryTest(
+  'handles many consequitive events in session that exceeds max age',
+  async ({ getLocalTestPath, page, browserName }) => {
+    if (shouldSkipReplayTest() || browserName === 'firefox') {
+      sentryTest.skip();
+    }
+
+    const reqPromise0 = waitForReplayRequest(page, 0);
+    const reqPromise1 = waitForReplayRequest(page, 1);
+
+    await page.route('https://dsn.ingest.sentry.io/**/*', route => {
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ id: 'test-id' }),
+      });
+    });
+
+    const url = await getLocalTestPath({ testDir: __dirname });
+
+    await page.goto(url);
+
+    const replay0 = await getReplaySnapshot(page);
+    // We use the `initialTimestamp` of the replay to do any time based calculations
+    const startTimestamp = replay0._context.initialTimestamp;
+
+    const req0 = await reqPromise0;
+
+    const replayEvent0 = getReplayEvent(req0);
+    expect(replayEvent0).toEqual(getExpectedReplayEvent({}));
+
+    const fullSnapshots0 = getFullRecordingSnapshots(req0);
+    expect(fullSnapshots0.length).toEqual(1);
+    const stringifiedSnapshot = normalize(fullSnapshots0[0]);
+    expect(stringifiedSnapshot).toMatchSnapshot('snapshot-0.json');
+
+    // Wait again for a new segment 0 (=new session)
+    const reqPromise2 = waitForReplayRequest(page, 0);
+
+    // Wait for an incremental snapshot
+    // Wait half of the session max age (after initial flush), but account for potentially slow runners
+    const timePassed1 = Date.now() - startTimestamp;
+    await new Promise(resolve => setTimeout(resolve, Math.max(SESSION_MAX_AGE / 2 - timePassed1, 0)));
+
+    await page.click('#button1');
+
+    const req1 = await reqPromise1;
+    const replayEvent1 = getReplayEvent(req1);
+
+    expect(replayEvent1).toEqual(getExpectedReplayEvent({ segment_id: 1, urls: [] }));
+
+    const replay1 = await getReplaySnapshot(page);
+    const oldSessionId = replay1.session?.id;
+
+    // Wait for session to expire
+    const timePassed2 = Date.now() - startTimestamp;
+    await new Promise(resolve => setTimeout(resolve, Math.max(SESSION_MAX_AGE - timePassed2, 0)));
+
+    await page.evaluate(`
+  Object.defineProperty(document, 'visibilityState', {
+    configurable: true,
+    get: function () {
+      return 'hidden';
+    },
+  });
+  document.dispatchEvent(new Event('visibilitychange'));
+`);
+
+    // Many things going on at the same time...
+    void page.evaluate(`
+  Object.defineProperty(document, 'visibilityState', {
+    configurable: true,
+    get: function () {
+      return 'visible';
+    },
+  });
+  document.dispatchEvent(new Event('visibilitychange'));
+`);
+    void page.click('#button1');
+    void page.click('#button2');
+    await new Promise(resolve => setTimeout(resolve, 1));
+    void page.click('#button1');
+    void page.click('#button2');
+
+    const req2 = await reqPromise2;
+    const replay2 = await getReplaySnapshot(page);
+
+    expect(replay2.session?.id).not.toEqual(oldSessionId);
+
+    const replayEvent2 = getReplayEvent(req2);
+    expect(replayEvent2).toEqual(getExpectedReplayEvent({}));
+
+    const fullSnapshots2 = getFullRecordingSnapshots(req2);
+    expect(fullSnapshots2.length).toEqual(1);
+    const stringifiedSnapshot2 = normalize(fullSnapshots2[0]);
+    expect(stringifiedSnapshot2).toMatchSnapshot('snapshot-2.json');
+  },
+);
