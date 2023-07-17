@@ -17,13 +17,6 @@ export const DEFAULT_TRACE_PROPAGATION_TARGETS = ['localhost', /^\/(?!\/)/];
 /** Options for Request Instrumentation */
 export interface RequestInstrumentationOptions {
   /**
-   * Allow experiments for the request instrumentation.
-   */
-  _experiments: Partial<{
-    enableHTTPTimings: boolean;
-  }>;
-
-  /**
    * @deprecated Will be removed in v8.
    * Use `shouldCreateSpanForRequest` to control span creation and `tracePropagationTargets` to control
    * trace header attachment.
@@ -51,6 +44,13 @@ export interface RequestInstrumentationOptions {
    * Default: true
    */
   traceXHR: boolean;
+
+  /**
+   * If true, Sentry will capture http timings and add them to the corresponding http spans.
+   *
+   * Default: true
+   */
+  enableHTTPTimings: boolean;
 
   /**
    * This function will be called before creating a span for a request with the given url.
@@ -114,16 +114,23 @@ type PolymorphicRequestHeaders =
 export const defaultRequestInstrumentationOptions: RequestInstrumentationOptions = {
   traceFetch: true,
   traceXHR: true,
+  enableHTTPTimings: true,
   // TODO (v8): Remove this property
   tracingOrigins: DEFAULT_TRACE_PROPAGATION_TARGETS,
   tracePropagationTargets: DEFAULT_TRACE_PROPAGATION_TARGETS,
-  _experiments: {},
 };
 
 /** Registers span creators for xhr and fetch requests  */
 export function instrumentOutgoingRequests(_options?: Partial<RequestInstrumentationOptions>): void {
-  // eslint-disable-next-line deprecation/deprecation
-  const { traceFetch, traceXHR, tracePropagationTargets, tracingOrigins, shouldCreateSpanForRequest, _experiments } = {
+  const {
+    traceFetch,
+    traceXHR,
+    tracePropagationTargets,
+    // eslint-disable-next-line deprecation/deprecation
+    tracingOrigins,
+    shouldCreateSpanForRequest,
+    enableHTTPTimings,
+  } = {
     traceFetch: defaultRequestInstrumentationOptions.traceFetch,
     traceXHR: defaultRequestInstrumentationOptions.traceXHR,
     ..._options,
@@ -143,7 +150,7 @@ export function instrumentOutgoingRequests(_options?: Partial<RequestInstrumenta
   if (traceFetch) {
     addInstrumentationHandler('fetch', (handlerData: FetchData) => {
       const createdSpan = fetchCallback(handlerData, shouldCreateSpan, shouldAttachHeadersWithTargets, spans);
-      if (_experiments?.enableHTTPTimings && createdSpan) {
+      if (enableHTTPTimings && createdSpan) {
         addHTTPTimings(createdSpan);
       }
     });
@@ -152,7 +159,7 @@ export function instrumentOutgoingRequests(_options?: Partial<RequestInstrumenta
   if (traceXHR) {
     addInstrumentationHandler('xhr', (handlerData: XHRData) => {
       const createdSpan = xhrCallback(handlerData, shouldCreateSpan, shouldAttachHeadersWithTargets, spans);
-      if (_experiments?.enableHTTPTimings && createdSpan) {
+      if (enableHTTPTimings && createdSpan) {
         addHTTPTimings(createdSpan);
       }
     });
