@@ -255,10 +255,12 @@ export class TestEnv {
               // Ex: Remix scope bleed tests.
               nock.cleanAll();
 
-              this._closeServer();
+              void this._closeServer().then(() => {
+                resolve(envelopes);
+              });
+            } else {
+              resolve(envelopes);
             }
-
-            resolve(envelopes);
           }
 
           return true;
@@ -300,19 +302,24 @@ export class TestEnv {
 
         nock.cleanAll();
 
-        this._closeServer();
-        resolve(reqCount);
+        void this._closeServer().then(() => {
+          resolve(reqCount);
+        });
       }, options.timeout || 1000);
     });
   }
 
-  private _closeServer(): void {
-    this.server.close(() => {
-      // @ts-ignore closeAllConnections() is only available from Node v18.2.0
-      if (NODE_VERSION >= 18 && this.server.closeAllConnections) {
-        // @ts-ignore (Only available in Node 18+)
-        this.server.closeAllConnections();
-      }
+  private _closeServer(): Promise<void> {
+    return new Promise<void>(resolve => {
+      this.server.close(() => {
+        // @ts-ignore closeAllConnections() is only available from Node v18.2.0
+        if (NODE_VERSION >= 18 && this.server.closeAllConnections) {
+          // @ts-ignore (Only available in Node 18+)
+          this.server.closeAllConnections();
+        }
+
+        resolve();
+      });
     });
   }
 }
