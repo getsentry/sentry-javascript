@@ -10,6 +10,8 @@ import type { AddressInfo } from 'net';
 import nock from 'nock';
 import * as path from 'path';
 
+const NODE_VERSION = parseSemver(process.versions.node).major;
+
 export type TestServerConfig = {
   url: string;
   server: http.Server;
@@ -40,7 +42,6 @@ export type DataCollectorOptions = {
  * @return {*}  {jest.Describe}
  */
 export const conditionalTest = (allowedVersion: { min?: number; max?: number }): jest.Describe => {
-  const NODE_VERSION = parseSemver(process.versions.node).major;
   if (!NODE_VERSION) {
     return describe.skip;
   }
@@ -127,6 +128,16 @@ export class TestEnv {
   public constructor(public readonly server: http.Server, public readonly url: string) {
     this.server = server;
     this.url = url;
+
+    // We need to destroy the socket after the response has been sent
+    // to prevent the server.close (called inside nock interceptor) from hanging in tests.
+    // Otherwise the tests may timeout. (Happening on Node 20)
+    // See: https://github.com/nodejs/node/issues/2642
+    this.server.on('request', (req, res) => {
+      res.on('finish', () => {
+        req.socket.end();
+      });
+    });
   }
 
   /**
@@ -244,9 +255,7 @@ export class TestEnv {
               // Ex: Remix scope bleed tests.
               nock.cleanAll();
 
-              this.server.close(() => {
-                resolve(envelopes);
-              });
+              this._closeServer();
             }
 
             resolve(envelopes);
@@ -291,12 +300,19 @@ export class TestEnv {
 
         nock.cleanAll();
 
-        this.server.close(() => {
-          resolve(reqCount);
-        });
-
+        this._closeServer();
         resolve(reqCount);
       }, options.timeout || 1000);
+    });
+  }
+
+  private _closeServer(): void {
+    this.server.close(() => {
+      // @ts-ignore closeAllConnections() is only available from Node v18.2.0
+      if (NODE_VERSION >= 18 && this.server.closeAllConnections) {
+        // @ts-ignore (Only available in Node 18+)
+        this.server.closeAllConnections();
+      }
     });
   }
 }
