@@ -2,6 +2,107 @@ minVersion: '0.23.1'
 changelogPolicy: simple
 preReleaseCommand: bash scripts/craft-pre-release.sh
 targets:
+  # NPM Targets
+  ## 1. Base Packages, node or browser SDKs depend on
+  ## 1.1 Types
+  - name: npm
+    id: npm:@sentry/types
+    includeNames: /^sentry-types-\d.*\.tgz$/
+  ## 1.2 Utils
+  - name: npm
+    id: npm:@sentry/utils
+    includeNames: /^sentry-utils-\d.*\.tgz$/
+  ## 1.3 Core SDK
+  - name: npm
+    id: npm:@sentry/core
+    includeNames: /^sentry-core-\d.*\.tgz$/
+  ## 1.4 Tracing package
+  - name: npm
+    id: npm:@sentry-internal/tracing
+    includeNames: /^sentry-internal-tracing-\d.*\.tgz$/
+  ## 1.5 Replay package (browser only)
+  - name: npm
+    id: npm:@sentry/replay
+    includeNames: /^sentry-replay-\d.*\.tgz$/
+
+  ## 2. Browser & Node SDKs
+  - name: npm
+    id: npm:@sentry/browser
+    includeNames: /^sentry-browser-\d.*\.tgz$/
+  - name: npm
+    id: npm:@sentry/node
+    includeNames: /^sentry-node-\d.*\.tgz$/
+
+  ## 3 Browser-based Packages
+  - name: npm
+    id: npm:@sentry/angular-ivy
+    includeNames: /^sentry-angular-ivy-\d.*\.tgz$/
+  - name: npm
+    id: npm:@sentry/angular
+    includeNames: /^sentry-angular-\d.*\.tgz$/
+  - name: npm
+    id: npm:@sentry/ember
+    includeNames: /^sentry-ember-\d.*\.tgz$/
+  - name: npm
+    id: npm:@sentry/react
+    includeNames: /^sentry-react-\d.*\.tgz$/
+  - name: npm
+    id: npm:@sentry/svelte
+    includeNames: /^sentry-svelte-\d.*\.tgz$/
+  - name: npm
+    id: npm:@sentry/vue
+    includeNames: /^sentry-vue-\d.*\.tgz$/
+  - name: npm
+    id: npm:@sentry/wasm
+    includeNames: /^sentry-wasm-\d.*\.tgz$/
+  - name: npm
+    id: npm:@sentry/integrations
+    includeNames: /^sentry-integrations-\d.*\.tgz$/
+
+  ## 4. Node-based Packages
+  - name: npm
+    id: npm:@sentry/serverless
+    includeNames: /^sentry-serverless-\d.*\.tgz$/
+  - name: npm
+    id: npm@sentry/opentelemetry-node
+    includeNames: /^sentry-opentelemetry-node-\d.*\.tgz$/
+
+  ## 5. Fullstack/Meta Frameworks (depending on Node and Browser or Framework SDKs)
+  - name: npm
+    id: npm@sentry/nextjs
+    includeNames: /^sentry-nextjs-\d.*\.tgz$/
+  - name: npm
+    id: npm@sentry/remix
+    includeNames: /^sentry-remix-\d.*\.tgz$/
+  - name: npm
+    id: npm@sentry/sveltekit
+    includeNames: /^sentry-sveltekit-\d.*\.tgz$/
+  - name: npm
+    id: npm@sentry/gatsby
+    includeNames: /^sentry-gatsby-\d.*\.tgz$/
+
+  ## 6. Other Packages
+  ## 6.1
+  - name: npm
+    id: npm@sentry-internal/typescript
+    includeNames: /^sentry-internal-typescript-\d.*\.tgz$/
+  - name: npm
+    id: npm@sentry-internal/eslint-plugin-sdk
+    includeNames: /^sentry-internal-eslint-plugin-sdk-\d.*\.tgz$/
+  ## 6.2
+  - name: npm
+    id: npm@sentry-internal/eslint-config-sdk
+    includeNames: /^sentry-internal-eslint-config-sdk-\d.*\.tgz$/
+
+  ## 7. Deprecated packages we still release (but no packages depend on them anymore)
+  - name: npm
+    id: npm:@sentry/hub
+    includeNames: /^sentry-hub-\d.*\.tgz$/
+  - name: npm
+    id: npm:@sentry/tracing
+    includeNames: /^sentry-tracing-\d.*\.tgz$/
+
+  # AWS Lambda Layer target
   - name: aws-lambda-layer
     includeNames: /^sentry-node-serverless-\d+.\d+.\d+(-(beta|alpha)\.\d+)?\.zip$/
     layerName: SentryNodeServerlessSDK
@@ -14,6 +115,8 @@ targets:
           - nodejs16.x
           - nodejs18.x
     license: MIT
+
+  # CDN Bundle Target
   - name: gcs
     includeNames: /.*\.js.*$/
     bucket: sentry-js-sdk
@@ -21,9 +124,12 @@ targets:
       - path: /{{version}}/
         metadata:
           cacheControl: 'public, max-age=31536000'
+
+  # Github Release Target
   - name: github
     includeNames: /^sentry-.*$/
-  - name: npm
+
+  # Sentry Release Registry Target
   - name: registry
     sdks:
       'npm:@sentry/browser':
