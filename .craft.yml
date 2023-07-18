@@ -6,100 +6,100 @@ targets:
   ## 1. Base Packages, node or browser SDKs depend on
   ## 1.1 Types
   - name: npm
-    id: npm:@sentry/types
+    id: "@sentry/types"
     includeNames: /^sentry-types-\d.*\.tgz$/
   ## 1.2 Utils
   - name: npm
-    id: npm:@sentry/utils
+    id: "@sentry/utils"
     includeNames: /^sentry-utils-\d.*\.tgz$/
   ## 1.3 Core SDK
   - name: npm
-    id: npm:@sentry/core
+    id: "@sentry/core"
     includeNames: /^sentry-core-\d.*\.tgz$/
   ## 1.4 Tracing package
   - name: npm
-    id: npm:@sentry-internal/tracing
+    id: "@sentry-internal/tracing"
     includeNames: /^sentry-internal-tracing-\d.*\.tgz$/
   ## 1.5 Replay package (browser only)
   - name: npm
-    id: npm:@sentry/replay
+    id: "@sentry/replay"
     includeNames: /^sentry-replay-\d.*\.tgz$/
 
   ## 2. Browser & Node SDKs
   - name: npm
-    id: npm:@sentry/browser
+    id: "@sentry/browser"
     includeNames: /^sentry-browser-\d.*\.tgz$/
   - name: npm
-    id: npm:@sentry/node
+    id: "@sentry/node"
     includeNames: /^sentry-node-\d.*\.tgz$/
 
   ## 3 Browser-based Packages
   - name: npm
-    id: npm:@sentry/angular-ivy
+    id: "@sentry/angular-ivy"
     includeNames: /^sentry-angular-ivy-\d.*\.tgz$/
   - name: npm
-    id: npm:@sentry/angular
+    id: "@sentry/angular"
     includeNames: /^sentry-angular-\d.*\.tgz$/
   - name: npm
-    id: npm:@sentry/ember
+    id: "@sentry/ember"
     includeNames: /^sentry-ember-\d.*\.tgz$/
   - name: npm
-    id: npm:@sentry/react
+    id: "@sentry/react"
     includeNames: /^sentry-react-\d.*\.tgz$/
   - name: npm
-    id: npm:@sentry/svelte
+    id: "@sentry/svelte"
     includeNames: /^sentry-svelte-\d.*\.tgz$/
   - name: npm
-    id: npm:@sentry/vue
+    id: "@sentry/vue"
     includeNames: /^sentry-vue-\d.*\.tgz$/
   - name: npm
-    id: npm:@sentry/wasm
+    id: "@sentry/wasm"
     includeNames: /^sentry-wasm-\d.*\.tgz$/
   - name: npm
-    id: npm:@sentry/integrations
+    id: "@sentry/integrations"
     includeNames: /^sentry-integrations-\d.*\.tgz$/
 
   ## 4. Node-based Packages
   - name: npm
-    id: npm:@sentry/serverless
+    id: "@sentry/serverless"
     includeNames: /^sentry-serverless-\d.*\.tgz$/
   - name: npm
-    id: npm@sentry/opentelemetry-node
+    id: "@sentry/opentelemetry-node"
     includeNames: /^sentry-opentelemetry-node-\d.*\.tgz$/
 
   ## 5. Fullstack/Meta Frameworks (depending on Node and Browser or Framework SDKs)
   - name: npm
-    id: npm@sentry/nextjs
+    id: "@sentry/nextjs"
     includeNames: /^sentry-nextjs-\d.*\.tgz$/
   - name: npm
-    id: npm@sentry/remix
+    id: "@sentry/remix"
     includeNames: /^sentry-remix-\d.*\.tgz$/
   - name: npm
-    id: npm@sentry/sveltekit
+    id: "@sentry/sveltekit"
     includeNames: /^sentry-sveltekit-\d.*\.tgz$/
   - name: npm
-    id: npm@sentry/gatsby
+    id: "@sentry/gatsby"
     includeNames: /^sentry-gatsby-\d.*\.tgz$/
 
   ## 6. Other Packages
   ## 6.1
   - name: npm
-    id: npm@sentry-internal/typescript
+    id: "@sentry-internal/typescript"
     includeNames: /^sentry-internal-typescript-\d.*\.tgz$/
   - name: npm
-    id: npm@sentry-internal/eslint-plugin-sdk
+    id: "@sentry-internal/eslint-plugin-sdk"
     includeNames: /^sentry-internal-eslint-plugin-sdk-\d.*\.tgz$/
   ## 6.2
   - name: npm
-    id: npm@sentry-internal/eslint-config-sdk
+    id: "@sentry-internal/eslint-config-sdk"
     includeNames: /^sentry-internal-eslint-config-sdk-\d.*\.tgz$/
 
   ## 7. Deprecated packages we still release (but no packages depend on them anymore)
   - name: npm
-    id: npm:@sentry/hub
+    id: "@sentry/hub"
     includeNames: /^sentry-hub-\d.*\.tgz$/
   - name: npm
-    id: npm:@sentry/tracing
+    id: "@sentry/tracing"
     includeNames: /^sentry-tracing-\d.*\.tgz$/
 
   # AWS Lambda Layer target
@@ -118,6 +118,7 @@ targets:
 
   # CDN Bundle Target
   - name: gcs
+    id: "browser-cdn-bundles"
     includeNames: /.*\.js.*$/
     bucket: sentry-js-sdk
     paths:
