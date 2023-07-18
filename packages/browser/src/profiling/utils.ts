@@ -249,7 +249,7 @@ export function convertJSSelfProfileToSampledFormat(input: JSSelfProfile): Profi
       if (profile.frames[stackTop.frameId] === undefined) {
         profile.frames[stackTop.frameId] = {
           function: frame.name,
-          file: frame.resourceId ? input.resources[frame.resourceId] : undefined,
+          file: typeof frame.resourceId === 'number' ? input.resources[frame.resourceId] : undefined,
           line: frame.line,
           column: frame.column,
         };
