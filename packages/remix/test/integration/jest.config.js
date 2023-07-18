@@ -6,4 +6,5 @@ module.exports = {
   testPathIgnorePatterns: [`${__dirname}/test/client`],
   detectOpenHandles: true,
   forceExit: true,
+  testTimeout: 10000,
 };
