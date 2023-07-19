@@ -326,6 +326,10 @@ export class TestEnv {
           this.server.closeAllConnections();
         }
 
+        if (this.server.listening) {
+          this.server.unref();
+        }
+
         resolve();
       });
     });
