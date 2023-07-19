@@ -1,6 +1,6 @@
 {
   "name": "@sentry-internal/eslint-plugin-sdk",
-  "version": "7.59.2",
+  "version": "7.59.3",
   "description": "Official Sentry SDK eslint plugin",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/eslint-plugin-sdk",
