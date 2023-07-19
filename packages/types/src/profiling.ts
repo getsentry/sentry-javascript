@@ -14,8 +14,9 @@ export type ThreadCpuStack = FrameId[];
 export type ThreadCpuFrame = {
   function: string;
   file?: string;
-  line?: number;
-  column?: number;
+  lineno?: number;
+  colno?: number;
+  abs_path?: string;
 };
 
 export interface ThreadCpuProfile {

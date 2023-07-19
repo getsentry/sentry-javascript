@@ -326,6 +326,7 @@ describe('makeOfflineTransport', () => {
     expect(getCalls()).toEqual([]);
   });
 
+  // eslint-disable-next-line jest/no-disabled-tests
   it.skip(
     'Follows the Retry-After header',
     async () => {

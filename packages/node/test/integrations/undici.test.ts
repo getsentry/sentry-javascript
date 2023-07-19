@@ -194,6 +194,7 @@ conditionalTest({ min: 16 })('Undici integration', () => {
   });
 
   // This flakes on CI for some reason: https://github.com/getsentry/sentry-javascript/pull/8449
+  // eslint-disable-next-line jest/no-disabled-tests
   it.skip('attaches the sentry trace and baggage headers if there is an active span', async () => {
     expect.assertions(3);
 
@@ -214,6 +215,7 @@ conditionalTest({ min: 16 })('Undici integration', () => {
   });
 
   // This flakes on CI for some reason: https://github.com/getsentry/sentry-javascript/pull/8449
+  // eslint-disable-next-line jest/no-disabled-tests
   it.skip('attaches the sentry trace and baggage headers if there is no active span', async () => {
     const scope = hub.getScope();
 
@@ -228,6 +230,7 @@ conditionalTest({ min: 16 })('Undici integration', () => {
   });
 
   // This flakes on CI for some reason: https://github.com/getsentry/sentry-javascript/pull/8449
+  // eslint-disable-next-line jest/no-disabled-tests
   it.skip('attaches headers if `shouldCreateSpanForRequest` does not create a span using propagation context', async () => {
     const transaction = hub.startTransaction({ name: 'test-transaction' }) as Transaction;
     const scope = hub.getScope();
@@ -259,6 +262,7 @@ conditionalTest({ min: 16 })('Undici integration', () => {
   });
 
   // This flakes on CI for some reason: https://github.com/getsentry/sentry-javascript/pull/8449
+  // eslint-disable-next-line jest/no-disabled-tests
   it.skip('uses tracePropagationTargets', async () => {
     const transaction = hub.startTransaction({ name: 'test-transaction' }) as Transaction;
     hub.getScope().setSpan(transaction);

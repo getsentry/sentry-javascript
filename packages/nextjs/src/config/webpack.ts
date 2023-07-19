@@ -2,6 +2,7 @@
 /* eslint-disable max-lines */
 import { getSentryRelease } from '@sentry/node';
 import { arrayify, dropUndefinedKeys, escapeStringForRegex, loadModule, logger } from '@sentry/utils';
+import type SentryCliPlugin from '@sentry/webpack-plugin';
 import * as chalk from 'chalk';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -312,15 +313,16 @@ export function constructWebpackConfigFunction(
         // without, the option to use `hidden-source-map` only applies to the client-side build.
         newConfig.devtool = userSentryOptions.hideSourceMaps && !isServer ? 'hidden-source-map' : 'source-map';
 
-        const SentryWebpackPlugin = loadModule('@sentry/webpack-plugin');
-
-        newConfig.plugins = newConfig.plugins || [];
-        newConfig.plugins.push(
-          // @ts-expect-error - this exists, the dynamic import just doesn't know about it
-          new SentryWebpackPlugin(
-            getWebpackPluginOptions(buildContext, userSentryWebpackPluginOptions, userSentryOptions),
-          ),
-        );
+        const SentryWebpackPlugin = loadModule<SentryCliPlugin>('@sentry/webpack-plugin');
+        if (SentryWebpackPlugin) {
+          newConfig.plugins = newConfig.plugins || [];
+          newConfig.plugins.push(
+            // @ts-expect-error - this exists, the dynamic import just doesn't know about it
+            new SentryWebpackPlugin(
+              getWebpackPluginOptions(buildContext, userSentryWebpackPluginOptions, userSentryOptions),
+            ),
+          );
+        }
       }
     }
 
@@ -769,10 +771,10 @@ function shouldEnableWebpackPlugin(buildContext: BuildContext, userSentryOptions
   // architecture-specific version of the `sentry-cli` binary. If `yarn install`, `npm install`, or `npm ci` are run
   // with the `--ignore-scripts` option, this will be blocked and the missing binary will cause an error when users
   // try to build their apps.
-  const SentryWebpackPlugin = loadModule('@sentry/webpack-plugin');
+  const SentryWebpackPlugin = loadModule<SentryCliPlugin>('@sentry/webpack-plugin');
 
   // @ts-expect-error - this exists, the dynamic import just doesn't know it
-  if (!SentryWebpackPlugin.cliBinaryExists()) {
+  if (!SentryWebpackPlugin || !SentryWebpackPlugin.cliBinaryExists()) {
     // eslint-disable-next-line no-console
     console.error(
       `${chalk.red('error')} - ${chalk.bold('Sentry CLI binary not found.')} Source maps will not be uploaded.\n`,

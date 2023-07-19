@@ -115,5 +115,5 @@ export type { WrappedFunction } from './wrappedfunction';
 export type { Instrumenter } from './instrumenter';
 export type { HandlerDataFetch, HandlerDataXhr, SentryXhrData, SentryWrappedXMLHttpRequest } from './instrument';
 
-export type { BrowserClientReplayOptions } from './browseroptions';
+export type { BrowserClientReplayOptions, BrowserClientProfilingOptions } from './browseroptions';
 export type { CheckIn, MonitorConfig, SerializedCheckIn } from './checkin';
