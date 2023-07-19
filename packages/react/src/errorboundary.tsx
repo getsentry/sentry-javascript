@@ -67,7 +67,7 @@ const INITIAL_STATE = {
   eventId: null,
 };
 
-function setCause(error: Error & { cause?: Error }, cause: Error): void {
+export function setCause(error: Error & { cause?: Error }, cause: Error): void {
   const seenErrors = new WeakMap<Error, boolean>();
 
   function recurse(error: Error & { cause?: Error }, cause: Error): void {

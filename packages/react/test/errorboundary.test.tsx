@@ -4,7 +4,7 @@ import * as React from 'react';
 import { useState } from 'react';
 
 import type { ErrorBoundaryProps } from '../src/errorboundary';
-import { ErrorBoundary, isAtLeastReact17, UNKNOWN_COMPONENT, withErrorBoundary } from '../src/errorboundary';
+import { ErrorBoundary, isAtLeastReact17, setCause, UNKNOWN_COMPONENT, withErrorBoundary } from '../src/errorboundary';
 
 const mockCaptureException = jest.fn();
 const mockShowReportDialog = jest.fn();
@@ -382,15 +382,14 @@ describe('ErrorBoundary', () => {
       expect(cause.name).not.toContain('React ErrorBoundary');
     });
 
-    it('should truncate cause.message to 250 characters', () => {
+    it('should truncate cause.message to maxLengthValue = 250 ', () => {
       const mockOnError = jest.fn();
 
       function CustomBam(): JSX.Element {
-        const error = new Error('bam');
-        // The cause message with 610 characters
+        const error = new Error('Error example');
+        // The cause message with 620 characters
         const cause = new Error('This is a very long cause message that exceeds 250 characters '.repeat(10));
-        // @ts-ignore Need to set cause on error
-        error.cause = cause;
+        setCause(error, cause);
         throw error;
       }
 
@@ -415,8 +414,8 @@ describe('ErrorBoundary', () => {
 
       const error = mockCaptureException.mock.calls[0][0];
       const cause = error.cause;
-      // We need to make sure that the length of the cause message is 250
-      expect(cause.message).toHaveLength(250);
+      // We need to make sure that the length of the cause message is 253 (3 characters of etc sign (...) in the truncate function)
+      expect(cause.message).toHaveLength(253);
     });
 
     it('calls `beforeCapture()` when an error occurs', () => {
