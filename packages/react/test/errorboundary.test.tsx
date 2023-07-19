@@ -382,6 +382,43 @@ describe('ErrorBoundary', () => {
       expect(cause.name).not.toContain('React ErrorBoundary');
     });
 
+    it('should truncate cause.message to 250 characters', () => {
+      const mockOnError = jest.fn();
+
+      function CustomBam(): JSX.Element {
+        const error = new Error('bam');
+        // The cause message with 610 characters
+        const cause = new Error('This is a very long cause message that exceeds 250 characters '.repeat(10));
+        // @ts-ignore Need to set cause on error
+        error.cause = cause;
+        throw error;
+      }
+
+      render(
+        <TestApp fallback={<p>You have hit an error</p>} onError={mockOnError} errorComp={<CustomBam />}>
+          <h1>children</h1>
+        </TestApp>,
+      );
+
+      expect(mockOnError).toHaveBeenCalledTimes(0);
+      expect(mockCaptureException).toHaveBeenCalledTimes(0);
+
+      const btn = screen.getByTestId('errorBtn');
+      fireEvent.click(btn);
+
+      expect(mockCaptureException).toHaveBeenCalledTimes(1);
+      expect(mockCaptureException).toHaveBeenLastCalledWith(expect.any(Error), {
+        contexts: { react: { componentStack: expect.any(String) } },
+      });
+
+      expect(mockOnError.mock.calls[0][0]).toEqual(mockCaptureException.mock.calls[0][0]);
+
+      const error = mockCaptureException.mock.calls[0][0];
+      const cause = error.cause;
+      // We need to make sure that the length of the cause message is 250
+      expect(cause.message).toHaveLength(250);
+    });
+
     it('calls `beforeCapture()` when an error occurs', () => {
       const mockBeforeCapture = jest.fn();
 

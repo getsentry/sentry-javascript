@@ -1,6 +1,6 @@
 import type { ReportDialogOptions, Scope } from '@sentry/browser';
 import { captureException, getCurrentHub, showReportDialog, withScope } from '@sentry/browser';
-import { isError, logger } from '@sentry/utils';
+import { isError, logger, truncate } from '@sentry/utils';
 import hoistNonReactStatics from 'hoist-non-react-statics';
 import * as React from 'react';
 
@@ -10,6 +10,7 @@ export function isAtLeastReact17(version: string): boolean {
 }
 
 export const UNKNOWN_COMPONENT = 'unknown';
+const MAX_VALUE_LENGTH = 250;
 
 export type FallbackRender = (errorData: {
   error: Error;
@@ -79,6 +80,7 @@ function setCause(error: Error & { cause?: Error }, cause: Error): void {
       seenErrors.set(error, true);
       return recurse(error.cause, cause);
     }
+    cause.message = truncate(cause.message, MAX_VALUE_LENGTH);
     error.cause = cause;
   }
 
