@@ -1,6 +1,6 @@
 import { REPLAY_MAX_EVENT_BUFFER_SIZE } from '../constants';
 import type { AddEventResult, EventBuffer, EventBufferType, RecordingEvent } from '../types';
-import { timestampToMs } from '../util/timestampToMs';
+import { timestampToMs } from '../util/timestamp';
 import { EventBufferSizeExceededError } from './error';
 
 /**

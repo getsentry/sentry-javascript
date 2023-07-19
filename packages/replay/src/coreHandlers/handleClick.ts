@@ -2,6 +2,7 @@ import type { Breadcrumb } from '@sentry/types';
 
 import { WINDOW } from '../constants';
 import type { MultiClickFrame, ReplayClickDetector, ReplayContainer, SlowClickConfig, SlowClickFrame } from '../types';
+import { timestampToS } from '../util/timestamp';
 import { addBreadcrumbEvent } from './util/addBreadcrumbEvent';
 import { getClickTargetNode } from './util/domUtils';
 import { onWindowOpen } from './util/onWindowOpen';
@@ -125,7 +126,7 @@ export class ClickDetector implements ReplayClickDetector {
     }
 
     const newClick: Click = {
-      timestamp: breadcrumb.timestamp,
+      timestamp: timestampToS(breadcrumb.timestamp),
       clickBreadcrumb: breadcrumb,
       // Set this to 0 so we know it originates from the click breadcrumb
       clickCount: 0,
@@ -165,6 +166,7 @@ export class ClickDetector implements ReplayClickDetector {
         click.scrollAfter = click.timestamp <= this._lastScroll ? this._lastScroll - click.timestamp : undefined;
       }
 
+      // All of these are in seconds!
       if (click.timestamp + this._timeout <= now) {
         timedOutClicks.push(click);
       }
@@ -172,10 +174,10 @@ export class ClickDetector implements ReplayClickDetector {
 
     // Remove "old" clicks
     for (const click of timedOutClicks) {
-      this._generateBreadcrumbs(click);
-
       const pos = this._clicks.indexOf(click);
-      if (pos !== -1) {
+
+      if (pos > -1) {
+        this._generateBreadcrumbs(click);
         this._clicks.splice(pos, 1);
       }
     }
