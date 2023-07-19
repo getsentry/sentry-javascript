@@ -57,6 +57,7 @@ export class LinkedErrors implements Integration {
       applyAggregateErrorsToEvent(
         exceptionFromError,
         client.getOptions().stackParser,
+        client.getOptions().maxValueLength,
         self._key,
         self._limit,
         event,
