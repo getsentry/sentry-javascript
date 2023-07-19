@@ -76,7 +76,7 @@
     "test:integration:clean": "(cd test/integration && rimraf .cache node_modules build)",
     "test:integration:client": "yarn playwright install-deps && yarn playwright test test/integration/test/client/",
     "test:integration:client:ci": "yarn test:integration:client --browser='all' --reporter='line'",
-    "test:integration:server": "export NODE_OPTIONS='--stack-trace-limit=25' && jest --config=test/integration/jest.config.js test/integration/test/server/",
+    "test:integration:server": "export NODE_OPTIONS='--stack-trace-limit=25' && jest --runInBand --config=test/integration/jest.config.js test/integration/test/server/",
     "test:unit": "jest",
     "test:watch": "jest --watch",
     "yalc:publish": "ts-node ../../scripts/prepack.ts && yalc publish build --push"
