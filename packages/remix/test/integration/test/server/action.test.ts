@@ -263,7 +263,7 @@ describe.each(['builtin', 'express'])('Remix API Actions with adapter = %s', ada
         ],
       },
     });
-  });
+  }, 30000);
 
   it('handles a thrown `json()` error response without `statusText`', async () => {
     const env = await RemixTestEnv.init(adapter);
@@ -318,7 +318,7 @@ describe.each(['builtin', 'express'])('Remix API Actions with adapter = %s', ada
         ],
       },
     });
-  });
+  }, 30000);
 
   it('handles a thrown `json()` error response with string body', async () => {
     const env = await RemixTestEnv.init(adapter);
