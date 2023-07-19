@@ -1,6 +1,7 @@
 import type { Scope } from '@sentry/core';
 import { BaseClient, SDK_VERSION } from '@sentry/core';
 import type {
+  BrowserClientProfilingOptions,
   BrowserClientReplayOptions,
   ClientOptions,
   Event,
@@ -23,7 +24,9 @@ import { createUserFeedbackEnvelope } from './userfeedback';
  * Configuration options for the Sentry Browser SDK.
  * @see @sentry/types Options for more information.
  */
-export type BrowserOptions = Options<BrowserTransportOptions> & BrowserClientReplayOptions;
+export type BrowserOptions = Options<BrowserTransportOptions> &
+  BrowserClientReplayOptions &
+  BrowserClientProfilingOptions;
 
 /**
  * Configuration options for the Sentry Browser SDK Client class

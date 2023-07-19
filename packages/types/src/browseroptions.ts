@@ -16,3 +16,11 @@ export type BrowserClientReplayOptions = {
    */
   replaysOnErrorSampleRate?: number;
 };
+
+export type BrowserClientProfilingOptions = {
+  /**
+   * The sample rate for profiling
+   * 1.0 will profile all transactions and 0 will profile none.
+   */
+  profilesSampleRate?: number;
+};
