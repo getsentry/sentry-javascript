@@ -389,6 +389,12 @@ export class ReplayContainer implements ReplayContainerInterface {
 
     // Re-start recording, but in "session" recording mode
 
+    // When `traceInternals` is enabled, we want to log this to the console
+    // Else, use the regular debug output
+    // eslint-disable-next-line
+    const log = this.getOptions()._experiments.traceInternals ? console.warn : logger.log;
+    log('[Replay] An error was detected in buffer mode, starting to send replay...');
+
     // Reset all "capture on error" configuration before
     // starting a new recording
     this.recordingMode = 'session';
@@ -639,6 +645,11 @@ export class ReplayContainer implements ReplayContainerInterface {
     }
 
     void this.stop('session expired with refreshing').then(() => {
+      // Just to double-check we haven't started anywhere else
+      if (this.isEnabled()) {
+        return;
+      }
+
       if (sampled === 'session') {
         return this.start();
       }
@@ -947,6 +958,17 @@ export class ReplayContainer implements ReplayContainerInterface {
       return;
     }
 
+    // Unless force is true (which is the case when stop() is called),
+    // _flush should never be called when not in session mode
+    // Apart from `stop()`, only debounced flush triggers `_flush()`, which shouldn't happen
+    if (this.recordingMode !== 'session' && !force) {
+      // When `traceInternals` is enabled, we want to log this to the console
+      // Else, use the regular debug output
+      // eslint-disable-next-line
+      const log = this.getOptions()._experiments.traceInternals ? console.warn : logger.warn;
+      log('[Replay] Flushing replay while not in session mode.');
+    }
+
     return new Promise(resolve => {
       if (!this.session) {
         resolve();
@@ -959,7 +981,9 @@ export class ReplayContainer implements ReplayContainerInterface {
         },
         ensureResumed: () => this.resume(),
         onEnd: () => {
-          __DEBUG_BUILD__ && logger.error('[Replay] Attempting to finish replay event after session expired.');
+          if (!force) {
+            __DEBUG_BUILD__ && logger.warn('[Replay] Attempting to finish replay event after session expired.');
+          }
           this._refreshSession();
           resolve();
         },
