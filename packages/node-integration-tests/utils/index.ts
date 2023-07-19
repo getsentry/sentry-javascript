@@ -255,9 +255,17 @@ export class TestEnv {
               // Ex: Remix scope bleed tests.
               nock.cleanAll();
 
-              void this._closeServer().then(() => {
-                resolve(envelopes);
-              });
+              // Abort all pending requests to nock to prevent hanging / flakes.
+              // See: https://github.com/nock/nock/issues/1118#issuecomment-544126948
+              nock.abortPendingRequests();
+
+              this._closeServer()
+                .catch(e => {
+                  logger.warn(e);
+                })
+                .finally(() => {
+                  resolve(envelopes);
+                });
             } else {
               resolve(envelopes);
             }
