@@ -4,6 +4,12 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.59.3
+
+- fix(browser): 0 is a valid index (#8581)
+- fix(nextjs): Ensure Webpack plugin is available after dynamic require (#8584)
+- types(browser): Add browser profiling client options (#8565)
+
 ## 7.59.2
 
 No changes. This release was published to fix publishing issues with 7.59.0 and 7.59.1.
