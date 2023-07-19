@@ -12,7 +12,7 @@
     "test:dev": "TEST_ENV=development playwright test"
   },
   "dependencies": {
-    "@sentry/sveltekit": "*"
+    "@sentry/sveltekit": "latest || *"
   },
   "devDependencies": {
     "@playwright/test": "^1.27.1",
@@ -29,8 +29,8 @@
   },
   "pnpm": {
     "overrides": {
-      "@sentry/node": "*",
-      "@sentry/tracing": "*"
+      "@sentry/node": "latest || *",
+      "@sentry/tracing": "latest || *"
     }
   },
   "type": "module"

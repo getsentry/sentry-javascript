@@ -16,7 +16,7 @@
   "canaryVersions": [
     {
       "dependencyOverrides": {
-        "next": "latest"
+        "next": "latest || *"
       }
     },
     {
