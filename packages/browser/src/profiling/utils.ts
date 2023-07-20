@@ -5,6 +5,7 @@ import type { DebugImage, Envelope, Event, StackFrame, StackParser } from '@sent
 import type { Profile, ThreadCpuProfile } from '@sentry/types/src/profiling';
 import { forEachEnvelopeItem, GLOBAL_OBJ, logger, uuid4 } from '@sentry/utils';
 
+import { browserPerformanceTimeOrigin } from '../../../utils/src/time';
 import { WINDOW } from '../helpers';
 import type { JSSelfProfile, JSSelfProfileStack } from './jsSelfProfiling';
 
@@ -213,6 +214,11 @@ export function convertJSSelfProfileToSampledFormat(input: JSSelfProfile): Profi
 
   // We assert samples.length > 0 above and timestamp should always be present
   const start = input.samples[0].timestamp;
+  // The JS SDK might change it's time origin based on some heuristic (see See packages/utils/src/time.ts)
+  // when that happens, we need to ensure we are correcting the profile timings so the two timelines stay in sync.
+  // Since JS self profiling time origin is always initialized to performance.timeOrigin, we need to adjust for
+  // the drift between the SDK selected value and our profile time origin.
+  const adjustForOriginChange = performance.timeOrigin - (browserPerformanceTimeOrigin || performance.timeOrigin);
 
   for (let i = 0; i < input.samples.length; i++) {
     const jsSample = input.samples[i];
@@ -227,7 +233,7 @@ export function convertJSSelfProfileToSampledFormat(input: JSSelfProfile): Profi
 
       profile['samples'][i] = {
         // convert ms timestamp to ns
-        elapsed_since_start_ns: ((jsSample.timestamp - start) * MS_TO_NS).toFixed(0),
+        elapsed_since_start_ns: ((jsSample.timestamp + adjustForOriginChange - start) * MS_TO_NS).toFixed(0),
         stack_id: EMPTY_STACK_ID,
         thread_id: THREAD_ID_STRING,
       };
@@ -260,7 +266,7 @@ export function convertJSSelfProfileToSampledFormat(input: JSSelfProfile): Profi
 
     const sample: Profile['profile']['samples'][0] = {
       // convert ms timestamp to ns
-      elapsed_since_start_ns: ((jsSample.timestamp - start) * MS_TO_NS).toFixed(0),
+      elapsed_since_start_ns: ((jsSample.timestamp + adjustForOriginChange - start) * MS_TO_NS).toFixed(0),
       stack_id: STACK_ID,
       thread_id: THREAD_ID_STRING,
     };
