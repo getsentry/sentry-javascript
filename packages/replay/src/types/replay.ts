@@ -181,6 +181,13 @@ export interface ReplayPluginOptions extends ReplayNetworkOptions {
   slowClickIgnoreSelectors: string[];
 
   /**
+   * The min. duration (in ms) a replay has to have before it is sent to Sentry.
+   * Whenever attempting to flush a session that is shorter than this, it will not actually send it to Sentry.
+   * Note that this is capped at max. 15s.
+   */
+  minReplayDuration: number;
+
+  /**
    * Callback before adding a custom recording event
    *
    * Events added by the underlying DOM recording library can *not* be modified,

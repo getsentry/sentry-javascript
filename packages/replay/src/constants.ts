@@ -45,3 +45,8 @@ export const SLOW_CLICK_SCROLL_TIMEOUT = 300;
 
 /** When encountering a total segment size exceeding this size, stop the replay (as we cannot properly ingest it). */
 export const REPLAY_MAX_EVENT_BUFFER_SIZE = 20_000_000; // ~20MB
+
+/** Replays must be min. 5s long before we send them. */
+export const MIN_REPLAY_DURATION = 4_999;
+/* The max. allowed value that the minReplayDuration can be set to. */
+export const MIN_REPLAY_DURATION_LIMIT = 15_000;

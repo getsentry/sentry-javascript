@@ -76,6 +76,7 @@ export async function mockSdk({ replayOptions, sentryOptions, autoStart = true }
 
   const replayIntegration = new TestReplayIntegration({
     stickySession: false,
+    minReplayDuration: 0,
     ...replayOptions,
   });
 

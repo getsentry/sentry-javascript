@@ -82,6 +82,10 @@ describe('Integration | flush', () => {
     mockRunFlush.mockClear();
     mockAddMemoryEntry.mockClear();
 
+    sessionStorage.clear();
+    clearSession(replay);
+    replay['_loadAndCheckSession']();
+
     if (replay.eventBuffer) {
       jest.spyOn(replay.eventBuffer, 'finish');
     }
@@ -93,9 +97,6 @@ describe('Integration | flush', () => {
     jest.runAllTimers();
     await new Promise(process.nextTick);
     jest.setSystemTime(new Date(BASE_TIMESTAMP));
-    sessionStorage.clear();
-    clearSession(replay);
-    replay['_loadAndCheckSession']();
     mockRecord.takeFullSnapshot.mockClear();
     Object.defineProperty(WINDOW, 'location', {
       value: prevLocation,
@@ -257,5 +258,51 @@ describe('Integration | flush', () => {
     // Make sure there's nothing queued up after
     await advanceTimers(DEFAULT_FLUSH_MIN_DELAY);
     expect(mockFlush).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not flush if session is too short', async () => {
+    replay.getOptions().minReplayDuration = 100_000;
+
+    sessionStorage.clear();
+    clearSession(replay);
+    replay['_loadAndCheckSession']();
+
+    // click happens first
+    domHandler({
+      name: 'click',
+    });
+
+    // checkout
+    const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 2 };
+    mockRecord._emitter(TEST_EVENT);
+
+    await advanceTimers(DEFAULT_FLUSH_MIN_DELAY);
+
+    expect(mockFlush).toHaveBeenCalledTimes(1);
+    expect(mockSendReplay).toHaveBeenCalledTimes(0);
+  });
+
+  it('does not flush if session is too long', async () => {
+    replay.timeouts.maxSessionLife = 100_000;
+    jest.setSystemTime(new Date(BASE_TIMESTAMP));
+
+    sessionStorage.clear();
+    clearSession(replay);
+    replay['_loadAndCheckSession']();
+
+    await advanceTimers(120_000);
+
+    // click happens first
+    domHandler({
+      name: 'click',
+    });
+
+    // checkout
+    const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 2 };
+    mockRecord._emitter(TEST_EVENT);
+
+    await advanceTimers(DEFAULT_FLUSH_MIN_DELAY);
+    expect(mockFlush).toHaveBeenCalledTimes(1);
+    expect(mockSendReplay).toHaveBeenCalledTimes(0);
   });
 });
