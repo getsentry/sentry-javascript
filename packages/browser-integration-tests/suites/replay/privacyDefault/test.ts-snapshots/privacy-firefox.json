@@ -62,7 +62,7 @@
                   "type": 2,
                   "tagName": "button",
                   "attributes": {
-                    "aria-label": "***** **",
+                    "aria-label": "Click me",
                     "onclick": "console.log('Test log')"
                   },
                   "childNodes": [
@@ -171,45 +171,17 @@
                   "type": 2,
                   "tagName": "svg",
                   "attributes": {
-                    "style": "width:200px;height:200px",
-                    "viewBox": "0 0 80 80",
-                    "data-sentry-unblock": ""
+                    "rr_width": "[200-250]px",
+                    "rr_height": "[200-250]px"
                   },
-                  "childNodes": [
-                    {
-                      "type": 2,
-                      "tagName": "path",
-                      "attributes": {
-                        "d": ""
-                      },
-                      "childNodes": [],
-                      "isSVG": true,
-                      "id": 27
-                    },
-                    {
-                      "type": 2,
-                      "tagName": "area",
-                      "attributes": {},
-                      "childNodes": [],
-                      "isSVG": true,
-                      "id": 28
-                    },
-                    {
-                      "type": 2,
-                      "tagName": "rect",
-                      "attributes": {},
-                      "childNodes": [],
-                      "isSVG": true,
-                      "id": 29
-                    }
-                  ],
+                  "childNodes": [],
                   "isSVG": true,
                   "id": 26
                 },
                 {
                   "type": 3,
                   "textContent": "\n    ",
-                  "id": 30
+                  "id": 27
                 },
                 {
                   "type": 2,
@@ -219,28 +191,27 @@
                     "rr_height": "[100-150]px"
                   },
                   "childNodes": [],
-                  "id": 31
+                  "id": 28
                 },
                 {
                   "type": 3,
                   "textContent": "\n    ",
-                  "id": 32
+                  "id": 29
                 },
                 {
                   "type": 2,
                   "tagName": "img",
                   "attributes": {
-                    "data-sentry-unblock": "",
-                    "style": "width:100px;height:100px",
-                    "src": "file:///none.png"
+                    "rr_width": "[100-150]px",
+                    "rr_height": "[100-150]px"
                   },
                   "childNodes": [],
-                  "id": 33
+                  "id": 30
                 },
                 {
                   "type": 3,
                   "textContent": "\n    ",
-                  "id": 34
+                  "id": 31
                 },
                 {
                   "type": 2,
@@ -250,17 +221,17 @@
                     "rr_height": "[0-50]px"
                   },
                   "childNodes": [],
-                  "id": 35
+                  "id": 32
                 },
                 {
                   "type": 3,
                   "textContent": "\n  ",
-                  "id": 36
+                  "id": 33
                 },
                 {
                   "type": 3,
                   "textContent": "\n\n",
-                  "id": 37
+                  "id": 34
                 }
               ],
               "id": 8

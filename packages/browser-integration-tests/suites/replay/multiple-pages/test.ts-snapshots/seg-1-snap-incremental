@@ -5,8 +5,8 @@
       "source": 2,
       "type": 1,
       "id": 9,
-      "x": 41,
-      "y": 18
+      "x": 41.810001373291016,
+      "y": 18.479999542236328
     },
     "timestamp": [timestamp]
   },
@@ -25,8 +25,8 @@
       "source": 2,
       "type": 0,
       "id": 9,
-      "x": 41,
-      "y": 18
+      "x": 41.810001373291016,
+      "y": 18.479999542236328
     },
     "timestamp": [timestamp]
   },
@@ -37,7 +37,8 @@
       "type": 2,
       "id": 9,
       "x": 41,
-      "y": 18
+      "y": 18,
+      "pointerType": 0
     },
     "timestamp": [timestamp]
   }
