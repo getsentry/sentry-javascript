@@ -3,9 +3,8 @@
 import { DEFAULT_ENVIRONMENT, getCurrentHub } from '@sentry/core';
 import type { DebugImage, Envelope, Event, StackFrame, StackParser } from '@sentry/types';
 import type { Profile, ThreadCpuProfile } from '@sentry/types/src/profiling';
-import { forEachEnvelopeItem, GLOBAL_OBJ, logger, uuid4 } from '@sentry/utils';
+import { browserPerformanceTimeOrigin, forEachEnvelopeItem, GLOBAL_OBJ, logger, uuid4 } from '@sentry/utils';
 
-import { browserPerformanceTimeOrigin } from '../../../utils/src/time';
 import { WINDOW } from '../helpers';
 import type { JSSelfProfile, JSSelfProfileStack } from './jsSelfProfiling';
 
