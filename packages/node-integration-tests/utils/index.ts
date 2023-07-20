@@ -6,6 +6,7 @@ import type { AxiosRequestConfig } from 'axios';
 import axios from 'axios';
 import type { Express } from 'express';
 import type * as http from 'http';
+import { createHttpTerminator } from 'http-terminator';
 import type { AddressInfo } from 'net';
 import nock from 'nock';
 import * as path from 'path';
@@ -318,22 +319,6 @@ export class TestEnv {
   }
 
   private _closeServer(): Promise<void> {
-    return new Promise<void>(resolve => {
-      this.server.close(() => {
-        // @ts-ignore closeAllConnections() is only available from Node v18.2.0
-        if (NODE_VERSION >= 18 && this.server.closeAllConnections) {
-          // @ts-ignore (Only available in Node 18+)
-          this.server.closeAllConnections();
-        }
-
-        if (this.server.listening) {
-          this.server.unref();
-        }
-
-        resolve();
-      });
-
-      setImmediate(() => this.server.emit('close'));
-    });
+    return createHttpTerminator({ server: this.server }).terminate();
   }
 }
