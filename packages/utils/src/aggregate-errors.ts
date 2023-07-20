@@ -35,7 +35,9 @@ export function applyAggregateErrorsToEvent(
         event.exception.values,
         originalException,
         0,
-      ), maxValueLimit);
+      ),
+      maxValueLimit,
+    );
   }
 }
 
