@@ -1,4 +1,5 @@
-import type { INode } from '@sentry-internal/rrweb-snapshot';
+import { record } from '@sentry-internal/rrweb';
+import type { serializedElementNodeWithId, serializedNodeWithId } from '@sentry-internal/rrweb-snapshot';
 import { NodeType } from '@sentry-internal/rrweb-snapshot';
 import type { Breadcrumb } from '@sentry/types';
 import { htmlTreeAsString } from '@sentry/utils';
@@ -49,28 +50,26 @@ export const handleDomListener: (replay: ReplayContainer) => (handlerData: DomHa
 };
 
 /** Get the base DOM breadcrumb. */
-export function getBaseDomBreadcrumb(target: Node | INode | null, message: string): Breadcrumb {
-  // `__sn` property is the serialized node created by rrweb
-  const serializedNode = target && isRrwebNode(target) && target.__sn.type === NodeType.Element ? target.__sn : null;
+export function getBaseDomBreadcrumb(target: Node | null, message: string): Breadcrumb {
+  const nodeId = record.mirror.getId(target);
+  const node = nodeId && record.mirror.getNode(nodeId);
+  const meta = node && record.mirror.getMeta(node);
+  const element = meta && isElement(meta) ? meta : null;
 
   return {
     message,
-    data: serializedNode
+    data: element
       ? {
-          nodeId: serializedNode.id,
+          nodeId,
           node: {
-            id: serializedNode.id,
-            tagName: serializedNode.tagName,
-            textContent: target
-              ? Array.from(target.childNodes)
-                  .map(
-                    (node: Node | INode) => '__sn' in node && node.__sn.type === NodeType.Text && node.__sn.textContent,
-                  )
-                  .filter(Boolean) // filter out empty values
-                  .map(text => (text as string).trim())
-                  .join('')
-              : '',
-            attributes: getAttributesToRecord(serializedNode.attributes),
+            id: nodeId,
+            tagName: element.tagName,
+            textContent: Array.from(element.childNodes)
+              .map((node: serializedNodeWithId) => node.type === NodeType.Text && node.textContent)
+              .filter(Boolean) // filter out empty values
+              .map(text => (text as string).trim())
+              .join(''),
+            attributes: getAttributesToRecord(element.attributes),
           },
         }
       : {},
@@ -90,11 +89,11 @@ export function handleDom(handlerData: DomHandlerData): Breadcrumb | null {
   });
 }
 
-function getDomTarget(handlerData: DomHandlerData): { target: Node | INode | null; message: string } {
+function getDomTarget(handlerData: DomHandlerData): { target: Node | null; message: string } {
   const isClick = handlerData.name === 'click';
 
   let message: string | undefined;
-  let target: Node | INode | null = null;
+  let target: Node | null = null;
 
   // Accessing event.target can throw (see getsentry/raven-js#838, #768)
   try {
@@ -107,6 +106,6 @@ function getDomTarget(handlerData: DomHandlerData): { target: Node | INode | nul
   return { target, message };
 }
 
-function isRrwebNode(node: EventTarget): node is INode {
-  return '__sn' in node;
+function isElement(node: serializedNodeWithId): node is serializedElementNodeWithId {
+  return node.type === NodeType.Element;
 }
