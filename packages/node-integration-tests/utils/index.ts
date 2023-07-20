@@ -332,6 +332,8 @@ export class TestEnv {
 
         resolve();
       });
+
+      setImmediate(() => this.server.emit('close'));
     });
   }
 }
