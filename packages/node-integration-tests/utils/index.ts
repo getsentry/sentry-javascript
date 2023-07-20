@@ -6,6 +6,7 @@ import type { AxiosRequestConfig } from 'axios';
 import axios from 'axios';
 import type { Express } from 'express';
 import type * as http from 'http';
+import type { HttpTerminator } from 'http-terminator';
 import { createHttpTerminator } from 'http-terminator';
 import type { AddressInfo } from 'net';
 import nock from 'nock';
@@ -125,10 +126,12 @@ async function makeRequest(
 
 export class TestEnv {
   private _axiosConfig: AxiosRequestConfig | undefined = undefined;
+  private _terminator: HttpTerminator;
 
   public constructor(public readonly server: http.Server, public readonly url: string) {
     this.server = server;
     this.url = url;
+    this._terminator = createHttpTerminator({ server: this.server, gracefulTerminationTimeout: 0 });
 
     // We need to destroy the socket after the response has been sent
     // to prevent the server.close (called inside nock interceptor) from hanging in tests.
@@ -319,6 +322,6 @@ export class TestEnv {
   }
 
   private _closeServer(): Promise<void> {
-    return createHttpTerminator({ server: this.server }).terminate();
+    return this._terminator.terminate();
   }
 }
