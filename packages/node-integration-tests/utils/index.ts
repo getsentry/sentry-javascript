@@ -132,16 +132,6 @@ export class TestEnv {
     this.server = server;
     this.url = url;
     this._terminator = createHttpTerminator({ server: this.server, gracefulTerminationTimeout: 0 });
-
-    // We need to destroy the socket after the response has been sent
-    // to prevent the server.close (called inside nock interceptor) from hanging in tests.
-    // Otherwise the tests may timeout. (Happening on Node 20)
-    // See: https://github.com/nodejs/node/issues/2642
-    this.server.on('request', (req, res) => {
-      res.on('finish', () => {
-        req.socket.end();
-      });
-    });
   }
 
   /**
