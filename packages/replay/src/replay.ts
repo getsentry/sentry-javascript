@@ -981,6 +981,9 @@ export class ReplayContainer implements ReplayContainerInterface {
 
     const earliestEvent = eventBuffer.getEarliestTimestamp();
     if (earliestEvent && earliestEvent < this._context.initialTimestamp) {
+      // eslint-disable-next-line no-console
+      const log = this.getOptions()._experiments.traceInternals ? console.info : logger.info;
+      __DEBUG_BUILD__ && log(`[Replay] Updating initial timestamp to ${earliestEvent}`);
       this._context.initialTimestamp = earliestEvent;
     }
   }
@@ -1097,6 +1100,23 @@ export class ReplayContainer implements ReplayContainerInterface {
 
     if (!this.session) {
       __DEBUG_BUILD__ && logger.error('[Replay] No session found to flush.');
+      return;
+    }
+
+    const start = this._context.initialTimestamp;
+    const now = Date.now();
+    const duration = now - start;
+
+    // If session is too short, or too long (allow some wiggle room over maxSessionLife), do not send it
+    // This _should_ not happen, but it may happen if flush is triggered due to a page activity change or similar
+    if (duration < this._options.minReplayDuration || duration > this.timeouts.maxSessionLife + 5_000) {
+      // eslint-disable-next-line no-console
+      const log = this.getOptions()._experiments.traceInternals ? console.warn : logger.warn;
+      __DEBUG_BUILD__ &&
+        log(
+          `[Replay] Session duration (${Math.floor(duration / 1000)}s) is too short or too long, not sending replay.`,
+        );
+
       return;
     }
 

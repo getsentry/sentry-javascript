@@ -2,7 +2,12 @@ import { getCurrentHub } from '@sentry/core';
 import type { BrowserClientReplayOptions, Integration } from '@sentry/types';
 import { dropUndefinedKeys } from '@sentry/utils';
 
-import { DEFAULT_FLUSH_MAX_DELAY, DEFAULT_FLUSH_MIN_DELAY } from './constants';
+import {
+  DEFAULT_FLUSH_MAX_DELAY,
+  DEFAULT_FLUSH_MIN_DELAY,
+  MIN_REPLAY_DURATION,
+  MIN_REPLAY_DURATION_LIMIT,
+} from './constants';
 import { ReplayContainer } from './replay';
 import type { RecordingOptions, ReplayConfiguration, ReplayPluginOptions, SendBufferedReplayOptions } from './types';
 import { getPrivacyOptions } from './util/getPrivacyOptions';
@@ -51,6 +56,7 @@ export class Replay implements Integration {
   public constructor({
     flushMinDelay = DEFAULT_FLUSH_MIN_DELAY,
     flushMaxDelay = DEFAULT_FLUSH_MAX_DELAY,
+    minReplayDuration = MIN_REPLAY_DURATION,
     stickySession = true,
     useCompression = true,
     _experiments = {},
@@ -127,6 +133,7 @@ export class Replay implements Integration {
     this._initialOptions = {
       flushMinDelay,
       flushMaxDelay,
+      minReplayDuration: Math.min(minReplayDuration, MIN_REPLAY_DURATION_LIMIT),
       stickySession,
       sessionSampleRate,
       errorSampleRate,

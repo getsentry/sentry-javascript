@@ -6,6 +6,7 @@ import type { RecordingOptions, ReplayPluginOptions } from '../../src/types';
 const DEFAULT_OPTIONS = {
   flushMinDelay: 100,
   flushMaxDelay: 100,
+  minReplayDuration: 0,
   stickySession: false,
   sessionSampleRate: 0,
   errorSampleRate: 1,
