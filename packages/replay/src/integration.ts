@@ -81,6 +81,7 @@ export class Replay implements Integration {
     networkResponseHeaders = [],
 
     mask = [],
+    maskAttributes = ['title', 'placeholder'],
     unmask = [],
     block = [],
     unblock = [],
@@ -110,6 +111,14 @@ export class Replay implements Integration {
       maskInputOptions: { ...(maskInputOptions || {}), password: true },
       maskTextFn: maskFn,
       maskInputFn: maskFn,
+      maskAttributeFn: (key: string, value: string): string => {
+        // For now, always mask these attributes
+        if (maskAttributes.includes(key)) {
+          return value.replace(/[\S]/g, '*');
+        }
+
+        return value;
+      },
 
       ...getPrivacyOptions({
         mask,
