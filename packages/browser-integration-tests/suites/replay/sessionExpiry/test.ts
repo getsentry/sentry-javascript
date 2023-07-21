@@ -14,9 +14,8 @@ import {
 // Session should expire after 2s - keep in sync with init.js
 const SESSION_TIMEOUT = 2000;
 
-sentryTest('handles an expired session', async ({ browserName, getLocalTestPath, page }) => {
-  // This test seems to only be flakey on firefox
-  if (shouldSkipReplayTest() || ['firefox'].includes(browserName)) {
+sentryTest('handles an expired session', async ({ getLocalTestPath, page }) => {
+  if (shouldSkipReplayTest()) {
     sentryTest.skip();
   }
 

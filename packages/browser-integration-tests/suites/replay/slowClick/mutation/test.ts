@@ -126,61 +126,57 @@ sentryTest('multiple clicks are counted', async ({ getLocalTestUrl, page }) => {
   expect(slowClickBreadcrumbs[0]?.data?.timeAfterClickMs).toBeLessThan(3100);
 });
 
-sentryTest(
-  'immediate mutation does not trigger slow click',
-  async ({ forceFlushReplay, browserName, getLocalTestUrl, page }) => {
-    // This test seems to only be flakey on firefox
-    if (shouldSkipReplayTest() || ['firefox'].includes(browserName)) {
-      sentryTest.skip();
-    }
+sentryTest('immediate mutation does not trigger slow click', async ({ forceFlushReplay, getLocalTestUrl, page }) => {
+  if (shouldSkipReplayTest()) {
+    sentryTest.skip();
+  }
 
-    const reqPromise0 = waitForReplayRequest(page, 0);
+  const reqPromise0 = waitForReplayRequest(page, 0);
 
-    await page.route('https://dsn.ingest.sentry.io/**/*', route => {
-      return route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({ id: 'test-id' }),
-      });
+  await page.route('https://dsn.ingest.sentry.io/**/*', route => {
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ id: 'test-id' }),
     });
+  });
 
-    const url = await getLocalTestUrl({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
 
-    await page.goto(url);
-    await forceFlushReplay();
-    await reqPromise0;
+  await page.goto(url);
+  await forceFlushReplay();
+  await reqPromise0;
 
-    const reqPromise1 = waitForReplayRequest(page, (event, res) => {
-      const { breadcrumbs } = getCustomRecordingEvents(res);
+  const reqPromise1 = waitForReplayRequest(page, (event, res) => {
+    const { breadcrumbs } = getCustomRecordingEvents(res);
 
-      return breadcrumbs.some(breadcrumb => breadcrumb.category === 'ui.click');
-    });
+    return breadcrumbs.some(breadcrumb => breadcrumb.category === 'ui.click');
+  });
 
-    await page.click('#mutationButtonImmediately');
+  await page.click('#mutationButtonImmediately');
 
-    const { breadcrumbs } = getCustomRecordingEvents(await reqPromise1);
+  const { breadcrumbs } = getCustomRecordingEvents(await reqPromise1);
 
-    expect(breadcrumbs).toEqual([
-      {
-        category: 'ui.click',
-        data: {
-          node: {
-            attributes: {
-              id: 'mutationButtonImmediately',
-            },
-            id: expect.any(Number),
-            tagName: 'button',
-            textContent: '******* ******** ***********',
+  expect(breadcrumbs).toEqual([
+    {
+      category: 'ui.click',
+      data: {
+        node: {
+          attributes: {
+            id: 'mutationButtonImmediately',
           },
-          nodeId: expect.any(Number),
+          id: expect.any(Number),
+          tagName: 'button',
+          textContent: '******* ******** ***********',
         },
-        message: 'body > button#mutationButtonImmediately',
-        timestamp: expect.any(Number),
-        type: 'default',
+        nodeId: expect.any(Number),
       },
-    ]);
-  },
-);
+      message: 'body > button#mutationButtonImmediately',
+      timestamp: expect.any(Number),
+      type: 'default',
+    },
+  ]);
+});
 
 sentryTest('inline click handler does not trigger slow click', async ({ forceFlushReplay, getLocalTestUrl, page }) => {
   if (shouldSkipReplayTest()) {
@@ -234,9 +230,8 @@ sentryTest('inline click handler does not trigger slow click', async ({ forceFlu
   ]);
 });
 
-sentryTest('mouseDown events are considered', async ({ browserName, getLocalTestUrl, page }) => {
-  // This test seems to only be flakey on firefox
-  if (shouldSkipReplayTest() || ['firefox'].includes(browserName)) {
+sentryTest('mouseDown events are considered', async ({ getLocalTestUrl, page }) => {
+  if (shouldSkipReplayTest()) {
     sentryTest.skip();
   }
 

@@ -4,11 +4,7 @@ import type { Event } from '@sentry/types';
 import { sentryTest } from '../../../../utils/fixtures';
 import { getFirstSentryEnvelopeRequest } from '../../../../utils/helpers';
 
-sentryTest('should capture an ErrorEvent', async ({ getLocalTestPath, page, browserName }) => {
-  // On Firefox, the ErrorEvent has the `error` property and thus is handled separately
-  if (browserName === 'firefox') {
-    sentryTest.skip();
-  }
+sentryTest('should capture an ErrorEvent', async ({ getLocalTestPath, page }) => {
   const url = await getLocalTestPath({ testDir: __dirname });
 
   const eventData = await getFirstSentryEnvelopeRequest<Event>(page, url);

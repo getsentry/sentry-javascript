@@ -6,7 +6,7 @@ import { getReplayRecordingContent, shouldSkipReplayTest, waitForReplayRequest }
 sentryTest(
   'handles large mutations with default options',
   async ({ getLocalTestPath, page, forceFlushReplay, browserName }) => {
-    if (shouldSkipReplayTest() || ['webkit', 'firefox'].includes(browserName)) {
+    if (shouldSkipReplayTest() || browserName === 'webkit') {
       sentryTest.skip();
     }
 

@@ -19,8 +19,8 @@ function isInputMutation(
 sentryTest(
   'should mask input initial value and its changes from `maskAllInputs` and allow unmasked selector',
   async ({ browserName, forceFlushReplay, getLocalTestPath, page }) => {
-    // TODO(replay): This is flakey on firefox and webkit (~1%) where we do not always get the latest mutation.
-    if (shouldSkipReplayTest() || ['firefox', 'webkit'].includes(browserName)) {
+    // TODO(replay): This is flakey on webkit (~1%) where we do not always get the latest mutation.
+    if (shouldSkipReplayTest() || browserName === 'webkit') {
       sentryTest.skip();
     }
 
@@ -78,8 +78,8 @@ sentryTest(
 sentryTest(
   'should mask textarea initial value and its changes from `maskAllInputs` and allow unmasked selector',
   async ({ browserName, forceFlushReplay, getLocalTestPath, page }) => {
-    // TODO(replay): This is flakey on firefox and webkit (~1%) where we do not always get the latest mutation.
-    if (shouldSkipReplayTest() || ['firefox', 'webkit'].includes(browserName)) {
+    // TODO(replay): This is flakey on webkit (~1%) where we do not always get the latest mutation.
+    if (shouldSkipReplayTest() || browserName === 'webkit') {
       sentryTest.skip();
     }
 

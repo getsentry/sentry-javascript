@@ -81,8 +81,8 @@ sentryTest(
 sentryTest(
   'replay recording should contain a click breadcrumb when a button is clicked',
   async ({ forceFlushReplay, getLocalTestPath, page, browserName }) => {
-    // TODO(replay): This is flakey on firefox and webkit where clicks are flakey
-    if (shouldSkipReplayTest() || ['firefox', 'webkit'].includes(browserName)) {
+    // TODO(replay): This is flakey on webkit where clicks are flakey
+    if (shouldSkipReplayTest() || browserName === 'webkit') {
       sentryTest.skip();
     }
 
@@ -177,8 +177,8 @@ sentryTest(
 sentryTest(
   'replay recording should contain an "options" breadcrumb for Replay SDK configuration',
   async ({ forceFlushReplay, getLocalTestPath, page, browserName }) => {
-    // TODO(replay): This is flakey on firefox and webkit where clicks are flakey
-    if (shouldSkipReplayTest() || ['firefox', 'webkit'].includes(browserName)) {
+    // TODO(replay): This is flakey on webkit where clicks are flakey
+    if (shouldSkipReplayTest() || browserName === 'webkit') {
       sentryTest.skip();
     }
 

@@ -4,7 +4,7 @@ import type { Event } from '@sentry/types';
 import { sentryTest } from '../../../../utils/fixtures';
 import { getMultipleSentryEnvelopeRequests, shouldSkipTracingTest } from '../../../../utils/helpers';
 
-sentryTest('should create fetch spans with http timing', async ({ browserName, getLocalTestPath, page }) => {
+sentryTest('should create fetch spans with http timing @firefox', async ({ browserName, getLocalTestPath, page }) => {
   const supportedBrowsers = ['chromium', 'firefox'];
 
   if (shouldSkipTracingTest() || !supportedBrowsers.includes(browserName)) {
