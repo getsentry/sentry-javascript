@@ -108,6 +108,16 @@ async function getSentryEvents(page: Page, url?: string): Promise<Array<Event>> 
   return eventsHandle.jsonValue();
 }
 
+export async function waitForErrorRequestOnUrl(page: Page, url: string): Promise<Request> {
+  const [req] = await Promise.all([waitForErrorRequest(page), page.goto(url)]);
+  return req;
+}
+
+export async function waitForTransactionRequestOnUrl(page: Page, url: string): Promise<Request> {
+  const [req] = await Promise.all([waitForTransactionRequest(page), page.goto(url)]);
+  return req;
+}
+
 export function waitForErrorRequest(page: Page): Promise<Request> {
   return page.waitForRequest(req => {
     const postData = req.postData();

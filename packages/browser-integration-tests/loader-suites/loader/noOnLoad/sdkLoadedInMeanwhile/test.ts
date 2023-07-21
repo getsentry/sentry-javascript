@@ -4,7 +4,7 @@ import path from 'path';
 
 import { sentryTest, TEST_HOST } from '../../../../utils/fixtures';
 import { LOADER_CONFIGS } from '../../../../utils/generatePlugin';
-import { envelopeRequestParser, waitForErrorRequest } from '../../../../utils/helpers';
+import { envelopeRequestParser, waitForErrorRequestOnUrl } from '../../../../utils/helpers';
 
 const bundle = process.env.PW_BUNDLE || '';
 const isLazy = LOADER_CONFIGS[bundle]?.lazy;
@@ -40,13 +40,10 @@ sentryTest('it does not download the SDK if the SDK was loaded in the meanwhile'
     return fs.existsSync(filePath) ? route.fulfill({ path: filePath }) : route.continue();
   });
 
-  const req = waitForErrorRequest(page);
-
   const url = await getLocalTestUrl({ testDir: __dirname, skipRouteHandler: true });
+  const req = await waitForErrorRequestOnUrl(page, url);
 
-  await page.goto(url);
-
-  const eventData = envelopeRequestParser(await req);
+  const eventData = envelopeRequestParser(req);
 
   await waitForFunction(() => cdnLoadedCount === 2);
 
