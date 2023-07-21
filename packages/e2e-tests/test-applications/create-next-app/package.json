@@ -5,7 +5,9 @@
   "scripts": {
     "build": "next build",
     "test:prod": "TEST_ENV=prod playwright test",
-    "test:dev": "TEST_ENV=dev playwright test"
+    "test:dev": "TEST_ENV=dev playwright test",
+    "test:build": "pnpm install && npx playwright install && pnpm build",
+    "test:assert": "pnpm test:prod && pnpm test:dev"
   },
   "dependencies": {
     "@next/font": "13.0.7",

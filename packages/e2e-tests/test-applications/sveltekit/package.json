@@ -9,13 +9,17 @@
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
     "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
     "test:prod": "TEST_ENV=production playwright test",
-    "test:dev": "TEST_ENV=development playwright test"
+    "test:dev": "TEST_ENV=development playwright test",
+    "test:build": "pnpm install && pnpm build",
+    "test:assert": "pnpm -v"
   },
   "dependencies": {
     "@sentry/sveltekit": "latest || *"
   },
   "devDependencies": {
     "@playwright/test": "^1.27.1",
+    "@sentry/types": "latest || *",
+    "@sentry/utils": "latest || *",
     "@sveltejs/adapter-auto": "^2.0.0",
     "@sveltejs/adapter-node": "^1.2.4",
     "@sveltejs/kit": "^1.5.0",

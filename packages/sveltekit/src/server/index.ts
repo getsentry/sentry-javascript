@@ -1,5 +1,5 @@
 // Node SDK exports
-// Unfortunately, we cannot `exprt * from '@sentry/node'` because in prod builds,
+// Unfortunately, we cannot `export * from '@sentry/node'` because in prod builds,
 // Vite puts these exports into a `default` property (Sentry.default) rather than
 // on the top - level namespace.
 // Hence, we export everything from the Node SDK explicitly:

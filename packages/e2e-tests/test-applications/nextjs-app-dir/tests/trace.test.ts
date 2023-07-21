@@ -1,5 +1,5 @@
 import { test } from '@playwright/test';
-import { waitForTransaction } from '../../../test-utils/event-proxy-server';
+import { waitForTransaction } from '../event-proxy-server';
 
 if (process.env.TEST_ENV === 'production') {
   // TODO: Fix that this is flakey on dev server - might be an SDK bug

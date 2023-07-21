@@ -11,14 +11,14 @@ declare global {
 
 Sentry.init({
   environment: 'qa', // dynamic sampling bias to keep transactions
-  dsn: process.env.NEXT_PUBLIC_E2E_TEST_DSN,
+  dsn: process.env.E2E_TEST_DSN,
   integrations: [new Integrations.HttpClient()],
   debug: true,
   tracesSampleRate: 1,
 });
 
 const app = express();
-const port = Number(process.env.BASE_PORT) + Number(process.env.PORT_MODULO);
+const port = 3030;
 
 app.use(Sentry.Handlers.requestHandler());
 app.use(Sentry.Handlers.tracingHandler());

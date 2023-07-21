@@ -7,7 +7,7 @@ if (!testEnv) {
   throw new Error('No test env defined');
 }
 
-const port = Number(process.env.BASE_PORT) + Number(process.env.PORT_MODULO);
+const port = 3030;
 
 /**
  * See https://playwright.dev/docs/test-configuration.
@@ -56,7 +56,7 @@ const config: PlaywrightTestConfig = {
   webServer: [
     {
       command: 'pnpm ts-node --esm start-event-proxy.ts',
-      port: Number(process.env.BASE_PORT) + Number(process.env.PORT_MODULO) + Number(process.env.PORT_GAP),
+      port: 3031,
     },
     {
       command:

@@ -1,6 +1,0 @@
-{
-  "$schema": "../../test-recipe-schema.json",
-  "testApplicationName": "create-remix-app",
-  "buildCommand": "pnpm install && pnpm build",
-  "tests": []
-}
