@@ -34,7 +34,7 @@
     "test:bundle:tracing:replay:es6:min": "PW_BUNDLE=bundle_tracing_replay_es6_min yarn test",
     "test:cjs": "PW_BUNDLE=cjs yarn test",
     "test:esm": "PW_BUNDLE=esm yarn test",
-    "test:loader": "playwright test ./loader-suites",
+    "test:loader": "playwright test ./loader-suites --project='chromium'",
     "test:loader:base": "PW_BUNDLE=loader_base yarn test:loader",
     "test:loader:eager": "PW_BUNDLE=loader_eager yarn test:loader",
     "test:loader:tracing": "PW_BUNDLE=loader_tracing yarn test:loader",
