@@ -1,6 +1,7 @@
 import type { Event, EventHint, Exception, ExtendedError, StackParser } from '@sentry/types';
 
 import { isInstanceOf } from './is';
+import { truncate } from './string';
 
 /**
  * Creates exceptions inside `event.exception.values` for errors that are nested on properties based on the `key` parameter.
@@ -8,6 +9,7 @@ import { isInstanceOf } from './is';
 export function applyAggregateErrorsToEvent(
   exceptionFromErrorImplementation: (stackParser: StackParser, ex: Error) => Exception,
   parser: StackParser,
+  maxValueLimit: number = 250,
   key: string,
   limit: number,
   event: Event,
@@ -23,15 +25,18 @@ export function applyAggregateErrorsToEvent(
 
   // We only create exception grouping if there is an exception in the event.
   if (originalException) {
-    event.exception.values = aggregateExceptionsFromError(
-      exceptionFromErrorImplementation,
-      parser,
-      limit,
-      hint.originalException as ExtendedError,
-      key,
-      event.exception.values,
-      originalException,
-      0,
+    event.exception.values = truncateAggregateExceptions(
+      aggregateExceptionsFromError(
+        exceptionFromErrorImplementation,
+        parser,
+        limit,
+        hint.originalException as ExtendedError,
+        key,
+        event.exception.values,
+        originalException,
+        0,
+      ),
+      maxValueLimit,
     );
   }
 }
@@ -122,4 +127,18 @@ function applyExceptionGroupFieldsForChildException(
     exception_id: exceptionId,
     parent_id: parentId,
   };
+}
+
+/**
+ * Truncate the message (exception.value) of all exceptions in the event.
+ * Because this event processor is ran after `applyClientOptions`,
+ * we need to truncate the message of the added exceptions here.
+ */
+function truncateAggregateExceptions(exceptions: Exception[], maxValueLength: number): Exception[] {
+  return exceptions.map(exception => {
+    if (exception.value) {
+      exception.value = truncate(exception.value, maxValueLength);
+    }
+    return exception;
+  });
 }

@@ -54,9 +54,11 @@ export class LinkedErrors implements Integration {
         return event;
       }
 
+      const options = client.getOptions();
       applyAggregateErrorsToEvent(
         exceptionFromError,
-        client.getOptions().stackParser,
+        options.stackParser,
+        options.maxValueLength,
         self._key,
         self._limit,
         event,
