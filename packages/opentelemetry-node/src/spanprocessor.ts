@@ -7,21 +7,33 @@ import type { DynamicSamplingContext, Span as SentrySpan, TraceparentData, Trans
 import { isString, logger } from '@sentry/utils';
 
 import { SENTRY_DYNAMIC_SAMPLING_CONTEXT_KEY, SENTRY_TRACE_PARENT_CONTEXT_KEY } from './constants';
+import type { OtelHooks } from './hooks';
 import { isSentryRequestSpan } from './utils/isSentryRequest';
 import { mapOtelStatus } from './utils/mapOtelStatus';
 import { parseSpanDescription } from './utils/parseOtelSpanDescription';
+import { clearOtelSpanData, getOtelSpanData } from './utils/spanData';
 
 export const SENTRY_SPAN_PROCESSOR_MAP: Map<SentrySpan['spanId'], SentrySpan> = new Map<
   SentrySpan['spanId'],
   SentrySpan
 >();
 
+// make sure to remove references in maps, to ensure this can be GCed
+function clearSpan(otelSpanId: string): void {
+  clearOtelSpanData(otelSpanId);
+  SENTRY_SPAN_PROCESSOR_MAP.delete(otelSpanId);
+}
+
 /**
  * Converts OpenTelemetry Spans to Sentry Spans and sends them to Sentry via
  * the Sentry SDK.
  */
 export class SentrySpanProcessor implements OtelSpanProcessor {
-  public constructor() {
+  private _hooks?: OtelHooks;
+
+  public constructor({ hooks }: { hooks?: OtelHooks } = {}) {
+    this._hooks = hooks;
+
     addTracingExtensions();
 
     addGlobalEventProcessor(event => {
@@ -98,9 +110,15 @@ export class SentrySpanProcessor implements OtelSpanProcessor {
     // leading to an infinite loop.
     // In this case, we do not want to finish the span, in order to avoid sending it to Sentry
     if (isSentryRequestSpan(otelSpan)) {
-      // Make sure to remove any references, so this can be GCed
-      SENTRY_SPAN_PROCESSOR_MAP.delete(otelSpanId);
+      clearSpan(otelSpanId);
       return;
+    }
+
+    if (this._hooks) {
+      if (this._hooks.emit('spanEnd', otelSpan, sentrySpan) === false) {
+        clearSpan(otelSpanId);
+        return;
+      }
     }
 
     otelSpan.events.forEach(event => {
@@ -152,7 +170,7 @@ export class SentrySpanProcessor implements OtelSpanProcessor {
 
     sentrySpan.finish(convertOtelTimeToSeconds(otelSpan.endTime));
 
-    SENTRY_SPAN_PROCESSOR_MAP.delete(otelSpanId);
+    clearSpan(otelSpanId);
   }
 
   /**
@@ -209,20 +227,23 @@ function updateSpanWithOtelData(sentrySpan: SentrySpan, otelSpan: OtelSpan): voi
 
   const { op, description, data } = parseSpanDescription(otelSpan);
 
+  const { data: additionalData, tags } = getOtelSpanData(otelSpan.spanContext().spanId);
+
   sentrySpan.setStatus(mapOtelStatus(otelSpan));
   sentrySpan.setData('otel.kind', SpanKind[kind]);
 
-  Object.keys(attributes).forEach(prop => {
-    const value = attributes[prop];
-    sentrySpan.setData(prop, value);
-  });
-
-  if (data) {
-    Object.keys(data).forEach(prop => {
-      const value = data[prop];
-      sentrySpan.setData(prop, value);
+  if (tags) {
+    Object.keys(tags).forEach(prop => {
+      sentrySpan.setTag(prop, tags[prop]);
     });
   }
+
+  const allData = { ...attributes, ...data, ...additionalData };
+
+  Object.keys(allData).forEach(prop => {
+    const value = allData[prop];
+    sentrySpan.setData(prop, value);
+  });
 
   sentrySpan.op = op;
   sentrySpan.description = description;
@@ -230,16 +251,33 @@ function updateSpanWithOtelData(sentrySpan: SentrySpan, otelSpan: OtelSpan): voi
 
 function updateTransactionWithOtelData(transaction: Transaction, otelSpan: OtelSpan): void {
   const { op, description, source, data } = parseSpanDescription(otelSpan);
+  const { data: additionalData, tags, contexts, metadata } = getOtelSpanData(otelSpan.spanContext().spanId);
 
   transaction.setContext('otel', {
     attributes: otelSpan.attributes,
     resource: otelSpan.resource.attributes,
   });
 
-  if (data) {
-    Object.keys(data).forEach(prop => {
-      const value = data[prop];
-      transaction.setData(prop, value);
+  if (tags) {
+    Object.keys(tags).forEach(prop => {
+      transaction.setTag(prop, tags[prop]);
+    });
+  }
+
+  if (metadata) {
+    transaction.setMetadata(metadata);
+  }
+
+  const allData = { ...data, ...additionalData };
+
+  Object.keys(allData).forEach(prop => {
+    const value = allData[prop];
+    transaction.setData(prop, value);
+  });
+
+  if (contexts) {
+    Object.keys(contexts).forEach(prop => {
+      transaction.setContext(prop, contexts[prop]);
     });
   }
 
