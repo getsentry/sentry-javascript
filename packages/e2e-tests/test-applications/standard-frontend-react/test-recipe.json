@@ -18,8 +18,8 @@
   "canaryVersions": [
     {
       "dependencyOverrides": {
-        "react": "latest",
-        "react-dom": "latest"
+        "react": "latest || *",
+        "react-dom": "latest || *"
       }
     }
   ]
