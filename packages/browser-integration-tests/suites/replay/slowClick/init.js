@@ -5,7 +5,7 @@ window.Replay = new Sentry.Replay({
   flushMinDelay: 200,
   flushMaxDelay: 200,
   minReplayDuration: 0,
-  slowClickTimeout: 3100,
+  slowClickTimeout: 3500,
   slowClickIgnoreSelectors: ['.ignore-class', '[ignore-attribute]'],
 });
 
