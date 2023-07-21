@@ -79,7 +79,8 @@ fields:
 **An important thing to note:** In the context of the `buildCommand` the fake test registry is available at
 `http://localhost:4873`. It hosts all of our packages as if they were to be published with the state of the current
 branch. This means we can install the packages from this registry via the `.npmrc` configuration as seen above. If you
-add Sentry dependencies to your test application, you should set the dependency versions set to `*`:
+add Sentry dependencies to your test application, you should set the dependency versions set to `latest || *` in order
+for it to work with both regular and prerelease versions:
 
 ```jsonc
 // package.json
@@ -91,7 +92,7 @@ add Sentry dependencies to your test application, you should set the dependency 
     "test": "echo \"Hello world!\""
   },
   "dependencies": {
-    "@sentry/node": "*"
+    "@sentry/node": "latest || *"
   }
 }
 ```

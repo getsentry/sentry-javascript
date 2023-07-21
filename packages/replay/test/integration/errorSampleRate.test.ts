@@ -450,6 +450,9 @@ describe('Integration | errorSampleRate', () => {
     jest.runAllTimers();
     await new Promise(process.nextTick);
 
+    // in production, this happens at a time interval, here we mock this
+    mockRecord.takeFullSnapshot(true);
+
     // still no new replay sent
     expect(replay).not.toHaveLastSentReplay();
 
@@ -693,6 +696,9 @@ describe('Integration | errorSampleRate', () => {
     await new Promise(process.nextTick);
 
     jest.advanceTimersByTime(2 * MAX_SESSION_LIFE);
+
+    // in production, this happens at a time interval, here we mock this
+    mockRecord.takeFullSnapshot(true);
 
     captureException(new Error('testing'));
 

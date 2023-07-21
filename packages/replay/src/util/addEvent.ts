@@ -4,7 +4,7 @@ import { logger } from '@sentry/utils';
 
 import { EventBufferSizeExceededError } from '../eventBuffer/error';
 import type { AddEventResult, RecordingEvent, ReplayContainer, ReplayFrameEvent, ReplayPluginOptions } from '../types';
-import { timestampToMs } from './timestampToMs';
+import { timestampToMs } from './timestamp';
 
 function isCustomEvent(event: RecordingEvent): event is ReplayFrameEvent {
   return event.type === EventType.Custom;

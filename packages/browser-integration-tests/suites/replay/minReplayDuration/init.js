@@ -4,9 +4,7 @@ window.Sentry = Sentry;
 window.Replay = new Sentry.Replay({
   flushMinDelay: 200,
   flushMaxDelay: 200,
-  minReplayDuration: 0,
-  slowClickTimeout: 3100,
-  slowClickIgnoreSelectors: ['.ignore-class', '[ignore-attribute]'],
+  minReplayDuration: 2000,
 });
 
 Sentry.init({
@@ -14,6 +12,7 @@ Sentry.init({
   sampleRate: 0,
   replaysSessionSampleRate: 1.0,
   replaysOnErrorSampleRate: 0.0,
+  debug: true,
 
   integrations: [window.Replay],
 });

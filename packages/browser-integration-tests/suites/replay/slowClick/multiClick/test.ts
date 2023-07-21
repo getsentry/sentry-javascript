@@ -62,6 +62,43 @@ sentryTest('captures multi click when not detecting slow click', async ({ getLoc
       timestamp: expect.any(Number),
     },
   ]);
+
+  // When this has been flushed, the timeout has exceeded - so add a new click now, which should trigger another multi click
+
+  const reqPromise2 = waitForReplayRequest(page, (event, res) => {
+    const { breadcrumbs } = getCustomRecordingEvents(res);
+
+    return breadcrumbs.some(breadcrumb => breadcrumb.category === 'ui.multiClick');
+  });
+
+  await page.click('#mutationButtonImmediately', { clickCount: 3 });
+
+  const { breadcrumbs: breadcrumbb2 } = getCustomRecordingEvents(await reqPromise2);
+
+  const slowClickBreadcrumbs2 = breadcrumbb2.filter(breadcrumb => breadcrumb.category === 'ui.multiClick');
+
+  expect(slowClickBreadcrumbs2).toEqual([
+    {
+      category: 'ui.multiClick',
+      type: 'default',
+      data: {
+        clickCount: 3,
+        metric: true,
+        node: {
+          attributes: {
+            id: 'mutationButtonImmediately',
+          },
+          id: expect.any(Number),
+          tagName: 'button',
+          textContent: '******* ******** ***********',
+        },
+        nodeId: expect.any(Number),
+        url: 'http://sentry-test.io/index.html',
+      },
+      message: 'body > button#mutationButtonImmediately',
+      timestamp: expect.any(Number),
+    },
+  ]);
 });
 
 sentryTest('captures multiple multi clicks', async ({ getLocalTestUrl, page, forceFlushReplay, browserName }) => {
