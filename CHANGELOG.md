@@ -4,6 +4,27 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.60.0
+
+### Important Changes
+
+- **feat(replay): Ensure min/max duration when flushing (#8596)**
+
+We will not send replays that are <5s long anymore. Additionally, we also added further safeguards to avoid overly long (>1h) replays.
+You can optionally configure the min. replay duration (defaults to 5s):
+
+```js
+new Replay({
+  minReplayDuration: 10000 // in ms - note that this is capped at 15s max!
+})
+```
+
+### Other Changes
+
+- fix(profiling): Align to SDK selected time origin (#8599)
+- fix(replay): Ensure multi click has correct timestamps (#8591)
+- fix(utils): Truncate aggregate exception values (LinkedErrors) (#8593)
+
 ## 7.59.3
 
 - fix(browser): 0 is a valid index (#8581)
