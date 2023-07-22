@@ -1,10 +1,10 @@
-import { getPortPromise } from 'portfinder';
 import { TestEnv } from '../../../../../../node-integration-tests/utils';
 import * as http from 'http';
 import * as path from 'path';
 import { createServer, Server } from 'http';
 import { parse } from 'url';
 import next from 'next';
+import { AddressInfo } from 'net';
 
 // Type not exported from NextJS
 // @ts-ignore
@@ -24,9 +24,10 @@ export const createNextServer = async config => {
   });
 };
 
-export const startServer = async (server: Server, port: string | number) => {
-  return new Promise(resolve => {
-    server.listen(port || 0, () => {
+export const startServer = async (server: Server) => {
+  return new Promise<{ server: http.Server; url: string }>(resolve => {
+    server.listen(0, () => {
+      const port = (server.address() as AddressInfo).port;
       const url = `http://localhost:${port}`;
       resolve({ server, url });
     });
@@ -39,7 +40,6 @@ export class NextTestEnv extends TestEnv {
   }
 
   public static async init(): Promise<NextTestEnv> {
-    const port = await getPortPromise();
     const server = await createNextServer({
       dev: false,
       dir: path.resolve(__dirname, '../../..'),
@@ -50,8 +50,8 @@ export class NextTestEnv extends TestEnv {
       conf: path.resolve(__dirname, '../../next.config.js'),
     });
 
-    await startServer(server, port);
+    const { url } = await startServer(server);
 
-    return new NextTestEnv(server, `http://localhost:${port}`);
+    return new NextTestEnv(server, url);
   }
 }
