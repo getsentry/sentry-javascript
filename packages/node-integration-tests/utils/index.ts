@@ -6,9 +6,13 @@ import type { AxiosRequestConfig } from 'axios';
 import axios from 'axios';
 import type { Express } from 'express';
 import type * as http from 'http';
+import type { HttpTerminator } from 'http-terminator';
+import { createHttpTerminator } from 'http-terminator';
 import type { AddressInfo } from 'net';
 import nock from 'nock';
 import * as path from 'path';
+
+const NODE_VERSION = parseSemver(process.versions.node).major;
 
 export type TestServerConfig = {
   url: string;
@@ -40,7 +44,6 @@ export type DataCollectorOptions = {
  * @return {*}  {jest.Describe}
  */
 export const conditionalTest = (allowedVersion: { min?: number; max?: number }): jest.Describe => {
-  const NODE_VERSION = parseSemver(process.versions.node).major;
   if (!NODE_VERSION) {
     return describe.skip;
   }
@@ -123,10 +126,12 @@ async function makeRequest(
 
 export class TestEnv {
   private _axiosConfig: AxiosRequestConfig | undefined = undefined;
+  private _terminator: HttpTerminator;
 
   public constructor(public readonly server: http.Server, public readonly url: string) {
     this.server = server;
     this.url = url;
+    this._terminator = createHttpTerminator({ server: this.server, gracefulTerminationTimeout: 0 });
   }
 
   /**
@@ -244,12 +249,20 @@ export class TestEnv {
               // Ex: Remix scope bleed tests.
               nock.cleanAll();
 
-              this.server.close(() => {
-                resolve(envelopes);
-              });
-            }
+              // Abort all pending requests to nock to prevent hanging / flakes.
+              // See: https://github.com/nock/nock/issues/1118#issuecomment-544126948
+              nock.abortPendingRequests();
 
-            resolve(envelopes);
+              this._closeServer()
+                .catch(e => {
+                  logger.warn(e);
+                })
+                .finally(() => {
+                  resolve(envelopes);
+                });
+            } else {
+              resolve(envelopes);
+            }
           }
 
           return true;
@@ -291,12 +304,14 @@ export class TestEnv {
 
         nock.cleanAll();
 
-        this.server.close(() => {
+        void this._closeServer().then(() => {
           resolve(reqCount);
         });
-
-        resolve(reqCount);
       }, options.timeout || 1000);
     });
+  }
+
+  private _closeServer(): Promise<void> {
+    return this._terminator.terminate();
   }
 }

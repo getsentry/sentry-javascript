@@ -1,9 +1,9 @@
 import express from 'express';
 import { createRequestHandler } from '@remix-run/express';
-import { getPortPromise } from 'portfinder';
 import { wrapExpressCreateRequestHandler } from '@sentry/remix';
 import { TestEnv } from '../../../../../../node-integration-tests/utils';
 import * as http from 'http';
+import { AddressInfo } from 'net';
 
 export * from '../../../../../../node-integration-tests/utils';
 
@@ -16,18 +16,18 @@ export class RemixTestEnv extends TestEnv {
     const requestHandlerFactory =
       adapter === 'express' ? wrapExpressCreateRequestHandler(createRequestHandler) : createRequestHandler;
 
-    const port = await getPortPromise();
-
+    let serverPort;
     const server = await new Promise<http.Server>(resolve => {
       const app = express();
 
       app.all('*', requestHandlerFactory({ build: require('../../../build') }));
 
-      const server = app.listen(port, () => {
+      const server = app.listen(0, () => {
+        serverPort = (server.address() as AddressInfo).port;
         resolve(server);
       });
     });
 
-    return new RemixTestEnv(server, `http://localhost:${port}`);
+    return new RemixTestEnv(server, `http://localhost:${serverPort}`);
   }
 }
