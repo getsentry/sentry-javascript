@@ -170,21 +170,23 @@ export class Http implements Integration {
 
     addOtelSpanData(span.spanContext().spanId, additionalData);
 
-    getCurrentHub().addBreadcrumb(
-      {
-        category: 'http',
-        data: {
-          status_code: response.statusCode,
-          ...data,
+    if (this._breadcrumbs) {
+      getCurrentHub().addBreadcrumb(
+        {
+          category: 'http',
+          data: {
+            status_code: response.statusCode,
+            ...data,
+          },
+          type: 'http',
         },
-        type: 'http',
-      },
-      {
-        event: 'response',
-        request,
-        response,
-      },
-    );
+        {
+          event: 'response',
+          request,
+          response,
+        },
+      );
+    }
   }
 }
 
