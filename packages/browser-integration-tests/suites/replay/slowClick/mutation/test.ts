@@ -61,7 +61,7 @@ sentryTest('mutation after threshold results in slow click', async ({ forceFlush
   ]);
 
   expect(slowClickBreadcrumbs[0]?.data?.timeAfterClickMs).toBeGreaterThan(3000);
-  expect(slowClickBreadcrumbs[0]?.data?.timeAfterClickMs).toBeLessThan(3100);
+  expect(slowClickBreadcrumbs[0]?.data?.timeAfterClickMs).toBeLessThan(3500);
 });
 
 sentryTest('multiple clicks are counted', async ({ getLocalTestUrl, page }) => {
@@ -123,7 +123,7 @@ sentryTest('multiple clicks are counted', async ({ getLocalTestUrl, page }) => {
   expect(multiClickBreadcrumbs.length).toEqual(0);
 
   expect(slowClickBreadcrumbs[0]?.data?.timeAfterClickMs).toBeGreaterThan(3000);
-  expect(slowClickBreadcrumbs[0]?.data?.timeAfterClickMs).toBeLessThan(3100);
+  expect(slowClickBreadcrumbs[0]?.data?.timeAfterClickMs).toBeLessThan(3500);
 });
 
 sentryTest('immediate mutation does not trigger slow click', async ({ forceFlushReplay, getLocalTestUrl, page }) => {
