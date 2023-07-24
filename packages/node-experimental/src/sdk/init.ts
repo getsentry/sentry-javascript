@@ -3,8 +3,8 @@ import { defaultIntegrations as defaultNodeIntegrations, init as initNode } from
 
 import { getAutoPerformanceIntegrations } from '../integrations/getAutoPerformanceIntegrations';
 import { Http } from '../integrations/http';
-import type { NodePreviewOptions } from '../types';
-import { NodePreviewClient } from './client';
+import type { NodeExperimentalOptions } from '../types';
+import { NodeExperimentalClient } from './client';
 import { initOtel } from './initOtel';
 
 const ignoredDefaultIntegrations = ['Http', 'Undici'];
@@ -17,7 +17,7 @@ export const defaultIntegrations = [
 /**
  * Initialize Sentry for Node.
  */
-export function init(options: NodePreviewOptions | undefined = {}): void {
+export function init(options: NodeExperimentalOptions | undefined = {}): void {
   const isTracingEnabled = hasTracingEnabled(options);
 
   options.defaultIntegrations =
@@ -29,7 +29,7 @@ export function init(options: NodePreviewOptions | undefined = {}): void {
         ];
 
   options.instrumenter = 'otel';
-  options.clientClass = NodePreviewClient;
+  options.clientClass = NodeExperimentalClient;
 
   initNode(options);
 

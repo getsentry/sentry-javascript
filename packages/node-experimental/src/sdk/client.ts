@@ -3,12 +3,12 @@ import { trace } from '@opentelemetry/api';
 import { NodeClient, SDK_VERSION } from '@sentry/node';
 import { OtelHooks } from '@sentry/opentelemetry-node';
 
-import type { NodePreviewClientOptions } from '../types';
+import type { NodeExperimentalClientOptions } from '../types';
 
 /**
  * A client built on top of the NodeClient, which provides some otel-specific things on top.
  */
-export class NodePreviewClient extends NodeClient {
+export class NodeExperimentalClient extends NodeClient {
   public otelHooks: OtelHooks;
 
   private _tracer: Tracer | undefined;
@@ -36,7 +36,7 @@ export class NodePreviewClient extends NodeClient {
   /**
    * Get the options for the node preview client.
    */
-  public getOptions(): NodePreviewClientOptions {
+  public getOptions(): NodeExperimentalClientOptions {
     // Just a type-cast, basically
     return super.getOptions();
   }

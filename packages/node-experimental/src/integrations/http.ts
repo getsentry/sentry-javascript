@@ -11,7 +11,7 @@ import { addOtelSpanData } from '@sentry/opentelemetry-node';
 import type { EventProcessor, Hub, Integration } from '@sentry/types';
 import type { ClientRequest, IncomingMessage, ServerResponse } from 'http';
 
-import type { NodePreviewClient } from '../sdk/client';
+import type { NodeExperimentalClient } from '../sdk/client';
 import { getRequestSpanData } from '../utils/getRequestSpanData';
 
 interface TracingOptions {
@@ -83,7 +83,7 @@ export class Http implements Integration {
       return;
     }
 
-    const client = getCurrentHub().getClient<NodePreviewClient>();
+    const client = getCurrentHub().getClient<NodeExperimentalClient>();
     const clientOptions = client?.getOptions();
 
     this._shouldCreateSpans = typeof this._tracing === 'undefined' ? hasTracingEnabled(clientOptions) : this._tracing;
@@ -114,7 +114,7 @@ export class Http implements Integration {
   public unregister(): void {
     this._unload?.();
 
-    const client = getCurrentHub().getClient<NodePreviewClient>();
+    const client = getCurrentHub().getClient<NodeExperimentalClient>();
     client?.otelHooks.off('spanEnd', this._onSpanEnd);
   }
 

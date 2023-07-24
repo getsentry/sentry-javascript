@@ -1,10 +1,10 @@
 import { Integrations as CoreIntegrations } from '@sentry/core';
 
-import * as NodePreviewIntegrations from './integrations';
+import * as NodeExperimentalIntegrations from './integrations';
 
 const INTEGRATIONS = {
   ...CoreIntegrations,
-  ...NodePreviewIntegrations,
+  ...NodeExperimentalIntegrations,
 };
 
 export { init } from './sdk/init';

@@ -1,11 +1,11 @@
 import { createTransport } from '@sentry/core';
 import { resolvedSyncPromise } from '@sentry/utils';
 
-import type { NodePreviewClientOptions } from '../../src/types';
+import type { NodeExperimentalClientOptions } from '../../src/types';
 
-export function getDefaultNodePreviewClientOptions(
-  options: Partial<NodePreviewClientOptions> = {},
-): NodePreviewClientOptions {
+export function getDefaultNodeExperimentalClientOptions(
+  options: Partial<NodeExperimentalClientOptions> = {},
+): NodeExperimentalClientOptions {
   return {
     integrations: [],
     transport: () => createTransport({ recordDroppedEvent: () => undefined }, _ => resolvedSyncPromise({})),
