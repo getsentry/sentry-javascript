@@ -101,6 +101,8 @@ targets:
   - name: npm
     id: '@sentry/tracing'
     includeNames: /^sentry-tracing-\d.*\.tgz$/
+
+  ## 8. Experimental packages
   - name: npm
     id: '@sentry/node-experimental'
     includeNames: /^sentry-node-experimental-\d.*\.tgz$/
