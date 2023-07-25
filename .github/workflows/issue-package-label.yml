@@ -1,0 +1,90 @@
+name: 'Tag issue with package label'
+
+on:
+  issues:
+    types: [opened]
+
+jobs:
+  add_labels:
+    name: Add package label
+    runs-on: ubuntu-latest
+    if: ${{ !github.event.issue.pull_request }}
+    steps:
+      - name: Get used package from issue body
+        # https://github.com/actions-ecosystem/action-regex-match
+        uses: actions-ecosystem/action-regex-match@v2
+        id: packageName
+        with:
+          # Parse used package from issue body
+          text: ${{ github.event.issue.body }}
+          regex: '### Which SDK are you using\?\n\n(.*)\n\n'
+
+      - name: Map package to issue label
+        # https://github.com/kanga333/variable-mapper
+        uses: kanga333/variable-mapper@v0.3.0
+        id: packageLabel
+        if: steps.packageName.outputs.match != ''
+        with:
+          key: ${{ steps.packageName.outputs.group1 }}
+          map: |
+            {
+              "@sentry/browser": {
+                "label": "Package: Browser"
+              },
+              "@sentry/angular": {
+                "label": "Package: Angular"
+              },
+              "@sentry/angular-ivy": {
+                "label": "Package: Angular"
+              },
+              "@sentry/ember": {
+                "label": "Package: ember"
+              },
+              "@sentry/gatsby": {
+                "label": "Package: gatbsy"
+              },
+              "@sentry/nextjs": {
+                "label": "Package: Nextjs"
+              },
+              "@sentry/node": {
+                "label": "Package: Node"
+              },
+              "@sentry/opentelemetry-node": {
+                "label": "Package: otel-node"
+              },
+              "@sentry/react": {
+                "label": "Package: react"
+              },
+              "@sentry/remix": {
+                "label": "Package: remix"
+              },
+              "@sentry/serverless": {
+                "label": "Package: Serverless"
+              },
+              "@sentry/svelte": {
+                "label": "Package: svelte"
+              },
+              "@sentry/sveltekit": {
+                "label": "Package: SvelteKit"
+              },
+              "@sentry/vue": {
+                "label": "Package: vue"
+              },
+              "@sentry/wasm": {
+                "label": "Package: wasm"
+              },
+              "Sentry Browser Loader": {
+                "label": "Package-Meta: Loader"
+              },
+              "Sentry Browser CDN bundle": {
+                "label": "Package-Meta: CDN"
+              }
+            }
+          export_to: output
+
+      - name: Add package label if applicable
+        # Note: We only add the label if the issue is still open
+        if: steps.packageLabel.outputs.label != ''
+        uses: actions-ecosystem/action-add-labels@v1
+        with:
+          labels: ${{ steps.packageLabel.outputs.label }}

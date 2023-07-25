@@ -1,6 +1,6 @@
 name: 💡 Feature Request
 description: Create a feature request for a sentry-javascript SDK.
-labels: 'Type: Improvement'
+labels: ['Type: Improvement']
 body:
   - type: markdown
     attributes:

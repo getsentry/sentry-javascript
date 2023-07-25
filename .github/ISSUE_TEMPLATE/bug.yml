@@ -32,6 +32,7 @@ body:
       options:
         - '@sentry/browser'
         - '@sentry/angular'
+        - '@sentry/angular-ivy'
         - '@sentry/ember'
         - '@sentry/gatsby'
         - '@sentry/nextjs'
