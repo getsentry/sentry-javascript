@@ -24,7 +24,7 @@ module.exports = [
 
   // Browser CDN bundles (ES6)
   {
-    name: '@sentry/browser (incl. Tracing, Replay)  - ES6 CDN Bundle (gzipped)',
+    name: '@sentry/browser (incl. Tracing, Replay) - ES6 CDN Bundle (gzipped)',
     path: 'packages/browser/build/bundles/bundle.tracing.replay.min.js',
     gzip: true,
     limit: '80 KB',
@@ -42,10 +42,30 @@ module.exports = [
     limit: '28 KB',
   },
 
+  // browser CDN bundles (ES6 + non-gzipped)
+  {
+    name: '@sentry/browser (incl. Tracing, Replay) - ES6 CDN Bundle (minified & uncompressed)',
+    path: 'packages/browser/build/bundles/bundle.tracing.replay.min.js',
+    gzip: false,
+    limit: '250 KB',
+  },
+  {
+    name: '@sentry/browser (incl. Tracing) - ES6 CDN Bundle (minified & uncompressed)',
+    path: 'packages/browser/build/bundles/bundle.tracing.min.js',
+    gzip: false,
+    limit: '100 KB',
+  },
+  {
+    name: '@sentry/browser - ES6 CDN Bundle (minified & uncompressed)',
+    path: 'packages/browser/build/bundles/bundle.min.js',
+    gzip: false,
+    limit: '70 KB',
+  },
+
   // Browser CDN bundles (ES5)
   // Replay is not supported in ES5 mode
   {
-    name: '@sentry/browser (incl. Tracing)- ES5 CDN Bundle (gzipped)',
+    name: '@sentry/browser (incl. Tracing) - ES5 CDN Bundle (gzipped)',
     path: 'packages/browser/build/bundles/bundle.tracing.es5.min.js',
     gzip: true,
     limit: '35 KB',
