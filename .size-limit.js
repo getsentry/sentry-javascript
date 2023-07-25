@@ -1,93 +1,85 @@
 module.exports = [
+  // Main browser webpack builds
   {
-    name: '@sentry/browser - ES5 CDN Bundle (gzipped + minified)',
-    path: 'packages/browser/build/bundles/bundle.es5.min.js',
-    gzip: true,
-    limit: '30 KB',
-  },
-  {
-    name: '@sentry/browser - ES5 CDN Bundle (minified)',
-    path: 'packages/browser/build/bundles/bundle.es5.min.js',
-    gzip: false,
-    limit: '70 KB',
-  },
-  {
-    name: '@sentry/browser - ES6 CDN Bundle (gzipped + minified)',
-    path: 'packages/browser/build/bundles/bundle.min.js',
-    gzip: true,
-    limit: '28 KB',
-  },
-  {
-    name: '@sentry/browser - ES6 CDN Bundle (minified)',
-    path: 'packages/browser/build/bundles/bundle.min.js',
-    gzip: false,
-    limit: '65 KB',
-  },
-  {
-    name: '@sentry/browser - Webpack (gzipped + minified)',
+    name: '@sentry/browser (incl. Tracing, Replay) - Webpack (gzipped)',
     path: 'packages/browser/build/npm/esm/index.js',
-    import: '{ init }',
+    import: '{ init, Replay, BrowserTracing }',
     gzip: true,
-    limit: '30 KB',
+    limit: '80 KB',
   },
   {
-    name: '@sentry/browser - Webpack (minified)',
+    name: '@sentry/browser (incl. Tracing) - Webpack (gzipped)',
     path: 'packages/browser/build/npm/esm/index.js',
-    import: '{ init }',
-    gzip: false,
-    limit: '76 KB',
-  },
-  {
-    name: '@sentry/react - Webpack (gzipped + minified)',
-    path: 'packages/react/build/esm/index.js',
-    import: '{ init }',
-    gzip: true,
-    limit: '30 KB',
-  },
-  {
-    name: '@sentry/nextjs Client - Webpack (gzipped + minified)',
-    path: 'packages/nextjs/build/esm/client/index.js',
-    import: '{ init }',
-    gzip: true,
-    limit: '57 KB',
-  },
-  {
-    name: '@sentry/browser + @sentry/tracing - ES5 CDN Bundle (gzipped + minified)',
-    path: 'packages/browser/build/bundles/bundle.tracing.es5.min.js',
-    gzip: true,
-    limit: '37 KB',
-  },
-  {
-    name: '@sentry/browser + @sentry/tracing - ES6 CDN Bundle (gzipped + minified)',
-    path: 'packages/browser/build/bundles/bundle.tracing.min.js',
+    import: '{ init, BrowserTracing }',
     gzip: true,
     limit: '35 KB',
   },
   {
-    name: '@sentry/replay ES6 CDN Bundle (gzipped + minified)',
-    path: 'packages/replay/build/bundles/replay.min.js',
+    name: '@sentry/browser - Webpack (gzipped)',
+    path: 'packages/browser/build/npm/esm/index.js',
+    import: '{ init }',
     gzip: true,
-    limit: '52 KB',
-    ignore: ['@sentry/browser', '@sentry/utils', '@sentry/core', '@sentry/types'],
+    limit: '28 KB',
   },
+
+  // Browser CDN bundles (ES6)
   {
-    name: '@sentry/replay - Webpack (gzipped + minified)',
-    path: 'packages/replay/build/npm/esm/index.js',
-    import: '{ Replay }',
-    gzip: true,
-    limit: '48 KB',
-    ignore: ['@sentry/browser', '@sentry/utils', '@sentry/core', '@sentry/types'],
-  },
-  {
-    name: '@sentry/browser + @sentry/tracing + @sentry/replay - ES6 CDN Bundle (gzipped + minified)',
+    name: '@sentry/browser (incl. Tracing, Replay)  - ES6 CDN Bundle (gzipped)',
     path: 'packages/browser/build/bundles/bundle.tracing.replay.min.js',
     gzip: true,
     limit: '80 KB',
   },
   {
-    name: '@sentry/browser + @sentry/replay - ES6 CDN Bundle (gzipped + minified)',
-    path: 'packages/browser/build/bundles/bundle.replay.min.js',
+    name: '@sentry/browser (incl. Tracing) - ES6 CDN Bundle (gzipped)',
+    path: 'packages/browser/build/bundles/bundle.tracing.min.js',
+    gzip: true,
+    limit: '35 KB',
+  },
+  {
+    name: '@sentry/browser - ES6 CDN Bundle (gzipped)',
+    path: 'packages/browser/build/bundles/bundle.min.js',
+    gzip: true,
+    limit: '28 KB',
+  },
+
+  // Browser CDN bundles (ES5)
+  // Replay is not supported in ES5 mode
+  {
+    name: '@sentry/browser (incl. Tracing)- ES5 CDN Bundle (gzipped)',
+    path: 'packages/browser/build/bundles/bundle.tracing.es5.min.js',
+    gzip: true,
+    limit: '35 KB',
+  },
+
+  // React
+  {
+    name: '@sentry/react (incl. Tracing, Replay) - Webpack (gzipped)',
+    path: 'packages/react/build/esm/index.js',
+    import: '{ init, BrowserTYracing, Replay }',
     gzip: true,
     limit: '80 KB',
+  },
+  {
+    name: '@sentry/react - Webpack (gzipped)',
+    path: 'packages/react/build/esm/index.js',
+    import: '{ init }',
+    gzip: true,
+    limit: '30 KB',
+  },
+
+  // Next.js
+  {
+    name: '@sentry/nextjs Client (incl. Tracing, Replay) - Webpack (gzipped)',
+    path: 'packages/nextjs/build/esm/client/index.js',
+    import: '{ init, BrowserTracing, Replay }',
+    gzip: true,
+    limit: '100 KB',
+  },
+  {
+    name: '@sentry/nextjs Client - Webpack (gzipped)',
+    path: 'packages/nextjs/build/esm/client/index.js',
+    import: '{ init }',
+    gzip: true,
+    limit: '57 KB',
   },
 ];
