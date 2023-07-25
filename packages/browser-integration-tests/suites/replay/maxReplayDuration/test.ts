@@ -29,6 +29,7 @@ sentryTest('keeps track of max duration across reloads', async ({ getLocalTestPa
   await new Promise(resolve => setTimeout(resolve, SESSION_MAX_AGE / 2));
 
   await page.reload();
+  await page.click('#button1');
 
   // After the second reload, we should have a new session (because we exceeded max age)
   const reqPromise3 = waitForReplayRequest(page, 0);
