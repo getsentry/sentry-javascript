@@ -74,10 +74,10 @@ jobs:
               "@sentry.wasm": {
                 "label": "Package: wasm"
               },
-              "Sentry Browser Loader": {
+              "Sentry.Browser.Loader": {
                 "label": "Package-Meta: Loader"
               },
-              "Sentry Browser CDN bundle": {
+              "Sentry.Browser.CDN.bundle": {
                 "label": "Package-Meta: CDN"
               }
             }
