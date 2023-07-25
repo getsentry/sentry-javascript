@@ -5,10 +5,8 @@ import { expectedFetchPerformanceSpan, expectedXHRPerformanceSpan } from '../../
 import { getReplayRecordingContent, shouldSkipReplayTest, waitForReplayRequest } from '../../../utils/replayHelpers';
 
 sentryTest('replay recording should contain fetch request span', async ({ getLocalTestPath, page, browserName }) => {
-  // For some reason, observing and waiting for requests in firefox/webkit is extremely flaky.
-  // We therefore skip this test for firefox and only test on chromium.
   // Possibly related: https://github.com/microsoft/playwright/issues/11390
-  if (shouldSkipReplayTest() || ['firefox', 'webkit'].includes(browserName)) {
+  if (shouldSkipReplayTest() || browserName === 'webkit') {
     sentryTest.skip();
   }
 
@@ -48,9 +46,7 @@ sentryTest('replay recording should contain fetch request span', async ({ getLoc
 });
 
 sentryTest('replay recording should contain XHR request span', async ({ getLocalTestPath, page, browserName }) => {
-  // For some reason, observing and waiting for requests in firefox/webkit is extremely flaky.
-  // We therefore skip this test for firefox and only test on chromium.
-  if (shouldSkipReplayTest() || ['firefox', 'webkit'].includes(browserName)) {
+  if (shouldSkipReplayTest() || browserName === 'webkit') {
     sentryTest.skip();
   }
 

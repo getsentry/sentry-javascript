@@ -5,7 +5,7 @@ import { sentryTest } from '../../../utils/fixtures';
 import { getFirstSentryEnvelopeRequest } from '../../../utils/helpers';
 
 sentryTest(
-  'should parse function identifiers that contain protocol names correctly',
+  'should parse function identifiers that contain protocol names correctly @firefox',
   async ({ getLocalTestPath, page, runInChromium, runInFirefox, runInWebkit }) => {
     const url = await getLocalTestPath({ testDir: __dirname });
 

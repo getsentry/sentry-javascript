@@ -102,8 +102,7 @@ sentryTest('captures multi click when not detecting slow click', async ({ getLoc
 });
 
 sentryTest('captures multiple multi clicks', async ({ getLocalTestUrl, page, forceFlushReplay, browserName }) => {
-  // This test seems to only be flakey on firefox and webkit
-  if (shouldSkipReplayTest() || ['firefox', 'webkit'].includes(browserName)) {
+  if (shouldSkipReplayTest() || browserName === 'webkit') {
     sentryTest.skip();
   }
 

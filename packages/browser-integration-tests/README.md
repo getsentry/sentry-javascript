@@ -47,12 +47,12 @@ Tests can be run locally using the latest version of Chromium with:
 
 To run tests with a different browser such as `firefox` or `webkit`:
 
-`yarn test --browser='firefox'`
-`yarn test --browser='webkit'`
+`yarn test --project='firefox'`
+`yarn test --project='webkit'`
 
 Or to run on all three browsers:
 
-`yarn test --browser='all'`
+`yarn test:all`
 
 To filter tests by their title:
 
