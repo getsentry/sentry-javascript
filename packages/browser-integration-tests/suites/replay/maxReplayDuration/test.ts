@@ -6,7 +6,7 @@ import { getReplayEvent, shouldSkipReplayTest, waitForReplayRequest } from '../.
 
 const SESSION_MAX_AGE = 2000;
 
-sentryTest('keeps track of max duration accross reloads', async ({ getLocalTestPath, page }) => {
+sentryTest('keeps track of max duration across reloads', async ({ getLocalTestPath, page }) => {
   if (shouldSkipReplayTest()) {
     sentryTest.skip();
   }
