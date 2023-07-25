@@ -24,7 +24,7 @@ interface MatchParam {
   getEvent(types?: EnvelopeItemType[]): Event | undefined;
 }
 
-type RouteTo = { dsn: string; release: string };
+export type RouteTo = { dsn: string; release: string };
 type Matcher = (param: MatchParam) => (string | RouteTo)[];
 
 /**
