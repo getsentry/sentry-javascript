@@ -72,6 +72,11 @@ export function getHandleRecordingEmit(replay: ReplayContainer): RecordingEmitCa
       if (replay.recordingMode === 'buffer' && replay.session && replay.eventBuffer) {
         const earliestEvent = replay.eventBuffer.getEarliestTimestamp();
         if (earliestEvent) {
+          // eslint-disable-next-line no-console
+          const log = replay.getOptions()._experiments.traceInternals ? console.info : logger.info;
+          __DEBUG_BUILD__ &&
+            log(`[Replay] Updating session start time to earliest event in buffer at ${earliestEvent}`);
+
           replay.session.started = earliestEvent;
 
           if (replay.getOptions().stickySession) {

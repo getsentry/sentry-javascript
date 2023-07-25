@@ -426,6 +426,10 @@ export class ReplayContainer implements ReplayContainerInterface {
 
     const activityTime = Date.now();
 
+    // eslint-disable-next-line no-console
+    const log = this.getOptions()._experiments.traceInternals ? console.info : logger.info;
+    __DEBUG_BUILD__ && log(`[Replay] Converting buffer to session, starting at ${activityTime}`);
+
     // Allow flush to complete before resuming as a session recording, otherwise
     // the checkout from `startRecording` may be included in the payload.
     // Prefer to keep the error replay as a separate (and smaller) segment
@@ -981,9 +985,6 @@ export class ReplayContainer implements ReplayContainerInterface {
 
     const earliestEvent = eventBuffer.getEarliestTimestamp();
     if (earliestEvent && earliestEvent < this._context.initialTimestamp) {
-      // eslint-disable-next-line no-console
-      const log = this.getOptions()._experiments.traceInternals ? console.info : logger.info;
-      __DEBUG_BUILD__ && log(`[Replay] Updating initial timestamp to ${earliestEvent}`);
       this._context.initialTimestamp = earliestEvent;
     }
   }
@@ -1103,7 +1104,7 @@ export class ReplayContainer implements ReplayContainerInterface {
       return;
     }
 
-    const start = this._context.initialTimestamp;
+    const start = this.session.started;
     const now = Date.now();
     const duration = now - start;
 
