@@ -43,6 +43,7 @@ env:
     ${{ github.workspace }}/packages/utils/esm
 
   BUILD_CACHE_KEY: ${{ github.event.inputs.commit || github.sha }}
+  BUILD_CACHE_TARBALL_KEY: tarball-${{ github.event.inputs.commit || github.sha }}
 
   # GH will use the first restore-key it finds that matches
   # So it will start by looking for one from the same branch, else take the newest one it can find elsewhere
@@ -729,20 +730,82 @@ jobs:
           cd packages/remix
           yarn test:integration:ci
 
-  job_e2e_tests:
-    name: E2E (Shard ${{ matrix.shard }}) Tests
-    # We only run E2E tests for non-fork PRs because the E2E tests require secrets to work and they can't be accessed from forks
-    # Dependabot PRs sadly also don't have access to secrets, so we skip them as well
+  job_e2e_prepare:
+    name: Prepare E2E tests
     if:
       (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) &&
       github.actor != 'dependabot[bot]'
     needs: [job_get_metadata, job_build]
     runs-on: ubuntu-20.04
-    timeout-minutes: 30
+    timeout-minutes: 15
+    steps:
+      - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ env.HEAD_COMMIT }}
+      - name: Set up Node
+        uses: actions/setup-node@v3
+        with:
+          node-version-file: 'package.json'
+      - name: Restore caches
+        uses: ./.github/actions/restore-cache
+        env:
+          DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
+      - name: Check tarball cache
+        uses: actions/cache@v3
+        with:
+          path: ${{ github.workspace }}/packages/*/*.tgz
+          key: ${{ env.BUILD_CACHE_TARBALL_KEY }}
+      - name: Build tarballs
+        run: yarn build:tarball
+
+  job_e2e_tests:
+    name: E2E ${{ matrix.label || matrix.test-application }} Test
+    # We only run E2E tests for non-fork PRs because the E2E tests require secrets to work and they can't be accessed from forks
+    # Dependabot PRs sadly also don't have access to secrets, so we skip them as well
+    if:
+      (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) &&
+      github.actor != 'dependabot[bot]'
+    needs: [job_get_metadata, job_build, job_e2e_prepare]
+    runs-on: ubuntu-20.04
+    timeout-minutes: 10
+    env:
+      E2E_TEST_AUTH_TOKEN: ${{ secrets.E2E_TEST_AUTH_TOKEN }}
+      E2E_TEST_DSN: ${{ secrets.E2E_TEST_DSN }}
+      # Needed because some apps expect a certain prefix
+      NEXT_PUBLIC_E2E_TEST_DSN: ${{ secrets.E2E_TEST_DSN }}
+      PUBLIC_E2E_TEST_DSN: ${{ secrets.E2E_TEST_DSN }}
+      REACT_APP_E2E_TEST_DSN: ${{ secrets.E2E_TEST_DSN }}
+      E2E_TEST_SENTRY_ORG_SLUG: 'sentry-javascript-sdks'
+      E2E_TEST_SENTRY_TEST_PROJECT: 'sentry-javascript-e2e-tests'
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4]
+        test-application:
+          [
+            'node-express-app',
+            'create-react-app',
+            'create-next-app',
+            'create-remix-app',
+            'nextjs-app-dir',
+            'react-create-hash-router',
+            'standard-frontend-react',
+            'standard-frontend-react-tracing-import',
+            'sveltekit',
+          ]
+        build-command:
+          - false
+        label:
+          - false
+        # Add any variations of a test app here
+        # You should provide an alternate build-command as well as a matching label
+        include:
+          - test-application: 'create-react-app'
+            build-command: 'test:build-ts3.8'
+            label: 'create-react-app (TS 3.8)'
+          - test-application: 'standard-frontend-react'
+            build-command: 'test:build-ts3.8'
+            label: 'standard-frontend-react (TS 3.8)'
 
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
@@ -761,22 +824,36 @@ jobs:
         env:
           DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
 
+      - name: Restore tarball cache
+        uses: actions/cache/restore@v3
+        with:
+          path: ${{ github.workspace }}/packages/*/*.tgz
+          key: ${{ env.BUILD_CACHE_TARBALL_KEY }}
+
       - name: Get node version
         id: versions
         run: |
           echo "echo node=$(jq -r '.volta.node' package.json)" >> $GITHUB_OUTPUT
-      - name: Run E2E tests
+
+      - name: Validate Verdaccio
+        run: yarn test:validate
+        working-directory: packages/e2e-tests
+
+      - name: Prepare Verdaccio
+        run: yarn test:prepare
+        working-directory: packages/e2e-tests
         env:
           E2E_TEST_PUBLISH_SCRIPT_NODE_VERSION: ${{ steps.versions.outputs.node }}
-          E2E_TEST_AUTH_TOKEN: ${{ secrets.E2E_TEST_AUTH_TOKEN }}
-          E2E_TEST_DSN: ${{ secrets.E2E_TEST_DSN }}
-          E2E_TEST_SENTRY_ORG_SLUG: 'sentry-javascript-sdks'
-          E2E_TEST_SENTRY_TEST_PROJECT: 'sentry-javascript-e2e-tests'
-          E2E_TEST_SHARD: ${{ matrix.shard }}
-          E2E_TEST_SHARD_AMOUNT: 4
-        run: |
-          cd packages/e2e-tests
-          yarn test:e2e
+
+      - name: Build E2E app
+        working-directory: packages/e2e-tests/test-applications/${{ matrix.test-application }}
+        timeout-minutes: 5
+        run: yarn ${{ matrix.build-command || 'test:build' }}
+
+      - name: Run E2E test
+        working-directory: packages/e2e-tests/test-applications/${{ matrix.test-application }}
+        timeout-minutes: 5
+        run: yarn test:assert
 
   job_required_tests:
     name: All required tests passed or skipped

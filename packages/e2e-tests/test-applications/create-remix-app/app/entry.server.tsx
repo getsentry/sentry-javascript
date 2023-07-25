@@ -16,7 +16,7 @@ import * as Sentry from '@sentry/remix';
 const ABORT_DELAY = 5_000;
 
 Sentry.init({
-  dsn: process.env.REMIX_APP_E2E_TEST_DSN,
+  dsn: process.env.E2E_TEST_DSN,
   // Performance Monitoring
   tracesSampleRate: 1.0, // Capture 100% of the transactions, reduce in production!
 });

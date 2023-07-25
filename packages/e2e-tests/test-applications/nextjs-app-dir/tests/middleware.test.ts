@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { waitForTransaction, waitForError } from '../../../test-utils/event-proxy-server';
+import { waitForTransaction, waitForError } from '../event-proxy-server';
 
 test('Should create a transaction for middleware', async ({ request }) => {
   test.skip(process.env.TEST_ENV === 'development', "Doesn't work in dev mode.");

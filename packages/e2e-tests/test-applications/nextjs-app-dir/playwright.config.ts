@@ -7,8 +7,8 @@ if (!testEnv) {
   throw new Error('No test env defined');
 }
 
-const nextPort = Number(process.env.BASE_PORT) + Number(process.env.PORT_MODULO);
-const eventProxyPort = Number(process.env.BASE_PORT) + Number(process.env.PORT_MODULO) + Number(process.env.PORT_GAP);
+const nextPort = 3030;
+const eventProxyPort = 3031;
 
 /**
  * See https://playwright.dev/docs/test-configuration.

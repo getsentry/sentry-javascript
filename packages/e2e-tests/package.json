@@ -18,13 +18,14 @@
     "test:run": "ts-node run.ts",
     "test:validate-configuration": "ts-node validate-verdaccio-configuration.ts",
     "test:validate-test-app-setups": "ts-node validate-test-app-setups.ts",
-    "clean": "rimraf tmp test-applications/**/node_modules test-applications/**/dist"
+    "test:prepare": "ts-node prepare.ts",
+    "test:validate": "run-s test:validate-configuration test:validate-test-app-setups",
+    "clean": "rimraf tmp test-applications/**/{node_modules,dist,build,.next,.sveltekit,pnpm-lock.yaml}"
   },
   "devDependencies": {
     "@types/glob": "8.0.0",
     "@types/node": "^14.6.4",
     "dotenv": "16.0.3",
-    "fs-extra": "11.1.0",
     "glob": "8.0.3",
     "ts-node": "10.9.1",
     "yaml": "2.2.2"

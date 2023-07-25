@@ -5,7 +5,9 @@
     "build": "remix build",
     "dev": "remix dev",
     "start": "remix-serve build",
-    "typecheck": "tsc"
+    "typecheck": "tsc",
+    "test:build": "pnpm install && pnpm build",
+    "test:assert": "pnpm -v"
   },
   "dependencies": {
     "@sentry/remix": "latest || *",

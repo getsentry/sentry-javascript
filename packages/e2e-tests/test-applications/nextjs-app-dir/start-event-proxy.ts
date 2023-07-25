@@ -1,6 +1,6 @@
-import { startEventProxyServer } from '../../test-utils/event-proxy-server';
+import { startEventProxyServer } from './event-proxy-server';
 
 startEventProxyServer({
-  port: Number(process.env.BASE_PORT) + Number(process.env.PORT_MODULO) + Number(process.env.PORT_GAP),
+  port: 3031,
   proxyServerName: 'nextjs-13-app-dir',
 });

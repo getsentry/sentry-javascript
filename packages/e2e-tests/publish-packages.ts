@@ -5,9 +5,6 @@ import * as path from 'path';
 
 const repositoryRoot = path.resolve(__dirname, '../..');
 
-// Create tarballs
-childProcess.execSync('yarn build:tarball', { encoding: 'utf8', cwd: repositoryRoot, stdio: 'inherit' });
-
 // Get absolute paths of all the packages we want to publish to the fake registry
 const packageTarballPaths = glob.sync('packages/*/sentry-*.tgz', {
   cwd: repositoryRoot,
