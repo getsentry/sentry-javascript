@@ -5,8 +5,8 @@ type GetPrivacyOptions = Required<Omit<ReplayIntegrationPrivacyOptions, 'maskFn'
 interface GetPrivacyReturn {
   maskTextSelector: string;
   unmaskTextSelector: string;
-  maskInputSelector: string;
-  unmaskInputSelector: string;
+  // maskInputSelector: string;
+  // unmaskInputSelector: string;
   blockSelector: string;
   unblockSelector: string;
   ignoreSelector: string;
@@ -78,8 +78,8 @@ export function getPrivacyOptions({
     // We are making the decision to make text and input selectors the same
     maskTextSelector: maskSelector,
     unmaskTextSelector: unmaskSelector,
-    maskInputSelector: maskSelector,
-    unmaskInputSelector: unmaskSelector,
+    // maskInputSelector: maskSelector,
+    // unmaskInputSelector: unmaskSelector,
 
     blockSelector: getOption(
       block,
