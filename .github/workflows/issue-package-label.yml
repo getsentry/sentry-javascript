@@ -25,52 +25,53 @@ jobs:
         id: packageLabel
         if: steps.packageName.outputs.match != ''
         with:
-          key: ${{ steps.packageName.outputs.group1 }}
+          key: '${{ steps.packageName.outputs.group1 }}'
+          # Note: Since this is handled as a regex, and JSON parse wrangles slashes /, we just use `.` instead
           map: |
             {
-              "@sentry\/browser": {
+              "@sentry.browser": {
                 "label": "Package: Browser"
               },
-              "@sentry\/angular": {
+              "@sentry.angular": {
                 "label": "Package: Angular"
               },
-              "@sentry\/angular-ivy": {
+              "@sentry.angular-ivy": {
                 "label": "Package: Angular"
               },
-              "@sentry\/ember": {
+              "@sentry.ember": {
                 "label": "Package: ember"
               },
-              "@sentry\/gatsby": {
+              "@sentry.gatsby": {
                 "label": "Package: gatbsy"
               },
-              "@sentry\/nextjs": {
+              "@sentry.nextjs": {
                 "label": "Package: Nextjs"
               },
-              "@sentry\/node": {
+              "@sentry.node": {
                 "label": "Package: Node"
               },
-              "@sentry\/opentelemetry-node": {
+              "@sentry.opentelemetry-node": {
                 "label": "Package: otel-node"
               },
-              "@sentry\/react": {
+              "@sentry.react": {
                 "label": "Package: react"
               },
-              "@sentry\/remix": {
+              "@sentry.remix": {
                 "label": "Package: remix"
               },
-              "@sentry\/serverless": {
+              "@sentry.serverless": {
                 "label": "Package: Serverless"
               },
-              "@sentry\/svelte": {
+              "@sentry.svelte": {
                 "label": "Package: svelte"
               },
-              "@sentry\/sveltekit": {
+              "@sentry.sveltekit": {
                 "label": "Package: SvelteKit"
               },
-              "@sentry\/vue": {
+              "@sentry.vue": {
                 "label": "Package: vue"
               },
-              "@sentry\/wasm": {
+              "@sentry.wasm": {
                 "label": "Package: wasm"
               },
               "Sentry Browser Loader": {
