@@ -16,14 +16,11 @@ export function initOtel(): () => void {
     diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.DEBUG);
   }
 
-  // We use the custom otelHooks from the client to communicate with @sentry/opentelemetry-node
-  const hooks = client?.otelHooks;
-
   // Create and configure NodeTracerProvider
   const provider = new NodeTracerProvider({
     sampler: new AlwaysOnSampler(),
   });
-  provider.addSpanProcessor(new SentrySpanProcessor({ hooks }));
+  provider.addSpanProcessor(new SentrySpanProcessor());
 
   // Initialize the provider
   provider.register({

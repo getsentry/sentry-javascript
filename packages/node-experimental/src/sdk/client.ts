@@ -1,7 +1,6 @@
 import type { Tracer } from '@opentelemetry/api';
 import { trace } from '@opentelemetry/api';
 import { NodeClient, SDK_VERSION } from '@sentry/node';
-import { OtelHooks } from '@sentry/opentelemetry-node';
 
 import type { NodeExperimentalClientOptions } from '../types';
 
@@ -9,8 +8,6 @@ import type { NodeExperimentalClientOptions } from '../types';
  * A client built on top of the NodeClient, which provides some otel-specific things on top.
  */
 export class NodeExperimentalClient extends NodeClient {
-  public otelHooks: OtelHooks;
-
   private _tracer: Tracer | undefined;
 
   public constructor(options: ConstructorParameters<typeof NodeClient>[0]) {
@@ -27,8 +24,6 @@ export class NodeExperimentalClient extends NodeClient {
     };
 
     super(options);
-
-    this.otelHooks = new OtelHooks();
   }
 
   /** Get the OTEL tracer. */

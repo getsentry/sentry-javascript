@@ -7,7 +7,6 @@ import type { DynamicSamplingContext, Span as SentrySpan, TraceparentData, Trans
 import { isString, logger } from '@sentry/utils';
 
 import { SENTRY_DYNAMIC_SAMPLING_CONTEXT_KEY, SENTRY_TRACE_PARENT_CONTEXT_KEY } from './constants';
-import type { OtelHooks } from './hooks';
 import { isSentryRequestSpan } from './utils/isSentryRequest';
 import { mapOtelStatus } from './utils/mapOtelStatus';
 import { parseSpanDescription } from './utils/parseOtelSpanDescription';
@@ -29,11 +28,7 @@ function clearSpan(otelSpanId: string): void {
  * the Sentry SDK.
  */
 export class SentrySpanProcessor implements OtelSpanProcessor {
-  private _hooks?: OtelHooks;
-
-  public constructor({ hooks }: { hooks?: OtelHooks } = {}) {
-    this._hooks = hooks;
-
+  public constructor() {
     addTracingExtensions();
 
     addGlobalEventProcessor(event => {
@@ -114,11 +109,14 @@ export class SentrySpanProcessor implements OtelSpanProcessor {
       return;
     }
 
-    if (this._hooks) {
-      if (this._hooks.emit('spanEnd', otelSpan, sentrySpan) === false) {
-        clearSpan(otelSpanId);
-        return;
-      }
+    const client = getCurrentHub().getClient();
+
+    const mutableOptions = { drop: false };
+    client && client.emit && client?.emit('otelSpanEnd', otelSpan, mutableOptions);
+
+    if (mutableOptions.drop) {
+      clearSpan(otelSpanId);
+      return;
     }
 
     otelSpan.events.forEach(event => {

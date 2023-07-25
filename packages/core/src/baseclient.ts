@@ -389,6 +389,9 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   public on(hook: 'createDsc', callback: (dsc: DynamicSamplingContext) => void): void;
 
   /** @inheritdoc */
+  public on(hook: 'otelSpanEnd', callback: (otelSpan: unknown, mutableOptions: { drop: boolean }) => void): void;
+
+  /** @inheritdoc */
   public on(hook: string, callback: unknown): void {
     if (!this._hooks[hook]) {
       this._hooks[hook] = [];
@@ -412,6 +415,9 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
 
   /** @inheritdoc */
   public emit(hook: 'createDsc', dsc: DynamicSamplingContext): void;
+
+  /** @inheritdoc */
+  public emit(hook: 'otelSpanEnd', otelSpan: unknown, mutableOptions: { drop: boolean }): void;
 
   /** @inheritdoc */
   public emit(hook: string, ...rest: unknown[]): void {

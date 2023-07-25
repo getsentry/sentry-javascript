@@ -105,7 +105,7 @@ export class Http implements Integration {
       // eslint-disable-next-line deprecation/deprecation
       this._shouldCreateSpanForRequest || clientOptions?.shouldCreateSpanForRequest;
 
-    client?.otelHooks.on('spanEnd', this._onSpanEnd);
+    client?.on?.('otelSpanEnd', this._onSpanEnd);
   }
 
   /**
@@ -113,24 +113,26 @@ export class Http implements Integration {
    */
   public unregister(): void {
     this._unload?.();
-
-    const client = getCurrentHub().getClient<NodeExperimentalClient>();
-    client?.otelHooks.off('spanEnd', this._onSpanEnd);
   }
 
-  private _onSpanEnd: (otelSpan: OtelSpan) => void | false = (otelSpan: OtelSpan) => {
+  private _onSpanEnd: (otelSpan: unknown, mutableOptions: { drop: boolean }) => void = (
+    otelSpan: unknown,
+    mutableOptions: { drop: boolean },
+  ) => {
     if (!this._shouldCreateSpans) {
-      return false;
+      mutableOptions.drop = true;
+      return;
     }
 
     if (this._shouldCreateSpanForRequest) {
-      const url = getHttpUrl(otelSpan.attributes);
+      const url = getHttpUrl((otelSpan as OtelSpan).attributes);
       if (url && !this._shouldCreateSpanForRequest(url)) {
-        return false;
+        mutableOptions.drop = true;
+        return;
       }
     }
 
-    return undefined;
+    return;
   };
 
   /** Handle an emitted span from the HTTP instrumentation. */
