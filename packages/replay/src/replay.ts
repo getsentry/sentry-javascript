@@ -131,6 +131,8 @@ export class ReplayContainer implements ReplayContainerInterface {
    */
   private _hasInitializedCoreListeners: boolean = false;
 
+  private _recordFn: typeof record = record;
+
   /**
    * Function to stop recording
    */
@@ -179,6 +181,10 @@ export class ReplayContainer implements ReplayContainerInterface {
 
     if (slowClickConfig) {
       this.clickDetector = new ClickDetector(this, slowClickConfig);
+    }
+
+    if (options._experiments.recordFn) {
+      this._recordFn = options._experiments.recordFn;
     }
   }
 
@@ -308,7 +314,7 @@ export class ReplayContainer implements ReplayContainerInterface {
    */
   public startRecording(): void {
     try {
-      this._stopRecording = record({
+      this._stopRecording = this._recordFn({
         ...this._recordingOptions,
         // When running in error sampling mode, we need to overwrite `checkoutEveryNms`
         // Without this, it would record forever, until an error happens, which we don't want
@@ -958,7 +964,7 @@ export class ReplayContainer implements ReplayContainerInterface {
     const entries = [...this.performanceEvents];
     this.performanceEvents = [];
 
-    return Promise.all(createPerformanceSpans(this, createPerformanceEntries(entries)));
+    return Promise.all(createPerformanceSpans(this, createPerformanceEntries(this._recordFn.mirror, entries)));
   }
 
   /**

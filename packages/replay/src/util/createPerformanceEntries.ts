@@ -1,4 +1,4 @@
-import { record } from '@sentry-internal/rrweb';
+import type { idNodeMap, INode } from '@sentry-internal/rrweb-snapshot';
 import { browserPerformanceTimeOrigin } from '@sentry/utils';
 
 import { WINDOW } from '../constants';
@@ -13,11 +13,21 @@ import type {
   ResourceData,
 } from '../types';
 
+// from rrweb1
+interface Mirror {
+  map: idNodeMap;
+  getId: (n: INode) => number;
+  getNode: (id: number) => INode | null;
+  removeNodeFromMap: (n: INode) => void;
+  has: (id: number) => boolean;
+  reset: () => void;
+};
+
 // Map entryType -> function to normalize data for event
 // @ts-ignore TODO: entry type does not fit the create* functions entry type
 const ENTRY_TYPES: Record<
   string,
-  (entry: AllPerformanceEntry) => null | ReplayPerformanceEntry<AllPerformanceEntryData>
+  (mirror: Mirror, entry: AllPerformanceEntry) => null | ReplayPerformanceEntry<AllPerformanceEntryData>
 > = {
   // @ts-ignore TODO: entry type does not fit the create* functions entry type
   resource: createResourceEntry,
@@ -32,17 +42,18 @@ const ENTRY_TYPES: Record<
  * Create replay performance entries from the browser performance entries.
  */
 export function createPerformanceEntries(
+  mirror: Mirror,
   entries: AllPerformanceEntry[],
 ): ReplayPerformanceEntry<AllPerformanceEntryData>[] {
-  return entries.map(createPerformanceEntry).filter(Boolean) as ReplayPerformanceEntry<AllPerformanceEntryData>[];
+  return entries.map((entry) => createPerformanceEntry(mirror, entry)).filter(Boolean) as ReplayPerformanceEntry<AllPerformanceEntryData>[];
 }
 
-function createPerformanceEntry(entry: AllPerformanceEntry): ReplayPerformanceEntry<AllPerformanceEntryData> | null {
+function createPerformanceEntry(mirror: Mirror, entry: AllPerformanceEntry): ReplayPerformanceEntry<AllPerformanceEntryData> | null {
   if (ENTRY_TYPES[entry.entryType] === undefined) {
     return null;
   }
 
-  return ENTRY_TYPES[entry.entryType](entry);
+  return ENTRY_TYPES[entry.entryType](mirror, entry);
 }
 
 function getAbsoluteTime(time: number): number {
@@ -51,7 +62,7 @@ function getAbsoluteTime(time: number): number {
   return ((browserPerformanceTimeOrigin || WINDOW.performance.timeOrigin) + time) / 1000;
 }
 
-function createPaintEntry(entry: PerformancePaintTiming): ReplayPerformanceEntry<PaintData> {
+function createPaintEntry(_mirror: Mirror, entry: PerformancePaintTiming): ReplayPerformanceEntry<PaintData> {
   const { duration, entryType, name, startTime } = entry;
 
   const start = getAbsoluteTime(startTime);
@@ -64,7 +75,7 @@ function createPaintEntry(entry: PerformancePaintTiming): ReplayPerformanceEntry
   };
 }
 
-function createNavigationEntry(entry: PerformanceNavigationTiming): ReplayPerformanceEntry<NavigationData> | null {
+function createNavigationEntry(_mirror: Mirror, entry: PerformanceNavigationTiming): ReplayPerformanceEntry<NavigationData> | null {
   const {
     entryType,
     name,
@@ -110,6 +121,7 @@ function createNavigationEntry(entry: PerformanceNavigationTiming): ReplayPerfor
 }
 
 function createResourceEntry(
+  _mirror: Mirror,
   entry: ExperimentalPerformanceResourceTiming,
 ): ReplayPerformanceEntry<ResourceData> | null {
   const {
@@ -144,6 +156,7 @@ function createResourceEntry(
 }
 
 function createLargestContentfulPaint(
+  mirror: Mirror,
   entry: PerformanceEntry & { size: number; element: Node },
 ): ReplayPerformanceEntry<LargestContentfulPaintData> {
   const { entryType, startTime, size } = entry;
@@ -175,7 +188,7 @@ function createLargestContentfulPaint(
       size,
       // Not sure why this errors, Node should be correct (Argument of type 'Node' is not assignable to parameter of type 'INode')
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      nodeId: record.mirror.getId(entry.element as any),
+      nodeId: mirror.getId(entry.element as any),
     },
   };
 }

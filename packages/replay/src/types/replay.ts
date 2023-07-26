@@ -1,3 +1,4 @@
+import type { record } from '@sentry-internal/rrweb';
 import type {
   Breadcrumb,
   FetchBreadcrumbHint,
@@ -8,6 +9,7 @@ import type {
   Transaction,
   XhrBreadcrumbHint,
 } from '@sentry/types';
+
 
 import type { SKIPPED, THROTTLED } from '../util/throttle';
 import type { AllPerformanceEntry } from './performance';
@@ -210,6 +212,7 @@ export interface ReplayPluginOptions extends ReplayNetworkOptions {
   _experiments: Partial<{
     captureExceptions: boolean;
     traceInternals: boolean;
+    recordFn: typeof record;
   }>;
 }
 
