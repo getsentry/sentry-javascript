@@ -293,7 +293,7 @@ export interface DeprecatedPrivacyOptions {
    */
   maskTextClass?: RecordingOptions['maskTextClass'];
   /**
-   * @derecated Use `mask` which accepts an array of CSS selectors
+   * @deprecated Use `mask` which accepts an array of CSS selectors
    */
   maskTextSelector?: RecordingOptions['maskTextSelector'];
 }
