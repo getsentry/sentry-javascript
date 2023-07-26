@@ -1,4 +1,3 @@
-import type { idNodeMap, INode } from '@sentry-internal/rrweb-snapshot';
 import { browserPerformanceTimeOrigin } from '@sentry/utils';
 
 import { WINDOW } from '../constants';
@@ -7,6 +6,7 @@ import type {
   AllPerformanceEntryData,
   ExperimentalPerformanceResourceTiming,
   LargestContentfulPaintData,
+  Mirror,
   NavigationData,
   PaintData,
   ReplayPerformanceEntry,
@@ -14,14 +14,6 @@ import type {
 } from '../types';
 
 // from rrweb1
-interface Mirror {
-  map: idNodeMap;
-  getId: (n: INode) => number;
-  getNode: (id: number) => INode | null;
-  removeNodeFromMap: (n: INode) => void;
-  has: (id: number) => boolean;
-  reset: () => void;
-};
 
 // Map entryType -> function to normalize data for event
 // @ts-ignore TODO: entry type does not fit the create* functions entry type

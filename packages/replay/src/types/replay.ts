@@ -1,4 +1,4 @@
-import type { record } from '@sentry-internal/rrweb';
+import { record } from '@sentry-internal/rrweb';
 import type {
   Breadcrumb,
   FetchBreadcrumbHint,

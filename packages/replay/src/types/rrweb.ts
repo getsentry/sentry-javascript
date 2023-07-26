@@ -27,7 +27,7 @@ export type eventWithTime = {
 
 /**
  * This is a partial copy of rrweb's recording options which only contains the properties
- * we specifically us in the SDK. Users can specify additional properties, hence we add the
+ * we specifically use in the SDK. Users can specify additional properties, hence we add the
  * Record<string, unknown> union type.
  */
 export type recordOptions = {
@@ -40,3 +40,7 @@ export type recordOptions = {
   blockSelector?: string;
   maskInputOptions?: Record<string, boolean>;
 } & Record<string, unknown>;
+
+export interface Mirror {
+  getId: (n: Node) => number;
+};
