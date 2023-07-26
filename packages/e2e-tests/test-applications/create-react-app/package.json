@@ -23,6 +23,7 @@
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
+    "clean": "npx rimraf node_modules,pnpm-lock.yaml",
     "test:build": "pnpm install && pnpm build",
     "test:build-ts3.8": "pnpm install && pnpm add typescript@3.8 && pnpm build",
     "test:build-canary": "pnpm install && pnpm add react@canary react-dom@canary && pnpm build",

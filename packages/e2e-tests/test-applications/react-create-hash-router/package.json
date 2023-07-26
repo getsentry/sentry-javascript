@@ -22,6 +22,7 @@
     "build": "react-scripts build",
     "start": "serve -s build",
     "test": "playwright test",
+    "clean": "npx rimraf node_modules,pnpm-lock.yaml",
     "test:build": "pnpm install && npx playwright install && pnpm build",
     "test:build-canary": "pnpm install && pnpm add react@canary react-dom@canary && npx playwright install && pnpm build",
     "test:assert": "pnpm test"
