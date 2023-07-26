@@ -18,7 +18,7 @@ type TransactionJSON = ReturnType<Transaction['toJSON']> & {
 
 const wait = (time: number) => new Promise(res => setTimeout(res, time));
 
-sentryTest('should capture interaction transaction.', async ({ browserName, getLocalTestPath, page }) => {
+sentryTest('should capture interaction transaction. @firefox', async ({ browserName, getLocalTestPath, page }) => {
   const supportedBrowsers = ['chromium', 'firefox'];
 
   if (shouldSkipTracingTest() || !supportedBrowsers.includes(browserName)) {
@@ -55,23 +55,28 @@ sentryTest('should capture interaction transaction.', async ({ browserName, getL
   expect(interactionSpanDuration).toBeLessThan(200);
 });
 
-sentryTest('should create only one transaction per interaction', async ({ browserName, getLocalTestPath, page }) => {
-  const supportedBrowsers = ['chromium', 'firefox'];
+sentryTest(
+  'should create only one transaction per interaction @firefox',
+  async ({ browserName, getLocalTestPath, page }) => {
+    const supportedBrowsers = ['chromium', 'firefox'];
 
-  if (shouldSkipTracingTest() || !supportedBrowsers.includes(browserName)) {
-    sentryTest.skip();
-  }
+    if (shouldSkipTracingTest() || !supportedBrowsers.includes(browserName)) {
+      sentryTest.skip();
+    }
 
-  await page.route('**/path/to/script.js', (route: Route) => route.fulfill({ path: `${__dirname}/assets/script.js` }));
+    await page.route('**/path/to/script.js', (route: Route) =>
+      route.fulfill({ path: `${__dirname}/assets/script.js` }),
+    );
 
-  const url = await getLocalTestPath({ testDir: __dirname });
-  await page.goto(url);
-  await getFirstSentryEnvelopeRequest<Event>(page);
+    const url = await getLocalTestPath({ testDir: __dirname });
+    await page.goto(url);
+    await getFirstSentryEnvelopeRequest<Event>(page);
 
-  for (let i = 0; i < 4; i++) {
-    await wait(100);
-    await page.locator('[data-test-id=interaction-button]').click();
-    const envelope = await getMultipleSentryEnvelopeRequests<Event>(page, 1);
-    expect(envelope[0].spans).toHaveLength(1);
-  }
-});
+    for (let i = 0; i < 4; i++) {
+      await wait(100);
+      await page.locator('[data-test-id=interaction-button]').click();
+      const envelope = await getMultipleSentryEnvelopeRequests<Event>(page, 1);
+      expect(envelope[0].spans).toHaveLength(1);
+    }
+  },
+);

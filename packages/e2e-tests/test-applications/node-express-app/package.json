@@ -5,7 +5,9 @@
   "scripts": {
     "build": "tsc",
     "start": "node dist/app.js",
-    "test": "playwright test"
+    "test": "playwright test",
+    "test:build": "pnpm install && pnpm build",
+    "test:assert": "pnpm test"
   },
   "dependencies": {
     "@sentry/integrations": "latest || *",

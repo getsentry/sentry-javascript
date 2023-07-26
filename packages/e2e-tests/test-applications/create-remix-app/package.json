@@ -5,7 +5,9 @@
     "build": "remix build",
     "dev": "remix dev",
     "start": "remix-serve build",
-    "typecheck": "tsc"
+    "typecheck": "tsc",
+    "test:build": "pnpm install && npx playwright install && pnpm build",
+    "test:assert": "pnpm playwright test"
   },
   "dependencies": {
     "@sentry/remix": "latest || *",
@@ -18,6 +20,7 @@
     "react-dom": "^18.2.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.36.2",
     "@remix-run/dev": "^1.16.1",
     "@remix-run/eslint-config": "^1.16.1",
     "@types/react": "^18.0.35",

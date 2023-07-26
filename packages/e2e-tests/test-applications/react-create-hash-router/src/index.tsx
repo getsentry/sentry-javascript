@@ -37,6 +37,8 @@ Sentry.init({
   // Always capture replays, so we can test this properly
   replaysSessionSampleRate: 1.0,
   replaysOnErrorSampleRate: 0.0,
+
+  debug: true,
 });
 
 Object.defineProperty(window, 'sentryReplayId', {

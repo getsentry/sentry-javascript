@@ -10,7 +10,7 @@ import { hydrateRoot } from 'react-dom/client';
 import * as Sentry from '@sentry/remix';
 
 Sentry.init({
-  dsn: process.env.REMIX_APP_E2E_TEST_DSN,
+  dsn: process.env.E2E_TEST_DSN,
   integrations: [
     new Sentry.BrowserTracing({
       routingInstrumentation: Sentry.remixRouterInstrumentation(useEffect, useLocation, useMatches),

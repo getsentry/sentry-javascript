@@ -16,8 +16,8 @@ import {
 sentryTest(
   '[buffer-mode] manually start buffer mode and capture buffer',
   async ({ getLocalTestPath, page, browserName }) => {
-    // This was sometimes flaky on firefox/webkit, so skipping for now
-    if (shouldSkipReplayTest() || ['firefox', 'webkit'].includes(browserName)) {
+    // This was sometimes flaky on webkit, so skipping for now
+    if (shouldSkipReplayTest() || browserName === 'webkit') {
       sentryTest.skip();
     }
 
@@ -159,8 +159,8 @@ sentryTest(
 sentryTest(
   '[buffer-mode] manually start buffer mode and capture buffer, but do not continue as session',
   async ({ getLocalTestPath, page, browserName }) => {
-    // This was sometimes flaky on firefox/webkit, so skipping for now
-    if (shouldSkipReplayTest() || ['firefox', 'webkit'].includes(browserName)) {
+    // This was sometimes flaky on webkit, so skipping for now
+    if (shouldSkipReplayTest() || browserName === 'webkit') {
       sentryTest.skip();
     }
 
@@ -287,8 +287,7 @@ sentryTest(
 sentryTest(
   '[buffer-mode] can sample on each error event',
   async ({ getLocalTestPath, page, browserName, enableConsole }) => {
-    // This was sometimes flaky on firefox/webkit, so skipping for now
-    if (shouldSkipReplayTest() || ['firefox', 'webkit'].includes(browserName)) {
+    if (shouldSkipReplayTest() || browserName === 'webkit') {
       sentryTest.skip();
     }
 

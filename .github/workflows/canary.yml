@@ -17,12 +17,71 @@ permissions:
   issues: write
 
 jobs:
-  job_canary_test:
-    name: Canary Tests
+  job_e2e_prepare:
+    name: Prepare E2E Canary tests
     runs-on: ubuntu-20.04
-    timeout-minutes: 60
+    timeout-minutes: 30
     steps:
-      - name: 'Check out current commit'
+      - name: Check out current commit
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ env.HEAD_COMMIT }}
+      - name: Set up Node
+        uses: actions/setup-node@v3
+        with:
+          node-version-file: 'package.json'
+      - name: Check canary cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            ${{ github.workspace }}/packages/*/*.tgz
+            ${{ github.workspace }}/node_modules
+            ${{ github.workspace }}/packages/*/node_modules
+          key: canary-${{ env.HEAD_COMMIT }}
+      - name: Install dependencies
+        run: yarn install
+      - name: Build packages
+        run: yarn build
+
+      - name: Build tarballs
+        run: yarn build:tarball
+
+  job_e2e_tests:
+    name: E2E ${{ matrix.label }} Test
+    needs: [job_e2e_prepare]
+    runs-on: ubuntu-20.04
+    timeout-minutes: 15
+    env:
+      E2E_TEST_AUTH_TOKEN: ${{ secrets.E2E_TEST_AUTH_TOKEN }}
+      E2E_TEST_DSN: ${{ secrets.E2E_TEST_DSN }}
+      # Needed because certain apps expect a certain prefix
+      NEXT_PUBLIC_E2E_TEST_DSN: ${{ secrets.E2E_TEST_DSN }}
+      PUBLIC_E2E_TEST_DSN: ${{ secrets.E2E_TEST_DSN }}
+      REACT_APP_E2E_TEST_DSN: ${{ secrets.E2E_TEST_DSN }}
+      E2E_TEST_SENTRY_ORG_SLUG: 'sentry-javascript-sdks'
+      E2E_TEST_SENTRY_TEST_PROJECT: 'sentry-javascript-e2e-tests'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - test-application: 'create-react-app'
+            build-command: 'test:build-canary'
+            label: 'create-react-app (canary)'
+          - test-application: 'nextjs-app-dir'
+            build-command: 'test:build-canary'
+            label: 'nextjs-app-dir (canary)'
+          - test-application: 'nextjs-app-dir'
+            build-command: 'test:build-latest'
+            label: 'nextjs-app-dir (latest)'
+          - test-application: 'react-create-hash-router'
+            build-command: 'test:build-canary'
+            label: 'react-create-hash-router (canary)'
+          - test-application: 'standard-frontend-react'
+            build-command: 'test:build-canary'
+            label: 'standard-frontend-react (canary)'
+
+    steps:
+      - name: Check out current commit
         uses: actions/checkout@v3
         with:
           ref: ${{ env.HEAD_COMMIT }}
@@ -33,31 +92,48 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version-file: 'package.json'
-      - name: Install dependencies
-        run: yarn install --ignore-engines --frozen-lockfile
-      - name: Build packages
-        run: yarn build
+
+      - name: Restore canary cache
+        uses: actions/cache/restore@v3
+        with:
+          path: |
+            ${{ github.workspace }}/packages/*/*.tgz
+            ${{ github.workspace }}/node_modules
+            ${{ github.workspace }}/packages/*/node_modules
+          key: canary-${{ env.HEAD_COMMIT }}
+
       - name: Get node version
         id: versions
         run: |
           echo "echo node=$(jq -r '.volta.node' package.json)" >> $GITHUB_OUTPUT
-      - name: Run Canary Tests
+
+      - name: Validate Verdaccio
+        run: yarn test:validate
+        working-directory: packages/e2e-tests
+
+      - name: Prepare Verdaccio
+        run: yarn test:prepare
+        working-directory: packages/e2e-tests
         env:
           E2E_TEST_PUBLISH_SCRIPT_NODE_VERSION: ${{ steps.versions.outputs.node }}
-          E2E_TEST_AUTH_TOKEN: ${{ secrets.E2E_TEST_AUTH_TOKEN }}
-          E2E_TEST_DSN: ${{ secrets.E2E_TEST_DSN }}
-          E2E_TEST_SENTRY_ORG_SLUG: 'sentry-javascript-sdks'
-          E2E_TEST_SENTRY_TEST_PROJECT: 'sentry-javascript-e2e-tests'
-          CANARY_E2E_TEST: 'yes'
-        run: |
-          cd packages/e2e-tests
-          yarn test:e2e
+
+      - name: Build E2E app
+        working-directory: packages/e2e-tests/test-applications/${{ matrix.test-application }}
+        timeout-minutes: 5
+        run: yarn ${{ matrix.build-command }}
+
+      - name: Run E2E test
+        working-directory: packages/e2e-tests/test-applications/${{ matrix.test-application }}
+        timeout-minutes: 5
+        run: yarn test:assert
+
       - name: Create Issue
         if: failure() && github.event_name == 'schedule'
         uses: JasonEtco/create-an-issue@e27dddc79c92bc6e4562f268fffa5ed752639abd
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RUN_LINK: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          TITLE: ${{ matrix.label }} Test Failed
         with:
           filename: .github/CANARY_FAILURE_TEMPLATE.md
           update_existing: true
@@ -98,7 +174,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RUN_LINK: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          TITLE: Ember Canary ${{ matrix.scenario }} Test Failed
         with:
           filename: .github/CANARY_FAILURE_TEMPLATE.md
           update_existing: true
-          title: 'Ember Canary tests failed'

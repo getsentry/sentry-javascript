@@ -110,7 +110,7 @@ export function constructWebpackConfigFunction(
       appDirPath = path.join(projectDir, 'src', 'app');
     }
 
-    const apiRoutesPath = path.join(pagesDirPath, 'api', '/');
+    const apiRoutesPath = path.join(pagesDirPath, 'api');
 
     const middlewareJsPath = path.join(pagesDirPath, '..', 'middleware.js');
     const middlewareTsPath = path.join(pagesDirPath, '..', 'middleware.ts');
@@ -148,8 +148,8 @@ export function constructWebpackConfigFunction(
         test: resourcePath => {
           const normalizedAbsoluteResourcePath = normalizeLoaderResourcePath(resourcePath);
           return (
-            normalizedAbsoluteResourcePath.startsWith(pagesDirPath) &&
-            !normalizedAbsoluteResourcePath.startsWith(apiRoutesPath) &&
+            normalizedAbsoluteResourcePath.startsWith(pagesDirPath + path.sep) &&
+            !normalizedAbsoluteResourcePath.startsWith(apiRoutesPath + path.sep) &&
             dotPrefixedPageExtensions.some(ext => normalizedAbsoluteResourcePath.endsWith(ext))
           );
         },
@@ -193,7 +193,7 @@ export function constructWebpackConfigFunction(
         test: resourcePath => {
           const normalizedAbsoluteResourcePath = normalizeLoaderResourcePath(resourcePath);
           return (
-            normalizedAbsoluteResourcePath.startsWith(apiRoutesPath) &&
+            normalizedAbsoluteResourcePath.startsWith(apiRoutesPath + path.sep) &&
             dotPrefixedPageExtensions.some(ext => normalizedAbsoluteResourcePath.endsWith(ext))
           );
         },
@@ -238,7 +238,7 @@ export function constructWebpackConfigFunction(
           // ".js, .jsx, or .tsx file extensions can be used for Pages"
           // https://beta.nextjs.org/docs/routing/pages-and-layouts#pages:~:text=.js%2C%20.jsx%2C%20or%20.tsx%20file%20extensions%20can%20be%20used%20for%20Pages.
           return (
-            normalizedAbsoluteResourcePath.startsWith(appDirPath) &&
+            normalizedAbsoluteResourcePath.startsWith(appDirPath + path.sep) &&
             !!normalizedAbsoluteResourcePath.match(/[\\/](page|layout|loading|head|not-found)\.(js|jsx|tsx)$/)
           );
         },

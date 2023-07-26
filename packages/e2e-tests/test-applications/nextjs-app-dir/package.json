@@ -3,9 +3,14 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "build": "next build",
+    "build": "next build > .tmp_build_output",
     "test:prod": "TEST_ENV=production playwright test",
-    "test:dev": "TEST_ENV=development playwright test"
+    "test:dev": "TEST_ENV=development playwright test",
+    "test:build": "pnpm install && npx playwright install && pnpm build",
+    "test:test-build": "pnpm ts-node --script-mode assert-build.ts",
+    "test:build-canary": "pnpm install && pnpm add next@canary && npx playwright install && pnpm build",
+    "test:build-latest": "pnpm install && pnpm add next@latest && npx playwright install && pnpm build",
+    "test:assert": "pnpm test:test-build && pnpm test:prod && pnpm test:dev"
   },
   "dependencies": {
     "@next/font": "13.0.7",
@@ -20,6 +25,10 @@
     "wait-port": "1.0.4",
     "ts-node": "10.9.1",
     "@playwright/test": "^1.27.1"
+  },
+  "devDependencies": {
+    "@sentry/types": "latest || *",
+    "@sentry/utils": "latest || *"
   },
   "volta": {
     "node": "16.19.0",

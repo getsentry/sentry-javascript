@@ -5,8 +5,6 @@ window.Replay = new Sentry.Replay({
   flushMinDelay: 200,
   flushMaxDelay: 200,
   minReplayDuration: 0,
-  slowClickTimeout: 3500,
-  slowClickIgnoreSelectors: ['.ignore-class', '[ignore-attribute]'],
 });
 
 Sentry.init({
@@ -17,3 +15,9 @@ Sentry.init({
 
   integrations: [window.Replay],
 });
+
+window.Replay._replay.timeouts = {
+  sessionIdlePause: 1000, // this is usually 5min, but we want to test this with shorter times
+  sessionIdleExpire: 2000, // this is usually 15min, but we want to test this with shorter times
+  maxSessionLife: 2000, // default: 60min
+};

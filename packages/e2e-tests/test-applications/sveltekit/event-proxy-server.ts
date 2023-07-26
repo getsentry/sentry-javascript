@@ -1,18 +1,3 @@
-// This is vendored from packages/e2e-tests/test-utils/event-proxy-server.ts
-// This is done because otherwise we were getting `ERR_MODULE_NOT_FOUND`:
-//
-// CustomError: Cannot find module '/sentry-javascript/packages/e2e-tests/test-utils/event-proxy-server' imported from /sentry-javascript/packages/e2e-tests/test-applications/sveltekit/start-event-proxy.ts
-//     at finalizeResolution (/sentry-javascript/packages/e2e-tests/test-applications/sveltekit/node_modules/ts-node/dist-raw/node-internal-modules-esm-resolve.js:366:11)
-//     at moduleResolve (/sentry-javascript/packages/e2e-tests/test-applications/sveltekit/node_modules/ts-node/dist-raw/node-internal-modules-esm-resolve.js:801:10)
-//     at Object.defaultResolve (/sentry-javascript/packages/e2e-tests/test-applications/sveltekit/node_modules/ts-node/dist-raw/node-internal-modules-esm-resolve.js:912:11)
-//     at /sentry-javascript/packages/e2e-tests/test-applications/sveltekit/node_modules/ts-node/src/esm.ts:218:35
-//     at entrypointFallback (/sentry-javascript/packages/e2e-tests/test-applications/sveltekit/node_modules/ts-node/src/esm.ts:168:34)
-//     at /sentry-javascript/packages/e2e-tests/test-applications/sveltekit/node_modules/ts-node/src/esm.ts:217:14
-//     at addShortCircuitFlag (/sentry-javascript/packages/e2e-tests/test-applications/sveltekit/node_modules/ts-node/src/esm.ts:409:21)
-//     at resolve (/sentry-javascript/packages/e2e-tests/test-applications/sveltekit/node_modules/ts-node/src/esm.ts:197:12)
-//     at resolve (/sentry-javascript/packages/e2e-tests/test-applications/sveltekit/node_modules/ts-node/src/child/child-loader.ts:15:39)
-//     at nextResolve (node:internal/modules/esm/loader:163:28)
-
 import type { Envelope, EnvelopeItem, Event } from '@sentry/types';
 import { parseEnvelope } from '@sentry/utils';
 import * as fs from 'fs';

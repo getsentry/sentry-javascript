@@ -15,6 +15,12 @@ Prerequisites: Docker
 yarn test:e2e
 ```
 
+Or run only a single E2E test app:
+
+```bash
+yarn test:run <app-name>
+```
+
 ## How they work
 
 Before running any tests we launch a fake test registry (in our case [Verdaccio](https://verdaccio.org/docs/e2e/)), we
@@ -43,40 +49,14 @@ cat > test-applications/my-new-test-application/.npmrc << EOF
 @sentry:registry=http://localhost:4873
 @sentry-internal:registry=http://localhost:4873
 EOF
-
-# Add a test recipe file to the test application
-touch test-applications/my-new-test-application/test-recipe.json
 ```
 
-To get you started with the recipe, you can copy the following into `test-recipe.json`:
+Make sure to add a `test:build` and `test:assert` command to the new app's `package.json` file.
 
-```json
-{
-  "$schema": "../../test-recipe-schema.json",
-  "testApplicationName": "My New Test Application",
-  "buildCommand": "pnpm install",
-  "tests": [
-    {
-      "testName": "My new test",
-      "testCommand": "pnpm test",
-      "timeoutSeconds": 60
-    }
-  ]
-}
-```
+Add the new test app to `test-application` matrix in `.github/workflows/build.yml` for the `job_e2e_tests` job. If you
+want to run a canary test, add it to the `canary.yml` workflow.
 
-The `test-recipe.json` files follow a schema (`e2e-tests/test-recipe-schema.json`). Here is a basic explanation of the
-fields:
-
-- The `buildCommand` command runs only once before any of the tests and is supposed to build the test application. If
-  this command returns a non-zero exit code, it counts as a failed test and the test application's tests are not run. In
-  the example above, we use the `--pure-lockfile` flag to install dependencies without modifiying the lockfile so that
-  there aren't any changes in the git worktree after running the tests.
-- The `testCommand` command is supposed to run tests on the test application. If the configured command returns a
-  non-zero exit code, it counts as a failed test.
-- A test timeout can be configured via `timeoutSeconds`, it defaults to `60`.
-
-**An important thing to note:** In the context of the `buildCommand` the fake test registry is available at
+**An important thing to note:** In the context of the build/test commands the fake test registry is available at
 `http://localhost:4873`. It hosts all of our packages as if they were to be published with the state of the current
 branch. This means we can install the packages from this registry via the `.npmrc` configuration as seen above. If you
 add Sentry dependencies to your test application, you should set the dependency versions set to `latest || *` in order
@@ -89,7 +69,9 @@ for it to work with both regular and prerelease versions:
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "test": "echo \"Hello world!\""
+    "test": "echo \"Hello world!\"",
+    "test:build": "pnpm install",
+    "test:assert": "pnpm test"
   },
   "dependencies": {
     "@sentry/node": "latest || *"

@@ -46,7 +46,7 @@ ${changedPaths.join('\n')}
       const cp = childProcess.spawn(
         `yarn playwright test ${
           testPaths.length ? testPaths.join(' ') : './suites'
-        } --browser='all' --reporter='line' --repeat-each ${runCount}`,
+        } --reporter='line' --repeat-each ${runCount}`,
         { shell: true, cwd },
       );
 

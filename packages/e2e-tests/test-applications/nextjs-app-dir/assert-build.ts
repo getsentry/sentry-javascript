@@ -1,16 +1,16 @@
 import * as fs from 'fs';
 import * as assert from 'assert/strict';
 
-const stdin = fs.readFileSync(0).toString();
+const buildOutput = fs.readFileSync('.tmp_build_output', 'utf-8');
 
-// Assert that all static components stay static and ally dynamic components stay dynamic
+// Assert that all static components stay static and all dynamic components stay dynamic
 
-assert.match(stdin, /○ \/client-component/);
-assert.match(stdin, /● \/client-component\/parameter\/\[\.\.\.parameters\]/);
-assert.match(stdin, /● \/client-component\/parameter\/\[parameter\]/);
+assert.match(buildOutput, /○ \/client-component/);
+assert.match(buildOutput, /● \/client-component\/parameter\/\[\.\.\.parameters\]/);
+assert.match(buildOutput, /● \/client-component\/parameter\/\[parameter\]/);
 
-assert.match(stdin, /λ \/server-component/);
-assert.match(stdin, /λ \/server-component\/parameter\/\[\.\.\.parameters\]/);
-assert.match(stdin, /λ \/server-component\/parameter\/\[parameter\]/);
+assert.match(buildOutput, /λ \/server-component/);
+assert.match(buildOutput, /λ \/server-component\/parameter\/\[\.\.\.parameters\]/);
+assert.match(buildOutput, /λ \/server-component\/parameter\/\[parameter\]/);
 
 export {};
