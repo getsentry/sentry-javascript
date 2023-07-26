@@ -209,7 +209,7 @@ describe('IdleTransaction', () => {
     const span = transaction.startChild({ startTimestamp: transaction.startTimestamp + 2 });
     span.finish(span.startTimestamp + 10 + 30 + 1);
 
-    transaction.finish(transaction.startTimestamp + 10);
+    transaction.finish(transaction.startTimestamp + 50);
 
     expect(transaction.spanRecorder).toBeDefined();
     expect(transaction.spanRecorder!.spans).toHaveLength(1);
