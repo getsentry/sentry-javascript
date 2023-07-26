@@ -158,15 +158,19 @@ export class IdleTransaction extends Transaction {
             logger.log('[Tracing] cancelling span since transaction ended early', JSON.stringify(span, undefined, 2));
         }
 
-        const keepSpan = span.startTimestamp < endTimestamp;
-        if (!keepSpan) {
-          __DEBUG_BUILD__ &&
-            logger.log(
-              '[Tracing] discarding Span since it happened after Transaction was finished',
-              JSON.stringify(span, undefined, 2),
-            );
+        const spanStartedBeforeTransactionFinish = span.startTimestamp < endTimestamp;
+        const spanEndedBeforeFinalTimeout = span.endTimestamp < (this._finalTimeout + this._idleTimeout) / 1000;
+
+        if (__DEBUG_BUILD__) {
+          const stringifiedSpan = JSON.stringify(span, undefined, 2);
+          if (!spanStartedBeforeTransactionFinish) {
+            logger.log('[Tracing] discarding Span since it happened after Transaction was finished', stringifiedSpan);
+          } else if (!spanEndedBeforeFinalTimeout) {
+            logger.log('[Tracing] discarding Span since it finished after Transaction final timeout', stringifiedSpan);
+          }
         }
-        return keepSpan;
+
+        return spanStartedBeforeTransactionFinish && spanEndedBeforeFinalTimeout;
       });
 
       __DEBUG_BUILD__ && logger.log('[Tracing] flushing IdleTransaction');
