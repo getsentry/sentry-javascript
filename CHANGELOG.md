@@ -4,6 +4,12 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.60.1
+
+- fix(nextjs): Match folder paths with trailing separator (#8615)
+- fix(replay): Ignore clicks with `shift` pressed (#8648)
+- fix(replay): Use `session.started` for min/max duration check (#8617)
+
 ## 7.60.0
 
 ### Important Changes
