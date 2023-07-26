@@ -37,10 +37,15 @@ export function createPerformanceEntries(
   mirror: Mirror,
   entries: AllPerformanceEntry[],
 ): ReplayPerformanceEntry<AllPerformanceEntryData>[] {
-  return entries.map((entry) => createPerformanceEntry(mirror, entry)).filter(Boolean) as ReplayPerformanceEntry<AllPerformanceEntryData>[];
+  return entries
+    .map(entry => createPerformanceEntry(mirror, entry))
+    .filter(Boolean) as ReplayPerformanceEntry<AllPerformanceEntryData>[];
 }
 
-function createPerformanceEntry(mirror: Mirror, entry: AllPerformanceEntry): ReplayPerformanceEntry<AllPerformanceEntryData> | null {
+function createPerformanceEntry(
+  mirror: Mirror,
+  entry: AllPerformanceEntry,
+): ReplayPerformanceEntry<AllPerformanceEntryData> | null {
   if (ENTRY_TYPES[entry.entryType] === undefined) {
     return null;
   }
@@ -67,7 +72,10 @@ function createPaintEntry(_mirror: Mirror, entry: PerformancePaintTiming): Repla
   };
 }
 
-function createNavigationEntry(_mirror: Mirror, entry: PerformanceNavigationTiming): ReplayPerformanceEntry<NavigationData> | null {
+function createNavigationEntry(
+  _mirror: Mirror,
+  entry: PerformanceNavigationTiming,
+): ReplayPerformanceEntry<NavigationData> | null {
   const {
     entryType,
     name,

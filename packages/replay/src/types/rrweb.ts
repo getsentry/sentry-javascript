@@ -43,4 +43,4 @@ export type recordOptions = {
 
 export interface Mirror {
   getId: (n: Node) => number;
-};
+}

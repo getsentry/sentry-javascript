@@ -1,4 +1,4 @@
-import { record } from '@sentry-internal/rrweb';
+import type { record } from '@sentry-internal/rrweb';
 import type {
   Breadcrumb,
   FetchBreadcrumbHint,
@@ -9,7 +9,6 @@ import type {
   Transaction,
   XhrBreadcrumbHint,
 } from '@sentry/types';
-
 
 import type { SKIPPED, THROTTLED } from '../util/throttle';
 import type { AllPerformanceEntry } from './performance';
