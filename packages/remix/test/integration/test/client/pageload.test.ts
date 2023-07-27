@@ -4,12 +4,7 @@ import { getFirstSentryEnvelopeRequest } from './utils/helpers';
 import { test, expect } from '@playwright/test';
 import { Event } from '@sentry/types';
 
-test('should add `pageload` transaction on load.', async ({ page, browserName }) => {
-  // This test is flaky on firefox
-  if (browserName === 'firefox') {
-    test.skip();
-  }
-
+test('should add `pageload` transaction on load.', async ({ page }) => {
   const envelope = await getFirstSentryEnvelopeRequest<Event>(page, '/');
 
   expect(envelope.contexts?.trace.op).toBe('pageload');

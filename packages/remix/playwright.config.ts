@@ -1,4 +1,5 @@
 import type { PlaywrightTestConfig } from '@playwright/test';
+import { devices } from '@playwright/test';
 
 const config: PlaywrightTestConfig = {
   retries: 0,
@@ -14,6 +15,21 @@ const config: PlaywrightTestConfig = {
     command: '(cd test/integration/ && yarn build && yarn start)',
     port: 3000,
   },
+  projects: [
+    {
+      name: 'chromium',
+      use: devices['Desktop Chrome'],
+    },
+    {
+      name: 'webkit',
+      use: devices['Desktop Safari'],
+    },
+    {
+      name: 'firefox',
+      grep: /@firefox/i,
+      use: devices['Desktop Firefox'],
+    },
+  ],
 };
 
 export default config;
