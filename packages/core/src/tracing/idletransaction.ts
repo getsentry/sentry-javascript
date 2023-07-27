@@ -160,11 +160,9 @@ export class IdleTransaction extends Transaction {
 
         const spanStartedBeforeTransactionFinish = span.startTimestamp < endTimestamp;
 
+        // Add a delta with idle timeout so that we prevent false positives
         const timeoutWithDelta = (this._finalTimeout + this._idleTimeout) / 1000;
-
-        const transactionDidNotExceedTimeout = endTimestamp - this.startTimestamp < timeoutWithDelta;
-        const spanDidNotExceedTimeout = span.endTimestamp - span.startTimestamp < timeoutWithDelta;
-        const spanEndedBeforeFinalTimeout = transactionDidNotExceedTimeout && spanDidNotExceedTimeout;
+        const spanEndedBeforeFinalTimeout = span.endTimestamp - this.startTimestamp < timeoutWithDelta;
 
         if (__DEBUG_BUILD__) {
           const stringifiedSpan = JSON.stringify(span, undefined, 2);
