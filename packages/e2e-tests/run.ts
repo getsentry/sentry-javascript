@@ -1,15 +1,37 @@
 /* eslint-disable max-lines */
 /* eslint-disable no-console */
-import { exec } from 'child_process';
+import { spawn } from 'child_process';
 import * as dotenv from 'dotenv';
 import { sync as globSync } from 'glob';
 import { resolve } from 'path';
-import { promisify } from 'util';
 
 import { validate } from './lib/validate';
 import { registrySetup } from './registrySetup';
 
-const asyncExec = promisify(exec);
+function asyncExec(command: string, options: { env: Record<string, string | undefined>; cwd: string }): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const process = spawn(command, { ...options, shell: true });
+
+    process.stdout.on('data', data => {
+      console.log(`${data}`);
+    });
+
+    process.stderr.on('data', data => {
+      console.error(`${data}`);
+    });
+
+    process.on('error', error => {
+      reject(error);
+    });
+
+    process.on('close', code => {
+      if (code !== 0) {
+        return reject();
+      }
+      resolve();
+    });
+  });
+}
 
 async function run(): Promise<void> {
   // Load environment variables from .env file locally
@@ -31,7 +53,12 @@ async function run(): Promise<void> {
   const env = { ...process.env, ...envVarsToInject };
 
   try {
+    console.log('Cleaning test-applications...');
+    console.log('');
+
     registrySetup();
+
+    await asyncExec('pnpm clean:test-applications', { env, cwd: __dirname });
 
     const testAppPaths = appName ? [appName.trim()] : globSync('*', { cwd: `${__dirname}/test-applications/` });
 

@@ -23,6 +23,7 @@
     "build": "react-scripts build",
     "start": "serve -s build",
     "test": "playwright test",
+    "clean": "npx rimraf node_modules,pnpm-lock.yaml",
     "test:build": "pnpm install && npx playwright install && pnpm build",
     "test:assert": "pnpm test"
   },

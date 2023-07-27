@@ -27,8 +27,16 @@ export const handleDomListener: (replay: ReplayContainer) => (handlerData: DomHa
 
     const isClick = handlerData.name === 'click';
     const event = isClick && (handlerData.event as PointerEvent);
-    // Ignore clicks if ctrl/alt/meta keys are held down as they alter behavior of clicks (e.g. open in new tab)
-    if (isClick && replay.clickDetector && event && !event.altKey && !event.metaKey && !event.ctrlKey) {
+    // Ignore clicks if ctrl/alt/meta/shift keys are held down as they alter behavior of clicks (e.g. open in new tab)
+    if (
+      isClick &&
+      replay.clickDetector &&
+      event &&
+      !event.altKey &&
+      !event.metaKey &&
+      !event.ctrlKey &&
+      !event.shiftKey
+    ) {
       handleClick(
         replay.clickDetector,
         result as Breadcrumb & { timestamp: number; data: { nodeId: number } },
