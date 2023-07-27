@@ -1,4 +1,12 @@
-import type { BaseTransportOptions, EventItem, EventProcessor, Hub, Integration, Transport } from '@sentry/types';
+import type {
+  BaseTransportOptions,
+  EventItem,
+  EventProcessor,
+  Hub,
+  Integration,
+  StackFrame,
+  Transport,
+} from '@sentry/types';
 import { forEachEnvelopeItem } from '@sentry/utils';
 
 import { addMetadataToStackFrames, stripMetadataFromStackFrames } from '../metadata';
@@ -59,7 +67,6 @@ export class ModuleMetadata implements Integration {
 }
 
 const ROUTE_TO_EXTRA_KEY = 'ROUTE_EVENT_TO';
-type RouteToOptions = 'top-frame' | 'all-frames';
 
 /**
  * This integration pulls module metadata from the stack frames and adds it to the event extra for later use by a
@@ -72,7 +79,7 @@ class ModuleMetadataToExtra implements Integration {
   /** @inheritDoc */
   public name: string = ModuleMetadataToExtra.id;
 
-  public constructor(private readonly _options: { routeTo: RouteToOptions } = { routeTo: 'top-frame' }) {}
+  public constructor(private readonly _callback: (frames: StackFrame[]) => RouteTo[]) {}
 
   public setupOnce(addGlobalEventProcessor: (callback: EventProcessor) => void): void {
     addGlobalEventProcessor(event => {
@@ -82,21 +89,9 @@ class ModuleMetadataToExtra implements Integration {
         event.exception.values[0].stacktrace &&
         event.exception.values[0].stacktrace.frames
       ) {
-        const routeTo: RouteTo[] = [];
-
         // Reverse the stack frames so we can traverse from top to bottom
         const frames = [...event.exception.values[0].stacktrace.frames].reverse();
-
-        for (const frame of frames) {
-          if (frame.module_metadata && 'dsn' in frame.module_metadata) {
-            routeTo.push(frame.module_metadata);
-          }
-
-          // If we are only interested in the top frame, break out!
-          if (this._options.routeTo === 'top-frame') {
-            break;
-          }
-        }
+        const routeTo = this._callback(frames);
 
         if (routeTo.length) {
           event.extra = {
@@ -113,10 +108,13 @@ class ModuleMetadataToExtra implements Integration {
 
 /**
  * Routes events to different DSN/release depending on the module metadata for the error stack frames.
+ *
+ * The callback function is called with the stack frames from the error and you should return an array of
+ * `{ dsn: string, release?: string }` objects.
  */
 export function routeViaModuleMetadata(
+  callback: (frames: StackFrame[]) => RouteTo[],
   createTransport: (options: BaseTransportOptions) => Transport,
-  options: { routeTo: RouteToOptions } = { routeTo: 'top-frame' },
 ): {
   integrations: Integration[];
   transport: (transportOptions: BaseTransportOptions) => Transport;
@@ -135,7 +133,7 @@ export function routeViaModuleMetadata(
     integrations: [
       // This integration needs to be added first so it adds the metadata to the stack frames before we copy it to extra
       new ModuleMetadata(),
-      new ModuleMetadataToExtra(options),
+      new ModuleMetadataToExtra(callback),
     ],
     transport,
   };
