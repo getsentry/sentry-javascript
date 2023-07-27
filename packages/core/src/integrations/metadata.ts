@@ -69,8 +69,8 @@ export class ModuleMetadata implements Integration {
 const ROUTE_TO_EXTRA_KEY = 'ROUTE_EVENT_TO';
 
 /**
- * This integration pulls module metadata from the stack frames and adds it to the event extra for later use by a
- * multiplexing transport.
+ * This integration pulls module metadata from the stack frames and adds it to the event extra for later use by the
+ * multiplex transport.
  */
 class ModuleMetadataToExtra implements Integration {
   /* @inheritDoc */
@@ -110,7 +110,8 @@ class ModuleMetadataToExtra implements Integration {
  * Routes events to different DSN/release depending on the module metadata for the error stack frames.
  *
  * The callback function is called with the stack frames from the error and you should return an array of
- * `{ dsn: string, release?: string }` objects.
+ * `{ dsn: string, release?: string }` objects to send this event to. If you return an empty array, the event will be
+ * sent to the dsn specified in the init options.
  */
 export function routeViaModuleMetadata(
   callback: (frames: StackFrame[]) => RouteTo[],
@@ -122,7 +123,7 @@ export function routeViaModuleMetadata(
   const transport = makeMultiplexedTransport(createTransport, args => {
     const event = args.getEvent();
 
-    if (event && event.extra && ROUTE_TO_EXTRA_KEY in event.extra) {
+    if (event && event.extra && ROUTE_TO_EXTRA_KEY in event.extra && Array.isArray(event.extra[ROUTE_TO_EXTRA_KEY])) {
       return event.extra[ROUTE_TO_EXTRA_KEY] as RouteTo[];
     }
 
