@@ -314,10 +314,18 @@ function addHeadersToRequestOptions(
   sentryTraceHeader: string,
   dynamicSamplingContext: Partial<DynamicSamplingContext> | undefined,
 ): void {
+  // Don't overwrite sentry-trace and baggage header if it's already set.
+  const headers = requestOptions.headers || {};
+  if (headers['sentry-trace']) {
+    return;
+  }
+
   __DEBUG_BUILD__ &&
     logger.log(`[Tracing] Adding sentry-trace header ${sentryTraceHeader} to outgoing request to "${requestUrl}": `);
   const sentryBaggage = dynamicSamplingContextToSentryBaggageHeader(dynamicSamplingContext);
-  const sentryBaggageHeader = normalizeBaggageHeader(requestOptions, sentryBaggage);
+  const sentryBaggageHeader =
+    sentryBaggage && sentryBaggage.length > 0 ? normalizeBaggageHeader(requestOptions, sentryBaggage) : undefined;
+
   requestOptions.headers = {
     ...requestOptions.headers,
     'sentry-trace': sentryTraceHeader,
@@ -354,7 +362,6 @@ function normalizeBaggageHeader(
   } else if (Array.isArray(requestOptions.headers.baggage)) {
     return [...requestOptions.headers.baggage, sentryBaggageHeader];
   }
-
   // Type-cast explanation:
   // Technically this the following could be of type `(number | string)[]` but for the sake of simplicity
   // we say this is undefined behaviour, since it would not be baggage spec conform if the user did this.
