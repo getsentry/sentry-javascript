@@ -50,3 +50,6 @@ export const REPLAY_MAX_EVENT_BUFFER_SIZE = 20_000_000; // ~20MB
 export const MIN_REPLAY_DURATION = 4_999;
 /* The max. allowed value that the minReplayDuration can be set to. */
 export const MIN_REPLAY_DURATION_LIMIT = 15_000;
+
+/** Default attributes to be ignored when `maskAllText` is enabled */
+export const DEFAULT_IGNORED_ATTRIBUTES = ['title', 'placeholder'];
