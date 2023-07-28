@@ -64,6 +64,8 @@ type Layer = {
   handle_request: (req: PatchedRequest, res: ExpressResponse, next: () => void) => void;
   route?: { path: RouteType | RouteType[] };
   path?: string;
+  regexp?: RegExp;
+  keys?: [{ name: string, offset: number, optional: boolean }];
 };
 
 type RouteType = string | RegExp;
@@ -366,6 +368,74 @@ type LayerRoutePathInfo = {
   numExtraSegments: number;
 };
 
+
+/**
+ * Recreate layer.route.path from layer.regexp and layer.keys.
+ * Works until express.js used package path-to-regexp@0.1.7
+ * Or until layer.keys contain offset attribute
+ *
+ * @param layer the layer to extract the stringified route from
+ *
+ * @returns string in layer.route.path structure 'router/:pathParam' or undefined
+ */
+const extractOriginalRoute = ({ path, regexp, keys }: Layer): (string | undefined) => {
+  if(!path || !regexp || !keys || Object.keys(keys).length === 0) {
+    return undefined;
+  }
+  /**
+   * add d flag for getting indices from regexp result
+   */
+  const pathRegex = new RegExp(regexp, `${regexp.flags}d`);
+
+  const orderedKeys = keys.sort((a, b) => a.offset - b.offset);
+
+  const execResult: any = pathRegex.exec(path);
+  if(!execResult || !execResult.indices) {
+    return undefined;
+  }
+  /**
+   * remove first match from regex cause contain whole layer.path
+   */
+  const [, ...paramIndices] = execResult.indices;
+
+  if (paramIndices.length !== orderedKeys.length) {
+    return undefined;
+  }
+  let resultPath = path;
+  let indexShift = 0;
+
+  /**
+   * iterate param matches from regexp.exec
+   */
+  paramIndices.forEach(([startOffset, endOffset]: [number, number], index: number) => {
+    /**
+     * isolate part before param
+     */
+    const substr1 = resultPath.substring(0, startOffset - indexShift);
+    /**
+     * define paramName as replacement in format :pathParam
+     */
+    const replacement = `:${orderedKeys[index].name}`;
+
+    /**
+     * isolate part after param
+     */
+    const substr2 = resultPath.substring(endOffset - indexShift);
+
+    /**
+     * recreate original path but with param replacement
+     */
+    resultPath = substr1 + replacement + substr2;
+
+    /**
+     * calculate new index shift after resultPath was modified
+     */
+    indexShift = indexShift + (endOffset - startOffset - replacement.length);
+  })
+
+  return resultPath;
+}
+
 /**
  * Extracts and stringifies the layer's route which can either be a string with parameters (`users/:id`),
  * a RegEx (`/test/`) or an array of strings and regexes (`['/path1', /\/path[2-5]/, /path/:id]`). Additionally
@@ -378,10 +448,17 @@ type LayerRoutePathInfo = {
  *          if the route was an array (defaults to 0).
  */
 function getLayerRoutePathInfo(layer: Layer): LayerRoutePathInfo {
-  const lrp = layer.route?.path;
+  let lrp = layer.route?.path;
 
   const isRegex = isRegExp(lrp);
   const isArray = Array.isArray(lrp);
+
+  if(!lrp && !isRegex && !isArray) {
+    /**
+     * If lrp does not exist try to recreate original layer path from route regexp
+     */
+    lrp = extractOriginalRoute(layer);
+  }
 
   if (!lrp) {
     return { isRegex, isArray, numExtraSegments: 0 };
