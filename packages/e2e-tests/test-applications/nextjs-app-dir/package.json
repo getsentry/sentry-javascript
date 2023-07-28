@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "build": "next build > .tmp_build_output",
+    "clean": "npx rimraf node_modules,pnpm-lock.yaml",
     "test:prod": "TEST_ENV=production playwright test",
     "test:dev": "TEST_ENV=development playwright test",
     "test:build": "pnpm install && npx playwright install && pnpm build",

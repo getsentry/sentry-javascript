@@ -624,4 +624,27 @@ The transaction will not be sampled. Please use the otel instrumentation to star
       });
     });
   });
+
+  describe('trimming transaction', () => {
+    describe('it should trim a transaction to the span timestamp if trimEnd is true', () => {
+      const options = getDefaultBrowserClientOptions({
+        tracesSampleRate: 1,
+        dsn: 'https://username@domain/123',
+      });
+      const client = new BrowserClient(options);
+      const hub = new Hub(client);
+
+      const captureEventSpy = jest.spyOn(hub, 'captureEvent');
+
+      makeMain(hub);
+      const transaction = hub.startTransaction({ name: 'dogpark', startTimestamp: 1000, trimEnd: true });
+
+      transaction.startChild({ op: 'test', startTimestamp: 1200, endTimestamp: 1500 });
+
+      transaction.finish(2000);
+
+      expect(captureEventSpy).toHaveBeenCalledTimes(1);
+      expect(captureEventSpy.mock.calls[0][0].timestamp).toEqual(1500);
+    });
+  });
 });
