@@ -1,4 +1,7 @@
-import type { Event, EventProcessor, Integration } from '@sentry/types';
+import type { Event, EventProcessor, Integration, StackFrame } from '@sentry/types';
+import { stripUrlQueryAndFragment } from '@sentry/utils';
+
+import { WINDOW } from '../helpers';
 
 interface ContextLinesOptions {
   /**
@@ -29,11 +32,7 @@ export class ContextLines implements Integration {
    */
   public name: string = ContextLines.id;
 
-  public constructor(
-    private readonly _options: ContextLinesOptions = {
-      frameContextLines: 0,
-    },
-  ) {}
+  public constructor(private readonly _options: ContextLinesOptions = {}) {}
 
   /**
    * @inheritDoc
@@ -44,6 +43,70 @@ export class ContextLines implements Integration {
 
   /** Processes an event and adds context lines */
   public addSourceContext(event: Event): Event {
+    const doc = WINDOW.document;
+    const htmlFilename = WINDOW.location && stripUrlQueryAndFragment(WINDOW.location.href);
+    if (!doc || !htmlFilename) {
+      return event;
+    }
+
+    const exceptions = event.exception && event.exception.values;
+    if (!exceptions || !exceptions.length) {
+      return event;
+    }
+
+    const html = doc.documentElement.innerHTML;
+
+    const htmlLines = ['<!DOCTYPE html>', '<html>', ...html.split('\n'), '</html>'];
+    if (!htmlLines.length) {
+      return event;
+    }
+
+    exceptions.forEach(exception => {
+      const stacktrace = exception.stacktrace;
+      if (stacktrace && stacktrace.frames) {
+        stacktrace.frames = stacktrace.frames.map(frame =>
+          applySourceContextToFrame(frame, htmlLines, htmlFilename, this._options.frameContextLines || 7),
+        );
+      }
+    });
+
     return event;
   }
+}
+
+/**
+ * Only exported for testing
+ */
+export function applySourceContextToFrame(
+  frame: StackFrame,
+  htmlLines: string[],
+  htmlFilename: string,
+  contextRange: number,
+): StackFrame {
+  if (frame.filename !== htmlFilename || !frame.lineno || !htmlLines.length) {
+    return frame;
+  }
+
+  const sourroundingRange = Math.floor(contextRange / 2);
+  const contextLineIndex = frame.lineno - 1;
+  const preStartIndex = Math.max(contextLineIndex - sourroundingRange, 0);
+  const postEndIndex = Math.min(contextLineIndex + sourroundingRange, htmlLines.length - 1);
+
+  const preLines = htmlLines.slice(preStartIndex, contextLineIndex);
+  const contextLine = htmlLines[contextLineIndex];
+  const postLines = htmlLines.slice(contextLineIndex + 1, postEndIndex + 1);
+
+  if (preLines.length) {
+    frame.pre_context = preLines;
+  }
+
+  if (contextLine) {
+    frame.context_line = contextLine;
+  }
+
+  if (postLines.length) {
+    frame.post_context = postLines || undefined;
+  }
+
+  return frame;
 }
