@@ -67,21 +67,13 @@ for NEXTJS_VERSION in 10 11 12 13; do
     rm -rf node_modules .next .env.local 2>/dev/null || true
 
     echo "[nextjs@$NEXTJS_VERSION] Installing dependencies..."
-
     # set the desired version of next long enough to run yarn, and then restore the old version (doing the restoration now
     # rather than during overall cleanup lets us look for "latest" in every loop)
-
-    if [ "$NEXTJS_VERSION" -eq "13" ]; then
-      SPECIFIC_NEXT_VERSION="13.4.9"
-    else
-      SPECIFIC_NEXT_VERSION="$NEXTJS_VERSION.x"
-    fi
-
     cp package.json package.json.bak
     if [[ $(uname) == "Darwin" ]]; then
-      sed -i "" /"next.*latest"/s/latest/"${SPECIFIC_NEXT_VERSION}"/ package.json
+      sed -i "" /"next.*latest"/s/latest/"${NEXTJS_VERSION}.x"/ package.json
     else
-      sed -i /"next.*latest"/s/latest/"${SPECIFIC_NEXT_VERSION}"/ package.json
+      sed -i /"next.*latest"/s/latest/"${NEXTJS_VERSION}.x"/ package.json
     fi
 
     # Next.js v13 requires React 18.2.0
