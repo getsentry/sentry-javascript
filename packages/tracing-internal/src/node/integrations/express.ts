@@ -65,7 +65,7 @@ type Layer = {
   route?: { path: RouteType | RouteType[] };
   path?: string;
   regexp?: RegExp;
-  keys?: [{ name: string, offset: number, optional: boolean }];
+  keys?: [{ name: string; offset: number; optional: boolean }];
 };
 
 type RouteType = string | RegExp;
@@ -368,7 +368,6 @@ type LayerRoutePathInfo = {
   numExtraSegments: number;
 };
 
-
 /**
  * Recreate layer.route.path from layer.regexp and layer.keys.
  * Works until express.js used package path-to-regexp@0.1.7
@@ -378,8 +377,8 @@ type LayerRoutePathInfo = {
  *
  * @returns string in layer.route.path structure 'router/:pathParam' or undefined
  */
-const extractOriginalRoute = ({ path, regexp, keys }: Layer): (string | undefined) => {
-  if(!path || !regexp || !keys || Object.keys(keys).length === 0) {
+const extractOriginalRoute = ({ path, regexp, keys }: Layer): string | undefined => {
+  if (!path || !regexp || !keys || Object.keys(keys).length === 0) {
     return undefined;
   }
   /**
@@ -389,8 +388,11 @@ const extractOriginalRoute = ({ path, regexp, keys }: Layer): (string | undefine
 
   const orderedKeys = keys.sort((a, b) => a.offset - b.offset);
 
-  const execResult: any = pathRegex.exec(path);
-  if(!execResult || !execResult.indices) {
+  /**
+   * use custom type cause of TS error with missing indices in RegExpExecArray
+   */
+  const execResult = pathRegex.exec(path) as (RegExpExecArray & { indices: [number, number][] }) | null;
+  if (!execResult || !execResult.indices) {
     return undefined;
   }
   /**
@@ -407,7 +409,7 @@ const extractOriginalRoute = ({ path, regexp, keys }: Layer): (string | undefine
   /**
    * iterate param matches from regexp.exec
    */
-  paramIndices.forEach(([startOffset, endOffset]: [number, number], index: number) => {
+  paramIndices.forEach(([startOffset, endOffset], index: number) => {
     /**
      * isolate part before param
      */
@@ -431,10 +433,10 @@ const extractOriginalRoute = ({ path, regexp, keys }: Layer): (string | undefine
      * calculate new index shift after resultPath was modified
      */
     indexShift = indexShift + (endOffset - startOffset - replacement.length);
-  })
+  });
 
   return resultPath;
-}
+};
 
 /**
  * Extracts and stringifies the layer's route which can either be a string with parameters (`users/:id`),
@@ -453,7 +455,7 @@ function getLayerRoutePathInfo(layer: Layer): LayerRoutePathInfo {
   const isRegex = isRegExp(lrp);
   const isArray = Array.isArray(lrp);
 
-  if(!lrp && !isRegex && !isArray) {
+  if (!lrp && !isRegex && !isArray) {
     /**
      * If lrp does not exist try to recreate original layer path from route regexp
      */
