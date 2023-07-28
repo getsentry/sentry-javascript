@@ -101,22 +101,7 @@ export class Replay implements Integration {
     // eslint-disable-next-line deprecation/deprecation
     ignoreClass,
   }: ReplayConfiguration = {}) {
-    this._recordingOptions = {
-      maskAllInputs,
-      maskAllText,
-      maskInputOptions: { ...(maskInputOptions || {}), password: true },
-      maskTextFn: maskFn,
-      maskInputFn: maskFn,
-      maskAttributeFn: (key: string, value: string): string => {
-        // For now, always mask these attributes
-        if (maskAttributes.includes(key)) {
-          return value.replace(/[\S]/g, '*');
-        }
-
-        return value;
-      },
-
-      ...getPrivacyOptions({
+    const privacyOptions = getPrivacyOptions({
         mask,
         unmask,
         block,
@@ -127,7 +112,38 @@ export class Replay implements Integration {
         maskTextClass,
         maskTextSelector,
         ignoreClass,
-      }),
+    });
+
+    this._recordingOptions = {
+      maskAllInputs,
+      maskAllText,
+      maskInputOptions: { ...(maskInputOptions || {}), password: true },
+      maskTextFn: maskFn,
+      maskInputFn: maskFn,
+      maskAttributeFn: (key: string, value: string, el: HTMLElement): string => {
+        // We only mask attributes if `maskAllText` is true
+        if (!maskAllText) {
+          return value;
+        }
+
+        // unmaskTextSelector takes precendence
+        if (privacyOptions.unmaskTextSelector && el.matches(privacyOptions.unmaskTextSelector)) {
+          return value;
+        }
+
+        if (
+          maskAttributes.includes(key) ||
+          // Need to mask `value` attribute for `<input>` if it's a button-like
+          // type
+          (key === 'value' && el.tagName === 'INPUT' && ['submit', 'button'].includes(el.getAttribute('type') || ''))
+        ) {
+          return value.replace(/[\S]/g, '*');
+        }
+
+        return value;
+      },
+
+      ...privacyOptions,
 
       // Our defaults
       slimDOMOptions: 'all',
