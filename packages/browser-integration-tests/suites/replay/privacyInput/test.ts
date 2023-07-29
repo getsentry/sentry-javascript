@@ -4,12 +4,12 @@ import type { inputData } from '@sentry-internal/rrweb/typings/types';
 
 import { sentryTest } from '../../../utils/fixtures';
 import type { IncrementalRecordingSnapshot } from '../../../utils/replayHelpers';
-import { getFullRecordingSnapshots ,
+import {
+  getFullRecordingSnapshots,
   getIncrementalRecordingSnapshots,
   shouldSkipReplayTest,
   waitForReplayRequest,
 } from '../../../utils/replayHelpers';
-
 
 function isInputMutation(
   snap: IncrementalRecordingSnapshot,
@@ -138,7 +138,7 @@ sentryTest(
     const url = await getLocalTestPath({ testDir: __dirname });
 
     await page.goto(url);
-    const fullSnapshot = getFullRecordingSnapshots(await reqPromise0)
+    const fullSnapshot = getFullRecordingSnapshots(await reqPromise0);
     const stringifiedSnapshot = JSON.stringify(fullSnapshot);
     expect(stringifiedSnapshot.includes('Submit form')).toBe(false);
     expect(stringifiedSnapshot.includes('Unmasked button')).toBe(true);

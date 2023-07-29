@@ -3,8 +3,9 @@ import { IncrementalSource } from '@sentry-internal/rrweb';
 import type { inputData } from '@sentry-internal/rrweb/typings/types';
 
 import { sentryTest } from '../../../utils/fixtures';
-import { getFullRecordingSnapshots, IncrementalRecordingSnapshot } from '../../../utils/replayHelpers';
+import type { IncrementalRecordingSnapshot } from '../../../utils/replayHelpers';
 import {
+  getFullRecordingSnapshots,
   getIncrementalRecordingSnapshots,
   shouldSkipReplayTest,
   waitForReplayRequest,
@@ -56,7 +57,7 @@ sentryTest(
     const url = await getLocalTestPath({ testDir: __dirname });
 
     await page.goto(url);
-    const fullSnapshot = getFullRecordingSnapshots(await reqPromise0)
+    const fullSnapshot = getFullRecordingSnapshots(await reqPromise0);
     const stringifiedSnapshot = JSON.stringify(fullSnapshot);
     expect(stringifiedSnapshot.includes('Submit form')).toBe(false);
     expect(stringifiedSnapshot.includes('Unmasked button')).toBe(true);
