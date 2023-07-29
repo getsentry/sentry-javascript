@@ -109,7 +109,11 @@ function extractTransaction(req: PolymorphicRequest, type: boolean | Transaction
     }
     case 'methodPath':
     default: {
-      return extractPathForTransaction(req, { path: true, method: true })[0];
+      /**
+       * if exist _reconstructedRoute return that path instead of route.path
+       */
+      const customRoute = req._reconstructedRoute ? req._reconstructedRoute : undefined;
+      return extractPathForTransaction(req, { path: true, method: true, customRoute })[0];
     }
   }
 }
