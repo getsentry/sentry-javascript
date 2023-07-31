@@ -243,6 +243,20 @@ describe('CaptureConsole setup', () => {
     expect(mockHub.captureException).toHaveBeenCalledWith(someError);
   });
 
+  it('should capture exception when console logs an error object in any of the args when level set to "error"', () => {
+    const captureConsoleIntegration = new CaptureConsole({ levels: ['error'] });
+    captureConsoleIntegration.setupOnce(
+      () => undefined,
+      () => getMockHubWithIntegration(captureConsoleIntegration),
+    );
+
+    const someError = new Error('some error');
+    global.console.error('Something went wrong', someError);
+
+    expect(mockHub.captureException).toHaveBeenCalledTimes(1);
+    expect(mockHub.captureException).toHaveBeenCalledWith(someError);
+  });
+
   it('should capture message on `console.log` when no levels are provided in constructor', () => {
     const captureConsoleIntegration = new CaptureConsole();
     captureConsoleIntegration.setupOnce(
