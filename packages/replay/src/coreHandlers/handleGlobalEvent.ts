@@ -17,6 +17,11 @@ export function handleGlobalEventListener(
   const afterSendHandler = includeAfterSendEventHandling ? handleAfterSendEvent(replay) : undefined;
 
   return (event: Event, hint: EventHint) => {
+    // Do nothing if replay has been disabled
+    if (!replay.isEnabled()) {
+      return event;
+    }
+
     if (isReplayEvent(event)) {
       // Replays have separate set of breadcrumbs, do not include breadcrumbs
       // from core SDK
