@@ -192,8 +192,17 @@ class SentryScenarioGenerationPlugin {
           if (useLoader) {
             const loaderConfig = LOADER_CONFIGS[bundleKey];
 
+            // Also add ES5 bundle variant - we always use the full ES5 variant for simplicity
+            const es5BundlePath = BUNDLE_PATHS[bundleName]['bundle_tracing_es5_min'];
+            addStaticAssetSymlink(
+              this.localOutPath,
+              path.resolve(PACKAGES_DIR, bundleName, es5BundlePath),
+              'cdn.bundle.es5.js',
+            );
+
             addStaticAsset(this.localOutPath, 'loader.js', () => {
               return LOADER_TEMPLATE.replace('__LOADER_BUNDLE__', "'/cdn.bundle.js'")
+                .replace('__LOADER_BUNDLE_ES5__', "'/cdn.bundle.es5.js'")
                 .replace(
                   '__LOADER_OPTIONS__',
                   JSON.stringify({
