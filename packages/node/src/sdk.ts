@@ -168,7 +168,7 @@ export function init(options: NodeOptions = {}): void {
     transport: options.transport || makeNodeTransport,
   };
 
-  initAndBind(NodeClient, clientOptions);
+  initAndBind(options.clientClass || NodeClient, clientOptions);
 
   if (options.autoSessionTracking) {
     startSessionTracking();

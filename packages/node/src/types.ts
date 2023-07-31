@@ -1,5 +1,6 @@
 import type { ClientOptions, Options, SamplingContext } from '@sentry/types';
 
+import type { NodeClient } from './client';
 import type { NodeTransportOptions } from './transports';
 
 export interface BaseNodeOptions {
@@ -31,6 +32,14 @@ export interface BaseNodeOptions {
    * Requires the `LocalVariables` integration.
    */
   includeLocalVariables?: boolean;
+
+  /**
+   * Specify a custom NodeClient to be used. Must extend NodeClient!
+   * This is not a public, supported API, but used internally only.
+   *
+   * @hidden
+   *  */
+  clientClass?: typeof NodeClient;
 
   // TODO (v8): Remove this in v8
   /**
