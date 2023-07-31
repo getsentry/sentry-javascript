@@ -43,6 +43,17 @@ Sentry.init({
 
 Note that it is necessary to initialize Sentry **before you import any package that may be instrumented by us**.
 
+## Status of this Experiment
+
+Currently, this SDK:
+
+* Will capture errors (same as @sentry/node)
+* Auto-instrument for performance - see below for which performance integrations are available.
+
+**Manual instrumentation is not supported!**
+This is because the current Sentry-Performance-APIs like `Sentry.startTransaction()` are not compatible with the OpenTelemetry tracing model.
+We may add manual tracing capabilities in a later version.
+
 ## Available (Performance) Integrations
 
 * Http
