@@ -20,7 +20,8 @@
     "test:validate-test-app-setups": "ts-node validate-test-app-setups.ts",
     "test:prepare": "ts-node prepare.ts",
     "test:validate": "run-s test:validate-configuration test:validate-test-app-setups",
-    "clean": "rimraf tmp test-applications/**/{node_modules,dist,build,.next,.sveltekit,pnpm-lock.yaml}"
+    "clean": "rimraf tmp node_modules && yarn clean:test-applications",
+    "clean:test-applications": "rimraf test-applications/**/{node_modules,dist,build,.next,.sveltekit,pnpm-lock.yaml}"
   },
   "devDependencies": {
     "@types/glob": "8.0.0",

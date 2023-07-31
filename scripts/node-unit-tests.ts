@@ -23,6 +23,7 @@ const NODE_8_SKIP_TESTS_PACKAGES = [
   '@sentry/remix',
   '@sentry/sveltekit',
   '@sentry-internal/replay-worker',
+  '@sentry/node-experimental',
 ];
 
 // We have to downgrade some of our dependencies in order to run tests in Node 8 and 10.
@@ -35,10 +36,15 @@ const NODE_8_LEGACY_DEPENDENCIES = [
   'lerna@3.13.4',
 ];
 
-const NODE_10_SKIP_TESTS_PACKAGES = ['@sentry/remix', '@sentry/sveltekit', '@sentry-internal/replay-worker'];
+const NODE_10_SKIP_TESTS_PACKAGES = [
+  '@sentry/remix',
+  '@sentry/sveltekit',
+  '@sentry-internal/replay-worker',
+  '@sentry/node-experimental',
+];
 const NODE_10_LEGACY_DEPENDENCIES = ['jsdom@16.x', 'lerna@3.13.4'];
 
-const NODE_12_SKIP_TESTS_PACKAGES = ['@sentry/remix', '@sentry/sveltekit'];
+const NODE_12_SKIP_TESTS_PACKAGES = ['@sentry/remix', '@sentry/sveltekit', '@sentry/node-experimental'];
 const NODE_12_LEGACY_DEPENDENCIES = ['lerna@3.13.4'];
 
 const NODE_14_SKIP_TESTS_PACKAGES = ['@sentry/sveltekit'];

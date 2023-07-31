@@ -6,6 +6,7 @@
     "dev": "remix dev",
     "start": "remix-serve build",
     "typecheck": "tsc",
+    "clean": "npx rimraf node_modules,pnpm-lock.yaml",
     "test:build": "pnpm install && npx playwright install && pnpm build",
     "test:assert": "pnpm playwright test"
   },

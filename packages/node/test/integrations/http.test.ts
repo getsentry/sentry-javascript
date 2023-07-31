@@ -19,6 +19,10 @@ const originalHttpGet = http.get;
 const originalHttpRequest = http.request;
 
 describe('tracing', () => {
+  afterEach(() => {
+    sentryCore.getCurrentHub().getScope().setSpan(undefined);
+  });
+
   function createTransactionOnScope(
     customOptions: Partial<NodeClientOptions> = {},
     customContext?: Partial<TransactionContext>,
@@ -178,8 +182,26 @@ describe('tracing', () => {
     ]);
   });
 
+  it("doesn't attach baggage headers if already defined", () => {
+    nock('http://dogs.are.great').get('/').reply(200);
+
+    createTransactionOnScope();
+
+    const request = http.get({
+      host: 'http://dogs.are.great/',
+      headers: {
+        'sentry-trace': '12312012123120121231201212312012-1231201212312012-0',
+        baggage: 'sentry-environment=production,sentry-trace_id=12312012123120121231201212312012',
+      },
+    });
+    const baggage = request.getHeader('baggage');
+    expect(baggage).toEqual('sentry-environment=production,sentry-trace_id=12312012123120121231201212312012');
+  });
+
   it('generates and uses propagation context to attach baggage and sentry-trace header', async () => {
     nock('http://dogs.are.great').get('/').reply(200);
+
+    const { traceId } = sentryCore.getCurrentHub().getScope().getPropagationContext();
 
     const request = http.get('http://dogs.are.great/');
     const sentryTraceHeader = request.getHeader('sentry-trace') as string;
@@ -187,12 +209,12 @@ describe('tracing', () => {
 
     const parts = sentryTraceHeader.split('-');
     expect(parts.length).toEqual(3);
-    expect(parts[0]).toEqual('12312012123120121231201212312012');
+    expect(parts[0]).toEqual(traceId);
     expect(parts[1]).toEqual(expect.any(String));
-    expect(parts[2]).toEqual('1');
+    expect(parts[2]).toEqual('0');
 
     expect(baggageHeader).toEqual(
-      'sentry-environment=production,sentry-release=1.0.0,sentry-user_segment=segmentA,sentry-public_key=dogsarebadatkeepingsecrets,sentry-trace_id=12312012123120121231201212312012,sentry-sample_rate=1,sentry-sampled=true',
+      `sentry-environment=production,sentry-release=1.0.0,sentry-user_segment=segmentA,sentry-public_key=dogsarebadatkeepingsecrets,sentry-trace_id=${traceId}`,
     );
   });
 

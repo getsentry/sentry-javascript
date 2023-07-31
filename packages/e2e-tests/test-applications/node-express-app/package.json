@@ -6,6 +6,7 @@
     "build": "tsc",
     "start": "node dist/app.js",
     "test": "playwright test",
+    "clean": "npx rimraf node_modules,pnpm-lock.yaml",
     "test:build": "pnpm install && pnpm build",
     "test:assert": "pnpm test"
   },
