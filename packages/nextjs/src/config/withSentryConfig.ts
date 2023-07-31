@@ -6,7 +6,8 @@ import type {
   SentryWebpackPluginOptions,
   UserSentryOptions,
 } from './types';
-import { constructWebpackConfigFunction } from './webpack';
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const { constructWebpackConfigFunction } = require('./webpack');
 
 let showedExportModeTunnelWarning = false;
 
