@@ -133,6 +133,21 @@
                 },
                 {
                   "type": 2,
+                  "tagName": "input",
+                  "attributes": {
+                    "data-sentry-unmask": "",
+                    "placeholder": "Placeholder can be unmasked"
+                  },
+                  "childNodes": [],
+                  "id": 21
+                },
+                {
+                  "type": 3,
+                  "textContent": "\n    ",
+                  "id": 22
+                },
+                {
+                  "type": 2,
                   "tagName": "div",
                   "attributes": {
                     "title": "***** ****** ** ******"
@@ -141,15 +156,15 @@
                     {
                       "type": 3,
                       "textContent": "***** ****** ** ******",
-                      "id": 22
+                      "id": 24
                     }
                   ],
-                  "id": 21
+                  "id": 23
                 },
                 {
                   "type": 3,
                   "textContent": "\n    ",
-                  "id": 23
+                  "id": 25
                 },
                 {
                   "type": 2,
@@ -160,12 +175,12 @@
                   },
                   "childNodes": [],
                   "isSVG": true,
-                  "id": 24
+                  "id": 26
                 },
                 {
                   "type": 3,
                   "textContent": "\n    ",
-                  "id": 25
+                  "id": 27
                 },
                 {
                   "type": 2,
@@ -184,7 +199,7 @@
                       },
                       "childNodes": [],
                       "isSVG": true,
-                      "id": 27
+                      "id": 29
                     },
                     {
                       "type": 2,
@@ -192,7 +207,7 @@
                       "attributes": {},
                       "childNodes": [],
                       "isSVG": true,
-                      "id": 28
+                      "id": 30
                     },
                     {
                       "type": 2,
@@ -200,26 +215,11 @@
                       "attributes": {},
                       "childNodes": [],
                       "isSVG": true,
-                      "id": 29
+                      "id": 31
                     }
                   ],
                   "isSVG": true,
-                  "id": 26
-                },
-                {
-                  "type": 3,
-                  "textContent": "\n    ",
-                  "id": 30
-                },
-                {
-                  "type": 2,
-                  "tagName": "img",
-                  "attributes": {
-                    "rr_width": "[100-150]px",
-                    "rr_height": "[100-150]px"
-                  },
-                  "childNodes": [],
-                  "id": 31
+                  "id": 28
                 },
                 {
                   "type": 3,
@@ -230,9 +230,8 @@
                   "type": 2,
                   "tagName": "img",
                   "attributes": {
-                    "data-sentry-unblock": "",
-                    "style": "width:100px;height:100px",
-                    "src": "file:///none.png"
+                    "rr_width": "[100-150]px",
+                    "rr_height": "[100-150]px"
                   },
                   "childNodes": [],
                   "id": 33
@@ -244,23 +243,39 @@
                 },
                 {
                   "type": 2,
-                  "tagName": "video",
+                  "tagName": "img",
                   "attributes": {
-                    "rr_width": "[0-50]px",
-                    "rr_height": "[0-50]px"
+                    "data-sentry-unblock": "",
+                    "style": "width:100px;height:100px",
+                    "src": "file:///none.png"
                   },
                   "childNodes": [],
                   "id": 35
                 },
                 {
                   "type": 3,
-                  "textContent": "\n  ",
+                  "textContent": "\n    ",
                   "id": 36
+                },
+                {
+                  "type": 2,
+                  "tagName": "video",
+                  "attributes": {
+                    "rr_width": "[0-50]px",
+                    "rr_height": "[0-50]px"
+                  },
+                  "childNodes": [],
+                  "id": 37
+                },
+                {
+                  "type": 3,
+                  "textContent": "\n  ",
+                  "id": 38
                 },
                 {
                   "type": 3,
                   "textContent": "\n\n",
-                  "id": 37
+                  "id": 39
                 }
               ],
               "id": 8
