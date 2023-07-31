@@ -71,8 +71,8 @@ describe('SentrySpanProcessor', () => {
   }
 
   it('creates a transaction', async () => {
-    const startTimestampMs = 1667381672875;
-    const endTimestampMs = 1667381672309;
+    const startTimestampMs = 1667381672309;
+    const endTimestampMs = 1667381672875;
     const startTime = otelNumberToHrtime(startTimestampMs);
     const endTime = otelNumberToHrtime(endTimestampMs);
 
@@ -93,8 +93,8 @@ describe('SentrySpanProcessor', () => {
   });
 
   it('creates a child span if there is a running transaction', () => {
-    const startTimestampMs = 1667381672875;
-    const endTimestampMs = 1667381672309;
+    const startTimestampMs = 1667381672309;
+    const endTimestampMs = 1667381672875;
     const startTime = otelNumberToHrtime(startTimestampMs);
     const endTime = otelNumberToHrtime(endTimestampMs);
 
@@ -176,7 +176,7 @@ describe('SentrySpanProcessor', () => {
           'service.name': 'test-service',
           'telemetry.sdk.language': 'nodejs',
           'telemetry.sdk.name': 'opentelemetry',
-          'telemetry.sdk.version': '1.7.0',
+          'telemetry.sdk.version': '1.15.0',
         },
       },
     });
@@ -201,7 +201,7 @@ describe('SentrySpanProcessor', () => {
           'service.name': 'test-service',
           'telemetry.sdk.language': 'nodejs',
           'telemetry.sdk.name': 'opentelemetry',
-          'telemetry.sdk.version': '1.7.0',
+          'telemetry.sdk.version': '1.15.0',
         },
       },
     });

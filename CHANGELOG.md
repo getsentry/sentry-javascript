@@ -4,6 +4,24 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.61.0
+
+### Important Changes
+
+- **feat(node-experimental): Add `@sentry/node-experimental` package as MVP for POTEL (#8609)**
+
+This introduces a new, *experimental* package, `@sentry/node-experimental`.
+This is a variant of the Node SDK which uses OpenTelemetry under the hood for performance instrumentation.
+
+Note that this package is very much WIP, considered unstable and may change at any time.
+**No SemVer guarantees apply whatsoever.** Still, if you're brave enough you can give it a try.
+[Read more about @sentry/node-experimental](./packages/node-experimental/README.md)
+
+### Other Changes
+
+- fix(node): Don't set extra baggage headers (#8657)
+- fix(tracing): Trim idle transaction spans if they exceed final timeout (#8653)
+
 ## 7.60.1
 
 - fix(nextjs): Match folder paths with trailing separator (#8615)

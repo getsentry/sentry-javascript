@@ -190,9 +190,15 @@ export interface Client<O extends ClientOptions = ClientOptions> {
   on?(hook: 'beforeAddBreadcrumb', callback: (breadcrumb: Breadcrumb, hint?: BreadcrumbHint) => void): void;
 
   /**
-   * Register a callback whena  DSC (Dynamic Sampling Context) is created.
+   * Register a callback when a DSC (Dynamic Sampling Context) is created.
    */
   on?(hook: 'createDsc', callback: (dsc: DynamicSamplingContext) => void): void;
+
+  /**
+   * Register a callback when an OpenTelemetry span is ended (in @sentry/opentelemetry-node).
+   * The option argument may be mutated to drop the span.
+   */
+  on?(hook: 'otelSpanEnd', callback: (otelSpan: unknown, mutableOptions: { drop: boolean }) => void): void;
 
   /**
    * Fire a hook event for transaction start and finish. Expects to be given a transaction as the
@@ -221,4 +227,11 @@ export interface Client<O extends ClientOptions = ClientOptions> {
    * Fire a hook for when a DSC (Dynamic Sampling Context) is created. Expects the DSC as second argument.
    */
   emit?(hook: 'createDsc', dsc: DynamicSamplingContext): void;
+
+  /**
+   * Fire a hook for when an OpenTelemetry span is ended (in @sentry/opentelemetry-node).
+   * Expects the OTEL span & as second argument, and an option object as third argument.
+   * The option argument may be mutated to drop the span.
+   */
+  emit?(hook: 'otelSpanEnd', otelSpan: unknown, mutableOptions: { drop: boolean }): void;
 }
