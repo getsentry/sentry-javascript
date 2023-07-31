@@ -14,15 +14,15 @@ interface ContextLinesOptions {
 }
 
 /**
- * Collects source context lines around the line of a stackframe pointing to JS embedded in
+ * Collects source context lines around the lines of stackframes pointing to JS embedded in
  * the current page's HTML.
+ *
+ * This integration DOES NOT work for stack frames pointing to JS files that are loaded by the browser.
+ * For frames pointing to files, context lines are added during ingestion and symbolication
+ * by attempting to download the JS files to the Sentry backend.
  *
  * Use this integration if you have inline JS code in HTML pages that can't be accessed
  * by our backend (e.g. due to a login-protected page).
- *
- * This integratino DOES NOT work for stack frames pointing to JS files that are loaded by the browser.
- * For frames pointing to files, context lines are added during ingestion and symbolication
- * by attempting to download the JS files to the Sentry backend.
  */
 export class ContextLines implements Integration {
   /**
