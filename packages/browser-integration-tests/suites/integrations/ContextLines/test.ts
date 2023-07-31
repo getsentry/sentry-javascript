@@ -1,19 +1,29 @@
 import { expect } from '@playwright/test';
-import type { Event } from '@sentry/types';
 
 import { sentryTest } from '../../../utils/fixtures';
-import { getFirstSentryEnvelopeRequest } from '../../../utils/helpers';
+import { envelopeRequestParser, waitForErrorRequestOnUrl } from '../../../utils/helpers';
 
 sentryTest(
   'should add source context lines around stack frames from errors in Html inline JS',
-  async ({ getLocalTestPath, page }) => {
+  async ({ getLocalTestPath, page, browserName }) => {
+    if (browserName === 'webkit') {
+      // The error we're throwing in this test is thrown as "Script error." in Webkit.
+      // We filter "Script error." out by default in `InboundFilters`.
+      // I don't think there's much value to disable InboundFilters defaults for this test,
+      // given that most of our users won't do that either.
+      // Let's skip it instead for Webkit.
+      sentryTest.skip();
+    }
+
     const url = await getLocalTestPath({ testDir: __dirname });
 
-    const eventPromise = getFirstSentryEnvelopeRequest<Event>(page, url);
+    const eventReqPromise = waitForErrorRequestOnUrl(page, url);
 
     const clickPromise = page.click('#inline-error-btn');
 
-    const [eventData] = await Promise.all([eventPromise, clickPromise]);
+    const [req] = await Promise.all([eventReqPromise, clickPromise]);
+
+    const eventData = envelopeRequestParser(req);
 
     expect(eventData.exception?.values).toHaveLength(1);
 
@@ -41,11 +51,14 @@ sentryTest(
 sentryTest('should not add source context lines to errors from script files', async ({ getLocalTestPath, page }) => {
   const url = await getLocalTestPath({ testDir: __dirname });
 
-  const eventPromise = getFirstSentryEnvelopeRequest<Event>(page, url);
+  const eventReqPromise = waitForErrorRequestOnUrl(page, url);
 
-  await page.click('#script-error-btn');
+  const clickPromise = page.click('#script-error-btn');
 
-  const eventData = await eventPromise;
+  const [req] = await Promise.all([eventReqPromise, clickPromise]);
+
+  const eventData = envelopeRequestParser(req);
+
   const exception = eventData.exception?.values?.[0];
   const frames = exception?.stacktrace?.frames;
   expect(frames).toHaveLength(1);
