@@ -196,6 +196,21 @@
                 },
                 {
                   "type": 2,
+                  "tagName": "div",
+                  "attributes": {
+                    "rr_width": "[1250-1300]px",
+                    "rr_height": "[0-50]px"
+                  },
+                  "childNodes": [],
+                  "id": 29
+                },
+                {
+                  "type": 3,
+                  "textContent": "\n    ",
+                  "id": 30
+                },
+                {
+                  "type": 2,
                   "tagName": "svg",
                   "attributes": {
                     "style": "width:200px;height:200px",
@@ -211,7 +226,7 @@
                       },
                       "childNodes": [],
                       "isSVG": true,
-                      "id": 30
+                      "id": 32
                     },
                     {
                       "type": 2,
@@ -219,7 +234,7 @@
                       "attributes": {},
                       "childNodes": [],
                       "isSVG": true,
-                      "id": 31
+                      "id": 33
                     },
                     {
                       "type": 2,
@@ -227,26 +242,11 @@
                       "attributes": {},
                       "childNodes": [],
                       "isSVG": true,
-                      "id": 32
+                      "id": 34
                     }
                   ],
                   "isSVG": true,
-                  "id": 29
-                },
-                {
-                  "type": 3,
-                  "textContent": "\n    ",
-                  "id": 33
-                },
-                {
-                  "type": 2,
-                  "tagName": "img",
-                  "attributes": {
-                    "style": "width:100px;height:100px",
-                    "src": "file:///none.png"
-                  },
-                  "childNodes": [],
-                  "id": 34
+                  "id": 31
                 },
                 {
                   "type": 3,
@@ -257,7 +257,6 @@
                   "type": 2,
                   "tagName": "img",
                   "attributes": {
-                    "data-sentry-unblock": "",
                     "style": "width:100px;height:100px",
                     "src": "file:///none.png"
                   },
@@ -271,10 +270,11 @@
                 },
                 {
                   "type": 2,
-                  "tagName": "video",
+                  "tagName": "img",
                   "attributes": {
-                    "rr_width": "[0-50]px",
-                    "rr_height": "[0-50]px"
+                    "data-sentry-unblock": "",
+                    "style": "width:100px;height:100px",
+                    "src": "file:///none.png"
                   },
                   "childNodes": [],
                   "id": 38
@@ -286,10 +286,9 @@
                 },
                 {
                   "type": 2,
-                  "tagName": "div",
+                  "tagName": "video",
                   "attributes": {
-                    "class": "nested-hide",
-                    "rr_width": "[1250-1300]px",
+                    "rr_width": "[0-50]px",
                     "rr_height": "[0-50]px"
                   },
                   "childNodes": [],
@@ -297,13 +296,29 @@
                 },
                 {
                   "type": 3,
-                  "textContent": "\n  ",
+                  "textContent": "\n    ",
                   "id": 41
+                },
+                {
+                  "type": 2,
+                  "tagName": "div",
+                  "attributes": {
+                    "class": "nested-hide",
+                    "rr_width": "[1250-1300]px",
+                    "rr_height": "[0-50]px"
+                  },
+                  "childNodes": [],
+                  "id": 42
+                },
+                {
+                  "type": 3,
+                  "textContent": "\n  ",
+                  "id": 43
                 },
                 {
                   "type": 3,
                   "textContent": "\n\n",
-                  "id": 42
+                  "id": 44
                 }
               ],
               "id": 8
