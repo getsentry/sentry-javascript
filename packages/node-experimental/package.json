@@ -1,13 +1,13 @@
 {
-  "name": "@sentry/opentelemetry-node",
-  "version": "7.60.1",
-  "description": "Official Sentry SDK for OpenTelemetry Node.js",
+  "name": "@sentry/node-experimental",
+  "version": "7.60.0",
+  "description": "Experimental version of a Node SDK using OpenTelemetry for performance instrumentation",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
-  "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/opentelemetry-node",
+  "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/node-experimental",
   "author": "Sentry",
   "license": "MIT",
   "engines": {
-    "node": ">=8"
+    "node": ">=14"
   },
   "main": "build/cjs/index.js",
   "module": "build/esm/index.js",
@@ -23,23 +23,26 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/core": "7.60.1",
-    "@sentry/types": "7.60.1",
-    "@sentry/utils": "7.60.1"
-  },
-  "peerDependencies": {
-    "@opentelemetry/api": "1.x",
-    "@opentelemetry/core": "1.x",
-    "@opentelemetry/sdk-trace-base": "1.x",
-    "@opentelemetry/semantic-conventions": "1.x"
-  },
-  "devDependencies": {
-    "@opentelemetry/api": "^1.4.1",
-    "@opentelemetry/core": "^1.7.0",
-    "@opentelemetry/sdk-trace-base": "^1.15.0",
-    "@opentelemetry/sdk-trace-node": "^1.15.0",
-    "@opentelemetry/semantic-conventions": "^1.7.0",
-    "@sentry/node": "7.60.1"
+    "@opentelemetry/api": "~1.4.1",
+    "@opentelemetry/instrumentation": "~0.41.0",
+    "@opentelemetry/instrumentation-fastify": "~0.32.0",
+    "@opentelemetry/instrumentation-http": "~0.41.0",
+    "@opentelemetry/instrumentation-express": "~0.33.0",
+    "@opentelemetry/instrumentation-graphql": "~0.35.0",
+    "@opentelemetry/instrumentation-mongodb": "~0.36.0",
+    "@opentelemetry/instrumentation-mongoose": "~0.33.0",
+    "@opentelemetry/instrumentation-mysql": "~0.34.0",
+    "@opentelemetry/instrumentation-mysql2": "~0.34.0",
+    "@opentelemetry/instrumentation-pg": "~0.36.0",
+    "@opentelemetry/instrumentation-nestjs-core": "~0.33.0",
+    "@opentelemetry/semantic-conventions": "~1.15.0",
+    "@opentelemetry/sdk-trace-node": "~1.15.0",
+    "@prisma/instrumentation": "~5.0.0",
+    "@sentry/core": "7.60.0",
+    "@sentry/node": "7.60.0",
+    "@sentry/opentelemetry-node": "7.60.0",
+    "@sentry/types": "7.60.0",
+    "@sentry/utils": "7.60.0"
   },
   "scripts": {
     "build": "run-p build:transpile build:types",
@@ -54,7 +57,7 @@
     "build:types:watch": "tsc -p tsconfig.types.json --watch",
     "build:tarball": "ts-node ../../scripts/prepack.ts && npm pack ./build",
     "circularDepCheck": "madge --circular src/index.ts",
-    "clean": "rimraf build coverage sentry-opentelemetry-node-*.tgz",
+    "clean": "rimraf build coverage sentry-node-experimental-*.tgz",
     "fix": "run-s fix:eslint fix:prettier",
     "fix:eslint": "eslint . --format stylish --fix",
     "fix:prettier": "prettier --write \"{src,test,scripts}/**/**.ts\"",
@@ -69,11 +72,5 @@
   "volta": {
     "extends": "../../package.json"
   },
-  "sideEffects": [
-    "./cjs/index.js",
-    "./esm/index.js",
-    "./build/npm/cjs/index.js",
-    "./build/npm/esm/index.js",
-    "./src/index.ts"
-  ]
+  "sideEffects": false
 }
