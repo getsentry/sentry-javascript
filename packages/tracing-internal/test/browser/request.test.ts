@@ -218,6 +218,26 @@ describe('callbacks', () => {
       expect(newSpan).toBeUndefined();
     });
 
+    it.only('uses active span to generate sentry-trace header', () => {
+      const spans: Record<string, Span> = {};
+      // triggered by request being sent
+      fetchCallback(fetchHandlerData, alwaysCreateSpan, alwaysAttachHeaders, spans);
+
+      const activeSpan = transaction.spanRecorder?.spans[1] as Span;
+
+      const postRequestFetchHandlerData = {
+        ...fetchHandlerData,
+        endTimestamp,
+        response: { status: 200 } as Response,
+      };
+
+      // triggered by response coming back
+      fetchCallback(postRequestFetchHandlerData, alwaysCreateSpan, alwaysAttachHeaders, spans);
+
+      const headers = (fetchHandlerData.args[1].headers as Record<string, string>) || {};
+      expect(headers['sentry-trace']).toEqual(`${activeSpan.traceId}-${activeSpan.spanId}-1`);
+    });
+
     it('adds content-length to span data on finish', () => {
       const spans: Record<string, Span> = {};
 
