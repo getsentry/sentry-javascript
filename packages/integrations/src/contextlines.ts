@@ -1,7 +1,7 @@
 import type { Event, EventProcessor, Integration, StackFrame } from '@sentry/types';
-import { stripUrlQueryAndFragment } from '@sentry/utils';
+import { GLOBAL_OBJ, stripUrlQueryAndFragment } from '@sentry/utils';
 
-import { WINDOW } from '../helpers';
+const WINDOW = GLOBAL_OBJ as typeof GLOBAL_OBJ & Window;
 
 interface ContextLinesOptions {
   /**
