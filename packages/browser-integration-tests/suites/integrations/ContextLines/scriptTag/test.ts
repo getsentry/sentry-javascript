@@ -1,10 +1,10 @@
 import { expect } from '@playwright/test';
 
-import { sentryTest } from '../../../utils/fixtures';
-import { envelopeRequestParser, waitForErrorRequestOnUrl } from '../../../utils/helpers';
+import { sentryTest } from '../../../../utils/fixtures';
+import { envelopeRequestParser, waitForErrorRequestOnUrl } from '../../../../utils/helpers';
 
 sentryTest(
-  'should add source context lines around stack frames from errors in Html inline JS',
+  'should add source context lines around stack frames from errors in Html script tags',
   async ({ getLocalTestPath, page, browserName }) => {
     if (browserName === 'webkit') {
       // The error we're throwing in this test is thrown as "Script error." in Webkit.
@@ -33,38 +33,23 @@ sentryTest(
       stacktrace: {
         frames: [
           {
-            pre_context: ['    <meta charset="utf-8">', '  </head>', '  <body>'],
-            context_line:
-              '      <button id="inline-error-btn" onclick="throw new Error(\'Error with context lines\')">Click me</button>',
+            lineno: 12,
+            pre_context: ['    </script>', '  </head>', '  <body>'],
+            context_line: '      <button id="inline-error-btn" onclick="throwTestError()">Click me</button>',
             post_context: [
-              '      <button id="script-error-btn">Click me too</button>',
               expect.stringContaining('subject.bundle.js'), // this line varies in the test based on tarball/cdn bundle (+variants)
               '  <footer>',
+              '    Some text...',
             ],
+          },
+          {
+            lineno: 7,
+            pre_context: ['    <meta charset="utf-8">', '    <script>', '      function throwTestError() {'],
+            context_line: "        throw new Error('Error with context lines')",
+            post_context: ['      }', '    </script>', '  </head>'],
           },
         ],
       },
     });
   },
 );
-
-sentryTest('should not add source context lines to errors from script files', async ({ getLocalTestPath, page }) => {
-  const url = await getLocalTestPath({ testDir: __dirname });
-
-  const eventReqPromise = waitForErrorRequestOnUrl(page, url);
-
-  const clickPromise = page.click('#script-error-btn');
-
-  const [req] = await Promise.all([eventReqPromise, clickPromise]);
-
-  const eventData = envelopeRequestParser(req);
-
-  const exception = eventData.exception?.values?.[0];
-  const frames = exception?.stacktrace?.frames;
-  expect(frames).toHaveLength(1);
-  frames?.forEach(f => {
-    expect(f).not.toHaveProperty('pre_context');
-    expect(f).not.toHaveProperty('context_line');
-    expect(f).not.toHaveProperty('post_context');
-  });
-});

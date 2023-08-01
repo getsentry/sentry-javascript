@@ -58,11 +58,11 @@ export class ContextLines implements Integration {
     }
 
     const html = doc.documentElement.innerHTML;
-
-    const htmlLines = ['<!DOCTYPE html>', '<html>', ...html.split('\n'), '</html>'];
-    if (!htmlLines.length) {
+    if (!html) {
       return event;
     }
+
+    const htmlLines = ['<!DOCTYPE html>', '<html>', ...html.split('\n'), '</html>'];
 
     exceptions.forEach(exception => {
       const stacktrace = exception.stacktrace;
