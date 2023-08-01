@@ -6,8 +6,6 @@ import type {
   SentryWebpackPluginOptions,
   UserSentryOptions,
 } from './types';
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const { constructWebpackConfigFunction } = require('./webpack');
 
 let showedExportModeTunnelWarning = false;
 
@@ -47,6 +45,8 @@ function getFinalConfigObject(
   userSentryOptions: UserSentryOptions,
   userSentryWebpackPluginOptions: Partial<SentryWebpackPluginOptions>,
 ): NextConfigObject {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const { constructWebpackConfigFunction } = require('./webpack');
   // Next 12.2.3+ warns about non-canonical properties on `userNextConfig`.
   delete incomingUserNextConfigObject.sentry;
 
