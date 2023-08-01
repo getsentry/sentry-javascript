@@ -319,6 +319,7 @@ describe('CaptureConsole setup', () => {
   });
 
   it('should not wrap any levels that are not members of console', () => {
+    // @ts-expect-error passing in non existing level
     const captureConsoleIntegration = new CaptureConsole({ levels: ['log', 'someNonExistingLevel', 'error'] });
     captureConsoleIntegration.setupOnce(
       () => undefined,
@@ -364,5 +365,43 @@ describe('CaptureConsole setup', () => {
     }).not.toThrow();
 
     global.console.log = originalConsoleLog;
+  });
+
+  describe('beforeCapture', () => {
+    it('can filter out capture event based on console level', () => {
+      const beforeCapture = (level: string, ..._args: any[]) => {
+        return level === 'log';
+      };
+
+      const captureConsoleIntegration = new CaptureConsole({ levels: ['log', 'info'], beforeCapture });
+      captureConsoleIntegration.setupOnce(
+        () => undefined,
+        () => getMockHubWithIntegration(captureConsoleIntegration),
+      );
+
+      global.console.log('some log');
+      expect(mockHub.captureMessage).toHaveBeenCalledTimes(1);
+
+      global.console.info('some info');
+      expect(mockHub.captureMessage).toHaveBeenCalledTimes(1);
+    });
+
+    it('can filter out capture event based on console arguments', () => {
+      const beforeCapture = (level: string, ...args: any[]) => {
+        return !(level === 'log' && args[0] === 'DO NOT CAPTURE');
+      };
+
+      const captureConsoleIntegration = new CaptureConsole({ levels: ['log'], beforeCapture });
+      captureConsoleIntegration.setupOnce(
+        () => undefined,
+        () => getMockHubWithIntegration(captureConsoleIntegration),
+      );
+
+      global.console.log('some log');
+      expect(mockHub.captureMessage).toHaveBeenCalledTimes(1);
+
+      global.console.log('DO NOT CAPTURE');
+      expect(mockHub.captureMessage).toHaveBeenCalledTimes(1);
+    });
   });
 });
