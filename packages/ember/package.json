@@ -62,7 +62,7 @@
     "ember-maybe-import-regenerator": "~1.0.0",
     "ember-qunit": "~6.0.0",
     "ember-resolver": "~8.0.3",
-    "ember-sinon-qunit": "~6.0.0",
+    "ember-sinon-qunit": "7.1.4",
     "ember-source": "~4.8.0",
     "ember-source-channel-url": "~2.0.1",
     "ember-template-lint": "~4.16.1",
@@ -75,6 +75,7 @@
     "loader.js": "~4.7.0",
     "qunit": "~2.19.2",
     "qunit-dom": "~2.0.0",
+    "sinon": "15.2.0",
     "webpack": "~5.74.0"
   },
   "engines": {
