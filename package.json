@@ -68,6 +68,7 @@
     "packages/types",
     "packages/typescript",
     "packages/utils",
+    "packages/vercel-edge",
     "packages/vue",
     "packages/wasm"
   ],
