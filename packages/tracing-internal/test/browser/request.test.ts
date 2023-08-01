@@ -218,7 +218,7 @@ describe('callbacks', () => {
       expect(newSpan).toBeUndefined();
     });
 
-    it.only('uses active span to generate sentry-trace header', () => {
+    it('uses active span to generate sentry-trace header', () => {
       const spans: Record<string, Span> = {};
       // triggered by request being sent
       fetchCallback(fetchHandlerData, alwaysCreateSpan, alwaysAttachHeaders, spans);
