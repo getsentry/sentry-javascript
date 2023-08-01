@@ -1,4 +1,4 @@
-import type { Event, EventProcessor, Integration, StackFrame } from '@sentry/types';
+import type { Event, EventProcessor, Hub, Integration, StackFrame } from '@sentry/types';
 import { GLOBAL_OBJ, stripUrlQueryAndFragment } from '@sentry/utils';
 
 const WINDOW = GLOBAL_OBJ as typeof GLOBAL_OBJ & Window;
@@ -40,8 +40,14 @@ export class ContextLines implements Integration {
   /**
    * @inheritDoc
    */
-  public setupOnce(addGlobalEventProcessor: (callback: EventProcessor) => void): void {
-    addGlobalEventProcessor(event => this.addSourceContext(event));
+  public setupOnce(addGlobalEventProcessor: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
+    addGlobalEventProcessor(event => {
+      const self = getCurrentHub().getIntegration(ContextLines);
+      if (!self) {
+        return event;
+      }
+      return this.addSourceContext(event);
+    });
   }
 
   /** Processes an event and adds context lines */
@@ -108,7 +114,7 @@ export function applySourceContextToFrame(
   }
 
   if (postLines.length) {
-    frame.post_context = postLines || undefined;
+    frame.post_context = postLines;
   }
 
   return frame;
