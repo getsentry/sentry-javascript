@@ -1,11 +1,5 @@
-import sinon from 'sinon';
 import * as Sentry from '@sentry/browser';
-
-/**
- * Stub Sentry init function before application is imported to avoid actually setting up Sentry and needing a DSN
- */
-sinon.stub(Sentry, 'init');
-
+import setupSinon from 'ember-sinon-qunit';
 import Application from '../app';
 import config from '../config/environment';
 import { setApplication } from '@ember/test-helpers';
@@ -23,6 +17,8 @@ Sentry.addGlobalEventProcessor(event => {
 });
 
 setApplication(Application.create(config.APP));
+
+setupSinon();
 
 start();
 QUnit.config.ignoreGlobalErrors = true;
