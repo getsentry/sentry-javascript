@@ -14,10 +14,12 @@ class ReplayShim implements Integration {
   /**
    * @inheritDoc
    */
-  public name: string = ReplayShim.id;
+  public name: string;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public constructor(_options: any) {
+    this.name = ReplayShim.id;
+
     // eslint-disable-next-line no-console
     console.error('You are using new Replay() even though this bundle does not include replay.');
   }

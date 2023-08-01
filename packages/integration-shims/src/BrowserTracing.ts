@@ -14,10 +14,12 @@ class BrowserTracingShim implements Integration {
   /**
    * @inheritDoc
    */
-  public name: string = BrowserTracingShim.id;
+  public name: string;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public constructor(_options: any) {
+    this.name = BrowserTracingShim.id;
+
     // eslint-disable-next-line no-console
     console.error('You are using new BrowserTracing() even though this bundle does not include tracing.');
   }

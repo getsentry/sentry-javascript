@@ -53,12 +53,14 @@ export class Prisma implements Integration {
   /**
    * @inheritDoc
    */
-  public name: string = Prisma.id;
+  public name: string;
 
   /**
    * @inheritDoc
    */
   public constructor(options: { client?: unknown } = {}) {
+    this.name = Prisma.id;
+
     // We instrument the PrismaClient inside the constructor and not inside `setupOnce` because in some cases of server-side
     // bundling (Next.js) multiple Prisma clients can be instantiated, even though users don't intend to. When instrumenting
     // in setupOnce we can only ever instrument one client.

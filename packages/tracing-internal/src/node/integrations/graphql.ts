@@ -19,9 +19,13 @@ export class GraphQL implements LazyLoadedIntegration<GraphQLModule> {
   /**
    * @inheritDoc
    */
-  public name: string = GraphQL.id;
+  public name: string;
 
   private _module?: GraphQLModule;
+
+  public constructor() {
+    this.name = GraphQL.id;
+  }
 
   /** @inheritdoc */
   public loadDependency(): GraphQLModule | undefined {

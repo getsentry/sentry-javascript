@@ -34,7 +34,7 @@ export class Offline implements Integration {
   /**
    * @inheritDoc
    */
-  public readonly name: string = Offline.id;
+  public readonly name: string;
 
   /**
    * the current hub instance
@@ -55,6 +55,8 @@ export class Offline implements Integration {
    * @inheritDoc
    */
   public constructor(options: { maxStoredEvents?: number } = {}) {
+    this.name = Offline.id;
+
     this.maxStoredEvents = options.maxStoredEvents || 30; // set a reasonable default
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     this.offlineEventStore = localForage.createInstance({

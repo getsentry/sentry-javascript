@@ -16,9 +16,14 @@ export class Nest extends NodePerformanceIntegration<void> implements Integratio
   public static id: string = 'Nest';
 
   /**
-   * @inheritDoc`
+   * @inheritDoc
    */
-  public name: string = Nest.id;
+  public name: string;
+
+  public constructor() {
+    super();
+    this.name = Nest.id;
+  }
 
   /** @inheritDoc */
   public setupInstrumentation(): void | Instrumentation[] {

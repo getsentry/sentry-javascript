@@ -27,13 +27,13 @@ export class Transaction extends SpanClass implements TransactionInterface {
 
   private _name: string;
 
-  private _measurements: Measurements = {};
+  private _measurements: Measurements;
 
-  private _contexts: Contexts = {};
+  private _contexts: Contexts;
 
   private _trimEnd?: boolean;
 
-  private _frozenDynamicSamplingContext: Readonly<Partial<DynamicSamplingContext>> | undefined = undefined;
+  private _frozenDynamicSamplingContext: Readonly<Partial<DynamicSamplingContext>> | undefined;
 
   /**
    * This constructor should never be called manually. Those instrumenting tracing should use
@@ -44,6 +44,9 @@ export class Transaction extends SpanClass implements TransactionInterface {
    */
   public constructor(transactionContext: TransactionContext, hub?: Hub) {
     super(transactionContext);
+
+    this._measurements = {};
+    this._contexts = {};
 
     this._hub = hub || getCurrentHub();
 

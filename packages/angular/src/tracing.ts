@@ -145,11 +145,14 @@ export class TraceService implements OnDestroy {
     }),
   );
 
-  private _routingSpan: Span | null = null;
+  private _routingSpan: Span | null;
 
-  private _subscription: Subscription = new Subscription();
+  private _subscription: Subscription;
 
   public constructor(private readonly _router: Router) {
+    this._routingSpan = null;
+    this._subscription = new Subscription();
+
     this._subscription.add(this.navStart$.subscribe());
     this._subscription.add(this.resEnd$.subscribe());
     this._subscription.add(this.navEnd$.subscribe());

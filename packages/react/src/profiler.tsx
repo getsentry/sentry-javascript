@@ -36,11 +36,11 @@ class Profiler extends React.Component<ProfilerProps> {
    * The span of the mount activity
    * Made protected for the React Native SDK to access
    */
-  protected _mountSpan: Span | undefined = undefined;
+  protected _mountSpan: Span | undefined;
   /**
    * The span that represents the duration of time between shouldComponentUpdate and componentDidUpdate
    */
-  protected _updateSpan: Span | undefined = undefined;
+  protected _updateSpan: Span | undefined;
 
   // eslint-disable-next-line @typescript-eslint/member-ordering
   public static defaultProps: Partial<ProfilerProps> = {

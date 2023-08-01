@@ -18,7 +18,12 @@ export class Express extends NodePerformanceIntegration<void> implements Integra
   /**
    * @inheritDoc
    */
-  public name: string = Express.id;
+  public name: string;
+
+  public constructor() {
+    super();
+    this.name = Express.id;
+  }
 
   /** @inheritDoc */
   public setupInstrumentation(): void | Instrumentation[] {

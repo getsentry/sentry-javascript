@@ -22,11 +22,17 @@ const DEFAULT_TRANSPORT_BUFFER_SIZE = 30;
 export class IsolatedPromiseBuffer {
   // We just have this field because the promise buffer interface requires it.
   // If we ever remove it from the interface we should also remove it here.
-  public $: Array<PromiseLike<TransportMakeRequestResponse>> = [];
+  public $: Array<PromiseLike<TransportMakeRequestResponse>>;
 
-  private _taskProducers: (() => PromiseLike<TransportMakeRequestResponse>)[] = [];
+  private _taskProducers: (() => PromiseLike<TransportMakeRequestResponse>)[];
 
-  public constructor(private readonly _bufferSize: number = DEFAULT_TRANSPORT_BUFFER_SIZE) {}
+  private readonly _bufferSize: number;
+
+  public constructor(_bufferSize = DEFAULT_TRANSPORT_BUFFER_SIZE) {
+    this.$ = [];
+    this._taskProducers = [];
+    this._bufferSize = _bufferSize;
+  }
 
   /**
    * @inheritdoc

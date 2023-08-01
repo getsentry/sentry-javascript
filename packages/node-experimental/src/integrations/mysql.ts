@@ -16,9 +16,14 @@ export class Mysql extends NodePerformanceIntegration<void> implements Integrati
   public static id: string = 'Mysql';
 
   /**
-   * @inheritDoc`
+   * @inheritDoc
    */
-  public name: string = Mysql.id;
+  public name: string;
+
+  public constructor() {
+    super();
+    this.name = Mysql.id;
+  }
 
   /** @inheritDoc */
   public setupInstrumentation(): void | Instrumentation[] {

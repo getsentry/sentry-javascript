@@ -35,11 +35,13 @@ export class GoogleCloudGrpc implements Integration {
   /**
    * @inheritDoc
    */
-  public name: string = GoogleCloudGrpc.id;
+  public name: string;
 
   private readonly _optional: boolean;
 
   public constructor(options: { optional?: boolean } = {}) {
+    this.name = GoogleCloudGrpc.id;
+
     this._optional = options.optional || false;
   }
 

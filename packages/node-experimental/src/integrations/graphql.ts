@@ -18,7 +18,12 @@ export class GraphQL extends NodePerformanceIntegration<void> implements Integra
   /**
    * @inheritDoc
    */
-  public name: string = GraphQL.id;
+  public name: string;
+
+  public constructor() {
+    super();
+    this.name = GraphQL.id;
+  }
 
   /** @inheritDoc */
   public setupInstrumentation(): void | Instrumentation[] {
