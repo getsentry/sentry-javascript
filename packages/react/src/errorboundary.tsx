@@ -92,14 +92,17 @@ function setCause(error: Error & { cause?: Error }, cause: Error): void {
  * is expected behavior and NOT indicative of a bug with the Sentry React SDK.
  */
 class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
-  public state: ErrorBoundaryState = INITIAL_STATE;
+  public state: ErrorBoundaryState;
 
-  private readonly _openFallbackReportDialog: boolean = true;
+  private readonly _openFallbackReportDialog: boolean;
 
   private _lastEventId?: string;
 
   public constructor(props: ErrorBoundaryProps) {
     super(props);
+
+    this.state = INITIAL_STATE;
+    this._openFallbackReportDialog = true;
 
     const client = getCurrentHub().getClient();
     if (client && client.on && props.showDialog) {

@@ -53,21 +53,23 @@ export class Http implements Integration {
   /**
    * @inheritDoc
    */
-  public name: string = Http.id;
+  public name: string;
 
   private _unload?: () => void;
   private readonly _breadcrumbs: boolean;
   // undefined: default behavior based on tracing settings
   private readonly _tracing: boolean | undefined;
-  private _shouldCreateSpans: boolean = false;
+  private _shouldCreateSpans: boolean;
   private _shouldCreateSpanForRequest?: (url: string) => boolean;
 
   /**
    * @inheritDoc
    */
   public constructor(options: HttpOptions = {}) {
+    this.name = Http.id;
     this._breadcrumbs = typeof options.breadcrumbs === 'undefined' ? true : options.breadcrumbs;
     this._tracing = typeof options.tracing === 'undefined' ? undefined : !!options.tracing;
+    this._shouldCreateSpans = false;
 
     if (options.tracing && typeof options.tracing === 'object') {
       this._shouldCreateSpanForRequest = options.tracing.shouldCreateSpanForRequest;

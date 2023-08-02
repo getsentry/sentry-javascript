@@ -18,7 +18,12 @@ export class Mongo extends NodePerformanceIntegration<void> implements Integrati
   /**
    * @inheritDoc
    */
-  public name: string = Mongo.id;
+  public name: string;
+
+  public constructor() {
+    super();
+    this.name = Mongo.id;
+  }
 
   /** @inheritDoc */
   public setupInstrumentation(): void | Instrumentation[] {

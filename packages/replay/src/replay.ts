@@ -55,12 +55,12 @@ import { throttle, THROTTLED } from './util/throttle';
  * The main replay container class, which holds all the state and methods for recording and sending replays.
  */
 export class ReplayContainer implements ReplayContainerInterface {
-  public eventBuffer: EventBuffer | null = null;
+  public eventBuffer: EventBuffer | null;
 
   /**
    * List of PerformanceEntry from PerformanceObserver
    */
-  public performanceEvents: AllPerformanceEntry[] = [];
+  public performanceEvents: AllPerformanceEntry[];
 
   public session: Session | undefined;
 
@@ -73,7 +73,7 @@ export class ReplayContainer implements ReplayContainerInterface {
    *     - having replaysOnErrorSampleRate > 0 to capture replay when an error occurs
    *     - or calling `flush()` to send the replay
    */
-  public recordingMode: ReplayRecordingMode = 'session';
+  public recordingMode: ReplayRecordingMode;
 
   /**
    * The current or last active transcation.
@@ -85,11 +85,7 @@ export class ReplayContainer implements ReplayContainerInterface {
    * These are here so we can overwrite them in tests etc.
    * @hidden
    */
-  public readonly timeouts: Timeouts = {
-    sessionIdlePause: SESSION_IDLE_PAUSE_DURATION,
-    sessionIdleExpire: SESSION_IDLE_EXPIRE_DURATION,
-    maxSessionLife: MAX_SESSION_LIFE,
-  } as const;
+  public readonly timeouts: Timeouts;
 
   private _throttledAddEvent: (
     event: RecordingEvent,
@@ -103,46 +99,40 @@ export class ReplayContainer implements ReplayContainerInterface {
 
   private readonly _options: ReplayPluginOptions;
 
-  private _performanceObserver: PerformanceObserver | null = null;
+  private _performanceObserver: PerformanceObserver | undefined;
 
   private _debouncedFlush: ReturnType<typeof debounce>;
-  private _flushLock: Promise<unknown> | null = null;
+  private _flushLock: Promise<unknown> | undefined;
 
   /**
    * Timestamp of the last user activity. This lives across sessions.
    */
-  private _lastActivity: number = Date.now();
+  private _lastActivity: number;
 
   /**
    * Is the integration currently active?
    */
-  private _isEnabled: boolean = false;
+  private _isEnabled: boolean;
 
   /**
    * Paused is a state where:
    * - DOM Recording is not listening at all
    * - Nothing will be added to event buffer (e.g. core SDK events)
    */
-  private _isPaused: boolean = false;
+  private _isPaused: boolean;
 
   /**
    * Have we attached listeners to the core SDK?
    * Note we have to track this as there is no way to remove instrumentation handlers.
    */
-  private _hasInitializedCoreListeners: boolean = false;
+  private _hasInitializedCoreListeners: boolean;
 
   /**
    * Function to stop recording
    */
-  private _stopRecording: ReturnType<typeof record> | null = null;
+  private _stopRecording: ReturnType<typeof record> | undefined;
 
-  private _context: InternalEventContext = {
-    errorIds: new Set(),
-    traceIds: new Set(),
-    urls: [],
-    initialTimestamp: Date.now(),
-    initialUrl: '',
-  };
+  private _context: InternalEventContext;
 
   public constructor({
     options,
@@ -151,6 +141,26 @@ export class ReplayContainer implements ReplayContainerInterface {
     options: ReplayPluginOptions;
     recordingOptions: RecordingOptions;
   }) {
+    this.eventBuffer = null;
+    this.performanceEvents = [];
+    this.recordingMode = 'session';
+    this.timeouts = {
+      sessionIdlePause: SESSION_IDLE_PAUSE_DURATION,
+      sessionIdleExpire: SESSION_IDLE_EXPIRE_DURATION,
+      maxSessionLife: MAX_SESSION_LIFE,
+    } as const;
+    this._lastActivity = Date.now();
+    this._isEnabled = false;
+    this._isPaused = false;
+    this._hasInitializedCoreListeners = false;
+    this._context = {
+      errorIds: new Set(),
+      traceIds: new Set(),
+      urls: [],
+      initialTimestamp: Date.now(),
+      initialUrl: '',
+    };
+
     this._recordingOptions = recordingOptions;
     this._options = options;
 
@@ -808,7 +818,7 @@ export class ReplayContainer implements ReplayContainerInterface {
 
       if (this._performanceObserver) {
         this._performanceObserver.disconnect();
-        this._performanceObserver = null;
+        this._performanceObserver = undefined;
       }
     } catch (err) {
       this._handleException(err);
@@ -1129,7 +1139,7 @@ export class ReplayContainer implements ReplayContainerInterface {
     if (!this._flushLock) {
       this._flushLock = this._runFlush();
       await this._flushLock;
-      this._flushLock = null;
+      this._flushLock = undefined;
       return;
     }
 

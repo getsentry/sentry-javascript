@@ -18,7 +18,12 @@ export class Fastify extends NodePerformanceIntegration<void> implements Integra
   /**
    * @inheritDoc
    */
-  public name: string = Fastify.id;
+  public name: string;
+
+  public constructor() {
+    super();
+    this.name = Fastify.id;
+  }
 
   /** @inheritDoc */
   public setupInstrumentation(): void | Instrumentation[] {

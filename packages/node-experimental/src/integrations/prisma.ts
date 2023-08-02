@@ -20,9 +20,14 @@ export class Prisma extends NodePerformanceIntegration<void> implements Integrat
   public static id: string = 'Prisma';
 
   /**
-   * @inheritDoc`
+   * @inheritDoc
    */
-  public name: string = Prisma.id;
+  public name: string;
+
+  public constructor() {
+    super();
+    this.name = Prisma.id;
+  }
 
   /** @inheritDoc */
   public setupInstrumentation(): void | Instrumentation[] {

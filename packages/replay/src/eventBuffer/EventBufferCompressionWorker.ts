@@ -13,11 +13,12 @@ import { WorkerHandler } from './WorkerHandler';
 export class EventBufferCompressionWorker implements EventBuffer {
   private _worker: WorkerHandler;
   private _earliestTimestamp: number | null;
-  private _totalSize = 0;
+  private _totalSize;
 
   public constructor(worker: Worker) {
     this._worker = new WorkerHandler(worker);
     this._earliestTimestamp = null;
+    this._totalSize = 0;
   }
 
   /** @inheritdoc */

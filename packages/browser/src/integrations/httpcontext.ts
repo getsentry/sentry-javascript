@@ -13,7 +13,11 @@ export class HttpContext implements Integration {
   /**
    * @inheritDoc
    */
-  public name: string = HttpContext.id;
+  public name: string;
+
+  public constructor() {
+    this.name = HttpContext.id;
+  }
 
   /**
    * @inheritDoc

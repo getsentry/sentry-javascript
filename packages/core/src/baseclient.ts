@@ -93,19 +93,19 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   protected readonly _transport?: Transport;
 
   /** Array of set up integrations. */
-  protected _integrations: IntegrationIndex = {};
+  protected _integrations: IntegrationIndex;
 
   /** Indicates whether this client's integrations have been set up. */
-  protected _integrationsInitialized: boolean = false;
+  protected _integrationsInitialized: boolean;
 
   /** Number of calls being processed */
-  protected _numProcessing: number = 0;
+  protected _numProcessing: number;
 
   /** Holds flushable  */
-  private _outcomes: { [key: string]: number } = {};
+  private _outcomes: { [key: string]: number };
 
   // eslint-disable-next-line @typescript-eslint/ban-types
-  private _hooks: Record<string, Function[]> = {};
+  private _hooks: Record<string, Function[]>;
 
   /**
    * Initializes this client instance.
@@ -114,6 +114,11 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
    */
   protected constructor(options: O) {
     this._options = options;
+    this._integrations = {};
+    this._integrationsInitialized = false;
+    this._numProcessing = 0;
+    this._outcomes = {};
+    this._hooks = {};
 
     if (options.dsn) {
       this._dsn = makeDsn(options.dsn);

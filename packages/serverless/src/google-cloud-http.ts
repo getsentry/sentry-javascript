@@ -22,11 +22,13 @@ export class GoogleCloudHttp implements Integration {
   /**
    * @inheritDoc
    */
-  public name: string = GoogleCloudHttp.id;
+  public name: string;
 
   private readonly _optional: boolean;
 
   public constructor(options: { optional?: boolean } = {}) {
+    this.name = GoogleCloudHttp.id;
+
     this._optional = options.optional || false;
   }
 

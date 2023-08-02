@@ -25,11 +25,13 @@ export class AWSServices implements Integration {
   /**
    * @inheritDoc
    */
-  public name: string = AWSServices.id;
+  public name: string;
 
   private readonly _optional: boolean;
 
   public constructor(options: { optional?: boolean } = {}) {
+    this.name = AWSServices.id;
+
     this._optional = options.optional || false;
   }
 

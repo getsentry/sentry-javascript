@@ -11,12 +11,16 @@ export class Dedupe implements Integration {
   /**
    * @inheritDoc
    */
-  public name: string = Dedupe.id;
+  public name: string;
 
   /**
    * @inheritDoc
    */
   private _previousEvent?: Event;
+
+  public constructor() {
+    this.name = Dedupe.id;
+  }
 
   /**
    * @inheritDoc
