@@ -37,7 +37,7 @@
     "mysql": "^2.18.1",
     "nock": "^13.1.0",
     "pg": "^8.7.3",
-    "yargs": "^17.7.2"
+    "yargs": "^16.2.0"
   },
   "config": {
     "mongodbMemoryServer": {
