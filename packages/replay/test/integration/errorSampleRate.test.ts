@@ -820,6 +820,85 @@ describe('Integration | errorSampleRate', () => {
 });
 
 /**
+ * If an error happens, we switch the recordingMode to `session`, set `shouldRefresh=false` on the session,
+ * but keep `sampled=buffer`.
+ * This test should verify that if we load such a session from sessionStorage, the session is eventually correctly ended.
+ */
+it('handles buffer sessions that previously had an error', async () => {
+  // Pretend that a session is already saved before loading replay
+  WINDOW.sessionStorage.setItem(
+    REPLAY_SESSION_KEY,
+    `{"segmentId":0,"id":"fd09adfc4117477abc8de643e5a5798a","sampled":"buffer","started":${BASE_TIMESTAMP},"lastActivity":${BASE_TIMESTAMP},"shouldRefresh":false}`,
+  );
+  const { mockRecord, replay, integration } = await resetSdkMock({
+    replayOptions: {
+      stickySession: true,
+    },
+    sentryOptions: {
+      replaysOnErrorSampleRate: 1.0,
+    },
+    autoStart: false,
+  });
+  integration['_initialize']();
+
+  jest.runAllTimers();
+
+  await new Promise(process.nextTick);
+  const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 3 };
+  mockRecord._emitter(TEST_EVENT);
+
+  expect(replay).not.toHaveLastSentReplay();
+
+  // Waiting for max life should eventually stop recording
+  // We simulate a full checkout which would otherwise be done automatically
+  for (let i = 0; i < MAX_SESSION_LIFE / 60_000; i++) {
+    jest.advanceTimersByTime(60_000);
+    await new Promise(process.nextTick);
+    mockRecord.takeFullSnapshot(true);
+  }
+
+  expect(replay).not.toHaveLastSentReplay();
+  expect(replay.isEnabled()).toBe(false);
+});
+
+it('handles buffer sessions that never had an error', async () => {
+  // Pretend that a session is already saved before loading replay
+  WINDOW.sessionStorage.setItem(
+    REPLAY_SESSION_KEY,
+    `{"segmentId":0,"id":"fd09adfc4117477abc8de643e5a5798a","sampled":"buffer","started":${BASE_TIMESTAMP},"lastActivity":${BASE_TIMESTAMP}}`,
+  );
+  const { mockRecord, replay, integration } = await resetSdkMock({
+    replayOptions: {
+      stickySession: true,
+    },
+    sentryOptions: {
+      replaysOnErrorSampleRate: 1.0,
+    },
+    autoStart: false,
+  });
+  integration['_initialize']();
+
+  jest.runAllTimers();
+
+  await new Promise(process.nextTick);
+  const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 3 };
+  mockRecord._emitter(TEST_EVENT);
+
+  expect(replay).not.toHaveLastSentReplay();
+
+  // Waiting for max life should eventually stop recording
+  // We simulate a full checkout which would otherwise be done automatically
+  for (let i = 0; i < MAX_SESSION_LIFE / 60_000; i++) {
+    jest.advanceTimersByTime(60_000);
+    await new Promise(process.nextTick);
+    mockRecord.takeFullSnapshot(true);
+  }
+
+  expect(replay).not.toHaveLastSentReplay();
+  expect(replay.isEnabled()).toBe(true);
+});
+
+/**
  * This is testing a case that should only happen with error-only sessions.
  * Previously we had assumed that loading a session from session storage meant
  * that the session was not new. However, this is not the case with error-only
