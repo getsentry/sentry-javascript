@@ -280,6 +280,12 @@ describe('Integration | flush', () => {
 
     expect(mockFlush).toHaveBeenCalledTimes(1);
     expect(mockSendReplay).toHaveBeenCalledTimes(0);
+
+    // it should re-schedule the flush, so once the min. duration is reached it should automatically send it
+    await advanceTimers(100_000 - DEFAULT_FLUSH_MIN_DELAY);
+
+    expect(mockFlush).toHaveBeenCalledTimes(20);
+    expect(mockSendReplay).toHaveBeenCalledTimes(1);
   });
 
   it('does not flush if session is too long', async () => {

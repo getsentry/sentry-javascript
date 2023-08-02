@@ -1132,11 +1132,18 @@ export class ReplayContainer implements ReplayContainerInterface {
 
     // If session is too short, or too long (allow some wiggle room over maxSessionLife), do not send it
     // This _should_ not happen, but it may happen if flush is triggered due to a page activity change or similar
-    if (duration < this._options.minReplayDuration || duration > this.timeouts.maxSessionLife + 5_000) {
+    const tooShort = duration < this._options.minReplayDuration;
+    const tooLong = duration > this.timeouts.maxSessionLife + 5_000;
+    if (tooShort || tooLong) {
       logInfo(
-        `[Replay] Session duration (${Math.floor(duration / 1000)}s) is too short or too long, not sending replay.`,
-        this._options._experiments.traceInternals,
+        `[Replay] Session duration (${Math.floor(duration / 1000)}s) is too ${
+          tooShort ? 'short' : 'long'
+        }, not sending replay.`,
       );
+
+      if (tooShort) {
+        this._debouncedFlush();
+      }
       return;
     }
 
