@@ -1,3 +1,5 @@
+import { isThenable } from '@sentry/utils';
+
 import type {
   ExportedNextConfig,
   NextConfigFunction,
@@ -24,12 +26,21 @@ export function withSentryConfig(
   sentryOptions?: UserSentryOptions,
 ): NextConfigFunction | NextConfigObject {
   if (typeof exportedUserNextConfig === 'function') {
-    return function (this: unknown, ...webpackConfigFunctionArgs: unknown[]): NextConfigObject {
-      const userNextConfigObject: NextConfigObjectWithSentry = exportedUserNextConfig.apply(
+    return function (this: unknown, ...webpackConfigFunctionArgs: unknown[]): ReturnType<NextConfigFunction> {
+      const maybeUserNextConfigObject: NextConfigObjectWithSentry = exportedUserNextConfig.apply(
         this,
         webpackConfigFunctionArgs,
       );
 
+      if (isThenable(maybeUserNextConfigObject)) {
+        return maybeUserNextConfigObject.then(function (userNextConfigObject: NextConfigObjectWithSentry) {
+          const userSentryOptions = { ...userNextConfigObject.sentry, ...sentryOptions };
+          return getFinalConfigObject(userNextConfigObject, userSentryOptions, userSentryWebpackPluginOptions);
+        });
+      }
+
+      // Reassign for naming-consistency sake.
+      const userNextConfigObject = maybeUserNextConfigObject;
       const userSentryOptions = { ...userNextConfigObject.sentry, ...sentryOptions };
       return getFinalConfigObject(userNextConfigObject, userSentryOptions, userSentryWebpackPluginOptions);
     };
