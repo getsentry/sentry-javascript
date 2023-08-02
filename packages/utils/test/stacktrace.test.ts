@@ -98,12 +98,12 @@ describe('Stacktrace', () => {
 
     it('applies frames limit after the stripping, not before', () => {
       const stack = Array.from({ length: 55 }).map((_, i) => {
-        return { colno: 1, lineno: 4, filename: 'anything.js', function: `${i}` }
+        return { colno: 1, lineno: 4, filename: 'anything.js', function: `${i}` };
       });
 
-      stack.unshift({ colno: 1, lineno: 4, filename: 'anything.js', function: 'captureMessage' })
-      stack.unshift({ colno: 1, lineno: 4, filename: 'anything.js', function: 'captureMessage' })
-      stack.push({ colno: 1, lineno: 4, filename: 'anything.js', function: 'sentryWrapped' })
+      stack.unshift({ colno: 1, lineno: 4, filename: 'anything.js', function: 'captureMessage' });
+      stack.unshift({ colno: 1, lineno: 4, filename: 'anything.js', function: 'captureMessage' });
+      stack.push({ colno: 1, lineno: 4, filename: 'anything.js', function: 'sentryWrapped' });
 
       // Should remove 2x `captureMessage`, `sentryWrapped`, and then limit frames to default 50.
       const frames = stripSentryFramesAndReverse(stack);

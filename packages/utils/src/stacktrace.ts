@@ -6,7 +6,7 @@ import { node } from './node-stack-trace';
 const STACKTRACE_FRAME_LIMIT = 50;
 // Used to sanitize webpack (error: *) wrapped stack errors
 const WEBPACK_ERROR_REGEXP = /\(error: (.*)\)/;
-const STRIP_FRAME_REGEXP = /captureMessage|captureException/
+const STRIP_FRAME_REGEXP = /captureMessage|captureException/;
 
 /**
  * Creates a stack parser with the supplied line parsers
