@@ -185,6 +185,16 @@ describe('addContextToFrame', () => {
     expect(frame.context_line).toEqual('14: n');
     expect(frame.post_context).toEqual([]);
   });
+
+  test('truncate line if too long', () => {
+    const frame: StackFrame = {
+      lineno: 1,
+    };
+    addContextToFrame(['1234567890'.repeat(100)], frame);
+    expect(frame.pre_context).toEqual([]);
+    expect(frame.context_line).toEqual(`${'1234567890'.repeat(14)} {snip}`);
+    expect(frame.post_context).toEqual([]);
+  });
 });
 
 describe('addExceptionMechanism', () => {
