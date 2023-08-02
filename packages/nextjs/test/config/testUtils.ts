@@ -35,7 +35,7 @@ export function materializeFinalNextConfig(
   if (typeof sentrifiedConfig === 'function') {
     // for some reason TS won't recognize that `finalConfigValues` is now a NextConfigObject, which is why the cast
     // below is necessary
-    finalConfigValues = sentrifiedConfig(runtimePhase ?? defaultRuntimePhase, defaultsObject);
+    finalConfigValues = sentrifiedConfig(runtimePhase ?? defaultRuntimePhase, defaultsObject) as NextConfigObject;
   }
 
   return finalConfigValues as NextConfigObject;
@@ -66,7 +66,7 @@ export async function materializeFinalWebpackConfig(options: {
   // if the user's next config is a function, run it so we have access to the values
   const materializedUserNextConfig =
     typeof exportedNextConfig === 'function'
-      ? exportedNextConfig('phase-production-build', defaultsObject)
+      ? await exportedNextConfig('phase-production-build', defaultsObject)
       : exportedNextConfig;
 
   // extract the `sentry` property as we do in `withSentryConfig`
