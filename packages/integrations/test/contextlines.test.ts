@@ -17,6 +17,7 @@ describe('ContextLines', () => {
       [
         1,
         {
+          pre_context: [],
           context_line: 'line1',
           post_context: ['line2', 'line3', 'line4'],
         },
@@ -34,12 +35,7 @@ describe('ContextLines', () => {
         {
           pre_context: ['line6', 'line7', 'line8'],
           context_line: 'line9',
-        },
-      ],
-      [
-        11,
-        {
-          pre_context: ['line8', 'line9'],
+          post_context: [],
         },
       ],
     ])(
@@ -50,7 +46,7 @@ describe('ContextLines', () => {
           filename: 'https://mydomain.com/index.html',
         };
 
-        expect(applySourceContextToFrame(frame, lines, 'https://mydomain.com/index.html', 7)).toStrictEqual({
+        expect(applySourceContextToFrame(frame, lines, 'https://mydomain.com/index.html', 3)).toStrictEqual({
           filename: 'https://mydomain.com/index.html',
           lineno,
           ...contextLines,
@@ -58,16 +54,18 @@ describe('ContextLines', () => {
       },
     );
 
-    it('only applies the context line if the range is 1', () => {
+    it('only applies the context line if the range is 0', () => {
       const frame: StackFrame = {
         lineno: 5,
         filename: 'https://mydomain.com/index.html',
       };
 
-      expect(applySourceContextToFrame(frame, lines, 'https://mydomain.com/index.html', 1)).toStrictEqual({
+      expect(applySourceContextToFrame(frame, lines, 'https://mydomain.com/index.html', 0)).toStrictEqual({
         filename: 'https://mydomain.com/index.html',
         lineno: 5,
         context_line: 'line5',
+        pre_context: [],
+        post_context: [],
       });
     });
 
@@ -77,7 +75,7 @@ describe('ContextLines', () => {
         filename: 'https://mydomain.com/index.html',
       };
 
-      expect(applySourceContextToFrame(frame, lines, 'https://mydomain.com/index.html', 7)).toStrictEqual(frame);
+      expect(applySourceContextToFrame(frame, lines, 'https://mydomain.com/index.html', 3)).toStrictEqual(frame);
     });
 
     it("no-ops if the frame's filename is not the html file's name", () => {
@@ -85,7 +83,7 @@ describe('ContextLines', () => {
         filename: '/someScript.js',
       };
 
-      expect(applySourceContextToFrame(frame, lines, 'https://mydomain.com/index.html', 7)).toStrictEqual(frame);
+      expect(applySourceContextToFrame(frame, lines, 'https://mydomain.com/index.html', 3)).toStrictEqual(frame);
     });
 
     it("no-ops if the frame doesn't have a line number", () => {

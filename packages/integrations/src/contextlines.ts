@@ -1,7 +1,9 @@
 import type { Event, EventProcessor, Hub, Integration, StackFrame } from '@sentry/types';
-import { GLOBAL_OBJ, stripUrlQueryAndFragment } from '@sentry/utils';
+import { addContextToFrame, GLOBAL_OBJ, snipLine, stripUrlQueryAndFragment } from '@sentry/utils';
 
 const WINDOW = GLOBAL_OBJ as typeof GLOBAL_OBJ & Window;
+
+const DEFAULT_LINES_OF_CONTEXT = 7;
 
 interface ContextLinesOptions {
   /**
@@ -74,7 +76,12 @@ export class ContextLines implements Integration {
       const stacktrace = exception.stacktrace;
       if (stacktrace && stacktrace.frames) {
         stacktrace.frames = stacktrace.frames.map(frame =>
-          applySourceContextToFrame(frame, htmlLines, htmlFilename, this._options.frameContextLines || 7),
+          applySourceContextToFrame(
+            frame,
+            htmlLines,
+            htmlFilename,
+            this._options.frameContextLines != null ? this._options.frameContextLines : DEFAULT_LINES_OF_CONTEXT,
+          ),
         );
       }
     });
@@ -90,32 +97,13 @@ export function applySourceContextToFrame(
   frame: StackFrame,
   htmlLines: string[],
   htmlFilename: string,
-  contextRange: number,
+  linesOfContext: number,
 ): StackFrame {
   if (frame.filename !== htmlFilename || !frame.lineno || !htmlLines.length) {
     return frame;
   }
 
-  const sourroundingRange = Math.floor(contextRange / 2);
-  const contextLineIndex = frame.lineno - 1;
-  const preStartIndex = Math.max(contextLineIndex - sourroundingRange, 0);
-  const postEndIndex = Math.min(contextLineIndex + sourroundingRange, htmlLines.length - 1);
-
-  const preLines = htmlLines.slice(preStartIndex, contextLineIndex);
-  const contextLine = htmlLines[contextLineIndex];
-  const postLines = htmlLines.slice(contextLineIndex + 1, postEndIndex + 1);
-
-  if (preLines.length) {
-    frame.pre_context = preLines;
-  }
-
-  if (contextLine) {
-    frame.context_line = contextLine;
-  }
-
-  if (postLines.length) {
-    frame.post_context = postLines;
-  }
+  addContextToFrame(htmlLines, frame, linesOfContext);
 
   return frame;
 }

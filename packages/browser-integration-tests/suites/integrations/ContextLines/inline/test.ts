@@ -33,13 +33,17 @@ sentryTest(
       stacktrace: {
         frames: [
           {
-            pre_context: ['    <meta charset="utf-8">', '  </head>', '  <body>'],
+            pre_context: ['<!DOCTYPE html>', '<html>', '<head>', '    <meta charset="utf-8">', '  </head>', '  <body>'],
             context_line:
               '      <button id="inline-error-btn" onclick="throw new Error(\'Error with context lines\')">Click me</button>',
             post_context: [
               expect.stringContaining('subject.bundle.js'), // this line varies in the test based on tarball/cdn bundle (+variants)
               '  <footer>',
               '    Some text...',
+              '  ',
+              '',
+              '</footer></body>',
+              '</html>',
             ],
           },
         ],
