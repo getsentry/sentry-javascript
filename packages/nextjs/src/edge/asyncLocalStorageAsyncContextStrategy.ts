@@ -1,6 +1,6 @@
 import type { Carrier, Hub, RunWithAsyncContextOptions } from '@sentry/core';
 import { ensureHubOnCarrier, getHubFromCarrier, setAsyncContextStrategy } from '@sentry/core';
-import { logger } from '@sentry/utils';
+import { GLOBAL_OBJ, logger } from '@sentry/utils';
 
 interface AsyncLocalStorage<T> {
   getStore(): T | undefined;
@@ -9,7 +9,7 @@ interface AsyncLocalStorage<T> {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
-const MaybeGlobalAsyncLocalStorage = (globalThis as any).AsyncLocalStorage;
+const MaybeGlobalAsyncLocalStorage = (GLOBAL_OBJ as any).AsyncLocalStorage;
 
 /**
  * Sets the async context strategy to use AsyncLocalStorage which should be available in the edge runtime.
