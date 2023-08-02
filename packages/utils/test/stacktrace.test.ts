@@ -32,6 +32,34 @@ describe('Stacktrace', () => {
         expect(frames[0].function).toBe('bar');
         expect(frames[1].function).toBe('foo');
       });
+
+      it('remove two occurences if they are present', () => {
+        const exceptionStack = [
+          { colno: 1, lineno: 4, filename: 'anything.js', function: 'captureException' },
+          { colno: 1, lineno: 4, filename: 'anything.js', function: 'captureException' },
+          { colno: 1, lineno: 3, filename: 'anything.js', function: 'foo' },
+          { colno: 1, lineno: 2, filename: 'anything.js', function: 'bar' },
+        ];
+
+        const exceptionFrames = stripSentryFramesAndReverse(exceptionStack);
+
+        expect(exceptionFrames.length).toBe(2);
+        expect(exceptionFrames[0].function).toBe('bar');
+        expect(exceptionFrames[1].function).toBe('foo');
+
+        const messageStack = [
+          { colno: 1, lineno: 4, filename: 'anything.js', function: 'captureMessage' },
+          { colno: 1, lineno: 4, filename: 'anything.js', function: 'captureMessage' },
+          { colno: 1, lineno: 3, filename: 'anything.js', function: 'foo' },
+          { colno: 1, lineno: 2, filename: 'anything.js', function: 'bar' },
+        ];
+
+        const messageFrames = stripSentryFramesAndReverse(messageStack);
+
+        expect(messageFrames.length).toBe(2);
+        expect(messageFrames[0].function).toBe('bar');
+        expect(messageFrames[1].function).toBe('foo');
+      });
     });
 
     describe('removed bottom frame if its internally reserved word (internal API)', () => {
@@ -54,6 +82,7 @@ describe('Stacktrace', () => {
     it('removed top and bottom frame if they are internally reserved words', () => {
       const stack = [
         { colno: 1, lineno: 4, filename: 'anything.js', function: 'captureMessage' },
+        { colno: 1, lineno: 4, filename: 'anything.js', function: 'captureMessage' },
         { colno: 1, lineno: 3, filename: 'anything.js', function: 'foo' },
         { colno: 1, lineno: 2, filename: 'anything.js', function: 'bar' },
         { colno: 1, lineno: 1, filename: 'anything.js', function: 'sentryWrapped' },
@@ -65,6 +94,25 @@ describe('Stacktrace', () => {
       expect(frames.length).toBe(2);
       expect(frames[0].function).toBe('bar');
       expect(frames[1].function).toBe('foo');
+    });
+
+    it('applies frames limit after the stripping, not before', () => {
+      const stack = Array.from({ length: 55 }).map((_, i) => {
+        return { colno: 1, lineno: 4, filename: 'anything.js', function: `${i}` }
+      });
+
+      stack.unshift({ colno: 1, lineno: 4, filename: 'anything.js', function: 'captureMessage' })
+      stack.unshift({ colno: 1, lineno: 4, filename: 'anything.js', function: 'captureMessage' })
+      stack.push({ colno: 1, lineno: 4, filename: 'anything.js', function: 'sentryWrapped' })
+
+      // Should remove 2x `captureMessage`, `sentryWrapped`, and then limit frames to default 50.
+      const frames = stripSentryFramesAndReverse(stack);
+
+      expect(frames.length).toBe(50);
+
+      // Frames are named 0-54, thus after reversal and trimming, we should have frames 54-5, 50 in total.
+      expect(frames[0].function).toBe('54');
+      expect(frames[49].function).toBe('5');
     });
   });
 });

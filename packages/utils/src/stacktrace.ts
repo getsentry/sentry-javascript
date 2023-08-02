@@ -6,6 +6,7 @@ import { node } from './node-stack-trace';
 const STACKTRACE_FRAME_LIMIT = 50;
 // Used to sanitize webpack (error: *) wrapped stack errors
 const WEBPACK_ERROR_REGEXP = /\(error: (.*)\)/;
+const STRIP_FRAME_REGEXP = /captureMessage|captureException/
 
 /**
  * Creates a stack parser with the supplied line parsers
@@ -83,24 +84,34 @@ export function stripSentryFramesAndReverse(stack: ReadonlyArray<StackFrame>): S
     return [];
   }
 
-  const localStack = stack.slice(0, STACKTRACE_FRAME_LIMIT);
+  const localStack = Array.from(stack);
 
-  const lastFrameFunction = localStack[localStack.length - 1].function;
   // If stack starts with one of our API calls, remove it (starts, meaning it's the top of the stack - aka last call)
-  if (lastFrameFunction && /sentryWrapped/.test(lastFrameFunction)) {
+  if (/sentryWrapped/.test(localStack[localStack.length - 1].function || '')) {
     localStack.pop();
   }
 
   // Reversing in the middle of the procedure allows us to just pop the values off the stack
   localStack.reverse();
 
-  const firstFrameFunction = localStack[localStack.length - 1].function;
   // If stack ends with one of our internal API calls, remove it (ends, meaning it's the bottom of the stack - aka top-most call)
-  if (firstFrameFunction && /captureMessage|captureException/.test(firstFrameFunction)) {
+  if (STRIP_FRAME_REGEXP.test(localStack[localStack.length - 1].function || '')) {
     localStack.pop();
+
+    // When using synthetic events, we will have a 2 levels deep stack, as `new Error('Sentry syntheticException')`
+    // is produced within the hub itself, making it:
+    //
+    //   Sentry.captureException()
+    //   getCurrentHub().captureException()
+    //
+    // instead of just the top `Sentry` call itself.
+    // This forces us to possibly strip an additional frame in the exact same was as above.
+    if (STRIP_FRAME_REGEXP.test(localStack[localStack.length - 1].function || '')) {
+      localStack.pop();
+    }
   }
 
-  return localStack.map(frame => ({
+  return localStack.slice(0, STACKTRACE_FRAME_LIMIT).map(frame => ({
     ...frame,
     filename: frame.filename || localStack[localStack.length - 1].filename,
     function: frame.function || '?',
