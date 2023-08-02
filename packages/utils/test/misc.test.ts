@@ -181,7 +181,7 @@ describe('addContextToFrame', () => {
       lineno: 999,
     };
     addContextToFrame(lines, frame);
-    expect(frame.pre_context).toEqual(['10: j', '11: k', '12: l', '13: m', '14: n']);
+    expect(frame.pre_context).toEqual(['9: i', '10: j', '11: k', '12: l', '13: m']);
     expect(frame.context_line).toEqual('14: n');
     expect(frame.post_context).toEqual([]);
   });
