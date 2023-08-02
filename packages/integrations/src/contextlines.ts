@@ -35,9 +35,11 @@ export class ContextLines implements Integration {
   /**
    * @inheritDoc
    */
-  public name: string = ContextLines.id;
+  public name: string;
 
-  public constructor(private readonly _options: ContextLinesOptions = {}) {}
+  public constructor(private readonly _options: ContextLinesOptions = {}) {
+    this.name = ContextLines.id;
+  }
 
   /**
    * @inheritDoc
