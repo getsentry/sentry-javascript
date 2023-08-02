@@ -37,7 +37,7 @@ sentryTest(
             context_line:
               '      <button id="inline-error-btn" onclick="throw new Error(\'Error with context lines\')">Click me</button>',
             post_context: [
-              expect.stringContaining('contextlines.bundle.js'), // this line varies in the test based on tarball/cdn bundle (+variants)
+              expect.stringContaining('<script'), // this line varies in the test based on tarball/cdn bundle (+variants)
               '  <footer>',
               '    Some text...',
               '  ',
