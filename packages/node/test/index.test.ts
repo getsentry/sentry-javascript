@@ -193,6 +193,7 @@ describe('SentryNode', () => {
           return null;
         },
         dsn,
+        integrations: [new ContextLines()],
       });
       getCurrentHub().bindClient(new NodeClient(options));
       configureScope((scope: Scope) => {

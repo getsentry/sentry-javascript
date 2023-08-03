@@ -3,7 +3,7 @@ import type { BaseClient } from '@sentry/core';
 import { getCurrentHub, trace } from '@sentry/core';
 import type { Breadcrumbs, BrowserTracing } from '@sentry/svelte';
 import { captureException } from '@sentry/svelte';
-import type { Client, ClientOptions, SanitizedRequestData } from '@sentry/types';
+import type { Client, ClientOptions, SanitizedRequestData, Span } from '@sentry/types';
 import {
   addExceptionMechanism,
   addNonEnumerableProperty,
@@ -186,26 +186,16 @@ function instrumentSvelteKitFetch(originalFetch: SvelteKitFetch): SvelteKitFetch
       const scope = hub.getScope();
       const client = hub.getClient();
 
-      if (client && shouldAttachHeaders(rawUrl)) {
-        const headers = addTracingHeadersToFetchRequest(
-          input as string | Request,
-          client,
-          scope,
-          patchedInit as {
-            headers:
-              | {
-                  [key: string]: string[] | string | undefined;
-                }
-              | Request['headers'];
-          },
-        ) as HeadersInit;
-
-        patchedInit.headers = headers;
-      }
-
       let fetchPromise: Promise<Response>;
 
-      const patchedFetchArgs = [input, patchedInit];
+      function callFetchTarget(span?: Span): Promise<Response> {
+        if (client && shouldAttachHeaders(rawUrl)) {
+          const headers = addTracingHeadersToFetchRequest(input as string | Request, client, scope, patchedInit, span);
+          patchedInit.headers = headers as HeadersInit;
+        }
+        const patchedFetchArgs = [input, patchedInit];
+        return wrappingTarget.apply(thisArg, patchedFetchArgs);
+      }
 
       if (shouldCreateSpan(rawUrl)) {
         fetchPromise = trace(
@@ -215,7 +205,7 @@ function instrumentSvelteKitFetch(originalFetch: SvelteKitFetch): SvelteKitFetch
             data: requestData,
           },
           span => {
-            const promise: Promise<Response> = wrappingTarget.apply(thisArg, patchedFetchArgs);
+            const promise = callFetchTarget(span);
             if (span) {
               promise.then(res => span.setHttpStatus(res.status)).catch(_ => span.setStatus('internal_error'));
             }
@@ -223,7 +213,7 @@ function instrumentSvelteKitFetch(originalFetch: SvelteKitFetch): SvelteKitFetch
           },
         );
       } else {
-        fetchPromise = wrappingTarget.apply(thisArg, patchedFetchArgs);
+        fetchPromise = callFetchTarget();
       }
 
       if (shouldAddFetchBreadcrumb) {

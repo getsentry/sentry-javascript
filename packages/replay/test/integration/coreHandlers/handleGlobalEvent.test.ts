@@ -84,6 +84,24 @@ describe('Integration | coreHandlers | handleGlobalEvent', () => {
     );
   });
 
+  it('does not add replayId if replay is not enabled', async () => {
+    const transaction = Transaction();
+    const error = Error();
+
+    replay['_isEnabled'] = false;
+
+    expect(handleGlobalEventListener(replay)(transaction, {})).toEqual(
+      expect.objectContaining({
+        tags: expect.not.objectContaining({ replayId: expect.anything() }),
+      }),
+    );
+    expect(handleGlobalEventListener(replay)(error, {})).toEqual(
+      expect.objectContaining({
+        tags: expect.not.objectContaining({ replayId: expect.anything() }),
+      }),
+    );
+  });
+
   it('tags errors and transactions with replay id for session samples', async () => {
     let integration: ReplayIntegration;
     ({ replay, integration } = await resetSdkMock({}));

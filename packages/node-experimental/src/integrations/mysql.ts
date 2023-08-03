@@ -2,7 +2,7 @@ import type { Instrumentation } from '@opentelemetry/instrumentation';
 import { MySQLInstrumentation } from '@opentelemetry/instrumentation-mysql';
 import type { Integration } from '@sentry/types';
 
-import { NodePerformanceIntegration } from './lazy';
+import { NodePerformanceIntegration } from './NodePerformanceIntegration';
 
 /**
  * MySQL integration
@@ -16,9 +16,14 @@ export class Mysql extends NodePerformanceIntegration<void> implements Integrati
   public static id: string = 'Mysql';
 
   /**
-   * @inheritDoc`
+   * @inheritDoc
    */
-  public name: string = Mysql.id;
+  public name: string;
+
+  public constructor() {
+    super();
+    this.name = Mysql.id;
+  }
 
   /** @inheritDoc */
   public setupInstrumentation(): void | Instrumentation[] {

@@ -2,7 +2,7 @@ import type { Instrumentation } from '@opentelemetry/instrumentation';
 import { ExpressInstrumentation } from '@opentelemetry/instrumentation-express';
 import type { Integration } from '@sentry/types';
 
-import { NodePerformanceIntegration } from './lazy';
+import { NodePerformanceIntegration } from './NodePerformanceIntegration';
 
 /**
  * Express integration
@@ -18,7 +18,12 @@ export class Express extends NodePerformanceIntegration<void> implements Integra
   /**
    * @inheritDoc
    */
-  public name: string = Express.id;
+  public name: string;
+
+  public constructor() {
+    super();
+    this.name = Express.id;
+  }
 
   /** @inheritDoc */
   public setupInstrumentation(): void | Instrumentation[] {

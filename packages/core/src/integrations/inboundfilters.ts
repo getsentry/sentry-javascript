@@ -36,9 +36,14 @@ export class InboundFilters implements Integration {
   /**
    * @inheritDoc
    */
-  public name: string = InboundFilters.id;
+  public name: string;
 
-  public constructor(private readonly _options: Partial<InboundFiltersOptions> = {}) {}
+  private readonly _options: Partial<InboundFiltersOptions>;
+
+  public constructor(options: Partial<InboundFiltersOptions> = {}) {
+    this.name = InboundFilters.id;
+    this._options = options;
+  }
 
   /**
    * @inheritDoc

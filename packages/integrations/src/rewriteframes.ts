@@ -13,7 +13,7 @@ export class RewriteFrames implements Integration {
   /**
    * @inheritDoc
    */
-  public name: string = RewriteFrames.id;
+  public name: string;
 
   /**
    * @inheritDoc
@@ -23,18 +23,18 @@ export class RewriteFrames implements Integration {
   /**
    * @inheritDoc
    */
-  private readonly _prefix: string = 'app:///';
+  private readonly _prefix: string;
 
   /**
    * @inheritDoc
    */
   public constructor(options: { root?: string; prefix?: string; iteratee?: StackFrameIteratee } = {}) {
+    this.name = RewriteFrames.id;
+
     if (options.root) {
       this._root = options.root;
     }
-    if (options.prefix) {
-      this._prefix = options.prefix;
-    }
+    this._prefix = options.prefix || 'app:///';
     if (options.iteratee) {
       this._iteratee = options.iteratee;
     }

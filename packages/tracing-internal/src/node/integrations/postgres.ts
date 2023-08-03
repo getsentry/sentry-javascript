@@ -27,13 +27,14 @@ export class Postgres implements LazyLoadedIntegration<PGModule> {
   /**
    * @inheritDoc
    */
-  public name: string = Postgres.id;
+  public name: string;
 
   private _usePgNative: boolean;
 
   private _module?: PGModule;
 
   public constructor(options: PgOptions = {}) {
+    this.name = Postgres.id;
     this._usePgNative = !!options.usePgNative;
   }
 

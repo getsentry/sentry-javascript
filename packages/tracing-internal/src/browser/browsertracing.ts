@@ -162,7 +162,7 @@ export class BrowserTracing implements Integration {
   /**
    * @inheritDoc
    */
-  public name: string = BROWSER_TRACING_INTEGRATION_ID;
+  public name: string;
 
   private _getCurrentHub?: () => Hub;
 
@@ -171,9 +171,12 @@ export class BrowserTracing implements Integration {
 
   private _collectWebVitals: () => void;
 
-  private _hasSetTracePropagationTargets: boolean = false;
+  private _hasSetTracePropagationTargets: boolean;
 
   public constructor(_options?: Partial<BrowserTracingOptions>) {
+    this.name = BROWSER_TRACING_INTEGRATION_ID;
+    this._hasSetTracePropagationTargets = false;
+
     addTracingExtensions();
 
     if (__DEBUG_BUILD__) {

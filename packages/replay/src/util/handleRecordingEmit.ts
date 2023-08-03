@@ -4,6 +4,7 @@ import { logger } from '@sentry/utils';
 import { saveSession } from '../session/saveSession';
 import type { AddEventResult, OptionFrameEvent, RecordingEvent, ReplayContainer } from '../types';
 import { addEvent } from './addEvent';
+import { logInfo } from './log';
 
 type RecordingEmitCallback = (event: RecordingEvent, isCheckout?: boolean) => void;
 
@@ -72,10 +73,10 @@ export function getHandleRecordingEmit(replay: ReplayContainer): RecordingEmitCa
       if (replay.recordingMode === 'buffer' && replay.session && replay.eventBuffer) {
         const earliestEvent = replay.eventBuffer.getEarliestTimestamp();
         if (earliestEvent) {
-          // eslint-disable-next-line no-console
-          const log = replay.getOptions()._experiments.traceInternals ? console.info : logger.info;
-          __DEBUG_BUILD__ &&
-            log(`[Replay] Updating session start time to earliest event in buffer at ${earliestEvent}`);
+          logInfo(
+            `[Replay] Updating session start time to earliest event in buffer to ${new Date(earliestEvent)}`,
+            replay.getOptions()._experiments.traceInternals,
+          );
 
           replay.session.started = earliestEvent;
 

@@ -11,6 +11,8 @@ import type {
 } from './performance';
 import type { EventType } from './rrweb';
 
+type AnyRecord = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
+
 interface BaseBreadcrumbFrame {
   timestamp: number;
   /**
@@ -18,7 +20,7 @@ interface BaseBreadcrumbFrame {
    */
   type: string;
   category: string;
-  data?: Record<string, any>;
+  data?: AnyRecord;
   message?: string;
 }
 
@@ -28,7 +30,7 @@ interface BaseDomFrameData {
     id: number;
     tagName: string;
     textContent: string;
-    attributes: Record<string, any>;
+    attributes: AnyRecord;
   };
 }
 
@@ -141,7 +143,7 @@ interface BaseSpanFrame {
   description: string;
   startTimestamp: number;
   endTimestamp: number;
-  data?: undefined | Record<string, any>;
+  data?: undefined | AnyRecord;
 }
 
 interface HistoryFrame extends BaseSpanFrame {

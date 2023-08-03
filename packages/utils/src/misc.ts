@@ -153,7 +153,7 @@ export function addContextToFrame(lines: string[], frame: StackFrame, linesOfCon
   }
 
   const maxLines = lines.length;
-  const sourceLine = Math.max(Math.min(maxLines, frame.lineno - 1), 0);
+  const sourceLine = Math.max(Math.min(maxLines - 1, frame.lineno - 1), 0);
 
   frame.pre_context = lines
     .slice(Math.max(0, sourceLine - linesOfContext), sourceLine)

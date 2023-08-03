@@ -112,12 +112,12 @@ sentryTest(
       expect.arrayContaining([
         {
           ...expectedClickBreadcrumb,
-          message: 'body > div#error.btn.btn-error[aria-label="An Error"]',
+          message: 'body > div#error.btn.btn-error[aria-label="An Error in aria-label"]',
           data: {
             nodeId: expect.any(Number),
             node: {
               attributes: {
-                'aria-label': '** *****',
+                'aria-label': '** ***** ** **********',
                 class: 'btn btn-error',
                 id: 'error',
                 role: 'button',

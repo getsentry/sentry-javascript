@@ -28,10 +28,10 @@ export function handleClick(clickDetector: ReplayClickDetector, clickBreadcrumb:
 /** A click detector class that can be used to detect slow or rage clicks on elements. */
 export class ClickDetector implements ReplayClickDetector {
   // protected for testing
-  protected _lastMutation = 0;
-  protected _lastScroll = 0;
+  protected _lastMutation: number;
+  protected _lastScroll: number;
 
-  private _clicks: Click[] = [];
+  private _clicks: Click[];
   private _teardown: undefined | (() => void);
 
   private _threshold: number;
@@ -49,6 +49,10 @@ export class ClickDetector implements ReplayClickDetector {
     // Just for easier testing
     _addBreadcrumbEvent = addBreadcrumbEvent,
   ) {
+    this._lastMutation = 0;
+    this._lastScroll = 0;
+    this._clicks = [];
+
     // We want everything in s, but options are in ms
     this._timeout = slowClickConfig.timeout / 1000;
     this._threshold = slowClickConfig.threshold / 1000;
