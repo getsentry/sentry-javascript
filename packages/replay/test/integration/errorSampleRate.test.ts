@@ -226,7 +226,7 @@ describe('Integration | errorSampleRate', () => {
     });
   });
 
-  it('it handles multiple simultaenous flushes', async () => {
+  it('handles multiple simultaneous flushes', async () => {
     const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 3 };
     mockRecord._emitter(TEST_EVENT);
     const optionsEvent = createOptionsEvent(replay);
