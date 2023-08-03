@@ -4,6 +4,22 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.61.1
+
+- feat(nextjs): Add `AsyncLocalStorage` async context strategy to edge SDK (#8720)
+- fix(core): Filter internal API frames for synthetic frames (#8710)
+- fix(integrations): Capture exception if any arg to console method is an error (#8671)
+- fix(node-experimental): Update auto integration lookup & readme (#8690)
+- fix(node): Add availablility check on current hub to Node `ContextLines` integration (#8715)
+- fix(replay): Ensure buffer sessions end after capturing an error (#8713)
+- fix(replay): Ensure buffer->session switch is reliable (#8712)
+- fix(replay): Ensure we debounce flush if replay too short (#8716)
+- fix(replay): Improve capture of errorIds/traceIds (#8678)
+- fix(tracing): Set correct parent span id on fetch sentry-trace header (#8687)
+- fix(utils): Avoid `pre_context` and `context_line` overlap if frame lineno is out of bounds (#8722)
+- ref(replay): Improve status logging (#8709)
+- ref(nextjs): Allow withSentryConfig to accept async config function (#8721)
+
 ## 7.61.0
 
 ### Important Changes
