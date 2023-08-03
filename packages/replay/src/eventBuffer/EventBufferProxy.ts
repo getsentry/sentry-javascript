@@ -2,6 +2,7 @@ import type { ReplayRecordingData } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
 import type { AddEventResult, EventBuffer, EventBufferType, RecordingEvent } from '../types';
+import { logInfo } from '../util/log';
 import { EventBufferArray } from './EventBufferArray';
 import { EventBufferCompressionWorker } from './EventBufferCompressionWorker';
 
@@ -79,7 +80,7 @@ export class EventBufferProxy implements EventBuffer {
     } catch (error) {
       // If the worker fails to load, we fall back to the simple buffer.
       // Nothing more to do from our side here
-      __DEBUG_BUILD__ && logger.log('[Replay] Failed to load the compression worker, falling back to simple buffer');
+      logInfo('[Replay] Failed to load the compression worker, falling back to simple buffer');
       return;
     }
 

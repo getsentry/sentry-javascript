@@ -1,6 +1,7 @@
 import { logger } from '@sentry/utils';
 
 import type { WorkerRequest, WorkerResponse } from '../types';
+import { logInfo } from '../util/log';
 
 /**
  * Event buffer that uses a web worker to compress events.
@@ -55,7 +56,7 @@ export class WorkerHandler {
    * Destroy the worker.
    */
   public destroy(): void {
-    __DEBUG_BUILD__ && logger.log('[Replay] Destroying compression worker');
+    logInfo('[Replay] Destroying compression worker');
     this._worker.terminate();
   }
 
