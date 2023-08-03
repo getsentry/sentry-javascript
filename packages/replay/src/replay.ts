@@ -462,10 +462,12 @@ export class ReplayContainer implements ReplayContainerInterface {
       return;
     }
 
-    // Re-start recording, but in "session" recording mode
+    // To avoid race conditions where this is called multiple times, we check here again that we are still buffering
+    if ((this.recordingMode as ReplayRecordingMode) === 'session') {
+      return;
+    }
 
-    // Reset all "capture on error" configuration before
-    // starting a new recording
+    // Re-start recording in session-mode
     this.recordingMode = 'session';
 
     // Once this session ends, we do not want to refresh it
@@ -482,7 +484,6 @@ export class ReplayContainer implements ReplayContainerInterface {
       // (length of buffer), which we are ok with.
       this._updateUserActivity(activityTime);
       this._updateSessionActivity(activityTime);
-      this.session.started = activityTime;
       this._maybeSaveSession();
     }
 

@@ -226,6 +226,71 @@ describe('Integration | errorSampleRate', () => {
     });
   });
 
+  it('handles multiple simultaneous flushes', async () => {
+    const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 3 };
+    mockRecord._emitter(TEST_EVENT);
+    const optionsEvent = createOptionsEvent(replay);
+
+    expect(mockRecord.takeFullSnapshot).not.toHaveBeenCalled();
+    expect(replay).not.toHaveLastSentReplay();
+
+    // Does not capture on mouse click
+    domHandler({
+      name: 'click',
+    });
+    jest.runAllTimers();
+    await new Promise(process.nextTick);
+    expect(replay).not.toHaveLastSentReplay();
+
+    replay.sendBufferedReplayOrFlush({ continueRecording: true });
+    replay.sendBufferedReplayOrFlush({ continueRecording: true });
+
+    await waitForBufferFlush();
+
+    expect(replay).toHaveSentReplay({
+      recordingPayloadHeader: { segment_id: 0 },
+      replayEventPayload: expect.objectContaining({
+        replay_type: 'buffer',
+      }),
+      recordingData: JSON.stringify([
+        { data: { isCheckout: true }, timestamp: BASE_TIMESTAMP, type: 2 },
+        optionsEvent,
+        TEST_EVENT,
+        {
+          type: 5,
+          timestamp: BASE_TIMESTAMP,
+          data: {
+            tag: 'breadcrumb',
+            payload: {
+              timestamp: BASE_TIMESTAMP / 1000,
+              type: 'default',
+              category: 'ui.click',
+              message: '<unknown>',
+              data: {},
+            },
+          },
+        },
+      ]),
+    });
+
+    jest.advanceTimersByTime(DEFAULT_FLUSH_MIN_DELAY);
+    // Check that click will not get captured
+    domHandler({
+      name: 'click',
+    });
+
+    await waitForFlush();
+
+    // This is still the last replay sent since we passed `continueRecording:
+    // false`.
+    expect(replay).toHaveLastSentReplay({
+      recordingPayloadHeader: { segment_id: 1 },
+      replayEventPayload: expect.objectContaining({
+        replay_type: 'buffer',
+      }),
+    });
+  });
+
   // This tests a regression where we were calling flush indiscriminantly in `stop()`
   it('does not upload a replay event if error is not sampled', async () => {
     // We are trying to replicate the case where error rate is 0 and session
@@ -620,7 +685,8 @@ describe('Integration | errorSampleRate', () => {
 
     await waitForBufferFlush();
 
-    expect(replay.session?.started).toBe(BASE_TIMESTAMP + ELAPSED + TICK + TICK);
+    // This is still the timestamp from the full snapshot we took earlier
+    expect(replay.session?.started).toBe(BASE_TIMESTAMP + ELAPSED + TICK);
 
     // Does not capture mouse click
     expect(replay).toHaveSentReplay({
