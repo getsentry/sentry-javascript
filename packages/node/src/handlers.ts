@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import {
   captureException,
+  flush,
   getCurrentHub,
   hasTracingEnabled,
   runWithAsyncContext,
@@ -25,7 +26,7 @@ import type { NodeClient } from './client';
 import { extractRequestData } from './requestdata';
 // TODO (v8 / XXX) Remove this import
 import type { ParseRequestOptions } from './requestDataDeprecated';
-import { flush, isAutoSessionTrackingEnabled } from './sdk';
+import { isAutoSessionTrackingEnabled } from './sdk';
 
 /**
  * Express-compatible tracing handler.
