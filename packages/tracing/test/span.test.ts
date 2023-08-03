@@ -82,6 +82,13 @@ describe('Span', () => {
       span.setData('foo', true);
       expect(span.data.foo).toBe(true);
     });
+
+    test('setName', () => {
+      const span = new Span({});
+      expect(span.description).toBeUndefined();
+      span.setName('foo');
+      expect(span.description).toBe('foo');
+    });
   });
 
   describe('status', () => {

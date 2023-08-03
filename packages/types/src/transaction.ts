@@ -42,7 +42,7 @@ export type TraceparentData = Pick<TransactionContext, 'traceId' | 'parentSpanId
 /**
  * Transaction "Class", inherits Span only has `setName`
  */
-export interface Transaction extends TransactionContext, Span {
+export interface Transaction extends TransactionContext, Omit<Span, 'setName' | 'name'> {
   /**
    * @inheritDoc
    */
