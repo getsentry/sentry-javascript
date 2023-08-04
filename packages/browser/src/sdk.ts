@@ -7,13 +7,7 @@ import {
   Integrations as CoreIntegrations,
 } from '@sentry/core';
 import type { UserFeedback } from '@sentry/types';
-import {
-  addInstrumentationHandler,
-  logger,
-  resolvedSyncPromise,
-  stackParserFromStackParserOptions,
-  supportsFetch,
-} from '@sentry/utils';
+import { addInstrumentationHandler, logger, stackParserFromStackParserOptions, supportsFetch } from '@sentry/utils';
 
 import type { BrowserClientOptions, BrowserOptions } from './client';
 import { BrowserClient } from './client';
