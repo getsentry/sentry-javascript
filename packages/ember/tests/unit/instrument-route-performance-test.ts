@@ -1,8 +1,9 @@
-import { module, test } from 'qunit';
-import { setupTest } from 'ember-qunit';
 import Route from '@ember/routing/route';
 import { instrumentRoutePerformance } from '@sentry/ember';
+import { setupTest } from 'ember-qunit';
+import { module, test } from 'qunit';
 import sinon from 'sinon';
+
 import { setupSentryTest } from '../helpers/setup-sentry';
 
 module('Unit | Utility | instrument-route-performance', function (hooks) {
@@ -16,19 +17,19 @@ module('Unit | Utility | instrument-route-performance', function (hooks) {
     const setupController = sinon.spy();
 
     class DummyRoute extends Route {
-      beforeModel(...args: any[]) {
+      public beforeModel(...args: unknown[]): unknown {
         return beforeModel.call(this, ...args);
       }
 
-      model(...args: any[]) {
+      public model(...args: unknown[]): unknown {
         return model.call(this, ...args);
       }
 
-      afterModel(...args: any[]) {
+      public afterModel(...args: unknown[]): unknown {
         return afterModel.call(this, ...args);
       }
 
-      setupController(...args: any[]) {
+      public setupController(...args: unknown[]): unknown {
         return setupController.call(this, ...args);
       }
     }
@@ -37,7 +38,7 @@ module('Unit | Utility | instrument-route-performance', function (hooks) {
 
     this.owner.register('route:dummy', InstrumentedDummyRoute);
 
-    const route = this.owner.lookup('route:dummy');
+    const route = this.owner.lookup('route:dummy') as DummyRoute;
 
     route.beforeModel('foo');
 

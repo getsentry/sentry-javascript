@@ -1,19 +1,23 @@
-import * as Sentry from '@sentry/browser';
-import { SDK_VERSION, BrowserOptions } from '@sentry/browser';
-import { macroCondition, isDevelopingApp, getOwnConfig } from '@embroider/macros';
-import { next } from '@ember/runloop';
 import { assert, warn } from '@ember/debug';
+import type Route from '@ember/routing/route';
+import { next } from '@ember/runloop';
+import { getOwnConfig, isDevelopingApp, macroCondition } from '@embroider/macros';
+import type { BrowserOptions } from '@sentry/browser';
+import * as Sentry from '@sentry/browser';
+import { SDK_VERSION } from '@sentry/browser';
+import type { Transaction } from '@sentry/types';
+import { GLOBAL_OBJ, timestampInSeconds } from '@sentry/utils';
 import Ember from 'ember';
-import { timestampInSeconds, GLOBAL_OBJ } from '@sentry/utils';
-import { GlobalConfig, OwnConfig } from './types';
 
-function _getSentryInitConfig() {
+import type { EmberSentryConfig, GlobalConfig, OwnConfig } from './types';
+
+function _getSentryInitConfig(): EmberSentryConfig['sentry'] {
   const _global = GLOBAL_OBJ as typeof GLOBAL_OBJ & GlobalConfig;
   _global.__sentryEmberConfig = _global.__sentryEmberConfig ?? {};
   return _global.__sentryEmberConfig;
 }
 
-export function InitSentryForEmber(_runtimeConfig?: BrowserOptions) {
+export function InitSentryForEmber(_runtimeConfig?: BrowserOptions): void {
   const environmentConfig = getOwnConfig<OwnConfig>().sentryConfig;
 
   assert('Missing configuration.', environmentConfig);
@@ -21,7 +25,7 @@ export function InitSentryForEmber(_runtimeConfig?: BrowserOptions) {
 
   if (!environmentConfig.sentry) {
     // If environment config is not specified but the above assertion passes, use runtime config.
-    environmentConfig.sentry = { ..._runtimeConfig } as any;
+    environmentConfig.sentry = { ..._runtimeConfig };
   }
 
   // Merge runtime config into environment config, preferring runtime.
@@ -62,12 +66,20 @@ export function InitSentryForEmber(_runtimeConfig?: BrowserOptions) {
   }
 }
 
-export const getActiveTransaction = () => {
+export const getActiveTransaction = (): Transaction | undefined => {
   return Sentry.getCurrentHub().getScope().getTransaction();
 };
 
-export const instrumentRoutePerformance = (BaseRoute: any) => {
-  const instrumentFunction = async (op: string, description: string, fn: Function, args: any) => {
+type RouteConstructor = new (...args: ConstructorParameters<typeof Route>) => Route;
+
+export const instrumentRoutePerformance = <T extends RouteConstructor>(BaseRoute: T): T => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const instrumentFunction = async <X extends (...args: unknown[]) => any>(
+    op: string,
+    description: string,
+    fn: X,
+    args: Parameters<X>,
+  ): Promise<ReturnType<X>> => {
     const startTimestamp = timestampInSeconds();
     const result = await fn(...args);
 
@@ -79,40 +91,38 @@ export const instrumentRoutePerformance = (BaseRoute: any) => {
     return result;
   };
 
+  const routeName = BaseRoute.name;
+
   return {
-    [BaseRoute.name]: class extends BaseRoute {
-      beforeModel(...args: any[]) {
+    // @ts-expect-error TS2545 We do not need to redefine a constructor here
+    [routeName]: class extends BaseRoute {
+      public beforeModel(...args: unknown[]): void | Promise<unknown> {
         return instrumentFunction(
           'ui.ember.route.before_model',
-          (<any>this).fullRouteName,
+          this.fullRouteName,
           super.beforeModel.bind(this),
           args,
         );
       }
 
-      async model(...args: any[]) {
-        return instrumentFunction('ui.ember.route.model', (<any>this).fullRouteName, super.model.bind(this), args);
+      public async model(...args: unknown[]): Promise<unknown> {
+        return instrumentFunction('ui.ember.route.model', this.fullRouteName, super.model.bind(this), args);
       }
 
-      async afterModel(...args: any[]) {
-        return instrumentFunction(
-          'ui.ember.route.after_model',
-          (<any>this).fullRouteName,
-          super.afterModel.bind(this),
-          args,
-        );
+      public afterModel(...args: unknown[]): void | Promise<unknown> {
+        return instrumentFunction('ui.ember.route.after_model', this.fullRouteName, super.afterModel.bind(this), args);
       }
 
-      async setupController(...args: any[]) {
+      public setupController(...args: unknown[]): void | Promise<unknown> {
         return instrumentFunction(
           'ui.ember.route.setup_controller',
-          (<any>this).fullRouteName,
+          this.fullRouteName,
           super.setupController.bind(this),
           args,
         );
       }
     },
-  }[BaseRoute.name];
+  }[routeName] as T;
 };
 
 export * from '@sentry/browser';

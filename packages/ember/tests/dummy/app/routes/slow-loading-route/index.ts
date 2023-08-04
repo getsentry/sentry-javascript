@@ -1,24 +1,25 @@
 import Route from '@ember/routing/route';
-import timeout from '../../helpers/utils';
 import { instrumentRoutePerformance } from '@sentry/ember';
+
+import timeout from '../../helpers/utils';
 
 const SLOW_TRANSITION_WAIT = 1500;
 
 class SlowLoadingRoute extends Route {
-  beforeModel() {
+  public beforeModel(): Promise<void> {
     return timeout(SLOW_TRANSITION_WAIT / 3);
   }
 
-  model() {
+  public model(): Promise<void> {
     return timeout(SLOW_TRANSITION_WAIT / 3);
   }
 
-  afterModel() {
+  public afterModel(): Promise<void> {
     return timeout(SLOW_TRANSITION_WAIT / 3);
   }
 
-  setupController() {
-    super.setupController();
+  public setupController(...rest: Parameters<Route['setupController']>): ReturnType<Route['setupController']> {
+    super.setupController(...rest);
   }
 }
 

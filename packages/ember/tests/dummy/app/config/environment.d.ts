@@ -1,5 +1,3 @@
-export default config;
-
 /**
  * Type declarations for
  *    import config from './config/environment'
@@ -8,9 +6,12 @@ export default config;
  * since different ember addons can materialize new entries.
  */
 declare const config: {
-  environment: any;
+  environment: string;
   modulePrefix: string;
   podModulePrefix: string;
-  locationType: string;
+  locationType: 'history' | 'hash' | 'none' | 'auto';
   rootURL: string;
+  APP: Record<string, unknown>;
 };
+
+export default config;
