@@ -29,13 +29,16 @@ export {
   captureException,
   captureEvent,
   captureMessage,
+  close,
   configureScope,
   createTransport,
   extractTraceparentData,
+  flush,
   getActiveTransaction,
   getHubFromCarrier,
   getCurrentHub,
   Hub,
+  lastEventId,
   makeMain,
   runWithAsyncContext,
   Scope,
@@ -57,7 +60,7 @@ export { autoDiscoverNodePerformanceMonitoringIntegrations } from './tracing';
 
 export { NodeClient } from './client';
 export { makeNodeTransport } from './transports';
-export { defaultIntegrations, init, defaultStackParser, lastEventId, flush, close, getSentryRelease } from './sdk';
+export { defaultIntegrations, init, defaultStackParser, getSentryRelease } from './sdk';
 export { addRequestDataToEvent, DEFAULT_USER_INCLUDES, extractRequestData } from './requestdata';
 export { deepReadDirSync } from './utils';
 export { getModuleFromFilename } from './module';
