@@ -35,9 +35,6 @@ export {
   trace,
   makeMultiplexedTransport,
   ModuleMetadata,
-  flush,
-  close,
-  lastEventId,
 } from '@sentry/core';
 export type { SpanStatusType } from '@sentry/core';
 export type { Span } from '@sentry/types';
