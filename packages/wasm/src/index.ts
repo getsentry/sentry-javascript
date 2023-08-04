@@ -40,7 +40,11 @@ export class Wasm implements Integration {
   /**
    * @inheritDoc
    */
-  public name: string = Wasm.id;
+  public name: string;
+
+  public constructor() {
+    this.name = Wasm.id;
+  }
 
   /**
    * @inheritDoc

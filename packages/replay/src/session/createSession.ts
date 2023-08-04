@@ -1,5 +1,3 @@
-import { logger } from '@sentry/utils';
-
 import type { Sampled, Session, SessionOptions } from '../types';
 import { isSampled } from '../util/isSampled';
 import { saveSession } from './saveSession';
@@ -22,8 +20,6 @@ export function createSession({ sessionSampleRate, allowBuffering, stickySession
   const session = makeSession({
     sampled,
   });
-
-  __DEBUG_BUILD__ && logger.log(`[Replay] Creating new session: ${session.id}`);
 
   if (stickySession) {
     saveSession(session);

@@ -1,11 +1,6 @@
 minVersion: '0.23.1'
 changelogPolicy: simple
 preReleaseCommand: bash scripts/craft-pre-release.sh
-statusProvider:
-  name: github
-  config:
-    contexts:
-      - All required tests passed or skipped
 targets:
   # NPM Targets
   ## 1. Base Packages, node or browser SDKs depend on

@@ -18,7 +18,12 @@ export class Mongoose extends NodePerformanceIntegration<void> implements Integr
   /**
    * @inheritDoc
    */
-  public name: string = Mongoose.id;
+  public name: string;
+
+  public constructor() {
+    super();
+    this.name = Mongoose.id;
+  }
 
   /** @inheritDoc */
   public setupInstrumentation(): void | Instrumentation[] {

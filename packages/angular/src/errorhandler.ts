@@ -83,9 +83,11 @@ class SentryErrorHandler implements AngularErrorHandler {
   protected readonly _options: ErrorHandlerOptions;
 
   /* indicates if we already registered our the afterSendEvent handler */
-  private _registeredAfterSendEventHandler = false;
+  private _registeredAfterSendEventHandler;
 
   public constructor(@Inject('errorHandlerOptions') options?: ErrorHandlerOptions) {
+    this._registeredAfterSendEventHandler = false;
+
     this._options = {
       logErrors: true,
       ...options,

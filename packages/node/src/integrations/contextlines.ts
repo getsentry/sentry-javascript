@@ -1,4 +1,4 @@
-import type { Event, EventProcessor, Integration, StackFrame } from '@sentry/types';
+import type { Event, EventProcessor, Hub, Integration, StackFrame } from '@sentry/types';
 import { addContextToFrame } from '@sentry/utils';
 import { readFile } from 'fs';
 import { LRUMap } from 'lru_map';
@@ -56,8 +56,14 @@ export class ContextLines implements Integration {
   /**
    * @inheritDoc
    */
-  public setupOnce(addGlobalEventProcessor: (callback: EventProcessor) => void): void {
-    addGlobalEventProcessor(event => this.addSourceContext(event));
+  public setupOnce(addGlobalEventProcessor: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
+    addGlobalEventProcessor(event => {
+      const self = getCurrentHub().getIntegration(ContextLines);
+      if (!self) {
+        return event;
+      }
+      return this.addSourceContext(event);
+    });
   }
 
   /** Processes an event and adds context lines */

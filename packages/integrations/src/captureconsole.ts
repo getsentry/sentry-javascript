@@ -11,20 +11,19 @@ export class CaptureConsole implements Integration {
   /**
    * @inheritDoc
    */
-  public name: string = CaptureConsole.id;
+  public name: string;
 
   /**
    * @inheritDoc
    */
-  private readonly _levels: readonly string[] = CONSOLE_LEVELS;
+  private readonly _levels: readonly string[];
 
   /**
    * @inheritDoc
    */
   public constructor(options: { levels?: string[] } = {}) {
-    if (options.levels) {
-      this._levels = options.levels;
-    }
+    this.name = CaptureConsole.id;
+    this._levels = options.levels || CONSOLE_LEVELS;
   }
 
   /**

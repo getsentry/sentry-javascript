@@ -16,9 +16,14 @@ export class Postgres extends NodePerformanceIntegration<void> implements Integr
   public static id: string = 'Postgres';
 
   /**
-   * @inheritDoc`
+   * @inheritDoc
    */
-  public name: string = Postgres.id;
+  public name: string;
+
+  public constructor() {
+    super();
+    this.name = Postgres.id;
+  }
 
   /** @inheritDoc */
   public setupInstrumentation(): void | Instrumentation[] {

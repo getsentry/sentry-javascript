@@ -21,11 +21,13 @@ export class Debug implements Integration {
   /**
    * @inheritDoc
    */
-  public name: string = Debug.id;
+  public name: string;
 
   private readonly _options: DebugOptions;
 
   public constructor(options?: DebugOptions) {
+    this.name = Debug.id;
+
     this._options = {
       debugger: false,
       stringify: false,

@@ -10,10 +10,15 @@ export class SessionTiming implements Integration {
   /**
    * @inheritDoc
    */
-  public name: string = SessionTiming.id;
+  public name: string;
 
   /** Exact time Client was initialized expressed in milliseconds since Unix Epoch. */
-  protected readonly _startTime: number = Date.now();
+  protected readonly _startTime: number;
+
+  public constructor() {
+    this.name = SessionTiming.id;
+    this._startTime = Date.now();
+  }
 
   /**
    * @inheritDoc

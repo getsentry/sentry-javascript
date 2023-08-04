@@ -13,7 +13,11 @@ export class FunctionToString implements Integration {
   /**
    * @inheritDoc
    */
-  public name: string = FunctionToString.id;
+  public name: string;
+
+  public constructor() {
+    this.name = FunctionToString.id;
+  }
 
   /**
    * @inheritDoc

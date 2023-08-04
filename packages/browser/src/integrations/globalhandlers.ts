@@ -30,7 +30,7 @@ export class GlobalHandlers implements Integration {
   /**
    * @inheritDoc
    */
-  public name: string = GlobalHandlers.id;
+  public name: string;
 
   /** JSDoc */
   private readonly _options: GlobalHandlersIntegrations;
@@ -39,17 +39,20 @@ export class GlobalHandlers implements Integration {
    * Stores references functions to installing handlers. Will set to undefined
    * after they have been run so that they are not used twice.
    */
-  private _installFunc: Record<GlobalHandlersIntegrationsOptionKeys, (() => void) | undefined> = {
-    onerror: _installGlobalOnErrorHandler,
-    onunhandledrejection: _installGlobalOnUnhandledRejectionHandler,
-  };
+  private _installFunc: Record<GlobalHandlersIntegrationsOptionKeys, (() => void) | undefined>;
 
   /** JSDoc */
   public constructor(options?: GlobalHandlersIntegrations) {
+    this.name = GlobalHandlers.id;
     this._options = {
       onerror: true,
       onunhandledrejection: true,
       ...options,
+    };
+
+    this._installFunc = {
+      onerror: _installGlobalOnErrorHandler,
+      onunhandledrejection: _installGlobalOnUnhandledRejectionHandler,
     };
   }
   /**

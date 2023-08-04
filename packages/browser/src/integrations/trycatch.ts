@@ -56,7 +56,7 @@ export class TryCatch implements Integration {
   /**
    * @inheritDoc
    */
-  public name: string = TryCatch.id;
+  public name: string;
 
   /** JSDoc */
   private readonly _options: TryCatchOptions;
@@ -65,6 +65,7 @@ export class TryCatch implements Integration {
    * @inheritDoc
    */
   public constructor(options?: Partial<TryCatchOptions>) {
+    this.name = TryCatch.id;
     this._options = {
       XMLHttpRequest: true,
       eventTarget: true,

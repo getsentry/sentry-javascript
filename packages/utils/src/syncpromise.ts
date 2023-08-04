@@ -47,13 +47,16 @@ export function rejectedSyncPromise<T = never>(reason?: any): PromiseLike<T> {
  * but is not async internally
  */
 class SyncPromise<T> implements PromiseLike<T> {
-  private _state: States = States.PENDING;
-  private _handlers: Array<[boolean, (value: T) => void, (reason: any) => any]> = [];
+  private _state: States;
+  private _handlers: Array<[boolean, (value: T) => void, (reason: any) => any]>;
   private _value: any;
 
   public constructor(
     executor: (resolve: (value?: T | PromiseLike<T> | null) => void, reject: (reason?: any) => void) => void,
   ) {
+    this._state = States.PENDING;
+    this._handlers = [];
+
     try {
       executor(this._resolve, this._reject);
     } catch (e) {

@@ -9,6 +9,7 @@ import {
 } from '@sentry/utils';
 
 import { getVercelEnv } from '../common/getVercelEnv';
+import { setAsyncLocalStorageAsyncContextStrategy } from './asyncLocalStorageAsyncContextStrategy';
 import { EdgeClient } from './edgeclient';
 import { makeEdgeTransport } from './transport';
 
@@ -20,6 +21,8 @@ export type EdgeOptions = Options;
 
 /** Inits the Sentry NextJS SDK on the Edge Runtime. */
 export function init(options: EdgeOptions = {}): void {
+  setAsyncLocalStorageAsyncContextStrategy();
+
   if (options.defaultIntegrations === undefined) {
     options.defaultIntegrations = defaultIntegrations;
   }

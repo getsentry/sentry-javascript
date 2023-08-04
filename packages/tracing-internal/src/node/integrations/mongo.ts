@@ -111,7 +111,7 @@ export class Mongo implements LazyLoadedIntegration<MongoModule> {
   /**
    * @inheritDoc
    */
-  public name: string = Mongo.id;
+  public name: string;
 
   private _operations: Operation[];
   private _describeOperations?: boolean | Operation[];
@@ -123,6 +123,7 @@ export class Mongo implements LazyLoadedIntegration<MongoModule> {
    * @inheritDoc
    */
   public constructor(options: MongoOptions = {}) {
+    this.name = Mongo.id;
     this._operations = Array.isArray(options.operations) ? options.operations : (OPERATIONS as unknown as Operation[]);
     this._describeOperations = 'describeOperations' in options ? options.describeOperations : true;
     this._useMongoose = !!options.useMongoose;

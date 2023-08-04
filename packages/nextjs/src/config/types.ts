@@ -26,7 +26,7 @@ export type NextConfigObjectWithSentry = NextConfigObject & {
 export type NextConfigFunctionWithSentry = (
   phase: string,
   defaults: { defaultConfig: NextConfigObject },
-) => NextConfigObjectWithSentry;
+) => NextConfigObjectWithSentry | PromiseLike<NextConfigObjectWithSentry>;
 
 // Vendored from Next.js (this type is not complete - extend if necessary)
 type NextRewrite = {
@@ -144,7 +144,10 @@ export type UserSentryOptions = {
   automaticVercelMonitors?: boolean;
 };
 
-export type NextConfigFunction = (phase: string, defaults: { defaultConfig: NextConfigObject }) => NextConfigObject;
+export type NextConfigFunction = (
+  phase: string,
+  defaults: { defaultConfig: NextConfigObject },
+) => NextConfigObject | PromiseLike<NextConfigObject>;
 
 /**
  * Webpack config

@@ -10,7 +10,11 @@ export class Transaction implements Integration {
   /**
    * @inheritDoc
    */
-  public name: string = Transaction.id;
+  public name: string;
+
+  public constructor() {
+    this.name = Transaction.id;
+  }
 
   /**
    * @inheritDoc

@@ -21,7 +21,11 @@ export class ModuleMetadata implements Integration {
   /**
    * @inheritDoc
    */
-  public name: string = ModuleMetadata.id;
+  public name: string;
+
+  public constructor() {
+    this.name = ModuleMetadata.id;
+  }
 
   /**
    * @inheritDoc

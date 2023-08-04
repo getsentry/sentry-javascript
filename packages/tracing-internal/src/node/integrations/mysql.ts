@@ -19,9 +19,13 @@ export class Mysql implements LazyLoadedIntegration<MysqlConnection> {
   /**
    * @inheritDoc
    */
-  public name: string = Mysql.id;
+  public name: string;
 
   private _module?: MysqlConnection;
+
+  public constructor() {
+    this.name = Mysql.id;
+  }
 
   /** @inheritdoc */
   public loadDependency(): MysqlConnection | undefined {
