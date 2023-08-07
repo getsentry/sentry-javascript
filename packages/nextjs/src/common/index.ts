@@ -35,3 +35,5 @@ export {
 export { wrapServerComponentWithSentry } from './wrapServerComponentWithSentry';
 
 export { wrapApiHandlerWithSentryVercelCrons } from './wrapApiHandlerWithSentryVercelCrons';
+
+export { wrapMiddlewareWithSentry } from './wrapMiddlewareWithSentry';
