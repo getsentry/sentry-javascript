@@ -12,17 +12,21 @@ export function logInfo(message: string, shouldAddBreadcrumb?: boolean): void {
   logger.info(message);
 
   if (shouldAddBreadcrumb) {
-    const hub = getCurrentHub();
-    hub.addBreadcrumb(
-      {
-        category: 'console',
-        data: {
-          logger: 'replay',
+    // Wait a tick here to avoid race conditions for some initial logs
+    // which may be added before replay is initialized
+    setTimeout(() => {
+      const hub = getCurrentHub();
+      hub.addBreadcrumb(
+        {
+          category: 'console',
+          data: {
+            logger: 'replay',
+          },
+          level: 'info',
+          message,
         },
-        level: 'info',
-        message,
-      },
-      { level: 'info' },
-    );
+        { level: 'info' },
+      );
+    }, 0);
   }
 }
