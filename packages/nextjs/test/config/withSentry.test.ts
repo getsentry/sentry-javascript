@@ -3,8 +3,8 @@ import { addTracingExtensions } from '@sentry/core';
 import type { Client, ClientOptions } from '@sentry/types';
 import type { NextApiRequest, NextApiResponse } from 'next';
 
-import { withSentry } from '../../src/common';
 import type { AugmentedNextApiResponse, NextApiHandler } from '../../src/common/types';
+import { withSentry } from '../../src/server';
 
 // The wrap* functions require the hub to have tracing extensions. This is normally called by the NodeClient
 // constructor but the client isn't used in these tests.
