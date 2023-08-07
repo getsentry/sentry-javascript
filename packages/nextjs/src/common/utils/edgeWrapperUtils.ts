@@ -1,9 +1,8 @@
-import { captureException, getCurrentHub, hasTracingEnabled, startTransaction } from '@sentry/core';
+import { captureException, flush, getCurrentHub, hasTracingEnabled, startTransaction } from '@sentry/core';
 import type { Span } from '@sentry/types';
 import { addExceptionMechanism, logger, objectify, tracingContextFromHeaders } from '@sentry/utils';
 
-import type { EdgeRouteHandler } from '../types';
-import { flush } from './flush';
+import type { EdgeRouteHandler } from '../../edge/types';
 
 /**
  * Wraps a function on the edge runtime with error and performance monitoring.

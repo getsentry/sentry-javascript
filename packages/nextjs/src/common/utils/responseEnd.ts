@@ -1,4 +1,4 @@
-import { flush } from '@sentry/node';
+import { flush } from '@sentry/core';
 import type { Transaction } from '@sentry/types';
 import { fill, logger } from '@sentry/utils';
 import type { ServerResponse } from 'http';

@@ -1,3 +1,4 @@
+export * from './common';
 export * from './client';
 
 // This file is the main entrypoint for non-Next.js build pipelines that use
