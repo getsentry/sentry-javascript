@@ -40,7 +40,7 @@ export async function addEvent(
   }
 
   try {
-    if (isCheckout) {
+    if (isCheckout && replay.recordingMode === 'buffer') {
       replay.eventBuffer.clear();
     }
 
