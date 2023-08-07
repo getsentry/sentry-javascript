@@ -1139,6 +1139,7 @@ export class ReplayContainer implements ReplayContainerInterface {
         `[Replay] Session duration (${Math.floor(duration / 1000)}s) is too ${
           tooShort ? 'short' : 'long'
         }, not sending replay.`,
+        this._options._experiments.traceInternals,
       );
 
       if (tooShort) {
