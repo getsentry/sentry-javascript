@@ -32,14 +32,6 @@ export {
   wrapGetServerSidePropsWithSentry,
 } from './wrapGetServerSidePropsWithSentry';
 
-export {
-  // eslint-disable-next-line deprecation/deprecation
-  withSentry,
-  // eslint-disable-next-line deprecation/deprecation
-  withSentryAPI,
-  wrapApiHandlerWithSentry,
-} from './wrapApiHandlerWithSentry';
-
 export { wrapServerComponentWithSentry } from './wrapServerComponentWithSentry';
 
 export { wrapApiHandlerWithSentryVercelCrons } from './wrapApiHandlerWithSentryVercelCrons';

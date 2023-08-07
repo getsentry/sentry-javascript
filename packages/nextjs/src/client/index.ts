@@ -129,3 +129,5 @@ function addClientIntegrations(options: BrowserOptions): void {
 export function withSentryConfig<T>(exportedUserNextConfig: T): T {
   return exportedUserNextConfig;
 }
+
+export * from '../common';

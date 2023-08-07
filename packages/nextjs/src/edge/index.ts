@@ -106,8 +106,12 @@ export function withSentryConfig<T>(exportedUserNextConfig: T): T {
 
 export * from '@sentry/core';
 
+// eslint-disable-next-line import/export
+export * from '../common';
+
 export {
-  // eslint-disable-next-line deprecation/deprecation
+  // eslint-disable-next-line deprecation/deprecation, import/export
   withSentryAPI,
+  // eslint-disable-next-line import/export
   wrapApiHandlerWithSentry,
 } from './wrapApiHandlerWithSentry';

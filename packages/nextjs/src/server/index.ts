@@ -156,3 +156,13 @@ function addServerIntegrations(options: NodeOptions): void {
 const deprecatedIsBuild = (): boolean => isBuild();
 // eslint-disable-next-line deprecation/deprecation
 export { deprecatedIsBuild as isBuild };
+
+export * from '../common';
+
+export {
+  // eslint-disable-next-line deprecation/deprecation
+  withSentry,
+  // eslint-disable-next-line deprecation/deprecation
+  withSentryAPI,
+  wrapApiHandlerWithSentry,
+} from '../common/wrapApiHandlerWithSentry';
