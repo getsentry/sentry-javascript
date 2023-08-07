@@ -226,8 +226,8 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
    * List of strings/regex controlling to which outgoing requests
    * the SDK will attach tracing headers.
    *
-   * By default the SDK will attach those headers to all outgoing
-   * requests. If this option is provided, the SDK will match the
+   * By default the SDK will attach those headers to all requests to localhost
+   * and same origin. If this option is provided, the SDK will match the
    * request URL of outgoing requests against the items in this
    * array, and only attach tracing headers if a match was found.
    *
@@ -237,6 +237,8 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
    *   tracePropagationTargets: ['api.site.com'],
    * });
    * ```
+   *
+   * Default: ['localhost', /^\//] {@see DEFAULT_TRACE_PROPAGATION_TARGETS}
    */
   tracePropagationTargets?: TracePropagationTargets;
 
