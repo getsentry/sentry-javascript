@@ -1,6 +1,6 @@
 import * as SentryUtils from '@sentry/utils';
 
-import { DEFAULT_FLUSH_MIN_DELAY, WINDOW } from '../../src/constants';
+import { DEFAULT_FLUSH_MIN_DELAY, MAX_SESSION_LIFE, WINDOW } from '../../src/constants';
 import type { ReplayContainer } from '../../src/replay';
 import { clearSession } from '../../src/session/clearSession';
 import type { EventBuffer } from '../../src/types';
@@ -286,15 +286,22 @@ describe('Integration | flush', () => {
 
     expect(mockFlush).toHaveBeenCalledTimes(20);
     expect(mockSendReplay).toHaveBeenCalledTimes(1);
+
+    replay.getOptions().minReplayDuration = 0;
   });
 
   it('does not flush if session is too long', async () => {
     replay.timeouts.maxSessionLife = 100_000;
-    jest.setSystemTime(new Date(BASE_TIMESTAMP));
+    jest.setSystemTime(BASE_TIMESTAMP);
 
     sessionStorage.clear();
     clearSession(replay);
     replay['_loadAndCheckSession']();
+    // No-op _loadAndCheckSession to avoid us resetting the session for this test
+    const _tmp = replay['_loadAndCheckSession'];
+    replay['_loadAndCheckSession'] = () => {
+      return true;
+    };
 
     await advanceTimers(120_000);
 
@@ -308,7 +315,70 @@ describe('Integration | flush', () => {
     mockRecord._emitter(TEST_EVENT);
 
     await advanceTimers(DEFAULT_FLUSH_MIN_DELAY);
+
     expect(mockFlush).toHaveBeenCalledTimes(1);
     expect(mockSendReplay).toHaveBeenCalledTimes(0);
+
+    replay.timeouts.maxSessionLife = MAX_SESSION_LIFE;
+    replay['_loadAndCheckSession'] = _tmp;
+  });
+
+  it('logs warning if flushing initial segment without checkout', async () => {
+    replay.getOptions()._experiments.traceInternals = true;
+
+    sessionStorage.clear();
+    clearSession(replay);
+    replay['_loadAndCheckSession']();
+
+    // Clear the event buffer to simulate no checkout happened
+    replay.eventBuffer!.clear();
+
+    // click happens first
+    domHandler({
+      name: 'click',
+    });
+
+    // no checkout!
+    await advanceTimers(DEFAULT_FLUSH_MIN_DELAY);
+
+    expect(mockFlush).toHaveBeenCalledTimes(1);
+    expect(mockSendReplay).toHaveBeenCalledTimes(1);
+    expect(mockSendReplay).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        recordingData: JSON.stringify([
+          {
+            type: 5,
+            timestamp: BASE_TIMESTAMP,
+            data: {
+              tag: 'breadcrumb',
+              payload: {
+                timestamp: BASE_TIMESTAMP / 1000,
+                type: 'default',
+                category: 'ui.click',
+                message: '<unknown>',
+                data: {},
+              },
+            },
+          },
+          {
+            type: 5,
+            timestamp: BASE_TIMESTAMP + DEFAULT_FLUSH_MIN_DELAY,
+            data: {
+              tag: 'breadcrumb',
+              payload: {
+                timestamp: (BASE_TIMESTAMP + DEFAULT_FLUSH_MIN_DELAY) / 1000,
+                type: 'default',
+                category: 'console',
+                data: { logger: 'replay' },
+                level: 'info',
+                message: '[Replay] Flushing initial segment without checkout.',
+              },
+            },
+          },
+        ]),
+      }),
+    );
+
+    replay.getOptions()._experiments.traceInternals = false;
   });
 });

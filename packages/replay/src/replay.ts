@@ -1151,6 +1151,12 @@ export class ReplayContainer implements ReplayContainerInterface {
       return;
     }
 
+    const eventBuffer = this.eventBuffer;
+    if (eventBuffer && this.session.segmentId === 0 && !eventBuffer.hasCheckout) {
+      logInfo('[Replay] Flushing initial segment without checkout.', this._options._experiments.traceInternals);
+      // TODO FN: Evaluate if we want to stop here, or remove this again?
+    }
+
     // this._flushLock acts as a lock so that future calls to `_flush()`
     // will be blocked until this promise resolves
     if (!this._flushLock) {
