@@ -1130,6 +1130,9 @@ export class ReplayContainer implements ReplayContainerInterface {
     const now = Date.now();
     const duration = now - start;
 
+    // A flush is about to happen, cancel any queued flushes
+    this._debouncedFlush.cancel();
+
     // If session is too short, or too long (allow some wiggle room over maxSessionLife), do not send it
     // This _should_ not happen, but it may happen if flush is triggered due to a page activity change or similar
     const tooShort = duration < this._options.minReplayDuration;
@@ -1147,9 +1150,6 @@ export class ReplayContainer implements ReplayContainerInterface {
       }
       return;
     }
-
-    // A flush is about to happen, cancel any queued flushes
-    this._debouncedFlush.cancel();
 
     // this._flushLock acts as a lock so that future calls to `_flush()`
     // will be blocked until this promise resolves
