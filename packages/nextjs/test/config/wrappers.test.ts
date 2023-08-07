@@ -1,6 +1,5 @@
 import * as SentryCore from '@sentry/core';
 import { addTracingExtensions } from '@sentry/core';
-import * as SentryNode from '@sentry/node';
 import type { IncomingMessage, ServerResponse } from 'http';
 
 import { wrapGetInitialPropsWithSentry, wrapGetServerSidePropsWithSentry } from '../../src/common';
@@ -23,7 +22,7 @@ describe('data-fetching function wrappers', () => {
       res = { end: jest.fn() } as unknown as ServerResponse;
 
       jest.spyOn(SentryCore, 'hasTracingEnabled').mockReturnValue(true);
-      jest.spyOn(SentryNode, 'getCurrentHub').mockImplementation(() => {
+      jest.spyOn(SentryCore, 'getCurrentHub').mockImplementation(() => {
         const hub = originalGetCurrentHub();
 
         hub.getClient = () =>

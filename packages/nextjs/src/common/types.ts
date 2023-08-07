@@ -32,7 +32,7 @@ export type VercelCronsConfig = { path?: string; schedule?: string }[] | undefin
 // wrapped route from being wrapped again by the auto-wrapper.
 
 export type NextApiHandler = {
-  (req?: NextApiRequest, res?: NextApiResponse): void | Promise<void> | unknown | Promise<unknown>;
+  (req: NextApiRequest, res: NextApiResponse): void | Promise<void> | unknown | Promise<unknown>;
   __sentry_route__?: string;
 
   /**

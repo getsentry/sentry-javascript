@@ -1,6 +1,6 @@
 import * as coreSdk from '@sentry/core';
 
-import { wrapApiHandlerWithSentry } from '../../src/common';
+import { wrapApiHandlerWithSentry } from '../../src/edge';
 
 // The wrap* functions require the hub to have tracing extensions. This is normally called by the EdgeClient
 // constructor but the client isn't used in these tests.
@@ -48,7 +48,6 @@ describe('wrapApiHandlerWithSentry', () => {
     const wrappedFunction = wrapApiHandlerWithSentry(origFunction, '/user/[userId]/post/[postId]');
 
     const request = new Request('https://sentry.io/');
-    // @ts-ignore missing fields
     await wrappedFunction(request);
     expect(startTransactionSpy).toHaveBeenCalledTimes(1);
     expect(startTransactionSpy).toHaveBeenCalledWith(
