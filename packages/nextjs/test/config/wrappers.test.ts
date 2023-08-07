@@ -3,7 +3,7 @@ import { addTracingExtensions } from '@sentry/core';
 import * as SentryNode from '@sentry/node';
 import type { IncomingMessage, ServerResponse } from 'http';
 
-import { wrapGetInitialPropsWithSentry, wrapGetServerSidePropsWithSentry } from '../../src/server';
+import { wrapGetInitialPropsWithSentry, wrapGetServerSidePropsWithSentry } from '../../src/common';
 
 const startTransactionSpy = jest.spyOn(SentryCore, 'startTransaction');
 const originalGetCurrentHub = jest.requireActual('@sentry/node').getCurrentHub;
