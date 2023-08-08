@@ -4,6 +4,18 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.62.0
+
+- feat(integrations): Add `ContextLines` integration for html-embedded JS stack frames (#8699)
+- fix(nextjs): Make all wrappers isomorphic and available in all runtimes (#8743)
+- fix(replay): Cancel debounce when replay is too short/long (#8742)
+- fix(utils): `dirname` and `basename` should handle Windows paths (#8737)
+- ref: Hoist `flush`, `close`, and `lastEventId` into `@sentry/core` (#8731)
+- ref(ember): Update ember type/eslint/tsconfig usage (#8718)
+- ref(node): Don't call `JSON.stringify` on prisma client when logging (#8745)
+- ref(replay): Ensure we only clear for buffer mode (#8744)
+- ref(replay): Log warning if trying to flush initial segment without checkout (#8748)
+
 ## 7.61.1
 
 - feat(nextjs): Add `AsyncLocalStorage` async context strategy to edge SDK (#8720)
