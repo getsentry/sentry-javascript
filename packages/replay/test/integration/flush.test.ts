@@ -329,6 +329,8 @@ describe('Integration | flush', () => {
     sessionStorage.clear();
     clearSession(replay);
     replay['_loadAndCheckSession']();
+    await new Promise(process.nextTick);
+    jest.setSystemTime(BASE_TIMESTAMP);
 
     // Clear the event buffer to simulate no checkout happened
     replay.eventBuffer!.clear();
@@ -343,41 +345,40 @@ describe('Integration | flush', () => {
 
     expect(mockFlush).toHaveBeenCalledTimes(1);
     expect(mockSendReplay).toHaveBeenCalledTimes(1);
-    expect(mockSendReplay).toHaveBeenLastCalledWith(
-      expect.objectContaining({
-        recordingData: JSON.stringify([
-          {
-            type: 5,
-            timestamp: BASE_TIMESTAMP,
-            data: {
-              tag: 'breadcrumb',
-              payload: {
-                timestamp: BASE_TIMESTAMP / 1000,
-                type: 'default',
-                category: 'ui.click',
-                message: '<unknown>',
-                data: {},
-              },
-            },
+
+    const replayData = mockSendReplay.mock.calls[0][0];
+
+    expect(JSON.parse(replayData.recordingData)).toEqual([
+      {
+        type: 5,
+        timestamp: BASE_TIMESTAMP,
+        data: {
+          tag: 'breadcrumb',
+          payload: {
+            timestamp: BASE_TIMESTAMP / 1000,
+            type: 'default',
+            category: 'ui.click',
+            message: '<unknown>',
+            data: {},
           },
-          {
-            type: 5,
-            timestamp: BASE_TIMESTAMP + DEFAULT_FLUSH_MIN_DELAY,
-            data: {
-              tag: 'breadcrumb',
-              payload: {
-                timestamp: (BASE_TIMESTAMP + DEFAULT_FLUSH_MIN_DELAY) / 1000,
-                type: 'default',
-                category: 'console',
-                data: { logger: 'replay' },
-                level: 'info',
-                message: '[Replay] Flushing initial segment without checkout.',
-              },
-            },
+        },
+      },
+      {
+        type: 5,
+        timestamp: BASE_TIMESTAMP + DEFAULT_FLUSH_MIN_DELAY,
+        data: {
+          tag: 'breadcrumb',
+          payload: {
+            timestamp: (BASE_TIMESTAMP + DEFAULT_FLUSH_MIN_DELAY) / 1000,
+            type: 'default',
+            category: 'console',
+            data: { logger: 'replay' },
+            level: 'info',
+            message: '[Replay] Flushing initial segment without checkout.',
           },
-        ]),
-      }),
-    );
+        },
+      },
+    ]);
 
     replay.getOptions()._experiments.traceInternals = false;
   });
