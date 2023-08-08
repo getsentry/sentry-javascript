@@ -6,15 +6,39 @@
 
 ## 7.62.0
 
-- feat(integrations): Add `ContextLines` integration for html-embedded JS stack frames (#8699)
+### Important Changes
+
+- **feat(integrations): Add `ContextLines` integration for html-embedded JS stack frames (#8699)**
+
+This release adds the `ContextLines` integration as an optional integration for the Browser SDKs to `@sentry/integrations`.
+
+This integration adds source code from inline JavaScript of the current page's HTML (e.g. JS in `<script>` tags) to stack traces of captured errors.
+It _can't_ collect source code from assets referenced by your HTML (e.g. `<script src="..." />`).
+
+The `ContextLines` integration is useful when you have inline JS code in HTML pages that can't be accessed by Sentry's backend, for example, due to a login-protected page.
+
+```js
+import { ContextLines } from "@sentry/integrations";
+
+Sentry.init({
+  // ...
+  integrations: [
+    new ContextLines({
+      // The number of lines to collect before and after each stack frame's line number
+      // Defaults to 7
+      frameContextLines: 7,
+    }),
+  ],
+});
+```
+
+### Other Changes
+
 - fix(nextjs): Make all wrappers isomorphic and available in all runtimes (#8743)
 - fix(replay): Cancel debounce when replay is too short/long (#8742)
 - fix(utils): `dirname` and `basename` should handle Windows paths (#8737)
 - ref: Hoist `flush`, `close`, and `lastEventId` into `@sentry/core` (#8731)
-- ref(ember): Update ember type/eslint/tsconfig usage (#8718)
 - ref(node): Don't call `JSON.stringify` on prisma client when logging (#8745)
-- ref(replay): Ensure we only clear for buffer mode (#8744)
-- ref(replay): Log warning if trying to flush initial segment without checkout (#8748)
 
 ## 7.61.1
 
