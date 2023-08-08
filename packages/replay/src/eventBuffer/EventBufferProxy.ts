@@ -35,6 +35,15 @@ export class EventBufferProxy implements EventBuffer {
     return this._used.hasEvents;
   }
 
+  /** @inheritdoc */
+  public get hasCheckout(): boolean {
+    return this._used.hasCheckout;
+  }
+  /** @inheritdoc */
+  public set hasCheckout(value: boolean) {
+    this._used.hasCheckout = value;
+  }
+
   /** @inheritDoc */
   public destroy(): void {
     this._fallback.destroy();
