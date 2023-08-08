@@ -5,7 +5,7 @@ statusProvider:
   name: github
   config:
     contexts:
-      - job_required_jobs_passed
+      - jobs.job_required_jobs_passed
 targets:
   # NPM Targets
   ## 1. Base Packages, node or browser SDKs depend on
