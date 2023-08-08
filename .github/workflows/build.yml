@@ -855,8 +855,8 @@ jobs:
         timeout-minutes: 5
         run: yarn test:assert
 
-  job_required_tests:
-    name: All required tests passed or skipped
+  job_required_jobs_passed:
+    name: All required jobs passed or were skipped
     needs:
       [
         job_build,
@@ -870,6 +870,9 @@ jobs:
         job_browser_loader_tests,
         job_remix_integration_tests,
         job_e2e_tests,
+        job_artifacts,
+        job_lint,
+        job_circular_dep_check,
       ]
     # Always run this, even if a dependent job failed
     if: always()
@@ -921,14 +924,3 @@ jobs:
         with:
           name: ${{ steps.process.outputs.artifactName }}
           path: ${{ steps.process.outputs.artifactPath }}
-
-  job_ready_to_release:
-    name: Ready to release
-    needs: [job_required_tests, job_artifacts, job_size_check, job_lint, job_circular_dep_check]
-    if: needs.job_get_metadata.outputs.is_release == 'true'
-    runs-on: ubuntu-20.04
-    steps:
-      - name: Check for failures
-        if: contains(needs.*.result, 'failure')
-        run: |
-          echo "One of the dependent jobs have failed. You may need to re-run it." && exit 1
