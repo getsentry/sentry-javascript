@@ -15,11 +15,13 @@ export {
   withSentryServerSideAppGetInitialProps,
   wrapAppGetInitialPropsWithSentry,
 } from './wrapAppGetInitialPropsWithSentry';
+
 export {
   // eslint-disable-next-line deprecation/deprecation
   withSentryServerSideDocumentGetInitialProps,
   wrapDocumentGetInitialPropsWithSentry,
 } from './wrapDocumentGetInitialPropsWithSentry';
+
 export {
   // eslint-disable-next-line deprecation/deprecation
   withSentryServerSideErrorGetInitialProps,
