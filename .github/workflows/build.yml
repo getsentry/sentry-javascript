@@ -599,7 +599,7 @@ jobs:
     needs: [job_get_metadata, job_build]
     if: needs.job_get_metadata.outputs.changed_browser == 'true' || github.event_name != 'pull_request'
     runs-on: ubuntu-20.04
-    timeout-minutes: 10
+    timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
@@ -855,8 +855,8 @@ jobs:
         timeout-minutes: 5
         run: yarn test:assert
 
-  job_required_tests:
-    name: All required tests passed or skipped
+  job_required_jobs_passed:
+    name: All required jobs passed or were skipped
     needs:
       [
         job_build,
@@ -870,6 +870,9 @@ jobs:
         job_browser_loader_tests,
         job_remix_integration_tests,
         job_e2e_tests,
+        job_artifacts,
+        job_lint,
+        job_circular_dep_check,
       ]
     # Always run this, even if a dependent job failed
     if: always()

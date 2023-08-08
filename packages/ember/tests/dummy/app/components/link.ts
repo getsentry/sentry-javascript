@@ -1,7 +1,7 @@
-import Component from '@glimmer/component';
-import RouterService from '@ember/routing/router-service';
-import { inject as service } from '@ember/service';
 import { action } from '@ember/object';
+import type RouterService from '@ember/routing/router-service';
+import { inject as service } from '@ember/service';
+import Component from '@glimmer/component';
 
 interface Args {
   route: string;
@@ -14,20 +14,20 @@ interface Args {
  Since glimmer components are, as of now, not instrumented, this leads to different test results.
 */
 export default class LinkComponent extends Component<Args> {
-  @service router: RouterService;
+  @service public declare router: RouterService;
 
-  get href() {
+  public get href(): string {
     return this.router.urlFor(this.args.route);
   }
 
-  get isActive() {
+  public get isActive(): boolean {
     return this.router.currentRouteName === this.args.route;
   }
 
   @action
-  onClick(event: MouseEvent) {
+  public onClick(event: MouseEvent): void {
     event.preventDefault();
 
-    this.router.transitionTo(this.args.route);
+    void this.router.transitionTo(this.args.route);
   }
 }

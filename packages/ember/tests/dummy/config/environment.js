@@ -26,6 +26,10 @@ module.exports = function (environment) {
       dsn: process.env.SENTRY_DSN || 'https://0@0.ingest.sentry.io/0',
       browserTracingOptions: {
         tracingOrigins: ['localhost', 'doesntexist.example'],
+        _experiments: {
+          // This lead to some flaky tests, as that is sometimes logged
+          enableLongTask: false,
+        },
       },
     },
     ignoreEmberOnErrorWarning: true,

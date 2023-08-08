@@ -11,6 +11,9 @@ import { WorkerHandler } from './WorkerHandler';
  * Exported only for testing.
  */
 export class EventBufferCompressionWorker implements EventBuffer {
+  /** @inheritdoc */
+  public hasCheckout: boolean;
+
   private _worker: WorkerHandler;
   private _earliestTimestamp: number | null;
   private _totalSize;
@@ -19,6 +22,7 @@ export class EventBufferCompressionWorker implements EventBuffer {
     this._worker = new WorkerHandler(worker);
     this._earliestTimestamp = null;
     this._totalSize = 0;
+    this.hasCheckout = false;
   }
 
   /** @inheritdoc */
@@ -78,6 +82,8 @@ export class EventBufferCompressionWorker implements EventBuffer {
   public clear(): void {
     this._earliestTimestamp = null;
     this._totalSize = 0;
+    this.hasCheckout = false;
+
     // We do not wait on this, as we assume the order of messages is consistent for the worker
     void this._worker.postMessage('clear');
   }

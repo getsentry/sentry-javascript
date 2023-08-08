@@ -27,9 +27,6 @@ export declare const Integrations: typeof clientSdk.Integrations &
 export declare const defaultIntegrations: Integration[];
 export declare const defaultStackParser: StackParser;
 
-export declare function close(timeout?: number | undefined): PromiseLike<boolean>;
-export declare function flush(timeout?: number | undefined): PromiseLike<boolean>;
-export declare function lastEventId(): string | undefined;
 export declare function getSentryRelease(fallback?: string): string | undefined;
 
 export declare const ErrorBoundary: typeof clientSdk.ErrorBoundary;

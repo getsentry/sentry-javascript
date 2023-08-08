@@ -390,6 +390,11 @@ export interface EventBuffer {
   readonly type: EventBufferType;
 
   /**
+   * If the event buffer contains a checkout event.
+   */
+  hasCheckout: boolean;
+
+  /**
    * Destroy the event buffer.
    */
   destroy(): void;

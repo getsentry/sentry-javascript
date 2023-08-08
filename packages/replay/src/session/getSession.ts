@@ -1,6 +1,6 @@
 import type { Session, SessionOptions, Timeouts } from '../types';
 import { isSessionExpired } from '../util/isSessionExpired';
-import { logInfo } from '../util/log';
+import { logInfoNextTick } from '../util/log';
 import { createSession } from './createSession';
 import { fetchSession } from './fetchSession';
 import { makeSession } from './Session';
@@ -44,10 +44,10 @@ export function getSession({
       // and when this session is expired, it will not be renewed until user
       // reloads.
       const discardedSession = makeSession({ sampled: false });
-      logInfo('[Replay] Session should not be refreshed', traceInternals);
+      logInfoNextTick('[Replay] Session should not be refreshed', traceInternals);
       return { type: 'new', session: discardedSession };
     } else {
-      logInfo('[Replay] Session has expired', traceInternals);
+      logInfoNextTick('[Replay] Session has expired', traceInternals);
     }
     // Otherwise continue to create a new session
   }
@@ -57,7 +57,7 @@ export function getSession({
     sessionSampleRate,
     allowBuffering,
   });
-  logInfo('[Replay] Created new session', traceInternals);
+  logInfoNextTick('[Replay] Created new session', traceInternals);
 
   return { type: 'new', session: newSession };
 }

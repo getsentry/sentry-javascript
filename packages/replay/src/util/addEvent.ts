@@ -40,8 +40,9 @@ export async function addEvent(
   }
 
   try {
-    if (isCheckout) {
+    if (isCheckout && replay.recordingMode === 'buffer') {
       replay.eventBuffer.clear();
+      replay.eventBuffer.hasCheckout = true;
     }
 
     const replayOptions = replay.getOptions();

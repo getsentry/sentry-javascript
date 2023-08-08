@@ -47,7 +47,7 @@ import { debounce } from './util/debounce';
 import { getHandleRecordingEmit } from './util/handleRecordingEmit';
 import { isExpired } from './util/isExpired';
 import { isSessionExpired } from './util/isSessionExpired';
-import { logInfo } from './util/log';
+import { logInfo, logInfoNextTick } from './util/log';
 import { sendReplay } from './util/sendReplay';
 import type { SKIPPED } from './util/throttle';
 import { throttle, THROTTLED } from './util/throttle';
@@ -250,7 +250,10 @@ export class ReplayContainer implements ReplayContainerInterface {
       this.recordingMode = 'buffer';
     }
 
-    logInfo(`[Replay] Starting replay in ${this.recordingMode} mode`, this._options._experiments.traceInternals);
+    logInfoNextTick(
+      `[Replay] Starting replay in ${this.recordingMode} mode`,
+      this._options._experiments.traceInternals,
+    );
 
     this._initializeRecording();
   }
@@ -271,7 +274,7 @@ export class ReplayContainer implements ReplayContainerInterface {
       throw new Error('Replay buffering is in progress, call `flush()` to save the replay');
     }
 
-    logInfo('[Replay] Starting replay in session mode', this._options._experiments.traceInternals);
+    logInfoNextTick('[Replay] Starting replay in session mode', this._options._experiments.traceInternals);
 
     const previousSessionId = this.session && this.session.id;
 
@@ -300,7 +303,7 @@ export class ReplayContainer implements ReplayContainerInterface {
       throw new Error('Replay recording is already in progress');
     }
 
-    logInfo('[Replay] Starting replay in buffer mode', this._options._experiments.traceInternals);
+    logInfoNextTick('[Replay] Starting replay in buffer mode', this._options._experiments.traceInternals);
 
     const previousSessionId = this.session && this.session.id;
 
@@ -1130,6 +1133,9 @@ export class ReplayContainer implements ReplayContainerInterface {
     const now = Date.now();
     const duration = now - start;
 
+    // A flush is about to happen, cancel any queued flushes
+    this._debouncedFlush.cancel();
+
     // If session is too short, or too long (allow some wiggle room over maxSessionLife), do not send it
     // This _should_ not happen, but it may happen if flush is triggered due to a page activity change or similar
     const tooShort = duration < this._options.minReplayDuration;
@@ -1139,6 +1145,7 @@ export class ReplayContainer implements ReplayContainerInterface {
         `[Replay] Session duration (${Math.floor(duration / 1000)}s) is too ${
           tooShort ? 'short' : 'long'
         }, not sending replay.`,
+        this._options._experiments.traceInternals,
       );
 
       if (tooShort) {
@@ -1147,8 +1154,11 @@ export class ReplayContainer implements ReplayContainerInterface {
       return;
     }
 
-    // A flush is about to happen, cancel any queued flushes
-    this._debouncedFlush.cancel();
+    const eventBuffer = this.eventBuffer;
+    if (eventBuffer && this.session.segmentId === 0 && !eventBuffer.hasCheckout) {
+      logInfo('[Replay] Flushing initial segment without checkout.', this._options._experiments.traceInternals);
+      // TODO FN: Evaluate if we want to stop here, or remove this again?
+    }
 
     // this._flushLock acts as a lock so that future calls to `_flush()`
     // will be blocked until this promise resolves

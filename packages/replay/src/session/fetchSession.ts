@@ -1,7 +1,7 @@
 import { REPLAY_SESSION_KEY, WINDOW } from '../constants';
 import type { Session } from '../types';
 import { hasSessionStorage } from '../util/hasSessionStorage';
-import { logInfo } from '../util/log';
+import { logInfoNextTick } from '../util/log';
 import { makeSession } from './Session';
 
 /**
@@ -22,7 +22,7 @@ export function fetchSession(traceInternals?: boolean): Session | null {
 
     const sessionObj = JSON.parse(sessionStringFromStorage) as Session;
 
-    logInfo('[Replay] Loading existing session', traceInternals);
+    logInfoNextTick('[Replay] Loading existing session', traceInternals);
 
     return makeSession(sessionObj);
   } catch {
