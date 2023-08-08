@@ -1,7 +1,7 @@
 import * as coreSdk from '@sentry/core';
 import { addTracingExtensions } from '@sentry/core';
 
-import { withEdgeWrapping } from '../../src/edge/utils/edgeWrapperUtils';
+import { withEdgeWrapping } from '../../src/common/utils/edgeWrapperUtils';
 
 // The wrap* functions require the hub to have tracing extensions. This is normally called by the EdgeClient
 // constructor but the client isn't used in these tests.

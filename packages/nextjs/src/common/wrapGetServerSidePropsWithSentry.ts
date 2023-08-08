@@ -1,5 +1,4 @@
-import { hasTracingEnabled } from '@sentry/core';
-import { getCurrentHub } from '@sentry/node';
+import { getCurrentHub, hasTracingEnabled } from '@sentry/core';
 import { dynamicSamplingContextToSentryBaggageHeader } from '@sentry/utils';
 import type { GetServerSideProps } from 'next';
 

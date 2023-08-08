@@ -130,38 +130,4 @@ export function withSentryConfig<T>(exportedUserNextConfig: T): T {
   return exportedUserNextConfig;
 }
 
-export {
-  // eslint-disable-next-line deprecation/deprecation
-  withSentryServerSideGetInitialProps,
-  wrapGetInitialPropsWithSentry,
-} from './wrapGetInitialPropsWithSentry';
-
-export {
-  // eslint-disable-next-line deprecation/deprecation
-  withSentryServerSideAppGetInitialProps,
-  wrapAppGetInitialPropsWithSentry,
-} from './wrapAppGetInitialPropsWithSentry';
-
-export {
-  // eslint-disable-next-line deprecation/deprecation
-  withSentryServerSideDocumentGetInitialProps,
-  wrapDocumentGetInitialPropsWithSentry,
-} from './wrapDocumentGetInitialPropsWithSentry';
-
-export {
-  // eslint-disable-next-line deprecation/deprecation
-  withSentryServerSideErrorGetInitialProps,
-  wrapErrorGetInitialPropsWithSentry,
-} from './wrapErrorGetInitialPropsWithSentry';
-
-export {
-  // eslint-disable-next-line deprecation/deprecation
-  withSentryGetServerSideProps,
-  wrapGetServerSidePropsWithSentry,
-} from './wrapGetServerSidePropsWithSentry';
-
-export {
-  // eslint-disable-next-line deprecation/deprecation
-  withSentryGetStaticProps,
-  wrapGetStaticPropsWithSentry,
-} from './wrapGetStaticPropsWithSentry';
+export * from '../common';
