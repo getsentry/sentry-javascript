@@ -41,18 +41,7 @@ export function autoEndTransactionOnResponseEnd(transaction: Transaction, res: S
 export async function finishTransaction(transaction: Transaction | undefined, res: ServerResponse): Promise<void> {
   if (transaction) {
     transaction.setHttpStatus(res.statusCode);
-
-    // If any open spans are set to finish when the response ends, it sets up a race condition between their `finish`
-    // calls and the transaction's `finish` call - and any spans which lose the race will get dropped from the
-    // transaction. To prevent this, push `transaction.finish` to the next event loop so that it's guaranteed to lose
-    // the race, and wait for it to be done before flushing events.
-    const transactionFinished: Promise<void> = new Promise(resolve => {
-      setImmediate(() => {
-        transaction.finish();
-        resolve();
-      });
-    });
-    await transactionFinished;
+    transaction.finish();
   }
 }
 
