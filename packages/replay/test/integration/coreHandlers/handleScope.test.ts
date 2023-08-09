@@ -18,8 +18,7 @@ describe('Integration | coreHandlers | handleScope', () => {
       };
     });
 
-    await replay.start();
-    jest.runAllTimers();
+    replay.start();
 
     expect(mockHandleScopeListener).toHaveBeenCalledTimes(1);
 
