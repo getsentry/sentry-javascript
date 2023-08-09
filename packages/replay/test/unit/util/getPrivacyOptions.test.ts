@@ -21,10 +21,8 @@ describe('Unit | util | getPrivacyOptions', () => {
       Object {
         "blockSelector": ".custom-block,.sentry-block,[data-sentry-block],base[href=\\"/\\"]",
         "ignoreSelector": ".custom-ignore,.sentry-ignore,[data-sentry-ignore],input[type=\\"file\\"]",
-        "maskInputSelector": ".custom-mask,.sentry-mask,[data-sentry-mask]",
         "maskTextSelector": ".custom-mask,.sentry-mask,[data-sentry-mask]",
         "unblockSelector": ".custom-unblock,.sentry-unblock,[data-sentry-unblock]",
-        "unmaskInputSelector": ".custom-unmask,.sentry-unmask,[data-sentry-unmask]",
         "unmaskTextSelector": ".custom-unmask,.sentry-unmask,[data-sentry-unmask]",
       }
     `);
@@ -49,10 +47,8 @@ describe('Unit | util | getPrivacyOptions', () => {
       Object {
         "blockSelector": ".custom-block,.deprecated-block-selector,.sentry-block,[data-sentry-block],base[href=\\"/\\"],.deprecated-block-class",
         "ignoreSelector": ".custom-ignore,.sentry-ignore,[data-sentry-ignore],input[type=\\"file\\"],.deprecated-ignore-class",
-        "maskInputSelector": ".custom-mask,.deprecated-mask-selector,.sentry-mask,[data-sentry-mask],.deprecated-mask-class",
         "maskTextSelector": ".custom-mask,.deprecated-mask-selector,.sentry-mask,[data-sentry-mask],.deprecated-mask-class",
         "unblockSelector": ".custom-unblock,.sentry-unblock,[data-sentry-unblock]",
-        "unmaskInputSelector": ".custom-unmask,.sentry-unmask,[data-sentry-unmask]",
         "unmaskTextSelector": ".custom-unmask,.sentry-unmask,[data-sentry-unmask]",
       }
     `);
@@ -75,11 +71,9 @@ describe('Unit | util | getPrivacyOptions', () => {
         "blockClass": /deprecated-block-\\*/,
         "blockSelector": ".custom-block,.sentry-block,[data-sentry-block],base[href=\\"/\\"]",
         "ignoreSelector": ".custom-ignore,.sentry-ignore,[data-sentry-ignore],input[type=\\"file\\"]",
-        "maskInputSelector": ".custom-mask,.sentry-mask,[data-sentry-mask]",
         "maskTextClass": /deprecated-mask-\\*/,
         "maskTextSelector": ".custom-mask,.sentry-mask,[data-sentry-mask]",
         "unblockSelector": ".custom-unblock,.sentry-unblock,[data-sentry-unblock]",
-        "unmaskInputSelector": ".custom-unmask,.sentry-unmask,[data-sentry-unmask]",
         "unmaskTextSelector": ".custom-unmask,.sentry-unmask,[data-sentry-unmask]",
       }
     `);
