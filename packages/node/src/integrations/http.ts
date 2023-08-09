@@ -38,8 +38,6 @@ interface TracingOptions {
    * Sentry.init({
    *   tracePropagationTargets: ['api.site.com'],
    * })
-   *
-   * Default: ['localhost', /^\//] {@see DEFAULT_TRACE_PROPAGATION_TARGETS}
    */
   tracePropagationTargets?: TracePropagationTargets;
 
