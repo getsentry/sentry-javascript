@@ -11,7 +11,6 @@ import {
   waitForReplayRequest,
 } from '../../../utils/replayHelpers';
 
-
 function isInputMutation(
   snap: IncrementalRecordingSnapshot,
 ): snap is IncrementalRecordingSnapshot & { data: inputData } {
