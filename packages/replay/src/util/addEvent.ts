@@ -4,6 +4,7 @@ import { logger } from '@sentry/utils';
 
 import { EventBufferSizeExceededError } from '../eventBuffer/error';
 import type { AddEventResult, RecordingEvent, ReplayContainer, ReplayFrameEvent, ReplayPluginOptions } from '../types';
+import { logInfo } from './log';
 import { timestampToMs } from './timestamp';
 
 function isCustomEvent(event: RecordingEvent): event is ReplayFrameEvent {
@@ -36,6 +37,15 @@ export async function addEvent(
   // comes back to trigger a new session. The performance entries rely on
   // `performance.timeOrigin`, which is when the page first opened.
   if (timestampInMs + replay.timeouts.sessionIdlePause < Date.now()) {
+    return null;
+  }
+
+  // Throw out events that are +60min from the initial timestamp
+  if (timestampInMs > replay.getContext().initialTimestamp + replay.timeouts.maxSessionLife) {
+    logInfo(
+      `[Replay] Skipping event with timestamp ${timestampInMs} because it is after maxSessionLife`,
+      replay.getOptions()._experiments.traceInternals,
+    );
     return null;
   }
 
