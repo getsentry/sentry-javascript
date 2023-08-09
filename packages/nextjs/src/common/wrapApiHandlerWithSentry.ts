@@ -1,5 +1,10 @@
-import { getCurrentHub, hasTracingEnabled, runWithAsyncContext } from '@sentry/core';
-import { captureException, startTransaction } from '@sentry/node';
+import {
+  captureException,
+  getCurrentHub,
+  hasTracingEnabled,
+  runWithAsyncContext,
+  startTransaction,
+} from '@sentry/core';
 import type { Transaction } from '@sentry/types';
 import {
   addExceptionMechanism,

@@ -1,4 +1,4 @@
-import type { EdgeRouteHandler } from './types';
+import type { EdgeRouteHandler } from '../edge/types';
 import { withEdgeWrapping } from './utils/edgeWrapperUtils';
 
 /**
