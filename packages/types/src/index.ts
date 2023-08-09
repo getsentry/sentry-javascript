@@ -9,7 +9,16 @@ export type {
 } from './breadcrumb';
 export type { Client } from './client';
 export type { ClientReport, Outcome, EventDropReason } from './clientreport';
-export type { Context, Contexts, DeviceContext, OsContext, AppContext, CultureContext, TraceContext } from './context';
+export type {
+  Context,
+  Contexts,
+  DeviceContext,
+  OsContext,
+  AppContext,
+  CultureContext,
+  TraceContext,
+  CloudResourceContext,
+} from './context';
 export type { DataCategory } from './datacategory';
 export type { DsnComponents, DsnLike, DsnProtocol } from './dsn';
 export type { DebugImage, DebugMeta } from './debugMeta';
