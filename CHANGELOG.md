@@ -4,6 +4,14 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.70.0-beta.0
+
+### Important Changes
+
+- **feat(replay): Upgrade to rrweb2.0**
+
+This is fully backwards compatible with previously recorded replays. Only breaking change is that we will not be masking `aria-label` by default. This is to better support searching by clicks. Another issue is there is about a 13% bundle size increase, however this comes with improved performance and improved replay fidelity especially in regards to web components.
+
 ## 7.69.0
 
 ### Important Changes
