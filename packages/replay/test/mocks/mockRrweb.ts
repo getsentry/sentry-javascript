@@ -44,6 +44,8 @@ export function mockRrweb(): { record: RecordMock } {
   jest.mock('@sentry-internal/rrweb', () => {
     const ActualRrweb = jest.requireActual('@sentry-internal/rrweb');
 
+    mockRecordFn.mirror = ActualRrweb.record.mirror;
+
     return {
       ...ActualRrweb,
       record: mockRecordFn,
