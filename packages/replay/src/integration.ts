@@ -155,8 +155,8 @@ export class Replay implements Integration {
       // collect fonts, but be aware that `sentry.io` needs to be an allowed
       // origin for playback
       collectFonts: true,
-      errorHandler: (err) => {
-        // @ts-ignore Accessing unknown property
+      errorHandler: (err: Error) => {
+        // @ts-ignore ASet this so that replay SDK can ignore errors originating from rrweb
         err.__rrweb__ = true;
         return true;
       }
