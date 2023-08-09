@@ -23,6 +23,7 @@ export function withEdgeWrapping<H extends EdgeRouteHandler>(
         span = prevSpan.startChild({
           description: options.spanDescription,
           op: options.spanOp,
+          origin: 'auto.ui.nextjs.withEdgeWrapping',
         });
       } else if (req instanceof Request) {
         const sentryTrace = req.headers.get('sentry-trace') || '';
@@ -39,6 +40,7 @@ export function withEdgeWrapping<H extends EdgeRouteHandler>(
         span = startTransaction({
           name: options.spanDescription,
           op: options.spanOp,
+          origin: 'auto.ui.nextjs.withEdgeWrapping',
           ...traceparentData,
           metadata: {
             dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,

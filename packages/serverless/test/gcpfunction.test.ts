@@ -114,6 +114,7 @@ describe('GCPFunction', () => {
       const fakeTransactionContext = {
         name: 'POST /path',
         op: 'function.gcp.http',
+        origin: 'auto.http.serverless.gpc_http',
         metadata: { source: 'route' },
       };
       // @ts-ignore see "Why @ts-ignore" note
@@ -147,6 +148,7 @@ describe('GCPFunction', () => {
       const fakeTransactionContext = {
         name: 'POST /path',
         op: 'function.gcp.http',
+        origin: 'auto.http.serverless.gpc_http',
         traceId: '12312012123120121231201212312012',
         parentSpanId: '1121201211212012',
         parentSampled: false,
@@ -183,6 +185,7 @@ describe('GCPFunction', () => {
       const fakeTransactionContext = {
         name: 'POST /path',
         op: 'function.gcp.http',
+        origin: 'auto.http.serverless.gpc_http',
         traceId: '12312012123120121231201212312012',
         parentSpanId: '1121201211212012',
         parentSampled: false,
@@ -276,6 +279,7 @@ describe('GCPFunction', () => {
       const fakeTransactionContext = {
         name: 'event.type',
         op: 'function.gcp.event',
+        origin: 'auto.http.serverless.gpc_event',
         metadata: { source: 'component' },
       };
       // @ts-ignore see "Why @ts-ignore" note
@@ -303,6 +307,7 @@ describe('GCPFunction', () => {
       const fakeTransactionContext = {
         name: 'event.type',
         op: 'function.gcp.event',
+        origin: 'auto.http.serverless.gpc_event',
         metadata: { source: 'component' },
       };
       // @ts-ignore see "Why @ts-ignore" note
@@ -335,6 +340,7 @@ describe('GCPFunction', () => {
       const fakeTransactionContext = {
         name: 'event.type',
         op: 'function.gcp.event',
+        origin: 'auto.http.serverless.gpc_event',
         metadata: { source: 'component' },
       };
       // @ts-ignore see "Why @ts-ignore" note
@@ -366,6 +372,7 @@ describe('GCPFunction', () => {
       const fakeTransactionContext = {
         name: 'event.type',
         op: 'function.gcp.event',
+        origin: 'auto.http.serverless.gpc_event',
         metadata: { source: 'component' },
       };
       // @ts-ignore see "Why @ts-ignore" note
@@ -395,6 +402,7 @@ describe('GCPFunction', () => {
       const fakeTransactionContext = {
         name: 'event.type',
         op: 'function.gcp.event',
+        origin: 'auto.http.serverless.gpc_event',
         metadata: { source: 'component' },
       };
       // @ts-ignore see "Why @ts-ignore" note
@@ -422,6 +430,7 @@ describe('GCPFunction', () => {
       const fakeTransactionContext = {
         name: 'event.type',
         op: 'function.gcp.event',
+        origin: 'auto.http.serverless.gpc_event',
         metadata: { source: 'component' },
       };
       // @ts-ignore see "Why @ts-ignore" note
@@ -450,6 +459,7 @@ describe('GCPFunction', () => {
       const fakeTransactionContext = {
         name: 'event.type',
         op: 'function.gcp.event',
+        origin: 'auto.http.serverless.gpc_event',
         metadata: { source: 'component' },
       };
       // @ts-ignore see "Why @ts-ignore" note
@@ -489,6 +499,7 @@ describe('GCPFunction', () => {
       const fakeTransactionContext = {
         name: 'event.type',
         op: 'function.gcp.cloud_event',
+        origin: 'auto.http.serverless.gpc_cloud_event',
         metadata: { source: 'component' },
       };
       // @ts-ignore see "Why @ts-ignore" note
@@ -516,6 +527,7 @@ describe('GCPFunction', () => {
       const fakeTransactionContext = {
         name: 'event.type',
         op: 'function.gcp.cloud_event',
+        origin: 'auto.http.serverless.gpc_cloud_event',
         metadata: { source: 'component' },
       };
       // @ts-ignore see "Why @ts-ignore" note
@@ -545,6 +557,7 @@ describe('GCPFunction', () => {
       const fakeTransactionContext = {
         name: 'event.type',
         op: 'function.gcp.cloud_event',
+        origin: 'auto.http.serverless.gpc_cloud_event',
         metadata: { source: 'component' },
       };
       // @ts-ignore see "Why @ts-ignore" note
@@ -572,6 +585,7 @@ describe('GCPFunction', () => {
       const fakeTransactionContext = {
         name: 'event.type',
         op: 'function.gcp.cloud_event',
+        origin: 'auto.http.serverless.gpc_cloud_event',
         metadata: { source: 'component' },
       };
       // @ts-ignore see "Why @ts-ignore" note
@@ -600,6 +614,7 @@ describe('GCPFunction', () => {
       const fakeTransactionContext = {
         name: 'event.type',
         op: 'function.gcp.cloud_event',
+        origin: 'auto.http.serverless.gpc_cloud_event',
         metadata: { source: 'component' },
       };
       // @ts-ignore see "Why @ts-ignore" note

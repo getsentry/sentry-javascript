@@ -77,6 +77,7 @@ function _wrapHttpFunction(fn: HttpFunction, wrapOptions: Partial<HttpFunctionWr
     const transaction = hub.startTransaction({
       name: `${reqMethod} ${reqUrl}`,
       op: 'function.gcp.http',
+      origin: 'auto.http.serverless.gpc_http',
       ...traceparentData,
       metadata: {
         dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,

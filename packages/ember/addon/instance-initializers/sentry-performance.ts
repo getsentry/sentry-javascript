@@ -119,6 +119,7 @@ export function _instrumentEmberRouter(
     activeTransaction = startTransaction({
       name: `route:${routeInfo.name}`,
       op: 'pageload',
+      origin: 'auto.http.ember',
       tags: {
         url,
         toRoute: routeInfo.name,
@@ -141,6 +142,7 @@ export function _instrumentEmberRouter(
     activeTransaction = startTransaction({
       name: `route:${toRoute}`,
       op: 'navigation',
+      origin: 'auto.http.ember',
       tags: {
         fromRoute,
         toRoute,
@@ -150,6 +152,7 @@ export function _instrumentEmberRouter(
     transitionSpan = activeTransaction?.startChild({
       op: 'ui.ember.transition',
       description: `route:${fromRoute} -> route:${toRoute}`,
+      origin: 'auto.ui.ember',
     });
   });
 
@@ -211,6 +214,7 @@ function _instrumentEmberRunloop(config: EmberSentryConfig): void {
           activeTransaction
             ?.startChild({
               op: `ui.ember.runloop.${queue}`,
+              origin: 'auto.ui.ember',
               startTimestamp: currentQueueStart,
               endTimestamp: now,
             })
@@ -287,6 +291,7 @@ function processComponentRenderAfter(
     activeTransaction?.startChild({
       op,
       description: payload.containerKey || payload.object,
+      origin: 'auto.ui.ember',
       startTimestamp: begin.now,
       endTimestamp: now,
     });
@@ -370,6 +375,7 @@ function _instrumentInitialLoad(config: EmberSentryConfig): void {
   const transaction = getActiveTransaction();
   const span = transaction?.startChild({
     op: 'ui.ember.init',
+    origin: 'auto.ui.ember',
     startTimestamp,
   });
   span?.finish(endTimestamp);

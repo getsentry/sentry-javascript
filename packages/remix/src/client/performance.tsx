@@ -65,6 +65,7 @@ export function remixRouterInstrumentation(useEffect: UseEffect, useLocation: Us
       activeTransaction = customStartTransaction({
         name: initPathName,
         op: 'pageload',
+        origin: 'auto.http.remix',
         tags: DEFAULT_TAGS,
         metadata: {
           source: 'url',
@@ -142,6 +143,7 @@ export function withSentry<P extends Record<string, unknown>, R extends React.FC
         activeTransaction = _customStartTransaction({
           name: matches[matches.length - 1].id,
           op: 'navigation',
+          origin: 'auto.http.remix',
           tags: DEFAULT_TAGS,
           metadata: {
             source: 'route',

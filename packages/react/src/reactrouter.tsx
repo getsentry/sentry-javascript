@@ -93,6 +93,7 @@ function createReactRouterInstrumentation(
       activeTransaction = customStartTransaction({
         name,
         op: 'pageload',
+        origin: 'auto.http.react.reactrouter',
         tags,
         metadata: {
           source,
@@ -111,6 +112,7 @@ function createReactRouterInstrumentation(
           activeTransaction = customStartTransaction({
             name,
             op: 'navigation',
+            origin: 'auto.http.react.reactrouter',
             tags,
             metadata: {
               source,

@@ -251,6 +251,7 @@ function _createWrappedRequestMethodFactory(
       const requestSpan = shouldCreateSpan(rawRequestUrl)
         ? parentSpan?.startChild({
             op: 'http.client',
+            origin: 'auto.http.node.http',
             description: `${data['http.method']} ${data.url}`,
             data,
           })

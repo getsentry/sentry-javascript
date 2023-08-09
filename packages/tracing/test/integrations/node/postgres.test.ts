@@ -72,6 +72,7 @@ describe('setupOnce', () => {
         expect(parentSpan.startChild).toBeCalledWith({
           description: 'SELECT NOW()',
           op: 'db',
+          origin: 'auto.db.postgres',
           data: {
             'db.system': 'postgresql',
           },
@@ -87,6 +88,7 @@ describe('setupOnce', () => {
         expect(parentSpan.startChild).toBeCalledWith({
           description: 'SELECT NOW()',
           op: 'db',
+          origin: 'auto.db.postgres',
           data: {
             'db.system': 'postgresql',
           },
@@ -102,6 +104,7 @@ describe('setupOnce', () => {
       expect(parentSpan.startChild).toBeCalledWith({
         description: 'SELECT NOW()',
         op: 'db',
+        origin: 'auto.db.postgres',
         data: {
           'db.system': 'postgresql',
         },

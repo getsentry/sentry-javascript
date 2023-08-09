@@ -80,6 +80,7 @@ describe('withSentry', () => {
         {
           name: 'GET http://dogs.are.great',
           op: 'http.server',
+          origin: 'auto.http.nextjs.wrapApiHandlerWithSentry',
 
           metadata: {
             source: 'route',

@@ -178,6 +178,7 @@ export function nextRouterInstrumentation(
         const nextRouteChangeSpan = navigationTransaction.startChild({
           op: 'ui.nextjs.route-change',
           description: 'Next.js Route Change',
+          origin: 'auto.ui.nextjs',
         });
 
         const finishRouteChangeSpan = (): void => {

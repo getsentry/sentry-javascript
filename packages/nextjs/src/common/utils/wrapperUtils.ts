@@ -104,6 +104,7 @@ export function withTracedServerSideDataFetcher<F extends (...args: any[]) => Pr
             {
               op: 'http.server',
               name: options.requestedRouteName,
+              origin: 'auto.http.nextjs.withTracedServerSideDataFetcher',
               ...traceparentData,
               status: 'ok',
               metadata: {
@@ -131,12 +132,14 @@ export function withTracedServerSideDataFetcher<F extends (...args: any[]) => Pr
         dataFetcherSpan = spanToContinue.startChild({
           op: 'function.nextjs',
           description: `${options.dataFetchingMethodName} (${options.dataFetcherRouteName})`,
+          origin: 'auto.ui.nextjs.withTracedServerSideDataFetcher',
           status: 'ok',
         });
       } else {
         dataFetcherSpan = startTransaction({
           op: 'function.nextjs',
           name: `${options.dataFetchingMethodName} (${options.dataFetcherRouteName})`,
+          origin: 'auto.ui.nextjs.withTracedServerSideDataFetcher',
           ...traceparentData,
           status: 'ok',
           metadata: {
@@ -203,6 +206,7 @@ export async function callDataFetcherTraced<F extends (...args: any[]) => Promis
   // route's transaction
   const span = transaction.startChild({
     op: 'function.nextjs',
+    origin: 'auto.ui.nextjs.callDataFetcherTraced',
     description: `${dataFetchingMethodName} (${parameterizedRoute})`,
     status: 'ok',
   });

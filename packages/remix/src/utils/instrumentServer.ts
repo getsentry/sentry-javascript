@@ -140,6 +140,7 @@ function makeWrappedDocumentRequestFunction(
     try {
       const span = activeTransaction?.startChild({
         op: 'function.remix.document_request',
+        origin: 'auto.ui.remix',
         description: activeTransaction.name,
         tags: {
           method: request.method,
@@ -182,6 +183,7 @@ function makeWrappedDataFunction(origFn: DataFunction, id: string, name: 'action
     try {
       const span = activeTransaction?.startChild({
         op: `function.remix.${name}`,
+        origin: 'auto.ui.remix',
         description: id,
         tags: {
           name,
@@ -325,6 +327,7 @@ export function startRequestHandlerTransaction(
   const transaction = hub.startTransaction({
     name,
     op: 'http.server',
+    origin: 'auto.http.remix',
     tags: {
       method: request.method,
     },

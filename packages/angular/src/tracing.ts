@@ -39,6 +39,7 @@ export function routingInstrumentation(
     customStartTransaction({
       name: WINDOW.location.pathname,
       op: 'pageload',
+      origin: 'auto.http.angular',
       metadata: { source: 'url' },
     });
   }
@@ -84,6 +85,7 @@ export class TraceService implements OnDestroy {
         activeTransaction = stashedStartTransaction({
           name: strippedUrl,
           op: 'navigation',
+          origin: 'auto.http.angular',
           metadata: { source: 'url' },
         });
       }
@@ -95,6 +97,7 @@ export class TraceService implements OnDestroy {
         this._routingSpan = activeTransaction.startChild({
           description: `${navigationEvent.url}`,
           op: ANGULAR_ROUTING_OP,
+          origin: 'auto.ui.angular',
           tags: {
             'routing.instrumentation': '@sentry/angular',
             url: strippedUrl,
@@ -192,6 +195,7 @@ export class TraceDirective implements OnInit, AfterViewInit {
       this._tracingSpan = activeTransaction.startChild({
         description: `<${this.componentName}>`,
         op: ANGULAR_INIT_OP,
+        origin: 'auto.ui.angular',
       });
     }
   }
@@ -233,6 +237,7 @@ export function TraceClassDecorator(): ClassDecorator {
         tracingSpan = activeTransaction.startChild({
           description: `<${target.name}>`,
           op: ANGULAR_INIT_OP,
+          origin: 'auto.ui.angular',
         });
       }
       if (originalOnInit) {
@@ -270,6 +275,7 @@ export function TraceMethodDecorator(): MethodDecorator {
           description: `<${target.constructor.name}>`,
           endTimestamp: now,
           op: `${ANGULAR_OP}.${String(propertyKey)}`,
+          origin: 'auto.ui.angular',
           startTimestamp: now,
         });
       }

@@ -70,6 +70,7 @@ export function vueRouterInstrumentation(
       startTransaction({
         name: WINDOW.location.pathname,
         op: 'pageload',
+        origin: 'auto.http.vue',
         tags,
         metadata: {
           source: 'url',
@@ -121,6 +122,7 @@ export function vueRouterInstrumentation(
         startTransaction({
           name: transactionName,
           op: 'navigation',
+          origin: 'auto.http.vue',
           tags,
           data,
           metadata: {

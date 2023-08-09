@@ -53,6 +53,7 @@ export function reactRouterV3Instrumentation(
           activeTransaction = startTransaction({
             name: prevName,
             op: 'pageload',
+            origin: 'auto.http.react.reactrouterv3',
             tags: {
               'routing.instrumentation': 'react-router-v3',
             },
@@ -81,6 +82,7 @@ export function reactRouterV3Instrumentation(
             activeTransaction = startTransaction({
               name: prevName,
               op: 'navigation',
+              origin: 'auto.http.react.reactrouterv3',
               tags,
               metadata: {
                 source,

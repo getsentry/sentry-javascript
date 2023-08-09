@@ -75,6 +75,7 @@ export function wrapLoadWithSentry<T extends (...args: any) => any>(origLoad: T)
       return trace(
         {
           op: 'function.sveltekit.load',
+          origin: 'auto.ui.sveltekit',
           name: routeId ? routeId : event.url.pathname,
           status: 'ok',
           metadata: {

@@ -38,6 +38,7 @@ function instrumentPageload(startTransactionFn: (context: TransactionContext) =>
   const pageloadTransaction = startTransactionFn({
     name: initialPath,
     op: 'pageload',
+    origin: 'auto.http.sveltekit',
     description: initialPath,
     tags: {
       ...DEFAULT_TAGS,
@@ -102,6 +103,7 @@ function instrumentNavigations(startTransactionFn: (context: TransactionContext)
       activeTransaction = startTransactionFn({
         name: parameterizedRouteDestination || rawRouteDestination || 'unknown',
         op: 'navigation',
+        origin: 'auto.http.sveltekit',
         metadata: { source: parameterizedRouteDestination ? 'route' : 'url' },
         tags: {
           ...DEFAULT_TAGS,
@@ -117,6 +119,7 @@ function instrumentNavigations(startTransactionFn: (context: TransactionContext)
       routingSpan = activeTransaction.startChild({
         op: 'ui.sveltekit.routing',
         description: 'SvelteKit Route Change',
+        origin: 'auto.ui.sveltekit',
       });
       activeTransaction.setTag('from', parameterizedRouteOrigin);
     }

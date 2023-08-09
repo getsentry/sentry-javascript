@@ -59,6 +59,7 @@ describe('React Router v6', () => {
       expect(mockStartTransaction).toHaveBeenLastCalledWith({
         name: '/',
         op: 'pageload',
+        origin: 'auto.http.react.reactrouterv6',
         tags: { 'routing.instrumentation': 'react-router-v6' },
         metadata: { source: 'url' },
       });
@@ -96,6 +97,7 @@ describe('React Router v6', () => {
       expect(mockStartTransaction).toHaveBeenLastCalledWith({
         name: '/',
         op: 'pageload',
+        origin: 'auto.http.react.reactrouterv6',
         tags: { 'routing.instrumentation': 'react-router-v6' },
         metadata: { source: 'url' },
       });
@@ -118,6 +120,7 @@ describe('React Router v6', () => {
       expect(mockStartTransaction).toHaveBeenLastCalledWith({
         name: '/about',
         op: 'navigation',
+        origin: 'auto.http.react.reactrouterv6',
         tags: { 'routing.instrumentation': 'react-router-v6' },
         metadata: { source: 'route' },
       });
@@ -142,6 +145,7 @@ describe('React Router v6', () => {
       expect(mockStartTransaction).toHaveBeenLastCalledWith({
         name: '/about/us',
         op: 'navigation',
+        origin: 'auto.http.react.reactrouterv6',
         tags: { 'routing.instrumentation': 'react-router-v6' },
         metadata: { source: 'route' },
       });
@@ -166,6 +170,7 @@ describe('React Router v6', () => {
       expect(mockStartTransaction).toHaveBeenLastCalledWith({
         name: '/about/:page',
         op: 'navigation',
+        origin: 'auto.http.react.reactrouterv6',
         tags: { 'routing.instrumentation': 'react-router-v6' },
         metadata: { source: 'route' },
       });
@@ -192,6 +197,7 @@ describe('React Router v6', () => {
       expect(mockStartTransaction).toHaveBeenLastCalledWith({
         name: '/stores/:storeId/products/:productId',
         op: 'navigation',
+        origin: 'auto.http.react.reactrouterv6',
         tags: { 'routing.instrumentation': 'react-router-v6' },
         metadata: { source: 'route' },
       });
@@ -226,6 +232,7 @@ describe('React Router v6', () => {
       expect(mockStartTransaction).toHaveBeenLastCalledWith({
         name: '/projects/:projectId/views/:viewId',
         op: 'navigation',
+        origin: 'auto.http.react.reactrouterv6',
         tags: { 'routing.instrumentation': 'react-router-v6' },
         metadata: { source: 'route' },
       });
@@ -255,6 +262,7 @@ describe('React Router v6', () => {
       expect(mockStartTransaction).toHaveBeenLastCalledWith({
         name: '/',
         op: 'pageload',
+        origin: 'auto.http.react.reactrouterv6',
         tags: { 'routing.instrumentation': 'react-router-v6' },
         metadata: { source: 'url' },
       });
@@ -307,6 +315,7 @@ describe('React Router v6', () => {
       expect(mockStartTransaction).toHaveBeenLastCalledWith({
         name: '/',
         op: 'pageload',
+        origin: 'auto.http.react.reactrouterv6',
         tags: { 'routing.instrumentation': 'react-router-v6' },
         metadata: { source: 'url' },
       });
@@ -338,6 +347,7 @@ describe('React Router v6', () => {
       expect(mockStartTransaction).toHaveBeenLastCalledWith({
         name: '/about',
         op: 'navigation',
+        origin: 'auto.http.react.reactrouterv6',
         tags: { 'routing.instrumentation': 'react-router-v6' },
         metadata: { source: 'route' },
       });
@@ -375,6 +385,7 @@ describe('React Router v6', () => {
       expect(mockStartTransaction).toHaveBeenLastCalledWith({
         name: '/about/us',
         op: 'navigation',
+        origin: 'auto.http.react.reactrouterv6',
         tags: { 'routing.instrumentation': 'react-router-v6' },
         metadata: { source: 'route' },
       });
@@ -412,6 +423,7 @@ describe('React Router v6', () => {
       expect(mockStartTransaction).toHaveBeenLastCalledWith({
         name: '/about/:page',
         op: 'navigation',
+        origin: 'auto.http.react.reactrouterv6',
         tags: { 'routing.instrumentation': 'react-router-v6' },
         metadata: { source: 'route' },
       });
@@ -455,6 +467,7 @@ describe('React Router v6', () => {
       expect(mockStartTransaction).toHaveBeenLastCalledWith({
         name: '/stores/:storeId/products/:productId',
         op: 'navigation',
+        origin: 'auto.http.react.reactrouterv6',
         tags: { 'routing.instrumentation': 'react-router-v6' },
         metadata: { source: 'route' },
       });
@@ -522,6 +535,7 @@ describe('React Router v6', () => {
       expect(mockStartTransaction).toHaveBeenLastCalledWith({
         name: '/projects/:projectId/views/:viewId',
         op: 'navigation',
+        origin: 'auto.http.react.reactrouterv6',
         tags: { 'routing.instrumentation': 'react-router-v6' },
         metadata: { source: 'route' },
       });

@@ -37,6 +37,7 @@ describe('React Router v4', () => {
     expect(mockStartTransaction).toHaveBeenLastCalledWith({
       name: '/',
       op: 'pageload',
+      origin: 'auto.http.react.reactrouter',
       tags: { 'routing.instrumentation': 'react-router-v4' },
       metadata: { source: 'url' },
     });
@@ -66,6 +67,7 @@ describe('React Router v4', () => {
     expect(mockStartTransaction).toHaveBeenLastCalledWith({
       name: '/about',
       op: 'navigation',
+      origin: 'auto.http.react.reactrouter',
       tags: { 'routing.instrumentation': 'react-router-v4' },
       metadata: { source: 'url' },
     });
@@ -77,6 +79,7 @@ describe('React Router v4', () => {
     expect(mockStartTransaction).toHaveBeenLastCalledWith({
       name: '/features',
       op: 'navigation',
+      origin: 'auto.http.react.reactrouter',
       tags: { 'routing.instrumentation': 'react-router-v4' },
       metadata: { source: 'url' },
     });
@@ -155,6 +158,7 @@ describe('React Router v4', () => {
     expect(mockStartTransaction).toHaveBeenLastCalledWith({
       name: '/users/123',
       op: 'navigation',
+      origin: 'auto.http.react.reactrouter',
       tags: { 'routing.instrumentation': 'react-router-v4' },
       metadata: { source: 'url' },
     });
@@ -182,6 +186,7 @@ describe('React Router v4', () => {
     expect(mockStartTransaction).toHaveBeenLastCalledWith({
       name: '/users/123',
       op: 'navigation',
+      origin: 'auto.http.react.reactrouter',
       tags: { 'routing.instrumentation': 'react-router-v4' },
       metadata: { source: 'url' },
     });
@@ -211,6 +216,7 @@ describe('React Router v4', () => {
     expect(mockStartTransaction).toHaveBeenLastCalledWith({
       name: '/organizations/1234/v1/758',
       op: 'navigation',
+      origin: 'auto.http.react.reactrouter',
       tags: { 'routing.instrumentation': 'react-router-v4' },
       metadata: { source: 'url' },
     });
@@ -226,6 +232,7 @@ describe('React Router v4', () => {
     expect(mockStartTransaction).toHaveBeenLastCalledWith({
       name: '/organizations/543',
       op: 'navigation',
+      origin: 'auto.http.react.reactrouter',
       tags: { 'routing.instrumentation': 'react-router-v4' },
       metadata: { source: 'url' },
     });
@@ -259,6 +266,7 @@ describe('React Router v4', () => {
     expect(mockStartTransaction).toHaveBeenLastCalledWith({
       name: '/organizations/:orgid/v1/:teamid',
       op: 'navigation',
+      origin: 'auto.http.react.reactrouter',
       tags: { 'routing.instrumentation': 'react-router-v4' },
       metadata: { source: 'route' },
     });
@@ -270,6 +278,7 @@ describe('React Router v4', () => {
     expect(mockStartTransaction).toHaveBeenLastCalledWith({
       name: '/organizations/:orgid',
       op: 'navigation',
+      origin: 'auto.http.react.reactrouter',
       tags: { 'routing.instrumentation': 'react-router-v4' },
       metadata: { source: 'route' },
     });

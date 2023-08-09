@@ -108,6 +108,7 @@ describe('vueRouterInstrumentation()', () => {
           query: to.query,
         },
         op: 'navigation',
+        origin: 'auto.http.vue',
         tags: {
           'routing.instrumentation': 'vue-router',
         },
@@ -148,6 +149,7 @@ describe('vueRouterInstrumentation()', () => {
           source: 'url',
         },
         op: 'pageload',
+        origin: 'auto.http.vue',
         tags: {
           'routing.instrumentation': 'vue-router',
         },
@@ -194,6 +196,7 @@ describe('vueRouterInstrumentation()', () => {
         query: to.query,
       },
       op: 'navigation',
+      origin: 'auto.http.vue',
       tags: {
         'routing.instrumentation': 'vue-router',
       },
@@ -225,6 +228,7 @@ describe('vueRouterInstrumentation()', () => {
         query: to.query,
       },
       op: 'navigation',
+      origin: 'auto.http.vue',
       tags: {
         'routing.instrumentation': 'vue-router',
       },
@@ -259,6 +263,7 @@ describe('vueRouterInstrumentation()', () => {
         source: 'url',
       },
       op: 'pageload',
+      origin: 'auto.http.vue',
       tags: {
         'routing.instrumentation': 'vue-router',
       },
@@ -345,6 +350,7 @@ describe('vueRouterInstrumentation()', () => {
         query: to.query,
       },
       op: 'navigation',
+      origin: 'auto.http.vue',
       tags: {
         'routing.instrumentation': 'vue-router',
       },

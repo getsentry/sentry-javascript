@@ -53,6 +53,7 @@ describe('sveltekitRoutingInstrumentation', () => {
     expect(mockedStartTransaction).toHaveBeenCalledWith({
       name: '/',
       op: 'pageload',
+      origin: 'auto.http.sveltekit',
       description: '/',
       tags: {
         'routing.instrumentation': '@sentry/sveltekit',
@@ -105,6 +106,7 @@ describe('sveltekitRoutingInstrumentation', () => {
     expect(mockedStartTransaction).toHaveBeenCalledWith({
       name: '/users/[id]',
       op: 'navigation',
+      origin: 'auto.http.sveltekit',
       metadata: {
         source: 'route',
       },
@@ -115,6 +117,7 @@ describe('sveltekitRoutingInstrumentation', () => {
 
     expect(returnedTransaction?.startChild).toHaveBeenCalledWith({
       op: 'ui.sveltekit.routing',
+      origin: 'auto.ui.sveltekit',
       description: 'SvelteKit Route Change',
     });
 
@@ -154,6 +157,7 @@ describe('sveltekitRoutingInstrumentation', () => {
       expect(mockedStartTransaction).toHaveBeenCalledWith({
         name: '/users/[id]',
         op: 'navigation',
+        origin: 'auto.http.sveltekit',
         metadata: {
           source: 'route',
         },
@@ -164,6 +168,7 @@ describe('sveltekitRoutingInstrumentation', () => {
 
       expect(returnedTransaction?.startChild).toHaveBeenCalledWith({
         op: 'ui.sveltekit.routing',
+        origin: 'auto.ui.sveltekit',
         description: 'SvelteKit Route Change',
       });
 

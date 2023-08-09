@@ -1,4 +1,4 @@
-import type { Context } from '@sentry/types';
+import type { Context, SpanOrigin } from '@sentry/types';
 
 type SentryTags = Record<string, string>;
 type SentryData = Record<string, unknown>;
@@ -9,13 +9,14 @@ export interface AdditionalOtelSpanData {
   tags: SentryTags;
   contexts: Contexts;
   metadata: unknown;
+  origin?: SpanOrigin;
 }
 
 const OTEL_SPAN_DATA_MAP: Map<string, AdditionalOtelSpanData> = new Map<string, AdditionalOtelSpanData>();
 
 /** Add data that should be added to the sentry span resulting from the given otel span ID. */
-export function addOtelSpanData(otelSpanId: string, data: AdditionalOtelSpanData): void {
-  OTEL_SPAN_DATA_MAP.set(otelSpanId, data);
+export function addOtelSpanData(otelSpanId: string, data: Partial<AdditionalOtelSpanData>): void {
+  OTEL_SPAN_DATA_MAP.set(otelSpanId, { data: {}, tags: {}, contexts: {}, metadata: {}, ...data });
 }
 
 /** Get additional data for a Sentry span. */

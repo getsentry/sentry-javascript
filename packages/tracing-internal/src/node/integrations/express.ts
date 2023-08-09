@@ -156,6 +156,7 @@ function wrap(fn: Function, method: Method): (...args: any[]) => void {
           const span = transaction.startChild({
             description: fn.name,
             op: `middleware.express.${method}`,
+            origin: 'auto.middleware.express',
           });
           res.once('finish', () => {
             span.finish();
@@ -175,6 +176,7 @@ function wrap(fn: Function, method: Method): (...args: any[]) => void {
         const span = transaction?.startChild({
           description: fn.name,
           op: `middleware.express.${method}`,
+          origin: 'auto.middleware.express',
         });
         fn.call(this, req, res, function (this: NodeJS.Global, ...args: unknown[]): void {
           span?.finish();
@@ -194,6 +196,7 @@ function wrap(fn: Function, method: Method): (...args: any[]) => void {
         const span = transaction?.startChild({
           description: fn.name,
           op: `middleware.express.${method}`,
+          origin: 'auto.middleware.express',
         });
         fn.call(this, err, req, res, function (this: NodeJS.Global, ...args: unknown[]): void {
           span?.finish();
