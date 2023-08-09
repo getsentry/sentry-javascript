@@ -186,32 +186,45 @@
                   "type": 2,
                   "tagName": "svg",
                   "attributes": {
-                    "rr_width": "[200-250]px",
-                    "rr_height": "[200-250]px"
+                    "style": "width:200px;height:200px",
+                    "viewBox": "0 0 80 80",
+                    "data-sentry-unblock": ""
                   },
-                  "childNodes": [],
+                  "childNodes": [
+                    {
+                      "type": 2,
+                      "tagName": "path",
+                      "attributes": {
+                        "d": ""
+                      },
+                      "childNodes": [],
+                      "isSVG": true,
+                      "id": 29
+                    },
+                    {
+                      "type": 2,
+                      "tagName": "area",
+                      "attributes": {},
+                      "childNodes": [],
+                      "isSVG": true,
+                      "id": 30
+                    },
+                    {
+                      "type": 2,
+                      "tagName": "rect",
+                      "attributes": {},
+                      "childNodes": [],
+                      "isSVG": true,
+                      "id": 31
+                    }
+                  ],
                   "isSVG": true,
-                  "id": 26
-                },
-                {
-                  "type": 3,
-                  "textContent": "\n    ",
-                  "id": 27
-                },
-                {
-                  "type": 2,
-                  "tagName": "img",
-                  "attributes": {
-                    "rr_width": "[100-150]px",
-                    "rr_height": "[100-150]px"
-                  },
-                  "childNodes": [],
                   "id": 28
                 },
                 {
                   "type": 3,
                   "textContent": "\n    ",
-                  "id": 29
+                  "id": 32
                 },
                 {
                   "type": 2,
@@ -221,12 +234,12 @@
                     "rr_height": "[100-150]px"
                   },
                   "childNodes": [],
-                  "id": 30
+                  "id": 33
                 },
                 {
                   "type": 3,
                   "textContent": "\n    ",
-                  "id": 31
+                  "id": 34
                 },
                 {
                   "type": 2,
@@ -237,12 +250,12 @@
                     "src": "file:///none.png"
                   },
                   "childNodes": [],
-                  "id": 32
+                  "id": 35
                 },
                 {
                   "type": 3,
-                  "textContent": "\n  ",
-                  "id": 33
+                  "textContent": "\n    ",
+                  "id": 36
                 },
                 {
                   "type": 2,
@@ -262,7 +275,7 @@
                 {
                   "type": 3,
                   "textContent": "\n\n",
-                  "id": 34
+                  "id": 39
                 }
               ],
               "id": 8
