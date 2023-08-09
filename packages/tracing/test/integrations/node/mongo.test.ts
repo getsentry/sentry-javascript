@@ -74,10 +74,10 @@ describe('patchOperation()', () => {
       expect(scope.getSpan).toBeCalled();
       expect(parentSpan.startChild).toBeCalledWith({
         data: {
-          collectionName: 'mockedCollectionName',
-          dbName: 'mockedDbName',
-          doc: JSON.stringify(doc),
-          namespace: 'mockedNamespace',
+          'db.mongodb.collection': 'mockedCollectionName',
+          'db.name': 'mockedDbName',
+          'db.operation': 'insertOne',
+          'db.mongodb.doc': JSON.stringify(doc),
           'db.system': 'mongodb',
         },
         op: 'db',
@@ -93,10 +93,10 @@ describe('patchOperation()', () => {
     expect(scope.getSpan).toBeCalled();
     expect(parentSpan.startChild).toBeCalledWith({
       data: {
-        collectionName: 'mockedCollectionName',
-        dbName: 'mockedDbName',
-        doc: JSON.stringify(doc),
-        namespace: 'mockedNamespace',
+        'db.mongodb.collection': 'mockedCollectionName',
+        'db.name': 'mockedDbName',
+        'db.operation': 'insertOne',
+        'db.mongodb.doc': JSON.stringify(doc),
         'db.system': 'mongodb',
       },
       op: 'db',
@@ -110,9 +110,9 @@ describe('patchOperation()', () => {
     expect(scope.getSpan).toBeCalled();
     expect(parentSpan.startChild).toBeCalledWith({
       data: {
-        collectionName: 'mockedCollectionName',
-        dbName: 'mockedDbName',
-        namespace: 'mockedNamespace',
+        'db.mongodb.collection': 'mockedCollectionName',
+        'db.name': 'mockedDbName',
+        'db.operation': 'initializeOrderedBulkOp',
         'db.system': 'mongodb',
       },
       op: 'db',
