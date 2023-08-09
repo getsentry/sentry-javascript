@@ -2,6 +2,27 @@
 
 ## Unreleased
 
+### Important Changes
+
+- **feat(replay): Upgrade to rrweb2**
+
+This is fully backwards compatible with prior versions of the Replay SDK. The only breaking change that we will making is to not be masking `aria-label` by default. The reason for this change is to align with our core SDK which also does not mask `aria-label`. This change also enables better support of searching by clicks.
+
+Another change that needs to be highlighted is the 13% bundle size increase. This bundle size increase is necessary to bring improved recording performance and improved replay fidelity, especially in regards to web components and iframes. We will be investigating the reduction of the bundle size in [this PR](https://github.com/getsentry/sentry-javascript/issues/8815).
+
+Here are benchmarks comparing the version 1 of rrweb to version 2
+
+| metric    | v1         | v2         |
+| --------- | ---------- | ---------- |
+| lcp       | 1486.06 ms | 1529.11 ms |
+| cls       | 0.40 ms    | 0.40 ms    |
+| fid       | 1.53 ms    | 1.50 ms    |
+| tbt       | 3207.22 ms | 3036.80 ms |
+| memoryAvg | 131.83 MB  | 124.84 MB  |
+| memoryMax | 324.8 MB   | 339.03 MB  |
+| netTx     | 282.67 KB  | 272.51 KB  |
+| netRx     | 8.02 MB    | 8.07 MB    |
+
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
 ## 7.72.0
