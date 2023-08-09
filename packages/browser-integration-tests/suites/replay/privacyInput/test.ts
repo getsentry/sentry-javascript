@@ -4,12 +4,8 @@ import { IncrementalSource } from '@sentry-internal/rrweb';
 
 import { sentryTest } from '../../../utils/fixtures';
 import type { IncrementalRecordingSnapshot } from '../../../utils/replayHelpers';
-<<<<<<< HEAD
 import {
   getFullRecordingSnapshots,
-=======
-import { getFullRecordingSnapshots ,
->>>>>>> d495cdedf (feat can unmask attributes, masks input type=button/submit (only with maskAllText enabled))
   getIncrementalRecordingSnapshots,
   shouldSkipReplayTest,
   waitForReplayRequest,
