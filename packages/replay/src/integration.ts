@@ -157,6 +157,11 @@ export class Replay implements Integration {
       // collect fonts, but be aware that `sentry.io` needs to be an allowed
       // origin for playback
       collectFonts: true,
+      errorHandler: (err) => {
+        // @ts-ignore Accessing unknown property
+        err.__rrweb__ = true;
+        return true;
+      }
     };
 
     this._initialOptions = {
