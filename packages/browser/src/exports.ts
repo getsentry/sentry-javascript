@@ -61,7 +61,7 @@ export {
   opera11StackLineParser,
   winjsStackLineParser,
 } from './stack-parsers';
-export { eventFromException, eventFromMessage } from './eventbuilder';
+export { eventFromException, eventFromMessage, exceptionFromError } from './eventbuilder';
 export { createUserFeedbackEnvelope } from './userfeedback';
 export { defaultIntegrations, forceLoad, init, onLoad, showReportDialog, wrap, captureUserFeedback } from './sdk';
 export { GlobalHandlers, TryCatch, Breadcrumbs, LinkedErrors, HttpContext, Dedupe } from './integrations';
