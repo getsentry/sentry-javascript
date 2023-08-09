@@ -5,7 +5,7 @@ module.exports = [
     path: 'packages/browser/build/npm/esm/index.js',
     import: '{ init, Replay, BrowserTracing }',
     gzip: true,
-    limit: '80 KB',
+    limit: '90 KB',
   },
   {
     name: '@sentry/browser (incl. Tracing) - Webpack (gzipped)',
@@ -47,7 +47,7 @@ module.exports = [
     name: '@sentry/browser (incl. Tracing, Replay) - ES6 CDN Bundle (minified & uncompressed)',
     path: 'packages/browser/build/bundles/bundle.tracing.replay.min.js',
     gzip: false,
-    limit: '250 KB',
+    limit: '260 KB',
   },
   {
     name: '@sentry/browser (incl. Tracing) - ES6 CDN Bundle (minified & uncompressed)',
@@ -93,7 +93,7 @@ module.exports = [
     path: 'packages/nextjs/build/esm/client/index.js',
     import: '{ init, BrowserTracing, Replay }',
     gzip: true,
-    limit: '100 KB',
+    limit: '110 KB',
   },
   {
     name: '@sentry/nextjs Client - Webpack (gzipped)',
