@@ -104,16 +104,16 @@ export class Replay implements Integration {
     this.name = Replay.id;
 
     const privacyOptions = getPrivacyOptions({
-        mask,
-        unmask,
-        block,
-        unblock,
-        ignore,
-        blockClass,
-        blockSelector,
-        maskTextClass,
-        maskTextSelector,
-        ignoreClass,
+      mask,
+      unmask,
+      block,
+      unblock,
+      ignore,
+      blockClass,
+      blockSelector,
+      maskTextClass,
+      maskTextSelector,
+      ignoreClass,
     });
 
     this._recordingOptions = {
@@ -159,7 +159,7 @@ export class Replay implements Integration {
         // @ts-ignore ASet this so that replay SDK can ignore errors originating from rrweb
         err.__rrweb__ = true;
         return true;
-      }
+      },
     };
 
     this._initialOptions = {

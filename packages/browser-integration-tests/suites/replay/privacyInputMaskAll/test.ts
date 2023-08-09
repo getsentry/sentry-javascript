@@ -3,7 +3,7 @@ import type { inputData } from '@sentry-internal/rrweb';
 import { IncrementalSource } from '@sentry-internal/rrweb';
 
 import { sentryTest } from '../../../utils/fixtures';
-import { getFullRecordingSnapshots, IncrementalRecordingSnapshot } from '../../../utils/replayHelpers';
+import type { IncrementalRecordingSnapshot } from '../../../utils/replayHelpers';
 import {
   getFullRecordingSnapshots,
   getIncrementalRecordingSnapshots,
