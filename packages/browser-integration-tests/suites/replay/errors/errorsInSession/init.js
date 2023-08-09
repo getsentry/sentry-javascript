@@ -19,5 +19,4 @@ Sentry.init({
     return event;
   },
   integrations: [window.Replay],
-  debug: true,
 });

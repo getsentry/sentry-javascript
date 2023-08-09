@@ -1,4 +1,4 @@
-import { MAX_SESSION_LIFE, SESSION_IDLE_PAUSE_DURATION } from '../../../src/constants';
+import { MAX_REPLAY_DURATION } from '../../../src/constants';
 import { makeSession } from '../../../src/session/Session';
 import { isSessionExpired } from '../../../src/util/isSessionExpired';
 
@@ -16,57 +16,41 @@ function createSession(extra?: Record<string, any>) {
 describe('Unit | util | isSessionExpired', () => {
   it('session last activity is older than expiry time', function () {
     expect(
-      isSessionExpired(
-        createSession(),
-        {
-          maxSessionLife: MAX_SESSION_LIFE,
-          sessionIdlePause: SESSION_IDLE_PAUSE_DURATION,
-          sessionIdleExpire: 100,
-        },
-        200,
-      ),
+      isSessionExpired(createSession(), {
+        maxReplayDuration: MAX_REPLAY_DURATION,
+        sessionIdleExpire: 100,
+        targetTime: 200,
+      }),
     ).toBe(true); // Session expired at ts = 100
   });
 
   it('session last activity is not older than expiry time', function () {
     expect(
-      isSessionExpired(
-        createSession({ lastActivity: 100 }),
-        {
-          maxSessionLife: MAX_SESSION_LIFE,
-          sessionIdlePause: SESSION_IDLE_PAUSE_DURATION,
-          sessionIdleExpire: 150,
-        },
-        200,
-      ),
+      isSessionExpired(createSession({ lastActivity: 100 }), {
+        maxReplayDuration: MAX_REPLAY_DURATION,
+        sessionIdleExpire: 150,
+        targetTime: 200,
+      }),
     ).toBe(false); // Session expires at ts >= 250
   });
 
   it('session age is not older than max session life', function () {
     expect(
-      isSessionExpired(
-        createSession(),
-        {
-          maxSessionLife: MAX_SESSION_LIFE,
-          sessionIdlePause: SESSION_IDLE_PAUSE_DURATION,
-          sessionIdleExpire: 1_800_000,
-        },
-        50_000,
-      ),
+      isSessionExpired(createSession(), {
+        maxReplayDuration: MAX_REPLAY_DURATION,
+        sessionIdleExpire: 1_800_000,
+        targetTime: 50_000,
+      }),
     ).toBe(false);
   });
 
   it('session age is older than max session life', function () {
     expect(
-      isSessionExpired(
-        createSession(),
-        {
-          maxSessionLife: MAX_SESSION_LIFE,
-          sessionIdlePause: SESSION_IDLE_PAUSE_DURATION,
-          sessionIdleExpire: 1_800_000,
-        },
-        1_800_001,
-      ),
+      isSessionExpired(createSession(), {
+        maxReplayDuration: MAX_REPLAY_DURATION,
+        sessionIdleExpire: 1_800_000,
+        targetTime: 1_800_001,
+      }),
     ).toBe(true); // Session expires at ts >= 1_800_000
   });
 });

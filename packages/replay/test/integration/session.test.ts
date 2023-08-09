@@ -3,7 +3,7 @@ import type { Transport } from '@sentry/types';
 
 import {
   DEFAULT_FLUSH_MIN_DELAY,
-  MAX_SESSION_LIFE,
+  MAX_REPLAY_DURATION,
   REPLAY_SESSION_KEY,
   SESSION_IDLE_EXPIRE_DURATION,
   SESSION_IDLE_PAUSE_DURATION,
@@ -332,7 +332,7 @@ describe('Integration | session', () => {
     expect(replay.session).toBe(undefined);
   });
 
-  it('creates a new session if current session exceeds MAX_SESSION_LIFE', async () => {
+  it('creates a new session if current session exceeds MAX_REPLAY_DURATION', async () => {
     jest.clearAllMocks();
 
     const initialSession = { ...replay.session } as Session;
@@ -350,8 +350,8 @@ describe('Integration | session', () => {
       value: new URL(url),
     });
 
-    // Advanced past MAX_SESSION_LIFE
-    const ELAPSED = MAX_SESSION_LIFE + 1;
+    // Advanced past MAX_REPLAY_DURATION
+    const ELAPSED = MAX_REPLAY_DURATION + 1;
     jest.advanceTimersByTime(ELAPSED);
     // Update activity so as to not consider session to be idling
     replay['_updateUserActivity']();

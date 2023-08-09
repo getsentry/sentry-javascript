@@ -31,7 +31,6 @@ export interface SendReplayData {
 export interface Timeouts {
   sessionIdlePause: number;
   sessionIdleExpire: number;
-  maxSessionLife: number;
 }
 
 /**
@@ -186,6 +185,12 @@ export interface ReplayPluginOptions extends ReplayNetworkOptions {
    * Note that this is capped at max. 15s.
    */
   minReplayDuration: number;
+
+  /**
+   * The max. duration (in ms) a replay session may be.
+   * This is capped at max. 60min.
+   */
+  maxReplayDuration: number;
 
   /**
    * Callback before adding a custom recording event

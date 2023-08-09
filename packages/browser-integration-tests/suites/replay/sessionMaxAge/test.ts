@@ -12,7 +12,7 @@ import {
 } from '../../../utils/replayHelpers';
 
 // Session should be max. 4s long
-const SESSION_MAX_AGE = 4000;
+const MAX_REPLAY_DURATION = 4000;
 
 /*
   The main difference between this and sessionExpiry test, is that here we wait for the overall time (4s)
@@ -58,7 +58,7 @@ sentryTest('handles session that exceeds max age', async ({ getLocalTestPath, pa
   // Wait for an incremental snapshot
   // Wait half of the session max age (after initial flush), but account for potentially slow runners
   const timePassed1 = Date.now() - startTimestamp;
-  await new Promise(resolve => setTimeout(resolve, Math.max(SESSION_MAX_AGE / 2 - timePassed1, 0)));
+  await new Promise(resolve => setTimeout(resolve, Math.max(MAX_REPLAY_DURATION / 2 - timePassed1, 0)));
   await page.click('#button1');
 
   const req1 = await reqPromise1;
@@ -71,7 +71,7 @@ sentryTest('handles session that exceeds max age', async ({ getLocalTestPath, pa
 
   // Wait for session to expire
   const timePassed2 = Date.now() - startTimestamp;
-  await new Promise(resolve => setTimeout(resolve, Math.max(SESSION_MAX_AGE - timePassed2, 0)));
+  await new Promise(resolve => setTimeout(resolve, Math.max(MAX_REPLAY_DURATION - timePassed2, 0)));
   await page.click('#button2');
 
   const req2 = await reqPromise2;

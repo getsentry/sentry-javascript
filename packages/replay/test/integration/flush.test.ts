@@ -1,6 +1,6 @@
 import * as SentryUtils from '@sentry/utils';
 
-import { DEFAULT_FLUSH_MIN_DELAY, MAX_SESSION_LIFE, WINDOW } from '../../src/constants';
+import { DEFAULT_FLUSH_MIN_DELAY, MAX_REPLAY_DURATION, WINDOW } from '../../src/constants';
 import type { ReplayContainer } from '../../src/replay';
 import { clearSession } from '../../src/session/clearSession';
 import type { EventBuffer } from '../../src/types';
@@ -305,7 +305,7 @@ describe('Integration | flush', () => {
   });
 
   it('does not flush if session is too long', async () => {
-    replay.timeouts.maxSessionLife = 100_000;
+    replay.getOptions().maxReplayDuration = 100_000;
     jest.setSystemTime(BASE_TIMESTAMP);
 
     sessionStorage.clear();
@@ -335,7 +335,7 @@ describe('Integration | flush', () => {
     expect(mockFlush).toHaveBeenCalledTimes(1);
     expect(mockSendReplay).toHaveBeenCalledTimes(0);
 
-    replay.timeouts.maxSessionLife = MAX_SESSION_LIFE;
+    replay.getOptions().maxReplayDuration = MAX_REPLAY_DURATION;
     replay['_checkSession'] = _tmp;
   });
 
@@ -400,7 +400,7 @@ describe('Integration | flush', () => {
     replay.getOptions()._experiments.traceInternals = false;
   });
 
-  it('logs warning if adding event that is after maxSessionLife', async () => {
+  it('logs warning if adding event that is after maxReplayDuration', async () => {
     replay.getOptions()._experiments.traceInternals = true;
 
     sessionStorage.clear();
@@ -416,7 +416,7 @@ describe('Integration | flush', () => {
     replay.eventBuffer!.hasCheckout = true;
 
     // Add event that is too long after session start
-    const TEST_EVENT = getTestEventCheckout({ timestamp: BASE_TIMESTAMP + MAX_SESSION_LIFE + 100 });
+    const TEST_EVENT = getTestEventCheckout({ timestamp: BASE_TIMESTAMP + MAX_REPLAY_DURATION + 100 });
     mockRecord._emitter(TEST_EVENT);
 
     // no checkout!
@@ -440,8 +440,8 @@ describe('Integration | flush', () => {
             data: { logger: 'replay' },
             level: 'info',
             message: `[Replay] Skipping event with timestamp ${
-              BASE_TIMESTAMP + MAX_SESSION_LIFE + 100
-            } because it is after maxSessionLife`,
+              BASE_TIMESTAMP + MAX_REPLAY_DURATION + 100
+            } because it is after maxReplayDuration`,
           },
         },
       },
@@ -456,8 +456,8 @@ describe('Integration | flush', () => {
    * so by the time we actually send the replay it's too late.
    * In this case, we want to stop the replay.
    */
-  it('stops if flushing after maxSessionLife', async () => {
-    replay.timeouts.maxSessionLife = 100_000;
+  it('stops if flushing after maxReplayDuration', async () => {
+    replay.getOptions().maxReplayDuration = 100_000;
 
     sessionStorage.clear();
     clearSession(replay);
@@ -486,7 +486,7 @@ describe('Integration | flush', () => {
     expect(mockSendReplay).toHaveBeenCalledTimes(0);
     expect(replay.isEnabled()).toBe(false);
 
-    replay.timeouts.maxSessionLife = MAX_SESSION_LIFE;
+    replay.getOptions().maxReplayDuration = MAX_REPLAY_DURATION;
 
     // Start again for following tests
     await replay.start();
