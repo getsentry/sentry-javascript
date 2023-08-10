@@ -3,12 +3,12 @@ import { expect } from '@playwright/test';
 import { sentryTest } from '../../../utils/fixtures';
 import { envelopeRequestParser } from '../../../utils/helpers';
 import {
+  getDecompressedRecordingEvents,
   getReplaySnapshot,
   isReplayEvent,
   REPLAY_DEFAULT_FLUSH_MAX_DELAY,
   shouldSkipReplayTest,
   waitForReplayRequest,
-  replayEnvelopeParser,
 } from '../../../utils/replayHelpers';
 
 sentryTest(
@@ -40,17 +40,11 @@ sentryTest(
 
       // We only want to count replays here
       if (event && isReplayEvent(event)) {
-        called++;
-      }
-
-      // TODO FN: Just for debugging....
-      if (called > 0) {
-        // eslint-disable-next-line no-console
-        console.log(event);
-
-        const recordingEvents = replayEnvelopeParser(route.request());
-        // eslint-disable-next-line no-console
-        console.log(JSON.stringify(recordingEvents, null, 2));
+        const events = getDecompressedRecordingEvents(route.request());
+        // this makes sure we ignore e.g. mouse move events which can otherwise lead to flakes
+        if (events.length > 0) {
+          called++;
+        }
       }
 
       return route.fulfill({
