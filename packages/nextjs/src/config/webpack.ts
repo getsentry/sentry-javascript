@@ -173,29 +173,6 @@ export function constructWebpackConfigFunction(
       );
     };
 
-    if (isServer) {
-      // Import the Sentry config in every user file
-      newConfig.module.rules.unshift({
-        test: resourcePath => {
-          return (
-            isPageResource(resourcePath) ||
-            isApiRouteResource(resourcePath) ||
-            isMiddlewareResource(resourcePath) ||
-            isServerComponentResource(resourcePath)
-          );
-        },
-        use: [
-          {
-            loader: path.resolve(__dirname, 'loaders', 'wrappingLoader.js'),
-            options: {
-              ...staticWrappingLoaderOptions,
-              wrappingTargetKind: 'sentry-init',
-            },
-          },
-        ],
-      });
-    }
-
     if (isServer && userSentryOptions.autoInstrumentServerFunctions !== false) {
       // It is very important that we insert our loaders at the beginning of the array because we expect any sort of transformations/transpilations (e.g. TS -> JS) to already have happened.
 
@@ -277,6 +254,29 @@ export function constructWebpackConfigFunction(
             options: {
               ...staticWrappingLoaderOptions,
               wrappingTargetKind: 'server-component',
+            },
+          },
+        ],
+      });
+    }
+
+    if (isServer) {
+      // Import the Sentry config in every user file
+      newConfig.module.rules.unshift({
+        test: resourcePath => {
+          return (
+            isPageResource(resourcePath) ||
+            isApiRouteResource(resourcePath) ||
+            isMiddlewareResource(resourcePath) ||
+            isServerComponentResource(resourcePath)
+          );
+        },
+        use: [
+          {
+            loader: path.resolve(__dirname, 'loaders', 'wrappingLoader.js'),
+            options: {
+              ...staticWrappingLoaderOptions,
+              wrappingTargetKind: 'sentry-init',
             },
           },
         ],
