@@ -50,7 +50,7 @@ sentryTest(
 
         const recordingEvents = replayEnvelopeParser(route.request());
         // eslint-disable-next-line no-console
-        console.log(recordingEvents);
+        console.log(JSON.stringify(recordingEvents, null, 2));
       }
 
       return route.fulfill({
