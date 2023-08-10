@@ -267,7 +267,7 @@ function getOptionsEvents(replayRequest: Request): CustomRecordingEvent[] {
   return getAllCustomRrwebRecordingEvents(events).filter(data => data.tag === 'options');
 }
 
-function getDecompressedRecordingEvents(resOrReq: Request | Response): RecordingSnapshot[] {
+export function getDecompressedRecordingEvents(resOrReq: Request | Response): RecordingSnapshot[] {
   const replayRequest = getRequest(resOrReq);
   return (
     (replayEnvelopeRequestParser(replayRequest, 5) as eventWithTime[])
