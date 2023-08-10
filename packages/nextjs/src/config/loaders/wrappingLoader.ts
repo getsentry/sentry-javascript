@@ -96,10 +96,11 @@ export default function wrappingLoader(
       const sentryConfigImportPath = path
         .relative(path.dirname(this.resourcePath), sentryConfigFilePath)
         .replace(/\\/g, '/');
-      templateCode = templateCode.replace(/__SENTRY_WRAPPING_TARGET_FILE__/g, sentryConfigImportPath);
+      templateCode = templateCode.replace(/__SENTRY_CONFIG_IMPORT_PATH__/g, sentryConfigImportPath);
     } else {
       // Bail without doing any wrapping
       this.callback(null, userCode, userModuleSourceMap);
+      return;
     }
   } else if (wrappingTargetKind === 'page' || wrappingTargetKind === 'api-route') {
     // Get the parameterized route name from this page's filepath
