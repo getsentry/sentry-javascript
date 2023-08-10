@@ -229,13 +229,14 @@ export class Mongo implements LazyLoadedIntegration<MongoModule> {
     args: unknown[],
   ): SpanContext {
     const data: { [key: string]: string } = {
-      collectionName: collection.collectionName,
-      dbName: collection.dbName,
-      namespace: collection.namespace,
       'db.system': 'mongodb',
+      'db.name': collection.dbName,
+      'db.operation': operation,
+      'db.mongodb.collection': collection.collectionName,
     };
     const spanContext: SpanContext = {
       op: 'db',
+      // TODO v8: Use `${collection.collectionName}.${operation}`
       description: operation,
       data,
     };
@@ -259,7 +260,7 @@ export class Mongo implements LazyLoadedIntegration<MongoModule> {
         data[signature[1]] = typeof reduce === 'string' ? reduce : reduce.name || '<anonymous>';
       } else {
         for (let i = 0; i < signature.length; i++) {
-          data[signature[i]] = JSON.stringify(args[i]);
+          data[`db.mongodb.${signature[i]}`] = JSON.stringify(args[i]);
         }
       }
     } catch (_oO) {

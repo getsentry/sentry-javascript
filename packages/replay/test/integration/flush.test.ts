@@ -442,4 +442,46 @@ describe('Integration | flush', () => {
 
     replay.getOptions()._experiments.traceInternals = false;
   });
+
+  /**
+   * This tests the case where a flush happens in time,
+   * but something takes too long (e.g. because we are idle, ...)
+   * so by the time we actually send the replay it's too late.
+   * In this case, we want to stop the replay.
+   */
+  it('stops if flushing after maxSessionLife', async () => {
+    replay.timeouts.maxSessionLife = 100_000;
+
+    sessionStorage.clear();
+    clearSession(replay);
+    replay['_loadAndCheckSession']();
+    await new Promise(process.nextTick);
+    jest.setSystemTime(BASE_TIMESTAMP);
+
+    replay.eventBuffer!.clear();
+
+    // We do not care about this warning here
+    replay.eventBuffer!.hasCheckout = true;
+
+    // We want to simulate that flushing happens _way_ late
+    replay['_addPerformanceEntries'] = () => {
+      return new Promise(resolve => setTimeout(resolve, 140_000));
+    };
+
+    // Add event inside of session life timespan
+    const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP + 100, type: 2 };
+    mockRecord._emitter(TEST_EVENT);
+
+    await advanceTimers(DEFAULT_FLUSH_MIN_DELAY);
+    await advanceTimers(160_000);
+
+    expect(mockFlush).toHaveBeenCalledTimes(2);
+    expect(mockSendReplay).toHaveBeenCalledTimes(0);
+    expect(replay.isEnabled()).toBe(false);
+
+    replay.timeouts.maxSessionLife = MAX_SESSION_LIFE;
+
+    // Start again for following tests
+    await replay.start();
+  });
 });

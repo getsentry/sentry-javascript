@@ -14,6 +14,9 @@ test('should auto-instrument `mysql` package.', async () => {
         op: 'db',
         data: {
           'db.system': 'mysql',
+          'db.user': 'root',
+          'server.address': expect.any(String),
+          'server.port': expect.any(Number),
         },
       },
 
@@ -22,6 +25,9 @@ test('should auto-instrument `mysql` package.', async () => {
         op: 'db',
         data: {
           'db.system': 'mysql',
+          'db.user': 'root',
+          'server.address': expect.any(String),
+          'server.port': expect.any(Number),
         },
       },
     ],

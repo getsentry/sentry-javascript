@@ -1067,6 +1067,15 @@ export class ReplayContainer implements ReplayContainerInterface {
       // Note this empties the event buffer regardless of outcome of sending replay
       const recordingData = await this.eventBuffer.finish();
 
+      const timestamp = Date.now();
+
+      // Check total duration again, to avoid sending outdated stuff
+      // We leave 30s wiggle room to accomodate late flushing etc.
+      // This _could_ happen when the browser is suspended during flushing, in which case we just want to stop
+      if (timestamp - this._context.initialTimestamp > this.timeouts.maxSessionLife + 30_000) {
+        throw new Error('Session is too long, not sending replay');
+      }
+
       // NOTE: Copy values from instance members, as it's possible they could
       // change before the flush finishes.
       const replayId = this.session.id;
@@ -1082,7 +1091,7 @@ export class ReplayContainer implements ReplayContainerInterface {
         eventContext,
         session: this.session,
         options: this.getOptions(),
-        timestamp: Date.now(),
+        timestamp,
       });
     } catch (err) {
       this._handleException(err);

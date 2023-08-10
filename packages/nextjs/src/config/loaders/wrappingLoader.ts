@@ -30,6 +30,9 @@ const requestAsyncStorageShimPath = path.resolve(__dirname, '..', 'templates', '
 const requestAsyncStorageModuleExists = moduleExists(NEXTJS_REQUEST_ASYNC_STORAGE_MODULE_PATH);
 let showedMissingAsyncStorageModuleWarning = false;
 
+const sentryInitWrapperTemplatePath = path.resolve(__dirname, '..', 'templates', 'sentryInitWrapperTemplate.js');
+const sentryInitWrapperTemplateCode = fs.readFileSync(sentryInitWrapperTemplatePath, { encoding: 'utf8' });
+
 const serverComponentWrapperTemplatePath = path.resolve(
   __dirname,
   '..',
@@ -43,7 +46,7 @@ type LoaderOptions = {
   appDir: string;
   pageExtensionRegex: string;
   excludeServerRoutes: Array<RegExp | string>;
-  wrappingTargetKind: 'page' | 'api-route' | 'middleware' | 'server-component';
+  wrappingTargetKind: 'page' | 'api-route' | 'middleware' | 'server-component' | 'sentry-init';
   sentryConfigFilePath?: string;
   vercelCronsConfig?: VercelCronsConfig;
 };
@@ -83,7 +86,23 @@ export default function wrappingLoader(
 
   let templateCode: string;
 
-  if (wrappingTargetKind === 'page' || wrappingTargetKind === 'api-route') {
+  if (wrappingTargetKind === 'sentry-init') {
+    templateCode = sentryInitWrapperTemplateCode;
+
+    // Absolute paths to the sentry config do not work with Windows: https://github.com/getsentry/sentry-javascript/issues/8133
+    // Se we need check whether `this.resourcePath` is absolute because there is no contract by webpack that says it is absolute.
+    // Examples where `this.resourcePath` could possibly be non-absolute are virtual modules.
+    if (sentryConfigFilePath && path.isAbsolute(this.resourcePath)) {
+      const sentryConfigImportPath = path
+        .relative(path.dirname(this.resourcePath), sentryConfigFilePath)
+        .replace(/\\/g, '/');
+      templateCode = templateCode.replace(/__SENTRY_CONFIG_IMPORT_PATH__/g, sentryConfigImportPath);
+    } else {
+      // Bail without doing any wrapping
+      this.callback(null, userCode, userModuleSourceMap);
+      return;
+    }
+  } else if (wrappingTargetKind === 'page' || wrappingTargetKind === 'api-route') {
     // Get the parameterized route name from this page's filepath
     const parameterizedPagesRoute = path.posix
       .normalize(
@@ -205,15 +224,6 @@ export default function wrappingLoader(
     templateCode = middlewareWrapperTemplateCode;
   } else {
     throw new Error(`Invariant: Could not get template code of unknown kind "${wrappingTargetKind}"`);
-  }
-
-  // We check whether `this.resourcePath` is absolute because there is no contract by webpack that says it is absolute,
-  // however we can only create relative paths to the sentry config from absolute paths.Examples where this could possibly be non - absolute are virtual modules.
-  if (sentryConfigFilePath && path.isAbsolute(this.resourcePath)) {
-    const sentryConfigImportPath = path
-      .relative(path.dirname(this.resourcePath), sentryConfigFilePath) // Absolute paths do not work with Windows: https://github.com/getsentry/sentry-javascript/issues/8133
-      .replace(/\\/g, '/');
-    templateCode = `import "${sentryConfigImportPath}";\n`.concat(templateCode);
   }
 
   // Replace the import path of the wrapping target in the template with a path that the `wrapUserCode` function will understand.
