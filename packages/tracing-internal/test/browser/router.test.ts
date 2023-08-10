@@ -46,7 +46,7 @@ conditionalTest({ min: 16 })('instrumentRoutingWithDefaults', () => {
     expect(customStartTransaction).toHaveBeenLastCalledWith({
       name: 'blank',
       op: 'pageload',
-      origin: 'auto.http.browser',
+      origin: 'auto.pageload.browser',
       metadata: { source: 'url' },
       startTimestamp: expect.any(Number),
     });
@@ -68,7 +68,7 @@ conditionalTest({ min: 16 })('instrumentRoutingWithDefaults', () => {
       expect(customStartTransaction).not.toHaveBeenLastCalledWith({
         name: 'blank',
         op: 'navigation',
-        origin: 'auto.http.browser',
+        origin: 'auto.navigation.browser',
         metadata: { source: 'url' },
       });
     });
@@ -82,7 +82,7 @@ conditionalTest({ min: 16 })('instrumentRoutingWithDefaults', () => {
       expect(customStartTransaction).toHaveBeenLastCalledWith({
         name: 'blank',
         op: 'navigation',
-        origin: 'auto.http.browser',
+        origin: 'auto.navigation.browser',
         metadata: { source: 'url' },
       });
     });

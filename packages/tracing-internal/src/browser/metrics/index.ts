@@ -358,7 +358,7 @@ function _addPerformanceNavigationTiming(
   }
   _startChild(transaction, {
     op: 'browser',
-    origin: 'auto.resource.browser.metrics',
+    origin: 'auto.browser.browser.metrics',
     description: description || event,
     startTimestamp: timeOrigin + msToSec(start),
     endTimestamp: timeOrigin + msToSec(end),
@@ -370,7 +370,7 @@ function _addPerformanceNavigationTiming(
 function _addRequest(transaction: Transaction, entry: Record<string, any>, timeOrigin: number): void {
   _startChild(transaction, {
     op: 'browser',
-    origin: 'auto.resource.browser.metrics',
+    origin: 'auto.browser.browser.metrics',
     description: 'request',
     startTimestamp: timeOrigin + msToSec(entry.requestStart as number),
     endTimestamp: timeOrigin + msToSec(entry.responseEnd as number),
@@ -378,7 +378,7 @@ function _addRequest(transaction: Transaction, entry: Record<string, any>, timeO
 
   _startChild(transaction, {
     op: 'browser',
-    origin: 'auto.resource.browser.metrics',
+    origin: 'auto.browser.browser.metrics',
     description: 'response',
     startTimestamp: timeOrigin + msToSec(entry.responseStart as number),
     endTimestamp: timeOrigin + msToSec(entry.responseEnd as number),

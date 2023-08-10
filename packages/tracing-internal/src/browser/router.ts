@@ -25,7 +25,7 @@ export function instrumentRoutingWithDefaults<T extends Transaction>(
       // pageload should always start at timeOrigin (and needs to be in s, not ms)
       startTimestamp: browserPerformanceTimeOrigin ? browserPerformanceTimeOrigin / 1000 : undefined,
       op: 'pageload',
-      origin: 'auto.http.browser',
+      origin: 'auto.pageload.browser',
       metadata: { source: 'url' },
     });
   }
@@ -56,7 +56,7 @@ export function instrumentRoutingWithDefaults<T extends Transaction>(
         activeTransaction = customStartTransaction({
           name: WINDOW.location.pathname,
           op: 'navigation',
-          origin: 'auto.http.browser',
+          origin: 'auto.navigation.browser',
           metadata: { source: 'url' },
         });
       }
