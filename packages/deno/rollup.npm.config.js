@@ -16,7 +16,6 @@ export default {
   plugins: [
     nodeResolve({
       extensions: ['.mjs', '.js', '.json', '.node', '.ts', '.tsx'],
-      moduleDirectories: ['/workspaces/sentry-javascript/node_modules'],
     }),
     replace({
       preventAssignment: true,
