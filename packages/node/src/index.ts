@@ -54,6 +54,7 @@ export {
   trace,
   withScope,
   captureCheckIn,
+  setMeasurement,
 } from '@sentry/core';
 export type { SpanStatusType } from '@sentry/core';
 export { autoDiscoverNodePerformanceMonitoringIntegrations } from './tracing';
