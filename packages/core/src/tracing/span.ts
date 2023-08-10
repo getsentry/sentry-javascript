@@ -152,6 +152,9 @@ export class Span implements SpanInterface {
     if (spanContext.description) {
       this.description = spanContext.description;
     }
+    if (spanContext.name) {
+      this.description = spanContext.name;
+    }
     if (spanContext.data) {
       this.data = spanContext.data;
     }
@@ -241,6 +244,13 @@ export class Span implements SpanInterface {
       this.setStatus(spanStatus);
     }
     return this;
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public setName(name: string): void {
+    this.description = name;
   }
 
   /**

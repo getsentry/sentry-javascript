@@ -201,7 +201,7 @@ describe('handleSentry', () => {
       expect(ref.spanRecorder.spans).toHaveLength(2);
       expect(ref.spanRecorder.spans).toEqual(
         expect.arrayContaining([
-          expect.objectContaining({ op: 'http.server', description: 'GET /users/[id]' }),
+          expect.objectContaining({ op: 'http.server', name: 'GET /users/[id]' }),
           expect.objectContaining({ op: 'http.server', description: 'GET api/users/details/[id]' }),
         ]),
       );

@@ -44,6 +44,9 @@ export class Transaction extends SpanClass implements TransactionInterface {
    */
   public constructor(transactionContext: TransactionContext, hub?: Hub) {
     super(transactionContext);
+    // We need to delete description since it's set by the Span class constructor
+    // but not needed for transactions.
+    delete this.description;
 
     this._measurements = {};
     this._contexts = {};
