@@ -99,12 +99,14 @@ export class EventBufferProxy implements EventBuffer {
 
   /** Switch the used buffer to the compression worker. */
   private async _switchToCompressionWorker(): Promise<void> {
-    const { events } = this._fallback;
+    const { events, hasCheckout } = this._fallback;
 
     const addEventPromises: Promise<void>[] = [];
     for (const event of events) {
       addEventPromises.push(this._compression.addEvent(event));
     }
+
+    this._compression.hasCheckout = hasCheckout;
 
     // We switch over to the new buffer immediately - any further events will be added
     // after the previously buffered ones

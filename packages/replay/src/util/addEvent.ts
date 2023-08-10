@@ -52,6 +52,9 @@ export async function addEvent(
   try {
     if (isCheckout && replay.recordingMode === 'buffer') {
       replay.eventBuffer.clear();
+    }
+
+    if (isCheckout) {
       replay.eventBuffer.hasCheckout = true;
     }
 
