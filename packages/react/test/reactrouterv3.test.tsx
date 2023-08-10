@@ -52,7 +52,7 @@ describe('React Router V3', () => {
     expect(mockStartTransaction).toHaveBeenLastCalledWith({
       name: '/',
       op: 'pageload',
-      origin: 'auto.http.react.reactrouterv3',
+      origin: 'auto.pageload.react.reactrouterv3',
       tags: { 'routing.instrumentation': 'react-router-v3' },
       metadata: {
         source: 'route',
@@ -78,7 +78,7 @@ describe('React Router V3', () => {
     expect(mockStartTransaction).toHaveBeenLastCalledWith({
       name: '/about',
       op: 'navigation',
-      origin: 'auto.http.react.reactrouterv3',
+      origin: 'auto.navigation.react.reactrouterv3',
       tags: { from: '/', 'routing.instrumentation': 'react-router-v3' },
       metadata: {
         source: 'route',
@@ -92,7 +92,7 @@ describe('React Router V3', () => {
     expect(mockStartTransaction).toHaveBeenLastCalledWith({
       name: '/features',
       op: 'navigation',
-      origin: 'auto.http.react.reactrouterv3',
+      origin: 'auto.navigation.react.reactrouterv3',
       tags: { from: '/about', 'routing.instrumentation': 'react-router-v3' },
       metadata: {
         source: 'route',
@@ -146,7 +146,7 @@ describe('React Router V3', () => {
     expect(mockStartTransaction).toHaveBeenLastCalledWith({
       name: '/users/:userid',
       op: 'navigation',
-      origin: 'auto.http.react.reactrouterv3',
+      origin: 'auto.navigation.react.reactrouterv3',
       tags: { from: '/', 'routing.instrumentation': 'react-router-v3' },
       metadata: {
         source: 'route',
@@ -168,7 +168,7 @@ describe('React Router V3', () => {
     expect(mockStartTransaction).toHaveBeenLastCalledWith({
       name: '/organizations/:orgid/v1/:teamid',
       op: 'navigation',
-      origin: 'auto.http.react.reactrouterv3',
+      origin: 'auto.navigation.react.reactrouterv3',
       tags: { from: '/', 'routing.instrumentation': 'react-router-v3' },
       metadata: {
         source: 'route',
@@ -184,7 +184,7 @@ describe('React Router V3', () => {
     expect(mockStartTransaction).toHaveBeenLastCalledWith({
       name: '/organizations/:orgid',
       op: 'navigation',
-      origin: 'auto.http.react.reactrouterv3',
+      origin: 'auto.navigation.react.reactrouterv3',
       tags: { from: '/organizations/:orgid/v1/:teamid', 'routing.instrumentation': 'react-router-v3' },
       metadata: {
         source: 'route',
@@ -205,7 +205,7 @@ describe('React Router V3', () => {
     expect(mockStartTransaction).toHaveBeenLastCalledWith({
       name: '/organizations/1234/some/other/route',
       op: 'navigation',
-      origin: 'auto.http.react.reactrouterv3',
+      origin: 'auto.navigation.react.reactrouterv3',
       tags: { from: '/', 'routing.instrumentation': 'react-router-v3' },
       metadata: {
         source: 'url',
@@ -226,7 +226,7 @@ describe('React Router V3', () => {
     expect(mockStartTransaction).toHaveBeenLastCalledWith({
       name: '/',
       op: 'pageload',
-      origin: 'auto.http.react.reactrouterv3',
+      origin: 'auto.pageload.react.reactrouterv3',
       tags: { 'routing.instrumentation': 'react-router-v3' },
       metadata: {
         source: 'url',

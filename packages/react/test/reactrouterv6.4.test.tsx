@@ -70,7 +70,7 @@ describe('React Router v6.4', () => {
       expect(mockStartTransaction).toHaveBeenCalledWith({
         name: '/',
         op: 'pageload',
-        origin: 'auto.http.react.reactrouterv6',
+        origin: 'auto.pageload.react.reactrouterv6',
         tags: {
           'routing.instrumentation': 'react-router-v6',
         },
@@ -107,7 +107,7 @@ describe('React Router v6.4', () => {
       expect(mockStartTransaction).toHaveBeenLastCalledWith({
         name: '/about',
         op: 'navigation',
-        origin: 'auto.http.react.reactrouterv6',
+        origin: 'auto.navigation.react.reactrouterv6',
         tags: { 'routing.instrumentation': 'react-router-v6' },
         metadata: { source: 'route' },
       });
@@ -146,7 +146,7 @@ describe('React Router v6.4', () => {
       expect(mockStartTransaction).toHaveBeenLastCalledWith({
         name: '/about/us',
         op: 'navigation',
-        origin: 'auto.http.react.reactrouterv6',
+        origin: 'auto.navigation.react.reactrouterv6',
         tags: { 'routing.instrumentation': 'react-router-v6' },
         metadata: { source: 'route' },
       });
@@ -185,7 +185,7 @@ describe('React Router v6.4', () => {
       expect(mockStartTransaction).toHaveBeenLastCalledWith({
         name: '/about/:page',
         op: 'navigation',
-        origin: 'auto.http.react.reactrouterv6',
+        origin: 'auto.navigation.react.reactrouterv6',
         tags: { 'routing.instrumentation': 'react-router-v6' },
         metadata: { source: 'route' },
       });
@@ -236,7 +236,7 @@ describe('React Router v6.4', () => {
       expect(mockStartTransaction).toHaveBeenLastCalledWith({
         name: '/stores/:storeId/products/:productId',
         op: 'navigation',
-        origin: 'auto.http.react.reactrouterv6',
+        origin: 'auto.navigation.react.reactrouterv6',
         tags: { 'routing.instrumentation': 'react-router-v6' },
         metadata: { source: 'route' },
       });
@@ -305,7 +305,7 @@ describe('React Router v6.4', () => {
       expect(mockStartTransaction).toHaveBeenLastCalledWith({
         name: '/app/about/us',
         op: 'navigation',
-        origin: 'auto.http.react.reactrouterv6',
+        origin: 'auto.navigation.react.reactrouterv6',
         tags: { 'routing.instrumentation': 'react-router-v6' },
         metadata: { source: 'url' },
       });

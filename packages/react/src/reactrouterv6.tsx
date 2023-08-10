@@ -55,7 +55,7 @@ export function reactRouterV6Instrumentation(
       activeTransaction = customStartTransaction({
         name: initPathName,
         op: 'pageload',
-        origin: 'auto.http.react.reactrouterv6',
+        origin: 'auto.pageload.react.reactrouterv6',
         tags: SENTRY_TAGS,
         metadata: {
           source: 'url',
@@ -153,7 +153,7 @@ function handleNavigation(
     activeTransaction = _customStartTransaction({
       name,
       op: 'navigation',
-      origin: 'auto.http.react.reactrouterv6',
+      origin: 'auto.navigation.react.reactrouterv6',
       tags: SENTRY_TAGS,
       metadata: {
         source,
