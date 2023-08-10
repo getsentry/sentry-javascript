@@ -35,7 +35,7 @@ function _wrapCloudEventFunction(
     const transaction = hub.startTransaction({
       name: context.type || '<unknown>',
       op: 'function.gcp.cloud_event',
-      origin: 'auto.http.serverless.gpc_cloud_event',
+      origin: 'auto.function.serverless.gcp_cloud_event',
       metadata: { source: 'component' },
     }) as ReturnType<typeof hub.startTransaction> | undefined;
 

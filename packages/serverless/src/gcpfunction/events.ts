@@ -37,7 +37,7 @@ function _wrapEventFunction<F extends EventFunction | EventFunctionWithCallback>
     const transaction = hub.startTransaction({
       name: context.eventType,
       op: 'function.gcp.event',
-      origin: 'auto.http.serverless.gpc_event',
+      origin: 'auto.function.serverless.gcp_event',
       metadata: { source: 'component' },
     }) as ReturnType<typeof hub.startTransaction> | undefined;
 

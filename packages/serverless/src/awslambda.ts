@@ -292,7 +292,7 @@ export function wrapHandler<TEvent, TResult>(
     const transaction = hub.startTransaction({
       name: context.functionName,
       op: 'function.aws.lambda',
-      origin: 'auto.http.serverless',
+      origin: 'auto.function.serverless',
       ...traceparentData,
       metadata: {
         dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,

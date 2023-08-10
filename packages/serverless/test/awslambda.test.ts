@@ -194,7 +194,7 @@ describe('AWSLambda', () => {
       const fakeTransactionContext = {
         name: 'functionName',
         op: 'function.aws.lambda',
-        origin: 'auto.http.serverless',
+        origin: 'auto.function.serverless',
         metadata: { source: 'component' },
       };
 
@@ -222,7 +222,7 @@ describe('AWSLambda', () => {
         const fakeTransactionContext = {
           name: 'functionName',
           op: 'function.aws.lambda',
-          origin: 'auto.http.serverless',
+          origin: 'auto.function.serverless',
           metadata: { source: 'component' },
         };
 
@@ -263,7 +263,7 @@ describe('AWSLambda', () => {
             parentSpanId: '1121201211212012',
             parentSampled: false,
             op: 'function.aws.lambda',
-            origin: 'auto.http.serverless',
+            origin: 'auto.function.serverless',
             name: 'functionName',
             traceId: '12312012123120121231201212312012',
             metadata: {
@@ -298,7 +298,7 @@ describe('AWSLambda', () => {
         const fakeTransactionContext = {
           name: 'functionName',
           op: 'function.aws.lambda',
-          origin: 'auto.http.serverless',
+          origin: 'auto.function.serverless',
           traceId: '12312012123120121231201212312012',
           parentSpanId: '1121201211212012',
           parentSampled: false,
@@ -329,7 +329,7 @@ describe('AWSLambda', () => {
       const fakeTransactionContext = {
         name: 'functionName',
         op: 'function.aws.lambda',
-        origin: 'auto.http.serverless',
+        origin: 'auto.function.serverless',
         metadata: { source: 'component' },
       };
 
@@ -368,7 +368,7 @@ describe('AWSLambda', () => {
         const fakeTransactionContext = {
           name: 'functionName',
           op: 'function.aws.lambda',
-          origin: 'auto.http.serverless',
+          origin: 'auto.function.serverless',
           metadata: { source: 'component' },
         };
 
@@ -411,7 +411,7 @@ describe('AWSLambda', () => {
       const fakeTransactionContext = {
         name: 'functionName',
         op: 'function.aws.lambda',
-        origin: 'auto.http.serverless',
+        origin: 'auto.function.serverless',
         metadata: { source: 'component' },
       };
 
@@ -450,7 +450,7 @@ describe('AWSLambda', () => {
         const fakeTransactionContext = {
           name: 'functionName',
           op: 'function.aws.lambda',
-          origin: 'auto.http.serverless',
+          origin: 'auto.function.serverless',
           metadata: { source: 'component' },
         };
 
