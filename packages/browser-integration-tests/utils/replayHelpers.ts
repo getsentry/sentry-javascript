@@ -267,7 +267,7 @@ function getOptionsEvents(replayRequest: Request): CustomRecordingEvent[] {
   return getAllCustomRrwebRecordingEvents(events).filter(data => data.tag === 'options');
 }
 
-export function getDecompressedRecordingEvents(resOrReq: Request | Response): RecordingSnapshot[] {
+function getDecompressedRecordingEvents(resOrReq: Request | Response): RecordingSnapshot[] {
   const replayRequest = getRequest(resOrReq);
   return (
     (replayEnvelopeRequestParser(replayRequest, 5) as eventWithTime[])
@@ -302,7 +302,7 @@ const replayEnvelopeRequestParser = (request: Request | null, envelopeIndex = 2)
   return envelope[envelopeIndex] as Event;
 };
 
-const replayEnvelopeParser = (request: Request | null): unknown[] => {
+export const replayEnvelopeParser = (request: Request | null): unknown[] => {
   // https://develop.sentry.dev/sdk/envelopes/
   const envelopeBytes = request?.postDataBuffer() || '';
 
