@@ -16,7 +16,7 @@ export class ExtraErrorData implements Integration {
   /**
    * @inheritDoc
    */
-  public name: string = ExtraErrorData.id;
+  public name: string;
 
   /** JSDoc */
   private readonly _options: ExtraErrorDataOptions;
@@ -25,6 +25,8 @@ export class ExtraErrorData implements Integration {
    * @inheritDoc
    */
   public constructor(options?: ExtraErrorDataOptions) {
+    this.name = ExtraErrorData.id;
+
     this._options = {
       depth: 3,
       ...options,

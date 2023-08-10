@@ -7,13 +7,7 @@ import {
   Integrations as CoreIntegrations,
 } from '@sentry/core';
 import type { UserFeedback } from '@sentry/types';
-import {
-  addInstrumentationHandler,
-  logger,
-  resolvedSyncPromise,
-  stackParserFromStackParserOptions,
-  supportsFetch,
-} from '@sentry/utils';
+import { addInstrumentationHandler, logger, stackParserFromStackParserOptions, supportsFetch } from '@sentry/utils';
 
 import type { BrowserClientOptions, BrowserOptions } from './client';
 import { BrowserClient } from './client';
@@ -180,15 +174,6 @@ export function showReportDialog(options: ReportDialogOptions = {}, hub: Hub = g
 }
 
 /**
- * This is the getter for lastEventId.
- *
- * @returns The last event id of a captured event.
- */
-export function lastEventId(): string | undefined {
-  return getCurrentHub().lastEventId();
-}
-
-/**
  * This function is here to be API compatible with the loader.
  * @hidden
  */
@@ -202,40 +187,6 @@ export function forceLoad(): void {
  */
 export function onLoad(callback: () => void): void {
   callback();
-}
-
-/**
- * Call `flush()` on the current client, if there is one. See {@link Client.flush}.
- *
- * @param timeout Maximum time in ms the client should wait to flush its event queue. Omitting this parameter will cause
- * the client to wait until all events are sent before resolving the promise.
- * @returns A promise which resolves to `true` if the queue successfully drains before the timeout, or `false` if it
- * doesn't (or if there's no client defined).
- */
-export function flush(timeout?: number): PromiseLike<boolean> {
-  const client = getCurrentHub().getClient<BrowserClient>();
-  if (client) {
-    return client.flush(timeout);
-  }
-  __DEBUG_BUILD__ && logger.warn('Cannot flush events. No client defined.');
-  return resolvedSyncPromise(false);
-}
-
-/**
- * Call `close()` on the current client, if there is one. See {@link Client.close}.
- *
- * @param timeout Maximum time in ms the client should wait to flush its event queue before shutting down. Omitting this
- * parameter will cause the client to wait until all events are sent before disabling itself.
- * @returns A promise which resolves to `true` if the queue successfully drains before the timeout, or `false` if it
- * doesn't (or if there's no client defined).
- */
-export function close(timeout?: number): PromiseLike<boolean> {
-  const client = getCurrentHub().getClient<BrowserClient>();
-  if (client) {
-    return client.close(timeout);
-  }
-  __DEBUG_BUILD__ && logger.warn('Cannot flush events and disable SDK. No client defined.');
-  return resolvedSyncPromise(false);
 }
 
 /**

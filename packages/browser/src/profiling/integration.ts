@@ -22,8 +22,15 @@ import {
  * @experimental
  */
 export class BrowserProfilingIntegration implements Integration {
-  public readonly name: string = 'BrowserProfilingIntegration';
-  public getCurrentHub?: () => Hub = undefined;
+  public static id: string = 'BrowserProfilingIntegration';
+
+  public readonly name: string;
+
+  public getCurrentHub?: () => Hub;
+
+  public constructor() {
+    this.name = BrowserProfilingIntegration.id;
+  }
 
   /**
    * @inheritDoc

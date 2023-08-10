@@ -4,8 +4,8 @@ import type { Event } from '@sentry/types';
 import { sentryTest } from '../../../../../utils/fixtures';
 import { getFirstSentryEnvelopeRequest } from '../../../../../utils/helpers';
 
-sentryTest('captures Breadcrumb for basic GET request', async ({ getLocalTestPath, page }) => {
-  const url = await getLocalTestPath({ testDir: __dirname });
+sentryTest('captures Breadcrumb for basic GET request', async ({ getLocalTestUrl, page }) => {
+  const url = await getLocalTestUrl({ testDir: __dirname });
 
   await page.route('**/foo', route => {
     return route.fulfill({

@@ -1,87 +1,67 @@
-import type { Integration, IntegrationClass } from '@sentry/types';
-import { dynamicRequire } from '@sentry/utils';
+import type { Integration } from '@sentry/types';
 
-import type { Express } from './express';
-import type { Fastify } from './fastify';
-import type { GraphQL } from './graphql';
-import type { Mongo } from './mongo';
-import type { Mongoose } from './mongoose';
-import type { Mysql } from './mysql';
-import type { Mysql2 } from './mysql2';
-import type { Nest } from './nest';
-import type { Postgres } from './postgres';
-import type { Prisma } from './prisma';
+import { Express } from './express';
+import { Fastify } from './fastify';
+import { GraphQL } from './graphql';
+import { Mongo } from './mongo';
+import { Mongoose } from './mongoose';
+import { Mysql } from './mysql';
+import { Mysql2 } from './mysql2';
+import { Nest } from './nest';
+import type { NodePerformanceIntegration } from './NodePerformanceIntegration';
+import { Postgres } from './postgres';
+import { Prisma } from './prisma';
 
-const INTEGRATIONS = [
+const INTEGRATIONS: (() => NodePerformanceIntegration<unknown>)[] = [
   () => {
-    const integration = dynamicRequire(module, './express') as {
-      Express: IntegrationClass<Express>;
-    };
-    return new integration.Express();
+    return new Express();
   },
   () => {
-    const integration = dynamicRequire(module, './fastify') as {
-      Fastify: IntegrationClass<Fastify>;
-    };
-    return new integration.Fastify();
+    return new Fastify();
   },
   () => {
-    const integration = dynamicRequire(module, './graphql') as {
-      GraphQL: IntegrationClass<GraphQL>;
-    };
-    return new integration.GraphQL();
+    return new GraphQL();
   },
   () => {
-    const integration = dynamicRequire(module, './mongo') as {
-      Mongo: IntegrationClass<Mongo>;
-    };
-    return new integration.Mongo();
+    return new Mongo();
   },
   () => {
-    const integration = dynamicRequire(module, './mongoose') as {
-      Mongoose: IntegrationClass<Mongoose>;
-    };
-    return new integration.Mongoose();
+    return new Mongoose();
   },
   () => {
-    const integration = dynamicRequire(module, './mysql') as {
-      Mysql: IntegrationClass<Mysql>;
-    };
-    return new integration.Mysql();
+    return new Mysql();
   },
   () => {
-    const integration = dynamicRequire(module, './mysql2') as {
-      Mysql2: IntegrationClass<Mysql2>;
-    };
-    return new integration.Mysql2();
+    return new Mysql2();
   },
   () => {
-    const integration = dynamicRequire(module, './postgres') as {
-      Postgres: IntegrationClass<Postgres>;
-    };
-    return new integration.Postgres();
+    return new Postgres();
   },
   () => {
-    const integration = dynamicRequire(module, './prisma') as {
-      Prisma: IntegrationClass<Prisma>;
-    };
-    return new integration.Prisma();
+    return new Prisma();
   },
   () => {
-    const integration = dynamicRequire(module, './nest') as {
-      Nest: IntegrationClass<Nest>;
-    };
-    return new integration.Nest();
+    return new Nest();
   },
 ];
 
-/** TODO */
+/**
+ * Get auto-dsicovered performance integrations.
+ * Note that due to the way OpenTelemetry instrumentation works, this will generally still return Integrations
+ * for stuff that may not be installed. This is because Otel only instruments when the module is imported/required,
+ * so if the package is not required at all it will not be patched, and thus not instrumented.
+ * But the _Sentry_ Integration will still be added.
+ * This _may_ be a bit confusing because it shows all integrations as being installed in the debug logs, but this is
+ * technically not wrong because we install it (it just doesn't do anything).
+ */
 export function getAutoPerformanceIntegrations(): Integration[] {
   const loadedIntegrations = INTEGRATIONS.map(tryLoad => {
     try {
-      return tryLoad();
+      const integration = tryLoad();
+      const isLoaded = integration.loadInstrumentations();
+      return isLoaded ? integration : false;
     } catch (_) {
-      return undefined;
+      return false;
     }
   }).filter(integration => !!integration) as Integration[];
 

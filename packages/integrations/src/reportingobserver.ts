@@ -49,23 +49,27 @@ export class ReportingObserver implements Integration {
   /**
    * @inheritDoc
    */
-  public readonly name: string = ReportingObserver.id;
+  public readonly name: string;
 
   /**
    * Returns current hub.
    */
   private _getCurrentHub?: () => Hub;
 
+  private readonly _types: ReportTypes[];
+
   /**
    * @inheritDoc
    */
   public constructor(
-    private readonly _options: {
+    options: {
       types?: ReportTypes[];
-    } = {
-      types: ['crash', 'deprecation', 'intervention'],
-    },
-  ) {}
+    } = {},
+  ) {
+    this.name = ReportingObserver.id;
+
+    this._types = options.types || ['crash', 'deprecation', 'intervention'];
+  }
 
   /**
    * @inheritDoc
@@ -80,7 +84,7 @@ export class ReportingObserver implements Integration {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
     const observer = new (WINDOW as any).ReportingObserver(this.handler.bind(this), {
       buffered: true,
-      types: this._options.types,
+      types: this._types,
     });
 
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access

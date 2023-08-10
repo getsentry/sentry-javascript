@@ -1,6 +1,7 @@
 /* eslint-disable max-lines */
 import type {
   AppContext,
+  CloudResourceContext,
   Contexts,
   CultureContext,
   DeviceContext,
@@ -29,6 +30,7 @@ interface ContextOptions {
   os?: boolean;
   device?: DeviceContextOptions | boolean;
   culture?: boolean;
+  cloudResource?: boolean;
 }
 
 /** Add node modules / packages to the event */
@@ -48,9 +50,15 @@ export class Context implements Integration {
    */
   private _cachedContext: Promise<Contexts> | undefined;
 
-  public constructor(private readonly _options: ContextOptions = { app: true, os: true, device: true, culture: true }) {
-    //
-  }
+  public constructor(
+    private readonly _options: ContextOptions = {
+      app: true,
+      os: true,
+      device: true,
+      culture: true,
+      cloudResource: true,
+    },
+  ) {}
 
   /**
    * @inheritDoc
@@ -73,6 +81,7 @@ export class Context implements Integration {
       os: { ...updatedContext.os, ...event.contexts?.os },
       device: { ...updatedContext.device, ...event.contexts?.device },
       culture: { ...updatedContext.culture, ...event.contexts?.culture },
+      cloud_resource: { ...updatedContext.cloud_resource, ...event.contexts?.cloud_resource },
     };
 
     return event;
@@ -118,6 +127,10 @@ export class Context implements Integration {
       if (culture) {
         contexts.culture = culture;
       }
+    }
+
+    if (this._options.cloudResource) {
+      contexts.cloud_resource = getCloudResourceContext();
     }
 
     return contexts;
@@ -379,4 +392,73 @@ async function getLinuxInfo(): Promise<OsContext> {
   }
 
   return linuxInfo;
+}
+
+/**
+ * Grabs some information about hosting provider based on best effort.
+ */
+function getCloudResourceContext(): CloudResourceContext | undefined {
+  if (process.env.VERCEL) {
+    // https://vercel.com/docs/concepts/projects/environment-variables/system-environment-variables#system-environment-variables
+    return {
+      'cloud.provider': 'vercel',
+      'cloud.region': process.env.VERCEL_REGION,
+    };
+  } else if (process.env.AWS_REGION) {
+    // https://docs.aws.amazon.com/lambda/latest/dg/configuration-envvars.html
+    return {
+      'cloud.provider': 'aws',
+      'cloud.region': process.env.AWS_REGION,
+      'cloud.platform': process.env.AWS_EXECUTION_ENV,
+    };
+  } else if (process.env.GCP_PROJECT) {
+    // https://cloud.google.com/composer/docs/how-to/managing/environment-variables#reserved_variables
+    return {
+      'cloud.provider': 'gcp',
+    };
+  } else if (process.env.ALIYUN_REGION_ID) {
+    // TODO: find where I found these environment variables - at least gc.github.com returns something
+    return {
+      'cloud.provider': 'alibaba_cloud',
+      'cloud.region': process.env.ALIYUN_REGION_ID,
+    };
+  } else if (process.env.WEBSITE_SITE_NAME && process.env.REGION_NAME) {
+    // https://learn.microsoft.com/en-us/azure/app-service/reference-app-settings?tabs=kudu%2Cdotnet#app-environment
+    return {
+      'cloud.provider': 'azure',
+      'cloud.region': process.env.REGION_NAME,
+    };
+  } else if (process.env.IBM_CLOUD_REGION) {
+    // TODO: find where I found these environment variables - at least gc.github.com returns something
+    return {
+      'cloud.provider': 'ibm_cloud',
+      'cloud.region': process.env.IBM_CLOUD_REGION,
+    };
+  } else if (process.env.TENCENTCLOUD_REGION) {
+    // https://www.tencentcloud.com/document/product/583/32748
+    return {
+      'cloud.provider': 'tencent_cloud',
+      'cloud.region': process.env.TENCENTCLOUD_REGION,
+      'cloud.account.id': process.env.TENCENTCLOUD_APPID,
+      'cloud.availability_zone': process.env.TENCENTCLOUD_ZONE,
+    };
+  } else if (process.env.NETLIFY) {
+    // https://docs.netlify.com/configure-builds/environment-variables/#read-only-variables
+    return {
+      'cloud.provider': 'netlify',
+    };
+  } else if (process.env.FLY_REGION) {
+    // https://fly.io/docs/reference/runtime-environment/
+    return {
+      'cloud.provider': 'fly.io',
+      'cloud.region': process.env.FLY_REGION,
+    };
+  } else if (process.env.DYNO) {
+    // https://devcenter.heroku.com/articles/dynos#local-environment-variables
+    return {
+      'cloud.provider': 'heroku',
+    };
+  } else {
+    return undefined;
+  }
 }

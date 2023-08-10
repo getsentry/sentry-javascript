@@ -5,10 +5,14 @@ export type { OfflineStore, OfflineTransportOptions } from './transports/offline
 export * from './tracing';
 export {
   addBreadcrumb,
+  captureCheckIn,
   captureException,
   captureEvent,
   captureMessage,
+  close,
   configureScope,
+  flush,
+  lastEventId,
   startTransaction,
   setContext,
   setExtra,
@@ -17,7 +21,6 @@ export {
   setTags,
   setUser,
   withScope,
-  captureCheckIn,
 } from './exports';
 export {
   getCurrentHub,

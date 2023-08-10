@@ -2,7 +2,7 @@ import type { Instrumentation } from '@opentelemetry/instrumentation';
 import { NestInstrumentation } from '@opentelemetry/instrumentation-nestjs-core';
 import type { Integration } from '@sentry/types';
 
-import { NodePerformanceIntegration } from './lazy';
+import { NodePerformanceIntegration } from './NodePerformanceIntegration';
 
 /**
  * Nest framework integration
@@ -16,9 +16,14 @@ export class Nest extends NodePerformanceIntegration<void> implements Integratio
   public static id: string = 'Nest';
 
   /**
-   * @inheritDoc`
+   * @inheritDoc
    */
-  public name: string = Nest.id;
+  public name: string;
+
+  public constructor() {
+    super();
+    this.name = Nest.id;
+  }
 
   /** @inheritDoc */
   public setupInstrumentation(): void | Instrumentation[] {

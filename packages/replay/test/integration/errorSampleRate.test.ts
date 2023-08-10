@@ -226,6 +226,71 @@ describe('Integration | errorSampleRate', () => {
     });
   });
 
+  it('handles multiple simultaneous flushes', async () => {
+    const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 3 };
+    mockRecord._emitter(TEST_EVENT);
+    const optionsEvent = createOptionsEvent(replay);
+
+    expect(mockRecord.takeFullSnapshot).not.toHaveBeenCalled();
+    expect(replay).not.toHaveLastSentReplay();
+
+    // Does not capture on mouse click
+    domHandler({
+      name: 'click',
+    });
+    jest.runAllTimers();
+    await new Promise(process.nextTick);
+    expect(replay).not.toHaveLastSentReplay();
+
+    replay.sendBufferedReplayOrFlush({ continueRecording: true });
+    replay.sendBufferedReplayOrFlush({ continueRecording: true });
+
+    await waitForBufferFlush();
+
+    expect(replay).toHaveSentReplay({
+      recordingPayloadHeader: { segment_id: 0 },
+      replayEventPayload: expect.objectContaining({
+        replay_type: 'buffer',
+      }),
+      recordingData: JSON.stringify([
+        { data: { isCheckout: true }, timestamp: BASE_TIMESTAMP, type: 2 },
+        optionsEvent,
+        TEST_EVENT,
+        {
+          type: 5,
+          timestamp: BASE_TIMESTAMP,
+          data: {
+            tag: 'breadcrumb',
+            payload: {
+              timestamp: BASE_TIMESTAMP / 1000,
+              type: 'default',
+              category: 'ui.click',
+              message: '<unknown>',
+              data: {},
+            },
+          },
+        },
+      ]),
+    });
+
+    jest.advanceTimersByTime(DEFAULT_FLUSH_MIN_DELAY);
+    // Check that click will not get captured
+    domHandler({
+      name: 'click',
+    });
+
+    await waitForFlush();
+
+    // This is still the last replay sent since we passed `continueRecording:
+    // false`.
+    expect(replay).toHaveLastSentReplay({
+      recordingPayloadHeader: { segment_id: 1 },
+      replayEventPayload: expect.objectContaining({
+        replay_type: 'buffer',
+      }),
+    });
+  });
+
   // This tests a regression where we were calling flush indiscriminantly in `stop()`
   it('does not upload a replay event if error is not sampled', async () => {
     // We are trying to replicate the case where error rate is 0 and session
@@ -620,7 +685,8 @@ describe('Integration | errorSampleRate', () => {
 
     await waitForBufferFlush();
 
-    expect(replay.session?.started).toBe(BASE_TIMESTAMP + ELAPSED + TICK + TICK);
+    // This is still the timestamp from the full snapshot we took earlier
+    expect(replay.session?.started).toBe(BASE_TIMESTAMP + ELAPSED + TICK);
 
     // Does not capture mouse click
     expect(replay).toHaveSentReplay({
@@ -817,6 +883,129 @@ describe('Integration | errorSampleRate', () => {
     expect(mockRecord.takeFullSnapshot).toHaveBeenCalledTimes(0);
     expect(replay.isEnabled()).toBe(false);
   });
+
+  it('handles very long active buffer session', async () => {
+    const stepDuration = 10_000;
+    const steps = 5_000;
+
+    jest.setSystemTime(BASE_TIMESTAMP);
+
+    expect(replay).not.toHaveLastSentReplay();
+
+    let optionsEvent = createOptionsEvent(replay);
+
+    for (let i = 1; i <= steps; i++) {
+      jest.advanceTimersByTime(stepDuration);
+      optionsEvent = createOptionsEvent(replay);
+      mockRecord._emitter({ data: { step: i }, timestamp: BASE_TIMESTAMP + stepDuration * i, type: 2 }, true);
+      mockRecord._emitter({ data: { step: i }, timestamp: BASE_TIMESTAMP + stepDuration * i + 5, type: 3 });
+    }
+
+    expect(replay).not.toHaveLastSentReplay();
+
+    expect(replay.isEnabled()).toBe(true);
+    expect(replay.isPaused()).toBe(false);
+    expect(replay.recordingMode).toBe('buffer');
+
+    // Now capture an error
+    captureException(new Error('testing'));
+    await waitForBufferFlush();
+
+    expect(replay).toHaveLastSentReplay({
+      recordingData: JSON.stringify([
+        { data: { step: steps }, timestamp: BASE_TIMESTAMP + stepDuration * steps, type: 2 },
+        optionsEvent,
+        { data: { step: steps }, timestamp: BASE_TIMESTAMP + stepDuration * steps + 5, type: 3 },
+      ]),
+      replayEventPayload: expect.objectContaining({
+        replay_start_timestamp: (BASE_TIMESTAMP + stepDuration * steps) / 1000,
+        error_ids: [expect.any(String)],
+        trace_ids: [],
+        urls: ['http://localhost/'],
+        replay_id: expect.any(String),
+      }),
+      recordingPayloadHeader: { segment_id: 0 },
+    });
+  });
+});
+
+/**
+ * If an error happens, we switch the recordingMode to `session`, set `shouldRefresh=false` on the session,
+ * but keep `sampled=buffer`.
+ * This test should verify that if we load such a session from sessionStorage, the session is eventually correctly ended.
+ */
+it('handles buffer sessions that previously had an error', async () => {
+  // Pretend that a session is already saved before loading replay
+  WINDOW.sessionStorage.setItem(
+    REPLAY_SESSION_KEY,
+    `{"segmentId":0,"id":"fd09adfc4117477abc8de643e5a5798a","sampled":"buffer","started":${BASE_TIMESTAMP},"lastActivity":${BASE_TIMESTAMP},"shouldRefresh":false}`,
+  );
+  const { mockRecord, replay, integration } = await resetSdkMock({
+    replayOptions: {
+      stickySession: true,
+    },
+    sentryOptions: {
+      replaysOnErrorSampleRate: 1.0,
+    },
+    autoStart: false,
+  });
+  integration['_initialize']();
+
+  jest.runAllTimers();
+
+  await new Promise(process.nextTick);
+  const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 3 };
+  mockRecord._emitter(TEST_EVENT);
+
+  expect(replay).not.toHaveLastSentReplay();
+
+  // Waiting for max life should eventually stop recording
+  // We simulate a full checkout which would otherwise be done automatically
+  for (let i = 0; i < MAX_SESSION_LIFE / 60_000; i++) {
+    jest.advanceTimersByTime(60_000);
+    await new Promise(process.nextTick);
+    mockRecord.takeFullSnapshot(true);
+  }
+
+  expect(replay).not.toHaveLastSentReplay();
+  expect(replay.isEnabled()).toBe(false);
+});
+
+it('handles buffer sessions that never had an error', async () => {
+  // Pretend that a session is already saved before loading replay
+  WINDOW.sessionStorage.setItem(
+    REPLAY_SESSION_KEY,
+    `{"segmentId":0,"id":"fd09adfc4117477abc8de643e5a5798a","sampled":"buffer","started":${BASE_TIMESTAMP},"lastActivity":${BASE_TIMESTAMP}}`,
+  );
+  const { mockRecord, replay, integration } = await resetSdkMock({
+    replayOptions: {
+      stickySession: true,
+    },
+    sentryOptions: {
+      replaysOnErrorSampleRate: 1.0,
+    },
+    autoStart: false,
+  });
+  integration['_initialize']();
+
+  jest.runAllTimers();
+
+  await new Promise(process.nextTick);
+  const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 3 };
+  mockRecord._emitter(TEST_EVENT);
+
+  expect(replay).not.toHaveLastSentReplay();
+
+  // Waiting for max life should eventually stop recording
+  // We simulate a full checkout which would otherwise be done automatically
+  for (let i = 0; i < MAX_SESSION_LIFE / 60_000; i++) {
+    jest.advanceTimersByTime(60_000);
+    await new Promise(process.nextTick);
+    mockRecord.takeFullSnapshot(true);
+  }
+
+  expect(replay).not.toHaveLastSentReplay();
+  expect(replay.isEnabled()).toBe(true);
 });
 
 /**

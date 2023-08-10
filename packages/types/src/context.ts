@@ -9,6 +9,7 @@ export interface Contexts extends Record<string, Context | undefined> {
   culture?: CultureContext;
   response?: ResponseContext;
   trace?: TraceContext;
+  cloud_resource?: CloudResourceContext;
 }
 
 export interface AppContext extends Record<string, unknown> {
@@ -92,4 +93,14 @@ export interface TraceContext extends Record<string, unknown> {
   status?: string;
   tags?: { [key: string]: Primitive };
   trace_id: string;
+}
+
+export interface CloudResourceContext extends Record<string, unknown> {
+  ['cloud.provider']?: string;
+  ['cloud.account.id']?: string;
+  ['cloud.region']?: string;
+  ['cloud.availability_zone']?: string;
+  ['cloud.platform']?: string;
+  ['host.id']?: string;
+  ['host.type']?: string;
 }

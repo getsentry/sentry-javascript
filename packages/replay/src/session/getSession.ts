@@ -1,7 +1,6 @@
-import { logger } from '@sentry/utils';
-
 import type { Session, SessionOptions, Timeouts } from '../types';
 import { isSessionExpired } from '../util/isSessionExpired';
+import { logInfoNextTick } from '../util/log';
 import { createSession } from './createSession';
 import { fetchSession } from './fetchSession';
 import { makeSession } from './Session';
@@ -13,6 +12,8 @@ interface GetSessionParams extends SessionOptions {
    * The current session (e.g. if stickySession is off)
    */
   currentSession?: Session;
+
+  traceInternals?: boolean;
 }
 
 /**
@@ -24,9 +25,10 @@ export function getSession({
   stickySession,
   sessionSampleRate,
   allowBuffering,
+  traceInternals,
 }: GetSessionParams): { type: 'new' | 'saved'; session: Session } {
   // If session exists and is passed, use it instead of always hitting session storage
-  const session = currentSession || (stickySession && fetchSession());
+  const session = currentSession || (stickySession && fetchSession(traceInternals));
 
   if (session) {
     // If there is a session, check if it is valid (e.g. "last activity" time
@@ -42,9 +44,10 @@ export function getSession({
       // and when this session is expired, it will not be renewed until user
       // reloads.
       const discardedSession = makeSession({ sampled: false });
+      logInfoNextTick('[Replay] Session should not be refreshed', traceInternals);
       return { type: 'new', session: discardedSession };
     } else {
-      __DEBUG_BUILD__ && logger.log('[Replay] Session has expired');
+      logInfoNextTick('[Replay] Session has expired', traceInternals);
     }
     // Otherwise continue to create a new session
   }
@@ -54,6 +57,7 @@ export function getSession({
     sessionSampleRate,
     allowBuffering,
   });
+  logInfoNextTick('[Replay] Created new session', traceInternals);
 
   return { type: 'new', session: newSession };
 }

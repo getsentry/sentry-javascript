@@ -4,6 +4,58 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.62.0
+
+### Important Changes
+
+- **feat(integrations): Add `ContextLines` integration for html-embedded JS stack frames (#8699)**
+
+This release adds the `ContextLines` integration as an optional integration for the Browser SDKs to `@sentry/integrations`.
+
+This integration adds source code from inline JavaScript of the current page's HTML (e.g. JS in `<script>` tags) to stack traces of captured errors.
+It _can't_ collect source code from assets referenced by your HTML (e.g. `<script src="..." />`).
+
+The `ContextLines` integration is useful when you have inline JS code in HTML pages that can't be accessed by Sentry's backend, for example, due to a login-protected page.
+
+```js
+import { ContextLines } from "@sentry/integrations";
+
+Sentry.init({
+  // ...
+  integrations: [
+    new ContextLines({
+      // The number of lines to collect before and after each stack frame's line number
+      // Defaults to 7
+      frameContextLines: 7,
+    }),
+  ],
+});
+```
+
+### Other Changes
+
+- fix(nextjs): Make all wrappers isomorphic and available in all runtimes (#8743)
+- fix(replay): Cancel debounce when replay is too short/long (#8742)
+- fix(utils): `dirname` and `basename` should handle Windows paths (#8737)
+- ref: Hoist `flush`, `close`, and `lastEventId` into `@sentry/core` (#8731)
+- ref(node): Don't call `JSON.stringify` on prisma client when logging (#8745)
+
+## 7.61.1
+
+- feat(nextjs): Add `AsyncLocalStorage` async context strategy to edge SDK (#8720)
+- fix(core): Filter internal API frames for synthetic frames (#8710)
+- fix(integrations): Capture exception if any arg to console method is an error (#8671)
+- fix(node-experimental): Update auto integration lookup & readme (#8690)
+- fix(node): Add availablility check on current hub to Node `ContextLines` integration (#8715)
+- fix(replay): Ensure buffer sessions end after capturing an error (#8713)
+- fix(replay): Ensure buffer->session switch is reliable (#8712)
+- fix(replay): Ensure we debounce flush if replay too short (#8716)
+- fix(replay): Improve capture of errorIds/traceIds (#8678)
+- fix(tracing): Set correct parent span id on fetch sentry-trace header (#8687)
+- fix(utils): Avoid `pre_context` and `context_line` overlap if frame lineno is out of bounds (#8722)
+- ref(replay): Improve status logging (#8709)
+- ref(nextjs): Allow withSentryConfig to accept async config function (#8721)
+
 ## 7.61.0
 
 ### Important Changes

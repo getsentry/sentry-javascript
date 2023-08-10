@@ -43,7 +43,7 @@ export class Apollo implements LazyLoadedIntegration<GraphQLModule & ApolloModul
   /**
    * @inheritDoc
    */
-  public name: string = Apollo.id;
+  public name: string;
 
   private readonly _useNest: boolean;
 
@@ -57,6 +57,7 @@ export class Apollo implements LazyLoadedIntegration<GraphQLModule & ApolloModul
       useNestjs: false,
     },
   ) {
+    this.name = Apollo.id;
     this._useNest = !!options.useNestjs;
   }
 

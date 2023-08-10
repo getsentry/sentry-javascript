@@ -10,10 +10,16 @@ import { EventBufferSizeExceededError } from './error';
 export class EventBufferArray implements EventBuffer {
   /** All the events that are buffered to be sent. */
   public events: RecordingEvent[];
-  private _totalSize = 0;
+
+  /** @inheritdoc */
+  public hasCheckout: boolean;
+
+  private _totalSize: number;
 
   public constructor() {
     this.events = [];
+    this._totalSize = 0;
+    this.hasCheckout = false;
   }
 
   /** @inheritdoc */
@@ -58,6 +64,7 @@ export class EventBufferArray implements EventBuffer {
   public clear(): void {
     this.events = [];
     this._totalSize = 0;
+    this.hasCheckout = false;
   }
 
   /** @inheritdoc */

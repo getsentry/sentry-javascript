@@ -16,12 +16,13 @@ import { dropUndefinedKeys, generateSentryTraceHeader, logger, timestampInSecond
  * @hidden
  */
 export class SpanRecorder {
-  public spans: Span[] = [];
+  public spans: Span[];
 
   private readonly _maxlen: number;
 
   public constructor(maxlen: number = 1000) {
     this._maxlen = maxlen;
+    this.spans = [];
   }
 
   /**
@@ -46,12 +47,12 @@ export class Span implements SpanInterface {
   /**
    * @inheritDoc
    */
-  public traceId: string = uuid4();
+  public traceId: string;
 
   /**
    * @inheritDoc
    */
-  public spanId: string = uuid4().substring(16);
+  public spanId: string;
 
   /**
    * @inheritDoc
@@ -71,7 +72,7 @@ export class Span implements SpanInterface {
   /**
    * Timestamp in seconds when the span was created.
    */
-  public startTimestamp: number = timestampInSeconds();
+  public startTimestamp: number;
 
   /**
    * Timestamp in seconds when the span ended.
@@ -91,13 +92,13 @@ export class Span implements SpanInterface {
   /**
    * @inheritDoc
    */
-  public tags: { [key: string]: Primitive } = {};
+  public tags: { [key: string]: Primitive };
 
   /**
    * @inheritDoc
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  public data: { [key: string]: any } = {};
+  public data: { [key: string]: any };
 
   /**
    * List of spans that were finalized
@@ -112,7 +113,7 @@ export class Span implements SpanInterface {
   /**
    * The instrumenter that created this span.
    */
-  public instrumenter: Instrumenter = 'sentry';
+  public instrumenter: Instrumenter;
 
   /**
    * You should never call the constructor manually, always use `Sentry.startTransaction()`
@@ -122,6 +123,13 @@ export class Span implements SpanInterface {
    * @hidden
    */
   public constructor(spanContext?: SpanContext) {
+    this.traceId = uuid4();
+    this.spanId = uuid4().substring(16);
+    this.startTimestamp = timestampInSeconds();
+    this.tags = {};
+    this.data = {};
+    this.instrumenter = 'sentry';
+
     if (!spanContext) {
       return this;
     }
