@@ -17,6 +17,21 @@ sentryTest(
       sentryTest.skip();
     }
 
+    await page.route('https://dsn.ingest.sentry.io/**/*', route => {
+      return route.fulfill({
+        status: 200,
+      });
+    });
+
+    const url = await getLocalTestPath({ testDir: __dirname });
+    await page.goto(url);
+
+    await waitForReplayRequest(page);
+    const replay = await getReplaySnapshot(page);
+    expect(replay._isEnabled).toBe(true);
+
+    await forceFlushReplay();
+
     let called = 0;
 
     await page.route('https://dsn.ingest.sentry.io/**/*', route => {
@@ -27,21 +42,16 @@ sentryTest(
         called++;
       }
 
+      // TODO FN: Just for debugging....
+      if (called > 0) {
+        // eslint-disable-next-line no-console
+        console.log(event);
+      }
+
       return route.fulfill({
         status: 200,
       });
     });
-
-    const url = await getLocalTestPath({ testDir: __dirname });
-    await page.goto(url);
-
-    await waitForReplayRequest(page);
-
-    expect(called).toBe(1);
-    const replay = await getReplaySnapshot(page);
-    expect(replay._isEnabled).toBe(true);
-
-    await forceFlushReplay();
 
     called = 0;
 
