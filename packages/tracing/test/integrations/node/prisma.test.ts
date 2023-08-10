@@ -25,6 +25,11 @@ class PrismaClient {
     create: () => this._middleware?.({ action: 'create', model: 'user' }, () => Promise.resolve('result')),
   };
 
+  public _engineConfig = {
+    activeProvider: 'postgresql',
+    clientVersion: '3.1.2',
+  };
+
   private _middleware?: PrismaMiddleware;
 
   constructor() {
@@ -48,7 +53,11 @@ describe('setupOnce', function () {
     void prismaClient.user.create()?.then(() => {
       expect(mockTrace).toHaveBeenCalledTimes(1);
       expect(mockTrace).toHaveBeenLastCalledWith(
-        { name: 'user create', op: 'db.sql.prisma', data: { 'db.system': 'prisma' } },
+        {
+          name: 'user create',
+          op: 'db.sql.prisma',
+          data: { 'db.system': 'postgresql', 'db.prisma.version': '3.1.2', 'db.operation': 'create' },
+        },
         expect.any(Function),
       );
       done();
