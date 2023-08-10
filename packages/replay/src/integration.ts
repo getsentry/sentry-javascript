@@ -158,7 +158,7 @@ export class Replay implements Integration {
       // origin for playback
       collectFonts: true,
       errorHandler: (err: Error) => {
-        // @ts-ignore ASet this so that replay SDK can ignore errors originating from rrweb
+        // @ts-ignore Set this so that replay SDK can ignore errors originating from rrweb
         err.__rrweb__ = true;
         return true;
       },
