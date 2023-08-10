@@ -140,7 +140,7 @@ function makeWrappedDocumentRequestFunction(
     try {
       const span = activeTransaction?.startChild({
         op: 'function.remix.document_request',
-        origin: 'auto.ui.remix',
+        origin: 'auto.function.remix',
         description: activeTransaction.name,
         tags: {
           method: request.method,
