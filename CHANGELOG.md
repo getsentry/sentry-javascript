@@ -4,6 +4,21 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.63.0
+
+- build(deps): bump @opentelemetry/instrumentation from 0.41.0 to 0.41.2
+- feat(eventbuilder): Export `exceptionFromError` for use in hybrid SDKs (#8766)
+- feat(node-experimental): Re-export from node (#8786)
+- feat(tracing): Add db connection attributes for mysql spans (#8775)
+- feat(tracing): Add db connection attributes for postgres spans (#8778)
+- feat(tracing): Improve data collection for mongodb spans (#8774)
+- fix(nextjs): Execute sentry config independently of `autoInstrumentServerFunctions` and `autoInstrumentAppDirectory` (#8781)
+- fix(replay): Ensure we do not flush if flush took too long (#8784)
+- fix(replay): Ensure we do not try to flush when we force stop replay (#8783)
+- fix(replay): Fix `hasCheckout` handling (#8782)
+- fix(replay): Handle multiple clicks in a short time (#8773)
+- ref(replay): Skip events being added too long after initial segment (#8768)
+
 ## 7.62.0
 
 ### Important Changes
