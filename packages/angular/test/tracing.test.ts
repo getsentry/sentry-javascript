@@ -48,7 +48,7 @@ describe('Angular Tracing', () => {
       expect(startTransaction).toHaveBeenCalledWith({
         name: '/',
         op: 'pageload',
-        origin: 'auto.http.angular',
+        origin: 'auto.pageload.angular',
         metadata: { source: 'url' },
       });
     });
@@ -138,7 +138,7 @@ describe('Angular Tracing', () => {
       expect(customStartTransaction).toHaveBeenCalledWith({
         name: url,
         op: 'pageload',
-        origin: 'auto.http.angular',
+        origin: 'auto.pageload.angular',
         metadata: { source: 'url' },
       });
 
@@ -329,7 +329,7 @@ describe('Angular Tracing', () => {
         expect(customStartTransaction).toHaveBeenCalledWith({
           name: url,
           op: 'navigation',
-          origin: 'auto.http.angular',
+          origin: 'auto.navigation.angular',
           metadata: { source: 'url' },
         });
         expect(transaction.setName).toHaveBeenCalledWith(result, 'route');
@@ -361,7 +361,7 @@ describe('Angular Tracing', () => {
 
       expect(transaction.startChild).toHaveBeenCalledWith({
         op: 'ui.angular.init',
-        origin: 'auto.ui.angular',
+        origin: 'auto.ui.angular.trace_directive',
         description: '<unknown>',
       });
 
@@ -388,7 +388,7 @@ describe('Angular Tracing', () => {
 
       expect(transaction.startChild).toHaveBeenCalledWith({
         op: 'ui.angular.init',
-        origin: 'auto.ui.angular',
+        origin: 'auto.ui.angular.trace_directive',
         description: '<test-component>',
       });
 
@@ -463,7 +463,7 @@ describe('Angular Tracing', () => {
       expect(transaction.startChild).toHaveBeenCalledWith({
         description: '<DecoratedComponent>',
         op: 'ui.angular.init',
-        origin: 'auto.ui.angular',
+        origin: 'auto.ui.angular.trace_class_decorator',
       });
 
       expect(origNgOnInitMock).toHaveBeenCalledTimes(1);
@@ -517,7 +517,7 @@ describe('Angular Tracing', () => {
       expect(transaction.startChild.mock.calls[0][0]).toEqual({
         description: '<DecoratedComponent>',
         op: 'ui.angular.ngOnInit',
-        origin: 'auto.ui.angular',
+        origin: 'auto.ui.angular.trace_method_decorator',
         startTimestamp: expect.any(Number),
         endTimestamp: expect.any(Number),
       });
@@ -525,7 +525,7 @@ describe('Angular Tracing', () => {
       expect(transaction.startChild.mock.calls[1][0]).toEqual({
         description: '<DecoratedComponent>',
         op: 'ui.angular.ngAfterViewInit',
-        origin: 'auto.ui.angular',
+        origin: 'auto.ui.angular.trace_method_decorator',
         startTimestamp: expect.any(Number),
         endTimestamp: expect.any(Number),
       });
