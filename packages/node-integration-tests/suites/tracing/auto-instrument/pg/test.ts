@@ -1,6 +1,11 @@
 import { assertSentryTransaction, TestEnv } from '../../../../utils';
 
 class PgClient {
+  database?: string = 'test';
+  user?: string = 'user';
+  host?: string = 'localhost';
+  port?: number = 5432;
+
   // https://node-postgres.com/api/client#clientquery
   public query(_text: unknown, values: unknown, callback?: () => void) {
     if (typeof callback === 'function') {
@@ -42,6 +47,10 @@ test('should auto-instrument `pg` package.', async () => {
         op: 'db',
         data: {
           'db.system': 'postgresql',
+          'db.user': 'user',
+          'db.name': 'test',
+          'server.address': 'localhost',
+          'server.port': 5432,
         },
       },
       {
@@ -49,6 +58,10 @@ test('should auto-instrument `pg` package.', async () => {
         op: 'db',
         data: {
           'db.system': 'postgresql',
+          'db.user': 'user',
+          'db.name': 'test',
+          'server.address': 'localhost',
+          'server.port': 5432,
         },
       },
       {
@@ -56,6 +69,10 @@ test('should auto-instrument `pg` package.', async () => {
         op: 'db',
         data: {
           'db.system': 'postgresql',
+          'db.user': 'user',
+          'db.name': 'test',
+          'server.address': 'localhost',
+          'server.port': 5432,
         },
       },
     ],
