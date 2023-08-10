@@ -23,7 +23,7 @@ export function withEdgeWrapping<H extends EdgeRouteHandler>(
         span = prevSpan.startChild({
           description: options.spanDescription,
           op: options.spanOp,
-          origin: 'auto.ui.nextjs.withEdgeWrapping',
+          origin: 'auto.function.nextjs',
         });
       } else if (req instanceof Request) {
         const sentryTrace = req.headers.get('sentry-trace') || '';
