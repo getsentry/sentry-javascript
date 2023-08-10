@@ -42,6 +42,7 @@
     "packages/browser",
     "packages/browser-integration-tests",
     "packages/core",
+    "packages/deno",
     "packages/e2e-tests",
     "packages/ember",
     "packages/eslint-config-sdk",
