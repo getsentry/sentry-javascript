@@ -233,9 +233,6 @@ export default function wrappingLoader(
   // individual exports (which nextjs seems to require).
   wrapUserCode(templateCode, userCode, userModuleSourceMap)
     .then(({ code: wrappedCode, map: wrappedCodeSourceMap }) => {
-      if (wrappingTargetKind === 'sentry-init') {
-        console.log({ wrappedCode });
-      }
       this.callback(null, wrappedCode, wrappedCodeSourceMap);
     })
     .catch(err => {
