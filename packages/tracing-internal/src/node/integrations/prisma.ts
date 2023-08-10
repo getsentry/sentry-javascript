@@ -36,6 +36,10 @@ type PrismaMiddleware<T = unknown> = (
 
 interface PrismaClient {
   _sentryInstrumented?: boolean;
+  _engineConfig?: {
+    activeProvider?: string;
+    clientVersion?: string;
+  };
   $use: (cb: PrismaMiddleware) => void;
 }
 
@@ -70,6 +74,22 @@ export class Prisma implements Integration {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       addNonEnumerableProperty(options.client as any, '_sentryInstrumented', true);
 
+      const clientData: Record<string, string | number> = {};
+      try {
+        const engineConfig = (options.client as PrismaClient)._engineConfig;
+        if (engineConfig) {
+          const { activeProvider, clientVersion } = engineConfig;
+          if (activeProvider) {
+            clientData['db.system'] = activeProvider;
+          }
+          if (clientVersion) {
+            clientData['db.prisma.version'] = clientVersion;
+          }
+        }
+      } catch (e) {
+        // ignore
+      }
+
       options.client.$use((params, next: (params: PrismaMiddlewareParams) => Promise<unknown>) => {
         if (shouldDisableAutoInstrumentation(getCurrentHub)) {
           return next(params);
@@ -77,8 +97,13 @@ export class Prisma implements Integration {
 
         const action = params.action;
         const model = params.model;
+
         return trace(
-          { name: model ? `${model} ${action}` : action, op: 'db.sql.prisma', data: { 'db.system': 'prisma' } },
+          {
+            name: model ? `${model} ${action}` : action,
+            op: 'db.sql.prisma',
+            data: { ...clientData, 'db.operation': action },
+          },
           () => next(params),
         );
       });
