@@ -8,6 +8,7 @@ import {
   REPLAY_DEFAULT_FLUSH_MAX_DELAY,
   shouldSkipReplayTest,
   waitForReplayRequest,
+  getReplayRecordingContent,
 } from '../../../utils/replayHelpers';
 
 sentryTest(
@@ -46,6 +47,10 @@ sentryTest(
       if (called > 0) {
         // eslint-disable-next-line no-console
         console.log(event);
+
+        const recordingEvents = getReplayRecordingContent(route.request());
+        // eslint-disable-next-line no-console
+        console.log(recordingEvents);
       }
 
       return route.fulfill({
