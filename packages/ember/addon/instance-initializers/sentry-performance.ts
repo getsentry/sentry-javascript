@@ -119,7 +119,7 @@ export function _instrumentEmberRouter(
     activeTransaction = startTransaction({
       name: `route:${routeInfo.name}`,
       op: 'pageload',
-      origin: 'auto.http.ember',
+      origin: 'auto.pageload.ember',
       tags: {
         url,
         toRoute: routeInfo.name,
@@ -142,7 +142,7 @@ export function _instrumentEmberRouter(
     activeTransaction = startTransaction({
       name: `route:${toRoute}`,
       op: 'navigation',
-      origin: 'auto.http.ember',
+      origin: 'auto.navigation.ember',
       tags: {
         fromRoute,
         toRoute,
