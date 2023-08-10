@@ -24,11 +24,12 @@ export default [
   ...makeNPMConfigVariants(
     makeBaseNPMConfig({
       entrypoints: [
-        'src/config/templates/pageWrapperTemplate.ts',
         'src/config/templates/apiWrapperTemplate.ts',
         'src/config/templates/middlewareWrapperTemplate.ts',
-        'src/config/templates/serverComponentWrapperTemplate.ts',
+        'src/config/templates/pageWrapperTemplate.ts',
         'src/config/templates/requestAsyncStorageShim.ts',
+        'src/config/templates/sentryInitWrapperTemplate.ts',
+        'src/config/templates/serverComponentWrapperTemplate.ts',
       ],
 
       packageSpecificConfig: {
@@ -47,6 +48,7 @@ export default [
         external: [
           '@sentry/nextjs',
           'next/dist/client/components/request-async-storage',
+          '__SENTRY_CONFIG_IMPORT_PATH__',
           '__SENTRY_WRAPPING_TARGET_FILE__',
           '__SENTRY_NEXTJS_REQUEST_ASYNC_STORAGE_SHIM__',
         ],

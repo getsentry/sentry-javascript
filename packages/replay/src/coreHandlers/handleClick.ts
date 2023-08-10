@@ -136,6 +136,14 @@ export class ClickDetector implements ReplayClickDetector {
       clickCount: 0,
       node,
     };
+
+    // If there was a click in the last 1s on the same element, ignore it - only keep a single reference per second
+    if (
+      this._clicks.some(click => click.node === newClick.node && Math.abs(click.timestamp - newClick.timestamp) < 1)
+    ) {
+      return;
+    }
+
     this._clicks.push(newClick);
 
     // If this is the first new click, set a timeout to check for multi clicks

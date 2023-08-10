@@ -4,6 +4,7 @@ import { logger } from '@sentry/utils';
 
 import { EventBufferSizeExceededError } from '../eventBuffer/error';
 import type { AddEventResult, RecordingEvent, ReplayContainer, ReplayFrameEvent, ReplayPluginOptions } from '../types';
+import { logInfo } from './log';
 import { timestampToMs } from './timestamp';
 
 function isCustomEvent(event: RecordingEvent): event is ReplayFrameEvent {
@@ -39,9 +40,21 @@ export async function addEvent(
     return null;
   }
 
+  // Throw out events that are +60min from the initial timestamp
+  if (timestampInMs > replay.getContext().initialTimestamp + replay.timeouts.maxSessionLife) {
+    logInfo(
+      `[Replay] Skipping event with timestamp ${timestampInMs} because it is after maxSessionLife`,
+      replay.getOptions()._experiments.traceInternals,
+    );
+    return null;
+  }
+
   try {
     if (isCheckout && replay.recordingMode === 'buffer') {
       replay.eventBuffer.clear();
+    }
+
+    if (isCheckout) {
       replay.eventBuffer.hasCheckout = true;
     }
 
@@ -58,7 +71,7 @@ export async function addEvent(
     const reason = error && error instanceof EventBufferSizeExceededError ? 'addEventSizeExceeded' : 'addEvent';
 
     __DEBUG_BUILD__ && logger.error(error);
-    await replay.stop(reason);
+    await replay.stop({ reason });
 
     const client = getCurrentHub().getClient();
 

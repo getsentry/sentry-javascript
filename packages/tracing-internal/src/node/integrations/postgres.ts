@@ -11,6 +11,13 @@ interface PgClient {
   };
 }
 
+interface PgClientThis {
+  database?: string;
+  host?: string;
+  port?: number;
+  user?: string;
+}
+
 interface PgOptions {
   usePgNative?: boolean;
 }
@@ -74,15 +81,35 @@ export class Postgres implements LazyLoadedIntegration<PGModule> {
      * function (pg.Cursor) => pg.Cursor
      */
     fill(Client.prototype, 'query', function (orig: () => void | Promise<unknown>) {
-      return function (this: unknown, config: unknown, values: unknown, callback: unknown) {
+      return function (this: PgClientThis, config: unknown, values: unknown, callback: unknown) {
         const scope = getCurrentHub().getScope();
         const parentSpan = scope?.getSpan();
+
+        const data: Record<string, string | number> = {
+          'db.system': 'postgresql',
+        };
+
+        try {
+          if (this.database) {
+            data['db.name'] = this.database;
+          }
+          if (this.host) {
+            data['server.address'] = this.host;
+          }
+          if (this.port) {
+            data['server.port'] = this.port;
+          }
+          if (this.user) {
+            data['db.user'] = this.user;
+          }
+        } catch (e) {
+          // ignore
+        }
+
         const span = parentSpan?.startChild({
           description: typeof config === 'string' ? config : (config as { text: string }).text,
           op: 'db',
-          data: {
-            'db.system': 'postgresql',
-          },
+          data,
         });
 
         if (typeof callback === 'function') {

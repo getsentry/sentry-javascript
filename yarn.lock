@@ -3886,7 +3886,7 @@
     semver "^7.3.2"
     shimmer "^1.2.1"
 
-"@opentelemetry/instrumentation@0.41.0", "@opentelemetry/instrumentation@^0.41.0", "@opentelemetry/instrumentation@~0.41.0":
+"@opentelemetry/instrumentation@0.41.0":
   version "0.41.0"
   resolved "https://registry.yarnpkg.com/@opentelemetry/instrumentation/-/instrumentation-0.41.0.tgz#a67a7f6d215d8802c2e956907a913b793037e04d"
   integrity sha512-Ut9SnZfi7MexOk+GHCMjEtYHogIb6v1dfbnq+oTbQj0lOQUSNLtlO6bXwUdtmPhbvrx6bC0AGr1L6g3rNimv9w==
@@ -3897,6 +3897,17 @@
     semver "^7.5.1"
     shimmer "^1.2.1"
     tslib "^2.3.1"
+
+"@opentelemetry/instrumentation@^0.41.0", "@opentelemetry/instrumentation@~0.41.0":
+  version "0.41.2"
+  resolved "https://registry.yarnpkg.com/@opentelemetry/instrumentation/-/instrumentation-0.41.2.tgz#cae11fa64485dcf03dae331f35b315b64bc6189f"
+  integrity sha512-rxU72E0pKNH6ae2w5+xgVYZLzc5mlxAbGzF4shxMVK8YC2QQsfN38B2GPbj0jvrKWWNUElfclQ+YTykkNg/grw==
+  dependencies:
+    "@types/shimmer" "^1.0.2"
+    import-in-the-middle "1.4.2"
+    require-in-the-middle "^7.1.1"
+    semver "^7.5.1"
+    shimmer "^1.2.1"
 
 "@opentelemetry/propagator-b3@1.15.0":
   version "1.15.0"
@@ -15766,6 +15777,16 @@ import-in-the-middle@1.4.1:
   version "1.4.1"
   resolved "https://registry.yarnpkg.com/import-in-the-middle/-/import-in-the-middle-1.4.1.tgz#31b25123bc35d556986a172bb398a3e6c32af9be"
   integrity sha512-hGG0PcCsykVo8MBVH8l0uEWLWW6DXMgJA9jvC0yps6M3uIJ8L/tagTCbyF8Ud5TtqJ8/jmZL1YkyySyeVkVQrA==
+  dependencies:
+    acorn "^8.8.2"
+    acorn-import-assertions "^1.9.0"
+    cjs-module-lexer "^1.2.2"
+    module-details-from-path "^1.0.3"
+
+import-in-the-middle@1.4.2:
+  version "1.4.2"
+  resolved "https://registry.yarnpkg.com/import-in-the-middle/-/import-in-the-middle-1.4.2.tgz#2a266676e3495e72c04bbaa5ec14756ba168391b"
+  integrity sha512-9WOz1Yh/cvO/p69sxRmhyQwrIGGSp7EIdcb+fFNVi7CzQGQB8U1/1XrKVSbEd/GNOAeM0peJtmi7+qphe7NvAw==
   dependencies:
     acorn "^8.8.2"
     acorn-import-assertions "^1.9.0"

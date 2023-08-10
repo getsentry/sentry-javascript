@@ -883,6 +883,50 @@ describe('Integration | errorSampleRate', () => {
     expect(mockRecord.takeFullSnapshot).toHaveBeenCalledTimes(0);
     expect(replay.isEnabled()).toBe(false);
   });
+
+  it('handles very long active buffer session', async () => {
+    const stepDuration = 10_000;
+    const steps = 5_000;
+
+    jest.setSystemTime(BASE_TIMESTAMP);
+
+    expect(replay).not.toHaveLastSentReplay();
+
+    let optionsEvent = createOptionsEvent(replay);
+
+    for (let i = 1; i <= steps; i++) {
+      jest.advanceTimersByTime(stepDuration);
+      optionsEvent = createOptionsEvent(replay);
+      mockRecord._emitter({ data: { step: i }, timestamp: BASE_TIMESTAMP + stepDuration * i, type: 2 }, true);
+      mockRecord._emitter({ data: { step: i }, timestamp: BASE_TIMESTAMP + stepDuration * i + 5, type: 3 });
+    }
+
+    expect(replay).not.toHaveLastSentReplay();
+
+    expect(replay.isEnabled()).toBe(true);
+    expect(replay.isPaused()).toBe(false);
+    expect(replay.recordingMode).toBe('buffer');
+
+    // Now capture an error
+    captureException(new Error('testing'));
+    await waitForBufferFlush();
+
+    expect(replay).toHaveLastSentReplay({
+      recordingData: JSON.stringify([
+        { data: { step: steps }, timestamp: BASE_TIMESTAMP + stepDuration * steps, type: 2 },
+        optionsEvent,
+        { data: { step: steps }, timestamp: BASE_TIMESTAMP + stepDuration * steps + 5, type: 3 },
+      ]),
+      replayEventPayload: expect.objectContaining({
+        replay_start_timestamp: (BASE_TIMESTAMP + stepDuration * steps) / 1000,
+        error_ids: [expect.any(String)],
+        trace_ids: [],
+        urls: ['http://localhost/'],
+        replay_id: expect.any(String),
+      }),
+      recordingPayloadHeader: { segment_id: 0 },
+    });
+  });
 });
 
 /**

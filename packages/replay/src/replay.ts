@@ -368,7 +368,7 @@ export class ReplayContainer implements ReplayContainerInterface {
    * Currently, this needs to be manually called (e.g. for tests). Sentry SDK
    * does not support a teardown
    */
-  public async stop(reason?: string): Promise<void> {
+  public async stop({ forceFlush = false, reason }: { forceFlush?: boolean; reason?: string } = {}): Promise<void> {
     if (!this._isEnabled) {
       return;
     }
@@ -388,7 +388,7 @@ export class ReplayContainer implements ReplayContainerInterface {
       this._debouncedFlush.cancel();
       // See comment above re: `_isEnabled`, we "force" a flush, ignoring the
       // `_isEnabled` state of the plugin since it was disabled above.
-      if (this.recordingMode === 'session') {
+      if (forceFlush) {
         await this._flush({ force: true });
       }
 
@@ -777,7 +777,7 @@ export class ReplayContainer implements ReplayContainerInterface {
     this.session = session;
 
     if (!this.session.sampled) {
-      void this.stop('session not refreshed');
+      void this.stop({ reason: 'session not refreshed' });
       return false;
     }
 
@@ -1067,6 +1067,15 @@ export class ReplayContainer implements ReplayContainerInterface {
       // Note this empties the event buffer regardless of outcome of sending replay
       const recordingData = await this.eventBuffer.finish();
 
+      const timestamp = Date.now();
+
+      // Check total duration again, to avoid sending outdated stuff
+      // We leave 30s wiggle room to accomodate late flushing etc.
+      // This _could_ happen when the browser is suspended during flushing, in which case we just want to stop
+      if (timestamp - this._context.initialTimestamp > this.timeouts.maxSessionLife + 30_000) {
+        throw new Error('Session is too long, not sending replay');
+      }
+
       // NOTE: Copy values from instance members, as it's possible they could
       // change before the flush finishes.
       const replayId = this.session.id;
@@ -1082,7 +1091,7 @@ export class ReplayContainer implements ReplayContainerInterface {
         eventContext,
         session: this.session,
         options: this.getOptions(),
-        timestamp: Date.now(),
+        timestamp,
       });
     } catch (err) {
       this._handleException(err);
@@ -1090,7 +1099,7 @@ export class ReplayContainer implements ReplayContainerInterface {
       // This means we retried 3 times and all of them failed,
       // or we ran into a problem we don't want to retry, like rate limiting.
       // In this case, we want to completely stop the replay - otherwise, we may get inconsistent segments
-      void this.stop('sendReplay');
+      void this.stop({ reason: 'sendReplay' });
 
       const client = getCurrentHub().getClient();
 
@@ -1214,7 +1223,7 @@ export class ReplayContainer implements ReplayContainerInterface {
 
     // Stop replay if over the mutation limit
     if (overMutationLimit) {
-      void this.stop('mutationLimit');
+      void this.stop({ reason: 'mutationLimit', forceFlush: this.recordingMode === 'session' });
       return false;
     }
 
