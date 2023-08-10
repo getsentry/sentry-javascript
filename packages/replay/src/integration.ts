@@ -263,7 +263,7 @@ Sentry.init({ replaysOnErrorSampleRate: ${errorSampleRate} })`,
       return Promise.resolve();
     }
 
-    return this._replay.stop();
+    return this._replay.stop({ forceFlush: this._replay.recordingMode === 'session' });
   }
 
   /**

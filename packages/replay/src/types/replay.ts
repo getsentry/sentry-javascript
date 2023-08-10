@@ -451,7 +451,7 @@ export interface ReplayContainer {
   getContext(): InternalEventContext;
   initializeSampling(): void;
   start(): void;
-  stop(reason?: string): Promise<void>;
+  stop(options?: { reason?: string; forceflush?: boolean }): Promise<void>;
   pause(): void;
   resume(): void;
   startRecording(): void;
