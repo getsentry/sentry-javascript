@@ -108,7 +108,7 @@ describe('wrapLoadWithSentry', () => {
       expect(mockTrace).toHaveBeenCalledWith(
         {
           op: 'function.sveltekit.load',
-          origin: 'auto.ui.sveltekit',
+          origin: 'auto.function.sveltekit',
           name: '/users/[id]',
           status: 'ok',
           metadata: {

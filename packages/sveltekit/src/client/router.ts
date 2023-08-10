@@ -38,7 +38,7 @@ function instrumentPageload(startTransactionFn: (context: TransactionContext) =>
   const pageloadTransaction = startTransactionFn({
     name: initialPath,
     op: 'pageload',
-    origin: 'auto.http.sveltekit',
+    origin: 'auto.pageload.sveltekit',
     description: initialPath,
     tags: {
       ...DEFAULT_TAGS,
@@ -103,7 +103,7 @@ function instrumentNavigations(startTransactionFn: (context: TransactionContext)
       activeTransaction = startTransactionFn({
         name: parameterizedRouteDestination || rawRouteDestination || 'unknown',
         op: 'navigation',
-        origin: 'auto.http.sveltekit',
+        origin: 'auto.navigation.sveltekit',
         metadata: { source: parameterizedRouteDestination ? 'route' : 'url' },
         tags: {
           ...DEFAULT_TAGS,

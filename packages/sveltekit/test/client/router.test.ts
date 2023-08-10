@@ -53,7 +53,7 @@ describe('sveltekitRoutingInstrumentation', () => {
     expect(mockedStartTransaction).toHaveBeenCalledWith({
       name: '/',
       op: 'pageload',
-      origin: 'auto.http.sveltekit',
+      origin: 'auto.pageload.sveltekit',
       description: '/',
       tags: {
         'routing.instrumentation': '@sentry/sveltekit',
@@ -106,7 +106,7 @@ describe('sveltekitRoutingInstrumentation', () => {
     expect(mockedStartTransaction).toHaveBeenCalledWith({
       name: '/users/[id]',
       op: 'navigation',
-      origin: 'auto.http.sveltekit',
+      origin: 'auto.navigation.sveltekit',
       metadata: {
         source: 'route',
       },
@@ -157,7 +157,7 @@ describe('sveltekitRoutingInstrumentation', () => {
       expect(mockedStartTransaction).toHaveBeenCalledWith({
         name: '/users/[id]',
         op: 'navigation',
-        origin: 'auto.http.sveltekit',
+        origin: 'auto.navigation.sveltekit',
         metadata: {
           source: 'route',
         },

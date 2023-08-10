@@ -230,7 +230,7 @@ describe('wrapLoadWithSentry calls trace', () => {
     expect(mockTrace).toHaveBeenCalledWith(
       {
         op: 'function.sveltekit.load',
-        origin: 'auto.ui.sveltekit.server_load',
+        origin: 'auto.function.sveltekit',
         name: '/users/[id]',
         status: 'ok',
         metadata: {
@@ -250,7 +250,7 @@ describe('wrapLoadWithSentry calls trace', () => {
     expect(mockTrace).toHaveBeenCalledWith(
       {
         op: 'function.sveltekit.load',
-        origin: 'auto.ui.sveltekit.server_load',
+        origin: 'auto.function.sveltekit',
         name: '/users/123',
         status: 'ok',
         metadata: {
@@ -285,7 +285,7 @@ describe('wrapServerLoadWithSentry calls trace', () => {
     expect(mockTrace).toHaveBeenCalledWith(
       {
         op: 'function.sveltekit.server.load',
-        origin: 'auto.ui.sveltekit.server_load',
+        origin: 'auto.function.sveltekit',
         name: '/users/[id]',
         parentSampled: true,
         parentSpanId: '1234567890abcdef',
@@ -320,7 +320,7 @@ describe('wrapServerLoadWithSentry calls trace', () => {
     expect(mockTrace).toHaveBeenCalledWith(
       {
         op: 'function.sveltekit.server.load',
-        origin: 'auto.ui.sveltekit.server_load',
+        origin: 'auto.function.sveltekit',
         name: '/users/[id]',
         status: 'ok',
         data: {
@@ -343,7 +343,7 @@ describe('wrapServerLoadWithSentry calls trace', () => {
     expect(mockTrace).toHaveBeenCalledWith(
       {
         op: 'function.sveltekit.server.load',
-        origin: 'auto.ui.sveltekit.server_load',
+        origin: 'auto.function.sveltekit',
         name: '/users/[id]',
         parentSampled: true,
         parentSpanId: '1234567890abcdef',
@@ -373,7 +373,7 @@ describe('wrapServerLoadWithSentry calls trace', () => {
     expect(mockTrace).toHaveBeenCalledWith(
       {
         op: 'function.sveltekit.server.load',
-        origin: 'auto.ui.sveltekit.server_load',
+        origin: 'auto.function.sveltekit',
         name: '/users/123',
         parentSampled: true,
         parentSpanId: '1234567890abcdef',
