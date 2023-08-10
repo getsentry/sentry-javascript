@@ -472,10 +472,9 @@ describe('Integration | flush', () => {
     const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP + 100, type: 2 };
     mockRecord._emitter(TEST_EVENT);
 
-    await advanceTimers(DEFAULT_FLUSH_MIN_DELAY);
     await advanceTimers(160_000);
 
-    expect(mockFlush).toHaveBeenCalledTimes(2);
+    expect(mockFlush).toHaveBeenCalledTimes(1);
     expect(mockSendReplay).toHaveBeenCalledTimes(0);
     expect(replay.isEnabled()).toBe(false);
 
