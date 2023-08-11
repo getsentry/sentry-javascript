@@ -49,4 +49,5 @@ export {
   deepReadDirSync,
   Handlers,
   Integrations,
+  setMeasurement,
 } from '@sentry/node';
