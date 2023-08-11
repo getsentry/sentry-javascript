@@ -50,4 +50,7 @@ export {
   Handlers,
   Integrations,
   setMeasurement,
+  getActiveSpan,
+  startActiveSpan,
+  startSpan,
 } from '@sentry/node';
