@@ -96,7 +96,12 @@ export default function wrappingLoader(
       const sentryConfigImportPath = path
         .relative(path.dirname(this.resourcePath), sentryConfigFilePath)
         .replace(/\\/g, '/');
-      templateCode = templateCode.replace(/__SENTRY_CONFIG_IMPORT_PATH__/g, sentryConfigImportPath);
+
+      // path.relative() may return something like `sentry.server.config.js` which is not allowed. Imports from the
+      // current directory need to start with './'.This is why we prepend the path with './', which should always again
+      // be a valid relative path.
+      // https://github.com/getsentry/sentry-javascript/issues/8798
+      templateCode = templateCode.replace(/__SENTRY_CONFIG_IMPORT_PATH__/g, `./${sentryConfigImportPath}`);
     } else {
       // Bail without doing any wrapping
       this.callback(null, userCode, userModuleSourceMap);
