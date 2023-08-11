@@ -4,6 +4,7 @@ import { getCurrentHub } from '@sentry/core';
 import { SentryPropagator, SentrySpanProcessor } from '@sentry/opentelemetry-node';
 
 import type { NodeExperimentalClient } from './client';
+import { setOtelContextAsyncContextStrategy } from './otelContextAsyncContextStrategy';
 
 /**
  * Initialize OpenTelemetry for Node.
@@ -26,6 +27,8 @@ export function initOtel(): () => void {
   provider.register({
     propagator: new SentryPropagator(),
   });
+
+  setOtelContextAsyncContextStrategy();
 
   // Cleanup function
   return () => {
