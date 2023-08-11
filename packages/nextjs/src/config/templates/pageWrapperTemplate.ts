@@ -21,11 +21,11 @@ type NextPageModule = {
 
 const userPageModule = wrapee as NextPageModule;
 
-const pageComponent = userPageModule?.default;
+const pageComponent = userPageModule ? userPageModule.default : undefined;
 
-const origGetInitialProps = pageComponent?.getInitialProps;
-const origGetStaticProps = userPageModule?.getStaticProps;
-const origGetServerSideProps = userPageModule?.getServerSideProps;
+const origGetInitialProps = pageComponent ? pageComponent.getInitialProps : undefined;
+const origGetStaticProps = userPageModule ? userPageModule.getStaticProps : undefined;
+const origGetServerSideProps = userPageModule ? userPageModule.getServerSideProps : undefined;
 
 const getInitialPropsWrappers: Record<string, any> = {
   '/_app': Sentry.wrapAppGetInitialPropsWithSentry,
