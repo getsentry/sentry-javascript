@@ -1,10 +1,15 @@
 import { hasTracingEnabled } from '@sentry/core';
 import type { BrowserOptions } from '@sentry/svelte';
-import { BrowserTracing, configureScope, init as initSvelteSdk } from '@sentry/svelte';
+import { BrowserTracing, configureScope, init as initSvelteSdk, WINDOW } from '@sentry/svelte';
+import type { InternalGlobal } from '@sentry/utils';
 import { addOrUpdateIntegration } from '@sentry/utils';
 
 import { applySdkMetadata } from '../common/metadata';
 import { svelteKitRoutingInstrumentation } from './router';
+
+type WindowWithSentryFetchProxy = typeof WINDOW & {
+  _sentryFetchProxy?: typeof fetch;
+};
 
 // Treeshakable guard to remove all code related to tracing
 declare const __SENTRY_TRACING__: boolean;
@@ -19,7 +24,20 @@ export function init(options: BrowserOptions): void {
 
   addClientIntegrations(options);
 
+  const globalWithSentryFetchProxy: WindowWithSentryFetchProxy = WINDOW as WindowWithSentryFetchProxy;
+
+  // eslint-disable-next-line @typescript-eslint/unbound-method
+  const currentFetch = WINDOW.fetch;
+  // @ts-expect-error TS thinks window.fetch is always defined but let's just make sure it really is
+  if (globalWithSentryFetchProxy._sentryFetchProxy && currentFetch) {
+    globalWithSentryFetchProxy.fetch = globalWithSentryFetchProxy._sentryFetchProxy;
+  }
+
   initSvelteSdk(options);
+
+  // eslint-disable-next-line @typescript-eslint/unbound-method
+  globalWithSentryFetchProxy._sentryFetchProxy = globalWithSentryFetchProxy.fetch;
+  globalWithSentryFetchProxy.fetch = currentFetch;
 
   configureScope(scope => {
     scope.setTag('runtime', 'browser');
