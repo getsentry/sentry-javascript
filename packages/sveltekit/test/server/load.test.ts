@@ -400,4 +400,33 @@ describe('wrapServerLoadWithSentry calls trace', () => {
 
     expect(mockTrace).toHaveBeenCalledTimes(1);
   });
+
+  it("doesn't invoke the proxy set on `event.route`", async () => {
+    const event = getServerOnlyArgs();
+
+    // simulates SvelteKit adding a proxy to `event.route`
+    // https://github.com/sveltejs/kit/blob/e133aba479fa9ba0e7f9e71512f5f937f0247e2c/packages/kit/src/runtime/server/page/load_data.js#L111C3-L124
+    const proxyFn = vi.fn((target: { id: string }, key: string | symbol): any => {
+      return target[key];
+    });
+
+    event.route = new Proxy(event.route, {
+      get: proxyFn,
+    });
+
+    const wrappedLoad = wrapServerLoadWithSentry(serverLoad);
+    await wrappedLoad(event);
+
+    expect(mockTrace).toHaveBeenCalledTimes(1);
+    expect(mockTrace).toHaveBeenCalledWith(
+      expect.objectContaining({
+        op: 'function.sveltekit.server.load',
+        name: '/users/[id]', // <-- this shows that the route was still accessed
+      }),
+      expect.any(Function),
+      expect.any(Function),
+    );
+
+    expect(proxyFn).not.toHaveBeenCalled();
+  });
 });
