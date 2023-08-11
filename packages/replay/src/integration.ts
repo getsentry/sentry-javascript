@@ -13,6 +13,7 @@ import { ReplayContainer } from './replay';
 import type { RecordingOptions, ReplayConfiguration, ReplayPluginOptions, SendBufferedReplayOptions } from './types';
 import { getPrivacyOptions } from './util/getPrivacyOptions';
 import { isBrowser } from './util/isBrowser';
+import { maskAttribute } from './util/maskAttribute';
 
 const MEDIA_SELECTORS =
   'img,image,svg,video,object,picture,embed,map,audio,link[rel="icon"],link[rel="apple-touch-icon"]';
@@ -124,28 +125,15 @@ export class Replay implements Integration {
       maskInputOptions: { ...(maskInputOptions || {}), password: true },
       maskTextFn: maskFn,
       maskInputFn: maskFn,
-      maskAttributeFn: (key: string, value: string, el: HTMLElement): string => {
-        // We only mask attributes if `maskAllText` is true
-        if (!maskAllText) {
-          return value;
-        }
-
-        // unmaskTextSelector takes precendence
-        if (privacyOptions.unmaskTextSelector && el.matches(privacyOptions.unmaskTextSelector)) {
-          return value;
-        }
-
-        if (
-          maskAttributes.includes(key) ||
-          // Need to mask `value` attribute for `<input>` if it's a button-like
-          // type
-          (key === 'value' && el.tagName === 'INPUT' && ['submit', 'button'].includes(el.getAttribute('type') || ''))
-        ) {
-          return value.replace(/[\S]/g, '*');
-        }
-
-        return value;
-      },
+      maskAttributeFn: (key: string, value: string, el: HTMLElement): string =>
+        maskAttribute({
+          maskAttributes,
+          maskAllText,
+          privacyOptions,
+          key,
+          value,
+          el,
+        }),
 
       ...privacyOptions,
 
@@ -158,8 +146,13 @@ export class Replay implements Integration {
       // origin for playback
       collectFonts: true,
       errorHandler: (err: Error) => {
-        // @ts-ignore Set this so that replay SDK can ignore errors originating from rrweb
-        err.__rrweb__ = true;
+        try {
+          // @ts-ignore Set this so that replay SDK can ignore errors originating from rrweb
+          err.__rrweb__ = true;
+        } catch {
+          // avoid any potential hazards here
+        }
+        // return true to suppress throwing the error inside of rrweb
         return true;
       },
     };
