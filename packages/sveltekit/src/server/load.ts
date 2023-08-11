@@ -123,7 +123,7 @@ export function wrapServerLoadWithSentry<T extends (...args: any) => any>(origSe
       // server `load` function's data on every route change.
       // To work around this, we use `Object.getOwnPropertyDescriptor` which doesn't invoke the proxy.
       // https://github.com/sveltejs/kit/blob/e133aba479fa9ba0e7f9e71512f5f937f0247e2c/packages/kit/src/runtime/server/page/load_data.js#L111C3-L124
-      const routeId = Object.getOwnPropertyDescriptor(event.route, 'id')?.value as string | undefined;
+      const routeId = event.route && (Object.getOwnPropertyDescriptor(event.route, 'id')?.value as string | undefined);
       // const routeId = event.route.id;
 
       const { dynamicSamplingContext, traceparentData, propagationContext } = getTracePropagationData(event);
