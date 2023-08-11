@@ -14,18 +14,18 @@ import * as Sentry from '@sentry/nextjs';
 import type { GetServerSideProps, GetStaticProps, NextPage as NextPageComponent } from 'next';
 
 type NextPageModule = {
-  default: { getInitialProps?: NextPageComponent['getInitialProps'] };
+  default?: { getInitialProps?: NextPageComponent['getInitialProps'] };
   getStaticProps?: GetStaticProps;
   getServerSideProps?: GetServerSideProps;
 };
 
 const userPageModule = wrapee as NextPageModule;
 
-const pageComponent = userPageModule.default;
+const pageComponent = userPageModule?.default;
 
-const origGetInitialProps = pageComponent.getInitialProps;
-const origGetStaticProps = userPageModule.getStaticProps;
-const origGetServerSideProps = userPageModule.getServerSideProps;
+const origGetInitialProps = pageComponent?.getInitialProps;
+const origGetStaticProps = userPageModule?.getStaticProps;
+const origGetServerSideProps = userPageModule?.getServerSideProps;
 
 const getInitialPropsWrappers: Record<string, any> = {
   '/_app': Sentry.wrapAppGetInitialPropsWithSentry,
@@ -35,7 +35,7 @@ const getInitialPropsWrappers: Record<string, any> = {
 
 const getInitialPropsWrapper = getInitialPropsWrappers['__ROUTE__'] || Sentry.wrapGetInitialPropsWithSentry;
 
-if (typeof origGetInitialProps === 'function') {
+if (pageComponent && typeof origGetInitialProps === 'function') {
   pageComponent.getInitialProps = getInitialPropsWrapper(origGetInitialProps) as NextPageComponent['getInitialProps'];
 }
 
