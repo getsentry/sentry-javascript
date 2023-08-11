@@ -27,7 +27,8 @@ export function init(options: BrowserOptions): void {
   const globalWithSentryFetchProxy: WindowWithSentryFetchProxy = WINDOW as WindowWithSentryFetchProxy;
 
   // eslint-disable-next-line @typescript-eslint/unbound-method
-  const currentFetch = WINDOW.fetch;
+  const currentFetch = globalWithSentryFetchProxy.fetch;
+
   // @ts-expect-error TS thinks window.fetch is always defined but let's just make sure it really is
   if (globalWithSentryFetchProxy._sentryFetchProxy && currentFetch) {
     globalWithSentryFetchProxy.fetch = globalWithSentryFetchProxy._sentryFetchProxy;
