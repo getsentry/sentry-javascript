@@ -10,6 +10,11 @@ export interface SpanContext {
   description?: string;
 
   /**
+   * Human-readable identifier for the span. Alias for span.description.
+   */
+  name?: string;
+
+  /**
    * Operation of the Span.
    */
   op?: string;
@@ -138,6 +143,11 @@ export interface Span extends SpanContext {
    * @param httpStatus http code used to set the status
    */
   setHttpStatus(httpStatus: number): this;
+
+  /**
+   * Set the name of the span.
+   */
+  setName(name: string): void;
 
   /**
    * Creates a new `Span` while setting the current `Span.id` as `parentSpanId`.

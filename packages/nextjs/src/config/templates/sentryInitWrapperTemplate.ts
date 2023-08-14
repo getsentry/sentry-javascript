@@ -4,8 +4,14 @@ import '__SENTRY_CONFIG_IMPORT_PATH__';
 
 // @ts-ignore This is the file we're wrapping
 // eslint-disable-next-line import/no-unresolved
-export * from '__SENTRY_WRAPPING_TARGET_FILE__';
+import * as wrappee from '__SENTRY_WRAPPING_TARGET_FILE__';
+
+// @ts-ignore default either exists, or it doesn't - we don't care
+// eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+const defaultExport = wrappee.default;
 
 // @ts-ignore This is the file we're wrapping
 // eslint-disable-next-line import/no-unresolved
-export { default } from '__SENTRY_WRAPPING_TARGET_FILE__';
+export * from '__SENTRY_WRAPPING_TARGET_FILE__';
+
+export default defaultExport;
