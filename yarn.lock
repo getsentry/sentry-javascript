@@ -4428,14 +4428,13 @@
     unplugin "1.0.1"
     webpack-sources "3.2.3"
 
-"@sentry/cli@2.2.0":
-  version "2.2.0"
-  resolved "https://registry.yarnpkg.com/@sentry/cli/-/cli-2.2.0.tgz#0cf4d529d87e290dea54d7e58fa5ff87ea200e4e"
-  integrity sha512-ywFtB8VHyWN248LuM67fsRtdMLif/SOHYY3zyef5WybvnAmRLDmGTWK//hSUCebsHBpehRIkmt4iMiyUXwgd5w==
+"@sentry/cli@2.20.4":
+  version "2.20.4"
+  resolved "https://registry.yarnpkg.com/@sentry/cli/-/cli-2.20.4.tgz#755719aeaa58dbd3910ee23cc020decc16f5a5bf"
+  integrity sha512-mycBCKQmLdaJpSKpXc3IXrQwb5HLxrdjgJgLGbb8saFHIkXl/1ePH171j+REq4dIP1uetu0bdDgEYj6AQjkleQ==
   dependencies:
     https-proxy-agent "^5.0.0"
     node-fetch "^2.6.7"
-    npmlog "^6.0.1"
     progress "^2.0.3"
     proxy-from-env "^1.1.0"
     which "^2.0.2"
@@ -20552,7 +20551,7 @@ npmlog@^4.1.2:
     gauge "~2.7.3"
     set-blocking "~2.0.0"
 
-npmlog@^6.0.0, npmlog@^6.0.1, npmlog@^6.0.2:
+npmlog@^6.0.0, npmlog@^6.0.2:
   version "6.0.2"
   resolved "https://registry.yarnpkg.com/npmlog/-/npmlog-6.0.2.tgz#c8166017a42f2dea92d6453168dd865186a70830"
   integrity sha512-/vBvz5Jfr9dT/aFWd0FIRf+T/Q2WBsLENygUaFUqstqsycmZAP/t5BvFJTK0viFmSUxiUKTUplWy5vt+rvKIxg==

@@ -36,6 +36,7 @@ describe('createRelease', () => {
     expect(uploadSourceMapsMock).toHaveBeenCalledWith('0.1.2.3', {
       urlPrefix: '~/build/',
       include: ['public/build'],
+      useArtifactBundle: true,
     });
     expect(finalizeMock).toHaveBeenCalledWith('0.1.2.3');
   });
@@ -48,6 +49,7 @@ describe('createRelease', () => {
     expect(uploadSourceMapsMock).toHaveBeenCalledWith('0.1.2.3.4', {
       urlPrefix: '~/build/',
       include: ['public/build'],
+      useArtifactBundle: true,
     });
     expect(finalizeMock).toHaveBeenCalledWith('0.1.2.3.4');
   });
@@ -67,6 +69,7 @@ describe('createRelease', () => {
     expect(uploadSourceMapsMock).toHaveBeenCalledWith('0.1.2.3.4', {
       urlPrefix: '~/build/subfolder',
       include: ['public/build/subfolder'],
+      useArtifactBundle: true,
     });
     expect(finalizeMock).toHaveBeenCalledWith('0.1.2.3.4');
   });
