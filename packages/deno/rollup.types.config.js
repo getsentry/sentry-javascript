@@ -3,15 +3,16 @@ import replace from '@rollup/plugin-replace';
 import sucrase from '@rollup/plugin-sucrase';
 
 export default {
-  input: ['src/index.ts'],
+  input: ['types/index.d.ts'],
   output: {
-    dir: 'build/esm',
+    dir: 'build',
     sourcemap: true,
     preserveModules: false,
     strict: false,
     freeze: false,
     interop: 'auto',
     format: 'esm',
+    banner: '/// <reference types="./index.d.ts" />',
   },
   plugins: [
     nodeResolve({

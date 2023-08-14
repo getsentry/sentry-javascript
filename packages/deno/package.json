@@ -22,18 +22,22 @@
   "publishConfig": {
     "access": "public"
   },
+  "devDependencies": {
+    "rollup-plugin-dts": "^5.3.1"
+  },
   "scripts": {
     "build": "run-p build:transpile build:types",
     "build:dev": "yarn build",
-    "build:transpile": "rollup -c rollup.npm.config.js",
-    "build:types": "run-s build:types:core build:types:downlevel",
+    "build:transpile": "rollup -c rollup.config.js",
+    "build:types": "run-s build:types:core build:types:bundle build:types:downlevel",
+    "build:types:bundle": "rollup -c rollup.types.config.js",
     "build:types:core": "tsc -p tsconfig.types.json",
-    "build:types:downlevel": "yarn downlevel-dts build/types build/types-ts3.8 --to ts3.8",
+    "build:types:downlevel": "yarn downlevel-dts build build --to ts3.8",
     "build:watch": "run-p build:transpile:watch build:types:watch",
     "build:dev:watch": "yarn build:watch",
     "build:transpile:watch": "rollup -c rollup.npm.config.js --watch",
     "build:types:watch": "tsc -p tsconfig.types.json --watch",
-    "build:tarball": "ts-node ../../scripts/prepack.ts && npm pack ./build",
+    "build:tarball": "npm pack ./build",
     "circularDepCheck": "madge --circular src/index.ts",
     "clean": "rimraf build coverage sentry-react-*.tgz",
     "fix": "run-s fix:eslint fix:prettier",

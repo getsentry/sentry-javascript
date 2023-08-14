@@ -47,3 +47,8 @@ class DenoClient extends BaseClient<DenoClientOptions> {
 
 export { DenoClient, getCurrentHub, initAndBind, makeDenoTransport };
 export type { DenoClientOptions };
+
+export interface State<in out T> {
+  get: () => T;
+  set: (value: T) => void;
+}

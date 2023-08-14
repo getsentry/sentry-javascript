@@ -1,4 +1,4 @@
-import { DenoClient, getCurrentHub, initAndBind, makeDenoTransport } from './build/esm/index.js';
+import { DenoClient, getCurrentHub, initAndBind, makeDenoTransport } from './build/index.js';
 
 initAndBind(DenoClient, {
   dsn: 'https://7cea2b6e298f4fcc86bb28d22ceaeac4@o447951.ingest.sentry.io/4505391490007040',
