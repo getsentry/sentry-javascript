@@ -21,10 +21,8 @@ export function maybeRefreshSession(
   },
   sessionOptions: SessionOptions,
 ): Session {
-  const isExpired = isSessionExpired(session, timeouts);
-
   // If not expired, all good, just keep the session
-  if (!isExpired) {
+  if (!isSessionExpired(session, timeouts)) {
     return session;
   }
 
@@ -74,26 +72,5 @@ export function loadOrCreateSession(
     return createSession(sessionOptions);
   }
 
-  // If a session exists, and it is not expired, just return it
-  if (!isSessionExpired(existingSession, timeouts)) {
-    return existingSession;
-  }
-
-  // If expired & we have a buffering session that should be refreshed, return it
-  if (existingSession.sampled === 'buffer' && existingSession.shouldRefresh) {
-    return existingSession;
-  }
-
-  // If expired & we have a buffering session that should _not_ be refreshed, return a new unsampled session
-  if (existingSession.sampled === 'buffer') {
-    logInfoNextTick('[Replay] Session should not be refreshed', traceInternals);
-    return makeSession({ sampled: false });
-  }
-
-  // Else, we have an expired session that should be refreshed & re-sampled
-  logInfoNextTick('[Replay] Session has expired, creating new one...', traceInternals);
-
-  const newSession = createSession(sessionOptions, { previousSessionId: existingSession.id });
-
-  return newSession;
+  return maybeRefreshSession(existingSession, { timeouts, traceInternals }, sessionOptions);
 }
