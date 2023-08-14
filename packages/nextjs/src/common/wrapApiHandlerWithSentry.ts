@@ -53,8 +53,24 @@ export const withSentryAPI = wrapApiHandlerWithSentry;
  */
 export function withSentry(apiHandler: NextApiHandler, parameterizedRoute?: string): NextApiHandler {
   return new Proxy(apiHandler, {
-    apply: (wrappingTarget, thisArg, args: [AugmentedNextApiRequest, AugmentedNextApiResponse]) => {
+    apply: (
+      wrappingTarget,
+      thisArg,
+      args: [AugmentedNextApiRequest | undefined, AugmentedNextApiResponse | undefined],
+    ) => {
       const [req, res] = args;
+
+      if (!req) {
+        logger.debug(
+          `Wrapped API handler on route "${parameterizedRoute}" was not passed a request object. Will not instrument.`,
+        );
+        return wrappingTarget.apply(thisArg, args);
+      } else if (!res) {
+        logger.debug(
+          `Wrapped API handler on route "${parameterizedRoute}" was not passed a response object. Will not instrument.`,
+        );
+        return wrappingTarget.apply(thisArg, args);
+      }
 
       // We're now auto-wrapping API route handlers using `wrapApiHandlerWithSentry` (which uses `withSentry` under the hood), but
       // users still may have their routes manually wrapped with `withSentry`. This check makes `sentryWrappedHandler`
