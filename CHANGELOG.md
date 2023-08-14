@@ -4,6 +4,13 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.64.0
+
+- feat(core): Add setMeasurement export (#8791)
+- fix(nextjs): Check for existence of default export when wrapping pages (#8794)
+- fix(nextjs): Ensure imports are valid relative paths (#8799)
+- fix(nextjs): Only re-export default export if it exists (#8800)
+
 ## 7.63.0
 
 - build(deps): bump @opentelemetry/instrumentation from 0.41.0 to 0.41.2
