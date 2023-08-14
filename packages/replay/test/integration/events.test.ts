@@ -40,7 +40,8 @@ describe('Integration | events', () => {
     // Create a new session and clear mocks because a segment (from initial
     // checkout) will have already been uploaded by the time the tests run
     clearSession(replay);
-    replay['_loadAndCheckSession']();
+    replay['_initializeSessionForSampling']();
+    replay.setInitialState();
     mockTransportSend.mockClear();
   });
 
@@ -93,7 +94,8 @@ describe('Integration | events', () => {
 
   it('has correct timestamps when there are events earlier than initial timestamp', async function () {
     clearSession(replay);
-    replay['_loadAndCheckSession']();
+    replay['_initializeSessionForSampling']();
+    replay.setInitialState();
     mockTransportSend.mockClear();
     Object.defineProperty(document, 'visibilityState', {
       configurable: true,
