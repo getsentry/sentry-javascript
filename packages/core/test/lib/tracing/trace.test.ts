@@ -1,5 +1,5 @@
 import { addTracingExtensions, Hub, makeMain } from '../../../src';
-import { trace } from '../../../src/tracing';
+import { startActiveSpan } from '../../../src/tracing';
 import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
 
 beforeAll(() => {
@@ -14,7 +14,7 @@ const enum Type {
 let hub: Hub;
 let client: TestClient;
 
-describe('trace', () => {
+describe('startActiveSpan', () => {
   beforeEach(() => {
     const options = getDefaultTestClientOptions({ tracesSampleRate: 0.0 });
     client = new TestClient(options);
@@ -38,7 +38,7 @@ describe('trace', () => {
   ])('with %s callback and error %s', (_type, isError, callback, expected) => {
     it('should return the same value as the callback', async () => {
       try {
-        const result = await trace({ name: 'GET users/[id]' }, () => {
+        const result = await startActiveSpan({ name: 'GET users/[id]' }, () => {
           return callback();
         });
         expect(result).toEqual(expected);
@@ -53,7 +53,7 @@ describe('trace', () => {
       // if tracingExtensions are not enabled
       jest.spyOn(hub, 'startTransaction').mockReturnValue(undefined);
       try {
-        const result = await trace({ name: 'GET users/[id]' }, () => {
+        const result = await startActiveSpan({ name: 'GET users/[id]' }, () => {
           return callback();
         });
         expect(result).toEqual(expected);
@@ -68,7 +68,7 @@ describe('trace', () => {
         ref = transaction;
       });
       try {
-        await trace({ name: 'GET users/[id]' }, () => {
+        await startActiveSpan({ name: 'GET users/[id]' }, () => {
           return callback();
         });
       } catch (e) {
@@ -86,7 +86,7 @@ describe('trace', () => {
         ref = transaction;
       });
       try {
-        await trace(
+        await startActiveSpan(
           {
             name: 'GET users/[id]',
             parentSampled: true,
@@ -113,7 +113,7 @@ describe('trace', () => {
         ref = transaction;
       });
       try {
-        await trace({ name: 'GET users/[id]' }, span => {
+        await startActiveSpan({ name: 'GET users/[id]' }, span => {
           if (span) {
             span.op = 'http.server';
           }
@@ -132,8 +132,8 @@ describe('trace', () => {
         ref = transaction;
       });
       try {
-        await trace({ name: 'GET users/[id]', parentSampled: true }, () => {
-          return trace({ name: 'SELECT * from users' }, () => {
+        await startActiveSpan({ name: 'GET users/[id]', parentSampled: true }, () => {
+          return startActiveSpan({ name: 'SELECT * from users' }, () => {
             return callback();
           });
         });
@@ -153,8 +153,8 @@ describe('trace', () => {
         ref = transaction;
       });
       try {
-        await trace({ name: 'GET users/[id]', parentSampled: true }, () => {
-          return trace({ name: 'SELECT * from users' }, childSpan => {
+        await startActiveSpan({ name: 'GET users/[id]', parentSampled: true }, () => {
+          return startActiveSpan({ name: 'SELECT * from users' }, childSpan => {
             if (childSpan) {
               childSpan.op = 'db.query';
             }
@@ -167,51 +167,6 @@ describe('trace', () => {
 
       expect(ref.spanRecorder.spans).toHaveLength(2);
       expect(ref.spanRecorder.spans[1].op).toEqual('db.query');
-    });
-
-    it('calls `onError` hook', async () => {
-      const onError = jest.fn();
-      try {
-        await trace(
-          { name: 'GET users/[id]' },
-          () => {
-            return callback();
-          },
-          onError,
-        );
-      } catch (e) {
-        expect(onError).toHaveBeenCalledTimes(1);
-        expect(onError).toHaveBeenCalledWith(e);
-      }
-      expect(onError).toHaveBeenCalledTimes(isError ? 1 : 0);
-    });
-
-    it("doesn't create spans but calls onError if tracing is disabled", async () => {
-      const options = getDefaultTestClientOptions({
-        /* we don't set tracesSampleRate or tracesSampler */
-      });
-      client = new TestClient(options);
-      hub = new Hub(client);
-      makeMain(hub);
-
-      const startTxnSpy = jest.spyOn(hub, 'startTransaction');
-
-      const onError = jest.fn();
-      try {
-        await trace(
-          { name: 'GET users/[id]' },
-          () => {
-            return callback();
-          },
-          onError,
-        );
-      } catch (e) {
-        expect(onError).toHaveBeenCalledTimes(1);
-        expect(onError).toHaveBeenCalledWith(e);
-      }
-      expect(onError).toHaveBeenCalledTimes(isError ? 1 : 0);
-
-      expect(startTxnSpy).not.toHaveBeenCalled();
     });
   });
 });
