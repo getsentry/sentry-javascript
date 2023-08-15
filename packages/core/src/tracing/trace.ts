@@ -34,14 +34,14 @@ export function trace<T>(
 
   const parentSpan = scope.getSpan();
 
-  function getActiveSpan(): Span | undefined {
+  function startActiveSpan(): Span | undefined {
     if (!hasTracingEnabled()) {
       return undefined;
     }
     return parentSpan ? parentSpan.startChild(ctx) : hub.startTransaction(ctx);
   }
 
-  const activeSpan = getActiveSpan();
+  const activeSpan = startActiveSpan();
   scope.setSpan(activeSpan);
 
   function finishAndSetSpan(): void {
@@ -100,14 +100,14 @@ export function startActiveSpan<T>(context: TransactionContext, callback: (span:
 
   const parentSpan = scope.getSpan();
 
-  function getActiveSpan(): Span | undefined {
+  function startActiveSpan(): Span | undefined {
     if (!hasTracingEnabled()) {
       return undefined;
     }
     return parentSpan ? parentSpan.startChild(ctx) : hub.startTransaction(ctx);
   }
 
-  const activeSpan = getActiveSpan();
+  const activeSpan = startActiveSpan();
   scope.setSpan(activeSpan);
 
   function finishAndSetSpan(): void {
