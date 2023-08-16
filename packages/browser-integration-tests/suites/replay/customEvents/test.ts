@@ -88,6 +88,8 @@ sentryTest(
 
     const reqPromise0 = waitForReplayRequest(page, 0);
     const reqPromise1 = waitForReplayRequest(page, 1);
+    const reqPromise2 = waitForReplayRequest(page, 2);
+    const reqPromise3 = waitForReplayRequest(page, 3);
 
     await page.route('https://dsn.ingest.sentry.io/**/*', route => {
       return route.fulfill({
@@ -103,8 +105,6 @@ sentryTest(
     await reqPromise0;
 
     await page.click('#error');
-    await page.click('#img');
-    await page.click('.sentry-unmask');
     await forceFlushReplay();
     const req1 = await reqPromise1;
     const content1 = getReplayRecordingContent(req1);
@@ -131,7 +131,11 @@ sentryTest(
       ]),
     );
 
-    expect(content1.breadcrumbs).toEqual(
+    await page.click('#img');
+    await forceFlushReplay();
+    const req2 = await reqPromise2;
+    const content2 = getReplayRecordingContent(req2);
+    expect(content2.breadcrumbs).toEqual(
       expect.arrayContaining([
         {
           ...expectedClickBreadcrumb,
@@ -151,7 +155,11 @@ sentryTest(
       ]),
     );
 
-    expect(content1.breadcrumbs).toEqual(
+    await page.click('.sentry-unmask');
+    await forceFlushReplay();
+    const req3 = await reqPromise3;
+    const content3 = getReplayRecordingContent(req3);
+    expect(content3.breadcrumbs).toEqual(
       expect.arrayContaining([
         {
           ...expectedClickBreadcrumb,
