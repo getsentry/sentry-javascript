@@ -1045,6 +1045,8 @@ export class ReplayContainer implements ReplayContainerInterface {
       return;
     }
 
+    const sessionId = this.session.id;
+
     await this._addPerformanceEntries();
 
     // Check eventBuffer again, as it could have been stopped in the meanwhile
@@ -1066,8 +1068,13 @@ export class ReplayContainer implements ReplayContainerInterface {
 
       // Note this empties the event buffer regardless of outcome of sending replay
       const recordingData = await this.eventBuffer.finish();
-
       const timestamp = Date.now();
+
+      // This can happen when the session expired while a flush was in progress, e.g. if the process goes to sleep or similar
+      // In this case, we abort and do not send anything, as otherwise we may send the data to the wrong session
+      if (sessionId !== this.session.id) {
+        throw new Error('[Replay] session.id has changed while flushing, aborting...');
+      }
 
       // Check total duration again, to avoid sending outdated stuff
       // We leave 30s wiggle room to accomodate late flushing etc.
