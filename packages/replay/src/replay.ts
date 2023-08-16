@@ -18,7 +18,8 @@ import { handleKeyboardEvent } from './coreHandlers/handleKeyboardEvent';
 import { setupPerformanceObserver } from './coreHandlers/performanceObserver';
 import { createEventBuffer } from './eventBuffer';
 import { clearSession } from './session/clearSession';
-import { loadOrCreateSession, maybeRefreshSession } from './session/getSession';
+import { loadOrCreateSession } from './session/loadOrCreateSession';
+import { maybeRefreshSession } from './session/maybeRefreshSession';
 import { saveSession } from './session/saveSession';
 import type {
   AddEventResult,
