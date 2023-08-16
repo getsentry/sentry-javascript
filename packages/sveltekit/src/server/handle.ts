@@ -59,6 +59,7 @@ function sendErrorToSentry(e: unknown): unknown {
 
 const FETCH_PROXY_SCRIPT = `
     const f = window.fetch;
+    if(!f){return}
     window._sentryFetchProxy = function(...a){return f(...a)}
     window.fetch = function(...a){return window._sentryFetchProxy(...a)}
 `;
