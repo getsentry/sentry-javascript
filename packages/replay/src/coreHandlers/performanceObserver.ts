@@ -1,4 +1,4 @@
-import type { AllPerformanceEntry, ReplayContainer } from '../types';
+import type { ReplayContainer } from '../types';
 import { dedupePerformanceEntries } from '../util/dedupePerformanceEntries';
 
 /**
@@ -8,11 +8,7 @@ export function setupPerformanceObserver(replay: ReplayContainer): PerformanceOb
   const performanceObserverHandler = (list: PerformanceObserverEntryList): void => {
     // For whatever reason the observer was returning duplicate navigation
     // entries (the other entry types were not duplicated).
-    const newPerformanceEntries = dedupePerformanceEntries(
-      replay.performanceEvents,
-      list.getEntries() as AllPerformanceEntry[],
-    );
-    replay.performanceEvents = newPerformanceEntries;
+    replay.performanceEvents = dedupePerformanceEntries(list.getEntries());
   };
 
   const performanceObserver = new PerformanceObserver(performanceObserverHandler);
