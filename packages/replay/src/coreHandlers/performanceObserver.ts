@@ -8,7 +8,7 @@ export function setupPerformanceObserver(replay: ReplayContainer): PerformanceOb
   const performanceObserverHandler = (list: PerformanceObserverEntryList): void => {
     // For whatever reason the observer was returning duplicate navigation
     // entries (the other entry types were not duplicated).
-    replay.performanceEvents = dedupePerformanceEntries(list.getEntries());
+    replay.performanceEvents = dedupePerformanceEntries(list.getEntries(), replay.performanceEvents);
   };
 
   const performanceObserver = new PerformanceObserver(performanceObserverHandler);
