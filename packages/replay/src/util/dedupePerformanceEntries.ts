@@ -1,90 +1,68 @@
-const NAVIGATION_ENTRY_KEYS: Array<keyof PerformanceNavigationTiming> = [
-  'name',
-  'type',
-  'startTime',
-  'transferSize',
-  'duration',
-];
-
-function isNavigationEntryEqual(a: PerformanceNavigationTiming) {
-  return function (b: PerformanceNavigationTiming) {
-    return NAVIGATION_ENTRY_KEYS.every(key => a[key] === b[key]);
-  };
-}
-
 /**
- * There are some difficulties diagnosing why there are duplicate navigation
- * entries. We've witnessed several intermittent results:
- * - duplicate entries have duration = 0
- * - duplicate entries are the same object reference
- * - none of the above
+ * Deduplicates performance entries list - assumes a sorted list as input as per
+ * the spec https://w3c.github.io/performance-timeline/#dom-performance-getentries.
  *
- * Compare the values of several keys to determine if the entries are duplicates or not.
+ *
+ * Deduplication is performed because we have observed duplicate navigation entries in real world data:
+ * Some of the duplicates include:
+ * - entries where duration = 0
+ * - same reference entries
+ * - none of the above
+ * @param list {PerformanceEntryList}
+ * @returns PerformanceEntryList
  */
-// TODO (high-prio): Figure out wth is returned here
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-export function dedupePerformanceEntries(
-  currentList: PerformanceEntryList,
-  newList: PerformanceEntryList,
-): PerformanceEntryList {
-  // Partition `currentList` into 3 different lists based on entryType
-  const [existingNavigationEntries, existingLcpEntries, existingEntries] = currentList.reduce(
-    (acc: [PerformanceNavigationTiming[], PerformancePaintTiming[], PerformanceEntryList], entry) => {
-      if (entry.entryType === 'navigation') {
-        acc[0].push(entry as PerformanceNavigationTiming);
-      } else if (entry.entryType === 'largest-contentful-paint') {
-        acc[1].push(entry as PerformancePaintTiming);
-      } else {
-        acc[2].push(entry);
-      }
-      return acc;
-    },
-    [[], [], []],
-  );
+export function dedupePerformanceEntries(list: PerformanceEntryList): PerformanceEntryList {
+  const deduped: PerformanceEntryList = [];
+  let lcpEntry: PerformancePaintTiming | undefined;
 
-  const newEntries: PerformanceEntryList = [];
-  const newNavigationEntries: PerformanceNavigationTiming[] = [];
-  let newLcpEntry: PerformancePaintTiming | undefined = existingLcpEntries.length
-    ? existingLcpEntries[existingLcpEntries.length - 1] // Take the last element as list is sorted
-    : undefined;
-
-  newList.forEach(entry => {
-    if (entry.entryType === 'largest-contentful-paint') {
-      // We want the latest LCP event only
-      if (!newLcpEntry || newLcpEntry.startTime < entry.startTime) {
-        newLcpEntry = entry;
-      }
-      return;
+  let i = 0;
+  while (i < list.length) {
+    const entry = list[i];
+    // Assign latest lcp entry if it is the latest entry
+    // or if we dont currently have an lcp entry
+    if (entry.entryType === 'largest-contentful-paint' && (!lcpEntry || entry.startTime > lcpEntry.startTime)) {
+      lcpEntry = entry;
+      i++;
+      continue;
     }
 
     if (entry.entryType === 'navigation') {
-      const navigationEntry = entry as PerformanceNavigationTiming;
-
-      // Check if the navigation entry is contained in currentList or newList
-      if (
-        // Ignore any navigation entries with duration 0, as they are likely duplicates
-        entry.duration > 0 &&
-        // Ensure new entry does not already exist in existing entries
-        !existingNavigationEntries.find(isNavigationEntryEqual(navigationEntry)) &&
-        // Ensure new entry does not already exist in new list of navigation entries
-        !newNavigationEntries.find(isNavigationEntryEqual(navigationEntry))
-      ) {
-        newNavigationEntries.push(navigationEntry);
+      if (entry.duration <= 0) {
+        i++;
+        continue;
       }
 
-      // Otherwise this navigation entry is considered a duplicate and is thrown away
-      return;
+      // By default, any entry is considered new and we peek ahead to see how many duplicates there are.
+      // We can rely on the peek behavior as the spec states that entries are sorted by startTime. As we peek,
+      // we keep a count of how many duplicates we see and skip over them.
+      let skipCount = 0;
+      let next: PerformanceEntry = list[i + skipCount + 1];
+      while (
+        next &&
+        // Cheap reference check first, then compare keys. Since entries are sorted by startTime, compare that first.
+        (next === entry ||
+          (next.startTime === entry.startTime &&
+            next.duration === entry.duration &&
+            next.name === entry.name &&
+            next.entryType === entry.entryType &&
+            (next as PerformanceResourceTiming).transferSize === (entry as PerformanceResourceTiming).transferSize))
+      ) {
+        skipCount++;
+        next = list[i + skipCount + 1];
+      }
+
+      // Jump to next entry after the duplicates
+      i = i + 1 + skipCount;
+      deduped.push(entry);
+      continue;
     }
 
-    newEntries.push(entry);
-  });
+    deduped.push(entry);
+    i++;
+  }
 
-  // Re-combine and sort by startTime
-  return [
-    ...(newLcpEntry ? [newLcpEntry] : []),
-    ...existingNavigationEntries,
-    ...existingEntries,
-    ...newEntries,
-    ...newNavigationEntries,
-  ].sort((a, b) => a.startTime - b.startTime);
+  if (lcpEntry) {
+    deduped.push(lcpEntry);
+  }
+  return deduped;
 }
