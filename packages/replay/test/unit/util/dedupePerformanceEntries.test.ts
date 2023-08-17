@@ -35,8 +35,6 @@ describe('Unit | util | dedupePerformanceEntries', () => {
     const c = PerformanceEntryNavigation({ startTime: 2, type: 'reload' });
     const d = PerformanceEntryNavigation({ startTime: 1000 });
     const entries = [a, a, b, b, c].sort((a, b) => a.startTime - b.startTime);
-
-    const expected = dedupePerformanceEntries([a, d], entries);
     expect(dedupePerformanceEntries([a, d], entries)).toEqual([a, b, c, d]);
   });
 
