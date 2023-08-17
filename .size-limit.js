@@ -75,7 +75,7 @@ module.exports = [
   {
     name: '@sentry/react (incl. Tracing, Replay) - Webpack (gzipped)',
     path: 'packages/react/build/esm/index.js',
-    import: '{ init, BrowserTYracing, Replay }',
+    import: '{ init, BrowserTracing, Replay }',
     gzip: true,
     limit: '80 KB',
   },
