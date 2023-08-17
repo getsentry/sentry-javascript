@@ -11,6 +11,8 @@ interface AsyncLocalStorage<T> {
 // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
 const MaybeGlobalAsyncLocalStorage = (GLOBAL_OBJ as any).AsyncLocalStorage;
 
+let asyncStorage: AsyncLocalStorage<Hub>;
+
 /**
  * Sets the async context strategy to use AsyncLocalStorage which should be available in the edge runtime.
  */
@@ -23,7 +25,9 @@ export function setAsyncLocalStorageAsyncContextStrategy(): void {
     return;
   }
 
-  const asyncStorage: AsyncLocalStorage<Hub> = new MaybeGlobalAsyncLocalStorage();
+  if (!asyncStorage) {
+    asyncStorage = new MaybeGlobalAsyncLocalStorage();
+  }
 
   function getCurrentHub(): Hub | undefined {
     return asyncStorage.getStore();
