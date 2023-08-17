@@ -41,12 +41,15 @@ const serverComponentWrapperTemplatePath = path.resolve(
 );
 const serverComponentWrapperTemplateCode = fs.readFileSync(serverComponentWrapperTemplatePath, { encoding: 'utf8' });
 
+const routeHandlerWrapperTemplatePath = path.resolve(__dirname, '..', 'templates', 'routeHandlerWrapperTemplate.js');
+const routeHandlerWrapperTemplateCode = fs.readFileSync(routeHandlerWrapperTemplatePath, { encoding: 'utf8' });
+
 type LoaderOptions = {
   pagesDir: string;
   appDir: string;
   pageExtensionRegex: string;
   excludeServerRoutes: Array<RegExp | string>;
-  wrappingTargetKind: 'page' | 'api-route' | 'middleware' | 'server-component' | 'sentry-init';
+  wrappingTargetKind: 'page' | 'api-route' | 'middleware' | 'server-component' | 'sentry-init' | 'route-handler';
   sentryConfigFilePath?: string;
   vercelCronsConfig?: VercelCronsConfig;
 };
@@ -144,14 +147,14 @@ export default function wrappingLoader(
 
     // Inject the route and the path to the file we're wrapping into the template
     templateCode = templateCode.replace(/__ROUTE__/g, parameterizedPagesRoute.replace(/\\/g, '\\\\'));
-  } else if (wrappingTargetKind === 'server-component') {
+  } else if (wrappingTargetKind === 'server-component' || wrappingTargetKind === 'route-handler') {
     // Get the parameterized route name from this page's filepath
     const parameterizedPagesRoute = path.posix
       .normalize(path.relative(appDir, this.resourcePath))
       // Add a slash at the beginning
       .replace(/(.*)/, '/$1')
       // Pull off the file name
-      .replace(/\/[^/]+\.(js|jsx|tsx)$/, '')
+      .replace(/\/[^/]+\.(js|ts|jsx|tsx)$/, '')
       // Remove routing groups: https://beta.nextjs.org/docs/routing/defining-routes#example-creating-multiple-root-layouts
       .replace(/\/(\(.*?\)\/)+/g, '/')
       // In case all of the above have left us with an empty string (which will happen if we're dealing with the
@@ -173,7 +176,11 @@ export default function wrappingLoader(
       return;
     }
 
-    templateCode = serverComponentWrapperTemplateCode;
+    if (wrappingTargetKind === 'server-component') {
+      templateCode = serverComponentWrapperTemplateCode;
+    } else {
+      templateCode = routeHandlerWrapperTemplateCode;
+    }
 
     if (requestAsyncStorageModuleExists) {
       templateCode = templateCode.replace(
@@ -197,7 +204,7 @@ export default function wrappingLoader(
 
     const componentTypeMatch = path.posix
       .normalize(path.relative(appDir, this.resourcePath))
-      .match(/\/?([^/]+)\.(?:js|jsx|tsx)$/);
+      .match(/\/?([^/]+)\.(?:js|ts|jsx|tsx)$/);
 
     if (componentTypeMatch && componentTypeMatch[1]) {
       let componentType;

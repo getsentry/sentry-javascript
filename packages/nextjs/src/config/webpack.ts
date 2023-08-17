@@ -173,6 +173,14 @@ export function constructWebpackConfigFunction(
       );
     };
 
+    const isRouteHandlerResource = (resourcePath: string): boolean => {
+      const normalizedAbsoluteResourcePath = normalizeLoaderResourcePath(resourcePath);
+      return (
+        normalizedAbsoluteResourcePath.startsWith(appDirPath + path.sep) &&
+        !!normalizedAbsoluteResourcePath.match(/[\\/]route\.(js|ts|jsx|tsx)$/)
+      );
+    };
+
     if (isServer && userSentryOptions.autoInstrumentServerFunctions !== false) {
       // It is very important that we insert our loaders at the beginning of the array because we expect any sort of transformations/transpilations (e.g. TS -> JS) to already have happened.
 
@@ -245,7 +253,7 @@ export function constructWebpackConfigFunction(
     }
 
     if (isServer && userSentryOptions.autoInstrumentAppDirectory !== false) {
-      // Wrap page server components
+      // Wrap server components
       newConfig.module.rules.unshift({
         test: isServerComponentResource,
         use: [
@@ -254,6 +262,20 @@ export function constructWebpackConfigFunction(
             options: {
               ...staticWrappingLoaderOptions,
               wrappingTargetKind: 'server-component',
+            },
+          },
+        ],
+      });
+
+      // Wrap route handlers
+      newConfig.module.rules.unshift({
+        test: isRouteHandlerResource,
+        use: [
+          {
+            loader: path.resolve(__dirname, 'loaders', 'wrappingLoader.js'),
+            options: {
+              ...staticWrappingLoaderOptions,
+              wrappingTargetKind: 'route-handler',
             },
           },
         ],
