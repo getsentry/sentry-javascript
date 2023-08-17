@@ -5,6 +5,6 @@
   </head>
   <body>
     <button onclick="console.log('Test log 1')" id="button1">Click me</button>
-    <button onclick="window.doesNotExist()" id="buttonError">Click me</button>
+    <button onclick="Sentry.captureException('test error')" id="buttonError">Click me</button>
   </body>
 </html>

@@ -243,15 +243,9 @@ export class ReplayContainer implements ReplayContainerInterface {
       return;
     }
 
-    let recordingMode: ReplayRecordingMode = 'session';
-
     // If segmentId > 0, it means we've previously already captured this session
     // In this case, we still want to continue in `session` recording mode
-    if (this.session.sampled === 'buffer' && this.session.segmentId === 0) {
-      recordingMode = 'buffer';
-    }
-
-    this.recordingMode = recordingMode;
+    this.recordingMode = this.session.sampled === 'buffer' && this.session.segmentId === 0 ? 'buffer' : 'session';
 
     logInfoNextTick(
       `[Replay] Starting replay in ${this.recordingMode} mode`,
