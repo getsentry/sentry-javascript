@@ -5,7 +5,7 @@ function injectDebugId(buildPath) {
   try {
     execSync(`node ./node_modules/@sentry/cli/bin/sentry-cli sourcemaps inject ${buildPath}`);
   } catch (error) {
-    console.warn('Failed to inject debug ids.');
+    console.warn('[sentry] Failed to inject debug ids.');
     console.error(error);
   }
 }

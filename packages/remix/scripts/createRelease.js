@@ -22,7 +22,7 @@ async function createRelease(argv, URL_PREFIX, BUILD_PATH) {
     try {
       deleteSourcemaps(BUILD_PATH);
     } catch (error) {
-      console.warn(`Failed to delete sourcemaps in build directory: ${BUILD_PATH}`);
+      console.warn(`[sentry] Failed to delete sourcemaps in build directory: ${BUILD_PATH}`);
       console.error(error);
     }
   }
