@@ -124,7 +124,7 @@ function replacePlaceholders(str, placeholders) {
 }
 
 const template = `<figure class="result-image">
-  <img src="https://api.lorem.space/image/house?w=350&h=250" alt="{{title}}" data-image />
+  <img alt="{{title}}" data-image />
 </figure>
 
 <div class="result-content">
