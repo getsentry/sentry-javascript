@@ -99,12 +99,15 @@ function generateResult() {
   const descriptionShort = description.slice(0, 200);
   const priceStr = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(price);
 
+  const imgSrc = `./img/house-${Math.floor(Math.random() * 3)}.jpg`;
+
   const placeholders = {
     title,
     beds,
     description,
     descriptionShort,
     priceStr,
+    imgSrc,
   };
 
   return replacePlaceholders(template, placeholders);
@@ -124,7 +127,7 @@ function replacePlaceholders(str, placeholders) {
 }
 
 const template = `<figure class="result-image">
-  <img src="https://api.lorem.space/image/house?w=350&h=250" alt="{{title}}" data-image />
+  <img src="{{imgSrc}}" alt="{{title}}" data-image  />
 </figure>
 
 <div class="result-content">
