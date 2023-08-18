@@ -295,10 +295,11 @@ describe('Integration | errorSampleRate', () => {
   it('does not upload a replay event if error is not sampled', async () => {
     // We are trying to replicate the case where error rate is 0 and session
     // rate is > 0, we can't set them both to 0 otherwise
-    // `_loadAndCheckSession` is not called when initializing the plugin.
+    // `_initializeSessionForSampling` is not called when initializing the plugin.
     replay.stop();
     replay['_options']['errorSampleRate'] = 0;
-    replay['_loadAndCheckSession']();
+    replay['_initializeSessionForSampling']();
+    replay.setInitialState();
 
     jest.runAllTimers();
     await new Promise(process.nextTick);

@@ -14,6 +14,7 @@ export function makeSession(session: Partial<Session> & { sampled: Sampled }): S
   const segmentId = session.segmentId || 0;
   const sampled = session.sampled;
   const shouldRefresh = typeof session.shouldRefresh === 'boolean' ? session.shouldRefresh : true;
+  const previousSessionId = session.previousSessionId;
 
   return {
     id,
@@ -22,5 +23,6 @@ export function makeSession(session: Partial<Session> & { sampled: Sampled }): S
     segmentId,
     sampled,
     shouldRefresh,
+    previousSessionId,
   };
 }
