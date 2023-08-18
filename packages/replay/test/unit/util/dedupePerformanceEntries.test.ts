@@ -66,9 +66,9 @@ describe('Unit | util | dedupePerformanceEntries', () => {
   });
 
   it('dedupes when the list is the same', () => {
-    const a = PerformanceEntryNavigation({startTime: Number.NEGATIVE_INFINITY});
+    const a = PerformanceEntryNavigation({ startTime: Number.NEGATIVE_INFINITY });
     expect(dedupePerformanceEntries([a], [a])).toEqual([a]);
-  })
+  });
 
   it('does not spin forever in weird edge cases', function () {
     expect(dedupePerformanceEntries([], [])).toEqual([]);
@@ -78,22 +78,27 @@ describe('Unit | util | dedupePerformanceEntries', () => {
       Math.floor(Math.random() * (max - min + 1)) + min;
 
     const starts = [-100, 0, 100, Number.NEGATIVE_INFINITY, Number.POSITIVE_INFINITY, NaN, undefined];
-    const entries = [PerformanceEntryLcp, PerformanceEntryNavigation, PerformanceEntryResource]
+    const entries = [PerformanceEntryLcp, PerformanceEntryNavigation, PerformanceEntryResource];
 
-    for(let i = 0; i < 100; i++) {
-      const previousEntries: any[] = []
-      const currEntries: any[] = []
-      for(let j = 0; j < randomNumberBetweenInclusive(0, 10); j++) {
+    for (let i = 0; i < 100; i++) {
+      const previousEntries: any[] = [];
+      const currEntries: any[] = [];
+      for (let j = 0; j < randomNumberBetweenInclusive(0, 10); j++) {
         // @ts-expect-error
-        previousEntries.push(randomFrom(entries)({ startTime: randomFrom(starts)}));
+        previousEntries.push(randomFrom(entries)({ startTime: randomFrom(starts) }));
       }
-      for(let j = 0; j < randomNumberBetweenInclusive(0, 10); j++) {
+      for (let j = 0; j < randomNumberBetweenInclusive(0, 10); j++) {
         // @ts-expect-error
-        currEntries.push(randomFrom(entries)({ startTime: randomFrom(starts)}));
+        currEntries.push(randomFrom(entries)({ startTime: randomFrom(starts) }));
       }
 
-      expect(() => dedupePerformanceEntries(previousEntries, currEntries)).not.toThrow()
-      expect(() => dedupePerformanceEntries(previousEntries.sort((a,b) => a.startTime - b.startTime), currEntries.sort((a,b) => a.startTime - b.startTime))).not.toThrow()
+      expect(() => dedupePerformanceEntries(previousEntries, currEntries)).not.toThrow();
+      expect(() =>
+        dedupePerformanceEntries(
+          previousEntries.sort((a, b) => a.startTime - b.startTime),
+          currEntries.sort((a, b) => a.startTime - b.startTime),
+        ),
+      ).not.toThrow();
     }
-  })
+  });
 });
