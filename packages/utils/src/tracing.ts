@@ -1,7 +1,6 @@
-import type { DynamicSamplingContext, PropagationContext, TraceparentData } from '@sentry/types';
-
 import { baggageHeaderToDynamicSamplingContext } from './baggage';
 import { uuid4 } from './misc';
+import type { DynamicSamplingContext, PropagationContext, TraceparentData } from '@sentry/types';
 
 export const TRACEPARENT_REGEXP = new RegExp(
   '^[ \\t]*' + // whitespace
@@ -61,7 +60,7 @@ export function tracingContextFromHeaders(
   const propagationContext: PropagationContext = {
     traceId: traceId || uuid4(),
     spanId: uuid4().substring(16),
-    sampled: parentSampled === undefined ? false : parentSampled,
+    sampled: parentSampled,
   };
 
   if (parentSpanId) {

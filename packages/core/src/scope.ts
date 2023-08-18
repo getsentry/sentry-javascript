@@ -1,4 +1,5 @@
 /* eslint-disable max-lines */
+import { updateSession } from './session';
 import type {
   Attachment,
   Breadcrumb,
@@ -32,8 +33,6 @@ import {
   SyncPromise,
   uuid4,
 } from '@sentry/utils';
-
-import { updateSession } from './session';
 
 /**
  * Default value for maximum number of breadcrumbs added to an event.
@@ -636,6 +635,5 @@ function generatePropagationContext(): PropagationContext {
   return {
     traceId: uuid4(),
     spanId: uuid4().substring(16),
-    sampled: false,
   };
 }
