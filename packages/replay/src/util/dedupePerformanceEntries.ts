@@ -1,6 +1,6 @@
-function skipDuplicates(queue: PerformanceEntry[], curr: PerformanceEntry, pos: number): number {
-  let skipCount = 0;
-  let nextNode: PerformanceEntry = queue[pos + skipCount + 1];
+function nbDuplicatesToSkip(queue: PerformanceEntry[], curr: PerformanceEntry, startAt: number): number {
+  let i = startAt;
+  let nextNode: PerformanceEntry = queue[i];
   while (
     nextNode &&
     // Cheap reference check first, then compare keys. Since entries are sorted by startTime, compare that first.
@@ -11,11 +11,17 @@ function skipDuplicates(queue: PerformanceEntry[], curr: PerformanceEntry, pos: 
         nextNode.entryType === curr.entryType &&
         (nextNode as PerformanceResourceTiming).transferSize === (curr as PerformanceResourceTiming).transferSize))
   ) {
-    skipCount++;
-    nextNode = queue[pos + skipCount + 1];
+    nextNode = queue[++i];
   }
-  return skipCount;
+
+  return i - startAt;
 }
+
+enum Queue {
+  CURRENT = 0,
+  PREVIOUS = 1,
+}
+
 /**
  * Deduplicates performance entries list - assumes a sorted list as input as per
  * the spec https://w3c.github.io/performance-timeline/#dom-performance-getentries.
@@ -34,21 +40,24 @@ export function dedupePerformanceEntries(
   list: PerformanceEntryList,
   previousList: PerformanceEntryList,
 ): PerformanceEntryList {
-  let i = 0;
-  let n = 0;
-
   if (!list.length && !previousList.length) {
     return [];
   }
 
-  const next = (queue: string): void => {
-    if (queue === 'current') {
+  let i = 0;
+  let n = 0;
+
+  // Helper to advance queue
+  function advanceQueue(queue: Queue): void {
+    if (queue === Queue.CURRENT) {
       i++;
     } else {
       n++;
     }
-  };
+  }
 
+  // Initialize deduped list and lcp entry index.
+  // We keep track of the lcp entry index so that we can replace it if we find a later entry.
   const deduped: PerformanceEntryList = [];
   let lcpEntryIndex: number | undefined;
 
@@ -56,18 +65,21 @@ export function dedupePerformanceEntries(
     const current = list[i];
     const previous = previousList[n];
 
+    // If nothing in queue A, take from bueue B,
+    // if nothing in queue B, take from queue A.
+    // If both queues have entries, take the earliest one.
     const queueType = !previous
-      ? 'current'
+      ? Queue.CURRENT
       : !current
-      ? 'previous'
+      ? Queue.PREVIOUS
       : list[i].startTime <= previousList[n].startTime
-      ? 'current'
-      : 'previous';
+      ? Queue.CURRENT
+      : Queue.PREVIOUS;
 
-    const entry = queueType === 'current' ? list[i] : previousList[n];
+    const entry = queueType === Queue.CURRENT ? list[i] : previousList[n];
 
-    // Assign latest lcp entry if it is the latest entry
-    // or if we dont currently have an lcp entry.
+    // Assign latest lcp entry if it later than current latest entry
+    // If we do not have one yet, add it to the list and store it's index
     if (entry.entryType === 'largest-contentful-paint') {
       if (lcpEntryIndex === undefined || entry.startTime > deduped[lcpEntryIndex].startTime) {
         if (lcpEntryIndex === undefined) {
@@ -77,32 +89,32 @@ export function dedupePerformanceEntries(
           deduped[lcpEntryIndex] = entry;
         }
       }
-      next(queueType);
+      advanceQueue(queueType);
       continue;
     }
 
     if (entry.entryType === 'navigation') {
-      if (entry.duration <= 0) {
-        next(queueType);
-        continue;
-      }
-
       // By default, any entry is considered new and we peek ahead to see how many duplicates there are.
       // We can rely on the peek behavior as the spec states that entries are sorted by startTime. As we peek,
       // we keep a count of how many duplicates we see and skip over them.
-      const jumpToCurrent = skipDuplicates(list, entry, i);
-      const jumpToPrevious = skipDuplicates(previousList, entry, n);
+      const currentDuplicates = nbDuplicatesToSkip(list, entry, i);
+      const previousDuplicates = nbDuplicatesToSkip(previousList, entry, n);
 
-      // Jump to next entry after the duplicates
-      i = jumpToCurrent ? jumpToCurrent + i + 1 : i + (queueType === 'current' ? 1 : 0);
-      n = jumpToPrevious ? jumpToPrevious + n + 1 : n + (queueType === 'previous' ? 1 : 0);
+      // Jump to next entry after the duplicates - if there are none, advance the queue
+      i += currentDuplicates ? currentDuplicates : 0;
+      n += previousDuplicates ? previousDuplicates : 0;
+
+      if (entry.duration <= 0) {
+        advanceQueue(queueType);
+        continue;
+      }
 
       deduped.push(entry);
       continue;
     }
 
     deduped.push(entry);
-    next(queueType);
+    advanceQueue(queueType);
   }
 
   return deduped;

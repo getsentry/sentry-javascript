@@ -64,4 +64,36 @@ describe('Unit | util | dedupePerformanceEntries', () => {
     const entries = [b, d].sort((a, b) => a.startTime - b.startTime);
     expect(dedupePerformanceEntries([a, c], entries)).toEqual([a, c]);
   });
+
+  it('dedupes when the list is the same', () => {
+    const a = PerformanceEntryNavigation({startTime: Number.NEGATIVE_INFINITY});
+    expect(dedupePerformanceEntries([a], [a])).toEqual([a]);
+  })
+
+  it('does not spin forever in weird edge cases', function () {
+    expect(dedupePerformanceEntries([], [])).toEqual([]);
+
+    const randomFrom = (arr: number[]) => arr[Math.floor(Math.random() * arr.length)];
+    const randomNumberBetweenInclusive = (min: number, max: number) =>
+      Math.floor(Math.random() * (max - min + 1)) + min;
+
+    const starts = [-100, 0, 100, Number.NEGATIVE_INFINITY, Number.POSITIVE_INFINITY, NaN, undefined];
+    const entries = [PerformanceEntryLcp, PerformanceEntryNavigation, PerformanceEntryResource]
+
+    for(let i = 0; i < 100; i++) {
+      const previousEntries: any[] = []
+      const currEntries: any[] = []
+      for(let j = 0; j < randomNumberBetweenInclusive(0, 10); j++) {
+        // @ts-expect-error
+        previousEntries.push(randomFrom(entries)({ startTime: randomFrom(starts)}));
+      }
+      for(let j = 0; j < randomNumberBetweenInclusive(0, 10); j++) {
+        // @ts-expect-error
+        currEntries.push(randomFrom(entries)({ startTime: randomFrom(starts)}));
+      }
+
+      expect(() => dedupePerformanceEntries(previousEntries, currEntries)).not.toThrow()
+      expect(() => dedupePerformanceEntries(previousEntries.sort((a,b) => a.startTime - b.startTime), currEntries.sort((a,b) => a.startTime - b.startTime))).not.toThrow()
+    }
+  })
 });
