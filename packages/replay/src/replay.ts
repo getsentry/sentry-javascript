@@ -19,8 +19,8 @@ import { setupPerformanceObserver } from './coreHandlers/performanceObserver';
 import { createEventBuffer } from './eventBuffer';
 import { clearSession } from './session/clearSession';
 import { loadOrCreateSession } from './session/loadOrCreateSession';
-import { maybeRefreshSession } from './session/maybeRefreshSession';
 import { saveSession } from './session/saveSession';
+import { shouldRefreshSession } from './session/shouldRefreshSession';
 import type {
   AddEventResult,
   AddUpdateCallback,
@@ -219,7 +219,7 @@ export class ReplayContainer implements ReplayContainerInterface {
    * Initializes the plugin based on sampling configuration. Should not be
    * called outside of constructor.
    */
-  public initializeSampling(): void {
+  public initializeSampling(previousSessionId?: string): void {
     const { errorSampleRate, sessionSampleRate } = this._options;
 
     // If neither sample rate is > 0, then do nothing - user will need to call one of
@@ -230,7 +230,7 @@ export class ReplayContainer implements ReplayContainerInterface {
 
     // Otherwise if there is _any_ sample rate set, try to load an existing
     // session, or create a new one.
-    this._initializeSessionForSampling();
+    this._initializeSessionForSampling(previousSessionId);
 
     if (!this.session) {
       // This should not happen, something wrong has occurred
@@ -275,7 +275,6 @@ export class ReplayContainer implements ReplayContainerInterface {
     logInfoNextTick('[Replay] Starting replay in session mode', this._options._experiments.traceInternals);
 
     const session = loadOrCreateSession(
-      this.session,
       {
         timeouts: this.timeouts,
         traceInternals: this._options._experiments.traceInternals,
@@ -305,7 +304,6 @@ export class ReplayContainer implements ReplayContainerInterface {
     logInfoNextTick('[Replay] Starting replay in buffer mode', this._options._experiments.traceInternals);
 
     const session = loadOrCreateSession(
-      this.session,
       {
         timeouts: this.timeouts,
         traceInternals: this._options._experiments.traceInternals,
@@ -373,15 +371,18 @@ export class ReplayContainer implements ReplayContainerInterface {
       return;
     }
 
+    // We can't move `_isEnabled` after awaiting a flush, otherwise we can
+    // enter into an infinite loop when `stop()` is called while flushing.
+    this._isEnabled = false;
+
     try {
       logInfo(
-        `[Replay] Stopping Replay${reason ? ` triggered by ${reason}` : ''}`,
+        `[Replay] Stopping Replay${reason ? ` triggered by ${reason}` : ''} ${new Date().toISOString()} ${
+          this._isEnabled
+        }`,
         this._options._experiments.traceInternals,
       );
 
-      // We can't move `_isEnabled` after awaiting a flush, otherwise we can
-      // enter into an infinite loop when `stop()` is called while flushing.
-      this._isEnabled = false;
       this._removeListeners();
       this.stopRecording();
 
@@ -475,16 +476,6 @@ export class ReplayContainer implements ReplayContainerInterface {
 
     // Once this session ends, we do not want to refresh it
     if (this.session) {
-      this.session.shouldRefresh = false;
-
-      // It's possible that the session lifespan is > max session lifespan
-      // because we have been buffering beyond max session lifespan (we ignore
-      // expiration given that `shouldRefresh` is true). Since we flip
-      // `shouldRefresh`, the session could be considered expired due to
-      // lifespan, which is not what we want. Update session start date to be
-      // the current timestamp, so that session is not considered to be
-      // expired. This means that max replay duration can be MAX_SESSION_LIFE +
-      // (length of buffer), which we are ok with.
       this._updateUserActivity(activityTime);
       this._updateSessionActivity(activityTime);
       this._maybeSaveSession();
@@ -740,6 +731,7 @@ export class ReplayContainer implements ReplayContainerInterface {
 
     // Need to set as enabled before we start recording, as `record()` can trigger a flush with a new checkout
     this._isEnabled = true;
+    this._isPaused = false;
 
     this.startRecording();
   }
@@ -756,16 +748,16 @@ export class ReplayContainer implements ReplayContainerInterface {
   /**
    * Loads (or refreshes) the current session.
    */
-  private _initializeSessionForSampling(): void {
+  private _initializeSessionForSampling(previousSessionId?: string): void {
     // Whenever there is _any_ error sample rate, we always allow buffering
     // Because we decide on sampling when an error occurs, we need to buffer at all times if sampling for errors
     const allowBuffering = this._options.errorSampleRate > 0;
 
     const session = loadOrCreateSession(
-      this.session,
       {
         timeouts: this.timeouts,
         traceInternals: this._options._experiments.traceInternals,
+        previousSessionId,
       },
       {
         stickySession: this._options.stickySession,
@@ -790,34 +782,25 @@ export class ReplayContainer implements ReplayContainerInterface {
 
     const currentSession = this.session;
 
-    const newSession = maybeRefreshSession(
-      currentSession,
-      {
-        timeouts: this.timeouts,
-        traceInternals: this._options._experiments.traceInternals,
-      },
-      {
-        stickySession: Boolean(this._options.stickySession),
-        sessionSampleRate: this._options.sessionSampleRate,
-        allowBuffering: this._options.errorSampleRate > 0,
-      },
-    );
-
-    const isNew = newSession.id !== currentSession.id;
-
-    // If session was newly created (i.e. was not loaded from storage), then
-    // enable flag to create the root replay
-    if (isNew) {
-      this.setInitialState();
-      this.session = newSession;
-    }
-
-    if (!this.session.sampled) {
-      void this.stop({ reason: 'session not refreshed' });
+    if (shouldRefreshSession(currentSession, this.timeouts)) {
+      void this._refreshSession(currentSession);
       return false;
     }
 
     return true;
+  }
+
+  /**
+   * Refresh a session with a new one.
+   * This stops the current session (without forcing a flush, as that would never work since we are expired),
+   * and then does a new sampling based on the refreshed session.
+   */
+  private async _refreshSession(session: Session): Promise<void> {
+    if (!this._isEnabled) {
+      return;
+    }
+    await this.stop({ reason: 'refresh session' });
+    this.initializeSampling(session.id);
   }
 
   /**
@@ -1076,7 +1059,9 @@ export class ReplayContainer implements ReplayContainerInterface {
    * Should never be called directly, only by `flush`
    */
   private async _runFlush(): Promise<void> {
-    if (!this.session || !this.eventBuffer) {
+    const replayId = this.getSessionId();
+
+    if (!this.session || !this.eventBuffer || !replayId) {
       __DEBUG_BUILD__ && logger.error('[Replay] No session or eventBuffer found to flush.');
       return;
     }
@@ -1096,12 +1081,14 @@ export class ReplayContainer implements ReplayContainerInterface {
       return;
     }
 
+    // if this changed in the meanwhile, e.g. because the session was refreshed or similar, we abort here
+    if (replayId !== this.getSessionId()) {
+      return;
+    }
+
     try {
       // This uses the data from the eventBuffer, so we need to call this before `finish()
       this._updateInitialTimestampFromEventBuffer();
-
-      // Note this empties the event buffer regardless of outcome of sending replay
-      const recordingData = await this.eventBuffer.finish();
 
       const timestamp = Date.now();
 
@@ -1112,13 +1099,13 @@ export class ReplayContainer implements ReplayContainerInterface {
         throw new Error('Session is too long, not sending replay');
       }
 
-      // NOTE: Copy values from instance members, as it's possible they could
-      // change before the flush finishes.
-      const replayId = this.session.id;
       const eventContext = this._popEventContext();
       // Always increment segmentId regardless of outcome of sending replay
       const segmentId = this.session.segmentId++;
       this._maybeSaveSession();
+
+      // Note this empties the event buffer regardless of outcome of sending replay
+      const recordingData = await this.eventBuffer.finish();
 
       await sendReplay({
         replayId,
