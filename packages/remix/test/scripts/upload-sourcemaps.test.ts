@@ -57,8 +57,8 @@ describe('createRelease', () => {
   it('should use given buildPath and urlPrefix over the defaults when given.', async () => {
     await createRelease(
       {
-        urlPrefix: '~/build/subfolder',
-        buildPath: 'public/build/subfolder',
+        urlPrefix: '~/build/',
+        buildPath: 'public/build',
       },
       '~/build/',
       'public/build',
@@ -67,8 +67,8 @@ describe('createRelease', () => {
     expect(proposeVersionMock).toHaveBeenCalled();
     expect(newMock).toHaveBeenCalledWith('0.1.2.3.4');
     expect(uploadSourceMapsMock).toHaveBeenCalledWith('0.1.2.3.4', {
-      urlPrefix: '~/build/subfolder',
-      include: ['public/build/subfolder'],
+      urlPrefix: '~/build/',
+      include: ['public/build'],
       useArtifactBundle: true,
     });
     expect(finalizeMock).toHaveBeenCalledWith('0.1.2.3.4');
