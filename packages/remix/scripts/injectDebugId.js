@@ -1,9 +1,13 @@
 /* eslint-disable no-console */
 const { execSync } = require('child_process');
 
+const SentryCli = require('@sentry/cli');
+
 function injectDebugId(buildPath) {
+  const cliPath = SentryCli.getPath();
+
   try {
-    execSync(`node ./node_modules/@sentry/cli/bin/sentry-cli sourcemaps inject ${buildPath}`);
+    execSync(`${cliPath} sourcemaps inject ${buildPath}`);
   } catch (error) {
     console.warn('[sentry] Failed to inject debug ids.');
     console.error(error);
