@@ -15,10 +15,14 @@ export function getSessionSampleType(sessionSampleRate: number, allowBuffering: 
  * that all replays will be saved to as attachments. Currently, we only expect
  * one of these Sentry events per "replay session".
  */
-export function createSession({ sessionSampleRate, allowBuffering, stickySession = false }: SessionOptions): Session {
+export function createSession(
+  { sessionSampleRate, allowBuffering, stickySession = false }: SessionOptions,
+  { previousSessionId }: { previousSessionId?: string } = {},
+): Session {
   const sampled = getSessionSampleType(sessionSampleRate, allowBuffering);
   const session = makeSession({
     sampled,
+    previousSessionId,
   });
 
   if (stickySession) {
