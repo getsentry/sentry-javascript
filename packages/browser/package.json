@@ -25,6 +25,7 @@
   "dependencies": {
     "@sentry-internal/tracing": "7.64.0",
     "@sentry/core": "7.64.0",
+    "@sentry/integrations": "7.64.0",
     "@sentry/replay": "7.64.0",
     "@sentry/types": "7.64.0",
     "@sentry/utils": "7.64.0",

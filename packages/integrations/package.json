@@ -29,7 +29,6 @@
     "tslib": "^2.4.1 || ^1.9.3"
   },
   "devDependencies": {
-    "@sentry/browser": "7.64.0",
     "chai": "^4.1.2"
   },
   "scripts": {

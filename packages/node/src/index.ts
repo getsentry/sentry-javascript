@@ -70,6 +70,7 @@ export { deepReadDirSync } from './utils';
 export { getModuleFromFilename } from './module';
 
 import { Integrations as CoreIntegrations } from '@sentry/core';
+import * as PluggableIntegrations from '@sentry/integrations';
 
 import * as Handlers from './handlers';
 import * as NodeIntegrations from './integrations';
@@ -79,6 +80,7 @@ const INTEGRATIONS = {
   ...CoreIntegrations,
   ...NodeIntegrations,
   ...TracingIntegrations,
+  ...PluggableIntegrations,
 };
 
 export { INTEGRATIONS as Integrations, Handlers };

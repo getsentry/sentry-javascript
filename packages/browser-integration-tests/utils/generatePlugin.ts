@@ -158,8 +158,14 @@ class SentryScenarioGenerationPlugin {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         parser.hooks.import.tap(
           this._name,
-          (statement: { specifiers: [{ imported: { name: string } }] }, source: string) => {
-            if (source === '@sentry/integrations') {
+          (statement: { specifiers: [{ imported?: { name: string }; name?: string }] }, source: string) => {
+            // We only want to handle the integrations import if it doesn't come from the @sentry/browser re-export
+            // In that case, we just want to leave it alone
+            if (
+              source === '@sentry/integrations' &&
+              statement.specifiers[0].name !== 'PluggableIntegrations' &&
+              statement.specifiers[0].imported
+            ) {
               this.requiredIntegrations.push(statement.specifiers[0].imported.name.toLowerCase());
             } else if (source === '@sentry/wasm') {
               this.requiresWASMIntegration = true;

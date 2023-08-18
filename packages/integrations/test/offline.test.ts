@@ -1,9 +1,13 @@
 /* eslint-disable deprecation/deprecation */
-import { WINDOW } from '@sentry/browser';
 import type { Event, EventProcessor, Hub, Integration, IntegrationClass } from '@sentry/types';
+import { GLOBAL_OBJ } from '@sentry/utils';
 
 import type { Item } from '../src/offline';
 import { Offline } from '../src/offline';
+
+// exporting a separate copy of `WINDOW` rather than exporting the one from `@sentry/browser`
+// to avoid a circular dependency (as `@sentry/browser` imports `@sentry/integrations`)
+const WINDOW = GLOBAL_OBJ as typeof GLOBAL_OBJ & Window;
 
 // mock localforage methods
 jest.mock('localforage', () => ({

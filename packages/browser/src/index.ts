@@ -1,6 +1,7 @@
 export * from './exports';
 
 import { Integrations as CoreIntegrations } from '@sentry/core';
+import * as PluggableIntegrations from '@sentry/integrations';
 
 import { WINDOW } from './helpers';
 import * as BrowserIntegrations from './integrations';
@@ -16,6 +17,7 @@ const INTEGRATIONS = {
   ...windowIntegrations,
   ...CoreIntegrations,
   ...BrowserIntegrations,
+  ...PluggableIntegrations,
 };
 
 export { INTEGRATIONS as Integrations };
