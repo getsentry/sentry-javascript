@@ -1,6 +1,7 @@
+import type { DynamicSamplingContext, PropagationContext, TraceparentData } from '@sentry/types';
+
 import { baggageHeaderToDynamicSamplingContext } from './baggage';
 import { uuid4 } from './misc';
-import type { DynamicSamplingContext, PropagationContext, TraceparentData } from '@sentry/types';
 
 export const TRACEPARENT_REGEXP = new RegExp(
   '^[ \\t]*' + // whitespace

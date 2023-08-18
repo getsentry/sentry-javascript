@@ -1,4 +1,9 @@
 /* eslint-disable max-lines */
+import type { Hub, IdleTransaction } from '@sentry/core';
+import { addTracingExtensions, getActiveTransaction, startIdleTransaction, TRACING_DEFAULTS } from '@sentry/core';
+import type { EventProcessor, Integration, Transaction, TransactionContext, TransactionSource } from '@sentry/types';
+import { getDomElement, logger, tracingContextFromHeaders } from '@sentry/utils';
+
 import { registerBackgroundTabDetection } from './backgroundtab';
 import {
   addPerformanceEntries,
@@ -10,10 +15,6 @@ import type { RequestInstrumentationOptions } from './request';
 import { defaultRequestInstrumentationOptions, instrumentOutgoingRequests } from './request';
 import { instrumentRoutingWithDefaults } from './router';
 import { WINDOW } from './types';
-import type { Hub, IdleTransaction } from '@sentry/core';
-import { addTracingExtensions, getActiveTransaction, startIdleTransaction, TRACING_DEFAULTS } from '@sentry/core';
-import type { EventProcessor, Integration, Transaction, TransactionContext, TransactionSource } from '@sentry/types';
-import { getDomElement, logger, tracingContextFromHeaders } from '@sentry/utils';
 
 export const BROWSER_TRACING_INTEGRATION_ID = 'BrowserTracing';
 
