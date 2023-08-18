@@ -1,7 +1,11 @@
-import { addTracingExtensions, captureException, flush, getCurrentHub, runWithAsyncContext, trace } from '@sentry/core';
-import { RouteHandlerContext } from './types';
-import { tracingContextFromHeaders } from '@sentry/utils';
+import { addTracingExtensions, captureException, getCurrentHub, runWithAsyncContext, trace } from '@sentry/core';
+import { isThenable, tracingContextFromHeaders } from '@sentry/utils';
 
+import type { RouteHandlerContext } from './types';
+
+/**
+ * Wraps a Next.js route handler with performance and error instrumentation.
+ */
 export function wrapRouteHandlerWithSentry<F extends (...args: any[]) => any>(
   routeHandler: F,
   context: RouteHandlerContext,
@@ -22,8 +26,6 @@ export function wrapRouteHandlerWithSentry<F extends (...args: any[]) => any>(
         );
         currentScope.setPropagationContext(propagationContext);
 
-        console.log({ traceparentData, baggageHeader, sentryTraceHeader });
-
         const res = trace(
           {
             op: 'http.server',
@@ -35,8 +37,26 @@ export function wrapRouteHandlerWithSentry<F extends (...args: any[]) => any>(
               dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
             },
           },
-          async () => {
-            return originalFunction.apply(thisArg, args);
+          span => {
+            const maybePromiseResponse = originalFunction.apply(thisArg, args);
+
+            const setSpanStatus = (response: Response): void => {
+              try {
+                span?.setHttpStatus(response.status);
+              } catch {
+                // best effort
+              }
+            };
+
+            if (isThenable(maybePromiseResponse)) {
+              return maybePromiseResponse.then(response => {
+                setSpanStatus(response);
+                return response;
+              });
+            } else {
+              setSpanStatus(maybePromiseResponse);
+              return maybePromiseResponse;
+            }
           },
           error => {
             captureException(error);
