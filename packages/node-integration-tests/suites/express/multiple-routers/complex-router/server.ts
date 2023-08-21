@@ -1,6 +1,5 @@
 import * as Sentry from '@sentry/node';
 import * as Tracing from '@sentry/tracing';
-import cors from 'cors';
 import express from 'express';
 
 const app = express();
@@ -30,7 +29,6 @@ const router = express.Router();
 
 app.use('/api', router);
 app.use('/api/api/v1', APIv1.use('/sub-router', APIv1));
-
 
 app.use(Sentry.Handlers.errorHandler());
 

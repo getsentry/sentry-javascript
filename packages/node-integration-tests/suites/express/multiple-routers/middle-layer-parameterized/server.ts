@@ -1,6 +1,5 @@
 import * as Sentry from '@sentry/node';
 import * as Tracing from '@sentry/tracing';
-import cors from 'cors';
 import express from 'express';
 
 const app = express();
