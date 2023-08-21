@@ -1,18 +1,26 @@
-import ApplicationInstance from '@ember/application/instance';
-import { run, _backburner, scheduleOnce } from '@ember/runloop';
+/* eslint-disable max-lines */
+import type ApplicationInstance from '@ember/application/instance';
 import { subscribe } from '@ember/instrumentation';
+import type Transition from '@ember/routing/-private/transition';
+import type RouterService from '@ember/routing/router-service';
+import { _backburner, run, scheduleOnce } from '@ember/runloop';
+import type { EmberRunQueues } from '@ember/runloop/-private/types';
+import { getOwnConfig, isTesting, macroCondition } from '@embroider/macros';
 import * as Sentry from '@sentry/browser';
-import { ExtendedBackburner } from '@sentry/ember/runloop';
-import { Span, Transaction } from '@sentry/types';
-import { EmberRunQueues } from '@ember/runloop/-private/types';
-import { getActiveTransaction } from '..';
+import type { ExtendedBackburner } from '@sentry/ember/runloop';
+import type { Span, Transaction } from '@sentry/types';
 import { browserPerformanceTimeOrigin, GLOBAL_OBJ, timestampInSeconds } from '@sentry/utils';
-import { macroCondition, isTesting, getOwnConfig } from '@embroider/macros';
-import { EmberSentryConfig, GlobalConfig, OwnConfig } from '../types';
-import RouterService from '@ember/routing/router-service';
-import type { BaseClient } from '@sentry/core';
 
-function getSentryConfig() {
+import type { BrowserClient } from '..';
+import { getActiveTransaction } from '..';
+import type { EmberRouterMain, EmberSentryConfig, GlobalConfig, OwnConfig, StartTransactionFunction } from '../types';
+
+type SentryTestRouterService = RouterService & {
+  _startTransaction?: StartTransactionFunction;
+  _sentryInstrumented?: boolean;
+};
+
+function getSentryConfig(): EmberSentryConfig {
   const _global = GLOBAL_OBJ as typeof GLOBAL_OBJ & GlobalConfig;
   _global.__sentryEmberConfig = _global.__sentryEmberConfig ?? {};
   const environmentConfig = getOwnConfig<OwnConfig>().sentryConfig;
@@ -27,7 +35,7 @@ function getSentryConfig() {
 
 export function initialize(appInstance: ApplicationInstance): void {
   // Disable in fastboot - we only want to run Sentry client-side
-  const fastboot = appInstance.lookup('service:fastboot') as { isFastBoot: boolean } | undefined;
+  const fastboot = appInstance.lookup('service:fastboot') as unknown as { isFastBoot: boolean } | undefined;
   if (fastboot?.isFastBoot) {
     return;
   }
@@ -38,35 +46,42 @@ export function initialize(appInstance: ApplicationInstance): void {
   }
   const performancePromise = instrumentForPerformance(appInstance);
   if (macroCondition(isTesting())) {
-    (<any>window)._sentryPerformanceLoad = performancePromise;
+    (window as typeof window & { _sentryPerformanceLoad?: Promise<void> })._sentryPerformanceLoad = performancePromise;
   }
 }
 
 function getBackburner(): Pick<ExtendedBackburner, 'on' | 'off'> {
   if (_backburner) {
-    return _backburner;
+    return _backburner as unknown as Pick<ExtendedBackburner, 'on' | 'off'>;
   }
 
-  if (run.backburner) {
-    return run.backburner;
+  if ((run as unknown as { backburner?: Pick<ExtendedBackburner, 'on' | 'off'> }).backburner) {
+    return (run as unknown as { backburner: Pick<ExtendedBackburner, 'on' | 'off'> }).backburner;
   }
 
   return {
-    on() {},
-    off() {},
+    on() {
+      // noop
+    },
+    off() {
+      // noop
+    },
   };
 }
 
-function getTransitionInformation(transition: any, router: any) {
+function getTransitionInformation(
+  transition: Transition | undefined,
+  router: RouterService,
+): { fromRoute?: string; toRoute?: string } {
   const fromRoute = transition?.from?.name;
-  const toRoute = transition && transition.to ? transition.to.name : router.currentRouteName;
+  const toRoute = transition?.to?.name || router.currentRouteName;
   return {
     fromRoute,
     toRoute,
   };
 }
 
-function getLocationURL(location: any) {
+function getLocationURL(location: EmberRouterMain['location']): string {
   if (!location || !location.getURL || !location.formatURL) {
     return '';
   }
@@ -79,22 +94,24 @@ function getLocationURL(location: any) {
 }
 
 export function _instrumentEmberRouter(
-  routerService: any,
-  routerMain: any,
+  routerService: RouterService,
+  routerMain: EmberRouterMain,
   config: EmberSentryConfig,
-  startTransaction: Function,
+  startTransaction: StartTransactionFunction,
   startTransactionOnPageLoad?: boolean,
-) {
+): {
+  startTransaction: StartTransactionFunction;
+} {
   const { disableRunloopPerformance } = config;
   const location = routerMain.location;
-  let activeTransaction: Transaction;
-  let transitionSpan: Span;
+  let activeTransaction: Transaction | undefined;
+  let transitionSpan: Span | undefined;
 
   const url = getLocationURL(location);
 
   if (macroCondition(isTesting())) {
-    routerService._sentryInstrumented = true;
-    routerService._startTransaction = startTransaction;
+    (routerService as SentryTestRouterService)._sentryInstrumented = true;
+    (routerService as SentryTestRouterService)._startTransaction = startTransaction;
   }
 
   if (startTransactionOnPageLoad && url) {
@@ -110,15 +127,15 @@ export function _instrumentEmberRouter(
     });
   }
 
-  const finishActiveTransaction = function (_: any, nextInstance: any) {
+  const finishActiveTransaction = (_: unknown, nextInstance: unknown): void => {
     if (nextInstance) {
       return;
     }
-    activeTransaction.finish();
+    activeTransaction?.finish();
     getBackburner().off('end', finishActiveTransaction);
   };
 
-  routerService.on('routeWillChange', (transition: any) => {
+  routerService.on('routeWillChange', (transition: Transition) => {
     const { fromRoute, toRoute } = getTransitionInformation(transition, routerService);
     activeTransaction?.finish();
     activeTransaction = startTransaction({
@@ -130,7 +147,7 @@ export function _instrumentEmberRouter(
         'routing.instrumentation': '@sentry/ember',
       },
     });
-    transitionSpan = activeTransaction.startChild({
+    transitionSpan = activeTransaction?.startChild({
       op: 'ui.ember.transition',
       description: `route:${fromRoute} -> route:${toRoute}`,
     });
@@ -155,7 +172,7 @@ export function _instrumentEmberRouter(
   };
 }
 
-function _instrumentEmberRunloop(config: EmberSentryConfig) {
+function _instrumentEmberRunloop(config: EmberSentryConfig): void {
   const { disableRunloopPerformance, minimumRunloopQueueDuration } = config;
   if (disableRunloopPerformance) {
     return;
@@ -171,7 +188,7 @@ function _instrumentEmberRunloop(config: EmberSentryConfig) {
     'destroy',
   ] as EmberRunQueues[];
 
-  getBackburner().on('begin', (_: any, previousInstance: any) => {
+  getBackburner().on('begin', (_: unknown, previousInstance: unknown) => {
     if (previousInstance) {
       return;
     }
@@ -184,38 +201,38 @@ function _instrumentEmberRunloop(config: EmberSentryConfig) {
     }
     currentQueueStart = timestampInSeconds();
 
+    const processQueue = (queue: EmberRunQueues): void => {
+      // Process this queue using the end of the previous queue.
+      if (currentQueueStart) {
+        const now = timestampInSeconds();
+        const minQueueDuration = minimumRunloopQueueDuration ?? 5;
+
+        if ((now - currentQueueStart) * 1000 >= minQueueDuration) {
+          activeTransaction
+            ?.startChild({
+              op: `ui.ember.runloop.${queue}`,
+              startTimestamp: currentQueueStart,
+              endTimestamp: now,
+            })
+            .finish();
+        }
+        currentQueueStart = undefined;
+      }
+
+      // Setup for next queue
+
+      const stillActiveTransaction = getActiveTransaction();
+      if (!stillActiveTransaction) {
+        return;
+      }
+      currentQueueStart = timestampInSeconds();
+    };
+
     instrumentedEmberQueues.forEach(queue => {
-      scheduleOnce(queue, null, () => {
-        scheduleOnce(queue, null, () => {
-          // Process this queue using the end of the previous queue.
-          if (currentQueueStart) {
-            const now = timestampInSeconds();
-            const minQueueDuration = minimumRunloopQueueDuration ?? 5;
-
-            if ((now - currentQueueStart) * 1000 >= minQueueDuration) {
-              activeTransaction
-                ?.startChild({
-                  op: `ui.ember.runloop.${queue}`,
-                  startTimestamp: currentQueueStart,
-                  endTimestamp: now,
-                })
-                .finish();
-            }
-            currentQueueStart = undefined;
-          }
-
-          // Setup for next queue
-
-          const stillActiveTransaction = getActiveTransaction();
-          if (!stillActiveTransaction) {
-            return;
-          }
-          currentQueueStart = timestampInSeconds();
-        });
-      });
+      scheduleOnce(queue, null, processQueue, queue);
     });
   });
-  getBackburner().on('end', (_: any, nextInstance: any) => {
+  getBackburner().on('end', (_: unknown, nextInstance: unknown) => {
     if (nextInstance) {
       return;
     }
@@ -241,7 +258,7 @@ interface RenderEntries {
   [name: string]: RenderEntry;
 }
 
-function processComponentRenderBefore(payload: Payload, beforeEntries: RenderEntries) {
+function processComponentRenderBefore(payload: Payload, beforeEntries: RenderEntries): void {
   const info = {
     payload,
     now: timestampInSeconds(),
@@ -254,7 +271,7 @@ function processComponentRenderAfter(
   beforeEntries: RenderEntries,
   op: string,
   minComponentDuration: number,
-) {
+): void {
   const begin = beforeEntries[payload.object];
 
   if (!begin) {
@@ -276,7 +293,7 @@ function processComponentRenderAfter(
   }
 }
 
-function _instrumentComponents(config: EmberSentryConfig) {
+function _instrumentComponents(config: EmberSentryConfig): void {
   const { disableInstrumentComponents, minimumComponentRenderDuration, enableComponentDefinitions } = config;
   if (disableInstrumentComponents) {
     return;
@@ -287,13 +304,13 @@ function _instrumentComponents(config: EmberSentryConfig) {
   const beforeEntries = {} as RenderEntries;
   const beforeComponentDefinitionEntries = {} as RenderEntries;
 
-  function _subscribeToRenderEvents() {
+  function _subscribeToRenderEvents(): void {
     subscribe('render.component', {
       before(_name: string, _timestamp: number, payload: Payload) {
         processComponentRenderBefore(payload, beforeEntries);
       },
 
-      after(_name: string, _timestamp: number, payload: any, _beganIndex: number) {
+      after(_name: string, _timestamp: number, payload: Payload, _beganIndex: number) {
         processComponentRenderAfter(payload, beforeEntries, 'ui.ember.component.render', minComponentDuration);
       },
     });
@@ -303,7 +320,7 @@ function _instrumentComponents(config: EmberSentryConfig) {
           processComponentRenderBefore(payload, beforeComponentDefinitionEntries);
         },
 
-        after(_name: string, _timestamp: number, payload: any, _beganIndex: number) {
+        after(_name: string, _timestamp: number, payload: Payload, _beganIndex: number) {
           processComponentRenderAfter(payload, beforeComponentDefinitionEntries, 'ui.ember.component.definition', 0);
         },
       });
@@ -312,11 +329,11 @@ function _instrumentComponents(config: EmberSentryConfig) {
   _subscribeToRenderEvents();
 }
 
-function _instrumentInitialLoad(config: EmberSentryConfig) {
+function _instrumentInitialLoad(config: EmberSentryConfig): void {
   const startName = '@sentry/ember:initial-load-start';
   const endName = '@sentry/ember:initial-load-end';
 
-  let { HAS_PERFORMANCE, HAS_PERFORMANCE_TIMING } = _hasPerformanceSupport();
+  const { HAS_PERFORMANCE, HAS_PERFORMANCE_TIMING } = _hasPerformanceSupport();
 
   if (!HAS_PERFORMANCE) {
     return;
@@ -331,7 +348,7 @@ function _instrumentInitialLoad(config: EmberSentryConfig) {
   }
 
   // Split performance check in two so clearMarks still happens even if timeOrigin isn't available.
-  if (!HAS_PERFORMANCE_TIMING) {
+  if (!HAS_PERFORMANCE_TIMING || browserPerformanceTimeOrigin === undefined) {
     return;
   }
   const measureName = '@sentry/ember:initial-load';
@@ -344,9 +361,10 @@ function _instrumentInitialLoad(config: EmberSentryConfig) {
 
   performance.measure(measureName, startName, endName);
   const measures = performance.getEntriesByName(measureName);
-  const measure = measures[0];
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+  const measure = measures[0]!;
 
-  const startTimestamp = (measure.startTime + browserPerformanceTimeOrigin!) / 1000;
+  const startTimestamp = (measure.startTime + browserPerformanceTimeOrigin) / 1000;
   const endTimestamp = startTimestamp + measure.duration / 1000;
 
   const transaction = getActiveTransaction();
@@ -361,7 +379,7 @@ function _instrumentInitialLoad(config: EmberSentryConfig) {
   performance.clearMeasures(measureName);
 }
 
-function _hasPerformanceSupport() {
+function _hasPerformanceSupport(): { HAS_PERFORMANCE: boolean; HAS_PERFORMANCE_TIMING: boolean } {
   // TS says that all of these methods are always available, but some of them may not be supported in older browsers
   // So we "pretend" they are all optional in order to be able to check this properly without TS complaining
   const _performance = window.performance as {
@@ -381,9 +399,8 @@ function _hasPerformanceSupport() {
   };
 }
 
-export async function instrumentForPerformance(appInstance: ApplicationInstance) {
+export async function instrumentForPerformance(appInstance: ApplicationInstance): Promise<void> {
   const config = getSentryConfig();
-  const sentryConfig = config.sentry;
   // Maintaining backwards compatibility with config.browserTracingOptions, but passing it with Sentry options is preferred.
   const browserTracingOptions = config.browserTracingOptions || config.sentry.browserTracingOptions || {};
 
@@ -393,7 +410,8 @@ export async function instrumentForPerformance(appInstance: ApplicationInstance)
 
   const browserTracing = new BrowserTracing({
     routingInstrumentation: (customStartTransaction, startTransactionOnPageLoad) => {
-      const routerMain = appInstance.lookup('router:main');
+      // eslint-disable-next-line ember/no-private-routing-service
+      const routerMain = appInstance.lookup('router:main') as EmberRouterMain;
       let routerService = appInstance.lookup('service:router') as
         | RouterService & { externalRouter?: RouterService; _hasMountedSentryPerformanceRouting?: boolean };
 
@@ -421,8 +439,8 @@ export async function instrumentForPerformance(appInstance: ApplicationInstance)
 
     if (
       client &&
-      (client as BaseClient<any>).getIntegrationById &&
-      (client as BaseClient<any>).getIntegrationById('BrowserTracing')
+      (client as BrowserClient).getIntegrationById &&
+      (client as BrowserClient).getIntegrationById('BrowserTracing')
     ) {
       // Initializers are called more than once in tests, causing the integrations to not be setup correctly.
       return;

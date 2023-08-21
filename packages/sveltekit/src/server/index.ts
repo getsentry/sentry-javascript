@@ -44,6 +44,10 @@ export {
   deepReadDirSync,
   Integrations,
   Handlers,
+  setMeasurement,
+  getActiveSpan,
+  startActiveSpan,
+  startSpan,
 } from '@sentry/node';
 
 // We can still leave this for the carrier init and type exports

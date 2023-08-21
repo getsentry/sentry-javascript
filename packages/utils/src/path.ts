@@ -51,10 +51,13 @@ function normalizeArray(parts: string[], allowAboveRoot?: boolean): string[] {
 
 // Split a filename into [root, dir, basename, ext], unix version
 // 'root' is just a slash, or nothing.
-const splitPathRe = /^(\/?|)([\s\S]*?)((?:\.{1,2}|[^/]+?|)(\.[^./]*|))(?:[/]*)$/;
+const splitPathRe = /^(\S+:\\|\/?)([\s\S]*?)((?:\.{1,2}|[^/\\]+?|)(\.[^./\\]*|))(?:[/\\]*)$/;
 /** JSDoc */
 function splitPath(filename: string): string[] {
-  const parts = splitPathRe.exec(filename);
+  // Truncate files names greater than 1024 characters to avoid regex dos
+  // https://github.com/getsentry/sentry-javascript/pull/8737#discussion_r1285719172
+  const truncated = filename.length > 1024 ? `<truncated>${filename.slice(-1024)}` : filename;
+  const parts = splitPathRe.exec(truncated);
   return parts ? parts.slice(1) : [];
 }
 

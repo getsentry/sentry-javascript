@@ -140,19 +140,45 @@ export function constructWebpackConfigFunction(
       return path.normalize(absoluteResourcePath);
     };
 
+    const isPageResource = (resourcePath: string): boolean => {
+      const normalizedAbsoluteResourcePath = normalizeLoaderResourcePath(resourcePath);
+      return (
+        normalizedAbsoluteResourcePath.startsWith(pagesDirPath + path.sep) &&
+        !normalizedAbsoluteResourcePath.startsWith(apiRoutesPath + path.sep) &&
+        dotPrefixedPageExtensions.some(ext => normalizedAbsoluteResourcePath.endsWith(ext))
+      );
+    };
+
+    const isApiRouteResource = (resourcePath: string): boolean => {
+      const normalizedAbsoluteResourcePath = normalizeLoaderResourcePath(resourcePath);
+      return (
+        normalizedAbsoluteResourcePath.startsWith(apiRoutesPath + path.sep) &&
+        dotPrefixedPageExtensions.some(ext => normalizedAbsoluteResourcePath.endsWith(ext))
+      );
+    };
+
+    const isMiddlewareResource = (resourcePath: string): boolean => {
+      const normalizedAbsoluteResourcePath = normalizeLoaderResourcePath(resourcePath);
+      return normalizedAbsoluteResourcePath === middlewareJsPath || normalizedAbsoluteResourcePath === middlewareTsPath;
+    };
+
+    const isServerComponentResource = (resourcePath: string): boolean => {
+      const normalizedAbsoluteResourcePath = normalizeLoaderResourcePath(resourcePath);
+
+      // ".js, .jsx, or .tsx file extensions can be used for Pages"
+      // https://beta.nextjs.org/docs/routing/pages-and-layouts#pages:~:text=.js%2C%20.jsx%2C%20or%20.tsx%20file%20extensions%20can%20be%20used%20for%20Pages.
+      return (
+        normalizedAbsoluteResourcePath.startsWith(appDirPath + path.sep) &&
+        !!normalizedAbsoluteResourcePath.match(/[\\/](page|layout|loading|head|not-found)\.(js|jsx|tsx)$/)
+      );
+    };
+
     if (isServer && userSentryOptions.autoInstrumentServerFunctions !== false) {
       // It is very important that we insert our loaders at the beginning of the array because we expect any sort of transformations/transpilations (e.g. TS -> JS) to already have happened.
 
       // Wrap pages
       newConfig.module.rules.unshift({
-        test: resourcePath => {
-          const normalizedAbsoluteResourcePath = normalizeLoaderResourcePath(resourcePath);
-          return (
-            normalizedAbsoluteResourcePath.startsWith(pagesDirPath + path.sep) &&
-            !normalizedAbsoluteResourcePath.startsWith(apiRoutesPath + path.sep) &&
-            dotPrefixedPageExtensions.some(ext => normalizedAbsoluteResourcePath.endsWith(ext))
-          );
-        },
+        test: isPageResource,
         use: [
           {
             loader: path.resolve(__dirname, 'loaders', 'wrappingLoader.js'),
@@ -190,13 +216,7 @@ export function constructWebpackConfigFunction(
 
       // Wrap api routes
       newConfig.module.rules.unshift({
-        test: resourcePath => {
-          const normalizedAbsoluteResourcePath = normalizeLoaderResourcePath(resourcePath);
-          return (
-            normalizedAbsoluteResourcePath.startsWith(apiRoutesPath + path.sep) &&
-            dotPrefixedPageExtensions.some(ext => normalizedAbsoluteResourcePath.endsWith(ext))
-          );
-        },
+        test: isApiRouteResource,
         use: [
           {
             loader: path.resolve(__dirname, 'loaders', 'wrappingLoader.js'),
@@ -211,12 +231,7 @@ export function constructWebpackConfigFunction(
 
       // Wrap middleware
       newConfig.module.rules.unshift({
-        test: resourcePath => {
-          const normalizedAbsoluteResourcePath = normalizeLoaderResourcePath(resourcePath);
-          return (
-            normalizedAbsoluteResourcePath === middlewareJsPath || normalizedAbsoluteResourcePath === middlewareTsPath
-          );
-        },
+        test: isMiddlewareResource,
         use: [
           {
             loader: path.resolve(__dirname, 'loaders', 'wrappingLoader.js'),
@@ -232,14 +247,28 @@ export function constructWebpackConfigFunction(
     if (isServer && userSentryOptions.autoInstrumentAppDirectory !== false) {
       // Wrap page server components
       newConfig.module.rules.unshift({
-        test: resourcePath => {
-          const normalizedAbsoluteResourcePath = normalizeLoaderResourcePath(resourcePath);
+        test: isServerComponentResource,
+        use: [
+          {
+            loader: path.resolve(__dirname, 'loaders', 'wrappingLoader.js'),
+            options: {
+              ...staticWrappingLoaderOptions,
+              wrappingTargetKind: 'server-component',
+            },
+          },
+        ],
+      });
+    }
 
-          // ".js, .jsx, or .tsx file extensions can be used for Pages"
-          // https://beta.nextjs.org/docs/routing/pages-and-layouts#pages:~:text=.js%2C%20.jsx%2C%20or%20.tsx%20file%20extensions%20can%20be%20used%20for%20Pages.
+    if (isServer) {
+      // Import the Sentry config in every user file
+      newConfig.module.rules.unshift({
+        test: resourcePath => {
           return (
-            normalizedAbsoluteResourcePath.startsWith(appDirPath + path.sep) &&
-            !!normalizedAbsoluteResourcePath.match(/[\\/](page|layout|loading|head|not-found)\.(js|jsx|tsx)$/)
+            isPageResource(resourcePath) ||
+            isApiRouteResource(resourcePath) ||
+            isMiddlewareResource(resourcePath) ||
+            isServerComponentResource(resourcePath)
           );
         },
         use: [
@@ -247,7 +276,7 @@ export function constructWebpackConfigFunction(
             loader: path.resolve(__dirname, 'loaders', 'wrappingLoader.js'),
             options: {
               ...staticWrappingLoaderOptions,
-              wrappingTargetKind: 'server-component',
+              wrappingTargetKind: 'sentry-init',
             },
           },
         ],

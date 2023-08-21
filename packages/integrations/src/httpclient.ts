@@ -49,7 +49,7 @@ export class HttpClient implements Integration {
   /**
    * @inheritDoc
    */
-  public name: string = HttpClient.id;
+  public name: string;
 
   private readonly _options: HttpClientOptions;
 
@@ -64,6 +64,7 @@ export class HttpClient implements Integration {
    * @param options
    */
   public constructor(options?: Partial<HttpClientOptions>) {
+    this.name = HttpClient.id;
     this._options = {
       failedRequestStatusCodes: [[500, 599]],
       failedRequestTargets: [/.*/],

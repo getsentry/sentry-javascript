@@ -89,6 +89,58 @@ describe('Integration | coreHandlers | handleAfterSendEvent', () => {
     expect(replay.recordingMode).toBe('buffer');
   });
 
+  it('limits errorIds to max. 100', async () => {
+    ({ replay } = await resetSdkMock({
+      replayOptions: {
+        stickySession: false,
+      },
+      sentryOptions: {
+        replaysSessionSampleRate: 1.0,
+        replaysOnErrorSampleRate: 0.0,
+      },
+    }));
+
+    const handler = handleAfterSendEvent(replay);
+
+    for (let i = 0; i < 150; i++) {
+      const error = Error({ event_id: `err-${i}` });
+      handler(error, { statusCode: 200 });
+    }
+
+    expect(Array.from(replay.getContext().errorIds)).toEqual(
+      Array(100)
+        .fill(undefined)
+        .map((_, i) => `err-${i}`),
+    );
+    expect(Array.from(replay.getContext().traceIds)).toEqual([]);
+  });
+
+  it('limits traceIds to max. 100', async () => {
+    ({ replay } = await resetSdkMock({
+      replayOptions: {
+        stickySession: false,
+      },
+      sentryOptions: {
+        replaysSessionSampleRate: 0.0,
+        replaysOnErrorSampleRate: 1.0,
+      },
+    }));
+
+    const handler = handleAfterSendEvent(replay);
+
+    for (let i = 0; i < 150; i++) {
+      const transaction = Transaction(`tr-${i}`);
+      handler(transaction, { statusCode: 200 });
+    }
+
+    expect(Array.from(replay.getContext().errorIds)).toEqual([]);
+    expect(Array.from(replay.getContext().traceIds)).toEqual(
+      Array(100)
+        .fill(undefined)
+        .map((_, i) => `tr-${i}`),
+    );
+  });
+
   it('allows undefined send response when using custom transport', async () => {
     ({ replay } = await resetSdkMock({
       replayOptions: {
@@ -123,7 +175,7 @@ describe('Integration | coreHandlers | handleAfterSendEvent', () => {
     expect(Array.from(replay.getContext().errorIds)).toEqual(['err1', 'err2', 'err3', 'err4']);
   });
 
-  it('flushes when in error mode', async () => {
+  it('flushes when in buffer mode', async () => {
     ({ replay } = await resetSdkMock({
       replayOptions: {
         stickySession: false,
@@ -231,7 +283,7 @@ describe('Integration | coreHandlers | handleAfterSendEvent', () => {
     expect(replay.recordingMode).toBe('buffer');
   });
 
-  it('does not flush in error mode when failing to send the error', async () => {
+  it('does not flush in buffer mode when failing to send the error', async () => {
     ({ replay } = await resetSdkMock({
       replayOptions: {
         stickySession: false,
@@ -257,7 +309,7 @@ describe('Integration | coreHandlers | handleAfterSendEvent', () => {
     jest.runAllTimers();
     await new Promise(process.nextTick);
 
-    // Remains in error mode & without flushing
+    // Remains in buffer mode & without flushing
     expect(mockSend).toHaveBeenCalledTimes(0);
     expect(Array.from(replay.getContext().errorIds)).toEqual([]);
     expect(replay.isEnabled()).toBe(true);
@@ -291,7 +343,7 @@ describe('Integration | coreHandlers | handleAfterSendEvent', () => {
     jest.runAllTimers();
     await new Promise(process.nextTick);
 
-    // Remains in error mode & without flushing
+    // Remains in buffer mode & without flushing
     expect(mockSend).toHaveBeenCalledTimes(0);
     expect(Array.from(replay.getContext().errorIds)).toEqual(['err1']);
     expect(replay.isEnabled()).toBe(true);
@@ -325,11 +377,38 @@ describe('Integration | coreHandlers | handleAfterSendEvent', () => {
     jest.runAllTimers();
     await new Promise(process.nextTick);
 
-    // Remains in error mode & without flushing
+    // Remains in buffer mode & without flushing
     expect(mockSend).toHaveBeenCalledTimes(0);
     expect(Array.from(replay.getContext().errorIds)).toEqual(['err1']);
     expect(replay.isEnabled()).toBe(true);
     expect(replay.isPaused()).toBe(false);
     expect(replay.recordingMode).toBe('buffer');
+  });
+
+  it('does not flush if replay is not enabled anymore', async () => {
+    ({ replay } = await resetSdkMock({
+      replayOptions: {
+        stickySession: false,
+      },
+      sentryOptions: {
+        replaysSessionSampleRate: 0.0,
+        replaysOnErrorSampleRate: 1.0,
+      },
+    }));
+
+    const mockSend = getCurrentHub().getClient()!.getTransport()!.send as unknown as jest.SpyInstance<any>;
+
+    const error1 = Error({ event_id: 'err1', tags: { replayId: 'replayid1' } });
+
+    const handler = handleAfterSendEvent(replay);
+
+    handler(error1, { statusCode: 200 });
+
+    replay['_isEnabled'] = false;
+
+    jest.runAllTimers();
+    await new Promise(process.nextTick);
+
+    expect(mockSend).toHaveBeenCalledTimes(0);
   });
 });

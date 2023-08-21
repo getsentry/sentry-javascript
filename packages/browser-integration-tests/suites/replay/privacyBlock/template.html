@@ -11,6 +11,9 @@
     <input placeholder="Placeholder should be masked" />
     <div title="Title should be masked">Title should be masked</div>
     <svg style="width:200px;height:200px" viewBox="0 0 80 80"><path d=""/><area /><rect /></svg>
+    <div data-sentry-block>
+      <div>This should be blocked</div>
+    </div>
     <svg style="width:200px;height:200px" viewBox="0 0 80 80" data-sentry-unblock><path d=""/><area /><rect /></svg>
     <img style="width:100px;height:100px" src="file:///none.png" />
     <img data-sentry-unblock style="width:100px;height:100px" src="file:///none.png" />

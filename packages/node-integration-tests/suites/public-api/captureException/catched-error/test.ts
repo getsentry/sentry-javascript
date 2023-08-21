@@ -15,7 +15,21 @@ test('should work inside catch block', async () => {
             handled: true,
           },
           stacktrace: {
-            frames: expect.any(Array),
+            frames: expect.arrayContaining([
+              expect.objectContaining({
+                context_line: "  throw new Error('catched_error');",
+                pre_context: [
+                  '',
+                  'Sentry.init({',
+                  "  dsn: 'https://public@dsn.ingest.sentry.io/1337',",
+                  "  release: '1.0',",
+                  '});',
+                  '',
+                  'try {',
+                ],
+                post_context: ['} catch (err) {', '  Sentry.captureException(err);', '}', ''],
+              }),
+            ]),
           },
         },
       ],

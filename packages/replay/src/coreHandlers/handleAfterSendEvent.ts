@@ -1,5 +1,5 @@
 import { getCurrentHub } from '@sentry/core';
-import type { Event, Transport, TransportMakeRequestResponse } from '@sentry/types';
+import type { ErrorEvent, Event, TransactionEvent, Transport, TransportMakeRequestResponse } from '@sentry/types';
 
 import type { ReplayContainer } from '../types';
 import { isErrorEvent, isTransactionEvent } from '../util/eventUtils';
@@ -15,7 +15,7 @@ export function handleAfterSendEvent(replay: ReplayContainer): AfterSendEventCal
   const enforceStatusCode = isBaseTransportSend();
 
   return (event: Event, sendResponse: TransportMakeRequestResponse | void) => {
-    if (!isErrorEvent(event) && !isTransactionEvent(event)) {
+    if (!replay.isEnabled() || (!isErrorEvent(event) && !isTransactionEvent(event))) {
       return;
     }
 
@@ -28,36 +28,47 @@ export function handleAfterSendEvent(replay: ReplayContainer): AfterSendEventCal
       return;
     }
 
-    // Collect traceIds in _context regardless of `recordingMode`
-    // In error mode, _context gets cleared on every checkout
-    if (isTransactionEvent(event) && event.contexts && event.contexts.trace && event.contexts.trace.trace_id) {
-      replay.getContext().traceIds.add(event.contexts.trace.trace_id as string);
+    if (isTransactionEvent(event)) {
+      handleTransactionEvent(replay, event);
       return;
     }
 
-    // Everything below is just for error events
-    if (!isErrorEvent(event)) {
-      return;
-    }
-
-    // Add error to list of errorIds of replay. This is ok to do even if not
-    // sampled because context will get reset at next checkout.
-    // XXX: There is also a race condition where it's possible to capture an
-    // error to Sentry before Replay SDK has loaded, but response returns after
-    // it was loaded, and this gets called.
-    if (event.event_id) {
-      replay.getContext().errorIds.add(event.event_id);
-    }
-
-    // If error event is tagged with replay id it means it was sampled (when in buffer mode)
-    // Need to be very careful that this does not cause an infinite loop
-    if (replay.recordingMode === 'buffer' && event.tags && event.tags.replayId) {
-      setTimeout(() => {
-        // Capture current event buffer as new replay
-        void replay.sendBufferedReplayOrFlush();
-      });
-    }
+    handleErrorEvent(replay, event);
   };
+}
+
+function handleTransactionEvent(replay: ReplayContainer, event: TransactionEvent): void {
+  const replayContext = replay.getContext();
+
+  // Collect traceIds in _context regardless of `recordingMode`
+  // In error mode, _context gets cleared on every checkout
+  // We limit to max. 100 transactions linked
+  if (event.contexts && event.contexts.trace && event.contexts.trace.trace_id && replayContext.traceIds.size < 100) {
+    replayContext.traceIds.add(event.contexts.trace.trace_id as string);
+  }
+}
+
+function handleErrorEvent(replay: ReplayContainer, event: ErrorEvent): void {
+  const replayContext = replay.getContext();
+
+  // Add error to list of errorIds of replay. This is ok to do even if not
+  // sampled because context will get reset at next checkout.
+  // XXX: There is also a race condition where it's possible to capture an
+  // error to Sentry before Replay SDK has loaded, but response returns after
+  // it was loaded, and this gets called.
+  // We limit to max. 100 errors linked
+  if (event.event_id && replayContext.errorIds.size < 100) {
+    replayContext.errorIds.add(event.event_id);
+  }
+
+  // If error event is tagged with replay id it means it was sampled (when in buffer mode)
+  // Need to be very careful that this does not cause an infinite loop
+  if (replay.recordingMode === 'buffer' && event.tags && event.tags.replayId) {
+    setTimeout(() => {
+      // Capture current event buffer as new replay
+      void replay.sendBufferedReplayOrFlush();
+    });
+  }
 }
 
 function isBaseTransportSend(): boolean {

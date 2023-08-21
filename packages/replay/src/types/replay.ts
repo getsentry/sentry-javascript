@@ -390,6 +390,11 @@ export interface EventBuffer {
   readonly type: EventBufferType;
 
   /**
+   * If the event buffer contains a checkout event.
+   */
+  hasCheckout: boolean;
+
+  /**
    * Destroy the event buffer.
    */
   destroy(): void;
@@ -446,7 +451,7 @@ export interface ReplayContainer {
   getContext(): InternalEventContext;
   initializeSampling(): void;
   start(): void;
-  stop(reason?: string): Promise<void>;
+  stop(options?: { reason?: string; forceflush?: boolean }): Promise<void>;
   pause(): void;
   resume(): void;
   startRecording(): void;

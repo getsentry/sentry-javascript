@@ -8,16 +8,6 @@
 export function _asyncNullishCoalesce(lhs: any, rhsFn: any): Promise<any>;
 export function _asyncOptionalChain(ops: any): Promise<any>;
 export function _asyncOptionalChainDelete(ops: any): Promise<any>;
-export function _createNamedExportFrom(obj: any, localName: any, importedName: any): void;
-export function _createStarExport(obj: any): void;
-export function _interopDefault(e: any): any;
-export function _interopNamespace(e: any): any;
-export function _interopNamespaceDefaultOnly(e: any): {
-  __proto__: any;
-  default: any;
-};
-export function _interopRequireDefault(obj: any): any;
-export function _interopRequireWildcard(obj: any): any;
 export function _nullishCoalesce(lhs: any, rhsFn: any): any;
 export function _optionalChain(ops: any): any;
 export function _optionalChainDelete(ops: any): any;

@@ -26,11 +26,14 @@ export {
   captureException,
   captureEvent,
   captureMessage,
+  close,
   configureScope,
   createTransport,
+  flush,
   getHubFromCarrier,
   getCurrentHub,
   Hub,
+  lastEventId,
   makeMain,
   Scope,
   startTransaction,
@@ -58,18 +61,7 @@ export {
   opera11StackLineParser,
   winjsStackLineParser,
 } from './stack-parsers';
-export { eventFromException, eventFromMessage } from './eventbuilder';
+export { eventFromException, eventFromMessage, exceptionFromError } from './eventbuilder';
 export { createUserFeedbackEnvelope } from './userfeedback';
-export {
-  defaultIntegrations,
-  forceLoad,
-  init,
-  lastEventId,
-  onLoad,
-  showReportDialog,
-  flush,
-  close,
-  wrap,
-  captureUserFeedback,
-} from './sdk';
+export { defaultIntegrations, forceLoad, init, onLoad, showReportDialog, wrap, captureUserFeedback } from './sdk';
 export { GlobalHandlers, TryCatch, Breadcrumbs, LinkedErrors, HttpContext, Dedupe } from './integrations';

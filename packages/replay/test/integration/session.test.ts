@@ -424,7 +424,8 @@ describe('Integration | session', () => {
 
   it('increases segment id after each event', async () => {
     clearSession(replay);
-    replay['_loadAndCheckSession']();
+    replay['_initializeSessionForSampling']();
+    replay.setInitialState();
 
     Object.defineProperty(document, 'visibilityState', {
       configurable: true,

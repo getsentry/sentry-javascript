@@ -96,7 +96,7 @@ export class Express implements Integration {
   /**
    * @inheritDoc
    */
-  public name: string = Express.id;
+  public name: string;
 
   /**
    * Express App instance
@@ -108,6 +108,7 @@ export class Express implements Integration {
    * @inheritDoc
    */
   public constructor(options: { app?: Router; router?: Router; methods?: Method[] } = {}) {
+    this.name = Express.id;
     this._router = options.router || options.app;
     this._methods = (Array.isArray(options.methods) ? options.methods : []).concat('use');
   }

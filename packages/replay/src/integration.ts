@@ -35,7 +35,7 @@ export class Replay implements Integration {
   /**
    * @inheritDoc
    */
-  public name: string = Replay.id;
+  public name: string;
 
   /**
    * Options to pass to `rrweb.record()`
@@ -100,6 +100,8 @@ export class Replay implements Integration {
     // eslint-disable-next-line deprecation/deprecation
     ignoreClass,
   }: ReplayConfiguration = {}) {
+    this.name = Replay.id;
+
     this._recordingOptions = {
       maskAllInputs,
       maskAllText,
@@ -261,7 +263,7 @@ Sentry.init({ replaysOnErrorSampleRate: ${errorSampleRate} })`,
       return Promise.resolve();
     }
 
-    return this._replay.stop();
+    return this._replay.stop({ forceFlush: this._replay.recordingMode === 'session' });
   }
 
   /**

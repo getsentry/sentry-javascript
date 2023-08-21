@@ -111,7 +111,7 @@ export class Mongo implements LazyLoadedIntegration<MongoModule> {
   /**
    * @inheritDoc
    */
-  public name: string = Mongo.id;
+  public name: string;
 
   private _operations: Operation[];
   private _describeOperations?: boolean | Operation[];
@@ -123,6 +123,7 @@ export class Mongo implements LazyLoadedIntegration<MongoModule> {
    * @inheritDoc
    */
   public constructor(options: MongoOptions = {}) {
+    this.name = Mongo.id;
     this._operations = Array.isArray(options.operations) ? options.operations : (OPERATIONS as unknown as Operation[]);
     this._describeOperations = 'describeOperations' in options ? options.describeOperations : true;
     this._useMongoose = !!options.useMongoose;
@@ -228,13 +229,14 @@ export class Mongo implements LazyLoadedIntegration<MongoModule> {
     args: unknown[],
   ): SpanContext {
     const data: { [key: string]: string } = {
-      collectionName: collection.collectionName,
-      dbName: collection.dbName,
-      namespace: collection.namespace,
       'db.system': 'mongodb',
+      'db.name': collection.dbName,
+      'db.operation': operation,
+      'db.mongodb.collection': collection.collectionName,
     };
     const spanContext: SpanContext = {
       op: 'db',
+      // TODO v8: Use `${collection.collectionName}.${operation}`
       description: operation,
       data,
     };
@@ -258,7 +260,7 @@ export class Mongo implements LazyLoadedIntegration<MongoModule> {
         data[signature[1]] = typeof reduce === 'string' ? reduce : reduce.name || '<anonymous>';
       } else {
         for (let i = 0; i < signature.length; i++) {
-          data[signature[i]] = JSON.stringify(args[i]);
+          data[`db.mongodb.${signature[i]}`] = JSON.stringify(args[i]);
         }
       }
     } catch (_oO) {

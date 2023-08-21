@@ -1,10 +1,10 @@
-import { Backburner } from '@ember/runloop/-private/backburner';
+import type { Backburner } from '@ember/runloop/-private/backburner';
 
 /**
  * Backburner needs to be extended as it's missing the 'off' method.
  */
 interface ExtendedBackburner extends Backburner {
-  off(...args: any[]): void;
+  off(...args: unknown[]): void;
 }
 
 /**

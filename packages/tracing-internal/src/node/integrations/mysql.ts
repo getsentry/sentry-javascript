@@ -6,7 +6,16 @@ import type { LazyLoadedIntegration } from './lazy';
 import { shouldDisableAutoInstrumentation } from './utils/node-utils';
 
 interface MysqlConnection {
+  prototype: {
+    connect: () => void;
+  };
   createQuery: () => void;
+}
+
+interface MysqlConnectionConfig {
+  host: string;
+  port: number;
+  user: string;
 }
 
 /** Tracing integration for node-mysql package */
@@ -19,9 +28,13 @@ export class Mysql implements LazyLoadedIntegration<MysqlConnection> {
   /**
    * @inheritDoc
    */
-  public name: string = Mysql.id;
+  public name: string;
 
   private _module?: MysqlConnection;
+
+  public constructor() {
+    this.name = Mysql.id;
+  }
 
   /** @inheritdoc */
   public loadDependency(): MysqlConnection | undefined {
@@ -44,6 +57,32 @@ export class Mysql implements LazyLoadedIntegration<MysqlConnection> {
       return;
     }
 
+    let mySqlConfig: MysqlConnectionConfig | undefined = undefined;
+
+    try {
+      pkg.prototype.connect = new Proxy(pkg.prototype.connect, {
+        apply(wrappingTarget, thisArg: { config: MysqlConnectionConfig }, args) {
+          if (!mySqlConfig) {
+            mySqlConfig = thisArg.config;
+          }
+          return wrappingTarget.apply(thisArg, args);
+        },
+      });
+    } catch (e) {
+      __DEBUG_BUILD__ && logger.error('Mysql Integration was unable to instrument `mysql` config.');
+    }
+
+    function spanDataFromConfig(): Record<string, unknown> {
+      if (!mySqlConfig) {
+        return {};
+      }
+      return {
+        'server.address': mySqlConfig.host,
+        'server.port': mySqlConfig.port,
+        'db.user': mySqlConfig.user,
+      };
+    }
+
     // The original function will have one of these signatures:
     //    function (callback) => void
     //    function (options, callback) => void
@@ -56,6 +95,7 @@ export class Mysql implements LazyLoadedIntegration<MysqlConnection> {
           description: typeof options === 'string' ? options : (options as { sql: string }).sql,
           op: 'db',
           data: {
+            ...spanDataFromConfig(),
             'db.system': 'mysql',
           },
         });

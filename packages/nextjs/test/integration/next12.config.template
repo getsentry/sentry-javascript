@@ -1,6 +1,6 @@
 const { withSentryConfig } = require('@sentry/nextjs');
 
-const moduleExports = {
+const moduleExports = async () => ({
   eslint: {
     ignoreDuringBuilds: true,
   },
@@ -11,7 +11,7 @@ const moduleExports = {
     hideSourceMaps: false,
     excludeServerRoutes: ['/api/excludedEndpoints/excludedWithString', /\/api\/excludedEndpoints\/excludedWithRegExp/],
   },
-};
+});
 
 const SentryWebpackPluginOptions = {
   dryRun: true,

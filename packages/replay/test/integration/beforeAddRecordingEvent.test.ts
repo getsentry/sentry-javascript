@@ -84,7 +84,8 @@ describe('Integration | beforeAddRecordingEvent', () => {
     // Create a new session and clear mocks because a segment (from initial
     // checkout) will have already been uploaded by the time the tests run
     clearSession(replay);
-    replay['_loadAndCheckSession']();
+    replay['_initializeSessionForSampling']();
+    replay.setInitialState();
 
     mockSendReplayRequest.mockClear();
   });
@@ -94,7 +95,6 @@ describe('Integration | beforeAddRecordingEvent', () => {
     await new Promise(process.nextTick);
     jest.setSystemTime(new Date(BASE_TIMESTAMP));
     clearSession(replay);
-    replay['_loadAndCheckSession']();
   });
 
   afterAll(() => {

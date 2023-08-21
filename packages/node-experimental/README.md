@@ -50,9 +50,25 @@ Currently, this SDK:
 * Will capture errors (same as @sentry/node)
 * Auto-instrument for performance - see below for which performance integrations are available.
 
+### Manual Instrumentation
+
 **Manual instrumentation is not supported!**
 This is because the current Sentry-Performance-APIs like `Sentry.startTransaction()` are not compatible with the OpenTelemetry tracing model.
 We may add manual tracing capabilities in a later version.
+
+### ESM Support
+
+Due to the way OpenTelemetry handles instrumentation, this only works out of the box for CommonJS (`require`) applications.
+
+
+There is experimental support for running OpenTelemetry with ESM (`"type": "module"`):
+
+```bash
+node --experimental-loader=@opentelemetry/instrumentation/hook.mjs ./app.js
+```
+
+See [OpenTelemetry Instrumentation Docs](https://github.com/open-telemetry/opentelemetry-js/tree/main/experimental/packages/opentelemetry-instrumentation#instrumentation-for-es-modules-in-nodejs-experimental) for details on this -
+but note that this is a) experimental, and b) does not work with all integrations.
 
 ## Available (Performance) Integrations
 

@@ -56,7 +56,7 @@ export class Breadcrumbs implements Integration {
   /**
    * @inheritDoc
    */
-  public name: string = Breadcrumbs.id;
+  public name: string;
 
   /**
    * Options of the breadcrumbs integration.
@@ -68,6 +68,7 @@ export class Breadcrumbs implements Integration {
    * @inheritDoc
    */
   public constructor(options?: Partial<BreadcrumbsOptions>) {
+    this.name = Breadcrumbs.id;
     this.options = {
       console: true,
       dom: true,

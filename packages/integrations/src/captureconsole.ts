@@ -11,20 +11,19 @@ export class CaptureConsole implements Integration {
   /**
    * @inheritDoc
    */
-  public name: string = CaptureConsole.id;
+  public name: string;
 
   /**
    * @inheritDoc
    */
-  private readonly _levels: readonly string[] = CONSOLE_LEVELS;
+  private readonly _levels: readonly string[];
 
   /**
    * @inheritDoc
    */
   public constructor(options: { levels?: string[] } = {}) {
-    if (options.levels) {
-      this._levels = options.levels;
-    }
+    this.name = CaptureConsole.id;
+    this._levels = options.levels || CONSOLE_LEVELS;
   }
 
   /**
@@ -55,14 +54,15 @@ export class CaptureConsole implements Integration {
             });
 
             let message = safeJoin(args, ' ');
+            const error = args.find(arg => arg instanceof Error);
             if (level === 'assert') {
               if (args[0] === false) {
                 message = `Assertion failed: ${safeJoin(args.slice(1), ' ') || 'console.assert'}`;
                 scope.setExtra('arguments', args.slice(1));
                 hub.captureMessage(message);
               }
-            } else if (level === 'error' && args[0] instanceof Error) {
-              hub.captureException(args[0]);
+            } else if (level === 'error' && error) {
+              hub.captureException(error);
             } else {
               hub.captureMessage(message);
             }

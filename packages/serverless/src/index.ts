@@ -49,4 +49,8 @@ export {
   deepReadDirSync,
   Handlers,
   Integrations,
+  setMeasurement,
+  getActiveSpan,
+  startActiveSpan,
+  startSpan,
 } from '@sentry/node';

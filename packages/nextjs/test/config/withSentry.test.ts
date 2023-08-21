@@ -1,11 +1,10 @@
-import * as hub from '@sentry/core';
+import * as SentryCore from '@sentry/core';
 import { addTracingExtensions } from '@sentry/core';
-import * as Sentry from '@sentry/node';
 import type { Client, ClientOptions } from '@sentry/types';
 import type { NextApiRequest, NextApiResponse } from 'next';
 
+import type { AugmentedNextApiResponse, NextApiHandler } from '../../src/common/types';
 import { withSentry } from '../../src/server';
-import type { AugmentedNextApiResponse, NextApiHandler } from '../../src/server/types';
 
 // The wrap* functions require the hub to have tracing extensions. This is normally called by the NodeClient
 // constructor but the client isn't used in these tests.
@@ -41,7 +40,7 @@ async function callWrappedHandler(wrappedHandler: NextApiHandler, req: NextApiRe
   }
 }
 
-const startTransactionSpy = jest.spyOn(Sentry, 'startTransaction');
+const startTransactionSpy = jest.spyOn(SentryCore, 'startTransaction');
 
 describe('withSentry', () => {
   let req: NextApiRequest, res: NextApiResponse;
@@ -71,7 +70,7 @@ describe('withSentry', () => {
 
   describe('tracing', () => {
     it('starts a transaction and sets metadata when tracing is enabled', async () => {
-      jest.spyOn(hub.Hub.prototype, 'getClient').mockReturnValueOnce({
+      jest.spyOn(SentryCore.Hub.prototype, 'getClient').mockReturnValueOnce({
         getOptions: () => ({ tracesSampleRate: 1, instrumenter: 'sentry' } as ClientOptions),
       } as Client);
 

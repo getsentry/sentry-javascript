@@ -18,15 +18,19 @@ type ReleaseHealthAttributes = {
  * @inheritdoc
  */
 export class SessionFlusher implements SessionFlusherLike {
-  public readonly flushTimeout: number = 60;
-  private _pendingAggregates: Record<number, AggregationCounts> = {};
+  public readonly flushTimeout: number;
+  private _pendingAggregates: Record<number, AggregationCounts>;
   private _sessionAttrs: ReleaseHealthAttributes;
   private _intervalId: ReturnType<typeof setInterval>;
-  private _isEnabled: boolean = true;
+  private _isEnabled: boolean;
   private _client: Client;
 
   public constructor(client: Client, attrs: ReleaseHealthAttributes) {
     this._client = client;
+    this.flushTimeout = 60;
+    this._pendingAggregates = {};
+    this._isEnabled = true;
+
     // Call to setInterval, so that flush is called every 60 seconds
     this._intervalId = setInterval(() => this.flush(), this.flushTimeout * 1000);
     this._sessionAttrs = attrs;

@@ -340,7 +340,7 @@ export function fetchCallback(
     const options: { [key: string]: any } = handlerData.args[1];
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    options.headers = addTracingHeadersToFetchRequest(request, client, scope, options);
+    options.headers = addTracingHeadersToFetchRequest(request, client, scope, options, span);
   }
 
   return span;
@@ -360,8 +360,9 @@ export function addTracingHeadersToFetchRequest(
         }
       | PolymorphicRequestHeaders;
   },
+  requestSpan?: Span,
 ): PolymorphicRequestHeaders | undefined {
-  const span = scope.getSpan();
+  const span = requestSpan || scope.getSpan();
 
   const transaction = span && span.transaction;
 

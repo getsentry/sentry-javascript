@@ -29,6 +29,7 @@ export {
 export type { RequestInstrumentationOptions } from '@sentry-internal/tracing';
 export {
   addTracingExtensions,
+  setMeasurement,
   extractTraceparentData,
   getActiveTransaction,
   spanStatusfromHttpCode,
