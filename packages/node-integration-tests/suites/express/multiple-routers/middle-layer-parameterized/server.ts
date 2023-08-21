@@ -16,8 +16,6 @@ Sentry.init({
 app.use(Sentry.Handlers.requestHandler());
 app.use(Sentry.Handlers.tracingHandler());
 
-app.use(cors());
-
 const APIv1 = express.Router();
 
 APIv1.use(
