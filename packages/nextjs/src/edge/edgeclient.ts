@@ -82,10 +82,6 @@ export class EdgeClient extends BaseClient<EdgeClientOptions> {
    */
   public captureCheckIn(checkIn: CheckIn, monitorConfig?: MonitorConfig, scope?: Scope): string {
     const id = checkIn.status !== 'in_progress' && checkIn.checkInId ? checkIn.checkInId : uuid4();
-    if (!this._isEnabled()) {
-      __DEBUG_BUILD__ && logger.warn('SDK not enabled, will not capture checkin.');
-      return id;
-    }
 
     const options = this.getOptions();
     const { release, environment, tunnel } = options;

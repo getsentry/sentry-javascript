@@ -10,6 +10,7 @@ import {
 import type {
   CheckIn,
   DynamicSamplingContext,
+  Envelope,
   Event,
   EventHint,
   MonitorConfig,
@@ -17,8 +18,9 @@ import type {
   Severity,
   SeverityLevel,
   TraceContext,
+  TransportMakeRequestResponse,
 } from '@sentry/types';
-import { logger, resolvedSyncPromise, uuid4 } from '@sentry/utils';
+import { logger, resolvedSyncPromise, serializeEnvelope, uuid4 } from '@sentry/utils';
 import * as os from 'os';
 import { TextEncoder } from 'util';
 
@@ -165,10 +167,6 @@ export class NodeClient extends BaseClient<NodeClientOptions> {
    */
   public captureCheckIn(checkIn: CheckIn, monitorConfig?: MonitorConfig, scope?: Scope): string {
     const id = checkIn.status !== 'in_progress' && checkIn.checkInId ? checkIn.checkInId : uuid4();
-    if (!this._isEnabled()) {
-      __DEBUG_BUILD__ && logger.warn('SDK not enabled, will not capture checkin.');
-      return id;
-    }
 
     const options = this.getOptions();
     const { release, environment, tunnel } = options;
@@ -214,6 +212,24 @@ export class NodeClient extends BaseClient<NodeClientOptions> {
     return id;
   }
 
+  // TODO(dcramer): we need a clean abstraction to http or otherwise transports...
+  protected _sendEnvelope(envelope: Envelope): PromiseLike<void | TransportMakeRequestResponse> | void {
+    return fetch('http://localhost:8969/stream', {
+      method: 'POST',
+      body: serializeEnvelope(envelope),
+      headers: {
+        'Content-Type': 'application/x-sentry-envelope',
+      },
+      mode: 'cors',
+    })
+      .catch(err => {
+        console.error(err);
+      })
+      .then(() => {
+        return super._sendEnvelope(envelope);
+      });
+  }
+
   /**
    * @inheritDoc
    */
@@ -228,6 +244,7 @@ export class NodeClient extends BaseClient<NodeClientOptions> {
     };
     event.server_name =
       event.server_name || this.getOptions().serverName || global.process.env.SENTRY_NAME || os.hostname();
+
     return super._prepareEvent(event, hint, scope);
   }
 

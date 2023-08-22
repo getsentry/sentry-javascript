@@ -212,11 +212,6 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
    * @inheritDoc
    */
   public captureSession(session: Session): void {
-    if (!this._isEnabled()) {
-      __DEBUG_BUILD__ && logger.warn('SDK not enabled, will not capture session.');
-      return;
-    }
-
     if (!(typeof session.release === 'string')) {
       __DEBUG_BUILD__ && logger.warn('Discarded session because of missing or non-string release');
     } else {
@@ -284,10 +279,8 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
    * Sets up the integrations
    */
   public setupIntegrations(): void {
-    if (this._isEnabled() && !this._integrationsInitialized) {
-      this._integrations = setupIntegrations(this._options.integrations);
-      this._integrationsInitialized = true;
-    }
+    this._integrations = setupIntegrations(this._options.integrations);
+    this._integrationsInitialized = true;
   }
 
   /**
@@ -322,23 +315,21 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
    * @inheritDoc
    */
   public sendEvent(event: Event, hint: EventHint = {}): void {
-    if (this._dsn) {
-      let env = createEventEnvelope(event, this._dsn, this._options._metadata, this._options.tunnel);
+    let env = createEventEnvelope(event, this._dsn, this._options._metadata, this._options.tunnel);
 
-      for (const attachment of hint.attachments || []) {
-        env = addItemToEnvelope(
-          env,
-          createAttachmentEnvelopeItem(
-            attachment,
-            this._options.transportOptions && this._options.transportOptions.textEncoder,
-          ),
-        );
-      }
+    for (const attachment of hint.attachments || []) {
+      env = addItemToEnvelope(
+        env,
+        createAttachmentEnvelopeItem(
+          attachment,
+          this._options.transportOptions && this._options.transportOptions.textEncoder,
+        ),
+      );
+    }
 
-      const promise = this._sendEnvelope(env);
-      if (promise) {
-        promise.then(sendResponse => this.emit('afterSendEvent', event, sendResponse), null);
-      }
+    const promise = this._sendEnvelope(env);
+    if (promise) {
+      promise.then(sendResponse => this.emit('afterSendEvent', event, sendResponse), null);
     }
   }
 
@@ -346,10 +337,8 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
    * @inheritDoc
    */
   public sendSession(session: Session | SessionAggregates): void {
-    if (this._dsn) {
-      const env = createSessionEnvelope(session, this._dsn, this._options._metadata, this._options.tunnel);
-      void this._sendEnvelope(env);
-    }
+    const env = createSessionEnvelope(session, this._dsn, this._options._metadata, this._options.tunnel);
+    void this._sendEnvelope(env);
   }
 
   /**
@@ -596,10 +585,6 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
     const options = this.getOptions();
     const { sampleRate } = options;
 
-    if (!this._isEnabled()) {
-      return rejectedSyncPromise(new SentryError('SDK not enabled, will not capture event.', 'log'));
-    }
-
     const isTransaction = isTransactionEvent(event);
     const isError = isErrorEvent(event);
     const eventType = event.type || 'error';
@@ -699,9 +684,8 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
    * @inheritdoc
    */
   protected _sendEnvelope(envelope: Envelope): PromiseLike<void | TransportMakeRequestResponse> | void {
-    if (this._transport && this._dsn) {
-      this.emit('beforeEnvelope', envelope);
-
+    this.emit('beforeEnvelope', envelope);
+    if (this._transport && this._isEnabled()) {
       return this._transport.send(envelope).then(null, reason => {
         __DEBUG_BUILD__ && logger.error('Error while sending event:', reason);
       });

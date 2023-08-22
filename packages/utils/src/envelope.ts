@@ -234,14 +234,14 @@ export function createEventEnvelopeHeaders(
   event: Event,
   sdkInfo: SdkInfo | undefined,
   tunnel: string | undefined,
-  dsn: DsnComponents,
+  dsn?: DsnComponents,
 ): EventEnvelopeHeaders {
   const dynamicSamplingContext = event.sdkProcessingMetadata && event.sdkProcessingMetadata.dynamicSamplingContext;
   return {
     event_id: event.event_id as string,
     sent_at: new Date().toISOString(),
     ...(sdkInfo && { sdk: sdkInfo }),
-    ...(!!tunnel && { dsn: dsnToString(dsn) }),
+    ...(!!tunnel && dsn && { dsn: dsnToString(dsn) }),
     ...(dynamicSamplingContext && {
       trace: dropUndefinedKeys({ ...dynamicSamplingContext }),
     }),

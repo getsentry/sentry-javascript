@@ -36,7 +36,7 @@ function enhanceEventWithSdkInfo(event: Event, sdkInfo?: SdkInfo): Event {
 /** Creates an envelope from a Session */
 export function createSessionEnvelope(
   session: Session | SessionAggregates,
-  dsn: DsnComponents,
+  dsn?: DsnComponents,
   metadata?: SdkMetadata,
   tunnel?: string,
 ): SessionEnvelope {
@@ -44,7 +44,7 @@ export function createSessionEnvelope(
   const envelopeHeaders = {
     sent_at: new Date().toISOString(),
     ...(sdkInfo && { sdk: sdkInfo }),
-    ...(!!tunnel && { dsn: dsnToString(dsn) }),
+    ...(!!tunnel && dsn && { dsn: dsnToString(dsn) }),
   };
 
   const envelopeItem: SessionItem =
@@ -58,7 +58,7 @@ export function createSessionEnvelope(
  */
 export function createEventEnvelope(
   event: Event,
-  dsn: DsnComponents,
+  dsn?: DsnComponents,
   metadata?: SdkMetadata,
   tunnel?: string,
 ): EventEnvelope {
