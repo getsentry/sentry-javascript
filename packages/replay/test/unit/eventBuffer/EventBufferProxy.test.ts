@@ -4,9 +4,10 @@ import pako from 'pako';
 
 import { BASE_TIMESTAMP } from '../..';
 import { EventBufferProxy } from '../../../src/eventBuffer/EventBufferProxy';
+import { getTestEventIncremental } from '../../utils/getTestEvent';
 import { createEventBuffer } from './../../../src/eventBuffer';
 
-const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 3 };
+const TEST_EVENT = getTestEventIncremental({ timestamp: BASE_TIMESTAMP });
 
 describe('Unit | eventBuffer | EventBufferProxy', () => {
   let consoleErrorSpy: jest.SpyInstance<any>;

@@ -3,6 +3,7 @@ import type { Event, Hub, Scope } from '@sentry/types';
 
 import { BASE_TIMESTAMP } from '..';
 import { resetSdkMock } from '../mocks/resetSdkMock';
+import { getTestEventIncremental } from '../utils/getTestEvent';
 import { useFakeTimers } from '../utils/use-fake-timers';
 
 useFakeTimers();
@@ -48,7 +49,7 @@ describe('Integration | eventProcessors', () => {
 
     scope.addEventProcessor(handler1);
 
-    const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 3 };
+    const TEST_EVENT = getTestEventIncremental({ timestamp: BASE_TIMESTAMP });
 
     mockRecord._emitter(TEST_EVENT);
     jest.runAllTimers();
@@ -59,7 +60,7 @@ describe('Integration | eventProcessors', () => {
 
     scope.addEventProcessor(handler2);
 
-    const TEST_EVENT2 = { data: {}, timestamp: BASE_TIMESTAMP, type: 3 };
+    const TEST_EVENT2 = getTestEventIncremental({ timestamp: BASE_TIMESTAMP });
 
     mockRecord._emitter(TEST_EVENT2);
     jest.runAllTimers();

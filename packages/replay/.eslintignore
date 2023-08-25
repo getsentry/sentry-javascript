@@ -4,5 +4,3 @@ demo/build/
 # TODO: Check if we can re-introduce linting in demo
 demo
 metrics
-# For whatever reason, the eslint-ignore comment in this file is not working, so skipping this file
-src/types/rrweb.ts

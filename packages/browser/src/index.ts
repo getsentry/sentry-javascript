@@ -21,6 +21,18 @@ const INTEGRATIONS = {
 export { INTEGRATIONS as Integrations };
 
 export { Replay } from '@sentry/replay';
+export type {
+  ReplayEventType,
+  ReplayEventWithTime,
+  ReplayBreadcrumbFrame,
+  ReplayBreadcrumbFrameEvent,
+  ReplayOptionFrameEvent,
+  ReplayFrame,
+  ReplayFrameEvent,
+  ReplaySpanFrame,
+  ReplaySpanFrameEvent,
+} from '@sentry/replay';
+
 export {
   BrowserTracing,
   defaultRequestInstrumentationOptions,

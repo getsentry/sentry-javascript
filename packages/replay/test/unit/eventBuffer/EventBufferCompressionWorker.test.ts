@@ -7,8 +7,9 @@ import { REPLAY_MAX_EVENT_BUFFER_SIZE } from '../../../src/constants';
 import { createEventBuffer } from '../../../src/eventBuffer';
 import { EventBufferSizeExceededError } from '../../../src/eventBuffer/error';
 import { EventBufferProxy } from '../../../src/eventBuffer/EventBufferProxy';
+import { getTestEventIncremental } from '../../utils/getTestEvent';
 
-const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 3 };
+const TEST_EVENT = getTestEventIncremental({ timestamp: BASE_TIMESTAMP });
 
 describe('Unit | eventBuffer | EventBufferCompressionWorker', () => {
   it('adds events to event buffer with compression worker', async function () {
@@ -158,11 +159,10 @@ describe('Unit | eventBuffer | EventBufferCompressionWorker', () => {
       expect(buffer).toBeInstanceOf(EventBufferProxy);
       await buffer.ensureWorkerIsLoaded();
 
-      const largeEvent = {
+      const largeEvent = getTestEventIncremental({
         data: { a: 'a'.repeat(REPLAY_MAX_EVENT_BUFFER_SIZE / 3) },
         timestamp: BASE_TIMESTAMP,
-        type: 3,
-      };
+      });
 
       await buffer.addEvent(largeEvent);
       await buffer.addEvent(largeEvent);
@@ -179,11 +179,10 @@ describe('Unit | eventBuffer | EventBufferCompressionWorker', () => {
       expect(buffer).toBeInstanceOf(EventBufferProxy);
       await buffer.ensureWorkerIsLoaded();
 
-      const largeEvent = {
+      const largeEvent = getTestEventIncremental({
         data: { a: 'a'.repeat(REPLAY_MAX_EVENT_BUFFER_SIZE / 3) },
         timestamp: BASE_TIMESTAMP,
-        type: 3,
-      };
+      });
 
       await buffer.addEvent(largeEvent);
       await buffer.addEvent(largeEvent);
@@ -201,11 +200,10 @@ describe('Unit | eventBuffer | EventBufferCompressionWorker', () => {
       expect(buffer).toBeInstanceOf(EventBufferProxy);
       await buffer.ensureWorkerIsLoaded();
 
-      const largeEvent = {
+      const largeEvent = getTestEventIncremental({
         data: { a: 'a'.repeat(REPLAY_MAX_EVENT_BUFFER_SIZE / 3) },
         timestamp: BASE_TIMESTAMP,
-        type: 3,
-      };
+      });
 
       await buffer.addEvent(largeEvent);
       await buffer.addEvent(largeEvent);
