@@ -5,7 +5,7 @@ export type TracePropagationTargets = (string | RegExp)[];
 export interface PropagationContext {
   traceId: string;
   spanId: string;
-  sampled: boolean;
+  sampled?: boolean;
   parentSpanId?: string;
   dsc?: DynamicSamplingContext;
 }

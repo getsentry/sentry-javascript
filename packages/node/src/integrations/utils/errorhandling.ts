@@ -10,7 +10,7 @@ const DEFAULT_SHUTDOWN_TIMEOUT = 2000;
  */
 export function logAndExitProcess(error: Error): void {
   // eslint-disable-next-line no-console
-  console.error(error && error.stack ? error.stack : error);
+  console.error(error);
 
   const client = getCurrentHub().getClient<NodeClient>();
 

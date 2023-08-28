@@ -26,7 +26,6 @@ const pageWrapperTemplateCode = fs.readFileSync(pageWrapperTemplatePath, { encod
 const middlewareWrapperTemplatePath = path.resolve(__dirname, '..', 'templates', 'middlewareWrapperTemplate.js');
 const middlewareWrapperTemplateCode = fs.readFileSync(middlewareWrapperTemplatePath, { encoding: 'utf8' });
 
-const requestAsyncStorageShimPath = path.resolve(__dirname, '..', 'templates', 'requestAsyncStorageShim.js');
 const requestAsyncStorageModuleExists = moduleExists(NEXTJS_REQUEST_ASYNC_STORAGE_MODULE_PATH);
 let showedMissingAsyncStorageModuleWarning = false;
 
@@ -190,7 +189,10 @@ export default function wrappingLoader(
         );
         showedMissingAsyncStorageModuleWarning = true;
       }
-      templateCode = templateCode.replace(/__SENTRY_NEXTJS_REQUEST_ASYNC_STORAGE_SHIM__/g, requestAsyncStorageShimPath);
+      templateCode = templateCode.replace(
+        /__SENTRY_NEXTJS_REQUEST_ASYNC_STORAGE_SHIM__/g,
+        '@sentry/nextjs/requestAsyncStorageShim',
+      );
     }
 
     templateCode = templateCode.replace(/__ROUTE__/g, parameterizedPagesRoute.replace(/\\/g, '\\\\'));

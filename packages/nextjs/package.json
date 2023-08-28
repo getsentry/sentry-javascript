@@ -1,6 +1,6 @@
 {
   "name": "@sentry/nextjs",
-  "version": "7.64.0",
+  "version": "7.65.0",
   "description": "Official Sentry SDK for Next.js",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/nextjs",
@@ -13,6 +13,16 @@
   "module": "build/esm/index.server.js",
   "browser": "build/esm/index.client.js",
   "types": "build/types/index.types.d.ts",
+  "exports": {
+    ".": {
+      "import": "./build/esm/index.server.js",
+      "require": "./build/cjs/index.server.js",
+      "types": "./build/types/index.types.d.ts"
+    },
+    "./requestAsyncStorageShim": {
+      "import": "./build/esm/config/templates/requestAsyncStorageShim.js"
+    }
+  },
   "typesVersions": {
     "<4.9": {
       "build/npm/types/index.d.ts": [
@@ -25,12 +35,12 @@
   },
   "dependencies": {
     "@rollup/plugin-commonjs": "24.0.0",
-    "@sentry/core": "7.64.0",
-    "@sentry/integrations": "7.64.0",
-    "@sentry/node": "7.64.0",
-    "@sentry/react": "7.64.0",
-    "@sentry/types": "7.64.0",
-    "@sentry/utils": "7.64.0",
+    "@sentry/core": "7.65.0",
+    "@sentry/integrations": "7.65.0",
+    "@sentry/node": "7.65.0",
+    "@sentry/react": "7.65.0",
+    "@sentry/types": "7.65.0",
+    "@sentry/utils": "7.65.0",
     "@sentry/webpack-plugin": "1.20.0",
     "chalk": "3.0.0",
     "rollup": "2.78.0",
