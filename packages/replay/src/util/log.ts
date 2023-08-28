@@ -9,7 +9,7 @@ export function logInfo(message: string, shouldAddBreadcrumb?: boolean): void {
     return;
   }
 
-  logMessage(message);
+  logger.log(message);
 
   if (shouldAddBreadcrumb) {
     addBreadcrumb(message);
@@ -25,7 +25,7 @@ export function logInfoNextTick(message: string, shouldAddBreadcrumb?: boolean):
     return;
   }
 
-  logMessage(message);
+  logger.log(message);
 
   if (shouldAddBreadcrumb) {
     // Wait a tick here to avoid race conditions for some initial logs
@@ -34,11 +34,6 @@ export function logInfoNextTick(message: string, shouldAddBreadcrumb?: boolean):
       addBreadcrumb(message);
     }, 0);
   }
-}
-
-function logMessage(message: string): void {
-  // Not sure why this is necessary, but sometimes `logger.info` seems to be undefined
-  typeof logger.info === 'function' && logger.info(message);
 }
 
 function addBreadcrumb(message: string): void {
