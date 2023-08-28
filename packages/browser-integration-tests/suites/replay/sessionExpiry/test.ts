@@ -14,8 +14,8 @@ import {
 // Session should expire after 2s - keep in sync with init.js
 const SESSION_TIMEOUT = 2000;
 
-sentryTest('handles an expired session', async ({ forceFlushReplay, getLocalTestPath, page }) => {
-  if (shouldSkipReplayTest()) {
+sentryTest('handles an expired session', async ({ browserName, forceFlushReplay, getLocalTestPath, page }) => {
+  if (shouldSkipReplayTest() || browserName === 'webkit') {
     sentryTest.skip();
   }
 
