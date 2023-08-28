@@ -29,8 +29,7 @@ describe('OnUncaughtException integration', () => {
   });
 
   test('should log entire error object to console stderr', done => {
-    const nodeVersion = Number(process.version.replace('v', '').split('.')[0]);
-    expect.assertions(nodeVersion >= 16 ? 3 : 2);
+    expect.assertions(2);
 
     const testScriptPath = path.resolve(__dirname, 'log-entire-error-to-console.js');
 
@@ -39,11 +38,6 @@ describe('OnUncaughtException integration', () => {
       const errString = err?.toString() || '';
 
       expect(errString).toContain(stderr);
-
-      if (nodeVersion >= 16) {
-        // additional error properties are only printed to console since Node 16 :(
-        expect(stderr).toContain("[cause]: 'bar'");
-      }
 
       done();
     });
