@@ -27,7 +27,10 @@ export interface RequestInstrumentationOptions {
    * List of strings and/or regexes used to determine which outgoing requests will have `sentry-trace` and `baggage`
    * headers attached.
    *
-   * Default: ['localhost', /^\//] {@see DEFAULT_TRACE_PROPAGATION_TARGETS}
+   * @deprecated Use the top-level `tracePropagationTargets` option in `Sentry.init` instead.
+   * This option will be removed in v8.
+   *
+   * Default: ['localhost', /^\//] @see {DEFAULT_TRACE_PROPAGATION_TARGETS}
    */
   tracePropagationTargets: Array<string | RegExp>;
 
@@ -125,6 +128,7 @@ export function instrumentOutgoingRequests(_options?: Partial<RequestInstrumenta
   const {
     traceFetch,
     traceXHR,
+    // eslint-disable-next-line deprecation/deprecation
     tracePropagationTargets,
     // eslint-disable-next-line deprecation/deprecation
     tracingOrigins,

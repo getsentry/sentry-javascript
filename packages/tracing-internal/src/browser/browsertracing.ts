@@ -248,6 +248,7 @@ export class BrowserTracing implements Integration {
     // This is done as it minimizes bundle size (we don't have to have undefined checks).
     //
     // If both 1 and either one of 2 or 3 are set (from above), we log out a warning.
+    // eslint-disable-next-line deprecation/deprecation
     const tracePropagationTargets = clientOptionsTracePropagationTargets || this.options.tracePropagationTargets;
     if (__DEBUG_BUILD__ && this._hasSetTracePropagationTargets && clientOptionsTracePropagationTargets) {
       logger.warn(
