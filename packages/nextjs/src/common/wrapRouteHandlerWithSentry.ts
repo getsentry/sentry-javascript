@@ -1,22 +1,24 @@
-import { addTracingExtensions, captureException, getCurrentHub, runWithAsyncContext, trace } from '@sentry/core';
-import { isThenable, tracingContextFromHeaders } from '@sentry/utils';
+import { addTracingExtensions, captureException, flush, getCurrentHub, runWithAsyncContext, trace } from '@sentry/core';
+import { tracingContextFromHeaders } from '@sentry/utils';
 
 import type { RouteHandlerContext } from './types';
+import { platformSupportsStreaming } from './utils/platformSupportsStreaming';
 
 /**
  * Wraps a Next.js route handler with performance and error instrumentation.
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function wrapRouteHandlerWithSentry<F extends (...args: any[]) => any>(
   routeHandler: F,
   context: RouteHandlerContext,
-): F {
+): (...args: Parameters<F>) => ReturnType<F> extends Promise<unknown> ? ReturnType<F> : Promise<ReturnType<F>> {
   addTracingExtensions();
 
   const { method, parameterizedRoute, baggageHeader, sentryTraceHeader } = context;
 
   return new Proxy(routeHandler, {
     apply: (originalFunction, thisArg, args) => {
-      return runWithAsyncContext(() => {
+      return runWithAsyncContext(async () => {
         const hub = getCurrentHub();
         const currentScope = hub.getScope();
 
@@ -26,7 +28,7 @@ export function wrapRouteHandlerWithSentry<F extends (...args: any[]) => any>(
         );
         currentScope.setPropagationContext(propagationContext);
 
-        const res = trace(
+        const res = await trace(
           {
             op: 'http.server',
             name: `${method} ${parameterizedRoute}`,
@@ -37,31 +39,25 @@ export function wrapRouteHandlerWithSentry<F extends (...args: any[]) => any>(
               dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
             },
           },
-          span => {
-            const maybePromiseResponse = originalFunction.apply(thisArg, args);
+          async span => {
+            const response: Response = await originalFunction.apply(thisArg, args);
 
-            const setSpanStatus = (response: Response): void => {
-              try {
-                span?.setHttpStatus(response.status);
-              } catch {
-                // best effort
-              }
-            };
-
-            if (isThenable(maybePromiseResponse)) {
-              return maybePromiseResponse.then(response => {
-                setSpanStatus(response);
-                return response;
-              });
-            } else {
-              setSpanStatus(maybePromiseResponse);
-              return maybePromiseResponse;
+            try {
+              span?.setHttpStatus(response.status);
+            } catch {
+              // best effort
             }
+
+            return response;
           },
           error => {
             captureException(error);
           },
         );
+
+        if (!platformSupportsStreaming()) {
+          await flush(1000);
+        }
 
         return res;
       });
