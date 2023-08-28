@@ -109,9 +109,7 @@ describe('Sentry client SDK', () => {
       it('Merges a user-provided BrowserTracing integration with the automatically added one', () => {
         init({
           dsn: 'https://public@dsn.ingest.sentry.io/1337',
-          integrations: [
-            new BrowserTracing({ tracePropagationTargets: ['myDomain.com'], startTransactionOnLocationChange: false }),
-          ],
+          integrations: [new BrowserTracing({ finalTimeout: 10, startTransactionOnLocationChange: false })],
           enableTracing: true,
         });
 
@@ -126,8 +124,7 @@ describe('Sentry client SDK', () => {
         expect(browserTracing).toBeDefined();
 
         // This shows that the user-configured options are still here
-        expect(options.tracePropagationTargets).toEqual(['myDomain.com']);
-        expect(options.startTransactionOnLocationChange).toBe(false);
+        expect(options.finalTimeout).toEqual(10);
 
         // But we force the routing instrumentation to be ours
         expect(options.routingInstrumentation).toEqual(svelteKitRoutingInstrumentation);

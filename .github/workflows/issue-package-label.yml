@@ -62,11 +62,11 @@ jobs:
               "@sentry.serverless": {
                 "label": "Package: Serverless"
               },
-              "@sentry.svelte": {
-                "label": "Package: svelte"
-              },
               "@sentry.sveltekit": {
                 "label": "Package: SvelteKit"
+              },
+              "@sentry.svelte": {
+                "label": "Package: svelte"
               },
               "@sentry.vue": {
                 "label": "Package: vue"

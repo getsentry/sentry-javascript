@@ -65,5 +65,16 @@
   "volta": {
     "extends": "../../package.json"
   },
-  "sideEffects": false
+  "sideEffects": false,
+  "nx": {
+    "targets": {
+      "build:transpile": {
+        "dependsOn": [
+          "^build:transpile",
+          "^build:transpile:uncached",
+          "^build:types"
+        ]
+      }
+    }
+  }
 }

@@ -1,23 +1,10 @@
-import { addTracingHeadersToFetchRequest } from '@sentry-internal/tracing';
-import type { BaseClient } from '@sentry/core';
-import { getCurrentHub, trace } from '@sentry/core';
-import type { Breadcrumbs, BrowserTracing } from '@sentry/svelte';
+import { trace } from '@sentry/core';
 import { captureException } from '@sentry/svelte';
-import type { Client, ClientOptions, SanitizedRequestData, Span } from '@sentry/types';
-import {
-  addExceptionMechanism,
-  addNonEnumerableProperty,
-  getSanitizedUrlString,
-  objectify,
-  parseFetchArgs,
-  parseUrl,
-  stringMatchesSomePattern,
-} from '@sentry/utils';
+import { addExceptionMechanism, addNonEnumerableProperty, objectify } from '@sentry/utils';
 import type { LoadEvent } from '@sveltejs/kit';
 
 import type { SentryWrappedFlag } from '../common/utils';
 import { isRedirect } from '../common/utils';
-import { isRequestCached } from './vendor/lookUpCache';
 
 type PatchedLoadEvent = LoadEvent & Partial<SentryWrappedFlag>;
 
@@ -80,7 +67,6 @@ export function wrapLoadWithSentry<T extends (...args: any) => any>(origLoad: T)
 
       const patchedEvent: PatchedLoadEvent = {
         ...event,
-        fetch: instrumentSvelteKitFetch(event.fetch),
       };
 
       addNonEnumerableProperty(patchedEvent as unknown as Record<string, unknown>, '__sentry_wrapped__', true);
@@ -100,183 +86,4 @@ export function wrapLoadWithSentry<T extends (...args: any) => any>(origLoad: T)
       );
     },
   });
-}
-
-type SvelteKitFetch = LoadEvent['fetch'];
-
-/**
- * Instruments SvelteKit's client `fetch` implementation which is passed to the client-side universal `load` functions.
- *
- * We need to instrument this in addition to the native fetch we instrument in BrowserTracing because SvelteKit
- * stores the native fetch implementation before our SDK is initialized.
- *
- * see: https://github.com/sveltejs/kit/blob/master/packages/kit/src/runtime/client/fetcher.js
- *
- * This instrumentation takes the fetch-related options from `BrowserTracing` to determine if we should
- * instrument fetch for perfomance monitoring, create a span for or attach our tracing headers to the given request.
- *
- * To dertermine if breadcrumbs should be recorded, this instrumentation relies on the availability of and the options
- * set in the `BreadCrumbs` integration.
- *
- * @param originalFetch SvelteKit's original fetch implemenetation
- *
- * @returns a proxy of SvelteKit's fetch implementation
- */
-function instrumentSvelteKitFetch(originalFetch: SvelteKitFetch): SvelteKitFetch {
-  const client = getCurrentHub().getClient();
-
-  if (!isValidClient(client)) {
-    return originalFetch;
-  }
-
-  const options = client.getOptions();
-
-  const browserTracingIntegration = client.getIntegrationById('BrowserTracing') as BrowserTracing | undefined;
-  const breadcrumbsIntegration = client.getIntegrationById('Breadcrumbs') as Breadcrumbs | undefined;
-
-  const browserTracingOptions = browserTracingIntegration && browserTracingIntegration.options;
-
-  const shouldTraceFetch = browserTracingOptions && browserTracingOptions.traceFetch;
-  const shouldAddFetchBreadcrumb = breadcrumbsIntegration && breadcrumbsIntegration.options.fetch;
-
-  /* Identical check as in BrowserTracing, just that we also need to verify that BrowserTracing is actually installed */
-  const shouldCreateSpan =
-    browserTracingOptions && typeof browserTracingOptions.shouldCreateSpanForRequest === 'function'
-      ? browserTracingOptions.shouldCreateSpanForRequest
-      : (_: string) => shouldTraceFetch;
-
-  /* Identical check as in BrowserTracing, just that we also need to verify that BrowserTracing is actually installed */
-  const shouldAttachHeaders: (url: string) => boolean = url => {
-    return (
-      !!shouldTraceFetch &&
-      stringMatchesSomePattern(
-        url,
-        options.tracePropagationTargets || browserTracingOptions.tracePropagationTargets || ['localhost', /^\//],
-      )
-    );
-  };
-
-  return new Proxy(originalFetch, {
-    apply: (wrappingTarget, thisArg, args: Parameters<LoadEvent['fetch']>) => {
-      const [input, init] = args;
-
-      if (isRequestCached(input, init)) {
-        return wrappingTarget.apply(thisArg, args);
-      }
-
-      const { url: rawUrl, method } = parseFetchArgs(args);
-
-      // TODO: extract this to a util function (and use it in breadcrumbs integration as well)
-      if (rawUrl.match(/sentry_key/)) {
-        // We don't create spans or breadcrumbs for fetch requests that contain `sentry_key` (internal sentry requests)
-        return wrappingTarget.apply(thisArg, args);
-      }
-
-      const urlObject = parseUrl(rawUrl);
-
-      const requestData: SanitizedRequestData = {
-        url: getSanitizedUrlString(urlObject),
-        'http.method': method,
-        ...(urlObject.search && { 'http.query': urlObject.search.substring(1) }),
-        ...(urlObject.hash && { 'http.hash': urlObject.hash.substring(1) }),
-      };
-
-      const patchedInit: RequestInit = { ...init };
-      const hub = getCurrentHub();
-      const scope = hub.getScope();
-      const client = hub.getClient();
-
-      let fetchPromise: Promise<Response>;
-
-      function callFetchTarget(span?: Span): Promise<Response> {
-        if (client && shouldAttachHeaders(rawUrl)) {
-          const headers = addTracingHeadersToFetchRequest(input as string | Request, client, scope, patchedInit, span);
-          patchedInit.headers = headers as HeadersInit;
-        }
-        const patchedFetchArgs = [input, patchedInit];
-        return wrappingTarget.apply(thisArg, patchedFetchArgs);
-      }
-
-      if (shouldCreateSpan(rawUrl)) {
-        fetchPromise = trace(
-          {
-            name: `${method} ${requestData.url}`, // this will become the description of the span
-            op: 'http.client',
-            data: requestData,
-          },
-          span => {
-            const promise = callFetchTarget(span);
-            if (span) {
-              promise.then(res => span.setHttpStatus(res.status)).catch(_ => span.setStatus('internal_error'));
-            }
-            return promise;
-          },
-        );
-      } else {
-        fetchPromise = callFetchTarget();
-      }
-
-      if (shouldAddFetchBreadcrumb) {
-        addFetchBreadcrumb(fetchPromise, requestData, args);
-      }
-
-      return fetchPromise;
-    },
-  });
-}
-
-/* Adds a breadcrumb for the given fetch result */
-function addFetchBreadcrumb(
-  fetchResult: Promise<Response>,
-  requestData: SanitizedRequestData,
-  args: Parameters<SvelteKitFetch>,
-): void {
-  const breadcrumbStartTimestamp = Date.now();
-  fetchResult.then(
-    response => {
-      getCurrentHub().addBreadcrumb(
-        {
-          type: 'http',
-          category: 'fetch',
-          data: {
-            ...requestData,
-            status_code: response.status,
-          },
-        },
-        {
-          input: args,
-          response,
-          startTimestamp: breadcrumbStartTimestamp,
-          endTimestamp: Date.now(),
-        },
-      );
-    },
-    error => {
-      getCurrentHub().addBreadcrumb(
-        {
-          type: 'http',
-          category: 'fetch',
-          level: 'error',
-          data: requestData,
-        },
-        {
-          input: args,
-          data: error,
-          startTimestamp: breadcrumbStartTimestamp,
-          endTimestamp: Date.now(),
-        },
-      );
-    },
-  );
-}
-
-type MaybeClientWithGetIntegrationsById =
-  | (Client & { getIntegrationById?: BaseClient<ClientOptions>['getIntegrationById'] })
-  | undefined;
-
-type ClientWithGetIntegrationById = Required<MaybeClientWithGetIntegrationsById> &
-  Exclude<MaybeClientWithGetIntegrationsById, undefined>;
-
-function isValidClient(client: MaybeClientWithGetIntegrationsById): client is ClientWithGetIntegrationById {
-  return !!client && typeof client.getIntegrationById === 'function';
 }

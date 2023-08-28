@@ -7,13 +7,6 @@ const POLYFILL_NAMES = new Set([
   '_asyncNullishCoalesce',
   '_asyncOptionalChain',
   '_asyncOptionalChainDelete',
-  '_createNamedExportFrom',
-  '_createStarExport',
-  '_interopDefault', // rollup's version
-  '_interopNamespace', // rollup's version
-  '_interopNamespaceDefaultOnly',
-  '_interopRequireDefault', // sucrase's version
-  '_interopRequireWildcard', // sucrase's version
   '_nullishCoalesce',
   '_optionalChain',
   '_optionalChainDelete',

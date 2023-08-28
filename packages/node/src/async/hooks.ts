@@ -12,11 +12,15 @@ type AsyncLocalStorageConstructor = { new <T>(): AsyncLocalStorage<T> };
 // AsyncLocalStorage only exists in async_hook after Node v12.17.0 or v13.10.0
 type NewerAsyncHooks = typeof async_hooks & { AsyncLocalStorage: AsyncLocalStorageConstructor };
 
+let asyncStorage: AsyncLocalStorage<Hub>;
+
 /**
  * Sets the async context strategy to use AsyncLocalStorage which requires Node v12.17.0 or v13.10.0.
  */
 export function setHooksAsyncContextStrategy(): void {
-  const asyncStorage = new (async_hooks as NewerAsyncHooks).AsyncLocalStorage<Hub>();
+  if (!asyncStorage) {
+    asyncStorage = new (async_hooks as NewerAsyncHooks).AsyncLocalStorage<Hub>();
+  }
 
   function getCurrentHub(): Hub | undefined {
     return asyncStorage.getStore();
