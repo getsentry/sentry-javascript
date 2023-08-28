@@ -40,7 +40,7 @@ type AutoInstrumentPluginOptions = AutoInstrumentSelection & {
  * @returns the plugin
  */
 export function makeAutoInstrumentationPlugin(options: AutoInstrumentPluginOptions): Plugin {
-  const { load: shouldWrapLoad, serverLoad: shouldWrapServerLoad, debug } = options;
+  const { load: wrapLoadEnabled, serverLoad: wrapServerLoadEnabled, debug } = options;
 
   return {
     name: 'sentry-auto-instrumentation',
@@ -49,7 +49,7 @@ export function makeAutoInstrumentationPlugin(options: AutoInstrumentPluginOptio
 
     async load(id) {
       const applyUniversalLoadWrapper =
-        shouldWrapLoad &&
+        wrapLoadEnabled &&
         /^\+(page|layout)\.(js|ts|mjs|mts)$/.test(path.basename(id)) &&
         (await canWrapLoad(id, debug));
 
@@ -60,7 +60,7 @@ export function makeAutoInstrumentationPlugin(options: AutoInstrumentPluginOptio
       }
 
       const applyServerLoadWrapper =
-        shouldWrapServerLoad &&
+        wrapServerLoadEnabled &&
         /^\+(page|layout)\.server\.(js|ts|mjs|mts)$/.test(path.basename(id)) &&
         (await canWrapLoad(id, debug));
 
@@ -91,12 +91,18 @@ export function makeAutoInstrumentationPlugin(options: AutoInstrumentPluginOptio
  */
 export async function canWrapLoad(id: string, debug: boolean): Promise<boolean> {
   // Some 3rd party plugins add ids to the build that actually don't exist.
-  // We need to check for that here, otherwise users get get a build errirs.
+  // We need to check for that here, otherwise users get get a build errors.
   if (!fs.existsSync(id)) {
+    debug &&
+      // eslint-disable-next-line no-console
+      console.log(
+        `Skipping wrapping ${id} because it doesn't exist. A 3rd party plugin might have added this as a virtual file to the build`,
+      );
     return false;
   }
 
   const code = (await fs.promises.readFile(id, 'utf8')).toString();
+
   const mod = parseModule(code);
 
   const program = mod.$ast.type === 'Program' && mod.$ast;
