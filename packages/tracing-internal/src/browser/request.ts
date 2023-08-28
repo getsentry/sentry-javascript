@@ -128,6 +128,7 @@ export function instrumentOutgoingRequests(_options?: Partial<RequestInstrumenta
   const {
     traceFetch,
     traceXHR,
+    // eslint-disable-next-line deprecation/deprecation
     tracePropagationTargets,
     // eslint-disable-next-line deprecation/deprecation
     tracingOrigins,
