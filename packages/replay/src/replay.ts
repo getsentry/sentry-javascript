@@ -645,7 +645,11 @@ export class ReplayContainer implements ReplayContainerInterface {
     }
 
     // Session is expired, trigger a full snapshot (which will create a new session)
-    this._triggerFullSnapshot();
+    if (this.isPaused()) {
+      this.resume();
+    } else {
+      this._triggerFullSnapshot();
+    }
 
     return false;
   }
