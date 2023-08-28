@@ -1,6 +1,5 @@
-import type { WrappedFunction } from '@sentry/types';
-
-import { getGlobalSingleton, GLOBAL_OBJ } from './worldwide';
+import { originalConsoleMethods } from './instrument';
+import { GLOBAL_OBJ } from './worldwide';
 
 /** Prefix for logging strings */
 const PREFIX = 'Sentry Logger ';
@@ -9,7 +8,7 @@ export const CONSOLE_LEVELS = ['debug', 'info', 'warn', 'error', 'log', 'assert'
 export type ConsoleLevel = (typeof CONSOLE_LEVELS)[number];
 
 type LoggerMethod = (...args: unknown[]) => void;
-type LoggerConsoleMethods = Record<(typeof CONSOLE_LEVELS)[number], LoggerMethod>;
+type LoggerConsoleMethods = Record<ConsoleLevel, LoggerMethod>;
 
 /** JSDoc */
 interface Logger extends LoggerConsoleMethods {
@@ -28,26 +27,24 @@ export function consoleSandbox<T>(callback: () => T): T {
     return callback();
   }
 
-  const originalConsole = GLOBAL_OBJ.console as Console & Record<string, unknown>;
-  const wrappedLevels: Partial<LoggerConsoleMethods> = {};
+  const console = GLOBAL_OBJ.console as Console;
+  const wrappedFuncs: Partial<LoggerConsoleMethods> = {};
+
+  const wrappedLevels = Object.keys(originalConsoleMethods) as ConsoleLevel[];
 
   // Restore all wrapped console methods
-  CONSOLE_LEVELS.forEach(level => {
-    // TODO(v7): Remove this check as it's only needed for Node 6
-    const originalWrappedFunc =
-      originalConsole[level] && (originalConsole[level] as WrappedFunction).__sentry_original__;
-    if (level in originalConsole && originalWrappedFunc) {
-      wrappedLevels[level] = originalConsole[level] as LoggerConsoleMethods[typeof level];
-      originalConsole[level] = originalWrappedFunc as Console[typeof level];
-    }
+  wrappedLevels.forEach(level => {
+    const originalConsoleMethod = originalConsoleMethods[level] as LoggerMethod;
+    wrappedFuncs[level] = console[level] as LoggerMethod | undefined;
+    console[level] = originalConsoleMethod;
   });
 
   try {
     return callback();
   } finally {
     // Revert restoration to wrapped state
-    Object.keys(wrappedLevels).forEach(level => {
-      originalConsole[level] = wrappedLevels[level as (typeof CONSOLE_LEVELS)[number]];
+    wrappedLevels.forEach(level => {
+      console[level] = wrappedFuncs[level] as LoggerMethod;
     });
   }
 }
@@ -83,12 +80,4 @@ function makeLogger(): Logger {
   return logger as Logger;
 }
 
-// Ensure we only have a single logger instance, even if multiple versions of @sentry/utils are being used
-let logger: Logger;
-if (__DEBUG_BUILD__) {
-  logger = getGlobalSingleton('logger', makeLogger);
-} else {
-  logger = makeLogger();
-}
-
-export { logger };
+export const logger = makeLogger();

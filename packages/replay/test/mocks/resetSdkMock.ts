@@ -1,3 +1,6 @@
+import type { EventProcessor } from '@sentry/types';
+import { getGlobalSingleton, resetInstrumentationHandlers } from '@sentry/utils';
+
 import type { Replay as ReplayIntegration } from '../../src';
 import type { ReplayContainer } from '../../src/replay';
 import type { RecordMock } from './../index';
@@ -17,9 +20,11 @@ export async function resetSdkMock({ replayOptions, sentryOptions, autoStart }: 
   jest.setSystemTime(new Date(BASE_TIMESTAMP));
   jest.clearAllMocks();
   jest.resetModules();
-  // NOTE: The listeners added to `addInstrumentationHandler` are leaking
-  // @ts-ignore Don't know if there's a cleaner way to clean up old event processors
-  globalThis.__SENTRY__.globalEventProcessors = [];
+
+  // Clear all handlers that have been registered
+  resetInstrumentationHandlers();
+  getGlobalSingleton<EventProcessor[]>('globalEventProcessors', () => []).length = 0;
+
   const SentryUtils = await import('@sentry/utils');
   jest.spyOn(SentryUtils, 'addInstrumentationHandler').mockImplementation((type, handler: (args: any) => any) => {
     if (type === 'dom') {

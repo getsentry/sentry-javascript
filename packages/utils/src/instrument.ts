@@ -94,6 +94,16 @@ export function addInstrumentationHandler(type: InstrumentHandlerType, callback:
   instrument(type);
 }
 
+/**
+ * Reset all instrumentation handlers.
+ * This can be used by tests to ensure we have a clean slate of instrumentation handlers.
+ */
+export function resetInstrumentationHandlers(): void {
+  Object.keys(handlers).forEach(key => {
+    handlers[key as InstrumentHandlerType] = undefined;
+  });
+}
+
 /** JSDoc */
 function triggerHandlers(type: InstrumentHandlerType, data: any): void {
   if (!type || !handlers[type]) {
