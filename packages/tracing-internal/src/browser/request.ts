@@ -30,7 +30,7 @@ export interface RequestInstrumentationOptions {
    * @deprecated Use top-level `tracePropagationTargets` option in `Sentry.init` instead.
    * This option will be removed in v8.
    *
-   * Default: ['localhost', /^\//] {@see DEFAULT_TRACE_PROPAGATION_TARGETS}
+   * Default: ['localhost', /^\//] @see {DEFAULT_TRACE_PROPAGATION_TARGETS}
    */
   tracePropagationTargets: Array<string | RegExp>;
 
