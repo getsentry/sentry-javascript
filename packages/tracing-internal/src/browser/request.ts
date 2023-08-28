@@ -27,6 +27,9 @@ export interface RequestInstrumentationOptions {
    * List of strings and/or regexes used to determine which outgoing requests will have `sentry-trace` and `baggage`
    * headers attached.
    *
+   * @deprecated Use top-level `tracePropagationTargets` option in `Sentry.init` instead.
+   * This option will be removed in v8.
+   *
    * Default: ['localhost', /^\//] {@see DEFAULT_TRACE_PROPAGATION_TARGETS}
    */
   tracePropagationTargets: Array<string | RegExp>;
