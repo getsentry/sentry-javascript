@@ -90,6 +90,12 @@ export function makeAutoInstrumentationPlugin(options: AutoInstrumentPluginOptio
  * @returns `true` if we can wrap the given file, `false` otherwise
  */
 export async function canWrapLoad(id: string, debug: boolean): Promise<boolean> {
+  // Some 3rd party plugins add ids to the build that actually don't exist.
+  // We need to check for that here, otherwise users get get a build errirs.
+  if (!fs.existsSync(id)) {
+    return false;
+  }
+
   const code = (await fs.promises.readFile(id, 'utf8')).toString();
   const mod = parseModule(code);
 
