@@ -29,12 +29,21 @@ describe('OnUncaughtException integration', () => {
   });
 
   test('should log entire error object to console stderr', done => {
-    expect.assertions(1);
+    const nodeVersion = Number(process.version.replace('v', '').split('.')[0]);
+    expect.assertions(nodeVersion >= 16 ? 3 : 2);
 
     const testScriptPath = path.resolve(__dirname, 'log-entire-error-to-console.js');
 
-    childProcess.exec(`node ${testScriptPath}`, { encoding: 'utf8' }, (err, stdout, stderr) => {
-      expect(stderr).toEqual(expect.stringMatching(/Error: foo(\n.*)+ \[cause\]: 'bar'/gm));
+    childProcess.exec(`node ${testScriptPath}`, { encoding: 'utf8' }, (err, stderr) => {
+      expect(err).not.toBeNull();
+      const errString = err?.toString() || '';
+
+      expect(errString).toContain(stderr);
+
+      if (nodeVersion >= 16) {
+        // additional error properties are only printed to console since Node 16 :(
+        expect(stderr).toContain("[cause]: 'bar'");
+      }
 
       done();
     });
