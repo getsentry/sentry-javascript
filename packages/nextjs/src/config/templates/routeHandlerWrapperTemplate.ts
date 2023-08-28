@@ -48,6 +48,7 @@ function wrapHandler<T>(handler: T, method: 'GET' | 'POST' | 'PUT' | 'PATCH' | '
         /** empty */
       }
 
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
       return Sentry.wrapRouteHandlerWithSentry(originalFunction as any, {
         method,
         parameterizedRoute: '__ROUTE__',
