@@ -166,6 +166,15 @@ export function instrumentOutgoingRequests(_options?: Partial<RequestInstrumenta
   }
 }
 
+function isPerformanceResourceTiming(entry: PerformanceEntry): entry is PerformanceResourceTiming {
+  return (
+    entry.entryType === 'resource' &&
+    'initiatorType' in entry &&
+    typeof (entry as PerformanceResourceTiming).nextHopProtocol === 'string' &&
+    (entry.initiatorType === 'fetch' || entry.initiatorType === 'xmlhttprequest')
+  );
+}
+
 /**
  * Creates a temporary observer to listen to the next fetch/xhr resourcing timings,
  * so that when timings hit their per-browser limit they don't need to be removed.
@@ -175,9 +184,9 @@ export function instrumentOutgoingRequests(_options?: Partial<RequestInstrumenta
 function addHTTPTimings(span: Span): void {
   const url = span.data.url;
   const observer = new PerformanceObserver(list => {
-    const entries = list.getEntries() as PerformanceResourceTiming[];
+    const entries = list.getEntries();
     entries.forEach(entry => {
-      if ((entry.initiatorType === 'fetch' || entry.initiatorType === 'xmlhttprequest') && entry.name.endsWith(url)) {
+      if (isPerformanceResourceTiming(entry) && entry.name.endsWith(url)) {
         const spanData = resourceTimingEntryToSpanData(entry);
         spanData.forEach(data => span.setData(...data));
         observer.disconnect();
@@ -220,7 +229,7 @@ export function extractNetworkProtocol(nextHopProtocol: string): { name: string;
   return { name, version };
 }
 
-function getAbsoluteTime(time: number): number {
+function getAbsoluteTime(time: number = 0): number {
   return ((browserPerformanceTimeOrigin || performance.timeOrigin) + time) / 1000;
 }
 
