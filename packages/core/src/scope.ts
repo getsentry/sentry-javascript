@@ -636,6 +636,5 @@ function generatePropagationContext(): PropagationContext {
   return {
     traceId: uuid4(),
     spanId: uuid4().substring(16),
-    sampled: false,
   };
 }

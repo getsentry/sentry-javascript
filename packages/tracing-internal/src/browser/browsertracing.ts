@@ -364,7 +364,7 @@ export class BrowserTracing implements Integration {
         traceId: idleTransaction.traceId,
         spanId: idleTransaction.spanId,
         parentSpanId: idleTransaction.parentSpanId,
-        sampled: !!idleTransaction.sampled,
+        sampled: idleTransaction.sampled,
       });
     }
 
