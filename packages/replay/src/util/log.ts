@@ -9,7 +9,7 @@ export function logInfo(message: string, shouldAddBreadcrumb?: boolean): void {
     return;
   }
 
-  logger.info(message);
+  __DEBUG_BUILD__ && logger.info(message);
 
   if (shouldAddBreadcrumb) {
     addBreadcrumb(message);
@@ -25,7 +25,7 @@ export function logInfoNextTick(message: string, shouldAddBreadcrumb?: boolean):
     return;
   }
 
-  logger.info(message);
+  __DEBUG_BUILD__ && logger.info(message);
 
   if (shouldAddBreadcrumb) {
     // Wait a tick here to avoid race conditions for some initial logs
