@@ -40,7 +40,9 @@ test('Should record exceptions and transactions for faulty route handlers', asyn
     return transactionEvent?.transaction === 'PUT /route-handlers/[param]/error';
   });
 
-  void request.put('/route-handlers/baz/error');
+  await request.put('/route-handlers/baz/error').catch(() => {
+    // noop
+  });
 
   const routehandlerTransaction = await routehandlerTransactionPromise;
   const routehandlerError = await errorEventPromise;
@@ -76,7 +78,9 @@ test.describe('Edge runtime', () => {
       return transactionEvent?.transaction === 'DELETE /route-handlers/[param]/edge';
     });
 
-    void request.delete('/route-handlers/baz/edge');
+    await request.delete('/route-handlers/baz/edge').catch(() => {
+      // noop
+    });
 
     const routehandlerTransaction = await routehandlerTransactionPromise;
     const routehandlerError = await errorEventPromise;
