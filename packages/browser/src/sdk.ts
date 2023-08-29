@@ -198,7 +198,12 @@ export function onLoad(callback: () => void): void {
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function wrap(fn: (...args: any) => any): any {
-  return internalWrap(fn)();
+  return internalWrap(fn, {
+    mechanism: {
+      type: 'instrument',
+      handled: false,
+    },
+  })();
 }
 
 function startSessionOnHub(hub: Hub): void {
