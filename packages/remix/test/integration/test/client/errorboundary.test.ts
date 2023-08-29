@@ -11,7 +11,7 @@ test('should capture React component errors.', async ({ page }) => {
 
   const [pageloadEnvelope, errorEnvelope] = envelopes;
 
-  expect(pageloadEnvelope.contexts?.trace.op).toBe('pageload');
+  expect(pageloadEnvelope.contexts?.trace?.op).toBe('pageload');
   expect(pageloadEnvelope.tags?.['routing.instrumentation']).toBe('remix-router');
   expect(pageloadEnvelope.type).toBe('transaction');
   expect(pageloadEnvelope.transaction).toBe(
@@ -34,7 +34,7 @@ test('should capture React component errors.', async ({ page }) => {
       type: 'Error',
       value: 'Sentry React Component Error',
       stacktrace: { frames: expect.any(Array) },
-      mechanism: { type: useV2 ? 'instrument' : 'generic', handled: true },
+      mechanism: { type: useV2 ? 'instrument' : 'generic', handled: false },
     },
   ]);
 });
