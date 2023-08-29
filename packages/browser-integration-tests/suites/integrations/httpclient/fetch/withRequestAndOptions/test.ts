@@ -36,7 +36,7 @@ sentryTest('works with a Request (without body) & options passed in', async ({ g
           value: 'HTTP Client Error with status code: 500',
           mechanism: {
             type: 'http.client',
-            handled: true,
+            handled: false,
           },
         },
       ],
