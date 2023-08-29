@@ -43,6 +43,7 @@ export function wrapServerComponentWithSentry<F extends (...args: any[]) => any>
           op: 'function.nextjs',
           name: `${componentType} Server Component (${componentRoute})`,
           status: 'ok',
+          origin: 'auto.function.nextjs',
           ...traceparentData,
           metadata: {
             source: 'component',

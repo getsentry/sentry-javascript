@@ -65,11 +65,13 @@ describe('Sentry.trackComponent()', () => {
     expect(testTransaction.startChild).toHaveBeenCalledWith({
       description: '<Dummy>',
       op: 'ui.svelte.init',
+      origin: 'auto.ui.svelte',
     });
 
     expect(testInitSpan.startChild).toHaveBeenCalledWith({
       description: '<Dummy>',
       op: 'ui.svelte.update',
+      origin: 'auto.ui.svelte',
     });
 
     expect(testInitSpan.finish).toHaveBeenCalledTimes(1);
@@ -96,6 +98,7 @@ describe('Sentry.trackComponent()', () => {
     expect(testTransaction.startChild).toHaveBeenLastCalledWith({
       description: '<Dummy>',
       op: 'ui.svelte.update',
+      origin: 'auto.ui.svelte',
     });
     expect(testTransaction.spans.length).toEqual(3);
   });
@@ -106,6 +109,7 @@ describe('Sentry.trackComponent()', () => {
     expect(testTransaction.startChild).toHaveBeenCalledWith({
       description: '<Dummy>',
       op: 'ui.svelte.init',
+      origin: 'auto.ui.svelte',
     });
 
     expect(testInitSpan.startChild).not.toHaveBeenCalled();
@@ -120,6 +124,7 @@ describe('Sentry.trackComponent()', () => {
     expect(testTransaction.startChild).toHaveBeenCalledWith({
       description: '<Dummy>',
       op: 'ui.svelte.update',
+      origin: 'auto.ui.svelte',
     });
 
     expect(testInitSpan.startChild).not.toHaveBeenCalled();
@@ -144,11 +149,13 @@ describe('Sentry.trackComponent()', () => {
     expect(testTransaction.startChild).toHaveBeenCalledWith({
       description: '<CustomComponentName>',
       op: 'ui.svelte.init',
+      origin: 'auto.ui.svelte',
     });
 
     expect(testInitSpan.startChild).toHaveBeenCalledWith({
       description: '<CustomComponentName>',
       op: 'ui.svelte.update',
+      origin: 'auto.ui.svelte',
     });
 
     expect(testInitSpan.finish).toHaveBeenCalledTimes(1);
@@ -187,6 +194,7 @@ describe('Sentry.trackComponent()', () => {
     expect(testTransaction.startChild).toHaveBeenLastCalledWith({
       description: '<Dummy>',
       op: 'ui.svelte.init',
+      origin: 'auto.ui.svelte',
     });
     expect(testTransaction.spans.length).toEqual(2);
   });

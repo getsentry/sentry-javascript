@@ -192,6 +192,7 @@ function wrapResolver(
       const span = parentSpan?.startChild({
         description: `${resolverGroupName}.${resolverName}`,
         op: 'graphql.resolve',
+        origin: 'auto.graphql.apollo',
       });
 
       const rv = orig.call(this, ...args);

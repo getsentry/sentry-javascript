@@ -79,6 +79,7 @@ describe('withProfiler', () => {
       expect(mockStartChild).toHaveBeenLastCalledWith({
         description: `<${UNKNOWN_COMPONENT}>`,
         op: REACT_MOUNT_OP,
+        origin: 'auto.ui.react.profiler',
       });
     });
   });
@@ -96,6 +97,7 @@ describe('withProfiler', () => {
         description: `<${UNKNOWN_COMPONENT}>`,
         endTimestamp: expect.any(Number),
         op: REACT_RENDER_OP,
+        origin: 'auto.ui.react.profiler',
         startTimestamp: undefined,
       });
     });
@@ -127,6 +129,7 @@ describe('withProfiler', () => {
         data: { changedProps: ['num'] },
         description: `<${UNKNOWN_COMPONENT}>`,
         op: REACT_UPDATE_OP,
+        origin: 'auto.ui.react.profiler',
         startTimestamp: expect.any(Number),
       });
       expect(mockFinish).toHaveBeenCalledTimes(2);
@@ -137,6 +140,7 @@ describe('withProfiler', () => {
         data: { changedProps: ['num'] },
         description: `<${UNKNOWN_COMPONENT}>`,
         op: REACT_UPDATE_OP,
+        origin: 'auto.ui.react.profiler',
         startTimestamp: expect.any(Number),
       });
       expect(mockFinish).toHaveBeenCalledTimes(3);
@@ -175,6 +179,7 @@ describe('useProfiler()', () => {
       expect(mockStartChild).toHaveBeenLastCalledWith({
         description: '<Example>',
         op: REACT_MOUNT_OP,
+        origin: 'auto.ui.react.profiler',
       });
     });
   });
@@ -197,6 +202,7 @@ describe('useProfiler()', () => {
         expect.objectContaining({
           description: '<Example>',
           op: REACT_RENDER_OP,
+          origin: 'auto.ui.react.profiler',
         }),
       );
     });
