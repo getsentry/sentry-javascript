@@ -4,6 +4,15 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.66.0
+
+- fix: Defer tracing decision to downstream SDKs when using SDK without performance (#8839)
+- fix(nextjs): Fix `package.json` exports (#8895)
+- fix(sveltekit): Ensure target file exists before applying auto instrumentation (#8881)
+- ref: Use consistent console instrumentation (#8879)
+- ref(browser): Refactor sentry breadcrumb to use hook (#8892)
+- ref(tracing): Add `origin` to spans (#8765)
+
 ## 7.65.0
 
 - build: Remove build-specific polyfills (#8809)
