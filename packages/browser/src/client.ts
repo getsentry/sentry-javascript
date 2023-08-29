@@ -15,8 +15,6 @@ import { createClientReportEnvelope, dsnToString, getSDKSource, logger } from '@
 
 import { eventFromException, eventFromMessage } from './eventbuilder';
 import { WINDOW } from './helpers';
-import type { Breadcrumbs } from './integrations';
-import { BREADCRUMB_INTEGRATION_ID } from './integrations/breadcrumbs';
 import type { BrowserTransportOptions } from './transports/types';
 import { createUserFeedbackEnvelope } from './userfeedback';
 
@@ -89,26 +87,6 @@ export class BrowserClient extends BaseClient<BrowserClientOptions> {
     hint?: EventHint,
   ): PromiseLike<Event> {
     return eventFromMessage(this._options.stackParser, message, level, hint, this._options.attachStacktrace);
-  }
-
-  /**
-   * @inheritDoc
-   */
-  public sendEvent(event: Event, hint?: EventHint): void {
-    // We only want to add the sentry event breadcrumb when the user has the breadcrumb integration installed and
-    // activated its `sentry` option.
-    // We also do not want to use the `Breadcrumbs` class here directly, because we do not want it to be included in
-    // bundles, if it is not used by the SDK.
-    // This all sadly is a bit ugly, but we currently don't have a "pre-send" hook on the integrations so we do it this
-    // way for now.
-    const breadcrumbIntegration = this.getIntegrationById(BREADCRUMB_INTEGRATION_ID) as Breadcrumbs | undefined;
-    // We check for definedness of `addSentryBreadcrumb` in case users provided their own integration with id
-    // "Breadcrumbs" that does not have this function.
-    if (breadcrumbIntegration && breadcrumbIntegration.addSentryBreadcrumb) {
-      breadcrumbIntegration.addSentryBreadcrumb(event);
-    }
-
-    super.sendEvent(event, hint);
   }
 
   /**
