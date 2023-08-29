@@ -11,7 +11,7 @@ import type {
 
 import { isString } from './is';
 import type { ConsoleLevel } from './logger';
-import { CONSOLE_LEVELS, logger } from './logger';
+import { CONSOLE_LEVELS, logger, originalConsoleMethods } from './logger';
 import { fill } from './object';
 import { getFunctionName } from './stacktrace';
 import { supportsHistory, supportsNativeFetch } from './supports';
@@ -122,11 +122,6 @@ function triggerHandlers(type: InstrumentHandlerType, data: any): void {
     }
   }
 }
-
-/** Only exported for testing & debugging. */
-export const originalConsoleMethods: {
-  [key in ConsoleLevel]?: (...args: any[]) => void;
-} = {};
 
 /** JSDoc */
 function instrumentConsole(): void {

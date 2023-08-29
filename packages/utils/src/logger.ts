@@ -1,4 +1,3 @@
-import { originalConsoleMethods } from './instrument';
 import { GLOBAL_OBJ } from './worldwide';
 
 /** Prefix for logging strings */
@@ -9,6 +8,12 @@ export type ConsoleLevel = (typeof CONSOLE_LEVELS)[number];
 
 type LoggerMethod = (...args: unknown[]) => void;
 type LoggerConsoleMethods = Record<ConsoleLevel, LoggerMethod>;
+
+/** This may be mutated by the console instrumentation. */
+export const originalConsoleMethods: {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  [key in ConsoleLevel]?: (...args: any[]) => void;
+} = {};
 
 /** JSDoc */
 interface Logger extends LoggerConsoleMethods {
