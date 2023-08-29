@@ -276,6 +276,7 @@ export class ReplayContainer implements ReplayContainerInterface {
       this.session,
       {
         timeouts: this.timeouts,
+        maxReplayDuration: this._options.maxReplayDuration,
         traceInternals: this._options._experiments.traceInternals,
       },
       {
@@ -306,6 +307,7 @@ export class ReplayContainer implements ReplayContainerInterface {
       this.session,
       {
         timeouts: this.timeouts,
+        maxReplayDuration: this._options.maxReplayDuration,
         traceInternals: this._options._experiments.traceInternals,
       },
       {
@@ -763,6 +765,7 @@ export class ReplayContainer implements ReplayContainerInterface {
       this.session,
       {
         timeouts: this.timeouts,
+        maxReplayDuration: this._options.maxReplayDuration,
         traceInternals: this._options._experiments.traceInternals,
       },
       {
@@ -793,6 +796,7 @@ export class ReplayContainer implements ReplayContainerInterface {
       {
         timeouts: this.timeouts,
         traceInternals: this._options._experiments.traceInternals,
+        maxReplayDuration: this._options.maxReplayDuration,
       },
       {
         stickySession: Boolean(this._options.stickySession),

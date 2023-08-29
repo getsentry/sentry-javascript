@@ -14,14 +14,16 @@ export function maybeRefreshSession(
   {
     timeouts,
     traceInternals,
+    maxReplayDuration,
   }: {
     timeouts: Timeouts;
+    maxReplayDuration: number;
     traceInternals?: boolean;
   },
   sessionOptions: SessionOptions,
 ): Session {
   // If not expired, all good, just keep the session
-  if (!isSessionExpired(session, timeouts)) {
+  if (!isSessionExpired(session, { sessionIdleExpire: timeouts.sessionIdleExpire, maxReplayDuration })) {
     return session;
   }
 

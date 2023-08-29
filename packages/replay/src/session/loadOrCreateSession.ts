@@ -13,8 +13,10 @@ export function loadOrCreateSession(
   {
     timeouts,
     traceInternals,
+    maxReplayDuration,
   }: {
     timeouts: Timeouts;
+    maxReplayDuration: number;
     traceInternals?: boolean;
   },
   sessionOptions: SessionOptions,
@@ -28,5 +30,5 @@ export function loadOrCreateSession(
     return createSession(sessionOptions);
   }
 
-  return maybeRefreshSession(existingSession, { timeouts, traceInternals }, sessionOptions);
+  return maybeRefreshSession(existingSession, { timeouts, traceInternals, maxReplayDuration }, sessionOptions);
 }

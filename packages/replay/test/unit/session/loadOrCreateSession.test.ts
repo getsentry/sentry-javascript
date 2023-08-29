@@ -1,5 +1,5 @@
 import {
-  MAX_SESSION_LIFE,
+  MAX_REPLAY_DURATION,
   SESSION_IDLE_EXPIRE_DURATION,
   SESSION_IDLE_PAUSE_DURATION,
   WINDOW,
@@ -27,7 +27,6 @@ const SAMPLE_OPTIONS: SessionOptions = {
 const timeouts: Timeouts = {
   sessionIdlePause: SESSION_IDLE_PAUSE_DURATION,
   sessionIdleExpire: SESSION_IDLE_EXPIRE_DURATION,
-  maxSessionLife: MAX_SESSION_LIFE,
 };
 
 function createMockSession(when: number = Date.now(), id = 'test_session_id') {
@@ -60,6 +59,7 @@ describe('Unit | session | loadOrCreateSession', () => {
         undefined,
         {
           timeouts,
+          maxReplayDuration: MAX_REPLAY_DURATION,
         },
         {
           ...SAMPLE_OPTIONS,
@@ -91,6 +91,7 @@ describe('Unit | session | loadOrCreateSession', () => {
         undefined,
         {
           timeouts: { ...timeouts, sessionIdleExpire: 1000 },
+          maxReplayDuration: MAX_REPLAY_DURATION,
         },
         {
           ...SAMPLE_OPTIONS,
@@ -122,6 +123,7 @@ describe('Unit | session | loadOrCreateSession', () => {
         currentSession,
         {
           timeouts,
+          maxReplayDuration: MAX_REPLAY_DURATION,
         },
         {
           ...SAMPLE_OPTIONS,
@@ -142,6 +144,7 @@ describe('Unit | session | loadOrCreateSession', () => {
         undefined,
         {
           timeouts,
+          maxReplayDuration: MAX_REPLAY_DURATION,
         },
         {
           ...SAMPLE_OPTIONS,
@@ -175,6 +178,7 @@ describe('Unit | session | loadOrCreateSession', () => {
         undefined,
         {
           timeouts: { ...timeouts, sessionIdleExpire: 1000 },
+          maxReplayDuration: MAX_REPLAY_DURATION,
         },
         {
           ...SAMPLE_OPTIONS,
@@ -208,6 +212,7 @@ describe('Unit | session | loadOrCreateSession', () => {
         undefined,
         {
           timeouts: { ...timeouts, sessionIdleExpire: 5000 },
+          maxReplayDuration: MAX_REPLAY_DURATION,
         },
         {
           ...SAMPLE_OPTIONS,
@@ -237,6 +242,7 @@ describe('Unit | session | loadOrCreateSession', () => {
         currentSession,
         {
           timeouts,
+          maxReplayDuration: MAX_REPLAY_DURATION,
         },
         {
           ...SAMPLE_OPTIONS,
@@ -267,6 +273,7 @@ describe('Unit | session | loadOrCreateSession', () => {
         currentSession,
         {
           timeouts: { ...timeouts, sessionIdleExpire: 1000 },
+          maxReplayDuration: MAX_REPLAY_DURATION,
         },
         {
           ...SAMPLE_OPTIONS,
@@ -294,6 +301,7 @@ describe('Unit | session | loadOrCreateSession', () => {
         currentSession,
         {
           timeouts: { ...timeouts, sessionIdleExpire: 1000 },
+          maxReplayDuration: MAX_REPLAY_DURATION,
         },
         {
           ...SAMPLE_OPTIONS,
@@ -323,6 +331,7 @@ describe('Unit | session | loadOrCreateSession', () => {
         currentSession,
         {
           timeouts: { ...timeouts, sessionIdleExpire: 5000 },
+          maxReplayDuration: MAX_REPLAY_DURATION,
         },
         {
           ...SAMPLE_OPTIONS,
@@ -342,6 +351,7 @@ describe('Unit | session | loadOrCreateSession', () => {
         undefined,
         {
           timeouts,
+          maxReplayDuration: MAX_REPLAY_DURATION,
         },
         {
           ...SAMPLE_OPTIONS,
@@ -366,6 +376,7 @@ describe('Unit | session | loadOrCreateSession', () => {
         undefined,
         {
           timeouts,
+          maxReplayDuration: MAX_REPLAY_DURATION,
         },
         {
           ...SAMPLE_OPTIONS,
@@ -382,6 +393,7 @@ describe('Unit | session | loadOrCreateSession', () => {
         undefined,
         {
           timeouts,
+          maxReplayDuration: MAX_REPLAY_DURATION,
         },
         {
           ...SAMPLE_OPTIONS,
