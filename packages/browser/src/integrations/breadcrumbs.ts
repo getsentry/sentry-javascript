@@ -41,8 +41,6 @@ interface BreadcrumbsOptions {
 /** maxStringLength gets capped to prevent 100 breadcrumbs exceeding 1MB event payload size */
 const MAX_ALLOWED_STRING_LENGTH = 1024;
 
-export const BREADCRUMB_INTEGRATION_ID = 'Breadcrumbs';
-
 /**
  * Default Breadcrumbs instrumentations
  * TODO: Deprecated - with v6, this will be renamed to `Instrument`
@@ -51,7 +49,7 @@ export class Breadcrumbs implements Integration {
   /**
    * @inheritDoc
    */
-  public static id: string = BREADCRUMB_INTEGRATION_ID;
+  public static id: string = 'Breadcrumbs';
 
   /**
    * @inheritDoc
@@ -104,26 +102,28 @@ export class Breadcrumbs implements Integration {
     if (this.options.history) {
       addInstrumentationHandler('history', _historyBreadcrumb);
     }
-  }
-
-  /**
-   * Adds a breadcrumb for Sentry events or transactions if this option is enabled.
-   */
-  public addSentryBreadcrumb(event: SentryEvent): void {
     if (this.options.sentry) {
-      getCurrentHub().addBreadcrumb(
-        {
-          category: `sentry.${event.type === 'transaction' ? 'transaction' : 'event'}`,
-          event_id: event.event_id,
-          level: event.level,
-          message: getEventDescription(event),
-        },
-        {
-          event,
-        },
-      );
+      const client = getCurrentHub().getClient();
+      client && client.on && client.on('beforeSendEvent', addSentryBreadcrumb);
     }
   }
+}
+
+/**
+ * Adds a breadcrumb for Sentry events or transactions if this option is enabled.
+ */
+function addSentryBreadcrumb(event: SentryEvent): void {
+  getCurrentHub().addBreadcrumb(
+    {
+      category: `sentry.${event.type === 'transaction' ? 'transaction' : 'event'}`,
+      event_id: event.event_id,
+      level: event.level,
+      message: getEventDescription(event),
+    },
+    {
+      event,
+    },
+  );
 }
 
 /**

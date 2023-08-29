@@ -322,6 +322,8 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
    * @inheritDoc
    */
   public sendEvent(event: Event, hint: EventHint = {}): void {
+    this.emit('beforeSendEvent', event, hint);
+
     if (this._dsn) {
       let env = createEventEnvelope(event, this._dsn, this._options._metadata, this._options.tunnel);
 
@@ -382,6 +384,9 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   public on(hook: 'beforeEnvelope', callback: (envelope: Envelope) => void): void;
 
   /** @inheritdoc */
+  public on(hook: 'beforeSendEvent', callback: (event: Event, hint?: EventHint) => void): void;
+
+  /** @inheritdoc */
   public on(
     hook: 'afterSendEvent',
     callback: (event: Event, sendResponse: TransportMakeRequestResponse | void) => void,
@@ -411,6 +416,9 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
 
   /** @inheritdoc */
   public emit(hook: 'beforeEnvelope', envelope: Envelope): void;
+
+  /** @inheritdoc */
+  public emit(hook: 'beforeSendEvent', event: Event, hint?: EventHint): void;
 
   /** @inheritdoc */
   public emit(hook: 'afterSendEvent', event: Event, sendResponse: TransportMakeRequestResponse | void): void;

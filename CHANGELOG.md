@@ -4,6 +4,23 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.65.0
+
+- build: Remove build-specific polyfills (#8809)
+- build(deps): bump protobufjs from 6.11.3 to 6.11.4 (#8822)
+- deps(sveltekit): Bump `@sentry/vite-plugin` (#8877)
+- feat(core): Introduce `Sentry.startActiveSpan` and `Sentry.startSpan` (#8803)
+- fix: Memoize `AsyncLocalStorage` instance (#8831)
+- fix(nextjs): Check for validity of API route handler signature (#8811)
+- fix(nextjs): Fix `requestAsyncStorageShim` path resolution on windows (#8875)
+- fix(node): Log entire error object in `OnUncaughtException` (#8876)
+- fix(node): More relevant warning message when tracing extensions are missing (#8820)
+- fix(replay): Streamline session creation/refresh (#8813)
+- fix(sveltekit): Avoid invalidating data on route changes in `wrapServerLoadWithSentry` (#8801)
+- fix(tracing): Better guarding for performance observer (#8872)
+- ref(sveltekit): Remove custom client fetch instrumentation and use default instrumentation (#8802)
+- ref(tracing-internal): Deprecate `tracePropagationTargets` in `BrowserTracing` (#8874)
+
 ## 7.64.0
 
 - feat(core): Add setMeasurement export (#8791)
