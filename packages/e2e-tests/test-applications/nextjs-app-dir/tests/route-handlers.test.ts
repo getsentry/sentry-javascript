@@ -46,5 +46,6 @@ test('Should record exceptions and transactions for faulty route handlers', asyn
   expect(routehandlerTransaction.contexts?.trace?.status).toBe('internal_error');
   expect(routehandlerTransaction.contexts?.trace?.op).toBe('http.server');
 
-  expect(routehandlerError).toBe(1);
+  expect(routehandlerError.exception?.values?.[0].value).toBe('route-handler-error');
+  expect(routehandlerError.tags?.transaction).toBe('PUT /route-handlers/[param]/error');
 });
