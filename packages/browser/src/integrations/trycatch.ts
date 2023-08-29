@@ -113,7 +113,7 @@ function _wrapTimeFunction(original: () => void): () => number {
     args[0] = wrap(originalCallback, {
       mechanism: {
         data: { function: getFunctionName(original) },
-        handled: true,
+        handled: false,
         type: 'instrument',
       },
     });
@@ -134,7 +134,7 @@ function _wrapRAF(original: any): (callback: () => void) => any {
             function: 'requestAnimationFrame',
             handler: getFunctionName(original),
           },
-          handled: true,
+          handled: false,
           type: 'instrument',
         },
       }),
@@ -160,7 +160,7 @@ function _wrapXHR(originalSend: () => void): () => void {
                 function: prop,
                 handler: getFunctionName(original),
               },
-              handled: true,
+              handled: false,
               type: 'instrument',
             },
           };
@@ -220,7 +220,7 @@ function _wrapEventTarget(target: string): void {
                 handler: getFunctionName(fn),
                 target,
               },
-              handled: true,
+              handled: false,
               type: 'instrument',
             },
           });
@@ -239,7 +239,7 @@ function _wrapEventTarget(target: string): void {
               handler: getFunctionName(fn),
               target,
             },
-            handled: true,
+            handled: false,
             type: 'instrument',
           },
         }),
