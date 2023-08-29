@@ -55,7 +55,9 @@ export function wrapRouteHandlerWithSentry<F extends (...args: any[]) => any>(
           },
         );
 
-        if (!platformSupportsStreaming()) {
+        if (!platformSupportsStreaming() || process.env.NEXT_RUNTIME === 'edge') {
+          // 1. Edge tranpsort requires manual flushing
+          // 2. Lambdas require manual flushing to prevent execution freeze before the event is sent
           await flush(1000);
         }
 
