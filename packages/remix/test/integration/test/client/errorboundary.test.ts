@@ -34,7 +34,7 @@ test('should capture React component errors.', async ({ page }) => {
       type: 'Error',
       value: 'Sentry React Component Error',
       stacktrace: { frames: expect.any(Array) },
-      mechanism: { type: useV2 ? 'instrument' : 'generic', handled: false },
+      mechanism: { type: useV2 ? 'instrument' : 'generic', handled: true },
     },
   ]);
 });
