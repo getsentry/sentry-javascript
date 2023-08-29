@@ -177,7 +177,7 @@ export function constructWebpackConfigFunction(
       const normalizedAbsoluteResourcePath = normalizeLoaderResourcePath(resourcePath);
       return (
         normalizedAbsoluteResourcePath.startsWith(appDirPath + path.sep) &&
-        !!normalizedAbsoluteResourcePath.match(/[\\/]route\.(js|ts|jsx|tsx)$/)
+        !!normalizedAbsoluteResourcePath.match(/[\\/]route\.(js|ts)$/)
       );
     };
 
@@ -290,7 +290,8 @@ export function constructWebpackConfigFunction(
             isPageResource(resourcePath) ||
             isApiRouteResource(resourcePath) ||
             isMiddlewareResource(resourcePath) ||
-            isServerComponentResource(resourcePath)
+            isServerComponentResource(resourcePath) ||
+            isRouteHandlerResource(resourcePath)
           );
         },
         use: [
