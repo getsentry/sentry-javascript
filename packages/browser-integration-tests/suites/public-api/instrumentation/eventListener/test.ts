@@ -17,7 +17,7 @@ sentryTest(
       value: 'event_listener_error',
       mechanism: {
         type: 'instrument',
-        handled: true,
+        handled: false,
       },
       stacktrace: {
         frames: expect.any(Array),
