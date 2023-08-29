@@ -13,16 +13,6 @@
   "module": "build/esm/index.server.js",
   "browser": "build/esm/index.client.js",
   "types": "build/types/index.types.d.ts",
-  "exports": {
-    ".": {
-      "import": "./build/esm/index.server.js",
-      "require": "./build/cjs/index.server.js",
-      "types": "./build/types/index.types.d.ts"
-    },
-    "./requestAsyncStorageShim": {
-      "import": "./build/esm/config/templates/requestAsyncStorageShim.js"
-    }
-  },
   "typesVersions": {
     "<4.9": {
       "build/npm/types/index.d.ts": [
