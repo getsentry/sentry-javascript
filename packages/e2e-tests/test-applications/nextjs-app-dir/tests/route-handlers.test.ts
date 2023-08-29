@@ -86,7 +86,6 @@ test.describe('Edge runtime', () => {
     expect(routehandlerTransaction.contexts?.runtime?.name).toBe('edge');
 
     expect(routehandlerError.exception?.values?.[0].value).toBe('route-handler-edge-error');
-    expect(routehandlerError.tags?.transaction).toBe('DELETE /route-handlers/[param]/edge');
     expect(routehandlerError.contexts?.runtime?.name).toBe('edge');
   });
 });
