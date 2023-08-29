@@ -87,7 +87,14 @@ export const instrumentRoutePerformance = <T extends RouteConstructor>(BaseRoute
     if (!currentTransaction) {
       return result;
     }
-    currentTransaction.startChild({ op, description, startTimestamp }).finish();
+    currentTransaction
+      .startChild({
+        op,
+        description,
+        origin: 'auto.ui.ember',
+        startTimestamp,
+      })
+      .finish();
     return result;
   };
 

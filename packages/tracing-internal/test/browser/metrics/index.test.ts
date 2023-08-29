@@ -32,6 +32,7 @@ describe('_addMeasureSpans', () => {
       startTimestamp: timeOrigin + startTime,
       endTimestamp: timeOrigin + startTime + duration,
       op: 'measure',
+      origin: 'auto.resource.browser.metrics',
     });
   });
 });
@@ -99,6 +100,7 @@ describe('_addResourceSpans', () => {
       description: '/assets/to/css',
       endTimestamp: timeOrigin + startTime + duration,
       op: 'resource.css',
+      origin: 'auto.resource.browser.metrics',
       startTimestamp: timeOrigin + startTime,
     });
   });

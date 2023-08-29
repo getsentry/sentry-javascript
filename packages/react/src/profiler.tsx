@@ -62,6 +62,7 @@ class Profiler extends React.Component<ProfilerProps> {
       this._mountSpan = activeTransaction.startChild({
         description: `<${name}>`,
         op: REACT_MOUNT_OP,
+        origin: 'auto.ui.react.profiler',
       });
     }
   }
@@ -89,6 +90,7 @@ class Profiler extends React.Component<ProfilerProps> {
           },
           description: `<${this.props.name}>`,
           op: REACT_UPDATE_OP,
+          origin: 'auto.ui.react.profiler',
           startTimestamp: now,
         });
       }
@@ -116,6 +118,7 @@ class Profiler extends React.Component<ProfilerProps> {
         description: `<${name}>`,
         endTimestamp: timestampInSeconds(),
         op: REACT_RENDER_OP,
+        origin: 'auto.ui.react.profiler',
         startTimestamp: this._mountSpan.endTimestamp,
       });
     }
@@ -180,6 +183,7 @@ function useProfiler(
       return activeTransaction.startChild({
         description: `<${name}>`,
         op: REACT_MOUNT_OP,
+        origin: 'auto.ui.react.profiler',
       });
     }
 
@@ -197,6 +201,7 @@ function useProfiler(
           description: `<${name}>`,
           endTimestamp: timestampInSeconds(),
           op: REACT_RENDER_OP,
+          origin: 'auto.ui.react.profiler',
           startTimestamp: mountSpan.endTimestamp,
         });
       }

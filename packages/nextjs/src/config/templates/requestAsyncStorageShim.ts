@@ -7,9 +7,3 @@ export interface RequestAsyncStorage {
       }
     | undefined;
 }
-
-export const requestAsyncStorage: RequestAsyncStorage = {
-  getStore: () => {
-    return undefined;
-  },
-};

@@ -102,6 +102,7 @@ export class Prisma implements Integration {
           {
             name: model ? `${model} ${action}` : action,
             op: 'db.sql.prisma',
+            origin: 'auto.db.prisma',
             data: { ...clientData, 'db.operation': action },
           },
           () => next(params),

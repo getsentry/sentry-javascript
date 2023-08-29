@@ -81,6 +81,7 @@ describe('patchOperation()', () => {
           'db.system': 'mongodb',
         },
         op: 'db',
+        origin: 'auto.db.mongo',
         description: 'insertOne',
       });
       expect(childSpan.finish).toBeCalled();
@@ -100,6 +101,7 @@ describe('patchOperation()', () => {
         'db.system': 'mongodb',
       },
       op: 'db',
+      origin: 'auto.db.mongo',
       description: 'insertOne',
     });
     expect(childSpan.finish).toBeCalled();
@@ -116,6 +118,7 @@ describe('patchOperation()', () => {
         'db.system': 'mongodb',
       },
       op: 'db',
+      origin: 'auto.db.mongo',
       description: 'initializeOrderedBulkOp',
     });
     expect(childSpan.finish).toBeCalled();

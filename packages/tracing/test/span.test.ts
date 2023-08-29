@@ -164,6 +164,7 @@ describe('Span', () => {
         parent_span_id: 'b',
         span_id: 'd',
         trace_id: 'c',
+        origin: 'manual',
       });
     });
   });

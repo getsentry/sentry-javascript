@@ -237,6 +237,7 @@ export class Mongo implements LazyLoadedIntegration<MongoModule> {
     const spanContext: SpanContext = {
       op: 'db',
       // TODO v8: Use `${collection.collectionName}.${operation}`
+      origin: 'auto.db.mongo',
       description: operation,
       data,
     };

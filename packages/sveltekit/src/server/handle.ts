@@ -129,6 +129,7 @@ function instrumentHandle({ event, resolve }: Parameters<Handle>[0], options: Se
   return trace(
     {
       op: 'http.server',
+      origin: 'auto.http.sveltekit',
       name: `${event.request.method} ${event.route?.id || event.url.pathname}`,
       status: 'ok',
       ...traceparentData,

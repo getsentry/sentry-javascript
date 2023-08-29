@@ -27,6 +27,7 @@ export class Mysql extends NodePerformanceIntegration<void> implements Integrati
 
   /** @inheritDoc */
   public setupInstrumentation(): void | Instrumentation[] {
+    // Has no hook to adjust spans and add origin
     return [new MySQLInstrumentation({})];
   }
 }

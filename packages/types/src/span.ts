@@ -2,6 +2,16 @@ import type { Instrumenter } from './instrumenter';
 import type { Primitive } from './misc';
 import type { Transaction } from './transaction';
 
+type SpanOriginType = 'manual' | 'auto';
+type SpanOriginCategory = string; // e.g. http, db, ui, ....
+type SpanOriginIntegrationName = string;
+type SpanOriginIntegrationPart = string;
+export type SpanOrigin =
+  | SpanOriginType
+  | `${SpanOriginType}.${SpanOriginCategory}`
+  | `${SpanOriginType}.${SpanOriginCategory}.${SpanOriginIntegrationName}`
+  | `${SpanOriginType}.${SpanOriginCategory}.${SpanOriginIntegrationName}.${SpanOriginIntegrationPart}`;
+
 /** Interface holding all properties that can be set on a Span on creation. */
 export interface SpanContext {
   /**
@@ -69,6 +79,11 @@ export interface SpanContext {
    * The instrumenter that created this span.
    */
   instrumenter?: Instrumenter;
+
+  /**
+   * The origin of the span, giving context about what created the span.
+   */
+  origin?: SpanOrigin;
 }
 
 /** Span holding trace_id, span_id */

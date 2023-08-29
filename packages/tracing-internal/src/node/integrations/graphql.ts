@@ -56,6 +56,7 @@ export class GraphQL implements LazyLoadedIntegration<GraphQLModule> {
         const span = parentSpan?.startChild({
           description: 'execute',
           op: 'graphql.execute',
+          origin: 'auto.graphql.graphql',
         });
 
         scope?.setSpan(span);

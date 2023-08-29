@@ -93,6 +93,7 @@ describe('setupOnce', () => {
     expect(parentSpan.startChild).toBeCalledWith({
       description: 'Query.res_1',
       op: 'graphql.resolve',
+      origin: 'auto.graphql.apollo',
     });
     expect(childSpan.finish).toBeCalled();
   });
@@ -103,6 +104,7 @@ describe('setupOnce', () => {
     expect(parentSpan.startChild).toBeCalledWith({
       description: 'Mutation.res_2',
       op: 'graphql.resolve',
+      origin: 'auto.graphql.apollo',
     });
     expect(childSpan.finish).toBeCalled();
   });

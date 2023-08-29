@@ -28,7 +28,7 @@ if (typeof serverComponent === 'function') {
       let sentryTraceHeader: string | undefined | null = undefined;
       let baggageHeader: string | undefined | null = undefined;
 
-      // We try-catch here just in case the API around `requestAsyncStorage` changes unexpectedly since it is not public API
+      // We try-catch here just in `requestAsyncStorage` is undefined since it may not be defined
       try {
         const requestAsyncStore = requestAsyncStorage.getStore();
         sentryTraceHeader = requestAsyncStore?.headers.get('sentry-trace');
