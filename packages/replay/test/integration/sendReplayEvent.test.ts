@@ -8,6 +8,7 @@ import { clearSession } from '../../src/session/clearSession';
 import { addEvent } from '../../src/util/addEvent';
 import * as SendReplayRequest from '../../src/util/sendReplayRequest';
 import { BASE_TIMESTAMP, mockRrweb, mockSdk } from '../index';
+import { getTestEventCheckout, getTestEventIncremental } from '../utils/getTestEvent';
 import { useFakeTimers } from '../utils/use-fake-timers';
 
 useFakeTimers();
@@ -89,7 +90,7 @@ describe('Integration | sendReplayEvent', () => {
     const ELAPSED = 5000;
     jest.advanceTimersByTime(ELAPSED);
 
-    const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 2 };
+    const TEST_EVENT = getTestEventCheckout({ timestamp: BASE_TIMESTAMP });
     addEvent(replay, TEST_EVENT);
 
     document.dispatchEvent(new Event('visibilitychange'));
@@ -150,7 +151,7 @@ describe('Integration | sendReplayEvent', () => {
   });
 
   it('uploads a replay event if 5 seconds have elapsed since the last replay event occurred', async () => {
-    const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 3 };
+    const TEST_EVENT = getTestEventIncremental({ timestamp: BASE_TIMESTAMP });
     mockRecord._emitter(TEST_EVENT);
     // Pretend 5 seconds have passed
     const ELAPSED = 5000;
@@ -169,7 +170,7 @@ describe('Integration | sendReplayEvent', () => {
   });
 
   it('uploads a replay event if maxFlushDelay is set 15 seconds have elapsed since the last replay upload', async () => {
-    const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 3 };
+    const TEST_EVENT = getTestEventIncremental({ timestamp: BASE_TIMESTAMP });
     // Fire a new event every 4 seconds, 4 times
     for (let i = 0; i < 4; i++) {
       mockRecord._emitter(TEST_EVENT);
@@ -214,7 +215,7 @@ describe('Integration | sendReplayEvent', () => {
     const ELAPSED = 5000;
     jest.advanceTimersByTime(ELAPSED);
 
-    const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 2 };
+    const TEST_EVENT = getTestEventCheckout({ timestamp: BASE_TIMESTAMP });
     const hiddenBreadcrumb = {
       type: 5,
       timestamp: +new Date(BASE_TIMESTAMP + ELAPSED) / 1000,
@@ -252,7 +253,7 @@ describe('Integration | sendReplayEvent', () => {
     const ELAPSED = 5000;
     jest.advanceTimersByTime(ELAPSED);
 
-    const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 2 };
+    const TEST_EVENT = getTestEventCheckout({ timestamp: BASE_TIMESTAMP });
 
     addEvent(replay, TEST_EVENT);
     document.dispatchEvent(new Event('visibilitychange'));
@@ -302,7 +303,7 @@ describe('Integration | sendReplayEvent', () => {
 
   it('fails to upload data on first two calls and succeeds on the third', async () => {
     expect(replay.session?.segmentId).toBe(0);
-    const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 3 };
+    const TEST_EVENT = getTestEventIncremental({ timestamp: BASE_TIMESTAMP });
 
     // Suppress console.errors
     const mockConsole = jest.spyOn(console, 'error').mockImplementation(jest.fn());
@@ -351,7 +352,7 @@ describe('Integration | sendReplayEvent', () => {
   });
 
   it('fails to upload data and hits retry max and stops', async () => {
-    const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 3 };
+    const TEST_EVENT = getTestEventIncremental({ timestamp: BASE_TIMESTAMP });
 
     const spyHandleException = jest.spyOn(SentryCore, 'captureException');
 

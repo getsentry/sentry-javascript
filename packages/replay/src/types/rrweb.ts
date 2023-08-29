@@ -1,25 +1,29 @@
-/* eslint-disable @typescript-eslint/naming-convention */
-
-type blockClass = string | RegExp;
-type maskTextClass = string | RegExp;
+type ClassOption = string | RegExp;
 
 /** Duplicate this from @sentry-internal/rrweb so we can export this as well. */
-export enum EventType {
-  DomContentLoaded = 0,
-  Load = 1,
-  FullSnapshot = 2,
-  IncrementalSnapshot = 3,
-  Meta = 4,
-  Custom = 5,
-  Plugin = 6,
-}
+export const ReplayEventTypeDomContentLoaded = 0;
+export const ReplayEventTypeLoad = 1;
+export const ReplayEventTypeFullSnapshot = 2;
+export const ReplayEventTypeIncrementalSnapshot = 3;
+export const ReplayEventTypeMeta = 4;
+export const ReplayEventTypeCustom = 5;
+export const ReplayEventTypePlugin = 6;
+
+export type ReplayEventType =
+  | typeof ReplayEventTypeDomContentLoaded
+  | typeof ReplayEventTypeLoad
+  | typeof ReplayEventTypeFullSnapshot
+  | typeof ReplayEventTypeIncrementalSnapshot
+  | typeof ReplayEventTypeMeta
+  | typeof ReplayEventTypeCustom
+  | typeof ReplayEventTypePlugin;
 
 /**
  * This is a partial copy of rrweb's eventWithTime type which only contains the properties
  * we specifcally need in the SDK.
  */
-export type eventWithTime = {
-  type: EventType;
+export type ReplayEventWithTime = {
+  type: ReplayEventType;
   data: unknown;
   timestamp: number;
   delay?: number;
@@ -30,12 +34,12 @@ export type eventWithTime = {
  * we specifically us in the SDK. Users can specify additional properties, hence we add the
  * Record<string, unknown> union type.
  */
-export type recordOptions = {
+export type RrwebRecordOptions = {
   maskAllText?: boolean;
   maskAllInputs?: boolean;
-  blockClass?: blockClass;
+  blockClass?: ClassOption;
   ignoreClass?: string;
-  maskTextClass?: maskTextClass;
+  maskTextClass?: ClassOption;
   maskTextSelector?: string;
   blockSelector?: string;
   maskInputOptions?: Record<string, boolean>;

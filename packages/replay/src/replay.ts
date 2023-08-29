@@ -25,12 +25,12 @@ import type {
   AddEventResult,
   AddUpdateCallback,
   AllPerformanceEntry,
-  BreadcrumbFrame,
   EventBuffer,
   InternalEventContext,
   PopEventContext,
   RecordingEvent,
   RecordingOptions,
+  ReplayBreadcrumbFrame,
   ReplayContainer as ReplayContainerInterface,
   ReplayPluginOptions,
   SendBufferedReplayOptions,
@@ -38,6 +38,7 @@ import type {
   SlowClickConfig,
   Timeouts,
 } from './types';
+import { ReplayEventTypeCustom } from './types';
 import { addEvent } from './util/addEvent';
 import { addGlobalListeners } from './util/addGlobalListeners';
 import { addMemoryEntry } from './util/addMemoryEntry';
@@ -688,7 +689,7 @@ export class ReplayContainer implements ReplayContainerInterface {
 
       this.addUpdate(() => {
         void addEvent(this, {
-          type: EventType.Custom,
+          type: ReplayEventTypeCustom,
           timestamp: breadcrumb.timestamp || 0,
           data: {
             tag: 'breadcrumb',
@@ -919,7 +920,7 @@ export class ReplayContainer implements ReplayContainerInterface {
   /**
    * Tasks to run when we consider a page to be hidden (via blurring and/or visibility)
    */
-  private _doChangeToBackgroundTasks(breadcrumb?: BreadcrumbFrame): void {
+  private _doChangeToBackgroundTasks(breadcrumb?: ReplayBreadcrumbFrame): void {
     if (!this.session) {
       return;
     }
@@ -939,7 +940,7 @@ export class ReplayContainer implements ReplayContainerInterface {
   /**
    * Tasks to run when we consider a page to be visible (via focus and/or visibility)
    */
-  private _doChangeToForegroundTasks(breadcrumb?: BreadcrumbFrame): void {
+  private _doChangeToForegroundTasks(breadcrumb?: ReplayBreadcrumbFrame): void {
     if (!this.session) {
       return;
     }
@@ -992,7 +993,7 @@ export class ReplayContainer implements ReplayContainerInterface {
   /**
    * Helper to create (and buffer) a replay breadcrumb from a core SDK breadcrumb
    */
-  private _createCustomBreadcrumb(breadcrumb: BreadcrumbFrame): void {
+  private _createCustomBreadcrumb(breadcrumb: ReplayBreadcrumbFrame): void {
     this.addUpdate(() => {
       void this.throttledAddEvent({
         type: EventType.Custom,
