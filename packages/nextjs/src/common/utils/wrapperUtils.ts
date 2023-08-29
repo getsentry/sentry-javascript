@@ -4,7 +4,6 @@ import {
   getCurrentHub,
   runWithAsyncContext,
   startTransaction,
-  withScope,
 } from '@sentry/core';
 import type { Span, Transaction } from '@sentry/types';
 import { addExceptionMechanism, isString, tracingContextFromHeaders } from '@sentry/utils';
