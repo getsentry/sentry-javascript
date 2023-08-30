@@ -2,8 +2,9 @@ import { REPLAY_MAX_EVENT_BUFFER_SIZE } from '../../../src/constants';
 import { createEventBuffer } from '../../../src/eventBuffer';
 import { EventBufferSizeExceededError } from '../../../src/eventBuffer/error';
 import { BASE_TIMESTAMP } from '../../index';
+import { getTestEventIncremental } from '../../utils/getTestEvent';
 
-const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 3 };
+const TEST_EVENT = getTestEventIncremental({ timestamp: BASE_TIMESTAMP });
 
 describe('Unit | eventBuffer | EventBufferArray', () => {
   it('adds events to normal event buffer', async function () {
@@ -51,11 +52,10 @@ describe('Unit | eventBuffer | EventBufferArray', () => {
     it('rejects if size exceeds limit', async function () {
       const buffer = createEventBuffer({ useCompression: false });
 
-      const largeEvent = {
+      const largeEvent = getTestEventIncremental({
         data: { a: 'a'.repeat(REPLAY_MAX_EVENT_BUFFER_SIZE / 3) },
         timestamp: BASE_TIMESTAMP,
-        type: 3,
-      };
+      });
 
       await buffer.addEvent(largeEvent);
       await buffer.addEvent(largeEvent);
@@ -67,11 +67,10 @@ describe('Unit | eventBuffer | EventBufferArray', () => {
     it('resets size limit on clear', async function () {
       const buffer = createEventBuffer({ useCompression: false });
 
-      const largeEvent = {
+      const largeEvent = getTestEventIncremental({
         data: { a: 'a'.repeat(REPLAY_MAX_EVENT_BUFFER_SIZE / 3) },
         timestamp: BASE_TIMESTAMP,
-        type: 3,
-      };
+      });
 
       await buffer.addEvent(largeEvent);
       await buffer.addEvent(largeEvent);
@@ -84,11 +83,10 @@ describe('Unit | eventBuffer | EventBufferArray', () => {
     it('resets size limit on finish', async function () {
       const buffer = createEventBuffer({ useCompression: false });
 
-      const largeEvent = {
+      const largeEvent = getTestEventIncremental({
         data: { a: 'a'.repeat(REPLAY_MAX_EVENT_BUFFER_SIZE / 3) },
         timestamp: BASE_TIMESTAMP,
-        type: 3,
-      };
+      });
 
       await buffer.addEvent(largeEvent);
       await buffer.addEvent(largeEvent);

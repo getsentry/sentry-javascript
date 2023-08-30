@@ -55,6 +55,7 @@ describe('setupOnce', () => {
     expect(parentSpan.startChild).toBeCalledWith({
       description: 'execute',
       op: 'graphql.execute',
+      origin: 'auto.graphql.graphql',
     });
     expect(childSpan.finish).toBeCalled();
     expect(scope.setSpan).toHaveBeenCalledTimes(2);

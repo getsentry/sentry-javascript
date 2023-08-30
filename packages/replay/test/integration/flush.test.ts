@@ -9,6 +9,7 @@ import { createPerformanceEntries } from '../../src/util/createPerformanceEntrie
 import { createPerformanceSpans } from '../../src/util/createPerformanceSpans';
 import * as SendReplay from '../../src/util/sendReplay';
 import { BASE_TIMESTAMP, mockRrweb, mockSdk } from '../index';
+import { getTestEventCheckout } from '../utils/getTestEvent';
 import { useFakeTimers } from '../utils/use-fake-timers';
 
 useFakeTimers();
@@ -261,7 +262,7 @@ describe('Integration | flush', () => {
     });
 
     // checkout
-    const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 2 };
+    const TEST_EVENT = getTestEventCheckout({ timestamp: BASE_TIMESTAMP });
     mockRecord._emitter(TEST_EVENT);
 
     await advanceTimers(DEFAULT_FLUSH_MIN_DELAY);
@@ -286,7 +287,7 @@ describe('Integration | flush', () => {
     });
 
     // checkout
-    const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 2 };
+    const TEST_EVENT = getTestEventCheckout({ timestamp: BASE_TIMESTAMP });
     mockRecord._emitter(TEST_EVENT);
 
     await advanceTimers(DEFAULT_FLUSH_MIN_DELAY);
@@ -326,7 +327,7 @@ describe('Integration | flush', () => {
     });
 
     // checkout
-    const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 2 };
+    const TEST_EVENT = getTestEventCheckout({ timestamp: BASE_TIMESTAMP });
     mockRecord._emitter(TEST_EVENT);
 
     await advanceTimers(DEFAULT_FLUSH_MIN_DELAY);
@@ -415,7 +416,7 @@ describe('Integration | flush', () => {
     replay.eventBuffer!.hasCheckout = true;
 
     // Add event that is too long after session start
-    const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP + MAX_SESSION_LIFE + 100, type: 2 };
+    const TEST_EVENT = getTestEventCheckout({ timestamp: BASE_TIMESTAMP + MAX_SESSION_LIFE + 100 });
     mockRecord._emitter(TEST_EVENT);
 
     // no checkout!
@@ -476,7 +477,7 @@ describe('Integration | flush', () => {
     };
 
     // Add event inside of session life timespan
-    const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP + 100, type: 2 };
+    const TEST_EVENT = getTestEventCheckout({ timestamp: BASE_TIMESTAMP + 100 });
     mockRecord._emitter(TEST_EVENT);
 
     await advanceTimers(160_000);

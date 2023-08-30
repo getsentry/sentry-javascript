@@ -1,12 +1,12 @@
 import type { fullSnapshotEvent, incrementalSnapshotEvent } from '@sentry-internal/rrweb';
 import { EventType } from '@sentry-internal/rrweb';
+import type { ReplayEventWithTime } from '@sentry/browser';
 import type {
   InternalEventContext,
   RecordingEvent,
   ReplayContainer,
   Session,
 } from '@sentry/replay/build/npm/types/types';
-import type { eventWithTime } from '@sentry/replay/build/npm/types/types/rrweb';
 import type { Breadcrumb, Event, ReplayEvent, ReplayRecordingMode } from '@sentry/types';
 import pako from 'pako';
 import type { Page, Request, Response } from 'playwright';
@@ -22,12 +22,12 @@ export type PerformanceSpan = {
   data: Record<string, number>;
 };
 
-export type FullRecordingSnapshot = eventWithTime & {
+export type FullRecordingSnapshot = ReplayEventWithTime & {
   timestamp: 0;
   data: fullSnapshotEvent['data'];
 };
 
-export type IncrementalRecordingSnapshot = eventWithTime & {
+export type IncrementalRecordingSnapshot = ReplayEventWithTime & {
   timestamp: 0;
   data: incrementalSnapshotEvent['data'];
 };
@@ -270,7 +270,7 @@ function getOptionsEvents(replayRequest: Request): CustomRecordingEvent[] {
 export function getDecompressedRecordingEvents(resOrReq: Request | Response): RecordingSnapshot[] {
   const replayRequest = getRequest(resOrReq);
   return (
-    (replayEnvelopeRequestParser(replayRequest, 5) as eventWithTime[])
+    (replayEnvelopeRequestParser(replayRequest, 5) as ReplayEventWithTime[])
       .sort((a, b) => a.timestamp - b.timestamp)
       // source 1 is MouseMove, which is a bit flaky and we don't care about
       .filter(

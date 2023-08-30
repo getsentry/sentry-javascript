@@ -56,6 +56,7 @@ describe('setupOnce', function () {
         {
           name: 'user create',
           op: 'db.sql.prisma',
+          origin: 'auto.db.prisma',
           data: { 'db.system': 'postgresql', 'db.prisma.version': '3.1.2', 'db.operation': 'create' },
         },
         expect.any(Function),

@@ -177,6 +177,11 @@ export interface Client<O extends ClientOptions = ClientOptions> {
   on?(hook: 'beforeEnvelope', callback: (envelope: Envelope) => void): void;
 
   /**
+   * Register a callback for before an event is sent.
+   */
+  on?(hook: 'beforeSendEvent', callback: (event: Event, hint?: EventHint | void) => void): void;
+
+  /**
    * Register a callback for when an event has been sent.
    */
   on?(
@@ -211,6 +216,12 @@ export interface Client<O extends ClientOptions = ClientOptions> {
    * second argument.
    */
   emit?(hook: 'beforeEnvelope', envelope: Envelope): void;
+
+  /*
+   * Fire a hook event before sending an event. Expects to be given an Event & EventHint as the
+   * second/third argument.
+   */
+  emit?(hook: 'beforeSendEvent', event: Event, hint?: EventHint): void;
 
   /*
    * Fire a hook event after sending an event. Expects to be given an Event as the

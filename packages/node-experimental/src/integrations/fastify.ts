@@ -1,5 +1,6 @@
 import type { Instrumentation } from '@opentelemetry/instrumentation';
 import { FastifyInstrumentation } from '@opentelemetry/instrumentation-fastify';
+import { addOtelSpanData } from '@sentry/opentelemetry-node';
 import type { Integration } from '@sentry/types';
 
 import { NodePerformanceIntegration } from './NodePerformanceIntegration';
@@ -27,6 +28,14 @@ export class Fastify extends NodePerformanceIntegration<void> implements Integra
 
   /** @inheritDoc */
   public setupInstrumentation(): void | Instrumentation[] {
-    return [new FastifyInstrumentation()];
+    return [
+      new FastifyInstrumentation({
+        requestHook(span) {
+          addOtelSpanData(span.spanContext().spanId, {
+            origin: 'auto.http.otel-fastify',
+          });
+        },
+      }),
+    ];
   }
 }

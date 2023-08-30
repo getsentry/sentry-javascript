@@ -117,6 +117,7 @@ function fillGrpcFunction(stub: Stub, serviceIdentifier: string, methodName: str
           span = transaction.startChild({
             description: `${callType} ${methodName}`,
             op: `grpc.${serviceIdentifier}`,
+            origin: 'auto.grpc.serverless',
           });
         }
         ret.on('status', () => {

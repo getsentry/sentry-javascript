@@ -68,6 +68,7 @@ function wrapMakeRequest<TService extends AWSService, TResult>(
         span = transaction.startChild({
           description: describe(this, operation, params),
           op: 'http.client',
+          origin: 'auto.http.serverless',
         });
       }
     });

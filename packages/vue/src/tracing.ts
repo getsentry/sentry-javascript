@@ -76,6 +76,7 @@ export const createTracingMixins = (options: TracingOptions): Mixins => {
               activeTransaction.startChild({
                 description: 'Application Render',
                 op: `${VUE_OP}.render`,
+                origin: 'auto.ui.vue',
               });
           }
         }
@@ -109,6 +110,7 @@ export const createTracingMixins = (options: TracingOptions): Mixins => {
             this.$_sentrySpans[operation] = activeTransaction.startChild({
               description: `Vue <${name}>`,
               op: `${VUE_OP}.${operation}`,
+              origin: 'auto.ui.vue',
             });
           }
         } else {

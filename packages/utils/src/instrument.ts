@@ -10,11 +10,12 @@ import type {
 } from '@sentry/types';
 
 import { isString } from './is';
+import type { ConsoleLevel } from './logger';
 import { CONSOLE_LEVELS, logger } from './logger';
 import { fill } from './object';
 import { getFunctionName } from './stacktrace';
 import { supportsHistory, supportsNativeFetch } from './supports';
-import { getGlobalObject } from './worldwide';
+import { getGlobalObject, GLOBAL_OBJ } from './worldwide';
 
 // eslint-disable-next-line deprecation/deprecation
 const WINDOW = getGlobalObject<Window>();
@@ -112,25 +113,30 @@ function triggerHandlers(type: InstrumentHandlerType, data: any): void {
   }
 }
 
+/** Only exported for testing & debugging. */
+export const originalConsoleMethods: {
+  [key in ConsoleLevel]?: (...args: any[]) => void;
+} = {};
+
 /** JSDoc */
 function instrumentConsole(): void {
-  if (!('console' in WINDOW)) {
+  if (!('console' in GLOBAL_OBJ)) {
     return;
   }
 
-  CONSOLE_LEVELS.forEach(function (level: string): void {
-    if (!(level in WINDOW.console)) {
+  CONSOLE_LEVELS.forEach(function (level: ConsoleLevel): void {
+    if (!(level in GLOBAL_OBJ.console)) {
       return;
     }
 
-    fill(WINDOW.console, level, function (originalConsoleMethod: () => any): Function {
+    fill(GLOBAL_OBJ.console, level, function (originalConsoleMethod: () => any): Function {
+      originalConsoleMethods[level] = originalConsoleMethod;
+
       return function (...args: any[]): void {
         triggerHandlers('console', { args, level });
 
-        // this fails for some browsers. :(
-        if (originalConsoleMethod) {
-          originalConsoleMethod.apply(WINDOW.console, args);
-        }
+        const log = originalConsoleMethods[level];
+        log && log.apply(GLOBAL_OBJ.console, args);
       };
     });
   });
@@ -142,7 +148,7 @@ function instrumentFetch(): void {
     return;
   }
 
-  fill(WINDOW, 'fetch', function (originalFetch: () => void): () => void {
+  fill(GLOBAL_OBJ, 'fetch', function (originalFetch: () => void): () => void {
     return function (...args: any[]): void {
       const { method, url } = parseFetchArgs(args);
 
@@ -160,7 +166,7 @@ function instrumentFetch(): void {
       });
 
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      return originalFetch.apply(WINDOW, args).then(
+      return originalFetch.apply(GLOBAL_OBJ, args).then(
         (response: Response) => {
           triggerHandlers('fetch', {
             ...handlerData,

@@ -2,7 +2,7 @@ import { EventType } from '@sentry-internal/rrweb';
 import { logger } from '@sentry/utils';
 
 import { saveSession } from '../session/saveSession';
-import type { AddEventResult, OptionFrameEvent, RecordingEvent, ReplayContainer } from '../types';
+import type { AddEventResult, RecordingEvent, ReplayContainer, ReplayOptionFrameEvent } from '../types';
 import { addEvent } from './addEvent';
 import { logInfo } from './log';
 
@@ -102,7 +102,7 @@ export function getHandleRecordingEmit(replay: ReplayContainer): RecordingEmitCa
 /**
  * Exported for tests
  */
-export function createOptionsEvent(replay: ReplayContainer): OptionFrameEvent {
+export function createOptionsEvent(replay: ReplayContainer): ReplayOptionFrameEvent {
   const options = replay.getOptions();
   return {
     type: EventType.Custom,
