@@ -4,6 +4,7 @@ import { getSentryRelease } from '@sentry/node';
 import { arrayify, dropUndefinedKeys, escapeStringForRegex, loadModule, logger } from '@sentry/utils';
 import type SentryCliPlugin from '@sentry/webpack-plugin';
 import * as chalk from 'chalk';
+import { execSync } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -812,12 +813,14 @@ export function getWebpackPluginOptions(
   };
 }
 
+let attemptedCliInstallation = false;
+
 /** Check various conditions to decide if we should run the plugin */
 function shouldEnableWebpackPlugin(buildContext: BuildContext, userSentryOptions: UserSentryOptions): boolean {
   const { isServer } = buildContext;
   const { disableServerWebpackPlugin, disableClientWebpackPlugin } = userSentryOptions;
 
-  /** Non-negotiable */
+  const shouldRun = (isServer && !disableServerWebpackPlugin) || (!isServer && !disableClientWebpackPlugin);
 
   // This check is necessary because currently, `@sentry/cli` uses a post-install script to download an
   // architecture-specific version of the `sentry-cli` binary. If `yarn install`, `npm install`, or `npm ci` are run
@@ -826,23 +829,31 @@ function shouldEnableWebpackPlugin(buildContext: BuildContext, userSentryOptions
   const SentryWebpackPlugin = loadModule<SentryCliPlugin>('@sentry/webpack-plugin');
 
   // @ts-expect-error - this exists, the dynamic import just doesn't know it
-  if (!SentryWebpackPlugin || !SentryWebpackPlugin.cliBinaryExists()) {
-    // eslint-disable-next-line no-console
-    console.error(
-      `${chalk.red('error')} - ${chalk.bold('Sentry CLI binary not found.')} Source maps will not be uploaded.\n`,
-    );
-    return false;
+  if (shouldRun && !attemptedCliInstallation && (!SentryWebpackPlugin || !SentryWebpackPlugin.cliBinaryExists())) {
+    try {
+      // eslint-disable-next-line no-console
+      console.warn(`${chalk.yellow('warn')}  - ${chalk.bold('Sentry CLI binary not found.')} Installing...\n`);
+      const sentryCliInstallScriptPath = path.join(
+        path.dirname(require.resolve('@sentry/cli')),
+        '..',
+        'scripts',
+        'install.js',
+      );
+      execSync(`node ${sentryCliInstallScriptPath}`);
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.warn(
+        `${chalk.red('error')} - ${chalk.bold(
+          'Sentry CLI binary installation failed.',
+        )} The Sentry SDK will not upload source maps. Make sure that post-install scripts are running when installing the Sentry Next.js SDK dependency.\n`,
+      );
+      return false;
+    } finally {
+      attemptedCliInstallation = true;
+    }
   }
 
-  /** User override */
-
-  if (isServer && disableServerWebpackPlugin !== undefined) {
-    return !disableServerWebpackPlugin;
-  } else if (!isServer && disableClientWebpackPlugin !== undefined) {
-    return !disableClientWebpackPlugin;
-  }
-
-  return true;
+  return shouldRun;
 }
 
 /** Handle warning messages about `hideSourceMaps` option. Can be removed in v9 or v10 (or whenever we consider that
