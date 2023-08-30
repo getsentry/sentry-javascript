@@ -32,7 +32,7 @@ export class Express extends NodePerformanceIntegration<void> implements Integra
       new ExpressInstrumentation({
         requestHook(span) {
           addOtelSpanData(span.spanContext().spanId, {
-            origin: 'auto.http.otel-express',
+            origin: 'auto.http.otel.express',
           });
         },
       }),

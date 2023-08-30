@@ -153,7 +153,7 @@ export class Http implements Integration {
       },
       contexts: {},
       metadata: {},
-      origin: 'auto.http.otel-http',
+      origin: 'auto.http.otel.http',
     };
 
     if (span.kind === SpanKind.SERVER) {
