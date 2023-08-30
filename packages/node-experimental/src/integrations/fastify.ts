@@ -32,7 +32,7 @@ export class Fastify extends NodePerformanceIntegration<void> implements Integra
       new FastifyInstrumentation({
         requestHook(span) {
           addOtelSpanData(span.spanContext().spanId, {
-            origin: 'auto.http.otel-fastify',
+            origin: 'auto.http.otel.fastify',
           });
         },
       }),

@@ -1,7 +1,13 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 import type { Event, Hub, Integration } from '@sentry/types';
 import type { ConsoleLevel } from '@sentry/utils';
-import { addInstrumentationHandler, CONSOLE_LEVELS, GLOBAL_OBJ, originalConsoleMethods } from '@sentry/utils';
+import {
+  addInstrumentationHandler,
+  CONSOLE_LEVELS,
+  GLOBAL_OBJ,
+  originalConsoleMethods,
+  resetInstrumentationHandlers,
+} from '@sentry/utils';
 
 import { CaptureConsole } from '../src/captureconsole';
 
@@ -54,6 +60,8 @@ describe('CaptureConsole setup', () => {
     CONSOLE_LEVELS.forEach(key => {
       originalConsoleMethods[key] = _originalConsoleMethods[key];
     });
+
+    resetInstrumentationHandlers();
   });
 
   describe('monkeypatching', () => {

@@ -9,6 +9,7 @@ describe('Scope', () => {
   afterEach(() => {
     jest.resetAllMocks();
     jest.useRealTimers();
+    GLOBAL_OBJ.__SENTRY__ = GLOBAL_OBJ.__SENTRY__ || {};
     GLOBAL_OBJ.__SENTRY__.globalEventProcessors = undefined;
   });
 
