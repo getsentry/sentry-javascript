@@ -8,6 +8,13 @@ export type ServerComponentContext = {
   baggageHeader?: string;
 };
 
+export interface RouteHandlerContext {
+  method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 'HEAD' | 'OPTIONS';
+  parameterizedRoute: string;
+  sentryTraceHeader?: string;
+  baggageHeader?: string;
+}
+
 export type VercelCronsConfig = { path?: string; schedule?: string }[] | undefined;
 
 // The `NextApiHandler` and `WrappedNextApiHandler` types are the same as the official `NextApiHandler` type, except:

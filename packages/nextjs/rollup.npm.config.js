@@ -30,6 +30,7 @@ export default [
         'src/config/templates/requestAsyncStorageShim.ts',
         'src/config/templates/sentryInitWrapperTemplate.ts',
         'src/config/templates/serverComponentWrapperTemplate.ts',
+        'src/config/templates/routeHandlerWrapperTemplate.ts',
       ],
 
       packageSpecificConfig: {
