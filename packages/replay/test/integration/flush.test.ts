@@ -9,6 +9,7 @@ import { createPerformanceEntries } from '../../src/util/createPerformanceEntrie
 import { createPerformanceSpans } from '../../src/util/createPerformanceSpans';
 import * as SendReplay from '../../src/util/sendReplay';
 import { BASE_TIMESTAMP, mockRrweb, mockSdk } from '../index';
+import { getTestEventCheckout } from '../utils/getTestEvent';
 import { useFakeTimers } from '../utils/use-fake-timers';
 
 useFakeTimers();
@@ -85,7 +86,8 @@ describe('Integration | flush', () => {
 
     sessionStorage.clear();
     clearSession(replay);
-    replay['_loadAndCheckSession']();
+    replay['_initializeSessionForSampling']();
+    replay.setInitialState();
 
     if (replay.eventBuffer) {
       jest.spyOn(replay.eventBuffer, 'finish');
@@ -260,7 +262,7 @@ describe('Integration | flush', () => {
     });
 
     // checkout
-    const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 2 };
+    const TEST_EVENT = getTestEventCheckout({ timestamp: BASE_TIMESTAMP });
     mockRecord._emitter(TEST_EVENT);
 
     await advanceTimers(DEFAULT_FLUSH_MIN_DELAY);
@@ -276,7 +278,8 @@ describe('Integration | flush', () => {
 
     sessionStorage.clear();
     clearSession(replay);
-    replay['_loadAndCheckSession']();
+    replay['_initializeSessionForSampling']();
+    replay.setInitialState();
 
     // click happens first
     domHandler({
@@ -284,7 +287,7 @@ describe('Integration | flush', () => {
     });
 
     // checkout
-    const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 2 };
+    const TEST_EVENT = getTestEventCheckout({ timestamp: BASE_TIMESTAMP });
     mockRecord._emitter(TEST_EVENT);
 
     await advanceTimers(DEFAULT_FLUSH_MIN_DELAY);
@@ -307,10 +310,12 @@ describe('Integration | flush', () => {
 
     sessionStorage.clear();
     clearSession(replay);
-    replay['_loadAndCheckSession']();
-    // No-op _loadAndCheckSession to avoid us resetting the session for this test
-    const _tmp = replay['_loadAndCheckSession'];
-    replay['_loadAndCheckSession'] = () => {
+    replay['_initializeSessionForSampling']();
+    replay.setInitialState();
+
+    // No-op _checkSession to avoid us resetting the session for this test
+    const _tmp = replay['_checkSession'];
+    replay['_checkSession'] = () => {
       return true;
     };
 
@@ -322,7 +327,7 @@ describe('Integration | flush', () => {
     });
 
     // checkout
-    const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 2 };
+    const TEST_EVENT = getTestEventCheckout({ timestamp: BASE_TIMESTAMP });
     mockRecord._emitter(TEST_EVENT);
 
     await advanceTimers(DEFAULT_FLUSH_MIN_DELAY);
@@ -331,7 +336,7 @@ describe('Integration | flush', () => {
     expect(mockSendReplay).toHaveBeenCalledTimes(0);
 
     replay.timeouts.maxSessionLife = MAX_SESSION_LIFE;
-    replay['_loadAndCheckSession'] = _tmp;
+    replay['_checkSession'] = _tmp;
   });
 
   it('logs warning if flushing initial segment without checkout', async () => {
@@ -339,7 +344,8 @@ describe('Integration | flush', () => {
 
     sessionStorage.clear();
     clearSession(replay);
-    replay['_loadAndCheckSession']();
+    replay['_initializeSessionForSampling']();
+    replay.setInitialState();
     await new Promise(process.nextTick);
     jest.setSystemTime(BASE_TIMESTAMP);
 
@@ -399,7 +405,8 @@ describe('Integration | flush', () => {
 
     sessionStorage.clear();
     clearSession(replay);
-    replay['_loadAndCheckSession']();
+    replay['_initializeSessionForSampling']();
+    replay.setInitialState();
     await new Promise(process.nextTick);
     jest.setSystemTime(BASE_TIMESTAMP);
 
@@ -409,7 +416,7 @@ describe('Integration | flush', () => {
     replay.eventBuffer!.hasCheckout = true;
 
     // Add event that is too long after session start
-    const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP + MAX_SESSION_LIFE + 100, type: 2 };
+    const TEST_EVENT = getTestEventCheckout({ timestamp: BASE_TIMESTAMP + MAX_SESSION_LIFE + 100 });
     mockRecord._emitter(TEST_EVENT);
 
     // no checkout!
@@ -454,7 +461,8 @@ describe('Integration | flush', () => {
 
     sessionStorage.clear();
     clearSession(replay);
-    replay['_loadAndCheckSession']();
+    replay['_initializeSessionForSampling']();
+    replay.setInitialState();
     await new Promise(process.nextTick);
     jest.setSystemTime(BASE_TIMESTAMP);
 
@@ -469,7 +477,7 @@ describe('Integration | flush', () => {
     };
 
     // Add event inside of session life timespan
-    const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP + 100, type: 2 };
+    const TEST_EVENT = getTestEventCheckout({ timestamp: BASE_TIMESTAMP + 100 });
     mockRecord._emitter(TEST_EVENT);
 
     await advanceTimers(160_000);

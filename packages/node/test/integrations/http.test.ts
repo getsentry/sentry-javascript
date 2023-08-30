@@ -208,10 +208,11 @@ describe('tracing', () => {
     const baggageHeader = request.getHeader('baggage') as string;
 
     const parts = sentryTraceHeader.split('-');
-    expect(parts.length).toEqual(3);
+
+    // Should not include sampling decision since we don't wanna influence the tracing decisions downstream
+    expect(parts.length).toEqual(2);
     expect(parts[0]).toEqual(traceId);
     expect(parts[1]).toEqual(expect.any(String));
-    expect(parts[2]).toEqual('0');
 
     expect(baggageHeader).toEqual(
       `sentry-environment=production,sentry-release=1.0.0,sentry-user_segment=segmentA,sentry-public_key=dogsarebadatkeepingsecrets,sentry-trace_id=${traceId}`,

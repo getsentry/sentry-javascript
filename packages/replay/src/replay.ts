@@ -18,18 +18,19 @@ import { handleKeyboardEvent } from './coreHandlers/handleKeyboardEvent';
 import { setupPerformanceObserver } from './coreHandlers/performanceObserver';
 import { createEventBuffer } from './eventBuffer';
 import { clearSession } from './session/clearSession';
-import { getSession } from './session/getSession';
+import { loadOrCreateSession } from './session/loadOrCreateSession';
+import { maybeRefreshSession } from './session/maybeRefreshSession';
 import { saveSession } from './session/saveSession';
 import type {
   AddEventResult,
   AddUpdateCallback,
   AllPerformanceEntry,
-  BreadcrumbFrame,
   EventBuffer,
   InternalEventContext,
   PopEventContext,
   RecordingEvent,
   RecordingOptions,
+  ReplayBreadcrumbFrame,
   ReplayContainer as ReplayContainerInterface,
   ReplayPluginOptions,
   SendBufferedReplayOptions,
@@ -37,6 +38,7 @@ import type {
   SlowClickConfig,
   Timeouts,
 } from './types';
+import { ReplayEventTypeCustom } from './types';
 import { addEvent } from './util/addEvent';
 import { addGlobalListeners } from './util/addGlobalListeners';
 import { addMemoryEntry } from './util/addMemoryEntry';
@@ -228,13 +230,7 @@ export class ReplayContainer implements ReplayContainerInterface {
 
     // Otherwise if there is _any_ sample rate set, try to load an existing
     // session, or create a new one.
-    const isSessionSampled = this._loadAndCheckSession();
-
-    if (!isSessionSampled) {
-      // This should only occur if `errorSampleRate` is 0 and was unsampled for
-      // session-based replay. In this case there is nothing to do.
-      return;
-    }
+    this._initializeSessionForSampling();
 
     if (!this.session) {
       // This should not happen, something wrong has occurred
@@ -242,13 +238,15 @@ export class ReplayContainer implements ReplayContainerInterface {
       return;
     }
 
-    if (this.session.sampled && this.session.sampled !== 'session') {
-      // If not sampled as session-based, then recording mode will be `buffer`
-      // Note that we don't explicitly check if `sampled === 'buffer'` because we
-      // could have sessions from Session storage that are still `error` from
-      // prior SDK version.
-      this.recordingMode = 'buffer';
+    if (this.session.sampled === false) {
+      // This should only occur if `errorSampleRate` is 0 and was unsampled for
+      // session-based replay. In this case there is nothing to do.
+      return;
     }
+
+    // If segmentId > 0, it means we've previously already captured this session
+    // In this case, we still want to continue in `session` recording mode
+    this.recordingMode = this.session.sampled === 'buffer' && this.session.segmentId === 0 ? 'buffer' : 'session';
 
     logInfoNextTick(
       `[Replay] Starting replay in ${this.recordingMode} mode`,
@@ -276,19 +274,20 @@ export class ReplayContainer implements ReplayContainerInterface {
 
     logInfoNextTick('[Replay] Starting replay in session mode', this._options._experiments.traceInternals);
 
-    const previousSessionId = this.session && this.session.id;
+    const session = loadOrCreateSession(
+      this.session,
+      {
+        timeouts: this.timeouts,
+        traceInternals: this._options._experiments.traceInternals,
+      },
+      {
+        stickySession: this._options.stickySession,
+        // This is intentional: create a new session-based replay when calling `start()`
+        sessionSampleRate: 1,
+        allowBuffering: false,
+      },
+    );
 
-    const { session } = getSession({
-      timeouts: this.timeouts,
-      stickySession: Boolean(this._options.stickySession),
-      currentSession: this.session,
-      // This is intentional: create a new session-based replay when calling `start()`
-      sessionSampleRate: 1,
-      allowBuffering: false,
-      traceInternals: this._options._experiments.traceInternals,
-    });
-
-    session.previousSessionId = previousSessionId;
     this.session = session;
 
     this._initializeRecording();
@@ -305,18 +304,19 @@ export class ReplayContainer implements ReplayContainerInterface {
 
     logInfoNextTick('[Replay] Starting replay in buffer mode', this._options._experiments.traceInternals);
 
-    const previousSessionId = this.session && this.session.id;
+    const session = loadOrCreateSession(
+      this.session,
+      {
+        timeouts: this.timeouts,
+        traceInternals: this._options._experiments.traceInternals,
+      },
+      {
+        stickySession: this._options.stickySession,
+        sessionSampleRate: 0,
+        allowBuffering: true,
+      },
+    );
 
-    const { session } = getSession({
-      timeouts: this.timeouts,
-      stickySession: Boolean(this._options.stickySession),
-      currentSession: this.session,
-      sessionSampleRate: 0,
-      allowBuffering: true,
-      traceInternals: this._options._experiments.traceInternals,
-    });
-
-    session.previousSessionId = previousSessionId;
     this.session = session;
 
     this.recordingMode = 'buffer';
@@ -427,7 +427,7 @@ export class ReplayContainer implements ReplayContainerInterface {
    * new DOM checkout.`
    */
   public resume(): void {
-    if (!this._isPaused || !this._loadAndCheckSession()) {
+    if (!this._isPaused || !this._checkSession()) {
       return;
     }
 
@@ -535,7 +535,7 @@ export class ReplayContainer implements ReplayContainerInterface {
     if (!this._stopRecording) {
       // Create a new session, otherwise when the user action is flushed, it
       // will get rejected due to an expired session.
-      if (!this._loadAndCheckSession()) {
+      if (!this._checkSession()) {
         return;
       }
 
@@ -634,7 +634,7 @@ export class ReplayContainer implements ReplayContainerInterface {
 
     // --- There is recent user activity --- //
     // This will create a new session if expired, based on expiry length
-    if (!this._loadAndCheckSession()) {
+    if (!this._checkSession()) {
       return;
     }
 
@@ -646,7 +646,11 @@ export class ReplayContainer implements ReplayContainerInterface {
     }
 
     // Session is expired, trigger a full snapshot (which will create a new session)
-    this._triggerFullSnapshot();
+    if (this.isPaused()) {
+      this.resume();
+    } else {
+      this._triggerFullSnapshot();
+    }
 
     return false;
   }
@@ -689,7 +693,7 @@ export class ReplayContainer implements ReplayContainerInterface {
 
       this.addUpdate(() => {
         void addEvent(this, {
-          type: EventType.Custom,
+          type: ReplayEventTypeCustom,
           timestamp: breadcrumb.timestamp || 0,
           data: {
             tag: 'breadcrumb',
@@ -751,30 +755,62 @@ export class ReplayContainer implements ReplayContainerInterface {
 
   /**
    * Loads (or refreshes) the current session.
+   */
+  private _initializeSessionForSampling(): void {
+    // Whenever there is _any_ error sample rate, we always allow buffering
+    // Because we decide on sampling when an error occurs, we need to buffer at all times if sampling for errors
+    const allowBuffering = this._options.errorSampleRate > 0;
+
+    const session = loadOrCreateSession(
+      this.session,
+      {
+        timeouts: this.timeouts,
+        traceInternals: this._options._experiments.traceInternals,
+      },
+      {
+        stickySession: this._options.stickySession,
+        sessionSampleRate: this._options.sessionSampleRate,
+        allowBuffering,
+      },
+    );
+
+    this.session = session;
+  }
+
+  /**
+   * Checks and potentially refreshes the current session.
    * Returns false if session is not recorded.
    */
-  private _loadAndCheckSession(): boolean {
-    const { type, session } = getSession({
-      timeouts: this.timeouts,
-      stickySession: Boolean(this._options.stickySession),
-      currentSession: this.session,
-      sessionSampleRate: this._options.sessionSampleRate,
-      allowBuffering: this._options.errorSampleRate > 0 || this.recordingMode === 'buffer',
-      traceInternals: this._options._experiments.traceInternals,
-    });
+  private _checkSession(): boolean {
+    // If there is no session yet, we do not want to refresh anything
+    // This should generally not happen, but to be safe....
+    if (!this.session) {
+      return false;
+    }
+
+    const currentSession = this.session;
+
+    const newSession = maybeRefreshSession(
+      currentSession,
+      {
+        timeouts: this.timeouts,
+        traceInternals: this._options._experiments.traceInternals,
+      },
+      {
+        stickySession: Boolean(this._options.stickySession),
+        sessionSampleRate: this._options.sessionSampleRate,
+        allowBuffering: this._options.errorSampleRate > 0,
+      },
+    );
+
+    const isNew = newSession.id !== currentSession.id;
 
     // If session was newly created (i.e. was not loaded from storage), then
     // enable flag to create the root replay
-    if (type === 'new') {
+    if (isNew) {
       this.setInitialState();
+      this.session = newSession;
     }
-
-    const currentSessionId = this.getSessionId();
-    if (session.id !== currentSessionId) {
-      session.previousSessionId = currentSessionId;
-    }
-
-    this.session = session;
 
     if (!this.session.sampled) {
       void this.stop({ reason: 'session not refreshed' });
@@ -888,7 +924,7 @@ export class ReplayContainer implements ReplayContainerInterface {
   /**
    * Tasks to run when we consider a page to be hidden (via blurring and/or visibility)
    */
-  private _doChangeToBackgroundTasks(breadcrumb?: BreadcrumbFrame): void {
+  private _doChangeToBackgroundTasks(breadcrumb?: ReplayBreadcrumbFrame): void {
     if (!this.session) {
       return;
     }
@@ -908,7 +944,7 @@ export class ReplayContainer implements ReplayContainerInterface {
   /**
    * Tasks to run when we consider a page to be visible (via focus and/or visibility)
    */
-  private _doChangeToForegroundTasks(breadcrumb?: BreadcrumbFrame): void {
+  private _doChangeToForegroundTasks(breadcrumb?: ReplayBreadcrumbFrame): void {
     if (!this.session) {
       return;
     }
@@ -961,7 +997,7 @@ export class ReplayContainer implements ReplayContainerInterface {
   /**
    * Helper to create (and buffer) a replay breadcrumb from a core SDK breadcrumb
    */
-  private _createCustomBreadcrumb(breadcrumb: BreadcrumbFrame): void {
+  private _createCustomBreadcrumb(breadcrumb: ReplayBreadcrumbFrame): void {
     this.addUpdate(() => {
       void this.throttledAddEvent({
         type: EventType.Custom,

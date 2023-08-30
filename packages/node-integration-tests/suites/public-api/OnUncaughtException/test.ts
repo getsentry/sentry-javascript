@@ -28,6 +28,21 @@ describe('OnUncaughtException integration', () => {
     });
   });
 
+  test('should log entire error object to console stderr', done => {
+    expect.assertions(2);
+
+    const testScriptPath = path.resolve(__dirname, 'log-entire-error-to-console.js');
+
+    childProcess.exec(`node ${testScriptPath}`, { encoding: 'utf8' }, (err, stderr) => {
+      expect(err).not.toBeNull();
+      const errString = err?.toString() || '';
+
+      expect(errString).toContain(stderr);
+
+      done();
+    });
+  });
+
   describe('with `exitEvenIfOtherHandlersAreRegistered` set to false', () => {
     test('should close process on uncaught error with no additional listeners registered', done => {
       expect.assertions(3);

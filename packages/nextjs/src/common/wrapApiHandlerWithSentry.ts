@@ -129,6 +129,7 @@ export function withSentry(apiHandler: NextApiHandler, parameterizedRoute?: stri
                 {
                   name: `${reqMethod}${reqPath}`,
                   op: 'http.server',
+                  origin: 'auto.http.nextjs',
                   ...traceparentData,
                   metadata: {
                     dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,

@@ -7,6 +7,7 @@ import { clearSession } from '../../src/session/clearSession';
 import * as SendReplayRequest from '../../src/util/sendReplayRequest';
 import { BASE_TIMESTAMP, mockSdk } from '../index';
 import { mockRrweb } from '../mocks/mockRrweb';
+import { getTestEventCheckout, getTestEventIncremental } from '../utils/getTestEvent';
 import { useFakeTimers } from '../utils/use-fake-timers';
 
 useFakeTimers();
@@ -46,7 +47,8 @@ describe('Integration | rate-limiting behaviour', () => {
     // Create a new session and clear mocks because a segment (from initial
     // checkout) will have already been uploaded by the time the tests run
     clearSession(replay);
-    replay['_loadAndCheckSession']();
+    replay['_initializeSessionForSampling']();
+    replay.setInitialState();
 
     mockSendReplayRequest.mockClear();
   });
@@ -57,7 +59,6 @@ describe('Integration | rate-limiting behaviour', () => {
     jest.setSystemTime(new Date(BASE_TIMESTAMP));
     clearSession(replay);
     jest.clearAllMocks();
-    replay['_loadAndCheckSession']();
   });
 
   afterAll(() => {
@@ -68,7 +69,7 @@ describe('Integration | rate-limiting behaviour', () => {
     expect(replay.session?.segmentId).toBe(0);
     jest.spyOn(replay, 'stop');
 
-    const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 2 };
+    const TEST_EVENT = getTestEventCheckout({ timestamp: BASE_TIMESTAMP });
 
     mockTransportSend.mockImplementationOnce(() => {
       return Promise.resolve({ statusCode: 429 });
@@ -99,11 +100,10 @@ describe('Integration | rate-limiting behaviour', () => {
     expect(mockTransportSend).toHaveBeenCalledTimes(1);
 
     // and let's also emit a new event and check that it is not recorded
-    const TEST_EVENT3 = {
+    const TEST_EVENT3 = getTestEventIncremental({
       data: {},
       timestamp: BASE_TIMESTAMP + 7 * DEFAULT_FLUSH_MIN_DELAY,
-      type: 3,
-    };
+    });
     mockRecord._emitter(TEST_EVENT3);
 
     // T = base + 80

@@ -8,6 +8,7 @@ import { addEvent } from '../../src/util/addEvent';
 import { createOptionsEvent } from '../../src/util/handleRecordingEmit';
 // mock functions need to be imported first
 import { BASE_TIMESTAMP, mockRrweb, mockSdk } from '../index';
+import { getTestEventIncremental } from '../utils/getTestEvent';
 import { useFakeTimers } from '../utils/use-fake-timers';
 
 useFakeTimers();
@@ -52,7 +53,8 @@ describe('Integration | stop', () => {
     jest.setSystemTime(new Date(BASE_TIMESTAMP));
     sessionStorage.clear();
     clearSession(replay);
-    replay['_loadAndCheckSession']();
+    replay['_initializeSessionForSampling']();
+    replay.setInitialState();
     mockRecord.takeFullSnapshot.mockClear();
     mockAddInstrumentationHandler.mockClear();
     Object.defineProperty(WINDOW, 'location', {
@@ -75,7 +77,7 @@ describe('Integration | stop', () => {
     const ELAPSED = 5000;
     // Not sure where the 20ms comes from tbh
     const EXTRA_TICKS = 20;
-    const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 3 };
+    const TEST_EVENT = getTestEventIncremental({ timestamp: BASE_TIMESTAMP });
     const previousSessionId = replay.session?.id;
 
     // stop replays
@@ -143,7 +145,7 @@ describe('Integration | stop', () => {
   });
 
   it('does not buffer new events after being stopped', async function () {
-    const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 3 };
+    const TEST_EVENT = getTestEventIncremental({ timestamp: BASE_TIMESTAMP });
     addEvent(replay, TEST_EVENT);
     expect(replay.eventBuffer?.hasEvents).toBe(true);
     expect(mockRunFlush).toHaveBeenCalledTimes(0);

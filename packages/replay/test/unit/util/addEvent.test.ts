@@ -4,6 +4,7 @@ import { BASE_TIMESTAMP } from '../..';
 import { REPLAY_MAX_EVENT_BUFFER_SIZE } from '../../../src/constants';
 import type { EventBufferProxy } from '../../../src/eventBuffer/EventBufferProxy';
 import { addEvent } from '../../../src/util/addEvent';
+import { getTestEventIncremental } from '../../utils/getTestEvent';
 import { setupReplayContainer } from '../../utils/setupReplayContainer';
 import { useFakeTimers } from '../../utils/use-fake-timers';
 
@@ -40,11 +41,10 @@ describe('Unit | util | addEvent', () => {
       },
     });
 
-    const largeEvent = {
+    const largeEvent = getTestEventIncremental({
       data: { a: 'a'.repeat(REPLAY_MAX_EVENT_BUFFER_SIZE / 3) },
       timestamp: BASE_TIMESTAMP,
-      type: 3,
-    };
+    });
 
     await (replay.eventBuffer as EventBufferProxy).ensureWorkerIsLoaded();
 

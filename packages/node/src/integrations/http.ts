@@ -34,6 +34,8 @@ interface TracingOptions {
    * array, and only attach tracing headers if a match was found.
    *
    * @deprecated Use top level `tracePropagationTargets` option instead.
+   * This option will be removed in v8.
+   *
    * ```
    * Sentry.init({
    *   tracePropagationTargets: ['api.site.com'],
@@ -249,6 +251,7 @@ function _createWrappedRequestMethodFactory(
       const requestSpan = shouldCreateSpan(rawRequestUrl)
         ? parentSpan?.startChild({
             op: 'http.client',
+            origin: 'auto.http.node.http',
             description: `${data['http.method']} ${data.url}`,
             data,
           })

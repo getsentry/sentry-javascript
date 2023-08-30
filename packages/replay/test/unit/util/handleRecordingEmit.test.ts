@@ -1,7 +1,7 @@
 import { EventType } from '@sentry-internal/rrweb';
 
 import { BASE_TIMESTAMP } from '../..';
-import type { OptionFrameEvent } from '../../../src/types';
+import type { ReplayOptionFrameEvent } from '../../../src/types';
 import * as SentryAddEvent from '../../../src/util/addEvent';
 import { createOptionsEvent, getHandleRecordingEmit } from '../../../src/util/handleRecordingEmit';
 import { setupReplayContainer } from '../../utils/setupReplayContainer';
@@ -9,7 +9,7 @@ import { useFakeTimers } from '../../utils/use-fake-timers';
 
 useFakeTimers();
 
-let optionsEvent: OptionFrameEvent;
+let optionsEvent: ReplayOptionFrameEvent;
 
 describe('Unit | util | handleRecordingEmit', () => {
   let addEventMock: jest.SpyInstance;

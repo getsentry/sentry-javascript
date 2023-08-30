@@ -71,6 +71,7 @@ export function tracingHandler(): (
       {
         name,
         op: 'http.server',
+        origin: 'auto.http.node.tracingHandler',
         ...traceparentData,
         metadata: {
           dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,

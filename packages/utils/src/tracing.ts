@@ -61,7 +61,7 @@ export function tracingContextFromHeaders(
   const propagationContext: PropagationContext = {
     traceId: traceId || uuid4(),
     spanId: uuid4().substring(16),
-    sampled: parentSampled === undefined ? false : parentSampled,
+    sampled: parentSampled,
   };
 
   if (parentSpanId) {
