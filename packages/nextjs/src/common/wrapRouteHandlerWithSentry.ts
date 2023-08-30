@@ -1,6 +1,7 @@
 import { addTracingExtensions, captureException, flush, getCurrentHub, runWithAsyncContext, trace } from '@sentry/core';
 import { addExceptionMechanism, tracingContextFromHeaders } from '@sentry/utils';
 
+import { isRedirectNavigationError } from './nextNavigationErrorUtils';
 import type { RouteHandlerContext } from './types';
 import { platformSupportsStreaming } from './utils/platformSupportsStreaming';
 
@@ -53,16 +54,19 @@ export function wrapRouteHandlerWithSentry<F extends (...args: any[]) => any>(
               return response;
             },
             error => {
-              captureException(error, scope => {
-                scope.addEventProcessor(event => {
-                  addExceptionMechanism(event, {
-                    handled: false,
+              // Next.js throws errors when calling `redirect()`. We don't wanna report these.
+              if (!isRedirectNavigationError(error)) {
+                captureException(error, scope => {
+                  scope.addEventProcessor(event => {
+                    addExceptionMechanism(event, {
+                      handled: false,
+                    });
+                    return event;
                   });
-                  return event;
-                });
 
-                return scope;
-              });
+                  return scope;
+                });
+              }
             },
           );
         } finally {
