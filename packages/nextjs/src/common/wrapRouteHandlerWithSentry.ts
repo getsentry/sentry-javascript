@@ -1,5 +1,5 @@
 import { addTracingExtensions, captureException, flush, getCurrentHub, runWithAsyncContext, trace } from '@sentry/core';
-import { tracingContextFromHeaders } from '@sentry/utils';
+import { addExceptionMechanism, tracingContextFromHeaders } from '@sentry/utils';
 
 import type { RouteHandlerContext } from './types';
 import { platformSupportsStreaming } from './utils/platformSupportsStreaming';
@@ -53,7 +53,16 @@ export function wrapRouteHandlerWithSentry<F extends (...args: any[]) => any>(
               return response;
             },
             error => {
-              captureException(error);
+              captureException(error, scope => {
+                scope.addEventProcessor(event => {
+                  addExceptionMechanism(event, {
+                    handled: false,
+                  });
+                  return event;
+                });
+
+                return scope;
+              });
             },
           );
         } finally {
