@@ -9,11 +9,11 @@ import type {
   PaintData,
   ResourceData,
 } from './performance';
-import type { EventType } from './rrweb';
+import type { ReplayEventTypeCustom } from './rrweb';
 
 type AnyRecord = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
 
-interface BaseBreadcrumbFrame {
+interface ReplayBaseBreadcrumbFrame {
   timestamp: number;
   /**
    * For compatibility reasons
@@ -24,7 +24,7 @@ interface BaseBreadcrumbFrame {
   message?: string;
 }
 
-interface BaseDomFrameData {
+interface ReplayBaseDomFrameData {
   nodeId?: number;
   node?: {
     id: number;
@@ -35,84 +35,84 @@ interface BaseDomFrameData {
 }
 
 /* Breadcrumbs from Core SDK */
-interface ConsoleFrameData {
+interface ReplayConsoleFrameData {
   logger: string;
   arguments?: unknown[];
 }
-interface ConsoleFrame extends BaseBreadcrumbFrame {
+interface ReplayConsoleFrame extends ReplayBaseBreadcrumbFrame {
   category: 'console';
   level: Breadcrumb['level'];
   message: string;
-  data: ConsoleFrameData;
+  data: ReplayConsoleFrameData;
 }
 
-type ClickFrameData = BaseDomFrameData;
-interface ClickFrame extends BaseBreadcrumbFrame {
+type ReplayClickFrameData = ReplayBaseDomFrameData;
+interface ReplayClickFrame extends ReplayBaseBreadcrumbFrame {
   category: 'ui.click';
   message: string;
-  data: ClickFrameData;
+  data: ReplayClickFrameData;
 }
 
-interface InputFrame extends BaseBreadcrumbFrame {
+interface ReplayInputFrame extends ReplayBaseBreadcrumbFrame {
   category: 'ui.input';
   message: string;
 }
 
 /* Breadcrumbs from Replay */
-interface MutationFrameData {
+interface ReplayMutationFrameData {
   count: number;
   limit: boolean;
 }
-interface MutationFrame extends BaseBreadcrumbFrame {
+interface ReplayMutationFrame extends ReplayBaseBreadcrumbFrame {
   category: 'replay.mutations';
-  data: MutationFrameData;
+  data: ReplayMutationFrameData;
 }
 
-interface KeyboardEventFrameData extends BaseDomFrameData {
+interface ReplayKeyboardEventFrameData extends ReplayBaseDomFrameData {
   metaKey: boolean;
   shiftKey: boolean;
   ctrlKey: boolean;
   altKey: boolean;
   key: string;
 }
-interface KeyboardEventFrame extends BaseBreadcrumbFrame {
+interface ReplayKeyboardEventFrame extends ReplayBaseBreadcrumbFrame {
   category: 'ui.keyDown';
-  data: KeyboardEventFrameData;
+  data: ReplayKeyboardEventFrameData;
 }
 
-interface BlurFrame extends BaseBreadcrumbFrame {
+interface ReplayBlurFrame extends ReplayBaseBreadcrumbFrame {
   category: 'ui.blur';
 }
 
-interface FocusFrame extends BaseBreadcrumbFrame {
+interface ReplayFocusFrame extends ReplayBaseBreadcrumbFrame {
   category: 'ui.focus';
 }
 
-interface SlowClickFrameData extends ClickFrameData {
+interface ReplaySlowClickFrameData extends ReplayClickFrameData {
   url: string;
   route?: string;
   timeAfterClickMs: number;
   endReason: string;
   clickCount?: number;
 }
-export interface SlowClickFrame extends BaseBreadcrumbFrame {
+export interface ReplaySlowClickFrame extends ReplayBaseBreadcrumbFrame {
   category: 'ui.slowClickDetected';
-  data: SlowClickFrameData;
+  data: ReplaySlowClickFrameData;
 }
 
-interface MultiClickFrameData extends ClickFrameData {
+interface ReplayMultiClickFrameData extends ReplayClickFrameData {
   url: string;
   route?: string;
   clickCount: number;
   metric: true;
 }
 
-export interface MultiClickFrame extends BaseBreadcrumbFrame {
+export interface ReplayMultiClickFrame extends ReplayBaseBreadcrumbFrame {
   category: 'ui.multiClick';
-  data: MultiClickFrameData;
+  data: ReplayMultiClickFrameData;
 }
 
-interface OptionFrame {
+interface ReplayOptionFrame {
   blockAllMedia: boolean;
   errorSampleRate: number;
   maskAllInputs: boolean;
@@ -126,19 +126,19 @@ interface OptionFrame {
   useCompressionOption: boolean;
 }
 
-export type BreadcrumbFrame =
-  | ConsoleFrame
-  | ClickFrame
-  | InputFrame
-  | KeyboardEventFrame
-  | BlurFrame
-  | FocusFrame
-  | SlowClickFrame
-  | MultiClickFrame
-  | MutationFrame
-  | BaseBreadcrumbFrame;
+export type ReplayBreadcrumbFrame =
+  | ReplayConsoleFrame
+  | ReplayClickFrame
+  | ReplayInputFrame
+  | ReplayKeyboardEventFrame
+  | ReplayBlurFrame
+  | ReplayFocusFrame
+  | ReplaySlowClickFrame
+  | ReplayMultiClickFrame
+  | ReplayMutationFrame
+  | ReplayBaseBreadcrumbFrame;
 
-interface BaseSpanFrame {
+interface ReplayBaseSpanFrame {
   op: string;
   description: string;
   startTimestamp: number;
@@ -146,55 +146,61 @@ interface BaseSpanFrame {
   data?: undefined | AnyRecord;
 }
 
-interface HistoryFrame extends BaseSpanFrame {
+interface ReplayHistoryFrame extends ReplayBaseSpanFrame {
   data: HistoryData;
   op: 'navigation.push';
 }
 
-interface LargestContentfulPaintFrame extends BaseSpanFrame {
+interface ReplayLargestContentfulPaintFrame extends ReplayBaseSpanFrame {
   data: LargestContentfulPaintData;
   op: 'largest-contentful-paint';
 }
 
-interface MemoryFrame extends BaseSpanFrame {
+interface ReplayMemoryFrame extends ReplayBaseSpanFrame {
   data: MemoryData;
   op: 'memory';
 }
 
-interface NavigationFrame extends BaseSpanFrame {
+interface ReplayNavigationFrame extends ReplayBaseSpanFrame {
   data: NavigationData;
   op: 'navigation.navigate' | 'navigation.reload' | 'navigation.back_forward';
 }
 
-interface PaintFrame extends BaseSpanFrame {
+interface ReplayPaintFrame extends ReplayBaseSpanFrame {
   data: PaintData;
   op: 'paint';
 }
 
-interface RequestFrame extends BaseSpanFrame {
+interface ReplayRequestFrame extends ReplayBaseSpanFrame {
   data: NetworkRequestData;
   op: 'resource.fetch' | 'resource.xhr';
 }
 
-interface ResourceFrame extends BaseSpanFrame {
+interface ReplayResourceFrame extends ReplayBaseSpanFrame {
   data: ResourceData;
-  op: 'resource.css' | 'resource.iframe' | 'resource.img' | 'resource.link' | 'resource.other' | 'resource.script';
+  op:
+    | 'resource.css'
+    | 'resource.ReplayiFrame'
+    | 'resource.img'
+    | 'resource.link'
+    | 'resource.other'
+    | 'resource.script';
 }
 
-export type SpanFrame =
-  | BaseSpanFrame
-  | HistoryFrame
-  | RequestFrame
-  | LargestContentfulPaintFrame
-  | MemoryFrame
-  | NavigationFrame
-  | PaintFrame
-  | ResourceFrame;
+export type ReplaySpanFrame =
+  | ReplayBaseSpanFrame
+  | ReplayHistoryFrame
+  | ReplayRequestFrame
+  | ReplayLargestContentfulPaintFrame
+  | ReplayMemoryFrame
+  | ReplayNavigationFrame
+  | ReplayPaintFrame
+  | ReplayResourceFrame;
 
-export type ReplayFrame = BreadcrumbFrame | SpanFrame;
+export type ReplayFrame = ReplayBreadcrumbFrame | ReplaySpanFrame;
 
 interface RecordingCustomEvent {
-  type: EventType.Custom;
+  type: typeof ReplayEventTypeCustom;
   timestamp: number;
   data: {
     tag: string;
@@ -202,10 +208,10 @@ interface RecordingCustomEvent {
   };
 }
 
-export interface BreadcrumbFrameEvent extends RecordingCustomEvent {
+export interface ReplayBreadcrumbFrameEvent extends RecordingCustomEvent {
   data: {
     tag: 'breadcrumb';
-    payload: BreadcrumbFrame;
+    payload: ReplayBreadcrumbFrame;
     /**
      * This will indicate to backend to additionally log as a metric
      */
@@ -213,18 +219,18 @@ export interface BreadcrumbFrameEvent extends RecordingCustomEvent {
   };
 }
 
-export interface SpanFrameEvent extends RecordingCustomEvent {
+export interface ReplaySpanFrameEvent extends RecordingCustomEvent {
   data: {
     tag: 'performanceSpan';
-    payload: SpanFrame;
+    payload: ReplaySpanFrame;
   };
 }
 
-export interface OptionFrameEvent extends RecordingCustomEvent {
+export interface ReplayOptionFrameEvent extends RecordingCustomEvent {
   data: {
     tag: 'options';
-    payload: OptionFrame;
+    payload: ReplayOptionFrame;
   };
 }
 
-export type ReplayFrameEvent = BreadcrumbFrameEvent | SpanFrameEvent | OptionFrameEvent;
+export type ReplayFrameEvent = ReplayBreadcrumbFrameEvent | ReplaySpanFrameEvent | ReplayOptionFrameEvent;

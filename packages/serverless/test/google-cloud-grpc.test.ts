@@ -129,6 +129,7 @@ describe('GoogleCloudGrpc tracing', () => {
       // @ts-ignore see "Why @ts-ignore" note
       expect(SentryNode.fakeTransaction.startChild).toBeCalledWith({
         op: 'grpc.pubsub',
+        origin: 'auto.grpc.serverless',
         description: 'unary call publish',
       });
       await pubsub.close();

@@ -1,5 +1,6 @@
 import type { Instrumentation } from '@opentelemetry/instrumentation';
 import { MongooseInstrumentation } from '@opentelemetry/instrumentation-mongoose';
+import { addOtelSpanData } from '@sentry/opentelemetry-node';
 import type { Integration } from '@sentry/types';
 
 import { NodePerformanceIntegration } from './NodePerformanceIntegration';
@@ -27,6 +28,14 @@ export class Mongoose extends NodePerformanceIntegration<void> implements Integr
 
   /** @inheritDoc */
   public setupInstrumentation(): void | Instrumentation[] {
-    return [new MongooseInstrumentation({})];
+    return [
+      new MongooseInstrumentation({
+        responseHook(span) {
+          addOtelSpanData(span.spanContext().spanId, {
+            origin: 'auto.db.otel-mongoose',
+          });
+        },
+      }),
+    ];
   }
 }

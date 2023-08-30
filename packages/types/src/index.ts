@@ -88,7 +88,7 @@ export type {
 
 // eslint-disable-next-line deprecation/deprecation
 export type { Severity, SeverityLevel } from './severity';
-export type { Span, SpanContext } from './span';
+export type { Span, SpanContext, SpanOrigin } from './span';
 export type { StackFrame } from './stackframe';
 export type { Stacktrace, StackParser, StackLineParser, StackLineParserFn } from './stacktrace';
 export type { TextEncoderInternal } from './textencoder';

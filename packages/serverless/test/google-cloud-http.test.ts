@@ -60,11 +60,13 @@ describe('GoogleCloudHttp tracing', () => {
       // @ts-ignore see "Why @ts-ignore" note
       expect(SentryNode.fakeTransaction.startChild).toBeCalledWith({
         op: 'http.client.bigquery',
+        origin: 'auto.http.serverless',
         description: 'POST /jobs',
       });
       // @ts-ignore see "Why @ts-ignore" note
       expect(SentryNode.fakeTransaction.startChild).toBeCalledWith({
         op: 'http.client.bigquery',
+        origin: 'auto.http.serverless',
         description: expect.stringMatching(new RegExp('^GET /queries/.+')),
       });
     });

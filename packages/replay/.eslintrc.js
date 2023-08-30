@@ -32,5 +32,11 @@ module.exports = {
         '@typescript-eslint/no-floating-promises': 'off',
       },
     },
+    {
+      files: ['src/types/deprecated.ts'],
+      rules: {
+        '@typescript-eslint/naming-convention': 'off',
+      },
+    },
   ],
 };

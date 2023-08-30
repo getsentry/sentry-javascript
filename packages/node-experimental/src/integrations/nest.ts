@@ -27,6 +27,7 @@ export class Nest extends NodePerformanceIntegration<void> implements Integratio
 
   /** @inheritDoc */
   public setupInstrumentation(): void | Instrumentation[] {
+    // Does not have a hook to adjust spans and add origin
     return [new NestInstrumentation({})];
   }
 }

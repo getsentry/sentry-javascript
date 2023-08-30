@@ -31,6 +31,7 @@ export class Prisma extends NodePerformanceIntegration<void> implements Integrat
 
   /** @inheritDoc */
   public setupInstrumentation(): void | Instrumentation[] {
+    // does not have a hook to adjust spans & add origin
     return [new PrismaInstrumentation({})];
   }
 }

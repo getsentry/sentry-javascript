@@ -50,6 +50,7 @@ function recordInitSpan(transaction: Transaction, componentName: string): Span {
   const initSpan = transaction.startChild({
     op: UI_SVELTE_INIT,
     description: componentName,
+    origin: 'auto.ui.svelte',
   });
 
   onMount(() => {
@@ -77,6 +78,7 @@ function recordUpdateSpans(componentName: string, initSpan?: Span): void {
     updateSpan = parentSpan.startChild({
       op: UI_SVELTE_UPDATE,
       description: componentName,
+      origin: 'auto.ui.svelte',
     });
   });
 

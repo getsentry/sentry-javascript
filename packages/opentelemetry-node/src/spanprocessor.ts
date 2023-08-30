@@ -225,7 +225,7 @@ function updateSpanWithOtelData(sentrySpan: SentrySpan, otelSpan: OtelSpan): voi
 
   const { op, description, data } = parseSpanDescription(otelSpan);
 
-  const { data: additionalData, tags } = getOtelSpanData(otelSpan.spanContext().spanId);
+  const { data: additionalData, tags, origin } = getOtelSpanData(otelSpan.spanContext().spanId);
 
   sentrySpan.setStatus(mapOtelStatus(otelSpan));
   sentrySpan.setData('otel.kind', SpanKind[kind]);
@@ -245,11 +245,15 @@ function updateSpanWithOtelData(sentrySpan: SentrySpan, otelSpan: OtelSpan): voi
 
   sentrySpan.op = op;
   sentrySpan.description = description;
+
+  if (origin) {
+    sentrySpan.origin = origin;
+  }
 }
 
 function updateTransactionWithOtelData(transaction: Transaction, otelSpan: OtelSpan): void {
   const { op, description, source, data } = parseSpanDescription(otelSpan);
-  const { data: additionalData, tags, contexts, metadata } = getOtelSpanData(otelSpan.spanContext().spanId);
+  const { data: additionalData, tags, contexts, metadata, origin } = getOtelSpanData(otelSpan.spanContext().spanId);
 
   transaction.setContext('otel', {
     attributes: otelSpan.attributes,
@@ -283,6 +287,10 @@ function updateTransactionWithOtelData(transaction: Transaction, otelSpan: OtelS
 
   transaction.op = op;
   transaction.setName(description, source);
+
+  if (origin) {
+    transaction.origin = origin;
+  }
 }
 
 function convertOtelTimeToSeconds([seconds, nano]: [number, number]): number {

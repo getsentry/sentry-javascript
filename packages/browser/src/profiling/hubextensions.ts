@@ -174,7 +174,11 @@ export function wrapTransactionWithProfiling(transaction: Transaction): Transact
 
     // This is temporary - we will use the collected span data to evaluate
     // if deferring txn.finish until profiler resolves is a viable approach.
-    const stopProfilerSpan = transaction.startChild({ description: 'profiler.stop', op: 'profiler' });
+    const stopProfilerSpan = transaction.startChild({
+      description: 'profiler.stop',
+      op: 'profiler',
+      origin: 'auto.profiler.browser',
+    });
 
     return profiler
       .stop()

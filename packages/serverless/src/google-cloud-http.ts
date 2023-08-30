@@ -62,6 +62,7 @@ function wrapRequestFunction(orig: RequestFunction): RequestFunction {
       span = transaction.startChild({
         description: `${httpMethod} ${reqOpts.uri}`,
         op: `http.client.${identifyService(this.apiEndpoint)}`,
+        origin: 'auto.http.serverless',
       });
     }
     orig.call(this, reqOpts, (...args: Parameters<ResponseCallback>) => {

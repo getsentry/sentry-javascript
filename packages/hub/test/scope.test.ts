@@ -9,6 +9,7 @@ describe('Scope', () => {
   afterEach(() => {
     jest.resetAllMocks();
     jest.useRealTimers();
+    GLOBAL_OBJ.__SENTRY__ = GLOBAL_OBJ.__SENTRY__ || {};
     GLOBAL_OBJ.__SENTRY__.globalEventProcessors = undefined;
   });
 
@@ -20,7 +21,7 @@ describe('Scope', () => {
       expect(scope._propagationContext).toEqual({
         traceId: expect.any(String),
         spanId: expect.any(String),
-        sampled: false,
+        sampled: undefined,
         dsc: undefined,
         parentSpanId: undefined,
       });
@@ -442,7 +443,7 @@ describe('Scope', () => {
     expect(scope._propagationContext).toEqual({
       traceId: expect.any(String),
       spanId: expect.any(String),
-      sampled: false,
+      sampled: undefined,
     });
     // @ts-expect-error accessing private property
     expect(scope._propagationContext).not.toEqual(oldPropagationContext);

@@ -109,6 +109,7 @@ export class Postgres implements LazyLoadedIntegration<PGModule> {
         const span = parentSpan?.startChild({
           description: typeof config === 'string' ? config : (config as { text: string }).text,
           op: 'db',
+          origin: 'auto.db.postgres',
           data,
         });
 

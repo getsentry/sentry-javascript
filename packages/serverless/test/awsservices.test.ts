@@ -33,6 +33,7 @@ describe('AWSServices', () => {
       // @ts-ignore see "Why @ts-ignore" note
       expect(SentryNode.fakeTransaction.startChild).toBeCalledWith({
         op: 'http.client',
+        origin: 'auto.http.serverless',
         description: 'aws.s3.getObject foo',
       });
       // @ts-ignore see "Why @ts-ignore" note
@@ -50,6 +51,7 @@ describe('AWSServices', () => {
       // @ts-ignore see "Why @ts-ignore" note
       expect(SentryNode.fakeTransaction.startChild).toBeCalledWith({
         op: 'http.client',
+        origin: 'auto.http.serverless',
         description: 'aws.s3.getObject foo',
       });
     });
@@ -65,6 +67,7 @@ describe('AWSServices', () => {
       // @ts-ignore see "Why @ts-ignore" note
       expect(SentryNode.fakeTransaction.startChild).toBeCalledWith({
         op: 'http.client',
+        origin: 'auto.http.serverless',
         description: 'aws.lambda.invoke foo',
       });
     });

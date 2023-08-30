@@ -94,6 +94,7 @@ export class Mysql implements LazyLoadedIntegration<MysqlConnection> {
         const span = parentSpan?.startChild({
           description: typeof options === 'string' ? options : (options as { sql: string }).sql,
           op: 'db',
+          origin: 'auto.db.mysql',
           data: {
             ...spanDataFromConfig(),
             'db.system': 'mysql',

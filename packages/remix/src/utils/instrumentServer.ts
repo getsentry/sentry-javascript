@@ -140,6 +140,7 @@ function makeWrappedDocumentRequestFunction(
     try {
       const span = activeTransaction?.startChild({
         op: 'function.remix.document_request',
+        origin: 'auto.function.remix',
         description: activeTransaction.name,
         tags: {
           method: request.method,
@@ -182,6 +183,7 @@ function makeWrappedDataFunction(origFn: DataFunction, id: string, name: 'action
     try {
       const span = activeTransaction?.startChild({
         op: `function.remix.${name}`,
+        origin: 'auto.ui.remix',
         description: id,
         tags: {
           name,
@@ -325,6 +327,7 @@ export function startRequestHandlerTransaction(
   const transaction = hub.startTransaction({
     name,
     op: 'http.server',
+    origin: 'auto.http.remix',
     tags: {
       method: request.method,
     },
@@ -418,18 +421,21 @@ export function instrumentBuild(build: ServerBuild): ServerBuild {
   // Because the build can change between build and runtime.
   // So if there is a new `loader` or`action` or `documentRequest` after build.
   // We should be able to wrap them, as they may not be wrapped before.
-  if (!(wrappedEntry.module.default as WrappedFunction).__sentry_original__) {
+  const defaultExport = wrappedEntry.module.default as undefined | WrappedFunction;
+  if (defaultExport && !defaultExport.__sentry_original__) {
     fill(wrappedEntry.module, 'default', makeWrappedDocumentRequestFunction);
   }
 
   for (const [id, route] of Object.entries(build.routes)) {
     const wrappedRoute = { ...route, module: { ...route.module } };
 
-    if (wrappedRoute.module.action && !(wrappedRoute.module.action as WrappedFunction).__sentry_original__) {
+    const routeAction = wrappedRoute.module.action as undefined | WrappedFunction;
+    if (routeAction && !routeAction.__sentry_original__) {
       fill(wrappedRoute.module, 'action', makeWrappedAction(id));
     }
 
-    if (wrappedRoute.module.loader && !(wrappedRoute.module.loader as WrappedFunction).__sentry_original__) {
+    const routeLoader = wrappedRoute.module.loader as undefined | WrappedFunction;
+    if (routeLoader && !routeLoader.__sentry_original__) {
       fill(wrappedRoute.module, 'loader', makeWrappedLoader(id));
     }
 
