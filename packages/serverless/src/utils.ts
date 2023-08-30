@@ -1,6 +1,6 @@
 import { runWithAsyncContext } from '@sentry/core';
 import type { Event } from '@sentry/node';
-import { Scope } from '@sentry/types';
+import type { Scope } from '@sentry/types';
 import { addExceptionMechanism } from '@sentry/utils';
 
 /**
