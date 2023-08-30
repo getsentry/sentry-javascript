@@ -1,8 +1,8 @@
 import * as api from '@opentelemetry/api';
-import type { Carrier, Hub, RunWithAsyncContextOptions } from '@sentry/core';
-import { ensureHubOnCarrier, getHubFromCarrier, setAsyncContextStrategy } from '@sentry/core';
+import type { Hub, RunWithAsyncContextOptions } from '@sentry/core';
+import { setAsyncContextStrategy } from '@sentry/core';
 
-const hubKey = api.createContextKey('sentry_hub');
+import { OTEL_CONTEXT_HUB_KEY } from './otelContextManager';
 
 /**
  * Sets the async context strategy to use follow the OTEL context under the hood.
@@ -12,15 +12,10 @@ export function setOtelContextAsyncContextStrategy(): void {
     const ctx = api.context.active();
 
     // Returning undefined means the global hub will be used
-    return ctx.getValue(hubKey) as Hub | undefined;
+    return ctx.getValue(OTEL_CONTEXT_HUB_KEY) as Hub | undefined;
   }
 
-  function createNewHub(parent: Hub | undefined): Hub {
-    const carrier: Carrier = {};
-    ensureHubOnCarrier(carrier, parent);
-    return getHubFromCarrier(carrier);
-  }
-
+  /* This is more or less a NOOP - we rely on the OTEL context manager for this */
   function runWithAsyncContext<T>(callback: () => T, options: RunWithAsyncContextOptions): T {
     const existingHub = getCurrentHub();
 
@@ -30,11 +25,10 @@ export function setOtelContextAsyncContextStrategy(): void {
       return callback();
     }
 
-    const newHub = createNewHub(existingHub);
-
     const ctx = api.context.active();
 
-    return api.context.with(ctx.setValue(hubKey, newHub), () => {
+    // We depend on the otelContextManager to handle the context/hub
+    return api.context.with(ctx, () => {
       return callback();
     });
   }

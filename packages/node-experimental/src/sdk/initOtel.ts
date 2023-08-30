@@ -4,7 +4,7 @@ import { getCurrentHub } from '@sentry/core';
 import { SentryPropagator, SentrySpanProcessor } from '@sentry/opentelemetry-node';
 
 import type { NodeExperimentalClient } from './client';
-import { setOtelContextAsyncContextStrategy } from './otelContextAsyncContextStrategy';
+import { SentryContextManager } from './otelContextManager';
 
 /**
  * Initialize OpenTelemetry for Node.
@@ -23,12 +23,15 @@ export function initOtel(): () => void {
   });
   provider.addSpanProcessor(new SentrySpanProcessor());
 
+  // We use a custom context manager to keep context in sync with sentry scope
+  const contextManager = new SentryContextManager();
+  contextManager.enable();
+
   // Initialize the provider
   provider.register({
     propagator: new SentryPropagator(),
+    contextManager,
   });
-
-  setOtelContextAsyncContextStrategy();
 
   // Cleanup function
   return () => {
