@@ -46,7 +46,7 @@ export function withErrorInstrumentation<F extends (...args: any[]) => any>(
     try {
       return await origFunction.apply(this, origFunctionArguments);
     } catch (e) {
-      // TODO: Extract error logic from `withSentry` in here or create a new wrapper with said logic or something like that.#
+      // TODO: Extract error logic from `withSentry` in here or create a new wrapper with said logic or something like that.
       captureException(e, scope => {
         scope.addEventProcessor(event => {
           addExceptionMechanism(event, {
