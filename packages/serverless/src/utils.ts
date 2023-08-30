@@ -1,5 +1,6 @@
 import { runWithAsyncContext } from '@sentry/core';
 import type { Event } from '@sentry/node';
+import { Scope } from '@sentry/types';
 import { addExceptionMechanism } from '@sentry/utils';
 
 /**
@@ -54,4 +55,16 @@ export function proxyFunction<A extends any[], R, F extends (...args: A) => R>(
   }
 
   return new Proxy(source, handler);
+}
+
+/**
+ * Marks an event as unhandled by adding a span processor to the passed scope.
+ */
+export function markEventUnhandled(scope: Scope): Scope {
+  scope.addEventProcessor(event => {
+    addExceptionMechanism(event, { handled: false });
+    return event;
+  });
+
+  return scope;
 }

@@ -14,7 +14,7 @@ import { performance } from 'perf_hooks';
 import { types } from 'util';
 
 import { AWSServices } from './awsservices';
-import { serverlessEventProcessor } from './utils';
+import { markEventUnhandled, serverlessEventProcessor } from './utils';
 
 export * from '@sentry/node';
 
@@ -312,11 +312,11 @@ export function wrapHandler<TEvent, TResult>(
       if (options.captureAllSettledReasons && Array.isArray(rv) && isPromiseAllSettledResult(rv)) {
         const reasons = getRejectedReasons(rv);
         reasons.forEach(exception => {
-          captureException(exception);
+          captureException(exception, scope => markEventUnhandled(scope));
         });
       }
     } catch (e) {
-      captureException(e);
+      captureException(e, scope => markEventUnhandled(scope));
       throw e;
     } finally {
       clearTimeout(timeoutWarningTimer);

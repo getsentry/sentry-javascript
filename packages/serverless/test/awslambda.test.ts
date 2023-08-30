@@ -1,6 +1,7 @@
 // NOTE: I have no idea how to fix this right now, and don't want to waste more time, as it builds just fine — Kamil
 // eslint-disable-next-line import/no-unresolved
 import * as SentryNode from '@sentry/node';
+import type { Event } from '@sentry/types';
 // eslint-disable-next-line import/no-unresolved
 import type { Callback, Handler } from 'aws-lambda';
 
@@ -175,8 +176,8 @@ describe('AWSLambda', () => {
         ]);
       const wrappedHandler = wrapHandler(handler, { flushTimeout: 1337, captureAllSettledReasons: true });
       await wrappedHandler(fakeEvent, fakeContext, fakeCallback);
-      expect(SentryNode.captureException).toHaveBeenNthCalledWith(1, error);
-      expect(SentryNode.captureException).toHaveBeenNthCalledWith(2, error2);
+      expect(SentryNode.captureException).toHaveBeenNthCalledWith(1, error, expect.any(Function));
+      expect(SentryNode.captureException).toHaveBeenNthCalledWith(2, error2, expect.any(Function));
       expect(SentryNode.captureException).toBeCalledTimes(2);
     });
   });
@@ -229,7 +230,7 @@ describe('AWSLambda', () => {
         // @ts-ignore see "Why @ts-ignore" note
         expect(SentryNode.fakeHub.startTransaction).toBeCalledWith(fakeTransactionContext);
         expectScopeSettings(fakeTransactionContext);
-        expect(SentryNode.captureException).toBeCalledWith(error);
+        expect(SentryNode.captureException).toBeCalledWith(error, expect.any(Function));
         // @ts-ignore see "Why @ts-ignore" note
         expect(SentryNode.fakeTransaction.finish).toBeCalled();
         expect(SentryNode.flush).toBeCalledWith(2000);
@@ -308,7 +309,7 @@ describe('AWSLambda', () => {
         // @ts-ignore see "Why @ts-ignore" note
         expect(SentryNode.fakeHub.startTransaction).toBeCalledWith(fakeTransactionContext);
         expectScopeSettings(fakeTransactionContext);
-        expect(SentryNode.captureException).toBeCalledWith(e);
+        expect(SentryNode.captureException).toBeCalledWith(e, expect.any(Function));
         // @ts-ignore see "Why @ts-ignore" note
         expect(SentryNode.fakeTransaction.finish).toBeCalled();
         expect(SentryNode.flush).toBeCalled();
@@ -375,7 +376,7 @@ describe('AWSLambda', () => {
         // @ts-ignore see "Why @ts-ignore" note
         expect(SentryNode.fakeHub.startTransaction).toBeCalledWith(fakeTransactionContext);
         expectScopeSettings(fakeTransactionContext);
-        expect(SentryNode.captureException).toBeCalledWith(error);
+        expect(SentryNode.captureException).toBeCalledWith(error, expect.any(Function));
         // @ts-ignore see "Why @ts-ignore" note
         expect(SentryNode.fakeTransaction.finish).toBeCalled();
         expect(SentryNode.flush).toBeCalled();
@@ -457,12 +458,40 @@ describe('AWSLambda', () => {
         // @ts-ignore see "Why @ts-ignore" note
         expect(SentryNode.fakeHub.startTransaction).toBeCalledWith(fakeTransactionContext);
         expectScopeSettings(fakeTransactionContext);
-        expect(SentryNode.captureException).toBeCalledWith(error);
+        expect(SentryNode.captureException).toBeCalledWith(error, expect.any(Function));
         // @ts-ignore see "Why @ts-ignore" note
         expect(SentryNode.fakeTransaction.finish).toBeCalled();
         expect(SentryNode.flush).toBeCalled();
       }
     });
+  });
+
+  test('marks the captured error as unhandled', async () => {
+    expect.assertions(3);
+
+    const error = new Error('wat');
+    const handler: Handler = async (_event, _context, _callback) => {
+      throw error;
+    };
+    const wrappedHandler = wrapHandler(handler);
+
+    try {
+      await wrappedHandler(fakeEvent, fakeContext, fakeCallback);
+    } catch (e) {
+      expect(SentryNode.captureException).toBeCalledWith(error, expect.any(Function));
+      // @ts-ignore see "Why @ts-ignore" note
+      const scopeFunction = SentryNode.captureException.mock.calls[0][1];
+      const event: Event = { exception: { values: [{}] } };
+      let evtProcessor: ((e: Event) => Event) | undefined = undefined;
+      scopeFunction({ addEventProcessor: jest.fn().mockImplementation(proc => (evtProcessor = proc)) });
+
+      expect(evtProcessor).toBeInstanceOf(Function);
+      // @ts-ignore just mocking around...
+      expect(evtProcessor(event).exception.values[0].mechanism).toEqual({
+        handled: false,
+        type: 'generic',
+      });
+    }
   });
 
   describe('init()', () => {
