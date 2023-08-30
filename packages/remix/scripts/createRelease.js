@@ -6,17 +6,30 @@ const { deleteSourcemaps } = require('./deleteSourcemaps');
 const sentry = new SentryCli();
 
 async function createRelease(argv, URL_PREFIX, BUILD_PATH) {
-  const RELEASE = argv.release || (await sentry.releases.proposeVersion());
+  let release;
 
-  await sentry.releases.new(RELEASE);
+  if (!argv.release) {
+    try {
+      release = await sentry.releases.proposeVersion();
+    } catch (error) {
+      console.warn('[sentry] Failed to propose a release version.');
+      console.warn('[sentry] You can specify a release version with `--release` flag.');
+      console.warn('[sentry] For example: `sentry-upload-sourcemaps --release 1.0.0`');
+      throw error;
+    }
+  } else {
+    release = argv.release;
+  }
 
-  await sentry.releases.uploadSourceMaps(RELEASE, {
+  await sentry.releases.new(release);
+
+  await sentry.releases.uploadSourceMaps(release, {
     urlPrefix: URL_PREFIX,
     include: [BUILD_PATH],
     useArtifactBundle: !argv.disableDebugIds,
   });
 
-  await sentry.releases.finalize(RELEASE);
+  await sentry.releases.finalize(release);
 
   if (argv.deleteAfterUpload) {
     try {
