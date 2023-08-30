@@ -13,10 +13,10 @@ import type { SKIPPED, THROTTLED } from '../util/throttle';
 import type { AllPerformanceEntry } from './performance';
 import type { ReplayFrameEvent } from './replayFrame';
 import type { ReplayNetworkRequestOrResponse } from './request';
-import type { eventWithTime, recordOptions } from './rrweb';
+import type { ReplayEventWithTime, RrwebRecordOptions } from './rrweb';
 
-export type RecordingEvent = ReplayFrameEvent | eventWithTime;
-export type RecordingOptions = recordOptions;
+export type RecordingEvent = ReplayFrameEvent | ReplayEventWithTime;
+export type RecordingOptions = RrwebRecordOptions;
 
 export interface SendReplayData {
   recordingData: ReplayRecordingData;
