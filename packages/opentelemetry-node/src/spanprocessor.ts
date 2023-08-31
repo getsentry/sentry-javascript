@@ -10,17 +10,17 @@ import { SENTRY_DYNAMIC_SAMPLING_CONTEXT_KEY, SENTRY_TRACE_PARENT_CONTEXT_KEY } 
 import { isSentryRequestSpan } from './utils/isSentryRequest';
 import { mapOtelStatus } from './utils/mapOtelStatus';
 import { parseSpanDescription } from './utils/parseOtelSpanDescription';
-import { clearOtelSpanData, getOtelSpanData } from './utils/spanData';
 
-export const SENTRY_SPAN_PROCESSOR_MAP: Map<SentrySpan['spanId'], SentrySpan> = new Map<
-  SentrySpan['spanId'],
-  SentrySpan
->();
+export const SENTRY_SPAN_PROCESSOR_MAP: Map<string, SentrySpan> = new Map<string, SentrySpan>();
 
 // make sure to remove references in maps, to ensure this can be GCed
 function clearSpan(otelSpanId: string): void {
-  clearOtelSpanData(otelSpanId);
   SENTRY_SPAN_PROCESSOR_MAP.delete(otelSpanId);
+}
+
+/** Get a Sentry span for an otel span ID. */
+export function getSentrySpan(otelSpanId: string): SentrySpan | undefined {
+  return SENTRY_SPAN_PROCESSOR_MAP.get(otelSpanId);
 }
 
 /**
@@ -225,18 +225,10 @@ function updateSpanWithOtelData(sentrySpan: SentrySpan, otelSpan: OtelSpan): voi
 
   const { op, description, data } = parseSpanDescription(otelSpan);
 
-  const { data: additionalData, tags, origin } = getOtelSpanData(otelSpan.spanContext().spanId);
-
   sentrySpan.setStatus(mapOtelStatus(otelSpan));
   sentrySpan.setData('otel.kind', SpanKind[kind]);
 
-  if (tags) {
-    Object.keys(tags).forEach(prop => {
-      sentrySpan.setTag(prop, tags[prop]);
-    });
-  }
-
-  const allData = { ...attributes, ...data, ...additionalData };
+  const allData = { ...attributes, ...data };
 
   Object.keys(allData).forEach(prop => {
     const value = allData[prop];
@@ -245,52 +237,27 @@ function updateSpanWithOtelData(sentrySpan: SentrySpan, otelSpan: OtelSpan): voi
 
   sentrySpan.op = op;
   sentrySpan.description = description;
-
-  if (origin) {
-    sentrySpan.origin = origin;
-  }
 }
 
 function updateTransactionWithOtelData(transaction: Transaction, otelSpan: OtelSpan): void {
   const { op, description, source, data } = parseSpanDescription(otelSpan);
-  const { data: additionalData, tags, contexts, metadata, origin } = getOtelSpanData(otelSpan.spanContext().spanId);
 
   transaction.setContext('otel', {
     attributes: otelSpan.attributes,
     resource: otelSpan.resource.attributes,
   });
 
-  if (tags) {
-    Object.keys(tags).forEach(prop => {
-      transaction.setTag(prop, tags[prop]);
-    });
-  }
-
-  if (metadata) {
-    transaction.setMetadata(metadata);
-  }
-
-  const allData = { ...data, ...additionalData };
+  const allData = data || {};
 
   Object.keys(allData).forEach(prop => {
     const value = allData[prop];
     transaction.setData(prop, value);
   });
 
-  if (contexts) {
-    Object.keys(contexts).forEach(prop => {
-      transaction.setContext(prop, contexts[prop]);
-    });
-  }
-
   transaction.setStatus(mapOtelStatus(otelSpan));
 
   transaction.op = op;
   transaction.setName(description, source);
-
-  if (origin) {
-    transaction.origin = origin;
-  }
 }
 
 function convertOtelTimeToSeconds([seconds, nano]: [number, number]): number {
