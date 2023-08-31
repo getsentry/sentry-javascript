@@ -13,7 +13,6 @@ import type { RequestAsyncStorage } from './requestAsyncStorageShim';
 declare const requestAsyncStorage: RequestAsyncStorage;
 
 declare const routeModule: {
-  default: unknown;
   GET?: (...args: unknown[]) => unknown;
   POST?: (...args: unknown[]) => unknown;
   PUT?: (...args: unknown[]) => unknown;
@@ -72,4 +71,3 @@ export const OPTIONS = wrapHandler(routeModule.OPTIONS, 'OPTIONS');
 // @ts-ignore See above
 // eslint-disable-next-line import/no-unresolved
 export * from '__SENTRY_WRAPPING_TARGET_FILE__';
-export default routeModule.default;
