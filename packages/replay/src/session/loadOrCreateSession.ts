@@ -1,4 +1,4 @@
-import type { Session, SessionOptions, Timeouts } from '../types';
+import type { Session, SessionOptions } from '../types';
 import { logInfoNextTick } from '../util/log';
 import { createSession } from './createSession';
 import { fetchSession } from './fetchSession';
@@ -11,10 +11,12 @@ import { maybeRefreshSession } from './maybeRefreshSession';
 export function loadOrCreateSession(
   currentSession: Session | undefined,
   {
-    timeouts,
     traceInternals,
+    sessionIdleExpire,
+    maxReplayDuration,
   }: {
-    timeouts: Timeouts;
+    sessionIdleExpire: number;
+    maxReplayDuration: number;
     traceInternals?: boolean;
   },
   sessionOptions: SessionOptions,
@@ -28,5 +30,5 @@ export function loadOrCreateSession(
     return createSession(sessionOptions);
   }
 
-  return maybeRefreshSession(existingSession, { timeouts, traceInternals }, sessionOptions);
+  return maybeRefreshSession(existingSession, { sessionIdleExpire, traceInternals, maxReplayDuration }, sessionOptions);
 }

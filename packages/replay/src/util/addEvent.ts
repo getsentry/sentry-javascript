@@ -41,9 +41,9 @@ export async function addEvent(
   }
 
   // Throw out events that are +60min from the initial timestamp
-  if (timestampInMs > replay.getContext().initialTimestamp + replay.timeouts.maxSessionLife) {
+  if (timestampInMs > replay.getContext().initialTimestamp + replay.getOptions().maxReplayDuration) {
     logInfo(
-      `[Replay] Skipping event with timestamp ${timestampInMs} because it is after maxSessionLife`,
+      `[Replay] Skipping event with timestamp ${timestampInMs} because it is after maxReplayDuration`,
       replay.getOptions()._experiments.traceInternals,
     );
     return null;
