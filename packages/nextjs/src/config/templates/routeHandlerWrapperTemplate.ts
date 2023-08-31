@@ -58,6 +58,16 @@ function wrapHandler<T>(handler: T, method: 'GET' | 'POST' | 'PUT' | 'PATCH' | '
   });
 }
 
+// Re-export anything exported by the page module we're wrapping. When processing this code, Rollup is smart enough to
+// not include anything whose name matchs something we've explicitly exported above.
+// @ts-ignore See above
+// eslint-disable-next-line import/no-unresolved
+export * from '__SENTRY_WRAPPING_TARGET_FILE__';
+
+// @ts-ignore This is the file we're wrapping
+// eslint-disable-next-line import/no-unresolved
+export { default } from '__SENTRY_WRAPPING_TARGET_FILE__';
+
 export const GET = wrapHandler(routeModule.GET, 'GET');
 export const POST = wrapHandler(routeModule.POST, 'POST');
 export const PUT = wrapHandler(routeModule.PUT, 'PUT');
@@ -65,9 +75,3 @@ export const PATCH = wrapHandler(routeModule.PATCH, 'PATCH');
 export const DELETE = wrapHandler(routeModule.DELETE, 'DELETE');
 export const HEAD = wrapHandler(routeModule.HEAD, 'HEAD');
 export const OPTIONS = wrapHandler(routeModule.OPTIONS, 'OPTIONS');
-
-// Re-export anything exported by the page module we're wrapping. When processing this code, Rollup is smart enough to
-// not include anything whose name matchs something we've explicitly exported above.
-// @ts-ignore See above
-// eslint-disable-next-line import/no-unresolved
-export * from '__SENTRY_WRAPPING_TARGET_FILE__';
