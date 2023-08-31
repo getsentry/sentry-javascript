@@ -1,4 +1,4 @@
-import type { Session, SessionOptions, Timeouts } from '../types';
+import type { Session, SessionOptions } from '../types';
 import { isSessionExpired } from '../util/isSessionExpired';
 import { logInfoNextTick } from '../util/log';
 import { createSession } from './createSession';
@@ -12,18 +12,18 @@ import { makeSession } from './Session';
 export function maybeRefreshSession(
   session: Session,
   {
-    timeouts,
     traceInternals,
     maxReplayDuration,
+    sessionIdleExpire,
   }: {
-    timeouts: Timeouts;
+    sessionIdleExpire: number;
     maxReplayDuration: number;
     traceInternals?: boolean;
   },
   sessionOptions: SessionOptions,
 ): Session {
   // If not expired, all good, just keep the session
-  if (!isSessionExpired(session, { sessionIdleExpire: timeouts.sessionIdleExpire, maxReplayDuration })) {
+  if (!isSessionExpired(session, { sessionIdleExpire, maxReplayDuration })) {
     return session;
   }
 

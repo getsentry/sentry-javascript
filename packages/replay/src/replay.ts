@@ -275,8 +275,8 @@ export class ReplayContainer implements ReplayContainerInterface {
     const session = loadOrCreateSession(
       this.session,
       {
-        timeouts: this.timeouts,
         maxReplayDuration: this._options.maxReplayDuration,
+        sessionIdleExpire: this.timeouts.sessionIdleExpire,
         traceInternals: this._options._experiments.traceInternals,
       },
       {
@@ -306,7 +306,7 @@ export class ReplayContainer implements ReplayContainerInterface {
     const session = loadOrCreateSession(
       this.session,
       {
-        timeouts: this.timeouts,
+        sessionIdleExpire: this.timeouts.sessionIdleExpire,
         maxReplayDuration: this._options.maxReplayDuration,
         traceInternals: this._options._experiments.traceInternals,
       },
@@ -764,7 +764,7 @@ export class ReplayContainer implements ReplayContainerInterface {
     const session = loadOrCreateSession(
       this.session,
       {
-        timeouts: this.timeouts,
+        sessionIdleExpire: this.timeouts.sessionIdleExpire,
         maxReplayDuration: this._options.maxReplayDuration,
         traceInternals: this._options._experiments.traceInternals,
       },
@@ -794,7 +794,7 @@ export class ReplayContainer implements ReplayContainerInterface {
     const newSession = maybeRefreshSession(
       currentSession,
       {
-        timeouts: this.timeouts,
+        sessionIdleExpire: this.timeouts.sessionIdleExpire,
         traceInternals: this._options._experiments.traceInternals,
         maxReplayDuration: this._options.maxReplayDuration,
       },
