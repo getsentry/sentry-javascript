@@ -1,6 +1,6 @@
-import { assertSentryTransaction, TestEnv } from '../../../../utils';
+import { assertSentryTransaction, TestEnv } from '../../../../../utils';
 
-test('should auto-instrument `mysql` package.', async () => {
+test('should auto-instrument `mysql` package without connection.connect()', async () => {
   const env = await TestEnv.init(__dirname);
   const envelope = await env.getEnvelopeRequest({ envelopeType: 'transaction' });
 
@@ -14,6 +14,9 @@ test('should auto-instrument `mysql` package.', async () => {
         op: 'db',
         data: {
           'db.system': 'mysql',
+          'server.address': 'localhost',
+          'server.port': 3306,
+          'db.user': 'root',
         },
       },
 
@@ -22,6 +25,9 @@ test('should auto-instrument `mysql` package.', async () => {
         op: 'db',
         data: {
           'db.system': 'mysql',
+          'server.address': 'localhost',
+          'server.port': 3306,
+          'db.user': 'root',
         },
       },
     ],
