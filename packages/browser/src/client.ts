@@ -30,7 +30,9 @@ export type BrowserOptions = Options<BrowserTransportOptions> &
  * Configuration options for the Sentry Browser SDK Client class
  * @see BrowserClient for more information.
  */
-export type BrowserClientOptions = ClientOptions<BrowserTransportOptions>;
+export type BrowserClientOptions = ClientOptions<BrowserTransportOptions> &
+  BrowserClientReplayOptions &
+  BrowserClientProfilingOptions;
 
 /**
  * The Sentry Browser SDK Client.
