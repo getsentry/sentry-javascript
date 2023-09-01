@@ -41,3 +41,5 @@ next-env.d.ts
 .sentryclirc
 
 .vscode
+
+test-results
