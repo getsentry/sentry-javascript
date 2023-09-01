@@ -1,8 +1,8 @@
 import type { Instrumentation } from '@opentelemetry/instrumentation';
 import { GraphQLInstrumentation } from '@opentelemetry/instrumentation-graphql';
-import { addOtelSpanData } from '@sentry/opentelemetry-node';
 import type { Integration } from '@sentry/types';
 
+import { addOriginToOtelSpan } from '../utils/addOriginToSpan';
 import { NodePerformanceIntegration } from './NodePerformanceIntegration';
 
 /**
@@ -32,9 +32,7 @@ export class GraphQL extends NodePerformanceIntegration<void> implements Integra
       new GraphQLInstrumentation({
         ignoreTrivialResolveSpans: true,
         responseHook(span) {
-          addOtelSpanData(span.spanContext().spanId, {
-            origin: 'auto.graphql.otel-graphql',
-          });
+          addOriginToOtelSpan(span, 'auto.graphql.otel.graphql');
         },
       }),
     ];
