@@ -603,8 +603,6 @@ export class ReplayContainer implements ReplayContainerInterface {
    * @hidden
    */
   public checkAndHandleExpiredSession(): boolean | void {
-    const oldSessionId = this.getSessionId();
-
     // Prevent starting a new session if the last user activity is older than
     // SESSION_IDLE_PAUSE_DURATION. Otherwise non-user activity can trigger a new
     // session+recording. This creates noisy replays that do not have much
@@ -626,24 +624,11 @@ export class ReplayContainer implements ReplayContainerInterface {
     // --- There is recent user activity --- //
     // This will create a new session if expired, based on expiry length
     if (!this._checkSession()) {
-      return;
+      // Check session handles the refreshing itself
+      return false;
     }
 
-    // Session was expired if session ids do not match
-    const expired = oldSessionId !== this.getSessionId();
-
-    if (!expired) {
-      return true;
-    }
-
-    // Session is expired, trigger a full snapshot (which will create a new session)
-    if (this.isPaused()) {
-      this.resume();
-    } else {
-      this._triggerFullSnapshot();
-    }
-
-    return false;
+    return true;
   }
 
   /**
