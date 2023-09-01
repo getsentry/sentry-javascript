@@ -11,11 +11,11 @@ import type {
   SeverityLevel,
   TraceContext,
 } from '@sentry/types';
-import { logger, uuid4 } from '@sentry/utils';
+import { eventFromMessage, eventFromUnknownInput, logger, uuid4 } from '@sentry/utils';
 
 import { BaseClient } from './baseclient';
 import { createCheckInEnvelope } from './checkin';
-import { eventFromMessage, eventFromUnknownInput } from './eventbuilder';
+import { getCurrentHub } from './hub';
 import type { Scope } from './scope';
 import { addTracingExtensions, getDynamicSamplingContextFromClient } from './tracing';
 
@@ -44,7 +44,7 @@ export class ServerRuntimeClient<O extends ClientOptions & ServerRuntimeClientOp
    * @inheritDoc
    */
   public eventFromException(exception: unknown, hint?: EventHint): PromiseLike<Event> {
-    return Promise.resolve(eventFromUnknownInput(this._options.stackParser, exception, hint));
+    return Promise.resolve(eventFromUnknownInput(getCurrentHub, this._options.stackParser, exception, hint));
   }
 
   /**
