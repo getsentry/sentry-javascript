@@ -2,22 +2,18 @@ import type {
   Event,
   EventHint,
   Exception,
+  Hub,
   Mechanism,
   Severity,
   SeverityLevel,
   StackFrame,
   StackParser,
 } from '@sentry/types';
-import {
-  addExceptionMechanism,
-  addExceptionTypeValue,
-  extractExceptionKeysForMessage,
-  isError,
-  isPlainObject,
-  normalizeToSize,
-} from '@sentry/utils';
 
-import { getCurrentHub } from './hub';
+import { isError, isPlainObject } from './is';
+import { addExceptionMechanism, addExceptionTypeValue } from './misc';
+import { normalizeToSize } from './normalize';
+import { extractExceptionKeysForMessage } from './object';
 
 /**
  * Extracts stack frames from the error.stack string
@@ -47,7 +43,12 @@ export function exceptionFromError(stackParser: StackParser, error: Error): Exce
  * Builds and Event from a Exception
  * @hidden
  */
-export function eventFromUnknownInput(stackParser: StackParser, exception: unknown, hint?: EventHint): Event {
+export function eventFromUnknownInput(
+  getCurrentHub: () => Hub,
+  stackParser: StackParser,
+  exception: unknown,
+  hint?: EventHint,
+): Event {
   let ex: unknown = exception;
   const providedMechanism: Mechanism | undefined =
     hint && hint.data && (hint.data as { mechanism: Mechanism }).mechanism;
