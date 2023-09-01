@@ -1,28 +1,10 @@
-import type { Scope } from '@sentry/core';
-import {
-  addTracingExtensions,
-  BaseClient,
-  createCheckInEnvelope,
-  getDynamicSamplingContextFromClient,
-  SDK_VERSION,
-  SessionFlusher,
-} from '@sentry/core';
-import type {
-  CheckIn,
-  DynamicSamplingContext,
-  Event,
-  EventHint,
-  MonitorConfig,
-  SerializedCheckIn,
-  Severity,
-  SeverityLevel,
-  TraceContext,
-} from '@sentry/types';
-import { logger, resolvedSyncPromise, uuid4 } from '@sentry/utils';
+import type { Scope, ServerRuntimeClientOptions } from '@sentry/core';
+import { SDK_VERSION, ServerRuntimeClient, SessionFlusher } from '@sentry/core';
+import type { Event, EventHint } from '@sentry/types';
+import { logger } from '@sentry/utils';
 import * as os from 'os';
 import { TextEncoder } from 'util';
 
-import { eventFromMessage, eventFromUnknownInput } from './eventbuilder';
 import type { NodeClientOptions } from './types';
 
 /**
@@ -31,7 +13,7 @@ import type { NodeClientOptions } from './types';
  * @see NodeClientOptions for documentation on configuration options.
  * @see SentryClient for usage documentation.
  */
-export class NodeClient extends BaseClient<NodeClientOptions> {
+export class NodeClient extends ServerRuntimeClient<NodeClientOptions> {
   protected _sessionFlusher: SessionFlusher | undefined;
 
   /**
@@ -57,10 +39,14 @@ export class NodeClient extends BaseClient<NodeClientOptions> {
       ...options.transportOptions,
     };
 
-    // The Node client always supports tracing
-    addTracingExtensions();
+    const clientOptions: ServerRuntimeClientOptions = {
+      ...options,
+      platform: 'node',
+      runtime: { name: 'node', version: global.process.version },
+      serverName: options.serverName || global.process.env.SENTRY_NAME || os.hostname(),
+    };
 
-    super(options);
+    super(clientOptions);
   }
 
   /**
@@ -134,104 +120,6 @@ export class NodeClient extends BaseClient<NodeClientOptions> {
   }
 
   /**
-   * @inheritDoc
-   */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/explicit-module-boundary-types
-  public eventFromException(exception: any, hint?: EventHint): PromiseLike<Event> {
-    return resolvedSyncPromise(eventFromUnknownInput(this._options.stackParser, exception, hint));
-  }
-
-  /**
-   * @inheritDoc
-   */
-  public eventFromMessage(
-    message: string,
-    // eslint-disable-next-line deprecation/deprecation
-    level: Severity | SeverityLevel = 'info',
-    hint?: EventHint,
-  ): PromiseLike<Event> {
-    return resolvedSyncPromise(
-      eventFromMessage(this._options.stackParser, message, level, hint, this._options.attachStacktrace),
-    );
-  }
-
-  /**
-   * Create a cron monitor check in and send it to Sentry.
-   *
-   * @param checkIn An object that describes a check in.
-   * @param upsertMonitorConfig An optional object that describes a monitor config. Use this if you want
-   * to create a monitor automatically when sending a check in.
-   * @returns A string representing the id of the check in.
-   */
-  public captureCheckIn(checkIn: CheckIn, monitorConfig?: MonitorConfig, scope?: Scope): string {
-    const id = checkIn.status !== 'in_progress' && checkIn.checkInId ? checkIn.checkInId : uuid4();
-    if (!this._isEnabled()) {
-      __DEBUG_BUILD__ && logger.warn('SDK not enabled, will not capture checkin.');
-      return id;
-    }
-
-    const options = this.getOptions();
-    const { release, environment, tunnel } = options;
-
-    const serializedCheckIn: SerializedCheckIn = {
-      check_in_id: id,
-      monitor_slug: checkIn.monitorSlug,
-      status: checkIn.status,
-      release,
-      environment,
-    };
-
-    if (checkIn.status !== 'in_progress') {
-      serializedCheckIn.duration = checkIn.duration;
-    }
-
-    if (monitorConfig) {
-      serializedCheckIn.monitor_config = {
-        schedule: monitorConfig.schedule,
-        checkin_margin: monitorConfig.checkinMargin,
-        max_runtime: monitorConfig.maxRuntime,
-        timezone: monitorConfig.timezone,
-      };
-    }
-
-    const [dynamicSamplingContext, traceContext] = this._getTraceInfoFromScope(scope);
-    if (traceContext) {
-      serializedCheckIn.contexts = {
-        trace: traceContext,
-      };
-    }
-
-    const envelope = createCheckInEnvelope(
-      serializedCheckIn,
-      dynamicSamplingContext,
-      this.getSdkMetadata(),
-      tunnel,
-      this.getDsn(),
-    );
-
-    __DEBUG_BUILD__ && logger.info('Sending checkin:', checkIn.monitorSlug, checkIn.status);
-    void this._sendEnvelope(envelope);
-    return id;
-  }
-
-  /**
-   * @inheritDoc
-   */
-  protected _prepareEvent(event: Event, hint: EventHint, scope?: Scope): PromiseLike<Event | null> {
-    event.platform = event.platform || 'node';
-    event.contexts = {
-      ...event.contexts,
-      runtime: event.contexts?.runtime || {
-        name: 'node',
-        version: global.process.version,
-      },
-    };
-    event.server_name =
-      event.server_name || this.getOptions().serverName || global.process.env.SENTRY_NAME || os.hostname();
-    return super._prepareEvent(event, hint, scope);
-  }
-
-  /**
    * Method responsible for capturing/ending a request session by calling `incrementSessionStatusCount` to increment
    * appropriate session aggregates bucket
    */
@@ -241,31 +129,5 @@ export class NodeClient extends BaseClient<NodeClientOptions> {
     } else {
       this._sessionFlusher.incrementSessionStatusCount();
     }
-  }
-
-  /** Extract trace information from scope */
-  private _getTraceInfoFromScope(
-    scope: Scope | undefined,
-  ): [dynamicSamplingContext: Partial<DynamicSamplingContext> | undefined, traceContext: TraceContext | undefined] {
-    if (!scope) {
-      return [undefined, undefined];
-    }
-
-    const span = scope.getSpan();
-    if (span) {
-      return [span?.transaction?.getDynamicSamplingContext(), span?.getTraceContext()];
-    }
-
-    const { traceId, spanId, parentSpanId, dsc } = scope.getPropagationContext();
-    const traceContext: TraceContext = {
-      trace_id: traceId,
-      span_id: spanId,
-      parent_span_id: parentSpanId,
-    };
-    if (dsc) {
-      return [dsc, traceContext];
-    }
-
-    return [getDynamicSamplingContextFromClient(traceId, this, scope), traceContext];
   }
 }

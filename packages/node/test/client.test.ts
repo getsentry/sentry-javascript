@@ -233,8 +233,8 @@ describe('NodeClient', () => {
 
     test('adds server name to event when value given in env', () => {
       const options = getDefaultNodeClientOptions({ dsn: PUBLIC_DSN });
-      client = new NodeClient(options);
       process.env.SENTRY_NAME = 'foo';
+      client = new NodeClient(options);
 
       const event: Event = {};
       const hint: EventHint = {};
