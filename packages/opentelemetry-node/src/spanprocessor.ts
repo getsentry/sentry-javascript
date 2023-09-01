@@ -92,7 +92,7 @@ export class SentrySpanProcessor implements OtelSpanProcessor {
    */
   public onEnd(otelSpan: OtelSpan): void {
     const otelSpanId = otelSpan.spanContext().spanId;
-    const sentrySpan = SENTRY_SPAN_PROCESSOR_MAP.get(otelSpanId);
+    const sentrySpan = getSentrySpan(otelSpanId);
 
     if (!sentrySpan) {
       __DEBUG_BUILD__ &&
