@@ -6,6 +6,7 @@ import { OTEL_CONTEXT_HUB_KEY } from './otelContextManager';
 
 /**
  * Sets the async context strategy to use follow the OTEL context under the hood.
+ * We handle forking a hub inside of our custom OTEL Context Manager (./otelContextManager.ts)
  */
 export function setOtelContextAsyncContextStrategy(): void {
   function getCurrentHub(): Hub | undefined {
