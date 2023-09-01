@@ -28,12 +28,12 @@ export interface ServerRuntimeClientOptions extends ClientOptions<BaseTransportO
 /**
  * The Sentry Server Runtime Client SDK.
  */
-export class ServerRuntimeClient extends BaseClient<ServerRuntimeClientOptions> {
+export class ServerRuntimeClient<O extends ClientOptions & ServerRuntimeClientOptions> extends BaseClient<O> {
   /**
    * Creates a new Edge SDK instance.
    * @param options Configuration options for this SDK.
    */
-  public constructor(options: ServerRuntimeClientOptions) {
+  public constructor(options: O) {
     // Server clients always support tracing
     addTracingExtensions();
 
