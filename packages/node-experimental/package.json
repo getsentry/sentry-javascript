@@ -37,6 +37,7 @@
     "@opentelemetry/instrumentation-pg": "~0.36.0",
     "@opentelemetry/sdk-trace-node": "~1.15.0",
     "@opentelemetry/semantic-conventions": "~1.15.0",
+    "@opentelemetry/context-async-hooks": "~1.15.0",
     "@prisma/instrumentation": "~5.0.0",
     "@sentry/core": "7.66.0",
     "@sentry/node": "7.66.0",
