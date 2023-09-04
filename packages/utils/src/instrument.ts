@@ -247,8 +247,8 @@ export function parseFetchArgs(fetchArgs: unknown[]): { method: string; url: str
 }
 
 /** JSDoc */
-function instrumentXHR(): void {
-  if (!('XMLHttpRequest' in WINDOW)) {
+export function instrumentXHR(): void {
+  if (!((WINDOW as any).XMLHttpRequest)) {
     return;
   }
 
@@ -539,8 +539,8 @@ type InstrumentedElement = Element & {
 };
 
 /** JSDoc */
-function instrumentDOM(): void {
-  if (!('document' in WINDOW)) {
+export function instrumentDOM(): void {
+  if (!(WINDOW.document)) {
     return;
   }
 

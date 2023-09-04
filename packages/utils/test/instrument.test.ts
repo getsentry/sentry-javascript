@@ -1,6 +1,24 @@
-import { parseFetchArgs } from '../src/instrument';
+import jestMock from 'jest-mock';
+import { instrumentXHR, instrumentDOM, parseFetchArgs } from '../src/instrument';
+
+//@ts-ignore
+jestMock.mock('../src/worldwide', () => ({
+  //Return an empty object with undefined properties
+  getGlobalObject: () => ({
+    document: undefined,
+    XMLHttpRequest: undefined,
+  })
+}))
 
 describe('instrument', () => {
+  describe('polyfilling', () => {
+    it('does not instrumentXHR if no XMLHttpRequest detected', () => {
+      expect(instrumentXHR()).not.toThrow();
+    });
+    it('does not instrumentDOM if no document detected', () => {
+      expect(instrumentDOM()).not.toThrow();
+    });
+  });
   describe('parseFetchArgs', () => {
     it.each([
       ['string URL only', ['http://example.com'], { method: 'GET', url: 'http://example.com' }],
