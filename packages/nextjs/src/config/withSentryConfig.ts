@@ -112,7 +112,7 @@ function setUpTunnelRewriteRules(userNextConfig: NextConfigObject, tunnelPath: s
           value: '(?<projectid>.*)',
         },
       ],
-      destination: 'https://o:orgid.ingest.sentry.io/api/:projectid/envelope/',
+      destination: 'https://o:orgid.ingest.sentry.io/api/:projectid/envelope/?hsts=0',
     };
 
     if (typeof originalRewrites !== 'function') {
