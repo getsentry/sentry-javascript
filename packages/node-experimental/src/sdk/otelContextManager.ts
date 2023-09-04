@@ -5,6 +5,7 @@ import type { Carrier, Hub } from '@sentry/core';
 import { ensureHubOnCarrier, getCurrentHub, getHubFromCarrier } from '@sentry/core';
 
 export const OTEL_CONTEXT_HUB_KEY = api.createContextKey('sentry_hub');
+export const OTEL_CONTEXT_PARENT_KEY = api.createContextKey('sentry_parent_context');
 
 function createNewHub(parent: Hub | undefined): Hub {
   const carrier: Carrier = {};
@@ -33,6 +34,11 @@ export class SentryContextManager extends AsyncLocalStorageContextManager {
     const existingHub = getCurrentHub();
     const newHub = createNewHub(existingHub);
 
-    return super.with(context.setValue(OTEL_CONTEXT_HUB_KEY, newHub), fn, thisArg, ...args);
+    return super.with(
+      context.setValue(OTEL_CONTEXT_HUB_KEY, newHub).setValue(OTEL_CONTEXT_PARENT_KEY, context),
+      fn,
+      thisArg,
+      ...args,
+    );
   }
 }
