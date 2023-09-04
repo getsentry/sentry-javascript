@@ -1,8 +1,8 @@
 import type { Instrumentation } from '@opentelemetry/instrumentation';
 import { MySQL2Instrumentation } from '@opentelemetry/instrumentation-mysql2';
-import { addOtelSpanData } from '@sentry/opentelemetry-node';
 import type { Integration } from '@sentry/types';
 
+import { addOriginToOtelSpan } from '../utils/addOriginToSpan';
 import { NodePerformanceIntegration } from './NodePerformanceIntegration';
 
 /**
@@ -31,9 +31,7 @@ export class Mysql2 extends NodePerformanceIntegration<void> implements Integrat
     return [
       new MySQL2Instrumentation({
         responseHook(span) {
-          addOtelSpanData(span.spanContext().spanId, {
-            origin: 'auto.db.otel-mysql2',
-          });
+          addOriginToOtelSpan(span, 'auto.db.otel.mysql2');
         },
       }),
     ];
