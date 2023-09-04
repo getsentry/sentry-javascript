@@ -21,7 +21,8 @@ function isErrorResponse(error: unknown): error is ErrorResponse {
  * @param error The error to capture.
  * @returns void
  */
-export function captureRemixErrorBoundaryError(error: unknown): void {
+export function captureRemixErrorBoundaryError(error: unknown): string | undefined {
+  let eventId: string | undefined;
   const isClientSideRuntimeError = !isNodeEnv() && error instanceof Error;
   const isRemixErrorResponse = isErrorResponse(error);
   // Server-side errors apart from `ErrorResponse`s also appear here without their stacktraces.
@@ -51,15 +52,17 @@ export function captureRemixErrorBoundaryError(error: unknown): void {
 
       if (isRemixErrorResponse) {
         if (isString(error.data)) {
-          captureException(error.data);
+          eventId = captureException(error.data);
         } else if (error.statusText) {
-          captureException(error.statusText);
+          eventId = captureException(error.statusText);
         } else {
-          captureException(error);
+          eventId = captureException(error);
         }
       } else {
-        captureException(error);
+        eventId = captureException(error);
       }
     });
   }
+
+  return eventId;
 }

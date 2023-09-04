@@ -1,4 +1,5 @@
 /* eslint-disable import/export */
+import { NodeOptions } from '@sentry/node';
 import { configureScope, getCurrentHub, init as nodeInit } from '@sentry/node';
 import { logger } from '@sentry/utils';
 
@@ -75,9 +76,9 @@ export function init(options: RemixOptions): void {
     return;
   }
 
-  instrumentServer();
+  instrumentServer(options.isRemixV2);
 
-  nodeInit(options);
+  nodeInit(options as NodeOptions);
 
   configureScope(scope => {
     scope.setTag('runtime', 'node');

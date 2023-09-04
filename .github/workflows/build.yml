@@ -787,6 +787,7 @@ jobs:
             'create-react-app',
             'create-next-app',
             'create-remix-app',
+            'create-remix-app-v2',
             'nextjs-app-dir',
             'react-create-hash-router',
             'react-router-6-use-routes',
