@@ -1,4 +1,5 @@
 import * as SentryNode from '@sentry/node';
+import type { Event } from '@sentry/types';
 import * as domain from 'domain';
 
 import * as Sentry from '../src';
@@ -12,7 +13,6 @@ import type {
   Request,
   Response,
 } from '../src/gcpfunction/general';
-
 /**
  * Why @ts-ignore some Sentry.X calls
  *
@@ -198,7 +198,7 @@ describe('GCPFunction', () => {
       expect(SentryNode.fakeHub.startTransaction).toBeCalledWith(fakeTransactionContext);
       // @ts-ignore see "Why @ts-ignore" note
       expect(SentryNode.fakeScope.setSpan).toBeCalledWith(fakeTransaction);
-      expect(SentryNode.captureException).toBeCalledWith(error);
+      expect(SentryNode.captureException).toBeCalledWith(error, expect.any(Function));
       // @ts-ignore see "Why @ts-ignore" note
       expect(SentryNode.fakeTransaction.finish).toBeCalled();
       expect(SentryNode.flush).toBeCalled();
@@ -317,7 +317,7 @@ describe('GCPFunction', () => {
       expect(SentryNode.fakeHub.startTransaction).toBeCalledWith(fakeTransactionContext);
       // @ts-ignore see "Why @ts-ignore" note
       expect(SentryNode.fakeScope.setSpan).toBeCalledWith(fakeTransaction);
-      expect(SentryNode.captureException).toBeCalledWith(error);
+      expect(SentryNode.captureException).toBeCalledWith(error, expect.any(Function));
       // @ts-ignore see "Why @ts-ignore" note
       expect(SentryNode.fakeTransaction.finish).toBeCalled();
       expect(SentryNode.flush).toBeCalled();
@@ -382,7 +382,7 @@ describe('GCPFunction', () => {
       expect(SentryNode.fakeHub.startTransaction).toBeCalledWith(fakeTransactionContext);
       // @ts-ignore see "Why @ts-ignore" note
       expect(SentryNode.fakeScope.setSpan).toBeCalledWith(fakeTransaction);
-      expect(SentryNode.captureException).toBeCalledWith(error);
+      expect(SentryNode.captureException).toBeCalledWith(error, expect.any(Function));
       // @ts-ignore see "Why @ts-ignore" note
       expect(SentryNode.fakeTransaction.finish).toBeCalled();
       expect(SentryNode.flush).toBeCalled();
@@ -440,7 +440,7 @@ describe('GCPFunction', () => {
       expect(SentryNode.fakeHub.startTransaction).toBeCalledWith(fakeTransactionContext);
       // @ts-ignore see "Why @ts-ignore" note
       expect(SentryNode.fakeScope.setSpan).toBeCalledWith(fakeTransaction);
-      expect(SentryNode.captureException).toBeCalledWith(error);
+      expect(SentryNode.captureException).toBeCalledWith(error, expect.any(Function));
       // @ts-ignore see "Why @ts-ignore" note
       expect(SentryNode.fakeTransaction.finish).toBeCalled();
       expect(SentryNode.flush).toBeCalled();
@@ -469,7 +469,33 @@ describe('GCPFunction', () => {
       expect(SentryNode.fakeHub.startTransaction).toBeCalledWith(fakeTransactionContext);
       // @ts-ignore see "Why @ts-ignore" note
       expect(SentryNode.fakeScope.setSpan).toBeCalledWith(fakeTransaction);
-      expect(SentryNode.captureException).toBeCalledWith(error);
+      expect(SentryNode.captureException).toBeCalledWith(error, expect.any(Function));
+    });
+  });
+
+  test('marks the captured error as unhandled', async () => {
+    expect.assertions(4);
+
+    const error = new Error('wat');
+    const handler: EventFunctionWithCallback = (_data, _context, _cb) => {
+      throw error;
+    };
+    const wrappedHandler = wrapEventFunction(handler);
+    await expect(handleEvent(wrappedHandler)).rejects.toThrowError(error);
+
+    expect(SentryNode.captureException).toBeCalledWith(error, expect.any(Function));
+
+    // @ts-ignore just mocking around...
+    const scopeFunction = SentryNode.captureException.mock.calls[0][1];
+    const event: Event = { exception: { values: [{}] } };
+    let evtProcessor: ((e: Event) => Event) | undefined = undefined;
+    scopeFunction({ addEventProcessor: jest.fn().mockImplementation(proc => (evtProcessor = proc)) });
+
+    expect(evtProcessor).toBeInstanceOf(Function);
+    // @ts-ignore just mocking around...
+    expect(evtProcessor(event).exception.values[0].mechanism).toEqual({
+      handled: false,
+      type: 'generic',
     });
   });
 
@@ -537,7 +563,7 @@ describe('GCPFunction', () => {
       expect(SentryNode.fakeHub.startTransaction).toBeCalledWith(fakeTransactionContext);
       // @ts-ignore see "Why @ts-ignore" note
       expect(SentryNode.fakeScope.setSpan).toBeCalledWith(fakeTransaction);
-      expect(SentryNode.captureException).toBeCalledWith(error);
+      expect(SentryNode.captureException).toBeCalledWith(error, expect.any(Function));
       // @ts-ignore see "Why @ts-ignore" note
       expect(SentryNode.fakeTransaction.finish).toBeCalled();
       expect(SentryNode.flush).toBeCalled();
@@ -595,7 +621,7 @@ describe('GCPFunction', () => {
       expect(SentryNode.fakeHub.startTransaction).toBeCalledWith(fakeTransactionContext);
       // @ts-ignore see "Why @ts-ignore" note
       expect(SentryNode.fakeScope.setSpan).toBeCalledWith(fakeTransaction);
-      expect(SentryNode.captureException).toBeCalledWith(error);
+      expect(SentryNode.captureException).toBeCalledWith(error, expect.any(Function));
       // @ts-ignore see "Why @ts-ignore" note
       expect(SentryNode.fakeTransaction.finish).toBeCalled();
       expect(SentryNode.flush).toBeCalled();
@@ -625,7 +651,7 @@ describe('GCPFunction', () => {
       // @ts-ignore see "Why @ts-ignore" note
       expect(SentryNode.fakeScope.setSpan).toBeCalledWith(fakeTransaction);
 
-      expect(SentryNode.captureException).toBeCalledWith(error);
+      expect(SentryNode.captureException).toBeCalledWith(error, expect.any(Function));
     });
   });
 
