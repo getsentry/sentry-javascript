@@ -1,4 +1,5 @@
 /* eslint-disable import/export */
+import type { BrowserOptions } from '@sentry/react';
 import { configureScope, init as reactInit } from '@sentry/react';
 
 import { buildMetadata } from './utils/metadata';
@@ -11,7 +12,7 @@ export function init(options: RemixOptions): void {
   buildMetadata(options, ['remix', 'react']);
   options.environment = options.environment || process.env.NODE_ENV;
 
-  reactInit(options);
+  reactInit(options as BrowserOptions);
 
   configureScope(scope => {
     scope.setTag('runtime', 'browser');

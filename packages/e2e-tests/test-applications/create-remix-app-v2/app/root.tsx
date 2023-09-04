@@ -22,7 +22,7 @@ export const loader = () => {
   });
 };
 
-export function ErrorBoundary() {
+export const ErrorBoundary = () => {
   const error = useRouteError() as { eventId?: string | Promise<string> | undefined };
   const eventId = captureRemixErrorBoundaryError(error);
 
@@ -32,7 +32,7 @@ export function ErrorBoundary() {
       <span id="event-id">{eventId}</span>
     </div>
   );
-}
+};
 
 function App() {
   const { ENV } = useLoaderData();
@@ -60,4 +60,6 @@ function App() {
   );
 }
 
-export default withSentry(App);
+export default withSentry(App, {
+  wrapWithErrorBoundary: false,
+});

@@ -33,6 +33,7 @@ import type {
 import { normalizeRemixRequest } from './web-fetch';
 
 let FUTURE_FLAGS: FutureConfig | undefined;
+let IS_REMIX_V2: boolean | undefined;
 
 // Flag to track if the core request handler is instrumented.
 export let isRequestHandlerWrapped = false;
@@ -154,7 +155,7 @@ function makeWrappedDocumentRequestFunction(
 
       span?.finish();
     } catch (err) {
-      if (!FUTURE_FLAGS?.v2_errorBoundary) {
+      if (!FUTURE_FLAGS?.v2_errorBoundary && !IS_REMIX_V2) {
         await captureRemixServerException(err, 'documentRequest', request);
       }
 
@@ -191,7 +192,7 @@ function makeWrappedDataFunction(origFn: DataFunction, id: string, name: 'action
       currentScope.setSpan(activeTransaction);
       span?.finish();
     } catch (err) {
-      if (!FUTURE_FLAGS?.v2_errorBoundary) {
+      if (!FUTURE_FLAGS?.v2_errorBoundary && !IS_REMIX_V2) {
         await captureRemixServerException(err, name, args.request);
       }
 
@@ -463,7 +464,9 @@ function makeWrappedCreateRequestHandler(
  * Monkey-patch Remix's `createRequestHandler` from `@remix-run/server-runtime`
  * which Remix Adapters (https://remix.run/docs/en/v1/api/remix) use underneath.
  */
-export function instrumentServer(): void {
+export function instrumentServer(isRemixV2?: boolean): void {
+  IS_REMIX_V2 = isRemixV2;
+
   const pkg = loadModule<{ createRequestHandler: CreateRequestHandlerFunction }>('@remix-run/server-runtime');
 
   if (!pkg) {
