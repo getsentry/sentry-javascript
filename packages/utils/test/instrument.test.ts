@@ -7,8 +7,8 @@ jestMock.mock('../src/worldwide', () => ({
   getGlobalObject: () => ({
     document: undefined,
     XMLHttpRequest: undefined,
-  })
-}))
+  }),
+}));
 
 describe('instrument', () => {
   describe('polyfilling', () => {

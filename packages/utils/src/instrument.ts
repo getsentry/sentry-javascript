@@ -248,7 +248,7 @@ export function parseFetchArgs(fetchArgs: unknown[]): { method: string; url: str
 
 /** JSDoc */
 export function instrumentXHR(): void {
-  if (!((WINDOW as any).XMLHttpRequest)) {
+  if (!(WINDOW as any).XMLHttpRequest) {
     return;
   }
 
@@ -540,7 +540,7 @@ type InstrumentedElement = Element & {
 
 /** JSDoc */
 export function instrumentDOM(): void {
-  if (!(WINDOW.document)) {
+  if (!WINDOW.document) {
     return;
   }
 
