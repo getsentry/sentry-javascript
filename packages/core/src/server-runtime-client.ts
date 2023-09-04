@@ -17,6 +17,7 @@ import { BaseClient } from './baseclient';
 import { createCheckInEnvelope } from './checkin';
 import { getCurrentHub } from './hub';
 import type { Scope } from './scope';
+import { SessionFlusher } from './sessionflusher';
 import { addTracingExtensions, getDynamicSamplingContextFromClient } from './tracing';
 
 export interface ServerRuntimeClientOptions extends ClientOptions<BaseTransportOptions> {
@@ -31,6 +32,8 @@ export interface ServerRuntimeClientOptions extends ClientOptions<BaseTransportO
 export class ServerRuntimeClient<
   O extends ClientOptions & ServerRuntimeClientOptions = ServerRuntimeClientOptions,
 > extends BaseClient<O> {
+  protected _sessionFlusher: SessionFlusher | undefined;
+
   /**
    * Creates a new Edge SDK instance.
    * @param options Configuration options for this SDK.
@@ -61,6 +64,78 @@ export class ServerRuntimeClient<
     return Promise.resolve(
       eventFromMessage(this._options.stackParser, message, level, hint, this._options.attachStacktrace),
     );
+  }
+
+  /**
+   * @inheritDoc
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/explicit-module-boundary-types
+  public captureException(exception: any, hint?: EventHint, scope?: Scope): string | undefined {
+    // Check if the flag `autoSessionTracking` is enabled, and if `_sessionFlusher` exists because it is initialised only
+    // when the `requestHandler` middleware is used, and hence the expectation is to have SessionAggregates payload
+    // sent to the Server only when the `requestHandler` middleware is used
+    if (this._options.autoSessionTracking && this._sessionFlusher && scope) {
+      const requestSession = scope.getRequestSession();
+
+      // Necessary checks to ensure this is code block is executed only within a request
+      // Should override the status only if `requestSession.status` is `Ok`, which is its initial stage
+      if (requestSession && requestSession.status === 'ok') {
+        requestSession.status = 'errored';
+      }
+    }
+
+    return super.captureException(exception, hint, scope);
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public captureEvent(event: Event, hint?: EventHint, scope?: Scope): string | undefined {
+    // Check if the flag `autoSessionTracking` is enabled, and if `_sessionFlusher` exists because it is initialised only
+    // when the `requestHandler` middleware is used, and hence the expectation is to have SessionAggregates payload
+    // sent to the Server only when the `requestHandler` middleware is used
+    if (this._options.autoSessionTracking && this._sessionFlusher && scope) {
+      const eventType = event.type || 'exception';
+      const isException =
+        eventType === 'exception' && event.exception && event.exception.values && event.exception.values.length > 0;
+
+      // If the event is of type Exception, then a request session should be captured
+      if (isException) {
+        const requestSession = scope.getRequestSession();
+
+        // Ensure that this is happening within the bounds of a request, and make sure not to override
+        // Session Status if Errored / Crashed
+        if (requestSession && requestSession.status === 'ok') {
+          requestSession.status = 'errored';
+        }
+      }
+    }
+
+    return super.captureEvent(event, hint, scope);
+  }
+
+  /**
+   *
+   * @inheritdoc
+   */
+  public close(timeout?: number): PromiseLike<boolean> {
+    if (this._sessionFlusher) {
+      this._sessionFlusher.close();
+    }
+    return super.close(timeout);
+  }
+
+  /** Method that initialises an instance of SessionFlusher on Client */
+  public initSessionFlusher(): void {
+    const { release, environment } = this._options;
+    if (!release) {
+      __DEBUG_BUILD__ && logger.warn('Cannot initialise an instance of SessionFlusher if no release is provided!');
+    } else {
+      this._sessionFlusher = new SessionFlusher(this, {
+        release,
+        environment,
+      });
+    }
   }
 
   /**
@@ -119,6 +194,18 @@ export class ServerRuntimeClient<
     __DEBUG_BUILD__ && logger.info('Sending checkin:', checkIn.monitorSlug, checkIn.status);
     void this._sendEnvelope(envelope);
     return id;
+  }
+
+  /**
+   * Method responsible for capturing/ending a request session by calling `incrementSessionStatusCount` to increment
+   * appropriate session aggregates bucket
+   */
+  protected _captureRequestSession(): void {
+    if (!this._sessionFlusher) {
+      __DEBUG_BUILD__ && logger.warn('Discarded request mode session because autoSessionTracking option was disabled');
+    } else {
+      this._sessionFlusher.incrementSessionStatusCount();
+    }
   }
 
   /**
