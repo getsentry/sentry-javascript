@@ -1,10 +1,11 @@
 import type { ErrorBoundaryProps } from '@sentry/react';
-import { WINDOW, withErrorBoundary } from '@sentry/react';
+import { getCurrentHub, WINDOW, withErrorBoundary } from '@sentry/react';
 import type { Transaction, TransactionContext } from '@sentry/types';
 import { isNodeEnv, logger } from '@sentry/utils';
 import * as React from 'react';
 
 import { getFutureFlagsBrowser } from '../utils/futureFlags';
+import type { RemixOptions } from '../utils/remixOptions';
 
 const DEFAULT_TAGS = {
   'routing.instrumentation': 'remix-router',
@@ -39,6 +40,13 @@ let _useMatches: UseMatches;
 
 let _customStartTransaction: (context: TransactionContext) => Transaction | undefined;
 let _startTransactionOnLocationChange: boolean;
+
+function isRemixV2(): boolean {
+  const client = getCurrentHub().getClient();
+  const opt = client && (client.getOptions() as RemixOptions);
+
+  return (opt && opt.isRemixV2) || getFutureFlagsBrowser()?.v2_errorBoundary || false;
+}
 
 function getInitPathName(): string | undefined {
   if (WINDOW && WINDOW.location) {
@@ -97,7 +105,7 @@ export function withSentry<P extends Record<string, unknown>, R extends React.FC
     errorBoundaryOptions?: ErrorBoundaryProps;
   } = {
     // We don't want to wrap application with Sentry's ErrorBoundary by default for Remix v2
-    wrapWithErrorBoundary: getFutureFlagsBrowser()?.v2_errorBoundary ? false : true,
+    wrapWithErrorBoundary: true,
     errorBoundaryOptions: {},
   },
 ): R {
@@ -159,8 +167,8 @@ export function withSentry<P extends Record<string, unknown>, R extends React.FC
     return <OrigApp {...props} />;
   };
 
-  if (options.wrapWithErrorBoundary) {
-    // @ts-expect-error Setting more specific React Component typing for `R` generic above
+  if (!isRemixV2() && options.wrapWithErrorBoundary) {
+    // @ts-ignore Setting more specific React Component typing for `R` generic above
     // will break advanced type inference done by react router params
     return withErrorBoundary(SentryRoot, options.errorBoundaryOptions);
   }

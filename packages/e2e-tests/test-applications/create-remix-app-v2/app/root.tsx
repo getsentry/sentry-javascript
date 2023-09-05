@@ -60,6 +60,4 @@ function App() {
   );
 }
 
-export default withSentry(App, {
-  wrapWithErrorBoundary: false,
-});
+export default withSentry(App);
