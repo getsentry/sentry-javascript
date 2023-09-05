@@ -3,7 +3,7 @@
 You can use [@sentry/migr8](https://github.com/getsentry/sentry-migr8) to automatically update your SDK usage and fix most deprecations:
 
 ```bash
-npx @sentry/migr8
+npx @sentry/migr8@latest
 ```
 
 This will let you select which updates to run, and automatically update your code. Make sure to still review all code changes!
