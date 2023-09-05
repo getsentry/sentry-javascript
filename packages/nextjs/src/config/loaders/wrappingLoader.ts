@@ -316,7 +316,7 @@ async function wrapUserCode(
           strictRequires: true, // Don't hoist require statements that users may define
           ignoreDynamicRequires: true, // Don't break dynamic requires and things like Webpack's `require.context`
           ignore() {
-            // We want basically only want to use this plugin for handling the case where users export their handlers with module.exports.
+            // We basically only want to use this plugin for handling the case where users export their handlers with module.exports.
             // This plugin would also be able to convert any `require` into something esm compatible but webpack does that anyways so we just skip that part of the plugin.
             // (Also, modifying require may break user code)
             return true;
