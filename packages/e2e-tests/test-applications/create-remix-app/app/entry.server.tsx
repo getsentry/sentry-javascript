@@ -23,12 +23,8 @@ Sentry.init({
 
 export function handleError(error: unknown, { request }: DataFunctionArgs): void {
   if (error instanceof Error) {
-    // @ts-ignore
-    // Injecting the event ID into the error context allows us to reference it for E2E testing
     Sentry.captureRemixServerException(error, 'remix.server', request);
   } else {
-    // @ts-ignore
-    // Injecting the event ID into the error context allows us to reference it for E2E testing
     Sentry.captureException(error);
   }
 }

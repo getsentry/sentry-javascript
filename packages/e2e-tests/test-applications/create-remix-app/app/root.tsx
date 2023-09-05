@@ -23,7 +23,7 @@ export const loader = () => {
 };
 
 export function ErrorBoundary() {
-  const error = useRouteError() as { eventId?: string | Promise<string> | undefined };
+  const error = useRouteError();
   const eventId = captureRemixErrorBoundaryError(error);
 
   return (

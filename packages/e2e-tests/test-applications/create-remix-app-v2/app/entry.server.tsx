@@ -6,7 +6,7 @@
 
 import { PassThrough } from 'node:stream';
 
-import type { AppLoadContext, EntryContext } from '@remix-run/node';
+import type { AppLoadContext, EntryContext, DataFunctionArgs } from '@remix-run/node';
 import { Response } from '@remix-run/node';
 import { RemixServer } from '@remix-run/react';
 import isbot from 'isbot';
@@ -21,6 +21,14 @@ Sentry.init({
   tracesSampleRate: 1.0, // Capture 100% of the transactions, reduce in production!
   isRemixV2: true,
 });
+
+export function handleError(error: unknown, { request }: DataFunctionArgs): void {
+  if (error instanceof Error) {
+    Sentry.captureRemixServerException(error, 'remix.server', request);
+  } else {
+    Sentry.captureException(error);
+  }
+}
 
 export default function handleRequest(
   request: Request,
@@ -41,12 +49,10 @@ function handleBotRequest(
   remixContext: EntryContext,
 ) {
   return new Promise((resolve, reject) => {
-    let shellRendered = false;
     const { pipe, abort } = renderToPipeableStream(
       <RemixServer context={remixContext} url={request.url} abortDelay={ABORT_DELAY} />,
       {
         onAllReady() {
-          shellRendered = true;
           const body = new PassThrough();
 
           responseHeaders.set('Content-Type', 'text/html');
@@ -65,12 +71,7 @@ function handleBotRequest(
         },
         onError(error: unknown) {
           responseStatusCode = 500;
-          // Log streaming rendering errors from inside the shell.  Don't log
-          // errors encountered during initial shell rendering since they'll
-          // reject and get logged in handleDocumentRequest.
-          if (shellRendered) {
-            console.error(error);
-          }
+          console.error(error);
         },
       },
     );
@@ -86,12 +87,10 @@ function handleBrowserRequest(
   remixContext: EntryContext,
 ) {
   return new Promise((resolve, reject) => {
-    let shellRendered = false;
     const { pipe, abort } = renderToPipeableStream(
       <RemixServer context={remixContext} url={request.url} abortDelay={ABORT_DELAY} />,
       {
         onShellReady() {
-          shellRendered = true;
           const body = new PassThrough();
 
           responseHeaders.set('Content-Type', 'text/html');
@@ -109,13 +108,8 @@ function handleBrowserRequest(
           reject(error);
         },
         onError(error: unknown) {
+          console.error(error);
           responseStatusCode = 500;
-          // Log streaming rendering errors from inside the shell.  Don't log
-          // errors encountered during initial shell rendering since they'll
-          // reject and get logged in handleDocumentRequest.
-          if (shellRendered) {
-            console.error(error);
-          }
         },
       },
     );

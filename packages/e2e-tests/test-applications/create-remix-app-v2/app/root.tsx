@@ -22,8 +22,8 @@ export const loader = () => {
   });
 };
 
-export const ErrorBoundary = () => {
-  const error = useRouteError() as { eventId?: string | Promise<string> | undefined };
+export function ErrorBoundary() {
+  const error = useRouteError();
   const eventId = captureRemixErrorBoundaryError(error);
 
   return (
@@ -32,7 +32,7 @@ export const ErrorBoundary = () => {
       <span id="event-id">{eventId}</span>
     </div>
   );
-};
+}
 
 function App() {
   const { ENV } = useLoaderData();
