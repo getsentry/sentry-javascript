@@ -248,6 +248,7 @@ export function parseFetchArgs(fetchArgs: unknown[]): { method: string; url: str
 
 /** JSDoc */
 export function instrumentXHR(): void {
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
   if (!(WINDOW as any).XMLHttpRequest) {
     return;
   }
