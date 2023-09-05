@@ -32,10 +32,14 @@ If you have concerns about this, feel free to open an issue.
 - feat(node-experimental): Sync OTEL context with Sentry AsyncContext (#8797)
 - feat(replay): Allow to configure `maxReplayDuration` (#8769)
 - fix(browser): Add replay and profiling options to `BrowserClientOptions` (#8921)
+- fix(browser): Check for existence of instrumentation targets (#8939)
+- fix(nextjs): Don't re-export default in route handlers (#8924)
 - fix(node): Improve mysql integration (#8923)
 - fix(remix): Guard against missing default export for server instrument (#8909)
 - ref(browser): Deprecate top-level `wrap` function (#8927)
 - ref(node-otel): Avoid exporting internals & refactor attribute adding (#8920)
+
+Work in this release contributed by @SorsOps. Thank you for your contribution!
 
 ## 7.66.0
 
