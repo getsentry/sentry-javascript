@@ -319,8 +319,33 @@ function instrumentRouter(appOrRouter: ExpressRouter): void {
       req._hasParameters = true;
     }
 
+    /**
+     * prevent duplicate segment in _reconstructedRoute param if router match multiple routes before final path
+     * example:
+     * original url: /api/v1/1234
+     * prevent: /api/api/v1/:userId
+     * router structure
+     * /api -> middleware
+     * /api/v1 -> middleware
+     * /1234 -> endpoint with param :userId
+     * final _reconstructedRoute is /api/v1/:userId
+     */
+    const originalUrlSplit = req.originalUrl?.split('/').filter(v => !!v);
+    let tempCounter = 0;
+    const currentOffset = req._reconstructedRoute.split('/').filter(v => !!v).length || 0;
+    const layerPath = layer.path
+      ?.split('/')
+      .filter(segment => {
+        if (originalUrlSplit?.[currentOffset + tempCounter] === segment) {
+          tempCounter += 1;
+          return true;
+        }
+        return false;
+      })
+      .join('/');
+
     // Otherwise, the hardcoded path (i.e. a partial route without params) is stored in layer.path
-    const partialRoute = layerRoutePath || layer.path || '';
+    const partialRoute = layerRoutePath || layerPath || '';
 
     // Normalize the partial route so that it doesn't contain leading or trailing slashes
     // and exclude empty or '*' wildcard routes.
@@ -375,19 +400,18 @@ type LayerRoutePathInfo = {
 /**
  * Recreate layer.route.path from layer.regexp and layer.keys.
  * Works until express.js used package path-to-regexp@0.1.7
- * Or until layer.keys contain offset attribute
+ * or until layer.keys contain offset attribute
  *
  * @param layer the layer to extract the stringified route from
  *
  * @returns string in layer.route.path structure 'router/:pathParam' or undefined
  */
 const extractOriginalRoute = ({ path, regexp, keys }: Layer): string | undefined => {
-  if (!path || !regexp || !keys || Object.keys(keys).length === 0) {
+  if (!path || !regexp || !keys || Object.keys(keys).length === 0 || !keys[0]?.offset) {
     return undefined;
   }
-  /**
-   * add d flag for getting indices from regexp result
-   */
+
+  // add d flag for getting indices from regexp result
   const pathRegex = new RegExp(regexp, `${regexp.flags}d`);
 
   const orderedKeys = keys.sort((a, b) => a.offset - b.offset);
