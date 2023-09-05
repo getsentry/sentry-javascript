@@ -1,6 +1,7 @@
 export type { ClientClass } from './sdk';
 export type { AsyncContextStrategy, Carrier, Layer, RunWithAsyncContextOptions } from './hub';
 export type { OfflineStore, OfflineTransportOptions } from './transports/offline';
+export type { ServerRuntimeClientOptions } from './server-runtime-client';
 
 export * from './tracing';
 export {
@@ -38,6 +39,7 @@ export { SessionFlusher } from './sessionflusher';
 export { addGlobalEventProcessor, Scope } from './scope';
 export { getEnvelopeEndpointWithUrlEncodedAuth, getReportDialogEndpoint } from './api';
 export { BaseClient } from './baseclient';
+export { ServerRuntimeClient } from './server-runtime-client';
 export { initAndBind } from './sdk';
 export { createTransport } from './transports/base';
 export { makeOfflineTransport } from './transports/offline';
