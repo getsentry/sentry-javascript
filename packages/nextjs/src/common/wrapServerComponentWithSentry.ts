@@ -5,7 +5,7 @@ import {
   runWithAsyncContext,
   startTransaction,
 } from '@sentry/core';
-import { tracingContextFromHeaders } from '@sentry/utils';
+import { addExceptionMechanism, tracingContextFromHeaders } from '@sentry/utils';
 
 import { isNotFoundNavigationError, isRedirectNavigationError } from '../common/nextNavigationErrorUtils';
 import type { ServerComponentContext } from '../common/types';
@@ -63,7 +63,17 @@ export function wrapServerComponentWithSentry<F extends (...args: any[]) => any>
             // We don't want to report redirects
           } else {
             transaction.setStatus('internal_error');
-            captureException(e);
+
+            captureException(e, scope => {
+              scope.addEventProcessor(event => {
+                addExceptionMechanism(event, {
+                  handled: false,
+                });
+                return event;
+              });
+
+              return scope;
+            });
           }
 
           transaction.finish();

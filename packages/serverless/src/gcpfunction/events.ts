@@ -1,7 +1,7 @@
 import { captureException, flush, getCurrentHub } from '@sentry/node';
 import { isThenable, logger } from '@sentry/utils';
 
-import { domainify, proxyFunction } from '../utils';
+import { domainify, markEventUnhandled, proxyFunction } from '../utils';
 import type { EventFunction, EventFunctionWithCallback, WrapperOptions } from './general';
 
 export type EventFunctionWrapperOptions = WrapperOptions;
@@ -52,7 +52,7 @@ function _wrapEventFunction<F extends EventFunction | EventFunctionWithCallback>
 
     const newCallback = domainify((...args: unknown[]) => {
       if (args[0] !== null && args[0] !== undefined) {
-        captureException(args[0]);
+        captureException(args[0], scope => markEventUnhandled(scope));
       }
       transaction?.finish();
 
@@ -72,13 +72,13 @@ function _wrapEventFunction<F extends EventFunction | EventFunctionWithCallback>
       try {
         fnResult = (fn as EventFunctionWithCallback)(data, context, newCallback);
       } catch (err) {
-        captureException(err);
+        captureException(err, scope => markEventUnhandled(scope));
         throw err;
       }
 
       if (isThenable(fnResult)) {
         fnResult.then(null, err => {
-          captureException(err);
+          captureException(err, scope => markEventUnhandled(scope));
           throw err;
         });
       }

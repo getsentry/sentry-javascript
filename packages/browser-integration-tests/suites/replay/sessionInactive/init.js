@@ -12,7 +12,6 @@ Sentry.init({
   sampleRate: 0,
   replaysSessionSampleRate: 1.0,
   replaysOnErrorSampleRate: 0.0,
-  debug: true,
 
   integrations: [window.Replay],
 });
@@ -20,5 +19,4 @@ Sentry.init({
 window.Replay._replay.timeouts = {
   sessionIdlePause: 1000, // this is usually 5min, but we want to test this with shorter times
   sessionIdleExpire: 900000, // defayult: 15min
-  maxSessionLife: 3600000, // default: 60min
 };
