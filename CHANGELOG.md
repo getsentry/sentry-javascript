@@ -4,6 +4,43 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.67.0
+
+### Important Changes
+
+- **feat: Mark errors caught by the SDK as unhandled**
+  - feat(browser): Mark errors caught from `TryCatch` integration as unhandled (#8890)
+  - feat(integrations): Mark errors caught from `HttpClient` and `CaptureConsole` integrations as unhandled (#8891)
+  - feat(nextjs): Mark errors caught from NextJS wrappers as unhandled (#8893)
+  - feat(react): Mark errors captured from ErrorBoundary as unhandled (#8914)
+  - feat(remix): Add debugid injection and map deletion to sourcemaps script (#8814)
+  - feat(remix): Mark errors caught from Remix instrumentation as unhandled (#8894)
+  - feat(serverless): Mark errors caught in Serverless handlers as unhandled (#8907)
+  - feat(vue): Mark errors caught by Vue wrappers as unhandled (#8905)
+
+This release fixes inconsistent behaviour of when our SDKs classify captured errors as unhandled.
+Previously, some of our instrumentations correctly set unhandled, while others set handled.
+Going forward, all errors caught automatically from our SDKs will be marked as unhandled.
+If you manually capture errors (e.g. by calling `Sentry.captureException`), your errors will continue to be reported as handled.
+
+This change might lead to a decrease in reported crash-free sessions and consequently in your release health score.
+If you have concerns about this, feel free to open an issue.
+
+### Other Changes
+
+- feat(node-experimental): Implement new performance APIs (#8911)
+- feat(node-experimental): Sync OTEL context with Sentry AsyncContext (#8797)
+- feat(replay): Allow to configure `maxReplayDuration` (#8769)
+- fix(browser): Add replay and profiling options to `BrowserClientOptions` (#8921)
+- fix(browser): Check for existence of instrumentation targets (#8939)
+- fix(nextjs): Don't re-export default in route handlers (#8924)
+- fix(node): Improve mysql integration (#8923)
+- fix(remix): Guard against missing default export for server instrument (#8909)
+- ref(browser): Deprecate top-level `wrap` function (#8927)
+- ref(node-otel): Avoid exporting internals & refactor attribute adding (#8920)
+
+Work in this release contributed by @SorsOps. Thank you for your contribution!
+
 ## 7.66.0
 
 - fix: Defer tracing decision to downstream SDKs when using SDK without performance (#8839)
