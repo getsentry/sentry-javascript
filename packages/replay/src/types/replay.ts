@@ -13,10 +13,10 @@ import type { SKIPPED, THROTTLED } from '../util/throttle';
 import type { AllPerformanceEntry } from './performance';
 import type { ReplayFrameEvent } from './replayFrame';
 import type { ReplayNetworkRequestOrResponse } from './request';
-import type { eventWithTime, recordOptions } from './rrweb';
+import type { ReplayEventWithTime, RrwebRecordOptions } from './rrweb';
 
-export type RecordingEvent = ReplayFrameEvent | eventWithTime;
-export type RecordingOptions = recordOptions;
+export type RecordingEvent = ReplayFrameEvent | ReplayEventWithTime;
+export type RecordingOptions = RrwebRecordOptions;
 
 export interface SendReplayData {
   recordingData: ReplayRecordingData;
@@ -31,7 +31,6 @@ export interface SendReplayData {
 export interface Timeouts {
   sessionIdlePause: number;
   sessionIdleExpire: number;
-  maxSessionLife: number;
 }
 
 /**
@@ -186,6 +185,12 @@ export interface ReplayPluginOptions extends ReplayNetworkOptions {
    * Note that this is capped at max. 15s.
    */
   minReplayDuration: number;
+
+  /**
+   * The max. duration (in ms) a replay session may be.
+   * This is capped at max. 60min.
+   */
+  maxReplayDuration: number;
 
   /**
    * Callback before adding a custom recording event

@@ -1,7 +1,13 @@
 import type { Breadcrumb } from '@sentry/types';
 
 import { WINDOW } from '../constants';
-import type { MultiClickFrame, ReplayClickDetector, ReplayContainer, SlowClickConfig, SlowClickFrame } from '../types';
+import type {
+  ReplayClickDetector,
+  ReplayContainer,
+  ReplayMultiClickFrame,
+  ReplaySlowClickFrame,
+  SlowClickConfig,
+} from '../types';
 import { timestampToS } from '../util/timestamp';
 import { addBreadcrumbEvent } from './util/addBreadcrumbEvent';
 import { getClickTargetNode } from './util/domUtils';
@@ -216,7 +222,7 @@ export class ClickDetector implements ReplayClickDetector {
       const timeAfterClickMs = Math.min(click.mutationAfter || this._timeout, this._timeout) * 1000;
       const endReason = timeAfterClickMs < this._timeout * 1000 ? 'mutation' : 'timeout';
 
-      const breadcrumb: SlowClickFrame = {
+      const breadcrumb: ReplaySlowClickFrame = {
         type: 'default',
         message: clickBreadcrumb.message,
         timestamp: clickBreadcrumb.timestamp,
@@ -239,7 +245,7 @@ export class ClickDetector implements ReplayClickDetector {
 
     // Multi click
     if (clickCount > 1) {
-      const breadcrumb: MultiClickFrame = {
+      const breadcrumb: ReplayMultiClickFrame = {
         type: 'default',
         message: clickBreadcrumb.message,
         timestamp: clickBreadcrumb.timestamp,

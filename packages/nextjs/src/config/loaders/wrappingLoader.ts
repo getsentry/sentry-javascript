@@ -3,6 +3,7 @@ import { stringMatchesSomePattern } from '@sentry/utils';
 import * as chalk from 'chalk';
 import * as fs from 'fs';
 import * as path from 'path';
+import type { RollupBuild, RollupError } from 'rollup';
 import { rollup } from 'rollup';
 
 import type { VercelCronsConfig } from '../../common/types';
@@ -40,12 +41,15 @@ const serverComponentWrapperTemplatePath = path.resolve(
 );
 const serverComponentWrapperTemplateCode = fs.readFileSync(serverComponentWrapperTemplatePath, { encoding: 'utf8' });
 
+const routeHandlerWrapperTemplatePath = path.resolve(__dirname, '..', 'templates', 'routeHandlerWrapperTemplate.js');
+const routeHandlerWrapperTemplateCode = fs.readFileSync(routeHandlerWrapperTemplatePath, { encoding: 'utf8' });
+
 type LoaderOptions = {
   pagesDir: string;
   appDir: string;
   pageExtensionRegex: string;
   excludeServerRoutes: Array<RegExp | string>;
-  wrappingTargetKind: 'page' | 'api-route' | 'middleware' | 'server-component' | 'sentry-init';
+  wrappingTargetKind: 'page' | 'api-route' | 'middleware' | 'server-component' | 'sentry-init' | 'route-handler';
   sentryConfigFilePath?: string;
   vercelCronsConfig?: VercelCronsConfig;
 };
@@ -143,14 +147,14 @@ export default function wrappingLoader(
 
     // Inject the route and the path to the file we're wrapping into the template
     templateCode = templateCode.replace(/__ROUTE__/g, parameterizedPagesRoute.replace(/\\/g, '\\\\'));
-  } else if (wrappingTargetKind === 'server-component') {
+  } else if (wrappingTargetKind === 'server-component' || wrappingTargetKind === 'route-handler') {
     // Get the parameterized route name from this page's filepath
     const parameterizedPagesRoute = path.posix
       .normalize(path.relative(appDir, this.resourcePath))
       // Add a slash at the beginning
       .replace(/(.*)/, '/$1')
       // Pull off the file name
-      .replace(/\/[^/]+\.(js|jsx|tsx)$/, '')
+      .replace(/\/[^/]+\.(js|ts|jsx|tsx)$/, '')
       // Remove routing groups: https://beta.nextjs.org/docs/routing/defining-routes#example-creating-multiple-root-layouts
       .replace(/\/(\(.*?\)\/)+/g, '/')
       // In case all of the above have left us with an empty string (which will happen if we're dealing with the
@@ -172,7 +176,11 @@ export default function wrappingLoader(
       return;
     }
 
-    templateCode = serverComponentWrapperTemplateCode;
+    if (wrappingTargetKind === 'server-component') {
+      templateCode = serverComponentWrapperTemplateCode;
+    } else {
+      templateCode = routeHandlerWrapperTemplateCode;
+    }
 
     if (requestAsyncStorageModuleExists) {
       templateCode = templateCode.replace(
@@ -199,7 +207,7 @@ export default function wrappingLoader(
 
     const componentTypeMatch = path.posix
       .normalize(path.relative(appDir, this.resourcePath))
-      .match(/\/?([^/]+)\.(?:js|jsx|tsx)$/);
+      .match(/\/?([^/]+)\.(?:js|ts|jsx|tsx)$/);
 
     if (componentTypeMatch && componentTypeMatch[1]) {
       let componentType;
@@ -270,85 +278,101 @@ async function wrapUserCode(
   userModuleCode: string,
   userModuleSourceMap: any,
 ): Promise<{ code: string; map?: any }> {
-  const rollupBuild = await rollup({
-    input: SENTRY_WRAPPER_MODULE_NAME,
+  const wrap = (withDefaultExport: boolean): Promise<RollupBuild> =>
+    rollup({
+      input: SENTRY_WRAPPER_MODULE_NAME,
 
-    plugins: [
-      // We're using a simple custom plugin that virtualizes our wrapper module and the user module, so we don't have to
-      // mess around with file paths and so that we can pass the original user module source map to rollup so that
-      // rollup gives us a bundle with correct source mapping to the original file
-      {
-        name: 'virtualize-sentry-wrapper-modules',
-        resolveId: id => {
-          if (id === SENTRY_WRAPPER_MODULE_NAME || id === WRAPPING_TARGET_MODULE_NAME) {
-            return id;
-          } else {
-            return null;
-          }
+      plugins: [
+        // We're using a simple custom plugin that virtualizes our wrapper module and the user module, so we don't have to
+        // mess around with file paths and so that we can pass the original user module source map to rollup so that
+        // rollup gives us a bundle with correct source mapping to the original file
+        {
+          name: 'virtualize-sentry-wrapper-modules',
+          resolveId: id => {
+            if (id === SENTRY_WRAPPER_MODULE_NAME || id === WRAPPING_TARGET_MODULE_NAME) {
+              return id;
+            } else {
+              return null;
+            }
+          },
+          load(id) {
+            if (id === SENTRY_WRAPPER_MODULE_NAME) {
+              return withDefaultExport ? wrapperCode : wrapperCode.replace('export { default } from', 'export {} from');
+            } else if (id === WRAPPING_TARGET_MODULE_NAME) {
+              return {
+                code: userModuleCode,
+                map: userModuleSourceMap, // give rollup acces to original user module source map
+              };
+            } else {
+              return null;
+            }
+          },
         },
-        load(id) {
-          if (id === SENTRY_WRAPPER_MODULE_NAME) {
-            return wrapperCode;
-          } else if (id === WRAPPING_TARGET_MODULE_NAME) {
-            return {
-              code: userModuleCode,
-              map: userModuleSourceMap, // give rollup acces to original user module source map
-            };
-          } else {
-            return null;
-          }
-        },
+
+        // People may use `module.exports` in their API routes or page files. Next.js allows that and we also need to
+        // handle that correctly so we let a plugin to take care of bundling cjs exports for us.
+        commonjs({
+          sourceMap: true,
+          strictRequires: true, // Don't hoist require statements that users may define
+          ignoreDynamicRequires: true, // Don't break dynamic requires and things like Webpack's `require.context`
+          ignore() {
+            // We basically only want to use this plugin for handling the case where users export their handlers with module.exports.
+            // This plugin would also be able to convert any `require` into something esm compatible but webpack does that anyways so we just skip that part of the plugin.
+            // (Also, modifying require may break user code)
+            return true;
+          },
+        }),
+      ],
+
+      // We only want to bundle our wrapper module and the wrappee module into one, so we mark everything else as external.
+      external: sourceId => sourceId !== SENTRY_WRAPPER_MODULE_NAME && sourceId !== WRAPPING_TARGET_MODULE_NAME,
+
+      // Prevent rollup from stressing out about TS's use of global `this` when polyfilling await. (TS will polyfill if the
+      // user's tsconfig `target` is set to anything before `es2017`. See https://stackoverflow.com/a/72822340 and
+      // https://stackoverflow.com/a/60347490.)
+      context: 'this',
+
+      // Rollup's path-resolution logic when handling re-exports can go wrong when wrapping pages which aren't at the root
+      // level of the `pages` directory. This may be a bug, as it doesn't match the behavior described in the docs, but what
+      // seems to happen is this:
+      //
+      //   - We try to wrap `pages/xyz/userPage.js`, which contains `export { helperFunc } from '../../utils/helper'`
+      //   - Rollup converts '../../utils/helper' into an absolute path
+      //   - We mark the helper module as external
+      //   - Rollup then converts it back to a relative path, but relative to `pages/` rather than `pages/xyz/`. (This is
+      //     the part which doesn't match the docs. They say that Rollup will use the common ancestor of all modules in the
+      //     bundle as the basis for the relative path calculation, but both our temporary file and the page being wrapped
+      //     live in `pages/xyz/`, and they're the only two files in the bundle, so `pages/xyz/`` should be used as the
+      //     root. Unclear why it's not.)
+      //   - As a result of the miscalculation, our proxy module will include `export { helperFunc } from '../utils/helper'`
+      //     rather than the expected `export { helperFunc } from '../../utils/helper'`, thereby causing a build error in
+      //     nextjs..
+      //
+      // Setting `makeAbsoluteExternalsRelative` to `false` prevents all of the above by causing Rollup to ignore imports of
+      // externals entirely, with the result that their paths remain untouched (which is what we want).
+      makeAbsoluteExternalsRelative: false,
+      onwarn: (_warning, _warn) => {
+        // Suppress all warnings - we don't want to bother people with this output
+        // Might be stuff like "you have unused imports"
+        // _warn(_warning); // uncomment to debug
       },
+    });
 
-      // People may use `module.exports` in their API routes or page files. Next.js allows that and we also need to
-      // handle that correctly so we let a plugin to take care of bundling cjs exports for us.
-      commonjs({
-        sourceMap: true,
-        strictRequires: true, // Don't hoist require statements that users may define
-        ignoreDynamicRequires: true, // Don't break dynamic requires and things like Webpack's `require.context`
-        ignore() {
-          // We want basically only want to use this plugin for handling the case where users export their handlers with module.exports.
-          // This plugin would also be able to convert any `require` into something esm compatible but webpack does that anyways so we just skip that part of the plugin.
-          // (Also, modifying require may break user code)
-          return true;
-        },
-      }),
-    ],
-
-    // We only want to bundle our wrapper module and the wrappee module into one, so we mark everything else as external.
-    external: sourceId => sourceId !== SENTRY_WRAPPER_MODULE_NAME && sourceId !== WRAPPING_TARGET_MODULE_NAME,
-
-    // Prevent rollup from stressing out about TS's use of global `this` when polyfilling await. (TS will polyfill if the
-    // user's tsconfig `target` is set to anything before `es2017`. See https://stackoverflow.com/a/72822340 and
-    // https://stackoverflow.com/a/60347490.)
-    context: 'this',
-
-    // Rollup's path-resolution logic when handling re-exports can go wrong when wrapping pages which aren't at the root
-    // level of the `pages` directory. This may be a bug, as it doesn't match the behavior described in the docs, but what
-    // seems to happen is this:
-    //
-    //   - We try to wrap `pages/xyz/userPage.js`, which contains `export { helperFunc } from '../../utils/helper'`
-    //   - Rollup converts '../../utils/helper' into an absolute path
-    //   - We mark the helper module as external
-    //   - Rollup then converts it back to a relative path, but relative to `pages/` rather than `pages/xyz/`. (This is
-    //     the part which doesn't match the docs. They say that Rollup will use the common ancestor of all modules in the
-    //     bundle as the basis for the relative path calculation, but both our temporary file and the page being wrapped
-    //     live in `pages/xyz/`, and they're the only two files in the bundle, so `pages/xyz/`` should be used as the
-    //     root. Unclear why it's not.)
-    //   - As a result of the miscalculation, our proxy module will include `export { helperFunc } from '../utils/helper'`
-    //     rather than the expected `export { helperFunc } from '../../utils/helper'`, thereby causing a build error in
-    //     nextjs..
-    //
-    // Setting `makeAbsoluteExternalsRelative` to `false` prevents all of the above by causing Rollup to ignore imports of
-    // externals entirely, with the result that their paths remain untouched (which is what we want).
-    makeAbsoluteExternalsRelative: false,
-
-    onwarn: (_warning, _warn) => {
-      // Suppress all warnings - we don't want to bother people with this output
-      // Might be stuff like "you have unused imports"
-      // _warn(_warning); // uncomment to debug
-    },
-  });
+  // Next.js sometimes complains if you define a default export (e.g. in route handlers in dev mode).
+  // This is why we want to avoid unnecessarily creating default exports, even if they're just `undefined`.
+  // For this reason we try to bundle/wrap the user code once including a re-export of `default`.
+  // If the user code didn't have a default export, rollup will throw.
+  // We then try bundling/wrapping agian, but without including a re-export of `default`.
+  let rollupBuild;
+  try {
+    rollupBuild = await wrap(true);
+  } catch (e) {
+    if ((e as RollupError)?.code === 'MISSING_EXPORT') {
+      rollupBuild = await wrap(false);
+    } else {
+      throw e;
+    }
+  }
 
   const finalBundle = await rollupBuild.generate({
     format: 'esm',

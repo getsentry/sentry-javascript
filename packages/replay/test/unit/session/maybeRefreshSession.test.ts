@@ -1,13 +1,8 @@
-import {
-  MAX_SESSION_LIFE,
-  SESSION_IDLE_EXPIRE_DURATION,
-  SESSION_IDLE_PAUSE_DURATION,
-  WINDOW,
-} from '../../../src/constants';
+import { MAX_REPLAY_DURATION, SESSION_IDLE_EXPIRE_DURATION, WINDOW } from '../../../src/constants';
 import * as CreateSession from '../../../src/session/createSession';
 import { maybeRefreshSession } from '../../../src/session/maybeRefreshSession';
 import { makeSession } from '../../../src/session/Session';
-import type { SessionOptions, Timeouts } from '../../../src/types';
+import type { SessionOptions } from '../../../src/types';
 
 jest.mock('@sentry/utils', () => {
   return {
@@ -22,10 +17,9 @@ const SAMPLE_OPTIONS: SessionOptions = {
   allowBuffering: false,
 };
 
-const timeouts: Timeouts = {
-  sessionIdlePause: SESSION_IDLE_PAUSE_DURATION,
+const DEFAULT_OPTIONS = {
   sessionIdleExpire: SESSION_IDLE_EXPIRE_DURATION,
-  maxSessionLife: MAX_SESSION_LIFE,
+  maxReplayDuration: MAX_REPLAY_DURATION,
 };
 
 function createMockSession(when: number = Date.now(), id = 'test_session_id') {
@@ -56,7 +50,7 @@ describe('Unit | session | maybeRefreshSession', () => {
     const session = maybeRefreshSession(
       currentSession,
       {
-        timeouts,
+        ...DEFAULT_OPTIONS,
       },
       {
         ...SAMPLE_OPTIONS,
@@ -75,7 +69,8 @@ describe('Unit | session | maybeRefreshSession', () => {
     const session = maybeRefreshSession(
       currentSession,
       {
-        timeouts: { ...timeouts, sessionIdleExpire: 1000 },
+        sessionIdleExpire: 1000,
+        maxReplayDuration: MAX_REPLAY_DURATION,
       },
       {
         ...SAMPLE_OPTIONS,
@@ -114,7 +109,8 @@ describe('Unit | session | maybeRefreshSession', () => {
       const session = maybeRefreshSession(
         currentSession,
         {
-          timeouts: { ...timeouts, sessionIdleExpire: 1000 },
+          sessionIdleExpire: 1000,
+          maxReplayDuration: MAX_REPLAY_DURATION,
         },
         {
           ...SAMPLE_OPTIONS,
@@ -140,7 +136,8 @@ describe('Unit | session | maybeRefreshSession', () => {
       const session = maybeRefreshSession(
         currentSession,
         {
-          timeouts: { ...timeouts, sessionIdleExpire: 1000 },
+          sessionIdleExpire: 1000,
+          maxReplayDuration: MAX_REPLAY_DURATION,
         },
         {
           ...SAMPLE_OPTIONS,
@@ -168,7 +165,8 @@ describe('Unit | session | maybeRefreshSession', () => {
       const session = maybeRefreshSession(
         currentSession,
         {
-          timeouts: { ...timeouts, sessionIdleExpire: 5000 },
+          sessionIdleExpire: 5000,
+          maxReplayDuration: MAX_REPLAY_DURATION,
         },
         {
           ...SAMPLE_OPTIONS,
@@ -196,7 +194,8 @@ describe('Unit | session | maybeRefreshSession', () => {
       const session = maybeRefreshSession(
         currentSession,
         {
-          timeouts: { ...timeouts, sessionIdleExpire: 1000 },
+          sessionIdleExpire: 1000,
+          maxReplayDuration: MAX_REPLAY_DURATION,
         },
         {
           ...SAMPLE_OPTIONS,
@@ -223,7 +222,8 @@ describe('Unit | session | maybeRefreshSession', () => {
       const session = maybeRefreshSession(
         currentSession,
         {
-          timeouts: { ...timeouts, sessionIdleExpire: 1000 },
+          sessionIdleExpire: 1000,
+          maxReplayDuration: MAX_REPLAY_DURATION,
         },
         {
           ...SAMPLE_OPTIONS,
@@ -250,7 +250,8 @@ describe('Unit | session | maybeRefreshSession', () => {
       const session = maybeRefreshSession(
         currentSession,
         {
-          timeouts: { ...timeouts, sessionIdleExpire: 1000 },
+          sessionIdleExpire: 1000,
+          maxReplayDuration: MAX_REPLAY_DURATION,
         },
         {
           ...SAMPLE_OPTIONS,

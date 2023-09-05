@@ -43,7 +43,7 @@ export function captureRemixErrorBoundaryError(error: unknown): void {
       scope.addEventProcessor(event => {
         addExceptionMechanism(event, {
           type: 'instrument',
-          handled: true,
+          handled: false,
           data: eventData,
         });
         return event;

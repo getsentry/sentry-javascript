@@ -3,7 +3,7 @@ import type { Transport } from '@sentry/types';
 
 import {
   DEFAULT_FLUSH_MIN_DELAY,
-  MAX_SESSION_LIFE,
+  MAX_REPLAY_DURATION,
   REPLAY_SESSION_KEY,
   SESSION_IDLE_EXPIRE_DURATION,
   SESSION_IDLE_PAUSE_DURATION,
@@ -18,6 +18,7 @@ import { createOptionsEvent } from '../../src/util/handleRecordingEmit';
 import { BASE_TIMESTAMP } from '../index';
 import type { RecordMock } from '../mocks/mockRrweb';
 import { resetSdkMock } from '../mocks/resetSdkMock';
+import { getTestEventCheckout, getTestEventIncremental } from '../utils/getTestEvent';
 import { useFakeTimers } from '../utils/use-fake-timers';
 
 useFakeTimers();
@@ -140,11 +141,10 @@ describe('Integration | session', () => {
     // Session has become in an idle state
     //
     // This event will put the Replay SDK into a paused state
-    const TEST_EVENT = {
+    const TEST_EVENT = getTestEventIncremental({
       data: { name: 'lost event' },
       timestamp: BASE_TIMESTAMP,
-      type: 3,
-    };
+    });
     mockRecord._emitter(TEST_EVENT);
 
     // performance events can still be collected while recording is stopped
@@ -260,11 +260,10 @@ describe('Integration | session', () => {
     // Session has become in an idle state
     //
     // This event will put the Replay SDK into a paused state
-    const TEST_EVENT = {
+    const TEST_EVENT = getTestEventIncremental({
       data: { name: 'lost event' },
       timestamp: BASE_TIMESTAMP,
-      type: 3,
-    };
+    });
     mockRecord._emitter(TEST_EVENT);
 
     // performance events can still be collected while recording is stopped
@@ -333,7 +332,7 @@ describe('Integration | session', () => {
     expect(replay.session).toBe(undefined);
   });
 
-  it('creates a new session if current session exceeds MAX_SESSION_LIFE', async () => {
+  it('creates a new session if current session exceeds MAX_REPLAY_DURATION', async () => {
     jest.clearAllMocks();
 
     const initialSession = { ...replay.session } as Session;
@@ -351,19 +350,18 @@ describe('Integration | session', () => {
       value: new URL(url),
     });
 
-    // Advanced past MAX_SESSION_LIFE
-    const ELAPSED = MAX_SESSION_LIFE + 1;
+    // Advanced past MAX_REPLAY_DURATION
+    const ELAPSED = MAX_REPLAY_DURATION + 1;
     jest.advanceTimersByTime(ELAPSED);
     // Update activity so as to not consider session to be idling
     replay['_updateUserActivity']();
     replay['_updateSessionActivity']();
 
     // This should trigger a new session
-    const TEST_EVENT = {
+    const TEST_EVENT = getTestEventIncremental({
       data: { name: 'lost event' },
       timestamp: ELAPSED,
-      type: 3,
-    };
+    });
     mockRecord._emitter(TEST_EVENT);
 
     expect(replay).not.toHaveSameSession(initialSession);
@@ -379,11 +377,10 @@ describe('Integration | session', () => {
 
     const newTimestamp = BASE_TIMESTAMP + ELAPSED;
 
-    const NEW_TEST_EVENT = {
+    const NEW_TEST_EVENT = getTestEventIncremental({
       data: { name: 'test' },
       timestamp: newTimestamp + DEFAULT_FLUSH_MIN_DELAY + 20,
-      type: 3,
-    };
+    });
     mockRecord._emitter(NEW_TEST_EVENT);
     const optionsEvent = createOptionsEvent(replay);
 
@@ -438,7 +435,7 @@ describe('Integration | session', () => {
     const ELAPSED = 5000;
     await advanceTimers(ELAPSED);
 
-    const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 2 };
+    const TEST_EVENT = getTestEventCheckout({ timestamp: BASE_TIMESTAMP });
 
     addEvent(replay, TEST_EVENT);
     WINDOW.dispatchEvent(new Event('blur'));

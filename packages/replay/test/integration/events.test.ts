@@ -8,6 +8,7 @@ import { PerformanceEntryResource } from '../fixtures/performanceEntry/resource'
 import type { RecordMock } from '../index';
 import { BASE_TIMESTAMP } from '../index';
 import { resetSdkMock } from '../mocks/resetSdkMock';
+import { getTestEventCheckout } from '../utils/getTestEvent';
 import { useFakeTimers } from '../utils/use-fake-timers';
 
 useFakeTimers();
@@ -74,11 +75,9 @@ describe('Integration | events', () => {
     const ELAPSED = 5000;
     await advanceTimers(ELAPSED);
 
-    const TEST_EVENT = {
-      data: {},
+    const TEST_EVENT = getTestEventCheckout({
       timestamp: BASE_TIMESTAMP + ELAPSED,
-      type: 2,
-    };
+    });
 
     addEvent(replay, TEST_EVENT);
     WINDOW.dispatchEvent(new Event('blur'));
@@ -112,11 +111,9 @@ describe('Integration | events', () => {
     const ELAPSED = 5000;
     await advanceTimers(ELAPSED);
 
-    const TEST_EVENT = {
-      data: {},
+    const TEST_EVENT = getTestEventCheckout({
       timestamp: BASE_TIMESTAMP + ELAPSED,
-      type: 2,
-    };
+    });
 
     addEvent(replay, TEST_EVENT);
 
@@ -156,11 +153,9 @@ describe('Integration | events', () => {
     expect(mockTransportSend).toHaveBeenCalledTimes(0);
 
     // A new checkout occurs (i.e. a new session was started)
-    const TEST_EVENT = {
-      data: {},
+    const TEST_EVENT = getTestEventCheckout({
       timestamp: BASE_TIMESTAMP,
-      type: 2,
-    };
+    });
 
     addEvent(replay, TEST_EVENT);
     // This event will trigger a flush

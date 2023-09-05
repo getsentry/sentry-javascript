@@ -11,7 +11,7 @@ import type {
 
 import { isString } from './is';
 import type { ConsoleLevel } from './logger';
-import { CONSOLE_LEVELS, logger } from './logger';
+import { CONSOLE_LEVELS, logger, originalConsoleMethods } from './logger';
 import { fill } from './object';
 import { getFunctionName } from './stacktrace';
 import { supportsHistory, supportsNativeFetch } from './supports';
@@ -94,6 +94,16 @@ export function addInstrumentationHandler(type: InstrumentHandlerType, callback:
   instrument(type);
 }
 
+/**
+ * Reset all instrumentation handlers.
+ * This can be used by tests to ensure we have a clean slate of instrumentation handlers.
+ */
+export function resetInstrumentationHandlers(): void {
+  Object.keys(handlers).forEach(key => {
+    handlers[key as InstrumentHandlerType] = undefined;
+  });
+}
+
 /** JSDoc */
 function triggerHandlers(type: InstrumentHandlerType, data: any): void {
   if (!type || !handlers[type]) {
@@ -112,11 +122,6 @@ function triggerHandlers(type: InstrumentHandlerType, data: any): void {
     }
   }
 }
-
-/** Only exported for testing & debugging. */
-export const originalConsoleMethods: {
-  [key in ConsoleLevel]?: (...args: any[]) => void;
-} = {};
 
 /** JSDoc */
 function instrumentConsole(): void {
@@ -242,8 +247,9 @@ export function parseFetchArgs(fetchArgs: unknown[]): { method: string; url: str
 }
 
 /** JSDoc */
-function instrumentXHR(): void {
-  if (!('XMLHttpRequest' in WINDOW)) {
+export function instrumentXHR(): void {
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+  if (!(WINDOW as any).XMLHttpRequest) {
     return;
   }
 
@@ -534,8 +540,8 @@ type InstrumentedElement = Element & {
 };
 
 /** JSDoc */
-function instrumentDOM(): void {
-  if (!('document' in WINDOW)) {
+export function instrumentDOM(): void {
+  if (!WINDOW.document) {
     return;
   }
 

@@ -63,5 +63,14 @@ export {
 } from './stack-parsers';
 export { eventFromException, eventFromMessage, exceptionFromError } from './eventbuilder';
 export { createUserFeedbackEnvelope } from './userfeedback';
-export { defaultIntegrations, forceLoad, init, onLoad, showReportDialog, wrap, captureUserFeedback } from './sdk';
+export {
+  defaultIntegrations,
+  forceLoad,
+  init,
+  onLoad,
+  showReportDialog,
+  captureUserFeedback,
+  // eslint-disable-next-line deprecation/deprecation
+  wrap,
+} from './sdk';
 export { GlobalHandlers, TryCatch, Breadcrumbs, LinkedErrors, HttpContext, Dedupe } from './integrations';

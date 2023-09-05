@@ -3,7 +3,7 @@ import { captureException, getCurrentHub } from '@sentry/core';
 import {
   BUFFER_CHECKOUT_TIME,
   DEFAULT_FLUSH_MIN_DELAY,
-  MAX_SESSION_LIFE,
+  MAX_REPLAY_DURATION,
   REPLAY_SESSION_KEY,
   SESSION_IDLE_EXPIRE_DURATION,
   WINDOW,
@@ -17,6 +17,7 @@ import type { RecordMock } from '../index';
 import { BASE_TIMESTAMP } from '../index';
 import { resetSdkMock } from '../mocks/resetSdkMock';
 import type { DomHandler } from '../types';
+import { getTestEventCheckout, getTestEventIncremental } from '../utils/getTestEvent';
 import { useFakeTimers } from '../utils/use-fake-timers';
 
 useFakeTimers();
@@ -58,7 +59,7 @@ describe('Integration | errorSampleRate', () => {
   });
 
   it('uploads a replay when `Sentry.captureException` is called and continues recording', async () => {
-    const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 3 };
+    const TEST_EVENT = getTestEventIncremental({ timestamp: BASE_TIMESTAMP });
     mockRecord._emitter(TEST_EVENT);
     const optionsEvent = createOptionsEvent(replay);
 
@@ -144,7 +145,7 @@ describe('Integration | errorSampleRate', () => {
   });
 
   it('manually flushes replay and does not continue to record', async () => {
-    const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 3 };
+    const TEST_EVENT = getTestEventIncremental({ timestamp: BASE_TIMESTAMP });
     mockRecord._emitter(TEST_EVENT);
     const optionsEvent = createOptionsEvent(replay);
 
@@ -227,7 +228,7 @@ describe('Integration | errorSampleRate', () => {
   });
 
   it('handles multiple simultaneous flushes', async () => {
-    const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 3 };
+    const TEST_EVENT = getTestEventIncremental({ timestamp: BASE_TIMESTAMP });
     mockRecord._emitter(TEST_EVENT);
     const optionsEvent = createOptionsEvent(replay);
 
@@ -368,7 +369,7 @@ describe('Integration | errorSampleRate', () => {
     const ELAPSED = 5000;
     jest.advanceTimersByTime(ELAPSED);
 
-    const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 2 };
+    const TEST_EVENT = getTestEventCheckout({ timestamp: BASE_TIMESTAMP });
     addEvent(replay, TEST_EVENT);
 
     document.dispatchEvent(new Event('visibilitychange'));
@@ -381,7 +382,7 @@ describe('Integration | errorSampleRate', () => {
   });
 
   it('does not upload a replay event if 5 seconds have elapsed since the last replay event occurred', async () => {
-    const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 3 };
+    const TEST_EVENT = getTestEventIncremental({ timestamp: BASE_TIMESTAMP });
     mockRecord._emitter(TEST_EVENT);
     // Pretend 5 seconds have passed
     const ELAPSED = 5000;
@@ -396,7 +397,7 @@ describe('Integration | errorSampleRate', () => {
   });
 
   it('does not upload a replay event if 15 seconds have elapsed since the last replay upload', async () => {
-    const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 3 };
+    const TEST_EVENT = getTestEventIncremental({ timestamp: BASE_TIMESTAMP });
     // Fire a new event every 4 seconds, 4 times
     [...Array(4)].forEach(() => {
       mockRecord._emitter(TEST_EVENT);
@@ -429,7 +430,7 @@ describe('Integration | errorSampleRate', () => {
   // simply stop the session replay completely and wait for a new page load to
   // resample.
   it.each([
-    ['MAX_SESSION_LIFE', MAX_SESSION_LIFE],
+    ['MAX_REPLAY_DURATION', MAX_REPLAY_DURATION],
     ['SESSION_IDLE_DURATION', SESSION_IDLE_EXPIRE_DURATION],
   ])(
     'stops replay if session had an error and exceeds %s and does not start a new session thereafter',
@@ -462,11 +463,10 @@ describe('Integration | errorSampleRate', () => {
       jest.advanceTimersByTime(waitTime + 1);
       await new Promise(process.nextTick);
 
-      const TEST_EVENT = {
+      const TEST_EVENT = getTestEventIncremental({
         data: { name: 'lost event' },
         timestamp: BASE_TIMESTAMP,
-        type: 3,
-      };
+      });
       mockRecord._emitter(TEST_EVENT);
 
       jest.runAllTimers();
@@ -494,7 +494,7 @@ describe('Integration | errorSampleRate', () => {
   );
 
   it.each([
-    ['MAX_SESSION_LIFE', MAX_SESSION_LIFE],
+    ['MAX_REPLAY_DURATION', MAX_REPLAY_DURATION],
     ['SESSION_IDLE_EXPIRE_DURATION', SESSION_IDLE_EXPIRE_DURATION],
   ])('continues buffering replay if session had no error and exceeds %s', async (_label, waitTime) => {
     const oldSessionId = replay.session?.id;
@@ -506,11 +506,10 @@ describe('Integration | errorSampleRate', () => {
     jest.advanceTimersByTime(waitTime + 1);
     await new Promise(process.nextTick);
 
-    const TEST_EVENT = {
+    const TEST_EVENT = getTestEventIncremental({
       data: { name: 'lost event' },
       timestamp: BASE_TIMESTAMP,
-      type: 3,
-    };
+    });
     mockRecord._emitter(TEST_EVENT);
 
     jest.runAllTimers();
@@ -566,11 +565,10 @@ describe('Integration | errorSampleRate', () => {
     // Idle for 15 minutes
     jest.advanceTimersByTime(SESSION_IDLE_EXPIRE_DURATION + 1);
 
-    const TEST_EVENT = {
+    const TEST_EVENT = getTestEventIncremental({
       data: { name: 'lost event' },
       timestamp: BASE_TIMESTAMP,
-      type: 3,
-    };
+    });
     mockRecord._emitter(TEST_EVENT);
     expect(replay).not.toHaveLastSentReplay();
 
@@ -615,7 +613,7 @@ describe('Integration | errorSampleRate', () => {
   });
 
   it('has the correct timestamps with deferred root event and last replay update', async () => {
-    const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 3 };
+    const TEST_EVENT = getTestEventIncremental({ timestamp: BASE_TIMESTAMP });
     mockRecord._emitter(TEST_EVENT);
     const optionsEvent = createOptionsEvent(replay);
 
@@ -658,7 +656,7 @@ describe('Integration | errorSampleRate', () => {
   it('has correct timestamps when error occurs much later than initial pageload/checkout', async () => {
     const ELAPSED = BUFFER_CHECKOUT_TIME;
     const TICK = 20;
-    const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 3 };
+    const TEST_EVENT = getTestEventIncremental({ timestamp: BASE_TIMESTAMP });
     mockRecord._emitter(TEST_EVENT);
 
     // add a mock performance event
@@ -710,7 +708,7 @@ describe('Integration | errorSampleRate', () => {
   it('stops replay when user goes idle', async () => {
     jest.setSystemTime(BASE_TIMESTAMP);
 
-    const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 3 };
+    const TEST_EVENT = getTestEventIncremental({ timestamp: BASE_TIMESTAMP });
     mockRecord._emitter(TEST_EVENT);
 
     expect(mockRecord.takeFullSnapshot).not.toHaveBeenCalled();
@@ -753,7 +751,7 @@ describe('Integration | errorSampleRate', () => {
     const sessionId = replay.session?.id;
     jest.setSystemTime(BASE_TIMESTAMP);
 
-    const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 3 };
+    const TEST_EVENT = getTestEventIncremental({ timestamp: BASE_TIMESTAMP });
     mockRecord._emitter(TEST_EVENT);
 
     expect(mockRecord.takeFullSnapshot).not.toHaveBeenCalled();
@@ -762,7 +760,7 @@ describe('Integration | errorSampleRate', () => {
     jest.runAllTimers();
     await new Promise(process.nextTick);
 
-    jest.advanceTimersByTime(2 * MAX_SESSION_LIFE);
+    jest.advanceTimersByTime(2 * MAX_REPLAY_DURATION);
 
     // in production, this happens at a time interval, here we mock this
     mockRecord.takeFullSnapshot(true);
@@ -787,7 +785,7 @@ describe('Integration | errorSampleRate', () => {
           data: {
             isCheckout: true,
           },
-          timestamp: BASE_TIMESTAMP + 2 * MAX_SESSION_LIFE + DEFAULT_FLUSH_MIN_DELAY + 40,
+          timestamp: BASE_TIMESTAMP + 2 * MAX_REPLAY_DURATION + DEFAULT_FLUSH_MIN_DELAY + 40,
           type: 2,
         },
       ]),
@@ -797,7 +795,7 @@ describe('Integration | errorSampleRate', () => {
     mockRecord.takeFullSnapshot.mockClear();
     (getCurrentHub().getClient()!.getTransport()!.send as unknown as jest.SpyInstance<any>).mockClear();
 
-    jest.advanceTimersByTime(MAX_SESSION_LIFE);
+    jest.advanceTimersByTime(MAX_REPLAY_DURATION);
     await new Promise(process.nextTick);
 
     mockRecord._emitter(TEST_EVENT);
@@ -821,7 +819,7 @@ describe('Integration | errorSampleRate', () => {
   it('does not stop replay based on earliest event in buffer', async () => {
     jest.setSystemTime(BASE_TIMESTAMP);
 
-    const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP - 60000, type: 3 };
+    const TEST_EVENT = getTestEventIncremental({ timestamp: BASE_TIMESTAMP - 60000 });
     mockRecord._emitter(TEST_EVENT);
 
     expect(mockRecord.takeFullSnapshot).not.toHaveBeenCalled();
@@ -955,14 +953,14 @@ it('handles buffer sessions that previously had an error', async () => {
   jest.runAllTimers();
 
   await new Promise(process.nextTick);
-  const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 3 };
+  const TEST_EVENT = getTestEventIncremental({ timestamp: BASE_TIMESTAMP });
   mockRecord._emitter(TEST_EVENT);
 
   expect(replay).not.toHaveLastSentReplay();
 
   // Waiting for max life should eventually stop recording
   // We simulate a full checkout which would otherwise be done automatically
-  for (let i = 0; i < MAX_SESSION_LIFE / 60_000; i++) {
+  for (let i = 0; i < MAX_REPLAY_DURATION / 60_000; i++) {
     jest.advanceTimersByTime(60_000);
     await new Promise(process.nextTick);
     mockRecord.takeFullSnapshot(true);
@@ -992,14 +990,14 @@ it('handles buffer sessions that never had an error', async () => {
   jest.runAllTimers();
 
   await new Promise(process.nextTick);
-  const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 3 };
+  const TEST_EVENT = getTestEventIncremental({ timestamp: BASE_TIMESTAMP });
   mockRecord._emitter(TEST_EVENT);
 
   expect(replay).not.toHaveLastSentReplay();
 
   // Waiting for max life should eventually stop recording
   // We simulate a full checkout which would otherwise be done automatically
-  for (let i = 0; i < MAX_SESSION_LIFE / 60_000; i++) {
+  for (let i = 0; i < MAX_REPLAY_DURATION / 60_000; i++) {
     jest.advanceTimersByTime(60_000);
     await new Promise(process.nextTick);
     mockRecord.takeFullSnapshot(true);
@@ -1037,7 +1035,7 @@ it('sends a replay after loading the session from storage', async () => {
   jest.runAllTimers();
 
   await new Promise(process.nextTick);
-  const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 3 };
+  const TEST_EVENT = getTestEventIncremental({ timestamp: BASE_TIMESTAMP });
   mockRecord._emitter(TEST_EVENT);
 
   expect(replay).not.toHaveLastSentReplay();

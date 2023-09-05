@@ -17,9 +17,6 @@ export const SESSION_IDLE_PAUSE_DURATION = 300_000; // 5 minutes in ms
 // The idle limit for a session after which the session expires.
 export const SESSION_IDLE_EXPIRE_DURATION = 900_000; // 15 minutes in ms
 
-// The maximum length of a session
-export const MAX_SESSION_LIFE = 3_600_000; // 60 minutes in ms
-
 /** Default flush delays */
 export const DEFAULT_FLUSH_MIN_DELAY = 5_000;
 // XXX: Temp fix for our debounce logic where `maxWait` would never occur if it
@@ -50,3 +47,6 @@ export const REPLAY_MAX_EVENT_BUFFER_SIZE = 20_000_000; // ~20MB
 export const MIN_REPLAY_DURATION = 4_999;
 /* The max. allowed value that the minReplayDuration can be set to. */
 export const MIN_REPLAY_DURATION_LIMIT = 15_000;
+
+/** The max. length of a replay. */
+export const MAX_REPLAY_DURATION = 3_600_000; // 60 minutes in ms;

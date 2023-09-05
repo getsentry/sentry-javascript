@@ -355,6 +355,7 @@ describe('wrap()', () => {
     getCurrentHub().bindClient(new BrowserClient(options));
 
     try {
+      // eslint-disable-next-line deprecation/deprecation
       wrap(() => {
         throw new TypeError('mkey');
       });
@@ -364,11 +365,13 @@ describe('wrap()', () => {
   });
 
   it('should return result of a function call', () => {
+    // eslint-disable-next-line deprecation/deprecation
     const result = wrap(() => 2);
     expect(result).toBe(2);
   });
 
   it('should allow for passing this and arguments through binding', () => {
+    // eslint-disable-next-line deprecation/deprecation
     const result = wrap(
       function (this: unknown, a: string, b: number): unknown[] {
         return [this, a, b];
@@ -379,6 +382,7 @@ describe('wrap()', () => {
     expect((result as unknown[])[1]).toBe('b');
     expect((result as unknown[])[2]).toBe(42);
 
+    // eslint-disable-next-line deprecation/deprecation
     const result2 = wrap(
       function (this: { x: number }): number {
         return this.x;

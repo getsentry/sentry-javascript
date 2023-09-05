@@ -6,7 +6,6 @@ import { logger } from '@sentry/utils';
 
 import {
   BUFFER_CHECKOUT_TIME,
-  MAX_SESSION_LIFE,
   SESSION_IDLE_EXPIRE_DURATION,
   SESSION_IDLE_PAUSE_DURATION,
   SLOW_CLICK_SCROLL_TIMEOUT,
@@ -25,12 +24,12 @@ import type {
   AddEventResult,
   AddUpdateCallback,
   AllPerformanceEntry,
-  BreadcrumbFrame,
   EventBuffer,
   InternalEventContext,
   PopEventContext,
   RecordingEvent,
   RecordingOptions,
+  ReplayBreadcrumbFrame,
   ReplayContainer as ReplayContainerInterface,
   ReplayPluginOptions,
   SendBufferedReplayOptions,
@@ -38,6 +37,7 @@ import type {
   SlowClickConfig,
   Timeouts,
 } from './types';
+import { ReplayEventTypeCustom } from './types';
 import { addEvent } from './util/addEvent';
 import { addGlobalListeners } from './util/addGlobalListeners';
 import { addMemoryEntry } from './util/addMemoryEntry';
@@ -149,7 +149,6 @@ export class ReplayContainer implements ReplayContainerInterface {
     this.timeouts = {
       sessionIdlePause: SESSION_IDLE_PAUSE_DURATION,
       sessionIdleExpire: SESSION_IDLE_EXPIRE_DURATION,
-      maxSessionLife: MAX_SESSION_LIFE,
     } as const;
     this._lastActivity = Date.now();
     this._isEnabled = false;
@@ -276,7 +275,8 @@ export class ReplayContainer implements ReplayContainerInterface {
     const session = loadOrCreateSession(
       this.session,
       {
-        timeouts: this.timeouts,
+        maxReplayDuration: this._options.maxReplayDuration,
+        sessionIdleExpire: this.timeouts.sessionIdleExpire,
         traceInternals: this._options._experiments.traceInternals,
       },
       {
@@ -306,7 +306,8 @@ export class ReplayContainer implements ReplayContainerInterface {
     const session = loadOrCreateSession(
       this.session,
       {
-        timeouts: this.timeouts,
+        sessionIdleExpire: this.timeouts.sessionIdleExpire,
+        maxReplayDuration: this._options.maxReplayDuration,
         traceInternals: this._options._experiments.traceInternals,
       },
       {
@@ -482,7 +483,7 @@ export class ReplayContainer implements ReplayContainerInterface {
       // `shouldRefresh`, the session could be considered expired due to
       // lifespan, which is not what we want. Update session start date to be
       // the current timestamp, so that session is not considered to be
-      // expired. This means that max replay duration can be MAX_SESSION_LIFE +
+      // expired. This means that max replay duration can be MAX_REPLAY_DURATION +
       // (length of buffer), which we are ok with.
       this._updateUserActivity(activityTime);
       this._updateSessionActivity(activityTime);
@@ -645,7 +646,11 @@ export class ReplayContainer implements ReplayContainerInterface {
     }
 
     // Session is expired, trigger a full snapshot (which will create a new session)
-    this._triggerFullSnapshot();
+    if (this.isPaused()) {
+      this.resume();
+    } else {
+      this._triggerFullSnapshot();
+    }
 
     return false;
   }
@@ -688,7 +693,7 @@ export class ReplayContainer implements ReplayContainerInterface {
 
       this.addUpdate(() => {
         void addEvent(this, {
-          type: EventType.Custom,
+          type: ReplayEventTypeCustom,
           timestamp: breadcrumb.timestamp || 0,
           data: {
             tag: 'breadcrumb',
@@ -759,7 +764,8 @@ export class ReplayContainer implements ReplayContainerInterface {
     const session = loadOrCreateSession(
       this.session,
       {
-        timeouts: this.timeouts,
+        sessionIdleExpire: this.timeouts.sessionIdleExpire,
+        maxReplayDuration: this._options.maxReplayDuration,
         traceInternals: this._options._experiments.traceInternals,
       },
       {
@@ -788,8 +794,9 @@ export class ReplayContainer implements ReplayContainerInterface {
     const newSession = maybeRefreshSession(
       currentSession,
       {
-        timeouts: this.timeouts,
+        sessionIdleExpire: this.timeouts.sessionIdleExpire,
         traceInternals: this._options._experiments.traceInternals,
+        maxReplayDuration: this._options.maxReplayDuration,
       },
       {
         stickySession: Boolean(this._options.stickySession),
@@ -919,12 +926,15 @@ export class ReplayContainer implements ReplayContainerInterface {
   /**
    * Tasks to run when we consider a page to be hidden (via blurring and/or visibility)
    */
-  private _doChangeToBackgroundTasks(breadcrumb?: BreadcrumbFrame): void {
+  private _doChangeToBackgroundTasks(breadcrumb?: ReplayBreadcrumbFrame): void {
     if (!this.session) {
       return;
     }
 
-    const expired = isSessionExpired(this.session, this.timeouts);
+    const expired = isSessionExpired(this.session, {
+      maxReplayDuration: this._options.maxReplayDuration,
+      ...this.timeouts,
+    });
 
     if (breadcrumb && !expired) {
       this._createCustomBreadcrumb(breadcrumb);
@@ -939,7 +949,7 @@ export class ReplayContainer implements ReplayContainerInterface {
   /**
    * Tasks to run when we consider a page to be visible (via focus and/or visibility)
    */
-  private _doChangeToForegroundTasks(breadcrumb?: BreadcrumbFrame): void {
+  private _doChangeToForegroundTasks(breadcrumb?: ReplayBreadcrumbFrame): void {
     if (!this.session) {
       return;
     }
@@ -992,7 +1002,7 @@ export class ReplayContainer implements ReplayContainerInterface {
   /**
    * Helper to create (and buffer) a replay breadcrumb from a core SDK breadcrumb
    */
-  private _createCustomBreadcrumb(breadcrumb: BreadcrumbFrame): void {
+  private _createCustomBreadcrumb(breadcrumb: ReplayBreadcrumbFrame): void {
     this.addUpdate(() => {
       void this.throttledAddEvent({
         type: EventType.Custom,
@@ -1103,7 +1113,7 @@ export class ReplayContainer implements ReplayContainerInterface {
       // Check total duration again, to avoid sending outdated stuff
       // We leave 30s wiggle room to accomodate late flushing etc.
       // This _could_ happen when the browser is suspended during flushing, in which case we just want to stop
-      if (timestamp - this._context.initialTimestamp > this.timeouts.maxSessionLife + 30_000) {
+      if (timestamp - this._context.initialTimestamp > this._options.maxReplayDuration + 30_000) {
         throw new Error('Session is too long, not sending replay');
       }
 
@@ -1176,10 +1186,10 @@ export class ReplayContainer implements ReplayContainerInterface {
     // A flush is about to happen, cancel any queued flushes
     this._debouncedFlush.cancel();
 
-    // If session is too short, or too long (allow some wiggle room over maxSessionLife), do not send it
+    // If session is too short, or too long (allow some wiggle room over maxReplayDuration), do not send it
     // This _should_ not happen, but it may happen if flush is triggered due to a page activity change or similar
     const tooShort = duration < this._options.minReplayDuration;
-    const tooLong = duration > this.timeouts.maxSessionLife + 5_000;
+    const tooLong = duration > this._options.maxReplayDuration + 5_000;
     if (tooShort || tooLong) {
       logInfo(
         `[Replay] Session duration (${Math.floor(duration / 1000)}s) is too ${

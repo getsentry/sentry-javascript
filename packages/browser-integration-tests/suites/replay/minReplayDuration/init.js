@@ -12,7 +12,6 @@ Sentry.init({
   sampleRate: 0,
   replaysSessionSampleRate: 1.0,
   replaysOnErrorSampleRate: 0.0,
-  debug: true,
 
   integrations: [window.Replay],
 });

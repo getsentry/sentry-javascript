@@ -7,6 +7,7 @@ import type { AddressInfo } from 'net';
 import * as os from 'os';
 import * as path from 'path';
 import * as util from 'util';
+import * as zlib from 'zlib';
 
 const readFile = util.promisify(fs.readFile);
 const writeFile = util.promisify(fs.writeFile);
@@ -44,8 +45,12 @@ export async function startEventProxyServer(options: EventProxyServerOptions): P
     });
 
     proxyRequest.addListener('end', () => {
-      const proxyRequestBody = Buffer.concat(proxyRequestChunks).toString();
-      const envelopeHeader: { dsn?: string } = JSON.parse(proxyRequestBody.split('\n')[0]);
+      const proxyRequestBody =
+        proxyRequest.headers['content-encoding'] === 'gzip'
+          ? zlib.gunzipSync(Buffer.concat(proxyRequestChunks)).toString()
+          : Buffer.concat(proxyRequestChunks).toString();
+
+      let envelopeHeader = JSON.parse(proxyRequestBody.split('\n')[0]);
 
       if (!envelopeHeader.dsn) {
         throw new Error('[event-proxy-server] No dsn on envelope header. Please set tunnel option.');
@@ -71,12 +76,11 @@ export async function startEventProxyServer(options: EventProxyServerOptions): P
 
           sentryResponse.addListener('end', () => {
             eventCallbackListeners.forEach(listener => {
-              const rawProxyRequestBody = Buffer.concat(proxyRequestChunks).toString();
               const rawSentryResponseBody = Buffer.concat(sentryResponseChunks).toString();
 
               const data: SentryRequestCallbackData = {
-                envelope: parseEnvelope(rawProxyRequestBody, new TextEncoder(), new TextDecoder()),
-                rawProxyRequestBody,
+                envelope: parseEnvelope(proxyRequestBody, new TextEncoder(), new TextDecoder()),
+                rawProxyRequestBody: proxyRequestBody,
                 rawSentryResponseBody,
                 sentryResponseStatusCode: sentryResponse.statusCode,
               };
