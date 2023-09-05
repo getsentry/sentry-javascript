@@ -1,6 +1,6 @@
 # Deprecations in 7.x
 
-You can use [@sentry/migr8](https://github.com/getsentry/sentry-migr8) to automatically update your SDK usage and fix most deprecations:
+You can use [@sentry/migr8](https://www.npmjs.com/package/@sentry/migr8) to automatically update your SDK usage and fix most deprecations:
 
 ```bash
 npx @sentry/migr8@latest
