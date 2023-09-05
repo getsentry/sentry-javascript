@@ -3,7 +3,12 @@
 import * as fs from 'fs';
 import * as path from 'path';
 
-const PACKAGE_ASSETS = ['scripts/sentry-upload-sourcemaps.js', 'scripts/createRelease.js'];
+const PACKAGE_ASSETS = [
+  'scripts/sentry-upload-sourcemaps.js',
+  'scripts/createRelease.js',
+  'scripts/deleteSourcemaps.js',
+  'scripts/injectDebugId.js',
+];
 
 export function prepack(buildDir: string): boolean {
   // copy package-specific assets to build dir
