@@ -162,18 +162,17 @@ export function withSentry<P extends Record<string, unknown>, R extends React.FC
 
     isBaseLocation = false;
 
-    // @ts-expect-error Setting more specific React Component typing for `R` generic above
+    if (!isRemixV2() && options.wrapWithErrorBoundary) {
+      // @ts-ignore Setting more specific React Component typing for `R` generic above
+      // will break advanced type inference done by react router params
+      return withErrorBoundary(OrigApp, options.errorBoundaryOptions)(props);
+    }
+    // @ts-ignore Setting more specific React Component typing for `R` generic above
     // will break advanced type inference done by react router params
     return <OrigApp {...props} />;
   };
 
-  if (!isRemixV2() && options.wrapWithErrorBoundary) {
-    // @ts-ignore Setting more specific React Component typing for `R` generic above
-    // will break advanced type inference done by react router params
-    return withErrorBoundary(SentryRoot, options.errorBoundaryOptions);
-  }
-
-  // @ts-expect-error Setting more specific React Component typing for `R` generic above
+  // @ts-ignore Setting more specific React Component typing for `R` generic above
   // will break advanced type inference done by react router params
   return SentryRoot;
 }
