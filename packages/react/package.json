@@ -1,6 +1,6 @@
 {
   "name": "@sentry/react",
-  "version": "7.67.0",
+  "version": "7.68.0",
   "description": "Official Sentry SDK for React.js",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/react",
@@ -23,9 +23,9 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/browser": "7.67.0",
-    "@sentry/types": "7.67.0",
-    "@sentry/utils": "7.67.0",
+    "@sentry/browser": "7.68.0",
+    "@sentry/types": "7.68.0",
+    "@sentry/utils": "7.68.0",
     "hoist-non-react-statics": "^3.3.2",
     "tslib": "^2.4.1 || ^1.9.3"
   },
