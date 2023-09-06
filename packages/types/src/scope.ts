@@ -129,6 +129,11 @@ export interface Scope {
   setSession(session?: Session): this;
 
   /**
+   * Get all breadcrumbs for this scope.
+   */
+  getBreadcrumbs(): Breadcrumb[];
+
+  /**
    * Returns the `RequestSession` if there is one
    */
   getRequestSession(): RequestSession | undefined;

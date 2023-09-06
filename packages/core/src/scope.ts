@@ -328,6 +328,13 @@ export class Scope implements ScopeInterface {
   /**
    * @inheritDoc
    */
+  public getBreadcrumbs(): Breadcrumb[] {
+    return this._breadcrumbs;
+  }
+
+  /**
+   * @inheritDoc
+   */
   public update(captureContext?: CaptureContext): this {
     if (!captureContext) {
       return this;
@@ -515,8 +522,9 @@ export class Scope implements ScopeInterface {
 
     this._applyFingerprint(event);
 
-    event.breadcrumbs = [...(event.breadcrumbs || []), ...this._breadcrumbs];
-    event.breadcrumbs = event.breadcrumbs.length > 0 ? event.breadcrumbs : undefined;
+    const scopeBreadcrumbs = this.getBreadcrumbs();
+    const breadcrumbs = [...(event.breadcrumbs || []), ...scopeBreadcrumbs];
+    event.breadcrumbs = breadcrumbs.length > 0 ? breadcrumbs : undefined;
 
     event.sdkProcessingMetadata = {
       ...event.sdkProcessingMetadata,
