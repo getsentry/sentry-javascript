@@ -1,8 +1,8 @@
 import type { Integration } from '@sentry/types';
 
-import * as auto from '../src/integrations/getAutoPerformanceIntegrations';
-import { init } from '../src/sdk/init';
-import * as sdk from '../src/sdk/init';
+import * as auto from '../../src/integrations/getAutoPerformanceIntegrations';
+import * as sdk from '../../src/sdk/init';
+import { init } from '../../src/sdk/init';
 
 // eslint-disable-next-line no-var
 declare var global: any;

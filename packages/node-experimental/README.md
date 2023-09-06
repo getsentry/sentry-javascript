@@ -49,12 +49,54 @@ Currently, this SDK:
 
 * Will capture errors (same as @sentry/node)
 * Auto-instrument for performance - see below for which performance integrations are available.
+* Provide _some_ manual instrumentation APIs
+* Sync OpenTelemetry Context with our Sentry Hub/Scope
 
 ### Manual Instrumentation
 
-**Manual instrumentation is not supported!**
-This is because the current Sentry-Performance-APIs like `Sentry.startTransaction()` are not compatible with the OpenTelemetry tracing model.
-We may add manual tracing capabilities in a later version.
+You can manual instrument using the following APIs:
+
+```js
+const Sentry = require('@sentry/node-experimental');
+
+Sentry.startActiveSpan({ description: 'outer' }, function (span) {
+  span.setData(customData);
+  doSomethingSlow();
+  Sentry.startActiveSpan({ description: 'inner' }, function() {
+    // inner span is a child of outer span
+    doSomethingVerySlow();
+    // inner span is auto-ended when this callback ends
+  });
+  // outer span is auto-ended when this callback ends
+});
+```
+
+You can also create spans without marking them as the active span.
+Note that for most scenarios, we recommend the `startActiveSpan` syntax.
+
+```js
+const Sentry = require('@sentry/node-experimental');
+
+// This will _not_ be put on the scope/set as active, so no other spans will be attached to it
+const span = Sentry.startSpan({ description: 'non-active span' });
+
+doSomethingSlow();
+
+span?.finish();
+```
+
+Finally you can also get the currently active span, if you need to do more with it:
+
+```js
+const Sentry = require('@sentry/node-experimental');
+const span = Sentry.getActiveSpan();
+```
+
+### Async Context
+
+We leverage the OpenTelemetry context forking in order to ensure isolation of parallel requests.
+This means that as long as you are using an OpenTelemetry instrumentation for your framework of choice
+(currently: Express or Fastify), you do not need to setup any `requestHandler` or similar.
 
 ### ESM Support
 
