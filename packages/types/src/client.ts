@@ -177,9 +177,15 @@ export interface Client<O extends ClientOptions = ClientOptions> {
   on?(hook: 'beforeEnvelope', callback: (envelope: Envelope) => void): void;
 
   /**
-   * Register a callback for before an event is sent.
+   * Register a callback for before sending an event.
+   * `beforeSendEvent` is called right before an event is sent and should not be used to mutate the event.
+   * `preprocessEvent` is called before all global event processors.
+   * Receives an Event & EventHint as arguments.
    */
-  on?(hook: 'beforeSendEvent', callback: (event: Event, hint?: EventHint | void) => void): void;
+  on?(
+    hook: 'beforeSendEvent' | 'preprocessEvent',
+    callback: (event: Event, hint?: EventHint | undefined) => void,
+  ): void;
 
   /**
    * Register a callback for when an event has been sent.
@@ -217,11 +223,13 @@ export interface Client<O extends ClientOptions = ClientOptions> {
    */
   emit?(hook: 'beforeEnvelope', envelope: Envelope): void;
 
-  /*
-   * Fire a hook event before sending an event. Expects to be given an Event & EventHint as the
-   * second/third argument.
+  /**
+   * Fire a hook event before sending an event.
+   * `beforeSendEvent` is called right before an event is sent and should not be used to mutate the event.
+   * `preprocessEvent` is called before all global event processors.
+   * Expects to be given an Event & EventHint as the second/third argument.
    */
-  emit?(hook: 'beforeSendEvent', event: Event, hint?: EventHint): void;
+  emit?(hook: 'beforeSendEvent' | 'preprocessEvent', event: Event, hint?: EventHint): void;
 
   /*
    * Fire a hook event after sending an event. Expects to be given an Event as the
