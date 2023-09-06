@@ -165,11 +165,19 @@ export interface Client<O extends ClientOptions = ClientOptions> {
 
   // HOOKS
   // TODO(v8): Make the hooks non-optional.
+  /* eslint-disable @typescript-eslint/unified-signatures */
 
   /**
-   * Register a callback for transaction start and finish.
+   * Register a callback for transaction start.
+   * Receives the transaction as argument.
    */
-  on?(hook: 'startTransaction' | 'finishTransaction', callback: (transaction: Transaction) => void): void;
+  on?(hook: 'startTransaction', callback: (transaction: Transaction) => void): void;
+
+  /**
+   * Register a callback for transaction finish.
+   * Receives the transaction as argument.
+   */
+  on?(hook: 'finishTransaction', callback: (transaction: Transaction) => void): void;
 
   /**
    * Register a callback for transaction start and finish.
@@ -178,14 +186,17 @@ export interface Client<O extends ClientOptions = ClientOptions> {
 
   /**
    * Register a callback for before sending an event.
-   * `beforeSendEvent` is called right before an event is sent and should not be used to mutate the event.
-   * `preprocessEvent` is called before all global event processors.
+   * This is called right before an event is sent and should not be used to mutate the event.
    * Receives an Event & EventHint as arguments.
    */
-  on?(
-    hook: 'beforeSendEvent' | 'preprocessEvent',
-    callback: (event: Event, hint?: EventHint | undefined) => void,
-  ): void;
+  on?(hook: 'beforeSendEvent', callback: (event: Event, hint?: EventHint | undefined) => void): void;
+
+  /**
+   * Register a callback for preprocessing an event,
+   * before it is passed to (global) event processors.
+   * Receives an Event & EventHint as arguments.
+   */
+  on?(hook: 'preprocessEvent', callback: (event: Event, hint?: EventHint | undefined) => void): void;
 
   /**
    * Register a callback for when an event has been sent.
@@ -212,10 +223,16 @@ export interface Client<O extends ClientOptions = ClientOptions> {
   on?(hook: 'otelSpanEnd', callback: (otelSpan: unknown, mutableOptions: { drop: boolean }) => void): void;
 
   /**
-   * Fire a hook event for transaction start and finish. Expects to be given a transaction as the
-   * second argument.
+   * Fire a hook event for transaction start.
+   * Expects to be given a transaction as the second argument.
    */
-  emit?(hook: 'startTransaction' | 'finishTransaction', transaction: Transaction): void;
+  emit?(hook: 'startTransaction', transaction: Transaction): void;
+
+  /**
+   * Fire a hook event for transaction finish.
+   * Expects to be given a transaction as the second argument.
+   */
+  emit?(hook: 'finishTransaction', transaction: Transaction): void;
 
   /*
    * Fire a hook event for envelope creation and sending. Expects to be given an envelope as the
@@ -225,11 +242,16 @@ export interface Client<O extends ClientOptions = ClientOptions> {
 
   /**
    * Fire a hook event before sending an event.
-   * `beforeSendEvent` is called right before an event is sent and should not be used to mutate the event.
-   * `preprocessEvent` is called before all global event processors.
+   * This is called right before an event is sent and should not be used to mutate the event.
    * Expects to be given an Event & EventHint as the second/third argument.
    */
-  emit?(hook: 'beforeSendEvent' | 'preprocessEvent', event: Event, hint?: EventHint): void;
+  emit?(hook: 'beforeSendEvent', event: Event, hint?: EventHint): void;
+
+  /**
+   * Fire a hook event to process events before they are passed to (global) event processors.
+   * Expects to be given an Event & EventHint as the second/third argument.
+   */
+  emit?(hook: 'preprocessEvent', event: Event, hint?: EventHint): void;
 
   /*
    * Fire a hook event after sending an event. Expects to be given an Event as the
@@ -253,4 +275,6 @@ export interface Client<O extends ClientOptions = ClientOptions> {
    * The option argument may be mutated to drop the span.
    */
   emit?(hook: 'otelSpanEnd', otelSpan: unknown, mutableOptions: { drop: boolean }): void;
+
+  /* eslint-enable @typescript-eslint/unified-signatures */
 }
