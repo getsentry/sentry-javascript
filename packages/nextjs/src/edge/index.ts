@@ -1,10 +1,16 @@
-import { getIntegrationsToSetup, initAndBind, Integrations as CoreIntegrations } from '@sentry/core';
+import type { ServerRuntimeClientOptions } from '@sentry/core';
+import {
+  getIntegrationsToSetup,
+  initAndBind,
+  Integrations as CoreIntegrations,
+  SDK_VERSION,
+  ServerRuntimeClient,
+} from '@sentry/core';
 import type { Options } from '@sentry/types';
 import { createStackParser, GLOBAL_OBJ, nodeStackLineParser, stackParserFromStackParserOptions } from '@sentry/utils';
 
 import { getVercelEnv } from '../common/getVercelEnv';
 import { setAsyncLocalStorageAsyncContextStrategy } from './asyncLocalStorageAsyncContextStrategy';
-import { EdgeClient } from './edgeclient';
 import { makeEdgeTransport } from './transport';
 
 const nodeStackParser = createStackParser(nodeStackLineParser());
@@ -53,14 +59,30 @@ export function init(options: EdgeOptions = {}): void {
     options.instrumenter = 'sentry';
   }
 
-  const clientOptions = {
+  const clientOptions: ServerRuntimeClientOptions = {
     ...options,
     stackParser: stackParserFromStackParserOptions(options.stackParser || nodeStackParser),
     integrations: getIntegrationsToSetup(options),
     transport: options.transport || makeEdgeTransport,
   };
 
-  initAndBind(EdgeClient, clientOptions);
+  clientOptions._metadata = clientOptions._metadata || {};
+  clientOptions._metadata.sdk = clientOptions._metadata.sdk || {
+    name: 'sentry.javascript.nextjs',
+    packages: [
+      {
+        name: 'npm:@sentry/nextjs',
+        version: SDK_VERSION,
+      },
+    ],
+    version: SDK_VERSION,
+  };
+
+  clientOptions.platform = 'edge';
+  clientOptions.runtime = { name: 'edge' };
+  clientOptions.serverName = process.env.SENTRY_NAME;
+
+  initAndBind(ServerRuntimeClient, clientOptions);
 
   // TODO?: Sessiontracking
 }
