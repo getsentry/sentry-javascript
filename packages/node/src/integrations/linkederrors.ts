@@ -1,4 +1,4 @@
-import type { EventProcessor, Hub, Integration } from '@sentry/types';
+import type { Client, Integration } from '@sentry/types';
 import { applyAggregateErrorsToEvent } from '@sentry/utils';
 
 import { exceptionFromError } from '../eventbuilder';
@@ -36,34 +36,31 @@ export class LinkedErrors implements Integration {
     this._limit = options.limit || DEFAULT_LIMIT;
   }
 
+  /** @inheritdoc */
+  public setupOnce(): void {
+    // noop
+  }
+
   /**
    * @inheritDoc
    */
-  public setupOnce(_addGlobalEventProcessor: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
-    const client = getCurrentHub().getClient();
-    if (client && client.on) {
-      client.on('preprocessEvent', (event, hint) => {
-        const hub = getCurrentHub();
-        const client = hub.getClient();
-
-        const self = hub.getIntegration(LinkedErrors);
-
-        if (!client || !self) {
-          return;
-        }
-
-        const options = client.getOptions();
-
-        applyAggregateErrorsToEvent(
-          exceptionFromError,
-          options.stackParser,
-          options.maxValueLength,
-          self._key,
-          self._limit,
-          event,
-          hint,
-        );
-      });
+  public setup(client: Client): void {
+    if (!client.on) {
+      return;
     }
+
+    client.on('preprocessEvent', (event, hint) => {
+      const options = client.getOptions();
+
+      applyAggregateErrorsToEvent(
+        exceptionFromError,
+        options.stackParser,
+        options.maxValueLength,
+        this._key,
+        this._limit,
+        event,
+        hint,
+      );
+    });
   }
 }

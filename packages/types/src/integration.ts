@@ -1,3 +1,4 @@
+import type { Client } from './client';
 import type { EventProcessor } from './eventprocessor';
 import type { Hub } from './hub';
 
@@ -23,4 +24,9 @@ export interface Integration {
    * This takes no options on purpose, options should be passed in the constructor
    */
   setupOnce(addGlobalEventProcessor: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void;
+
+  /**
+   * An optional hook that is called for each client, vs. only once.
+   */
+  setup?(client: Client): void;
 }
