@@ -65,6 +65,7 @@
     "packages/sveltekit",
     "packages/tracing",
     "packages/tracing-internal",
+    "packages/ts3.8-test",
     "packages/types",
     "packages/typescript",
     "packages/utils",
