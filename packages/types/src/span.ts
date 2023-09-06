@@ -89,6 +89,11 @@ export interface SpanContext {
 /** Span holding trace_id, span_id */
 export interface Span extends SpanContext {
   /**
+   * Human-readable identifier for the span. Identical to span.description.
+   */
+  name: string;
+
+  /**
    * @inheritDoc
    */
   spanId: string;
