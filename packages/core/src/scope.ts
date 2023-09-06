@@ -419,7 +419,11 @@ export class Scope implements ScopeInterface {
       timestamp: dateTimestampInSeconds(),
       ...breadcrumb,
     };
-    this._breadcrumbs = [...this._breadcrumbs, mergedBreadcrumb].slice(-maxCrumbs);
+
+    const breadcrumbs = this._breadcrumbs;
+    breadcrumbs.push(mergedBreadcrumb);
+    this._breadcrumbs = breadcrumbs.length > maxCrumbs ? breadcrumbs.slice(-maxCrumbs) : breadcrumbs;
+
     this._notifyScopeListeners();
 
     return this;
