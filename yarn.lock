@@ -4414,10 +4414,10 @@
     fflate "^0.4.4"
     mitt "^1.1.3"
 
-"@sentry/bundler-plugin-core@0.6.0":
-  version "0.6.0"
-  resolved "https://registry.yarnpkg.com/@sentry/bundler-plugin-core/-/bundler-plugin-core-0.6.0.tgz#70ad3740b2f90cdca1aff5fdbcd7306566a2f51e"
-  integrity sha512-gDPBkFxiOkc525U9pxnGMI5B2DAG0+UCsNuiNgl9+AieDcPSYTwdzfGHytxDZrQgPMvIHEnTAp1VlNB+6UxUGQ==
+"@sentry/bundler-plugin-core@0.6.1":
+  version "0.6.1"
+  resolved "https://registry.yarnpkg.com/@sentry/bundler-plugin-core/-/bundler-plugin-core-0.6.1.tgz#6c6a2ff3cdc98cd0ff1c30c59408cee9f067adf2"
+  integrity sha512-EecCJKp9ERM7J93DNDJTvkY78UiD/IfOjBdXWnaUVE0n619O7LfMVjwlXzxRJKl2x05dBE3lDraILLDGxCf6fg==
   dependencies:
     "@sentry/cli" "^2.17.0"
     "@sentry/node" "^7.19.0"
@@ -4464,12 +4464,12 @@
     proxy-from-env "^1.1.0"
     which "^2.0.2"
 
-"@sentry/vite-plugin@^0.6.0":
-  version "0.6.0"
-  resolved "https://registry.yarnpkg.com/@sentry/vite-plugin/-/vite-plugin-0.6.0.tgz#3902a5224d52b06d753a1deeb6b722bf6523840c"
-  integrity sha512-3J1ESvbI5okGJaSWm+gTAOOIa96u4ZwfI/C3n+0HSStz3e4vGiGUh59iNyb1/2m5HFgR5OLaHNfAvlyP8GM/ew==
+"@sentry/vite-plugin@^0.6.1":
+  version "0.6.1"
+  resolved "https://registry.yarnpkg.com/@sentry/vite-plugin/-/vite-plugin-0.6.1.tgz#31eb744e8d87b1528eed8d41433647727a62e7c0"
+  integrity sha512-qkvKaSOcNhNWcdxRXLSs+8cF3ey0XIRmEzTl8U7sTTcZwuOMHsJB+HsYij6aTGaqsKfP8w1ozVt9szBAiL4//w==
   dependencies:
-    "@sentry/bundler-plugin-core" "0.6.0"
+    "@sentry/bundler-plugin-core" "0.6.1"
 
 "@sentry/webpack-plugin@1.19.0":
   version "1.19.0"
