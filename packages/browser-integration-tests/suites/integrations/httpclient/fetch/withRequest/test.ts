@@ -36,7 +36,7 @@ sentryTest('works with a Request passed in', async ({ getLocalTestPath, page }) 
           value: 'HTTP Client Error with status code: 500',
           mechanism: {
             type: 'http.client',
-            handled: true,
+            handled: false,
           },
         },
       ],

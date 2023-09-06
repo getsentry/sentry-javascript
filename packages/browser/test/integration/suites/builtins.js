@@ -182,7 +182,7 @@ describe('wrapped built-ins', function () {
 
         assert.deepEqual(summary.events[0].exception.values[0].mechanism, {
           type: 'instrument',
-          handled: true,
+          handled: false,
           data: {
             function: 'onreadystatechange',
           },
@@ -237,7 +237,7 @@ describe('wrapped built-ins', function () {
 
         assert.deepEqual(summary.events[0].exception.values[0].mechanism, {
           type: 'instrument',
-          handled: true,
+          handled: false,
         });
       }
     });
@@ -277,7 +277,7 @@ describe('wrapped built-ins', function () {
         assert.oneOf(target, ['Node', 'EventTarget']);
         assert.deepEqual(summary.events[0].exception.values[0].mechanism, {
           type: 'instrument',
-          handled: true,
+          handled: false,
           data: {
             function: 'addEventListener',
           },
@@ -313,7 +313,7 @@ describe('wrapped built-ins', function () {
           assert.oneOf(target, ['Node', 'EventTarget']);
           assert.deepEqual(summary.events[0].exception.values[0].mechanism, {
             type: 'instrument',
-            handled: true,
+            handled: false,
             data: {
               function: 'addEventListener',
               handler: '<anonymous>',

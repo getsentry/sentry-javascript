@@ -2,7 +2,7 @@ import type { AddRequestDataToEventOptions } from '@sentry/node';
 import { captureException, flush, getCurrentHub } from '@sentry/node';
 import { isString, isThenable, logger, stripUrlQueryAndFragment, tracingContextFromHeaders } from '@sentry/utils';
 
-import { domainify, proxyFunction } from './../utils';
+import { domainify, markEventUnhandled, proxyFunction } from './../utils';
 import type { HttpFunction, WrapperOptions } from './general';
 
 // TODO (v8 / #5257): Remove this whole old/new business and just use the new stuff
@@ -122,13 +122,13 @@ function _wrapHttpFunction(fn: HttpFunction, wrapOptions: Partial<HttpFunctionWr
     try {
       fnResult = fn(req, res);
     } catch (err) {
-      captureException(err);
+      captureException(err, scope => markEventUnhandled(scope));
       throw err;
     }
 
     if (isThenable(fnResult)) {
       fnResult.then(null, err => {
-        captureException(err);
+        captureException(err, scope => markEventUnhandled(scope));
         throw err;
       });
     }

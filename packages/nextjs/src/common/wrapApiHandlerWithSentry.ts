@@ -191,7 +191,7 @@ export function withSentry(apiHandler: NextApiHandler, parameterizedRoute?: stri
               currentScope.addEventProcessor(event => {
                 addExceptionMechanism(event, {
                   type: 'instrument',
-                  handled: true,
+                  handled: false,
                   data: {
                     wrapped_handler: wrappingTarget.name,
                     function: 'withSentry',

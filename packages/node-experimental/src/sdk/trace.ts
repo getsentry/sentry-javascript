@@ -24,7 +24,7 @@ export function startActiveSpan<T>(context: TransactionContext, callback: (span:
     return callback(undefined);
   }
 
-  const name = context.description || context.op || '<unknown>';
+  const name = context.name || context.description || context.op || '<unknown>';
 
   return tracer.startActiveSpan(name, (span: OtelSpan): T => {
     const otelSpanId = span.spanContext().spanId;
@@ -82,18 +82,35 @@ export function startSpan(context: TransactionContext): Span | undefined {
     return undefined;
   }
 
-  const name = context.description || context.op || '<unknown>';
+  const name = context.name || context.description || context.op || '<unknown>';
   const otelSpan = tracer.startSpan(name);
 
   const otelSpanId = otelSpan.spanContext().spanId;
 
   const sentrySpan = _INTERNAL_getSentrySpan(otelSpanId);
 
-  if (sentrySpan && isTransaction(sentrySpan) && context.metadata) {
+  if (!sentrySpan) {
+    return undefined;
+  }
+
+  if (isTransaction(sentrySpan) && context.metadata) {
     sentrySpan.setMetadata(context.metadata);
   }
 
-  return sentrySpan;
+  // Monkey-patch `finish()` to finish the OTEL span instead
+  // This will also in turn finish the Sentry Span, so no need to call this ourselves
+  const wrappedSentrySpan = new Proxy(sentrySpan, {
+    get(target, prop, receiver) {
+      if (prop === 'finish') {
+        return () => {
+          otelSpan.end();
+        };
+      }
+      return Reflect.get(target, prop, receiver);
+    },
+  });
+
+  return wrappedSentrySpan;
 }
 
 /**
