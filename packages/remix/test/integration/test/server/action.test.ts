@@ -83,7 +83,7 @@ describe.each(['builtin', 'express'])('Remix API Actions with adapter = %s', ada
               data: {
                 function: useV2 ? 'remix.server' : 'action',
               },
-              handled: true,
+              handled: false,
               type: 'instrument',
             },
           },
@@ -203,7 +203,7 @@ describe.each(['builtin', 'express'])('Remix API Actions with adapter = %s', ada
               data: {
                 function: useV2 ? 'remix.server' : 'loader',
               },
-              handled: true,
+              handled: false,
               type: 'instrument',
             },
           },
@@ -256,7 +256,7 @@ describe.each(['builtin', 'express'])('Remix API Actions with adapter = %s', ada
               data: {
                 function: useV2 ? 'ErrorResponse' : 'action',
               },
-              handled: true,
+              handled: false,
               type: 'instrument',
             },
           },
@@ -311,7 +311,7 @@ describe.each(['builtin', 'express'])('Remix API Actions with adapter = %s', ada
               data: {
                 function: useV2 ? 'ErrorResponse' : 'action',
               },
-              handled: true,
+              handled: false,
               type: 'instrument',
             },
           },
@@ -364,7 +364,7 @@ describe.each(['builtin', 'express'])('Remix API Actions with adapter = %s', ada
               data: {
                 function: useV2 ? 'ErrorResponse' : 'action',
               },
-              handled: true,
+              handled: false,
               type: 'instrument',
             },
           },
@@ -419,7 +419,7 @@ describe.each(['builtin', 'express'])('Remix API Actions with adapter = %s', ada
               data: {
                 function: useV2 ? 'ErrorResponse' : 'action',
               },
-              handled: true,
+              handled: false,
               type: 'instrument',
             },
           },

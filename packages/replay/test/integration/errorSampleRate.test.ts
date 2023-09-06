@@ -3,7 +3,7 @@ import { captureException, getCurrentHub } from '@sentry/core';
 import {
   BUFFER_CHECKOUT_TIME,
   DEFAULT_FLUSH_MIN_DELAY,
-  MAX_SESSION_LIFE,
+  MAX_REPLAY_DURATION,
   REPLAY_SESSION_KEY,
   SESSION_IDLE_EXPIRE_DURATION,
   WINDOW,
@@ -430,7 +430,7 @@ describe('Integration | errorSampleRate', () => {
   // simply stop the session replay completely and wait for a new page load to
   // resample.
   it.each([
-    ['MAX_SESSION_LIFE', MAX_SESSION_LIFE],
+    ['MAX_REPLAY_DURATION', MAX_REPLAY_DURATION],
     ['SESSION_IDLE_DURATION', SESSION_IDLE_EXPIRE_DURATION],
   ])(
     'stops replay if session had an error and exceeds %s and does not start a new session thereafter',
@@ -494,7 +494,7 @@ describe('Integration | errorSampleRate', () => {
   );
 
   it.each([
-    ['MAX_SESSION_LIFE', MAX_SESSION_LIFE],
+    ['MAX_REPLAY_DURATION', MAX_REPLAY_DURATION],
     ['SESSION_IDLE_EXPIRE_DURATION', SESSION_IDLE_EXPIRE_DURATION],
   ])('continues buffering replay if session had no error and exceeds %s', async (_label, waitTime) => {
     const oldSessionId = replay.session?.id;
@@ -760,7 +760,7 @@ describe('Integration | errorSampleRate', () => {
     jest.runAllTimers();
     await new Promise(process.nextTick);
 
-    jest.advanceTimersByTime(2 * MAX_SESSION_LIFE);
+    jest.advanceTimersByTime(2 * MAX_REPLAY_DURATION);
 
     // in production, this happens at a time interval, here we mock this
     mockRecord.takeFullSnapshot(true);
@@ -785,7 +785,7 @@ describe('Integration | errorSampleRate', () => {
           data: {
             isCheckout: true,
           },
-          timestamp: BASE_TIMESTAMP + 2 * MAX_SESSION_LIFE + DEFAULT_FLUSH_MIN_DELAY + 40,
+          timestamp: BASE_TIMESTAMP + 2 * MAX_REPLAY_DURATION + DEFAULT_FLUSH_MIN_DELAY + 40,
           type: 2,
         },
       ]),
@@ -795,7 +795,7 @@ describe('Integration | errorSampleRate', () => {
     mockRecord.takeFullSnapshot.mockClear();
     (getCurrentHub().getClient()!.getTransport()!.send as unknown as jest.SpyInstance<any>).mockClear();
 
-    jest.advanceTimersByTime(MAX_SESSION_LIFE);
+    jest.advanceTimersByTime(MAX_REPLAY_DURATION);
     await new Promise(process.nextTick);
 
     mockRecord._emitter(TEST_EVENT);
@@ -960,7 +960,7 @@ it('handles buffer sessions that previously had an error', async () => {
 
   // Waiting for max life should eventually stop recording
   // We simulate a full checkout which would otherwise be done automatically
-  for (let i = 0; i < MAX_SESSION_LIFE / 60_000; i++) {
+  for (let i = 0; i < MAX_REPLAY_DURATION / 60_000; i++) {
     jest.advanceTimersByTime(60_000);
     await new Promise(process.nextTick);
     mockRecord.takeFullSnapshot(true);
@@ -997,7 +997,7 @@ it('handles buffer sessions that never had an error', async () => {
 
   // Waiting for max life should eventually stop recording
   // We simulate a full checkout which would otherwise be done automatically
-  for (let i = 0; i < MAX_SESSION_LIFE / 60_000; i++) {
+  for (let i = 0; i < MAX_REPLAY_DURATION / 60_000; i++) {
     jest.advanceTimersByTime(60_000);
     await new Promise(process.nextTick);
     mockRecord.takeFullSnapshot(true);

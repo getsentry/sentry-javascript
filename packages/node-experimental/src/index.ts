@@ -11,6 +11,7 @@ export { init } from './sdk/init';
 export { INTEGRATIONS as Integrations };
 export { getAutoPerformanceIntegrations } from './integrations/getAutoPerformanceIntegrations';
 export * as Handlers from './sdk/handlers';
+export * from './sdk/trace';
 
 export {
   makeNodeTransport,

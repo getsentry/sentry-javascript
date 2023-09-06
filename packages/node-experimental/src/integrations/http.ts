@@ -4,10 +4,9 @@ import { registerInstrumentations } from '@opentelemetry/instrumentation';
 import { HttpInstrumentation } from '@opentelemetry/instrumentation-http';
 import type { Span as OtelSpan } from '@opentelemetry/sdk-trace-node';
 import { SemanticAttributes } from '@opentelemetry/semantic-conventions';
-import { hasTracingEnabled } from '@sentry/core';
+import { hasTracingEnabled, Transaction } from '@sentry/core';
 import { getCurrentHub } from '@sentry/node';
-import type { AdditionalOtelSpanData } from '@sentry/opentelemetry-node';
-import { addOtelSpanData } from '@sentry/opentelemetry-node';
+import { _INTERNAL_getSentrySpan } from '@sentry/opentelemetry-node';
 import type { EventProcessor, Hub, Integration } from '@sentry/types';
 import type { ClientRequest, IncomingMessage, ServerResponse } from 'http';
 
@@ -146,34 +145,37 @@ export class Http implements Integration {
     const data = getRequestSpanData(span, request, response);
     const { attributes } = span;
 
-    const additionalData: AdditionalOtelSpanData = {
-      tags: {},
-      data: {
+    const sentrySpan = _INTERNAL_getSentrySpan(span.spanContext().spanId);
+    if (sentrySpan) {
+      sentrySpan.origin = 'auto.http.otel.http';
+
+      const additionalData: Record<string, unknown> = {
         url: data.url,
-      },
-      contexts: {},
-      metadata: {},
-      origin: 'auto.http.otel.http',
-    };
+      };
 
-    if (span.kind === SpanKind.SERVER) {
-      additionalData.metadata = { request };
-    }
+      if (sentrySpan instanceof Transaction && span.kind === SpanKind.SERVER) {
+        sentrySpan.setMetadata({ request });
+      }
 
-    if (attributes[SemanticAttributes.HTTP_STATUS_CODE]) {
-      const statusCode = attributes[SemanticAttributes.HTTP_STATUS_CODE] as string;
-      additionalData.tags['http.status_code'] = statusCode;
-      additionalData.data['http.response.status_code'] = statusCode;
-    }
+      if (attributes[SemanticAttributes.HTTP_STATUS_CODE]) {
+        const statusCode = attributes[SemanticAttributes.HTTP_STATUS_CODE] as string;
+        additionalData['http.response.status_code'] = statusCode;
 
-    if (data['http.query']) {
-      additionalData.data['http.query'] = data['http.query'].slice(1);
-    }
-    if (data['http.fragment']) {
-      additionalData.data['http.fragment'] = data['http.fragment'].slice(1);
-    }
+        sentrySpan.setTag('http.status_code', statusCode);
+      }
 
-    addOtelSpanData(span.spanContext().spanId, additionalData);
+      if (data['http.query']) {
+        additionalData['http.query'] = data['http.query'].slice(1);
+      }
+      if (data['http.fragment']) {
+        additionalData['http.fragment'] = data['http.fragment'].slice(1);
+      }
+
+      Object.keys(additionalData).forEach(prop => {
+        const value = additionalData[prop];
+        sentrySpan.setData(prop, value);
+      });
+    }
 
     if (this._breadcrumbs) {
       getCurrentHub().addBreadcrumb(

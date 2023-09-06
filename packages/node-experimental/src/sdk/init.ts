@@ -6,6 +6,7 @@ import { Http } from '../integrations/http';
 import type { NodeExperimentalOptions } from '../types';
 import { NodeExperimentalClient } from './client';
 import { initOtel } from './initOtel';
+import { setOtelContextAsyncContextStrategy } from './otelAsyncContextStrategy';
 
 const ignoredDefaultIntegrations = ['Http', 'Undici'];
 
@@ -35,4 +36,5 @@ export function init(options: NodeExperimentalOptions | undefined = {}): void {
 
   // Always init Otel, even if tracing is disabled, because we need it for trace propagation & the HTTP integration
   initOtel();
+  setOtelContextAsyncContextStrategy();
 }
