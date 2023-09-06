@@ -4,6 +4,15 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.68.0
+
+- feat(browser): Add `BroadcastChannel` and `SharedWorker` to TryCatch EventTargets (#8943)
+- feat(core): Add `name` to `Span` (#8949)
+- feat(core): Add `ServerRuntimeClient` (#8930)
+- fix(node-experimental): Ensure `span.finish()` works as expected (#8947)
+- fix(remix): Add new sourcemap-upload script files to prepack assets. (#8948)
+- fix(publish): Publish downleveled TS3.8 types and fix types path (#8954)
+
 ## 7.67.0
 
 ### Important Changes
