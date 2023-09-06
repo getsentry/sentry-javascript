@@ -285,7 +285,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
    */
   public setupIntegrations(): void {
     if (this._isEnabled() && !this._integrationsInitialized) {
-      this._integrations = setupIntegrations(this._options.integrations);
+      this._integrations = setupIntegrations(this, this._options.integrations);
       this._integrationsInitialized = true;
     }
   }
@@ -315,7 +315,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
    * @inheritDoc
    */
   public addIntegration(integration: Integration): void {
-    setupIntegration(integration, this._integrations);
+    setupIntegration(this, integration, this._integrations);
   }
 
   /**
