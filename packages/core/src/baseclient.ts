@@ -384,7 +384,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   public on(hook: 'beforeEnvelope', callback: (envelope: Envelope) => void): void;
 
   /** @inheritdoc */
-  public on(hook: 'beforeSendEvent', callback: (event: Event, hint?: EventHint) => void): void;
+  public on(hook: 'beforeSendEvent' | 'preprocessEvent', callback: (event: Event, hint?: EventHint) => void): void;
 
   /** @inheritdoc */
   public on(
@@ -418,7 +418,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   public emit(hook: 'beforeEnvelope', envelope: Envelope): void;
 
   /** @inheritdoc */
-  public emit(hook: 'beforeSendEvent', event: Event, hint?: EventHint): void;
+  public emit(hook: 'beforeSendEvent' | 'preprocessEvent', event: Event, hint?: EventHint): void;
 
   /** @inheritdoc */
   public emit(hook: 'afterSendEvent', event: Event, sendResponse: TransportMakeRequestResponse | void): void;
@@ -528,6 +528,9 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
     if (!hint.integrations && integrations.length > 0) {
       hint.integrations = integrations;
     }
+
+    this.emit('preprocessEvent', event, hint);
+
     return prepareEvent(options, event, hint, scope).then(evt => {
       if (evt === null) {
         return evt;
