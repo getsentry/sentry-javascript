@@ -14,7 +14,6 @@ import type {
 } from '../types';
 
 // Map entryType -> function to normalize data for event
-// @ts-expect-error TODO: entry type does not fit the create* functions entry type
 const ENTRY_TYPES: Record<
   string,
   (entry: AllPerformanceEntry) => null | ReplayPerformanceEntry<AllPerformanceEntryData>
