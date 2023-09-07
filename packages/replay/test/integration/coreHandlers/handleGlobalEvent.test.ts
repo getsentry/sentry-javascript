@@ -35,7 +35,7 @@ describe('Integration | coreHandlers | handleGlobalEvent', () => {
       breadcrumbs: [{ type: 'fakecrumb' }],
     };
 
-    // @ts-ignore replay event type
+    // @ts-expect-error replay event type
     expect(handleGlobalEventListener(replay)(replayEvent, {})).toEqual({
       type: REPLAY_EVENT_NAME,
     });
@@ -105,7 +105,7 @@ describe('Integration | coreHandlers | handleGlobalEvent', () => {
   it('tags errors and transactions with replay id for session samples', async () => {
     let integration: ReplayIntegration;
     ({ replay, integration } = await resetSdkMock({}));
-    // @ts-ignore protected but ok to use for testing
+    // @ts-expect-error protected but ok to use for testing
     integration._initialize();
     const transaction = Transaction();
     const error = Error();
@@ -313,7 +313,7 @@ describe('Integration | coreHandlers | handleGlobalEvent', () => {
     };
 
     const originalException = new window.Error('some exception');
-    // @ts-ignore this could be set by rrweb
+    // @ts-expect-error this could be set by rrweb
     originalException.__rrweb__ = true;
 
     expect(handleGlobalEventListener(replay)(errorEvent, { originalException })).toEqual(null);

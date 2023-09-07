@@ -68,7 +68,7 @@ sentryTest(
     expect(
       await page.evaluate(() => {
         const replayIntegration = (window as unknown as Window & { Replay: InstanceType<typeof Replay> }).Replay;
-        // @ts-ignore private
+        // @ts-expect-error private
         const replay = replayIntegration._replay;
         replayIntegration.startBuffering();
         return replay.isEnabled();
@@ -210,7 +210,7 @@ sentryTest(
     expect(
       await page.evaluate(() => {
         const replayIntegration = (window as unknown as Window & { Replay: InstanceType<typeof Replay> }).Replay;
-        // @ts-ignore private
+        // @ts-expect-error private
         const replay = replayIntegration._replay;
         replayIntegration.startBuffering();
         return replay.isEnabled();

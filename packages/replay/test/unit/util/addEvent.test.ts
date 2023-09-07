@@ -22,7 +22,7 @@ describe('Unit | util | addEvent', () => {
 
     await (replay.eventBuffer as EventBufferProxy).ensureWorkerIsLoaded();
 
-    // @ts-ignore Mock this private so it triggers an error
+    // @ts-expect-error Mock this private so it triggers an error
     jest.spyOn(replay.eventBuffer._compression._worker, 'postMessage').mockImplementationOnce(() => {
       return Promise.reject('test worker error');
     });

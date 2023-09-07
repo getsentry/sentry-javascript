@@ -69,7 +69,7 @@ describe('ExtraErrorData()', () => {
 
   it('should not remove previous data existing in extra field', () => {
     event = {
-      // @ts-ignore Allow contexts on event
+      // @ts-expect-error Allow contexts on event
       contexts: {
         foo: { bar: 42 },
       },
@@ -107,7 +107,7 @@ describe('ExtraErrorData()', () => {
 
   it('should return event if there is no originalException', () => {
     const enhancedEvent = extraErrorData.enhanceEventWithErrorData(event, {
-      // @ts-ignore Allow event to have extra properties
+      // @ts-expect-error Allow event to have extra properties
       notOriginalException: 'fooled you',
     });
 

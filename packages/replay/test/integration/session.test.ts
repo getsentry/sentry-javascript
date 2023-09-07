@@ -367,7 +367,7 @@ describe('Integration | session', () => {
     expect(replay).not.toHaveSameSession(initialSession);
     expect(mockRecord.takeFullSnapshot).toHaveBeenCalled();
     expect(replay).not.toHaveLastSentReplay();
-    // @ts-ignore private
+    // @ts-expect-error private
     expect(replay._stopRecording).toBeDefined();
 
     // Now do a click

@@ -7,7 +7,7 @@ describe('Unit | util | createReplayEnvelope', () => {
   const REPLAY_ID = 'MY_REPLAY_ID';
 
   const replayEvent: ReplayEvent = {
-    // @ts-ignore private api
+    // @ts-expect-error private api
     type: 'replay_event',
     timestamp: 1670837008.634,
     error_ids: ['errorId'],

@@ -46,7 +46,7 @@ describe('SentryPropagator', () => {
           publicKey: 'abc',
         }),
       };
-      // @ts-ignore Use mock client for unit tests
+      // @ts-expect-error Use mock client for unit tests
       const hub: Hub = new Hub(client);
       makeMain(hub);
 

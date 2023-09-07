@@ -83,10 +83,10 @@ describe('SyncPromise', () => {
 
     return (
       c
-        // @ts-ignore Argument of type 'PromiseLike<string>' is not assignable to parameter of type 'SyncPromise<string>'
+        // @ts-expect-error Argument of type 'PromiseLike<string>' is not assignable to parameter of type 'SyncPromise<string>'
         .then(val => f(resolvedSyncPromise('x'), val))
         .then(val => f(b, val))
-        // @ts-ignore Argument of type 'SyncPromise<string>' is not assignable to parameter of type 'string'
+        // @ts-expect-error Argument of type 'SyncPromise<string>' is not assignable to parameter of type 'string'
         .then(val => f(a, val))
         .then(val => {
           expect(val).toBe(res);

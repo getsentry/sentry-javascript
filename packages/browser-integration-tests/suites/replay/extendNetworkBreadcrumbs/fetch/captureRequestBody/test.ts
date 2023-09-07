@@ -41,7 +41,7 @@ sentryTest('captures text request body', async ({ getLocalTestPath, page, browse
       method: 'POST',
       body: 'input body',
     }).then(() => {
-      // @ts-ignore Sentry is a global
+      // @ts-expect-error Sentry is a global
       Sentry.captureException('test error');
     });
     /* eslint-enable */
@@ -120,7 +120,7 @@ sentryTest('captures JSON request body', async ({ getLocalTestPath, page, browse
       method: 'POST',
       body: '{"foo":"bar"}',
     }).then(() => {
-      // @ts-ignore Sentry is a global
+      // @ts-expect-error Sentry is a global
       Sentry.captureException('test error');
     });
     /* eslint-enable */
@@ -203,7 +203,7 @@ sentryTest('captures non-text request body', async ({ getLocalTestPath, page, br
       method: 'POST',
       body: body,
     }).then(() => {
-      // @ts-ignore Sentry is a global
+      // @ts-expect-error Sentry is a global
       Sentry.captureException('test error');
     });
     /* eslint-enable */
@@ -282,7 +282,7 @@ sentryTest('captures text request body when matching relative URL', async ({ get
       method: 'POST',
       body: 'input body',
     }).then(() => {
-      // @ts-ignore Sentry is a global
+      // @ts-expect-error Sentry is a global
       Sentry.captureException('test error');
     });
     /* eslint-enable */
@@ -359,7 +359,7 @@ sentryTest('does not capture request body when URL does not match', async ({ get
       method: 'POST',
       body: 'input body',
     }).then(() => {
-      // @ts-ignore Sentry is a global
+      // @ts-expect-error Sentry is a global
       Sentry.captureException('test error');
     });
     /* eslint-enable */

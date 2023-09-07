@@ -407,7 +407,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
       this._hooks[hook] = [];
     }
 
-    // @ts-ignore We assue the types are correct
+    // @ts-expect-error We assue the types are correct
     this._hooks[hook].push(callback);
   }
 
@@ -435,7 +435,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   /** @inheritdoc */
   public emit(hook: string, ...rest: unknown[]): void {
     if (this._hooks[hook]) {
-      // @ts-ignore we cannot enforce the callback to match the hook
+      // @ts-expect-error we cannot enforce the callback to match the hook
       this._hooks[hook].forEach(callback => callback(...rest));
     }
   }

@@ -66,7 +66,7 @@ describe('SentrySpanProcessor', () => {
 
   function getContext(transaction: Transaction) {
     const transactionWithContext = transaction as unknown as Transaction;
-    // @ts-ignore accessing private property
+    // @ts-expect-error accessing private property
     return transactionWithContext._contexts;
   }
 
@@ -876,7 +876,7 @@ describe('SentrySpanProcessor', () => {
       parentOtelSpan.end();
     });
 
-    // @ts-ignore Accessing private attributes
+    // @ts-expect-error Accessing private attributes
     expect(sentryTransaction._hub.getScope()._tags.foo).toEqual('bar');
   });
 });

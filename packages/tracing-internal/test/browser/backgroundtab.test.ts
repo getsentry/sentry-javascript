@@ -11,7 +11,7 @@ conditionalTest({ min: 10 })('registerBackgroundTabDetection', () => {
   let hub: Hub;
   beforeEach(() => {
     const dom = new JSDOM();
-    // @ts-ignore need to override global document
+    // @ts-expect-error need to override global document
     global.document = dom.window.document;
 
     const options = getDefaultBrowserClientOptions({ tracesSampleRate: 1 });
@@ -22,7 +22,7 @@ conditionalTest({ min: 10 })('registerBackgroundTabDetection', () => {
     // eslint-disable-next-line deprecation/deprecation
     addExtensionMethods();
 
-    // @ts-ignore need to override global document
+    // @ts-expect-error need to override global document
     global.document.addEventListener = jest.fn((event, callback) => {
       events[event] = callback;
     });
@@ -34,7 +34,7 @@ conditionalTest({ min: 10 })('registerBackgroundTabDetection', () => {
   });
 
   it('does not creates an event listener if global document is undefined', () => {
-    // @ts-ignore need to override global document
+    // @ts-expect-error need to override global document
     global.document = undefined;
     registerBackgroundTabDetection();
     expect(events).toMatchObject({});
@@ -51,7 +51,7 @@ conditionalTest({ min: 10 })('registerBackgroundTabDetection', () => {
     hub.configureScope(scope => scope.setSpan(transaction));
 
     // Simulate document visibility hidden event
-    // @ts-ignore need to override global document
+    // @ts-expect-error need to override global document
     global.document.hidden = true;
     events.visibilitychange();
 

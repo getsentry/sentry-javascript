@@ -23,7 +23,7 @@ describe('GoogleCloudHttp tracing', () => {
       .reply(200, '{"access_token":"a.b.c","expires_in":3599,"token_type":"Bearer"}');
   });
   afterEach(() => {
-    // @ts-ignore see "Why @ts-ignore" note
+    // @ts-expect-error see "Why @ts-ignore" note
     SentryNode.resetMocks();
   });
   afterAll(() => {
@@ -57,13 +57,13 @@ describe('GoogleCloudHttp tracing', () => {
         );
       const resp = await bigquery.query('SELECT true AS foo');
       expect(resp).toEqual([[{ foo: true }]]);
-      // @ts-ignore see "Why @ts-ignore" note
+      // @ts-expect-error see "Why @ts-ignore" note
       expect(SentryNode.fakeTransaction.startChild).toBeCalledWith({
         op: 'http.client.bigquery',
         origin: 'auto.http.serverless',
         description: 'POST /jobs',
       });
-      // @ts-ignore see "Why @ts-ignore" note
+      // @ts-expect-error see "Why @ts-ignore" note
       expect(SentryNode.fakeTransaction.startChild).toBeCalledWith({
         op: 'http.client.bigquery',
         origin: 'auto.http.serverless',

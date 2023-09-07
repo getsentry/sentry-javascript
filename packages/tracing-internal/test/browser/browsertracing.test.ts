@@ -50,11 +50,11 @@ jest.mock('./../../src/browser/request', () => {
 
 beforeAll(() => {
   const dom = new JSDOM();
-  // @ts-ignore need to override global document
+  // @ts-expect-error need to override global document
   WINDOW.document = dom.window.document;
-  // @ts-ignore need to override global document
+  // @ts-expect-error need to override global document
   WINDOW.window = dom.window;
-  // @ts-ignore need to override global document
+  // @ts-expect-error need to override global document
   WINDOW.location = dom.window.location;
 });
 
@@ -307,7 +307,7 @@ conditionalTest({ min: 10 })('BrowserTracing', () => {
             ...options,
           });
 
-          // @ts-ignore accessing private property
+          // @ts-expect-error accessing private property
           expect(inst._hasSetTracePropagationTargets).toBe(hasSet);
         },
       );

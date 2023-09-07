@@ -49,12 +49,12 @@ describe('Server init()', () => {
   it('sets runtime on scope', () => {
     const currentScope = getCurrentHub().getScope();
 
-    // @ts-ignore need access to protected _tags attribute
+    // @ts-expect-error need access to protected _tags attribute
     expect(currentScope._tags).toEqual({});
 
     init({});
 
-    // @ts-ignore need access to protected _tags attribute
+    // @ts-expect-error need access to protected _tags attribute
     expect(currentScope._tags).toEqual({ runtime: 'node' });
   });
 

@@ -204,7 +204,7 @@ function _getFramesFromEvent(event: Event): StackFrame[] | undefined {
 
   if (exception) {
     try {
-      // @ts-ignore Object could be undefined
+      // @ts-expect-error Object could be undefined
       return exception.values[0].stacktrace.frames;
     } catch (_oO) {
       return undefined;

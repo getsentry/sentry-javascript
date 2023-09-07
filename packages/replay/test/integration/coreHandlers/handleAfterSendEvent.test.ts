@@ -153,7 +153,7 @@ describe('Integration | coreHandlers | handleAfterSendEvent', () => {
     }));
 
     const client = getCurrentHub().getClient()!;
-    // @ts-ignore make sure to remove this
+    // @ts-expect-error make sure to remove this
     delete client.getTransport()!.send.__sentry__baseTransport__;
 
     const error1 = Error({ event_id: 'err1' });

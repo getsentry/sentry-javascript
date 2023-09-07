@@ -316,7 +316,7 @@ describe('SentryNode', () => {
       });
       getCurrentHub().bindClient(new NodeClient(options));
       try {
-        // @ts-ignore allow function declarations in strict mode
+        // @ts-expect-error allow function declarations in strict mode
         // eslint-disable-next-line no-inner-declarations
         function testy(): void {
           throw new Error('test');

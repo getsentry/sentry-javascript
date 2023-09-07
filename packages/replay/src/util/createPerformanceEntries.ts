@@ -14,17 +14,17 @@ import type {
 } from '../types';
 
 // Map entryType -> function to normalize data for event
-// @ts-ignore TODO: entry type does not fit the create* functions entry type
+// @ts-expect-error TODO: entry type does not fit the create* functions entry type
 const ENTRY_TYPES: Record<
   string,
   (entry: AllPerformanceEntry) => null | ReplayPerformanceEntry<AllPerformanceEntryData>
 > = {
-  // @ts-ignore TODO: entry type does not fit the create* functions entry type
+  // @ts-expect-error TODO: entry type does not fit the create* functions entry type
   resource: createResourceEntry,
   paint: createPaintEntry,
-  // @ts-ignore TODO: entry type does not fit the create* functions entry type
+  // @ts-expect-error TODO: entry type does not fit the create* functions entry type
   navigation: createNavigationEntry,
-  // @ts-ignore TODO: entry type does not fit the create* functions entry type
+  // @ts-expect-error TODO: entry type does not fit the create* functions entry type
   ['largest-contentful-paint']: createLargestContentfulPaint,
 };
 

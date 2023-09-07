@@ -722,7 +722,7 @@ describe('BaseClient', () => {
     test('skips empty integrations', () => {
       const options = getDefaultTestClientOptions({
         dsn: PUBLIC_DSN,
-        // @ts-ignore we want to force invalid integrations here
+        // @ts-expect-error we want to force invalid integrations here
         integrations: [new TestIntegration(), null, undefined],
       });
       const client = new TestClient(options);
@@ -1046,7 +1046,7 @@ describe('BaseClient', () => {
 
       for (const val of invalidValues) {
         const beforeSend = jest.fn(() => val);
-        // @ts-ignore we need to test regular-js behavior
+        // @ts-expect-error we need to test regular-js behavior
         const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, beforeSend });
         const client = new TestClient(options);
         const loggerWarnSpy = jest.spyOn(logger, 'warn');
@@ -1067,7 +1067,7 @@ describe('BaseClient', () => {
 
       for (const val of invalidValues) {
         const beforeSendTransaction = jest.fn(() => val);
-        // @ts-ignore we need to test regular-js behavior
+        // @ts-expect-error we need to test regular-js behavior
         const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, beforeSendTransaction });
         const client = new TestClient(options);
         const loggerWarnSpy = jest.spyOn(logger, 'warn');

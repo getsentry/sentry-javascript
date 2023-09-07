@@ -29,7 +29,7 @@ sentryTest(
     await page.goto(url);
 
     const event = await page.evaluate(async () => {
-      // @ts-ignore this function exists
+      // @ts-expect-error this function exists
       return window.getEvent();
     });
 

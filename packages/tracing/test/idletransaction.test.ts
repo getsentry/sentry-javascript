@@ -87,7 +87,7 @@ describe('IdleTransaction', () => {
       );
       transaction.initSpanRecorder(10);
 
-      // @ts-ignore need to pass in hub
+      // @ts-expect-error need to pass in hub
       const otherTransaction = new Transaction({ name: 'bar' }, hub);
       hub.getScope().setSpan(otherTransaction);
 

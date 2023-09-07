@@ -27,7 +27,7 @@ const ERROR_ENVELOPE = createEnvelope<EventEnvelope>({ event_id: 'aa3ff046696b4b
 ]);
 
 const REPLAY_EVENT: ReplayEvent = {
-  // @ts-ignore private api
+  // @ts-expect-error private api
   type: 'replay_event',
   timestamp: 1670837008.634,
   error_ids: ['errorId'],

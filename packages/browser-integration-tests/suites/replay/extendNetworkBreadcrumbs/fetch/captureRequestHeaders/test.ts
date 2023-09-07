@@ -38,7 +38,7 @@ sentryTest('handles empty/missing request headers', async ({ getLocalTestPath, p
     fetch('http://localhost:7654/foo', {
       method: 'POST',
     }).then(() => {
-      // @ts-ignore Sentry is a global
+      // @ts-expect-error Sentry is a global
       Sentry.captureException('test error');
     });
     /* eslint-enable */
@@ -117,7 +117,7 @@ sentryTest('captures request headers as POJO', async ({ getLocalTestPath, page, 
         'X-Test-Header': 'test-value',
       },
     }).then(() => {
-      // @ts-ignore Sentry is a global
+      // @ts-expect-error Sentry is a global
       Sentry.captureException('test error');
     });
     /* eslint-enable */
@@ -201,7 +201,7 @@ sentryTest('captures request headers on Request', async ({ getLocalTestPath, pag
     });
     /* eslint-disable */
     fetch(request).then(() => {
-      // @ts-ignore Sentry is a global
+      // @ts-expect-error Sentry is a global
       Sentry.captureException('test error');
     });
     /* eslint-enable */
@@ -284,7 +284,7 @@ sentryTest('captures request headers as Headers instance', async ({ getLocalTest
       method: 'POST',
       headers,
     }).then(() => {
-      // @ts-ignore Sentry is a global
+      // @ts-expect-error Sentry is a global
       Sentry.captureException('test error');
     });
     /* eslint-enable */
@@ -367,7 +367,7 @@ sentryTest('does not captures request headers if URL does not match', async ({ g
         'X-Test-Header': 'test-value',
       },
     }).then(() => {
-      // @ts-ignore Sentry is a global
+      // @ts-expect-error Sentry is a global
       Sentry.captureException('test error');
     });
     /* eslint-enable */

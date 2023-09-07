@@ -36,12 +36,12 @@ export function handleMessage(e: MessageEvent): void {
   const id = e.data.id as number;
   const data = e.data.arg as string;
 
-  // @ts-ignore this syntax is actually fine
+  // @ts-expect-error this syntax is actually fine
   if (method in handlers && typeof handlers[method] === 'function') {
     try {
-      // @ts-ignore this syntax is actually fine
+      // @ts-expect-error this syntax is actually fine
       const response = handlers[method](data);
-      // @ts-ignore this syntax is actually fine
+      // @ts-expect-error this syntax is actually fine
       postMessage({
         id,
         method,
@@ -49,7 +49,7 @@ export function handleMessage(e: MessageEvent): void {
         response,
       });
     } catch (err) {
-      // @ts-ignore this syntax is actually fine
+      // @ts-expect-error this syntax is actually fine
       postMessage({
         id,
         method,
