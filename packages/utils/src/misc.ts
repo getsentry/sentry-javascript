@@ -27,11 +27,11 @@ export function uuid4(): string {
 
   let getRandomByte = (): number => Math.random() * 16;
   try {
-    if (crypto) {
-      if (crypto.randomUUID) {
-        return crypto.randomUUID().replace(/-/g, '');
-      }
-      getRandomByte = () => crypto.getRandomValues && crypto.getRandomValues(new Uint8Array(1))[0];
+    if (crypto && crypto.randomUUID) {
+      return crypto.randomUUID().replace(/-/g, '');
+    }
+    if (crypto && crypto.getRandomValues) {
+      getRandomByte = () => crypto.getRandomValues(new Uint8Array(1))[0];
     }
   } catch (_) {
     // some runtimes can crash invoking crypto
