@@ -7,6 +7,6 @@ export { extractTraceparentData, getActiveTransaction } from './utils';
 export { SpanStatus } from './spanstatus';
 export type { SpanStatusType } from './span';
 // eslint-disable-next-line deprecation/deprecation
-export { trace, getActiveSpan, startSpan, startInactiveSpan, startActiveSpan } from './trace';
+export { trace, getActiveSpan, startSpan, startInactiveSpan, startActiveSpan, startSpanManual } from './trace';
 export { getDynamicSamplingContextFromClient } from './dynamicSamplingContext';
 export { setMeasurement } from './measurement';
