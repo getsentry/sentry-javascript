@@ -212,7 +212,7 @@ describe('makeNewHttpTransport()', () => {
   describe('proxy', () => {
     const proxyAgentSpy = jest
       .spyOn(httpProxyAgent, 'HttpsProxyAgent')
-      // @ts-expect-error
+      // @ts-expect-error using http agent as https proxy agent
       .mockImplementation(() => new http.Agent({ keepAlive: false, maxSockets: 30, timeout: 2000 }));
 
     it('can be configured through option', () => {

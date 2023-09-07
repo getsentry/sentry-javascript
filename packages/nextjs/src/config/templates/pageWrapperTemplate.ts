@@ -27,6 +27,7 @@ const origGetInitialProps = pageComponent ? pageComponent.getInitialProps : unde
 const origGetStaticProps = userPageModule ? userPageModule.getStaticProps : undefined;
 const origGetServerSideProps = userPageModule ? userPageModule.getServerSideProps : undefined;
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const getInitialPropsWrappers: Record<string, any> = {
   '/_app': Sentry.wrapAppGetInitialPropsWithSentry,
   '/_document': Sentry.wrapDocumentGetInitialPropsWithSentry,
