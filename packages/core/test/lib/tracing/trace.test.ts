@@ -1,5 +1,5 @@
 import { addTracingExtensions, Hub, makeMain } from '../../../src';
-import { startActiveSpan } from '../../../src/tracing';
+import { startSpan } from '../../../src/tracing';
 import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
 
 beforeAll(() => {
@@ -14,7 +14,7 @@ const enum Type {
 let hub: Hub;
 let client: TestClient;
 
-describe('startActiveSpan', () => {
+describe('startSpan', () => {
   beforeEach(() => {
     const options = getDefaultTestClientOptions({ tracesSampleRate: 0.0 });
     client = new TestClient(options);
@@ -38,7 +38,7 @@ describe('startActiveSpan', () => {
   ])('with %s callback and error %s', (_type, isError, callback, expected) => {
     it('should return the same value as the callback', async () => {
       try {
-        const result = await startActiveSpan({ name: 'GET users/[id]' }, () => {
+        const result = await startSpan({ name: 'GET users/[id]' }, () => {
           return callback();
         });
         expect(result).toEqual(expected);
@@ -53,7 +53,7 @@ describe('startActiveSpan', () => {
       // if tracingExtensions are not enabled
       jest.spyOn(hub, 'startTransaction').mockReturnValue(undefined);
       try {
-        const result = await startActiveSpan({ name: 'GET users/[id]' }, () => {
+        const result = await startSpan({ name: 'GET users/[id]' }, () => {
           return callback();
         });
         expect(result).toEqual(expected);
@@ -68,7 +68,7 @@ describe('startActiveSpan', () => {
         ref = transaction;
       });
       try {
-        await startActiveSpan({ name: 'GET users/[id]' }, () => {
+        await startSpan({ name: 'GET users/[id]' }, () => {
           return callback();
         });
       } catch (e) {
@@ -86,7 +86,7 @@ describe('startActiveSpan', () => {
         ref = transaction;
       });
       try {
-        await startActiveSpan(
+        await startSpan(
           {
             name: 'GET users/[id]',
             parentSampled: true,
@@ -113,7 +113,7 @@ describe('startActiveSpan', () => {
         ref = transaction;
       });
       try {
-        await startActiveSpan({ name: 'GET users/[id]' }, span => {
+        await startSpan({ name: 'GET users/[id]' }, span => {
           if (span) {
             span.op = 'http.server';
           }
@@ -132,8 +132,8 @@ describe('startActiveSpan', () => {
         ref = transaction;
       });
       try {
-        await startActiveSpan({ name: 'GET users/[id]', parentSampled: true }, () => {
-          return startActiveSpan({ name: 'SELECT * from users' }, () => {
+        await startSpan({ name: 'GET users/[id]', parentSampled: true }, () => {
+          return startSpan({ name: 'SELECT * from users' }, () => {
             return callback();
           });
         });
@@ -153,8 +153,8 @@ describe('startActiveSpan', () => {
         ref = transaction;
       });
       try {
-        await startActiveSpan({ name: 'GET users/[id]', parentSampled: true }, () => {
-          return startActiveSpan({ name: 'SELECT * from users' }, childSpan => {
+        await startSpan({ name: 'GET users/[id]', parentSampled: true }, () => {
+          return startSpan({ name: 'SELECT * from users' }, childSpan => {
             if (childSpan) {
               childSpan.op = 'db.query';
             }

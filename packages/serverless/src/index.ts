@@ -51,6 +51,6 @@ export {
   Integrations,
   setMeasurement,
   getActiveSpan,
-  startActiveSpan,
   startSpan,
+  startInactiveSpan,
 } from '@sentry/node';

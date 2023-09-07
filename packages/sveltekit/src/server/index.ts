@@ -46,8 +46,8 @@ export {
   Handlers,
   setMeasurement,
   getActiveSpan,
-  startActiveSpan,
   startSpan,
+  startInactiveSpan,
 } from '@sentry/node';
 
 // We can still leave this for the carrier init and type exports
