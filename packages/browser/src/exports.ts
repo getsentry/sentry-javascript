@@ -40,6 +40,7 @@ export {
   getActiveSpan,
   startSpan,
   startInactiveSpan,
+  startActiveSpan,
   SDK_VERSION,
   setContext,
   setExtra,

@@ -57,6 +57,7 @@ export {
   setMeasurement,
   getActiveSpan,
   startSpan,
+  startActiveSpan,
   startInactiveSpan,
 } from '@sentry/core';
 export type { SpanStatusType } from '@sentry/core';
