@@ -1,7 +1,6 @@
 const CrashedPage = (): JSX.Element => {
   // Magic to naively trigger onerror to make session crashed and allow for SSR
   try {
-    // @ts-expect-error
     if (typeof window !== 'undefined' && typeof window.onerror === 'function') {
       // Lovely oldschool browsers syntax with 5 arguments <3
       // @ts-expect-error
