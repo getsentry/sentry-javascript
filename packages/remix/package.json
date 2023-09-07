@@ -33,6 +33,7 @@
     "@sentry/react": "7.68.0",
     "@sentry/types": "7.68.0",
     "@sentry/utils": "7.68.0",
+    "glob": "^10.3.4",
     "tslib": "^2.4.1 || ^1.9.3",
     "yargs": "^17.6.0"
   },
