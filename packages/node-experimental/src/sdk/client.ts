@@ -1,13 +1,19 @@
 import type { Tracer } from '@opentelemetry/api';
 import { trace } from '@opentelemetry/api';
+import type { EventHint, Scope } from '@sentry/node';
 import { NodeClient, SDK_VERSION } from '@sentry/node';
+import type { Event } from '@sentry/types';
 
-import type { NodeExperimentalClientOptions } from '../types';
+import type {
+  NodeExperimentalClient as NodeExperimentalClientInterface,
+  NodeExperimentalClientOptions,
+} from '../types';
+import { OtelScope } from './scope';
 
 /**
  * A client built on top of the NodeClient, which provides some otel-specific things on top.
  */
-export class NodeExperimentalClient extends NodeClient {
+export class NodeExperimentalClient extends NodeClient implements NodeExperimentalClientInterface {
   private _tracer: Tracer | undefined;
 
   public constructor(options: ConstructorParameters<typeof NodeClient>[0]) {
@@ -46,5 +52,21 @@ export class NodeExperimentalClient extends NodeClient {
   public getOptions(): NodeExperimentalClientOptions {
     // Just a type-cast, basically
     return super.getOptions();
+  }
+
+  /**
+   * Extends the base `_prepareEvent` so that we can properly handle `captureContext`.
+   * This uses `Scope.clone()`, which we need to replace with `OtelScope.clone()` for this client.
+   */
+  protected _prepareEvent(event: Event, hint: EventHint, scope?: Scope): PromiseLike<Event | null> {
+    let actualScope = scope;
+
+    // Remove `captureContext` hint and instead clone already here
+    if (hint && hint.captureContext) {
+      actualScope = OtelScope.clone(scope);
+      delete hint.captureContext;
+    }
+
+    return super._prepareEvent(event, hint, actualScope);
   }
 }
