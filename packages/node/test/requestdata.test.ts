@@ -95,7 +95,6 @@ describe.each([parseRequest, addRequestDataToEvent])(
         test(`${fn.name}.user doesnt blow up when someone passes non-object value`, () => {
           const reqWithUser = {
             ...mockReq,
-            // @ts-expect-error user is not assignable to object
             user: 'wat',
           };
 

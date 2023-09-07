@@ -876,7 +876,6 @@ describe('SentrySpanProcessor', () => {
       parentOtelSpan.end();
     });
 
-    // @ts-expect-error Accessing private attributes
     expect(sentryTransaction._hub.getScope()._tags.foo).toEqual('bar');
   });
 });

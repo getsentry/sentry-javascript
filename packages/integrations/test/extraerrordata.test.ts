@@ -69,7 +69,6 @@ describe('ExtraErrorData()', () => {
 
   it('should not remove previous data existing in extra field', () => {
     event = {
-      // @ts-expect-error Allow contexts on event
       contexts: {
         foo: { bar: 42 },
       },

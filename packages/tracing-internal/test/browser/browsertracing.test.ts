@@ -54,7 +54,6 @@ beforeAll(() => {
   WINDOW.document = dom.window.document;
   // @ts-expect-error need to override global document
   WINDOW.window = dom.window;
-  // @ts-expect-error need to override global document
   WINDOW.location = dom.window.location;
 });
 

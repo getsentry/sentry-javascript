@@ -39,7 +39,6 @@ describe('Unit | util | prepareReplayEvent', () => {
 
     const replayId = 'replay-ID';
     const event: ReplayEvent = {
-      // @ts-expect-error private api
       type: REPLAY_EVENT_NAME,
       timestamp: 1670837008.634,
       error_ids: ['error-ID'],
