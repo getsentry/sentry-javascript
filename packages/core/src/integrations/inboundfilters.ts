@@ -169,20 +169,35 @@ function _isAllowedUrl(event: Event, allowUrls?: Array<string | RegExp>): boolea
 }
 
 function _getPossibleEventMessages(event: Event): string[] {
+  const possibleMessages: string[] = [];
+
   if (event.message) {
-    return [event.message];
+    possibleMessages.push(event.message);
   }
-  if (event.exception) {
-    const { values } = event.exception;
-    try {
-      const { type = '', value = '' } = (values && values[values.length - 1]) || {};
-      return [`${value}`, `${type}: ${value}`];
-    } catch (oO) {
-      __DEBUG_BUILD__ && logger.error(`Cannot extract message for event ${getEventDescription(event)}`);
-      return [];
+
+  let lastException;
+  try {
+    // @ts-ignore Try catching to save bundle size
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    lastException = event.exception.values[event.exception.values.length - 1];
+  } catch (e) {
+    // try catching to save bundle size checking existence of variables
+  }
+
+  if (lastException) {
+    if (lastException.value) {
+      possibleMessages.push(lastException.value);
+      if (lastException.type) {
+        possibleMessages.push(`${lastException.type}: ${lastException.value}`);
+      }
     }
   }
-  return [];
+
+  if (__DEBUG_BUILD__ && possibleMessages.length === 0) {
+    logger.error(`Could not extract message for event ${getEventDescription(event)}`);
+  }
+
+  return possibleMessages;
 }
 
 function _isSentryError(event: Event): boolean {
