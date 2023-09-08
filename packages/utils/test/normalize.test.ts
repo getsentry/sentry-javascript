@@ -476,6 +476,17 @@ describe('normalize()', () => {
         foo: '[SyntheticEvent]',
       });
     });
+
+    test('known classes like `VueViewModel`', () => {
+      const obj = {
+        foo: {
+          _isVue: true,
+        },
+      };
+      expect(normalize(obj)).toEqual({
+        foo: '[VueViewModel]',
+      });
+    });
   });
 
   describe('can limit object to depth', () => {
@@ -613,6 +624,24 @@ describe('normalize()', () => {
     const result = normalize(obj);
     expect(result).toEqual({
       foo: '[SyntheticEvent]',
+      baz: '[NaN]',
+      qux: '[Function: qux]',
+    });
+  });
+
+  test('normalizes value on every iteration of decycle and takes care of things like `VueViewModel`', () => {
+    const obj = {
+      foo: {
+        _isVue: true,
+      },
+      baz: NaN,
+      qux: function qux(): void {
+        /* no-empty */
+      },
+    };
+    const result = normalize(obj);
+    expect(result).toEqual({
+      foo: '[VueViewModel]',
       baz: '[NaN]',
       qux: '[Function: qux]',
     });

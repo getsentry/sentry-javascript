@@ -179,3 +179,13 @@ export function isInstanceOf(wat: any, base: any): boolean {
     return false;
   }
 }
+
+/**
+ * Checks whether given value's type is a Vue ViewModel.
+ *
+ * @param wat A value to be checked.
+ * @returns A boolean representing the result.
+ */
+export function isVueViewModel(wat: unknown): boolean {
+  return isPlainObject(wat) && !!(wat._isVue || wat.__isVue);
+}
