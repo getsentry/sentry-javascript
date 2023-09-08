@@ -177,7 +177,7 @@ function _getPossibleEventMessages(event: Event): string[] {
 
   let lastException;
   try {
-    // @ts-ignore Try catching to save bundle size
+    // @ts-expect-error Try catching to save bundle size
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     lastException = event.exception.values[event.exception.values.length - 1];
   } catch (e) {
