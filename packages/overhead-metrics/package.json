@@ -34,7 +34,5 @@
     "simple-statistics": "^7.8.0",
     "typescript": "4.9.5"
   },
-  "devDependencies": {
-    "bun": "^10.9.1"
-  }
+  "devDependencies": {}
 }

@@ -24,7 +24,6 @@
     "react-dom": "18.2.0",
     "typescript": "4.9.5",
     "wait-port": "1.0.4",
-    "bun": "10.9.1",
     "@playwright/test": "^1.27.1"
   },
   "devDependencies": {
