@@ -128,6 +128,7 @@ export function getRequestMatch(url: URL, matches: RouteMatch<ServerRoute>[]): R
 /**
  * https://github.com/remix-run/remix/blob/3e589152bc717d04e2054c31bea5a1056080d4b9/packages/remix-server-runtime/responses.ts#L75-L85
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function isDeferredData(value: any): value is DeferredData {
   const deferred: DeferredData = value;
   return (
