@@ -197,8 +197,6 @@ function _getPossibleEventMessages(event: Event): string[] {
     logger.error(`Could not extract message for event ${getEventDescription(event)}`);
   }
 
-  console.log(possibleMessages);
-
   return possibleMessages;
 }
 
