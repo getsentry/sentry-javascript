@@ -45,7 +45,7 @@
   },
   "scripts": {
     "build": "run-p build:transpile build:types build:bundle",
-    "build:bundle": "yarn ts-node scripts/buildLambdaLayer.ts",
+    "build:bundle": "yarn bun scripts/buildLambdaLayer.ts",
     "build:dev": "run-p build:transpile build:types",
     "build:transpile": "rollup -c rollup.npm.config.js",
     "build:types": "run-s build:types:core build:types:downlevel",
@@ -55,7 +55,7 @@
     "build:dev:watch": "yarn build:watch",
     "build:transpile:watch": "rollup -c rollup.npm.config.js --watch",
     "build:types:watch": "tsc -p tsconfig.types.json --watch",
-    "build:tarball": "ts-node ../../scripts/prepack.ts --bundles && npm pack ./build/npm",
+    "build:tarball": "bun ../../scripts/prepack.ts --bundles && npm pack ./build/npm",
     "circularDepCheck": "madge --circular src/index.ts",
     "clean": "rimraf build dist-awslambda-layer coverage sentry-serverless-*.tgz",
     "fix": "run-s fix:eslint fix:prettier",
@@ -66,7 +66,7 @@
     "lint:prettier": "prettier --check \"{src,test,scripts}/**/**.ts\"",
     "test": "jest",
     "test:watch": "jest --watch",
-    "yalc:publish": "ts-node ../../scripts/prepack.ts --bundles && yalc publish ./build/npm --push"
+    "yalc:publish": "bun ../../scripts/prepack.ts --bundles && yalc publish ./build/npm --push"
   },
   "volta": {
     "extends": "../../package.json"

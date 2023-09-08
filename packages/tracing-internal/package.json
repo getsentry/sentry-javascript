@@ -42,7 +42,7 @@
     "build:dev:watch": "run-p build:transpile:watch build:types:watch",
     "build:transpile:watch": "rollup -c rollup.npm.config.js --watch",
     "build:types:watch": "tsc -p tsconfig.types.json --watch",
-    "build:tarball": "ts-node ../../scripts/prepack.ts && npm pack ./build",
+    "build:tarball": "bun ../../scripts/prepack.ts && npm pack ./build",
     "clean": "rimraf build coverage sentry-tracing-*.tgz",
     "fix": "run-s fix:eslint fix:prettier",
     "fix:eslint": "eslint . --format stylish --fix",
@@ -53,7 +53,7 @@
     "test:unit": "jest",
     "test": "jest",
     "test:watch": "jest --watch",
-    "yalc:publish": "ts-node ../../scripts/prepack.ts && yalc publish build --push"
+    "yalc:publish": "bun ../../scripts/prepack.ts && yalc publish build --push"
   },
   "volta": {
     "extends": "../../package.json"

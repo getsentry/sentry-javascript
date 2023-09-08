@@ -26,7 +26,7 @@
     "build:transpile:watch": "yarn build:transpile --watch",
     "build:bundle:watch": "yarn build:bundle --watch",
     "build:types:watch": "tsc -p tsconfig.types.json --watch",
-    "build:tarball": "ts-node ../../scripts/prepack.ts --bundles && npm pack ./build/npm",
+    "build:tarball": "bun ../../scripts/prepack.ts --bundles && npm pack ./build/npm",
     "circularDepCheck": "madge --circular src/index.ts",
     "clean": "rimraf build sentry-replay-*.tgz",
     "fix": "run-s fix:eslint fix:prettier",
@@ -39,7 +39,7 @@
     "test:watch": "jest --watch",
     "bootstrap:demo": "cd demo && yarn",
     "start:demo": "yarn build:dev && cd demo && yarn start",
-    "yalc:publish": "ts-node ../../scripts/prepack.ts --bundles && yalc publish ./build/npm --push"
+    "yalc:publish": "bun ../../scripts/prepack.ts --bundles && yalc publish ./build/npm --push"
   },
   "repository": {
     "type": "git",

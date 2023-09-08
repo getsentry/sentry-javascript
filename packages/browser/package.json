@@ -68,7 +68,7 @@
     "build:bundle:watch": "rollup -c rollup.bundle.config.js --watch",
     "build:transpile:watch": "rollup -c rollup.npm.config.js --watch",
     "build:types:watch": "tsc -p tsconfig.types.json --watch",
-    "build:tarball": "ts-node ../../scripts/prepack.ts --bundles && npm pack ./build/npm",
+    "build:tarball": "bun ../../scripts/prepack.ts --bundles && npm pack ./build/npm",
     "circularDepCheck": "madge --circular src/index.ts",
     "clean": "rimraf build coverage .rpt2_cache sentry-browser-*.tgz",
     "fix": "run-s fix:eslint fix:prettier",
@@ -88,7 +88,7 @@
     "test:package": "node test/package/npm-build.js && rm test/package/tmp.js",
     "test:unit:watch": "jest --watch",
     "test:integration:watch": "test/integration/run.js --watch",
-    "yalc:publish": "ts-node ../../scripts/prepack.ts --bundles && yalc publish ./build/npm --push"
+    "yalc:publish": "bun ../../scripts/prepack.ts --bundles && yalc publish ./build/npm --push"
   },
   "volta": {
     "extends": "../../package.json"

@@ -43,7 +43,7 @@
     "test:loader:debug": "PW_BUNDLE=loader_debug yarn test:loader",
     "test:ci": "playwright test ./suites --reporter='line'",
     "test:update-snapshots": "yarn test:all --update-snapshots",
-    "test:detect-flaky": "ts-node scripts/detectFlakyTests.ts",
+    "test:detect-flaky": "bun scripts/detectFlakyTests.ts",
     "validate:es5": "es-check es5 'fixtures/loader.js'"
   },
   "dependencies": {

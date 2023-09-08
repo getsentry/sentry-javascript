@@ -8,7 +8,7 @@
     "test:prod": "TEST_ENV=production playwright test",
     "test:dev": "TEST_ENV=development playwright test",
     "test:build": "pnpm install && npx playwright install && pnpm build",
-    "test:test-build": "pnpm ts-node --script-mode assert-build.ts",
+    "test:test-build": "pnpm bun --script-mode assert-build.ts",
     "test:build-canary": "pnpm install && pnpm add next@canary && npx playwright install && pnpm build",
     "test:build-latest": "pnpm install && pnpm add next@latest && npx playwright install && pnpm build",
     "test:assert": "pnpm test:test-build && pnpm test:prod && pnpm test:dev"
@@ -24,7 +24,7 @@
     "react-dom": "18.2.0",
     "typescript": "4.9.5",
     "wait-port": "1.0.4",
-    "ts-node": "10.9.1",
+    "bun": "10.9.1",
     "@playwright/test": "^1.27.1"
   },
   "devDependencies": {

@@ -8,11 +8,11 @@
   "type": "module",
   "scripts": {
     "build": "tsc",
-    "dev:collect": "ts-node-esm ./configs/dev/collect.ts",
-    "dev:process": "ts-node-esm ./configs/dev/process.ts",
+    "dev:collect": "bun-esm ./configs/dev/collect.ts",
+    "dev:process": "bun-esm ./configs/dev/process.ts",
     "dev:run:replay": "npx chrome ./test-apps/booking-app/with-replay.html",
-    "ci:collect": "ts-node-esm ./configs/ci/collect.ts",
-    "ci:process": "ts-node-esm ./configs/ci/process.ts",
+    "ci:collect": "bun-esm ./configs/ci/collect.ts",
+    "ci:process": "bun-esm ./configs/ci/process.ts",
     "fix": "run-s fix:eslint fix:prettier",
     "fix:eslint": "eslint . --format stylish --fix",
     "fix:prettier": "prettier --write \"{src,test-apps,configs}/**/*.{ts,js,html,css}\"",
@@ -35,6 +35,6 @@
     "typescript": "4.9.5"
   },
   "devDependencies": {
-    "ts-node": "^10.9.1"
+    "bun": "^10.9.1"
   }
 }

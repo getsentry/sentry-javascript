@@ -47,7 +47,7 @@
     "build:dev:watch": "yarn build:watch",
     "build:transpile:watch": "ng build --watch",
     "build:tarball": "npm pack ./build",
-    "build:syncSymlinks": "ts-node ./scripts/syncSourceFiles.ts",
+    "build:syncSymlinks": "bun ./scripts/syncSourceFiles.ts",
     "circularDepCheck": "madge --circular src/index.ts",
     "clean": "rimraf build coverage sentry-angular-ivy-*.tgz",
     "fix": "run-s fix:eslint fix:prettier",

@@ -214,6 +214,10 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version-file: 'package.json'
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
       - name: Check dependency cache
         uses: actions/cache/restore@v3
         with:

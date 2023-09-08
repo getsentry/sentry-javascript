@@ -34,8 +34,8 @@
   "scripts": {
     "build": "run-p build:transpile build:types",
     "build:dev": "yarn build",
-    "build:transpile": "yarn ts-node scripts/buildRollup.ts",
-    "build:transpile:uncached": "yarn ts-node scripts/buildRollup.ts",
+    "build:transpile": "yarn bun scripts/buildRollup.ts",
+    "build:transpile:uncached": "yarn bun scripts/buildRollup.ts",
     "build:types": "run-s build:types:core build:types:downlevel",
     "build:types:core": "tsc -p tsconfig.types.json",
     "build:types:downlevel": "yarn downlevel-dts build/types build/types-ts3.8 --to ts3.8",
@@ -43,7 +43,7 @@
     "build:dev:watch": "yarn build:watch",
     "build:transpile:watch": "rollup -c rollup.npm.config.js --watch",
     "build:types:watch": "tsc -p tsconfig.types.json --watch",
-    "build:tarball": "ts-node ../../scripts/prepack.ts && npm pack ./build",
+    "build:tarball": "bun ../../scripts/prepack.ts && npm pack ./build",
     "circularDepCheck": "madge --circular src/index.ts",
     "clean": "rimraf build coverage cjs esm sentry-utils-*.tgz",
     "fix": "run-s fix:eslint fix:prettier",
@@ -55,7 +55,7 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:package": "node test/types/index.js",
-    "yalc:publish": "ts-node ../../scripts/prepack.ts && yalc publish build --push"
+    "yalc:publish": "bun ../../scripts/prepack.ts && yalc publish build --push"
   },
   "volta": {
     "extends": "../../package.json"

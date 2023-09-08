@@ -54,7 +54,7 @@
     "build:dev:watch": "yarn build:watch",
     "build:transpile:watch": "rollup -c rollup.npm.config.js --watch",
     "build:types:watch": "tsc -p tsconfig.types.json --watch",
-    "build:tarball": "ts-node ../../scripts/prepack.ts && npm pack ./build",
+    "build:tarball": "bun ../../scripts/prepack.ts && npm pack ./build",
     "circularDepCheck": "madge --circular src/index.ts",
     "clean": "rimraf build coverage *.d.ts sentry-gatsby-*.tgz",
     "fix": "run-s fix:eslint fix:prettier",
@@ -63,9 +63,9 @@
     "lint": "run-s lint:prettier lint:eslint",
     "lint:eslint": "eslint . --format stylish",
     "lint:prettier": "prettier --check \"{src,test,scripts}/**/**.{ts,tsx,js}\"",
-    "test": "yarn ts-node scripts/pretest.ts && yarn jest",
-    "test:watch": "yarn ts-node scripts/pretest.ts && yarn jest --watch",
-    "yalc:publish": "ts-node ../../scripts/prepack.ts && yalc publish build --push"
+    "test": "yarn bun scripts/pretest.ts && yarn jest",
+    "test:watch": "yarn bun scripts/pretest.ts && yarn jest --watch",
+    "yalc:publish": "bun ../../scripts/prepack.ts && yalc publish build --push"
   },
   "volta": {
     "extends": "../../package.json"

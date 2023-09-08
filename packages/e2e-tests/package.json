@@ -12,10 +12,10 @@
     "lint:prettier": "prettier --config ../../.prettierrc.json --check .",
     "lint:ts": "tsc --noEmit",
     "test:e2e": "run-s test:validate-configuration test:validate-test-app-setups test:run",
-    "test:run": "ts-node run.ts",
-    "test:validate-configuration": "ts-node validate-verdaccio-configuration.ts",
-    "test:validate-test-app-setups": "ts-node validate-test-app-setups.ts",
-    "test:prepare": "ts-node prepare.ts",
+    "test:run": "bun run.ts",
+    "test:validate-configuration": "bun validate-verdaccio-configuration.ts",
+    "test:validate-test-app-setups": "bun validate-test-app-setups.ts",
+    "test:prepare": "bun prepare.ts",
     "test:validate": "run-s test:validate-configuration test:validate-test-app-setups",
     "clean": "rimraf tmp node_modules && yarn clean:test-applications",
     "clean:test-applications": "rimraf test-applications/**/{node_modules,dist,build,.next,.sveltekit,pnpm-lock.yaml}"
@@ -25,7 +25,7 @@
     "@types/node": "^14.6.4",
     "dotenv": "16.0.3",
     "glob": "8.0.3",
-    "ts-node": "10.9.1",
+    "bun": "10.9.1",
     "yaml": "2.2.2"
   },
   "volta": {

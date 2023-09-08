@@ -34,7 +34,7 @@
   },
   "scripts": {
     "build": "run-p build:transpile build:types build:bundle",
-    "build:bundle": "ts-node scripts/buildBundles.ts --parallel",
+    "build:bundle": "bun scripts/buildBundles.ts --parallel",
     "build:dev": "run-p build:transpile build:types",
     "build:transpile": "rollup -c rollup.npm.config.js",
     "build:types": "run-s build:types:core build:types:downlevel",
@@ -44,7 +44,7 @@
     "build:dev:watch": "yarn build:watch",
     "build:transpile:watch": "rollup -c rollup.npm.config.js --watch",
     "build:types:watch": "tsc -p tsconfig.types.json --watch",
-    "build:tarball": "ts-node ../../scripts/prepack.ts --bundles && npm pack ./build/npm",
+    "build:tarball": "bun ../../scripts/prepack.ts --bundles && npm pack ./build/npm",
     "circularDepCheck": "madge --circular src/index.ts",
     "clean": "rimraf build coverage .rpt2_cache sentry-integrations-*.tgz",
     "fix": "run-s fix:eslint fix:prettier",
@@ -56,7 +56,7 @@
     "validate:es5": "es-check es5 'build/bundles/*.es5*.js'",
     "test": "jest",
     "test:watch": "jest --watch",
-    "yalc:publish": "ts-node ../../scripts/prepack.ts --bundles && yalc publish ./build/npm --push"
+    "yalc:publish": "bun ../../scripts/prepack.ts --bundles && yalc publish ./build/npm --push"
   },
   "volta": {
     "extends": "../../package.json"

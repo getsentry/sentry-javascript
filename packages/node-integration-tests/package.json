@@ -8,8 +8,8 @@
   "private": true,
   "scripts": {
     "clean": "rimraf -g **/node_modules",
-    "prisma:init": "(cd suites/tracing/prisma-orm && ts-node ./setup.ts)",
-    "prisma:init:new": "(cd suites/tracing-new/prisma-orm && ts-node ./setup.ts)",
+    "prisma:init": "(cd suites/tracing/prisma-orm && bun ./setup.ts)",
+    "prisma:init:new": "(cd suites/tracing-new/prisma-orm && bun ./setup.ts)",
     "lint": "run-s lint:prettier lint:eslint",
     "lint:eslint": "eslint . --format stylish",
     "lint:prettier": "prettier --check \"{suites,utils}/**/*.ts\"",
@@ -18,7 +18,7 @@
     "fix:prettier": "prettier --write \"{suites,utils}/**/*.ts\"",
     "type-check": "tsc",
     "pretest": "run-s --silent prisma:init prisma:init:new",
-    "test": "ts-node ./utils/run-tests.ts",
+    "test": "bun ./utils/run-tests.ts",
     "test:watch": "yarn test --watch"
   },
   "dependencies": {

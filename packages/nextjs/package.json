@@ -55,7 +55,7 @@
   "scripts": {
     "build": "run-p build:transpile build:types",
     "build:dev": "yarn build",
-    "build:transpile": "ts-node scripts/buildRollup.ts",
+    "build:transpile": "bun scripts/buildRollup.ts",
     "build:types": "run-s build:types:core build:types:downlevel",
     "build:types:core": "tsc -p tsconfig.types.json",
     "build:types:downlevel": "yarn downlevel-dts build/types build/types-ts3.8 --to ts3.8",
@@ -63,7 +63,7 @@
     "build:dev:watch": "yarn build:watch",
     "build:transpile:watch": "nodemon --ext ts --watch src scripts/buildRollup.ts",
     "build:types:watch": "tsc -p tsconfig.types.json --watch",
-    "build:tarball": "ts-node ../../scripts/prepack.ts && npm pack ./build",
+    "build:tarball": "bun ../../scripts/prepack.ts && npm pack ./build",
     "circularDepCheck": "madge --circular src/index.client.ts && madge --circular src/edge/index.ts && madge --circular src/index.server.ts && madge --circular src/index.types.ts",
     "clean": "rimraf build coverage sentry-nextjs-*.tgz",
     "fix": "run-s fix:eslint fix:prettier",
@@ -74,7 +74,7 @@
     "lint:prettier": "prettier --check \"{src,test,scripts}/**/**.ts\"",
     "test": "yarn test:unit",
     "test:all": "run-s test:unit test:integration test:build",
-    "test:build": "yarn ts-node test/buildProcess/runTest.ts",
+    "test:build": "yarn bun test/buildProcess/runTest.ts",
     "test:unit": "jest",
     "test:integration": "./test/run-integration-tests.sh && yarn test:types",
     "test:integration:clean": "(cd test/integration && rimraf .cache node_modules build)",
@@ -84,7 +84,7 @@
     "test:watch": "jest --watch",
     "vercel:branch": "source vercel/set-up-branch-for-test-app-use.sh",
     "vercel:project": "source vercel/make-project-use-current-branch.sh",
-    "yalc:publish": "ts-node ../../scripts/prepack.ts && yalc publish build --push"
+    "yalc:publish": "bun ../../scripts/prepack.ts && yalc publish build --push"
   },
   "volta": {
     "extends": "../../package.json"
