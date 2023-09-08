@@ -20,7 +20,7 @@ const WithStaticProps = ({ items }: Props) => (
     <List items={items} />
     <p>
       {/*
-      // @ts-expect-error https://nextjs.org/docs/api-reference/next/link#if-the-child-is-a-custom-component-that-wraps-an-a-tag */}
+      // @ts-ignore https://nextjs.org/docs/api-reference/next/link#if-the-child-is-a-custom-component-that-wraps-an-a-tag */}
       <Link href="/" passHref legacyBehavior>
         <a>Go home</a>
       </Link>
