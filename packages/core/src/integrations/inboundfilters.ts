@@ -193,7 +193,7 @@ function _getPossibleEventMessages(event: Event): string[] {
     }
   }
 
-  if (__DEBUG_BUILD__ && possibleMessages.length) {
+  if (__DEBUG_BUILD__ && possibleMessages.length === 0) {
     logger.error(`Could not extract message for event ${getEventDescription(event)}`);
   }
 
