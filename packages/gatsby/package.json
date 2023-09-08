@@ -63,8 +63,8 @@
     "lint": "run-s lint:prettier lint:eslint",
     "lint:eslint": "eslint . --format stylish",
     "lint:prettier": "prettier --check \"{src,test,scripts}/**/**.{ts,tsx,js}\"",
-    "test": "yarn bun scripts/pretest.ts && yarn jest",
-    "test:watch": "yarn bun scripts/pretest.ts && yarn jest --watch",
+    "test": "bun scripts/pretest.ts && yarn jest",
+    "test:watch": "bun scripts/pretest.ts && yarn jest --watch",
     "yalc:publish": "bun ../../scripts/prepack.ts && yalc publish build --push"
   },
   "volta": {

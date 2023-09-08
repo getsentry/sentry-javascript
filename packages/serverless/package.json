@@ -45,7 +45,7 @@
   },
   "scripts": {
     "build": "run-p build:transpile build:types build:bundle",
-    "build:bundle": "yarn bun scripts/buildLambdaLayer.ts",
+    "build:bundle": "bun scripts/buildLambdaLayer.ts",
     "build:dev": "run-p build:transpile build:types",
     "build:transpile": "bun run rollup -c rollup.npm.config.js",
     "build:types": "run-s build:types:core build:types:downlevel",

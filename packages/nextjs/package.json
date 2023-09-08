@@ -74,7 +74,7 @@
     "lint:prettier": "prettier --check \"{src,test,scripts}/**/**.ts\"",
     "test": "yarn test:unit",
     "test:all": "run-s test:unit test:integration test:build",
-    "test:build": "yarn bun test/buildProcess/runTest.ts",
+    "test:build": "bun test/buildProcess/runTest.ts",
     "test:unit": "jest",
     "test:integration": "./test/run-integration-tests.sh && yarn test:types",
     "test:integration:clean": "(cd test/integration && rimraf .cache node_modules build)",
