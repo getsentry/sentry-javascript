@@ -121,7 +121,7 @@ describe('Unit | eventBuffer | EventBufferCompressionWorker', () => {
     await buffer.addEvent(TEST_EVENT);
     await buffer.addEvent(TEST_EVENT);
 
-    // @ts-ignore Mock this private so it triggers an error
+    // @ts-expect-error Mock this private so it triggers an error
     jest.spyOn(buffer._compression._worker, 'postMessage').mockImplementationOnce(() => {
       return Promise.reject('test worker error');
     });
@@ -142,7 +142,7 @@ describe('Unit | eventBuffer | EventBufferCompressionWorker', () => {
     await buffer.addEvent({ data: { o: 1 }, timestamp: BASE_TIMESTAMP, type: 3 });
     await buffer.addEvent({ data: { o: 2 }, timestamp: BASE_TIMESTAMP, type: 3 });
 
-    // @ts-ignore Mock this private so it triggers an error
+    // @ts-expect-error Mock this private so it triggers an error
     jest.spyOn(buffer._compression._worker, 'postMessage').mockImplementationOnce(() => {
       return Promise.reject('test worker error');
     });

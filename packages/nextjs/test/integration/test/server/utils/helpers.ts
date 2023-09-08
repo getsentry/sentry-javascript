@@ -7,7 +7,7 @@ import next from 'next';
 import { AddressInfo } from 'net';
 
 // Type not exported from NextJS
-// @ts-ignore
+// @ts-expect-error
 export const createNextServer = async config => {
   const app = next({ ...config, customServer: false }); // customServer: false because: https://github.com/vercel/next.js/pull/49805#issuecomment-1557321794
   const handle = app.getRequestHandler();

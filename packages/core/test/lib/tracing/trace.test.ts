@@ -48,7 +48,7 @@ describe('startSpan', () => {
     });
 
     it('should return the same value as the callback if transactions are undefined', async () => {
-      // @ts-ignore we are force overriding the transaction return to be undefined
+      // @ts-expect-error we are force overriding the transaction return to be undefined
       // The `startTransaction` types are actually wrong - it can return undefined
       // if tracingExtensions are not enabled
       jest.spyOn(hub, 'startTransaction').mockReturnValue(undefined);

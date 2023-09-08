@@ -13,8 +13,8 @@ export function setup() {
 }
 
 if (!globalThis.fetch) {
-  // @ts-ignore - Needed for vitest to work with our fetch instrumentation
+  // @ts-expect-error - Needed for vitest to work with our fetch instrumentation
   globalThis.Request = class Request {};
-  // @ts-ignore - Needed for vitest to work with our fetch instrumentation
+  // @ts-expect-error - Needed for vitest to work with our fetch instrumentation
   globalThis.Response = class Response {};
 }

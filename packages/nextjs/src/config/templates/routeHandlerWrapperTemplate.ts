@@ -1,8 +1,8 @@
-// @ts-ignore Because we cannot be sure if the RequestAsyncStorage module exists (it is not part of the Next.js public
+// @ts-expect-error Because we cannot be sure if the RequestAsyncStorage module exists (it is not part of the Next.js public
 // API) we use a shim if it doesn't exist. The logic for this is in the wrapping loader.
 // eslint-disable-next-line import/no-unresolved
 import { requestAsyncStorage } from '__SENTRY_NEXTJS_REQUEST_ASYNC_STORAGE_SHIM__';
-// @ts-ignore See above
+// @ts-expect-error See above
 // eslint-disable-next-line import/no-unresolved
 import * as routeModule from '__SENTRY_WRAPPING_TARGET_FILE__';
 // eslint-disable-next-line import/no-extraneous-dependencies
@@ -58,11 +58,11 @@ function wrapHandler<T>(handler: T, method: 'GET' | 'POST' | 'PUT' | 'PATCH' | '
   });
 }
 
-// @ts-ignore See above
+// @ts-expect-error See above
 // eslint-disable-next-line import/no-unresolved
 export * from '__SENTRY_WRAPPING_TARGET_FILE__';
 
-// @ts-ignore This is the file we're wrapping
+// @ts-expect-error This is the file we're wrapping
 // eslint-disable-next-line import/no-unresolved
 export { default } from '__SENTRY_WRAPPING_TARGET_FILE__';
 

@@ -401,6 +401,6 @@ function normalizeNumberAttribute(num: number): string {
 
 /** Get a request from either a request or a response */
 function getRequest(resOrReq: Request | Response): Request {
-  // @ts-ignore we check this
+  // @ts-expect-error we check this
   return typeof resOrReq.request === 'function' ? (resOrReq as Response).request() : (resOrReq as Request);
 }

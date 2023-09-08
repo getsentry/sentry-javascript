@@ -7,10 +7,10 @@ import * as sourceMaps from '../../src/vite/sourceMaps';
 vi.mock('fs', async () => {
   const actual = await vi.importActual('fs');
   return {
-    // @ts-ignore this exists, I promise!
+    // @ts-expect-error this exists, I promise!
     ...actual,
     promises: {
-      // @ts-ignore this also exists, I promise!
+      // @ts-expect-error this also exists, I promise!
       ...actual.promises,
       readFile: vi.fn().mockReturnValue('foo'),
     },

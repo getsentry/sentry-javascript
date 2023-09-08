@@ -44,7 +44,7 @@ function isUserAgentData(data: unknown): data is UserAgentData {
   return typeof data === 'object' && data !== null && 'getHighEntropyValues' in data;
 }
 
-// @ts-ignore userAgentData is not part of the navigator interface yet
+// @ts-expect-error userAgentData is not part of the navigator interface yet
 const userAgentData = WINDOW.navigator && WINDOW.navigator.userAgentData;
 
 if (isUserAgentData(userAgentData)) {
@@ -290,7 +290,7 @@ export function addProfilesToEnvelope(envelope: Envelope, profiles: Profile[]): 
   }
 
   for (const profile of profiles) {
-    // @ts-ignore untyped envelope
+    // @ts-expect-error untyped envelope
     envelope[1].push([{ type: 'profile' }, profile]);
   }
   return envelope;

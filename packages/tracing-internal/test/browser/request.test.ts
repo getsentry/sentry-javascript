@@ -18,7 +18,7 @@ import { TestClient } from '../utils/TestClient';
 
 beforeAll(() => {
   addExtensionMethods();
-  // @ts-ignore need to override global Request because it's not in the jest environment (even with an
+  // @ts-expect-error need to override global Request because it's not in the jest environment (even with an
   // `@jest-environment jsdom` directive, for some reason)
   global.Request = {};
 });

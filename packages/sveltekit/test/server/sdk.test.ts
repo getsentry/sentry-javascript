@@ -39,12 +39,12 @@ describe('Sentry server SDK', () => {
     it('sets the runtime tag on the scope', () => {
       const currentScope = getCurrentHub().getScope();
 
-      // @ts-ignore need access to protected _tags attribute
+      // @ts-expect-error need access to protected _tags attribute
       expect(currentScope._tags).toEqual({});
 
       init({ dsn: 'https://public@dsn.ingest.sentry.io/1337' });
 
-      // @ts-ignore need access to protected _tags attribute
+      // @ts-expect-error need access to protected _tags attribute
       expect(currentScope._tags).toEqual({ runtime: 'node' });
     });
   });

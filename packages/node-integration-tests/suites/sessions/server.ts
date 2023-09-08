@@ -1,4 +1,5 @@
 /* eslint-disable no-console */
+import type { SessionFlusher } from '@sentry/core';
 import * as Sentry from '@sentry/node';
 import express from 'express';
 
@@ -13,16 +14,13 @@ app.use(Sentry.Handlers.requestHandler());
 
 // ### Taken from manual tests ###
 // Hack that resets the 60s default flush interval, and replaces it with just a one second interval
-// @ts-ignore: need access to `_sessionFlusher`
-const flusher = (Sentry.getCurrentHub()?.getClient() as Sentry.NodeClient)?._sessionFlusher;
+const flusher = (Sentry.getCurrentHub()?.getClient() as Sentry.NodeClient)['_sessionFlusher'] as SessionFlusher;
 
-// @ts-ignore: need access to `_intervalId`
-let flusherIntervalId = flusher?._intervalId;
+let flusherIntervalId = flusher && flusher['_intervalId'];
 
 clearInterval(flusherIntervalId);
 
-// @ts-ignore: need access to `_intervalId`
-flusherIntervalId = flusher?._intervalId = setInterval(() => flusher?.flush(), 2000);
+flusherIntervalId = flusher['_intervalId'] = setInterval(() => flusher?.flush(), 2000);
 
 setTimeout(() => clearInterval(flusherIntervalId), 4000);
 

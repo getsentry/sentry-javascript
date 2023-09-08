@@ -35,7 +35,7 @@ describe('Integration | stop', () => {
 
     ({ replay, integration } = await mockSdk());
 
-    // @ts-ignore private API
+    // @ts-expect-error private API
     mockRunFlush = jest.spyOn(replay, '_runFlush');
 
     jest.runAllTimers();

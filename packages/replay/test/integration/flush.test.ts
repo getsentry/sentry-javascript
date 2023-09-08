@@ -58,13 +58,13 @@ describe('Integration | flush', () => {
       }),
     );
 
-    // @ts-ignore private API
+    // @ts-expect-error private API
     mockFlush = jest.spyOn(replay, '_flush');
 
-    // @ts-ignore private API
+    // @ts-expect-error private API
     mockRunFlush = jest.spyOn(replay, '_runFlush');
 
-    // @ts-ignore private API
+    // @ts-expect-error private API
     mockAddPerformanceEntries = jest.spyOn(replay, '_addPerformanceEntries');
 
     mockAddPerformanceEntries.mockImplementation(async () => {

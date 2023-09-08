@@ -23,7 +23,7 @@ export class TimeBasedMap<T> extends Map<TimestampSeconds, T> {
    *
    */
   public toJSON(): JsonObject<T> {
-    // @ts-ignore this actually exists
+    // @ts-expect-error this actually exists
     return Object.fromEntries(this.entries());
   }
 }

@@ -19,7 +19,7 @@ test('should instrument `getServerSideProps` for performance tracing', async ({ 
   const nextDataTag = await page.waitForSelector('#__NEXT_DATA__', { state: 'attached' });
   const nextDataTagValue = JSON.parse(await nextDataTag.evaluate(tag => (tag as HTMLElement).innerText));
 
-  // @ts-ignore - We know `contexts` is defined in the Transaction envelope
+  // @ts-expect-error - We know `contexts` is defined in the Transaction envelope
   const traceId = transaction[0].contexts.trace.trace_id;
 
   expect(traceId).toBeDefined();
