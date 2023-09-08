@@ -3,9 +3,13 @@ const SentryCli = require('@sentry/cli');
 
 const { deleteSourcemaps } = require('./deleteSourcemaps');
 
-const sentry = new SentryCli();
-
 async function createRelease(argv, URL_PREFIX, BUILD_PATH) {
+  const sentry = new SentryCli(null, {
+    url: argv.url,
+    org: argv.org,
+    project: argv.project,
+  });
+
   let release;
 
   if (!argv.release) {
