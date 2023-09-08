@@ -72,6 +72,7 @@ function moduleExists(id: string): boolean {
 export default function wrappingLoader(
   this: LoaderThis<LoaderOptions>,
   userCode: string,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   userModuleSourceMap: any,
 ): void {
   // We know one or the other will be defined, depending on the version of webpack being used
@@ -276,7 +277,9 @@ export default function wrappingLoader(
 async function wrapUserCode(
   wrapperCode: string,
   userModuleCode: string,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   userModuleSourceMap: any,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): Promise<{ code: string; map?: any }> {
   const wrap = (withDefaultExport: boolean): Promise<RollupBuild> =>
     rollup({

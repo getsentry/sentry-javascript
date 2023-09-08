@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable import/export */
 
 // We export everything from both the client part of the SDK and from the server part. Some of the exports collide,

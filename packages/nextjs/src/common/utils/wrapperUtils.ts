@@ -188,6 +188,7 @@ export function withTracedServerSideDataFetcher<F extends (...args: any[]) => Pr
  * We only do the following until we move transaction creation into this function: When called, the wrapped function
  * will also update the name of the active transaction with a parameterized route provided via the `options` argument.
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function callDataFetcherTraced<F extends (...args: any[]) => Promise<any> | any>(
   origFunction: F,
   origFunctionArgs: Parameters<F>,
