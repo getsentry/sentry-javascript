@@ -15,6 +15,18 @@ const argv = yargs(process.argv.slice(2))
       "If not provided, a new release id will be determined by Sentry CLI's `propose-version`.\n" +
       'See: https://docs.sentry.io/product/releases/suspect-commits/#using-the-cli\n',
   })
+  .option('org', {
+    type: 'string',
+    describe: 'The Sentry organization slug',
+  })
+  .option('project', {
+    type: 'string',
+    describe: 'The Sentry project slug',
+  })
+  .option('url', {
+    type: 'string',
+    describe: 'The Sentry server URL',
+  })
   .option('urlPrefix', {
     type: 'string',
     describe: 'URL prefix to add to the beginning of all filenames',
@@ -38,6 +50,9 @@ const argv = yargs(process.argv.slice(2))
   .usage(
     'Usage: $0\n' +
       '  [--release RELEASE]\n' +
+      '  [--org ORG]\n' +
+      '  [--project PROJECT]\n' +
+      '  [--url URL]\n' +
       '  [--urlPrefix URL_PREFIX]\n' +
       '  [--buildPath BUILD_PATH]\n\n' +
       '  [--disableDebugIds true|false]\n\n' +
