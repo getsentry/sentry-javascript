@@ -49,7 +49,7 @@
     "lint:prettier": "prettier --check \"{src,test,scripts}/**/**.ts\"",
     "test": "jest",
     "test:watch": "jest --watch",
-    "version": "node ../../scripts/versionbump.js src/version.ts",
+    "version": "bun ../../scripts/versionbump.js src/version.ts",
     "yalc:publish": "bun ../../scripts/prepack.ts && yalc publish build --push"
   },
   "volta": {

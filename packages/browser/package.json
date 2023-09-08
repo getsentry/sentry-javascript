@@ -84,8 +84,8 @@
     "test": "yarn test:unit",
     "test:unit": "jest",
     "test:integration": "test/integration/run.js",
-    "test:integration:checkbrowsers": "node scripts/checkbrowsers.js",
-    "test:package": "node test/package/npm-build.js && rm test/package/tmp.js",
+    "test:integration:checkbrowsers": "bun scripts/checkbrowsers.js",
+    "test:package": "bun test/package/npm-build.js && rm test/package/tmp.js",
     "test:unit:watch": "jest --watch",
     "test:integration:watch": "test/integration/run.js --watch",
     "yalc:publish": "bun ../../scripts/prepack.ts --bundles && yalc publish ./build/npm --push"

@@ -62,9 +62,9 @@
     "lint:eslint": "eslint . --format stylish",
     "lint:prettier": "prettier --check \"{src,test,scripts}/**/**.ts\"",
     "test": "run-s test:jest test:express test:webpack test:release-health",
-    "test:express": "node test/manual/express-scope-separation/start.js",
+    "test:express": "bun test/manual/express-scope-separation/start.js",
     "test:jest": "jest",
-    "test:release-health": "node test/manual/release-health/runner.js",
+    "test:release-health": "bun test/manual/release-health/runner.js",
     "test:webpack": "cd test/manual/webpack-async-context/ && yarn --silent && node npm-build.js",
     "test:watch": "jest --watch",
     "yalc:publish": "bun ../../scripts/prepack.ts && yalc publish build --push"

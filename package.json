@@ -1,7 +1,7 @@
 {
   "private": true,
   "scripts": {
-    "build": "node ./scripts/verify-packages-versions.js && run-s build:types build:transpile build:bundle",
+    "build": "bun ./scripts/verify-packages-versions.js && run-s build:types build:transpile build:bundle",
     "build:bundle": "lerna run build:bundle",
     "build:dev": "lerna run build:types,build:transpile",
     "build:dev:filter": "lerna run build:dev --include-filtered-dependencies --include-filtered-dependents --scope",

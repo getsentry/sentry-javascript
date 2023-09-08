@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "build": "tsc",
-    "start": "node dist/app.js",
+    "start": "bun dist/app.js",
     "test": "playwright test",
     "clean": "npx rimraf node_modules,pnpm-lock.yaml",
     "test:build": "pnpm install && pnpm build",

@@ -54,7 +54,7 @@
     "lint:prettier": "prettier --check \"{src,test,scripts}/**/**.ts\"",
     "test": "jest",
     "test:watch": "jest --watch",
-    "test:package": "node test/types/index.js",
+    "test:package": "bun test/types/index.js",
     "yalc:publish": "bun ../../scripts/prepack.ts && yalc publish build --push"
   },
   "volta": {
