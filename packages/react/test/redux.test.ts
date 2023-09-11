@@ -344,5 +344,73 @@ describe('createReduxEnhancer', () => {
 
       expect(mockHint.attachments).toHaveLength(0);
     });
+
+    it('does not attach when state is undefined', () => {
+      const enhancer = createReduxEnhancer();
+
+      const initialState = {
+        value: 'initial',
+      };
+
+      Redux.createStore((state = initialState) => state, enhancer);
+
+      expect(mockAddGlobalEventProcessor).toHaveBeenCalledTimes(1);
+
+      const callbackFunction = mockAddGlobalEventProcessor.mock.calls[0][0];
+
+      const mockEvent = {
+        contexts: {
+          state: {
+            state: undefined,
+          },
+        },
+      };
+
+      const mockHint = {
+        attachments: [],
+      };
+
+      const result = callbackFunction(mockEvent, mockHint);
+
+      expect(result).toEqual(mockEvent);
+
+      expect(mockHint.attachments).toHaveLength(0);
+    });
+
+    it('does not attach when event type is not undefined', () => {
+      const enhancer = createReduxEnhancer();
+
+      const initialState = {
+        value: 'initial',
+      };
+
+      Redux.createStore((state = initialState) => state, enhancer);
+
+      expect(mockAddGlobalEventProcessor).toHaveBeenCalledTimes(1);
+
+      const callbackFunction = mockAddGlobalEventProcessor.mock.calls[0][0];
+
+      const mockEvent = {
+        type: 'not_redux',
+        contexts: {
+          state: {
+            state: {
+              type: 'redux',
+              value: 'UPDATED_VALUE',
+            },
+          },
+        },
+      };
+
+      const mockHint = {
+        attachments: [],
+      };
+
+      const result = callbackFunction(mockEvent, mockHint);
+
+      expect(result).toEqual(mockEvent);
+
+      expect(mockHint.attachments).toHaveLength(0);
+    });
   });
 });
