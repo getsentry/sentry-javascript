@@ -16,8 +16,8 @@ describe('Unit | util | handleRecordingEmit', () => {
 
   beforeEach(function () {
     jest.setSystemTime(BASE_TIMESTAMP);
-    addEventMock = jest.spyOn(SentryAddEvent, 'addEvent').mockImplementation(async () => {
-      // Do nothing
+    addEventMock = jest.spyOn(SentryAddEvent, 'addEventSync').mockImplementation(() => {
+      return true;
     });
   });
 

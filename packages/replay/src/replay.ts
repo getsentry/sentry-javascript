@@ -38,7 +38,7 @@ import type {
   Timeouts,
 } from './types';
 import { ReplayEventTypeCustom } from './types';
-import { addEvent } from './util/addEvent';
+import { addEvent, addEventSync } from './util/addEvent';
 import { addGlobalListeners } from './util/addGlobalListeners';
 import { addMemoryEntry } from './util/addMemoryEntry';
 import { createBreadcrumb } from './util/createBreadcrumb';
@@ -666,7 +666,8 @@ export class ReplayContainer implements ReplayContainerInterface {
       });
 
       this.addUpdate(() => {
-        void addEvent(this, {
+        // Return `false` if the event _was_ added, as that means we schedule a flush
+        return !addEventSync(this, {
           type: ReplayEventTypeCustom,
           timestamp: breadcrumb.timestamp || 0,
           data: {

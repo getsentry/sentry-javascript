@@ -403,6 +403,8 @@ describe('Integration | flush', () => {
   it('logs warning if adding event that is after maxReplayDuration', async () => {
     replay.getOptions()._experiments.traceInternals = true;
 
+    const spyLogger = jest.spyOn(SentryUtils.logger, 'info');
+
     sessionStorage.clear();
     clearSession(replay);
     replay['_initializeSessionForSampling']();
@@ -422,32 +424,18 @@ describe('Integration | flush', () => {
     // no checkout!
     await advanceTimers(DEFAULT_FLUSH_MIN_DELAY);
 
-    expect(mockFlush).toHaveBeenCalledTimes(1);
-    expect(mockSendReplay).toHaveBeenCalledTimes(1);
+    // No flush is scheduled is aborted because event is after maxReplayDuration
+    expect(mockFlush).toHaveBeenCalledTimes(0);
+    expect(mockSendReplay).toHaveBeenCalledTimes(0);
 
-    const replayData = mockSendReplay.mock.calls[0][0];
-
-    expect(JSON.parse(replayData.recordingData)).toEqual([
-      {
-        type: 5,
-        timestamp: BASE_TIMESTAMP,
-        data: {
-          tag: 'breadcrumb',
-          payload: {
-            timestamp: BASE_TIMESTAMP / 1000,
-            type: 'default',
-            category: 'console',
-            data: { logger: 'replay' },
-            level: 'info',
-            message: `[Replay] Skipping event with timestamp ${
-              BASE_TIMESTAMP + MAX_REPLAY_DURATION + 100
-            } because it is after maxReplayDuration`,
-          },
-        },
-      },
-    ]);
+    expect(spyLogger).toHaveBeenLastCalledWith(
+      `[Replay] Skipping event with timestamp ${
+        BASE_TIMESTAMP + MAX_REPLAY_DURATION + 100
+      } because it is after maxReplayDuration`,
+    );
 
     replay.getOptions()._experiments.traceInternals = false;
+    spyLogger.mockRestore();
   });
 
   /**
