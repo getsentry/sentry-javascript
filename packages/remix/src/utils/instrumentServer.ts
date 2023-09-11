@@ -13,7 +13,7 @@ import {
   tracingContextFromHeaders,
 } from '@sentry/utils';
 
-import { getFutureFlagsServer } from './futureFlags';
+import { getFutureFlagsServer, getRemixVersionFromPkg } from './futureFlags';
 import { extractData, getRequestMatch, isDeferredData, isResponse, json, matchServerRoutes } from './vendor/response';
 import type {
   AppData,
@@ -239,11 +239,13 @@ function makeWrappedRootLoader(origLoader: DataFunction): DataFunction {
   return async function (this: unknown, args: DataFunctionArgs): Promise<Response | AppData> {
     const res = await origLoader.call(this, args);
     const traceAndBaggage = getTraceAndBaggage();
+    const remixVersion = getRemixVersionFromPkg();
 
     if (isDeferredData(res)) {
       return {
         ...res.data,
         ...traceAndBaggage,
+        remixVersion,
       };
     }
 
@@ -259,7 +261,7 @@ function makeWrappedRootLoader(origLoader: DataFunction): DataFunction {
 
         if (typeof data === 'object') {
           return json(
-            { ...data, ...traceAndBaggage },
+            { ...data, ...traceAndBaggage, remixVersion },
             { headers: res.headers, statusText: res.statusText, status: res.status },
           );
         } else {
@@ -270,7 +272,7 @@ function makeWrappedRootLoader(origLoader: DataFunction): DataFunction {
       }
     }
 
-    return { ...res, ...traceAndBaggage };
+    return { ...res, ...traceAndBaggage, remixVersion };
   };
 }
 

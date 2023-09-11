@@ -3,6 +3,7 @@ import type { NodeOptions } from '@sentry/node';
 import { configureScope, getCurrentHub, init as nodeInit } from '@sentry/node';
 import { logger } from '@sentry/utils';
 
+import { getRemixVersionFromPkg } from './utils/futureFlags';
 import { instrumentServer } from './utils/instrumentServer';
 import { buildMetadata } from './utils/metadata';
 import type { RemixOptions } from './utils/remixOptions';
@@ -76,7 +77,7 @@ export function init(options: RemixOptions): void {
     return;
   }
 
-  instrumentServer(options.isRemixV2);
+  instrumentServer(getRemixVersionFromPkg() === 2);
 
   nodeInit(options as NodeOptions);
 
