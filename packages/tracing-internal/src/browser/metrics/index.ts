@@ -13,6 +13,10 @@ import { observe } from '../web-vitals/lib/observe';
 import type { NavigatorDeviceMemory, NavigatorNetworkInformation } from '../web-vitals/types';
 import { _startChild, isMeasurementValue } from './utils';
 
+// see full list here https://developer.mozilla.org/en-US/docs/Web/API/PerformanceEventTiming#events_exposed
+type ClickEvents = 'auxclick' | 'click' | 'contextmenu' | 'dblclick';
+type Events = ClickEvents; // We can extend this in the future to include more eventTypes
+
 /**
  * Converts from milliseconds to seconds
  * @param time time in ms
@@ -98,13 +102,15 @@ export function startTrackingInteractions(): void {
         return;
       }
 
-      if (entry.name === 'click') {
+      const entryName = entry.name as Events;
+
+      if (entryName in ['click', 'contextmenu', 'dblclick', 'auxclick']) {
         const startTime = msToSec((browserPerformanceTimeOrigin as number) + entry.startTime);
         const duration = msToSec(entry.duration);
 
         transaction.startChild({
           description: htmlTreeAsString(entry.target),
-          op: `ui.interaction.${entry.name}`,
+          op: `ui.interaction.${entryName}`,
           origin: 'auto.ui.browser.metrics',
           startTimestamp: startTime,
           endTimestamp: startTime + duration,
