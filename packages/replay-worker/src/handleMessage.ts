@@ -41,7 +41,6 @@ export function handleMessage(e: MessageEvent): void {
     try {
       // @ts-expect-error this syntax is actually fine
       const response = handlers[method](data);
-      // @ts-expect-error this syntax is actually fine
       postMessage({
         id,
         method,
@@ -49,7 +48,6 @@ export function handleMessage(e: MessageEvent): void {
         response,
       });
     } catch (err) {
-      // @ts-expect-error this syntax is actually fine
       postMessage({
         id,
         method,
