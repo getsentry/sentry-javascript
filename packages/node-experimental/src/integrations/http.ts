@@ -93,6 +93,11 @@ export class Http implements Integration {
     this._unload = registerInstrumentations({
       instrumentations: [
         new HttpInstrumentation({
+          ignoreOutgoingRequestHook: request => {
+            const host = request.host || request.hostname;
+            return isSentryHost(host);
+          },
+
           requireParentforOutgoingSpans: true,
           requireParentforIncomingSpans: false,
           requestHook: (span, req) => {
@@ -209,4 +214,12 @@ export class Http implements Integration {
 function getHttpUrl(attributes: Attributes): string | undefined {
   const url = attributes[SemanticAttributes.HTTP_URL];
   return typeof url === 'string' ? url : undefined;
+}
+
+/**
+ * Checks whether given host points to Sentry server
+ */
+function isSentryHost(host: string | undefined): boolean {
+  const dsn = getCurrentHub().getClient()?.getDsn();
+  return dsn && host ? host.includes(dsn.host) : false;
 }
