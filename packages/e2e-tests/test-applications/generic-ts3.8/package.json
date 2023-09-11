@@ -3,7 +3,7 @@
   "private": true,
   "license": "MIT",
   "scripts": {
-    "build:types": "run-s ts-version type-check",
+    "build:types": "pnpm run type-check",
     "ts-version": "tsc --version",
     "type-check": "tsc --project tsconfig.json",
     "test:build": "pnpm install",
