@@ -60,6 +60,7 @@ export {
   // eslint-disable-next-line deprecation/deprecation
   startActiveSpan,
   startInactiveSpan,
+  startSpanManual,
 } from '@sentry/core';
 export type { SpanStatusType } from '@sentry/core';
 export { autoDiscoverNodePerformanceMonitoringIntegrations } from './tracing';

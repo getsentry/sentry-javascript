@@ -55,4 +55,5 @@ export {
   // eslint-disable-next-line deprecation/deprecation
   startActiveSpan,
   startInactiveSpan,
+  startSpanManual,
 } from '@sentry/node';
