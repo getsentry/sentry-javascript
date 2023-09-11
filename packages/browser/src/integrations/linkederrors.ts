@@ -1,4 +1,4 @@
-import type { Client, Integration } from '@sentry/types';
+import type { Client, Event, EventHint, Integration } from '@sentry/types';
 import { applyAggregateErrorsToEvent } from '@sentry/utils';
 
 import { exceptionFromError } from '../eventbuilder';
@@ -50,23 +50,17 @@ export class LinkedErrors implements Integration {
   /**
    * @inheritDoc
    */
-  public setup(client: Client): void {
-    if (!client.on) {
-      return;
-    }
+  public preprocessEvent(event: Event, hint: EventHint | undefined, client: Client): void {
+    const options = client.getOptions();
 
-    client.on('preprocessEvent', (event, hint) => {
-      const options = client.getOptions();
-
-      applyAggregateErrorsToEvent(
-        exceptionFromError,
-        options.stackParser,
-        options.maxValueLength,
-        this._key,
-        this._limit,
-        event,
-        hint,
-      );
-    });
+    applyAggregateErrorsToEvent(
+      exceptionFromError,
+      options.stackParser,
+      options.maxValueLength,
+      this._key,
+      this._limit,
+      event,
+      hint,
+    );
   }
 }

@@ -106,7 +106,11 @@ export function setupIntegration(client: Client, integration: Integration, integ
     installedIntegrations.push(integration.name);
   }
 
-  integration.setup && integration.setup(client);
+  if (client.on && typeof integration.preprocessEvent === 'function') {
+    const callback = integration.preprocessEvent.bind(integration);
+    client.on('preprocessEvent', (event, hint) => callback(event, hint, client));
+  }
+
   __DEBUG_BUILD__ && logger.log(`Integration installed: ${integration.name}`);
 }
 
