@@ -1,6 +1,5 @@
 {
   "name": "@sentry-internal/ts3.8-test",
-  "version": "7.67.0",
   "private": true,
   "license": "MIT",
   "scripts": {
@@ -14,16 +13,16 @@
     "typescript": "3.8.3"
   },
   "dependencies": {
-    "@sentry/browser": "7.67.0",
-    "@sentry/core": "7.67.0",
-    "@sentry/hub": "7.67.0",
-    "@sentry/integrations": "7.67.0",
-    "@sentry/node": "7.67.0",
-    "@sentry/opentelemetry-node": "7.67.0",
-    "@sentry/replay": "7.67.0",
-    "@sentry/tracing": "7.67.0",
-    "@sentry/types": "7.67.0",
-    "@sentry/utils": "7.67.0",
-    "@sentry/wasm": "7.67.0"
+    "@sentry/browser": "latest || *",
+    "@sentry/core": "latest || *",
+    "@sentry/hub": "latest || *",
+    "@sentry/integrations": "latest || *",
+    "@sentry/node": "latest || *",
+    "@sentry/opentelemetry-node": "latest || *",
+    "@sentry/replay": "latest || *",
+    "@sentry/tracing": "latest || *",
+    "@sentry/types": "latest || *",
+    "@sentry/utils": "latest || *",
+    "@sentry/wasm": "latest || *"
   }
 }
