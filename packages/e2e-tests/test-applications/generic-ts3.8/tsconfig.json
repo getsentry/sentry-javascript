@@ -1,12 +1,10 @@
 {
-  "include": [
-    "index.ts",
-  ],
+  "include": ["index.ts"],
   "compilerOptions": {
     "skipLibCheck": false,
     "noEmit": true,
     "types": [],
     "target": "es6",
-    "moduleResolution": "node",
-  },
+    "moduleResolution": "node"
+  }
 }
