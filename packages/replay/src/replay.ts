@@ -377,9 +377,7 @@ export class ReplayContainer implements ReplayContainerInterface {
 
     try {
       logInfo(
-        `[Replay] Stopping Replay${reason ? ` triggered by ${reason}` : ''} ${new Date().toISOString()} ${
-          this._isEnabled
-        }`,
+        `[Replay] Stopping Replay${reason ? ` triggered by ${reason}` : ''}`,
         this._options._experiments.traceInternals,
       );
 
