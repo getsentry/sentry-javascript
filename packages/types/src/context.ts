@@ -10,14 +10,13 @@ export interface Contexts extends Record<string, Context | undefined> {
   response?: ResponseContext;
   trace?: TraceContext;
   cloud_resource?: CloudResourceContext;
-  state?: ReduxStateContext;
+  state?: StateContext;
 }
 
-export interface ReduxStateContext extends Record<string, unknown> {
+export interface StateContext extends Record<string, unknown> {
   state: {
-    [key: string]: any;
     type: string;
-    value: any;
+    value: Record<string, unknown>;
   };
 }
 
