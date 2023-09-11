@@ -1,3 +1,5 @@
+import type { Client } from './client';
+import type { Event, EventHint } from './event';
 import type { EventProcessor } from './eventprocessor';
 import type { Hub } from './hub';
 
@@ -23,4 +25,9 @@ export interface Integration {
    * This takes no options on purpose, options should be passed in the constructor
    */
   setupOnce(addGlobalEventProcessor: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void;
+
+  /**
+   * An optional hook that allows to preprocess an event _before_ it is passed to all other event processors.
+   */
+  preprocessEvent?(event: Event, hint: EventHint | undefined, client: Client): void;
 }
