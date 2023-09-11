@@ -98,16 +98,17 @@ function createReduxEnhancer(enhancerOptions?: Partial<SentryEnhancerOptions>): 
     <S = any, A extends Action = AnyAction>(reducer: Reducer<S, A>, initialState?: PreloadedState<S>) => {
       options.attachReduxState &&
         addGlobalEventProcessor((event, hint) => {
-          if (
-            event.contexts &&
-            event.contexts.state &&
-            event.contexts.state.state &&
-            event.contexts.state.state.type === 'redux'
-          ) {
-            hint.attachments = [
-              ...(hint.attachments || []),
-              { filename: 'redux_state.json', data: JSON.stringify(event.contexts.state.state.value) },
-            ];
+          try {
+            // @ts-expect-error try catch to reduce bundle size
+            if (event.type === undefined && event.contexts.state.state.type === 'redux') {
+              hint.attachments = [
+                ...(hint.attachments || []),
+                // @ts-expect-error try catch to reduce bundle size
+                { filename: 'redux_state.json', data: JSON.stringify(event.contexts.state.state.value) },
+              ];
+            }
+          } catch (_) {
+            // empty
           }
           return event;
         });
