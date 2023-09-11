@@ -46,7 +46,7 @@ export async function resetSdkMock({ replayOptions, sentryOptions, autoStart }: 
   jest.setSystemTime(new Date(BASE_TIMESTAMP));
 
   return {
-    // @ts-ignore use before assign
+    // @ts-expect-error use before assign
     domHandler,
     mockRecord,
     replay,

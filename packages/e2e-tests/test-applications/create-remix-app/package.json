@@ -2,7 +2,7 @@
   "private": true,
   "sideEffects": false,
   "scripts": {
-    "build": "remix build",
+    "build": "remix build --sourcemap && ./upload-sourcemaps.sh",
     "dev": "remix dev",
     "start": "remix-serve build",
     "typecheck": "tsc",
@@ -31,5 +31,8 @@
   },
   "engines": {
     "node": ">=14"
+  },
+  "volta": {
+    "extends": "../../package.json"
   }
 }

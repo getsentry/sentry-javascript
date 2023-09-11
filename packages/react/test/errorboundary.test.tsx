@@ -88,7 +88,7 @@ describe('ErrorBoundary', () => {
 
   it('renders null if not given a valid `fallback` prop', () => {
     const { container } = render(
-      // @ts-ignore Passing wrong type on purpose
+      // @ts-expect-error Passing wrong type on purpose
       <ErrorBoundary fallback="Not a ReactElement">
         <Bam />
       </ErrorBoundary>,
@@ -99,7 +99,7 @@ describe('ErrorBoundary', () => {
 
   it('renders null if not given a valid `fallback` prop function', () => {
     const { container } = render(
-      // @ts-ignore Passing wrong type on purpose
+      // @ts-expect-error Passing wrong type on purpose
       <ErrorBoundary fallback={() => 'Not a ReactElement'}>
         <Bam />
       </ErrorBoundary>,
@@ -308,9 +308,9 @@ describe('ErrorBoundary', () => {
         const firstError = new Error('bam');
         const secondError = new Error('bam2');
         const thirdError = new Error('bam3');
-        // @ts-ignore Need to set cause on error
+        // @ts-expect-error Need to set cause on error
         secondError.cause = firstError;
-        // @ts-ignore Need to set cause on error
+        // @ts-expect-error Need to set cause on error
         thirdError.cause = secondError;
         throw thirdError;
       }
@@ -349,9 +349,9 @@ describe('ErrorBoundary', () => {
       function CustomBam(): JSX.Element {
         const firstError = new Error('bam');
         const secondError = new Error('bam2');
-        // @ts-ignore Need to set cause on error
+        // @ts-expect-error Need to set cause on error
         firstError.cause = secondError;
-        // @ts-ignore Need to set cause on error
+        // @ts-expect-error Need to set cause on error
         secondError.cause = firstError;
         throw firstError;
       }
@@ -429,7 +429,7 @@ describe('ErrorBoundary', () => {
     it('shows a Sentry Report Dialog with correct options if client has hooks', () => {
       let callback: any;
       const hub = getCurrentHub();
-      // @ts-ignore mock client
+      // @ts-expect-error mock client
       hub.bindClient({
         on: (name: string, cb: any) => {
           callback = cb;

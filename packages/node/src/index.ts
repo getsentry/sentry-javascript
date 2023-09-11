@@ -56,8 +56,10 @@ export {
   captureCheckIn,
   setMeasurement,
   getActiveSpan,
-  startActiveSpan,
   startSpan,
+  // eslint-disable-next-line deprecation/deprecation
+  startActiveSpan,
+  startInactiveSpan,
 } from '@sentry/core';
 export type { SpanStatusType } from '@sentry/core';
 export { autoDiscoverNodePerformanceMonitoringIntegrations } from './tracing';

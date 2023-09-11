@@ -5,7 +5,7 @@
  * this causes both TS and ESLint to complain, hence the pragma comments below.
  */
 
-// @ts-ignore See above
+// @ts-expect-error See above
 // eslint-disable-next-line import/no-unresolved
 import * as origModule from '__SENTRY_WRAPPING_TARGET_FILE__';
 // eslint-disable-next-line import/no-extraneous-dependencies
@@ -47,6 +47,6 @@ export default userProvidedDefaultHandler ? Sentry.wrapMiddlewareWithSentry(user
 
 // Re-export anything exported by the page module we're wrapping. When processing this code, Rollup is smart enough to
 // not include anything whose name matchs something we've explicitly exported above.
-// @ts-ignore See above
+// @ts-expect-error See above
 // eslint-disable-next-line import/no-unresolved
 export * from '__SENTRY_WRAPPING_TARGET_FILE__';

@@ -26,13 +26,9 @@ module.exports = {
         // Unused variables should be removed unless they are marked with and underscore (ex. _varName).
         '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
 
-        // Make sure that all ts-ignore comments are given a description.
-        '@typescript-eslint/ban-ts-comment': [
-          'warn',
-          {
-            'ts-ignore': 'allow-with-description',
-          },
-        ],
+        // Do not use ts-ignore, use ts-expect-error instead.
+        // Also make sure that all ts-expect-error comments are given a description.
+        '@typescript-eslint/ban-ts-comment': 'error',
 
         // Types usage should be explicit as possible, so we prevent usage of inferrable types.
         // This is especially important because we have a public API, so usage needs to be as

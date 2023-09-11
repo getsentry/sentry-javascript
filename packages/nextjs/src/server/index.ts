@@ -36,6 +36,7 @@ export const ErrorBoundary = (props: React.PropsWithChildren<unknown>): React.Re
  * A passthrough error boundary wrapper for the server that doesn't depend on any react. Error boundaries don't catch
  * SSR errors so they should simply be a passthrough.
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function withErrorBoundary<P extends Record<string, any>>(
   WrappedComponent: React.ComponentType<P>,
 ): React.FC<P> {

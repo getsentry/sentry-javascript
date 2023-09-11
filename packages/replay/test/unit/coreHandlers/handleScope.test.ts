@@ -20,7 +20,7 @@ describe('Unit | coreHandlers | handleScope', () => {
     } as unknown as Scope;
 
     function addBreadcrumb(breadcrumb: Breadcrumb) {
-      // @ts-ignore using private member
+      // @ts-expect-error using private member
       scope._breadcrumbs.push(breadcrumb);
     }
 

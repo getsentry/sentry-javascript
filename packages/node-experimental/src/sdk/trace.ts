@@ -12,13 +12,13 @@ import type { NodeExperimentalClient } from './client';
  * The created span is the active span and will be used as parent by other spans created inside the function
  * and can be accessed via `Sentry.getSpan()`, as long as the function is executed while the scope is active.
  *
- * If you want to create a span that is not set as active, use {@link startSpan}.
+ * If you want to create a span that is not set as active, use {@link startInactiveSpan}.
  *
  * Note that if you have not enabled tracing extensions via `addTracingExtensions`
  * or you didn't set `tracesSampleRate`, this function will not generate spans
  * and the `span` returned from the callback will be undefined.
  */
-export function startActiveSpan<T>(context: TransactionContext, callback: (span: Span | undefined) => T): T {
+export function startSpan<T>(context: TransactionContext, callback: (span: Span | undefined) => T): T {
   const tracer = getTracer();
   if (!tracer) {
     return callback(undefined);
@@ -67,16 +67,21 @@ export function startActiveSpan<T>(context: TransactionContext, callback: (span:
 }
 
 /**
+ * @deprecated Use {@link startSpan} instead.
+ */
+export const startActiveSpan = startSpan;
+
+/**
  * Creates a span. This span is not set as active, so will not get automatic instrumentation spans
  * as children or be able to be accessed via `Sentry.getSpan()`.
  *
- * If you want to create a span that is set as active, use {@link startActiveSpan}.
+ * If you want to create a span that is set as active, use {@link startSpan}.
  *
  * Note that if you have not enabled tracing extensions via `addTracingExtensions`
  * or you didn't set `tracesSampleRate` or `tracesSampler`, this function will not generate spans
  * and the `span` returned from the callback will be undefined.
  */
-export function startSpan(context: TransactionContext): Span | undefined {
+export function startInactiveSpan(context: TransactionContext): Span | undefined {
   const tracer = getTracer();
   if (!tracer) {
     return undefined;

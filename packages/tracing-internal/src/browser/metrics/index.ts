@@ -22,7 +22,7 @@ function msToSec(time: number): number {
 }
 
 function getBrowserPerformanceAPI(): Performance | undefined {
-  // @ts-ignore we want to make sure all of these are available, even if TS is sure they are
+  // @ts-expect-error we want to make sure all of these are available, even if TS is sure they are
   return WINDOW && WINDOW.addEventListener && WINDOW.performance;
 }
 
@@ -40,7 +40,7 @@ let _clsEntry: LayoutShift | undefined;
 export function startTrackingWebVitals(): () => void {
   const performance = getBrowserPerformanceAPI();
   if (performance && browserPerformanceTimeOrigin) {
-    // @ts-ignore we want to make sure all of these are available, even if TS is sure they are
+    // @ts-expect-error we want to make sure all of these are available, even if TS is sure they are
     if (performance.mark) {
       WINDOW.performance.mark('sentry-tracing-init');
     }

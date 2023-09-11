@@ -13,7 +13,13 @@ jest.mock('@sentry/utils', () => {
   };
 });
 
-const SAMPLE_OPTIONS: SessionOptions = {
+const OPTIONS_STICKY: SessionOptions = {
+  stickySession: true,
+  sessionSampleRate: 1.0,
+  allowBuffering: false,
+};
+
+const OPTIONS_NON_SICKY: SessionOptions = {
   stickySession: false,
   sessionSampleRate: 1.0,
   allowBuffering: false,
@@ -31,7 +37,6 @@ function createMockSession(when: number = Date.now(), id = 'test_session_id') {
     lastActivity: when,
     started: when,
     sampled: 'session',
-    shouldRefresh: true,
   });
 }
 
@@ -49,16 +54,12 @@ describe('Unit | session | loadOrCreateSession', () => {
   });
 
   describe('stickySession: false', () => {
-    it('creates new session if none is passed in', function () {
+    it('creates new session', function () {
       const session = loadOrCreateSession(
-        undefined,
         {
           ...DEFAULT_OPTIONS,
         },
-        {
-          ...SAMPLE_OPTIONS,
-          stickySession: false,
-        },
+        OPTIONS_NON_SICKY,
       );
 
       expect(FetchSession.fetchSession).not.toHaveBeenCalled();
@@ -70,7 +71,6 @@ describe('Unit | session | loadOrCreateSession', () => {
         lastActivity: expect.any(Number),
         sampled: 'session',
         started: expect.any(Number),
-        shouldRefresh: true,
       });
 
       // Should not have anything in storage
@@ -82,15 +82,11 @@ describe('Unit | session | loadOrCreateSession', () => {
       saveSession(sessionInStorage);
 
       const session = loadOrCreateSession(
-        undefined,
         {
           sessionIdleExpire: 1000,
           maxReplayDuration: MAX_REPLAY_DURATION,
         },
-        {
-          ...SAMPLE_OPTIONS,
-          stickySession: false,
-        },
+        OPTIONS_NON_SICKY,
       );
 
       expect(FetchSession.fetchSession).not.toHaveBeenCalled();
@@ -102,46 +98,42 @@ describe('Unit | session | loadOrCreateSession', () => {
         lastActivity: expect.any(Number),
         sampled: 'session',
         started: expect.any(Number),
-        shouldRefresh: true,
       });
 
       // Should not have anything in storage
       expect(FetchSession.fetchSession()).toEqual(sessionInStorage);
     });
 
-    it('uses passed in session', function () {
-      const now = Date.now();
-      const currentSession = createMockSession(now - 2000);
-
+    it('uses passed in previousSessionId', function () {
       const session = loadOrCreateSession(
-        currentSession,
         {
           ...DEFAULT_OPTIONS,
+          previousSessionId: 'previous_session_id',
         },
-        {
-          ...SAMPLE_OPTIONS,
-          stickySession: false,
-        },
+        OPTIONS_NON_SICKY,
       );
 
       expect(FetchSession.fetchSession).not.toHaveBeenCalled();
-      expect(CreateSession.createSession).not.toHaveBeenCalled();
+      expect(CreateSession.createSession).toHaveBeenCalled();
 
-      expect(session).toEqual(currentSession);
+      expect(session).toEqual({
+        id: 'test_session_uuid',
+        segmentId: 0,
+        lastActivity: expect.any(Number),
+        sampled: 'session',
+        started: expect.any(Number),
+        previousSessionId: 'previous_session_id',
+      });
     });
   });
 
   describe('stickySession: true', () => {
     it('creates new session if none exists', function () {
       const session = loadOrCreateSession(
-        undefined,
         {
           ...DEFAULT_OPTIONS,
         },
-        {
-          ...SAMPLE_OPTIONS,
-          stickySession: true,
-        },
+        OPTIONS_STICKY,
       );
 
       expect(FetchSession.fetchSession).toHaveBeenCalled();
@@ -153,7 +145,6 @@ describe('Unit | session | loadOrCreateSession', () => {
         lastActivity: expect.any(Number),
         sampled: 'session',
         started: expect.any(Number),
-        shouldRefresh: true,
       };
       expect(session).toEqual(expectedSession);
 
@@ -167,15 +158,11 @@ describe('Unit | session | loadOrCreateSession', () => {
       saveSession(createMockSession(date, 'test_old_session_uuid'));
 
       const session = loadOrCreateSession(
-        undefined,
         {
           sessionIdleExpire: 1000,
           maxReplayDuration: MAX_REPLAY_DURATION,
         },
-        {
-          ...SAMPLE_OPTIONS,
-          stickySession: true,
-        },
+        OPTIONS_STICKY,
       );
 
       expect(FetchSession.fetchSession).toHaveBeenCalled();
@@ -187,7 +174,6 @@ describe('Unit | session | loadOrCreateSession', () => {
         lastActivity: expect.any(Number),
         sampled: 'session',
         started: expect.any(Number),
-        shouldRefresh: true,
         previousSessionId: 'test_old_session_uuid',
       };
       expect(session).toEqual(expectedSession);
@@ -201,15 +187,11 @@ describe('Unit | session | loadOrCreateSession', () => {
       saveSession(createMockSession(date, 'test_old_session_uuid'));
 
       const session = loadOrCreateSession(
-        undefined,
         {
           sessionIdleExpire: 5000,
           maxReplayDuration: MAX_REPLAY_DURATION,
         },
-        {
-          ...SAMPLE_OPTIONS,
-          stickySession: true,
-        },
+        OPTIONS_STICKY,
       );
 
       expect(FetchSession.fetchSession).toHaveBeenCalled();
@@ -221,30 +203,52 @@ describe('Unit | session | loadOrCreateSession', () => {
         lastActivity: date,
         sampled: 'session',
         started: date,
-        shouldRefresh: true,
       });
     });
 
-    it('uses passed in session instead of fetching from sessionStorage', function () {
+    it('ignores previousSessionId when loading from sessionStorage', function () {
       const now = Date.now();
-      saveSession(createMockSession(now - 10000, 'test_storage_session_uuid'));
-      const currentSession = createMockSession(now - 2000);
+      const currentSession = createMockSession(now - 10000, 'test_storage_session_uuid');
+      saveSession(currentSession);
 
       const session = loadOrCreateSession(
-        currentSession,
         {
           ...DEFAULT_OPTIONS,
+          previousSessionId: 'previous_session_id',
         },
-        {
-          ...SAMPLE_OPTIONS,
-          stickySession: true,
-        },
+        OPTIONS_STICKY,
       );
 
-      expect(FetchSession.fetchSession).not.toHaveBeenCalled();
+      expect(FetchSession.fetchSession).toHaveBeenCalled();
       expect(CreateSession.createSession).not.toHaveBeenCalled();
 
       expect(session).toEqual(currentSession);
+    });
+
+    it('uses previousSessionId when creating new session', function () {
+      const session = loadOrCreateSession(
+        {
+          ...DEFAULT_OPTIONS,
+          previousSessionId: 'previous_session_id',
+        },
+        OPTIONS_STICKY,
+      );
+
+      expect(FetchSession.fetchSession).toHaveBeenCalled();
+      expect(CreateSession.createSession).toHaveBeenCalled();
+
+      const expectedSession = {
+        id: 'test_session_uuid',
+        segmentId: 0,
+        lastActivity: expect.any(Number),
+        sampled: 'session',
+        started: expect.any(Number),
+        previousSessionId: 'previous_session_id',
+      };
+      expect(session).toEqual(expectedSession);
+
+      // Should also be stored in storage
+      expect(FetchSession.fetchSession()).toEqual(expectedSession);
     });
   });
 
@@ -257,80 +261,63 @@ describe('Unit | session | loadOrCreateSession', () => {
         started: now - 2000,
         segmentId: 0,
         sampled: 'buffer',
-        shouldRefresh: true,
       });
+      saveSession(currentSession);
 
       const session = loadOrCreateSession(
-        currentSession,
         {
           sessionIdleExpire: 1000,
           maxReplayDuration: MAX_REPLAY_DURATION,
         },
-        {
-          ...SAMPLE_OPTIONS,
-        },
+        OPTIONS_STICKY,
       );
-
-      expect(FetchSession.fetchSession).not.toHaveBeenCalled();
-      expect(CreateSession.createSession).not.toHaveBeenCalled();
 
       expect(session).toEqual(currentSession);
     });
 
-    it('returns new unsampled session when buffering & expired, if shouldRefresh===false', function () {
+    it('returns new session when buffering & expired, if segmentId>0', function () {
       const now = Date.now();
       const currentSession = makeSession({
         id: 'test_session_uuid_2',
         lastActivity: now - 2000,
         started: now - 2000,
-        segmentId: 0,
+        segmentId: 1,
         sampled: 'buffer',
-        shouldRefresh: false,
       });
+      saveSession(currentSession);
 
       const session = loadOrCreateSession(
-        currentSession,
         {
           sessionIdleExpire: 1000,
           maxReplayDuration: MAX_REPLAY_DURATION,
         },
-        {
-          ...SAMPLE_OPTIONS,
-        },
+        OPTIONS_STICKY,
       );
 
-      expect(FetchSession.fetchSession).not.toHaveBeenCalled();
-      expect(CreateSession.createSession).not.toHaveBeenCalled();
-
       expect(session).not.toEqual(currentSession);
-      expect(session.sampled).toBe(false);
+      expect(session.sampled).toBe('session');
       expect(session.started).toBeGreaterThanOrEqual(now);
+      expect(session.segmentId).toBe(0);
     });
 
-    it('returns existing session when buffering & not expired, if shouldRefresh===false', function () {
+    it('returns existing session when buffering & not expired, if segmentId>0', function () {
       const now = Date.now();
       const currentSession = makeSession({
         id: 'test_session_uuid_2',
         lastActivity: now - 2000,
         started: now - 2000,
-        segmentId: 0,
+        segmentId: 1,
         sampled: 'buffer',
-        shouldRefresh: false,
       });
+      saveSession(currentSession);
 
       const session = loadOrCreateSession(
-        currentSession,
         {
           sessionIdleExpire: 5000,
           maxReplayDuration: MAX_REPLAY_DURATION,
         },
-        {
-          ...SAMPLE_OPTIONS,
-        },
+        OPTIONS_STICKY,
       );
-
-      expect(FetchSession.fetchSession).not.toHaveBeenCalled();
-      expect(CreateSession.createSession).not.toHaveBeenCalled();
 
       expect(session).toEqual(currentSession);
     });
@@ -339,12 +326,11 @@ describe('Unit | session | loadOrCreateSession', () => {
   describe('sampling', () => {
     it('returns unsampled session if sample rates are 0', function () {
       const session = loadOrCreateSession(
-        undefined,
         {
           ...DEFAULT_OPTIONS,
         },
         {
-          ...SAMPLE_OPTIONS,
+          stickySession: false,
           sessionSampleRate: 0,
           allowBuffering: false,
         },
@@ -356,19 +342,17 @@ describe('Unit | session | loadOrCreateSession', () => {
         lastActivity: expect.any(Number),
         sampled: false,
         started: expect.any(Number),
-        shouldRefresh: true,
       };
       expect(session).toEqual(expectedSession);
     });
 
     it('returns `session` session if sessionSampleRate===1', function () {
       const session = loadOrCreateSession(
-        undefined,
         {
           ...DEFAULT_OPTIONS,
         },
         {
-          ...SAMPLE_OPTIONS,
+          stickySession: false,
           sessionSampleRate: 1.0,
           allowBuffering: false,
         },
@@ -379,12 +363,11 @@ describe('Unit | session | loadOrCreateSession', () => {
 
     it('returns `buffer` session if allowBuffering===true', function () {
       const session = loadOrCreateSession(
-        undefined,
         {
           ...DEFAULT_OPTIONS,
         },
         {
-          ...SAMPLE_OPTIONS,
+          stickySession: false,
           sessionSampleRate: 0.0,
           allowBuffering: true,
         },

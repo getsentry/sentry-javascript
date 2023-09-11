@@ -82,17 +82,17 @@ function checkCallForSentReplay(
   const envelopeItems = call?.[1] || [[], []];
   const [[replayEventHeader, replayEventPayload], [recordingHeader, recordingPayload] = []] = envelopeItems;
 
-  // @ts-ignore recordingPayload is always a string in our tests
+  // @ts-expect-error recordingPayload is always a string in our tests
   const [recordingPayloadHeader, recordingData] = recordingPayload?.split('\n') || [];
 
   const actualObj: Required<SentReplayExpected> = {
-    // @ts-ignore Custom envelope
+    // @ts-expect-error Custom envelope
     envelopeHeader: envelopeHeader,
-    // @ts-ignore Custom envelope
+    // @ts-expect-error Custom envelope
     replayEventHeader: replayEventHeader,
-    // @ts-ignore Custom envelope
+    // @ts-expect-error Custom envelope
     replayEventPayload: replayEventPayload,
-    // @ts-ignore Custom envelope
+    // @ts-expect-error Custom envelope
     recordingHeader: recordingHeader,
     recordingPayloadHeader: recordingPayloadHeader && JSON.parse(recordingPayloadHeader),
     recordingData,
@@ -180,7 +180,7 @@ const toHaveSentReplay = function (
     }
   }
 
-  // @ts-ignore use before assigned
+  // @ts-expect-error use before assigned
   const { results, call, pass } = result;
 
   const options = {

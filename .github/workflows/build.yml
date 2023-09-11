@@ -818,7 +818,7 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@v3
         with:
-          node-version-file: 'package.json'
+          node-version-file: 'packages/e2e-tests/package.json'
       - name: Restore caches
         uses: ./.github/actions/restore-cache
         env:
@@ -833,7 +833,7 @@ jobs:
       - name: Get node version
         id: versions
         run: |
-          echo "echo node=$(jq -r '.volta.node' package.json)" >> $GITHUB_OUTPUT
+          echo "echo node=$(jq -r '.volta.node' packages/e2e-tests/package.json)" >> $GITHUB_OUTPUT
 
       - name: Validate Verdaccio
         run: yarn test:validate

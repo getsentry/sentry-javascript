@@ -19,7 +19,7 @@ export async function addMemoryEntry(replay: ReplayContainer): Promise<Array<Add
   try {
     return Promise.all(
       createPerformanceSpans(replay, [
-        // @ts-ignore memory doesn't exist on type Performance as the API is non-standard (we check that it exists above)
+        // @ts-expect-error memory doesn't exist on type Performance as the API is non-standard (we check that it exists above)
         createMemoryEntry(WINDOW.performance.memory),
       ]),
     );

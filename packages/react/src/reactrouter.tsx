@@ -168,7 +168,7 @@ export function withSentryRouting<P extends Record<string, any>, R extends React
       activeTransaction.setName(props.computedMatch.path, 'route');
     }
 
-    // @ts-ignore Setting more specific React Component typing for `R` generic above
+    // @ts-expect-error Setting more specific React Component typing for `R` generic above
     // will break advanced type inference done by react router params:
     // https://github.com/DefinitelyTyped/DefinitelyTyped/blob/13dc4235c069e25fe7ee16e11f529d909f9f3ff8/types/react-router/index.d.ts#L154-L164
     return <Route {...props} />;
@@ -176,7 +176,7 @@ export function withSentryRouting<P extends Record<string, any>, R extends React
 
   WrappedRoute.displayName = `sentryRoute(${componentDisplayName})`;
   hoistNonReactStatics(WrappedRoute, Route);
-  // @ts-ignore Setting more specific React Component typing for `R` generic above
+  // @ts-expect-error Setting more specific React Component typing for `R` generic above
   // will break advanced type inference done by react router params:
   // https://github.com/DefinitelyTyped/DefinitelyTyped/blob/13dc4235c069e25fe7ee16e11f529d909f9f3ff8/types/react-router/index.d.ts#L154-L164
   return WrappedRoute;

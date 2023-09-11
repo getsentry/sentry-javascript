@@ -202,14 +202,14 @@ export function withSentryReactRouterV6Routing<P extends Record<string, any>, R 
       [location, navigationType],
     );
 
-    // @ts-ignore Setting more specific React Component typing for `R` generic above
+    // @ts-expect-error Setting more specific React Component typing for `R` generic above
     // will break advanced type inference done by react router params
     return <Routes {...props} />;
   };
 
   hoistNonReactStatics(SentryRoutes, Routes);
 
-  // @ts-ignore Setting more specific React Component typing for `R` generic above
+  // @ts-expect-error Setting more specific React Component typing for `R` generic above
   // will break advanced type inference done by react router params
   return SentryRoutes;
 }

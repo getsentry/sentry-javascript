@@ -368,7 +368,7 @@ describe('normalize()', () => {
       B.prototype.toJSON = () => 2;
       const c: any = [];
       c.toJSON = () => 3;
-      // @ts-ignore target lacks a construct signature
+      // @ts-expect-error target lacks a construct signature
       expect(normalize([{ a }, { b: new B() }, c])).toEqual([{ a: 1 }, { b: 2 }, 3]);
     });
 

@@ -29,7 +29,7 @@ describe('init()', () => {
   });
 
   afterEach(() => {
-    // @ts-ignore - Reset the default integrations of node sdk to original
+    // @ts-expect-error - Reset the default integrations of node sdk to original
     sdk.defaultIntegrations = defaultIntegrationsBackup;
   });
 
@@ -39,7 +39,7 @@ describe('init()', () => {
       new MockIntegration('Mock integration 1.2'),
     ];
 
-    // @ts-ignore - Replace default integrations with mock integrations, needs ts-ignore because imports are readonly
+    // @ts-expect-error - Replace default integrations with mock integrations, needs ts-ignore because imports are readonly
     sdk.defaultIntegrations = mockDefaultIntegrations;
 
     init({ dsn: PUBLIC_DSN, defaultIntegrations: false });
@@ -55,7 +55,7 @@ describe('init()', () => {
       new MockIntegration('Some mock integration 2.2'),
     ];
 
-    // @ts-ignore - Replace default integrations with mock integrations, needs ts-ignore because imports are readonly
+    // @ts-expect-error - Replace default integrations with mock integrations, needs ts-ignore because imports are readonly
     sdk.defaultIntegrations = mockDefaultIntegrations;
 
     const mockIntegrations = [
@@ -78,7 +78,7 @@ describe('init()', () => {
       new MockIntegration('Some mock integration 3.2'),
     ];
 
-    // @ts-ignore - Replace default integrations with mock integrations, needs ts-ignore because imports are readonly
+    // @ts-expect-error - Replace default integrations with mock integrations, needs ts-ignore because imports are readonly
     sdk.defaultIntegrations = mockDefaultIntegrations;
 
     const newIntegration = new MockIntegration('Some mock integration 3.3');
@@ -104,7 +104,7 @@ describe('init()', () => {
       new MockIntegration('Some mock integration 4.2'),
     ];
 
-    // @ts-ignore - Replace default integrations with mock integrations, needs ts-ignore because imports are readonly
+    // @ts-expect-error - Replace default integrations with mock integrations, needs ts-ignore because imports are readonly
     sdk.defaultIntegrations = mockDefaultIntegrations;
 
     const autoPerformanceIntegration = new MockIntegration('Some mock integration 4.4');

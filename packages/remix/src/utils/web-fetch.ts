@@ -141,11 +141,11 @@ export const normalizeRemixRequest = (request: RemixRequest): Record<string, any
     port: parsedURL.port,
     hash: parsedURL.hash,
     search: parsedURL.search,
-    // @ts-ignore - it does not has a query
+    // @ts-expect-error - it does not has a query
     query: parsedURL.query,
     href: parsedURL.href,
     method: request.method,
-    // @ts-ignore - not sure what this supposed to do
+    // @ts-expect-error - not sure what this supposed to do
     headers: headers[Symbol.for('nodejs.util.inspect.custom')](),
     insecureHTTPParser: request.insecureHTTPParser,
     agent,

@@ -8,7 +8,7 @@ export function isRrwebError(event: Event, hint: EventHint): boolean {
     return false;
   }
 
-  // @ts-ignore this may be set by rrweb when it finds errors
+  // @ts-expect-error this may be set by rrweb when it finds errors
   if (hint.originalException && hint.originalException.__rrweb__) {
     return true;
   }
