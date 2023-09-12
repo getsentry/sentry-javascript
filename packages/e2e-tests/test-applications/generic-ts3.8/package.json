@@ -6,8 +6,8 @@
     "build:types": "pnpm run type-check",
     "ts-version": "tsc --version",
     "type-check": "tsc --project tsconfig.json",
-    "test:build": "pnpm install",
-    "test:assert": "pnpm run build:types"
+    "test:build": "pnpm install && pnpm run build:types",
+    "test:assert": "pnpm -v"
   },
   "devDependencies": {
     "typescript": "3.8.3"
