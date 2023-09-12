@@ -1,0 +1,28 @@
+{
+  "name": "@sentry-internal/ts3.8-test",
+  "private": true,
+  "license": "MIT",
+  "scripts": {
+    "build:types": "pnpm run type-check",
+    "ts-version": "tsc --version",
+    "type-check": "tsc --project tsconfig.json",
+    "test:build": "pnpm install && pnpm run build:types",
+    "test:assert": "pnpm -v"
+  },
+  "devDependencies": {
+    "typescript": "3.8.3"
+  },
+  "dependencies": {
+    "@sentry/browser": "latest || *",
+    "@sentry/core": "latest || *",
+    "@sentry/hub": "latest || *",
+    "@sentry/integrations": "latest || *",
+    "@sentry/node": "latest || *",
+    "@sentry/opentelemetry-node": "latest || *",
+    "@sentry/replay": "latest || *",
+    "@sentry/tracing": "latest || *",
+    "@sentry/types": "latest || *",
+    "@sentry/utils": "latest || *",
+    "@sentry/wasm": "latest || *"
+  }
+}

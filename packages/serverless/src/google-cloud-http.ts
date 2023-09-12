@@ -2,7 +2,7 @@
 // When TypeScript compiler is upgraded, use `import type` syntax to explicitly assert that we don't want to load a module here.
 import type * as common from '@google-cloud/common';
 import { getCurrentHub } from '@sentry/node';
-import type { Integration, Span, Transaction } from '@sentry/types';
+import type { Integration, Span } from '@sentry/types';
 import { fill } from '@sentry/utils';
 
 type RequestOptions = common.DecorateRequestOptions;
@@ -51,12 +51,9 @@ export class GoogleCloudHttp implements Integration {
 /** Returns a wrapped function that makes a request with tracing enabled */
 function wrapRequestFunction(orig: RequestFunction): RequestFunction {
   return function (this: common.Service, reqOpts: RequestOptions, callback: ResponseCallback): void {
-    let transaction: Transaction | undefined;
     let span: Span | undefined;
     const scope = getCurrentHub().getScope();
-    if (scope) {
-      transaction = scope.getTransaction();
-    }
+    const transaction = scope.getTransaction();
     if (transaction) {
       const httpMethod = reqOpts.method || 'GET';
       span = transaction.startChild({

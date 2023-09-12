@@ -2,7 +2,8 @@ import type { Context } from '@opentelemetry/api';
 import * as api from '@opentelemetry/api';
 import { AsyncLocalStorageContextManager } from '@opentelemetry/context-async-hooks';
 import type { Carrier, Hub } from '@sentry/core';
-import { ensureHubOnCarrier, getCurrentHub, getHubFromCarrier } from '@sentry/core';
+
+import { ensureHubOnCarrier, getCurrentHub, getHubFromCarrier } from './hub';
 
 export const OTEL_CONTEXT_HUB_KEY = api.createContextKey('sentry_hub');
 

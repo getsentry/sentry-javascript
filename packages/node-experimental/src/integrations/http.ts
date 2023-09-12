@@ -10,7 +10,7 @@ import { _INTERNAL_getSentrySpan } from '@sentry/opentelemetry-node';
 import type { EventProcessor, Hub, Integration } from '@sentry/types';
 import type { ClientRequest, IncomingMessage, ServerResponse } from 'http';
 
-import type { NodeExperimentalClient } from '../sdk/client';
+import type { NodeExperimentalClient } from '../types';
 import { getRequestSpanData } from '../utils/getRequestSpanData';
 
 interface TracingOptions {
@@ -96,6 +96,16 @@ export class Http implements Integration {
           ignoreOutgoingRequestHook: request => {
             const host = request.host || request.hostname;
             return isSentryHost(host);
+          },
+
+          ignoreIncomingRequestHook: request => {
+            const method = request.method?.toUpperCase();
+            // We do not capture OPTIONS/HEAD requests as transactions
+            if (method === 'OPTIONS' || method === 'HEAD') {
+              return true;
+            }
+
+            return false;
           },
 
           requireParentforOutgoingSpans: true,

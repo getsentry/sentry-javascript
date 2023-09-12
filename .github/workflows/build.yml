@@ -789,9 +789,11 @@ jobs:
             'create-remix-app',
             'nextjs-app-dir',
             'react-create-hash-router',
+            'react-router-6-use-routes',
             'standard-frontend-react',
             'standard-frontend-react-tracing-import',
             'sveltekit',
+            'generic-ts3.8',
           ]
         build-command:
           - false
