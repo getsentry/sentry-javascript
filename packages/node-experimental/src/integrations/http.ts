@@ -10,7 +10,7 @@ import { _INTERNAL_getSentrySpan } from '@sentry/opentelemetry-node';
 import type { EventProcessor, Hub, Integration } from '@sentry/types';
 import type { ClientRequest, IncomingMessage, ServerResponse } from 'http';
 
-import type { NodeExperimentalClient } from '../sdk/client';
+import type { NodeExperimentalClient } from '../types';
 import { getRequestSpanData } from '../utils/getRequestSpanData';
 
 interface TracingOptions {

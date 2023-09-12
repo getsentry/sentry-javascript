@@ -4,7 +4,7 @@ import { getCurrentHub } from '@sentry/core';
 import { SentryPropagator, SentrySpanProcessor } from '@sentry/opentelemetry-node';
 import { logger } from '@sentry/utils';
 
-import type { NodeExperimentalClient } from './client';
+import type { NodeExperimentalClient } from '../types';
 import { SentryContextManager } from './otelContextManager';
 
 /**

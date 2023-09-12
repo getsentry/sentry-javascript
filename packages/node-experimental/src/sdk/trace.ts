@@ -5,7 +5,7 @@ import { _INTERNAL_getSentrySpan } from '@sentry/opentelemetry-node';
 import type { Span, TransactionContext } from '@sentry/types';
 import { isThenable } from '@sentry/utils';
 
-import type { NodeExperimentalClient } from './client';
+import type { NodeExperimentalClient } from '../types';
 
 /**
  * Wraps a function with a transaction/span and finishes the span after the function is done.
