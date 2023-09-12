@@ -180,6 +180,12 @@ export function isInstanceOf(wat: any, base: any): boolean {
   }
 }
 
+interface VueViewModel {
+  // Vue3
+  __isVue?: boolean;
+  // Vue2
+  _isVue?: boolean;
+}
 /**
  * Checks whether given value's type is a Vue ViewModel.
  *
@@ -187,5 +193,6 @@ export function isInstanceOf(wat: any, base: any): boolean {
  * @returns A boolean representing the result.
  */
 export function isVueViewModel(wat: unknown): boolean {
-  return isPlainObject(wat) && !!(wat._isVue || wat.__isVue);
+  // Not using Object.prototype.toString because in Vue 3 it would read the instance's Symbol(Symbol.toStringTag) property.
+  return !!(typeof wat === 'object' && wat !== null && ((wat as VueViewModel).__isVue || (wat as VueViewModel)._isVue));
 }
