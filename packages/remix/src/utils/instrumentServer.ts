@@ -131,11 +131,6 @@ function makeWrappedDocumentRequestFunction(
     let res: Response;
 
     const activeTransaction = getActiveTransaction();
-    const currentScope = getCurrentHub().getScope();
-
-    if (!currentScope) {
-      return origDocumentRequestFunction.call(this, request, responseStatusCode, responseHeaders, context, loadContext);
-    }
 
     try {
       const span = activeTransaction?.startChild({
@@ -175,10 +170,6 @@ function makeWrappedDataFunction(origFn: DataFunction, id: string, name: 'action
     let res: Response | AppData;
     const activeTransaction = getActiveTransaction();
     const currentScope = getCurrentHub().getScope();
-
-    if (!currentScope) {
-      return origFn.call(this, args);
-    }
 
     try {
       const span = activeTransaction?.startChild({
@@ -228,17 +219,15 @@ function getTraceAndBaggage(): { sentryTrace?: string; sentryBaggage?: string } 
   const currentScope = getCurrentHub().getScope();
 
   if (isNodeEnv() && hasTracingEnabled()) {
-    if (currentScope) {
-      const span = currentScope.getSpan();
+    const span = currentScope.getSpan();
 
-      if (span && transaction) {
-        const dynamicSamplingContext = transaction.getDynamicSamplingContext();
+    if (span && transaction) {
+      const dynamicSamplingContext = transaction.getDynamicSamplingContext();
 
-        return {
-          sentryTrace: span.toTraceparent(),
-          sentryBaggage: dynamicSamplingContextToSentryBaggageHeader(dynamicSamplingContext),
-        };
-      }
+      return {
+        sentryTrace: span.toTraceparent(),
+        sentryBaggage: dynamicSamplingContextToSentryBaggageHeader(dynamicSamplingContext),
+      };
     }
   }
 
@@ -376,16 +365,14 @@ function wrapRequestHandler(origRequestHandler: RequestHandler, build: ServerBui
       const url = new URL(request.url);
       const [name, source] = getTransactionName(routes, url, pkg);
 
-      if (scope) {
-        scope.setSDKProcessingMetadata({
-          request: {
-            ...normalizedRequest,
-            route: {
-              path: name,
-            },
+      scope.setSDKProcessingMetadata({
+        request: {
+          ...normalizedRequest,
+          route: {
+            path: name,
           },
-        });
-      }
+        },
+      });
 
       if (!options || !hasTracingEnabled(options)) {
         return origRequestHandler.call(this, request, loadContext);
