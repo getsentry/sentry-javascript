@@ -29,7 +29,7 @@ export function initOtel(): () => void {
   const provider = new NodeTracerProvider({
     sampler: new AlwaysOnSampler(),
   });
-  provider.addSpanProcessor(new SentrySpanProcessor());
+  provider.addSpanProcessor(new SentrySpanProcessor({ strictSpanParentHandling: true }));
 
   // We use a custom context manager to keep context in sync with sentry scope
   const contextManager = new SentryContextManager();

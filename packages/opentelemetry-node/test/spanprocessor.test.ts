@@ -17,7 +17,7 @@ import {
 import { NodeClient } from '@sentry/node';
 import { resolvedSyncPromise } from '@sentry/utils';
 
-import { SENTRY_SPAN_PROCESSOR_MAP, SentrySpanProcessor } from '../src/spanprocessor';
+import { SCHEDULE_TO_CLEAR, SENTRY_SPAN_PROCESSOR_MAP, SentrySpanProcessor } from '../src/spanprocessor';
 
 const SENTRY_DSN = 'https://0@0.ingest.sentry.io/0';
 
@@ -41,6 +41,10 @@ describe('SentrySpanProcessor', () => {
   let spanProcessor: SentrySpanProcessor;
 
   beforeEach(() => {
+    // To avoid test leakage, clear before each test
+    SENTRY_SPAN_PROCESSOR_MAP.clear();
+    SCHEDULE_TO_CLEAR.clear();
+
     client = new NodeClient(DEFAULT_NODE_CLIENT_OPTIONS);
     hub = new Hub(client);
     makeMain(hub);
@@ -56,6 +60,11 @@ describe('SentrySpanProcessor', () => {
   });
 
   afterEach(async () => {
+    // Ensure test map is empty!
+    // Otherwise, we seem to have a leak somewhere...
+    expect(SENTRY_SPAN_PROCESSOR_MAP.size).toBe(0);
+    expect(SCHEDULE_TO_CLEAR.size).toBe(0);
+
     await provider.forceFlush();
     await provider.shutdown();
   });
@@ -125,6 +134,45 @@ describe('SentrySpanProcessor', () => {
     });
   });
 
+  it('handles a missing parent reference', () => {
+    const startTimestampMs = 1667381672309;
+    const endTimestampMs = 1667381672875;
+    const startTime = otelNumberToHrtime(startTimestampMs);
+    const endTime = otelNumberToHrtime(endTimestampMs);
+
+    const tracer = provider.getTracer('default');
+
+    tracer.startActiveSpan('GET /users', parentOtelSpan => {
+      // We simulate the parent somehow not existing in our internal map
+      // this can happen if a race condition leads to spans being processed out of order
+      SENTRY_SPAN_PROCESSOR_MAP.delete(parentOtelSpan.spanContext().spanId);
+
+      tracer.startActiveSpan('SELECT * FROM users;', { startTime }, child => {
+        const childOtelSpan = child as OtelSpan;
+
+        // Parent span does not exist...
+        const sentrySpanTransaction = getSpanForOtelSpan(parentOtelSpan);
+        expect(sentrySpanTransaction).toBeUndefined();
+
+        // Span itself exists and is created as transaction
+        const sentrySpan = getSpanForOtelSpan(childOtelSpan);
+        expect(sentrySpan).toBeInstanceOf(SentrySpan);
+        expect(sentrySpan).toBeInstanceOf(Transaction);
+        expect(sentrySpan?.name).toBe('SELECT * FROM users;');
+        expect(sentrySpan?.startTimestamp).toEqual(startTimestampMs / 1000);
+        expect(sentrySpan?.spanId).toEqual(childOtelSpan.spanContext().spanId);
+
+        expect(hub.getScope().getSpan()).toBeUndefined();
+
+        child.end(endTime);
+
+        expect(sentrySpan?.endTimestamp).toEqual(endTimestampMs / 1000);
+      });
+
+      parentOtelSpan.end();
+    });
+  });
+
   it('allows to create multiple child spans on same level', () => {
     const tracer = provider.getTracer('default');
 
@@ -156,6 +204,51 @@ describe('SentrySpanProcessor', () => {
       span3.end();
 
       parentOtelSpan.end();
+    });
+  });
+
+  it('handles child spans finished out of order', async () => {
+    const tracer = provider.getTracer('default');
+
+    tracer.startActiveSpan('GET /users', parent => {
+      tracer.startActiveSpan('SELECT * FROM users;', child => {
+        const grandchild = tracer.startSpan('child 1');
+
+        const parentSpan = getSpanForOtelSpan(parent);
+        const childSpan = getSpanForOtelSpan(child);
+        const grandchildSpan = getSpanForOtelSpan(grandchild);
+
+        parent.end();
+        child.end();
+        grandchild.end();
+
+        expect(parentSpan?.endTimestamp).toBeDefined();
+        expect(childSpan?.endTimestamp).toBeDefined();
+        expect(grandchildSpan?.endTimestamp).toBeDefined();
+      });
+    });
+  });
+
+  it('handles finished parent span before child span starts', async () => {
+    const tracer = provider.getTracer('default');
+
+    tracer.startActiveSpan('GET /users', parent => {
+      const parentSpan = getSpanForOtelSpan(parent);
+
+      parent.end();
+
+      tracer.startActiveSpan('SELECT * FROM users;', child => {
+        const childSpan = getSpanForOtelSpan(child);
+
+        child.end();
+
+        expect(parentSpan).toBeDefined();
+        expect(childSpan).toBeDefined();
+        expect(parentSpan).toBeInstanceOf(Transaction);
+        expect(childSpan).toBeInstanceOf(Transaction);
+        expect(parentSpan?.endTimestamp).toBeDefined();
+        expect(childSpan?.endTimestamp).toBeDefined();
+      });
     });
   });
 
@@ -704,7 +797,7 @@ describe('SentrySpanProcessor', () => {
     it('does not finish spans for Sentry request', async () => {
       const tracer = provider.getTracer('default');
 
-      tracer.startActiveSpan('GET /users', () => {
+      tracer.startActiveSpan('GET /users', parent => {
         tracer.startActiveSpan(
           'SELECT * FROM users;',
           {
@@ -720,6 +813,7 @@ describe('SentrySpanProcessor', () => {
             expect(sentrySpan).toBeDefined();
 
             childOtelSpan.end();
+            parent.end();
 
             expect(sentrySpan?.endTimestamp).toBeUndefined();
 
@@ -733,7 +827,7 @@ describe('SentrySpanProcessor', () => {
     it('handles child spans of Sentry requests normally', async () => {
       const tracer = provider.getTracer('default');
 
-      tracer.startActiveSpan('GET /users', () => {
+      tracer.startActiveSpan('GET /users', parent => {
         tracer.startActiveSpan(
           'SELECT * FROM users;',
           {
@@ -757,10 +851,163 @@ describe('SentrySpanProcessor', () => {
 
             childOtelSpan.end();
 
+            parent.end();
+
             expect(sentryGrandchildSpan?.endTimestamp).toBeDefined();
             expect(sentrySpan?.endTimestamp).toBeUndefined();
           },
         );
+      });
+    });
+  });
+
+  describe('strictSpanParentHandling', () => {
+    beforeEach(async () => {
+      // Shut down "parent" provider before we create a new one...
+      await provider.forceFlush();
+      await provider.shutdown();
+
+      spanProcessor = new SentrySpanProcessor({ strictSpanParentHandling: true });
+      provider = new NodeTracerProvider({
+        resource: new Resource({
+          [SemanticResourceAttributes.SERVICE_NAME]: 'test-service',
+        }),
+      });
+      provider.addSpanProcessor(spanProcessor);
+      provider.register();
+    });
+
+    afterEach(async () => {
+      await provider.forceFlush();
+      await provider.shutdown();
+    });
+
+    it('creates a transaction', async () => {
+      const startTimestampMs = 1667381672309;
+      const endTimestampMs = 1667381672875;
+      const startTime = otelNumberToHrtime(startTimestampMs);
+      const endTime = otelNumberToHrtime(endTimestampMs);
+
+      const otelSpan = provider.getTracer('default').startSpan('GET /users', { startTime }) as OtelSpan;
+
+      const sentrySpanTransaction = getSpanForOtelSpan(otelSpan) as Transaction | undefined;
+      expect(sentrySpanTransaction).toBeInstanceOf(Transaction);
+
+      expect(sentrySpanTransaction?.name).toBe('GET /users');
+      expect(sentrySpanTransaction?.startTimestamp).toEqual(startTimestampMs / 1000);
+      expect(sentrySpanTransaction?.traceId).toEqual(otelSpan.spanContext().traceId);
+      expect(sentrySpanTransaction?.parentSpanId).toEqual(otelSpan.parentSpanId);
+      expect(sentrySpanTransaction?.spanId).toEqual(otelSpan.spanContext().spanId);
+
+      otelSpan.end(endTime);
+
+      expect(sentrySpanTransaction?.endTimestamp).toBe(endTimestampMs / 1000);
+    });
+
+    it('creates a child span if there is a running transaction', () => {
+      const startTimestampMs = 1667381672309;
+      const endTimestampMs = 1667381672875;
+      const startTime = otelNumberToHrtime(startTimestampMs);
+      const endTime = otelNumberToHrtime(endTimestampMs);
+
+      const tracer = provider.getTracer('default');
+
+      tracer.startActiveSpan('GET /users', parentOtelSpan => {
+        tracer.startActiveSpan('SELECT * FROM users;', { startTime }, child => {
+          const childOtelSpan = child as OtelSpan;
+
+          const sentrySpanTransaction = getSpanForOtelSpan(parentOtelSpan) as Transaction | undefined;
+          expect(sentrySpanTransaction).toBeInstanceOf(Transaction);
+
+          const sentrySpan = getSpanForOtelSpan(childOtelSpan);
+          expect(sentrySpan).toBeInstanceOf(SentrySpan);
+          expect(sentrySpan?.description).toBe('SELECT * FROM users;');
+          expect(sentrySpan?.startTimestamp).toEqual(startTimestampMs / 1000);
+          expect(sentrySpan?.spanId).toEqual(childOtelSpan.spanContext().spanId);
+          expect(sentrySpan?.parentSpanId).toEqual(sentrySpanTransaction?.spanId);
+
+          expect(hub.getScope().getSpan()).toBeUndefined();
+
+          child.end(endTime);
+
+          expect(sentrySpan?.endTimestamp).toEqual(endTimestampMs / 1000);
+        });
+
+        parentOtelSpan.end();
+      });
+    });
+
+    it('aborts when encountering a missing parent reference', () => {
+      const startTimestampMs = 1667381672309;
+      const endTimestampMs = 1667381672875;
+      const startTime = otelNumberToHrtime(startTimestampMs);
+      const endTime = otelNumberToHrtime(endTimestampMs);
+
+      const tracer = provider.getTracer('default');
+
+      tracer.startActiveSpan('GET /users', parentOtelSpan => {
+        // We simulate the parent somehow not existing in our internal map
+        // this can happen if a race condition leads to spans being processed out of order
+        SENTRY_SPAN_PROCESSOR_MAP.delete(parentOtelSpan.spanContext().spanId);
+
+        tracer.startActiveSpan('SELECT * FROM users;', { startTime }, child => {
+          const childOtelSpan = child as OtelSpan;
+
+          // Parent span does not exist...
+          const sentrySpanTransaction = getSpanForOtelSpan(parentOtelSpan);
+          expect(sentrySpanTransaction).toBeUndefined();
+
+          // Span itself does not exist...
+          const sentrySpan = getSpanForOtelSpan(childOtelSpan);
+          expect(sentrySpan).toBeUndefined();
+
+          child.end(endTime);
+        });
+
+        parentOtelSpan.end();
+      });
+    });
+
+    it('handles child spans finished out of order', async () => {
+      const tracer = provider.getTracer('default');
+
+      tracer.startActiveSpan('GET /users', parent => {
+        tracer.startActiveSpan('SELECT * FROM users;', child => {
+          const grandchild = tracer.startSpan('child 1');
+
+          const parentSpan = getSpanForOtelSpan(parent);
+          const childSpan = getSpanForOtelSpan(child);
+          const grandchildSpan = getSpanForOtelSpan(grandchild);
+
+          parent.end();
+          child.end();
+          grandchild.end();
+
+          expect(parentSpan?.endTimestamp).toBeDefined();
+          expect(childSpan?.endTimestamp).toBeDefined();
+          expect(grandchildSpan?.endTimestamp).toBeDefined();
+        });
+      });
+    });
+
+    it('handles finished parent span before child span starts', async () => {
+      const tracer = provider.getTracer('default');
+
+      tracer.startActiveSpan('GET /users', parent => {
+        const parentSpan = getSpanForOtelSpan(parent);
+
+        parent.end();
+
+        tracer.startActiveSpan('SELECT * FROM users;', child => {
+          const childSpan = getSpanForOtelSpan(child);
+
+          child.end();
+
+          expect(parentSpan).toBeDefined();
+          expect(childSpan).not.toBeDefined();
+          expect(parentSpan).toBeInstanceOf(Transaction);
+          expect(parentSpan?.endTimestamp).toBeDefined();
+        });
       });
     });
   });

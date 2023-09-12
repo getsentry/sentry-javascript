@@ -11,12 +11,28 @@ import { isSentryRequestSpan } from './utils/isSentryRequest';
 import { mapOtelStatus } from './utils/mapOtelStatus';
 import { parseSpanDescription } from './utils/parseOtelSpanDescription';
 
+interface SpanProcessorOptions {
+  /**
+   * By default, if a span is started and we cannot find a Sentry parent span for it,
+   * even if the OTEL span has a parent reference, we will still create the Sentry span as a root span.
+   *
+   * While this is more tolerant of errors, it means that the generated Spans in Sentry may have an incorrect hierarchy.
+   *
+   * When opting into strict span parent handling, we will discard any Spans where we can't find the corresponding parent.
+   * This also requires that we defer clearing of references to the point where the root span is finished -
+   * as sometimes these are not fired in correct order, leading to spans being dropped.
+   *
+   * Note that enabling this is the more correct option
+   * and will probably eventually become the default in a future version.
+   */
+  strictSpanParentHandling: boolean;
+}
+
 export const SENTRY_SPAN_PROCESSOR_MAP: Map<string, SentrySpan> = new Map<string, SentrySpan>();
 
-// make sure to remove references in maps, to ensure this can be GCed
-function clearSpan(otelSpanId: string): void {
-  SENTRY_SPAN_PROCESSOR_MAP.delete(otelSpanId);
-}
+// A map of a sentry span ID to a list of otel span IDs
+// When the sentry span is finished, clear all references of the given otel spans
+export const SCHEDULE_TO_CLEAR: Map<string, string[]> = new Map<string, string[]>();
 
 /** Get a Sentry span for an otel span ID. */
 export function getSentrySpan(otelSpanId: string): SentrySpan | undefined {
@@ -28,7 +44,12 @@ export function getSentrySpan(otelSpanId: string): SentrySpan | undefined {
  * the Sentry SDK.
  */
 export class SentrySpanProcessor implements OtelSpanProcessor {
-  public constructor() {
+  private _strictSpanParentHandling: boolean;
+
+  public constructor({ strictSpanParentHandling }: Partial<SpanProcessorOptions> = {}) {
+    // Default to false
+    this._strictSpanParentHandling = !!strictSpanParentHandling;
+
     addTracingExtensions();
 
     addGlobalEventProcessor(event => {
@@ -64,6 +85,13 @@ export class SentrySpanProcessor implements OtelSpanProcessor {
     // so we cannot use hub.getSpan(), as we cannot rely on this being on the current span
     const sentryParentSpan = otelParentSpanId && SENTRY_SPAN_PROCESSOR_MAP.get(otelParentSpanId);
 
+    if (this._strictSpanParentHandling && otelParentSpanId && !sentryParentSpan) {
+      logger.warn(
+        `SentrySpanProcessor could not find parent span with OTEL-spanId ${otelParentSpanId}. Dropping the span "${otelSpan.name}" with OTEL-spanID ${otelSpanId}...`,
+      );
+      return;
+    }
+
     if (sentryParentSpan) {
       const sentryChildSpan = sentryParentSpan.startChild({
         description: otelSpan.name,
@@ -84,6 +112,10 @@ export class SentrySpanProcessor implements OtelSpanProcessor {
       });
 
       SENTRY_SPAN_PROCESSOR_MAP.set(otelSpanId, transaction);
+
+      if (this._strictSpanParentHandling) {
+        SCHEDULE_TO_CLEAR.set(transaction.spanId, []);
+      }
     }
   }
 
@@ -97,6 +129,7 @@ export class SentrySpanProcessor implements OtelSpanProcessor {
     if (!sentrySpan) {
       __DEBUG_BUILD__ &&
         logger.error(`SentrySpanProcessor could not find span with OTEL-spanId ${otelSpanId} to finish.`);
+      this._clearSpan(otelSpanId);
       return;
     }
 
@@ -105,7 +138,7 @@ export class SentrySpanProcessor implements OtelSpanProcessor {
     // leading to an infinite loop.
     // In this case, we do not want to finish the span, in order to avoid sending it to Sentry
     if (isSentryRequestSpan(otelSpan)) {
-      clearSpan(otelSpanId);
+      this._clearSpan(otelSpanId);
       return;
     }
 
@@ -115,7 +148,7 @@ export class SentrySpanProcessor implements OtelSpanProcessor {
     client && client.emit && client?.emit('otelSpanEnd', otelSpan, mutableOptions);
 
     if (mutableOptions.drop) {
-      clearSpan(otelSpanId);
+      this._clearSpan(otelSpanId);
       return;
     }
 
@@ -168,7 +201,7 @@ export class SentrySpanProcessor implements OtelSpanProcessor {
 
     sentrySpan.finish(convertOtelTimeToSeconds(otelSpan.endTime));
 
-    clearSpan(otelSpanId);
+    this._clearSpan(otelSpanId);
   }
 
   /**
@@ -187,6 +220,17 @@ export class SentrySpanProcessor implements OtelSpanProcessor {
       return client.flush().then();
     }
     return Promise.resolve();
+  }
+
+  /**
+   * Clear all references for a given OTEL span.
+   */
+  private _clearSpan(otelSpanId: string): void {
+    if (this._strictSpanParentHandling) {
+      scheduleToClear(otelSpanId);
+    } else {
+      clearSpan(otelSpanId);
+    }
   }
 }
 
@@ -262,4 +306,51 @@ function updateTransactionWithOtelData(transaction: Transaction, otelSpan: OtelS
 
 function convertOtelTimeToSeconds([seconds, nano]: [number, number]): number {
   return seconds + nano / 1_000_000_000;
+}
+
+function scheduleToClear(otelSpanId: string): void {
+  const span = SENTRY_SPAN_PROCESSOR_MAP.get(otelSpanId);
+
+  if (!span) {
+    // hmm, something is fishy here, but abort...
+    // But to be sure we still try to delete the SCHEDULE_TO_CLEAR, to avoid leaks
+    SCHEDULE_TO_CLEAR.delete(otelSpanId);
+    return;
+  }
+
+  const sentrySpanId = span.spanId;
+
+  // This is the root, clear all that have been scheduled
+  if (spanIsRoot(span) || !span.transaction) {
+    const toClear = SCHEDULE_TO_CLEAR.get(sentrySpanId) || [];
+    toClear.push(otelSpanId);
+
+    toClear.forEach(otelSpanIdToClear => clearSpan(otelSpanIdToClear));
+    SCHEDULE_TO_CLEAR.delete(sentrySpanId);
+    return;
+  }
+
+  // Clear when root span is cleared
+  const root = span.transaction;
+  const rootSentrySpanId = root.spanId;
+
+  const toClear = SCHEDULE_TO_CLEAR.get(rootSentrySpanId);
+
+  // If this does not exist, it means we prob. already cleaned it up before
+  // So we ignore the parent and just clean this span up right now
+  if (!toClear) {
+    clearSpan(otelSpanId);
+    return;
+  }
+
+  toClear.push(otelSpanId);
+}
+
+function spanIsRoot(span: SentrySpan): span is Transaction {
+  return span.transaction === span;
+}
+
+// make sure to remove references in maps, to ensure this can be GCed
+function clearSpan(otelSpanId: string): void {
+  SENTRY_SPAN_PROCESSOR_MAP.delete(otelSpanId);
 }
