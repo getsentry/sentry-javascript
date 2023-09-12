@@ -85,13 +85,6 @@ export class SentrySpanProcessor implements OtelSpanProcessor {
     // so we cannot use hub.getSpan(), as we cannot rely on this being on the current span
     const sentryParentSpan = otelParentSpanId && SENTRY_SPAN_PROCESSOR_MAP.get(otelParentSpanId);
 
-    if (this._strictSpanParentHandling && otelParentSpanId && !sentryParentSpan) {
-      logger.warn(
-        `SentrySpanProcessor could not find parent span with OTEL-spanId ${otelParentSpanId}. Dropping the span "${otelSpan.name}" with OTEL-spanID ${otelSpanId}...`,
-      );
-      return;
-    }
-
     if (sentryParentSpan) {
       const sentryChildSpan = sentryParentSpan.startChild({
         description: otelSpan.name,

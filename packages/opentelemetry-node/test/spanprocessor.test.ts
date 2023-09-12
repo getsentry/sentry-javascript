@@ -937,7 +937,8 @@ describe('SentrySpanProcessor', () => {
       });
     });
 
-    it('aborts when encountering a missing parent reference', () => {
+    // If we cannot find the parent span, it means we are continuing a trace from somehwere else
+    it('handles missing parent reference', () => {
       const startTimestampMs = 1667381672309;
       const endTimestampMs = 1667381672875;
       const startTime = otelNumberToHrtime(startTimestampMs);
@@ -947,19 +948,20 @@ describe('SentrySpanProcessor', () => {
 
       tracer.startActiveSpan('GET /users', parentOtelSpan => {
         // We simulate the parent somehow not existing in our internal map
-        // this can happen if a race condition leads to spans being processed out of order
         SENTRY_SPAN_PROCESSOR_MAP.delete(parentOtelSpan.spanContext().spanId);
 
         tracer.startActiveSpan('SELECT * FROM users;', { startTime }, child => {
           const childOtelSpan = child as OtelSpan;
 
-          // Parent span does not exist...
+          // Parent span cannot be looked up, because we deleted the reference before...
           const sentrySpanTransaction = getSpanForOtelSpan(parentOtelSpan);
           expect(sentrySpanTransaction).toBeUndefined();
 
-          // Span itself does not exist...
+          // Span itself does does exist as a transaction
           const sentrySpan = getSpanForOtelSpan(childOtelSpan);
-          expect(sentrySpan).toBeUndefined();
+          expect(sentrySpan).toBeDefined();
+          expect(sentrySpan).toBeInstanceOf(Transaction);
+          expect(sentrySpan?.parentSpanId).toEqual(parentOtelSpan.spanContext().spanId);
 
           child.end(endTime);
         });
@@ -1004,9 +1006,12 @@ describe('SentrySpanProcessor', () => {
           child.end();
 
           expect(parentSpan).toBeDefined();
-          expect(childSpan).not.toBeDefined();
+          expect(childSpan).toBeDefined();
           expect(parentSpan).toBeInstanceOf(Transaction);
+          expect(childSpan).toBeInstanceOf(Transaction);
+          expect(childSpan?.parentSpanId).toEqual(parentSpan?.spanId);
           expect(parentSpan?.endTimestamp).toBeDefined();
+          expect(childSpan?.endTimestamp).toBeDefined();
         });
       });
     });
