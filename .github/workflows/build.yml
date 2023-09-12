@@ -793,6 +793,7 @@ jobs:
             'standard-frontend-react',
             'standard-frontend-react-tracing-import',
             'sveltekit',
+            'generic-ts3.8',
           ]
         build-command:
           - false
