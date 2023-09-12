@@ -12,19 +12,19 @@ import type { NodeExperimentalClient } from './client';
  * The created span is the active span and will be used as parent by other spans created inside the function
  * and can be accessed via `Sentry.getSpan()`, as long as the function is executed while the scope is active.
  *
- * If you want to create a span that is not set as active, use {@link startSpan}.
+ * If you want to create a span that is not set as active, use {@link startInactiveSpan}.
  *
  * Note that if you have not enabled tracing extensions via `addTracingExtensions`
  * or you didn't set `tracesSampleRate`, this function will not generate spans
  * and the `span` returned from the callback will be undefined.
  */
-export function startActiveSpan<T>(context: TransactionContext, callback: (span: Span | undefined) => T): T {
+export function startSpan<T>(context: TransactionContext, callback: (span: Span | undefined) => T): T {
   const tracer = getTracer();
   if (!tracer) {
     return callback(undefined);
   }
 
-  const name = context.description || context.op || '<unknown>';
+  const name = context.name || context.description || context.op || '<unknown>';
 
   return tracer.startActiveSpan(name, (span: OtelSpan): T => {
     const otelSpanId = span.spanContext().spanId;
@@ -67,33 +67,55 @@ export function startActiveSpan<T>(context: TransactionContext, callback: (span:
 }
 
 /**
+ * @deprecated Use {@link startSpan} instead.
+ */
+export const startActiveSpan = startSpan;
+
+/**
  * Creates a span. This span is not set as active, so will not get automatic instrumentation spans
  * as children or be able to be accessed via `Sentry.getSpan()`.
  *
- * If you want to create a span that is set as active, use {@link startActiveSpan}.
+ * If you want to create a span that is set as active, use {@link startSpan}.
  *
  * Note that if you have not enabled tracing extensions via `addTracingExtensions`
  * or you didn't set `tracesSampleRate` or `tracesSampler`, this function will not generate spans
  * and the `span` returned from the callback will be undefined.
  */
-export function startSpan(context: TransactionContext): Span | undefined {
+export function startInactiveSpan(context: TransactionContext): Span | undefined {
   const tracer = getTracer();
   if (!tracer) {
     return undefined;
   }
 
-  const name = context.description || context.op || '<unknown>';
+  const name = context.name || context.description || context.op || '<unknown>';
   const otelSpan = tracer.startSpan(name);
 
   const otelSpanId = otelSpan.spanContext().spanId;
 
   const sentrySpan = _INTERNAL_getSentrySpan(otelSpanId);
 
-  if (sentrySpan && isTransaction(sentrySpan) && context.metadata) {
+  if (!sentrySpan) {
+    return undefined;
+  }
+
+  if (isTransaction(sentrySpan) && context.metadata) {
     sentrySpan.setMetadata(context.metadata);
   }
 
-  return sentrySpan;
+  // Monkey-patch `finish()` to finish the OTEL span instead
+  // This will also in turn finish the Sentry Span, so no need to call this ourselves
+  const wrappedSentrySpan = new Proxy(sentrySpan, {
+    get(target, prop, receiver) {
+      if (prop === 'finish') {
+        return () => {
+          otelSpan.end();
+        };
+      }
+      return Reflect.get(target, prop, receiver);
+    },
+  });
+
+  return wrappedSentrySpan;
 }
 
 /**

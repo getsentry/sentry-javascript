@@ -416,6 +416,7 @@ export class HttpClient implements Integration {
 
     addExceptionMechanism(event, {
       type: 'http.client',
+      handled: false,
     });
 
     return event;

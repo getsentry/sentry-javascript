@@ -38,7 +38,7 @@ sentryTest(
             value: 'HTTP Client Error with status code: 500',
             mechanism: {
               type: 'http.client',
-              handled: true,
+              handled: false,
             },
           },
         ],

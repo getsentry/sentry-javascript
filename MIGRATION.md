@@ -1,5 +1,13 @@
 # Deprecations in 7.x
 
+You can use the **Experimental** [@sentry/migr8](https://www.npmjs.com/package/@sentry/migr8) to automatically update your SDK usage and fix most deprecations. This requires Node 18+.
+
+```bash
+npx @sentry/migr8@latest
+```
+
+This will let you select which updates to run, and automatically update your code. Make sure to still review all code changes!
+
 ## Deprecate `timestampWithMs` export - #7878
 
 The `timestampWithMs` util is deprecated in favor of using `timestampInSeconds`.

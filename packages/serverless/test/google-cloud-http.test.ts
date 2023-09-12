@@ -7,7 +7,7 @@ import * as path from 'path';
 import { GoogleCloudHttp } from '../src/google-cloud-http';
 
 /**
- * Why @ts-ignore some Sentry.X calls
+ * Why @ts-expect-error some Sentry.X calls
  *
  * A hack-ish way to contain everything related to mocks in the same __mocks__ file.
  * Thanks to this, we don't have to do more magic than necessary. Just add and export desired method and assert on it.
@@ -23,7 +23,7 @@ describe('GoogleCloudHttp tracing', () => {
       .reply(200, '{"access_token":"a.b.c","expires_in":3599,"token_type":"Bearer"}');
   });
   afterEach(() => {
-    // @ts-ignore see "Why @ts-ignore" note
+    // @ts-expect-error see "Why @ts-expect-error" note
     SentryNode.resetMocks();
   });
   afterAll(() => {
@@ -57,13 +57,13 @@ describe('GoogleCloudHttp tracing', () => {
         );
       const resp = await bigquery.query('SELECT true AS foo');
       expect(resp).toEqual([[{ foo: true }]]);
-      // @ts-ignore see "Why @ts-ignore" note
+      // @ts-expect-error see "Why @ts-expect-error" note
       expect(SentryNode.fakeTransaction.startChild).toBeCalledWith({
         op: 'http.client.bigquery',
         origin: 'auto.http.serverless',
         description: 'POST /jobs',
       });
-      // @ts-ignore see "Why @ts-ignore" note
+      // @ts-expect-error see "Why @ts-expect-error" note
       expect(SentryNode.fakeTransaction.startChild).toBeCalledWith({
         op: 'http.client.bigquery',
         origin: 'auto.http.serverless',

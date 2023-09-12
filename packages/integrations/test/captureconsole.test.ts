@@ -116,7 +116,7 @@ describe('CaptureConsole setup', () => {
 
   it('setup should fail gracefully when console is not available', () => {
     const consoleRef = GLOBAL_OBJ.console;
-    // @ts-ignore remove console
+    // @ts-expect-error remove console
     delete GLOBAL_OBJ.console;
 
     const captureConsoleIntegration = new CaptureConsole();
@@ -396,5 +396,37 @@ describe('CaptureConsole setup', () => {
     expect(() => {
       GLOBAL_OBJ.console.log('some message');
     }).not.toThrow();
+  });
+
+  it("marks captured exception's mechanism as unhandled", () => {
+    // const addExceptionMechanismSpy = jest.spyOn(utils, 'addExceptionMechanism');
+
+    const captureConsoleIntegration = new CaptureConsole({ levels: ['error'] });
+    const mockHub = getMockHub(captureConsoleIntegration);
+    captureConsoleIntegration.setupOnce(
+      () => undefined,
+      () => mockHub,
+    );
+
+    const mockScope = mockHub.getScope();
+
+    const someError = new Error('some error');
+    GLOBAL_OBJ.console.error(someError);
+
+    const addedEventProcessor = (mockScope.addEventProcessor as jest.Mock).mock.calls[0][0];
+    const someEvent: Event = {
+      exception: {
+        values: [{}],
+      },
+    };
+    addedEventProcessor(someEvent);
+
+    expect(mockHub.captureException).toHaveBeenCalledTimes(1);
+    expect(mockScope.addEventProcessor).toHaveBeenCalledTimes(1);
+
+    expect(someEvent.exception?.values?.[0].mechanism).toEqual({
+      handled: false,
+      type: 'console',
+    });
   });
 });

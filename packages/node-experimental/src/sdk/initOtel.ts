@@ -1,7 +1,8 @@
-import { diag, DiagConsoleLogger, DiagLogLevel } from '@opentelemetry/api';
+import { diag, DiagLogLevel } from '@opentelemetry/api';
 import { AlwaysOnSampler, NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
 import { getCurrentHub } from '@sentry/core';
 import { SentryPropagator, SentrySpanProcessor } from '@sentry/opentelemetry-node';
+import { logger } from '@sentry/utils';
 
 import type { NodeExperimentalClient } from './client';
 import { SentryContextManager } from './otelContextManager';
@@ -14,7 +15,14 @@ export function initOtel(): () => void {
   const client = getCurrentHub().getClient<NodeExperimentalClient>();
 
   if (client?.getOptions().debug) {
-    diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.DEBUG);
+    const otelLogger = new Proxy(logger as typeof logger & { verbose: (typeof logger)['debug'] }, {
+      get(target, prop, receiver) {
+        const actualProp = prop === 'verbose' ? 'debug' : prop;
+        return Reflect.get(target, actualProp, receiver);
+      },
+    });
+
+    diag.setLogger(otelLogger, DiagLogLevel.DEBUG);
   }
 
   // Create and configure NodeTracerProvider

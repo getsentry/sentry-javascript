@@ -41,7 +41,7 @@ describe.each(['builtin', 'express'])('Remix API Loaders with adapter = %s', ada
               data: {
                 function: useV2 ? 'remix.server' : 'loader',
               },
-              handled: true,
+              handled: false,
               type: 'instrument',
             },
           },
@@ -140,7 +140,7 @@ describe.each(['builtin', 'express'])('Remix API Loaders with adapter = %s', ada
               data: {
                 function: useV2 ? 'remix.server' : 'loader',
               },
-              handled: true,
+              handled: false,
               type: 'instrument',
             },
           },

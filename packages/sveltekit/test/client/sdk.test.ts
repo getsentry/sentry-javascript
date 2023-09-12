@@ -41,12 +41,12 @@ describe('Sentry client SDK', () => {
     it('sets the runtime tag on the scope', () => {
       const currentScope = getCurrentHub().getScope();
 
-      // @ts-ignore need access to protected _tags attribute
+      // @ts-expect-error need access to protected _tags attribute
       expect(currentScope._tags).toEqual({});
 
       init({ dsn: 'https://public@dsn.ingest.sentry.io/1337' });
 
-      // @ts-ignore need access to protected _tags attribute
+      // @ts-expect-error need access to protected _tags attribute
       expect(currentScope._tags).toEqual({ runtime: 'browser' });
     });
 
@@ -88,7 +88,7 @@ describe('Sentry client SDK', () => {
         // This is the closest we can get to unit-testing the `__SENTRY_TRACING__` tree-shaking guard
         // IRL, the code to add the integration would most likely be removed by the bundler.
 
-        // @ts-ignore this is fine in the test
+        // @ts-expect-error this is fine in the test
         globalThis.__SENTRY_TRACING__ = false;
 
         init({
@@ -102,7 +102,7 @@ describe('Sentry client SDK', () => {
         expect(integrationsToInit).not.toContainEqual(expect.objectContaining({ name: 'BrowserTracing' }));
         expect(browserTracing).toBeUndefined();
 
-        // @ts-ignore this is fine in the test
+        // @ts-expect-error this is fine in the test
         delete globalThis.__SENTRY_TRACING__;
       });
 

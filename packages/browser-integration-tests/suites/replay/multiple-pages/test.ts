@@ -146,13 +146,13 @@ sentryTest(
     expect(replayEvent4).toEqual(
       getExpectedReplayEvent({
         segment_id: 4,
-        // @ts-ignore this is fine
+        // @ts-expect-error this is fine
         urls: [expect.stringContaining('page-0.html')],
         request: {
-          // @ts-ignore this is fine
+          // @ts-expect-error this is fine
           url: expect.stringContaining('page-0.html'),
           headers: {
-            // @ts-ignore this is fine
+            // @ts-expect-error this is fine
             'User-Agent': expect.stringContaining(''),
           },
         },
@@ -172,10 +172,10 @@ sentryTest(
         segment_id: 5,
         urls: [],
         request: {
-          // @ts-ignore this is fine
+          // @ts-expect-error this is fine
           url: expect.stringContaining('page-0.html'),
           headers: {
-            // @ts-ignore this is fine
+            // @ts-expect-error this is fine
             'User-Agent': expect.stringContaining(''),
           },
         },
@@ -219,10 +219,10 @@ sentryTest(
         urls: ['/spa'],
 
         request: {
-          // @ts-ignore this is fine
+          // @ts-expect-error this is fine
           url: expect.stringContaining('page-0.html'),
           headers: {
-            // @ts-ignore this is fine
+            // @ts-expect-error this is fine
             'User-Agent': expect.stringContaining(''),
           },
         },
@@ -243,10 +243,10 @@ sentryTest(
         urls: [],
 
         request: {
-          // @ts-ignore this is fine
+          // @ts-expect-error this is fine
           url: expect.stringContaining('page-0.html'),
           headers: {
-            // @ts-ignore this is fine
+            // @ts-expect-error this is fine
             'User-Agent': expect.stringContaining(''),
           },
         },

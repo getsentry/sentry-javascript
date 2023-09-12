@@ -19,7 +19,7 @@ describe('Integration | sampling', () => {
       },
     });
 
-    // @ts-ignore private API
+    // @ts-expect-error private API
     const spyAddListeners = jest.spyOn(replay, '_addListeners');
     jest.runAllTimers();
 
@@ -54,10 +54,10 @@ describe('Integration | sampling', () => {
       autoStart: false, // Needs to be false in order to spy on replay
     });
 
-    // @ts-ignore private API
+    // @ts-expect-error private API
     const spyAddListeners = jest.spyOn(replay, '_addListeners');
 
-    // @ts-ignore protected
+    // @ts-expect-error protected
     integration._initialize();
 
     jest.runAllTimers();

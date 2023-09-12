@@ -1,6 +1,7 @@
 // NOTE: I have no idea how to fix this right now, and don't want to waste more time, as it builds just fine — Kamil
 // eslint-disable-next-line import/no-unresolved
 import * as SentryNode from '@sentry/node';
+import type { Event } from '@sentry/types';
 // eslint-disable-next-line import/no-unresolved
 import type { Callback, Handler } from 'aws-lambda';
 
@@ -9,7 +10,7 @@ import * as Sentry from '../src';
 const { wrapHandler } = Sentry.AWSLambda;
 
 /**
- * Why @ts-ignore some Sentry.X calls
+ * Why @ts-expect-error some Sentry.X calls
  *
  * A hack-ish way to contain everything related to mocks in the same __mocks__ file.
  * Thanks to this, we don't have to do more magic than necessary. Just add and export desired method and assert on it.
@@ -41,15 +42,15 @@ const fakeCallback: Callback = (err, result) => {
 };
 
 function expectScopeSettings(fakeTransactionContext: any) {
-  // @ts-ignore see "Why @ts-ignore" note
+  // @ts-expect-error see "Why @ts-expect-error" note
   const fakeTransaction = { ...SentryNode.fakeTransaction, ...fakeTransactionContext };
-  // @ts-ignore see "Why @ts-ignore" note
+  // @ts-expect-error see "Why @ts-expect-error" note
   expect(SentryNode.fakeScope.setSpan).toBeCalledWith(fakeTransaction);
-  // @ts-ignore see "Why @ts-ignore" note
+  // @ts-expect-error see "Why @ts-expect-error" note
   expect(SentryNode.fakeScope.setTag).toBeCalledWith('server_name', expect.anything());
-  // @ts-ignore see "Why @ts-ignore" note
+  // @ts-expect-error see "Why @ts-expect-error" note
   expect(SentryNode.fakeScope.setTag).toBeCalledWith('url', 'awslambda:///functionName');
-  // @ts-ignore see "Why @ts-ignore" note
+  // @ts-expect-error see "Why @ts-expect-error" note
   expect(SentryNode.fakeScope.setContext).toBeCalledWith(
     'aws.lambda',
     expect.objectContaining({
@@ -60,7 +61,7 @@ function expectScopeSettings(fakeTransactionContext: any) {
       remaining_time_in_millis: 100,
     }),
   );
-  // @ts-ignore see "Why @ts-ignore" note
+  // @ts-expect-error see "Why @ts-expect-error" note
   expect(SentryNode.fakeScope.setContext).toBeCalledWith(
     'aws.cloudwatch.logs',
     expect.objectContaining({
@@ -78,7 +79,7 @@ describe('AWSLambda', () => {
   });
 
   afterEach(() => {
-    // @ts-ignore see "Why @ts-ignore" note
+    // @ts-expect-error see "Why @ts-expect-error" note
     SentryNode.resetMocks();
   });
 
@@ -105,7 +106,7 @@ describe('AWSLambda', () => {
       await wrappedHandler(fakeEvent, fakeContext, fakeCallback);
 
       expect(Sentry.captureMessage).toBeCalled();
-      // @ts-ignore see "Why @ts-ignore" note
+      // @ts-expect-error see "Why @ts-expect-error" note
       expect(SentryNode.fakeScope.setTag).toBeCalledWith('timeout', '1s');
     });
 
@@ -153,7 +154,7 @@ describe('AWSLambda', () => {
       );
 
       expect(Sentry.captureMessage).toBeCalled();
-      // @ts-ignore see "Why @ts-ignore" note
+      // @ts-expect-error see "Why @ts-expect-error" note
       expect(SentryNode.fakeScope.setTag).toBeCalledWith('timeout', '1m40s');
     });
 
@@ -175,8 +176,8 @@ describe('AWSLambda', () => {
         ]);
       const wrappedHandler = wrapHandler(handler, { flushTimeout: 1337, captureAllSettledReasons: true });
       await wrappedHandler(fakeEvent, fakeContext, fakeCallback);
-      expect(SentryNode.captureException).toHaveBeenNthCalledWith(1, error);
-      expect(SentryNode.captureException).toHaveBeenNthCalledWith(2, error2);
+      expect(SentryNode.captureException).toHaveBeenNthCalledWith(1, error, expect.any(Function));
+      expect(SentryNode.captureException).toHaveBeenNthCalledWith(2, error2, expect.any(Function));
       expect(SentryNode.captureException).toBeCalledTimes(2);
     });
   });
@@ -199,10 +200,10 @@ describe('AWSLambda', () => {
       };
 
       expect(rv).toStrictEqual(42);
-      // @ts-ignore see "Why @ts-ignore" note
+      // @ts-expect-error see "Why @ts-expect-error" note
       expect(SentryNode.fakeHub.startTransaction).toBeCalledWith(fakeTransactionContext);
       expectScopeSettings(fakeTransactionContext);
-      // @ts-ignore see "Why @ts-ignore" note
+      // @ts-expect-error see "Why @ts-expect-error" note
       expect(SentryNode.fakeTransaction.finish).toBeCalled();
       expect(SentryNode.flush).toBeCalledWith(2000);
     });
@@ -226,11 +227,11 @@ describe('AWSLambda', () => {
           metadata: { source: 'component' },
         };
 
-        // @ts-ignore see "Why @ts-ignore" note
+        // @ts-expect-error see "Why @ts-expect-error" note
         expect(SentryNode.fakeHub.startTransaction).toBeCalledWith(fakeTransactionContext);
         expectScopeSettings(fakeTransactionContext);
-        expect(SentryNode.captureException).toBeCalledWith(error);
-        // @ts-ignore see "Why @ts-ignore" note
+        expect(SentryNode.captureException).toBeCalledWith(error, expect.any(Function));
+        // @ts-expect-error see "Why @ts-expect-error" note
         expect(SentryNode.fakeTransaction.finish).toBeCalled();
         expect(SentryNode.flush).toBeCalledWith(2000);
       }
@@ -257,7 +258,7 @@ describe('AWSLambda', () => {
       };
 
       const handler: Handler = (_event, _context, callback) => {
-        // @ts-ignore see "Why @ts-ignore" note
+        // @ts-expect-error see "Why @ts-expect-error" note
         expect(SentryNode.fakeHub.startTransaction).toBeCalledWith(
           expect.objectContaining({
             parentSpanId: '1121201211212012',
@@ -305,11 +306,11 @@ describe('AWSLambda', () => {
           metadata: { dynamicSamplingContext: {}, source: 'component' },
         };
 
-        // @ts-ignore see "Why @ts-ignore" note
+        // @ts-expect-error see "Why @ts-expect-error" note
         expect(SentryNode.fakeHub.startTransaction).toBeCalledWith(fakeTransactionContext);
         expectScopeSettings(fakeTransactionContext);
-        expect(SentryNode.captureException).toBeCalledWith(e);
-        // @ts-ignore see "Why @ts-ignore" note
+        expect(SentryNode.captureException).toBeCalledWith(e, expect.any(Function));
+        // @ts-expect-error see "Why @ts-expect-error" note
         expect(SentryNode.fakeTransaction.finish).toBeCalled();
         expect(SentryNode.flush).toBeCalled();
       }
@@ -334,10 +335,10 @@ describe('AWSLambda', () => {
       };
 
       expect(rv).toStrictEqual(42);
-      // @ts-ignore see "Why @ts-ignore" note
+      // @ts-expect-error see "Why @ts-expect-error" note
       expect(SentryNode.fakeHub.startTransaction).toBeCalledWith(fakeTransactionContext);
       expectScopeSettings(fakeTransactionContext);
-      // @ts-ignore see "Why @ts-ignore" note
+      // @ts-expect-error see "Why @ts-expect-error" note
       expect(SentryNode.fakeTransaction.finish).toBeCalled();
       expect(SentryNode.flush).toBeCalled();
     });
@@ -372,11 +373,11 @@ describe('AWSLambda', () => {
           metadata: { source: 'component' },
         };
 
-        // @ts-ignore see "Why @ts-ignore" note
+        // @ts-expect-error see "Why @ts-expect-error" note
         expect(SentryNode.fakeHub.startTransaction).toBeCalledWith(fakeTransactionContext);
         expectScopeSettings(fakeTransactionContext);
-        expect(SentryNode.captureException).toBeCalledWith(error);
-        // @ts-ignore see "Why @ts-ignore" note
+        expect(SentryNode.captureException).toBeCalledWith(error, expect.any(Function));
+        // @ts-expect-error see "Why @ts-expect-error" note
         expect(SentryNode.fakeTransaction.finish).toBeCalled();
         expect(SentryNode.flush).toBeCalled();
       }
@@ -416,10 +417,10 @@ describe('AWSLambda', () => {
       };
 
       expect(rv).toStrictEqual(42);
-      // @ts-ignore see "Why @ts-ignore" note
+      // @ts-expect-error see "Why @ts-expect-error" note
       expect(SentryNode.fakeHub.startTransaction).toBeCalledWith(fakeTransactionContext);
       expectScopeSettings(fakeTransactionContext);
-      // @ts-ignore see "Why @ts-ignore" note
+      // @ts-expect-error see "Why @ts-expect-error" note
       expect(SentryNode.fakeTransaction.finish).toBeCalled();
       expect(SentryNode.flush).toBeCalled();
     });
@@ -454,15 +455,43 @@ describe('AWSLambda', () => {
           metadata: { source: 'component' },
         };
 
-        // @ts-ignore see "Why @ts-ignore" note
+        // @ts-expect-error see "Why @ts-expect-error" note
         expect(SentryNode.fakeHub.startTransaction).toBeCalledWith(fakeTransactionContext);
         expectScopeSettings(fakeTransactionContext);
-        expect(SentryNode.captureException).toBeCalledWith(error);
-        // @ts-ignore see "Why @ts-ignore" note
+        expect(SentryNode.captureException).toBeCalledWith(error, expect.any(Function));
+        // @ts-expect-error see "Why @ts-expect-error" note
         expect(SentryNode.fakeTransaction.finish).toBeCalled();
         expect(SentryNode.flush).toBeCalled();
       }
     });
+  });
+
+  test('marks the captured error as unhandled', async () => {
+    expect.assertions(3);
+
+    const error = new Error('wat');
+    const handler: Handler = async (_event, _context, _callback) => {
+      throw error;
+    };
+    const wrappedHandler = wrapHandler(handler);
+
+    try {
+      await wrappedHandler(fakeEvent, fakeContext, fakeCallback);
+    } catch (e) {
+      expect(SentryNode.captureException).toBeCalledWith(error, expect.any(Function));
+      // @ts-expect-error see "Why @ts-expect-error" note
+      const scopeFunction = SentryNode.captureException.mock.calls[0][1];
+      const event: Event = { exception: { values: [{}] } };
+      let evtProcessor: ((e: Event) => Event) | undefined = undefined;
+      scopeFunction({ addEventProcessor: jest.fn().mockImplementation(proc => (evtProcessor = proc)) });
+
+      expect(evtProcessor).toBeInstanceOf(Function);
+      // @ts-expect-error just mocking around...
+      expect(evtProcessor(event).exception.values[0].mechanism).toEqual({
+        handled: false,
+        type: 'generic',
+      });
+    }
   });
 
   describe('init()', () => {
@@ -495,7 +524,7 @@ describe('AWSLambda', () => {
         },
       };
 
-      // @ts-ignore see "Why @ts-ignore" note
+      // @ts-expect-error see "Why @ts-expect-error" note
       Sentry.addGlobalEventProcessor.mockImplementationOnce(cb => cb(eventWithSomeData));
       Sentry.AWSLambda.init({});
 

@@ -291,7 +291,7 @@ describe('NodeClient', () => {
       });
       client = new NodeClient(options);
 
-      // @ts-ignore accessing private method
+      // @ts-expect-error accessing private method
       const sendEnvelopeSpy = jest.spyOn(client, '_sendEnvelope');
 
       const id = client.captureCheckIn(
@@ -358,7 +358,7 @@ describe('NodeClient', () => {
       const options = getDefaultNodeClientOptions({ dsn: PUBLIC_DSN, serverName: 'bar', enabled: false });
       client = new NodeClient(options);
 
-      // @ts-ignore accessing private method
+      // @ts-expect-error accessing private method
       const sendEnvelopeSpy = jest.spyOn(client, '_sendEnvelope');
 
       client.captureCheckIn({ monitorSlug: 'foo', status: 'in_progress' });

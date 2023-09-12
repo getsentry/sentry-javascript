@@ -532,7 +532,7 @@ describe('SentryErrorHandler', () => {
           }),
         };
 
-        // @ts-ignore this is a minmal hub, we're missing a few props but that's ok
+        // @ts-expect-error this is a minmal hub, we're missing a few props but that's ok
         jest.spyOn(SentryBrowser, 'getCurrentHub').mockImplementationOnce(() => {
           return { getClient: () => client };
         });

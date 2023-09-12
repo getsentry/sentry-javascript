@@ -51,6 +51,9 @@ export {
   Integrations,
   setMeasurement,
   getActiveSpan,
-  startActiveSpan,
   startSpan,
+  // eslint-disable-next-line deprecation/deprecation
+  startActiveSpan,
+  startInactiveSpan,
+  startSpanManual,
 } from '@sentry/node';
