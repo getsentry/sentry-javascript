@@ -17,7 +17,8 @@ import {
 import { NodeClient } from '@sentry/node';
 import { resolvedSyncPromise } from '@sentry/utils';
 
-import { SCHEDULE_TO_CLEAR, SENTRY_SPAN_PROCESSOR_MAP, SentrySpanProcessor } from '../src/spanprocessor';
+import { SentrySpanProcessor } from '../src/spanprocessor';
+import { clearSpan, getSentrySpan, SPAN_MAP } from '../src/utils/spanMap';
 
 const SENTRY_DSN = 'https://0@0.ingest.sentry.io/0';
 
@@ -42,8 +43,7 @@ describe('SentrySpanProcessor', () => {
 
   beforeEach(() => {
     // To avoid test leakage, clear before each test
-    SENTRY_SPAN_PROCESSOR_MAP.clear();
-    SCHEDULE_TO_CLEAR.clear();
+    SPAN_MAP.clear();
 
     client = new NodeClient(DEFAULT_NODE_CLIENT_OPTIONS);
     hub = new Hub(client);
@@ -62,15 +62,14 @@ describe('SentrySpanProcessor', () => {
   afterEach(async () => {
     // Ensure test map is empty!
     // Otherwise, we seem to have a leak somewhere...
-    expect(SENTRY_SPAN_PROCESSOR_MAP.size).toBe(0);
-    expect(SCHEDULE_TO_CLEAR.size).toBe(0);
+    expect(SPAN_MAP.size).toBe(0);
 
     await provider.forceFlush();
     await provider.shutdown();
   });
 
   function getSpanForOtelSpan(otelSpan: OtelSpan | OpenTelemetry.Span) {
-    return SENTRY_SPAN_PROCESSOR_MAP.get(otelSpan.spanContext().spanId);
+    return getSentrySpan(otelSpan.spanContext().spanId);
   }
 
   function getContext(transaction: Transaction) {
@@ -145,7 +144,7 @@ describe('SentrySpanProcessor', () => {
     tracer.startActiveSpan('GET /users', parentOtelSpan => {
       // We simulate the parent somehow not existing in our internal map
       // this can happen if a race condition leads to spans being processed out of order
-      SENTRY_SPAN_PROCESSOR_MAP.delete(parentOtelSpan.spanContext().spanId);
+      clearSpan(parentOtelSpan.spanContext().spanId);
 
       tracer.startActiveSpan('SELECT * FROM users;', { startTime }, child => {
         const childOtelSpan = child as OtelSpan;
@@ -161,6 +160,7 @@ describe('SentrySpanProcessor', () => {
         expect(sentrySpan?.name).toBe('SELECT * FROM users;');
         expect(sentrySpan?.startTimestamp).toEqual(startTimestampMs / 1000);
         expect(sentrySpan?.spanId).toEqual(childOtelSpan.spanContext().spanId);
+        expect(sentrySpan?.parentSpanId).toEqual(parentOtelSpan.spanContext().spanId);
 
         expect(hub.getScope().getSpan()).toBeUndefined();
 
@@ -222,6 +222,10 @@ describe('SentrySpanProcessor', () => {
         child.end();
         grandchild.end();
 
+        expect(parentSpan).toBeDefined();
+        expect(childSpan).toBeDefined();
+        expect(grandchildSpan).toBeDefined();
+
         expect(parentSpan?.endTimestamp).toBeDefined();
         expect(childSpan?.endTimestamp).toBeDefined();
         expect(grandchildSpan?.endTimestamp).toBeDefined();
@@ -248,6 +252,8 @@ describe('SentrySpanProcessor', () => {
         expect(childSpan).toBeInstanceOf(Transaction);
         expect(parentSpan?.endTimestamp).toBeDefined();
         expect(childSpan?.endTimestamp).toBeDefined();
+        expect(parentSpan?.parentSpanId).toBeUndefined();
+        expect(childSpan?.parentSpanId).toEqual(parentSpan?.spanId);
       });
     });
   });
@@ -837,182 +843,22 @@ describe('SentrySpanProcessor', () => {
             },
           },
           child => {
-            const childOtelSpan = child as OtelSpan;
+            const grandchild = tracer.startSpan('child 1');
 
-            const grandchildSpan = tracer.startSpan('child 1');
-
-            const sentrySpan = getSpanForOtelSpan(childOtelSpan);
+            const sentrySpan = getSpanForOtelSpan(child);
             expect(sentrySpan).toBeDefined();
 
-            const sentryGrandchildSpan = getSpanForOtelSpan(grandchildSpan);
+            const sentryGrandchildSpan = getSpanForOtelSpan(grandchild);
             expect(sentryGrandchildSpan).toBeDefined();
 
-            grandchildSpan.end();
-
-            childOtelSpan.end();
-
+            grandchild.end();
+            child.end();
             parent.end();
 
             expect(sentryGrandchildSpan?.endTimestamp).toBeDefined();
             expect(sentrySpan?.endTimestamp).toBeUndefined();
           },
         );
-      });
-    });
-  });
-
-  describe('strictSpanParentHandling', () => {
-    beforeEach(async () => {
-      // Shut down "parent" provider before we create a new one...
-      await provider.forceFlush();
-      await provider.shutdown();
-
-      spanProcessor = new SentrySpanProcessor({ strictSpanParentHandling: true });
-      provider = new NodeTracerProvider({
-        resource: new Resource({
-          [SemanticResourceAttributes.SERVICE_NAME]: 'test-service',
-        }),
-      });
-      provider.addSpanProcessor(spanProcessor);
-      provider.register();
-    });
-
-    afterEach(async () => {
-      await provider.forceFlush();
-      await provider.shutdown();
-    });
-
-    it('creates a transaction', async () => {
-      const startTimestampMs = 1667381672309;
-      const endTimestampMs = 1667381672875;
-      const startTime = otelNumberToHrtime(startTimestampMs);
-      const endTime = otelNumberToHrtime(endTimestampMs);
-
-      const otelSpan = provider.getTracer('default').startSpan('GET /users', { startTime }) as OtelSpan;
-
-      const sentrySpanTransaction = getSpanForOtelSpan(otelSpan) as Transaction | undefined;
-      expect(sentrySpanTransaction).toBeInstanceOf(Transaction);
-
-      expect(sentrySpanTransaction?.name).toBe('GET /users');
-      expect(sentrySpanTransaction?.startTimestamp).toEqual(startTimestampMs / 1000);
-      expect(sentrySpanTransaction?.traceId).toEqual(otelSpan.spanContext().traceId);
-      expect(sentrySpanTransaction?.parentSpanId).toEqual(otelSpan.parentSpanId);
-      expect(sentrySpanTransaction?.spanId).toEqual(otelSpan.spanContext().spanId);
-
-      otelSpan.end(endTime);
-
-      expect(sentrySpanTransaction?.endTimestamp).toBe(endTimestampMs / 1000);
-    });
-
-    it('creates a child span if there is a running transaction', () => {
-      const startTimestampMs = 1667381672309;
-      const endTimestampMs = 1667381672875;
-      const startTime = otelNumberToHrtime(startTimestampMs);
-      const endTime = otelNumberToHrtime(endTimestampMs);
-
-      const tracer = provider.getTracer('default');
-
-      tracer.startActiveSpan('GET /users', parentOtelSpan => {
-        tracer.startActiveSpan('SELECT * FROM users;', { startTime }, child => {
-          const childOtelSpan = child as OtelSpan;
-
-          const sentrySpanTransaction = getSpanForOtelSpan(parentOtelSpan) as Transaction | undefined;
-          expect(sentrySpanTransaction).toBeInstanceOf(Transaction);
-
-          const sentrySpan = getSpanForOtelSpan(childOtelSpan);
-          expect(sentrySpan).toBeInstanceOf(SentrySpan);
-          expect(sentrySpan?.description).toBe('SELECT * FROM users;');
-          expect(sentrySpan?.startTimestamp).toEqual(startTimestampMs / 1000);
-          expect(sentrySpan?.spanId).toEqual(childOtelSpan.spanContext().spanId);
-          expect(sentrySpan?.parentSpanId).toEqual(sentrySpanTransaction?.spanId);
-
-          expect(hub.getScope().getSpan()).toBeUndefined();
-
-          child.end(endTime);
-
-          expect(sentrySpan?.endTimestamp).toEqual(endTimestampMs / 1000);
-        });
-
-        parentOtelSpan.end();
-      });
-    });
-
-    // If we cannot find the parent span, it means we are continuing a trace from somehwere else
-    it('handles missing parent reference', () => {
-      const startTimestampMs = 1667381672309;
-      const endTimestampMs = 1667381672875;
-      const startTime = otelNumberToHrtime(startTimestampMs);
-      const endTime = otelNumberToHrtime(endTimestampMs);
-
-      const tracer = provider.getTracer('default');
-
-      tracer.startActiveSpan('GET /users', parentOtelSpan => {
-        // We simulate the parent somehow not existing in our internal map
-        SENTRY_SPAN_PROCESSOR_MAP.delete(parentOtelSpan.spanContext().spanId);
-
-        tracer.startActiveSpan('SELECT * FROM users;', { startTime }, child => {
-          const childOtelSpan = child as OtelSpan;
-
-          // Parent span cannot be looked up, because we deleted the reference before...
-          const sentrySpanTransaction = getSpanForOtelSpan(parentOtelSpan);
-          expect(sentrySpanTransaction).toBeUndefined();
-
-          // Span itself does does exist as a transaction
-          const sentrySpan = getSpanForOtelSpan(childOtelSpan);
-          expect(sentrySpan).toBeDefined();
-          expect(sentrySpan).toBeInstanceOf(Transaction);
-          expect(sentrySpan?.parentSpanId).toEqual(parentOtelSpan.spanContext().spanId);
-
-          child.end(endTime);
-        });
-
-        parentOtelSpan.end();
-      });
-    });
-
-    it('handles child spans finished out of order', async () => {
-      const tracer = provider.getTracer('default');
-
-      tracer.startActiveSpan('GET /users', parent => {
-        tracer.startActiveSpan('SELECT * FROM users;', child => {
-          const grandchild = tracer.startSpan('child 1');
-
-          const parentSpan = getSpanForOtelSpan(parent);
-          const childSpan = getSpanForOtelSpan(child);
-          const grandchildSpan = getSpanForOtelSpan(grandchild);
-
-          parent.end();
-          child.end();
-          grandchild.end();
-
-          expect(parentSpan?.endTimestamp).toBeDefined();
-          expect(childSpan?.endTimestamp).toBeDefined();
-          expect(grandchildSpan?.endTimestamp).toBeDefined();
-        });
-      });
-    });
-
-    it('handles finished parent span before child span starts', async () => {
-      const tracer = provider.getTracer('default');
-
-      tracer.startActiveSpan('GET /users', parent => {
-        const parentSpan = getSpanForOtelSpan(parent);
-
-        parent.end();
-
-        tracer.startActiveSpan('SELECT * FROM users;', child => {
-          const childSpan = getSpanForOtelSpan(child);
-
-          child.end();
-
-          expect(parentSpan).toBeDefined();
-          expect(childSpan).toBeDefined();
-          expect(parentSpan).toBeInstanceOf(Transaction);
-          expect(childSpan).toBeInstanceOf(Transaction);
-          expect(childSpan?.parentSpanId).toEqual(parentSpan?.spanId);
-          expect(parentSpan?.endTimestamp).toBeDefined();
-          expect(childSpan?.endTimestamp).toBeDefined();
-        });
       });
     });
   });
