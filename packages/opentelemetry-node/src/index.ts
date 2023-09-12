@@ -1,4 +1,4 @@
-import { getSentrySpan } from './spanprocessor';
+import { getSentrySpan } from './utils/spanMap';
 
 export { SentrySpanProcessor } from './spanprocessor';
 export { SentryPropagator } from './propagator';
