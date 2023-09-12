@@ -1,6 +1,7 @@
 {
   "include": ["index.ts"],
   "compilerOptions": {
+    "lib": ["es6"],
     "skipLibCheck": false,
     "noEmit": true,
     "types": [],
