@@ -16,7 +16,7 @@ const SENTRY_WRAPPER_MODULE_NAME = 'sentry-wrapper-module';
 const WRAPPING_TARGET_MODULE_NAME = '__SENTRY_WRAPPING_TARGET_FILE__.cjs';
 
 // This module is non-public API and may break
-const nextjsRequestAsyncStorageModulePath = getAsyncLocalStorageModule();
+const nextjsRequestAsyncStorageModulePath = getRequestAsyncLocalStorageModule();
 
 const apiWrapperTemplatePath = path.resolve(__dirname, '..', 'templates', 'apiWrapperTemplate.js');
 const apiWrapperTemplateCode = fs.readFileSync(apiWrapperTemplatePath, { encoding: 'utf8' });
@@ -53,7 +53,7 @@ type LoaderOptions = {
   vercelCronsConfig?: VercelCronsConfig;
 };
 
-function getAsyncLocalStorageModule(): string | undefined {
+function getRequestAsyncLocalStorageModule(): string | undefined {
   try {
     // Original location of that module
     // https://github.com/vercel/next.js/blob/46151dd68b417e7850146d00354f89930d10b43b/packages/next/src/client/components/request-async-storage.ts
