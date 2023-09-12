@@ -98,6 +98,16 @@ export class Http implements Integration {
             return isSentryHost(host);
           },
 
+          ignoreIncomingRequestHook: request => {
+            const method = request.method?.toUpperCase();
+            // We do not capture OPTIONS/HEAD requests as transactions
+            if (method === 'OPTIONS' || method === 'HEAD') {
+              return true;
+            }
+
+            return false;
+          },
+
           requireParentforOutgoingSpans: true,
           requireParentforIncomingSpans: false,
           requestHook: (span, req) => {
