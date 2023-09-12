@@ -19,9 +19,7 @@ export function addGlobalListeners(replay: ReplayContainer): void {
   const scope = getCurrentHub().getScope();
   const client = getCurrentHub().getClient();
 
-  if (scope) {
-    scope.addScopeListener(handleScopeListener(replay));
-  }
+  scope.addScopeListener(handleScopeListener(replay));
   addInstrumentationHandler('dom', handleDomListener(replay));
   addInstrumentationHandler('history', handleHistorySpanListener(replay));
   handleNetworkBreadcrumbs(replay);

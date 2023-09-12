@@ -55,9 +55,7 @@ export function getActiveTransaction(): Transaction | undefined {
 
   if (currentHub) {
     const scope = currentHub.getScope();
-    if (scope) {
-      return scope.getTransaction();
-    }
+    return scope.getTransaction();
   }
 
   return undefined;

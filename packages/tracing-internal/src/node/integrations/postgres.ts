@@ -83,7 +83,7 @@ export class Postgres implements LazyLoadedIntegration<PGModule> {
     fill(Client.prototype, 'query', function (orig: () => void | Promise<unknown>) {
       return function (this: PgClientThis, config: unknown, values: unknown, callback: unknown) {
         const scope = getCurrentHub().getScope();
-        const parentSpan = scope?.getSpan();
+        const parentSpan = scope.getSpan();
 
         const data: Record<string, string | number> = {
           'db.system': 'postgresql',

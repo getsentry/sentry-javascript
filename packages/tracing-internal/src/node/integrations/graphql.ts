@@ -51,7 +51,7 @@ export class GraphQL implements LazyLoadedIntegration<GraphQLModule> {
     fill(pkg, 'execute', function (orig: () => void | Promise<unknown>) {
       return function (this: unknown, ...args: unknown[]) {
         const scope = getCurrentHub().getScope();
-        const parentSpan = scope?.getSpan();
+        const parentSpan = scope.getSpan();
 
         const span = parentSpan?.startChild({
           description: 'execute',
