@@ -141,13 +141,6 @@ describe('isVueViewModel()', () => {
     expect(isVueViewModel({ _isVue: true })).toEqual(true);
     expect(isVueViewModel({ __isVue: true })).toEqual(true);
 
-    expect(isNaN(null)).toEqual(false);
-    expect(isNaN(true)).toEqual(false);
-    expect(isNaN('foo')).toEqual(false);
-    expect(isNaN(42)).toEqual(false);
-    expect(isNaN({})).toEqual(false);
-    expect(isNaN([])).toEqual(false);
-    expect(isNaN(new Error('foo'))).toEqual(false);
-    expect(isNaN(new Date())).toEqual(false);
+    expect(isVueViewModel({ foo: true })).toEqual(false);
   });
 });
