@@ -29,7 +29,7 @@ describe('Compressor', () => {
   it('throws on invalid/undefined events', () => {
     const compressor = new Compressor();
 
-    // @ts-ignore ignoring type for test
+    // @ts-expect-error ignoring type for test
     expect(() => void compressor.addEvent(undefined)).toThrow();
 
     const compressed = compressor.finish();

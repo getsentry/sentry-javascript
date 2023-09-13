@@ -54,7 +54,7 @@ describe('Unit | util | createPerformanceEntries', () => {
       workerTiming: [],
     } as const;
 
-    // @ts-ignore Needs a PerformanceEntry mock
+    // @ts-expect-error Needs a PerformanceEntry mock
     expect(createPerformanceEntries([data])).toEqual([]);
   });
 

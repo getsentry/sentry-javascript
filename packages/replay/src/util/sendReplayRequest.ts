@@ -110,7 +110,7 @@ export async function sendReplayRequest({
 
     try {
       // In case browsers don't allow this property to be writable
-      // @ts-ignore This needs lib es2022 and newer
+      // @ts-expect-error This needs lib es2022 and newer
       error.cause = err;
     } catch {
       // nothing to do

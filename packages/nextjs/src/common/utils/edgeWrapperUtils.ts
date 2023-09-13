@@ -14,7 +14,7 @@ export function withEdgeWrapping<H extends EdgeRouteHandler>(
   return async function (this: unknown, ...args) {
     const req = args[0];
     const currentScope = getCurrentHub().getScope();
-    const prevSpan = currentScope?.getSpan();
+    const prevSpan = currentScope.getSpan();
 
     let span: Span | undefined;
 

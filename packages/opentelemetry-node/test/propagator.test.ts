@@ -17,7 +17,7 @@ import {
   SENTRY_TRACE_PARENT_CONTEXT_KEY,
 } from '../src/constants';
 import { SentryPropagator } from '../src/propagator';
-import { SENTRY_SPAN_PROCESSOR_MAP } from '../src/spanprocessor';
+import { setSentrySpan, SPAN_MAP } from '../src/utils/spanMap';
 
 beforeAll(() => {
   addTracingExtensions();
@@ -46,12 +46,12 @@ describe('SentryPropagator', () => {
           publicKey: 'abc',
         }),
       };
-      // @ts-ignore Use mock client for unit tests
+      // @ts-expect-error Use mock client for unit tests
       const hub: Hub = new Hub(client);
       makeMain(hub);
 
       afterEach(() => {
-        SENTRY_SPAN_PROCESSOR_MAP.clear();
+        SPAN_MAP.clear();
       });
 
       enum PerfType {
@@ -61,12 +61,12 @@ describe('SentryPropagator', () => {
 
       function createTransactionAndMaybeSpan(type: PerfType, transactionContext: TransactionContext) {
         const transaction = new Transaction(transactionContext, hub);
-        SENTRY_SPAN_PROCESSOR_MAP.set(transaction.spanId, transaction);
+        setSentrySpan(transaction.spanId, transaction);
         if (type === PerfType.Span) {
           // eslint-disable-next-line @typescript-eslint/no-unused-vars
           const { spanId, ...ctx } = transactionContext;
           const span = transaction.startChild({ ...ctx, description: transaction.name });
-          SENTRY_SPAN_PROCESSOR_MAP.set(span.spanId, span);
+          setSentrySpan(span.spanId, span);
         }
       }
 

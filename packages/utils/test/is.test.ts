@@ -7,6 +7,7 @@ import {
   isNaN,
   isPrimitive,
   isThenable,
+  isVueViewModel,
 } from '../src/is';
 import { supportsDOMError, supportsDOMException, supportsErrorEvent } from '../src/supports';
 import { resolvedSyncPromise } from '../src/syncpromise';
@@ -25,7 +26,7 @@ if (supportsDOMError()) {
   describe('isDOMError()', () => {
     test('should work as advertised', () => {
       expect(isDOMError(new Error())).toEqual(false);
-      // @ts-ignore See: src/supports.ts for details
+      // @ts-expect-error See: src/supports.ts for details
       expect(isDOMError(new DOMError(''))).toEqual(true);
     });
   });
@@ -105,7 +106,7 @@ describe('isInstanceOf()', () => {
     }
     expect(isInstanceOf(new Error('wat'), Error)).toEqual(true);
     expect(isInstanceOf(new Date(), Date)).toEqual(true);
-    // @ts-ignore Foo implicity has any type, doesn't have constructor
+    // @ts-expect-error Foo implicity has any type, doesn't have constructor
     expect(isInstanceOf(new Foo(), Foo)).toEqual(true);
 
     expect(isInstanceOf(new Error('wat'), Foo)).toEqual(false);
@@ -132,5 +133,14 @@ describe('isNaN()', () => {
     expect(isNaN([])).toEqual(false);
     expect(isNaN(new Error('foo'))).toEqual(false);
     expect(isNaN(new Date())).toEqual(false);
+  });
+});
+
+describe('isVueViewModel()', () => {
+  test('should work as advertised', () => {
+    expect(isVueViewModel({ _isVue: true })).toEqual(true);
+    expect(isVueViewModel({ __isVue: true })).toEqual(true);
+
+    expect(isVueViewModel({ foo: true })).toEqual(false);
   });
 });

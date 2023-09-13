@@ -71,7 +71,7 @@ describe('`Transaction` class', () => {
         key2: 'val2',
       });
 
-      // @ts-ignore accessing private property
+      // @ts-expect-error accessing private property
       expect(transaction._contexts).toEqual({
         foo: {
           key: 'val',
@@ -90,7 +90,7 @@ describe('`Transaction` class', () => {
         key3: 'val3',
       });
 
-      // @ts-ignore accessing private property
+      // @ts-expect-error accessing private property
       expect(transaction._contexts).toEqual({
         foo: {
           key3: 'val3',
@@ -108,7 +108,7 @@ describe('`Transaction` class', () => {
         anotherKey: 'anotherVal',
       });
 
-      // @ts-ignore accessing private property
+      // @ts-expect-error accessing private property
       expect(transaction._contexts).toEqual({
         foo: {
           key: 'val',
@@ -128,7 +128,7 @@ describe('`Transaction` class', () => {
       });
       transaction.setContext('foo', null);
 
-      // @ts-ignore accessing private property
+      // @ts-expect-error accessing private property
       expect(transaction._contexts).toEqual({});
     });
 

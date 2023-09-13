@@ -116,7 +116,7 @@ describe('CaptureConsole setup', () => {
 
   it('setup should fail gracefully when console is not available', () => {
     const consoleRef = GLOBAL_OBJ.console;
-    // @ts-ignore remove console
+    // @ts-expect-error remove console
     delete GLOBAL_OBJ.console;
 
     const captureConsoleIntegration = new CaptureConsole();

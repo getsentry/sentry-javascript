@@ -290,11 +290,12 @@ describe('checkOrSetAlreadyCaught()', () => {
 });
 
 describe('uuid4 generation', () => {
+  const uuid4Regex = /^[0-9A-F]{12}[4][0-9A-F]{3}[89AB][0-9A-F]{15}$/i;
   // Jest messes with the global object, so there is no global crypto object in any node version
   // For this reason we need to create our own crypto object for each test to cover all the code paths
   it('returns valid uuid v4 ids via Math.random', () => {
     for (let index = 0; index < 1_000; index++) {
-      expect(uuid4()).toMatch(/^[0-9A-F]{12}[4][0-9A-F]{3}[89AB][0-9A-F]{15}$/i);
+      expect(uuid4()).toMatch(uuid4Regex);
     }
   });
 
@@ -305,7 +306,7 @@ describe('uuid4 generation', () => {
     (global as any).crypto = { getRandomValues: cryptoMod.getRandomValues };
 
     for (let index = 0; index < 1_000; index++) {
-      expect(uuid4()).toMatch(/^[0-9A-F]{12}[4][0-9A-F]{3}[89AB][0-9A-F]{15}$/i);
+      expect(uuid4()).toMatch(uuid4Regex);
     }
   });
 
@@ -316,7 +317,30 @@ describe('uuid4 generation', () => {
     (global as any).crypto = { randomUUID: cryptoMod.randomUUID };
 
     for (let index = 0; index < 1_000; index++) {
-      expect(uuid4()).toMatch(/^[0-9A-F]{12}[4][0-9A-F]{3}[89AB][0-9A-F]{15}$/i);
+      expect(uuid4()).toMatch(uuid4Regex);
+    }
+  });
+
+  it("return valid uuid v4 even if crypto doesn't exists", () => {
+    (global as any).crypto = { getRandomValues: undefined, randomUUID: undefined };
+
+    for (let index = 0; index < 1_000; index++) {
+      expect(uuid4()).toMatch(uuid4Regex);
+    }
+  });
+
+  it('return valid uuid v4 even if crypto invoked causes an error', () => {
+    (global as any).crypto = {
+      getRandomValues: () => {
+        throw new Error('yo');
+      },
+      randomUUID: () => {
+        throw new Error('yo');
+      },
+    };
+
+    for (let index = 0; index < 1_000; index++) {
+      expect(uuid4()).toMatch(uuid4Regex);
     }
   });
 });

@@ -1,8 +1,7 @@
-import type { Event, EventHint, EventProcessor, Hub, Integration } from '@sentry/types';
+import type { Client, Event, EventHint, Integration } from '@sentry/types';
 import { applyAggregateErrorsToEvent } from '@sentry/utils';
 
 import { exceptionFromError } from '../eventbuilder';
-import { ContextLines } from './contextlines';
 
 const DEFAULT_KEY = 'cause';
 const DEFAULT_LIMIT = 5;
@@ -37,39 +36,25 @@ export class LinkedErrors implements Integration {
     this._limit = options.limit || DEFAULT_LIMIT;
   }
 
+  /** @inheritdoc */
+  public setupOnce(): void {
+    // noop
+  }
+
   /**
    * @inheritDoc
    */
-  public setupOnce(addGlobalEventProcessor: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
-    addGlobalEventProcessor(async (event: Event, hint?: EventHint) => {
-      const hub = getCurrentHub();
-      const client = hub.getClient();
-      const self = hub.getIntegration(LinkedErrors);
+  public preprocessEvent(event: Event, hint: EventHint | undefined, client: Client): void {
+    const options = client.getOptions();
 
-      if (!client || !self) {
-        return event;
-      }
-
-      const options = client.getOptions();
-
-      applyAggregateErrorsToEvent(
-        exceptionFromError,
-        options.stackParser,
-        options.maxValueLength,
-        self._key,
-        self._limit,
-        event,
-        hint,
-      );
-
-      // If the ContextLines integration is enabled, we add source code context to linked errors
-      // because we can't guarantee the order that integrations are run.
-      const contextLines = getCurrentHub().getIntegration(ContextLines);
-      if (contextLines) {
-        await contextLines.addSourceContext(event);
-      }
-
-      return event;
-    });
+    applyAggregateErrorsToEvent(
+      exceptionFromError,
+      options.stackParser,
+      options.maxValueLength,
+      this._key,
+      this._limit,
+      event,
+      hint,
+    );
   }
 }

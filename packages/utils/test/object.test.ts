@@ -67,7 +67,7 @@ describe('fill()', () => {
       foo: (): number => 42,
     } as any;
     const name = 'foo';
-    // @ts-ignore cb has any type
+    // @ts-expect-error cb has any type
     const replacement = cb => cb;
 
     fill(source, name, replacement);
@@ -85,7 +85,7 @@ describe('fill()', () => {
     const bar = {};
     source.foo.prototype = bar;
     const name = 'foo';
-    // @ts-ignore cb has any type
+    // @ts-expect-error cb has any type
     const replacement = cb => cb;
 
     fill(source, name, replacement);

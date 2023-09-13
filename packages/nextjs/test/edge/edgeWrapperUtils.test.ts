@@ -7,12 +7,12 @@ import { withEdgeWrapping } from '../../src/common/utils/edgeWrapperUtils';
 // constructor but the client isn't used in these tests.
 addTracingExtensions();
 
-// @ts-ignore Request does not exist on type Global
+// @ts-expect-error Request does not exist on type Global
 const origRequest = global.Request;
-// @ts-ignore Response does not exist on type Global
+// @ts-expect-error Response does not exist on type Global
 const origResponse = global.Response;
 
-// @ts-ignore Request does not exist on type Global
+// @ts-expect-error Request does not exist on type Global
 global.Request = class Request {
   headers = {
     get() {
@@ -21,13 +21,13 @@ global.Request = class Request {
   };
 };
 
-// @ts-ignore Response does not exist on type Global
+// @ts-expect-error Response does not exist on type Global
 global.Response = class Request {};
 
 afterAll(() => {
-  // @ts-ignore Request does not exist on type Global
+  // @ts-expect-error Request does not exist on type Global
   global.Request = origRequest;
-  // @ts-ignore Response does not exist on type Global
+  // @ts-expect-error Response does not exist on type Global
   global.Response = origResponse;
 });
 

@@ -1,4 +1,4 @@
-import type { Integration, Options } from '@sentry/types';
+import type { Client, Integration, Options } from '@sentry/types';
 import { arrayify, logger } from '@sentry/utils';
 
 import { getCurrentHub } from './hub';
@@ -84,13 +84,13 @@ export function getIntegrationsToSetup(options: Options): Integration[] {
  * @param integrations array of integration instances
  * @param withDefault should enable default integrations
  */
-export function setupIntegrations(integrations: Integration[]): IntegrationIndex {
+export function setupIntegrations(client: Client, integrations: Integration[]): IntegrationIndex {
   const integrationIndex: IntegrationIndex = {};
 
   integrations.forEach(integration => {
     // guard against empty provided integrations
     if (integration) {
-      setupIntegration(integration, integrationIndex);
+      setupIntegration(client, integration, integrationIndex);
     }
   });
 
@@ -98,14 +98,20 @@ export function setupIntegrations(integrations: Integration[]): IntegrationIndex
 }
 
 /** Setup a single integration.  */
-export function setupIntegration(integration: Integration, integrationIndex: IntegrationIndex): void {
+export function setupIntegration(client: Client, integration: Integration, integrationIndex: IntegrationIndex): void {
   integrationIndex[integration.name] = integration;
 
   if (installedIntegrations.indexOf(integration.name) === -1) {
     integration.setupOnce(addGlobalEventProcessor, getCurrentHub);
     installedIntegrations.push(integration.name);
-    __DEBUG_BUILD__ && logger.log(`Integration installed: ${integration.name}`);
   }
+
+  if (client.on && typeof integration.preprocessEvent === 'function') {
+    const callback = integration.preprocessEvent.bind(integration);
+    client.on('preprocessEvent', (event, hint) => callback(event, hint, client));
+  }
+
+  __DEBUG_BUILD__ && logger.log(`Integration installed: ${integration.name}`);
 }
 
 // Polyfill for Array.findIndex(), which is not supported in ES5

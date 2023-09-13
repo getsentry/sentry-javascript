@@ -15,8 +15,8 @@ test('Should allow for async context isolation in the edge SDK', async ({ reques
   const outerSpan = asyncContextEdgerouteTransaction.spans?.find(span => span.description === 'outer-span');
   const innerSpan = asyncContextEdgerouteTransaction.spans?.find(span => span.description === 'inner-span');
 
-  // @ts-ignore parent_span_id exists
+  // @ts-expect-error parent_span_id exists
   expect(outerSpan?.parent_span_id).toStrictEqual(asyncContextEdgerouteTransaction.contexts?.trace?.span_id);
-  // @ts-ignore parent_span_id exists
+  // @ts-expect-error parent_span_id exists
   expect(innerSpan?.parent_span_id).toStrictEqual(asyncContextEdgerouteTransaction.contexts?.trace?.span_id);
 });

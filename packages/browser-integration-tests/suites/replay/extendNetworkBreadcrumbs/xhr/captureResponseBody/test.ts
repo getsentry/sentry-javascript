@@ -47,7 +47,7 @@ sentryTest('captures text response body', async ({ getLocalTestPath, page, brows
 
     xhr.addEventListener('readystatechange', function () {
       if (xhr.readyState === 4) {
-        // @ts-ignore Sentry is a global
+        // @ts-expect-error Sentry is a global
         setTimeout(() => Sentry.captureException('test error', 0));
       }
     });
@@ -132,7 +132,7 @@ sentryTest('captures JSON response body', async ({ getLocalTestPath, page, brows
 
     xhr.addEventListener('readystatechange', function () {
       if (xhr.readyState === 4) {
-        // @ts-ignore Sentry is a global
+        // @ts-expect-error Sentry is a global
         setTimeout(() => Sentry.captureException('test error', 0));
       }
     });
@@ -217,7 +217,7 @@ sentryTest('captures non-text response body', async ({ getLocalTestPath, page, b
 
     xhr.addEventListener('readystatechange', function () {
       if (xhr.readyState === 4) {
-        // @ts-ignore Sentry is a global
+        // @ts-expect-error Sentry is a global
         setTimeout(() => Sentry.captureException('test error', 0));
       }
     });
@@ -304,7 +304,7 @@ sentryTest(
 
       xhr.addEventListener('readystatechange', function () {
         if (xhr.readyState === 4) {
-          // @ts-ignore Sentry is a global
+          // @ts-expect-error Sentry is a global
           setTimeout(() => Sentry.captureException('test error', 0));
         }
       });

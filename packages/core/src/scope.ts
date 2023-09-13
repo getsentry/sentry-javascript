@@ -419,7 +419,11 @@ export class Scope implements ScopeInterface {
       timestamp: dateTimestampInSeconds(),
       ...breadcrumb,
     };
-    this._breadcrumbs = [...this._breadcrumbs, mergedBreadcrumb].slice(-maxCrumbs);
+
+    const breadcrumbs = this._breadcrumbs;
+    breadcrumbs.push(mergedBreadcrumb);
+    this._breadcrumbs = breadcrumbs.length > maxCrumbs ? breadcrumbs.slice(-maxCrumbs) : breadcrumbs;
+
     this._notifyScopeListeners();
 
     return this;
@@ -511,8 +515,9 @@ export class Scope implements ScopeInterface {
 
     this._applyFingerprint(event);
 
-    event.breadcrumbs = [...(event.breadcrumbs || []), ...this._breadcrumbs];
-    event.breadcrumbs = event.breadcrumbs.length > 0 ? event.breadcrumbs : undefined;
+    const scopeBreadcrumbs = this._getBreadcrumbs();
+    const breadcrumbs = [...(event.breadcrumbs || []), ...scopeBreadcrumbs];
+    event.breadcrumbs = breadcrumbs.length > 0 ? breadcrumbs : undefined;
 
     event.sdkProcessingMetadata = {
       ...event.sdkProcessingMetadata,
@@ -545,6 +550,13 @@ export class Scope implements ScopeInterface {
    */
   public getPropagationContext(): PropagationContext {
     return this._propagationContext;
+  }
+
+  /**
+   * Get the breadcrumbs for this scope.
+   */
+  protected _getBreadcrumbs(): Breadcrumb[] {
+    return this._breadcrumbs;
   }
 
   /**

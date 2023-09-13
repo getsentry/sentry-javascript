@@ -202,14 +202,14 @@ export function withSentryReactRouterV6Routing<P extends Record<string, any>, R 
       [location, navigationType],
     );
 
-    // @ts-ignore Setting more specific React Component typing for `R` generic above
+    // @ts-expect-error Setting more specific React Component typing for `R` generic above
     // will break advanced type inference done by react router params
     return <Routes {...props} />;
   };
 
   hoistNonReactStatics(SentryRoutes, Routes);
 
-  // @ts-ignore Setting more specific React Component typing for `R` generic above
+  // @ts-expect-error Setting more specific React Component typing for `R` generic above
   // will break advanced type inference done by react router params
   return SentryRoutes;
 }
@@ -226,36 +226,42 @@ export function wrapUseRoutes(origUseRoutes: UseRoutes): UseRoutes {
 
   let isMountRenderPass: boolean = true;
 
+  const SentryRoutes: React.FC<{
+    children?: React.ReactNode;
+    routes: RouteObject[];
+    locationArg?: Partial<Location> | string;
+  }> = (props: { children?: React.ReactNode; routes: RouteObject[]; locationArg?: Partial<Location> | string }) => {
+    const { routes, locationArg } = props;
+
+    const Routes = origUseRoutes(routes, locationArg);
+
+    const location = _useLocation();
+    const navigationType = _useNavigationType();
+
+    // A value with stable identity to either pick `locationArg` if available or `location` if not
+    const stableLocationParam =
+      typeof locationArg === 'string' || (locationArg && locationArg.pathname)
+        ? (locationArg as { pathname: string })
+        : location;
+
+    _useEffect(() => {
+      const normalizedLocation =
+        typeof stableLocationParam === 'string' ? { pathname: stableLocationParam } : stableLocationParam;
+
+      if (isMountRenderPass) {
+        updatePageloadTransaction(normalizedLocation, routes);
+        isMountRenderPass = false;
+      } else {
+        handleNavigation(normalizedLocation, routes, navigationType);
+      }
+    }, [navigationType, stableLocationParam]);
+
+    return Routes;
+  };
+
   // eslint-disable-next-line react/display-name
   return (routes: RouteObject[], locationArg?: Partial<Location> | string): React.ReactElement | null => {
-    const SentryRoutes: React.FC<unknown> = () => {
-      const Routes = origUseRoutes(routes, locationArg);
-
-      const location = _useLocation();
-      const navigationType = _useNavigationType();
-
-      // A value with stable identity to either pick `locationArg` if available or `location` if not
-      const stableLocationParam =
-        typeof locationArg === 'string' || (locationArg && locationArg.pathname)
-          ? (locationArg as { pathname: string })
-          : location;
-
-      _useEffect(() => {
-        const normalizedLocation =
-          typeof stableLocationParam === 'string' ? { pathname: stableLocationParam } : stableLocationParam;
-
-        if (isMountRenderPass) {
-          updatePageloadTransaction(normalizedLocation, routes);
-          isMountRenderPass = false;
-        } else {
-          handleNavigation(normalizedLocation, routes, navigationType);
-        }
-      }, [navigationType, stableLocationParam]);
-
-      return Routes;
-    };
-
-    return <SentryRoutes />;
+    return <SentryRoutes routes={routes} locationArg={locationArg} />;
   };
 }
 

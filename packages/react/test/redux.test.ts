@@ -14,11 +14,15 @@ jest.mock('@sentry/browser', () => ({
       addBreadcrumb: mockAddBreadcrumb,
       setContext: mockSetContext,
     }),
+  addGlobalEventProcessor: jest.fn(),
 }));
+
+const mockAddGlobalEventProcessor = Sentry.addGlobalEventProcessor as jest.Mock;
 
 afterEach(() => {
   mockAddBreadcrumb.mockReset();
   mockSetContext.mockReset();
+  mockAddGlobalEventProcessor.mockReset();
 });
 
 describe('createReduxEnhancer', () => {
@@ -241,6 +245,172 @@ describe('createReduxEnhancer', () => {
 
     expect(configureScopeWithState).toBeCalledWith(scopeRef, {
       value: 'latest',
+    });
+  });
+
+  describe('Redux State Attachments', () => {
+    it('attaches Redux state to Sentry scope', () => {
+      const enhancer = createReduxEnhancer();
+
+      const initialState = {
+        value: 'initial',
+      };
+
+      Redux.createStore((state = initialState) => state, enhancer);
+
+      expect(mockAddGlobalEventProcessor).toHaveBeenCalledTimes(1);
+
+      const callbackFunction = mockAddGlobalEventProcessor.mock.calls[0][0];
+
+      const mockEvent = {
+        contexts: {
+          state: {
+            state: {
+              type: 'redux',
+              value: 'UPDATED_VALUE',
+            },
+          },
+        },
+      };
+
+      const mockHint = {
+        attachments: [],
+      };
+
+      const result = callbackFunction(mockEvent, mockHint);
+
+      expect(result).toEqual({
+        ...mockEvent,
+        contexts: {
+          state: {
+            state: {
+              type: 'redux',
+              value: 'UPDATED_VALUE',
+            },
+          },
+        },
+      });
+
+      expect(mockHint.attachments).toHaveLength(1);
+      expect(mockHint.attachments[0]).toEqual({
+        filename: 'redux_state.json',
+        data: JSON.stringify('UPDATED_VALUE'),
+      });
+    });
+
+    it('does not attach when attachReduxState is false', () => {
+      const enhancer = createReduxEnhancer({ attachReduxState: false });
+
+      const initialState = {
+        value: 'initial',
+      };
+
+      Redux.createStore((state = initialState) => state, enhancer);
+
+      expect(mockAddGlobalEventProcessor).toHaveBeenCalledTimes(0);
+    });
+
+    it('does not attach when state.type is not redux', () => {
+      const enhancer = createReduxEnhancer();
+
+      const initialState = {
+        value: 'initial',
+      };
+
+      Redux.createStore((state = initialState) => state, enhancer);
+
+      expect(mockAddGlobalEventProcessor).toHaveBeenCalledTimes(1);
+
+      const callbackFunction = mockAddGlobalEventProcessor.mock.calls[0][0];
+
+      const mockEvent = {
+        contexts: {
+          state: {
+            state: {
+              type: 'not_redux',
+              value: 'UPDATED_VALUE',
+            },
+          },
+        },
+      };
+
+      const mockHint = {
+        attachments: [],
+      };
+
+      const result = callbackFunction(mockEvent, mockHint);
+
+      expect(result).toEqual(mockEvent);
+
+      expect(mockHint.attachments).toHaveLength(0);
+    });
+
+    it('does not attach when state is undefined', () => {
+      const enhancer = createReduxEnhancer();
+
+      const initialState = {
+        value: 'initial',
+      };
+
+      Redux.createStore((state = initialState) => state, enhancer);
+
+      expect(mockAddGlobalEventProcessor).toHaveBeenCalledTimes(1);
+
+      const callbackFunction = mockAddGlobalEventProcessor.mock.calls[0][0];
+
+      const mockEvent = {
+        contexts: {
+          state: {
+            state: undefined,
+          },
+        },
+      };
+
+      const mockHint = {
+        attachments: [],
+      };
+
+      const result = callbackFunction(mockEvent, mockHint);
+
+      expect(result).toEqual(mockEvent);
+
+      expect(mockHint.attachments).toHaveLength(0);
+    });
+
+    it('does not attach when event type is not undefined', () => {
+      const enhancer = createReduxEnhancer();
+
+      const initialState = {
+        value: 'initial',
+      };
+
+      Redux.createStore((state = initialState) => state, enhancer);
+
+      expect(mockAddGlobalEventProcessor).toHaveBeenCalledTimes(1);
+
+      const callbackFunction = mockAddGlobalEventProcessor.mock.calls[0][0];
+
+      const mockEvent = {
+        type: 'not_redux',
+        contexts: {
+          state: {
+            state: {
+              type: 'redux',
+              value: 'UPDATED_VALUE',
+            },
+          },
+        },
+      };
+
+      const mockHint = {
+        attachments: [],
+      };
+
+      const result = callbackFunction(mockEvent, mockHint);
+
+      expect(result).toEqual(mockEvent);
+
+      expect(mockHint.attachments).toHaveLength(0);
     });
   });
 });

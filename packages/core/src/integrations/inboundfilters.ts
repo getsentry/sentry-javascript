@@ -169,25 +169,40 @@ function _isAllowedUrl(event: Event, allowUrls?: Array<string | RegExp>): boolea
 }
 
 function _getPossibleEventMessages(event: Event): string[] {
+  const possibleMessages: string[] = [];
+
   if (event.message) {
-    return [event.message];
+    possibleMessages.push(event.message);
   }
-  if (event.exception) {
-    const { values } = event.exception;
-    try {
-      const { type = '', value = '' } = (values && values[values.length - 1]) || {};
-      return [`${value}`, `${type}: ${value}`];
-    } catch (oO) {
-      __DEBUG_BUILD__ && logger.error(`Cannot extract message for event ${getEventDescription(event)}`);
-      return [];
+
+  let lastException;
+  try {
+    // @ts-expect-error Try catching to save bundle size
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    lastException = event.exception.values[event.exception.values.length - 1];
+  } catch (e) {
+    // try catching to save bundle size checking existence of variables
+  }
+
+  if (lastException) {
+    if (lastException.value) {
+      possibleMessages.push(lastException.value);
+      if (lastException.type) {
+        possibleMessages.push(`${lastException.type}: ${lastException.value}`);
+      }
     }
   }
-  return [];
+
+  if (__DEBUG_BUILD__ && possibleMessages.length === 0) {
+    logger.error(`Could not extract message for event ${getEventDescription(event)}`);
+  }
+
+  return possibleMessages;
 }
 
 function _isSentryError(event: Event): boolean {
   try {
-    // @ts-ignore can't be a sentry error if undefined
+    // @ts-expect-error can't be a sentry error if undefined
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     return event.exception.values[0].type === 'SentryError';
   } catch (e) {
@@ -212,7 +227,7 @@ function _getEventFilterUrl(event: Event): string | null {
   try {
     let frames;
     try {
-      // @ts-ignore we only care about frames if the whole thing here is defined
+      // @ts-expect-error we only care about frames if the whole thing here is defined
       frames = event.exception.values[0].stacktrace.frames;
     } catch (e) {
       // ignore

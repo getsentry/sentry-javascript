@@ -12,13 +12,13 @@ describe('internal wrap()', () => {
     const num = 42;
 
     expect(wrap(fn)).not.toBe(fn);
-    // @ts-ignore Issue with `WrappedFunction` type from wrap fn
+    // @ts-expect-error Issue with `WrappedFunction` type from wrap fn
     expect(wrap(obj)).toBe(obj);
-    // @ts-ignore Issue with `WrappedFunction` type from wrap fn
+    // @ts-expect-error Issue with `WrappedFunction` type from wrap fn
     expect(wrap(arr)).toBe(arr);
-    // @ts-ignore Issue with `WrappedFunction` type from wrap fn
+    // @ts-expect-error Issue with `WrappedFunction` type from wrap fn
     expect(wrap(str)).toBe(str);
-    // @ts-ignore Issue with `WrappedFunction` type from wrap fn
+    // @ts-expect-error Issue with `WrappedFunction` type from wrap fn
     expect(wrap(num)).toBe(num);
   });
 
@@ -134,7 +134,7 @@ describe('internal wrap()', () => {
         return;
       },
     };
-    // @ts-ignore eventFn does not have property handleEvent
+    // @ts-expect-error eventFn does not have property handleEvent
     context.eventFn.handleEvent = function (): void {
       expect(this).toBe(context);
     };

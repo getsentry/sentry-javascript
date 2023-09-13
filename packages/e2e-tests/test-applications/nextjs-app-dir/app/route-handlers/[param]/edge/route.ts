@@ -6,6 +6,6 @@ export async function PATCH() {
   return NextResponse.json({ name: 'John Doe' }, { status: 401 });
 }
 
-export async function DELETE() {
+export async function DELETE(): Promise<Response> {
   throw new Error('route-handler-edge-error');
 }

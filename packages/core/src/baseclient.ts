@@ -285,7 +285,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
    */
   public setupIntegrations(): void {
     if (this._isEnabled() && !this._integrationsInitialized) {
-      this._integrations = setupIntegrations(this._options.integrations);
+      this._integrations = setupIntegrations(this, this._options.integrations);
       this._integrationsInitialized = true;
     }
   }
@@ -315,7 +315,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
    * @inheritDoc
    */
   public addIntegration(integration: Integration): void {
-    setupIntegration(integration, this._integrations);
+    setupIntegration(this, integration, this._integrations);
   }
 
   /**
@@ -376,15 +376,22 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   }
 
   // Keep on() & emit() signatures in sync with types' client.ts interface
+  /* eslint-disable @typescript-eslint/unified-signatures */
 
   /** @inheritdoc */
-  public on(hook: 'startTransaction' | 'finishTransaction', callback: (transaction: Transaction) => void): void;
+  public on(hook: 'startTransaction', callback: (transaction: Transaction) => void): void;
+
+  /** @inheritdoc */
+  public on(hook: 'finishTransaction', callback: (transaction: Transaction) => void): void;
 
   /** @inheritdoc */
   public on(hook: 'beforeEnvelope', callback: (envelope: Envelope) => void): void;
 
   /** @inheritdoc */
   public on(hook: 'beforeSendEvent', callback: (event: Event, hint?: EventHint) => void): void;
+
+  /** @inheritdoc */
+  public on(hook: 'preprocessEvent', callback: (event: Event, hint?: EventHint) => void): void;
 
   /** @inheritdoc */
   public on(
@@ -407,18 +414,24 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
       this._hooks[hook] = [];
     }
 
-    // @ts-ignore We assue the types are correct
+    // @ts-expect-error We assue the types are correct
     this._hooks[hook].push(callback);
   }
 
   /** @inheritdoc */
-  public emit(hook: 'startTransaction' | 'finishTransaction', transaction: Transaction): void;
+  public emit(hook: 'startTransaction', transaction: Transaction): void;
+
+  /** @inheritdoc */
+  public emit(hook: 'finishTransaction', transaction: Transaction): void;
 
   /** @inheritdoc */
   public emit(hook: 'beforeEnvelope', envelope: Envelope): void;
 
   /** @inheritdoc */
   public emit(hook: 'beforeSendEvent', event: Event, hint?: EventHint): void;
+
+  /** @inheritdoc */
+  public emit(hook: 'preprocessEvent', event: Event, hint?: EventHint): void;
 
   /** @inheritdoc */
   public emit(hook: 'afterSendEvent', event: Event, sendResponse: TransportMakeRequestResponse | void): void;
@@ -435,10 +448,11 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   /** @inheritdoc */
   public emit(hook: string, ...rest: unknown[]): void {
     if (this._hooks[hook]) {
-      // @ts-ignore we cannot enforce the callback to match the hook
       this._hooks[hook].forEach(callback => callback(...rest));
     }
   }
+
+  /* eslint-enable @typescript-eslint/unified-signatures */
 
   /** Updates existing session based on the provided event */
   protected _updateSessionFromEvent(session: Session, event: Event): void {
@@ -528,6 +542,9 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
     if (!hint.integrations && integrations.length > 0) {
       hint.integrations = integrations;
     }
+
+    this.emit('preprocessEvent', event, hint);
+
     return prepareEvent(options, event, hint, scope).then(evt => {
       if (evt === null) {
         return evt;
