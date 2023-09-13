@@ -11,7 +11,7 @@ import type {
   SeverityLevel,
   TraceContext,
 } from '@sentry/types';
-import { eventFromMessage, eventFromUnknownInput, logger, uuid4 } from '@sentry/utils';
+import { eventFromMessage, eventFromUnknownInput, logger, resolvedSyncPromise, uuid4 } from '@sentry/utils';
 
 import { BaseClient } from './baseclient';
 import { createCheckInEnvelope } from './checkin';
@@ -49,7 +49,7 @@ export class ServerRuntimeClient<
    * @inheritDoc
    */
   public eventFromException(exception: unknown, hint?: EventHint): PromiseLike<Event> {
-    return Promise.resolve(eventFromUnknownInput(getCurrentHub, this._options.stackParser, exception, hint));
+    return resolvedSyncPromise(eventFromUnknownInput(getCurrentHub, this._options.stackParser, exception, hint));
   }
 
   /**
@@ -61,7 +61,7 @@ export class ServerRuntimeClient<
     level: Severity | SeverityLevel = 'info',
     hint?: EventHint,
   ): PromiseLike<Event> {
-    return Promise.resolve(
+    return resolvedSyncPromise(
       eventFromMessage(this._options.stackParser, message, level, hint, this._options.attachStacktrace),
     );
   }
