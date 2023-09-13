@@ -34,6 +34,13 @@ function makeDummyTransport() {
       .split('\n')
       .filter(l => !!l)
       .map(e => JSON.parse(e));
+
+    if (sessionEnv[1].type !== 'sessions') {
+      return Promise.resolve({
+        statusCode: 200,
+      });
+    }
+
     assertSessionAggregates(sessionEnv[2], {
       attrs: { release: '1.1' },
       aggregates: [{ crashed: 2, errored: 1, exited: 1 }],
