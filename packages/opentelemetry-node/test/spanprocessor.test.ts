@@ -863,20 +863,14 @@ describe('SentrySpanProcessor', () => {
     });
   });
 
-  it('associates an error to a transaction', done => {
+  it('associates an error to a transaction', () => {
+    let sentryEvent: any;
     let otelSpan: any;
 
     client = new NodeClient({
       ...DEFAULT_NODE_CLIENT_OPTIONS,
-      beforeSend: sentryEvent => {
-        expect(sentryEvent).toBeDefined();
-        expect(sentryEvent.exception).toBeDefined();
-        expect(sentryEvent.contexts?.trace).toEqual({
-          parent_span_id: otelSpan.parentSpanId,
-          span_id: otelSpan.spanContext().spanId,
-          trace_id: otelSpan.spanContext().traceId,
-        });
-        done();
+      beforeSend: event => {
+        sentryEvent = event;
         return null;
       },
     });
@@ -894,27 +888,24 @@ describe('SentrySpanProcessor', () => {
 
       parentOtelSpan.end();
     });
+
+    expect(sentryEvent).toBeDefined();
+    expect(sentryEvent.exception).toBeDefined();
+    expect(sentryEvent.contexts.trace).toEqual({
+      parent_span_id: otelSpan.parentSpanId,
+      span_id: otelSpan.spanContext().spanId,
+      trace_id: otelSpan.spanContext().traceId,
+    });
   });
 
-  it('generates Sentry errors from opentelemetry span exception events', done => {
+  it('generates Sentry errors from opentelemetry span exception events', () => {
+    let sentryEvent: any;
     let otelSpan: any;
 
     client = new NodeClient({
       ...DEFAULT_NODE_CLIENT_OPTIONS,
-      beforeSend: sentryEvent => {
-        expect(sentryEvent).toBeDefined();
-        expect(sentryEvent.exception).toBeDefined();
-        expect(sentryEvent.exception?.values?.[0]).toEqual({
-          mechanism: expect.any(Object),
-          type: 'Error',
-          value: 'this is an otel error!',
-        });
-        expect(sentryEvent.contexts?.trace).toEqual({
-          parent_span_id: otelSpan.parentSpanId,
-          span_id: otelSpan.spanContext().spanId,
-          trace_id: otelSpan.spanContext().traceId,
-        });
-        done();
+      beforeSend: event => {
+        sentryEvent = event;
         return null;
       },
     });
@@ -931,6 +922,19 @@ describe('SentrySpanProcessor', () => {
       });
 
       parentOtelSpan.end();
+    });
+
+    expect(sentryEvent).toBeDefined();
+    expect(sentryEvent.exception).toBeDefined();
+    expect(sentryEvent.exception.values[0]).toEqual({
+      mechanism: expect.any(Object),
+      type: 'Error',
+      value: 'this is an otel error!',
+    });
+    expect(sentryEvent.contexts.trace).toEqual({
+      parent_span_id: otelSpan.parentSpanId,
+      span_id: otelSpan.spanContext().spanId,
+      trace_id: otelSpan.spanContext().traceId,
     });
   });
 
