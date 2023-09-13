@@ -379,9 +379,18 @@ export class BrowserTracing implements Integration {
   /** Start listener for interaction transactions */
   private _registerInteractionListener(): void {
     let inflightInteractionTransaction: IdleTransaction | undefined;
-    const registerInteractionTransaction = (): void => {
+    const supportedEventTypes = ['click', 'mouseup', 'mousedown', 'contextmenu'];
+    const typeToActionMap: Record<(typeof supportedEventTypes)[number], string> = {
+      click: 'ui.action.click',
+      mouseup: 'ui.action.mouseup',
+      mousedown: 'ui.action.mousedown',
+      contextmenu: 'ui.action.contextmenu',
+    };
+
+    const registerInteractionTransaction: EventListener = (e): void => {
       const { idleTimeout, finalTimeout, heartbeatInterval } = this.options;
-      const op = 'ui.action.click';
+      const type = e.type as (typeof supportedEventTypes)[number];
+      const op = typeToActionMap[type] || 'ui.action.unknown'; // this should never happen, but just in case
 
       const currentTransaction = getActiveTransaction();
       if (currentTransaction && currentTransaction.op && ['navigation', 'pageload'].includes(currentTransaction.op)) {
@@ -392,7 +401,7 @@ export class BrowserTracing implements Integration {
         return undefined;
       }
 
-      if (inflightInteractionTransaction) {
+      if (inflightInteractionTransaction && currentTransaction?.op !== 'ui.action.mousedown') {
         inflightInteractionTransaction.setFinishReason('interactionInterrupted');
         inflightInteractionTransaction.finish();
         inflightInteractionTransaction = undefined;
@@ -432,7 +441,8 @@ export class BrowserTracing implements Integration {
       );
     };
 
-    ['click'].forEach(type => {
+    supportedEventTypes.forEach(type => {
+      console.log('registering ');
       addEventListener(type, registerInteractionTransaction, { once: false, capture: true });
     });
   }

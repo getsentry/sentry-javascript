@@ -26,7 +26,7 @@ const BUNDLE_VARIANTS = ['.js', '.min.js', '.debug.min.js'];
 export function makeBaseBundleConfig(options) {
   const { bundleType, entrypoints, jsVersion, licenseTitle, outputFileBase, packageSpecificConfig } = options;
 
-  const isEs5 = jsVersion.toLowerCase() === 'es5';
+  const isEs5 = jsVersion && jsVersion.toLowerCase() === 'es5';
 
   const nodeResolvePlugin = makeNodeResolvePlugin();
   const sucrasePlugin = makeSucrasePlugin();

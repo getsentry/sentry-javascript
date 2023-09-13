@@ -15,7 +15,17 @@ import { _startChild, isMeasurementValue } from './utils';
 
 // see full list here https://developer.mozilla.org/en-US/docs/Web/API/PerformanceEventTiming#events_exposed
 type ClickEvents = 'auxclick' | 'click' | 'contextmenu' | 'dblclick';
-type Events = ClickEvents; // We can extend this in the future to include more eventTypes
+type PointerEvents =
+  | 'pointerover'
+  | 'pointerenter'
+  | 'pointerdown'
+  | 'pointerup'
+  | 'pointercancel'
+  | 'pointerout'
+  | 'pointerleave'
+  | 'gotpointercapture'
+  | 'lostpointercapture';
+type Events = ClickEvents | PointerEvents; // We can extend this in the future to include more eventTypes
 
 /**
  * Converts from milliseconds to seconds
@@ -103,10 +113,19 @@ export function startTrackingInteractions(): void {
       }
 
       const entryName = entry.name as Events;
+      const supportedEntryNames: Events[] = [
+        'click',
+        'contextmenu',
+        'dblclick',
+        'auxclick',
+        'pointerdown',
+        'pointerup',
+      ];
 
-      if (entryName in ['click', 'contextmenu', 'dblclick', 'auxclick']) {
+      if (supportedEntryNames.includes(entryName)) {
         const startTime = msToSec((browserPerformanceTimeOrigin as number) + entry.startTime);
         const duration = msToSec(entry.duration);
+        console.log('adding child', entryName);
 
         transaction.startChild({
           description: htmlTreeAsString(entry.target),
