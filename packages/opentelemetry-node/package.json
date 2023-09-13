@@ -1,6 +1,6 @@
 {
   "name": "@sentry/opentelemetry-node",
-  "version": "7.69.0",
+  "version": "7.70.0-beta.0",
   "description": "Official Sentry SDK for OpenTelemetry Node.js",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/opentelemetry-node",
@@ -23,9 +23,9 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/core": "7.69.0",
-    "@sentry/types": "7.69.0",
-    "@sentry/utils": "7.69.0"
+    "@sentry/core": "7.70.0-beta.0",
+    "@sentry/types": "7.70.0-beta.0",
+    "@sentry/utils": "7.70.0-beta.0"
   },
   "peerDependencies": {
     "@opentelemetry/api": "1.x",
@@ -39,7 +39,7 @@
     "@opentelemetry/sdk-trace-base": "^1.15.0",
     "@opentelemetry/sdk-trace-node": "^1.15.0",
     "@opentelemetry/semantic-conventions": "^1.7.0",
-    "@sentry/node": "7.69.0"
+    "@sentry/node": "7.70.0-beta.0"
   },
   "scripts": {
     "build": "run-p build:transpile build:types",

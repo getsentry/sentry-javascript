@@ -1,6 +1,6 @@
 {
   "name": "@sentry/angular",
-  "version": "7.69.0",
+  "version": "7.70.0-beta.0",
   "description": "Official Sentry SDK for Angular",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/angular",
@@ -21,9 +21,9 @@
     "rxjs": "^6.5.5 || ^7.x"
   },
   "dependencies": {
-    "@sentry/browser": "7.69.0",
-    "@sentry/types": "7.69.0",
-    "@sentry/utils": "7.69.0",
+    "@sentry/browser": "7.70.0-beta.0",
+    "@sentry/types": "7.70.0-beta.0",
+    "@sentry/utils": "7.70.0-beta.0",
     "tslib": "^2.4.1"
   },
   "devDependencies": {
