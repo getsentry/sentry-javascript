@@ -7,6 +7,7 @@ import {
   isNaN,
   isPrimitive,
   isThenable,
+  isVueViewModel,
 } from '../src/is';
 import { supportsDOMError, supportsDOMException, supportsErrorEvent } from '../src/supports';
 import { resolvedSyncPromise } from '../src/syncpromise';
@@ -132,5 +133,14 @@ describe('isNaN()', () => {
     expect(isNaN([])).toEqual(false);
     expect(isNaN(new Error('foo'))).toEqual(false);
     expect(isNaN(new Date())).toEqual(false);
+  });
+});
+
+describe('isVueViewModel()', () => {
+  test('should work as advertised', () => {
+    expect(isVueViewModel({ _isVue: true })).toEqual(true);
+    expect(isVueViewModel({ __isVue: true })).toEqual(true);
+
+    expect(isVueViewModel({ foo: true })).toEqual(false);
   });
 });
