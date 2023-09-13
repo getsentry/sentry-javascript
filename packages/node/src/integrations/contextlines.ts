@@ -1,4 +1,4 @@
-import type { Event, EventProcessor, Hub, Integration, StackFrame } from '@sentry/types';
+import type { Event, Integration, StackFrame } from '@sentry/types';
 import { addContextToFrame } from '@sentry/utils';
 import { readFile } from 'fs';
 import { LRUMap } from 'lru_map';
@@ -56,17 +56,20 @@ export class ContextLines implements Integration {
   /**
    * @inheritDoc
    */
-  public setupOnce(addGlobalEventProcessor: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
-    addGlobalEventProcessor(event => {
-      const self = getCurrentHub().getIntegration(ContextLines);
-      if (!self) {
-        return event;
-      }
-      return this.addSourceContext(event);
-    });
+  public setupOnce(_addGlobaleventProcessor: unknown, _getCurrentHub: unknown): void {
+    // noop
   }
 
-  /** Processes an event and adds context lines */
+  /** @inheritDoc */
+  public processEvent(event: Event): Promise<Event> {
+    return this.addSourceContext(event);
+  }
+
+  /**
+   * Processes an event and adds context lines.
+   *
+   * TODO (v8): Make this internal/private
+   *  */
   public async addSourceContext(event: Event): Promise<Event> {
     // keep a lookup map of which files we've already enqueued to read,
     // so we don't enqueue the same file multiple times which would cause multiple i/o reads
@@ -117,7 +120,11 @@ export class ContextLines implements Integration {
     return event;
   }
 
-  /** Adds context lines to frames */
+  /**
+   * Adds context lines to frames.
+   *
+   * TODO (v8): Make this internal/private
+   */
   public addSourceContextToFrames(frames: StackFrame[]): void {
     for (const frame of frames) {
       // Only add context if we have a filename and it hasn't already been added

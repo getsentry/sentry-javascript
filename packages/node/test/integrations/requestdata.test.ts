@@ -1,4 +1,4 @@
-import { getCurrentHub, Hub, makeMain } from '@sentry/core';
+import { getCurrentHub } from '@sentry/core';
 import type { Event, EventProcessor, PolymorphicRequest } from '@sentry/types';
 import * as http from 'http';
 
@@ -10,7 +10,6 @@ import * as requestDataModule from '../../src/requestdata';
 import { getDefaultNodeClientOptions } from '../helper/node-client-options';
 
 const addRequestDataToEventSpy = jest.spyOn(requestDataModule, 'addRequestDataToEvent');
-const requestDataEventProcessor = jest.fn();
 
 const headers = { ears: 'furry', nose: 'wet', tongue: 'spotted', cookie: 'favorite=zukes' };
 const method = 'wagging';
@@ -19,10 +18,7 @@ const hostname = 'the.dog.park';
 const path = '/by/the/trees/';
 const queryString = 'chase=me&please=thankyou';
 
-function initWithRequestDataIntegrationOptions(integrationOptions: RequestDataIntegrationOptions): void {
-  const setMockEventProcessor = (eventProcessor: EventProcessor) =>
-    requestDataEventProcessor.mockImplementationOnce(eventProcessor);
-
+function initWithRequestDataIntegrationOptions(integrationOptions: RequestDataIntegrationOptions): EventProcessor {
   const requestDataIntegration = new RequestData({
     ...integrationOptions,
   });
@@ -33,12 +29,15 @@ function initWithRequestDataIntegrationOptions(integrationOptions: RequestDataIn
       integrations: [requestDataIntegration],
     }),
   );
-  client.setupIntegrations = () => requestDataIntegration.setupOnce(setMockEventProcessor, getCurrentHub);
-  client.getIntegration = () => requestDataIntegration as any;
 
-  const hub = new Hub(client);
+  getCurrentHub().bindClient(client);
 
-  makeMain(hub);
+  const eventProcessors = client['_eventProcessors'] as EventProcessor[];
+  const eventProcessor = eventProcessors.find(processor => processor.id === 'RequestData');
+
+  expect(eventProcessor).toBeDefined();
+
+  return eventProcessor!;
 }
 
 describe('`RequestData` integration', () => {
@@ -61,9 +60,9 @@ describe('`RequestData` integration', () => {
 
   describe('option conversion', () => {
     it('leaves `ip` and `user` at top level of `include`', () => {
-      initWithRequestDataIntegrationOptions({ include: { ip: false, user: true } });
+      const requestDataEventProcessor = initWithRequestDataIntegrationOptions({ include: { ip: false, user: true } });
 
-      requestDataEventProcessor(event);
+      void requestDataEventProcessor(event, {});
 
       const passedOptions = addRequestDataToEventSpy.mock.calls[0][2];
 
@@ -71,9 +70,9 @@ describe('`RequestData` integration', () => {
     });
 
     it('moves `transactionNamingScheme` to `transaction` include', () => {
-      initWithRequestDataIntegrationOptions({ transactionNamingScheme: 'path' });
+      const requestDataEventProcessor = initWithRequestDataIntegrationOptions({ transactionNamingScheme: 'path' });
 
-      requestDataEventProcessor(event);
+      void requestDataEventProcessor(event, {});
 
       const passedOptions = addRequestDataToEventSpy.mock.calls[0][2];
 
@@ -81,9 +80,11 @@ describe('`RequestData` integration', () => {
     });
 
     it('moves `true` request keys into `request` include, but omits `false` ones', async () => {
-      initWithRequestDataIntegrationOptions({ include: { data: true, cookies: false } });
+      const requestDataEventProcessor = initWithRequestDataIntegrationOptions({
+        include: { data: true, cookies: false },
+      });
 
-      requestDataEventProcessor(event);
+      void requestDataEventProcessor(event, {});
 
       const passedOptions = addRequestDataToEventSpy.mock.calls[0][2];
 
@@ -92,9 +93,11 @@ describe('`RequestData` integration', () => {
     });
 
     it('moves `true` user keys into `user` include, but omits `false` ones', async () => {
-      initWithRequestDataIntegrationOptions({ include: { user: { id: true, email: false } } });
+      const requestDataEventProcessor = initWithRequestDataIntegrationOptions({
+        include: { user: { id: true, email: false } },
+      });
 
-      requestDataEventProcessor(event);
+      void requestDataEventProcessor(event, {});
 
       const passedOptions = addRequestDataToEventSpy.mock.calls[0][2];
 
@@ -109,12 +112,12 @@ describe('`RequestData` integration', () => {
       const res = new http.ServerResponse(req);
       const next = jest.fn();
 
-      initWithRequestDataIntegrationOptions({ transactionNamingScheme: 'path' });
+      const requestDataEventProcessor = initWithRequestDataIntegrationOptions({ transactionNamingScheme: 'path' });
 
       sentryRequestMiddleware(req, res, next);
 
       await getCurrentHub().getScope()!.applyToEvent(event, {});
-      requestDataEventProcessor(event);
+      await requestDataEventProcessor(event, {});
 
       const passedOptions = addRequestDataToEventSpy.mock.calls[0][2];
 
@@ -138,12 +141,12 @@ describe('`RequestData` integration', () => {
       const wrappedGCPFunction = mockGCPWrapper(jest.fn(), { include: { transaction: 'methodPath' } });
       const res = new http.ServerResponse(req);
 
-      initWithRequestDataIntegrationOptions({ transactionNamingScheme: 'path' });
+      const requestDataEventProcessor = initWithRequestDataIntegrationOptions({ transactionNamingScheme: 'path' });
 
       wrappedGCPFunction(req, res);
 
       await getCurrentHub().getScope()!.applyToEvent(event, {});
-      requestDataEventProcessor(event);
+      await requestDataEventProcessor(event, {});
 
       const passedOptions = addRequestDataToEventSpy.mock.calls[0][2];
 

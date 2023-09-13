@@ -1,4 +1,14 @@
-import type { Event, EventProcessor, Exception, Hub, Integration, StackFrame, StackParser } from '@sentry/types';
+import type {
+  Client,
+  Event,
+  EventHint,
+  EventProcessor,
+  Exception,
+  Hub,
+  Integration,
+  StackFrame,
+  StackParser,
+} from '@sentry/types';
 import { logger } from '@sentry/utils';
 import type { Debugger, InspectorNotification, Runtime, Session } from 'inspector';
 import { LRUMap } from 'lru_map';
@@ -278,29 +288,39 @@ export class LocalVariables implements Integration {
     this._setup(addGlobalEventProcessor, getCurrentHub().getClient()?.getOptions());
   }
 
+  /** @inheritDoc */
+  public processEvent(event: Event, hint: EventHint | undefined, client: Client): Event {
+    const clientOptions = client.getOptions() as NodeClientOptions;
+    if (!this._session || !clientOptions.includeLocalVariables) {
+      return event;
+    }
+
+    return this._addLocalVariables(event);
+  }
+
   /** Setup in a way that's easier to call from tests */
   private _setup(
     addGlobalEventProcessor: (callback: EventProcessor) => void,
     clientOptions: NodeClientOptions | undefined,
   ): void {
-    if (this._session && clientOptions?.includeLocalVariables) {
-      // Only setup this integration if the Node version is >= v18
-      // https://github.com/getsentry/sentry-javascript/issues/7697
-      const unsupportedNodeVersion = (NODE_VERSION.major || 0) < 18;
-
-      if (unsupportedNodeVersion) {
-        logger.log('The `LocalVariables` integration is only supported on Node >= v18.');
-        return;
-      }
-
-      this._session.configureAndConnect(
-        (ev, complete) =>
-          this._handlePaused(clientOptions.stackParser, ev as InspectorNotification<PausedExceptionEvent>, complete),
-        !!this._options.captureAllExceptions,
-      );
-
-      addGlobalEventProcessor(async event => this._addLocalVariables(event));
+    if (!this._session || !clientOptions?.includeLocalVariables) {
+      return;
     }
+
+    // Only setup this integration if the Node version is >= v18
+    // https://github.com/getsentry/sentry-javascript/issues/7697
+    const unsupportedNodeVersion = (NODE_VERSION.major || 0) < 18;
+
+    if (unsupportedNodeVersion) {
+      logger.log('The `LocalVariables` integration is only supported on Node >= v18.');
+      return;
+    }
+
+    this._session.configureAndConnect(
+      (ev, complete) =>
+        this._handlePaused(clientOptions.stackParser, ev as InspectorNotification<PausedExceptionEvent>, complete),
+      !!this._options.captureAllExceptions,
+    );
   }
 
   /**

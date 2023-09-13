@@ -1,7 +1,7 @@
 // TODO (v8 or v9): Whenever this becomes a default integration for `@sentry/browser`, move this to `@sentry/core`. For
 // now, we leave it in `@sentry/integrations` so that it doesn't contribute bytes to our CDN bundles.
 
-import type { Event, EventProcessor, Hub, Integration, PolymorphicRequest, Transaction } from '@sentry/types';
+import type { Client, Event, EventHint, Integration, PolymorphicRequest, Transaction } from '@sentry/types';
 import { extractPathForTransaction } from '@sentry/utils';
 
 import type { AddRequestDataToEventOptions, TransactionNamingScheme } from '../requestdata';
@@ -99,65 +99,66 @@ export class RequestData implements Integration {
   /**
    * @inheritDoc
    */
-  public setupOnce(addGlobalEventProcessor: (eventProcessor: EventProcessor) => void, getCurrentHub: () => Hub): void {
+  public setupOnce(_addGlobaleventProcessor: unknown, _getCurrentHub: unknown): void {
+    // noop
+  }
+
+  /** @inheritDoc */
+  public processEvent(event: Event, hint: EventHint | undefined, client: Client): Event {
     // Note: In the long run, most of the logic here should probably move into the request data utility functions. For
     // the moment it lives here, though, until https://github.com/getsentry/sentry-javascript/issues/5718 is addressed.
     // (TL;DR: Those functions touch many parts of the repo in many different ways, and need to be clened up. Once
     // that's happened, it will be easier to add this logic in without worrying about unexpected side effects.)
+
     const { transactionNamingScheme } = this._options;
 
-    addGlobalEventProcessor(event => {
-      const hub = getCurrentHub();
-      const self = hub.getIntegration(RequestData);
+    const { sdkProcessingMetadata = {} } = event;
+    const req = sdkProcessingMetadata.request;
 
-      const { sdkProcessingMetadata = {} } = event;
-      const req = sdkProcessingMetadata.request;
+    // If the globally installed instance of this integration isn't associated with the current hub, `self` will be
+    // undefined
+    if (!req) {
+      return event;
+    }
 
-      // If the globally installed instance of this integration isn't associated with the current hub, `self` will be
-      // undefined
-      if (!self || !req) {
-        return event;
-      }
+    // The Express request handler takes a similar `include` option to that which can be passed to this integration.
+    // If passed there, we store it in `sdkProcessingMetadata`. TODO(v8): Force express and GCP people to use this
+    // integration, so that all of this passing and conversion isn't necessary
+    const addRequestDataOptions =
+      sdkProcessingMetadata.requestDataOptionsFromExpressHandler ||
+      sdkProcessingMetadata.requestDataOptionsFromGCPWrapper ||
+      convertReqDataIntegrationOptsToAddReqDataOpts(this._options);
 
-      // The Express request handler takes a similar `include` option to that which can be passed to this integration.
-      // If passed there, we store it in `sdkProcessingMetadata`. TODO(v8): Force express and GCP people to use this
-      // integration, so that all of this passing and conversion isn't necessary
-      const addRequestDataOptions =
-        sdkProcessingMetadata.requestDataOptionsFromExpressHandler ||
-        sdkProcessingMetadata.requestDataOptionsFromGCPWrapper ||
-        convertReqDataIntegrationOptsToAddReqDataOpts(this._options);
+    const processedEvent = this._addRequestData(event, req, addRequestDataOptions);
 
-      const processedEvent = this._addRequestData(event, req, addRequestDataOptions);
-
-      // Transaction events already have the right `transaction` value
-      if (event.type === 'transaction' || transactionNamingScheme === 'handler') {
-        return processedEvent;
-      }
-
-      // In all other cases, use the request's associated transaction (if any) to overwrite the event's `transaction`
-      // value with a high-quality one
-      const reqWithTransaction = req as { _sentryTransaction?: Transaction };
-      const transaction = reqWithTransaction._sentryTransaction;
-      if (transaction) {
-        // TODO (v8): Remove the nextjs check and just base it on `transactionNamingScheme` for all SDKs. (We have to
-        // keep it the way it is for the moment, because changing the names of transactions in Sentry has the potential
-        // to break things like alert rules.)
-        const shouldIncludeMethodInTransactionName =
-          getSDKName(hub) === 'sentry.javascript.nextjs'
-            ? transaction.name.startsWith('/api')
-            : transactionNamingScheme !== 'path';
-
-        const [transactionValue] = extractPathForTransaction(req, {
-          path: true,
-          method: shouldIncludeMethodInTransactionName,
-          customRoute: transaction.name,
-        });
-
-        processedEvent.transaction = transactionValue;
-      }
-
+    // Transaction events already have the right `transaction` value
+    if (event.type === 'transaction' || transactionNamingScheme === 'handler') {
       return processedEvent;
-    });
+    }
+
+    // In all other cases, use the request's associated transaction (if any) to overwrite the event's `transaction`
+    // value with a high-quality one
+    const reqWithTransaction = req as { _sentryTransaction?: Transaction };
+    const transaction = reqWithTransaction._sentryTransaction;
+    if (transaction) {
+      // TODO (v8): Remove the nextjs check and just base it on `transactionNamingScheme` for all SDKs. (We have to
+      // keep it the way it is for the moment, because changing the names of transactions in Sentry has the potential
+      // to break things like alert rules.)
+      const shouldIncludeMethodInTransactionName =
+        getSDKName(client) === 'sentry.javascript.nextjs'
+          ? transaction.name.startsWith('/api')
+          : transactionNamingScheme !== 'path';
+
+      const [transactionValue] = extractPathForTransaction(req, {
+        path: true,
+        method: shouldIncludeMethodInTransactionName,
+        customRoute: transaction.name,
+      });
+
+      processedEvent.transaction = transactionValue;
+    }
+
+    return processedEvent;
   }
 }
 
@@ -203,12 +204,12 @@ function convertReqDataIntegrationOptsToAddReqDataOpts(
   };
 }
 
-function getSDKName(hub: Hub): string | undefined {
+function getSDKName(client: Client): string | undefined {
   try {
     // For a long chain like this, it's fewer bytes to combine a try-catch with assuming everything is there than to
     // write out a long chain of `a && a.b && a.b.c && ...`
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    return hub.getClient()!.getOptions()!._metadata!.sdk!.name;
+    return client.getOptions()!._metadata!.sdk!.name;
   } catch (err) {
     // In theory we should never get here
     return undefined;

@@ -36,7 +36,8 @@ export {
 } from './hub';
 export { makeSession, closeSession, updateSession } from './session';
 export { SessionFlusher } from './sessionflusher';
-export { addGlobalEventProcessor, Scope } from './scope';
+export { Scope } from './scope';
+export { addGlobalEventProcessor } from './eventProcessors';
 export { getEnvelopeEndpointWithUrlEncodedAuth, getReportDialogEndpoint } from './api';
 export { BaseClient } from './baseclient';
 export { ServerRuntimeClient } from './server-runtime-client';

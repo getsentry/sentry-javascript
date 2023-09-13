@@ -5,6 +5,7 @@ import type { DataCategory } from './datacategory';
 import type { DsnComponents } from './dsn';
 import type { DynamicSamplingContext, Envelope } from './envelope';
 import type { Event, EventHint } from './event';
+import type { EventProcessor } from './eventprocessor';
 import type { Integration, IntegrationClass } from './integration';
 import type { ClientOptions } from './options';
 import type { Scope } from './scope';
@@ -119,6 +120,13 @@ export interface Client<O extends ClientOptions = ClientOptions> {
    * still events in the queue when the timeout is reached.
    */
   flush(timeout?: number): PromiseLike<boolean>;
+
+  /**
+   * Adds an event processor that applies to any event processed by this client.
+   *
+   * TODO (v8): Make this a required method.
+   */
+  addEventProcessor?(eventProcessor: EventProcessor): void;
 
   /** Returns the client's instance of the given integration class, it any. */
   getIntegration<T extends Integration>(integration: IntegrationClass<T>): T | null;

@@ -35,7 +35,7 @@ export class BrowserProfilingIntegration implements Integration {
   /**
    * @inheritDoc
    */
-  public setupOnce(addGlobalEventProcessor: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
+  public setupOnce(_addGlobalEventProcessor: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
     this.getCurrentHub = getCurrentHub;
     const client = this.getCurrentHub().getClient() as BrowserClient;
 

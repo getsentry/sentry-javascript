@@ -30,4 +30,10 @@ export interface Integration {
    * An optional hook that allows to preprocess an event _before_ it is passed to all other event processors.
    */
   preprocessEvent?(event: Event, hint: EventHint | undefined, client: Client): void;
+
+  /**
+   * An optional hook that allows to process an event.
+   * Return `null` to drop the event, or mutate the event & return it.
+   */
+  processEvent?(event: Event, hint: EventHint | undefined, client: Client): Event | null | PromiseLike<Event | null>;
 }
