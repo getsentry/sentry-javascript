@@ -863,10 +863,8 @@ describe('SentrySpanProcessor', () => {
     });
   });
 
-  it('associates an error to a transaction', () => {
+  it('associates an error to a transaction', done => {
     let otelSpan: any;
-
-    expect.assertions(3);
 
     client = new NodeClient({
       ...DEFAULT_NODE_CLIENT_OPTIONS,
@@ -878,6 +876,7 @@ describe('SentrySpanProcessor', () => {
           span_id: otelSpan.spanContext().spanId,
           trace_id: otelSpan.spanContext().traceId,
         });
+        done();
         return null;
       },
     });
@@ -897,10 +896,8 @@ describe('SentrySpanProcessor', () => {
     });
   });
 
-  it('generates Sentry errors from opentelemetry span exception events', () => {
+  it('generates Sentry errors from opentelemetry span exception events', done => {
     let otelSpan: any;
-
-    expect.assertions(4);
 
     client = new NodeClient({
       ...DEFAULT_NODE_CLIENT_OPTIONS,
@@ -917,6 +914,7 @@ describe('SentrySpanProcessor', () => {
           span_id: otelSpan.spanContext().spanId,
           trace_id: otelSpan.spanContext().traceId,
         });
+        done();
         return null;
       },
     });
