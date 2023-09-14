@@ -180,7 +180,7 @@ interface ReplayResourceFrame extends ReplayBaseSpanFrame {
   data: ResourceData;
   op:
     | 'resource.css'
-    | 'resource.ReplayiFrame'
+    | 'resource.iframe'
     | 'resource.img'
     | 'resource.link'
     | 'resource.other'
