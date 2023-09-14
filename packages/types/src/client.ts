@@ -128,6 +128,13 @@ export interface Client<O extends ClientOptions = ClientOptions> {
    */
   addEventProcessor?(eventProcessor: EventProcessor): void;
 
+  /**
+   * Get all added event processors for this client.
+   *
+   * TODO (v8): Make this a required method.
+   */
+  getEventProcessors?(): EventProcessor[];
+
   /** Returns the client's instance of the given integration class, it any. */
   getIntegration<T extends Integration>(integration: IntegrationClass<T>): T | null;
 

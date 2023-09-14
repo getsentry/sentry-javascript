@@ -44,7 +44,6 @@ import {
 
 import { getEnvelopeEndpointWithUrlEncodedAuth } from './api';
 import { createEventEnvelope, createSessionEnvelope } from './envelope';
-import { notifyEventProcessors } from './eventProcessors';
 import type { IntegrationIndex } from './integration';
 import { setupIntegration, setupIntegrations } from './integration';
 import type { Scope } from './scope';
@@ -283,6 +282,11 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
       this.getOptions().enabled = false;
       return result;
     });
+  }
+
+  /** Get all installed event processors. */
+  public getEventProcessors(): EventProcessor[] {
+    return this._eventProcessors;
   }
 
   /** @inheritDoc */
@@ -555,41 +559,36 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
 
     this.emit('preprocessEvent', event, hint);
 
-    return prepareEvent(options, event, hint, scope)
-      .then(evt => {
-        // Process client-scoped event processors
-        return notifyEventProcessors(this._eventProcessors, evt, hint);
-      })
-      .then(evt => {
-        if (evt === null) {
-          return evt;
-        }
-
-        // If a trace context is not set on the event, we use the propagationContext set on the event to
-        // generate a trace context. If the propagationContext does not have a dynamic sampling context, we
-        // also generate one for it.
-        const { propagationContext } = evt.sdkProcessingMetadata || {};
-        const trace = evt.contexts && evt.contexts.trace;
-        if (!trace && propagationContext) {
-          const { traceId: trace_id, spanId, parentSpanId, dsc } = propagationContext as PropagationContext;
-          evt.contexts = {
-            trace: {
-              trace_id,
-              span_id: spanId,
-              parent_span_id: parentSpanId,
-            },
-            ...evt.contexts,
-          };
-
-          const dynamicSamplingContext = dsc ? dsc : getDynamicSamplingContextFromClient(trace_id, this, scope);
-
-          evt.sdkProcessingMetadata = {
-            dynamicSamplingContext,
-            ...evt.sdkProcessingMetadata,
-          };
-        }
+    return prepareEvent(options, event, hint, scope, this).then(evt => {
+      if (evt === null) {
         return evt;
-      });
+      }
+
+      // If a trace context is not set on the event, we use the propagationContext set on the event to
+      // generate a trace context. If the propagationContext does not have a dynamic sampling context, we
+      // also generate one for it.
+      const { propagationContext } = evt.sdkProcessingMetadata || {};
+      const trace = evt.contexts && evt.contexts.trace;
+      if (!trace && propagationContext) {
+        const { traceId: trace_id, spanId, parentSpanId, dsc } = propagationContext as PropagationContext;
+        evt.contexts = {
+          trace: {
+            trace_id,
+            span_id: spanId,
+            parent_span_id: parentSpanId,
+          },
+          ...evt.contexts,
+        };
+
+        const dynamicSamplingContext = dsc ? dsc : getDynamicSamplingContextFromClient(trace_id, this, scope);
+
+        evt.sdkProcessingMetadata = {
+          dynamicSamplingContext,
+          ...evt.sdkProcessingMetadata,
+        };
+      }
+      return evt;
+    });
   }
 
   /**

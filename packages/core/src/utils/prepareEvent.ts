@@ -1,7 +1,8 @@
-import type { ClientOptions, Event, EventHint, StackFrame, StackParser } from '@sentry/types';
+import type { Client, ClientOptions, Event, EventHint, StackFrame, StackParser } from '@sentry/types';
 import { dateTimestampInSeconds, GLOBAL_OBJ, normalize, resolvedSyncPromise, truncate, uuid4 } from '@sentry/utils';
 
 import { DEFAULT_ENVIRONMENT } from '../constants';
+import { notifyEventProcessors } from '../eventProcessors';
 import { Scope } from '../scope';
 
 /**
@@ -26,6 +27,7 @@ export function prepareEvent(
   event: Event,
   hint: EventHint,
   scope?: Scope,
+  client?: Client,
 ): PromiseLike<Event | null> {
   const { normalizeDepth = 3, normalizeMaxBreadth = 1_000 } = options;
   const prepared: Event = {
@@ -74,20 +76,25 @@ export function prepareEvent(
     result = finalScope.applyToEvent(prepared, hint);
   }
 
-  return result.then(evt => {
-    if (evt) {
-      // We apply the debug_meta field only after all event processors have ran, so that if any event processors modified
-      // file names (e.g.the RewriteFrames integration) the filename -> debug ID relationship isn't destroyed.
-      // This should not cause any PII issues, since we're only moving data that is already on the event and not adding
-      // any new data
-      applyDebugMeta(evt);
-    }
+  return result
+    .then(evt => {
+      // Process client-scoped event processors
+      return client && client.getEventProcessors ? notifyEventProcessors(client.getEventProcessors(), evt, hint) : evt;
+    })
+    .then(evt => {
+      if (evt) {
+        // We apply the debug_meta field only after all event processors have ran, so that if any event processors modified
+        // file names (e.g.the RewriteFrames integration) the filename -> debug ID relationship isn't destroyed.
+        // This should not cause any PII issues, since we're only moving data that is already on the event and not adding
+        // any new data
+        applyDebugMeta(evt);
+      }
 
-    if (typeof normalizeDepth === 'number' && normalizeDepth > 0) {
-      return normalizeEvent(evt, normalizeDepth, normalizeMaxBreadth);
-    }
-    return evt;
-  });
+      if (typeof normalizeDepth === 'number' && normalizeDepth > 0) {
+        return normalizeEvent(evt, normalizeDepth, normalizeMaxBreadth);
+      }
+      return evt;
+    });
 }
 
 /**
