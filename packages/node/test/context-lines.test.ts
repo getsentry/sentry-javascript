@@ -1,7 +1,7 @@
 import type { StackFrame } from '@sentry/types';
+import { parseStackFrames } from '@sentry/utils';
 import * as fs from 'fs';
 
-import { parseStackFrames } from '../src/eventbuilder';
 import { ContextLines, resetFileContentCache } from '../src/integrations/contextlines';
 import { defaultStackParser } from '../src/sdk';
 import { getError } from './helper/error';

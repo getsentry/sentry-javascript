@@ -72,5 +72,12 @@
   "volta": {
     "extends": "../../package.json"
   },
+  "madge":{
+    "detectiveOptions": {
+      "ts": {
+        "skipTypeImports": true
+      }
+    }
+  },
   "sideEffects": false
 }
