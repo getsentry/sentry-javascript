@@ -61,7 +61,7 @@ export function eventFromUnknownInput(
     if (isPlainObject(exception)) {
       // This will allow us to group events based on top-level keys
       // which is much better than creating new group when any key/value change
-      const message = `Non-Error exception captured with keys: ${extractExceptionKeysForMessage(exception)}`;
+      const message = `Object captured as exception with keys: ${extractExceptionKeysForMessage(exception)}`;
 
       const hub = getCurrentHub();
       const client = hub.getClient();
