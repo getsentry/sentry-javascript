@@ -15,8 +15,6 @@ sentryTest(
       sentryTest.skip();
     }
 
-    const reqPromise0 = waitForReplayRequest(page, 0);
-
     await page.route('https://dsn.ingest.sentry.io/**/*', route => {
       return route.fulfill({
         status: 200,
@@ -25,27 +23,24 @@ sentryTest(
       });
     });
 
+    const reqPromise0 = waitForReplayRequest(page, 0);
+
     const url = await getLocalTestPath({ testDir: __dirname });
 
-    await page.goto(url);
-    const res0 = await reqPromise0;
+    const [, res0] = await Promise.all([page.goto(url), reqPromise0]);
 
     const reqPromise1 = waitForReplayRequest(page);
 
-    void page.click('#button-add');
-    await forceFlushReplay();
-    const res1 = await reqPromise1;
+    const [, , res1] = await Promise.all([page.click('#button-add'), forceFlushReplay(), reqPromise1]);
 
     // replay should be stopped due to mutation limit
     let replay = await getReplaySnapshot(page);
     expect(replay.session).toBe(undefined);
     expect(replay._isEnabled).toBe(false);
 
-    void page.click('#button-modify');
-    await forceFlushReplay();
+    await Promise.all([page.click('#button-modify'), await forceFlushReplay()]);
 
-    await page.click('#button-remove');
-    await forceFlushReplay();
+    await Promise.all([page.click('#button-remove'), await forceFlushReplay()]);
 
     const replayData0 = getReplayRecordingContent(res0);
     expect(replayData0.fullSnapshots.length).toBe(1);

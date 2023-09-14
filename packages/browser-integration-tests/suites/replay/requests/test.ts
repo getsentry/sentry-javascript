@@ -10,9 +10,6 @@ sentryTest('replay recording should contain fetch request span', async ({ getLoc
     sentryTest.skip();
   }
 
-  const reqPromise0 = waitForReplayRequest(page, 0);
-  const reqPromise1 = waitForReplayRequest(page, 1);
-
   await page.route('https://dsn.ingest.sentry.io/**/*', route => {
     return route.fulfill({
       status: 200,
@@ -29,15 +26,18 @@ sentryTest('replay recording should contain fetch request span', async ({ getLoc
     });
   });
 
+  const reqPromise0 = waitForReplayRequest(page, 0);
+  const reqPromise1 = waitForReplayRequest(page, 1);
+
   const url = await getLocalTestPath({ testDir: __dirname });
 
-  await page.goto(url);
-  await page.click('#go-background');
-  const { performanceSpans: spans0 } = getReplayRecordingContent(await reqPromise0);
+  const [, req0] = await Promise.all([Promise.all([page.goto(url), page.click('#go-background')]), reqPromise0]);
+
+  const { performanceSpans: spans0 } = getReplayRecordingContent(req0);
 
   const receivedResponse = page.waitForResponse('https://example.com');
-  await page.click('#fetch');
-  await receivedResponse;
+
+  await Promise.all([page.click('#fetch'), receivedResponse]);
 
   const { performanceSpans: spans1 } = getReplayRecordingContent(await reqPromise1);
 
@@ -50,9 +50,6 @@ sentryTest('replay recording should contain XHR request span', async ({ getLocal
     sentryTest.skip();
   }
 
-  const reqPromise0 = waitForReplayRequest(page, 0);
-  const reqPromise1 = waitForReplayRequest(page, 1);
-
   await page.route('https://dsn.ingest.sentry.io/**/*', route => {
     return route.fulfill({
       status: 200,
@@ -69,15 +66,17 @@ sentryTest('replay recording should contain XHR request span', async ({ getLocal
     });
   });
 
+  const reqPromise0 = waitForReplayRequest(page, 0);
+  const reqPromise1 = waitForReplayRequest(page, 1);
+
+
   const url = await getLocalTestPath({ testDir: __dirname });
 
-  await page.goto(url);
-  await page.click('#go-background');
-  const { performanceSpans: spans0 } = getReplayRecordingContent(await reqPromise0);
+  const [, req0] = await Promise.all([Promise.all([page.goto(url), page.click('#go-background')]), reqPromise0]);
 
-  const receivedResponse = page.waitForResponse('https://example.com');
-  await page.click('#xhr');
-  await receivedResponse;
+  const { performanceSpans: spans0 } = getReplayRecordingContent(req0);
+
+  await Promise.all([page.click('#xhr'), page.waitForResponse('https://example.com')])
 
   const { performanceSpans: spans1 } = getReplayRecordingContent(await reqPromise1);
 

@@ -50,26 +50,25 @@ sentryTest(
 
     const url = await getLocalTestPath({ testDir: __dirname });
 
-    await page.goto(url);
-    await page.click('#go-background');
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    await Promise.all([
+      page.goto(url),
+      page.click('#go-background'),
+      new Promise(resolve => setTimeout(resolve, 1000)),
+    ]);
 
     expect(callsToSentry).toEqual(0);
 
-    await page.click('#error');
-    const req0 = await reqPromise0;
+    const [, req0] = await Promise.all([page.click('#error'), reqPromise0]);
 
     expect(callsToSentry).toEqual(2); // 1 error, 1 replay event
 
-    await page.click('#go-background');
-    const req1 = await reqPromise1;
-    await reqErrorPromise;
+    const [, req1] = await Promise.all([page.click('#go-background'), reqPromise1, reqErrorPromise]);
 
     expect(callsToSentry).toEqual(3); // 1 error, 2 replay events
 
     await page.click('#log');
-    await page.click('#go-background');
-    const req2 = await reqPromise2;
+
+    const [, req2] = await Promise.all([page.click('#go-background'), reqPromise2]);
 
     const event0 = getReplayEvent(req0);
     const content0 = getReplayRecordingContent(req0);

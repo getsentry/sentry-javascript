@@ -10,8 +10,6 @@ sentryTest('should capture console messages in replay', async ({ getLocalTestPat
     sentryTest.skip();
   }
 
-  const reqPromise0 = waitForReplayRequest(page, 0);
-
   await page.route('https://dsn.ingest.sentry.io/**/*', route => {
     return route.fulfill({
       status: 200,
@@ -20,10 +18,11 @@ sentryTest('should capture console messages in replay', async ({ getLocalTestPat
     });
   });
 
+  const reqPromise0 = waitForReplayRequest(page, 0);
+
   const url = await getLocalTestPath({ testDir: __dirname });
 
-  await page.goto(url);
-  await reqPromise0;
+  await Promise.all([page.goto(url), reqPromise0]);
 
   const reqPromise1 = waitForReplayRequest(
     page,
@@ -38,11 +37,9 @@ sentryTest('should capture console messages in replay', async ({ getLocalTestPat
   await page.click('[data-log]');
 
   // Sometimes this doesn't seem to trigger, so we trigger it twice to be sure...
-  await page.click('[data-log]');
+  const [, , req1] = await Promise.all([page.click('[data-log]'), forceFlushReplay(), reqPromise1]);
 
-  await forceFlushReplay();
-
-  const { breadcrumbs } = getCustomRecordingEvents(await reqPromise1);
+  const { breadcrumbs } = getCustomRecordingEvents(req1);
 
   expect(breadcrumbs.filter(breadcrumb => breadcrumb.category === 'console')).toEqual(
     expect.arrayContaining([
@@ -65,8 +62,6 @@ sentryTest('should capture very large console logs', async ({ getLocalTestPath, 
     sentryTest.skip();
   }
 
-  const reqPromise0 = waitForReplayRequest(page, 0);
-
   await page.route('https://dsn.ingest.sentry.io/**/*', route => {
     return route.fulfill({
       status: 200,
@@ -75,10 +70,11 @@ sentryTest('should capture very large console logs', async ({ getLocalTestPath, 
     });
   });
 
+  const reqPromise0 = waitForReplayRequest(page, 0);
+
   const url = await getLocalTestPath({ testDir: __dirname });
 
-  await page.goto(url);
-  await reqPromise0;
+  await Promise.all([page.goto(url), reqPromise0]);
 
   const reqPromise1 = waitForReplayRequest(
     page,
@@ -90,14 +86,9 @@ sentryTest('should capture very large console logs', async ({ getLocalTestPath, 
     5_000,
   );
 
-  await page.click('[data-log-large]');
+  const [, , req1] = await Promise.all([page.click('[data-log-large]'), forceFlushReplay(), reqPromise1]);
 
-  // Sometimes this doesn't seem to trigger, so we trigger it twice to be sure...
-  await page.click('[data-log-large]');
-
-  await forceFlushReplay();
-
-  const { breadcrumbs } = getCustomRecordingEvents(await reqPromise1);
+  const { breadcrumbs } = getCustomRecordingEvents(req1);
 
   expect(breadcrumbs.filter(breadcrumb => breadcrumb.category === 'console')).toEqual(
     expect.arrayContaining([

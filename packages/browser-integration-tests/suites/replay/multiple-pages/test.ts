@@ -56,8 +56,7 @@ sentryTest(
 
     const url = await getLocalTestPath({ testDir: __dirname });
 
-    await page.goto(url);
-    const req0 = await reqPromise0;
+    const [, req0] = await Promise.all([page.goto(url), reqPromise0]);
     const replayEvent0 = getReplayEvent(req0);
     const recording0 = getReplayRecordingContent(req0);
 
@@ -65,9 +64,8 @@ sentryTest(
     expect(normalize(recording0.fullSnapshots)).toMatchSnapshot('seg-0-snap-full');
     expect(recording0.incrementalSnapshots.length).toEqual(0);
 
-    await page.click('#go-background');
+    const [, req1] = await Promise.all([page.click('#go-background'), reqPromise1]);
 
-    const req1 = await reqPromise1;
     const replayEvent1 = getReplayEvent(req1);
     const recording1 = getReplayRecordingContent(req1);
 
@@ -97,9 +95,8 @@ sentryTest(
     // -----------------------------------------------------------------------------------------
     // Test page reload
 
-    await page.reload();
+    const [, req2] = await Promise.all([page.reload(), reqPromise2]);
 
-    const req2 = await reqPromise2;
     const replayEvent2 = getReplayEvent(req2);
     const recording2 = getReplayRecordingContent(req2);
 
@@ -107,9 +104,8 @@ sentryTest(
     expect(normalize(recording2.fullSnapshots)).toMatchSnapshot('seg-2-snap-full');
     expect(recording2.incrementalSnapshots.length).toEqual(0);
 
-    await page.click('#go-background');
+    const [, req3] = await Promise.all([page.click('#go-background'), reqPromise3]);
 
-    const req3 = await reqPromise3;
     const replayEvent3 = getReplayEvent(req3);
     const recording3 = getReplayRecordingContent(req3);
 
@@ -137,9 +133,8 @@ sentryTest(
     // -----------------------------------------------------------------------------------------
     // Test subsequent link navigation to another page
 
-    await page.click('a');
+    const [, req4] = await Promise.all([page.click('a'), reqPromise4]);
 
-    const req4 = await reqPromise4;
     const replayEvent4 = getReplayEvent(req4);
     const recording4 = getReplayRecordingContent(req4);
 
@@ -161,9 +156,8 @@ sentryTest(
     expect(normalize(recording4.fullSnapshots)).toMatchSnapshot('seg-4-snap-full');
     expect(recording4.incrementalSnapshots.length).toEqual(0);
 
-    await page.click('#go-background');
+    const [, req5] = await Promise.all([page.click('#go-background'), reqPromise5]);
 
-    const req5 = await reqPromise5;
     const replayEvent5 = getReplayEvent(req5);
     const recording5 = getReplayRecordingContent(req5);
 
@@ -207,9 +201,8 @@ sentryTest(
     // -----------------------------------------------------------------------------------------
     // Test subsequent navigation without a page reload (i.e. SPA navigation)
 
-    await page.click('#spa-navigation');
+    const [, req6] = await Promise.all([page.click('#spa-navigation'), reqPromise6]);
 
-    const req6 = await reqPromise6;
     const replayEvent6 = getReplayEvent(req6);
     const recording6 = getReplayRecordingContent(req6);
 
@@ -231,9 +224,8 @@ sentryTest(
     expect(recording6.fullSnapshots.length).toEqual(0);
     expect(normalize(recording6.incrementalSnapshots)).toMatchSnapshot('seg-6-snap-incremental');
 
-    await page.click('#go-background');
+    const [, req7] = await Promise.all([page.click('#go-background'), reqPromise7]);
 
-    const req7 = await reqPromise7;
     const replayEvent7 = getReplayEvent(req7);
     const recording7 = getReplayRecordingContent(req7);
 
@@ -279,9 +271,11 @@ sentryTest(
     //   // -----------------------------------------------------------------------------------------
     //   // And just to finish this off, let's go back to the index page
 
-    await page.click('a');
+    const [, req8] = await Promise.all([
+      page.click('a'),
+      reqPromise8
+    ]);
 
-    const req8 = await reqPromise8;
     const replayEvent8 = getReplayEvent(req8);
     const recording8 = getReplayRecordingContent(req8);
 
@@ -293,9 +287,11 @@ sentryTest(
     expect(normalize(recording8.fullSnapshots)).toMatchSnapshot('seg-8-snap-full');
     expect(recording8.incrementalSnapshots.length).toEqual(0);
 
-    await page.click('#go-background');
+    const [, req9] = await Promise.all([
+      page.click('#go-background'),
+      reqPromise9
+    ]);
 
-    const req9 = await reqPromise9;
     const replayEvent9 = getReplayEvent(req9);
     const recording9 = getReplayRecordingContent(req9);
 

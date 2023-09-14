@@ -10,8 +10,6 @@ sentryTest(
       sentryTest.skip();
     }
 
-    const reqPromise0 = waitForReplayRequest(page, 0);
-
     await page.route('https://dsn.ingest.sentry.io/**/*', route => {
       return route.fulfill({
         status: 200,
@@ -20,28 +18,23 @@ sentryTest(
       });
     });
 
+    const reqPromise0 = waitForReplayRequest(page, 0);
+
     const url = await getLocalTestPath({ testDir: __dirname });
 
-    await page.goto(url);
-    const res0 = await reqPromise0;
+    const [, res0] = await Promise.all([page.goto(url), reqPromise0]);
 
     const reqPromise1 = waitForReplayRequest(page);
 
-    void page.click('#button-add');
-    await forceFlushReplay();
-    const res1 = await reqPromise1;
+    const [, , res1] = await Promise.all([page.click('#button-add'), forceFlushReplay(), reqPromise1]);
 
     const reqPromise2 = waitForReplayRequest(page);
 
-    void page.click('#button-modify');
-    await forceFlushReplay();
-    const res2 = await reqPromise2;
+    const [, , res2] = await Promise.all([page.click('#button-modify'), forceFlushReplay(), reqPromise2]);
 
     const reqPromise3 = waitForReplayRequest(page);
 
-    void page.click('#button-remove');
-    await forceFlushReplay();
-    const res3 = await reqPromise3;
+    const [, , res3] = await Promise.all([page.click('#button-remove'), forceFlushReplay(), reqPromise3]);
 
     const replayData0 = getReplayRecordingContent(res0);
     const replayData1 = getReplayRecordingContent(res1);
