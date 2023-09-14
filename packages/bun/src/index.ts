@@ -20,8 +20,8 @@ export type {
 } from '@sentry/types';
 export type { AddRequestDataToEventOptions } from '@sentry/utils';
 
-export type { TransactionNamingScheme } from './requestdata';
-export type { NodeOptions } from './types';
+export type { TransactionNamingScheme } from '@sentry/node';
+export type { BunOptions } from './types';
 
 export {
   addGlobalEventProcessor,
@@ -63,26 +63,19 @@ export {
   startSpanManual,
 } from '@sentry/core';
 export type { SpanStatusType } from '@sentry/core';
-export { autoDiscoverNodePerformanceMonitoringIntegrations } from './tracing';
+export { autoDiscoverNodePerformanceMonitoringIntegrations } from '@sentry/node';
 
-export { NodeClient } from './client';
-export { makeNodeTransport } from './transports';
-export type { NodeTransportOptions } from './transports';
-export { defaultIntegrations, init, defaultStackParser, getSentryRelease } from './sdk';
-export { addRequestDataToEvent, DEFAULT_USER_INCLUDES, extractRequestData } from './requestdata';
-export { deepReadDirSync } from './utils';
-export { getModuleFromFilename } from './module';
+export { BunClient } from './client';
+export { makeNodeTransport } from '@sentry/node';
+export type { NodeTransportOptions } from '@sentry/node';
+export { defaultIntegrations, init } from './sdk';
 
 import { Integrations as CoreIntegrations } from '@sentry/core';
-
-import * as Handlers from './handlers';
-import * as NodeIntegrations from './integrations';
-import * as TracingIntegrations from './tracing/integrations';
+import { Integrations as NodeIntegrations } from '@sentry/node';
 
 const INTEGRATIONS = {
   ...CoreIntegrations,
   ...NodeIntegrations,
-  ...TracingIntegrations,
 };
 
-export { INTEGRATIONS as Integrations, Handlers };
+export { INTEGRATIONS as Integrations };

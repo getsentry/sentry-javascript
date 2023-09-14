@@ -41,6 +41,7 @@
     "packages/angular-ivy",
     "packages/browser",
     "packages/browser-integration-tests",
+    "packages/bun",
     "packages/core",
     "packages/e2e-tests",
     "packages/ember",
