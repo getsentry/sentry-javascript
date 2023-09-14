@@ -178,13 +178,7 @@ interface ReplayRequestFrame extends ReplayBaseSpanFrame {
 
 interface ReplayResourceFrame extends ReplayBaseSpanFrame {
   data: ResourceData;
-  op:
-    | 'resource.css'
-    | 'resource.iframe'
-    | 'resource.img'
-    | 'resource.link'
-    | 'resource.other'
-    | 'resource.script';
+  op: 'resource.css' | 'resource.iframe' | 'resource.img' | 'resource.link' | 'resource.other' | 'resource.script';
 }
 
 export type ReplaySpanFrame =
