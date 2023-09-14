@@ -43,9 +43,7 @@ export class Dedupe implements Integration {
         __DEBUG_BUILD__ && logger.warn('Event dropped due to being a duplicate of previously captured event.');
         return null;
       }
-    } catch (_oO) {
-      return (this._previousEvent = currentEvent);
-    }
+    } catch (_oO) {} // eslint-disable-line no-empty
 
     return (this._previousEvent = currentEvent);
   }
