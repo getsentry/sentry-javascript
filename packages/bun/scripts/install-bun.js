@@ -1,3 +1,5 @@
+/* eslint-disable no-console */
+
 const { exec } = require('child_process');
 const https = require('https');
 

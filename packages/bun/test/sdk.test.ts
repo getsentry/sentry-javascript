@@ -1,3 +1,4 @@
+// eslint-disable-next-line import/no-unresolved
 import { expect, test } from 'bun:test';
 
 import { init } from '../src/index';
