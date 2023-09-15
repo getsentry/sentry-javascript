@@ -164,6 +164,8 @@ jobs:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Bun
         uses: oven-sh/setup-bun@v1
+      - name: Test Bun
+        run: bun help
       - name: Set up Node
         uses: actions/setup-node@v3
         with:
