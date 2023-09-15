@@ -330,20 +330,7 @@ function instrumentRouter(appOrRouter: ExpressRouter): void {
      * /1234 -> endpoint with param :userId
      * final _reconstructedRoute is /api/v1/:userId
      */
-    const originalUrlSplit = req.originalUrl?.split('/').filter(v => !!v);
-    let tempCounter = 0;
-    const currentOffset = req._reconstructedRoute.split('/').filter(v => !!v).length || 0;
-    const layerPath = layer.path
-      ?.split('/')
-      .filter(segment => {
-        if (originalUrlSplit?.[currentOffset + tempCounter] === segment) {
-          tempCounter += 1;
-          return true;
-        }
-        return false;
-      })
-      .join('/');
-
+    const layerPath = preventDuplicateSegments(req.originalUrl, req._reconstructedRoute, layer.path)
     // Otherwise, the hardcoded path (i.e. a partial route without params) is stored in layer.path
     const partialRoute = layerRoutePath || layerPath || '';
 
@@ -483,7 +470,7 @@ function getLayerRoutePathInfo(layer: Layer): LayerRoutePathInfo {
   const isRegex = isRegExp(lrp);
   const isArray = Array.isArray(lrp);
 
-  if (!lrp && !isRegex && !isArray) {
+  if (!lrp) {
     /**
      * If lrp does not exist try to recreate original layer path from route regexp
      */
@@ -526,4 +513,30 @@ function getLayerRoutePathString(isArray: boolean, lrp?: RouteType | RouteType[]
     return (lrp as RouteType[]).map(r => r.toString()).join(',');
   }
   return lrp && lrp.toString();
+}
+
+
+
+/**
+ * remove duplicate segment contain in layerPath against _reconstructedRoute,
+ * and return only unique segment that can be added into _reconstructedRoute
+ */
+export function preventDuplicateSegments (originalUrl?: string, _reconstructedRoute?: string, layerPath?: string) {
+  const originalUrlSplit = originalUrl?.split('/').filter(v => !!v);
+  let tempCounter = 0;
+  const currentOffset = _reconstructedRoute?.split('/').filter(v => !!v).length || 0;
+  const result = layerPath
+    ?.split('/')
+    .filter(segment => {
+  console.log(segment, originalUrlSplit?.[currentOffset + tempCounter])
+
+      if (originalUrlSplit?.[currentOffset + tempCounter] === segment) {
+        tempCounter += 1;
+        return true;
+      }
+      return false;
+    })
+    .join('/');
+    console.log(result)
+    return result
 }
