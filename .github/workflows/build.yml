@@ -162,10 +162,6 @@ jobs:
         uses: actions/checkout@v3
         with:
           ref: ${{ env.HEAD_COMMIT }}
-      - name: Set up Bun
-        uses: oven-sh/setup-bun@v1
-      - name: Test Bun
-        run: bun help
       - name: Set up Node
         uses: actions/setup-node@v3
         with:
@@ -413,6 +409,8 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: ${{ matrix.node }}
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v1
       - name: Restore caches
         uses: ./.github/actions/restore-cache
         env:
