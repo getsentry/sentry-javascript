@@ -319,20 +319,25 @@ function instrumentRouter(appOrRouter: ExpressRouter): void {
       req._hasParameters = true;
     }
 
-    /**
-     * prevent duplicate segment in _reconstructedRoute param if router match multiple routes before final path
-     * example:
-     * original url: /api/v1/1234
-     * prevent: /api/api/v1/:userId
-     * router structure
-     * /api -> middleware
-     * /api/v1 -> middleware
-     * /1234 -> endpoint with param :userId
-     * final _reconstructedRoute is /api/v1/:userId
-     */
-    const layerPath = preventDuplicateSegments(req.originalUrl, req._reconstructedRoute, layer.path)
     // Otherwise, the hardcoded path (i.e. a partial route without params) is stored in layer.path
-    const partialRoute = layerRoutePath || layerPath || '';
+    let partialRoute;
+
+    if (layerRoutePath) {
+      partialRoute = layerRoutePath;
+    } else {
+      /**
+       * prevent duplicate segment in _reconstructedRoute param if router match multiple routes before final path
+       * example:
+       * original url: /api/v1/1234
+       * prevent: /api/api/v1/:userId
+       * router structure
+       * /api -> middleware
+       * /api/v1 -> middleware
+       * /1234 -> endpoint with param :userId
+       * final _reconstructedRoute is /api/v1/:userId
+       */
+      partialRoute = preventDuplicateSegments(req.originalUrl, req._reconstructedRoute, layer.path) || '';
+    }
 
     // Normalize the partial route so that it doesn't contain leading or trailing slashes
     // and exclude empty or '*' wildcard routes.
@@ -515,21 +520,21 @@ function getLayerRoutePathString(isArray: boolean, lrp?: RouteType | RouteType[]
   return lrp && lrp.toString();
 }
 
-
-
 /**
  * remove duplicate segment contain in layerPath against _reconstructedRoute,
  * and return only unique segment that can be added into _reconstructedRoute
  */
-export function preventDuplicateSegments (originalUrl?: string, _reconstructedRoute?: string, layerPath?: string) {
+export function preventDuplicateSegments(
+  originalUrl?: string,
+  _reconstructedRoute?: string,
+  layerPath?: string,
+): string | undefined {
   const originalUrlSplit = originalUrl?.split('/').filter(v => !!v);
   let tempCounter = 0;
   const currentOffset = _reconstructedRoute?.split('/').filter(v => !!v).length || 0;
   const result = layerPath
     ?.split('/')
     .filter(segment => {
-  console.log(segment, originalUrlSplit?.[currentOffset + tempCounter])
-
       if (originalUrlSplit?.[currentOffset + tempCounter] === segment) {
         tempCounter += 1;
         return true;
@@ -537,6 +542,5 @@ export function preventDuplicateSegments (originalUrl?: string, _reconstructedRo
       return false;
     })
     .join('/');
-    console.log(result)
-    return result
+  return result;
 }
