@@ -2,7 +2,17 @@
  * @jest-environment jsdom
  */
 
-import { dropUndefinedKeys, extractExceptionKeysForMessage, fill, objectify, urlEncode } from '../src/object';
+import type { WrappedFunction } from '@sentry/types';
+
+import {
+  addNonEnumerableProperty,
+  dropUndefinedKeys,
+  extractExceptionKeysForMessage,
+  fill,
+  markFunctionWrapped,
+  objectify,
+  urlEncode,
+} from '../src/object';
 import { testOnlyIfNodeVersionAtLeast } from './testutils';
 
 describe('fill()', () => {
@@ -313,5 +323,97 @@ describe('objectify()', () => {
 
     // `.toBe()` tests on identity, so this shows no wrapping has occurred
     expect(objectifiedNonPrimtive).toBe(notAPrimitive);
+  });
+});
+
+describe('addNonEnumerableProperty', () => {
+  it('works with a plain object', () => {
+    const obj: { foo?: string } = {};
+    addNonEnumerableProperty(obj, 'foo', 'bar');
+    expect(obj.foo).toBe('bar');
+  });
+
+  it('works with a class', () => {
+    class MyClass {
+      public foo?: string;
+    }
+    const obj = new MyClass();
+    addNonEnumerableProperty(obj as any, 'foo', 'bar');
+    expect(obj.foo).toBe('bar');
+  });
+
+  it('works with a function', () => {
+    const func = jest.fn();
+    addNonEnumerableProperty(func as any, 'foo', 'bar');
+    expect((func as any).foo).toBe('bar');
+    func();
+    expect(func).toHaveBeenCalledTimes(1);
+  });
+
+  it('works with an existing property object', () => {
+    const obj = { foo: 'before' };
+    addNonEnumerableProperty(obj, 'foo', 'bar');
+    expect(obj.foo).toBe('bar');
+  });
+
+  it('works with an existing readonly property object', () => {
+    const obj = { foo: 'before' };
+
+    Object.defineProperty(obj, 'foo', {
+      value: 'defined',
+      writable: false,
+    });
+
+    addNonEnumerableProperty(obj, 'foo', 'bar');
+    expect(obj.foo).toBe('bar');
+  });
+
+  it('does not error with a frozen object', () => {
+    const obj = Object.freeze({ foo: 'before' });
+
+    addNonEnumerableProperty(obj, 'foo', 'bar');
+    expect(obj.foo).toBe('before');
+  });
+});
+
+describe('markFunctionWrapped', () => {
+  it('works with a function', () => {
+    const originalFunc = jest.fn();
+    const wrappedFunc = jest.fn();
+    markFunctionWrapped(wrappedFunc, originalFunc);
+
+    expect((wrappedFunc as WrappedFunction).__sentry_original__).toBe(originalFunc);
+
+    wrappedFunc();
+
+    expect(wrappedFunc).toHaveBeenCalledTimes(1);
+    expect(originalFunc).not.toHaveBeenCalled();
+  });
+
+  it('works with a frozen original function', () => {
+    const originalFunc = Object.freeze(jest.fn());
+    const wrappedFunc = jest.fn();
+    markFunctionWrapped(wrappedFunc, originalFunc);
+
+    expect((wrappedFunc as WrappedFunction).__sentry_original__).toBe(originalFunc);
+
+    wrappedFunc();
+
+    expect(wrappedFunc).toHaveBeenCalledTimes(1);
+    expect(originalFunc).not.toHaveBeenCalled();
+  });
+
+  it('works with a frozen wrapped function', () => {
+    const originalFunc = Object.freeze(jest.fn());
+    const wrappedFunc = Object.freeze(jest.fn());
+    markFunctionWrapped(wrappedFunc, originalFunc);
+
+    // Skips adding the property, but also doesn't error
+    expect((wrappedFunc as WrappedFunction).__sentry_original__).toBe(undefined);
+
+    wrappedFunc();
+
+    expect(wrappedFunc).toHaveBeenCalledTimes(1);
+    expect(originalFunc).not.toHaveBeenCalled();
   });
 });
