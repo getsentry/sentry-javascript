@@ -12,6 +12,7 @@ import type {
   Event,
   EventDropReason,
   EventHint,
+  EventProcessor,
   Integration,
   IntegrationClass,
   Outcome,
@@ -107,6 +108,8 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   // eslint-disable-next-line @typescript-eslint/ban-types
   private _hooks: Record<string, Function[]>;
 
+  private _eventProcessors: EventProcessor[];
+
   /**
    * Initializes this client instance.
    *
@@ -119,6 +122,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
     this._numProcessing = 0;
     this._outcomes = {};
     this._hooks = {};
+    this._eventProcessors = [];
 
     if (options.dsn) {
       this._dsn = makeDsn(options.dsn);
@@ -278,6 +282,16 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
       this.getOptions().enabled = false;
       return result;
     });
+  }
+
+  /** Get all installed event processors. */
+  public getEventProcessors(): EventProcessor[] {
+    return this._eventProcessors;
+  }
+
+  /** @inheritDoc */
+  public addEventProcessor(eventProcessor: EventProcessor): void {
+    this._eventProcessors.push(eventProcessor);
   }
 
   /**
@@ -545,7 +559,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
 
     this.emit('preprocessEvent', event, hint);
 
-    return prepareEvent(options, event, hint, scope).then(evt => {
+    return prepareEvent(options, event, hint, scope, this).then(evt => {
       if (evt === null) {
         return evt;
       }

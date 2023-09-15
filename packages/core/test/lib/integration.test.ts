@@ -1,6 +1,15 @@
 import type { Integration, Options } from '@sentry/types';
 
-import { getIntegrationsToSetup } from '../../src/integration';
+import { getIntegrationsToSetup, installedIntegrations, setupIntegration } from '../../src/integration';
+import { getDefaultTestClientOptions, TestClient } from '../mocks/client';
+
+function getTestClient(): TestClient {
+  return new TestClient(
+    getDefaultTestClientOptions({
+      dsn: 'https://username@domain/123',
+    }),
+  );
+}
 
 /** JSDoc */
 class MockIntegration implements Integration {
@@ -315,5 +324,238 @@ describe('getIntegrationsToSetup', () => {
     });
 
     expect(integrations.map(i => i.name)).toEqual(['foo', 'Debug']);
+  });
+});
+
+describe('setupIntegration', () => {
+  beforeEach(function () {
+    // Reset the (global!) list of installed integrations
+    installedIntegrations.splice(0, installedIntegrations.length);
+  });
+
+  it('works with a minimal integration', () => {
+    class CustomIntegration implements Integration {
+      name = 'test';
+      setupOnce = jest.fn();
+    }
+
+    const client = getTestClient();
+    const integrationIndex = {};
+    const integration = new CustomIntegration();
+
+    setupIntegration(client, integration, integrationIndex);
+
+    expect(integrationIndex).toEqual({ test: integration });
+    expect(integration.setupOnce).toHaveBeenCalledTimes(1);
+  });
+
+  it('only calls setupOnce a single time', () => {
+    class CustomIntegration implements Integration {
+      name = 'test';
+      setupOnce = jest.fn();
+    }
+
+    const client1 = getTestClient();
+    const client2 = getTestClient();
+
+    const integrationIndex = {};
+    const integration1 = new CustomIntegration();
+    const integration2 = new CustomIntegration();
+    const integration3 = new CustomIntegration();
+    const integration4 = new CustomIntegration();
+
+    setupIntegration(client1, integration1, integrationIndex);
+    setupIntegration(client1, integration2, integrationIndex);
+    setupIntegration(client2, integration3, integrationIndex);
+    setupIntegration(client2, integration4, integrationIndex);
+
+    expect(integrationIndex).toEqual({ test: integration4 });
+    expect(integration1.setupOnce).toHaveBeenCalledTimes(1);
+    expect(integration2.setupOnce).not.toHaveBeenCalled();
+    expect(integration3.setupOnce).not.toHaveBeenCalled();
+    expect(integration4.setupOnce).not.toHaveBeenCalled();
+  });
+
+  it('binds preprocessEvent for each client', () => {
+    class CustomIntegration implements Integration {
+      name = 'test';
+      setupOnce = jest.fn();
+      preprocessEvent = jest.fn();
+    }
+
+    const client1 = getTestClient();
+    const client2 = getTestClient();
+
+    const integrationIndex = {};
+    const integration1 = new CustomIntegration();
+    const integration2 = new CustomIntegration();
+    const integration3 = new CustomIntegration();
+    const integration4 = new CustomIntegration();
+
+    setupIntegration(client1, integration1, integrationIndex);
+    setupIntegration(client1, integration2, integrationIndex);
+    setupIntegration(client2, integration3, integrationIndex);
+    setupIntegration(client2, integration4, integrationIndex);
+
+    expect(integrationIndex).toEqual({ test: integration4 });
+    expect(integration1.setupOnce).toHaveBeenCalledTimes(1);
+    expect(integration2.setupOnce).not.toHaveBeenCalled();
+    expect(integration3.setupOnce).not.toHaveBeenCalled();
+    expect(integration4.setupOnce).not.toHaveBeenCalled();
+
+    client1.captureEvent({ event_id: '1a' });
+    client1.captureEvent({ event_id: '1b' });
+    client2.captureEvent({ event_id: '2a' });
+    client2.captureEvent({ event_id: '2b' });
+    client2.captureEvent({ event_id: '2c' });
+
+    expect(integration1.preprocessEvent).toHaveBeenCalledTimes(2);
+    expect(integration2.preprocessEvent).toHaveBeenCalledTimes(2);
+    expect(integration3.preprocessEvent).toHaveBeenCalledTimes(3);
+    expect(integration4.preprocessEvent).toHaveBeenCalledTimes(3);
+
+    expect(integration1.preprocessEvent).toHaveBeenLastCalledWith({ event_id: '1b' }, {}, client1);
+    expect(integration2.preprocessEvent).toHaveBeenLastCalledWith({ event_id: '1b' }, {}, client1);
+    expect(integration3.preprocessEvent).toHaveBeenLastCalledWith({ event_id: '2c' }, {}, client2);
+    expect(integration4.preprocessEvent).toHaveBeenLastCalledWith({ event_id: '2c' }, {}, client2);
+  });
+
+  it('allows to mutate events in preprocessEvent', async () => {
+    class CustomIntegration implements Integration {
+      name = 'test';
+      setupOnce = jest.fn();
+      preprocessEvent = jest.fn(event => {
+        event.event_id = 'mutated';
+      });
+    }
+
+    const client = getTestClient();
+
+    const integrationIndex = {};
+    const integration = new CustomIntegration();
+
+    setupIntegration(client, integration, integrationIndex);
+
+    const sendEvent = jest.fn();
+    client.sendEvent = sendEvent;
+
+    client.captureEvent({ event_id: '1a' });
+    await client.flush();
+
+    expect(sendEvent).toHaveBeenCalledTimes(1);
+    expect(sendEvent).toHaveBeenCalledWith(expect.objectContaining({ event_id: 'mutated' }), {});
+  });
+
+  it('binds processEvent for each client', () => {
+    class CustomIntegration implements Integration {
+      name = 'test';
+      setupOnce = jest.fn();
+      processEvent = jest.fn(event => {
+        return event;
+      });
+    }
+
+    const client1 = getTestClient();
+    const client2 = getTestClient();
+
+    const integrationIndex = {};
+    const integration1 = new CustomIntegration();
+    const integration2 = new CustomIntegration();
+    const integration3 = new CustomIntegration();
+    const integration4 = new CustomIntegration();
+
+    setupIntegration(client1, integration1, integrationIndex);
+    setupIntegration(client1, integration2, integrationIndex);
+    setupIntegration(client2, integration3, integrationIndex);
+    setupIntegration(client2, integration4, integrationIndex);
+
+    expect(integrationIndex).toEqual({ test: integration4 });
+    expect(integration1.setupOnce).toHaveBeenCalledTimes(1);
+    expect(integration2.setupOnce).not.toHaveBeenCalled();
+    expect(integration3.setupOnce).not.toHaveBeenCalled();
+    expect(integration4.setupOnce).not.toHaveBeenCalled();
+
+    client1.captureEvent({ event_id: '1a' });
+    client1.captureEvent({ event_id: '1b' });
+    client2.captureEvent({ event_id: '2a' });
+    client2.captureEvent({ event_id: '2b' });
+    client2.captureEvent({ event_id: '2c' });
+
+    expect(integration1.processEvent).toHaveBeenCalledTimes(2);
+    expect(integration2.processEvent).toHaveBeenCalledTimes(2);
+    expect(integration3.processEvent).toHaveBeenCalledTimes(3);
+    expect(integration4.processEvent).toHaveBeenCalledTimes(3);
+
+    expect(integration1.processEvent).toHaveBeenLastCalledWith(
+      expect.objectContaining({ event_id: '1b' }),
+      {},
+      client1,
+    );
+    expect(integration2.processEvent).toHaveBeenLastCalledWith(
+      expect.objectContaining({ event_id: '1b' }),
+      {},
+      client1,
+    );
+    expect(integration3.processEvent).toHaveBeenLastCalledWith(
+      expect.objectContaining({ event_id: '2c' }),
+      {},
+      client2,
+    );
+    expect(integration4.processEvent).toHaveBeenLastCalledWith(
+      expect.objectContaining({ event_id: '2c' }),
+      {},
+      client2,
+    );
+  });
+
+  it('allows to mutate events in processEvent', async () => {
+    class CustomIntegration implements Integration {
+      name = 'test';
+      setupOnce = jest.fn();
+      processEvent = jest.fn(_event => {
+        return { event_id: 'mutated' };
+      });
+    }
+
+    const client = getTestClient();
+
+    const integrationIndex = {};
+    const integration = new CustomIntegration();
+
+    setupIntegration(client, integration, integrationIndex);
+
+    const sendEvent = jest.fn();
+    client.sendEvent = sendEvent;
+
+    client.captureEvent({ event_id: '1a' });
+    await client.flush();
+
+    expect(sendEvent).toHaveBeenCalledTimes(1);
+    expect(sendEvent).toHaveBeenCalledWith(expect.objectContaining({ event_id: 'mutated' }), {});
+  });
+
+  it('allows to drop events in processEvent', async () => {
+    class CustomIntegration implements Integration {
+      name = 'test';
+      setupOnce = jest.fn();
+      processEvent = jest.fn(_event => {
+        return null;
+      });
+    }
+
+    const client = getTestClient();
+
+    const integrationIndex = {};
+    const integration = new CustomIntegration();
+
+    setupIntegration(client, integration, integrationIndex);
+
+    const sendEvent = jest.fn();
+    client.sendEvent = sendEvent;
+
+    client.captureEvent({ event_id: '1a' });
+    await client.flush();
+
+    expect(sendEvent).not.toHaveBeenCalled();
   });
 });

@@ -304,8 +304,8 @@ describe.each(['builtin', 'express'])('Remix API Actions with adapter = %s', ada
           {
             type: 'Error',
             value: useV2
-              ? 'Non-Error exception captured with keys: data, internal, status, statusText'
-              : 'Non-Error exception captured with keys: data',
+              ? 'Object captured as exception with keys: data, internal, status, statusText'
+              : 'Object captured as exception with keys: data',
             stacktrace: expect.any(Object),
             mechanism: {
               data: {
@@ -412,8 +412,8 @@ describe.each(['builtin', 'express'])('Remix API Actions with adapter = %s', ada
           {
             type: 'Error',
             value: useV2
-              ? 'Non-Error exception captured with keys: data, internal, status, statusText'
-              : 'Non-Error exception captured with keys: [object has no keys]',
+              ? 'Object captured as exception with keys: data, internal, status, statusText'
+              : 'Object captured as exception with keys: [object has no keys]',
             stacktrace: expect.any(Object),
             mechanism: {
               data: {
