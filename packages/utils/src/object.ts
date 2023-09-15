@@ -4,6 +4,7 @@ import type { WrappedFunction } from '@sentry/types';
 
 import { htmlTreeAsString } from './browser';
 import { isElement, isError, isEvent, isInstanceOf, isPlainObject, isPrimitive } from './is';
+import { logger } from './logger';
 import { truncate } from './string';
 
 /**
@@ -28,12 +29,7 @@ export function fill(source: { [key: string]: any }, name: string, replacementFa
   // Make sure it's a function first, as we need to attach an empty prototype for `defineProperties` to work
   // otherwise it'll throw "TypeError: Object.defineProperties called on non-object"
   if (typeof wrapped === 'function') {
-    try {
-      markFunctionWrapped(wrapped, original);
-    } catch (_Oo) {
-      // This can throw if multiple fill happens on a global object like XMLHttpRequest
-      // Fixes https://github.com/getsentry/sentry-javascript/issues/2043
-    }
+    markFunctionWrapped(wrapped, original);
   }
 
   source[name] = wrapped;
@@ -47,12 +43,16 @@ export function fill(source: { [key: string]: any }, name: string, replacementFa
  * @param value The value to which to set the property
  */
 export function addNonEnumerableProperty(obj: { [key: string]: unknown }, name: string, value: unknown): void {
-  Object.defineProperty(obj, name, {
-    // enumerable: false, // the default, so we can save on bundle size by not explicitly setting it
-    value: value,
-    writable: true,
-    configurable: true,
-  });
+  try {
+    Object.defineProperty(obj, name, {
+      // enumerable: false, // the default, so we can save on bundle size by not explicitly setting it
+      value: value,
+      writable: true,
+      configurable: true,
+    });
+  } catch (o_O) {
+    __DEBUG_BUILD__ && logger.log(`Failed to add non-enumerable property "${name}" to object`, obj);
+  }
 }
 
 /**
@@ -63,9 +63,11 @@ export function addNonEnumerableProperty(obj: { [key: string]: unknown }, name: 
  * @param original the original function that gets wrapped
  */
 export function markFunctionWrapped(wrapped: WrappedFunction, original: WrappedFunction): void {
-  const proto = original.prototype || {};
-  wrapped.prototype = original.prototype = proto;
-  addNonEnumerableProperty(wrapped, '__sentry_original__', original);
+  try {
+    const proto = original.prototype || {};
+    wrapped.prototype = original.prototype = proto;
+    addNonEnumerableProperty(wrapped, '__sentry_original__', original);
+  } catch (o_O) {} // eslint-disable-line no-empty
 }
 
 /**

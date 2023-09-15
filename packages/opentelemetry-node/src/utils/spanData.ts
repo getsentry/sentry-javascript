@@ -2,7 +2,7 @@
 import { Transaction } from '@sentry/core';
 import type { Context, SpanOrigin } from '@sentry/types';
 
-import { getSentrySpan } from '../spanprocessor';
+import { getSentrySpan } from './spanMap';
 
 type SentryTags = Record<string, string>;
 type SentryData = Record<string, unknown>;

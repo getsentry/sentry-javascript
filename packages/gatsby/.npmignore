@@ -6,6 +6,7 @@
 !/cjs/**/*
 !/esm/**/*
 !/types/**/*
+!/types-ts3.8/**/*
 
 # Gatsby specific
 !gatsby-browser.js

@@ -71,7 +71,7 @@ export function wrapTransactionWithProfiling(transaction: Transaction): Transact
     return transaction;
   }
 
-  // @ts-ignore profilesSampleRate is not part of the browser options yet
+  // @ts-expect-error profilesSampleRate is not part of the browser options yet
   const profilesSampleRate: number | boolean | undefined = options.profilesSampleRate;
 
   // Since this is coming from the user (or from a function provided by the user), who knows what we might get. (The

@@ -4,6 +4,102 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.69.0
+
+### Important Changes
+
+- **New Performance APIs**
+  - feat: Update span performance API names (#8971)
+  - feat(core): Introduce startSpanManual (#8913)
+
+This release introduces a new set of top level APIs for the Performance Monitoring SDKs. These aim to simplify creating spans and reduce the boilerplate needed for performance instrumentation. The three new methods introduced are `Sentry.startSpan`, `Sentry.startInactiveSpan`, and `Sentry.startSpanManual`. These methods are available in the browser and node SDKs.
+
+`Sentry.startSpan` wraps a callback in a span. The span is automatically finished when the callback returns. This is the recommended way to create spans.
+
+```js
+// Start a span that tracks the duration of expensiveFunction
+const result = Sentry.startSpan({ name: 'important function' }, () => {
+  return expensiveFunction();
+});
+
+// You can also mutate the span wrapping the callback to set data or status
+Sentry.startSpan({ name: 'important function' }, (span) => {
+  // span is undefined if performance monitoring is turned off or if
+  // the span was not sampled. This is done to reduce overhead.
+  span?.setData('version', '1.0.0');
+  return expensiveFunction();
+});
+```
+
+If you don't want the span to finish when the callback returns, use `Sentry.startSpanManual` to control when the span is finished. This is useful for event emitters or similar.
+
+```js
+// Start a span that tracks the duration of middleware
+function middleware(_req, res, next) {
+  return Sentry.startSpanManual({ name: 'middleware' }, (span, finish) => {
+    res.once('finish', () => {
+      span?.setHttpStatus(res.status);
+      finish();
+    });
+    return next();
+  });
+}
+```
+
+`Sentry.startSpan` and `Sentry.startSpanManual` create a span and make it active for the duration of the callback. Any spans created while this active span is running will be added as a child span to it. If you want to create a span without making it active, use `Sentry.startInactiveSpan`. This is useful for creating parallel spans that are not related to each other.
+
+```js
+const span1 = Sentry.startInactiveSpan({ name: 'span1' });
+
+someWork();
+
+const span2 = Sentry.startInactiveSpan({ name: 'span2' });
+
+moreWork();
+
+const span3 = Sentry.startInactiveSpan({ name: 'span3' });
+
+evenMoreWork();
+
+span1?.finish();
+span2?.finish();
+span3?.finish();
+```
+
+### Other Changes
+
+- feat(core): Export `BeforeFinishCallback` type (#8999)
+- build(eslint): Enforce that ts-expect-error is used (#8987)
+- feat(integration): Ensure `LinkedErrors` integration runs before all event processors (#8956)
+- feat(node-experimental): Keep breadcrumbs on transaction (#8967)
+- feat(redux): Add 'attachReduxState' option  (#8953)
+- feat(remix): Accept `org`, `project` and `url` as args to upload script (#8985)
+- fix(utils): Prevent iterating over VueViewModel (#8981)
+- fix(utils): uuidv4 fix for cloudflare (#8968)
+- fix(core): Always use event message and exception values for `ignoreErrors` (#8986)
+- fix(nextjs): Add new potential location for Next.js request AsyncLocalStorage (#9006)
+- fix(node-experimental): Ensure we only create HTTP spans when outgoing (#8966)
+- fix(node-experimental): Ignore OPTIONS & HEAD requests (#9001)
+- fix(node-experimental): Ignore outgoing Sentry requests (#8994)
+- fix(node-experimental): Require parent span for `pg` spans (#8993)
+- fix(node-experimental): Use Sentry logger as Otel logger (#8960)
+- fix(node-otel): Refactor OTEL span reference cleanup (#9000)
+- fix(react): Switch to props in `useRoutes` (#8998)
+- fix(remix): Add `glob` to Remix SDK dependencies. (#8963)
+- fix(replay): Ensure `handleRecordingEmit` aborts when event is not added (#8938)
+- fix(replay): Fully stop & restart session when it expires (#8834)
+
+Work in this release contributed by @Duncanxyz and @malay44. Thank you for your contributions!
+
+## 7.68.0
+
+- feat(browser): Add `BroadcastChannel` and `SharedWorker` to TryCatch EventTargets (#8943)
+- feat(core): Add `name` to `Span` (#8949)
+- feat(core): Add `ServerRuntimeClient` (#8930)
+- fix(node-experimental): Ensure `span.finish()` works as expected (#8947)
+- fix(remix): Add new sourcemap-upload script files to prepack assets. (#8948)
+- fix(publish): Publish downleveled TS3.8 types and fix types path (#8954)
+
 ## 7.67.0
 
 ### Important Changes

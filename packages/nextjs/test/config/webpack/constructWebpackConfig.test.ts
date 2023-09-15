@@ -41,7 +41,7 @@ describe('constructWebpackConfigFunction()', () => {
     // Run the user's webpack config function, so we can check the results against ours. Delete `entry` because we'll
     // test it separately, and besides, it's one that we *should* be overwriting.
     const materializedUserWebpackConfig = userNextConfig.webpack!(serverWebpackConfig, serverBuildContext);
-    // @ts-ignore `entry` may be required in real life, but we don't need it for our tests
+    // @ts-expect-error `entry` may be required in real life, but we don't need it for our tests
     delete materializedUserWebpackConfig.entry;
 
     expect(finalWebpackConfig).toEqual(expect.objectContaining(materializedUserWebpackConfig));

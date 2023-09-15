@@ -22,7 +22,7 @@ export async function loadSvelteConfig(): Promise<Config> {
     if (!fs.existsSync(configFile)) {
       return {};
     }
-    // @ts-ignore - we explicitly want to import the svelte config here.
+    // @ts-expect-error - we explicitly want to import the svelte config here.
     const svelteConfigModule = await import(`${url.pathToFileURL(configFile).href}`);
 
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
@@ -83,7 +83,7 @@ async function getNodeAdapterOutputDir(svelteConfig: Config): Promise<string> {
       outputDir = dest.replace(/\/client.*/, '');
       throw new Error('We got what we came for, throwing to exit the adapter');
     },
-    // @ts-ignore - No need to implement the other methods
+    // @ts-expect-error - No need to implement the other methods
     log: {
       // eslint-disable-next-line @typescript-eslint/no-empty-function -- this should be a noop
       minor() {},
@@ -96,7 +96,7 @@ async function getNodeAdapterOutputDir(svelteConfig: Config): Promise<string> {
 
     config: {
       kit: {
-        // @ts-ignore - the builder expects a validated config but for our purpose it's fine to just pass this partial config
+        // @ts-expect-error - the builder expects a validated config but for our purpose it's fine to just pass this partial config
         paths: {
           base: svelteConfig.kit?.paths?.base || '',
         },

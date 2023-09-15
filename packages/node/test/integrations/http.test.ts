@@ -321,9 +321,9 @@ describe('tracing', () => {
   describe('Tracing options', () => {
     beforeEach(() => {
       // hacky way of restoring monkey patched functions
-      // @ts-ignore TS doesn't let us assign to this but we want to
+      // @ts-expect-error TS doesn't let us assign to this but we want to
       http.get = originalHttpGet;
-      // @ts-ignore TS doesn't let us assign to this but we want to
+      // @ts-expect-error TS doesn't let us assign to this but we want to
       http.request = originalHttpRequest;
     });
 

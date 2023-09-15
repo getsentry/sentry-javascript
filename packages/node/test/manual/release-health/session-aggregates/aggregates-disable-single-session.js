@@ -34,6 +34,7 @@ function makeDummyTransport() {
       .split('\n')
       .filter(l => !!l)
       .map(e => JSON.parse(e));
+
     assertSessionAggregates(sessionEnv[2], {
       attrs: { release: '1.1' },
       aggregates: [{ crashed: 2, errored: 1, exited: 1 }],

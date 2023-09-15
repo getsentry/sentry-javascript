@@ -2,16 +2,11 @@ import type { Span as OtelSpan } from '@opentelemetry/sdk-trace-base';
 import { SemanticAttributes } from '@opentelemetry/semantic-conventions';
 import type { SanitizedRequestData } from '@sentry/types';
 import { getSanitizedUrlString, parseUrl } from '@sentry/utils';
-import type { ClientRequest, IncomingMessage, ServerResponse } from 'http';
 
 /**
  * Get sanitizied request data from an OTEL span.
  */
-export function getRequestSpanData(
-  span: OtelSpan,
-  _request: ClientRequest | IncomingMessage,
-  _response: IncomingMessage | ServerResponse,
-): SanitizedRequestData {
+export function getRequestSpanData(span: OtelSpan): SanitizedRequestData {
   const data: SanitizedRequestData = {
     url: span.attributes[SemanticAttributes.HTTP_URL] as string,
     'http.method': (span.attributes[SemanticAttributes.HTTP_METHOD] as string) || 'GET',

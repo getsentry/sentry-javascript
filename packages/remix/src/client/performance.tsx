@@ -108,7 +108,7 @@ export function withSentry<P extends Record<string, unknown>, R extends React.FC
         !isNodeEnv() &&
         logger.warn('Remix SDK was unable to wrap your root because of one or more missing parameters.');
 
-      // @ts-ignore Setting more specific React Component typing for `R` generic above
+      // @ts-expect-error Setting more specific React Component typing for `R` generic above
       // will break advanced type inference done by react router params
       return <OrigApp {...props} />;
     }
@@ -154,18 +154,18 @@ export function withSentry<P extends Record<string, unknown>, R extends React.FC
 
     isBaseLocation = false;
 
-    // @ts-ignore Setting more specific React Component typing for `R` generic above
+    // @ts-expect-error Setting more specific React Component typing for `R` generic above
     // will break advanced type inference done by react router params
     return <OrigApp {...props} />;
   };
 
   if (options.wrapWithErrorBoundary) {
-    // @ts-ignore Setting more specific React Component typing for `R` generic above
+    // @ts-expect-error Setting more specific React Component typing for `R` generic above
     // will break advanced type inference done by react router params
     return withErrorBoundary(SentryRoot, options.errorBoundaryOptions);
   }
 
-  // @ts-ignore Setting more specific React Component typing for `R` generic above
+  // @ts-expect-error Setting more specific React Component typing for `R` generic above
   // will break advanced type inference done by react router params
   return SentryRoot;
 }

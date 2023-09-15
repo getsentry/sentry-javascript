@@ -21,7 +21,7 @@ function findIntegrationByName(integrations: Integration[] = [], name: string): 
 describe('Server init()', () => {
   afterEach(() => {
     jest.clearAllMocks();
-    // @ts-ignore for testing
+    // @ts-expect-error for testing
     delete GLOBAL_OBJ.__SENTRY__;
     delete process.env.VERCEL;
   });
@@ -73,12 +73,12 @@ describe('Server init()', () => {
   it('sets runtime on scope', () => {
     const currentScope = getCurrentHub().getScope();
 
-    // @ts-ignore need access to protected _tags attribute
+    // @ts-expect-error need access to protected _tags attribute
     expect(currentScope._tags).toEqual({});
 
     init({});
 
-    // @ts-ignore need access to protected _tags attribute
+    // @ts-expect-error need access to protected _tags attribute
     expect(currentScope._tags).toEqual({ runtime: 'node' });
   });
 
@@ -93,7 +93,7 @@ describe('Server init()', () => {
 
     init({});
 
-    // @ts-ignore need access to protected _tags attribute
+    // @ts-expect-error need access to protected _tags attribute
     expect(currentScope._tags.vercel).toBeUndefined();
   });
 
@@ -135,9 +135,9 @@ describe('Server init()', () => {
 
         expect(globalHub.getClient()).toEqual(expect.any(NodeClient));
         expect(domainHub.getClient()).toBe(globalHub.getClient());
-        // @ts-ignore need access to protected _tags attribute
+        // @ts-expect-error need access to protected _tags attribute
         expect(globalHub.getScope()._tags).toEqual({ runtime: 'node' });
-        // @ts-ignore need access to protected _tags attribute
+        // @ts-expect-error need access to protected _tags attribute
         expect(domainHub.getScope()._tags).toEqual({ runtime: 'node', dogs: 'areGreat' });
       });
     });

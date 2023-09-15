@@ -51,7 +51,6 @@
     "serve": "14.0.1"
   },
   "volta": {
-    "node": "16.19.0",
-    "yarn": "1.22.19"
+    "extends": "../../package.json"
   }
 }

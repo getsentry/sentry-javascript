@@ -12,6 +12,7 @@ export { INTEGRATIONS as Integrations };
 export { getAutoPerformanceIntegrations } from './integrations/getAutoPerformanceIntegrations';
 export * as Handlers from './sdk/handlers';
 export * from './sdk/trace';
+export { getCurrentHub, getHubFromCarrier } from './sdk/hub';
 
 export {
   makeNodeTransport,
@@ -33,8 +34,6 @@ export {
   extractTraceparentData,
   flush,
   getActiveTransaction,
-  getHubFromCarrier,
-  getCurrentHub,
   Hub,
   lastEventId,
   makeMain,

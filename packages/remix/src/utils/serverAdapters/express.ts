@@ -61,9 +61,7 @@ function wrapExpressRequestHandler(
     const options = hub.getClient()?.getOptions();
     const scope = hub.getScope();
 
-    if (scope) {
-      scope.setSDKProcessingMetadata({ request });
-    }
+    scope.setSDKProcessingMetadata({ request });
 
     if (!options || !hasTracingEnabled(options) || !request.url || !request.method) {
       return origRequestHandler.call(this, req, res, next);
