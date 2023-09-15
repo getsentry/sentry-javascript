@@ -695,7 +695,7 @@ export function getWebpackPluginOptions(
   const defaultPluginOptions = dropUndefinedKeys({
     include: isServer ? serverInclude : clientInclude,
     ignore:
-      isServer || !userSentryOptions.widenClientFileUpload
+      isServer || userSentryOptions.widenClientFileUpload
         ? []
         : // Widening the upload scope is necessarily going to lead to us uploading files we don't need to (ones which
           // don't include any user code). In order to lessen that where we can, exclude the internal nextjs files we know

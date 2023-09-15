@@ -179,7 +179,13 @@ describe('Sentry webpack plugin config', () => {
         'SentryCliPlugin',
       ) as SentryWebpackPlugin;
 
-      expect(sentryWebpackPluginInstance.options.ignore).toEqual([]);
+      expect(sentryWebpackPluginInstance.options.ignore).toEqual([
+        'framework-*',
+        'framework.*',
+        'main-*',
+        'polyfills-*',
+        'webpack-*',
+      ]);
     });
 
     it('has the correct value when building client bundles using `widenClientFileUpload` option', async () => {
@@ -195,13 +201,7 @@ describe('Sentry webpack plugin config', () => {
         'SentryCliPlugin',
       ) as SentryWebpackPlugin;
 
-      expect(sentryWebpackPluginInstance.options.ignore).toEqual([
-        'framework-*',
-        'framework.*',
-        'main-*',
-        'polyfills-*',
-        'webpack-*',
-      ]);
+      expect(sentryWebpackPluginInstance.options.ignore).toEqual([]);
     });
   });
 
