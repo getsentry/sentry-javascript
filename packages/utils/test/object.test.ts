@@ -2,15 +2,16 @@
  * @jest-environment jsdom
  */
 
-import { WrappedFunction } from '@sentry/types';
+import type { WrappedFunction } from '@sentry/types';
+
 import {
+  addNonEnumerableProperty,
   dropUndefinedKeys,
   extractExceptionKeysForMessage,
   fill,
+  markFunctionWrapped,
   objectify,
   urlEncode,
-  addNonEnumerableProperty,
-  markFunctionWrapped,
 } from '../src/object';
 import { testOnlyIfNodeVersionAtLeast } from './testutils';
 

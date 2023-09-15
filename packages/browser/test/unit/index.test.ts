@@ -1,5 +1,5 @@
 import { getReportDialogEndpoint, SDK_VERSION } from '@sentry/core';
-import { WrappedFunction } from '@sentry/types';
+import type { WrappedFunction } from '@sentry/types';
 import * as utils from '@sentry/utils';
 
 import type { Event } from '../../src';

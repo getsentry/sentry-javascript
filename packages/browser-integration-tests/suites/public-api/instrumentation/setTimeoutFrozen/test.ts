@@ -7,6 +7,9 @@ import { getFirstSentryEnvelopeRequest } from '../../../../utils/helpers';
 sentryTest(
   'Instrumentation does not fail when using frozen callback for setTimeout',
   async ({ getLocalTestPath, page }) => {
+    const bundleKey = process.env.PW_BUNDLE || '';
+    const hasDebug = !bundleKey.includes('_min');
+
     const url = await getLocalTestPath({ testDir: __dirname });
 
     const logMessages: string[] = [];
@@ -31,12 +34,15 @@ sentryTest(
       },
     });
 
-    expect(logMessages).toEqual(
-      expect.arrayContaining([
-        expect.stringContaining(
-          'Sentry Logger [log]: Failed to add non-enumerable property "__sentry_wrapped__" to object function callback()',
-        ),
-      ]),
-    );
+    // We only care about the message when debug is enabled
+    if (hasDebug) {
+      expect(logMessages).toEqual(
+        expect.arrayContaining([
+          expect.stringContaining(
+            'Sentry Logger [log]: Failed to add non-enumerable property "__sentry_wrapped__" to object function callback()',
+          ),
+        ]),
+      );
+    }
   },
 );
