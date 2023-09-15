@@ -4,6 +4,7 @@ import type { WrappedFunction } from '@sentry/types';
 
 import { htmlTreeAsString } from './browser';
 import { isElement, isError, isEvent, isInstanceOf, isPlainObject, isPrimitive } from './is';
+import { logger } from './logger';
 import { truncate } from './string';
 
 /**
@@ -49,7 +50,9 @@ export function addNonEnumerableProperty(obj: { [key: string]: unknown }, name: 
       writable: true,
       configurable: true,
     });
-  } catch (o_O) {} // eslint-disable-line no-empty
+  } catch (o_O) {
+    __DEBUG_BUILD__ && logger.log(`Failed to add non-enumerable property "${name}" to object`, obj);
+  }
 }
 
 /**
