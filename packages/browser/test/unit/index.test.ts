@@ -1,4 +1,5 @@
 import { getReportDialogEndpoint, SDK_VERSION } from '@sentry/core';
+import { WrappedFunction } from '@sentry/types';
 import * as utils from '@sentry/utils';
 
 import type { Event } from '../../src';
@@ -390,5 +391,15 @@ describe('wrap()', () => {
     );
 
     expect(result2).toBe(42);
+  });
+
+  it('should ignore frozen functions', () => {
+    const func = Object.freeze(() => 42);
+
+    // eslint-disable-next-line deprecation/deprecation
+    wrap(func);
+
+    expect(func()).toBe(42);
+    expect((func as WrappedFunction).__sentry_wrapped__).toBeUndefined();
   });
 });
