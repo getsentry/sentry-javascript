@@ -66,8 +66,6 @@ export type { SpanStatusType } from '@sentry/core';
 export { autoDiscoverNodePerformanceMonitoringIntegrations } from '@sentry/node';
 
 export { BunClient } from './client';
-export { makeNodeTransport } from '@sentry/node';
-export type { NodeTransportOptions } from '@sentry/node';
 export { defaultIntegrations, init } from './sdk';
 
 import { Integrations as CoreIntegrations } from '@sentry/core';

@@ -1,3 +1,6 @@
 import { makeBaseNPMConfig, makeNPMConfigVariants } from '../../rollup/index.js';
 
-export default makeNPMConfigVariants(makeBaseNPMConfig());
+const config = makeNPMConfigVariants(makeBaseNPMConfig());
+
+// remove cjs from config array config[0].output.format == cjs
+export default [config[1]];

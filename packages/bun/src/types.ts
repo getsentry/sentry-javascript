@@ -1,7 +1,7 @@
-import type { NodeTransportOptions } from '@sentry/node';
 import type { ClientOptions, Options, TracePropagationTargets } from '@sentry/types';
 
 import type { BunClient } from './client';
+import type { BunTransportOptions } from './transports';
 
 export interface BaseBunOptions {
   /**
@@ -59,10 +59,10 @@ export interface BaseBunOptions {
  * Configuration options for the Sentry Node SDK
  * @see @sentry/types Options for more information.
  */
-export interface BunOptions extends Options<NodeTransportOptions>, BaseBunOptions {}
+export interface BunOptions extends Options<BunTransportOptions>, BaseBunOptions {}
 
 /**
  * Configuration options for the Sentry Node SDK Client class
  * @see BunClient for more information.
  */
-export interface BunClientOptions extends ClientOptions<NodeTransportOptions>, BaseBunOptions {}
+export interface BunClientOptions extends ClientOptions<BunTransportOptions>, BaseBunOptions {}

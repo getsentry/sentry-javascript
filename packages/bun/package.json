@@ -29,6 +29,9 @@
     "@sentry/types": "7.69.0",
     "@sentry/utils": "7.69.0"
   },
+  "devDependencies": {
+    "bun-types": "latest"
+  },
   "scripts": {
     "build": "run-p build:transpile build:types",
     "build:dev": "yarn build",
