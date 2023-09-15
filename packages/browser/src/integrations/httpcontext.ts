@@ -26,10 +26,10 @@ export class HttpContext implements Integration {
   }
 
   /** @inheritDoc */
-  public processEvent(event: Event): Event {
+  public preprocessEvent(event: Event): void {
     // if none of the information we want exists, don't bother
     if (!WINDOW.navigator && !WINDOW.location && !WINDOW.document) {
-      return event;
+      return;
     }
 
     // grab as much info as exists and add it to the event
@@ -44,6 +44,6 @@ export class HttpContext implements Integration {
     };
     const request = { ...event.request, ...(url && { url }), headers };
 
-    return { ...event, request };
+    event.request = request;
   }
 }
