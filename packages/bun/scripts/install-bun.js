@@ -1,5 +1,8 @@
 /* eslint-disable no-console */
-
+if (process.env.CI) {
+  // This script is not needed in CI we install bun via GH actions
+  return;
+}
 const { exec } = require('child_process');
 const https = require('https');
 

@@ -1,7 +1,7 @@
-import type { ClientOptions, Options, TracePropagationTargets } from '@sentry/types';
+import { type ClientOptions, type Options, type TracePropagationTargets } from '@sentry/types';
 
-import type { BunClient } from './client';
-import type { BunTransportOptions } from './transports';
+import { type BunClient } from './client';
+import { type BunTransportOptions } from './transports';
 
 export interface BaseBunOptions {
   /**
