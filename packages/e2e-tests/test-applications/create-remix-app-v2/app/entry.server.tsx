@@ -7,9 +7,8 @@
 import { PassThrough } from 'node:stream';
 
 import type { AppLoadContext, EntryContext, DataFunctionArgs } from '@remix-run/node';
-import { Response } from '@remix-run/node';
+import { json } from '@remix-run/node';
 import { RemixServer } from '@remix-run/react';
-import isbot from 'isbot';
 import { renderToPipeableStream } from 'react-dom/server';
 import * as Sentry from '@sentry/remix';
 
@@ -19,7 +18,6 @@ Sentry.init({
   dsn: process.env.E2E_TEST_DSN,
   // Performance Monitoring
   tracesSampleRate: 1.0, // Capture 100% of the transactions, reduce in production!
-  isRemixV2: true,
 });
 
 export function handleError(error: unknown, { request }: DataFunctionArgs): void {
@@ -37,47 +35,7 @@ export default function handleRequest(
   remixContext: EntryContext,
   loadContext: AppLoadContext,
 ) {
-  return isbot(request.headers.get('user-agent'))
-    ? handleBotRequest(request, responseStatusCode, responseHeaders, remixContext)
-    : handleBrowserRequest(request, responseStatusCode, responseHeaders, remixContext);
-}
-
-function handleBotRequest(
-  request: Request,
-  responseStatusCode: number,
-  responseHeaders: Headers,
-  remixContext: EntryContext,
-) {
-  return new Promise((resolve, reject) => {
-    const { pipe, abort } = renderToPipeableStream(
-      <RemixServer context={remixContext} url={request.url} abortDelay={ABORT_DELAY} />,
-      {
-        onAllReady() {
-          const body = new PassThrough();
-
-          responseHeaders.set('Content-Type', 'text/html');
-
-          resolve(
-            new Response(body, {
-              headers: responseHeaders,
-              status: responseStatusCode,
-            }),
-          );
-
-          pipe(body);
-        },
-        onShellError(error: unknown) {
-          reject(error);
-        },
-        onError(error: unknown) {
-          responseStatusCode = 500;
-          console.error(error);
-        },
-      },
-    );
-
-    setTimeout(abort, ABORT_DELAY);
-  });
+  handleBrowserRequest(request, responseStatusCode, responseHeaders, remixContext);
 }
 
 function handleBrowserRequest(
@@ -96,7 +54,7 @@ function handleBrowserRequest(
           responseHeaders.set('Content-Type', 'text/html');
 
           resolve(
-            new Response(body, {
+            json(body, {
               headers: responseHeaders,
               status: responseStatusCode,
             }),
