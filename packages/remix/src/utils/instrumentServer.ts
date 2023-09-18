@@ -14,7 +14,15 @@ import {
 } from '@sentry/utils';
 
 import { getFutureFlagsServer, getRemixVersionFromBuild } from './futureFlags';
-import { extractData, getRequestMatch, isDeferredData, isResponse, json, matchServerRoutes } from './vendor/response';
+import {
+  extractData,
+  getRequestMatch,
+  isDeferredData,
+  isResponse,
+  isRouteErrorResponse,
+  json,
+  matchServerRoutes,
+} from './vendor/response';
 import type {
   AppData,
   CreateRequestHandlerFunction,
@@ -33,6 +41,7 @@ import type {
 import { normalizeRemixRequest } from './web-fetch';
 
 let FUTURE_FLAGS: FutureConfig | undefined;
+let IS_REMIX_V2: boolean | undefined;
 
 // Flag to track if the core request handler is instrumented.
 export let isRequestHandlerWrapped = false;
@@ -72,7 +81,11 @@ async function extractResponseError(response: Response): Promise<unknown> {
 export async function captureRemixServerException(err: unknown, name: string, request: Request): Promise<void> {
   // Skip capturing if the thrown error is not a 5xx response
   // https://remix.run/docs/en/v1/api/conventions#throwing-responses-in-loaders
-  if (isResponse(err) && err.status < 500) {
+  if (IS_REMIX_V2) {
+    if (isRouteErrorResponse(err) && err.status < 500) {
+      return;
+    }
+  } else if (isResponse(err) && err.status < 500) {
     return;
   }
 
@@ -397,7 +410,10 @@ function wrapRequestHandler(origRequestHandler: RequestHandler, build: ServerBui
 
       const res = (await origRequestHandler.call(this, request, loadContext)) as Response;
 
-      transaction.setHttpStatus(res.status);
+      if (isResponse(res)) {
+        transaction.setHttpStatus(res.status);
+      }
+
       transaction.finish();
 
       return res;
@@ -412,6 +428,7 @@ export function instrumentBuild(build: ServerBuild): ServerBuild {
   const routes: ServerRouteManifest = {};
 
   const remixVersion = getRemixVersionFromBuild(build);
+  IS_REMIX_V2 = remixVersion === 2;
 
   const wrappedEntry = { ...build.entry, module: { ...build.entry.module } };
 
