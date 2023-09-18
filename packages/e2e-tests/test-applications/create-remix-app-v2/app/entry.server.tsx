@@ -11,6 +11,9 @@ import { json } from '@remix-run/node';
 import { RemixServer } from '@remix-run/react';
 import { renderToPipeableStream } from 'react-dom/server';
 import * as Sentry from '@sentry/remix';
+import { installGlobals } from '@remix-run/node';
+
+installGlobals();
 
 const ABORT_DELAY = 5_000;
 
