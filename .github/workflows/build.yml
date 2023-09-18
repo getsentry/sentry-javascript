@@ -380,6 +380,8 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: ${{ env.DEFAULT_NODE_VERSION }}
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v1
       - name: Restore caches
         uses: ./.github/actions/restore-cache
         env:
