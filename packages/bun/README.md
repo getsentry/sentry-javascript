@@ -4,7 +4,7 @@
   </a>
 </p>
 
-# Official Sentry SDK for Bun
+# Official Sentry SDK for Bun (Beta)
 
 [![npm version](https://img.shields.io/npm/v/@sentry/bun.svg)](https://www.npmjs.com/package/@sentry/bun)
 [![npm dm](https://img.shields.io/npm/dm/@sentry/bun.svg)](https://www.npmjs.com/package/@sentry/bun)

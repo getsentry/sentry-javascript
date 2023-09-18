@@ -14,7 +14,7 @@ export const defaultIntegrations = [
   new NodeIntegrations.Console(),
   new NodeIntegrations.Http(),
   new NodeIntegrations.Undici(),
-  // Global Handlers # TODO
+  // Global Handlers # TODO (waiting for https://github.com/oven-sh/bun/issues/5091)
   // new NodeIntegrations.OnUncaughtException(),
   // new NodeIntegrations.OnUnhandledRejection(),
   // Event Info

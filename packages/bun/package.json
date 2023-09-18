@@ -9,7 +9,7 @@
   "engines": {
     "node": ">=8"
   },
-  "main": "build/cjs/index.js",
+  "main": "build/esm/index.js",
   "module": "build/esm/index.js",
   "types": "build/types/index.d.ts",
   "typesVersions": {
@@ -25,7 +25,6 @@
   "dependencies": {
     "@sentry/core": "7.69.0",
     "@sentry/node": "7.69.0",
-    "@sentry/opentelemetry-node": "7.69.0",
     "@sentry/types": "7.69.0",
     "@sentry/utils": "7.69.0"
   },
@@ -44,7 +43,7 @@
     "build:transpile:watch": "rollup -c rollup.npm.config.js --watch",
     "build:types:watch": "tsc -p tsconfig.types.json --watch",
     "build:tarball": "ts-node ../../scripts/prepack.ts && npm pack ./build",
-    "circularDepCheck": "node -v",
+    "circularDepCheck": "madge --circular src/index.ts",
     "clean": "rimraf build coverage sentry-node-*.tgz",
     "fix": "run-s fix:eslint fix:prettier",
     "fix:eslint": "eslint . --format stylish --fix",
@@ -61,5 +60,12 @@
   "volta": {
     "extends": "../../package.json"
   },
-  "sideEffects": false
+  "sideEffects": false,
+  "madge":{
+    "detectiveOptions": {
+      "ts": {
+        "skipTypeImports": true
+      }
+    }
+  }
 }

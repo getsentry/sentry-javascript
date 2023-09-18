@@ -380,8 +380,6 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: ${{ env.DEFAULT_NODE_VERSION }}
-      - name: Set up Bun
-        uses: oven-sh/setup-bun@v1
       - name: Restore caches
         uses: ./.github/actions/restore-cache
         env:
@@ -390,6 +388,34 @@ jobs:
         env:
           NODE_VERSION: 16
         run: yarn test-ci-browser
+      - name: Compute test coverage
+        uses: codecov/codecov-action@v3
+
+  job_bun_unit_tests:
+    name: Bun Unit Tests
+    needs: [job_get_metadata, job_build]
+    timeout-minutes: 10
+    runs-on: ubuntu-20.04
+    strategy:
+      fail-fast: false
+    steps:
+      - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ env.HEAD_COMMIT }}
+      - name: Set up Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v1
+      - name: Restore caches
+        uses: ./.github/actions/restore-cache
+        env:
+          DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
+      - name: Run tests
+        run: |
+          yarn test-ci-bun
       - name: Compute test coverage
         uses: codecov/codecov-action@v3
 
@@ -411,8 +437,6 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: ${{ matrix.node }}
-      - name: Set up Bun
-        uses: oven-sh/setup-bun@v1
       - name: Restore caches
         uses: ./.github/actions/restore-cache
         env:
@@ -868,6 +892,7 @@ jobs:
         job_build,
         job_browser_build_tests,
         job_browser_unit_tests,
+        job_bun_unit_tests,
         job_node_unit_tests,
         job_nextjs_integration_test,
         job_node_integration_tests,

@@ -29,12 +29,6 @@ export class BunClient extends ServerRuntimeClient<BunClientOptions> {
       version: SDK_VERSION,
     };
 
-    // Until node supports global TextEncoder in all versions we support, we are forced to pass it from util
-    options.transportOptions = {
-      textEncoder: new TextEncoder(),
-      ...options.transportOptions,
-    };
-
     const clientOptions: ServerRuntimeClientOptions = {
       ...options,
       platform: 'bun',

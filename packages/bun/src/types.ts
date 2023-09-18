@@ -56,13 +56,13 @@ export interface BaseBunOptions {
 }
 
 /**
- * Configuration options for the Sentry Node SDK
+ * Configuration options for the Sentry Bun SDK
  * @see @sentry/types Options for more information.
  */
 export interface BunOptions extends Options<BunTransportOptions>, BaseBunOptions {}
 
 /**
- * Configuration options for the Sentry Node SDK Client class
+ * Configuration options for the Sentry Bun SDK Client class
  * @see BunClient for more information.
  */
 export interface BunClientOptions extends ClientOptions<BunTransportOptions>, BaseBunOptions {}
