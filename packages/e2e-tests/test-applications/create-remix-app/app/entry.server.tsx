@@ -22,11 +22,7 @@ Sentry.init({
 });
 
 export function handleError(error: unknown, { request }: DataFunctionArgs): void {
-  if (error instanceof Error) {
-    Sentry.captureRemixServerException(error, 'remix.server', request);
-  } else {
-    Sentry.captureException(error);
-  }
+  Sentry.captureRemixServerException(error, 'remix.server', request);
 }
 
 export default function handleRequest(
