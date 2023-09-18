@@ -397,6 +397,8 @@ function wrapRequestHandler(origRequestHandler: RequestHandler, build: ServerBui
 
       const res = (await origRequestHandler.call(this, request, loadContext)) as Response;
 
+      console.debug('res', res);
+
       transaction.setHttpStatus(res.status);
       transaction.finish();
 
