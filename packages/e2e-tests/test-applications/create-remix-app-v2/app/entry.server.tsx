@@ -7,7 +7,6 @@
 import { PassThrough } from 'node:stream';
 
 import type { AppLoadContext, EntryContext, DataFunctionArgs } from '@remix-run/node';
-import { json } from '@remix-run/node';
 import { RemixServer } from '@remix-run/react';
 import { renderToPipeableStream } from 'react-dom/server';
 import * as Sentry from '@sentry/remix';
@@ -57,7 +56,7 @@ function handleBrowserRequest(
           responseHeaders.set('Content-Type', 'text/html');
 
           resolve(
-            json(body, {
+            new Response(body, {
               headers: responseHeaders,
               status: responseStatusCode,
             }),
