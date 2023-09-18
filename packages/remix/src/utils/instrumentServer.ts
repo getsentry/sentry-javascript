@@ -13,7 +13,7 @@ import {
   tracingContextFromHeaders,
 } from '@sentry/utils';
 
-import { getFutureFlagsServer, getRemixVersionFromPkg } from './futureFlags';
+import { getFutureFlagsServer, getRemixVersionFromBuild } from './futureFlags';
 import { extractData, getRequestMatch, isDeferredData, isResponse, json, matchServerRoutes } from './vendor/response';
 import type {
   AppData,
@@ -33,7 +33,6 @@ import type {
 import { normalizeRemixRequest } from './web-fetch';
 
 let FUTURE_FLAGS: FutureConfig | undefined;
-let IS_REMIX_V2: boolean | undefined;
 
 // Flag to track if the core request handler is instrumented.
 export let isRequestHandlerWrapped = false;
@@ -118,55 +117,60 @@ export async function captureRemixServerException(err: unknown, name: string, re
   });
 }
 
-function makeWrappedDocumentRequestFunction(
-  origDocumentRequestFunction: HandleDocumentRequestFunction,
-): HandleDocumentRequestFunction {
-  return async function (
-    this: unknown,
-    request: Request,
-    responseStatusCode: number,
-    responseHeaders: Headers,
-    context: EntryContext,
-    loadContext?: Record<string, unknown>,
-  ): Promise<Response> {
-    let res: Response;
+function makeWrappedDocumentRequestFunction(remixVersion: number) {
+  return function (origDocumentRequestFunction: HandleDocumentRequestFunction): HandleDocumentRequestFunction {
+    return async function (
+      this: unknown,
+      request: Request,
+      responseStatusCode: number,
+      responseHeaders: Headers,
+      context: EntryContext,
+      loadContext?: Record<string, unknown>,
+    ): Promise<Response> {
+      let res: Response;
 
-    const activeTransaction = getActiveTransaction();
+      const activeTransaction = getActiveTransaction();
 
-    try {
-      const span = activeTransaction?.startChild({
-        op: 'function.remix.document_request',
-        origin: 'auto.function.remix',
-        description: activeTransaction.name,
-        tags: {
-          method: request.method,
-          url: request.url,
-        },
-      });
+      try {
+        const span = activeTransaction?.startChild({
+          op: 'function.remix.document_request',
+          origin: 'auto.function.remix',
+          description: activeTransaction.name,
+          tags: {
+            method: request.method,
+            url: request.url,
+          },
+        });
 
-      res = await origDocumentRequestFunction.call(
-        this,
-        request,
-        responseStatusCode,
-        responseHeaders,
-        context,
-        loadContext,
-      );
+        res = await origDocumentRequestFunction.call(
+          this,
+          request,
+          responseStatusCode,
+          responseHeaders,
+          context,
+          loadContext,
+        );
 
-      span?.finish();
-    } catch (err) {
-      if (!FUTURE_FLAGS?.v2_errorBoundary && !IS_REMIX_V2) {
-        await captureRemixServerException(err, 'documentRequest', request);
+        span?.finish();
+      } catch (err) {
+        if (!FUTURE_FLAGS?.v2_errorBoundary && remixVersion !== 2) {
+          await captureRemixServerException(err, 'documentRequest', request);
+        }
+
+        throw err;
       }
 
-      throw err;
-    }
-
-    return res;
+      return res;
+    };
   };
 }
 
-function makeWrappedDataFunction(origFn: DataFunction, id: string, name: 'action' | 'loader'): DataFunction {
+function makeWrappedDataFunction(
+  origFn: DataFunction,
+  id: string,
+  name: 'action' | 'loader',
+  remixVersion: number,
+): DataFunction {
   return async function (this: unknown, args: DataFunctionArgs): Promise<Response | AppData> {
     let res: Response | AppData;
     const activeTransaction = getActiveTransaction();
@@ -192,7 +196,7 @@ function makeWrappedDataFunction(origFn: DataFunction, id: string, name: 'action
       currentScope.setSpan(activeTransaction);
       span?.finish();
     } catch (err) {
-      if (!FUTURE_FLAGS?.v2_errorBoundary && !IS_REMIX_V2) {
+      if (!FUTURE_FLAGS?.v2_errorBoundary && remixVersion !== 2) {
         await captureRemixServerException(err, name, args.request);
       }
 
@@ -204,15 +208,15 @@ function makeWrappedDataFunction(origFn: DataFunction, id: string, name: 'action
 }
 
 const makeWrappedAction =
-  (id: string) =>
+  (id: string, remixVersion: number) =>
   (origAction: DataFunction): DataFunction => {
-    return makeWrappedDataFunction(origAction, id, 'action');
+    return makeWrappedDataFunction(origAction, id, 'action', remixVersion);
   };
 
 const makeWrappedLoader =
-  (id: string) =>
+  (id: string, remixVersion: number) =>
   (origLoader: DataFunction): DataFunction => {
-    return makeWrappedDataFunction(origLoader, id, 'loader');
+    return makeWrappedDataFunction(origLoader, id, 'loader', remixVersion);
   };
 
 function getTraceAndBaggage(): { sentryTrace?: string; sentryBaggage?: string } {
@@ -235,44 +239,46 @@ function getTraceAndBaggage(): { sentryTrace?: string; sentryBaggage?: string } 
   return {};
 }
 
-function makeWrappedRootLoader(origLoader: DataFunction): DataFunction {
-  return async function (this: unknown, args: DataFunctionArgs): Promise<Response | AppData> {
-    const res = await origLoader.call(this, args);
-    const traceAndBaggage = getTraceAndBaggage();
-    const remixVersion = getRemixVersionFromPkg();
+function makeWrappedRootLoader(remixVersion: number) {
+  return function (origLoader: DataFunction): DataFunction {
+    return async function (this: unknown, args: DataFunctionArgs): Promise<Response | AppData> {
+      const res = await origLoader.call(this, args);
+      const traceAndBaggage = getTraceAndBaggage();
 
-    if (isDeferredData(res)) {
-      return {
-        ...res.data,
-        ...traceAndBaggage,
-        remixVersion,
-      };
-    }
+      if (isDeferredData(res)) {
+        return {
+          ...res.data,
+          ...traceAndBaggage,
+          remixVersion,
+        };
+      }
 
-    if (isResponse(res)) {
-      // Note: `redirect` and `catch` responses do not have bodies to extract.
-      // We skip injection of trace and baggage in those cases.
-      // For `redirect`, a valid internal redirection target will have the trace and baggage injected.
-      if (isRedirectResponse(res) || isCatchResponse(res)) {
-        __DEBUG_BUILD__ && logger.warn('Skipping injection of trace and baggage as the response does not have a body');
-        return res;
-      } else {
-        const data = await extractData(res);
-
-        if (typeof data === 'object') {
-          return json(
-            { ...data, ...traceAndBaggage, remixVersion },
-            { headers: res.headers, statusText: res.statusText, status: res.status },
-          );
-        } else {
+      if (isResponse(res)) {
+        // Note: `redirect` and `catch` responses do not have bodies to extract.
+        // We skip injection of trace and baggage in those cases.
+        // For `redirect`, a valid internal redirection target will have the trace and baggage injected.
+        if (isRedirectResponse(res) || isCatchResponse(res)) {
           __DEBUG_BUILD__ &&
-            logger.warn('Skipping injection of trace and baggage as the response body is not an object');
+            logger.warn('Skipping injection of trace and baggage as the response does not have a body');
           return res;
+        } else {
+          const data = await extractData(res);
+
+          if (typeof data === 'object') {
+            return json(
+              { ...data, ...traceAndBaggage, remixVersion },
+              { headers: res.headers, statusText: res.statusText, status: res.status },
+            );
+          } else {
+            __DEBUG_BUILD__ &&
+              logger.warn('Skipping injection of trace and baggage as the response body is not an object');
+            return res;
+          }
         }
       }
-    }
 
-    return { ...res, ...traceAndBaggage, remixVersion };
+      return { ...res, ...traceAndBaggage, remixVersion };
+    };
   };
 }
 
@@ -405,6 +411,8 @@ function wrapRequestHandler(origRequestHandler: RequestHandler, build: ServerBui
 export function instrumentBuild(build: ServerBuild): ServerBuild {
   const routes: ServerRouteManifest = {};
 
+  const remixVersion = getRemixVersionFromBuild(build);
+
   const wrappedEntry = { ...build.entry, module: { ...build.entry.module } };
 
   // Not keeping boolean flags like it's done for `requestHandler` functions,
@@ -413,7 +421,7 @@ export function instrumentBuild(build: ServerBuild): ServerBuild {
   // We should be able to wrap them, as they may not be wrapped before.
   const defaultExport = wrappedEntry.module.default as undefined | WrappedFunction;
   if (defaultExport && !defaultExport.__sentry_original__) {
-    fill(wrappedEntry.module, 'default', makeWrappedDocumentRequestFunction);
+    fill(wrappedEntry.module, 'default', makeWrappedDocumentRequestFunction(remixVersion));
   }
 
   for (const [id, route] of Object.entries(build.routes)) {
@@ -421,12 +429,12 @@ export function instrumentBuild(build: ServerBuild): ServerBuild {
 
     const routeAction = wrappedRoute.module.action as undefined | WrappedFunction;
     if (routeAction && !routeAction.__sentry_original__) {
-      fill(wrappedRoute.module, 'action', makeWrappedAction(id));
+      fill(wrappedRoute.module, 'action', makeWrappedAction(id, remixVersion));
     }
 
     const routeLoader = wrappedRoute.module.loader as undefined | WrappedFunction;
     if (routeLoader && !routeLoader.__sentry_original__) {
-      fill(wrappedRoute.module, 'loader', makeWrappedLoader(id));
+      fill(wrappedRoute.module, 'loader', makeWrappedLoader(id, remixVersion));
     }
 
     // Entry module should have a loader function to provide `sentry-trace` and `baggage`
@@ -437,7 +445,7 @@ export function instrumentBuild(build: ServerBuild): ServerBuild {
       }
 
       // We want to wrap the root loader regardless of whether it's already wrapped before.
-      fill(wrappedRoute.module, 'loader', makeWrappedRootLoader);
+      fill(wrappedRoute.module, 'loader', makeWrappedRootLoader(remixVersion));
     }
 
     routes[id] = wrappedRoute;
@@ -466,9 +474,7 @@ function makeWrappedCreateRequestHandler(
  * Monkey-patch Remix's `createRequestHandler` from `@remix-run/server-runtime`
  * which Remix Adapters (https://remix.run/docs/en/v1/api/remix) use underneath.
  */
-export function instrumentServer(isRemixV2?: boolean): void {
-  IS_REMIX_V2 = isRemixV2;
-
+export function instrumentServer(): void {
   const pkg = loadModule<{ createRequestHandler: CreateRequestHandlerFunction }>('@remix-run/server-runtime');
 
   if (!pkg) {
