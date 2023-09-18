@@ -13,6 +13,7 @@ const DEFAULT_SKIP_TESTS_PACKAGES = [
   '@sentry/svelte',
   '@sentry/replay',
   '@sentry/wasm',
+  '@sentry/bun',
 ];
 
 // These packages don't support Node 8 for syntax or dependency reasons.

@@ -9067,6 +9067,11 @@ builtins@^5.0.0, builtins@^5.0.1:
   dependencies:
     semver "^7.0.0"
 
+bun-types@latest:
+  version "1.0.1"
+  resolved "https://registry.yarnpkg.com/bun-types/-/bun-types-1.0.1.tgz#8bcb10ae3a1548a39f0932fdb365f4b3a649efba"
+  integrity sha512-7NrXqhMIaNKmWn2dSWEQ50znMZqrN/5Z0NBMXvQTRu/+Y1CvoXRznFy0pnqLe024CeZgVdXoEpARNO1JZLAPGw==
+
 busboy@^1.6.0:
   version "1.6.0"
   resolved "https://registry.yarnpkg.com/busboy/-/busboy-1.6.0.tgz#966ea36a9502e43cdb9146962523b92f531f6893"
