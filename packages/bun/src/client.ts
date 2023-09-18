@@ -1,9 +1,9 @@
-import { type ServerRuntimeClientOptions } from '@sentry/core';
+import type { ServerRuntimeClientOptions } from '@sentry/core';
 import { SDK_VERSION, ServerRuntimeClient } from '@sentry/core';
 import * as os from 'os';
 import { TextEncoder } from 'util';
 
-import { type BunClientOptions } from './types';
+import type { BunClientOptions } from './types';
 
 /**
  * The Sentry Node SDK Client.

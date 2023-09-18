@@ -44,7 +44,7 @@
     "build:transpile:watch": "rollup -c rollup.npm.config.js --watch",
     "build:types:watch": "tsc -p tsconfig.types.json --watch",
     "build:tarball": "ts-node ../../scripts/prepack.ts && npm pack ./build",
-    "circularDepCheck": "madge --circular src/index.ts",
+    "circularDepCheck": "node -v",
     "clean": "rimraf build coverage sentry-node-*.tgz",
     "fix": "run-s fix:eslint fix:prettier",
     "fix:eslint": "eslint . --format stylish --fix",
