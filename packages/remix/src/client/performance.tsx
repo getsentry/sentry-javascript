@@ -90,7 +90,7 @@ export function remixRouterInstrumentation(useEffect: UseEffect, useLocation: Us
  * @param OrigApp The Remix root to wrap
  * @param options The options for ErrorBoundary wrapper.
  */
-export function withSentry<P extends Record<string, unknown>, R extends React.FC<P>>(
+export function withSentry<P extends Record<string, unknown>, R extends React.ComponentType<P>>(
   OrigApp: R,
   options: {
     wrapWithErrorBoundary?: boolean;
