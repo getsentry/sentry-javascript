@@ -1,4 +1,4 @@
-import { GLOBAL_OBJ, loadModule, parseSemver } from '@sentry/utils';
+import { GLOBAL_OBJ } from '@sentry/utils';
 
 import type { FutureConfig, ServerBuild } from './vendor/types';
 
@@ -42,15 +42,17 @@ export function getFutureFlagsServer(build: ServerBuild): FutureConfig | undefin
 }
 
 /**
- * Read Remix version from module package.json
+ * Learn Remix version from the server build object
+ * V2 Server builds have a non-optional `mode` property
  *
  * @returns The major version number
  */
-export function getRemixVersionFromPkg(): number | undefined {
-  const pkg = loadModule<{ version: string }>('@remix-run/react/package.json');
-  const version = pkg ? pkg.version : '0.0.0';
+export function getRemixVersionFromBuild(build: ServerBuild): number {
+  if ('mode' in build) {
+    return 2;
+  }
 
-  return parseSemver(version).major;
+  return 1;
 }
 
 /**
