@@ -45,18 +45,6 @@ const config: PlaywrightTestConfig = {
       },
     },
     // For now we only test Chrome!
-    // {
-    //   name: 'firefox',
-    //   use: {
-    //     ...devices['Desktop Firefox'],
-    //   },
-    // },
-    // {
-    //   name: 'webkit',
-    //   use: {
-    //     ...devices['Desktop Safari'],
-    //   },
-    // },
   ],
 
   /* Run your local dev server before starting the tests */

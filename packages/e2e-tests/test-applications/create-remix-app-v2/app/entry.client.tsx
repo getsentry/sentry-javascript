@@ -11,7 +11,6 @@ import * as Sentry from '@sentry/remix';
 
 Sentry.init({
   dsn: window.ENV.SENTRY_DSN,
-  isRemixV2: true,
   integrations: [
     new Sentry.BrowserTracing({
       routingInstrumentation: Sentry.remixRouterInstrumentation(useEffect, useLocation, useMatches),
