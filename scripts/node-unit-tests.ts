@@ -162,7 +162,11 @@ function runTests(): void {
   const versionConfig = SKIP_TEST_PACKAGES[CURRENT_NODE_VERSION as NodeVersions];
   if (versionConfig) {
     versionConfig.ignoredPackages.forEach(dep => ignores.add(dep));
-    installLegacyDeps(versionConfig.legacyDeps);
+
+    if (versionConfig.legacyDeps.length > 0) {
+      installLegacyDeps(versionConfig.legacyDeps);
+    }
+
     if (versionConfig.shouldES6Utils) {
       es6ifyTestTSConfig('utils');
     }
