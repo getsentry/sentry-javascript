@@ -271,10 +271,7 @@ sentryTest(
     //   // -----------------------------------------------------------------------------------------
     //   // And just to finish this off, let's go back to the index page
 
-    const [, req8] = await Promise.all([
-      page.click('a'),
-      reqPromise8
-    ]);
+    const [, req8] = await Promise.all([page.click('a'), reqPromise8]);
 
     const replayEvent8 = getReplayEvent(req8);
     const recording8 = getReplayRecordingContent(req8);
@@ -287,10 +284,7 @@ sentryTest(
     expect(normalize(recording8.fullSnapshots)).toMatchSnapshot('seg-8-snap-full');
     expect(recording8.incrementalSnapshots.length).toEqual(0);
 
-    const [, req9] = await Promise.all([
-      page.click('#go-background'),
-      reqPromise9
-    ]);
+    const [, req9] = await Promise.all([page.click('#go-background'), reqPromise9]);
 
     const replayEvent9 = getReplayEvent(req9);
     const recording9 = getReplayRecordingContent(req9);
