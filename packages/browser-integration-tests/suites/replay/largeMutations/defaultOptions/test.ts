@@ -18,23 +18,12 @@ sentryTest(
       });
     });
 
-    const reqPromise0 = waitForReplayRequest(page, 0);
-
     const url = await getLocalTestPath({ testDir: __dirname });
 
-    const [, res0] = await Promise.all([page.goto(url), reqPromise0]);
-
-    const reqPromise1 = waitForReplayRequest(page);
-
-    const [, , res1] = await Promise.all([page.click('#button-add'), forceFlushReplay(), reqPromise1]);
-
-    const reqPromise2 = waitForReplayRequest(page);
-
-    const [, , res2] = await Promise.all([page.click('#button-modify'), forceFlushReplay(), reqPromise2]);
-
-    const reqPromise3 = waitForReplayRequest(page);
-
-    const [, , res3] = await Promise.all([page.click('#button-remove'), forceFlushReplay(), reqPromise3]);
+    const [res0] = await Promise.all([waitForReplayRequest(page, 0), page.goto(url)]);
+    const [res1] = await Promise.all([waitForReplayRequest(page), page.click('#button-add'), forceFlushReplay()]);
+    const [res2] = await Promise.all([waitForReplayRequest(page), page.click('#button-modify'), forceFlushReplay()]);
+    const [res3] = await Promise.all([waitForReplayRequest(page), page.click('#button-remove'), forceFlushReplay()]);
 
     const replayData0 = getReplayRecordingContent(res0);
     const replayData1 = getReplayRecordingContent(res1);
