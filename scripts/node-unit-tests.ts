@@ -1,7 +1,15 @@
 import * as childProcess from 'child_process';
 import * as fs from 'fs';
 
-const CURRENT_NODE_VERSION = process.version.replace('v', '').split('.')[0];
+type NodeVersion = '8' | '10' | '12' | '14' | '16';
+
+interface VersionConfig {
+  ignoredPackages: Array<`@${'sentry' | 'sentry-internal'}/${string}`>;
+  legacyDeps: Array<`${string}@${string}`>;
+  shouldES6Utils: boolean;
+}
+
+const CURRENT_NODE_VERSION = process.version.replace('v', '').split('.')[0] as NodeVersion;
 
 const DEFAULT_SKIP_TESTS_PACKAGES = [
   '@sentry-internal/eslint-plugin-sdk',
@@ -16,45 +24,62 @@ const DEFAULT_SKIP_TESTS_PACKAGES = [
   '@sentry/bun',
 ];
 
-// These packages don't support Node 8 for syntax or dependency reasons.
-const NODE_8_SKIP_TESTS_PACKAGES = [
-  '@sentry/gatsby',
-  '@sentry/serverless',
-  '@sentry/nextjs',
-  '@sentry/remix',
-  '@sentry/sveltekit',
-  '@sentry-internal/replay-worker',
-  '@sentry/node-experimental',
-];
-
-// We have to downgrade some of our dependencies in order to run tests in Node 8 and 10.
-const NODE_8_LEGACY_DEPENDENCIES = [
-  'jsdom@15.x',
-  'jest@25.x',
-  'jest-environment-jsdom@25.x',
-  'jest-environment-node@25.x',
-  'ts-jest@25.x',
-  'lerna@3.13.4',
-];
-
-const NODE_10_SKIP_TESTS_PACKAGES = [
-  '@sentry/remix',
-  '@sentry/sveltekit',
-  '@sentry-internal/replay-worker',
-  '@sentry/node-experimental',
-];
-const NODE_10_LEGACY_DEPENDENCIES = ['jsdom@16.x', 'lerna@3.13.4'];
-
-const NODE_12_SKIP_TESTS_PACKAGES = ['@sentry/remix', '@sentry/sveltekit', '@sentry/node-experimental'];
-const NODE_12_LEGACY_DEPENDENCIES = ['lerna@3.13.4'];
-
-const NODE_14_SKIP_TESTS_PACKAGES = ['@sentry/sveltekit'];
+const SKIP_TEST_PACKAGES: Record<NodeVersion, VersionConfig> = {
+  '8': {
+    ignoredPackages: [
+      '@sentry/gatsby',
+      '@sentry/serverless',
+      '@sentry/nextjs',
+      '@sentry/remix',
+      '@sentry/sveltekit',
+      '@sentry-internal/replay-worker',
+      '@sentry/node-experimental',
+      '@sentry/vercel-edge',
+    ],
+    legacyDeps: [
+      'jsdom@15.x',
+      'jest@25.x',
+      'jest-environment-jsdom@25.x',
+      'jest-environment-node@25.x',
+      'ts-jest@25.x',
+      'lerna@3.13.4',
+    ],
+    shouldES6Utils: true,
+  },
+  '10': {
+    ignoredPackages: [
+      '@sentry/remix',
+      '@sentry/sveltekit',
+      '@sentry-internal/replay-worker',
+      '@sentry/node-experimental',
+      '@sentry/vercel-edge',
+    ],
+    legacyDeps: ['jsdom@16.x', 'lerna@3.13.4'],
+    shouldES6Utils: true,
+  },
+  '12': {
+    ignoredPackages: ['@sentry/remix', '@sentry/sveltekit', '@sentry/node-experimental', '@sentry/vercel-edge'],
+    legacyDeps: ['lerna@3.13.4'],
+    shouldES6Utils: true,
+  },
+  '14': {
+    ignoredPackages: ['@sentry/sveltekit', '@sentry/vercel-edge'],
+    legacyDeps: [],
+    shouldES6Utils: false,
+  },
+  '16': {
+    ignoredPackages: ['@sentry/vercel-edge'],
+    legacyDeps: [],
+    shouldES6Utils: false,
+  },
+};
 
 type JSONValue = string | number | boolean | null | JSONArray | JSONObject;
 
 type JSONObject = {
   [key: string]: JSONValue;
 };
+
 type JSONArray = Array<JSONValue>;
 
 interface TSConfigJSON extends JSONObject {
@@ -85,7 +110,7 @@ function installLegacyDeps(legacyDeps: string[] = []): void {
  * @param transformer A function which takes the JSON data as input and returns a mutated version. It may mutate the
  * JSON data in place, but it isn't required to do so.
  */
-export function modifyJSONFile(filepath: string, transformer: (json: JSONObject) => JSONObject): void {
+export function modifyJSONFile<T extends JSONObject>(filepath: string, transformer: (json: T) => T): void {
   const fileContents = fs
     .readFileSync(filepath)
     .toString()
@@ -98,10 +123,9 @@ export function modifyJSONFile(filepath: string, transformer: (json: JSONObject)
 
 const es6ifyTestTSConfig = (pkg: string): void => {
   const filepath = `packages/${pkg}/tsconfig.test.json`;
-  const transformer = (json: JSONObject): JSONObject => {
-    const tsconfig = json as TSConfigJSON;
+  const transformer = (tsconfig: TSConfigJSON): TSConfigJSON => {
     tsconfig.compilerOptions.target = 'es6';
-    return json;
+    return tsconfig;
   };
   modifyJSONFile(filepath, transformer);
 };
@@ -128,28 +152,21 @@ function runWithIgnores(skipPackages: string[] = []): void {
 function runTests(): void {
   const ignores = new Set<string>();
 
-  DEFAULT_SKIP_TESTS_PACKAGES.forEach(dep => ignores.add(dep));
+  DEFAULT_SKIP_TESTS_PACKAGES.forEach(pkg => ignores.add(pkg));
 
-  switch (CURRENT_NODE_VERSION) {
-    case '8':
-      NODE_8_SKIP_TESTS_PACKAGES.forEach(dep => ignores.add(dep));
-      installLegacyDeps(NODE_8_LEGACY_DEPENDENCIES);
-      skipNodeV8Tests();
+  if (CURRENT_NODE_VERSION === '8') {
+    skipNodeV8Tests();
+  }
+
+  const versionConfig = SKIP_TEST_PACKAGES[CURRENT_NODE_VERSION];
+  if (versionConfig) {
+    versionConfig.ignoredPackages.forEach(dep => ignores.add(dep));
+    if (versionConfig.legacyDeps.length > 0) {
+      installLegacyDeps(versionConfig.legacyDeps);
+    }
+    if (versionConfig.shouldES6Utils) {
       es6ifyTestTSConfig('utils');
-      break;
-    case '10':
-      NODE_10_SKIP_TESTS_PACKAGES.forEach(dep => ignores.add(dep));
-      installLegacyDeps(NODE_10_LEGACY_DEPENDENCIES);
-      es6ifyTestTSConfig('utils');
-      break;
-    case '12':
-      NODE_12_SKIP_TESTS_PACKAGES.forEach(dep => ignores.add(dep));
-      installLegacyDeps(NODE_12_LEGACY_DEPENDENCIES);
-      es6ifyTestTSConfig('utils');
-      break;
-    case '14':
-      NODE_14_SKIP_TESTS_PACKAGES.forEach(dep => ignores.add(dep));
-      break;
+    }
   }
 
   runWithIgnores(Array.from(ignores));
