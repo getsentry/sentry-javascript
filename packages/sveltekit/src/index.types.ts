@@ -19,7 +19,7 @@ export declare function init(options: Options | clientSdk.BrowserOptions | serve
 
 export declare function handleErrorWithSentry<T extends HandleClientError | HandleServerError>(
   handleError?: T,
-): ReturnType<T>;
+): T;
 
 /**
  * Wrap a universal load function (e.g. +page.js or +layout.js) with Sentry functionality
