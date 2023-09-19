@@ -1,9 +1,15 @@
 import * as childProcess from 'child_process';
 import * as fs from 'fs';
 
-const CURRENT_NODE_VERSION = process.version.replace('v', '').split('.')[0];
+type NodeVersion = '8' | '10' | '12' | '14' | '16';
 
-type NodeVersions = '8' | '10' | '12' | '14' | '16';
+interface VersionConfig {
+  ignoredPackages: Array<`@${'sentry' | 'sentry-internal'}/${string}`>;
+  legacyDeps: Array<`${string}@${string}`>;
+  shouldES6Utils: boolean;
+}
+
+const CURRENT_NODE_VERSION = process.version.replace('v', '').split('.')[0] as NodeVersion;
 
 const DEFAULT_SKIP_TESTS_PACKAGES = [
   '@sentry-internal/eslint-plugin-sdk',
@@ -18,14 +24,7 @@ const DEFAULT_SKIP_TESTS_PACKAGES = [
   '@sentry/bun',
 ];
 
-const SKIP_TEST_PACKAGES: Record<
-  NodeVersions,
-  {
-    ignoredPackages: Array<`@${'sentry' | 'sentry-internal'}/${string}`>;
-    legacyDeps: Array<`${string}@${string}`>;
-    shouldES6Utils: boolean;
-  }
-> = {
+const SKIP_TEST_PACKAGES: Record<NodeVersion, VersionConfig> = {
   '8': {
     ignoredPackages: [
       '@sentry/gatsby',
@@ -159,14 +158,12 @@ function runTests(): void {
     skipNodeV8Tests();
   }
 
-  const versionConfig = SKIP_TEST_PACKAGES[CURRENT_NODE_VERSION as NodeVersions];
+  const versionConfig = SKIP_TEST_PACKAGES[CURRENT_NODE_VERSION];
   if (versionConfig) {
     versionConfig.ignoredPackages.forEach(dep => ignores.add(dep));
-
     if (versionConfig.legacyDeps.length > 0) {
       installLegacyDeps(versionConfig.legacyDeps);
     }
-
     if (versionConfig.shouldES6Utils) {
       es6ifyTestTSConfig('utils');
     }
