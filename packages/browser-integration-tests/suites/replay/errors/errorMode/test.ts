@@ -58,17 +58,17 @@ sentryTest(
 
     expect(callsToSentry).toEqual(0);
 
-    const [, req0] = await Promise.all([page.click('#error'), reqPromise0]);
+    const [req0] = await Promise.all([reqPromise0, page.click('#error')]);
 
     expect(callsToSentry).toEqual(2); // 1 error, 1 replay event
 
-    const [, req1] = await Promise.all([page.click('#go-background'), reqPromise1, reqErrorPromise]);
+    const [req1] = await Promise.all([reqPromise1, page.click('#go-background'), reqErrorPromise]);
 
     expect(callsToSentry).toEqual(3); // 1 error, 2 replay events
 
     await page.click('#log');
 
-    const [, req2] = await Promise.all([page.click('#go-background'), reqPromise2]);
+    const [req2] = await Promise.all([reqPromise2, page.click('#go-background')]);
 
     const event0 = getReplayEvent(req0);
     const content0 = getReplayRecordingContent(req0);

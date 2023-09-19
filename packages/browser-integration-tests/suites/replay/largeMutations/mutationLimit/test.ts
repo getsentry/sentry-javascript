@@ -27,20 +27,24 @@ sentryTest(
 
     const url = await getLocalTestPath({ testDir: __dirname });
 
-    const [, res0] = await Promise.all([page.goto(url), reqPromise0]);
+    const [res0] = await Promise.all([reqPromise0, page.goto(url)]);
+    await forceFlushReplay();
 
     const reqPromise1 = waitForReplayRequest(page);
 
-    const [, , res1] = await Promise.all([page.click('#button-add'), forceFlushReplay(), reqPromise1]);
+    const [res1] = await Promise.all([reqPromise1, page.click('#button-add')]);
+    await forceFlushReplay();
 
     // replay should be stopped due to mutation limit
     let replay = await getReplaySnapshot(page);
     expect(replay.session).toBe(undefined);
     expect(replay._isEnabled).toBe(false);
 
-    await Promise.all([page.click('#button-modify'), await forceFlushReplay()]);
+    await page.click('#button-modify');
+    await forceFlushReplay();
 
-    await Promise.all([page.click('#button-remove'), await forceFlushReplay()]);
+    await page.click('#button-remove');
+    await forceFlushReplay();
 
     const replayData0 = getReplayRecordingContent(res0);
     expect(replayData0.fullSnapshots.length).toBe(1);

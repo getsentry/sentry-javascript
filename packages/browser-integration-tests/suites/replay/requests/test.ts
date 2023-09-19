@@ -31,13 +31,11 @@ sentryTest('replay recording should contain fetch request span', async ({ getLoc
 
   const url = await getLocalTestPath({ testDir: __dirname });
 
-  const [, req0] = await Promise.all([Promise.all([page.goto(url), page.click('#go-background')]), reqPromise0]);
+  const [req0] = await Promise.all([reqPromise0, page.goto(url), page.click('#go-background')]);
 
   const { performanceSpans: spans0 } = getReplayRecordingContent(req0);
 
-  const receivedResponse = page.waitForResponse('https://example.com');
-
-  await Promise.all([page.click('#fetch'), receivedResponse]);
+  await Promise.all([page.waitForResponse('https://example.com'), page.click('#fetch')]);
 
   const { performanceSpans: spans1 } = getReplayRecordingContent(await reqPromise1);
 
@@ -71,11 +69,11 @@ sentryTest('replay recording should contain XHR request span', async ({ getLocal
 
   const url = await getLocalTestPath({ testDir: __dirname });
 
-  const [, req0] = await Promise.all([Promise.all([page.goto(url), page.click('#go-background')]), reqPromise0]);
+  const [req0] = await Promise.all([reqPromise0, page.goto(url), page.click('#go-background')]);
 
   const { performanceSpans: spans0 } = getReplayRecordingContent(req0);
 
-  await Promise.all([page.click('#xhr'), page.waitForResponse('https://example.com')]);
+  await Promise.all([page.waitForResponse('https://example.com'), page.click('#xhr')]);
 
   const { performanceSpans: spans1 } = getReplayRecordingContent(await reqPromise1);
 

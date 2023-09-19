@@ -84,12 +84,12 @@ sentryTest(
     await reqErrorPromise;
     expect(callsToSentry).toEqual(2);
 
-    const [, req0] = await Promise.all([
+    const [req0] = await Promise.all([
+      reqPromise0,
       await page.evaluate(async () => {
         const replayIntegration = (window as unknown as Window & { Replay: Replay }).Replay;
         await replayIntegration.flush();
       }),
-      reqPromise0,
     ]);
 
     // 2 errors, 1 flush
@@ -227,12 +227,12 @@ sentryTest(
     await reqErrorPromise;
     expect(callsToSentry).toEqual(2);
 
-    const [, req0] = await Promise.all([
+    const [req0] = await Promise.all([
+      reqPromise0,
       page.evaluate(async () => {
         const replayIntegration = (window as unknown as Window & { Replay: Replay }).Replay;
         await replayIntegration.flush({ continueRecording: false });
       }),
-      reqPromise0,
     ]);
 
     // 2 errors, 1 flush
@@ -348,11 +348,10 @@ sentryTest(
 
     // Error sample rate is now at 1.0, this error should create a replay
     const reqErrorPromise1 = waitForErrorRequest(page);
-    const [, req0] = await Promise.all([
-      page.click('#error2'),
-
+    const [req0] = await Promise.all([
       // 1 unsampled error, 1 sampled error -> 1 flush
       reqPromise0,
+      page.click('#error2'),
     ]);
 
     const reqError1 = await reqErrorPromise1;

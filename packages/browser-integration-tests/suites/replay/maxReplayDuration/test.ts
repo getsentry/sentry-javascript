@@ -35,7 +35,9 @@ sentryTest('keeps track of max duration across reloads', async ({ getLocalTestPa
 
   await new Promise(resolve => setTimeout(resolve, MAX_REPLAY_DURATION / 2 + 100));
 
-  const [, , req0, req1] = await Promise.all([
+  const [req0, req1] = await Promise.all([
+    reqPromise0,
+    reqPromise1,
     page.click('#button1'),
     page.evaluate(
       `Object.defineProperty(document, 'visibilityState', {
@@ -47,8 +49,6 @@ sentryTest('keeps track of max duration across reloads', async ({ getLocalTestPa
 
   document.dispatchEvent(new Event('visibilitychange'));`,
     ),
-    reqPromise0,
-    reqPromise1,
   ]);
 
   const replayEvent0 = getReplayEvent(req0);

@@ -21,9 +21,16 @@ sentryTest(
     const url = await getLocalTestPath({ testDir: __dirname });
 
     const [res0] = await Promise.all([waitForReplayRequest(page, 0), page.goto(url)]);
-    const [res1] = await Promise.all([waitForReplayRequest(page), page.click('#button-add'), forceFlushReplay()]);
-    const [res2] = await Promise.all([waitForReplayRequest(page), page.click('#button-modify'), forceFlushReplay()]);
-    const [res3] = await Promise.all([waitForReplayRequest(page), page.click('#button-remove'), forceFlushReplay()]);
+    await forceFlushReplay();
+
+    const [res1] = await Promise.all([waitForReplayRequest(page), page.click('#button-add')]);
+    await forceFlushReplay();
+
+    const [res2] = await Promise.all([waitForReplayRequest(page), page.click('#button-modify')]);
+    await forceFlushReplay();
+
+    const [res3] = await Promise.all([waitForReplayRequest(page), page.click('#button-remove')]);
+    await forceFlushReplay();
 
     const replayData0 = getReplayRecordingContent(res0);
     const replayData1 = getReplayRecordingContent(res1);
