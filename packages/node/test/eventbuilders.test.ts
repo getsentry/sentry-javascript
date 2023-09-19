@@ -1,7 +1,7 @@
 import type { Client } from '@sentry/types';
+import { eventFromUnknownInput } from '@sentry/utils';
 
-import { defaultStackParser, Scope } from '../src';
-import { eventFromUnknownInput } from '../src/eventbuilder';
+import { defaultStackParser, getCurrentHub, Scope } from '../src';
 
 const testScope = new Scope();
 
@@ -55,7 +55,7 @@ describe('eventFromUnknownInput', () => {
       },
     };
 
-    eventFromUnknownInput(defaultStackParser, deepObject);
+    eventFromUnknownInput(getCurrentHub, defaultStackParser, deepObject);
 
     const serializedObject = (testScope as any)._extra.__serialized__;
     expect(serializedObject).toBeDefined();

@@ -1,8 +1,8 @@
-import type { Client, Integration, Options } from '@sentry/types';
+import type { Client, Event, EventHint, Integration, Options } from '@sentry/types';
 import { arrayify, logger } from '@sentry/utils';
 
+import { addGlobalEventProcessor } from './eventProcessors';
 import { getCurrentHub } from './hub';
-import { addGlobalEventProcessor } from './scope';
 
 declare module '@sentry/types' {
   interface Integration {
@@ -107,8 +107,18 @@ export function setupIntegration(client: Client, integration: Integration, integ
   }
 
   if (client.on && typeof integration.preprocessEvent === 'function') {
-    const callback = integration.preprocessEvent.bind(integration);
+    const callback = integration.preprocessEvent.bind(integration) as typeof integration.preprocessEvent;
     client.on('preprocessEvent', (event, hint) => callback(event, hint, client));
+  }
+
+  if (client.addEventProcessor && typeof integration.processEvent === 'function') {
+    const callback = integration.processEvent.bind(integration) as typeof integration.processEvent;
+
+    const processor = Object.assign((event: Event, hint: EventHint) => callback(event, hint, client), {
+      id: integration.name,
+    });
+
+    client.addEventProcessor(processor);
   }
 
   __DEBUG_BUILD__ && logger.log(`Integration installed: ${integration.name}`);

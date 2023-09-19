@@ -1,3 +1,3 @@
-export async function PUT(): Promise<Response> {
+export async function PUT() {
   throw new Error('route-handler-error');
 }

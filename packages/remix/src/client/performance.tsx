@@ -4,7 +4,7 @@ import type { Transaction, TransactionContext } from '@sentry/types';
 import { isNodeEnv, logger } from '@sentry/utils';
 import * as React from 'react';
 
-import { getFutureFlagsBrowser } from '../utils/futureFlags';
+import { getFutureFlagsBrowser, readRemixVersionFromLoader } from '../utils/futureFlags';
 
 const DEFAULT_TAGS = {
   'routing.instrumentation': 'remix-router',
@@ -46,6 +46,10 @@ function getInitPathName(): string | undefined {
   }
 
   return undefined;
+}
+
+function isRemixV2(remixVersion: number | undefined): boolean {
+  return remixVersion === 2 || getFutureFlagsBrowser()?.v2_errorBoundary || false;
 }
 
 /**
@@ -97,7 +101,7 @@ export function withSentry<P extends Record<string, unknown>, R extends React.Co
     errorBoundaryOptions?: ErrorBoundaryProps;
   } = {
     // We don't want to wrap application with Sentry's ErrorBoundary by default for Remix v2
-    wrapWithErrorBoundary: getFutureFlagsBrowser()?.v2_errorBoundary ? false : true,
+    wrapWithErrorBoundary: true,
     errorBoundaryOptions: {},
   },
 ): R {
@@ -154,16 +158,15 @@ export function withSentry<P extends Record<string, unknown>, R extends React.Co
 
     isBaseLocation = false;
 
+    if (!isRemixV2(readRemixVersionFromLoader()) && options.wrapWithErrorBoundary) {
+      // @ts-expect-error Setting more specific React Component typing for `R` generic above
+      // will break advanced type inference done by react router params
+      return withErrorBoundary(OrigApp, options.errorBoundaryOptions)(props);
+    }
     // @ts-expect-error Setting more specific React Component typing for `R` generic above
     // will break advanced type inference done by react router params
     return <OrigApp {...props} />;
   };
-
-  if (options.wrapWithErrorBoundary) {
-    // @ts-expect-error Setting more specific React Component typing for `R` generic above
-    // will break advanced type inference done by react router params
-    return withErrorBoundary(SentryRoot, options.errorBoundaryOptions);
-  }
 
   // @ts-expect-error Setting more specific React Component typing for `R` generic above
   // will break advanced type inference done by react router params

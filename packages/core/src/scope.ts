@@ -22,17 +22,9 @@ import type {
   Transaction,
   User,
 } from '@sentry/types';
-import {
-  arrayify,
-  dateTimestampInSeconds,
-  getGlobalSingleton,
-  isPlainObject,
-  isThenable,
-  logger,
-  SyncPromise,
-  uuid4,
-} from '@sentry/utils';
+import { arrayify, dateTimestampInSeconds, isPlainObject, uuid4 } from '@sentry/utils';
 
+import { getGlobalEventProcessors, notifyEventProcessors } from './eventProcessors';
 import { updateSession } from './session';
 
 /**
@@ -525,7 +517,7 @@ export class Scope implements ScopeInterface {
       propagationContext: this._propagationContext,
     };
 
-    return this._notifyEventProcessors([...getGlobalEventProcessors(), ...this._eventProcessors], event, hint);
+    return notifyEventProcessors([...getGlobalEventProcessors(), ...this._eventProcessors], event, hint);
   }
 
   /**
@@ -557,40 +549,6 @@ export class Scope implements ScopeInterface {
    */
   protected _getBreadcrumbs(): Breadcrumb[] {
     return this._breadcrumbs;
-  }
-
-  /**
-   * This will be called after {@link applyToEvent} is finished.
-   */
-  protected _notifyEventProcessors(
-    processors: EventProcessor[],
-    event: Event | null,
-    hint: EventHint,
-    index: number = 0,
-  ): PromiseLike<Event | null> {
-    return new SyncPromise<Event | null>((resolve, reject) => {
-      const processor = processors[index];
-      if (event === null || typeof processor !== 'function') {
-        resolve(event);
-      } else {
-        const result = processor({ ...event }, hint) as Event | null;
-
-        __DEBUG_BUILD__ &&
-          processor.id &&
-          result === null &&
-          logger.log(`Event processor "${processor.id}" dropped event`);
-
-        if (isThenable(result)) {
-          void result
-            .then(final => this._notifyEventProcessors(processors, final, hint, index + 1).then(resolve))
-            .then(null, reject);
-        } else {
-          void this._notifyEventProcessors(processors, result, hint, index + 1)
-            .then(resolve)
-            .then(null, reject);
-        }
-      }
-    });
   }
 
   /**
@@ -627,21 +585,6 @@ export class Scope implements ScopeInterface {
       delete event.fingerprint;
     }
   }
-}
-
-/**
- * Returns the global event processors.
- */
-function getGlobalEventProcessors(): EventProcessor[] {
-  return getGlobalSingleton<EventProcessor[]>('globalEventProcessors', () => []);
-}
-
-/**
- * Add a EventProcessor to be kept globally.
- * @param callback EventProcessor to add
- */
-export function addGlobalEventProcessor(callback: EventProcessor): void {
-  getGlobalEventProcessors().push(callback);
 }
 
 function generatePropagationContext(): PropagationContext {
