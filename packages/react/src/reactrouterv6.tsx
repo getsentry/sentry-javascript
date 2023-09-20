@@ -128,8 +128,6 @@ function updatePageloadTransaction(
   matches?: AgnosticDataRouteMatch,
   basename?: string,
 ): void {
-  console.debug('matches', matches);
-
   const branches = Array.isArray(matches)
     ? matches
     : (_matchRoutes(routes, location, basename) as unknown as RouteMatch[]);
