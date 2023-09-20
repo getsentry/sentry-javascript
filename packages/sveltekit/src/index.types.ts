@@ -17,9 +17,7 @@ import type * as serverSdk from './server';
 /** Initializes Sentry SvelteKit SDK */
 export declare function init(options: Options | clientSdk.BrowserOptions | serverSdk.NodeOptions): void;
 
-export declare function handleErrorWithSentry<T extends HandleClientError | HandleServerError>(
-  handleError?: T,
-): T;
+export declare function handleErrorWithSentry<T extends HandleClientError | HandleServerError>(handleError?: T): T;
 
 /**
  * Wrap a universal load function (e.g. +page.js or +layout.js) with Sentry functionality
