@@ -9,7 +9,7 @@ test('should capture an empty object', async () => {
       values: [
         {
           type: 'Error',
-          value: 'Non-Error exception captured with keys: [object has no keys]',
+          value: 'Object captured as exception with keys: [object has no keys]',
           mechanism: {
             type: 'generic',
             handled: true,

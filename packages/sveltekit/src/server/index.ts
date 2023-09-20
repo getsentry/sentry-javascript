@@ -50,6 +50,7 @@ export {
   // eslint-disable-next-line deprecation/deprecation
   startActiveSpan,
   startInactiveSpan,
+  startSpanManual,
 } from '@sentry/node';
 
 // We can still leave this for the carrier init and type exports

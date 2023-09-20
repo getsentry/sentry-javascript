@@ -66,6 +66,9 @@ targets:
   - name: npm
     id: '@sentry/opentelemetry-node'
     includeNames: /^sentry-opentelemetry-node-\d.*\.tgz$/
+  - name: npm
+    id: '@sentry/bun'
+    includeNames: /^sentry-bun-\d.*\.tgz$/
 
   ## 5. Fullstack/Meta Frameworks (depending on Node and Browser or Framework SDKs)
   - name: npm

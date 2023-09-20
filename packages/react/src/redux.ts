@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { configureScope, getCurrentHub } from '@sentry/browser';
+import { addGlobalEventProcessor, configureScope, getCurrentHub } from '@sentry/browser';
 import type { Scope } from '@sentry/types';
 import { addNonEnumerableProperty } from '@sentry/utils';
 
@@ -50,6 +50,12 @@ type StoreEnhancerStoreCreator<Ext = Record<string, unknown>, StateExt = never> 
 
 export interface SentryEnhancerOptions<S = any> {
   /**
+   * Redux state in attachments or not.
+   * @default true
+   */
+  attachReduxState?: boolean;
+
+  /**
    * Transforms the state before attaching it to an event.
    * Use this to remove any private data before sending it to Sentry.
    * Return null to not attach the state.
@@ -71,6 +77,7 @@ const ACTION_BREADCRUMB_CATEGORY = 'redux.action';
 const ACTION_BREADCRUMB_TYPE = 'info';
 
 const defaultOptions: SentryEnhancerOptions = {
+  attachReduxState: true,
   actionTransformer: action => action,
   stateTransformer: state => state || null,
 };
@@ -89,6 +96,23 @@ function createReduxEnhancer(enhancerOptions?: Partial<SentryEnhancerOptions>): 
 
   return (next: StoreEnhancerStoreCreator): StoreEnhancerStoreCreator =>
     <S = any, A extends Action = AnyAction>(reducer: Reducer<S, A>, initialState?: PreloadedState<S>) => {
+      options.attachReduxState &&
+        addGlobalEventProcessor((event, hint) => {
+          try {
+            // @ts-expect-error try catch to reduce bundle size
+            if (event.type === undefined && event.contexts.state.state.type === 'redux') {
+              hint.attachments = [
+                ...(hint.attachments || []),
+                // @ts-expect-error try catch to reduce bundle size
+                { filename: 'redux_state.json', data: JSON.stringify(event.contexts.state.state.value) },
+              ];
+            }
+          } catch (_) {
+            // empty
+          }
+          return event;
+        });
+
       const sentryReducer: Reducer<S, A> = (state, action): S => {
         const newState = reducer(state, action);
 

@@ -15,8 +15,8 @@ const SENTRY_WRAPPER_MODULE_NAME = 'sentry-wrapper-module';
 // Needs to end in .cjs in order for the `commonjs` plugin to pick it up
 const WRAPPING_TARGET_MODULE_NAME = '__SENTRY_WRAPPING_TARGET_FILE__.cjs';
 
-// Non-public API. Can be found here: https://github.com/vercel/next.js/blob/46151dd68b417e7850146d00354f89930d10b43b/packages/next/src/client/components/request-async-storage.ts
-const NEXTJS_REQUEST_ASYNC_STORAGE_MODULE_PATH = 'next/dist/client/components/request-async-storage';
+// This module is non-public API and may break
+const nextjsRequestAsyncStorageModulePath = getRequestAsyncLocalStorageModule();
 
 const apiWrapperTemplatePath = path.resolve(__dirname, '..', 'templates', 'apiWrapperTemplate.js');
 const apiWrapperTemplateCode = fs.readFileSync(apiWrapperTemplatePath, { encoding: 'utf8' });
@@ -27,7 +27,6 @@ const pageWrapperTemplateCode = fs.readFileSync(pageWrapperTemplatePath, { encod
 const middlewareWrapperTemplatePath = path.resolve(__dirname, '..', 'templates', 'middlewareWrapperTemplate.js');
 const middlewareWrapperTemplateCode = fs.readFileSync(middlewareWrapperTemplatePath, { encoding: 'utf8' });
 
-const requestAsyncStorageModuleExists = moduleExists(NEXTJS_REQUEST_ASYNC_STORAGE_MODULE_PATH);
 let showedMissingAsyncStorageModuleWarning = false;
 
 const sentryInitWrapperTemplatePath = path.resolve(__dirname, '..', 'templates', 'sentryInitWrapperTemplate.js');
@@ -54,13 +53,28 @@ type LoaderOptions = {
   vercelCronsConfig?: VercelCronsConfig;
 };
 
-function moduleExists(id: string): boolean {
+function getRequestAsyncLocalStorageModule(): string | undefined {
   try {
-    require.resolve(id);
-    return true;
-  } catch (e) {
-    return false;
+    // Original location of that module
+    // https://github.com/vercel/next.js/blob/46151dd68b417e7850146d00354f89930d10b43b/packages/next/src/client/components/request-async-storage.ts
+    const location = 'next/dist/client/components/request-async-storage';
+    require.resolve(location);
+    return location;
+  } catch {
+    // noop
   }
+
+  try {
+    // Introduced in Next.js 13.4.20
+    // https://github.com/vercel/next.js/blob/e1bc270830f2fc2df3542d4ef4c61b916c802df3/packages/next/src/client/components/request-async-storage.external.ts
+    const location = 'next/dist/client/components/request-async-storage.external';
+    require.resolve(location);
+    return location;
+  } catch {
+    // noop
+  }
+
+  return undefined;
 }
 
 /**
@@ -183,10 +197,10 @@ export default function wrappingLoader(
       templateCode = routeHandlerWrapperTemplateCode;
     }
 
-    if (requestAsyncStorageModuleExists) {
+    if (nextjsRequestAsyncStorageModulePath !== undefined) {
       templateCode = templateCode.replace(
         /__SENTRY_NEXTJS_REQUEST_ASYNC_STORAGE_SHIM__/g,
-        NEXTJS_REQUEST_ASYNC_STORAGE_MODULE_PATH,
+        nextjsRequestAsyncStorageModulePath,
       );
     } else {
       if (!showedMissingAsyncStorageModuleWarning) {
