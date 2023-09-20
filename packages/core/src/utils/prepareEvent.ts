@@ -2,7 +2,7 @@ import type { Client, ClientOptions, Event, EventHint, StackFrame, StackParser }
 import { dateTimestampInSeconds, GLOBAL_OBJ, normalize, resolvedSyncPromise, truncate, uuid4 } from '@sentry/utils';
 
 import { DEFAULT_ENVIRONMENT } from '../constants';
-import { notifyEventProcessors } from '../eventProcessors';
+import { getGlobalEventProcessors, notifyEventProcessors } from '../eventProcessors';
 import { Scope } from '../scope';
 
 /**
@@ -74,6 +74,9 @@ export function prepareEvent(
 
     // In case we have a hub we reassign it.
     result = finalScope.applyToEvent(prepared, hint);
+  } else {
+    // Apply global event processors even if there is no scope
+    result = notifyEventProcessors(getGlobalEventProcessors(), prepared, hint);
   }
 
   return result
