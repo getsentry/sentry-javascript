@@ -10,7 +10,7 @@ import { onFID } from '../web-vitals/getFID';
 import { onLCP } from '../web-vitals/getLCP';
 import { getVisibilityWatcher } from '../web-vitals/lib/getVisibilityWatcher';
 import { observe } from '../web-vitals/lib/observe';
-import type { NavigatorDeviceMemory, NavigatorNetworkInformation } from '../web-vitals/types';
+import type { NavigatorDeviceMemory, NavigatorNetworkInformation, PerformanceEventTiming } from '../web-vitals/types';
 import { _startChild, isMeasurementValue } from './utils';
 
 /**
@@ -31,6 +31,7 @@ let _performanceCursor: number = 0;
 let _measurements: Measurements = {};
 let _lcpEntry: LargestContentfulPaint | undefined;
 let _clsEntry: LayoutShift | undefined;
+let _fidEntry: PerformanceEventTiming | undefined;
 
 /**
  * Start tracking web vitals
@@ -160,6 +161,7 @@ function _trackFID(): void {
     __DEBUG_BUILD__ && logger.log('[Measurements] Adding FID');
     _measurements['fid'] = { value: metric.value, unit: 'millisecond' };
     _measurements['mark.fid'] = { value: timeOrigin + startTime, unit: 'second' };
+     _fidEntry = entry;
   });
 }
 
@@ -499,5 +501,11 @@ function _tagMetricInfo(transaction: Transaction): void {
     _clsEntry.sources.forEach((source, index) =>
       transaction.setTag(`cls.source.${index + 1}`, htmlTreeAsString(source.node)),
     );
+  }
+
+  
+  // Capture FID properties
+  if (_fidEntry && _fidEntry.target) {
+    transaction.setTag('fid.element', htmlTreeAsString(_fidEntry.target));
   }
 }
