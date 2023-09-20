@@ -467,7 +467,11 @@ export class Scope implements ScopeInterface {
    * @param hint Object containing additional information about the original exception, for use by the event processors.
    * @hidden
    */
-  public applyToEvent(event: Event, hint: EventHint = {}): PromiseLike<Event | null> {
+  public applyToEvent(
+    event: Event,
+    hint: EventHint = {},
+    additionalEventProcessors?: EventProcessor[],
+  ): PromiseLike<Event | null> {
     if (this._extra && Object.keys(this._extra).length) {
       event.extra = { ...this._extra, ...event.extra };
     }
@@ -517,7 +521,12 @@ export class Scope implements ScopeInterface {
       propagationContext: this._propagationContext,
     };
 
-    return notifyEventProcessors([...getGlobalEventProcessors(), ...this._eventProcessors], event, hint);
+    // TODO (v8): Update this order to be: Global > Client > Scope
+    return notifyEventProcessors(
+      [...(additionalEventProcessors || []), ...getGlobalEventProcessors(), ...this._eventProcessors],
+      event,
+      hint,
+    );
   }
 
   /**
