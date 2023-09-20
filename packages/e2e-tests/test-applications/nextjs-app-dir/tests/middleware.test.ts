@@ -13,7 +13,7 @@ test('Should create a transaction for middleware', async ({ request }) => {
 
   expect(middlewareTransaction.contexts?.trace?.status).toBe('ok');
   expect(middlewareTransaction.contexts?.trace?.op).toBe('middleware.nextjs');
-  expect(middlewareTransaction.contexts?.runtime?.name).toBe('edge');
+  expect(middlewareTransaction.contexts?.runtime?.name).toBe('vercel-edge');
 });
 
 test('Should create a transaction with error status for faulty middleware', async ({ request }) => {
@@ -31,7 +31,7 @@ test('Should create a transaction with error status for faulty middleware', asyn
 
   expect(middlewareTransaction.contexts?.trace?.status).toBe('internal_error');
   expect(middlewareTransaction.contexts?.trace?.op).toBe('middleware.nextjs');
-  expect(middlewareTransaction.contexts?.runtime?.name).toBe('edge');
+  expect(middlewareTransaction.contexts?.runtime?.name).toBe('vercel-edge');
 });
 
 test('Records exceptions happening in middleware', async ({ request }) => {
