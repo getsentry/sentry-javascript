@@ -34,6 +34,7 @@
     "@sentry/tracing": "file:../../../tracing",
     "@sentry-internal/tracing": "file:../../../tracing-internal",
     "@sentry/types": "file:../../../types",
-    "@sentry/utils": "file:../../../utils"
+    "@sentry/utils": "file:../../../utils",
+    "@sentry/vercel-edge": "file:../../../vercel-edge"
   }
 }
