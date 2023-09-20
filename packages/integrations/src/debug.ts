@@ -38,32 +38,32 @@ export class Debug implements Integration {
   /**
    * @inheritDoc
    */
-  public setupOnce(addGlobalEventProcessor: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
-    addGlobalEventProcessor((event: Event, hint: EventHint) => {
-      const self = getCurrentHub().getIntegration(Debug);
-      if (self) {
-        if (self._options.debugger) {
+  public setupOnce(_addGlobalEventProcessor: (eventProcessor: EventProcessor) => void, getCurrentHub: () => Hub): void {
+    const client = getCurrentHub().getClient();
+
+    if (client && client.on) {
+      client.on('beforeSendEvent', (event: Event, hint?: EventHint) => {
+        if (this._options.debugger) {
           // eslint-disable-next-line no-debugger
           debugger;
         }
 
         /* eslint-disable no-console */
         consoleSandbox(() => {
-          if (self._options.stringify) {
+          if (this._options.stringify) {
             console.log(JSON.stringify(event, null, 2));
-            if (Object.keys(hint).length) {
+            if (hint && Object.keys(hint).length) {
               console.log(JSON.stringify(hint, null, 2));
             }
           } else {
             console.log(event);
-            if (Object.keys(hint).length) {
+            if (hint && Object.keys(hint).length) {
               console.log(hint);
             }
           }
         });
         /* eslint-enable no-console */
-      }
-      return event;
-    });
+      });
+    }
   }
 }

@@ -27,13 +27,13 @@
     "@sentry/core": "7.69.0",
     "@sentry/types": "7.69.0",
     "@sentry/utils": "7.69.0",
-    "cookie": "^0.4.1",
+    "cookie": "^0.5.0",
     "https-proxy-agent": "^5.0.0",
     "lru_map": "^0.3.3",
     "tslib": "^2.4.1 || ^1.9.3"
   },
   "devDependencies": {
-    "@types/cookie": "0.3.2",
+    "@types/cookie": "0.5.2",
     "@types/express": "^4.17.14",
     "@types/lru-cache": "^5.1.0",
     "@types/node": "~10.17.0",
@@ -71,6 +71,13 @@
   },
   "volta": {
     "extends": "../../package.json"
+  },
+  "madge":{
+    "detectiveOptions": {
+      "ts": {
+        "skipTypeImports": true
+      }
+    }
   },
   "sideEffects": false
 }

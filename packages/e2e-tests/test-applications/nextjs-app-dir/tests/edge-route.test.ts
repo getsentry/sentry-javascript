@@ -15,7 +15,7 @@ test('Should create a transaction for edge routes', async ({ request }) => {
 
   expect(edgerouteTransaction.contexts?.trace?.status).toBe('ok');
   expect(edgerouteTransaction.contexts?.trace?.op).toBe('http.server');
-  expect(edgerouteTransaction.contexts?.runtime?.name).toBe('edge');
+  expect(edgerouteTransaction.contexts?.runtime?.name).toBe('vercel-edge');
 });
 
 test('Should create a transaction with error status for faulty edge routes', async ({ request }) => {
@@ -34,7 +34,7 @@ test('Should create a transaction with error status for faulty edge routes', asy
 
   expect(edgerouteTransaction.contexts?.trace?.status).toBe('internal_error');
   expect(edgerouteTransaction.contexts?.trace?.op).toBe('http.server');
-  expect(edgerouteTransaction.contexts?.runtime?.name).toBe('edge');
+  expect(edgerouteTransaction.contexts?.runtime?.name).toBe('vercel-edge');
 });
 
 test('Should record exceptions for faulty edge routes', async ({ request }) => {

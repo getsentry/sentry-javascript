@@ -2,10 +2,10 @@ import type { EventEnvelope, EventItem } from '@sentry/types';
 import { createEnvelope, serializeEnvelope } from '@sentry/utils';
 import { TextEncoder } from 'util';
 
-import type { EdgeTransportOptions } from '../../src/edge/transport';
-import { IsolatedPromiseBuffer, makeEdgeTransport } from '../../src/edge/transport';
+import type { VercelEdgeTransportOptions } from '../../src/transports';
+import { IsolatedPromiseBuffer, makeEdgeTransport } from '../../src/transports';
 
-const DEFAULT_EDGE_TRANSPORT_OPTIONS: EdgeTransportOptions = {
+const DEFAULT_EDGE_TRANSPORT_OPTIONS: VercelEdgeTransportOptions = {
   url: 'https://sentry.io/api/42/store/?sentry_key=123&sentry_version=7',
   recordDroppedEvent: () => undefined,
   textEncoder: new TextEncoder(),

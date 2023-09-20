@@ -1,7 +1,5 @@
 import type { Client, Event, EventHint, Integration } from '@sentry/types';
-import { applyAggregateErrorsToEvent } from '@sentry/utils';
-
-import { exceptionFromError } from '../eventbuilder';
+import { applyAggregateErrorsToEvent, exceptionFromError } from '@sentry/utils';
 
 const DEFAULT_KEY = 'cause';
 const DEFAULT_LIMIT = 5;
