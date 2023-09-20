@@ -128,7 +128,7 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
       // See: https://github.com/getsentry/sentry-javascript/issues/6167
       if (isAtLeastReact17(React.version) && isError(error)) {
         const errorBoundaryError = new Error(error.message);
-        errorBoundaryError.name = `React ErrorBoundary ${errorBoundaryError.name}`;
+        errorBoundaryError.name = `React ErrorBoundary ${error.name}`;
         errorBoundaryError.stack = componentStack;
 
         // Using the `LinkedErrors` integration to link the errors together.
