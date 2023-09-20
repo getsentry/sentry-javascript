@@ -4,6 +4,36 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.70.0
+
+### Important Changes
+
+- **feat: Add Bun SDK (#9029)**
+
+This release contains the beta version of `@sentry/bun`, our SDK for the [Bun JavaScript runtime](https://bun.sh/)! For details on how to use it, please see the [README](./packages/bun/README.md). Any feedback/bug reports are greatly appreciated, please [reach out on GitHub](https://github.com/getsentry/sentry-javascript/discussions/7979).
+
+Note that as of now the Bun runtime does not support global error handlers. This is being actively worked on, see [the tracking issue in Bun's GitHub repo](https://github.com/oven-sh/bun/issues/5091).
+
+- **feat(remix): Add Remix 2.x release support. (#8940)**
+
+The Sentry Remix SDK now officially supports Remix v2! See [our Remix docs for more details](https://docs.sentry.io/platforms/javascript/guides/remix/).
+
+### Other Changes
+
+- chore(node): Upgrade cookie to ^0.5.0 (#9013)
+- feat(core): Introduce `processEvent` hook on `Integration` (#9017)
+- feat(node): Improve non-error messages (#9026)
+- feat(vercel-edge): Add Vercel Edge Runtime package (#9041)
+- fix(remix): Use `React.ComponentType` instead of `React.FC` as `withSentry`'s generic type. (#9043)
+- fix(replay): Ensure replay events go through `preprocessEvent` hook (#9034)
+- fix(replay): Fix typo in Replay types (#9028)
+- fix(sveltekit): Adjust `handleErrorWithSentry` type (#9054)
+- fix(utils): Try-catch monkeypatching to handle frozen objects/functions (#9031)
+
+Work in this release contributed by @Dima-Dim, @krist7599555 and @lifeiscontent. Thank you for your contributions!
+
+Special thanks for @isaacharrisholt for helping us implement a Vercel Edge Runtime SDK which we use under the hood for our Next.js SDK.
+
 ## 7.69.0
 
 ### Important Changes
