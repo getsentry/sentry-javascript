@@ -1,5 +1,5 @@
-import { diag, DiagConsoleLogger, DiagLogLevel } from '@opentelemetry/api';
-import { AlwaysOnSampler, NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
+import { diag, DiagLogLevel } from '@opentelemetry/api';
+import { AlwaysOnSampler, BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
 import { getCurrentHub } from '@sentry/core';
 import { SentryPropagator, SentrySpanProcessor } from '@sentry/opentelemetry-node';
 
@@ -18,14 +18,13 @@ export function initOtel(): () => void {
   }
 
   // Create and configure NodeTracerProvider
-  const provider = new NodeTracerProvider({
+  const provider = new BasicTracerProvider({
     sampler: new AlwaysOnSampler(),
   });
   provider.addSpanProcessor(new SentrySpanProcessor());
 
   // We use a custom context manager to keep context in sync with sentry scope
   const contextManager = new SentryContextManager();
-  contextManager.enable();
 
   // Initialize the provider
   provider.register({

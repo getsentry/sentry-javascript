@@ -40,7 +40,7 @@ sentryTest('should capture interaction transaction. @firefox', async ({ browserN
 
   const eventData = envelopes[0];
 
-  expect(eventData.contexts).toMatchObject({ trace: { op: 'ui.action.click' } });
+  expect(eventData.contexts).toMatchObject({ trace: { op: 'ui.action.left.click' } });
   expect(eventData.platform).toBe('javascript');
   expect(eventData.type).toBe('transaction');
   expect(eventData.spans).toHaveLength(1);

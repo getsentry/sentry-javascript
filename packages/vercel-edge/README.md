@@ -4,16 +4,18 @@
   </a>
 </p>
 
-# Official Sentry SDK for NodeJS
+# Official Sentry SDK for Vercel Edge Runtime [ALPHA]
 
-[![npm version](https://img.shields.io/npm/v/@sentry/node.svg)](https://www.npmjs.com/package/@sentry/node)
-[![npm dm](https://img.shields.io/npm/dm/@sentry/node.svg)](https://www.npmjs.com/package/@sentry/node)
-[![npm dt](https://img.shields.io/npm/dt/@sentry/node.svg)](https://www.npmjs.com/package/@sentry/node)
+[![npm version](https://img.shields.io/npm/v/@sentry/vercel-edge.svg)](https://www.npmjs.com/package/@sentry/vercel-edge)
+[![npm dm](https://img.shields.io/npm/dm/@sentry/vercel-edge.svg)](https://www.npmjs.com/package/@sentry/vercel-edge)
+[![npm dt](https://img.shields.io/npm/dt/@sentry/vercel-edge.svg)](https://www.npmjs.com/package/@sentry/vercel-edge)
 
 ## Links
 
 - [Official SDK Docs](https://docs.sentry.io/quickstart/)
 - [TypeDoc](http://getsentry.github.io/sentry-javascript/)
+
+**Note: This SDK is still in an alpha state. Breaking changes can occur at any time.**
 
 ## Usage
 
@@ -21,10 +23,10 @@ To use this SDK, call `init(options)` as early as possible in the main entry mod
 hook into the environment. Note that you can turn off almost all side effects using the respective options.
 
 ```javascript
-// CJS syntax
-const Sentry = require('@sentry/node');
-// ESM syntax
-import * as Sentry from '@sentry/node';
+// CJS Syntax
+const Sentry = require('@sentry/vercel-edge');
+// ESM Syntax
+import * as Sentry from '@sentry/vercel-edge';
 
 Sentry.init({
   dsn: '__DSN__',
@@ -32,7 +34,7 @@ Sentry.init({
 });
 ```
 
-To set context information or send manual events, use the exported functions of `@sentry/node`. Note that these
+To set context information or send manual events, use the exported functions of `@sentry/vercel-edge`. Note that these
 functions will not perform any action before you have called `init()`:
 
 ```javascript
