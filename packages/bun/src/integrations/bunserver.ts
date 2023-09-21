@@ -1,19 +1,9 @@
 import { captureException, getCurrentHub, runWithAsyncContext, startSpan, Transaction } from '@sentry/core';
 import type { Integration } from '@sentry/types';
-import {
-  addExceptionMechanism,
-  getSanitizedUrlString,
-  objectify,
-  parseUrl,
-  tracingContextFromHeaders,
-} from '@sentry/utils';
+import { addExceptionMechanism, getSanitizedUrlString, parseUrl, tracingContextFromHeaders } from '@sentry/utils';
 
 function sendErrorToSentry(e: unknown): unknown {
-  // In case we have a primitive, wrap it in the equivalent wrapper class (string -> String, etc.) so that we can
-  // store a seen flag on it.
-  const objectifiedErr = objectify(e);
-
-  captureException(objectifiedErr, scope => {
+  captureException(e, scope => {
     scope.addEventProcessor(event => {
       addExceptionMechanism(event, {
         type: 'bun',
@@ -28,7 +18,7 @@ function sendErrorToSentry(e: unknown): unknown {
     return scope;
   });
 
-  return objectifiedErr;
+  return e;
 }
 
 /**
@@ -73,11 +63,10 @@ function instrumentBunServeOptions(serveOptions: Parameters<typeof Bun.serve>[0]
     apply(fetchTarget, fetchThisArg, fetchArgs: Parameters<typeof serveOptions.fetch>) {
       return runWithAsyncContext(() => {
         const hub = getCurrentHub();
-        const options = hub.getClient()?.getOptions();
 
         const request = fetchArgs[0];
         const upperCaseMethod = request.method.toUpperCase();
-        if (!options || upperCaseMethod === 'OPTIONS' || upperCaseMethod === 'HEAD') {
+        if (upperCaseMethod === 'OPTIONS' || upperCaseMethod === 'HEAD') {
           return fetchTarget.apply(fetchThisArg, fetchArgs);
         }
 
