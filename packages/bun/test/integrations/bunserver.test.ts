@@ -1,4 +1,4 @@
-import { Hub, makeMain, startInactiveSpan, startSpan, startSpanManual } from '@sentry/core';
+import { Hub, makeMain } from '@sentry/core';
 // eslint-disable-next-line import/no-unresolved
 import { beforeAll, beforeEach, describe, expect, test } from 'bun:test';
 
