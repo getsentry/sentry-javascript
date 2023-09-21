@@ -1,4 +1,5 @@
 import type { Event, StackFrame } from '@sentry/types';
+import { watchdogTimer } from '@sentry/utils';
 import { fork } from 'child_process';
 import * as inspector from 'inspector';
 
@@ -39,29 +40,6 @@ interface Options {
    * Log debug information.
    */
   debug: boolean;
-}
-
-function watchdogTimer(pollInterval: number, anrThreshold: number, callback: () => void): () => void {
-  let lastPoll = process.hrtime();
-  let triggered = false;
-
-  setInterval(() => {
-    const [seconds, nanoSeconds] = process.hrtime(lastPoll);
-    const diffMs = Math.floor(seconds * 1e3 + nanoSeconds / 1e6);
-
-    if (triggered === false && diffMs > pollInterval + anrThreshold) {
-      triggered = true;
-      callback();
-    }
-
-    if (diffMs < pollInterval + anrThreshold) {
-      triggered = false;
-    }
-  }, 10);
-
-  return () => {
-    lastPoll = process.hrtime();
-  };
 }
 
 function sendEvent(blockedMs: number, frames?: StackFrame[]): void {
