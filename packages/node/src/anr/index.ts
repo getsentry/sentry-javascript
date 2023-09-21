@@ -24,9 +24,9 @@ interface Options {
   /**
    * Threshold in milliseconds to trigger an ANR event.
    *
-   * Defaults to 1000ms.
+   * Defaults to 5000ms.
    */
-  hungThreshold: number;
+  anrThreshold: number;
   /**
    * Whether to capture a stack trace when the ANR event is triggered.
    *
@@ -41,7 +41,7 @@ interface Options {
   debug: boolean;
 }
 
-function watchdogTimer(pollInterval: number, hungThreshold: number, callback: () => void): () => void {
+function watchdogTimer(pollInterval: number, anrThreshold: number, callback: () => void): () => void {
   let lastPoll = process.hrtime();
   let triggered = false;
 
@@ -49,12 +49,12 @@ function watchdogTimer(pollInterval: number, hungThreshold: number, callback: ()
     const [seconds, nanoSeconds] = process.hrtime(lastPoll);
     const diffMs = Math.floor(seconds * 1e3 + nanoSeconds / 1e6);
 
-    if (triggered === false && diffMs > pollInterval + hungThreshold) {
+    if (triggered === false && diffMs > pollInterval + anrThreshold) {
       triggered = true;
       callback();
     }
 
-    if (diffMs < pollInterval + hungThreshold) {
+    if (diffMs < pollInterval + anrThreshold) {
       triggered = false;
     }
   }, 10);
@@ -137,7 +137,7 @@ function handleChildProcess(options: Options): void {
   // if attachStackTrace is enabled, we'll have a debugger url to connect to
   if (process.env.SENTRY_INSPECT_URL) {
     debuggerPause = captureStackTrace(process.env.SENTRY_INSPECT_URL, frames => {
-      sendEvent(options.hungThreshold, frames);
+      sendEvent(options.anrThreshold, frames);
     });
   }
 
@@ -147,11 +147,11 @@ function handleChildProcess(options: Options): void {
     if (pauseAndCapture) {
       pauseAndCapture();
     } else {
-      sendEvent(options.hungThreshold);
+      sendEvent(options.anrThreshold);
     }
   }
 
-  const ping = watchdogTimer(options.pollInterval, options.hungThreshold, watchdogTimeout);
+  const ping = watchdogTimer(options.pollInterval, options.anrThreshold, watchdogTimeout);
 
   process.on('message', () => {
     ping();
@@ -172,7 +172,7 @@ export function arnWatchdog(options: Partial<Options>): Promise<void> {
   const anrOptions: Options = {
     entryScript: options.entryScript || process.argv[1],
     pollInterval: options.pollInterval || DEFAULT_INTERVAL,
-    hungThreshold: options.hungThreshold || DEFAULT_HANG_THRESHOLD,
+    anrThreshold: options.anrThreshold || DEFAULT_HANG_THRESHOLD,
     captureStackTrace: !!options.captureStackTrace,
     debug: !!options.debug,
   };
