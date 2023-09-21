@@ -57,7 +57,7 @@ function watchdogTimer(pollInterval: number, hungThreshold: number, callback: ()
     if (diffMs < pollInterval + hungThreshold) {
       triggered = false;
     }
-  }, 10).unref();
+  }, 10);
 
   return () => {
     lastPoll = process.hrtime();
