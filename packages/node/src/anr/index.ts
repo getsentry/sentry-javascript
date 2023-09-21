@@ -165,21 +165,21 @@ function handleChildProcess(options: Options): void {
  * child process.
  *
  * ```js
- * import { init, enableANRDetection } from '@sentry/node';
+ * import { init, enableAnrDetection } from '@sentry/node';
  *
  * init({ dsn: "__DSN__" });
  *
  * // with ESM
- * await enableANRDetection({ captureStackTrace: true });
+ * await enableAnrDetection({ captureStackTrace: true });
  * runApp();
  *
  * // with CJS
- * enableANRDetection({ captureStackTrace: true }).then(() => {
+ * enableAnrDetection({ captureStackTrace: true }).then(() => {
  *   runApp();
  * });
  * ```
  */
-export function enableANRDetection(options: Partial<Options>): Promise<void> {
+export function enableAnrDetection(options: Partial<Options>): Promise<void> {
   const isChildProcess = !!process.send;
 
   const anrOptions: Options = {

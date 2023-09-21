@@ -16,7 +16,7 @@ Sentry.init({
   },
 });
 
-Sentry.enableANRDetection({ captureStackTrace: true, anrThreshold: 200, debug: true }).then(() => {
+Sentry.enableAnrDetection({ captureStackTrace: true, anrThreshold: 200, debug: true }).then(() => {
   function longWork() {
     for (let i = 0; i < 100; i++) {
       const salt = crypto.randomBytes(128).toString('base64');
