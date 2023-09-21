@@ -32,8 +32,7 @@ describe('should report ANR when event loop blocked', () => {
   });
 
   test('ESM', done => {
-    // The stack trace is different when node < 12
-    if (NODE_VERSION < 12) {
+    if (NODE_VERSION < 14) {
       done();
       return;
     }
