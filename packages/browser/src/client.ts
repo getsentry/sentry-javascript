@@ -4,14 +4,16 @@ import type {
   BrowserClientProfilingOptions,
   BrowserClientReplayOptions,
   ClientOptions,
+  Envelope,
   Event,
   EventHint,
   Options,
   Severity,
   SeverityLevel,
+  TransportMakeRequestResponse,
   UserFeedback,
 } from '@sentry/types';
-import { createClientReportEnvelope, dsnToString, getSDKSource, logger } from '@sentry/utils';
+import { createClientReportEnvelope, dsnToString, getSDKSource, logger, serializeEnvelope } from '@sentry/utils';
 
 import { eventFromException, eventFromMessage } from './eventbuilder';
 import { WINDOW } from './helpers';
@@ -95,11 +97,6 @@ export class BrowserClient extends BaseClient<BrowserClientOptions> {
    * Sends user feedback to Sentry.
    */
   public captureUserFeedback(feedback: UserFeedback): void {
-    if (!this._isEnabled()) {
-      __DEBUG_BUILD__ && logger.warn('SDK not enabled, will not capture user feedback.');
-      return;
-    }
-
     const envelope = createUserFeedbackEnvelope(feedback, {
       metadata: this.getSdkMetadata(),
       dsn: this.getDsn(),
@@ -114,6 +111,24 @@ export class BrowserClient extends BaseClient<BrowserClientOptions> {
   protected _prepareEvent(event: Event, hint: EventHint, scope?: Scope): PromiseLike<Event | null> {
     event.platform = event.platform || 'javascript';
     return super._prepareEvent(event, hint, scope);
+  }
+
+  // TODO(dcramer): we need a clean abstraction to http or otherwise transports...
+  protected _sendEnvelope(envelope: Envelope): PromiseLike<void | TransportMakeRequestResponse> | void {
+    return fetch('http://localhost:8969/stream', {
+      method: 'POST',
+      body: serializeEnvelope(envelope),
+      headers: {
+        'Content-Type': 'application/x-sentry-envelope',
+      },
+      mode: 'cors',
+    })
+      .catch(err => {
+        console.error(err);
+      })
+      .then(() => {
+        return super._sendEnvelope(envelope);
+      });
   }
 
   /**

@@ -33,6 +33,7 @@ import {
 import { getModuleFromFilename } from './module';
 import { makeNodeTransport } from './transports';
 import type { NodeClientOptions, NodeOptions } from './types';
+import { setupSidecar } from './spotlight';
 
 export const defaultIntegrations = [
   // Common
@@ -174,6 +175,8 @@ export function init(options: NodeOptions = {}): void {
   }
 
   updateScopeFromEnvVariables();
+
+  setupSidecar(clientOptions);
 }
 
 /**
