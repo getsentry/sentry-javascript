@@ -71,7 +71,7 @@ export { defaultIntegrations, init, defaultStackParser, getSentryRelease } from 
 export { addRequestDataToEvent, DEFAULT_USER_INCLUDES, extractRequestData } from './requestdata';
 export { deepReadDirSync } from './utils';
 export { getModuleFromFilename } from './module';
-export { arnWatchdog } from './anr';
+export { enableANRDetection } from './anr';
 
 import { Integrations as CoreIntegrations } from '@sentry/core';
 

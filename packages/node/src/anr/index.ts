@@ -159,14 +159,27 @@ function handleChildProcess(options: Options): void {
 }
 
 /**
- * Create a watchdog process to report Application Not Responding (ANR) errors.
+ * Starts a child process that detects Application Not Responding (ANR) errors.
  *
- * It's important to await on the returned promise before your app code to ensure this code does not run in the watchdog
- * process.
+ * It's important to await on the returned promise before your app code to ensure this code does not run in the ANR
+ * child process.
  *
+ * ```js
+ * import { init, enableANRDetection } from '@sentry/node';
  *
+ * init({ dsn: "__DSN__" });
+ *
+ * // with ESM
+ * await enableANRDetection({ captureStackTrace: true });
+ * runApp();
+ *
+ * // with CJS
+ * enableANRDetection({ captureStackTrace: true }).then(() => {
+ *   runApp();
+ * });
+ * ```
  */
-export function arnWatchdog(options: Partial<Options>): Promise<void> {
+export function enableANRDetection(options: Partial<Options>): Promise<void> {
   const isChildProcess = !!process.send;
 
   const anrOptions: Options = {
