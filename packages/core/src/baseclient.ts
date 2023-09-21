@@ -137,6 +137,16 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
         ...options.transportOptions,
         url,
       });
+    } else {
+      // User provided no DSN, we check if the transport provided is a local client and use this instead
+      const transport = options.transport({
+        recordDroppedEvent: this.recordDroppedEvent.bind(this),
+        ...options.transportOptions,
+        url: '',
+      });
+      if (transport.providesUrl) {
+        this._transport = transport;
+      }
     }
   }
 
@@ -336,9 +346,9 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
    * @inheritDoc
    */
   public sendEvent(event: Event, hint: EventHint = {}): void {
-    this.emit('beforeSendEvent', event, hint);
+    if (this._isEnabled()) {
+      this.emit('beforeSendEvent', event, hint);
 
-    if (this._dsn) {
       let env = createEventEnvelope(event, this._dsn, this._options._metadata, this._options.tunnel);
 
       for (const attachment of hint.attachments || []) {
@@ -362,7 +372,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
    * @inheritDoc
    */
   public sendSession(session: Session | SessionAggregates): void {
-    if (this._dsn) {
+    if (this._isEnabled()) {
       const env = createSessionEnvelope(session, this._dsn, this._options._metadata, this._options.tunnel);
       void this._sendEnvelope(env);
     }
@@ -531,9 +541,9 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
     });
   }
 
-  /** Determines whether this SDK is enabled and a valid Dsn is present. */
+  /** Determines whether this SDK is enabled and a transport is present. */
   protected _isEnabled(): boolean {
-    return this.getOptions().enabled !== false && this._dsn !== undefined;
+    return this.getOptions().enabled !== false && this._transport !== undefined;
   }
 
   /**
@@ -738,7 +748,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
    * @inheritdoc
    */
   protected _sendEnvelope(envelope: Envelope): PromiseLike<void | TransportMakeRequestResponse> | void {
-    if (this._transport && this._dsn) {
+    if (this._transport) {
       this.emit('beforeEnvelope', envelope);
 
       return this._transport.send(envelope).then(null, reason => {

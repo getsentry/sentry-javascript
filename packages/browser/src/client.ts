@@ -113,24 +113,6 @@ export class BrowserClient extends BaseClient<BrowserClientOptions> {
     return super._prepareEvent(event, hint, scope);
   }
 
-  // TODO(dcramer): we need a clean abstraction to http or otherwise transports...
-  protected _sendEnvelope(envelope: Envelope): PromiseLike<void | TransportMakeRequestResponse> | void {
-    return fetch('http://localhost:8969/stream', {
-      method: 'POST',
-      body: serializeEnvelope(envelope),
-      headers: {
-        'Content-Type': 'application/x-sentry-envelope',
-      },
-      mode: 'cors',
-    })
-      .catch(err => {
-        console.error(err);
-      })
-      .then(() => {
-        return super._sendEnvelope(envelope);
-      });
-  }
-
   /**
    * Sends client reports as an envelope.
    */
@@ -142,6 +124,7 @@ export class BrowserClient extends BaseClient<BrowserClientOptions> {
       return;
     }
 
+    // This is really the only place where we want to check for a DSN and only send outcomes then
     if (!this._dsn) {
       __DEBUG_BUILD__ && logger.log('No dsn provided, will not send outcomes');
       return;
