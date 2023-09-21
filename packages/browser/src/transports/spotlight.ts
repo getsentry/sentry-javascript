@@ -18,7 +18,10 @@ export function makeSpotlightTransport(
       body: request.body,
       method: 'POST',
       referrerPolicy: 'origin',
-      headers: options.headers,
+      headers: {
+        ...options.headers,
+        'Content-Type': 'application/x-sentry-envelope',
+      },
       ...options.fetchOptions,
     };
 

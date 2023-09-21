@@ -145,6 +145,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
         url: '',
       });
       if (transport.providesUrl) {
+        __DEBUG_BUILD__ && logger.info('Loaded SDK locally');
         this._transport = transport;
       }
     }
