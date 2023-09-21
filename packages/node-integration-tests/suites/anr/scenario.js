@@ -16,7 +16,7 @@ Sentry.init({
   },
 });
 
-Sentry.arnWatchdog({ captureStackTrace: true, hungThreshold: 200, debug: true }).then(() => {
+Sentry.arnWatchdog({ captureStackTrace: true, anrThreshold: 200, debug: true }).then(() => {
   function longWork() {
     for (let i = 0; i < 100; i++) {
       const salt = crypto.randomBytes(128).toString('base64');
