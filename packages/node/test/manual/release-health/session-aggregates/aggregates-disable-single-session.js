@@ -12,9 +12,6 @@ function cleanUpAndExitSuccessfully() {
 }
 
 function assertSessionAggregates(session, expected) {
-  if (!session.aggregates) {
-    return;
-  }
   // For loop is added here just in the rare occasion that the session count do not land in the same aggregate
   // bucket
   session.aggregates.forEach(function (_, idx) {

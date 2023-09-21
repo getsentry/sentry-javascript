@@ -21,9 +21,9 @@ To use this SDK, call `init(options)` as early as possible in the main entry mod
 hook into the environment. Note that you can turn off almost all side effects using the respective options.
 
 ```javascript
-// CJS syntax
+// ES5 Syntax
 const Sentry = require('@sentry/node');
-// ESM syntax
+// ES6 Syntax
 import * as Sentry from '@sentry/node';
 
 Sentry.init({

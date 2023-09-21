@@ -34,12 +34,12 @@
     "@opentelemetry/semantic-conventions": "1.x"
   },
   "devDependencies": {
-    "@opentelemetry/api": "^1.6.0",
+    "@opentelemetry/api": "^1.4.1",
     "@opentelemetry/core": "^1.7.0",
-    "@opentelemetry/sdk-trace-base": "^1.17.0",
-    "@opentelemetry/sdk-trace-node": "^1.17.0",
-    "@opentelemetry/semantic-conventions": "^1.17.0",
-    "@sentry/node": "7.70.0"
+    "@opentelemetry/sdk-trace-base": "^1.15.0",
+    "@opentelemetry/sdk-trace-node": "^1.15.0",
+    "@opentelemetry/semantic-conventions": "^1.7.0",
+    "@sentry/node": "7.68.0"
   },
   "scripts": {
     "build": "run-p build:transpile build:types",

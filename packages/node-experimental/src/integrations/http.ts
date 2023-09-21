@@ -2,6 +2,7 @@ import type { Attributes } from '@opentelemetry/api';
 import { SpanKind } from '@opentelemetry/api';
 import { registerInstrumentations } from '@opentelemetry/instrumentation';
 import { HttpInstrumentation } from '@opentelemetry/instrumentation-http';
+import type { Span as OtelSpan } from '@opentelemetry/sdk-trace-node';
 import { SemanticAttributes } from '@opentelemetry/semantic-conventions';
 import { hasTracingEnabled, Transaction } from '@sentry/core';
 import { getCurrentHub } from '@sentry/node';
@@ -9,7 +10,7 @@ import { _INTERNAL_getSentrySpan } from '@sentry/opentelemetry-node';
 import type { EventProcessor, Hub, Integration } from '@sentry/types';
 import type { ClientRequest, IncomingMessage, ServerResponse } from 'http';
 
-import type { NodeExperimentalClient, OtelSpan } from '../types';
+import type { NodeExperimentalClient } from '../sdk/client';
 import { getRequestSpanData } from '../utils/getRequestSpanData';
 
 interface TracingOptions {

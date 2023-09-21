@@ -1,4 +1,4 @@
-import type { Event, Exception, Integration, StackFrame } from '@sentry/types';
+import type { Event, EventProcessor, Exception, Hub, Integration, StackFrame } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
 /** Deduplication filter */
@@ -22,30 +22,36 @@ export class Dedupe implements Integration {
     this.name = Dedupe.id;
   }
 
-  /** @inheritDoc */
-  public setupOnce(_addGlobaleventProcessor: unknown, _getCurrentHub: unknown): void {
-    // noop
-  }
-
   /**
    * @inheritDoc
    */
-  public processEvent(currentEvent: Event): Event | null {
-    // We want to ignore any non-error type events, e.g. transactions or replays
-    // These should never be deduped, and also not be compared against as _previousEvent.
-    if (currentEvent.type) {
-      return currentEvent;
-    }
-
-    // Juuust in case something goes wrong
-    try {
-      if (_shouldDropEvent(currentEvent, this._previousEvent)) {
-        __DEBUG_BUILD__ && logger.warn('Event dropped due to being a duplicate of previously captured event.');
-        return null;
+  public setupOnce(addGlobalEventProcessor: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
+    const eventProcessor: EventProcessor = currentEvent => {
+      // We want to ignore any non-error type events, e.g. transactions or replays
+      // These should never be deduped, and also not be compared against as _previousEvent.
+      if (currentEvent.type) {
+        return currentEvent;
       }
-    } catch (_oO) {} // eslint-disable-line no-empty
 
-    return (this._previousEvent = currentEvent);
+      const self = getCurrentHub().getIntegration(Dedupe);
+      if (self) {
+        // Juuust in case something goes wrong
+        try {
+          if (_shouldDropEvent(currentEvent, self._previousEvent)) {
+            __DEBUG_BUILD__ && logger.warn('Event dropped due to being a duplicate of previously captured event.');
+            return null;
+          }
+        } catch (_oO) {
+          return (self._previousEvent = currentEvent);
+        }
+
+        return (self._previousEvent = currentEvent);
+      }
+      return currentEvent;
+    };
+
+    eventProcessor.id = this.name;
+    addGlobalEventProcessor(eventProcessor);
   }
 }
 
