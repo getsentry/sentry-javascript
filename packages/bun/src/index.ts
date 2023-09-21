@@ -69,9 +69,12 @@ export { defaultIntegrations, init } from './sdk';
 import { Integrations as CoreIntegrations } from '@sentry/core';
 import { Integrations as NodeIntegrations } from '@sentry/node';
 
+import * as BunIntegrations from './integrations';
+
 const INTEGRATIONS = {
   ...CoreIntegrations,
   ...NodeIntegrations,
+  ...BunIntegrations,
 };
 
 export { INTEGRATIONS as Integrations };
