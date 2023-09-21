@@ -224,7 +224,6 @@ export class BrowserTracing implements Integration {
     if (this.options.enableLongTask) {
       startTrackingLongTasks();
     }
-    console.log('starting interaction tracking!');
     startTrackingInteractions();
   }
 
@@ -284,7 +283,6 @@ export class BrowserTracing implements Integration {
     if (markBackgroundTransactions) {
       registerBackgroundTabDetection();
     }
-    logger.log('registering interaction listener!');
     this._registerInteractionListener();
 
     instrumentOutgoingRequests({
@@ -391,18 +389,22 @@ export class BrowserTracing implements Integration {
     let inflightIdleInteractionTransaction: IdleTransaction | undefined;
     let inflightInteractionTransaction: Transaction | undefined;
 
-    const supportedEventTypes = ['click', 'mouseup', 'mousedown', 'contextmenu'];
-    const getTypeFromAction = (type: (typeof supportedEventTypes)[number], e: Event & { button: number }): string => {
+    const supportedEventTypes = ['click', 'mouseup', 'mousedown', 'contextmenu'] as const;
+    type SupportedEventTypes = (typeof supportedEventTypes)[number];
+
+    const getTypeFromAction = (
+      type: SupportedEventTypes,
+      e: Event & { button: number },
+    ): `ui.action.${'left' | 'right' | 'unknown'}.${SupportedEventTypes}` => {
       const button = e?.button === 0 ? 'left' : e?.button === 2 ? 'right' : 'unknown';
       return `ui.action.${button}.${type}`;
     };
 
     const registerInteractionTransaction = (e: Event): void => {
       const { idleTimeout, finalTimeout, heartbeatInterval } = this.options;
-      const type = e.type as (typeof supportedEventTypes)[number];
+      const type = e.type as SupportedEventTypes;
       const target = e.target as HTMLElement;
       const op = getTypeFromAction(type, e as Event & { button: number });
-      logger.log(type, htmlTreeAsString(target), op);
 
       const currentTransaction = getActiveTransaction();
       if (currentTransaction && currentTransaction.op && ['navigation', 'pageload'].includes(currentTransaction.op)) {
@@ -421,7 +423,6 @@ export class BrowserTracing implements Integration {
           endTimestamp: timestampInSeconds() + 0.001,
         });
         inflightInteractionTransaction.finish();
-        console.log('finishing regular transaction', inflightInteractionTransaction);
         return;
       }
 
@@ -456,7 +457,6 @@ export class BrowserTracing implements Integration {
       };
 
       if (op === 'ui.action.left.click' || op === 'ui.action.right.contextmenu') {
-        console.log('starting idle transaction for', op);
         inflightIdleInteractionTransaction = startIdleTransaction(
           hub,
           context,
@@ -475,12 +475,10 @@ export class BrowserTracing implements Integration {
           startTimestamp: timestampInSeconds(),
           endTimestamp: timestampInSeconds() + 0.001,
         });
-        console.log('starting regular transaction for mousedown', inflightInteractionTransaction);
       }
     };
 
     supportedEventTypes.forEach(type => {
-      logger.log('registering ', type);
       addEventListener(type, registerInteractionTransaction, { once: false, capture: true });
     });
   }

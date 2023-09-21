@@ -109,19 +109,15 @@ export function startTrackingInteractions(): void {
     for (const entry of entries) {
       const transaction = getActiveTransaction() as IdleTransaction | undefined;
       if (!transaction) {
-        console.log('NO ACTIVE TRANSACTION!!!');
         return;
       }
 
       const entryName = entry.name as Events;
       const supportedEntryNames: Events[] = ['click', 'contextmenu'];
 
-      console.log(entryName);
-
       if (supportedEntryNames.includes(entryName)) {
         const startTime = msToSec((browserPerformanceTimeOrigin as number) + entry.startTime);
         const duration = msToSec(entry.duration);
-        console.log('adding child', entryName);
 
         transaction.startChild({
           description: htmlTreeAsString(entry.target),
