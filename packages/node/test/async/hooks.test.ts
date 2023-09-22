@@ -130,7 +130,7 @@ conditionalTest({ min: 12 })('async_hooks', () => {
         if (d2done) {
           done();
         }
-      });
+      }, 0);
     });
 
     runWithAsyncContext(() => {
@@ -142,7 +142,7 @@ conditionalTest({ min: 12 })('async_hooks', () => {
         if (d1done) {
           done();
         }
-      });
+      }, 0);
     });
   });
 });
