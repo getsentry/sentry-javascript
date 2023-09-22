@@ -13,7 +13,7 @@ export function watchdogTimer(pollInterval: number, anrThreshold: number, callba
     const [seconds, nanoSeconds] = process.hrtime(lastPoll);
     const diffMs = Math.floor(seconds * 1e3 + nanoSeconds / 1e6);
 
-    if (triggered === false && diffMs > pollInterval + anrThreshold) {
+    if (!triggered && diffMs > pollInterval + anrThreshold) {
       triggered = true;
       callback();
     }

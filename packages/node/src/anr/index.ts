@@ -17,7 +17,7 @@ interface Options {
    */
   entryScript: string;
   /**
-   * Interval to send alive messages to the child process.
+   * Interval to send heartbeat messages to the child process.
    *
    * Defaults to 50ms.
    */
