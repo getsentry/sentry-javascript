@@ -127,7 +127,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
     if (options.dsn) {
       this._dsn = makeDsn(options.dsn);
     } else {
-      __DEBUG_BUILD__ && logger.warn('No DSN provided, client will not do anything.');
+      __DEBUG_BUILD__ && logger.warn('No DSN provided, client will not send events.');
     }
 
     if (this._dsn) {
@@ -137,17 +137,6 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
         ...options.transportOptions,
         url,
       });
-    } else {
-      // User provided no DSN, we check if the transport provided is a local client and use this instead
-      const transport = options.transport({
-        recordDroppedEvent: this.recordDroppedEvent.bind(this),
-        ...options.transportOptions,
-        url: '',
-      });
-      if (transport.providesUrl) {
-        __DEBUG_BUILD__ && logger.info('Loaded SDK locally');
-        this._transport = transport;
-      }
     }
   }
 
@@ -308,8 +297,8 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   /**
    * Sets up the integrations
    */
-  public setupIntegrations(): void {
-    if (this._isEnabled() && !this._integrationsInitialized) {
+  public setupIntegrations(forceInitialize?: boolean): void {
+    if ((forceInitialize && !this._integrationsInitialized) || (this._isEnabled() && !this._integrationsInitialized)) {
       this._integrations = setupIntegrations(this, this._options.integrations);
       this._integrationsInitialized = true;
     }
@@ -347,25 +336,23 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
    * @inheritDoc
    */
   public sendEvent(event: Event, hint: EventHint = {}): void {
-    if (this._isEnabled()) {
-      this.emit('beforeSendEvent', event, hint);
+    this.emit('beforeSendEvent', event, hint);
 
-      let env = createEventEnvelope(event, this._dsn, this._options._metadata, this._options.tunnel);
+    let env = createEventEnvelope(event, this._dsn, this._options._metadata, this._options.tunnel);
 
-      for (const attachment of hint.attachments || []) {
-        env = addItemToEnvelope(
-          env,
-          createAttachmentEnvelopeItem(
-            attachment,
-            this._options.transportOptions && this._options.transportOptions.textEncoder,
-          ),
-        );
-      }
+    for (const attachment of hint.attachments || []) {
+      env = addItemToEnvelope(
+        env,
+        createAttachmentEnvelopeItem(
+          attachment,
+          this._options.transportOptions && this._options.transportOptions.textEncoder,
+        ),
+      );
+    }
 
-      const promise = this._sendEnvelope(env);
-      if (promise) {
-        promise.then(sendResponse => this.emit('afterSendEvent', event, sendResponse), null);
-      }
+    const promise = this._sendEnvelope(env);
+    if (promise) {
+      promise.then(sendResponse => this.emit('afterSendEvent', event, sendResponse), null);
     }
   }
 
@@ -646,10 +633,6 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
     const options = this.getOptions();
     const { sampleRate } = options;
 
-    if (!this._isEnabled()) {
-      return rejectedSyncPromise(new SentryError('SDK not enabled, will not capture event.', 'log'));
-    }
-
     const isTransaction = isTransactionEvent(event);
     const isError = isErrorEvent(event);
     const eventType = event.type || 'error';
@@ -749,9 +732,9 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
    * @inheritdoc
    */
   protected _sendEnvelope(envelope: Envelope): PromiseLike<void | TransportMakeRequestResponse> | void {
-    if (this._transport) {
-      this.emit('beforeEnvelope', envelope);
+    this.emit('beforeEnvelope', envelope);
 
+    if (this._transport) {
       return this._transport.send(envelope).then(null, reason => {
         __DEBUG_BUILD__ && logger.error('Error while sending event:', reason);
       });
