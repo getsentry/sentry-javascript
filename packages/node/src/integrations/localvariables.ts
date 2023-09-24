@@ -11,6 +11,8 @@ type OnPauseEvent = InspectorNotification<Debugger.PausedEventDataType>;
 export interface DebugSession {
   /** Configures and connects to the debug session */
   configureAndConnect(onPause: (message: OnPauseEvent, complete: () => void) => void, captureAll: boolean): void;
+  /** Updates which kind of exceptions to capture */
+  setPauseOnExceptions(captureAll: boolean): void;
   /** Gets local variables for an objectId */
   getLocalVariables(objectId: string, callback: (vars: Variables) => void): void;
 }
@@ -18,6 +20,43 @@ export interface DebugSession {
 type Next<T> = (result: T) => void;
 type Add<T> = (fn: Next<T>) => void;
 type CallbackWrapper<T> = { add: Add<T>; next: Next<T> };
+
+type RateLimitIncrement = () => void;
+
+/**
+ * Creates a rate limiter
+ * @param maxPerSecond Maximum number of calls per second
+ * @param enable Callback to enable capture
+ * @param disable Callback to disable capture
+ * @returns A function to call to increment the rate limiter count
+ */
+export function createRateLimiter(maxPerSecond: number, enable: () => void, disable: () => void): RateLimitIncrement {
+  let count = 0;
+  let retrySeconds = 2;
+  let disabledTimeout = 0;
+
+  setInterval(() => {
+    if (disabledTimeout === 0) {
+      if (count > maxPerSecond) {
+        disable();
+        retrySeconds *= 2;
+        disabledTimeout = retrySeconds;
+      }
+    } else {
+      disabledTimeout -= 1;
+
+      if (disabledTimeout === 0) {
+        enable();
+      }
+    }
+
+    count = 0;
+  }, 1_000).unref();
+
+  return () => {
+    count += 1;
+  };
+}
 
 /** Creates a container for callbacks to be called sequentially */
 export function createCallbackList<T>(complete: Next<T>): CallbackWrapper<T> {
@@ -100,6 +139,10 @@ class AsyncSession implements DebugSession {
     });
 
     this._session.post('Debugger.enable');
+    this._session.post('Debugger.setPauseOnExceptions', { state: captureAll ? 'all' : 'uncaught' });
+  }
+
+  public setPauseOnExceptions(captureAll: boolean): void {
     this._session.post('Debugger.setPauseOnExceptions', { state: captureAll ? 'all' : 'uncaught' });
   }
 
@@ -245,15 +288,21 @@ export interface FrameVariables {
   vars?: Variables;
 }
 
-/** There are no options yet. This allows them to be added later without breaking changes */
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
 interface Options {
   /**
-   * Capture local variables for both handled and unhandled exceptions
+   * Capture local variables for both caught and uncaught exceptions
    *
-   * Default: false - Only captures local variables for uncaught exceptions
+   * - When false, only uncaught exceptions will have local variables
+   * - When true, both caught and uncaught exceptions will have local variables.
+   * - When a number,  both caught and uncaught exceptions will have local variables until that many exceptions have been
+   *   captured per second.
+   *
+   * Default: true (50 exceptions per second)
+   *
+   * Capturing local variables for all exceptions can be expensive and is rate-limited. Once the rate limit is reached,
+   * local variables will only be captured for uncaught exceptions until a timeout has been reached.
    */
-  captureAllExceptions?: boolean;
+  captureAllExceptions?: boolean | number;
 }
 
 /**
@@ -265,6 +314,7 @@ export class LocalVariables implements Integration {
   public readonly name: string = LocalVariables.id;
 
   private readonly _cachedFrames: LRUMap<string, FrameVariables[]> = new LRUMap(20);
+  private _rateLimiter: RateLimitIncrement | undefined;
 
   public constructor(
     private readonly _options: Options = {},
@@ -293,11 +343,23 @@ export class LocalVariables implements Integration {
         return;
       }
 
+      const captureAll = this._options.captureAllExceptions !== false;
+
       this._session.configureAndConnect(
         (ev, complete) =>
           this._handlePaused(clientOptions.stackParser, ev as InspectorNotification<PausedExceptionEvent>, complete),
-        !!this._options.captureAllExceptions,
+        captureAll,
       );
+
+      if (captureAll) {
+        const max = typeof this._options.captureAllExceptions === 'number' ? this._options.captureAllExceptions : 50;
+
+        this._rateLimiter = createRateLimiter(
+          max,
+          () => this._session?.setPauseOnExceptions(true),
+          () => this._session?.setPauseOnExceptions(false),
+        );
+      }
 
       addGlobalEventProcessor(async event => this._addLocalVariables(event));
     }
@@ -315,6 +377,8 @@ export class LocalVariables implements Integration {
       complete();
       return;
     }
+
+    this._rateLimiter?.();
 
     // data.description contains the original error.stack
     const exceptionHash = hashFromStack(stackParser, data?.description);
