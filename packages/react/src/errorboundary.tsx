@@ -23,12 +23,12 @@ export type FallbackRender = (errorData: {
 export type ErrorBoundaryProps = {
   children?: React.ReactNode | (() => React.ReactNode);
   /** If a Sentry report dialog should be rendered on error */
-  showDialog?: boolean;
+  showDialog?: boolean | undefined;
   /**
    * Options to be passed into the Sentry report dialog.
    * No-op if {@link showDialog} is false.
    */
-  dialogOptions?: ReportDialogOptions;
+  dialogOptions?: ReportDialogOptions | undefined;
   /**
    * A fallback component that gets rendered when the error boundary encounters an error.
    *
@@ -37,17 +37,17 @@ export type ErrorBoundaryProps = {
    * the error, the component stack, and an function that resets the error boundary on error.
    *
    */
-  fallback?: React.ReactElement | FallbackRender;
+  fallback?: React.ReactElement | FallbackRender | undefined;
   /** Called when the error boundary encounters an error */
-  onError?(error: Error, componentStack: string, eventId: string): void;
+  onError?: ((error: Error, componentStack: string, eventId: string) => void) | undefined;
   /** Called on componentDidMount() */
-  onMount?(): void;
+  onMount?: (() => void) | undefined;
   /** Called if resetError() is called from the fallback render props function  */
-  onReset?(error: Error | null, componentStack: string | null, eventId: string | null): void;
+  onReset?: ((error: Error | null, componentStack: string | null, eventId: string | null) => void) | undefined;
   /** Called on componentWillUnmount() */
-  onUnmount?(error: Error | null, componentStack: string | null, eventId: string | null): void;
+  onUnmount?: ((error: Error | null, componentStack: string | null, eventId: string | null) => void) | undefined;
   /** Called before the error is captured by Sentry, allows for you to add tags or context using the scope */
-  beforeCapture?(scope: Scope, error: Error | null, componentStack: string | null): void;
+  beforeCapture?: ((scope: Scope, error: Error | null, componentStack: string | null) => void) | undefined;
 };
 
 type ErrorBoundaryState =
