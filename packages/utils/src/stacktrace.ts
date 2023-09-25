@@ -1,7 +1,9 @@
 import type { StackFrame, StackLineParser, StackParser } from '@sentry/types';
 
 import type { GetModuleFn } from './node-stack-trace';
-import { node } from './node-stack-trace';
+import { filenameIsInApp, node } from './node-stack-trace';
+
+export { filenameIsInApp };
 
 const STACKTRACE_FRAME_LIMIT = 50;
 // Used to sanitize webpack (error: *) wrapped stack errors

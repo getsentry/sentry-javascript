@@ -13,7 +13,7 @@ export interface Mechanism {
    * it hits the global error/rejection handlers, whether through explicit handling by the user or auto instrumentation.
    * Converted to a tag on ingest and used in various ways in the UI.
    */
-  handled: boolean;
+  handled?: boolean;
 
   /**
    * Arbitrary data to be associated with the mechanism (for example, errors coming from event handlers include the
