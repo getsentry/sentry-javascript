@@ -126,6 +126,7 @@ export function constructWebpackConfigFunction(
       pageExtensionRegex,
       excludeServerRoutes: userSentryOptions.excludeServerRoutes,
       sentryConfigFilePath: getUserConfigFilePath(projectDir, runtime),
+      nextjsRequestAsyncStorageModulePath: getRequestAsyncLocalStorageModuleLocation(rawNewConfig.resolve?.modules),
     };
 
     const normalizeLoaderResourcePath = (resourcePath: string): string => {
@@ -974,4 +975,32 @@ function addValueInjectionLoader(
       ],
     },
   );
+}
+
+function getRequestAsyncLocalStorageModuleLocation(modules: string[] | undefined): string | undefined {
+  if (modules === undefined) {
+    return undefined;
+  }
+
+  try {
+    // Original location of that module
+    // https://github.com/vercel/next.js/blob/46151dd68b417e7850146d00354f89930d10b43b/packages/next/src/client/components/request-async-storage.ts
+    const location = 'next/dist/client/components/request-async-storage';
+    require.resolve(location, { paths: modules });
+    return location;
+  } catch {
+    // noop
+  }
+
+  try {
+    // Introduced in Next.js 13.4.20
+    // https://github.com/vercel/next.js/blob/e1bc270830f2fc2df3542d4ef4c61b916c802df3/packages/next/src/client/components/request-async-storage.external.ts
+    const location = 'next/dist/client/components/request-async-storage.external';
+    require.resolve(location, { paths: modules });
+    return location;
+  } catch {
+    // noop
+  }
+
+  return undefined;
 }
