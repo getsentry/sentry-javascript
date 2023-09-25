@@ -23,9 +23,9 @@ To use this SDK, call `init(options)` as early as possible in the main entry mod
 hook into the environment. Note that you can turn off almost all side effects using the respective options.
 
 ```javascript
-// ES5 Syntax
+// CJS Syntax
 const Sentry = require('@sentry/vercel-edge');
-// ES6 Syntax
+// ESM Syntax
 import * as Sentry from '@sentry/vercel-edge';
 
 Sentry.init({

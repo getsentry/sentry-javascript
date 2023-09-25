@@ -5,7 +5,7 @@ import { SentryPropagator, SentrySpanProcessor } from '@sentry/opentelemetry-nod
 import { logger } from '@sentry/utils';
 
 import type { NodeExperimentalClient } from '../types';
-import { SentryContextManager } from './otelContextManager';
+import { SentryContextManager } from './../opentelemetry/contextManager';
 
 /**
  * Initialize OpenTelemetry for Node.
