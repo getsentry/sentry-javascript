@@ -35,6 +35,12 @@ export function handleGlobalEventListener(
         return event;
       }
 
+      // Ensure we do not add replay_id if the session is expired
+      const isSessionActive = replay.checkAndHandleExpiredSession();
+      if (!isSessionActive) {
+        return event;
+      }
+
       // Unless `captureExceptions` is enabled, we want to ignore errors coming from rrweb
       // As there can be a bunch of stuff going wrong in internals there, that we don't want to bubble up to users
       if (isRrwebError(event, hint) && !replay.getOptions()._experiments.captureExceptions) {
