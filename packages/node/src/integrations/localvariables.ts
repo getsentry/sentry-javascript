@@ -32,7 +32,7 @@ type RateLimitIncrement = () => void;
  */
 export function createRateLimiter(maxPerSecond: number, enable: () => void, disable: () => void): RateLimitIncrement {
   let count = 0;
-  let retrySeconds = 2;
+  let retrySeconds = 5;
   let disabledTimeout = 0;
 
   setInterval(() => {
@@ -40,6 +40,11 @@ export function createRateLimiter(maxPerSecond: number, enable: () => void, disa
       if (count > maxPerSecond) {
         disable();
         retrySeconds *= 2;
+
+        // Cap at one day
+        if (retrySeconds > 86400) {
+          retrySeconds = 86400;
+        }
         disabledTimeout = retrySeconds;
       }
     } else {
