@@ -4,6 +4,18 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.71.0
+
+- feat(bun): Instrument Bun.serve (#9080)
+- fix(core): Ensure global event processors are always applied to event (#9064)
+- fix(core): Run client eventProcessors before global ones (#9032)
+- fix(nextjs): Use webpack module paths to attempt to resolve internal request async storage module (#9100)
+- fix(react): Add actual error name to boundary error name (#9065)
+- fix(react): Compare location against `basename`-prefixed route. (#9076)
+- ref(browser): Refactor browser integrations to use `processEvent` (#9022)
+
+Work in this release contributed by @jorrit. Thank you for your contribution!
+
 ## 7.70.0
 
 ### Important Changes
