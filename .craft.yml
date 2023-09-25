@@ -176,3 +176,7 @@ targets:
         onlyIfPresent: /^sentry-sveltekit-\d.*\.tgz$/
       'npm:@sentry/opentelemetry-node':
         onlyIfPresent: /^sentry-opentelemetry-node-\d.*\.tgz$/
+      'npm:@sentry/bun':
+        onlyIfPresent: /^sentry-bun-\d.*\.tgz$/
+      'npm:@sentry/vercel-edge':
+        onlyIfPresent: /^sentry-vercel-edge-\d.*\.tgz$/

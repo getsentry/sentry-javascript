@@ -2,7 +2,7 @@ import type { Client, ClientOptions, Event, EventHint, StackFrame, StackParser }
 import { dateTimestampInSeconds, GLOBAL_OBJ, normalize, resolvedSyncPromise, truncate, uuid4 } from '@sentry/utils';
 
 import { DEFAULT_ENVIRONMENT } from '../constants';
-import { notifyEventProcessors } from '../eventProcessors';
+import { getGlobalEventProcessors, notifyEventProcessors } from '../eventProcessors';
 import { Scope } from '../scope';
 
 /**
@@ -55,6 +55,8 @@ export function prepareEvent(
   // We prepare the result here with a resolved Event.
   let result = resolvedSyncPromise<Event | null>(prepared);
 
+  const clientEventProcessors = client && client.getEventProcessors ? client.getEventProcessors() : [];
+
   // This should be the last thing called, since we want that
   // {@link Hub.addEventProcessor} gets the finished prepared event.
   //
@@ -73,28 +75,27 @@ export function prepareEvent(
     }
 
     // In case we have a hub we reassign it.
-    result = finalScope.applyToEvent(prepared, hint);
+    result = finalScope.applyToEvent(prepared, hint, clientEventProcessors);
+  } else {
+    // Apply client & global event processors even if there is no scope
+    // TODO (v8): Update the order to be Global > Client
+    result = notifyEventProcessors([...clientEventProcessors, ...getGlobalEventProcessors()], prepared, hint);
   }
 
-  return result
-    .then(evt => {
-      // Process client-scoped event processors
-      return client && client.getEventProcessors ? notifyEventProcessors(client.getEventProcessors(), evt, hint) : evt;
-    })
-    .then(evt => {
-      if (evt) {
-        // We apply the debug_meta field only after all event processors have ran, so that if any event processors modified
-        // file names (e.g.the RewriteFrames integration) the filename -> debug ID relationship isn't destroyed.
-        // This should not cause any PII issues, since we're only moving data that is already on the event and not adding
-        // any new data
-        applyDebugMeta(evt);
-      }
+  return result.then(evt => {
+    if (evt) {
+      // We apply the debug_meta field only after all event processors have ran, so that if any event processors modified
+      // file names (e.g.the RewriteFrames integration) the filename -> debug ID relationship isn't destroyed.
+      // This should not cause any PII issues, since we're only moving data that is already on the event and not adding
+      // any new data
+      applyDebugMeta(evt);
+    }
 
-      if (typeof normalizeDepth === 'number' && normalizeDepth > 0) {
-        return normalizeEvent(evt, normalizeDepth, normalizeMaxBreadth);
-      }
-      return evt;
-    });
+    if (typeof normalizeDepth === 'number' && normalizeDepth > 0) {
+      return normalizeEvent(evt, normalizeDepth, normalizeMaxBreadth);
+    }
+    return evt;
+  });
 }
 
 /**

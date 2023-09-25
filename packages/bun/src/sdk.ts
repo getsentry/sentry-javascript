@@ -3,6 +3,7 @@ import { Integrations as CoreIntegrations } from '@sentry/core';
 import { init as initNode, Integrations as NodeIntegrations } from '@sentry/node';
 
 import { BunClient } from './client';
+import { BunServer } from './integrations';
 import { makeFetchTransport } from './transports';
 import type { BunOptions } from './types';
 
@@ -25,6 +26,8 @@ export const defaultIntegrations = [
   new NodeIntegrations.RequestData(),
   // Misc
   new NodeIntegrations.LinkedErrors(),
+  // Bun Specific
+  new BunServer(),
 ];
 
 /**
