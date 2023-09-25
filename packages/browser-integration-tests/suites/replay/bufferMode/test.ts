@@ -86,7 +86,7 @@ sentryTest(
 
     const [req0] = await Promise.all([
       reqPromise0,
-      await page.evaluate(async () => {
+     page.evaluate(async () => {
         const replayIntegration = (window as unknown as Window & { Replay: Replay }).Replay;
         await replayIntegration.flush();
       }),
