@@ -4,7 +4,7 @@ import type { LRUMap } from 'lru_map';
 
 import { defaultStackParser } from '../../src';
 import type { DebugSession, FrameVariables } from '../../src/integrations/localvariables';
-import { createCallbackList, LocalVariables, createRateLimiter } from '../../src/integrations/localvariables';
+import { createCallbackList, createRateLimiter, LocalVariables } from '../../src/integrations/localvariables';
 import { NODE_VERSION } from '../../src/nodeVersion';
 import { getDefaultNodeClientOptions } from '../../test/helper/node-client-options';
 
