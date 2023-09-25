@@ -1,5 +1,5 @@
 import type { Event, StackFrame } from '@sentry/types';
-import { watchdogTimer } from '@sentry/utils';
+import { logger } from '@sentry/utils';
 import { fork } from 'child_process';
 import * as inspector from 'inspector';
 
@@ -8,6 +8,36 @@ import { captureStackTrace } from './debugger';
 
 const DEFAULT_INTERVAL = 50;
 const DEFAULT_HANG_THRESHOLD = 5000;
+
+/**
+ * A node.js watchdog timer
+ * @param pollInterval The interval that we expect to get polled at
+ * @param anrThreshold The threshold for when we consider ANR
+ * @param callback The callback to call for ANR
+ * @returns A function to call to reset the timer
+ */
+function watchdogTimer(pollInterval: number, anrThreshold: number, callback: () => void): () => void {
+  let lastPoll = process.hrtime();
+  let triggered = false;
+
+  setInterval(() => {
+    const [seconds, nanoSeconds] = process.hrtime(lastPoll);
+    const diffMs = Math.floor(seconds * 1e3 + nanoSeconds / 1e6);
+
+    if (triggered === false && diffMs > pollInterval + anrThreshold) {
+      triggered = true;
+      callback();
+    }
+
+    if (diffMs < pollInterval + anrThreshold) {
+      triggered = false;
+    }
+  }, 20);
+
+  return () => {
+    lastPoll = process.hrtime();
+  };
+}
 
 interface Options {
   /**
@@ -69,44 +99,69 @@ function sendEvent(blockedMs: number, frames?: StackFrame[]): void {
 }
 
 function startChildProcess(options: Options): void {
-  const env = { ...process.env };
-
-  if (options.captureStackTrace) {
-    inspector.open();
-    env.SENTRY_INSPECT_URL = inspector.url();
+  function log(message: string, err?: unknown): void {
+    if (options.debug) {
+      if (err) {
+        logger.log(`[ANR] ${message}`, err);
+      } else {
+        logger.log(`[ANR] ${message}`);
+      }
+    }
   }
 
-  const child = fork(options.entryScript, {
-    env,
-    stdio: options.debug ? 'inherit' : 'ignore',
-  });
-  // The child process should not keep the main process alive
-  child.unref();
+  try {
+    const env = { ...process.env };
 
-  const timer = setInterval(() => {
-    try {
-      // message the child process to tell it the main event loop is still running
-      child.send('ping');
-    } catch (_) {
-      //
+    if (options.captureStackTrace) {
+      inspector.open();
+      env.SENTRY_INSPECT_URL = inspector.url();
     }
-  }, options.pollInterval);
 
-  child.on('error', () => {
-    clearTimeout(timer);
-  });
-  child.on('disconnect', () => {
-    clearTimeout(timer);
-  });
-  child.on('exit', () => {
-    clearTimeout(timer);
-  });
+    const child = fork(options.entryScript, {
+      env,
+      stdio: options.debug ? 'inherit' : 'ignore',
+    });
+    // The child process should not keep the main process alive
+    child.unref();
+
+    const timer = setInterval(() => {
+      try {
+        // message the child process to tell it the main event loop is still running
+        child.send('ping');
+      } catch (_) {
+        //
+      }
+    }, options.pollInterval);
+
+    const end = (err: unknown): void => {
+      clearInterval(timer);
+      log('Child process ended', err);
+    };
+
+    child.on('error', end);
+    child.on('disconnect', end);
+    child.on('exit', end);
+  } catch (e) {
+    log('Failed to start child process', e);
+  }
 }
 
 function handleChildProcess(options: Options): void {
+  function log(message: string): void {
+    if (options.debug) {
+      logger.log(`[ANR child process] ${message}`);
+    }
+  }
+
+  log('Started');
+
   addGlobalEventProcessor(event => {
     // Strip sdkProcessingMetadata from all child process events to remove trace info
     delete event.sdkProcessingMetadata;
+    event.tags = {
+      ...event.tags,
+      'process.name': 'ANR',
+    };
     return event;
   });
 
@@ -114,17 +169,23 @@ function handleChildProcess(options: Options): void {
 
   // if attachStackTrace is enabled, we'll have a debugger url to connect to
   if (process.env.SENTRY_INSPECT_URL) {
+    log('Connecting to debugger');
+
     debuggerPause = captureStackTrace(process.env.SENTRY_INSPECT_URL, frames => {
+      log('Capturing event with stack frames');
       sendEvent(options.anrThreshold, frames);
     });
   }
 
   async function watchdogTimeout(): Promise<void> {
+    log('Watchdog timeout');
     const pauseAndCapture = await debuggerPause;
 
     if (pauseAndCapture) {
+      log('Pausing debugger to capture stack trace');
       pauseAndCapture();
     } else {
+      log('Capturing event');
       sendEvent(options.anrThreshold);
     }
   }
@@ -137,6 +198,8 @@ function handleChildProcess(options: Options): void {
 }
 
 /**
+ * **Note** This feature is still in beta so there may be breaking changes in future releases.
+ *
  * Starts a child process that detects Application Not Responding (ANR) errors.
  *
  * It's important to await on the returned promise before your app code to ensure this code does not run in the ANR
@@ -147,11 +210,11 @@ function handleChildProcess(options: Options): void {
  *
  * init({ dsn: "__DSN__" });
  *
- * // with ESM
+ * // with ESM + Node 14+
  * await enableAnrDetection({ captureStackTrace: true });
  * runApp();
  *
- * // with CJS
+ * // with CJS or Node 10+
  * enableAnrDetection({ captureStackTrace: true }).then(() => {
  *   runApp();
  * });
