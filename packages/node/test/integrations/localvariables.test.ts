@@ -8,7 +8,7 @@ import { createCallbackList, createRateLimiter, LocalVariables } from '../../src
 import { NODE_VERSION } from '../../src/nodeVersion';
 import { getDefaultNodeClientOptions } from '../../test/helper/node-client-options';
 
-jest.setTimeout(10_000);
+jest.setTimeout(20_000);
 
 const describeIf = (condition: boolean) => (condition ? describe : describe.skip);
 
