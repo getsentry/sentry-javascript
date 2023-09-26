@@ -216,11 +216,6 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
    * @inheritDoc
    */
   public captureSession(session: Session): void {
-    if (!this._isEnabled()) {
-      __DEBUG_BUILD__ && logger.warn('SDK not enabled, will not capture session.');
-      return;
-    }
-
     if (!(typeof session.release === 'string')) {
       __DEBUG_BUILD__ && logger.warn('Discarded session because of missing or non-string release');
     } else {
@@ -360,10 +355,8 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
    * @inheritDoc
    */
   public sendSession(session: Session | SessionAggregates): void {
-    if (this._isEnabled()) {
-      const env = createSessionEnvelope(session, this._dsn, this._options._metadata, this._options.tunnel);
-      void this._sendEnvelope(env);
-    }
+    const env = createSessionEnvelope(session, this._dsn, this._options._metadata, this._options.tunnel);
+    void this._sendEnvelope(env);
   }
 
   /**
