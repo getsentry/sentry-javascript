@@ -115,35 +115,32 @@ export class Http implements Integration {
       this._tracing?.shouldCreateSpanForRequest || clientOptions?.shouldCreateSpanForRequest;
     // eslint-disable-next-line deprecation/deprecation
     const tracePropagationTargets = clientOptions?.tracePropagationTargets || this._tracing?.tracePropagationTargets;
-    try {
+
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const httpModule = require('http');
+    const wrappedHttpHandlerMaker = _createWrappedRequestMethodFactory(
+      httpModule,
+      this._breadcrumbs,
+      shouldCreateSpanForRequest,
+      tracePropagationTargets,
+    );
+    fill(httpModule, 'get', wrappedHttpHandlerMaker);
+    fill(httpModule, 'request', wrappedHttpHandlerMaker);
+
+    // NOTE: Prior to Node 9, `https` used internals of `http` module, thus we don't patch it.
+    // If we do, we'd get double breadcrumbs and double spans for `https` calls.
+    // It has been changed in Node 9, so for all versions equal and above, we patch `https` separately.
+    if (NODE_VERSION.major && NODE_VERSION.major > 8) {
       // eslint-disable-next-line @typescript-eslint/no-var-requires
-      const httpModule = require('http');
-      const wrappedHttpHandlerMaker = _createWrappedRequestMethodFactory(
-        httpModule,
+      const httpsModule = require('https');
+      const wrappedHttpsHandlerMaker = _createWrappedRequestMethodFactory(
+        httpsModule,
         this._breadcrumbs,
         shouldCreateSpanForRequest,
         tracePropagationTargets,
       );
-      fill(httpModule, 'get', wrappedHttpHandlerMaker);
-      fill(httpModule, 'request', wrappedHttpHandlerMaker);
-
-      // NOTE: Prior to Node 9, `https` used internals of `http` module, thus we don't patch it.
-      // If we do, we'd get double breadcrumbs and double spans for `https` calls.
-      // It has been changed in Node 9, so for all versions equal and above, we patch `https` separately.
-      if (NODE_VERSION.major && NODE_VERSION.major > 8) {
-        // eslint-disable-next-line @typescript-eslint/no-var-requires
-        const httpsModule = require('https');
-        const wrappedHttpsHandlerMaker = _createWrappedRequestMethodFactory(
-          httpsModule,
-          this._breadcrumbs,
-          shouldCreateSpanForRequest,
-          tracePropagationTargets,
-        );
-        fill(httpsModule, 'get', wrappedHttpsHandlerMaker);
-        fill(httpsModule, 'request', wrappedHttpsHandlerMaker);
-      }
-    } catch (e) {
-      // TODO: require is not defined
+      fill(httpsModule, 'get', wrappedHttpsHandlerMaker);
+      fill(httpsModule, 'request', wrappedHttpsHandlerMaker);
     }
   }
 }

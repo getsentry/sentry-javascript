@@ -22,12 +22,8 @@ export function getModuleFromFilename(
 
   // eslint-disable-next-line prefer-const
   let { root, dir, base: basename, ext } = posix.parse(normalizedFilename);
-  let base = '';
-  try {
-    base = (require && require.main && require.main.filename && dir) || global.process.cwd();
-  } catch (e) {
-    // TODO: require is not defined
-  }
+
+  const base = (require && require.main && require.main.filename && dir) || global.process.cwd();
 
   const normalizedBase = `${base}/`;
 
