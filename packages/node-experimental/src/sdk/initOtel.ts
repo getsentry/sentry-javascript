@@ -1,6 +1,8 @@
 import { diag, DiagLogLevel } from '@opentelemetry/api';
+import { Resource } from '@opentelemetry/resources';
 import { AlwaysOnSampler, BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
-import { getCurrentHub } from '@sentry/core';
+import { SemanticResourceAttributes } from '@opentelemetry/semantic-conventions';
+import { getCurrentHub, SDK_VERSION } from '@sentry/core';
 import { SentryPropagator, SentrySpanProcessor } from '@sentry/opentelemetry-node';
 import { logger } from '@sentry/utils';
 
@@ -28,6 +30,11 @@ export function initOtel(): () => void {
   // Create and configure NodeTracerProvider
   const provider = new BasicTracerProvider({
     sampler: new AlwaysOnSampler(),
+    resource: new Resource({
+      [SemanticResourceAttributes.SERVICE_NAME]: 'node-experimental',
+      [SemanticResourceAttributes.SERVICE_NAMESPACE]: 'sentry',
+      [SemanticResourceAttributes.SERVICE_VERSION]: SDK_VERSION,
+    }),
   });
   provider.addSpanProcessor(new SentrySpanProcessor());
 
