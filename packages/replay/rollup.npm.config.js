@@ -1,4 +1,4 @@
-import { makeBaseNPMConfig, makeNPMConfigVariants } from '../../rollup/index';
+import { makeBaseNPMConfig, makeNPMConfigVariants } from '../rollup/index';
 
 export default makeNPMConfigVariants(
   makeBaseNPMConfig({

@@ -1,6 +1,6 @@
 import commonjs from '@rollup/plugin-commonjs';
 
-import { insertAt, makeBaseBundleConfig, makeBundleConfigVariants } from '../../rollup/index.js';
+import { insertAt, makeBaseBundleConfig, makeBundleConfigVariants } from '../rollup/index.js';
 
 const builds = [];
 

@@ -24642,7 +24642,7 @@ rollup@^2.45.1, rollup@^2.67.1, rollup@^2.8.0:
   optionalDependencies:
     fsevents "~2.3.2"
 
-rollup@^3.10.0, rollup@^3.20.2, rollup@^3.7.0:
+rollup@^3.10.0, rollup@^3.7.0:
   version "3.20.2"
   resolved "https://registry.yarnpkg.com/rollup/-/rollup-3.20.2.tgz#f798c600317f216de2e4ad9f4d9ab30a89b690ff"
   integrity sha512-3zwkBQl7Ai7MFYQE0y1MeQ15+9jsi7XxfrqwTb/9EK8D9C9+//EBR4M+CuA1KODRaNbFez/lWxA5vhEGZp4MUg==

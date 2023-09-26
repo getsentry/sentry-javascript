@@ -95,6 +95,9 @@ targets:
     id: '@sentry-internal/typescript'
     includeNames: /^sentry-internal-typescript-\d.*\.tgz$/
   - name: npm
+    id: '@sentry-internal/rollup'
+    includeNames: /^sentry-internal-rollup-\d.*\.tgz$/
+  - name: npm
     id: '@sentry-internal/eslint-plugin-sdk'
     includeNames: /^sentry-internal-eslint-plugin-sdk-\d.*\.tgz$/
   ## 7.2

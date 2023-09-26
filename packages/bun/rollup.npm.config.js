@@ -1,4 +1,4 @@
-import { makeBaseNPMConfig, makeNPMConfigVariants } from '../../rollup/index.js';
+import { makeBaseNPMConfig, makeNPMConfigVariants } from '../rollup/index.js';
 
 const config = makeNPMConfigVariants(makeBaseNPMConfig());
 

@@ -43,7 +43,7 @@ export function makeLicensePlugin(title) {
 
 export function getEs5Polyfills() {
   // Note: __dirname resolves to e.g. packages/browser or packages/tracing
-  return fs.readFileSync(path.join(__dirname, '../../rollup/polyfills/es5.js'), 'utf-8');
+  return fs.readFileSync(path.join(__dirname, '../rollup/polyfills/es5.js'), 'utf-8');
 }
 
 /**
