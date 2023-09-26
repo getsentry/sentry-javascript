@@ -126,7 +126,7 @@ export function constructWebpackConfigFunction(
       pageExtensionRegex,
       excludeServerRoutes: userSentryOptions.excludeServerRoutes,
       sentryConfigFilePath: getUserConfigFilePath(projectDir, runtime),
-      nextjsRequestAsyncStorageModulePath: getRequestAsyncLocalStorageModuleLocation(rawNewConfig.resolve?.modules),
+      nextjsRequestAsyncStorageModulePath: getRequestAsyncStorageModuleLocation(rawNewConfig.resolve?.modules),
     };
 
     const normalizeLoaderResourcePath = (resourcePath: string): string => {
@@ -977,30 +977,39 @@ function addValueInjectionLoader(
   );
 }
 
-function getRequestAsyncLocalStorageModuleLocation(modules: string[] | undefined): string | undefined {
-  if (modules === undefined) {
+function getRequestAsyncStorageModuleLocation(
+  webpackResolvableModuleLocations: string[] | undefined,
+): string | undefined {
+  if (webpackResolvableModuleLocations === undefined) {
     return undefined;
   }
 
-  try {
-    // Original location of that module
-    // https://github.com/vercel/next.js/blob/46151dd68b417e7850146d00354f89930d10b43b/packages/next/src/client/components/request-async-storage.ts
-    const location = 'next/dist/client/components/request-async-storage';
-    require.resolve(location, { paths: modules });
-    return location;
-  } catch {
-    // noop
-  }
+  const absoluteWebpackResolvableModuleLocations = webpackResolvableModuleLocations.map(m => path.resolve(m));
+  const moduleIsWebpackResolvable = (moduleId: string): boolean => {
+    let requireResolveLocation: string;
+    try {
+      // This will throw if the location is not resolvable at all.
+      // We provide a `paths` filter in order to maximally limit the potential locations to the locations webpack would check.
+      requireResolveLocation = require.resolve(moduleId, { paths: webpackResolvableModuleLocations });
+    } catch {
+      return false;
+    }
 
-  try {
+    // Since the require.resolve approach still looks in "global" node_modules locations like for example "/user/lib/node"
+    // we further need to filter by locations that start with the locations that webpack would check for.
+    return absoluteWebpackResolvableModuleLocations.some(resolvableModuleLocation =>
+      requireResolveLocation.startsWith(resolvableModuleLocation),
+    );
+  };
+
+  const potentialRequestAsyncStorageLocations = [
+    // Original location of RequestAsyncStorage
+    // https://github.com/vercel/next.js/blob/46151dd68b417e7850146d00354f89930d10b43b/packages/next/src/client/components/request-async-storage.ts
+    'next/dist/client/components/request-async-storage',
     // Introduced in Next.js 13.4.20
     // https://github.com/vercel/next.js/blob/e1bc270830f2fc2df3542d4ef4c61b916c802df3/packages/next/src/client/components/request-async-storage.external.ts
-    const location = 'next/dist/client/components/request-async-storage.external';
-    require.resolve(location, { paths: modules });
-    return location;
-  } catch {
-    // noop
-  }
+    'next/dist/client/components/request-async-storage.external',
+  ];
 
-  return undefined;
+  return potentialRequestAsyncStorageLocations.find(potentialLocation => moduleIsWebpackResolvable(potentialLocation));
 }
