@@ -50,6 +50,7 @@
     "packages/ember",
     "packages/eslint-config-sdk",
     "packages/eslint-plugin-sdk",
+    "packages/feedback",
     "packages/gatsby",
     "packages/hub",
     "packages/integrations",
