@@ -48,7 +48,7 @@
   "bugs": {
     "url": "https://github.com/getsentry/sentry-javascript/issues"
   },
-  "homepage": "https://docs.sentry.io/platforms/javascript/session-replay/",
+  "homepage": "https://docs.sentry.io/platforms/javascript/",
   "devDependencies": {
     "@babel/core": "^7.17.5",
     "tslib": "^2.4.1 || ^1.9.3"
