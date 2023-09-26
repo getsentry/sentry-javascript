@@ -43,7 +43,7 @@ describe('makeCustomSentryVitePlugin()', () => {
   describe('Custom sentry vite plugin', () => {
     it('enables source map generation', async () => {
       const plugin = await makeCustomSentryVitePlugin();
-      // @ts-ignore this function exists!
+      // @ts-expect-error this function exists!
       const sentrifiedConfig = plugin.config({ build: { foo: {} }, test: {} });
       expect(sentrifiedConfig).toEqual({
         build: {
@@ -56,7 +56,7 @@ describe('makeCustomSentryVitePlugin()', () => {
 
     it('injects the output dir into the server hooks file', async () => {
       const plugin = await makeCustomSentryVitePlugin();
-      // @ts-ignore this function exists!
+      // @ts-expect-error this function exists!
       const transformedCode = await plugin.transform('foo', '/src/hooks.server.ts');
       const expectedtransformedCode = 'foo\n; import "\0sentry-inject-global-values-file";\n';
       expect(mockedSentryVitePlugin.transform).toHaveBeenCalledWith(expectedtransformedCode, '/src/hooks.server.ts');
@@ -65,9 +65,9 @@ describe('makeCustomSentryVitePlugin()', () => {
 
     it('uploads source maps during the SSR build', async () => {
       const plugin = await makeCustomSentryVitePlugin();
-      // @ts-ignore this function exists!
+      // @ts-expect-error this function exists!
       plugin.configResolved({ build: { ssr: true } });
-      // @ts-ignore this function exists!
+      // @ts-expect-error this function exists!
       plugin.closeBundle();
       expect(mockedSentryVitePlugin.writeBundle).toHaveBeenCalledTimes(1);
     });
@@ -75,9 +75,9 @@ describe('makeCustomSentryVitePlugin()', () => {
     it("doesn't upload source maps during the non-SSR builds", async () => {
       const plugin = await makeCustomSentryVitePlugin();
 
-      // @ts-ignore this function exists!
+      // @ts-expect-error this function exists!
       plugin.configResolved({ build: { ssr: false } });
-      // @ts-ignore this function exists!
+      // @ts-expect-error this function exists!
       plugin.closeBundle();
       expect(mockedSentryVitePlugin.writeBundle).not.toHaveBeenCalled();
     });
@@ -93,12 +93,12 @@ describe('makeCustomSentryVitePlugin()', () => {
 
     const plugin = await makeCustomSentryVitePlugin();
 
-    // @ts-ignore this function exists!
+    // @ts-expect-error this function exists!
     expect(plugin.closeBundle).not.toThrow();
 
-    // @ts-ignore this function exists!
+    // @ts-expect-error this function exists!
     plugin.configResolved({ build: { ssr: true } });
-    // @ts-ignore this function exists!
+    // @ts-expect-error this function exists!
     plugin.closeBundle();
 
     expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringContaining('Failed to upload source maps'));

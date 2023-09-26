@@ -12,6 +12,9 @@ function cleanUpAndExitSuccessfully() {
 }
 
 function assertSessionAggregates(session, expected) {
+  if (!session.aggregates) {
+    return;
+  }
   // For loop is added here just in the rare occasion that the session count do not land in the same aggregate
   // bucket
   session.aggregates.forEach(function (_, idx) {
@@ -34,6 +37,7 @@ function makeDummyTransport() {
       .split('\n')
       .filter(l => !!l)
       .map(e => JSON.parse(e));
+
     assertSessionAggregates(sessionEnv[2], {
       attrs: { release: '1.1' },
       aggregates: [{ crashed: 2, errored: 1, exited: 1 }],

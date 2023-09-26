@@ -4,7 +4,7 @@ import { getDomElement, htmlTreeAsString } from '../src/browser';
 
 beforeAll(() => {
   const dom = new JSDOM();
-  // @ts-ignore need to override global document
+  // @ts-expect-error need to override global document
   global.document = dom.window.document;
 });
 

@@ -43,7 +43,7 @@ sentryTest('captures text request body', async ({ getLocalTestPath, page, browse
 
     xhr.addEventListener('readystatechange', function () {
       if (xhr.readyState === 4) {
-        // @ts-ignore Sentry is a global
+        // @ts-expect-error Sentry is a global
         setTimeout(() => Sentry.captureException('test error', 0));
       }
     });
@@ -124,7 +124,7 @@ sentryTest('captures JSON request body', async ({ getLocalTestPath, page, browse
 
     xhr.addEventListener('readystatechange', function () {
       if (xhr.readyState === 4) {
-        // @ts-ignore Sentry is a global
+        // @ts-expect-error Sentry is a global
         setTimeout(() => Sentry.captureException('test error', 0));
       }
     });
@@ -209,7 +209,7 @@ sentryTest('captures non-text request body', async ({ getLocalTestPath, page, br
 
     xhr.addEventListener('readystatechange', function () {
       if (xhr.readyState === 4) {
-        // @ts-ignore Sentry is a global
+        // @ts-expect-error Sentry is a global
         setTimeout(() => Sentry.captureException('test error', 0));
       }
     });
@@ -290,7 +290,7 @@ sentryTest('captures text request body when matching relative URL', async ({ get
 
     xhr.addEventListener('readystatechange', function () {
       if (xhr.readyState === 4) {
-        // @ts-ignore Sentry is a global
+        // @ts-expect-error Sentry is a global
         setTimeout(() => Sentry.captureException('test error', 0));
       }
     });
@@ -371,7 +371,7 @@ sentryTest('does not capture request body when URL does not match', async ({ get
 
     xhr.addEventListener('readystatechange', function () {
       if (xhr.readyState === 4) {
-        // @ts-ignore Sentry is a global
+        // @ts-expect-error Sentry is a global
         setTimeout(() => Sentry.captureException('test error', 0));
       }
     });

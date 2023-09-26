@@ -30,6 +30,7 @@ export class Postgres extends NodePerformanceIntegration<void> implements Integr
   public setupInstrumentation(): void | Instrumentation[] {
     return [
       new PgInstrumentation({
+        requireParentSpan: true,
         requestHook(span) {
           addOriginToOtelSpan(span, 'auto.db.otel.postgres');
         },

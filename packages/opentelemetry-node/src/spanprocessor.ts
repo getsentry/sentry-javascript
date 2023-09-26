@@ -1,27 +1,16 @@
 import type { Context } from '@opentelemetry/api';
 import { SpanKind, trace } from '@opentelemetry/api';
 import type { Span as OtelSpan, SpanProcessor as OtelSpanProcessor } from '@opentelemetry/sdk-trace-base';
-import { SemanticAttributes } from '@opentelemetry/semantic-conventions';
 import { addGlobalEventProcessor, addTracingExtensions, getCurrentHub, Transaction } from '@sentry/core';
 import type { DynamicSamplingContext, Span as SentrySpan, TraceparentData, TransactionContext } from '@sentry/types';
-import { isString, logger } from '@sentry/utils';
+import { logger } from '@sentry/utils';
 
 import { SENTRY_DYNAMIC_SAMPLING_CONTEXT_KEY, SENTRY_TRACE_PARENT_CONTEXT_KEY } from './constants';
+import { maybeCaptureExceptionForTimedEvent } from './utils/captureExceptionForTimedEvent';
 import { isSentryRequestSpan } from './utils/isSentryRequest';
 import { mapOtelStatus } from './utils/mapOtelStatus';
 import { parseSpanDescription } from './utils/parseOtelSpanDescription';
-
-export const SENTRY_SPAN_PROCESSOR_MAP: Map<string, SentrySpan> = new Map<string, SentrySpan>();
-
-// make sure to remove references in maps, to ensure this can be GCed
-function clearSpan(otelSpanId: string): void {
-  SENTRY_SPAN_PROCESSOR_MAP.delete(otelSpanId);
-}
-
-/** Get a Sentry span for an otel span ID. */
-export function getSentrySpan(otelSpanId: string): SentrySpan | undefined {
-  return SENTRY_SPAN_PROCESSOR_MAP.get(otelSpanId);
-}
+import { clearSpan, getSentrySpan, setSentrySpan } from './utils/spanMap';
 
 /**
  * Converts OpenTelemetry Spans to Sentry Spans and sends them to Sentry via
@@ -62,7 +51,7 @@ export class SentrySpanProcessor implements OtelSpanProcessor {
 
     // Otel supports having multiple non-nested spans at the same time
     // so we cannot use hub.getSpan(), as we cannot rely on this being on the current span
-    const sentryParentSpan = otelParentSpanId && SENTRY_SPAN_PROCESSOR_MAP.get(otelParentSpanId);
+    const sentryParentSpan = otelParentSpanId && getSentrySpan(otelParentSpanId);
 
     if (sentryParentSpan) {
       const sentryChildSpan = sentryParentSpan.startChild({
@@ -72,7 +61,7 @@ export class SentrySpanProcessor implements OtelSpanProcessor {
         spanId: otelSpanId,
       });
 
-      SENTRY_SPAN_PROCESSOR_MAP.set(otelSpanId, sentryChildSpan);
+      setSentrySpan(otelSpanId, sentryChildSpan);
     } else {
       const traceCtx = getTraceData(otelSpan, parentContext);
       const transaction = getCurrentHub().startTransaction({
@@ -83,7 +72,7 @@ export class SentrySpanProcessor implements OtelSpanProcessor {
         spanId: otelSpanId,
       });
 
-      SENTRY_SPAN_PROCESSOR_MAP.set(otelSpanId, transaction);
+      setSentrySpan(otelSpanId, transaction);
     }
   }
 
@@ -97,6 +86,7 @@ export class SentrySpanProcessor implements OtelSpanProcessor {
     if (!sentrySpan) {
       __DEBUG_BUILD__ &&
         logger.error(`SentrySpanProcessor could not find span with OTEL-spanId ${otelSpanId} to finish.`);
+      clearSpan(otelSpanId);
       return;
     }
 
@@ -119,44 +109,9 @@ export class SentrySpanProcessor implements OtelSpanProcessor {
       return;
     }
 
+    const hub = getCurrentHub();
     otelSpan.events.forEach(event => {
-      if (event.name !== 'exception') {
-        return;
-      }
-
-      const attributes = event.attributes;
-      if (!attributes) {
-        return;
-      }
-
-      const message = attributes[SemanticAttributes.EXCEPTION_MESSAGE];
-      const syntheticError = new Error(message as string | undefined);
-
-      const stack = attributes[SemanticAttributes.EXCEPTION_STACKTRACE];
-      if (isString(stack)) {
-        syntheticError.stack = stack;
-      }
-
-      const type = attributes[SemanticAttributes.EXCEPTION_TYPE];
-      if (isString(type)) {
-        syntheticError.name = type;
-      }
-
-      getCurrentHub().captureException(syntheticError, {
-        captureContext: {
-          contexts: {
-            otel: {
-              attributes: otelSpan.attributes,
-              resource: otelSpan.resource.attributes,
-            },
-            trace: {
-              trace_id: otelSpan.spanContext().traceId,
-              span_id: otelSpan.spanContext().spanId,
-              parent_span_id: otelSpan.parentSpanId,
-            },
-          },
-        },
-      });
+      maybeCaptureExceptionForTimedEvent(hub, event, otelSpan);
     });
 
     if (sentrySpan instanceof Transaction) {

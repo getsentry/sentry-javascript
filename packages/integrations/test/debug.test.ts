@@ -1,10 +1,33 @@
-import type { EventProcessor, Integration } from '@sentry/types';
+import type { Client, Event, EventHint, Hub, Integration } from '@sentry/types';
 
 import { Debug } from '../src/debug';
 
-const mockGetCurrentHub = (getIntegrationResult: Integration) => ({
-  getIntegration: jest.fn(() => getIntegrationResult),
-});
+function testEventLogged(integration: Integration, testEvent?: Event, testEventHint?: EventHint) {
+  const callbacks: ((event: Event, hint?: EventHint) => void)[] = [];
+
+  const client: Client = {
+    on(hook: string, callback: (event: Event, hint?: EventHint) => void) {
+      expect(hook).toEqual('beforeSendEvent');
+      callbacks.push(callback);
+    },
+  } as Client;
+
+  function getCurrentHub() {
+    return {
+      getClient: jest.fn(() => {
+        return client;
+      }),
+    } as unknown as Hub;
+  }
+
+  integration.setupOnce(() => {}, getCurrentHub);
+
+  expect(callbacks.length).toEqual(1);
+
+  if (testEvent) {
+    callbacks[0](testEvent, testEventHint);
+  }
+}
 
 // Replace console log with a mock so we can check for invocations
 const mockConsoleLog = jest.fn();
@@ -24,56 +47,46 @@ describe('Debug integration setup should register an event processor that', () =
 
   it('logs an event', () => {
     const debugIntegration = new Debug();
+    const testEvent = { event_id: 'some event' };
 
-    const captureEventProcessor = (eventProcessor: EventProcessor) => {
-      const testEvent = { event_id: 'some event' };
-      void eventProcessor(testEvent, {});
-      expect(mockConsoleLog).toHaveBeenCalledTimes(1);
-      expect(mockConsoleLog).toBeCalledWith(testEvent);
-    };
+    testEventLogged(debugIntegration, testEvent);
 
-    debugIntegration.setupOnce(captureEventProcessor, () => mockGetCurrentHub(debugIntegration) as any);
+    expect(mockConsoleLog).toHaveBeenCalledTimes(1);
+    expect(mockConsoleLog).toBeCalledWith(testEvent);
   });
 
   it('logs an event hint if available', () => {
     const debugIntegration = new Debug();
 
-    const captureEventProcessor = (eventProcessor: EventProcessor) => {
-      const testEvent = { event_id: 'some event' };
-      const testEventHint = { event_id: 'some event hint' };
-      void eventProcessor(testEvent, testEventHint);
-      expect(mockConsoleLog).toHaveBeenCalledTimes(2);
-      expect(mockConsoleLog).toBeCalledWith(testEvent);
-      expect(mockConsoleLog).toBeCalledWith(testEventHint);
-    };
+    const testEvent = { event_id: 'some event' };
+    const testEventHint = { event_id: 'some event hint' };
 
-    debugIntegration.setupOnce(captureEventProcessor, () => mockGetCurrentHub(debugIntegration) as any);
+    testEventLogged(debugIntegration, testEvent, testEventHint);
+
+    expect(mockConsoleLog).toHaveBeenCalledTimes(2);
+    expect(mockConsoleLog).toBeCalledWith(testEvent);
+    expect(mockConsoleLog).toBeCalledWith(testEventHint);
   });
 
   it('logs events in stringified format when `stringify` option was set', () => {
     const debugIntegration = new Debug({ stringify: true });
+    const testEvent = { event_id: 'some event' };
 
-    const captureEventProcessor = (eventProcessor: EventProcessor) => {
-      const testEvent = { event_id: 'some event' };
-      void eventProcessor(testEvent, {});
-      expect(mockConsoleLog).toHaveBeenCalledTimes(1);
-      expect(mockConsoleLog).toBeCalledWith(JSON.stringify(testEvent, null, 2));
-    };
+    testEventLogged(debugIntegration, testEvent);
 
-    debugIntegration.setupOnce(captureEventProcessor, () => mockGetCurrentHub(debugIntegration) as any);
+    expect(mockConsoleLog).toHaveBeenCalledTimes(1);
+    expect(mockConsoleLog).toBeCalledWith(JSON.stringify(testEvent, null, 2));
   });
 
   it('logs event hints in stringified format when `stringify` option was set', () => {
     const debugIntegration = new Debug({ stringify: true });
 
-    const captureEventProcessor = (eventProcessor: EventProcessor) => {
-      const testEvent = { event_id: 'some event' };
-      const testEventHint = { event_id: 'some event hint' };
-      void eventProcessor(testEvent, testEventHint);
-      expect(mockConsoleLog).toHaveBeenCalledTimes(2);
-      expect(mockConsoleLog).toBeCalledWith(JSON.stringify(testEventHint, null, 2));
-    };
+    const testEvent = { event_id: 'some event' };
+    const testEventHint = { event_id: 'some event hint' };
 
-    debugIntegration.setupOnce(captureEventProcessor, () => mockGetCurrentHub(debugIntegration) as any);
+    testEventLogged(debugIntegration, testEvent, testEventHint);
+
+    expect(mockConsoleLog).toHaveBeenCalledTimes(2);
+    expect(mockConsoleLog).toBeCalledWith(JSON.stringify(testEventHint, null, 2));
   });
 });

@@ -163,6 +163,7 @@ export type WebpackConfigObject = {
   target: string;
   context: string;
   resolve?: {
+    modules?: string[];
     alias?: { [key: string]: string | boolean };
   };
   module?: {

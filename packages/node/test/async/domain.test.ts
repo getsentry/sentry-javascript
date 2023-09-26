@@ -119,7 +119,7 @@ describe('domains', () => {
         if (d2done) {
           done();
         }
-      });
+      }, 0);
     });
 
     runWithAsyncContext(() => {
@@ -131,7 +131,7 @@ describe('domains', () => {
         if (d1done) {
           done();
         }
-      });
+      }, 0);
     });
   });
 });

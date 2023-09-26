@@ -19,16 +19,19 @@ export function addGlobalListeners(replay: ReplayContainer): void {
   const scope = getCurrentHub().getScope();
   const client = getCurrentHub().getClient();
 
-  if (scope) {
-    scope.addScopeListener(handleScopeListener(replay));
-  }
+  scope.addScopeListener(handleScopeListener(replay));
   addInstrumentationHandler('dom', handleDomListener(replay));
   addInstrumentationHandler('history', handleHistorySpanListener(replay));
   handleNetworkBreadcrumbs(replay);
 
   // Tag all (non replay) events that get sent to Sentry with the current
   // replay ID so that we can reference them later in the UI
-  addGlobalEventProcessor(handleGlobalEventListener(replay, !hasHooks(client)));
+  const eventProcessor = handleGlobalEventListener(replay, !hasHooks(client));
+  if (client && client.addEventProcessor) {
+    client.addEventProcessor(eventProcessor);
+  } else {
+    addGlobalEventProcessor(eventProcessor);
+  }
 
   // If a custom client has no hooks yet, we continue to use the "old" implementation
   if (hasHooks(client)) {

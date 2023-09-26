@@ -2,7 +2,7 @@ import * as api from '@opentelemetry/api';
 import type { Hub, RunWithAsyncContextOptions } from '@sentry/core';
 import { setAsyncContextStrategy } from '@sentry/core';
 
-import { OTEL_CONTEXT_HUB_KEY } from './otelContextManager';
+import { OTEL_CONTEXT_HUB_KEY } from '../constants';
 
 /**
  * Sets the async context strategy to use follow the OTEL context under the hood.

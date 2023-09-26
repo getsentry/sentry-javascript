@@ -48,7 +48,7 @@ sentryTest(
 
       xhr.addEventListener('readystatechange', function () {
         if (xhr.readyState === 4) {
-          // @ts-ignore Sentry is a global
+          // @ts-expect-error Sentry is a global
           setTimeout(() => Sentry.captureException('test error', 0));
         }
       });
@@ -144,7 +144,7 @@ sentryTest('captures response size without Content-Length header', async ({ getL
 
     xhr.addEventListener('readystatechange', function () {
       if (xhr.readyState === 4) {
-        // @ts-ignore Sentry is a global
+        // @ts-expect-error Sentry is a global
         setTimeout(() => Sentry.captureException('test error', 0));
       }
     });
@@ -237,7 +237,7 @@ sentryTest('captures response size for non-string bodies', async ({ getLocalTest
 
     xhr.addEventListener('readystatechange', function () {
       if (xhr.readyState === 4) {
-        // @ts-ignore Sentry is a global
+        // @ts-expect-error Sentry is a global
         setTimeout(() => Sentry.captureException('test error', 0));
       }
     });

@@ -15,9 +15,6 @@ const SENTRY_WRAPPER_MODULE_NAME = 'sentry-wrapper-module';
 // Needs to end in .cjs in order for the `commonjs` plugin to pick it up
 const WRAPPING_TARGET_MODULE_NAME = '__SENTRY_WRAPPING_TARGET_FILE__.cjs';
 
-// Non-public API. Can be found here: https://github.com/vercel/next.js/blob/46151dd68b417e7850146d00354f89930d10b43b/packages/next/src/client/components/request-async-storage.ts
-const NEXTJS_REQUEST_ASYNC_STORAGE_MODULE_PATH = 'next/dist/client/components/request-async-storage';
-
 const apiWrapperTemplatePath = path.resolve(__dirname, '..', 'templates', 'apiWrapperTemplate.js');
 const apiWrapperTemplateCode = fs.readFileSync(apiWrapperTemplatePath, { encoding: 'utf8' });
 
@@ -27,7 +24,6 @@ const pageWrapperTemplateCode = fs.readFileSync(pageWrapperTemplatePath, { encod
 const middlewareWrapperTemplatePath = path.resolve(__dirname, '..', 'templates', 'middlewareWrapperTemplate.js');
 const middlewareWrapperTemplateCode = fs.readFileSync(middlewareWrapperTemplatePath, { encoding: 'utf8' });
 
-const requestAsyncStorageModuleExists = moduleExists(NEXTJS_REQUEST_ASYNC_STORAGE_MODULE_PATH);
 let showedMissingAsyncStorageModuleWarning = false;
 
 const sentryInitWrapperTemplatePath = path.resolve(__dirname, '..', 'templates', 'sentryInitWrapperTemplate.js');
@@ -52,16 +48,8 @@ type LoaderOptions = {
   wrappingTargetKind: 'page' | 'api-route' | 'middleware' | 'server-component' | 'sentry-init' | 'route-handler';
   sentryConfigFilePath?: string;
   vercelCronsConfig?: VercelCronsConfig;
+  nextjsRequestAsyncStorageModulePath?: string;
 };
-
-function moduleExists(id: string): boolean {
-  try {
-    require.resolve(id);
-    return true;
-  } catch (e) {
-    return false;
-  }
-}
 
 /**
  * Replace the loaded file with a wrapped version the original file. In the wrapped version, the original file is loaded,
@@ -72,6 +60,7 @@ function moduleExists(id: string): boolean {
 export default function wrappingLoader(
   this: LoaderThis<LoaderOptions>,
   userCode: string,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   userModuleSourceMap: any,
 ): void {
   // We know one or the other will be defined, depending on the version of webpack being used
@@ -83,6 +72,7 @@ export default function wrappingLoader(
     wrappingTargetKind,
     sentryConfigFilePath,
     vercelCronsConfig,
+    nextjsRequestAsyncStorageModulePath,
   } = 'getOptions' in this ? this.getOptions() : this.query;
 
   this.async();
@@ -182,10 +172,10 @@ export default function wrappingLoader(
       templateCode = routeHandlerWrapperTemplateCode;
     }
 
-    if (requestAsyncStorageModuleExists) {
+    if (nextjsRequestAsyncStorageModulePath !== undefined) {
       templateCode = templateCode.replace(
         /__SENTRY_NEXTJS_REQUEST_ASYNC_STORAGE_SHIM__/g,
-        NEXTJS_REQUEST_ASYNC_STORAGE_MODULE_PATH,
+        nextjsRequestAsyncStorageModulePath,
       );
     } else {
       if (!showedMissingAsyncStorageModuleWarning) {
@@ -276,7 +266,9 @@ export default function wrappingLoader(
 async function wrapUserCode(
   wrapperCode: string,
   userModuleCode: string,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   userModuleSourceMap: any,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): Promise<{ code: string; map?: any }> {
   const wrap = (withDefaultExport: boolean): Promise<RollupBuild> =>
     rollup({

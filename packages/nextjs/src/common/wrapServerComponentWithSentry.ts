@@ -51,9 +51,7 @@ export function wrapServerComponentWithSentry<F extends (...args: any[]) => any>
           },
         });
 
-        if (currentScope) {
-          currentScope.setSpan(transaction);
-        }
+        currentScope.setSpan(transaction);
 
         const handleErrorCase = (e: unknown): void => {
           if (isNotFoundNavigationError(e)) {

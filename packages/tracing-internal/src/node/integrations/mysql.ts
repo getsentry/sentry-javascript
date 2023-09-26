@@ -103,7 +103,7 @@ export class Mysql implements LazyLoadedIntegration<MysqlConnection> {
     fill(pkg, 'createQuery', function (orig: () => void) {
       return function (this: unknown, options: unknown, values: unknown, callback: unknown) {
         const scope = getCurrentHub().getScope();
-        const parentSpan = scope?.getSpan();
+        const parentSpan = scope.getSpan();
 
         const span = parentSpan?.startChild({
           description: typeof options === 'string' ? options : (options as { sql: string }).sql,

@@ -30,9 +30,9 @@ yarn add @sentry/node-experimental
 ## Usage
 
 ```js
-// ES5 Syntax
+// CJS Syntax
 const Sentry = require('@sentry/node-experimental');
-// ES6 Syntax
+// ESM Syntax
 import * as Sentry from '@sentry/node-experimental';
 
 Sentry.init({

@@ -8,13 +8,13 @@ describe('trace', () => {
     mockSdkInit({ enableTracing: true });
   });
 
-  describe('startActiveSpan', () => {
+  describe('startSpan', () => {
     it('works with a sync callback', () => {
       const spans: Span[] = [];
 
       expect(Sentry.getActiveSpan()).toEqual(undefined);
 
-      Sentry.startActiveSpan({ name: 'outer' }, outerSpan => {
+      Sentry.startSpan({ name: 'outer' }, outerSpan => {
         expect(outerSpan).toBeDefined();
         spans.push(outerSpan!);
 
@@ -22,7 +22,7 @@ describe('trace', () => {
         expect(outerSpan).toBeInstanceOf(Transaction);
         expect(Sentry.getActiveSpan()).toEqual(outerSpan);
 
-        Sentry.startActiveSpan({ name: 'inner' }, innerSpan => {
+        Sentry.startSpan({ name: 'inner' }, innerSpan => {
           expect(innerSpan).toBeDefined();
           spans.push(innerSpan!);
 
@@ -49,7 +49,7 @@ describe('trace', () => {
 
       expect(Sentry.getActiveSpan()).toEqual(undefined);
 
-      await Sentry.startActiveSpan({ name: 'outer' }, async outerSpan => {
+      await Sentry.startSpan({ name: 'outer' }, async outerSpan => {
         expect(outerSpan).toBeDefined();
         spans.push(outerSpan!);
 
@@ -59,7 +59,7 @@ describe('trace', () => {
         expect(outerSpan).toBeInstanceOf(Transaction);
         expect(Sentry.getActiveSpan()).toEqual(outerSpan);
 
-        await Sentry.startActiveSpan({ name: 'inner' }, async innerSpan => {
+        await Sentry.startSpan({ name: 'inner' }, async innerSpan => {
           expect(innerSpan).toBeDefined();
           spans.push(innerSpan!);
 
@@ -89,7 +89,7 @@ describe('trace', () => {
 
       expect(Sentry.getActiveSpan()).toEqual(undefined);
 
-      Sentry.startActiveSpan({ name: 'outer' }, outerSpan => {
+      Sentry.startSpan({ name: 'outer' }, outerSpan => {
         expect(outerSpan).toBeDefined();
         spans1.push(outerSpan!);
 
@@ -97,7 +97,7 @@ describe('trace', () => {
         expect(outerSpan).toBeInstanceOf(Transaction);
         expect(Sentry.getActiveSpan()).toEqual(outerSpan);
 
-        Sentry.startActiveSpan({ name: 'inner' }, innerSpan => {
+        Sentry.startSpan({ name: 'inner' }, innerSpan => {
           expect(innerSpan).toBeDefined();
           spans1.push(innerSpan!);
 
@@ -108,7 +108,7 @@ describe('trace', () => {
         });
       });
 
-      Sentry.startActiveSpan({ name: 'outer2' }, outerSpan => {
+      Sentry.startSpan({ name: 'outer2' }, outerSpan => {
         expect(outerSpan).toBeDefined();
         spans2.push(outerSpan!);
 
@@ -116,7 +116,7 @@ describe('trace', () => {
         expect(outerSpan).toBeInstanceOf(Transaction);
         expect(Sentry.getActiveSpan()).toEqual(outerSpan);
 
-        Sentry.startActiveSpan({ name: 'inner2' }, innerSpan => {
+        Sentry.startSpan({ name: 'inner2' }, innerSpan => {
           expect(innerSpan).toBeDefined();
           spans2.push(innerSpan!);
 
@@ -133,9 +133,9 @@ describe('trace', () => {
     });
   });
 
-  describe('startSpan', () => {
+  describe('startInactiveSpan', () => {
     it('works at the root', () => {
-      const span = Sentry.startSpan({ name: 'test' });
+      const span = Sentry.startInactiveSpan({ name: 'test' });
 
       expect(span).toBeDefined();
       expect(span).toBeInstanceOf(Transaction);
@@ -150,11 +150,11 @@ describe('trace', () => {
     });
 
     it('works as a child span', () => {
-      Sentry.startActiveSpan({ name: 'outer' }, outerSpan => {
+      Sentry.startSpan({ name: 'outer' }, outerSpan => {
         expect(outerSpan).toBeDefined();
         expect(Sentry.getActiveSpan()).toEqual(outerSpan);
 
-        const innerSpan = Sentry.startSpan({ name: 'test' });
+        const innerSpan = Sentry.startInactiveSpan({ name: 'test' });
 
         expect(innerSpan).toBeDefined();
         expect(innerSpan).toBeInstanceOf(Span);

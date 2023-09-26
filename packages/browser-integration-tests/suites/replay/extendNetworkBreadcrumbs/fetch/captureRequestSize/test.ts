@@ -39,7 +39,7 @@ sentryTest('captures request body size when body is sent', async ({ getLocalTest
       method: 'POST',
       body: '{"foo":"bar"}',
     }).then(() => {
-      // @ts-ignore Sentry is a global
+      // @ts-expect-error Sentry is a global
       Sentry.captureException('test error');
     });
     /* eslint-enable */
@@ -125,7 +125,7 @@ sentryTest('captures request size from non-text request body', async ({ getLocal
       method: 'POST',
       body: blob,
     }).then(() => {
-      // @ts-ignore Sentry is a global
+      // @ts-expect-error Sentry is a global
       Sentry.captureException('test error');
     });
     /* eslint-enable */

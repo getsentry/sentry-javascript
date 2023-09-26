@@ -39,6 +39,26 @@ export function exceptionFromError(stackParser: StackParser, error: Error): Exce
   return exception;
 }
 
+function getMessageForObject(exception: object): string {
+  if ('name' in exception && typeof exception.name === 'string') {
+    let message = `'${exception.name}' captured as exception`;
+
+    if ('message' in exception && typeof exception.message === 'string') {
+      message += ` with message '${exception.message}'`;
+    }
+
+    return message;
+  } else if ('message' in exception && typeof exception.message === 'string') {
+    return exception.message;
+  } else {
+    // This will allow us to group events based on top-level keys
+    // which is much better than creating new group when any key/value change
+    return `Object captured as exception with keys: ${extractExceptionKeysForMessage(
+      exception as Record<string, unknown>,
+    )}`;
+  }
+}
+
 /**
  * Builds and Event from a Exception
  * @hidden
@@ -59,10 +79,6 @@ export function eventFromUnknownInput(
 
   if (!isError(exception)) {
     if (isPlainObject(exception)) {
-      // This will allow us to group events based on top-level keys
-      // which is much better than creating new group when any key/value change
-      const message = `Non-Error exception captured with keys: ${extractExceptionKeysForMessage(exception)}`;
-
       const hub = getCurrentHub();
       const client = hub.getClient();
       const normalizeDepth = client && client.getOptions().normalizeDepth;
@@ -70,6 +86,7 @@ export function eventFromUnknownInput(
         scope.setExtra('__serialized__', normalizeToSize(exception, normalizeDepth));
       });
 
+      const message = getMessageForObject(exception);
       ex = (hint && hint.syntheticException) || new Error(message);
       (ex as Error).message = message;
     } else {

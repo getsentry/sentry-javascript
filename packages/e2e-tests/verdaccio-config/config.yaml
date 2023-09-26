@@ -50,6 +50,12 @@ packages:
     unpublish: $all
     # proxy: npmjs # Don't proxy for E2E tests!
 
+  '@sentry/bun':
+    access: $all
+    publish: $all
+    unpublish: $all
+    # proxy: npmjs # Don't proxy for E2E tests!
+
   '@sentry/core':
     access: $all
     publish: $all
@@ -153,6 +159,12 @@ packages:
     # proxy: npmjs # Don't proxy for E2E tests!
 
   '@sentry/utils':
+    access: $all
+    publish: $all
+    unpublish: $all
+    # proxy: npmjs # Don't proxy for E2E tests!
+
+  '@sentry/vercel-edge':
     access: $all
     publish: $all
     unpublish: $all

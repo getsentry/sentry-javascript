@@ -12,10 +12,10 @@ let fileContent: string | undefined;
 vi.mock('fs', async () => {
   const actual = await vi.importActual('fs');
   return {
-    // @ts-ignore this exists, I promise!
+    // @ts-expect-error this exists, I promise!
     ...actual,
     promises: {
-      // @ts-ignore this also exists, I promise!
+      // @ts-expect-error this also exists, I promise!
       ...actual.promises,
       readFile: vi.fn().mockImplementation(() => {
         return fileContent || DEFAULT_CONTENT;
@@ -61,7 +61,7 @@ describe('makeAutoInstrumentationPlugin()', () => {
   ])('transform %s files', (path: string) => {
     it('wraps universal load if `load` option is `true`', async () => {
       const plugin = makeAutoInstrumentationPlugin({ debug: false, load: true, serverLoad: true });
-      // @ts-ignore this exists
+      // @ts-expect-error this exists
       const loadResult = await plugin.load(path);
       expect(loadResult).toEqual(
         'import { wrapLoadWithSentry } from "@sentry/sveltekit";' +
@@ -77,7 +77,7 @@ describe('makeAutoInstrumentationPlugin()', () => {
         load: false,
         serverLoad: false,
       });
-      // @ts-ignore this exists
+      // @ts-expect-error this exists
       const loadResult = await plugin.load(path);
       expect(loadResult).toEqual(null);
     });
@@ -95,7 +95,7 @@ describe('makeAutoInstrumentationPlugin()', () => {
   ])('transform %s files', (path: string) => {
     it('wraps universal load if `load` option is `true`', async () => {
       const plugin = makeAutoInstrumentationPlugin({ debug: false, load: false, serverLoad: true });
-      // @ts-ignore this exists
+      // @ts-expect-error this exists
       const loadResult = await plugin.load(path);
       expect(loadResult).toEqual(
         'import { wrapServerLoadWithSentry } from "@sentry/sveltekit";' +
@@ -111,7 +111,7 @@ describe('makeAutoInstrumentationPlugin()', () => {
         load: false,
         serverLoad: false,
       });
-      // @ts-ignore this exists
+      // @ts-expect-error this exists
       const loadResult = await plugin.load(path);
       expect(loadResult).toEqual(null);
     });

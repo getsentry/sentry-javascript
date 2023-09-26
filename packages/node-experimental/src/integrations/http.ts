@@ -2,7 +2,6 @@ import type { Attributes } from '@opentelemetry/api';
 import { SpanKind } from '@opentelemetry/api';
 import { registerInstrumentations } from '@opentelemetry/instrumentation';
 import { HttpInstrumentation } from '@opentelemetry/instrumentation-http';
-import type { Span as OtelSpan } from '@opentelemetry/sdk-trace-node';
 import { SemanticAttributes } from '@opentelemetry/semantic-conventions';
 import { hasTracingEnabled, Transaction } from '@sentry/core';
 import { getCurrentHub } from '@sentry/node';
@@ -10,7 +9,7 @@ import { _INTERNAL_getSentrySpan } from '@sentry/opentelemetry-node';
 import type { EventProcessor, Hub, Integration } from '@sentry/types';
 import type { ClientRequest, IncomingMessage, ServerResponse } from 'http';
 
-import type { NodeExperimentalClient } from '../sdk/client';
+import type { NodeExperimentalClient, OtelSpan } from '../types';
 import { getRequestSpanData } from '../utils/getRequestSpanData';
 
 interface TracingOptions {
@@ -93,10 +92,28 @@ export class Http implements Integration {
     this._unload = registerInstrumentations({
       instrumentations: [
         new HttpInstrumentation({
+          ignoreOutgoingRequestHook: request => {
+            const host = request.host || request.hostname;
+            return isSentryHost(host);
+          },
+
+          ignoreIncomingRequestHook: request => {
+            const method = request.method?.toUpperCase();
+            // We do not capture OPTIONS/HEAD requests as transactions
+            if (method === 'OPTIONS' || method === 'HEAD') {
+              return true;
+            }
+
+            return false;
+          },
+
           requireParentforOutgoingSpans: true,
           requireParentforIncomingSpans: false,
-          applyCustomAttributesOnSpan: (span, req, res) => {
-            this._onSpan(span as unknown as OtelSpan, req, res);
+          requestHook: (span, req) => {
+            this._updateSentrySpan(span as unknown as OtelSpan, req);
+          },
+          responseHook: (span, res) => {
+            this._addRequestBreadcrumb(span as unknown as OtelSpan, res);
           },
         }),
       ],
@@ -136,68 +153,82 @@ export class Http implements Integration {
     return;
   };
 
-  /** Handle an emitted span from the HTTP instrumentation. */
-  private _onSpan(
-    span: OtelSpan,
-    request: ClientRequest | IncomingMessage,
-    response: IncomingMessage | ServerResponse,
-  ): void {
-    const data = getRequestSpanData(span, request, response);
+  /** Update the Sentry span data based on the OTEL span. */
+  private _updateSentrySpan(span: OtelSpan, request: ClientRequest | IncomingMessage): void {
+    const data = getRequestSpanData(span);
     const { attributes } = span;
 
     const sentrySpan = _INTERNAL_getSentrySpan(span.spanContext().spanId);
-    if (sentrySpan) {
-      sentrySpan.origin = 'auto.http.otel.http';
-
-      const additionalData: Record<string, unknown> = {
-        url: data.url,
-      };
-
-      if (sentrySpan instanceof Transaction && span.kind === SpanKind.SERVER) {
-        sentrySpan.setMetadata({ request });
-      }
-
-      if (attributes[SemanticAttributes.HTTP_STATUS_CODE]) {
-        const statusCode = attributes[SemanticAttributes.HTTP_STATUS_CODE] as string;
-        additionalData['http.response.status_code'] = statusCode;
-
-        sentrySpan.setTag('http.status_code', statusCode);
-      }
-
-      if (data['http.query']) {
-        additionalData['http.query'] = data['http.query'].slice(1);
-      }
-      if (data['http.fragment']) {
-        additionalData['http.fragment'] = data['http.fragment'].slice(1);
-      }
-
-      Object.keys(additionalData).forEach(prop => {
-        const value = additionalData[prop];
-        sentrySpan.setData(prop, value);
-      });
+    if (!sentrySpan) {
+      return;
     }
 
-    if (this._breadcrumbs) {
-      getCurrentHub().addBreadcrumb(
-        {
-          category: 'http',
-          data: {
-            status_code: response.statusCode,
-            ...data,
-          },
-          type: 'http',
-        },
-        {
-          event: 'response',
-          request,
-          response,
-        },
-      );
+    sentrySpan.origin = 'auto.http.otel.http';
+
+    const additionalData: Record<string, unknown> = {
+      url: data.url,
+    };
+
+    if (sentrySpan instanceof Transaction && span.kind === SpanKind.SERVER) {
+      sentrySpan.setMetadata({ request });
     }
+
+    if (attributes[SemanticAttributes.HTTP_STATUS_CODE]) {
+      const statusCode = attributes[SemanticAttributes.HTTP_STATUS_CODE] as string;
+      additionalData['http.response.status_code'] = statusCode;
+
+      sentrySpan.setTag('http.status_code', statusCode);
+    }
+
+    if (data['http.query']) {
+      additionalData['http.query'] = data['http.query'].slice(1);
+    }
+    if (data['http.fragment']) {
+      additionalData['http.fragment'] = data['http.fragment'].slice(1);
+    }
+
+    Object.keys(additionalData).forEach(prop => {
+      const value = additionalData[prop];
+      sentrySpan.setData(prop, value);
+    });
+  }
+
+  /** Add a breadcrumb for outgoing requests. */
+  private _addRequestBreadcrumb(span: OtelSpan, response: IncomingMessage | ServerResponse): void {
+    if (!this._breadcrumbs || span.kind !== SpanKind.CLIENT) {
+      return;
+    }
+
+    const data = getRequestSpanData(span);
+    getCurrentHub().addBreadcrumb(
+      {
+        category: 'http',
+        data: {
+          status_code: response.statusCode,
+          ...data,
+        },
+        type: 'http',
+      },
+      {
+        event: 'response',
+        // TODO FN: Do we need access to `request` here?
+        // If we do, we'll have to use the `applyCustomAttributesOnSpan` hook instead,
+        // but this has worse context semantics than request/responseHook.
+        response,
+      },
+    );
   }
 }
 
 function getHttpUrl(attributes: Attributes): string | undefined {
   const url = attributes[SemanticAttributes.HTTP_URL];
   return typeof url === 'string' ? url : undefined;
+}
+
+/**
+ * Checks whether given host points to Sentry server
+ */
+function isSentryHost(host: string | undefined): boolean {
+  const dsn = getCurrentHub().getClient()?.getDsn();
+  return dsn && host ? host.includes(dsn.host) : false;
 }

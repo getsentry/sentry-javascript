@@ -5,7 +5,7 @@ import { sentryVitePlugin } from '@sentry/vite-plugin';
 import * as child_process from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
-// @ts-ignore -sorcery has no types :(
+// @ts-expect-error -sorcery has no types :(
 // eslint-disable-next-line import/default
 import * as sorcery from 'sorcery';
 import type { Plugin } from 'vite';
@@ -115,7 +115,7 @@ export async function makeCustomSentryVitePlugin(options?: CustomSentryVitePlugi
           moduleSideEffects: true,
         };
       }
-      // @ts-ignore - this hook exists on the plugin!
+      // @ts-expect-error - this hook exists on the plugin!
       return sentryPlugin.resolveId(id, _importer, _ref);
     },
 
@@ -146,7 +146,7 @@ export async function makeCustomSentryVitePlugin(options?: CustomSentryVitePlugi
         const globalValuesImport = `; import "${VIRTUAL_GLOBAL_VALUES_FILE}";`;
         modifiedCode = `${code}\n${globalValuesImport}\n`;
       }
-      // @ts-ignore - this hook exists on the plugin!
+      // @ts-expect-error - this hook exists on the plugin!
       return sentryPlugin.transform(modifiedCode, id);
     },
 
@@ -204,7 +204,7 @@ export async function makeCustomSentryVitePlugin(options?: CustomSentryVitePlugi
       });
 
       try {
-        // @ts-ignore - this hook exists on the plugin!
+        // @ts-expect-error - this hook exists on the plugin!
         await sentryPlugin.writeBundle();
       } catch (_) {
         // eslint-disable-next-line no-console
@@ -230,7 +230,7 @@ function getFiles(dir: string): string[] {
   }
   const dirents = fs.readdirSync(dir, { withFileTypes: true });
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-  // @ts-ignore
+  // @ts-expect-error
   const files: string[] = dirents.map(dirent => {
     const resFileOrDir = path.resolve(dir, dirent.name);
     return dirent.isDirectory() ? getFiles(resFileOrDir) : resFileOrDir;

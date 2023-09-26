@@ -364,7 +364,7 @@ describe('wrapServerLoadWithSentry calls trace', () => {
 
   it('falls back to the raw url if `event.route.id` is not available', async () => {
     const event = getServerOnlyArgs();
-    // @ts-ignore - this is fine (just tests here)
+    // @ts-expect-error - this is fine (just tests here)
     delete event.route;
     const wrappedLoad = wrapServerLoadWithSentry(serverLoad);
     await wrappedLoad(event);

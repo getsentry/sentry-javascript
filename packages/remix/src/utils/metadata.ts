@@ -1,5 +1,7 @@
 import { SDK_VERSION } from '@sentry/core';
-import type { Options, SdkInfo } from '@sentry/types';
+import type { SdkInfo } from '@sentry/types';
+
+import type { RemixOptions } from './remixOptions';
 
 const PACKAGE_NAME_PREFIX = 'npm:@sentry/';
 
@@ -8,7 +10,7 @@ const PACKAGE_NAME_PREFIX = 'npm:@sentry/';
  * @param options sdk options object that gets mutated
  * @param names list of package names
  */
-export function buildMetadata(options: Options, names: string[]): void {
+export function buildMetadata(options: RemixOptions, names: string[]): void {
   options._metadata = options._metadata || {};
   options._metadata.sdk =
     options._metadata.sdk ||

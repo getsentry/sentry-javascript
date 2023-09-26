@@ -50,7 +50,7 @@ export interface UndiciOptions {
 //
 // function debug(...args: any): void {
 //   // Use a function like this one when debugging inside an AsyncHook callback
-//   // @ts-ignore any
+//   // @ts-expect-error any
 //   writeFileSync('log.out', `${format(...args)}\n`, { flag: 'a' });
 // }
 

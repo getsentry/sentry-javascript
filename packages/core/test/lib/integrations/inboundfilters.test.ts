@@ -125,6 +125,18 @@ const EXCEPTION_EVENT: Event = {
   },
 };
 
+const EXCEPTION_EVENT_WITH_MESSAGE_AND_VALUE: Event = {
+  message: 'ChunkError',
+  exception: {
+    values: [
+      {
+        type: 'SyntaxError',
+        value: 'unidentified ? at line 1337',
+      },
+    ],
+  },
+};
+
 const EXCEPTION_EVENT_WITH_FRAMES: Event = {
   exception: {
     values: [
@@ -335,6 +347,17 @@ describe('InboundFilters', () => {
           ignoreErrors: [/^SyntaxError/],
         });
         expect(eventProcessor(EXCEPTION_EVENT, {})).toBe(null);
+      });
+
+      it('should consider both `event.message` and the last exceptions `type` and `value`', () => {
+        const messageEventProcessor = createInboundFiltersEventProcessor({
+          ignoreErrors: [/^ChunkError/],
+        });
+        const valueEventProcessor = createInboundFiltersEventProcessor({
+          ignoreErrors: [/^SyntaxError/],
+        });
+        expect(messageEventProcessor(EXCEPTION_EVENT_WITH_MESSAGE_AND_VALUE, {})).toBe(null);
+        expect(valueEventProcessor(EXCEPTION_EVENT_WITH_MESSAGE_AND_VALUE, {})).toBe(null);
       });
     });
   });

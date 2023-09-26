@@ -13,8 +13,6 @@ sentryTest('captures multi click when not detecting slow click', async ({ getLoc
     sentryTest.skip();
   }
 
-  const reqPromise0 = waitForReplayRequest(page, 0);
-
   await page.route('https://dsn.ingest.sentry.io/**/*', route => {
     return route.fulfill({
       status: 200,
@@ -25,18 +23,18 @@ sentryTest('captures multi click when not detecting slow click', async ({ getLoc
 
   const url = await getLocalTestUrl({ testDir: __dirname });
 
-  await page.goto(url);
-  await reqPromise0;
+  await Promise.all([waitForReplayRequest(page, 0), page.goto(url)]);
 
-  const reqPromise1 = waitForReplayRequest(page, (event, res) => {
-    const { breadcrumbs } = getCustomRecordingEvents(res);
+  const [req1] = await Promise.all([
+    waitForReplayRequest(page, (event, res) => {
+      const { breadcrumbs } = getCustomRecordingEvents(res);
 
-    return breadcrumbs.some(breadcrumb => breadcrumb.category === 'ui.multiClick');
-  });
+      return breadcrumbs.some(breadcrumb => breadcrumb.category === 'ui.multiClick');
+    }),
+    page.click('#mutationButtonImmediately', { clickCount: 4 }),
+  ]);
 
-  await page.click('#mutationButtonImmediately', { clickCount: 4 });
-
-  const { breadcrumbs } = getCustomRecordingEvents(await reqPromise1);
+  const { breadcrumbs } = getCustomRecordingEvents(req1);
 
   const slowClickBreadcrumbs = breadcrumbs.filter(breadcrumb => breadcrumb.category === 'ui.multiClick');
 
@@ -65,15 +63,16 @@ sentryTest('captures multi click when not detecting slow click', async ({ getLoc
 
   // When this has been flushed, the timeout has exceeded - so add a new click now, which should trigger another multi click
 
-  const reqPromise2 = waitForReplayRequest(page, (event, res) => {
-    const { breadcrumbs } = getCustomRecordingEvents(res);
+  const [req2] = await Promise.all([
+    waitForReplayRequest(page, (event, res) => {
+      const { breadcrumbs } = getCustomRecordingEvents(res);
 
-    return breadcrumbs.some(breadcrumb => breadcrumb.category === 'ui.multiClick');
-  });
+      return breadcrumbs.some(breadcrumb => breadcrumb.category === 'ui.multiClick');
+    }),
+    page.click('#mutationButtonImmediately', { clickCount: 3 }),
+  ]);
 
-  await page.click('#mutationButtonImmediately', { clickCount: 3 });
-
-  const { breadcrumbs: breadcrumbb2 } = getCustomRecordingEvents(await reqPromise2);
+  const { breadcrumbs: breadcrumbb2 } = getCustomRecordingEvents(req2);
 
   const slowClickBreadcrumbs2 = breadcrumbb2.filter(breadcrumb => breadcrumb.category === 'ui.multiClick');
 
@@ -106,8 +105,6 @@ sentryTest('captures multiple multi clicks', async ({ getLocalTestUrl, page, for
     sentryTest.skip();
   }
 
-  const reqPromise0 = waitForReplayRequest(page, 0);
-
   await page.route('https://dsn.ingest.sentry.io/**/*', route => {
     return route.fulfill({
       status: 200,
@@ -118,8 +115,7 @@ sentryTest('captures multiple multi clicks', async ({ getLocalTestUrl, page, for
 
   const url = await getLocalTestUrl({ testDir: __dirname });
 
-  await page.goto(url);
-  await reqPromise0;
+  await Promise.all([waitForReplayRequest(page, 0), page.goto(url)]);
 
   let multiClickBreadcrumbCount = 0;
 

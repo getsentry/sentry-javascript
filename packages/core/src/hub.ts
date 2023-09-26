@@ -497,7 +497,7 @@ Sentry.init({...});
   /**
    * Calls global extension method and binding current instance to the function call
    */
-  // @ts-ignore Function lacks ending return statement and return type does not include 'undefined'. ts(2366)
+  // @ts-expect-error Function lacks ending return statement and return type does not include 'undefined'. ts(2366)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private _callExtensionMethod<T>(method: string, ...args: any[]): T {
     const carrier = getMainCarrier();

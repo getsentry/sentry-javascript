@@ -3,7 +3,7 @@ import { getGlobalValueInjectionCode } from '../../src/vite/injectGlobalValues';
 describe('getGlobalValueInjectionCode', () => {
   it('returns code that injects values into the global object', () => {
     const injectionCode = getGlobalValueInjectionCode({
-      // @ts-ignore - just want to test this with multiple values
+      // @ts-expect-error - just want to test this with multiple values
       something: 'else',
       __sentry_sveltekit_output_dir: '.svelte-kit/output',
     });

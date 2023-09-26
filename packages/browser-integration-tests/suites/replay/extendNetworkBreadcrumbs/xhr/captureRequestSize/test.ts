@@ -43,7 +43,7 @@ sentryTest('captures request body size when body is sent', async ({ getLocalTest
 
     xhr.addEventListener('readystatechange', function () {
       if (xhr.readyState === 4) {
-        // @ts-ignore Sentry is a global
+        // @ts-expect-error Sentry is a global
         setTimeout(() => Sentry.captureException('test error', 0));
       }
     });
@@ -134,7 +134,7 @@ sentryTest('captures request size from non-text request body', async ({ getLocal
 
     xhr.addEventListener('readystatechange', function () {
       if (xhr.readyState === 4) {
-        // @ts-ignore Sentry is a global
+        // @ts-expect-error Sentry is a global
         setTimeout(() => Sentry.captureException('test error', 0));
       }
     });

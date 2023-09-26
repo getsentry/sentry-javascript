@@ -391,6 +391,34 @@ jobs:
       - name: Compute test coverage
         uses: codecov/codecov-action@v3
 
+  job_bun_unit_tests:
+    name: Bun Unit Tests
+    needs: [job_get_metadata, job_build]
+    timeout-minutes: 10
+    runs-on: ubuntu-20.04
+    strategy:
+      fail-fast: false
+    steps:
+      - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ env.HEAD_COMMIT }}
+      - name: Set up Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v1
+      - name: Restore caches
+        uses: ./.github/actions/restore-cache
+        env:
+          DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
+      - name: Run tests
+        run: |
+          yarn test-ci-bun
+      - name: Compute test coverage
+        uses: codecov/codecov-action@v3
+
   job_node_unit_tests:
     name: Node (${{ matrix.node }}) Unit Tests
     needs: [job_get_metadata, job_build]
@@ -787,11 +815,14 @@ jobs:
             'create-react-app',
             'create-next-app',
             'create-remix-app',
+            'create-remix-app-v2',
             'nextjs-app-dir',
             'react-create-hash-router',
+            'react-router-6-use-routes',
             'standard-frontend-react',
             'standard-frontend-react-tracing-import',
             'sveltekit',
+            'generic-ts3.8',
           ]
         build-command:
           - false
@@ -818,7 +849,7 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@v3
         with:
-          node-version-file: 'package.json'
+          node-version-file: 'packages/e2e-tests/package.json'
       - name: Restore caches
         uses: ./.github/actions/restore-cache
         env:
@@ -833,7 +864,7 @@ jobs:
       - name: Get node version
         id: versions
         run: |
-          echo "echo node=$(jq -r '.volta.node' package.json)" >> $GITHUB_OUTPUT
+          echo "echo node=$(jq -r '.volta.node' packages/e2e-tests/package.json)" >> $GITHUB_OUTPUT
 
       - name: Validate Verdaccio
         run: yarn test:validate
@@ -862,6 +893,7 @@ jobs:
         job_build,
         job_browser_build_tests,
         job_browser_unit_tests,
+        job_bun_unit_tests,
         job_node_unit_tests,
         job_nextjs_integration_test,
         job_node_integration_tests,

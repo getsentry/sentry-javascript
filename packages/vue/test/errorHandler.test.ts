@@ -354,10 +354,10 @@ const testHarness = ({
   if (enableConsole) {
     // I need to re-assign the whole console
     // because at some point it can be set to undefined
-    // @ts-ignore for the sake of testing
+    // @ts-expect-error for the sake of testing
     console = { error: consoleErrorSpy };
   } else {
-    // @ts-ignore for the sake of testing
+    // @ts-expect-error for the sake of testing
     console = undefined;
   }
   /* eslint-enable no-global-assign */

@@ -80,7 +80,7 @@ describe('rewriteFramesIteratee', () => {
     };
 
     const originalRewriteFrames = new RewriteFrames();
-    // @ts-ignore this property exists
+    // @ts-expect-error this property exists
     const defaultIteratee = originalRewriteFrames._iteratee;
 
     const defaultResult = defaultIteratee({ ...frame });
