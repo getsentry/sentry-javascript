@@ -1,4 +1,5 @@
 import * as domain from 'domain';
+import * as http from 'http';
 
 import type { Event, Integration } from '@sentry/types';
 
@@ -89,9 +90,23 @@ describe('GCPFunction', () => {
         headers: headers,
         body: { foo: 'bar' },
       } as Request;
-      const res = { end: resolve } as Response;
-      d.on('error', () => res.end());
-      d.run(() => process.nextTick(fn, req, res));
+      const res = new http.ServerResponse(req);
+      d.on('error', () => {
+        res.end();
+        res.emit('finish');
+        resolve();
+      });
+      d.run(() =>
+        process.nextTick(
+          (req: Request, res: Response) =>
+            Promise.resolve(fn(req, res)).then(() => {
+              res.emit('finish');
+              resolve();
+            }),
+          req,
+          res as Response,
+        ),
+      );
     });
   }
 
@@ -203,21 +218,13 @@ describe('GCPFunction', () => {
 
       const wrappedHandler = wrapHttpFunction(handler);
 
-      const request = {
-        method: 'POST',
-        url: '/path?q=query',
-        headers: { host: 'hostname', 'content-type': 'application/json' },
-        body: { foo: 'bar' },
-      } as Request;
-
       const mockEnd = jest.fn();
-      const response = { end: mockEnd } as unknown as Response;
 
       mockFlush.mockImplementationOnce(async () => {
         throw new Error();
       });
 
-      await expect(wrappedHandler(request, response)).resolves.toBeUndefined();
+      await expect(handleHttp(wrappedHandler).then(mockEnd)).resolves.toBeUndefined();
       expect(mockEnd).toHaveBeenCalledTimes(1);
     });
   });

@@ -143,20 +143,6 @@ export function requestHandler(
     res: http.ServerResponse,
     next: (error?: any) => void,
   ): void {
-    if (options && options.flushTimeout && options.flushTimeout > 0) {
-      // eslint-disable-next-line @typescript-eslint/unbound-method
-      const _end = res.end;
-      res.end = function (chunk?: any | (() => void), encoding?: string | (() => void), cb?: () => void): void {
-        void flush(options.flushTimeout)
-          .then(() => {
-            _end.call(this, chunk, encoding, cb);
-          })
-          .then(null, e => {
-            DEBUG_BUILD && logger.error(e);
-            _end.call(this, chunk, encoding, cb);
-          });
-      };
-    }
     return withIsolationScope(isolationScope => {
       isolationScope.setSDKProcessingMetadata({
         request: req,
@@ -179,6 +165,12 @@ export function requestHandler(
               // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
               (client as any)._captureRequestSession();
             }
+          });
+        }
+
+        if (options && options.flushTimeout && options.flushTimeout > 0) {
+          void flush(options.flushTimeout).then(null, e => {
+            DEBUG_BUILD && logger.error(e);
           });
         }
       });
