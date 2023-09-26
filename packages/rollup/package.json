@@ -1,7 +1,6 @@
 {
   "name": "@sentry-internal/rollup",
-  "type": "module",
-  "module": "./index.js",
+  "main": "./index.js",
   "version": "7.71.0",
   "description": "Rollup helpers used at Sentry",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
