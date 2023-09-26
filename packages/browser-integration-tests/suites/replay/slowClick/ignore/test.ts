@@ -8,8 +8,6 @@ sentryTest('click is ignored on ignoreSelectors', async ({ getLocalTestUrl, page
     sentryTest.skip();
   }
 
-  const reqPromise0 = waitForReplayRequest(page, 0);
-
   await page.route('https://dsn.ingest.sentry.io/**/*', route => {
     return route.fulfill({
       status: 200,
@@ -20,18 +18,18 @@ sentryTest('click is ignored on ignoreSelectors', async ({ getLocalTestUrl, page
 
   const url = await getLocalTestUrl({ testDir: __dirname });
 
-  await page.goto(url);
-  await reqPromise0;
+  await Promise.all([waitForReplayRequest(page, 0), page.goto(url)]);
 
-  const reqPromise1 = waitForReplayRequest(page, (event, res) => {
-    const { breadcrumbs } = getCustomRecordingEvents(res);
+  const [req1] = await Promise.all([
+    waitForReplayRequest(page, (event, res) => {
+      const { breadcrumbs } = getCustomRecordingEvents(res);
 
-    return breadcrumbs.some(breadcrumb => breadcrumb.category === 'ui.click');
-  });
+      return breadcrumbs.some(breadcrumb => breadcrumb.category === 'ui.click');
+    }),
+    page.click('#mutationIgnoreButton'),
+  ]);
 
-  await page.click('#mutationIgnoreButton');
-
-  const { breadcrumbs } = getCustomRecordingEvents(await reqPromise1);
+  const { breadcrumbs } = getCustomRecordingEvents(req1);
 
   expect(breadcrumbs).toEqual([
     {
@@ -60,8 +58,6 @@ sentryTest('click is ignored on div', async ({ getLocalTestUrl, page }) => {
     sentryTest.skip();
   }
 
-  const reqPromise0 = waitForReplayRequest(page, 0);
-
   await page.route('https://dsn.ingest.sentry.io/**/*', route => {
     return route.fulfill({
       status: 200,
@@ -72,18 +68,19 @@ sentryTest('click is ignored on div', async ({ getLocalTestUrl, page }) => {
 
   const url = await getLocalTestUrl({ testDir: __dirname });
 
-  await page.goto(url);
-  await reqPromise0;
+  await Promise.all([waitForReplayRequest(page, 0), page.goto(url)]);
 
-  const reqPromise1 = waitForReplayRequest(page, (event, res) => {
-    const { breadcrumbs } = getCustomRecordingEvents(res);
+  const [req1] = await Promise.all([
+    waitForReplayRequest(page, (event, res) => {
+      const { breadcrumbs } = getCustomRecordingEvents(res);
 
-    return breadcrumbs.some(breadcrumb => breadcrumb.category === 'ui.click');
-  });
+      return breadcrumbs.some(breadcrumb => breadcrumb.category === 'ui.click');
+    }),
 
-  await page.click('#mutationDiv');
+    await page.click('#mutationDiv'),
+  ]);
 
-  const { breadcrumbs } = getCustomRecordingEvents(await reqPromise1);
+  const { breadcrumbs } = getCustomRecordingEvents(req1);
 
   expect(breadcrumbs).toEqual([
     {
