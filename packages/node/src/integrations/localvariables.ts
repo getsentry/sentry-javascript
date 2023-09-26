@@ -1,3 +1,4 @@
+/* eslint-disable max-lines */
 import type { Event, EventProcessor, Exception, Hub, Integration, StackFrame, StackParser } from '@sentry/types';
 import { logger } from '@sentry/utils';
 import type { Debugger, InspectorNotification, Runtime, Session } from 'inspector';
@@ -30,7 +31,11 @@ type RateLimitIncrement = () => void;
  * @param disable Callback to disable capture
  * @returns A function to call to increment the rate limiter count
  */
-export function createRateLimiter(maxPerSecond: number, enable: () => void, disable: () => void): RateLimitIncrement {
+export function createRateLimiter(
+  maxPerSecond: number,
+  enable: () => void,
+  disable: (seconds: number) => void,
+): RateLimitIncrement {
   let count = 0;
   let retrySeconds = 5;
   let disabledTimeout = 0;
@@ -38,8 +43,8 @@ export function createRateLimiter(maxPerSecond: number, enable: () => void, disa
   setInterval(() => {
     if (disabledTimeout === 0) {
       if (count > maxPerSecond) {
-        disable();
         retrySeconds *= 2;
+        disable(retrySeconds);
 
         // Cap at one day
         if (retrySeconds > 86400) {
@@ -361,8 +366,16 @@ export class LocalVariables implements Integration {
 
         this._rateLimiter = createRateLimiter(
           max,
-          () => this._session?.setPauseOnExceptions(true),
-          () => this._session?.setPauseOnExceptions(false),
+          () => {
+            logger.log('Local variables rate limit lifted.');
+            this._session?.setPauseOnExceptions(true);
+          },
+          seconds => {
+            logger.log(
+              `Local variables rate limit exceeded. Disabling capturing of caught exceptions for ${seconds} seconds.`,
+            );
+            this._session?.setPauseOnExceptions(false);
+          },
         );
       }
 
