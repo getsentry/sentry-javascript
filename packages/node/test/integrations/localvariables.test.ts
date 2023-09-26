@@ -446,12 +446,9 @@ describeIf((NODE_VERSION.major || 0) >= 18)('LocalVariables', () => {
         },
       );
 
-      increment();
-      increment();
-      increment();
-      increment();
-      increment();
-      increment();
+      for (let i = 0; i < 7; i++) {
+        increment();
+      }
     });
 
     it('does not call disable if not exceeded', done => {
@@ -468,11 +465,9 @@ describeIf((NODE_VERSION.major || 0) >= 18)('LocalVariables', () => {
       let count = 0;
 
       const timer = setInterval(() => {
-        // only 4 per second
-        increment();
-        increment();
-        increment();
-        increment();
+        for (let i = 0; i < 4; i++) {
+          increment();
+        }
 
         count += 1;
 
@@ -498,12 +493,9 @@ describeIf((NODE_VERSION.major || 0) >= 18)('LocalVariables', () => {
         },
       );
 
-      increment();
-      increment();
-      increment();
-      increment();
-      increment();
-      increment();
+      for (let i = 0; i < 10; i++) {
+        increment();
+      }
     });
   });
 });
