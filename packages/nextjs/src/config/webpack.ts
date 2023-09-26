@@ -988,18 +988,22 @@ function getRequestAsyncStorageModuleLocation(
   const moduleIsWebpackResolvable = (moduleId: string): boolean => {
     let requireResolveLocation: string;
     try {
+      // This will throw if the location is not resolvable at all.
+      // We provide a `paths` filter in order to maximally limit the potential locations to the locations webpack would check.
       requireResolveLocation = require.resolve(moduleId, { paths: webpackResolvableModuleLocations });
     } catch {
       return false;
     }
 
+    // Since the require.resolve approach still looks in "global" node_modules locations like for example "/user/lib/node"
+    // we further need to filter by locations that start with the locations that webpack would check for.
     return absoluteWebpackResolvableModuleLocations.some(resolvableModuleLocation =>
       requireResolveLocation.startsWith(resolvableModuleLocation),
     );
   };
 
   const potentialRequestAsyncStorageLocations = [
-    // Original location of that module
+    // Original location of RequestAsyncStorage
     // https://github.com/vercel/next.js/blob/46151dd68b417e7850146d00354f89930d10b43b/packages/next/src/client/components/request-async-storage.ts
     'next/dist/client/components/request-async-storage',
     // Introduced in Next.js 13.4.20
