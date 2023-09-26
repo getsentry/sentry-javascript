@@ -15,9 +15,6 @@ const SENTRY_WRAPPER_MODULE_NAME = 'sentry-wrapper-module';
 // Needs to end in .cjs in order for the `commonjs` plugin to pick it up
 const WRAPPING_TARGET_MODULE_NAME = '__SENTRY_WRAPPING_TARGET_FILE__.cjs';
 
-// This module is non-public API and may break
-const nextjsRequestAsyncStorageModulePath = getRequestAsyncLocalStorageModule();
-
 const apiWrapperTemplatePath = path.resolve(__dirname, '..', 'templates', 'apiWrapperTemplate.js');
 const apiWrapperTemplateCode = fs.readFileSync(apiWrapperTemplatePath, { encoding: 'utf8' });
 
@@ -51,31 +48,8 @@ type LoaderOptions = {
   wrappingTargetKind: 'page' | 'api-route' | 'middleware' | 'server-component' | 'sentry-init' | 'route-handler';
   sentryConfigFilePath?: string;
   vercelCronsConfig?: VercelCronsConfig;
+  nextjsRequestAsyncStorageModulePath?: string;
 };
-
-function getRequestAsyncLocalStorageModule(): string | undefined {
-  try {
-    // Original location of that module
-    // https://github.com/vercel/next.js/blob/46151dd68b417e7850146d00354f89930d10b43b/packages/next/src/client/components/request-async-storage.ts
-    const location = 'next/dist/client/components/request-async-storage';
-    require.resolve(location);
-    return location;
-  } catch {
-    // noop
-  }
-
-  try {
-    // Introduced in Next.js 13.4.20
-    // https://github.com/vercel/next.js/blob/e1bc270830f2fc2df3542d4ef4c61b916c802df3/packages/next/src/client/components/request-async-storage.external.ts
-    const location = 'next/dist/client/components/request-async-storage.external';
-    require.resolve(location);
-    return location;
-  } catch {
-    // noop
-  }
-
-  return undefined;
-}
 
 /**
  * Replace the loaded file with a wrapped version the original file. In the wrapped version, the original file is loaded,
@@ -98,6 +72,7 @@ export default function wrappingLoader(
     wrappingTargetKind,
     sentryConfigFilePath,
     vercelCronsConfig,
+    nextjsRequestAsyncStorageModulePath,
   } = 'getOptions' in this ? this.getOptions() : this.query;
 
   this.async();
