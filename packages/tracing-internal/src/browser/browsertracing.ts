@@ -1,5 +1,5 @@
 /* eslint-disable max-lines */
-import { Hub, IdleTransaction } from '@sentry/core';
+import type { Hub, IdleTransaction } from '@sentry/core';
 import {
   addTracingExtensions,
   getActiveTransaction,
@@ -8,14 +8,7 @@ import {
   TRACING_DEFAULTS,
 } from '@sentry/core';
 import type { EventProcessor, Integration, Transaction, TransactionContext, TransactionSource } from '@sentry/types';
-import {
-  dateTimestampInSeconds,
-  getDomElement,
-  htmlTreeAsString,
-  logger,
-  timestampInSeconds,
-  tracingContextFromHeaders,
-} from '@sentry/utils';
+import { getDomElement, htmlTreeAsString, logger, timestampInSeconds, tracingContextFromHeaders } from '@sentry/utils';
 
 import { registerBackgroundTabDetection } from './backgroundtab';
 import {
@@ -224,7 +217,9 @@ export class BrowserTracing implements Integration {
     if (this.options.enableLongTask) {
       startTrackingLongTasks();
     }
-    startTrackingInteractions();
+    if (this.options._experiments.enableInteractions) {
+      startTrackingInteractions();
+    }
   }
 
   /**
@@ -283,7 +278,10 @@ export class BrowserTracing implements Integration {
     if (markBackgroundTransactions) {
       registerBackgroundTabDetection();
     }
-    this._registerInteractionListener();
+
+    if (_experiments.enableInteractions) {
+      this._registerInteractionListener();
+    }
 
     instrumentOutgoingRequests({
       traceFetch,
