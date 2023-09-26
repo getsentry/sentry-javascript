@@ -168,6 +168,21 @@ export function normalizeRequestArgs(
     requestOptions = urlToOptions(requestArgs[0]);
   } else {
     requestOptions = requestArgs[0];
+
+    try {
+      const parsed = new URL(
+        requestOptions.path || '',
+        `${requestOptions.protocol || 'http:'}//${requestOptions.hostname}`,
+      );
+      requestOptions = {
+        pathname: parsed.pathname,
+        search: parsed.search,
+        hash: parsed.hash,
+        ...requestOptions,
+      };
+    } catch (e) {
+      // ignore
+    }
   }
 
   // if the options were given separately from the URL, fold them in
