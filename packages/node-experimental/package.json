@@ -36,6 +36,7 @@
     "@opentelemetry/instrumentation-mysql2": "~0.34.1",
     "@opentelemetry/instrumentation-nestjs-core": "~0.33.1",
     "@opentelemetry/instrumentation-pg": "~0.36.1",
+    "@opentelemetry/resources": "~1.17.0",
     "@opentelemetry/sdk-trace-base": "~1.17.0",
     "@opentelemetry/semantic-conventions": "~1.17.0",
     "@prisma/instrumentation": "~5.3.1",
