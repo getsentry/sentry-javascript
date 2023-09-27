@@ -1,4 +1,4 @@
-import type { Event, EventProcessor, Hub, Integration, StackFrame } from '@sentry/types';
+import type { Client, Event, EventHint, Integration, StackFrame } from '@sentry/types';
 import { getEventDescription, logger, stringMatchesSomePattern } from '@sentry/utils';
 
 // "Script error." is hard coded into browsers for errors that it can't read.
@@ -48,23 +48,15 @@ export class InboundFilters implements Integration {
   /**
    * @inheritDoc
    */
-  public setupOnce(addGlobalEventProcessor: (processor: EventProcessor) => void, getCurrentHub: () => Hub): void {
-    const eventProcess: EventProcessor = (event: Event) => {
-      const hub = getCurrentHub();
-      if (hub) {
-        const self = hub.getIntegration(InboundFilters);
-        if (self) {
-          const client = hub.getClient();
-          const clientOptions = client ? client.getOptions() : {};
-          const options = _mergeOptions(self._options, clientOptions);
-          return _shouldDropEvent(event, options) ? null : event;
-        }
-      }
-      return event;
-    };
+  public setupOnce(_addGlobaleventProcessor: unknown, _getCurrentHub: unknown): void {
+    // noop
+  }
 
-    eventProcess.id = this.name;
-    addGlobalEventProcessor(eventProcess);
+  /** @inheritDoc */
+  public processEvent(event: Event, _eventHint: EventHint, client: Client): Event | null {
+    const clientOptions = client.getOptions();
+    const options = _mergeOptions(this._options, clientOptions);
+    return _shouldDropEvent(event, options) ? null : event;
   }
 }
 
