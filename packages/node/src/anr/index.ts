@@ -105,8 +105,6 @@ function startChildProcess(options: Options): void {
     }
   }
 
-  process.title = 'sentry-anr-process';
-
   try {
     const env = { ...process.env };
     env.SENTRY_ANR_CHILD_PROCESS = 'true';
@@ -116,7 +114,7 @@ function startChildProcess(options: Options): void {
       env.SENTRY_INSPECT_URL = inspector.url();
     }
 
-    log(`Starting child process with execPath:'${process.execPath}' and entryScript'${options.entryScript}'`);
+    log(`Spawning child process with execPath:'${process.execPath}' and entryScript'${options.entryScript}'`);
 
     const child = spawn(process.execPath, [options.entryScript], {
       env,
@@ -155,6 +153,8 @@ function handleChildProcess(options: Options): void {
       logger.log(`[ANR child process] ${message}`);
     }
   }
+
+  process.title = 'sentry-anr';
 
   log('Started');
 
