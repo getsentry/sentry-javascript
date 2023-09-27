@@ -3,7 +3,7 @@ import { SpanKind } from '@opentelemetry/api';
 import { registerInstrumentations } from '@opentelemetry/instrumentation';
 import { HttpInstrumentation } from '@opentelemetry/instrumentation-http';
 import { SemanticAttributes } from '@opentelemetry/semantic-conventions';
-import { hasTracingEnabled, Transaction } from '@sentry/core';
+import { hasTracingEnabled, isSentryRequestUrl, Transaction } from '@sentry/core';
 import { getCurrentHub } from '@sentry/node';
 import { _INTERNAL_getSentrySpan } from '@sentry/opentelemetry-node';
 import type { EventProcessor, Hub, Integration } from '@sentry/types';
@@ -11,6 +11,7 @@ import type { ClientRequest, IncomingMessage, ServerResponse } from 'http';
 
 import type { NodeExperimentalClient, OtelSpan } from '../types';
 import { getRequestSpanData } from '../utils/getRequestSpanData';
+import { getRequestUrl } from '../utils/getRequestUrl';
 
 interface TracingOptions {
   /**
@@ -93,8 +94,8 @@ export class Http implements Integration {
       instrumentations: [
         new HttpInstrumentation({
           ignoreOutgoingRequestHook: request => {
-            const host = request.host || request.hostname;
-            return isSentryHost(host);
+            const url = getRequestUrl(request);
+            return url ? isSentryRequestUrl(url, getCurrentHub()) : false;
           },
 
           ignoreIncomingRequestHook: request => {
@@ -223,12 +224,4 @@ export class Http implements Integration {
 function getHttpUrl(attributes: Attributes): string | undefined {
   const url = attributes[SemanticAttributes.HTTP_URL];
   return typeof url === 'string' ? url : undefined;
-}
-
-/**
- * Checks whether given host points to Sentry server
- */
-function isSentryHost(host: string | undefined): boolean {
-  const dsn = getCurrentHub().getClient()?.getDsn();
-  return dsn && host ? host.includes(dsn.host) : false;
 }
