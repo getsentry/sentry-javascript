@@ -3,5 +3,5 @@
   "compilerOptions": {
     "module": "esnext"
   },
-  "include": ["src/**/*.ts"]
+  "include": ["src/**/*.ts", "../feedback/src/util/sendFeedbackRequest.ts", "../feedback/src/types/feedback.ts"]
 }
