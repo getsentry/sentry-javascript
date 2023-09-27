@@ -172,9 +172,7 @@ function createLargestContentfulPaint(
     data: {
       value, // LCP "duration" in ms
       size,
-      // Not sure why this errors, Node should be correct (Argument of type 'Node' is not assignable to parameter of type 'INode')
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      nodeId: record.mirror.getId(entry.element as any),
+      nodeId: record.mirror.getId(entry.element),
     },
   };
 }

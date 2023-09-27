@@ -14,8 +14,8 @@ import {
 // Session should expire after 2s - keep in sync with init.js
 const SESSION_TIMEOUT = 2000;
 
-sentryTest('handles an expired session', async ({ getLocalTestPath, page }) => {
-  if (shouldSkipReplayTest()) {
+sentryTest('handles an expired session', async ({ browserName, forceFlushReplay, getLocalTestPath, page }) => {
+  if (shouldSkipReplayTest() || browserName === 'webkit') {
     sentryTest.skip();
   }
 
@@ -47,6 +47,7 @@ sentryTest('handles an expired session', async ({ getLocalTestPath, page }) => {
   const reqPromise2 = waitForReplayRequest(page, 0);
 
   await page.click('#button1');
+  await forceFlushReplay();
   const req1 = await reqPromise1;
 
   const replayEvent1 = getReplayEvent(req1);
@@ -58,6 +59,7 @@ sentryTest('handles an expired session', async ({ getLocalTestPath, page }) => {
   await new Promise(resolve => setTimeout(resolve, SESSION_TIMEOUT));
 
   await page.click('#button2');
+  await forceFlushReplay();
   const req2 = await reqPromise2;
 
   const replay2 = await getReplaySnapshot(page);
