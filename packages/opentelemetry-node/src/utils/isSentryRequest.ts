@@ -1,6 +1,6 @@
 import type { Span as OtelSpan } from '@opentelemetry/sdk-trace-base';
 import { SemanticAttributes } from '@opentelemetry/semantic-conventions';
-import { getCurrentHub } from '@sentry/core';
+import { getCurrentHub, isSentryRequestUrl } from '@sentry/core';
 
 /**
  *
@@ -16,14 +16,5 @@ export function isSentryRequestSpan(otelSpan: OtelSpan): boolean {
     return false;
   }
 
-  return isSentryRequestUrl(httpUrl.toString());
-}
-
-/**
- * Checks whether given url points to Sentry server
- * @param url url to verify
- */
-function isSentryRequestUrl(url: string): boolean {
-  const dsn = getCurrentHub().getClient()?.getDsn();
-  return dsn ? url.includes(dsn.host) : false;
+  return isSentryRequestUrl(httpUrl.toString(), getCurrentHub());
 }
