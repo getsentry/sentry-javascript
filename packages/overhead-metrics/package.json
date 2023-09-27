@@ -1,6 +1,6 @@
 {
   "private": true,
-  "version": "7.71.0",
+  "version": "7.72.0",
   "name": "@sentry-internal/overhead-metrics",
   "main": "index.js",
   "author": "Sentry",

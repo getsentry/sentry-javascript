@@ -8,8 +8,6 @@ sentryTest('mutation after timeout results in slow click', async ({ getLocalTest
     sentryTest.skip();
   }
 
-  const reqPromise0 = waitForReplayRequest(page, 0);
-
   await page.route('https://dsn.ingest.sentry.io/**/*', route => {
     return route.fulfill({
       status: 200,
@@ -20,18 +18,18 @@ sentryTest('mutation after timeout results in slow click', async ({ getLocalTest
 
   const url = await getLocalTestUrl({ testDir: __dirname });
 
-  await page.goto(url);
-  await reqPromise0;
+  await Promise.all([waitForReplayRequest(page, 0), page.goto(url)]);
 
-  const reqPromise1 = waitForReplayRequest(page, (event, res) => {
-    const { breadcrumbs } = getCustomRecordingEvents(res);
+  const [req1] = await Promise.all([
+    waitForReplayRequest(page, (event, res) => {
+      const { breadcrumbs } = getCustomRecordingEvents(res);
 
-    return breadcrumbs.some(breadcrumb => breadcrumb.category === 'ui.slowClickDetected');
-  });
+      return breadcrumbs.some(breadcrumb => breadcrumb.category === 'ui.slowClickDetected');
+    }),
+    page.click('#mutationButtonLate'),
+  ]);
 
-  await page.click('#mutationButtonLate');
-
-  const { breadcrumbs } = getCustomRecordingEvents(await reqPromise1);
+  const { breadcrumbs } = getCustomRecordingEvents(req1);
 
   const slowClickBreadcrumbs = breadcrumbs.filter(breadcrumb => breadcrumb.category === 'ui.slowClickDetected');
 
@@ -65,8 +63,6 @@ sentryTest('console.log results in slow click', async ({ getLocalTestUrl, page }
     sentryTest.skip();
   }
 
-  const reqPromise0 = waitForReplayRequest(page, 0);
-
   await page.route('https://dsn.ingest.sentry.io/**/*', route => {
     return route.fulfill({
       status: 200,
@@ -77,18 +73,19 @@ sentryTest('console.log results in slow click', async ({ getLocalTestUrl, page }
 
   const url = await getLocalTestUrl({ testDir: __dirname });
 
-  await page.goto(url);
-  await reqPromise0;
+  await Promise.all([waitForReplayRequest(page, 0), page.goto(url)]);
 
-  const reqPromise1 = waitForReplayRequest(page, (event, res) => {
-    const { breadcrumbs } = getCustomRecordingEvents(res);
+  const [req1] = await Promise.all([
+    waitForReplayRequest(page, (event, res) => {
+      const { breadcrumbs } = getCustomRecordingEvents(res);
 
-    return breadcrumbs.some(breadcrumb => breadcrumb.category === 'ui.slowClickDetected');
-  });
+      return breadcrumbs.some(breadcrumb => breadcrumb.category === 'ui.slowClickDetected');
+    }),
 
-  await page.click('#consoleLogButton');
+    page.click('#consoleLogButton'),
+  ]);
 
-  const { breadcrumbs } = getCustomRecordingEvents(await reqPromise1);
+  const { breadcrumbs } = getCustomRecordingEvents(req1);
 
   const slowClickBreadcrumbs = breadcrumbs.filter(breadcrumb => breadcrumb.category === 'ui.slowClickDetected');
 

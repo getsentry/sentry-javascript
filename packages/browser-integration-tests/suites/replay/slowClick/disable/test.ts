@@ -8,8 +8,6 @@ sentryTest('does not capture slow click when slowClickTimeout === 0', async ({ g
     sentryTest.skip();
   }
 
-  const reqPromise0 = waitForReplayRequest(page, 0);
-
   await page.route('https://dsn.ingest.sentry.io/**/*', route => {
     return route.fulfill({
       status: 200,
@@ -20,18 +18,18 @@ sentryTest('does not capture slow click when slowClickTimeout === 0', async ({ g
 
   const url = await getLocalTestUrl({ testDir: __dirname });
 
-  await page.goto(url);
-  await reqPromise0;
+  await Promise.all([waitForReplayRequest(page, 0), page.goto(url)]);
 
-  const reqPromise1 = waitForReplayRequest(page, (event, res) => {
-    const { breadcrumbs } = getCustomRecordingEvents(res);
+  const [req1] = await Promise.all([
+    waitForReplayRequest(page, (event, res) => {
+      const { breadcrumbs } = getCustomRecordingEvents(res);
 
-    return breadcrumbs.some(breadcrumb => breadcrumb.category === 'ui.click');
-  });
+      return breadcrumbs.some(breadcrumb => breadcrumb.category === 'ui.click');
+    }),
+    page.click('#mutationButton'),
+  ]);
 
-  await page.click('#mutationButton');
-
-  const { breadcrumbs } = getCustomRecordingEvents(await reqPromise1);
+  const { breadcrumbs } = getCustomRecordingEvents(req1);
 
   expect(breadcrumbs).toEqual([
     {
