@@ -1,63 +1,69 @@
-import { Span, Transaction } from '@sentry/core';
-
 import * as Sentry from '../../src';
-import { mockSdkInit } from '../helpers/mockSdkInit';
+import { OTEL_ATTR_OP, OTEL_ATTR_ORIGIN, OTEL_ATTR_SOURCE } from '../../src/constants';
+import { getOtelSpanMetadata } from '../../src/opentelemetry/spanData';
+import type { OtelSpan } from '../../src/types';
+import { getActiveSpan } from '../../src/utils/getActiveSpan';
+import { cleanupOtel, mockSdkInit } from '../helpers/mockSdkInit';
 
 describe('trace', () => {
   beforeEach(() => {
     mockSdkInit({ enableTracing: true });
   });
 
+  afterEach(() => {
+    cleanupOtel();
+  });
+
   describe('startSpan', () => {
     it('works with a sync callback', () => {
-      const spans: Span[] = [];
+      const spans: OtelSpan[] = [];
 
-      expect(Sentry.getActiveSpan()).toEqual(undefined);
+      expect(getActiveSpan()).toEqual(undefined);
 
-      Sentry.startSpan({ name: 'outer' }, outerSpan => {
+      const res = Sentry.startSpan({ name: 'outer' }, outerSpan => {
         expect(outerSpan).toBeDefined();
         spans.push(outerSpan!);
 
         expect(outerSpan?.name).toEqual('outer');
-        expect(outerSpan).toBeInstanceOf(Transaction);
-        expect(Sentry.getActiveSpan()).toEqual(outerSpan);
+        expect(getActiveSpan()).toEqual(outerSpan);
 
         Sentry.startSpan({ name: 'inner' }, innerSpan => {
           expect(innerSpan).toBeDefined();
           spans.push(innerSpan!);
 
-          expect(innerSpan?.description).toEqual('inner');
-          expect(innerSpan).toBeInstanceOf(Span);
-          expect(innerSpan).not.toBeInstanceOf(Transaction);
-          expect(Sentry.getActiveSpan()).toEqual(innerSpan);
+          expect(innerSpan?.name).toEqual('inner');
+          expect(getActiveSpan()).toEqual(innerSpan);
         });
+
+        return 'test value';
       });
 
-      expect(Sentry.getActiveSpan()).toEqual(undefined);
+      expect(res).toEqual('test value');
+
+      expect(getActiveSpan()).toEqual(undefined);
       expect(spans).toHaveLength(2);
       const [outerSpan, innerSpan] = spans;
 
-      expect((outerSpan as Transaction).name).toEqual('outer');
-      expect(innerSpan.description).toEqual('inner');
+      expect(outerSpan.name).toEqual('outer');
+      expect(innerSpan.name).toEqual('inner');
 
-      expect(outerSpan.endTimestamp).toEqual(expect.any(Number));
-      expect(innerSpan.endTimestamp).toEqual(expect.any(Number));
+      expect(outerSpan.endTime).not.toEqual([0, 0]);
+      expect(innerSpan.endTime).not.toEqual([0, 0]);
     });
 
     it('works with an async callback', async () => {
-      const spans: Span[] = [];
+      const spans: OtelSpan[] = [];
 
-      expect(Sentry.getActiveSpan()).toEqual(undefined);
+      expect(getActiveSpan()).toEqual(undefined);
 
-      await Sentry.startSpan({ name: 'outer' }, async outerSpan => {
+      const res = await Sentry.startSpan({ name: 'outer' }, async outerSpan => {
         expect(outerSpan).toBeDefined();
         spans.push(outerSpan!);
 
         await new Promise(resolve => setTimeout(resolve, 10));
 
         expect(outerSpan?.name).toEqual('outer');
-        expect(outerSpan).toBeInstanceOf(Transaction);
-        expect(Sentry.getActiveSpan()).toEqual(outerSpan);
+        expect(getActiveSpan()).toEqual(outerSpan);
 
         await Sentry.startSpan({ name: 'inner' }, async innerSpan => {
           expect(innerSpan).toBeDefined();
@@ -65,46 +71,45 @@ describe('trace', () => {
 
           await new Promise(resolve => setTimeout(resolve, 10));
 
-          expect(innerSpan?.description).toEqual('inner');
-          expect(innerSpan).toBeInstanceOf(Span);
-          expect(innerSpan).not.toBeInstanceOf(Transaction);
-          expect(Sentry.getActiveSpan()).toEqual(innerSpan);
+          expect(innerSpan?.name).toEqual('inner');
+          expect(getActiveSpan()).toEqual(innerSpan);
         });
+
+        return 'test value';
       });
 
-      expect(Sentry.getActiveSpan()).toEqual(undefined);
+      expect(res).toEqual('test value');
+
+      expect(getActiveSpan()).toEqual(undefined);
       expect(spans).toHaveLength(2);
       const [outerSpan, innerSpan] = spans;
 
-      expect((outerSpan as Transaction).name).toEqual('outer');
-      expect(innerSpan.description).toEqual('inner');
+      expect(outerSpan.name).toEqual('outer');
+      expect(innerSpan.name).toEqual('inner');
 
-      expect(outerSpan.endTimestamp).toEqual(expect.any(Number));
-      expect(innerSpan.endTimestamp).toEqual(expect.any(Number));
+      expect(outerSpan.endTime).not.toEqual([0, 0]);
+      expect(innerSpan.endTime).not.toEqual([0, 0]);
     });
 
     it('works with multiple parallel calls', () => {
-      const spans1: Span[] = [];
-      const spans2: Span[] = [];
+      const spans1: OtelSpan[] = [];
+      const spans2: OtelSpan[] = [];
 
-      expect(Sentry.getActiveSpan()).toEqual(undefined);
+      expect(getActiveSpan()).toEqual(undefined);
 
       Sentry.startSpan({ name: 'outer' }, outerSpan => {
         expect(outerSpan).toBeDefined();
         spans1.push(outerSpan!);
 
         expect(outerSpan?.name).toEqual('outer');
-        expect(outerSpan).toBeInstanceOf(Transaction);
-        expect(Sentry.getActiveSpan()).toEqual(outerSpan);
+        expect(getActiveSpan()).toEqual(outerSpan);
 
         Sentry.startSpan({ name: 'inner' }, innerSpan => {
           expect(innerSpan).toBeDefined();
           spans1.push(innerSpan!);
 
-          expect(innerSpan?.description).toEqual('inner');
-          expect(innerSpan).toBeInstanceOf(Span);
-          expect(innerSpan).not.toBeInstanceOf(Transaction);
-          expect(Sentry.getActiveSpan()).toEqual(innerSpan);
+          expect(innerSpan?.name).toEqual('inner');
+          expect(getActiveSpan()).toEqual(innerSpan);
         });
       });
 
@@ -113,23 +118,54 @@ describe('trace', () => {
         spans2.push(outerSpan!);
 
         expect(outerSpan?.name).toEqual('outer2');
-        expect(outerSpan).toBeInstanceOf(Transaction);
-        expect(Sentry.getActiveSpan()).toEqual(outerSpan);
+        expect(getActiveSpan()).toEqual(outerSpan);
 
         Sentry.startSpan({ name: 'inner2' }, innerSpan => {
           expect(innerSpan).toBeDefined();
           spans2.push(innerSpan!);
 
-          expect(innerSpan?.description).toEqual('inner2');
-          expect(innerSpan).toBeInstanceOf(Span);
-          expect(innerSpan).not.toBeInstanceOf(Transaction);
-          expect(Sentry.getActiveSpan()).toEqual(innerSpan);
+          expect(innerSpan?.name).toEqual('inner2');
+          expect(getActiveSpan()).toEqual(innerSpan);
         });
       });
 
-      expect(Sentry.getActiveSpan()).toEqual(undefined);
+      expect(getActiveSpan()).toEqual(undefined);
       expect(spans1).toHaveLength(2);
       expect(spans2).toHaveLength(2);
+    });
+
+    it('allows to pass context arguments', () => {
+      Sentry.startSpan(
+        {
+          name: 'outer',
+        },
+        span => {
+          expect(span).toBeDefined();
+          expect(span?.attributes).toEqual({});
+
+          expect(getOtelSpanMetadata(span!)).toEqual(undefined);
+        },
+      );
+
+      Sentry.startSpan(
+        {
+          name: 'outer',
+          op: 'my-op',
+          origin: 'auto.test.origin',
+          source: 'task',
+          metadata: { requestPath: 'test-path' },
+        },
+        span => {
+          expect(span).toBeDefined();
+          expect(span?.attributes).toEqual({
+            [OTEL_ATTR_SOURCE]: 'task',
+            [OTEL_ATTR_ORIGIN]: 'auto.test.origin',
+            [OTEL_ATTR_OP]: 'my-op',
+          });
+
+          expect(getOtelSpanMetadata(span!)).toEqual({ requestPath: 'test-path' });
+        },
+      );
     });
   });
 
@@ -138,36 +174,87 @@ describe('trace', () => {
       const span = Sentry.startInactiveSpan({ name: 'test' });
 
       expect(span).toBeDefined();
-      expect(span).toBeInstanceOf(Transaction);
       expect(span?.name).toEqual('test');
-      expect(span?.endTimestamp).toBeUndefined();
-      expect(Sentry.getActiveSpan()).toBeUndefined();
+      expect(span?.endTime).toEqual([0, 0]);
+      expect(getActiveSpan()).toBeUndefined();
 
-      span?.finish();
+      span?.end();
 
-      expect(span?.endTimestamp).toEqual(expect.any(Number));
-      expect(Sentry.getActiveSpan()).toBeUndefined();
+      expect(span?.endTime).not.toEqual([0, 0]);
+      expect(getActiveSpan()).toBeUndefined();
     });
 
     it('works as a child span', () => {
       Sentry.startSpan({ name: 'outer' }, outerSpan => {
         expect(outerSpan).toBeDefined();
-        expect(Sentry.getActiveSpan()).toEqual(outerSpan);
+        expect(getActiveSpan()).toEqual(outerSpan);
 
         const innerSpan = Sentry.startInactiveSpan({ name: 'test' });
 
         expect(innerSpan).toBeDefined();
-        expect(innerSpan).toBeInstanceOf(Span);
-        expect(innerSpan).not.toBeInstanceOf(Transaction);
-        expect(innerSpan?.description).toEqual('test');
-        expect(innerSpan?.endTimestamp).toBeUndefined();
-        expect(Sentry.getActiveSpan()).toEqual(outerSpan);
+        expect(innerSpan?.name).toEqual('test');
+        expect(innerSpan?.endTime).toEqual([0, 0]);
+        expect(getActiveSpan()).toEqual(outerSpan);
 
-        innerSpan?.finish();
+        innerSpan?.end();
 
-        expect(innerSpan?.endTimestamp).toEqual(expect.any(Number));
-        expect(Sentry.getActiveSpan()).toEqual(outerSpan);
+        expect(innerSpan?.endTime).not.toEqual([0, 0]);
+        expect(getActiveSpan()).toEqual(outerSpan);
       });
     });
+
+    it('allows to pass context arguments', () => {
+      const span = Sentry.startInactiveSpan({
+        name: 'outer',
+      });
+
+      expect(span).toBeDefined();
+      expect(span?.attributes).toEqual({});
+
+      expect(getOtelSpanMetadata(span!)).toEqual(undefined);
+
+      const span2 = Sentry.startInactiveSpan({
+        name: 'outer',
+        op: 'my-op',
+        origin: 'auto.test.origin',
+        source: 'task',
+        metadata: { requestPath: 'test-path' },
+      });
+
+      expect(span2).toBeDefined();
+      expect(span2?.attributes).toEqual({
+        [OTEL_ATTR_SOURCE]: 'task',
+        [OTEL_ATTR_ORIGIN]: 'auto.test.origin',
+        [OTEL_ATTR_OP]: 'my-op',
+      });
+
+      expect(getOtelSpanMetadata(span2!)).toEqual({ requestPath: 'test-path' });
+    });
+  });
+});
+
+describe('trace (tracing disabled)', () => {
+  beforeEach(() => {
+    mockSdkInit({ enableTracing: false });
+  });
+
+  afterEach(() => {
+    cleanupOtel();
+  });
+
+  it('startSpan calls callback without span', () => {
+    const val = Sentry.startSpan({ name: 'outer' }, outerSpan => {
+      expect(outerSpan).toBeUndefined();
+
+      return 'test value';
+    });
+
+    expect(val).toEqual('test value');
+  });
+
+  it('startInactiveSpan returns undefined', () => {
+    const span = Sentry.startInactiveSpan({ name: 'test' });
+
+    expect(span).toBeUndefined();
   });
 });

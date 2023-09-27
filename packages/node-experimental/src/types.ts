@@ -1,29 +1,23 @@
 import type { Tracer } from '@opentelemetry/api';
-import type { Span as OtelSpan } from '@opentelemetry/sdk-trace-base';
+import type { BasicTracerProvider, Span as OtelSpan } from '@opentelemetry/sdk-trace-base';
 import type { NodeClient, NodeOptions } from '@sentry/node';
-import type { Breadcrumb, Transaction } from '@sentry/types';
+import type { SpanOrigin, TransactionMetadata, TransactionSource } from '@sentry/types';
 
 export type NodeExperimentalOptions = NodeOptions;
 export type NodeExperimentalClientOptions = ConstructorParameters<typeof NodeClient>[0];
 
 export interface NodeExperimentalClient extends NodeClient {
   tracer: Tracer;
+  traceProvider: BasicTracerProvider | undefined;
   getOptions(): NodeExperimentalClientOptions;
 }
 
-/**
- * This is a fork of the base Transaction with OTEL specific stuff added.
- * Note that we do not solve this via an actual subclass, but by wrapping this in a proxy when we need it -
- * as we can't easily control all the places a transaction may be created.
- */
-export interface TransactionWithBreadcrumbs extends Transaction {
-  _breadcrumbs: Breadcrumb[];
-
-  /** Get all breadcrumbs added to this transaction. */
-  getBreadcrumbs(): Breadcrumb[];
-
-  /** Add a breadcrumb to this transaction. */
-  addBreadcrumb(breadcrumb: Breadcrumb, maxBreadcrumbs?: number): void;
+export interface NodeExperimentalSpanContext {
+  name: string;
+  op?: string;
+  metadata?: Partial<TransactionMetadata>;
+  origin?: SpanOrigin;
+  source?: TransactionSource;
 }
 
 export type { OtelSpan };

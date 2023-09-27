@@ -7,11 +7,16 @@ import type { OtelSpan } from '../types';
 /**
  * Get sanitizied request data from an OTEL span.
  */
-export function getRequestSpanData(span: OtelSpan): SanitizedRequestData {
-  const data: SanitizedRequestData = {
-    url: span.attributes[SemanticAttributes.HTTP_URL] as string,
-    'http.method': (span.attributes[SemanticAttributes.HTTP_METHOD] as string) || 'GET',
+export function getRequestSpanData(span: OtelSpan): Partial<SanitizedRequestData> {
+  const data: Partial<SanitizedRequestData> = {
+    url: span.attributes[SemanticAttributes.HTTP_URL] as string | undefined,
+    'http.method': span.attributes[SemanticAttributes.HTTP_METHOD] as string | undefined,
   };
+
+  // Default to GET if URL is set but method is not
+  if (!data['http.method'] && data.url) {
+    data['http.method'] = 'GET';
+  }
 
   try {
     const urlStr = span.attributes[SemanticAttributes.HTTP_URL];
