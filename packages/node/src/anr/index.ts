@@ -1,6 +1,6 @@
 import type { Event, StackFrame } from '@sentry/types';
 import { logger } from '@sentry/utils';
-import { fork } from 'child_process';
+import { spawn } from 'child_process';
 import * as inspector from 'inspector';
 
 import { addGlobalEventProcessor, captureEvent, flush } from '..';
@@ -99,13 +99,9 @@ function sendEvent(blockedMs: number, frames?: StackFrame[]): void {
 }
 
 function startChildProcess(options: Options): void {
-  function log(message: string, err?: unknown): void {
+  function log(message: string, ...args: unknown[]): void {
     if (options.debug) {
-      if (err) {
-        logger.log(`[ANR] ${message}`, err);
-      } else {
-        logger.log(`[ANR] ${message}`);
-      }
+      logger.log(`[ANR] ${message}`, ...args);
     }
   }
 
@@ -117,9 +113,9 @@ function startChildProcess(options: Options): void {
       env.SENTRY_INSPECT_URL = inspector.url();
     }
 
-    const child = fork(options.entryScript, {
+    const child = spawn(process.execPath, [options.entryScript], {
       env,
-      stdio: options.debug ? 'inherit' : 'ignore',
+      stdio: options.debug ? ['inherit', 'inherit', 'inherit', 'ipc'] : ['ignore', 'ignore', 'ignore', 'ipc'],
     });
     // The child process should not keep the main process alive
     child.unref();
@@ -133,14 +129,16 @@ function startChildProcess(options: Options): void {
       }
     }, options.pollInterval);
 
-    const end = (err: unknown): void => {
-      clearInterval(timer);
-      log('Child process ended', err);
+    const end = (type: string): ((...args: unknown[]) => void) => {
+      return (...args): void => {
+        clearInterval(timer);
+        log(`Child process ${type}`, ...args);
+      };
     };
 
-    child.on('error', end);
-    child.on('disconnect', end);
-    child.on('exit', end);
+    child.on('error', end('error'));
+    child.on('disconnect', end('disconnect'));
+    child.on('exit', end('exit'));
   } catch (e) {
     log('Failed to start child process', e);
   }
