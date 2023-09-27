@@ -105,13 +105,18 @@ function startChildProcess(options: Options): void {
     }
   }
 
+  process.title = 'sentry-anr-process';
+
   try {
     const env = { ...process.env };
+    env.SENTRY_ANR_CHILD_PROCESS = 'true';
 
     if (options.captureStackTrace) {
       inspector.open();
       env.SENTRY_INSPECT_URL = inspector.url();
     }
+
+    log(`Starting child process with execPath:'${process.execPath}' and entryScript'${options.entryScript}'`);
 
     const child = spawn(process.execPath, [options.entryScript], {
       env,
@@ -219,10 +224,14 @@ function handleChildProcess(options: Options): void {
  * ```
  */
 export function enableAnrDetection(options: Partial<Options>): Promise<void> {
-  const isChildProcess = !!process.send;
+  const isChildProcess = !!process.send && !!process.env.SENTRY_ANR_CHILD_PROCESS;
+
+  // When pm2 runs the script in cluster mode, process.argv[1] is the pm2 script and process.env.pm_exec_path is the
+  // path to the entry script
+  const entryScript = options.entryScript || process.env.pm_exec_path || process.argv[1];
 
   const anrOptions: Options = {
-    entryScript: options.entryScript || process.argv[1],
+    entryScript,
     pollInterval: options.pollInterval || DEFAULT_INTERVAL,
     anrThreshold: options.anrThreshold || DEFAULT_HANG_THRESHOLD,
     captureStackTrace: !!options.captureStackTrace,
