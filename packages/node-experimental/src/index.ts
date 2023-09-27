@@ -12,6 +12,7 @@ export { INTEGRATIONS as Integrations };
 export { getAutoPerformanceIntegrations } from './integrations/getAutoPerformanceIntegrations';
 export * as Handlers from './sdk/handlers';
 export * from './sdk/trace';
+export { getActiveSpan } from './utils/getActiveSpan';
 export { getCurrentHub, getHubFromCarrier } from './sdk/hub';
 
 export {
@@ -39,7 +40,6 @@ export {
   makeMain,
   runWithAsyncContext,
   Scope,
-  startTransaction,
   SDK_VERSION,
   setContext,
   setExtra,

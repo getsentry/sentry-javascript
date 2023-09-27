@@ -1,11 +1,12 @@
-import type { Span as OtelSpan, Tracer } from '@opentelemetry/api';
-import { trace } from '@opentelemetry/api';
-import { getCurrentHub, hasTracingEnabled, Transaction } from '@sentry/core';
-import { _INTERNAL_getSentrySpan } from '@sentry/opentelemetry-node';
-import type { Span, TransactionContext } from '@sentry/types';
+import type { Tracer } from '@opentelemetry/api';
+import { SpanStatusCode } from '@opentelemetry/api';
+import { hasTracingEnabled } from '@sentry/core';
 import { isThenable } from '@sentry/utils';
 
-import type { NodeExperimentalClient } from '../types';
+import { OTEL_ATTR_OP, OTEL_ATTR_ORIGIN, OTEL_ATTR_SOURCE } from '../constants';
+import { setOtelSpanMetadata } from '../opentelemetry/spanData';
+import type { NodeExperimentalClient, NodeExperimentalSpanContext, OtelSpan } from '../types';
+import { getCurrentHub } from './hub';
 
 /**
  * Wraps a function with a transaction/span and finishes the span after the function is done.
@@ -18,32 +19,26 @@ import type { NodeExperimentalClient } from '../types';
  * or you didn't set `tracesSampleRate`, this function will not generate spans
  * and the `span` returned from the callback will be undefined.
  */
-export function startSpan<T>(context: TransactionContext, callback: (span: Span | undefined) => T): T {
+export function startSpan<T>(spanContext: NodeExperimentalSpanContext, callback: (span: OtelSpan | undefined) => T): T {
   const tracer = getTracer();
   if (!tracer) {
     return callback(undefined);
   }
 
-  const name = context.name || context.description || context.op || '<unknown>';
+  const { name } = spanContext;
 
-  return tracer.startActiveSpan(name, (span: OtelSpan): T => {
-    const otelSpanId = span.spanContext().spanId;
-
-    const sentrySpan = _INTERNAL_getSentrySpan(otelSpanId);
-
-    if (sentrySpan && isTransaction(sentrySpan) && context.metadata) {
-      sentrySpan.setMetadata(context.metadata);
-    }
-
+  return tracer.startActiveSpan(name, (span): T => {
     function finishSpan(): void {
       span.end();
     }
 
+    _initSpan(span as OtelSpan, spanContext);
+
     let maybePromiseResult: T;
     try {
-      maybePromiseResult = callback(sentrySpan);
+      maybePromiseResult = callback(span as OtelSpan);
     } catch (e) {
-      sentrySpan && sentrySpan.setStatus('internal_error');
+      span.setStatus({ code: SpanStatusCode.ERROR });
       finishSpan();
       throw e;
     }
@@ -54,7 +49,7 @@ export function startSpan<T>(context: TransactionContext, callback: (span: Span 
           finishSpan();
         },
         () => {
-          sentrySpan && sentrySpan.setStatus('internal_error');
+          span.setStatus({ code: SpanStatusCode.ERROR });
           finishSpan();
         },
       );
@@ -81,50 +76,19 @@ export const startActiveSpan = startSpan;
  * or you didn't set `tracesSampleRate` or `tracesSampler`, this function will not generate spans
  * and the `span` returned from the callback will be undefined.
  */
-export function startInactiveSpan(context: TransactionContext): Span | undefined {
+export function startInactiveSpan(spanContext: NodeExperimentalSpanContext): OtelSpan | undefined {
   const tracer = getTracer();
   if (!tracer) {
     return undefined;
   }
 
-  const name = context.name || context.description || context.op || '<unknown>';
-  const otelSpan = tracer.startSpan(name);
+  const { name } = spanContext;
 
-  const otelSpanId = otelSpan.spanContext().spanId;
+  const span = tracer.startSpan(name) as OtelSpan;
 
-  const sentrySpan = _INTERNAL_getSentrySpan(otelSpanId);
+  _initSpan(span, spanContext);
 
-  if (!sentrySpan) {
-    return undefined;
-  }
-
-  if (isTransaction(sentrySpan) && context.metadata) {
-    sentrySpan.setMetadata(context.metadata);
-  }
-
-  // Monkey-patch `finish()` to finish the OTEL span instead
-  // This will also in turn finish the Sentry Span, so no need to call this ourselves
-  const wrappedSentrySpan = new Proxy(sentrySpan, {
-    get(target, prop, receiver) {
-      if (prop === 'finish') {
-        return () => {
-          otelSpan.end();
-        };
-      }
-      return Reflect.get(target, prop, receiver);
-    },
-  });
-
-  return wrappedSentrySpan;
-}
-
-/**
- * Returns the currently active span.
- */
-export function getActiveSpan(): Span | undefined {
-  const otelSpan = trace.getActiveSpan();
-  const spanId = otelSpan && otelSpan.spanContext().spanId;
-  return spanId ? _INTERNAL_getSentrySpan(spanId) : undefined;
+  return span;
 }
 
 function getTracer(): Tracer | undefined {
@@ -136,6 +100,22 @@ function getTracer(): Tracer | undefined {
   return client && client.tracer;
 }
 
-function isTransaction(span: Span): span is Transaction {
-  return span instanceof Transaction;
+function _initSpan(span: OtelSpan, spanContext: NodeExperimentalSpanContext): void {
+  const { origin, op, source, metadata } = spanContext;
+
+  if (origin) {
+    span.setAttribute(OTEL_ATTR_ORIGIN, origin);
+  }
+
+  if (op) {
+    span.setAttribute(OTEL_ATTR_OP, op);
+  }
+
+  if (source) {
+    span.setAttribute(OTEL_ATTR_SOURCE, source);
+  }
+
+  if (metadata) {
+    setOtelSpanMetadata(span, metadata);
+  }
 }

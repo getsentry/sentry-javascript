@@ -1,16 +1,33 @@
+import type { TimedEvent } from '@opentelemetry/sdk-trace-base';
 import { Scope } from '@sentry/core';
-import type { Breadcrumb } from '@sentry/types';
+import type { Breadcrumb, SeverityLevel, Span } from '@sentry/types';
+import { dateTimestampInSeconds, dropUndefinedKeys, logger } from '@sentry/utils';
 
-import type { TransactionWithBreadcrumbs } from '../types';
-import { getActiveSpan } from './trace';
+import {
+  OTEL_ATTR_BREADCRUMB_CATEGORY,
+  OTEL_ATTR_BREADCRUMB_DATA,
+  OTEL_ATTR_BREADCRUMB_EVENT_ID,
+  OTEL_ATTR_BREADCRUMB_LEVEL,
+  OTEL_ATTR_BREADCRUMB_TYPE,
+} from '../constants';
+import { getOtelSpanParent } from '../opentelemetry/spanData';
+import type { OtelSpan } from '../types';
+import { convertOtelTimeToSeconds } from '../utils/convertOtelTimeToSeconds';
+import { getActiveSpan, getRootSpan } from '../utils/getActiveSpan';
 
 /** A fork of the classic scope with some otel specific stuff. */
-export class OtelScope extends Scope {
+export class NodeExperimentalScope extends Scope {
+  /**
+   * This can be set to ensure the scope uses _this_ span as the active one,
+   * instead of using getActiveSpan().
+   */
+  public activeSpan: OtelSpan | undefined;
+
   /**
    * @inheritDoc
    */
   public static clone(scope?: Scope): Scope {
-    const newScope = new OtelScope();
+    const newScope = new NodeExperimentalScope();
     if (scope) {
       newScope._breadcrumbs = [...scope['_breadcrumbs']];
       newScope._tags = { ...scope['_tags'] };
@@ -32,13 +49,41 @@ export class OtelScope extends Scope {
   }
 
   /**
+   * In node-experimental, scope.getSpan() always returns undefined.
+   * Instead, use the global `getActiveSpan()`.
+   */
+  public getSpan(): undefined {
+    __DEBUG_BUILD__ &&
+      logger.warn('Calling getSpan() is a noop in @sentry/node-experimental. Use `getActiveSpan()` instead.');
+
+    return undefined;
+  }
+
+  /**
+   * In node-experimental, scope.setSpan() is a noop.
+   * Instead, use the global `startSpan()` to define the active span.
+   */
+  public setSpan(_span: Span): this {
+    __DEBUG_BUILD__ &&
+      logger.warn('Calling setSpan() is a noop in @sentry/node-experimental. Use `startSpan()` instead.');
+
+    return this;
+  }
+
+  /**
    * @inheritDoc
    */
   public addBreadcrumb(breadcrumb: Breadcrumb, maxBreadcrumbs?: number): this {
-    const transaction = getActiveTransaction();
+    const activeSpan = this.activeSpan || getActiveSpan();
+    const rootSpan = activeSpan ? getRootSpan(activeSpan) : undefined;
 
-    if (transaction && transaction.addBreadcrumb) {
-      transaction.addBreadcrumb(breadcrumb, maxBreadcrumbs);
+    if (rootSpan) {
+      const mergedBreadcrumb = {
+        timestamp: dateTimestampInSeconds(),
+        ...breadcrumb,
+      };
+
+      rootSpan.addEvent(...breadcrumbToOtelEvent(mergedBreadcrumb));
       return this;
     }
 
@@ -49,18 +94,78 @@ export class OtelScope extends Scope {
    * @inheritDoc
    */
   protected _getBreadcrumbs(): Breadcrumb[] {
-    const transaction = getActiveTransaction();
-    const transactionBreadcrumbs = transaction && transaction.getBreadcrumbs ? transaction.getBreadcrumbs() : [];
+    const span = this.activeSpan || getActiveSpan();
 
-    return this._breadcrumbs.concat(transactionBreadcrumbs);
+    const spanBreadcrumbs = span ? getBreadcrumbsForSpan(span) : [];
+
+    return spanBreadcrumbs.length > 0 ? this._breadcrumbs.concat(spanBreadcrumbs) : this._breadcrumbs;
   }
 }
 
 /**
- * This gets the currently active transaction,
- * and ensures to wrap it so that we can store breadcrumbs on it.
+ * Get all breadcrumbs for the given span as well as it's parents.
  */
-function getActiveTransaction(): TransactionWithBreadcrumbs | undefined {
-  const activeSpan = getActiveSpan();
-  return activeSpan && (activeSpan.transaction as TransactionWithBreadcrumbs | undefined);
+function getBreadcrumbsForSpan(span: OtelSpan): Breadcrumb[] {
+  const events = span ? getOtelEvents(span) : [];
+
+  return events.map(otelEventToBreadcrumb);
+}
+
+function breadcrumbToOtelEvent(breadcrumb: Breadcrumb): Parameters<OtelSpan['addEvent']> {
+  const name = breadcrumb.message || '<no message>';
+
+  return [
+    name,
+    dropUndefinedKeys({
+      [OTEL_ATTR_BREADCRUMB_TYPE]: breadcrumb.type,
+      [OTEL_ATTR_BREADCRUMB_LEVEL]: breadcrumb.level,
+      [OTEL_ATTR_BREADCRUMB_EVENT_ID]: breadcrumb.event_id,
+      [OTEL_ATTR_BREADCRUMB_CATEGORY]: breadcrumb.category,
+      [OTEL_ATTR_BREADCRUMB_DATA]:
+        breadcrumb.data && Object.keys(breadcrumb.data).length > 0 ? JSON.stringify(breadcrumb.data) : undefined,
+    }),
+    breadcrumb.timestamp ? new Date(breadcrumb.timestamp * 1000) : undefined,
+  ];
+}
+
+function otelEventToBreadcrumb(event: TimedEvent): Breadcrumb {
+  const attributes = event.attributes || {};
+
+  const type = attributes[OTEL_ATTR_BREADCRUMB_TYPE] as string | undefined;
+  const level = attributes[OTEL_ATTR_BREADCRUMB_LEVEL] as SeverityLevel | undefined;
+  const eventId = attributes[OTEL_ATTR_BREADCRUMB_EVENT_ID] as string | undefined;
+  const category = attributes[OTEL_ATTR_BREADCRUMB_CATEGORY] as string | undefined;
+  const dataStr = attributes[OTEL_ATTR_BREADCRUMB_DATA] as string | undefined;
+
+  const breadcrumb: Breadcrumb = dropUndefinedKeys({
+    timestamp: convertOtelTimeToSeconds(event.time),
+    message: event.name,
+    type,
+    level,
+    event_id: eventId,
+    category,
+  });
+
+  if (typeof dataStr === 'string') {
+    try {
+      const data = JSON.parse(dataStr);
+      breadcrumb.data = data;
+    } catch (e) {} // eslint-disable-line no-empty
+  }
+
+  return breadcrumb;
+}
+
+function getOtelEvents(span: OtelSpan, events: TimedEvent[] = []): TimedEvent[] {
+  if (span.events) {
+    events.push(...span.events);
+  }
+
+  // Go up parent chain and collect events
+  const parent = getOtelSpanParent(span) as OtelSpan | undefined;
+  if (parent) {
+    return getOtelEvents(parent, events);
+  }
+
+  return events;
 }

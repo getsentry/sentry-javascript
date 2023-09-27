@@ -20,7 +20,7 @@ interface SpanDescription {
  * @param otelSpan
  * @returns Better op/description to use, or undefined
  */
-export function parseSpanDescription(otelSpan: OtelSpan): SpanDescription {
+export function parseOtelSpanDescription(otelSpan: OtelSpan): SpanDescription {
   const { attributes, name } = otelSpan;
 
   // if http.method exists, this is an http request span
