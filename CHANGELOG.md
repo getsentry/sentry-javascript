@@ -4,6 +4,55 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.72.0
+
+### Important Changes
+
+- **feat(node): App Not Responding with stack traces (#9079)**
+
+This release introduces support for Application Not Responding (ANR) errors for Node.js applications.
+These errors are triggered when the Node.js main thread event loop of an application is blocked for more than five seconds.
+The Node SDK reports ANR errors as Sentry events and can optionally attach a stacktrace of the blocking code to the ANR event.
+
+To enable ANR detection, import and use the `enableANRDetection` function from the `@sentry/node` package before you run the rest of your application code.
+Any event loop blocking before calling `enableANRDetection` will not be detected by the SDK.
+
+Example (ESM):
+
+```ts
+import * as Sentry from "@sentry/node";
+
+Sentry.init({
+  dsn: "___PUBLIC_DSN___",
+  tracesSampleRate: 1.0,
+});
+
+await Sentry.enableANRDetection({ captureStackTrace: true });
+// Function that runs your app
+runApp();
+```
+
+Example (CJS):
+
+```ts
+const Sentry = require("@sentry/node");
+
+Sentry.init({
+  dsn: "___PUBLIC_DSN___",
+  tracesSampleRate: 1.0,
+});
+
+Sentry.enableANRDetection({ captureStackTrace: true }).then(() => {
+  // Function that runs your app
+  runApp();
+});
+```
+
+### Other Changes
+
+- fix(nextjs): Filter `RequestAsyncStorage` locations by locations that webpack will resolve (#9114)
+- fix(replay): Ensure `replay_id` is not captured when session is expired (#9109)
+
 ## 7.71.0
 
 - feat(bun): Instrument Bun.serve (#9080)
