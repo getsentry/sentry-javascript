@@ -87,3 +87,4 @@ const INTEGRATIONS = {
 };
 
 export { INTEGRATIONS as Integrations, Handlers };
+export { fastifyErrorPlugin } from './integrations/fastify';

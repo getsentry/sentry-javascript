@@ -207,12 +207,10 @@ export function requestHandler(
         const client = currentHub.getClient<NodeClient>();
         if (isAutoSessionTrackingEnabled(client)) {
           setImmediate(() => {
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-            if (client && (client as any)._captureRequestSession) {
+            if (client && client['_captureRequestSession']) {
               // Calling _captureRequestSession to capture request session at the end of the request by incrementing
               // the correct SessionAggregates bucket i.e. crashed, errored or exited
-              // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-              (client as any)._captureRequestSession();
+              client['_captureRequestSession']();
             }
           });
         }

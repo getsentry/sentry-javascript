@@ -51,6 +51,7 @@ export {
   trace,
   withScope,
   captureCheckIn,
+  fastifyErrorPlugin,
 } from '@sentry/node';
 
 export type {

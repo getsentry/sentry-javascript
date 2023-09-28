@@ -130,6 +130,51 @@ All of these are auto-discovered, you don't need to configure anything for perfo
 You still need to register middlewares etc. for error capturing.
 Other, non-performance integrations from `@sentry/node` are also available (except for Undici).
 
+## Fully supported Frameworks
+
+### Express
+
+```js
+const Sentry = require('@sentry/node-experimental');
+
+Sentry.init({
+  dsn: '...',
+  tracesSampleRate: 1,
+});
+
+// Ensure `init` was called _before_ you require express!
+const express = require('express');
+const app = express();
+
+// Add your routes
+
+// The error handler must be before any other error middleware and after all controllers
+app.use(Sentry.Handlers.errorHandler());
+
+app.listen(3000);
+```
+
+### Fastify
+
+```js
+const Sentry = require('@sentry/node-experimental');
+
+Sentry.init({
+  dsn: '...',
+  tracesSampleRate: 1,
+});
+
+// Ensure `init` was called _before_ you require fastify!
+const fastify = require('fastify');
+const app = fastify();
+
+app.register(Sentry.fastifyErrorPlugin());
+
+// Add your routes
+
+app.listen();
+```
+
 ## Links
 
 - [Official SDK Docs](https://docs.sentry.io/quickstart/)

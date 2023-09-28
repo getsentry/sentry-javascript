@@ -38,6 +38,7 @@
     "@types/lru-cache": "^5.1.0",
     "@types/node": "~10.17.0",
     "express": "^4.17.1",
+    "fastify": "^4.23.2",
     "nock": "^13.0.5",
     "undici": "^5.21.0"
   },
@@ -61,8 +62,9 @@
     "lint": "run-s lint:prettier lint:eslint",
     "lint:eslint": "eslint . --format stylish",
     "lint:prettier": "prettier --check \"{src,test,scripts}/**/**.ts\"",
-    "test": "run-s test:jest test:express test:webpack test:release-health",
+    "test": "run-s test:jest test:express test:fastify test:webpack test:release-health",
     "test:express": "node test/manual/express-scope-separation/start.js",
+    "test:fastify": "node test/manual/fastify-scope-separation/start.js",
     "test:jest": "jest",
     "test:release-health": "node test/manual/release-health/runner.js",
     "test:webpack": "cd test/manual/webpack-async-context/ && yarn --silent && node npm-build.js",
