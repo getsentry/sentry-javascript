@@ -304,19 +304,27 @@ interface Options {
    *
    * - When false, only uncaught exceptions will have local variables
    * - When true, both caught and uncaught exceptions will have local variables.
-   * - When a number,  both caught and uncaught exceptions will have local variables until that many exceptions have been
-   *   captured per second.
    *
-   * Default: true (50 exceptions per second)
+   * Defaults to `true`.
    *
-   * Capturing local variables for all exceptions can be expensive and is rate-limited. Once the rate limit is reached,
-   * local variables will only be captured for uncaught exceptions until a timeout has been reached.
+   * Capturing local variables for all exceptions can be expensive since the debugger pauses for every throw to collect
+   * local variables.
+   *
+   * To reduce the likelihood of this feature impacting app performance or throughput, this feature is rate-limited.
+   * Once the rate limit is reached, local variables will only be captured for uncaught exceptions until a timeout has
+   * been reached.
    */
-  captureAllExceptions?: boolean | number;
+  captureAllExceptions?: boolean;
+  /**
+   * Maximum number of exceptions to capture local variables for per second before rate limiting is triggered.
+   */
+  maxExceptionsPerSecond?: number;
 }
 
 /**
  * Adds local variables to exception frames
+ *
+ * Default: 50
  */
 export class LocalVariables implements Integration {
   public static id: string = 'LocalVariables';
@@ -362,17 +370,17 @@ export class LocalVariables implements Integration {
       );
 
       if (captureAll) {
-        const max = typeof this._options.captureAllExceptions === 'number' ? this._options.captureAllExceptions : 50;
+        const max = this._options.maxExceptionsPerSecond || 50;
 
         this._rateLimiter = createRateLimiter(
           max,
           () => {
-            logger.log('Local variables rate limit lifted.');
+            logger.log('Local variables rate-limit lifted.');
             this._session?.setPauseOnExceptions(true);
           },
           seconds => {
             logger.log(
-              `Local variables rate limit exceeded. Disabling capturing of caught exceptions for ${seconds} seconds.`,
+              `Local variables rate-limit exceeded. Disabling capturing of caught exceptions for ${seconds} seconds.`,
             );
             this._session?.setPauseOnExceptions(false);
           },
