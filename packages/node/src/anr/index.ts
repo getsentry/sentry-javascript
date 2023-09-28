@@ -98,6 +98,24 @@ function sendEvent(blockedMs: number, frames?: StackFrame[]): void {
   });
 }
 
+/**
+ * Starts the node debugger and returns the inspector url.
+ *
+ * When inspector.url() returns undefined, it means the port is already in use so we try the next port.
+ */
+function startInspector(startPort: number = 9229): string | undefined {
+  let inspectorUrl: string | undefined = undefined;
+  let port = startPort;
+
+  while (inspectorUrl === undefined && port < startPort + 100) {
+    inspector.open(port);
+    inspectorUrl = inspector.url();
+    port++;
+  }
+
+  return inspectorUrl;
+}
+
 function startChildProcess(options: Options): void {
   function log(message: string, ...args: unknown[]): void {
     if (options.debug) {
@@ -110,8 +128,7 @@ function startChildProcess(options: Options): void {
     env.SENTRY_ANR_CHILD_PROCESS = 'true';
 
     if (options.captureStackTrace) {
-      inspector.open();
-      env.SENTRY_INSPECT_URL = inspector.url();
+      env.SENTRY_INSPECT_URL = startInspector();
     }
 
     log(`Spawning child process with execPath:'${process.execPath}' and entryScript'${options.entryScript}'`);
