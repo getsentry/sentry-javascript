@@ -264,7 +264,12 @@ export interface ReplayIntegrationPrivacyOptions {
 }
 
 // These are optional for ReplayPluginOptions because the plugin sets default values
-type OptionalReplayPluginOptions = Partial<ReplayPluginOptions>;
+type OptionalReplayPluginOptions = Partial<ReplayPluginOptions> & {
+  /**
+   * Mask element attributes that are contained in list
+   */
+  maskAttributes?: string[];
+};
 
 export interface DeprecatedPrivacyOptions {
   /**

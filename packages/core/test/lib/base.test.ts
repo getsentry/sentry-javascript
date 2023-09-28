@@ -398,30 +398,6 @@ describe('BaseClient', () => {
   });
 
   describe('captureEvent() / prepareEvent()', () => {
-    test('skips when disabled', () => {
-      expect.assertions(1);
-
-      const options = getDefaultTestClientOptions({ enabled: false, dsn: PUBLIC_DSN });
-      const client = new TestClient(options);
-      const scope = new Scope();
-
-      client.captureEvent({}, undefined, scope);
-
-      expect(TestClient.instance!.event).toBeUndefined();
-    });
-
-    test('skips without a Dsn', () => {
-      expect.assertions(1);
-
-      const options = getDefaultTestClientOptions({});
-      const client = new TestClient(options);
-      const scope = new Scope();
-
-      client.captureEvent({}, undefined, scope);
-
-      expect(TestClient.instance!.event).toBeUndefined();
-    });
-
     test.each([
       ['`Error` instance', new Error('Will I get caught twice?')],
       ['plain object', { 'Will I': 'get caught twice?' }],
@@ -1616,9 +1592,9 @@ describe('BaseClient', () => {
 
     test('close', async () => {
       jest.useRealTimers();
-      expect.assertions(2);
+      expect.assertions(4);
 
-      const { makeTransport, delay } = makeFakeTransport(300);
+      const { makeTransport, delay, getSentCount } = makeFakeTransport(300);
 
       const client = new TestClient(
         getDefaultTestClientOptions({
@@ -1630,9 +1606,12 @@ describe('BaseClient', () => {
       expect(client.captureMessage('test')).toBeTruthy();
 
       await client.close(delay);
+      expect(getSentCount()).toBe(1);
 
+      expect(client.captureMessage('test')).toBeTruthy();
+      await client.close(delay);
       // Sends after close shouldn't work anymore
-      expect(client.captureMessage('test')).toBeFalsy();
+      expect(getSentCount()).toBe(1);
     });
 
     test('multiple concurrent flush calls should just work', async () => {
@@ -1797,18 +1776,6 @@ describe('BaseClient', () => {
       client.captureSession(session);
 
       expect(TestClient.instance!.session).toEqual(session);
-    });
-
-    test('skips when disabled', () => {
-      expect.assertions(1);
-
-      const options = getDefaultTestClientOptions({ enabled: false, dsn: PUBLIC_DSN });
-      const client = new TestClient(options);
-      const session = makeSession({ release: 'test' });
-
-      client.captureSession(session);
-
-      expect(TestClient.instance!.session).toBeUndefined();
     });
   });
 
