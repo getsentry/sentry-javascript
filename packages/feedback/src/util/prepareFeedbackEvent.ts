@@ -1,7 +1,8 @@
 import type {Scope} from '@sentry/core';
 import {prepareEvent} from '@sentry/core';
-import type { Client, FeedbackEvent } from '@sentry/types';
-// import type { FeedbackEvent } from '../types';
+import type { Client } from '@sentry/types';
+
+import type { FeedbackEvent } from '../types';
 
 /**
  * Prepare a feedback event & enrich it with the SDK metadata.
