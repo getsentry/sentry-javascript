@@ -1,5 +1,5 @@
 import type { Hub } from '@sentry/core';
-import { getCurrentHub, getDynamicSamplingContextFromClient } from '@sentry/core';
+import { getCurrentHub, getDynamicSamplingContextFromClient, isSentryRequestUrl } from '@sentry/core';
 import type {
   DynamicSamplingContext,
   EventProcessor,
@@ -21,7 +21,7 @@ import { LRUMap } from 'lru_map';
 import type { NodeClient } from '../client';
 import { NODE_VERSION } from '../nodeVersion';
 import type { RequestMethod, RequestMethodArgs, RequestOptions } from './utils/http';
-import { cleanSpanDescription, extractRawUrl, extractUrl, isSentryRequest, normalizeRequestArgs } from './utils/http';
+import { cleanSpanDescription, extractRawUrl, extractUrl, normalizeRequestArgs } from './utils/http';
 
 interface TracingOptions {
   /**
@@ -238,7 +238,7 @@ function _createWrappedRequestMethodFactory(
       const requestUrl = extractUrl(requestOptions);
 
       // we don't want to record requests to Sentry as either breadcrumbs or spans, so just use the original method
-      if (isSentryRequest(requestUrl)) {
+      if (isSentryRequestUrl(requestUrl, getCurrentHub())) {
         return originalRequestMethod.apply(httpModule, requestArgs);
       }
 

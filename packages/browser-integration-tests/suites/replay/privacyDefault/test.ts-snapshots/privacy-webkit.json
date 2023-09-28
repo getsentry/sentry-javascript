@@ -62,7 +62,7 @@
                   "type": 2,
                   "tagName": "button",
                   "attributes": {
-                    "aria-label": "***** **",
+                    "aria-label": "Click me",
                     "onclick": "console.log('Test log')"
                   },
                   "childNodes": [

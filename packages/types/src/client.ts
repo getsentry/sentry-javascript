@@ -149,7 +149,7 @@ export interface Client<O extends ClientOptions = ClientOptions> {
   addIntegration?(integration: Integration): void;
 
   /** This is an internal function to setup all integrations that should run on the client */
-  setupIntegrations(): void;
+  setupIntegrations(forceInitialize?: boolean): void;
 
   /** Creates an {@link Event} from all inputs to `captureException` and non-primitive inputs to `captureMessage`. */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

@@ -2,6 +2,9 @@ import type { Event, EventProcessor } from '@sentry/types';
 
 import type { InboundFiltersOptions } from '../../../src/integrations/inboundfilters';
 import { InboundFilters } from '../../../src/integrations/inboundfilters';
+import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
+
+const PUBLIC_DSN = 'https://username@domain/123';
 
 /**
  * Creates an instance of the InboundFilters integration and returns
@@ -25,30 +28,22 @@ function createInboundFiltersEventProcessor(
   options: Partial<InboundFiltersOptions> = {},
   clientOptions: Partial<InboundFiltersOptions> = {},
 ): EventProcessor {
-  const eventProcessors: EventProcessor[] = [];
-  const inboundFiltersInstance = new InboundFilters(options);
+  const client = new TestClient(
+    getDefaultTestClientOptions({
+      dsn: PUBLIC_DSN,
+      ...clientOptions,
+      defaultIntegrations: false,
+      integrations: [new InboundFilters(options)],
+    }),
+  );
 
-  function addGlobalEventProcessor(processor: EventProcessor): void {
-    eventProcessors.push(processor);
-    expect(eventProcessors).toHaveLength(1);
-  }
+  client.setupIntegrations();
 
-  function getCurrentHub(): any {
-    return {
-      getIntegration(_integration: any): any {
-        // pretend integration is enabled
-        return inboundFiltersInstance;
-      },
-      getClient(): any {
-        return {
-          getOptions: () => clientOptions,
-        };
-      },
-    };
-  }
+  const eventProcessors = client['_eventProcessors'];
+  const eventProcessor = eventProcessors.find(processor => processor.id === 'InboundFilters');
 
-  inboundFiltersInstance.setupOnce(addGlobalEventProcessor, getCurrentHub);
-  return eventProcessors[0];
+  expect(eventProcessor).toBeDefined();
+  return eventProcessor!;
 }
 
 // Fixtures

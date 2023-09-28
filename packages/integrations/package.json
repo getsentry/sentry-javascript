@@ -23,6 +23,7 @@
     }
   },
   "dependencies": {
+    "@sentry/core": "7.72.0",
     "@sentry/types": "7.72.0",
     "@sentry/utils": "7.72.0",
     "localforage": "^1.8.1",
