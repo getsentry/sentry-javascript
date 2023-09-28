@@ -201,6 +201,13 @@ function handleChildProcess(options: Options): void {
 }
 
 /**
+ * Returns true if the current process is an ANR child process.
+ */
+export function isAnrChildProcess(): boolean {
+  return !!process.send && !!process.env.SENTRY_ANR_CHILD_PROCESS;
+}
+
+/**
  * **Note** This feature is still in beta so there may be breaking changes in future releases.
  *
  * Starts a child process that detects Application Not Responding (ANR) errors.
@@ -224,8 +231,6 @@ function handleChildProcess(options: Options): void {
  * ```
  */
 export function enableAnrDetection(options: Partial<Options>): Promise<void> {
-  const isChildProcess = !!process.send && !!process.env.SENTRY_ANR_CHILD_PROCESS;
-
   // When pm2 runs the script in cluster mode, process.argv[1] is the pm2 script and process.env.pm_exec_path is the
   // path to the entry script
   const entryScript = options.entryScript || process.env.pm_exec_path || process.argv[1];
@@ -238,7 +243,7 @@ export function enableAnrDetection(options: Partial<Options>): Promise<void> {
     debug: !!options.debug,
   };
 
-  if (isChildProcess) {
+  if (isAnrChildProcess()) {
     handleChildProcess(anrOptions);
     // In the child process, the promise never resolves which stops the app code from running
     return new Promise<void>(() => {
