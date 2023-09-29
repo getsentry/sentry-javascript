@@ -1,1 +1,2 @@
-export type { SendFeedbackData } from './types'
+export type { SendFeedbackData } from './types';
+export { sendFeedbackRequest } from './util/sendFeedbackRequest';

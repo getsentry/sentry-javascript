@@ -1,4 +1,4 @@
-import type {Event} from '@sentry/types';
+import type { Event, Primitive } from '@sentry/types';
 
 /**
  * NOTE: These types are still considered Beta and subject to change.
@@ -16,8 +16,12 @@ export interface FeedbackEvent extends Event {
 }
 
 export interface SendFeedbackData {
-  message: string,
-  email: string,
-  replay_id: string,
-  url: string,
+  feedback: {
+    message: string;
+    email: string;
+    replay_id: string | undefined;
+    name: string;
+    url: string;
+  };
+  tags: { [key: string]: Primitive } | undefined;
 }

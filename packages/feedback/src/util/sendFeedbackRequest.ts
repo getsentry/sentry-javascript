@@ -8,10 +8,8 @@ import { prepareFeedbackEvent } from './prepareFeedbackEvent';
  * Send feedback using `fetch()`
  */
 export async function sendFeedbackRequest({
-  message,
-  email,
-  replay_id,
-  url,
+  feedback: { message, email, name, replay_id, url },
+  tags,
 }: SendFeedbackData): Promise<Response | null> {
   const hub = getCurrentHub();
 

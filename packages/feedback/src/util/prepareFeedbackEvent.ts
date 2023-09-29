@@ -1,5 +1,5 @@
-import type {Scope} from '@sentry/core';
-import {prepareEvent} from '@sentry/core';
+import type { Scope } from '@sentry/core';
+import { prepareEvent } from '@sentry/core';
 import type { Client } from '@sentry/types';
 
 import type { FeedbackEvent } from '../types';
@@ -16,11 +16,16 @@ export async function prepareFeedbackEvent({
   event: FeedbackEvent;
   scope: Scope;
 }): Promise<FeedbackEvent | null> {
+  const eventHint = { integrations: undefined };
+  if (client.emit) {
+    client.emit('preprocessEvent', event, eventHint);
+  }
+
   const preparedEvent = (await prepareEvent(
     client.getOptions(),
     event,
-    {integrations: []},
-    scope
+    { integrations: undefined },
+    scope,
   )) as FeedbackEvent | null;
 
   // If e.g. a global event processor returned null
@@ -35,7 +40,7 @@ export async function prepareFeedbackEvent({
 
   // extract the SDK name because `client._prepareEvent` doesn't add it to the event
   const metadata = client.getSdkMetadata && client.getSdkMetadata();
-  const {name, version} = (metadata && metadata.sdk) || {};
+  const { name, version } = (metadata && metadata.sdk) || {};
 
   preparedEvent.sdk = {
     ...preparedEvent.sdk,

@@ -4,8 +4,8 @@ const baseBundleConfig = makeBaseBundleConfig({
   bundleType: 'addon',
   entrypoints: ['src/index.ts'],
   jsVersion: 'es6',
-  licenseTitle: '@sentry/replay',
-  outputFileBase: () => 'bundles/replay',
+  licenseTitle: '@sentry-internal/feedback',
+  outputFileBase: () => 'bundles/feedback',
 });
 
 const builds = makeBundleConfigVariants(baseBundleConfig);
