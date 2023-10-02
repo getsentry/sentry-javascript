@@ -37,8 +37,6 @@
     "lint:prettier": "prettier --check \"{src,test,scripts}/**/*.ts\"",
     "test": "jest",
     "test:watch": "jest --watch",
-    "bootstrap:demo": "cd demo && yarn",
-    "start:demo": "yarn build:dev && cd demo && yarn start",
     "yalc:publish": "ts-node ../../scripts/prepack.ts --bundles && yalc publish ./build/npm --push"
   },
   "repository": {
@@ -54,8 +52,8 @@
   "devDependencies": {
     "@babel/core": "^7.17.5",
     "@sentry-internal/replay-worker": "7.72.0",
-    "@sentry-internal/rrweb": "1.108.0",
-    "@sentry-internal/rrweb-snapshot": "1.108.0",
+    "@sentry-internal/rrweb": "2.0.0",
+    "@sentry-internal/rrweb-snapshot": "2.0.0",
     "jsdom-worker": "^0.2.1",
     "tslib": "^2.4.1 || ^1.9.3"
   },

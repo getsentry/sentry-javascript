@@ -1,6 +1,6 @@
 import type { Event, StackFrame } from '@sentry/types';
 import { logger } from '@sentry/utils';
-import { fork } from 'child_process';
+import { spawn } from 'child_process';
 import * as inspector from 'inspector';
 
 import { addGlobalEventProcessor, captureEvent, flush } from '..';
@@ -98,28 +98,44 @@ function sendEvent(blockedMs: number, frames?: StackFrame[]): void {
   });
 }
 
+/**
+ * Starts the node debugger and returns the inspector url.
+ *
+ * When inspector.url() returns undefined, it means the port is already in use so we try the next port.
+ */
+function startInspector(startPort: number = 9229): string | undefined {
+  let inspectorUrl: string | undefined = undefined;
+  let port = startPort;
+
+  while (inspectorUrl === undefined && port < startPort + 100) {
+    inspector.open(port);
+    inspectorUrl = inspector.url();
+    port++;
+  }
+
+  return inspectorUrl;
+}
+
 function startChildProcess(options: Options): void {
-  function log(message: string, err?: unknown): void {
+  function log(message: string, ...args: unknown[]): void {
     if (options.debug) {
-      if (err) {
-        logger.log(`[ANR] ${message}`, err);
-      } else {
-        logger.log(`[ANR] ${message}`);
-      }
+      logger.log(`[ANR] ${message}`, ...args);
     }
   }
 
   try {
     const env = { ...process.env };
+    env.SENTRY_ANR_CHILD_PROCESS = 'true';
 
     if (options.captureStackTrace) {
-      inspector.open();
-      env.SENTRY_INSPECT_URL = inspector.url();
+      env.SENTRY_INSPECT_URL = startInspector();
     }
 
-    const child = fork(options.entryScript, {
+    log(`Spawning child process with execPath:'${process.execPath}' and entryScript'${options.entryScript}'`);
+
+    const child = spawn(process.execPath, [options.entryScript], {
       env,
-      stdio: options.debug ? 'inherit' : 'ignore',
+      stdio: options.debug ? ['inherit', 'inherit', 'inherit', 'ipc'] : ['ignore', 'ignore', 'ignore', 'ipc'],
     });
     // The child process should not keep the main process alive
     child.unref();
@@ -133,14 +149,16 @@ function startChildProcess(options: Options): void {
       }
     }, options.pollInterval);
 
-    const end = (err: unknown): void => {
-      clearInterval(timer);
-      log('Child process ended', err);
+    const end = (type: string): ((...args: unknown[]) => void) => {
+      return (...args): void => {
+        clearInterval(timer);
+        log(`Child process ${type}`, ...args);
+      };
     };
 
-    child.on('error', end);
-    child.on('disconnect', end);
-    child.on('exit', end);
+    child.on('error', end('error'));
+    child.on('disconnect', end('disconnect'));
+    child.on('exit', end('exit'));
   } catch (e) {
     log('Failed to start child process', e);
   }
@@ -152,6 +170,8 @@ function handleChildProcess(options: Options): void {
       logger.log(`[ANR child process] ${message}`);
     }
   }
+
+  process.title = 'sentry-anr';
 
   log('Started');
 
@@ -198,6 +218,13 @@ function handleChildProcess(options: Options): void {
 }
 
 /**
+ * Returns true if the current process is an ANR child process.
+ */
+export function isAnrChildProcess(): boolean {
+  return !!process.send && !!process.env.SENTRY_ANR_CHILD_PROCESS;
+}
+
+/**
  * **Note** This feature is still in beta so there may be breaking changes in future releases.
  *
  * Starts a child process that detects Application Not Responding (ANR) errors.
@@ -221,17 +248,19 @@ function handleChildProcess(options: Options): void {
  * ```
  */
 export function enableAnrDetection(options: Partial<Options>): Promise<void> {
-  const isChildProcess = !!process.send;
+  // When pm2 runs the script in cluster mode, process.argv[1] is the pm2 script and process.env.pm_exec_path is the
+  // path to the entry script
+  const entryScript = options.entryScript || process.env.pm_exec_path || process.argv[1];
 
   const anrOptions: Options = {
-    entryScript: options.entryScript || process.argv[1],
+    entryScript,
     pollInterval: options.pollInterval || DEFAULT_INTERVAL,
     anrThreshold: options.anrThreshold || DEFAULT_HANG_THRESHOLD,
     captureStackTrace: !!options.captureStackTrace,
     debug: !!options.debug,
   };
 
-  if (isChildProcess) {
+  if (isAnrChildProcess()) {
     handleChildProcess(anrOptions);
     // In the child process, the promise never resolves which stops the app code from running
     return new Promise<void>(() => {

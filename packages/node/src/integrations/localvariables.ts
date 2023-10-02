@@ -1,3 +1,4 @@
+/* eslint-disable max-lines */
 import type { Event, EventProcessor, Exception, Hub, Integration, StackFrame, StackParser } from '@sentry/types';
 import { logger } from '@sentry/utils';
 import type { Debugger, InspectorNotification, Runtime, Session } from 'inspector';
@@ -11,6 +12,8 @@ type OnPauseEvent = InspectorNotification<Debugger.PausedEventDataType>;
 export interface DebugSession {
   /** Configures and connects to the debug session */
   configureAndConnect(onPause: (message: OnPauseEvent, complete: () => void) => void, captureAll: boolean): void;
+  /** Updates which kind of exceptions to capture */
+  setPauseOnExceptions(captureAll: boolean): void;
   /** Gets local variables for an objectId */
   getLocalVariables(objectId: string, callback: (vars: Variables) => void): void;
 }
@@ -18,6 +21,52 @@ export interface DebugSession {
 type Next<T> = (result: T) => void;
 type Add<T> = (fn: Next<T>) => void;
 type CallbackWrapper<T> = { add: Add<T>; next: Next<T> };
+
+type RateLimitIncrement = () => void;
+
+/**
+ * Creates a rate limiter
+ * @param maxPerSecond Maximum number of calls per second
+ * @param enable Callback to enable capture
+ * @param disable Callback to disable capture
+ * @returns A function to call to increment the rate limiter count
+ */
+export function createRateLimiter(
+  maxPerSecond: number,
+  enable: () => void,
+  disable: (seconds: number) => void,
+): RateLimitIncrement {
+  let count = 0;
+  let retrySeconds = 5;
+  let disabledTimeout = 0;
+
+  setInterval(() => {
+    if (disabledTimeout === 0) {
+      if (count > maxPerSecond) {
+        retrySeconds *= 2;
+        disable(retrySeconds);
+
+        // Cap at one day
+        if (retrySeconds > 86400) {
+          retrySeconds = 86400;
+        }
+        disabledTimeout = retrySeconds;
+      }
+    } else {
+      disabledTimeout -= 1;
+
+      if (disabledTimeout === 0) {
+        enable();
+      }
+    }
+
+    count = 0;
+  }, 1_000).unref();
+
+  return () => {
+    count += 1;
+  };
+}
 
 /** Creates a container for callbacks to be called sequentially */
 export function createCallbackList<T>(complete: Next<T>): CallbackWrapper<T> {
@@ -100,6 +149,10 @@ class AsyncSession implements DebugSession {
     });
 
     this._session.post('Debugger.enable');
+    this._session.post('Debugger.setPauseOnExceptions', { state: captureAll ? 'all' : 'uncaught' });
+  }
+
+  public setPauseOnExceptions(captureAll: boolean): void {
     this._session.post('Debugger.setPauseOnExceptions', { state: captureAll ? 'all' : 'uncaught' });
   }
 
@@ -245,19 +298,33 @@ export interface FrameVariables {
   vars?: Variables;
 }
 
-/** There are no options yet. This allows them to be added later without breaking changes */
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
 interface Options {
   /**
-   * Capture local variables for both handled and unhandled exceptions
+   * Capture local variables for both caught and uncaught exceptions
    *
-   * Default: false - Only captures local variables for uncaught exceptions
+   * - When false, only uncaught exceptions will have local variables
+   * - When true, both caught and uncaught exceptions will have local variables.
+   *
+   * Defaults to `true`.
+   *
+   * Capturing local variables for all exceptions can be expensive since the debugger pauses for every throw to collect
+   * local variables.
+   *
+   * To reduce the likelihood of this feature impacting app performance or throughput, this feature is rate-limited.
+   * Once the rate limit is reached, local variables will only be captured for uncaught exceptions until a timeout has
+   * been reached.
    */
   captureAllExceptions?: boolean;
+  /**
+   * Maximum number of exceptions to capture local variables for per second before rate limiting is triggered.
+   */
+  maxExceptionsPerSecond?: number;
 }
 
 /**
  * Adds local variables to exception frames
+ *
+ * Default: 50
  */
 export class LocalVariables implements Integration {
   public static id: string = 'LocalVariables';
@@ -265,6 +332,7 @@ export class LocalVariables implements Integration {
   public readonly name: string = LocalVariables.id;
 
   private readonly _cachedFrames: LRUMap<string, FrameVariables[]> = new LRUMap(20);
+  private _rateLimiter: RateLimitIncrement | undefined;
 
   public constructor(
     private readonly _options: Options = {},
@@ -293,11 +361,31 @@ export class LocalVariables implements Integration {
         return;
       }
 
+      const captureAll = this._options.captureAllExceptions !== false;
+
       this._session.configureAndConnect(
         (ev, complete) =>
           this._handlePaused(clientOptions.stackParser, ev as InspectorNotification<PausedExceptionEvent>, complete),
-        !!this._options.captureAllExceptions,
+        captureAll,
       );
+
+      if (captureAll) {
+        const max = this._options.maxExceptionsPerSecond || 50;
+
+        this._rateLimiter = createRateLimiter(
+          max,
+          () => {
+            logger.log('Local variables rate-limit lifted.');
+            this._session?.setPauseOnExceptions(true);
+          },
+          seconds => {
+            logger.log(
+              `Local variables rate-limit exceeded. Disabling capturing of caught exceptions for ${seconds} seconds.`,
+            );
+            this._session?.setPauseOnExceptions(false);
+          },
+        );
+      }
 
       addGlobalEventProcessor(async event => this._addLocalVariables(event));
     }
@@ -315,6 +403,8 @@ export class LocalVariables implements Integration {
       complete();
       return;
     }
+
+    this._rateLimiter?.();
 
     // data.description contains the original error.stack
     const exceptionHash = hashFromStack(stackParser, data?.description);
