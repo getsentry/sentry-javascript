@@ -1,5 +1,5 @@
 /* eslint-disable @sentry-internal/sdk/no-optional-chaining */
-import { getCurrentHub, trace } from '@sentry/core';
+import { getCurrentHub, startSpan, trace } from '@sentry/core';
 import { captureException } from '@sentry/node';
 import type { TransactionContext } from '@sentry/types';
 import { addExceptionMechanism, addNonEnumerableProperty, objectify } from '@sentry/utils';
@@ -7,7 +7,7 @@ import type { LoadEvent, ServerLoadEvent } from '@sveltejs/kit';
 
 import type { SentryWrappedFlag } from '../common/utils';
 import { isHttpError, isRedirect } from '../common/utils';
-import { getTracePropagationData } from './utils';
+import { flushIfServerless, getTracePropagationData } from './utils';
 
 type PatchedLoadEvent = LoadEvent & SentryWrappedFlag;
 type PatchedServerLoadEvent = ServerLoadEvent & SentryWrappedFlag;
@@ -57,7 +57,7 @@ function sendErrorToSentry(e: unknown): unknown {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function wrapLoadWithSentry<T extends (...args: any) => any>(origLoad: T): T {
   return new Proxy(origLoad, {
-    apply: (wrappingTarget, thisArg, args: Parameters<T>) => {
+    apply: async (wrappingTarget, thisArg, args: Parameters<T>) => {
       // Type casting here because `T` cannot extend `Load` (see comment above function signature)
       // Also, this event possibly already has a sentry wrapped flag attached
       const event = args[0] as PatchedLoadEvent;
@@ -80,7 +80,15 @@ export function wrapLoadWithSentry<T extends (...args: any) => any>(origLoad: T)
         },
       };
 
-      return trace(traceLoadContext, () => wrappingTarget.apply(thisArg, args), sendErrorToSentry);
+      try {
+        const loadResult = await startSpan(traceLoadContext, () => wrappingTarget.apply(thisArg, args));
+        return loadResult;
+      } catch (e) {
+        sendErrorToSentry(e);
+        throw e;
+      } finally {
+        await flushIfServerless();
+      }
     },
   });
 }
@@ -109,7 +117,7 @@ export function wrapLoadWithSentry<T extends (...args: any) => any>(origLoad: T)
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function wrapServerLoadWithSentry<T extends (...args: any) => any>(origServerLoad: T): T {
   return new Proxy(origServerLoad, {
-    apply: (wrappingTarget, thisArg, args: Parameters<T>) => {
+    apply: async (wrappingTarget, thisArg, args: Parameters<T>) => {
       // Type casting here because `T` cannot extend `ServerLoad` (see comment above function signature)
       // Also, this event possibly already has a sentry wrapped flag attached
       const event = args[0] as PatchedServerLoadEvent;
@@ -144,7 +152,15 @@ export function wrapServerLoadWithSentry<T extends (...args: any) => any>(origSe
         ...traceparentData,
       };
 
-      return trace(traceLoadContext, () => wrappingTarget.apply(thisArg, args), sendErrorToSentry);
+      try {
+        const serverLoadResult = startSpan(traceLoadContext, () => wrappingTarget.apply(thisArg, args));
+        return serverLoadResult;
+      } catch (e: unknown) {
+        sendErrorToSentry(e);
+        throw e;
+      } finally {
+        await flushIfServerless();
+      }
     },
   });
 }

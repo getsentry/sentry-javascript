@@ -23,7 +23,7 @@ vi.mock('@sentry/node', async () => {
   };
 });
 
-const mockAddExceptionMechanism = vi.fn();
+const mockAddExceptionMechanism = vi.fn(() => console.trace());
 
 vi.mock('@sentry/utils', async () => {
   const original = (await vi.importActual('@sentry/utils')) as any;

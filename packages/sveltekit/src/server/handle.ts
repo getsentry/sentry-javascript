@@ -1,12 +1,12 @@
 /* eslint-disable @sentry-internal/sdk/no-optional-chaining */
 import type { Span } from '@sentry/core';
-import { getActiveTransaction, getCurrentHub, runWithAsyncContext, trace } from '@sentry/core';
+import { flush, getActiveTransaction, getCurrentHub, runWithAsyncContext, startSpan } from '@sentry/core';
 import { captureException } from '@sentry/node';
 import { addExceptionMechanism, dynamicSamplingContextToSentryBaggageHeader, objectify } from '@sentry/utils';
 import type { Handle, ResolveOptions } from '@sveltejs/kit';
 
 import { isHttpError, isRedirect } from '../common/utils';
-import { getTracePropagationData } from './utils';
+import { flushIfServerless, getTracePropagationData } from './utils';
 
 export type SentryHandleOptions = {
   /**
@@ -118,7 +118,10 @@ export function sentryHandle(handlerOptions?: SentryHandleOptions): Handle {
   return sentryRequestHandler;
 }
 
-function instrumentHandle({ event, resolve }: Parameters<Handle>[0], options: SentryHandleOptions): ReturnType<Handle> {
+async function instrumentHandle(
+  { event, resolve }: Parameters<Handle>[0],
+  options: SentryHandleOptions,
+): Promise<Response> {
   if (!event.route?.id && !options.handleUnknownRoutes) {
     return resolve(event);
   }
@@ -126,25 +129,32 @@ function instrumentHandle({ event, resolve }: Parameters<Handle>[0], options: Se
   const { dynamicSamplingContext, traceparentData, propagationContext } = getTracePropagationData(event);
   getCurrentHub().getScope().setPropagationContext(propagationContext);
 
-  return trace(
-    {
-      op: 'http.server',
-      origin: 'auto.http.sveltekit',
-      name: `${event.request.method} ${event.route?.id || event.url.pathname}`,
-      status: 'ok',
-      ...traceparentData,
-      metadata: {
-        source: event.route?.id ? 'route' : 'url',
-        dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
+  try {
+    const resolveResult = await startSpan(
+      {
+        op: 'http.server',
+        origin: 'auto.http.sveltekit',
+        name: `${event.request.method} ${event.route?.id || event.url.pathname}`,
+        status: 'ok',
+        ...traceparentData,
+        metadata: {
+          source: event.route?.id ? 'route' : 'url',
+          dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
+        },
       },
-    },
-    async (span?: Span) => {
-      const res = await resolve(event, { transformPageChunk });
-      if (span) {
-        span.setHttpStatus(res.status);
-      }
-      return res;
-    },
-    sendErrorToSentry,
-  );
+      async (span?: Span) => {
+        const res = await resolve(event, { transformPageChunk });
+        if (span) {
+          span.setHttpStatus(res.status);
+        }
+        return res;
+      },
+    );
+    return resolveResult;
+  } catch (e: unknown) {
+    sendErrorToSentry(e);
+    throw e;
+  } finally {
+    await flushIfServerless();
+  }
 }

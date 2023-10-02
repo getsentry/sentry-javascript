@@ -6,6 +6,8 @@ import { addExceptionMechanism } from '@sentry/utils';
 // eslint-disable-next-line import/no-unresolved
 import type { HandleServerError, RequestEvent } from '@sveltejs/kit';
 
+import { flushIfServerless } from './utils';
+
 // The SvelteKit default error handler just logs the error's stack trace to the console
 // see: https://github.com/sveltejs/kit/blob/369e7d6851f543a40c947e033bfc4a9506fdc0a8/packages/kit/src/runtime/server/index.js#L43
 function defaultErrorHandler({ error }: Parameters<HandleServerError>[0]): ReturnType<HandleServerError> {
@@ -20,7 +22,7 @@ function defaultErrorHandler({ error }: Parameters<HandleServerError>[0]): Retur
  * @param handleError The original SvelteKit error handler.
  */
 export function handleErrorWithSentry(handleError: HandleServerError = defaultErrorHandler): HandleServerError {
-  return (input: { error: unknown; event: RequestEvent }): ReturnType<HandleServerError> => {
+  return async (input: { error: unknown; event: RequestEvent }): Promise<void | App.Error> => {
     if (isNotFoundError(input)) {
       return handleError(input);
     }
@@ -35,6 +37,8 @@ export function handleErrorWithSentry(handleError: HandleServerError = defaultEr
       });
       return scope;
     });
+
+    await flushIfServerless();
 
     return handleError(input);
   };
