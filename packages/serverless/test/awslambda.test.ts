@@ -45,6 +45,8 @@ function expectScopeSettings(fakeTransactionContext: any) {
   // @ts-expect-error see "Why @ts-expect-error" note
   const fakeTransaction = { ...SentryNode.fakeTransaction, ...fakeTransactionContext };
   // @ts-expect-error see "Why @ts-expect-error" note
+  expect(SentryNode.fakeScope.setTransactionName).toBeCalledWith('functionName');
+  // @ts-expect-error see "Why @ts-expect-error" note
   expect(SentryNode.fakeScope.setSpan).toBeCalledWith(fakeTransaction);
   // @ts-expect-error see "Why @ts-expect-error" note
   expect(SentryNode.fakeScope.setTag).toBeCalledWith('server_name', expect.anything());
@@ -180,11 +182,27 @@ describe('AWSLambda', () => {
       expect(SentryNode.captureException).toHaveBeenNthCalledWith(2, error2, expect.any(Function));
       expect(SentryNode.captureException).toBeCalledTimes(2);
     });
+
+    // "wrapHandler() ... successful execution" tests the default of startTransaction enabled
+    test('startTransaction disabled', async () => {
+      expect.assertions(3);
+
+      const handler: Handler = async (_event, _context) => 42;
+      const wrappedHandler = wrapHandler(handler, { startTransaction: false });
+      await wrappedHandler(fakeEvent, fakeContext, fakeCallback);
+
+      // @ts-expect-error see "Why @ts-expect-error" note
+      expect(SentryNode.fakeScope.setTransactionName).toBeCalledTimes(0);
+      // @ts-expect-error see "Why @ts-expect-error" note
+      expect(SentryNode.fakeScope.setTag).toBeCalledTimes(0);
+      // @ts-expect-error see "Why @ts-expect-error" note
+      expect(SentryNode.fakeHub.startTransaction).toBeCalledTimes(0);
+    });
   });
 
   describe('wrapHandler() on sync handler', () => {
     test('successful execution', async () => {
-      expect.assertions(9);
+      expect.assertions(10);
 
       const handler: Handler = (_event, _context, callback) => {
         callback(null, 42);
@@ -209,7 +227,7 @@ describe('AWSLambda', () => {
     });
 
     test('unsuccessful execution', async () => {
-      expect.assertions(9);
+      expect.assertions(10);
 
       const error = new Error('sorry');
       const handler: Handler = (_event, _context, callback) => {
@@ -284,7 +302,7 @@ describe('AWSLambda', () => {
     });
 
     test('capture error', async () => {
-      expect.assertions(9);
+      expect.assertions(10);
 
       const error = new Error('wat');
       const handler: Handler = (_event, _context, _callback) => {
@@ -319,7 +337,7 @@ describe('AWSLambda', () => {
 
   describe('wrapHandler() on async handler', () => {
     test('successful execution', async () => {
-      expect.assertions(9);
+      expect.assertions(10);
 
       const handler: Handler = async (_event, _context) => {
         return 42;
@@ -355,7 +373,7 @@ describe('AWSLambda', () => {
     });
 
     test('capture error', async () => {
-      expect.assertions(9);
+      expect.assertions(10);
 
       const error = new Error('wat');
       const handler: Handler = async (_event, _context) => {
@@ -401,7 +419,7 @@ describe('AWSLambda', () => {
 
   describe('wrapHandler() on async handler with a callback method (aka incorrect usage)', () => {
     test('successful execution', async () => {
-      expect.assertions(9);
+      expect.assertions(10);
 
       const handler: Handler = async (_event, _context, _callback) => {
         return 42;
@@ -437,7 +455,7 @@ describe('AWSLambda', () => {
     });
 
     test('capture error', async () => {
-      expect.assertions(9);
+      expect.assertions(10);
 
       const error = new Error('wat');
       const handler: Handler = async (_event, _context, _callback) => {

@@ -50,6 +50,7 @@ export const resetMocks = (): void => {
   fakeHub.pushScope.mockClear();
   fakeHub.popScope.mockClear();
   fakeHub.getScope.mockClear();
+  fakeHub.startTransaction.mockClear();
 
   fakeScope.addEventProcessor.mockClear();
   fakeScope.setTransactionName.mockClear();
