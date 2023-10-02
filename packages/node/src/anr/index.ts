@@ -1,7 +1,6 @@
 import type { Event, StackFrame } from '@sentry/types';
 import { logger } from '@sentry/utils';
 import { spawn } from 'child_process';
-import * as inspector from 'inspector';
 
 import { addGlobalEventProcessor, captureEvent, flush } from '..';
 import { captureStackTrace } from './debugger';
@@ -98,12 +97,19 @@ function sendEvent(blockedMs: number, frames?: StackFrame[]): void {
   });
 }
 
+interface InspectorApi {
+  open: (port: number) => void;
+  url: () => string | undefined;
+}
+
 /**
  * Starts the node debugger and returns the inspector url.
  *
  * When inspector.url() returns undefined, it means the port is already in use so we try the next port.
  */
 function startInspector(startPort: number = 9229): string | undefined {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const inspector: InspectorApi = require('inspector');
   let inspectorUrl: string | undefined = undefined;
   let port = startPort;
 
