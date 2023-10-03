@@ -42,6 +42,7 @@ export type { RequestInstrumentationOptions } from '@sentry-internal/tracing';
 export {
   addTracingExtensions,
   setMeasurement,
+  // eslint-disable-next-line deprecation/deprecation
   extractTraceparentData,
   getActiveTransaction,
   spanStatusfromHttpCode,
