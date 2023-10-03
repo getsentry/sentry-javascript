@@ -1,8 +1,8 @@
 const http = require('http');
 const express = require('express');
 const app = express();
-const Sentry = require('../../../build/cjs');
-const { colorize } = require('../colorize');
+const Sentry = require('../../../../build/cjs');
+const { colorize } = require('../../colorize');
 const { TextEncoder } = require('util');
 
 // don't log the test errors we're going to throw, so at a quick glance it doesn't look like the test itself has failed
