@@ -1,5 +1,5 @@
 /* eslint-disable @sentry-internal/sdk/no-optional-chaining */
-import { flush, getCurrentHub, startSpan } from '@sentry/core';
+import { getCurrentHub, startSpan } from '@sentry/core';
 import { captureException } from '@sentry/node';
 import type { TransactionContext } from '@sentry/types';
 import { addExceptionMechanism, addNonEnumerableProperty, objectify } from '@sentry/utils';
@@ -159,7 +159,6 @@ export function wrapServerLoadWithSentry<T extends (...args: any) => any>(origSe
         sendErrorToSentry(e);
         throw e;
       } finally {
-        await flush(4000);
         await flushIfServerless();
       }
     },
