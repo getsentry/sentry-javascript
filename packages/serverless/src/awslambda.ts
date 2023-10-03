@@ -34,7 +34,9 @@ export type AsyncHandler<T extends Handler> = (
 
 export interface WrapperOptions {
   flushTimeout: number;
-  // TODO: DEPRECATED - remove `rethrowAfterCapture` in v7
+  /**
+   * @deprecated This option is unused since v6 and will be removed in v8.
+   */
   rethrowAfterCapture?: boolean;
   callbackWaitsForEmptyEventLoop: boolean;
   captureTimeoutWarning: boolean;
