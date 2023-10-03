@@ -1,5 +1,5 @@
 /* eslint-disable @sentry-internal/sdk/no-optional-chaining */
-import { flush, getCurrentHub, startSpan, trace } from '@sentry/core';
+import { flush, getCurrentHub, startSpan } from '@sentry/core';
 import { captureException } from '@sentry/node';
 import type { TransactionContext } from '@sentry/types';
 import { addExceptionMechanism, addNonEnumerableProperty, objectify } from '@sentry/utils';
@@ -81,8 +81,8 @@ export function wrapLoadWithSentry<T extends (...args: any) => any>(origLoad: T)
       };
 
       try {
-        const loadResult = await startSpan(traceLoadContext, () => wrappingTarget.apply(thisArg, args));
-        return loadResult;
+        // We need to await before returning, otherwise we won't catch any errors thrown by the load function
+        return await startSpan(traceLoadContext, () => wrappingTarget.apply(thisArg, args));
       } catch (e) {
         sendErrorToSentry(e);
         throw e;
@@ -153,8 +153,8 @@ export function wrapServerLoadWithSentry<T extends (...args: any) => any>(origSe
       };
 
       try {
-        const serverLoadResult = await startSpan(traceLoadContext, () => wrappingTarget.apply(thisArg, args));
-        return serverLoadResult;
+        // We need to await before returning, otherwise we won't catch any errors thrown by the load function
+        return await startSpan(traceLoadContext, () => wrappingTarget.apply(thisArg, args));
       } catch (e: unknown) {
         sendErrorToSentry(e);
         throw e;

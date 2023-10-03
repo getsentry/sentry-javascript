@@ -1,6 +1,6 @@
 /* eslint-disable @sentry-internal/sdk/no-optional-chaining */
 import type { Span } from '@sentry/core';
-import { flush, getActiveTransaction, getCurrentHub, runWithAsyncContext, startSpan } from '@sentry/core';
+import { getActiveTransaction, getCurrentHub, runWithAsyncContext, startSpan } from '@sentry/core';
 import { captureException } from '@sentry/node';
 import { addExceptionMechanism, dynamicSamplingContextToSentryBaggageHeader, objectify } from '@sentry/utils';
 import type { Handle, ResolveOptions } from '@sveltejs/kit';
