@@ -59,6 +59,7 @@ export {
   startSpan,
   startInactiveSpan,
   startSpanManual,
+  continueTrace,
 } from '@sentry/core';
 export type { SpanStatusType } from '@sentry/core';
 export { autoDiscoverNodePerformanceMonitoringIntegrations } from '@sentry/node';

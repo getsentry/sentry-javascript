@@ -41,6 +41,7 @@ export {
   startSpan,
   startInactiveSpan,
   startSpanManual,
+  continueTrace,
   SDK_VERSION,
   setContext,
   setExtra,
