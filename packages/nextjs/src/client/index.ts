@@ -44,14 +44,17 @@ const globalWithInjectedValues = global as typeof global & {
 
 /** Inits the Sentry NextJS SDK on the browser with the React SDK. */
 export function init(options: BrowserOptions): void {
-  applyTunnelRouteOption(options);
-  buildMetadata(options, ['nextjs', 'react']);
+  const opts = {
+    environment: getVercelEnv(true) || process.env.NODE_ENV,
+    ...options,
+  };
 
-  options.environment = options.environment || getVercelEnv(true) || process.env.NODE_ENV;
+  applyTunnelRouteOption(opts);
+  buildMetadata(opts, ['nextjs', 'react']);
 
-  addClientIntegrations(options);
+  addClientIntegrations(opts);
 
-  reactInit(options);
+  reactInit(opts);
 
   configureScope(scope => {
     scope.setTag('runtime', 'browser');

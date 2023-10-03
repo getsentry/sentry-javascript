@@ -64,7 +64,14 @@ const IS_VERCEL = !!process.env.VERCEL;
 
 /** Inits the Sentry NextJS SDK on node. */
 export function init(options: NodeOptions): void {
-  if (__DEBUG_BUILD__ && options.debug) {
+  const opts = {
+    environment: process.env.SENTRY_ENVIRONMENT || getVercelEnv(false) || process.env.NODE_ENV,
+    ...options,
+    // Right now we only capture frontend sessions for Next.js
+    autoSessionTracking: false,
+  };
+
+  if (__DEBUG_BUILD__ && opts.debug) {
     logger.enable();
   }
 
@@ -75,16 +82,11 @@ export function init(options: NodeOptions): void {
     return;
   }
 
-  buildMetadata(options, ['nextjs', 'node']);
+  buildMetadata(opts, ['nextjs', 'node']);
 
-  options.environment =
-    options.environment || process.env.SENTRY_ENVIRONMENT || getVercelEnv(false) || process.env.NODE_ENV;
+  addServerIntegrations(opts);
 
-  addServerIntegrations(options);
-  // Right now we only capture frontend sessions for Next.js
-  options.autoSessionTracking = false;
-
-  nodeInit(options);
+  nodeInit(opts);
 
   const filterTransactions: EventProcessor = event => {
     return event.type === 'transaction' && event.transaction === '/404' ? null : event;
