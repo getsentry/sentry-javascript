@@ -194,7 +194,7 @@ export default {
 ### Configuring Source maps upload
 
 Under `sourceMapsUploadOptions`, you can also specify all additional options supported by the
-[Sentry Vite Plugin](https://github.com/getsentry/sentry-javascript-bundler-plugins/blob/main/packages/vite-plugin/README.md#configuration).
+[Sentry Vite Plugin](https://www.npmjs.com/package/@sentry/vite-plugin).
 This might be useful if you're using adapters other than the Node adapter or have a more customized build setup.
 
 ```js
