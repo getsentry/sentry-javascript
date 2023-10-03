@@ -180,3 +180,5 @@ targets:
         onlyIfPresent: /^sentry-bun-\d.*\.tgz$/
       'npm:@sentry/vercel-edge':
         onlyIfPresent: /^sentry-vercel-edge-\d.*\.tgz$/
+      'npm:@sentry/ember':
+        onlyIfPresent: /^sentry-ember-\d.*\.tgz$/
