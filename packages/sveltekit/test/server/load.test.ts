@@ -194,7 +194,7 @@ describe.each([
   });
 
   it('adds an exception mechanism', async () => {
-    vi.spyOn(mockScope, 'addEventProcessor').mockImplementationOnce(callback => {
+    const addEventProcessorSpy = vi.spyOn(mockScope, 'addEventProcessor').mockImplementationOnce(callback => {
       void callback({}, { event_id: 'fake-event-id' });
       return mockScope;
     });
@@ -209,7 +209,7 @@ describe.each([
     const res = wrappedLoad(getServerOnlyArgs());
     await expect(res).rejects.toThrow();
 
-    // expect(addEventProcessorSpy).toHaveBeenCalledTimes(1);
+    expect(addEventProcessorSpy).toHaveBeenCalledTimes(1);
     expect(mockAddExceptionMechanism).toBeCalledTimes(1);
     expect(mockAddExceptionMechanism).toBeCalledWith(
       {},
