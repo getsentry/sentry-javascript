@@ -1,5 +1,5 @@
 import * as Sentry from '@sentry/node';
-import type { Integration } from '@sentry/types';
+import type { Integration, SdkMetadata } from '@sentry/types';
 
 import { GoogleCloudGrpc } from '../google-cloud-grpc';
 import { GoogleCloudHttp } from '../google-cloud-http';
@@ -19,12 +19,13 @@ export const defaultIntegrations: Integration[] = [
  * @see {@link Sentry.init}
  */
 export function init(options: Sentry.NodeOptions = {}): void {
-  if (options.defaultIntegrations === undefined) {
-    options.defaultIntegrations = defaultIntegrations;
-  }
+  const opts = {
+    _metadata: {} as SdkMetadata,
+    defaultIntegrations,
+    ...options,
+  };
 
-  options._metadata = options._metadata || {};
-  options._metadata.sdk = {
+  opts._metadata.sdk = opts._metadata.sdk || {
     name: 'sentry.javascript.serverless',
     integrations: ['GCPFunction'],
     packages: [
@@ -36,6 +37,6 @@ export function init(options: Sentry.NodeOptions = {}): void {
     version: Sentry.SDK_VERSION,
   };
 
-  Sentry.init(options);
+  Sentry.init(opts);
   Sentry.addGlobalEventProcessor(serverlessEventProcessor);
 }
