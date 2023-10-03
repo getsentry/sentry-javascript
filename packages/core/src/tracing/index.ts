@@ -11,3 +11,4 @@ export type { SpanStatusType } from './span';
 export { trace, getActiveSpan, startSpan, startInactiveSpan, startActiveSpan, startSpanManual } from './trace';
 export { getDynamicSamplingContextFromClient } from './dynamicSamplingContext';
 export { setMeasurement } from './measurement';
+export { sampleTransaction } from './sampling';
