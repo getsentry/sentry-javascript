@@ -1,5 +1,5 @@
 /* eslint-disable @sentry-internal/sdk/no-optional-chaining */
-import { getCurrentHub, startSpan, trace } from '@sentry/core';
+import { flush, getCurrentHub, startSpan, trace } from '@sentry/core';
 import { captureException } from '@sentry/node';
 import type { TransactionContext } from '@sentry/types';
 import { addExceptionMechanism, addNonEnumerableProperty, objectify } from '@sentry/utils';
@@ -153,12 +153,13 @@ export function wrapServerLoadWithSentry<T extends (...args: any) => any>(origSe
       };
 
       try {
-        const serverLoadResult = startSpan(traceLoadContext, () => wrappingTarget.apply(thisArg, args));
+        const serverLoadResult = await startSpan(traceLoadContext, () => wrappingTarget.apply(thisArg, args));
         return serverLoadResult;
       } catch (e: unknown) {
         sendErrorToSentry(e);
         throw e;
       } finally {
+        await flush(4000);
         await flushIfServerless();
       }
     },

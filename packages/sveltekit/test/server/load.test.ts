@@ -134,8 +134,6 @@ afterEach(() => {
   mockAddExceptionMechanism.mockClear();
   mockStartSpan.mockClear();
   mockScope = new Scope();
-  // @ts-expect-error - this is fine (just tests here)
-  mockScope.mockClear?.call(mockScope);
 });
 
 describe.each([
@@ -195,12 +193,12 @@ describe.each([
     expect(mockCaptureException).not.toHaveBeenCalled();
   });
 
-  vi.spyOn(mockScope, 'addEventProcessor').mockImplementationOnce(callback => {
-    void callback({}, { event_id: 'fake-event-id' });
-    return mockScope;
-  });
+  it('adds an exception mechanism', async () => {
+    vi.spyOn(mockScope, 'addEventProcessor').mockImplementationOnce(callback => {
+      void callback({}, { event_id: 'fake-event-id' });
+      return mockScope;
+    });
 
-  it.only('adds an exception mechanism', async () => {
     async function load({ params }) {
       return {
         post: getById(params.id),
@@ -212,7 +210,7 @@ describe.each([
     await expect(res).rejects.toThrow();
 
     // expect(addEventProcessorSpy).toHaveBeenCalledTimes(1);
-    expect(mockAddExceptionMechanism).toHaveBeenCalledTimes(1);
+    expect(mockAddExceptionMechanism).toBeCalledTimes(1);
     expect(mockAddExceptionMechanism).toBeCalledWith(
       {},
       { handled: false, type: 'sveltekit', data: { function: 'load' } },
