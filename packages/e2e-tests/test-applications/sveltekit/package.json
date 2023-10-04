@@ -12,7 +12,7 @@
     "test:prod": "TEST_ENV=production playwright test",
     "test:dev": "TEST_ENV=development playwright test",
     "test:build": "pnpm install && pnpm build",
-    "test:assert": "pnpm test:test-build && pnpm test:prod && pnpm test:dev"
+    "test:assert": "pnpm test:prod && pnpm test:dev"
   },
   "dependencies": {
     "@sentry/sveltekit": "latest || *"
