@@ -1,15 +1,18 @@
 import type { Event, Primitive } from '@sentry/types';
 
+export type SentryTags = { [key: string]: Primitive } | undefined;
+
 /**
  * NOTE: These types are still considered Beta and subject to change.
  * @hidden
  */
 export interface FeedbackEvent extends Event {
   feedback: {
-    contact_email: string;
     message: string;
-    replay_id: string | undefined;
     url: string;
+    contact_email?: string;
+    name?: string;
+    replay_id?: string;
   };
   // TODO: Add this event type to Event
   // type: 'feedback_event';
@@ -18,10 +21,9 @@ export interface FeedbackEvent extends Event {
 export interface SendFeedbackData {
   feedback: {
     message: string;
-    email: string;
-    replay_id: string | undefined;
-    name: string;
     url: string;
+    email?: string;
+    replay_id?: string;
+    name?: string;
   };
-  tags: { [key: string]: Primitive } | undefined;
 }

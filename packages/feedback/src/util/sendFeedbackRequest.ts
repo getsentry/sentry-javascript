@@ -9,7 +9,6 @@ import { prepareFeedbackEvent } from './prepareFeedbackEvent';
  */
 export async function sendFeedbackRequest({
   feedback: { message, email, name, replay_id, url },
-  tags,
 }: SendFeedbackData): Promise<Response | null> {
   const hub = getCurrentHub();
 
@@ -29,6 +28,7 @@ export async function sendFeedbackRequest({
   const baseEvent = {
     feedback: {
       contact_email: email,
+      name,
       message,
       replay_id,
       url,

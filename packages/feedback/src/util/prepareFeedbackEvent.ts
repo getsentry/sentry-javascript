@@ -4,6 +4,11 @@ import type { Client } from '@sentry/types';
 
 import type { FeedbackEvent } from '../types';
 
+interface PrepareFeedbackEventParams {
+  client: Client;
+  event: FeedbackEvent;
+  scope: Scope;
+}
 /**
  * Prepare a feedback event & enrich it with the SDK metadata.
  */
@@ -11,11 +16,7 @@ export async function prepareFeedbackEvent({
   client,
   scope,
   event,
-}: {
-  client: Client;
-  event: FeedbackEvent;
-  scope: Scope;
-}): Promise<FeedbackEvent | null> {
+}: PrepareFeedbackEventParams): Promise<FeedbackEvent | null> {
   const eventHint = { integrations: undefined };
   if (client.emit) {
     client.emit('preprocessEvent', event, eventHint);
