@@ -56,4 +56,5 @@ export {
   startActiveSpan,
   startInactiveSpan,
   startSpanManual,
+  continueTrace,
 } from '@sentry/node';

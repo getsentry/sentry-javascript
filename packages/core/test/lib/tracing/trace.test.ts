@@ -1,5 +1,5 @@
 import { addTracingExtensions, Hub, makeMain } from '../../../src';
-import { startSpan } from '../../../src/tracing';
+import { continueTrace, startSpan } from '../../../src/tracing';
 import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
 
 beforeAll(() => {
@@ -168,5 +168,156 @@ describe('startSpan', () => {
       expect(ref.spanRecorder.spans).toHaveLength(2);
       expect(ref.spanRecorder.spans[1].op).toEqual('db.query');
     });
+  });
+});
+
+describe('continueTrace', () => {
+  beforeEach(() => {
+    const options = getDefaultTestClientOptions({ tracesSampleRate: 0.0 });
+    client = new TestClient(options);
+    hub = new Hub(client);
+    makeMain(hub);
+  });
+
+  it('works without trace & baggage data', () => {
+    const expectedContext = {
+      metadata: {},
+    };
+
+    const result = continueTrace({ sentryTrace: undefined, baggage: undefined }, ctx => {
+      expect(ctx).toEqual(expectedContext);
+      return ctx;
+    });
+
+    expect(result).toEqual(expectedContext);
+
+    const scope = hub.getScope();
+
+    expect(scope.getPropagationContext()).toEqual({
+      sampled: undefined,
+      spanId: expect.any(String),
+      traceId: expect.any(String),
+    });
+
+    expect(scope['_sdkProcessingMetadata']).toEqual({});
+  });
+
+  it('works with trace data', () => {
+    const expectedContext = {
+      metadata: {
+        dynamicSamplingContext: {},
+      },
+      parentSampled: false,
+      parentSpanId: '1121201211212012',
+      traceId: '12312012123120121231201212312012',
+    };
+
+    const result = continueTrace(
+      {
+        sentryTrace: '12312012123120121231201212312012-1121201211212012-0',
+        baggage: undefined,
+      },
+      ctx => {
+        expect(ctx).toEqual(expectedContext);
+        return ctx;
+      },
+    );
+
+    expect(result).toEqual(expectedContext);
+
+    const scope = hub.getScope();
+
+    expect(scope.getPropagationContext()).toEqual({
+      sampled: false,
+      parentSpanId: '1121201211212012',
+      spanId: expect.any(String),
+      traceId: '12312012123120121231201212312012',
+    });
+
+    expect(scope['_sdkProcessingMetadata']).toEqual({});
+  });
+
+  it('works with trace & baggage data', () => {
+    const expectedContext = {
+      metadata: {
+        dynamicSamplingContext: {
+          environment: 'production',
+          version: '1.0',
+        },
+      },
+      parentSampled: true,
+      parentSpanId: '1121201211212012',
+      traceId: '12312012123120121231201212312012',
+    };
+
+    const result = continueTrace(
+      {
+        sentryTrace: '12312012123120121231201212312012-1121201211212012-1',
+        baggage: 'sentry-version=1.0,sentry-environment=production',
+      },
+      ctx => {
+        expect(ctx).toEqual(expectedContext);
+        return ctx;
+      },
+    );
+
+    expect(result).toEqual(expectedContext);
+
+    const scope = hub.getScope();
+
+    expect(scope.getPropagationContext()).toEqual({
+      dsc: {
+        environment: 'production',
+        version: '1.0',
+      },
+      sampled: true,
+      parentSpanId: '1121201211212012',
+      spanId: expect.any(String),
+      traceId: '12312012123120121231201212312012',
+    });
+
+    expect(scope['_sdkProcessingMetadata']).toEqual({});
+  });
+
+  it('works with trace & 3rd party baggage data', () => {
+    const expectedContext = {
+      metadata: {
+        dynamicSamplingContext: {
+          environment: 'production',
+          version: '1.0',
+        },
+      },
+      parentSampled: true,
+      parentSpanId: '1121201211212012',
+      traceId: '12312012123120121231201212312012',
+    };
+
+    const result = continueTrace(
+      {
+        sentryTrace: '12312012123120121231201212312012-1121201211212012-1',
+        baggage: 'sentry-version=1.0,sentry-environment=production,dogs=great,cats=boring',
+      },
+      ctx => {
+        expect(ctx).toEqual(expectedContext);
+        return ctx;
+      },
+    );
+
+    expect(result).toEqual(expectedContext);
+
+    const scope = hub.getScope();
+
+    expect(scope.getPropagationContext()).toEqual({
+      dsc: {
+        environment: 'production',
+        version: '1.0',
+      },
+      sampled: true,
+      parentSpanId: '1121201211212012',
+      spanId: expect.any(String),
+      traceId: '12312012123120121231201212312012',
+    });
+
+    expect(scope['_sdkProcessingMetadata']).toEqual({});
   });
 });
