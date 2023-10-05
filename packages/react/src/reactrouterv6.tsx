@@ -78,6 +78,7 @@ function getNormalizedName(
   routes: RouteObject[],
   location: Location,
   branches: RouteMatch[],
+  basename: string = '',
 ): [string, TransactionSource] {
   if (!routes || routes.length === 0) {
     return [location.pathname, 'url'];
@@ -99,7 +100,8 @@ function getNormalizedName(
         if (path) {
           const newPath = path[0] === '/' || pathBuilder[pathBuilder.length - 1] === '/' ? path : `/${path}`;
           pathBuilder += newPath;
-          if (branch.pathname === location.pathname) {
+
+          if (basename + branch.pathname === location.pathname) {
             if (
               // If the route defined on the element is something like
               // <Route path="/stores/:storeId/products/:productId" element={<div>Product</div>} />
@@ -108,9 +110,9 @@ function getNormalizedName(
               // We should not count wildcard operators in the url segments calculation
               pathBuilder.slice(-2) !== '/*'
             ) {
-              return [newPath, 'route'];
+              return [basename + newPath, 'route'];
             }
-            return [pathBuilder, 'route'];
+            return [basename + pathBuilder, 'route'];
           }
         }
       }
@@ -131,7 +133,7 @@ function updatePageloadTransaction(
     : (_matchRoutes(routes, location, basename) as unknown as RouteMatch[]);
 
   if (activeTransaction && branches) {
-    activeTransaction.setName(...getNormalizedName(routes, location, branches));
+    activeTransaction.setName(...getNormalizedName(routes, location, branches, basename));
   }
 }
 
@@ -149,7 +151,7 @@ function handleNavigation(
       activeTransaction.finish();
     }
 
-    const [name, source] = getNormalizedName(routes, location, branches);
+    const [name, source] = getNormalizedName(routes, location, branches, basename);
     activeTransaction = _customStartTransaction({
       name,
       op: 'navigation',

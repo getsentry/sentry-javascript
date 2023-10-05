@@ -13,6 +13,7 @@ import { ReplayContainer } from './replay';
 import type { RecordingOptions, ReplayConfiguration, ReplayPluginOptions, SendBufferedReplayOptions } from './types';
 import { getPrivacyOptions } from './util/getPrivacyOptions';
 import { isBrowser } from './util/isBrowser';
+import { maskAttribute } from './util/maskAttribute';
 
 const MEDIA_SELECTORS =
   'img,image,svg,video,object,picture,embed,map,audio,link[rel="icon"],link[rel="apple-touch-icon"]';
@@ -81,6 +82,7 @@ export class Replay implements Integration {
     networkResponseHeaders = [],
 
     mask = [],
+    maskAttributes = ['title', 'placeholder'],
     unmask = [],
     block = [],
     unblock = [],
@@ -104,25 +106,36 @@ export class Replay implements Integration {
   }: ReplayConfiguration = {}) {
     this.name = Replay.id;
 
+    const privacyOptions = getPrivacyOptions({
+      mask,
+      unmask,
+      block,
+      unblock,
+      ignore,
+      blockClass,
+      blockSelector,
+      maskTextClass,
+      maskTextSelector,
+      ignoreClass,
+    });
+
     this._recordingOptions = {
       maskAllInputs,
       maskAllText,
       maskInputOptions: { ...(maskInputOptions || {}), password: true },
       maskTextFn: maskFn,
       maskInputFn: maskFn,
+      maskAttributeFn: (key: string, value: string, el: HTMLElement): string =>
+        maskAttribute({
+          maskAttributes,
+          maskAllText,
+          privacyOptions,
+          key,
+          value,
+          el,
+        }),
 
-      ...getPrivacyOptions({
-        mask,
-        unmask,
-        block,
-        unblock,
-        ignore,
-        blockClass,
-        blockSelector,
-        maskTextClass,
-        maskTextSelector,
-        ignoreClass,
-      }),
+      ...privacyOptions,
 
       // Our defaults
       slimDOMOptions: 'all',
@@ -132,6 +145,16 @@ export class Replay implements Integration {
       // collect fonts, but be aware that `sentry.io` needs to be an allowed
       // origin for playback
       collectFonts: true,
+      errorHandler: (err: Error) => {
+        try {
+          // @ts-expect-error Set this so that replay SDK can ignore errors originating from rrweb
+          err.__rrweb__ = true;
+        } catch {
+          // avoid any potential hazards here
+        }
+        // return true to suppress throwing the error inside of rrweb
+        return true;
+      },
     };
 
     this._initialOptions = {

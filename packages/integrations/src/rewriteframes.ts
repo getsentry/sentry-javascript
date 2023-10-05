@@ -1,4 +1,4 @@
-import type { Event, EventProcessor, Hub, Integration, StackFrame, Stacktrace } from '@sentry/types';
+import type { Event, Integration, StackFrame, Stacktrace } from '@sentry/types';
 import { basename, relative } from '@sentry/utils';
 
 type StackFrameIteratee = (frame: StackFrame) => StackFrame;
@@ -43,17 +43,18 @@ export class RewriteFrames implements Integration {
   /**
    * @inheritDoc
    */
-  public setupOnce(addGlobalEventProcessor: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
-    addGlobalEventProcessor(event => {
-      const self = getCurrentHub().getIntegration(RewriteFrames);
-      if (self) {
-        return self.process(event);
-      }
-      return event;
-    });
+  public setupOnce(_addGlobaleventProcessor: unknown, _getCurrentHub: unknown): void {
+    // noop
   }
 
-  /** JSDoc */
+  /** @inheritDoc */
+  public processEvent(event: Event): Event {
+    return this.process(event);
+  }
+
+  /**
+   * TODO (v8): Make this private/internal
+   */
   public process(originalEvent: Event): Event {
     let processedEvent = originalEvent;
 

@@ -71,7 +71,17 @@ export function wrapLoadWithSentry<T extends (...args: any) => any>(origLoad: T)
 
       addNonEnumerableProperty(patchedEvent as unknown as Record<string, unknown>, '__sentry_wrapped__', true);
 
-      const routeId = event.route.id;
+      // Accessing any member of `event.route` causes SvelteKit to invalidate the
+      // client-side universal `load` function's data prefetched data, causing another reload on the actual navigation.
+      // To work around this, we use `Object.getOwnPropertyDescriptor` which doesn't invoke the proxy.
+      const routeIdDescriptor = event.route && Object.getOwnPropertyDescriptor(event.route, 'id');
+      // First, we try to access the route id from the property descriptor.
+      // This will only work for @sveltejs/kit >= 1.24.0
+      const routeIdFromDescriptor = routeIdDescriptor && (routeIdDescriptor.value as string | undefined);
+      // If routeIdFromDescriptor is undefined, we fall back to the old behavior of accessing
+      // `event.route.id` directly. This will still cause invalidations but we get a route name.
+      const routeId = routeIdFromDescriptor || event.route.id;
+
       return trace(
         {
           op: 'function.sveltekit.load',

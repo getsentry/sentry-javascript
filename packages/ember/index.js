@@ -2,6 +2,8 @@
 const fs = require('fs');
 const crypto = require('crypto');
 
+const { dropUndefinedKeys } = require('@sentry/utils');
+
 function readSnippet(fileName) {
   return fs.readFileSync(`${__dirname}/vendor/${fileName}`, 'utf8');
 }
@@ -30,7 +32,7 @@ module.exports = {
   included() {
     const app = this._findHost();
     const config = app.project.config(app.env);
-    const addonConfig = config['@sentry/ember'] || {};
+    const addonConfig = dropUndefinedKeys(config['@sentry/ember'] || {});
 
     if (!isSerializable(addonConfig)) {
       // eslint-disable-next-line no-console

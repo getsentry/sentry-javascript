@@ -8,8 +8,6 @@ sentryTest('window.open() is considered for slow click', async ({ getLocalTestUr
     sentryTest.skip();
   }
 
-  const reqPromise0 = waitForReplayRequest(page, 0);
-
   await page.route('https://dsn.ingest.sentry.io/**/*', route => {
     return route.fulfill({
       status: 200,
@@ -20,8 +18,7 @@ sentryTest('window.open() is considered for slow click', async ({ getLocalTestUr
 
   const url = await getLocalTestUrl({ testDir: __dirname });
 
-  await page.goto(url);
-  await reqPromise0;
+  await Promise.all([waitForReplayRequest(page, 0), page.goto(url)]);
 
   const reqPromise1 = waitForReplayRequest(page, (event, res) => {
     const { breadcrumbs } = getCustomRecordingEvents(res);

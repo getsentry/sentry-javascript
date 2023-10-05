@@ -4,6 +4,135 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.73.0
+
+### Important Changes
+
+- **feat(replay): Upgrade to rrweb2**
+
+This is fully backwards compatible with prior versions of the Replay SDK. The only breaking change that we will making is to not be masking `aria-label` by default. The reason for this change is to align with our core SDK which also does not mask `aria-label`. This change also enables better support of searching by clicks.
+
+Another change that needs to be highlighted is the 13% bundle size increase. This bundle size increase is necessary to bring improved recording performance and improved replay fidelity, especially in regards to web components and iframes. We will be investigating the reduction of the bundle size in [this PR](https://github.com/getsentry/sentry-javascript/issues/8815).
+
+Here are benchmarks comparing the version 1 of rrweb to version 2
+
+| metric    | v1         | v2         |
+| --------- | ---------- | ---------- |
+| lcp       | 1486.06 ms | 1529.11 ms |
+| cls       | 0.40 ms    | 0.40 ms    |
+| fid       | 1.53 ms    | 1.50 ms    |
+| tbt       | 3207.22 ms | 3036.80 ms |
+| memoryAvg | 131.83 MB  | 124.84 MB  |
+| memoryMax | 324.8 MB   | 339.03 MB  |
+| netTx     | 282.67 KB  | 272.51 KB  |
+| netRx     | 8.02 MB    | 8.07 MB    |
+
+### Other Changes
+
+- feat: Always assemble Envelopes (#9101)
+- feat(node): Rate limit local variables for caught exceptions and enable `captureAllExceptions` by default (#9102)
+- fix(core): Ensure `tunnel` is considered for `isSentryUrl` checks (#9130)
+- fix(nextjs): Fix `RequestAsyncStorage` fallback path (#9126)
+- fix(node-otel): Suppress tracing for generated sentry spans (#9142)
+- fix(node): fill in span data from http request options object (#9112)
+- fix(node): Fixes and improvements to ANR detection  (#9128)
+- fix(sveltekit): Avoid data invalidation in wrapped client-side `load` functions (#9071)
+- ref(core): Refactor `InboundFilters` integration to use `processEvent` (#9020)
+- ref(wasm): Refactor Wasm integration to use `processEvent` (#9019)
+
+Work in this release contributed by @vlad-zhukov. Thank you for your contribution!
+
+## 7.72.0
+
+### Important Changes
+
+- **feat(node): App Not Responding with stack traces (#9079)**
+
+This release introduces support for Application Not Responding (ANR) errors for Node.js applications.
+These errors are triggered when the Node.js main thread event loop of an application is blocked for more than five seconds.
+The Node SDK reports ANR errors as Sentry events and can optionally attach a stacktrace of the blocking code to the ANR event.
+
+To enable ANR detection, import and use the `enableANRDetection` function from the `@sentry/node` package before you run the rest of your application code.
+Any event loop blocking before calling `enableANRDetection` will not be detected by the SDK.
+
+Example (ESM):
+
+```ts
+import * as Sentry from "@sentry/node";
+
+Sentry.init({
+  dsn: "___PUBLIC_DSN___",
+  tracesSampleRate: 1.0,
+});
+
+await Sentry.enableANRDetection({ captureStackTrace: true });
+// Function that runs your app
+runApp();
+```
+
+Example (CJS):
+
+```ts
+const Sentry = require("@sentry/node");
+
+Sentry.init({
+  dsn: "___PUBLIC_DSN___",
+  tracesSampleRate: 1.0,
+});
+
+Sentry.enableANRDetection({ captureStackTrace: true }).then(() => {
+  // Function that runs your app
+  runApp();
+});
+```
+
+### Other Changes
+
+- fix(nextjs): Filter `RequestAsyncStorage` locations by locations that webpack will resolve (#9114)
+- fix(replay): Ensure `replay_id` is not captured when session is expired (#9109)
+
+## 7.71.0
+
+- feat(bun): Instrument Bun.serve (#9080)
+- fix(core): Ensure global event processors are always applied to event (#9064)
+- fix(core): Run client eventProcessors before global ones (#9032)
+- fix(nextjs): Use webpack module paths to attempt to resolve internal request async storage module (#9100)
+- fix(react): Add actual error name to boundary error name (#9065)
+- fix(react): Compare location against `basename`-prefixed route. (#9076)
+- ref(browser): Refactor browser integrations to use `processEvent` (#9022)
+
+Work in this release contributed by @jorrit. Thank you for your contribution!
+
+## 7.70.0
+
+### Important Changes
+
+- **feat: Add Bun SDK (#9029)**
+
+This release contains the beta version of `@sentry/bun`, our SDK for the [Bun JavaScript runtime](https://bun.sh/)! For details on how to use it, please see the [README](./packages/bun/README.md). Any feedback/bug reports are greatly appreciated, please [reach out on GitHub](https://github.com/getsentry/sentry-javascript/discussions/7979).
+
+Note that as of now the Bun runtime does not support global error handlers. This is being actively worked on, see [the tracking issue in Bun's GitHub repo](https://github.com/oven-sh/bun/issues/5091).
+
+- **feat(remix): Add Remix 2.x release support. (#8940)**
+
+The Sentry Remix SDK now officially supports Remix v2! See [our Remix docs for more details](https://docs.sentry.io/platforms/javascript/guides/remix/).
+
+### Other Changes
+
+- chore(node): Upgrade cookie to ^0.5.0 (#9013)
+- feat(core): Introduce `processEvent` hook on `Integration` (#9017)
+- feat(node): Improve non-error messages (#9026)
+- feat(vercel-edge): Add Vercel Edge Runtime package (#9041)
+- fix(remix): Use `React.ComponentType` instead of `React.FC` as `withSentry`'s generic type. (#9043)
+- fix(replay): Ensure replay events go through `preprocessEvent` hook (#9034)
+- fix(replay): Fix typo in Replay types (#9028)
+- fix(sveltekit): Adjust `handleErrorWithSentry` type (#9054)
+- fix(utils): Try-catch monkeypatching to handle frozen objects/functions (#9031)
+
+Work in this release contributed by @Dima-Dim, @krist7599555 and @lifeiscontent. Thank you for your contributions!
+
+Special thanks for @isaacharrisholt for helping us implement a Vercel Edge Runtime SDK which we use under the hood for our Next.js SDK.
+
 ## 7.69.0
 
 ### Important Changes

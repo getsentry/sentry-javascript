@@ -1,4 +1,5 @@
 import type { Tracer } from '@opentelemetry/api';
+import type { Span as OtelSpan } from '@opentelemetry/sdk-trace-base';
 import type { NodeClient, NodeOptions } from '@sentry/node';
 import type { Breadcrumb, Transaction } from '@sentry/types';
 
@@ -24,3 +25,5 @@ export interface TransactionWithBreadcrumbs extends Transaction {
   /** Add a breadcrumb to this transaction. */
   addBreadcrumb(breadcrumb: Breadcrumb, maxBreadcrumbs?: number): void;
 }
+
+export type { OtelSpan };

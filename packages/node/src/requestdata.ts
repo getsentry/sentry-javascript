@@ -322,11 +322,5 @@ function extractQueryParams(req: PolymorphicRequest): string | Record<string, un
     originalUrl = `http://dogs.are.great${originalUrl}`;
   }
 
-  return (
-    req.query ||
-    (typeof URL !== undefined && new URL(originalUrl).search.replace('?', '')) ||
-    // In Node 8, `URL` isn't in the global scope, so we have to use the built-in module from Node
-    url.parse(originalUrl).query ||
-    undefined
-  );
+  return req.query || new url.URL(originalUrl).search.replace('?', '') || undefined;
 }

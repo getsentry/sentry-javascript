@@ -296,7 +296,7 @@ describe('handleSentry', () => {
       } catch (e) {
         expect(mockCaptureException).toBeCalledTimes(1);
         expect(addEventProcessorSpy).toBeCalledTimes(1);
-        expect(mockAddExceptionMechanism).toBeCalledTimes(1);
+        expect(mockAddExceptionMechanism).toBeCalledTimes(2);
         expect(mockAddExceptionMechanism).toBeCalledWith(
           {},
           { handled: false, type: 'sveltekit', data: { function: 'handle' } },

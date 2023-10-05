@@ -1,12 +1,13 @@
 import type { Context } from '@opentelemetry/api';
-import { SpanKind, trace } from '@opentelemetry/api';
+import { context, SpanKind, trace } from '@opentelemetry/api';
+import { suppressTracing } from '@opentelemetry/core';
 import type { Span as OtelSpan, SpanProcessor as OtelSpanProcessor } from '@opentelemetry/sdk-trace-base';
-import { SemanticAttributes } from '@opentelemetry/semantic-conventions';
 import { addGlobalEventProcessor, addTracingExtensions, getCurrentHub, Transaction } from '@sentry/core';
 import type { DynamicSamplingContext, Span as SentrySpan, TraceparentData, TransactionContext } from '@sentry/types';
-import { isString, logger } from '@sentry/utils';
+import { logger } from '@sentry/utils';
 
 import { SENTRY_DYNAMIC_SAMPLING_CONTEXT_KEY, SENTRY_TRACE_PARENT_CONTEXT_KEY } from './constants';
+import { maybeCaptureExceptionForTimedEvent } from './utils/captureExceptionForTimedEvent';
 import { isSentryRequestSpan } from './utils/isSentryRequest';
 import { mapOtelStatus } from './utils/mapOtelStatus';
 import { parseSpanDescription } from './utils/parseOtelSpanDescription';
@@ -109,44 +110,9 @@ export class SentrySpanProcessor implements OtelSpanProcessor {
       return;
     }
 
+    const hub = getCurrentHub();
     otelSpan.events.forEach(event => {
-      if (event.name !== 'exception') {
-        return;
-      }
-
-      const attributes = event.attributes;
-      if (!attributes) {
-        return;
-      }
-
-      const message = attributes[SemanticAttributes.EXCEPTION_MESSAGE];
-      const syntheticError = new Error(message as string | undefined);
-
-      const stack = attributes[SemanticAttributes.EXCEPTION_STACKTRACE];
-      if (isString(stack)) {
-        syntheticError.stack = stack;
-      }
-
-      const type = attributes[SemanticAttributes.EXCEPTION_TYPE];
-      if (isString(type)) {
-        syntheticError.name = type;
-      }
-
-      getCurrentHub().captureException(syntheticError, {
-        captureContext: {
-          contexts: {
-            otel: {
-              attributes: otelSpan.attributes,
-              resource: otelSpan.resource.attributes,
-            },
-            trace: {
-              trace_id: otelSpan.spanContext().traceId,
-              span_id: otelSpan.spanContext().spanId,
-              parent_span_id: otelSpan.parentSpanId,
-            },
-          },
-        },
-      });
+      maybeCaptureExceptionForTimedEvent(hub, event, otelSpan);
     });
 
     if (sentrySpan instanceof Transaction) {
@@ -156,7 +122,10 @@ export class SentrySpanProcessor implements OtelSpanProcessor {
       updateSpanWithOtelData(sentrySpan, otelSpan);
     }
 
-    sentrySpan.finish(convertOtelTimeToSeconds(otelSpan.endTime));
+    // Ensure we do not capture any OTEL spans for finishing (and sending) this
+    context.with(suppressTracing(context.active()), () => {
+      sentrySpan.finish(convertOtelTimeToSeconds(otelSpan.endTime));
+    });
 
     clearSpan(otelSpanId);
   }

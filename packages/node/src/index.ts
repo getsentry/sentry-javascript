@@ -61,6 +61,7 @@ export {
   startActiveSpan,
   startInactiveSpan,
   startSpanManual,
+  continueTrace,
 } from '@sentry/core';
 export type { SpanStatusType } from '@sentry/core';
 export { autoDiscoverNodePerformanceMonitoringIntegrations } from './tracing';
@@ -71,6 +72,7 @@ export { defaultIntegrations, init, defaultStackParser, getSentryRelease } from 
 export { addRequestDataToEvent, DEFAULT_USER_INCLUDES, extractRequestData } from './requestdata';
 export { deepReadDirSync } from './utils';
 export { getModuleFromFilename } from './module';
+export { enableAnrDetection } from './anr';
 
 import { Integrations as CoreIntegrations } from '@sentry/core';
 

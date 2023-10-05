@@ -1,18 +1,8 @@
-import { getCurrentHub } from '@sentry/core';
 import type * as http from 'http';
 import type * as https from 'https';
 import { URL } from 'url';
 
 import { NODE_VERSION } from '../../nodeVersion';
-
-/**
- * Checks whether given url points to Sentry server
- * @param url url to verify
- */
-export function isSentryRequest(url: string): boolean {
-  const dsn = getCurrentHub().getClient()?.getDsn();
-  return dsn ? url.includes(dsn.host) : false;
-}
 
 /**
  * Assembles a URL that's passed to the users to filter on.
@@ -24,11 +14,7 @@ export function isSentryRequest(url: string): boolean {
  */
 // TODO (v8): This function should include auth, query and fragment (it's breaking, so we need to wait for v8)
 export function extractRawUrl(requestOptions: RequestOptions): string {
-  const protocol = requestOptions.protocol || '';
-  const hostname = requestOptions.hostname || requestOptions.host || '';
-  // Don't log standard :80 (http) and :443 (https) ports to reduce the noise
-  const port =
-    !requestOptions.port || requestOptions.port === 80 || requestOptions.port === 443 ? '' : `:${requestOptions.port}`;
+  const { protocol, hostname, port } = parseRequestOptions(requestOptions);
   const path = requestOptions.path ? requestOptions.path : '/';
   return `${protocol}//${hostname}${port}${path}`;
 }
@@ -40,13 +26,10 @@ export function extractRawUrl(requestOptions: RequestOptions): string {
  * @returns Fully-formed URL
  */
 export function extractUrl(requestOptions: RequestOptions): string {
-  const protocol = requestOptions.protocol || '';
-  const hostname = requestOptions.hostname || requestOptions.host || '';
-  // Don't log standard :80 (http) and :443 (https) ports to reduce the noise
-  const port =
-    !requestOptions.port || requestOptions.port === 80 || requestOptions.port === 443 ? '' : `:${requestOptions.port}`;
-  // do not include search or hash in span descriptions, per https://develop.sentry.dev/sdk/data-handling/#structuring-data
+  const { protocol, hostname, port } = parseRequestOptions(requestOptions);
+
   const path = requestOptions.pathname || '/';
+
   // always filter authority, see https://develop.sentry.dev/sdk/data-handling/#structuring-data
   const authority = requestOptions.auth ? redactAuthority(requestOptions.auth) : '';
 
@@ -168,6 +151,21 @@ export function normalizeRequestArgs(
     requestOptions = urlToOptions(requestArgs[0]);
   } else {
     requestOptions = requestArgs[0];
+
+    try {
+      const parsed = new URL(
+        requestOptions.path || '',
+        `${requestOptions.protocol || 'http:'}//${requestOptions.hostname}`,
+      );
+      requestOptions = {
+        pathname: parsed.pathname,
+        search: parsed.search,
+        hash: parsed.hash,
+        ...requestOptions,
+      };
+    } catch (e) {
+      // ignore
+    }
   }
 
   // if the options were given separately from the URL, fold them in
@@ -205,4 +203,21 @@ export function normalizeRequestArgs(
   } else {
     return [requestOptions];
   }
+}
+
+function parseRequestOptions(requestOptions: RequestOptions): {
+  protocol: string;
+  hostname: string;
+  port: string;
+} {
+  const protocol = requestOptions.protocol || '';
+  const hostname = requestOptions.hostname || requestOptions.host || '';
+  // Don't log standard :80 (http) and :443 (https) ports to reduce the noise
+  // Also don't add port if the hostname already includes a port
+  const port =
+    !requestOptions.port || requestOptions.port === 80 || requestOptions.port === 443 || /^(.*):(\d+)$/.test(hostname)
+      ? ''
+      : `:${requestOptions.port}`;
+
+  return { protocol, hostname, port };
 }

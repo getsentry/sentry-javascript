@@ -2,7 +2,7 @@
 import type { Scope } from '@sentry/node';
 import * as Sentry from '@sentry/node';
 import { captureException, captureMessage, flush, getCurrentHub, withScope } from '@sentry/node';
-import type { Integration } from '@sentry/types';
+import type { Integration, SdkMetadata } from '@sentry/types';
 import { isString, logger, tracingContextFromHeaders } from '@sentry/utils';
 // NOTE: I have no idea how to fix this right now, and don't want to waste more time, as it builds just fine — Kamil
 // eslint-disable-next-line import/no-unresolved
@@ -34,7 +34,9 @@ export type AsyncHandler<T extends Handler> = (
 
 export interface WrapperOptions {
   flushTimeout: number;
-  // TODO: DEPRECATED - remove `rethrowAfterCapture` in v7
+  /**
+   * @deprecated This option is unused since v6 and will be removed in v8.
+   */
   rethrowAfterCapture?: boolean;
   callbackWaitsForEmptyEventLoop: boolean;
   captureTimeoutWarning: boolean;
@@ -61,12 +63,13 @@ interface AWSLambdaOptions extends Sentry.NodeOptions {
  * @see {@link Sentry.init}
  */
 export function init(options: AWSLambdaOptions = {}): void {
-  if (options.defaultIntegrations === undefined) {
-    options.defaultIntegrations = defaultIntegrations;
-  }
+  const opts = {
+    _metadata: {} as SdkMetadata,
+    defaultIntegrations,
+    ...options,
+  };
 
-  options._metadata = options._metadata || {};
-  options._metadata.sdk = {
+  opts._metadata.sdk = opts._metadata.sdk || {
     name: 'sentry.javascript.serverless',
     integrations: ['AWSLambda'],
     packages: [
@@ -78,7 +81,7 @@ export function init(options: AWSLambdaOptions = {}): void {
     version: Sentry.SDK_VERSION,
   };
 
-  Sentry.init(options);
+  Sentry.init(opts);
   Sentry.addGlobalEventProcessor(serverlessEventProcessor);
 }
 

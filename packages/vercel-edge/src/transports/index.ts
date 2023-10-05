@@ -2,10 +2,10 @@ import { createTransport } from '@sentry/core';
 import type { BaseTransportOptions, Transport, TransportMakeRequestResponse, TransportRequest } from '@sentry/types';
 import { SentryError } from '@sentry/utils';
 
-export interface EdgeTransportOptions extends BaseTransportOptions {
-  /** Fetch API init parameters. Used by the FetchTransport */
+export interface VercelEdgeTransportOptions extends BaseTransportOptions {
+  /** Fetch API init parameters. */
   fetchOptions?: RequestInit;
-  /** Custom headers for the transport. Used by the XHRTransport and FetchTransport */
+  /** Custom headers for the transport. */
   headers?: { [key: string]: string };
 }
 
@@ -78,7 +78,7 @@ export class IsolatedPromiseBuffer {
 /**
  * Creates a Transport that uses the Edge Runtimes native fetch API to send events to Sentry.
  */
-export function makeEdgeTransport(options: EdgeTransportOptions): Transport {
+export function makeEdgeTransport(options: VercelEdgeTransportOptions): Transport {
   function makeRequest(request: TransportRequest): PromiseLike<TransportMakeRequestResponse> {
     const requestOptions: RequestInit = {
       body: request.body,

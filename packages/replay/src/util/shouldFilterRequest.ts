@@ -1,4 +1,4 @@
-import { getCurrentHub } from '@sentry/core';
+import { getCurrentHub, isSentryRequestUrl } from '@sentry/core';
 
 import type { ReplayContainer } from '../types';
 
@@ -12,14 +12,5 @@ export function shouldFilterRequest(replay: ReplayContainer, url: string): boole
     return false;
   }
 
-  return _isSentryRequest(url);
-}
-
-/**
- * Checks wether a given URL belongs to the configured Sentry DSN.
- */
-function _isSentryRequest(url: string): boolean {
-  const client = getCurrentHub().getClient();
-  const dsn = client && client.getDsn();
-  return dsn ? url.includes(dsn.host) : false;
+  return isSentryRequestUrl(url, getCurrentHub());
 }
