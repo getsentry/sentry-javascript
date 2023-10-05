@@ -1,6 +1,7 @@
+import type { BrowserClient } from '@sentry/browser';
 import { init as browserInit, SDK_VERSION } from '@sentry/browser';
-import { hasTracingEnabled } from '@sentry/core';
-import { arrayify, GLOBAL_OBJ } from '@sentry/utils';
+import { getCurrentHub, hasTracingEnabled } from '@sentry/core';
+import { arrayify, GLOBAL_OBJ, logger } from '@sentry/utils';
 
 import { DEFAULT_HOOKS } from './constants';
 import { attachErrorHandler } from './errorhandler';
@@ -43,7 +44,7 @@ export function init(
 
   browserInit(options);
 
-  if (!options.Vue && !options.app) {
+  if (!options.Vue && !options.app && options.app !== false) {
     // eslint-disable-next-line no-console
     console.warn(
       `[@sentry/vue]: Misconfigured SDK. Vue specific errors will not be captured.
@@ -58,6 +59,22 @@ Update your \`Sentry.init\` call with an appropriate config option:
     apps.forEach(app => vueInit(app, options));
   } else if (options.Vue) {
     vueInit(options.Vue, options);
+  }
+}
+
+/**
+ * Initialize Vue-specific error monitoring for a given Vue app.
+ */
+export function initVueApp(app: Vue, client?: BrowserClient): void {
+  const _client = client || getCurrentHub().getClient();
+  const options = _client && (_client.getOptions() as Options);
+
+  if (options) {
+    vueInit(app, options);
+  } else if (__DEBUG_BUILD__) {
+    logger.warn(
+      '[@sentry/vue]: Cannot initialize as no Client available. Make sure to call `Sentry.init` before calling `initVueApp()`.',
+    );
   }
 }
 

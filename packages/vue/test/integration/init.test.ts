@@ -3,22 +3,17 @@ import { createApp } from 'vue';
 import * as Sentry from './../../src';
 
 describe('Sentry.init', () => {
-  let _consoleWarn: any;
-  let warnings: string[] = [];
+  let warnings: unknown[] = [];
 
   beforeEach(() => {
     warnings = [];
-    // eslint-disable-next-line no-console
-    _consoleWarn = console.warn;
-    // eslint-disable-next-line no-console
-    console.warn = jest.fn((message: string) => {
+    jest.spyOn(console, 'warn').mockImplementation((message: unknown) => {
       warnings.push(message);
     });
   });
 
   afterEach(() => {
-    // eslint-disable-next-line no-console
-    console.warn = _consoleWarn;
+    jest.clearAllMocks();
   });
 
   it('does not warn when correctly setup (Vue 3)', () => {
@@ -89,5 +84,21 @@ describe('Sentry.init', () => {
 Update your \`Sentry.init\` call with an appropriate config option:
 \`app\` (Application Instance - Vue 3) or \`Vue\` (Vue Constructor - Vue 2).`,
     ]);
+  });
+
+  it('does not warn when passing app=false', () => {
+    const el = document.createElement('div');
+    const app = createApp({
+      template: '<div>hello</div>',
+    });
+
+    Sentry.init({
+      app: false,
+      defaultIntegrations: false,
+    });
+
+    app.mount(el);
+
+    expect(warnings).toEqual([]);
   });
 });
