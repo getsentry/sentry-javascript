@@ -7,7 +7,7 @@ import {
   logger,
   stripUrlQueryAndFragment,
 } from '@sentry/utils';
-
+import * as execWithIndices from 'regexp-match-indices';
 import { shouldDisableAutoInstrumentation } from './utils/node-utils';
 
 type Method =
@@ -403,15 +403,14 @@ const extractOriginalRoute = ({ path, regexp, keys }: Layer): string | undefined
     return undefined;
   }
 
-  // add d flag for getting indices from regexp result
-  const pathRegex = new RegExp(regexp, `${regexp.flags}d`);
 
   const orderedKeys = keys.sort((a, b) => a.offset - b.offset);
 
   /**
-   * use custom type cause of TS error with missing indices in RegExpExecArray
+   * use execWithIndices polyfill instead of native RegExp d flag because it has to be compatible with node 8+
    */
-  const execResult = pathRegex.exec(path) as (RegExpExecArray & { indices: [number, number][] }) | null;
+  const execResult = execWithIndices(regexp, path);
+
   if (!execResult || !execResult.indices) {
     return undefined;
   }

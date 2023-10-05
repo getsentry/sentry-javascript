@@ -26,6 +26,7 @@
     "@sentry/core": "7.73.0",
     "@sentry/types": "7.73.0",
     "@sentry/utils": "7.73.0",
+    "regexp-match-indices": "1.0.2",
     "tslib": "^2.4.1 || ^1.9.3"
   },
   "devDependencies": {
