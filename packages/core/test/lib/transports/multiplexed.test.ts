@@ -88,6 +88,9 @@ describe('makeMultiplexedTransport', () => {
   });
 
   it('Falls back to options DSN when a matched DSN is invalid', async () => {
+    // Hide warning logs in the test
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+
     expect.assertions(1);
 
     const makeTransport = makeMultiplexedTransport(
@@ -99,6 +102,8 @@ describe('makeMultiplexedTransport', () => {
 
     const transport = makeTransport({ url: DSN1_URL, ...transportOptions });
     await transport.send(ERROR_ENVELOPE);
+
+    jest.clearAllMocks();
   });
 
   it('DSN can be overridden via match callback', async () => {

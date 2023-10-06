@@ -124,6 +124,18 @@ export function setupIntegration(client: Client, integration: Integration, integ
   __DEBUG_BUILD__ && logger.log(`Integration installed: ${integration.name}`);
 }
 
+/** Add an integration to the current hub's client. */
+export function addIntegration(integration: Integration): void {
+  const client = getCurrentHub().getClient();
+
+  if (!client || !client.addIntegration) {
+    __DEBUG_BUILD__ && logger.warn(`Cannot add integration "${integration.name}" because no SDK Client is available.`);
+    return;
+  }
+
+  client.addIntegration(integration);
+}
+
 // Polyfill for Array.findIndex(), which is not supported in ES5
 function findIndex<T>(arr: T[], callback: (item: T) => boolean): number {
   for (let i = 0; i < arr.length; i++) {

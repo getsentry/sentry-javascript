@@ -25,6 +25,7 @@ export type { VercelEdgeOptions } from './types';
 export {
   addGlobalEventProcessor,
   addBreadcrumb,
+  addIntegration,
   captureException,
   captureEvent,
   captureMessage,
