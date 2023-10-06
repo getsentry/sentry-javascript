@@ -23,6 +23,7 @@
     "access": "public"
   },
   "dependencies": {
+    "@sentry/browser": "7.70.0",
     "@sentry/core": "7.70.0",
     "@sentry/types": "7.70.0",
     "@sentry/utils": "7.70.0",
@@ -52,7 +53,7 @@
     "lint:prettier": "prettier --check \"{src,test,scripts}/**/*.ts\"",
     "test": "jest",
     "test:watch": "jest --watch",
-    "yalc:publish": "ts-node ../../scripts/prepack.ts --bundles && yalc publish ./build/npm --push"
+    "yalc:publish": "ts-node ../../scripts/prepack.ts --bundles && yalc publish ./build/npm --push --sig"
   },
   "volta": {
     "extends": "../../package.json"
