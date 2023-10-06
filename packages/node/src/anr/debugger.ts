@@ -1,6 +1,6 @@
 import type { StackFrame } from '@sentry/types';
-import type { Debugger } from 'inspector';
 import { createDebugPauseMessageHandler } from '@sentry/utils';
+import type { Debugger } from 'inspector';
 
 import { getModuleFromFilename } from '../module';
 import { createWebSocketClient } from './websocket';

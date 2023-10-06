@@ -1,5 +1,6 @@
-import { StackFrame } from '@sentry/types';
+import type { StackFrame } from '@sentry/types';
 import type { Debugger } from 'inspector';
+
 import { dropUndefinedKeys } from './object';
 import { filenameIsInApp, stripSentryFramesAndReverse } from './stacktrace';
 
@@ -51,7 +52,10 @@ function callFrameToStackFrame(
   getModuleFromFilename: (filename: string | undefined) => string | undefined,
   filenameFromScriptId: (id: string) => string | undefined,
 ): StackFrame {
-  const filename = filenameFromScriptId(frame.location.scriptId)?.replace(/^file:\/\//, '');
+  let filename = filenameFromScriptId(frame.location.scriptId);
+  if (filename) {
+    filename = filename.replace(/^file:\/\//, '');
+  }
 
   // CallFrame row/col are 0 based, whereas StackFrame are 1 based
   const colno = frame.location.columnNumber ? frame.location.columnNumber + 1 : undefined;
