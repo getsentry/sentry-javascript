@@ -9,6 +9,7 @@ const EVENT_POLLING_TIMEOUT = 30_000;
 
 test('Sends a server load error to Sentry', async ({ page }) => {
   const errorEventPromise = waitForError('sveltekit', errorEvent => {
+    console.log('>>> ERROR', errorEvent);
     return errorEvent?.exception?.values?.[0]?.value === 'Whoops - Server Load Error!';
   });
 
