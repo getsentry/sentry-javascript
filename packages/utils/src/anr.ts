@@ -1,5 +1,4 @@
 import type { StackFrame } from '@sentry/types';
-import type { Debugger } from 'inspector';
 
 import { dropUndefinedKeys } from './object';
 import { filenameIsInApp, stripSentryFramesAndReverse } from './stacktrace';
@@ -44,18 +43,38 @@ export function watchdogTimer(pollInterval: number, anrThreshold: number, callba
   };
 }
 
+// types copied from inspector.d.ts
+interface Location {
+  scriptId: string;
+  lineNumber: number;
+  columnNumber?: number;
+}
+
+interface CallFrame {
+  functionName: string;
+  location: Location;
+  url: string;
+}
+
+interface ScriptParsedEventDataType {
+  scriptId: string;
+  url: string;
+}
+
+interface PausedEventDataType {
+  callFrames: CallFrame[];
+  reason: string;
+}
+
 /**
  * Converts Debugger.CallFrame to Sentry StackFrame
  */
 function callFrameToStackFrame(
-  frame: Debugger.CallFrame,
+  frame: CallFrame,
+  url: string | undefined,
   getModuleFromFilename: (filename: string | undefined) => string | undefined,
-  filenameFromScriptId: (id: string) => string | undefined,
 ): StackFrame {
-  let filename = filenameFromScriptId(frame.location.scriptId);
-  if (filename) {
-    filename = filename.replace(/^file:\/\//, '');
-  }
+  const filename = url ? url.replace(/^file:\/\//, '') : undefined;
 
   // CallFrame row/col are 0 based, whereas StackFrame are 1 based
   const colno = frame.location.columnNumber ? frame.location.columnNumber + 1 : undefined;
@@ -73,11 +92,8 @@ function callFrameToStackFrame(
 
 // The only messages we care about
 type DebugMessage =
-  | {
-      method: 'Debugger.scriptParsed';
-      params: Debugger.ScriptParsedEventDataType;
-    }
-  | { method: 'Debugger.paused'; params: Debugger.PausedEventDataType };
+  | { method: 'Debugger.scriptParsed'; params: ScriptParsedEventDataType }
+  | { method: 'Debugger.paused'; params: PausedEventDataType };
 
 /**
  * Creates a message handler from the v8 debugger protocol and passed stack frames to the callback when paused.
@@ -100,11 +116,13 @@ export function createDebugPauseMessageHandler(
       sendCommand('Debugger.resume');
       sendCommand('Debugger.disable');
 
-      const frames = stripSentryFramesAndReverse(
-        callFrames.map(frame => callFrameToStackFrame(frame, getModuleFromFilename, id => scripts.get(id))),
+      const stackFrames = stripSentryFramesAndReverse(
+        callFrames.map(frame =>
+          callFrameToStackFrame(frame, scripts.get(frame.location.scriptId), getModuleFromFilename),
+        ),
       );
 
-      pausedStackFrames(frames);
+      pausedStackFrames(stackFrames);
     }
   };
 }
