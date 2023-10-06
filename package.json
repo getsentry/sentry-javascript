@@ -127,7 +127,8 @@
     "yalc": "^1.0.0-pre.53"
   },
   "resolutions": {
-    "**/agent-base": "5"
+    "**/agent-base": "5",
+    "**/terser/source-map": "0.7.4"
   },
   "version": "0.0.0",
   "name": "sentry-javascript"
