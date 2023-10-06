@@ -442,87 +442,13 @@ export class Feedback implements Integration {
       header.className = 'feedback-header';
       header.textContent = this.options.formTitle;
 
-      const formEl = document.createElement('form');
-      formEl.className = 'form';
-      const nameEl = document.createElement('input');
-      nameEl.id = 'name'
-      nameEl.type = 'text'; // TODO can be hidden
-      nameEl.name = 'name';
-      nameEl.className = 'input';
-      nameEl.placeholder = this.options.namePlaceholder;
-      nameEl.ariaHidden = 'false'; // TODO can be hidden
-
-
-      const emailEl = document.createElement('input');
-      emailEl.type = 'text'; // TODO can be hidden
-      emailEl.id = 'email';
-      emailEl.name = 'email';
-      emailEl.className = 'input';
-      emailEl.placeholder = this.options.emailPlaceholder;
-      emailEl.ariaHidden = 'false'; // TODO can be hidden
-
-      const nameLabel = document.createElement('label');
-      nameLabel.htmlFor = 'name';
-      nameLabel.className = 'label';
-      nameLabel.append(this.options.nameLabel, nameEl);
-
-      const emailLabel = document.createElement('label');
-      emailLabel.htmlFor = 'email';
-      emailLabel.className = 'label';
-      emailLabel.append(this.options.emailLabel, emailEl);
-
-      const descLabel = document.createElement('label')
-      descLabel.htmlFor = 'feedback-message';
-      descLabel.className = 'label'
-      const descLabelWrapper = document.createElement('span');
-      descLabelWrapper.textContent = 'Description'; // TODO should be option
-
-      const messageEl = document.createElement('textarea');
-      messageEl.className = 'input';
-      messageEl.autofocus = true;
-      messageEl.rows = 5;
-      messageEl.id = 'feedback-message'
-      messageEl.name = 'message';
-      messageEl.placeholder = this.options.messagePlaceholder
-      const buttonGroup = document.createElement('div');
-      buttonGroup.className = 'btn-group';
-
-      const submitEl = document.createElement('button');
-      submitEl.className = 'btn btn-primary';
-      submitEl.type = 'submit';
-      submitEl.textContent = this.options.submitButtonLabel;
-      submitEl.disabled = true;
-      submitEl.ariaDisabled = 'disabled';
-
-      const cancelEl = document.createElement('button');
-      cancelEl.className = 'btn btn-default';
-      cancelEl.type = 'button';
-      cancelEl.textContent = this.options.cancelButtonLabel;
-
       this.dialog.addEventListener('click', this.closeDialog);
       contentDiv.addEventListener('click', (e) => {
         // Stop event propagation so clicks on content modal do not propagate to dialog (which will close dialog)
         e.stopPropagation();
       })
 
-      cancelEl.addEventListener('click', this.closeDialog);
-      messageEl.addEventListener('keyup', (e) => {
-        if (!(e.currentTarget instanceof HTMLTextAreaElement)) {
-          return;
-        }
-
-        if (e.currentTarget.value) {
-          submitEl.ariaDisabled = 'false';
-          submitEl.disabled = false;
-        } else {
-          submitEl.ariaDisabled = 'true';
-          submitEl.disabled = true;
-        }
-      })
-
-      buttonGroup.append(submitEl, cancelEl);
-      descLabel.append(descLabelWrapper, messageEl);
-      formEl.append(nameLabel, emailLabel, descLabel, buttonGroup);
+      // cancelEl.addEventListener('click', this.closeDialog);
 
       const userKey = this.options.useSentryUser;
 
