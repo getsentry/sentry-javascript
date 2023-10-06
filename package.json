@@ -34,12 +34,13 @@
     "yalc:publish": "lerna run yalc:publish"
   },
   "volta": {
-    "node": "16.19.0",
+    "node": "18.17.0",
     "yarn": "1.22.19"
   },
   "workspaces": [
     "packages/angular",
     "packages/angular-ivy",
+    "packages/astro",
     "packages/browser",
     "packages/browser-integration-tests",
     "packages/bun",
