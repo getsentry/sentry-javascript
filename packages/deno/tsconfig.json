@@ -1,0 +1,23 @@
+{
+  "extends": "../../tsconfig.json",
+
+  "include": ["src/**/*", "lib.deno.d.ts"],
+
+  "compilerOptions": {
+    "lib": ["esnext"],
+    "module": "esnext",
+    "target": "esnext",
+
+    // if TS 4.x or earlier
+    "moduleResolution": "nodenext",
+
+    "jsx": "react-jsx", // support JSX
+    "allowJs": true, // allow importing `.js` from `.ts`
+    "esModuleInterop": true, // allow default imports for CommonJS modules
+
+    // best practices
+    "strict": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true
+  }
+}
