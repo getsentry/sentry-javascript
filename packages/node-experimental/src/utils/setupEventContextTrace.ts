@@ -1,7 +1,7 @@
 import type { Client } from '@sentry/types';
 
 import { getActiveSpan } from './getActiveSpan';
-import { spanIsSdkTraceBaseSpan } from './spanIsSdkTraceBaseSpan';
+import { spanHasParentId } from './spanTypes';
 
 /** Ensure the `trace` context is set on all events. */
 export function setupEventContextTrace(client: Client): void {
@@ -22,7 +22,7 @@ export function setupEventContextTrace(client: Client): void {
       trace: {
         trace_id: spanContext.traceId,
         span_id: spanContext.spanId,
-        parent_span_id: spanIsSdkTraceBaseSpan(span) ? span.parentSpanId : undefined,
+        parent_span_id: spanHasParentId(span) ? span.parentSpanId : undefined,
       },
       ...event.contexts,
     };

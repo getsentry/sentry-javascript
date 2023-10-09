@@ -1,10 +1,7 @@
 import type { Span } from '@opentelemetry/api';
-import type { ReadableSpan } from '@opentelemetry/sdk-trace-base';
 import type { Hub, Scope, TransactionMetadata } from '@sentry/types';
 
-// We allow passing either a Span (=which is bascially a WriteableSpan), or a ReadableSpan
-// As we check by identity anyhow we don't really care
-type AbstractSpan = Span | ReadableSpan;
+import type { AbstractSpan } from '../types';
 
 // We store the parent span, scope & metadata in separate weakmaps, so we can access them for a given span
 // This way we can enhance the data that an OTEL Span natively gives us

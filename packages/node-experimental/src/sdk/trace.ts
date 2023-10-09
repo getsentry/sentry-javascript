@@ -7,7 +7,7 @@ import { isThenable } from '@sentry/utils';
 import { OTEL_ATTR_OP, OTEL_ATTR_ORIGIN, OTEL_ATTR_SOURCE } from '../constants';
 import { setSpanMetadata } from '../opentelemetry/spanData';
 import type { NodeExperimentalClient, NodeExperimentalSpanContext } from '../types';
-import { spanIsSdkTraceBaseSpan } from '../utils/spanIsSdkTraceBaseSpan';
+import { spanIsSdkTraceBaseSpan } from '../utils/spanTypes';
 import { getCurrentHub } from './hub';
 
 /**

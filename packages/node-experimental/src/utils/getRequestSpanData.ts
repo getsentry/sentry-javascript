@@ -4,14 +4,14 @@ import { SemanticAttributes } from '@opentelemetry/semantic-conventions';
 import type { SanitizedRequestData } from '@sentry/types';
 import { getSanitizedUrlString, parseUrl } from '@sentry/utils';
 
-import { spanIsSdkTraceBaseSpan } from './spanIsSdkTraceBaseSpan';
+import { spanHasAttributes } from './spanTypes';
 
 /**
  * Get sanitizied request data from an OTEL span.
  */
 export function getRequestSpanData(span: Span | ReadableSpan): Partial<SanitizedRequestData> {
   // The base `Span` type has no `attributes`, so we need to guard here against that
-  if (!spanIsSdkTraceBaseSpan(span)) {
+  if (!spanHasAttributes(span)) {
     return {};
   }
 

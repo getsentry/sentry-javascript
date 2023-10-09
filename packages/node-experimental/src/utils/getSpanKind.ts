@@ -1,7 +1,7 @@
 import type { Span } from '@opentelemetry/api';
 import { SpanKind } from '@opentelemetry/api';
 
-import { spanIsSdkTraceBaseSpan } from './spanIsSdkTraceBaseSpan';
+import { spanHasKind } from './spanTypes';
 
 /**
  * Get the span kind from a span.
@@ -10,7 +10,7 @@ import { spanIsSdkTraceBaseSpan } from './spanIsSdkTraceBaseSpan';
  * Otherwise, we fall back to `SpanKind.INTERNAL`.
  */
 export function getSpanKind(span: Span): SpanKind {
-  if (spanIsSdkTraceBaseSpan(span)) {
+  if (spanHasKind(span)) {
     return span.kind;
   }
 

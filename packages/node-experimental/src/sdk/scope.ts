@@ -14,7 +14,7 @@ import {
 import { getSpanParent } from '../opentelemetry/spanData';
 import { convertOtelTimeToSeconds } from '../utils/convertOtelTimeToSeconds';
 import { getActiveSpan, getRootSpan } from '../utils/getActiveSpan';
-import { spanIsSdkTraceBaseSpan } from '../utils/spanIsSdkTraceBaseSpan';
+import { spanHasEvents } from '../utils/spanTypes';
 
 /** A fork of the classic scope with some otel specific stuff. */
 export class NodeExperimentalScope extends Scope {
@@ -78,7 +78,7 @@ export class NodeExperimentalScope extends Scope {
     const activeSpan = this.activeSpan || getActiveSpan();
     const rootSpan = activeSpan ? getRootSpan(activeSpan) : undefined;
 
-    if (rootSpan && spanIsSdkTraceBaseSpan(rootSpan)) {
+    if (rootSpan) {
       const mergedBreadcrumb = {
         timestamp: dateTimestampInSeconds(),
         ...breadcrumb,
@@ -174,7 +174,7 @@ function otelEventToBreadcrumb(event: TimedEvent): Breadcrumb {
 }
 
 function getOtelEvents(span: Span, events: TimedEvent[] = []): TimedEvent[] {
-  if (spanIsSdkTraceBaseSpan(span) && span.events) {
+  if (spanHasEvents(span)) {
     events.push(...span.events);
   }
 
