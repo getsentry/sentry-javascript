@@ -6,16 +6,9 @@
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/deno",
   "author": "Sentry",
   "license": "MIT",
-  "main": "build/esm/index.js",
-  "module": "build/esm/index.js",
-  "types": "build/types/index.d.ts",
-  "typesVersions": {
-    "<4.9": {
-      "build/npm/types/index.d.ts": [
-        "build/npm/types-ts3.8/index.d.ts"
-      ]
-    }
-  },
+  "main": "build/index.js",
+  "module": "build/index.js",
+  "types": "build/index.d.ts",
   "publishConfig": {
     "access": "public"
   },
@@ -27,33 +20,26 @@
     "lru_map": "^0.3.3"
   },
   "devDependencies": {
-    "@types/node": "20.8.2"
+    "@types/node": "20.8.2",
+    "@rollup/plugin-commonjs": "^25.0.5",
+    "@rollup/plugin-typescript": "^11.1.5",
+    "rollup-plugin-dts": "^6.1.0"
   },
   "scripts": {
-    "build": "run-p build:transpile build:types",
+    "prebuild": "deno types > lib.deno.d.ts",
+    "build": "rollup -c rollup.config.js",
+    "postbuild": "deno check build/index.js",
     "build:dev": "yarn build",
-    "build:transpile": "rollup -c rollup.npm.config.js",
-    "build:types": "run-s build:types:core build:types:downlevel",
-    "build:types:core": "tsc -p tsconfig.types.json",
-    "build:types:downlevel": "yarn downlevel-dts build/types build/types-ts3.8 --to ts3.8",
     "build:watch": "run-p build:transpile:watch build:types:watch",
     "build:dev:watch": "yarn build:watch",
-    "build:transpile:watch": "rollup -c rollup.npm.config.js --watch",
-    "build:types:watch": "tsc -p tsconfig.types.json --watch",
-    "build:tarball": "ts-node ../../scripts/prepack.ts && npm pack ./build",
     "circularDepCheck": "madge --circular src/index.ts",
-    "clean": "rimraf build coverage sentry-node-*.tgz",
+    "clean": "rimraf build coverage",
     "fix": "run-s fix:eslint fix:prettier",
     "fix:eslint": "eslint . --format stylish --fix",
     "fix:prettier": "prettier --write \"{src,test,scripts}/**/**.ts\"",
     "lint": "run-s lint:prettier lint:eslint",
     "lint:eslint": "eslint . --format stylish",
-    "lint:prettier": "prettier --check \"{src,test,scripts}/**/**.ts\"",
-    "install:bun": "node ./scripts/install-bun.js",
-    "test": "run-s install:bun test:bun",
-    "test:bun": "bun test",
-    "test:watch": "bun test --watch",
-    "yalc:publish": "ts-node ../../scripts/prepack.ts && yalc publish build --push"
+    "lint:prettier": "prettier --check \"{src,test,scripts}/**/**.ts\""
   },
   "volta": {
     "extends": "../../package.json"

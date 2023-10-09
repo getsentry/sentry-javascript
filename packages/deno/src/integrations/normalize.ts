@@ -79,16 +79,14 @@ export class NormalizePaths implements Integration {
       const appRoot = await getAppRoot(error);
 
       if (appRoot) {
-        for (const exception of (event.exception && event.exception.values) || []) {
-          if (exception.stacktrace) {
-            for (const frame of exception.stacktrace.frames || []) {
-              if (frame.filename && frame.in_app) {
-                const startIndex = frame.filename.indexOf(appRoot);
+        for (const exception of event.exception?.values || []) {
+          for (const frame of exception.stacktrace?.frames || []) {
+            if (frame.filename && frame.in_app) {
+              const startIndex = frame.filename.indexOf(appRoot);
 
-                if (startIndex > -1) {
-                  const endIndex = startIndex + appRoot.length;
-                  frame.filename = `app://${frame.filename.substring(endIndex)}`;
-                }
+              if (startIndex > -1) {
+                const endIndex = startIndex + appRoot.length;
+                frame.filename = `app://${frame.filename.substring(endIndex)}`;
               }
             }
           }

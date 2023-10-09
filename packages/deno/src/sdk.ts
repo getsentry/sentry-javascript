@@ -31,7 +31,7 @@ export const defaultIntegrations = [
   new ContextLines(),
   new NormalizePaths(),
   new GlobalHandlers(),
-  // new TraceFetch(),
+  new TraceFetch(),
 ];
 
 const defaultStackParser: StackParser = createStackParser(nodeStackLineParser());

@@ -1,7 +1,4 @@
 module.exports = {
-  env: {
-    node: true,
-  },
   extends: ['../../.eslintrc.js'],
   ignorePatterns: ['lib.deno.d.ts'],
   rules: {
