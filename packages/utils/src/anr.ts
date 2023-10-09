@@ -3,14 +3,19 @@ import type { StackFrame } from '@sentry/types';
 import { dropUndefinedKeys } from './object';
 import { filenameIsInApp, stripSentryFramesAndReverse } from './stacktrace';
 
-type WatchdogReturn = { poll: () => void; enabled: (state: boolean) => void };
+type WatchdogReturn = {
+  /** Resets the watchdog timer */
+  poll: () => void;
+  /** Enables or disables the watchdog timer */
+  enabled: (state: boolean) => void;
+};
 
 /**
  * A node.js watchdog timer
  * @param pollInterval The interval that we expect to get polled at
  * @param anrThreshold The threshold for when we consider ANR
  * @param callback The callback to call for ANR
- * @returns A function to call to reset the timer
+ * @returns An object with `poll` and `enabled` functions {@link WatchdogReturn}
  */
 export function watchdogTimer(pollInterval: number, anrThreshold: number, callback: () => void): WatchdogReturn {
   let lastPoll = process.hrtime();
