@@ -26,6 +26,7 @@ export type { BunOptions } from './types';
 export {
   addGlobalEventProcessor,
   addBreadcrumb,
+  addIntegration,
   captureException,
   captureEvent,
   captureMessage,
