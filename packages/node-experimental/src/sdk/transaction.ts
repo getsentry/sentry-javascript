@@ -1,35 +1,21 @@
 import type { Hub } from '@sentry/core';
-import { sampleTransaction, Transaction } from '@sentry/core';
-import type {
-  ClientOptions,
-  CustomSamplingContext,
-  Hub as HubInterface,
-  Scope,
-  TransactionContext,
-} from '@sentry/types';
+import { Transaction } from '@sentry/core';
+import type { ClientOptions, Hub as HubInterface, Scope, TransactionContext } from '@sentry/types';
 import { uuid4 } from '@sentry/utils';
 
 /**
  * This is a fork of core's tracing/hubextensions.ts _startTransaction,
  * with some OTEL specifics.
  */
-export function startTransaction(
-  hub: HubInterface,
-  transactionContext: TransactionContext,
-  customSamplingContext?: CustomSamplingContext,
-): Transaction {
+export function startTransaction(hub: HubInterface, transactionContext: TransactionContext): Transaction {
   const client = hub.getClient();
   const options: Partial<ClientOptions> = (client && client.getOptions()) || {};
 
-  let transaction = new NodeExperimentalTransaction(transactionContext, hub as Hub);
-  transaction = sampleTransaction(transaction, options, {
-    parentSampled: transactionContext.parentSampled,
-    transactionContext,
-    ...customSamplingContext,
-  });
-  if (transaction.sampled) {
-    transaction.initSpanRecorder(options._experiments && (options._experiments.maxSpans as number));
-  }
+  const transaction = new NodeExperimentalTransaction(transactionContext, hub as Hub);
+  // Since we do not do sampling here, we assume that this is _always_ sampled
+  // Any sampling decision happens in OpenTelemetry's sampler
+  transaction.initSpanRecorder(options._experiments && (options._experiments.maxSpans as number));
+
   if (client && client.emit) {
     client.emit('startTransaction', transaction);
   }
