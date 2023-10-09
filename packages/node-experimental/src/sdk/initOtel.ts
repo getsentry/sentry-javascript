@@ -2,18 +2,21 @@ import { diag, DiagLogLevel } from '@opentelemetry/api';
 import { Resource } from '@opentelemetry/resources';
 import { AlwaysOnSampler, BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
 import { SemanticResourceAttributes } from '@opentelemetry/semantic-conventions';
-import { getCurrentHub, SDK_VERSION } from '@sentry/core';
-import { SentryPropagator, SentrySpanProcessor } from '@sentry/opentelemetry-node';
+import { SDK_VERSION } from '@sentry/core';
+import { SentryPropagator } from '@sentry/opentelemetry-node';
 import { logger } from '@sentry/utils';
 
+import { SentrySpanProcessor } from '../opentelemetry/spanProcessor';
 import type { NodeExperimentalClient } from '../types';
+import { setupEventContextTrace } from '../utils/setupEventContextTrace';
 import { SentryContextManager } from './../opentelemetry/contextManager';
+import { getCurrentHub } from './hub';
 
 /**
  * Initialize OpenTelemetry for Node.
  * We use the @sentry/opentelemetry-node package to communicate with OpenTelemetry.
  */
-export function initOtel(): () => void {
+export function initOtel(): void {
   const client = getCurrentHub().getClient<NodeExperimentalClient>();
 
   if (client?.getOptions().debug) {
@@ -27,6 +30,18 @@ export function initOtel(): () => void {
     diag.setLogger(otelLogger, DiagLogLevel.DEBUG);
   }
 
+  if (client) {
+    setupEventContextTrace(client);
+  }
+
+  const provider = setupOtel();
+  if (client) {
+    client.traceProvider = provider;
+  }
+}
+
+/** Just exported for tests. */
+export function setupOtel(): BasicTracerProvider {
   // Create and configure NodeTracerProvider
   const provider = new BasicTracerProvider({
     sampler: new AlwaysOnSampler(),
@@ -35,6 +50,7 @@ export function initOtel(): () => void {
       [SemanticResourceAttributes.SERVICE_NAMESPACE]: 'sentry',
       [SemanticResourceAttributes.SERVICE_VERSION]: SDK_VERSION,
     }),
+    forceFlushTimeoutMillis: 500,
   });
   provider.addSpanProcessor(new SentrySpanProcessor());
 
@@ -47,9 +63,5 @@ export function initOtel(): () => void {
     contextManager,
   });
 
-  // Cleanup function
-  return () => {
-    void provider.forceFlush();
-    void provider.shutdown();
-  };
+  return provider;
 }

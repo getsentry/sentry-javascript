@@ -5,6 +5,7 @@ import { getAutoPerformanceIntegrations } from '../integrations/getAutoPerforman
 import { Http } from '../integrations/http';
 import type { NodeExperimentalOptions } from '../types';
 import { NodeExperimentalClient } from './client';
+import { getCurrentHub } from './hub';
 import { initOtel } from './initOtel';
 import { setOtelContextAsyncContextStrategy } from './otelAsyncContextStrategy';
 
@@ -19,6 +20,10 @@ export const defaultIntegrations = [
  * Initialize Sentry for Node.
  */
 export function init(options: NodeExperimentalOptions | undefined = {}): void {
+  // Ensure we register our own global hub before something else does
+  // This will register the NodeExperimentalHub as the global hub
+  getCurrentHub();
+
   const isTracingEnabled = hasTracingEnabled(options);
 
   options.defaultIntegrations =

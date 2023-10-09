@@ -1,17 +1,29 @@
+import type { Span } from '@opentelemetry/api';
+import type { ReadableSpan } from '@opentelemetry/sdk-trace-base';
 import { SemanticAttributes } from '@opentelemetry/semantic-conventions';
 import type { SanitizedRequestData } from '@sentry/types';
 import { getSanitizedUrlString, parseUrl } from '@sentry/utils';
 
-import type { OtelSpan } from '../types';
+import { spanHasAttributes } from './spanTypes';
 
 /**
  * Get sanitizied request data from an OTEL span.
  */
-export function getRequestSpanData(span: OtelSpan): SanitizedRequestData {
-  const data: SanitizedRequestData = {
-    url: span.attributes[SemanticAttributes.HTTP_URL] as string,
-    'http.method': (span.attributes[SemanticAttributes.HTTP_METHOD] as string) || 'GET',
+export function getRequestSpanData(span: Span | ReadableSpan): Partial<SanitizedRequestData> {
+  // The base `Span` type has no `attributes`, so we need to guard here against that
+  if (!spanHasAttributes(span)) {
+    return {};
+  }
+
+  const data: Partial<SanitizedRequestData> = {
+    url: span.attributes[SemanticAttributes.HTTP_URL] as string | undefined,
+    'http.method': span.attributes[SemanticAttributes.HTTP_METHOD] as string | undefined,
   };
+
+  // Default to GET if URL is set but method is not
+  if (!data['http.method'] && data.url) {
+    data['http.method'] = 'GET';
+  }
 
   try {
     const urlStr = span.attributes[SemanticAttributes.HTTP_URL];

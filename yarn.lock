@@ -4341,7 +4341,7 @@
   dependencies:
     "@opentelemetry/semantic-conventions" "1.15.2"
 
-"@opentelemetry/core@1.17.0", "@opentelemetry/core@^1.1.0", "@opentelemetry/core@^1.7.0", "@opentelemetry/core@^1.8.0":
+"@opentelemetry/core@1.17.0", "@opentelemetry/core@^1.1.0", "@opentelemetry/core@^1.7.0", "@opentelemetry/core@^1.8.0", "@opentelemetry/core@~1.17.0":
   version "1.17.0"
   resolved "https://registry.yarnpkg.com/@opentelemetry/core/-/core-1.17.0.tgz#6a72425f5f953dc68b4c7c66d947c018173d30d2"
   integrity sha512-tfnl3h+UefCgx1aeN2xtrmr6BmdWGKXypk0pflQR0urFS40aE88trnkOMc2HTJZbMrqEEl4HsaBeFhwLVXsrJg==
