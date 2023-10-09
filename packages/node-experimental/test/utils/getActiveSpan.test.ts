@@ -2,7 +2,6 @@ import { trace } from '@opentelemetry/api';
 import type { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
 
 import { setupOtel } from '../../src/sdk/initOtel';
-import type { OtelSpan } from '../../src/types';
 import { getActiveSpan, getRootSpan } from '../../src/utils/getActiveSpan';
 import { cleanupOtel } from '../helpers/mockSdkInit';
 
@@ -106,16 +105,16 @@ describe('getRootSpan', () => {
     const tracer = trace.getTracer('test');
 
     tracer.startActiveSpan('test', span => {
-      expect(getRootSpan(span as OtelSpan)).toBe(span);
+      expect(getRootSpan(span)).toBe(span);
 
       const inner1 = tracer.startSpan('inner1');
 
-      expect(getRootSpan(inner1 as OtelSpan)).toBe(span);
+      expect(getRootSpan(inner1)).toBe(span);
 
       inner1.end();
 
       tracer.startActiveSpan('inner2', inner2 => {
-        expect(getRootSpan(inner2 as OtelSpan)).toBe(span);
+        expect(getRootSpan(inner2)).toBe(span);
 
         inner2.end();
       });
@@ -128,10 +127,10 @@ describe('getRootSpan', () => {
     const tracer = trace.getTracer('test');
 
     tracer.startActiveSpan('test1', span => {
-      expect(getRootSpan(span as OtelSpan)).toBe(span);
+      expect(getRootSpan(span)).toBe(span);
 
       tracer.startActiveSpan('inner1', inner1 => {
-        expect(getRootSpan(inner1 as OtelSpan)).toBe(span);
+        expect(getRootSpan(inner1)).toBe(span);
         inner1.end();
       });
 
@@ -139,10 +138,10 @@ describe('getRootSpan', () => {
     });
 
     tracer.startActiveSpan('test2', span => {
-      expect(getRootSpan(span as OtelSpan)).toBe(span);
+      expect(getRootSpan(span)).toBe(span);
 
       tracer.startActiveSpan('inner2', inner => {
-        expect(getRootSpan(inner as OtelSpan)).toBe(span);
+        expect(getRootSpan(inner)).toBe(span);
         inner.end();
       });
 

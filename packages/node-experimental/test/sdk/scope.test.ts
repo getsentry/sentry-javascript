@@ -8,7 +8,7 @@ import {
   OTEL_ATTR_BREADCRUMB_LEVEL,
   OTEL_ATTR_BREADCRUMB_TYPE,
 } from '../../src/constants';
-import { setOtelSpanParent } from '../../src/opentelemetry/spanData';
+import { setSpanParent } from '../../src/opentelemetry/spanData';
 import { NodeExperimentalScope } from '../../src/sdk/scope';
 import { createSpan } from '../helpers/createSpan';
 import * as GetActiveSpan from './../../src/utils/getActiveSpan';
@@ -336,8 +336,8 @@ describe('NodeExperimentalScope', () => {
       const rootSpan = createSpan();
       jest.spyOn(GetActiveSpan, 'getActiveSpan').mockReturnValue(span);
 
-      setOtelSpanParent(span, parentSpan);
-      setOtelSpanParent(parentSpan, rootSpan);
+      setSpanParent(span, parentSpan);
+      setSpanParent(parentSpan, rootSpan);
 
       const scope = new NodeExperimentalScope();
 

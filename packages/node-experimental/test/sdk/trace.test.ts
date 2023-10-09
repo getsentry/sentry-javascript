@@ -1,7 +1,8 @@
+import type { Span } from '@opentelemetry/sdk-trace-base';
+
 import * as Sentry from '../../src';
 import { OTEL_ATTR_OP, OTEL_ATTR_ORIGIN, OTEL_ATTR_SOURCE } from '../../src/constants';
-import { getOtelSpanMetadata } from '../../src/opentelemetry/spanData';
-import type { OtelSpan } from '../../src/types';
+import { getSpanMetadata } from '../../src/opentelemetry/spanData';
 import { getActiveSpan } from '../../src/utils/getActiveSpan';
 import { cleanupOtel, mockSdkInit } from '../helpers/mockSdkInit';
 
@@ -16,7 +17,7 @@ describe('trace', () => {
 
   describe('startSpan', () => {
     it('works with a sync callback', () => {
-      const spans: OtelSpan[] = [];
+      const spans: Span[] = [];
 
       expect(getActiveSpan()).toEqual(undefined);
 
@@ -52,7 +53,7 @@ describe('trace', () => {
     });
 
     it('works with an async callback', async () => {
-      const spans: OtelSpan[] = [];
+      const spans: Span[] = [];
 
       expect(getActiveSpan()).toEqual(undefined);
 
@@ -92,8 +93,8 @@ describe('trace', () => {
     });
 
     it('works with multiple parallel calls', () => {
-      const spans1: OtelSpan[] = [];
-      const spans2: OtelSpan[] = [];
+      const spans1: Span[] = [];
+      const spans2: Span[] = [];
 
       expect(getActiveSpan()).toEqual(undefined);
 
@@ -143,7 +144,7 @@ describe('trace', () => {
           expect(span).toBeDefined();
           expect(span?.attributes).toEqual({});
 
-          expect(getOtelSpanMetadata(span!)).toEqual(undefined);
+          expect(getSpanMetadata(span!)).toEqual(undefined);
         },
       );
 
@@ -163,7 +164,7 @@ describe('trace', () => {
             [OTEL_ATTR_OP]: 'my-op',
           });
 
-          expect(getOtelSpanMetadata(span!)).toEqual({ requestPath: 'test-path' });
+          expect(getSpanMetadata(span!)).toEqual({ requestPath: 'test-path' });
         },
       );
     });
@@ -211,7 +212,7 @@ describe('trace', () => {
       expect(span).toBeDefined();
       expect(span?.attributes).toEqual({});
 
-      expect(getOtelSpanMetadata(span!)).toEqual(undefined);
+      expect(getSpanMetadata(span!)).toEqual(undefined);
 
       const span2 = Sentry.startInactiveSpan({
         name: 'outer',
@@ -228,7 +229,7 @@ describe('trace', () => {
         [OTEL_ATTR_OP]: 'my-op',
       });
 
-      expect(getOtelSpanMetadata(span2!)).toEqual({ requestPath: 'test-path' });
+      expect(getSpanMetadata(span2!)).toEqual({ requestPath: 'test-path' });
     });
   });
 });

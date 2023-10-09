@@ -1,9 +1,9 @@
-import { groupOtelSpansWithParents } from '../../src/utils/groupOtelSpansWithParents';
+import { groupSpansWithParents } from '../../src/utils/groupSpansWithParents';
 import { createSpan } from '../helpers/createSpan';
 
-describe('groupOtelSpansWithParents', () => {
+describe('groupSpansWithParents', () => {
   it('works with no spans', () => {
-    const actual = groupOtelSpansWithParents([]);
+    const actual = groupSpansWithParents([]);
     expect(actual).toEqual([]);
   });
 
@@ -13,7 +13,7 @@ describe('groupOtelSpansWithParents', () => {
     const parentSpan2 = createSpan('parent2', { spanId: 'parent2Id', parentSpanId: 'rootId' });
     const child1 = createSpan('child1', { spanId: 'child1', parentSpanId: 'parent1Id' });
 
-    const actual = groupOtelSpansWithParents([rootSpan, parentSpan1, parentSpan2, child1]);
+    const actual = groupSpansWithParents([rootSpan, parentSpan1, parentSpan2, child1]);
     expect(actual).toHaveLength(4);
 
     // Ensure parent & span is correctly set
@@ -48,7 +48,7 @@ describe('groupOtelSpansWithParents', () => {
     const parentSpan2 = createSpan('parent2', { spanId: 'parent2Id', parentSpanId: 'rootId' });
     const child1 = createSpan('child1', { spanId: 'child1', parentSpanId: 'parent1Id' });
 
-    const actual = groupOtelSpansWithParents([parentSpan1, parentSpan2, child1]);
+    const actual = groupSpansWithParents([parentSpan1, parentSpan2, child1]);
     expect(actual).toHaveLength(4);
 
     // Ensure parent & span is correctly set
@@ -86,7 +86,7 @@ describe('groupOtelSpansWithParents', () => {
     const parentSpan2 = createSpan('parent2', { spanId: 'parent2Id', parentSpanId: 'root2Id' });
     const childSpan1 = createSpan('child1', { spanId: 'child1Id', parentSpanId: 'parent1Id' });
 
-    const actual = groupOtelSpansWithParents([childSpan1, parentSpan1, parentSpan2, rootSpan2, rootSpan1]);
+    const actual = groupSpansWithParents([childSpan1, parentSpan1, parentSpan2, rootSpan2, rootSpan1]);
     expect(actual).toHaveLength(5);
 
     // Ensure parent & span is correctly set

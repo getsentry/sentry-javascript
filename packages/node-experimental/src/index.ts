@@ -14,6 +14,7 @@ export * as Handlers from './sdk/handlers';
 export * from './sdk/trace';
 export { getActiveSpan } from './utils/getActiveSpan';
 export { getCurrentHub, getHubFromCarrier } from './sdk/hub';
+export type { Span } from './types';
 
 export {
   makeNodeTransport,
@@ -67,10 +68,8 @@ export type {
   Exception,
   Session,
   SeverityLevel,
-  Span,
   StackFrame,
   Stacktrace,
   Thread,
-  Transaction,
   User,
 } from '@sentry/node';

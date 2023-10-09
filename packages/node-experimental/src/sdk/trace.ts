@@ -1,11 +1,13 @@
-import type { Span, Tracer } from '@opentelemetry/api';
+import type { Tracer } from '@opentelemetry/api';
 import { SpanStatusCode } from '@opentelemetry/api';
+import type { Span } from '@opentelemetry/sdk-trace-base';
 import { hasTracingEnabled } from '@sentry/core';
 import { isThenable } from '@sentry/utils';
 
 import { OTEL_ATTR_OP, OTEL_ATTR_ORIGIN, OTEL_ATTR_SOURCE } from '../constants';
-import { setOtelSpanMetadata } from '../opentelemetry/spanData';
+import { setSpanMetadata } from '../opentelemetry/spanData';
 import type { NodeExperimentalClient, NodeExperimentalSpanContext } from '../types';
+import { spanIsSdkTraceBaseSpan } from '../utils/spanIsSdkTraceBaseSpan';
 import { getCurrentHub } from './hub';
 
 /**
@@ -30,6 +32,13 @@ export function startSpan<T>(spanContext: NodeExperimentalSpanContext, callback:
   return tracer.startActiveSpan(name, (span): T => {
     function finishSpan(): void {
       span.end();
+    }
+
+    // This is just a sanity check - in reality, this should not happen as we control the tracer,
+    // but to ensure type saftey we rather bail out here than to pass an invalid type out
+    if (!spanIsSdkTraceBaseSpan(span)) {
+      span.end();
+      return callback(undefined);
     }
 
     _applySentryAttributesToSpan(span, spanContext);
@@ -86,6 +95,13 @@ export function startInactiveSpan(spanContext: NodeExperimentalSpanContext): Spa
 
   const span = tracer.startSpan(name);
 
+  // This is just a sanity check - in reality, this should not happen as we control the tracer,
+  // but to ensure type saftey we rather bail out here than to pass an invalid type out
+  if (!spanIsSdkTraceBaseSpan(span)) {
+    span.end();
+    return undefined;
+  }
+
   _applySentryAttributesToSpan(span, spanContext);
 
   return span;
@@ -116,6 +132,6 @@ function _applySentryAttributesToSpan(span: Span, spanContext: NodeExperimentalS
   }
 
   if (metadata) {
-    setOtelSpanMetadata(span, metadata);
+    setSpanMetadata(span, metadata);
   }
 }

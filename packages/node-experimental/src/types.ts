@@ -1,5 +1,5 @@
 import type { Tracer } from '@opentelemetry/api';
-import type { BasicTracerProvider, Span as OtelSpan } from '@opentelemetry/sdk-trace-base';
+import type { BasicTracerProvider, Span } from '@opentelemetry/sdk-trace-base';
 import type { NodeClient, NodeOptions } from '@sentry/node';
 import type { SpanOrigin, TransactionMetadata, TransactionSource } from '@sentry/types';
 
@@ -20,4 +20,4 @@ export interface NodeExperimentalSpanContext {
   source?: TransactionSource;
 }
 
-export type { OtelSpan };
+export type { Span };

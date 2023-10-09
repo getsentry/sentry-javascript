@@ -1,3 +1,4 @@
+import type { Span } from '@opentelemetry/api';
 import { SpanKind } from '@opentelemetry/api';
 import { registerInstrumentations } from '@opentelemetry/instrumentation';
 import { HttpInstrumentation } from '@opentelemetry/instrumentation-http';
@@ -7,12 +8,12 @@ import { stringMatchesSomePattern } from '@sentry/utils';
 import type { ClientRequest, IncomingMessage, ServerResponse } from 'http';
 
 import { OTEL_ATTR_ORIGIN } from '../constants';
-import { setOtelSpanMetadata } from '../opentelemetry/spanData';
+import { setSpanMetadata } from '../opentelemetry/spanData';
 import type { NodeExperimentalClient } from '../sdk/client';
 import { getCurrentHub } from '../sdk/hub';
-import type { OtelSpan } from '../types';
 import { getRequestSpanData } from '../utils/getRequestSpanData';
 import { getRequestUrl } from '../utils/getRequestUrl';
+import { getSpanKind } from '../utils/getSpanKind';
 
 interface HttpOptions {
   /**
@@ -128,10 +129,10 @@ export class Http implements Integration {
           requireParentforOutgoingSpans: true,
           requireParentforIncomingSpans: false,
           requestHook: (span, req) => {
-            this._updateSpan(span as unknown as OtelSpan, req);
+            this._updateSpan(span, req);
           },
           responseHook: (span, res) => {
-            this._addRequestBreadcrumb(span as unknown as OtelSpan, res);
+            this._addRequestBreadcrumb(span, res);
           },
         }),
       ],
@@ -146,17 +147,17 @@ export class Http implements Integration {
   }
 
   /** Update the span with data we need. */
-  private _updateSpan(span: OtelSpan, request: ClientRequest | IncomingMessage): void {
+  private _updateSpan(span: Span, request: ClientRequest | IncomingMessage): void {
     span.setAttribute(OTEL_ATTR_ORIGIN, 'auto.http.otel.http');
 
-    if (span.kind === SpanKind.SERVER) {
-      setOtelSpanMetadata(span, { request });
+    if (getSpanKind(span) === SpanKind.SERVER) {
+      setSpanMetadata(span, { request });
     }
   }
 
   /** Add a breadcrumb for outgoing requests. */
-  private _addRequestBreadcrumb(span: OtelSpan, response: IncomingMessage | ServerResponse): void {
-    if (!this._breadcrumbs || span.kind !== SpanKind.CLIENT) {
+  private _addRequestBreadcrumb(span: Span, response: IncomingMessage | ServerResponse): void {
+    if (!this._breadcrumbs || getSpanKind(span) !== SpanKind.CLIENT) {
       return;
     }
 

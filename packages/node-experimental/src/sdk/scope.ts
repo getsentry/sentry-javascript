@@ -1,6 +1,7 @@
+import type { Span } from '@opentelemetry/api';
 import type { TimedEvent } from '@opentelemetry/sdk-trace-base';
 import { Scope } from '@sentry/core';
-import type { Breadcrumb, SeverityLevel, Span } from '@sentry/types';
+import type { Breadcrumb, SeverityLevel, Span as SentrySpan } from '@sentry/types';
 import { dateTimestampInSeconds, dropUndefinedKeys, logger, normalize } from '@sentry/utils';
 
 import {
@@ -10,10 +11,10 @@ import {
   OTEL_ATTR_BREADCRUMB_LEVEL,
   OTEL_ATTR_BREADCRUMB_TYPE,
 } from '../constants';
-import { getOtelSpanParent } from '../opentelemetry/spanData';
-import type { OtelSpan } from '../types';
+import { getSpanParent } from '../opentelemetry/spanData';
 import { convertOtelTimeToSeconds } from '../utils/convertOtelTimeToSeconds';
 import { getActiveSpan, getRootSpan } from '../utils/getActiveSpan';
+import { spanIsSdkTraceBaseSpan } from '../utils/spanIsSdkTraceBaseSpan';
 
 /** A fork of the classic scope with some otel specific stuff. */
 export class NodeExperimentalScope extends Scope {
@@ -21,7 +22,7 @@ export class NodeExperimentalScope extends Scope {
    * This can be set to ensure the scope uses _this_ span as the active one,
    * instead of using getActiveSpan().
    */
-  public activeSpan: OtelSpan | undefined;
+  public activeSpan: Span | undefined;
 
   /**
    * @inheritDoc
@@ -63,7 +64,7 @@ export class NodeExperimentalScope extends Scope {
    * In node-experimental, scope.setSpan() is a noop.
    * Instead, use the global `startSpan()` to define the active span.
    */
-  public setSpan(_span: Span): this {
+  public setSpan(_span: SentrySpan): this {
     __DEBUG_BUILD__ &&
       logger.warn('Calling setSpan() is a noop in @sentry/node-experimental. Use `startSpan()` instead.');
 
@@ -77,7 +78,7 @@ export class NodeExperimentalScope extends Scope {
     const activeSpan = this.activeSpan || getActiveSpan();
     const rootSpan = activeSpan ? getRootSpan(activeSpan) : undefined;
 
-    if (rootSpan) {
+    if (rootSpan && spanIsSdkTraceBaseSpan(rootSpan)) {
       const mergedBreadcrumb = {
         timestamp: dateTimestampInSeconds(),
         ...breadcrumb,
@@ -105,13 +106,13 @@ export class NodeExperimentalScope extends Scope {
 /**
  * Get all breadcrumbs for the given span as well as it's parents.
  */
-function getBreadcrumbsForSpan(span: OtelSpan): Breadcrumb[] {
+function getBreadcrumbsForSpan(span: Span): Breadcrumb[] {
   const events = span ? getOtelEvents(span) : [];
 
   return events.map(otelEventToBreadcrumb);
 }
 
-function breadcrumbToOtelEvent(breadcrumb: Breadcrumb): Parameters<OtelSpan['addEvent']> {
+function breadcrumbToOtelEvent(breadcrumb: Breadcrumb): Parameters<Span['addEvent']> {
   const name = breadcrumb.message || '<no message>';
 
   const dataAttrs = serializeBreadcrumbData(breadcrumb.data);
@@ -172,13 +173,13 @@ function otelEventToBreadcrumb(event: TimedEvent): Breadcrumb {
   return breadcrumb;
 }
 
-function getOtelEvents(span: OtelSpan, events: TimedEvent[] = []): TimedEvent[] {
-  if (span.events) {
+function getOtelEvents(span: Span, events: TimedEvent[] = []): TimedEvent[] {
+  if (spanIsSdkTraceBaseSpan(span) && span.events) {
     events.push(...span.events);
   }
 
   // Go up parent chain and collect events
-  const parent = getOtelSpanParent(span) as OtelSpan | undefined;
+  const parent = getSpanParent(span);
   if (parent) {
     return getOtelEvents(parent, events);
   }

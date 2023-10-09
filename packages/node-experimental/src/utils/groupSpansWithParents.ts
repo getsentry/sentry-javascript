@@ -1,23 +1,24 @@
-import { getOtelSpanParent } from '../opentelemetry/spanData';
-import type { OtelSpan } from '../types';
+import type { ReadableSpan } from '@opentelemetry/sdk-trace-base';
 
-export interface OtelSpanNode {
+import { getSpanParent } from '../opentelemetry/spanData';
+
+export interface SpanNode {
   id: string;
-  span?: OtelSpan;
-  parentNode?: OtelSpanNode | undefined;
-  children: OtelSpanNode[];
+  span?: ReadableSpan;
+  parentNode?: SpanNode | undefined;
+  children: SpanNode[];
 }
 
-type OtelSpanMap = Map<string, OtelSpanNode>;
+type SpanMap = Map<string, SpanNode>;
 
 /**
- * This function runs through a list of OTEL Spans, and wraps them in an `OtelSpanNode`
+ * This function runs through a list of OTEL Spans, and wraps them in an `SpanNode`
  * where each node holds a reference to their parent node.
  */
-export function groupOtelSpansWithParents(otelSpans: OtelSpan[]): OtelSpanNode[] {
-  const nodeMap: OtelSpanMap = new Map<string, OtelSpanNode>();
+export function groupSpansWithParents(spans: ReadableSpan[]): SpanNode[] {
+  const nodeMap: SpanMap = new Map<string, SpanNode>();
 
-  for (const span of otelSpans) {
+  for (const span of spans) {
     createOrUpdateSpanNodeAndRefs(nodeMap, span);
   }
 
@@ -26,8 +27,8 @@ export function groupOtelSpansWithParents(otelSpans: OtelSpan[]): OtelSpanNode[]
   });
 }
 
-function createOrUpdateSpanNodeAndRefs(nodeMap: OtelSpanMap, span: OtelSpan): void {
-  const parentSpan = getOtelSpanParent(span);
+function createOrUpdateSpanNodeAndRefs(nodeMap: SpanMap, span: ReadableSpan): void {
+  const parentSpan = getSpanParent(span);
   const parentIsRemote = parentSpan ? !!parentSpan.spanContext().isRemote : false;
 
   const id = span.spanContext().spanId;
@@ -48,7 +49,7 @@ function createOrUpdateSpanNodeAndRefs(nodeMap: OtelSpanMap, span: OtelSpan): vo
   parentNode.children.push(node);
 }
 
-function createOrGetParentNode(nodeMap: OtelSpanMap, id: string): OtelSpanNode {
+function createOrGetParentNode(nodeMap: SpanMap, id: string): SpanNode {
   const existing = nodeMap.get(id);
 
   if (existing) {
@@ -58,7 +59,7 @@ function createOrGetParentNode(nodeMap: OtelSpanMap, id: string): OtelSpanNode {
   return createOrUpdateNode(nodeMap, { id, children: [] });
 }
 
-function createOrUpdateNode(nodeMap: OtelSpanMap, spanNode: OtelSpanNode): OtelSpanNode {
+function createOrUpdateNode(nodeMap: SpanMap, spanNode: SpanNode): SpanNode {
   const existing = nodeMap.get(spanNode.id);
 
   // If span is already set, nothing to do here

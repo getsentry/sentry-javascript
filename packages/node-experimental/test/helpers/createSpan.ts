@@ -4,12 +4,10 @@ import type { Tracer } from '@opentelemetry/sdk-trace-base';
 import { Span } from '@opentelemetry/sdk-trace-base';
 import { uuid4 } from '@sentry/utils';
 
-import type { OtelSpan } from '../../src/types';
-
 export function createSpan(
   name?: string,
   { spanId, parentSpanId }: { spanId?: string; parentSpanId?: string } = {},
-): OtelSpan {
+): Span {
   const spanProcessor = {
     onStart: () => {},
     onEnd: () => {},

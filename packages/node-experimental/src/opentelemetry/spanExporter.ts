@@ -1,11 +1,12 @@
+import type { Span } from '@opentelemetry/api';
 import { SpanKind } from '@opentelemetry/api';
 import type { ExportResult } from '@opentelemetry/core';
 import { ExportResultCode } from '@opentelemetry/core';
-import type { SpanExporter } from '@opentelemetry/sdk-trace-base';
+import type { ReadableSpan, Span as SdkTraceBaseSpan, SpanExporter } from '@opentelemetry/sdk-trace-base';
 import { SemanticAttributes } from '@opentelemetry/semantic-conventions';
 import { flush } from '@sentry/core';
 import { mapOtelStatus, parseOtelSpanDescription } from '@sentry/opentelemetry-node';
-import type { DynamicSamplingContext, Span, SpanOrigin, TransactionSource } from '@sentry/types';
+import type { DynamicSamplingContext, Span as SentrySpan, SpanOrigin, TransactionSource } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
 import { OTEL_ATTR_OP, OTEL_ATTR_ORIGIN, OTEL_ATTR_PARENT_SAMPLED, OTEL_ATTR_SOURCE } from '../constants';
@@ -13,20 +14,19 @@ import { getCurrentHub } from '../sdk/hub';
 import { NodeExperimentalScope } from '../sdk/scope';
 import type { NodeExperimentalTransaction } from '../sdk/transaction';
 import { startTransaction } from '../sdk/transaction';
-import type { OtelSpan } from '../types';
 import { convertOtelTimeToSeconds } from '../utils/convertOtelTimeToSeconds';
 import { getRequestSpanData } from '../utils/getRequestSpanData';
-import type { OtelSpanNode } from '../utils/groupOtelSpansWithParents';
-import { groupOtelSpansWithParents } from '../utils/groupOtelSpansWithParents';
-import { getOtelSpanHub, getOtelSpanMetadata, getOtelSpanScope } from './spanData';
+import type { SpanNode } from '../utils/groupSpansWithParents';
+import { groupSpansWithParents } from '../utils/groupSpansWithParents';
+import { getSpanHub, getSpanMetadata, getSpanScope } from './spanData';
 
-type OtelSpanNodeCompleted = OtelSpanNode & { span: OtelSpan };
+type SpanNodeCompleted = SpanNode & { span: ReadableSpan };
 
 /**
  * A Sentry-specific exporter that converts OpenTelemetry Spans to Sentry Spans & Transactions.
  */
 export class SentrySpanExporter implements SpanExporter {
-  private _finishedSpans: OtelSpan[];
+  private _finishedSpans: ReadableSpan[];
   private _stopped: boolean;
 
   public constructor() {
@@ -35,7 +35,7 @@ export class SentrySpanExporter implements SpanExporter {
   }
 
   /** @inheritDoc */
-  public export(spans: OtelSpan[], resultCallback: (result: ExportResult) => void): void {
+  public export(spans: ReadableSpan[], resultCallback: (result: ExportResult) => void): void {
     if (this._stopped) {
       return resultCallback({
         code: ExportResultCode.FAILED,
@@ -93,8 +93,8 @@ export class SentrySpanExporter implements SpanExporter {
  * But it _could_ also happen because, for whatever reason, a parent span was lost.
  * In this case, we'll eventually need to clean this up.
  */
-function maybeSend(spans: OtelSpan[]): OtelSpan[] {
-  const grouped = groupOtelSpansWithParents(spans);
+function maybeSend(spans: ReadableSpan[]): ReadableSpan[] {
+  const grouped = groupSpansWithParents(spans);
   const remaining = new Set(grouped);
 
   const rootNodes = getCompletedRootNodes(grouped);
@@ -110,31 +110,31 @@ function maybeSend(spans: OtelSpan[]): OtelSpan[] {
 
     // Now finish the transaction, which will send it together with all the spans
     // We make sure to use the current span as the activeSpan for this transaction
-    const scope = getOtelSpanScope(span);
+    const scope = getSpanScope(span);
     const forkedScope = NodeExperimentalScope.clone(
       scope as NodeExperimentalScope | undefined,
     ) as NodeExperimentalScope;
-    forkedScope.activeSpan = span;
+    forkedScope.activeSpan = span as unknown as Span;
 
     transaction.finishWithScope(convertOtelTimeToSeconds(span.endTime), forkedScope);
   });
 
   return Array.from(remaining)
-    .map(node => node.span as OtelSpan)
-    .filter(Boolean);
+    .map(node => node.span)
+    .filter((span): span is ReadableSpan => !!span);
 }
 
-function getCompletedRootNodes(nodes: OtelSpanNode[]): OtelSpanNodeCompleted[] {
-  return nodes.filter((node): node is OtelSpanNodeCompleted => !!node.span && !node.parentNode);
+function getCompletedRootNodes(nodes: SpanNode[]): SpanNodeCompleted[] {
+  return nodes.filter((node): node is SpanNodeCompleted => !!node.span && !node.parentNode);
 }
 
-function shouldCleanupSpan(span: OtelSpan, maxStartTimeOffsetSeconds: number): boolean {
+function shouldCleanupSpan(span: ReadableSpan, maxStartTimeOffsetSeconds: number): boolean {
   const cutoff = Date.now() / 1000 - maxStartTimeOffsetSeconds;
   return convertOtelTimeToSeconds(span.startTime) < cutoff;
 }
 
-function parseSpan(otelSpan: OtelSpan): { op?: string; origin?: SpanOrigin; source?: TransactionSource } {
-  const attributes = otelSpan.attributes;
+function parseSpan(span: ReadableSpan): { op?: string; origin?: SpanOrigin; source?: TransactionSource } {
+  const attributes = span.attributes;
 
   const origin = attributes[OTEL_ATTR_ORIGIN] as SpanOrigin | undefined;
   const op = attributes[OTEL_ATTR_OP] as string | undefined;
@@ -143,9 +143,9 @@ function parseSpan(otelSpan: OtelSpan): { op?: string; origin?: SpanOrigin; sour
   return { origin, op, source };
 }
 
-function createTransactionForOtelSpan(span: OtelSpan): NodeExperimentalTransaction {
-  const scope = getOtelSpanScope(span);
-  const hub = getOtelSpanHub(span) || getCurrentHub();
+function createTransactionForOtelSpan(span: ReadableSpan): NodeExperimentalTransaction {
+  const scope = getSpanScope(span);
+  const hub = getSpanHub(span) || getCurrentHub();
   const spanContext = span.spanContext();
   const spanId = spanContext.spanId;
   const traceId = spanContext.traceId;
@@ -156,8 +156,8 @@ function createTransactionForOtelSpan(span: OtelSpan): NodeExperimentalTransacti
     ? scope.getPropagationContext().dsc
     : undefined;
 
-  const { op, description, tags, data, origin, source } = getSpanData(span);
-  const metadata = getOtelSpanMetadata(span);
+  const { op, description, tags, data, origin, source } = getSpanData(span as SdkTraceBaseSpan);
+  const metadata = getSpanMetadata(span);
 
   const transaction = startTransaction(hub, {
     spanId,
@@ -167,7 +167,7 @@ function createTransactionForOtelSpan(span: OtelSpan): NodeExperimentalTransacti
     name: description,
     op,
     instrumenter: 'otel',
-    status: mapOtelStatus(span),
+    status: mapOtelStatus(span as SdkTraceBaseSpan),
     startTimestamp: convertOtelTimeToSeconds(span.startTime),
     metadata: {
       dynamicSamplingContext,
@@ -187,15 +187,11 @@ function createTransactionForOtelSpan(span: OtelSpan): NodeExperimentalTransacti
   return transaction;
 }
 
-function createAndFinishSpanForOtelSpan(
-  node: OtelSpanNode,
-  sentryParentSpan: Span,
-  remaining: Set<OtelSpanNode>,
-): void {
+function createAndFinishSpanForOtelSpan(node: SpanNode, sentryParentSpan: SentrySpan, remaining: Set<SpanNode>): void {
   remaining.delete(node);
-  const otelSpan = node.span;
+  const span = node.span;
 
-  const shouldDrop = !otelSpan;
+  const shouldDrop = !span;
 
   // If this span should be dropped, we still want to create spans for the children of this
   if (shouldDrop) {
@@ -205,20 +201,20 @@ function createAndFinishSpanForOtelSpan(
     return;
   }
 
-  const otelSpanId = otelSpan.spanContext().spanId;
-  const { attributes } = otelSpan;
+  const spanId = span.spanContext().spanId;
+  const { attributes } = span;
 
-  const { op, description, tags, data, origin } = getSpanData(otelSpan);
+  const { op, description, tags, data, origin } = getSpanData(span as SdkTraceBaseSpan);
   const allData = { ...removeSentryAttributes(attributes), ...data };
 
   const sentrySpan = sentryParentSpan.startChild({
     description,
     op,
     data: allData,
-    status: mapOtelStatus(otelSpan),
+    status: mapOtelStatus(span as SdkTraceBaseSpan),
     instrumenter: 'otel',
-    startTimestamp: convertOtelTimeToSeconds(otelSpan.startTime),
-    spanId: otelSpanId,
+    startTimestamp: convertOtelTimeToSeconds(span.startTime),
+    spanId,
     origin,
     tags,
   });
@@ -227,10 +223,10 @@ function createAndFinishSpanForOtelSpan(
     createAndFinishSpanForOtelSpan(child, sentrySpan, remaining);
   });
 
-  sentrySpan.finish(convertOtelTimeToSeconds(otelSpan.endTime));
+  sentrySpan.finish(convertOtelTimeToSeconds(span.endTime));
 }
 
-function getSpanData(span: OtelSpan): {
+function getSpanData(span: ReadableSpan): {
   tags: Record<string, string>;
   data: Record<string, unknown>;
   op?: string;
@@ -239,7 +235,12 @@ function getSpanData(span: OtelSpan): {
   origin?: SpanOrigin;
 } {
   const { op: definedOp, source: definedSource, origin } = parseSpan(span);
-  const { op: inferredOp, description, source: inferredSource, data: inferredData } = parseOtelSpanDescription(span);
+  const {
+    op: inferredOp,
+    description,
+    source: inferredSource,
+    data: inferredData,
+  } = parseOtelSpanDescription(span as SdkTraceBaseSpan);
 
   const op = definedOp || inferredOp;
   const source = definedSource || inferredSource;
@@ -274,7 +275,7 @@ function removeSentryAttributes(data: Record<string, unknown>): Record<string, u
   return cleanedData;
 }
 
-function getTags(span: OtelSpan): Record<string, string> {
+function getTags(span: ReadableSpan): Record<string, string> {
   const attributes = span.attributes;
   const tags: Record<string, string> = {};
 
@@ -287,7 +288,7 @@ function getTags(span: OtelSpan): Record<string, string> {
   return tags;
 }
 
-function getData(span: OtelSpan): Record<string, unknown> {
+function getData(span: ReadableSpan): Record<string, unknown> {
   const attributes = span.attributes;
   const data: Record<string, unknown> = {
     'otel.kind': SpanKind[span.kind],

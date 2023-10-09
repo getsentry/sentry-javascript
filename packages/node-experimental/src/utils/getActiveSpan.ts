@@ -1,24 +1,24 @@
+import type { Span } from '@opentelemetry/api';
 import { trace } from '@opentelemetry/api';
 
-import { getOtelSpanParent } from '../opentelemetry/spanData';
-import type { OtelSpan } from '../types';
+import { getSpanParent } from '../opentelemetry/spanData';
 
 /**
  * Returns the currently active span.
  */
-export function getActiveSpan(): OtelSpan | undefined {
-  return trace.getActiveSpan() as OtelSpan | undefined;
+export function getActiveSpan(): Span | undefined {
+  return trace.getActiveSpan();
 }
 
 /**
  * Get the root span for the given span.
  * The given span may be the root span itself.
  */
-export function getRootSpan(span: OtelSpan): OtelSpan {
-  let parent = span;
+export function getRootSpan(span: Span): Span {
+  let parent: Span = span;
 
-  while (getOtelSpanParent(parent)) {
-    parent = getOtelSpanParent(parent) as OtelSpan;
+  while (getSpanParent(parent)) {
+    parent = getSpanParent(parent) as Span;
   }
 
   return parent;

@@ -2,7 +2,7 @@ import type { Instrumentation } from '@opentelemetry/instrumentation';
 import { FastifyInstrumentation } from '@opentelemetry/instrumentation-fastify';
 import type { Integration } from '@sentry/types';
 
-import { addOriginToOtelSpan } from '../utils/addOriginToSpan';
+import { addOriginToSpan } from '../utils/addOriginToSpan';
 import { NodePerformanceIntegration } from './NodePerformanceIntegration';
 
 /**
@@ -31,7 +31,7 @@ export class Fastify extends NodePerformanceIntegration<void> implements Integra
     return [
       new FastifyInstrumentation({
         requestHook(span) {
-          addOriginToOtelSpan(span, 'auto.http.otel.fastify');
+          addOriginToSpan(span, 'auto.http.otel.fastify');
         },
       }),
     ];

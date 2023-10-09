@@ -1,6 +1,7 @@
 import type { Client } from '@sentry/types';
 
 import { getActiveSpan } from './getActiveSpan';
+import { spanIsSdkTraceBaseSpan } from './spanIsSdkTraceBaseSpan';
 
 /** Ensure the `trace` context is set on all events. */
 export function setupEventContextTrace(client: Client): void {
@@ -9,19 +10,19 @@ export function setupEventContextTrace(client: Client): void {
   }
 
   client.addEventProcessor(event => {
-    const otelSpan = getActiveSpan();
-    if (!otelSpan) {
+    const span = getActiveSpan();
+    if (!span) {
       return event;
     }
 
-    const otelSpanContext = otelSpan.spanContext();
+    const spanContext = span.spanContext();
 
     // If event has already set `trace` context, use that one.
     event.contexts = {
       trace: {
-        trace_id: otelSpanContext.traceId,
-        span_id: otelSpanContext.spanId,
-        parent_span_id: otelSpan.parentSpanId,
+        trace_id: spanContext.traceId,
+        span_id: spanContext.spanId,
+        parent_span_id: spanIsSdkTraceBaseSpan(span) ? span.parentSpanId : undefined,
       },
       ...event.contexts,
     };
