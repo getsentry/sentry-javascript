@@ -111,3 +111,19 @@ export interface FeedbackConfigurationWithDefaults {
   namePlaceholder: string;
   // * End of text customization * //
 }
+
+interface BaseTheme {
+  /**
+   * Background color
+   */
+  background: string;
+  /**
+   * Foreground color (i.e. text color)
+   */
+  foreground: string;
+}
+
+export interface FeedbackTheme {
+  light: BaseTheme;
+  dark: BaseTheme;
+}
