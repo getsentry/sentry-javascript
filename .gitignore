@@ -21,8 +21,6 @@ jest/transformers/*.js
 # node tarballs
 packages/*/sentry-*.tgz
 .nxcache
-# ignore the Deno types which are emitted at build time
-packages/deno/lib.deno.d.ts
 
 # logs
 yarn-error.log

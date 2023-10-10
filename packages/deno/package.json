@@ -12,38 +12,34 @@
   "publishConfig": {
     "access": "public"
   },
-  "devDependencies": {
+  "dependencies": {
     "@sentry/core": "7.73.0",
     "@sentry/browser": "7.73.0",
     "@sentry/types": "7.73.0",
     "@sentry/utils": "7.73.0",
+    "rollup-plugin-dts": "^6.1.0"
+  },
+  "devDependencies": {
     "@types/node": "20.8.2",
     "@rollup/plugin-commonjs": "^25.0.5",
     "@rollup/plugin-typescript": "^11.1.5",
-    "lru_map": "^0.3.3",
-    "rollup-plugin-dts": "^6.1.0"
+    "lru_map": "^0.3.3"
   },
   "scripts": {
-    "install:deno": "run-s install:deno:binary install:deno:types",
-    "install:deno:binary": "node ./scripts/install-deno.mjs",
-    "install:deno:types": "deno types > lib.deno.d.ts",
-    "prebuild": "yarn install:deno",
+    "install:deno": "node ./scripts/install-deno.mjs",
     "build": "rollup -c rollup.config.js",
-    "postbuild": "deno check build/index.js",
     "build:dev": "yarn build",
     "build:transpile": "yarn build",
-    "build:watch": "run-p build:transpile:watch build:types:watch",
-    "build:dev:watch": "yarn build:watch",
     "circularDepCheck": "madge --circular src/index.ts",
     "clean": "rimraf build coverage",
-    "prefix": "yarn install:deno",
     "fix": "run-s fix:eslint fix:prettier",
     "fix:eslint": "eslint . --format stylish --fix",
     "fix:prettier": "prettier --write \"{src,test,scripts}/**/**.ts\"",
-    "prelint": "yarn install:deno",
     "lint": "run-s lint:prettier lint:eslint",
     "lint:eslint": "eslint . --format stylish",
-    "lint:prettier": "prettier --check \"{src,test,scripts}/**/**.ts\""
+    "lint:prettier": "prettier --check \"{src,test,scripts}/**/**.ts\"",
+    "test-ci-deno": "run-s install:deno test-ci-deno:types",
+    "test-ci-deno:types": "deno check ./build/index.js"
   },
   "volta": {
     "extends": "../../package.json"
