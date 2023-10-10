@@ -10,7 +10,7 @@ import {
 import type { StackParser } from '@sentry/types';
 import { createStackParser, nodeStackLineParser, stackParserFromStackParserOptions } from '@sentry/utils';
 
-import { ContextLines, DenoContext, GlobalHandlers, NormalizePaths, TraceFetch } from './integrations';
+import { ContextLines, DenoContext, GlobalHandlers, NormalizePaths } from './integrations';
 import { makeFetchTransport } from './transports';
 import type { DenoOptions } from './types';
 
@@ -31,7 +31,6 @@ export const defaultIntegrations = [
   new ContextLines(),
   new NormalizePaths(),
   new GlobalHandlers(),
-  new TraceFetch(),
 ];
 
 const defaultStackParser: StackParser = createStackParser(nodeStackLineParser());
@@ -102,7 +101,7 @@ export function init(options: DenoOptions = {}): void {
     name: 'sentry.javascript.deno',
     packages: [
       {
-        name: 'npm:@sentry/deno',
+        name: 'denoland:sentry',
         version: SDK_VERSION,
       },
     ],
