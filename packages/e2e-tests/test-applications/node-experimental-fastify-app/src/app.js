@@ -30,8 +30,6 @@ app.get('/test-transaction', async function (req, res) {
     Sentry.startSpan({ name: 'child-span' }, () => {});
   });
 
-  await Sentry.flush();
-
   res.send({
     transactionIds: global.transactionIds || [],
   });
