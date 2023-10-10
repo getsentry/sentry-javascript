@@ -1,13 +1,15 @@
-// import { getCurrentHub } from '@sentry/core';
+import { getCurrentHub } from '@sentry/core';
 import type { Integration } from '@sentry/types';
 import { isNodeEnv } from '@sentry/utils';
 
-import type { FeedbackConfigurationWithDefaults } from './types';
+import { sendFeedback } from './sendFeedback';
+import type { FeedbackConfigurationWithDefaults, FeedbackFormData } from './types';
 import { sendFeedbackRequest } from './util/sendFeedbackRequest';
 import { Actor } from './widget/Actor';
 import { createActorStyles } from './widget/Actor.css';
 import { Dialog } from './widget/Dialog';
 import { createDialogStyles } from './widget/Dialog.css';
+import { SuccessMessage } from './widget/SuccessMessage';
 
 export { sendFeedbackRequest };
 
@@ -29,10 +31,14 @@ const THEME = {
   light: {
     background: '#ffffff',
     foreground: '#2B2233',
+    success: '#268d75',
+    error: '#df3338',
   },
   dark: {
     background: '#29232f',
     foreground: '#EBE6EF',
+    success: '#2da98c',
+    error: '#f55459',
   },
 };
 
@@ -76,6 +82,11 @@ export class Feedback implements Integration {
    */
   private _isDialogOpen: boolean;
 
+  /**
+   * Tracks if dialog has ever been opened at least one time
+   */
+  private _hasDialogOpened: boolean;
+
   public constructor({
     showEmail = true,
     showName = true,
@@ -97,6 +108,7 @@ export class Feedback implements Integration {
     messageLabel = 'Description',
     namePlaceholder = 'Your Name',
     nameLabel = 'Name',
+    successMessageText = 'Thank you for your report!',
   }: Partial<FeedbackConfigurationWithDefaults> = {}) {
     // Initializations
     this.name = Feedback.id;
@@ -105,6 +117,7 @@ export class Feedback implements Integration {
     this._host = null;
     this._shadow = null;
     this._isDialogOpen = false;
+    this._hasDialogOpened = false;
 
     this.options = {
       isAnonymous,
@@ -124,6 +137,7 @@ export class Feedback implements Integration {
       messagePlaceholder,
       nameLabel,
       namePlaceholder,
+      successMessageText,
     };
 
     // TOOD: temp for testing;
@@ -164,21 +178,60 @@ export class Feedback implements Integration {
       this._shadow = this._createShadowHost();
     }
 
-    this._shadow.appendChild(createDialogStyles(document, THEME));
-    this._dialog = Dialog({ onCancel: this.closeDialog, options: this.options });
+    // Lazy-load until dialog is opened and only inject styles once
+    if (!this._hasDialogOpened) {
+      this._shadow.appendChild(createDialogStyles(document, THEME));
+    }
+
+    const userKey = this.options.useSentryUser;
+    const scope = getCurrentHub().getScope();
+    const user = scope && scope.getUser();
+
+    this._dialog = Dialog({
+      defaultName: (userKey && user && user[userKey.name]) || '',
+      defaultEmail: (userKey && user && user[userKey.email]) || '',
+      onClose: () => {
+        this.showActor();
+      },
+      onCancel: () => {
+        this.hideDialog();
+        this.showActor();
+      },
+      onSubmit: this._handleFeedbackSubmit,
+      options: this.options,
+    });
     this._shadow.appendChild(this._dialog.$el);
+
+    // Hides the default actor whenever dialog is opened
     this._actor && this._actor.hide();
+
+    this._hasDialogOpened = true;
   }
 
   /**
-   * Closes the dialog
+   * Hides the dialog
    */
-  public closeDialog = (): void => {
+  public hideDialog = (): void => {
     if (this._dialog) {
       this._dialog.close();
     }
+  };
 
-    // TODO: if has default actor, show the button
+  /**
+   * Removes the dialog element from DOM
+   */
+  public removeDialog = (): void => {
+    if (this._dialog) {
+      this._dialog.$el.remove();
+      this._dialog = null;
+    }
+  };
+
+  /**
+   * Displays the default actor
+   */
+  public showActor = (): void => {
+    // TODO: Only show default actor
     if (this._actor) {
       this._actor.show();
     }
@@ -218,7 +271,12 @@ export class Feedback implements Integration {
     this._host.id = 'sentry-feedback';
 
     // Create the shadow root
-    return this._host.attachShadow({ mode: 'open' });
+    const shadow = this._host.attachShadow({ mode: 'open' });
+
+    // Insert styles for actor
+    shadow.appendChild(createActorStyles(document, THEME));
+
+    return shadow;
   }
 
   /**
@@ -230,13 +288,40 @@ export class Feedback implements Integration {
       return;
     }
 
-    // Insert styles for actor
     this._shadow.appendChild(createActorStyles(document, THEME));
 
     // Create Actor component
     this._actor = Actor({ options: this.options, theme: THEME, onClick: this._handleActorClick });
 
     this._shadow.appendChild(this._actor.$el);
+  }
+
+  /**
+   * Show the success message for 5 seconds
+   */
+  protected _showSuccessMessage(): void {
+    if (!this._shadow) {
+      return;
+    }
+
+    const success = SuccessMessage({
+      message: this.options.successMessageText,
+      onRemove: () => {
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+        }
+        this.showActor();
+      },
+      theme: THEME,
+    });
+
+    this._shadow.appendChild(success.$el);
+
+    const timeoutId = setTimeout(() => {
+      if (success) {
+        success.remove();
+      }
+    }, 5000);
   }
 
   /**
@@ -252,6 +337,39 @@ export class Feedback implements Integration {
     // Hide actor button
     if (this._actor) {
       this._actor.hide();
+    }
+  };
+
+  /**
+   * Handler for when the feedback form is completed by the user. This will
+   * create and send the feedback message as an event.
+   */
+  protected _handleFeedbackSubmit = async (feedback: FeedbackFormData): Promise<void> => {
+    console.log('ahndle feedback submit');
+    if (!this._dialog) {
+      // Not sure when this would happen
+      return;
+    }
+
+    try {
+      this._dialog.hideError();
+      this._dialog.setSubmitDisabled();
+      const resp = await sendFeedback(feedback);
+      console.log({ resp });
+      if (resp) {
+        // Success!
+        this.removeDialog();
+        this._showSuccessMessage();
+        return;
+      }
+
+      // Errored... re-enable submit button
+      this._dialog.setSubmitEnabled();
+      this._dialog.showError('There was a problem submitting feedback, please wait and try again.');
+    } catch {
+      // Errored... re-enable submit button
+      this._dialog.setSubmitEnabled();
+      this._dialog.showError('There was a problem submitting feedback, please wait and try again.');
     }
   };
 }
