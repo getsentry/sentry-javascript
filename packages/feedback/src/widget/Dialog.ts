@@ -1,32 +1,42 @@
-import { getCurrentHub } from '@sentry/core';
-
 import type { FeedbackComponent, FeedbackConfigurationWithDefaults, FeedbackFormData } from '../types';
 import { Form } from './Form';
 import { createElement as h } from './util/createElement';
 
 interface DialogProps {
+  defaultName: string;
+  defaultEmail: string;
   onCancel?: (e: Event) => void;
+  onClose?: () => void;
   onSubmit?: (feedback: FeedbackFormData) => void;
   options: FeedbackConfigurationWithDefaults;
 }
 
 interface DialogComponent extends FeedbackComponent<HTMLDialogElement> {
   /**
+   * Shows the error message
+   */
+  showError: (message: string) => void;
+
+  /**
+   * Hides the error message
+   */
+  hideError: () => void;
+
+  /**
    * Disable submit button so that it cannot be clicked
    */
   setSubmitDisabled: () => void;
+
   /**
    * Enable submit buttons so that it can be clicked
    */
   setSubmitEnabled: () => void;
-  /**
-   * Remove the dialog element from the DOM
-   */
-  remove: () => void;
+
   /**
    * Opens and shows the dialog and form
    */
   open: () => void;
+
   /**
    * Closes the dialog and form
    */
@@ -36,11 +46,33 @@ interface DialogComponent extends FeedbackComponent<HTMLDialogElement> {
 /**
  * Feedback dialog component that has the form
  */
-export function Dialog({ onCancel, onSubmit, options }: DialogProps): DialogComponent {
+export function Dialog({
+  defaultName,
+  defaultEmail,
+  onClose,
+  onCancel,
+  onSubmit,
+  options,
+}: DialogProps): DialogComponent {
   let $el: HTMLDialogElement | null = null;
 
   /**
-   *
+   * Handles when the dialog is clicked. In our case, the dialog is the
+   * semi-transparent bg behind the form. We want clicks outside of the form to
+   * hide the form.
+   */
+  function handleDialogClick() {
+    close();
+
+    // Only this should trigger `onClose`, we don't want the `close()` method to
+    // trigger it, otherwise it can cause cycles.
+    if (typeof onClose === 'function') {
+      onClose();
+    }
+  }
+
+  /**
+   * Close the dialog
    */
   function close() {
     if ($el) {
@@ -49,17 +81,7 @@ export function Dialog({ onCancel, onSubmit, options }: DialogProps): DialogComp
   }
 
   /**
-   *
-   */
-  function remove() {
-    if ($el) {
-      $el.remove();
-      $el = null;
-    }
-  }
-
-  /**
-   *
+   * Opens the dialog
    */
   function open() {
     if ($el) {
@@ -67,16 +89,15 @@ export function Dialog({ onCancel, onSubmit, options }: DialogProps): DialogComp
     }
   }
 
-  const userKey = options.useSentryUser;
-  const user = getCurrentHub().getScope()?.getUser();
-
   const {
     $el: $form,
     setSubmitEnabled,
     setSubmitDisabled,
+    showError,
+    hideError,
   } = Form({
-    defaultName: (userKey && user && user[userKey.name]) || '',
-    defaultEmail: (userKey && user && user[userKey.email]) || '',
+    defaultName,
+    defaultEmail,
     options,
     onSubmit,
     onCancel,
@@ -88,7 +109,7 @@ export function Dialog({ onCancel, onSubmit, options }: DialogProps): DialogComp
       id: 'feedback-dialog',
       className: 'dialog',
       open: true,
-      onClick: close,
+      onClick: handleDialogClick,
     },
     h(
       'div',
@@ -106,9 +127,10 @@ export function Dialog({ onCancel, onSubmit, options }: DialogProps): DialogComp
 
   return {
     $el,
+    showError,
+    hideError,
     setSubmitDisabled,
     setSubmitEnabled,
-    remove,
     open,
     close,
   };
