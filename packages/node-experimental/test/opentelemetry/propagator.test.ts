@@ -113,7 +113,7 @@ describe('SentryPropagator', () => {
           'd4cda95b652f4a1592b449d5929fda1b-6e0c63257de34c92-0',
         ],
         [
-          'works without a dsc',
+          'creates a new DSC if none exists yet',
           {
             traceId: 'd4cda95b652f4a1592b449d5929fda1b',
             spanId: '6e0c63257de34c92',
@@ -126,7 +126,12 @@ describe('SentryPropagator', () => {
             sampled: true,
             dsc: undefined,
           },
-          [],
+          [
+            'sentry-environment=production',
+            'sentry-public_key=abc',
+            'sentry-release=1.0.0',
+            'sentry-trace_id=d4cda95b652f4a1592b449d5929fda1b',
+          ],
           'd4cda95b652f4a1592b449d5929fda1b-6e0c63257de34c92-1',
         ],
         [

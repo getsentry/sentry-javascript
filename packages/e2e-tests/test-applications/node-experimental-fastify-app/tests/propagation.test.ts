@@ -41,9 +41,19 @@ test('Propagates trace for outgoing http requests', async ({ baseURL }) => {
 
   // data is passed through from the inbound request, to verify we have the correct headers set
   const inboundHeaderSentryTrace = data.headers?.['sentry-trace'];
+  const inboundHeaderBaggage = data.headers?.['baggage'];
+
   expect(inboundHeaderSentryTrace).toEqual(`${traceId}-${outgoingHttpSpanId}-1`);
-  // Baggage and DSC are not set
-  expect(data.headers?.['baggage']).toEqual(undefined);
+  expect(inboundHeaderBaggage).toBeDefined();
+
+  const baggage = (inboundHeaderBaggage || '').split(',');
+  expect(baggage).toEqual(
+    expect.arrayContaining([
+      'sentry-environment=qa',
+      `sentry-trace_id=${traceId}`,
+      expect.stringMatching(/sentry-public_key=/),
+    ]),
+  );
 
   expect(outboundTransaction).toEqual(
     expect.objectContaining({
