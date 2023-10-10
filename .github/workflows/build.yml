@@ -419,6 +419,38 @@ jobs:
       - name: Compute test coverage
         uses: codecov/codecov-action@v3
 
+  job_deno_unit_tests:
+    name: Deno Unit Tests
+    needs: [job_get_metadata, job_build]
+    timeout-minutes: 10
+    runs-on: ubuntu-20.04
+    strategy:
+      fail-fast: false
+    steps:
+      - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.HEAD_COMMIT }}
+      - name: Set up Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ env.DEFAULT_NODE_VERSION }}
+      - name: Set up Deno
+        uses: denoland/setup-deno@v1
+        with:
+          deno-version: v1.x
+      - name: Restore caches
+        uses: ./.github/actions/restore-cache
+        env:
+          DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
+      - name: Run tests
+        run: |
+          cd packages/deno
+          yarn build
+          yarn test
+      - name: Compute test coverage
+        uses: codecov/codecov-action@v3
+
   job_node_unit_tests:
     name: Node (${{ matrix.node }}) Unit Tests
     needs: [job_get_metadata, job_build]
@@ -895,6 +927,7 @@ jobs:
         job_browser_build_tests,
         job_browser_unit_tests,
         job_bun_unit_tests,
+        job_deno_unit_tests,
         job_node_unit_tests,
         job_nextjs_integration_test,
         job_node_integration_tests,

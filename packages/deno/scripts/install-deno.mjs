@@ -10,8 +10,7 @@ async function download(url) {
 }
 
 try {
-  // Ensure we're using the latest Deno version
-  execSync('deno upgrade', { stdio: 'inherit' });
+  execSync('deno --version', { stdio: 'inherit' });
 } catch (_) {
   console.error('Deno is not installed. Installing...');
   if (process.platform === 'win32') {

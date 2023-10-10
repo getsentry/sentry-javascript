@@ -27,7 +27,7 @@
     "postpublish": "lerna run --stream --concurrency 1 postpublish",
     "test": "lerna run --ignore \"@sentry-internal/{browser-integration-tests,e2e-tests,integration-shims,node-integration-tests,overhead-metrics}\" test",
     "test:unit": "lerna run --ignore \"@sentry-internal/{browser-integration-tests,e2e-tests,integration-shims,node-integration-tests,overhead-metrics}\" test:unit",
-    "test-ci-browser": "lerna run test --ignore \"@sentry/{bun,node,node-experimental,opentelemetry-node,serverless,nextjs,remix,gatsby,sveltekit,vercel-edge}\" --ignore \"@sentry-internal/{browser-integration-tests,e2e-tests,integration-shims,node-integration-tests,overhead-metrics}\"",
+    "test-ci-browser": "lerna run test --ignore \"@sentry/{bun,deno,node,node-experimental,opentelemetry-node,serverless,nextjs,remix,gatsby,sveltekit,vercel-edge}\" --ignore \"@sentry-internal/{browser-integration-tests,e2e-tests,integration-shims,node-integration-tests,overhead-metrics}\"",
     "test-ci-node": "ts-node ./scripts/node-unit-tests.ts",
     "test-ci-bun": "lerna run test --scope @sentry/bun",
     "test:update-snapshots": "lerna run test:update-snapshots",

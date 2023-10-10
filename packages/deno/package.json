@@ -38,8 +38,8 @@
     "lint": "run-s lint:prettier lint:eslint",
     "lint:eslint": "eslint . --format stylish",
     "lint:prettier": "prettier --check \"{src,test,scripts}/**/**.ts\"",
-    "test-ci-deno": "run-s install:deno test-ci-deno:types",
-    "test-ci-deno:types": "deno check ./build/index.js"
+    "test": "run-s install:deno test:types",
+    "test:types": "deno check ./build/index.js"
   },
   "volta": {
     "extends": "../../package.json"
