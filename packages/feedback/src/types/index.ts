@@ -127,3 +127,7 @@ export interface FeedbackTheme {
   light: BaseTheme;
   dark: BaseTheme;
 }
+
+export interface FeedbackComponent<T extends HTMLElement> {
+  $el: T;
+}
