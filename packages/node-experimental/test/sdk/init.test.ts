@@ -3,6 +3,7 @@ import type { Integration } from '@sentry/types';
 import * as auto from '../../src/integrations/getAutoPerformanceIntegrations';
 import * as sdk from '../../src/sdk/init';
 import { init } from '../../src/sdk/init';
+import { cleanupOtel } from '../helpers/mockSdkInit';
 
 // eslint-disable-next-line no-var
 declare var global: any;
@@ -31,6 +32,8 @@ describe('init()', () => {
   afterEach(() => {
     // @ts-expect-error - Reset the default integrations of node sdk to original
     sdk.defaultIntegrations = defaultIntegrationsBackup;
+
+    cleanupOtel();
   });
 
   it("doesn't install default integrations if told not to", () => {

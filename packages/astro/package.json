@@ -19,6 +19,13 @@
   "peerDependencies": {
     "astro": "1.x"
   },
+  "dependencies": {
+    "@sentry/browser": "7.73.0",
+    "@sentry/node": "7.73.0",
+    "@sentry/core": "7.73.0",
+    "@sentry/utils": "7.73.0",
+    "@sentry/types": "7.73.0"
+  },
   "devDependencies": {
     "astro": "^3.2.3",
     "rollup": "^3.20.2",

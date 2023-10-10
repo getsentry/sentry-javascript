@@ -1,6 +1,8 @@
 import type { Integration, Options } from '@sentry/types';
+import { logger } from '@sentry/utils';
 
-import { getIntegrationsToSetup, installedIntegrations, setupIntegration } from '../../src/integration';
+import { Hub, makeMain } from '../../src/hub';
+import { addIntegration, getIntegrationsToSetup, installedIntegrations, setupIntegration } from '../../src/integration';
 import { getDefaultTestClientOptions, TestClient } from '../mocks/client';
 
 function getTestClient(): TestClient {
@@ -557,5 +559,53 @@ describe('setupIntegration', () => {
     await client.flush();
 
     expect(sendEvent).not.toHaveBeenCalled();
+  });
+});
+
+describe('addIntegration', () => {
+  beforeEach(function () {
+    // Reset the (global!) list of installed integrations
+    installedIntegrations.splice(0, installedIntegrations.length);
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('works with a client setup', () => {
+    const warnings = jest.spyOn(logger, 'warn');
+
+    class CustomIntegration implements Integration {
+      name = 'test';
+      setupOnce = jest.fn();
+    }
+
+    const client = getTestClient();
+    const hub = new Hub(client);
+    makeMain(hub);
+
+    const integration = new CustomIntegration();
+    addIntegration(integration);
+
+    expect(integration.setupOnce).toHaveBeenCalledTimes(1);
+    expect(warnings).not.toHaveBeenCalled();
+  });
+
+  it('works without a client setup', () => {
+    const warnings = jest.spyOn(logger, 'warn');
+    class CustomIntegration implements Integration {
+      name = 'test';
+      setupOnce = jest.fn();
+    }
+
+    const hub = new Hub();
+    makeMain(hub);
+
+    const integration = new CustomIntegration();
+    addIntegration(integration);
+
+    expect(integration.setupOnce).not.toHaveBeenCalled();
+    expect(warnings).toHaveBeenCalledTimes(1);
+    expect(warnings).toHaveBeenCalledWith('Cannot add integration "test" because no SDK Client is available.');
   });
 });

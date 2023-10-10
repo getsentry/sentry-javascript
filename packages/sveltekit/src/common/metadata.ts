@@ -8,7 +8,7 @@ const PACKAGE_NAME_PREFIX = 'npm:@sentry/';
  *
  * Note: This function is identical to `buildMetadata` in Remix and NextJS.
  * We don't extract it for bundle size reasons.
- * If you make changes to this function consider updating the othera as well.
+ * If you make changes to this function consider updating the others as well.
  *
  * @param options SDK options object that gets mutated
  * @param names list of package names

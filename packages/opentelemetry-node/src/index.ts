@@ -1,7 +1,10 @@
-import { getSentrySpan } from './utils/spanMap';
+import { SENTRY_TRACE_PARENT_CONTEXT_KEY } from './constants';
 
 export { SentrySpanProcessor } from './spanprocessor';
 export { SentryPropagator } from './propagator';
+export { maybeCaptureExceptionForTimedEvent } from './utils/captureExceptionForTimedEvent';
+export { parseOtelSpanDescription } from './utils/parseOtelSpanDescription';
+export { mapOtelStatus } from './utils/mapOtelStatus';
 
 /* eslint-disable deprecation/deprecation */
 export { addOtelSpanData, getOtelSpanData, clearOtelSpanData } from './utils/spanData';
@@ -16,4 +19,4 @@ export type { AdditionalOtelSpanData } from './utils/spanData';
  *
  * @private
  */
-export { getSentrySpan as _INTERNAL_getSentrySpan };
+export { SENTRY_TRACE_PARENT_CONTEXT_KEY as _INTERNAL_SENTRY_TRACE_PARENT_CONTEXT_KEY };
