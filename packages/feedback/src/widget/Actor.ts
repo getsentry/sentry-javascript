@@ -1,4 +1,4 @@
-import type { FeedbackConfigurationWithDefaults, FeedbackTheme } from '../types';
+import type { FeedbackComponent, FeedbackConfigurationWithDefaults, FeedbackTheme } from '../types';
 import { Icon } from './Icon';
 import { createElement as h } from './util/createElement';
 
@@ -8,8 +8,7 @@ interface Props {
   onClick?: (e: MouseEvent) => void;
 }
 
-interface ActorReturn {
-  $el: HTMLButtonElement;
+interface ActorComponent extends FeedbackComponent<HTMLButtonElement> {
   /**
    * Shows the actor element
    */
@@ -23,7 +22,7 @@ interface ActorReturn {
 /**
  *
  */
-export function Actor({ options, theme, onClick }: Props): ActorReturn {
+export function Actor({ options, theme, onClick }: Props): ActorComponent {
   function _handleClick(e: MouseEvent) {
     if (typeof onClick === 'function') {
       onClick(e);
