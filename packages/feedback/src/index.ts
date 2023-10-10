@@ -1,13 +1,13 @@
-import { getCurrentHub } from '@sentry/core';
+// import { getCurrentHub } from '@sentry/core';
 import type { Integration } from '@sentry/types';
 import { isNodeEnv } from '@sentry/utils';
 
 import type { FeedbackConfigurationWithDefaults } from './types';
 import { sendFeedbackRequest } from './util/sendFeedbackRequest';
+import { Actor } from './widget/Actor';
 import { createActorStyles } from './widget/Actor.css';
 import { Dialog } from './widget/Dialog';
 import { createDialogStyles } from './widget/Dialog.css';
-import { Icon } from './widget/Icon';
 
 export { sendFeedbackRequest };
 
@@ -50,13 +50,31 @@ export class Feedback implements Integration {
    */
   public name: string;
 
+  /**
+   * Feedback configuration options
+   */
   public options: FeedbackConfigurationWithDefaults;
 
-  private actor: HTMLButtonElement | null = null;
-  private dialog: ReturnType<typeof Dialog> | null = null;
-  private host: HTMLDivElement | null = null;
-  private shadow: ShadowRoot | null = null;
-  private isDialogOpen: boolean = false;
+  /**
+   * Reference to widget actor element (button that opens dialog).
+   */
+  private _actor: ReturnType<typeof Actor> | null;
+  /**
+   * Reference to dialog element
+   */
+  private _dialog: ReturnType<typeof Dialog> | null;
+  /**
+   * Reference to the host element where widget is inserted
+   */
+  private _host: HTMLDivElement | null;
+  /**
+   * Refernce to Shadow DOM root
+   */
+  private _shadow: ShadowRoot | null;
+  /**
+   * State property to track if dialog is currently open
+   */
+  private _isDialogOpen: boolean;
 
   public constructor({
     showEmail = true,
@@ -80,7 +98,14 @@ export class Feedback implements Integration {
     namePlaceholder = 'Your Name',
     nameLabel = 'Name',
   }: Partial<FeedbackConfigurationWithDefaults> = {}) {
+    // Initializations
     this.name = Feedback.id;
+    this._actor = null;
+    this._dialog = null;
+    this._host = null;
+    this._shadow = null;
+    this._isDialogOpen = false;
+
     this.options = {
       isAnonymous,
       isEmailRequired,
@@ -118,11 +143,53 @@ export class Feedback implements Integration {
   }
 
   /**
+   * Removes the Feedback widget
+   */
+  public remove(): void {
+    if (this._host) {
+      this._host.remove();
+    }
+  }
+
+  /**
+   * Opens the Feedback dialog form
+   */
+  public openDialog(): void {
+    if (this._dialog) {
+      this._dialog.openDialog();
+      return;
+    }
+
+    if (!this._shadow) {
+      this._shadow = this._createShadowHost();
+    }
+
+    this._shadow.appendChild(createDialogStyles(document, THEME));
+    this._dialog = Dialog({ onCancel: this.closeDialog, options: this.options });
+    this._shadow.appendChild(this._dialog.$el);
+    this._actor && this._actor.hide();
+  }
+
+  /**
+   * Closes the dialog
+   */
+  public closeDialog = (): void => {
+    if (this._dialog) {
+      this._dialog.closeDialog();
+    }
+
+    // TODO: if has default actor, show the button
+    if (this._actor) {
+      this._actor.show();
+    }
+  };
+
+  /**
    *
    */
-  protected _injectWidget() {
+  protected _injectWidget(): void {
     // TODO: This is only here for hot reloading
-    if (this.host) {
+    if (this._host) {
       this.remove();
     }
     const existingFeedback = document.querySelector('#sentry-feedback');
@@ -132,94 +199,59 @@ export class Feedback implements Integration {
 
     // TODO: End hotloading
 
-    this.createWidgetButton();
+    this._shadow = this._createShadowHost();
+    this._createWidgetActor();
 
-    if (!this.host) {
+    if (!this._host) {
       return;
     }
 
-    document.body.appendChild(this.host);
+    document.body.appendChild(this._host);
   }
 
   /**
-   * Removes the Feedback widget
+   * Creates the host element of widget's shadow DOM
    */
-  public remove() {
-    if (this.host) {
-      this.host.remove();
-    }
-  }
-
-  /**
-   *
-   */
-  protected createWidgetButton() {
+  protected _createShadowHost(): ShadowRoot {
     // Create the host
-    this.host = document.createElement('div');
-    this.host.id = 'sentry-feedback';
-    this.shadow = this.host.attachShadow({ mode: 'open' });
+    this._host = document.createElement('div');
+    this._host.id = 'sentry-feedback';
 
-    this.shadow.appendChild(createActorStyles(document, THEME));
-
-    const actorButton = document.createElement('button');
-    actorButton.type = 'button';
-    actorButton.className = 'widget-actor';
-    actorButton.ariaLabel = this.options.buttonLabel;
-    const buttonTextEl = document.createElement('span');
-    buttonTextEl.className = 'widget-actor-text';
-    buttonTextEl.textContent = this.options.buttonLabel;
-    this.shadow.appendChild(actorButton);
-
-    actorButton.appendChild(Icon({ color: THEME.light.foreground }));
-    actorButton.appendChild(buttonTextEl);
-
-    actorButton.addEventListener('click', this.handleActorClick.bind(this));
-    this.actor = actorButton;
+    // Create the shadow root
+    return this._host.attachShadow({ mode: 'open' });
   }
 
   /**
-   *
+   * Creates the host element of our shadow DOM as well as the actor
    */
-  protected handleActorClick() {
-    console.log('button clicked');
+  protected _createWidgetActor(): void {
+    if (!this._shadow) {
+      // This shouldn't happen... we could call `_createShadowHost` if this is the case?
+      return;
+    }
 
+    // Insert styles for actor
+    this._shadow.appendChild(createActorStyles(document, THEME));
+
+    // Create Actor component
+    this._actor = Actor({ options: this.options, theme: THEME, onClick: this._handleActorClick });
+
+    this._shadow.appendChild(this._actor.$el);
+  }
+
+  /**
+   * Handles when the actor is clicked, opens the dialog modal and calls any
+   * callbacks.
+   */
+  protected _handleActorClick = (): void => {
     // Open dialog
-    if (!this.isDialogOpen) {
+    if (!this._isDialogOpen) {
       this.openDialog();
     }
 
     // Hide actor button
-    if (this.actor) {
-      this.actor.classList.add('hidden');
-    }
-  }
-
-  /**
-   * Opens the Feedback dialog form
-   */
-  public openDialog() {
-    if (this.dialog) {
-      this.dialog.openDialog();
-      return;
-    }
-
-    this.shadow?.appendChild(createDialogStyles(document, THEME));
-    this.dialog = Dialog({ onCancel: this.closeDialog, options: this.options });
-    this.shadow?.appendChild(this.dialog.$el);
-  }
-
-  /**
-   * Closes the dialog
-   */
-  public closeDialog = () => {
-    if (this.dialog) {
-      this.dialog.closeDialog();
-    }
-
-    // TODO: if has default actor, show the button
-
-    if (this.actor) {
-      this.actor.classList.remove('hidden');
+    if (this._actor) {
+      this._actor.classList.add('hidden');
     }
   };
 }
