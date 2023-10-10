@@ -4,7 +4,9 @@ import { isNodeEnv } from '@sentry/utils';
 
 import type { FeedbackConfigurationWithDefaults } from './types';
 import { sendFeedbackRequest } from './util/sendFeedbackRequest';
+import { createActorStyles } from './widget/Actor.css';
 import { Dialog } from './widget/Dialog';
+import { createDialogStyles } from './widget/Dialog.css';
 import { Icon } from './widget/Icon';
 
 export { sendFeedbackRequest };
@@ -25,9 +27,11 @@ function isBrowser(): boolean {
 
 const THEME = {
   light: {
+    background: '#ffffff',
     foreground: '#2B2233',
   },
   dark: {
+    background: '#29232f',
     foreground: '#EBE6EF',
   },
 };
@@ -155,70 +159,7 @@ export class Feedback implements Integration {
     this.host.id = 'sentry-feedback';
     this.shadow = this.host.attachShadow({ mode: 'open' });
 
-    const style = document.createElement('style');
-    style.textContent = `
-  :host {
-    position: fixed;
-    right: 1rem;
-    bottom: 1rem;
-    font-family: 'Helvetica Neue', Arial, sans-serif;
-    --bg-color: #fff;
-    --bg-hover-color: #f6f6f7;
-    --fg-color: ${THEME.light.foreground};
-    --border: 1.5px solid rgba(41, 35, 47, 0.13);
-    --box-shadow: 0px 4px 24px 0px rgba(43, 34, 51, 0.12);
-  }
-
-  .__sntry_fdbk_dark:host {
-    --bg-color: #29232f;
-    --bg-hover-color: #352f3b;
-    --fg-color: ${THEME.dark.foreground};
-    --border: 1.5px solid rgba(235, 230, 239, 0.15);
-    --box-shadow: 0px 4px 24px 0px rgba(43, 34, 51, 0.12);
-  }
-
-  .widget-actor {
-    line-height: 25px;
-
-    display: flex;
-    align-items: center;
-    gap: 8px;
-
-    border-radius: 12px;
-    cursor: pointer;
-    font-size: 14px;
-    font-weight: 600;
-    padding: 12px 16px;
-    text-decoration: none;
-    z-index: 9000;
-
-    color: var(--fg-color);
-    background-color: var(--bg-color);
-    border: var(--border);
-    box-shadow: var(--box-shadow);
-    opacity: 1;
-    transition: opacity 0.1s ease-in-out;
-  }
-
-  .widget-actor:hover {
-    background-color: var(--bg-hover-color);
-  }
-
-  .widget-actor svg {
-    width: 16px;
-    height: 16px;
-  }
-
-  .widget-actor.hidden {
-    opacity: 0;
-    pointer-events: none;
-    visibility: hidden;
-  }
-
-  .widget-actor-text {
-  }
-`;
-    this.shadow.appendChild(style);
+    this.shadow.appendChild(createActorStyles(document, THEME));
 
     const actorButton = document.createElement('button');
     actorButton.type = 'button';
@@ -262,156 +203,7 @@ export class Feedback implements Integration {
       return;
     }
 
-    const style = document.createElement('style');
-    style.textContent = `
-.dialog {
-  --bg-color: #fff;
-  --bg-hover-color: #f0f0f0;
-  --fg-color: #000;
-  --border: 1.5px solid rgba(41, 35, 47, 0.13);
-  --box-shadow: 0px 4px 24px 0px rgba(43, 34, 51, 0.12);
-
-  &.__sntry_fdbk_dark {
-    --bg-color: #29232f;
-    --bg-hover-color: #3a3540;
-    --fg-color: #ebe6ef;
-    --border: 1.5px solid rgba(235, 230, 239, 0.15);
-    --box-shadow: 0px 4px 24px 0px rgba(43, 34, 51, 0.12);
-  }
-
-  line-height: 25px;
-  background-color: rgba(0, 0, 0, 0.05);
-  border: none;
-  position: fixed;
-  inset: 0;
-  z-index: 10000;
-  width: 100vw;
-  height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  opacity: 1;
-  transition: opacity 0.2s ease-in-out;
-}
-.dialog:not([open]) {
-  opacity: 0;
-  pointer-events: none;
-  visibility: hidden;
-}
-
-.dialog__content {
-  position: fixed;
-  right: 1rem;
-  bottom: 1rem;
-
-  border: var(--border);
-  padding: 24px;
-  border-radius: 20px;
-  background-color: var(--bg-color);
-  color: var(--fg-color);
-
-  width: 320px;
-  max-width: 100%;
-  max-height: calc(100% - 2rem);
-  display: flex;
-  flex-direction: column;
-  box-shadow:
-    0 0 0 1px rgba(0, 0, 0, 0.05),
-    0 4px 16px rgba(0, 0, 0, 0.2);
-  transition: transform 0.2s ease-in-out;
-  transform: translate(0, 0) scale(1);
-  dialog:not([open]) & {
-    transform: translate(0, -16px) scale(0.98);
-  }
-}
-
-.dialog__header {
-  font-size: 20px;
-  font-weight: 600;
-  padding: 0;
-  margin: 0;
-  margin-bottom: 16px;
-}
-
-.error {
-  color: red;
-  margin-bottom: 16px;
-}
-
-.form {
-  display: grid;
-  overflow: auto;
-  flex-direction: column;
-  gap: 16px;
-  padding: 0;
-}
-
-.form__label {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  margin: 0px;
-}
-
-.form__input {
-  font-family: inherit;
-  line-height: inherit;
-  box-sizing: border-box;
-  border: var(--border);
-  border-radius: 6px;
-  font-size: 14px;
-  font-weight: 500;
-  padding: 6px 12px;
-  &:focus {
-    border-color: rgba(108, 95, 199, 1);
-  }
-}
-
-.form__input--textarea {
-  font-family: inherit;
-  resize: vertical;
-}
-
-.btn-group {
-  display: grid;
-  gap: 8px;
-  margin-top: 8px;
-}
-
-.btn {
-  line-height: inherit;
-  border: var(--border);
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: 600;
-  padding: 6px 16px;
-
-  &[disabled] {
-    opacity: 0.6;
-    pointer-events: none;
-  }
-}
-
-.btn--primary {
-  background-color: rgba(108, 95, 199, 1);
-  border-color: rgba(108, 95, 199, 1);
-  color: #fff;
-  &:hover {
-    background-color: rgba(88, 74, 192, 1);
-  }
-}
-
-.btn--default {
-  background-color: transparent;
-  color: var(--fg-color);
-  font-weight: 500;
-  &:hover {
-    background-color: var(--bg-accent-color);
-  }
-}
-`;
-    this.shadow?.appendChild(style);
+    this.shadow?.appendChild(createDialogStyles(document, THEME));
     this.dialog = Dialog({ onCancel: this.closeDialog, options: this.options });
     this.shadow?.appendChild(this.dialog.$el);
   }
