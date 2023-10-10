@@ -35,7 +35,7 @@ export function Actor({ options, theme, onClick }: Props): ActorComponent {
       className: 'widget__actor',
       ariaLabel: options.buttonLabel,
     },
-    Icon({ color: theme.light.foreground }),
+    Icon({ color: theme.light.foreground }).$el,
     h(
       'span',
       {

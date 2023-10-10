@@ -109,6 +109,10 @@ export interface FeedbackConfigurationWithDefaults {
    * Placeholder text for Feedback name input
    */
   namePlaceholder: string;
+  /**
+   * Message after feedback was sent successfully
+   */
+  successMessageText: string;
   // * End of text customization * //
 }
 
@@ -121,6 +125,14 @@ interface BaseTheme {
    * Foreground color (i.e. text color)
    */
   foreground: string;
+  /**
+   * Success color
+   */
+  success: string;
+  /**
+   * Error color
+   */
+  error: string;
 }
 
 export interface FeedbackTheme {
