@@ -1,14 +1,13 @@
-import type { BrowserClient, Replay } from '@sentry/browser';
 import { getCurrentHub } from '@sentry/core';
 import type { Integration } from '@sentry/types';
 import { isNodeEnv } from '@sentry/utils';
 
-import type {FeedbackConfigurationWithDefaults} from './types';
+import type { FeedbackConfigurationWithDefaults } from './types';
 import { sendFeedbackRequest } from './util/sendFeedbackRequest';
-import {Form} from './widget/Form';
-import {Icon} from './widget/Icon';
+import { Dialog } from './widget/Dialog';
+import { Icon } from './widget/Icon';
 
-export {sendFeedbackRequest};
+export { sendFeedbackRequest };
 
 type ElectronProcess = { type?: string };
 
@@ -22,14 +21,6 @@ function isElectronNodeRenderer(): boolean {
 function isBrowser(): boolean {
   // eslint-disable-next-line no-restricted-globals
   return typeof window !== 'undefined' && (!isNodeEnv() || isElectronNodeRenderer());
-}
-
-function retrieveStringValue(formData: FormData, key: string) {
-  const value = formData.get(key);
-  if (typeof value === 'string') {
-    return value.trim();
-  }
-  return '';
 }
 
 const THEME = {
@@ -58,7 +49,7 @@ export class Feedback implements Integration {
   public options: FeedbackConfigurationWithDefaults;
 
   private actor: HTMLButtonElement | null = null;
-  private dialog: HTMLDialogElement | null = null;
+  private dialog: ReturnType<typeof Dialog> | null = null;
   private host: HTMLDivElement | null = null;
   private shadow: ShadowRoot | null = null;
   private isDialogOpen: boolean = false;
@@ -80,7 +71,7 @@ export class Feedback implements Integration {
     formTitle = 'Report a Bug',
     emailPlaceholder = 'your.email@example.org',
     emailLabel = 'Email',
-    messagePlaceholder = 'What\'s the bug? What did you expect?',
+    messagePlaceholder = "What's the bug? What did you expect?",
     messageLabel = 'Description',
     namePlaceholder = 'Your Name',
     nameLabel = 'Name',
@@ -119,24 +110,19 @@ export class Feedback implements Integration {
       return;
     }
 
-
-    this.injectWidget()
+    this._injectWidget();
   }
 
   /**
    *
    */
-  protected injectWidget() {
-    console.log('injectWidget')
-
+  protected _injectWidget() {
     // TODO: This is only here for hot reloading
     if (this.host) {
-      console.log('host already exists');
       this.remove();
     }
     const existingFeedback = document.querySelector('#sentry-feedback');
     if (existingFeedback) {
-      console.log('existingFeedback')
       existingFeedback.remove();
     }
 
@@ -237,18 +223,16 @@ export class Feedback implements Integration {
     const actorButton = document.createElement('button');
     actorButton.type = 'button';
     actorButton.className = 'widget-actor';
-    actorButton.ariaLabel =  this.options.buttonLabel;
+    actorButton.ariaLabel = this.options.buttonLabel;
     const buttonTextEl = document.createElement('span');
     buttonTextEl.className = 'widget-actor-text';
     buttonTextEl.textContent = this.options.buttonLabel;
     this.shadow.appendChild(actorButton);
 
-    actorButton.appendChild(Icon({color: THEME.light.foreground}));
+    actorButton.appendChild(Icon({ color: THEME.light.foreground }));
     actorButton.appendChild(buttonTextEl);
 
-
-
-    actorButton.addEventListener('click', this.handleActorClick.bind(this))
+    actorButton.addEventListener('click', this.handleActorClick.bind(this));
     this.actor = actorButton;
   }
 
@@ -274,13 +258,13 @@ export class Feedback implements Integration {
    */
   public openDialog() {
     if (this.dialog) {
-      this.dialog.open = true;
+      this.dialog.openDialog();
       return;
     }
 
     const style = document.createElement('style');
     style.textContent = `
-#feedbackDialog {
+.dialog {
   --bg-color: #fff;
   --bg-hover-color: #f0f0f0;
   --fg-color: #000;
@@ -309,13 +293,13 @@ export class Feedback implements Integration {
   opacity: 1;
   transition: opacity 0.2s ease-in-out;
 }
-#feedbackDialog:not([open]) {
+.dialog:not([open]) {
   opacity: 0;
   pointer-events: none;
   visibility: hidden;
 }
 
-.feedback-content {
+.dialog__content {
   position: fixed;
   right: 1rem;
   bottom: 1rem;
@@ -341,7 +325,7 @@ export class Feedback implements Integration {
   }
 }
 
-.feedback-header {
+.dialog__header {
   font-size: 20px;
   font-weight: 600;
   padding: 0;
@@ -428,38 +412,8 @@ export class Feedback implements Integration {
 }
 `;
     this.shadow?.appendChild(style);
-
-      this.dialog = document.createElement('dialog');
-      this.dialog.id = 'feedbackDialog';
-      this.dialog.open = true;
-
-
-      const user = getCurrentHub().getScope()?.getUser();
-
-      const contentDiv = document.createElement('div');
-      contentDiv.className = 'feedback-content';
-      const header = document.createElement('h2');
-      header.className = 'feedback-header';
-      header.textContent = this.options.formTitle;
-
-      this.dialog.addEventListener('click', this.closeDialog);
-      contentDiv.addEventListener('click', (e) => {
-        // Stop event propagation so clicks on content modal do not propagate to dialog (which will close dialog)
-        e.stopPropagation();
-      })
-
-      // cancelEl.addEventListener('click', this.closeDialog);
-
-      const userKey = this.options.useSentryUser;
-
-      const {$form} = Form({
-        defaultName: userKey && user?.[userKey.name] || '',
-        defaultEmail: userKey && user?.[userKey.email] || '',
-        options: this.options})
-      contentDiv.append(header, $form)
-
-      this.dialog.appendChild(contentDiv)
-      this.shadow?.appendChild(this.dialog)
+    this.dialog = Dialog({ onCancel: this.closeDialog, options: this.options });
+    this.shadow?.appendChild(this.dialog.$el);
   }
 
   /**
@@ -467,7 +421,7 @@ export class Feedback implements Integration {
    */
   public closeDialog = () => {
     if (this.dialog) {
-      this.dialog.open = false;
+      this.dialog.closeDialog();
     }
 
     // TODO: if has default actor, show the button
@@ -475,5 +429,5 @@ export class Feedback implements Integration {
     if (this.actor) {
       this.actor.classList.remove('hidden');
     }
-  }
+  };
 }
