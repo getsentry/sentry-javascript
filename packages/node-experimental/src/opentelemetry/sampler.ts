@@ -4,11 +4,14 @@ import { isSpanContextValid, trace, TraceFlags } from '@opentelemetry/api';
 import type { Sampler, SamplingResult } from '@opentelemetry/sdk-trace-base';
 import { SamplingDecision } from '@opentelemetry/sdk-trace-base';
 import { hasTracingEnabled } from '@sentry/core';
-import { _INTERNAL_SENTRY_TRACE_PARENT_CONTEXT_KEY } from '@sentry/opentelemetry-node';
-import type { Client, ClientOptions, SamplingContext, TraceparentData } from '@sentry/types';
+import type { Client, ClientOptions, PropagationContext, SamplingContext } from '@sentry/types';
 import { isNaN, logger } from '@sentry/utils';
 
-import { OTEL_ATTR_PARENT_SAMPLED, OTEL_ATTR_SENTRY_SAMPLE_RATE } from '../constants';
+import {
+  OTEL_ATTR_PARENT_SAMPLED,
+  OTEL_ATTR_SENTRY_SAMPLE_RATE,
+  SENTRY_PROPAGATION_CONTEXT_CONTEXT_KEY,
+} from '../constants';
 
 /**
  * A custom OTEL sampler that uses Sentry sampling rates to make it's decision
@@ -177,14 +180,14 @@ function isValidSampleRate(rate: unknown): boolean {
   return true;
 }
 
-function getTraceParentData(parentContext: Context): TraceparentData | undefined {
-  return parentContext.getValue(_INTERNAL_SENTRY_TRACE_PARENT_CONTEXT_KEY) as TraceparentData | undefined;
+function getPropagationContext(parentContext: Context): PropagationContext | undefined {
+  return parentContext.getValue(SENTRY_PROPAGATION_CONTEXT_CONTEXT_KEY) as PropagationContext | undefined;
 }
 
 function getParentRemoteSampled(spanContext: SpanContext, context: Context): boolean | undefined {
   const traceId = spanContext.traceId;
-  const traceparentData = getTraceParentData(context);
+  const traceparentData = getPropagationContext(context);
 
   // Only inherit sample rate if `traceId` is the same
-  return traceparentData && traceId === traceparentData.traceId ? traceparentData.parentSampled : undefined;
+  return traceparentData && traceId === traceparentData.traceId ? traceparentData.sampled : undefined;
 }

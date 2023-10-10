@@ -3,9 +3,9 @@ import { Resource } from '@opentelemetry/resources';
 import { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
 import { SemanticResourceAttributes } from '@opentelemetry/semantic-conventions';
 import { SDK_VERSION } from '@sentry/core';
-import { SentryPropagator } from '@sentry/opentelemetry-node';
 import { logger } from '@sentry/utils';
 
+import { SentryPropagator } from '../opentelemetry/propagator';
 import { SentrySampler } from '../opentelemetry/sampler';
 import { SentrySpanProcessor } from '../opentelemetry/spanProcessor';
 import type { NodeExperimentalClient } from '../types';
@@ -15,7 +15,6 @@ import { getCurrentHub } from './hub';
 
 /**
  * Initialize OpenTelemetry for Node.
- * We use the @sentry/opentelemetry-node package to communicate with OpenTelemetry.
  */
 export function initOtel(): void {
   const client = getCurrentHub().getClient<NodeExperimentalClient>();

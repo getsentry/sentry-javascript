@@ -1,9 +1,15 @@
 import { context, trace, TraceFlags } from '@opentelemetry/api';
 import type { Span } from '@opentelemetry/sdk-trace-base';
-import { _INTERNAL_SENTRY_TRACE_PARENT_CONTEXT_KEY } from '@sentry/opentelemetry-node';
+import type { PropagationContext } from '@sentry/types';
 
 import * as Sentry from '../../src';
-import { OTEL_ATTR_OP, OTEL_ATTR_ORIGIN, OTEL_ATTR_SENTRY_SAMPLE_RATE, OTEL_ATTR_SOURCE } from '../../src/constants';
+import {
+  OTEL_ATTR_OP,
+  OTEL_ATTR_ORIGIN,
+  OTEL_ATTR_SENTRY_SAMPLE_RATE,
+  OTEL_ATTR_SOURCE,
+  SENTRY_PROPAGATION_CONTEXT_CONTEXT_KEY,
+} from '../../src/constants';
 import { getSpanMetadata } from '../../src/opentelemetry/spanData';
 import { getActiveSpan } from '../../src/utils/getActiveSpan';
 import { cleanupOtel, mockSdkInit } from '../helpers/mockSdkInit';
@@ -367,16 +373,17 @@ describe('trace (sampling)', () => {
       traceFlags: TraceFlags.SAMPLED,
     };
 
-    const traceParentData = {
+    const propagationContext: PropagationContext = {
       traceId,
+      sampled: true,
       parentSpanId,
-      parentSampled: true,
+      spanId: '6e0c63257de34c93',
     };
 
     // We simulate the correct context we'd normally get from the SentryPropagator
     context.with(
       trace.setSpanContext(
-        context.active().setValue(_INTERNAL_SENTRY_TRACE_PARENT_CONTEXT_KEY, traceParentData),
+        context.active().setValue(SENTRY_PROPAGATION_CONTEXT_CONTEXT_KEY, propagationContext),
         spanContext,
       ),
       () => {
@@ -406,16 +413,17 @@ describe('trace (sampling)', () => {
       traceFlags: TraceFlags.NONE,
     };
 
-    const traceParentData = {
+    const propagationContext: PropagationContext = {
       traceId,
+      sampled: false,
       parentSpanId,
-      parentSampled: false,
+      spanId: '6e0c63257de34c93',
     };
 
     // We simulate the correct context we'd normally get from the SentryPropagator
     context.with(
       trace.setSpanContext(
-        context.active().setValue(_INTERNAL_SENTRY_TRACE_PARENT_CONTEXT_KEY, traceParentData),
+        context.active().setValue(SENTRY_PROPAGATION_CONTEXT_CONTEXT_KEY, propagationContext),
         spanContext,
       ),
       () => {
@@ -533,16 +541,17 @@ describe('trace (sampling)', () => {
       traceFlags: TraceFlags.SAMPLED,
     };
 
-    const traceParentData = {
+    const propagationContext: PropagationContext = {
       traceId,
+      sampled: true,
       parentSpanId,
-      parentSampled: true,
+      spanId: '6e0c63257de34c93',
     };
 
     // We simulate the correct context we'd normally get from the SentryPropagator
     context.with(
       trace.setSpanContext(
-        context.active().setValue(_INTERNAL_SENTRY_TRACE_PARENT_CONTEXT_KEY, traceParentData),
+        context.active().setValue(SENTRY_PROPAGATION_CONTEXT_CONTEXT_KEY, propagationContext),
         spanContext,
       ),
       () => {
