@@ -28,4 +28,98 @@ This package is a wrapper around `@sentry/node` for the server and `@sentry/brow
 
 ## Installation and Setup
 
-TODO
+### 1. Registering the Sentry Astro integration:
+
+Add the `sentryAstro` integration to your `astro.config.mjs` file:
+
+```javascript
+import { sentryAstro } from "@sentry/astro/integration";
+
+export default defineConfig({
+  // Rest of your Astro project config
+  integrations: [
+    sentryAstro({
+      dsn: '__DSN__',
+    }),
+  ],
+})
+```
+
+This is the easiest way to configure Sentry in an Astro project.
+You can pass a few additional options to `sentryAstro` but the SDK comes preconfigured in an opinionated way.
+If you want to fully customize your SDK setup, you can do so, too:
+
+### 2. [Optional] Uploading Source Maps
+
+To upload source maps to Sentry, simply add the `project`, `org` and `authToken` options to `sentryAstro`:
+
+```js
+// astro.config.mjs
+import { sentryAstro } from "@sentry/astro/integration";
+
+export default defineConfig({
+  // Rest of your Astro project config
+  integrations: [
+    sentryAstro({
+      dsn: '__DSN__',
+      org: 'your-org-slug',
+      project: 'your-project-slug',
+      authToken: import.meta.env('SENTRY_AUTH_TOKEN'),
+    }),
+  ],
+})
+```
+
+You can also define these values as environment variables in e.g. a `.env` file
+or in you CI configuration:
+
+```sh
+SENTRY_ORG="your-org-slug"
+SENTRY_PROJECT="your-project"
+SENTRY_AUTH_TOKEN="your-token"
+```
+
+### 3. [Optional] Advanced Configuration
+
+To fully customize and configure Sentry in an Astro project, follow step 1 and in addition,
+add a `sentry.client.config.(js|ts)` and `sentry.server.config(js|ts)` file to the root directory of your project.
+Inside these files, you can call `Sentry.init()` and get the full range of Sentry options.
+
+Configuring the client SDK:
+
+```js
+// sentry.client.config.ts or sentry.server.config.ts
+import * as Sentry from "@sentry/astro";
+
+Sentry.init({
+  dsn: "__DSN__",
+  beforeSend(event) {
+    console.log("Sending event on the client");
+    return event;
+  },
+  tracesSampler: () => {/* ... */}
+});
+```
+
+**Important**: Once you created a sentry config file, the SDK options passed to `sentryAstro` will be ignored for the respective runtime. You can also only define create of the two files.
+
+#### 3.1 Custom file location
+
+If you want to move the `sentry.*.config` files to another location,
+you can specify the file path, relative to the project root, in `sentryAstro`:
+
+```js
+// astro.config.mjs
+import { sentryAstro } from "@sentry/astro/integration";
+
+export default defineConfig({
+  // Rest of your Astro project config
+  integrations: [
+    sentryAstro({
+      dsn: '__DSN__',
+      clientInitPath: '.config/sentry.client.init.js',
+      serverInitPath: '.config/sentry.server.init.js',
+    }),
+  ],
+})
+```
