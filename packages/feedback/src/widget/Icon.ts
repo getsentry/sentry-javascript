@@ -5,6 +5,10 @@ interface Props {
   color: string;
 }
 
+interface IconReturn {
+  $el: SVGElement;
+}
+
 function setAttributes<T extends SVGElement>(el: T, attributes: Record<string, string>): T {
   Object.entries(attributes).forEach(([key, val]) => {
     el.setAttributeNS(null, key, val);
@@ -15,7 +19,7 @@ function setAttributes<T extends SVGElement>(el: T, attributes: Record<string, s
 /**
  * Feedback Icon
  */
-export function Icon({ color }: Props): SVGElement {
+export function Icon({ color }: Props): IconReturn {
   const svg = setAttributes(document.createElementNS(XMLNS, 'svg'), {
     width: `${SIZE}`,
     height: `${SIZE}`,
@@ -51,5 +55,7 @@ export function Icon({ color }: Props): SVGElement {
 
   svg.appendChild(speakerDefs).appendChild(speakerClipPathDef).appendChild(speakerRect);
 
-  return svg;
+  return {
+    $el: svg,
+  };
 }
