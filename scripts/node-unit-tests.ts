@@ -20,6 +20,7 @@ const DEFAULT_SKIP_TESTS_PACKAGES = [
   '@sentry/angular',
   '@sentry/svelte',
   '@sentry/replay',
+  '@sentry/feedback',
   '@sentry/wasm',
   '@sentry/bun',
   '@sentry/deno',
