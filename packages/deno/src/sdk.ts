@@ -1,15 +1,10 @@
 import { Breadcrumbs, Dedupe, LinkedErrors } from '@sentry/browser';
 import type { ServerRuntimeClientOptions } from '@sentry/core';
-import {
-  getIntegrationsToSetup,
-  initAndBind,
-  Integrations as CoreIntegrations,
-  SDK_VERSION,
-  ServerRuntimeClient,
-} from '@sentry/core';
+import { getIntegrationsToSetup, initAndBind, Integrations as CoreIntegrations } from '@sentry/core';
 import type { StackParser } from '@sentry/types';
 import { createStackParser, nodeStackLineParser, stackParserFromStackParserOptions } from '@sentry/utils';
 
+import { DenoClient } from './client';
 import { ContextLines, DenoContext, GlobalHandlers, NormalizePaths } from './integrations';
 import { makeFetchTransport } from './transports';
 import type { DenoOptions } from './types';
@@ -34,11 +29,6 @@ export const defaultIntegrations = [
 ];
 
 const defaultStackParser: StackParser = createStackParser(nodeStackLineParser());
-
-function getHostName(): string | undefined {
-  const result = Deno.permissions.querySync({ name: 'sys', kind: 'hostname' });
-  return result.state === 'granted' ? Deno.hostname() : undefined;
-}
 
 /**
  * The Sentry Deno SDK Client.
@@ -96,20 +86,6 @@ function getHostName(): string | undefined {
  * @see {@link DenoOptions} for documentation on configuration options.
  */
 export function init(options: DenoOptions = {}): void {
-  options._metadata = options._metadata || {};
-  options._metadata.sdk = options._metadata.sdk || {
-    name: 'sentry.javascript.deno',
-    packages: [
-      {
-        name: 'denoland:sentry',
-        version: SDK_VERSION,
-      },
-    ],
-    version: SDK_VERSION,
-  };
-
-  options.transport = options.transport || makeFetchTransport;
-
   options.defaultIntegrations =
     options.defaultIntegrations === false
       ? []
@@ -120,10 +96,7 @@ export function init(options: DenoOptions = {}): void {
     stackParser: stackParserFromStackParserOptions(options.stackParser || defaultStackParser),
     integrations: getIntegrationsToSetup(options),
     transport: options.transport || makeFetchTransport,
-    platform: 'deno',
-    runtime: { name: 'deno', version: Deno.version.deno },
-    serverName: options.serverName || getHostName(),
   };
 
-  initAndBind(ServerRuntimeClient, clientOptions);
+  initAndBind(DenoClient, clientOptions);
 }

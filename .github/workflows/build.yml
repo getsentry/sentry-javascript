@@ -379,7 +379,7 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@v3
         with:
-          node-version: ${{ env.DEFAULT_NODE_VERSION }}
+          node-version-file: 'package.json'
       - name: Restore caches
         uses: ./.github/actions/restore-cache
         env:
@@ -406,7 +406,7 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@v3
         with:
-          node-version: ${{ matrix.node }}
+          node-version-file: 'package.json'
       - name: Set up Bun
         uses: oven-sh/setup-bun@v1
       - name: Restore caches
@@ -434,7 +434,7 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@v3
         with:
-          node-version: ${{ env.DEFAULT_NODE_VERSION }}
+          node-version-file: 'package.json'
       - name: Set up Deno
         uses: denoland/setup-deno@v1
         with:

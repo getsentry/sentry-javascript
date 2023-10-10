@@ -30,8 +30,8 @@ export class GlobalHandlers implements Integration {
    * after they have been run so that they are not used twice.
    */
   private _installFunc: Record<GlobalHandlersIntegrationsOptionKeys, (() => void) | undefined> = {
-    error: _installGlobalErrorHandler,
-    unhandledrejection: _installGlobalUnhandledRejectionHandler,
+    error: installGlobalErrorHandler,
+    unhandledrejection: installGlobalUnhandledRejectionHandler,
   };
 
   /** JSDoc */
@@ -61,8 +61,8 @@ export class GlobalHandlers implements Integration {
   }
 }
 
-function _installGlobalErrorHandler(): void {
-  addEventListener('error', data => {
+function installGlobalErrorHandler(): void {
+  globalThis.addEventListener('error', data => {
     if (isExiting) {
       return;
     }
@@ -87,17 +87,13 @@ function _installGlobalErrorHandler(): void {
   });
 }
 
-/** JSDoc */
-function _installGlobalUnhandledRejectionHandler(): void {
-  addEventListener('unhandledrejection', (e: PromiseRejectionEvent) => {
+function installGlobalUnhandledRejectionHandler(): void {
+  globalThis.addEventListener('unhandledrejection', (e: PromiseRejectionEvent) => {
     if (isExiting) {
       return;
     }
 
     const [hub, stackParser] = getHubAndOptions();
-    if (!hub.getIntegration(GlobalHandlers)) {
-      return;
-    }
     let error = e;
 
     // dig the object of the rejection out of known event types
@@ -110,7 +106,7 @@ function _installGlobalUnhandledRejectionHandler(): void {
     }
 
     const event = isPrimitive(error)
-      ? _eventFromRejectionWithPrimitive(error)
+      ? eventFromRejectionWithPrimitive(error)
       : eventFromUnknownInput(getCurrentHub, stackParser, error, undefined);
 
     event.level = 'fatal';
@@ -134,7 +130,7 @@ function _installGlobalUnhandledRejectionHandler(): void {
  * @param reason: The `reason` property of the promise rejection
  * @returns An Event object with an appropriate `exception` value
  */
-function _eventFromRejectionWithPrimitive(reason: Primitive): Event {
+function eventFromRejectionWithPrimitive(reason: Primitive): Event {
   return {
     exception: {
       values: [

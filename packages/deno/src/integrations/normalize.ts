@@ -36,10 +36,10 @@ function appRootFromErrorStack(error: Error): string | undefined {
   return paths[0].slice(0, i).join('/');
 }
 
-async function getCwd(): Promise<string | undefined> {
+function getCwd(): string | undefined {
   // We don't want to prompt for permissions so we only get the cwd if
   // permissions are already granted
-  const permission = await Deno.permissions.query({ name: 'read', path: './' });
+  const permission = Deno.permissions.querySync({ name: 'read', path: './' });
 
   try {
     if (permission.state == 'granted') {
@@ -55,9 +55,9 @@ async function getCwd(): Promise<string | undefined> {
 // Cached here
 let appRoot: string | undefined;
 
-async function getAppRoot(error: Error): Promise<string | undefined> {
+function getAppRoot(error: Error): string | undefined {
   if (appRoot === undefined) {
-    appRoot = (await getCwd()) || appRootFromErrorStack(error);
+    appRoot = getCwd() || appRootFromErrorStack(error);
   }
 
   return appRoot;
@@ -73,10 +73,11 @@ export class NormalizePaths implements Integration {
 
   /** @inheritDoc */
   public setupOnce(addGlobalEventProcessor: (callback: EventProcessor) => void): void {
+    // This error.stack hopefully contains paths that traverse the app cwd
     const error = new Error();
 
-    addGlobalEventProcessor(async (event: Event): Promise<Event | null> => {
-      const appRoot = await getAppRoot(error);
+    addGlobalEventProcessor((event: Event): Event | null => {
+      const appRoot = getAppRoot(error);
 
       if (appRoot) {
         for (const exception of event.exception?.values || []) {
