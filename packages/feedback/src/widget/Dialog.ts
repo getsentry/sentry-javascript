@@ -1,6 +1,6 @@
 import { getCurrentHub } from '@sentry/core';
 
-import type { FeedbackConfigurationWithDefaults, FeedbackFormData } from '../types';
+import type { FeedbackComponent, FeedbackConfigurationWithDefaults, FeedbackFormData } from '../types';
 import { Form } from './Form';
 import { createElement as h } from './util/createElement';
 
@@ -10,25 +10,39 @@ interface DialogProps {
   options: FeedbackConfigurationWithDefaults;
 }
 
-interface DialogReturn {
-  $el: HTMLDialogElement;
+interface DialogComponent extends FeedbackComponent<HTMLDialogElement> {
+  /**
+   * Disable submit button so that it cannot be clicked
+   */
   setSubmitDisabled: () => void;
+  /**
+   * Enable submit buttons so that it can be clicked
+   */
   setSubmitEnabled: () => void;
-  removeDialog: () => void;
-  openDialog: () => void;
-  closeDialog: () => void;
+  /**
+   * Remove the dialog element from the DOM
+   */
+  remove: () => void;
+  /**
+   * Opens and shows the dialog and form
+   */
+  open: () => void;
+  /**
+   * Closes the dialog and form
+   */
+  close: () => void;
 }
 
 /**
  * Feedback dialog component that has the form
  */
-export function Dialog({ onCancel, onSubmit, options }: DialogProps): DialogReturn {
+export function Dialog({ onCancel, onSubmit, options }: DialogProps): DialogComponent {
   let $el: HTMLDialogElement | null = null;
 
   /**
    *
    */
-  function closeDialog() {
+  function close() {
     if ($el) {
       $el.open = false;
     }
@@ -37,7 +51,7 @@ export function Dialog({ onCancel, onSubmit, options }: DialogProps): DialogRetu
   /**
    *
    */
-  function removeDialog() {
+  function remove() {
     if ($el) {
       $el.remove();
       $el = null;
@@ -47,7 +61,7 @@ export function Dialog({ onCancel, onSubmit, options }: DialogProps): DialogRetu
   /**
    *
    */
-  function openDialog() {
+  function open() {
     if ($el) {
       $el.open = true;
     }
@@ -74,7 +88,7 @@ export function Dialog({ onCancel, onSubmit, options }: DialogProps): DialogRetu
       id: 'feedback-dialog',
       className: 'dialog',
       open: true,
-      onClick: closeDialog,
+      onClick: close,
     },
     h(
       'div',
@@ -94,8 +108,8 @@ export function Dialog({ onCancel, onSubmit, options }: DialogProps): DialogRetu
     $el,
     setSubmitDisabled,
     setSubmitEnabled,
-    removeDialog,
-    openDialog,
-    closeDialog,
+    remove,
+    open,
+    close,
   };
 }

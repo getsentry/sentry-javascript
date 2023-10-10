@@ -156,7 +156,7 @@ export class Feedback implements Integration {
    */
   public openDialog(): void {
     if (this._dialog) {
-      this._dialog.openDialog();
+      this._dialog.open();
       return;
     }
 
@@ -175,7 +175,7 @@ export class Feedback implements Integration {
    */
   public closeDialog = (): void => {
     if (this._dialog) {
-      this._dialog.closeDialog();
+      this._dialog.close();
     }
 
     // TODO: if has default actor, show the button
@@ -251,7 +251,7 @@ export class Feedback implements Integration {
 
     // Hide actor button
     if (this._actor) {
-      this._actor.classList.add('hidden');
+      this._actor.hide();
     }
   };
 }
