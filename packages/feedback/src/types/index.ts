@@ -28,6 +28,12 @@ export interface SendFeedbackData {
   };
 }
 
+export interface FeedbackFormData {
+  message: string;
+  email?: string;
+  name?: string;
+}
+
 export interface FeedbackConfigurationWithDefaults {
   /**
    * If true, will not collect user data (email/name).
