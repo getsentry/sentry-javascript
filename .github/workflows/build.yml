@@ -23,6 +23,7 @@ concurrency:
 
 env:
   HEAD_COMMIT: ${{ github.event.inputs.commit || github.sha }}
+  PATH: /home/runner/.deno:${{ env.PATH }}
 
   CACHED_DEPENDENCY_PATHS: |
     ${{ github.workspace }}/node_modules
