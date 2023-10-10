@@ -1,17 +1,40 @@
-import type { FeedbackConfigurationWithDefaults, FeedbackFormData } from '../types';
+import type { FeedbackComponent, FeedbackConfigurationWithDefaults, FeedbackFormData } from '../types';
+import { SubmitButton } from './SubmitButton';
 import { createElement as h } from './util/createElement';
 
 interface Props {
+  /**
+   * A default name value to render the input with. Empty strings are ok.
+   */
   defaultName: string;
+  /**
+   * A default email value to render the input with. Empty strings are ok.
+   */
   defaultEmail: string;
   options: FeedbackConfigurationWithDefaults;
   onCancel?: (e: Event) => void;
   onSubmit?: (feedback: FeedbackFormData) => void;
 }
 
-interface FormReturn {
-  $el: HTMLFormElement;
+interface FormComponent extends FeedbackComponent<HTMLFormElement> {
+  /**
+   * Shows the error message
+   */
+  showError: (message: string) => void;
+
+  /**
+   * Hides the error message
+   */
+  hideError: () => void;
+
+  /**
+   * Disables the submit button
+   */
   setSubmitDisabled: () => void;
+
+  /**
+   * Enables the submit button
+   */
   setSubmitEnabled: () => void;
 }
 
@@ -26,7 +49,7 @@ function retrieveStringValue(formData: FormData, key: string): string {
 /**
  * Creates the form element
  */
-export function Form({ defaultName, defaultEmail, onCancel, onSubmit, options }: Props): FormReturn {
+export function Form({ defaultName, defaultEmail, onCancel, onSubmit, options }: Props): FormComponent {
   const {
     $el: $submit,
     setDisabled: setSubmitDisabled,
@@ -35,9 +58,9 @@ export function Form({ defaultName, defaultEmail, onCancel, onSubmit, options }:
     label: options.submitButtonLabel,
   });
 
-  async function handleSubmit(e: Event) {
+  function handleSubmit(e: Event): void {
     e.preventDefault();
-    console.log('form submitted');
+
     if (!(e.target instanceof HTMLFormElement)) {
       return;
     }
@@ -53,25 +76,26 @@ export function Form({ defaultName, defaultEmail, onCancel, onSubmit, options }:
 
         onSubmit(feedback);
       }
-
-      // try {
-      //   setSubmitDisabled();
-      //   const resp = await sendFeedback(feedback);
-      //
-      //   console.log({resp})
-      //
-      //   if (!resp) {
-      //     // Errored
-      //     setSubmitEnabled();
-      //     return;
-      //   }
-      //   // Success
-      // } catch(err) {
-      //   setSubmitEnabled();
-      // }
     } catch {
       // pass
     }
+  }
+
+  const $error = h('div', {
+    className: 'form__error-container form__error-container--hidden',
+    ariaHidden: 'true',
+  });
+
+  function showError(message: string) {
+    $error.textContent = message;
+    $error.classList.remove('form__error-container--hidden');
+    $error.setAttribute('ariaHidden', 'false');
+  }
+
+  function hideError() {
+    $error.textContent = '';
+    $error.classList.add('form__error-container--hidden');
+    $error.setAttribute('ariaHidden', 'true');
   }
 
   const $name = h('input', {
@@ -101,7 +125,7 @@ export function Form({ defaultName, defaultEmail, onCancel, onSubmit, options }:
     name: 'message',
     className: 'form__input form__input--textarea',
     placeholder: options.messagePlaceholder,
-    onKeyup: e => {
+    onKeyup: (e: Event) => {
       if (!(e.currentTarget instanceof HTMLTextAreaElement)) {
         return;
       }
@@ -114,19 +138,12 @@ export function Form({ defaultName, defaultEmail, onCancel, onSubmit, options }:
     },
   });
 
-  // h('button', {
-  //   type: 'submit',
-  //   className: 'btn btn--primary',
-  //   disabled: true,
-  //   ariaDisabled: 'disabled',
-  // }, options.submitButtonLabel)
-  //
   const $cancel = h(
     'button',
     {
       type: 'button',
       className: 'btn btn--default',
-      onClick: e => {
+      onClick: (e: Event) => {
         if (typeof onCancel === 'function') {
           onCancel(e);
         }
@@ -142,6 +159,7 @@ export function Form({ defaultName, defaultEmail, onCancel, onSubmit, options }:
       onSubmit: handleSubmit,
     },
     [
+      $error,
       h(
         'label',
         {
@@ -183,49 +201,7 @@ export function Form({ defaultName, defaultEmail, onCancel, onSubmit, options }:
     $el: $form,
     setSubmitDisabled,
     setSubmitEnabled,
-  };
-}
-
-interface SubmitButtonProps {
-  label: string;
-}
-
-interface SubmitReturn {
-  $el: HTMLButtonElement;
-
-  /**
-   * Disables the submit button
-   */
-  setDisabled: () => void;
-
-  /**
-   * Enables the submit button
-   */
-  setEnabled: () => void;
-}
-
-function SubmitButton({ label }: SubmitButtonProps): SubmitReturn {
-  const $el = h(
-    'button',
-    {
-      type: 'submit',
-      className: 'btn btn--primary',
-      disabled: true,
-      ariaDisabled: 'disabled',
-    },
-    label,
-  );
-
-  return {
-    $el,
-    setDisabled: () => {
-      $el.disabled = true;
-      $el.ariaDisabled = 'disabled';
-    },
-    setEnabled: () => {
-      $el.disabled = false;
-      $el.ariaDisabled = 'false';
-      $el.removeAttribute('ariaDisabled');
-    },
+    showError,
+    hideError,
   };
 }
