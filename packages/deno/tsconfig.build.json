@@ -6,6 +6,7 @@
     "lib": ["esnext"],
     "module": "esnext",
     "target": "esnext",
-    "declaration": true
+    "declaration": true,
+    "declarationMap": false
   }
 }

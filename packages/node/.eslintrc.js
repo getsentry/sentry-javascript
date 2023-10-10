@@ -9,4 +9,12 @@ module.exports = {
     '@sentry-internal/sdk/no-unsupported-es6-methods': 'off',
     '@sentry-internal/sdk/no-class-field-initializers': 'off',
   },
+  overrides: [
+    {
+      files: ['./test/*.ts'],
+      rules: {
+        'import/no-unresolved': 'off',
+      },
+    },
+  ],
 };

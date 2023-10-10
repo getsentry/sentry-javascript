@@ -1,6 +1,6 @@
 {
-  "extends": "../../tsconfig.json",
-  "include": ["./lib.deno.d.ts", "src/**/*", "example.ts"],
+  "extends": "./tsconfig.json",
+  "include": ["./lib.deno.d.ts", "test/**/*"],
   "compilerOptions": {
     "lib": ["esnext"],
     "module": "esnext",

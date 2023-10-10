@@ -61,6 +61,8 @@ export {
 } from '@sentry/core';
 export type { SpanStatusType } from '@sentry/core';
 
+export { DenoClient } from './client';
+
 export { defaultIntegrations, init } from './sdk';
 
 import { Integrations as CoreIntegrations } from '@sentry/core';
