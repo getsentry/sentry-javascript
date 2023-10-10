@@ -8,20 +8,6 @@ export function createDialogStyles(d: Document, theme: FeedbackTheme): HTMLStyle
 
   style.textContent = `
 .dialog {
-  --bg-color: ${theme.light.background};
-  --bg-hover-color: #f0f0f0;
-  --fg-color: ${theme.light.foreground};
-  --border: 1.5px solid rgba(41, 35, 47, 0.13);
-  --box-shadow: 0px 4px 24px 0px rgba(43, 34, 51, 0.12);
-
-  &.__sntry_fdbk_dark {
-    --bg-color: ${theme.dark.background};
-    --bg-hover-color: #3a3540;
-    --fg-color: ${theme.dark.foreground};
-    --border: 1.5px solid rgba(235, 230, 239, 0.15);
-    --box-shadow: 0px 4px 24px 0px rgba(43, 34, 51, 0.12);
-  }
-
   line-height: 25px;
   background-color: rgba(0, 0, 0, 0.05);
   border: none;
@@ -88,6 +74,14 @@ export function createDialogStyles(d: Document, theme: FeedbackTheme): HTMLStyle
   flex-direction: column;
   gap: 16px;
   padding: 0;
+}
+
+.form__error-container {
+  color: var(--error-color);
+}
+
+.form__error-container--hidden {
+  display: none;
 }
 
 .form__label {
