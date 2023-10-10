@@ -33,13 +33,13 @@ export default [
       typescript({ tsconfig: './tsconfig.build.json' }),
     ],
   },
-  // The bundled types contain a declaration for the __DEBUG_BUILD__ global
-  // This can result in errors about duplicate global declarations so we strip it out!
   {
     input: './build/index.d.ts',
     output: [{ file: 'build/index.d.ts', format: 'es' }],
     plugins: [
       dts({ respectExternal: true }),
+      // The bundled types contain a declaration for the __DEBUG_BUILD__ global
+      // This can result in errors about duplicate global declarations so we strip it out!
       {
         name: 'strip-global',
         renderChunk(code) {
