@@ -19,4 +19,3 @@ export {
 } from './trace';
 export { getDynamicSamplingContextFromClient } from './dynamicSamplingContext';
 export { setMeasurement } from './measurement';
-export { sampleTransaction } from './sampling';
