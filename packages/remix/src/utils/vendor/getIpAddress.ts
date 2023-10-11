@@ -23,8 +23,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-import { isIP } from 'net';
-
+import isIP from 'is-ip';
 /**
  * Get the IP address of the client sending a request.
  *

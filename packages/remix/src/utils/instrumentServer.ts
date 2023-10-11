@@ -1,7 +1,12 @@
 /* eslint-disable max-lines */
-import { getActiveTransaction, hasTracingEnabled, runWithAsyncContext } from '@sentry/core';
-import type { Hub } from '@sentry/node';
-import { captureException, getCurrentHub } from '@sentry/node';
+import type { Hub } from '@sentry/core';
+import {
+  captureException,
+  getActiveTransaction,
+  getCurrentHub,
+  hasTracingEnabled,
+  runWithAsyncContext,
+} from '@sentry/core';
 import type { Transaction, TransactionSource, WrappedFunction } from '@sentry/types';
 import {
   addExceptionMechanism,
