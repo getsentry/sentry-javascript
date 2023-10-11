@@ -42,7 +42,7 @@ export function fill(source: { [key: string]: any }, name: string, replacementFa
  * @param name The name of the property to be set
  * @param value The value to which to set the property
  */
-export function addNonEnumerableProperty(obj: { [key: string]: unknown }, name: string, value: unknown): void {
+export function addNonEnumerableProperty(obj: object, name: string, value: unknown): void {
   try {
     Object.defineProperty(obj, name, {
       // enumerable: false, // the default, so we can save on bundle size by not explicitly setting it
