@@ -47,7 +47,7 @@ test('Sends an API route transaction', async ({ baseURL }) => {
             'http.route': '/test-transaction',
             'otel.kind': 'INTERNAL',
           },
-          description: 'request handler - anonymous',
+          description: 'request handler - fastify -> app-auto-0',
           parent_span_id: expect.any(String),
           span_id: expect.any(String),
           start_timestamp: expect.any(Number),
