@@ -148,6 +148,6 @@ describe('setupOnce', () => {
   });
 
   it('has valid module type', () => {
-    new Integrations.Postgres({ module: pg });
+    expect(() => new Integrations.Postgres({ module: pg })).not.toThrow();
   });
 });

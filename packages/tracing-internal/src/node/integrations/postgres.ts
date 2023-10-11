@@ -29,6 +29,15 @@ interface PgOptions {
   /**
    * Supply your postgres module directly, instead of having Sentry attempt automatic resolution.
    * Use this if you (a) use a module that's not `pg`, or (b) use a bundler that breaks resolution (e.g. esbuild).
+   *
+   * Usage:
+   * ```
+   * import pg from 'pg';
+   *
+   * Sentry.init({
+   *   integrations: [new Sentry.Integrations.Postgres({ module: pg })],
+   * });
+   * ```
    */
   module?: PGModule;
 }
