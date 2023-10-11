@@ -119,7 +119,7 @@ export function eventFromUnknownInput(
  */
 export function eventFromMessage(
   stackParser: StackParser,
-  message: string,
+  input: string & { __sentry_template_string__?: string; __sentry_template_values__?: string[] },
   // eslint-disable-next-line deprecation/deprecation
   level: Severity | SeverityLevel = 'info',
   hint?: EventHint,
@@ -128,7 +128,6 @@ export function eventFromMessage(
   const event: Event = {
     event_id: hint && hint.event_id,
     level,
-    message,
   };
 
   if (attachStacktrace && hint && hint.syntheticException) {
@@ -137,7 +136,7 @@ export function eventFromMessage(
       event.exception = {
         values: [
           {
-            value: message,
+            value: input,
             stacktrace: { frames },
           },
         ],
@@ -145,5 +144,16 @@ export function eventFromMessage(
     }
   }
 
+  const { __sentry_template_string__, __sentry_template_values__ } = input;
+
+  if (__sentry_template_string__ && __sentry_template_values__) {
+    event.logentry = {
+      message: __sentry_template_string__,
+      params: __sentry_template_values__,
+    };
+    return event;
+  }
+
+  event.message = input;
   return event;
 }

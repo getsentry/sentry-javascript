@@ -265,13 +265,11 @@ export function eventFromUnknownInput(
  */
 export function eventFromString(
   stackParser: StackParser,
-  input: string,
+  input: string & { __sentry_template_string__?: string; __sentry_template_values__?: string[] },
   syntheticException?: Error,
   attachStacktrace?: boolean,
 ): Event {
-  const event: Event = {
-    message: input,
-  };
+  const event: Event = {};
 
   if (attachStacktrace && syntheticException) {
     const frames = parseStackFrames(stackParser, syntheticException);
@@ -282,6 +280,17 @@ export function eventFromString(
     }
   }
 
+  const { __sentry_template_string__, __sentry_template_values__ } = input;
+
+  if (__sentry_template_string__ && __sentry_template_values__) {
+    event.logentry = {
+      message: __sentry_template_string__,
+      params: __sentry_template_values__,
+    };
+    return event;
+  }
+
+  event.message = input;
   return event;
 }
 

@@ -19,6 +19,10 @@ import type { User } from './user';
 export interface Event {
   event_id?: string;
   message?: string;
+  logentry?: {
+    message?: string;
+    params?: string[];
+  };
   timestamp?: number;
   start_timestamp?: number;
   // eslint-disable-next-line deprecation/deprecation

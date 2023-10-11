@@ -31,3 +31,4 @@ export * from './url';
 export * from './userIntegrations';
 export * from './cache';
 export * from './eventbuilder';
+export * from './parametrize';
