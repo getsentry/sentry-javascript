@@ -15,6 +15,7 @@ export {
   Scope,
   addBreadcrumb,
   addGlobalEventProcessor,
+  addIntegration,
   autoDiscoverNodePerformanceMonitoringIntegrations,
   captureEvent,
   captureException,
@@ -56,4 +57,5 @@ export {
   startActiveSpan,
   startInactiveSpan,
   startSpanManual,
+  continueTrace,
 } from '@sentry/node';

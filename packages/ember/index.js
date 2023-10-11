@@ -30,7 +30,7 @@ module.exports = {
   included() {
     const app = this._findHost();
     const config = app.project.config(app.env);
-    const addonConfig = config['@sentry/ember'] || {};
+    const addonConfig = dropUndefinedKeys(config['@sentry/ember'] || {});
 
     if (!isSerializable(addonConfig)) {
       // eslint-disable-next-line no-console
@@ -100,4 +100,16 @@ function isScalar(val) {
 
 function isPlainObject(obj) {
   return typeof obj === 'object' && obj.constructor === Object && obj.toString() === '[object Object]';
+}
+
+function dropUndefinedKeys(obj) {
+  const newObj = {};
+
+  for (const key in obj) {
+    if (obj[key] !== undefined) {
+      newObj[key] = obj[key];
+    }
+  }
+
+  return newObj;
 }

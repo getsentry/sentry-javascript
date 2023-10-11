@@ -1,5 +1,5 @@
 import type { TransactionContext } from '@sentry/types';
-import { isThenable } from '@sentry/utils';
+import { dropUndefinedKeys, isThenable, logger, tracingContextFromHeaders } from '@sentry/utils';
 
 import type { Hub } from '../hub';
 import { getCurrentHub } from '../hub';
@@ -201,6 +201,48 @@ export function startInactiveSpan(context: TransactionContext): Span | undefined
  */
 export function getActiveSpan(): Span | undefined {
   return getCurrentHub().getScope().getSpan();
+}
+
+/**
+ * Continue a trace from `sentry-trace` and `baggage` values.
+ * These values can be obtained from incoming request headers,
+ * or in the browser from `<meta name="sentry-trace">` and `<meta name="baggage">` HTML tags.
+ *
+ * It also takes an optional `request` option, which if provided will also be added to the scope & transaction metadata.
+ * The callback receives a transactionContext that may be used for `startTransaction` or `startSpan`.
+ */
+export function continueTrace<V>(
+  {
+    sentryTrace,
+    baggage,
+  }: {
+    sentryTrace: Parameters<typeof tracingContextFromHeaders>[0];
+    baggage: Parameters<typeof tracingContextFromHeaders>[1];
+  },
+  callback: (transactionContext: Partial<TransactionContext>) => V,
+): V {
+  const hub = getCurrentHub();
+  const currentScope = hub.getScope();
+
+  const { traceparentData, dynamicSamplingContext, propagationContext } = tracingContextFromHeaders(
+    sentryTrace,
+    baggage,
+  );
+
+  currentScope.setPropagationContext(propagationContext);
+
+  if (__DEBUG_BUILD__ && traceparentData) {
+    logger.log(`[Tracing] Continuing trace ${traceparentData.traceId}.`);
+  }
+
+  const transactionContext: Partial<TransactionContext> = {
+    ...traceparentData,
+    metadata: dropUndefinedKeys({
+      dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
+    }),
+  };
+
+  return callback(transactionContext);
 }
 
 function createChildSpanOrTransaction(

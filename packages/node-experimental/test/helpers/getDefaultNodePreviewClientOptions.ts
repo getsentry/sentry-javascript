@@ -7,6 +7,7 @@ export function getDefaultNodeExperimentalClientOptions(
   options: Partial<NodeExperimentalClientOptions> = {},
 ): NodeExperimentalClientOptions {
   return {
+    tracesSampleRate: 1,
     integrations: [],
     transport: () => createTransport({ recordDroppedEvent: () => undefined }, _ => resolvedSyncPromise({})),
     stackParser: () => [],

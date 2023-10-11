@@ -1,43 +1,12 @@
 import type { Event, StackFrame } from '@sentry/types';
-import { logger } from '@sentry/utils';
+import { logger, watchdogTimer } from '@sentry/utils';
 import { spawn } from 'child_process';
-import * as inspector from 'inspector';
 
 import { addGlobalEventProcessor, captureEvent, flush } from '..';
 import { captureStackTrace } from './debugger';
 
 const DEFAULT_INTERVAL = 50;
 const DEFAULT_HANG_THRESHOLD = 5000;
-
-/**
- * A node.js watchdog timer
- * @param pollInterval The interval that we expect to get polled at
- * @param anrThreshold The threshold for when we consider ANR
- * @param callback The callback to call for ANR
- * @returns A function to call to reset the timer
- */
-function watchdogTimer(pollInterval: number, anrThreshold: number, callback: () => void): () => void {
-  let lastPoll = process.hrtime();
-  let triggered = false;
-
-  setInterval(() => {
-    const [seconds, nanoSeconds] = process.hrtime(lastPoll);
-    const diffMs = Math.floor(seconds * 1e3 + nanoSeconds / 1e6);
-
-    if (triggered === false && diffMs > pollInterval + anrThreshold) {
-      triggered = true;
-      callback();
-    }
-
-    if (diffMs < pollInterval + anrThreshold) {
-      triggered = false;
-    }
-  }, 20);
-
-  return () => {
-    lastPoll = process.hrtime();
-  };
-}
 
 interface Options {
   /**
@@ -98,12 +67,19 @@ function sendEvent(blockedMs: number, frames?: StackFrame[]): void {
   });
 }
 
+interface InspectorApi {
+  open: (port: number) => void;
+  url: () => string | undefined;
+}
+
 /**
  * Starts the node debugger and returns the inspector url.
  *
  * When inspector.url() returns undefined, it means the port is already in use so we try the next port.
  */
 function startInspector(startPort: number = 9229): string | undefined {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const inspector: InspectorApi = require('inspector');
   let inspectorUrl: string | undefined = undefined;
   let port = startPort;
 
@@ -210,10 +186,10 @@ function handleChildProcess(options: Options): void {
     }
   }
 
-  const ping = watchdogTimer(options.pollInterval, options.anrThreshold, watchdogTimeout);
+  const { poll } = watchdogTimer(options.pollInterval, options.anrThreshold, watchdogTimeout);
 
   process.on('message', () => {
-    ping();
+    poll();
   });
 }
 

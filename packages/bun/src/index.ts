@@ -26,6 +26,7 @@ export type { BunOptions } from './types';
 export {
   addGlobalEventProcessor,
   addBreadcrumb,
+  addIntegration,
   captureException,
   captureEvent,
   captureMessage,
@@ -59,6 +60,7 @@ export {
   startSpan,
   startInactiveSpan,
   startSpanManual,
+  continueTrace,
 } from '@sentry/core';
 export type { SpanStatusType } from '@sentry/core';
 export { autoDiscoverNodePerformanceMonitoringIntegrations } from '@sentry/node';

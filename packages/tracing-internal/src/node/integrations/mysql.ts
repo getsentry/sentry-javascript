@@ -84,7 +84,7 @@ export class Mysql implements LazyLoadedIntegration<MysqlConnection> {
     }
 
     function finishSpan(span: Span | undefined): void {
-      if (!span) {
+      if (!span || span.endTimestamp) {
         return;
       }
 
@@ -128,9 +128,14 @@ export class Mysql implements LazyLoadedIntegration<MysqlConnection> {
           });
         }
 
-        return orig.call(this, options, values, function () {
+        // streaming, no callback!
+        const query = orig.call(this, options, values) as { on: (event: string, callback: () => void) => void };
+
+        query.on('end', () => {
           finishSpan(span);
         });
+
+        return query;
       };
     });
   }

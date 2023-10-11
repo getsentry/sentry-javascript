@@ -26,6 +26,7 @@ export type { NodeOptions } from './types';
 export {
   addGlobalEventProcessor,
   addBreadcrumb,
+  addIntegration,
   captureException,
   captureEvent,
   captureMessage,
@@ -61,6 +62,7 @@ export {
   startActiveSpan,
   startInactiveSpan,
   startSpanManual,
+  continueTrace,
 } from '@sentry/core';
 export type { SpanStatusType } from '@sentry/core';
 export { autoDiscoverNodePerformanceMonitoringIntegrations } from './tracing';

@@ -1,4 +1,4 @@
-import type { Event, EventProcessor, Hub, Integration, StackFrame } from '@sentry/types';
+import type { Event, Integration, StackFrame } from '@sentry/types';
 import { addContextToFrame, GLOBAL_OBJ, stripUrlQueryAndFragment } from '@sentry/utils';
 
 const WINDOW = GLOBAL_OBJ as typeof GLOBAL_OBJ & Window;
@@ -44,17 +44,20 @@ export class ContextLines implements Integration {
   /**
    * @inheritDoc
    */
-  public setupOnce(addGlobalEventProcessor: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
-    addGlobalEventProcessor(event => {
-      const self = getCurrentHub().getIntegration(ContextLines);
-      if (!self) {
-        return event;
-      }
-      return this.addSourceContext(event);
-    });
+  public setupOnce(_addGlobaleventProcessor: unknown, _getCurrentHub: unknown): void {
+    // noop
   }
 
-  /** Processes an event and adds context lines */
+  /** @inheritDoc */
+  public processEvent(event: Event): Event {
+    return this.addSourceContext(event);
+  }
+
+  /**
+   * Processes an event and adds context lines.
+   *
+   * TODO (v8): Make this internal/private
+   */
   public addSourceContext(event: Event): Event {
     const doc = WINDOW.document;
     const htmlFilename = WINDOW.location && stripUrlQueryAndFragment(WINDOW.location.href);

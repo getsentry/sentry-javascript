@@ -169,7 +169,9 @@ function visit(
   return normalized;
 }
 
-// TODO remove this in v7 (this means the method will no longer be exported, under any name)
+/**
+ * @deprecated This export will be removed in v8.
+ */
 export { visit as walk };
 
 /* eslint-disable complexity */

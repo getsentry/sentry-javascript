@@ -1,4 +1,4 @@
-import type { Event as SentryEvent, EventProcessor, Exception, Hub, StackFrame, Stacktrace } from '@sentry/types';
+import type { Event as SentryEvent, Exception, StackFrame, Stacktrace } from '@sentry/types';
 
 import { _shouldDropEvent, Dedupe } from '../src/dedupe';
 
@@ -176,47 +176,29 @@ describe('Dedupe', () => {
     });
   });
 
-  describe('setupOnce', () => {
-    let dedupeFunc: EventProcessor;
-
-    beforeEach(function () {
-      const integration = new Dedupe();
-      const addGlobalEventProcessor = (callback: EventProcessor) => {
-        dedupeFunc = callback;
-      };
-
-      const getCurrentHub = () => {
-        return {
-          getIntegration() {
-            return integration;
-          },
-        } as unknown as Hub;
-      };
-
-      integration.setupOnce(addGlobalEventProcessor, getCurrentHub);
-    });
-
+  describe('processEvent', () => {
     it('ignores consecutive errors', () => {
-      expect(dedupeFunc(clone(exceptionEvent), {})).not.toBeNull();
-      expect(dedupeFunc(clone(exceptionEvent), {})).toBeNull();
-      expect(dedupeFunc(clone(exceptionEvent), {})).toBeNull();
+      const integration = new Dedupe();
+
+      expect(integration.processEvent(clone(exceptionEvent))).not.toBeNull();
+      expect(integration.processEvent(clone(exceptionEvent))).toBeNull();
+      expect(integration.processEvent(clone(exceptionEvent))).toBeNull();
     });
 
     it('ignores transactions between errors', () => {
-      expect(dedupeFunc(clone(exceptionEvent), {})).not.toBeNull();
+      const integration = new Dedupe();
+
+      expect(integration.processEvent(clone(exceptionEvent))).not.toBeNull();
       expect(
-        dedupeFunc(
-          {
-            event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2',
-            message: 'someMessage',
-            transaction: 'wat',
-            type: 'transaction',
-          },
-          {},
-        ),
+        integration.processEvent({
+          event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2',
+          message: 'someMessage',
+          transaction: 'wat',
+          type: 'transaction',
+        }),
       ).not.toBeNull();
-      expect(dedupeFunc(clone(exceptionEvent), {})).toBeNull();
-      expect(dedupeFunc(clone(exceptionEvent), {})).toBeNull();
+      expect(integration.processEvent(clone(exceptionEvent))).toBeNull();
+      expect(integration.processEvent(clone(exceptionEvent))).toBeNull();
     });
   });
 });

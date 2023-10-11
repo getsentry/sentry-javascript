@@ -2,11 +2,11 @@ import type {
   Context,
   Contexts,
   DynamicSamplingContext,
-  Event,
   Measurements,
   MeasurementUnit,
   Transaction as TransactionInterface,
   TransactionContext,
+  TransactionEvent,
   TransactionMetadata,
 } from '@sentry/types';
 import { dropUndefinedKeys, logger } from '@sentry/utils';
@@ -134,84 +134,10 @@ export class Transaction extends SpanClass implements TransactionInterface {
    * @inheritDoc
    */
   public finish(endTimestamp?: number): string | undefined {
-    // This transaction is already finished, so we should not flush it again.
-    if (this.endTimestamp !== undefined) {
+    const transaction = this._finishTransaction(endTimestamp);
+    if (!transaction) {
       return undefined;
     }
-
-    if (!this.name) {
-      __DEBUG_BUILD__ && logger.warn('Transaction has no name, falling back to `<unlabeled transaction>`.');
-      this.name = '<unlabeled transaction>';
-    }
-
-    // just sets the end timestamp
-    super.finish(endTimestamp);
-
-    const client = this._hub.getClient();
-    if (client && client.emit) {
-      client.emit('finishTransaction', this);
-    }
-
-    if (this.sampled !== true) {
-      // At this point if `sampled !== true` we want to discard the transaction.
-      __DEBUG_BUILD__ && logger.log('[Tracing] Discarding transaction because its trace was not chosen to be sampled.');
-
-      if (client) {
-        client.recordDroppedEvent('sample_rate', 'transaction');
-      }
-
-      return undefined;
-    }
-
-    const finishedSpans = this.spanRecorder ? this.spanRecorder.spans.filter(s => s !== this && s.endTimestamp) : [];
-
-    if (this._trimEnd && finishedSpans.length > 0) {
-      this.endTimestamp = finishedSpans.reduce((prev: SpanClass, current: SpanClass) => {
-        if (prev.endTimestamp && current.endTimestamp) {
-          return prev.endTimestamp > current.endTimestamp ? prev : current;
-        }
-        return prev;
-      }).endTimestamp;
-    }
-
-    const metadata = this.metadata;
-
-    const transaction: Event = {
-      contexts: {
-        ...this._contexts,
-        // We don't want to override trace context
-        trace: this.getTraceContext(),
-      },
-      spans: finishedSpans,
-      start_timestamp: this.startTimestamp,
-      tags: this.tags,
-      timestamp: this.endTimestamp,
-      transaction: this.name,
-      type: 'transaction',
-      sdkProcessingMetadata: {
-        ...metadata,
-        dynamicSamplingContext: this.getDynamicSamplingContext(),
-      },
-      ...(metadata.source && {
-        transaction_info: {
-          source: metadata.source,
-        },
-      }),
-    };
-
-    const hasMeasurements = Object.keys(this._measurements).length > 0;
-
-    if (hasMeasurements) {
-      __DEBUG_BUILD__ &&
-        logger.log(
-          '[Measurements] Adding measurements to transaction',
-          JSON.stringify(this._measurements, undefined, 2),
-        );
-      transaction.measurements = this._measurements;
-    }
-
-    __DEBUG_BUILD__ && logger.log(`[Tracing] Finishing ${this.op} transaction: ${this.name}.`);
-
     return this._hub.captureEvent(transaction);
   }
 
@@ -288,5 +214,90 @@ export class Transaction extends SpanClass implements TransactionInterface {
    */
   public setHub(hub: Hub): void {
     this._hub = hub;
+  }
+
+  /**
+   * Finish the transaction & prepare the event to send to Sentry.
+   */
+  protected _finishTransaction(endTimestamp?: number): TransactionEvent | undefined {
+    // This transaction is already finished, so we should not flush it again.
+    if (this.endTimestamp !== undefined) {
+      return undefined;
+    }
+
+    if (!this.name) {
+      __DEBUG_BUILD__ && logger.warn('Transaction has no name, falling back to `<unlabeled transaction>`.');
+      this.name = '<unlabeled transaction>';
+    }
+
+    // just sets the end timestamp
+    super.finish(endTimestamp);
+
+    const client = this._hub.getClient();
+    if (client && client.emit) {
+      client.emit('finishTransaction', this);
+    }
+
+    if (this.sampled !== true) {
+      // At this point if `sampled !== true` we want to discard the transaction.
+      __DEBUG_BUILD__ && logger.log('[Tracing] Discarding transaction because its trace was not chosen to be sampled.');
+
+      if (client) {
+        client.recordDroppedEvent('sample_rate', 'transaction');
+      }
+
+      return undefined;
+    }
+
+    const finishedSpans = this.spanRecorder ? this.spanRecorder.spans.filter(s => s !== this && s.endTimestamp) : [];
+
+    if (this._trimEnd && finishedSpans.length > 0) {
+      this.endTimestamp = finishedSpans.reduce((prev: SpanClass, current: SpanClass) => {
+        if (prev.endTimestamp && current.endTimestamp) {
+          return prev.endTimestamp > current.endTimestamp ? prev : current;
+        }
+        return prev;
+      }).endTimestamp;
+    }
+
+    const metadata = this.metadata;
+
+    const transaction: TransactionEvent = {
+      contexts: {
+        ...this._contexts,
+        // We don't want to override trace context
+        trace: this.getTraceContext(),
+      },
+      spans: finishedSpans,
+      start_timestamp: this.startTimestamp,
+      tags: this.tags,
+      timestamp: this.endTimestamp,
+      transaction: this.name,
+      type: 'transaction',
+      sdkProcessingMetadata: {
+        ...metadata,
+        dynamicSamplingContext: this.getDynamicSamplingContext(),
+      },
+      ...(metadata.source && {
+        transaction_info: {
+          source: metadata.source,
+        },
+      }),
+    };
+
+    const hasMeasurements = Object.keys(this._measurements).length > 0;
+
+    if (hasMeasurements) {
+      __DEBUG_BUILD__ &&
+        logger.log(
+          '[Measurements] Adding measurements to transaction',
+          JSON.stringify(this._measurements, undefined, 2),
+        );
+      transaction.measurements = this._measurements;
+    }
+
+    __DEBUG_BUILD__ && logger.log(`[Tracing] Finishing ${this.op} transaction: ${this.name}.`);
+
+    return transaction;
   }
 }

@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
+
+## 7.73.0
+
 ### Important Changes
 
 - **feat(replay): Upgrade to rrweb2**
@@ -23,7 +27,20 @@ Here are benchmarks comparing the version 1 of rrweb to version 2
 | netTx     | 282.67 KB  | 272.51 KB  |
 | netRx     | 8.02 MB    | 8.07 MB    |
 
-- "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
+### Other Changes
+
+- feat: Always assemble Envelopes (#9101)
+- feat(node): Rate limit local variables for caught exceptions and enable `captureAllExceptions` by default (#9102)
+- fix(core): Ensure `tunnel` is considered for `isSentryUrl` checks (#9130)
+- fix(nextjs): Fix `RequestAsyncStorage` fallback path (#9126)
+- fix(node-otel): Suppress tracing for generated sentry spans (#9142)
+- fix(node): fill in span data from http request options object (#9112)
+- fix(node): Fixes and improvements to ANR detection  (#9128)
+- fix(sveltekit): Avoid data invalidation in wrapped client-side `load` functions (#9071)
+- ref(core): Refactor `InboundFilters` integration to use `processEvent` (#9020)
+- ref(wasm): Refactor Wasm integration to use `processEvent` (#9019)
+
+Work in this release contributed by @vlad-zhukov. Thank you for your contribution!
 
 ## 7.72.0
 
