@@ -1,13 +1,13 @@
 import { context, SpanKind, trace, TraceFlags } from '@opentelemetry/api';
 import type { SpanProcessor } from '@opentelemetry/sdk-trace-base';
 import { SemanticAttributes } from '@opentelemetry/semantic-conventions';
-import type { PropagationContext, TransactionEvent } from '@sentry/types';
+import type { Integration, PropagationContext, TransactionEvent } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
 import * as Sentry from '../../src';
 import { startSpan } from '../../src';
 import { SENTRY_PROPAGATION_CONTEXT_CONTEXT_KEY } from '../../src/constants';
-import type { Http } from '../../src/integrations';
+import type { Http, NodeFetch } from '../../src/integrations';
 import { SentrySpanProcessor } from '../../src/opentelemetry/spanProcessor';
 import type { NodeExperimentalClient } from '../../src/sdk/client';
 import { getCurrentHub } from '../../src/sdk/hub';
@@ -542,7 +542,7 @@ describe('Integration | Transactions', () => {
     );
   });
 
-  it('does not creates spans for http requests if disabled in http integration', async () => {
+  it('does not create spans for http requests if disabled in http integration', async () => {
     const beforeSendTransaction = jest.fn(() => null);
 
     mockSdkInit({ enableTracing: true, beforeSendTransaction });
@@ -552,10 +552,14 @@ describe('Integration | Transactions', () => {
     const hub = getCurrentHub();
     const client = hub.getClient() as NodeExperimentalClient;
 
-    jest.spyOn(client, 'getIntegration').mockImplementation(() => {
-      return {
-        shouldCreateSpansForRequests: false,
-      } as Http;
+    jest.spyOn(client, 'getIntegration').mockImplementation(integrationClass => {
+      if (integrationClass.name === 'Http') {
+        return {
+          shouldCreateSpansForRequests: false,
+        } as Http;
+      }
+
+      return {} as Integration;
     });
 
     client.tracer.startActiveSpan(
@@ -565,6 +569,72 @@ describe('Integration | Transactions', () => {
         attributes: {
           [SemanticAttributes.HTTP_METHOD]: 'GET',
           [SemanticAttributes.HTTP_URL]: 'https://example.com',
+        },
+      },
+      span => {
+        startSpan({ name: 'inner 1' }, () => {
+          startSpan({ name: 'inner 2' }, () => {});
+        });
+
+        span.end();
+      },
+    );
+
+    void client.flush();
+    jest.advanceTimersByTime(5_000);
+
+    expect(beforeSendTransaction).toHaveBeenCalledTimes(0);
+
+    // Now try a non-HTTP span
+    client.tracer.startActiveSpan(
+      'test op 2',
+      {
+        kind: SpanKind.CLIENT,
+        attributes: {},
+      },
+      span => {
+        startSpan({ name: 'inner 1' }, () => {
+          startSpan({ name: 'inner 2' }, () => {});
+        });
+
+        span.end();
+      },
+    );
+
+    void client.flush();
+    jest.advanceTimersByTime(5_000);
+
+    expect(beforeSendTransaction).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not create spans for fetch requests if disabled in fetch integration', async () => {
+    const beforeSendTransaction = jest.fn(() => null);
+
+    mockSdkInit({ enableTracing: true, beforeSendTransaction });
+
+    jest.useFakeTimers();
+
+    const hub = getCurrentHub();
+    const client = hub.getClient() as NodeExperimentalClient;
+
+    jest.spyOn(client, 'getIntegration').mockImplementation(integrationClass => {
+      if (integrationClass.name === 'NodeFetch') {
+        return {
+          shouldCreateSpansForRequests: false,
+        } as NodeFetch;
+      }
+
+      return {} as Integration;
+    });
+
+    client.tracer.startActiveSpan(
+      'test op',
+      {
+        kind: SpanKind.CLIENT,
+        attributes: {
+          [SemanticAttributes.HTTP_METHOD]: 'GET',
+          [SemanticAttributes.HTTP_URL]: 'https://example.com',
+          'http.client': 'fetch',
         },
       },
       span => {

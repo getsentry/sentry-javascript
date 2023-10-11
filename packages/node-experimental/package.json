@@ -45,7 +45,8 @@
     "@sentry/node": "7.73.0",
     "@sentry/opentelemetry-node": "7.73.0",
     "@sentry/types": "7.73.0",
-    "@sentry/utils": "7.73.0"
+    "@sentry/utils": "7.73.0",
+    "opentelemetry-instrumentation-fetch-node": "1.1.0"
   },
   "scripts": {
     "build": "run-p build:transpile build:types",
