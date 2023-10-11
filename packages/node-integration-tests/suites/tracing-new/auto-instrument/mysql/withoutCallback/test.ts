@@ -8,6 +8,10 @@ test('should auto-instrument `mysql` package when using query without callback',
 
   assertSentryTransaction(envelope[2], {
     transaction: 'Test Transaction',
+    tags: {
+      result_done: 'yes',
+      result_done2: 'yes',
+    },
     spans: [
       {
         description: 'SELECT 1 + 1 AS solution',

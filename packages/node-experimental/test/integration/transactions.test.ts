@@ -1,12 +1,12 @@
 import { context, SpanKind, trace, TraceFlags } from '@opentelemetry/api';
 import type { SpanProcessor } from '@opentelemetry/sdk-trace-base';
 import { SemanticAttributes } from '@opentelemetry/semantic-conventions';
-import { _INTERNAL_SENTRY_TRACE_PARENT_CONTEXT_KEY } from '@sentry/opentelemetry-node';
-import type { TransactionEvent } from '@sentry/types';
+import type { PropagationContext, TransactionEvent } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
 import * as Sentry from '../../src';
 import { startSpan } from '../../src';
+import { SENTRY_PROPAGATION_CONTEXT_CONTEXT_KEY } from '../../src/constants';
 import type { Http } from '../../src/integrations';
 import { SentrySpanProcessor } from '../../src/opentelemetry/spanProcessor';
 import type { NodeExperimentalClient } from '../../src/sdk/client';
@@ -348,10 +348,11 @@ describe('Integration | Transactions', () => {
       traceFlags: TraceFlags.SAMPLED,
     };
 
-    const traceParentData = {
+    const propagationContext: PropagationContext = {
       traceId,
       parentSpanId,
-      parentSampled: true,
+      spanId: '6e0c63257de34c93',
+      sampled: true,
     };
 
     mockSdkInit({ enableTracing: true, beforeSendTransaction });
@@ -362,7 +363,7 @@ describe('Integration | Transactions', () => {
     // We simulate the correct context we'd normally get from the SentryPropagator
     context.with(
       trace.setSpanContext(
-        context.active().setValue(_INTERNAL_SENTRY_TRACE_PARENT_CONTEXT_KEY, traceParentData),
+        context.active().setValue(SENTRY_PROPAGATION_CONTEXT_CONTEXT_KEY, propagationContext),
         spanContext,
       ),
       () => {
@@ -541,7 +542,7 @@ describe('Integration | Transactions', () => {
     );
   });
 
-  it('does not creates spans for http requests if disabled in http integration xxx', async () => {
+  it('does not creates spans for http requests if disabled in http integration', async () => {
     const beforeSendTransaction = jest.fn(() => null);
 
     mockSdkInit({ enableTracing: true, beforeSendTransaction });

@@ -13,6 +13,12 @@ const connection = mysql.createConnection({
   password: 'docker',
 });
 
+connection.connect(function (err: unknown) {
+  if (err) {
+    return;
+  }
+});
+
 const transaction = Sentry.startTransaction({
   op: 'transaction',
   name: 'Test Transaction',
@@ -22,10 +28,18 @@ Sentry.configureScope(scope => {
   scope.setSpan(transaction);
 });
 
-connection.query('SELECT 1 + 1 AS solution');
-connection.query('SELECT NOW()', ['1', '2']);
+const query = connection.query('SELECT 1 + 1 AS solution');
+const query2 = connection.query('SELECT NOW()', ['1', '2']);
 
-// Wait a bit to ensure the queries completed
-setTimeout(() => {
-  transaction.finish();
-}, 500);
+query.on('end', () => {
+  transaction.setTag('result_done', 'yes');
+
+  query2.on('end', () => {
+    transaction.setTag('result_done2', 'yes');
+
+    // Wait a bit to ensure the queries completed
+    setTimeout(() => {
+      transaction.finish();
+    }, 500);
+  });
+});

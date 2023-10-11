@@ -9,7 +9,13 @@ import { mapOtelStatus, parseOtelSpanDescription } from '@sentry/opentelemetry-n
 import type { DynamicSamplingContext, Span as SentrySpan, SpanOrigin, TransactionSource } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
-import { OTEL_ATTR_OP, OTEL_ATTR_ORIGIN, OTEL_ATTR_PARENT_SAMPLED, OTEL_ATTR_SOURCE } from '../constants';
+import {
+  OTEL_ATTR_OP,
+  OTEL_ATTR_ORIGIN,
+  OTEL_ATTR_PARENT_SAMPLED,
+  OTEL_ATTR_SENTRY_SAMPLE_RATE,
+  OTEL_ATTR_SOURCE,
+} from '../constants';
 import { getCurrentHub } from '../sdk/hub';
 import { NodeExperimentalScope } from '../sdk/scope';
 import type { NodeExperimentalTransaction } from '../sdk/transaction';
@@ -172,11 +178,13 @@ function createTransactionForOtelSpan(span: ReadableSpan): NodeExperimentalTrans
     metadata: {
       dynamicSamplingContext,
       source,
+      sampleRate: span.attributes[OTEL_ATTR_SENTRY_SAMPLE_RATE] as number | undefined,
       ...metadata,
     },
     data: removeSentryAttributes(data),
     origin,
     tags,
+    sampled: true,
   }) as NodeExperimentalTransaction;
 
   transaction.setContext('otel', {
@@ -270,6 +278,7 @@ function removeSentryAttributes(data: Record<string, unknown>): Record<string, u
   delete cleanedData[OTEL_ATTR_ORIGIN];
   delete cleanedData[OTEL_ATTR_OP];
   delete cleanedData[OTEL_ATTR_SOURCE];
+  delete cleanedData[OTEL_ATTR_SENTRY_SAMPLE_RATE];
   /* eslint-enable @typescript-eslint/no-dynamic-delete */
 
   return cleanedData;

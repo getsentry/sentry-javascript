@@ -3,13 +3,11 @@ import { ROOT_CONTEXT, SpanKind, trace } from '@opentelemetry/api';
 import type { Span, SpanProcessor as SpanProcessorInterface } from '@opentelemetry/sdk-trace-base';
 import { BatchSpanProcessor } from '@opentelemetry/sdk-trace-base';
 import { SemanticAttributes } from '@opentelemetry/semantic-conventions';
-import {
-  _INTERNAL_SENTRY_TRACE_PARENT_CONTEXT_KEY,
-  maybeCaptureExceptionForTimedEvent,
-} from '@sentry/opentelemetry-node';
-import type { Hub, TraceparentData } from '@sentry/types';
+import { maybeCaptureExceptionForTimedEvent } from '@sentry/opentelemetry-node';
+import type { Hub } from '@sentry/types';
+import { logger } from '@sentry/utils';
 
-import { OTEL_ATTR_PARENT_SAMPLED, OTEL_CONTEXT_HUB_KEY } from '../constants';
+import { OTEL_CONTEXT_HUB_KEY } from '../constants';
 import { Http } from '../integrations';
 import type { NodeExperimentalClient } from '../sdk/client';
 import { getCurrentHub } from '../sdk/hub';
@@ -51,17 +49,15 @@ export class SentrySpanProcessor extends BatchSpanProcessor implements SpanProce
       setSpanHub(span, actualHub);
     }
 
-    // We need to set this here based on the parent context
-    const parentSampled = getParentSampled(span, parentContext);
-    if (typeof parentSampled === 'boolean') {
-      span.setAttribute(OTEL_ATTR_PARENT_SAMPLED, parentSampled);
-    }
+    __DEBUG_BUILD__ && logger.log(`[Tracing] Starting span "${span.name}" (${span.spanContext().spanId})`);
 
     return super.onStart(span, parentContext);
   }
 
   /** @inheritDoc */
   public onEnd(span: Span): void {
+    __DEBUG_BUILD__ && logger.log(`[Tracing] Finishing span "${span.name}" (${span.spanContext().spanId})`);
+
     if (!shouldCaptureSentrySpan(span)) {
       // Prevent this being called to super.onEnd(), which would pass this to the span exporter
       return;
@@ -75,19 +71,6 @@ export class SentrySpanProcessor extends BatchSpanProcessor implements SpanProce
 
     return super.onEnd(span);
   }
-}
-
-function getTraceParentData(parentContext: Context): TraceparentData | undefined {
-  return parentContext.getValue(_INTERNAL_SENTRY_TRACE_PARENT_CONTEXT_KEY) as TraceparentData | undefined;
-}
-
-function getParentSampled(span: Span, parentContext: Context): boolean | undefined {
-  const spanContext = span.spanContext();
-  const traceId = spanContext.traceId;
-  const traceparentData = getTraceParentData(parentContext);
-
-  // Only inherit sample rate if `traceId` is the same
-  return traceparentData && traceId === traceparentData.traceId ? traceparentData.parentSampled : undefined;
 }
 
 function shouldCaptureSentrySpan(span: Span): boolean {
