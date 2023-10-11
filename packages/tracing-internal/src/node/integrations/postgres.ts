@@ -5,9 +5,15 @@ import { fill, isThenable, loadModule, logger } from '@sentry/utils';
 import type { LazyLoadedIntegration } from './lazy';
 import { shouldDisableAutoInstrumentation } from './utils/node-utils';
 
+type PgClientQuery = (
+  config: unknown,
+  values?: unknown,
+  callback?: (err: unknown, result: unknown) => void,
+) => void | Promise<unknown>;
+
 interface PgClient {
   prototype: {
-    query: () => void | Promise<unknown>;
+    query: PgClientQuery;
   };
 }
 
@@ -20,9 +26,14 @@ interface PgClientThis {
 
 interface PgOptions {
   usePgNative?: boolean;
+  /**
+   * Supply your postgres module directly, instead of having Sentry attempt automatic resolution.
+   * Use this if you (a) use a module that's not `pg`, or (b) use a bundler that breaks resolution (e.g. esbuild).
+   */
+  module?: PGModule;
 }
 
-type PGModule = { Client: PgClient; native: { Client: PgClient } };
+type PGModule = { Client: PgClient; native: { Client: PgClient } | null };
 
 /** Tracing integration for node-postgres package */
 export class Postgres implements LazyLoadedIntegration<PGModule> {
@@ -43,6 +54,7 @@ export class Postgres implements LazyLoadedIntegration<PGModule> {
   public constructor(options: PgOptions = {}) {
     this.name = Postgres.id;
     this._usePgNative = !!options.usePgNative;
+    this._module = options.module;
   }
 
   /** @inheritdoc */
@@ -66,12 +78,12 @@ export class Postgres implements LazyLoadedIntegration<PGModule> {
       return;
     }
 
-    if (this._usePgNative && !pkg.native?.Client) {
+    const Client = this._usePgNative ? pkg.native?.Client : pkg.Client;
+
+    if (!Client) {
       __DEBUG_BUILD__ && logger.error("Postgres Integration was unable to access 'pg-native' bindings.");
       return;
     }
-
-    const { Client } = this._usePgNative ? pkg.native : pkg;
 
     /**
      * function (query, callback) => void
@@ -80,7 +92,7 @@ export class Postgres implements LazyLoadedIntegration<PGModule> {
      * function (query, params) => Promise
      * function (pg.Cursor) => pg.Cursor
      */
-    fill(Client.prototype, 'query', function (orig: () => void | Promise<unknown>) {
+    fill(Client.prototype, 'query', function (orig: PgClientQuery) {
       return function (this: PgClientThis, config: unknown, values: unknown, callback: unknown) {
         const scope = getCurrentHub().getScope();
         const parentSpan = scope.getSpan();

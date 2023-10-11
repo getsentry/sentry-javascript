@@ -1,16 +1,17 @@
 /* eslint-disable deprecation/deprecation */
 /* eslint-disable @typescript-eslint/unbound-method */
 import { Hub, Scope } from '@sentry/core';
-import { logger } from '@sentry/utils';
+import { loadModule, logger } from '@sentry/utils';
+import pg from 'pg';
 
 import { Integrations, Span } from '../../../src';
 import { getTestClient } from '../../testutils';
 
 class PgClient {
   // https://node-postgres.com/api/client#clientquery
-  public query(_text: unknown, values: unknown, callback?: () => void) {
+  public query(_text: unknown, values: unknown, callback?: (err: unknown, result: unknown) => void) {
     if (typeof callback === 'function') {
-      callback();
+      callback(null, null);
       return;
     }
 
@@ -25,25 +26,28 @@ class PgClient {
 
 // Jest mocks get hoisted. vars starting with `mock` are hoisted before imports.
 /* eslint-disable no-var */
-var mockClient = PgClient;
+var mockModule = {
+  Client: PgClient,
+  native: {
+    Client: PgClient,
+  },
+};
 
 // mock for 'pg' / 'pg-native' package
 jest.mock('@sentry/utils', () => {
   const actual = jest.requireActual('@sentry/utils');
   return {
     ...actual,
-    loadModule() {
-      return {
-        Client: mockClient,
-        native: {
-          Client: mockClient,
-        },
-      };
-    },
+    loadModule: jest.fn(() => mockModule),
   };
 });
 
 describe('setupOnce', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    jest.resetAllMocks();
+  });
+
   ['pg', 'pg-native'].forEach(pgApi => {
     const Client: PgClient = new PgClient();
     let scope = new Scope();
@@ -126,5 +130,24 @@ describe('setupOnce', () => {
     );
 
     expect(loggerLogSpy).toBeCalledWith('Postgres Integration is skipped because of instrumenter configuration.');
+  });
+
+  it('does not attempt resolution when module is passed directly', async () => {
+    const scope = new Scope();
+    jest.spyOn(scope, 'getSpan').mockReturnValueOnce(new Span());
+
+    new Integrations.Postgres({ module: mockModule }).setupOnce(
+      () => undefined,
+      () => new Hub(undefined, scope),
+    );
+
+    await new PgClient().query('SELECT NOW()', null);
+
+    expect(loadModule).not.toBeCalled();
+    expect(scope.getSpan).toBeCalled();
+  });
+
+  it('has valid module type', () => {
+    new Integrations.Postgres({ module: pg });
   });
 });
