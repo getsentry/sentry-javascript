@@ -14,3 +14,8 @@ export const OTEL_ATTR_BREADCRUMB_EVENT_ID = 'sentry.breadcrumb.event_id';
 export const OTEL_ATTR_BREADCRUMB_CATEGORY = 'sentry.breadcrumb.category';
 export const OTEL_ATTR_BREADCRUMB_DATA = 'sentry.breadcrumb.data';
 export const OTEL_ATTR_SENTRY_SAMPLE_RATE = 'sentry.sample_rate';
+
+export const SENTRY_TRACE_HEADER = 'sentry-trace';
+export const SENTRY_BAGGAGE_HEADER = 'baggage';
+
+export const SENTRY_PROPAGATION_CONTEXT_CONTEXT_KEY = createContextKey('SENTRY_PROPAGATION_CONTEXT_CONTEXT_KEY');
