@@ -2,16 +2,20 @@ import type { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
 import type { Hub } from '@sentry/core';
 import { runWithAsyncContext, setAsyncContextStrategy } from '@sentry/core';
 
+import { NodeExperimentalClient } from '../../src/sdk/client';
 import { getCurrentHub } from '../../src/sdk/hub';
 import { setupOtel } from '../../src/sdk/initOtel';
 import { setOtelContextAsyncContextStrategy } from '../../src/sdk/otelAsyncContextStrategy';
+import { getDefaultNodeExperimentalClientOptions } from '../helpers/getDefaultNodePreviewClientOptions';
 import { cleanupOtel } from '../helpers/mockSdkInit';
 
 describe('otelAsyncContextStrategy', () => {
   let provider: BasicTracerProvider | undefined;
 
   beforeEach(() => {
-    provider = setupOtel();
+    const options = getDefaultNodeExperimentalClientOptions();
+    const client = new NodeExperimentalClient(options);
+    provider = setupOtel(client);
     setOtelContextAsyncContextStrategy();
   });
 

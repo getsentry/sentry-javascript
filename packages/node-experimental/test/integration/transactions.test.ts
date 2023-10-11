@@ -541,7 +541,7 @@ describe('Integration | Transactions', () => {
     );
   });
 
-  it('does not creates spans for http requests if disabled in http integration xxx', async () => {
+  it('does not creates spans for http requests if disabled in http integration', async () => {
     const beforeSendTransaction = jest.fn(() => null);
 
     mockSdkInit({ enableTracing: true, beforeSendTransaction });

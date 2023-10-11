@@ -1,7 +1,9 @@
+import { context, trace, TraceFlags } from '@opentelemetry/api';
 import type { Span } from '@opentelemetry/sdk-trace-base';
+import { _INTERNAL_SENTRY_TRACE_PARENT_CONTEXT_KEY } from '@sentry/opentelemetry-node';
 
 import * as Sentry from '../../src';
-import { OTEL_ATTR_OP, OTEL_ATTR_ORIGIN, OTEL_ATTR_SOURCE } from '../../src/constants';
+import { OTEL_ATTR_OP, OTEL_ATTR_ORIGIN, OTEL_ATTR_SENTRY_SAMPLE_RATE, OTEL_ATTR_SOURCE } from '../../src/constants';
 import { getSpanMetadata } from '../../src/opentelemetry/spanData';
 import { getActiveSpan } from '../../src/utils/getActiveSpan';
 import { cleanupOtel, mockSdkInit } from '../helpers/mockSdkInit';
@@ -142,7 +144,9 @@ describe('trace', () => {
         },
         span => {
           expect(span).toBeDefined();
-          expect(span?.attributes).toEqual({});
+          expect(span?.attributes).toEqual({
+            [OTEL_ATTR_SENTRY_SAMPLE_RATE]: 1,
+          });
 
           expect(getSpanMetadata(span!)).toEqual(undefined);
         },
@@ -162,6 +166,7 @@ describe('trace', () => {
             [OTEL_ATTR_SOURCE]: 'task',
             [OTEL_ATTR_ORIGIN]: 'auto.test.origin',
             [OTEL_ATTR_OP]: 'my-op',
+            [OTEL_ATTR_SENTRY_SAMPLE_RATE]: 1,
           });
 
           expect(getSpanMetadata(span!)).toEqual({ requestPath: 'test-path' });
@@ -210,7 +215,9 @@ describe('trace', () => {
       });
 
       expect(span).toBeDefined();
-      expect(span?.attributes).toEqual({});
+      expect(span?.attributes).toEqual({
+        [OTEL_ATTR_SENTRY_SAMPLE_RATE]: 1,
+      });
 
       expect(getSpanMetadata(span!)).toEqual(undefined);
 
@@ -224,6 +231,7 @@ describe('trace', () => {
 
       expect(span2).toBeDefined();
       expect(span2?.attributes).toEqual({
+        [OTEL_ATTR_SENTRY_SAMPLE_RATE]: 1,
         [OTEL_ATTR_SOURCE]: 'task',
         [OTEL_ATTR_ORIGIN]: 'auto.test.origin',
         [OTEL_ATTR_OP]: 'my-op',
@@ -257,5 +265,301 @@ describe('trace (tracing disabled)', () => {
     const span = Sentry.startInactiveSpan({ name: 'test' });
 
     expect(span).toBeUndefined();
+  });
+});
+
+describe('trace (sampling)', () => {
+  afterEach(() => {
+    cleanupOtel();
+    jest.clearAllMocks();
+  });
+
+  it('samples with a tracesSampleRate, when Math.random() > tracesSampleRate', () => {
+    jest.spyOn(Math, 'random').mockImplementation(() => 0.6);
+
+    mockSdkInit({ tracesSampleRate: 0.5 });
+
+    Sentry.startSpan({ name: 'outer' }, outerSpan => {
+      expect(outerSpan).toBeUndefined();
+
+      Sentry.startSpan({ name: 'inner' }, innerSpan => {
+        expect(innerSpan).toBeUndefined();
+      });
+    });
+  });
+
+  it('samples with a tracesSampleRate, when Math.random() < tracesSampleRate', () => {
+    jest.spyOn(Math, 'random').mockImplementation(() => 0.4);
+
+    mockSdkInit({ tracesSampleRate: 0.5 });
+
+    Sentry.startSpan({ name: 'outer' }, outerSpan => {
+      expect(outerSpan).toBeDefined();
+      expect(outerSpan?.isRecording()).toBe(true);
+      // All fields are empty for NonRecordingSpan
+      expect(outerSpan?.name).toBe('outer');
+
+      Sentry.startSpan({ name: 'inner' }, innerSpan => {
+        expect(innerSpan).toBeDefined();
+        expect(innerSpan?.isRecording()).toBe(true);
+        expect(innerSpan?.name).toBe('inner');
+      });
+    });
+  });
+
+  it('positive parent sampling takes precedence over tracesSampleRate', () => {
+    jest.spyOn(Math, 'random').mockImplementation(() => 0.6);
+
+    mockSdkInit({ tracesSampleRate: 1 });
+
+    // This will def. be sampled because of the tracesSampleRate
+    Sentry.startSpan({ name: 'outer' }, outerSpan => {
+      expect(outerSpan).toBeDefined();
+      expect(outerSpan?.isRecording()).toBe(true);
+      expect(outerSpan?.name).toBe('outer');
+
+      // Now let's mutate the tracesSampleRate so that the next entry _should_ not be sampled
+      // but it will because of parent sampling
+      const client = Sentry.getCurrentHub().getClient();
+      client!.getOptions().tracesSampleRate = 0.5;
+
+      Sentry.startSpan({ name: 'inner' }, innerSpan => {
+        expect(innerSpan).toBeDefined();
+        expect(innerSpan?.isRecording()).toBe(true);
+        expect(innerSpan?.name).toBe('inner');
+      });
+    });
+  });
+
+  it('negative parent sampling takes precedence over tracesSampleRate', () => {
+    jest.spyOn(Math, 'random').mockImplementation(() => 0.6);
+
+    mockSdkInit({ tracesSampleRate: 0.5 });
+
+    // This will def. be sampled because of the tracesSampleRate
+    Sentry.startSpan({ name: 'outer' }, outerSpan => {
+      expect(outerSpan).toBeUndefined();
+
+      // Now let's mutate the tracesSampleRate so that the next entry _should_ not be sampled
+      // but it will because of parent sampling
+      const client = Sentry.getCurrentHub().getClient();
+      client!.getOptions().tracesSampleRate = 1;
+
+      Sentry.startSpan({ name: 'inner' }, innerSpan => {
+        expect(innerSpan).toBeUndefined();
+      });
+    });
+  });
+
+  it('positive remote parent sampling takes precedence over tracesSampleRate', () => {
+    jest.spyOn(Math, 'random').mockImplementation(() => 0.6);
+
+    mockSdkInit({ tracesSampleRate: 0.5 });
+
+    const traceId = 'd4cda95b652f4a1592b449d5929fda1b';
+    const parentSpanId = '6e0c63257de34c92';
+
+    const spanContext = {
+      traceId,
+      spanId: parentSpanId,
+      sampled: true,
+      isRemote: true,
+      traceFlags: TraceFlags.SAMPLED,
+    };
+
+    const traceParentData = {
+      traceId,
+      parentSpanId,
+      parentSampled: true,
+    };
+
+    // We simulate the correct context we'd normally get from the SentryPropagator
+    context.with(
+      trace.setSpanContext(
+        context.active().setValue(_INTERNAL_SENTRY_TRACE_PARENT_CONTEXT_KEY, traceParentData),
+        spanContext,
+      ),
+      () => {
+        // This will def. be sampled because of the tracesSampleRate
+        Sentry.startSpan({ name: 'outer' }, outerSpan => {
+          expect(outerSpan).toBeDefined();
+          expect(outerSpan?.isRecording()).toBe(true);
+          expect(outerSpan?.name).toBe('outer');
+        });
+      },
+    );
+  });
+
+  it('negative remote parent sampling takes precedence over tracesSampleRate', () => {
+    jest.spyOn(Math, 'random').mockImplementation(() => 0.6);
+
+    mockSdkInit({ tracesSampleRate: 0.5 });
+
+    const traceId = 'd4cda95b652f4a1592b449d5929fda1b';
+    const parentSpanId = '6e0c63257de34c92';
+
+    const spanContext = {
+      traceId,
+      spanId: parentSpanId,
+      sampled: false,
+      isRemote: true,
+      traceFlags: TraceFlags.NONE,
+    };
+
+    const traceParentData = {
+      traceId,
+      parentSpanId,
+      parentSampled: false,
+    };
+
+    // We simulate the correct context we'd normally get from the SentryPropagator
+    context.with(
+      trace.setSpanContext(
+        context.active().setValue(_INTERNAL_SENTRY_TRACE_PARENT_CONTEXT_KEY, traceParentData),
+        spanContext,
+      ),
+      () => {
+        // This will def. be sampled because of the tracesSampleRate
+        Sentry.startSpan({ name: 'outer' }, outerSpan => {
+          expect(outerSpan).toBeUndefined();
+        });
+      },
+    );
+  });
+
+  it('samples with a tracesSampler returning a boolean', () => {
+    let tracesSamplerResponse: boolean = true;
+
+    const tracesSampler = jest.fn(() => {
+      return tracesSamplerResponse;
+    });
+
+    mockSdkInit({ tracesSampler });
+
+    Sentry.startSpan({ name: 'outer' }, outerSpan => {
+      expect(outerSpan).toBeDefined();
+    });
+
+    expect(tracesSampler).toBeCalledTimes(1);
+    expect(tracesSampler).toHaveBeenLastCalledWith({
+      parentSampled: undefined,
+      transactionContext: { name: 'outer', parentSampled: undefined },
+    });
+
+    // Now return `false`, it should not sample
+    tracesSamplerResponse = false;
+
+    Sentry.startSpan({ name: 'outer2' }, outerSpan => {
+      expect(outerSpan).toBeUndefined();
+
+      Sentry.startSpan({ name: 'inner2' }, outerSpan => {
+        expect(outerSpan).toBeUndefined();
+      });
+    });
+
+    expect(tracesSampler).toHaveBeenCalledTimes(3);
+    expect(tracesSampler).toHaveBeenLastCalledWith({
+      parentSampled: false,
+      transactionContext: { name: 'inner2', parentSampled: false },
+    });
+  });
+
+  it('samples with a tracesSampler returning a number', () => {
+    jest.spyOn(Math, 'random').mockImplementation(() => 0.6);
+
+    let tracesSamplerResponse: number = 1;
+
+    const tracesSampler = jest.fn(() => {
+      return tracesSamplerResponse;
+    });
+
+    mockSdkInit({ tracesSampler });
+
+    Sentry.startSpan({ name: 'outer' }, outerSpan => {
+      expect(outerSpan).toBeDefined();
+    });
+
+    expect(tracesSampler).toBeCalledTimes(1);
+    expect(tracesSampler).toHaveBeenLastCalledWith({
+      parentSampled: undefined,
+      transactionContext: { name: 'outer', parentSampled: undefined },
+    });
+
+    // Now return `0`, it should not sample
+    tracesSamplerResponse = 0;
+
+    Sentry.startSpan({ name: 'outer2' }, outerSpan => {
+      expect(outerSpan).toBeUndefined();
+
+      Sentry.startSpan({ name: 'inner2' }, outerSpan => {
+        expect(outerSpan).toBeUndefined();
+      });
+    });
+
+    expect(tracesSampler).toHaveBeenCalledTimes(3);
+    expect(tracesSampler).toHaveBeenLastCalledWith({
+      parentSampled: false,
+      transactionContext: { name: 'inner2', parentSampled: false },
+    });
+
+    // Now return `0.4`, it should not sample
+    tracesSamplerResponse = 0.4;
+
+    Sentry.startSpan({ name: 'outer3' }, outerSpan => {
+      expect(outerSpan).toBeUndefined();
+    });
+
+    expect(tracesSampler).toHaveBeenCalledTimes(4);
+    expect(tracesSampler).toHaveBeenLastCalledWith({
+      parentSampled: undefined,
+      transactionContext: { name: 'outer3', parentSampled: undefined },
+    });
+  });
+
+  it('samples with a tracesSampler even if parent is remotely sampled', () => {
+    const tracesSampler = jest.fn(() => {
+      return false;
+    });
+
+    mockSdkInit({ tracesSampler });
+    const traceId = 'd4cda95b652f4a1592b449d5929fda1b';
+    const parentSpanId = '6e0c63257de34c92';
+
+    const spanContext = {
+      traceId,
+      spanId: parentSpanId,
+      sampled: true,
+      isRemote: true,
+      traceFlags: TraceFlags.SAMPLED,
+    };
+
+    const traceParentData = {
+      traceId,
+      parentSpanId,
+      parentSampled: true,
+    };
+
+    // We simulate the correct context we'd normally get from the SentryPropagator
+    context.with(
+      trace.setSpanContext(
+        context.active().setValue(_INTERNAL_SENTRY_TRACE_PARENT_CONTEXT_KEY, traceParentData),
+        spanContext,
+      ),
+      () => {
+        // This will def. be sampled because of the tracesSampleRate
+        Sentry.startSpan({ name: 'outer' }, outerSpan => {
+          expect(outerSpan).toBeUndefined();
+        });
+      },
+    );
+
+    expect(tracesSampler).toBeCalledTimes(1);
+    expect(tracesSampler).toHaveBeenLastCalledWith({
+      parentSampled: true,
+      transactionContext: {
+        name: 'outer',
+        parentSampled: true,
+      },
+    });
   });
 });

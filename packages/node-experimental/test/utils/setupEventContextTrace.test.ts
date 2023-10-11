@@ -32,7 +32,7 @@ describe('setupEventContextTrace', () => {
     makeMain(hub);
 
     setupEventContextTrace(client);
-    provider = setupOtel();
+    provider = setupOtel(client);
   });
 
   afterEach(() => {
