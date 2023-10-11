@@ -19,7 +19,7 @@ The Sentry Deno SDK is in beta. Please help us improve the SDK by [reporting any
 
 ## Usage
 
-To use this SDK, call `init(options)` as early as possible in the main entry module. This will initialize the SDK and
+To use this SDK, call `Sentry.init(options)` as early as possible in the main entry module. This will initialize the SDK and
 hook into the environment. Note that you can turn off almost all side effects using the respective options.
 
 ```javascript
