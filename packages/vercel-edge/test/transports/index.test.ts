@@ -57,7 +57,6 @@ describe('Edge Transport', () => {
     expect(mockFetch).toHaveBeenLastCalledWith(DEFAULT_EDGE_TRANSPORT_OPTIONS.url, {
       body: serializeEnvelope(ERROR_ENVELOPE, new TextEncoder()),
       method: 'POST',
-      referrerPolicy: 'origin',
     });
   });
 

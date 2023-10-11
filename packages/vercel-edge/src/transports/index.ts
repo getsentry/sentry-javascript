@@ -83,7 +83,6 @@ export function makeEdgeTransport(options: VercelEdgeTransportOptions): Transpor
     const requestOptions: RequestInit = {
       body: request.body,
       method: 'POST',
-      referrerPolicy: 'origin',
       headers: options.headers,
       ...options.fetchOptions,
     };
