@@ -436,9 +436,9 @@ jobs:
         with:
           node-version-file: 'package.json'
       - name: Set up Deno
-        uses: denoland/setup-deno@v1
+        uses: denoland/setup-deno@v1.1.3
         with:
-          deno-version: v1.x
+          deno-version: v1.37.1
       - name: Restore caches
         uses: ./.github/actions/restore-cache
         env:
