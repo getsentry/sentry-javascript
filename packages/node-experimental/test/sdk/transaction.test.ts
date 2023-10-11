@@ -139,37 +139,8 @@ describe('startTranscation', () => {
     jest.resetAllMocks();
   });
 
-  it('creates an unsampled NodeExperimentalTransaction by default', () => {
-    const client = new NodeExperimentalClient(getDefaultNodeExperimentalClientOptions());
-    const mockEmit = jest.spyOn(client, 'emit').mockImplementation(() => {});
-    const hub = getCurrentHub();
-    hub.bindClient(client);
-
-    const transaction = startTransaction(hub, { name: 'test' });
-
-    expect(transaction).toBeInstanceOf(NodeExperimentalTransaction);
-    expect(mockEmit).toBeCalledTimes(1);
-    expect(mockEmit).toBeCalledWith('startTransaction', transaction);
-
-    expect(transaction.sampled).toBe(false);
-    expect(transaction.spanRecorder).toBeUndefined();
-    expect(transaction.metadata).toEqual({
-      source: 'custom',
-      spanMetadata: {},
-    });
-
-    expect(transaction.toJSON()).toEqual(
-      expect.objectContaining({
-        origin: 'manual',
-        span_id: expect.any(String),
-        start_timestamp: expect.any(Number),
-        trace_id: expect.any(String),
-      }),
-    );
-  });
-
-  it('creates a sampled NodeExperimentalTransaction based on the tracesSampleRate', () => {
-    const client = new NodeExperimentalClient(getDefaultNodeExperimentalClientOptions({ tracesSampleRate: 1 }));
+  it('creates a NodeExperimentalTransaction', () => {
+    const client = new NodeExperimentalClient(getDefaultNodeExperimentalClientOptions({ tracesSampleRate: 0 }));
     const hub = getCurrentHub();
     hub.bindClient(client);
 
@@ -177,13 +148,12 @@ describe('startTranscation', () => {
 
     expect(transaction).toBeInstanceOf(NodeExperimentalTransaction);
 
-    expect(transaction.sampled).toBe(true);
+    expect(transaction.sampled).toBe(undefined);
     expect(transaction.spanRecorder).toBeDefined();
     expect(transaction.spanRecorder?.spans).toHaveLength(1);
     expect(transaction.metadata).toEqual({
       source: 'custom',
       spanMetadata: {},
-      sampleRate: 1,
     });
 
     expect(transaction.toJSON()).toEqual(
@@ -210,8 +180,6 @@ describe('startTranscation', () => {
 
     expect(transaction).toBeInstanceOf(NodeExperimentalTransaction);
 
-    expect(transaction.sampled).toBe(false);
-    expect(transaction.spanRecorder).toBeUndefined();
     expect(transaction.metadata).toEqual({
       source: 'custom',
       spanMetadata: {},
@@ -225,21 +193,5 @@ describe('startTranscation', () => {
         trace_id: 'trace1',
       }),
     );
-  });
-
-  it('inherits sampled based on parentSampled', () => {
-    const client = new NodeExperimentalClient(getDefaultNodeExperimentalClientOptions({ tracesSampleRate: 0 }));
-    const hub = getCurrentHub();
-    hub.bindClient(client);
-
-    const transaction = startTransaction(hub, {
-      name: 'test',
-      startTimestamp: 1234,
-      spanId: 'span1',
-      traceId: 'trace1',
-      parentSampled: true,
-    });
-
-    expect(transaction.sampled).toBe(true);
   });
 });

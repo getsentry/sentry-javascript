@@ -2,8 +2,6 @@
 const fs = require('fs');
 const crypto = require('crypto');
 
-const { dropUndefinedKeys } = require('@sentry/utils');
-
 function readSnippet(fileName) {
   return fs.readFileSync(`${__dirname}/vendor/${fileName}`, 'utf8');
 }
@@ -102,4 +100,16 @@ function isScalar(val) {
 
 function isPlainObject(obj) {
   return typeof obj === 'object' && obj.constructor === Object && obj.toString() === '[object Object]';
+}
+
+function dropUndefinedKeys(obj) {
+  const newObj = {};
+
+  for (const key in obj) {
+    if (obj[key] !== undefined) {
+      newObj[key] = obj[key];
+    }
+  }
+
+  return newObj;
 }

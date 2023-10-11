@@ -3,6 +3,7 @@ require('./tracing');
 const Sentry = require('@sentry/node-experimental');
 const { fastify } = require('fastify');
 const fastifyPlugin = require('fastify-plugin');
+const http = require('http');
 
 const FastifySentry = fastifyPlugin(async (fastify, options) => {
   fastify.decorateRequest('_sentryContext', null);
@@ -25,14 +26,24 @@ app.get('/test-param/:param', function (req, res) {
   res.send({ paramWas: req.params.param });
 });
 
+app.get('/test-inbound-headers', function (req, res) {
+  const headers = req.headers;
+
+  res.send({ headers });
+});
+
+app.get('/test-outgoing-http', async function (req, res) {
+  const data = await makeHttpRequest('http://localhost:3030/test-inbound-headers');
+
+  res.send(data);
+});
+
 app.get('/test-transaction', async function (req, res) {
   Sentry.startSpan({ name: 'test-span' }, () => {
     Sentry.startSpan({ name: 'child-span' }, () => {});
   });
 
-  res.send({
-    transactionIds: global.transactionIds || [],
-  });
+  res.send({});
 });
 
 app.get('/test-error', async function (req, res) {
@@ -45,16 +56,20 @@ app.get('/test-error', async function (req, res) {
 
 app.listen({ port: port });
 
-Sentry.addGlobalEventProcessor(event => {
-  global.transactionIds = global.transactionIds || [];
+function makeHttpRequest(url) {
+  return new Promise(resolve => {
+    const data = [];
 
-  if (event.type === 'transaction') {
-    const eventId = event.event_id;
-
-    if (eventId) {
-      global.transactionIds.push(eventId);
-    }
-  }
-
-  return event;
-});
+    http
+      .request(url, httpRes => {
+        httpRes.on('data', chunk => {
+          data.push(chunk);
+        });
+        httpRes.on('end', () => {
+          const json = JSON.parse(Buffer.concat(data).toString());
+          resolve(json);
+        });
+      })
+      .end();
+  });
+}

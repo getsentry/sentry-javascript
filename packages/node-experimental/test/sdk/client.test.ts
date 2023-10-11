@@ -29,6 +29,7 @@ describe('NodeExperimentalClient', () => {
       platform: 'node',
       runtime: { name: 'node', version: expect.any(String) },
       serverName: expect.any(String),
+      tracesSampleRate: 1,
     });
   });
 

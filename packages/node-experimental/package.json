@@ -28,7 +28,7 @@
     "@opentelemetry/context-async-hooks": "~1.17.0",
     "@opentelemetry/instrumentation": "~0.43.0",
     "@opentelemetry/instrumentation-express": "~0.33.1",
-    "@opentelemetry/instrumentation-fastify": "~0.32.2",
+    "@opentelemetry/instrumentation-fastify": "~0.32.3",
     "@opentelemetry/instrumentation-graphql": "~0.35.1",
     "@opentelemetry/instrumentation-http": "~0.43.0",
     "@opentelemetry/instrumentation-mongodb": "~0.37.0",

@@ -31,7 +31,7 @@ describe('spanTypes', () => {
     it.each([
       [{}, false],
       [{ kind: null }, false],
-      [{ kind: 'xxx' }, true],
+      [{ kind: 'TEST_KIND' }, true],
     ])('works with %p', (span, expected) => {
       const castSpan = span as unknown as Span;
       const actual = spanHasKind(castSpan);
@@ -48,7 +48,7 @@ describe('spanTypes', () => {
     it.each([
       [{}, false],
       [{ parentSpanId: null }, false],
-      [{ parentSpanId: 'xxx' }, true],
+      [{ parentSpanId: 'TEST_PARENT_ID' }, true],
     ])('works with %p', (span, expected) => {
       const castSpan = span as unknown as Span;
       const actual = spanHasParentId(castSpan);
