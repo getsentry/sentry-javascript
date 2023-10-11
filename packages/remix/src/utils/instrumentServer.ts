@@ -1,7 +1,12 @@
 /* eslint-disable max-lines */
-import { getActiveTransaction, hasTracingEnabled, runWithAsyncContext } from '@sentry/core';
-import type { Hub } from '@sentry/node';
-import { captureException, getCurrentHub } from '@sentry/node';
+import type { Hub } from '@sentry/core';
+import {
+  captureException,
+  getActiveTransaction,
+  getCurrentHub,
+  hasTracingEnabled,
+  runWithAsyncContext,
+} from '@sentry/core';
 import type { Transaction, TransactionSource, WrappedFunction } from '@sentry/types';
 import {
   addExceptionMechanism,
@@ -259,11 +264,11 @@ function makeWrappedRootLoader(remixVersion: number) {
       const traceAndBaggage = getTraceAndBaggage();
 
       if (isDeferredData(res)) {
-        return {
-          ...res.data,
-          ...traceAndBaggage,
-          remixVersion,
-        };
+        res.data['sentryTrace'] = traceAndBaggage.sentryTrace;
+        res.data['sentryBaggage'] = traceAndBaggage.sentryBaggage;
+        res.data['remixVersion'] = remixVersion;
+
+        return res;
       }
 
       if (isResponse(res)) {

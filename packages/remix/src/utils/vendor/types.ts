@@ -202,7 +202,7 @@ export interface DataFunction {
 }
 
 export interface ReactRouterDomPkg {
-  matchRoutes: (routes: ServerRoute[], pathname: string) => RouteMatch<ServerRoute>[] | null;
+  matchRoutes: (routes: any[], pathname: string) => RouteMatch<ServerRoute>[] | null;
 }
 
 // Taken from Remix Implementation

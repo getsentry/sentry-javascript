@@ -60,6 +60,7 @@ export { ErrorBoundary, withErrorBoundary } from '@sentry/react';
 export { remixRouterInstrumentation, withSentry } from './client/performance';
 export { captureRemixErrorBoundaryError } from './client/errors';
 export { wrapExpressCreateRequestHandler } from './utils/serverAdapters/express';
+export { wrapWorkerCreateRequestHandler } from './utils/serverAdapters/worker';
 
 function sdkAlreadyInitialized(): boolean {
   const hub = getCurrentHub();
