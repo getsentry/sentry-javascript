@@ -5,6 +5,22 @@ import * as path from 'path';
 
 const NODE_VERSION = parseSemver(process.versions.node).major || 0;
 
+/** The output will contain logging so we need to find the line that parses as JSON */
+function parseJsonLine<T>(input: string): T {
+  return (
+    input
+      .split('\n')
+      .map(line => {
+        try {
+          return JSON.parse(line) as T;
+        } catch {
+          return undefined;
+        }
+      })
+      .filter(a => a) as T[]
+  )[0];
+}
+
 describe('should report ANR when event loop blocked', () => {
   test('CJS', done => {
     // The stack trace is different when node < 12
@@ -15,7 +31,7 @@ describe('should report ANR when event loop blocked', () => {
     const testScriptPath = path.resolve(__dirname, 'basic.js');
 
     childProcess.exec(`node ${testScriptPath}`, { encoding: 'utf8' }, (_, stdout) => {
-      const event = JSON.parse(stdout) as Event;
+      const event = parseJsonLine<Event>(stdout);
 
       expect(event.exception?.values?.[0].mechanism).toEqual({ type: 'ANR' });
       expect(event.exception?.values?.[0].type).toEqual('ApplicationNotResponding');
@@ -42,7 +58,7 @@ describe('should report ANR when event loop blocked', () => {
     const testScriptPath = path.resolve(__dirname, 'basic.mjs');
 
     childProcess.exec(`node ${testScriptPath}`, { encoding: 'utf8' }, (_, stdout) => {
-      const event = JSON.parse(stdout) as Event;
+      const event = parseJsonLine<Event>(stdout);
 
       expect(event.exception?.values?.[0].mechanism).toEqual({ type: 'ANR' });
       expect(event.exception?.values?.[0].type).toEqual('ApplicationNotResponding');
@@ -64,7 +80,7 @@ describe('should report ANR when event loop blocked', () => {
     const testScriptPath = path.resolve(__dirname, 'forker.js');
 
     childProcess.exec(`node ${testScriptPath}`, { encoding: 'utf8' }, (_, stdout) => {
-      const event = JSON.parse(stdout) as Event;
+      const event = parseJsonLine<Event>(stdout);
 
       expect(event.exception?.values?.[0].mechanism).toEqual({ type: 'ANR' });
       expect(event.exception?.values?.[0].type).toEqual('ApplicationNotResponding');
