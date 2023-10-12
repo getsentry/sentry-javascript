@@ -42,8 +42,12 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
           });
         }
 
-        const pathToClientInit = options.clientInitPath ?? findSdkInitFile('client');
-        const pathToServerInit = options.serverInitPath ?? findSdkInitFile('server');
+        const pathToClientInit = options.clientInitPath
+          ? path.resolve(options.clientInitPath)
+          : findDefaultSdkInitFile('client');
+        const pathToServerInit = options.serverInitPath
+          ? path.resolve(options.serverInitPath)
+          : findDefaultSdkInitFile('server');
 
         if (pathToClientInit) {
           options.debug && console.log(`[sentry-astro] Using ${pathToClientInit} for client init.`);
@@ -55,8 +59,7 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
 
         if (pathToServerInit) {
           options.debug && console.log(`[sentry-astro] Using ${pathToServerInit} for server init.`);
-          // For whatever reason, we need to move one level up to import the server file correctly
-          injectScript('page-ssr', buildSdkInitFileImportSnippet(path.join('..', pathToServerInit)));
+          injectScript('page-ssr', buildSdkInitFileImportSnippet(pathToServerInit));
           options.debug && console.log('[sentry-astro] Using default server init.');
           injectScript('page-ssr', buildServerSnippet(options || {}));
         }
@@ -65,9 +68,9 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
   };
 };
 
-function findSdkInitFile(type: 'server' | 'client'): string | undefined {
+function findDefaultSdkInitFile(type: 'server' | 'client'): string | undefined {
   const fileExtensions = ['ts', 'js', 'tsx', 'jsx', 'mjs', 'cjs', 'mts'];
   return fileExtensions
-    .map(ext => path.join(process.cwd(), `sentry.${type}.config.${ext}`))
+    .map(ext => path.resolve(path.join(process.cwd(), `sentry.${type}.config.${ext}`)))
     .find(filename => fs.existsSync(filename));
 }
