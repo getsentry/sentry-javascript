@@ -145,19 +145,8 @@ export class Replay implements Integration {
       // collect fonts, but be aware that `sentry.io` needs to be an allowed
       // origin for playback
       collectFonts: true,
-      errorHandler: (err: Error & {__rrweb__?: boolean, __source__?: string}) => {
-        try {
-          err.__rrweb__ = true;
-
-          // Re-throw as styled-components relies on thrown exception when CSS rule fails to be inserted.
-          if (err.__source__ === 'CSSStyleSheet.insertRule') {
-            throw err;
-          }
-        } catch {
-          // avoid any potential hazards here
-        }
-        // return true to suppress throwing the error inside of rrweb
-        return true;
+      errorHandler: (err: Error & {__rrweb__?: boolean}) => {
+        err.__rrweb__ = true;
       },
     };
 
