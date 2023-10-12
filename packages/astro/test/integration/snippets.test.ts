@@ -22,8 +22,8 @@ describe('buildClientSnippet', () => {
         debug: false,
         environment: import.meta.env.PUBLIC_VERCEL_ENV,
         release: import.meta.env.PUBLIC_VERCEL_GIT_COMMIT_SHA,
-        integrations: [new Sentry.BrowserTracing(), new Sentry.Replay()],
         tracesSampleRate: 1,
+        integrations: [new Sentry.BrowserTracing(), new Sentry.Replay()],
         replaysSessionSampleRate: 0.1,
         replaysOnErrorSampleRate: 1,
       });"
@@ -41,11 +41,11 @@ describe('buildClientSnippet', () => {
         debug: true,
         environment: \\"staging\\",
         release: \\"1.0.0\\",
-        integrations: [new Sentry.BrowserTracing(), new Sentry.Replay()],
         tracesSampleRate: 0.3,
+        sampleRate: 0.2,
+        integrations: [new Sentry.BrowserTracing(), new Sentry.Replay()],
         replaysSessionSampleRate: 0.5,
         replaysOnErrorSampleRate: 0.4,
-        sampleRate: 0.2,
       });"
     `);
   });
