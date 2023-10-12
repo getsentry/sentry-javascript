@@ -51,7 +51,7 @@ If you want to fully customize your SDK setup, you can do so, too:
 
 ### 2. [Optional] Uploading Source Maps
 
-To upload source maps to Sentry, simply add the `project`, `org` and `authToken` options to `sentryAstro`:
+To upload source maps to Sentry, simply add the `project` and `authToken` options to `sentryAstro`:
 
 ```js
 // astro.config.mjs
@@ -62,7 +62,6 @@ export default defineConfig({
   integrations: [
     sentryAstro({
       dsn: '__DSN__',
-      org: 'your-org-slug',
       project: 'your-project-slug',
       authToken: import.meta.env('SENTRY_AUTH_TOKEN'),
     }),
@@ -74,10 +73,11 @@ You can also define these values as environment variables in e.g. a `.env` file
 or in you CI configuration:
 
 ```sh
-SENTRY_ORG="your-org-slug"
 SENTRY_PROJECT="your-project"
 SENTRY_AUTH_TOKEN="your-token"
 ```
+
+Follow [this guide](https://docs.sentry.io/product/accounts/auth-tokens/#organization-auth-tokens) to create an auth token.
 
 ### 3. [Optional] Advanced Configuration
 
