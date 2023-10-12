@@ -9,6 +9,7 @@ import { logger } from '@sentry/utils';
 
 import { OTEL_CONTEXT_HUB_KEY } from '../constants';
 import { Http } from '../integrations';
+import { NodeFetch } from '../integrations/node-fetch';
 import type { NodeExperimentalClient } from '../sdk/client';
 import { getCurrentHub } from '../sdk/hub';
 import { getSpanHub, setSpanHub, setSpanParent, setSpanScope } from './spanData';
@@ -76,18 +77,22 @@ export class SentrySpanProcessor extends BatchSpanProcessor implements SpanProce
 function shouldCaptureSentrySpan(span: Span): boolean {
   const client = getCurrentHub().getClient<NodeExperimentalClient>();
   const httpIntegration = client ? client.getIntegration(Http) : undefined;
+  const fetchIntegration = client ? client.getIntegration(NodeFetch) : undefined;
 
   // If we encounter a client or server span with url & method, we assume this comes from the http instrumentation
   // In this case, if `shouldCreateSpansForRequests` is false, we want to _record_ the span but not _sample_ it,
   // So we can generate a breadcrumb for it but no span will be sent
   if (
-    httpIntegration &&
     (span.kind === SpanKind.CLIENT || span.kind === SpanKind.SERVER) &&
     span.attributes[SemanticAttributes.HTTP_URL] &&
-    span.attributes[SemanticAttributes.HTTP_METHOD] &&
-    !httpIntegration.shouldCreateSpansForRequests
+    span.attributes[SemanticAttributes.HTTP_METHOD]
   ) {
-    return false;
+    const shouldCreateSpansForRequests =
+      span.attributes['http.client'] === 'fetch'
+        ? fetchIntegration?.shouldCreateSpansForRequests
+        : httpIntegration?.shouldCreateSpansForRequests;
+
+    return shouldCreateSpansForRequests !== false;
   }
 
   return true;

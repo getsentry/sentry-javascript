@@ -33,7 +33,7 @@ conditionalTest({ min: 10 })('registerBackgroundTabDetection', () => {
     hub.configureScope(scope => scope.setSpan(undefined));
   });
 
-  it('does not creates an event listener if global document is undefined', () => {
+  it('does not create an event listener if global document is undefined', () => {
     // @ts-expect-error need to override global document
     global.document = undefined;
     registerBackgroundTabDetection();

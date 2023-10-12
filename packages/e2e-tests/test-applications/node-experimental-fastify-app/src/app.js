@@ -38,6 +38,13 @@ app.get('/test-outgoing-http', async function (req, res) {
   res.send(data);
 });
 
+app.get('/test-outgoing-fetch', async function (req, res) {
+  const response = await fetch('http://localhost:3030/test-inbound-headers');
+  const data = await response.json();
+
+  res.send(data);
+});
+
 app.get('/test-transaction', async function (req, res) {
   Sentry.startSpan({ name: 'test-span' }, () => {
     Sentry.startSpan({ name: 'child-span' }, () => {});

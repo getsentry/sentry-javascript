@@ -4460,7 +4460,7 @@
     semver "^7.5.1"
     shimmer "^1.2.1"
 
-"@opentelemetry/instrumentation@0.43.0", "@opentelemetry/instrumentation@~0.43.0":
+"@opentelemetry/instrumentation@0.43.0", "@opentelemetry/instrumentation@^0.43.0", "@opentelemetry/instrumentation@~0.43.0":
   version "0.43.0"
   resolved "https://registry.yarnpkg.com/@opentelemetry/instrumentation/-/instrumentation-0.43.0.tgz#749521415df03396f969bf42341fcb4acd2e9c7b"
   integrity sha512-S1uHE+sxaepgp+t8lvIDuRgyjJWisAb733198kwQTUc9ZtYQ2V2gmyCtR1x21ePGVLoMiX/NWY7WA290hwkjJQ==
@@ -22727,6 +22727,15 @@ opener@^1.5.2:
   version "1.5.2"
   resolved "https://registry.yarnpkg.com/opener/-/opener-1.5.2.tgz#5d37e1f35077b9dcac4301372271afdeb2a13598"
   integrity sha512-ur5UIdyw5Y7yEj9wLzhqXiy6GZ3Mwx0yGI+5sMn2r0N0v3cKJvUmFH5yPP+WXh9e0xfyzyJX95D8l088DNFj7A==
+
+opentelemetry-instrumentation-fetch-node@1.1.0:
+  version "1.1.0"
+  resolved "https://registry.yarnpkg.com/opentelemetry-instrumentation-fetch-node/-/opentelemetry-instrumentation-fetch-node-1.1.0.tgz#f51d79862390f3a694fa91c35c4383e037a04c11"
+  integrity sha512-mSEpyRfwv6t1L+VvqTw5rCzNr3bVTsGE4/dcZruhFWivXFKl8pqm6W0LWPxHrEvwufw1eK9VmUgalfY0jjMl8Q==
+  dependencies:
+    "@opentelemetry/api" "^1.6.0"
+    "@opentelemetry/instrumentation" "^0.43.0"
+    "@opentelemetry/semantic-conventions" "^1.17.0"
 
 opn@^5.5.0:
   version "5.5.0"
