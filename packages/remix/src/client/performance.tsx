@@ -1,10 +1,10 @@
 import type { ErrorBoundaryProps } from '@sentry/react';
 import { WINDOW, withErrorBoundary } from '@sentry/react';
 import type { Transaction, TransactionContext } from '@sentry/types';
-import { isNodeEnv, logger } from '@sentry/utils';
+import { logger } from '@sentry/utils';
 import * as React from 'react';
 
-import { getFutureFlagsBrowser, readRemixVersionFromLoader } from '../utils/futureFlags';
+import { getFutureFlagsBrowser, isBrowser, readRemixVersionFromLoader } from '../utils/futureFlags';
 
 const DEFAULT_TAGS = {
   'routing.instrumentation': 'remix-router',
@@ -109,7 +109,7 @@ export function withSentry<P extends Record<string, unknown>, R extends React.Co
     // Early return when any of the required functions is not available.
     if (!_useEffect || !_useLocation || !_useMatches || !_customStartTransaction) {
       __DEBUG_BUILD__ &&
-        !isNodeEnv() &&
+        isBrowser() &&
         logger.warn('Remix SDK was unable to wrap your root because of one or more missing parameters.');
 
       // @ts-expect-error Setting more specific React Component typing for `R` generic above

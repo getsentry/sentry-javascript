@@ -7,22 +7,21 @@ export { remixRouterInstrumentation, withSentry } from './client/performance';
 export { captureRemixErrorBoundaryError } from './client/errors';
 export * from '@sentry/react';
 import type { ServerRuntimeClientOptions } from '@sentry/core';
-import {
-  configureScope,
-  getCurrentHub,
-  getIntegrationsToSetup,
-  initAndBind,
-  ServerRuntimeClient,
-  startTransaction,
-} from '@sentry/core';
+import { configureScope, getCurrentHub, getIntegrationsToSetup, initAndBind, ServerRuntimeClient } from '@sentry/core';
 import { createStackParser, logger, nodeStackLineParser, stackParserFromStackParserOptions } from '@sentry/utils';
 
 import { makeEdgeTransport } from './worker/transport';
 
 export { captureRemixServerException } from './utils/instrumentServer';
 export { ErrorBoundary, withErrorBoundary } from '@sentry/react';
-// export { wrapExpressCreateRequestHandler } from './utils/serverAdapters/express';
 export { wrapWorkerCreateRequestHandler } from './utils/serverAdapters/worker';
+
+const nodeStackParser = createStackParser(nodeStackLineParser());
+
+function sdkAlreadyInitialized(): boolean {
+  const hub = getCurrentHub();
+  return !!hub.getClient();
+}
 
 export function init(options: RemixOptions): void {
   buildMetadata(options, ['remix', 'react']);
@@ -35,16 +34,9 @@ export function init(options: RemixOptions): void {
   });
 }
 
-const nodeStackParser = createStackParser(nodeStackLineParser());
-
-function sdkAlreadyInitialized(): boolean {
-  const hub = getCurrentHub();
-  return !!hub.getClient();
-}
-
-/** Initializes Sentry Remix SDK on Node. */
+/** Initializes Sentry Remix SDK on Worker Environments. */
 export function workerInit(options: RemixOptions): void {
-  buildMetadata(options, ['remix', 'node']);
+  buildMetadata(options, ['remix', 'worker']);
 
   if (sdkAlreadyInitialized()) {
     __DEBUG_BUILD__ && logger.log('SDK already initialized');
@@ -64,11 +56,4 @@ export function workerInit(options: RemixOptions): void {
   configureScope(scope => {
     scope.setTag('runtime', 'worker');
   });
-
-  const transaction = startTransaction({
-    name: 'remix-main',
-    op: 'init',
-  });
-
-  transaction.finish();
 }
