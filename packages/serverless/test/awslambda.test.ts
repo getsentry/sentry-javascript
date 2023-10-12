@@ -183,12 +183,12 @@ describe('AWSLambda', () => {
       expect(SentryNode.captureException).toBeCalledTimes(2);
     });
 
-    // "wrapHandler() ... successful execution" tests the default of startTransaction enabled
-    test('startTransaction disabled', async () => {
+    // "wrapHandler() ... successful execution" tests the default of startTrace enabled
+    test('startTrace disabled', async () => {
       expect.assertions(3);
 
       const handler: Handler = async (_event, _context) => 42;
-      const wrappedHandler = wrapHandler(handler, { startTransaction: false });
+      const wrappedHandler = wrapHandler(handler, { startTrace: false });
       await wrappedHandler(fakeEvent, fakeContext, fakeCallback);
 
       // @ts-expect-error see "Why @ts-expect-error" note

@@ -52,7 +52,7 @@ export interface WrapperOptions {
    * You may want to disable this if you use express within Lambda (use tracingHandler instead).
    * @default true
    */
-  startTransaction: boolean;
+  startTrace: boolean;
 }
 
 export const defaultIntegrations: Integration[] = [...Sentry.defaultIntegrations, new AWSServices({ optional: true })];
@@ -235,7 +235,7 @@ export function wrapHandler<TEvent, TResult>(
     captureTimeoutWarning: true,
     timeoutWarningLimit: 500,
     captureAllSettledReasons: false,
-    startTransaction: true,
+    startTrace: true,
     ...wrapOptions,
   };
   let timeoutWarningTimer: NodeJS.Timeout;
@@ -294,7 +294,7 @@ export function wrapHandler<TEvent, TResult>(
     const hub = getCurrentHub();
 
     let transaction: Sentry.Transaction | undefined;
-    if (options.startTransaction) {
+    if (options.startTrace) {
       const eventWithHeaders = event as { headers?: { [key: string]: string } };
 
       const sentryTrace =
@@ -324,7 +324,7 @@ export function wrapHandler<TEvent, TResult>(
     let rv: TResult;
     try {
       enhanceScopeWithEnvironmentData(scope, context, START_TIME);
-      if (options.startTransaction) {
+      if (options.startTrace) {
         enhanceScopeWithTransactionData(scope, context);
         // We put the transaction on the scope so users can attach children to it
         scope.setSpan(transaction);
