@@ -27,4 +27,16 @@ describe('getModuleFromFilename', () => {
       expect(getModuleFromFilename('/Users/users/Tim/Desktop/node_modules/module.js')).toEqual('module');
     }, '/Users/Tim/app.js');
   });
+
+  test('POSIX .mjs', () => {
+    withFilename(() => {
+      expect(getModuleFromFilename('/Users/users/Tim/Desktop/node_modules/module.mjs')).toEqual('module');
+    }, '/Users/Tim/app.js');
+  });
+
+  test('POSIX .cjs', () => {
+    withFilename(() => {
+      expect(getModuleFromFilename('/Users/users/Tim/Desktop/node_modules/module.cjs')).toEqual('module');
+    }, '/Users/Tim/app.js');
+  });
 });
