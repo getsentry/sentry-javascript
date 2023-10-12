@@ -10,6 +10,9 @@
   "module": "build/index.js",
   "types": "build/index.d.ts",
   "private": true,
+  "publishConfig": {
+    "access": "public"
+  },
   "dependencies": {
     "@sentry/core": "7.73.0",
     "@sentry/browser": "7.73.0",
