@@ -83,7 +83,7 @@ SENTRY_AUTH_TOKEN="your-token"
 
 To fully customize and configure Sentry in an Astro project, follow step 1 and in addition,
 add a `sentry.client.config.(js|ts)` and `sentry.server.config(js|ts)` file to the root directory of your project.
-Inside these files, you can call `Sentry.init()` and get the full range of Sentry options.
+Inside these files, you can call `Sentry.init()` and use the full range of Sentry options.
 
 Configuring the client SDK:
 
