@@ -19,7 +19,12 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
         // see: https://main.vitejs.dev/config/#using-environment-variables-in-config
         const env = loadEnv('production', process.cwd(), '');
 
-        if (options.authToken ?? env.SENTRY_AUTH_TOKEN) {
+        const uploadOptions = options.sourceMapsUploadOptions || {};
+
+        const shouldUploadSourcemaps = uploadOptions?.enabled ?? true;
+        const authToken = uploadOptions.authToken || env.SENTRY_AUTH_TOKEN;
+
+        if (shouldUploadSourcemaps && authToken) {
           updateConfig({
             vite: {
               build: {
@@ -27,10 +32,10 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
               },
               plugins: [
                 sentryVitePlugin({
-                  org: options.org ?? env.SENTRY_ORG,
-                  project: options.project ?? env.SENTRY_PROJECT,
-                  authToken: options.authToken ?? env.SENTRY_AUTH_TOKEN,
-                  telemetry: options.telemetry,
+                  org: uploadOptions.org ?? env.SENTRY_ORG,
+                  project: uploadOptions.project ?? env.SENTRY_PROJECT,
+                  authToken: uploadOptions.authToken ?? env.SENTRY_AUTH_TOKEN,
+                  telemetry: uploadOptions.telemetry ?? true,
                 }),
               ],
             },
@@ -52,7 +57,6 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
           options.debug && console.log(`[sentry-astro] Using ${pathToServerInit} for server init.`);
           // For whatever reason, we need to move one level up to import the server file correctly
           injectScript('page-ssr', buildSdkInitFileImportSnippet(path.join('..', pathToServerInit)));
-        } else {
           options.debug && console.log('[sentry-astro] Using default server init.');
           injectScript('page-ssr', buildServerSnippet(options || {}));
         }
