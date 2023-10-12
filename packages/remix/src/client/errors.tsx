@@ -1,6 +1,7 @@
 import { captureException, withScope } from '@sentry/core';
-import { addExceptionMechanism, isNodeEnv, isString } from '@sentry/utils';
+import { addExceptionMechanism, isString } from '@sentry/utils';
 
+import { isBrowser } from '../utils/futureFlags';
 import { isRouteErrorResponse } from '../utils/vendor/response';
 
 /**
@@ -11,7 +12,7 @@ import { isRouteErrorResponse } from '../utils/vendor/response';
  */
 export function captureRemixErrorBoundaryError(error: unknown): string | undefined {
   let eventId: string | undefined;
-  const isClientSideRuntimeError = !isNodeEnv() && error instanceof Error;
+  const isClientSideRuntimeError = isBrowser() && error instanceof Error;
   const isRemixErrorResponse = isRouteErrorResponse(error);
   // Server-side errors apart from `ErrorResponse`s also appear here without their stacktraces.
   // So, we only capture:

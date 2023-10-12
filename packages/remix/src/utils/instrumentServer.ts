@@ -12,13 +12,12 @@ import {
   addExceptionMechanism,
   dynamicSamplingContextToSentryBaggageHeader,
   fill,
-  isNodeEnv,
   loadModule,
   logger,
   tracingContextFromHeaders,
 } from '@sentry/utils';
 
-import { getFutureFlagsServer, getRemixVersionFromBuild } from './futureFlags';
+import { getFutureFlagsServer, getRemixVersionFromBuild, isBrowser } from './futureFlags';
 import {
   extractData,
   getRequestMatch,
@@ -241,7 +240,7 @@ function getTraceAndBaggage(): { sentryTrace?: string; sentryBaggage?: string } 
   const transaction = getActiveTransaction();
   const currentScope = getCurrentHub().getScope();
 
-  if (isNodeEnv() && hasTracingEnabled()) {
+  if (!isBrowser() && hasTracingEnabled()) {
     const span = currentScope.getSpan();
 
     if (span && transaction) {

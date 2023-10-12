@@ -1,4 +1,4 @@
-import { GLOBAL_OBJ } from '@sentry/utils';
+import { GLOBAL_OBJ, isNodeEnv } from '@sentry/utils';
 
 import type { FutureConfig, ServerBuild } from './vendor/types';
 
@@ -64,4 +64,16 @@ export function readRemixVersionFromLoader(): number | undefined {
   const window = GLOBAL_OBJ as EnhancedGlobal;
 
   return window.__remixContext?.state?.loaderData?.root?.remixVersion;
+}
+
+/**
+ * Check if we are in the browser
+ * Checking the existence of document instead of window
+ * See:https://remix.run/docs/en/1.19.3/pages/gotchas#typeof-window-checks
+ *
+ * @returns True if we are in the browser
+ */
+export function isBrowser(): boolean {
+  // eslint-disable-next-line @typescript-eslint/no-unused-expressions, no-restricted-globals
+  return typeof document !== 'undefined' && !isNodeEnv();
 }
