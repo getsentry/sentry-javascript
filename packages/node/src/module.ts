@@ -30,8 +30,8 @@ export function getModuleFromFilename(
   // It's specifically a module
   let file = basename;
 
-  if (ext === '.js') {
-    file = file.slice(0, file.length - '.js'.length);
+  if (ext === '.js' || ext === '.mjs') {
+    file = file.slice(0, ext.length * -1);
   }
 
   if (!root && !dir) {
