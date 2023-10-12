@@ -60,6 +60,7 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
         if (pathToServerInit) {
           options.debug && console.log(`[sentry-astro] Using ${pathToServerInit} for server init.`);
           injectScript('page-ssr', buildSdkInitFileImportSnippet(pathToServerInit));
+        } else {
           options.debug && console.log('[sentry-astro] Using default server init.');
           injectScript('page-ssr', buildServerSnippet(options || {}));
         }
