@@ -1,5 +1,5 @@
 import type { Event, StackFrame } from '@sentry/types';
-import { logger } from '@sentry/utils';
+import { logger, watchdogTimer } from '@sentry/utils';
 import { spawn } from 'child_process';
 
 import { addGlobalEventProcessor, captureEvent, flush } from '..';
@@ -7,36 +7,6 @@ import { captureStackTrace } from './debugger';
 
 const DEFAULT_INTERVAL = 50;
 const DEFAULT_HANG_THRESHOLD = 5000;
-
-/**
- * A node.js watchdog timer
- * @param pollInterval The interval that we expect to get polled at
- * @param anrThreshold The threshold for when we consider ANR
- * @param callback The callback to call for ANR
- * @returns A function to call to reset the timer
- */
-function watchdogTimer(pollInterval: number, anrThreshold: number, callback: () => void): () => void {
-  let lastPoll = process.hrtime();
-  let triggered = false;
-
-  setInterval(() => {
-    const [seconds, nanoSeconds] = process.hrtime(lastPoll);
-    const diffMs = Math.floor(seconds * 1e3 + nanoSeconds / 1e6);
-
-    if (triggered === false && diffMs > pollInterval + anrThreshold) {
-      triggered = true;
-      callback();
-    }
-
-    if (diffMs < pollInterval + anrThreshold) {
-      triggered = false;
-    }
-  }, 20);
-
-  return () => {
-    lastPoll = process.hrtime();
-  };
-}
 
 interface Options {
   /**
@@ -66,7 +36,7 @@ interface Options {
    */
   captureStackTrace: boolean;
   /**
-   * Log debug information.
+   * @deprecated Use 'init' debug option instead
    */
   debug: boolean;
 }
@@ -124,9 +94,7 @@ function startInspector(startPort: number = 9229): string | undefined {
 
 function startChildProcess(options: Options): void {
   function log(message: string, ...args: unknown[]): void {
-    if (options.debug) {
-      logger.log(`[ANR] ${message}`, ...args);
-    }
+    logger.log(`[ANR] ${message}`, ...args);
   }
 
   try {
@@ -141,7 +109,7 @@ function startChildProcess(options: Options): void {
 
     const child = spawn(process.execPath, [options.entryScript], {
       env,
-      stdio: options.debug ? ['inherit', 'inherit', 'inherit', 'ipc'] : ['ignore', 'ignore', 'ignore', 'ipc'],
+      stdio: logger.isEnabled() ? ['inherit', 'inherit', 'inherit', 'ipc'] : ['ignore', 'ignore', 'ignore', 'ipc'],
     });
     // The child process should not keep the main process alive
     child.unref();
@@ -172,9 +140,7 @@ function startChildProcess(options: Options): void {
 
 function handleChildProcess(options: Options): void {
   function log(message: string): void {
-    if (options.debug) {
-      logger.log(`[ANR child process] ${message}`);
-    }
+    logger.log(`[ANR child process] ${message}`);
   }
 
   process.title = 'sentry-anr';
@@ -216,10 +182,10 @@ function handleChildProcess(options: Options): void {
     }
   }
 
-  const ping = watchdogTimer(options.pollInterval, options.anrThreshold, watchdogTimeout);
+  const { poll } = watchdogTimer(options.pollInterval, options.anrThreshold, watchdogTimeout);
 
   process.on('message', () => {
-    ping();
+    poll();
   });
 }
 
@@ -263,6 +229,7 @@ export function enableAnrDetection(options: Partial<Options>): Promise<void> {
     pollInterval: options.pollInterval || DEFAULT_INTERVAL,
     anrThreshold: options.anrThreshold || DEFAULT_HANG_THRESHOLD,
     captureStackTrace: !!options.captureStackTrace,
+    // eslint-disable-next-line deprecation/deprecation
     debug: !!options.debug,
   };
 

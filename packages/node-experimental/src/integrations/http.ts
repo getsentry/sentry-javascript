@@ -1,25 +1,19 @@
-import type { Attributes } from '@opentelemetry/api';
+import type { Span } from '@opentelemetry/api';
 import { SpanKind } from '@opentelemetry/api';
 import { registerInstrumentations } from '@opentelemetry/instrumentation';
 import { HttpInstrumentation } from '@opentelemetry/instrumentation-http';
-import { SemanticAttributes } from '@opentelemetry/semantic-conventions';
-import { hasTracingEnabled, isSentryRequestUrl, Transaction } from '@sentry/core';
-import { getCurrentHub } from '@sentry/node';
-import { _INTERNAL_getSentrySpan } from '@sentry/opentelemetry-node';
+import { hasTracingEnabled, isSentryRequestUrl } from '@sentry/core';
 import type { EventProcessor, Hub, Integration } from '@sentry/types';
+import { stringMatchesSomePattern } from '@sentry/utils';
 import type { ClientRequest, IncomingMessage, ServerResponse } from 'http';
 
-import type { NodeExperimentalClient, OtelSpan } from '../types';
+import { OTEL_ATTR_ORIGIN } from '../constants';
+import { setSpanMetadata } from '../opentelemetry/spanData';
+import type { NodeExperimentalClient } from '../sdk/client';
+import { getCurrentHub } from '../sdk/hub';
 import { getRequestSpanData } from '../utils/getRequestSpanData';
 import { getRequestUrl } from '../utils/getRequestUrl';
-
-interface TracingOptions {
-  /**
-   * Function determining whether or not to create spans to track outgoing requests to the given URL.
-   * By default, spans will be created for all outgoing requests.
-   */
-  shouldCreateSpanForRequest?: (url: string) => boolean;
-}
+import { getSpanKind } from '../utils/getSpanKind';
 
 interface HttpOptions {
   /**
@@ -32,7 +26,12 @@ interface HttpOptions {
    * Whether tracing spans should be created for requests
    * Defaults to false
    */
-  tracing?: TracingOptions | boolean;
+  spans?: boolean;
+
+  /**
+   * Do not capture spans or breadcrumbs for outgoing HTTP requests to URLs matching the given patterns.
+   */
+  ignoreOutgoingRequests?: (string | RegExp)[];
 }
 
 /**
@@ -54,12 +53,16 @@ export class Http implements Integration {
    */
   public name: string;
 
+  /**
+   * If spans for HTTP requests should be captured.
+   */
+  public shouldCreateSpansForRequests: boolean;
+
   private _unload?: () => void;
   private readonly _breadcrumbs: boolean;
-  // undefined: default behavior based on tracing settings
-  private readonly _tracing: boolean | undefined;
-  private _shouldCreateSpans: boolean;
-  private _shouldCreateSpanForRequest?: (url: string) => boolean;
+  // If this is undefined, use default behavior based on client settings
+  private readonly _spans: boolean | undefined;
+  private _ignoreOutgoingRequests: (string | RegExp)[];
 
   /**
    * @inheritDoc
@@ -67,12 +70,12 @@ export class Http implements Integration {
   public constructor(options: HttpOptions = {}) {
     this.name = Http.id;
     this._breadcrumbs = typeof options.breadcrumbs === 'undefined' ? true : options.breadcrumbs;
-    this._tracing = typeof options.tracing === 'undefined' ? undefined : !!options.tracing;
-    this._shouldCreateSpans = false;
+    this._spans = typeof options.spans === 'undefined' ? undefined : options.spans;
 
-    if (options.tracing && typeof options.tracing === 'object') {
-      this._shouldCreateSpanForRequest = options.tracing.shouldCreateSpanForRequest;
-    }
+    this._ignoreOutgoingRequests = options.ignoreOutgoingRequests || [];
+
+    // Properly set in setupOnce based on client settings
+    this.shouldCreateSpansForRequests = false;
   }
 
   /**
@@ -80,14 +83,16 @@ export class Http implements Integration {
    */
   public setupOnce(_addGlobalEventProcessor: (callback: EventProcessor) => void, _getCurrentHub: () => Hub): void {
     // No need to instrument if we don't want to track anything
-    if (!this._breadcrumbs && this._tracing === false) {
+    if (!this._breadcrumbs && this._spans === false) {
       return;
     }
 
     const client = getCurrentHub().getClient<NodeExperimentalClient>();
     const clientOptions = client?.getOptions();
 
-    this._shouldCreateSpans = typeof this._tracing === 'undefined' ? hasTracingEnabled(clientOptions) : this._tracing;
+    // This is used in the sampler function
+    this.shouldCreateSpansForRequests =
+      typeof this._spans === 'boolean' ? this._spans : hasTracingEnabled(clientOptions);
 
     // Register instrumentations we care about
     this._unload = registerInstrumentations({
@@ -95,7 +100,20 @@ export class Http implements Integration {
         new HttpInstrumentation({
           ignoreOutgoingRequestHook: request => {
             const url = getRequestUrl(request);
-            return url ? isSentryRequestUrl(url, getCurrentHub()) : false;
+
+            if (!url) {
+              return false;
+            }
+
+            if (isSentryRequestUrl(url, getCurrentHub())) {
+              return true;
+            }
+
+            if (this._ignoreOutgoingRequests.length && stringMatchesSomePattern(url, this._ignoreOutgoingRequests)) {
+              return true;
+            }
+
+            return false;
           },
 
           ignoreIncomingRequestHook: request => {
@@ -111,20 +129,14 @@ export class Http implements Integration {
           requireParentforOutgoingSpans: true,
           requireParentforIncomingSpans: false,
           requestHook: (span, req) => {
-            this._updateSentrySpan(span as unknown as OtelSpan, req);
+            this._updateSpan(span, req);
           },
           responseHook: (span, res) => {
-            this._addRequestBreadcrumb(span as unknown as OtelSpan, res);
+            this._addRequestBreadcrumb(span, res);
           },
         }),
       ],
     });
-
-    this._shouldCreateSpanForRequest =
-      // eslint-disable-next-line deprecation/deprecation
-      this._shouldCreateSpanForRequest || clientOptions?.shouldCreateSpanForRequest;
-
-    client?.on?.('otelSpanEnd', this._onSpanEnd);
   }
 
   /**
@@ -134,69 +146,18 @@ export class Http implements Integration {
     this._unload?.();
   }
 
-  private _onSpanEnd: (otelSpan: unknown, mutableOptions: { drop: boolean }) => void = (
-    otelSpan: unknown,
-    mutableOptions: { drop: boolean },
-  ) => {
-    if (!this._shouldCreateSpans) {
-      mutableOptions.drop = true;
-      return;
+  /** Update the span with data we need. */
+  private _updateSpan(span: Span, request: ClientRequest | IncomingMessage): void {
+    span.setAttribute(OTEL_ATTR_ORIGIN, 'auto.http.otel.http');
+
+    if (getSpanKind(span) === SpanKind.SERVER) {
+      setSpanMetadata(span, { request });
     }
-
-    if (this._shouldCreateSpanForRequest) {
-      const url = getHttpUrl((otelSpan as OtelSpan).attributes);
-      if (url && !this._shouldCreateSpanForRequest(url)) {
-        mutableOptions.drop = true;
-        return;
-      }
-    }
-
-    return;
-  };
-
-  /** Update the Sentry span data based on the OTEL span. */
-  private _updateSentrySpan(span: OtelSpan, request: ClientRequest | IncomingMessage): void {
-    const data = getRequestSpanData(span);
-    const { attributes } = span;
-
-    const sentrySpan = _INTERNAL_getSentrySpan(span.spanContext().spanId);
-    if (!sentrySpan) {
-      return;
-    }
-
-    sentrySpan.origin = 'auto.http.otel.http';
-
-    const additionalData: Record<string, unknown> = {
-      url: data.url,
-    };
-
-    if (sentrySpan instanceof Transaction && span.kind === SpanKind.SERVER) {
-      sentrySpan.setMetadata({ request });
-    }
-
-    if (attributes[SemanticAttributes.HTTP_STATUS_CODE]) {
-      const statusCode = attributes[SemanticAttributes.HTTP_STATUS_CODE] as string;
-      additionalData['http.response.status_code'] = statusCode;
-
-      sentrySpan.setTag('http.status_code', statusCode);
-    }
-
-    if (data['http.query']) {
-      additionalData['http.query'] = data['http.query'].slice(1);
-    }
-    if (data['http.fragment']) {
-      additionalData['http.fragment'] = data['http.fragment'].slice(1);
-    }
-
-    Object.keys(additionalData).forEach(prop => {
-      const value = additionalData[prop];
-      sentrySpan.setData(prop, value);
-    });
   }
 
   /** Add a breadcrumb for outgoing requests. */
-  private _addRequestBreadcrumb(span: OtelSpan, response: IncomingMessage | ServerResponse): void {
-    if (!this._breadcrumbs || span.kind !== SpanKind.CLIENT) {
+  private _addRequestBreadcrumb(span: Span, response: IncomingMessage | ServerResponse): void {
+    if (!this._breadcrumbs || getSpanKind(span) !== SpanKind.CLIENT) {
       return;
     }
 
@@ -219,9 +180,4 @@ export class Http implements Integration {
       },
     );
   }
-}
-
-function getHttpUrl(attributes: Attributes): string | undefined {
-  const url = attributes[SemanticAttributes.HTTP_URL];
-  return typeof url === 'string' ? url : undefined;
 }

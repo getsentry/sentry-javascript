@@ -1,29 +1,34 @@
-import type { Tracer } from '@opentelemetry/api';
-import type { Span as OtelSpan } from '@opentelemetry/sdk-trace-base';
+import type { Span as WriteableSpan, Tracer } from '@opentelemetry/api';
+import type { BasicTracerProvider, ReadableSpan, Span } from '@opentelemetry/sdk-trace-base';
 import type { NodeClient, NodeOptions } from '@sentry/node';
-import type { Breadcrumb, Transaction } from '@sentry/types';
+import type { SpanOrigin, TransactionMetadata, TransactionSource } from '@sentry/types';
 
 export type NodeExperimentalOptions = NodeOptions;
 export type NodeExperimentalClientOptions = ConstructorParameters<typeof NodeClient>[0];
 
 export interface NodeExperimentalClient extends NodeClient {
   tracer: Tracer;
+  traceProvider: BasicTracerProvider | undefined;
   getOptions(): NodeExperimentalClientOptions;
 }
 
-/**
- * This is a fork of the base Transaction with OTEL specific stuff added.
- * Note that we do not solve this via an actual subclass, but by wrapping this in a proxy when we need it -
- * as we can't easily control all the places a transaction may be created.
- */
-export interface TransactionWithBreadcrumbs extends Transaction {
-  _breadcrumbs: Breadcrumb[];
-
-  /** Get all breadcrumbs added to this transaction. */
-  getBreadcrumbs(): Breadcrumb[];
-
-  /** Add a breadcrumb to this transaction. */
-  addBreadcrumb(breadcrumb: Breadcrumb, maxBreadcrumbs?: number): void;
+export interface NodeExperimentalSpanContext {
+  name: string;
+  op?: string;
+  metadata?: Partial<TransactionMetadata>;
+  origin?: SpanOrigin;
+  source?: TransactionSource;
 }
 
-export type { OtelSpan };
+/**
+ * The base `Span` type is basically a `WriteableSpan`.
+ * There are places where we basically want to allow passing _any_ span,
+ * so in these cases we type this as `AbstractSpan` which could be either a regular `Span` or a `ReadableSpan`.
+ * You'll have to make sur to check revelant fields before accessing them.
+ *
+ * Note that technically, the `Span` exported from `@opentelemwetry/sdk-trace-base` matches this,
+ * but we cannot be 100% sure that we are actually getting such a span, so this type is more defensive.
+ */
+export type AbstractSpan = WriteableSpan | ReadableSpan;
+
+export type { Span };

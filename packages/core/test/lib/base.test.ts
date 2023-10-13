@@ -78,6 +78,9 @@ describe('BaseClient', () => {
     });
 
     test('handles being passed an invalid Dsn', () => {
+      // Hide warning logs in the test
+      jest.spyOn(console, 'error').mockImplementation(() => {});
+
       const options = getDefaultTestClientOptions({ dsn: 'abc' });
       const client = new TestClient(options);
 

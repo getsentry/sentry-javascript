@@ -10,13 +10,14 @@ setTimeout(() => {
 Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
   release: '1.0',
+  debug: true,
   beforeSend: event => {
     // eslint-disable-next-line no-console
     console.log(JSON.stringify(event));
   },
 });
 
-await Sentry.enableAnrDetection({ captureStackTrace: true, anrThreshold: 200, debug: true });
+await Sentry.enableAnrDetection({ captureStackTrace: true, anrThreshold: 200 });
 
 function longWork() {
   for (let i = 0; i < 100; i++) {

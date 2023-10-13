@@ -1,6 +1,6 @@
 {
   "name": "@sentry/vercel-edge",
-  "version": "7.73.0",
+  "version": "7.74.0",
   "description": "Offical Sentry SDK for the Vercel Edge Runtime",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/vercel-edge",
@@ -23,9 +23,9 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/core": "7.73.0",
-    "@sentry/types": "7.73.0",
-    "@sentry/utils": "7.73.0",
+    "@sentry/core": "7.74.0",
+    "@sentry/types": "7.74.0",
+    "@sentry/utils": "7.74.0",
     "tslib": "^2.4.1 || ^1.9.3"
   },
   "devDependencies": {
@@ -45,7 +45,7 @@
     "build:types:watch": "tsc -p tsconfig.types.json --watch",
     "build:tarball": "ts-node ../../scripts/prepack.ts && npm pack ./build",
     "circularDepCheck": "madge --circular src/index.ts",
-    "clean": "rimraf build coverage sentry-core-*.tgz",
+    "clean": "rimraf build coverage sentry-vercel-edge-*.tgz",
     "fix": "run-s fix:eslint fix:prettier",
     "fix:eslint": "eslint . --format stylish --fix",
     "fix:prettier": "prettier --write \"{src,test,scripts}/**/**.ts\"",

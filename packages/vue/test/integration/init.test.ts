@@ -1,24 +1,23 @@
 import { createApp } from 'vue';
 
+import { VueIntegration } from '../../src/integration';
+import type { Options } from '../../src/types';
 import * as Sentry from './../../src';
 
+const PUBLIC_DSN = 'https://username@domain/123';
+
 describe('Sentry.init', () => {
-  let _consoleWarn: any;
-  let warnings: string[] = [];
+  let warnings: unknown[] = [];
 
   beforeEach(() => {
     warnings = [];
-    // eslint-disable-next-line no-console
-    _consoleWarn = console.warn;
-    // eslint-disable-next-line no-console
-    console.warn = jest.fn((message: string) => {
+    jest.spyOn(console, 'warn').mockImplementation((message: unknown) => {
       warnings.push(message);
     });
   });
 
   afterEach(() => {
-    // eslint-disable-next-line no-console
-    console.warn = _consoleWarn;
+    jest.clearAllMocks();
   });
 
   it('does not warn when correctly setup (Vue 3)', () => {
@@ -27,9 +26,8 @@ describe('Sentry.init', () => {
       template: '<div>hello</div>',
     });
 
-    Sentry.init({
+    runInit({
       app,
-      defaultIntegrations: false,
     });
 
     app.mount(el);
@@ -43,10 +41,9 @@ describe('Sentry.init', () => {
       template: '<div>hello</div>',
     });
 
-    Sentry.init({
+    runInit({
       // this is a bit "hacky", but good enough to test what we want
       Vue: app,
-      defaultIntegrations: false,
     });
 
     app.mount(el);
@@ -62,9 +59,8 @@ describe('Sentry.init', () => {
 
     app.mount(el);
 
-    Sentry.init({
+    runInit({
       app,
-      defaultIntegrations: false,
     });
 
     expect(warnings).toEqual([
@@ -78,9 +74,7 @@ describe('Sentry.init', () => {
       template: '<div>hello</div>',
     });
 
-    Sentry.init({
-      defaultIntegrations: false,
-    });
+    runInit({});
 
     app.mount(el);
 
@@ -90,4 +84,41 @@ Update your \`Sentry.init\` call with an appropriate config option:
 \`app\` (Application Instance - Vue 3) or \`Vue\` (Vue Constructor - Vue 2).`,
     ]);
   });
+
+  it('does not warn when skipping Vue integration', () => {
+    const el = document.createElement('div');
+    const app = createApp({
+      template: '<div>hello</div>',
+    });
+
+    Sentry.init({
+      dsn: PUBLIC_DSN,
+      defaultIntegrations: false,
+      integrations: [],
+    });
+
+    app.mount(el);
+
+    expect(warnings).toEqual([]);
+  });
 });
+
+function runInit(options: Partial<Options>): void {
+  const hasRunBefore = Sentry.getCurrentHub().getIntegration(VueIntegration);
+
+  const integration = new VueIntegration();
+
+  Sentry.init({
+    dsn: PUBLIC_DSN,
+    defaultIntegrations: false,
+    integrations: [integration],
+    ...options,
+  });
+
+  // Because our integrations API is terrible to test, we need to make sure to check
+  // If we've already had this integration registered before
+  // if that's the case, `setup()` will not be run, so we need to manually run it :(
+  if (hasRunBefore) {
+    integration['_setupIntegration'](Sentry.getCurrentHub());
+  }
+}

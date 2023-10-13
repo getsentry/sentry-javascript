@@ -23,6 +23,7 @@ export type { ReportDialogOptions } from './helpers';
 export {
   addGlobalEventProcessor,
   addBreadcrumb,
+  addIntegration,
   captureException,
   captureEvent,
   captureMessage,

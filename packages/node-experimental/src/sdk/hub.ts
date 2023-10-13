@@ -3,12 +3,14 @@ import { Hub } from '@sentry/core';
 import type { Client } from '@sentry/types';
 import { getGlobalSingleton, GLOBAL_OBJ } from '@sentry/utils';
 
-import { OtelScope } from './scope';
+import { NodeExperimentalScope } from './scope';
 
-/** A custom hub that ensures we always creat an OTEL scope. */
-
-class OtelHub extends Hub {
-  public constructor(client?: Client, scope: Scope = new OtelScope()) {
+/**
+ * A custom hub that ensures we always creat an OTEL scope.
+ * Exported only for testing
+ */
+export class NodeExperimentalHub extends Hub {
+  public constructor(client?: Client, scope: Scope = new NodeExperimentalScope()) {
     super(client, scope);
   }
 
@@ -17,7 +19,7 @@ class OtelHub extends Hub {
    */
   public pushScope(): Scope {
     // We want to clone the content of prev scope
-    const scope = OtelScope.clone(this.getScope());
+    const scope = NodeExperimentalScope.clone(this.getScope());
     this.getStack().push({
       client: this.getClient(),
       scope,
@@ -29,11 +31,11 @@ class OtelHub extends Hub {
 /**
  * *******************************************************************************
  * Everything below here is a copy of the stuff from core's hub.ts,
- * only that we make sure to create our custom OtelScope instead of the default Scope.
+ * only that we make sure to create our custom NodeExperimentalScope instead of the default Scope.
  * This is necessary to get the correct breadcrumbs behavior.
  *
- * Basically, this overwrites all places that do `new Scope()` with `new OtelScope()`.
- * Which in turn means overwriting all places that do `new Hub()` and make sure to pass in a OtelScope instead.
+ * Basically, this overwrites all places that do `new Scope()` with `new NodeExperimentalScope()`.
+ * Which in turn means overwriting all places that do `new Hub()` and make sure to pass in a NodeExperimentalScope instead.
  * *******************************************************************************
  */
 
@@ -77,7 +79,7 @@ export function getCurrentHub(): Hub {
  * @hidden
  */
 export function getHubFromCarrier(carrier: Carrier): Hub {
-  return getGlobalSingleton<Hub>('hub', () => new OtelHub(), carrier);
+  return getGlobalSingleton<Hub>('hub', () => new NodeExperimentalHub(), carrier);
 }
 
 /**
@@ -89,14 +91,17 @@ export function ensureHubOnCarrier(carrier: Carrier, parent: Hub = getGlobalHub(
   // If there's no hub on current domain, or it's an old API, assign a new one
   if (!hasHubOnCarrier(carrier) || getHubFromCarrier(carrier).isOlderThan(API_VERSION)) {
     const globalHubTopStack = parent.getStackTop();
-    setHubOnCarrier(carrier, new OtelHub(globalHubTopStack.client, OtelScope.clone(globalHubTopStack.scope)));
+    setHubOnCarrier(
+      carrier,
+      new NodeExperimentalHub(globalHubTopStack.client, NodeExperimentalScope.clone(globalHubTopStack.scope)),
+    );
   }
 }
 
 function getGlobalHub(registry: Carrier = getMainCarrier()): Hub {
   // If there's no hub, or its an old API, assign a new one
   if (!hasHubOnCarrier(registry) || getHubFromCarrier(registry).isOlderThan(API_VERSION)) {
-    setHubOnCarrier(registry, new OtelHub());
+    setHubOnCarrier(registry, new NodeExperimentalHub());
   }
 
   // Return hub that lives on a global object

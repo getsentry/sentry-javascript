@@ -1,0 +1,20 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Find symbolicated event on sentry 1`] = `
+{
+  "colno": 41,
+  "contextLine": "const eventId = Sentry.captureException(new Error('Sentry Debug ID E2E Test Error'));",
+  "lineno": 8,
+  "postContext": [
+    "",
+    "process.stdout.write(eventId);",
+  ],
+  "preContext": [
+    "Sentry.init({",
+    "  environment: 'qa', // dynamic sampling bias to keep transactions",
+    "  dsn: process.env.E2E_TEST_DSN,",
+    "});",
+    "",
+  ],
+}
+`;

@@ -22,6 +22,7 @@ const DEFAULT_SKIP_TESTS_PACKAGES = [
   '@sentry/replay',
   '@sentry/wasm',
   '@sentry/bun',
+  '@sentry/deno',
 ];
 
 const SKIP_TEST_PACKAGES: Record<NodeVersion, VersionConfig> = {
@@ -35,6 +36,7 @@ const SKIP_TEST_PACKAGES: Record<NodeVersion, VersionConfig> = {
       '@sentry-internal/replay-worker',
       '@sentry/node-experimental',
       '@sentry/vercel-edge',
+      '@sentry/astro',
     ],
     legacyDeps: [
       'jsdom@15.x',
@@ -53,22 +55,29 @@ const SKIP_TEST_PACKAGES: Record<NodeVersion, VersionConfig> = {
       '@sentry-internal/replay-worker',
       '@sentry/node-experimental',
       '@sentry/vercel-edge',
+      '@sentry/astro',
     ],
     legacyDeps: ['jsdom@16.x', 'lerna@3.13.4'],
     shouldES6Utils: true,
   },
   '12': {
-    ignoredPackages: ['@sentry/remix', '@sentry/sveltekit', '@sentry/node-experimental', '@sentry/vercel-edge'],
+    ignoredPackages: [
+      '@sentry/remix',
+      '@sentry/sveltekit',
+      '@sentry/node-experimental',
+      '@sentry/vercel-edge',
+      '@sentry/astro',
+    ],
     legacyDeps: ['lerna@3.13.4'],
     shouldES6Utils: true,
   },
   '14': {
-    ignoredPackages: ['@sentry/sveltekit', '@sentry/vercel-edge'],
+    ignoredPackages: ['@sentry/sveltekit', '@sentry/vercel-edge', '@sentry/astro'],
     legacyDeps: [],
     shouldES6Utils: false,
   },
   '16': {
-    ignoredPackages: ['@sentry/vercel-edge'],
+    ignoredPackages: ['@sentry/vercel-edge', '@sentry/astro'],
     legacyDeps: [],
     shouldES6Utils: false,
   },

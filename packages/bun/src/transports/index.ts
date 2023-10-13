@@ -15,7 +15,6 @@ export function makeFetchTransport(options: BunTransportOptions): Transport {
     const requestOptions: RequestInit = {
       body: request.body,
       method: 'POST',
-      referrerPolicy: 'origin',
       headers: options.headers,
     };
 
