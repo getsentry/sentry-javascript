@@ -30,6 +30,7 @@ body:
         If you're using the CDN bundles, please specify the exact bundle (e.g. `bundle.tracing.min.js`) in your SDK
         setup.
       options:
+        - '@sentry/astro'
         - '@sentry/browser'
         - '@sentry/angular'
         - '@sentry/angular-ivy'
