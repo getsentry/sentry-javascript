@@ -8,6 +8,7 @@ import type {
   SeverityLevel,
   StackFrame,
   StackParser,
+  ParameterizedString,
 } from '@sentry/types';
 
 import { isError, isPlainObject } from './is';
@@ -119,7 +120,7 @@ export function eventFromUnknownInput(
  */
 export function eventFromMessage(
   stackParser: StackParser,
-  input: string & { __sentry_template_string__?: string; __sentry_template_values__?: string[] },
+  message: ParameterizedString,
   // eslint-disable-next-line deprecation/deprecation
   level: Severity | SeverityLevel = 'info',
   hint?: EventHint,
@@ -136,7 +137,7 @@ export function eventFromMessage(
       event.exception = {
         values: [
           {
-            value: input,
+            value: message,
             stacktrace: { frames },
           },
         ],
@@ -144,7 +145,7 @@ export function eventFromMessage(
     }
   }
 
-  const { __sentry_template_string__, __sentry_template_values__ } = input;
+  const { __sentry_template_string__, __sentry_template_values__ } = message;
 
   if (__sentry_template_string__ && __sentry_template_values__) {
     event.logentry = {
@@ -154,6 +155,6 @@ export function eventFromMessage(
     return event;
   }
 
-  event.message = input;
+  event.message = message;
   return event;
 }

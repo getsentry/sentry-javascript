@@ -126,3 +126,4 @@ export type { HandlerDataFetch, HandlerDataXhr, SentryXhrData, SentryWrappedXMLH
 
 export type { BrowserClientReplayOptions, BrowserClientProfilingOptions } from './browseroptions';
 export type { CheckIn, MonitorConfig, SerializedCheckIn } from './checkin';
+export type { ParameterizedString } from './parameterize';

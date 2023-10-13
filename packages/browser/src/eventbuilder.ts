@@ -1,5 +1,14 @@
 import { getCurrentHub } from '@sentry/core';
-import type { Event, EventHint, Exception, Severity, SeverityLevel, StackFrame, StackParser } from '@sentry/types';
+import type {
+  Event,
+  EventHint,
+  Exception,
+  Severity,
+  SeverityLevel,
+  StackFrame,
+  StackParser,
+  ParameterizedString,
+} from '@sentry/types';
 import {
   addExceptionMechanism,
   addExceptionTypeValue,
@@ -265,7 +274,7 @@ export function eventFromUnknownInput(
  */
 export function eventFromString(
   stackParser: StackParser,
-  input: string & { __sentry_template_string__?: string; __sentry_template_values__?: string[] },
+  input: ParameterizedString,
   syntheticException?: Error,
   attachStacktrace?: boolean,
 ): Event {

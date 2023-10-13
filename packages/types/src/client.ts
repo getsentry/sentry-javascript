@@ -8,6 +8,7 @@ import type { Event, EventHint } from './event';
 import type { EventProcessor } from './eventprocessor';
 import type { Integration, IntegrationClass } from './integration';
 import type { ClientOptions } from './options';
+import { ParameterizedString } from './parameterize';
 import type { Scope } from './scope';
 import type { SdkMetadata } from './sdkmetadata';
 import type { Session, SessionAggregates } from './session';
@@ -157,7 +158,7 @@ export interface Client<O extends ClientOptions = ClientOptions> {
 
   /** Creates an {@link Event} from primitive inputs to `captureMessage`. */
   eventFromMessage(
-    message: string,
+    message: ParameterizedString,
     // eslint-disable-next-line deprecation/deprecation
     level?: Severity | SeverityLevel,
     hint?: EventHint,
