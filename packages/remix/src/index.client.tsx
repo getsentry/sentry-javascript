@@ -15,6 +15,7 @@ import { makeEdgeTransport } from './worker/transport';
 export { captureRemixServerException } from './utils/instrumentServer';
 export { ErrorBoundary, withErrorBoundary } from '@sentry/react';
 export { wrapWorkerCreateRequestHandler } from './utils/serverAdapters/worker';
+export { wrapCloudflareWorkerCreateRequestHandler } from './utils/serverAdapters/cloudflare-worker';
 
 const nodeStackParser = createStackParser(nodeStackLineParser());
 
@@ -36,6 +37,8 @@ export function init(options: RemixOptions): void {
 
 /** Initializes Sentry Remix SDK on Worker Environments. */
 export function workerInit(options: RemixOptions): void {
+  console.log('WORKER INIT', options);
+
   buildMetadata(options, ['remix', 'worker']);
 
   if (sdkAlreadyInitialized()) {
@@ -43,6 +46,8 @@ export function workerInit(options: RemixOptions): void {
 
     return;
   }
+
+  console.log('options.transport', options.transport);
 
   const clientOptions: ServerRuntimeClientOptions = {
     ...options,
