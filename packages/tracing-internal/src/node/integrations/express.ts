@@ -7,7 +7,7 @@ import {
   logger,
   stripUrlQueryAndFragment,
 } from '@sentry/utils';
-import * as execWithIndices from 'regexp-match-indices';
+
 import { shouldDisableAutoInstrumentation } from './utils/node-utils';
 
 type Method =
@@ -65,7 +65,7 @@ type Layer = {
   route?: { path: RouteType | RouteType[] };
   path?: string;
   regexp?: RegExp;
-  keys?: [{ name: string; offset: number; optional: boolean }];
+  keys?: { name: string; offset: number; optional: boolean }[];
 };
 
 type RouteType = string | RegExp;
@@ -398,18 +398,23 @@ type LayerRoutePathInfo = {
  *
  * @returns string in layer.route.path structure 'router/:pathParam' or undefined
  */
-const extractOriginalRoute = ({ path, regexp, keys }: Layer): string | undefined => {
+export const extractOriginalRoute = (
+  path?: Layer['path'],
+  regexp?: Layer['regexp'],
+  keys?: Layer['keys'],
+): string | undefined => {
   if (!path || !regexp || !keys || Object.keys(keys).length === 0 || !keys[0]?.offset) {
     return undefined;
   }
 
-
   const orderedKeys = keys.sort((a, b) => a.offset - b.offset);
 
+  // add d flag for getting indices from regexp result
+  const pathRegex = new RegExp(regexp, `${regexp.flags}d`);
   /**
-   * use execWithIndices polyfill instead of native RegExp d flag because it has to be compatible with node 8+
+   * use custom type cause of TS error with missing indices in RegExpExecArray
    */
-  const execResult = execWithIndices(regexp, path);
+  const execResult = pathRegex.exec(path) as (RegExpExecArray & { indices: [number, number][] }) | null;
 
   if (!execResult || !execResult.indices) {
     return undefined;
@@ -475,10 +480,16 @@ function getLayerRoutePathInfo(layer: Layer): LayerRoutePathInfo {
   const isArray = Array.isArray(lrp);
 
   if (!lrp) {
-    /**
-     * If lrp does not exist try to recreate original layer path from route regexp
-     */
-    lrp = extractOriginalRoute(layer);
+    // parse node.js major version
+    const [major] = process.versions.node.split('.').map(Number);
+
+    // allow call extractOriginalRoute only if node version support Regex d flag, node 16+
+    if (major >= 16) {
+      /**
+       * If lrp does not exist try to recreate original layer path from route regexp
+       */
+      lrp = extractOriginalRoute(layer.path, layer.regexp, layer.keys);
+    }
   }
 
   if (!lrp) {
@@ -520,17 +531,17 @@ function getLayerRoutePathString(isArray: boolean, lrp?: RouteType | RouteType[]
 }
 
 /**
- * remove duplicate segment contain in layerPath against _reconstructedRoute,
- * and return only unique segment that can be added into _reconstructedRoute
+ * remove duplicate segment contain in layerPath against reconstructedRoute,
+ * and return only unique segment that can be added into reconstructedRoute
  */
 export function preventDuplicateSegments(
   originalUrl?: string,
-  _reconstructedRoute?: string,
+  reconstructedRoute?: string,
   layerPath?: string,
 ): string | undefined {
   const originalUrlSplit = originalUrl?.split('/').filter(v => !!v);
   let tempCounter = 0;
-  const currentOffset = _reconstructedRoute?.split('/').filter(v => !!v).length || 0;
+  const currentOffset = reconstructedRoute?.split('/').filter(v => !!v).length || 0;
   const result = layerPath
     ?.split('/')
     .filter(segment => {

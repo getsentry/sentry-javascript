@@ -1,4 +1,4 @@
-import { extractLayerPath } from '../../src/node/integrations/express';
+import { extractOriginalRoute, preventDuplicateSegments } from '../../src/node/integrations/express';
 
 /**
  * prevent duplicate segment in _reconstructedRoute param if router match multiple routes before final path
@@ -11,12 +11,12 @@ import { extractLayerPath } from '../../src/node/integrations/express';
  * /1234 -> endpoint with param :userId
  * final _reconstructedRoute is /api/v1/:userId
  */
-describe('unit Test for extractLayerPath', () => {
+describe('unit Test for preventDuplicateSegments', () => {
   it('should return api segment', () => {
     const originalUrl = '/api/v1/1234';
     const reconstructedRoute = '';
     const layerPath = '/api';
-    const result = extractLayerPath(originalUrl, reconstructedRoute, layerPath);
+    const result = preventDuplicateSegments(originalUrl, reconstructedRoute, layerPath);
     expect(result).toBe('api');
   });
 
@@ -24,7 +24,7 @@ describe('unit Test for extractLayerPath', () => {
     const originalUrl = '/api/v1/1234';
     const reconstructedRoute = '/api';
     const layerPath = '/api/v1';
-    const result = extractLayerPath(originalUrl, reconstructedRoute, layerPath);
+    const result = preventDuplicateSegments(originalUrl, reconstructedRoute, layerPath);
     expect(result).toBe('v1');
   });
 
@@ -32,24 +32,60 @@ describe('unit Test for extractLayerPath', () => {
     const originalUrl = '/api/v1/1234';
     const reconstructedRoute = '/api/v1';
     const layerPath = '/v1/1234';
-    const result1 = extractLayerPath(originalUrl, reconstructedRoute, layerPath);
+    const result1 = preventDuplicateSegments(originalUrl, reconstructedRoute, layerPath);
     expect(result1).toBe('1234');
   });
 });
-describe('extractLayerPath should handle empty input gracefully', () => {
+describe('preventDuplicateSegments should handle empty input gracefully', () => {
   it('Empty input values', () => {
-    expect(extractLayerPath()).toBeUndefined();
+    expect(preventDuplicateSegments()).toBeUndefined();
   });
 
   it('Empty originalUrl', () => {
-    expect(extractLayerPath('', '/api/v1/1234', '/api/api/v1/1234')).toBe('');
+    expect(preventDuplicateSegments('', '/api/v1/1234', '/api/api/v1/1234')).toBe('');
   });
 
   it('Empty reconstructedRoute', () => {
-    expect(extractLayerPath('/api/v1/1234', '', '/api/api/v1/1234')).toBe('api/v1/1234');
+    expect(preventDuplicateSegments('/api/v1/1234', '', '/api/api/v1/1234')).toBe('api/v1/1234');
   });
 
   it('Empty layerPath', () => {
-    expect(extractLayerPath('/api/v1/1234', '/api/v1/1234', '')).toBe('');
+    expect(preventDuplicateSegments('/api/v1/1234', '/api/v1/1234', '')).toBe('');
   });
 });
+
+// parse node.js major version
+const [major] = process.versions.node.split('.').map(Number);
+// Test this funciton only if node is 16+ because regex d flag is support from node 16+
+if (major >= 16) {
+  describe('extractOriginalRoute', () => {
+    it('should return undefined if path, regexp, or keys are missing', () => {
+      expect(extractOriginalRoute('/example')).toBeUndefined();
+      expect(extractOriginalRoute('/example', /test/)).toBeUndefined();
+    });
+
+    it('should return undefined if keys do not contain an offset property', () => {
+      const path = '/example';
+      const regex = /example/;
+      const key = { name: 'param1', offset: 0, optional: false };
+      expect(extractOriginalRoute(path, regex, [key])).toBeUndefined();
+    });
+
+    it('should return the original route path when valid inputs are provided', () => {
+      const path = '/router/123';
+      const regex = /^\/router\/(\d+)$/;
+      const keys = [{ name: 'pathParam', offset: 8, optional: false }];
+      expect(extractOriginalRoute(path, regex, keys)).toBe('/router/:pathParam');
+    });
+
+    it('should handle multiple parameters in the route', () => {
+      const path = '/user/42/profile/username';
+      const regex = /^\/user\/(\d+)\/profile\/(\w+)$/;
+      const keys = [
+        { name: 'userId', offset: 6, optional: false },
+        { name: 'username', offset: 17, optional: false },
+      ];
+      expect(extractOriginalRoute(path, regex, keys)).toBe('/user/:userId/profile/:username');
+    });
+  });
+}
