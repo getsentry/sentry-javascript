@@ -66,9 +66,7 @@ export function Dialog({
 
     // Only this should trigger `onClose`, we don't want the `close()` method to
     // trigger it, otherwise it can cause cycles.
-    if (typeof onClose === 'function') {
-      onClose();
-    }
+    onClose && onClose();
   }
 
   /**
