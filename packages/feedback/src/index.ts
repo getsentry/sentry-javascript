@@ -1,1 +1,1 @@
-export {sendFeedbackRequest} from './util/sendFeedbackRequest';
+export { sendFeedbackRequest } from './util/sendFeedbackRequest';
