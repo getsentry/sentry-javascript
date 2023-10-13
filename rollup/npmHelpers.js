@@ -25,10 +25,11 @@ export function makeBaseNPMConfig(options = {}) {
     esModuleInterop = false,
     hasBundles = false,
     packageSpecificConfig = {},
+    addPolyfills = true,
   } = options;
 
   const nodeResolvePlugin = makeNodeResolvePlugin();
-  const sucrasePlugin = makeSucrasePlugin();
+  const sucrasePlugin = makeSucrasePlugin({ disableESTransforms: !addPolyfills });
   const debugBuildStatementReplacePlugin = makeDebugBuildStatementReplacePlugin();
   const cleanupPlugin = makeCleanupPlugin();
   const extractPolyfillsPlugin = makeExtractPolyfillsPlugin();
@@ -83,14 +84,7 @@ export function makeBaseNPMConfig(options = {}) {
       interop: esModuleInterop ? 'auto' : 'esModule',
     },
 
-    plugins: [
-      nodeResolvePlugin,
-      setSdkSourcePlugin,
-      sucrasePlugin,
-      debugBuildStatementReplacePlugin,
-      cleanupPlugin,
-      extractPolyfillsPlugin,
-    ],
+    plugins: [nodeResolvePlugin, setSdkSourcePlugin, sucrasePlugin, debugBuildStatementReplacePlugin, cleanupPlugin],
 
     // don't include imported modules from outside the package in the final output
     external: [
@@ -99,6 +93,10 @@ export function makeBaseNPMConfig(options = {}) {
       ...Object.keys(packageDotJSON.peerDependencies || {}),
     ],
   };
+
+  if (addPolyfills) {
+    defaultBaseConfig.plugins.push(extractPolyfillsPlugin);
+  }
 
   return deepMerge(defaultBaseConfig, packageSpecificConfig, {
     // Plugins have to be in the correct order or everything breaks, so when merging we have to manually re-order them
