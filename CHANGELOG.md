@@ -4,6 +4,67 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.74.0
+
+### Important Changes
+
+- **feat(astro): Add `sentryAstro` integration (#9218)**
+
+This Release introduces the first alpha version of our new SDK for Astro.
+At this time, the SDK is considered experimental and things might break and change in future versions.
+
+The core of the SDK is an Astro integration which you easily add to your Astro config:
+
+```js
+// astro.config.js
+import { defineConfig } from "astro/config";
+import sentry from "@sentry/astro";
+
+export default defineConfig({
+  integrations: [
+    sentry({
+      dsn: "__DSN__",
+      sourceMapsUploadOptions: {
+        project: "astro",
+        authToken: process.env.SENTRY_AUTH_TOKEN,
+      },
+    }),
+  ],
+});
+```
+
+Check out the [README](./packages/astro/README.md) for usage instructions and what to expect from this alpha release.
+
+### Other Changes
+
+- feat(core): Add `addIntegration` utility (#9186)
+- feat(core): Add `continueTrace` method (#9164)
+- feat(node-experimental): Add NodeFetch integration (#9226)
+- feat(node-experimental): Use native OTEL Spans (#9161, #9214)
+- feat(node-experimental): Sample in OTEL Sampler (#9203)
+- feat(serverlesss): Allow disabling transaction traces (#9154)
+- feat(tracing): Allow direct pg module to enable esbuild support (#9227)
+- feat(utils): Move common node ANR code to utils (#9191)
+- feat(vue): Expose `VueIntegration` to initialize vue app later (#9180)
+- fix: Don't set `referrerPolicy` on serverside fetch transports (#9200)
+- fix: Ensure we never mutate options passed to `init` (#9162)
+- fix(ember): Avoid pulling in utils at build time (#9221)
+- fix(ember): Drop undefined config values (#9175)
+- fix(node): Ensure mysql integration works without callback (#9222)
+- fix(node): Only require `inspector` when needed (#9149)
+- fix(node): Remove ANR `debug` option and instead add logger.isEnabled() (#9230)
+- fix(node): Strip `.mjs` and `.cjs` extensions from module name (#9231)
+- fix(replay): bump rrweb to 2.0.1 (#9240)
+- fix(replay): Fix potential broken CSS in styled-components (#9234)
+- fix(sveltekit): Flush in server wrappers before exiting (#9153)
+- fix(types): Update signature of `processEvent` integration hook (#9151)
+- fix(utils): Dereference DOM events after they have servered their purpose (#9224)
+- ref(integrations): Refactor pluggable integrations to use `processEvent` (#9021)
+- ref(serverless): Properly deprecate `rethrowAfterCapture` option (#9159)
+- ref(utils): Deprecate `walk` method (#9157)
+
+Work in this release contributed by @aldenquimby. Thank you for your contributions!
+
 ## 7.73.0
 
 ### Important Changes

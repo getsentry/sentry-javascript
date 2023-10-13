@@ -10,7 +10,7 @@ import { SENTRY_DYNAMIC_SAMPLING_CONTEXT_KEY, SENTRY_TRACE_PARENT_CONTEXT_KEY } 
 import { maybeCaptureExceptionForTimedEvent } from './utils/captureExceptionForTimedEvent';
 import { isSentryRequestSpan } from './utils/isSentryRequest';
 import { mapOtelStatus } from './utils/mapOtelStatus';
-import { parseSpanDescription } from './utils/parseOtelSpanDescription';
+import { parseOtelSpanDescription } from './utils/parseOtelSpanDescription';
 import { clearSpan, getSentrySpan, setSentrySpan } from './utils/spanMap';
 
 /**
@@ -182,7 +182,7 @@ function getTraceData(otelSpan: OtelSpan, parentContext: Context): Partial<Trans
 function updateSpanWithOtelData(sentrySpan: SentrySpan, otelSpan: OtelSpan): void {
   const { attributes, kind } = otelSpan;
 
-  const { op, description, data } = parseSpanDescription(otelSpan);
+  const { op, description, data } = parseOtelSpanDescription(otelSpan);
 
   sentrySpan.setStatus(mapOtelStatus(otelSpan));
   sentrySpan.setData('otel.kind', SpanKind[kind]);
@@ -199,7 +199,7 @@ function updateSpanWithOtelData(sentrySpan: SentrySpan, otelSpan: OtelSpan): voi
 }
 
 function updateTransactionWithOtelData(transaction: Transaction, otelSpan: OtelSpan): void {
-  const { op, description, source, data } = parseSpanDescription(otelSpan);
+  const { op, description, source, data } = parseOtelSpanDescription(otelSpan);
 
   transaction.setContext('otel', {
     attributes: otelSpan.attributes,

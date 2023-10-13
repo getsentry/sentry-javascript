@@ -19,6 +19,7 @@ export const originalConsoleMethods: {
 interface Logger extends LoggerConsoleMethods {
   disable(): void;
   enable(): void;
+  isEnabled(): boolean;
 }
 
 /**
@@ -63,6 +64,7 @@ function makeLogger(): Logger {
     disable: () => {
       enabled = false;
     },
+    isEnabled: () => enabled,
   };
 
   if (__DEBUG_BUILD__) {

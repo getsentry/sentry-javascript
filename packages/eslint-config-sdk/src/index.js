@@ -16,8 +16,13 @@ module.exports = {
     {
       // Configuration for typescript files
       files: ['*.ts', '*.tsx', '*.d.ts'],
-      extends: ['plugin:@typescript-eslint/recommended', 'prettier/@typescript-eslint', 'plugin:import/typescript'],
-      plugins: ['@typescript-eslint', 'jsdoc', 'deprecation'],
+      extends: [
+        'plugin:@typescript-eslint/recommended',
+        'prettier/@typescript-eslint',
+        'plugin:import/typescript',
+        'plugin:deprecation/recommended',
+      ],
+      plugins: ['@typescript-eslint', 'jsdoc'],
       parser: '@typescript-eslint/parser',
       rules: {
         // We want to guard against using the equality operator with empty arrays
@@ -86,9 +91,6 @@ module.exports = {
 
         // Make sure Promises are handled appropriately
         '@typescript-eslint/no-floating-promises': 'error',
-
-        // Do not use deprecated methods
-        'deprecation/deprecation': 'error',
 
         // sort imports
         'simple-import-sort/sort': 'error',

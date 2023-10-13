@@ -23,6 +23,7 @@ export type { ReportDialogOptions } from './helpers';
 export {
   addGlobalEventProcessor,
   addBreadcrumb,
+  addIntegration,
   captureException,
   captureEvent,
   captureMessage,
@@ -41,6 +42,7 @@ export {
   startSpan,
   startInactiveSpan,
   startSpanManual,
+  continueTrace,
   SDK_VERSION,
   setContext,
   setExtra,

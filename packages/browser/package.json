@@ -51,7 +51,7 @@
     "node-fetch": "^2.6.0",
     "playwright": "^1.31.1",
     "sinon": "^7.3.2",
-    "webpack": "^4.30.0"
+    "webpack": "^4.47.0"
   },
   "scripts": {
     "build": "run-p build:transpile build:bundle build:types",

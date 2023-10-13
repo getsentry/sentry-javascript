@@ -16,9 +16,10 @@ import sucrase from '@rollup/plugin-sucrase';
  *
  * @returns An instance of the `@rollup/plugin-sucrase` plugin
  */
-export function makeSucrasePlugin() {
+export function makeSucrasePlugin(options = {}) {
   return sucrase({
     transforms: ['typescript', 'jsx'],
+    ...options,
   });
 }
 

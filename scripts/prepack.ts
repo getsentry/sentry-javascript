@@ -21,13 +21,13 @@ const TYPES_VERSIONS_ENTRY_POINT = 'typesVersions';
 const packageWithBundles = process.argv.includes('--bundles');
 const buildDir = packageWithBundles ? NPM_BUILD_DIR : BUILD_DIR;
 
-type PackageJsonEntryPoints = Record<typeof ENTRY_POINTS[number], string>;
+type PackageJsonEntryPoints = Record<(typeof ENTRY_POINTS)[number], string>;
 
 interface TypeVersions {
   [key: string]: {
     [key: string]: string[];
   };
-};
+}
 
 interface PackageJson extends Record<string, unknown>, PackageJsonEntryPoints {
   [EXPORT_MAP_ENTRY_POINT]: {
@@ -35,6 +35,9 @@ interface PackageJson extends Record<string, unknown>, PackageJsonEntryPoints {
       import: string;
       require: string;
       types: string;
+      node: string;
+      browser: string;
+      default: string;
     };
   };
   [TYPES_VERSIONS_ENTRY_POINT]: TypeVersions;

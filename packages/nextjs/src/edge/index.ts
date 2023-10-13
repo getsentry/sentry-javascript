@@ -1,4 +1,5 @@
 import { SDK_VERSION } from '@sentry/core';
+import type { SdkMetadata } from '@sentry/types';
 import type { VercelEdgeOptions } from '@sentry/vercel-edge';
 import { init as vercelEdgeInit } from '@sentry/vercel-edge';
 
@@ -6,8 +7,12 @@ export type EdgeOptions = VercelEdgeOptions;
 
 /** Inits the Sentry NextJS SDK on the Edge Runtime. */
 export function init(options: VercelEdgeOptions = {}): void {
-  options._metadata = options._metadata || {};
-  options._metadata.sdk = options._metadata.sdk || {
+  const opts = {
+    _metadata: {} as SdkMetadata,
+    ...options,
+  };
+
+  opts._metadata.sdk = opts._metadata.sdk || {
     name: 'sentry.javascript.nextjs',
     packages: [
       {
@@ -18,7 +23,7 @@ export function init(options: VercelEdgeOptions = {}): void {
     version: SDK_VERSION,
   };
 
-  vercelEdgeInit(options);
+  vercelEdgeInit(opts);
 }
 
 /**

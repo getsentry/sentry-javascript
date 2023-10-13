@@ -1,4 +1,4 @@
-import type { Event, EventProcessor, Hub, Integration } from '@sentry/types';
+import type { Event, Integration } from '@sentry/types';
 
 /** This function adds duration since Sentry was initialized till the time event was sent */
 export class SessionTiming implements Integration {
@@ -23,18 +23,17 @@ export class SessionTiming implements Integration {
   /**
    * @inheritDoc
    */
-  public setupOnce(addGlobalEventProcessor: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
-    addGlobalEventProcessor(event => {
-      const self = getCurrentHub().getIntegration(SessionTiming);
-      if (self) {
-        return self.process(event);
-      }
-      return event;
-    });
+  public setupOnce(_addGlobaleventProcessor: unknown, _getCurrentHub: unknown): void {
+    // noop
+  }
+
+  /** @inheritDoc */
+  public processEvent(event: Event): Event {
+    return this.process(event);
   }
 
   /**
-   * @inheritDoc
+   * TODO (v8): make this private/internal
    */
   public process(event: Event): Event {
     const now = Date.now();

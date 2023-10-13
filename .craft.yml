@@ -88,6 +88,9 @@ targets:
   - name: npm
     id: '@sentry/gatsby'
     includeNames: /^sentry-gatsby-\d.*\.tgz$/
+  - name: npm
+    id: '@sentry/astro'
+    includeNames: /^sentry-astro-\d.*\.tgz$/
 
   ## 7. Other Packages
   ## 7.1
@@ -180,3 +183,5 @@ targets:
         onlyIfPresent: /^sentry-bun-\d.*\.tgz$/
       'npm:@sentry/vercel-edge':
         onlyIfPresent: /^sentry-vercel-edge-\d.*\.tgz$/
+      'npm:@sentry/ember':
+        onlyIfPresent: /^sentry-ember-\d.*\.tgz$/

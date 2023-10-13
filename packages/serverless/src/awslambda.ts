@@ -2,7 +2,7 @@
 import type { Scope } from '@sentry/node';
 import * as Sentry from '@sentry/node';
 import { captureException, captureMessage, flush, getCurrentHub, withScope } from '@sentry/node';
-import type { Integration } from '@sentry/types';
+import type { Integration, SdkMetadata } from '@sentry/types';
 import { isString, logger, tracingContextFromHeaders } from '@sentry/utils';
 // NOTE: I have no idea how to fix this right now, and don't want to waste more time, as it builds just fine — Kamil
 // eslint-disable-next-line import/no-unresolved
@@ -34,7 +34,9 @@ export type AsyncHandler<T extends Handler> = (
 
 export interface WrapperOptions {
   flushTimeout: number;
-  // TODO: DEPRECATED - remove `rethrowAfterCapture` in v7
+  /**
+   * @deprecated This option is unused since v6 and will be removed in v8.
+   */
   rethrowAfterCapture?: boolean;
   callbackWaitsForEmptyEventLoop: boolean;
   captureTimeoutWarning: boolean;
@@ -45,6 +47,12 @@ export interface WrapperOptions {
    * @default false
    */
   captureAllSettledReasons: boolean;
+  /**
+   * Automatically trace all handler invocations.
+   * You may want to disable this if you use express within Lambda (use tracingHandler instead).
+   * @default true
+   */
+  startTrace: boolean;
 }
 
 export const defaultIntegrations: Integration[] = [...Sentry.defaultIntegrations, new AWSServices({ optional: true })];
@@ -61,12 +69,13 @@ interface AWSLambdaOptions extends Sentry.NodeOptions {
  * @see {@link Sentry.init}
  */
 export function init(options: AWSLambdaOptions = {}): void {
-  if (options.defaultIntegrations === undefined) {
-    options.defaultIntegrations = defaultIntegrations;
-  }
+  const opts = {
+    _metadata: {} as SdkMetadata,
+    defaultIntegrations,
+    ...options,
+  };
 
-  options._metadata = options._metadata || {};
-  options._metadata.sdk = {
+  opts._metadata.sdk = opts._metadata.sdk || {
     name: 'sentry.javascript.serverless',
     integrations: ['AWSLambda'],
     packages: [
@@ -78,7 +87,7 @@ export function init(options: AWSLambdaOptions = {}): void {
     version: Sentry.SDK_VERSION,
   };
 
-  Sentry.init(options);
+  Sentry.init(opts);
   Sentry.addGlobalEventProcessor(serverlessEventProcessor);
 }
 
@@ -175,11 +184,6 @@ function tryGetRemainingTimeInMillis(context: Context): number {
  * @param startTime performance.now() when wrapHandler was invoked
  */
 function enhanceScopeWithEnvironmentData(scope: Scope, context: Context, startTime: number): void {
-  scope.setTransactionName(context.functionName);
-
-  scope.setTag('server_name', process.env._AWS_XRAY_DAEMON_ADDRESS || process.env.SENTRY_NAME || hostname());
-  scope.setTag('url', `awslambda:///${context.functionName}`);
-
   scope.setContext('aws.lambda', {
     aws_request_id: context.awsRequestId,
     function_name: context.functionName,
@@ -202,6 +206,18 @@ function enhanceScopeWithEnvironmentData(scope: Scope, context: Context, startTi
 }
 
 /**
+ * Adds additional transaction-related information from the environment and AWS Context to the Sentry Scope.
+ *
+ * @param scope Scope that should be enhanced
+ * @param context AWS Lambda context that will be used to extract some part of the data
+ */
+function enhanceScopeWithTransactionData(scope: Scope, context: Context): void {
+  scope.setTransactionName(context.functionName);
+  scope.setTag('server_name', process.env._AWS_XRAY_DAEMON_ADDRESS || process.env.SENTRY_NAME || hostname());
+  scope.setTag('url', `awslambda:///${context.functionName}`);
+}
+
+/**
  * Wraps a lambda handler adding it error capture and tracing capabilities.
  *
  * @param handler Handler
@@ -219,6 +235,7 @@ export function wrapHandler<TEvent, TResult>(
     captureTimeoutWarning: true,
     timeoutWarningLimit: 500,
     captureAllSettledReasons: false,
+    startTrace: true,
     ...wrapOptions,
   };
   let timeoutWarningTimer: NodeJS.Timeout;
@@ -276,36 +293,42 @@ export function wrapHandler<TEvent, TResult>(
 
     const hub = getCurrentHub();
 
-    const eventWithHeaders = event as { headers?: { [key: string]: string } };
+    let transaction: Sentry.Transaction | undefined;
+    if (options.startTrace) {
+      const eventWithHeaders = event as { headers?: { [key: string]: string } };
 
-    const sentryTrace =
-      eventWithHeaders.headers && isString(eventWithHeaders.headers['sentry-trace'])
-        ? eventWithHeaders.headers['sentry-trace']
-        : undefined;
-    const baggage = eventWithHeaders.headers?.baggage;
-    const { traceparentData, dynamicSamplingContext, propagationContext } = tracingContextFromHeaders(
-      sentryTrace,
-      baggage,
-    );
-    hub.getScope().setPropagationContext(propagationContext);
+      const sentryTrace =
+        eventWithHeaders.headers && isString(eventWithHeaders.headers['sentry-trace'])
+          ? eventWithHeaders.headers['sentry-trace']
+          : undefined;
+      const baggage = eventWithHeaders.headers?.baggage;
+      const { traceparentData, dynamicSamplingContext, propagationContext } = tracingContextFromHeaders(
+        sentryTrace,
+        baggage,
+      );
+      hub.getScope().setPropagationContext(propagationContext);
 
-    const transaction = hub.startTransaction({
-      name: context.functionName,
-      op: 'function.aws.lambda',
-      origin: 'auto.function.serverless',
-      ...traceparentData,
-      metadata: {
-        dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
-        source: 'component',
-      },
-    }) as Sentry.Transaction | undefined;
+      transaction = hub.startTransaction({
+        name: context.functionName,
+        op: 'function.aws.lambda',
+        origin: 'auto.function.serverless',
+        ...traceparentData,
+        metadata: {
+          dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
+          source: 'component',
+        },
+      });
+    }
 
     const scope = hub.pushScope();
     let rv: TResult;
     try {
       enhanceScopeWithEnvironmentData(scope, context, START_TIME);
-      // We put the transaction on the scope so users can attach children to it
-      scope.setSpan(transaction);
+      if (options.startTrace) {
+        enhanceScopeWithTransactionData(scope, context);
+        // We put the transaction on the scope so users can attach children to it
+        scope.setSpan(transaction);
+      }
       rv = await asyncHandler(event, context);
 
       // We manage lambdas that use Promise.allSettled by capturing the errors of failed promises

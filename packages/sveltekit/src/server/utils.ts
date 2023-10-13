@@ -1,5 +1,6 @@
+import { flush } from '@sentry/node';
 import type { StackFrame } from '@sentry/types';
-import { basename, escapeStringForRegex, GLOBAL_OBJ, join, tracingContextFromHeaders } from '@sentry/utils';
+import { basename, escapeStringForRegex, GLOBAL_OBJ, join, logger, tracingContextFromHeaders } from '@sentry/utils';
 import type { RequestEvent } from '@sveltejs/kit';
 
 import { WRAPPED_MODULE_SUFFIX } from '../vite/autoInstrument';
@@ -67,4 +68,19 @@ export function rewriteFramesIteratee(frame: StackFrame): StackFrame {
   }
 
   return frame;
+}
+
+/** Flush the event queue to ensure that events get sent to Sentry before the response is finished and the lambda ends */
+export async function flushIfServerless(): Promise<void> {
+  const platformSupportsStreaming = !process.env.LAMBDA_TASK_ROOT && !process.env.VERCEL;
+
+  if (!platformSupportsStreaming) {
+    try {
+      __DEBUG_BUILD__ && logger.log('Flushing events...');
+      await flush(2000);
+      __DEBUG_BUILD__ && logger.log('Done flushing events');
+    } catch (e) {
+      __DEBUG_BUILD__ && logger.log('Error while flushing events:\n', e);
+    }
+  }
 }

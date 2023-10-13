@@ -4,3 +4,4 @@ export { init } from './sdk';
 export { vueRouterInstrumentation } from './router';
 export { attachErrorHandler } from './errorhandler';
 export { createTracingMixins } from './tracing';
+export { VueIntegration } from './integration';
