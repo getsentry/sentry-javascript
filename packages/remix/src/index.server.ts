@@ -63,6 +63,7 @@ export { remixRouterInstrumentation, withSentry } from './client/performance';
 export { captureRemixErrorBoundaryError } from './client/errors';
 export { wrapExpressCreateRequestHandler } from './utils/serverAdapters/express';
 export { wrapWorkerCreateRequestHandler } from './utils/serverAdapters/worker';
+export { wrapCloudflareWorkerCreateRequestHandler } from './utils/serverAdapters/cloudflare-worker';
 
 export type { SentryMetaArgs } from './utils/types';
 
