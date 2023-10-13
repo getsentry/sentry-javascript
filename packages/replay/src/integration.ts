@@ -145,8 +145,13 @@ export class Replay implements Integration {
       // collect fonts, but be aware that `sentry.io` needs to be an allowed
       // origin for playback
       collectFonts: true,
-      errorHandler: (err: Error & {__rrweb__?: boolean}) => {
-        err.__rrweb__ = true;
+      errorHandler: (err: Error & { __rrweb__?: boolean }) => {
+        try {
+          err.__rrweb__ = true;
+        } catch (error) {
+          // ignore errors here
+          // this can happen if the error is frozen or does not allow mutation for other reasons
+        }
       },
     };
 
