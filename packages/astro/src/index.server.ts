@@ -2,6 +2,9 @@
 // Unfortunately, we cannot `export * from '@sentry/node'` because in prod builds,
 // Vite puts these exports into a `default` property (Sentry.default) rather than
 // on the top - level namespace.
+
+import { sentryAstro } from './integration';
+
 // Hence, we export everything from the Node SDK explicitly:
 export {
   addGlobalEventProcessor,
@@ -58,3 +61,5 @@ export {
 export * from '@sentry/node';
 
 export { init } from './server/sdk';
+
+export default sentryAstro;

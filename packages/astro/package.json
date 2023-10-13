@@ -21,9 +21,6 @@
       "import": "./build/esm/index.client.js",
       "require": "./build/cjs/index.server.js",
       "types": "./build/types/index.types.d.ts"
-    },
-    "./integration": {
-      "default": "./build/integration/index.ts"
     }
   },
   "publishConfig": {
@@ -46,7 +43,7 @@
     "vite": "4.0.5"
   },
   "scripts": {
-    "build": "run-p build:transpile build:types build:sync:integration",
+    "build": "run-p build:transpile build:types",
     "build:dev": "yarn build",
     "build:transpile": "rollup -c rollup.npm.config.js --bundleConfigAsCjs",
     "build:types": "tsc -p tsconfig.types.json",
@@ -55,7 +52,6 @@
     "build:transpile:watch": "rollup -c rollup.npm.config.js --bundleConfigAsCjs --watch",
     "build:types:watch": "tsc -p tsconfig.types.json --watch",
     "build:tarball": "ts-node ../../scripts/prepack.ts && npm pack ./build",
-    "build:sync:integration": "ts-node -P tsconfig.dev.json ./scripts/syncIntegration.ts",
     "circularDepCheck": "madge --circular src/index.client.ts && madge --circular src/index.server.ts && madge --circular src/index.types.ts",
     "clean": "rimraf build coverage sentry-astro-*.tgz",
     "fix": "run-s fix:eslint fix:prettier",

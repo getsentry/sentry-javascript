@@ -3,7 +3,6 @@ import { sentryVitePlugin } from '@sentry/vite-plugin';
 import type { AstroIntegration } from 'astro';
 import * as fs from 'fs';
 import * as path from 'path';
-import { loadEnv } from 'vite';
 
 import { buildClientSnippet, buildSdkInitFileImportSnippet, buildServerSnippet } from './snippets';
 import type { SentryOptions } from './types';
@@ -17,7 +16,8 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
       'astro:config:setup': async ({ updateConfig, injectScript }) => {
         // The third param here enables loading of all env vars, regardless of prefix
         // see: https://main.vitejs.dev/config/#using-environment-variables-in-config
-        const env = loadEnv('production', process.cwd(), '');
+        // const env = loadEnv('production', process.cwd(), '');
+        const env = process.env;
 
         const uploadOptions = options.sourceMapsUploadOptions || {};
 
