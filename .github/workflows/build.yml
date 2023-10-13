@@ -848,6 +848,7 @@ jobs:
             'create-next-app',
             'create-remix-app',
             'create-remix-app-v2',
+            'debug-id-sourcemaps',
             'nextjs-app-dir',
             'react-create-hash-router',
             'react-router-6-use-routes',

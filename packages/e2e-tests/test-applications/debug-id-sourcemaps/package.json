@@ -1,0 +1,23 @@
+{
+  "name": "debug-id-sourcemaps",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "rollup --config rollup.config.mjs",
+    "test": "vitest run",
+    "clean": "npx rimraf node_modules,pnpm-lock.yaml",
+    "test:build": "pnpm install && pnpm build",
+    "test:assert": "pnpm test"
+  },
+  "dependencies": {
+    "@sentry/node": "latest || *"
+  },
+  "devDependencies": {
+    "rollup": "^4.0.2",
+    "vitest": "^0.34.6",
+    "@sentry/rollup-plugin": "2.8.0"
+  },
+  "volta": {
+    "extends": "../../package.json"
+  }
+}
