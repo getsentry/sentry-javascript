@@ -9,11 +9,10 @@ vi.mock('@sentry/vite-plugin', () => ({
   sentryVitePlugin: vi.fn(args => sentryVitePluginSpy(args)),
 }));
 
-vi.mock('vite', () => ({
-  loadEnv: () => ({
-    SENTRY_AUTH_TOKEN: 'my-token',
-  }),
-}));
+process.env = {
+  ...process.env,
+  SENTRY_AUTH_TOKEN: 'my-token',
+};
 
 describe('sentryAstro integration', () => {
   afterEach(() => {

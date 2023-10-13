@@ -16,7 +16,11 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
       'astro:config:setup': async ({ updateConfig, injectScript }) => {
         // The third param here enables loading of all env vars, regardless of prefix
         // see: https://main.vitejs.dev/config/#using-environment-variables-in-config
+
+        // TODO: Ideally, we want to load the environment with vite like this:
         // const env = loadEnv('production', process.cwd(), '');
+        // However, this currently throws a build error.
+        // Will revisit this later.
         const env = process.env;
 
         const uploadOptions = options.sourceMapsUploadOptions || {};
