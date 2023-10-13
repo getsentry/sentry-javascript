@@ -24,10 +24,9 @@ interface ActorComponent extends FeedbackComponent<HTMLButtonElement> {
  */
 export function Actor({ options, theme, onClick }: Props): ActorComponent {
   function _handleClick(e: MouseEvent) {
-    if (typeof onClick === 'function') {
-      onClick(e);
-    }
+    onClick && onClick(e);
   }
+
   const $el = h(
     'button',
     {
