@@ -871,6 +871,7 @@ jobs:
             'sveltekit',
             'generic-ts3.8',
             'node-experimental-fastify-app',
+            'remix-cloudflare-workers',
           ]
         build-command:
           - false
