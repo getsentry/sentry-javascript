@@ -25,9 +25,7 @@ export function SuccessMessage({ message, theme, onRemove }: SuccessMessageProps
     }
 
     $el.remove();
-    if (typeof onRemove === 'function') {
-      onRemove();
-    }
+    onRemove && onRemove();
   }
 
   const $el = h(

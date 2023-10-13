@@ -66,7 +66,7 @@ export function Form({ defaultName, defaultEmail, onCancel, onSubmit, options }:
     }
 
     try {
-      if (typeof onSubmit === 'function') {
+      if (onSubmit) {
         const formData = new FormData(e.target as HTMLFormElement);
         const feedback = {
           name: retrieveStringValue(formData, 'name'),
@@ -144,9 +144,7 @@ export function Form({ defaultName, defaultEmail, onCancel, onSubmit, options }:
       type: 'button',
       className: 'btn btn--default',
       onClick: (e: Event) => {
-        if (typeof onCancel === 'function') {
-          onCancel(e);
-        }
+        onCancel && onCancel(e);
       },
     },
     options.cancelButtonLabel,
