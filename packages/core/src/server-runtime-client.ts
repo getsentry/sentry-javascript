@@ -6,6 +6,7 @@ import type {
   Event,
   EventHint,
   MonitorConfig,
+  ParameterizedString,
   SerializedCheckIn,
   Severity,
   SeverityLevel,
@@ -56,7 +57,7 @@ export class ServerRuntimeClient<
    * @inheritDoc
    */
   public eventFromMessage(
-    message: string,
+    message: ParameterizedString,
     // eslint-disable-next-line deprecation/deprecation
     level: Severity | SeverityLevel = 'info',
     hint?: EventHint,

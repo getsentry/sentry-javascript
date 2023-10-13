@@ -1,5 +1,11 @@
 import { BaseClient, createTransport, initAndBind } from '@sentry/core';
-import type { BrowserClientReplayOptions, ClientOptions, Event, SeverityLevel } from '@sentry/types';
+import type {
+  BrowserClientReplayOptions,
+  ClientOptions,
+  Event,
+  ParameterizedString,
+  SeverityLevel,
+} from '@sentry/types';
 import { resolvedSyncPromise } from '@sentry/utils';
 
 export interface TestClientOptions extends ClientOptions, BrowserClientReplayOptions {}
@@ -24,7 +30,7 @@ export class TestClient extends BaseClient<TestClientOptions> {
     });
   }
 
-  public eventFromMessage(message: string, level: SeverityLevel = 'info'): PromiseLike<Event> {
+  public eventFromMessage(message: ParameterizedString, level: SeverityLevel = 'info'): PromiseLike<Event> {
     return resolvedSyncPromise({ message, level });
   }
 }

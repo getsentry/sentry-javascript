@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/explicit-module-boundary-types */
 
-import type { PolymorphicEvent, Primitive } from '@sentry/types';
+import type { ParameterizedString, PolymorphicEvent, Primitive } from '@sentry/types';
 
 // eslint-disable-next-line @typescript-eslint/unbound-method
 const objectToString = Object.prototype.toString;
@@ -79,6 +79,22 @@ export function isString(wat: unknown): wat is string {
 }
 
 /**
+ * Checks whether given string is parameterized
+ * {@link isParameterized}.
+ *
+ * @param wat A value to be checked.
+ * @returns A boolean representing the result.
+ */
+export function isParameterizedString(wat: unknown): wat is ParameterizedString {
+  return (
+    typeof wat === 'object' &&
+    wat !== null &&
+    '__sentry_template_string__' in wat &&
+    '__sentry_template_values__' in wat
+  );
+}
+
+/**
  * Checks whether given value is a primitive (undefined, null, number, boolean, string, bigint, symbol)
  * {@link isPrimitive}.
  *
@@ -86,7 +102,7 @@ export function isString(wat: unknown): wat is string {
  * @returns A boolean representing the result.
  */
 export function isPrimitive(wat: unknown): wat is Primitive {
-  return wat === null || (typeof wat !== 'object' && typeof wat !== 'function');
+  return wat === null || isParameterizedString(wat) || (typeof wat !== 'object' && typeof wat !== 'function');
 }
 
 /**

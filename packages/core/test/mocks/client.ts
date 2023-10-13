@@ -4,6 +4,7 @@ import type {
   EventHint,
   Integration,
   Outcome,
+  ParameterizedString,
   Session,
   Severity,
   SeverityLevel,
@@ -76,7 +77,7 @@ export class TestClient extends BaseClient<TestClientOptions> {
   }
 
   public eventFromMessage(
-    message: string,
+    message: ParameterizedString,
     // eslint-disable-next-line deprecation/deprecation
     level: Severity | SeverityLevel = 'info',
   ): PromiseLike<Event> {

@@ -16,6 +16,7 @@ import type {
   Integration,
   IntegrationClass,
   Outcome,
+  ParameterizedString,
   PropagationContext,
   SdkMetadata,
   Session,
@@ -31,6 +32,7 @@ import {
   addItemToEnvelope,
   checkOrSetAlreadyCaught,
   createAttachmentEnvelopeItem,
+  isParameterizedString,
   isPlainObject,
   isPrimitive,
   isThenable,
@@ -168,7 +170,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
    * @inheritDoc
    */
   public captureMessage(
-    message: string,
+    message: ParameterizedString,
     // eslint-disable-next-line deprecation/deprecation
     level?: Severity | SeverityLevel,
     hint?: EventHint,
@@ -177,7 +179,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
     let eventId: string | undefined = hint && hint.event_id;
 
     const promisedEvent = isPrimitive(message)
-      ? this.eventFromMessage(String(message), level, hint)
+      ? this.eventFromMessage(isParameterizedString(message) ? message : String(message), level, hint)
       : this.eventFromException(message, hint);
 
     this._process(
@@ -762,7 +764,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
    * @inheritDoc
    */
   public abstract eventFromMessage(
-    _message: string,
+    _message: ParameterizedString,
     // eslint-disable-next-line deprecation/deprecation
     _level?: Severity | SeverityLevel,
     _hint?: EventHint,

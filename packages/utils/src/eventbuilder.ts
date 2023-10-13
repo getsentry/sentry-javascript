@@ -11,7 +11,7 @@ import type {
   ParameterizedString,
 } from '@sentry/types';
 
-import { isError, isPlainObject } from './is';
+import { isError, isParameterizedString, isPlainObject } from './is';
 import { addExceptionMechanism, addExceptionTypeValue } from './misc';
 import { normalizeToSize } from './normalize';
 import { extractExceptionKeysForMessage } from './object';
@@ -147,7 +147,7 @@ export function eventFromMessage(
 
   const { __sentry_template_string__, __sentry_template_values__ } = message;
 
-  if (__sentry_template_string__ && __sentry_template_values__) {
+  if (isParameterizedString(message)) {
     event.logentry = {
       message: __sentry_template_string__,
       params: __sentry_template_values__,

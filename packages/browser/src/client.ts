@@ -7,6 +7,7 @@ import type {
   Event,
   EventHint,
   Options,
+  ParameterizedString,
   Severity,
   SeverityLevel,
   UserFeedback,
@@ -83,7 +84,7 @@ export class BrowserClient extends BaseClient<BrowserClientOptions> {
    * @inheritDoc
    */
   public eventFromMessage(
-    message: string,
+    message: ParameterizedString,
     // eslint-disable-next-line deprecation/deprecation
     level: Severity | SeverityLevel = 'info',
     hint?: EventHint,

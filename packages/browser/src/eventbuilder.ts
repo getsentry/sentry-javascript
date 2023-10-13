@@ -18,6 +18,7 @@ import {
   isError,
   isErrorEvent,
   isEvent,
+  isParameterizedString,
   isPlainObject,
   normalizeToSize,
   resolvedSyncPromise,
@@ -177,7 +178,7 @@ export function eventFromException(
  */
 export function eventFromMessage(
   stackParser: StackParser,
-  message: string,
+  message: ParameterizedString,
   // eslint-disable-next-line deprecation/deprecation
   level: Severity | SeverityLevel = 'info',
   hint?: EventHint,
@@ -274,7 +275,7 @@ export function eventFromUnknownInput(
  */
 export function eventFromString(
   stackParser: StackParser,
-  input: ParameterizedString,
+  message: ParameterizedString,
   syntheticException?: Error,
   attachStacktrace?: boolean,
 ): Event {
@@ -284,14 +285,14 @@ export function eventFromString(
     const frames = parseStackFrames(stackParser, syntheticException);
     if (frames.length) {
       event.exception = {
-        values: [{ value: input, stacktrace: { frames } }],
+        values: [{ value: message, stacktrace: { frames } }],
       };
     }
   }
 
-  const { __sentry_template_string__, __sentry_template_values__ } = input;
+  const { __sentry_template_string__, __sentry_template_values__ } = message;
 
-  if (__sentry_template_string__ && __sentry_template_values__) {
+  if (isParameterizedString(message)) {
     event.logentry = {
       message: __sentry_template_string__,
       params: __sentry_template_values__,
@@ -299,7 +300,7 @@ export function eventFromString(
     return event;
   }
 
-  event.message = input;
+  event.message = message;
   return event;
 }
 
