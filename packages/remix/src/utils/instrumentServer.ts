@@ -259,11 +259,11 @@ function makeWrappedRootLoader(remixVersion: number) {
       const traceAndBaggage = getTraceAndBaggage();
 
       if (isDeferredData(res)) {
-        return {
-          ...res.data,
-          ...traceAndBaggage,
-          remixVersion,
-        };
+        res.data['sentryTrace'] = traceAndBaggage.sentryTrace;
+        res.data['sentryBaggage'] = traceAndBaggage.sentryBaggage;
+        res.data['remixVersion'] = remixVersion;
+
+        return res;
       }
 
       if (isResponse(res)) {

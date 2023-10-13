@@ -201,12 +201,12 @@ describe.each(['builtin', 'express'])('Remix API Loaders with adapter = %s', ada
 
   it('correctly instruments a deferred loader', async () => {
     const env = await RemixTestEnv.init(adapter);
-    const url = `${env.url}/loader-defer-response`;
+    const url = `${env.url}/loader-defer-response/123123`;
     const envelope = await env.getEnvelopeRequest({ url, envelopeType: 'transaction' });
     const transaction = envelope[2];
 
     assertSentryTransaction(transaction, {
-      transaction: useV2 ? 'routes/loader-defer-response' : 'root',
+      transaction: useV2 ? 'routes/loader-defer-response.$id' : 'routes/loader-defer-response/$id',
       transaction_info: {
         source: 'route',
       },
@@ -217,11 +217,11 @@ describe.each(['builtin', 'express'])('Remix API Loaders with adapter = %s', ada
               op: 'function.remix.loader',
             },
             {
-              description: 'routes/loader-defer-response',
+              description: 'routes/loader-defer-response.$id',
               op: 'function.remix.loader',
             },
             {
-              description: 'routes/loader-defer-response',
+              description: 'routes/loader-defer-response.$id',
               op: 'function.remix.document_request',
             },
           ]
@@ -231,11 +231,11 @@ describe.each(['builtin', 'express'])('Remix API Loaders with adapter = %s', ada
               op: 'function.remix.loader',
             },
             {
-              description: 'routes/loader-defer-response/index',
+              description: 'routes/loader-defer-response/$id',
               op: 'function.remix.loader',
             },
             {
-              description: 'root',
+              description: 'routes/loader-defer-response/$id',
               op: 'function.remix.document_request',
             },
           ],
