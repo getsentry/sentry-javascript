@@ -10,7 +10,7 @@ import type { ServerRuntimeClientOptions } from '@sentry/core';
 import { configureScope, getCurrentHub, getIntegrationsToSetup, initAndBind, ServerRuntimeClient } from '@sentry/core';
 import { createStackParser, logger, nodeStackLineParser, stackParserFromStackParserOptions } from '@sentry/utils';
 
-import { makeEdgeTransport } from './worker/transport';
+import { makeCloudflareTransport } from './worker/transport';
 
 export { captureRemixServerException } from './utils/instrumentServer';
 export { ErrorBoundary, withErrorBoundary } from '@sentry/react';
@@ -37,8 +37,6 @@ export function init(options: RemixOptions): void {
 
 /** Initializes Sentry Remix SDK on Worker Environments. */
 export function workerInit(options: RemixOptions): void {
-  console.log('WORKER INIT', options);
-
   buildMetadata(options, ['remix', 'worker']);
 
   if (sdkAlreadyInitialized()) {
@@ -47,13 +45,11 @@ export function workerInit(options: RemixOptions): void {
     return;
   }
 
-  console.log('options.transport', options.transport);
-
   const clientOptions: ServerRuntimeClientOptions = {
     ...options,
     stackParser: stackParserFromStackParserOptions(options.stackParser || nodeStackParser),
     integrations: getIntegrationsToSetup(options),
-    transport: options.transport || makeEdgeTransport,
+    transport: options.transport || makeCloudflareTransport,
   };
 
   initAndBind(ServerRuntimeClient, clientOptions);

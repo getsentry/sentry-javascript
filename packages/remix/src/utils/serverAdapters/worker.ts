@@ -67,7 +67,7 @@ function wrapWorkerRequestHandler(origRequestHandler: WorkerRequestHandler, buil
 }
 
 /**
- * Instruments `createRequestHandler` from `@remix-run/express`
+ * Instruments `createRequestHandler` from `@remix-run/{adapter}`
  */
 export function wrapWorkerCreateRequestHandler(
   origCreateRequestHandler: WorkerCreateRequestHandler,
