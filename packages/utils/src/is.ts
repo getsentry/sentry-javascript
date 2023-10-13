@@ -80,7 +80,7 @@ export function isString(wat: unknown): wat is string {
 
 /**
  * Checks whether given string is parameterized
- * {@link isParameterized}.
+ * {@link isParameterizedString}.
  *
  * @param wat A value to be checked.
  * @returns A boolean representing the result.
