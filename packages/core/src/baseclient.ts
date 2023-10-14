@@ -178,8 +178,10 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   ): string | undefined {
     let eventId: string | undefined = hint && hint.event_id;
 
+    const eventMessage = isParameterizedString(message) ? message : String(message)
+
     const promisedEvent = isPrimitive(message)
-      ? this.eventFromMessage(isParameterizedString(message) ? message : String(message), level, hint)
+      ? this.eventFromMessage(eventMessage, level, hint)
       : this.eventFromException(message, hint);
 
     this._process(
