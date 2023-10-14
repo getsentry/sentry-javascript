@@ -36,7 +36,7 @@ interface Options {
    */
   captureStackTrace: boolean;
   /**
-   * Log debug information.
+   * @deprecated Use 'init' debug option instead
    */
   debug: boolean;
 }
@@ -94,9 +94,7 @@ function startInspector(startPort: number = 9229): string | undefined {
 
 function startChildProcess(options: Options): void {
   function log(message: string, ...args: unknown[]): void {
-    if (options.debug) {
-      logger.log(`[ANR] ${message}`, ...args);
-    }
+    logger.log(`[ANR] ${message}`, ...args);
   }
 
   try {
@@ -111,7 +109,7 @@ function startChildProcess(options: Options): void {
 
     const child = spawn(process.execPath, [options.entryScript], {
       env,
-      stdio: options.debug ? ['inherit', 'inherit', 'inherit', 'ipc'] : ['ignore', 'ignore', 'ignore', 'ipc'],
+      stdio: logger.isEnabled() ? ['inherit', 'inherit', 'inherit', 'ipc'] : ['ignore', 'ignore', 'ignore', 'ipc'],
     });
     // The child process should not keep the main process alive
     child.unref();
@@ -142,9 +140,7 @@ function startChildProcess(options: Options): void {
 
 function handleChildProcess(options: Options): void {
   function log(message: string): void {
-    if (options.debug) {
-      logger.log(`[ANR child process] ${message}`);
-    }
+    logger.log(`[ANR child process] ${message}`);
   }
 
   process.title = 'sentry-anr';
@@ -233,6 +229,7 @@ export function enableAnrDetection(options: Partial<Options>): Promise<void> {
     pollInterval: options.pollInterval || DEFAULT_INTERVAL,
     anrThreshold: options.anrThreshold || DEFAULT_HANG_THRESHOLD,
     captureStackTrace: !!options.captureStackTrace,
+    // eslint-disable-next-line deprecation/deprecation
     debug: !!options.debug,
   };
 

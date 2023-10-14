@@ -21,6 +21,8 @@ jest/transformers/*.js
 # node tarballs
 packages/*/sentry-*.tgz
 .nxcache
+# The Deno types are downloaded before building
+packages/deno/lib.deno.d.ts
 
 # logs
 yarn-error.log

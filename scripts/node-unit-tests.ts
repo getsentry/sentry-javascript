@@ -22,6 +22,7 @@ const DEFAULT_SKIP_TESTS_PACKAGES = [
   '@sentry/replay',
   '@sentry/wasm',
   '@sentry/bun',
+  '@sentry/deno',
 ];
 
 const SKIP_TEST_PACKAGES: Record<NodeVersion, VersionConfig> = {

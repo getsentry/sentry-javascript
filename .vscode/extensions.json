@@ -4,6 +4,7 @@
   "recommendations": [
     "esbenp.prettier-vscode",
     "dbaeumer.vscode-eslint",
-    "augustocdias.tasks-shell-input"
-  ],
+    "augustocdias.tasks-shell-input",
+    "denoland.vscode-deno"
+  ]
 }

@@ -1,30 +1,47 @@
 {
   "name": "@sentry/astro",
-  "version": "7.73.0",
+  "version": "7.74.0",
   "description": "Official Sentry SDK for Astro",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/astro",
+  "keywords": [
+    "withastro",
+    "astro-component",
+    "sentry",
+    "apm"
+  ],
   "author": "Sentry",
   "license": "MIT",
   "engines": {
     "node": ">=18.14.1"
   },
-  "main": "build/cjs/index.server.js",
+  "type": "module",
+  "main": "build/cjs/index.client.js",
   "module": "build/esm/index.server.js",
   "browser": "build/esm/index.client.js",
   "types": "build/types/index.types.d.ts",
+  "exports": {
+    ".": {
+      "node": "./build/esm/index.server.js",
+      "browser": "./build/esm/index.client.js",
+      "import": "./build/esm/index.client.js",
+      "require": "./build/cjs/index.server.js",
+      "types": "./build/types/index.types.d.ts"
+    }
+  },
   "publishConfig": {
     "access": "public"
   },
   "peerDependencies": {
-    "astro": "1.x"
+    "astro": "3.x"
   },
   "dependencies": {
-    "@sentry/browser": "7.73.0",
-    "@sentry/node": "7.73.0",
-    "@sentry/core": "7.73.0",
-    "@sentry/utils": "7.73.0",
-    "@sentry/types": "7.73.0"
+    "@sentry/browser": "7.74.0",
+    "@sentry/core": "7.74.0",
+    "@sentry/node": "7.74.0",
+    "@sentry/types": "7.74.0",
+    "@sentry/utils": "7.74.0",
+    "@sentry/vite-plugin": "^2.8.0"
   },
   "devDependencies": {
     "astro": "^3.2.3",
