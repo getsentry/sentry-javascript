@@ -18,7 +18,7 @@ test('should construct correct url with multiple parameterized routers, when par
     });
   } else {
     assertSentryEvent(event[2] as any, {
-      transaction: 'GET /api/api/v1/sub-router/users/:userId/posts/456',
+      transaction: 'GET /api/api/v1/sub-router/users/123/posts/:postId',
       transaction_info: {
         source: 'route',
       },
