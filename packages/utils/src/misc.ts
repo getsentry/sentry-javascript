@@ -33,11 +33,11 @@ export function uuid4(): string {
     if (crypto && crypto.getRandomValues) {
       getRandomByte = () => {
         // crypto.getRandomValues might return undefined instead of the typed array
-        // in old Chromium versions (e.g. 23.0.1235.0 (151422)) 
+        // in old Chromium versions (e.g. 23.0.1235.0 (151422))
         const typedArray = new Uint8Array(1);
         crypto.getRandomValues(typedArray);
         return typedArray[0];
-      }
+      };
     }
   } catch (_) {
     // some runtimes can crash invoking crypto
