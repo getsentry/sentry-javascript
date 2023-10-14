@@ -4,11 +4,11 @@ import type {
   Exception,
   Hub,
   Mechanism,
+  ParameterizedString,
   Severity,
   SeverityLevel,
   StackFrame,
   StackParser,
-  ParameterizedString,
 } from '@sentry/types';
 
 import { isError, isParameterizedString, isPlainObject } from './is';

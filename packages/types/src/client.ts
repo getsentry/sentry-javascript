@@ -8,7 +8,7 @@ import type { Event, EventHint } from './event';
 import type { EventProcessor } from './eventprocessor';
 import type { Integration, IntegrationClass } from './integration';
 import type { ClientOptions } from './options';
-import { ParameterizedString } from './parameterize';
+import type { ParameterizedString } from './parameterize';
 import type { Scope } from './scope';
 import type { SdkMetadata } from './sdkmetadata';
 import type { Session, SessionAggregates } from './session';

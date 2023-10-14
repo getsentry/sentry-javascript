@@ -3,11 +3,11 @@ import type {
   Event,
   EventHint,
   Exception,
+  ParameterizedString,
   Severity,
   SeverityLevel,
   StackFrame,
   StackParser,
-  ParameterizedString,
 } from '@sentry/types';
 import {
   addExceptionMechanism,

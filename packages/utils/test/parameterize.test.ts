@@ -1,4 +1,5 @@
 import type { ParameterizedString } from '@sentry/types';
+
 import { parameterize } from '../src/parameterize';
 
 describe('parameterize()', () => {
