@@ -174,8 +174,13 @@ function handleChildProcess(options: Options): void {
       log('Sending abnormal session');
       updateSession(session, { status: 'abnormal', abnormal_mechanism: 'anr_foreground' });
       getCurrentHub().getClient()?.sendSession(session);
-      // Notify the main process that the session has ended so the session can be cleared from the scope
-      process.send?.('session-ended');
+
+      try {
+        // Notify the main process that the session has ended so the session can be cleared from the scope
+        process.send?.('session-ended');
+      } catch (_) {
+        // ignore
+      }
     }
 
     captureEvent(createAnrEvent(options.anrThreshold, frames));
