@@ -1,9 +1,12 @@
+// @ts-check
 import nodeResolve from '@rollup/plugin-node-resolve';
 import commonjs from '@rollup/plugin-commonjs';
 import sucrase from '@rollup/plugin-sucrase';
+import { defineConfig } from 'rollup';
 
-export default {
+export default defineConfig({
   input: ['src/index.ts'],
+  treeshake: 'smallest',
   output: {
     dir: 'build',
     sourcemap: true,
@@ -21,4 +24,4 @@ export default {
     commonjs(),
     sucrase({ transforms: ['typescript'] }),
   ],
-};
+});
