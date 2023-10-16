@@ -55,7 +55,7 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:package": "node test/types/index.js",
-    "yalc:publish": "ts-node ../../scripts/prepack.ts && yalc publish build --push"
+    "yalc:publish": "ts-node ../../scripts/prepack.ts && yalc publish build --push --sig"
   },
   "volta": {
     "extends": "../../package.json"

@@ -50,7 +50,7 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "version": "node ../../scripts/versionbump.js src/version.ts",
-    "yalc:publish": "ts-node ../../scripts/prepack.ts && yalc publish build --push"
+    "yalc:publish": "ts-node ../../scripts/prepack.ts && yalc publish build --push --sig"
   },
   "volta": {
     "extends": "../../package.json"
