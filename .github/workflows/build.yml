@@ -873,6 +873,7 @@ jobs:
             'node-experimental-fastify-app',
             'remix-cloudflare-workers',
             'remix-cloudflare-pages',
+            'remix-hydrogen',
           ]
         build-command:
           - false
