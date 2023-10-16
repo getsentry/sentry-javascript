@@ -482,7 +482,7 @@ async function addSentryToEntryProperty(
   // we know is that it won't have gotten *simpler* in form, so we only need to worry about the object and function
   // options. See https://webpack.js.org/configuration/entry-context/#entry.
 
-  const { isServer, dir: projectDir, nextRuntime } = buildContext;
+  const { isServer, dir: projectDir, nextRuntime, dev: isDevMode } = buildContext;
   const runtime = isServer ? (buildContext.nextRuntime === 'edge' ? 'edge' : 'node') : 'browser';
 
   const newEntryProperty =
@@ -502,7 +502,7 @@ async function addSentryToEntryProperty(
   // inject into all entry points which might contain user's code
   for (const entryPointName in newEntryProperty) {
     if (shouldAddSentryToEntryPoint(entryPointName, runtime)) {
-      addFilesToExistingEntryPoint(newEntryProperty, entryPointName, filesToInject);
+      addFilesToExistingEntryPoint(newEntryProperty, entryPointName, filesToInject, isDevMode);
     } else {
       if (
         isServer &&
@@ -576,6 +576,7 @@ function addFilesToExistingEntryPoint(
   entryProperty: EntryPropertyObject,
   entryPointName: string,
   filesToInsert: string[],
+  isDevMode: boolean,
 ): void {
   // BIG FAT NOTE: Order of insertion seems to matter here. If we insert the new files before the `currentEntrypoint`s, the Next.js dev server breaks.
 
@@ -584,9 +585,9 @@ function addFilesToExistingEntryPoint(
   let newEntryPoint = currentEntryPoint;
 
   if (typeof currentEntryPoint === 'string') {
-    newEntryPoint = [currentEntryPoint, ...filesToInsert];
+    newEntryPoint = isDevMode ? [currentEntryPoint, ...filesToInsert] : [...filesToInsert, currentEntryPoint];
   } else if (Array.isArray(currentEntryPoint)) {
-    newEntryPoint = [...currentEntryPoint, ...filesToInsert];
+    newEntryPoint = isDevMode ? [...currentEntryPoint, ...filesToInsert] : [...filesToInsert, ...currentEntryPoint];
   }
   // descriptor object (webpack 5+)
   else if (typeof currentEntryPoint === 'object' && 'import' in currentEntryPoint) {
@@ -594,9 +595,11 @@ function addFilesToExistingEntryPoint(
     let newImportValue;
 
     if (typeof currentImportValue === 'string') {
-      newImportValue = [currentImportValue, ...filesToInsert];
+      newImportValue = isDevMode ? [currentImportValue, ...filesToInsert] : [...filesToInsert, currentImportValue];
     } else {
-      newImportValue = [...currentImportValue, ...filesToInsert];
+      newImportValue = isDevMode
+        ? [...currentImportValue, ...filesToInsert]
+        : [...filesToInsert, ...currentImportValue];
     }
 
     newEntryPoint = {
