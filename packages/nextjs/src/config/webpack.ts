@@ -570,21 +570,23 @@ export function getUserConfigFilePath(projectDir: string, platform: 'server' | '
  *
  * @param entryProperty The existing `entry` config object
  * @param entryPointName The key where the file should be injected
- * @param filepaths An array of paths to the injected files
+ * @param filesToInsert An array of paths to the injected files
  */
 function addFilesToExistingEntryPoint(
   entryProperty: EntryPropertyObject,
   entryPointName: string,
-  filepaths: string[],
+  filesToInsert: string[],
 ): void {
+  // BIG FAT NOTE: Order of insertion seems to matter here. If we insert the new files before the `currentEntrypoint`s, the Next.js dev server breaks.
+
   // can be a string, array of strings, or object whose `import` property is one of those two
   const currentEntryPoint = entryProperty[entryPointName];
   let newEntryPoint = currentEntryPoint;
 
   if (typeof currentEntryPoint === 'string') {
-    newEntryPoint = [...filepaths, currentEntryPoint];
+    newEntryPoint = [currentEntryPoint, ...filesToInsert];
   } else if (Array.isArray(currentEntryPoint)) {
-    newEntryPoint = [...filepaths, ...currentEntryPoint];
+    newEntryPoint = [...currentEntryPoint, ...filesToInsert];
   }
   // descriptor object (webpack 5+)
   else if (typeof currentEntryPoint === 'object' && 'import' in currentEntryPoint) {
@@ -592,9 +594,9 @@ function addFilesToExistingEntryPoint(
     let newImportValue;
 
     if (typeof currentImportValue === 'string') {
-      newImportValue = [...filepaths, currentImportValue];
+      newImportValue = [currentImportValue, ...filesToInsert];
     } else {
-      newImportValue = [...filepaths, ...currentImportValue];
+      newImportValue = [...currentImportValue, ...filesToInsert];
     }
 
     newEntryPoint = {
