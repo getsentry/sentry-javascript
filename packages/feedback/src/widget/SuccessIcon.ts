@@ -16,7 +16,7 @@ interface IconReturn {
  * Success Icon (checkmark)
  */
 export function SuccessIcon({ color }: Props): IconReturn {
-  const cENS = document.createElementNS;
+  const cENS = document.createElementNS.bind(document);
   const svg = setAttributesNS(cENS(XMLNS, 'svg'), {
     width: `${WIDTH}`,
     height: `${HEIGHT}`,
