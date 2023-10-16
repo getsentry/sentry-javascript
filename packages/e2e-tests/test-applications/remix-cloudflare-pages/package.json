@@ -1,39 +1,39 @@
 {
-  "name": "remix-cloudflare-workers",
+  "name": "remix-cloudflare",
   "private": true,
   "sideEffects": false,
   "type": "module",
   "scripts": {
     "build": "remix build",
-    "deploy": "wrangler deploy",
-    "dev": "remix dev --manual -c \"npm start\"",
-    "start": "wrangler dev --log-level=debug ./build/index.js",
+    "dev": "remix dev --manual -c \"npm run start\"",
+    "start": "wrangler pages dev ./public --compatibility-date=2023-06-21",
     "typecheck": "tsc",
+    "pages:deploy": "npm run build && wrangler pages deploy ./public",
     "test:prepare": "./createEnvFile.sh",
     "test:build": "pnpm install && npx playwright install && pnpm test:prepare && pnpm build",
     "test:assert": "pnpm playwright test"
   },
   "dependencies": {
     "@sentry/remix": "latest || *",
-    "@cloudflare/kv-asset-handler": "^0.1.3",
-    "@remix-run/cloudflare": "^2.0.1",
-    "@remix-run/css-bundle": "^2.0.1",
-    "@remix-run/react": "^2.0.1",
+    "@remix-run/cloudflare": "2.0.0",
+    "@remix-run/cloudflare-pages": "2.0.0",
+    "@remix-run/css-bundle": "2.0.0",
+    "@remix-run/react": "2.0.0",
     "isbot": "^3.6.8",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20230518.0",
-    "@remix-run/dev": "^2.0.1",
+    "@playwright/test": "^1.36.2",
+    "@remix-run/dev": "2.0.0",
     "@remix-run/eslint-config": "^2.0.1",
     "@types/react": "^18.2.20",
     "@types/react-dom": "^18.2.7",
-    "dotenv": "^16.3.1",
     "eslint": "^8.38.0",
-    "ts-node": "10.9.1",
-    "typescript": "^5.1.6",
-    "wrangler": "^3.1.1"
+    "esm-loader-typescript": "1.0.5",
+    "typescript": "^5.1.0",
+    "wrangler": "^3.12.0"
   },
   "engines": {
     "node": ">=18.0.0"

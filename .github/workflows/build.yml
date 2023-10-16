@@ -872,6 +872,7 @@ jobs:
             'generic-ts3.8',
             'node-experimental-fastify-app',
             'remix-cloudflare-workers',
+            'remix-cloudflare-pages',
           ]
         build-command:
           - false
