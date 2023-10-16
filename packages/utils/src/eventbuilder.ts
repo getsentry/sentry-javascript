@@ -145,9 +145,9 @@ export function eventFromMessage(
     }
   }
 
-  const { __sentry_template_string__, __sentry_template_values__ } = message;
-
   if (isParameterizedString(message)) {
+    const { __sentry_template_string__, __sentry_template_values__ } = message;
+
     event.logentry = {
       message: __sentry_template_string__,
       params: __sentry_template_values__,
