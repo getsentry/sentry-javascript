@@ -64,6 +64,8 @@ type Layer = {
   handle_request: (req: PatchedRequest, res: ExpressResponse, next: () => void) => void;
   route?: { path: RouteType | RouteType[] };
   path?: string;
+  regexp?: RegExp;
+  keys?: { name: string; offset: number; optional: boolean }[];
 };
 
 type RouteType = string | RegExp;
@@ -318,7 +320,24 @@ function instrumentRouter(appOrRouter: ExpressRouter): void {
     }
 
     // Otherwise, the hardcoded path (i.e. a partial route without params) is stored in layer.path
-    const partialRoute = layerRoutePath || layer.path || '';
+    let partialRoute;
+
+    if (layerRoutePath) {
+      partialRoute = layerRoutePath;
+    } else {
+      /**
+       * prevent duplicate segment in _reconstructedRoute param if router match multiple routes before final path
+       * example:
+       * original url: /api/v1/1234
+       * prevent: /api/api/v1/:userId
+       * router structure
+       * /api -> middleware
+       * /api/v1 -> middleware
+       * /1234 -> endpoint with param :userId
+       * final _reconstructedRoute is /api/v1/:userId
+       */
+      partialRoute = preventDuplicateSegments(req.originalUrl, req._reconstructedRoute, layer.path) || '';
+    }
 
     // Normalize the partial route so that it doesn't contain leading or trailing slashes
     // and exclude empty or '*' wildcard routes.
@@ -371,6 +390,79 @@ type LayerRoutePathInfo = {
 };
 
 /**
+ * Recreate layer.route.path from layer.regexp and layer.keys.
+ * Works until express.js used package path-to-regexp@0.1.7
+ * or until layer.keys contain offset attribute
+ *
+ * @param layer the layer to extract the stringified route from
+ *
+ * @returns string in layer.route.path structure 'router/:pathParam' or undefined
+ */
+export const extractOriginalRoute = (
+  path?: Layer['path'],
+  regexp?: Layer['regexp'],
+  keys?: Layer['keys'],
+): string | undefined => {
+  if (!path || !regexp || !keys || Object.keys(keys).length === 0 || !keys[0]?.offset) {
+    return undefined;
+  }
+
+  const orderedKeys = keys.sort((a, b) => a.offset - b.offset);
+
+  // add d flag for getting indices from regexp result
+  const pathRegex = new RegExp(regexp, `${regexp.flags}d`);
+  /**
+   * use custom type cause of TS error with missing indices in RegExpExecArray
+   */
+  const execResult = pathRegex.exec(path) as (RegExpExecArray & { indices: [number, number][] }) | null;
+
+  if (!execResult || !execResult.indices) {
+    return undefined;
+  }
+  /**
+   * remove first match from regex cause contain whole layer.path
+   */
+  const [, ...paramIndices] = execResult.indices;
+
+  if (paramIndices.length !== orderedKeys.length) {
+    return undefined;
+  }
+  let resultPath = path;
+  let indexShift = 0;
+
+  /**
+   * iterate param matches from regexp.exec
+   */
+  paramIndices.forEach(([startOffset, endOffset], index: number) => {
+    /**
+     * isolate part before param
+     */
+    const substr1 = resultPath.substring(0, startOffset - indexShift);
+    /**
+     * define paramName as replacement in format :pathParam
+     */
+    const replacement = `:${orderedKeys[index].name}`;
+
+    /**
+     * isolate part after param
+     */
+    const substr2 = resultPath.substring(endOffset - indexShift);
+
+    /**
+     * recreate original path but with param replacement
+     */
+    resultPath = substr1 + replacement + substr2;
+
+    /**
+     * calculate new index shift after resultPath was modified
+     */
+    indexShift = indexShift + (endOffset - startOffset - replacement.length);
+  });
+
+  return resultPath;
+};
+
+/**
  * Extracts and stringifies the layer's route which can either be a string with parameters (`users/:id`),
  * a RegEx (`/test/`) or an array of strings and regexes (`['/path1', /\/path[2-5]/, /path/:id]`). Additionally
  * returns extra information about the route, such as if the route is defined as regex or as an array.
@@ -382,10 +474,23 @@ type LayerRoutePathInfo = {
  *          if the route was an array (defaults to 0).
  */
 function getLayerRoutePathInfo(layer: Layer): LayerRoutePathInfo {
-  const lrp = layer.route?.path;
+  let lrp = layer.route?.path;
 
   const isRegex = isRegExp(lrp);
   const isArray = Array.isArray(lrp);
+
+  if (!lrp) {
+    // parse node.js major version
+    const [major] = process.versions.node.split('.').map(Number);
+
+    // allow call extractOriginalRoute only if node version support Regex d flag, node 16+
+    if (major >= 16) {
+      /**
+       * If lrp does not exist try to recreate original layer path from route regexp
+       */
+      lrp = extractOriginalRoute(layer.path, layer.regexp, layer.keys);
+    }
+  }
 
   if (!lrp) {
     return { isRegex, isArray, numExtraSegments: 0 };
@@ -423,4 +528,29 @@ function getLayerRoutePathString(isArray: boolean, lrp?: RouteType | RouteType[]
     return (lrp as RouteType[]).map(r => r.toString()).join(',');
   }
   return lrp && lrp.toString();
+}
+
+/**
+ * remove duplicate segment contain in layerPath against reconstructedRoute,
+ * and return only unique segment that can be added into reconstructedRoute
+ */
+export function preventDuplicateSegments(
+  originalUrl?: string,
+  reconstructedRoute?: string,
+  layerPath?: string,
+): string | undefined {
+  const originalUrlSplit = originalUrl?.split('/').filter(v => !!v);
+  let tempCounter = 0;
+  const currentOffset = reconstructedRoute?.split('/').filter(v => !!v).length || 0;
+  const result = layerPath
+    ?.split('/')
+    .filter(segment => {
+      if (originalUrlSplit?.[currentOffset + tempCounter] === segment) {
+        tempCounter += 1;
+        return true;
+      }
+      return false;
+    })
+    .join('/');
+  return result;
 }
