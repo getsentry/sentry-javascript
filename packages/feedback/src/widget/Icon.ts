@@ -15,7 +15,7 @@ interface IconReturn {
  * Feedback Icon
  */
 export function Icon({ color }: Props): IconReturn {
-  const cENS = document.createElementNS;
+  const cENS = document.createElementNS.bind(document);
   const svg = setAttributesNS(cENS(XMLNS, 'svg'), {
     width: `${SIZE}`,
     height: `${SIZE}`,
