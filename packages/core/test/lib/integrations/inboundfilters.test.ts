@@ -230,6 +230,11 @@ const TRANSACTION_EVENT_HEALTH_3: Event = {
   type: 'transaction',
 };
 
+const TRANSACTION_EVENT_NO_HEALTH_CHECK: Event = {
+  transaction: 'GET /delivery',
+  type: 'transaction',
+};
+
 describe('InboundFilters', () => {
   describe('_isSentryError', () => {
     it('should work as expected', () => {
@@ -428,6 +433,18 @@ describe('InboundFilters', () => {
       expect(eventProcessor(TRANSACTION_EVENT_HEALTH_2, {})).toBe(TRANSACTION_EVENT_HEALTH_2);
       expect(eventProcessor(TRANSACTION_EVENT_HEALTH_3, {})).toBe(TRANSACTION_EVENT_HEALTH_3);
     });
+
+    it.each(['/delivery', '/already', '/healthysnacks'])(
+      "doesn't filter out transactions that have similar names to health check ones (%s)",
+      transaction => {
+        const eventProcessor = createInboundFiltersEventProcessor();
+        const evt: Event = {
+          transaction,
+          type: 'transaction',
+        };
+        expect(eventProcessor(evt, {})).toBe(evt);
+      },
+    );
   });
 
   describe('denyUrls/allowUrls', () => {
