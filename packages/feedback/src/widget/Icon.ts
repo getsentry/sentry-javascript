@@ -1,4 +1,4 @@
-import { setAttributesNS } from "../util/setAttributesNS";
+import { setAttributesNS } from '../util/setAttributesNS';
 
 const SIZE = 20;
 const XMLNS = 'http://www.w3.org/2000/svg';

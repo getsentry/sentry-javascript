@@ -36,6 +36,11 @@ export interface FeedbackFormData {
 
 export interface FeedbackConfigurationWithDefaults {
   /**
+   * DOM Selector to attach click listener to, for opening Feedback dialog.
+   */
+  attachTo: string | null;
+
+  /**
    * If true, will not collect user data (email/name).
    */
   isAnonymous: boolean;
@@ -114,6 +119,10 @@ export interface FeedbackConfigurationWithDefaults {
    */
   successMessageText: string;
   // * End of text customization * //
+
+  // * Start of Callbacks * //
+  onOpenDialog?: () => void;
+  // * End of Callbacks * //
 }
 
 interface BaseTheme {
