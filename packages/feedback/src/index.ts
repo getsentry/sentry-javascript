@@ -1,6 +1,6 @@
 import { getCurrentHub } from '@sentry/core';
 import type { Integration } from '@sentry/types';
-import { isNodeEnv } from '@sentry/utils';
+import { isNodeEnv, logger } from '@sentry/utils';
 
 import { sendFeedback } from './sendFeedback';
 import type { FeedbackConfigurationWithDefaults, FeedbackFormData } from './types';
@@ -88,6 +88,7 @@ export class Feedback implements Integration {
   private _hasDialogOpened: boolean;
 
   public constructor({
+    attachTo = null,
     showEmail = true,
     showName = true,
     useSentryUser = {
@@ -109,6 +110,8 @@ export class Feedback implements Integration {
     namePlaceholder = 'Your Name',
     nameLabel = 'Name',
     successMessageText = 'Thank you for your report!',
+
+    onOpenDialog,
   }: Partial<FeedbackConfigurationWithDefaults> = {}) {
     // Initializations
     this.name = Feedback.id;
@@ -120,6 +123,7 @@ export class Feedback implements Integration {
     this._hasDialogOpened = false;
 
     this.options = {
+      attachTo,
       isAnonymous,
       isEmailRequired,
       isNameRequired,
@@ -138,6 +142,8 @@ export class Feedback implements Integration {
       nameLabel,
       namePlaceholder,
       successMessageText,
+
+      onOpenDialog,
     };
 
     // TOOD: temp for testing;
@@ -253,7 +259,20 @@ export class Feedback implements Integration {
     // TODO: End hotloading
 
     this._shadow = this._createShadowHost();
-    this._createWidgetActor();
+
+    // Only create widget actor if `attachTo` was not defined
+    if (this.options.attachTo === null) {
+      this._createWidgetActor();
+    } else {
+      const actorTarget = document.querySelector(this.options.attachTo);
+
+      if (!actorTarget) {
+        logger.warn(`[Feedback] Unable to find element with selector ${actorTarget}`);
+        return;
+      }
+
+      actorTarget.addEventListener('click', this._handleActorClick);
+    }
 
     if (!this._host) {
       return;
@@ -337,6 +356,10 @@ export class Feedback implements Integration {
     // Hide actor button
     if (this._actor) {
       this._actor.hide();
+    }
+
+    if (this.options.onOpenDialog) {
+      this.options.onOpenDialog();
     }
   };
 
