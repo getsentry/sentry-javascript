@@ -30,6 +30,7 @@
   },
   "devDependencies": {
     "@remix-run/dev": "1.19.1",
+    "@playwright/test": "^1.36.2",
     "@shopify/oxygen-workers-types": "^3.17.3",
     "@shopify/prettier-config": "^1.1.2",
     "@types/eslint": "^8.4.10",
