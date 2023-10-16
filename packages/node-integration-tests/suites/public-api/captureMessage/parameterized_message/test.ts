@@ -1,6 +1,6 @@
 import { assertSentryEvent, TestEnv } from '../../../../utils';
 
-test('should capture a paramaterized representation of the message', async () => {
+test('should capture a parameterized representation of the message', async () => {
   const env = await TestEnv.init(__dirname);
   const event = await env.getEnvelopeRequest();
 
