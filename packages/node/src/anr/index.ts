@@ -1,8 +1,9 @@
-import type { Event, StackFrame } from '@sentry/types';
+import { makeSession, updateSession } from '@sentry/core';
+import type { Event, Session, StackFrame } from '@sentry/types';
 import { logger, watchdogTimer } from '@sentry/utils';
 import { spawn } from 'child_process';
 
-import { addGlobalEventProcessor, captureEvent, flush } from '..';
+import { addGlobalEventProcessor, captureEvent, flush, getCurrentHub } from '..';
 import { captureStackTrace } from './debugger';
 
 const DEFAULT_INTERVAL = 50;
@@ -41,7 +42,13 @@ interface Options {
   debug: boolean;
 }
 
-function sendEvent(blockedMs: number, frames?: StackFrame[]): void {
+function sendEvent(blockedMs: number, session: Session | undefined, frames?: StackFrame[]): void {
+  if (session) {
+    logger.log('[ANR child process] Sending abnormal session');
+    updateSession(session, { status: 'abnormal', abnormal_mechanism: 'anr_foreground' });
+    getCurrentHub().getClient()?.sendSession(session);
+  }
+
   const event: Event = {
     level: 'error',
     exception: {
@@ -97,6 +104,8 @@ function startChildProcess(options: Options): void {
     logger.log(`[ANR] ${message}`, ...args);
   }
 
+  const hub = getCurrentHub();
+
   try {
     const env = { ...process.env };
     env.SENTRY_ANR_CHILD_PROCESS = 'true';
@@ -116,8 +125,12 @@ function startChildProcess(options: Options): void {
 
     const timer = setInterval(() => {
       try {
+        const currentSession = hub.getScope()?.getSession();
+        // We need to copy the session object and remove the toJSON method so it can be sent to the child process
+        // serialized without making it a SerializedSession
+        const session = currentSession ? { ...currentSession, toJSON: undefined } : undefined;
         // message the child process to tell it the main event loop is still running
-        child.send('ping');
+        child.send({ session });
       } catch (_) {
         //
       }
@@ -161,6 +174,8 @@ function handleChildProcess(options: Options): void {
 
   log('Started');
 
+  let session: Session | undefined;
+
   addGlobalEventProcessor(event => {
     // Strip sdkProcessingMetadata from all child process events to remove trace info
     delete event.sdkProcessingMetadata;
@@ -179,7 +194,7 @@ function handleChildProcess(options: Options): void {
 
     debuggerPause = captureStackTrace(process.env.SENTRY_INSPECT_URL, frames => {
       log('Capturing event with stack frames');
-      sendEvent(options.anrThreshold, frames);
+      sendEvent(options.anrThreshold, session, frames);
     });
   }
 
@@ -192,13 +207,16 @@ function handleChildProcess(options: Options): void {
       pauseAndCapture();
     } else {
       log('Capturing event');
-      sendEvent(options.anrThreshold);
+      sendEvent(options.anrThreshold, session);
     }
   }
 
   const { poll } = watchdogTimer(createHrTimer, options.pollInterval, options.anrThreshold, watchdogTimeout);
 
-  process.on('message', () => {
+  process.on('message', (msg: { session: Session | undefined }) => {
+    if (msg.session) {
+      session = makeSession(msg.session);
+    }
     poll();
   });
 }
