@@ -4,18 +4,14 @@
   </a>
 </p>
 
-# Sentry Feedback
-
-[![npm version](https://img.shields.io/npm/v/@sentry/feedback.svg)](https://www.npmjs.com/package/@sentry/feedback)
-[![npm dm](https://img.shields.io/npm/dm/@sentry/feedback.svg)](https://www.npmjs.com/package/@sentry/feedback)
-[![npm dt](https://img.shields.io/npm/dt/@sentry/feedback.svg)](https://www.npmjs.com/package/@sentry/feedback)
+# Sentry Integration for Feedback
 
 This SDK is **considered experimental and in an alpha state**. It may experience breaking changes, and may be discontinued at any time. Please reach out on
 [GitHub](https://github.com/getsentry/sentry-javascript/issues/new/choose) if you have any feedback/concerns.
 
 ## Pre-requisites
 
-`@sentry/feedback` requires Node 12+, and browsers newer than IE11.
+`@sentry/feedback` currently can only be used by browsers with [Shadow DOM](https://developer.mozilla.org/en-US/docs/Web/API/Web_components/Using_shadow_DOM) support.
 
 ## Installation
 
