@@ -230,11 +230,6 @@ const TRANSACTION_EVENT_HEALTH_3: Event = {
   type: 'transaction',
 };
 
-const TRANSACTION_EVENT_NO_HEALTH_CHECK: Event = {
-  transaction: 'GET /delivery',
-  type: 'transaction',
-};
-
 describe('InboundFilters', () => {
   describe('_isSentryError', () => {
     it('should work as expected', () => {
