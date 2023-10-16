@@ -10,6 +10,8 @@ type WatchdogReturn = {
   enabled: (state: boolean) => void;
 };
 
+type CreateTimerImpl = () => { getTimeMs: () => number; reset: () => void };
+
 /**
  * A node.js watchdog timer
  * @param pollInterval The interval that we expect to get polled at
@@ -17,14 +19,18 @@ type WatchdogReturn = {
  * @param callback The callback to call for ANR
  * @returns An object with `poll` and `enabled` functions {@link WatchdogReturn}
  */
-export function watchdogTimer(pollInterval: number, anrThreshold: number, callback: () => void): WatchdogReturn {
-  let lastPoll = process.hrtime();
+export function watchdogTimer(
+  createTimer: CreateTimerImpl,
+  pollInterval: number,
+  anrThreshold: number,
+  callback: () => void,
+): WatchdogReturn {
+  const timer = createTimer();
   let triggered = false;
   let enabled = true;
 
   setInterval(() => {
-    const [seconds, nanoSeconds] = process.hrtime(lastPoll);
-    const diffMs = Math.floor(seconds * 1e3 + nanoSeconds / 1e6);
+    const diffMs = timer.getTimeMs();
 
     if (triggered === false && diffMs > pollInterval + anrThreshold) {
       triggered = true;
@@ -40,7 +46,7 @@ export function watchdogTimer(pollInterval: number, anrThreshold: number, callba
 
   return {
     poll: () => {
-      lastPoll = process.hrtime();
+      timer.reset();
     },
     enabled: (state: boolean) => {
       enabled = state;
