@@ -1,4 +1,4 @@
-import { setAttributesNS } from "../util/setAttributesNS";
+import { setAttributesNS } from '../util/setAttributesNS';
 
 const WIDTH = 16;
 const HEIGHT = 17;
