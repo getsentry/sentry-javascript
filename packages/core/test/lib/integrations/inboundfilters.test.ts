@@ -428,6 +428,18 @@ describe('InboundFilters', () => {
       expect(eventProcessor(TRANSACTION_EVENT_HEALTH_2, {})).toBe(TRANSACTION_EVENT_HEALTH_2);
       expect(eventProcessor(TRANSACTION_EVENT_HEALTH_3, {})).toBe(TRANSACTION_EVENT_HEALTH_3);
     });
+
+    it.each(['/delivery', '/already', '/healthysnacks'])(
+      "doesn't filter out transactions that have similar names to health check ones (%s)",
+      transaction => {
+        const eventProcessor = createInboundFiltersEventProcessor();
+        const evt: Event = {
+          transaction,
+          type: 'transaction',
+        };
+        expect(eventProcessor(evt, {})).toBe(evt);
+      },
+    );
   });
 
   describe('denyUrls/allowUrls', () => {
