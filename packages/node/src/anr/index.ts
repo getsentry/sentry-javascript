@@ -42,14 +42,8 @@ interface Options {
   debug: boolean;
 }
 
-function sendEvent(blockedMs: number, session: Session | undefined, frames?: StackFrame[]): void {
-  if (session) {
-    logger.log('[ANR child process] Sending abnormal session');
-    updateSession(session, { status: 'abnormal', abnormal_mechanism: 'anr_foreground' });
-    getCurrentHub().getClient()?.sendSession(session);
-  }
-
-  const event: Event = {
+function createAnrEvent(blockedMs: number, frames?: StackFrame[]): Event {
+  return {
     level: 'error',
     exception: {
       values: [
@@ -65,13 +59,6 @@ function sendEvent(blockedMs: number, session: Session | undefined, frames?: Sta
       ],
     },
   };
-
-  captureEvent(event);
-
-  void flush(3000).then(() => {
-    // We only capture one event to avoid spamming users with errors
-    process.exit();
-  });
 }
 
 interface InspectorApi {
@@ -114,7 +101,7 @@ function startChildProcess(options: Options): void {
       env.SENTRY_INSPECT_URL = startInspector();
     }
 
-    log(`Spawning child process with execPath:'${process.execPath}' and entryScript'${options.entryScript}'`);
+    log(`Spawning child process with execPath:'${process.execPath}' and entryScript:'${options.entryScript}'`);
 
     const child = spawn(process.execPath, [options.entryScript], {
       env,
@@ -135,6 +122,13 @@ function startChildProcess(options: Options): void {
         //
       }
     }, options.pollInterval);
+
+    child.on('message', (msg: string) => {
+      if (msg === 'session-ended') {
+        log('ANR event sent from child process. Clearing session in this process.');
+        hub.getScope()?.setSession(undefined);
+      }
+    });
 
     const end = (type: string): ((...args: unknown[]) => void) => {
       return (...args): void => {
@@ -166,15 +160,31 @@ function createHrTimer(): { getTimeMs: () => number; reset: () => void } {
 }
 
 function handleChildProcess(options: Options): void {
+  process.title = 'sentry-anr';
+
   function log(message: string): void {
     logger.log(`[ANR child process] ${message}`);
   }
 
-  process.title = 'sentry-anr';
-
   log('Started');
-
   let session: Session | undefined;
+
+  function sendAnrEvent(frames?: StackFrame[]): void {
+    if (session) {
+      log('Sending abnormal session');
+      updateSession(session, { status: 'abnormal', abnormal_mechanism: 'anr_foreground' });
+      getCurrentHub().getClient()?.sendSession(session);
+      // Notify the main process that the session has ended so the session can be cleared from the scope
+      process.send?.('session-ended');
+    }
+
+    captureEvent(createAnrEvent(options.anrThreshold, frames));
+
+    void flush(3000).then(() => {
+      // We only capture one event to avoid spamming users with errors
+      process.exit();
+    });
+  }
 
   addGlobalEventProcessor(event => {
     // Strip sdkProcessingMetadata from all child process events to remove trace info
@@ -194,7 +204,7 @@ function handleChildProcess(options: Options): void {
 
     debuggerPause = captureStackTrace(process.env.SENTRY_INSPECT_URL, frames => {
       log('Capturing event with stack frames');
-      sendEvent(options.anrThreshold, session, frames);
+      sendAnrEvent(frames);
     });
   }
 
@@ -207,7 +217,7 @@ function handleChildProcess(options: Options): void {
       pauseAndCapture();
     } else {
       log('Capturing event');
-      sendEvent(options.anrThreshold, session);
+      sendAnrEvent();
     }
   }
 
