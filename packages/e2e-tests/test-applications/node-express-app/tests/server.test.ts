@@ -117,7 +117,6 @@ test('Should record caught exceptions with local variable', async ({ baseURL }) 
 
 test('Should record uncaught exceptions with local variable', async ({ baseURL }) => {
   const errorEventPromise = waitForError('node-express-app', errorEvent => {
-    console.log('uuuu', errorEvent.exception?.values?.[0]?.value);
     return !!errorEvent?.exception?.values?.[0]?.value?.includes('Uncaught Local Variable Error');
   });
 
