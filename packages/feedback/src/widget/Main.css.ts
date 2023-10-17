@@ -8,9 +8,17 @@ export function createMainStyles(d: Document, colorScheme: 'system' | 'dark' | '
   const theme = colorScheme === 'system' ? themes.light : themes[colorScheme];
   style.textContent = `
 :host {
+  --bottom: 1rem;
+  --right: 1rem;
+  --top: auto;
+  --left: auto;
+
   position: fixed;
-  right: 1rem;
-  bottom: 1rem;
+  left: var(--left);
+  right: var(--right);
+  bottom: var(--bottom);
+  top: var(--top);
+
   font-family: ${theme.fontFamily};
   font-size: ${theme.fontSize};
   --bg-color: ${theme.background};
