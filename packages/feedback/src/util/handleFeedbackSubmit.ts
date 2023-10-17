@@ -1,7 +1,10 @@
-import type { FeedbackFormData } from '../types';
-import { DialogComponent } from '../widget/Dialog';
 import { sendFeedback } from '../sendFeedback';
+import type { FeedbackFormData } from '../types';
+import type { DialogComponent } from '../widget/Dialog';
 
+/**
+ *
+ */
 export async function handleFeedbackSubmit(
   dialog: DialogComponent | null,
   feedback: FeedbackFormData,
@@ -11,7 +14,7 @@ export async function handleFeedbackSubmit(
     return false;
   }
 
-  const showFetchError = () => {
+  const showFetchError = (): void => {
     if (!dialog) {
       return;
     }
@@ -23,7 +26,6 @@ export async function handleFeedbackSubmit(
     dialog.hideError();
     dialog.setSubmitDisabled();
     const resp = await sendFeedback(feedback);
-    console.log({ resp });
 
     if (!resp) {
       // Errored... re-enable submit button

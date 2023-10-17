@@ -18,7 +18,7 @@ interface SuccessMessageComponent extends FeedbackComponent<HTMLDivElement> {
  * Feedback dialog component that has the form
  */
 export function SuccessMessage({ message, onRemove }: SuccessMessageProps): SuccessMessageComponent {
-  function remove() {
+  function remove(): void {
     if (!$el) {
       return;
     }
