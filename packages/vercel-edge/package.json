@@ -1,6 +1,6 @@
 {
   "name": "@sentry/vercel-edge",
-  "version": "7.74.0",
+  "version": "7.74.1",
   "description": "Offical Sentry SDK for the Vercel Edge Runtime",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/vercel-edge",
@@ -23,9 +23,9 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/core": "7.74.0",
-    "@sentry/types": "7.74.0",
-    "@sentry/utils": "7.74.0",
+    "@sentry/core": "7.74.1",
+    "@sentry/types": "7.74.1",
+    "@sentry/utils": "7.74.1",
     "tslib": "^2.4.1 || ^1.9.3"
   },
   "devDependencies": {
