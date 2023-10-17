@@ -41,6 +41,11 @@ export interface DialogComponent extends FeedbackComponent<HTMLDialogElement> {
    * Closes the dialog and form
    */
   close: () => void;
+
+  /**
+   * Check if dialog is currently opened
+   */
+  checkIsOpen: () => boolean;
 }
 
 /**
@@ -87,6 +92,13 @@ export function Dialog({
     }
   }
 
+  /**
+   * Check if dialog is currently opened
+   */
+  function checkIsOpen(): boolean {
+    return ($el && $el.open === true) || false;
+  }
+
   const {
     $el: $form,
     setSubmitEnabled,
@@ -104,7 +116,6 @@ export function Dialog({
   $el = h(
     'dialog',
     {
-      id: 'feedback-dialog',
       className: 'dialog',
       open: true,
       onClick: handleDialogClick,
@@ -131,5 +142,6 @@ export function Dialog({
     setSubmitEnabled,
     open,
     close,
+    checkIsOpen,
   };
 }

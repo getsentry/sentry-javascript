@@ -1,5 +1,6 @@
 import type { BrowserClient, Replay } from '@sentry/browser';
 import { getCurrentHub } from '@sentry/core';
+import { getLocationHref } from '@sentry/utils';
 
 import { sendFeedbackRequest } from './util/sendFeedbackRequest';
 
@@ -18,7 +19,7 @@ interface SendFeedbackOptions {
  * Public API to send a Feedback item to Sentry
  */
 export function sendFeedback(
-  { name, email, message, url = document.location.href }: SendFeedbackParams,
+  { name, email, message, url = getLocationHref() }: SendFeedbackParams,
   { includeReplay = true }: SendFeedbackOptions = {},
 ): ReturnType<typeof sendFeedbackRequest> {
   const hub = getCurrentHub();
