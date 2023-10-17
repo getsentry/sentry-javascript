@@ -12,7 +12,9 @@ interface IconReturn {
  * Success Icon (checkmark)
  */
 export function SuccessIcon(): IconReturn {
-  const cENS = document.createElementNS.bind(document, XMLNS);
+  const cENS = <K extends keyof SVGElementTagNameMap>(tagName: K): SVGElementTagNameMap[K] =>
+    // eslint-disable-next-line no-restricted-globals
+    document.createElementNS(XMLNS, tagName);
   const svg = setAttributesNS(cENS('svg'), {
     class: 'success-icon',
     width: `${WIDTH}`,

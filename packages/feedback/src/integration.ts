@@ -1,4 +1,3 @@
-import { getCurrentHub } from '@sentry/core';
 import type { Integration } from '@sentry/types';
 import { isNodeEnv, logger } from '@sentry/utils';
 
@@ -16,14 +15,10 @@ import {
   SUBMIT_BUTTON_LABEL,
   SUCCESS_MESSAGE_TEXT,
 } from './constants';
-import type { FeedbackConfigurationWithDefaults, FeedbackFormData, FeedbackTheme } from './types';
-import { handleFeedbackSubmit } from './util/handleFeedbackSubmit';
-import { Actor } from './widget/Actor';
+import type { FeedbackConfigurationWithDefaults, Widget } from './types';
 import { createActorStyles } from './widget/Actor.css';
-import { Dialog } from './widget/Dialog';
-import { createDialogStyles } from './widget/Dialog.css';
-import { createMainStyles } from './widget/Main.css';
-import { SuccessMessage } from './widget/SuccessMessage';
+import { createShadowHost } from './widget/createShadowHost';
+import { createWidget } from './widget/createWidget';
 
 type ElectronProcess = { type?: string };
 
@@ -39,12 +34,7 @@ function isBrowser(): boolean {
   return typeof window !== 'undefined' && (!isNodeEnv() || isElectronNodeRenderer());
 }
 
-interface FeedbackConfiguration extends Partial<Omit<FeedbackConfigurationWithDefaults, 'theme'>> {
-  theme?: {
-    dark?: Partial<FeedbackTheme>;
-    light?: Partial<FeedbackTheme>;
-  };
-}
+type FeedbackConfiguration = Partial<FeedbackConfigurationWithDefaults>;
 
 /**
  * Feedback integration. When added as an integration to the SDK, it will
@@ -68,34 +58,33 @@ export class Feedback implements Integration {
   public options: FeedbackConfigurationWithDefaults;
 
   /**
-   * Reference to widget actor element (button that opens dialog).
+   * Reference to widget element that is created when autoInject is true
    */
-  private _actor: ReturnType<typeof Actor> | null;
+  private _widget: Widget | null;
+
   /**
-   * Reference to dialog element
+   * List of all widgets that are created from the integration
    */
-  private _dialog: ReturnType<typeof Dialog> | null;
+  private _widgets: Set<Widget>;
+
   /**
    * Reference to the host element where widget is inserted
    */
   private _host: HTMLDivElement | null;
+
   /**
    * Refernce to Shadow DOM root
    */
   private _shadow: ShadowRoot | null;
-  /**
-   * State property to track if dialog is currently open
-   */
-  private _isDialogOpen: boolean;
 
   /**
-   * Tracks if dialog has ever been opened at least one time
+   * Tracks if actor styles have ever been inserted into shadow DOM
    */
-  private _hasDialogEverOpened: boolean;
+  private _hasInsertedActorStyles: boolean;
 
   public constructor({
     id = 'sentry-feedback',
-    attachTo = null,
+    // attachTo = null,
     autoInject = true,
     showEmail = true,
     showName = true,
@@ -107,7 +96,8 @@ export class Feedback implements Integration {
     isEmailRequired = false,
     isNameRequired = false,
 
-    theme,
+    themeDark,
+    themeLight,
     colorScheme = 'system',
 
     buttonLabel = ACTOR_LABEL,
@@ -123,22 +113,24 @@ export class Feedback implements Integration {
     successMessageText = SUCCESS_MESSAGE_TEXT,
 
     onActorClick,
+    onDialogClose,
     onDialogOpen,
     onSubmitError,
     onSubmitSuccess,
   }: FeedbackConfiguration = {}) {
     // Initializations
     this.name = Feedback.id;
-    this._actor = null;
-    this._dialog = null;
+
+    // tsc fails if these are not initialized explicitly constructor, e.g. can't call `_initialize()`
     this._host = null;
     this._shadow = null;
-    this._isDialogOpen = false;
-    this._hasDialogEverOpened = false;
+    this._widget = null;
+    this._widgets = new Set();
+    this._hasInsertedActorStyles = false;
 
     this.options = {
       id,
-      attachTo,
+      // attachTo,
       autoInject,
       isAnonymous,
       isEmailRequired,
@@ -148,10 +140,8 @@ export class Feedback implements Integration {
       useSentryUser,
 
       colorScheme,
-      theme: {
-        dark: Object.assign({}, DEFAULT_THEME.dark, theme && theme.dark),
-        light: Object.assign({}, DEFAULT_THEME.light, theme && theme.light),
-      },
+      themeDark: Object.assign({}, DEFAULT_THEME.dark, themeDark),
+      themeLight: Object.assign({}, DEFAULT_THEME.light, themeLight),
 
       buttonLabel,
       cancelButtonLabel,
@@ -166,16 +156,13 @@ export class Feedback implements Integration {
       successMessageText,
 
       onActorClick,
+      onDialogClose,
       onDialogOpen,
       onSubmitError,
       onSubmitSuccess,
     };
-
-    // TOOD: temp for testing;
-    this.setupOnce();
   }
 
-  /** If replay has already been initialized */
   /**
    * Setup and initialize replay container
    */
@@ -189,272 +176,156 @@ export class Feedback implements Integration {
       if (this._host) {
         this.remove();
       }
+      // eslint-disable-next-line no-restricted-globals
       const existingFeedback = document.querySelector(`#${this.options.id}`);
       if (existingFeedback) {
         existingFeedback.remove();
       }
       // TODO: End hotloading
 
-      const { attachTo, autoInject } = this.options;
-      if (!attachTo && !autoInject) {
+      const { autoInject } = this.options;
+
+      if (!autoInject) {
         // Nothing to do here
         return;
       }
 
-      // Setup host element + shadow DOM, if necessary
-      this._shadow = this._createShadowHost();
-
-      // If `attachTo` is defined, then attach click handler to it
-      if (attachTo) {
-        const actorTarget =
-          typeof attachTo === 'string'
-            ? document.querySelector(attachTo)
-            : typeof attachTo === 'function'
-            ? attachTo
-            : null;
-
-        if (!actorTarget) {
-          logger.warn(`[Feedback] Unable to find element with selector ${actorTarget}`);
-          return;
-        }
-
-        actorTarget.addEventListener('click', this._handleActorClick);
-      } else {
-        this._createWidgetActor();
-      }
-
-      if (!this._host) {
-        logger.warn('[Feedback] Unable to create host element');
-        return;
-      }
-
-      document.body.appendChild(this._host);
+      this._widget = this._createWidget(this.options);
     } catch (err) {
       // TODO: error handling
-      console.error(err);
+      logger.error(err);
     }
   }
 
   /**
-   * Removes the Feedback widget
+   * Adds click listener to attached element to open a feedback dialog
+   */
+  public attachTo(el: Node | string, optionOverrides: Partial<FeedbackConfigurationWithDefaults>): Widget | null {
+    try {
+      const options = Object.assign({}, this.options, optionOverrides);
+
+      return this._ensureShadowHost<Widget | null>(options, ([shadow]) => {
+        const targetEl =
+          // eslint-disable-next-line no-restricted-globals
+          typeof el === 'string' ? document.querySelector(el) : typeof el.addEventListener === 'function' ? el : null;
+
+        if (!targetEl) {
+          logger.error('[Feedback] Unable to attach to target element');
+          return null;
+        }
+
+        const widget = createWidget({ shadow, options, attachTo: targetEl });
+        this._widgets.add(widget);
+        return widget;
+      });
+    } catch (err) {
+      logger.error(err);
+      return null;
+    }
+  }
+
+  /**
+   * Creates a new widget. Accepts partial options to override any options passed to constructor.
+   */
+  public createWidget(optionOverrides: Partial<FeedbackConfigurationWithDefaults>): Widget | null {
+    try {
+      return this._createWidget(Object.assign({}, this.options, optionOverrides));
+    } catch (err) {
+      logger.error(err);
+      return null;
+    }
+  }
+
+  /**
+   * Removes a single widget
+   */
+  public removeWidget(widget: Widget | null | undefined): boolean {
+    if (!widget) {
+      return false;
+    }
+
+    try {
+      if (this._widgets.has(widget)) {
+        widget.removeActor();
+        widget.removeDialog();
+        this._widgets.delete(widget);
+        return true;
+      }
+    } catch (err) {
+      logger.error(err);
+    }
+    return false;
+  }
+
+  /**
+   * Removes the Feedback integration (including host, shadow DOM, and all widgets)
    */
   public remove(): void {
     if (this._host) {
       this._host.remove();
     }
+    this._initialize();
   }
 
   /**
-   * Opens the Feedback dialog form
+   * Initializes values of protected properties
    */
-  public openDialog(): void {
-    try {
-      if (this._dialog) {
-        this._dialog.open();
-        this._isDialogOpen = true;
-        if (this.options.onDialogOpen) {
-          this.options.onDialogOpen();
-        }
-        return;
-      }
-
-      try {
-        this._shadow = this._createShadowHost();
-      } catch {
-        return;
-      }
-
-      // Lazy-load until dialog is opened and only inject styles once
-      if (!this._hasDialogEverOpened) {
-        this._shadow.appendChild(createDialogStyles(document));
-      }
-
-      const userKey = this.options.useSentryUser;
-      const scope = getCurrentHub().getScope();
-      const user = scope && scope.getUser();
-
-      this._dialog = Dialog({
-        defaultName: (userKey && user && user[userKey.name]) || '',
-        defaultEmail: (userKey && user && user[userKey.email]) || '',
-        onClosed: () => {
-          this.showActor();
-          this._isDialogOpen = false;
-        },
-        onCancel: () => {
-          this.hideDialog();
-          this.showActor();
-        },
-        onSubmit: this._handleFeedbackSubmit,
-        options: this.options,
-      });
-      this._shadow.appendChild(this._dialog.$el);
-
-      // Hides the default actor whenever dialog is opened
-      this._actor && this._actor.hide();
-
-      this._hasDialogEverOpened = true;
-      if (this.options.onDialogOpen) {
-        this.options.onDialogOpen();
-      }
-    } catch (err) {
-      // TODO: Error handling?
-      console.error(err);
-    }
+  protected _initialize(): void {
+    this._host = null;
+    this._shadow = null;
+    this._widget = null;
+    this._widgets = new Set();
+    this._hasInsertedActorStyles = false;
   }
 
   /**
-   * Hides the dialog
+   * Creates a new widget, after ensuring shadow DOM exists
    */
-  public hideDialog = (): void => {
-    if (this._dialog) {
-      this._dialog.close();
-      this._isDialogOpen = false;
-    }
-  };
+  protected _createWidget(options: FeedbackConfigurationWithDefaults): Widget | null {
+    return this._ensureShadowHost<Widget>(options, ([shadow]) => {
+      const widget = createWidget({ shadow, options });
+
+      if (!this._hasInsertedActorStyles && widget.actor) {
+        // eslint-disable-next-line no-restricted-globals
+        shadow.appendChild(createActorStyles(document));
+        this._hasInsertedActorStyles = true;
+      }
+
+      this._widgets.add(widget);
+      return widget;
+    });
+  }
 
   /**
-   * Removes the dialog element from DOM
+   * Ensures that shadow DOM exists and is added to the DOM
    */
-  public removeDialog = (): void => {
-    if (this._dialog) {
-      this._dialog.$el.remove();
-      this._dialog = null;
-    }
-  };
-
-  /**
-   * Displays the default actor
-   */
-  public showActor = (): void => {
-    // TODO: Only show default actor
-    if (this._actor) {
-      this._actor.show();
-    }
-  };
-
-  /**
-   * Creates the host element of widget's shadow DOM. Returns null if not supported.
-   */
-  protected _createShadowHost(): ShadowRoot {
-    if (!document.head.attachShadow) {
-      // Shadow DOM not supported
-      logger.warn('[Feedback] Browser does not support shadow DOM API');
-      throw new Error('Browser does not support shadow DOM API.');
-    }
+  protected _ensureShadowHost<T>(
+    options: FeedbackConfigurationWithDefaults,
+    cb: (createShadowHostResult: ReturnType<typeof createShadowHost>) => T,
+  ): T | null {
+    let needsAppendHost = false;
 
     // Don't create if it already exists
-    if (this._shadow) {
-      return this._shadow;
+    if (!this._shadow && !this._host) {
+      const [shadow, host] = createShadowHost({ options });
+      this._shadow = shadow;
+      this._host = host;
+      needsAppendHost = true;
     }
 
-    // Create the host
-    this._host = document.createElement('div');
-    this._host.id = this.options.id;
+    if (!this._shadow || !this._host) {
+      logger.warn('[Feedback] Unable to create host element and/or shadow DOM');
+      // This shouldn't happen
+      return null;
+    }
 
-    // Create the shadow root
-    const shadow = this._host.attachShadow({ mode: 'open' });
+    const result = cb([this._shadow, this._host]);
 
-    shadow.appendChild(createMainStyles(document, this.options.colorScheme, this.options.theme));
+    if (needsAppendHost) {
+      // eslint-disable-next-line no-restricted-globals
+      document.body.appendChild(this._host);
+    }
 
-    return shadow;
+    return result;
   }
-
-  /**
-   * Creates the host element of our shadow DOM as well as the actor
-   */
-  protected _createWidgetActor(): void {
-    if (!this._shadow) {
-      // This shouldn't happen... we could call `_createShadowHost` if this is the case?
-      return;
-    }
-
-    try {
-      this._shadow.appendChild(createActorStyles(document));
-
-      // Create Actor component
-      this._actor = Actor({ options: this.options, onClick: this._handleActorClick });
-
-      this._shadow.appendChild(this._actor.$el);
-    } catch (err) {
-      // TODO: error handling
-      console.error(err);
-    }
-  }
-
-  /**
-   * Show the success message for 5 seconds
-   */
-  protected _showSuccessMessage(): void {
-    if (!this._shadow) {
-      return;
-    }
-
-    try {
-      const success = SuccessMessage({
-        message: this.options.successMessageText,
-        onRemove: () => {
-          if (timeoutId) {
-            clearTimeout(timeoutId);
-          }
-          this.showActor();
-        },
-      });
-
-      this._shadow.appendChild(success.$el);
-
-      const timeoutId = setTimeout(() => {
-        if (success) {
-          success.remove();
-        }
-      }, 5000);
-    } catch (err) {
-      // TODO: error handling
-      console.error(err);
-    }
-  }
-
-  /**
-   * Handles when the actor is clicked, opens the dialog modal and calls any
-   * callbacks.
-   */
-  protected _handleActorClick = (): void => {
-    // Open dialog
-    if (!this._isDialogOpen) {
-      this.openDialog();
-    }
-
-    // Hide actor button
-    if (this._actor) {
-      this._actor.hide();
-    }
-
-    if (this.options.onActorClick) {
-      this.options.onActorClick();
-    }
-  };
-
-  /**
-   * Handler for when the feedback form is completed by the user. This will
-   * create and send the feedback message as an event.
-   */
-  protected _handleFeedbackSubmit = async (feedback: FeedbackFormData): Promise<void> => {
-    const result = await handleFeedbackSubmit(this._dialog, feedback);
-
-    // Error submitting feedback
-    if (!result) {
-      if (this.options.onSubmitError) {
-        this.options.onSubmitError();
-      }
-
-      return;
-    }
-
-    // Success
-    this.removeDialog();
-    this._showSuccessMessage();
-
-    if (this.options.onSubmitSuccess) {
-      this.options.onSubmitSuccess();
-    }
-  };
 }
