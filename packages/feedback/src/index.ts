@@ -2,8 +2,8 @@ import { getCurrentHub } from '@sentry/core';
 import type { Integration } from '@sentry/types';
 import { isNodeEnv, logger } from '@sentry/utils';
 
-import { sendFeedback } from './sendFeedback';
 import type { FeedbackConfigurationWithDefaults, FeedbackFormData } from './types';
+import { handleFeedbackSubmit } from './util/handleFeedbackSubmit';
 import { sendFeedbackRequest } from './util/sendFeedbackRequest';
 import { Actor } from './widget/Actor';
 import { createActorStyles } from './widget/Actor.css';
@@ -43,7 +43,9 @@ const THEME = {
 };
 
 /**
- *
+ * Feedback integration. When added as an integration to the SDK, it will
+ * inject a button in the bottom-right corner of the window that opens a
+ * feedback modal when clicked.
  */
 export class Feedback implements Integration {
   /**
@@ -89,6 +91,7 @@ export class Feedback implements Integration {
 
   public constructor({
     attachTo = null,
+    autoInject = true,
     showEmail = true,
     showName = true,
     useSentryUser = {
@@ -124,6 +127,7 @@ export class Feedback implements Integration {
 
     this.options = {
       attachTo,
+      autoInject,
       isAnonymous,
       isEmailRequired,
       isNameRequired,
@@ -159,7 +163,48 @@ export class Feedback implements Integration {
       return;
     }
 
-    this._injectWidget();
+    try {
+      // TODO: This is only here for hot reloading
+      if (this._host) {
+        this.remove();
+      }
+      const existingFeedback = document.querySelector('#sentry-feedback');
+      if (existingFeedback) {
+        existingFeedback.remove();
+      }
+
+      // TODO: End hotloading
+
+      try {
+        this._shadow = this._createShadowHost();
+      } catch (err) {
+        return;
+      }
+
+      // Only create widget actor if `attachTo` was not defined
+      if (this.options.attachTo) {
+        const actorTarget = typeof this.options.attachTo === 'string' ? document.querySelector(this.options.attachTo) : typeof this.options.attachTo === 'function' ? this.options.attachTo : null;
+
+        if (!actorTarget) {
+          logger.warn(`[Feedback] Unable to find element with selector ${actorTarget}`);
+          return;
+        }
+
+        actorTarget.addEventListener('click', this._handleActorClick);
+      } else if (this.options.autoInject) {
+        // Only
+        this._createWidgetActor();
+      }
+
+      if (!this._host) {
+        return;
+      }
+
+      document.body.appendChild(this._host);
+    } catch (err) {
+      // TODO: error handling
+      console.error(err);
+    }
   }
 
   /**
@@ -175,43 +220,55 @@ export class Feedback implements Integration {
    * Opens the Feedback dialog form
    */
   public openDialog(): void {
-    if (this._dialog) {
-      this._dialog.open();
-      return;
+    try {
+      if (this._dialog) {
+        this._dialog.open();
+        this._isDialogOpen = true;
+        console.log('dialog already open')
+        return;
+      }
+
+      try {
+        this._shadow = this._createShadowHost();
+      } catch {
+        return;
+      }
+
+      console.log('open dialog', this._shadow)
+      // Lazy-load until dialog is opened and only inject styles once
+      if (!this._hasDialogOpened) {
+        this._shadow.appendChild(createDialogStyles(document, THEME));
+      }
+
+      const userKey = this.options.useSentryUser;
+      const scope = getCurrentHub().getScope();
+      const user = scope && scope.getUser();
+
+      this._dialog = Dialog({
+        defaultName: (userKey && user && user[userKey.name]) || '',
+        defaultEmail: (userKey && user && user[userKey.email]) || '',
+        onClose: () => {
+          this.showActor();
+          this._isDialogOpen = false;
+        },
+        onCancel: () => {
+          this.hideDialog();
+          this.showActor();
+        },
+        onSubmit: this._handleFeedbackSubmit,
+        options: this.options,
+      });
+      this._shadow.appendChild(this._dialog.$el);
+      console.log(this._dialog.$el);
+
+      // Hides the default actor whenever dialog is opened
+      this._actor && this._actor.hide();
+
+      this._hasDialogOpened = true;
+    } catch (err) {
+      // TODO: Error handling?
+      console.error(err);
     }
-
-    if (!this._shadow) {
-      this._shadow = this._createShadowHost();
-    }
-
-    // Lazy-load until dialog is opened and only inject styles once
-    if (!this._hasDialogOpened) {
-      this._shadow.appendChild(createDialogStyles(document, THEME));
-    }
-
-    const userKey = this.options.useSentryUser;
-    const scope = getCurrentHub().getScope();
-    const user = scope && scope.getUser();
-
-    this._dialog = Dialog({
-      defaultName: (userKey && user && user[userKey.name]) || '',
-      defaultEmail: (userKey && user && user[userKey.email]) || '',
-      onClose: () => {
-        this.showActor();
-      },
-      onCancel: () => {
-        this.hideDialog();
-        this.showActor();
-      },
-      onSubmit: this._handleFeedbackSubmit,
-      options: this.options,
-    });
-    this._shadow.appendChild(this._dialog.$el);
-
-    // Hides the default actor whenever dialog is opened
-    this._actor && this._actor.hide();
-
-    this._hasDialogOpened = true;
   }
 
   /**
@@ -220,6 +277,7 @@ export class Feedback implements Integration {
   public hideDialog = (): void => {
     if (this._dialog) {
       this._dialog.close();
+      this._isDialogOpen = false;
     }
   };
 
@@ -244,56 +302,26 @@ export class Feedback implements Integration {
   };
 
   /**
-   *
-   */
-  protected _injectWidget(): void {
-    // TODO: This is only here for hot reloading
-    if (this._host) {
-      this.remove();
-    }
-    const existingFeedback = document.querySelector('#sentry-feedback');
-    if (existingFeedback) {
-      existingFeedback.remove();
-    }
-
-    // TODO: End hotloading
-
-    this._shadow = this._createShadowHost();
-
-    // Only create widget actor if `attachTo` was not defined
-    if (this.options.attachTo === null) {
-      this._createWidgetActor();
-    } else {
-      const actorTarget = document.querySelector(this.options.attachTo);
-
-      if (!actorTarget) {
-        logger.warn(`[Feedback] Unable to find element with selector ${actorTarget}`);
-        return;
-      }
-
-      actorTarget.addEventListener('click', this._handleActorClick);
-    }
-
-    if (!this._host) {
-      return;
-    }
-
-    document.body.appendChild(this._host);
-  }
-
-  /**
-   * Creates the host element of widget's shadow DOM
+   * Creates the host element of widget's shadow DOM. Returns null if not supported.
    */
   protected _createShadowHost(): ShadowRoot {
+    if (!document.head.attachShadow) {
+      // Shadow DOM not supported
+      logger.warn('[Feedback] Browser does not support shadow DOM API')
+      throw new Error('Browser does not support shadow DOM API.')
+    }
+
+    // Don't create if it already exists
+    if (this._shadow) {
+      return this._shadow;
+    }
+
     // Create the host
     this._host = document.createElement('div');
     this._host.id = 'sentry-feedback';
 
     // Create the shadow root
     const shadow = this._host.attachShadow({ mode: 'open' });
-
-    // Insert styles for actor
-    shadow.appendChild(createActorStyles(document, THEME));
 
     return shadow;
   }
@@ -307,12 +335,17 @@ export class Feedback implements Integration {
       return;
     }
 
-    this._shadow.appendChild(createActorStyles(document, THEME));
+    try {
+      this._shadow.appendChild(createActorStyles(document, THEME));
 
-    // Create Actor component
-    this._actor = Actor({ options: this.options, theme: THEME, onClick: this._handleActorClick });
+      // Create Actor component
+      this._actor = Actor({ options: this.options, theme: THEME, onClick: this._handleActorClick });
 
-    this._shadow.appendChild(this._actor.$el);
+      this._shadow.appendChild(this._actor.$el);
+    } catch(err) {
+      // TODO: error handling
+      console.error(err);
+    }
   }
 
   /**
@@ -323,24 +356,29 @@ export class Feedback implements Integration {
       return;
     }
 
-    const success = SuccessMessage({
-      message: this.options.successMessageText,
-      onRemove: () => {
-        if (timeoutId) {
-          clearTimeout(timeoutId);
+    try {
+      const success = SuccessMessage({
+        message: this.options.successMessageText,
+        onRemove: () => {
+          if (timeoutId) {
+            clearTimeout(timeoutId);
+          }
+          this.showActor();
+        },
+        theme: THEME,
+      });
+
+      this._shadow.appendChild(success.$el);
+
+      const timeoutId = setTimeout(() => {
+        if (success) {
+          success.remove();
         }
-        this.showActor();
-      },
-      theme: THEME,
-    });
-
-    this._shadow.appendChild(success.$el);
-
-    const timeoutId = setTimeout(() => {
-      if (success) {
-        success.remove();
-      }
-    }, 5000);
+      }, 5000);
+    } catch(err) {
+      // TODO: error handling
+      console.error(err);
+    }
   }
 
   /**
@@ -368,31 +406,12 @@ export class Feedback implements Integration {
    * create and send the feedback message as an event.
    */
   protected _handleFeedbackSubmit = async (feedback: FeedbackFormData): Promise<void> => {
-    console.log('ahndle feedback submit');
-    if (!this._dialog) {
-      // Not sure when this would happen
-      return;
-    }
+    const result = await handleFeedbackSubmit(this._dialog, feedback);
 
-    try {
-      this._dialog.hideError();
-      this._dialog.setSubmitDisabled();
-      const resp = await sendFeedback(feedback);
-      console.log({ resp });
-      if (resp) {
-        // Success!
+    // Success
+    if (result) {
         this.removeDialog();
         this._showSuccessMessage();
-        return;
-      }
-
-      // Errored... re-enable submit button
-      this._dialog.setSubmitEnabled();
-      this._dialog.showError('There was a problem submitting feedback, please wait and try again.');
-    } catch {
-      // Errored... re-enable submit button
-      this._dialog.setSubmitEnabled();
-      this._dialog.showError('There was a problem submitting feedback, please wait and try again.');
     }
   };
 }

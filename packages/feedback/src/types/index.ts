@@ -38,7 +38,13 @@ export interface FeedbackConfigurationWithDefaults {
   /**
    * DOM Selector to attach click listener to, for opening Feedback dialog.
    */
-  attachTo: string | null;
+  attachTo: Node | string | null;
+
+  /**
+   * Auto-inject default Feedback actor button to the DOM when integration is
+   * added.
+   */
+  autoInject: boolean;
 
   /**
    * If true, will not collect user data (email/name).
