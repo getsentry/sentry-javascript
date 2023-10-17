@@ -52,21 +52,22 @@ export interface FeedbackConfigurationWithDefaults {
   isAnonymous: boolean;
 
   /**
-   * Should the email field be required
+   * Should the email field be required?
    */
   isEmailRequired: boolean;
 
   /**
-   * Should the name field be required
+   * Should the name field be required?
    */
   isNameRequired: boolean;
 
   /**
-   * Should the email input field be visible?
+   * Should the email input field be visible? Note: email will still be collected if set via `Sentry.setUser()`
    */
   showEmail: boolean;
+
   /**
-   * Should the name input field be visible?
+   * Should the name input field be visible? Note: name will still be collected if set via `Sentry.setUser()`
    */
   showName: boolean;
 
