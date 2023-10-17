@@ -4,7 +4,6 @@ import { createElement as h } from './util/createElement';
 
 interface Props {
   options: FeedbackConfigurationWithDefaults;
-  theme: FeedbackTheme;
   onClick?: (e: MouseEvent) => void;
 }
 
@@ -22,7 +21,7 @@ interface ActorComponent extends FeedbackComponent<HTMLButtonElement> {
 /**
  *
  */
-export function Actor({ options, theme, onClick }: Props): ActorComponent {
+export function Actor({ options, onClick }: Props): ActorComponent {
   function _handleClick(e: MouseEvent) {
     onClick && onClick(e);
   }
@@ -34,7 +33,7 @@ export function Actor({ options, theme, onClick }: Props): ActorComponent {
       className: 'widget__actor',
       ariaLabel: options.buttonLabel,
     },
-    Icon({ color: theme.light.foreground }).$el,
+    Icon().$el,
     h(
       'span',
       {
