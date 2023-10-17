@@ -80,6 +80,21 @@ export interface FeedbackConfigurationWithDefaults {
     name: string;
   };
 
+  // * Color theme customization * //
+  /**
+   * The colorscheme to use. "system" will choose the scheme based on the user's system settings
+   */
+  colorScheme: 'system' | 'light' | 'dark';
+
+  /**
+   * Theme customization, will be merged with default theme values.
+   */
+  theme: {
+    dark: FeedbackTheme;
+    light: FeedbackTheme;
+  };
+  // * End of Color theme customization * //
+
   // * Text customization * //
   /**
    * The label for the Feedback widget button that opens the dialog
@@ -132,11 +147,31 @@ export interface FeedbackConfigurationWithDefaults {
   // * End of Callbacks * //
 }
 
-interface BaseTheme {
+export interface FeedbackTheme {
   /**
-   * Background color
+   * Font family for widget
+   */
+  fontFamily: string;
+  /**
+   * Font size for widget
+   */
+  fontSize: string;
+  /**
+   * Background color for actor and dialog
    */
   background: string;
+  /**
+   * Background color on hover
+   */
+  backgroundHover: string;
+  /**
+   * Border styling for actor and dialog
+   */
+  border: string;
+  /**
+   * Box shadow for actor and dialog
+   */
+  boxShadow: string;
   /**
    * Foreground color (i.e. text color)
    */
@@ -151,9 +186,9 @@ interface BaseTheme {
   error: string;
 }
 
-export interface FeedbackTheme {
-  light: BaseTheme;
-  dark: BaseTheme;
+export interface FeedbackThemes {
+  dark: FeedbackTheme;
+  light: FeedbackTheme;
 }
 
 export interface FeedbackComponent<T extends HTMLElement> {
