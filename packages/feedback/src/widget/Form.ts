@@ -49,13 +49,33 @@ function retrieveStringValue(formData: FormData, key: string): string {
 /**
  * Creates the form element
  */
-export function Form({ defaultName, defaultEmail, onCancel, onSubmit, options }: Props): FormComponent {
+export function Form({
+  options: {
+    showName,
+    showEmail,
+    isAnonymous,
+
+    nameLabel,
+    namePlaceholder,
+    emailLabel,
+    emailPlaceholder,
+    messageLabel,
+    messagePlaceholder,
+    cancelButtonLabel,
+    submitButtonLabel,
+  },
+
+  defaultName,
+  defaultEmail,
+  onCancel,
+  onSubmit,
+}: Props): FormComponent {
   const {
     $el: $submit,
     setDisabled: setSubmitDisabled,
     setEnabled: setSubmitEnabled,
   } = SubmitButton({
-    label: options.submitButtonLabel,
+    label: submitButtonLabel,
   });
 
   function handleSubmit(e: Event): void {
@@ -100,21 +120,21 @@ export function Form({ defaultName, defaultEmail, onCancel, onSubmit, options }:
 
   const $name = h('input', {
     id: 'name',
-    type: options.showName ? 'text' : 'hidden',
-    ariaHidden: options.showName ? 'false' : 'true',
+    type: showName ? 'text' : 'hidden',
+    ariaHidden: showName ? 'false' : 'true',
     name: 'name',
     className: 'form__input',
-    placeholder: options.namePlaceholder,
+    placeholder: namePlaceholder,
     value: defaultName,
   });
 
   const $email = h('input', {
     id: 'email',
-    type: options.showEmail ? 'text' : 'hidden',
-    ariaHidden: options.showEmail ? 'false' : 'true',
+    type: showEmail ? 'text' : 'hidden',
+    ariaHidden: showEmail ? 'false' : 'true',
     name: 'email',
     className: 'form__input',
-    placeholder: options.emailPlaceholder,
+    placeholder: emailPlaceholder,
     value: defaultEmail,
   });
 
@@ -124,7 +144,7 @@ export function Form({ defaultName, defaultEmail, onCancel, onSubmit, options }:
     rows: '5',
     name: 'message',
     className: 'form__input form__input--textarea',
-    placeholder: options.messagePlaceholder,
+    placeholder: messagePlaceholder,
     onKeyup: (e: Event) => {
       if (!(e.currentTarget instanceof HTMLTextAreaElement)) {
         return;
@@ -147,7 +167,7 @@ export function Form({ defaultName, defaultEmail, onCancel, onSubmit, options }:
         onCancel && onCancel(e);
       },
     },
-    options.cancelButtonLabel,
+    cancelButtonLabel,
   );
 
   const $form = h(
@@ -159,29 +179,29 @@ export function Form({ defaultName, defaultEmail, onCancel, onSubmit, options }:
     [
       $error,
 
-      !options.isAnonymous &&
-        options.showName &&
+      !isAnonymous &&
+        showName &&
         h(
           'label',
           {
             htmlFor: 'name',
             className: 'form__label',
           },
-          [options.nameLabel, $name],
+          [nameLabel, $name],
         ),
-      !options.isAnonymous && !options.showName && $name,
+      !isAnonymous && !showName && $name,
 
-      !options.isAnonymous &&
-        options.showEmail &&
+      !isAnonymous &&
+        showEmail &&
         h(
           'label',
           {
             htmlFor: 'email',
             className: 'form__label',
           },
-          [options.emailLabel, $email],
+          [emailLabel, $email],
         ),
-      !options.isAnonymous && !options.showEmail && $email,
+      !isAnonymous && !showEmail && $email,
 
       h(
         'label',
@@ -189,7 +209,7 @@ export function Form({ defaultName, defaultEmail, onCancel, onSubmit, options }:
           htmlFor: 'message',
           className: 'form__label',
         },
-        [options.messageLabel, $message],
+        [messageLabel, $message],
       ),
 
       h(
