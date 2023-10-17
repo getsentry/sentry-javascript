@@ -12,6 +12,7 @@ import {
   makeNodeResolvePlugin,
   makeCleanupPlugin,
   makeSucrasePlugin,
+  makeRrwebBuildPlugin,
   makeDebugBuildStatementReplacePlugin,
   makeSetSDKSourcePlugin,
 } from './plugins/index.js';
@@ -34,6 +35,11 @@ export function makeBaseNPMConfig(options = {}) {
   const cleanupPlugin = makeCleanupPlugin();
   const extractPolyfillsPlugin = makeExtractPolyfillsPlugin();
   const setSdkSourcePlugin = makeSetSDKSourcePlugin('npm');
+  const rrwebBuildPlugin = makeRrwebBuildPlugin({
+    excludeCanvas: undefined,
+    excludeShadowDom: undefined,
+    excludeIframe: undefined,
+  });
 
   const defaultBaseConfig = {
     input: entrypoints,
@@ -84,7 +90,14 @@ export function makeBaseNPMConfig(options = {}) {
       interop: esModuleInterop ? 'auto' : 'esModule',
     },
 
-    plugins: [nodeResolvePlugin, setSdkSourcePlugin, sucrasePlugin, debugBuildStatementReplacePlugin, cleanupPlugin],
+    plugins: [
+      nodeResolvePlugin,
+      setSdkSourcePlugin,
+      sucrasePlugin,
+      debugBuildStatementReplacePlugin,
+      rrwebBuildPlugin,
+      cleanupPlugin,
+    ],
 
     // don't include imported modules from outside the package in the final output
     external: [

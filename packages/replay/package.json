@@ -52,8 +52,8 @@
   "devDependencies": {
     "@babel/core": "^7.17.5",
     "@sentry-internal/replay-worker": "7.74.1",
-    "@sentry-internal/rrweb": "2.0.1",
-    "@sentry-internal/rrweb-snapshot": "2.0.1",
+    "@sentry-internal/rrweb": "2.1.0",
+    "@sentry-internal/rrweb-snapshot": "2.1.0",
     "jsdom-worker": "^0.2.1"
   },
   "dependencies": {
