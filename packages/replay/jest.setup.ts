@@ -10,8 +10,10 @@ import type { ReplayContainer, Session } from './src/types';
 
 type MockTransport = jest.MockedFunction<Transport['send']>;
 
-jest.mock('./src/util/isBrowser', () => {
+jest.mock('@sentry/utils', () => {
+  const original = jest.requireActual('@sentry/utils');
   return {
+    ...original,
     isBrowser: () => true,
   };
 });

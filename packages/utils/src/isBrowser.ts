@@ -1,4 +1,4 @@
-import { isNodeEnv } from '@sentry/utils';
+import { isNodeEnv } from './node';
 
 /**
  * Returns true if we are in the browser.
