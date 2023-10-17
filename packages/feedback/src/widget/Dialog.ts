@@ -11,7 +11,7 @@ interface DialogProps {
   options: FeedbackConfigurationWithDefaults;
 }
 
-interface DialogComponent extends FeedbackComponent<HTMLDialogElement> {
+export interface DialogComponent extends FeedbackComponent<HTMLDialogElement> {
   /**
    * Shows the error message
    */
