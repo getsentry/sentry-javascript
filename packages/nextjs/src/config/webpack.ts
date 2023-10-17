@@ -587,7 +587,7 @@ function addFilesToExistingEntryPoint(
   let newEntryPoint = currentEntryPoint;
 
   if (typeof currentEntryPoint === 'string' || Array.isArray(currentEntryPoint)) {
-    const newEntryPoint = arrayify(currentEntryPoint);
+    newEntryPoint = arrayify(currentEntryPoint);
 
     if (isDevMode) {
       // Inserting at beginning breaks dev mode so we insert at the end
