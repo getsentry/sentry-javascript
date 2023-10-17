@@ -1,8 +1,9 @@
 import { getCurrentHub } from '@sentry/core';
 import type { Integration } from '@sentry/types';
 import { isNodeEnv, logger } from '@sentry/utils';
+import { ACTOR_LABEL, CANCEL_BUTTON_LABEL, DEFAULT_THEME, EMAIL_LABEL, EMAIL_PLACEHOLDER, FORM_TITLE, MESSAGE_LABEL, MESSAGE_PLACEHOLDER, NAME_LABEL, NAME_PLACEHOLDER, SUBMIT_BUTTON_LABEL, SUCCESS_MESSAGE_TEXT } from './constants';
 
-import type { FeedbackConfigurationWithDefaults, FeedbackFormData } from './types';
+import type { FeedbackConfigurationWithDefaults, FeedbackFormData, FeedbackTheme } from './types';
 import { handleFeedbackSubmit } from './util/handleFeedbackSubmit';
 import { Actor } from './widget/Actor';
 import { createActorStyles } from './widget/Actor.css';
@@ -25,20 +26,12 @@ function isBrowser(): boolean {
   return typeof window !== 'undefined' && (!isNodeEnv() || isElectronNodeRenderer());
 }
 
-const THEME = {
-  light: {
-    background: '#ffffff',
-    foreground: '#2B2233',
-    success: '#268d75',
-    error: '#df3338',
-  },
-  dark: {
-    background: '#29232f',
-    foreground: '#EBE6EF',
-    success: '#2da98c',
-    error: '#f55459',
-  },
-};
+interface FeedbackConfiguration extends Partial<Omit<FeedbackConfigurationWithDefaults, 'theme'>> {
+  theme?: {
+    dark?: Partial<FeedbackTheme>;
+    light?: Partial<FeedbackTheme>;
+  }
+}
 
 /**
  * Feedback integration. When added as an integration to the SDK, it will
@@ -100,20 +93,23 @@ export class Feedback implements Integration {
     isEmailRequired = false,
     isNameRequired = false,
 
-    buttonLabel = 'Report a Bug',
-    cancelButtonLabel = 'Cancel',
-    submitButtonLabel = 'Send Bug Report',
-    formTitle = 'Report a Bug',
-    emailPlaceholder = 'your.email@example.org',
-    emailLabel = 'Email',
-    messagePlaceholder = "What's the bug? What did you expect?",
-    messageLabel = 'Description',
-    namePlaceholder = 'Your Name',
-    nameLabel = 'Name',
-    successMessageText = 'Thank you for your report!',
+    theme,
+    colorScheme = 'system',
+
+    buttonLabel = ACTOR_LABEL,
+    cancelButtonLabel = CANCEL_BUTTON_LABEL,
+    submitButtonLabel = SUBMIT_BUTTON_LABEL,
+    formTitle = FORM_TITLE,
+    emailPlaceholder = EMAIL_PLACEHOLDER,
+    emailLabel = EMAIL_LABEL,
+    messagePlaceholder = MESSAGE_PLACEHOLDER,
+    messageLabel = MESSAGE_LABEL,
+    namePlaceholder = NAME_PLACEHOLDER,
+    nameLabel = NAME_LABEL,
+    successMessageText = SUCCESS_MESSAGE_TEXT,
 
     onOpenDialog,
-  }: Partial<FeedbackConfigurationWithDefaults> = {}) {
+  }: FeedbackConfiguration  = {}) {
     // Initializations
     this.name = Feedback.id;
     this._actor = null;
@@ -132,6 +128,12 @@ export class Feedback implements Integration {
       showEmail,
       showName,
       useSentryUser,
+
+      colorScheme,
+      theme: {
+        dark: Object.assign({}, DEFAULT_THEME.dark, theme && theme.dark),
+        light: Object.assign({}, DEFAULT_THEME.light, theme && theme.light),
+      },
 
       buttonLabel,
       cancelButtonLabel,
@@ -229,7 +231,6 @@ export class Feedback implements Integration {
       if (this._dialog) {
         this._dialog.open();
         this._isDialogOpen = true;
-        console.log('dialog already open');
         return;
       }
 
@@ -326,7 +327,7 @@ export class Feedback implements Integration {
     // Create the shadow root
     const shadow = this._host.attachShadow({ mode: 'open' });
 
-    shadow.appendChild(createMainStyles(document, THEME));
+    shadow.appendChild(createMainStyles(document, this.options.colorScheme, this.options.theme));
 
     return shadow;
   }
@@ -344,7 +345,7 @@ export class Feedback implements Integration {
       this._shadow.appendChild(createActorStyles(document));
 
       // Create Actor component
-      this._actor = Actor({ options: this.options, theme: THEME, onClick: this._handleActorClick });
+      this._actor = Actor({ options: this.options, onClick: this._handleActorClick });
 
       this._shadow.appendChild(this._actor.$el);
     } catch (err) {
@@ -370,7 +371,6 @@ export class Feedback implements Integration {
           }
           this.showActor();
         },
-        theme: THEME,
       });
 
       this._shadow.appendChild(success.$el);
