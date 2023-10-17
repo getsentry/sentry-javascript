@@ -12,10 +12,8 @@ declare global {
 Sentry.init({
   environment: 'qa', // dynamic sampling bias to keep transactions
   dsn: process.env.E2E_TEST_DSN,
-  integrations: [
-    new Integrations.HttpClient(),
-    new Sentry.Integrations.LocalVariables({ captureAllExceptions: true, maxExceptionsPerSecond: 100 }),
-  ],
+  includeLocalVariables: true,
+  integrations: [new Integrations.HttpClient()],
   debug: true,
   tracesSampleRate: 1,
 });
@@ -34,7 +32,7 @@ app.get('/test-param/:param', function (req, res) {
   res.send({ paramWas: req.params.param });
 });
 
-app.get('/test-transaction', function (req, res) {
+app.get('/test-transaction', async function (req, res) {
   const transaction = Sentry.startTransaction({ name: 'test-transaction', op: 'e2e-test' });
   Sentry.getCurrentHub().configureScope(scope => scope.setSpan(transaction));
 
@@ -43,19 +41,19 @@ app.get('/test-transaction', function (req, res) {
   span.finish();
   transaction.finish();
 
-  Sentry.flush().then(() => {
-    res.send({
-      transactionIds: global.transactionIds || [],
-    });
+  await Sentry.flush();
+
+  res.send({
+    transactionIds: global.transactionIds || [],
   });
 });
 
-app.get('/test-error', function (req, res) {
+app.get('/test-error', async function (req, res) {
   const exceptionId = Sentry.captureException(new Error('This is an error'));
 
-  Sentry.flush(2000).then(() => {
-    res.send({ exceptionId });
-  });
+  await Sentry.flush(2000);
+
+  res.send({ exceptionId });
 });
 
 app.get('/test-local-variables', function (req, res) {
