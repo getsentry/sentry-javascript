@@ -45,21 +45,8 @@ export function createActorStyles(d: Document): HTMLStyleElement {
 .widget__actor__text {
 }
 
-.success-message {
-  background-color: var(--bg-color);
-  border: var(--border);
-  border-radius: 12px;
-  box-shadow: var(--box-shadow);
-  font-weight: 600;
-  color: var(--success-color);
-  padding: 12px 24px;
-  line-height: 25px;
-  display: grid;
-  align-items: center;
-  grid-auto-flow: column;
-  gap: 6px;
-  cursor: default;
-
+.feedback-icon path {
+  fill: var(--fg-color);
 }
 `;
 

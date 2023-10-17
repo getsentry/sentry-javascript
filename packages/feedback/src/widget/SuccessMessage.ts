@@ -1,10 +1,9 @@
-import type { FeedbackComponent, FeedbackTheme } from '../types';
+import type { FeedbackComponent } from '../types';
 import { SuccessIcon } from './SuccessIcon';
 import { createElement as h } from './util/createElement';
 
 interface SuccessMessageProps {
   message: string;
-  theme: FeedbackTheme;
   onRemove?: () => void;
 }
 
@@ -18,7 +17,7 @@ interface SuccessMessageComponent extends FeedbackComponent<HTMLDivElement> {
 /**
  * Feedback dialog component that has the form
  */
-export function SuccessMessage({ message, theme, onRemove }: SuccessMessageProps): SuccessMessageComponent {
+export function SuccessMessage({ message, onRemove }: SuccessMessageProps): SuccessMessageComponent {
   function remove() {
     if (!$el) {
       return;
@@ -34,7 +33,7 @@ export function SuccessMessage({ message, theme, onRemove }: SuccessMessageProps
       className: 'success-message',
       onClick: remove,
     },
-    SuccessIcon({ color: theme.light.success }).$el,
+    SuccessIcon().$el,
     message,
   );
 
