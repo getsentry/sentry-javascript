@@ -81,6 +81,7 @@ export class Feedback implements Integration {
   private hasDialogEverOpened: boolean;
 
   public constructor({
+    id = 'sentry-feedback',
     attachTo = null,
     autoInject = true,
     showEmail = true,
@@ -123,6 +124,7 @@ export class Feedback implements Integration {
     this.hasDialogEverOpened = false;
 
     this.options = {
+      id,
       attachTo,
       autoInject,
       isAnonymous,
@@ -174,7 +176,7 @@ export class Feedback implements Integration {
       if (this._host) {
         this.remove();
       }
-      const existingFeedback = document.querySelector('#sentry-feedback');
+      const existingFeedback = document.querySelector(`#${this.options.id}`);
       if (existingFeedback) {
         existingFeedback.remove();
       }
@@ -237,8 +239,8 @@ export class Feedback implements Integration {
       if (this._dialog) {
         this._dialog.open();
         this._isDialogOpen = true;
-        if (this.options.onDialogOpened) {
-          this.options.onDialogOpened();
+        if (this.options.onDialogOpen) {
+          this.options.onDialogOpen();
         }
         return;
       }
@@ -278,8 +280,8 @@ export class Feedback implements Integration {
       this._actor && this._actor.hide();
 
       this.hasDialogEverOpened = true;
-      if (this.options.onDialogOpened) {
-        this.options.onDialogOpened();
+      if (this.options.onDialogOpen) {
+        this.options.onDialogOpen();
       }
     } catch (err) {
       // TODO: Error handling?
@@ -334,7 +336,7 @@ export class Feedback implements Integration {
 
     // Create the host
     this._host = document.createElement('div');
-    this._host.id = 'sentry-feedback';
+    this._host.id = this.options.id;
 
     // Create the shadow root
     const shadow = this._host.attachShadow({ mode: 'open' });
