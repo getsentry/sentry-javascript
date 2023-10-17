@@ -1,18 +1,14 @@
-import {RemixBrowser, useLocation, useMatches} from '@remix-run/react';
-import {startTransition, StrictMode, useEffect} from 'react';
-import {hydrateRoot} from 'react-dom/client';
+import { RemixBrowser, useLocation, useMatches } from '@remix-run/react';
+import { startTransition, StrictMode, useEffect } from 'react';
+import { hydrateRoot } from 'react-dom/client';
 import * as Sentry from '@sentry/remix';
-import {env} from '../env';
+import { env } from '../env';
 
 Sentry.init({
   dsn: env.SENTRY_DSN,
   integrations: [
     new Sentry.BrowserTracing({
-      routingInstrumentation: Sentry.remixRouterInstrumentation(
-        useEffect,
-        useLocation,
-        useMatches,
-      ),
+      routingInstrumentation: Sentry.remixRouterInstrumentation(useEffect, useLocation, useMatches),
     }),
     new Sentry.Replay(),
   ],
@@ -24,11 +20,10 @@ Sentry.init({
   debug: true,
 });
 
-Sentry.addGlobalEventProcessor((event) => {
+Sentry.addGlobalEventProcessor(event => {
   if (
     event.type === 'transaction' &&
-    (event.contexts?.trace?.op === 'pageload' ||
-      event.contexts?.trace?.op === 'navigation')
+    (event.contexts?.trace?.op === 'pageload' || event.contexts?.trace?.op === 'navigation')
   ) {
     const eventId = event.event_id;
     if (eventId) {

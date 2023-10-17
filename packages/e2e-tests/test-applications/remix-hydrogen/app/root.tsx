@@ -1,4 +1,4 @@
-import {type LinksFunction, type LoaderArgs} from '@shopify/remix-oxygen';
+import { type LinksFunction, type LoaderArgs } from '@shopify/remix-oxygen';
 import {
   Links,
   Meta,
@@ -10,18 +10,14 @@ import {
   type ShouldRevalidateFunction,
   useRouteError,
 } from '@remix-run/react';
-import type {Shop} from '@shopify/hydrogen/storefront-api-types';
+import type { Shop } from '@shopify/hydrogen/storefront-api-types';
 import appStyles from './styles/app.css';
 import favicon from '../public/favicon.svg';
-import {useNonce} from '@shopify/hydrogen';
+import { useNonce } from '@shopify/hydrogen';
 import * as Sentry from '@sentry/remix';
 
 // This is important to avoid re-fetching root queries on sub-navigations
-export const shouldRevalidate: ShouldRevalidateFunction = ({
-  formMethod,
-  currentUrl,
-  nextUrl,
-}) => {
+export const shouldRevalidate: ShouldRevalidateFunction = ({ formMethod, currentUrl, nextUrl }) => {
   // revalidate when a mutation is performed e.g add to cart, login...
   if (formMethod && formMethod !== 'GET') {
     return true;
@@ -37,7 +33,7 @@ export const shouldRevalidate: ShouldRevalidateFunction = ({
 
 export const links: LinksFunction = () => {
   return [
-    {rel: 'stylesheet', href: appStyles},
+    { rel: 'stylesheet', href: appStyles },
     {
       rel: 'preconnect',
       href: 'https://cdn.shopify.com',
@@ -46,12 +42,12 @@ export const links: LinksFunction = () => {
       rel: 'preconnect',
       href: 'https://shop.app',
     },
-    {rel: 'icon', type: 'image/svg+xml', href: favicon},
+    { rel: 'icon', type: 'image/svg+xml', href: favicon },
   ];
 };
 
-export async function loader({context}: LoaderArgs) {
-  const layout = await context.storefront.query<{shop: Shop}>(LAYOUT_QUERY);
+export async function loader({ context }: LoaderArgs) {
+  const layout = await context.storefront.query<{ shop: Shop }>(LAYOUT_QUERY);
   return {
     layout,
   };
@@ -73,7 +69,7 @@ function App() {
   const nonce = useNonce();
   const data = useLoaderData<typeof loader>();
 
-  const {name} = data.layout.shop;
+  const { name } = data.layout.shop;
 
   return (
     <html lang="en">
