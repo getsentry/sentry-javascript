@@ -143,7 +143,25 @@ export interface FeedbackConfigurationWithDefaults {
   // * End of text customization * //
 
   // * Start of Callbacks * //
-  onOpenDialog?: () => void;
+  /**
+   * Callback when dialog is opened
+   */
+  onDialogOpen?: () => void;
+
+  /**
+   * Callback when widget actor is clicked
+   */
+  onActorClick?: () => void;
+
+  /**
+   * Callback when feedback is successfully submitted
+   */
+  onSubmitSuccess?: () => void;
+
+  /**
+   * Callback when feedback is unsuccessfully submitted
+   */
+  onSubmitError?: () => void;
   // * End of Callbacks * //
 }
 
