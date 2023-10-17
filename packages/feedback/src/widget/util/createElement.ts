@@ -39,6 +39,8 @@ function appendChild(parent: Node, child: any): void {
     for (const value of child) {
       appendChild(parent, value);
     }
+  } else if (child === false) {
+    // do nothing if child evaluated to false
   } else if (typeof child === 'string') {
     parent.appendChild(document.createTextNode(child));
   } else if (child instanceof Node) {
