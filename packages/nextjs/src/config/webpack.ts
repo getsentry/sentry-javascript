@@ -6,6 +6,7 @@ import type SentryCliPlugin from '@sentry/webpack-plugin';
 import * as chalk from 'chalk';
 import * as fs from 'fs';
 import * as path from 'path';
+import { sync as resolveSync } from 'resolve';
 
 import type { VercelCronsConfig } from '../common/types';
 // Note: If you need to import a type from Webpack, do it in `types.ts` and export it from there. Otherwise, our
@@ -126,7 +127,10 @@ export function constructWebpackConfigFunction(
       pageExtensionRegex,
       excludeServerRoutes: userSentryOptions.excludeServerRoutes,
       sentryConfigFilePath: getUserConfigFilePath(projectDir, runtime),
-      nextjsRequestAsyncStorageModulePath: getRequestAsyncStorageModuleLocation(rawNewConfig.resolve?.modules),
+      nextjsRequestAsyncStorageModulePath: getRequestAsyncStorageModuleLocation(
+        projectDir,
+        rawNewConfig.resolve?.modules,
+      ),
     };
 
     const normalizeLoaderResourcePath = (resourcePath: string): string => {
@@ -478,7 +482,7 @@ async function addSentryToEntryProperty(
   // we know is that it won't have gotten *simpler* in form, so we only need to worry about the object and function
   // options. See https://webpack.js.org/configuration/entry-context/#entry.
 
-  const { isServer, dir: projectDir, nextRuntime } = buildContext;
+  const { isServer, dir: projectDir, nextRuntime, dev: isDevMode } = buildContext;
   const runtime = isServer ? (buildContext.nextRuntime === 'edge' ? 'edge' : 'node') : 'browser';
 
   const newEntryProperty =
@@ -498,7 +502,7 @@ async function addSentryToEntryProperty(
   // inject into all entry points which might contain user's code
   for (const entryPointName in newEntryProperty) {
     if (shouldAddSentryToEntryPoint(entryPointName, runtime)) {
-      addFilesToExistingEntryPoint(newEntryProperty, entryPointName, filesToInject);
+      addFilesToExistingEntryPoint(newEntryProperty, entryPointName, filesToInject, isDevMode);
     } else {
       if (
         isServer &&
@@ -566,31 +570,44 @@ export function getUserConfigFilePath(projectDir: string, platform: 'server' | '
  *
  * @param entryProperty The existing `entry` config object
  * @param entryPointName The key where the file should be injected
- * @param filepaths An array of paths to the injected files
+ * @param filesToInsert An array of paths to the injected files
  */
 function addFilesToExistingEntryPoint(
   entryProperty: EntryPropertyObject,
   entryPointName: string,
-  filepaths: string[],
+  filesToInsert: string[],
+  isDevMode: boolean,
 ): void {
+  // BIG FAT NOTE: Order of insertion seems to matter here. If we insert the new files before the `currentEntrypoint`s,
+  // the Next.js dev server breaks. Because we generally still want the SDK to be initialized as early as possible we
+  // still keep it at the start of the entrypoints if we are not in dev mode.
+
   // can be a string, array of strings, or object whose `import` property is one of those two
   const currentEntryPoint = entryProperty[entryPointName];
   let newEntryPoint = currentEntryPoint;
 
-  if (typeof currentEntryPoint === 'string') {
-    newEntryPoint = [...filepaths, currentEntryPoint];
-  } else if (Array.isArray(currentEntryPoint)) {
-    newEntryPoint = [...filepaths, ...currentEntryPoint];
+  if (typeof currentEntryPoint === 'string' || Array.isArray(currentEntryPoint)) {
+    newEntryPoint = arrayify(currentEntryPoint);
+
+    if (isDevMode) {
+      // Inserting at beginning breaks dev mode so we insert at the end
+      newEntryPoint.push(...filesToInsert);
+    } else {
+      // In other modes we insert at the beginning so that the SDK initializes as early as possible
+      newEntryPoint.unshift(...filesToInsert);
+    }
   }
   // descriptor object (webpack 5+)
   else if (typeof currentEntryPoint === 'object' && 'import' in currentEntryPoint) {
     const currentImportValue = currentEntryPoint.import;
-    let newImportValue;
+    const newImportValue = arrayify(currentImportValue);
 
-    if (typeof currentImportValue === 'string') {
-      newImportValue = [...filepaths, currentImportValue];
+    if (isDevMode) {
+      // Inserting at beginning breaks dev mode so we insert at the end
+      newImportValue.push(...filesToInsert);
     } else {
-      newImportValue = [...filepaths, ...currentImportValue];
+      // In other modes we insert at the beginning so that the SDK initializes as early as possible
+      newImportValue.unshift(...filesToInsert);
     }
 
     newEntryPoint = {
@@ -977,39 +994,47 @@ function addValueInjectionLoader(
   );
 }
 
+function resolveNextPackageDirFromDirectory(basedir: string): string | undefined {
+  try {
+    return path.dirname(resolveSync('next/package.json', { basedir }));
+  } catch {
+    // Should not happen in theory
+    return undefined;
+  }
+}
+
+const POTENTIAL_REQUEST_ASNYC_STORAGE_LOCATIONS = [
+  // Original location of RequestAsyncStorage
+  // https://github.com/vercel/next.js/blob/46151dd68b417e7850146d00354f89930d10b43b/packages/next/src/client/components/request-async-storage.ts
+  'next/dist/client/components/request-async-storage.js',
+  // Introduced in Next.js 13.4.20
+  // https://github.com/vercel/next.js/blob/e1bc270830f2fc2df3542d4ef4c61b916c802df3/packages/next/src/client/components/request-async-storage.external.ts
+  'next/dist/client/components/request-async-storage.external.js',
+];
+
 function getRequestAsyncStorageModuleLocation(
+  webpackContextDir: string,
   webpackResolvableModuleLocations: string[] | undefined,
 ): string | undefined {
   if (webpackResolvableModuleLocations === undefined) {
     return undefined;
   }
 
-  const absoluteWebpackResolvableModuleLocations = webpackResolvableModuleLocations.map(m => path.resolve(m));
-  const moduleIsWebpackResolvable = (moduleId: string): boolean => {
-    let requireResolveLocation: string;
-    try {
-      // This will throw if the location is not resolvable at all.
-      // We provide a `paths` filter in order to maximally limit the potential locations to the locations webpack would check.
-      requireResolveLocation = require.resolve(moduleId, { paths: webpackResolvableModuleLocations });
-    } catch {
-      return false;
+  const absoluteWebpackResolvableModuleLocations = webpackResolvableModuleLocations.map(loc =>
+    path.resolve(webpackContextDir, loc),
+  );
+
+  for (const webpackResolvableLocation of absoluteWebpackResolvableModuleLocations) {
+    const nextPackageDir = resolveNextPackageDirFromDirectory(webpackResolvableLocation);
+    if (nextPackageDir) {
+      const asyncLocalStorageLocation = POTENTIAL_REQUEST_ASNYC_STORAGE_LOCATIONS.find(loc =>
+        fs.existsSync(path.join(nextPackageDir, '..', loc)),
+      );
+      if (asyncLocalStorageLocation) {
+        return asyncLocalStorageLocation;
+      }
     }
+  }
 
-    // Since the require.resolve approach still looks in "global" node_modules locations like for example "/user/lib/node"
-    // we further need to filter by locations that start with the locations that webpack would check for.
-    return absoluteWebpackResolvableModuleLocations.some(resolvableModuleLocation =>
-      requireResolveLocation.startsWith(resolvableModuleLocation),
-    );
-  };
-
-  const potentialRequestAsyncStorageLocations = [
-    // Original location of RequestAsyncStorage
-    // https://github.com/vercel/next.js/blob/46151dd68b417e7850146d00354f89930d10b43b/packages/next/src/client/components/request-async-storage.ts
-    'next/dist/client/components/request-async-storage',
-    // Introduced in Next.js 13.4.20
-    // https://github.com/vercel/next.js/blob/e1bc270830f2fc2df3542d4ef4c61b916c802df3/packages/next/src/client/components/request-async-storage.external.ts
-    'next/dist/client/components/request-async-storage.external',
-  ];
-
-  return potentialRequestAsyncStorageLocations.find(potentialLocation => moduleIsWebpackResolvable(potentialLocation));
+  return undefined;
 }

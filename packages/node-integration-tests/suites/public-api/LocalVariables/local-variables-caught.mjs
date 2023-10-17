@@ -4,7 +4,6 @@ import * as Sentry from '@sentry/node';
 Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
   includeLocalVariables: true,
-  integrations: [new Sentry.Integrations.LocalVariables({ captureAllExceptions: true })],
   beforeSend: event => {
     // eslint-disable-next-line no-console
     console.log(JSON.stringify(event));

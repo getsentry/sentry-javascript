@@ -1,8 +1,8 @@
 import type { Span } from '@opentelemetry/api';
 import { SpanKind } from '@opentelemetry/api';
-import { registerInstrumentations } from '@opentelemetry/instrumentation';
+import type { Instrumentation } from '@opentelemetry/instrumentation';
 import { hasTracingEnabled } from '@sentry/core';
-import type { EventProcessor, Hub, Integration } from '@sentry/types';
+import type { Integration } from '@sentry/types';
 import { FetchInstrumentation } from 'opentelemetry-instrumentation-fetch-node';
 
 import { OTEL_ATTR_ORIGIN } from '../constants';
@@ -10,6 +10,7 @@ import type { NodeExperimentalClient } from '../sdk/client';
 import { getCurrentHub } from '../sdk/hub';
 import { getRequestSpanData } from '../utils/getRequestSpanData';
 import { getSpanKind } from '../utils/getSpanKind';
+import { NodePerformanceIntegration } from './NodePerformanceIntegration';
 
 interface NodeFetchOptions {
   /**
@@ -31,7 +32,7 @@ interface NodeFetchOptions {
  * * Create breadcrumbs for outgoing requests
  * * Create spans for outgoing requests
  */
-export class NodeFetch implements Integration {
+export class NodeFetch extends NodePerformanceIntegration<NodeFetchOptions> implements Integration {
   /**
    * @inheritDoc
    */
@@ -47,7 +48,6 @@ export class NodeFetch implements Integration {
    */
   public shouldCreateSpansForRequests: boolean;
 
-  private _unload?: () => void;
   private readonly _breadcrumbs: boolean;
   // If this is undefined, use default behavior based on client settings
   private readonly _spans: boolean | undefined;
@@ -56,6 +56,8 @@ export class NodeFetch implements Integration {
    * @inheritDoc
    */
   public constructor(options: NodeFetchOptions = {}) {
+    super(options);
+
     this.name = NodeFetch.id;
     this._breadcrumbs = typeof options.breadcrumbs === 'undefined' ? true : options.breadcrumbs;
     this._spans = typeof options.spans === 'undefined' ? undefined : options.spans;
@@ -64,14 +66,23 @@ export class NodeFetch implements Integration {
     this.shouldCreateSpansForRequests = false;
   }
 
+  /** @inheritDoc */
+  public setupInstrumentation(): void | Instrumentation[] {
+    return [
+      new FetchInstrumentation({
+        onRequest: ({ span }: { span: Span }) => {
+          this._updateSpan(span);
+          this._addRequestBreadcrumb(span);
+        },
+      }),
+    ];
+  }
+
   /**
    * @inheritDoc
    */
-  public setupOnce(_addGlobalEventProcessor: (callback: EventProcessor) => void, _getCurrentHub: () => Hub): void {
-    // No need to instrument if we don't want to track anything
-    if (!this._breadcrumbs && this._spans === false) {
-      return;
-    }
+  public setupOnce(): void {
+    super.setupOnce();
 
     const client = getCurrentHub().getClient<NodeExperimentalClient>();
     const clientOptions = client?.getOptions();
@@ -79,18 +90,6 @@ export class NodeFetch implements Integration {
     // This is used in the sampler function
     this.shouldCreateSpansForRequests =
       typeof this._spans === 'boolean' ? this._spans : hasTracingEnabled(clientOptions);
-
-    // Register instrumentations we care about
-    this._unload = registerInstrumentations({
-      instrumentations: [
-        new FetchInstrumentation({
-          onRequest: ({ span }: { span: Span }) => {
-            this._updateSpan(span);
-            this._addRequestBreadcrumb(span);
-          },
-        }),
-      ],
-    });
   }
 
   /**

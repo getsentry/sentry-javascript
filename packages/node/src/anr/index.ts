@@ -138,6 +138,20 @@ function startChildProcess(options: Options): void {
   }
 }
 
+function createHrTimer(): { getTimeMs: () => number; reset: () => void } {
+  let lastPoll = process.hrtime();
+
+  return {
+    getTimeMs: (): number => {
+      const [seconds, nanoSeconds] = process.hrtime(lastPoll);
+      return Math.floor(seconds * 1e3 + nanoSeconds / 1e6);
+    },
+    reset: (): void => {
+      lastPoll = process.hrtime();
+    },
+  };
+}
+
 function handleChildProcess(options: Options): void {
   function log(message: string): void {
     logger.log(`[ANR child process] ${message}`);
@@ -182,7 +196,7 @@ function handleChildProcess(options: Options): void {
     }
   }
 
-  const { poll } = watchdogTimer(options.pollInterval, options.anrThreshold, watchdogTimeout);
+  const { poll } = watchdogTimer(createHrTimer, options.pollInterval, options.anrThreshold, watchdogTimeout);
 
   process.on('message', () => {
     poll();

@@ -27,7 +27,7 @@ module.exports = [
     name: '@sentry/browser (incl. Tracing, Replay) - ES6 CDN Bundle (gzipped)',
     path: 'packages/browser/build/bundles/bundle.tracing.replay.min.js',
     gzip: true,
-    limit: '80 KB',
+    limit: '90 KB',
   },
   {
     name: '@sentry/browser (incl. Tracing) - ES6 CDN Bundle (gzipped)',

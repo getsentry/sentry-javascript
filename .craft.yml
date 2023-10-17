@@ -167,6 +167,8 @@ targets:
         onlyIfPresent: /^sentry-angular-ivy-\d.*\.tgz$/
       'npm:@sentry/angular':
         onlyIfPresent: /^sentry-angular-\d.*\.tgz$/
+      'npm:@sentry/astro':
+        onlyIfPresent: /^sentry-astro-\d.*\.tgz$/
       'npm:@sentry/wasm':
         onlyIfPresent: /^sentry-wasm-\d.*\.tgz$/
       'npm:@sentry/nextjs':

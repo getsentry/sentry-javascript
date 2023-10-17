@@ -29,6 +29,9 @@ jobs:
           # Note: Since this is handled as a regex, and JSON parse wrangles slashes /, we just use `.` instead
           map: |
             {
+              "@sentry.astro": {
+                "label": "Package: Astro"
+              },
               "@sentry.browser": {
                 "label": "Package: Browser"
               },
