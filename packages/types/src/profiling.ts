@@ -1,4 +1,6 @@
 import type { DebugImage } from './debugMeta';
+import { MeasurementUnit } from './measurement';
+
 export type ThreadId = string;
 export type FrameId = number;
 export type StackId = number;
@@ -6,6 +8,7 @@ export type StackId = number;
 export interface ThreadCpuSample {
   stack_id: StackId;
   thread_id: ThreadId;
+  queue_address?: string;
   elapsed_since_start_ns: string;
 }
 
@@ -68,4 +71,11 @@ export interface Profile {
     relative_start_ns: string;
     relative_end_ns: string;
   }[];
+  measurements?: Record<string, {
+    unit: MeasurementUnit;
+    values: {
+      elapsed_since_start_ns: number;
+      value: number;
+    }[];
+  }>;
 }

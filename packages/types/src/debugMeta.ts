@@ -5,7 +5,7 @@ export interface DebugMeta {
   images?: Array<DebugImage>;
 }
 
-export type DebugImage = WasmDebugImage | SourceMapDebugImage;
+export type DebugImage = WasmDebugImage | SourceMapDebugImage | MachoDebugImage;
 
 interface WasmDebugImage {
   type: 'wasm';
@@ -19,4 +19,12 @@ interface SourceMapDebugImage {
   type: 'sourcemap';
   code_file: string; // filename
   debug_id: string; // uuid
+}
+
+interface MachoDebugImage {
+  type: 'macho';
+  debug_id: string;
+  image_addr: string;
+  image_size: number;
+  code_file: string;
 }
