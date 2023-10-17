@@ -49,6 +49,42 @@ describe('buildClientSnippet', () => {
       });"
     `);
   });
+
+  it('does not include BrowserTracing if tracesSampleRate is 0', () => {
+    const snippet = buildClientSnippet({ tracesSampleRate: 0 });
+    expect(snippet).toMatchInlineSnapshot(`
+      "import * as Sentry from \\"@sentry/astro\\";
+
+      Sentry.init({
+        dsn: import.meta.env.PUBLIC_SENTRY_DSN,
+        debug: false,
+        environment: import.meta.env.PUBLIC_VERCEL_ENV,
+        release: import.meta.env.PUBLIC_VERCEL_GIT_COMMIT_SHA,
+        tracesSampleRate: 0,
+        integrations: [new Sentry.Replay()],
+        replaysSessionSampleRate: 0.1,
+        replaysOnErrorSampleRate: 1,
+      });"
+    `);
+  });
+});
+
+it('does not include Replay if replay sample ratest are 0', () => {
+  const snippet = buildClientSnippet({ replaysSessionSampleRate: 0, replaysOnErrorSampleRate: 0 });
+  expect(snippet).toMatchInlineSnapshot(`
+    "import * as Sentry from \\"@sentry/astro\\";
+
+    Sentry.init({
+      dsn: import.meta.env.PUBLIC_SENTRY_DSN,
+      debug: false,
+      environment: import.meta.env.PUBLIC_VERCEL_ENV,
+      release: import.meta.env.PUBLIC_VERCEL_GIT_COMMIT_SHA,
+      tracesSampleRate: 1,
+      integrations: [new Sentry.BrowserTracing()],
+      replaysSessionSampleRate: 0,
+      replaysOnErrorSampleRate: 0,
+    });"
+  `);
 });
 
 describe('buildServerSnippet', () => {
