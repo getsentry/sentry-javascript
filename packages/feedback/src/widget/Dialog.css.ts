@@ -26,6 +26,9 @@ export function createDialogStyles(d: Document): HTMLStyleElement {
   pointer-events: none;
   visibility: hidden;
 }
+.dialog:not([open]) .dialog__content {
+  transform: translate(0, -16px) scale(0.98);
+}
 
 .dialog__content {
   position: fixed;
@@ -48,9 +51,6 @@ export function createDialogStyles(d: Document): HTMLStyleElement {
     0 4px 16px rgba(0, 0, 0, 0.2);
   transition: transform 0.2s ease-in-out;
   transform: translate(0, 0) scale(1);
-  dialog:not([open]) & {
-    transform: translate(0, -16px) scale(0.98);
-  }
 }
 
 .dialog__header {
@@ -98,9 +98,9 @@ export function createDialogStyles(d: Document): HTMLStyleElement {
   font-size: 14px;
   font-weight: 500;
   padding: 6px 12px;
-  &:focus {
-    border-color: rgba(108, 95, 199, 1);
-  }
+}
+.form__input:focus {
+  border-color: rgba(108, 95, 199, 1);
 }
 
 .form__input--textarea {
@@ -122,29 +122,48 @@ export function createDialogStyles(d: Document): HTMLStyleElement {
   font-size: 14px;
   font-weight: 600;
   padding: 6px 16px;
-
-  &[disabled] {
-    opacity: 0.6;
-    pointer-events: none;
-  }
+}
+.btn[disabled] {
+  opacity: 0.6;
+  pointer-events: none;
 }
 
 .btn--primary {
   background-color: rgba(108, 95, 199, 1);
   border-color: rgba(108, 95, 199, 1);
   color: #fff;
-  &:hover {
-    background-color: rgba(88, 74, 192, 1);
-  }
+}
+.btn--primary:hover {
+  background-color: rgba(88, 74, 192, 1);
 }
 
 .btn--default {
   background-color: transparent;
   color: var(--fg-color);
   font-weight: 500;
-  &:hover {
-    background-color: var(--bg-accent-color);
-  }
+}
+.btn--default:hover {
+  background-color: var(--bg-accent-color);
+}
+
+.success-message {
+  background-color: var(--bg-color);
+  border: var(--border);
+  border-radius: 12px;
+  box-shadow: var(--box-shadow);
+  font-weight: 600;
+  color: var(--success-color);
+  padding: 12px 24px;
+  line-height: 25px;
+  display: grid;
+  align-items: center;
+  grid-auto-flow: column;
+  gap: 6px;
+  cursor: default;
+}
+
+.success-icon path {
+  fill: var(--success-color);
 }
 `;
 
