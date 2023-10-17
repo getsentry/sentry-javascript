@@ -17,6 +17,6 @@
   "license": "ISC",
   "dependencies": {
     "@prisma/client": "3.12.0",
-    "prisma": "3.12.0"
+    "prisma": "^3.12.0"
   }
 }
