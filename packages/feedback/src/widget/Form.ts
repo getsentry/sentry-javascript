@@ -106,13 +106,13 @@ export function Form({
     ariaHidden: 'true',
   });
 
-  function showError(message: string) {
+  function showError(message: string): void {
     $error.textContent = message;
     $error.classList.remove('form__error-container--hidden');
     $error.setAttribute('ariaHidden', 'false');
   }
 
-  function hideError() {
+  function hideError(): void {
     $error.textContent = '';
     $error.classList.add('form__error-container--hidden');
     $error.setAttribute('ariaHidden', 'true');

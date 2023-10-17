@@ -20,7 +20,7 @@ interface SendFeedbackOptions {
 export function sendFeedback(
   { name, email, message, url = document.location.href }: SendFeedbackParams,
   { includeReplay = true }: SendFeedbackOptions = {},
-) {
+): ReturnType<typeof sendFeedbackRequest> {
   const hub = getCurrentHub();
   const client = hub && hub.getClient<BrowserClient>();
   const replay = includeReplay && client ? (client.getIntegrationById('Replay') as Replay | undefined) : undefined;

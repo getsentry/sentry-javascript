@@ -1,8 +1,21 @@
 import { getCurrentHub } from '@sentry/core';
 import type { Integration } from '@sentry/types';
 import { isNodeEnv, logger } from '@sentry/utils';
-import { ACTOR_LABEL, CANCEL_BUTTON_LABEL, DEFAULT_THEME, EMAIL_LABEL, EMAIL_PLACEHOLDER, FORM_TITLE, MESSAGE_LABEL, MESSAGE_PLACEHOLDER, NAME_LABEL, NAME_PLACEHOLDER, SUBMIT_BUTTON_LABEL, SUCCESS_MESSAGE_TEXT } from './constants';
 
+import {
+  ACTOR_LABEL,
+  CANCEL_BUTTON_LABEL,
+  DEFAULT_THEME,
+  EMAIL_LABEL,
+  EMAIL_PLACEHOLDER,
+  FORM_TITLE,
+  MESSAGE_LABEL,
+  MESSAGE_PLACEHOLDER,
+  NAME_LABEL,
+  NAME_PLACEHOLDER,
+  SUBMIT_BUTTON_LABEL,
+  SUCCESS_MESSAGE_TEXT,
+} from './constants';
 import type { FeedbackConfigurationWithDefaults, FeedbackFormData, FeedbackTheme } from './types';
 import { handleFeedbackSubmit } from './util/handleFeedbackSubmit';
 import { Actor } from './widget/Actor';
@@ -30,7 +43,7 @@ interface FeedbackConfiguration extends Partial<Omit<FeedbackConfigurationWithDe
   theme?: {
     dark?: Partial<FeedbackTheme>;
     light?: Partial<FeedbackTheme>;
-  }
+  };
 }
 
 /**
@@ -78,7 +91,7 @@ export class Feedback implements Integration {
   /**
    * Tracks if dialog has ever been opened at least one time
    */
-  private hasDialogEverOpened: boolean;
+  private _hasDialogEverOpened: boolean;
 
   public constructor({
     id = 'sentry-feedback',
@@ -113,7 +126,7 @@ export class Feedback implements Integration {
     onDialogOpen,
     onSubmitError,
     onSubmitSuccess,
-  }: FeedbackConfiguration  = {}) {
+  }: FeedbackConfiguration = {}) {
     // Initializations
     this.name = Feedback.id;
     this._actor = null;
@@ -121,7 +134,7 @@ export class Feedback implements Integration {
     this._host = null;
     this._shadow = null;
     this._isDialogOpen = false;
-    this.hasDialogEverOpened = false;
+    this._hasDialogEverOpened = false;
 
     this.options = {
       id,
@@ -252,7 +265,7 @@ export class Feedback implements Integration {
       }
 
       // Lazy-load until dialog is opened and only inject styles once
-      if (!this.hasDialogEverOpened) {
+      if (!this._hasDialogEverOpened) {
         this._shadow.appendChild(createDialogStyles(document));
       }
 
@@ -279,7 +292,7 @@ export class Feedback implements Integration {
       // Hides the default actor whenever dialog is opened
       this._actor && this._actor.hide();
 
-      this.hasDialogEverOpened = true;
+      this._hasDialogEverOpened = true;
       if (this.options.onDialogOpen) {
         this.options.onDialogOpen();
       }
