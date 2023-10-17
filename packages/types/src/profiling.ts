@@ -15,11 +15,14 @@ export interface ThreadCpuSample {
 export type ThreadCpuStack = FrameId[];
 
 export type ThreadCpuFrame = {
-  function: string;
+  function?: string;
   file?: string;
   lineno?: number;
   colno?: number;
   abs_path?: string;
+  platform?: string;
+  instruction_addr?: string;
+  module?: string;
 };
 
 export interface ThreadCpuProfile {
