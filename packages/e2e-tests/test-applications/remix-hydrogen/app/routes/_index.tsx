@@ -1,5 +1,5 @@
 import * as Sentry from '@sentry/remix';
-import {Link} from '@remix-run/react';
+import { Link } from '@remix-run/react';
 
 export default function Index() {
   return (

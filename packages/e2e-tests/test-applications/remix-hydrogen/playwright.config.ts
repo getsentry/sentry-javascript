@@ -1,5 +1,5 @@
-import type {PlaywrightTestConfig} from '@playwright/test';
-import {devices} from '@playwright/test';
+import type { PlaywrightTestConfig } from '@playwright/test';
+import { devices } from '@playwright/test';
 
 const port = 3030;
 

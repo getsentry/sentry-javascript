@@ -1,15 +1,15 @@
-import {json} from '@shopify/remix-oxygen';
-import {useLoaderData} from '@remix-run/react';
+import { json } from '@shopify/remix-oxygen';
+import { useLoaderData } from '@remix-run/react';
 import * as Sentry from '@sentry/remix';
 
 export function loader() {
   const id = Sentry.captureException(new Error('Sentry Server Error'));
 
-  return json({id});
+  return json({ id });
 }
 
 export default function ServerError() {
-  const {id} = useLoaderData();
+  const { id } = useLoaderData();
 
   return (
     <div>

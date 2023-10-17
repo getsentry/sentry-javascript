@@ -1,5 +1,5 @@
-import {test, expect} from '@playwright/test';
-import axios, {AxiosError} from 'axios';
+import { test, expect } from '@playwright/test';
+import axios, { AxiosError } from 'axios';
 
 const EVENT_POLLING_TIMEOUT = 30_000;
 
@@ -7,15 +7,13 @@ const authToken = process.env.E2E_TEST_AUTH_TOKEN;
 const sentryTestOrgSlug = process.env.E2E_TEST_SENTRY_ORG_SLUG;
 const sentryTestProject = process.env.E2E_TEST_SENTRY_TEST_PROJECT;
 
-test('Sends a client-side exception to Sentry', async ({page}) => {
+test('Sends a client-side exception to Sentry', async ({ page }) => {
   await page.goto('/');
 
   const exceptionButton = page.locator('id=exception-button');
   await exceptionButton.click();
 
-  const exceptionIdHandle = await page.waitForFunction(
-    () => window.capturedExceptionId,
-  );
+  const exceptionIdHandle = await page.waitForFunction(() => window.capturedExceptionId);
   const exceptionEventId = await exceptionIdHandle.jsonValue();
 
   console.log(`Polling for error eventId: ${exceptionEventId}`);
@@ -26,7 +24,7 @@ test('Sends a client-side exception to Sentry', async ({page}) => {
         try {
           const response = await axios.get(
             `https://sentry.io/api/0/projects/${sentryTestOrgSlug}/${sentryTestProject}/events/${exceptionEventId}/`,
-            {headers: {Authorization: `Bearer ${authToken}`}},
+            { headers: { Authorization: `Bearer ${authToken}` } },
           );
 
           return response.status;
@@ -49,21 +47,17 @@ test('Sends a client-side exception to Sentry', async ({page}) => {
     .toBe(200);
 });
 
-test('Sends a pageload transaction to Sentry', async ({page}) => {
+test('Sends a pageload transaction to Sentry', async ({ page }) => {
   await page.goto('/');
 
   const recordedTransactionsHandle = await page.waitForFunction(() => {
-    if (
-      window.recordedTransactions &&
-      window.recordedTransactions?.length >= 1
-    ) {
+    if (window.recordedTransactions && window.recordedTransactions?.length >= 1) {
       return window.recordedTransactions;
     } else {
       return undefined;
     }
   });
-  const recordedTransactionEventIds =
-    await recordedTransactionsHandle.jsonValue();
+  const recordedTransactionEventIds = await recordedTransactionsHandle.jsonValue();
 
   if (recordedTransactionEventIds === undefined) {
     throw new Error("Application didn't record any transaction event IDs.");
@@ -71,21 +65,17 @@ test('Sends a pageload transaction to Sentry', async ({page}) => {
 
   let hadPageLoadTransaction = false;
 
-  console.log(
-    `Polling for transaction eventIds: ${JSON.stringify(
-      recordedTransactionEventIds,
-    )}`,
-  );
+  console.log(`Polling for transaction eventIds: ${JSON.stringify(recordedTransactionEventIds)}`);
 
   await Promise.all(
-    recordedTransactionEventIds.map(async (transactionEventId) => {
+    recordedTransactionEventIds.map(async transactionEventId => {
       await expect
         .poll(
           async () => {
             try {
               const response = await axios.get(
                 `https://sentry.io/api/0/projects/${sentryTestOrgSlug}/${sentryTestProject}/events/${transactionEventId}/`,
-                {headers: {Authorization: `Bearer ${authToken}`}},
+                { headers: { Authorization: `Bearer ${authToken}` } },
               );
 
               if (response.data.contexts.trace.op === 'pageload') {
@@ -116,7 +106,7 @@ test('Sends a pageload transaction to Sentry', async ({page}) => {
   expect(hadPageLoadTransaction).toBe(true);
 });
 
-test('Sends a navigation transaction to Sentry', async ({page}) => {
+test('Sends a navigation transaction to Sentry', async ({ page }) => {
   await page.goto('/');
 
   // Give pageload transaction time to finish
@@ -126,17 +116,13 @@ test('Sends a navigation transaction to Sentry', async ({page}) => {
   await linkElement.click();
 
   const recordedTransactionsHandle = await page.waitForFunction(() => {
-    if (
-      window.recordedTransactions &&
-      window.recordedTransactions?.length >= 2
-    ) {
+    if (window.recordedTransactions && window.recordedTransactions?.length >= 2) {
       return window.recordedTransactions;
     } else {
       return undefined;
     }
   });
-  const recordedTransactionEventIds =
-    await recordedTransactionsHandle.jsonValue();
+  const recordedTransactionEventIds = await recordedTransactionsHandle.jsonValue();
 
   if (recordedTransactionEventIds === undefined) {
     throw new Error("Application didn't record any transaction event IDs.");
@@ -144,21 +130,17 @@ test('Sends a navigation transaction to Sentry', async ({page}) => {
 
   let hadPageNavigationTransaction = false;
 
-  console.log(
-    `Polling for transaction eventIds: ${JSON.stringify(
-      recordedTransactionEventIds,
-    )}`,
-  );
+  console.log(`Polling for transaction eventIds: ${JSON.stringify(recordedTransactionEventIds)}`);
 
   await Promise.all(
-    recordedTransactionEventIds.map(async (transactionEventId) => {
+    recordedTransactionEventIds.map(async transactionEventId => {
       await expect
         .poll(
           async () => {
             try {
               const response = await axios.get(
                 `https://sentry.io/api/0/projects/${sentryTestOrgSlug}/${sentryTestProject}/events/${transactionEventId}/`,
-                {headers: {Authorization: `Bearer ${authToken}`}},
+                { headers: { Authorization: `Bearer ${authToken}` } },
               );
 
               if (response.data.contexts.trace.op === 'navigation') {
@@ -189,9 +171,7 @@ test('Sends a navigation transaction to Sentry', async ({page}) => {
   expect(hadPageNavigationTransaction).toBe(true);
 });
 
-test('Sends a client-side ErrorBoundary exception to Sentry', async ({
-  page,
-}) => {
+test('Sends a client-side ErrorBoundary exception to Sentry', async ({ page }) => {
   await page.goto('/client-error');
 
   const exceptionIdHandle = await page.waitForSelector('#event-id');
@@ -205,7 +185,7 @@ test('Sends a client-side ErrorBoundary exception to Sentry', async ({
         try {
           const response = await axios.get(
             `https://sentry.io/api/0/projects/${sentryTestOrgSlug}/${sentryTestProject}/events/${exceptionEventId}/`,
-            {headers: {Authorization: `Bearer ${authToken}`}},
+            { headers: { Authorization: `Bearer ${authToken}` } },
           );
           return response.status;
         } catch (e) {

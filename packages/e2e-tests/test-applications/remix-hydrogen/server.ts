@@ -1,6 +1,6 @@
 // Virtual entry point for the app
 import * as remixBuild from '@remix-run/dev/server-build';
-import {createStorefrontClient, storefrontRedirect} from '@shopify/hydrogen';
+import { createStorefrontClient, storefrontRedirect } from '@shopify/hydrogen';
 import {
   createRequestHandler,
   getStorefrontHeaders,
@@ -13,11 +13,7 @@ import {
  * Export a fetch handler in module format.
  */
 export default {
-  async fetch(
-    request: Request,
-    env: Env,
-    executionContext: ExecutionContext,
-  ): Promise<Response> {
+  async fetch(request: Request, env: Env, executionContext: ExecutionContext): Promise<Response> {
     try {
       /**
        * Open a cache instance in the worker and a custom session instance.
@@ -35,10 +31,10 @@ export default {
       /**
        * Create Hydrogen's Storefront client.
        */
-      const {storefront} = createStorefrontClient({
+      const { storefront } = createStorefrontClient({
         cache,
         waitUntil,
-        i18n: {language: 'EN', country: 'US'},
+        i18n: { language: 'EN', country: 'US' },
         publicStorefrontToken: env.PUBLIC_STOREFRONT_API_TOKEN,
         privateStorefrontToken: env.PRIVATE_STOREFRONT_API_TOKEN,
         storeDomain: env.PUBLIC_STORE_DOMAIN,
@@ -53,7 +49,7 @@ export default {
       const handleRequest = createRequestHandler({
         build: remixBuild,
         mode: process.env.NODE_ENV,
-        getLoadContext: () => ({session, storefront, env, waitUntil}),
+        getLoadContext: () => ({ session, storefront, env, waitUntil }),
       });
 
       const response = await handleRequest(request);
@@ -64,14 +60,14 @@ export default {
          * If the redirect doesn't exist, then `storefrontRedirect`
          * will pass through the 404 response.
          */
-        return storefrontRedirect({request, response, storefront});
+        return storefrontRedirect({ request, response, storefront });
       }
 
       return response;
     } catch (error) {
       // eslint-disable-next-line no-console
       console.error(error);
-      return new Response('An unexpected error occurred', {status: 500});
+      return new Response('An unexpected error occurred', { status: 500 });
     }
   },
 };
@@ -82,10 +78,7 @@ export default {
  * swap out the cookie-based implementation with something else!
  */
 export class HydrogenSession {
-  constructor(
-    private sessionStorage: SessionStorage,
-    private session: Session,
-  ) {}
+  constructor(private sessionStorage: SessionStorage, private session: Session) {}
 
   static async init(request: Request, secrets: string[]) {
     const storage = createCookieSessionStorage({
