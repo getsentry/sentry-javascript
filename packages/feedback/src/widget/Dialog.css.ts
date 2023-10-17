@@ -32,8 +32,10 @@ export function createDialogStyles(d: Document): HTMLStyleElement {
 
 .dialog__content {
   position: fixed;
-  right: 1rem;
-  bottom: 1rem;
+  left: var(--left);
+  right: var(--right);
+  bottom: var(--bottom);
+  top: var(--top);
 
   border: var(--border);
   padding: 24px;
