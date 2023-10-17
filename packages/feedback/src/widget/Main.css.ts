@@ -3,7 +3,11 @@ import type { FeedbackThemes } from '../types';
 /**
  * Creates <style> element for widget actor (button that opens the dialog)
  */
-export function createMainStyles(d: Document, colorScheme: 'system' | 'dark' | 'light', themes: FeedbackThemes): HTMLStyleElement {
+export function createMainStyles(
+  d: Document,
+  colorScheme: 'system' | 'dark' | 'light',
+  themes: FeedbackThemes,
+): HTMLStyleElement {
   const style = d.createElement('style');
   const theme = colorScheme === 'system' ? themes.light : themes[colorScheme];
   style.textContent = `
@@ -29,7 +33,9 @@ export function createMainStyles(d: Document, colorScheme: 'system' | 'dark' | '
   --border: ${theme.border};
   --box-shadow: ${theme.boxShadow};
 }
-${colorScheme === 'system' ? `
+${
+  colorScheme === 'system'
+    ? `
 @media (prefers-color-scheme: dark) {
   :host {
     --bg-color: ${themes.dark.background};
@@ -41,7 +47,9 @@ ${colorScheme === 'system' ? `
     --box-shadow: ${themes.dark.boxShadow};
   }
 }
-`: ''}`;
+`
+    : ''
+}`;
 
   return style;
 }

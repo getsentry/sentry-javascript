@@ -61,7 +61,7 @@ export function Dialog({
    * semi-transparent bg behind the form. We want clicks outside of the form to
    * hide the form.
    */
-  function handleDialogClick() {
+  function handleDialogClick(): void {
     close();
 
     // Only this should trigger `onClose`, we don't want the `close()` method to
@@ -72,7 +72,7 @@ export function Dialog({
   /**
    * Close the dialog
    */
-  function close() {
+  function close(): void {
     if ($el) {
       $el.open = false;
     }
@@ -81,7 +81,7 @@ export function Dialog({
   /**
    * Opens the dialog
    */
-  function open() {
+  function open(): void {
     if ($el) {
       $el.open = true;
     }
