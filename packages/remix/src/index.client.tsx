@@ -14,9 +14,6 @@ import { makeCloudflareTransport } from './worker/transport';
 
 export { captureRemixServerException } from './utils/instrumentServer';
 export { ErrorBoundary, withErrorBoundary } from '@sentry/react';
-export { wrapWorkerCreateRequestHandler } from './utils/serverAdapters/worker';
-export { wrapCloudflareWorkerCreateRequestHandler } from './utils/serverAdapters/cloudflare-worker';
-
 const nodeStackParser = createStackParser(nodeStackLineParser());
 
 function sdkAlreadyInitialized(): boolean {
