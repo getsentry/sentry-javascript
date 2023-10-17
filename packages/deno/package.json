@@ -9,10 +9,14 @@
   "main": "build/index.js",
   "module": "build/index.js",
   "types": "build/index.d.ts",
-  "private": true,
   "publishConfig": {
     "access": "public"
   },
+  "files": [
+    "index.js",
+    "index.js.map",
+    "index.d.ts"
+  ],
   "dependencies": {
     "@sentry/browser": "7.74.0",
     "@sentry/core": "7.74.0",
@@ -34,6 +38,7 @@
     "build:types": "run-s deno-types build:types:tsc build:types:bundle",
     "build:types:tsc": "tsc -p tsconfig.types.json",
     "build:types:bundle": "rollup -c rollup.types.config.js",
+    "build:tarball": "ts-node ../../scripts/prepack.ts && npm pack ./build",
     "circularDepCheck": "madge --circular src/index.ts",
     "clean": "rimraf build build-types coverage",
     "prefix": "yarn deno-types",
@@ -48,7 +53,8 @@
     "test": "run-s deno-types install:deno test:types test:unit",
     "test:types": "deno check ./build/index.js",
     "test:unit": "deno test --allow-read --allow-run",
-    "test:unit:update": "deno test --allow-read --allow-write --allow-run -- --update"
+    "test:unit:update": "deno test --allow-read --allow-write --allow-run -- --update",
+    "yalc:publish": "ts-node ../../scripts/prepack.ts && yalc publish build --push"
   },
   "volta": {
     "extends": "../../package.json"
