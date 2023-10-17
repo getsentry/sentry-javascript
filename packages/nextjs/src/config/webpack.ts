@@ -482,7 +482,7 @@ async function addSentryToEntryProperty(
   // we know is that it won't have gotten *simpler* in form, so we only need to worry about the object and function
   // options. See https://webpack.js.org/configuration/entry-context/#entry.
 
-  const { isServer, dir: projectDir, nextRuntime } = buildContext;
+  const { isServer, dir: projectDir, nextRuntime, dev: isDevMode } = buildContext;
   const runtime = isServer ? (buildContext.nextRuntime === 'edge' ? 'edge' : 'node') : 'browser';
 
   const newEntryProperty =
@@ -502,7 +502,7 @@ async function addSentryToEntryProperty(
   // inject into all entry points which might contain user's code
   for (const entryPointName in newEntryProperty) {
     if (shouldAddSentryToEntryPoint(entryPointName, runtime)) {
-      addFilesToExistingEntryPoint(newEntryProperty, entryPointName, filesToInject);
+      addFilesToExistingEntryPoint(newEntryProperty, entryPointName, filesToInject, isDevMode);
     } else {
       if (
         isServer &&
@@ -570,31 +570,44 @@ export function getUserConfigFilePath(projectDir: string, platform: 'server' | '
  *
  * @param entryProperty The existing `entry` config object
  * @param entryPointName The key where the file should be injected
- * @param filepaths An array of paths to the injected files
+ * @param filesToInsert An array of paths to the injected files
  */
 function addFilesToExistingEntryPoint(
   entryProperty: EntryPropertyObject,
   entryPointName: string,
-  filepaths: string[],
+  filesToInsert: string[],
+  isDevMode: boolean,
 ): void {
+  // BIG FAT NOTE: Order of insertion seems to matter here. If we insert the new files before the `currentEntrypoint`s,
+  // the Next.js dev server breaks. Because we generally still want the SDK to be initialized as early as possible we
+  // still keep it at the start of the entrypoints if we are not in dev mode.
+
   // can be a string, array of strings, or object whose `import` property is one of those two
   const currentEntryPoint = entryProperty[entryPointName];
   let newEntryPoint = currentEntryPoint;
 
-  if (typeof currentEntryPoint === 'string') {
-    newEntryPoint = [...filepaths, currentEntryPoint];
-  } else if (Array.isArray(currentEntryPoint)) {
-    newEntryPoint = [...filepaths, ...currentEntryPoint];
+  if (typeof currentEntryPoint === 'string' || Array.isArray(currentEntryPoint)) {
+    newEntryPoint = arrayify(currentEntryPoint);
+
+    if (isDevMode) {
+      // Inserting at beginning breaks dev mode so we insert at the end
+      newEntryPoint.push(...filesToInsert);
+    } else {
+      // In other modes we insert at the beginning so that the SDK initializes as early as possible
+      newEntryPoint.unshift(...filesToInsert);
+    }
   }
   // descriptor object (webpack 5+)
   else if (typeof currentEntryPoint === 'object' && 'import' in currentEntryPoint) {
     const currentImportValue = currentEntryPoint.import;
-    let newImportValue;
+    const newImportValue = arrayify(currentImportValue);
 
-    if (typeof currentImportValue === 'string') {
-      newImportValue = [...filepaths, currentImportValue];
+    if (isDevMode) {
+      // Inserting at beginning breaks dev mode so we insert at the end
+      newImportValue.push(...filesToInsert);
     } else {
-      newImportValue = [...filepaths, ...currentImportValue];
+      // In other modes we insert at the beginning so that the SDK initializes as early as possible
+      newImportValue.unshift(...filesToInsert);
     }
 
     newEntryPoint = {
