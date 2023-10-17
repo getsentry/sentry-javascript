@@ -57,6 +57,7 @@ const buildClientIntegrations = (options: SentryOptions): string => {
   if (options.tracesSampleRate == null || options.tracesSampleRate) {
     integrations.push('new Sentry.BrowserTracing()');
   }
+
   if (
     options.replaysSessionSampleRate == null ||
     options.replaysSessionSampleRate ||
