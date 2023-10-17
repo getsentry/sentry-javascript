@@ -36,6 +36,11 @@ export interface FeedbackFormData {
 
 export interface FeedbackConfigurationWithDefaults {
   /**
+   * id to use for the main widget container (this will host the shadow DOM)
+   */
+  id: string;
+
+  /**
    * DOM Selector to attach click listener to, for opening Feedback dialog.
    */
   attachTo: Node | string | null;
