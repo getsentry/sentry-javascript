@@ -1,9 +1,7 @@
-import type { FeedbackTheme } from '../types';
-
 /**
  * Creates <style> element for widget dialog
  */
-export function createDialogStyles(d: Document, theme: FeedbackTheme): HTMLStyleElement {
+export function createDialogStyles(d: Document): HTMLStyleElement {
   const style = d.createElement('style');
 
   style.textContent = `

@@ -100,8 +100,8 @@ export function Form({ defaultName, defaultEmail, onCancel, onSubmit, options }:
 
   const $name = h('input', {
     id: 'name',
-    type: 'text', // TODO can be hidden
-    ariaHidden: 'false',
+    type: options.showName ? 'text' : 'hidden',
+    ariaHidden: options.showName ? 'false' : 'true',
     name: 'name',
     className: 'form__input',
     placeholder: options.namePlaceholder,
@@ -110,8 +110,8 @@ export function Form({ defaultName, defaultEmail, onCancel, onSubmit, options }:
 
   const $email = h('input', {
     id: 'email',
-    type: 'text', // TODO can be hidden
-    ariaHidden: 'false',
+    type: options.showEmail ? 'text' : 'hidden',
+    ariaHidden: options.showEmail ? 'false' : 'true',
     name: 'email',
     className: 'form__input',
     placeholder: options.emailPlaceholder,
@@ -158,23 +158,30 @@ export function Form({ defaultName, defaultEmail, onCancel, onSubmit, options }:
     },
     [
       $error,
-      h(
-        'label',
-        {
-          htmlFor: 'name',
-          className: 'form__label',
-        },
-        [options.nameLabel, $name],
-      ),
 
-      h(
-        'label',
-        {
-          htmlFor: 'email',
-          className: 'form__label',
-        },
-        [options.emailLabel, $email],
-      ),
+      !options.isAnonymous &&
+        options.showName &&
+        h(
+          'label',
+          {
+            htmlFor: 'name',
+            className: 'form__label',
+          },
+          [options.nameLabel, $name],
+        ),
+      !options.isAnonymous && !options.showName && $name,
+
+      !options.isAnonymous &&
+        options.showEmail &&
+        h(
+          'label',
+          {
+            htmlFor: 'email',
+            className: 'form__label',
+          },
+          [options.emailLabel, $email],
+        ),
+      !options.isAnonymous && !options.showEmail && $email,
 
       h(
         'label',
