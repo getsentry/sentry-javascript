@@ -78,7 +78,7 @@ export class Feedback implements Integration {
   /**
    * Tracks if dialog has ever been opened at least one time
    */
-  private _hasDialogOpened: boolean;
+  private hasDialogEverOpened: boolean;
 
   public constructor({
     attachTo = null,
@@ -108,7 +108,10 @@ export class Feedback implements Integration {
     nameLabel = NAME_LABEL,
     successMessageText = SUCCESS_MESSAGE_TEXT,
 
-    onOpenDialog,
+    onActorClick,
+    onDialogOpen,
+    onSubmitError,
+    onSubmitSuccess,
   }: FeedbackConfiguration  = {}) {
     // Initializations
     this.name = Feedback.id;
@@ -117,7 +120,7 @@ export class Feedback implements Integration {
     this._host = null;
     this._shadow = null;
     this._isDialogOpen = false;
-    this._hasDialogOpened = false;
+    this.hasDialogEverOpened = false;
 
     this.options = {
       attachTo,
@@ -147,7 +150,10 @@ export class Feedback implements Integration {
       namePlaceholder,
       successMessageText,
 
-      onOpenDialog,
+      onActorClick,
+      onDialogOpen,
+      onSubmitError,
+      onSubmitSuccess,
     };
 
     // TOOD: temp for testing;
@@ -231,6 +237,9 @@ export class Feedback implements Integration {
       if (this._dialog) {
         this._dialog.open();
         this._isDialogOpen = true;
+        if (this.options.onDialogOpened) {
+          this.options.onDialogOpened();
+        }
         return;
       }
 
@@ -241,7 +250,7 @@ export class Feedback implements Integration {
       }
 
       // Lazy-load until dialog is opened and only inject styles once
-      if (!this._hasDialogOpened) {
+      if (!this.hasDialogEverOpened) {
         this._shadow.appendChild(createDialogStyles(document));
       }
 
@@ -252,7 +261,7 @@ export class Feedback implements Integration {
       this._dialog = Dialog({
         defaultName: (userKey && user && user[userKey.name]) || '',
         defaultEmail: (userKey && user && user[userKey.email]) || '',
-        onClose: () => {
+        onClosed: () => {
           this.showActor();
           this._isDialogOpen = false;
         },
@@ -268,7 +277,10 @@ export class Feedback implements Integration {
       // Hides the default actor whenever dialog is opened
       this._actor && this._actor.hide();
 
-      this._hasDialogOpened = true;
+      this.hasDialogEverOpened = true;
+      if (this.options.onDialogOpened) {
+        this.options.onDialogOpened();
+      }
     } catch (err) {
       // TODO: Error handling?
       console.error(err);
@@ -401,8 +413,8 @@ export class Feedback implements Integration {
       this._actor.hide();
     }
 
-    if (this.options.onOpenDialog) {
-      this.options.onOpenDialog();
+    if (this.options.onActorClick) {
+      this.options.onActorClick();
     }
   };
 
@@ -413,10 +425,21 @@ export class Feedback implements Integration {
   protected _handleFeedbackSubmit = async (feedback: FeedbackFormData): Promise<void> => {
     const result = await handleFeedbackSubmit(this._dialog, feedback);
 
+    // Error submitting feedback
+    if (!result) {
+      if (this.options.onSubmitError) {
+        this.options.onSubmitError();
+      }
+
+      return;
+    }
+
     // Success
-    if (result) {
-      this.removeDialog();
-      this._showSuccessMessage();
+    this.removeDialog();
+    this._showSuccessMessage();
+
+    if (this.options.onSubmitSuccess) {
+      this.options.onSubmitSuccess();
     }
   };
 }
