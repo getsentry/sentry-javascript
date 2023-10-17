@@ -578,28 +578,36 @@ function addFilesToExistingEntryPoint(
   filesToInsert: string[],
   isDevMode: boolean,
 ): void {
-  // BIG FAT NOTE: Order of insertion seems to matter here. If we insert the new files before the `currentEntrypoint`s, the Next.js dev server breaks.
+  // BIG FAT NOTE: Order of insertion seems to matter here. If we insert the new files before the `currentEntrypoint`s,
+  // the Next.js dev server breaks. Because we generally still want the SDK to be initialized as early as possible we
+  // still keep it at the start of the entrypoints if we are not in dev mode.
 
   // can be a string, array of strings, or object whose `import` property is one of those two
   const currentEntryPoint = entryProperty[entryPointName];
   let newEntryPoint = currentEntryPoint;
 
-  if (typeof currentEntryPoint === 'string') {
-    newEntryPoint = isDevMode ? [currentEntryPoint, ...filesToInsert] : [...filesToInsert, currentEntryPoint];
-  } else if (Array.isArray(currentEntryPoint)) {
-    newEntryPoint = isDevMode ? [...currentEntryPoint, ...filesToInsert] : [...filesToInsert, ...currentEntryPoint];
+  if (typeof currentEntryPoint === 'string' || Array.isArray(currentEntryPoint)) {
+    const newEntryPoint = arrayify(currentEntryPoint);
+
+    if (isDevMode) {
+      // Inserting at beginning breaks dev mode so we insert at the end
+      newEntryPoint.push(...filesToInsert);
+    } else {
+      // In other modes we insert at the beginning so that the SDK initializes as early as possible
+      newEntryPoint.unshift(...filesToInsert);
+    }
   }
   // descriptor object (webpack 5+)
   else if (typeof currentEntryPoint === 'object' && 'import' in currentEntryPoint) {
     const currentImportValue = currentEntryPoint.import;
-    let newImportValue;
+    const newImportValue = arrayify(currentImportValue);
 
-    if (typeof currentImportValue === 'string') {
-      newImportValue = isDevMode ? [currentImportValue, ...filesToInsert] : [...filesToInsert, currentImportValue];
+    if (isDevMode) {
+      // Inserting at beginning breaks dev mode so we insert at the end
+      newImportValue.push(...filesToInsert);
     } else {
-      newImportValue = isDevMode
-        ? [...currentImportValue, ...filesToInsert]
-        : [...filesToInsert, ...currentImportValue];
+      // In other modes we insert at the beginning so that the SDK initializes as early as possible
+      newImportValue.unshift(...filesToInsert);
     }
 
     newEntryPoint = {
