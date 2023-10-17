@@ -6,7 +6,7 @@ interface DialogProps {
   defaultName: string;
   defaultEmail: string;
   onCancel?: (e: Event) => void;
-  onClose?: () => void;
+  onClosed?: () => void;
   onSubmit?: (feedback: FeedbackFormData) => void;
   options: FeedbackConfigurationWithDefaults;
 }
@@ -49,7 +49,7 @@ export interface DialogComponent extends FeedbackComponent<HTMLDialogElement> {
 export function Dialog({
   defaultName,
   defaultEmail,
-  onClose,
+  onClosed,
   onCancel,
   onSubmit,
   options,
@@ -66,7 +66,7 @@ export function Dialog({
 
     // Only this should trigger `onClose`, we don't want the `close()` method to
     // trigger it, otherwise it can cause cycles.
-    onClose && onClose();
+    onClosed && onClosed();
   }
 
   /**
