@@ -10,7 +10,7 @@ import type { ServerRuntimeClientOptions } from '@sentry/core';
 import { configureScope, getCurrentHub, getIntegrationsToSetup, initAndBind, ServerRuntimeClient } from '@sentry/core';
 import { createStackParser, logger, nodeStackLineParser, stackParserFromStackParserOptions } from '@sentry/utils';
 
-import { makeCloudflareTransport } from './worker/transport';
+import { makeWorkerTransport } from './worker/transport';
 
 export { captureRemixServerException } from './utils/instrumentServer';
 export { ErrorBoundary, withErrorBoundary } from '@sentry/react';
@@ -46,7 +46,7 @@ export function workerInit(options: RemixOptions): void {
     ...options,
     stackParser: stackParserFromStackParserOptions(options.stackParser || nodeStackParser),
     integrations: getIntegrationsToSetup(options),
-    transport: options.transport || makeCloudflareTransport,
+    transport: options.transport || makeWorkerTransport,
   };
 
   initAndBind(ServerRuntimeClient, clientOptions);

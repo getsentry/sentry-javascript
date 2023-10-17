@@ -1,16 +1,16 @@
 import { createTransport } from '@sentry/core';
 import type { BaseTransportOptions, Transport, TransportMakeRequestResponse, TransportRequest } from '@sentry/types';
 
-export type CloudflareWorkersTransportOptions = BaseTransportOptions & {
+export type WorkersTransportOptions = BaseTransportOptions & {
   headers?: Record<string, string>;
   context?: Record<string, any>;
   fetcher?: typeof fetch;
 };
 
 /**
- * Creates a Transport that uses the Cloudflare Workers' fetch API to send events to Sentry.
+ * Creates a Transport that uses the Cloudflare Workers' or Shopify Oxygen's fetch API to send events to Sentry.
  */
-export function makeCloudflareTransport(options: CloudflareWorkersTransportOptions): Transport {
+export function makeWorkerTransport(options: WorkersTransportOptions): Transport {
   function makeRequest(request: TransportRequest): PromiseLike<TransportMakeRequestResponse> {
     const requestOptions: RequestInit = {
       body: request.body,
@@ -28,6 +28,8 @@ export function makeCloudflareTransport(options: CloudflareWorkersTransportOptio
       };
     });
 
+    // If we're in a Cloudflare Worker, wait for the fetch to complete
+    // before returning. This ensures that the Worker doesn't shut down
     if (options.context && options.context.waitUntil) {
       options.context.waitUntil(fetchRequest);
     }
