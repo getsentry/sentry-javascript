@@ -35,7 +35,7 @@
     "build:types:tsc": "tsc -p tsconfig.types.json",
     "build:types:bundle": "rollup -c rollup.types.config.js",
     "circularDepCheck": "madge --circular src/index.ts",
-    "clean": "rimraf build coverage",
+    "clean": "rimraf build build-types coverage",
     "prefix": "yarn deno-types",
     "fix": "run-s fix:eslint fix:prettier",
     "fix:eslint": "eslint . --format stylish --fix",
