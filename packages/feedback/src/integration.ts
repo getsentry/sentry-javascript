@@ -319,6 +319,9 @@ export class Feedback implements Integration {
       return null;
     }
 
+    // set data attribute on host for different themes
+    this._host.dataset.sentryFeedbackColorscheme = options.colorScheme;
+
     const result = cb([this._shadow, this._host]);
 
     if (needsAppendHost) {

@@ -9,7 +9,6 @@ export function createMainStyles(
   themes: FeedbackThemes,
 ): HTMLStyleElement {
   const style = d.createElement('style');
-  const theme = colorScheme === 'system' ? themes.light : themes[colorScheme];
   style.textContent = `
 :host {
   --bottom: 1rem;
@@ -26,16 +25,17 @@ export function createMainStyles(
 
   z-index: var(--zIndex);
 
-  font-family: ${theme.fontFamily};
-  font-size: ${theme.fontSize};
-  --bg-color: ${theme.background};
-  --bg-hover-color: ${theme.backgroundHover};
-  --fg-color: ${theme.foreground};
-  --error-color: ${theme.error};
-  --success-color: ${theme.success};
-  --border: ${theme.border};
-  --box-shadow: ${theme.boxShadow};
+  font-family: ${themes.light.fontFamily};
+  font-size: ${themes.light.fontSize};
+  --bg-color: ${themes.light.background};
+  --bg-hover-color: ${themes.light.backgroundHover};
+  --fg-color: ${themes.light.foreground};
+  --error-color: ${themes.light.error};
+  --success-color: ${themes.light.success};
+  --border: ${themes.light.border};
+  --box-shadow: ${themes.light.boxShadow};
 }
+
 ${
   colorScheme === 'system'
     ? `
@@ -51,7 +51,19 @@ ${
   }
 }
 `
-    : ''
+    : `
+:host-context([data-sentry-feedback-colorscheme="dark"]) {
+  font-family: ${themes.dark.fontFamily};
+  font-size: ${themes.dark.fontSize};
+  --bg-color: ${themes.dark.background};
+  --bg-hover-color: ${themes.dark.backgroundHover};
+  --fg-color: ${themes.dark.foreground};
+  --error-color: ${themes.dark.error};
+  --success-color: ${themes.dark.success};
+  --border: ${themes.dark.border};
+  --box-shadow: ${themes.dark.boxShadow};
+}
+`
 }`;
 
   return style;
