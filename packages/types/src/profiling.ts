@@ -23,6 +23,7 @@ export type ThreadCpuFrame = {
   platform?: string;
   instruction_addr?: string;
   module?: string;
+  in_app?: boolean;
 };
 
 export interface ThreadCpuProfile {
