@@ -1,5 +1,6 @@
 import { isThenable } from '@sentry/utils';
 
+import { applyTurbopackOptions } from './turbopack';
 import type {
   ExportedNextConfig,
   NextConfigFunction,
@@ -73,6 +74,8 @@ function getFinalConfigObject(
       setUpTunnelRewriteRules(incomingUserNextConfigObject, userSentryOptions.tunnelRoute);
     }
   }
+
+  applyTurbopackOptions(incomingUserNextConfigObject);
 
   return {
     ...incomingUserNextConfigObject,

@@ -60,6 +60,12 @@ export type NextConfigObject = {
         fallback?: NextRewrite[];
       }
   >;
+  experimental?: {
+    turbo?: {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      rules?: Record<string, { loader: string; options: any }[]>;
+    };
+  };
 };
 
 export type UserSentryOptions = {
