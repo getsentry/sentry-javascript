@@ -34,7 +34,6 @@
     "@sentry/types": "7.74.1",
     "@sentry/utils": "7.74.1",
     "glob": "^10.3.4",
-    "tslib": "^2.4.1 || ^1.9.3",
     "yargs": "^17.6.0"
   },
   "devDependencies": {
