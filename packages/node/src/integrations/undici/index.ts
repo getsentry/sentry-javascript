@@ -5,10 +5,10 @@ import {
   dynamicSamplingContextToSentryBaggageHeader,
   generateSentryTraceHeader,
   getSanitizedUrlString,
+  LRUMap,
   parseUrl,
   stringMatchesSomePattern,
 } from '@sentry/utils';
-import { LRUMap } from 'lru_map';
 
 import type { NodeClient } from '../../client';
 import { NODE_VERSION } from '../../nodeVersion';
