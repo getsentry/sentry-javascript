@@ -1,8 +1,8 @@
 import { assertEquals } from 'https://deno.land/std@0.202.0/assert/assert_equals.ts';
 import { assertSnapshot } from 'https://deno.land/std@0.202.0/testing/snapshot.ts';
-import type { Event, Integration } from 'npm:@sentry/types';
-import { createStackParser, nodeStackLineParser } from 'npm:@sentry/utils';
 
+import type { Event, Integration } from '../../types';
+import { createStackParser, nodeStackLineParser } from '../../utils';
 import { defaultIntegrations, DenoClient, Hub, Scope } from '../build/index.js';
 import { getNormalizedEvent } from './normalize.ts';
 import { makeTestTransport } from './transport.ts';

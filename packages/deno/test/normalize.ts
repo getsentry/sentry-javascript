@@ -1,6 +1,6 @@
 /* eslint-disable complexity */
-import type { Envelope, Event, Session, Transaction } from 'npm:@sentry/types';
-import { forEachEnvelopeItem } from 'npm:@sentry/utils';
+import type { Envelope, Event, Session, Transaction } from '../../types';
+import { forEachEnvelopeItem } from '../../utils';
 
 type EventOrSession = Event | Transaction | Session;
 
