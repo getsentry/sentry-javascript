@@ -54,8 +54,7 @@
     "@sentry-internal/replay-worker": "7.74.1",
     "@sentry-internal/rrweb": "2.0.1",
     "@sentry-internal/rrweb-snapshot": "2.0.1",
-    "jsdom-worker": "^0.2.1",
-    "tslib": "^2.4.1 || ^1.9.3"
+    "jsdom-worker": "^0.2.1"
   },
   "dependencies": {
     "@sentry/core": "7.74.1",

@@ -26,8 +26,7 @@
     "@sentry/core": "7.74.1",
     "@sentry/types": "7.74.1",
     "@sentry/utils": "7.74.1",
-    "localforage": "^1.8.1",
-    "tslib": "^2.4.1 || ^1.9.3"
+    "localforage": "^1.8.1"
   },
   "devDependencies": {
     "@sentry/browser": "7.74.1",
