@@ -2,6 +2,7 @@
 import { getCurrentHub } from '@sentry/core';
 import type { ReplayRecordingData, Transport } from '@sentry/types';
 import { TextEncoder } from 'util';
+import * as SentryUtils from '@sentry/utils';
 
 import type { ReplayContainer, Session } from './src/types';
 
@@ -10,13 +11,7 @@ import type { ReplayContainer, Session } from './src/types';
 
 type MockTransport = jest.MockedFunction<Transport['send']>;
 
-jest.mock('@sentry/utils', () => {
-  const original = jest.requireActual('@sentry/utils');
-  return {
-    ...original,
-    isBrowser: () => true,
-  };
-});
+jest.spyOn(SentryUtils, 'isBrowser').mockImplementation(() => true);
 
 type EnvelopeHeader = {
   event_id: string;
