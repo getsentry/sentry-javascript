@@ -114,7 +114,7 @@ export function wrapTransactionWithProfiling(transaction: Transaction): Transact
   // This is likely due to a missing 'Document-Policy': 'js-profiling' header. We do not want to throw an error if this happens
   // as we risk breaking the user's application, so just disable profiling and log an error.
   try {
-    profiler = new JSProfilerConstructor({ sampleInterval: samplingIntervalMS, maxBufferSize: maxSamples });
+    profiler = WINDOW.__sentryProfiler || new JSProfilerConstructor({ sampleInterval: samplingIntervalMS, maxBufferSize: maxSamples });
   } catch (e) {
     if (__DEBUG_BUILD__) {
       logger.log(
