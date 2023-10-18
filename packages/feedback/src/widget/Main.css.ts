@@ -15,18 +15,20 @@ export function createMainStyles(
   --right: 1rem;
   --top: auto;
   --left: auto;
-  --zIndex: 100000;
+  --z-index: 100000;
+  --font-family: ${themes.light.fontFamily};
+  --font-size: ${themes.light.fontSize};
 
   position: fixed;
   left: var(--left);
   right: var(--right);
   bottom: var(--bottom);
   top: var(--top);
+  z-index: var(--z-index);
 
-  z-index: var(--zIndex);
+  font-family: var(--font-family);
+  font-size: var(--font-size);
 
-  font-family: ${themes.light.fontFamily};
-  font-size: ${themes.light.fontSize};
   --bg-color: ${themes.light.background};
   --bg-hover-color: ${themes.light.backgroundHover};
   --fg-color: ${themes.light.foreground};
@@ -48,13 +50,13 @@ ${
     --success-color: ${themes.dark.success};
     --border: ${themes.dark.border};
     --box-shadow: ${themes.dark.boxShadow};
+    --font-family: ${themes.dark.fontFamily};
+    --font-size: ${themes.dark.fontSize};
   }
 }
 `
     : `
 :host-context([data-sentry-feedback-colorscheme="dark"]) {
-  font-family: ${themes.dark.fontFamily};
-  font-size: ${themes.dark.fontSize};
   --bg-color: ${themes.dark.background};
   --bg-hover-color: ${themes.dark.backgroundHover};
   --fg-color: ${themes.dark.foreground};
@@ -62,6 +64,8 @@ ${
   --success-color: ${themes.dark.success};
   --border: ${themes.dark.border};
   --box-shadow: ${themes.dark.boxShadow};
+  --font-family: ${themes.dark.fontFamily};
+  --font-size: ${themes.dark.fontSize};
 }
 `
 }`;
