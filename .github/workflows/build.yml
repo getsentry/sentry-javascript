@@ -427,7 +427,6 @@ jobs:
   job_deno_unit_tests:
     name: Deno Unit Tests
     needs: [job_get_metadata, job_build]
-    continue-on-error: true
     if: needs.job_get_metadata.outputs.changed_deno == 'true' || github.event_name != 'pull_request'
     timeout-minutes: 10
     runs-on: ubuntu-20.04
