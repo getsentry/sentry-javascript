@@ -1,5 +1,5 @@
 import type { DebugImage } from './debugMeta';
-import { MeasurementUnit } from './measurement';
+import type { MeasurementUnit } from './measurement';
 
 export type ThreadId = string;
 export type FrameId = number;
@@ -75,11 +75,14 @@ export interface Profile {
     relative_start_ns: string;
     relative_end_ns: string;
   }[];
-  measurements?: Record<string, {
-    unit: MeasurementUnit;
-    values: {
-      elapsed_since_start_ns: number;
-      value: number;
-    }[];
-  }>;
+  measurements?: Record<
+    string,
+    {
+      unit: MeasurementUnit;
+      values: {
+        elapsed_since_start_ns: number;
+        value: number;
+      }[];
+    }
+  >;
 }
