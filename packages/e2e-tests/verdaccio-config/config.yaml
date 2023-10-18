@@ -122,6 +122,12 @@ packages:
     unpublish: $all
     # proxy: npmjs # Don't proxy for E2E tests!
 
+  '@sentry/opentelemetry':
+    access: $all
+    publish: $all
+    unpublish: $all
+    # proxy: npmjs # Don't proxy for E2E tests!
+
   '@sentry/react':
     access: $all
     publish: $all

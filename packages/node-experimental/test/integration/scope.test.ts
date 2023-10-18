@@ -1,7 +1,7 @@
+import { getCurrentHub, getSpanScope } from '@sentry/opentelemetry';
+
 import * as Sentry from '../../src/';
-import { NodeExperimentalClient } from '../../src/sdk/client';
-import { getCurrentHub, NodeExperimentalHub } from '../../src/sdk/hub';
-import { NodeExperimentalScope } from '../../src/sdk/scope';
+import type { NodeExperimentalClient } from '../../src/types';
 import { cleanupOtel, mockSdkInit } from '../helpers/mockSdkInit';
 
 describe('Integration | Scope', () => {
@@ -24,10 +24,6 @@ describe('Integration | Scope', () => {
 
       const rootScope = hub.getScope();
 
-      expect(hub).toBeInstanceOf(NodeExperimentalHub);
-      expect(rootScope).toBeInstanceOf(NodeExperimentalScope);
-      expect(client).toBeInstanceOf(NodeExperimentalClient);
-
       const error = new Error('test error');
       let spanId: string | undefined;
       let traceId: string | undefined;
@@ -45,8 +41,10 @@ describe('Integration | Scope', () => {
           scope2.setTag('tag3', 'val3');
 
           Sentry.startSpan({ name: 'outer' }, span => {
-            spanId = span?.spanContext().spanId;
-            traceId = span?.spanContext().traceId;
+            expect(getSpanScope(span)).toBe(enableTracing ? scope2 : undefined);
+
+            spanId = span.spanContext().spanId;
+            traceId = span.spanContext().traceId;
 
             Sentry.setTag('tag4', 'val4');
 
@@ -96,7 +94,6 @@ describe('Integration | Scope', () => {
                 trace_id: traceId,
               },
             }),
-
             spans: [],
             start_timestamp: expect.any(Number),
             tags: {
@@ -127,10 +124,6 @@ describe('Integration | Scope', () => {
 
       const rootScope = hub.getScope();
 
-      expect(hub).toBeInstanceOf(NodeExperimentalHub);
-      expect(rootScope).toBeInstanceOf(NodeExperimentalScope);
-      expect(client).toBeInstanceOf(NodeExperimentalClient);
-
       const error1 = new Error('test error 1');
       const error2 = new Error('test error 2');
       let spanId1: string | undefined;
@@ -147,8 +140,8 @@ describe('Integration | Scope', () => {
           scope2.setTag('tag3', 'val3a');
 
           Sentry.startSpan({ name: 'outer' }, span => {
-            spanId1 = span?.spanContext().spanId;
-            traceId1 = span?.spanContext().traceId;
+            spanId1 = span.spanContext().spanId;
+            traceId1 = span.spanContext().traceId;
 
             Sentry.setTag('tag4', 'val4a');
 
@@ -164,8 +157,8 @@ describe('Integration | Scope', () => {
           scope2.setTag('tag3', 'val3b');
 
           Sentry.startSpan({ name: 'outer' }, span => {
-            spanId2 = span?.spanContext().spanId;
-            traceId2 = span?.spanContext().traceId;
+            spanId2 = span.spanContext().spanId;
+            traceId2 = span.spanContext().traceId;
 
             Sentry.setTag('tag4', 'val4b');
 

@@ -47,6 +47,8 @@ This page serves as a checklist of what to do when releasing a new SDK for the f
 
 - [ ] Make sure it is added to `bundlePlugins.ts:makeTSPlugin` as `paths`, otherwise it will not be ES5 transpiled correctly for CDN builds.
 
+- [ ] Make sure it is added to the [Verdaccio config](https://github.com/getsentry/sentry-javascript/blob/develop/packages/e2e-tests/verdaccio-config/config.yaml) for the E2E tests
+
 ## Cutting the Release
 
 When you’re ready to make the first release, there are a couple of steps that need to be performed in the **correct order**. Note that you can prepare the PRs at any time but the **merging oder** is important:
@@ -56,7 +58,7 @@ When you’re ready to make the first release, there are a couple of steps that 
 ### Before the Release:
 
 - [ ]  1) If not yet done, be sure to remove the `private: true` property from your SDK’s `package.json`. Additionally, ensure that `"publishConfig": {"access": "public"}` is set.
-- [ ]  2) Make sure that the new SDK is **not added** in`[craft.yml](https://github.com/getsentry/sentry-javascript/blob/master/.craft.yml)` as a target for the **Sentry release registry**\
+- [ ]  2) Make sure that the new SDK is **not added** in`[craft.yml](https://github.com/getsentry/sentry-javascript/blob/develop/.craft.yml)` as a target for the **Sentry release registry**\
 *Once this is added, craft will try to publish an entry in the next release which does not work and caused failed release runs in the past*
 - [ ]  3) Add an `npm` target in `craft.yml` for the new package. Make sure to insert it in the right place, after all the Sentry dependencies of your package but before packages that depend on your new package (if applicable).
     ```yml
@@ -74,7 +76,7 @@ When you’re ready to make the first release, there are a couple of steps that 
     You have to fork this repo and PR the files from your fork to the main repo \
     [Example PR](https://github.com/getsentry/sentry-release-registry/pull/80) from the Svelte SDK
 
-- [ ]  2) Add an entry to `[craft.yml](https://github.com/getsentry/sentry-javascript/blob/master/.craft.yml)` to add releases of your SDK to the Sentry release registry \
+- [ ]  2) Add an entry to [craft.yml](https://github.com/getsentry/sentry-javascript/blob/develop/.craft.yml) to add releases of your SDK to the Sentry release registry \
     [Example PR](https://github.com/getsentry/sentry-javascript/pull/5547) from the Svelte SDK \
     *Subsequent releases will now be added automatically to the registry*
 

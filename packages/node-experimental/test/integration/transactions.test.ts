@@ -1,16 +1,14 @@
 import { context, SpanKind, trace, TraceFlags } from '@opentelemetry/api';
 import type { SpanProcessor } from '@opentelemetry/sdk-trace-base';
 import { SemanticAttributes } from '@opentelemetry/semantic-conventions';
+import { getCurrentHub, SentrySpanProcessor, setPropagationContextOnContext } from '@sentry/opentelemetry';
 import type { Integration, PropagationContext, TransactionEvent } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
 import * as Sentry from '../../src';
 import { startSpan } from '../../src';
-import { SENTRY_PROPAGATION_CONTEXT_CONTEXT_KEY } from '../../src/constants';
 import type { Http, NodeFetch } from '../../src/integrations';
-import { SentrySpanProcessor } from '../../src/opentelemetry/spanProcessor';
-import type { NodeExperimentalClient } from '../../src/sdk/client';
-import { getCurrentHub } from '../../src/sdk/hub';
+import type { NodeExperimentalClient } from '../../src/types';
 import { cleanupOtel, getProvider, mockSdkInit } from '../helpers/mockSdkInit';
 
 describe('Integration | Transactions', () => {
@@ -362,10 +360,7 @@ describe('Integration | Transactions', () => {
 
     // We simulate the correct context we'd normally get from the SentryPropagator
     context.with(
-      trace.setSpanContext(
-        context.active().setValue(SENTRY_PROPAGATION_CONTEXT_CONTEXT_KEY, propagationContext),
-        spanContext,
-      ),
+      trace.setSpanContext(setPropagationContextOnContext(context.active(), propagationContext), spanContext),
       () => {
         Sentry.startSpan({ op: 'test op', name: 'test name', source: 'task', origin: 'auto.test' }, span => {
           if (!span) {
