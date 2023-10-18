@@ -16,12 +16,15 @@ export function createMainStyles(
   --right: 1rem;
   --top: auto;
   --left: auto;
+  --zIndex: 100000;
 
   position: fixed;
   left: var(--left);
   right: var(--right);
   bottom: var(--bottom);
   top: var(--top);
+
+  z-index: var(--zIndex);
 
   font-family: ${theme.fontFamily};
   font-size: ${theme.fontSize};
