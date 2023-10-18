@@ -25,6 +25,6 @@ interface MachoDebugImage {
   type: 'macho';
   debug_id: string;
   image_addr: string;
-  image_size: number;
-  code_file: string;
+  image_size?: number;
+  code_file?: string;
 }
