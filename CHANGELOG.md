@@ -4,6 +4,19 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.74.1
+
+- chore(astro): Add `astro-integration` keyword (#9265)
+- fix(core): Narrow filters for health check transactions (#9257)
+- fix(nextjs): Fix HMR by inserting new entrypoints at the end (#9267)
+- fix(nextjs): Fix resolution of request async storage module (#9259)
+- fix(node-experimental): Guard against missing `fetch` (#9275)
+- fix(remix): Update `defer` injection logic. (#9242)
+- fix(tracing-internal): Parameterize express middleware parameters (#8668)
+- fix(utils): Move Node specific ANR impl. out of utils (#9258)
+
+Work in this release contributed by @LubomirIgonda1. Thank you for your contribution!
+
 ## 7.74.0
 
 ### Important Changes

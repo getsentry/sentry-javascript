@@ -63,6 +63,9 @@ targets:
   - name: npm
     id: '@sentry/vercel-edge'
     includeNames: /^sentry-vercel-edge-\d.*\.tgz$/
+  - name: npm
+    id: '@sentry/deno'
+    includeNames: /^sentry-deno-\d.*\.tgz$/
 
   ## 5. Node-based Packages
   - name: npm
