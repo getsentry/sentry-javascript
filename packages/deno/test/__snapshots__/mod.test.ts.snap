@@ -15,7 +15,7 @@ snapshot[`captureException 1`] = `
     },
     runtime: {
       name: "deno",
-      version: "1.37.1",
+      version: "1.36.0",
     },
     trace: {
       span_id: "{{id}}",
@@ -46,35 +46,35 @@ snapshot[`captureException 1`] = `
               filename: "ext:cli/40_testing.js",
               function: "outerWrapped",
               in_app: false,
-              lineno: 488,
+              lineno: 427,
             },
             {
               colno: 33,
               filename: "ext:cli/40_testing.js",
               function: "exitSanitizer",
               in_app: false,
-              lineno: 474,
+              lineno: 413,
             },
             {
               colno: 31,
               filename: "ext:cli/40_testing.js",
               function: "resourceSanitizer",
               in_app: false,
-              lineno: 425,
+              lineno: 364,
             },
             {
               colno: 33,
               filename: "ext:cli/40_testing.js",
               function: "asyncOpSanitizer",
               in_app: false,
-              lineno: 192,
+              lineno: 148,
             },
             {
               colno: 11,
               filename: "ext:cli/40_testing.js",
               function: "innerWrapped",
               in_app: false,
-              lineno: 543,
+              lineno: 482,
             },
             {
               colno: 24,
@@ -82,7 +82,7 @@ snapshot[`captureException 1`] = `
               filename: "app:///test/mod.test.ts",
               function: "<anonymous>",
               in_app: true,
-              lineno: 43,
+              lineno: 42,
               post_context: [
                 "",
                 "  await delay(200);",
@@ -108,7 +108,7 @@ snapshot[`captureException 1`] = `
               filename: "app:///test/mod.test.ts",
               function: "something",
               in_app: true,
-              lineno: 40,
+              lineno: 39,
               post_context: [
                 "  }",
                 "",
@@ -176,7 +176,7 @@ snapshot[`captureMessage 1`] = `
     },
     runtime: {
       name: "deno",
-      version: "1.37.1",
+      version: "1.36.0",
     },
     trace: {
       span_id: "{{id}}",
