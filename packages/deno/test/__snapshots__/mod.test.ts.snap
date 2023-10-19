@@ -15,7 +15,7 @@ snapshot[`captureException 1`] = `
     },
     runtime: {
       name: "deno",
-      version: "1.37.1",
+      version: "{{version}}",
     },
     trace: {
       span_id: "{{id}}",
@@ -176,7 +176,7 @@ snapshot[`captureMessage 1`] = `
     },
     runtime: {
       name: "deno",
-      version: "1.37.1",
+      version: "{{version}}",
     },
     trace: {
       span_id: "{{id}}",
