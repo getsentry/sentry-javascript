@@ -19,7 +19,8 @@
   },
   "pnpm": {
     "overrides": {
-      "@sentry/node": "$@sentry/node"
+      "@sentry/node": "latest || *",
+      "@sentry/utils": "latest || *"
     }
   },
   "volta": {
