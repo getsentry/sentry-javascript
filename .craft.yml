@@ -70,6 +70,13 @@ targets:
   - name: npm
     id: '@sentry/deno'
     includeNames: /^sentry-deno-\d.*\.tgz$/
+  - name: commit-on-git-repository
+    # This will publish on the Deno registry
+    archive: /^sentry-deno-\d.*\.tgz$/
+    repositoryUrl: git@github.com:getsentry/sentry-deno.git
+    stripComponents: 1
+    branch: main
+    createTag: true
 
   ## 5. Node-based Packages
   - name: npm
