@@ -53,15 +53,25 @@ export class BrowserProfilingIntegration implements Integration {
       // automated page load profile id so that it will get picked up by the beforeEnvelope hook.
       const pageLoadProfile = getAutomatedPageLoadProfile(carrier);
       if (pageLoadProfile) {
+        // @TODO JonasB: remove finishTransaction listener if carrier.profiles is empty
         client.on('finishTransaction', (transaction: Transaction) => {
           if (!isAutomatedPageLoadTransaction(transaction)) {
+            return;
+          }
+
+          if (pageLoadProfile.stopped) {
+            __DEBUG_BUILD__ &&
+              logger.log(
+                `[Profiling] automated page load transaction already stopped, not stopping again: ${transaction.name ||
+                  transaction.description}`,
+              );
             return;
           }
 
           transaction.setContext('profile', { profile_id: AUTOMATED_PAGELOAD_PROFILE_ID });
           pageLoadProfile
             .stop()
-            .then((p: JSSelfProfile): null => {
+            .then((profile: JSSelfProfile): null => {
               if (__DEBUG_BUILD__) {
                 logger.log(
                   `[Profiling] stopped profiling of transaction: ${transaction.name || transaction.description}`,
@@ -69,7 +79,7 @@ export class BrowserProfilingIntegration implements Integration {
               }
 
               // In case of an overlapping transaction, stopProfiling may return null and silently ignore the overlapping profile.
-              if (!p) {
+              if (!profile) {
                 if (__DEBUG_BUILD__) {
                   logger.log(
                     `[Profiling] profiler returned null profile for: ${transaction.name || transaction.description}`,
@@ -79,7 +89,7 @@ export class BrowserProfilingIntegration implements Integration {
                 return null;
               }
 
-              addProfileToMap(AUTOMATED_PAGELOAD_PROFILE_ID, p);
+              addProfileToMap(AUTOMATED_PAGELOAD_PROFILE_ID, profile);
               return null;
             })
             .catch(error => {

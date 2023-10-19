@@ -25,7 +25,6 @@ import { consoleSandbox, dateTimestampInSeconds, getGlobalSingleton, GLOBAL_OBJ,
 import { DEFAULT_ENVIRONMENT } from './constants';
 import { Scope } from './scope';
 import { closeSession, makeSession, updateSession } from './session';
-import type { JSSelfProfiler } from '@sentry/browser';
 
 /**
  * API compatibility version of this hub.
@@ -91,7 +90,10 @@ export interface Carrier {
       [key: string]: Function;
     };
     profiling?: {
-      profiles?: Record<"auto.pageload.browser", JSSelfProfiler>;
+      /*
+       * Stores profile started before SDK was initialized
+      */
+      profiles?: Record<"auto.pageload.browser", any>;
     }
   };
 }

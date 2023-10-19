@@ -174,7 +174,7 @@ export function wrapTransactionWithProfiling(transaction: Transaction): Transact
 
     return profiler
       .stop()
-      .then((p: JSSelfProfile): null => {
+      .then((profile: JSSelfProfile): null => {
         if (maxDurationTimeoutID) {
           WINDOW.clearTimeout(maxDurationTimeoutID);
           maxDurationTimeoutID = undefined;
@@ -185,7 +185,7 @@ export function wrapTransactionWithProfiling(transaction: Transaction): Transact
         }
 
         // In case of an overlapping transaction, stopProfiling may return null and silently ignore the overlapping profile.
-        if (!p) {
+        if (!profile) {
           if (__DEBUG_BUILD__) {
             logger.log(
               `[Profiling] profiler returned null profile for: ${transaction.name || transaction.description}`,
@@ -195,7 +195,7 @@ export function wrapTransactionWithProfiling(transaction: Transaction): Transact
           return null;
         }
 
-        addProfileToMap(profileId, p);
+        addProfileToMap(profileId, profile);
         return null;
       })
       .catch(error => {

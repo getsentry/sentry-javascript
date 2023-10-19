@@ -6,9 +6,8 @@ import type { Profile, ThreadCpuProfile } from '@sentry/types/src/profiling';
 import { browserPerformanceTimeOrigin, forEachEnvelopeItem, GLOBAL_OBJ, logger, uuid4 } from '@sentry/utils';
 
 import { WINDOW } from '../helpers';
-import type { JSSelfProfile, JSSelfProfileStack } from './jsSelfProfiling';
+import type { JSSelfProfile, JSSelfProfileStack, JSSelfProfiler } from './jsSelfProfiling';
 import type { Transaction } from '@sentry/types';
-import { JSSelfProfiler } from '../../build/npm/types/profiling/jsSelfProfiling';
 
 const MS_TO_NS = 1e6;
 // Use 0 as main thread id which is identical to threadId in node:worker_threads
@@ -192,6 +191,9 @@ export function isProfiledTransactionEvent(event: Event): event is ProfiledEvent
   return !!(event.sdkProcessingMetadata && event.sdkProcessingMetadata['profile']);
 }
 
+/**
+ *  Returns the automated page load profile from the carrier if it exists and removes the reference to it.
+ */
 export function getAutomatedPageLoadProfile(carrier: Carrier): JSSelfProfiler | undefined {
   const __SENTRY__ = carrier.__SENTRY__;
   if (
@@ -211,7 +213,6 @@ export function getAutomatedPageLoadProfile(carrier: Carrier): JSSelfProfiler | 
   See packages/tracing-internal/src/browser/router.ts
 */
 export function isAutomatedPageLoadTransaction(transaction: Transaction): boolean {
-  // @ts-expect-error origin seems untyped
   return transaction.op === 'pageload' && transaction.origin === AUTOMATED_PAGELOAD_PROFILE_ID
 }
 

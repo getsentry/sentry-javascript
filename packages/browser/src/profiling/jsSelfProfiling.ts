@@ -26,14 +26,13 @@ export type JSSelfProfile = {
   samples: JSSelfProfileSample[];
 };
 
-type BufferFullCallback = (trace: JSSelfProfile) => void;
 
 export interface JSSelfProfiler {
   sampleInterval: number;
   stopped: boolean;
 
   stop: () => Promise<JSSelfProfile>;
-  addEventListener(event: 'samplebufferfull', callback: BufferFullCallback): void;
+  addEventListener(event: 'samplebufferfull', callback: (trace: JSSelfProfile) => void): void;
 }
 
 export declare const JSSelfProfilerConstructor: {
