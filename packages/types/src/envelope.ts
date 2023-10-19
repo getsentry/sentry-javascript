@@ -34,7 +34,8 @@ export type EnvelopeItemType =
   | 'profile'
   | 'replay_event'
   | 'replay_recording'
-  | 'check_in';
+  | 'check_in'
+  | 'statsd';
 
 export type BaseEnvelopeHeaders = {
   [key: string]: unknown;
@@ -72,6 +73,7 @@ type ClientReportItemHeaders = { type: 'client_report' };
 type ReplayEventItemHeaders = { type: 'replay_event' };
 type ReplayRecordingItemHeaders = { type: 'replay_recording'; length: number };
 type CheckInItemHeaders = { type: 'check_in' };
+type StatsdItemHeaders = { type: 'statsd' };
 
 export type EventItem = BaseEnvelopeItem<EventItemHeaders, Event>;
 export type AttachmentItem = BaseEnvelopeItem<AttachmentItemHeaders, string | Uint8Array>;
@@ -84,18 +86,21 @@ export type ClientReportItem = BaseEnvelopeItem<ClientReportItemHeaders, ClientR
 export type CheckInItem = BaseEnvelopeItem<CheckInItemHeaders, SerializedCheckIn>;
 type ReplayEventItem = BaseEnvelopeItem<ReplayEventItemHeaders, ReplayEvent>;
 type ReplayRecordingItem = BaseEnvelopeItem<ReplayRecordingItemHeaders, ReplayRecordingData>;
+export type StatsdItem = BaseEnvelopeItem<StatsdItemHeaders, string>;
 
 export type EventEnvelopeHeaders = { event_id: string; sent_at: string; trace?: DynamicSamplingContext };
 type SessionEnvelopeHeaders = { sent_at: string };
 type CheckInEnvelopeHeaders = { trace?: DynamicSamplingContext };
 type ClientReportEnvelopeHeaders = BaseEnvelopeHeaders;
 type ReplayEnvelopeHeaders = BaseEnvelopeHeaders;
+type StatsdEnvelopeHeaders = BaseEnvelopeHeaders;
 
 export type EventEnvelope = BaseEnvelope<EventEnvelopeHeaders, EventItem | AttachmentItem | UserFeedbackItem>;
 export type SessionEnvelope = BaseEnvelope<SessionEnvelopeHeaders, SessionItem>;
 export type ClientReportEnvelope = BaseEnvelope<ClientReportEnvelopeHeaders, ClientReportItem>;
 export type ReplayEnvelope = [ReplayEnvelopeHeaders, [ReplayEventItem, ReplayRecordingItem]];
 export type CheckInEvelope = BaseEnvelope<CheckInEnvelopeHeaders, CheckInItem>;
+export type StatsdEnvelope = BaseEnvelope<StatsdEnvelopeHeaders, StatsdItem>;
 
 export type Envelope = EventEnvelope | SessionEnvelope | ClientReportEnvelope | ReplayEnvelope | CheckInEvelope;
 export type EnvelopeItem = Envelope[1][number];
