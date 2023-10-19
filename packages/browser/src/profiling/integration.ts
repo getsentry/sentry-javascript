@@ -2,12 +2,14 @@ import type { EventProcessor, Hub, Integration, Transaction } from '@sentry/type
 import type { Profile } from '@sentry/types/src/profiling';
 import { logger } from '@sentry/utils';
 
-import type { BrowserClient } from './../client';
 import { wrapTransactionWithProfiling } from './hubextensions';
-import type { ProfiledEvent } from './utils';
+import { getAutomatedPageLoadProfile, ProfiledEvent, addProfileToMap, AUTOMATED_PAGELOAD_PROFILE_ID } from './utils';
+import { getMainCarrier } from '@sentry/core';
+import { JSSelfProfile } from '../../build/npm/types/profiling/jsSelfProfiling';
 import {
   addProfilesToEnvelope,
   createProfilingEvent,
+  isAutomatedPageLoadTransaction,
   findProfiledTransactionsFromEnvelope,
   PROFILE_MAP,
 } from './utils';
@@ -37,12 +39,57 @@ export class BrowserProfilingIntegration implements Integration {
    */
   public setupOnce(_addGlobalEventProcessor: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
     this.getCurrentHub = getCurrentHub;
-    const client = this.getCurrentHub().getClient() as BrowserClient;
+
+    const hub = this.getCurrentHub();
+    const client = hub.getClient();
+    const carrier = getMainCarrier();
 
     if (client && typeof client.on === 'function') {
       client.on('startTransaction', (transaction: Transaction) => {
         wrapTransactionWithProfiling(transaction);
       });
+
+      // If a pageload profile exists, attach finishTransaction handler and set profile_id to the reserved
+      // automated page load profile id so that it will get picked up by the beforeEnvelope hook.
+      const pageLoadProfile = getAutomatedPageLoadProfile(carrier);
+      if (pageLoadProfile) {
+        client.on('finishTransaction', (transaction: Transaction) => {
+          if (!isAutomatedPageLoadTransaction(transaction)) {
+            return;
+          }
+
+          transaction.setContext('profile', { profile_id: AUTOMATED_PAGELOAD_PROFILE_ID });
+          pageLoadProfile
+            .stop()
+            .then((p: JSSelfProfile): null => {
+              if (__DEBUG_BUILD__) {
+                logger.log(
+                  `[Profiling] stopped profiling of transaction: ${transaction.name || transaction.description}`,
+                );
+              }
+
+              // In case of an overlapping transaction, stopProfiling may return null and silently ignore the overlapping profile.
+              if (!p) {
+                if (__DEBUG_BUILD__) {
+                  logger.log(
+                    `[Profiling] profiler returned null profile for: ${transaction.name || transaction.description}`,
+                    'this may indicate an overlapping transaction or a call to stopProfiling with a profile title that was never started',
+                  );
+                }
+                return null;
+              }
+
+              addProfileToMap(AUTOMATED_PAGELOAD_PROFILE_ID, p);
+              return null;
+            })
+            .catch(error => {
+              if (__DEBUG_BUILD__) {
+                logger.log('[Profiling] error while stopping profiler:', error);
+              }
+              return null;
+            });
+        });
+      }
 
       client.on('beforeEnvelope', (envelope): void => {
         // if not profiles are in queue, there is nothing to add to the envelope.
@@ -59,7 +106,13 @@ export class BrowserProfilingIntegration implements Integration {
 
         for (const profiledTransaction of profiledTransactionEvents) {
           const context = profiledTransaction && profiledTransaction.contexts;
-          const profile_id = context && context['profile'] && (context['profile']['profile_id'] as string);
+          const profile_id = context && context['profile'] && context['profile']['profile_id'];
+
+          if (typeof profile_id !== "string") {
+            __DEBUG_BUILD__ &&
+              logger.log('[Profiling] cannot find profile for a transaction without a profile context');
+            continue;
+          }
 
           if (!profile_id) {
             __DEBUG_BUILD__ &&
