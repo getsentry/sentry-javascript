@@ -1,12 +1,11 @@
-import { createTransport } from 'npm:@sentry/core';
 import type {
   BaseTransportOptions,
   Envelope,
   Transport,
   TransportMakeRequestResponse,
   TransportRequest,
-} from 'npm:@sentry/types';
-import { parseEnvelope } from 'npm:@sentry/utils';
+} from '../build-test/index.js';
+import { createTransport, parseEnvelope } from '../build-test/index.js';
 
 export interface TestTransportOptions extends BaseTransportOptions {
   callback: (envelope: Envelope) => void;
