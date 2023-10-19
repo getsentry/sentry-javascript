@@ -4,6 +4,10 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.74.2-alpha.0
+
+This is a test release for publishing the Deno SDK.
+
 ## 7.74.1
 
 - chore(astro): Add `astro-integration` keyword (#9265)
