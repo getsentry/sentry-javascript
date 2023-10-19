@@ -24,6 +24,10 @@ targets:
   - name: npm
     id: '@sentry/replay'
     includeNames: /^sentry-replay-\d.*\.tgz$/
+  ## 1.6. OpenTelemetry package
+  - name: npm
+    id: '@sentry/opentelemetry'
+    includeNames: /^sentry-opentelemetry-\d.*\.tgz$/
 
   ## 2. Browser & Node SDKs
   - name: npm

@@ -1,8 +1,7 @@
 /* eslint-disable max-lines */
 import type { Event, EventProcessor, Exception, Hub, Integration, StackFrame, StackParser } from '@sentry/types';
-import { logger } from '@sentry/utils';
+import { logger, LRUMap } from '@sentry/utils';
 import type { Debugger, InspectorNotification, Runtime, Session } from 'inspector';
-import { LRUMap } from 'lru_map';
 
 import { NODE_VERSION } from '../nodeVersion';
 import type { NodeClientOptions } from '../types';
@@ -470,8 +469,8 @@ export class LocalVariables implements Integration {
     }
 
     // Check if we have local variables for an exception that matches the hash
-    // delete is identical to get but also removes the entry from the cache
-    const cachedFrames = this._cachedFrames.delete(hash);
+    // remove is identical to get but also removes the entry from the cache
+    const cachedFrames = this._cachedFrames.remove(hash);
 
     if (cachedFrames === undefined) {
       return;

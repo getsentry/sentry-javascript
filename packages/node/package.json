@@ -28,9 +28,7 @@
     "@sentry/types": "7.74.1",
     "@sentry/utils": "7.74.1",
     "cookie": "^0.5.0",
-    "https-proxy-agent": "^5.0.0",
-    "lru_map": "^0.3.3",
-    "tslib": "^2.4.1 || ^1.9.3"
+    "https-proxy-agent": "^5.0.0"
   },
   "devDependencies": {
     "@types/cookie": "0.5.2",

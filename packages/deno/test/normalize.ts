@@ -1,21 +1,20 @@
 /* eslint-disable complexity */
-import type { Envelope, Event, Session, Transaction } from 'npm:@sentry/types';
-import { forEachEnvelopeItem } from 'npm:@sentry/utils';
+import { forEachEnvelopeItem } from '../../utils/build/esm/index.js';
 
-type EventOrSession = Event | Transaction | Session;
+type EventOrSession = any;
 
-export function getNormalizedEvent(envelope: Envelope): Event | undefined {
-  let event: Event | undefined;
+export function getNormalizedEvent(envelope: any): any | undefined {
+  let event: any | undefined;
 
-  forEachEnvelopeItem(envelope, item => {
+  forEachEnvelopeItem(envelope, (item: any) => {
     const [headers, body] = item;
 
     if (headers.type === 'event') {
-      event = body as Event;
+      event = body;
     }
   });
 
-  return normalize(event) as Event | undefined;
+  return normalize(event) as any | undefined;
 }
 
 export function normalize(event: EventOrSession | undefined): EventOrSession | undefined {
@@ -24,14 +23,14 @@ export function normalize(event: EventOrSession | undefined): EventOrSession | u
   }
 
   if (eventIsSession(event)) {
-    return normalizeSession(event as Session);
+    return normalizeSession(event);
   } else {
-    return normalizeEvent(event as Event);
+    return normalizeEvent(event);
   }
 }
 
 export function eventIsSession(data: EventOrSession): boolean {
-  return !!(data as Session)?.sid;
+  return !!data?.sid;
 }
 
 /**
@@ -40,7 +39,7 @@ export function eventIsSession(data: EventOrSession): boolean {
  * All properties that are timestamps, versions, ids or variables that may vary
  * by platform are replaced with placeholder strings
  */
-function normalizeSession(session: Session): Session {
+function normalizeSession(session: any): any {
   if (session.sid) {
     session.sid = '{{id}}';
   }
@@ -66,7 +65,7 @@ function normalizeSession(session: Session): Session {
  * All properties that are timestamps, versions, ids or variables that may vary
  * by platform are replaced with placeholder strings
  */
-function normalizeEvent(event: Event): Event {
+function normalizeEvent(event: any): any {
   if (event.sdk?.version) {
     event.sdk.version = '{{version}}';
   }
@@ -91,12 +90,9 @@ function normalizeEvent(event: Event): Event {
     event.contexts.v8.version = '{{version}}';
   }
 
-  if (event.contexts?.deno) {
-    if (event.contexts.deno?.version) {
-      event.contexts.deno.version = '{{version}}';
-    }
-    if (event.contexts.deno?.target) {
-      event.contexts.deno.target = '{{target}}';
+  if (event.contexts?.runtime) {
+    if (event.contexts.runtime?.version) {
+      event.contexts.runtime.version = '{{version}}';
     }
   }
 
@@ -157,7 +153,7 @@ function normalizeEvent(event: Event): Event {
   if (event.exception?.values?.[0].stacktrace?.frames) {
     // Exlcude Deno frames since these may change between versions
     event.exception.values[0].stacktrace.frames = event.exception.values[0].stacktrace.frames.filter(
-      frame => !frame.filename?.includes('deno:'),
+      (frame: any) => !frame.filename?.includes('deno:'),
     );
   }
 

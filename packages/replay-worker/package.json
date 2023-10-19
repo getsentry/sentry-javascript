@@ -46,8 +46,7 @@
   },
   "homepage": "https://docs.sentry.io/platforms/javascript/session-replay/",
   "devDependencies": {
-    "@types/pako": "^2.0.0",
-    "tslib": "^2.4.1 || ^1.9.3"
+    "@types/pako": "^2.0.0"
   },
   "dependencies": {
     "pako": "^2.1.0"

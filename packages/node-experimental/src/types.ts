@@ -1,23 +1,13 @@
-import type { Span as WriteableSpan, Tracer } from '@opentelemetry/api';
-import type { BasicTracerProvider, ReadableSpan, Span } from '@opentelemetry/sdk-trace-base';
+import type { Span as WriteableSpan } from '@opentelemetry/api';
+import type { ReadableSpan, Span } from '@opentelemetry/sdk-trace-base';
 import type { NodeClient, NodeOptions } from '@sentry/node';
-import type { SpanOrigin, TransactionMetadata, TransactionSource } from '@sentry/types';
+import type { OpenTelemetryClient } from '@sentry/opentelemetry';
 
 export type NodeExperimentalOptions = NodeOptions;
 export type NodeExperimentalClientOptions = ConstructorParameters<typeof NodeClient>[0];
 
-export interface NodeExperimentalClient extends NodeClient {
-  tracer: Tracer;
-  traceProvider: BasicTracerProvider | undefined;
+export interface NodeExperimentalClient extends NodeClient, OpenTelemetryClient {
   getOptions(): NodeExperimentalClientOptions;
-}
-
-export interface NodeExperimentalSpanContext {
-  name: string;
-  op?: string;
-  metadata?: Partial<TransactionMetadata>;
-  origin?: SpanOrigin;
-  source?: TransactionSource;
 }
 
 /**

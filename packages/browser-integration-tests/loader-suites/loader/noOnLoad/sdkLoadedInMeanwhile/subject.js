@@ -3,7 +3,7 @@ setTimeout(() => {
   cdnScript.src = '/cdn.bundle.js';
 
   cdnScript.addEventListener('load', () => {
-    window.Sentry.init({
+    Sentry.init({
       dsn: 'https://public@dsn.ingest.sentry.io/1337',
       replaysSessionSampleRate: 0.42,
     });
