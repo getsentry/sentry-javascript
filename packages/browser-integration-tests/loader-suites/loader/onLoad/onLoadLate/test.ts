@@ -3,7 +3,7 @@ import { expect } from '@playwright/test';
 import { sentryTest } from '../../../../utils/fixtures';
 import { envelopeRequestParser, waitForErrorRequestOnUrl } from '../../../../utils/helpers';
 
-sentryTest('captureException works inside of onLoad', async ({ getLocalTestUrl, page }) => {
+sentryTest('late onLoad call is handled', async ({ getLocalTestUrl, page }) => {
   await page.route('https://dsn.ingest.sentry.io/**/*', route => {
     return route.fulfill({
       status: 200,
