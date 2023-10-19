@@ -64,7 +64,7 @@
     "test:release-health": "node test/manual/release-health/runner.js",
     "test:webpack": "cd test/manual/webpack-async-context/ && yarn --silent && node npm-build.js",
     "test:watch": "jest --watch",
-    "yalc:publish": "ts-node ../../scripts/prepack.ts && yalc publish build --push"
+    "yalc:publish": "ts-node ../../scripts/prepack.ts && yalc publish build --push --sig"
   },
   "volta": {
     "extends": "../../package.json"
