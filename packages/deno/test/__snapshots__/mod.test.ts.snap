@@ -82,7 +82,7 @@ snapshot[`captureException 1`] = `
               filename: "app:///test/mod.test.ts",
               function: "<anonymous>",
               in_app: true,
-              lineno: 43,
+              lineno: 42,
               post_context: [
                 "",
                 "  await delay(200);",
@@ -108,7 +108,7 @@ snapshot[`captureException 1`] = `
               filename: "app:///test/mod.test.ts",
               function: "something",
               in_app: true,
-              lineno: 40,
+              lineno: 39,
               post_context: [
                 "  }",
                 "",
