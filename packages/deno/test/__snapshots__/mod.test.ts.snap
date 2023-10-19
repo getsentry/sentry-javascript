@@ -15,7 +15,7 @@ snapshot[`captureException 1`] = `
     },
     runtime: {
       name: "deno",
-      version: "1.36.0",
+      version: "1.37.1",
     },
     trace: {
       span_id: "{{id}}",
@@ -46,35 +46,35 @@ snapshot[`captureException 1`] = `
               filename: "ext:cli/40_testing.js",
               function: "outerWrapped",
               in_app: false,
-              lineno: 427,
+              lineno: 488,
             },
             {
               colno: 33,
               filename: "ext:cli/40_testing.js",
               function: "exitSanitizer",
               in_app: false,
-              lineno: 413,
+              lineno: 474,
             },
             {
               colno: 31,
               filename: "ext:cli/40_testing.js",
               function: "resourceSanitizer",
               in_app: false,
-              lineno: 364,
+              lineno: 425,
             },
             {
               colno: 33,
               filename: "ext:cli/40_testing.js",
               function: "asyncOpSanitizer",
               in_app: false,
-              lineno: 148,
+              lineno: 192,
             },
             {
               colno: 11,
               filename: "ext:cli/40_testing.js",
               function: "innerWrapped",
               in_app: false,
-              lineno: 482,
+              lineno: 543,
             },
             {
               colno: 24,
@@ -176,7 +176,7 @@ snapshot[`captureMessage 1`] = `
     },
     runtime: {
       name: "deno",
-      version: "1.36.0",
+      version: "1.37.1",
     },
     trace: {
       span_id: "{{id}}",
