@@ -27,7 +27,6 @@
     "@sentry/core": "7.74.1",
     "@sentry/types": "7.74.1",
     "@sentry/utils": "7.74.1",
-    "cookie": "^0.5.0",
     "https-proxy-agent": "^5.0.0"
   },
   "devDependencies": {
