@@ -72,6 +72,7 @@ targets:
     includeNames: /^sentry-deno-\d.*\.tgz$/
   - name: commit-on-git-repository
     # This will publish on the Deno registry
+    id: getsentry/deno
     archive: /^sentry-deno-\d.*\.tgz$/
     repositoryUrl: git@github.com:getsentry/sentry-deno.git
     stripComponents: 1
