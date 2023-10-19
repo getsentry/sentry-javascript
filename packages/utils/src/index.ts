@@ -32,3 +32,4 @@ export * from './userIntegrations';
 export * from './cache';
 export * from './eventbuilder';
 export * from './anr';
+export * from './lru';

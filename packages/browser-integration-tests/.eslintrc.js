@@ -13,6 +13,14 @@ module.exports = {
     'fixtures/**',
     'tmp/**',
   ],
+  overrides: [
+    {
+      files: ['loader-suites/**/{subject,init}.js'],
+      globals: {
+        Sentry: true,
+      },
+    },
+  ],
   parserOptions: {
     sourceType: 'module',
   },

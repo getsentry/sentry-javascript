@@ -21,11 +21,9 @@
     "@sentry/browser": "7.74.1",
     "@sentry/core": "7.74.1",
     "@sentry/types": "7.74.1",
-    "@sentry/utils": "7.74.1",
-    "lru_map": "^0.3.3"
+    "@sentry/utils": "7.74.1"
   },
   "devDependencies": {
-    "@rollup/plugin-commonjs": "^25.0.5",
     "@rollup/plugin-typescript": "^11.1.5",
     "@types/node": "20.8.2",
     "rollup-plugin-dts": "^6.1.0"
