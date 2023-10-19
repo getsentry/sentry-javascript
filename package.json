@@ -61,6 +61,7 @@
     "packages/node-integration-tests",
     "packages/node-experimental",
     "packages/opentelemetry-node",
+    "packages/opentelemetry",
     "packages/react",
     "packages/remix",
     "packages/replay",

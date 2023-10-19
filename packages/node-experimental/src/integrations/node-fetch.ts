@@ -2,14 +2,12 @@ import type { Span } from '@opentelemetry/api';
 import { SpanKind } from '@opentelemetry/api';
 import type { Instrumentation } from '@opentelemetry/instrumentation';
 import { hasTracingEnabled } from '@sentry/core';
+import { _INTERNAL, getCurrentHub, getSpanKind } from '@sentry/opentelemetry';
 import type { Integration } from '@sentry/types';
 import { FetchInstrumentation } from 'opentelemetry-instrumentation-fetch-node';
 
-import { OTEL_ATTR_ORIGIN } from '../constants';
-import type { NodeExperimentalClient } from '../sdk/client';
-import { getCurrentHub } from '../sdk/hub';
-import { getRequestSpanData } from '../utils/getRequestSpanData';
-import { getSpanKind } from '../utils/getSpanKind';
+import type { NodeExperimentalClient } from '../types';
+import { addOriginToSpan } from '../utils/addOriginToSpan';
 import { NodePerformanceIntegration } from './NodePerformanceIntegration';
 
 interface NodeFetchOptions {
@@ -101,7 +99,7 @@ export class NodeFetch extends NodePerformanceIntegration<NodeFetchOptions> impl
 
   /** Update the span with data we need. */
   private _updateSpan(span: Span): void {
-    span.setAttribute(OTEL_ATTR_ORIGIN, 'auto.http.otel.node_fetch');
+    addOriginToSpan(span, 'auto.http.otel.node_fetch');
   }
 
   /** Add a breadcrumb for outgoing requests. */
@@ -110,7 +108,7 @@ export class NodeFetch extends NodePerformanceIntegration<NodeFetchOptions> impl
       return;
     }
 
-    const data = getRequestSpanData(span);
+    const data = _INTERNAL.getRequestSpanData(span);
     getCurrentHub().addBreadcrumb({
       category: 'http',
       data: {
