@@ -4,7 +4,6 @@ import type { Instrumentation } from '@opentelemetry/instrumentation';
 import { hasTracingEnabled } from '@sentry/core';
 import { _INTERNAL, getCurrentHub, getSpanKind } from '@sentry/opentelemetry';
 import type { Integration } from '@sentry/types';
-import { FetchInstrumentation } from 'opentelemetry-instrumentation-fetch-node';
 
 import type { NodeExperimentalClient } from '../types';
 import { addOriginToSpan } from '../utils/addOriginToSpan';
@@ -66,6 +65,9 @@ export class NodeFetch extends NodePerformanceIntegration<NodeFetchOptions> impl
 
   /** @inheritDoc */
   public setupInstrumentation(): void | Instrumentation[] {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const FetchInstrumentation = require('opentelemetry-instrumentation-fetch-node');
+
     return [
       new FetchInstrumentation({
         onRequest: ({ span }: { span: Span }) => {
