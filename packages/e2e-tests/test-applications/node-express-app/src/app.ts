@@ -12,8 +12,10 @@ declare global {
 Sentry.init({
   environment: 'qa', // dynamic sampling bias to keep transactions
   dsn: process.env.E2E_TEST_DSN,
+  includeLocalVariables: true,
   integrations: [new Integrations.HttpClient()],
   debug: true,
+  tunnel: `http://localhost:3031/`, // proxy server
   tracesSampleRate: 1,
 });
 
@@ -53,6 +55,34 @@ app.get('/test-error', async function (req, res) {
   await Sentry.flush(2000);
 
   res.send({ exceptionId });
+});
+
+app.get('/test-local-variables-uncaught', function (req, res) {
+  const randomVariableToRecord = Math.random();
+  throw new Error(`Uncaught Local Variable Error - ${JSON.stringify({ randomVariableToRecord })}`);
+});
+
+app.get('/test-local-variables-caught', function (req, res) {
+  const randomVariableToRecord = Math.random();
+
+  let exceptionId: string;
+  try {
+    throw new Error('Local Variable Error');
+  } catch (e) {
+    exceptionId = Sentry.captureException(e);
+  }
+
+  res.send({ exceptionId, randomVariableToRecord });
+});
+
+app.use(Sentry.Handlers.errorHandler());
+
+// @ts-ignore
+app.use(function onError(err, req, res, next) {
+  // The error id is attached to `res.sentry` to be returned
+  // and optionally displayed to the user for support.
+  res.statusCode = 500;
+  res.end(res.sentry + '\n');
 });
 
 app.listen(port, () => {
