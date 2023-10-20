@@ -65,17 +65,20 @@ export class NodeFetch extends NodePerformanceIntegration<NodeFetchOptions> impl
 
   /** @inheritDoc */
   public setupInstrumentation(): void | Instrumentation[] {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const FetchInstrumentation = require('opentelemetry-instrumentation-fetch-node');
-
-    return [
-      new FetchInstrumentation({
-        onRequest: ({ span }: { span: Span }) => {
-          this._updateSpan(span);
-          this._addRequestBreadcrumb(span);
-        },
-      }),
-    ];
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const { FetchInstrumentation } = require('opentelemetry-instrumentation-fetch-node');
+      return [
+        new FetchInstrumentation({
+          onRequest: ({ span }: { span: Span }) => {
+            this._updateSpan(span);
+            this._addRequestBreadcrumb(span);
+          },
+        }),
+      ];
+    } catch (error) {
+      // Could not load instrumentation
+    }
   }
 
   /**
