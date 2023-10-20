@@ -45,7 +45,9 @@
     "@sentry/node": "7.74.1",
     "@sentry/opentelemetry": "7.74.1",
     "@sentry/types": "7.74.1",
-    "@sentry/utils": "7.74.1",
+    "@sentry/utils": "7.74.1"
+  },
+  "optionalDependencies": {
     "opentelemetry-instrumentation-fetch-node": "1.1.0"
   },
   "scripts": {
@@ -71,7 +73,7 @@
     "test": "yarn test:jest",
     "test:jest": "jest",
     "test:watch": "jest --watch",
-    "yalc:publish": "ts-node ../../scripts/prepack.ts && yalc publish build --push"
+    "yalc:publish": "ts-node ../../scripts/prepack.ts && yalc publish build --push --sig"
   },
   "volta": {
     "extends": "../../package.json"

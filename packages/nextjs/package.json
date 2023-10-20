@@ -86,7 +86,7 @@
     "test:watch": "jest --watch",
     "vercel:branch": "source vercel/set-up-branch-for-test-app-use.sh",
     "vercel:project": "source vercel/make-project-use-current-branch.sh",
-    "yalc:publish": "ts-node ../../scripts/prepack.ts && yalc publish build --push"
+    "yalc:publish": "ts-node ../../scripts/prepack.ts && yalc publish build --push --sig"
   },
   "volta": {
     "extends": "../../package.json"

@@ -5,6 +5,7 @@ export * from './error';
 export * from './worldwide';
 export * from './instrument';
 export * from './is';
+export * from './isBrowser';
 export * from './logger';
 export * from './memo';
 export * from './misc';
