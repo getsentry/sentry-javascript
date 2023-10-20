@@ -1,5 +1,5 @@
 import type {
-  CheckInEvelope,
+  CheckInEnvelope,
   CheckInItem,
   DsnComponents,
   DynamicSamplingContext,
@@ -17,8 +17,8 @@ export function createCheckInEnvelope(
   metadata?: SdkMetadata,
   tunnel?: string,
   dsn?: DsnComponents,
-): CheckInEvelope {
-  const headers: CheckInEvelope[0] = {
+): CheckInEnvelope {
+  const headers: CheckInEnvelope[0] = {
     sent_at: new Date().toISOString(),
   };
 
@@ -38,7 +38,7 @@ export function createCheckInEnvelope(
   }
 
   const item = createCheckInEnvelopeItem(checkIn);
-  return createEnvelope<CheckInEvelope>(headers, [item]);
+  return createEnvelope<CheckInEnvelope>(headers, [item]);
 }
 
 function createCheckInEnvelopeItem(checkIn: SerializedCheckIn): CheckInItem {
