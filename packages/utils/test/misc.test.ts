@@ -343,6 +343,23 @@ describe('uuid4 generation', () => {
       expect(uuid4()).toMatch(uuid4Regex);
     }
   });
+
+  // Corner case related to crypto.getRandomValues being only
+  // semi-implemented (e.g. Chromium 23.0.1235.0 (151422))
+  it('returns valid uuid v4 even if crypto.getRandomValues does not return a typed array', () => {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const cryptoMod = require('crypto');
+
+    const getRandomValues = (typedArray: Uint8Array) => {
+      cryptoMod.getRandomValues(typedArray);
+    };
+
+    (global as any).crypto = { getRandomValues };
+
+    for (let index = 0; index < 1_000; index++) {
+      expect(uuid4()).toMatch(uuid4Regex);
+    }
+  });
 });
 
 describe('arrayify()', () => {
