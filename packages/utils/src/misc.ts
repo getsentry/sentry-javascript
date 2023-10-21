@@ -34,6 +34,8 @@ export function uuid4(): string {
       getRandomByte = () => {
         // crypto.getRandomValues might return undefined instead of the typed array
         // in old Chromium versions (e.g. 23.0.1235.0 (151422))
+        // However, `typedArray` is still filled in-place.
+        // @see https://developer.mozilla.org/en-US/docs/Web/API/Crypto/getRandomValues#typedarray
         const typedArray = new Uint8Array(1);
         crypto.getRandomValues(typedArray);
         return typedArray[0];
