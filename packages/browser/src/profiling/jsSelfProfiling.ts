@@ -26,7 +26,6 @@ export type JSSelfProfile = {
   samples: JSSelfProfileSample[];
 };
 
-
 export interface JSSelfProfiler {
   sampleInterval: number;
   stopped: boolean;

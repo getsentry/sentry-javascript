@@ -92,9 +92,9 @@ export interface Carrier {
     profiling?: {
       /*
        * Stores profile started before SDK was initialized
-      */
-      profiles?: Record<"auto.pageload.browser", any>;
-    }
+       */
+      profiles?: Record<'auto.pageload.browser', any>;
+    };
   };
 }
 

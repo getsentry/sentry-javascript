@@ -1,20 +1,20 @@
 /* eslint-disable max-lines */
 
-import { Carrier, DEFAULT_ENVIRONMENT, getCurrentHub } from '@sentry/core';
-import type { DebugImage, Envelope, Event, StackFrame, StackParser } from '@sentry/types';
+import type { Carrier } from '@sentry/core';
+import { DEFAULT_ENVIRONMENT, getCurrentHub } from '@sentry/core';
+import type { DebugImage, Envelope, Event, StackFrame, StackParser, Transaction } from '@sentry/types';
 import type { Profile, ThreadCpuProfile } from '@sentry/types/src/profiling';
 import { browserPerformanceTimeOrigin, forEachEnvelopeItem, GLOBAL_OBJ, logger, uuid4 } from '@sentry/utils';
 
 import { WINDOW } from '../helpers';
-import type { JSSelfProfile, JSSelfProfileStack, JSSelfProfiler } from './jsSelfProfiling';
-import type { Transaction } from '@sentry/types';
+import type { JSSelfProfile, JSSelfProfiler, JSSelfProfileStack } from './jsSelfProfiling';
 
 const MS_TO_NS = 1e6;
 // Use 0 as main thread id which is identical to threadId in node:worker_threads
 // where main logs 0 and workers seem to log in increments of 1
 const THREAD_ID_STRING = String(0);
 const THREAD_NAME = 'main';
-export const AUTOMATED_PAGELOAD_PROFILE_ID = "auto.pageload.browser"
+export const AUTOMATED_PAGELOAD_PROFILE_ID = 'auto.pageload.browser';
 
 // Machine properties (eval only once)
 let OS_PLATFORM = '';
@@ -196,24 +196,23 @@ export function isProfiledTransactionEvent(event: Event): event is ProfiledEvent
  */
 export function getAutomatedPageLoadProfile(carrier: Carrier): JSSelfProfiler | undefined {
   const __SENTRY__ = carrier.__SENTRY__;
-  if (
-    __SENTRY__ &&
-    __SENTRY__.profiling &&
-    __SENTRY__.profiling.profiles
-  ) {
+  if (__SENTRY__ && __SENTRY__.profiling && __SENTRY__.profiling.profiles) {
     const profile = __SENTRY__.profiling.profiles[AUTOMATED_PAGELOAD_PROFILE_ID];
     __SENTRY__.profiling.profiles[AUTOMATED_PAGELOAD_PROFILE_ID] = undefined;
     return profile;
   }
 
-  return undefined
+  return undefined;
 }
 
 /*
   See packages/tracing-internal/src/browser/router.ts
 */
+/**
+ *
+ */
 export function isAutomatedPageLoadTransaction(transaction: Transaction): boolean {
-  return transaction.op === 'pageload' && transaction.origin === AUTOMATED_PAGELOAD_PROFILE_ID
+  return transaction.op === 'pageload'; //  && transaction.origin === AUTOMATED_PAGELOAD_PROFILE_ID
 }
 
 /**

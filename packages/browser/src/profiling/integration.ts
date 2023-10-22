@@ -4,12 +4,12 @@ import type { Profile } from '@sentry/types/src/profiling';
 import { logger } from '@sentry/utils';
 
 import { wrapTransactionWithProfiling } from './hubextensions';
-import type { JSSelfProfile } from './jsSelfProfiling';
 import type { ProfiledEvent } from './utils';
-import {   addProfilesToEnvelope,
-addProfileToMap, AUTOMATED_PAGELOAD_PROFILE_ID,  createProfilingEvent,
+import {
+  addProfilesToEnvelope,
+  createProfilingEvent,
   findProfiledTransactionsFromEnvelope,
-getAutomatedPageLoadProfile ,
+  getAutomatedPageLoadProfile,
   isAutomatedPageLoadTransaction,
   PROFILE_MAP,
 } from './utils';
@@ -42,64 +42,19 @@ export class BrowserProfilingIntegration implements Integration {
 
     const hub = this.getCurrentHub();
     const client = hub.getClient();
-    const carrier = getMainCarrier();
+    const scope = hub.getScope();
+
+    const pageLoadProfile = getAutomatedPageLoadProfile(getMainCarrier());
+    const transaction = scope.getTransaction();
+
+    if (pageLoadProfile && transaction && isAutomatedPageLoadTransaction(transaction)) {
+      wrapTransactionWithProfiling(transaction);
+    }
 
     if (client && typeof client.on === 'function') {
       client.on('startTransaction', (transaction: Transaction) => {
         wrapTransactionWithProfiling(transaction);
       });
-
-      // If a pageload profile exists, attach finishTransaction handler and set profile_id to the reserved
-      // automated page load profile id so that it will get picked up by the beforeEnvelope hook.
-      const pageLoadProfile = getAutomatedPageLoadProfile(carrier);
-      if (pageLoadProfile) {
-        // @TODO JonasB: remove finishTransaction listener if carrier.profiles is empty
-        client.on('finishTransaction', (transaction: Transaction) => {
-          if (!isAutomatedPageLoadTransaction(transaction)) {
-            return;
-          }
-
-          if (pageLoadProfile.stopped) {
-            __DEBUG_BUILD__ &&
-              logger.log(
-                `[Profiling] automated page load transaction already stopped, not stopping again: ${transaction.name ||
-                  transaction.description}`,
-              );
-            return;
-          }
-
-          transaction.setContext('profile', { profile_id: AUTOMATED_PAGELOAD_PROFILE_ID });
-          pageLoadProfile
-            .stop()
-            .then((profile: JSSelfProfile): null => {
-              if (__DEBUG_BUILD__) {
-                logger.log(
-                  `[Profiling] stopped profiling of transaction: ${transaction.name || transaction.description}`,
-                );
-              }
-
-              // In case of an overlapping transaction, stopProfiling may return null and silently ignore the overlapping profile.
-              if (!profile) {
-                if (__DEBUG_BUILD__) {
-                  logger.log(
-                    `[Profiling] profiler returned null profile for: ${transaction.name || transaction.description}`,
-                    'this may indicate an overlapping transaction or a call to stopProfiling with a profile title that was never started',
-                  );
-                }
-                return null;
-              }
-
-              addProfileToMap(AUTOMATED_PAGELOAD_PROFILE_ID, profile);
-              return null;
-            })
-            .catch(error => {
-              if (__DEBUG_BUILD__) {
-                logger.log('[Profiling] error while stopping profiler:', error);
-              }
-              return null;
-            });
-        });
-      }
 
       client.on('beforeEnvelope', (envelope): void => {
         // if not profiles are in queue, there is nothing to add to the envelope.
