@@ -358,7 +358,7 @@ function instrumentRouter(appOrRouter: ExpressRouter): void {
     // Now we check if we are in the "last" part of the route. We determine this by comparing the
     // number of URL segments from the original URL to that of our reconstructed parameterized URL.
     // If we've reached our final destination, we update the transaction name.
-    const urlLength = getNumberOfUrlSegments(req.originalUrl || '') + numExtraSegments;
+    const urlLength = getNumberOfUrlSegments(stripUrlQueryAndFragment(req.originalUrl || '')) + numExtraSegments;
     const routeLength = getNumberOfUrlSegments(req._reconstructedRoute);
 
     if (urlLength === routeLength) {
