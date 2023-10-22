@@ -1,16 +1,16 @@
+import { getMainCarrier } from '@sentry/core';
 import type { EventProcessor, Hub, Integration, Transaction } from '@sentry/types';
 import type { Profile } from '@sentry/types/src/profiling';
 import { logger } from '@sentry/utils';
 
 import { wrapTransactionWithProfiling } from './hubextensions';
-import { getAutomatedPageLoadProfile, ProfiledEvent, addProfileToMap, AUTOMATED_PAGELOAD_PROFILE_ID } from './utils';
-import { getMainCarrier } from '@sentry/core';
-import { JSSelfProfile } from '../../build/npm/types/profiling/jsSelfProfiling';
-import {
-  addProfilesToEnvelope,
-  createProfilingEvent,
-  isAutomatedPageLoadTransaction,
+import type { JSSelfProfile } from './jsSelfProfiling';
+import type { ProfiledEvent } from './utils';
+import {   addProfilesToEnvelope,
+addProfileToMap, AUTOMATED_PAGELOAD_PROFILE_ID,  createProfilingEvent,
   findProfiledTransactionsFromEnvelope,
+getAutomatedPageLoadProfile ,
+  isAutomatedPageLoadTransaction,
   PROFILE_MAP,
 } from './utils';
 
@@ -118,7 +118,7 @@ export class BrowserProfilingIntegration implements Integration {
           const context = profiledTransaction && profiledTransaction.contexts;
           const profile_id = context && context['profile'] && context['profile']['profile_id'];
 
-          if (typeof profile_id !== "string") {
+          if (typeof profile_id !== 'string') {
             __DEBUG_BUILD__ &&
               logger.log('[Profiling] cannot find profile for a transaction without a profile context');
             continue;
