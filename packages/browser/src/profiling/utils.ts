@@ -13,7 +13,6 @@ const MS_TO_NS = 1e6;
 // where main logs 0 and workers seem to log in increments of 1
 const THREAD_ID_STRING = String(0);
 const THREAD_NAME = 'main';
-export const AUTOMATED_PAGELOAD_PROFILE_ID = 'auto.pageload.browser';
 
 // Machine properties (eval only once)
 let OS_PLATFORM = '';
@@ -197,7 +196,7 @@ export function isProfiledTransactionEvent(event: Event): event is ProfiledEvent
  *
  */
 export function isAutomatedPageLoadTransaction(transaction: Transaction): boolean {
-  return transaction.op === 'pageload'; //  && transaction.origin === AUTOMATED_PAGELOAD_PROFILE_ID
+  return transaction.op === 'pageload';
 }
 
 /**

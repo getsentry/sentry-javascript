@@ -1,28 +1,16 @@
 import type { BrowserClient } from '@sentry/browser';
 import * as Sentry from '@sentry/browser';
-import { getMainCarrier } from '@sentry/core';
 
 import { BrowserProfilingIntegration } from '../../../src/profiling/integration';
 import type { JSSelfProfile } from '../../../src/profiling/jsSelfProfiling';
-import { AUTOMATED_PAGELOAD_PROFILE_ID } from '../../../src/profiling/utils';
 
 describe('BrowserProfilingIntegration', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     jest.useRealTimers();
     // We will mock the carrier as if it has been initialized by the SDK, else everything is short circuited
-    getMainCarrier().__SENTRY__ = {};
   });
-  afterEach(() => {
-    delete getMainCarrier().__SENTRY__;
-  });
-
   it('pageload profiles follow regular transaction code path', async () => {
-    const carrier = getMainCarrier();
-    if (!carrier) {
-      throw 'Carrier not initialized';
-    }
-
     const stopProfile = jest.fn().mockImplementation((): Promise<JSSelfProfile> => {
       return Promise.resolve({
         frames: [{ name: 'pageload_fn', line: 1, column: 1 }],
@@ -47,17 +35,6 @@ describe('BrowserProfilingIntegration', () => {
 
     // @ts-expect-error this is a mock constructor
     window.Profiler = MockProfiler;
-
-    carrier.__SENTRY__ = {
-      profiling: {
-        profiles: {
-          [AUTOMATED_PAGELOAD_PROFILE_ID]: {
-            stop: stopProfile,
-            stopped: false,
-          },
-        },
-      },
-    };
 
     const flush = jest.fn().mockImplementation(() => Promise.resolve(true));
     const send = jest.fn().mockImplementation(() => Promise.resolve());
