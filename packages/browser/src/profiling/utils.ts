@@ -473,7 +473,7 @@ function isJSProfilerSupported(maybeProfiler: unknown): maybeProfiler is typeof 
 /**
  * Starts the profiler and returns the profiler instance.
  */
-export function startProfile(): JSSelfProfiler | undefined {
+export function startJSSelfProfile(): JSSelfProfiler | undefined {
   // Feature support check first
   const JSProfilerConstructor = WINDOW.Profiler;
 
@@ -505,22 +505,25 @@ export function startProfile(): JSSelfProfiler | undefined {
     }
     PROFILING_CONSTRUCTOR_FAILED = 1;
   }
+
+  return;
 }
 
 /**
  * Determine if a profile should be profiled.
  */
 export function shouldProfileTransaction(transaction: Transaction): boolean {
-  if (!transaction.sampled) {
-    if (__DEBUG_BUILD__) {
-      logger.log('[Profiling] Discarding profile because transaction was not sampled.');
-    }
-    return false;
-  }
   // If constructor failed once, it will always fail, so we can early return.
   if (PROFILING_CONSTRUCTOR_FAILED) {
     if (__DEBUG_BUILD__) {
       logger.log('[Profiling] Profiling has been disabled for the duration of the current user session.');
+    }
+    return false;
+  }
+
+  if (!transaction.sampled) {
+    if (__DEBUG_BUILD__) {
+      logger.log('[Profiling] Discarding profile because transaction was not sampled.');
     }
     return false;
   }
@@ -581,11 +584,28 @@ export function createProfilingEvent(profile_id: string, profile: JSSelfProfile,
   return createProfilePayload(event, profile, profile_id);
 }
 
-export const PROFILE_MAP: Map<string, JSSelfProfile> = new Map();
+const PROFILE_MAP: Map<string, JSSelfProfile> = new Map();
 /**
  *
  */
-export function addProfileToMap(profile_id: string, profile: JSSelfProfile): void {
+export function getActiveProfilesCount(): number {
+  return PROFILE_MAP.size;
+}
+
+/**
+ * Retrieves profile from global cache and removes it.
+ */
+export function takeProfileFromGlobalCache(profile_id: string): JSSelfProfile | undefined {
+  const profile = PROFILE_MAP.get(profile_id);
+  if (profile) {
+    PROFILE_MAP.delete(profile_id);
+  }
+  return profile;
+}
+/**
+ * Adds profile to global cache and evicts the oldest profile if the cache is full.
+ */
+export function addProfileToGlobalCache(profile_id: string, profile: JSSelfProfile): void {
   PROFILE_MAP.set(profile_id, profile);
 
   if (PROFILE_MAP.size > 30) {

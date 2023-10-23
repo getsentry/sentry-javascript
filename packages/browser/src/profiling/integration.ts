@@ -4,14 +4,15 @@ import { logger } from '@sentry/utils';
 
 import { startProfileForTransaction } from './hubextensions';
 import type { ProfiledEvent } from './utils';
-import {   addProfilesToEnvelope,
+import {
+  addProfilesToEnvelope,
   createProfilingEvent,
   findProfiledTransactionsFromEnvelope,
+  getActiveProfilesCount,
   isAutomatedPageLoadTransaction,
-  PROFILE_MAP,
-shouldProfileTransaction ,
+  shouldProfileTransaction,
+  takeProfileFromGlobalCache,
 } from './utils';
-
 
 /**
  * Browser profiling integration. Stores any event that has contexts["profile"]["profile_id"]
@@ -53,14 +54,14 @@ export class BrowserProfilingIntegration implements Integration {
 
     if (client && typeof client.on === 'function') {
       client.on('startTransaction', (transaction: Transaction) => {
-        if(shouldProfileTransaction(transaction)){
+        if (shouldProfileTransaction(transaction)) {
           startProfileForTransaction(transaction);
         }
       });
 
       client.on('beforeEnvelope', (envelope): void => {
         // if not profiles are in queue, there is nothing to add to the envelope.
-        if (!PROFILE_MAP['size']) {
+        if (!getActiveProfilesCount()) {
           return;
         }
 
@@ -92,15 +93,13 @@ export class BrowserProfilingIntegration implements Integration {
             delete context.profile;
           }
 
-          const profile = PROFILE_MAP.get(profile_id);
+          const profile = takeProfileFromGlobalCache(profile_id);
           if (!profile) {
             __DEBUG_BUILD__ && logger.log(`[Profiling] Could not retrieve profile for transaction: ${profile_id}`);
             continue;
           }
 
-          PROFILE_MAP.delete(profile_id);
           const profileEvent = createProfilingEvent(profile_id, profile, profiledTransaction as ProfiledEvent);
-
           if (profileEvent) {
             profilesToAddToEnvelope.push(profileEvent);
           }

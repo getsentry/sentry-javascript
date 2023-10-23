@@ -4,7 +4,12 @@ import { logger, uuid4 } from '@sentry/utils';
 
 import { WINDOW } from '../helpers';
 import type { JSSelfProfile } from './jsSelfProfiling';
-import { addProfileToMap, MAX_PROFILE_DURATION_MS, shouldProfileTransaction, startProfile } from './utils';
+import {
+  addProfileToGlobalCache,
+  MAX_PROFILE_DURATION_MS,
+  shouldProfileTransaction,
+  startJSSelfProfile,
+} from './utils';
 
 /**
  * Safety wrapper for startTransaction for the unlikely case that transaction starts before tracing is imported -
@@ -21,21 +26,21 @@ export function onProfilingStartRouteTransaction(transaction: Transaction | unde
     return transaction;
   }
 
-  if (!shouldProfileTransaction(transaction)) {
-    return transaction;
+  if (shouldProfileTransaction(transaction)) {
+    return startProfileForTransaction(transaction);
   }
 
-  return startProfileForTransaction(transaction);
+  return transaction;
 }
 
 /**
  * Wraps startTransaction and stopTransaction with profiling related logic.
- * startProfiling is called after the call to startTransaction in order to avoid our own code from
+ * startProfileForTransaction is called after the call to startTransaction in order to avoid our own code from
  * being profiled. Because of that same reason, stopProfiling is called before the call to stopTransaction.
  */
 export function startProfileForTransaction(transaction: Transaction): Transaction {
   // Start the profiler and get the profiler instance.
-  const profiler = startProfile()
+  const profiler = startJSSelfProfile();
 
   // We failed to construct the profiler, fallback to original transaction.
   // No need to log anything as this has already been logged in startProfile.
@@ -107,7 +112,7 @@ export function startProfileForTransaction(transaction: Transaction): Transactio
           return null;
         }
 
-        addProfileToMap(profileId, profile);
+        addProfileToGlobalCache(profileId, profile);
         return null;
       })
       .catch(error => {
