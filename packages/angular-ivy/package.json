@@ -56,7 +56,7 @@
     "lint": "run-s lint:prettier lint:eslint",
     "lint:eslint": "eslint . --format stylish",
     "lint:prettier": "prettier --check \"{src,test,scripts}/**/**.ts\"",
-    "yalc:publish": "yalc publish build --push"
+    "yalc:publish": "yalc publish build --push --sig"
   },
   "volta": {
     "extends": "../../package.json"

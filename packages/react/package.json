@@ -26,8 +26,7 @@
     "@sentry/browser": "7.74.1",
     "@sentry/types": "7.74.1",
     "@sentry/utils": "7.74.1",
-    "hoist-non-react-statics": "^3.3.2",
-    "tslib": "^2.4.1 || ^1.9.3"
+    "hoist-non-react-statics": "^3.3.2"
   },
   "peerDependencies": {
     "react": "15.x || 16.x || 17.x || 18.x"
@@ -79,7 +78,7 @@
     "lint:prettier": "prettier --check \"{src,test,scripts}/**/**.ts\"",
     "test": "jest",
     "test:watch": "jest --watch",
-    "yalc:publish": "ts-node ../../scripts/prepack.ts && yalc publish build --push"
+    "yalc:publish": "ts-node ../../scripts/prepack.ts && yalc publish build --push --sig"
   },
   "volta": {
     "extends": "../../package.json"

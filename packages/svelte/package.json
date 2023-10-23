@@ -26,8 +26,7 @@
     "@sentry/browser": "7.74.1",
     "@sentry/types": "7.74.1",
     "@sentry/utils": "7.74.1",
-    "magic-string": "^0.30.0",
-    "tslib": "^2.4.1 || ^1.9.3"
+    "magic-string": "^0.30.0"
   },
   "peerDependencies": {
     "svelte": "3.x || 4.x"
@@ -59,7 +58,7 @@
     "lint:prettier": "prettier --check \"{src,test,scripts}/**/**.ts\"",
     "test": "jest",
     "test:watch": "jest --watch",
-    "yalc:publish": "ts-node ../../scripts/prepack.ts && yalc publish build --push"
+    "yalc:publish": "ts-node ../../scripts/prepack.ts && yalc publish build --push --sig"
   },
   "volta": {
     "extends": "../../package.json"

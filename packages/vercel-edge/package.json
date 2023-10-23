@@ -25,8 +25,7 @@
   "dependencies": {
     "@sentry/core": "7.74.1",
     "@sentry/types": "7.74.1",
-    "@sentry/utils": "7.74.1",
-    "tslib": "^2.4.1 || ^1.9.3"
+    "@sentry/utils": "7.74.1"
   },
   "devDependencies": {
     "@edge-runtime/jest-environment": "2.2.3",
@@ -54,7 +53,7 @@
     "lint:prettier": "prettier --check \"{src,test,scripts}/**/**.ts\"",
     "test": "jest",
     "test:watch": "jest --watch",
-    "yalc:publish": "ts-node ../../scripts/prepack.ts && yalc publish build --push"
+    "yalc:publish": "ts-node ../../scripts/prepack.ts && yalc publish build --push --sig"
   },
   "volta": {
     "extends": "../../package.json"

@@ -122,6 +122,10 @@ jobs:
               - *shared
               - 'packages/node/**'
               - 'packages/node-integration-tests/**'
+            deno:
+              - *shared
+              - *browser
+              - 'packages/deno/**'
             any_code:
               - '!**/*.md'
 
@@ -135,6 +139,7 @@ jobs:
       changed_ember: ${{ steps.changed.outputs.ember }}
       changed_remix: ${{ steps.changed.outputs.remix }}
       changed_node: ${{ steps.changed.outputs.node }}
+      changed_deno: ${{ steps.changed.outputs.deno }}
       changed_browser: ${{ steps.changed.outputs.browser }}
       changed_browser_integration: ${{ steps.changed.outputs.browser_integration }}
       changed_any_code: ${{ steps.changed.outputs.any_code }}
@@ -422,6 +427,7 @@ jobs:
   job_deno_unit_tests:
     name: Deno Unit Tests
     needs: [job_get_metadata, job_build]
+    if: needs.job_get_metadata.outputs.changed_deno == 'true' || github.event_name != 'pull_request'
     timeout-minutes: 10
     runs-on: ubuntu-20.04
     strategy:

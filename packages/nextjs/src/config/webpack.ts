@@ -243,18 +243,20 @@ export function constructWebpackConfigFunction(
       });
 
       // Wrap middleware
-      newConfig.module.rules.unshift({
-        test: isMiddlewareResource,
-        use: [
-          {
-            loader: path.resolve(__dirname, 'loaders', 'wrappingLoader.js'),
-            options: {
-              ...staticWrappingLoaderOptions,
-              wrappingTargetKind: 'middleware',
+      if (userSentryOptions.autoInstrumentMiddleware ?? true) {
+        newConfig.module.rules.unshift({
+          test: isMiddlewareResource,
+          use: [
+            {
+              loader: path.resolve(__dirname, 'loaders', 'wrappingLoader.js'),
+              options: {
+                ...staticWrappingLoaderOptions,
+                wrappingTargetKind: 'middleware',
+              },
             },
-          },
-        ],
-      });
+          ],
+        });
+      }
     }
 
     if (isServer && userSentryOptions.autoInstrumentAppDirectory !== false) {

@@ -27,8 +27,7 @@
     "@sentry/core": "7.74.1",
     "@sentry/replay": "7.74.1",
     "@sentry/types": "7.74.1",
-    "@sentry/utils": "7.74.1",
-    "tslib": "^2.4.1 || ^1.9.3"
+    "@sentry/utils": "7.74.1"
   },
   "devDependencies": {
     "@sentry-internal/integration-shims": "7.74.1",

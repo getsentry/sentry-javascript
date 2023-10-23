@@ -1,7 +1,7 @@
-import { withScope } from '../../src/';
-import { NodeExperimentalClient } from '../../src/sdk/client';
-import { getCurrentHub, NodeExperimentalHub } from '../../src/sdk/hub';
-import { startSpan } from '../../src/sdk/trace';
+import { withScope } from '@sentry/core';
+import { getCurrentHub, startSpan } from '@sentry/opentelemetry';
+
+import type { NodeExperimentalClient } from '../../src/types';
 import { cleanupOtel, mockSdkInit } from '../helpers/mockSdkInit';
 
 describe('Integration | breadcrumbs', () => {
@@ -20,9 +20,6 @@ describe('Integration | breadcrumbs', () => {
 
       const hub = getCurrentHub();
       const client = hub.getClient() as NodeExperimentalClient;
-
-      expect(hub).toBeInstanceOf(NodeExperimentalHub);
-      expect(client).toBeInstanceOf(NodeExperimentalClient);
 
       hub.addBreadcrumb({ timestamp: 123456, message: 'test1' });
       hub.addBreadcrumb({ timestamp: 123457, message: 'test2', data: { nested: 'yes' } });
@@ -60,9 +57,6 @@ describe('Integration | breadcrumbs', () => {
 
       const hub = getCurrentHub();
       const client = hub.getClient() as NodeExperimentalClient;
-
-      expect(hub).toBeInstanceOf(NodeExperimentalHub);
-      expect(client).toBeInstanceOf(NodeExperimentalClient);
 
       const error = new Error('test');
 
@@ -328,11 +322,11 @@ describe('Integration | breadcrumbs', () => {
     const promise2 = startSpan({ name: 'test-b' }, async () => {
       hub.addBreadcrumb({ timestamp: 123456, message: 'test1-b' });
 
-      await startSpan({ name: 'inner1' }, async () => {
+      await startSpan({ name: 'inner1b' }, async () => {
         hub.addBreadcrumb({ timestamp: 123457, message: 'test2-b' });
       });
 
-      await startSpan({ name: 'inner2' }, async () => {
+      await startSpan({ name: 'inner2b' }, async () => {
         hub.addBreadcrumb({ timestamp: 123455, message: 'test3-b' });
       });
     });

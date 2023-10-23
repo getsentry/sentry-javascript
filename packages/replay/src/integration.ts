@@ -1,6 +1,6 @@
 import { getCurrentHub } from '@sentry/core';
 import type { BrowserClientReplayOptions, Integration } from '@sentry/types';
-import { dropUndefinedKeys } from '@sentry/utils';
+import { dropUndefinedKeys, isBrowser } from '@sentry/utils';
 
 import {
   DEFAULT_FLUSH_MAX_DELAY,
@@ -12,7 +12,6 @@ import {
 import { ReplayContainer } from './replay';
 import type { RecordingOptions, ReplayConfiguration, ReplayPluginOptions, SendBufferedReplayOptions } from './types';
 import { getPrivacyOptions } from './util/getPrivacyOptions';
-import { isBrowser } from './util/isBrowser';
 import { maskAttribute } from './util/maskAttribute';
 
 const MEDIA_SELECTORS =

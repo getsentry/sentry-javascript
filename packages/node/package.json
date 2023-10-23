@@ -27,10 +27,7 @@
     "@sentry/core": "7.74.1",
     "@sentry/types": "7.74.1",
     "@sentry/utils": "7.74.1",
-    "cookie": "^0.5.0",
-    "https-proxy-agent": "^5.0.0",
-    "lru_map": "^0.3.3",
-    "tslib": "^2.4.1 || ^1.9.3"
+    "https-proxy-agent": "^5.0.0"
   },
   "devDependencies": {
     "@types/cookie": "0.5.2",
@@ -67,7 +64,7 @@
     "test:release-health": "node test/manual/release-health/runner.js",
     "test:webpack": "cd test/manual/webpack-async-context/ && yarn --silent && node npm-build.js",
     "test:watch": "jest --watch",
-    "yalc:publish": "ts-node ../../scripts/prepack.ts && yalc publish build --push"
+    "yalc:publish": "ts-node ../../scripts/prepack.ts && yalc publish build --push --sig"
   },
   "volta": {
     "extends": "../../package.json"

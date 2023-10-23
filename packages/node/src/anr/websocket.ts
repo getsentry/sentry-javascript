@@ -296,6 +296,13 @@ class WebSocketInterface extends EventEmitter {
       return;
     }
 
+    // There needs to be atleast two values in the buffer for us to parse
+    // a frame from it.
+    // See: https://github.com/getsentry/sentry-javascript/issues/9307
+    if (buff.length <= 1) {
+      return;
+    }
+
     const frame = parseFrame(buff);
 
     if (isCompleteFrame(frame)) {

@@ -100,7 +100,7 @@ Sentry.init({
 
 ## Replay options changed (since 7.35.0) - #6645
 
-Some options for replay have been depracted in favor of new APIs.
+Some options for replay have been deprecated in favor of new APIs.
 See [Replay Migration docs](./packages/replay/MIGRATION.md#upgrading-replay-from-7340-to-7350) for details.
 
 ## Renaming of Next.js wrapper methods (since 7.31.0) - #6790
@@ -162,7 +162,7 @@ Running the new SDK version on Node.js v6 is therefore highly discouraged.
 
 ## Removal of `@sentry/minimal`
 
-The `@sentry/minimal` package was deleted and it's functionality was moved to `@sentry/hub`. All exports from `@sentry/minimal` should be avaliable in `@sentry/hub` other than `_callOnClient` function which was removed.
+The `@sentry/minimal` package was deleted and it's functionality was moved to `@sentry/hub`. All exports from `@sentry/minimal` should be available in `@sentry/hub` other than `_callOnClient` function which was removed.
 
 ```ts
 // New in v7:
@@ -184,7 +184,7 @@ import {
 
 ## Explicit Client Options
 
-In v7, we've updated the `Client` to have options seperate from the options passed into `Sentry.init`. This means that constructing a client now requires 3 options: `integrations`, `transport` and `stackParser`. These can be customized as you see fit.
+In v7, we've updated the `Client` to have options separate from the options passed into `Sentry.init`. This means that constructing a client now requires 3 options: `integrations`, `transport` and `stackParser`. These can be customized as you see fit.
 
 ```ts
 import { BrowserClient, defaultStackParser, defaultIntegrations, makeFetchTransport } from '@sentry/browser';
@@ -764,7 +764,7 @@ this case is the `event_id`, in case the event will not be sent because of filte
 In `4.x` we had both `close` and `flush` on the `Client` draining the internal queue of events, helpful when you were
 using `@sentry/node` on a serverless infrastructure.
 
-Now `close` and `flush` work similar, with the difference that if you call `close` in addition to returing a `Promise`
+Now `close` and `flush` work similar, with the difference that if you call `close` in addition to returning a `Promise`
 that you can await it also **disables** the client so it will not send any future events.
 
 # Migrating from `raven-js` to `@sentry/browser`

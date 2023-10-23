@@ -1,13 +1,12 @@
 import { assertEquals } from 'https://deno.land/std@0.202.0/assert/assert_equals.ts';
 import { assertSnapshot } from 'https://deno.land/std@0.202.0/testing/snapshot.ts';
-import type { Event, Integration } from 'npm:@sentry/types';
-import { createStackParser, nodeStackLineParser } from 'npm:@sentry/utils';
 
+import { createStackParser, nodeStackLineParser } from '../../utils/build/esm/index.js';
 import { defaultIntegrations, DenoClient, Hub, Scope } from '../build/index.js';
 import { getNormalizedEvent } from './normalize.ts';
 import { makeTestTransport } from './transport.ts';
 
-function getTestClient(callback: (event?: Event) => void, integrations: Integration[] = []): [Hub, DenoClient] {
+function getTestClient(callback: (event?: Event) => void, integrations: any[] = []): [Hub, DenoClient] {
   const client = new DenoClient({
     dsn: 'https://233a45e5efe34c47a3536797ce15dafa@nothing.here/5650507',
     debug: true,
@@ -15,7 +14,7 @@ function getTestClient(callback: (event?: Event) => void, integrations: Integrat
     stackParser: createStackParser(nodeStackLineParser()),
     transport: makeTestTransport(envelope => {
       callback(getNormalizedEvent(envelope));
-    }),
+    }) as any,
   });
 
   const scope = new Scope();

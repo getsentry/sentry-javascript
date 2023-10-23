@@ -34,7 +34,6 @@
     "@sentry/types": "7.74.1",
     "@sentry/utils": "7.74.1",
     "glob": "^10.3.4",
-    "tslib": "^2.4.1 || ^1.9.3",
     "yargs": "^17.6.0"
   },
   "devDependencies": {
@@ -79,7 +78,7 @@
     "test:integration:server": "export NODE_OPTIONS='--stack-trace-limit=25' && jest --config=test/integration/jest.config.js test/integration/test/server/",
     "test:unit": "jest",
     "test:watch": "jest --watch",
-    "yalc:publish": "ts-node ../../scripts/prepack.ts && yalc publish build --push"
+    "yalc:publish": "ts-node ../../scripts/prepack.ts && yalc publish build --push --sig"
   },
   "volta": {
     "extends": "../../package.json"
