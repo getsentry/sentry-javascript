@@ -34,8 +34,14 @@ sentryTest(
     const [res0] = await Promise.all([waitForReplayRequest(page, 0), gotoPageAndClick()]);
     await forceFlushReplay();
 
-    const [res1] = await Promise.all([waitForReplayRequest(page), page.click('#button-add')]);
-    await forceFlushReplay();
+    const [res1] = await Promise.all([
+      waitForReplayRequest(page, (_event, res) => {
+        const parsed = getReplayRecordingContent(res);
+        return !!parsed.incrementalSnapshots.length || !!parsed.fullSnapshots.length;
+      }),
+      page.click('#button-add'),
+      forceFlushReplay(),
+    ]);
 
     // replay should be stopped due to mutation limit
     let replay = await getReplaySnapshot(page);
