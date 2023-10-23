@@ -6,7 +6,7 @@ import type { SentryOptions } from './types';
  * Creates a snippet that imports a Sentry.init file.
  */
 export function buildSdkInitFileImportSnippet(filePath: string): string {
-  return `import "${filePath.split(path.sep).join(path.posix.sep)}";`;
+  return `import "${pathToPosix(filePath)}";`;
 }
 
 /**
@@ -71,3 +71,7 @@ const buildClientIntegrations = (options: SentryOptions): string => {
 
   return integrations.join(', ');
 };
+
+function pathToPosix(originalPath: string): string {
+  return originalPath.split(path.sep).join(path.posix.sep);
+}
