@@ -1,13 +1,12 @@
 /* eslint-disable max-lines */
 
-import type { Carrier } from '@sentry/core';
 import { DEFAULT_ENVIRONMENT, getCurrentHub } from '@sentry/core';
 import type { DebugImage, Envelope, Event, StackFrame, StackParser, Transaction } from '@sentry/types';
 import type { Profile, ThreadCpuProfile } from '@sentry/types/src/profiling';
 import { browserPerformanceTimeOrigin, forEachEnvelopeItem, GLOBAL_OBJ, logger, uuid4 } from '@sentry/utils';
 
 import { WINDOW } from '../helpers';
-import type { JSSelfProfile, JSSelfProfiler, JSSelfProfileStack } from './jsSelfProfiling';
+import type { JSSelfProfile, JSSelfProfiler, JSSelfProfilerConstructor, JSSelfProfileStack } from './jsSelfProfiling';
 
 const MS_TO_NS = 1e6;
 // Use 0 as main thread id which is identical to threadId in node:worker_threads
@@ -189,20 +188,6 @@ export function createProfilePayload(
  */
 export function isProfiledTransactionEvent(event: Event): event is ProfiledEvent {
   return !!(event.sdkProcessingMetadata && event.sdkProcessingMetadata['profile']);
-}
-
-/**
- *  Returns the automated page load profile from the carrier if it exists and removes the reference to it.
- */
-export function getAutomatedPageLoadProfile(carrier: Carrier): JSSelfProfiler | undefined {
-  const __SENTRY__ = carrier.__SENTRY__;
-  if (__SENTRY__ && __SENTRY__.profiling && __SENTRY__.profiling.profiles) {
-    const profile = __SENTRY__.profiling.profiles[AUTOMATED_PAGELOAD_PROFILE_ID];
-    __SENTRY__.profiling.profiles[AUTOMATED_PAGELOAD_PROFILE_ID] = undefined;
-    return profile;
-  }
-
-  return undefined;
 }
 
 /*
@@ -466,6 +451,117 @@ function isValidProfile(profile: JSSelfProfile): profile is JSSelfProfile & { pr
     if (__DEBUG_BUILD__) {
       logger.log('[Profiling] Discarding profile because it contains no frames');
     }
+    return false;
+  }
+
+  return true;
+}
+
+// Keep a flag value to avoid re-initializing the profiler constructor. If it fails
+// once, it will always fail and this allows us to early return.
+export let PROFILING_CONSTRUCTOR_FAILED: 0 | 1 = 0;
+export const MAX_PROFILE_DURATION_MS = 30_000;
+
+/**
+ * Check if profiler constructor is available.
+ * @param maybeProfiler
+ */
+function isJSProfilerSupported(maybeProfiler: unknown): maybeProfiler is typeof JSSelfProfilerConstructor {
+  return typeof maybeProfiler === 'function';
+}
+
+/**
+ * Starts the profiler and returns the profiler instance.
+ */
+export function startProfile(): JSSelfProfiler | undefined {
+  // Feature support check first
+  const JSProfilerConstructor = WINDOW.Profiler;
+
+  if (!isJSProfilerSupported(JSProfilerConstructor)) {
+    if (__DEBUG_BUILD__) {
+      logger.log(
+        '[Profiling] Profiling is not supported by this browser, Profiler interface missing on window object.',
+      );
+    }
+    return;
+  }
+
+  // From initial testing, it seems that the minimum value for sampleInterval is 10ms.
+  const samplingIntervalMS = 10;
+  // Start the profiler
+  const maxSamples = Math.floor(MAX_PROFILE_DURATION_MS / samplingIntervalMS);
+
+  // Attempt to initialize the profiler constructor, if it fails, we disable profiling for the current user session.
+  // This is likely due to a missing 'Document-Policy': 'js-profiling' header. We do not want to throw an error if this happens
+  // as we risk breaking the user's application, so just disable profiling and log an error.
+  try {
+    return new JSProfilerConstructor({ sampleInterval: samplingIntervalMS, maxBufferSize: maxSamples });
+  } catch (e) {
+    if (__DEBUG_BUILD__) {
+      logger.log(
+        "[Profiling] Failed to initialize the Profiling constructor, this is likely due to a missing 'Document-Policy': 'js-profiling' header.",
+      );
+      logger.log('[Profiling] Disabling profiling for current user session.');
+    }
+    PROFILING_CONSTRUCTOR_FAILED = 1;
+  }
+}
+
+/**
+ * Determine if a profile should be profiled.
+ */
+export function shouldProfileTransaction(transaction: Transaction): boolean {
+  if (!transaction.sampled) {
+    if (__DEBUG_BUILD__) {
+      logger.log('[Profiling] Discarding profile because transaction was not sampled.');
+    }
+    return false;
+  }
+  // If constructor failed once, it will always fail, so we can early return.
+  if (PROFILING_CONSTRUCTOR_FAILED) {
+    if (__DEBUG_BUILD__) {
+      logger.log('[Profiling] Profiling has been disabled for the duration of the current user session.');
+    }
+    return false;
+  }
+
+  const client = getCurrentHub().getClient();
+  const options = client && client.getOptions();
+  if (!options) {
+    __DEBUG_BUILD__ && logger.log('[Profiling] Profiling disabled, no options found.');
+    return false;
+  }
+
+  // @ts-expect-error profilesSampleRate is not part of the browser options yet
+  const profilesSampleRate: number | boolean | undefined = options.profilesSampleRate;
+
+  // Since this is coming from the user (or from a function provided by the user), who knows what we might get. (The
+  // only valid values are booleans or numbers between 0 and 1.)
+  if (!isValidSampleRate(profilesSampleRate)) {
+    __DEBUG_BUILD__ && logger.warn('[Profiling] Discarding profile because of invalid sample rate.');
+    return false;
+  }
+
+  // if the function returned 0 (or false), or if `profileSampleRate` is 0, it's a sign the profile should be dropped
+  if (!profilesSampleRate) {
+    __DEBUG_BUILD__ &&
+      logger.log(
+        '[Profiling] Discarding profile because a negative sampling decision was inherited or profileSampleRate is set to 0',
+      );
+    return false;
+  }
+
+  // Now we roll the dice. Math.random is inclusive of 0, but not of 1, so strict < is safe here. In case sampleRate is
+  // a boolean, the < comparison will cause it to be automatically cast to 1 if it's true and 0 if it's false.
+  const sampled = profilesSampleRate === true ? true : Math.random() < profilesSampleRate;
+  // Check if we should sample this profile
+  if (!sampled) {
+    __DEBUG_BUILD__ &&
+      logger.log(
+        `[Profiling] Discarding profile because it's not included in the random sample (sampling rate = ${Number(
+          profilesSampleRate,
+        )})`,
+      );
     return false;
   }
 

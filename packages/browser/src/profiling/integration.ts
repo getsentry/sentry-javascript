@@ -1,18 +1,17 @@
-import { getMainCarrier } from '@sentry/core';
 import type { EventProcessor, Hub, Integration, Transaction } from '@sentry/types';
 import type { Profile } from '@sentry/types/src/profiling';
 import { logger } from '@sentry/utils';
 
-import { wrapTransactionWithProfiling } from './hubextensions';
+import { startProfileForTransaction } from './hubextensions';
 import type { ProfiledEvent } from './utils';
-import {
-  addProfilesToEnvelope,
+import {   addProfilesToEnvelope,
   createProfilingEvent,
   findProfiledTransactionsFromEnvelope,
-  getAutomatedPageLoadProfile,
   isAutomatedPageLoadTransaction,
   PROFILE_MAP,
+shouldProfileTransaction ,
 } from './utils';
+
 
 /**
  * Browser profiling integration. Stores any event that has contexts["profile"]["profile_id"]
@@ -44,16 +43,19 @@ export class BrowserProfilingIntegration implements Integration {
     const client = hub.getClient();
     const scope = hub.getScope();
 
-    const pageLoadProfile = getAutomatedPageLoadProfile(getMainCarrier());
     const transaction = scope.getTransaction();
 
-    if (pageLoadProfile && transaction && isAutomatedPageLoadTransaction(transaction)) {
-      wrapTransactionWithProfiling(transaction);
+    if (transaction && isAutomatedPageLoadTransaction(transaction)) {
+      if (shouldProfileTransaction(transaction)) {
+        startProfileForTransaction(transaction);
+      }
     }
 
     if (client && typeof client.on === 'function') {
       client.on('startTransaction', (transaction: Transaction) => {
-        wrapTransactionWithProfiling(transaction);
+        if(shouldProfileTransaction(transaction)){
+          startProfileForTransaction(transaction);
+        }
       });
 
       client.on('beforeEnvelope', (envelope): void => {

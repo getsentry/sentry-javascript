@@ -89,12 +89,6 @@ export interface Carrier {
       // eslint-disable-next-line @typescript-eslint/ban-types
       [key: string]: Function;
     };
-    profiling?: {
-      /*
-       * Stores profile started before SDK was initialized
-       */
-      profiles?: Record<'auto.pageload.browser', any>;
-    };
   };
 }
 
