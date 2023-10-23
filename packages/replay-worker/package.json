@@ -1,6 +1,6 @@
 {
   "name": "@sentry-internal/replay-worker",
-  "version": "7.74.1",
+  "version": "7.74.2-alpha.1",
   "description": "Worker for @sentry/replay",
   "main": "build/npm/esm/index.js",
   "module": "build/npm/esm/index.js",
