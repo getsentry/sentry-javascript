@@ -25,7 +25,7 @@ export class Transaction implements Integration {
 
   /** @inheritDoc */
   public processEvent(event: Event): Event {
-    return this.processEvent(event);
+    return this.process(event);
   }
 
   /**
