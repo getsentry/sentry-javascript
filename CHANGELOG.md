@@ -4,7 +4,7 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
-## 7.74.2-alpha.0
+## 7.74.2-alpha.1
 
 This is a test release for publishing the Deno SDK.
 
