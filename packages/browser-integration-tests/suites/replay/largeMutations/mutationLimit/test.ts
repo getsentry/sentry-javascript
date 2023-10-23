@@ -25,9 +25,13 @@ sentryTest(
 
     const url = await getLocalTestPath({ testDir: __dirname });
 
-    const [res0] = await Promise.all([waitForReplayRequest(page, 0), page.goto(url)]);
-    // Ensure LCP is captured
-    await Promise.all([waitForReplayRequest(page), page.click('#noop')]);
+    // We have to click in order to ensure the LCP is generated, leading to consistent results
+    async function gotoPageAndClick() {
+      await page.goto(url);
+      await page.click('#noop');
+    }
+
+    const [res0] = await Promise.all([waitForReplayRequest(page, 0), gotoPageAndClick()]);
     await forceFlushReplay();
 
     const [res1] = await Promise.all([waitForReplayRequest(page), page.click('#button-add')]);
@@ -46,7 +50,6 @@ sentryTest(
 
     const replayData0 = getReplayRecordingContent(res0);
     expect(replayData0.fullSnapshots.length).toBe(1);
-    expect(replayData0.incrementalSnapshots.length).toBe(0);
 
     // Breadcrumbs (click and mutation);
     const replayData1 = getReplayRecordingContent(res1);
