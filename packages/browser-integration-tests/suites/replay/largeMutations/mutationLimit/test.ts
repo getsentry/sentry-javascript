@@ -23,16 +23,14 @@ sentryTest(
       });
     });
 
-    const reqPromise0 = waitForReplayRequest(page, 0);
-
     const url = await getLocalTestPath({ testDir: __dirname });
 
-    const [res0] = await Promise.all([reqPromise0, page.goto(url)]);
+    const [res0] = await Promise.all([waitForReplayRequest(page, 0), page.goto(url)]);
+    // Ensure LCP is captured
+    await Promise.all([waitForReplayRequest(page), page.click('#noop')]);
     await forceFlushReplay();
 
-    const reqPromise1 = waitForReplayRequest(page);
-
-    const [res1] = await Promise.all([reqPromise1, page.click('#button-add')]);
+    const [res1] = await Promise.all([waitForReplayRequest(page), page.click('#button-add')]);
     await forceFlushReplay();
 
     // replay should be stopped due to mutation limit

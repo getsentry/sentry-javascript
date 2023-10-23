@@ -58,6 +58,7 @@
   },
   "dependencies": {
     "@sentry/core": "7.74.1",
+    "@sentry-internal/tracing": "7.74.1",
     "@sentry/types": "7.74.1",
     "@sentry/utils": "7.74.1"
   },

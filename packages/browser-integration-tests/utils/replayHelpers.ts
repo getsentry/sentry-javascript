@@ -153,7 +153,7 @@ function isFullSnapshot(event: RecordingEvent): event is FullRecordingSnapshot {
   return event.type === EventType.FullSnapshot;
 }
 
-function isCustomSnapshot(event: RecordingEvent): event is RecordingEvent & { data: CustomRecordingEvent } {
+export function isCustomSnapshot(event: RecordingEvent): event is RecordingEvent & { data: CustomRecordingEvent } {
   return event.type === EventType.Custom;
 }
 

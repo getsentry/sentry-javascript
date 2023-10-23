@@ -21,6 +21,8 @@ sentryTest(
     const url = await getLocalTestPath({ testDir: __dirname });
 
     const [res0] = await Promise.all([waitForReplayRequest(page, 0), page.goto(url)]);
+    // Ensure LCP is captured
+    await Promise.all([waitForReplayRequest(page), page.click('#noop')]);
     await forceFlushReplay();
 
     const [res1] = await Promise.all([waitForReplayRequest(page), page.click('#button-add')]);

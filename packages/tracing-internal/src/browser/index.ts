@@ -8,3 +8,5 @@ export {
   defaultRequestInstrumentationOptions,
   addTracingHeadersToFetchRequest,
 } from './request';
+
+export { addPerformanceInstrumentationHandler } from './instrument';

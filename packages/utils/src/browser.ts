@@ -20,6 +20,10 @@ export function htmlTreeAsString(
     parentNode: SimpleNode;
   } | null;
 
+  if (!elem) {
+    return '<unknown>';
+  }
+
   // try/catch both:
   // - accessing event.target (see getsentry/raven-js#838, #768)
   // - `htmlTreeAsString` because it's complex, and just accessing the DOM incorrectly

@@ -25,6 +25,10 @@ describe('htmlTreeAsString', () => {
     );
   });
 
+  it('generates unknown for an empty element', () => {
+    expect(htmlTreeAsString(undefined)).toBe('<unknown>');
+  });
+
   it('inserts pre-defined attribute values by default', () => {
     const el = document.createElement('ul');
     el.innerHTML = `<li title="container-title" class="container">

@@ -1,43 +1,38 @@
-import type { AllPerformanceEntry, ReplayContainer } from '../types';
-import { dedupePerformanceEntries } from '../util/dedupePerformanceEntries';
+import { addPerformanceInstrumentationHandler } from '@sentry-internal/tracing';
+
+import type { ReplayContainer } from '../types';
+import { getLargestContentfulPaint } from '../util/createPerformanceEntries';
 
 /**
  * Sets up a PerformanceObserver to listen to all performance entry types.
+ * Returns a callback to stop observing.
  */
-export function setupPerformanceObserver(replay: ReplayContainer): PerformanceObserver {
-  const performanceObserverHandler = (list: PerformanceObserverEntryList): void => {
-    // For whatever reason the observer was returning duplicate navigation
-    // entries (the other entry types were not duplicated).
-    const newPerformanceEntries = dedupePerformanceEntries(
-      replay.performanceEvents,
-      list.getEntries() as AllPerformanceEntry[],
-    );
-    replay.performanceEvents = newPerformanceEntries;
-  };
-
-  const performanceObserver = new PerformanceObserver(performanceObserverHandler);
-
-  [
-    'element',
-    'event',
-    'first-input',
-    'largest-contentful-paint',
-    'layout-shift',
-    'longtask',
-    'navigation',
-    'paint',
-    'resource',
-  ].forEach(type => {
-    try {
-      performanceObserver.observe({
-        type,
-        buffered: true,
-      });
-    } catch {
-      // This can throw if an entry type is not supported in the browser.
-      // Ignore these errors.
+export function setupPerformanceObserver(replay: ReplayContainer): () => void {
+  function addPerformanceEntry(entry: PerformanceEntry): void {
+    // It is possible for entries to come up multiple times
+    if (!replay.performanceEntries.includes(entry)) {
+      replay.performanceEntries.push(entry);
     }
+  }
+
+  function onEntries({ entries }: { entries: PerformanceEntry[] }): void {
+    entries.forEach(addPerformanceEntry);
+  }
+
+  const clearCallbacks: (() => void)[] = [];
+
+  (['navigation', 'paint', 'resource'] as const).forEach(type => {
+    clearCallbacks.push(addPerformanceInstrumentationHandler(type, onEntries));
   });
 
-  return performanceObserver;
+  clearCallbacks.push(
+    addPerformanceInstrumentationHandler('lcp', ({ metric }) => {
+      replay.replayPerformanceEntries.push(getLargestContentfulPaint(metric));
+    }),
+  );
+
+  // A callback to cleanup all handlers
+  return () => {
+    clearCallbacks.forEach(clearCallback => clearCallback());
+  };
 }
