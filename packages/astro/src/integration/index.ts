@@ -55,7 +55,7 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
 
         if (pathToClientInit) {
           options.debug && console.log(`[sentry-astro] Using ${pathToClientInit} for client init.`);
-          injectScript('page', buildSdkInitFileImportSnippet(pathToClientInit));
+          injectScript('page', buildSdkInitFileImportSnippet(pathToPosix(pathToClientInit)));
         } else {
           options.debug && console.log('[sentry-astro] Using default client init.');
           injectScript('page', buildClientSnippet(options || {}));
@@ -63,7 +63,7 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
 
         if (pathToServerInit) {
           options.debug && console.log(`[sentry-astro] Using ${pathToServerInit} for server init.`);
-          injectScript('page-ssr', buildSdkInitFileImportSnippet(pathToServerInit));
+          injectScript('page-ssr', buildSdkInitFileImportSnippet(pathToPosix(pathToServerInit)));
         } else {
           options.debug && console.log('[sentry-astro] Using default server init.');
           injectScript('page-ssr', buildServerSnippet(options || {}));
@@ -78,4 +78,8 @@ function findDefaultSdkInitFile(type: 'server' | 'client'): string | undefined {
   return fileExtensions
     .map(ext => path.resolve(path.join(process.cwd(), `sentry.${type}.config.${ext}`)))
     .find(filename => fs.existsSync(filename));
+}
+
+function pathToPosix(originalPath: string): string {
+  return originalPath.split(path.sep).join(path.posix.sep);
 }

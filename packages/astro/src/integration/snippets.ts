@@ -1,10 +1,12 @@
+import * as path from 'path';
+
 import type { SentryOptions } from './types';
 
 /**
  * Creates a snippet that imports a Sentry.init file.
  */
 export function buildSdkInitFileImportSnippet(filePath: string): string {
-  return `import "${filePath}";`;
+  return `import "${filePath.split(path.sep).join(path.posix.sep)}";`;
 }
 
 /**
