@@ -5,7 +5,7 @@ const transaction: Transaction = new Transaction();
 describe('Transaction', () => {
   describe('extracts info from module/function of the first `in_app` frame', () => {
     it('using module only', () => {
-      const event = transaction.process({
+      const event = transaction.processEvent({
         exception: {
           values: [
             {
@@ -31,7 +31,7 @@ describe('Transaction', () => {
     });
 
     it('using function only', () => {
-      const event = transaction.process({
+      const event = transaction.processEvent({
         exception: {
           values: [
             {
@@ -57,7 +57,7 @@ describe('Transaction', () => {
     });
 
     it('using module and function', () => {
-      const event = transaction.process({
+      const event = transaction.processEvent({
         exception: {
           values: [
             {
@@ -85,7 +85,7 @@ describe('Transaction', () => {
     });
 
     it('using default', () => {
-      const event = transaction.process({
+      const event = transaction.processEvent({
         exception: {
           values: [
             {
@@ -109,7 +109,7 @@ describe('Transaction', () => {
     });
 
     it('no value with no `in_app` frame', () => {
-      const event = transaction.process({
+      const event = transaction.processEvent({
         exception: {
           values: [
             {
