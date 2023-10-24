@@ -9,4 +9,9 @@ export {
   addTracingHeadersToFetchRequest,
 } from './request';
 
-export { addPerformanceInstrumentationHandler } from './instrument';
+export {
+  addPerformanceInstrumentationHandler,
+  addClsInstrumentationHandler,
+  addFidInstrumentationHandler,
+  addLcpInstrumentationHandler,
+} from './instrument';

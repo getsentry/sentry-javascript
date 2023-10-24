@@ -7,6 +7,8 @@ import { observe } from './web-vitals/lib/observe';
 
 type InstrumentHandlerTypePerformanceObserver = 'longtask' | 'event' | 'navigation' | 'paint' | 'resource';
 
+type InstrumentHandlerTypeMetric = 'cls' | 'lcp' | 'fid';
+
 // We provide this here manually instead of relying on a global, as this is not available in non-browser environements
 // And we do not want to expose such types
 interface PerformanceEntry {
@@ -68,45 +70,42 @@ interface Metric {
   navigationType: 'navigate' | 'reload' | 'back-forward' | 'back-forward-cache' | 'prerender';
 }
 
-export type InstrumentHandlerType = 'cls' | 'lcp' | 'fid' | InstrumentHandlerTypePerformanceObserver;
+type InstrumentHandlerType = InstrumentHandlerTypeMetric | InstrumentHandlerTypePerformanceObserver;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type InstrumentHandlerCallback = (data: any) => void;
+type InstrumentHandlerCallback = (data: any) => void;
 
 type CleanupHandlerCallback = () => void;
 
 const handlers: { [key in InstrumentHandlerType]?: InstrumentHandlerCallback[] } = {};
 const instrumented: { [key in InstrumentHandlerType]?: boolean } = {};
 
-/** Instruments given API */
-function instrument(type: InstrumentHandlerType): void {
-  if (instrumented[type]) {
-    return;
-  }
+let _previousCls: Metric | undefined;
+let _previousFid: Metric | undefined;
+let _previousLcp: Metric | undefined;
 
-  instrumented[type] = true;
+/**
+ * Add a callback that will be triggered when a CLS metric is available.
+ * Returns a cleanup callback which can be called to remove the instrumentation handler.
+ */
+export function addClsInstrumentationHandler(callback: (data: { metric: Metric }) => void): CleanupHandlerCallback {
+  return addMetricObserver('cls', callback, instrumentCls, _previousCls);
+}
 
-  switch (type) {
-    case 'cls':
-      instrumentCls();
-      break;
-    case 'fid':
-      instrumentFid();
-      break;
-    case 'lcp':
-      instrumentLcp();
-      break;
-    case 'longtask':
-    case 'event':
-    case 'navigation':
-    case 'paint':
-    case 'resource':
-      instrumentPerformanceObserver(type);
-      break;
-    default:
-      __DEBUG_BUILD__ && logger.warn('unknown instrumentation type:', type);
-      return;
-  }
+/**
+ * Add a callback that will be triggered when a LCP metric is available.
+ * Returns a cleanup callback which can be called to remove the instrumentation handler.
+ */
+export function addLcpInstrumentationHandler(callback: (data: { metric: Metric }) => void): CleanupHandlerCallback {
+  return addMetricObserver('lcp', callback, instrumentLcp, _previousLcp);
+}
+
+/**
+ * Add a callback that will be triggered when a FID metric is available.
+ * Returns a cleanup callback which can be called to remove the instrumentation handler.
+ */
+export function addFidInstrumentationHandler(callback: (data: { metric: Metric }) => void): CleanupHandlerCallback {
+  return addMetricObserver('fid', callback, instrumentFid, _previousFid);
 }
 
 export function addPerformanceInstrumentationHandler(
@@ -117,48 +116,24 @@ export function addPerformanceInstrumentationHandler(
   type: InstrumentHandlerTypePerformanceObserver,
   callback: (data: { entries: PerformanceEntry[] }) => void,
 ): CleanupHandlerCallback;
-export function addPerformanceInstrumentationHandler(
-  type: 'lcp' | 'cls' | 'fid',
-  callback: (data: { metric: Metric }) => void,
-): CleanupHandlerCallback;
 
 /**
- * Add handler that will be called when given type of instrumentation triggers.
- * Use at your own risk, this might break without changelog notice, only used internally.
- * @hidden
+ * Add a callback that will be triggered when a performance observer is triggered,
+ * and receives the entries of the observer.
+ * Returns a cleanup callback which can be called to remove the instrumentation handler.
  */
 export function addPerformanceInstrumentationHandler(
-  type: InstrumentHandlerType,
-  callback: InstrumentHandlerCallback,
+  type: InstrumentHandlerTypePerformanceObserver,
+  callback: (data: { entries: PerformanceEntry[] }) => void,
 ): CleanupHandlerCallback {
-  handlers[type] = handlers[type] || [];
-  (handlers[type] as InstrumentHandlerCallback[]).push(callback);
-  instrument(type);
+  addHandler(type, callback);
 
-  // Metrics may have been sent before, in which case we still want to trigger callbacks
-  if (type === 'cls' && _previousCls) {
-    callback({ metric: _previousCls });
-  }
-  if (type === 'fid' && _previousFid) {
-    callback({ metric: _previousFid });
-  }
-  if (type === 'lcp' && _previousLcp) {
-    callback({ metric: _previousLcp });
+  if (!instrumented[type]) {
+    instrumentPerformanceObserver(type);
+    instrumented[type] = true;
   }
 
-  // Return a function to remove the handler
-  return () => {
-    const typeHandlers = handlers[type];
-
-    if (!typeHandlers) {
-      return;
-    }
-
-    const index = typeHandlers.indexOf(callback);
-    if (index !== -1) {
-      typeHandlers.splice(index, 1);
-    }
-  };
+  return getCleanupCallback(type, callback);
 }
 
 /** Trigger all handlers of a given type. */
@@ -182,13 +157,11 @@ function triggerHandlers(type: InstrumentHandlerType, data: unknown): void {
   }
 }
 
-let _previousCls: Metric | undefined;
-let _previousFid: Metric | undefined;
-let _previousLcp: Metric | undefined;
-
 function instrumentCls(): void {
   onCLS(metric => {
-    triggerHandlers('cls', { metric });
+    triggerHandlers('cls', {
+      metric,
+    });
     _previousCls = metric;
   });
 }
@@ -211,6 +184,26 @@ function instrumentLcp(): void {
   });
 }
 
+function addMetricObserver(
+  type: InstrumentHandlerTypeMetric,
+  callback: InstrumentHandlerCallback,
+  instrumentFn: () => void,
+  previousValue: Metric | undefined,
+): CleanupHandlerCallback {
+  addHandler(type, callback);
+
+  if (!instrumented[type]) {
+    instrumentFn();
+    instrumented[type] = true;
+  }
+
+  if (previousValue) {
+    callback({ metric: previousValue });
+  }
+
+  return getCleanupCallback(type, callback);
+}
+
 function instrumentPerformanceObserver(type: InstrumentHandlerTypePerformanceObserver): void {
   const options: PerformanceObserverInit = {};
 
@@ -226,4 +219,25 @@ function instrumentPerformanceObserver(type: InstrumentHandlerTypePerformanceObs
     },
     options,
   );
+}
+
+function addHandler(type: InstrumentHandlerType, handler: InstrumentHandlerCallback): void {
+  handlers[type] = handlers[type] || [];
+  (handlers[type] as InstrumentHandlerCallback[]).push(handler);
+}
+
+// Get a callback which can be called to remove the instrumentation handler
+function getCleanupCallback(type: InstrumentHandlerType, callback: InstrumentHandlerCallback): CleanupHandlerCallback {
+  return () => {
+    const typeHandlers = handlers[type];
+
+    if (!typeHandlers) {
+      return;
+    }
+
+    const index = typeHandlers.indexOf(callback);
+    if (index !== -1) {
+      typeHandlers.splice(index, 1);
+    }
+  };
 }

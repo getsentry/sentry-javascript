@@ -4,7 +4,12 @@ import { getActiveTransaction } from '@sentry/core';
 import type { Measurements } from '@sentry/types';
 import { browserPerformanceTimeOrigin, htmlTreeAsString, logger } from '@sentry/utils';
 
-import { addPerformanceInstrumentationHandler } from '../instrument';
+import {
+  addClsInstrumentationHandler,
+  addFidInstrumentationHandler,
+  addLcpInstrumentationHandler,
+  addPerformanceInstrumentationHandler,
+} from '../instrument';
 import { WINDOW } from '../types';
 import { getVisibilityWatcher } from '../web-vitals/lib/getVisibilityWatcher';
 import type { NavigatorDeviceMemory, NavigatorNetworkInformation } from '../web-vitals/types';
@@ -108,7 +113,7 @@ export function startTrackingInteractions(): void {
 
 /** Starts tracking the Cumulative Layout Shift on the current page. */
 function _trackCLS(): () => void {
-  return addPerformanceInstrumentationHandler('cls', ({ metric }) => {
+  return addClsInstrumentationHandler(({ metric }) => {
     const entry = metric.entries.pop();
     if (!entry) {
       return;
@@ -122,7 +127,7 @@ function _trackCLS(): () => void {
 
 /** Starts tracking the Largest Contentful Paint on the current page. */
 function _trackLCP(): () => void {
-  return addPerformanceInstrumentationHandler('lcp', ({ metric }) => {
+  return addLcpInstrumentationHandler(({ metric }) => {
     const entry = metric.entries.pop();
     if (!entry) {
       return;
@@ -136,7 +141,7 @@ function _trackLCP(): () => void {
 
 /** Starts tracking the First Input Delay on the current page. */
 function _trackFID(): () => void {
-  return addPerformanceInstrumentationHandler('fid', ({ metric }) => {
+  return addFidInstrumentationHandler(({ metric }) => {
     const entry = metric.entries.pop();
     if (!entry) {
       return;

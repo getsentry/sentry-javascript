@@ -1,4 +1,4 @@
-import { addPerformanceInstrumentationHandler } from '@sentry-internal/tracing';
+import { addLcpInstrumentationHandler, addPerformanceInstrumentationHandler } from '@sentry-internal/tracing';
 
 import type { ReplayContainer } from '../types';
 import { getLargestContentfulPaint } from '../util/createPerformanceEntries';
@@ -26,7 +26,7 @@ export function setupPerformanceObserver(replay: ReplayContainer): () => void {
   });
 
   clearCallbacks.push(
-    addPerformanceInstrumentationHandler('lcp', ({ metric }) => {
+    addLcpInstrumentationHandler(({ metric }) => {
       replay.replayPerformanceEntries.push(getLargestContentfulPaint(metric));
     }),
   );
