@@ -12,11 +12,11 @@ import {
   fill,
   generateSentryTraceHeader,
   logger,
+  LRUMap,
   stringMatchesSomePattern,
 } from '@sentry/utils';
 import type * as http from 'http';
 import type * as https from 'https';
-import { LRUMap } from 'lru_map';
 
 import type { NodeClient } from '../client';
 import { NODE_VERSION } from '../nodeVersion';

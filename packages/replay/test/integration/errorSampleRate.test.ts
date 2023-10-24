@@ -650,7 +650,7 @@ describe('Integration | errorSampleRate', () => {
       mockRecord._emitter(TEST_EVENT);
 
       // add a mock performance event
-      replay.performanceEvents.push(PerformanceEntryResource());
+      replay.performanceEntries.push(PerformanceEntryResource());
 
       jest.runAllTimers();
       await new Promise(process.nextTick);

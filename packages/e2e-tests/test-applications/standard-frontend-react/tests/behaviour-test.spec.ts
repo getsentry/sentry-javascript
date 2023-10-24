@@ -181,6 +181,9 @@ test('Sends a Replay recording to Sentry', async ({ browser }) => {
     return window.sentryReplayId;
   });
 
+  // Keypress event ensures LCP is finished
+  await page.type('body', 'Y');
+
   // Wait for replay to be sent
 
   if (replayId === undefined) {
@@ -227,10 +230,7 @@ test('Sends a Replay recording to Sentry', async ({ browser }) => {
             { headers: { Authorization: `Bearer ${authToken}` } },
           );
 
-          return {
-            status: response.status,
-            data: response.data,
-          };
+          return response.status === 200 ? response.data[0] : response.status;
         } catch (e) {
           if (e instanceof AxiosError && e.response) {
             if (e.response.status !== 404) {
@@ -247,8 +247,5 @@ test('Sends a Replay recording to Sentry', async ({ browser }) => {
         timeout: EVENT_POLLING_TIMEOUT,
       },
     )
-    .toEqual({
-      status: 200,
-      data: ReplayRecordingData,
-    });
+    .toEqual(ReplayRecordingData);
 });

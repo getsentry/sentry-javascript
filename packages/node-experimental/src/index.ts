@@ -11,10 +11,9 @@ export { init } from './sdk/init';
 export { INTEGRATIONS as Integrations };
 export { getAutoPerformanceIntegrations } from './integrations/getAutoPerformanceIntegrations';
 export * as Handlers from './sdk/handlers';
-export * from './sdk/trace';
-export { getActiveSpan } from './utils/getActiveSpan';
-export { getCurrentHub, getHubFromCarrier } from './sdk/hub';
 export type { Span } from './types';
+
+export { startSpan, startInactiveSpan, getCurrentHub, getActiveSpan } from '@sentry/opentelemetry';
 
 export {
   makeNodeTransport,

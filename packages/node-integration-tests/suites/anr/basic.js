@@ -2,6 +2,8 @@ const crypto = require('crypto');
 
 const Sentry = require('@sentry/node');
 
+const { transport } = require('./test-transport.js');
+
 // close both processes after 5 seconds
 setTimeout(() => {
   process.exit();
@@ -11,10 +13,8 @@ Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
   release: '1.0',
   debug: true,
-  beforeSend: event => {
-    // eslint-disable-next-line no-console
-    console.log(JSON.stringify(event));
-  },
+  autoSessionTracking: false,
+  transport,
 });
 
 Sentry.enableAnrDetection({ captureStackTrace: true, anrThreshold: 200 }).then(() => {

@@ -21,7 +21,7 @@ export interface Session {
   errors: number;
   user?: User | null;
   ignoreDuration: boolean;
-
+  abnormal_mechanism?: string;
   /**
    * Overrides default JSON serialization of the Session because
    * the Sentry servers expect a slightly different schema of a session
@@ -76,6 +76,7 @@ export interface SerializedSession {
   duration?: number;
   status: SessionStatus;
   errors: number;
+  abnormal_mechanism?: string;
   attrs?: {
     release?: string;
     environment?: string;

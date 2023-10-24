@@ -35,10 +35,10 @@
   },
   "devDependencies": {
     "@opentelemetry/api": "^1.6.0",
-    "@opentelemetry/core": "^1.7.0",
-    "@opentelemetry/sdk-trace-base": "^1.17.0",
-    "@opentelemetry/sdk-trace-node": "^1.17.0",
-    "@opentelemetry/semantic-conventions": "^1.17.0",
+    "@opentelemetry/core": "^1.17.1",
+    "@opentelemetry/sdk-trace-base": "^1.17.1",
+    "@opentelemetry/sdk-trace-node": "^1.17.1",
+    "@opentelemetry/semantic-conventions": "^1.17.1",
     "@sentry/node": "7.74.1"
   },
   "scripts": {
@@ -64,7 +64,7 @@
     "test": "yarn test:jest",
     "test:jest": "jest",
     "test:watch": "jest --watch",
-    "yalc:publish": "ts-node ../../scripts/prepack.ts && yalc publish build --push"
+    "yalc:publish": "ts-node ../../scripts/prepack.ts && yalc publish build --push --sig"
   },
   "volta": {
     "extends": "../../package.json"

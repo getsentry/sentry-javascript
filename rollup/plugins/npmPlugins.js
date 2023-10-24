@@ -105,4 +105,33 @@ export function makeDebugBuildStatementReplacePlugin() {
   });
 }
 
+/**
+ * Creates a plugin to replace build flags of rrweb with either a constant (if passed true/false) or with a safe statement that:
+ * a) evaluates to `true`
+ * b) can easily be modified by our users' bundlers to evaluate to false, facilitating the treeshaking of logger code.
+ *
+ * When `undefined` is passed,
+ * end users can define e.g. `__SENTRY_EXCLUDE_CANVAS__` in their bundler to shake out canvas specific rrweb code.
+ */
+export function makeRrwebBuildPlugin({ excludeCanvas, excludeShadowDom, excludeIframe } = {}) {
+  const values = {};
+
+  if (typeof excludeCanvas === 'boolean') {
+    values['__RRWEB_EXCLUDE_CANVAS__'] = excludeCanvas;
+  }
+
+  if (typeof excludeShadowDom === 'boolean') {
+    values['__RRWEB_EXCLUDE_SHADOW_DOM__'] = excludeShadowDom;
+  }
+
+  if (typeof excludeIframe === 'boolean') {
+    values['__RRWEB_EXCLUDE_IFRAME__'] = excludeIframe;
+  }
+
+  return replace({
+    preventAssignment: true,
+    values,
+  });
+}
+
 export { makeExtractPolyfillsPlugin } from './extractPolyfillsPlugin.js';

@@ -23,8 +23,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/types": "7.74.1",
-    "tslib": "^2.4.1 || ^1.9.3"
+    "@sentry/types": "7.74.1"
   },
   "devDependencies": {
     "@types/array.prototype.flat": "^1.2.1",
@@ -55,7 +54,7 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:package": "node test/types/index.js",
-    "yalc:publish": "ts-node ../../scripts/prepack.ts && yalc publish build --push"
+    "yalc:publish": "ts-node ../../scripts/prepack.ts && yalc publish build --push --sig"
   },
   "volta": {
     "extends": "../../package.json"

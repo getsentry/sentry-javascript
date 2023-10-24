@@ -10,7 +10,7 @@ import type {
 } from '@sentry/types';
 
 import type { SKIPPED, THROTTLED } from '../util/throttle';
-import type { AllPerformanceEntry } from './performance';
+import type { AllPerformanceEntry, AllPerformanceEntryData, ReplayPerformanceEntry } from './performance';
 import type { ReplayFrameEvent } from './replayFrame';
 import type { ReplayNetworkRequestOrResponse } from './request';
 import type { ReplayEventWithTime, RrwebRecordOptions } from './rrweb';
@@ -441,7 +441,15 @@ export interface ReplayClickDetector {
 export interface ReplayContainer {
   eventBuffer: EventBuffer | null;
   clickDetector: ReplayClickDetector | undefined;
-  performanceEvents: AllPerformanceEntry[];
+  /**
+   * List of PerformanceEntry from PerformanceObservers.
+   */
+  performanceEntries: AllPerformanceEntry[];
+
+  /**
+   * List of already processed performance data, ready to be added to replay.
+   */
+  replayPerformanceEntries: ReplayPerformanceEntry<AllPerformanceEntryData>[];
   session: Session | undefined;
   recordingMode: ReplayRecordingMode;
   timeouts: Timeouts;

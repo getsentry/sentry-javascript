@@ -55,7 +55,7 @@
     "test": "run-s install:bun test:bun",
     "test:bun": "bun test",
     "test:watch": "bun test --watch",
-    "yalc:publish": "ts-node ../../scripts/prepack.ts && yalc publish build --push"
+    "yalc:publish": "ts-node ../../scripts/prepack.ts && yalc publish build --push --sig"
   },
   "volta": {
     "extends": "../../package.json"
