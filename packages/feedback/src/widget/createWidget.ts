@@ -11,12 +11,12 @@ import { SuccessMessage } from './SuccessMessage';
 
 interface CreateWidgetParams {
   shadow: ShadowRoot;
-  options: FeedbackConfigurationWithDefaults;
+  options: FeedbackConfigurationWithDefaults & {referrer?: string};
   attachTo?: Node;
 }
 
 /**
- *
+ * Creates a new widget. Returns public methods that control widget behavior.
  */
 export function createWidget({ shadow, options, attachTo }: CreateWidgetParams): Widget {
   let actor: ActorComponent | undefined;
@@ -64,7 +64,7 @@ export function createWidget({ shadow, options, attachTo }: CreateWidgetParams):
       return;
     }
 
-    const result = await handleFeedbackSubmit(dialog, feedback);
+    const result = await handleFeedbackSubmit(dialog, feedback, {referrer: options.referrer});
 
     // Error submitting feedback
     if (!result) {

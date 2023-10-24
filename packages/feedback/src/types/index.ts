@@ -29,8 +29,24 @@ export interface SendFeedbackData {
     replay_id?: string;
     name?: string;
   };
+  referrer?: string;
 }
 
+export interface SendFeedbackOptions {
+  /**
+   * Should include replay with the feedback?
+   */
+  includeReplay?: boolean;
+
+  /**
+   * Allows user to set a referrer for feedback, to act as a category for the feedback
+   */
+  referrer?: string;
+}
+
+/**
+ * Feedback data expected from UI/form
+ */
 export interface FeedbackFormData {
   message: string;
   email?: string;
@@ -211,6 +227,10 @@ export interface FeedbackTheme {
    * Error color
    */
   error: string;
+}
+
+export interface CreateWidgetOptionOverrides extends Partial<FeedbackConfigurationWithDefaults> {
+  referrer?: string;
 }
 
 export interface FeedbackThemes {

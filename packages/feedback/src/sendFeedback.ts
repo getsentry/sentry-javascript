@@ -3,6 +3,7 @@ import { getCurrentHub } from '@sentry/core';
 import { getLocationHref } from '@sentry/utils';
 
 import { sendFeedbackRequest } from './util/sendFeedbackRequest';
+import { SendFeedbackOptions } from './types';
 
 interface SendFeedbackParams {
   message: string;
@@ -11,16 +12,12 @@ interface SendFeedbackParams {
   url?: string;
 }
 
-interface SendFeedbackOptions {
-  includeReplay?: boolean;
-}
-
 /**
  * Public API to send a Feedback item to Sentry
  */
 export function sendFeedback(
   { name, email, message, url = getLocationHref() }: SendFeedbackParams,
-  { includeReplay = true }: SendFeedbackOptions = {},
+  { referrer, includeReplay = true }: SendFeedbackOptions = {},
 ): ReturnType<typeof sendFeedbackRequest> {
   const hub = getCurrentHub();
   const client = hub && hub.getClient<BrowserClient>();
@@ -38,5 +35,6 @@ export function sendFeedback(
       url,
       replay_id: replayId,
     },
+    referrer,
   });
 }

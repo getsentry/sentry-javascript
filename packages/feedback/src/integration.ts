@@ -16,7 +16,7 @@ import {
   SUBMIT_BUTTON_LABEL,
   SUCCESS_MESSAGE_TEXT,
 } from './constants';
-import type { FeedbackConfigurationWithDefaults, Widget } from './types';
+import type { CreateWidgetOptionOverrides, FeedbackConfigurationWithDefaults, Widget } from './types';
 import { createActorStyles } from './widget/Actor.css';
 import { createShadowHost } from './widget/createShadowHost';
 import { createWidget } from './widget/createWidget';
@@ -94,7 +94,6 @@ export class Feedback implements Integration {
 
   public constructor({
     id = 'sentry-feedback',
-    // attachTo = null,
     autoInject = true,
     showEmail = true,
     showName = true,
@@ -140,7 +139,6 @@ export class Feedback implements Integration {
 
     this.options = {
       id,
-      // attachTo,
       autoInject,
       isAnonymous,
       isEmailRequired,
@@ -210,7 +208,7 @@ export class Feedback implements Integration {
   /**
    * Adds click listener to attached element to open a feedback dialog
    */
-  public attachTo(el: Node | string, optionOverrides: Partial<FeedbackConfigurationWithDefaults>): Widget | null {
+  public attachTo(el: Node | string, optionOverrides: CreateWidgetOptionOverrides): Widget | null {
     try {
       const options = Object.assign({}, this.options, optionOverrides);
 
@@ -237,7 +235,7 @@ export class Feedback implements Integration {
   /**
    * Creates a new widget. Accepts partial options to override any options passed to constructor.
    */
-  public createWidget(optionOverrides: Partial<FeedbackConfigurationWithDefaults>): Widget | null {
+  public createWidget(optionOverrides: CreateWidgetOptionOverrides): Widget | null {
     try {
       return this._createWidget(Object.assign({}, this.options, optionOverrides));
     } catch (err) {
