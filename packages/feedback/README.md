@@ -55,7 +55,7 @@ The following options can be configured as options to the integration, in `new F
 | key       | type    | default | description |
 | --------- | ------- | ------- | ----------- |
 | `autoInject`       | `boolean` | `true`  | Injects the Feedback widget into the application when the integration is added. This is useful to turn off if you bring your own button, or only want to show the widget on certain views. |
-| `colorScheme` | `"system" | "light" | "dark"` | `"system"` | The color theme to use. `"system"` will follow your OS colorscheme. |
+| `colorScheme` | `"system" \| "light" \| "dark"` | `"system"` | The color theme to use. `"system"` will follow your OS colorscheme. |
 
 ### User/form Related Configuration
 | key       | type    | default | description |
@@ -116,9 +116,9 @@ Colors can be customized via the Feedback constructor or by defining CSS variabl
 | `backgroundHover` | `--bg-hover-color` | `#f6f6f7` | `#352f3b` | The background color of widget actor when in a hover state |
 | `foreground` | `--fg-color` | `#2b2233` | `#ebe6ef` | The foreground color, e.g. text color |
 | `error` | `--error-color` | `#df3338` | `#f55459` | Color used for error related components (e.g. text color when there was an error submitting feedback) |
-| `success` | `--success-color` | #268d75 | #2da98c | Color used for success-related components (e.g. text color when feedback is submitted successfully) |
-| `border` | `--border` | 1.5px solid rgba(41, 35, 47, 0.13) | 1.5px solid rgba(235, 230, 239, 0.15) | The border style used for the widget actor and dialog |
-| `boxShadow` | `--box-shadow | 0px 4px 24px 0px rgba(43, 34, 51, 0.12) | 0px 4px 24px 0px rgba(43, 34, 51, 0.12) | The box shadow style used for the widget actor and dialog |
+| `success` | `--success-color` | `#268d75` | `#2da98c` | Color used for success-related components (e.g. text color when feedback is submitted successfully) |
+| `border` | `--border` | `1.5px solid rgba(41, 35, 47, 0.13)` | `1.5px solid rgba(235, 230, 239, 0.15)` | The border style used for the widget actor and dialog |
+| `boxShadow` | `--box-shadow | 0px 4px 24px 0px rgba(43, 34, 51, 0.12)` | `0px 4px 24px 0px rgba(43, 34, 51, 0.12)` | The box shadow style used for the widget actor and dialog |
 
 Here is an example of customizing only the background color for the light theme using the Feedback constructor configuration.
 ```javascript
