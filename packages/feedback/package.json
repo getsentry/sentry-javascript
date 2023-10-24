@@ -23,11 +23,10 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/browser": "7.74.1",
-    "@sentry/core": "7.74.1",
-    "@sentry/types": "7.74.1",
-    "@sentry/utils": "7.74.1",
-    "tslib": "^2.4.1 || ^1.9.3"
+    "@sentry/browser": "7.75.0",
+    "@sentry/core": "7.75.0",
+    "@sentry/types": "7.75.0",
+    "@sentry/utils": "7.75.0"
   },
   "scripts": {
     "build": "run-p build:transpile build:types build:bundle",
