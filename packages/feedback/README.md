@@ -11,23 +11,27 @@ This SDK is **considered experimental and in an alpha state**. It may experience
 
 ## Pre-requisites
 
-`@sentry/feedback` currently can only be used by browsers with [Shadow DOM](https://developer.mozilla.org/en-US/docs/Web/API/Web_components/Using_shadow_DOM) support.
+`@sentry-internal/feedback` currently can only be used by browsers with [Shadow DOM](https://developer.mozilla.org/en-US/docs/Web/API/Web_components/Using_shadow_DOM) support.
 
 ## Installation
 
-Feedback can be imported from `@sentry/browser`, or a respective SDK package like `@sentry/react` or `@sentry/vue`.
-You don't need to install anything in order to use Feedback. The minimum version that includes Feedback is <<CHANGEME>>.
+During the alpha phase, the feedback integration will need to be imported from `@sentry-internal/feedback`. This will be
+changed for the general release.
 
-For details on using Feedback when using Sentry via the CDN bundles, see [CDN bundle](#loading-feedback-as-a-cdn-bundle).
+```shell
+npm add @sentry-internal/feedback
+```
 
 ## Setup
 
-To set up the integration, add the following to your Sentry initialization. Several options are supported and passable via the integration constructor.
-See the [configuration section](#configuration) below for more details.
+To set up the integration, add the following to your Sentry initialization. This will inject a feedback button to the bottom right corner of your application. Users can then click it to open up a feedback form where they can submit feedback.
+
+Several options are supported and passable via the integration constructor. See the [configuration section](#configuration) below for more details.
 
 ```javascript
 import * as Sentry from '@sentry/browser';
-// or e.g. import * as Sentry from '@sentry/react';
+// or from a framework specific SDK, e.g.
+// import * as Sentry from '@sentry/react';
 
 Sentry.init({
   dsn: '__DSN__',
@@ -41,45 +45,6 @@ Sentry.init({
 });
 ```
 
-### Lazy loading Feedback
-
-Feedback will start automatically when you add the integration.
-If you do not want to start Feedback immediately (e.g. if you want to lazy-load it),
-you can also use `addIntegration` to load it later:
-
-```js
-import * as Sentry from "@sentry/react";
-import { BrowserClient } from "@sentry/browser";
-
-Sentry.init({
-  // Do not load it initially
-  integrations: []
-});
-
-// Sometime later
-const { Feedback } = await import('@sentry/browser');
-const client = Sentry.getCurrentHub().getClient<BrowserClient>();
-
-// Client can be undefined
-client?.addIntegration(new Feedback());
-```
-
-### Identifying Users
-
-If you have only followed the above instructions to setup session feedbacks, you will only see IP addresses in Sentry's UI. In order to associate a user identity to a session feedback, use [`setUser`](https://docs.sentry.io/platforms/javascript/enriching-events/identify-user/).
-
-```javascript
-import * as Sentry from "@sentry/browser";
-
-Sentry.setUser({ email: "jane.doe@example.com" });
-```
-
-## Loading Feedback as a CDN Bundle
-
-As an alternative to the NPM package, you can use Feedback as a CDN bundle.
-Please refer to the [Feedback installation guide](https://docs.sentry.io/platforms/javascript/session-feedback/#install) for CDN bundle instructions.
-
-
 ## Configuration
 
 ### General Integration Configuration
@@ -88,12 +53,145 @@ The following options can be configured as options to the integration, in `new F
 
 | key       | type    | default | description |
 | --------- | ------- | ------- | ----------- |
-| tbd       | boolean | `true`  | tbd         |
+| autoInject       | boolean | `true`  | Injects the Feedback widget into the application when the integration is added. This is useful to turn off if you bring your own button, or only want to show the widget on certain views. |
+| colorScheme | "system" \| "light" \| "dark" | `"system"` | The color theme to use. `"system"` will follow your OS colorscheme. |
+
+### User/form Related Configuration
+| key       | type    | default | description |
+| --------- | ------- | ------- | ----------- |
+| showName       | boolean | `true`  | Displays the name field on the feedback form, however will still capture the name (if available) from Sentry SDK context. |
+| showEmail       | boolean | `true`  | Displays the email field on the feedback form, however will still capture the email (if available) from Sentry SDK context. |
+| isAnonymous       | boolean | `false` | Hides both name and email fields and does not use Sentry SDK's user context. |
+| useSentryUser | Record<string, string> | `{ email: 'email', name: 'username'}` | Map of the `email` and `name` fields to the corresponding Sentry SDK user fields that were called with `Sentry.setUser`. |
+
+By default the Feedback integration will attempt to fill in the name/email fields if you have set a user context via [`Sentry.setUser`](https://docs.sentry.io/platforms/javascript/enriching-events/identify-user/). By default it expects the email and name fields to be `email` and `username`. Below is an example configuration with non-default user fields.
+
+```javascript
+Sentry.setUser({
+    email: 'foo@example.com',
+    fullName: 'Jane Doe',
+});
 
 
+new Feedback({
+    useSentryUser({
+        email: 'email',
+        name: 'fullName',
+    }),
+})
+```
 
-## Manually Sending Feedback Data
+### Text Customization
+Most text that you see in the default Feedback widget can be customized.
 
-Connect your own feedback UI to Sentry's You can use `feedback.flush()` to immediately send all currently captured feedback data.
-When Feedback is currently in buffering mode, this will send up to the last 60 seconds of feedback data,
-and also continue sending afterwards, similar to when an error happens & is recorded.
+| key       | default | description |
+| --------- | ------- | ----------- |
+| buttonLabel | "Feedback" | The label of the widget button. |
+| submitButtonLabel | 'Send Feedback' | The label of the submit button used in the feedback form dialog. |
+| cancelButtonLabel | 'Cancel' | The label of the cancel button used in the feedback form dialog. |
+| formTitle | 'Send Feedback' | The title at the top of the feedback form dialog. |
+| nameLabel | 'Full Name' | The label of the name input field. |
+| namePlaceholder | 'Full Name' | The placeholder for the name input field. |
+| emailLabel | 'Email' | The label of the email input field. ||
+| emailPlaceholder | 'Email' | The placeholder for the email input field. |
+| messageLabel | 'Description' | The label for the feedback description input field. |
+| messagePlaceholder | "What's the issue? What did you expect?" | The placeholder for the feedback description input field. |
+| successMessageText | 'Thank you for your report!' | The message to be displayed after a succesful feedback submission. |
+
+```javascript
+new Feedback({
+  buttonLabel: 'Bug Report',
+  submitButtonLabel: 'Send Report',
+  formTitle: 'Send Bug Report',
+});
+```
+
+### Theme Customization
+Colors can be customized via the Feedback constructor or by defining CSS variables on the widget button. If you use the default widget button, it will have an `id="sentry-feedback`, meaning you can use the `#sentry-feedback` selector to define CSS variables to override.
+
+| key | css variable | light | dark | description |
+| --- | --- | --- | --- |
+| background | --bg-color | #ffffff | #29232f | Background color of the widget actor and dialog. |
+| backgroundHover | --bg-hover-color | #f6f6f7 | #352f3b | The background color of widget actor when in a hover state |
+| foreground | --fg-color | #2b2233 | #ebe6ef | The foreground color, e.g. text color |
+| error | --error-color | #df3338 | #f55459 | Color used for error related components (e.g. text color when there was an error submitting feedback) |
+| success | --success-color | #268d75 | #2da98c | Color used for success-related components (e.g. text color when feedback is submitted successfully) |
+| border | --border | 1.5px solid rgba(41, 35, 47, 0.13) | 1.5px solid rgba(235, 230, 239, 0.15) | The border style used for the widget actor and dialog |
+| boxShadow | --box-shadow | 0px 4px 24px 0px rgba(43, 34, 51, 0.12) | 0px 4px 24px 0px rgba(43, 34, 51, 0.12) | The box shadow style used for the widget actor and dialog |
+
+```javascript
+new Feedback({
+    themeLight: {
+        background: "#cccccc",
+    },
+})
+
+// or 
+
+#sentry-feedback {
+  --bg-color: #cccccc;
+}
+
+```
+
+### Additional UI Customization
+Similar to theme customization above, these are additional CSS variables that can be overridden. Note these are not supported in the constructor.
+
+| Variable | Default | Description |
+| --- | --- | --- |
+| --bottom | 1rem | By default the widget has a position of fixed, and is in the bottom right corner. |
+| --right | 1rem | By default the widget has a position of fixed, and is in the bottom right corner. |
+| --top | auto | By default the widget has a position of fixed, and is in the bottom right corner. |
+| --left | auto | By default the widget has a position of fixed, and is in the bottom right corner. |
+| --z-index | 100000 | The z-index of the widget |
+| --font-family | "'Helvetica Neue', Arial, sans-serif", | Default font-family to use|
+| --font-size | 14px | Font size |
+
+### Event Callbacks
+Sometimes it’s important to know when someone has started to interact with the feedback form, so you can add custom logging, or start/stop background timers on the page until the user is done.
+
+Pass these callbacks when you initialize the Feedback integration:
+
+```javascript
+new Sentry.Feedback({
+  onActorClick: () => {},
+  onDialogOpen: () => {},
+  onDialogClose: () => {},
+  onSubmitSuccess: () => {},
+  onSubmitError: () => {},
+});
+```
+
+## Further Customization
+There are two more methods in the integration that can help customization.
+
+### Bring Your Own Button
+
+You can skip the default widget button and use your own button. Call `feedback.attachTo()` to have the SDK attach a click listener to your own button. You can additionally supply the same customization options that the constructor accepts (e.g. for text labels and colors).
+
+```javascript
+    Sentry.Feedback.attachTo(document.querySelector('#your-button'), {
+        formTitle: "Report a Bug!"
+    });
+```
+
+### Bring Your Own Widget
+
+You can also bring your own widget and UI and simply pass a feedback object to the `sendFeedback()` function.
+
+```html
+<form id="my-feedback-form>
+	<input name="name" />
+  <input name="email" />
+	<textarea name="message" placeholder="What's the issue?" />
+</form>
+
+<script src="https://browser.sentry-cdn.com/.../bundle.feedback.min.js" ... ></script>
+<script>
+document.getElementById('my-feedback-form').addEventListener('submit', (event) => {
+  const formData = new FormData(event.currentTarget);
+  Sentry.Feedback.sendFeedback(formData);
+  event.preventDefault();
+});
+</script>
+```
