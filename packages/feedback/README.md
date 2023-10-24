@@ -32,11 +32,12 @@ Several options are supported and passable via the integration constructor. See 
 import * as Sentry from '@sentry/browser';
 // or from a framework specific SDK, e.g.
 // import * as Sentry from '@sentry/react';
+import Feedback from '@sentry-internal/feedback';
 
 Sentry.init({
   dsn: '__DSN__',
   integrations: [
-    new Sentry.Feedback({
+    new Feedback({
       // Additional SDK configuration goes in here, for example:
       // See below for all available options
     })
