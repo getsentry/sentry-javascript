@@ -111,7 +111,7 @@ new Feedback({
 Colors can be customized via the Feedback constructor or by defining CSS variables on the widget button. If you use the default widget button, it will have an `id="sentry-feedback`, meaning you can use the `#sentry-feedback` selector to define CSS variables to override.
 
 | key | css variable | light | dark | description |
-| --- | --- | --- | --- |
+| --- | --- | --- | --- | --- |
 | background | --bg-color | #ffffff | #29232f | Background color of the widget actor and dialog. |
 | backgroundHover | --bg-hover-color | #f6f6f7 | #352f3b | The background color of widget actor when in a hover state |
 | foreground | --fg-color | #2b2233 | #ebe6ef | The foreground color, e.g. text color |
