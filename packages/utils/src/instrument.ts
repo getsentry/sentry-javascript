@@ -257,6 +257,8 @@ export function instrumentXHR(): void {
 
   fill(xhrproto, 'open', function (originalOpen: () => void): () => void {
     return function (this: XMLHttpRequest & SentryWrappedXMLHttpRequest, ...args: any[]): void {
+      const startTimestamp = Date.now();
+
       const url = args[1];
       const xhrInfo: SentryXhrData = (this[SENTRY_XHR_DATA_KEY] = {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
@@ -291,7 +293,7 @@ export function instrumentXHR(): void {
           triggerHandlers('xhr', {
             args: args as [string, string],
             endTimestamp: Date.now(),
-            startTimestamp: Date.now(),
+            startTimestamp,
             xhr: this,
           } as HandlerDataXhr);
         }
