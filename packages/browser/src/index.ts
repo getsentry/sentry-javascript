@@ -53,5 +53,4 @@ export type { SpanStatusType } from '@sentry/core';
 export type { Span } from '@sentry/types';
 export { makeBrowserOfflineTransport } from './transports/offline';
 export { onProfilingStartRouteTransaction } from './profiling/hubextensions';
-export type { JSSelfProfiler } from './profiling/jsSelfProfiling';
 export { BrowserProfilingIntegration } from './profiling/integration';

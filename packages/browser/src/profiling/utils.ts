@@ -458,7 +458,7 @@ function isValidProfile(profile: JSSelfProfile): profile is JSSelfProfile & { pr
 
 // Keep a flag value to avoid re-initializing the profiler constructor. If it fails
 // once, it will always fail and this allows us to early return.
-export let PROFILING_CONSTRUCTOR_FAILED: 0 | 1 = 0;
+let PROFILING_CONSTRUCTOR_FAILED: boolean = false;
 export const MAX_PROFILE_DURATION_MS = 30_000;
 
 /**
@@ -502,7 +502,7 @@ export function startJSSelfProfile(): JSSelfProfiler | undefined {
       );
       logger.log('[Profiling] Disabling profiling for current user session.');
     }
-    PROFILING_CONSTRUCTOR_FAILED = 1;
+    PROFILING_CONSTRUCTOR_FAILED = true;
   }
 
   return;
