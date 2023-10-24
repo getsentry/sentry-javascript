@@ -91,7 +91,7 @@ function setupSentry() {
 }
 ```
 
-A full setup example can be found in (node-experimental)[./../node-experimental].
+A full setup example can be found in [node-experimental](./../node-experimental).
 
 ## Links
 
