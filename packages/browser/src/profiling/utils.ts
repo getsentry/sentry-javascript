@@ -119,9 +119,10 @@ function getTraceId(event: Event): string {
  * Creates a profiling event envelope from a Sentry event.
  */
 export function createProfilePayload(
-  event: ProfiledEvent,
-  processedProfile: JSSelfProfile,
   profile_id: string,
+  start_timestamp: number | undefined,
+  processed_profile: JSSelfProfile,
+  event: ProfiledEvent,
 ): Profile {
   if (event.type !== 'transaction') {
     // createProfilingEventEnvelope should only be called for transactions,
@@ -129,15 +130,19 @@ export function createProfilePayload(
     throw new TypeError('Profiling events may only be attached to transactions, this should never occur.');
   }
 
-  if (processedProfile === undefined || processedProfile === null) {
+  if (processed_profile === undefined || processed_profile === null) {
     throw new TypeError(
-      `Cannot construct profiling event envelope without a valid profile. Got ${processedProfile} instead.`,
+      `Cannot construct profiling event envelope without a valid profile. Got ${processed_profile} instead.`,
     );
   }
 
   const traceId = getTraceId(event);
-  const enrichedThreadProfile = enrichWithThreadInformation(processedProfile);
-  const transactionStartMs = typeof event.start_timestamp === 'number' ? event.start_timestamp * 1000 : Date.now();
+  const enrichedThreadProfile = enrichWithThreadInformation(processed_profile);
+  const transactionStartMs = start_timestamp
+    ? start_timestamp
+    : typeof event.start_timestamp === 'number'
+    ? event.start_timestamp * 1000
+    : Date.now();
   const transactionEndMs = typeof event.timestamp === 'number' ? event.timestamp * 1000 : Date.now();
 
   const profile: Profile = {
@@ -164,7 +169,7 @@ export function createProfilePayload(
       is_emulator: false,
     },
     debug_meta: {
-      images: applyDebugMetadata(processedProfile.resources),
+      images: applyDebugMetadata(processed_profile.resources),
     },
     profile: enrichedThreadProfile,
     transactions: [
@@ -575,12 +580,17 @@ export function shouldProfileTransaction(transaction: Transaction): boolean {
  * @param event
  * @returns {Profile | null}
  */
-export function createProfilingEvent(profile_id: string, profile: JSSelfProfile, event: ProfiledEvent): Profile | null {
+export function createProfilingEvent(
+  profile_id: string,
+  start_timestamp: number | undefined,
+  profile: JSSelfProfile,
+  event: ProfiledEvent,
+): Profile | null {
   if (!isValidProfile(profile)) {
     return null;
   }
 
-  return createProfilePayload(event, profile, profile_id);
+  return createProfilePayload(profile_id, start_timestamp, profile, event);
 }
 
 const PROFILE_MAP: Map<string, JSSelfProfile> = new Map();

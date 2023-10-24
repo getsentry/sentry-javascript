@@ -5,11 +5,6 @@ import { BrowserProfilingIntegration } from '../../../src/profiling/integration'
 import type { JSSelfProfile } from '../../../src/profiling/jsSelfProfiling';
 
 describe('BrowserProfilingIntegration', () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
-    jest.useRealTimers();
-    // We will mock the carrier as if it has been initialized by the SDK, else everything is short circuited
-  });
   it('pageload profiles follow regular transaction code path', async () => {
     const stopProfile = jest.fn().mockImplementation((): Promise<JSSelfProfile> => {
       return Promise.resolve({
@@ -63,6 +58,11 @@ describe('BrowserProfilingIntegration', () => {
     expect(send).toHaveBeenCalledTimes(1);
 
     const profile = send.mock.calls?.[0]?.[0]?.[1]?.[1]?.[1];
+    const transaction = send.mock.calls?.[0]?.[0]?.[1]?.[0]?.[1]
+    const profile_timestamp_ms = new Date(profile.timestamp).getTime()
+    const transaction_timestamp_ms = new Date(transaction.start_timestamp * 1e3).getTime();
+
+    expect(profile_timestamp_ms).toBeGreaterThan(transaction_timestamp_ms);
     expect(profile.profile.frames[0]).toMatchObject({ function: 'pageload_fn', lineno: 1, colno: 1 });
   });
 });
