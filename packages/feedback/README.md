@@ -184,9 +184,9 @@ You can also bring your own widget and UI and simply pass a feedback object to t
 
 ```html
 <form id="my-feedback-form>
-	<input name="name" />
+  <input name="name" />
   <input name="email" />
-	<textarea name="message" placeholder="What's the issue?" />
+  <textarea name="message" placeholder="What's the issue?" />
 </form>
 
 <script>
