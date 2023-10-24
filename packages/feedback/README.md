@@ -156,7 +156,7 @@ Sometimes it’s important to know when someone has started to interact with the
 Pass these callbacks when you initialize the Feedback integration:
 
 ```javascript
-new Sentry.Feedback({
+new Feedback({
   onActorClick: () => {},
   onDialogOpen: () => {},
   onDialogClose: () => {},
@@ -173,7 +173,12 @@ There are two more methods in the integration that can help customization.
 You can skip the default widget button and use your own button. Call `feedback.attachTo()` to have the SDK attach a click listener to your own button. You can additionally supply the same customization options that the constructor accepts (e.g. for text labels and colors).
 
 ```javascript
-Sentry.Feedback.attachTo(document.querySelector('#your-button'), {
+const feedback = new Feedback({
+  // Disable injecting the default widget
+  autoInject: false,
+});
+
+feedback.attachTo(document.querySelector('#your-button'), {
     formTitle: "Report a Bug!"
 });
 ```
@@ -192,7 +197,7 @@ You can also bring your own widget and UI and simply pass a feedback object to t
 <script>
 document.getElementById('my-feedback-form').addEventListener('submit', (event) => {
   const formData = new FormData(event.currentTarget);
-  Sentry.Feedback.sendFeedback(formData);
+  Feedback.sendFeedback(formData);
   event.preventDefault();
 });
 </script>
