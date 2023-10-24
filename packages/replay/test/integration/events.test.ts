@@ -142,7 +142,7 @@ describe('Integration | events', () => {
     // We pass a negative start time as it's a bit difficult to mock
     // `@sentry/utils/browserPerformanceTimeOrigin`. This would not happen in
     // real world.
-    replay.performanceEvents.push(
+    replay.performanceEntries.push(
       PerformanceEntryResource({
         startTime: -ELAPSED,
       }),

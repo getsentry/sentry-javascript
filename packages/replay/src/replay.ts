@@ -24,6 +24,7 @@ import type {
   AddEventResult,
   AddUpdateCallback,
   AllPerformanceEntry,
+  AllPerformanceEntryData,
   EventBuffer,
   InternalEventContext,
   PopEventContext,
@@ -31,6 +32,7 @@ import type {
   RecordingOptions,
   ReplayBreadcrumbFrame,
   ReplayContainer as ReplayContainerInterface,
+  ReplayPerformanceEntry,
   ReplayPluginOptions,
   SendBufferedReplayOptions,
   Session,
@@ -59,10 +61,9 @@ import { throttle, THROTTLED } from './util/throttle';
 export class ReplayContainer implements ReplayContainerInterface {
   public eventBuffer: EventBuffer | null;
 
-  /**
-   * List of PerformanceEntry from PerformanceObserver
-   */
-  public performanceEvents: AllPerformanceEntry[];
+  public performanceEntries: AllPerformanceEntry[];
+
+  public replayPerformanceEntries: ReplayPerformanceEntry<AllPerformanceEntryData>[];
 
   public session: Session | undefined;
 
@@ -101,7 +102,7 @@ export class ReplayContainer implements ReplayContainerInterface {
 
   private readonly _options: ReplayPluginOptions;
 
-  private _performanceObserver: PerformanceObserver | undefined;
+  private _performanceCleanupCallback?: () => void;
 
   private _debouncedFlush: ReturnType<typeof debounce>;
   private _flushLock: Promise<unknown> | undefined;
@@ -144,7 +145,8 @@ export class ReplayContainer implements ReplayContainerInterface {
     recordingOptions: RecordingOptions;
   }) {
     this.eventBuffer = null;
-    this.performanceEvents = [];
+    this.performanceEntries = [];
+    this.replayPerformanceEntries = [];
     this.recordingMode = 'session';
     this.timeouts = {
       sessionIdlePause: SESSION_IDLE_PAUSE_DURATION,
@@ -638,7 +640,8 @@ export class ReplayContainer implements ReplayContainerInterface {
     const urlPath = `${WINDOW.location.pathname}${WINDOW.location.hash}${WINDOW.location.search}`;
     const url = `${WINDOW.location.origin}${urlPath}`;
 
-    this.performanceEvents = [];
+    this.performanceEntries = [];
+    this.replayPerformanceEntries = [];
 
     // Reset _context as well
     this._clearContext();
@@ -817,12 +820,7 @@ export class ReplayContainer implements ReplayContainerInterface {
       this._handleException(err);
     }
 
-    // PerformanceObserver //
-    if (!('PerformanceObserver' in WINDOW)) {
-      return;
-    }
-
-    this._performanceObserver = setupPerformanceObserver(this);
+    this._performanceCleanupCallback = setupPerformanceObserver(this);
   }
 
   /**
@@ -840,9 +838,8 @@ export class ReplayContainer implements ReplayContainerInterface {
         this.clickDetector.removeListeners();
       }
 
-      if (this._performanceObserver) {
-        this._performanceObserver.disconnect();
-        this._performanceObserver = undefined;
+      if (this._performanceCleanupCallback) {
+        this._performanceCleanupCallback();
       }
     } catch (err) {
       this._handleException(err);
@@ -991,15 +988,16 @@ export class ReplayContainer implements ReplayContainerInterface {
   }
 
   /**
-   * Observed performance events are added to `this.performanceEvents`. These
+   * Observed performance events are added to `this.performanceEntries`. These
    * are included in the replay event before it is finished and sent to Sentry.
    */
   private _addPerformanceEntries(): Promise<Array<AddEventResult | null>> {
-    // Copy and reset entries before processing
-    const entries = [...this.performanceEvents];
-    this.performanceEvents = [];
+    const performanceEntries = createPerformanceEntries(this.performanceEntries).concat(this.replayPerformanceEntries);
 
-    return Promise.all(createPerformanceSpans(this, createPerformanceEntries(entries)));
+    this.performanceEntries = [];
+    this.replayPerformanceEntries = [];
+
+    return Promise.all(createPerformanceSpans(this, performanceEntries));
   }
 
   /**

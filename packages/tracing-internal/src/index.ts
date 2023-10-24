@@ -18,6 +18,10 @@ export {
   instrumentOutgoingRequests,
   defaultRequestInstrumentationOptions,
   addTracingHeadersToFetchRequest,
+  addPerformanceInstrumentationHandler,
+  addClsInstrumentationHandler,
+  addFidInstrumentationHandler,
+  addLcpInstrumentationHandler,
 } from './browser';
 
 export type { RequestInstrumentationOptions } from './browser';

@@ -23,17 +23,25 @@ sentryTest(
       });
     });
 
-    const reqPromise0 = waitForReplayRequest(page, 0);
-
     const url = await getLocalTestPath({ testDir: __dirname });
 
-    const [res0] = await Promise.all([reqPromise0, page.goto(url)]);
+    // We have to click in order to ensure the LCP is generated, leading to consistent results
+    async function gotoPageAndClick() {
+      await page.goto(url);
+      await page.click('#noop');
+    }
+
+    const [res0] = await Promise.all([waitForReplayRequest(page, 0), gotoPageAndClick()]);
     await forceFlushReplay();
 
-    const reqPromise1 = waitForReplayRequest(page);
-
-    const [res1] = await Promise.all([reqPromise1, page.click('#button-add')]);
-    await forceFlushReplay();
+    const [res1] = await Promise.all([
+      waitForReplayRequest(page, (_event, res) => {
+        const parsed = getReplayRecordingContent(res);
+        return !!parsed.incrementalSnapshots.length || !!parsed.fullSnapshots.length;
+      }),
+      page.click('#button-add'),
+      forceFlushReplay(),
+    ]);
 
     // replay should be stopped due to mutation limit
     let replay = await getReplaySnapshot(page);
@@ -48,7 +56,6 @@ sentryTest(
 
     const replayData0 = getReplayRecordingContent(res0);
     expect(replayData0.fullSnapshots.length).toBe(1);
-    expect(replayData0.incrementalSnapshots.length).toBe(0);
 
     // Breadcrumbs (click and mutation);
     const replayData1 = getReplayRecordingContent(res1);
