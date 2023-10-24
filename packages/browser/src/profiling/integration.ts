@@ -75,6 +75,7 @@ export class BrowserProfilingIntegration implements Integration {
         for (const profiledTransaction of profiledTransactionEvents) {
           const context = profiledTransaction && profiledTransaction.contexts;
           const profile_id = context && context['profile'] && context['profile']['profile_id'];
+          const start_timestamp = context && context['profile'] && context['profile']['start_timestamp'];
 
           if (typeof profile_id !== 'string') {
             __DEBUG_BUILD__ &&
@@ -99,7 +100,12 @@ export class BrowserProfilingIntegration implements Integration {
             continue;
           }
 
-          const profileEvent = createProfilingEvent(profile_id, profile, profiledTransaction as ProfiledEvent);
+          const profileEvent = createProfilingEvent(
+            profile_id,
+            start_timestamp as number | undefined,
+            profile,
+            profiledTransaction as ProfiledEvent,
+          );
           if (profileEvent) {
             profilesToAddToEnvelope.push(profileEvent);
           }

@@ -1,11 +1,12 @@
 /* eslint-disable complexity */
 import type { Transaction } from '@sentry/types';
-import { logger, uuid4 } from '@sentry/utils';
+import { logger, timestampInSeconds, uuid4 } from '@sentry/utils';
 
 import { WINDOW } from '../helpers';
 import type { JSSelfProfile } from './jsSelfProfiling';
 import {
   addProfileToGlobalCache,
+  isAutomatedPageLoadTransaction,
   MAX_PROFILE_DURATION_MS,
   shouldProfileTransaction,
   startJSSelfProfile,
@@ -40,6 +41,11 @@ export function onProfilingStartRouteTransaction(transaction: Transaction | unde
  */
 export function startProfileForTransaction(transaction: Transaction): Transaction {
   // Start the profiler and get the profiler instance.
+  let startTimestamp: number | undefined;
+  if (isAutomatedPageLoadTransaction(transaction)) {
+    startTimestamp = timestampInSeconds() * 1000;
+  }
+
   const profiler = startJSSelfProfile();
 
   // We failed to construct the profiler, fallback to original transaction.
@@ -151,7 +157,7 @@ export function startProfileForTransaction(transaction: Transaction): Transactio
     // Always call onProfileHandler to ensure stopProfiling is called and the timeout is cleared.
     void onProfileHandler().then(
       () => {
-        transaction.setContext('profile', { profile_id: profileId });
+        transaction.setContext('profile', { profile_id: profileId, start_timestamp: startTimestamp });
         originalFinish();
       },
       () => {
