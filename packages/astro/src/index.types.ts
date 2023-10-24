@@ -10,6 +10,7 @@ import type { Integration, Options, StackParser } from '@sentry/types';
 
 import type * as clientSdk from './index.client';
 import type * as serverSdk from './index.server';
+import sentryAstro from './index.server';
 
 /** Initializes Sentry Astro SDK */
 export declare function init(options: Options | clientSdk.BrowserOptions | serverSdk.NodeOptions): void;
@@ -23,3 +24,5 @@ export declare const defaultStackParser: StackParser;
 export declare function close(timeout?: number | undefined): PromiseLike<boolean>;
 export declare function flush(timeout?: number | undefined): PromiseLike<boolean>;
 export declare function lastEventId(): string | undefined;
+
+export default sentryAstro;
