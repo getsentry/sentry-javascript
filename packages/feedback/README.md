@@ -118,7 +118,7 @@ Colors can be customized via the Feedback constructor or by defining CSS variabl
 | `error` | `--error-color` | `#df3338` | `#f55459` | Color used for error related components (e.g. text color when there was an error submitting feedback) |
 | `success` | `--success-color` | `#268d75` | `#2da98c` | Color used for success-related components (e.g. text color when feedback is submitted successfully) |
 | `border` | `--border` | `1.5px solid rgba(41, 35, 47, 0.13)` | `1.5px solid rgba(235, 230, 239, 0.15)` | The border style used for the widget actor and dialog |
-| `boxShadow` | `--box-shadow | 0px 4px 24px 0px rgba(43, 34, 51, 0.12)` | `0px 4px 24px 0px rgba(43, 34, 51, 0.12)` | The box shadow style used for the widget actor and dialog |
+| `boxShadow` | `--box-shadow` | `0px 4px 24px 0px rgba(43, 34, 51, 0.12)` | `0px 4px 24px 0px rgba(43, 34, 51, 0.12)` | The box shadow style used for the widget actor and dialog |
 
 Here is an example of customizing only the background color for the light theme using the Feedback constructor configuration.
 ```javascript
