@@ -1,3 +1,5 @@
+import { WINDOW } from '@sentry/browser';
+
 /**
  * Helper function to create an element. Could be used as a JSX factory
  * (i.e. React-like syntax).
@@ -7,7 +9,8 @@ export function createElement<K extends keyof HTMLElementTagNameMap>(
   attributes: { [key: string]: string | boolean | EventListenerOrEventListenerObject } | null,
   ...children: any
 ): HTMLElementTagNameMap[K] {
-  const element = document.createElement(tagName);
+  const doc = WINDOW.document;
+  const element = doc.createElement(tagName);
 
   if (attributes) {
     Object.entries(attributes).forEach(([attribute, attributeValue]) => {
@@ -31,6 +34,7 @@ export function createElement<K extends keyof HTMLElementTagNameMap>(
 }
 
 function appendChild(parent: Node, child: any): void {
+  const doc = WINDOW.document;
   if (typeof child === 'undefined' || child === null) {
     return;
   }
@@ -42,10 +46,10 @@ function appendChild(parent: Node, child: any): void {
   } else if (child === false) {
     // do nothing if child evaluated to false
   } else if (typeof child === 'string') {
-    parent.appendChild(document.createTextNode(child));
+    parent.appendChild(doc.createTextNode(child));
   } else if (child instanceof Node) {
     parent.appendChild(child);
   } else {
-    parent.appendChild(document.createTextNode(String(child)));
+    parent.appendChild(doc.createTextNode(String(child)));
   }
 }
