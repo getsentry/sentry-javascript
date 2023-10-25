@@ -825,7 +825,7 @@ jobs:
           # On develop branch, we want to _store_ the cache (so it can be used by other branches), but never _restore_ from it
           restore-keys: ${{ env.NX_CACHE_RESTORE_KEYS }}
       - name: Check tarball cache
-        uses: actions/cache@v3
+        uses: actions/cache/save@v3
         with:
           path: ${{ github.workspace }}/packages/*/*.tgz
           key: ${{ env.BUILD_CACHE_TARBALL_KEY }}
