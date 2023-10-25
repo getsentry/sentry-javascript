@@ -3,7 +3,6 @@ import type { Integration, SdkMetadata } from '@sentry/types';
 
 import { GoogleCloudGrpc } from '../google-cloud-grpc';
 import { GoogleCloudHttp } from '../google-cloud-http';
-import { serverlessEventProcessor } from '../utils';
 
 export * from './http';
 export * from './events';
@@ -38,5 +37,4 @@ export function init(options: Sentry.NodeOptions = {}): void {
   };
 
   Sentry.init(opts);
-  Sentry.addGlobalEventProcessor(serverlessEventProcessor);
 }
