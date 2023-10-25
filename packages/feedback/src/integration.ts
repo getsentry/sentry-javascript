@@ -1,7 +1,6 @@
 import { WINDOW } from '@sentry/browser';
 import type { Integration } from '@sentry/types';
-import { isBrowser } from '@sentry/utils';
-import { logger } from '@sentry/utils';
+import { isBrowser, logger } from '@sentry/utils';
 
 import {
   ACTOR_LABEL,
@@ -22,32 +21,9 @@ import { createActorStyles } from './widget/Actor.css';
 import { createShadowHost } from './widget/createShadowHost';
 import { createWidget } from './widget/createWidget';
 
-<<<<<<< HEAD
-interface FeedbackConfiguration extends Partial<Omit<FeedbackConfigurationWithDefaults, 'theme'>> {
-  theme?: {
-    dark?: Partial<FeedbackTheme>;
-    light?: Partial<FeedbackTheme>;
-  };
-}
-=======
-type ElectronProcess = { type?: string };
-
-// Electron renderers with nodeIntegration enabled are detected as Node.js so we specifically test for them
-function isElectronNodeRenderer(): boolean {
-  return typeof process !== 'undefined' && (process as ElectronProcess).type === 'renderer';
-}
-/**
- * Returns true if we are in the browser.
- */
-function isBrowser(): boolean {
-  // eslint-disable-next-line no-restricted-globals
-  return typeof window !== 'undefined' && (!isNodeEnv() || isElectronNodeRenderer());
-}
+const doc = WINDOW.document;
 
 type FeedbackConfiguration = Partial<FeedbackConfigurationWithDefaults>;
->>>>>>> 5fa9a4abb (ref: extract widget creation to function, allow handling of multiple widgets)
-
-const doc = WINDOW.document;
 
 /**
  * Feedback integration. When added as an integration to the SDK, it will
