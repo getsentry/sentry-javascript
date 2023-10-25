@@ -1,3 +1,4 @@
+import { WINDOW } from '@sentry/browser';
 import { setAttributesNS } from '../util/setAttributesNS';
 
 const SIZE = 20;
@@ -11,7 +12,8 @@ interface IconReturn {
  * Feedback Icon
  */
 export function Icon(): IconReturn {
-  const cENS = document.createElementNS.bind(document, XMLNS);
+  const cENS = <K extends keyof SVGElementTagNameMap>(tagName: K): SVGElementTagNameMap[K] =>
+    WINDOW.document.createElementNS(XMLNS, tagName);
   const svg = setAttributesNS(cENS('svg'), {
     class: 'feedback-icon',
     width: `${SIZE}`,
