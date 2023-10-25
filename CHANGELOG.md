@@ -4,6 +4,12 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.75.1
+
+- feat(browser): Allow collecting of pageload profiles (#9317)
+- fix(browser): Correct timestamp on pageload profiles (#9350)
+- fix(nextjs): Use webpack plugin release value to inject release (#9348)
+
 ## 7.75.0
 
 ### Important Changes
