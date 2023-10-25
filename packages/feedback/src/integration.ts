@@ -189,7 +189,7 @@ export class Feedback implements Integration {
     try {
       const options = Object.assign({}, this.options, optionOverrides);
 
-      return this._ensureShadowHost<Widget | null>(options, ([shadow]) => {
+      return this._ensureShadowHost<Widget | null>(options, ({ shadow }) => {
         const targetEl =
           typeof el === 'string' ? doc.querySelector(el) : typeof el.addEventListener === 'function' ? el : null;
 
@@ -238,6 +238,7 @@ export class Feedback implements Integration {
     } catch (err) {
       logger.error(err);
     }
+
     return false;
   }
 
@@ -266,7 +267,7 @@ export class Feedback implements Integration {
    * Creates a new widget, after ensuring shadow DOM exists
    */
   protected _createWidget(options: FeedbackConfigurationWithDefaults): Widget | null {
-    return this._ensureShadowHost<Widget>(options, ([shadow]) => {
+    return this._ensureShadowHost<Widget>(options, ({ shadow }) => {
       const widget = createWidget({ shadow, options });
 
       if (!this._hasInsertedActorStyles && widget.actor) {
@@ -289,23 +290,17 @@ export class Feedback implements Integration {
     let needsAppendHost = false;
 
     // Don't create if it already exists
-    if (!this._shadow && !this._host) {
-      const [shadow, host] = createShadowHost({ options });
+    if (!this._shadow || !this._host) {
+      const { shadow, host } = createShadowHost({ options });
       this._shadow = shadow;
       this._host = host;
       needsAppendHost = true;
     }
 
-    if (!this._shadow || !this._host) {
-      logger.warn('[Feedback] Unable to create host element and/or shadow DOM');
-      // This shouldn't happen
-      return null;
-    }
-
     // set data attribute on host for different themes
     this._host.dataset.sentryFeedbackColorscheme = options.colorScheme;
 
-    const result = cb([this._shadow, this._host]);
+    const result = cb({ shadow: this._shadow, host: this._host });
 
     if (needsAppendHost) {
       doc.body.appendChild(this._host);
