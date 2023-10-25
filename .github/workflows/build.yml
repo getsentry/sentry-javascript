@@ -813,6 +813,10 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version-file: 'package.json'
+      - name: Restore caches
+        uses: ./.github/actions/restore-cache
+        env:
+          DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
       - name: NX cache
         uses: actions/cache/restore@v3
         with:
@@ -822,7 +826,7 @@ jobs:
           restore-keys: ${{ env.NX_CACHE_RESTORE_KEYS }}
       - name: Build tarballs
         run: yarn build:tarball
-      - name: Check tarball cache
+      - name: Stores tarballs in cache
         uses: actions/cache/save@v3
         with:
           path: ${{ github.workspace }}/packages/*/*.tgz
