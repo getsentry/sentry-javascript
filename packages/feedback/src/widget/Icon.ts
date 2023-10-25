@@ -1,11 +1,12 @@
 import { WINDOW } from '@sentry/browser';
+
 import { setAttributesNS } from '../util/setAttributesNS';
 
 const SIZE = 20;
 const XMLNS = 'http://www.w3.org/2000/svg';
 
 interface IconReturn {
-  $el: SVGElement;
+  el: SVGElement;
 }
 
 /**
@@ -50,6 +51,6 @@ export function Icon(): IconReturn {
   svg.appendChild(speakerDefs).appendChild(speakerClipPathDef).appendChild(speakerRect);
 
   return {
-    $el: svg,
+    el: svg,
   };
 }

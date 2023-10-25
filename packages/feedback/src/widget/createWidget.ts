@@ -11,7 +11,7 @@ import { SuccessMessage } from './SuccessMessage';
 
 interface CreateWidgetParams {
   shadow: ShadowRoot;
-  options: FeedbackConfigurationWithDefaults & {referrer?: string};
+  options: FeedbackConfigurationWithDefaults & { referrer?: string };
   attachTo?: Node;
 }
 
@@ -42,7 +42,7 @@ export function createWidget({ shadow, options, attachTo }: CreateWidgetParams):
         },
       });
 
-      shadow.appendChild(success.$el);
+      shadow.appendChild(success.el);
 
       const timeoutId = setTimeout(() => {
         if (success) {
@@ -64,7 +64,7 @@ export function createWidget({ shadow, options, attachTo }: CreateWidgetParams):
       return;
     }
 
-    const result = await handleFeedbackSubmit(dialog, feedback, {referrer: options.referrer});
+    const result = await handleFeedbackSubmit(dialog, feedback, { referrer: options.referrer });
 
     // Error submitting feedback
     if (!result) {
@@ -102,7 +102,7 @@ export function createWidget({ shadow, options, attachTo }: CreateWidgetParams):
    * Removes the default actor element
    */
   function removeActor(): void {
-    actor && actor.$el.remove();
+    actor && actor.el.remove();
   }
 
   /**
@@ -138,7 +138,7 @@ export function createWidget({ shadow, options, attachTo }: CreateWidgetParams):
         options,
       });
 
-      shadow.appendChild(dialog.$el);
+      shadow.appendChild(dialog.el);
 
       // Hides the default actor whenever dialog is opened
       hideActor();
@@ -172,7 +172,7 @@ export function createWidget({ shadow, options, attachTo }: CreateWidgetParams):
   function removeDialog(): void {
     if (dialog) {
       hideDialog();
-      dialog.$el.remove();
+      dialog.el.remove();
       dialog = undefined;
     }
   }
@@ -196,7 +196,7 @@ export function createWidget({ shadow, options, attachTo }: CreateWidgetParams):
 
   if (!attachTo) {
     actor = Actor({ options, onClick: handleActorClick });
-    shadow.appendChild(actor.$el);
+    shadow.appendChild(actor.el);
   } else {
     attachTo.addEventListener('click', handleActorClick);
   }

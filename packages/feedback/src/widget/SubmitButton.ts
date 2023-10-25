@@ -1,5 +1,5 @@
 import type { FeedbackComponent } from '../types';
-import { createElement as h } from './util/createElement';
+import { createElement } from './util/createElement';
 
 interface SubmitButtonProps {
   label: string;
@@ -21,7 +21,7 @@ interface SubmitButtonComponent extends FeedbackComponent<HTMLButtonElement> {
  *
  */
 export function SubmitButton({ label }: SubmitButtonProps): SubmitButtonComponent {
-  const $el = h(
+  const el = createElement(
     'button',
     {
       type: 'submit',
@@ -33,15 +33,15 @@ export function SubmitButton({ label }: SubmitButtonProps): SubmitButtonComponen
   );
 
   return {
-    $el,
+    el,
     setDisabled: () => {
-      $el.disabled = true;
-      $el.ariaDisabled = 'disabled';
+      el.disabled = true;
+      el.ariaDisabled = 'disabled';
     },
     setEnabled: () => {
-      $el.disabled = false;
-      $el.ariaDisabled = 'false';
-      $el.removeAttribute('ariaDisabled');
+      el.disabled = false;
+      el.ariaDisabled = 'false';
+      el.removeAttribute('ariaDisabled');
     },
   };
 }

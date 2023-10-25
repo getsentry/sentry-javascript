@@ -36,7 +36,7 @@ export async function sendFeedbackRequest({
     },
     tags: {
       referrer,
-    }
+    },
     // type: 'feedback_event',
   };
 
