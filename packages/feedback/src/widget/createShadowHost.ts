@@ -1,3 +1,4 @@
+import { WINDOW } from '@sentry/browser';
 import { logger } from '@sentry/utils';
 
 import type { FeedbackConfigurationWithDefaults } from '../types';
@@ -7,12 +8,13 @@ import { createMainStyles } from './Main.css';
 interface CreateShadowHostParams {
   options: FeedbackConfigurationWithDefaults;
 }
+
 /**
- *
+ * Creates shadow host
  */
 export function createShadowHost({ options }: CreateShadowHostParams): [shadow: ShadowRoot, host: HTMLDivElement] {
-  // eslint-disable-next-line no-restricted-globals
-  const doc = document;
+  const doc = WINDOW.document;
+
   if (!doc.head.attachShadow) {
     // Shadow DOM not supported
     logger.warn('[Feedback] Browser does not support shadow DOM API');

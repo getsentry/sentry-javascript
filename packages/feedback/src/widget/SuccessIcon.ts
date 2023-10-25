@@ -1,3 +1,4 @@
+import { WINDOW } from '@sentry/browser';
 import { setAttributesNS } from '../util/setAttributesNS';
 
 const WIDTH = 16;
@@ -13,8 +14,7 @@ interface IconReturn {
  */
 export function SuccessIcon(): IconReturn {
   const cENS = <K extends keyof SVGElementTagNameMap>(tagName: K): SVGElementTagNameMap[K] =>
-    // eslint-disable-next-line no-restricted-globals
-    document.createElementNS(XMLNS, tagName);
+    WINDOW.document.createElementNS(XMLNS, tagName);
   const svg = setAttributesNS(cENS('svg'), {
     class: 'success-icon',
     width: `${WIDTH}`,

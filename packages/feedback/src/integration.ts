@@ -1,3 +1,4 @@
+import { WINDOW } from '@sentry/browser';
 import type { Integration } from '@sentry/types';
 import { isBrowser } from '@sentry/utils';
 import { logger } from '@sentry/utils';
@@ -45,6 +46,8 @@ function isBrowser(): boolean {
 
 type FeedbackConfiguration = Partial<FeedbackConfigurationWithDefaults>;
 >>>>>>> 5fa9a4abb (ref: extract widget creation to function, allow handling of multiple widgets)
+
+const doc = WINDOW.document;
 
 /**
  * Feedback integration. When added as an integration to the SDK, it will
@@ -184,8 +187,7 @@ export class Feedback implements Integration {
       if (this._host) {
         this.remove();
       }
-      // eslint-disable-next-line no-restricted-globals
-      const existingFeedback = document.querySelector(`#${this.options.id}`);
+      const existingFeedback = doc.querySelector(`#${this.options.id}`);
       if (existingFeedback) {
         existingFeedback.remove();
       }
@@ -200,7 +202,6 @@ export class Feedback implements Integration {
 
       this._widget = this._createWidget(this.options);
     } catch (err) {
-      // TODO: error handling
       logger.error(err);
     }
   }
@@ -214,8 +215,7 @@ export class Feedback implements Integration {
 
       return this._ensureShadowHost<Widget | null>(options, ([shadow]) => {
         const targetEl =
-          // eslint-disable-next-line no-restricted-globals
-          typeof el === 'string' ? document.querySelector(el) : typeof el.addEventListener === 'function' ? el : null;
+          typeof el === 'string' ? doc.querySelector(el) : typeof el.addEventListener === 'function' ? el : null;
 
         if (!targetEl) {
           logger.error('[Feedback] Unable to attach to target element');
@@ -294,8 +294,7 @@ export class Feedback implements Integration {
       const widget = createWidget({ shadow, options });
 
       if (!this._hasInsertedActorStyles && widget.actor) {
-        // eslint-disable-next-line no-restricted-globals
-        shadow.appendChild(createActorStyles(document));
+        shadow.appendChild(createActorStyles(doc));
         this._hasInsertedActorStyles = true;
       }
 
@@ -333,8 +332,7 @@ export class Feedback implements Integration {
     const result = cb([this._shadow, this._host]);
 
     if (needsAppendHost) {
-      // eslint-disable-next-line no-restricted-globals
-      document.body.appendChild(this._host);
+      doc.body.appendChild(this._host);
     }
 
     return result;
