@@ -1,6 +1,6 @@
 import type { FeedbackComponent } from '../types';
 import { SuccessIcon } from './SuccessIcon';
-import { createElement as h } from './util/createElement';
+import { createElement } from './util/createElement';
 
 interface SuccessMessageProps {
   message: string;
@@ -19,26 +19,26 @@ interface SuccessMessageComponent extends FeedbackComponent<HTMLDivElement> {
  */
 export function SuccessMessage({ message, onRemove }: SuccessMessageProps): SuccessMessageComponent {
   function remove(): void {
-    if (!$el) {
+    if (!el) {
       return;
     }
 
-    $el.remove();
+    el.remove();
     onRemove && onRemove();
   }
 
-  const $el = h(
+  const el = createElement(
     'div',
     {
       className: 'success-message',
       onClick: remove,
     },
-    SuccessIcon().$el,
+    SuccessIcon().el,
     message,
   );
 
   return {
-    $el,
+    el,
     remove,
   };
 }

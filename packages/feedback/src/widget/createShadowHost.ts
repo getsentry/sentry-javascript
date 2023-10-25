@@ -12,7 +12,7 @@ interface CreateShadowHostParams {
 /**
  * Creates shadow host
  */
-export function createShadowHost({ options }: CreateShadowHostParams): {shadow: ShadowRoot, host: HTMLDivElement} {
+export function createShadowHost({ options }: CreateShadowHostParams): { shadow: ShadowRoot; host: HTMLDivElement } {
   try {
     const doc = WINDOW.document;
 
@@ -28,7 +28,7 @@ export function createShadowHost({ options }: CreateShadowHostParams): {shadow: 
     );
     shadow.appendChild(createDialogStyles(doc));
 
-    return {shadow, host};
+    return { shadow, host };
   } catch {
     // Shadow DOM probably not supported
     logger.warn('[Feedback] Browser does not support shadow DOM API');
