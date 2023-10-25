@@ -14,7 +14,7 @@ import { performance } from 'perf_hooks';
 import { types } from 'util';
 
 import { AWSServices } from './awsservices';
-import { markEventUnhandled, serverlessEventProcessor } from './utils';
+import { markEventUnhandled } from './utils';
 
 export * from '@sentry/node';
 
@@ -88,7 +88,6 @@ export function init(options: AWSLambdaOptions = {}): void {
   };
 
   Sentry.init(opts);
-  Sentry.addGlobalEventProcessor(serverlessEventProcessor);
 }
 
 /** */
