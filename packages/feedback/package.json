@@ -23,10 +23,10 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/browser": "7.75.0",
-    "@sentry/core": "7.75.0",
-    "@sentry/types": "7.75.0",
-    "@sentry/utils": "7.75.0"
+    "@sentry/browser": "7.75.1",
+    "@sentry/core": "7.75.1",
+    "@sentry/types": "7.75.1",
+    "@sentry/utils": "7.75.1"
   },
   "scripts": {
     "build": "run-p build:transpile build:types build:bundle",
