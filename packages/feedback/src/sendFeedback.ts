@@ -2,8 +2,8 @@ import type { BrowserClient, Replay } from '@sentry/browser';
 import { getCurrentHub } from '@sentry/core';
 import { getLocationHref } from '@sentry/utils';
 
+import type { SendFeedbackOptions } from './types';
 import { sendFeedbackRequest } from './util/sendFeedbackRequest';
-import { SendFeedbackOptions } from './types';
 
 interface SendFeedbackParams {
   message: string;

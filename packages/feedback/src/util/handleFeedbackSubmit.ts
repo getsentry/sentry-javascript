@@ -8,7 +8,7 @@ import type { DialogComponent } from '../widget/Dialog';
 export async function handleFeedbackSubmit(
   dialog: DialogComponent | null,
   feedback: FeedbackFormData,
-  options?: SendFeedbackOptions
+  options?: SendFeedbackOptions,
 ): Promise<Response | false> {
   if (!dialog) {
     // Not sure when this would happen
