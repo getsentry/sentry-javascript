@@ -9,30 +9,35 @@ export function createMainStyles(
   themes: FeedbackThemes,
 ): HTMLStyleElement {
   const style = d.createElement('style');
-  const theme = colorScheme === 'system' ? themes.light : themes[colorScheme];
   style.textContent = `
 :host {
   --bottom: 1rem;
   --right: 1rem;
   --top: auto;
   --left: auto;
+  --z-index: 100000;
+  --font-family: ${themes.light.fontFamily};
+  --font-size: ${themes.light.fontSize};
 
   position: fixed;
   left: var(--left);
   right: var(--right);
   bottom: var(--bottom);
   top: var(--top);
+  z-index: var(--z-index);
 
-  font-family: ${theme.fontFamily};
-  font-size: ${theme.fontSize};
-  --bg-color: ${theme.background};
-  --bg-hover-color: ${theme.backgroundHover};
-  --fg-color: ${theme.foreground};
-  --error-color: ${theme.error};
-  --success-color: ${theme.success};
-  --border: ${theme.border};
-  --box-shadow: ${theme.boxShadow};
+  font-family: var(--font-family);
+  font-size: var(--font-size);
+
+  --bg-color: ${themes.light.background};
+  --bg-hover-color: ${themes.light.backgroundHover};
+  --fg-color: ${themes.light.foreground};
+  --error-color: ${themes.light.error};
+  --success-color: ${themes.light.success};
+  --border: ${themes.light.border};
+  --box-shadow: ${themes.light.boxShadow};
 }
+
 ${
   colorScheme === 'system'
     ? `
@@ -45,10 +50,24 @@ ${
     --success-color: ${themes.dark.success};
     --border: ${themes.dark.border};
     --box-shadow: ${themes.dark.boxShadow};
+    --font-family: ${themes.dark.fontFamily};
+    --font-size: ${themes.dark.fontSize};
   }
 }
 `
-    : ''
+    : `
+:host-context([data-sentry-feedback-colorscheme="dark"]) {
+  --bg-color: ${themes.dark.background};
+  --bg-hover-color: ${themes.dark.backgroundHover};
+  --fg-color: ${themes.dark.foreground};
+  --error-color: ${themes.dark.error};
+  --success-color: ${themes.dark.success};
+  --border: ${themes.dark.border};
+  --box-shadow: ${themes.dark.boxShadow};
+  --font-family: ${themes.dark.fontFamily};
+  --font-size: ${themes.dark.fontSize};
+}
+`
 }`;
 
   return style;
