@@ -1,13 +1,14 @@
 import { sendFeedback } from '../sendFeedback';
-import type { FeedbackFormData } from '../types';
+import type { FeedbackFormData, SendFeedbackOptions } from '../types';
 import type { DialogComponent } from '../widget/Dialog';
 
 /**
- *
+ * Calls `sendFeedback` to send feedback, handles UI behavior of dialog.
  */
 export async function handleFeedbackSubmit(
   dialog: DialogComponent | null,
   feedback: FeedbackFormData,
+  options?: SendFeedbackOptions
 ): Promise<Response | false> {
   if (!dialog) {
     // Not sure when this would happen
@@ -25,7 +26,7 @@ export async function handleFeedbackSubmit(
   try {
     dialog.hideError();
     dialog.setSubmitDisabled();
-    const resp = await sendFeedback(feedback);
+    const resp = await sendFeedback(feedback, options);
 
     if (!resp) {
       // Errored... re-enable submit button

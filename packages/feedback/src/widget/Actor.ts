@@ -7,7 +7,7 @@ interface Props {
   onClick?: (e: MouseEvent) => void;
 }
 
-interface ActorComponent extends FeedbackComponent<HTMLButtonElement> {
+export interface ActorComponent extends FeedbackComponent<HTMLButtonElement> {
   /**
    * Shows the actor element
    */

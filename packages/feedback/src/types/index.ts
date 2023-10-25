@@ -1,5 +1,8 @@
 import type { Event, Primitive } from '@sentry/types';
 
+import type { ActorComponent } from '../widget/Actor';
+import type { DialogComponent } from '../widget/Dialog';
+
 export type SentryTags = { [key: string]: Primitive } | undefined;
 
 /**
@@ -26,8 +29,24 @@ export interface SendFeedbackData {
     replay_id?: string;
     name?: string;
   };
+  referrer?: string;
 }
 
+export interface SendFeedbackOptions {
+  /**
+   * Should include replay with the feedback?
+   */
+  includeReplay?: boolean;
+
+  /**
+   * Allows user to set a referrer for feedback, to act as a category for the feedback
+   */
+  referrer?: string;
+}
+
+/**
+ * Feedback data expected from UI/form
+ */
 export interface FeedbackFormData {
   message: string;
   email?: string;
@@ -39,11 +58,6 @@ export interface FeedbackConfigurationWithDefaults {
    * id to use for the main widget container (this will host the shadow DOM)
    */
   id: string;
-
-  /**
-   * DOM Selector to attach click listener to, for opening Feedback dialog.
-   */
-  attachTo: Node | string | null;
 
   /**
    * Auto-inject default Feedback actor button to the DOM when integration is
@@ -92,12 +106,13 @@ export interface FeedbackConfigurationWithDefaults {
   colorScheme: 'system' | 'light' | 'dark';
 
   /**
-   * Theme customization, will be merged with default theme values.
+   * Light theme customization, will be merged with default theme values.
    */
-  theme: {
-    dark: FeedbackTheme;
-    light: FeedbackTheme;
-  };
+  themeLight: FeedbackTheme;
+  /**
+   * Dark theme customization, will be merged with default theme values.
+   */
+  themeDark: FeedbackTheme;
   // * End of Color theme customization * //
 
   // * Text customization * //
@@ -148,6 +163,11 @@ export interface FeedbackConfigurationWithDefaults {
   // * End of text customization * //
 
   // * Start of Callbacks * //
+  /**
+   * Callback when dialog is closed
+   */
+  onDialogClose?: () => void;
+
   /**
    * Callback when dialog is opened
    */
@@ -209,6 +229,10 @@ export interface FeedbackTheme {
   error: string;
 }
 
+export interface CreateWidgetOptionOverrides extends Partial<FeedbackConfigurationWithDefaults> {
+  referrer?: string;
+}
+
 export interface FeedbackThemes {
   dark: FeedbackTheme;
   light: FeedbackTheme;
@@ -216,4 +240,23 @@ export interface FeedbackThemes {
 
 export interface FeedbackComponent<T extends HTMLElement> {
   $el: T;
+}
+
+/**
+ * A widget consists of:
+ *   - actor button [that opens dialog]
+ *   - dialog + feedback form
+ *   - shadow root?
+ */
+export interface Widget {
+  actor: ActorComponent | undefined;
+  dialog: DialogComponent | undefined;
+
+  showActor: () => void;
+  hideActor: () => void;
+  removeActor: () => void;
+
+  openDialog: () => void;
+  hideDialog: () => void;
+  removeDialog: () => void;
 }
