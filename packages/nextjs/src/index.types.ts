@@ -186,3 +186,8 @@ export declare function wrapApiHandlerWithSentryVercelCrons<F extends (...args: 
   WrappingTarget: F,
   vercelCronsConfig: VercelCronsConfig,
 ): F;
+
+/**
+ * Wraps a page component with Sentry error instrumentation.
+ */
+export declare function wrapPageComponentWithSentry<C>(WrappingTarget: C): C;
