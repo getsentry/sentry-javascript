@@ -1,4 +1,5 @@
 import { WINDOW } from '@sentry/browser';
+
 import { setAttributesNS } from '../util/setAttributesNS';
 
 const WIDTH = 16;
@@ -6,7 +7,7 @@ const HEIGHT = 17;
 const XMLNS = 'http://www.w3.org/2000/svg';
 
 interface IconReturn {
-  $el: SVGElement;
+  el: SVGElement;
 }
 
 /**
@@ -56,6 +57,6 @@ export function SuccessIcon(): IconReturn {
   svg.appendChild(speakerDefs).appendChild(speakerClipPathDef).appendChild(speakerRect);
 
   return {
-    $el: svg,
+    el: svg,
   };
 }

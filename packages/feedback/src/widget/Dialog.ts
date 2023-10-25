@@ -1,6 +1,6 @@
 import type { FeedbackComponent, FeedbackConfigurationWithDefaults, FeedbackFormData } from '../types';
 import { Form } from './Form';
-import { createElement as h } from './util/createElement';
+import { createElement } from './util/createElement';
 
 interface DialogProps {
   defaultName: string;
@@ -59,7 +59,7 @@ export function Dialog({
   onSubmit,
   options,
 }: DialogProps): DialogComponent {
-  let $el: HTMLDialogElement | null = null;
+  let el: HTMLDialogElement | null = null;
 
   /**
    * Handles when the dialog is clicked. In our case, the dialog is the
@@ -78,8 +78,8 @@ export function Dialog({
    * Close the dialog
    */
   function close(): void {
-    if ($el) {
-      $el.open = false;
+    if (el) {
+      el.open = false;
     }
   }
 
@@ -87,8 +87,8 @@ export function Dialog({
    * Opens the dialog
    */
   function open(): void {
-    if ($el) {
-      $el.open = true;
+    if (el) {
+      el.open = true;
     }
   }
 
@@ -96,11 +96,11 @@ export function Dialog({
    * Check if dialog is currently opened
    */
   function checkIsOpen(): boolean {
-    return ($el && $el.open === true) || false;
+    return (el && el.open === true) || false;
   }
 
   const {
-    $el: $form,
+    el: formEl,
     setSubmitEnabled,
     setSubmitDisabled,
     showError,
@@ -113,14 +113,14 @@ export function Dialog({
     onCancel,
   });
 
-  $el = h(
+  el = createElement(
     'dialog',
     {
       className: 'dialog',
       open: true,
       onClick: handleDialogClick,
     },
-    h(
+    createElement(
       'div',
       {
         className: 'dialog__content',
@@ -129,13 +129,13 @@ export function Dialog({
           e.stopPropagation();
         },
       },
-      h('h2', { className: 'dialog__header' }, options.formTitle),
-      $form,
+      createElement('h2', { className: 'dialog__header' }, options.formTitle),
+      formEl,
     ),
   );
 
   return {
-    $el,
+    el,
     showError,
     hideError,
     setSubmitDisabled,

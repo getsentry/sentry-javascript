@@ -1,6 +1,6 @@
 import type { FeedbackComponent, FeedbackConfigurationWithDefaults, FeedbackFormData } from '../types';
 import { SubmitButton } from './SubmitButton';
-import { createElement as h } from './util/createElement';
+import { createElement } from './util/createElement';
 
 interface Props {
   /**
@@ -71,7 +71,7 @@ export function Form({
   onSubmit,
 }: Props): FormComponent {
   const {
-    $el: $submit,
+    el: submitEl,
     setDisabled: setSubmitDisabled,
     setEnabled: setSubmitEnabled,
   } = SubmitButton({
@@ -101,24 +101,24 @@ export function Form({
     }
   }
 
-  const $error = h('div', {
+  const errorEl = createElement('div', {
     className: 'form__error-container form__error-container--hidden',
     ariaHidden: 'true',
   });
 
   function showError(message: string): void {
-    $error.textContent = message;
-    $error.classList.remove('form__error-container--hidden');
-    $error.setAttribute('ariaHidden', 'false');
+    errorEl.textContent = message;
+    errorEl.classList.remove('form__error-container--hidden');
+    errorEl.setAttribute('ariaHidden', 'false');
   }
 
   function hideError(): void {
-    $error.textContent = '';
-    $error.classList.add('form__error-container--hidden');
-    $error.setAttribute('ariaHidden', 'true');
+    errorEl.textContent = '';
+    errorEl.classList.add('form__error-container--hidden');
+    errorEl.setAttribute('ariaHidden', 'true');
   }
 
-  const $name = h('input', {
+  const nameEl = createElement('input', {
     id: 'name',
     type: showName ? 'text' : 'hidden',
     ariaHidden: showName ? 'false' : 'true',
@@ -128,7 +128,7 @@ export function Form({
     value: defaultName,
   });
 
-  const $email = h('input', {
+  const emailEl = createElement('input', {
     id: 'email',
     type: showEmail ? 'text' : 'hidden',
     ariaHidden: showEmail ? 'false' : 'true',
@@ -138,7 +138,7 @@ export function Form({
     value: defaultEmail,
   });
 
-  const $message = h('textarea', {
+  const messageEl = createElement('textarea', {
     id: 'message',
     autoFocus: 'true',
     rows: '5',
@@ -158,7 +158,7 @@ export function Form({
     },
   });
 
-  const $cancel = h(
+  const cancelEl = createElement(
     'button',
     {
       type: 'button',
@@ -170,60 +170,60 @@ export function Form({
     cancelButtonLabel,
   );
 
-  const $form = h(
+  const formEl = createElement(
     'form',
     {
       className: 'form',
       onSubmit: handleSubmit,
     },
     [
-      $error,
+      errorEl,
 
       !isAnonymous &&
         showName &&
-        h(
+        createElement(
           'label',
           {
             htmlFor: 'name',
             className: 'form__label',
           },
-          [nameLabel, $name],
+          [nameLabel, nameEl],
         ),
-      !isAnonymous && !showName && $name,
+      !isAnonymous && !showName && nameEl,
 
       !isAnonymous &&
         showEmail &&
-        h(
+        createElement(
           'label',
           {
             htmlFor: 'email',
             className: 'form__label',
           },
-          [emailLabel, $email],
+          [emailLabel, emailEl],
         ),
-      !isAnonymous && !showEmail && $email,
+      !isAnonymous && !showEmail && emailEl,
 
-      h(
+      createElement(
         'label',
         {
           htmlFor: 'message',
           className: 'form__label',
         },
-        [messageLabel, $message],
+        [messageLabel, messageEl],
       ),
 
-      h(
+      createElement(
         'div',
         {
           className: 'btn-group',
         },
-        [$submit, $cancel],
+        [submitEl, cancelEl],
       ),
     ],
   );
 
   return {
-    $el: $form,
+    el: formEl,
     setSubmitDisabled,
     setSubmitEnabled,
     showError,

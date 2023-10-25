@@ -1,6 +1,6 @@
 import type { FeedbackComponent, FeedbackConfigurationWithDefaults } from '../types';
 import { Icon } from './Icon';
-import { createElement as h } from './util/createElement';
+import { createElement } from './util/createElement';
 
 interface Props {
   options: FeedbackConfigurationWithDefaults;
@@ -26,15 +26,15 @@ export function Actor({ options, onClick }: Props): ActorComponent {
     onClick && onClick(e);
   }
 
-  const $el = h(
+  const el = createElement(
     'button',
     {
       type: 'button',
       className: 'widget__actor',
       ariaLabel: options.buttonLabel,
     },
-    Icon().$el,
-    h(
+    Icon().el,
+    createElement(
       'span',
       {
         className: 'widget__actor__text',
@@ -43,15 +43,15 @@ export function Actor({ options, onClick }: Props): ActorComponent {
     ),
   );
 
-  $el.addEventListener('click', _handleClick);
+  el.addEventListener('click', _handleClick);
 
   return {
-    $el,
+    el,
     show: (): void => {
-      $el.classList.remove('widget__actor--hidden');
+      el.classList.remove('widget__actor--hidden');
     },
     hide: (): void => {
-      $el.classList.add('widget__actor--hidden');
+      el.classList.add('widget__actor--hidden');
     },
   };
 }
