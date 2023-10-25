@@ -1,6 +1,7 @@
 import { getCurrentHub } from '@sentry/core';
 import type { Integration } from '@sentry/types';
-import { isNodeEnv, logger } from '@sentry/utils';
+import { isBrowser } from '@sentry/utils';
+import { logger } from '@sentry/utils';
 
 import {
   ACTOR_LABEL,
@@ -24,20 +25,6 @@ import { Dialog } from './widget/Dialog';
 import { createDialogStyles } from './widget/Dialog.css';
 import { createMainStyles } from './widget/Main.css';
 import { SuccessMessage } from './widget/SuccessMessage';
-
-type ElectronProcess = { type?: string };
-
-// Electron renderers with nodeIntegration enabled are detected as Node.js so we specifically test for them
-function isElectronNodeRenderer(): boolean {
-  return typeof process !== 'undefined' && (process as ElectronProcess).type === 'renderer';
-}
-/**
- * Returns true if we are in the browser.
- */
-function isBrowser(): boolean {
-  // eslint-disable-next-line no-restricted-globals
-  return typeof window !== 'undefined' && (!isNodeEnv() || isElectronNodeRenderer());
-}
 
 interface FeedbackConfiguration extends Partial<Omit<FeedbackConfigurationWithDefaults, 'theme'>> {
   theme?: {
@@ -271,7 +258,7 @@ export class Feedback implements Integration {
 
       const userKey = this.options.useSentryUser;
       const scope = getCurrentHub().getScope();
-      const user = scope && scope.getUser();
+      const user = scope.getUser();
 
       this._dialog = Dialog({
         defaultName: (userKey && user && user[userKey.name]) || '',
