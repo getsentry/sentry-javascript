@@ -813,10 +813,6 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version-file: 'package.json'
-      - name: Restore caches
-        uses: ./.github/actions/restore-cache
-        env:
-          DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
       - name: NX cache
         uses: actions/cache/restore@v3
         with:
@@ -824,13 +820,13 @@ jobs:
           key: nx-Linux-${{ github.ref }}-${{ env.HEAD_COMMIT }}
           # On develop branch, we want to _store_ the cache (so it can be used by other branches), but never _restore_ from it
           restore-keys: ${{ env.NX_CACHE_RESTORE_KEYS }}
+      - name: Build tarballs
+        run: yarn build:tarball
       - name: Check tarball cache
         uses: actions/cache/save@v3
         with:
           path: ${{ github.workspace }}/packages/*/*.tgz
           key: ${{ env.BUILD_CACHE_TARBALL_KEY }}
-      - name: Build tarballs
-        run: yarn build:tarball
 
   job_e2e_tests:
     name: E2E ${{ matrix.label || matrix.test-application }} Test
