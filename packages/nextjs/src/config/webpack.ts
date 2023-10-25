@@ -81,7 +81,7 @@ export function constructWebpackConfigFunction(
     const newConfig = setUpModuleRules(rawNewConfig);
 
     // Add a loader which will inject code that sets global values
-    addValueInjectionLoader(newConfig, userNextConfig, userSentryOptions, buildContext);
+    addValueInjectionLoader(newConfig, userNextConfig, userSentryOptions, buildContext, userSentryWebpackPluginOptions);
 
     newConfig.module.rules.push({
       test: /node_modules[/\\]@sentry[/\\]nextjs/,
@@ -939,6 +939,7 @@ function addValueInjectionLoader(
   userNextConfig: NextConfigObject,
   userSentryOptions: UserSentryOptions,
   buildContext: BuildContext,
+  sentryWebpackPluginOptions: Partial<SentryWebpackPluginOptions>,
 ): void {
   const assetPrefix = userNextConfig.assetPrefix || userNextConfig.basePath || '';
 
@@ -951,7 +952,9 @@ function addValueInjectionLoader(
 
     // The webpack plugin's release injection breaks the `app` directory so we inject the release manually here instead.
     // Having a release defined in dev-mode spams releases in Sentry so we only set one in non-dev mode
-    SENTRY_RELEASE: buildContext.dev ? undefined : { id: getSentryRelease(buildContext.buildId) },
+    SENTRY_RELEASE: buildContext.dev
+      ? undefined
+      : { id: sentryWebpackPluginOptions.release ?? getSentryRelease(buildContext.buildId) },
   };
 
   const serverValues = {

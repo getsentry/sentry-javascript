@@ -4,6 +4,55 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.75.1
+
+- feat(browser): Allow collecting of pageload profiles (#9317)
+- fix(browser): Correct timestamp on pageload profiles (#9350)
+- fix(nextjs): Use webpack plugin release value to inject release (#9348)
+
+## 7.75.0
+
+### Important Changes
+
+- **feat(opentelemetry): Add new `@sentry/opentelemetry` package (#9238)**
+
+This release publishes a new package, `@sentry/opentelemetry`. This is a runtime agnostic replacement for `@sentry/opentelemetry-node` and exports a couple of useful utilities which can be used to use Sentry together with OpenTelemetry.
+
+You can read more about [@sentry/opentelemetry in the Readme](https://github.com/getsentry/sentry-javascript/tree/develop/packages/opentelemetry).
+
+- **feat(replay): Allow to treeshake rrweb features (#9274)**
+
+Starting with this release, you can configure the following build-time flags in order to reduce the SDK bundle size:
+
+* `__RRWEB_EXCLUDE_CANVAS__`
+* `__RRWEB_EXCLUDE_IFRAME__`
+* `__RRWEB_EXCLUDE_SHADOW_DOM__`
+
+You can read more about [tree shaking in our docs](https://docs.sentry.io/platforms/javascript/configuration/tree-shaking/).
+
+
+### Other Changes
+
+- build(deno): Prepare Deno SDK for release on npm (#9281)
+- feat: Remove tslib (#9299)
+- feat(node): Add abnormal session support for ANR (#9268)
+- feat(node): Remove `lru_map` dependency (#9300)
+- feat(node): Vendor `cookie` module (#9308)
+- feat(replay): Share performance instrumentation with tracing (#9296)
+- feat(types): Add missing Profiling types (macho debug image, profile measurements, stack frame properties) (#9277)
+- feat(types): Add statsd envelope types (#9304)
+- fix(astro): Add integration default export to types entry point (#9337)
+- fix(astro): Convert SDK init file import paths to POSIX paths (#9336)
+- fix(astro): Make `Replay` and `BrowserTracing` integrations tree-shakeable (#9287)
+- fix(integrations): Fix transaction integration (#9334)
+- fix(nextjs): Restore `autoInstrumentMiddleware` functionality (#9323)
+- fix(nextjs): Guard for case where `getInitialProps` may return undefined (#9342)
+- fix(node-experimental): Make node-fetch support optional (#9321)
+- fix(node): Check buffer length when attempting to parse ANR frame (#9314)
+- fix(replay): Fix xhr start timestamps (#9341)
+- fix(tracing-internal): Remove query params from urls with a trailing slash (#9328)
+- fix(types): Remove typo with CheckInEnvelope (#9303)
+
 ## 7.74.1
 
 - chore(astro): Add `astro-integration` keyword (#9265)

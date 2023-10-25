@@ -46,7 +46,7 @@ export function wrapGetInitialPropsWithSentry(origGetInitialProps: GetInitialPro
         const initialProps: {
           _sentryTraceData?: string;
           _sentryBaggage?: string;
-        } = await tracedGetInitialProps.apply(thisArg, args);
+        } = (await tracedGetInitialProps.apply(thisArg, args)) ?? {}; // Next.js allows undefined to be returned from a getInitialPropsFunction.
 
         const requestTransaction = getTransactionFromRequest(req) ?? hub.getScope().getTransaction();
         if (requestTransaction) {
