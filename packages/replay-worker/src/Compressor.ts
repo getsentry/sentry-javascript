@@ -1,4 +1,10 @@
-import { constants, Deflate, deflate } from 'pako';
+import type * as PakoTypes from 'pako';
+// @ts-expect-error no types here
+import * as pako from 'pako/lib/deflate.js';
+
+const Deflate = (pako as typeof PakoTypes).Deflate;
+const deflate = (pako as typeof PakoTypes).deflate;
+const constants = (pako as typeof PakoTypes).constants;
 
 /**
  * A stateful compressor that can be used to batch compress events.
@@ -7,7 +13,7 @@ export class Compressor {
   /**
    * pako deflator instance
    */
-  public deflate: Deflate;
+  public deflate: PakoTypes.Deflate;
 
   /**
    * If any events have been added.
