@@ -2,7 +2,7 @@ import type { FeedbackComponent, FeedbackConfigurationWithDefaults, FeedbackForm
 import { SubmitButton } from './SubmitButton';
 import { createElement } from './util/createElement';
 
-interface Props {
+export interface FormComponentProps {
   /**
    * A default name value to render the input with. Empty strings are ok.
    */
@@ -11,7 +11,20 @@ interface Props {
    * A default email value to render the input with. Empty strings are ok.
    */
   defaultEmail: string;
-  options: FeedbackConfigurationWithDefaults;
+  options: Pick<
+    FeedbackConfigurationWithDefaults,
+    | 'showName'
+    | 'showEmail'
+    | 'isAnonymous'
+    | 'nameLabel'
+    | 'namePlaceholder'
+    | 'emailLabel'
+    | 'emailPlaceholder'
+    | 'messageLabel'
+    | 'messagePlaceholder'
+    | 'cancelButtonLabel'
+    | 'submitButtonLabel'
+  >;
   onCancel?: (e: Event) => void;
   onSubmit?: (feedback: FeedbackFormData) => void;
 }
@@ -69,7 +82,7 @@ export function Form({
   defaultEmail,
   onCancel,
   onSubmit,
-}: Props): FormComponent {
+}: FormComponentProps): FormComponent {
   const {
     el: submitEl,
     setDisabled: setSubmitDisabled,
