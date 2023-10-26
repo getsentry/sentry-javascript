@@ -65,7 +65,7 @@ type Layer = {
   route?: { path: RouteType | RouteType[] };
   path?: string;
   regexp?: RegExp;
-  keys?: { name: string; offset: number; optional: boolean }[];
+  keys?: { name: string | number; offset: number; optional: boolean }[];
 };
 
 type RouteType = string | RegExp;
@@ -433,30 +433,34 @@ export const extractOriginalRoute = (
   /**
    * iterate param matches from regexp.exec
    */
-  paramIndices.forEach(([startOffset, endOffset], index: number) => {
-    /**
-     * isolate part before param
-     */
-    const substr1 = resultPath.substring(0, startOffset - indexShift);
-    /**
-     * define paramName as replacement in format :pathParam
-     */
-    const replacement = `:${orderedKeys[index].name}`;
+  paramIndices.forEach((item: [number, number] | undefined, index: number) => {
+    /** check if offsets is define because in some cases regex d flag returns undefined */
+    if (item) {
+      const [startOffset, endOffset] = item;
+      /**
+       * isolate part before param
+       */
+      const substr1 = resultPath.substring(0, startOffset - indexShift);
+      /**
+       * define paramName as replacement in format :pathParam
+       */
+      const replacement = `:${orderedKeys[index].name}`;
 
-    /**
-     * isolate part after param
-     */
-    const substr2 = resultPath.substring(endOffset - indexShift);
+      /**
+       * isolate part after param
+       */
+      const substr2 = resultPath.substring(endOffset - indexShift);
 
-    /**
-     * recreate original path but with param replacement
-     */
-    resultPath = substr1 + replacement + substr2;
+      /**
+       * recreate original path but with param replacement
+       */
+      resultPath = substr1 + replacement + substr2;
 
-    /**
-     * calculate new index shift after resultPath was modified
-     */
-    indexShift = indexShift + (endOffset - startOffset - replacement.length);
+      /**
+       * calculate new index shift after resultPath was modified
+       */
+      indexShift = indexShift + (endOffset - startOffset - replacement.length);
+    }
   });
 
   return resultPath;
