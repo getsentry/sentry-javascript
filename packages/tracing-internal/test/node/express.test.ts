@@ -87,5 +87,26 @@ if (major >= 16) {
       ];
       expect(extractOriginalRoute(path, regex, keys)).toBe('/user/:userId/profile/:username');
     });
+
+    it('should handle complex regex scheme extract from array of routes', () => {
+      const path1 = '/@fs/*';
+      const path2 = '/@vite/client';
+      const path3 = '/@react-refresh';
+      const path4 = '/manifest.json';
+
+      const regex =
+        /(?:^\/manifest\.json\/?(?=\/|$)|^\/@vite\/client\/?(?=\/|$)|^\/@react-refresh\/?(?=\/|$)|^\/src\/(.*)\/?(?=\/|$)|^\/vite\/(.*)\/?(?=\/|$)|^\/node_modules\/(.*)\/?(?=\/|$)|^\/@fs\/(.*)\/?(?=\/|$)|^\/@vite-plugin-checker-runtime\/?(?=\/|$)|^\/?$\/?(?=\/|$)|^\/home\/?$\/?(?=\/|$)|^\/login\/?(?=\/|$))/;
+      const keys = [
+        { name: 0, offset: 8, optional: false },
+        { name: 0, offset: 8, optional: false },
+        { name: 0, offset: 9, optional: false },
+        { name: 0, offset: 17, optional: false },
+      ];
+
+      expect(extractOriginalRoute(path1, regex, keys)).toBe('/@fs/:0');
+      expect(extractOriginalRoute(path2, regex, keys)).toBe('/@vite/client');
+      expect(extractOriginalRoute(path3, regex, keys)).toBe('/@react-refresh');
+      expect(extractOriginalRoute(path4, regex, keys)).toBe('/manifest.json');
+    });
   });
 }
