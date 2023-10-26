@@ -121,4 +121,11 @@ module.exports = [
     gzip: true,
     limit: '57 KB',
   },
+  {
+    name: '@sentry-internal/feedback - Webpack (gzipped)',
+    path: 'packages/feedback/build/npm/esm/index.js',
+    import: '{ Feedback }',
+    gzip: true,
+    limit: '35 KB',
+  },
 ];
