@@ -31,7 +31,7 @@ echo "Running integration tests on Node $NODE_VERSION"
 # make a backup of our config file so we can restore it when we're done
 mv next.config.js next.config.js.bak
 
-for NEXTJS_VERSION in 10 11 12 13; do
+for NEXTJS_VERSION in 10 11 12 13 14; do
   for USE_APPDIR in true false; do
     if ([ "$NEXTJS_VERSION" -lt "13" ] || [ "$NODE_MAJOR" -lt "16" ]) && [ "$USE_APPDIR" == true ]; then
       # App dir doesn not work on Next.js < 13 or Node.js < 16
@@ -63,6 +63,12 @@ for NEXTJS_VERSION in 10 11 12 13; do
       exit 0
     fi
 
+    # Next.js v14 requires at least Node v18
+    if [ "$NODE_MAJOR" -lt "18" ] && [ "$NEXTJS_VERSION" -ge "14" ]; then
+      echo "[nextjs@$NEXTJS_VERSION] Not compatible with Node $NODE_MAJOR"
+      exit 0
+    fi
+
     echo "[nextjs@$NEXTJS_VERSION] Preparing environment..."
     rm -rf node_modules .next .env.local 2>/dev/null || true
 
@@ -76,8 +82,8 @@ for NEXTJS_VERSION in 10 11 12 13; do
       sed -i /"next.*latest"/s/latest/"${NEXTJS_VERSION}.x"/ package.json
     fi
 
-    # Next.js v13 requires React 18.2.0
-    if [ "$NEXTJS_VERSION" -eq "13" ]; then
+    # Next.js v13,v14 requires React 18.2.0
+    if [ "$NEXTJS_VERSION" -eq "13" ] || [ "$NEXTJS_VERSION" -eq "14" ]; then
       npm i --save react@18.2.0 react-dom@18.2.0
     fi
     # We have to use `--ignore-engines` because sucrase claims to need Node 12, even though tests pass just fine on Node
@@ -131,6 +137,12 @@ for NEXTJS_VERSION in 10 11 12 13; do
           sed "s/%RUN_WEBPACK_5%/$RUN_WEBPACK_5/g" <next13.appdir.config.template >next.config.js
         else
           sed "s/%RUN_WEBPACK_5%/$RUN_WEBPACK_5/g" <next13.config.template >next.config.js
+        fi
+      elif [ "$NEXTJS_VERSION" -eq "14" ]; then
+        if [ "$USE_APPDIR" == true ]; then
+          sed "s/%RUN_WEBPACK_5%/$RUN_WEBPACK_5/g" <next14.appdir.config.template >next.config.js
+        else
+          sed "s/%RUN_WEBPACK_5%/$RUN_WEBPACK_5/g" <next14.config.template >next.config.js
         fi
       fi
 
