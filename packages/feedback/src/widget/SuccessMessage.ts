@@ -2,7 +2,7 @@ import type { FeedbackComponent } from '../types';
 import { SuccessIcon } from './SuccessIcon';
 import { createElement } from './util/createElement';
 
-interface SuccessMessageProps {
+export interface SuccessMessageProps {
   message: string;
   onRemove?: () => void;
 }
