@@ -1,10 +1,4 @@
-import {
-  captureException,
-  getCurrentHub,
-  hasTracingEnabled,
-  runWithAsyncContext,
-  startTransaction,
-} from '@sentry/core';
+import { captureException, getCurrentHub, runWithAsyncContext, startTransaction } from '@sentry/core';
 import type { Transaction } from '@sentry/types';
 import {
   addExceptionMechanism,
@@ -91,7 +85,7 @@ export function withSentry(apiHandler: NextApiHandler, parameterizedRoute?: stri
 
           currentScope.setSDKProcessingMetadata({ request: req });
 
-          if (hasTracingEnabled(options) && options?.instrumenter === 'sentry') {
+          if (options?.instrumenter === 'sentry') {
             const sentryTrace =
               req.headers && isString(req.headers['sentry-trace']) ? req.headers['sentry-trace'] : undefined;
             const baggage = req.headers?.baggage;

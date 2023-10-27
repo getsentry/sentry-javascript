@@ -1,4 +1,4 @@
-import { captureException, flush, getCurrentHub, hasTracingEnabled, startTransaction } from '@sentry/core';
+import { captureException, flush, getCurrentHub, startTransaction } from '@sentry/core';
 import type { Span } from '@sentry/types';
 import { addExceptionMechanism, logger, objectify, tracingContextFromHeaders } from '@sentry/utils';
 
@@ -18,39 +18,37 @@ export function withEdgeWrapping<H extends EdgeRouteHandler>(
 
     let span: Span | undefined;
 
-    if (hasTracingEnabled()) {
-      if (prevSpan) {
-        span = prevSpan.startChild({
-          description: options.spanDescription,
-          op: options.spanOp,
-          origin: 'auto.function.nextjs',
-        });
-      } else if (req instanceof Request) {
-        const sentryTrace = req.headers.get('sentry-trace') || '';
-        const baggage = req.headers.get('baggage');
-        const { traceparentData, dynamicSamplingContext, propagationContext } = tracingContextFromHeaders(
-          sentryTrace,
-          baggage,
-        );
-        currentScope.setPropagationContext(propagationContext);
-        if (traceparentData) {
-          __DEBUG_BUILD__ && logger.log(`[Tracing] Continuing trace ${traceparentData.traceId}.`);
-        }
-
-        span = startTransaction({
-          name: options.spanDescription,
-          op: options.spanOp,
-          origin: 'auto.ui.nextjs.withEdgeWrapping',
-          ...traceparentData,
-          metadata: {
-            dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
-            source: 'route',
-          },
-        });
+    if (prevSpan) {
+      span = prevSpan.startChild({
+        description: options.spanDescription,
+        op: options.spanOp,
+        origin: 'auto.function.nextjs',
+      });
+    } else if (req instanceof Request) {
+      const sentryTrace = req.headers.get('sentry-trace') || '';
+      const baggage = req.headers.get('baggage');
+      const { traceparentData, dynamicSamplingContext, propagationContext } = tracingContextFromHeaders(
+        sentryTrace,
+        baggage,
+      );
+      currentScope.setPropagationContext(propagationContext);
+      if (traceparentData) {
+        __DEBUG_BUILD__ && logger.log(`[Tracing] Continuing trace ${traceparentData.traceId}.`);
       }
 
-      currentScope?.setSpan(span);
+      span = startTransaction({
+        name: options.spanDescription,
+        op: options.spanOp,
+        origin: 'auto.ui.nextjs.withEdgeWrapping',
+        ...traceparentData,
+        metadata: {
+          dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
+          source: 'route',
+        },
+      });
     }
+
+    currentScope?.setSpan(span);
 
     try {
       const handlerResult: ReturnType<H> = await handler.apply(this, args);

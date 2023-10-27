@@ -1,4 +1,3 @@
-import { hasTracingEnabled } from '@sentry/core';
 import { RewriteFrames } from '@sentry/integrations';
 import type { NodeOptions } from '@sentry/node';
 import { configureScope, getCurrentHub, init as nodeInit, Integrations } from '@sentry/node';
@@ -142,12 +141,10 @@ function addServerIntegrations(options: NodeOptions): void {
     _options: { exitEvenIfOtherHandlersAreRegistered: false },
   });
 
-  if (hasTracingEnabled(options)) {
-    const defaultHttpTracingIntegration = new Integrations.Http({ tracing: true });
-    integrations = addOrUpdateIntegration(defaultHttpTracingIntegration, integrations, {
-      _tracing: {},
-    });
-  }
+  const defaultHttpTracingIntegration = new Integrations.Http({ tracing: true });
+  integrations = addOrUpdateIntegration(defaultHttpTracingIntegration, integrations, {
+    _tracing: {},
+  });
 
   options.integrations = integrations;
 }
