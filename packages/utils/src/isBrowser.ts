@@ -1,7 +1,9 @@
 import { isNodeEnv } from './node';
+import { GLOBAL_OBJ } from './worldwide';
 
 /**
  * Returns true if we are in the browser.
+ * @deprecated
  */
 export function isBrowser(): boolean {
   // eslint-disable-next-line no-restricted-globals
@@ -12,5 +14,8 @@ type ElectronProcess = { type?: string };
 
 // Electron renderers with nodeIntegration enabled are detected as Node.js so we specifically test for them
 function isElectronNodeRenderer(): boolean {
-  return typeof process !== 'undefined' && (process as ElectronProcess).type === 'renderer';
+  return (
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
+    (GLOBAL_OBJ as any).process !== undefined && ((GLOBAL_OBJ as any).process as ElectronProcess).type === 'renderer'
+  );
 }
