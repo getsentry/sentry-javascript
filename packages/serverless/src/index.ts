@@ -21,6 +21,7 @@ export {
   captureException,
   captureMessage,
   captureCheckIn,
+  withMonitor,
   configureScope,
   createTransport,
   getActiveTransaction,
