@@ -2,8 +2,7 @@ import type { FeedbackComponent, FeedbackConfigurationWithDefaults } from '../ty
 import { Icon } from './Icon';
 import { createElement } from './util/createElement';
 
-interface Props {
-  options: FeedbackConfigurationWithDefaults;
+export interface ActorProps extends Pick<FeedbackConfigurationWithDefaults, 'buttonLabel'> {
   onClick?: (e: MouseEvent) => void;
 }
 
@@ -21,7 +20,7 @@ export interface ActorComponent extends FeedbackComponent<HTMLButtonElement> {
 /**
  *
  */
-export function Actor({ options, onClick }: Props): ActorComponent {
+export function Actor({ buttonLabel, onClick }: ActorProps): ActorComponent {
   function _handleClick(e: MouseEvent): void {
     onClick && onClick(e);
   }
@@ -31,7 +30,8 @@ export function Actor({ options, onClick }: Props): ActorComponent {
     {
       type: 'button',
       className: 'widget__actor',
-      ariaLabel: options.buttonLabel,
+      ariaLabel: buttonLabel,
+      ariaHidden: 'false',
     },
     Icon().el,
     createElement(
@@ -39,7 +39,7 @@ export function Actor({ options, onClick }: Props): ActorComponent {
       {
         className: 'widget__actor__text',
       },
-      options.buttonLabel,
+      buttonLabel,
     ),
   );
 
@@ -49,9 +49,11 @@ export function Actor({ options, onClick }: Props): ActorComponent {
     el,
     show: (): void => {
       el.classList.remove('widget__actor--hidden');
+      el.setAttribute('ariaHidden', 'false');
     },
     hide: (): void => {
       el.classList.add('widget__actor--hidden');
+      el.setAttribute('ariaHidden', 'true');
     },
   };
 }
