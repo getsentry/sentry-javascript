@@ -2,6 +2,11 @@ import type * as PakoTypes from 'pako';
 // @ts-expect-error no types here
 import * as pako from 'pako/lib/deflate.js';
 
+// NOTE: We have to do this weird workaround because by default,
+// pako does not treeshake when importing from 'pako'.
+// In order to get proper tree shaking, we have to import from 'pako/lib/deflate.js',
+// Which is not great but works
+// types come from @types/pako, so we can safely use them by casting
 const Deflate = (pako as typeof PakoTypes).Deflate;
 const deflate = (pako as typeof PakoTypes).deflate;
 const constants = (pako as typeof PakoTypes).constants;

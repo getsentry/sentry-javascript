@@ -46,10 +46,10 @@
   },
   "homepage": "https://docs.sentry.io/platforms/javascript/session-replay/",
   "devDependencies": {
+    "@rollup/plugin-commonjs": "^21.0.1",
     "@types/pako": "^2.0.0"
   },
   "dependencies": {
-    "@rollup/plugin-commonjs": "25.0.7",
     "pako": "2.1.0"
   },
   "engines": {
