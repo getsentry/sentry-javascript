@@ -195,7 +195,7 @@ export function createWidget({ shadow, options, attachTo }: CreateWidgetParams):
   }
 
   if (!attachTo) {
-    actor = Actor({ options, onClick: handleActorClick });
+    actor = Actor({ buttonLabel: options.buttonLabel, onClick: handleActorClick });
     shadow.appendChild(actor.el);
   } else {
     attachTo.addEventListener('click', handleActorClick);
