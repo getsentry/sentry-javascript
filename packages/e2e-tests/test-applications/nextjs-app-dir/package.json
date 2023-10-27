@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "build": "next build > .tmp_build_output",
+    "build": "next build > .tmp_build_stdout 2> .tmp_build_stderr",
     "clean": "npx rimraf node_modules,pnpm-lock.yaml",
     "test:prod": "TEST_ENV=production playwright test",
     "test:dev": "TEST_ENV=development playwright test",

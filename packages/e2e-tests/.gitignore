@@ -1,4 +1,5 @@
 .env
 tmp
-.tmp_build_output
+.tmp_build_stdout
+.tmp_build_stderr
 pnpm-lock.yaml
