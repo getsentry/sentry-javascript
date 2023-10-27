@@ -13,12 +13,5 @@ export function isRrwebError(event: Event, hint: EventHint): boolean {
     return true;
   }
 
-  // Check if any exception originates from rrweb
-  return event.exception.values.some(exception => {
-    if (!exception.stacktrace || !exception.stacktrace.frames || !exception.stacktrace.frames.length) {
-      return false;
-    }
-
-    return exception.stacktrace.frames.some(frame => frame.filename && frame.filename.includes('/rrweb/src/'));
-  });
+  return false;
 }
