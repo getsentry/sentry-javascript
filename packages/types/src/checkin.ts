@@ -43,7 +43,7 @@ export interface SerializedCheckIn {
   };
 }
 
-interface InProgressCheckIn {
+export interface InProgressCheckIn {
   // The distinct slug of the monitor.
   monitorSlug: SerializedCheckIn['monitor_slug'];
   // The status of the check-in.

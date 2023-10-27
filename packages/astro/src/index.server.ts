@@ -13,6 +13,7 @@ export {
   captureEvent,
   captureMessage,
   captureCheckIn,
+  withCheckIn,
   configureScope,
   createTransport,
   extractTraceparentData,

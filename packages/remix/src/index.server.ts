@@ -13,6 +13,7 @@ export {
   addGlobalEventProcessor,
   addBreadcrumb,
   captureCheckIn,
+  withCheckIn,
   captureException,
   captureEvent,
   captureMessage,

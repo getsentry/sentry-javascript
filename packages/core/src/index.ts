@@ -7,6 +7,7 @@ export * from './tracing';
 export {
   addBreadcrumb,
   captureCheckIn,
+  withCheckIn,
   captureException,
   captureEvent,
   captureMessage,
