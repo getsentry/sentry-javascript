@@ -139,11 +139,7 @@ for NEXTJS_VERSION in 10 11 12 13 14; do
           sed "s/%RUN_WEBPACK_5%/$RUN_WEBPACK_5/g" <next13.config.template >next.config.js
         fi
       elif [ "$NEXTJS_VERSION" -eq "14" ]; then
-        if [ "$USE_APPDIR" == true ]; then
-          sed "s/%RUN_WEBPACK_5%/$RUN_WEBPACK_5/g" <next14.appdir.config.template >next.config.js
-        else
-          sed "s/%RUN_WEBPACK_5%/$RUN_WEBPACK_5/g" <next14.config.template >next.config.js
-        fi
+        sed "s/%RUN_WEBPACK_5%/$RUN_WEBPACK_5/g" <next14.config.template >next.config.js
       fi
 
       echo "[nextjs@$NEXTJS_VERSION | webpack@$WEBPACK_VERSION] Building..."
