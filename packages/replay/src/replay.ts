@@ -1152,7 +1152,7 @@ export class ReplayContainer implements ReplayContainerInterface {
     }
 
     if (!this.session) {
-      __DEBUG_BUILD__ && logger.error('[Replay] No session found to flush.');
+      // should never happen, as we would have bailed out before
       return;
     }
 
