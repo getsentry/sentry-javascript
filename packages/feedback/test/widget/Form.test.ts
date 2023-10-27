@@ -65,7 +65,7 @@ describe('Form', () => {
 
   it.todo('can change text labels');
 
-  it('submit is disabled if message is not empty', () => {
+  it('submit is enabled if message is not empty', () => {
     const formComponent = renderForm();
 
     const message = formComponent.el.querySelector('[name="message"]') as HTMLTextAreaElement;
@@ -73,11 +73,13 @@ describe('Form', () => {
 
     expect(submit.disabled).toBe(true);
 
-    const event = new KeyboardEvent('keyup');
     message.value = 'Foo (message)';
-    message.dispatchEvent(event);
-
+    message.dispatchEvent(new KeyboardEvent('keyup'));
     expect(submit.disabled).toBe(false);
+
+    message.value = '';
+    message.dispatchEvent(new KeyboardEvent('keyup'));
+    expect(submit.disabled).toBe(true);
   });
 
   it('can manually enable/disable submit button', () => {
