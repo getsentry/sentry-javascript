@@ -884,7 +884,7 @@ jobs:
           - test-application: 'standard-frontend-react'
             build-command: 'test:build-ts3.8'
             label: 'standard-frontend-react (TS 3.8)'
-          - test-application: 'standard-frontend-react'
+          - test-application: 'nextjs-app-dir'
             build-command: 'test:build-13'
             label: 'nextjs-app-dir (next@13)'
 
