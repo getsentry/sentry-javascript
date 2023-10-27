@@ -218,7 +218,7 @@ export function captureCheckIn(checkIn: CheckIn, upsertMonitorConfig?: MonitorCo
  * @param upsertMonitorConfig An optional object that describes a monitor config. Use this if you want
  * to create a monitor automatically when sending a check in.
  */
-export function withCheckIn<T>(
+export function withMonitor<T>(
   monitorSlug: CheckIn['monitorSlug'],
   callback: () => T,
   upsertMonitorConfig?: MonitorConfig,

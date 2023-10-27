@@ -51,7 +51,7 @@ export {
   trace,
   withScope,
   captureCheckIn,
-  withCheckIn,
+  withMonitor,
 } from '@sentry/node';
 
 export type {

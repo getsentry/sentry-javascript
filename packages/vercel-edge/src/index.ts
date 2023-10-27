@@ -54,7 +54,7 @@ export {
   trace,
   withScope,
   captureCheckIn,
-  withCheckIn,
+  withMonitor,
   setMeasurement,
   getActiveSpan,
   startSpan,
