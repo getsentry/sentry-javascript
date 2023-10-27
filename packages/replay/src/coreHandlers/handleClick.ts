@@ -1,16 +1,19 @@
+import { IncrementalSource, MouseInteractions, record } from '@sentry-internal/rrweb';
 import type { Breadcrumb } from '@sentry/types';
 
 import { WINDOW } from '../constants';
 import type {
+  RecordingEvent,
   ReplayClickDetector,
   ReplayContainer,
   ReplayMultiClickFrame,
   ReplaySlowClickFrame,
   SlowClickConfig,
 } from '../types';
+import { ReplayEventTypeFullSnapshot, ReplayEventTypeIncrementalSnapshot } from '../types';
 import { timestampToS } from '../util/timestamp';
 import { addBreadcrumbEvent } from './util/addBreadcrumbEvent';
-import { getClickTargetNode } from './util/domUtils';
+import { getClosestInteractive } from './util/domUtils';
 import { onWindowOpen } from './util/onWindowOpen';
 
 type ClickBreadcrumb = Breadcrumb & {
@@ -25,6 +28,16 @@ interface Click {
   clickCount: number;
   node: HTMLElement;
 }
+
+type IncrementalRecordingEvent = RecordingEvent & {
+  type: typeof ReplayEventTypeIncrementalSnapshot;
+  data: { source: IncrementalSource };
+};
+
+type IncrementalMouseInteractionRecordingEvent = IncrementalRecordingEvent & {
+  type: typeof ReplayEventTypeIncrementalSnapshot;
+  data: { type: MouseInteractions; id: number };
+};
 
 /** Handle a click. */
 export function handleClick(clickDetector: ReplayClickDetector, clickBreadcrumb: Breadcrumb, node: HTMLElement): void {
@@ -70,48 +83,14 @@ export class ClickDetector implements ReplayClickDetector {
 
   /** Register click detection handlers on mutation or scroll. */
   public addListeners(): void {
-    const mutationHandler = (): void => {
-      this._lastMutation = nowInSeconds();
-    };
-
-    const scrollHandler = (): void => {
-      this._lastScroll = nowInSeconds();
-    };
-
     const cleanupWindowOpen = onWindowOpen(() => {
       // Treat window.open as mutation
       this._lastMutation = nowInSeconds();
     });
 
-    const clickHandler = (event: MouseEvent): void => {
-      if (!event.target) {
-        return;
-      }
-
-      const node = getClickTargetNode(event);
-      if (node) {
-        this._handleMultiClick(node as HTMLElement);
-      }
-    };
-
-    const obs = new MutationObserver(mutationHandler);
-
-    obs.observe(WINDOW.document.documentElement, {
-      attributes: true,
-      characterData: true,
-      childList: true,
-      subtree: true,
-    });
-
-    WINDOW.addEventListener('scroll', scrollHandler, { passive: true });
-    WINDOW.addEventListener('click', clickHandler, { passive: true });
-
     this._teardown = () => {
-      WINDOW.removeEventListener('scroll', scrollHandler);
-      WINDOW.removeEventListener('click', clickHandler);
       cleanupWindowOpen();
 
-      obs.disconnect();
       this._clicks = [];
       this._lastMutation = 0;
       this._lastScroll = 0;
@@ -129,7 +108,7 @@ export class ClickDetector implements ReplayClickDetector {
     }
   }
 
-  /** Handle a click */
+  /** @inheritDoc */
   public handleClick(breadcrumb: Breadcrumb, node: HTMLElement): void {
     if (ignoreElement(node, this._ignoreSelector) || !isClickBreadcrumb(breadcrumb)) {
       return;
@@ -156,6 +135,22 @@ export class ClickDetector implements ReplayClickDetector {
     if (this._clicks.length === 1) {
       this._scheduleCheckClicks();
     }
+  }
+
+  /** @inheritDoc */
+  public registerMutation(timestamp = Date.now()): void {
+    this._lastMutation = timestampToS(timestamp);
+  }
+
+  /** @inheritDoc */
+  public registerScroll(timestamp = Date.now()): void {
+    this._lastScroll = timestampToS(timestamp);
+  }
+
+  /** @inheritDoc */
+  public registerClick(element: HTMLElement): void {
+    const node = getClosestInteractive(element);
+    this._handleMultiClick(node as HTMLElement);
   }
 
   /** Count multiple clicks on elements. */
@@ -310,4 +305,48 @@ function isClickBreadcrumb(breadcrumb: Breadcrumb): breadcrumb is ClickBreadcrum
 // This is good enough for us, and is easier to test/mock than `timestampInSeconds`
 function nowInSeconds(): number {
   return Date.now() / 1000;
+}
+
+/** Update the click detector based on a recording event of rrweb. */
+export function updateClickDetectorForRecordingEvent(clickDetector: ReplayClickDetector, event: RecordingEvent): void {
+  try {
+    // We interpret a full snapshot as a mutation (this may not be true, but there is no way for us to know)
+    if (event.type === ReplayEventTypeFullSnapshot) {
+      clickDetector.registerMutation(event.timestamp);
+    }
+
+    if (!isIncrementalEvent(event)) {
+      return;
+    }
+
+    const { source } = event.data;
+    if (source === IncrementalSource.Mutation) {
+      clickDetector.registerMutation(event.timestamp);
+    }
+
+    if (source === IncrementalSource.Scroll) {
+      clickDetector.registerScroll(event.timestamp);
+    }
+
+    if (isIncrementalMouseInteraction(event)) {
+      const { type, id } = event.data;
+      const node = record.mirror.getNode(id);
+
+      if (node instanceof HTMLElement && type === MouseInteractions.Click) {
+        clickDetector.registerClick(node);
+      }
+    }
+  } catch {
+    // ignore errors here, e.g. if accessing something that does not exist
+  }
+}
+
+function isIncrementalEvent(event: RecordingEvent): event is IncrementalRecordingEvent {
+  return event.type === ReplayEventTypeIncrementalSnapshot;
+}
+
+function isIncrementalMouseInteraction(
+  event: IncrementalRecordingEvent,
+): event is IncrementalMouseInteractionRecordingEvent {
+  return event.data.source === IncrementalSource.MouseInteraction;
 }

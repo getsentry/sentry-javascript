@@ -7,6 +7,12 @@ export interface DomHandlerData {
 
 const INTERACTIVE_SELECTOR = 'button,a';
 
+/** Get the closest interactive parent element, or else return the given element. */
+export function getClosestInteractive(element: Element): Element {
+  const closestInteractive = element.closest(INTERACTIVE_SELECTOR);
+  return closestInteractive || element;
+}
+
 /**
  * For clicks, we check if the target is inside of a button or link
  * If so, we use this as the target instead
@@ -20,8 +26,7 @@ export function getClickTargetNode(event: DomHandlerData['event'] | MouseEvent):
     return target;
   }
 
-  const closestInteractive = target.closest(INTERACTIVE_SELECTOR);
-  return closestInteractive || target;
+  return getClosestInteractive(target);
 }
 
 /** Get the event target node. */
