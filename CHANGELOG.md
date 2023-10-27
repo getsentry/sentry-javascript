@@ -4,6 +4,52 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.76.0
+
+### Important Changes
+
+- **feat(core): Add cron monitor wrapper helper (#9395)**
+
+This release adds `Sentry.withMonitor()`, a wrapping function that wraps a callback with a cron monitor that will automatically report completions and failures:
+
+```ts
+import * as Sentry from '@sentry/node';
+
+// withMonitor() will send checkin when callback is started/finished
+// works with async and sync callbacks.
+const result = Sentry.withMonitor(
+  'dailyEmail',
+  () => {
+    // withCheckIn return value is same return value here
+    return sendEmail();
+  },
+  // Optional upsert options
+  {
+    schedule: {
+      type: 'crontab',
+      value: '0 * * * *',
+    },
+    // 🇨🇦🫡
+    timezone: 'Canada/Eastern',
+  },
+);
+```
+
+### Other Changes
+
+- chore(angular-ivy): Allow Angular 17 in peer dependencies (#9386)
+- feat(nextjs): Instrument SSR page components (#9346)
+- feat(nextjs): Trace errors in page component SSR (#9388)
+- fix(nextjs): Instrument route handlers with `jsx` and `tsx` file extensions (#9362)
+- fix(nextjs): Trace with performance disabled (#9389)
+- fix(replay): Ensure `replay_id` is not added to DSC if session expired (#9359)
+- fix(replay): Remove unused parts of pako from build (#9369)
+- fix(serverless): Don't mark all errors as unhandled (#9368)
+- fix(tracing-internal): Fix case when middleware contain array of routes with special chars as @ (#9375)
+- meta(nextjs): Bump peer deps for Next.js 14 (#9390)
+
+Work in this release contributed by @LubomirIgonda1. Thank you for your contribution!
+
 ## 7.75.1
 
 - feat(browser): Allow collecting of pageload profiles (#9317)
