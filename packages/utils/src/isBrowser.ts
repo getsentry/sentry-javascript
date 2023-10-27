@@ -3,7 +3,6 @@ import { GLOBAL_OBJ } from './worldwide';
 
 /**
  * Returns true if we are in the browser.
- * @deprecated
  */
 export function isBrowser(): boolean {
   // eslint-disable-next-line no-restricted-globals
