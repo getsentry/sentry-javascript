@@ -19,7 +19,9 @@ sentryTest('captures Breadcrumb for clicks & debounces them for a second', async
     });
   });
 
-  const promise = getFirstSentryEnvelopeRequest<Event>(page, url);
+  const promise = getFirstSentryEnvelopeRequest<Event>(page);
+
+  await page.goto(url);
 
   await page.click('#button1');
   // not debounced because other target

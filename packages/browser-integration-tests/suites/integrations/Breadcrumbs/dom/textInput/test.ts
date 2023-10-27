@@ -19,9 +19,11 @@ sentryTest('captures Breadcrumb for events on inputs & debounced them', async ({
     });
   });
 
-  const promise = getFirstSentryEnvelopeRequest<Event>(page, url);
+  const promise = getFirstSentryEnvelopeRequest<Event>(page);
 
-  await page.click('#input1');
+  await page.goto(url);
+
+  void page.click('#input1');
   // Not debounced because other event type
   await page.type('#input1', 'John');
   // This should be debounced
