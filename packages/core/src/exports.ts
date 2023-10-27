@@ -7,6 +7,7 @@ import type {
   EventHint,
   Extra,
   Extras,
+  FinishedCheckIn,
   MonitorConfig,
   Primitive,
   Severity,
@@ -14,7 +15,7 @@ import type {
   TransactionContext,
   User,
 } from '@sentry/types';
-import { logger, uuid4 } from '@sentry/utils';
+import { isThenable, logger, timestampInSeconds, uuid4 } from '@sentry/utils';
 
 import type { Hub } from './hub';
 import { getCurrentHub } from './hub';
@@ -208,6 +209,49 @@ export function captureCheckIn(checkIn: CheckIn, upsertMonitorConfig?: MonitorCo
   }
 
   return uuid4();
+}
+
+/**
+ * Wraps a callback with a cron monitor check in. The check in will be sent to Sentry when the callback finishes.
+ *
+ * @param monitorSlug The distinct slug of the monitor.
+ * @param upsertMonitorConfig An optional object that describes a monitor config. Use this if you want
+ * to create a monitor automatically when sending a check in.
+ */
+export function withMonitor<T>(
+  monitorSlug: CheckIn['monitorSlug'],
+  callback: () => T,
+  upsertMonitorConfig?: MonitorConfig,
+): T {
+  const checkInId = captureCheckIn({ monitorSlug, status: 'in_progress' }, upsertMonitorConfig);
+  const now = timestampInSeconds();
+
+  function finishCheckIn(status: FinishedCheckIn['status']): void {
+    captureCheckIn({ monitorSlug, status, checkInId, duration: timestampInSeconds() - now });
+  }
+
+  let maybePromiseResult: T;
+  try {
+    maybePromiseResult = callback();
+  } catch (e) {
+    finishCheckIn('error');
+    throw e;
+  }
+
+  if (isThenable(maybePromiseResult)) {
+    Promise.resolve(maybePromiseResult).then(
+      () => {
+        finishCheckIn('ok');
+      },
+      () => {
+        finishCheckIn('error');
+      },
+    );
+  } else {
+    finishCheckIn('ok');
+  }
+
+  return maybePromiseResult;
 }
 
 /**

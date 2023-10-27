@@ -11,6 +11,7 @@ export {
   captureEvent,
   captureMessage,
   captureCheckIn,
+  withMonitor,
   configureScope,
   createTransport,
   extractTraceparentData,

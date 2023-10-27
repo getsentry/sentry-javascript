@@ -1,1 +1,3 @@
 build-types
+build-test
+lib.deno.d.ts

@@ -534,30 +534,5 @@ describe('AWSLambda', () => {
         }),
       );
     });
-
-    test('enhance event with correct mechanism value', () => {
-      const eventWithSomeData = {
-        exception: {
-          values: [{}],
-        },
-      };
-
-      // @ts-expect-error see "Why @ts-expect-error" note
-      Sentry.addGlobalEventProcessor.mockImplementationOnce(cb => cb(eventWithSomeData));
-      Sentry.AWSLambda.init({});
-
-      expect(eventWithSomeData).toEqual({
-        exception: {
-          values: [
-            {
-              mechanism: {
-                handled: false,
-                type: 'generic',
-              },
-            },
-          ],
-        },
-      });
-    });
   });
 });

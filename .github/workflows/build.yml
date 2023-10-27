@@ -817,13 +817,20 @@ jobs:
         uses: ./.github/actions/restore-cache
         env:
           DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
-      - name: Check tarball cache
-        uses: actions/cache@v3
+      - name: NX cache
+        uses: actions/cache/restore@v3
+        with:
+          path: .nxcache
+          key: nx-Linux-${{ github.ref }}-${{ env.HEAD_COMMIT }}
+          # On develop branch, we want to _store_ the cache (so it can be used by other branches), but never _restore_ from it
+          restore-keys: ${{ env.NX_CACHE_RESTORE_KEYS }}
+      - name: Build tarballs
+        run: yarn build:tarball
+      - name: Stores tarballs in cache
+        uses: actions/cache/save@v3
         with:
           path: ${{ github.workspace }}/packages/*/*.tgz
           key: ${{ env.BUILD_CACHE_TARBALL_KEY }}
-      - name: Build tarballs
-        run: yarn build:tarball
 
   job_e2e_tests:
     name: E2E ${{ matrix.label || matrix.test-application }} Test
@@ -877,6 +884,12 @@ jobs:
           - test-application: 'standard-frontend-react'
             build-command: 'test:build-ts3.8'
             label: 'standard-frontend-react (TS 3.8)'
+          - test-application: 'create-next-app'
+            build-command: 'test:build-13'
+            label: 'create-next-app (next@13)'
+          - test-application: 'nextjs-app-dir'
+            build-command: 'test:build-13'
+            label: 'nextjs-app-dir (next@13)'
 
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})

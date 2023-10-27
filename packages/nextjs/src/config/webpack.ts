@@ -182,7 +182,7 @@ export function constructWebpackConfigFunction(
       const normalizedAbsoluteResourcePath = normalizeLoaderResourcePath(resourcePath);
       return (
         normalizedAbsoluteResourcePath.startsWith(appDirPath + path.sep) &&
-        !!normalizedAbsoluteResourcePath.match(/[\\/]route\.(js|ts)$/)
+        !!normalizedAbsoluteResourcePath.match(/[\\/]route\.(js|jsx|ts|tsx)$/)
       );
     };
 

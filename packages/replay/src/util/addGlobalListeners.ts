@@ -40,7 +40,11 @@ export function addGlobalListeners(replay: ReplayContainer): void {
       const replayId = replay.getSessionId();
       // We do not want to set the DSC when in buffer mode, as that means the replay has not been sent (yet)
       if (replayId && replay.isEnabled() && replay.recordingMode === 'session') {
-        dsc.replay_id = replayId;
+        // Ensure to check that the session is still active - it could have expired in the meanwhile
+        const isSessionActive = replay.checkAndHandleExpiredSession();
+        if (isSessionActive) {
+          dsc.replay_id = replayId;
+        }
       }
     });
 

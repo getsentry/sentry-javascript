@@ -1,20 +1,21 @@
 /* eslint-disable complexity */
-import { forEachEnvelopeItem } from '../../utils/build/esm/index.js';
+import type { sentryTypes } from '../build-test/index.js';
+import { sentryUtils } from '../build-test/index.js';
 
-type EventOrSession = any;
+type EventOrSession = sentryTypes.Event | sentryTypes.Transaction | sentryTypes.Session;
 
-export function getNormalizedEvent(envelope: any): any | undefined {
-  let event: any | undefined;
+export function getNormalizedEvent(envelope: sentryTypes.Envelope): sentryTypes.Event | undefined {
+  let event: sentryTypes.Event | undefined;
 
-  forEachEnvelopeItem(envelope, (item: any) => {
+  sentryUtils.forEachEnvelopeItem(envelope, item => {
     const [headers, body] = item;
 
     if (headers.type === 'event') {
-      event = body;
+      event = body as sentryTypes.Event;
     }
   });
 
-  return normalize(event) as any | undefined;
+  return normalize(event) as sentryTypes.Event | undefined;
 }
 
 export function normalize(event: EventOrSession | undefined): EventOrSession | undefined {
@@ -23,14 +24,14 @@ export function normalize(event: EventOrSession | undefined): EventOrSession | u
   }
 
   if (eventIsSession(event)) {
-    return normalizeSession(event);
+    return normalizeSession(event as sentryTypes.Session);
   } else {
-    return normalizeEvent(event);
+    return normalizeEvent(event as sentryTypes.Event);
   }
 }
 
 export function eventIsSession(data: EventOrSession): boolean {
-  return !!data?.sid;
+  return !!(data as sentryTypes.Session)?.sid;
 }
 
 /**
@@ -39,7 +40,7 @@ export function eventIsSession(data: EventOrSession): boolean {
  * All properties that are timestamps, versions, ids or variables that may vary
  * by platform are replaced with placeholder strings
  */
-function normalizeSession(session: any): any {
+function normalizeSession(session: sentryTypes.Session): sentryTypes.Session {
   if (session.sid) {
     session.sid = '{{id}}';
   }
@@ -65,7 +66,7 @@ function normalizeSession(session: any): any {
  * All properties that are timestamps, versions, ids or variables that may vary
  * by platform are replaced with placeholder strings
  */
-function normalizeEvent(event: any): any {
+function normalizeEvent(event: sentryTypes.Event): sentryTypes.Event {
   if (event.sdk?.version) {
     event.sdk.version = '{{version}}';
   }
@@ -153,7 +154,7 @@ function normalizeEvent(event: any): any {
   if (event.exception?.values?.[0].stacktrace?.frames) {
     // Exlcude Deno frames since these may change between versions
     event.exception.values[0].stacktrace.frames = event.exception.values[0].stacktrace.frames.filter(
-      (frame: any) => !frame.filename?.includes('deno:'),
+      frame => !frame.filename?.includes('deno:'),
     );
   }
 
