@@ -1,7 +1,7 @@
 import type { FeedbackComponent } from '../types';
 import { createElement } from './util/createElement';
 
-interface SubmitButtonProps {
+export interface SubmitButtonProps {
   label: string;
 }
 
@@ -27,7 +27,7 @@ export function SubmitButton({ label }: SubmitButtonProps): SubmitButtonComponen
       type: 'submit',
       className: 'btn btn--primary',
       disabled: true,
-      ariaDisabled: 'disabled',
+      ariaDisabled: 'true',
     },
     label,
   );
@@ -36,12 +36,11 @@ export function SubmitButton({ label }: SubmitButtonProps): SubmitButtonComponen
     el,
     setDisabled: () => {
       el.disabled = true;
-      el.ariaDisabled = 'disabled';
+      el.ariaDisabled = 'true';
     },
     setEnabled: () => {
       el.disabled = false;
       el.ariaDisabled = 'false';
-      el.removeAttribute('ariaDisabled');
     },
   };
 }
