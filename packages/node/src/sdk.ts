@@ -23,7 +23,6 @@ import {
   Context,
   ContextLines,
   Http,
-  LinkedErrors,
   LocalVariables,
   Modules,
   OnUncaughtException,
@@ -39,6 +38,7 @@ export const defaultIntegrations = [
   // Common
   new CoreIntegrations.InboundFilters(),
   new CoreIntegrations.FunctionToString(),
+  new CoreIntegrations.LinkedErrors(),
   // Native Wrappers
   new Console(),
   new Http(),
@@ -52,8 +52,6 @@ export const defaultIntegrations = [
   new Context(),
   new Modules(),
   new RequestData(),
-  // Misc
-  new LinkedErrors(),
 ];
 
 /**

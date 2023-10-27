@@ -1,4 +1,4 @@
-import { Breadcrumbs, Dedupe, LinkedErrors } from '@sentry/browser';
+import { Breadcrumbs, Dedupe } from '@sentry/browser';
 import type { ServerRuntimeClientOptions } from '@sentry/core';
 import { getIntegrationsToSetup, initAndBind, Integrations as CoreIntegrations } from '@sentry/core';
 import type { StackParser } from '@sentry/types';
@@ -13,9 +13,9 @@ export const defaultIntegrations = [
   // Common
   new CoreIntegrations.InboundFilters(),
   new CoreIntegrations.FunctionToString(),
+  new CoreIntegrations.LinkedErrors(),
   // From Browser
   new Dedupe(),
-  new LinkedErrors(),
   new Breadcrumbs({
     dom: false,
     history: false,
