@@ -1,8 +1,15 @@
-import type { FeedbackComponent, FeedbackConfigurationWithDefaults, FeedbackFormData } from '../types';
+import type { FeedbackComponent, FeedbackFormData, FeedbackInternalOptions, FeedbackTextConfiguration } from '../types';
 import { SubmitButton } from './SubmitButton';
 import { createElement } from './util/createElement';
 
-export interface FormComponentProps {
+export interface FormComponentProps
+  extends Pick<
+    FeedbackInternalOptions,
+    | 'showName'
+    | 'showEmail'
+    | 'isAnonymous'
+    | Exclude<keyof FeedbackTextConfiguration, 'buttonLabel' | 'formTitle' | 'successMessageText'>
+  > {
   /**
    * A default name value to render the input with. Empty strings are ok.
    */
@@ -11,20 +18,6 @@ export interface FormComponentProps {
    * A default email value to render the input with. Empty strings are ok.
    */
   defaultEmail: string;
-  options: Pick<
-    FeedbackConfigurationWithDefaults,
-    | 'showName'
-    | 'showEmail'
-    | 'isAnonymous'
-    | 'nameLabel'
-    | 'namePlaceholder'
-    | 'emailLabel'
-    | 'emailPlaceholder'
-    | 'messageLabel'
-    | 'messagePlaceholder'
-    | 'cancelButtonLabel'
-    | 'submitButtonLabel'
-  >;
   onCancel?: (e: Event) => void;
   onSubmit?: (feedback: FeedbackFormData) => void;
 }
@@ -63,20 +56,18 @@ function retrieveStringValue(formData: FormData, key: string): string {
  * Creates the form element
  */
 export function Form({
-  options: {
-    showName,
-    showEmail,
-    isAnonymous,
+  nameLabel,
+  namePlaceholder,
+  emailLabel,
+  emailPlaceholder,
+  messageLabel,
+  messagePlaceholder,
+  cancelButtonLabel,
+  submitButtonLabel,
 
-    nameLabel,
-    namePlaceholder,
-    emailLabel,
-    emailPlaceholder,
-    messageLabel,
-    messagePlaceholder,
-    cancelButtonLabel,
-    submitButtonLabel,
-  },
+  showName,
+  showEmail,
+  isAnonymous,
 
   defaultName,
   defaultEmail,

@@ -1,29 +1,37 @@
-import type { FeedbackConfigurationWithDefaults } from '../../src/types';
 import type { FormComponentProps } from '../../src/widget/Form';
 import { Form } from '../../src/widget/Form';
 
-function renderForm(
-  options?: Partial<FeedbackConfigurationWithDefaults>,
-  { defaultName = 'Foo Bar', defaultEmail = 'foo@example.com', ...rest }: Partial<FormComponentProps> = {},
-) {
+function renderForm({
+  showName = true,
+  showEmail = true,
+  isAnonymous = false,
+  defaultName = 'Foo Bar',
+  defaultEmail = 'foo@example.com',
+  nameLabel = 'Name',
+  namePlaceholder = 'Your full name',
+  emailLabel = 'Email',
+  emailPlaceholder = 'foo@example.org',
+  messageLabel = 'Description',
+  messagePlaceholder = 'What is the issue?',
+  cancelButtonLabel = 'Cancel!',
+  submitButtonLabel = 'Submit!',
+  ...rest
+}: Partial<FormComponentProps> = {}) {
   return Form({
+    isAnonymous,
+    showName,
+    showEmail,
     defaultName,
     defaultEmail,
+    nameLabel,
+    namePlaceholder,
+    emailLabel,
+    emailPlaceholder,
+    messageLabel,
+    messagePlaceholder,
+    cancelButtonLabel,
+    submitButtonLabel,
     ...rest,
-    options: {
-      showName: true,
-      showEmail: true,
-      isAnonymous: false,
-      nameLabel: 'Name',
-      namePlaceholder: 'Your full name',
-      emailLabel: 'Email',
-      emailPlaceholder: 'foo@example.org',
-      messageLabel: 'Description',
-      messagePlaceholder: 'What is the issue?',
-      cancelButtonLabel: 'Cancel!',
-      submitButtonLabel: 'Submit!',
-      ...options,
-    },
   });
 }
 
@@ -132,14 +140,14 @@ describe('Form', () => {
 
   it('calls `onCancel` callback', () => {
     const onCancel = jest.fn(() => {});
-    const formComponent = renderForm({}, { onCancel });
+    const formComponent = renderForm({ onCancel });
     (formComponent.el.querySelector('button[type="button"]') as HTMLButtonElement)?.click();
     expect(onCancel).toHaveBeenCalled();
   });
 
   it('calls `onSubmit` callback when submitting', () => {
     const onSubmit = jest.fn();
-    const formComponent = renderForm({}, { onSubmit });
+    const formComponent = renderForm({ onSubmit });
     const submitEvent = new Event('submit');
 
     formComponent.el.dispatchEvent(submitEvent);
@@ -153,12 +161,10 @@ describe('Form', () => {
 
   it('does not show name or email inputs for anonymous mode', () => {
     const onSubmit = jest.fn();
-    const formComponent = renderForm(
-      {
-        isAnonymous: true,
-      },
-      { onSubmit },
-    );
+    const formComponent = renderForm({
+      isAnonymous: true,
+      onSubmit,
+    });
     const submitEvent = new Event('submit');
 
     expect(formComponent.el).toBeInstanceOf(HTMLFormElement);

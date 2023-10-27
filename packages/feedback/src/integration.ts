@@ -16,7 +16,12 @@ import {
   SUBMIT_BUTTON_LABEL,
   SUCCESS_MESSAGE_TEXT,
 } from './constants';
-import type { CreateWidgetOptionOverrides, FeedbackConfigurationWithDefaults, Widget } from './types';
+import type {
+  CreateWidgetOptionOverrides,
+  FeedbackConfigurationWithDefaults,
+  FeedbackInternalOptions,
+  Widget,
+} from './types';
 import { createActorStyles } from './widget/Actor.css';
 import { createShadowHost } from './widget/createShadowHost';
 import { createWidget } from './widget/createWidget';
@@ -44,7 +49,7 @@ export class Feedback implements Integration {
   /**
    * Feedback configuration options
    */
-  public options: FeedbackConfigurationWithDefaults;
+  public options: FeedbackInternalOptions;
 
   /**
    * Reference to widget element that is created when autoInject is true
@@ -187,7 +192,10 @@ export class Feedback implements Integration {
    */
   public attachTo(el: Node | string, optionOverrides: CreateWidgetOptionOverrides): Widget | null {
     try {
-      const options = Object.assign({}, this.options, optionOverrides);
+      const options = {
+        ...this.options,
+        ...optionOverrides,
+      };
 
       return this._ensureShadowHost<Widget | null>(options, ({ shadow }) => {
         const targetEl =
@@ -213,7 +221,10 @@ export class Feedback implements Integration {
    */
   public createWidget(optionOverrides: CreateWidgetOptionOverrides): Widget | null {
     try {
-      return this._createWidget(Object.assign({}, this.options, optionOverrides));
+      return this._createWidget({
+        ...this.options,
+        ...optionOverrides,
+      });
     } catch (err) {
       logger.error(err);
       return null;
@@ -266,7 +277,7 @@ export class Feedback implements Integration {
   /**
    * Creates a new widget, after ensuring shadow DOM exists
    */
-  protected _createWidget(options: FeedbackConfigurationWithDefaults): Widget | null {
+  protected _createWidget(options: FeedbackInternalOptions): Widget | null {
     return this._ensureShadowHost<Widget>(options, ({ shadow }) => {
       const widget = createWidget({ shadow, options });
 
@@ -284,7 +295,7 @@ export class Feedback implements Integration {
    * Ensures that shadow DOM exists and is added to the DOM
    */
   protected _ensureShadowHost<T>(
-    options: FeedbackConfigurationWithDefaults,
+    options: FeedbackInternalOptions,
     cb: (createShadowHostResult: ReturnType<typeof createShadowHost>) => T,
   ): T | null {
     let needsAppendHost = false;

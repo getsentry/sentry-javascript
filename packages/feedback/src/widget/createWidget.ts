@@ -1,7 +1,7 @@
 import { getCurrentHub } from '@sentry/core';
 import { logger } from '@sentry/utils';
 
-import type { FeedbackConfigurationWithDefaults, FeedbackFormData, Widget } from '../types';
+import type { FeedbackFormData, FeedbackInternalOptions, Widget } from '../types';
 import { handleFeedbackSubmit } from '../util/handleFeedbackSubmit';
 import type { ActorComponent } from './Actor';
 import { Actor } from './Actor';
@@ -11,7 +11,7 @@ import { SuccessMessage } from './SuccessMessage';
 
 interface CreateWidgetParams {
   shadow: ShadowRoot;
-  options: FeedbackConfigurationWithDefaults;
+  options: FeedbackInternalOptions;
   attachTo?: Node;
 }
 
@@ -124,6 +124,18 @@ export function createWidget({ shadow, options, attachTo }: CreateWidgetParams):
       const user = scope && scope.getUser();
 
       dialog = Dialog({
+        showName: options.showName,
+        showEmail: options.showEmail,
+        isAnonymous: options.isAnonymous,
+        formTitle: options.formTitle,
+        cancelButtonLabel: options.cancelButtonLabel,
+        submitButtonLabel: options.submitButtonLabel,
+        emailLabel: options.emailLabel,
+        emailPlaceholder: options.emailPlaceholder,
+        messageLabel: options.messageLabel,
+        messagePlaceholder: options.messagePlaceholder,
+        nameLabel: options.nameLabel,
+        namePlaceholder: options.namePlaceholder,
         defaultName: (userKey && user && user[userKey.name]) || '',
         defaultEmail: (userKey && user && user[userKey.email]) || '',
         onClosed: () => {
@@ -135,7 +147,6 @@ export function createWidget({ shadow, options, attachTo }: CreateWidgetParams):
           showActor();
         },
         onSubmit: _handleFeedbackSubmit,
-        options,
       });
 
       shadow.appendChild(dialog.el);

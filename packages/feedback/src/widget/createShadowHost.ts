@@ -1,12 +1,12 @@
 import { WINDOW } from '@sentry/browser';
 import { logger } from '@sentry/utils';
 
-import type { FeedbackConfigurationWithDefaults } from '../types';
+import type { FeedbackInternalOptions } from '../types';
 import { createDialogStyles } from './Dialog.css';
 import { createMainStyles } from './Main.css';
 
 interface CreateShadowHostParams {
-  options: FeedbackConfigurationWithDefaults;
+  options: FeedbackInternalOptions;
 }
 
 /**
