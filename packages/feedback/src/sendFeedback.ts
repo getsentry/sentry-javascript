@@ -17,7 +17,7 @@ interface SendFeedbackParams {
  */
 export function sendFeedback(
   { name, email, message, url = getLocationHref() }: SendFeedbackParams,
-  { referrer, includeReplay = true }: SendFeedbackOptions = {},
+  { includeReplay = true }: SendFeedbackOptions = {},
 ): ReturnType<typeof sendFeedbackRequest> {
   const hub = getCurrentHub();
   const client = hub && hub.getClient<BrowserClient>();
@@ -35,6 +35,5 @@ export function sendFeedback(
       url,
       replay_id: replayId,
     },
-    referrer,
   });
 }
