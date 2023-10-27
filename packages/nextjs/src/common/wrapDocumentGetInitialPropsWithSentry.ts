@@ -1,4 +1,4 @@
-import { getCurrentHub, hasTracingEnabled } from '@sentry/core';
+import { getCurrentHub } from '@sentry/core';
 import type Document from 'next/document';
 
 import { isBuild } from './utils/isBuild';
@@ -33,7 +33,7 @@ export function wrapDocumentGetInitialPropsWithSentry(
       // https://nextjs.org/docs/api-reference/data-fetching/get-initial-props#context-object
       // This does not seem to be the case in dev mode. Because we have no clean way of associating the the data fetcher
       // span with each other when there are no req or res objects, we simply do not trace them at all here.
-      if (hasTracingEnabled() && req && res && options?.instrumenter === 'sentry') {
+      if (req && res && options?.instrumenter === 'sentry') {
         const tracedGetInitialProps = withTracedServerSideDataFetcher(errorWrappedGetInitialProps, req, res, {
           dataFetcherRouteName: '/_document',
           requestedRouteName: context.pathname,

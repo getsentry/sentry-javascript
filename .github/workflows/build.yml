@@ -884,6 +884,12 @@ jobs:
           - test-application: 'standard-frontend-react'
             build-command: 'test:build-ts3.8'
             label: 'standard-frontend-react (TS 3.8)'
+          - test-application: 'create-next-app'
+            build-command: 'test:build-13'
+            label: 'create-next-app (next@13)'
+          - test-application: 'nextjs-app-dir'
+            build-command: 'test:build-13'
+            label: 'nextjs-app-dir (next@13)'
 
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
