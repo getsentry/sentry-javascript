@@ -23,17 +23,17 @@ sentryTest('captures Breadcrumb for events on inputs & debounced them', async ({
 
   await page.goto(url);
 
-  void page.click('#input1');
+  await page.click('#input1');
   // Not debounced because other event type
-  await page.type('#input1', 'John');
+  await page.type('#input1', 'John', { delay: 0.01 });
   // This should be debounced
-  await page.type('#input1', 'Abby');
+  await page.type('#input1', 'Abby', { delay: 0.01 });
   // not debounced because other target
-  await page.type('#input2', 'Anne');
+  await page.type('#input2', 'Anne', { delay: 0.01 });
 
   // Wait a second for the debounce to finish
   await page.waitForTimeout(1000);
-  await page.type('#input2', 'John');
+  await page.type('#input2', 'John', { delay: 0.01 });
 
   await page.evaluate('Sentry.captureException("test exception")');
 
