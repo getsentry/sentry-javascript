@@ -11,7 +11,7 @@ import { SuccessMessage } from './SuccessMessage';
 
 interface CreateWidgetParams {
   shadow: ShadowRoot;
-  options: FeedbackConfigurationWithDefaults & { referrer?: string };
+  options: FeedbackConfigurationWithDefaults;
   attachTo?: Node;
 }
 
@@ -64,7 +64,7 @@ export function createWidget({ shadow, options, attachTo }: CreateWidgetParams):
       return;
     }
 
-    const result = await handleFeedbackSubmit(dialog, feedback, { referrer: options.referrer });
+    const result = await handleFeedbackSubmit(dialog, feedback);
 
     // Error submitting feedback
     if (!result) {
