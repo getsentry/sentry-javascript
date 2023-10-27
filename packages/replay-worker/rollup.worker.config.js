@@ -1,6 +1,7 @@
 // inspired by https://justinribeiro.com/chronicle/2020/07/17/building-module-web-workers-for-cross-browser-compatibility-with-rollup/
 
 import resolve from '@rollup/plugin-node-resolve';
+import commonjs from '@rollup/plugin-commonjs';
 import typescript from '@rollup/plugin-typescript';
 import { defineConfig } from 'rollup';
 import { terser } from 'rollup-plugin-terser';
@@ -28,7 +29,9 @@ const config = defineConfig([
       file: './build/npm/esm/worker.ts',
       format: 'esm',
     },
+    treeshake: 'smallest',
     plugins: [
+      commonjs(),
       typescript({ tsconfig: './tsconfig.json', inlineSourceMap: false, sourceMap: false, inlineSources: false }),
       resolve(),
       terser({
