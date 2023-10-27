@@ -47,7 +47,10 @@ export interface FeedbackFormData {
   name?: string;
 }
 
-export interface FeedbackConfigurationWithDefaults {
+/**
+ * General feedback configuration
+ */
+export interface FeedbackGeneralConfiguration {
   /**
    * id to use for the main widget container (this will host the shadow DOM)
    */
@@ -92,8 +95,12 @@ export interface FeedbackConfigurationWithDefaults {
     email: string;
     name: string;
   };
+}
 
-  // * Color theme customization * //
+/**
+ * Theme-related configuration
+ */
+export interface FeedbackThemeConfiguration {
   /**
    * The colorscheme to use. "system" will choose the scheme based on the user's system settings
    */
@@ -107,9 +114,12 @@ export interface FeedbackConfigurationWithDefaults {
    * Dark theme customization, will be merged with default theme values.
    */
   themeDark: FeedbackTheme;
-  // * End of Color theme customization * //
+}
 
-  // * Text customization * //
+/**
+ * All of the different text labels that can be customized
+ */
+export interface FeedbackTextConfiguration {
   /**
    * The label for the Feedback widget button that opens the dialog
    */
@@ -154,9 +164,12 @@ export interface FeedbackConfigurationWithDefaults {
    * Message after feedback was sent successfully
    */
   successMessageText: string;
-  // * End of text customization * //
+}
 
-  // * Start of Callbacks * //
+/**
+ * The public callbacks available for the feedback integration
+ */
+export interface FeedbackCallbacks {
   /**
    * Callback when dialog is closed
    */
@@ -181,8 +194,18 @@ export interface FeedbackConfigurationWithDefaults {
    * Callback when feedback is unsuccessfully submitted
    */
   onSubmitError?: () => void;
-  // * End of Callbacks * //
 }
+
+export interface FeedbackConfigurationWithDefaults
+  extends FeedbackGeneralConfiguration,
+    FeedbackThemeConfiguration,
+    FeedbackTextConfiguration,
+    FeedbackCallbacks {}
+
+/**
+ * The integration's internal `options` member
+ */
+export type FeedbackInternalOptions = FeedbackConfigurationWithDefaults;
 
 export interface FeedbackTheme {
   /**
@@ -223,7 +246,7 @@ export interface FeedbackTheme {
   error: string;
 }
 
-export interface CreateWidgetOptionOverrides extends Partial<FeedbackConfigurationWithDefaults> {}
+export type CreateWidgetOptionOverrides = Partial<FeedbackConfigurationWithDefaults>;
 
 export interface FeedbackThemes {
   dark: FeedbackTheme;

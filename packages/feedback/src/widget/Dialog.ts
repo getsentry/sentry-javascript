@@ -1,14 +1,11 @@
-import type { FeedbackComponent, FeedbackConfigurationWithDefaults, FeedbackFormData } from '../types';
+import type { FeedbackComponent } from '../types';
+import type { FormComponentProps } from './Form';
 import { Form } from './Form';
 import { createElement } from './util/createElement';
 
-interface DialogProps {
-  defaultName: string;
-  defaultEmail: string;
-  onCancel?: (e: Event) => void;
+export interface DialogProps extends FormComponentProps {
+  formTitle: string;
   onClosed?: () => void;
-  onSubmit?: (feedback: FeedbackFormData) => void;
-  options: FeedbackConfigurationWithDefaults;
 }
 
 export interface DialogComponent extends FeedbackComponent<HTMLDialogElement> {
@@ -52,12 +49,16 @@ export interface DialogComponent extends FeedbackComponent<HTMLDialogElement> {
  * Feedback dialog component that has the form
  */
 export function Dialog({
+  formTitle,
+  showName,
+  showEmail,
+  isAnonymous,
   defaultName,
   defaultEmail,
   onClosed,
   onCancel,
   onSubmit,
-  options,
+  ...textLabels
 }: DialogProps): DialogComponent {
   let el: HTMLDialogElement | null = null;
 
@@ -106,11 +107,15 @@ export function Dialog({
     showError,
     hideError,
   } = Form({
+    showEmail,
+    showName,
+    isAnonymous,
+
     defaultName,
     defaultEmail,
-    options,
     onSubmit,
     onCancel,
+    ...textLabels,
   });
 
   el = createElement(
@@ -129,7 +134,7 @@ export function Dialog({
           e.stopPropagation();
         },
       },
-      createElement('h2', { className: 'dialog__header' }, options.formTitle),
+      createElement('h2', { className: 'dialog__header' }, formTitle),
       formEl,
     ),
   );
