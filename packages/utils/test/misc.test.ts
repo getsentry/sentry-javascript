@@ -351,7 +351,9 @@ describe('uuid4 generation', () => {
     const cryptoMod = require('crypto');
 
     const getRandomValues = (typedArray: Uint8Array) => {
-      cryptoMod.getRandomValues(typedArray);
+      if (cryptoMod.getRandomValues) {
+        cryptoMod.getRandomValues(typedArray);
+      }
     };
 
     (global as any).crypto = { getRandomValues };
