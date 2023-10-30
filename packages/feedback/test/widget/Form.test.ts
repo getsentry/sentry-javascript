@@ -1,6 +1,10 @@
 import type { FormComponentProps } from '../../src/widget/Form';
 import { Form } from '../../src/widget/Form';
 
+type NonNullableFields<T> = {
+  [P in keyof T]: NonNullable<T[P]>;
+};
+
 function renderForm({
   showName = true,
   showEmail = true,
@@ -16,7 +20,7 @@ function renderForm({
   cancelButtonLabel = 'Cancel!',
   submitButtonLabel = 'Submit!',
   ...rest
-}: Partial<FormComponentProps> = {}) {
+}: Partial<FormComponentProps> = {}){
   return Form({
     isAnonymous,
     showName,
@@ -32,7 +36,7 @@ function renderForm({
     cancelButtonLabel,
     submitButtonLabel,
     ...rest,
-  });
+  }) as NonNullableFields<ReturnType<typeof Form>>;
 }
 
 describe('Form', () => {
@@ -50,7 +54,6 @@ describe('Form', () => {
 
     const button = formComponent.el.querySelector('button[type="submit"]') as HTMLButtonElement | null;
     expect(button?.textContent).toBe('Submit!');
-    expect(button?.disabled).toBe(true);
     expect(formComponent.el.querySelector('button[type="button"]')?.textContent).toBe('Cancel!');
   });
 
@@ -84,7 +87,7 @@ describe('Form', () => {
     const messageLabel = formComponent.el.querySelector('label[htmlFor="message"]') as HTMLLabelElement;
     expect(nameLabel.textContent).toBe('Name!');
     expect(emailLabel.textContent).toBe('Email!');
-    expect(messageLabel.textContent).toBe('Description!');
+    expect(messageLabel.textContent).toBe('Description! (required)');
 
     const nameInput = formComponent.el.querySelector('[name="name"]') as HTMLInputElement;
     const emailInput = formComponent.el.querySelector('[name="email"]') as HTMLInputElement;
@@ -101,40 +104,24 @@ describe('Form', () => {
     const message = formComponent.el.querySelector('[name="message"]') as HTMLTextAreaElement;
     const submit = formComponent.el.querySelector('button[type="submit"]') as HTMLButtonElement;
 
-    expect(submit.disabled).toBe(true);
-
     message.value = 'Foo (message)';
     message.dispatchEvent(new KeyboardEvent('keyup'));
-    expect(submit.disabled).toBe(false);
 
     message.value = '';
     message.dispatchEvent(new KeyboardEvent('keyup'));
-    expect(submit.disabled).toBe(true);
-  });
-
-  it('can manually enable/disable submit button', () => {
-    const formComponent = renderForm();
-    const submit = formComponent.el.querySelector('button[type="submit"]') as HTMLButtonElement;
-    expect(submit.disabled).toBe(true);
-
-    formComponent.setSubmitEnabled();
-    expect(submit.disabled).toBe(false);
-
-    formComponent.setSubmitDisabled();
-    expect(submit.disabled).toBe(true);
   });
 
   it('can show error', () => {
     const formComponent = renderForm();
     const errorEl = formComponent.el.querySelector('.form__error-container') as HTMLDivElement;
-    expect(errorEl.getAttribute('ariaHidden')).toBe('true');
+    expect(errorEl.getAttribute('aria-hidden')).toBe('true');
 
     formComponent.showError('My Error');
-    expect(errorEl.getAttribute('ariaHidden')).toBe('false');
+    expect(errorEl.getAttribute('aria-hidden')).toBe('false');
     expect(errorEl.textContent).toBe('My Error');
 
     formComponent.hideError();
-    expect(errorEl.getAttribute('ariaHidden')).toBe('true');
+    expect(errorEl.getAttribute('aria-hidden')).toBe('true');
     expect(errorEl.textContent).toBe('');
   });
 

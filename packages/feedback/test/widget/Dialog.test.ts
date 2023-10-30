@@ -1,6 +1,10 @@
 import type { DialogProps } from '../../src/widget/Dialog';
 import { Dialog } from '../../src/widget/Dialog';
 
+type NonNullableFields<T> = {
+  [P in keyof T]: NonNullable<T[P]>;
+};
+
 function renderDialog({
   showName = true,
   showEmail = true,
@@ -35,7 +39,7 @@ function renderDialog({
     cancelButtonLabel,
     submitButtonLabel,
     ...rest,
-  });
+  }) as NonNullableFields<ReturnType<typeof Dialog>>;
 }
 
 describe('Dialog', () => {
@@ -82,5 +86,6 @@ describe('Dialog', () => {
     dialogComponent.el.querySelector('.dialog__content')?.dispatchEvent(event);
 
     expect(event.stopPropagation).toHaveBeenCalled();
+    expect(onClosed).not.toHaveBeenCalled();
   });
 });
