@@ -151,6 +151,10 @@ export function createWidget({ shadow, options, attachTo }: CreateWidgetParams):
         onClosed: () => {
           showActor();
           isDialogOpen = false;
+
+          if (options.onDialogClose) {
+            options.onDialogClose();
+          }
         },
         onCancel: () => {
           hideDialog();
