@@ -1,5 +1,5 @@
 {
-  "name": "node-experimental-fastify-app",
+  "name": "node-opentelemetry-fastify-app",
   "version": "1.0.0",
   "private": true,
   "scripts": {
@@ -10,7 +10,7 @@
     "test:assert": "pnpm test"
   },
   "dependencies": {
-    "@sentry/node-experimental": "latest || *",
+    "@sentry/node-opentelemetry": "latest || *",
     "@sentry/types": "latest || *",
     "@sentry/core": "latest || *",
     "@sentry/utils": "latest || *",

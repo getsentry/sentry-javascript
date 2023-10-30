@@ -110,7 +110,7 @@ packages:
     unpublish: $all
     # proxy: npmjs # Don't proxy for E2E tests!
 
-  '@sentry/node-experimental':
+  '@sentry/node-opentelemetry':
     access: $all
     publish: $all
     unpublish: $all

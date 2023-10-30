@@ -87,6 +87,9 @@ targets:
     id: '@sentry/opentelemetry-node'
     includeNames: /^sentry-opentelemetry-node-\d.*\.tgz$/
   - name: npm
+    id: '@sentry/node-opentelemetry'
+    includeNames: /^sentry-node-opentelemetry-\d.*\.tgz$/
+  - name: npm
     id: '@sentry/bun'
     includeNames: /^sentry-bun-\d.*\.tgz$/
 
@@ -127,11 +130,6 @@ targets:
   - name: npm
     id: '@sentry/tracing'
     includeNames: /^sentry-tracing-\d.*\.tgz$/
-
-  ## 9. Experimental packages
-  - name: npm
-    id: '@sentry/node-experimental'
-    includeNames: /^sentry-node-experimental-\d.*\.tgz$/
 
   # AWS Lambda Layer target
   - name: aws-lambda-layer

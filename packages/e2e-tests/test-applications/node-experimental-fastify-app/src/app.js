@@ -1,6 +1,6 @@
 require('./tracing');
 
-const Sentry = require('@sentry/node-experimental');
+const Sentry = require('@sentry/node-opentelemetry');
 const { fastify } = require('fastify');
 const fastifyPlugin = require('fastify-plugin');
 const http = require('http');

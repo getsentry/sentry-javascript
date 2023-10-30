@@ -82,7 +82,7 @@ describe('Integration | Transactions', () => {
               'test.outer': 'test value',
             },
             resource: {
-              'service.name': 'node-experimental',
+              'service.name': 'node-opentelemetry',
               'service.namespace': 'sentry',
               'service.version': expect.any(String),
               'telemetry.sdk.language': 'nodejs',

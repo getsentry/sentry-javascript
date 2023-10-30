@@ -869,7 +869,7 @@ jobs:
             'standard-frontend-react-tracing-import',
             'sveltekit',
             'generic-ts3.8',
-            'node-experimental-fastify-app',
+            'node-opentelemetry-fastify-app',
           ]
         build-command:
           - false

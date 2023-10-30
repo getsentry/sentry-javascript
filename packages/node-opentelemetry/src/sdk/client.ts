@@ -5,10 +5,10 @@ class NodeExperimentalBaseClient extends NodeClient {
   public constructor(options: ConstructorParameters<typeof NodeClient>[0]) {
     options._metadata = options._metadata || {};
     options._metadata.sdk = options._metadata.sdk || {
-      name: 'sentry.javascript.node-experimental',
+      name: 'sentry.javascript.node-opentelemetry',
       packages: [
         {
-          name: 'npm:@sentry/node-experimental',
+          name: 'npm:@sentry/node-opentelemetry',
           version: SDK_VERSION,
         },
       ],

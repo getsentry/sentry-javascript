@@ -15,10 +15,10 @@ describe('NodeExperimentalClient', () => {
       stackParser: options.stackParser,
       _metadata: {
         sdk: {
-          name: 'sentry.javascript.node-experimental',
+          name: 'sentry.javascript.node-opentelemetry',
           packages: [
             {
-              name: 'npm:@sentry/node-experimental',
+              name: 'npm:@sentry/node-opentelemetry',
               version: SDK_VERSION,
             },
           ],

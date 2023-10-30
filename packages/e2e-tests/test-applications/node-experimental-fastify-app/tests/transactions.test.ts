@@ -8,7 +8,7 @@ const sentryTestProject = process.env.E2E_TEST_SENTRY_TEST_PROJECT;
 const EVENT_POLLING_TIMEOUT = 30_000;
 
 test('Sends an API route transaction', async ({ baseURL }) => {
-  const pageloadTransactionEventPromise = waitForTransaction('node-experimental-fastify-app', transactionEvent => {
+  const pageloadTransactionEventPromise = waitForTransaction('node-opentelemetry-fastify-app', transactionEvent => {
     return (
       transactionEvent?.contexts?.trace?.op === 'http.server' &&
       transactionEvent?.transaction === 'GET /test-transaction'

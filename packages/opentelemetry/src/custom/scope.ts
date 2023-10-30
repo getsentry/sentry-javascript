@@ -44,7 +44,7 @@ export class OpenTelemetryScope extends Scope {
   }
 
   /**
-   * In node-experimental, scope.getSpan() always returns undefined.
+   * In node-opentelemetry, scope.getSpan() always returns undefined.
    * Instead, use the global `getActiveSpan()`.
    */
   public getSpan(): undefined {
@@ -55,7 +55,7 @@ export class OpenTelemetryScope extends Scope {
   }
 
   /**
-   * In node-experimental, scope.setSpan() is a noop.
+   * In node-opentelemetry, scope.setSpan() is a noop.
    * Instead, use the global `startSpan()` to define the active span.
    */
   public setSpan(_span: SentrySpan): this {

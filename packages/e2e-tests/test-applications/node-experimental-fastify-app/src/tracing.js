@@ -1,4 +1,4 @@
-const Sentry = require('@sentry/node-experimental');
+const Sentry = require('@sentry/node-opentelemetry');
 
 Sentry.init({
   environment: 'qa', // dynamic sampling bias to keep transactions

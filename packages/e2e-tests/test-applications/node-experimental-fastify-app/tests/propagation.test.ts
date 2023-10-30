@@ -9,14 +9,14 @@ const sentryTestProject = process.env.E2E_TEST_SENTRY_TEST_PROJECT;
 const EVENT_POLLING_TIMEOUT = 30_000;
 
 test('Propagates trace for outgoing http requests', async ({ baseURL }) => {
-  const inboundTransactionPromise = waitForTransaction('node-experimental-fastify-app', transactionEvent => {
+  const inboundTransactionPromise = waitForTransaction('node-opentelemetry-fastify-app', transactionEvent => {
     return (
       transactionEvent?.contexts?.trace?.op === 'http.server' &&
       transactionEvent?.transaction === 'GET /test-inbound-headers'
     );
   });
 
-  const outboundTransactionPromise = waitForTransaction('node-experimental-fastify-app', transactionEvent => {
+  const outboundTransactionPromise = waitForTransaction('node-opentelemetry-fastify-app', transactionEvent => {
     return (
       transactionEvent?.contexts?.trace?.op === 'http.server' &&
       transactionEvent?.transaction === 'GET /test-outgoing-http'
@@ -100,14 +100,14 @@ test('Propagates trace for outgoing http requests', async ({ baseURL }) => {
 });
 
 test('Propagates trace for outgoing fetch requests', async ({ baseURL }) => {
-  const inboundTransactionPromise = waitForTransaction('node-experimental-fastify-app', transactionEvent => {
+  const inboundTransactionPromise = waitForTransaction('node-opentelemetry-fastify-app', transactionEvent => {
     return (
       transactionEvent?.contexts?.trace?.op === 'http.server' &&
       transactionEvent?.transaction === 'GET /test-inbound-headers'
     );
   });
 
-  const outboundTransactionPromise = waitForTransaction('node-experimental-fastify-app', transactionEvent => {
+  const outboundTransactionPromise = waitForTransaction('node-opentelemetry-fastify-app', transactionEvent => {
     return (
       transactionEvent?.contexts?.trace?.op === 'http.server' &&
       transactionEvent?.transaction === 'GET /test-outgoing-fetch'

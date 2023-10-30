@@ -4,7 +4,7 @@
   </a>
 </p>
 
-# Official Sentry SDK for OpenTelemetry Node
+# Official Sentry SDK for OpenTelemetry Node (legacy)
 
 [![npm version](https://img.shields.io/npm/v/@sentry/opentelemetry-node.svg)](https://www.npmjs.com/package/@sentry/opentelemetry-node)
 [![npm dm](https://img.shields.io/npm/dm/@sentry/opentelemetry-node.svg)](https://www.npmjs.com/package/@sentry/opentelemetry-node)
@@ -12,8 +12,13 @@
 
 This package allows you to send your NodeJS OpenTelemetry trace data to Sentry via OpenTelemetry SpanProcessors.
 
+**Note**
+While this package is not deprecated as of now, it is recommended to use either [@sentry/opentelemetry](../opentelemetry/) or [@sentry/node-opentelemetry](../node-opentelemetry/) instead. These provide a more holistical integration of Sentry & OpenTelemetry than this package does.
+
 This SDK is **considered experimental and in an alpha state**. It may experience breaking changes. Please reach out on
 [GitHub](https://github.com/getsentry/sentry-javascript/issues/new/choose) if you have any feedback/concerns.
+
+
 
 ## Installation
 
