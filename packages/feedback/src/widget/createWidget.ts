@@ -12,7 +12,7 @@ import { SuccessMessage } from './SuccessMessage';
 interface CreateWidgetParams {
   shadow: ShadowRoot;
   options: FeedbackInternalOptions;
-  attachTo?: Node;
+  attachTo?: Element;
 }
 
 /**
