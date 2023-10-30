@@ -20,7 +20,7 @@ describe('SuccessMessage', () => {
   it('removes element and calls `onRemove` callback when clicked', () => {
     const onRemove = jest.fn();
     const successMessageComponent = renderSuccessMessage({
-      onRemove
+      onRemove,
     });
 
     document.body.appendChild(successMessageComponent.el);
