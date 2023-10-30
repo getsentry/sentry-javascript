@@ -12,12 +12,12 @@ import {
   SUBMIT_BUTTON_LABEL,
   SUCCESS_MESSAGE_TEXT,
 } from '../../src/constants';
-import { FeedbackConfigurationWithDefaults, FeedbackInternalOptions } from '../../src/types';
+import type { FeedbackInternalOptions } from '../../src/types';
 import { sendFeedbackRequest } from '../../src/util/sendFeedbackRequest';
 import { createShadowHost } from '../../src/widget/createShadowHost';
 import { createWidget } from '../../src/widget/createWidget';
 
-const flushPromises = () => new Promise(jest.requireActual("timers").setImmediate)
+const flushPromises = () => new Promise(jest.requireActual('timers').setImmediate);
 jest.useFakeTimers();
 
 const DEFAULT_OPTIONS = {
@@ -56,33 +56,34 @@ const DEFAULT_OPTIONS = {
   onSubmitSuccess: jest.fn(),
 };
 
-
 jest.mock('../../src/util/sendFeedbackRequest', () => {
   const original = jest.requireActual('../../src/util/sendFeedbackRequest');
   return {
     ...original,
     sendFeedbackRequest: jest.fn(),
-  }
-})
+  };
+});
 
-function createShadowAndWidget(feedbackOptions?: Partial<FeedbackInternalOptions>, createWidgetOptions?: Partial<Parameters<typeof createWidget>[0]>) {
-    const { shadow } = createShadowHost({
-      id: 'feedback',
-      colorScheme: 'system',
-      themeLight: DEFAULT_THEME.light,
-      themeDark: DEFAULT_THEME.dark,
-    });
-    const widget = createWidget({
-      shadow,
-      options: {
-        ...DEFAULT_OPTIONS,
-        ...feedbackOptions,
-      },
-      ...createWidgetOptions,
-    });
+function createShadowAndWidget(
+  feedbackOptions?: Partial<FeedbackInternalOptions>,
+  createWidgetOptions?: Partial<Parameters<typeof createWidget>[0]>,
+) {
+  const { shadow } = createShadowHost({
+    id: 'feedback',
+    colorScheme: 'system',
+    themeLight: DEFAULT_THEME.light,
+    themeDark: DEFAULT_THEME.dark,
+  });
+  const widget = createWidget({
+    shadow,
+    options: {
+      ...DEFAULT_OPTIONS,
+      ...feedbackOptions,
+    },
+    ...createWidgetOptions,
+  });
 
-    return {shadow, widget};
-
+  return { shadow, widget };
 }
 
 describe('createWidget', () => {
@@ -91,7 +92,7 @@ describe('createWidget', () => {
   });
 
   it('creates widget with actor', () => {
-    const {widget} = createShadowAndWidget();
+    const { widget } = createShadowAndWidget();
     expect(widget.actor?.el).toBeInstanceOf(HTMLButtonElement);
     expect(widget.actor?.el?.textContent).toBe(DEFAULT_OPTIONS.buttonLabel);
     // No dialog until actor is clicked
@@ -100,7 +101,7 @@ describe('createWidget', () => {
 
   it('clicking on actor opens dialog and hides the actor', () => {
     const onDialogOpen = jest.fn();
-    const {widget} = createShadowAndWidget({onDialogOpen});
+    const { widget } = createShadowAndWidget({ onDialogOpen });
     widget.actor?.el?.dispatchEvent(new Event('click'));
 
     // Dialog is now visible
@@ -114,13 +115,13 @@ describe('createWidget', () => {
 
   it('submits feedback successfully', async () => {
     const onSubmitSuccess = jest.fn(() => {});
-    const {shadow, widget} = createShadowAndWidget({
+    const { shadow, widget } = createShadowAndWidget({
       onSubmitSuccess,
     });
 
     (sendFeedbackRequest as jest.Mock).mockImplementation(() => {
       return true;
-    })
+    });
     widget.actor?.el?.dispatchEvent(new Event('click'));
 
     const nameEl = widget.dialog?.el?.querySelector('[name="name"]') as HTMLInputElement;
@@ -128,23 +129,22 @@ describe('createWidget', () => {
     const emailEl = widget.dialog?.el?.querySelector('[name="email"]') as HTMLInputElement;
     emailEl.value = 'jane@example.com';
     const messageEl = widget.dialog?.el?.querySelector('[name="message"]') as HTMLTextAreaElement;
-    messageEl.value = "My feedback";
+    messageEl.value = 'My feedback';
 
-    nameEl.dispatchEvent(new Event('change'))
-    emailEl.dispatchEvent(new Event('change'))
-    messageEl.dispatchEvent(new Event('change'))
-
+    nameEl.dispatchEvent(new Event('change'));
+    emailEl.dispatchEvent(new Event('change'));
+    messageEl.dispatchEvent(new Event('change'));
 
     widget.dialog?.el?.querySelector('form')?.dispatchEvent(new Event('submit'));
     expect(sendFeedbackRequest).toHaveBeenCalledWith({
       feedback: {
         name: 'Jane Doe',
         email: 'jane@example.com',
-        message: "My feedback",
+        message: 'My feedback',
         url: 'http://localhost/',
         replay_id: undefined,
-      }
-    })
+      },
+    });
 
     // sendFeedbackRequest is async
     await flushPromises();
@@ -152,7 +152,7 @@ describe('createWidget', () => {
     expect(onSubmitSuccess).toHaveBeenCalledTimes(1);
 
     expect(widget.dialog).toBeUndefined();
-    expect(shadow.querySelector('.success-message')?.textContent).toBe(SUCCESS_MESSAGE_TEXT)
+    expect(shadow.querySelector('.success-message')?.textContent).toBe(SUCCESS_MESSAGE_TEXT);
 
     jest.runAllTimers();
     expect(shadow.querySelector('.success-message')).toBeNull();
@@ -160,31 +160,30 @@ describe('createWidget', () => {
 
   it('submits feedback with error on request', async () => {
     const onSubmitError = jest.fn(() => {});
-    const {shadow, widget} = createShadowAndWidget({
+    const { shadow, widget } = createShadowAndWidget({
       onSubmitError,
     });
 
     (sendFeedbackRequest as jest.Mock).mockImplementation(() => {
       return false;
-    })
+    });
     widget.actor?.el?.dispatchEvent(new Event('click'));
 
     const messageEl = widget.dialog?.el?.querySelector('[name="message"]') as HTMLTextAreaElement;
-    messageEl.value = "My feedback";
+    messageEl.value = 'My feedback';
 
-    messageEl.dispatchEvent(new Event('change'))
-
+    messageEl.dispatchEvent(new Event('change'));
 
     widget.dialog?.el?.querySelector('form')?.dispatchEvent(new Event('submit'));
     expect(sendFeedbackRequest).toHaveBeenCalledWith({
       feedback: {
         name: '',
         email: '',
-        message: "My feedback",
+        message: 'My feedback',
         url: 'http://localhost/',
         replay_id: undefined,
-      }
-    })
+      },
+    });
 
     // sendFeedbackRequest is async
     await flushPromises();
@@ -192,20 +191,22 @@ describe('createWidget', () => {
     expect(onSubmitError).toHaveBeenCalledTimes(1);
 
     expect(widget.dialog).not.toBeUndefined();
-    expect(shadow.querySelector('.form__error-container')?.textContent).toBe('There was a problem submitting feedback, please wait and try again.')
+    expect(shadow.querySelector('.form__error-container')?.textContent).toBe(
+      'There was a problem submitting feedback, please wait and try again.',
+    );
   });
 
   it('closes when Cancel button is clicked', () => {
     const onDialogClose = jest.fn();
-    const {widget} = createShadowAndWidget({onDialogClose});
+    const { widget } = createShadowAndWidget({ onDialogClose });
 
     widget.actor?.el?.dispatchEvent(new Event('click'));
     expect(widget.dialog?.el).toBeInstanceOf(HTMLDialogElement);
     expect(widget.dialog?.el?.open).toBe(true);
-    expect(widget.actor?.el?.getAttribute('aria-hidden')).toBe("true");
+    expect(widget.actor?.el?.getAttribute('aria-hidden')).toBe('true');
 
     // Click cancel button
-    widget.dialog?.el?.querySelector('[aria-label="Cancel"]')?.dispatchEvent(new Event('click'))
+    widget.dialog?.el?.querySelector('[aria-label="Cancel"]')?.dispatchEvent(new Event('click'));
 
     // Element/component should still exist, but it will be in a closed state
     expect(widget.dialog?.el).toBeInstanceOf(HTMLDialogElement);
@@ -213,26 +214,26 @@ describe('createWidget', () => {
     expect(onDialogClose).toHaveBeenCalledTimes(1);
 
     // Actor should now be visible too
-    expect(widget.actor?.el?.getAttribute('aria-hidden')).toBe("false");
+    expect(widget.actor?.el?.getAttribute('aria-hidden')).toBe('false');
 
     // Open it up again
     widget.actor?.el?.dispatchEvent(new Event('click'));
     expect(widget.dialog?.el).toBeInstanceOf(HTMLDialogElement);
     expect(widget.dialog?.el?.open).toBe(true);
-    expect(widget.actor?.el?.getAttribute('aria-hidden')).toBe("true");
-  })
+    expect(widget.actor?.el?.getAttribute('aria-hidden')).toBe('true');
+  });
 
   it('closes when dialog (background)) is clicked', () => {
     const onDialogClose = jest.fn();
-    const {widget} = createShadowAndWidget({onDialogClose});
+    const { widget } = createShadowAndWidget({ onDialogClose });
 
     widget.actor?.el?.dispatchEvent(new Event('click'));
     expect(widget.dialog?.el).toBeInstanceOf(HTMLDialogElement);
     expect(widget.dialog?.el?.open).toBe(true);
-    expect(widget.actor?.el?.getAttribute('aria-hidden')).toBe("true");
+    expect(widget.actor?.el?.getAttribute('aria-hidden')).toBe('true');
 
     // Click the actual dialog element (which serves as modal backdrop)
-    widget.dialog?.el?.dispatchEvent(new Event('click'))
+    widget.dialog?.el?.dispatchEvent(new Event('click'));
 
     // Element/component should still exist, but it will be in a closed state
     expect(widget.dialog?.el).toBeInstanceOf(HTMLDialogElement);
@@ -240,32 +241,35 @@ describe('createWidget', () => {
     expect(onDialogClose).toHaveBeenCalledTimes(1);
 
     // Actor should now be visible too
-    expect(widget.actor?.el?.getAttribute('aria-hidden')).toBe("false");
+    expect(widget.actor?.el?.getAttribute('aria-hidden')).toBe('false');
 
     // Open it up again
     widget.actor?.el?.dispatchEvent(new Event('click'));
     expect(widget.dialog?.el).toBeInstanceOf(HTMLDialogElement);
     expect(widget.dialog?.el?.open).toBe(true);
-    expect(widget.actor?.el?.getAttribute('aria-hidden')).toBe("true");
-  })
+    expect(widget.actor?.el?.getAttribute('aria-hidden')).toBe('true');
+  });
 
   it('attaches to a custom actor element', () => {
     const onDialogOpen = jest.fn();
     // This element is in the normal DOM
     const myActor = document.createElement('div');
-    myActor.textContent = "my button";
+    myActor.textContent = 'my button';
 
-    const {widget} = createShadowAndWidget({
-      autoInject: false,
-      onDialogOpen,
-    }, {
-      attachTo: myActor,
-    });
+    const { widget } = createShadowAndWidget(
+      {
+        autoInject: false,
+        onDialogOpen,
+      },
+      {
+        attachTo: myActor,
+      },
+    );
 
     myActor.dispatchEvent(new Event('click'));
     expect(widget.dialog?.el).toBeInstanceOf(HTMLDialogElement);
     expect(widget.dialog?.el?.open).toBe(true);
     expect(onDialogOpen).toHaveBeenCalledTimes(1);
     // This is all we do with `attachTo` (open dialog)
-  })
+  });
 });

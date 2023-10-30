@@ -28,7 +28,7 @@ export function sendFeedback(
   const replayId = replay && replay.getReplayId();
 
   if (!message) {
-    throw new Error('Unable to submit feedback with empty message')
+    throw new Error('Unable to submit feedback with empty message');
   }
 
   return sendFeedbackRequest({
