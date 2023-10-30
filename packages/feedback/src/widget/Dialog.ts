@@ -20,16 +20,6 @@ export interface DialogComponent extends FeedbackComponent<HTMLDialogElement> {
   hideError: () => void;
 
   /**
-   * Disable submit button so that it cannot be clicked
-   */
-  setSubmitDisabled: () => void;
-
-  /**
-   * Enable submit buttons so that it can be clicked
-   */
-  setSubmitEnabled: () => void;
-
-  /**
    * Opens and shows the dialog and form
    */
   open: () => void;
@@ -102,8 +92,6 @@ export function Dialog({
 
   const {
     el: formEl,
-    setSubmitEnabled,
-    setSubmitDisabled,
     showError,
     hideError,
   } = Form({
@@ -143,8 +131,6 @@ export function Dialog({
     el,
     showError,
     hideError,
-    setSubmitDisabled,
-    setSubmitEnabled,
     open,
     close,
     checkIsOpen,

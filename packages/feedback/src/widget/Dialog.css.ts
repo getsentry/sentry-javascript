@@ -64,7 +64,7 @@ export function createDialogStyles(d: Document): HTMLStyleElement {
 }
 
 .error {
-  color: red;
+  color: var(--error-color);
   margin-bottom: 16px;
 }
 
@@ -89,6 +89,18 @@ export function createDialogStyles(d: Document): HTMLStyleElement {
   flex-direction: column;
   gap: 4px;
   margin: 0px;
+}
+
+.form__label__text {
+  display: grid;
+  gap: 4px;
+  align-items: center;
+  grid-auto-flow: column;
+  grid-auto-columns: max-content;
+}
+
+.form__label__text--required {
+  font-size: 0.85em;
 }
 
 .form__input {

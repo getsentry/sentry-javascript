@@ -6,15 +6,6 @@ export interface SubmitButtonProps {
 }
 
 interface SubmitButtonComponent extends FeedbackComponent<HTMLButtonElement> {
-  /**
-   * Disables the submit button
-   */
-  setDisabled: () => void;
-
-  /**
-   * Enables the submit button
-   */
-  setEnabled: () => void;
 }
 
 /**
@@ -26,21 +17,12 @@ export function SubmitButton({ label }: SubmitButtonProps): SubmitButtonComponen
     {
       type: 'submit',
       className: 'btn btn--primary',
-      disabled: true,
-      ariaDisabled: 'true',
+      ['aria-label']: label,
     },
     label,
   );
 
   return {
     el,
-    setDisabled: () => {
-      el.disabled = true;
-      el.ariaDisabled = 'true';
-    },
-    setEnabled: () => {
-      el.disabled = false;
-      el.ariaDisabled = 'false';
-    },
   };
 }

@@ -190,7 +190,7 @@ export class Feedback implements Integration {
   /**
    * Adds click listener to attached element to open a feedback dialog
    */
-  public attachTo(el: Node | string, optionOverrides: CreateWidgetOptionOverrides): Widget | null {
+  public attachTo(el: Element | string, optionOverrides: CreateWidgetOptionOverrides): Widget | null {
     try {
       const options = {
         ...this.options,

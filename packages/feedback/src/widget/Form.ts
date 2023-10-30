@@ -32,16 +32,6 @@ interface FormComponent extends FeedbackComponent<HTMLFormElement> {
    * Hides the error message
    */
   hideError: () => void;
-
-  /**
-   * Disables the submit button
-   */
-  setSubmitDisabled: () => void;
-
-  /**
-   * Enables the submit button
-   */
-  setSubmitEnabled: () => void;
 }
 
 function retrieveStringValue(formData: FormData, key: string): string {
@@ -76,8 +66,6 @@ export function Form({
 }: FormComponentProps): FormComponent {
   const {
     el: submitEl,
-    setDisabled: setSubmitDisabled,
-    setEnabled: setSubmitEnabled,
   } = SubmitButton({
     label: submitButtonLabel,
   });
@@ -147,19 +135,9 @@ export function Form({
     autoFocus: 'true',
     rows: '5',
     name: 'message',
+    required: true,
     className: 'form__input form__input--textarea',
     placeholder: messagePlaceholder,
-    onKeyup: (e: Event) => {
-      if (!(e.currentTarget instanceof HTMLTextAreaElement)) {
-        return;
-      }
-
-      if (e.currentTarget.value) {
-        setSubmitEnabled();
-      } else {
-        setSubmitDisabled();
-      }
-    },
   });
 
   const cancelEl = createElement(
@@ -213,7 +191,8 @@ export function Form({
           htmlFor: 'message',
           className: 'form__label',
         },
-        [messageLabel, messageEl],
+        [createElement('span', {className: 'form__label__text'}, messageLabel,
+        createElement('span', {className: 'form__label__text--required'}, ' (required)')), messageEl],
       ),
 
       createElement(
@@ -227,9 +206,7 @@ export function Form({
   );
 
   return {
-    el: formEl,
-    setSubmitDisabled,
-    setSubmitEnabled,
+    get el() { return formEl },
     showError,
     hideError,
   };
