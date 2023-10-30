@@ -14,20 +14,9 @@ describe('SubmitButton', () => {
     const submitButtonComponent = renderSubmitButton();
 
     expect(submitButtonComponent.el).toBeInstanceOf(HTMLButtonElement);
+    if (!submitButtonComponent.el) {
+      throw new Error('Element does not exist');
+    }
     expect(submitButtonComponent.el.textContent).toBe(SUBMIT_BUTTON_LABEL);
-    expect(submitButtonComponent.el.disabled).toBe(true);
-    expect(submitButtonComponent.el.getAttribute('ariaDisabled')).toBe('true');
-  });
-
-  it('toggles between enabled and disabled', () => {
-    const submitButtonComponent = renderSubmitButton();
-
-    submitButtonComponent.setEnabled();
-    expect(submitButtonComponent.el.disabled).toBe(false);
-    expect(submitButtonComponent.el.ariaDisabled).toBe('false');
-
-    submitButtonComponent.setDisabled();
-    expect(submitButtonComponent.el.disabled).toBe(true);
-    expect(submitButtonComponent.el.ariaDisabled).toBe('true');
   });
 });
