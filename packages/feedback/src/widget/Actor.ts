@@ -46,7 +46,9 @@ export function Actor({ buttonLabel, onClick }: ActorProps): ActorComponent {
   el.addEventListener('click', _handleClick);
 
   return {
-    get el() { return el },
+    get el() {
+      return el;
+    },
     show: (): void => {
       el.classList.remove('widget__actor--hidden');
       el.setAttribute('aria-hidden', 'false');

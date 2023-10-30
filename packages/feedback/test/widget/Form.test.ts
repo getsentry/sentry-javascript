@@ -20,7 +20,7 @@ function renderForm({
   cancelButtonLabel = 'Cancel!',
   submitButtonLabel = 'Submit!',
   ...rest
-}: Partial<FormComponentProps> = {}){
+}: Partial<FormComponentProps> = {}) {
   return Form({
     isAnonymous,
     showName,
@@ -102,7 +102,6 @@ describe('Form', () => {
     const formComponent = renderForm();
 
     const message = formComponent.el.querySelector('[name="message"]') as HTMLTextAreaElement;
-    const submit = formComponent.el.querySelector('button[type="submit"]') as HTMLButtonElement;
 
     message.value = 'Foo (message)';
     message.dispatchEvent(new KeyboardEvent('keyup'));

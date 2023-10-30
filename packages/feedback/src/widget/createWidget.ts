@@ -43,7 +43,7 @@ export function createWidget({ shadow, options, attachTo }: CreateWidgetParams):
       });
 
       if (!success.el) {
-        throw new Error('Unable to show success message')
+        throw new Error('Unable to show success message');
       }
 
       shadow.appendChild(success.el);

@@ -64,9 +64,7 @@ export function Form({
   onCancel,
   onSubmit,
 }: FormComponentProps): FormComponent {
-  const {
-    el: submitEl,
-  } = SubmitButton({
+  const { el: submitEl } = SubmitButton({
     label: submitButtonLabel,
   });
 
@@ -192,8 +190,15 @@ export function Form({
           htmlFor: 'message',
           className: 'form__label',
         },
-        [createElement('span', {className: 'form__label__text'}, messageLabel,
-        createElement('span', {className: 'form__label__text--required'}, ' (required)')), messageEl],
+        [
+          createElement(
+            'span',
+            { className: 'form__label__text' },
+            messageLabel,
+            createElement('span', { className: 'form__label__text--required' }, ' (required)'),
+          ),
+          messageEl,
+        ],
       ),
 
       createElement(
@@ -207,7 +212,9 @@ export function Form({
   );
 
   return {
-    get el() { return formEl },
+    get el() {
+      return formEl;
+    },
     showError,
     hideError,
   };
