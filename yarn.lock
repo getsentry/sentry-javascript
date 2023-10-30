@@ -4986,17 +4986,6 @@
     magic-string "0.27.0"
     unplugin "1.0.1"
 
-"@sentry/cli@2.20.5":
-  version "2.20.5"
-  resolved "https://registry.yarnpkg.com/@sentry/cli/-/cli-2.20.5.tgz#255a5388ca24c211a0eae01dcc4ad813a7ff335a"
-  integrity sha512-ZvWb86eF0QXH9C5Mbi87aUmr8SH848yEpXJmlM2AoBowpE9kKDnewCAKvyXUihojUFwCSEEjoJhrRMMgmCZqXA==
-  dependencies:
-    https-proxy-agent "^5.0.0"
-    node-fetch "^2.6.7"
-    progress "^2.0.3"
-    proxy-from-env "^1.1.0"
-    which "^2.0.2"
-
 "@sentry/cli@^1.74.4", "@sentry/cli@^1.74.6":
   version "1.74.6"
   resolved "https://registry.yarnpkg.com/@sentry/cli/-/cli-1.74.6.tgz#c4f276e52c6f5e8c8d692845a965988068ebc6f5"
