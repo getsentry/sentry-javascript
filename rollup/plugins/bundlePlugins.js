@@ -131,6 +131,9 @@ export function makeTerserPlugin() {
           '_meta',
           // Object we inject debug IDs into with bundler plugins
           '_sentryDebugIds',
+          // These are used by instrument.ts in utils for identifying HTML elements & events
+          '_sentryCaptured',
+          '_sentryId',
         ],
       },
     },

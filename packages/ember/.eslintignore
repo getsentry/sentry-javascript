@@ -23,3 +23,9 @@
 /package.json.ember-try
 /package-lock.json.ember-try
 /yarn.lock.ember-try
+
+# Random compiledd types
+index.d.ts
+runloop.d.ts
+types.d.ts
+/instance-initializers/

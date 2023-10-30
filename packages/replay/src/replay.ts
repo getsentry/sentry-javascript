@@ -942,19 +942,6 @@ export class ReplayContainer implements ReplayContainerInterface {
   }
 
   /**
-   * Trigger rrweb to take a full snapshot which will cause this plugin to
-   * create a new Replay event.
-   */
-  private _triggerFullSnapshot(checkout = true): void {
-    try {
-      logInfo('[Replay] Taking full rrweb snapshot');
-      record.takeFullSnapshot(checkout);
-    } catch (err) {
-      this._handleException(err);
-    }
-  }
-
-  /**
    * Update user activity (across session lifespans)
    */
   private _updateUserActivity(_lastActivity: number = Date.now()): void {
@@ -1152,7 +1139,7 @@ export class ReplayContainer implements ReplayContainerInterface {
     }
 
     if (!this.session) {
-      __DEBUG_BUILD__ && logger.error('[Replay] No session found to flush.');
+      // should never happen, as we would have bailed out before
       return;
     }
 

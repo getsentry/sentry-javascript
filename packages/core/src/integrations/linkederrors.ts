@@ -14,7 +14,7 @@ export class LinkedErrors implements Integration {
   /**
    * @inheritDoc
    */
-  public readonly name: string = LinkedErrors.id;
+  public readonly name: string;
 
   /**
    * @inheritDoc
@@ -32,6 +32,7 @@ export class LinkedErrors implements Integration {
   public constructor(options: { key?: string; limit?: number } = {}) {
     this._key = options.key || DEFAULT_KEY;
     this._limit = options.limit || DEFAULT_LIMIT;
+    this.name = LinkedErrors.id;
   }
 
   /** @inheritdoc */
