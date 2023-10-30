@@ -213,8 +213,12 @@ export function createWidget({ shadow, options, attachTo }: CreateWidgetParams):
   }
 
   return {
-    actor,
-    dialog,
+    get actor() {
+      return actor;
+    },
+    get dialog() {
+      return dialog;
+    },
 
     showActor,
     hideActor,
