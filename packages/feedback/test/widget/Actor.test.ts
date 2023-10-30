@@ -14,7 +14,7 @@ describe('Actor', () => {
     const actorComponent = renderActor();
 
     expect(actorComponent.el).toBeInstanceOf(HTMLButtonElement);
-    expect(actorComponent.el.textContent).toBe(ACTOR_LABEL);
+    expect(actorComponent.el?.textContent).toBe(ACTOR_LABEL);
   });
 
   it('calls `onClick` callback when clicked on', () => {
@@ -24,19 +24,19 @@ describe('Actor', () => {
     });
 
     const event = new Event('click');
-    actorComponent.el.dispatchEvent(event);
+    actorComponent.el?.dispatchEvent(event);
     expect(onClick).toHaveBeenCalledWith(event);
   });
 
   it('can manually show and hide the actor', () => {
     const actorComponent = renderActor();
 
-    expect(actorComponent.el.getAttribute('ariaHidden')).toBe('false');
+    expect(actorComponent.el?.getAttribute('aria-hidden')).toBe('false');
 
     actorComponent.hide();
-    expect(actorComponent.el.getAttribute('ariaHidden')).toBe('true');
+    expect(actorComponent.el?.getAttribute('aria-hidden')).toBe('true');
 
     actorComponent.show();
-    expect(actorComponent.el.getAttribute('ariaHidden')).toBe('false');
+    expect(actorComponent.el?.getAttribute('aria-hidden')).toBe('false');
   });
 });

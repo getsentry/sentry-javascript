@@ -14,7 +14,7 @@ describe('SuccessMessage', () => {
     const successMessageComponent = renderSuccessMessage();
 
     expect(successMessageComponent.el).toBeInstanceOf(HTMLDivElement);
-    expect(successMessageComponent.el.textContent).toBe(SUCCESS_MESSAGE_TEXT);
+    expect(successMessageComponent.el?.textContent).toBe(SUCCESS_MESSAGE_TEXT);
   });
 
   it('removes element and calls `onRemove` callback when clicked', () => {
@@ -23,9 +23,9 @@ describe('SuccessMessage', () => {
       onRemove,
     });
 
-    document.body.appendChild(successMessageComponent.el);
+    successMessageComponent.el && document.body.appendChild(successMessageComponent.el);
     expect(document.querySelector('.success-message')).not.toBeNull();
-    successMessageComponent.el.dispatchEvent(new Event('click'));
+    successMessageComponent.el?.dispatchEvent(new Event('click'));
     expect(document.querySelector('.success-message')).toBeNull();
     expect(onRemove).toHaveBeenCalledWith();
   });
