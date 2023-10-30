@@ -302,6 +302,38 @@ const replayEnvelopeRequestParser = (request: Request | null, envelopeIndex = 2)
   return envelope[envelopeIndex] as Event;
 };
 
+export function replayEnvelopeIsCompressed(resOrReq: Request | Response): boolean {
+  const request = getRequest(resOrReq);
+
+  // https://develop.sentry.dev/sdk/envelopes/
+  const envelopeBytes = request.postDataBuffer() || '';
+
+  // first, we convert the bugger to string to split and go through the uncompressed lines
+  const envelopeString = envelopeBytes.toString();
+
+  const lines: boolean[] = envelopeString.split('\n').map(line => {
+    try {
+      JSON.parse(line);
+    } catch (error) {
+      // If we fail to parse a line, we _might_ have found a compressed payload,
+      // so let's check if this is actually the case.
+      // This is quite hacky but we can't go through `line` because the prior operations
+      // seem to have altered its binary content. Hence, we take the raw envelope and
+      // look up the place where the zlib compression header(0x78 0x9c) starts
+      for (let i = 0; i < envelopeBytes.length; i++) {
+        if (envelopeBytes[i] === 0x78 && envelopeBytes[i + 1] === 0x9c) {
+          // We found a zlib-compressed payload - let's decompress it
+          return true;
+        }
+      }
+    }
+
+    return false;
+  });
+
+  return lines.some(line => line);
+}
+
 export const replayEnvelopeParser = (request: Request | null): unknown[] => {
   // https://develop.sentry.dev/sdk/envelopes/
   const envelopeBytes = request?.postDataBuffer() || '';

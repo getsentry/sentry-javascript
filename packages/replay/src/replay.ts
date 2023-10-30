@@ -711,6 +711,7 @@ export class ReplayContainer implements ReplayContainerInterface {
 
     this.eventBuffer = createEventBuffer({
       useCompression: this._options.useCompression,
+      workerUrl: this._options.workerUrl,
     });
 
     this._removeListeners();
