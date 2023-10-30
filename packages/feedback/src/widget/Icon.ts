@@ -51,6 +51,6 @@ export function Icon(): IconReturn {
   svg.appendChild(speakerDefs).appendChild(speakerClipPathDef).appendChild(speakerRect);
 
   return {
-    el: svg,
+    get el() {return svg},
   };
 }

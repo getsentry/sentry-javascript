@@ -95,25 +95,25 @@ export function Form({
 
   const errorEl = createElement('div', {
     className: 'form__error-container form__error-container--hidden',
-    ariaHidden: 'true',
+    ['aria-hidden']: 'true',
   });
 
   function showError(message: string): void {
     errorEl.textContent = message;
     errorEl.classList.remove('form__error-container--hidden');
-    errorEl.setAttribute('ariaHidden', 'false');
+    errorEl.setAttribute('aria-hidden', 'false');
   }
 
   function hideError(): void {
     errorEl.textContent = '';
     errorEl.classList.add('form__error-container--hidden');
-    errorEl.setAttribute('ariaHidden', 'true');
+    errorEl.setAttribute('aria-hidden', 'true');
   }
 
   const nameEl = createElement('input', {
     id: 'name',
     type: showName ? 'text' : 'hidden',
-    ariaHidden: showName ? 'false' : 'true',
+    ['aria-hidden']: showName ? 'false' : 'true',
     name: 'name',
     className: 'form__input',
     placeholder: namePlaceholder,
@@ -123,7 +123,7 @@ export function Form({
   const emailEl = createElement('input', {
     id: 'email',
     type: showEmail ? 'text' : 'hidden',
-    ariaHidden: showEmail ? 'false' : 'true',
+    ['aria-hidden']: showEmail ? 'false' : 'true',
     name: 'email',
     className: 'form__input',
     placeholder: emailPlaceholder,
@@ -145,6 +145,7 @@ export function Form({
     {
       type: 'button',
       className: 'btn btn--default',
+      ['aria-label']: cancelButtonLabel,
       onClick: (e: Event) => {
         onCancel && onCancel(e);
       },
