@@ -48,7 +48,7 @@ export { makeOfflineTransport } from './transports/offline';
 export { makeMultiplexedTransport } from './transports/multiplexed';
 export { SDK_VERSION } from './version';
 export { getIntegrationsToSetup, addIntegration } from './integration';
-export { FunctionToString, InboundFilters } from './integrations';
+export { FunctionToString, InboundFilters, LinkedErrors } from './integrations';
 export { prepareEvent } from './utils/prepareEvent';
 export { createCheckInEnvelope } from './checkin';
 export { hasTracingEnabled } from './utils/hasTracingEnabled';

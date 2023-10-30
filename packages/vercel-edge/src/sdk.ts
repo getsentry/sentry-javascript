@@ -13,7 +13,11 @@ declare const process: {
 
 const nodeStackParser = createStackParser(nodeStackLineParser());
 
-export const defaultIntegrations = [new CoreIntegrations.InboundFilters(), new CoreIntegrations.FunctionToString()];
+export const defaultIntegrations = [
+  new CoreIntegrations.InboundFilters(),
+  new CoreIntegrations.FunctionToString(),
+  new CoreIntegrations.LinkedErrors(),
+];
 
 /** Inits the Sentry NextJS SDK on the Edge Runtime. */
 export function init(options: VercelEdgeOptions = {}): void {
