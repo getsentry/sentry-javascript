@@ -19,13 +19,11 @@ export async function handleFeedbackSubmit(
     if (!dialog) {
       return;
     }
-    dialog.setSubmitEnabled();
     dialog.showError('There was a problem submitting feedback, please wait and try again.');
   };
 
   try {
     dialog.hideError();
-    dialog.setSubmitDisabled();
     const resp = await sendFeedback(feedback, options);
 
     if (!resp) {

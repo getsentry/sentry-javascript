@@ -27,6 +27,10 @@ export function sendFeedback(
   replay && replay.flush();
   const replayId = replay && replay.getReplayId();
 
+  if (!message) {
+    throw new Error('Unable to submit feedback with empty message')
+  }
+
   return sendFeedbackRequest({
     feedback: {
       name,

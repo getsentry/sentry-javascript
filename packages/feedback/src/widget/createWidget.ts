@@ -64,6 +64,12 @@ export function createWidget({ shadow, options, attachTo }: CreateWidgetParams):
       return;
     }
 
+    // Simple validation for now, just check for non-empty message
+    if (!feedback.message) {
+      dialog.showError('Please enter in some feedback before submitting!');
+      return;
+    }
+
     const result = await handleFeedbackSubmit(dialog, feedback);
 
     // Error submitting feedback
