@@ -5,27 +5,26 @@ import type { FeedbackInternalOptions } from '../types';
 import { createDialogStyles } from './Dialog.css';
 import { createMainStyles } from './Main.css';
 
-interface CreateShadowHostParams {
-  options: FeedbackInternalOptions;
-}
+type CreateShadowHostParams = Pick<FeedbackInternalOptions, 'id' | 'colorScheme' | 'themeDark' | 'themeLight'>;
 
 /**
  * Creates shadow host
  */
-export function createShadowHost({ options }: CreateShadowHostParams): { shadow: ShadowRoot; host: HTMLDivElement } {
+export function createShadowHost({ id, colorScheme, themeDark, themeLight }: CreateShadowHostParams): {
+  shadow: ShadowRoot;
+  host: HTMLDivElement;
+} {
   try {
     const doc = WINDOW.document;
 
     // Create the host
     const host = doc.createElement('div');
-    host.id = options.id;
+    host.id = id;
 
     // Create the shadow root
     const shadow = host.attachShadow({ mode: 'open' });
 
-    shadow.appendChild(
-      createMainStyles(doc, options.colorScheme, { dark: options.themeDark, light: options.themeLight }),
-    );
+    shadow.appendChild(createMainStyles(doc, colorScheme, { dark: themeDark, light: themeLight }));
     shadow.appendChild(createDialogStyles(doc));
 
     return { shadow, host };
