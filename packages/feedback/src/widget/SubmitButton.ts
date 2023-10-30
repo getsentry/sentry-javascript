@@ -5,8 +5,7 @@ export interface SubmitButtonProps {
   label: string;
 }
 
-interface SubmitButtonComponent extends FeedbackComponent<HTMLButtonElement> {
-}
+type SubmitButtonComponent = FeedbackComponent<HTMLButtonElement>;
 
 /**
  *
