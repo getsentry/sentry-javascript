@@ -128,7 +128,7 @@ export function Dialog({
   );
 
   return {
-    el,
+    get el() { return el; },
     showError,
     hideError,
     open,
