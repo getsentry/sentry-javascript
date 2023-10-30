@@ -12,6 +12,7 @@ import type {
 import { isString } from './is';
 import type { ConsoleLevel } from './logger';
 import { CONSOLE_LEVELS, logger, originalConsoleMethods } from './logger';
+import { uuid4 } from './misc';
 import { addNonEnumerableProperty, fill } from './object';
 import { getFunctionName } from './stacktrace';
 import { supportsHistory, supportsNativeFetch } from './supports';
@@ -404,21 +405,24 @@ function instrumentHistory(): void {
 
 const DEBOUNCE_DURATION = 1000;
 let debounceTimerID: number | undefined;
-let lastCapturedEvent: Event | undefined;
+let lastCapturedEventType: string | undefined;
+let lastCapturedEventTargetId: string | undefined;
+
+type SentryWrappedTarget = HTMLElement & { _sentryId?: string };
 
 /**
- * Check whether two DOM events are similar to eachother. For example, two click events on the same button.
+ * Check whether the event is similar to the last captured one. For example, two click events on the same button.
  */
-function areSimilarDomEvents(a: Event, b: Event): boolean {
+function isSimilarToLastCapturedEvent(event: Event): boolean {
   // If both events have different type, then user definitely performed two separate actions. e.g. click + keypress.
-  if (a.type !== b.type) {
+  if (event.type !== lastCapturedEventType) {
     return false;
   }
 
   try {
     // If both events have the same type, it's still possible that actions were performed on different targets.
     // e.g. 2 clicks on different buttons.
-    if (a.target !== b.target) {
+    if (!event.target || (event.target as SentryWrappedTarget)._sentryId !== lastCapturedEventTargetId) {
       return false;
     }
   } catch (e) {
@@ -436,30 +440,33 @@ function areSimilarDomEvents(a: Event, b: Event): boolean {
  * Decide whether an event should be captured.
  * @param event event to be captured
  */
-function shouldSkipDOMEvent(event: Event): boolean {
+function shouldSkipDOMEvent(eventType: string, target: SentryWrappedTarget | null): boolean {
   // We are only interested in filtering `keypress` events for now.
-  if (event.type !== 'keypress') {
+  if (eventType !== 'keypress') {
     return false;
   }
 
-  try {
-    const target = event.target as HTMLElement;
+  if (!target || !target.tagName) {
+    return true;
+  }
 
-    if (!target || !target.tagName) {
-      return true;
-    }
-
-    // Only consider keypress events on actual input elements. This will disregard keypresses targeting body
-    // e.g.tabbing through elements, hotkeys, etc.
-    if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
-      return false;
-    }
-  } catch (e) {
-    // just accessing `target` property can throw an exception in some rare circumstances
-    // see: https://github.com/getsentry/sentry-javascript/issues/838
+  // Only consider keypress events on actual input elements. This will disregard keypresses targeting body
+  // e.g.tabbing through elements, hotkeys, etc.
+  if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
+    return false;
   }
 
   return true;
+}
+
+function getEventTarget(event: Event): SentryWrappedTarget | null {
+  try {
+    return event.target as SentryWrappedTarget | null;
+  } catch (e) {
+    // just accessing `target` property can throw an exception in some rare circumstances
+    // see: https://github.com/getsentry/sentry-javascript/issues/838
+    return null;
+  }
 }
 
 /**
@@ -478,32 +485,41 @@ function makeDOMEventHandler(handler: Function, globalListener: boolean = false)
       return;
     }
 
+    const target = getEventTarget(event);
+
     // We always want to skip _some_ events.
-    if (shouldSkipDOMEvent(event)) {
+    if (shouldSkipDOMEvent(event.type, target)) {
       return;
     }
 
     // Mark event as "seen"
     addNonEnumerableProperty(event, '_sentryCaptured', true);
 
+    if (target && !target._sentryId) {
+      // Add UUID to event target so we can identify if
+      addNonEnumerableProperty(target, '_sentryId', uuid4());
+    }
+
     const name = event.type === 'keypress' ? 'input' : event.type;
 
     // If there is no last captured event, it means that we can safely capture the new event and store it for future comparisons.
     // If there is a last captured event, see if the new event is different enough to treat it as a unique one.
     // If that's the case, emit the previous event and store locally the newly-captured DOM event.
-    if (lastCapturedEvent === undefined || !areSimilarDomEvents(lastCapturedEvent, event)) {
+    if (!isSimilarToLastCapturedEvent(event)) {
       handler({
         event: event,
         name,
         global: globalListener,
       });
-      lastCapturedEvent = event;
+      lastCapturedEventType = event.type;
+      lastCapturedEventTargetId = target ? target._sentryId : undefined;
     }
 
     // Start a new debounce timer that will prevent us from capturing multiple events that should be grouped together.
     clearTimeout(debounceTimerID);
     debounceTimerID = WINDOW.setTimeout(() => {
-      lastCapturedEvent = undefined;
+      lastCapturedEventTargetId = undefined;
+      lastCapturedEventType = undefined;
     }, DEBOUNCE_DURATION);
   };
 }
