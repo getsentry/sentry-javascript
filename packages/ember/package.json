@@ -18,7 +18,7 @@
   },
   "scripts": {
     "build:tarball": "ember ts:precompile && npm pack && ember ts:clean",
-    "clean": "yarn rimraf sentry-ember-*.tgz dist tmp build .node_modules.ember-try package.json.ember-try",
+    "clean": "yarn rimraf sentry-ember-*.tgz dist tmp build .node_modules.ember-try package.json.ember-try instance-initializers index.d.ts runloop.d.ts types.d.ts",
     "lint": "run-p lint:js lint:hbs lint:ts",
     "lint:hbs": "ember-template-lint .",
     "lint:js": "eslint .",
