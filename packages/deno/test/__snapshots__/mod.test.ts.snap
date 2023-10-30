@@ -147,8 +147,8 @@ snapshot[`captureException 1`] = `
     integrations: [
       "InboundFilters",
       "FunctionToString",
-      "Dedupe",
       "LinkedErrors",
+      "Dedupe",
       "Breadcrumbs",
       "DenoContext",
       "ContextLines",
@@ -207,8 +207,8 @@ snapshot[`captureMessage 1`] = `
     integrations: [
       "InboundFilters",
       "FunctionToString",
-      "Dedupe",
       "LinkedErrors",
+      "Dedupe",
       "Breadcrumbs",
       "DenoContext",
       "ContextLines",
