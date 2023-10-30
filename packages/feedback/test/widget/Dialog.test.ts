@@ -1,4 +1,3 @@
-import { ACTOR_LABEL } from '../../src/constants';
 import type { DialogProps } from '../../src/widget/Dialog';
 import { Dialog } from '../../src/widget/Dialog';
 
@@ -35,7 +34,7 @@ function renderDialog({
     messagePlaceholder,
     cancelButtonLabel,
     submitButtonLabel,
-    ...rest
+    ...rest,
   });
 }
 
