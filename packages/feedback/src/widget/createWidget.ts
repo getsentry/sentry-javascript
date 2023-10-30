@@ -42,6 +42,10 @@ export function createWidget({ shadow, options, attachTo }: CreateWidgetParams):
         },
       });
 
+      if (!success.el) {
+        throw new Error('Unable to show success message')
+      }
+
       shadow.appendChild(success.el);
 
       const timeoutId = setTimeout(() => {
@@ -108,7 +112,7 @@ export function createWidget({ shadow, options, attachTo }: CreateWidgetParams):
    * Removes the default actor element
    */
   function removeActor(): void {
-    actor && actor.el.remove();
+    actor && actor.el && actor.el.remove();
   }
 
   /**
@@ -155,6 +159,10 @@ export function createWidget({ shadow, options, attachTo }: CreateWidgetParams):
         onSubmit: _handleFeedbackSubmit,
       });
 
+      if (!dialog.el) {
+        throw new Error('Unable to open Feedback dialog');
+      }
+
       shadow.appendChild(dialog.el);
 
       // Hides the default actor whenever dialog is opened
@@ -189,7 +197,8 @@ export function createWidget({ shadow, options, attachTo }: CreateWidgetParams):
   function removeDialog(): void {
     if (dialog) {
       hideDialog();
-      dialog.el.remove();
+      const dialogEl = dialog.el;
+      dialogEl && dialogEl.remove();
       dialog = undefined;
     }
   }
@@ -213,7 +222,7 @@ export function createWidget({ shadow, options, attachTo }: CreateWidgetParams):
 
   if (!attachTo) {
     actor = Actor({ buttonLabel: options.buttonLabel, onClick: handleActorClick });
-    shadow.appendChild(actor.el);
+    actor.el && shadow.appendChild(actor.el);
   } else {
     attachTo.addEventListener('click', handleActorClick);
   }

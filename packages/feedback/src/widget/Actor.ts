@@ -30,8 +30,8 @@ export function Actor({ buttonLabel, onClick }: ActorProps): ActorComponent {
     {
       type: 'button',
       className: 'widget__actor',
-      ariaLabel: buttonLabel,
-      ariaHidden: 'false',
+      ['aria-label']: buttonLabel,
+      ['aria-hidden']: 'false',
     },
     Icon().el,
     createElement(
@@ -46,14 +46,14 @@ export function Actor({ buttonLabel, onClick }: ActorProps): ActorComponent {
   el.addEventListener('click', _handleClick);
 
   return {
-    el,
+    get el() { return el },
     show: (): void => {
       el.classList.remove('widget__actor--hidden');
-      el.setAttribute('ariaHidden', 'false');
+      el.setAttribute('aria-hidden', 'false');
     },
     hide: (): void => {
       el.classList.add('widget__actor--hidden');
-      el.setAttribute('ariaHidden', 'true');
+      el.setAttribute('aria-hidden', 'true');
     },
   };
 }

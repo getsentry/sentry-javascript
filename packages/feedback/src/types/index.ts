@@ -254,7 +254,7 @@ export interface FeedbackThemes {
 }
 
 export interface FeedbackComponent<T extends HTMLElement> {
-  el: T;
+  el: T | null;
 }
 
 /**
