@@ -104,7 +104,7 @@ function setUpTunnelRewriteRules(userNextConfig: NextConfigObject, tunnelPath: s
         {
           type: 'query',
           key: 'o', // short for orgId - we keep it short so matching is harder for ad-blockers
-          value: '(?<orgid>[a-fA-F0-9]*)',
+          value: '(?<orgid>\\d*)',
         },
         {
           type: 'query',
