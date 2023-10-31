@@ -1,8 +1,8 @@
-import type { FeedbackComponent, FeedbackConfigurationWithDefaults } from '../types';
+import type { FeedbackComponent, FeedbackInternalOptions } from '../types';
 import { Icon } from './Icon';
 import { createElement } from './util/createElement';
 
-export interface ActorProps extends Pick<FeedbackConfigurationWithDefaults, 'buttonLabel'> {
+export interface ActorProps extends Pick<FeedbackInternalOptions, 'buttonLabel'> {
   onClick?: (e: MouseEvent) => void;
 }
 

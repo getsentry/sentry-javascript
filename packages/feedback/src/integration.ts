@@ -17,18 +17,16 @@ import {
   SUCCESS_MESSAGE_TEXT,
 } from './constants';
 import type {
-  CreateWidgetOptionOverrides,
-  FeedbackConfigurationWithDefaults,
+  OptionalFeedbackConfiguration,
   FeedbackInternalOptions,
   Widget,
 } from './types';
+import { mergeOptions } from './util/mergeOptions';
 import { createActorStyles } from './widget/Actor.css';
 import { createShadowHost } from './widget/createShadowHost';
 import { createWidget } from './widget/createWidget';
 
 const doc = WINDOW.document;
-
-type FeedbackConfiguration = Partial<FeedbackConfigurationWithDefaults>;
 
 /**
  * Feedback integration. When added as an integration to the SDK, it will
@@ -110,7 +108,7 @@ export class Feedback implements Integration {
     onDialogOpen,
     onSubmitError,
     onSubmitSuccess,
-  }: FeedbackConfiguration = {}) {
+  }: OptionalFeedbackConfiguration = {}) {
     // Initializations
     this.name = Feedback.id;
 
@@ -132,8 +130,14 @@ export class Feedback implements Integration {
       useSentryUser,
 
       colorScheme,
-      themeDark: Object.assign({}, DEFAULT_THEME.dark, themeDark),
-      themeLight: Object.assign({}, DEFAULT_THEME.light, themeLight),
+      themeDark: {
+        ...DEFAULT_THEME.dark,
+        ...themeDark
+      },
+      themeLight: {
+        ...DEFAULT_THEME.light,
+        ...themeLight
+      },
 
       buttonLabel,
       cancelButtonLabel,
@@ -190,12 +194,9 @@ export class Feedback implements Integration {
   /**
    * Adds click listener to attached element to open a feedback dialog
    */
-  public attachTo(el: Element | string, optionOverrides: CreateWidgetOptionOverrides): Widget | null {
+  public attachTo(el: Element | string, optionOverrides: OptionalFeedbackConfiguration): Widget | null {
     try {
-      const options = {
-        ...this.options,
-        ...optionOverrides,
-      };
+      const options = mergeOptions(this.options, optionOverrides);
 
       return this._ensureShadowHost<Widget | null>(options, ({ shadow }) => {
         const targetEl =
@@ -219,12 +220,9 @@ export class Feedback implements Integration {
   /**
    * Creates a new widget. Accepts partial options to override any options passed to constructor.
    */
-  public createWidget(optionOverrides: CreateWidgetOptionOverrides): Widget | null {
+  public createWidget(optionOverrides: OptionalFeedbackConfiguration): Widget | null {
     try {
-      return this._createWidget({
-        ...this.options,
-        ...optionOverrides,
-      });
+      return this._createWidget(mergeOptions(this.options, optionOverrides));
     } catch (err) {
       logger.error(err);
       return null;
