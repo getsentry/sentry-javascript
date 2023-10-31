@@ -104,12 +104,12 @@ function setUpTunnelRewriteRules(userNextConfig: NextConfigObject, tunnelPath: s
         {
           type: 'query',
           key: 'o', // short for orgId - we keep it short so matching is harder for ad-blockers
-          value: '(?<orgid>.*)',
+          value: '(?<orgid>[a-fA-F0-9]*)',
         },
         {
           type: 'query',
           key: 'p', // short for projectId - we keep it short so matching is harder for ad-blockers
-          value: '(?<projectid>.*)',
+          value: '(?<projectid>\\d*)',
         },
       ],
       destination: 'https://o:orgid.ingest.sentry.io/api/:projectid/envelope/?hsts=0',
