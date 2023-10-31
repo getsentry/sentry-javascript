@@ -4,6 +4,17 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.77.0
+
+- feat: Move LinkedErrors integration to @sentry/core (#9404)
+- feat(remix): Update sentry-cli version to ^2.21.2 (#9401)
+- feat(replay): Allow to treeshake & configure compression worker URL (#9409)
+- fix(angular-ivy): Adjust package entry points to support Angular 17 with SSR config (#9412)
+- fix(feedback): Fixing feedback import (#9403)
+- fix(nextjs): Match only numbers as orgid in tunnelRoute (#9416)
+- fix(nextjs): Strictly validate tunnel target parameters (#9415)
+- fix(utils): Avoid keeping a reference of last used event (#9387)
+
 ## 7.76.0
 
 ### Important Changes
