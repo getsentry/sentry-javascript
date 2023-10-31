@@ -322,7 +322,7 @@ export function replayEnvelopeIsCompressed(resOrReq: Request | Response): boolea
       // look up the place where the zlib compression header(0x78 0x9c) starts
       for (let i = 0; i < envelopeBytes.length; i++) {
         if (envelopeBytes[i] === 0x78 && envelopeBytes[i + 1] === 0x9c) {
-          // We found a zlib-compressed payload - let's decompress it
+          // We found a zlib-compressed payload
           return true;
         }
       }
