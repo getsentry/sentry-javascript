@@ -1,5 +1,7 @@
 import { NodeClient, SDK_VERSION } from '@sentry/node';
-import { wrapClientClass } from '@sentry/opentelemetry';
+import { getCurrentHub, wrapClientClass } from '@sentry/opentelemetry';
+
+import type { NodeExperimentalClient as NodeExperimentalClientInterface } from '../types';
 
 class NodeExperimentalBaseClient extends NodeClient {
   public constructor(options: ConstructorParameters<typeof NodeClient>[0]) {
@@ -20,3 +22,10 @@ class NodeExperimentalBaseClient extends NodeClient {
 }
 
 export const NodeExperimentalClient = wrapClientClass(NodeExperimentalBaseClient);
+
+/**
+ * Get the currently active client (or undefined, if the SDK is not initialized).
+ */
+export function getClient(): NodeExperimentalClientInterface | undefined {
+  return getCurrentHub().getClient<NodeExperimentalClientInterface>();
+}

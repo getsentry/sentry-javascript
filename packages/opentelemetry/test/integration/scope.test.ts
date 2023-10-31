@@ -1,8 +1,9 @@
-import { captureException, setTag, withScope } from '@sentry/core';
+import { captureException, setTag } from '@sentry/core';
 
 import { getCurrentHub, OpenTelemetryHub } from '../../src/custom/hub';
 import { OpenTelemetryScope } from '../../src/custom/scope';
 import { startSpan } from '../../src/trace';
+import { getCurrentRootScope, getCurrentScope, getGlobalScope, withRootScope, withScope } from '../../src/utils/scope';
 import { getSpanScope } from '../../src/utils/spanData';
 import { cleanupOtel, mockSdkInit } from '../helpers/mockSdkInit';
 import type { TestClientInterface } from '../helpers/TestClient';
@@ -10,6 +11,114 @@ import type { TestClientInterface } from '../helpers/TestClient';
 describe('Integration | Scope', () => {
   afterEach(() => {
     cleanupOtel();
+  });
+
+  test('withScope() & getCurrentScope() works', () => {
+    mockSdkInit({});
+
+    const globalScope = getCurrentScope() as OpenTelemetryScope;
+    expect(globalScope).toBeDefined();
+
+    globalScope.setTag('tag1', 'val1');
+
+    withScope(scope1 => {
+      expect(scope1).toBeDefined();
+      expect(scope1).not.toBe(globalScope);
+      expect(getCurrentScope()).toBe(scope1);
+
+      scope1.setTag('tag2', 'val2');
+
+      withScope(scope2 => {
+        expect(scope2).toBeDefined();
+
+        expect(scope2).not.toBe(scope1);
+        expect(getCurrentScope()).toBe(scope2);
+
+        scope2.setTag('tag3', 'val3');
+
+        expect((scope2 as OpenTelemetryScope)['_tags']).toEqual({ tag1: 'val1', tag2: 'val2', tag3: 'val3' });
+      });
+
+      expect((scope1 as OpenTelemetryScope)['_tags']).toEqual({ tag1: 'val1', tag2: 'val2' });
+    });
+
+    globalScope.setTag('tag99', 'val99');
+
+    expect(getCurrentScope()).toBe(globalScope);
+    expect(globalScope['_tags']).toEqual({ tag1: 'val1', tag99: 'val99' });
+  });
+
+  test('withRootScope() & getCurrentRootScope() works', async () => {
+    mockSdkInit({});
+
+    const globalScope = getCurrentScope();
+    expect(globalScope).toBeDefined();
+
+    withScope(scope1 => {
+      expect(scope1).toBeDefined();
+      expect(getCurrentRootScope()).toBe(scope1);
+
+      withScope(scope2 => {
+        expect(scope2).toBeDefined();
+        expect(getCurrentRootScope()).toBe(scope1);
+
+        withRootScope(rootScope2 => {
+          expect(rootScope2).toBeDefined();
+          expect(getCurrentRootScope()).toBe(rootScope2);
+        });
+      });
+    });
+
+    expect(getCurrentRootScope()).toBe(globalScope);
+  });
+
+  test('root scope is automatically set for root spans', async () => {
+    mockSdkInit({ enableTracing: true });
+
+    const globalScope = getCurrentScope();
+    expect(globalScope).toBeDefined();
+
+    withScope(scope1 => {
+      expect(scope1).toBeDefined();
+      expect(getCurrentRootScope()).toBe(scope1);
+
+      startSpan({ name: 'root span' }, () => {
+        const scope2 = getCurrentScope();
+        expect(scope2).not.toBe(scope1);
+        expect(getCurrentRootScope()).toBe(scope2);
+
+        startSpan({ name: 'span' }, () => {
+          const scope3 = getCurrentScope();
+          expect(scope3).not.toBe(scope2);
+          expect(getCurrentRootScope()).toBe(scope2);
+        });
+      });
+    });
+
+    expect(getCurrentRootScope()).toBe(globalScope);
+  });
+
+  test('getGlobalScope() works', () => {
+    mockSdkInit({});
+
+    const globalScope = getCurrentScope() as OpenTelemetryScope;
+    expect(globalScope).toBeDefined();
+
+    expect(getGlobalScope()).toBe(globalScope);
+
+    withScope(() => {
+      expect(getGlobalScope()).toBe(globalScope);
+
+      withScope(() => {
+        expect(getGlobalScope()).toBe(globalScope);
+
+        withRootScope(() => {
+          expect(getGlobalScope()).toBe(globalScope);
+        });
+      });
+    });
+
+    expect(getGlobalScope()).toBe(globalScope);
   });
 
   describe.each([

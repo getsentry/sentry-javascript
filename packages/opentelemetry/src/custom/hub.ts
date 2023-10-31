@@ -73,6 +73,13 @@ export function getCurrentHub(): Hub {
 }
 
 /**
+ * Check if a given hub is the global hub.
+ */
+export function isGlobalHub(hub: Hub): boolean {
+  return hub === getGlobalHub();
+}
+
+/**
  * Ensure the global hub is an OpenTelemetryHub.
  */
 export function setupGlobalHub(): void {
@@ -112,7 +119,10 @@ export function ensureHubOnCarrier(carrier: Carrier, parent: Hub = getGlobalHub(
   }
 }
 
-function getGlobalHub(registry: Carrier = getMainCarrier()): Hub {
+/**
+ * Get the global hub.
+ */
+export function getGlobalHub(registry: Carrier = getMainCarrier()): Hub {
   // If there's no hub, or its an old API, assign a new one
   if (!hasHubOnCarrier(registry) || getHubFromCarrier(registry).isOlderThan(API_VERSION)) {
     setHubOnCarrier(registry, new OpenTelemetryHub());

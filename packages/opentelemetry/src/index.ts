@@ -19,6 +19,8 @@ export {
   spanHasStatus,
 } from './utils/spanTypes';
 
+export { getCurrentScope, getCurrentRootScope, getGlobalScope, withScope, withRootScope } from './utils/scope';
+
 export { isSentryRequestSpan } from './utils/isSentryRequest';
 
 export { getActiveSpan, getRootSpan } from './utils/getActiveSpan';

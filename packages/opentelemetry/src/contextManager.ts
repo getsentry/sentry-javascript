@@ -1,8 +1,15 @@
 import type { Context, ContextManager } from '@opentelemetry/api';
+import { trace } from '@opentelemetry/api';
 import type { Carrier, Hub } from '@sentry/core';
 
-import { ensureHubOnCarrier, getCurrentHub, getHubFromCarrier } from './custom/hub';
-import { setHubOnContext } from './utils/contextData';
+import { ensureHubOnCarrier, getCurrentHub, getHubFromCarrier, isGlobalHub } from './custom/hub';
+import {
+  clearForceRootScopeOnContext,
+  getForceRootScopeFromContext,
+  setHubOnContext,
+  setRootScopeOnContext,
+} from './utils/contextData';
+import { getActiveSpan } from './utils/getActiveSpan';
 
 function createNewHub(parent: Hub | undefined): Hub {
   const carrier: Carrier = {};
@@ -48,7 +55,25 @@ export function wrapContextManagerClass<ContextManagerInstance extends ContextMa
       const existingHub = getCurrentHub();
       const newHub = createNewHub(existingHub);
 
-      return super.with(setHubOnContext(context, newHub), fn, thisArg, ...args);
+      const hadActiveSpanBefore = !!getActiveSpan();
+      const hasActiveSpan = !!trace.getSpan(context);
+      const isRootSpan = hasActiveSpan && !hadActiveSpanBefore;
+
+      const forceRootScope = getForceRootScopeFromContext(context);
+
+      let ctx = setHubOnContext(context, newHub);
+
+      // If this is the root of the execution context, we store the root scope for later reference
+      if (isGlobalHub(existingHub) || forceRootScope || isRootSpan) {
+        const scope = newHub.getScope();
+        ctx = setRootScopeOnContext(ctx, scope);
+
+        if (forceRootScope) {
+          ctx = clearForceRootScopeOnContext(ctx);
+        }
+      }
+
+      return super.with(ctx, fn, thisArg, ...args);
     }
   }
 

@@ -50,7 +50,39 @@ Currently, this SDK:
 * Will capture errors (same as @sentry/node)
 * Auto-instrument for performance - see below for which performance integrations are available.
 * Provide _some_ manual instrumentation APIs
-* Sync OpenTelemetry Context with our Sentry Hub/Scope
+* Sync OpenTelemetry Context with our Sentry Scope
+
+### Hub, Scope & Context
+
+node-experimental has no public concept of a Hub anymore.
+Instead, you always interact with a Scope, which maps to an OpenTelemetry Context.
+This means that the following common API is _not_ available:
+
+```js
+const hub = Sentry.getCurrentHub();
+```
+
+Instead, you can directly get the current scope:
+
+```js
+const scope = Sentry.getCurrentScope();
+```
+
+Additionally, there are some more utilities to work with:
+
+```js
+// Get the currently active scope
+const scope = Sentry.getCurrentScope();
+// Get the currently active root scope
+// A root scope is either the global scope, OR the first forked scope, OR the scope of the root span
+const rootScope = Sentry.getCurrentRootScope();
+// Create a new execution context - basically a wrapper for `context.with()` in OpenTelemetry
+Sentry.withScope(scope => {});
+// Create a new execution context, which should be a root scope. This overwrites any previously set root scope
+Sentry.withRootScope(rootScope => {});
+// Get the client of the SDK
+const client = Sentry.getClient();
+```
 
 ### Manual Instrumentation
 

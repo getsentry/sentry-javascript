@@ -12,8 +12,17 @@ export { INTEGRATIONS as Integrations };
 export { getAutoPerformanceIntegrations } from './integrations/getAutoPerformanceIntegrations';
 export * as Handlers from './sdk/handlers';
 export type { Span } from './types';
+export { getClient } from './sdk/client';
 
-export { startSpan, startInactiveSpan, getCurrentHub, getActiveSpan } from '@sentry/opentelemetry';
+export {
+  startSpan,
+  startInactiveSpan,
+  getActiveSpan,
+  getCurrentScope,
+  getCurrentRootScope,
+  withScope,
+  withRootScope,
+} from '@sentry/opentelemetry';
 
 export {
   makeNodeTransport,
@@ -30,12 +39,10 @@ export {
   captureEvent,
   captureMessage,
   close,
-  configureScope,
   createTransport,
   extractTraceparentData,
   flush,
   getActiveTransaction,
-  Hub,
   lastEventId,
   makeMain,
   runWithAsyncContext,
@@ -49,7 +56,6 @@ export {
   setUser,
   spanStatusfromHttpCode,
   trace,
-  withScope,
   captureCheckIn,
   withMonitor,
 } from '@sentry/node';
