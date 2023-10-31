@@ -21,6 +21,7 @@ module.exports = [
           __RRWEB_EXCLUDE_CANVAS__: true,
           __RRWEB_EXCLUDE_SHADOW_DOM__: true,
           __RRWEB_EXCLUDE_IFRAME__: true,
+          __SENTRY_EXCLUDE_REPLAY_WORKER__: true,
         }),
       );
       return config;

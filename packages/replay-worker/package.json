@@ -17,6 +17,7 @@
   "scripts": {
     "build": "run-p build:transpile build:types",
     "build:transpile": "rollup -c rollup.worker.config.js",
+    "build:examples": "rollup -c rollup.examples.config.js",
     "build:types": "run-s build:types:core build:types:downlevel",
     "build:types:core": "tsc -p tsconfig.types.json",
     "build:types:downlevel": "yarn downlevel-dts build/npm/types build/npm/types-ts3.8 --to ts3.8",

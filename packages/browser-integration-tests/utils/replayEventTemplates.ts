@@ -8,7 +8,7 @@ const DEFAULT_REPLAY_EVENT = {
   timestamp: expect.any(Number),
   error_ids: [],
   trace_ids: [],
-  urls: [expect.stringContaining('/dist/index.html')],
+  urls: [expect.stringContaining('/index.html')],
   replay_id: expect.stringMatching(/\w{32}/),
   replay_start_timestamp: expect.any(Number),
   segment_id: 0,
@@ -31,7 +31,7 @@ const DEFAULT_REPLAY_EVENT = {
     name: 'sentry.javascript.browser',
   },
   request: {
-    url: expect.stringContaining('/dist/index.html'),
+    url: expect.stringContaining('/index.html'),
     headers: {
       'User-Agent': expect.stringContaining(''),
     },
