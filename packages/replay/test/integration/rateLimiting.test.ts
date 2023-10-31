@@ -1,13 +1,10 @@
 import { getCurrentHub } from '@sentry/core';
-import type { Transport } from '@sentry/types';
+import type { Transport, TransportMakeRequestResponse } from '@sentry/types';
 
 import { DEFAULT_FLUSH_MIN_DELAY } from '../../src/constants';
 import type { ReplayContainer } from '../../src/replay';
 import { clearSession } from '../../src/session/clearSession';
-import * as SendReplayRequest from '../../src/util/sendReplayRequest';
 import { BASE_TIMESTAMP, mockSdk } from '../index';
-import { mockRrweb } from '../mocks/mockRrweb';
-import { getTestEventCheckout, getTestEventIncremental } from '../utils/getTestEvent';
 import { useFakeTimers } from '../utils/use-fake-timers';
 
 useFakeTimers();
@@ -22,93 +19,91 @@ type MockTransportSend = jest.MockedFunction<Transport['send']>;
 describe('Integration | rate-limiting behaviour', () => {
   let replay: ReplayContainer;
   let mockTransportSend: MockTransportSend;
-  let mockSendReplayRequest: jest.MockedFunction<any>;
-  const { record: mockRecord } = mockRrweb();
 
-  beforeAll(async () => {
+  beforeEach(async () => {
     jest.setSystemTime(new Date(BASE_TIMESTAMP));
 
     ({ replay } = await mockSdk({
+      autoStart: false,
       replayOptions: {
         stickySession: false,
       },
     }));
 
-    jest.runAllTimers();
     mockTransportSend = getCurrentHub()?.getClient()?.getTransport()?.send as MockTransportSend;
-    mockSendReplayRequest = jest.spyOn(SendReplayRequest, 'sendReplayRequest');
-  });
-
-  beforeEach(() => {
-    jest.setSystemTime(new Date(BASE_TIMESTAMP));
-    mockRecord.takeFullSnapshot.mockClear();
-    mockTransportSend.mockClear();
-
-    // Create a new session and clear mocks because a segment (from initial
-    // checkout) will have already been uploaded by the time the tests run
-    clearSession(replay);
-    replay['_initializeSessionForSampling']();
-    replay.setInitialState();
-
-    mockSendReplayRequest.mockClear();
   });
 
   afterEach(async () => {
-    jest.runAllTimers();
-    await new Promise(process.nextTick);
-    jest.setSystemTime(new Date(BASE_TIMESTAMP));
     clearSession(replay);
     jest.clearAllMocks();
-  });
 
-  afterAll(() => {
     replay && replay.stop();
   });
 
-  it('handles rate-limit 429 responses by stopping the replay', async () => {
-    expect(replay.session?.segmentId).toBe(0);
-    jest.spyOn(replay, 'stop');
-
-    const TEST_EVENT = getTestEventCheckout({ timestamp: BASE_TIMESTAMP });
+  it.each([
+    ['429 status code', { statusCode: 429, headers: {} } as TransportMakeRequestResponse],
+    [
+      '200 status code with x-sentry-rate-limits header',
+      {
+        statusCode: 200,
+        headers: {
+          'x-sentry-rate-limits': '30',
+        },
+      } as TransportMakeRequestResponse,
+    ],
+    [
+      '200 status code with x-sentry-rate-limits replay header',
+      {
+        statusCode: 200,
+        headers: {
+          'x-sentry-rate-limits': '30:replay',
+        },
+      } as TransportMakeRequestResponse,
+    ],
+  ])('handles %s responses by stopping the replay', async (_name, { statusCode, headers }) => {
+    const mockStop = jest.spyOn(replay, 'stop');
 
     mockTransportSend.mockImplementationOnce(() => {
-      return Promise.resolve({ statusCode: 429 });
+      return Promise.resolve({ statusCode, headers });
     });
 
-    mockRecord._emitter(TEST_EVENT);
-
-    // T = base + 5
+    replay.start();
     await advanceTimers(DEFAULT_FLUSH_MIN_DELAY);
 
-    expect(mockRecord.takeFullSnapshot).not.toHaveBeenCalled();
-    expect(mockTransportSend).toHaveBeenCalledTimes(1);
-    expect(replay).toHaveLastSentReplay({ recordingData: JSON.stringify([TEST_EVENT]) });
+    expect(mockStop).toHaveBeenCalledTimes(1);
+    expect(replay.session).toBeUndefined();
+    expect(replay.isEnabled()).toBe(false);
+  });
 
-    expect(replay.stop).toHaveBeenCalledTimes(1);
+  it.each([
+    [
+      '200 status code without x-sentry-rate-limits header',
+      {
+        statusCode: 200,
+        headers: {},
+      } as TransportMakeRequestResponse,
+    ],
+    [
+      '200 status code with x-sentry-rate-limits profile header',
+      {
+        statusCode: 200,
+        headers: {
+          'x-sentry-rate-limits': '30:profile',
+        },
+      } as TransportMakeRequestResponse,
+    ],
+  ])('handles %s responses by not stopping', async (_name, { statusCode, headers }) => {
+    const mockStop = jest.spyOn(replay, 'stop');
 
-    // No user activity to trigger an update
-    expect(replay.session).toBe(undefined);
-
-    // let's simulate the default rate-limit time of inactivity (60secs) and check that we
-    // don't do anything in the meantime or after the time has passed
-    // 60secs are the default we fall back to in the plain 429 case in updateRateLimits()
-
-    // T = base + 60
-    await advanceTimers(DEFAULT_FLUSH_MIN_DELAY * 12);
-
-    expect(mockSendReplayRequest).toHaveBeenCalledTimes(1);
-    expect(mockTransportSend).toHaveBeenCalledTimes(1);
-
-    // and let's also emit a new event and check that it is not recorded
-    const TEST_EVENT3 = getTestEventIncremental({
-      data: {},
-      timestamp: BASE_TIMESTAMP + 7 * DEFAULT_FLUSH_MIN_DELAY,
+    mockTransportSend.mockImplementationOnce(() => {
+      return Promise.resolve({ statusCode, headers });
     });
-    mockRecord._emitter(TEST_EVENT3);
 
-    // T = base + 80
-    await advanceTimers(20_000);
-    expect(mockSendReplayRequest).toHaveBeenCalledTimes(1);
-    expect(mockTransportSend).toHaveBeenCalledTimes(1);
+    replay.start();
+    await advanceTimers(DEFAULT_FLUSH_MIN_DELAY);
+
+    expect(mockStop).not.toHaveBeenCalled();
+    expect(replay.session).toBeDefined();
+    expect(replay.isEnabled()).toBe(true);
   });
 });
