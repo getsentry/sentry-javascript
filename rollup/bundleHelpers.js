@@ -36,7 +36,6 @@ export function makeBaseBundleConfig(options) {
   const licensePlugin = makeLicensePlugin(licenseTitle);
   const tsPlugin = makeTSPlugin('es5');
   const rrwebBuildPlugin = makeRrwebBuildPlugin({
-    excludeCanvas: true,
     excludeIframe: false,
     excludeShadowDom: false,
   });
