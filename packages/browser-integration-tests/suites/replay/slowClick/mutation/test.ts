@@ -141,8 +141,17 @@ sentryTest('immediate mutation does not trigger slow click', async ({ forceFlush
   await Promise.all([waitForReplayRequest(page, 0), page.goto(url)]);
   await forceFlushReplay();
 
+  let slowClickCount = 0;
+
+  page.on('response', res => {
+    const { breadcrumbs } = getCustomRecordingEvents(res);
+
+    const slowClicks = breadcrumbs.filter(breadcrumb => breadcrumb.category === 'ui.slowClickDetected');
+    slowClickCount += slowClicks.length;
+  });
+
   const [req1] = await Promise.all([
-    waitForReplayRequest(page, (event, res) => {
+    waitForReplayRequest(page, (_event, res) => {
       const { breadcrumbs } = getCustomRecordingEvents(res);
 
       return breadcrumbs.some(breadcrumb => breadcrumb.category === 'ui.click');
@@ -171,6 +180,13 @@ sentryTest('immediate mutation does not trigger slow click', async ({ forceFlush
       type: 'default',
     },
   ]);
+
+  // Ensure we wait for timeout, to make sure no slow click is created
+  // Waiting for 3500 + 1s rounding room
+  await new Promise(resolve => setTimeout(resolve, 4500));
+  await forceFlushReplay();
+
+  expect(slowClickCount).toBe(0);
 });
 
 sentryTest('inline click handler does not trigger slow click', async ({ forceFlushReplay, getLocalTestUrl, page }) => {

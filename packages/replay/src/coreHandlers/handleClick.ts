@@ -10,7 +10,7 @@ import type {
   ReplaySlowClickFrame,
   SlowClickConfig,
 } from '../types';
-import { ReplayEventTypeFullSnapshot, ReplayEventTypeIncrementalSnapshot } from '../types';
+import { ReplayEventTypeIncrementalSnapshot } from '../types';
 import { timestampToS } from '../util/timestamp';
 import { addBreadcrumbEvent } from './util/addBreadcrumbEvent';
 import { getClosestInteractive } from './util/domUtils';
@@ -310,10 +310,13 @@ function nowInSeconds(): number {
 /** Update the click detector based on a recording event of rrweb. */
 export function updateClickDetectorForRecordingEvent(clickDetector: ReplayClickDetector, event: RecordingEvent): void {
   try {
-    // We interpret a full snapshot as a mutation (this may not be true, but there is no way for us to know)
-    if (event.type === ReplayEventTypeFullSnapshot) {
-      clickDetector.registerMutation(event.timestamp);
-    }
+    // note: We only consider incremental snapshots here
+    // This means that any full snapshot is ignored for mutation detection - the reason is that we simply cannot know if a mutation happened here.
+    // E.g. think that we are buffering, an error happens and we take a full snapshot because we switched to session mode -
+    // in this scenario, we would not know if a dead click happened because of the error, which is a key dead click scenario.
+    // Instead, by ignoring full snapshots, we have the risk that we generate a false positive
+    // (if a mutation _did_ happen but was "swallowed" by the full snapshot)
+    // But this should be more unlikely as we'd generally capture the incremental snapshot right away
 
     if (!isIncrementalEvent(event)) {
       return;
