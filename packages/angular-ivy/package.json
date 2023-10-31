@@ -46,7 +46,7 @@
     "build:watch": "yarn build:syncSymlinks && yarn build:transpile:watch",
     "build:dev:watch": "yarn build:watch",
     "build:transpile:watch": "ng build --watch",
-    "build:tarball": "npm pack ./build",
+    "build:tarball": "ts-node ./scripts/prepack.ts && npm pack ./build",
     "build:syncSymlinks": "ts-node ./scripts/syncSourceFiles.ts",
     "circularDepCheck": "madge --circular src/index.ts",
     "clean": "rimraf build coverage sentry-angular-ivy-*.tgz",
@@ -56,7 +56,7 @@
     "lint": "run-s lint:prettier lint:eslint",
     "lint:eslint": "eslint . --format stylish",
     "lint:prettier": "prettier --check \"{src,test,scripts}/**/**.ts\"",
-    "yalc:publish": "yalc publish build --push --sig"
+    "yalc:publish": "ts-node ./scripts/prepack.ts && yalc publish build --push --sig"
   },
   "volta": {
     "extends": "../../package.json"
