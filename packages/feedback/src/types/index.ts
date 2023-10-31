@@ -196,16 +196,22 @@ export interface FeedbackCallbacks {
   onSubmitError?: () => void;
 }
 
-export interface FeedbackConfigurationWithDefaults
+/**
+ * The integration's internal `options` member where every value should be set
+ */
+export interface FeedbackInternalOptions
   extends FeedbackGeneralConfiguration,
     FeedbackThemeConfiguration,
     FeedbackTextConfiguration,
     FeedbackCallbacks {}
 
 /**
- * The integration's internal `options` member
+ * Partial configuration that overrides default configuration values
  */
-export type FeedbackInternalOptions = FeedbackConfigurationWithDefaults;
+export interface OptionalFeedbackConfiguration extends Omit<Partial<FeedbackInternalOptions>, 'themeLight'|'themeDark'> {
+  themeLight?: Partial<FeedbackTheme>;
+  themeDark?: Partial<FeedbackTheme>;
+}
 
 export interface FeedbackTheme {
   /**
@@ -245,8 +251,6 @@ export interface FeedbackTheme {
    */
   error: string;
 }
-
-export type CreateWidgetOptionOverrides = Partial<FeedbackConfigurationWithDefaults>;
 
 export interface FeedbackThemes {
   dark: FeedbackTheme;
