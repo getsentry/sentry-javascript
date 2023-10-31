@@ -1,3 +1,4 @@
+/*! Sentry Replay Worker 7.76.0 (de39290bc) | https://github.com/getsentry/sentry-javascript */
 var deflate$3 = {};
 
 var trees = {};

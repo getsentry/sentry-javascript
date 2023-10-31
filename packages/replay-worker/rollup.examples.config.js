@@ -4,6 +4,10 @@ import typescript from '@rollup/plugin-typescript';
 import { defineConfig } from 'rollup';
 import { terser } from 'rollup-plugin-terser';
 
+import { makeLicensePlugin } from '../../rollup/plugins/index.js';
+
+const licensePlugin = makeLicensePlugin('Sentry Replay Worker');
+
 const config = defineConfig([
   {
     input: ['./src/_worker.ts'],
@@ -16,6 +20,7 @@ const config = defineConfig([
       commonjs(),
       typescript({ tsconfig: './tsconfig.json', inlineSourceMap: false, sourceMap: false, inlineSources: false }),
       resolve(),
+      licensePlugin,
     ],
   },
   {
@@ -34,6 +39,7 @@ const config = defineConfig([
           module: true,
         },
       }),
+      licensePlugin,
     ],
   },
 ]);
