@@ -137,6 +137,12 @@ export interface ReplayPluginOptions extends ReplayNetworkOptions {
   useCompression: boolean;
 
   /**
+   * If defined, use this worker URL instead of the default included one for compression.
+   * This will only be used if `useCompression` is not false.
+   */
+  workerUrl?: string;
+
+  /**
    * Block all media (e.g. images, svg, video) in recordings.
    */
   blockAllMedia: boolean;

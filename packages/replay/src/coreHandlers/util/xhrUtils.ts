@@ -30,7 +30,7 @@ export async function captureXhrBreadcrumbToReplay(
     const result = makeNetworkReplayBreadcrumb('resource.xhr', data);
     addNetworkBreadcrumb(options.replay, result);
   } catch (error) {
-    __DEBUG_BUILD__ && logger.error('[Replay] Failed to capture fetch breadcrumb', error);
+    __DEBUG_BUILD__ && logger.error('[Replay] Failed to capture xhr breadcrumb', error);
   }
 }
 

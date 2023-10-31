@@ -11,6 +11,7 @@ export const defaultIntegrations = [
   // Common
   new CoreIntegrations.InboundFilters(),
   new CoreIntegrations.FunctionToString(),
+  new CoreIntegrations.LinkedErrors(),
   // Native Wrappers
   new NodeIntegrations.Console(),
   new NodeIntegrations.Http(),
@@ -24,8 +25,6 @@ export const defaultIntegrations = [
   new NodeIntegrations.Context(),
   new NodeIntegrations.Modules(),
   new NodeIntegrations.RequestData(),
-  // Misc
-  new NodeIntegrations.LinkedErrors(),
   // Bun Specific
   new BunServer(),
 ];

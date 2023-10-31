@@ -5,11 +5,12 @@ import { getExpectedReplayEvent } from '../../../utils/replayEventTemplates';
 import {
   getFullRecordingSnapshots,
   getReplayEvent,
+  replayEnvelopeIsCompressed,
   shouldSkipReplayTest,
   waitForReplayRequest,
 } from '../../../utils/replayHelpers';
 
-sentryTest('replay recording should be compressed by default', async ({ getLocalTestPath, page }) => {
+sentryTest('replay recording should be compressed by default', async ({ getLocalTestPath, page, forceFlushReplay }) => {
   if (shouldSkipReplayTest()) {
     sentryTest.skip();
   }
@@ -27,10 +28,16 @@ sentryTest('replay recording should be compressed by default', async ({ getLocal
   const url = await getLocalTestPath({ testDir: __dirname });
 
   await page.goto(url);
-  const replayEvent0 = getReplayEvent(await reqPromise0);
+  await forceFlushReplay();
+
+  const req0 = await reqPromise0;
+
+  const replayEvent0 = getReplayEvent(req0);
   expect(replayEvent0).toEqual(getExpectedReplayEvent());
 
-  const snapshots = getFullRecordingSnapshots(await reqPromise0);
+  expect(replayEnvelopeIsCompressed(req0)).toEqual(true);
+
+  const snapshots = getFullRecordingSnapshots(req0);
   expect(snapshots.length).toEqual(1);
 
   const stringifiedSnapshot = JSON.stringify(snapshots[0]);
