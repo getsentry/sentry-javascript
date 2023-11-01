@@ -1,57 +1,46 @@
-const LIGHT_BORDER = '1.5px solid rgba(41, 35, 47, 0.13)';
-const LIGHT_BACKGROUND_HOVER = '#f6f6f7';
-const LIGHT_FOREGROUND = '#2B2233';
+const LIGHT_BACKGROUND = '#ffffff';
+const INHERIT = 'inherit';
+const LIGHT_THEME = {
+  fontFamily: "'Helvetica Neue', Arial, sans-serif",
+  fontSize: '14px',
 
-const DARK_BACKGROUND_HOVER = '#352f3b';
-const DARK_BORDER = '1.5px solid rgba(235, 230, 239, 0.15)';
-const DARK_FOREGROUND = '#EBE6EF';
+  background: LIGHT_BACKGROUND,
+  backgroundHover: '#f6f6f7',
+  foreground: '#2b2233',
+  border: '1.5px solid rgba(41, 35, 47, 0.13)',
+  boxShadow: '0px 4px 24px 0px rgba(43, 34, 51, 0.12)',
 
-const SUBMIT_FOREGROUND = '#ffffff';
+  success: '#268d75',
+  error: '#df3338',
+
+  submitBackground: 'rgba(88, 74, 192, 1)',
+  submitBackgroundHover: 'rgba(108, 95, 199, 1)',
+  submitBorder: 'rgba(108, 95, 199, 1)',
+  submitForeground: LIGHT_BACKGROUND,
+
+  cancelBackground: 'transparent',
+  cancelBackgroundHover: 'var(--background-hover)',
+  cancelBorder: 'var(--border)',
+  cancelForeground: 'var(--foreground)',
+
+  inputBackground: INHERIT,
+  inputForeground: INHERIT,
+  inputBorder: 'var(--border)',
+  inputBorderFocus: 'rgba(108, 95, 199, 1)',
+};
 
 export const DEFAULT_THEME = {
-  light: {
-    fontFamily: "'Helvetica Neue', Arial, sans-serif",
-    fontSize: '14px',
-    background: '#ffffff',
-    backgroundHover: LIGHT_BACKGROUND_HOVER,
-
-    submitButtonBackground: 'rgba(88, 74, 192, 1)',
-    submitButtonBackgroundHover: 'rgba(108, 95, 199, 1)',
-    submitButtonBorder: 'rgba(108, 95, 199, 1)',
-    submitButtonForeground: SUBMIT_FOREGROUND,
-
-    cancelButtonBackground: 'transparent',
-    cancelButtonBackgroundHover: LIGHT_BACKGROUND_HOVER,
-    cancelButtonBorder: LIGHT_BORDER,
-    cancelButtonForeground: LIGHT_FOREGROUND,
-
-    foreground: LIGHT_FOREGROUND,
-    success: '#268d75',
-    error: '#df3338',
-    border: LIGHT_BORDER,
-    boxShadow: '0px 4px 24px 0px rgba(43, 34, 51, 0.12)',
-  },
+  light: LIGHT_THEME,
   dark: {
-    fontFamily: "'Helvetica Neue', Arial, sans-serif",
-    fontSize: '14px',
+    ...LIGHT_THEME,
+
     background: '#29232f',
-    backgroundHover: DARK_BACKGROUND_HOVER,
-    foreground: DARK_FOREGROUND,
-
-    submitButtonBackground: 'rgba(88, 74, 192, 1)',
-    submitButtonBackgroundHover: 'rgba(108, 95, 199, 1)',
-    submitButtonBorder: 'rgba(108, 95, 199, 1)',
-    submitButtonForeground: SUBMIT_FOREGROUND,
-
-    cancelButtonBackground: 'transparent',
-    cancelButtonBackgroundHover: DARK_BACKGROUND_HOVER,
-    cancelButtonBorder: DARK_BORDER,
-    cancelButtonForeground: DARK_FOREGROUND,
+    backgroundHover: '#352f3b',
+    foreground: '#ebe6ef',
+    border: '1.5px solid rgba(235, 230, 239, 0.15)',
 
     success: '#2da98c',
     error: '#f55459',
-    border: DARK_BORDER,
-    boxShadow: '0px 4px 24px 0px rgba(43, 34, 51, 0.12)',
   },
 };
 
