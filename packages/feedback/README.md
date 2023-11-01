@@ -93,7 +93,7 @@ Most text that you see in the default Feedback widget can be customized.
 | `formTitle` | `Report a Bug` | The title at the top of the feedback form dialog. |
 | `nameLabel` | `Name` | The label of the name input field. |
 | `namePlaceholder` | `Your Name` | The placeholder for the name input field. |
-| `emailLabel` | `Email` | The label of the email input field. ||
+| `emailLabel` | `Email` | The label of the email input field. |
 | `emailPlaceholder` | `your.email@example.org` | The placeholder for the email input field. |
 | `messageLabel` | `Description` | The label for the feedback description input field. |
 | `messagePlaceholder` | `What's the bug? What did you expect?` | The placeholder for the feedback description input field. |
