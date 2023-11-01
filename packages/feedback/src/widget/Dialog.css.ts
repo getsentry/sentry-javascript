@@ -40,7 +40,7 @@ export function createDialogStyles(d: Document): HTMLStyleElement {
   border: var(--border);
   padding: 24px;
   border-radius: 20px;
-  background-color: var(--bg-color);
+  background-color: var(--background-color);
   color: var(--fg-color);
 
   width: 320px;
@@ -130,7 +130,7 @@ export function createDialogStyles(d: Document): HTMLStyleElement {
 
 .btn {
   line-height: inherit;
-  border: var(--border);
+  border: var(--cancel-button-border);
   border-radius: 6px;
   cursor: pointer;
   font-size: 14px;
@@ -143,25 +143,25 @@ export function createDialogStyles(d: Document): HTMLStyleElement {
 }
 
 .btn--primary {
-  background-color: rgba(108, 95, 199, 1);
-  border-color: rgba(108, 95, 199, 1);
-  color: #fff;
+  background-color: var(--submit-button-background);
+  border-color: var(--submit-button-border);
+  color: var(--submit-button-foreground);
 }
 .btn--primary:hover {
-  background-color: rgba(88, 74, 192, 1);
+  background-color: var(--submit-button-background-hover);
 }
 
 .btn--default {
-  background-color: transparent;
-  color: var(--fg-color);
+  background-color: var(--cancel-button-background);
+  color: var(--cancel-button-foreground);
   font-weight: 500;
 }
 .btn--default:hover {
-  background-color: var(--bg-accent-color);
+  background-color: var(--cancel-button-background-hover);
 }
 
 .success-message {
-  background-color: var(--bg-color);
+  background-color: var(--background-color);
   border: var(--border);
   border-radius: 12px;
   box-shadow: var(--box-shadow);

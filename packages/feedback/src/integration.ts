@@ -16,11 +16,7 @@ import {
   SUBMIT_BUTTON_LABEL,
   SUCCESS_MESSAGE_TEXT,
 } from './constants';
-import type {
-  OptionalFeedbackConfiguration,
-  FeedbackInternalOptions,
-  Widget,
-} from './types';
+import type { FeedbackInternalOptions, OptionalFeedbackConfiguration, Widget } from './types';
 import { mergeOptions } from './util/mergeOptions';
 import { createActorStyles } from './widget/Actor.css';
 import { createShadowHost } from './widget/createShadowHost';
@@ -132,11 +128,11 @@ export class Feedback implements Integration {
       colorScheme,
       themeDark: {
         ...DEFAULT_THEME.dark,
-        ...themeDark
+        ...themeDark,
       },
       themeLight: {
         ...DEFAULT_THEME.light,
-        ...themeLight
+        ...themeLight,
       },
 
       buttonLabel,

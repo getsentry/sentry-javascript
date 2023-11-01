@@ -208,7 +208,8 @@ export interface FeedbackInternalOptions
 /**
  * Partial configuration that overrides default configuration values
  */
-export interface OptionalFeedbackConfiguration extends Omit<Partial<FeedbackInternalOptions>, 'themeLight'|'themeDark'> {
+export interface OptionalFeedbackConfiguration
+  extends Omit<Partial<FeedbackInternalOptions>, 'themeLight' | 'themeDark'> {
   themeLight?: Partial<FeedbackTheme>;
   themeDark?: Partial<FeedbackTheme>;
 }
@@ -250,6 +251,16 @@ export interface FeedbackTheme {
    * Error color
    */
   error: string;
+
+  submitButtonBackground: string;
+  submitButtonBackgroundHover: string;
+  submitButtonBorder: string;
+  submitButtonForeground: string;
+
+  cancelButtonBackground: string;
+  cancelButtonBackgroundHover: string;
+  cancelButtonBorder: string;
+  cancelButtonForeground: string;
 }
 
 export interface FeedbackThemes {

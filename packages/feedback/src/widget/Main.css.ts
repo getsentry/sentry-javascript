@@ -29,13 +29,23 @@ export function createMainStyles(
   font-family: var(--font-family);
   font-size: var(--font-size);
 
-  --bg-color: ${themes.light.background};
-  --bg-hover-color: ${themes.light.backgroundHover};
-  --fg-color: ${themes.light.foreground};
+  --background-color: ${themes.light.background};
+  --background-hover-color: ${themes.light.backgroundHover};
+  --foreground-color: ${themes.light.foreground};
   --error-color: ${themes.light.error};
   --success-color: ${themes.light.success};
   --border: ${themes.light.border};
   --box-shadow: ${themes.light.boxShadow};
+
+  --submit-button-background: ${themes.light.submitButtonBackground};
+  --submit-button-background-hover: ${themes.light.submitButtonBackgroundHover};
+  --submit-button-border: ${themes.light.submitButtonBorder};
+  --submit-button-foreground: ${themes.light.submitButtonForeground};
+
+  --cancel-button-background: ${themes.light.cancelButtonBackground};
+  --cancel-button-background-hover: ${themes.light.cancelButtonBackgroundHover};
+  --cancel-button-border: ${themes.light.cancelButtonBorder};
+  --cancel-button-foreground: ${themes.light.cancelButtonForeground};
 }
 
 ${
@@ -43,29 +53,49 @@ ${
     ? `
 @media (prefers-color-scheme: dark) {
   :host {
-    --bg-color: ${themes.dark.background};
-    --bg-hover-color: ${themes.dark.backgroundHover};
-    --fg-color: ${themes.dark.foreground};
+    --background-color: ${themes.dark.background};
+    --background-hover-color: ${themes.dark.backgroundHover};
+    --foreground-color: ${themes.dark.foreground};
     --error-color: ${themes.dark.error};
     --success-color: ${themes.dark.success};
     --border: ${themes.dark.border};
     --box-shadow: ${themes.dark.boxShadow};
     --font-family: ${themes.dark.fontFamily};
     --font-size: ${themes.dark.fontSize};
+
+    --submit-button-background: ${themes.dark.submitButtonBackground};
+    --submit-button-background-hover: ${themes.dark.submitButtonBackgroundHover};
+    --submit-button-border: ${themes.dark.submitButtonBorder};
+    --submit-button-foreground: ${themes.dark.submitButtonForeground};
+
+    --cancel-button-background: ${themes.dark.cancelButtonBackground};
+    --cancel-button-background-hover: ${themes.dark.cancelButtonBackgroundHover};
+    --cancel-button-border: ${themes.dark.cancelButtonBorder};
+    --cancel-button-foreground: ${themes.dark.cancelButtonForeground};
   }
 }
 `
     : `
 :host-context([data-sentry-feedback-colorscheme="dark"]) {
-  --bg-color: ${themes.dark.background};
-  --bg-hover-color: ${themes.dark.backgroundHover};
-  --fg-color: ${themes.dark.foreground};
+  --background-color: ${themes.dark.background};
+  --background-hover-color: ${themes.dark.backgroundHover};
+  --foreground-color: ${themes.dark.foreground};
   --error-color: ${themes.dark.error};
   --success-color: ${themes.dark.success};
   --border: ${themes.dark.border};
   --box-shadow: ${themes.dark.boxShadow};
   --font-family: ${themes.dark.fontFamily};
   --font-size: ${themes.dark.fontSize};
+
+  --submit-button-background: ${themes.dark.submitButtonBackground};
+  --submit-button-background-hover: ${themes.dark.submitButtonBackgroundHover};
+  --submit-button-border: ${themes.dark.submitButtonBorder};
+  --submit-button-foreground: ${themes.dark.submitButtonForeground};
+
+  --cancel-button-background: ${themes.dark.cancelButtonBackground};
+  --cancel-button-background-hover: ${themes.dark.cancelButtonBackgroundHover};
+  --cancel-button-border: ${themes.dark.cancelButtonBorder};
+  --cancel-button-foreground: ${themes.dark.cancelButtonForeground};
 }
 `
 }`;
