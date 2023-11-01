@@ -202,3 +202,19 @@ document.getElementById('my-feedback-form').addEventListener('submit', (event) =
 });
 </script>
 ```
+
+## Alerting on User Feedback Reports
+
+Note: The following instructions are to be followed in the Sentry product.
+
+If you have Sentry's default issue alert ("Alert me on every new issue") turned on for the project you are setting up User Feedback on, no action is required to have alerting on each user feedback report. 
+
+If you don't have Sentry's default issue alert turned on, follow these steps:
+
+1. Click "Alerts" in the left-nav menu
+2. Click the "Create Alert" button
+3. Select the "Issues" radio button under "Errors"
+4. In "Set Conditions", set "Issue's Category" = Feedback.
+5. Add any other alert rules
+
+![Screenshot 2023-11-01 at 9 59 54 AM](https://github.com/getsentry/sentry-javascript/assets/77064737/c7cebeae-1c6d-4a3d-8afb-734b4f447229)
