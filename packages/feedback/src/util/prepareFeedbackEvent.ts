@@ -1,8 +1,6 @@
 import type { Scope } from '@sentry/core';
 import { prepareEvent } from '@sentry/core';
-import type { Client } from '@sentry/types';
-
-import type { FeedbackEvent } from '../types';
+import type { Client, FeedbackEvent } from '@sentry/types';
 
 interface PrepareFeedbackEventParams {
   client: Client;
@@ -11,13 +9,15 @@ interface PrepareFeedbackEventParams {
 }
 /**
  * Prepare a feedback event & enrich it with the SDK metadata.
+ *
+ * TODO: Refactor this with the replay version
  */
 export async function prepareFeedbackEvent({
   client,
   scope,
   event,
 }: PrepareFeedbackEventParams): Promise<FeedbackEvent | null> {
-  const eventHint = { integrations: undefined };
+  const eventHint = {};
   if (client.emit) {
     client.emit('preprocessEvent', event, eventHint);
   }
@@ -44,9 +44,9 @@ export async function prepareFeedbackEvent({
   const { name, version } = (metadata && metadata.sdk) || {};
 
   preparedEvent.sdk = {
-    ...preparedEvent.sdk,
     name: name || 'sentry.javascript.unknown',
     version: version || '0.0.0',
   };
+
   return preparedEvent;
 }

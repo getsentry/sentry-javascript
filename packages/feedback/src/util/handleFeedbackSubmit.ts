@@ -5,38 +5,34 @@ import type { DialogComponent } from '../widget/Dialog';
 /**
  * Calls `sendFeedback` to send feedback, handles UI behavior of dialog.
  */
-export async function handleFeedbackSubmit(
+export function handleFeedbackSubmit(
   dialog: DialogComponent | null,
   feedback: FeedbackFormData,
   options?: SendFeedbackOptions,
-): Promise<Response | false> {
+): string | undefined {
   if (!dialog) {
     // Not sure when this would happen
-    return false;
+    return;
   }
 
-  const showFetchError = (): void => {
-    if (!dialog) {
-      return;
-    }
-    dialog.showError('There was a problem submitting feedback, please wait and try again.');
-  };
+  // const showFetchError = (): void => {
+  //   if (!dialog) {
+  //     return;
+  //   }
+  //   dialog.showError('There was a problem submitting feedback, please wait and try again.');
+  // };
 
-  try {
-    dialog.hideError();
-    const resp = await sendFeedback(feedback, options);
+  dialog.hideError();
 
-    if (!resp) {
-      // Errored... re-enable submit button
-      showFetchError();
-      return false;
-    }
-
-    // Success!
-    return resp;
-  } catch {
-    // Errored... re-enable submit button
-    showFetchError();
-    return false;
-  }
+  // TODO: Error handling?
+  return sendFeedback(feedback, options);
+  // try {
+  //   const resp = await sendFeedback(feedback, options);
+  //
+  //   // Success!
+  //   return resp;
+  // } catch {
+  //   // Errored... re-enable submit button
+  //   showFetchError();
+  // }
 }
