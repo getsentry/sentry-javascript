@@ -72,6 +72,7 @@ export class Feedback implements Integration {
 
   public constructor({
     id = 'sentry-feedback',
+    showBranding = true,
     autoInject = true,
     showEmail = true,
     showName = true,
@@ -117,6 +118,7 @@ export class Feedback implements Integration {
 
     this.options = {
       id,
+      showBranding,
       autoInject,
       isAnonymous,
       isEmailRequired,

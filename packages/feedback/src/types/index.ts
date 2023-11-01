@@ -57,6 +57,11 @@ export interface FeedbackGeneralConfiguration {
   id: string;
 
   /**
+   * Show the Sentry branding
+   */
+  showBranding: boolean;
+
+  /**
    * Auto-inject default Feedback actor button to the DOM when integration is
    * added.
    */

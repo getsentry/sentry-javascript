@@ -1,10 +1,12 @@
-import type { FeedbackComponent } from '../types';
+import type { FeedbackComponent, FeedbackInternalOptions } from '../types';
 import type { FormComponentProps } from './Form';
 import { Form } from './Form';
+import { Logo } from './Logo';
 import { createElement } from './util/createElement';
 
-export interface DialogProps extends FormComponentProps {
-  formTitle: string;
+export interface DialogProps
+  extends FormComponentProps,
+    Pick<FeedbackInternalOptions, 'formTitle' | 'showBranding' | 'colorScheme'> {
   onClosed?: () => void;
 }
 
@@ -40,8 +42,10 @@ export interface DialogComponent extends FeedbackComponent<HTMLDialogElement> {
  */
 export function Dialog({
   formTitle,
+  showBranding,
   showName,
   showEmail,
+  colorScheme,
   isAnonymous,
   defaultName,
   defaultEmail,
@@ -122,7 +126,22 @@ export function Dialog({
           e.stopPropagation();
         },
       },
-      createElement('h2', { className: 'dialog__header' }, formTitle),
+      createElement(
+        'h2',
+        { className: 'dialog__header' },
+        formTitle,
+        showBranding &&
+          createElement(
+            'a',
+            {
+              target: '_blank',
+              href: 'https://sentry.io/welcome/',
+              title: 'Powered by Sentry',
+              rel: 'noopener noreferrer',
+            },
+            Logo({ colorScheme }).el,
+          ),
+      ),
       formEl,
     ),
   );
