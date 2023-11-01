@@ -31,7 +31,7 @@ body:
         setup.
       options:
         - '@sentry/browser'
-        - '@sentry/astro'        
+        - '@sentry/astro'
         - '@sentry/angular'
         - '@sentry/angular-ivy'
         - '@sentry/bun'
@@ -42,6 +42,7 @@ body:
         - '@sentry/opentelemetry-node'
         - '@sentry/react'
         - '@sentry/remix'
+        - '@sentry/replay'
         - '@sentry/serverless'
         - '@sentry/svelte'
         - '@sentry/sveltekit'
