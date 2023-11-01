@@ -217,4 +217,4 @@ If you don't have Sentry's default issue alert turned on, follow these steps:
 4. In "Set Conditions", set "Issue's Category" = Feedback.
 5. Add any other alert rules
 
-![Screenshot 2023-11-01 at 9 59 54 AM](https://github.com/getsentry/sentry-javascript/assets/77064737/c7cebeae-1c6d-4a3d-8afb-734b4f447229)
+![Feedback Alert Rule Creation Screenshot](https://github.com/getsentry/sentry-javascript/assets/79684/1d941967-debb-4ad6-9458-3226c02ec08e)
