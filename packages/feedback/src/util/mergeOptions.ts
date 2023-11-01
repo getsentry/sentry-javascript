@@ -1,6 +1,12 @@
-import { FeedbackInternalOptions, OptionalFeedbackConfiguration } from "../types";
+import type { FeedbackInternalOptions, OptionalFeedbackConfiguration } from '../types';
 
-export function mergeOptions(defaultOptions: FeedbackInternalOptions, optionOverrides: OptionalFeedbackConfiguration) {
+/**
+ *
+ */
+export function mergeOptions(
+  defaultOptions: FeedbackInternalOptions,
+  optionOverrides: OptionalFeedbackConfiguration,
+): FeedbackInternalOptions {
   return {
     ...defaultOptions,
     ...optionOverrides,
@@ -11,7 +17,6 @@ export function mergeOptions(defaultOptions: FeedbackInternalOptions, optionOver
     themeLight: {
       ...defaultOptions.themeLight,
       ...optionOverrides.themeLight,
-    }
+    },
   };
-
 }

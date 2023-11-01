@@ -19,8 +19,8 @@ export function createActorStyles(d: Document): HTMLStyleElement {
   text-decoration: none;
   z-index: 9000;
 
-  color: var(--fg-color);
-  background-color: var(--bg-color);
+  color: var(--foreground-color);
+  background-color: var(--background-color);
   border: var(--border);
   box-shadow: var(--box-shadow);
   opacity: 1;
@@ -28,7 +28,7 @@ export function createActorStyles(d: Document): HTMLStyleElement {
 }
 
 .widget__actor:hover {
-  background-color: var(--bg-hover-color);
+  background-color: var(--background-hover-color);
 }
 
 .widget__actor svg {
@@ -46,7 +46,7 @@ export function createActorStyles(d: Document): HTMLStyleElement {
 }
 
 .feedback-icon path {
-  fill: var(--fg-color);
+  fill: var(--foreground-color);
 }
 `;
 
