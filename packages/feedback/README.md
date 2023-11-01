@@ -211,10 +211,8 @@ If you have Sentry's default issue alert ("Alert me on every new issue") turned 
 
 If you don't have Sentry's default issue alert turned on, follow these steps:
 
-1. Click "Alerts" in the left-nav menu
-2. Click the "Create Alert" button
-3. Select the "Issues" radio button under "Errors"
-4. In "Set Conditions", set "Issue's Category" = Feedback.
-5. Add any other alert rules
+1. Navigate to [Create New Alert Rule](https://sentry.io/alerts/new/issue/) in Sentry (Click "Alerts" in the left-nav menu, "Create Alert" in the top right corner, ensure the "Issues" radio button is selected under the "Errors" category, and then click "Set Conditions")
+2. In "Set conditions", add an "IF" filter for `The issue's category is equal to "Feedback"`
+3. Add any other alert rules
 
 ![Feedback Alert Rule Creation Screenshot](https://github.com/getsentry/sentry-javascript/assets/79684/1d941967-debb-4ad6-9458-3226c02ec08e)
