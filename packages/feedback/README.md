@@ -87,17 +87,17 @@ Most text that you see in the default Feedback widget can be customized.
 
 | key       | default | description |
 | --------- | ------- | ----------- |
-| `buttonLabel` | `"Report a Bug"` | The label of the widget button. |
-| `submitButtonLabel` | `"Send Bug Report"` | The label of the submit button used in the feedback form dialog. |
-| `cancelButtonLabel` | `"Cancel"` | The label of the cancel button used in the feedback form dialog. |
-| `formTitle` | `"Report a Bug"` | The title at the top of the feedback form dialog. |
-| `nameLabel` | `"Name"` | The label of the name input field. |
-| `namePlaceholder` | `"Your Name"` | The placeholder for the name input field. |
-| `emailLabel` | `"Email"` | The label of the email input field. ||
-| `emailPlaceholder` | `"your.email@example.org"` | The placeholder for the email input field. |
-| `messageLabel` | `"Description"` | The label for the feedback description input field. |
-| `messagePlaceholder` | `"What's the bug? What did you expect?"` | The placeholder for the feedback description input field. |
-| `successMessageText` | `"Thank you for your report!"` | The message to be displayed after a succesful feedback submission. |
+| `buttonLabel` | `Report a Bug` | The label of the widget button. |
+| `submitButtonLabel` | `Send Bug Report` | The label of the submit button used in the feedback form dialog. |
+| `cancelButtonLabel` | `Cancel` | The label of the cancel button used in the feedback form dialog. |
+| `formTitle` | `Report a Bug` | The title at the top of the feedback form dialog. |
+| `nameLabel` | `Name` | The label of the name input field. |
+| `namePlaceholder` | `Your Name` | The placeholder for the name input field. |
+| `emailLabel` | `Email` | The label of the email input field. ||
+| `emailPlaceholder` | `your.email@example.org` | The placeholder for the email input field. |
+| `messageLabel` | `Description` | The label for the feedback description input field. |
+| `messagePlaceholder` | `What's the bug? What did you expect?` | The placeholder for the feedback description input field. |
+| `successMessageText` | `Thank you for your report!` | The message to be displayed after a succesful feedback submission. |
 
 
 Example of customization
@@ -203,7 +203,7 @@ feedback.attachTo(document.querySelector('#your-button'), {
 You can also bring your own widget and UI and simply pass a feedback object to the `sendFeedback()` function.
 
 ```html
-<form id="my-feedback-form>
+<form id="my-feedback-form">
   <input name="name" />
   <input name="email" />
   <textarea name="message" placeholder="What's the issue?" />
