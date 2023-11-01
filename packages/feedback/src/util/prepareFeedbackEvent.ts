@@ -9,8 +9,6 @@ interface PrepareFeedbackEventParams {
 }
 /**
  * Prepare a feedback event & enrich it with the SDK metadata.
- *
- * TODO: Refactor this with the replay version
  */
 export async function prepareFeedbackEvent({
   client,
@@ -27,10 +25,12 @@ export async function prepareFeedbackEvent({
     event,
     { integrations: undefined },
     scope,
+    client,
   )) as FeedbackEvent | null;
 
-  // If e.g. a global event processor returned null
-  if (!preparedEvent) {
+  if (preparedEvent === null) {
+    // Taken from baseclient's `_processEvent` method, where this is handled for errors/transactions
+    client.recordDroppedEvent('event_processor', 'feedback', event);
     return null;
   }
 
@@ -38,15 +38,6 @@ export async function prepareFeedbackEvent({
   // but since we do not use this private method from the client, but rather the plain import
   // we need to do this manually.
   preparedEvent.platform = preparedEvent.platform || 'javascript';
-
-  // extract the SDK name because `client._prepareEvent` doesn't add it to the event
-  const metadata = client.getSdkMetadata && client.getSdkMetadata();
-  const { name, version } = (metadata && metadata.sdk) || {};
-
-  preparedEvent.sdk = {
-    name: name || 'sentry.javascript.unknown',
-    version: version || '0.0.0',
-  };
 
   return preparedEvent;
 }
