@@ -55,6 +55,7 @@ The following options can be configured as options to the integration, in `new F
 | key       | type    | default | description |
 | --------- | ------- | ------- | ----------- |
 | `autoInject`       | `boolean` | `true`  | Injects the Feedback widget into the application when the integration is added. This is useful to turn off if you bring your own button, or only want to show the widget on certain views. |
+| `showBranding` | `boolean` | `true` | Displays the Sentry logo inside of the dialog |
 | `colorScheme` | `"system" \| "light" \| "dark"` | `"system"` | The color theme to use. `"system"` will follow your OS colorscheme. |
 
 ### User/form Related Configuration

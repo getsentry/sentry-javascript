@@ -56,6 +56,9 @@ export function createDialogStyles(d: Document): HTMLStyleElement {
 }
 
 .dialog__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   font-size: 20px;
   font-weight: 600;
   padding: 0;

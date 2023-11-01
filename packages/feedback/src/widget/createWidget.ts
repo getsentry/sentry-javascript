@@ -134,6 +134,8 @@ export function createWidget({ shadow, options, attachTo }: CreateWidgetParams):
       const user = scope && scope.getUser();
 
       dialog = Dialog({
+        colorScheme: options.colorScheme,
+        showBranding: options.showBranding,
         showName: options.showName,
         showEmail: options.showEmail,
         isAnonymous: options.isAnonymous,
