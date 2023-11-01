@@ -87,23 +87,26 @@ Most text that you see in the default Feedback widget can be customized.
 
 | key       | default | description |
 | --------- | ------- | ----------- |
-| `buttonLabel` | `"Feedback"` | The label of the widget button. |
-| `submitButtonLabel` | `"Send Feedback"` | The label of the submit button used in the feedback form dialog. |
+| `buttonLabel` | `"Report a Bug"` | The label of the widget button. |
+| `submitButtonLabel` | `"Send Bug Report"` | The label of the submit button used in the feedback form dialog. |
 | `cancelButtonLabel` | `"Cancel"` | The label of the cancel button used in the feedback form dialog. |
-| `formTitle` | `"Send Feedback"` | The title at the top of the feedback form dialog. |
-| `nameLabel` | `"Full Name"` | The label of the name input field. |
-| `namePlaceholder` | `"Full Name"` | The placeholder for the name input field. |
+| `formTitle` | `"Report a Bug"` | The title at the top of the feedback form dialog. |
+| `nameLabel` | `"Name"` | The label of the name input field. |
+| `namePlaceholder` | `"Your Name"` | The placeholder for the name input field. |
 | `emailLabel` | `"Email"` | The label of the email input field. ||
-| `emailPlaceholder` | `"Email"` | The placeholder for the email input field. |
+| `emailPlaceholder` | `"your.email@example.org"` | The placeholder for the email input field. |
 | `messageLabel` | `"Description"` | The label for the feedback description input field. |
-| `messagePlaceholder` | `"What's the issue? What did you expect?"` | The placeholder for the feedback description input field. |
+| `messagePlaceholder` | `"What's the bug? What did you expect?"` | The placeholder for the feedback description input field. |
 | `successMessageText` | `"Thank you for your report!"` | The message to be displayed after a succesful feedback submission. |
+
+
+Example of customization
 
 ```javascript
 new Feedback({
-  buttonLabel: 'Bug Report',
-  submitButtonLabel: 'Send Report',
-  formTitle: 'Send Bug Report',
+  buttonLabel: 'Feedback',
+  submitButtonLabel: 'Send Feedback',
+  formTitle: 'Send Feedback',
 });
 ```
 
@@ -112,13 +115,25 @@ Colors can be customized via the Feedback constructor or by defining CSS variabl
 
 | key | css variable | light | dark | description |
 | --- | --- | --- | --- | --- |
-| `background` | `--bg-color` | `#ffffff` | `#29232f` | Background color of the widget actor and dialog. |
-| `backgroundHover` | `--bg-hover-color` | `#f6f6f7` | `#352f3b` | The background color of widget actor when in a hover state |
-| `foreground` | `--fg-color` | `#2b2233` | `#ebe6ef` | The foreground color, e.g. text color |
-| `error` | `--error-color` | `#df3338` | `#f55459` | Color used for error related components (e.g. text color when there was an error submitting feedback) |
-| `success` | `--success-color` | `#268d75` | `#2da98c` | Color used for success-related components (e.g. text color when feedback is submitted successfully) |
+| `background` | `--background` | `#ffffff` | `#29232f` | Background color of the widget actor and dialog |
+| `backgroundHover` | `--background-hover` | `#f6f6f7` | `#352f3b` | Background color of widget actor when in a hover state |
+| `foreground` | `--foreground` | `#2b2233` | `#ebe6ef` | Foreground color, e.g. text color |
+| `error` | `--error` | `#df3338` | `#f55459` | Color used for error related components (e.g. text color when there was an error submitting feedback) |
+| `success` | `--success` | `#268d75` | `#2da98c` | Color used for success-related components (e.g. text color when feedback is submitted successfully) |
 | `border` | `--border` | `1.5px solid rgba(41, 35, 47, 0.13)` | `1.5px solid rgba(235, 230, 239, 0.15)` | The border style used for the widget actor and dialog |
 | `boxShadow` | `--box-shadow` | `0px 4px 24px 0px rgba(43, 34, 51, 0.12)` | `0px 4px 24px 0px rgba(43, 34, 51, 0.12)` | The box shadow style used for the widget actor and dialog |
+| `submitBackground` | `--submit-background` | `rgba(88, 74, 192, 1)` | `rgba(88, 74, 192, 1)` | Background color for the submit button |
+| `submitBackgroundHover` | `--submit-background-hover` | `rgba(108, 95, 199, 1)` | `rgba(108, 95, 199, 1)` | Background color when hovering over the submit button |
+| `submitBorder` | `--submit-border` | `rgba(108, 95, 199, 1)` | `rgba(108, 95, 199, 1)` | Border style for the submit button |
+| `submitForeground` | `--submit-foreground` | `#ffffff` | `#ffffff` | Foreground color for the submit button |
+| `cancelBackground` | `--cancel-background` | `transparent` | `transparent` | Background color for the cancel button |
+| `cancelBackgroundHover` | `--cancel-background-hover` | `var(--background-hover)` | `var(--background-hover)` | Background color when hovering over the cancel button |
+| `cancelBorder` | `--cancel-border` | `var(--border)` | `var(--border)` | Border style for the cancel button | 
+| `cancelForeground` | `--cancel-foreground` | `var(--foreground)` | `var(--foreground)` | Foreground color for the cancel button |
+| `inputBackground` | `--input-background` | `inherit` | `inherit` | Background color for form inputs |
+| `inputForeground` | `--input-foreground` | `inherit` | `inherit` | Foreground color for form inputs |
+| `inputBorder` | `--input-border` | `var(--border)` | `var(--border)` | Border styles for form inputs |
+| `inputBorderFocus` | `--input-border-focus` | `rgba(108, 95, 199, 1)` | `rgba(108, 95, 199, 1)` | Border styles for form inputs when focused |
 
 Here is an example of customizing only the background color for the light theme using the Feedback constructor configuration.
 ```javascript
@@ -133,7 +148,7 @@ Or the same example above but using the CSS variables method:
 
 ```css
 #sentry-feedback {
-  --bg-color: #cccccc;
+  --background: #cccccc;
 }
 ```
 
