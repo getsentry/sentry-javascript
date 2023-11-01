@@ -1,4 +1,31 @@
-import type { FeedbackThemes } from '../types';
+import type { FeedbackTheme, FeedbackThemes } from '../types';
+
+function getThemedCssVariables(theme: FeedbackTheme): string {
+  return `
+  --background: ${theme.background};
+  --background-hover: ${theme.backgroundHover};
+  --foreground: ${theme.foreground};
+  --error: ${theme.error};
+  --success: ${theme.success};
+  --border: ${theme.border};
+  --box-shadow: ${theme.boxShadow};
+
+  --submit-background: ${theme.submitBackground};
+  --submit-background-hover: ${theme.submitBackgroundHover};
+  --submit-border: ${theme.submitBorder};
+  --submit-foreground: ${theme.submitForeground};
+
+  --cancel-background: ${theme.cancelBackground};
+  --cancel-background-hover: ${theme.cancelBackgroundHover};
+  --cancel-border: ${theme.cancelBorder};
+  --cancel-foreground: ${theme.cancelForeground};
+
+  --input-background: ${theme.inputBackground};
+  --input-foreground: ${theme.inputForeground};
+  --input-border: ${theme.inputBorder};
+  --input-border-focus: ${theme.inputBorderFocus};
+  `;
+}
 
 /**
  * Creates <style> element for widget actor (button that opens the dialog)
@@ -29,23 +56,7 @@ export function createMainStyles(
   font-family: var(--font-family);
   font-size: var(--font-size);
 
-  --background-color: ${themes.light.background};
-  --background-hover-color: ${themes.light.backgroundHover};
-  --foreground-color: ${themes.light.foreground};
-  --error-color: ${themes.light.error};
-  --success-color: ${themes.light.success};
-  --border: ${themes.light.border};
-  --box-shadow: ${themes.light.boxShadow};
-
-  --submit-button-background: ${themes.light.submitButtonBackground};
-  --submit-button-background-hover: ${themes.light.submitButtonBackgroundHover};
-  --submit-button-border: ${themes.light.submitButtonBorder};
-  --submit-button-foreground: ${themes.light.submitButtonForeground};
-
-  --cancel-button-background: ${themes.light.cancelButtonBackground};
-  --cancel-button-background-hover: ${themes.light.cancelButtonBackgroundHover};
-  --cancel-button-border: ${themes.light.cancelButtonBorder};
-  --cancel-button-foreground: ${themes.light.cancelButtonForeground};
+  ${getThemedCssVariables(themes.light)}
 }
 
 ${
@@ -53,49 +64,13 @@ ${
     ? `
 @media (prefers-color-scheme: dark) {
   :host {
-    --background-color: ${themes.dark.background};
-    --background-hover-color: ${themes.dark.backgroundHover};
-    --foreground-color: ${themes.dark.foreground};
-    --error-color: ${themes.dark.error};
-    --success-color: ${themes.dark.success};
-    --border: ${themes.dark.border};
-    --box-shadow: ${themes.dark.boxShadow};
-    --font-family: ${themes.dark.fontFamily};
-    --font-size: ${themes.dark.fontSize};
-
-    --submit-button-background: ${themes.dark.submitButtonBackground};
-    --submit-button-background-hover: ${themes.dark.submitButtonBackgroundHover};
-    --submit-button-border: ${themes.dark.submitButtonBorder};
-    --submit-button-foreground: ${themes.dark.submitButtonForeground};
-
-    --cancel-button-background: ${themes.dark.cancelButtonBackground};
-    --cancel-button-background-hover: ${themes.dark.cancelButtonBackgroundHover};
-    --cancel-button-border: ${themes.dark.cancelButtonBorder};
-    --cancel-button-foreground: ${themes.dark.cancelButtonForeground};
+    ${getThemedCssVariables(themes.dark)}
   }
 }
 `
     : `
 :host-context([data-sentry-feedback-colorscheme="dark"]) {
-  --background-color: ${themes.dark.background};
-  --background-hover-color: ${themes.dark.backgroundHover};
-  --foreground-color: ${themes.dark.foreground};
-  --error-color: ${themes.dark.error};
-  --success-color: ${themes.dark.success};
-  --border: ${themes.dark.border};
-  --box-shadow: ${themes.dark.boxShadow};
-  --font-family: ${themes.dark.fontFamily};
-  --font-size: ${themes.dark.fontSize};
-
-  --submit-button-background: ${themes.dark.submitButtonBackground};
-  --submit-button-background-hover: ${themes.dark.submitButtonBackgroundHover};
-  --submit-button-border: ${themes.dark.submitButtonBorder};
-  --submit-button-foreground: ${themes.dark.submitButtonForeground};
-
-  --cancel-button-background: ${themes.dark.cancelButtonBackground};
-  --cancel-button-background-hover: ${themes.dark.cancelButtonBackgroundHover};
-  --cancel-button-border: ${themes.dark.cancelButtonBorder};
-  --cancel-button-foreground: ${themes.dark.cancelButtonForeground};
+  ${getThemedCssVariables(themes.dark)}
 }
 `
 }`;

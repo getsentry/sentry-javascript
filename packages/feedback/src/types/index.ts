@@ -252,15 +252,56 @@ export interface FeedbackTheme {
    */
   error: string;
 
-  submitButtonBackground: string;
-  submitButtonBackgroundHover: string;
-  submitButtonBorder: string;
-  submitButtonForeground: string;
+  /**
+   * Background color for the submit button
+   */
+  submitBackground: string;
+  /**
+   * Background color when hovering over the submit button
+   */
+  submitBackgroundHover: string;
+  /**
+   * Border style for the submit button
+   */
+  submitBorder: string;
+  /**
+   * Foreground color for the submit button
+   */
+  submitForeground: string;
 
-  cancelButtonBackground: string;
-  cancelButtonBackgroundHover: string;
-  cancelButtonBorder: string;
-  cancelButtonForeground: string;
+  /**
+   * Background color for the cancel button
+   */
+  cancelBackground: string;
+  /**
+   * Background color when hovering over the cancel button
+   */
+  cancelBackgroundHover: string;
+  /**
+   * Border style for the cancel button
+   */
+  cancelBorder: string;
+  /**
+   * Foreground color for the cancel button
+   */
+  cancelForeground: string;
+
+  /**
+   * Background color for form inputs
+   */
+  inputBackground: string;
+  /**
+   * Foreground color for form inputs
+   */
+  inputForeground: string;
+  /**
+   * Border styles for form inputs
+   */
+  inputBorder: string;
+  /**
+   * Border styles for form inputs when focused
+   */
+  inputBorderFocus: string;
 }
 
 export interface FeedbackThemes {

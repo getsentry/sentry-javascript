@@ -1,7 +1,7 @@
 import type { FeedbackInternalOptions, OptionalFeedbackConfiguration } from '../types';
 
 /**
- *
+ * Quick and dirty deep merge for the Feedback integration options
  */
 export function mergeOptions(
   defaultOptions: FeedbackInternalOptions,
