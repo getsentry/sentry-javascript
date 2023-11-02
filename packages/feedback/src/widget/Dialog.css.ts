@@ -65,6 +65,10 @@ export function createDialogStyles(d: Document): HTMLStyleElement {
   margin-bottom: 16px;
 }
 
+.brand-link {
+  display: inline-flex;
+}
+
 .error {
   color: var(--error);
   margin-bottom: 16px;

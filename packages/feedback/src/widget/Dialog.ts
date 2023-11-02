@@ -134,6 +134,7 @@ export function Dialog({
           createElement(
             'a',
             {
+              className: 'brand-link',
               target: '_blank',
               href: 'https://sentry.io/welcome/',
               title: 'Powered by Sentry',
