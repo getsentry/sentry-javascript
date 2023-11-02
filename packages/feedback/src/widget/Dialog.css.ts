@@ -38,7 +38,6 @@ export function createDialogStyles(d: Document): HTMLStyleElement {
   top: var(--top);
 
   border: var(--border);
-  padding: 24px;
   border-radius: 20px;
   background-color: var(--background);
   color: var(--foreground);
@@ -61,7 +60,7 @@ export function createDialogStyles(d: Document): HTMLStyleElement {
   justify-content: space-between;
   font-size: 20px;
   font-weight: 600;
-  padding: 0;
+  padding: 24px 24px 0 24px;
   margin: 0;
   margin-bottom: 16px;
 }
@@ -76,7 +75,7 @@ export function createDialogStyles(d: Document): HTMLStyleElement {
   overflow: auto;
   flex-direction: column;
   gap: 16px;
-  padding: 0;
+  padding: 0 24px 24px;
 }
 
 .form__error-container {
@@ -118,8 +117,10 @@ export function createDialogStyles(d: Document): HTMLStyleElement {
   font-weight: 500;
   padding: 6px 12px;
 }
+
 .form__input:focus {
-  border-color: var(--input-border-focus);
+  outline: 1px solid transparent;
+  outline-color: var(--input-border-focus);
 }
 
 .form__input--textarea {
