@@ -56,7 +56,7 @@ export function createMainStyles(
   font-family: var(--font-family);
   font-size: var(--font-size);
 
-  ${getThemedCssVariables(themes.light)}
+  ${getThemedCssVariables(colorScheme === 'dark' ? themes.dark : themes.light)}
 }
 
 ${
@@ -66,13 +66,7 @@ ${
   :host {
     ${getThemedCssVariables(themes.dark)}
   }
-}
-`
-    : `
-:host-context([data-sentry-feedback-colorscheme="dark"]) {
-  ${getThemedCssVariables(themes.dark)}
-}
-`
+}` : ''}
 }`;
 
   return style;
