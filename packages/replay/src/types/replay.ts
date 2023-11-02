@@ -441,7 +441,15 @@ export interface SendBufferedReplayOptions {
 export interface ReplayClickDetector {
   addListeners(): void;
   removeListeners(): void;
+
+  /** Handle a click breadcrumb. */
   handleClick(breadcrumb: Breadcrumb, node: HTMLElement): void;
+  /** Register a mutation that happened at a given time. */
+  registerMutation(timestamp?: number): void;
+  /** Register a scroll that happened at a given time. */
+  registerScroll(timestamp?: number): void;
+  /** Register that a click on an element happened. */
+  registerClick(element: HTMLElement): void;
 }
 
 export interface ReplayContainer {
