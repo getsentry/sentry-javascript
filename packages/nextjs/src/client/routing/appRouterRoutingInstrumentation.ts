@@ -42,13 +42,18 @@ export function appRouterInstrumentation(
         return;
       }
 
-      const parsedNavigatingRscRequest = parseNavigatingRscRequest(handlerData.args);
-
-      if (parsedNavigatingRscRequest === null) {
+      // Only GET requests can be navigating RSC requests
+      if (handlerData.fetchData.method !== 'GET') {
         return;
       }
 
-      const transactionName = parsedNavigatingRscRequest.targetPathname;
+      const parsedNavigatingRscFetchArgs = parseNavigatingRscFetchArgs(handlerData.args);
+
+      if (parsedNavigatingRscFetchArgs === null) {
+        return;
+      }
+
+      const transactionName = parsedNavigatingRscFetchArgs.targetPathname;
       const tags: Record<string, Primitive> = {
         ...DEFAULT_TAGS,
         from: prevLocationName,
@@ -70,7 +75,7 @@ export function appRouterInstrumentation(
   }
 }
 
-function parseNavigatingRscRequest(fetchArgs: unknown[]): null | {
+function parseNavigatingRscFetchArgs(fetchArgs: unknown[]): null | {
   targetPathname: string;
 } {
   // Make sure the first arg is a URL object
