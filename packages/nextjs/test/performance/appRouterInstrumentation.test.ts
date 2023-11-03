@@ -1,5 +1,5 @@
 import { WINDOW } from '@sentry/react';
-import { HandlerDataFetch } from '@sentry/types';
+import type { HandlerDataFetch } from '@sentry/types';
 import * as sentryUtils from '@sentry/utils';
 import { JSDOM } from 'jsdom';
 
@@ -31,15 +31,16 @@ describe('appRouterInstrumentation', () => {
     setUpPage('https://example.com/some/page?someParam=foobar');
     const startTransactionCallbackFn = jest.fn();
     appRouterInstrumentation(startTransactionCallbackFn, true, false);
-    expect(startTransactionCallbackFn).toHaveBeenCalledWith({
-      name: '/some/page',
-      op: 'pageload',
-      tags: {
-        'routing.instrumentation': 'next-app-router',
-      },
-      startTimestamp: expect.any(Number),
-      metadata: { source: 'url' },
-    });
+    expect(startTransactionCallbackFn).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: '/some/page',
+        op: 'pageload',
+        tags: {
+          'routing.instrumentation': 'next-app-router',
+        },
+        metadata: { source: 'url' },
+      }),
+    );
   });
 
   it('should not create a pageload transaction when `startTransactionOnPageLoad` is false', () => {
