@@ -1,7 +1,12 @@
 import { getCurrentHub } from '@sentry/core';
 import { WINDOW } from '@sentry/react';
 import type { Primitive, Transaction, TransactionContext, TransactionSource } from '@sentry/types';
-import { logger, stripUrlQueryAndFragment, tracingContextFromHeaders } from '@sentry/utils';
+import {
+  browserPerformanceTimeOrigin,
+  logger,
+  stripUrlQueryAndFragment,
+  tracingContextFromHeaders,
+} from '@sentry/utils';
 import type { NEXT_DATA as NextData } from 'next/dist/next-server/lib/utils';
 import { default as Router } from 'next/router';
 import type { ParsedUrlQuery } from 'querystring';
@@ -86,7 +91,7 @@ function extractNextDataTagInformation(): NextDataTagInfo {
 }
 
 const DEFAULT_TAGS = {
-  'routing.instrumentation': 'next-router',
+  'routing.instrumentation': 'next-pages-router',
 } as const;
 
 // We keep track of the active transaction so we can finish it when we start a navigation transaction.
@@ -106,7 +111,7 @@ const client = getCurrentHub().getClient();
  * generate pageload/navigation transactions and parameterize
  * transaction names.
  */
-export function nextRouterInstrumentation(
+export function pagesRouterInstrumentation(
   startTransactionCb: StartTransactionCb,
   startTransactionOnPageLoad: boolean = true,
   startTransactionOnLocationChange: boolean = true,
@@ -126,6 +131,8 @@ export function nextRouterInstrumentation(
       name: prevLocationName,
       op: 'pageload',
       tags: DEFAULT_TAGS,
+      // pageload should always start at timeOrigin (and needs to be in s, not ms)
+      startTimestamp: browserPerformanceTimeOrigin ? browserPerformanceTimeOrigin / 1000 : undefined,
       ...(params && client && client.getOptions().sendDefaultPii && { data: params }),
       ...traceparentData,
       metadata: {
