@@ -7,6 +7,8 @@ type MiddlewareOptions = {
    * If true, the client IP will be attached to the event by calling `setUser`.
    * Only set this to `true` if you're fine with collecting potentially personally identifiable information (PII).
    *
+   * This will only work if your app is configured for SSR
+   *
    * @default false (recommended)
    */
   trackClientIp?: boolean;
