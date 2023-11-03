@@ -135,6 +135,7 @@ describe('pagesRouterInstrumentation', () => {
         {
           name: '/[user]/posts/[id]',
           op: 'pageload',
+          startTimestamp: expect.any(Number),
           tags: {
             'routing.instrumentation': 'next-pages-router',
           },
@@ -161,6 +162,7 @@ describe('pagesRouterInstrumentation', () => {
         {
           name: '/some-page',
           op: 'pageload',
+          startTimestamp: expect.any(Number),
           tags: {
             'routing.instrumentation': 'next-pages-router',
           },
@@ -182,6 +184,7 @@ describe('pagesRouterInstrumentation', () => {
         {
           name: '/',
           op: 'pageload',
+          startTimestamp: expect.any(Number),
           tags: {
             'routing.instrumentation': 'next-pages-router',
           },
@@ -199,6 +202,7 @@ describe('pagesRouterInstrumentation', () => {
         {
           name: '/lforst/posts/1337',
           op: 'pageload',
+          startTimestamp: expect.any(Number),
           tags: {
             'routing.instrumentation': 'next-pages-router',
           },
