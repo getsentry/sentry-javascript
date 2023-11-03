@@ -62,5 +62,6 @@ export {
 export * from '@sentry/node';
 
 export { init } from './server/sdk';
+export { sentryMiddleware } from './server/middleware';
 
 export default sentryAstro;
