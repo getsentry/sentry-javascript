@@ -57,7 +57,7 @@ function createMockStartTransaction() {
   );
 }
 
-describe('nextRouterInstrumentation', () => {
+describe('pagesRouterInstrumentation', () => {
   const originalGlobalDocument = WINDOW.document;
   const originalGlobalLocation = WINDOW.location;
 
@@ -136,7 +136,7 @@ describe('nextRouterInstrumentation', () => {
           name: '/[user]/posts/[id]',
           op: 'pageload',
           tags: {
-            'routing.instrumentation': 'next-router',
+            'routing.instrumentation': 'next-pages-router',
           },
           metadata: {
             source: 'route',
@@ -162,7 +162,7 @@ describe('nextRouterInstrumentation', () => {
           name: '/some-page',
           op: 'pageload',
           tags: {
-            'routing.instrumentation': 'next-router',
+            'routing.instrumentation': 'next-pages-router',
           },
           metadata: {
             source: 'route',
@@ -183,7 +183,7 @@ describe('nextRouterInstrumentation', () => {
           name: '/',
           op: 'pageload',
           tags: {
-            'routing.instrumentation': 'next-router',
+            'routing.instrumentation': 'next-pages-router',
           },
           metadata: {
             source: 'route',
@@ -200,7 +200,7 @@ describe('nextRouterInstrumentation', () => {
           name: '/lforst/posts/1337',
           op: 'pageload',
           tags: {
-            'routing.instrumentation': 'next-router',
+            'routing.instrumentation': 'next-pages-router',
           },
           metadata: {
             source: 'url',
@@ -278,7 +278,7 @@ describe('nextRouterInstrumentation', () => {
             name: expectedTransactionName,
             op: 'navigation',
             tags: expect.objectContaining({
-              'routing.instrumentation': 'next-router',
+              'routing.instrumentation': 'next-pages-router',
             }),
             metadata: expect.objectContaining({
               source: expectedTransactionSource,
