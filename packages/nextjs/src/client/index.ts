@@ -7,7 +7,6 @@ import {
   defaultRequestInstrumentationOptions,
   init as reactInit,
   Integrations,
-  WINDOW,
 } from '@sentry/react';
 import type { EventProcessor } from '@sentry/types';
 import { addOrUpdateIntegration, GLOBAL_OBJ } from '@sentry/utils';
@@ -15,25 +14,12 @@ import { addOrUpdateIntegration, GLOBAL_OBJ } from '@sentry/utils';
 import { devErrorSymbolicationEventProcessor } from '../common/devErrorSymbolicationEventProcessor';
 import { getVercelEnv } from '../common/getVercelEnv';
 import { buildMetadata } from '../common/metadata';
-import { appRouterInstrumentation } from './appRouterRoutingInstrumentation';
-import { pagesRouterInstrumentation } from './pagesRouterRoutingInstrumentation';
+import { nextRouterInstrumentation } from './routing/nextRoutingInstrumentation';
 import { applyTunnelRouteOption } from './tunnelRoute';
 
 export * from '@sentry/react';
+export { nextRouterInstrumentation } from './routing/nextRoutingInstrumentation';
 export { captureUnderscoreErrorException } from '../common/_error';
-export { pagesRouterInstrumentation } from './pagesRouterRoutingInstrumentation';
-
-/**
- * Creates routing instrumention for Next Router. Only supported for
- * client side routing. Works for Next >= 10.
- *
- * Leverages the SingletonRouter from the `next/router` to
- * generate pageload/navigation transactions and parameterize
- * transaction names.
- *
- * @deprecated Use pagesRouterInstrumentation instead.
- */
-export const nextRouterInstrumentation = pagesRouterInstrumentation;
 
 export { Integrations };
 
@@ -128,16 +114,14 @@ function addClientIntegrations(options: BrowserOptions): void {
   // will get treeshaken away
   if (typeof __SENTRY_TRACING__ === 'undefined' || __SENTRY_TRACING__) {
     if (hasTracingEnabled(options)) {
-      const isAppRouter = !WINDOW.document.getElementById('__NEXT_DATA__');
-
       const defaultBrowserTracingIntegration = new BrowserTracing({
         // eslint-disable-next-line deprecation/deprecation
         tracingOrigins: [...defaultRequestInstrumentationOptions.tracingOrigins, /^(api\/)/],
-        routingInstrumentation: isAppRouter ? appRouterInstrumentation : pagesRouterInstrumentation,
+        routingInstrumentation: nextRouterInstrumentation,
       });
 
       integrations = addOrUpdateIntegration(defaultBrowserTracingIntegration, integrations, {
-        'options.routingInstrumentation': isAppRouter ? appRouterInstrumentation : pagesRouterInstrumentation,
+        'options.routingInstrumentation': nextRouterInstrumentation,
       });
     }
   }

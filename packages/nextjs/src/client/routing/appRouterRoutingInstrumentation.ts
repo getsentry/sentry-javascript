@@ -8,13 +8,6 @@ const DEFAULT_TAGS = {
   'routing.instrumentation': 'next-app-router',
 } as const;
 
-// We keep track of the active transaction so we can finish it when we start a navigation transaction.
-let activeTransaction: Transaction | undefined = undefined;
-
-// We keep track of the previous location name so we can set the `from` field on navigation transactions.
-// This is either a route or a pathname.
-let prevLocationName: string | undefined = undefined;
-
 /**
  * Creates routing instrumention for Next Router. Only supported for
  * client side routing. Works for Next >= 10.
@@ -28,7 +21,12 @@ export function appRouterInstrumentation(
   startTransactionOnPageLoad: boolean = true,
   startTransactionOnLocationChange: boolean = true,
 ): void {
-  prevLocationName = WINDOW.location.pathname;
+  // We keep track of the active transaction so we can finish it when we start a navigation transaction.
+  let activeTransaction: Transaction | undefined = undefined;
+
+  // We keep track of the previous location name so we can set the `from` field on navigation transactions.
+  // This is either a route or a pathname.
+  let prevLocationName = WINDOW.location.pathname;
 
   if (startTransactionOnPageLoad) {
     activeTransaction = startTransactionCb({
