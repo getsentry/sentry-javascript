@@ -9,6 +9,7 @@ import { terser } from 'rollup-plugin-terser';
 const config = defineConfig([
   {
     input: ['./src/index.ts'],
+    treeshake: 'smallest',
     output: {
       dir: './build/npm/esm',
       format: 'esm',
