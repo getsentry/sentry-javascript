@@ -4,7 +4,7 @@ import { JSDOM } from 'jsdom';
 import type { NEXT_DATA as NextData } from 'next/dist/next-server/lib/utils';
 import { default as Router } from 'next/router';
 
-import { nextRouterInstrumentation } from '../../src/client/performance';
+import { pagesRouterInstrumentation } from '../../src/client/routing/pagesRouterRoutingInstrumentation';
 
 const globalObject = WINDOW as typeof WINDOW & {
   __BUILD_MANIFEST?: {
@@ -212,7 +212,7 @@ describe('nextRouterInstrumentation', () => {
       (url, route, query, props, hasNextData, expectedStartTransactionArgument) => {
         const mockStartTransaction = createMockStartTransaction();
         setUpNextPage({ url, route, query, props, hasNextData });
-        nextRouterInstrumentation(mockStartTransaction);
+        pagesRouterInstrumentation(mockStartTransaction);
         expect(mockStartTransaction).toHaveBeenCalledTimes(1);
         expect(mockStartTransaction).toHaveBeenLastCalledWith(expectedStartTransactionArgument);
       },
@@ -221,7 +221,7 @@ describe('nextRouterInstrumentation', () => {
     it('does not create a pageload transaction if option not given', () => {
       const mockStartTransaction = createMockStartTransaction();
       setUpNextPage({ url: 'https://example.com/', route: '/', hasNextData: false });
-      nextRouterInstrumentation(mockStartTransaction, false);
+      pagesRouterInstrumentation(mockStartTransaction, false);
       expect(mockStartTransaction).toHaveBeenCalledTimes(0);
     });
   });
@@ -268,7 +268,7 @@ describe('nextRouterInstrumentation', () => {
           ],
         });
 
-        nextRouterInstrumentation(mockStartTransaction, false, true);
+        pagesRouterInstrumentation(mockStartTransaction, false, true);
 
         Router.events.emit('routeChangeStart', targetLocation);
 
@@ -304,7 +304,7 @@ describe('nextRouterInstrumentation', () => {
         navigatableRoutes: ['/home', '/posts/[id]'],
       });
 
-      nextRouterInstrumentation(mockStartTransaction, false, false);
+      pagesRouterInstrumentation(mockStartTransaction, false, false);
 
       Router.events.emit('routeChangeStart', '/posts/42');
 

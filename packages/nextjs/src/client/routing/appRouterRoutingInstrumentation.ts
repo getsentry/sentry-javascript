@@ -9,12 +9,7 @@ const DEFAULT_TAGS = {
 } as const;
 
 /**
- * Creates routing instrumention for Next Router. Only supported for
- * client side routing. Works for Next >= 10.
- *
- * Leverages the SingletonRouter from the `next/router` to
- * generate pageload/navigation transactions and parameterize
- * transaction names.
+ * Instruments the Next.js Clientside App Router.
  */
 export function appRouterInstrumentation(
   startTransactionCb: StartTransactionCb,

@@ -7,7 +7,7 @@ import { pagesRouterInstrumentation } from './pagesRouterRoutingInstrumentation'
 type StartTransactionCb = (context: TransactionContext) => Transaction | undefined;
 
 /**
- * TODO
+ * Instruments the Next.js Clientside Router.
  */
 export function nextRouterInstrumentation(
   startTransactionCb: StartTransactionCb,

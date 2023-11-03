@@ -104,7 +104,7 @@ let prevLocationName: string | undefined = undefined;
 const client = getCurrentHub().getClient();
 
 /**
- * Creates routing instrumention for Next Router. Only supported for
+ * Instruments the Next.js pages router. Only supported for
  * client side routing. Works for Next >= 10.
  *
  * Leverages the SingletonRouter from the `next/router` to

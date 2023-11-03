@@ -9,7 +9,7 @@ import {
   Integrations,
 } from '@sentry/react';
 import type { EventProcessor } from '@sentry/types';
-import { addOrUpdateIntegration, GLOBAL_OBJ } from '@sentry/utils';
+import { addOrUpdateIntegration } from '@sentry/utils';
 
 import { devErrorSymbolicationEventProcessor } from '../common/devErrorSymbolicationEventProcessor';
 import { getVercelEnv } from '../common/getVercelEnv';
@@ -38,11 +38,8 @@ export { BrowserTracing };
 // Treeshakable guard to remove all code related to tracing
 declare const __SENTRY_TRACING__: boolean;
 
-const globalWithInjectedValues = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
+const globalWithInjectedValues = global as typeof global & {
   __rewriteFramesAssetPrefixPath__: string;
-  next?: {
-    appDir?: boolean;
-  };
 };
 
 /** Inits the Sentry NextJS SDK on the browser with the React SDK. */
