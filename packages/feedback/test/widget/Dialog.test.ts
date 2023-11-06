@@ -8,6 +8,7 @@ type NonNullableFields<T> = {
 function renderDialog({
   showName = true,
   showEmail = true,
+  showBranding = false,
   isAnonymous = false,
   formTitle = 'Feedback',
   defaultName = 'Foo Bar',
@@ -28,6 +29,7 @@ function renderDialog({
     isAnonymous,
     showName,
     showEmail,
+    showBranding,
     defaultName,
     defaultEmail,
     nameLabel,
