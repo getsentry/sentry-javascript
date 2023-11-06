@@ -27,6 +27,7 @@ export function appRouterInstrumentation(
     activeTransaction = startTransactionCb({
       name: prevLocationName,
       op: 'pageload',
+      origin: 'auto.pageload.nextjs.app_router_instrumentation',
       tags: DEFAULT_TAGS,
       // pageload should always start at timeOrigin (and needs to be in s, not ms)
       startTimestamp: browserPerformanceTimeOrigin ? browserPerformanceTimeOrigin / 1000 : undefined,
@@ -68,6 +69,7 @@ export function appRouterInstrumentation(
       startTransactionCb({
         name: transactionName,
         op: 'navigation',
+        origin: 'auto.navigation.nextjs.app_router_instrumentation',
         tags,
         metadata: { source: 'url' },
       });

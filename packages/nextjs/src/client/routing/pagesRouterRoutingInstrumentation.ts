@@ -130,6 +130,7 @@ export function pagesRouterInstrumentation(
     activeTransaction = startTransactionCb({
       name: prevLocationName,
       op: 'pageload',
+      origin: 'auto.pageload.nextjs.pages_router_instrumentation',
       tags: DEFAULT_TAGS,
       // pageload should always start at timeOrigin (and needs to be in s, not ms)
       startTimestamp: browserPerformanceTimeOrigin ? browserPerformanceTimeOrigin / 1000 : undefined,
@@ -172,6 +173,7 @@ export function pagesRouterInstrumentation(
       const navigationTransaction = startTransactionCb({
         name: transactionName,
         op: 'navigation',
+        origin: 'auto.navigation.nextjs.pages_router_instrumentation',
         tags,
         metadata: { source: transactionSource },
       });
@@ -184,8 +186,8 @@ export function pagesRouterInstrumentation(
         // hooks). Instead, we'll simply let the navigation transaction finish itself (it's an `IdleTransaction`).
         const nextRouteChangeSpan = navigationTransaction.startChild({
           op: 'ui.nextjs.route-change',
+          origin: 'auto.ui.nextjs.pages_router_instrumentation',
           description: 'Next.js Route Change',
-          origin: 'auto.navigation.nextjs',
         });
 
         const finishRouteChangeSpan = (): void => {
