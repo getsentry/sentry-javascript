@@ -23,7 +23,7 @@ export async function prepareFeedbackEvent({
   const preparedEvent = (await prepareEvent(
     client.getOptions(),
     event,
-    { integrations: undefined },
+    eventHint,
     scope,
     client,
   )) as FeedbackEvent | null;
