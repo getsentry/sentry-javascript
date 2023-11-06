@@ -55,6 +55,7 @@ The following options can be configured as options to the integration, in `new F
 | key       | type    | default | description |
 | --------- | ------- | ------- | ----------- |
 | `autoInject`       | `boolean` | `true`  | Injects the Feedback widget into the application when the integration is added. This is useful to turn off if you bring your own button, or only want to show the widget on certain views. |
+| `showBranding` | `boolean` | `true` | Displays the Sentry logo inside of the dialog |
 | `colorScheme` | `"system" \| "light" \| "dark"` | `"system"` | The color theme to use. `"system"` will follow your OS colorscheme. |
 
 ### User/form Related Configuration
@@ -93,7 +94,7 @@ Most text that you see in the default Feedback widget can be customized.
 | `formTitle` | `Report a Bug` | The title at the top of the feedback form dialog. |
 | `nameLabel` | `Name` | The label of the name input field. |
 | `namePlaceholder` | `Your Name` | The placeholder for the name input field. |
-| `emailLabel` | `Email` | The label of the email input field. ||
+| `emailLabel` | `Email` | The label of the email input field. |
 | `emailPlaceholder` | `your.email@example.org` | The placeholder for the email input field. |
 | `messageLabel` | `Description` | The label for the feedback description input field. |
 | `messagePlaceholder` | `What's the bug? What did you expect?` | The placeholder for the feedback description input field. |
