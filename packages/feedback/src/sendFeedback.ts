@@ -19,8 +19,7 @@ export function sendFeedback(
   { name, email, message, url = getLocationHref() }: SendFeedbackParams,
   { includeReplay = true }: SendFeedbackOptions = {},
 ): ReturnType<typeof sendFeedbackRequest> {
-  const hub = getCurrentHub();
-  const client = hub && hub.getClient<BrowserClient>();
+  const client = getCurrentHub().getClient<BrowserClient>();
   const replay = includeReplay && client ? (client.getIntegrationById('Replay') as Replay | undefined) : undefined;
 
   // Prepare session replay

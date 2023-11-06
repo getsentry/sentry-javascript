@@ -298,11 +298,12 @@ export class Feedback implements Integration {
 
     // Don't create if it already exists
     if (!this._shadow || !this._host) {
+      const { id, colorScheme, themeLight, themeDark } = options;
       const { shadow, host } = createShadowHost({
-        id: options.id,
-        colorScheme: options.colorScheme,
-        themeLight: options.themeLight,
-        themeDark: options.themeDark,
+        id,
+        colorScheme,
+        themeLight,
+        themeDark,
       });
       this._shadow = shadow;
       this._host = host;
