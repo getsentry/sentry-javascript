@@ -10,7 +10,6 @@ import { prepareFeedbackEvent } from './prepareFeedbackEvent';
 export async function sendFeedbackRequest({
   feedback: { message, email, name, replay_id, url },
 }: SendFeedbackData): Promise<void | TransportMakeRequestResponse> {
-  debugger;
   const hub = getCurrentHub();
   const client = hub.getClient();
   const scope = hub.getScope();
