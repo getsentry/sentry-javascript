@@ -90,7 +90,6 @@ export async function sendFeedbackRequest({
   let response: void | TransportMakeRequestResponse;
 
   try {
-    console.log(envelope);
     response = await transport.send(envelope);
   } catch (err) {
     const error = new Error('Unable to send Feedback');
