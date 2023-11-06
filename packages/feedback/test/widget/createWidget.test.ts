@@ -25,6 +25,7 @@ const DEFAULT_OPTIONS = {
   autoInject: true,
   showEmail: true,
   showName: true,
+  showBranding: false,
   useSentryUser: {
     email: 'email',
     name: 'username',
