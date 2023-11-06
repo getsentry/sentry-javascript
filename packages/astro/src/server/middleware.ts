@@ -45,7 +45,7 @@ function sendErrorToSentry(e: unknown): unknown {
   return objectifiedErr;
 }
 
-export const sentryMiddleware: (options?: MiddlewareOptions) => MiddlewareResponseHandler = (
+export const handleRequest: (options?: MiddlewareOptions) => MiddlewareResponseHandler = (
   options = { trackClientIp: false, trackHeaders: false },
 ) => {
   return async (ctx, next) => {
