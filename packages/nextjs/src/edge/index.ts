@@ -1,7 +1,7 @@
 import { SDK_VERSION } from '@sentry/core';
 import { RewriteFrames } from '@sentry/integrations';
 import type { SdkMetadata } from '@sentry/types';
-import { addOrUpdateIntegration, GLOBAL_OBJ } from '@sentry/utils';
+import { addOrUpdateIntegration, escapeStringForRegex, GLOBAL_OBJ } from '@sentry/utils';
 import type { VercelEdgeOptions } from '@sentry/vercel-edge';
 import { init as vercelEdgeInit } from '@sentry/vercel-edge';
 
@@ -35,12 +35,19 @@ export function init(options: VercelEdgeOptions = {}): void {
   // is set there, we set it here as well, just in case something has gone wrong with the injection.
   const distDirName = globalWithInjectedValues.__rewriteFramesDistDir__;
   if (distDirName) {
+    const distDirAbsPath = distDirName.replace(/(\/|\\)$/, ''); // We strip trailing slashes because "app:///_next" also doesn't have one
+
+    // Normally we would use `path.resolve` to obtain the absolute path we will strip from the stack frame to align with
+    // the uploaded artifacts, however we don't have access to that API in edge so we need to be a bit more lax.
+    const SOURCEMAP_FILENAME_REGEX = new RegExp(`.*${escapeStringForRegex(distDirAbsPath)}`);
+
     const defaultRewriteFramesIntegration = new RewriteFrames({
       iteratee: frame => {
-        frame.filename = frame.filename?.replace(distDirName, 'app:///_next');
+        frame.filename = frame.filename?.replace(SOURCEMAP_FILENAME_REGEX, 'app:///_next');
         return frame;
       },
     });
+
     integrations = addOrUpdateIntegration(defaultRewriteFramesIntegration, integrations);
   }
 

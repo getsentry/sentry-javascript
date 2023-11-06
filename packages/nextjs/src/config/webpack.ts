@@ -958,7 +958,7 @@ function addValueInjectionLoader(
     ...isomorphicValues,
     // Make sure that if we have a windows path, the backslashes are interpreted as such (rather than as escape
     // characters)
-    __rewriteFramesDistDir__: path.resolve(userNextConfig.distDir?.replace(/\\/g, '\\\\') || '.next'),
+    __rewriteFramesDistDir__: userNextConfig.distDir?.replace(/\\/g, '\\\\') || '.next',
   };
 
   const clientValues = {

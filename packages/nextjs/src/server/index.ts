@@ -3,7 +3,8 @@ import type { NodeOptions } from '@sentry/node';
 import { configureScope, getCurrentHub, init as nodeInit, Integrations } from '@sentry/node';
 import type { EventProcessor } from '@sentry/types';
 import type { IntegrationWithExclusionOption } from '@sentry/utils';
-import { addOrUpdateIntegration, logger } from '@sentry/utils';
+import { addOrUpdateIntegration, escapeStringForRegex, logger } from '@sentry/utils';
+import * as path from 'path';
 
 import { devErrorSymbolicationEventProcessor } from '../common/devErrorSymbolicationEventProcessor';
 import { getVercelEnv } from '../common/getVercelEnv';
@@ -120,9 +121,14 @@ function addServerIntegrations(options: NodeOptions): void {
   // is set there, we set it here as well, just in case something has gone wrong with the injection.
   const distDirName = globalWithInjectedValues.__rewriteFramesDistDir__;
   if (distDirName) {
+    // nextjs always puts the build directory at the project root level, which is also where you run `next start` from, so
+    // we can read in the project directory from the currently running process
+    const distDirAbsPath = path.resolve(distDirName).replace(/(\/|\\)$/, ''); // We strip trailing slashes because "app:///_next" also doesn't have one
+    const SOURCEMAP_FILENAME_REGEX = new RegExp(escapeStringForRegex(distDirAbsPath));
+
     const defaultRewriteFramesIntegration = new RewriteFrames({
       iteratee: frame => {
-        frame.filename = frame.filename?.replace(distDirName, 'app:///_next');
+        frame.filename = frame.filename?.replace(SOURCEMAP_FILENAME_REGEX, 'app:///_next');
         return frame;
       },
     });
