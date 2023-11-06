@@ -686,24 +686,20 @@ export function getWebpackPluginOptions(
   userPluginOptions: Partial<SentryWebpackPluginOptions>,
   userSentryOptions: UserSentryOptions,
 ): SentryWebpackPluginOptions {
-  const { buildId, isServer, webpack, config, dir: projectDir } = buildContext;
+  const { buildId, isServer, config, dir: projectDir } = buildContext;
   const userNextConfig = config as NextConfigObject;
 
   const distDirAbsPath = path.resolve(projectDir, userNextConfig.distDir || '.next'); // `.next` is the default directory
 
-  const isWebpack5 = webpack.version.startsWith('5');
   const isServerless = userNextConfig.target === 'experimental-serverless-trace';
   const hasSentryProperties = fs.existsSync(path.resolve(projectDir, 'sentry.properties'));
   const urlPrefix = '~/_next';
 
   const serverInclude = isServerless
     ? [{ paths: [`${distDirAbsPath}/serverless/`], urlPrefix: `${urlPrefix}/serverless` }]
-    : [
-        { paths: [`${distDirAbsPath}/server/pages/`], urlPrefix: `${urlPrefix}/server/pages` },
-        { paths: [`${distDirAbsPath}/server/app/`], urlPrefix: `${urlPrefix}/server/app` },
-      ].concat(
-        isWebpack5 ? [{ paths: [`${distDirAbsPath}/server/chunks/`], urlPrefix: `${urlPrefix}/server/chunks` }] : [],
-      );
+    : [{ paths: [`${distDirAbsPath}/server/`], urlPrefix: `${urlPrefix}/server` }];
+
+  const serverIgnore: string[] = [];
 
   const clientInclude = userSentryOptions.widenClientFileUpload
     ? [{ paths: [`${distDirAbsPath}/static/chunks`], urlPrefix: `${urlPrefix}/static/chunks` }]
@@ -712,15 +708,16 @@ export function getWebpackPluginOptions(
         { paths: [`${distDirAbsPath}/static/chunks/app`], urlPrefix: `${urlPrefix}/static/chunks/app` },
       ];
 
+  // Widening the upload scope is necessarily going to lead to us uploading files we don't need to (ones which
+  // don't include any user code). In order to lessen that where we can, exclude the internal nextjs files we know
+  // will be there.
+  const clientIgnore = userSentryOptions.widenClientFileUpload
+    ? ['framework-*', 'framework.*', 'main-*', 'polyfills-*', 'webpack-*']
+    : [];
+
   const defaultPluginOptions = dropUndefinedKeys({
     include: isServer ? serverInclude : clientInclude,
-    ignore:
-      isServer || !userSentryOptions.widenClientFileUpload
-        ? []
-        : // Widening the upload scope is necessarily going to lead to us uploading files we don't need to (ones which
-          // don't include any user code). In order to lessen that where we can, exclude the internal nextjs files we know
-          // will be there.
-          ['framework-*', 'framework.*', 'main-*', 'polyfills-*', 'webpack-*'],
+    ignore: isServer ? serverIgnore : clientIgnore,
     url: process.env.SENTRY_URL,
     org: process.env.SENTRY_ORG,
     project: process.env.SENTRY_PROJECT,
@@ -961,7 +958,7 @@ function addValueInjectionLoader(
     ...isomorphicValues,
     // Make sure that if we have a windows path, the backslashes are interpreted as such (rather than as escape
     // characters)
-    __rewriteFramesDistDir__: userNextConfig.distDir?.replace(/\\/g, '\\\\') || '.next',
+    __rewriteFramesDistDir__: path.resolve(userNextConfig.distDir?.replace(/\\/g, '\\\\') || '.next'),
   };
 
   const clientValues = {
@@ -975,7 +972,7 @@ function addValueInjectionLoader(
 
   newConfig.module.rules.push(
     {
-      test: /sentry\.server\.config\.(jsx?|tsx?)/,
+      test: /sentry\.(server|edge)\.config\.(jsx?|tsx?)/,
       use: [
         {
           loader: path.resolve(__dirname, 'loaders/valueInjectionLoader.js'),

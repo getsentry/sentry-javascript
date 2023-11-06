@@ -34,7 +34,7 @@ export class DenoClient extends ServerRuntimeClient<DenoClientOptions> {
 
     const clientOptions: ServerRuntimeClientOptions = {
       ...options,
-      platform: 'deno',
+      platform: 'javascript',
       runtime: { name: 'deno', version: Deno.version.deno },
       serverName: options.serverName || getHostName(),
     };

@@ -135,7 +135,7 @@ snapshot[`captureException 1`] = `
       },
     ],
   },
-  platform: "deno",
+  platform: "javascript",
   sdk: {
     integrations: [
       "InboundFilters",
@@ -195,7 +195,7 @@ snapshot[`captureMessage 1`] = `
   event_id: "{{id}}",
   level: "info",
   message: "Some error message",
-  platform: "deno",
+  platform: "javascript",
   sdk: {
     integrations: [
       "InboundFilters",
