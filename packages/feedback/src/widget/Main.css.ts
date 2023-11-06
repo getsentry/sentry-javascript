@@ -66,7 +66,9 @@ ${
   :host {
     ${getThemedCssVariables(themes.dark)}
   }
-}` : ''}
+}`
+    : ''
+}
 }`;
 
   return style;
