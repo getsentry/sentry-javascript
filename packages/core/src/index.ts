@@ -4,7 +4,7 @@ export type { OfflineStore, OfflineTransportOptions } from './transports/offline
 export type { ServerRuntimeClientOptions } from './server-runtime-client';
 
 export * from './tracing';
-export {createEventEnvelope} from './envelope';
+export { createEventEnvelope } from './envelope';
 export {
   addBreadcrumb,
   captureCheckIn,

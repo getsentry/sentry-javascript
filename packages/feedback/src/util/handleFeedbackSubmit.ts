@@ -1,4 +1,5 @@
 import type { TransportMakeRequestResponse } from '@sentry/types';
+import { logger } from '@sentry/utils';
 
 import { sendFeedback } from '../sendFeedback';
 import type { FeedbackFormData, SendFeedbackOptions } from '../types';
@@ -32,8 +33,7 @@ export async function handleFeedbackSubmit(
     // Success!
     return resp;
   } catch (err) {
-    console.error(err);
-    // Errored... re-enable submit button
+    logger.error(err);
     showFetchError();
   }
 }

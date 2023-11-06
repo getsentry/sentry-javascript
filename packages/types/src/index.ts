@@ -70,7 +70,7 @@ export type {
   Profile,
 } from './profiling';
 export type { ReplayEvent, ReplayRecordingData, ReplayRecordingMode } from './replay';
-export type {FeedbackEvent} from './feedback';
+export type { FeedbackEvent } from './feedback';
 export type { QueryParams, Request, SanitizedRequestData } from './request';
 export type { Runtime } from './runtime';
 export type { CaptureContext, Scope, ScopeContext } from './scope';
