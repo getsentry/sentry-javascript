@@ -35,6 +35,7 @@ describe('appRouterInstrumentation', () => {
       expect.objectContaining({
         name: '/some/page',
         op: 'pageload',
+        origin: 'auto.pageload.nextjs.app_router_instrumentation',
         tags: {
           'routing.instrumentation': 'next-app-router',
         },
@@ -77,6 +78,7 @@ describe('appRouterInstrumentation', () => {
     expect(startTransactionCallbackFn).toHaveBeenCalledWith({
       name: '/some/server/component/page',
       op: 'navigation',
+      origin: 'auto.navigation.nextjs.app_router_instrumentation',
       metadata: { source: 'url' },
       tags: {
         from: '/some/page',
