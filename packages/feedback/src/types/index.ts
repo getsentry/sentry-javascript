@@ -270,9 +270,18 @@ export interface FeedbackTheme {
    */
   submitBorder: string;
   /**
+   * Border style for the submit button, in the focued state
+   */
+  submitOutlineFocus: string;
+  /**
    * Foreground color for the submit button
    */
   submitForeground: string;
+
+  /**
+   * Foreground color for the submit button, in the hover state
+   */
+  submitForegroundHover: string;
 
   /**
    * Background color for the cancel button
@@ -287,9 +296,17 @@ export interface FeedbackTheme {
    */
   cancelBorder: string;
   /**
+   * Border style for the cancel button, in the focued state
+   */
+  cancelOutlineFocus: string;
+  /**
    * Foreground color for the cancel button
    */
   cancelForeground: string;
+  /**
+   * Foreground color for the cancel button, in the hover state
+   */
+  cancelForegroundHover: string;
 
   /**
    * Background color for form inputs
@@ -306,7 +323,7 @@ export interface FeedbackTheme {
   /**
    * Border styles for form inputs when focused
    */
-  inputBorderFocus: string;
+  inputOutlineFocus: string;
 }
 
 export interface FeedbackThemes {
