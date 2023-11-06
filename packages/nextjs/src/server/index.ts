@@ -3,8 +3,7 @@ import type { NodeOptions } from '@sentry/node';
 import { configureScope, getCurrentHub, init as nodeInit, Integrations } from '@sentry/node';
 import type { EventProcessor } from '@sentry/types';
 import type { IntegrationWithExclusionOption } from '@sentry/utils';
-import { addOrUpdateIntegration, escapeStringForRegex, logger } from '@sentry/utils';
-import * as path from 'path';
+import { addOrUpdateIntegration, logger } from '@sentry/utils';
 
 import { devErrorSymbolicationEventProcessor } from '../common/devErrorSymbolicationEventProcessor';
 import { getVercelEnv } from '../common/getVercelEnv';
