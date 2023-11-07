@@ -6,7 +6,8 @@ import type { FeedbackFormData, SendFeedbackOptions } from '../types';
 import type { DialogComponent } from '../widget/Dialog';
 
 /**
- * Calls `sendFeedback` to send feedback, handles UI behavior of dialog.
+ * Handles UI behavior of dialog when feedback is submitted, calls
+ * `sendFeedback` to send feedback.
  */
 export async function handleFeedbackSubmit(
   dialog: DialogComponent | null,
@@ -33,7 +34,7 @@ export async function handleFeedbackSubmit(
     // Success!
     return resp;
   } catch (err) {
-    logger.error(err);
+    __DEBUG_BUILD__ && logger.error(err);
     showFetchError();
   }
 }
