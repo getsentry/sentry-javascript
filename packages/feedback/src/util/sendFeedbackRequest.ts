@@ -109,7 +109,7 @@ export async function sendFeedbackRequest({
     return response;
   }
 
-  // If the status code is invalid, we want to immediately stop & not retry
+  // Require valid status codes, otherwise can assume feedback was not sent successfully
   if (typeof response.statusCode === 'number' && (response.statusCode < 200 || response.statusCode >= 300)) {
     throw new Error('Unable to send Feedback');
   }
