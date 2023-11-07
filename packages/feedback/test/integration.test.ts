@@ -1,59 +1,9 @@
 import * as SentryUtils from '@sentry/utils';
 
-import {
-  ACTOR_LABEL,
-  CANCEL_BUTTON_LABEL,
-  DEFAULT_THEME,
-  EMAIL_LABEL,
-  EMAIL_PLACEHOLDER,
-  FORM_TITLE,
-  MESSAGE_LABEL,
-  MESSAGE_PLACEHOLDER,
-  NAME_LABEL,
-  NAME_PLACEHOLDER,
-  SUBMIT_BUTTON_LABEL,
-  SUCCESS_MESSAGE_TEXT,
-} from '../src/constants';
+import { ACTOR_LABEL } from '../src/constants';
 import { Feedback } from '../src/integration';
 
 jest.spyOn(SentryUtils, 'isBrowser').mockImplementation(() => true);
-
-const DEFAULT_OPTIONS = {
-  id: 'sentry-feedback',
-  autoInject: true,
-  showEmail: true,
-  showName: true,
-  showBranding: false,
-  useSentryUser: {
-    email: 'email',
-    name: 'username',
-  },
-  isAnonymous: false,
-  isEmailRequired: false,
-  isNameRequired: false,
-
-  themeDark: DEFAULT_THEME.dark,
-  themeLight: DEFAULT_THEME.light,
-  colorScheme: 'system' as const,
-
-  buttonLabel: ACTOR_LABEL,
-  cancelButtonLabel: CANCEL_BUTTON_LABEL,
-  submitButtonLabel: SUBMIT_BUTTON_LABEL,
-  formTitle: FORM_TITLE,
-  emailPlaceholder: EMAIL_PLACEHOLDER,
-  emailLabel: EMAIL_LABEL,
-  messagePlaceholder: MESSAGE_PLACEHOLDER,
-  messageLabel: MESSAGE_LABEL,
-  namePlaceholder: NAME_PLACEHOLDER,
-  nameLabel: NAME_LABEL,
-  successMessageText: SUCCESS_MESSAGE_TEXT,
-
-  onActorClick: jest.fn(),
-  onDialogClose: jest.fn(),
-  onDialogOpen: jest.fn(),
-  onSubmitError: jest.fn(),
-  onSubmitSuccess: jest.fn(),
-};
 
 jest.mock('../src/util/sendFeedbackRequest', () => {
   const original = jest.requireActual('../src/util/sendFeedbackRequest');
@@ -62,28 +12,6 @@ jest.mock('../src/util/sendFeedbackRequest', () => {
     sendFeedbackRequest: jest.fn(),
   };
 });
-
-// function createShadowAndWidget(
-//   feedbackOptions?: Partial<FeedbackInternalOptions> & { shouldCreateActor?: boolean },
-//   createWidgetOptions?: Partial<Parameters<typeof createWidget>[0]>,
-// ) {
-//   const { shadow } = createShadowHost({
-//     id: 'feedback',
-//     colorScheme: 'system',
-//     themeLight: DEFAULT_THEME.light,
-//     themeDark: DEFAULT_THEME.dark,
-//   });
-//   const widget = createWidget({
-//     shadow,
-//     options: {
-//       ...DEFAULT_OPTIONS,
-//       ...feedbackOptions,
-//     },
-//     ...createWidgetOptions,
-//   });
-//
-//   return { shadow, widget };
-// }
 
 describe('Feedback integration', () => {
   let feedback: Feedback;
@@ -104,7 +32,7 @@ describe('Feedback integration', () => {
     const widget = feedback.getWidget();
     expect(widget?.actor?.el).toBeInstanceOf(HTMLButtonElement);
     const actorEl = widget?.actor?.el as HTMLButtonElement;
-    expect(actorEl.textContent).toBe(DEFAULT_OPTIONS.buttonLabel);
+    expect(actorEl.textContent).toBe(ACTOR_LABEL);
     // No dialog until actor is clicked
     expect(widget?.dialog).toBeUndefined();
     // @ts-expect-error _shadow is private
