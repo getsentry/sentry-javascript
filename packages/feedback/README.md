@@ -128,12 +128,13 @@ Colors can be customized via the Feedback constructor or by defining CSS variabl
 | `submitBorder` | `--submit-border` | `rgba(108, 95, 199, 1)` | `rgba(108, 95, 199, 1)` | Border style for the submit button |
 | `submitOutlineFocus` | `--submit-outline-focus` | `rgba(108, 95, 199, 1)` | `rgba(108, 95, 199, 1)` | Outline color for the submit button, in the focused state |
 | `submitForeground` | `--submit-foreground` | `#ffffff` | `#ffffff` | Foreground color for the submit button |
-| `submitForegroundHover` | `--submit-foreground-hover` | `#ffffff` | `#ffffff` | Foreground color for the submit button |
+| `submitForegroundHover` | `--submit-foreground-hover` | `#ffffff` | `#ffffff` | Foreground color for the submit button when hovering |
 | `cancelBackground` | `--cancel-background` | `transparent` | `transparent` | Background color for the cancel button |
 | `cancelBackgroundHover` | `--cancel-background-hover` | `var(--background-hover)` | `var(--background-hover)` | Background color when hovering over the cancel button |
 | `cancelBorder` | `--cancel-border` | `var(--border)` | `var(--border)` | Border style for the cancel button | 
 | `cancelOutlineFocus` | `--cancel-outline-focus` | `var(--input-outline-focus)` | `var(--input-outline-focus)` | Outline color for the cancel button, in the focused state |
 | `cancelForeground` | `--cancel-foreground` | `var(--foreground)` | `var(--foreground)` | Foreground color for the cancel button |
+| `cancelForegroundHover` | `--cancel-foreground-hover` | `var(--foreground)` | `var(--foreground)` | Foreground color for the cancel button when hovering |
 | `inputBackground` | `--input-background` | `inherit` | `inherit` | Background color for form inputs |
 | `inputForeground` | `--input-foreground` | `inherit` | `inherit` | Foreground color for form inputs |
 | `inputBorder` | `--input-border` | `var(--border)` | `var(--border)` | Border styles for form inputs |
