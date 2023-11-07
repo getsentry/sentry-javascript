@@ -1,6 +1,11 @@
 /* eslint-disable max-lines */
-import { getCurrentHub, getDynamicSamplingContextFromClient, hasTracingEnabled } from '@sentry/core';
-import type { Client, Scope, Span } from '@sentry/types';
+import {
+  getCurrentHub,
+  getDynamicSamplingContextFromClient,
+  hasTracingEnabled,
+  instrumentFetchRequest,
+} from '@sentry/core';
+import type { Client, HandlerDataFetch, Scope, Span } from '@sentry/types';
 import {
   addInstrumentationHandler,
   BAGGAGE_HEADER_NAME,
@@ -64,26 +69,6 @@ export interface RequestInstrumentationOptions {
    * Default: (url: string) => true
    */
   shouldCreateSpanForRequest?(this: void, url: string): boolean;
-}
-
-/** Data returned from fetch callback */
-export interface FetchData {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  args: any[]; // the arguments passed to the fetch call itself
-  fetchData?: {
-    method: string;
-    url: string;
-    // span_id
-    __span?: string;
-  };
-
-  // TODO Should this be unknown instead? If we vendor types, make it a Response
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  response?: any;
-  error?: unknown;
-
-  startTimestamp: number;
-  endTimestamp?: number;
 }
 
 /** Data returned from XHR request */
@@ -154,8 +139,12 @@ export function instrumentOutgoingRequests(_options?: Partial<RequestInstrumenta
   const spans: Record<string, Span> = {};
 
   if (traceFetch) {
-    addInstrumentationHandler('fetch', (handlerData: FetchData) => {
-      const createdSpan = fetchCallback(handlerData, shouldCreateSpan, shouldAttachHeadersWithTargets, spans);
+    addInstrumentationHandler('fetch', (handlerData: HandlerDataFetch) => {
+      if (!hasTracingEnabled()) {
+        return;
+      }
+
+      const createdSpan = instrumentFetchRequest(handlerData, shouldCreateSpan, shouldAttachHeadersWithTargets, spans);
       if (enableHTTPTimings && createdSpan) {
         addHTTPTimings(createdSpan);
       }
@@ -274,95 +263,6 @@ function resourceTimingEntryToSpanData(resourceTiming: PerformanceResourceTiming
  */
 export function shouldAttachHeaders(url: string, tracePropagationTargets: (string | RegExp)[] | undefined): boolean {
   return stringMatchesSomePattern(url, tracePropagationTargets || DEFAULT_TRACE_PROPAGATION_TARGETS);
-}
-
-/**
- * Create and track fetch request spans
- *
- * @returns Span if a span was created, otherwise void.
- */
-export function fetchCallback(
-  handlerData: FetchData,
-  shouldCreateSpan: (url: string) => boolean,
-  shouldAttachHeaders: (url: string) => boolean,
-  spans: Record<string, Span>,
-): Span | undefined {
-  if (!hasTracingEnabled() || !handlerData.fetchData) {
-    return undefined;
-  }
-
-  const shouldCreateSpanResult = shouldCreateSpan(handlerData.fetchData.url);
-
-  if (handlerData.endTimestamp && shouldCreateSpanResult) {
-    const spanId = handlerData.fetchData.__span;
-    if (!spanId) return;
-
-    const span = spans[spanId];
-    if (span) {
-      if (handlerData.response) {
-        // TODO (kmclb) remove this once types PR goes through
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        span.setHttpStatus(handlerData.response.status);
-
-        const contentLength: string =
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-          handlerData.response && handlerData.response.headers && handlerData.response.headers.get('content-length');
-
-        const contentLengthNum = parseInt(contentLength);
-        if (contentLengthNum > 0) {
-          span.setData('http.response_content_length', contentLengthNum);
-        }
-      } else if (handlerData.error) {
-        span.setStatus('internal_error');
-      }
-      span.finish();
-
-      // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
-      delete spans[spanId];
-    }
-    return undefined;
-  }
-
-  const hub = getCurrentHub();
-  const scope = hub.getScope();
-  const client = hub.getClient();
-  const parentSpan = scope.getSpan();
-
-  const { method, url } = handlerData.fetchData;
-
-  const span =
-    shouldCreateSpanResult && parentSpan
-      ? parentSpan.startChild({
-          data: {
-            url,
-            type: 'fetch',
-            'http.method': method,
-          },
-          description: `${method} ${url}`,
-          op: 'http.client',
-          origin: 'auto.http.browser',
-        })
-      : undefined;
-
-  if (span) {
-    handlerData.fetchData.__span = span.spanId;
-    spans[span.spanId] = span;
-  }
-
-  if (shouldAttachHeaders(handlerData.fetchData.url) && client) {
-    const request: string | Request = handlerData.args[0];
-
-    // In case the user hasn't set the second argument of a fetch call we default it to `{}`.
-    handlerData.args[1] = handlerData.args[1] || {};
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const options: { [key: string]: any } = handlerData.args[1];
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    options.headers = addTracingHeadersToFetchRequest(request, client, scope, options, span);
-  }
-
-  return span;
 }
 
 /**

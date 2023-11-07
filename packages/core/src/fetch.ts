@@ -8,7 +8,6 @@ import {
 
 import { getCurrentHub } from './hub';
 import { getDynamicSamplingContextFromClient } from './tracing';
-import { hasTracingEnabled } from './utils/hasTracingEnabled';
 
 type PolymorphicRequestHeaders =
   | Record<string, string | undefined>
@@ -33,7 +32,7 @@ export function instrumentFetchRequest(
   spans: Record<string, Span>,
   spanOrigin: SpanOrigin = 'auto.http.browser',
 ): Span | undefined {
-  if (!hasTracingEnabled() || !handlerData.fetchData) {
+  if (!handlerData.fetchData) {
     return undefined;
   }
 
