@@ -324,7 +324,7 @@ export interface FeedbackComponent<T extends HTMLElement> {
  *   - dialog + feedback form
  *   - shadow root?
  */
-export interface Widget {
+export interface FeedbackWidget {
   actor: ActorComponent | undefined;
   dialog: DialogComponent | undefined;
 
@@ -333,6 +333,6 @@ export interface Widget {
   removeActor: () => void;
 
   openDialog: () => void;
-  hideDialog: () => void;
+  closeDialog: () => void;
   removeDialog: () => void;
 }

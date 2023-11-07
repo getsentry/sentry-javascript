@@ -1,7 +1,7 @@
 import { getCurrentHub } from '@sentry/core';
 import { logger } from '@sentry/utils';
 
-import type { FeedbackFormData, FeedbackInternalOptions, Widget } from '../types';
+import type { FeedbackFormData, FeedbackInternalOptions, FeedbackWidget } from '../types';
 import { handleFeedbackSubmit } from '../util/handleFeedbackSubmit';
 import type { ActorComponent } from './Actor';
 import { Actor } from './Actor';
@@ -10,15 +10,35 @@ import { Dialog } from './Dialog';
 import { SuccessMessage } from './SuccessMessage';
 
 interface CreateWidgetParams {
+  /**
+   * Shadow DOM to append to
+   */
   shadow: ShadowRoot;
-  options: FeedbackInternalOptions;
+
+  /**
+   * Feedback integration options
+   */
+  options: FeedbackInternalOptions & { shouldCreateActor?: boolean };
+
+  /**
+   * An element to attach to, that when clicked, will open a dialog
+   */
   attachTo?: Element;
+
+  /**
+   * If false, will not create an actor
+   */
+  shouldCreateActor?: boolean;
 }
 
 /**
  * Creates a new widget. Returns public methods that control widget behavior.
  */
-export function createWidget({ shadow, options, attachTo }: CreateWidgetParams): Widget {
+export function createWidget({
+  shadow,
+  options: { shouldCreateActor = true, ...options },
+  attachTo,
+}: CreateWidgetParams): FeedbackWidget {
   let actor: ActorComponent | undefined;
   let dialog: DialogComponent | undefined;
   let isDialogOpen: boolean = false;
@@ -159,7 +179,7 @@ export function createWidget({ shadow, options, attachTo }: CreateWidgetParams):
           }
         },
         onCancel: () => {
-          hideDialog();
+          closeDialog();
           showActor();
         },
         onSubmit: _handleFeedbackSubmit,
@@ -184,9 +204,9 @@ export function createWidget({ shadow, options, attachTo }: CreateWidgetParams):
   }
 
   /**
-   * Hides the dialog
+   * Closes the dialog
    */
-  function hideDialog(): void {
+  function closeDialog(): void {
     if (dialog) {
       dialog.close();
       isDialogOpen = false;
@@ -202,7 +222,7 @@ export function createWidget({ shadow, options, attachTo }: CreateWidgetParams):
    */
   function removeDialog(): void {
     if (dialog) {
-      hideDialog();
+      closeDialog();
       const dialogEl = dialog.el;
       dialogEl && dialogEl.remove();
       dialog = undefined;
@@ -226,11 +246,11 @@ export function createWidget({ shadow, options, attachTo }: CreateWidgetParams):
     }
   }
 
-  if (!attachTo) {
+  if (attachTo) {
+    attachTo.addEventListener('click', handleActorClick);
+  } else if (shouldCreateActor) {
     actor = Actor({ buttonLabel: options.buttonLabel, onClick: handleActorClick });
     actor.el && shadow.appendChild(actor.el);
-  } else {
-    attachTo.addEventListener('click', handleActorClick);
   }
 
   return {
@@ -246,7 +266,7 @@ export function createWidget({ shadow, options, attachTo }: CreateWidgetParams):
     removeActor,
 
     openDialog,
-    hideDialog,
+    closeDialog,
     removeDialog,
   };
 }
