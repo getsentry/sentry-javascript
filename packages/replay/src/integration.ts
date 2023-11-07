@@ -90,6 +90,7 @@ export class Replay implements Integration {
     maskFn,
 
     beforeAddRecordingEvent,
+    beforeErrorSampling,
 
     // eslint-disable-next-line deprecation/deprecation
     blockClass,
@@ -178,6 +179,7 @@ export class Replay implements Integration {
       networkRequestHeaders: _getMergedNetworkHeaders(networkRequestHeaders),
       networkResponseHeaders: _getMergedNetworkHeaders(networkResponseHeaders),
       beforeAddRecordingEvent,
+      beforeErrorSampling,
 
       _experiments,
     };

@@ -1,5 +1,6 @@
 import type {
   Breadcrumb,
+  ErrorEvent,
   FetchBreadcrumbHint,
   HandlerDataFetch,
   ReplayRecordingData,
@@ -210,6 +211,16 @@ export interface ReplayPluginOptions extends ReplayNetworkOptions {
    * continue to function.
    */
   beforeAddRecordingEvent?: BeforeAddRecordingEvent;
+
+  /**
+   * An optional callback to be called before we decide to sample based on an error.
+   * If specified, this callback will receive an error that was captured by Sentry.
+   * Return `true` to continue sampling for this error, or `false` to ignore this error for replay sampling.
+   * Note that returning `true` means that the `replaysOnErrorSampleRate` will be checked,
+   * not that it will definitely be sampled.
+   * Use this to filter out groups of errors that should def. not be sampled.
+   */
+  beforeErrorSampling?: (event: ErrorEvent) => boolean;
 
   /**
    * _experiments allows users to enable experimental or internal features.
