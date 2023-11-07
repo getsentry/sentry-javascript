@@ -185,7 +185,7 @@ export class Feedback implements Integration {
 
       this._widget = this._createWidget(this.options);
     } catch (err) {
-      logger.error(err);
+      __DEBUG_BUILD__ && logger.error(err);
     }
   }
 
@@ -201,7 +201,7 @@ export class Feedback implements Integration {
           typeof el === 'string' ? doc.querySelector(el) : typeof el.addEventListener === 'function' ? el : null;
 
         if (!targetEl) {
-          logger.error('[Feedback] Unable to attach to target element');
+          __DEBUG_BUILD__ && logger.error('[Feedback] Unable to attach to target element');
           return null;
         }
 
@@ -210,7 +210,7 @@ export class Feedback implements Integration {
         return widget;
       });
     } catch (err) {
-      logger.error(err);
+      __DEBUG_BUILD__ && logger.error(err);
       return null;
     }
   }
@@ -222,7 +222,7 @@ export class Feedback implements Integration {
     try {
       return this._createWidget(mergeOptions(this.options, optionOverrides));
     } catch (err) {
-      logger.error(err);
+      __DEBUG_BUILD__ && logger.error(err);
       return null;
     }
   }
@@ -243,7 +243,7 @@ export class Feedback implements Integration {
         return true;
       }
     } catch (err) {
-      logger.error(err);
+      __DEBUG_BUILD__ && logger.error(err);
     }
 
     return false;
