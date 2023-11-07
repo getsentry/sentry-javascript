@@ -153,6 +153,7 @@ describe('`Transaction` class', () => {
             trace: {
               span_id: transaction.spanId,
               trace_id: transaction.traceId,
+              origin: 'manual',
             },
           },
         }),
@@ -179,6 +180,7 @@ describe('`Transaction` class', () => {
             trace: {
               span_id: transaction.spanId,
               trace_id: transaction.traceId,
+              origin: 'manual',
             },
           },
         }),

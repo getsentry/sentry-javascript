@@ -98,6 +98,7 @@ describe('Integration | Scope', () => {
                 span_id: spanId,
                 status: 'ok',
                 trace_id: traceId,
+                origin: 'manual',
               },
             }),
 

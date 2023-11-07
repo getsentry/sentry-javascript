@@ -28,6 +28,7 @@ describe('NodeExperimentalTransaction', () => {
           trace: {
             span_id: expect.any(String),
             trace_id: expect.any(String),
+            origin: 'manual',
           },
         },
         spans: [],
@@ -106,6 +107,7 @@ describe('NodeExperimentalTransaction', () => {
           trace: {
             span_id: expect.any(String),
             trace_id: expect.any(String),
+            origin: 'manual',
           },
         },
         spans: [],
