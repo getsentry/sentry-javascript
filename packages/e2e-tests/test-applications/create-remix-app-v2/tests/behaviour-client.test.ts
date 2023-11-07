@@ -206,3 +206,31 @@ test('Sends a client-side ErrorBoundary exception to Sentry', async ({ page }) =
     )
     .toBe(200);
 });
+
+test('Renders `sentry-trace` and `baggage` meta tags for the root route', async ({ page }) => {
+  await page.goto('/');
+
+  const sentryTraceMetaTag = await page.waitForSelector('meta[name="sentry-trace"]', {
+    state: 'attached',
+  });
+  const baggageMetaTag = await page.waitForSelector('meta[name="baggage"]', {
+    state: 'attached',
+  });
+
+  expect(sentryTraceMetaTag).toBeTruthy();
+  expect(baggageMetaTag).toBeTruthy();
+});
+
+test('Renders `sentry-trace` and `baggage` meta tags for a sub-route', async ({ page }) => {
+  await page.goto('/user/123');
+
+  const sentryTraceMetaTag = await page.waitForSelector('meta[name="sentry-trace"]', {
+    state: 'attached',
+  });
+  const baggageMetaTag = await page.waitForSelector('meta[name="baggage"]', {
+    state: 'attached',
+  });
+
+  expect(sentryTraceMetaTag).toBeTruthy();
+  expect(baggageMetaTag).toBeTruthy();
+});
