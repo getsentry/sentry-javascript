@@ -952,7 +952,7 @@ function addValueInjectionLoader(
     SENTRY_RELEASE: buildContext.dev
       ? undefined
       : { id: sentryWebpackPluginOptions.release ?? getSentryRelease(buildContext.buildId) },
-    __sentryBasePath: userNextConfig.basePath,
+    __sentryBasePath: buildContext.dev ? userNextConfig.basePath : undefined,
   };
 
   const serverValues = {
