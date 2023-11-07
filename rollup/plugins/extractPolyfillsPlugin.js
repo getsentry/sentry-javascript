@@ -187,9 +187,7 @@ function createImportOrRequireNode(polyfillNodes, currentSourceFile, moduleForma
   // relative
   const isUtilsPackage = process.cwd().endsWith('packages/utils');
   const importSource = literal(
-    isUtilsPackage
-      ? `./${path.relative(path.dirname(currentSourceFile), 'buildPolyfills')}`
-      : `@sentry/utils/${moduleFormat}/buildPolyfills`,
+    isUtilsPackage ? `./${path.relative(path.dirname(currentSourceFile), 'buildPolyfills')}` : '@sentry/utils',
   );
 
   // This is the `x, y, z` of inside of `import { x, y, z }` or `var { x, y, z }`
