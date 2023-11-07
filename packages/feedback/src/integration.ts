@@ -188,7 +188,7 @@ export class Feedback implements Integration {
    */
   public openDialog(): void {
     if (!this._widget) {
-      this._createWidget(this.options);
+      this._createWidget({ ...this.options, shouldCreateActor: false });
     }
 
     if (!this._widget) {
@@ -213,9 +213,9 @@ export class Feedback implements Integration {
   /**
    * Adds click listener to attached element to open a feedback dialog
    */
-  public attachTo(el: Element | string, optionOverrides: OptionalFeedbackConfiguration): FeedbackWidget | null {
+  public attachTo(el: Element | string, optionOverrides?: OptionalFeedbackConfiguration): FeedbackWidget | null {
     try {
-      const options = mergeOptions(this.options, optionOverrides);
+      const options = mergeOptions(this.options, optionOverrides || {});
 
       return this._ensureShadowHost<FeedbackWidget | null>(options, ({ shadow }) => {
         const targetEl =
@@ -226,7 +226,14 @@ export class Feedback implements Integration {
           return null;
         }
 
-        return createWidget({ shadow, options, attachTo: targetEl });
+        const widget = createWidget({ shadow, options, attachTo: targetEl });
+        this._widgets.add(widget);
+
+        if (!this._widget) {
+          this._widget = widget;
+        }
+
+        return widget;
       });
     } catch (err) {
       logger.error(err);
@@ -238,21 +245,12 @@ export class Feedback implements Integration {
    * Creates a new widget. Accepts partial options to override any options passed to constructor.
    */
   public createWidget(
-    optionOverrides: OptionalFeedbackConfiguration & { shouldCreateActor?: boolean },
+    optionOverrides?: OptionalFeedbackConfiguration & { shouldCreateActor?: boolean },
   ): FeedbackWidget | null {
     try {
-      const widget = this._createWidget(mergeOptions(this.options, optionOverrides));
-
-      if (widget) {
-        this._widgets.add(widget);
-
-        if (!this._widget) {
-          this._widget = widget;
-        }
-      }
-
-      return widget;
+      return this._createWidget(mergeOptions(this.options, optionOverrides || {}));
     } catch (err) {
+      console.error(err);
       logger.error(err);
       return null;
     }
@@ -284,6 +282,13 @@ export class Feedback implements Integration {
     }
 
     return false;
+  }
+
+  /**
+   * Returns the default (first-created) widget
+   */
+  public getWidget(): FeedbackWidget | null {
+    return this._widget;
   }
 
   /**
@@ -324,13 +329,19 @@ export class Feedback implements Integration {
   /**
    * Creates a new widget, after ensuring shadow DOM exists
    */
-  protected _createWidget(options: FeedbackInternalOptions): FeedbackWidget | null {
+  protected _createWidget(options: FeedbackInternalOptions & { shouldCreateActor?: boolean }): FeedbackWidget | null {
     return this._ensureShadowHost<FeedbackWidget>(options, ({ shadow }) => {
       const widget = createWidget({ shadow, options });
 
       if (!this._hasInsertedActorStyles && widget.actor) {
         shadow.appendChild(createActorStyles(doc));
         this._hasInsertedActorStyles = true;
+      }
+
+      this._widgets.add(widget);
+
+      if (!this._widget) {
+        this._widget = widget;
       }
 
       return widget;
