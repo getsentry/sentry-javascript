@@ -1,11 +1,12 @@
 import { getCurrentHub } from '@sentry/browser';
+import { addExceptionMechanism } from '@sentry/utils';
 
-import type { Options, ViewModel, Vue } from './types';
+import type { ViewModel, Vue, VueOptions } from './types';
 import { formatComponentName, generateComponentTrace } from './vendor/components';
 
 type UnknownFunc = (...args: unknown[]) => void;
 
-export const attachErrorHandler = (app: Vue, options: Options): void => {
+export const attachErrorHandler = (app: Vue, options: VueOptions): void => {
   const { errorHandler, warnHandler, silent } = app.config;
 
   app.config.errorHandler = (error: Error, vm: ViewModel, lifecycleHook: string): void => {
@@ -31,6 +32,14 @@ export const attachErrorHandler = (app: Vue, options: Options): void => {
     setTimeout(() => {
       getCurrentHub().withScope(scope => {
         scope.setContext('vue', metadata);
+
+        scope.addEventProcessor(event => {
+          addExceptionMechanism(event, {
+            handled: false,
+          });
+          return event;
+        });
+
         getCurrentHub().captureException(error);
       });
     });

@@ -40,7 +40,7 @@ export type {
   SessionItem,
   UserFeedbackItem,
   CheckInItem,
-  CheckInEvelope,
+  CheckInEnvelope,
 } from './envelope';
 export type { ExtendedError } from './error';
 export type { Event, EventHint, EventType, ErrorEvent, TransactionEvent } from './event';
@@ -125,4 +125,4 @@ export type { Instrumenter } from './instrumenter';
 export type { HandlerDataFetch, HandlerDataXhr, SentryXhrData, SentryWrappedXMLHttpRequest } from './instrument';
 
 export type { BrowserClientReplayOptions, BrowserClientProfilingOptions } from './browseroptions';
-export type { CheckIn, MonitorConfig, SerializedCheckIn } from './checkin';
+export type { CheckIn, MonitorConfig, FinishedCheckIn, InProgressCheckIn, SerializedCheckIn } from './checkin';

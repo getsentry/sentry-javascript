@@ -298,6 +298,25 @@ describe('tracing', () => {
     expect(spans[1].data['http.fragment']).toEqual('learn-more');
   });
 
+  it('fills in span data from http.RequestOptions object', () => {
+    nock('http://dogs.are.great').get('/spaniel?tail=wag&cute=true#learn-more').reply(200);
+
+    const transaction = createTransactionOnScope();
+    const spans = (transaction as unknown as Span).spanRecorder?.spans as Span[];
+
+    http.request({ method: 'GET', host: 'dogs.are.great', path: '/spaniel?tail=wag&cute=true#learn-more' });
+
+    expect(spans.length).toEqual(2);
+
+    // our span is at index 1 because the transaction itself is at index 0
+    expect(spans[1].description).toEqual('GET http://dogs.are.great/spaniel');
+    expect(spans[1].op).toEqual('http.client');
+    expect(spans[1].data['http.method']).toEqual('GET');
+    expect(spans[1].data.url).toEqual('http://dogs.are.great/spaniel');
+    expect(spans[1].data['http.query']).toEqual('tail=wag&cute=true');
+    expect(spans[1].data['http.fragment']).toEqual('learn-more');
+  });
+
   it.each([
     ['user:pwd', '[Filtered]:[Filtered]@'],
     ['user:', '[Filtered]:@'],
@@ -321,9 +340,9 @@ describe('tracing', () => {
   describe('Tracing options', () => {
     beforeEach(() => {
       // hacky way of restoring monkey patched functions
-      // @ts-ignore TS doesn't let us assign to this but we want to
+      // @ts-expect-error TS doesn't let us assign to this but we want to
       http.get = originalHttpGet;
-      // @ts-ignore TS doesn't let us assign to this but we want to
+      // @ts-expect-error TS doesn't let us assign to this but we want to
       http.request = originalHttpRequest;
     });
 

@@ -1,5 +1,7 @@
 import { getCurrentHub } from '@sentry/core';
 import type { ReplayEvent, TransportMakeRequestResponse } from '@sentry/types';
+import type { RateLimits } from '@sentry/utils';
+import { isRateLimited, updateRateLimits } from '@sentry/utils';
 
 import { REPLAY_EVENT_NAME, UNABLE_TO_SEND_REPLAY } from '../constants';
 import type { SendReplayData } from '../types';
@@ -110,7 +112,7 @@ export async function sendReplayRequest({
 
     try {
       // In case browsers don't allow this property to be writable
-      // @ts-ignore This needs lib es2022 and newer
+      // @ts-expect-error This needs lib es2022 and newer
       error.cause = err;
     } catch {
       // nothing to do
@@ -128,6 +130,11 @@ export async function sendReplayRequest({
     throw new TransportStatusCodeError(response.statusCode);
   }
 
+  const rateLimits = updateRateLimits({}, response);
+  if (isRateLimited(rateLimits, 'replay')) {
+    throw new RateLimitError(rateLimits);
+  }
+
   return response;
 }
 
@@ -137,5 +144,17 @@ export async function sendReplayRequest({
 export class TransportStatusCodeError extends Error {
   public constructor(statusCode: number) {
     super(`Transport returned status code ${statusCode}`);
+  }
+}
+
+/**
+ * This error indicates that we hit a rate limit API error.
+ */
+export class RateLimitError extends Error {
+  public rateLimits: RateLimits;
+
+  public constructor(rateLimits: RateLimits) {
+    super('Rate limit hit');
+    this.rateLimits = rateLimits;
   }
 }

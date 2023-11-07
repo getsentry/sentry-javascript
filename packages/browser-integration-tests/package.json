@@ -1,6 +1,6 @@
 {
   "name": "@sentry-internal/browser-integration-tests",
-  "version": "7.66.0",
+  "version": "7.77.0",
   "main": "index.js",
   "license": "MIT",
   "engines": {
@@ -59,6 +59,7 @@
   "devDependencies": {
     "@types/glob": "8.0.0",
     "@types/node": "^14.6.4",
+    "@types/pako": "^2.0.0",
     "glob": "8.0.3"
   },
   "volta": {

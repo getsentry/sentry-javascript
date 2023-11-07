@@ -28,5 +28,6 @@
     {
       "mode": "auto"
     }
-  ]
+  ],
+  "deno.enablePaths": ["packages/deno/test"]
 }

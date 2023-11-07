@@ -12,6 +12,7 @@ import {
   makeNodeResolvePlugin,
   makeCleanupPlugin,
   makeSucrasePlugin,
+  makeRrwebBuildPlugin,
   makeDebugBuildStatementReplacePlugin,
   makeSetSDKSourcePlugin,
 } from './plugins/index.js';
@@ -25,14 +26,19 @@ export function makeBaseNPMConfig(options = {}) {
     esModuleInterop = false,
     hasBundles = false,
     packageSpecificConfig = {},
+    addPolyfills = true,
   } = options;
 
   const nodeResolvePlugin = makeNodeResolvePlugin();
-  const sucrasePlugin = makeSucrasePlugin();
+  const sucrasePlugin = makeSucrasePlugin({ disableESTransforms: !addPolyfills });
   const debugBuildStatementReplacePlugin = makeDebugBuildStatementReplacePlugin();
   const cleanupPlugin = makeCleanupPlugin();
   const extractPolyfillsPlugin = makeExtractPolyfillsPlugin();
   const setSdkSourcePlugin = makeSetSDKSourcePlugin('npm');
+  const rrwebBuildPlugin = makeRrwebBuildPlugin({
+    excludeShadowDom: undefined,
+    excludeIframe: undefined,
+  });
 
   const defaultBaseConfig = {
     input: entrypoints,
@@ -88,8 +94,8 @@ export function makeBaseNPMConfig(options = {}) {
       setSdkSourcePlugin,
       sucrasePlugin,
       debugBuildStatementReplacePlugin,
+      rrwebBuildPlugin,
       cleanupPlugin,
-      extractPolyfillsPlugin,
     ],
 
     // don't include imported modules from outside the package in the final output
@@ -99,6 +105,10 @@ export function makeBaseNPMConfig(options = {}) {
       ...Object.keys(packageDotJSON.peerDependencies || {}),
     ],
   };
+
+  if (addPolyfills) {
+    defaultBaseConfig.plugins.push(extractPolyfillsPlugin);
+  }
 
   return deepMerge(defaultBaseConfig, packageSpecificConfig, {
     // Plugins have to be in the correct order or everything breaks, so when merging we have to manually re-order them

@@ -1,4 +1,3 @@
-import { hasTracingEnabled } from '@sentry/core';
 import { RewriteFrames } from '@sentry/integrations';
 import type { NodeOptions } from '@sentry/node';
 import { configureScope, getCurrentHub, init as nodeInit, Integrations } from '@sentry/node';
@@ -36,6 +35,7 @@ export const ErrorBoundary = (props: React.PropsWithChildren<unknown>): React.Re
  * A passthrough error boundary wrapper for the server that doesn't depend on any react. Error boundaries don't catch
  * SSR errors so they should simply be a passthrough.
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function withErrorBoundary<P extends Record<string, any>>(
   WrappedComponent: React.ComponentType<P>,
 ): React.FC<P> {
@@ -50,7 +50,7 @@ export function showReportDialog(): void {
 }
 
 const globalWithInjectedValues = global as typeof global & {
-  __rewriteFramesDistDir__: string;
+  __rewriteFramesDistDir__?: string;
 };
 
 // TODO (v8): Remove this
@@ -63,7 +63,14 @@ const IS_VERCEL = !!process.env.VERCEL;
 
 /** Inits the Sentry NextJS SDK on node. */
 export function init(options: NodeOptions): void {
-  if (__DEBUG_BUILD__ && options.debug) {
+  const opts = {
+    environment: process.env.SENTRY_ENVIRONMENT || getVercelEnv(false) || process.env.NODE_ENV,
+    ...options,
+    // Right now we only capture frontend sessions for Next.js
+    autoSessionTracking: false,
+  };
+
+  if (__DEBUG_BUILD__ && opts.debug) {
     logger.enable();
   }
 
@@ -74,16 +81,11 @@ export function init(options: NodeOptions): void {
     return;
   }
 
-  buildMetadata(options, ['nextjs', 'node']);
+  buildMetadata(opts, ['nextjs', 'node']);
 
-  options.environment =
-    options.environment || process.env.SENTRY_ENVIRONMENT || getVercelEnv(false) || process.env.NODE_ENV;
+  addServerIntegrations(opts);
 
-  addServerIntegrations(options);
-  // Right now we only capture frontend sessions for Next.js
-  options.autoSessionTracking = false;
-
-  nodeInit(options);
+  nodeInit(opts);
 
   const filterTransactions: EventProcessor = event => {
     return event.type === 'transaction' && event.transaction === '/404' ? null : event;
@@ -117,19 +119,21 @@ function addServerIntegrations(options: NodeOptions): void {
 
   // This value is injected at build time, based on the output directory specified in the build config. Though a default
   // is set there, we set it here as well, just in case something has gone wrong with the injection.
-  const distDirName = globalWithInjectedValues.__rewriteFramesDistDir__ || '.next';
-  // nextjs always puts the build directory at the project root level, which is also where you run `next start` from, so
-  // we can read in the project directory from the currently running process
-  const distDirAbsPath = path.resolve(process.cwd(), distDirName);
-  const SOURCEMAP_FILENAME_REGEX = new RegExp(escapeStringForRegex(distDirAbsPath));
+  const distDirName = globalWithInjectedValues.__rewriteFramesDistDir__;
+  if (distDirName) {
+    // nextjs always puts the build directory at the project root level, which is also where you run `next start` from, so
+    // we can read in the project directory from the currently running process
+    const distDirAbsPath = path.resolve(distDirName).replace(/(\/|\\)$/, ''); // We strip trailing slashes because "app:///_next" also doesn't have one
+    const SOURCEMAP_FILENAME_REGEX = new RegExp(escapeStringForRegex(distDirAbsPath));
 
-  const defaultRewriteFramesIntegration = new RewriteFrames({
-    iteratee: frame => {
-      frame.filename = frame.filename?.replace(SOURCEMAP_FILENAME_REGEX, 'app:///_next');
-      return frame;
-    },
-  });
-  integrations = addOrUpdateIntegration(defaultRewriteFramesIntegration, integrations);
+    const defaultRewriteFramesIntegration = new RewriteFrames({
+      iteratee: frame => {
+        frame.filename = frame.filename?.replace(SOURCEMAP_FILENAME_REGEX, 'app:///_next');
+        return frame;
+      },
+    });
+    integrations = addOrUpdateIntegration(defaultRewriteFramesIntegration, integrations);
+  }
 
   const defaultOnUncaughtExceptionIntegration: IntegrationWithExclusionOption = new Integrations.OnUncaughtException({
     exitEvenIfOtherHandlersAreRegistered: false,
@@ -139,12 +143,10 @@ function addServerIntegrations(options: NodeOptions): void {
     _options: { exitEvenIfOtherHandlersAreRegistered: false },
   });
 
-  if (hasTracingEnabled(options)) {
-    const defaultHttpTracingIntegration = new Integrations.Http({ tracing: true });
-    integrations = addOrUpdateIntegration(defaultHttpTracingIntegration, integrations, {
-      _tracing: {},
-    });
-  }
+  const defaultHttpTracingIntegration = new Integrations.Http({ tracing: true });
+  integrations = addOrUpdateIntegration(defaultHttpTracingIntegration, integrations, {
+    _tracing: {},
+  });
 
   options.integrations = integrations;
 }

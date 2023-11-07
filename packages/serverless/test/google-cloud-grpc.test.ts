@@ -12,7 +12,7 @@ import * as path from 'path';
 import { GoogleCloudGrpc } from '../src/google-cloud-grpc';
 
 /**
- * Why @ts-ignore some Sentry.X calls
+ * Why @ts-expect-error some Sentry.X calls
  *
  * A hack-ish way to contain everything related to mocks in the same __mocks__ file.
  * Thanks to this, we don't have to do more magic than necessary. Just add and export desired method and assert on it.
@@ -85,7 +85,7 @@ describe('GoogleCloudGrpc tracing', () => {
     nock('https://www.googleapis.com').post('/oauth2/v4/token').reply(200, []);
   });
   afterEach(() => {
-    // @ts-ignore see "Why @ts-ignore" note
+    // @ts-expect-error see "Why @ts-expect-error" note
     SentryNode.resetMocks();
     spyConnect.mockClear();
   });
@@ -96,9 +96,9 @@ describe('GoogleCloudGrpc tracing', () => {
 
   // We use google cloud pubsub as an example of grpc service for which we can trace requests.
   describe('pubsub', () => {
-    // @ts-ignore see "Why @ts-ignore" note
+    // @ts-expect-error see "Why @ts-expect-error" note
     const dnsLookup = dns.lookup as jest.Mock;
-    // @ts-ignore see "Why @ts-ignore" note
+    // @ts-expect-error see "Why @ts-expect-error" note
     const resolveTxt = dns.resolveTxt as jest.Mock;
     dnsLookup.mockImplementation((hostname, ...args) => {
       expect(hostname).toEqual('pubsub.googleapis.com');
@@ -126,7 +126,7 @@ describe('GoogleCloudGrpc tracing', () => {
       mockHttp2Session().mockUnaryRequest(Buffer.from('00000000120a1031363337303834313536363233383630', 'hex'));
       const resp = await pubsub.topic('nicetopic').publish(Buffer.from('data'));
       expect(resp).toEqual('1637084156623860');
-      // @ts-ignore see "Why @ts-ignore" note
+      // @ts-expect-error see "Why @ts-expect-error" note
       expect(SentryNode.fakeTransaction.startChild).toBeCalledWith({
         op: 'grpc.pubsub',
         origin: 'auto.grpc.serverless',

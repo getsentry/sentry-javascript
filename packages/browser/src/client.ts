@@ -30,7 +30,9 @@ export type BrowserOptions = Options<BrowserTransportOptions> &
  * Configuration options for the Sentry Browser SDK Client class
  * @see BrowserClient for more information.
  */
-export type BrowserClientOptions = ClientOptions<BrowserTransportOptions>;
+export type BrowserClientOptions = ClientOptions<BrowserTransportOptions> &
+  BrowserClientReplayOptions &
+  BrowserClientProfilingOptions;
 
 /**
  * The Sentry Browser SDK Client.
@@ -125,6 +127,7 @@ export class BrowserClient extends BaseClient<BrowserClientOptions> {
       return;
     }
 
+    // This is really the only place where we want to check for a DSN and only send outcomes then
     if (!this._dsn) {
       __DEBUG_BUILD__ && logger.log('No dsn provided, will not send outcomes');
       return;

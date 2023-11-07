@@ -79,7 +79,7 @@ export class RequestData implements Integration {
       ...DEFAULT_OPTIONS,
       ...options,
       include: {
-        // @ts-ignore It's mad because `method` isn't a known `include` key. (It's only here and not set by default in
+        // @ts-expect-error It's mad because `method` isn't a known `include` key. (It's only here and not set by default in
         // `addRequestDataToEvent` for legacy reasons. TODO (v8): Change that.)
         method: true,
         ...DEFAULT_OPTIONS.include,

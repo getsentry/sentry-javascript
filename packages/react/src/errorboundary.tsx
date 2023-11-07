@@ -1,6 +1,6 @@
 import type { ReportDialogOptions, Scope } from '@sentry/browser';
 import { captureException, getCurrentHub, showReportDialog, withScope } from '@sentry/browser';
-import { isError, logger } from '@sentry/utils';
+import { addExceptionMechanism, isError, logger } from '@sentry/utils';
 import hoistNonReactStatics from 'hoist-non-react-statics';
 import * as React from 'react';
 
@@ -128,7 +128,7 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
       // See: https://github.com/getsentry/sentry-javascript/issues/6167
       if (isAtLeastReact17(React.version) && isError(error)) {
         const errorBoundaryError = new Error(error.message);
-        errorBoundaryError.name = `React ErrorBoundary ${errorBoundaryError.name}`;
+        errorBoundaryError.name = `React ErrorBoundary ${error.name}`;
         errorBoundaryError.stack = componentStack;
 
         // Using the `LinkedErrors` integration to link the errors together.
@@ -138,7 +138,14 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
       if (beforeCapture) {
         beforeCapture(scope, error, componentStack);
       }
+
+      scope.addEventProcessor(event => {
+        addExceptionMechanism(event, { handled: false })
+        return event;
+      })
+
       const eventId = captureException(error, { contexts: { react: { componentStack } } });
+
       if (onError) {
         onError(error, componentStack, eventId);
       }

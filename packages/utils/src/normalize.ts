@@ -1,6 +1,6 @@
 import type { Primitive } from '@sentry/types';
 
-import { isNaN, isSyntheticEvent } from './is';
+import { isNaN, isSyntheticEvent, isVueViewModel } from './is';
 import type { MemoFunc } from './memo';
 import { memoBuilder } from './memo';
 import { convertToPlainObject } from './object';
@@ -169,7 +169,9 @@ function visit(
   return normalized;
 }
 
-// TODO remove this in v7 (this means the method will no longer be exported, under any name)
+/**
+ * @deprecated This export will be removed in v8.
+ */
 export { visit as walk };
 
 /* eslint-disable complexity */
@@ -212,6 +214,10 @@ function stringifyValue(
     // eslint-disable-next-line no-restricted-globals
     if (typeof document !== 'undefined' && value === document) {
       return '[Document]';
+    }
+
+    if (isVueViewModel(value)) {
+      return '[VueViewModel]';
     }
 
     // React's SyntheticEvent thingy

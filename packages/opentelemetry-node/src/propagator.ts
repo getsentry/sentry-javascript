@@ -13,7 +13,7 @@ import {
   SENTRY_TRACE_HEADER,
   SENTRY_TRACE_PARENT_CONTEXT_KEY,
 } from './constants';
-import { SENTRY_SPAN_PROCESSOR_MAP } from './spanprocessor';
+import { getSentrySpan } from './utils/spanMap';
 
 /**
  * Injects and extracts `sentry-trace` and `baggage` headers from carriers.
@@ -30,7 +30,7 @@ export class SentryPropagator extends W3CBaggagePropagator {
 
     let baggage = propagation.getBaggage(context) || propagation.createBaggage({});
 
-    const span = SENTRY_SPAN_PROCESSOR_MAP.get(spanContext.spanId);
+    const span = getSentrySpan(spanContext.spanId);
     if (span) {
       setter.set(carrier, SENTRY_TRACE_HEADER, span.toTraceparent());
 

@@ -17,7 +17,7 @@ sentryTest('should update session when an error is thrown.', async ({ getLocalTe
   expect(updatedSession).toBeDefined();
   expect(updatedSession.init).toBe(false);
   expect(updatedSession.errors).toBe(1);
-  expect(updatedSession.status).toBe('ok');
+  expect(updatedSession.status).toBe('crashed');
   expect(pageloadSession.sid).toBe(updatedSession.sid);
 });
 

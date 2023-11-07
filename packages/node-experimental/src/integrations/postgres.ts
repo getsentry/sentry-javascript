@@ -1,8 +1,8 @@
 import type { Instrumentation } from '@opentelemetry/instrumentation';
 import { PgInstrumentation } from '@opentelemetry/instrumentation-pg';
-import { addOtelSpanData } from '@sentry/opentelemetry-node';
 import type { Integration } from '@sentry/types';
 
+import { addOriginToSpan } from '../utils/addOriginToSpan';
 import { NodePerformanceIntegration } from './NodePerformanceIntegration';
 
 /**
@@ -30,10 +30,9 @@ export class Postgres extends NodePerformanceIntegration<void> implements Integr
   public setupInstrumentation(): void | Instrumentation[] {
     return [
       new PgInstrumentation({
+        requireParentSpan: true,
         requestHook(span) {
-          addOtelSpanData(span.spanContext().spanId, {
-            origin: 'auto.db.otel-postgres',
-          });
+          addOriginToSpan(span, 'auto.db.otel.postgres');
         },
       }),
     ];

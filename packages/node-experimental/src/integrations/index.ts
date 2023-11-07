@@ -4,7 +4,6 @@ const {
   Console,
   OnUncaughtException,
   OnUnhandledRejection,
-  LinkedErrors,
   Modules,
   ContextLines,
   Context,
@@ -16,7 +15,6 @@ export {
   Console,
   OnUncaughtException,
   OnUnhandledRejection,
-  LinkedErrors,
   Modules,
   ContextLines,
   Context,
@@ -26,6 +24,7 @@ export {
 
 export { Express } from './express';
 export { Http } from './http';
+export { NodeFetch } from './node-fetch';
 export { Fastify } from './fastify';
 export { GraphQL } from './graphql';
 export { Mongo } from './mongo';

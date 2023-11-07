@@ -1,3 +1,4 @@
+import { getCurrentHub, isSentryRequestUrl } from '@sentry/core';
 import type {
   Event as SentryEvent,
   EventProcessor,
@@ -346,29 +347,17 @@ export class HttpClient implements Integration {
   }
 
   /**
-   * Checks whether given url points to Sentry server
-   *
-   * @param url url to verify
-   */
-  private _isSentryRequest(url: string): boolean {
-    const client = this._getCurrentHub && this._getCurrentHub().getClient();
-
-    if (!client) {
-      return false;
-    }
-
-    const dsn = client.getDsn();
-    return dsn ? url.includes(dsn.host) : false;
-  }
-
-  /**
    * Checks whether to capture given response as an event
    *
    * @param status response status code
    * @param url response url
    */
   private _shouldCaptureResponse(status: number, url: string): boolean {
-    return this._isInGivenStatusRanges(status) && this._isInGivenRequestTargets(url) && !this._isSentryRequest(url);
+    return (
+      this._isInGivenStatusRanges(status) &&
+      this._isInGivenRequestTargets(url) &&
+      !isSentryRequestUrl(url, getCurrentHub())
+    );
   }
 
   /**
@@ -416,6 +405,7 @@ export class HttpClient implements Integration {
 
     addExceptionMechanism(event, {
       type: 'http.client',
+      handled: false,
     });
 
     return event;

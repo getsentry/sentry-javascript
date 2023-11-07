@@ -1,8 +1,8 @@
-// @ts-ignore Because we cannot be sure if the RequestAsyncStorage module exists (it is not part of the Next.js public
+// @ts-expect-error Because we cannot be sure if the RequestAsyncStorage module exists (it is not part of the Next.js public
 // API) we use a shim if it doesn't exist. The logic for this is in the wrapping loader.
 // eslint-disable-next-line import/no-unresolved
 import { requestAsyncStorage } from '__SENTRY_NEXTJS_REQUEST_ASYNC_STORAGE_SHIM__';
-// @ts-ignore See above
+// @ts-expect-error See above
 // eslint-disable-next-line import/no-unresolved
 import * as routeModule from '__SENTRY_WRAPPING_TARGET_FILE__';
 // eslint-disable-next-line import/no-extraneous-dependencies
@@ -13,7 +13,6 @@ import type { RequestAsyncStorage } from './requestAsyncStorageShim';
 declare const requestAsyncStorage: RequestAsyncStorage;
 
 declare const routeModule: {
-  default: unknown;
   GET?: (...args: unknown[]) => unknown;
   POST?: (...args: unknown[]) => unknown;
   PUT?: (...args: unknown[]) => unknown;
@@ -59,6 +58,14 @@ function wrapHandler<T>(handler: T, method: 'GET' | 'POST' | 'PUT' | 'PATCH' | '
   });
 }
 
+// @ts-expect-error See above
+// eslint-disable-next-line import/no-unresolved
+export * from '__SENTRY_WRAPPING_TARGET_FILE__';
+
+// @ts-expect-error This is the file we're wrapping
+// eslint-disable-next-line import/no-unresolved
+export { default } from '__SENTRY_WRAPPING_TARGET_FILE__';
+
 export const GET = wrapHandler(routeModule.GET, 'GET');
 export const POST = wrapHandler(routeModule.POST, 'POST');
 export const PUT = wrapHandler(routeModule.PUT, 'PUT');
@@ -66,10 +73,3 @@ export const PATCH = wrapHandler(routeModule.PATCH, 'PATCH');
 export const DELETE = wrapHandler(routeModule.DELETE, 'DELETE');
 export const HEAD = wrapHandler(routeModule.HEAD, 'HEAD');
 export const OPTIONS = wrapHandler(routeModule.OPTIONS, 'OPTIONS');
-
-// Re-export anything exported by the page module we're wrapping. When processing this code, Rollup is smart enough to
-// not include anything whose name matchs something we've explicitly exported above.
-// @ts-ignore See above
-// eslint-disable-next-line import/no-unresolved
-export * from '__SENTRY_WRAPPING_TARGET_FILE__';
-export default routeModule.default;

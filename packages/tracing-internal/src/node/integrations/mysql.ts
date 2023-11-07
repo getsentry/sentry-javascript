@@ -1,5 +1,5 @@
 import type { Hub } from '@sentry/core';
-import type { EventProcessor } from '@sentry/types';
+import type { EventProcessor, Span } from '@sentry/types';
 import { fill, loadModule, logger } from '@sentry/utils';
 
 import type { LazyLoadedIntegration } from './lazy';
@@ -83,6 +83,19 @@ export class Mysql implements LazyLoadedIntegration<MysqlConnection> {
       };
     }
 
+    function finishSpan(span: Span | undefined): void {
+      if (!span || span.endTimestamp) {
+        return;
+      }
+
+      const data = spanDataFromConfig();
+      Object.keys(data).forEach(key => {
+        span.setData(key, data[key]);
+      });
+
+      span.finish();
+    }
+
     // The original function will have one of these signatures:
     //    function (callback) => void
     //    function (options, callback) => void
@@ -90,32 +103,39 @@ export class Mysql implements LazyLoadedIntegration<MysqlConnection> {
     fill(pkg, 'createQuery', function (orig: () => void) {
       return function (this: unknown, options: unknown, values: unknown, callback: unknown) {
         const scope = getCurrentHub().getScope();
-        const parentSpan = scope?.getSpan();
+        const parentSpan = scope.getSpan();
+
         const span = parentSpan?.startChild({
           description: typeof options === 'string' ? options : (options as { sql: string }).sql,
           op: 'db',
           origin: 'auto.db.mysql',
           data: {
-            ...spanDataFromConfig(),
             'db.system': 'mysql',
           },
         });
 
         if (typeof callback === 'function') {
           return orig.call(this, options, values, function (err: Error, result: unknown, fields: unknown) {
-            span?.finish();
+            finishSpan(span);
             callback(err, result, fields);
           });
         }
 
         if (typeof values === 'function') {
           return orig.call(this, options, function (err: Error, result: unknown, fields: unknown) {
-            span?.finish();
+            finishSpan(span);
             values(err, result, fields);
           });
         }
 
-        return orig.call(this, options, values, callback);
+        // streaming, no callback!
+        const query = orig.call(this, options, values) as { on: (event: string, callback: () => void) => void };
+
+        query.on('end', () => {
+          finishSpan(span);
+        });
+
+        return query;
       };
     });
   }

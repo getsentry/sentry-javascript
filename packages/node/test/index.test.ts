@@ -1,4 +1,4 @@
-import { getMainCarrier, initAndBind, runWithAsyncContext, SDK_VERSION } from '@sentry/core';
+import { getMainCarrier, initAndBind, LinkedErrors, runWithAsyncContext, SDK_VERSION } from '@sentry/core';
 import type { EventHint, Integration } from '@sentry/types';
 
 import type { Event, Scope } from '../src';
@@ -13,7 +13,7 @@ import {
   NodeClient,
 } from '../src';
 import { setNodeAsyncContextStrategy } from '../src/async';
-import { ContextLines, LinkedErrors } from '../src/integrations';
+import { ContextLines } from '../src/integrations';
 import { defaultStackParser } from '../src/sdk';
 import type { NodeClientOptions } from '../src/types';
 import { getDefaultNodeClientOptions } from './helper/node-client-options';
@@ -316,7 +316,6 @@ describe('SentryNode', () => {
       });
       getCurrentHub().bindClient(new NodeClient(options));
       try {
-        // @ts-ignore allow function declarations in strict mode
         // eslint-disable-next-line no-inner-declarations
         function testy(): void {
           throw new Error('test');

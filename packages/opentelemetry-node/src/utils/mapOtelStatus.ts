@@ -1,3 +1,4 @@
+import { SpanStatusCode } from '@opentelemetry/api';
 import type { Span as OtelSpan } from '@opentelemetry/sdk-trace-base';
 import { SemanticAttributes } from '@opentelemetry/semantic-conventions';
 import type { SpanStatusType as SentryStatus } from '@sentry/core';
@@ -65,7 +66,7 @@ export function mapOtelStatus(otelSpan: OtelSpan): SentryStatus {
   }
 
   const statusCode = status.code;
-  if (statusCode === 0 || statusCode === 1) {
+  if (statusCode === SpanStatusCode.OK || statusCode === SpanStatusCode.UNSET) {
     return 'ok';
   }
 

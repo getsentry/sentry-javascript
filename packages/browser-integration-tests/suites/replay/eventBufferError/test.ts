@@ -5,6 +5,7 @@ import { envelopeRequestParser } from '../../../utils/helpers';
 import {
   getDecompressedRecordingEvents,
   getReplaySnapshot,
+  isCustomSnapshot,
   isReplayEvent,
   REPLAY_DEFAULT_FLUSH_MAX_DELAY,
   shouldSkipReplayTest,
@@ -41,8 +42,8 @@ sentryTest(
       // We only want to count replays here
       if (event && isReplayEvent(event)) {
         const events = getDecompressedRecordingEvents(route.request());
-        // this makes sure we ignore e.g. mouse move events which can otherwise lead to flakes
-        if (events.length > 0) {
+        // Make sure to not count mouse moves or performance spans
+        if (events.filter(event => !isCustomSnapshot(event) || event.data.tag !== 'performanceSpan').length > 0) {
           called++;
         }
       }

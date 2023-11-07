@@ -23,11 +23,11 @@ jobs:
     timeout-minutes: 30
     steps:
       - name: Check out current commit
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version-file: 'package.json'
       - name: Check canary cache
@@ -82,14 +82,14 @@ jobs:
 
     steps:
       - name: Check out current commit
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - uses: pnpm/action-setup@v2
         with:
           version: 8.3.1
       - name: Set up Node
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version-file: 'package.json'
 
@@ -148,11 +148,11 @@ jobs:
         scenario: [ember-release, embroider-optimized, ember-4.0]
     steps:
       - name: 'Check out current commit'
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version-file: 'package.json'
       - name: Install dependencies

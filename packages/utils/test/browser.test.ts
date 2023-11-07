@@ -4,7 +4,7 @@ import { getDomElement, htmlTreeAsString } from '../src/browser';
 
 beforeAll(() => {
   const dom = new JSDOM();
-  // @ts-ignore need to override global document
+  // @ts-expect-error need to override global document
   global.document = dom.window.document;
 });
 
@@ -23,6 +23,10 @@ describe('htmlTreeAsString', () => {
     expect(htmlTreeAsString(document.getElementById('err-btn'))).toBe(
       'body > ul > li.container > button#err-btn.button',
     );
+  });
+
+  it('generates unknown for an empty element', () => {
+    expect(htmlTreeAsString(undefined)).toBe('<unknown>');
   });
 
   it('inserts pre-defined attribute values by default', () => {

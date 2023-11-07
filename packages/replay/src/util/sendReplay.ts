@@ -2,7 +2,7 @@ import { captureException, setContext } from '@sentry/core';
 
 import { RETRY_BASE_INTERVAL, RETRY_MAX_COUNT, UNABLE_TO_SEND_REPLAY } from '../constants';
 import type { SendReplayData } from '../types';
-import { sendReplayRequest, TransportStatusCodeError } from './sendReplayRequest';
+import { RateLimitError, sendReplayRequest, TransportStatusCodeError } from './sendReplayRequest';
 
 /**
  * Finalize and send the current replay event to Sentry
@@ -25,7 +25,7 @@ export async function sendReplay(
     await sendReplayRequest(replayData);
     return true;
   } catch (err) {
-    if (err instanceof TransportStatusCodeError) {
+    if (err instanceof TransportStatusCodeError || err instanceof RateLimitError) {
       throw err;
     }
 
@@ -45,7 +45,7 @@ export async function sendReplay(
 
       try {
         // In case browsers don't allow this property to be writable
-        // @ts-ignore This needs lib es2022 and newer
+        // @ts-expect-error This needs lib es2022 and newer
         error.cause = err;
       } catch {
         // nothing to do

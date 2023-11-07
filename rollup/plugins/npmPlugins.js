@@ -16,9 +16,10 @@ import sucrase from '@rollup/plugin-sucrase';
  *
  * @returns An instance of the `@rollup/plugin-sucrase` plugin
  */
-export function makeSucrasePlugin() {
+export function makeSucrasePlugin(options = {}) {
   return sucrase({
     transforms: ['typescript', 'jsx'],
+    ...options,
   });
 }
 
@@ -101,6 +102,31 @@ export function makeDebugBuildStatementReplacePlugin() {
     values: {
       __DEBUG_BUILD__: "(typeof __SENTRY_DEBUG__ === 'undefined' || __SENTRY_DEBUG__)",
     },
+  });
+}
+
+/**
+ * Creates a plugin to replace build flags of rrweb with either a constant (if passed true/false) or with a safe statement that:
+ * a) evaluates to `true`
+ * b) can easily be modified by our users' bundlers to evaluate to false, facilitating the treeshaking of logger code.
+ *
+ * When `undefined` is passed,
+ * end users can define e.g. `__RRWEB_EXCLUDE_SHADOW_DOM__` in their bundler to shake out shadow dom specific rrweb code.
+ */
+export function makeRrwebBuildPlugin({ excludeShadowDom, excludeIframe } = {}) {
+  const values = {};
+
+  if (typeof excludeShadowDom === 'boolean') {
+    values['__RRWEB_EXCLUDE_SHADOW_DOM__'] = excludeShadowDom;
+  }
+
+  if (typeof excludeIframe === 'boolean') {
+    values['__RRWEB_EXCLUDE_IFRAME__'] = excludeIframe;
+  }
+
+  return replace({
+    preventAssignment: true,
+    values,
   });
 }
 

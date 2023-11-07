@@ -78,6 +78,9 @@ describe('BaseClient', () => {
     });
 
     test('handles being passed an invalid Dsn', () => {
+      // Hide warning logs in the test
+      jest.spyOn(console, 'error').mockImplementation(() => {});
+
       const options = getDefaultTestClientOptions({ dsn: 'abc' });
       const client = new TestClient(options);
 
@@ -398,30 +401,6 @@ describe('BaseClient', () => {
   });
 
   describe('captureEvent() / prepareEvent()', () => {
-    test('skips when disabled', () => {
-      expect.assertions(1);
-
-      const options = getDefaultTestClientOptions({ enabled: false, dsn: PUBLIC_DSN });
-      const client = new TestClient(options);
-      const scope = new Scope();
-
-      client.captureEvent({}, undefined, scope);
-
-      expect(TestClient.instance!.event).toBeUndefined();
-    });
-
-    test('skips without a Dsn', () => {
-      expect.assertions(1);
-
-      const options = getDefaultTestClientOptions({});
-      const client = new TestClient(options);
-      const scope = new Scope();
-
-      client.captureEvent({}, undefined, scope);
-
-      expect(TestClient.instance!.event).toBeUndefined();
-    });
-
     test.each([
       ['`Error` instance', new Error('Will I get caught twice?')],
       ['plain object', { 'Will I': 'get caught twice?' }],
@@ -722,7 +701,7 @@ describe('BaseClient', () => {
     test('skips empty integrations', () => {
       const options = getDefaultTestClientOptions({
         dsn: PUBLIC_DSN,
-        // @ts-ignore we want to force invalid integrations here
+        // @ts-expect-error we want to force invalid integrations here
         integrations: [new TestIntegration(), null, undefined],
       });
       const client = new TestClient(options);
@@ -1046,7 +1025,7 @@ describe('BaseClient', () => {
 
       for (const val of invalidValues) {
         const beforeSend = jest.fn(() => val);
-        // @ts-ignore we need to test regular-js behavior
+        // @ts-expect-error we need to test regular-js behavior
         const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, beforeSend });
         const client = new TestClient(options);
         const loggerWarnSpy = jest.spyOn(logger, 'warn');
@@ -1067,7 +1046,7 @@ describe('BaseClient', () => {
 
       for (const val of invalidValues) {
         const beforeSendTransaction = jest.fn(() => val);
-        // @ts-ignore we need to test regular-js behavior
+        // @ts-expect-error we need to test regular-js behavior
         const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, beforeSendTransaction });
         const client = new TestClient(options);
         const loggerWarnSpy = jest.spyOn(logger, 'warn');
@@ -1616,9 +1595,9 @@ describe('BaseClient', () => {
 
     test('close', async () => {
       jest.useRealTimers();
-      expect.assertions(2);
+      expect.assertions(4);
 
-      const { makeTransport, delay } = makeFakeTransport(300);
+      const { makeTransport, delay, getSentCount } = makeFakeTransport(300);
 
       const client = new TestClient(
         getDefaultTestClientOptions({
@@ -1630,9 +1609,12 @@ describe('BaseClient', () => {
       expect(client.captureMessage('test')).toBeTruthy();
 
       await client.close(delay);
+      expect(getSentCount()).toBe(1);
 
+      expect(client.captureMessage('test')).toBeTruthy();
+      await client.close(delay);
       // Sends after close shouldn't work anymore
-      expect(client.captureMessage('test')).toBeFalsy();
+      expect(getSentCount()).toBe(1);
     });
 
     test('multiple concurrent flush calls should just work', async () => {
@@ -1797,18 +1779,6 @@ describe('BaseClient', () => {
       client.captureSession(session);
 
       expect(TestClient.instance!.session).toEqual(session);
-    });
-
-    test('skips when disabled', () => {
-      expect.assertions(1);
-
-      const options = getDefaultTestClientOptions({ enabled: false, dsn: PUBLIC_DSN });
-      const client = new TestClient(options);
-      const session = makeSession({ release: 'test' });
-
-      client.captureSession(session);
-
-      expect(TestClient.instance!.session).toBeUndefined();
     });
   });
 

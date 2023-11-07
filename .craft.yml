@@ -24,6 +24,10 @@ targets:
   - name: npm
     id: '@sentry/replay'
     includeNames: /^sentry-replay-\d.*\.tgz$/
+  ## 1.6. OpenTelemetry package
+  - name: npm
+    id: '@sentry/opentelemetry'
+    includeNames: /^sentry-opentelemetry-\d.*\.tgz$/
 
   ## 2. Browser & Node SDKs
   - name: npm
@@ -59,15 +63,34 @@ targets:
     id: '@sentry/integrations'
     includeNames: /^sentry-integrations-\d.*\.tgz$/
 
-  ## 4. Node-based Packages
+  ## 4. WinterCG Packages
+  - name: npm
+    id: '@sentry/vercel-edge'
+    includeNames: /^sentry-vercel-edge-\d.*\.tgz$/
+  - name: npm
+    id: '@sentry/deno'
+    includeNames: /^sentry-deno-\d.*\.tgz$/
+  - name: commit-on-git-repository
+    # This will publish on the Deno registry
+    id: getsentry/deno
+    archive: /^sentry-deno-\d.*\.tgz$/
+    repositoryUrl: https://github.com/getsentry/sentry-deno.git
+    stripComponents: 1
+    branch: main
+    createTag: true
+
+  ## 5. Node-based Packages
   - name: npm
     id: '@sentry/serverless'
     includeNames: /^sentry-serverless-\d.*\.tgz$/
   - name: npm
     id: '@sentry/opentelemetry-node'
     includeNames: /^sentry-opentelemetry-node-\d.*\.tgz$/
+  - name: npm
+    id: '@sentry/bun'
+    includeNames: /^sentry-bun-\d.*\.tgz$/
 
-  ## 5. Fullstack/Meta Frameworks (depending on Node and Browser or Framework SDKs)
+  ## 6. Fullstack/Meta Frameworks (depending on Node and Browser or Framework SDKs)
   - name: npm
     id: '@sentry/nextjs'
     includeNames: /^sentry-nextjs-\d.*\.tgz$/
@@ -80,21 +103,24 @@ targets:
   - name: npm
     id: '@sentry/gatsby'
     includeNames: /^sentry-gatsby-\d.*\.tgz$/
+  - name: npm
+    id: '@sentry/astro'
+    includeNames: /^sentry-astro-\d.*\.tgz$/
 
-  ## 6. Other Packages
-  ## 6.1
+  ## 7. Other Packages
+  ## 7.1
   - name: npm
     id: '@sentry-internal/typescript'
     includeNames: /^sentry-internal-typescript-\d.*\.tgz$/
   - name: npm
     id: '@sentry-internal/eslint-plugin-sdk'
     includeNames: /^sentry-internal-eslint-plugin-sdk-\d.*\.tgz$/
-  ## 6.2
+  ## 7.2
   - name: npm
     id: '@sentry-internal/eslint-config-sdk'
     includeNames: /^sentry-internal-eslint-config-sdk-\d.*\.tgz$/
 
-  ## 7. Deprecated packages we still release (but no packages depend on them anymore)
+  ## 8. Deprecated packages we still release (but no packages depend on them anymore)
   - name: npm
     id: '@sentry/hub'
     includeNames: /^sentry-hub-\d.*\.tgz$/
@@ -102,7 +128,7 @@ targets:
     id: '@sentry/tracing'
     includeNames: /^sentry-tracing-\d.*\.tgz$/
 
-  ## 8. Experimental packages
+  ## 9. Experimental packages
   - name: npm
     id: '@sentry/node-experimental'
     includeNames: /^sentry-node-experimental-\d.*\.tgz$/
@@ -156,6 +182,8 @@ targets:
         onlyIfPresent: /^sentry-angular-ivy-\d.*\.tgz$/
       'npm:@sentry/angular':
         onlyIfPresent: /^sentry-angular-\d.*\.tgz$/
+      'npm:@sentry/astro':
+        onlyIfPresent: /^sentry-astro-\d.*\.tgz$/
       'npm:@sentry/wasm':
         onlyIfPresent: /^sentry-wasm-\d.*\.tgz$/
       'npm:@sentry/nextjs':
@@ -168,3 +196,9 @@ targets:
         onlyIfPresent: /^sentry-sveltekit-\d.*\.tgz$/
       'npm:@sentry/opentelemetry-node':
         onlyIfPresent: /^sentry-opentelemetry-node-\d.*\.tgz$/
+      'npm:@sentry/bun':
+        onlyIfPresent: /^sentry-bun-\d.*\.tgz$/
+      'npm:@sentry/vercel-edge':
+        onlyIfPresent: /^sentry-vercel-edge-\d.*\.tgz$/
+      'npm:@sentry/ember':
+        onlyIfPresent: /^sentry-ember-\d.*\.tgz$/

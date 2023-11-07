@@ -12,6 +12,7 @@ import type {
   Event,
   EventDropReason,
   EventHint,
+  EventProcessor,
   Integration,
   IntegrationClass,
   Outcome,
@@ -107,6 +108,8 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   // eslint-disable-next-line @typescript-eslint/ban-types
   private _hooks: Record<string, Function[]>;
 
+  private _eventProcessors: EventProcessor[];
+
   /**
    * Initializes this client instance.
    *
@@ -119,11 +122,12 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
     this._numProcessing = 0;
     this._outcomes = {};
     this._hooks = {};
+    this._eventProcessors = [];
 
     if (options.dsn) {
       this._dsn = makeDsn(options.dsn);
     } else {
-      __DEBUG_BUILD__ && logger.warn('No DSN provided, client will not do anything.');
+      __DEBUG_BUILD__ && logger.warn('No DSN provided, client will not send events.');
     }
 
     if (this._dsn) {
@@ -212,11 +216,6 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
    * @inheritDoc
    */
   public captureSession(session: Session): void {
-    if (!this._isEnabled()) {
-      __DEBUG_BUILD__ && logger.warn('SDK not enabled, will not capture session.');
-      return;
-    }
-
     if (!(typeof session.release === 'string')) {
       __DEBUG_BUILD__ && logger.warn('Discarded session because of missing or non-string release');
     } else {
@@ -280,12 +279,22 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
     });
   }
 
+  /** Get all installed event processors. */
+  public getEventProcessors(): EventProcessor[] {
+    return this._eventProcessors;
+  }
+
+  /** @inheritDoc */
+  public addEventProcessor(eventProcessor: EventProcessor): void {
+    this._eventProcessors.push(eventProcessor);
+  }
+
   /**
    * Sets up the integrations
    */
-  public setupIntegrations(): void {
-    if (this._isEnabled() && !this._integrationsInitialized) {
-      this._integrations = setupIntegrations(this._options.integrations);
+  public setupIntegrations(forceInitialize?: boolean): void {
+    if ((forceInitialize && !this._integrationsInitialized) || (this._isEnabled() && !this._integrationsInitialized)) {
+      this._integrations = setupIntegrations(this, this._options.integrations);
       this._integrationsInitialized = true;
     }
   }
@@ -315,7 +324,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
    * @inheritDoc
    */
   public addIntegration(integration: Integration): void {
-    setupIntegration(integration, this._integrations);
+    setupIntegration(this, integration, this._integrations);
   }
 
   /**
@@ -324,23 +333,21 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   public sendEvent(event: Event, hint: EventHint = {}): void {
     this.emit('beforeSendEvent', event, hint);
 
-    if (this._dsn) {
-      let env = createEventEnvelope(event, this._dsn, this._options._metadata, this._options.tunnel);
+    let env = createEventEnvelope(event, this._dsn, this._options._metadata, this._options.tunnel);
 
-      for (const attachment of hint.attachments || []) {
-        env = addItemToEnvelope(
-          env,
-          createAttachmentEnvelopeItem(
-            attachment,
-            this._options.transportOptions && this._options.transportOptions.textEncoder,
-          ),
-        );
-      }
+    for (const attachment of hint.attachments || []) {
+      env = addItemToEnvelope(
+        env,
+        createAttachmentEnvelopeItem(
+          attachment,
+          this._options.transportOptions && this._options.transportOptions.textEncoder,
+        ),
+      );
+    }
 
-      const promise = this._sendEnvelope(env);
-      if (promise) {
-        promise.then(sendResponse => this.emit('afterSendEvent', event, sendResponse), null);
-      }
+    const promise = this._sendEnvelope(env);
+    if (promise) {
+      promise.then(sendResponse => this.emit('afterSendEvent', event, sendResponse), null);
     }
   }
 
@@ -348,10 +355,8 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
    * @inheritDoc
    */
   public sendSession(session: Session | SessionAggregates): void {
-    if (this._dsn) {
-      const env = createSessionEnvelope(session, this._dsn, this._options._metadata, this._options.tunnel);
-      void this._sendEnvelope(env);
-    }
+    const env = createSessionEnvelope(session, this._dsn, this._options._metadata, this._options.tunnel);
+    void this._sendEnvelope(env);
   }
 
   /**
@@ -376,15 +381,22 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   }
 
   // Keep on() & emit() signatures in sync with types' client.ts interface
+  /* eslint-disable @typescript-eslint/unified-signatures */
 
   /** @inheritdoc */
-  public on(hook: 'startTransaction' | 'finishTransaction', callback: (transaction: Transaction) => void): void;
+  public on(hook: 'startTransaction', callback: (transaction: Transaction) => void): void;
+
+  /** @inheritdoc */
+  public on(hook: 'finishTransaction', callback: (transaction: Transaction) => void): void;
 
   /** @inheritdoc */
   public on(hook: 'beforeEnvelope', callback: (envelope: Envelope) => void): void;
 
   /** @inheritdoc */
   public on(hook: 'beforeSendEvent', callback: (event: Event, hint?: EventHint) => void): void;
+
+  /** @inheritdoc */
+  public on(hook: 'preprocessEvent', callback: (event: Event, hint?: EventHint) => void): void;
 
   /** @inheritdoc */
   public on(
@@ -407,18 +419,24 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
       this._hooks[hook] = [];
     }
 
-    // @ts-ignore We assue the types are correct
+    // @ts-expect-error We assue the types are correct
     this._hooks[hook].push(callback);
   }
 
   /** @inheritdoc */
-  public emit(hook: 'startTransaction' | 'finishTransaction', transaction: Transaction): void;
+  public emit(hook: 'startTransaction', transaction: Transaction): void;
+
+  /** @inheritdoc */
+  public emit(hook: 'finishTransaction', transaction: Transaction): void;
 
   /** @inheritdoc */
   public emit(hook: 'beforeEnvelope', envelope: Envelope): void;
 
   /** @inheritdoc */
   public emit(hook: 'beforeSendEvent', event: Event, hint?: EventHint): void;
+
+  /** @inheritdoc */
+  public emit(hook: 'preprocessEvent', event: Event, hint?: EventHint): void;
 
   /** @inheritdoc */
   public emit(hook: 'afterSendEvent', event: Event, sendResponse: TransportMakeRequestResponse | void): void;
@@ -435,10 +453,11 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   /** @inheritdoc */
   public emit(hook: string, ...rest: unknown[]): void {
     if (this._hooks[hook]) {
-      // @ts-ignore we cannot enforce the callback to match the hook
       this._hooks[hook].forEach(callback => callback(...rest));
     }
   }
+
+  /* eslint-enable @typescript-eslint/unified-signatures */
 
   /** Updates existing session based on the provided event */
   protected _updateSessionFromEvent(session: Session, event: Event): void {
@@ -503,9 +522,9 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
     });
   }
 
-  /** Determines whether this SDK is enabled and a valid Dsn is present. */
+  /** Determines whether this SDK is enabled and a transport is present. */
   protected _isEnabled(): boolean {
-    return this.getOptions().enabled !== false && this._dsn !== undefined;
+    return this.getOptions().enabled !== false && this._transport !== undefined;
   }
 
   /**
@@ -528,7 +547,10 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
     if (!hint.integrations && integrations.length > 0) {
       hint.integrations = integrations;
     }
-    return prepareEvent(options, event, hint, scope).then(evt => {
+
+    this.emit('preprocessEvent', event, hint);
+
+    return prepareEvent(options, event, hint, scope, this).then(evt => {
       if (evt === null) {
         return evt;
       }
@@ -603,10 +625,6 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   protected _processEvent(event: Event, hint: EventHint, scope?: Scope): PromiseLike<Event> {
     const options = this.getOptions();
     const { sampleRate } = options;
-
-    if (!this._isEnabled()) {
-      return rejectedSyncPromise(new SentryError('SDK not enabled, will not capture event.', 'log'));
-    }
 
     const isTransaction = isTransactionEvent(event);
     const isError = isErrorEvent(event);
@@ -707,9 +725,9 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
    * @inheritdoc
    */
   protected _sendEnvelope(envelope: Envelope): PromiseLike<void | TransportMakeRequestResponse> | void {
-    if (this._transport && this._dsn) {
-      this.emit('beforeEnvelope', envelope);
+    this.emit('beforeEnvelope', envelope);
 
+    if (this._isEnabled() && this._transport) {
       return this._transport.send(envelope).then(null, reason => {
         __DEBUG_BUILD__ && logger.error('Error while sending event:', reason);
       });

@@ -30,6 +30,6 @@ export function isBrowserBundle(): boolean {
  * Get source of SDK.
  */
 export function getSDKSource(): SdkSource {
-  // @ts-ignore __SENTRY_SDK_SOURCE__ is injected by rollup during build process
+  // @ts-expect-error __SENTRY_SDK_SOURCE__ is injected by rollup during build process
   return __SENTRY_SDK_SOURCE__;
 }

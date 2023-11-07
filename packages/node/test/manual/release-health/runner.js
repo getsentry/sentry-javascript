@@ -15,7 +15,7 @@ for (const dir of scenariosDirs) {
 
 const processes = scenarios.map(([filename, filepath]) => {
   return new Promise(resolve => {
-    const scenarioProcess = spawn('node', [filepath]);
+    const scenarioProcess = spawn('node', [filepath], { timeout: 10000 });
     const output = [];
     const errors = [];
 

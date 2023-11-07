@@ -368,7 +368,7 @@ describe('normalize()', () => {
       B.prototype.toJSON = () => 2;
       const c: any = [];
       c.toJSON = () => 3;
-      // @ts-ignore target lacks a construct signature
+      // @ts-expect-error target lacks a construct signature
       expect(normalize([{ a }, { b: new B() }, c])).toEqual([{ a: 1 }, { b: 2 }, 3]);
     });
 
@@ -474,6 +474,17 @@ describe('normalize()', () => {
       };
       expect(normalize(obj)).toEqual({
         foo: '[SyntheticEvent]',
+      });
+    });
+
+    test('known classes like `VueViewModel`', () => {
+      const obj = {
+        foo: {
+          _isVue: true,
+        },
+      };
+      expect(normalize(obj)).toEqual({
+        foo: '[VueViewModel]',
       });
     });
   });
@@ -613,6 +624,24 @@ describe('normalize()', () => {
     const result = normalize(obj);
     expect(result).toEqual({
       foo: '[SyntheticEvent]',
+      baz: '[NaN]',
+      qux: '[Function: qux]',
+    });
+  });
+
+  test('normalizes value on every iteration of decycle and takes care of things like `VueViewModel`', () => {
+    const obj = {
+      foo: {
+        _isVue: true,
+      },
+      baz: NaN,
+      qux: function qux(): void {
+        /* no-empty */
+      },
+    };
+    const result = normalize(obj);
+    expect(result).toEqual({
+      foo: '[VueViewModel]',
       baz: '[NaN]',
       qux: '[Function: qux]',
     });

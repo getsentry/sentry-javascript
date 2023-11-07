@@ -1,13 +1,13 @@
-import { constants, Deflate, deflate } from 'pako';
+import { compressSync, EncodeUTF8, strToU8, Zlib } from 'fflate';
 
 /**
  * A stateful compressor that can be used to batch compress events.
  */
 export class Compressor {
-  /**
-   * pako deflator instance
-   */
-  public deflate: Deflate;
+  public stream: EncodeUTF8;
+  public deflate: Zlib;
+
+  private _deflatedData: Uint8Array[];
 
   /**
    * If any events have been added.
@@ -35,10 +35,8 @@ export class Compressor {
     // If the event is not the first event, we need to prefix it with a `,` so
     // that we end up with a list of events
     const prefix = this._hasEvents ? ',' : '';
-    // TODO: We may want Z_SYNC_FLUSH or Z_FULL_FLUSH (not sure the difference)
-    // Using NO_FLUSH here for now as we can create many attachments that our
-    // web UI will get API rate limited.
-    this.deflate.push(prefix + data, constants.Z_SYNC_FLUSH);
+
+    this.stream.push(prefix + data);
 
     this._hasEvents = true;
   }
@@ -48,15 +46,11 @@ export class Compressor {
    */
   public finish(): Uint8Array {
     // We should always have a list, it can be empty
-    this.deflate.push(']', constants.Z_FINISH);
-
-    if (this.deflate.err) {
-      throw this.deflate.err;
-    }
+    this.stream.push(']', true);
 
     // Copy result before we create a new deflator and return the compressed
     // result
-    const result = this.deflate.result;
+    const result = mergeUInt8Arrays(this._deflatedData);
 
     this._init();
 
@@ -68,10 +62,20 @@ export class Compressor {
    */
   private _init(): void {
     this._hasEvents = false;
-    this.deflate = new Deflate();
+    this._deflatedData = [];
+
+    this.deflate = new Zlib();
+
+    this.deflate.ondata = (data, _final) => {
+      this._deflatedData.push(data);
+    };
+
+    this.stream = new EncodeUTF8((data, final) => {
+      this.deflate.push(data, final);
+    });
 
     // Fake an array by adding a `[`
-    this.deflate.push('[', constants.Z_NO_FLUSH);
+    this.stream.push('[');
   }
 }
 
@@ -79,5 +83,25 @@ export class Compressor {
  * Compress a string.
  */
 export function compress(data: string): Uint8Array {
-  return deflate(data);
+  return compressSync(strToU8(data));
+}
+
+function mergeUInt8Arrays(chunks: Uint8Array[]): Uint8Array {
+  // calculate data length
+  let len = 0;
+
+  for (let i = 0, l = chunks.length; i < l; i++) {
+    len += chunks[i].length;
+  }
+
+  // join chunks
+  const result = new Uint8Array(len);
+
+  for (let i = 0, pos = 0, l = chunks.length; i < l; i++) {
+    const chunk = chunks[i];
+    result.set(chunk, pos);
+    pos += chunk.length;
+  }
+
+  return result;
 }

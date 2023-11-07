@@ -4,6 +4,448 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.77.0
+
+- feat: Move LinkedErrors integration to @sentry/core (#9404)
+- feat(remix): Update sentry-cli version to ^2.21.2 (#9401)
+- feat(replay): Allow to treeshake & configure compression worker URL (#9409)
+- fix(angular-ivy): Adjust package entry points to support Angular 17 with SSR config (#9412)
+- fix(feedback): Fixing feedback import (#9403)
+- fix(nextjs): Match only numbers as orgid in tunnelRoute (#9416)
+- fix(nextjs): Strictly validate tunnel target parameters (#9415)
+- fix(utils): Avoid keeping a reference of last used event (#9387)
+
+## 7.76.0
+
+### Important Changes
+
+- **feat(core): Add cron monitor wrapper helper (#9395)**
+
+This release adds `Sentry.withMonitor()`, a wrapping function that wraps a callback with a cron monitor that will automatically report completions and failures:
+
+```ts
+import * as Sentry from '@sentry/node';
+
+// withMonitor() will send checkin when callback is started/finished
+// works with async and sync callbacks.
+const result = Sentry.withMonitor(
+  'dailyEmail',
+  () => {
+    // withCheckIn return value is same return value here
+    return sendEmail();
+  },
+  // Optional upsert options
+  {
+    schedule: {
+      type: 'crontab',
+      value: '0 * * * *',
+    },
+    // 🇨🇦🫡
+    timezone: 'Canada/Eastern',
+  },
+);
+```
+
+### Other Changes
+
+- chore(angular-ivy): Allow Angular 17 in peer dependencies (#9386)
+- feat(nextjs): Instrument SSR page components (#9346)
+- feat(nextjs): Trace errors in page component SSR (#9388)
+- fix(nextjs): Instrument route handlers with `jsx` and `tsx` file extensions (#9362)
+- fix(nextjs): Trace with performance disabled (#9389)
+- fix(replay): Ensure `replay_id` is not added to DSC if session expired (#9359)
+- fix(replay): Remove unused parts of pako from build (#9369)
+- fix(serverless): Don't mark all errors as unhandled (#9368)
+- fix(tracing-internal): Fix case when middleware contain array of routes with special chars as @ (#9375)
+- meta(nextjs): Bump peer deps for Next.js 14 (#9390)
+
+Work in this release contributed by @LubomirIgonda1. Thank you for your contribution!
+
+## 7.75.1
+
+- feat(browser): Allow collecting of pageload profiles (#9317)
+- fix(browser): Correct timestamp on pageload profiles (#9350)
+- fix(nextjs): Use webpack plugin release value to inject release (#9348)
+
+## 7.75.0
+
+### Important Changes
+
+- **feat(opentelemetry): Add new `@sentry/opentelemetry` package (#9238)**
+
+This release publishes a new package, `@sentry/opentelemetry`. This is a runtime agnostic replacement for `@sentry/opentelemetry-node` and exports a couple of useful utilities which can be used to use Sentry together with OpenTelemetry.
+
+You can read more about [@sentry/opentelemetry in the Readme](https://github.com/getsentry/sentry-javascript/tree/develop/packages/opentelemetry).
+
+- **feat(replay): Allow to treeshake rrweb features (#9274)**
+
+Starting with this release, you can configure the following build-time flags in order to reduce the SDK bundle size:
+
+* `__RRWEB_EXCLUDE_CANVAS__`
+* `__RRWEB_EXCLUDE_IFRAME__`
+* `__RRWEB_EXCLUDE_SHADOW_DOM__`
+
+You can read more about [tree shaking in our docs](https://docs.sentry.io/platforms/javascript/configuration/tree-shaking/).
+
+
+### Other Changes
+
+- build(deno): Prepare Deno SDK for release on npm (#9281)
+- feat: Remove tslib (#9299)
+- feat(node): Add abnormal session support for ANR (#9268)
+- feat(node): Remove `lru_map` dependency (#9300)
+- feat(node): Vendor `cookie` module (#9308)
+- feat(replay): Share performance instrumentation with tracing (#9296)
+- feat(types): Add missing Profiling types (macho debug image, profile measurements, stack frame properties) (#9277)
+- feat(types): Add statsd envelope types (#9304)
+- fix(astro): Add integration default export to types entry point (#9337)
+- fix(astro): Convert SDK init file import paths to POSIX paths (#9336)
+- fix(astro): Make `Replay` and `BrowserTracing` integrations tree-shakeable (#9287)
+- fix(integrations): Fix transaction integration (#9334)
+- fix(nextjs): Restore `autoInstrumentMiddleware` functionality (#9323)
+- fix(nextjs): Guard for case where `getInitialProps` may return undefined (#9342)
+- fix(node-experimental): Make node-fetch support optional (#9321)
+- fix(node): Check buffer length when attempting to parse ANR frame (#9314)
+- fix(replay): Fix xhr start timestamps (#9341)
+- fix(tracing-internal): Remove query params from urls with a trailing slash (#9328)
+- fix(types): Remove typo with CheckInEnvelope (#9303)
+
+## 7.74.1
+
+- chore(astro): Add `astro-integration` keyword (#9265)
+- fix(core): Narrow filters for health check transactions (#9257)
+- fix(nextjs): Fix HMR by inserting new entrypoints at the end (#9267)
+- fix(nextjs): Fix resolution of request async storage module (#9259)
+- fix(node-experimental): Guard against missing `fetch` (#9275)
+- fix(remix): Update `defer` injection logic. (#9242)
+- fix(tracing-internal): Parameterize express middleware parameters (#8668)
+- fix(utils): Move Node specific ANR impl. out of utils (#9258)
+
+Work in this release contributed by @LubomirIgonda1. Thank you for your contribution!
+
+## 7.74.0
+
+### Important Changes
+
+- **feat(astro): Add `sentryAstro` integration (#9218)**
+
+This Release introduces the first alpha version of our new SDK for Astro.
+At this time, the SDK is considered experimental and things might break and change in future versions.
+
+The core of the SDK is an Astro integration which you easily add to your Astro config:
+
+```js
+// astro.config.js
+import { defineConfig } from "astro/config";
+import sentry from "@sentry/astro";
+
+export default defineConfig({
+  integrations: [
+    sentry({
+      dsn: "__DSN__",
+      sourceMapsUploadOptions: {
+        project: "astro",
+        authToken: process.env.SENTRY_AUTH_TOKEN,
+      },
+    }),
+  ],
+});
+```
+
+Check out the [README](./packages/astro/README.md) for usage instructions and what to expect from this alpha release.
+
+### Other Changes
+
+- feat(core): Add `addIntegration` utility (#9186)
+- feat(core): Add `continueTrace` method (#9164)
+- feat(node-experimental): Add NodeFetch integration (#9226)
+- feat(node-experimental): Use native OTEL Spans (#9161, #9214)
+- feat(node-experimental): Sample in OTEL Sampler (#9203)
+- feat(serverlesss): Allow disabling transaction traces (#9154)
+- feat(tracing): Allow direct pg module to enable esbuild support (#9227)
+- feat(utils): Move common node ANR code to utils (#9191)
+- feat(vue): Expose `VueIntegration` to initialize vue app later (#9180)
+- fix: Don't set `referrerPolicy` on serverside fetch transports (#9200)
+- fix: Ensure we never mutate options passed to `init` (#9162)
+- fix(ember): Avoid pulling in utils at build time (#9221)
+- fix(ember): Drop undefined config values (#9175)
+- fix(node): Ensure mysql integration works without callback (#9222)
+- fix(node): Only require `inspector` when needed (#9149)
+- fix(node): Remove ANR `debug` option and instead add logger.isEnabled() (#9230)
+- fix(node): Strip `.mjs` and `.cjs` extensions from module name (#9231)
+- fix(replay): bump rrweb to 2.0.1 (#9240)
+- fix(replay): Fix potential broken CSS in styled-components (#9234)
+- fix(sveltekit): Flush in server wrappers before exiting (#9153)
+- fix(types): Update signature of `processEvent` integration hook (#9151)
+- fix(utils): Dereference DOM events after they have servered their purpose (#9224)
+- ref(integrations): Refactor pluggable integrations to use `processEvent` (#9021)
+- ref(serverless): Properly deprecate `rethrowAfterCapture` option (#9159)
+- ref(utils): Deprecate `walk` method (#9157)
+
+Work in this release contributed by @aldenquimby. Thank you for your contributions!
+
+## 7.73.0
+
+### Important Changes
+
+- **feat(replay): Upgrade to rrweb2**
+
+This is fully backwards compatible with prior versions of the Replay SDK. The only breaking change that we will making is to not be masking `aria-label` by default. The reason for this change is to align with our core SDK which also does not mask `aria-label`. This change also enables better support of searching by clicks.
+
+Another change that needs to be highlighted is the 13% bundle size increase. This bundle size increase is necessary to bring improved recording performance and improved replay fidelity, especially in regards to web components and iframes. We will be investigating the reduction of the bundle size in [this PR](https://github.com/getsentry/sentry-javascript/issues/8815).
+
+Here are benchmarks comparing the version 1 of rrweb to version 2
+
+| metric    | v1         | v2         |
+| --------- | ---------- | ---------- |
+| lcp       | 1486.06 ms | 1529.11 ms |
+| cls       | 0.40 ms    | 0.40 ms    |
+| fid       | 1.53 ms    | 1.50 ms    |
+| tbt       | 3207.22 ms | 3036.80 ms |
+| memoryAvg | 131.83 MB  | 124.84 MB  |
+| memoryMax | 324.8 MB   | 339.03 MB  |
+| netTx     | 282.67 KB  | 272.51 KB  |
+| netRx     | 8.02 MB    | 8.07 MB    |
+
+### Other Changes
+
+- feat: Always assemble Envelopes (#9101)
+- feat(node): Rate limit local variables for caught exceptions and enable `captureAllExceptions` by default (#9102)
+- fix(core): Ensure `tunnel` is considered for `isSentryUrl` checks (#9130)
+- fix(nextjs): Fix `RequestAsyncStorage` fallback path (#9126)
+- fix(node-otel): Suppress tracing for generated sentry spans (#9142)
+- fix(node): fill in span data from http request options object (#9112)
+- fix(node): Fixes and improvements to ANR detection  (#9128)
+- fix(sveltekit): Avoid data invalidation in wrapped client-side `load` functions (#9071)
+- ref(core): Refactor `InboundFilters` integration to use `processEvent` (#9020)
+- ref(wasm): Refactor Wasm integration to use `processEvent` (#9019)
+
+Work in this release contributed by @vlad-zhukov. Thank you for your contribution!
+
+## 7.72.0
+
+### Important Changes
+
+- **feat(node): App Not Responding with stack traces (#9079)**
+
+This release introduces support for Application Not Responding (ANR) errors for Node.js applications.
+These errors are triggered when the Node.js main thread event loop of an application is blocked for more than five seconds.
+The Node SDK reports ANR errors as Sentry events and can optionally attach a stacktrace of the blocking code to the ANR event.
+
+To enable ANR detection, import and use the `enableANRDetection` function from the `@sentry/node` package before you run the rest of your application code.
+Any event loop blocking before calling `enableANRDetection` will not be detected by the SDK.
+
+Example (ESM):
+
+```ts
+import * as Sentry from "@sentry/node";
+
+Sentry.init({
+  dsn: "___PUBLIC_DSN___",
+  tracesSampleRate: 1.0,
+});
+
+await Sentry.enableANRDetection({ captureStackTrace: true });
+// Function that runs your app
+runApp();
+```
+
+Example (CJS):
+
+```ts
+const Sentry = require("@sentry/node");
+
+Sentry.init({
+  dsn: "___PUBLIC_DSN___",
+  tracesSampleRate: 1.0,
+});
+
+Sentry.enableANRDetection({ captureStackTrace: true }).then(() => {
+  // Function that runs your app
+  runApp();
+});
+```
+
+### Other Changes
+
+- fix(nextjs): Filter `RequestAsyncStorage` locations by locations that webpack will resolve (#9114)
+- fix(replay): Ensure `replay_id` is not captured when session is expired (#9109)
+
+## 7.71.0
+
+- feat(bun): Instrument Bun.serve (#9080)
+- fix(core): Ensure global event processors are always applied to event (#9064)
+- fix(core): Run client eventProcessors before global ones (#9032)
+- fix(nextjs): Use webpack module paths to attempt to resolve internal request async storage module (#9100)
+- fix(react): Add actual error name to boundary error name (#9065)
+- fix(react): Compare location against `basename`-prefixed route. (#9076)
+- ref(browser): Refactor browser integrations to use `processEvent` (#9022)
+
+Work in this release contributed by @jorrit. Thank you for your contribution!
+
+## 7.70.0
+
+### Important Changes
+
+- **feat: Add Bun SDK (#9029)**
+
+This release contains the beta version of `@sentry/bun`, our SDK for the [Bun JavaScript runtime](https://bun.sh/)! For details on how to use it, please see the [README](./packages/bun/README.md). Any feedback/bug reports are greatly appreciated, please [reach out on GitHub](https://github.com/getsentry/sentry-javascript/discussions/7979).
+
+Note that as of now the Bun runtime does not support global error handlers. This is being actively worked on, see [the tracking issue in Bun's GitHub repo](https://github.com/oven-sh/bun/issues/5091).
+
+- **feat(remix): Add Remix 2.x release support. (#8940)**
+
+The Sentry Remix SDK now officially supports Remix v2! See [our Remix docs for more details](https://docs.sentry.io/platforms/javascript/guides/remix/).
+
+### Other Changes
+
+- chore(node): Upgrade cookie to ^0.5.0 (#9013)
+- feat(core): Introduce `processEvent` hook on `Integration` (#9017)
+- feat(node): Improve non-error messages (#9026)
+- feat(vercel-edge): Add Vercel Edge Runtime package (#9041)
+- fix(remix): Use `React.ComponentType` instead of `React.FC` as `withSentry`'s generic type. (#9043)
+- fix(replay): Ensure replay events go through `preprocessEvent` hook (#9034)
+- fix(replay): Fix typo in Replay types (#9028)
+- fix(sveltekit): Adjust `handleErrorWithSentry` type (#9054)
+- fix(utils): Try-catch monkeypatching to handle frozen objects/functions (#9031)
+
+Work in this release contributed by @Dima-Dim, @krist7599555 and @lifeiscontent. Thank you for your contributions!
+
+Special thanks for @isaacharrisholt for helping us implement a Vercel Edge Runtime SDK which we use under the hood for our Next.js SDK.
+
+## 7.69.0
+
+### Important Changes
+
+- **New Performance APIs**
+  - feat: Update span performance API names (#8971)
+  - feat(core): Introduce startSpanManual (#8913)
+
+This release introduces a new set of top level APIs for the Performance Monitoring SDKs. These aim to simplify creating spans and reduce the boilerplate needed for performance instrumentation. The three new methods introduced are `Sentry.startSpan`, `Sentry.startInactiveSpan`, and `Sentry.startSpanManual`. These methods are available in the browser and node SDKs.
+
+`Sentry.startSpan` wraps a callback in a span. The span is automatically finished when the callback returns. This is the recommended way to create spans.
+
+```js
+// Start a span that tracks the duration of expensiveFunction
+const result = Sentry.startSpan({ name: 'important function' }, () => {
+  return expensiveFunction();
+});
+
+// You can also mutate the span wrapping the callback to set data or status
+Sentry.startSpan({ name: 'important function' }, (span) => {
+  // span is undefined if performance monitoring is turned off or if
+  // the span was not sampled. This is done to reduce overhead.
+  span?.setData('version', '1.0.0');
+  return expensiveFunction();
+});
+```
+
+If you don't want the span to finish when the callback returns, use `Sentry.startSpanManual` to control when the span is finished. This is useful for event emitters or similar.
+
+```js
+// Start a span that tracks the duration of middleware
+function middleware(_req, res, next) {
+  return Sentry.startSpanManual({ name: 'middleware' }, (span, finish) => {
+    res.once('finish', () => {
+      span?.setHttpStatus(res.status);
+      finish();
+    });
+    return next();
+  });
+}
+```
+
+`Sentry.startSpan` and `Sentry.startSpanManual` create a span and make it active for the duration of the callback. Any spans created while this active span is running will be added as a child span to it. If you want to create a span without making it active, use `Sentry.startInactiveSpan`. This is useful for creating parallel spans that are not related to each other.
+
+```js
+const span1 = Sentry.startInactiveSpan({ name: 'span1' });
+
+someWork();
+
+const span2 = Sentry.startInactiveSpan({ name: 'span2' });
+
+moreWork();
+
+const span3 = Sentry.startInactiveSpan({ name: 'span3' });
+
+evenMoreWork();
+
+span1?.finish();
+span2?.finish();
+span3?.finish();
+```
+
+### Other Changes
+
+- feat(core): Export `BeforeFinishCallback` type (#8999)
+- build(eslint): Enforce that ts-expect-error is used (#8987)
+- feat(integration): Ensure `LinkedErrors` integration runs before all event processors (#8956)
+- feat(node-experimental): Keep breadcrumbs on transaction (#8967)
+- feat(redux): Add 'attachReduxState' option  (#8953)
+- feat(remix): Accept `org`, `project` and `url` as args to upload script (#8985)
+- fix(utils): Prevent iterating over VueViewModel (#8981)
+- fix(utils): uuidv4 fix for cloudflare (#8968)
+- fix(core): Always use event message and exception values for `ignoreErrors` (#8986)
+- fix(nextjs): Add new potential location for Next.js request AsyncLocalStorage (#9006)
+- fix(node-experimental): Ensure we only create HTTP spans when outgoing (#8966)
+- fix(node-experimental): Ignore OPTIONS & HEAD requests (#9001)
+- fix(node-experimental): Ignore outgoing Sentry requests (#8994)
+- fix(node-experimental): Require parent span for `pg` spans (#8993)
+- fix(node-experimental): Use Sentry logger as Otel logger (#8960)
+- fix(node-otel): Refactor OTEL span reference cleanup (#9000)
+- fix(react): Switch to props in `useRoutes` (#8998)
+- fix(remix): Add `glob` to Remix SDK dependencies. (#8963)
+- fix(replay): Ensure `handleRecordingEmit` aborts when event is not added (#8938)
+- fix(replay): Fully stop & restart session when it expires (#8834)
+
+Work in this release contributed by @Duncanxyz and @malay44. Thank you for your contributions!
+
+## 7.68.0
+
+- feat(browser): Add `BroadcastChannel` and `SharedWorker` to TryCatch EventTargets (#8943)
+- feat(core): Add `name` to `Span` (#8949)
+- feat(core): Add `ServerRuntimeClient` (#8930)
+- fix(node-experimental): Ensure `span.finish()` works as expected (#8947)
+- fix(remix): Add new sourcemap-upload script files to prepack assets. (#8948)
+- fix(publish): Publish downleveled TS3.8 types and fix types path (#8954)
+
+## 7.67.0
+
+### Important Changes
+
+- **feat: Mark errors caught by the SDK as unhandled**
+  - feat(browser): Mark errors caught from `TryCatch` integration as unhandled (#8890)
+  - feat(integrations): Mark errors caught from `HttpClient` and `CaptureConsole` integrations as unhandled (#8891)
+  - feat(nextjs): Mark errors caught from NextJS wrappers as unhandled (#8893)
+  - feat(react): Mark errors captured from ErrorBoundary as unhandled (#8914)
+  - feat(remix): Add debugid injection and map deletion to sourcemaps script (#8814)
+  - feat(remix): Mark errors caught from Remix instrumentation as unhandled (#8894)
+  - feat(serverless): Mark errors caught in Serverless handlers as unhandled (#8907)
+  - feat(vue): Mark errors caught by Vue wrappers as unhandled (#8905)
+
+This release fixes inconsistent behaviour of when our SDKs classify captured errors as unhandled.
+Previously, some of our instrumentations correctly set unhandled, while others set handled.
+Going forward, all errors caught automatically from our SDKs will be marked as unhandled.
+If you manually capture errors (e.g. by calling `Sentry.captureException`), your errors will continue to be reported as handled.
+
+This change might lead to a decrease in reported crash-free sessions and consequently in your release health score.
+If you have concerns about this, feel free to open an issue.
+
+### Other Changes
+
+- feat(node-experimental): Implement new performance APIs (#8911)
+- feat(node-experimental): Sync OTEL context with Sentry AsyncContext (#8797)
+- feat(replay): Allow to configure `maxReplayDuration` (#8769)
+- fix(browser): Add replay and profiling options to `BrowserClientOptions` (#8921)
+- fix(browser): Check for existence of instrumentation targets (#8939)
+- fix(nextjs): Don't re-export default in route handlers (#8924)
+- fix(node): Improve mysql integration (#8923)
+- fix(remix): Guard against missing default export for server instrument (#8909)
+- ref(browser): Deprecate top-level `wrap` function (#8927)
+- ref(node-otel): Avoid exporting internals & refactor attribute adding (#8920)
+
+Work in this release contributed by @SorsOps. Thank you for your contribution!
+
 ## 7.66.0
 
 - fix: Defer tracing decision to downstream SDKs when using SDK without performance (#8839)

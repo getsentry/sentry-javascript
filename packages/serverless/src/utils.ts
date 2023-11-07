@@ -1,21 +1,6 @@
 import { runWithAsyncContext } from '@sentry/core';
-import type { Event } from '@sentry/node';
+import type { Scope } from '@sentry/types';
 import { addExceptionMechanism } from '@sentry/utils';
-
-/**
- * Event processor that will override SDK details to point to the serverless SDK instead of Node,
- * as well as set correct mechanism type, which should be set to `handled: false`.
- * We do it like this so that we don't introduce any side-effects in this module, which makes it tree-shakeable.
- * @param event Event
- * @param integration Name of the serverless integration ('AWSLambda', 'GCPFunction', etc)
- */
-export function serverlessEventProcessor(event: Event): Event {
-  addExceptionMechanism(event, {
-    handled: false,
-  });
-
-  return event;
-}
 
 /**
  * @param fn function to run
@@ -54,4 +39,16 @@ export function proxyFunction<A extends any[], R, F extends (...args: A) => R>(
   }
 
   return new Proxy(source, handler);
+}
+
+/**
+ * Marks an event as unhandled by adding a span processor to the passed scope.
+ */
+export function markEventUnhandled(scope: Scope): Scope {
+  scope.addEventProcessor(event => {
+    addExceptionMechanism(event, { handled: false });
+    return event;
+  });
+
+  return scope;
 }

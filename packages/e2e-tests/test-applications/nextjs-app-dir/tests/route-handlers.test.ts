@@ -87,9 +87,9 @@ test.describe('Edge runtime', () => {
 
     expect(routehandlerTransaction.contexts?.trace?.status).toBe('internal_error');
     expect(routehandlerTransaction.contexts?.trace?.op).toBe('http.server');
-    expect(routehandlerTransaction.contexts?.runtime?.name).toBe('edge');
+    expect(routehandlerTransaction.contexts?.runtime?.name).toBe('vercel-edge');
 
     expect(routehandlerError.exception?.values?.[0].value).toBe('route-handler-edge-error');
-    expect(routehandlerError.contexts?.runtime?.name).toBe('edge');
+    expect(routehandlerError.contexts?.runtime?.name).toBe('vercel-edge');
   });
 });

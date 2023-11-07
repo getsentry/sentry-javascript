@@ -1,100 +1,59 @@
-import { getIntegrationsToSetup, initAndBind, Integrations as CoreIntegrations } from '@sentry/core';
-import type { Options } from '@sentry/types';
-import { createStackParser, GLOBAL_OBJ, nodeStackLineParser, stackParserFromStackParserOptions } from '@sentry/utils';
+import { SDK_VERSION } from '@sentry/core';
+import { RewriteFrames } from '@sentry/integrations';
+import type { SdkMetadata } from '@sentry/types';
+import { addOrUpdateIntegration, escapeStringForRegex, GLOBAL_OBJ } from '@sentry/utils';
+import type { VercelEdgeOptions } from '@sentry/vercel-edge';
+import { init as vercelEdgeInit } from '@sentry/vercel-edge';
 
-import { getVercelEnv } from '../common/getVercelEnv';
-import { setAsyncLocalStorageAsyncContextStrategy } from './asyncLocalStorageAsyncContextStrategy';
-import { EdgeClient } from './edgeclient';
-import { makeEdgeTransport } from './transport';
+export type EdgeOptions = VercelEdgeOptions;
 
-const nodeStackParser = createStackParser(nodeStackLineParser());
-
-export const defaultIntegrations = [new CoreIntegrations.InboundFilters(), new CoreIntegrations.FunctionToString()];
-
-export type EdgeOptions = Options;
+const globalWithInjectedValues = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
+  __rewriteFramesDistDir__?: string;
+};
 
 /** Inits the Sentry NextJS SDK on the Edge Runtime. */
-export function init(options: EdgeOptions = {}): void {
-  setAsyncLocalStorageAsyncContextStrategy();
-
-  if (options.defaultIntegrations === undefined) {
-    options.defaultIntegrations = defaultIntegrations;
-  }
-
-  if (options.dsn === undefined && process.env.SENTRY_DSN) {
-    options.dsn = process.env.SENTRY_DSN;
-  }
-
-  if (options.tracesSampleRate === undefined && process.env.SENTRY_TRACES_SAMPLE_RATE) {
-    const tracesSampleRate = parseFloat(process.env.SENTRY_TRACES_SAMPLE_RATE);
-    if (isFinite(tracesSampleRate)) {
-      options.tracesSampleRate = tracesSampleRate;
-    }
-  }
-
-  if (options.release === undefined) {
-    const detectedRelease = getSentryRelease();
-    if (detectedRelease !== undefined) {
-      options.release = detectedRelease;
-    } else {
-      // If release is not provided, then we should disable autoSessionTracking
-      options.autoSessionTracking = false;
-    }
-  }
-
-  options.environment =
-    options.environment || process.env.SENTRY_ENVIRONMENT || getVercelEnv(false) || process.env.NODE_ENV;
-
-  if (options.autoSessionTracking === undefined && options.dsn !== undefined) {
-    options.autoSessionTracking = true;
-  }
-
-  if (options.instrumenter === undefined) {
-    options.instrumenter = 'sentry';
-  }
-
-  const clientOptions = {
+export function init(options: VercelEdgeOptions = {}): void {
+  const opts = {
+    _metadata: {} as SdkMetadata,
     ...options,
-    stackParser: stackParserFromStackParserOptions(options.stackParser || nodeStackParser),
-    integrations: getIntegrationsToSetup(options),
-    transport: options.transport || makeEdgeTransport,
   };
 
-  initAndBind(EdgeClient, clientOptions);
+  opts._metadata.sdk = opts._metadata.sdk || {
+    name: 'sentry.javascript.nextjs',
+    packages: [
+      {
+        name: 'npm:@sentry/nextjs',
+        version: SDK_VERSION,
+      },
+    ],
+    version: SDK_VERSION,
+  };
 
-  // TODO?: Sessiontracking
-}
+  let integrations = opts.integrations || [];
 
-/**
- * Returns a release dynamically from environment variables.
- */
-export function getSentryRelease(fallback?: string): string | undefined {
-  // Always read first as Sentry takes this as precedence
-  if (process.env.SENTRY_RELEASE) {
-    return process.env.SENTRY_RELEASE;
+  // This value is injected at build time, based on the output directory specified in the build config. Though a default
+  // is set there, we set it here as well, just in case something has gone wrong with the injection.
+  const distDirName = globalWithInjectedValues.__rewriteFramesDistDir__;
+  if (distDirName) {
+    const distDirAbsPath = distDirName.replace(/(\/|\\)$/, ''); // We strip trailing slashes because "app:///_next" also doesn't have one
+
+    // Normally we would use `path.resolve` to obtain the absolute path we will strip from the stack frame to align with
+    // the uploaded artifacts, however we don't have access to that API in edge so we need to be a bit more lax.
+    const SOURCEMAP_FILENAME_REGEX = new RegExp(`.*${escapeStringForRegex(distDirAbsPath)}`);
+
+    const defaultRewriteFramesIntegration = new RewriteFrames({
+      iteratee: frame => {
+        frame.filename = frame.filename?.replace(SOURCEMAP_FILENAME_REGEX, 'app:///_next');
+        return frame;
+      },
+    });
+
+    integrations = addOrUpdateIntegration(defaultRewriteFramesIntegration, integrations);
   }
 
-  // This supports the variable that sentry-webpack-plugin injects
-  if (GLOBAL_OBJ.SENTRY_RELEASE && GLOBAL_OBJ.SENTRY_RELEASE.id) {
-    return GLOBAL_OBJ.SENTRY_RELEASE.id;
-  }
+  opts.integrations = integrations;
 
-  return (
-    // GitHub Actions - https://help.github.com/en/actions/configuring-and-managing-workflows/using-environment-variables#default-environment-variables
-    process.env.GITHUB_SHA ||
-    // Netlify - https://docs.netlify.com/configure-builds/environment-variables/#build-metadata
-    process.env.COMMIT_REF ||
-    // Vercel - https://vercel.com/docs/v2/build-step#system-environment-variables
-    process.env.VERCEL_GIT_COMMIT_SHA ||
-    process.env.VERCEL_GITHUB_COMMIT_SHA ||
-    process.env.VERCEL_GITLAB_COMMIT_SHA ||
-    process.env.VERCEL_BITBUCKET_COMMIT_SHA ||
-    // Zeit (now known as Vercel)
-    process.env.ZEIT_GITHUB_COMMIT_SHA ||
-    process.env.ZEIT_GITLAB_COMMIT_SHA ||
-    process.env.ZEIT_BITBUCKET_COMMIT_SHA ||
-    fallback
-  );
+  vercelEdgeInit(opts);
 }
 
 /**
@@ -104,7 +63,8 @@ export function withSentryConfig<T>(exportedUserNextConfig: T): T {
   return exportedUserNextConfig;
 }
 
-export * from '@sentry/core';
+export * from '@sentry/vercel-edge';
+export { Span, Transaction } from '@sentry/core';
 
 // eslint-disable-next-line import/export
 export * from '../common';

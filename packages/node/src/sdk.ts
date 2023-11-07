@@ -15,6 +15,7 @@ import {
   tracingContextFromHeaders,
 } from '@sentry/utils';
 
+import { isAnrChildProcess } from './anr';
 import { setNodeAsyncContextStrategy } from './async';
 import { NodeClient } from './client';
 import {
@@ -22,7 +23,6 @@ import {
   Context,
   ContextLines,
   Http,
-  LinkedErrors,
   LocalVariables,
   Modules,
   OnUncaughtException,
@@ -38,6 +38,7 @@ export const defaultIntegrations = [
   // Common
   new CoreIntegrations.InboundFilters(),
   new CoreIntegrations.FunctionToString(),
+  new CoreIntegrations.LinkedErrors(),
   // Native Wrappers
   new Console(),
   new Http(),
@@ -51,8 +52,6 @@ export const defaultIntegrations = [
   new Context(),
   new Modules(),
   new RequestData(),
-  // Misc
-  new LinkedErrors(),
 ];
 
 /**
@@ -110,7 +109,13 @@ export const defaultIntegrations = [
  *
  * @see {@link NodeOptions} for documentation on configuration options.
  */
+// eslint-disable-next-line complexity
 export function init(options: NodeOptions = {}): void {
+  if (isAnrChildProcess()) {
+    options.autoSessionTracking = false;
+    options.tracesSampleRate = 0;
+  }
+
   const carrier = getMainCarrier();
 
   setNodeAsyncContextStrategy();

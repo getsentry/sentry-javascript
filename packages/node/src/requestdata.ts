@@ -6,8 +6,9 @@ import type {
   TransactionSource,
 } from '@sentry/types';
 import { isPlainObject, isString, normalize, stripUrlQueryAndFragment } from '@sentry/utils';
-import * as cookie from 'cookie';
 import * as url from 'url';
+
+import { parseCookie } from './cookie';
 
 const DEFAULT_INCLUDES = {
   ip: false,
@@ -109,7 +110,9 @@ function extractTransaction(req: PolymorphicRequest, type: boolean | Transaction
     }
     case 'methodPath':
     default: {
-      return extractPathForTransaction(req, { path: true, method: true })[0];
+      // if exist _reconstructedRoute return that path instead of route.path
+      const customRoute = req._reconstructedRoute ? req._reconstructedRoute : undefined;
+      return extractPathForTransaction(req, { path: true, method: true, customRoute })[0];
     }
   }
 }
@@ -200,11 +203,10 @@ export function extractRequestData(
         // cookies:
         //   node, express, koa: req.headers.cookie
         //   vercel, sails.js, express (w/ cookie middleware), nextjs: req.cookies
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         requestData.cookies =
           // TODO (v8 / #5257): We're only sending the empty object for backwards compatibility, so the last bit can
           // come off in v8
-          req.cookies || (headers.cookie && cookie.parse(headers.cookie)) || {};
+          req.cookies || (headers.cookie && parseCookie(headers.cookie)) || {};
         break;
       }
       case 'query_string': {
@@ -320,11 +322,5 @@ function extractQueryParams(req: PolymorphicRequest): string | Record<string, un
     originalUrl = `http://dogs.are.great${originalUrl}`;
   }
 
-  return (
-    req.query ||
-    (typeof URL !== undefined && new URL(originalUrl).search.replace('?', '')) ||
-    // In Node 8, `URL` isn't in the global scope, so we have to use the built-in module from Node
-    url.parse(originalUrl).query ||
-    undefined
-  );
+  return req.query || new url.URL(originalUrl).search.replace('?', '') || undefined;
 }

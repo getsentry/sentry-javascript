@@ -161,6 +161,15 @@ export class Span implements SpanInterface {
     }
   }
 
+  /** An alias for `description` of the Span. */
+  public get name(): string {
+    return this.description || '';
+  }
+  /** Update the name of the span. */
+  public set name(name: string) {
+    this.setName(name);
+  }
+
   /**
    * @inheritDoc
    */

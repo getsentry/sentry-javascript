@@ -1,5 +1,6 @@
 import type { EventProcessor, Hub, Integration } from '@sentry/types';
 import {
+  addExceptionMechanism,
   addInstrumentationHandler,
   CONSOLE_LEVELS,
   GLOBAL_OBJ,
@@ -64,6 +65,12 @@ function consoleHandler(hub: Hub, args: unknown[], level: string): void {
     scope.setExtra('arguments', args);
     scope.addEventProcessor(event => {
       event.logger = 'console';
+
+      addExceptionMechanism(event, {
+        handled: false,
+        type: 'console',
+      });
+
       return event;
     });
 

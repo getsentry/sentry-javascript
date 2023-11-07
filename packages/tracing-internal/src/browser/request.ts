@@ -12,6 +12,8 @@ import {
   stringMatchesSomePattern,
 } from '@sentry/utils';
 
+import { addPerformanceInstrumentationHandler } from './instrument';
+
 export const DEFAULT_TRACE_PROPAGATION_TARGETS = ['localhost', /^\/(?!\/)/];
 
 /** Options for Request Instrumentation */
@@ -187,18 +189,21 @@ function isPerformanceResourceTiming(entry: PerformanceEntry): entry is Performa
  */
 function addHTTPTimings(span: Span): void {
   const url = span.data.url;
-  const observer = new PerformanceObserver(list => {
-    const entries = list.getEntries();
+
+  if (!url) {
+    return;
+  }
+
+  const cleanup = addPerformanceInstrumentationHandler('resource', ({ entries }) => {
     entries.forEach(entry => {
       if (isPerformanceResourceTiming(entry) && entry.name.endsWith(url)) {
         const spanData = resourceTimingEntryToSpanData(entry);
         spanData.forEach(data => span.setData(...data));
-        observer.disconnect();
+        // In the next tick, clean this handler up
+        // We have to wait here because otherwise this cleans itself up before it is fully done
+        setTimeout(cleanup);
       }
     });
-  });
-  observer.observe({
-    entryTypes: ['resource'],
   });
 }
 

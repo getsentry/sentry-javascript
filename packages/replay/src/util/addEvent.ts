@@ -13,39 +13,46 @@ function isCustomEvent(event: RecordingEvent): event is ReplayFrameEvent {
 
 /**
  * Add an event to the event buffer.
+ * In contrast to `addEvent`, this does not return a promise & does not wait for the adding of the event to succeed/fail.
+ * Instead this returns `true` if we tried to add the event, else false.
+ * It returns `false` e.g. if we are paused, disabled, or out of the max replay duration.
+ *
  * `isCheckout` is true if this is either the very first event, or an event triggered by `checkoutEveryNms`.
  */
-export async function addEvent(
+export function addEventSync(replay: ReplayContainer, event: RecordingEvent, isCheckout?: boolean): boolean {
+  if (!shouldAddEvent(replay, event)) {
+    return false;
+  }
+
+  void _addEvent(replay, event, isCheckout);
+
+  return true;
+}
+
+/**
+ * Add an event to the event buffer.
+ * Resolves to `null` if no event was added, else to `void`.
+ *
+ * `isCheckout` is true if this is either the very first event, or an event triggered by `checkoutEveryNms`.
+ */
+export function addEvent(
+  replay: ReplayContainer,
+  event: RecordingEvent,
+  isCheckout?: boolean,
+): Promise<AddEventResult | null> {
+  if (!shouldAddEvent(replay, event)) {
+    return Promise.resolve(null);
+  }
+
+  return _addEvent(replay, event, isCheckout);
+}
+
+async function _addEvent(
   replay: ReplayContainer,
   event: RecordingEvent,
   isCheckout?: boolean,
 ): Promise<AddEventResult | null> {
   if (!replay.eventBuffer) {
-    // This implies that `_isEnabled` is false
-    return null;
-  }
-
-  if (replay.isPaused()) {
-    // Do not add to event buffer when recording is paused
-    return null;
-  }
-
-  const timestampInMs = timestampToMs(event.timestamp);
-
-  // Throw out events that happen more than 5 minutes ago. This can happen if
-  // page has been left open and idle for a long period of time and user
-  // comes back to trigger a new session. The performance entries rely on
-  // `performance.timeOrigin`, which is when the page first opened.
-  if (timestampInMs + replay.timeouts.sessionIdlePause < Date.now()) {
-    return null;
-  }
-
-  // Throw out events that are +60min from the initial timestamp
-  if (timestampInMs > replay.getContext().initialTimestamp + replay.timeouts.maxSessionLife) {
-    logInfo(
-      `[Replay] Skipping event with timestamp ${timestampInMs} because it is after maxSessionLife`,
-      replay.getOptions()._experiments.traceInternals,
-    );
     return null;
   }
 
@@ -79,6 +86,34 @@ export async function addEvent(
       client.recordDroppedEvent('internal_sdk_error', 'replay');
     }
   }
+}
+
+/** Exported only for tests. */
+export function shouldAddEvent(replay: ReplayContainer, event: RecordingEvent): boolean {
+  if (!replay.eventBuffer || replay.isPaused() || !replay.isEnabled()) {
+    return false;
+  }
+
+  const timestampInMs = timestampToMs(event.timestamp);
+
+  // Throw out events that happen more than 5 minutes ago. This can happen if
+  // page has been left open and idle for a long period of time and user
+  // comes back to trigger a new session. The performance entries rely on
+  // `performance.timeOrigin`, which is when the page first opened.
+  if (timestampInMs + replay.timeouts.sessionIdlePause < Date.now()) {
+    return false;
+  }
+
+  // Throw out events that are +60min from the initial timestamp
+  if (timestampInMs > replay.getContext().initialTimestamp + replay.getOptions().maxReplayDuration) {
+    logInfo(
+      `[Replay] Skipping event with timestamp ${timestampInMs} because it is after maxReplayDuration`,
+      replay.getOptions()._experiments.traceInternals,
+    );
+    return false;
+  }
+
+  return true;
 }
 
 function maybeApplyCallback(

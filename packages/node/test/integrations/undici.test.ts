@@ -400,9 +400,9 @@ function setupTestServer() {
 function patchUndici(userOptions: Partial<UndiciOptions>): () => void {
   try {
     const undici = hub.getClient()!.getIntegration(Undici);
-    // @ts-ignore need to access private property
+    // @ts-expect-error need to access private property
     options = { ...undici._options };
-    // @ts-ignore need to access private property
+    // @ts-expect-error need to access private property
     undici._options = Object.assign(undici._options, userOptions);
   } catch (_) {
     throw new Error('Could not undo patching of undici');

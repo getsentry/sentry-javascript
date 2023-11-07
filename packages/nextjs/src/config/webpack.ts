@@ -7,6 +7,7 @@ import * as chalk from 'chalk';
 import { execSync } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
+import { sync as resolveSync } from 'resolve';
 
 import type { VercelCronsConfig } from '../common/types';
 // Note: If you need to import a type from Webpack, do it in `types.ts` and export it from there. Otherwise, our
@@ -81,7 +82,7 @@ export function constructWebpackConfigFunction(
     const newConfig = setUpModuleRules(rawNewConfig);
 
     // Add a loader which will inject code that sets global values
-    addValueInjectionLoader(newConfig, userNextConfig, userSentryOptions, buildContext);
+    addValueInjectionLoader(newConfig, userNextConfig, userSentryOptions, buildContext, userSentryWebpackPluginOptions);
 
     newConfig.module.rules.push({
       test: /node_modules[/\\]@sentry[/\\]nextjs/,
@@ -127,6 +128,10 @@ export function constructWebpackConfigFunction(
       pageExtensionRegex,
       excludeServerRoutes: userSentryOptions.excludeServerRoutes,
       sentryConfigFilePath: getUserConfigFilePath(projectDir, runtime),
+      nextjsRequestAsyncStorageModulePath: getRequestAsyncStorageModuleLocation(
+        projectDir,
+        rawNewConfig.resolve?.modules,
+      ),
     };
 
     const normalizeLoaderResourcePath = (resourcePath: string): string => {
@@ -178,7 +183,7 @@ export function constructWebpackConfigFunction(
       const normalizedAbsoluteResourcePath = normalizeLoaderResourcePath(resourcePath);
       return (
         normalizedAbsoluteResourcePath.startsWith(appDirPath + path.sep) &&
-        !!normalizedAbsoluteResourcePath.match(/[\\/]route\.(js|ts)$/)
+        !!normalizedAbsoluteResourcePath.match(/[\\/]route\.(js|jsx|ts|tsx)$/)
       );
     };
 
@@ -239,18 +244,20 @@ export function constructWebpackConfigFunction(
       });
 
       // Wrap middleware
-      newConfig.module.rules.unshift({
-        test: isMiddlewareResource,
-        use: [
-          {
-            loader: path.resolve(__dirname, 'loaders', 'wrappingLoader.js'),
-            options: {
-              ...staticWrappingLoaderOptions,
-              wrappingTargetKind: 'middleware',
+      if (userSentryOptions.autoInstrumentMiddleware ?? true) {
+        newConfig.module.rules.unshift({
+          test: isMiddlewareResource,
+          use: [
+            {
+              loader: path.resolve(__dirname, 'loaders', 'wrappingLoader.js'),
+              options: {
+                ...staticWrappingLoaderOptions,
+                wrappingTargetKind: 'middleware',
+              },
             },
-          },
-        ],
-      });
+          ],
+        });
+      }
     }
 
     if (isServer && userSentryOptions.autoInstrumentAppDirectory !== false) {
@@ -478,7 +485,7 @@ async function addSentryToEntryProperty(
   // we know is that it won't have gotten *simpler* in form, so we only need to worry about the object and function
   // options. See https://webpack.js.org/configuration/entry-context/#entry.
 
-  const { isServer, dir: projectDir, nextRuntime } = buildContext;
+  const { isServer, dir: projectDir, nextRuntime, dev: isDevMode } = buildContext;
   const runtime = isServer ? (buildContext.nextRuntime === 'edge' ? 'edge' : 'node') : 'browser';
 
   const newEntryProperty =
@@ -498,7 +505,7 @@ async function addSentryToEntryProperty(
   // inject into all entry points which might contain user's code
   for (const entryPointName in newEntryProperty) {
     if (shouldAddSentryToEntryPoint(entryPointName, runtime)) {
-      addFilesToExistingEntryPoint(newEntryProperty, entryPointName, filesToInject);
+      addFilesToExistingEntryPoint(newEntryProperty, entryPointName, filesToInject, isDevMode);
     } else {
       if (
         isServer &&
@@ -566,31 +573,44 @@ export function getUserConfigFilePath(projectDir: string, platform: 'server' | '
  *
  * @param entryProperty The existing `entry` config object
  * @param entryPointName The key where the file should be injected
- * @param filepaths An array of paths to the injected files
+ * @param filesToInsert An array of paths to the injected files
  */
 function addFilesToExistingEntryPoint(
   entryProperty: EntryPropertyObject,
   entryPointName: string,
-  filepaths: string[],
+  filesToInsert: string[],
+  isDevMode: boolean,
 ): void {
+  // BIG FAT NOTE: Order of insertion seems to matter here. If we insert the new files before the `currentEntrypoint`s,
+  // the Next.js dev server breaks. Because we generally still want the SDK to be initialized as early as possible we
+  // still keep it at the start of the entrypoints if we are not in dev mode.
+
   // can be a string, array of strings, or object whose `import` property is one of those two
   const currentEntryPoint = entryProperty[entryPointName];
   let newEntryPoint = currentEntryPoint;
 
-  if (typeof currentEntryPoint === 'string') {
-    newEntryPoint = [...filepaths, currentEntryPoint];
-  } else if (Array.isArray(currentEntryPoint)) {
-    newEntryPoint = [...filepaths, ...currentEntryPoint];
+  if (typeof currentEntryPoint === 'string' || Array.isArray(currentEntryPoint)) {
+    newEntryPoint = arrayify(currentEntryPoint);
+
+    if (isDevMode) {
+      // Inserting at beginning breaks dev mode so we insert at the end
+      newEntryPoint.push(...filesToInsert);
+    } else {
+      // In other modes we insert at the beginning so that the SDK initializes as early as possible
+      newEntryPoint.unshift(...filesToInsert);
+    }
   }
   // descriptor object (webpack 5+)
   else if (typeof currentEntryPoint === 'object' && 'import' in currentEntryPoint) {
     const currentImportValue = currentEntryPoint.import;
-    let newImportValue;
+    const newImportValue = arrayify(currentImportValue);
 
-    if (typeof currentImportValue === 'string') {
-      newImportValue = [...filepaths, currentImportValue];
+    if (isDevMode) {
+      // Inserting at beginning breaks dev mode so we insert at the end
+      newImportValue.push(...filesToInsert);
     } else {
-      newImportValue = [...filepaths, ...currentImportValue];
+      // In other modes we insert at the beginning so that the SDK initializes as early as possible
+      newImportValue.unshift(...filesToInsert);
     }
 
     newEntryPoint = {
@@ -667,24 +687,20 @@ export function getWebpackPluginOptions(
   userPluginOptions: Partial<SentryWebpackPluginOptions>,
   userSentryOptions: UserSentryOptions,
 ): SentryWebpackPluginOptions {
-  const { buildId, isServer, webpack, config, dir: projectDir } = buildContext;
+  const { buildId, isServer, config, dir: projectDir } = buildContext;
   const userNextConfig = config as NextConfigObject;
 
   const distDirAbsPath = path.resolve(projectDir, userNextConfig.distDir || '.next'); // `.next` is the default directory
 
-  const isWebpack5 = webpack.version.startsWith('5');
   const isServerless = userNextConfig.target === 'experimental-serverless-trace';
   const hasSentryProperties = fs.existsSync(path.resolve(projectDir, 'sentry.properties'));
   const urlPrefix = '~/_next';
 
   const serverInclude = isServerless
     ? [{ paths: [`${distDirAbsPath}/serverless/`], urlPrefix: `${urlPrefix}/serverless` }]
-    : [
-        { paths: [`${distDirAbsPath}/server/pages/`], urlPrefix: `${urlPrefix}/server/pages` },
-        { paths: [`${distDirAbsPath}/server/app/`], urlPrefix: `${urlPrefix}/server/app` },
-      ].concat(
-        isWebpack5 ? [{ paths: [`${distDirAbsPath}/server/chunks/`], urlPrefix: `${urlPrefix}/server/chunks` }] : [],
-      );
+    : [{ paths: [`${distDirAbsPath}/server/`], urlPrefix: `${urlPrefix}/server` }];
+
+  const serverIgnore: string[] = [];
 
   const clientInclude = userSentryOptions.widenClientFileUpload
     ? [{ paths: [`${distDirAbsPath}/static/chunks`], urlPrefix: `${urlPrefix}/static/chunks` }]
@@ -693,15 +709,16 @@ export function getWebpackPluginOptions(
         { paths: [`${distDirAbsPath}/static/chunks/app`], urlPrefix: `${urlPrefix}/static/chunks/app` },
       ];
 
+  // Widening the upload scope is necessarily going to lead to us uploading files we don't need to (ones which
+  // don't include any user code). In order to lessen that where we can, exclude the internal nextjs files we know
+  // will be there.
+  const clientIgnore = userSentryOptions.widenClientFileUpload
+    ? ['framework-*', 'framework.*', 'main-*', 'polyfills-*', 'webpack-*']
+    : [];
+
   const defaultPluginOptions = dropUndefinedKeys({
     include: isServer ? serverInclude : clientInclude,
-    ignore:
-      isServer || !userSentryOptions.widenClientFileUpload
-        ? []
-        : // Widening the upload scope is necessarily going to lead to us uploading files we don't need to (ones which
-          // don't include any user code). In order to lessen that where we can, exclude the internal nextjs files we know
-          // will be there.
-          ['framework-*', 'framework.*', 'main-*', 'polyfills-*', 'webpack-*'],
+    ignore: isServer ? serverIgnore : clientIgnore,
     url: process.env.SENTRY_URL,
     org: process.env.SENTRY_ORG,
     project: process.env.SENTRY_PROJECT,
@@ -930,6 +947,7 @@ function addValueInjectionLoader(
   userNextConfig: NextConfigObject,
   userSentryOptions: UserSentryOptions,
   buildContext: BuildContext,
+  sentryWebpackPluginOptions: Partial<SentryWebpackPluginOptions>,
 ): void {
   const assetPrefix = userNextConfig.assetPrefix || userNextConfig.basePath || '';
 
@@ -942,7 +960,10 @@ function addValueInjectionLoader(
 
     // The webpack plugin's release injection breaks the `app` directory so we inject the release manually here instead.
     // Having a release defined in dev-mode spams releases in Sentry so we only set one in non-dev mode
-    SENTRY_RELEASE: buildContext.dev ? undefined : { id: getSentryRelease(buildContext.buildId) },
+    SENTRY_RELEASE: buildContext.dev
+      ? undefined
+      : { id: sentryWebpackPluginOptions.release ?? getSentryRelease(buildContext.buildId) },
+    __sentryBasePath: buildContext.dev ? userNextConfig.basePath : undefined,
   };
 
   const serverValues = {
@@ -963,7 +984,7 @@ function addValueInjectionLoader(
 
   newConfig.module.rules.push(
     {
-      test: /sentry\.server\.config\.(jsx?|tsx?)/,
+      test: /sentry\.(server|edge)\.config\.(jsx?|tsx?)/,
       use: [
         {
           loader: path.resolve(__dirname, 'loaders/valueInjectionLoader.js'),
@@ -985,4 +1006,49 @@ function addValueInjectionLoader(
       ],
     },
   );
+}
+
+function resolveNextPackageDirFromDirectory(basedir: string): string | undefined {
+  try {
+    return path.dirname(resolveSync('next/package.json', { basedir }));
+  } catch {
+    // Should not happen in theory
+    return undefined;
+  }
+}
+
+const POTENTIAL_REQUEST_ASNYC_STORAGE_LOCATIONS = [
+  // Original location of RequestAsyncStorage
+  // https://github.com/vercel/next.js/blob/46151dd68b417e7850146d00354f89930d10b43b/packages/next/src/client/components/request-async-storage.ts
+  'next/dist/client/components/request-async-storage.js',
+  // Introduced in Next.js 13.4.20
+  // https://github.com/vercel/next.js/blob/e1bc270830f2fc2df3542d4ef4c61b916c802df3/packages/next/src/client/components/request-async-storage.external.ts
+  'next/dist/client/components/request-async-storage.external.js',
+];
+
+function getRequestAsyncStorageModuleLocation(
+  webpackContextDir: string,
+  webpackResolvableModuleLocations: string[] | undefined,
+): string | undefined {
+  if (webpackResolvableModuleLocations === undefined) {
+    return undefined;
+  }
+
+  const absoluteWebpackResolvableModuleLocations = webpackResolvableModuleLocations.map(loc =>
+    path.resolve(webpackContextDir, loc),
+  );
+
+  for (const webpackResolvableLocation of absoluteWebpackResolvableModuleLocations) {
+    const nextPackageDir = resolveNextPackageDirFromDirectory(webpackResolvableLocation);
+    if (nextPackageDir) {
+      const asyncLocalStorageLocation = POTENTIAL_REQUEST_ASNYC_STORAGE_LOCATIONS.find(loc =>
+        fs.existsSync(path.join(nextPackageDir, '..', loc)),
+      );
+      if (asyncLocalStorageLocation) {
+        return asyncLocalStorageLocation;
+      }
+    }
+  }
+
+  return undefined;
 }

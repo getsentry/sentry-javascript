@@ -1,4 +1,5 @@
 import { getReportDialogEndpoint, SDK_VERSION } from '@sentry/core';
+import type { WrappedFunction } from '@sentry/types';
 import * as utils from '@sentry/utils';
 
 import type { Event } from '../../src';
@@ -355,6 +356,7 @@ describe('wrap()', () => {
     getCurrentHub().bindClient(new BrowserClient(options));
 
     try {
+      // eslint-disable-next-line deprecation/deprecation
       wrap(() => {
         throw new TypeError('mkey');
       });
@@ -364,11 +366,13 @@ describe('wrap()', () => {
   });
 
   it('should return result of a function call', () => {
+    // eslint-disable-next-line deprecation/deprecation
     const result = wrap(() => 2);
     expect(result).toBe(2);
   });
 
   it('should allow for passing this and arguments through binding', () => {
+    // eslint-disable-next-line deprecation/deprecation
     const result = wrap(
       function (this: unknown, a: string, b: number): unknown[] {
         return [this, a, b];
@@ -379,6 +383,7 @@ describe('wrap()', () => {
     expect((result as unknown[])[1]).toBe('b');
     expect((result as unknown[])[2]).toBe(42);
 
+    // eslint-disable-next-line deprecation/deprecation
     const result2 = wrap(
       function (this: { x: number }): number {
         return this.x;
@@ -386,5 +391,15 @@ describe('wrap()', () => {
     );
 
     expect(result2).toBe(42);
+  });
+
+  it('should ignore frozen functions', () => {
+    const func = Object.freeze(() => 42);
+
+    // eslint-disable-next-line deprecation/deprecation
+    wrap(func);
+
+    expect(func()).toBe(42);
+    expect((func as WrappedFunction).__sentry_wrapped__).toBeUndefined();
   });
 });

@@ -1,12 +1,14 @@
 import type { ClientOptions, EventProcessor } from '@sentry/types';
+import type { LRUMap } from '@sentry/utils';
 import type { Debugger, InspectorNotification } from 'inspector';
-import type { LRUMap } from 'lru_map';
 
 import { defaultStackParser } from '../../src';
 import type { DebugSession, FrameVariables } from '../../src/integrations/localvariables';
-import { createCallbackList, LocalVariables } from '../../src/integrations/localvariables';
+import { createCallbackList, createRateLimiter, LocalVariables } from '../../src/integrations/localvariables';
 import { NODE_VERSION } from '../../src/nodeVersion';
 import { getDefaultNodeClientOptions } from '../../test/helper/node-client-options';
+
+jest.setTimeout(20_000);
 
 const describeIf = (condition: boolean) => (condition ? describe : describe.skip);
 
@@ -30,6 +32,8 @@ class MockDebugSession implements DebugSession {
 
     this._onPause = onPause;
   }
+
+  public setPauseOnExceptions(_: boolean): void {}
 
   public getLocalVariables(objectId: string, callback: (vars: Record<string, unknown>) => void): void {
     if (this._throwOn?.getLocalVariables) {
@@ -174,11 +178,7 @@ describeIf((NODE_VERSION.major || 0) >= 18)('LocalVariables', () => {
 
     expect((localVariables as unknown as LocalVariablesPrivate)._cachedFrames.size).toBe(1);
 
-    let frames: FrameVariables[] | undefined;
-
-    (localVariables as unknown as LocalVariablesPrivate)._cachedFrames.forEach(f => {
-      frames = f;
-    });
+    const frames: FrameVariables[] = (localVariables as unknown as LocalVariablesPrivate)._cachedFrames.values()[0];
 
     expect(frames).toBeDefined();
 
@@ -270,11 +270,7 @@ describeIf((NODE_VERSION.major || 0) >= 18)('LocalVariables', () => {
 
     expect((localVariables as unknown as LocalVariablesPrivate)._cachedFrames.size).toBe(1);
 
-    let frames: FrameVariables[] | undefined;
-
-    (localVariables as unknown as LocalVariablesPrivate)._cachedFrames.forEach(f => {
-      frames = f;
-    });
+    const frames: FrameVariables[] = (localVariables as unknown as LocalVariablesPrivate)._cachedFrames.values()[0];
 
     expect(frames).toBeDefined();
 
@@ -429,6 +425,69 @@ describeIf((NODE_VERSION.major || 0) >= 18)('LocalVariables', () => {
       });
 
       next(10);
+    });
+  });
+
+  describe('rateLimiter', () => {
+    it('calls disable if exceeded', done => {
+      const increment = createRateLimiter(
+        5,
+        () => {},
+        () => {
+          done();
+        },
+      );
+
+      for (let i = 0; i < 7; i++) {
+        increment();
+      }
+    });
+
+    it('does not call disable if not exceeded', done => {
+      const increment = createRateLimiter(
+        5,
+        () => {
+          throw new Error('Should not be called');
+        },
+        () => {
+          throw new Error('Should not be called');
+        },
+      );
+
+      let count = 0;
+
+      const timer = setInterval(() => {
+        for (let i = 0; i < 4; i++) {
+          increment();
+        }
+
+        count += 1;
+
+        if (count >= 5) {
+          clearInterval(timer);
+          done();
+        }
+      }, 1_000);
+    });
+
+    it('re-enables after timeout', done => {
+      let called = false;
+
+      const increment = createRateLimiter(
+        5,
+        () => {
+          expect(called).toEqual(true);
+          done();
+        },
+        () => {
+          expect(called).toEqual(false);
+          called = true;
+        },
+      );
+
+      for (let i = 0; i < 10; i++) {
+        increment();
+      }
     });
   });
 });

@@ -22,17 +22,9 @@ import type {
   Transaction,
   User,
 } from '@sentry/types';
-import {
-  arrayify,
-  dateTimestampInSeconds,
-  getGlobalSingleton,
-  isPlainObject,
-  isThenable,
-  logger,
-  SyncPromise,
-  uuid4,
-} from '@sentry/utils';
+import { arrayify, dateTimestampInSeconds, isPlainObject, uuid4 } from '@sentry/utils';
 
+import { getGlobalEventProcessors, notifyEventProcessors } from './eventProcessors';
 import { updateSession } from './session';
 
 /**
@@ -419,7 +411,11 @@ export class Scope implements ScopeInterface {
       timestamp: dateTimestampInSeconds(),
       ...breadcrumb,
     };
-    this._breadcrumbs = [...this._breadcrumbs, mergedBreadcrumb].slice(-maxCrumbs);
+
+    const breadcrumbs = this._breadcrumbs;
+    breadcrumbs.push(mergedBreadcrumb);
+    this._breadcrumbs = breadcrumbs.length > maxCrumbs ? breadcrumbs.slice(-maxCrumbs) : breadcrumbs;
+
     this._notifyScopeListeners();
 
     return this;
@@ -471,7 +467,11 @@ export class Scope implements ScopeInterface {
    * @param hint Object containing additional information about the original exception, for use by the event processors.
    * @hidden
    */
-  public applyToEvent(event: Event, hint: EventHint = {}): PromiseLike<Event | null> {
+  public applyToEvent(
+    event: Event,
+    hint: EventHint = {},
+    additionalEventProcessors?: EventProcessor[],
+  ): PromiseLike<Event | null> {
     if (this._extra && Object.keys(this._extra).length) {
       event.extra = { ...this._extra, ...event.extra };
     }
@@ -511,8 +511,9 @@ export class Scope implements ScopeInterface {
 
     this._applyFingerprint(event);
 
-    event.breadcrumbs = [...(event.breadcrumbs || []), ...this._breadcrumbs];
-    event.breadcrumbs = event.breadcrumbs.length > 0 ? event.breadcrumbs : undefined;
+    const scopeBreadcrumbs = this._getBreadcrumbs();
+    const breadcrumbs = [...(event.breadcrumbs || []), ...scopeBreadcrumbs];
+    event.breadcrumbs = breadcrumbs.length > 0 ? breadcrumbs : undefined;
 
     event.sdkProcessingMetadata = {
       ...event.sdkProcessingMetadata,
@@ -520,7 +521,12 @@ export class Scope implements ScopeInterface {
       propagationContext: this._propagationContext,
     };
 
-    return this._notifyEventProcessors([...getGlobalEventProcessors(), ...this._eventProcessors], event, hint);
+    // TODO (v8): Update this order to be: Global > Client > Scope
+    return notifyEventProcessors(
+      [...(additionalEventProcessors || []), ...getGlobalEventProcessors(), ...this._eventProcessors],
+      event,
+      hint,
+    );
   }
 
   /**
@@ -548,37 +554,10 @@ export class Scope implements ScopeInterface {
   }
 
   /**
-   * This will be called after {@link applyToEvent} is finished.
+   * Get the breadcrumbs for this scope.
    */
-  protected _notifyEventProcessors(
-    processors: EventProcessor[],
-    event: Event | null,
-    hint: EventHint,
-    index: number = 0,
-  ): PromiseLike<Event | null> {
-    return new SyncPromise<Event | null>((resolve, reject) => {
-      const processor = processors[index];
-      if (event === null || typeof processor !== 'function') {
-        resolve(event);
-      } else {
-        const result = processor({ ...event }, hint) as Event | null;
-
-        __DEBUG_BUILD__ &&
-          processor.id &&
-          result === null &&
-          logger.log(`Event processor "${processor.id}" dropped event`);
-
-        if (isThenable(result)) {
-          void result
-            .then(final => this._notifyEventProcessors(processors, final, hint, index + 1).then(resolve))
-            .then(null, reject);
-        } else {
-          void this._notifyEventProcessors(processors, result, hint, index + 1)
-            .then(resolve)
-            .then(null, reject);
-        }
-      }
-    });
+  protected _getBreadcrumbs(): Breadcrumb[] {
+    return this._breadcrumbs;
   }
 
   /**
@@ -615,21 +594,6 @@ export class Scope implements ScopeInterface {
       delete event.fingerprint;
     }
   }
-}
-
-/**
- * Returns the global event processors.
- */
-function getGlobalEventProcessors(): EventProcessor[] {
-  return getGlobalSingleton<EventProcessor[]>('globalEventProcessors', () => []);
-}
-
-/**
- * Add a EventProcessor to be kept globally.
- * @param callback EventProcessor to add
- */
-export function addGlobalEventProcessor(callback: EventProcessor): void {
-  getGlobalEventProcessors().push(callback);
 }
 
 function generatePropagationContext(): PropagationContext {

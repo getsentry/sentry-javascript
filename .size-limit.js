@@ -5,7 +5,26 @@ module.exports = [
     path: 'packages/browser/build/npm/esm/index.js',
     import: '{ init, Replay, BrowserTracing }',
     gzip: true,
-    limit: '80 KB',
+    limit: '90 KB',
+  },
+  {
+    name: '@sentry/browser (incl. Tracing, Replay) - Webpack with treeshaking flags (gzipped)',
+    path: 'packages/browser/build/npm/esm/index.js',
+    import: '{ init, Replay, BrowserTracing }',
+    gzip: true,
+    limit: '90 KB',
+    modifyWebpackConfig: function (config) {
+      const webpack = require('webpack');
+      config.plugins.push(
+        new webpack.DefinePlugin({
+          __SENTRY_DEBUG__: false,
+          __RRWEB_EXCLUDE_SHADOW_DOM__: true,
+          __RRWEB_EXCLUDE_IFRAME__: true,
+          __SENTRY_EXCLUDE_REPLAY_WORKER__: true,
+        }),
+      );
+      return config;
+    },
   },
   {
     name: '@sentry/browser (incl. Tracing) - Webpack (gzipped)',
@@ -27,7 +46,7 @@ module.exports = [
     name: '@sentry/browser (incl. Tracing, Replay) - ES6 CDN Bundle (gzipped)',
     path: 'packages/browser/build/bundles/bundle.tracing.replay.min.js',
     gzip: true,
-    limit: '80 KB',
+    limit: '90 KB',
   },
   {
     name: '@sentry/browser (incl. Tracing) - ES6 CDN Bundle (gzipped)',
@@ -47,7 +66,7 @@ module.exports = [
     name: '@sentry/browser (incl. Tracing, Replay) - ES6 CDN Bundle (minified & uncompressed)',
     path: 'packages/browser/build/bundles/bundle.tracing.replay.min.js',
     gzip: false,
-    limit: '250 KB',
+    limit: '260 KB',
   },
   {
     name: '@sentry/browser (incl. Tracing) - ES6 CDN Bundle (minified & uncompressed)',
@@ -77,7 +96,7 @@ module.exports = [
     path: 'packages/react/build/esm/index.js',
     import: '{ init, BrowserTracing, Replay }',
     gzip: true,
-    limit: '80 KB',
+    limit: '90 KB',
   },
   {
     name: '@sentry/react - Webpack (gzipped)',
@@ -93,7 +112,7 @@ module.exports = [
     path: 'packages/nextjs/build/esm/client/index.js',
     import: '{ init, BrowserTracing, Replay }',
     gzip: true,
-    limit: '100 KB',
+    limit: '110 KB',
   },
   {
     name: '@sentry/nextjs Client - Webpack (gzipped)',
@@ -101,5 +120,12 @@ module.exports = [
     import: '{ init }',
     gzip: true,
     limit: '57 KB',
+  },
+  {
+    name: '@sentry-internal/feedback - Webpack (gzipped)',
+    path: 'packages/feedback/build/npm/esm/index.js',
+    import: '{ Feedback }',
+    gzip: true,
+    limit: '35 KB',
   },
 ];

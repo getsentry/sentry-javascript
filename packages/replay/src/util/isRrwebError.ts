@@ -8,17 +8,10 @@ export function isRrwebError(event: Event, hint: EventHint): boolean {
     return false;
   }
 
-  // @ts-ignore this may be set by rrweb when it finds errors
+  // @ts-expect-error this may be set by rrweb when it finds errors
   if (hint.originalException && hint.originalException.__rrweb__) {
     return true;
   }
 
-  // Check if any exception originates from rrweb
-  return event.exception.values.some(exception => {
-    if (!exception.stacktrace || !exception.stacktrace.frames || !exception.stacktrace.frames.length) {
-      return false;
-    }
-
-    return exception.stacktrace.frames.some(frame => frame.filename && frame.filename.includes('/rrweb/src/'));
-  });
+  return false;
 }

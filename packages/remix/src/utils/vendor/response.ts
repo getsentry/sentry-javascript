@@ -6,7 +6,7 @@
 //
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-import type { DeferredData, ReactRouterDomPkg, RouteMatch, ServerRoute } from './types';
+import type { DeferredData, ErrorResponse, ReactRouterDomPkg, RouteMatch, ServerRoute } from './types';
 
 /**
  * Based on Remix Implementation
@@ -128,6 +128,7 @@ export function getRequestMatch(url: URL, matches: RouteMatch<ServerRoute>[]): R
 /**
  * https://github.com/remix-run/remix/blob/3e589152bc717d04e2054c31bea5a1056080d4b9/packages/remix-server-runtime/responses.ts#L75-L85
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function isDeferredData(value: any): value is DeferredData {
   const deferred: DeferredData = value;
   return (
@@ -137,5 +138,24 @@ export function isDeferredData(value: any): value is DeferredData {
     typeof deferred.subscribe === 'function' &&
     typeof deferred.cancel === 'function' &&
     typeof deferred.resolveData === 'function'
+  );
+}
+
+/**
+ * https://github.com/remix-run/react-router/blob/f9b3dbd9cbf513366c456b33d95227f42f36da63/packages/router/utils.ts#L1574
+ *
+ * Check if the given error is an ErrorResponse generated from a 4xx/5xx
+ * Response thrown from an action/loader
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function isRouteErrorResponse(value: any): value is ErrorResponse {
+  const error: ErrorResponse = value;
+
+  return (
+    error != null &&
+    typeof error.status === 'number' &&
+    typeof error.statusText === 'string' &&
+    typeof error.internal === 'boolean' &&
+    'data' in error
   );
 }

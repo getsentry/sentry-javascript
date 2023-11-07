@@ -16,8 +16,13 @@ module.exports = {
     {
       // Configuration for typescript files
       files: ['*.ts', '*.tsx', '*.d.ts'],
-      extends: ['plugin:@typescript-eslint/recommended', 'prettier/@typescript-eslint', 'plugin:import/typescript'],
-      plugins: ['@typescript-eslint', 'jsdoc', 'deprecation'],
+      extends: [
+        'plugin:@typescript-eslint/recommended',
+        'prettier/@typescript-eslint',
+        'plugin:import/typescript',
+        'plugin:deprecation/recommended',
+      ],
+      plugins: ['@typescript-eslint', 'jsdoc'],
       parser: '@typescript-eslint/parser',
       rules: {
         // We want to guard against using the equality operator with empty arrays
@@ -26,13 +31,9 @@ module.exports = {
         // Unused variables should be removed unless they are marked with and underscore (ex. _varName).
         '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
 
-        // Make sure that all ts-ignore comments are given a description.
-        '@typescript-eslint/ban-ts-comment': [
-          'warn',
-          {
-            'ts-ignore': 'allow-with-description',
-          },
-        ],
+        // Do not use ts-ignore, use ts-expect-error instead.
+        // Also make sure that all ts-expect-error comments are given a description.
+        '@typescript-eslint/ban-ts-comment': 'error',
 
         // Types usage should be explicit as possible, so we prevent usage of inferrable types.
         // This is especially important because we have a public API, so usage needs to be as
@@ -90,9 +91,6 @@ module.exports = {
 
         // Make sure Promises are handled appropriately
         '@typescript-eslint/no-floating-promises': 'error',
-
-        // Do not use deprecated methods
-        'deprecation/deprecation': 'error',
 
         // sort imports
         'simple-import-sort/sort': 'error',

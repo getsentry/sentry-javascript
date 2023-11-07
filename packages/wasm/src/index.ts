@@ -1,4 +1,4 @@
-import type { Event, EventProcessor, Hub, Integration, StackFrame } from '@sentry/types';
+import type { Event, Integration, StackFrame } from '@sentry/types';
 
 import { patchWebAssembly } from './patchWebAssembly';
 import { getImage, getImages } from './registry';
@@ -49,26 +49,27 @@ export class Wasm implements Integration {
   /**
    * @inheritDoc
    */
-  public setupOnce(addGlobalEventProcessor: (callback: EventProcessor) => void, _getCurrentHub: () => Hub): void {
+  public setupOnce(_addGlobaleventProcessor: unknown, _getCurrentHub: unknown): void {
     patchWebAssembly();
+  }
 
-    addGlobalEventProcessor((event: Event) => {
-      let haveWasm = false;
+  /** @inheritDoc */
+  public processEvent(event: Event): Event {
+    let haveWasm = false;
 
-      if (event.exception && event.exception.values) {
-        event.exception.values.forEach(exception => {
-          if (exception?.stacktrace?.frames) {
-            haveWasm = haveWasm || patchFrames(exception.stacktrace.frames);
-          }
-        });
-      }
+    if (event.exception && event.exception.values) {
+      event.exception.values.forEach(exception => {
+        if (exception?.stacktrace?.frames) {
+          haveWasm = haveWasm || patchFrames(exception.stacktrace.frames);
+        }
+      });
+    }
 
-      if (haveWasm) {
-        event.debug_meta = event.debug_meta || {};
-        event.debug_meta.images = [...(event.debug_meta.images || []), ...getImages()];
-      }
+    if (haveWasm) {
+      event.debug_meta = event.debug_meta || {};
+      event.debug_meta.images = [...(event.debug_meta.images || []), ...getImages()];
+    }
 
-      return event;
-    });
+    return event;
   }
 }

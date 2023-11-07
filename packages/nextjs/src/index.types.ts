@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable import/export */
 
 // We export everything from both the client part of the SDK and from the server part. Some of the exports collide,
@@ -185,3 +186,8 @@ export declare function wrapApiHandlerWithSentryVercelCrons<F extends (...args: 
   WrappingTarget: F,
   vercelCronsConfig: VercelCronsConfig,
 ): F;
+
+/**
+ * Wraps a page component with Sentry error instrumentation.
+ */
+export declare function wrapPageComponentWithSentry<C>(WrappingTarget: C): C;

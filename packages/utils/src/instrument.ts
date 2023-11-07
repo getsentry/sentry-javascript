@@ -12,7 +12,8 @@ import type {
 import { isString } from './is';
 import type { ConsoleLevel } from './logger';
 import { CONSOLE_LEVELS, logger, originalConsoleMethods } from './logger';
-import { fill } from './object';
+import { uuid4 } from './misc';
+import { addNonEnumerableProperty, fill } from './object';
 import { getFunctionName } from './stacktrace';
 import { supportsHistory, supportsNativeFetch } from './supports';
 import { getGlobalObject, GLOBAL_OBJ } from './worldwide';
@@ -247,8 +248,9 @@ export function parseFetchArgs(fetchArgs: unknown[]): { method: string; url: str
 }
 
 /** JSDoc */
-function instrumentXHR(): void {
-  if (!('XMLHttpRequest' in WINDOW)) {
+export function instrumentXHR(): void {
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+  if (!(WINDOW as any).XMLHttpRequest) {
     return;
   }
 
@@ -256,6 +258,8 @@ function instrumentXHR(): void {
 
   fill(xhrproto, 'open', function (originalOpen: () => void): () => void {
     return function (this: XMLHttpRequest & SentryWrappedXMLHttpRequest, ...args: any[]): void {
+      const startTimestamp = Date.now();
+
       const url = args[1];
       const xhrInfo: SentryXhrData = (this[SENTRY_XHR_DATA_KEY] = {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
@@ -290,7 +294,7 @@ function instrumentXHR(): void {
           triggerHandlers('xhr', {
             args: args as [string, string],
             endTimestamp: Date.now(),
-            startTimestamp: Date.now(),
+            startTimestamp,
             xhr: this,
           } as HandlerDataXhr);
         }
@@ -399,31 +403,27 @@ function instrumentHistory(): void {
   fill(WINDOW.history, 'replaceState', historyReplacementFunction);
 }
 
-const debounceDuration = 1000;
+const DEBOUNCE_DURATION = 1000;
 let debounceTimerID: number | undefined;
-let lastCapturedEvent: Event | undefined;
+let lastCapturedEventType: string | undefined;
+let lastCapturedEventTargetId: string | undefined;
+
+type SentryWrappedTarget = HTMLElement & { _sentryId?: string };
 
 /**
- * Decide whether the current event should finish the debounce of previously captured one.
- * @param previous previously captured event
- * @param current event to be captured
+ * Check whether the event is similar to the last captured one. For example, two click events on the same button.
  */
-function shouldShortcircuitPreviousDebounce(previous: Event | undefined, current: Event): boolean {
-  // If there was no previous event, it should always be swapped for the new one.
-  if (!previous) {
-    return true;
-  }
-
+function isSimilarToLastCapturedEvent(event: Event): boolean {
   // If both events have different type, then user definitely performed two separate actions. e.g. click + keypress.
-  if (previous.type !== current.type) {
-    return true;
+  if (event.type !== lastCapturedEventType) {
+    return false;
   }
 
   try {
     // If both events have the same type, it's still possible that actions were performed on different targets.
     // e.g. 2 clicks on different buttons.
-    if (previous.target !== current.target) {
-      return true;
+    if (!event.target || (event.target as SentryWrappedTarget)._sentryId !== lastCapturedEventTargetId) {
+      return false;
     }
   } catch (e) {
     // just accessing `target` property can throw an exception in some rare circumstances
@@ -433,37 +433,40 @@ function shouldShortcircuitPreviousDebounce(previous: Event | undefined, current
   // If both events have the same type _and_ same `target` (an element which triggered an event, _not necessarily_
   // to which an event listener was attached), we treat them as the same action, as we want to capture
   // only one breadcrumb. e.g. multiple clicks on the same button, or typing inside a user input box.
-  return false;
+  return true;
 }
 
 /**
  * Decide whether an event should be captured.
  * @param event event to be captured
  */
-function shouldSkipDOMEvent(event: Event): boolean {
+function shouldSkipDOMEvent(eventType: string, target: SentryWrappedTarget | null): boolean {
   // We are only interested in filtering `keypress` events for now.
-  if (event.type !== 'keypress') {
+  if (eventType !== 'keypress') {
     return false;
   }
 
-  try {
-    const target = event.target as HTMLElement;
+  if (!target || !target.tagName) {
+    return true;
+  }
 
-    if (!target || !target.tagName) {
-      return true;
-    }
-
-    // Only consider keypress events on actual input elements. This will disregard keypresses targeting body
-    // e.g.tabbing through elements, hotkeys, etc.
-    if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
-      return false;
-    }
-  } catch (e) {
-    // just accessing `target` property can throw an exception in some rare circumstances
-    // see: https://github.com/getsentry/sentry-javascript/issues/838
+  // Only consider keypress events on actual input elements. This will disregard keypresses targeting body
+  // e.g.tabbing through elements, hotkeys, etc.
+  if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
+    return false;
   }
 
   return true;
+}
+
+function getEventTarget(event: Event): SentryWrappedTarget | null {
+  try {
+    return event.target as SentryWrappedTarget | null;
+  } catch (e) {
+    // just accessing `target` property can throw an exception in some rare circumstances
+    // see: https://github.com/getsentry/sentry-javascript/issues/838
+    return null;
+  }
 }
 
 /**
@@ -474,46 +477,50 @@ function shouldSkipDOMEvent(event: Event): boolean {
  * @hidden
  */
 function makeDOMEventHandler(handler: Function, globalListener: boolean = false): (event: Event) => void {
-  return (event: Event): void => {
+  return (event: Event & { _sentryCaptured?: true }): void => {
     // It's possible this handler might trigger multiple times for the same
     // event (e.g. event propagation through node ancestors).
     // Ignore if we've already captured that event.
-    if (!event || lastCapturedEvent === event) {
+    if (!event || event['_sentryCaptured']) {
       return;
     }
 
+    const target = getEventTarget(event);
+
     // We always want to skip _some_ events.
-    if (shouldSkipDOMEvent(event)) {
+    if (shouldSkipDOMEvent(event.type, target)) {
       return;
+    }
+
+    // Mark event as "seen"
+    addNonEnumerableProperty(event, '_sentryCaptured', true);
+
+    if (target && !target._sentryId) {
+      // Add UUID to event target so we can identify if
+      addNonEnumerableProperty(target, '_sentryId', uuid4());
     }
 
     const name = event.type === 'keypress' ? 'input' : event.type;
 
-    // If there is no debounce timer, it means that we can safely capture the new event and store it for future comparisons.
-    if (debounceTimerID === undefined) {
-      handler({
-        event: event,
-        name,
-        global: globalListener,
-      });
-      lastCapturedEvent = event;
-    }
-    // If there is a debounce awaiting, see if the new event is different enough to treat it as a unique one.
+    // If there is no last captured event, it means that we can safely capture the new event and store it for future comparisons.
+    // If there is a last captured event, see if the new event is different enough to treat it as a unique one.
     // If that's the case, emit the previous event and store locally the newly-captured DOM event.
-    else if (shouldShortcircuitPreviousDebounce(lastCapturedEvent, event)) {
+    if (!isSimilarToLastCapturedEvent(event)) {
       handler({
         event: event,
         name,
         global: globalListener,
       });
-      lastCapturedEvent = event;
+      lastCapturedEventType = event.type;
+      lastCapturedEventTargetId = target ? target._sentryId : undefined;
     }
 
     // Start a new debounce timer that will prevent us from capturing multiple events that should be grouped together.
     clearTimeout(debounceTimerID);
     debounceTimerID = WINDOW.setTimeout(() => {
-      debounceTimerID = undefined;
-    }, debounceDuration);
+      lastCapturedEventTargetId = undefined;
+      lastCapturedEventType = undefined;
+    }, DEBOUNCE_DURATION);
   };
 }
 
@@ -539,8 +546,8 @@ type InstrumentedElement = Element & {
 };
 
 /** JSDoc */
-function instrumentDOM(): void {
-  if (!('document' in WINDOW)) {
+export function instrumentDOM(): void {
+  if (!WINDOW.document) {
     return;
   }
 

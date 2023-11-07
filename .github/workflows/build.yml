@@ -61,7 +61,7 @@ jobs:
       pull-requests: read
     steps:
       - name: Check out current commit
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           ref: ${{ env.HEAD_COMMIT }}
           # We need to check out not only the fake merge commit between the PR and the base branch which GH creates, but
@@ -98,6 +98,7 @@ jobs:
               - *shared
               - 'packages/browser/**'
               - 'packages/replay/**'
+              - 'packages/feedback/**'
             browser_integration:
               - *shared
               - *browser
@@ -122,6 +123,10 @@ jobs:
               - *shared
               - 'packages/node/**'
               - 'packages/node-integration-tests/**'
+            deno:
+              - *shared
+              - *browser
+              - 'packages/deno/**'
             any_code:
               - '!**/*.md'
 
@@ -135,6 +140,7 @@ jobs:
       changed_ember: ${{ steps.changed.outputs.ember }}
       changed_remix: ${{ steps.changed.outputs.remix }}
       changed_node: ${{ steps.changed.outputs.node }}
+      changed_deno: ${{ steps.changed.outputs.deno }}
       changed_browser: ${{ steps.changed.outputs.browser }}
       changed_browser_integration: ${{ steps.changed.outputs.browser_integration }}
       changed_any_code: ${{ steps.changed.outputs.any_code }}
@@ -159,11 +165,11 @@ jobs:
       (needs.job_get_metadata.outputs.changed_any_code == 'true' || github.event_name != 'pull_request')
     steps:
       - name: 'Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})'
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version-file: 'package.json'
         # we use a hash of yarn.lock as our cache key, because if it hasn't changed, our dependencies haven't changed,
@@ -207,11 +213,11 @@ jobs:
     timeout-minutes: 30
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version-file: 'package.json'
       - name: Check dependency cache
@@ -265,11 +271,11 @@ jobs:
       needs.job_get_metadata.outputs.is_release == 'true'
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           # The size limit action runs `yarn` and `yarn build` when this job is executed on
           # use Node 14 for now.
@@ -297,11 +303,11 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version-file: 'package.json'
       - name: Restore caches
@@ -320,11 +326,11 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version-file: 'package.json'
       - name: Restore caches
@@ -342,11 +348,11 @@ jobs:
     if: needs.job_get_metadata.outputs.is_release == 'true'
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version-file: 'package.json'
       - name: Restore caches
@@ -356,7 +362,7 @@ jobs:
       - name: Pack
         run: yarn build:tarball
       - name: Archive artifacts
-        uses: actions/upload-artifact@v3.1.2
+        uses: actions/upload-artifact@v3.1.3
         with:
           name: ${{ github.sha }}
           path: |
@@ -373,13 +379,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
-          node-version: ${{ env.DEFAULT_NODE_VERSION }}
+          node-version-file: 'package.json'
       - name: Restore caches
         uses: ./.github/actions/restore-cache
         env:
@@ -388,6 +394,67 @@ jobs:
         env:
           NODE_VERSION: 16
         run: yarn test-ci-browser
+      - name: Compute test coverage
+        uses: codecov/codecov-action@v3
+
+  job_bun_unit_tests:
+    name: Bun Unit Tests
+    needs: [job_get_metadata, job_build]
+    timeout-minutes: 10
+    runs-on: ubuntu-20.04
+    strategy:
+      fail-fast: false
+    steps:
+      - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.HEAD_COMMIT }}
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: 'package.json'
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v1
+      - name: Restore caches
+        uses: ./.github/actions/restore-cache
+        env:
+          DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
+      - name: Run tests
+        run: |
+          yarn test-ci-bun
+      - name: Compute test coverage
+        uses: codecov/codecov-action@v3
+
+  job_deno_unit_tests:
+    name: Deno Unit Tests
+    needs: [job_get_metadata, job_build]
+    if: needs.job_get_metadata.outputs.changed_deno == 'true' || github.event_name != 'pull_request'
+    timeout-minutes: 10
+    runs-on: ubuntu-20.04
+    strategy:
+      fail-fast: false
+    steps:
+      - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.HEAD_COMMIT }}
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: 'package.json'
+      - name: Set up Deno
+        uses: denoland/setup-deno@v1.1.3
+        with:
+          deno-version: v1.37.1
+      - name: Restore caches
+        uses: ./.github/actions/restore-cache
+        env:
+          DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
+      - name: Run tests
+        run: |
+          cd packages/deno
+          yarn build
+          yarn test
       - name: Compute test coverage
         uses: codecov/codecov-action@v3
 
@@ -402,11 +469,11 @@ jobs:
         node: [8, 10, 12, 14, 16, 18, 20]
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
       - name: Restore caches
@@ -434,11 +501,11 @@ jobs:
         node: [10, 12, 14, 16, 18, 20]
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
       - name: Restore caches
@@ -499,11 +566,11 @@ jobs:
 
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version-file: 'package.json'
       - name: Restore caches
@@ -556,11 +623,11 @@ jobs:
 
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version-file: 'package.json'
       - name: Restore caches
@@ -609,11 +676,11 @@ jobs:
           - WebkitHeadless
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version-file: 'package.json'
       - name: Restore caches
@@ -635,11 +702,11 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version-file: 'package.json'
       - name: Restore caches
@@ -675,11 +742,11 @@ jobs:
             typescript: '3.8'
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
       - name: Restore caches
@@ -711,11 +778,11 @@ jobs:
         remix: [1, 2]
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
       - name: Restore caches
@@ -740,24 +807,31 @@ jobs:
     timeout-minutes: 15
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version-file: 'package.json'
       - name: Restore caches
         uses: ./.github/actions/restore-cache
         env:
           DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
-      - name: Check tarball cache
-        uses: actions/cache@v3
+      - name: NX cache
+        uses: actions/cache/restore@v3
+        with:
+          path: .nxcache
+          key: nx-Linux-${{ github.ref }}-${{ env.HEAD_COMMIT }}
+          # On develop branch, we want to _store_ the cache (so it can be used by other branches), but never _restore_ from it
+          restore-keys: ${{ env.NX_CACHE_RESTORE_KEYS }}
+      - name: Build tarballs
+        run: yarn build:tarball
+      - name: Stores tarballs in cache
+        uses: actions/cache/save@v3
         with:
           path: ${{ github.workspace }}/packages/*/*.tgz
           key: ${{ env.BUILD_CACHE_TARBALL_KEY }}
-      - name: Build tarballs
-        run: yarn build:tarball
 
   job_e2e_tests:
     name: E2E ${{ matrix.label || matrix.test-application }} Test
@@ -787,11 +861,16 @@ jobs:
             'create-react-app',
             'create-next-app',
             'create-remix-app',
+            'create-remix-app-v2',
+            'debug-id-sourcemaps',
             'nextjs-app-dir',
             'react-create-hash-router',
+            'react-router-6-use-routes',
             'standard-frontend-react',
             'standard-frontend-react-tracing-import',
             'sveltekit',
+            'generic-ts3.8',
+            'node-experimental-fastify-app',
           ]
         build-command:
           - false
@@ -806,19 +885,25 @@ jobs:
           - test-application: 'standard-frontend-react'
             build-command: 'test:build-ts3.8'
             label: 'standard-frontend-react (TS 3.8)'
+          - test-application: 'create-next-app'
+            build-command: 'test:build-13'
+            label: 'create-next-app (next@13)'
+          - test-application: 'nextjs-app-dir'
+            build-command: 'test:build-13'
+            label: 'nextjs-app-dir (next@13)'
 
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - uses: pnpm/action-setup@v2
         with:
           version: 8.3.1
       - name: Set up Node
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
-          node-version-file: 'package.json'
+          node-version-file: 'packages/e2e-tests/package.json'
       - name: Restore caches
         uses: ./.github/actions/restore-cache
         env:
@@ -833,7 +918,7 @@ jobs:
       - name: Get node version
         id: versions
         run: |
-          echo "echo node=$(jq -r '.volta.node' package.json)" >> $GITHUB_OUTPUT
+          echo "echo node=$(jq -r '.volta.node' packages/e2e-tests/package.json)" >> $GITHUB_OUTPUT
 
       - name: Validate Verdaccio
         run: yarn test:validate
@@ -862,6 +947,8 @@ jobs:
         job_build,
         job_browser_build_tests,
         job_browser_unit_tests,
+        job_bun_unit_tests,
+        job_deno_unit_tests,
         job_node_unit_tests,
         job_nextjs_integration_test,
         job_node_integration_tests,
@@ -893,11 +980,11 @@ jobs:
       needs.job_get_metadata.outputs.is_develop == 'true'
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version-file: 'package.json'
       - name: Restore caches
@@ -919,7 +1006,7 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
 
       - name: Upload results
-        uses: actions/upload-artifact@v3.1.2
+        uses: actions/upload-artifact@v3.1.3
         if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
         with:
           name: ${{ steps.process.outputs.artifactName }}

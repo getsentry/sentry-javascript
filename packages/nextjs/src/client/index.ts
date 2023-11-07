@@ -14,11 +14,11 @@ import { addOrUpdateIntegration } from '@sentry/utils';
 import { devErrorSymbolicationEventProcessor } from '../common/devErrorSymbolicationEventProcessor';
 import { getVercelEnv } from '../common/getVercelEnv';
 import { buildMetadata } from '../common/metadata';
-import { nextRouterInstrumentation } from './performance';
+import { nextRouterInstrumentation } from './routing/nextRoutingInstrumentation';
 import { applyTunnelRouteOption } from './tunnelRoute';
 
 export * from '@sentry/react';
-export { nextRouterInstrumentation } from './performance';
+export { nextRouterInstrumentation } from './routing/nextRoutingInstrumentation';
 export { captureUnderscoreErrorException } from '../common/_error';
 
 export { Integrations };
@@ -44,14 +44,17 @@ const globalWithInjectedValues = global as typeof global & {
 
 /** Inits the Sentry NextJS SDK on the browser with the React SDK. */
 export function init(options: BrowserOptions): void {
-  applyTunnelRouteOption(options);
-  buildMetadata(options, ['nextjs', 'react']);
+  const opts = {
+    environment: getVercelEnv(true) || process.env.NODE_ENV,
+    ...options,
+  };
 
-  options.environment = options.environment || getVercelEnv(true) || process.env.NODE_ENV;
+  applyTunnelRouteOption(opts);
+  buildMetadata(opts, ['nextjs', 'react']);
 
-  addClientIntegrations(options);
+  addClientIntegrations(opts);
 
-  reactInit(options);
+  reactInit(opts);
 
   configureScope(scope => {
     scope.setTag('runtime', 'browser');

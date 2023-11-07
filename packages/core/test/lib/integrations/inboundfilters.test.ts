@@ -2,6 +2,9 @@ import type { Event, EventProcessor } from '@sentry/types';
 
 import type { InboundFiltersOptions } from '../../../src/integrations/inboundfilters';
 import { InboundFilters } from '../../../src/integrations/inboundfilters';
+import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
+
+const PUBLIC_DSN = 'https://username@domain/123';
 
 /**
  * Creates an instance of the InboundFilters integration and returns
@@ -25,30 +28,22 @@ function createInboundFiltersEventProcessor(
   options: Partial<InboundFiltersOptions> = {},
   clientOptions: Partial<InboundFiltersOptions> = {},
 ): EventProcessor {
-  const eventProcessors: EventProcessor[] = [];
-  const inboundFiltersInstance = new InboundFilters(options);
+  const client = new TestClient(
+    getDefaultTestClientOptions({
+      dsn: PUBLIC_DSN,
+      ...clientOptions,
+      defaultIntegrations: false,
+      integrations: [new InboundFilters(options)],
+    }),
+  );
 
-  function addGlobalEventProcessor(processor: EventProcessor): void {
-    eventProcessors.push(processor);
-    expect(eventProcessors).toHaveLength(1);
-  }
+  client.setupIntegrations();
 
-  function getCurrentHub(): any {
-    return {
-      getIntegration(_integration: any): any {
-        // pretend integration is enabled
-        return inboundFiltersInstance;
-      },
-      getClient(): any {
-        return {
-          getOptions: () => clientOptions,
-        };
-      },
-    };
-  }
+  const eventProcessors = client['_eventProcessors'];
+  const eventProcessor = eventProcessors.find(processor => processor.id === 'InboundFilters');
 
-  inboundFiltersInstance.setupOnce(addGlobalEventProcessor, getCurrentHub);
-  return eventProcessors[0];
+  expect(eventProcessor).toBeDefined();
+  return eventProcessor!;
 }
 
 // Fixtures
@@ -115,6 +110,18 @@ const MESSAGE_EVENT_WITH_NATIVE_LAST_FRAME: Event = {
 };
 
 const EXCEPTION_EVENT: Event = {
+  exception: {
+    values: [
+      {
+        type: 'SyntaxError',
+        value: 'unidentified ? at line 1337',
+      },
+    ],
+  },
+};
+
+const EXCEPTION_EVENT_WITH_MESSAGE_AND_VALUE: Event = {
+  message: 'ChunkError',
   exception: {
     values: [
       {
@@ -336,6 +343,17 @@ describe('InboundFilters', () => {
         });
         expect(eventProcessor(EXCEPTION_EVENT, {})).toBe(null);
       });
+
+      it('should consider both `event.message` and the last exceptions `type` and `value`', () => {
+        const messageEventProcessor = createInboundFiltersEventProcessor({
+          ignoreErrors: [/^ChunkError/],
+        });
+        const valueEventProcessor = createInboundFiltersEventProcessor({
+          ignoreErrors: [/^SyntaxError/],
+        });
+        expect(messageEventProcessor(EXCEPTION_EVENT_WITH_MESSAGE_AND_VALUE, {})).toBe(null);
+        expect(valueEventProcessor(EXCEPTION_EVENT_WITH_MESSAGE_AND_VALUE, {})).toBe(null);
+      });
     });
   });
 
@@ -410,6 +428,18 @@ describe('InboundFilters', () => {
       expect(eventProcessor(TRANSACTION_EVENT_HEALTH_2, {})).toBe(TRANSACTION_EVENT_HEALTH_2);
       expect(eventProcessor(TRANSACTION_EVENT_HEALTH_3, {})).toBe(TRANSACTION_EVENT_HEALTH_3);
     });
+
+    it.each(['/delivery', '/already', '/healthysnacks'])(
+      "doesn't filter out transactions that have similar names to health check ones (%s)",
+      transaction => {
+        const eventProcessor = createInboundFiltersEventProcessor();
+        const evt: Event = {
+          transaction,
+          type: 'transaction',
+        };
+        expect(eventProcessor(evt, {})).toBe(evt);
+      },
+    );
   });
 
   describe('denyUrls/allowUrls', () => {

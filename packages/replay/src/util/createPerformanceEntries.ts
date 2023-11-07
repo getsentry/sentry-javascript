@@ -14,18 +14,15 @@ import type {
 } from '../types';
 
 // Map entryType -> function to normalize data for event
-// @ts-ignore TODO: entry type does not fit the create* functions entry type
 const ENTRY_TYPES: Record<
   string,
   (entry: AllPerformanceEntry) => null | ReplayPerformanceEntry<AllPerformanceEntryData>
 > = {
-  // @ts-ignore TODO: entry type does not fit the create* functions entry type
+  // @ts-expect-error TODO: entry type does not fit the create* functions entry type
   resource: createResourceEntry,
   paint: createPaintEntry,
-  // @ts-ignore TODO: entry type does not fit the create* functions entry type
+  // @ts-expect-error TODO: entry type does not fit the create* functions entry type
   navigation: createNavigationEntry,
-  // @ts-ignore TODO: entry type does not fit the create* functions entry type
-  ['largest-contentful-paint']: createLargestContentfulPaint,
 };
 
 /**
@@ -38,7 +35,7 @@ export function createPerformanceEntries(
 }
 
 function createPerformanceEntry(entry: AllPerformanceEntry): ReplayPerformanceEntry<AllPerformanceEntryData> | null {
-  if (ENTRY_TYPES[entry.entryType] === undefined) {
+  if (!ENTRY_TYPES[entry.entryType]) {
     return null;
   }
 
@@ -143,39 +140,32 @@ function createResourceEntry(
   };
 }
 
-function createLargestContentfulPaint(
-  entry: PerformanceEntry & { size: number; element: Node },
-): ReplayPerformanceEntry<LargestContentfulPaintData> {
-  const { entryType, startTime, size } = entry;
+/**
+ * Add a LCP event to the replay based on an LCP metric.
+ */
+export function getLargestContentfulPaint(metric: {
+  value: number;
+  entries: PerformanceEntry[];
+}): ReplayPerformanceEntry<LargestContentfulPaintData> {
+  const entries = metric.entries;
+  const lastEntry = entries[entries.length - 1] as (PerformanceEntry & { element?: Element }) | undefined;
+  const element = lastEntry ? lastEntry.element : undefined;
 
-  let startTimeOrNavigationActivation = 0;
+  const value = metric.value;
 
-  if (WINDOW.performance) {
-    const navEntry = WINDOW.performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming & {
-      activationStart: number;
-    };
+  const end = getAbsoluteTime(value);
 
-    // See https://github.com/GoogleChrome/web-vitals/blob/9f11c4c6578fb4c5ee6fa4e32b9d1d756475f135/src/lib/getActivationStart.ts#L21
-    startTimeOrNavigationActivation = (navEntry && navEntry.activationStart) || 0;
-  }
-
-  // value is in ms
-  const value = Math.max(startTime - startTimeOrNavigationActivation, 0);
-  // LCP doesn't have a "duration", it just happens at a single point in time.
-  // But the UI expects both, so use end (in seconds) for both timestamps.
-  const end = getAbsoluteTime(startTimeOrNavigationActivation) + value / 1000;
-
-  return {
-    type: entryType,
-    name: entryType,
+  const data: ReplayPerformanceEntry<LargestContentfulPaintData> = {
+    type: 'largest-contentful-paint',
+    name: 'largest-contentful-paint',
     start: end,
     end,
     data: {
-      value, // LCP "duration" in ms
-      size,
-      // Not sure why this errors, Node should be correct (Argument of type 'Node' is not assignable to parameter of type 'INode')
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      nodeId: record.mirror.getId(entry.element as any),
+      value,
+      size: value,
+      nodeId: element ? record.mirror.getId(element) : undefined,
     },
   };
+
+  return data;
 }

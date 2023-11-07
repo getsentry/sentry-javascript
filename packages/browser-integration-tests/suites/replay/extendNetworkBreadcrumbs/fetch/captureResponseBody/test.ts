@@ -41,7 +41,7 @@ sentryTest('captures text response body', async ({ getLocalTestPath, page, brows
     fetch('http://localhost:7654/foo', {
       method: 'POST',
     }).then(() => {
-      // @ts-ignore Sentry is a global
+      // @ts-expect-error Sentry is a global
       Sentry.captureException('test error');
     });
     /* eslint-enable */
@@ -122,7 +122,7 @@ sentryTest('captures JSON response body', async ({ getLocalTestPath, page, brows
     fetch('http://localhost:7654/foo', {
       method: 'POST',
     }).then(() => {
-      // @ts-ignore Sentry is a global
+      // @ts-expect-error Sentry is a global
       Sentry.captureException('test error');
     });
     /* eslint-enable */
@@ -203,7 +203,7 @@ sentryTest('captures non-text response body', async ({ getLocalTestPath, page, b
     fetch('http://localhost:7654/foo', {
       method: 'POST',
     }).then(() => {
-      // @ts-ignore Sentry is a global
+      // @ts-expect-error Sentry is a global
       Sentry.captureException('test error');
     });
     /* eslint-enable */
@@ -282,7 +282,7 @@ sentryTest('does not capture response body when URL does not match', async ({ ge
     fetch('http://localhost:7654/bar', {
       method: 'POST',
     }).then(() => {
-      // @ts-ignore Sentry is a global
+      // @ts-expect-error Sentry is a global
       Sentry.captureException('test error');
     });
     /* eslint-enable */

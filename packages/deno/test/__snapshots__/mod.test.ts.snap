@@ -1,0 +1,222 @@
+export const snapshot = {};
+
+snapshot[`captureException 1`] = `
+{
+  contexts: {
+    app: {
+      app_start_time: "{{time}}",
+    },
+    device: {
+      arch: "{{arch}}",
+      processor_count: 0,
+    },
+    os: {
+      name: "{{platform}}",
+    },
+    runtime: {
+      name: "deno",
+      version: "{{version}}",
+    },
+    trace: {
+      span_id: "{{id}}",
+      trace_id: "{{id}}",
+    },
+    typescript: {
+      name: "TypeScript",
+      version: "{{version}}",
+    },
+    v8: {
+      name: "v8",
+      version: "{{version}}",
+    },
+  },
+  environment: "production",
+  event_id: "{{id}}",
+  exception: {
+    values: [
+      {
+        mechanism: {
+          handled: true,
+          type: "generic",
+        },
+        stacktrace: {
+          frames: [
+            {
+              colno: 20,
+              filename: "ext:cli/40_testing.js",
+              function: "outerWrapped",
+              in_app: false,
+              lineno: 488,
+            },
+            {
+              colno: 33,
+              filename: "ext:cli/40_testing.js",
+              function: "exitSanitizer",
+              in_app: false,
+              lineno: 474,
+            },
+            {
+              colno: 31,
+              filename: "ext:cli/40_testing.js",
+              function: "resourceSanitizer",
+              in_app: false,
+              lineno: 425,
+            },
+            {
+              colno: 33,
+              filename: "ext:cli/40_testing.js",
+              function: "asyncOpSanitizer",
+              in_app: false,
+              lineno: 192,
+            },
+            {
+              colno: 11,
+              filename: "ext:cli/40_testing.js",
+              function: "innerWrapped",
+              in_app: false,
+              lineno: 543,
+            },
+            {
+              colno: 24,
+              context_line: "  hub.captureException(something());",
+              filename: "app:///test/mod.test.ts",
+              function: "<anonymous>",
+              in_app: true,
+              lineno: 46,
+              post_context: [
+                "",
+                "  await delay(200);",
+                "  await assertSnapshot(t, ev);",
+                "});",
+                "",
+                "Deno.test('captureMessage', async t => {",
+                "  let ev: sentryTypes.Event | undefined;",
+              ],
+              pre_context: [
+                "    ev = event;",
+                "  });",
+                "",
+                "  function something() {",
+                "    return new Error('Some unhandled error');",
+                "  }",
+                "",
+              ],
+            },
+            {
+              colno: 12,
+              context_line: "    return new Error('Some unhandled error');",
+              filename: "app:///test/mod.test.ts",
+              function: "something",
+              in_app: true,
+              lineno: 43,
+              post_context: [
+                "  }",
+                "",
+                "  hub.captureException(something());",
+                "",
+                "  await delay(200);",
+                "  await assertSnapshot(t, ev);",
+                "});",
+              ],
+              pre_context: [
+                "Deno.test('captureException', async t => {",
+                "  let ev: sentryTypes.Event | undefined;",
+                "  const [hub] = getTestClient(event => {",
+                "    ev = event;",
+                "  });",
+                "",
+                "  function something() {",
+              ],
+            },
+          ],
+        },
+        type: "Error",
+        value: "Some unhandled error",
+      },
+    ],
+  },
+  platform: "javascript",
+  sdk: {
+    integrations: [
+      "InboundFilters",
+      "FunctionToString",
+      "LinkedErrors",
+      "Dedupe",
+      "Breadcrumbs",
+      "DenoContext",
+      "ContextLines",
+      "NormalizePaths",
+      "GlobalHandlers",
+    ],
+    name: "sentry.javascript.deno",
+    packages: [
+      {
+        name: "denoland:sentry",
+        version: "{{version}}",
+      },
+    ],
+    version: "{{version}}",
+  },
+  timestamp: 0,
+}
+`;
+
+snapshot[`captureMessage 1`] = `
+{
+  contexts: {
+    app: {
+      app_start_time: "{{time}}",
+    },
+    device: {
+      arch: "{{arch}}",
+      processor_count: 0,
+    },
+    os: {
+      name: "{{platform}}",
+    },
+    runtime: {
+      name: "deno",
+      version: "{{version}}",
+    },
+    trace: {
+      span_id: "{{id}}",
+      trace_id: "{{id}}",
+    },
+    typescript: {
+      name: "TypeScript",
+      version: "{{version}}",
+    },
+    v8: {
+      name: "v8",
+      version: "{{version}}",
+    },
+  },
+  environment: "production",
+  event_id: "{{id}}",
+  level: "info",
+  message: "Some error message",
+  platform: "javascript",
+  sdk: {
+    integrations: [
+      "InboundFilters",
+      "FunctionToString",
+      "LinkedErrors",
+      "Dedupe",
+      "Breadcrumbs",
+      "DenoContext",
+      "ContextLines",
+      "NormalizePaths",
+      "GlobalHandlers",
+    ],
+    name: "sentry.javascript.deno",
+    packages: [
+      {
+        name: "denoland:sentry",
+        version: "{{version}}",
+      },
+    ],
+    version: "{{version}}",
+  },
+  timestamp: 0,
+}
+`;

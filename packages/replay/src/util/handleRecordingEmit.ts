@@ -1,9 +1,10 @@
 import { EventType } from '@sentry-internal/rrweb';
 import { logger } from '@sentry/utils';
 
+import { updateClickDetectorForRecordingEvent } from '../coreHandlers/handleClick';
 import { saveSession } from '../session/saveSession';
-import type { AddEventResult, RecordingEvent, ReplayContainer, ReplayOptionFrameEvent } from '../types';
-import { addEvent } from './addEvent';
+import type { RecordingEvent, ReplayContainer, ReplayOptionFrameEvent } from '../types';
+import { addEventSync } from './addEvent';
 import { logInfo } from './log';
 
 type RecordingEmitCallback = (event: RecordingEvent, isCheckout?: boolean) => void;
@@ -29,6 +30,10 @@ export function getHandleRecordingEmit(replay: ReplayContainer): RecordingEmitCa
     const isCheckout = _isCheckout || !hadFirstEvent;
     hadFirstEvent = true;
 
+    if (replay.clickDetector) {
+      updateClickDetectorForRecordingEvent(replay.clickDetector, event);
+    }
+
     // The handler returns `true` if we do not want to trigger debounced flush, `false` if we want to debounce flush.
     replay.addUpdate(() => {
       // The session is always started immediately on pageload/init, but for
@@ -40,9 +45,12 @@ export function getHandleRecordingEmit(replay: ReplayContainer): RecordingEmitCa
         replay.setInitialState();
       }
 
-      // We need to clear existing events on a checkout, otherwise they are
-      // incremental event updates and should be appended
-      void addEvent(replay, event, isCheckout);
+      // If the event is not added (e.g. due to being paused, disabled, or out of the max replay duration),
+      // Skip all further steps
+      if (!addEventSync(replay, event, isCheckout)) {
+        // Return true to skip scheduling a debounced flush
+        return true;
+      }
 
       // Different behavior for full snapshots (type=2), ignore other event types
       // See https://github.com/rrweb-io/rrweb/blob/d8f9290ca496712aa1e7d472549480c4e7876594/packages/rrweb/src/types.ts#L16
@@ -56,7 +64,7 @@ export function getHandleRecordingEmit(replay: ReplayContainer): RecordingEmitCa
       //
       // `isCheckout` is always true, but want to be explicit that it should
       // only be added for checkouts
-      void addSettingsEvent(replay, isCheckout);
+      addSettingsEvent(replay, isCheckout);
 
       // If there is a previousSessionId after a full snapshot occurs, then
       // the replay session was started due to session expiration. The new session
@@ -130,11 +138,11 @@ export function createOptionsEvent(replay: ReplayContainer): ReplayOptionFrameEv
  * Add a "meta" event that contains a simplified view on current configuration
  * options. This should only be included on the first segment of a recording.
  */
-function addSettingsEvent(replay: ReplayContainer, isCheckout?: boolean): Promise<AddEventResult | null> {
+function addSettingsEvent(replay: ReplayContainer, isCheckout?: boolean): void {
   // Only need to add this event when sending the first segment
   if (!isCheckout || !replay.session || replay.session.segmentId !== 0) {
-    return Promise.resolve(null);
+    return;
   }
 
-  return addEvent(replay, createOptionsEvent(replay), false);
+  addEventSync(replay, createOptionsEvent(replay), false);
 }

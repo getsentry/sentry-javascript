@@ -198,10 +198,8 @@ export function requestHandler(
         const client = currentHub.getClient<NodeClient>();
         if (isAutoSessionTrackingEnabled(client)) {
           const scope = currentHub.getScope();
-          if (scope) {
-            // Set `status` of `RequestSession` to Ok, at the beginning of the request
-            scope.setRequestSession({ status: 'ok' });
-          }
+          // Set `status` of `RequestSession` to Ok, at the beginning of the request
+          scope.setRequestSession({ status: 'ok' });
         }
       });
 

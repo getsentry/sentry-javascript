@@ -1,24 +1,16 @@
 /* eslint-disable complexity */
-import { getCurrentHub } from '@sentry/core';
 import type { Transaction } from '@sentry/types';
-import { logger, uuid4 } from '@sentry/utils';
+import { logger, timestampInSeconds, uuid4 } from '@sentry/utils';
 
 import { WINDOW } from '../helpers';
-import type { JSSelfProfile, JSSelfProfiler, JSSelfProfilerConstructor } from './jsSelfProfiling';
-import { addProfileToMap, isValidSampleRate } from './utils';
-
-export const MAX_PROFILE_DURATION_MS = 30_000;
-// Keep a flag value to avoid re-initializing the profiler constructor. If it fails
-// once, it will always fail and this allows us to early return.
-let PROFILING_CONSTRUCTOR_FAILED = false;
-
-/**
- * Check if profiler constructor is available.
- * @param maybeProfiler
- */
-function isJSProfilerSupported(maybeProfiler: unknown): maybeProfiler is typeof JSSelfProfilerConstructor {
-  return typeof maybeProfiler === 'function';
-}
+import type { JSSelfProfile } from './jsSelfProfiling';
+import {
+  addProfileToGlobalCache,
+  isAutomatedPageLoadTransaction,
+  MAX_PROFILE_DURATION_MS,
+  shouldProfileTransaction,
+  startJSSelfProfile,
+} from './utils';
 
 /**
  * Safety wrapper for startTransaction for the unlikely case that transaction starts before tracing is imported -
@@ -35,98 +27,29 @@ export function onProfilingStartRouteTransaction(transaction: Transaction | unde
     return transaction;
   }
 
-  return wrapTransactionWithProfiling(transaction);
+  if (shouldProfileTransaction(transaction)) {
+    return startProfileForTransaction(transaction);
+  }
+
+  return transaction;
 }
 
 /**
  * Wraps startTransaction and stopTransaction with profiling related logic.
- * startProfiling is called after the call to startTransaction in order to avoid our own code from
+ * startProfileForTransaction is called after the call to startTransaction in order to avoid our own code from
  * being profiled. Because of that same reason, stopProfiling is called before the call to stopTransaction.
  */
-export function wrapTransactionWithProfiling(transaction: Transaction): Transaction {
-  // Feature support check first
-  const JSProfilerConstructor = WINDOW.Profiler;
-
-  if (!isJSProfilerSupported(JSProfilerConstructor)) {
-    if (__DEBUG_BUILD__) {
-      logger.log(
-        '[Profiling] Profiling is not supported by this browser, Profiler interface missing on window object.',
-      );
-    }
-    return transaction;
+export function startProfileForTransaction(transaction: Transaction): Transaction {
+  // Start the profiler and get the profiler instance.
+  let startTimestamp: number | undefined;
+  if (isAutomatedPageLoadTransaction(transaction)) {
+    startTimestamp = timestampInSeconds() * 1000;
   }
 
-  // If constructor failed once, it will always fail, so we can early return.
-  if (PROFILING_CONSTRUCTOR_FAILED) {
-    if (__DEBUG_BUILD__) {
-      logger.log('[Profiling] Profiling has been disabled for the duration of the current user session.');
-    }
-    return transaction;
-  }
+  const profiler = startJSSelfProfile();
 
-  const client = getCurrentHub().getClient();
-  const options = client && client.getOptions();
-  if (!options) {
-    __DEBUG_BUILD__ && logger.log('[Profiling] Profiling disabled, no options found.');
-    return transaction;
-  }
-
-  // @ts-ignore profilesSampleRate is not part of the browser options yet
-  const profilesSampleRate: number | boolean | undefined = options.profilesSampleRate;
-
-  // Since this is coming from the user (or from a function provided by the user), who knows what we might get. (The
-  // only valid values are booleans or numbers between 0 and 1.)
-  if (!isValidSampleRate(profilesSampleRate)) {
-    __DEBUG_BUILD__ && logger.warn('[Profiling] Discarding profile because of invalid sample rate.');
-    return transaction;
-  }
-
-  // if the function returned 0 (or false), or if `profileSampleRate` is 0, it's a sign the profile should be dropped
-  if (!profilesSampleRate) {
-    __DEBUG_BUILD__ &&
-      logger.log(
-        '[Profiling] Discarding profile because a negative sampling decision was inherited or profileSampleRate is set to 0',
-      );
-    return transaction;
-  }
-
-  // Now we roll the dice. Math.random is inclusive of 0, but not of 1, so strict < is safe here. In case sampleRate is
-  // a boolean, the < comparison will cause it to be automatically cast to 1 if it's true and 0 if it's false.
-  const sampled = profilesSampleRate === true ? true : Math.random() < profilesSampleRate;
-  // Check if we should sample this profile
-  if (!sampled) {
-    __DEBUG_BUILD__ &&
-      logger.log(
-        `[Profiling] Discarding profile because it's not included in the random sample (sampling rate = ${Number(
-          profilesSampleRate,
-        )})`,
-      );
-    return transaction;
-  }
-
-  // From initial testing, it seems that the minimum value for sampleInterval is 10ms.
-  const samplingIntervalMS = 10;
-  // Start the profiler
-  const maxSamples = Math.floor(MAX_PROFILE_DURATION_MS / samplingIntervalMS);
-  let profiler: JSSelfProfiler | undefined;
-
-  // Attempt to initialize the profiler constructor, if it fails, we disable profiling for the current user session.
-  // This is likely due to a missing 'Document-Policy': 'js-profiling' header. We do not want to throw an error if this happens
-  // as we risk breaking the user's application, so just disable profiling and log an error.
-  try {
-    profiler = new JSProfilerConstructor({ sampleInterval: samplingIntervalMS, maxBufferSize: maxSamples });
-  } catch (e) {
-    if (__DEBUG_BUILD__) {
-      logger.log(
-        "[Profiling] Failed to initialize the Profiling constructor, this is likely due to a missing 'Document-Policy': 'js-profiling' header.",
-      );
-      logger.log('[Profiling] Disabling profiling for current user session.');
-    }
-    PROFILING_CONSTRUCTOR_FAILED = true;
-  }
-
-  // We failed to construct the profiler, fallback to original transaction - there is no need to log
-  // anything as we already did that in the try/catch block.
+  // We failed to construct the profiler, fallback to original transaction.
+  // No need to log anything as this has already been logged in startProfile.
   if (!profiler) {
     return transaction;
   }
@@ -172,19 +95,9 @@ export function wrapTransactionWithProfiling(transaction: Transaction): Transact
       return null;
     }
 
-    // This is temporary - we will use the collected span data to evaluate
-    // if deferring txn.finish until profiler resolves is a viable approach.
-    const stopProfilerSpan = transaction.startChild({
-      description: 'profiler.stop',
-      op: 'profiler',
-      origin: 'auto.profiler.browser',
-    });
-
     return profiler
       .stop()
-      .then((p: JSSelfProfile): null => {
-        stopProfilerSpan.finish();
-
+      .then((profile: JSSelfProfile): null => {
         if (maxDurationTimeoutID) {
           WINDOW.clearTimeout(maxDurationTimeoutID);
           maxDurationTimeoutID = undefined;
@@ -195,7 +108,7 @@ export function wrapTransactionWithProfiling(transaction: Transaction): Transact
         }
 
         // In case of an overlapping transaction, stopProfiling may return null and silently ignore the overlapping profile.
-        if (!p) {
+        if (!profile) {
           if (__DEBUG_BUILD__) {
             logger.log(
               `[Profiling] profiler returned null profile for: ${transaction.name || transaction.description}`,
@@ -205,11 +118,10 @@ export function wrapTransactionWithProfiling(transaction: Transaction): Transact
           return null;
         }
 
-        addProfileToMap(profileId, p);
+        addProfileToGlobalCache(profileId, profile);
         return null;
       })
       .catch(error => {
-        stopProfilerSpan.finish();
         if (__DEBUG_BUILD__) {
           logger.log('[Profiling] error while stopping profiler:', error);
         }
@@ -245,7 +157,7 @@ export function wrapTransactionWithProfiling(transaction: Transaction): Transact
     // Always call onProfileHandler to ensure stopProfiling is called and the timeout is cleared.
     void onProfileHandler().then(
       () => {
-        transaction.setContext('profile', { profile_id: profileId });
+        transaction.setContext('profile', { profile_id: profileId, start_timestamp: startTimestamp });
         originalFinish();
       },
       () => {

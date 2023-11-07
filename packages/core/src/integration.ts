@@ -1,8 +1,8 @@
-import type { Integration, Options } from '@sentry/types';
+import type { Client, Event, EventHint, Integration, Options } from '@sentry/types';
 import { arrayify, logger } from '@sentry/utils';
 
+import { addGlobalEventProcessor } from './eventProcessors';
 import { getCurrentHub } from './hub';
-import { addGlobalEventProcessor } from './scope';
 
 declare module '@sentry/types' {
   interface Integration {
@@ -84,13 +84,13 @@ export function getIntegrationsToSetup(options: Options): Integration[] {
  * @param integrations array of integration instances
  * @param withDefault should enable default integrations
  */
-export function setupIntegrations(integrations: Integration[]): IntegrationIndex {
+export function setupIntegrations(client: Client, integrations: Integration[]): IntegrationIndex {
   const integrationIndex: IntegrationIndex = {};
 
   integrations.forEach(integration => {
     // guard against empty provided integrations
     if (integration) {
-      setupIntegration(integration, integrationIndex);
+      setupIntegration(client, integration, integrationIndex);
     }
   });
 
@@ -98,14 +98,42 @@ export function setupIntegrations(integrations: Integration[]): IntegrationIndex
 }
 
 /** Setup a single integration.  */
-export function setupIntegration(integration: Integration, integrationIndex: IntegrationIndex): void {
+export function setupIntegration(client: Client, integration: Integration, integrationIndex: IntegrationIndex): void {
   integrationIndex[integration.name] = integration;
 
   if (installedIntegrations.indexOf(integration.name) === -1) {
     integration.setupOnce(addGlobalEventProcessor, getCurrentHub);
     installedIntegrations.push(integration.name);
-    __DEBUG_BUILD__ && logger.log(`Integration installed: ${integration.name}`);
   }
+
+  if (client.on && typeof integration.preprocessEvent === 'function') {
+    const callback = integration.preprocessEvent.bind(integration) as typeof integration.preprocessEvent;
+    client.on('preprocessEvent', (event, hint) => callback(event, hint, client));
+  }
+
+  if (client.addEventProcessor && typeof integration.processEvent === 'function') {
+    const callback = integration.processEvent.bind(integration) as typeof integration.processEvent;
+
+    const processor = Object.assign((event: Event, hint: EventHint) => callback(event, hint, client), {
+      id: integration.name,
+    });
+
+    client.addEventProcessor(processor);
+  }
+
+  __DEBUG_BUILD__ && logger.log(`Integration installed: ${integration.name}`);
+}
+
+/** Add an integration to the current hub's client. */
+export function addIntegration(integration: Integration): void {
+  const client = getCurrentHub().getClient();
+
+  if (!client || !client.addIntegration) {
+    __DEBUG_BUILD__ && logger.warn(`Cannot add integration "${integration.name}" because no SDK Client is available.`);
+    return;
+  }
+
+  client.addIntegration(integration);
 }
 
 // Polyfill for Array.findIndex(), which is not supported in ES5

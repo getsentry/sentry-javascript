@@ -10,8 +10,6 @@ sentryTest(
       sentryTest.skip();
     }
 
-    const reqPromise0 = waitForReplayRequest(page, 0);
-
     await page.route('https://dsn.ingest.sentry.io/**/*', route => {
       return route.fulfill({
         status: 200,
@@ -22,26 +20,40 @@ sentryTest(
 
     const url = await getLocalTestPath({ testDir: __dirname });
 
-    await page.goto(url);
-    const res0 = await reqPromise0;
-
-    const reqPromise1 = waitForReplayRequest(page);
-
-    void page.click('#button-add');
+    // We have to click in order to ensure the LCP is generated, leading to consistent results
+    async function gotoPageAndClick() {
+      await page.goto(url);
+      await page.click('#noop');
+    }
+    const [res0] = await Promise.all([waitForReplayRequest(page, 0), gotoPageAndClick()]);
     await forceFlushReplay();
-    const res1 = await reqPromise1;
 
-    const reqPromise2 = waitForReplayRequest(page);
+    const [res1] = await Promise.all([
+      waitForReplayRequest(page, (_event, res) => {
+        const parsed = getReplayRecordingContent(res);
+        return !!parsed.incrementalSnapshots.length || !!parsed.fullSnapshots.length;
+      }),
+      page.click('#button-add'),
+      forceFlushReplay(),
+    ]);
 
-    void page.click('#button-modify');
-    await forceFlushReplay();
-    const res2 = await reqPromise2;
+    const [res2] = await Promise.all([
+      waitForReplayRequest(page, (_event, res) => {
+        const parsed = getReplayRecordingContent(res);
+        return !!parsed.incrementalSnapshots.length || !!parsed.fullSnapshots.length;
+      }),
+      page.click('#button-modify'),
+      forceFlushReplay(),
+    ]);
 
-    const reqPromise3 = waitForReplayRequest(page);
-
-    void page.click('#button-remove');
-    await forceFlushReplay();
-    const res3 = await reqPromise3;
+    const [res3] = await Promise.all([
+      waitForReplayRequest(page, (_event, res) => {
+        const parsed = getReplayRecordingContent(res);
+        return !!parsed.incrementalSnapshots.length || !!parsed.fullSnapshots.length;
+      }),
+      page.click('#button-remove'),
+      forceFlushReplay(),
+    ]);
 
     const replayData0 = getReplayRecordingContent(res0);
     const replayData1 = getReplayRecordingContent(res1);
@@ -49,7 +61,6 @@ sentryTest(
     const replayData3 = getReplayRecordingContent(res3);
 
     expect(replayData0.fullSnapshots.length).toBe(1);
-    expect(replayData0.incrementalSnapshots.length).toBe(0);
 
     expect(replayData1.fullSnapshots.length).toBe(0);
     expect(replayData1.incrementalSnapshots.length).toBeGreaterThan(0);

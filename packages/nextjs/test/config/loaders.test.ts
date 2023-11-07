@@ -72,7 +72,7 @@ describe('webpack loaders', () => {
       });
 
       expect(finalWebpackConfig.module.rules).toContainEqual({
-        test: /sentry\.server\.config\.(jsx?|tsx?)/,
+        test: /sentry\.(server|edge)\.config\.(jsx?|tsx?)/,
         use: [
           {
             loader: expect.stringEndingWith('valueInjectionLoader.js'),

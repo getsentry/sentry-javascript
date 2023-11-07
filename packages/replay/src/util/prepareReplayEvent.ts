@@ -1,7 +1,7 @@
 import type { Scope } from '@sentry/core';
 import { prepareEvent } from '@sentry/core';
 import type { IntegrationIndex } from '@sentry/core/build/types/integration';
-import type { Client, ReplayEvent } from '@sentry/types';
+import type { Client, EventHint, ReplayEvent } from '@sentry/types';
 
 /**
  * Prepare a replay event & enrich it with the SDK metadata.
@@ -21,11 +21,19 @@ export async function prepareReplayEvent({
     typeof client._integrations === 'object' && client._integrations !== null && !Array.isArray(client._integrations)
       ? Object.keys(client._integrations)
       : undefined;
+
+  const eventHint: EventHint = { event_id, integrations };
+
+  if (client.emit) {
+    client.emit('preprocessEvent', event, eventHint);
+  }
+
   const preparedEvent = (await prepareEvent(
     client.getOptions(),
     event,
-    { event_id, integrations },
+    eventHint,
     scope,
+    client,
   )) as ReplayEvent | null;
 
   // If e.g. a global event processor returned null

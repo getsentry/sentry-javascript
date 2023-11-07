@@ -26,6 +26,7 @@ export type { NodeOptions } from './types';
 export {
   addGlobalEventProcessor,
   addBreadcrumb,
+  addIntegration,
   captureException,
   captureEvent,
   captureMessage,
@@ -54,10 +55,15 @@ export {
   trace,
   withScope,
   captureCheckIn,
+  withMonitor,
   setMeasurement,
   getActiveSpan,
-  startActiveSpan,
   startSpan,
+  // eslint-disable-next-line deprecation/deprecation
+  startActiveSpan,
+  startInactiveSpan,
+  startSpanManual,
+  continueTrace,
 } from '@sentry/core';
 export type { SpanStatusType } from '@sentry/core';
 export { autoDiscoverNodePerformanceMonitoringIntegrations } from './tracing';
@@ -68,6 +74,7 @@ export { defaultIntegrations, init, defaultStackParser, getSentryRelease } from 
 export { addRequestDataToEvent, DEFAULT_USER_INCLUDES, extractRequestData } from './requestdata';
 export { deepReadDirSync } from './utils';
 export { getModuleFromFilename } from './module';
+export { enableAnrDetection } from './anr';
 
 import { Integrations as CoreIntegrations } from '@sentry/core';
 

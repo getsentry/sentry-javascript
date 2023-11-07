@@ -75,4 +75,5 @@ type ExpressRequest = NodeRequest & {
   user?: {
     [key: string]: any;
   };
+  _reconstructedRoute?: string;
 };

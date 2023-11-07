@@ -31,7 +31,7 @@ export function supportsDOMError(): boolean {
   try {
     // Chrome: VM89:1 Uncaught TypeError: Failed to construct 'DOMError':
     // 1 argument required, but only 0 present.
-    // @ts-ignore It really needs 1 argument, not 0.
+    // @ts-expect-error It really needs 1 argument, not 0.
     new DOMError('');
     return true;
   } catch (e) {

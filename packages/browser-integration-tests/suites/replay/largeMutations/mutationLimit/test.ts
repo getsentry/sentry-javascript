@@ -15,8 +15,6 @@ sentryTest(
       sentryTest.skip();
     }
 
-    const reqPromise0 = waitForReplayRequest(page, 0);
-
     await page.route('https://dsn.ingest.sentry.io/**/*', route => {
       return route.fulfill({
         status: 200,
@@ -27,21 +25,30 @@ sentryTest(
 
     const url = await getLocalTestPath({ testDir: __dirname });
 
-    await page.goto(url);
-    const res0 = await reqPromise0;
+    // We have to click in order to ensure the LCP is generated, leading to consistent results
+    async function gotoPageAndClick() {
+      await page.goto(url);
+      await page.click('#noop');
+    }
 
-    const reqPromise1 = waitForReplayRequest(page);
-
-    void page.click('#button-add');
+    const [res0] = await Promise.all([waitForReplayRequest(page, 0), gotoPageAndClick()]);
     await forceFlushReplay();
-    const res1 = await reqPromise1;
+
+    const [res1] = await Promise.all([
+      waitForReplayRequest(page, (_event, res) => {
+        const parsed = getReplayRecordingContent(res);
+        return !!parsed.incrementalSnapshots.length || !!parsed.fullSnapshots.length;
+      }),
+      page.click('#button-add'),
+      forceFlushReplay(),
+    ]);
 
     // replay should be stopped due to mutation limit
     let replay = await getReplaySnapshot(page);
     expect(replay.session).toBe(undefined);
     expect(replay._isEnabled).toBe(false);
 
-    void page.click('#button-modify');
+    await page.click('#button-modify');
     await forceFlushReplay();
 
     await page.click('#button-remove');
@@ -49,7 +56,6 @@ sentryTest(
 
     const replayData0 = getReplayRecordingContent(res0);
     expect(replayData0.fullSnapshots.length).toBe(1);
-    expect(replayData0.incrementalSnapshots.length).toBe(0);
 
     // Breadcrumbs (click and mutation);
     const replayData1 = getReplayRecordingContent(res1);

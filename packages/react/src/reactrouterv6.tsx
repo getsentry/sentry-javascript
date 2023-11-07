@@ -78,6 +78,7 @@ function getNormalizedName(
   routes: RouteObject[],
   location: Location,
   branches: RouteMatch[],
+  basename: string = '',
 ): [string, TransactionSource] {
   if (!routes || routes.length === 0) {
     return [location.pathname, 'url'];
@@ -99,7 +100,8 @@ function getNormalizedName(
         if (path) {
           const newPath = path[0] === '/' || pathBuilder[pathBuilder.length - 1] === '/' ? path : `/${path}`;
           pathBuilder += newPath;
-          if (branch.pathname === location.pathname) {
+
+          if (basename + branch.pathname === location.pathname) {
             if (
               // If the route defined on the element is something like
               // <Route path="/stores/:storeId/products/:productId" element={<div>Product</div>} />
@@ -108,9 +110,9 @@ function getNormalizedName(
               // We should not count wildcard operators in the url segments calculation
               pathBuilder.slice(-2) !== '/*'
             ) {
-              return [newPath, 'route'];
+              return [basename + newPath, 'route'];
             }
-            return [pathBuilder, 'route'];
+            return [basename + pathBuilder, 'route'];
           }
         }
       }
@@ -131,7 +133,7 @@ function updatePageloadTransaction(
     : (_matchRoutes(routes, location, basename) as unknown as RouteMatch[]);
 
   if (activeTransaction && branches) {
-    activeTransaction.setName(...getNormalizedName(routes, location, branches));
+    activeTransaction.setName(...getNormalizedName(routes, location, branches, basename));
   }
 }
 
@@ -149,7 +151,7 @@ function handleNavigation(
       activeTransaction.finish();
     }
 
-    const [name, source] = getNormalizedName(routes, location, branches);
+    const [name, source] = getNormalizedName(routes, location, branches, basename);
     activeTransaction = _customStartTransaction({
       name,
       op: 'navigation',
@@ -202,14 +204,14 @@ export function withSentryReactRouterV6Routing<P extends Record<string, any>, R 
       [location, navigationType],
     );
 
-    // @ts-ignore Setting more specific React Component typing for `R` generic above
+    // @ts-expect-error Setting more specific React Component typing for `R` generic above
     // will break advanced type inference done by react router params
     return <Routes {...props} />;
   };
 
   hoistNonReactStatics(SentryRoutes, Routes);
 
-  // @ts-ignore Setting more specific React Component typing for `R` generic above
+  // @ts-expect-error Setting more specific React Component typing for `R` generic above
   // will break advanced type inference done by react router params
   return SentryRoutes;
 }
@@ -226,36 +228,42 @@ export function wrapUseRoutes(origUseRoutes: UseRoutes): UseRoutes {
 
   let isMountRenderPass: boolean = true;
 
+  const SentryRoutes: React.FC<{
+    children?: React.ReactNode;
+    routes: RouteObject[];
+    locationArg?: Partial<Location> | string;
+  }> = (props: { children?: React.ReactNode; routes: RouteObject[]; locationArg?: Partial<Location> | string }) => {
+    const { routes, locationArg } = props;
+
+    const Routes = origUseRoutes(routes, locationArg);
+
+    const location = _useLocation();
+    const navigationType = _useNavigationType();
+
+    // A value with stable identity to either pick `locationArg` if available or `location` if not
+    const stableLocationParam =
+      typeof locationArg === 'string' || (locationArg && locationArg.pathname)
+        ? (locationArg as { pathname: string })
+        : location;
+
+    _useEffect(() => {
+      const normalizedLocation =
+        typeof stableLocationParam === 'string' ? { pathname: stableLocationParam } : stableLocationParam;
+
+      if (isMountRenderPass) {
+        updatePageloadTransaction(normalizedLocation, routes);
+        isMountRenderPass = false;
+      } else {
+        handleNavigation(normalizedLocation, routes, navigationType);
+      }
+    }, [navigationType, stableLocationParam]);
+
+    return Routes;
+  };
+
   // eslint-disable-next-line react/display-name
   return (routes: RouteObject[], locationArg?: Partial<Location> | string): React.ReactElement | null => {
-    const SentryRoutes: React.FC<unknown> = () => {
-      const Routes = origUseRoutes(routes, locationArg);
-
-      const location = _useLocation();
-      const navigationType = _useNavigationType();
-
-      // A value with stable identity to either pick `locationArg` if available or `location` if not
-      const stableLocationParam =
-        typeof locationArg === 'string' || (locationArg && locationArg.pathname)
-          ? (locationArg as { pathname: string })
-          : location;
-
-      _useEffect(() => {
-        const normalizedLocation =
-          typeof stableLocationParam === 'string' ? { pathname: stableLocationParam } : stableLocationParam;
-
-        if (isMountRenderPass) {
-          updatePageloadTransaction(normalizedLocation, routes);
-          isMountRenderPass = false;
-        } else {
-          handleNavigation(normalizedLocation, routes, navigationType);
-        }
-      }, [navigationType, stableLocationParam]);
-
-      return Routes;
-    };
-
-    return <SentryRoutes />;
+    return <SentryRoutes routes={routes} locationArg={locationArg} />;
   };
 }
 

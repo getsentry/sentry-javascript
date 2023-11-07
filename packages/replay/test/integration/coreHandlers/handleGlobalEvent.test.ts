@@ -1,9 +1,10 @@
 import type { Event } from '@sentry/types';
 
 import type { Replay as ReplayIntegration } from '../../../src';
-import { REPLAY_EVENT_NAME } from '../../../src/constants';
+import { REPLAY_EVENT_NAME, SESSION_IDLE_EXPIRE_DURATION } from '../../../src/constants';
 import { handleGlobalEventListener } from '../../../src/coreHandlers/handleGlobalEvent';
 import type { ReplayContainer } from '../../../src/replay';
+import { makeSession } from '../../../src/session/Session';
 import { Error } from '../../fixtures/error';
 import { Transaction } from '../../fixtures/transaction';
 import { resetSdkMock } from '../../mocks/resetSdkMock';
@@ -35,7 +36,7 @@ describe('Integration | coreHandlers | handleGlobalEvent', () => {
       breadcrumbs: [{ type: 'fakecrumb' }],
     };
 
-    // @ts-ignore replay event type
+    // @ts-expect-error replay event type
     expect(handleGlobalEventListener(replay)(replayEvent, {})).toEqual({
       type: REPLAY_EVENT_NAME,
     });
@@ -102,10 +103,36 @@ describe('Integration | coreHandlers | handleGlobalEvent', () => {
     );
   });
 
+  it('does not add replayId if replay session is expired', async () => {
+    const transaction = Transaction();
+    const error = Error();
+
+    const now = Date.now();
+
+    replay.session = makeSession({
+      id: 'test-session-id',
+      segmentId: 0,
+      lastActivity: now - SESSION_IDLE_EXPIRE_DURATION - 1,
+      started: now - SESSION_IDLE_EXPIRE_DURATION - 1,
+      sampled: 'session',
+    });
+
+    expect(handleGlobalEventListener(replay)(transaction, {})).toEqual(
+      expect.objectContaining({
+        tags: expect.not.objectContaining({ replayId: expect.anything() }),
+      }),
+    );
+    expect(handleGlobalEventListener(replay)(error, {})).toEqual(
+      expect.objectContaining({
+        tags: expect.not.objectContaining({ replayId: expect.anything() }),
+      }),
+    );
+  });
+
   it('tags errors and transactions with replay id for session samples', async () => {
     let integration: ReplayIntegration;
     ({ replay, integration } = await resetSdkMock({}));
-    // @ts-ignore protected but ok to use for testing
+    // @ts-expect-error protected but ok to use for testing
     integration._initialize();
     const transaction = Transaction();
     const error = Error();
@@ -240,44 +267,6 @@ describe('Integration | coreHandlers | handleGlobalEvent', () => {
     expect(handleGlobalEventListener(replay)(errorEvent, {})).toEqual(errorEvent);
   });
 
-  it('skips rrweb internal errors', () => {
-    const errorEvent: Event = {
-      exception: {
-        values: [
-          {
-            type: 'TypeError',
-            value: "Cannot read properties of undefined (reading 'contains')",
-            stacktrace: {
-              frames: [
-                {
-                  filename:
-                    'http://example.com/..node_modules/packages/replay/build/npm/esm/node_modules/rrweb/es/rrweb/packages/rrweb/src/record/mutation.js?v=90704e8a',
-                  function: 'MutationBuffer.processMutations',
-                  in_app: true,
-                  lineno: 101,
-                  colno: 23,
-                },
-                {
-                  filename: '<anonymous>',
-                  function: 'Array.forEach',
-                  in_app: true,
-                },
-              ],
-            },
-            mechanism: {
-              type: 'generic',
-              handled: true,
-            },
-          },
-        ],
-      },
-      level: 'error',
-      event_id: 'ff1616b1e13744c6964281349aecc82a',
-    };
-
-    expect(handleGlobalEventListener(replay)(errorEvent, {})).toEqual(null);
-  });
-
   it('skips exception with __rrweb__ set', () => {
     const errorEvent: Event = {
       exception: {
@@ -313,7 +302,7 @@ describe('Integration | coreHandlers | handleGlobalEvent', () => {
     };
 
     const originalException = new window.Error('some exception');
-    // @ts-ignore this could be set by rrweb
+    // @ts-expect-error this could be set by rrweb
     originalException.__rrweb__ = true;
 
     expect(handleGlobalEventListener(replay)(errorEvent, { originalException })).toEqual(null);

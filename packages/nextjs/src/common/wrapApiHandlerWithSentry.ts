@@ -1,10 +1,4 @@
-import {
-  captureException,
-  getCurrentHub,
-  hasTracingEnabled,
-  runWithAsyncContext,
-  startTransaction,
-} from '@sentry/core';
+import { captureException, getCurrentHub, runWithAsyncContext, startTransaction } from '@sentry/core';
 import type { Transaction } from '@sentry/types';
 import {
   addExceptionMechanism,
@@ -89,75 +83,73 @@ export function withSentry(apiHandler: NextApiHandler, parameterizedRoute?: stri
           const currentScope = hub.getScope();
           const options = hub.getClient()?.getOptions();
 
-          if (currentScope) {
-            currentScope.setSDKProcessingMetadata({ request: req });
+          currentScope.setSDKProcessingMetadata({ request: req });
 
-            if (hasTracingEnabled(options) && options?.instrumenter === 'sentry') {
-              const sentryTrace =
-                req.headers && isString(req.headers['sentry-trace']) ? req.headers['sentry-trace'] : undefined;
-              const baggage = req.headers?.baggage;
-              const { traceparentData, dynamicSamplingContext, propagationContext } = tracingContextFromHeaders(
-                sentryTrace,
-                baggage,
-              );
-              hub.getScope().setPropagationContext(propagationContext);
+          if (options?.instrumenter === 'sentry') {
+            const sentryTrace =
+              req.headers && isString(req.headers['sentry-trace']) ? req.headers['sentry-trace'] : undefined;
+            const baggage = req.headers?.baggage;
+            const { traceparentData, dynamicSamplingContext, propagationContext } = tracingContextFromHeaders(
+              sentryTrace,
+              baggage,
+            );
+            currentScope.setPropagationContext(propagationContext);
 
-              if (__DEBUG_BUILD__ && traceparentData) {
-                logger.log(`[Tracing] Continuing trace ${traceparentData.traceId}.`);
-              }
+            if (__DEBUG_BUILD__ && traceparentData) {
+              logger.log(`[Tracing] Continuing trace ${traceparentData.traceId}.`);
+            }
 
-              // prefer the parameterized route, if we have it (which we will if we've auto-wrapped the route handler)
-              let reqPath = parameterizedRoute;
+            // prefer the parameterized route, if we have it (which we will if we've auto-wrapped the route handler)
+            let reqPath = parameterizedRoute;
 
-              // If not, fake it by just replacing parameter values with their names, hoping that none of them match either
-              // each other or any hard-coded parts of the path
-              if (!reqPath) {
-                const url = `${req.url}`;
-                // pull off query string, if any
-                reqPath = stripUrlQueryAndFragment(url);
-                // Replace with placeholder
-                if (req.query) {
-                  for (const [key, value] of Object.entries(req.query)) {
-                    reqPath = reqPath.replace(`${value}`, `[${key}]`);
-                  }
+            // If not, fake it by just replacing parameter values with their names, hoping that none of them match either
+            // each other or any hard-coded parts of the path
+            if (!reqPath) {
+              const url = `${req.url}`;
+              // pull off query string, if any
+              reqPath = stripUrlQueryAndFragment(url);
+              // Replace with placeholder
+              if (req.query) {
+                for (const [key, value] of Object.entries(req.query)) {
+                  reqPath = reqPath.replace(`${value}`, `[${key}]`);
                 }
               }
+            }
 
-              const reqMethod = `${(req.method || 'GET').toUpperCase()} `;
+            const reqMethod = `${(req.method || 'GET').toUpperCase()} `;
 
-              transaction = startTransaction(
-                {
-                  name: `${reqMethod}${reqPath}`,
-                  op: 'http.server',
-                  origin: 'auto.http.nextjs',
-                  ...traceparentData,
-                  metadata: {
-                    dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
-                    source: 'route',
-                    request: req,
-                  },
+            transaction = startTransaction(
+              {
+                name: `${reqMethod}${reqPath}`,
+                op: 'http.server',
+                origin: 'auto.http.nextjs',
+                ...traceparentData,
+                metadata: {
+                  dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
+                  source: 'route',
+                  request: req,
                 },
-                // extra context passed to the `tracesSampler`
-                { request: req },
-              );
-              currentScope.setSpan(transaction);
-              if (platformSupportsStreaming() && !wrappingTarget.__sentry_test_doesnt_support_streaming__) {
-                autoEndTransactionOnResponseEnd(transaction, res);
-              } else {
-                // If we're not on a platform that supports streaming, we're blocking res.end() until the queue is flushed.
-                // res.json() and res.send() will implicitly call res.end(), so it is enough to wrap res.end().
+              },
+              // extra context passed to the `tracesSampler`
+              { request: req },
+            );
+            currentScope.setSpan(transaction);
+            if (platformSupportsStreaming() && !wrappingTarget.__sentry_test_doesnt_support_streaming__) {
+              autoEndTransactionOnResponseEnd(transaction, res);
+            } else {
+              // If we're not on a platform that supports streaming, we're blocking res.end() until the queue is flushed.
+              // res.json() and res.send() will implicitly call res.end(), so it is enough to wrap res.end().
 
-                // eslint-disable-next-line @typescript-eslint/unbound-method
-                const origResEnd = res.end;
-                res.end = async function (this: unknown, ...args: unknown[]) {
-                  if (transaction) {
-                    await finishTransaction(transaction, res);
-                    await flushQueue();
-                  }
+              // eslint-disable-next-line @typescript-eslint/unbound-method
+              const origResEnd = res.end;
+              res.end = async function (this: unknown, ...args: unknown[]) {
+                if (transaction) {
+                  await finishTransaction(transaction, res);
+                  await flushQueue();
+                }
 
-                  origResEnd.apply(this, args);
-                };
-              }
+                origResEnd.apply(this, args);
+              };
             }
           }
 
@@ -187,21 +179,19 @@ export function withSentry(apiHandler: NextApiHandler, parameterizedRoute?: stri
             // way to prevent it from actually being reported twice.)
             const objectifiedErr = objectify(e);
 
-            if (currentScope) {
-              currentScope.addEventProcessor(event => {
-                addExceptionMechanism(event, {
-                  type: 'instrument',
-                  handled: true,
-                  data: {
-                    wrapped_handler: wrappingTarget.name,
-                    function: 'withSentry',
-                  },
-                });
-                return event;
+            currentScope.addEventProcessor(event => {
+              addExceptionMechanism(event, {
+                type: 'instrument',
+                handled: false,
+                data: {
+                  wrapped_handler: wrappingTarget.name,
+                  function: 'withSentry',
+                },
               });
+              return event;
+            });
 
-              captureException(objectifiedErr);
-            }
+            captureException(objectifiedErr);
 
             // Because we're going to finish and send the transaction before passing the error onto nextjs, it won't yet
             // have had a chance to set the status to 500, so unless we do it ourselves now, we'll incorrectly report that

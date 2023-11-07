@@ -1,4 +1,5 @@
 /* eslint-disable import/export */
+import type { NodeOptions } from '@sentry/node';
 import { configureScope, getCurrentHub, init as nodeInit } from '@sentry/node';
 import { logger } from '@sentry/utils';
 
@@ -12,6 +13,7 @@ export {
   addGlobalEventProcessor,
   addBreadcrumb,
   captureCheckIn,
+  withMonitor,
   captureException,
   captureEvent,
   captureMessage,
@@ -77,7 +79,7 @@ export function init(options: RemixOptions): void {
 
   instrumentServer();
 
-  nodeInit(options);
+  nodeInit(options as NodeOptions);
 
   configureScope(scope => {
     scope.setTag('runtime', 'node');

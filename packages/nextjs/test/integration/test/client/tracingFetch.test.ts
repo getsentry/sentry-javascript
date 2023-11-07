@@ -27,7 +27,7 @@ test('should correctly instrument `fetch` for performance tracing', async ({ pag
     },
   });
 
-  // @ts-ignore - We know that `spans` is inside Transaction envelopes
+  // @ts-expect-error - We know that `spans` is inside Transaction envelopes
   expect(transaction[0].spans).toEqual(
     expect.arrayContaining([
       expect.objectContaining({

@@ -31,8 +31,10 @@ body:
         setup.
       options:
         - '@sentry/browser'
+        - '@sentry/astro'        
         - '@sentry/angular'
         - '@sentry/angular-ivy'
+        - '@sentry/bun'
         - '@sentry/ember'
         - '@sentry/gatsby'
         - '@sentry/nextjs'

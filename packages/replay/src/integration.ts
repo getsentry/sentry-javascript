@@ -1,17 +1,18 @@
 import { getCurrentHub } from '@sentry/core';
 import type { BrowserClientReplayOptions, Integration } from '@sentry/types';
-import { dropUndefinedKeys } from '@sentry/utils';
+import { dropUndefinedKeys, isBrowser } from '@sentry/utils';
 
 import {
   DEFAULT_FLUSH_MAX_DELAY,
   DEFAULT_FLUSH_MIN_DELAY,
+  MAX_REPLAY_DURATION,
   MIN_REPLAY_DURATION,
   MIN_REPLAY_DURATION_LIMIT,
 } from './constants';
 import { ReplayContainer } from './replay';
 import type { RecordingOptions, ReplayConfiguration, ReplayPluginOptions, SendBufferedReplayOptions } from './types';
 import { getPrivacyOptions } from './util/getPrivacyOptions';
-import { isBrowser } from './util/isBrowser';
+import { maskAttribute } from './util/maskAttribute';
 
 const MEDIA_SELECTORS =
   'img,image,svg,video,object,picture,embed,map,audio,link[rel="icon"],link[rel="apple-touch-icon"]';
@@ -57,8 +58,10 @@ export class Replay implements Integration {
     flushMinDelay = DEFAULT_FLUSH_MIN_DELAY,
     flushMaxDelay = DEFAULT_FLUSH_MAX_DELAY,
     minReplayDuration = MIN_REPLAY_DURATION,
+    maxReplayDuration = MAX_REPLAY_DURATION,
     stickySession = true,
     useCompression = true,
+    workerUrl,
     _experiments = {},
     sessionSampleRate,
     errorSampleRate,
@@ -79,6 +82,7 @@ export class Replay implements Integration {
     networkResponseHeaders = [],
 
     mask = [],
+    maskAttributes = ['title', 'placeholder'],
     unmask = [],
     block = [],
     unblock = [],
@@ -102,25 +106,36 @@ export class Replay implements Integration {
   }: ReplayConfiguration = {}) {
     this.name = Replay.id;
 
+    const privacyOptions = getPrivacyOptions({
+      mask,
+      unmask,
+      block,
+      unblock,
+      ignore,
+      blockClass,
+      blockSelector,
+      maskTextClass,
+      maskTextSelector,
+      ignoreClass,
+    });
+
     this._recordingOptions = {
       maskAllInputs,
       maskAllText,
       maskInputOptions: { ...(maskInputOptions || {}), password: true },
       maskTextFn: maskFn,
       maskInputFn: maskFn,
+      maskAttributeFn: (key: string, value: string, el: HTMLElement): string =>
+        maskAttribute({
+          maskAttributes,
+          maskAllText,
+          privacyOptions,
+          key,
+          value,
+          el,
+        }),
 
-      ...getPrivacyOptions({
-        mask,
-        unmask,
-        block,
-        unblock,
-        ignore,
-        blockClass,
-        blockSelector,
-        maskTextClass,
-        maskTextSelector,
-        ignoreClass,
-      }),
+      ...privacyOptions,
 
       // Our defaults
       slimDOMOptions: 'all',
@@ -130,16 +145,26 @@ export class Replay implements Integration {
       // collect fonts, but be aware that `sentry.io` needs to be an allowed
       // origin for playback
       collectFonts: true,
+      errorHandler: (err: Error & { __rrweb__?: boolean }) => {
+        try {
+          err.__rrweb__ = true;
+        } catch (error) {
+          // ignore errors here
+          // this can happen if the error is frozen or does not allow mutation for other reasons
+        }
+      },
     };
 
     this._initialOptions = {
       flushMinDelay,
       flushMaxDelay,
       minReplayDuration: Math.min(minReplayDuration, MIN_REPLAY_DURATION_LIMIT),
+      maxReplayDuration: Math.min(maxReplayDuration, MAX_REPLAY_DURATION),
       stickySession,
       sessionSampleRate,
       errorSampleRate,
       useCompression,
+      workerUrl,
       blockAllMedia,
       maskAllInputs,
       maskAllText,

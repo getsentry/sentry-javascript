@@ -45,7 +45,7 @@ export async function captureUnderscoreErrorException(contextOrProps: ContextOrP
     scope.addEventProcessor(event => {
       addExceptionMechanism(event, {
         type: 'instrument',
-        handled: true,
+        handled: false,
         data: {
           function: '_error.getInitialProps',
         },

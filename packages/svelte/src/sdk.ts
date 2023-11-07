@@ -1,13 +1,17 @@
 import type { BrowserOptions } from '@sentry/browser';
 import { addGlobalEventProcessor, init as browserInit, SDK_VERSION } from '@sentry/browser';
-import type { EventProcessor } from '@sentry/types';
+import type { EventProcessor, SdkMetadata } from '@sentry/types';
 import { getDomElement } from '@sentry/utils';
 /**
  * Inits the Svelte SDK
  */
 export function init(options: BrowserOptions): void {
-  options._metadata = options._metadata || {};
-  options._metadata.sdk = options._metadata.sdk || {
+  const opts = {
+    _metadata: {} as SdkMetadata,
+    ...options,
+  };
+
+  opts._metadata.sdk = opts._metadata.sdk || {
     name: 'sentry.javascript.svelte',
     packages: [
       {
@@ -17,8 +21,7 @@ export function init(options: BrowserOptions): void {
     ],
     version: SDK_VERSION,
   };
-
-  browserInit(options);
+  browserInit(opts);
 
   detectAndReportSvelteKit();
 }

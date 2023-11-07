@@ -44,13 +44,31 @@ packages:
     unpublish: $all
     # proxy: npmjs # Don't proxy for E2E tests!
 
+  '@sentry/astro':
+    access: $all
+    publish: $all
+    unpublish: $all
+    # proxy: npmjs # Don't proxy for E2E tests!
+
   '@sentry/browser':
     access: $all
     publish: $all
     unpublish: $all
     # proxy: npmjs # Don't proxy for E2E tests!
 
+  '@sentry/bun':
+    access: $all
+    publish: $all
+    unpublish: $all
+    # proxy: npmjs # Don't proxy for E2E tests!
+
   '@sentry/core':
+    access: $all
+    publish: $all
+    unpublish: $all
+    # proxy: npmjs # Don't proxy for E2E tests!
+
+  '@sentry/deno':
     access: $all
     publish: $all
     unpublish: $all
@@ -99,6 +117,12 @@ packages:
     # proxy: npmjs # Don't proxy for E2E tests!
 
   '@sentry/opentelemetry-node':
+    access: $all
+    publish: $all
+    unpublish: $all
+    # proxy: npmjs # Don't proxy for E2E tests!
+
+  '@sentry/opentelemetry':
     access: $all
     publish: $all
     unpublish: $all
@@ -153,6 +177,12 @@ packages:
     # proxy: npmjs # Don't proxy for E2E tests!
 
   '@sentry/utils':
+    access: $all
+    publish: $all
+    unpublish: $all
+    # proxy: npmjs # Don't proxy for E2E tests!
+
+  '@sentry/vercel-edge':
     access: $all
     publish: $all
     unpublish: $all

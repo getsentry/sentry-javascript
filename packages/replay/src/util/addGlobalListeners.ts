@@ -19,16 +19,19 @@ export function addGlobalListeners(replay: ReplayContainer): void {
   const scope = getCurrentHub().getScope();
   const client = getCurrentHub().getClient();
 
-  if (scope) {
-    scope.addScopeListener(handleScopeListener(replay));
-  }
+  scope.addScopeListener(handleScopeListener(replay));
   addInstrumentationHandler('dom', handleDomListener(replay));
   addInstrumentationHandler('history', handleHistorySpanListener(replay));
   handleNetworkBreadcrumbs(replay);
 
   // Tag all (non replay) events that get sent to Sentry with the current
   // replay ID so that we can reference them later in the UI
-  addGlobalEventProcessor(handleGlobalEventListener(replay, !hasHooks(client)));
+  const eventProcessor = handleGlobalEventListener(replay, !hasHooks(client));
+  if (client && client.addEventProcessor) {
+    client.addEventProcessor(eventProcessor);
+  } else {
+    addGlobalEventProcessor(eventProcessor);
+  }
 
   // If a custom client has no hooks yet, we continue to use the "old" implementation
   if (hasHooks(client)) {
@@ -37,7 +40,11 @@ export function addGlobalListeners(replay: ReplayContainer): void {
       const replayId = replay.getSessionId();
       // We do not want to set the DSC when in buffer mode, as that means the replay has not been sent (yet)
       if (replayId && replay.isEnabled() && replay.recordingMode === 'session') {
-        dsc.replay_id = replayId;
+        // Ensure to check that the session is still active - it could have expired in the meanwhile
+        const isSessionActive = replay.checkAndHandleExpiredSession();
+        if (isSessionActive) {
+          dsc.replay_id = replayId;
+        }
       }
     });
 

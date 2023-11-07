@@ -1,4 +1,5 @@
 import type { Event, EventHint } from '@sentry/types';
+import { GLOBAL_OBJ } from '@sentry/utils';
 import type { StackFrame } from 'stacktrace-parser';
 import * as stackTraceParser from 'stacktrace-parser';
 
@@ -6,6 +7,10 @@ type OriginalStackFrameResponse = {
   originalStackFrame: StackFrame;
   originalCodeFrame: string | null;
   sourcePackage?: string;
+};
+
+const globalWithInjectedValues = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
+  __sentryBasePath?: string;
 };
 
 async function resolveStackFrame(
@@ -26,13 +31,20 @@ async function resolveStackFrame(
       params.append(key, (frame[key as keyof typeof frame] ?? '').toString());
     });
 
+    let basePath = globalWithInjectedValues.__sentryBasePath ?? '';
+
+    // Prefix the basepath with a slash if it doesn't have one
+    if (basePath !== '' && !basePath.match(/^\//)) {
+      basePath = `/${basePath}`;
+    }
+
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 3000);
     const res = await fetch(
       `${
         // eslint-disable-next-line no-restricted-globals
         typeof window === 'undefined' ? 'http://localhost:3000' : '' // TODO: handle the case where users define a different port
-      }/__nextjs_original-stack-frame?${params.toString()}`,
+      }${basePath}/__nextjs_original-stack-frame?${params.toString()}`,
       {
         signal: controller.signal,
       },

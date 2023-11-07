@@ -104,22 +104,22 @@ function setUpTunnelRewriteRules(userNextConfig: NextConfigObject, tunnelPath: s
         {
           type: 'query',
           key: 'o', // short for orgId - we keep it short so matching is harder for ad-blockers
-          value: '(?<orgid>.*)',
+          value: '(?<orgid>\\d*)',
         },
         {
           type: 'query',
           key: 'p', // short for projectId - we keep it short so matching is harder for ad-blockers
-          value: '(?<projectid>.*)',
+          value: '(?<projectid>\\d*)',
         },
       ],
-      destination: 'https://o:orgid.ingest.sentry.io/api/:projectid/envelope/',
+      destination: 'https://o:orgid.ingest.sentry.io/api/:projectid/envelope/?hsts=0',
     };
 
     if (typeof originalRewrites !== 'function') {
       return [injectedRewrite];
     }
 
-    // @ts-ignore Expected 0 arguments but got 1 - this is from the future-proofing mentioned above, so we don't care about it
+    // @ts-expect-error Expected 0 arguments but got 1 - this is from the future-proofing mentioned above, so we don't care about it
     const originalRewritesResult = await originalRewrites(...args);
 
     if (Array.isArray(originalRewritesResult)) {
