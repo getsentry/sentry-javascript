@@ -250,7 +250,6 @@ export class Feedback implements Integration {
     try {
       return this._createWidget(mergeOptions(this.options, optionOverrides || {}));
     } catch (err) {
-      console.error(err);
       logger.error(err);
       return null;
     }

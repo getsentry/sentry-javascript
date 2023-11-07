@@ -1,4 +1,5 @@
 import * as SentryUtils from '@sentry/utils';
+
 import {
   ACTOR_LABEL,
   CANCEL_BUTTON_LABEL,
@@ -13,14 +14,7 @@ import {
   SUBMIT_BUTTON_LABEL,
   SUCCESS_MESSAGE_TEXT,
 } from '../src/constants';
-import type { FeedbackInternalOptions } from '../src/types';
-import { sendFeedbackRequest } from '../src/util/sendFeedbackRequest';
-// import { createShadowHost } from '../../src/widget/createShadowHost';
-// import { createWidget } from '../../src/widget/createWidget';
 import { Feedback } from '../src/integration';
-
-const flushPromises = () => new Promise(jest.requireActual('timers').setImmediate);
-jest.useFakeTimers();
 
 jest.spyOn(SentryUtils, 'isBrowser').mockImplementation(() => true);
 
