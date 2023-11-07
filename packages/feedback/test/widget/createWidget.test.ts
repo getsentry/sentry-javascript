@@ -66,7 +66,7 @@ jest.mock('../../src/util/sendFeedbackRequest', () => {
 });
 
 function createShadowAndWidget(
-  feedbackOptions?: Partial<FeedbackInternalOptions>,
+  feedbackOptions?: Partial<FeedbackInternalOptions> & { shouldCreateActor?: boolean },
   createWidgetOptions?: Partial<Parameters<typeof createWidget>[0]>,
 ) {
   const { shadow } = createShadowHost({
@@ -93,9 +93,20 @@ describe('createWidget', () => {
   });
 
   it('creates widget with actor', () => {
-    const { widget } = createShadowAndWidget();
+    const { shadow, widget } = createShadowAndWidget();
     expect(widget.actor?.el).toBeInstanceOf(HTMLButtonElement);
-    expect(widget.actor?.el?.textContent).toBe(DEFAULT_OPTIONS.buttonLabel);
+    const actorEl = widget.actor?.el as HTMLButtonElement;
+    expect(actorEl.textContent).toBe(DEFAULT_OPTIONS.buttonLabel);
+    // No dialog until actor is clicked
+    expect(widget.dialog).toBeUndefined();
+    expect(shadow.contains(actorEl)).toBe(true);
+  });
+
+  it('creates widget without actor', () => {
+    const { widget } = createShadowAndWidget({
+      shouldCreateActor: false,
+    });
+    expect(widget.actor?.el).toBeUndefined();
     // No dialog until actor is clicked
     expect(widget.dialog).toBeUndefined();
   });

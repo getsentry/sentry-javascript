@@ -16,7 +16,7 @@ import {
   SUBMIT_BUTTON_LABEL,
   SUCCESS_MESSAGE_TEXT,
 } from './constants';
-import type { FeedbackInternalOptions, OptionalFeedbackConfiguration, Widget } from './types';
+import type { FeedbackInternalOptions, FeedbackWidget, OptionalFeedbackConfiguration } from './types';
 import { mergeOptions } from './util/mergeOptions';
 import { createActorStyles } from './widget/Actor.css';
 import { createShadowHost } from './widget/createShadowHost';
@@ -48,12 +48,12 @@ export class Feedback implements Integration {
   /**
    * Reference to widget element that is created when autoInject is true
    */
-  private _widget: Widget | null;
+  private _widget: FeedbackWidget | null;
 
   /**
    * List of all widgets that are created from the integration
    */
-  private _widgets: Set<Widget>;
+  private _widgets: Set<FeedbackWidget>;
 
   /**
    * Reference to the host element where widget is inserted
@@ -166,15 +166,7 @@ export class Feedback implements Integration {
     }
 
     try {
-      // TODO: This is only here for hot reloading
-      if (this._host) {
-        this.remove();
-      }
-      const existingFeedback = doc.querySelector(`#${this.options.id}`);
-      if (existingFeedback) {
-        existingFeedback.remove();
-      }
-      // TODO: End hotloading
+      this._cleanupWidgetIfExists();
 
       const { autoInject } = this.options;
 
@@ -183,20 +175,49 @@ export class Feedback implements Integration {
         return;
       }
 
-      this._widget = this._createWidget(this.options);
+      this._createWidget(this.options);
     } catch (err) {
       __DEBUG_BUILD__ && logger.error(err);
     }
   }
 
   /**
+   * Allows user to open the dialog box. Creates a new widget if
+   * `autoInject` was false, otherwise re-uses the default widget that was
+   * created during initialization of the integration.
+   */
+  public openDialog(): void {
+    if (!this._widget) {
+      this._createWidget({ ...this.options, shouldCreateActor: false });
+    }
+
+    if (!this._widget) {
+      return;
+    }
+
+    this._widget.openDialog();
+  }
+
+  /**
+   * Closes the dialog for the default widget, if it exists
+   */
+  public closeDialog(): void {
+    if (!this._widget) {
+      // Nothing to do if widget does not exist
+      return;
+    }
+
+    this._widget.closeDialog();
+  }
+
+  /**
    * Adds click listener to attached element to open a feedback dialog
    */
-  public attachTo(el: Element | string, optionOverrides: OptionalFeedbackConfiguration): Widget | null {
+  public attachTo(el: Element | string, optionOverrides?: OptionalFeedbackConfiguration): FeedbackWidget | null {
     try {
-      const options = mergeOptions(this.options, optionOverrides);
+      const options = mergeOptions(this.options, optionOverrides || {});
 
-      return this._ensureShadowHost<Widget | null>(options, ({ shadow }) => {
+      return this._ensureShadowHost<FeedbackWidget | null>(options, ({ shadow }) => {
         const targetEl =
           typeof el === 'string' ? doc.querySelector(el) : typeof el.addEventListener === 'function' ? el : null;
 
@@ -207,6 +228,11 @@ export class Feedback implements Integration {
 
         const widget = createWidget({ shadow, options, attachTo: targetEl });
         this._widgets.add(widget);
+
+        if (!this._widget) {
+          this._widget = widget;
+        }
+
         return widget;
       });
     } catch (err) {
@@ -218,9 +244,11 @@ export class Feedback implements Integration {
   /**
    * Creates a new widget. Accepts partial options to override any options passed to constructor.
    */
-  public createWidget(optionOverrides: OptionalFeedbackConfiguration): Widget | null {
+  public createWidget(
+    optionOverrides?: OptionalFeedbackConfiguration & { shouldCreateActor?: boolean },
+  ): FeedbackWidget | null {
     try {
-      return this._createWidget(mergeOptions(this.options, optionOverrides));
+      return this._createWidget(mergeOptions(this.options, optionOverrides || {}));
     } catch (err) {
       __DEBUG_BUILD__ && logger.error(err);
       return null;
@@ -230,7 +258,7 @@ export class Feedback implements Integration {
   /**
    * Removes a single widget
    */
-  public removeWidget(widget: Widget | null | undefined): boolean {
+  public removeWidget(widget: FeedbackWidget | null | undefined): boolean {
     if (!widget) {
       return false;
     }
@@ -240,6 +268,12 @@ export class Feedback implements Integration {
         widget.removeActor();
         widget.removeDialog();
         this._widgets.delete(widget);
+
+        if (this._widget === widget) {
+          // TODO: is more clean-up needed? e.g. call remove()
+          this._widget = null;
+        }
+
         return true;
       }
     } catch (err) {
@@ -247,6 +281,13 @@ export class Feedback implements Integration {
     }
 
     return false;
+  }
+
+  /**
+   * Returns the default (first-created) widget
+   */
+  public getWidget(): FeedbackWidget | null {
+    return this._widget;
   }
 
   /**
@@ -271,10 +312,24 @@ export class Feedback implements Integration {
   }
 
   /**
+   * Clean-up the widget if it already exists in the DOM. This shouldn't happen
+   * in prod, but can happen in development with hot module reloading.
+   */
+  protected _cleanupWidgetIfExists(): void {
+    if (this._host) {
+      this.remove();
+    }
+    const existingFeedback = doc.querySelector(`#${this.options.id}`);
+    if (existingFeedback) {
+      existingFeedback.remove();
+    }
+  }
+
+  /**
    * Creates a new widget, after ensuring shadow DOM exists
    */
-  protected _createWidget(options: FeedbackInternalOptions): Widget | null {
-    return this._ensureShadowHost<Widget>(options, ({ shadow }) => {
+  protected _createWidget(options: FeedbackInternalOptions & { shouldCreateActor?: boolean }): FeedbackWidget | null {
+    return this._ensureShadowHost<FeedbackWidget>(options, ({ shadow }) => {
       const widget = createWidget({ shadow, options });
 
       if (!this._hasInsertedActorStyles && widget.actor) {
@@ -283,6 +338,11 @@ export class Feedback implements Integration {
       }
 
       this._widgets.add(widget);
+
+      if (!this._widget) {
+        this._widget = widget;
+      }
+
       return widget;
     });
   }
