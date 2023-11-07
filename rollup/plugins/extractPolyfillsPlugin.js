@@ -40,6 +40,13 @@ export function makeExtractPolyfillsPlugin() {
         return null;
       }
 
+      // The index.js file of the tuils package will include identifiers named after polyfills so we would inject the
+      // polyfills, however that would override the exports so we should just skip that file.
+      const isUtilsPackage = process.cwd().endsWith('packages/utils');
+      if (isUtilsPackage && sourceFile === 'index.js') {
+        return null;
+      }
+
       const parserOptions = {
         sourceFileName: sourceFile,
         // We supply a custom parser which wraps the provided `acorn` parser in order to override the `ecmaVersion` value.
