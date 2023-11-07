@@ -203,6 +203,29 @@ feedback.attachTo(document.querySelector('#your-button'), {
 });
 ```
 
+Alternatively you can call `feedback.openDialog()`:
+
+```typescript
+import {BrowserClient, getCurrentHub} from '@sentry/react';
+import {Feedback} from '@sentry-internal/feedback';
+
+function MyFeedbackButton() {
+    const client = hub && getCurrentHub().getClient<BrowserClient>();
+    const feedback = client?.getIntegration(Feedback);
+
+    // Don't render custom feedback button if Feedback integration not installed
+    if (!feedback) {
+        return null;
+    }
+
+    return (
+        <button type="button" onClick={() => feedback.openDialog()}>
+            Give me feedback
+        </button>
+    )
+}
+```
+
 ### Bring Your Own Widget
 
 You can also bring your own widget and UI and simply pass a feedback object to the `sendFeedback()` function.
