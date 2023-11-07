@@ -5,6 +5,7 @@ import type {
   NextConfigFunction,
   NextConfigObject,
   NextConfigObjectWithSentry,
+  NextRewrite,
   SentryWebpackPluginOptions,
   UserSentryOptions,
 } from './types';
@@ -60,19 +61,7 @@ function getFinalConfigObject(
   // Next 12.2.3+ warns about non-canonical properties on `userNextConfig`.
   delete incomingUserNextConfigObject.sentry;
 
-  if (userSentryOptions?.tunnelRoute) {
-    if (incomingUserNextConfigObject.output === 'export') {
-      if (!showedExportModeTunnelWarning) {
-        showedExportModeTunnelWarning = true;
-        // eslint-disable-next-line no-console
-        console.warn(
-          '[@sentry/nextjs] The Sentry Next.js SDK `tunnelRoute` option will not work in combination with Next.js static exports. The `tunnelRoute` option uses serverside features that cannot be accessed in export mode. If you still want to tunnel Sentry events, set up your own tunnel: https://docs.sentry.io/platforms/javascript/troubleshooting/#using-the-tunnel-option',
-        );
-      }
-    } else {
-      setUpTunnelRewriteRules(incomingUserNextConfigObject, userSentryOptions.tunnelRoute);
-    }
-  }
+  setUpRewriteRules(incomingUserNextConfigObject, userSentryOptions);
 
   return {
     ...incomingUserNextConfigObject,
@@ -85,49 +74,71 @@ function getFinalConfigObject(
 }
 
 /**
- * Injects rewrite rules into the Next.js config provided by the user to tunnel
- * requests from the `tunnelPath` to Sentry.
+ * Injects rewrite rules into the Next.js config.
  *
  * See https://nextjs.org/docs/api-reference/next.config.js/rewrites.
  */
-function setUpTunnelRewriteRules(userNextConfig: NextConfigObject, tunnelPath: string): void {
+function setUpRewriteRules(userNextConfig: NextConfigObject, userSentryOptions: UserSentryOptions): void {
   const originalRewrites = userNextConfig.rewrites;
 
   // This function doesn't take any arguments at the time of writing but we future-proof
   // here in case Next.js ever decides to pass some
   userNextConfig.rewrites = async (...args: unknown[]) => {
-    const injectedRewrite = {
-      // Matched rewrite routes will look like the following: `[tunnelPath]?o=[orgid]&p=[projectid]`
-      // Nextjs will automatically convert `source` into a regex for us
-      source: `${tunnelPath}(/?)`,
-      has: [
-        {
-          type: 'query',
-          key: 'o', // short for orgId - we keep it short so matching is harder for ad-blockers
-          value: '(?<orgid>\\d*)',
-        },
-        {
-          type: 'query',
-          key: 'p', // short for projectId - we keep it short so matching is harder for ad-blockers
-          value: '(?<projectid>\\d*)',
-        },
-      ],
-      destination: 'https://o:orgid.ingest.sentry.io/api/:projectid/envelope/?hsts=0',
-    };
+    const rewritesToInject: NextRewrite[] = [];
+
+    // Tunnel envelopes through the user's server.
+    if (userSentryOptions?.tunnelRoute) {
+      if (userNextConfig.output === 'export') {
+        if (!showedExportModeTunnelWarning) {
+          showedExportModeTunnelWarning = true;
+          // eslint-disable-next-line no-console
+          console.warn(
+            '[@sentry/nextjs] The Sentry Next.js SDK `tunnelRoute` option will not work in combination with Next.js static exports. The `tunnelRoute` option uses serverside features that cannot be accessed in export mode. If you still want to tunnel Sentry events, set up your own tunnel: https://docs.sentry.io/platforms/javascript/troubleshooting/#using-the-tunnel-option',
+          );
+        }
+      } else {
+        rewritesToInject.push({
+          // Matched rewrite routes will look like the following: `[tunnelPath]?o=[orgid]&p=[projectid]`
+          // Nextjs will automatically convert `source` into a regex for us
+          source: `${userSentryOptions.tunnelRoute}(/?)`,
+          has: [
+            {
+              type: 'query',
+              key: 'o', // short for orgId - we keep it short so matching is harder for ad-blockers
+              value: '(?<orgid>\\d*)',
+            },
+            {
+              type: 'query',
+              key: 'p', // short for projectId - we keep it short so matching is harder for ad-blockers
+              value: '(?<projectid>\\d*)',
+            },
+          ],
+          destination: 'https://o:orgid.ingest.sentry.io/api/:projectid/envelope/?hsts=0',
+        });
+      }
+    }
+
+    // Block requests to sourcemaps.
+    if (userSentryOptions?.hideSourceMaps && userNextConfig.output !== 'export') {
+      rewritesToInject.push({
+        source: '/:anyPath(.*).map',
+        destination: '/404',
+      });
+    }
 
     if (typeof originalRewrites !== 'function') {
-      return [injectedRewrite];
+      return [...rewritesToInject];
     }
 
     // @ts-expect-error Expected 0 arguments but got 1 - this is from the future-proofing mentioned above, so we don't care about it
     const originalRewritesResult = await originalRewrites(...args);
 
     if (Array.isArray(originalRewritesResult)) {
-      return [injectedRewrite, ...originalRewritesResult];
+      return [...rewritesToInject, ...originalRewritesResult];
     } else {
       return {
         ...originalRewritesResult,
-        beforeFiles: [injectedRewrite, ...(originalRewritesResult.beforeFiles || [])],
+        beforeFiles: [...rewritesToInject, ...(originalRewritesResult.beforeFiles || [])],
       };
     }
   };

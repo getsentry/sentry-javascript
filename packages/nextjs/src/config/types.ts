@@ -29,9 +29,14 @@ export type NextConfigFunctionWithSentry = (
 ) => NextConfigObjectWithSentry | PromiseLike<NextConfigObjectWithSentry>;
 
 // Vendored from Next.js (this type is not complete - extend if necessary)
-type NextRewrite = {
+export type NextRewrite = {
   source: string;
   destination: string;
+  has?: {
+    type: string;
+    key: string;
+    value: string;
+  }[];
 };
 
 export type NextConfigObject = {
