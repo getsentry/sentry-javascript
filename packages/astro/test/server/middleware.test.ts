@@ -2,7 +2,7 @@ import * as SentryNode from '@sentry/node';
 import * as SentryUtils from '@sentry/utils';
 import { vi } from 'vitest';
 
-import { interpolateRouteFromUrlAndParams, sentryMiddleware } from '../../src/server/middleware';
+import { handleRequest, interpolateRouteFromUrlAndParams } from '../../src/server/middleware';
 
 describe('sentryMiddleware', () => {
   const startSpanSpy = vi.spyOn(SentryNode, 'startSpan');
@@ -12,7 +12,7 @@ describe('sentryMiddleware', () => {
   });
 
   it('creates a span for an incoming request', async () => {
-    const middleware = sentryMiddleware();
+    const middleware = handleRequest();
     const ctx = {
       request: {
         method: 'GET',
@@ -59,7 +59,7 @@ describe('sentryMiddleware', () => {
     const captureExceptionSpy = vi.spyOn(SentryNode, 'captureException').mockImplementation((ex, cb) => cb(scope));
     const addExMechanismSpy = vi.spyOn(SentryUtils, 'addExceptionMechanism');
 
-    const middleware = sentryMiddleware();
+    const middleware = handleRequest();
     const ctx = {
       request: {
         method: 'GET',
@@ -96,7 +96,7 @@ describe('sentryMiddleware', () => {
     // @ts-expect-error, only passing a partial Scope object
     const configureScopeSpy = vi.spyOn(SentryNode, 'configureScope').mockImplementation(cb => cb(scope));
 
-    const middleware = sentryMiddleware();
+    const middleware = handleRequest();
     const ctx = {
       request: {
         method: 'GET',
@@ -146,7 +146,7 @@ describe('sentryMiddleware', () => {
     // @ts-expect-error, only passing a partial Scope object
     const configureScopeSpy = vi.spyOn(SentryNode, 'configureScope').mockImplementation(cb => cb(scope));
 
-    const middleware = sentryMiddleware({ trackClientIp: true, trackHeaders: true });
+    const middleware = handleRequest({ trackClientIp: true, trackHeaders: true });
     const ctx = {
       request: {
         method: 'GET',
