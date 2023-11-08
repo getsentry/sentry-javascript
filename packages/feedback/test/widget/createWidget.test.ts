@@ -177,7 +177,7 @@ describe('createWidget', () => {
     });
 
     (sendFeedbackRequest as jest.Mock).mockImplementation(() => {
-      return false;
+      throw new Error('Unable to send feedback');
     });
     widget.actor?.el?.dispatchEvent(new Event('click'));
 
