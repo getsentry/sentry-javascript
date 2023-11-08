@@ -2,9 +2,10 @@ import type { Event, EventHint } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
 import type { ReplayContainer } from '../types';
-import { isErrorEvent, isReplayEvent, isTransactionEvent } from '../util/eventUtils';
+import { isErrorEvent, isFeedbackEvent, isReplayEvent, isTransactionEvent } from '../util/eventUtils';
 import { isRrwebError } from '../util/isRrwebError';
 import { handleAfterSendEvent } from './handleAfterSendEvent';
+import { addFeedbackBreadcrumb } from './util/addFeedbackBreadcrumb';
 import { shouldSampleForBufferEvent } from './util/shouldSampleForBufferEvent';
 
 /**
@@ -30,14 +31,20 @@ export function handleGlobalEventListener(
         return event;
       }
 
-      // We only want to handle errors & transactions, nothing else
-      if (!isErrorEvent(event) && !isTransactionEvent(event)) {
+      // We only want to handle errors, transactions, and feedbacks, nothing else
+      if (!isErrorEvent(event) && !isTransactionEvent(event) && !isFeedbackEvent(event)) {
         return event;
       }
 
       // Ensure we do not add replay_id if the session is expired
       const isSessionActive = replay.checkAndHandleExpiredSession();
       if (!isSessionActive) {
+        return event;
+      }
+
+      if (isFeedbackEvent(event)) {
+        // Add a replay breadcrumb for this piece of feedback
+        addFeedbackBreadcrumb(replay, event);
         return event;
       }
 
