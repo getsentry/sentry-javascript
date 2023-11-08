@@ -4,6 +4,38 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.78.0
+
+### Important Changes
+
+- **Replay Bundle Size improvements**
+
+We've dramatically decreased the bundle size of our Replay package, reducing the minified & gzipped bundle size by ~20 KB!
+This was possible by extensive use of tree shaking and a host of small changes to reduce our footprint:
+
+- feat(replay): Update rrweb to 2.2.0 (#9414)
+- ref(replay): Use fflate instead of pako for compression (#9436)
+
+By using [tree shaking](https://docs.sentry.io/platforms/javascript/configuration/tree-shaking/) it is possible to shave up to 10 additional KB off the bundle.
+
+#### Other Changes
+
+- feat(astro): Add Sentry middleware (#9445)
+- feat(feedback): Add "outline focus" and "foreground hover" vars (#9462)
+- feat(feedback): Add `openDialog` and `closeDialog` onto integration interface (#9464)
+- feat(feedback): Implement new user feedback embeddable widget (#9217)
+- feat(nextjs): Add automatic sourcemapping for edge part of the SDK (#9454)
+- feat(nextjs): Add client routing instrumentation for app router (#9446)
+- feat(node-experimental): Add hapi tracing support (#9449)
+- feat(replay): Allow to configure `beforeErrorSampling` (#9470)
+- feat(replay): Stop fixing truncated JSONs in SDK (#9437)
+- fix(nextjs): Fix sourcemaps resolving for local dev when basePath is set (#9457)
+- fix(nextjs): Only inject basepath in dev mode (#9465)
+- fix(replay): Ensure we stop for rate limit headers (#9420)
+- ref(feedback): Add treeshaking for logger statements (#9475)
+- ref(replay): Use rrweb for slow click detection (#9408)
+- build(polyfills): Remove output format specific logic (#9467)
+
 ## 7.77.0
 
 - feat: Move LinkedErrors integration to @sentry/core (#9404)
