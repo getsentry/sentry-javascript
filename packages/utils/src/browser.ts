@@ -159,12 +159,9 @@ export function getDomElement<E = any>(selector: string): E | null {
 }
 
 /**
- * Given
- *
- * Given a child DOM element, returns a query-selector statement describing that
- * and its ancestors
- * e.g. [HTMLElement] => body > div > input#foo.btn[name=baz]
- * @returns generated DOM path
+ * Given a child DOM element, returns the component name of the element.
+ * If the component name does not exist, this function will fallback to `htmlTreeAsString`
+ * e.g. [HTMLElement] => MyComponentName
  */
 export function getElementIdentifier(
   elem: unknown,
