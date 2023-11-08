@@ -1,5 +1,5 @@
 import type { Breadcrumb } from '@sentry/types';
-import { htmlTreeAsString } from '@sentry/utils';
+import { getElementIdentifier } from '@sentry/utils';
 
 import type { ReplayContainer } from '../types';
 import { createBreadcrumb } from '../util/createBreadcrumb';
@@ -45,7 +45,7 @@ export function getKeyboardBreadcrumb(event: KeyboardEvent): Breadcrumb | null {
     return null;
   }
 
-  const message = htmlTreeAsString(target, { maxStringLength: 200 }) || '<unknown>';
+  const message = getElementIdentifier(target, { maxStringLength: 200 }) || '<unknown>';
   const baseBreadcrumb = getBaseDomBreadcrumb(target as Node, message);
 
   return createBreadcrumb({

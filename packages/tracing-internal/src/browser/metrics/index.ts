@@ -2,7 +2,7 @@
 import type { IdleTransaction, Transaction } from '@sentry/core';
 import { getActiveTransaction } from '@sentry/core';
 import type { Measurements } from '@sentry/types';
-import { browserPerformanceTimeOrigin, htmlTreeAsString, logger } from '@sentry/utils';
+import { browserPerformanceTimeOrigin, getElementIdentifier, logger } from '@sentry/utils';
 
 import {
   addClsInstrumentationHandler,
@@ -100,7 +100,7 @@ export function startTrackingInteractions(): void {
         const duration = msToSec(entry.duration);
 
         transaction.startChild({
-          description: htmlTreeAsString(entry.target),
+          description: getElementIdentifier(entry.target),
           op: `ui.interaction.${entry.name}`,
           origin: 'auto.ui.browser.metrics',
           startTimestamp: startTime,
@@ -470,7 +470,7 @@ function _tagMetricInfo(transaction: Transaction): void {
     // Capture Properties of the LCP element that contributes to the LCP.
 
     if (_lcpEntry.element) {
-      transaction.setTag('lcp.element', htmlTreeAsString(_lcpEntry.element));
+      transaction.setTag('lcp.element', getElementIdentifier(_lcpEntry.element));
     }
 
     if (_lcpEntry.id) {
@@ -489,7 +489,7 @@ function _tagMetricInfo(transaction: Transaction): void {
   if (_clsEntry && _clsEntry.sources) {
     __DEBUG_BUILD__ && logger.log('[Measurements] Adding CLS Data');
     _clsEntry.sources.forEach((source, index) =>
-      transaction.setTag(`cls.source.${index + 1}`, htmlTreeAsString(source.node)),
+      transaction.setTag(`cls.source.${index + 1}`, getElementIdentifier(source.node)),
     );
   }
 }

@@ -157,3 +157,22 @@ export function getDomElement<E = any>(selector: string): E | null {
   }
   return null;
 }
+
+/**
+ * Given
+ *
+ * Given a child DOM element, returns a query-selector statement describing that
+ * and its ancestors
+ * e.g. [HTMLElement] => body > div > input#foo.btn[name=baz]
+ * @returns generated DOM path
+ */
+export function getElementIdentifier(
+  elem: unknown,
+  options: string[] | { keyAttrs?: string[]; maxStringLength?: number } = {},
+): string {
+  if (elem instanceof HTMLElement && elem.dataset) {
+    return elem.dataset['component'] || htmlTreeAsString(elem, options)
+  }
+
+  return htmlTreeAsString(elem, options)
+ }

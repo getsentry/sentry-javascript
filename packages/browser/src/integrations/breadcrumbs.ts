@@ -10,8 +10,8 @@ import type {
 } from '@sentry/types/build/types/breadcrumb';
 import {
   addInstrumentationHandler,
+  getElementIdentifier,
   getEventDescription,
-  htmlTreeAsString,
   logger,
   parseUrl,
   safeJoin,
@@ -153,8 +153,8 @@ function _domBreadcrumb(dom: BreadcrumbsOptions['dom']): (handlerData: HandlerDa
     try {
       const event = handlerData.event as Event | Node;
       target = _isEvent(event)
-        ? htmlTreeAsString(event.target, { keyAttrs, maxStringLength })
-        : htmlTreeAsString(event, { keyAttrs, maxStringLength });
+        ? getElementIdentifier(event.target, { keyAttrs, maxStringLength })
+        : getElementIdentifier(event, { keyAttrs, maxStringLength });
     } catch (e) {
       target = '<unknown>';
     }

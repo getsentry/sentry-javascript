@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { WrappedFunction } from '@sentry/types';
 
-import { htmlTreeAsString } from './browser';
+import { getElementIdentifier } from './browser';
 import { isElement, isError, isEvent, isInstanceOf, isPlainObject, isPrimitive } from './is';
 import { logger } from './logger';
 import { truncate } from './string';
@@ -150,7 +150,7 @@ export function convertToPlainObject<V>(value: V):
 /** Creates a string representation of the target of an `Event` object */
 function serializeEventTarget(target: unknown): string {
   try {
-    return isElement(target) ? htmlTreeAsString(target) : Object.prototype.toString.call(target);
+    return isElement(target) ? getElementIdentifier(target) : Object.prototype.toString.call(target);
   } catch (_oO) {
     return '<unknown>';
   }
