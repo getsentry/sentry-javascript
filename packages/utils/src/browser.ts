@@ -168,8 +168,8 @@ export function getElementIdentifier(
   options: string[] | { keyAttrs?: string[]; maxStringLength?: number } = {},
 ): string {
   if (elem instanceof HTMLElement && elem.dataset) {
-    return elem.dataset['component'] || htmlTreeAsString(elem, options)
+    return elem.dataset['component'] || htmlTreeAsString(elem, options);
   }
 
-  return htmlTreeAsString(elem, options)
- }
+  return htmlTreeAsString(elem, options);
+}
