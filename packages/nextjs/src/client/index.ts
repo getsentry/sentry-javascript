@@ -14,11 +14,11 @@ import { addOrUpdateIntegration } from '@sentry/utils';
 import { devErrorSymbolicationEventProcessor } from '../common/devErrorSymbolicationEventProcessor';
 import { getVercelEnv } from '../common/getVercelEnv';
 import { buildMetadata } from '../common/metadata';
-import { nextRouterInstrumentation } from './performance';
+import { nextRouterInstrumentation } from './routing/nextRoutingInstrumentation';
 import { applyTunnelRouteOption } from './tunnelRoute';
 
 export * from '@sentry/react';
-export { nextRouterInstrumentation } from './performance';
+export { nextRouterInstrumentation } from './routing/nextRoutingInstrumentation';
 export { captureUnderscoreErrorException } from '../common/_error';
 
 export { Integrations };

@@ -26,7 +26,7 @@
     },
     "build:transpile": {
       "inputs": ["production", "^production"],
-      "dependsOn": ["^build:transpile:uncached", "^build:transpile", "build:transpile:uncached"],
+      "dependsOn": ["^build:transpile"],
       "outputs": ["{projectRoot}/build/npm", "{projectRoot}/build/esm", "{projectRoot}/build/cjs"]
     },
     "build:types": {

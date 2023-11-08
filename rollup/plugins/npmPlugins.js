@@ -111,14 +111,10 @@ export function makeDebugBuildStatementReplacePlugin() {
  * b) can easily be modified by our users' bundlers to evaluate to false, facilitating the treeshaking of logger code.
  *
  * When `undefined` is passed,
- * end users can define e.g. `__SENTRY_EXCLUDE_CANVAS__` in their bundler to shake out canvas specific rrweb code.
+ * end users can define e.g. `__RRWEB_EXCLUDE_SHADOW_DOM__` in their bundler to shake out shadow dom specific rrweb code.
  */
-export function makeRrwebBuildPlugin({ excludeCanvas, excludeShadowDom, excludeIframe } = {}) {
+export function makeRrwebBuildPlugin({ excludeShadowDom, excludeIframe } = {}) {
   const values = {};
-
-  if (typeof excludeCanvas === 'boolean') {
-    values['__RRWEB_EXCLUDE_CANVAS__'] = excludeCanvas;
-  }
 
   if (typeof excludeShadowDom === 'boolean') {
     values['__RRWEB_EXCLUDE_SHADOW_DOM__'] = excludeShadowDom;

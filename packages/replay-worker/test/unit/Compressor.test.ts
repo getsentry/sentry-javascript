@@ -1,4 +1,4 @@
-import pako from 'pako';
+import { decompressSync, strFromU8 } from 'fflate';
 
 import { Compressor } from '../../src/Compressor';
 
@@ -21,7 +21,7 @@ describe('Compressor', () => {
 
     const compressed = compressor.finish();
 
-    const restored = pako.inflate(compressed, { to: 'string' });
+    const restored = decompress(compressed);
 
     expect(restored).toBe(JSON.stringify(events));
   });
@@ -34,8 +34,17 @@ describe('Compressor', () => {
 
     const compressed = compressor.finish();
 
-    const restored = pako.inflate(compressed, { to: 'string' });
+    const restored = decompress(compressed);
 
     expect(restored).toBe(JSON.stringify([]));
   });
 });
+
+/** Decompress a compressed data payload. */
+export function decompress(data: Uint8Array): string {
+  if (!(data instanceof Uint8Array)) {
+    throw new Error(`Data passed to decompress is not a Uint8Array: ${data}`);
+  }
+  const decompressed = decompressSync(data);
+  return strFromU8(decompressed);
+}

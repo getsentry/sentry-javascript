@@ -30,7 +30,7 @@ export class BunClient extends ServerRuntimeClient<BunClientOptions> {
 
     const clientOptions: ServerRuntimeClientOptions = {
       ...options,
-      platform: 'bun',
+      platform: 'javascript',
       runtime: { name: 'bun', version: Bun.version },
       serverName: options.serverName || global.process.env.SENTRY_NAME || os.hostname(),
     };

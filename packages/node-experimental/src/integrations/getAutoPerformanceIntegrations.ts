@@ -3,6 +3,7 @@ import type { Integration } from '@sentry/types';
 import { Express } from './express';
 import { Fastify } from './fastify';
 import { GraphQL } from './graphql';
+import { Hapi } from './hapi';
 import { Mongo } from './mongo';
 import { Mongoose } from './mongoose';
 import { Mysql } from './mysql';
@@ -42,6 +43,9 @@ const INTEGRATIONS: (() => NodePerformanceIntegration<unknown>)[] = [
   },
   () => {
     return new Nest();
+  },
+  () => {
+    return new Hapi();
   },
 ];
 

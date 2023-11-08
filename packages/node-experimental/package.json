@@ -30,6 +30,7 @@
     "@opentelemetry/instrumentation-express": "0.33.2",
     "@opentelemetry/instrumentation-fastify": "0.32.3",
     "@opentelemetry/instrumentation-graphql": "0.35.2",
+    "@opentelemetry/instrumentation-hapi": "0.33.1",
     "@opentelemetry/instrumentation-http": "0.44.0",
     "@opentelemetry/instrumentation-mongodb": "0.37.1",
     "@opentelemetry/instrumentation-mongoose": "0.33.2",

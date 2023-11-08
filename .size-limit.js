@@ -18,7 +18,6 @@ module.exports = [
       config.plugins.push(
         new webpack.DefinePlugin({
           __SENTRY_DEBUG__: false,
-          __RRWEB_EXCLUDE_CANVAS__: true,
           __RRWEB_EXCLUDE_SHADOW_DOM__: true,
           __RRWEB_EXCLUDE_IFRAME__: true,
           __SENTRY_EXCLUDE_REPLAY_WORKER__: true,
@@ -121,5 +120,12 @@ module.exports = [
     import: '{ init }',
     gzip: true,
     limit: '57 KB',
+  },
+  {
+    name: '@sentry-internal/feedback - Webpack (gzipped)',
+    path: 'packages/feedback/build/npm/esm/index.js',
+    import: '{ Feedback }',
+    gzip: true,
+    limit: '35 KB',
   },
 ];

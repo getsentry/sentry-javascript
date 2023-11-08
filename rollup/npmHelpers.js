@@ -36,7 +36,6 @@ export function makeBaseNPMConfig(options = {}) {
   const extractPolyfillsPlugin = makeExtractPolyfillsPlugin();
   const setSdkSourcePlugin = makeSetSDKSourcePlugin('npm');
   const rrwebBuildPlugin = makeRrwebBuildPlugin({
-    excludeCanvas: undefined,
     excludeShadowDom: undefined,
     excludeIframe: undefined,
   });

@@ -114,15 +114,14 @@ describe('Unit | coreHandlers | handleScope', () => {
     });
 
     it('truncates large JSON objects', () => {
+      const bb = { bb: 'b'.repeat(CONSOLE_ARG_MAX_SIZE + 10) };
+      const c = { c: 'c'.repeat(CONSOLE_ARG_MAX_SIZE + 10) };
+
       const breadcrumb = {
         category: 'console',
         message: 'test',
         data: {
-          arguments: [
-            { aa: 'yes' },
-            { bb: 'b'.repeat(CONSOLE_ARG_MAX_SIZE + 10) },
-            { c: 'c'.repeat(CONSOLE_ARG_MAX_SIZE + 10) },
-          ],
+          arguments: [{ aa: 'yes' }, bb, c],
         },
       };
       const actual = HandleScope.normalizeConsoleBreadcrumb(breadcrumb);
@@ -133,8 +132,8 @@ describe('Unit | coreHandlers | handleScope', () => {
         data: {
           arguments: [
             { aa: 'yes' },
-            { bb: `${'b'.repeat(CONSOLE_ARG_MAX_SIZE - 7)}~~` },
-            { c: `${'c'.repeat(CONSOLE_ARG_MAX_SIZE - 6)}~~` },
+            `${JSON.stringify(bb, null, 2).slice(0, CONSOLE_ARG_MAX_SIZE)}…`,
+            `${JSON.stringify(c, null, 2).slice(0, CONSOLE_ARG_MAX_SIZE)}…`,
           ],
           _meta: { warnings: ['CONSOLE_ARG_TRUNCATED'] },
         },
