@@ -10,13 +10,14 @@ interface SendFeedbackParams {
   name?: string;
   email?: string;
   url?: string;
+  source?: string;
 }
 
 /**
  * Public API to send a Feedback item to Sentry
  */
 export function sendFeedback(
-  { name, email, message, url = getLocationHref() }: SendFeedbackParams,
+  { name, email, message, source = 'api', url = getLocationHref() }: SendFeedbackParams,
   { includeReplay = true }: SendFeedbackOptions = {},
 ): ReturnType<typeof sendFeedbackRequest> {
   const client = getCurrentHub().getClient<BrowserClient>();
@@ -37,6 +38,7 @@ export function sendFeedback(
       message,
       url,
       replay_id: replayId,
+      source,
     },
   });
 }

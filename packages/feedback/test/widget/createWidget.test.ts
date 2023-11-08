@@ -155,6 +155,7 @@ describe('createWidget', () => {
         message: 'My feedback',
         url: 'http://localhost/',
         replay_id: undefined,
+        source: 'widget',
       },
     });
 
@@ -194,6 +195,7 @@ describe('createWidget', () => {
         message: 'My feedback',
         url: 'http://localhost/',
         replay_id: undefined,
+        source: 'widget',
       },
     });
 
