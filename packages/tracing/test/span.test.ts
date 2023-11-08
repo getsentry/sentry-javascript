@@ -327,6 +327,7 @@ describe('Span', () => {
       expect(context).toStrictEqual({
         span_id: 'd',
         trace_id: 'c',
+        origin: 'manual',
       });
     });
   });
