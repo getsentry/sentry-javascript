@@ -17,8 +17,6 @@ export function addFeedbackBreadcrumb(replay: ReplayContainer, event: FeedbackEv
 
     void replay.throttledAddEvent({
       type: EventType.Custom,
-      // TODO: We were converting from ms to seconds for breadcrumbs, spans,
-      // but maybe we should just keep them as milliseconds
       timestamp: event.timestamp * 1000,
       data: {
         timestamp: event.timestamp,
