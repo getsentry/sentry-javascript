@@ -36,6 +36,7 @@ test('Sends an API route transaction', async ({ baseURL }) => {
             'http.status_code': 200,
           },
           trace_id: expect.any(String),
+          origin: 'auto.http.otel.http',
         },
       }),
 

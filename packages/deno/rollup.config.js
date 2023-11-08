@@ -7,7 +7,7 @@ export default defineConfig({
   input: ['src/index.ts'],
   treeshake: 'smallest',
   output: {
-    dir: 'build',
+    file: 'build/index.mjs',
     sourcemap: true,
     preserveModules: false,
     strict: false,
