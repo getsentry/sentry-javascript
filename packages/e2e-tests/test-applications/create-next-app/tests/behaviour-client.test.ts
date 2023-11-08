@@ -4,7 +4,7 @@ import axios, { AxiosError } from 'axios';
 const authToken = process.env.E2E_TEST_AUTH_TOKEN;
 const sentryTestOrgSlug = process.env.E2E_TEST_SENTRY_ORG_SLUG;
 const sentryTestProject = process.env.E2E_TEST_SENTRY_TEST_PROJECT;
-const EVENT_POLLING_TIMEOUT = 30_000;
+const EVENT_POLLING_TIMEOUT = 45_000;
 
 test('Sends a client-side exception to Sentry', async ({ page }) => {
   await page.goto('/');

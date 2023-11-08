@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 import axios, { AxiosError } from 'axios';
 import { ReplayRecordingData } from './fixtures/ReplayRecordingData';
 
-const EVENT_POLLING_TIMEOUT = 30_000;
+const EVENT_POLLING_TIMEOUT = 45_000;
 
 const authToken = process.env.E2E_TEST_AUTH_TOKEN;
 const sentryTestOrgSlug = process.env.E2E_TEST_SENTRY_ORG_SLUG;
