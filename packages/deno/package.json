@@ -6,8 +6,6 @@
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/deno",
   "author": "Sentry",
   "license": "MIT",
-  "type": "module",
-  "main": "build/index.js",
   "module": "build/index.js",
   "types": "build/index.d.ts",
   "publishConfig": {
