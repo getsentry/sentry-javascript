@@ -1,6 +1,8 @@
-import { captureException, configureScope, startSpan } from '@sentry/node';
+import { captureException, configureScope, getCurrentHub, startSpan } from '@sentry/node';
 import { addExceptionMechanism, objectify, stripUrlQueryAndFragment, tracingContextFromHeaders } from '@sentry/utils';
 import type { APIContext, MiddlewareResponseHandler } from 'astro';
+
+import { getTracingMetaTags } from './meta';
 
 type MiddlewareOptions = {
   /**
@@ -93,11 +95,30 @@ export const handleRequest: (options?: MiddlewareOptions) => MiddlewareResponseH
           },
         },
         async span => {
-          const res = await next();
-          if (span && res.status) {
-            span.setHttpStatus(res.status);
+          const originalResponse = await next();
+          if (span && originalResponse.status) {
+            span.setHttpStatus(originalResponse.status);
           }
-          return res;
+
+          const hub = getCurrentHub();
+          const client = hub.getClient();
+          const contentType = originalResponse.headers.get('content-type');
+
+          const isPageloadRequest = contentType && contentType.startsWith('text/html');
+          if (!isPageloadRequest || !client) {
+            return originalResponse;
+          }
+
+          const html = await originalResponse.text();
+          if (typeof html !== 'string' || !html.includes('<head>')) {
+            return originalResponse;
+          }
+
+          const { sentryTrace, baggage } = getTracingMetaTags(span, hub);
+          const content = `<head>\n${sentryTrace}\n${baggage}\n`;
+          const modifiedHtml = html.replace('<head>', content);
+
+          return new Response(modifiedHtml, originalResponse);
         },
       );
       return res;

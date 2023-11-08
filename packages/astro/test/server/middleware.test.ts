@@ -4,8 +4,16 @@ import { vi } from 'vitest';
 
 import { handleRequest, interpolateRouteFromUrlAndParams } from '../../src/server/middleware';
 
+vi.mock('../../src/server/meta', () => ({
+  getTracingMetaTags: () => ({
+    sentryTrace: '<meta name="sentry-trace" content="123">',
+    baggage: '<meta name="baggage" content="abc">',
+  }),
+}));
+
 describe('sentryMiddleware', () => {
   const startSpanSpy = vi.spyOn(SentryNode, 'startSpan');
+  const nextResult = Promise.resolve(new Response(null, { status: 200, headers: new Headers() }));
 
   afterEach(() => {
     vi.clearAllMocks();
@@ -24,7 +32,6 @@ describe('sentryMiddleware', () => {
         id: '123',
       },
     };
-    const nextResult = Promise.resolve({ status: 200 });
     const next = vi.fn(() => nextResult);
 
     // @ts-expect-error, a partial ctx object is fine here
@@ -109,7 +116,7 @@ describe('sentryMiddleware', () => {
       params: {},
       url: new URL('https://myDomain.io/users/'),
     };
-    const next = vi.fn();
+    const next = vi.fn(() => nextResult);
 
     // @ts-expect-error, a partial ctx object is fine here
     await middleware(ctx, next);
@@ -159,7 +166,7 @@ describe('sentryMiddleware', () => {
       params: {},
       url: new URL('https://myDomain.io/users/'),
     };
-    const next = vi.fn();
+    const next = vi.fn(() => nextResult);
 
     // @ts-expect-error, a partial ctx object is fine here
     await middleware(ctx, next);
@@ -177,6 +184,90 @@ describe('sentryMiddleware', () => {
       }),
       expect.any(Function), // the `next` function
     );
+  });
+
+  it('injects tracing <meta> tags into the HTML of a pageload response', async () => {
+    vi.spyOn(SentryNode, 'getCurrentHub').mockImplementation(() => ({
+      // @ts-expect-error this is fine
+      getClient: () => ({}),
+    }));
+
+    const middleware = handleRequest();
+
+    const ctx = {
+      request: {
+        method: 'GET',
+        url: '/users',
+        headers: new Headers(),
+      },
+      params: {},
+      url: new URL('https://myDomain.io/users/'),
+    };
+    const next = vi.fn(() =>
+      Promise.resolve(
+        new Response('<head><meta name="something" content=""/></head>', {
+          headers: new Headers({ 'content-type': 'text/html' }),
+        }),
+      ),
+    );
+
+    // @ts-expect-error, a partial ctx object is fine here
+    const resultFromNext = await middleware(ctx, next);
+
+    expect(resultFromNext?.headers.get('content-type')).toEqual('text/html');
+
+    const html = await resultFromNext?.text();
+
+    expect(html).toContain('<meta name="sentry-trace" content="');
+    expect(html).toContain('<meta name="baggage" content="');
+  });
+
+  it("no-ops if the response isn't HTML", async () => {
+    const middleware = handleRequest();
+
+    const ctx = {
+      request: {
+        method: 'GET',
+        url: '/users',
+        headers: new Headers(),
+      },
+      params: {},
+      url: new URL('https://myDomain.io/users/'),
+    };
+
+    const originalResponse = new Response('{"foo": "bar"}', {
+      headers: new Headers({ 'content-type': 'application/json' }),
+    });
+    const next = vi.fn(() => Promise.resolve(originalResponse));
+
+    // @ts-expect-error, a partial ctx object is fine here
+    const resultFromNext = await middleware(ctx, next);
+
+    expect(resultFromNext).toBe(originalResponse);
+  });
+
+  it("no-ops if there's no <head> tag in the response", async () => {
+    const middleware = handleRequest();
+
+    const ctx = {
+      request: {
+        method: 'GET',
+        url: '/users',
+        headers: new Headers(),
+      },
+      params: {},
+      url: new URL('https://myDomain.io/users/'),
+    };
+
+    const originalResponse = new Response('<p>no head</p>', {
+      headers: new Headers({ 'content-type': 'text/html' }),
+    });
+    const next = vi.fn(() => Promise.resolve(originalResponse));
+
+    // @ts-expect-error, a partial ctx object is fine here
+    const resultFromNext = await middleware(ctx, next);
+
+    expect(resultFromNext).toBe(originalResponse);
   });
 });
 
