@@ -4,6 +4,12 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.79.0
+
+- feat(tracing): Add span `origin` to trace context (#9472)
+- fix(deno): Emit .mjs files (#9485)
+- fix(nextjs): Flush servercomponent events for edge (#9487)
+
 ## 7.78.0
 
 ### Important Changes
