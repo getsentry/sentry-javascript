@@ -14,13 +14,6 @@ const globalWithInjectedValues = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
 
 /** Inits the Sentry NextJS SDK on the Edge Runtime. */
 export function init(options: VercelEdgeOptions = {}): void {
-  globalWithInjectedValues.fetch = new Proxy(globalWithInjectedValues.fetch, {
-    apply(target, thisArg, argArray) {
-      console.log({ target, thisArg, argArray });
-      return target.apply(thisArg, argArray);
-    },
-  });
-
   const opts = {
     _metadata: {} as SdkMetadata,
     ...options,
