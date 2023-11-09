@@ -55,7 +55,7 @@ describe('setupOnce', function () {
       expect(mockTrace).toHaveBeenLastCalledWith(
         {
           name: 'user create',
-          op: 'db.sql.prisma',
+          op: 'db.prisma',
           origin: 'auto.db.prisma',
           data: { 'db.system': 'postgresql', 'db.prisma.version': '3.1.2', 'db.operation': 'create' },
         },
