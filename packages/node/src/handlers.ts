@@ -338,7 +338,7 @@ interface TrpcMiddlewareArguments<T> {
  * e.g. Express Request Handlers or Next.js SDK.
  */
 export function trpcMiddleware(options: SentryTrpcMiddlewareOptions = {}) {
-  return function <T>({ path, type, next, rawInput }: TrpcMiddlewareArguments<T>): T {
+  return async function <T>({ path, type, next, rawInput }: TrpcMiddlewareArguments<T>): Promise<T> {
     const hub = getCurrentHub();
     const clientOptions = hub.getClient()?.getOptions();
     const sentryTransaction = hub.getScope().getTransaction();
@@ -358,7 +358,36 @@ export function trpcMiddleware(options: SentryTrpcMiddlewareOptions = {}) {
       sentryTransaction.setContext('trpc', trpcContext);
     }
 
-    return next();
+    function captureError(e: unknown): void {
+      captureException(e, scope => {
+        scope.addEventProcessor(event => {
+          addExceptionMechanism(event, {
+            handled: false,
+          });
+          return event;
+        });
+
+        return scope;
+      });
+    }
+
+    try {
+      return await next();
+    } catch (e: unknown) {
+      if (typeof e === 'object' && e) {
+        if ('code' in e) {
+          // Is likely TRPCError - we only want to capture internal server errors
+          if (e.code === 'INTERNAL_SERVER_ERROR') {
+            captureError(e);
+          }
+        } else {
+          // Is likely random error that bubbles up
+          captureError(e);
+        }
+      }
+
+      throw e;
+    }
   };
 }
 
