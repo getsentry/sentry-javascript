@@ -5,9 +5,12 @@ import type { APIContext, MiddlewareResponseHandler } from 'astro';
 type MiddlewareOptions = {
   /**
    * If true, the client IP will be attached to the event by calling `setUser`.
-   * Only set this to `true` if you're fine with collecting potentially personally identifiable information (PII).
    *
-   * This will only work if your app is configured for SSR
+   * Important: Only enable this option if your Astro app is configured for (hybrid) SSR
+   * via the `output: 'server' | 'hybrid'` option in your `astro.config.mjs` file.
+   * Otherwise, Astro will throw an error when starting the server.
+   *
+   * Only set this to `true` if you're fine with collecting potentially personally identifiable information (PII).
    *
    * @default false (recommended)
    */
@@ -15,6 +18,7 @@ type MiddlewareOptions = {
 
   /**
    * If true, the headers from the request will be attached to the event by calling `setExtra`.
+   *
    * Only set this to `true` if you're fine with collecting potentially personally identifiable information (PII).
    *
    * @default false (recommended)
