@@ -17,12 +17,13 @@ export {
   BROWSER_TRACING_INTEGRATION_ID,
   instrumentOutgoingRequests,
   defaultRequestInstrumentationOptions,
-  addTracingHeadersToFetchRequest,
   addPerformanceInstrumentationHandler,
   addClsInstrumentationHandler,
   addFidInstrumentationHandler,
   addLcpInstrumentationHandler,
 } from './browser';
+
+export { addTracingHeadersToFetchRequest, instrumentFetchRequest } from './common/fetch';
 
 export type { RequestInstrumentationOptions } from './browser';
 
