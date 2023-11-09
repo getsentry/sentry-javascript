@@ -2,6 +2,7 @@ import type { FeedbackComponent, FeedbackInternalOptions } from '../types';
 import type { FormComponentProps } from './Form';
 import { Form } from './Form';
 import { Logo } from './Logo';
+import { createScreenshotWidget } from './screenshot/createScreenshotWidget';
 import { createElement } from './util/createElement';
 
 export interface DialogProps
@@ -94,11 +95,14 @@ export function Dialog({
     return (el && el.open === true) || false;
   }
 
+  const screenshot = createScreenshotWidget();
+
   const {
     el: formEl,
     showError,
     hideError,
   } = Form({
+    screenshotForm: screenshot.ScreenshotForm,
     showEmail,
     showName,
     isAnonymous,
@@ -145,6 +149,7 @@ export function Dialog({
       ),
       formEl,
     ),
+    screenshot.ScreenshotDialog.el,
   );
 
   return {

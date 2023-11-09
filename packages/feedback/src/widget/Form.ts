@@ -1,4 +1,5 @@
 import type { FeedbackComponent, FeedbackFormData, FeedbackInternalOptions, FeedbackTextConfiguration } from '../types';
+import { ScreenshotFormComponent } from './screenshot/form';
 import { SubmitButton } from './SubmitButton';
 import { createElement } from './util/createElement';
 
@@ -18,6 +19,7 @@ export interface FormComponentProps
    * A default email value to render the input with. Empty strings are ok.
    */
   defaultEmail: string;
+  screenshotForm?: ScreenshotFormComponent;
   onCancel?: (e: Event) => void;
   onSubmit?: (feedback: FeedbackFormData) => void;
 }
@@ -61,6 +63,9 @@ export function Form({
 
   defaultName,
   defaultEmail,
+
+  screenshotForm,
+
   onCancel,
   onSubmit,
 }: FormComponentProps): FormComponent {
@@ -200,6 +205,8 @@ export function Form({
           messageEl,
         ],
       ),
+
+      screenshotForm && screenshotForm.el,
 
       createElement(
         'div',
