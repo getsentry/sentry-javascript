@@ -1,6 +1,6 @@
 import { JSDOM } from 'jsdom';
 
-import { getDomElement, getElementIdentifier, htmlTreeAsString } from '../src/browser';
+import { getDomElement, htmlTreeAsString } from '../src/browser';
 
 beforeAll(() => {
   const dom = new JSDOM();
