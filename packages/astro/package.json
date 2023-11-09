@@ -74,5 +74,8 @@
   },
   "volta": {
     "extends": "../../package.json"
+  },
+  "astro": {
+    "external": true
   }
 }
