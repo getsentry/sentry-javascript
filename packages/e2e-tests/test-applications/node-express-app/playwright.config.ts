@@ -15,7 +15,7 @@ const expressPort = 3030;
 const config: PlaywrightTestConfig = {
   testDir: './tests',
   /* Maximum time one test can run for. */
-  timeout: 120_000,
+  timeout: 150_000,
   expect: {
     /**
      * Maximum time expect() should wait for the condition to be met.

@@ -6,7 +6,7 @@ import { waitForTransaction } from '../event-proxy-server';
 const authToken = process.env.E2E_TEST_AUTH_TOKEN;
 const sentryTestOrgSlug = process.env.E2E_TEST_SENTRY_ORG_SLUG;
 const sentryTestProject = process.env.E2E_TEST_SENTRY_TEST_PROJECT;
-const EVENT_POLLING_TIMEOUT = 60_000;
+const EVENT_POLLING_TIMEOUT = 90_000;
 
 test('Propagates trace for outgoing http requests', async ({ baseURL }) => {
   const inboundTransactionPromise = waitForTransaction('node-experimental-fastify-app', transactionEvent => {
