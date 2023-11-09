@@ -55,7 +55,6 @@ export { hasTracingEnabled } from './utils/hasTracingEnabled';
 export { isSentryRequestUrl } from './utils/isSentryRequestUrl';
 export { DEFAULT_ENVIRONMENT } from './constants';
 export { ModuleMetadata } from './integrations/metadata';
-export { instrumentFetchRequest } from './fetch';
 import * as Integrations from './integrations';
 
 export { Integrations };

@@ -1,3 +1,4 @@
+import { getCurrentHub, getDynamicSamplingContextFromClient } from '@sentry/core';
 import type { Client, HandlerDataFetch, Scope, Span, SpanOrigin } from '@sentry/types';
 import {
   BAGGAGE_HEADER_NAME,
@@ -5,9 +6,6 @@ import {
   generateSentryTraceHeader,
   isInstanceOf,
 } from '@sentry/utils';
-
-import { getCurrentHub } from './hub';
-import { getDynamicSamplingContextFromClient } from './tracing';
 
 type PolymorphicRequestHeaders =
   | Record<string, string | undefined>

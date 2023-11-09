@@ -1,10 +1,5 @@
 /* eslint-disable max-lines */
-import {
-  getCurrentHub,
-  getDynamicSamplingContextFromClient,
-  hasTracingEnabled,
-  instrumentFetchRequest,
-} from '@sentry/core';
+import { getCurrentHub, getDynamicSamplingContextFromClient, hasTracingEnabled } from '@sentry/core';
 import type { Client, HandlerDataFetch, Scope, Span } from '@sentry/types';
 import {
   addInstrumentationHandler,
@@ -17,6 +12,7 @@ import {
   stringMatchesSomePattern,
 } from '@sentry/utils';
 
+import { instrumentFetchRequest } from '../common/fetch';
 import { addPerformanceInstrumentationHandler } from './instrument';
 
 export const DEFAULT_TRACE_PROPAGATION_TARGETS = ['localhost', /^\/(?!\/)/];

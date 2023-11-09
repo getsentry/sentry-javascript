@@ -1,19 +1,20 @@
 /* eslint-disable deprecation/deprecation */
 import * as sentryCore from '@sentry/core';
+import type { HandlerDataFetch } from '@sentry/types';
 import * as utils from '@sentry/utils';
 import { SENTRY_XHR_DATA_KEY } from '@sentry/utils';
 
 import type { Transaction } from '../../../tracing/src';
 import { addExtensionMethods, Span, spanStatusfromHttpCode } from '../../../tracing/src';
 import { getDefaultBrowserClientOptions } from '../../../tracing/test/testutils';
-import type { FetchData, XHRData } from '../../src/browser/request';
+import type { XHRData } from '../../src/browser/request';
 import {
   extractNetworkProtocol,
-  fetchCallback,
   instrumentOutgoingRequests,
   shouldAttachHeaders,
   xhrCallback,
 } from '../../src/browser/request';
+import { instrumentFetchRequest } from '../../src/common/fetch';
 import { TestClient } from '../utils/TestClient';
 
 beforeAll(() => {
@@ -76,7 +77,7 @@ describe('callbacks', () => {
   });
 
   describe('fetchCallback()', () => {
-    let fetchHandlerData: FetchData;
+    let fetchHandlerData: HandlerDataFetch;
 
     const fetchSpan = {
       data: {
@@ -109,7 +110,7 @@ describe('callbacks', () => {
     ])(
       'span creation/header attachment interaction - shouldCreateSpan: %s, shouldAttachHeaders: %s',
       (shouldCreateSpanReturnValue, shouldAttachHeadersReturnValue, expectedSpan, expectedHeaderKeys) => {
-        fetchCallback(
+        instrumentFetchRequest(
           fetchHandlerData,
           () => shouldCreateSpanReturnValue,
           () => shouldAttachHeadersReturnValue,
@@ -126,10 +127,9 @@ describe('callbacks', () => {
     );
 
     it('adds neither fetch request spans nor fetch request headers if there is no fetch data in handler data', () => {
-      delete fetchHandlerData.fetchData;
       const spans = {};
 
-      fetchCallback(fetchHandlerData, alwaysCreateSpan, alwaysAttachHeaders, spans);
+      instrumentFetchRequest(fetchHandlerData, alwaysCreateSpan, alwaysAttachHeaders, spans);
 
       expect(spans).toEqual({});
 
@@ -141,7 +141,7 @@ describe('callbacks', () => {
       hasTracingEnabled.mockReturnValueOnce(false);
       const spans = {};
 
-      fetchCallback(fetchHandlerData, alwaysCreateSpan, alwaysAttachHeaders, spans);
+      instrumentFetchRequest(fetchHandlerData, alwaysCreateSpan, alwaysAttachHeaders, spans);
 
       expect(spans).toEqual({});
 
@@ -153,7 +153,7 @@ describe('callbacks', () => {
       const spans = {};
 
       // triggered by request being sent
-      fetchCallback(fetchHandlerData, alwaysCreateSpan, alwaysAttachHeaders, spans);
+      instrumentFetchRequest(fetchHandlerData, alwaysCreateSpan, alwaysAttachHeaders, spans);
 
       const newSpan = transaction.spanRecorder?.spans[1] as Span;
 
@@ -174,7 +174,7 @@ describe('callbacks', () => {
       };
 
       // triggered by response coming back
-      fetchCallback(postRequestFetchHandlerData, alwaysCreateSpan, alwaysAttachHeaders, spans);
+      instrumentFetchRequest(postRequestFetchHandlerData, alwaysCreateSpan, alwaysAttachHeaders, spans);
 
       expect(newSpan.endTimestamp).toBeDefined();
     });
@@ -183,7 +183,7 @@ describe('callbacks', () => {
       const spans: Record<string, Span> = {};
 
       // triggered by request being sent
-      fetchCallback(fetchHandlerData, alwaysCreateSpan, alwaysAttachHeaders, spans);
+      instrumentFetchRequest(fetchHandlerData, alwaysCreateSpan, alwaysAttachHeaders, spans);
 
       const newSpan = transaction.spanRecorder?.spans[1] as Span;
 
@@ -196,7 +196,7 @@ describe('callbacks', () => {
       };
 
       // triggered by response coming back
-      fetchCallback(postRequestFetchHandlerData, alwaysCreateSpan, alwaysAttachHeaders, spans);
+      instrumentFetchRequest(postRequestFetchHandlerData, alwaysCreateSpan, alwaysAttachHeaders, spans);
 
       expect(newSpan.status).toBe(spanStatusfromHttpCode(404));
     });
@@ -211,7 +211,7 @@ describe('callbacks', () => {
       };
 
       // in that case, the response coming back will be ignored
-      fetchCallback(postRequestFetchHandlerData, alwaysCreateSpan, alwaysAttachHeaders, {});
+      instrumentFetchRequest(postRequestFetchHandlerData, alwaysCreateSpan, alwaysAttachHeaders, {});
 
       const newSpan = transaction.spanRecorder?.spans[1];
 
@@ -221,7 +221,7 @@ describe('callbacks', () => {
     it('uses active span to generate sentry-trace header', () => {
       const spans: Record<string, Span> = {};
       // triggered by request being sent
-      fetchCallback(fetchHandlerData, alwaysCreateSpan, alwaysAttachHeaders, spans);
+      instrumentFetchRequest(fetchHandlerData, alwaysCreateSpan, alwaysAttachHeaders, spans);
 
       const activeSpan = transaction.spanRecorder?.spans[1] as Span;
 
@@ -232,7 +232,7 @@ describe('callbacks', () => {
       };
 
       // triggered by response coming back
-      fetchCallback(postRequestFetchHandlerData, alwaysCreateSpan, alwaysAttachHeaders, spans);
+      instrumentFetchRequest(postRequestFetchHandlerData, alwaysCreateSpan, alwaysAttachHeaders, spans);
 
       const headers = (fetchHandlerData.args[1].headers as Record<string, string>) || {};
       expect(headers['sentry-trace']).toEqual(`${activeSpan.traceId}-${activeSpan.spanId}-1`);
@@ -242,7 +242,7 @@ describe('callbacks', () => {
       const spans: Record<string, Span> = {};
 
       // triggered by request being sent
-      fetchCallback(fetchHandlerData, alwaysCreateSpan, alwaysAttachHeaders, spans);
+      instrumentFetchRequest(fetchHandlerData, alwaysCreateSpan, alwaysAttachHeaders, spans);
 
       const newSpan = transaction.spanRecorder?.spans[1] as Span;
 
@@ -252,10 +252,10 @@ describe('callbacks', () => {
         ...fetchHandlerData,
         endTimestamp,
         response: { status: 404, headers: { get: () => 123 } },
-      };
+      } as unknown as HandlerDataFetch;
 
       // triggered by response coming back
-      fetchCallback(postRequestFetchHandlerData, alwaysCreateSpan, alwaysAttachHeaders, spans);
+      instrumentFetchRequest(postRequestFetchHandlerData, alwaysCreateSpan, alwaysAttachHeaders, spans);
 
       const finishedSpan = transaction.spanRecorder?.spans[1] as Span;
 
