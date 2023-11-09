@@ -69,8 +69,11 @@ export { defaultIntegrations, init } from './sdk';
 
 import { Integrations as CoreIntegrations } from '@sentry/core';
 
+import { EdgeFetch } from './integrations/edge-fetch';
+
 const INTEGRATIONS = {
   ...CoreIntegrations,
+  ...EdgeFetch,
 };
 
 export { INTEGRATIONS as Integrations };
