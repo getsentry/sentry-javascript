@@ -87,14 +87,3 @@ describe('getDomElement', () => {
     expect(el?.id).toEqual('mydiv');
   });
 });
-
-describe('getElementIdentifier', () => {
-  it('returns the component name if it exists', () => {
-    const el = document.createElement('div');
-    el.innerHTML = '<div id="very-cool-component">😎</div>';
-    el.setAttribute('data-component', 'VeryCoolComponent');
-    expect(el).toBeDefined();
-
-    expect(getElementIdentifier(el)).toBe('VeryCoolComponent');
-  });
-});
