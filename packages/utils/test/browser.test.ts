@@ -1,11 +1,14 @@
 import { JSDOM } from 'jsdom';
 
-import { getDomElement, htmlTreeAsString } from '../src/browser';
+import { getDomElement, getElementIdentifier, htmlTreeAsString } from '../src/browser';
 
 beforeAll(() => {
   const dom = new JSDOM();
+
   // @ts-expect-error need to override global document
   global.document = dom.window.document;
+  // @ts-expect-error
+  global.HTMLElement = new JSDOM().window.HTMLElement;
 });
 
 describe('htmlTreeAsString', () => {
@@ -82,5 +85,16 @@ describe('getDomElement', () => {
     expect(el).toBeDefined();
     expect(el?.tagName).toEqual('DIV');
     expect(el?.id).toEqual('mydiv');
+  });
+});
+
+describe('getElementIdentifier', () => {
+  it('returns the component name if it exists', () => {
+    const el = document.createElement('div');
+    el.innerHTML = '<div id="very-cool-component">😎</div>';
+    el.setAttribute('data-component', 'VeryCoolComponent');
+    expect(el).toBeDefined();
+
+    expect(getElementIdentifier(el)).toBe('VeryCoolComponent');
   });
 });
