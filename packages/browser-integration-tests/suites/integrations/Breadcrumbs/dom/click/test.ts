@@ -58,34 +58,37 @@ sentryTest('captures Breadcrumb for clicks & debounces them for a second', async
   ]);
 });
 
-sentryTest('prioritizes the annotated component nam', async ({ getLocalTestUrl, page }) => {
-  const url = await getLocalTestUrl({ testDir: __dirname });
+sentryTest(
+  'prioritizes the annotated component name within the breadcrumb message',
+  async ({ getLocalTestUrl, page }) => {
+    const url = await getLocalTestUrl({ testDir: __dirname });
 
-  await page.route('**/foo', route => {
-    return route.fulfill({
-      status: 200,
-      body: JSON.stringify({
-        userNames: ['John', 'Jane'],
-      }),
-      headers: {
-        'Content-Type': 'application/json',
-      },
+    await page.route('**/foo', route => {
+      return route.fulfill({
+        status: 200,
+        body: JSON.stringify({
+          userNames: ['John', 'Jane'],
+        }),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
     });
-  });
 
-  const promise = getFirstSentryEnvelopeRequest<Event>(page);
+    const promise = getFirstSentryEnvelopeRequest<Event>(page);
 
-  await page.goto(url);
-  await page.click('#annotated-button');
-  await page.evaluate('Sentry.captureException("test exception")');
+    await page.goto(url);
+    await page.click('#annotated-button');
+    await page.evaluate('Sentry.captureException("test exception")');
 
-  const eventData = await promise;
+    const eventData = await promise;
 
-  expect(eventData.breadcrumbs).toEqual([
-    {
-      timestamp: expect.any(Number),
-      category: 'ui.click',
-      message: 'AnnotatedButton',
-    },
-  ]);
-});
+    expect(eventData.breadcrumbs).toEqual([
+      {
+        timestamp: expect.any(Number),
+        category: 'ui.click',
+        message: 'AnnotatedButton',
+      },
+    ]);
+  },
+);
