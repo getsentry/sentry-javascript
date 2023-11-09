@@ -62,6 +62,8 @@ export { remixRouterInstrumentation, withSentry } from './client/performance';
 export { captureRemixErrorBoundaryError } from './client/errors';
 export { wrapExpressCreateRequestHandler } from './utils/serverAdapters/express';
 
+export type { SentryMetaArgs } from './utils/types';
+
 function sdkAlreadyInitialized(): boolean {
   const hub = getCurrentHub();
   return !!hub.getClient();
