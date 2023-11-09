@@ -1,6 +1,9 @@
-import { captureException, configureScope, startSpan } from '@sentry/node';
+import { captureException, configureScope, getCurrentHub, startSpan } from '@sentry/node';
+import type { Hub, Span } from '@sentry/types';
 import { addExceptionMechanism, objectify, stripUrlQueryAndFragment, tracingContextFromHeaders } from '@sentry/utils';
 import type { APIContext, MiddlewareResponseHandler } from 'astro';
+
+import { getTracingMetaTags } from './meta';
 
 type MiddlewareOptions = {
   /**
@@ -97,11 +100,42 @@ export const handleRequest: (options?: MiddlewareOptions) => MiddlewareResponseH
           },
         },
         async span => {
-          const res = await next();
-          if (span && res.status) {
-            span.setHttpStatus(res.status);
+          const originalResponse = await next();
+
+          if (span && originalResponse.status) {
+            span.setHttpStatus(originalResponse.status);
           }
-          return res;
+
+          const hub = getCurrentHub();
+          const client = hub.getClient();
+          const contentType = originalResponse.headers.get('content-type');
+
+          const isPageloadRequest = contentType && contentType.startsWith('text/html');
+          if (!isPageloadRequest || !client) {
+            return originalResponse;
+          }
+
+          // Type case necessary b/c the body's ReadableStream type doesn't include
+          // the async iterator that is actually available in Node
+          // We later on use the async iterator to read the body chunks
+          // see https://github.com/microsoft/TypeScript/issues/39051
+          const originalBody = originalResponse.body as NodeJS.ReadableStream | null;
+          if (!originalBody) {
+            return originalResponse;
+          }
+
+          const newResponseStream = new ReadableStream({
+            start: async controller => {
+              for await (const chunk of originalBody) {
+                const html = typeof chunk === 'string' ? chunk : new TextDecoder().decode(chunk);
+                const modifiedHtml = addMetaTagToHead(html, hub, span);
+                controller.enqueue(new TextEncoder().encode(modifiedHtml));
+              }
+              controller.close();
+            },
+          });
+
+          return new Response(newResponseStream, originalResponse);
         },
       );
       return res;
@@ -112,6 +146,20 @@ export const handleRequest: (options?: MiddlewareOptions) => MiddlewareResponseH
     // TODO: flush if serveless (first extract function)
   };
 };
+
+/**
+ * This function optimistically assumes that the HTML coming in chunks will not be split
+ * within the <head> tag. If this still happens, we simply won't replace anything.
+ */
+function addMetaTagToHead(htmlChunk: string, hub: Hub, span?: Span): string {
+  if (typeof htmlChunk !== 'string') {
+    return htmlChunk;
+  }
+
+  const { sentryTrace, baggage } = getTracingMetaTags(span, hub);
+  const content = `<head>\n${sentryTrace}\n${baggage}\n`;
+  return htmlChunk.replace('<head>', content);
+}
 
 /**
  * Interpolates the route from the URL and the passed params.
