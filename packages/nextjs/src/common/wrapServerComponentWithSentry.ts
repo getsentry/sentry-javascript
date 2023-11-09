@@ -1,10 +1,4 @@
-import {
-  addTracingExtensions,
-  captureException,
-  getCurrentHub,
-  runWithAsyncContext,
-  startTransaction,
-} from '@sentry/core';
+import { captureException, getCurrentHub, runWithAsyncContext, startTransaction } from '@sentry/core';
 import { addExceptionMechanism, tracingContextFromHeaders } from '@sentry/utils';
 
 import { isNotFoundNavigationError, isRedirectNavigationError } from '../common/nextNavigationErrorUtils';
@@ -18,8 +12,6 @@ export function wrapServerComponentWithSentry<F extends (...args: any[]) => any>
   appDirComponent: F,
   context: ServerComponentContext,
 ): F {
-  addTracingExtensions();
-
   const { componentRoute, componentType } = context;
 
   // Even though users may define server components as async functions, for the client bundles

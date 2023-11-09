@@ -1,4 +1,4 @@
-import { addTracingExtensions, captureException, flush, getCurrentHub, runWithAsyncContext, trace } from '@sentry/core';
+import { captureException, flush, getCurrentHub, runWithAsyncContext, trace } from '@sentry/core';
 import { addExceptionMechanism, tracingContextFromHeaders } from '@sentry/utils';
 
 import { isRedirectNavigationError } from './nextNavigationErrorUtils';
@@ -13,8 +13,6 @@ export function wrapRouteHandlerWithSentry<F extends (...args: any[]) => any>(
   routeHandler: F,
   context: RouteHandlerContext,
 ): (...args: Parameters<F>) => ReturnType<F> extends Promise<unknown> ? ReturnType<F> : Promise<ReturnType<F>> {
-  addTracingExtensions();
-
   const { method, parameterizedRoute, baggageHeader, sentryTraceHeader } = context;
 
   return new Proxy(routeHandler, {
