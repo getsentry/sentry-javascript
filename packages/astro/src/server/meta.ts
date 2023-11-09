@@ -1,6 +1,5 @@
-import type { Hub } from '@sentry/core';
 import { getDynamicSamplingContextFromClient } from '@sentry/core';
-import type { Span } from '@sentry/types';
+import type { Hub, Span } from '@sentry/types';
 import {
   dynamicSamplingContextToSentryBaggageHeader,
   generateSentryTraceHeader,
