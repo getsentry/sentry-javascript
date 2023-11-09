@@ -4,6 +4,14 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.80.0
+
+- feat(astro): Add distributed tracing via `<meta>` tags (#9483)
+- feat(node): Capture internal server errors in trpc middleware (#9482)
+- feat(remix): Export a type to use for `MetaFunction` parameters (#9493)
+- fix(astro): Mark SDK package as Astro-external (#9509)
+- ref(nextjs): Don't initialize Server SDK during build (#9503)
+
 ## 7.79.0
 
 - feat(tracing): Add span `origin` to trace context (#9472)
