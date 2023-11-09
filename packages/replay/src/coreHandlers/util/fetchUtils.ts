@@ -26,7 +26,7 @@ import {
  */
 export async function captureFetchBreadcrumbToReplay(
   breadcrumb: Breadcrumb & { data: FetchBreadcrumbData },
-  hint: FetchHint,
+  hint: Partial<FetchHint>,
   options: ReplayNetworkOptions & {
     textEncoder: TextEncoderInternal;
     replay: ReplayContainer;
@@ -50,12 +50,12 @@ export async function captureFetchBreadcrumbToReplay(
  */
 export function enrichFetchBreadcrumb(
   breadcrumb: Breadcrumb & { data: FetchBreadcrumbData },
-  hint: FetchHint,
+  hint: Partial<FetchHint>,
   options: { textEncoder: TextEncoderInternal },
 ): void {
   const { input, response } = hint;
 
-  const body = _getFetchRequestArgBody(input);
+  const body = input ? _getFetchRequestArgBody(input) : undefined;
   const reqSize = getBodySize(body, options.textEncoder);
 
   const resSize = response ? parseContentLengthHeader(response.headers.get('content-length')) : undefined;
@@ -70,12 +70,13 @@ export function enrichFetchBreadcrumb(
 
 async function _prepareFetchData(
   breadcrumb: Breadcrumb & { data: FetchBreadcrumbData },
-  hint: FetchHint,
+  hint: Partial<FetchHint>,
   options: ReplayNetworkOptions & {
     textEncoder: TextEncoderInternal;
   },
 ): Promise<ReplayNetworkRequestData> {
-  const { startTimestamp, endTimestamp } = hint;
+  const now = Date.now();
+  const { startTimestamp = now, endTimestamp = now } = hint;
 
   const {
     url,
@@ -106,10 +107,10 @@ async function _prepareFetchData(
 
 function _getRequestInfo(
   { networkCaptureBodies, networkRequestHeaders }: ReplayNetworkOptions,
-  input: FetchHint['input'],
+  input: FetchHint['input'] | undefined,
   requestBodySize?: number,
 ): ReplayNetworkRequestOrResponse | undefined {
-  const headers = getRequestHeaders(input, networkRequestHeaders);
+  const headers = input ? getRequestHeaders(input, networkRequestHeaders) : {};
 
   if (!networkCaptureBodies) {
     return buildNetworkRequestOrResponse(headers, requestBodySize, undefined);
@@ -130,16 +131,16 @@ async function _getResponseInfo(
   }: ReplayNetworkOptions & {
     textEncoder: TextEncoderInternal;
   },
-  response: Response,
+  response: Response | undefined,
   responseBodySize?: number,
 ): Promise<ReplayNetworkRequestOrResponse | undefined> {
   if (!captureDetails && responseBodySize !== undefined) {
     return buildSkippedNetworkRequestOrResponse(responseBodySize);
   }
 
-  const headers = getAllHeaders(response.headers, networkResponseHeaders);
+  const headers = response ? getAllHeaders(response.headers, networkResponseHeaders) : {};
 
-  if (!networkCaptureBodies && responseBodySize !== undefined) {
+  if (!response || (!networkCaptureBodies && responseBodySize !== undefined)) {
     return buildNetworkRequestOrResponse(headers, responseBodySize, undefined);
   }
 

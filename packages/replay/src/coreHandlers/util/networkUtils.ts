@@ -62,17 +62,19 @@ export function parseContentLengthHeader(header: string | null | undefined): num
 
 /** Get the string representation of a body. */
 export function getBodyString(body: unknown): string | undefined {
-  if (typeof body === 'string') {
-    return body;
-  }
+  try {
+    if (typeof body === 'string') {
+      return body;
+    }
 
-  if (body instanceof URLSearchParams) {
-    return body.toString();
-  }
+    if (body instanceof URLSearchParams) {
+      return body.toString();
+    }
 
-  if (body instanceof FormData) {
-    return _serializeFormData(body);
-  }
+    if (body instanceof FormData) {
+      return _serializeFormData(body);
+    }
+  } catch {} // eslint-disable-line no-empty
 
   return undefined;
 }
@@ -199,7 +201,6 @@ function normalizeNetworkBody(body: string | undefined): {
   }
 
   const exceedsSizeLimit = body.length > NETWORK_BODY_MAX_SIZE;
-
   const isProbablyJson = _strIsProbablyJson(body);
 
   if (exceedsSizeLimit) {
