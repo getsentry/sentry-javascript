@@ -97,6 +97,7 @@ export const handleRequest: (options?: MiddlewareOptions) => MiddlewareResponseH
         },
         async span => {
           const originalResponse = await next();
+
           if (span && originalResponse.status) {
             span.setHttpStatus(originalResponse.status);
           }
@@ -110,13 +111,11 @@ export const handleRequest: (options?: MiddlewareOptions) => MiddlewareResponseH
             return originalResponse;
           }
 
-          const { body, ...restOfOriginalResponse } = originalResponse;
-
           // Type case necessary b/c the body's ReadableStream type doesn't include
           // the async iterator that is actually available in Node
           // We later on use the async iterator to read the body chunks
           // see https://github.com/microsoft/TypeScript/issues/39051
-          const originalBody = body as NodeJS.ReadableStream | null;
+          const originalBody = originalResponse.body as NodeJS.ReadableStream | null;
           if (!originalBody) {
             return originalResponse;
           }
@@ -126,13 +125,13 @@ export const handleRequest: (options?: MiddlewareOptions) => MiddlewareResponseH
               for await (const chunk of originalBody) {
                 const html = typeof chunk === 'string' ? chunk : new TextDecoder().decode(chunk);
                 const modifiedHtml = addMetaTagToHead(html, hub, span);
-                controller.enqueue(modifiedHtml);
+                controller.enqueue(new TextEncoder().encode(modifiedHtml));
               }
               controller.close();
             },
           });
 
-          return new Response(newResponseStream, restOfOriginalResponse);
+          return new Response(newResponseStream, originalResponse);
         },
       );
       return res;

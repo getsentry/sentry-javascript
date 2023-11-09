@@ -259,7 +259,8 @@ describe('sentryMiddleware', () => {
       url: new URL('https://myDomain.io/users/'),
     };
 
-    const originalResponse = new Response('<p>no head</p>', {
+    const originalHtml = '<p>no head</p>';
+    const originalResponse = new Response(originalHtml, {
       headers: new Headers({ 'content-type': 'text/html' }),
     });
     const next = vi.fn(() => Promise.resolve(originalResponse));
@@ -267,7 +268,11 @@ describe('sentryMiddleware', () => {
     // @ts-expect-error, a partial ctx object is fine here
     const resultFromNext = await middleware(ctx, next);
 
-    expect(resultFromNext).toBe(originalResponse);
+    expect(resultFromNext?.headers.get('content-type')).toEqual('text/html');
+
+    const html = await resultFromNext?.text();
+
+    expect(html).toBe(originalHtml);
   });
 });
 
