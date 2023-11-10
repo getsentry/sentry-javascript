@@ -1,6 +1,6 @@
 {
   "name": "@sentry/tracing",
-  "version": "7.77.0",
+  "version": "7.80.0",
   "description": "Sentry Performance Monitoring Package",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/tracing",
@@ -23,14 +23,14 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry-internal/tracing": "7.77.0"
+    "@sentry-internal/tracing": "7.80.0"
   },
   "devDependencies": {
-    "@sentry-internal/integration-shims": "7.77.0",
-    "@sentry/browser": "7.77.0",
-    "@sentry/core": "7.77.0",
-    "@sentry/types": "7.77.0",
-    "@sentry/utils": "7.77.0",
+    "@sentry-internal/integration-shims": "7.80.0",
+    "@sentry/browser": "7.80.0",
+    "@sentry/core": "7.80.0",
+    "@sentry/types": "7.80.0",
+    "@sentry/utils": "7.80.0",
     "@types/express": "^4.17.14"
   },
   "scripts": {

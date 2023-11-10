@@ -1,3 +1,4 @@
+import { addTracingExtensions } from '@sentry/core';
 import { RewriteFrames } from '@sentry/integrations';
 import type { NodeOptions } from '@sentry/node';
 import { configureScope, getCurrentHub, init as nodeInit, Integrations } from '@sentry/node';
@@ -50,7 +51,7 @@ export function showReportDialog(): void {
 }
 
 const globalWithInjectedValues = global as typeof global & {
-  __rewriteFramesDistDir__: string;
+  __rewriteFramesDistDir__?: string;
 };
 
 // TODO (v8): Remove this
@@ -63,6 +64,12 @@ const IS_VERCEL = !!process.env.VERCEL;
 
 /** Inits the Sentry NextJS SDK on node. */
 export function init(options: NodeOptions): void {
+  addTracingExtensions();
+
+  if (isBuild()) {
+    return;
+  }
+
   const opts = {
     environment: process.env.SENTRY_ENVIRONMENT || getVercelEnv(false) || process.env.NODE_ENV,
     ...options,
@@ -119,19 +126,21 @@ function addServerIntegrations(options: NodeOptions): void {
 
   // This value is injected at build time, based on the output directory specified in the build config. Though a default
   // is set there, we set it here as well, just in case something has gone wrong with the injection.
-  const distDirName = globalWithInjectedValues.__rewriteFramesDistDir__ || '.next';
-  // nextjs always puts the build directory at the project root level, which is also where you run `next start` from, so
-  // we can read in the project directory from the currently running process
-  const distDirAbsPath = path.resolve(process.cwd(), distDirName);
-  const SOURCEMAP_FILENAME_REGEX = new RegExp(escapeStringForRegex(distDirAbsPath));
+  const distDirName = globalWithInjectedValues.__rewriteFramesDistDir__;
+  if (distDirName) {
+    // nextjs always puts the build directory at the project root level, which is also where you run `next start` from, so
+    // we can read in the project directory from the currently running process
+    const distDirAbsPath = path.resolve(distDirName).replace(/(\/|\\)$/, ''); // We strip trailing slashes because "app:///_next" also doesn't have one
+    const SOURCEMAP_FILENAME_REGEX = new RegExp(escapeStringForRegex(distDirAbsPath));
 
-  const defaultRewriteFramesIntegration = new RewriteFrames({
-    iteratee: frame => {
-      frame.filename = frame.filename?.replace(SOURCEMAP_FILENAME_REGEX, 'app:///_next');
-      return frame;
-    },
-  });
-  integrations = addOrUpdateIntegration(defaultRewriteFramesIntegration, integrations);
+    const defaultRewriteFramesIntegration = new RewriteFrames({
+      iteratee: frame => {
+        frame.filename = frame.filename?.replace(SOURCEMAP_FILENAME_REGEX, 'app:///_next');
+        return frame;
+      },
+    });
+    integrations = addOrUpdateIntegration(defaultRewriteFramesIntegration, integrations);
+  }
 
   const defaultOnUncaughtExceptionIntegration: IntegrationWithExclusionOption = new Integrations.OnUncaughtException({
     exitEvenIfOtherHandlersAreRegistered: false,

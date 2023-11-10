@@ -55,6 +55,7 @@ The following options can be configured as options to the integration, in `new F
 | key       | type    | default | description |
 | --------- | ------- | ------- | ----------- |
 | `autoInject`       | `boolean` | `true`  | Injects the Feedback widget into the application when the integration is added. This is useful to turn off if you bring your own button, or only want to show the widget on certain views. |
+| `showBranding` | `boolean` | `true` | Displays the Sentry logo inside of the dialog |
 | `colorScheme` | `"system" \| "light" \| "dark"` | `"system"` | The color theme to use. `"system"` will follow your OS colorscheme. |
 
 ### User/form Related Configuration
@@ -93,7 +94,7 @@ Most text that you see in the default Feedback widget can be customized.
 | `formTitle` | `Report a Bug` | The title at the top of the feedback form dialog. |
 | `nameLabel` | `Name` | The label of the name input field. |
 | `namePlaceholder` | `Your Name` | The placeholder for the name input field. |
-| `emailLabel` | `Email` | The label of the email input field. ||
+| `emailLabel` | `Email` | The label of the email input field. |
 | `emailPlaceholder` | `your.email@example.org` | The placeholder for the email input field. |
 | `messageLabel` | `Description` | The label for the feedback description input field. |
 | `messagePlaceholder` | `What's the bug? What did you expect?` | The placeholder for the feedback description input field. |
@@ -125,15 +126,19 @@ Colors can be customized via the Feedback constructor or by defining CSS variabl
 | `submitBackground` | `--submit-background` | `rgba(88, 74, 192, 1)` | `rgba(88, 74, 192, 1)` | Background color for the submit button |
 | `submitBackgroundHover` | `--submit-background-hover` | `rgba(108, 95, 199, 1)` | `rgba(108, 95, 199, 1)` | Background color when hovering over the submit button |
 | `submitBorder` | `--submit-border` | `rgba(108, 95, 199, 1)` | `rgba(108, 95, 199, 1)` | Border style for the submit button |
+| `submitOutlineFocus` | `--submit-outline-focus` | `rgba(108, 95, 199, 1)` | `rgba(108, 95, 199, 1)` | Outline color for the submit button, in the focused state |
 | `submitForeground` | `--submit-foreground` | `#ffffff` | `#ffffff` | Foreground color for the submit button |
+| `submitForegroundHover` | `--submit-foreground-hover` | `#ffffff` | `#ffffff` | Foreground color for the submit button when hovering |
 | `cancelBackground` | `--cancel-background` | `transparent` | `transparent` | Background color for the cancel button |
 | `cancelBackgroundHover` | `--cancel-background-hover` | `var(--background-hover)` | `var(--background-hover)` | Background color when hovering over the cancel button |
 | `cancelBorder` | `--cancel-border` | `var(--border)` | `var(--border)` | Border style for the cancel button | 
+| `cancelOutlineFocus` | `--cancel-outline-focus` | `var(--input-outline-focus)` | `var(--input-outline-focus)` | Outline color for the cancel button, in the focused state |
 | `cancelForeground` | `--cancel-foreground` | `var(--foreground)` | `var(--foreground)` | Foreground color for the cancel button |
+| `cancelForegroundHover` | `--cancel-foreground-hover` | `var(--foreground)` | `var(--foreground)` | Foreground color for the cancel button when hovering |
 | `inputBackground` | `--input-background` | `inherit` | `inherit` | Background color for form inputs |
 | `inputForeground` | `--input-foreground` | `inherit` | `inherit` | Foreground color for form inputs |
 | `inputBorder` | `--input-border` | `var(--border)` | `var(--border)` | Border styles for form inputs |
-| `inputBorderFocus` | `--input-border-focus` | `rgba(108, 95, 199, 1)` | `rgba(108, 95, 199, 1)` | Border styles for form inputs when focused |
+| `inputOutlineFocus` | `--input-outline-focus` | `rgba(108, 95, 199, 1)` | `rgba(108, 95, 199, 1)` | Outline color for form inputs when focused |
 
 Here is an example of customizing only the background color for the light theme using the Feedback constructor configuration.
 ```javascript
@@ -196,6 +201,29 @@ const feedback = new Feedback({
 feedback.attachTo(document.querySelector('#your-button'), {
     formTitle: "Report a Bug!"
 });
+```
+
+Alternatively you can call `feedback.openDialog()`:
+
+```typescript
+import {BrowserClient, getCurrentHub} from '@sentry/react';
+import {Feedback} from '@sentry-internal/feedback';
+
+function MyFeedbackButton() {
+    const client = hub && getCurrentHub().getClient<BrowserClient>();
+    const feedback = client?.getIntegration(Feedback);
+
+    // Don't render custom feedback button if Feedback integration not installed
+    if (!feedback) {
+        return null;
+    }
+
+    return (
+        <button type="button" onClick={() => feedback.openDialog()}>
+            Give me feedback
+        </button>
+    )
+}
 ```
 
 ### Bring Your Own Widget

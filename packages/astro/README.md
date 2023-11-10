@@ -31,7 +31,7 @@ Install the Sentry Astro SDK with the `astro` CLI:
 npx astro add @sentry/astro
 ```
 
-Complete the setup by adding your DSN and source maps upload configuration:
+Add your DSN and source maps upload configuration:
 
 ```javascript
 import { defineConfig } from "astro/config";
@@ -55,6 +55,22 @@ Follow [this guide](https://docs.sentry.io/product/accounts/auth-tokens/#organiz
 ```bash
 SENTRY_AUTH_TOKEN="your-token"
 ```
+
+Complete the setup by adding the Sentry middleware to your `src/middleware.js` file:
+
+```javascript
+// src/middleware.js
+import { sequence } from "astro:middleware";
+import * as Sentry from "@sentry/astro";
+
+export const onRequest = sequence(
+  Sentry.handleRequest(),
+  // Add your other handlers after Sentry.handleRequest()
+);
+```
+
+This middleware creates server-side spans to monitor performance on the server for page load and endpoint requests.
+
 
 ## Configuration
 

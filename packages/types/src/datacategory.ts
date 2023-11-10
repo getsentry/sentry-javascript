@@ -24,5 +24,7 @@ export type DataCategory =
   | 'profile'
   // Check-in event (monitor)
   | 'monitor'
+  // Feedback type event (v2)
+  | 'feedback'
   // Unknown data category
   | 'unknown';

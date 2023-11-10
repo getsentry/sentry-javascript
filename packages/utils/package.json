@@ -1,6 +1,6 @@
 {
   "name": "@sentry/utils",
-  "version": "7.77.0",
+  "version": "7.80.0",
   "description": "Utilities for all Sentry JavaScript SDKs",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/utils",
@@ -23,7 +23,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/types": "7.77.0"
+    "@sentry/types": "7.80.0"
   },
   "devDependencies": {
     "@types/array.prototype.flat": "^1.2.1",
@@ -34,7 +34,6 @@
     "build": "run-p build:transpile build:types",
     "build:dev": "yarn build",
     "build:transpile": "yarn ts-node scripts/buildRollup.ts",
-    "build:transpile:uncached": "yarn ts-node scripts/buildRollup.ts",
     "build:types": "run-s build:types:core build:types:downlevel",
     "build:types:core": "tsc -p tsconfig.types.json",
     "build:types:downlevel": "yarn downlevel-dts build/types build/types-ts3.8 --to ts3.8",

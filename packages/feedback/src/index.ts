@@ -1,1 +1,2 @@
-export { sendFeedbackRequest } from './util/sendFeedbackRequest';
+export { sendFeedback } from './sendFeedback';
+export { Feedback } from './integration';

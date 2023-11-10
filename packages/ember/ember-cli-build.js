@@ -3,8 +3,17 @@
 const EmberAddon = require('ember-cli/lib/broccoli/ember-addon');
 
 module.exports = function (defaults) {
+  const environment = process.env.EMBER_ENV || 'development';
+  const isProd = environment === 'production';
+
   const app = new EmberAddon(defaults, {
     // Add options here
+    sourcemaps: {
+      enabled: isProd,
+    },
+    'ember-cli-terser': {
+      enabled: isProd,
+    },
   });
 
   /*
