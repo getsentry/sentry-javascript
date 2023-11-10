@@ -1,17 +1,26 @@
-import { IPoint, Rect } from './types';
+import type { IPoint, Rect } from './types';
 
 function asPoint(x: IPoint | number): IPoint {
   return typeof x === 'number' ? Point.fromNumber(x) : x;
 }
 
+/**
+ *
+ */
 export class Vector implements IPoint {
   public x: number;
   public y: number;
 
+  /**
+   *
+   */
   public get length(): number {
     return Point.distance(Point.fromNumber(0), this);
   }
 
+  /**
+   *
+   */
   static fromPoints(point1: IPoint, point2: IPoint): Vector {
     return new Vector(Point.subtract(point2, point1));
   }
@@ -21,6 +30,9 @@ export class Vector implements IPoint {
     this.y = point.y;
   }
 
+  /**
+   *
+   */
   normalize() {
     const length = this.length;
     return new Vector({
@@ -29,6 +41,9 @@ export class Vector implements IPoint {
     });
   }
 
+  /**
+   *
+   */
   rotate(angle: number) {
     const cos = Math.cos(angle);
     const sin = Math.sin(angle);
@@ -39,7 +54,13 @@ export class Vector implements IPoint {
   }
 }
 
+/**
+ *
+ */
 export class Point {
+  /**
+   *
+   */
   static fromMouseEvent(e: MouseEvent): IPoint {
     return {
       x: e.clientX,
@@ -47,10 +68,16 @@ export class Point {
     };
   }
 
+  /**
+   *
+   */
   static fromNumber(x: number, y?: number): IPoint {
     return { x, y: y ?? x };
   }
 
+  /**
+   *
+   */
   static multiply(point: IPoint, multiplier: number | IPoint): IPoint {
     const mult = asPoint(multiplier);
     return {
@@ -59,6 +86,9 @@ export class Point {
     };
   }
 
+  /**
+   *
+   */
   static divide(point: IPoint, divisor: number | IPoint): IPoint {
     const div = asPoint(divisor);
     return {
@@ -67,6 +97,9 @@ export class Point {
     };
   }
 
+  /**
+   *
+   */
   static add(point1: IPoint, point2: number | IPoint): IPoint {
     const point = asPoint(point2);
     return {
@@ -75,6 +108,9 @@ export class Point {
     };
   }
 
+  /**
+   *
+   */
   static subtract(point1: IPoint, point2: number | IPoint): IPoint {
     const point = asPoint(point2);
     return {
@@ -83,10 +119,16 @@ export class Point {
     };
   }
 
+  /**
+   *
+   */
   static distance(point1: IPoint, point2: IPoint): number {
     return Math.sqrt(Math.pow(point1.x - point2.x, 2) + Math.pow(point1.y - point2.y, 2));
   }
 
+  /**
+   *
+   */
   static round(point: IPoint): IPoint {
     return {
       x: Math.round(point.x),
@@ -95,6 +137,9 @@ export class Point {
   }
 }
 
+/**
+ *
+ */
 export function getCanvasScaleRatio(canvas: HTMLCanvasElement): IPoint {
   const rect = canvas.getBoundingClientRect();
   const verticalScale = canvas.height / rect.height;
@@ -105,14 +150,23 @@ export function getCanvasScaleRatio(canvas: HTMLCanvasElement): IPoint {
   };
 }
 
+/**
+ *
+ */
 export function translatePoint(point: IPoint, ratio: IPoint): IPoint {
   return Point.multiply(point, ratio);
 }
 
+/**
+ *
+ */
 export function translatePointToDocument(point: IPoint, canvas: HTMLCanvasElement): IPoint {
   return translatePoint(point, Point.divide(Point.fromNumber(1), getCanvasScaleRatio(canvas)));
 }
 
+/**
+ *
+ */
 export function translateBoundingBoxToDocument(boundingBox: Rect, canvas: HTMLCanvasElement): Rect {
   const start = translatePointToDocument(boundingBox, canvas);
   const dimensions = translatePointToDocument(Point.fromNumber(boundingBox.width, boundingBox.height), canvas);
@@ -124,6 +178,9 @@ export function translateBoundingBoxToDocument(boundingBox: Rect, canvas: HTMLCa
   };
 }
 
+/**
+ *
+ */
 export function translateMouseEvent(e: MouseEvent, canvas: HTMLCanvasElement): IPoint {
   const ratio = getCanvasScaleRatio(canvas);
   const clientRect = canvas.getBoundingClientRect();
@@ -131,10 +188,16 @@ export function translateMouseEvent(e: MouseEvent, canvas: HTMLCanvasElement): I
   return Point.round(translatePoint(Point.subtract(Point.fromMouseEvent(e), canvasOffset), ratio));
 }
 
+/**
+ *
+ */
 export function translatePointToCanvas(point: IPoint, canvas: HTMLCanvasElement): IPoint {
   return translatePoint(point, getCanvasScaleRatio(canvas));
 }
 
+/**
+ *
+ */
 export function translateRect(rect: Rect, vector: IPoint): Rect {
   return {
     x: rect.x + vector.x,
@@ -144,6 +207,9 @@ export function translateRect(rect: Rect, vector: IPoint): Rect {
   };
 }
 
+/**
+ *
+ */
 export function getPointsBoundingBox(points: IPoint[]): Rect {
   const xValues = points.map(p => p.x);
   const yValues = points.map(p => p.y);
@@ -159,6 +225,9 @@ export function getPointsBoundingBox(points: IPoint[]): Rect {
   };
 }
 
+/**
+ *
+ */
 export function updateBoundingBox(boundingBox: Rect, points: IPoint[]): Rect {
   return getPointsBoundingBox([
     ...points,

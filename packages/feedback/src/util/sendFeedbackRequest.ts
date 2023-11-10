@@ -1,5 +1,6 @@
 import { createEventEnvelope, getCurrentHub } from '@sentry/core';
 import type { FeedbackEvent, TransportMakeRequestResponse } from '@sentry/types';
+import { addItemToEnvelope, createAttachmentEnvelopeItem } from '@sentry/utils';
 
 import type { SendFeedbackData } from '../types';
 import { prepareFeedbackEvent } from './prepareFeedbackEvent';
@@ -9,10 +10,12 @@ import { prepareFeedbackEvent } from './prepareFeedbackEvent';
  */
 export async function sendFeedbackRequest({
   feedback: { message, email, name, replay_id, url },
+  screenshots,
 }: SendFeedbackData): Promise<void | TransportMakeRequestResponse> {
   const hub = getCurrentHub();
   const client = hub.getClient();
   const scope = hub.getScope();
+  const options = client && client.getOptions();
   const transport = client && client.getTransport();
   const dsn = client && client.getDsn();
 
@@ -85,7 +88,17 @@ export async function sendFeedbackRequest({
     }
   */
 
-  const envelope = createEventEnvelope(feedbackEvent, dsn, client.getOptions()._metadata, client.getOptions().tunnel);
+  let envelope = createEventEnvelope(feedbackEvent, dsn, client.getOptions()._metadata, client.getOptions().tunnel);
+
+  for (const attachment of screenshots || []) {
+    envelope = addItemToEnvelope(
+      envelope,
+      createAttachmentEnvelopeItem(
+        attachment,
+        options && options.transportOptions && options.transportOptions.textEncoder,
+      ),
+    );
+  }
 
   let response: void | TransportMakeRequestResponse;
 

@@ -1,7 +1,16 @@
+/**
+ *
+ */
 export function createScreenshotStyles(d: Document): HTMLStyleElement {
   const style = d.createElement('style');
 
   style.textContent = `
+.screenshot-editor__row {
+display: flex;
+flex-direction: column;
+gap: 6px;
+}
+
 .screenshot-editor {
   position: absolute;
   cursor: crosshair;
@@ -24,6 +33,10 @@ export function createScreenshotStyles(d: Document): HTMLStyleElement {
     rgba(0, 0, 0, 0.03) 5px,
     rgba(0, 0, 0, 0.03) 10px
   );
+}
+
+.screenshot-editor__container[aria-hidden="true"] {
+  display: none;
 }
 
 .screenshot-editor__help {
@@ -53,7 +66,64 @@ export function createScreenshotStyles(d: Document): HTMLStyleElement {
   box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.05), 0 4px 16px rgba(0, 0, 0, 0.2);
 }
 
-.image-editor__container {
+.screenshot-preview__wrapper {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+}
+
+.screenshot-preview {
+  position: relative;
+  display: block;
+  flex: 1;
+  min-width: 0;
+  height: 160px;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+  overflow: hidden;
+}
+.screenshot-preview[aria-hidden="true"] {
+display: none;
+}
+.screenshot-preview::after {
+  content: 'Edit';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  color: #fff;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 600;
+  opacity: 0;
+  transition: opacity 0.2s ease-in-out;
+}
+screenshot-preview:hover::after{
+  opacity: 1;
+}
+
+.screenshot-preview__image {
+  display: block;
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  object-fit: contain;
+  background-image: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 5px,
+    rgba(0, 0, 0, 0.03) 5px,
+    rgba(0, 0, 0, 0.03) 10px
+  );
+}
+
+.screenshot-annotator__container {
   position: fixed;
   z-index: 10000;
   height: 100vh;
@@ -70,13 +140,17 @@ export function createScreenshotStyles(d: Document): HTMLStyleElement {
   );
 }
 
-.image-editor__canvas {
+.screenshot-annotator__container[aria-hidden="true"] {
+  display: none;
+}
+
+.screenshot-annotator__canvas {
   cursor: crosshair;
   max-width: 100vw;
   max-height: 100vh;
 }
 
-.image-editor__canvas__wrapper {
+.screenshot-annotator__canvas__wrapper {
   position: relative;
   width: 100%;
   margin-top: 32px;
@@ -86,21 +160,22 @@ export function createScreenshotStyles(d: Document): HTMLStyleElement {
   justify-content: center;
 }
 
-.image-editor__toolbar {
+.screenshot-annotator__toolbar {
   position: absolute;
-  width: 100%;
+left: 16px;
+right: 16px;
   bottom: 0px;
-  padding: 12px 16px;
+  padding: 12px 0;
   display: flex;
   gap: 12px;
   flex-direction: row;
-  justify-content: center;
+  justify-content: space-between;
+  align-items: center;
 }
 
-.image-editor__toolbar__group {
+.screenshot-annotator__toolbar__group {
   display: flex;
   flex-direction: row;
-  height: 42px;
   background-color: white;
   border: rgba(58, 17, 95, 0.14) 1px solid;
   border-radius: 10px;
@@ -110,7 +185,7 @@ export function createScreenshotStyles(d: Document): HTMLStyleElement {
   box-shadow: 0px 1px 2px 1px rgba(43, 34, 51, 0.04);
 }
 
-.image-editor__tool-button {
+.screenshot-annotator__tool-button {
   width: 32px;
   height: 32px;
   border-radius: 6px;
@@ -128,20 +203,20 @@ export function createScreenshotStyles(d: Document): HTMLStyleElement {
   }
 }
 
-.image-editor__tool-button--active {
+.screenshot-annotator__tool-button--active {
   background-color: rgba(108, 95, 199, 1) !important;
   color: white;
 }
 
-.image-editor__tool-icon {
+.screenshot-annotator__tool-icon {
 
 }
 
-.image-editor__spacer {
+.screenshot-annotator__spacer {
   flex: 1;
 }
 
-.image-editor__cancel {
+.screenshot-annotator__cancel {
   height: 40px;
   width: 84px;
   border: rgba(58, 17, 95, 0.14) 1px solid;
@@ -157,7 +232,7 @@ export function createScreenshotStyles(d: Document): HTMLStyleElement {
 
 }
 
-.image-editor__submit {
+.screenshot-annotator__submit {
   height: 40px;
   width: 84px;
   border: none;
@@ -173,13 +248,13 @@ export function createScreenshotStyles(d: Document): HTMLStyleElement {
 
 }
 
-.image-editor__color-display {
+.screenshot-annotator__color-display {
   width: 16px;
   height: 16px;
   border-radius: 4px;
 
 }
-.image-editor__color-input {
+.screenshot-annotator__color-input {
   position: relative;
   display: flex;
   width: 32px;

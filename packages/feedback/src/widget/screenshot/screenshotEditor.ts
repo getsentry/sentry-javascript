@@ -1,4 +1,6 @@
 import { WINDOW } from '@sentry/browser';
+
+import type { FeedbackComponent } from '../../types';
 import { createElement } from '../util/createElement';
 import { ScreenshotEditorHelp } from './screenshotEditorHelp';
 
@@ -8,9 +10,20 @@ export interface Rect {
   x: number;
   y: number;
 }
+
+interface Point {
+  x: number;
+  y: number;
+}
+
 interface ScreenshotEditorProps {
-  dataUrl: string;
   onSubmit: (screenshot: Blob | null, cutout?: Blob | null, selection?: Rect) => void;
+}
+
+interface ScreenshotEditorComponent extends FeedbackComponent<HTMLDivElement> {
+  remove: () => void;
+  show: (dataUrl: string) => void;
+  hide: () => void;
 }
 
 const getCanvasRenderSize = (width: number, height: number) => {
@@ -37,10 +50,6 @@ const canvasToBlob = (canvas: HTMLCanvasElement): Promise<Blob | null> => {
     });
   });
 };
-interface Point {
-  x: number;
-  y: number;
-}
 
 const constructRect = (start: Point, end: Point): Rect => {
   return {
@@ -51,11 +60,19 @@ const constructRect = (start: Point, end: Point): Rect => {
   };
 };
 
-export function ScreenshotEditor({ dataUrl, onSubmit }: ScreenshotEditorProps) {
+/**
+ *
+ */
+export function ScreenshotEditor({ onSubmit }: ScreenshotEditorProps): ScreenshotEditorComponent {
   let currentRatio = 1;
   const canvas = createElement('canvas', { className: 'screenshot-editor' });
   const screenshotEditorHelp = ScreenshotEditorHelp();
-  const el = createElement('div', { className: 'screenshot-editor__container' }, canvas, screenshotEditorHelp.el);
+  const el = createElement(
+    'div',
+    { className: 'screenshot-editor__container', 'aria-hidden': 'true', onClick: (e: Event) => e.stopPropagation() },
+    canvas,
+    screenshotEditorHelp.el,
+  );
 
   const ctx = canvas.getContext('2d');
   const img = new Image();
@@ -63,6 +80,9 @@ export function ScreenshotEditor({ dataUrl, onSubmit }: ScreenshotEditorProps) {
   const rectEnd: { x: number; y: number } = { x: 0, y: 0 };
   let isDragging = false;
 
+  /**
+   *
+   */
   function setCanvasSize(): void {
     const renderSize = getCanvasRenderSize(img.width, img.height);
     canvas.style.width = `${renderSize.width}px`;
@@ -73,6 +93,9 @@ export function ScreenshotEditor({ dataUrl, onSubmit }: ScreenshotEditorProps) {
     currentRatio = renderSize.width / img.width;
   }
 
+  /**
+   *
+   */
   function refreshCanvas(): void {
     if (!ctx) {
       return;
@@ -100,6 +123,9 @@ export function ScreenshotEditor({ dataUrl, onSubmit }: ScreenshotEditorProps) {
     ctx.strokeRect(rect.x, rect.y, rect.width, rect.height);
   }
 
+  /**
+   *
+   */
   async function submit(rect?: Rect): Promise<void> {
     const imageBlob = await canvasToBlob(canvas);
     if (!rect) {
@@ -115,17 +141,26 @@ export function ScreenshotEditor({ dataUrl, onSubmit }: ScreenshotEditorProps) {
     onSubmit(imageBlob, cutoutBlob, rect);
   }
 
+  /**
+   *
+   */
   function handleMouseDown(e: MouseEvent): void {
     rectStart.x = Math.floor(e.offsetX / currentRatio);
     rectStart.y = Math.floor(e.offsetY / currentRatio);
     isDragging = true;
     screenshotEditorHelp.setHidden(true);
   }
+  /**
+   *
+   */
   function handleMouseMove(e: MouseEvent): void {
     rectEnd.x = Math.floor(e.offsetX / currentRatio);
     rectEnd.y = Math.floor(e.offsetY / currentRatio);
     refreshCanvas();
   }
+  /**
+   *
+   */
   function handleMouseUp(): void {
     isDragging = false;
     screenshotEditorHelp.setHidden(false);
@@ -137,6 +172,9 @@ export function ScreenshotEditor({ dataUrl, onSubmit }: ScreenshotEditorProps) {
     void submit(constructRect(rectStart, rectEnd));
   }
 
+  /**
+   *
+   */
   function handleEnterKey(e: KeyboardEvent): void {
     if (e.key === 'Enter') {
       void submit();
@@ -150,14 +188,6 @@ export function ScreenshotEditor({ dataUrl, onSubmit }: ScreenshotEditorProps) {
     ctx && ctx.drawImage(img, 0, 0);
   };
 
-  img.src = dataUrl;
-
-  WINDOW.addEventListener('resize', setCanvasSize, { passive: true });
-  canvas.addEventListener('mousedown', handleMouseDown);
-  canvas.addEventListener('mousemove', handleMouseMove);
-  canvas.addEventListener('mouseup', handleMouseUp);
-  WINDOW.addEventListener('keydown', handleEnterKey);
-
   return {
     get el() {
       return el;
@@ -170,11 +200,23 @@ export function ScreenshotEditor({ dataUrl, onSubmit }: ScreenshotEditorProps) {
       WINDOW.removeEventListener('keydown', handleEnterKey);
       el.remove();
     },
+    show(dataUrl: string) {
+      el.setAttribute('aria-hidden', 'false');
+      img.src = dataUrl;
+
+      WINDOW.addEventListener('resize', setCanvasSize, { passive: true });
+      canvas.addEventListener('mousedown', handleMouseDown);
+      canvas.addEventListener('mousemove', handleMouseMove);
+      canvas.addEventListener('mouseup', handleMouseUp);
+      WINDOW.addEventListener('keydown', handleEnterKey);
+    },
+    hide() {
+      el.setAttribute('aria-hidden', 'true');
+      WINDOW.removeEventListener('resize', setCanvasSize);
+      canvas.removeEventListener('mousedown', handleMouseDown);
+      canvas.removeEventListener('mousemove', handleMouseMove);
+      canvas.removeEventListener('mouseup', handleMouseUp);
+      WINDOW.removeEventListener('keydown', handleEnterKey);
+    },
   };
-  //   (
-  //   <Container>
-  //     <Canvas ref={canvasRef} />
-  //     <ScreenshotEditorHelp hide={isDraggingState} />
-  //   </Container>
-  // );
 }

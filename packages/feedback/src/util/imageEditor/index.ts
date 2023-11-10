@@ -1,5 +1,6 @@
 import { WINDOW } from '@sentry/browser';
-import { IDrawing, ITool, Rect } from './types';
+
+import type { IDrawing, ITool, Rect } from './types';
 import { Point, translateBoundingBoxToDocument, translateMouseEvent, translatePointToCanvas } from './utils';
 
 interface Options {
@@ -164,9 +165,12 @@ const getScaling = (width: number, height: number) => {
   return Math.max(Math.sqrt(area / SCALEING_BASE), 1);
 };
 
+/**
+ *
+ */
 export class ImageEditor {
   private canvas: HTMLCanvasElement;
-  private ctx: CanvasRenderingContext2D;
+  private ctx: CanvasRenderingContext2D | null;
   private drawings: IDrawing[] = [];
   private scheduledFrame: number | null = null;
   private image: HTMLImageElement;
@@ -198,7 +202,7 @@ export class ImageEditor {
         this.canvas.height = image.height;
         this.drawingScaling = getScaling(image.width, image.height);
         this.sheduleUpdateCanvas();
-        onLoad();
+        onLoad && onLoad();
       });
     }
 
@@ -209,6 +213,9 @@ export class ImageEditor {
     window.addEventListener('keydown', this.handleDelete);
   }
 
+  /**
+   *
+   */
   destroy() {
     this.canvas.removeEventListener('click', this.handleClick);
     this.canvas.removeEventListener('mousedown', this.handleMouseDown);
@@ -219,6 +226,9 @@ export class ImageEditor {
     this.drawings = [];
   }
 
+  /**
+   *
+   */
   set tool(tool: ITool | null) {
     if (this._tool?.isDrawing) {
       // end the current drawing and discard it
@@ -229,10 +239,16 @@ export class ImageEditor {
     this.canvas.style.cursor = this._tool ? 'crosshair' : 'grab';
   }
 
+  /**
+   *
+   */
   get tool(): ITool | null {
     return this._tool;
   }
 
+  /**
+   *
+   */
   set color(color: string) {
     this._color = color;
     if (this.selectedDrawingId) {
@@ -242,10 +258,16 @@ export class ImageEditor {
     }
   }
 
+  /**
+   *
+   */
   get color(): string {
     return this._color;
   }
 
+  /**
+   *
+   */
   set strokeSize(strokeSize: number) {
     this._strokeSize = strokeSize;
     if (this.selectedDrawingId) {
@@ -254,19 +276,26 @@ export class ImageEditor {
     }
   }
 
+  /**
+   *
+   */
   get strokeSize(): number {
     return this._strokeSize;
   }
 
   private updateCanvas = () => {
+    if (!this.ctx) {
+      return;
+    }
+
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
     this.ctx.drawImage(this.image, 0, 0, this.canvas.width, this.canvas.height);
     this.drawings.forEach(drawing => {
-      drawing.drawToCanvas(this.ctx, drawing.id === this.selectedDrawingId);
+      this.ctx && drawing.drawToCanvas(this.ctx, drawing.id === this.selectedDrawingId);
     });
-    if (this._tool?.isDrawing) {
+    if (this._tool && this._tool.isDrawing) {
       const drawing = this._tool.getDrawingBuffer();
-      if (drawing) {
+      if (drawing && this.ctx) {
         drawing.drawToCanvas(this.ctx, false);
       }
     }
@@ -284,8 +313,8 @@ export class ImageEditor {
       return;
     }
     const point = translateMouseEvent(e, this.canvas);
-    const drawing = [...this.drawings].reverse().find(d => d.isInPath(this.ctx, point));
-    this.selectedDrawingId = drawing?.id;
+    const drawing = [...this.drawings].reverse().find(d => this.ctx && d.isInPath(this.ctx, point));
+    this.selectedDrawingId = drawing && drawing.id || null;
     this.sheduleUpdateCanvas();
     this.resizer?.destroy();
     this.resizer = null;
@@ -343,7 +372,7 @@ export class ImageEditor {
       return;
     }
     const delta = Point.fromNumber(e.movementX, e.movementY);
-    selectedDrawing.moveBy(translatePointToCanvas(delta, this.canvas));
+    selectedDrawing && selectedDrawing.moveBy(translatePointToCanvas(delta, this.canvas));
     this.resizer.move(e.movementX, e.movementY);
     this.sheduleUpdateCanvas();
   };
@@ -354,7 +383,7 @@ export class ImageEditor {
       return;
     }
     const delta = Point.fromNumber(e.movementX, e.movementY);
-    selectedDrawing.scaleBy(translatePointToCanvas(delta, this.canvas));
+    selectedDrawing && selectedDrawing.scaleBy(translatePointToCanvas(delta, this.canvas));
     this.resizer.resize(e.movementX, e.movementY);
     this.sheduleUpdateCanvas();
   };
@@ -363,8 +392,8 @@ export class ImageEditor {
     return this.canvas.toDataURL();
   };
 
-  public getBlob = (): Promise<Blob> => {
-    return new Promise<Blob>(resolve => {
+  public getBlob = (): Promise<Blob|null> => {
+    return new Promise(resolve => {
       this.canvas.toBlob(blob => {
         resolve(blob);
       });

@@ -1,19 +1,10 @@
 import { logger } from '@sentry/utils';
-import { FeedbackComponent } from '../../types';
+
+import type { FeedbackComponent } from '../../types';
 import { takeScreenshot } from '../../util/takeScreenshot';
 import { createElement } from '../util/createElement';
 
 interface ScreenshotFormProps {
-  /**
-   * base64 of screenshot preview
-   */
-  screenshotPreview: string;
-  screenshotCutout: Blob | null;
-  /**
-   * base64 of `screenshotCutout`
-   */
-  screenshotCutoutPreview: string;
-
   onEditScreenshot: () => void;
   onEditCutout: () => void;
   onTakeScreenshot: (image: string) => void;
@@ -28,9 +19,6 @@ export interface ScreenshotFormComponent extends FeedbackComponent<HTMLDivElemen
  * Component for taking screenshots in feedback dialog
  */
 export function ScreenshotForm({
-  screenshotPreview,
-  screenshotCutout,
-  screenshotCutoutPreview,
   onEditCutout,
   onEditScreenshot,
   onTakeScreenshot,
@@ -47,13 +35,18 @@ export function ScreenshotForm({
 
   const addScreenshotButton = createElement(
     'button',
-    { type: 'button', 'aria-hidden': 'false', onClick: handleAddScreenshot },
+    {
+      className: 'btn btn--default',
+      type: 'button',
+      'aria-hidden': 'false',
+      onClick: handleAddScreenshot,
+    },
     'Add Screenshot',
   );
-  const imageEl = createElement('img', { className: 'screenshot-preview__image', src: screenshotPreview });
+  const imageEl = createElement('img', { className: 'screenshot-preview__image' });
   const cutoutImageEl = createElement('img', {
     className: 'screenshot-preview__image screenshot-preview__image__cutout',
-    src: screenshotCutoutPreview,
+    // src: screenshotCutoutPreview,
   });
   const editScreenshotButton = createElement(
     'button',
@@ -69,7 +62,7 @@ export function ScreenshotForm({
   const editCutoutButton = createElement(
     'button',
     {
-      className: 'screenshot-preview__cutout',
+      className: 'screenshot-preview',
       type: 'button',
       'aria-label': 'Edit screenshot cutout',
       'aria-hidden': 'true',
@@ -77,14 +70,16 @@ export function ScreenshotForm({
     },
     cutoutImageEl,
   );
-  const screenshotPreviewWrapper = createElement('div', { className: 'screenshot-wrapper', 'aria-hidden': 'true' }, [
-    editScreenshotButton,
-    editCutoutButton,
-  ]);
+  const screenshotPreviewWrapper = createElement(
+    'div',
+    { className: 'screenshot-preview__wrapper', 'aria-hidden': 'true' },
+    [editScreenshotButton, editCutoutButton],
+  );
 
   function setScreenshotPreview(image: string): void {
     if (!image) {
       screenshotPreviewWrapper.setAttribute('aria-hidden', 'true');
+      editScreenshotButton.setAttribute('aria-hidden', 'false');
       addScreenshotButton.setAttribute('aria-hidden', 'false');
     }
 
@@ -95,37 +90,24 @@ export function ScreenshotForm({
   }
 
   function setScreenshotCutoutPreview(image: string): void {
+    if (!image) {
+      screenshotPreviewWrapper.setAttribute('aria-hidden', 'true');
+      addScreenshotButton.setAttribute('aria-hidden', 'false');
+      editCutoutButton.setAttribute('aria-hidden', 'true');
+    }
+
     cutoutImageEl.setAttribute('src', image);
+    screenshotPreviewWrapper.setAttribute('aria-hidden', 'false');
+    editCutoutButton.setAttribute('aria-hidden', 'false');
+    addScreenshotButton.setAttribute('aria-hidden', 'true');
   }
 
-  const el = createElement('div', {}, [
+  const el = createElement('div', { className: 'screenshot-editor__row' }, [
     createElement('label', {}, 'Screenshot'),
     screenshotPreviewWrapper,
     addScreenshotButton,
   ]);
-  // <Label>Screenshot</Label>
-  // {screenshotPreview ? (
-  // <ScreenshotWrapper>
-  //   <ScreenshotPreview
-  //     type="button"
-  //     onClick={() => setIsEditScreenshotOpen(true)}
-  //   >
-  //     <PreviewImage src={screenshotPreview} />
-  //   </ScreenshotPreview>
-  //   {screenshotCutout && (
-  //     <ScreenshotPreview
-  //       type="button"
-  //       onClick={() => setIsEditCutoutOpen(true)}
-  //     >
-  //       <PreviewImage src={screenshotCutoutPreview} />
-  //     </ScreenshotPreview>
-  //   )}
-  // </ScreenshotWrapper>
-  // ) : (
-  // <ScreenshotButton type="button" onClick={handleScreenshot}>
-  //   Add Screenshot
-  // </ScreenshotButton>
-  // )}
+
   return {
     get el() {
       return el;

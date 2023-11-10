@@ -2,13 +2,10 @@ import type { BrowserClient, Replay } from '@sentry/browser';
 import { getCurrentHub } from '@sentry/core';
 import { getLocationHref } from '@sentry/utils';
 
-import type { SendFeedbackOptions } from './types';
+import type { FeedbackFormData, Screenshot, SendFeedbackOptions } from './types';
 import { sendFeedbackRequest } from './util/sendFeedbackRequest';
 
-interface SendFeedbackParams {
-  message: string;
-  name?: string;
-  email?: string;
+interface SendFeedbackParams extends FeedbackFormData {
   url?: string;
 }
 
@@ -18,6 +15,7 @@ interface SendFeedbackParams {
 export function sendFeedback(
   { name, email, message, url = getLocationHref() }: SendFeedbackParams,
   { includeReplay = true }: SendFeedbackOptions = {},
+  screenshots: Screenshot[] = [],
 ): ReturnType<typeof sendFeedbackRequest> {
   const client = getCurrentHub().getClient<BrowserClient>();
   const replay = includeReplay && client ? (client.getIntegrationById('Replay') as Replay | undefined) : undefined;
@@ -38,5 +36,6 @@ export function sendFeedback(
       url,
       replay_id: replayId,
     },
+    screenshots,
   });
 }

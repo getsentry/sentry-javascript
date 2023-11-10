@@ -1,4 +1,10 @@
-import type { FeedbackComponent, FeedbackInternalOptions } from '../types';
+import type {
+  FeedbackComponent,
+  FeedbackFormData,
+  FeedbackFormDataWithOptionalScreenshots,
+  FeedbackInternalOptions,
+  Screenshot,
+} from '../types';
 import type { FormComponentProps } from './Form';
 import { Form } from './Form';
 import { Logo } from './Logo';
@@ -6,9 +12,10 @@ import { createScreenshotWidget } from './screenshot/createScreenshotWidget';
 import { createElement } from './util/createElement';
 
 export interface DialogProps
-  extends FormComponentProps,
+  extends Omit<FormComponentProps, 'onSubmit'>,
     Pick<FeedbackInternalOptions, 'formTitle' | 'showBranding' | 'colorScheme'> {
   onClosed?: () => void;
+  onSubmit: (feedback: FeedbackFormData, screenshots: Screenshot[]) => void;
 }
 
 export interface DialogComponent extends FeedbackComponent<HTMLDialogElement> {
@@ -95,6 +102,11 @@ export function Dialog({
     return (el && el.open === true) || false;
   }
 
+  async function handleSubmit(feedback: FeedbackFormDataWithOptionalScreenshots) {
+    const screenshotData = (screenshot && (await screenshot.getData())) || {};
+    onSubmit && onSubmit(feedback, screenshotData);
+  }
+
   const screenshot = createScreenshotWidget();
 
   const {
@@ -109,7 +121,7 @@ export function Dialog({
 
     defaultName,
     defaultEmail,
-    onSubmit,
+    onSubmit: handleSubmit,
     onCancel,
     ...textLabels,
   });
@@ -149,7 +161,8 @@ export function Dialog({
       ),
       formEl,
     ),
-    screenshot.ScreenshotDialog.el,
+    screenshot.dialogEl,
+    screenshot.ScreenshotStyles,
   );
 
   return {

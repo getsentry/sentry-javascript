@@ -1,5 +1,6 @@
 import { WINDOW } from '@sentry/browser';
-import { FeedbackComponent } from '../../types';
+
+import type { FeedbackComponent } from '../../types';
 import { createElement } from '../util/createElement';
 
 interface ScreenshotEditorHelpComponent extends FeedbackComponent<HTMLDivElement> {

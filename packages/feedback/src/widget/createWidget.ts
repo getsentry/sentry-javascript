@@ -1,7 +1,7 @@
 import { getCurrentHub } from '@sentry/core';
 import { logger } from '@sentry/utils';
 
-import type { FeedbackFormData, FeedbackInternalOptions, FeedbackWidget } from '../types';
+import type { FeedbackFormData, FeedbackInternalOptions, FeedbackWidget, Screenshot } from '../types';
 import { handleFeedbackSubmit } from '../util/handleFeedbackSubmit';
 import type { ActorComponent } from './Actor';
 import { Actor } from './Actor';
@@ -83,7 +83,7 @@ export function createWidget({
    * Handler for when the feedback form is completed by the user. This will
    * create and send the feedback message as an event.
    */
-  async function _handleFeedbackSubmit(feedback: FeedbackFormData): Promise<void> {
+  async function _handleFeedbackSubmit(feedback: FeedbackFormData, screenshots?: Screenshot[]): Promise<void> {
     if (!dialog) {
       return;
     }
@@ -94,7 +94,7 @@ export function createWidget({
       return;
     }
 
-    const result = await handleFeedbackSubmit(dialog, feedback);
+    const result = await handleFeedbackSubmit(dialog, feedback, {}, screenshots);
 
     // Error submitting feedback
     if (!result) {
@@ -200,6 +200,7 @@ export function createWidget({
     } catch (err) {
       // TODO: Error handling?
       logger.error(err);
+      console.error(err);
     }
   }
 

@@ -1,4 +1,4 @@
-import { IDrawing, IPoint, ITool, Rect } from './types';
+import type { IDrawing, IPoint, ITool, Rect } from './types';
 import { getPointsBoundingBox, Point, translateRect, updateBoundingBox, Vector } from './utils';
 
 class Tool implements ITool {
@@ -24,13 +24,13 @@ class Tool implements ITool {
     if (!this.isDrawing) {
       throw new Error('Call startDrawing before calling draw');
     }
-    this.drawing.draw(point);
+    this.drawing && this.drawing.draw(point);
   }
   endDrawing(point: IPoint) {
     if (!this.isDrawing) {
       throw new Error('Call startDrawing before calling endDrawing');
     }
-    this.drawing.end(point);
+    this.drawing && this.drawing.end(point);
     const drawing = this.drawing;
     this.drawing = null;
     return drawing;
@@ -44,7 +44,7 @@ class Drawing implements IDrawing {
   protected path = new Path2D();
   protected startPoint: IPoint;
   protected endPoint: IPoint;
-  protected translate: IPoint = { x: 0, y: 0 };
+  protected translate: IPoint;
   protected color = 'red';
   protected strokeSize = 6;
   protected strokeScalingFactor = 1;
@@ -60,6 +60,9 @@ class Drawing implements IDrawing {
     this.isInPath = this.isInPath.bind(this);
     this.drawToCanvas = this.drawToCanvas.bind(this);
     this.getBoundingBox = this.getBoundingBox.bind(this);
+    this.startPoint = { x: 0, y: 0 };
+    this.endPoint = { x: 0, y: 0 };
+    this.translate = { x: 0, y: 0 };
   }
 
   get isValid() {
@@ -193,6 +196,9 @@ class RectangleDrawing extends Drawing {
   };
 }
 
+/**
+ *
+ */
 export class Rectangle extends Tool {
   constructor() {
     super(RectangleDrawing);
@@ -203,6 +209,11 @@ class PenDrawing extends Drawing {
   private lastPoint: IPoint;
   private boundingBox: Rect;
 
+  constructor() {
+    super();
+    this.lastPoint = { x: 0, y: 0 };
+    this.boundingBox = { height: 0, width: 0, x: 0, y: 0 };
+  }
   getBoundingBox(): Rect {
     const rect = translateRect(this.boundingBox, this.translate);
     return {
@@ -244,6 +255,9 @@ class PenDrawing extends Drawing {
   };
 }
 
+/**
+ *
+ */
 export class Pen extends Tool {
   constructor() {
     super(PenDrawing);
@@ -272,6 +286,9 @@ class ArrowDrawing extends Drawing {
   };
 }
 
+/**
+ *
+ */
 export class Arrow extends Tool {
   constructor() {
     super(ArrowDrawing);

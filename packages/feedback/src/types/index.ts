@@ -13,6 +13,7 @@ export interface SendFeedbackData {
     replay_id?: string;
     name?: string;
   };
+  screenshots: Screenshot[];
 }
 
 export interface SendFeedbackOptions {
@@ -20,6 +21,8 @@ export interface SendFeedbackOptions {
    * Should include replay with the feedback?
    */
   includeReplay?: boolean;
+
+  screenshots?: Screenshot[];
 }
 
 /**
@@ -30,6 +33,8 @@ export interface FeedbackFormData {
   email?: string;
   name?: string;
 }
+
+export interface FeedbackFormDataWithOptionalScreenshots extends FeedbackFormData, OptionalScreenshotData {}
 
 /**
  * General feedback configuration
@@ -336,4 +341,22 @@ export interface FeedbackWidget {
   openDialog: () => void;
   closeDialog: () => void;
   removeDialog: () => void;
+}
+
+export interface Rect {
+  height: number;
+  width: number;
+  x: number;
+  y: number;
+}
+
+export interface OptionalScreenshotData {
+  screenshot?: Blob | null;
+  screenshotCutout?: Blob | null;
+}
+
+export interface Screenshot {
+  filename: string;
+  data: Uint8Array;
+  contentType: string;
 }

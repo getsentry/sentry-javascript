@@ -2,7 +2,7 @@ import type { TransportMakeRequestResponse } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
 import { sendFeedback } from '../sendFeedback';
-import type { FeedbackFormData, SendFeedbackOptions } from '../types';
+import type { FeedbackFormData, Screenshot, SendFeedbackOptions } from '../types';
 import type { DialogComponent } from '../widget/Dialog';
 
 /**
@@ -13,6 +13,7 @@ export async function handleFeedbackSubmit(
   dialog: DialogComponent | null,
   feedback: FeedbackFormData,
   options?: SendFeedbackOptions,
+  screenshots?: Screenshot[],
 ): Promise<TransportMakeRequestResponse | void> {
   if (!dialog) {
     // Not sure when this would happen
@@ -29,7 +30,7 @@ export async function handleFeedbackSubmit(
   dialog.hideError();
 
   try {
-    const resp = await sendFeedback(feedback, options);
+    const resp = await sendFeedback(feedback, options, screenshots);
 
     // Success!
     return resp;

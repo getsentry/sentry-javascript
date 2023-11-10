@@ -1,5 +1,5 @@
 import type { FeedbackComponent, FeedbackFormData, FeedbackInternalOptions, FeedbackTextConfiguration } from '../types';
-import { ScreenshotFormComponent } from './screenshot/form';
+import type { ScreenshotFormComponent } from './screenshot/form';
 import { SubmitButton } from './SubmitButton';
 import { createElement } from './util/createElement';
 
