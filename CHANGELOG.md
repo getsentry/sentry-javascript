@@ -4,6 +4,14 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.80.0
+
+- feat(astro): Add distributed tracing via `<meta>` tags (#9483)
+- feat(node): Capture internal server errors in trpc middleware (#9482)
+- feat(remix): Export a type to use for `MetaFunction` parameters (#9493)
+- fix(astro): Mark SDK package as Astro-external (#9509)
+- ref(nextjs): Don't initialize Server SDK during build (#9503)
+
 ## 7.79.0
 
 - feat(tracing): Add span `origin` to trace context (#9472)
@@ -24,7 +32,7 @@ This was possible by extensive use of tree shaking and a host of small changes t
 
 By using [tree shaking](https://docs.sentry.io/platforms/javascript/configuration/tree-shaking/) it is possible to shave up to 10 additional KB off the bundle.
 
-#### Other Changes
+### Other Changes
 
 - feat(astro): Add Sentry middleware (#9445)
 - feat(feedback): Add "outline focus" and "foreground hover" vars (#9462)
@@ -44,13 +52,18 @@ By using [tree shaking](https://docs.sentry.io/platforms/javascript/configuratio
 
 ## 7.77.0
 
+### Security Fixes
+
+- fix(nextjs): Match only numbers as orgid in tunnelRoute (#9416) (CVE-2023-46729)
+- fix(nextjs): Strictly validate tunnel target parameters (#9415) (CVE-2023-46729)
+
+### Other Changes
+
 - feat: Move LinkedErrors integration to @sentry/core (#9404)
 - feat(remix): Update sentry-cli version to ^2.21.2 (#9401)
 - feat(replay): Allow to treeshake & configure compression worker URL (#9409)
 - fix(angular-ivy): Adjust package entry points to support Angular 17 with SSR config (#9412)
 - fix(feedback): Fixing feedback import (#9403)
-- fix(nextjs): Match only numbers as orgid in tunnelRoute (#9416)
-- fix(nextjs): Strictly validate tunnel target parameters (#9415)
 - fix(utils): Avoid keeping a reference of last used event (#9387)
 
 ## 7.76.0

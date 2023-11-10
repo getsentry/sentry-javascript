@@ -12,6 +12,7 @@ export interface SendFeedbackData {
     email?: string;
     replay_id?: string;
     name?: string;
+    source?: string;
   };
 }
 

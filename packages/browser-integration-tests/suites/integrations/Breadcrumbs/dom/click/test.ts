@@ -33,9 +33,7 @@ sentryTest('captures Breadcrumb for clicks & debounces them for a second', async
   await page.waitForTimeout(1000);
   await page.click('#button2');
 
-  await page.evaluate('Sentry.captureException("test exception")');
-
-  const eventData = await promise;
+  const [eventData] = await Promise.all([promise, page.evaluate('Sentry.captureException("test exception")')]);
 
   expect(eventData.exception?.values).toHaveLength(1);
 

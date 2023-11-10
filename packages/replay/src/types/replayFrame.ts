@@ -126,6 +126,15 @@ interface ReplayOptionFrame {
   useCompressionOption: boolean;
 }
 
+interface ReplayFeedbackFrameData {
+  feedback_id: string;
+}
+
+interface ReplayFeedbackFrame extends ReplayBaseBreadcrumbFrame {
+  category: 'sentry.feedback';
+  data: ReplayFeedbackFrameData;
+}
+
 export type ReplayBreadcrumbFrame =
   | ReplayConsoleFrame
   | ReplayClickFrame
@@ -136,6 +145,7 @@ export type ReplayBreadcrumbFrame =
   | ReplaySlowClickFrame
   | ReplayMultiClickFrame
   | ReplayMutationFrame
+  | ReplayFeedbackFrame
   | ReplayBaseBreadcrumbFrame;
 
 interface ReplayBaseSpanFrame {
