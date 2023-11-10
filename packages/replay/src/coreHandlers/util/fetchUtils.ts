@@ -164,7 +164,8 @@ async function _getResponseInfo(
     }
 
     return buildNetworkRequestOrResponse(headers, size, undefined);
-  } catch {
+  } catch (error) {
+    __DEBUG_BUILD__ && logger.warn('[Replay] Failed to serialize response body', error);
     // fallback
     return buildNetworkRequestOrResponse(headers, responseBodySize, undefined);
   }
