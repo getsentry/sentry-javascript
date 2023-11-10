@@ -14,15 +14,15 @@ import { addOrUpdateIntegration } from '@sentry/utils';
 import { devErrorSymbolicationEventProcessor } from '../common/devErrorSymbolicationEventProcessor';
 import { getVercelEnv } from '../common/getVercelEnv';
 import { buildMetadata } from '../common/metadata';
+import { RouteChangeError } from './integrations/routeChangeError';
 import { nextRouterInstrumentation } from './routing/nextRoutingInstrumentation';
 import { applyTunnelRouteOption } from './tunnelRoute';
 
 export * from '@sentry/react';
-export { nextRouterInstrumentation } from './routing/nextRoutingInstrumentation';
+export * from '../common';
 export { captureUnderscoreErrorException } from '../common/_error';
-
+export { nextRouterInstrumentation } from './routing/nextRoutingInstrumentation';
 export { Integrations };
-
 // Previously we expected users to import `BrowserTracing` like this:
 //
 // import { Integrations } from '@sentry/nextjs';
@@ -107,6 +107,9 @@ function addClientIntegrations(options: BrowserOptions): void {
   });
   integrations = addOrUpdateIntegration(defaultRewriteFramesIntegration, integrations);
 
+  const defaultRouteChangeErrorIntegration = new RouteChangeError();
+  integrations = addOrUpdateIntegration(defaultRouteChangeErrorIntegration, integrations);
+
   // This evaluates to true unless __SENTRY_TRACING__ is text-replaced with "false", in which case everything inside
   // will get treeshaken away
   if (typeof __SENTRY_TRACING__ === 'undefined' || __SENTRY_TRACING__) {
@@ -132,5 +135,3 @@ function addClientIntegrations(options: BrowserOptions): void {
 export function withSentryConfig<T>(exportedUserNextConfig: T): T {
   return exportedUserNextConfig;
 }
-
-export * from '../common';

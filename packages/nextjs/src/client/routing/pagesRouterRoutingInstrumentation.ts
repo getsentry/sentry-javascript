@@ -201,7 +201,10 @@ export function pagesRouterInstrumentation(
   }
 }
 
-function getNextRouteFromPathname(pathname: string): string | undefined {
+/**
+ * Turns a pathname into a parameterized next route based on Next.js build manifest.
+ */
+export function getNextRouteFromPathname(pathname: string): string | undefined {
   const pageRoutes = (globalObject.__BUILD_MANIFEST || {}).sortedPages;
 
   // Page route should in 99.999% of the cases be defined by now but just to be sure we make a check here
