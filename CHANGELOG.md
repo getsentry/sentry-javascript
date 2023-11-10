@@ -4,6 +4,10 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.80.0-alpha.0
+
+- feat(utils): Prioritize Component name attributes over HTML Tree String (#9496)
+
 ## 7.80.0
 
 - feat(astro): Add distributed tracing via `<meta>` tags (#9483)
