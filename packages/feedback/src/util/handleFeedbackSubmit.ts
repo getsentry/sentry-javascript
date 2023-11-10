@@ -1,6 +1,7 @@
 import type { TransportMakeRequestResponse } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
+import { FEEDBACK_WIDGET_SOURCE } from '../constants';
 import { sendFeedback } from '../sendFeedback';
 import type { FeedbackFormData, SendFeedbackOptions } from '../types';
 import type { DialogComponent } from '../widget/Dialog';
@@ -29,7 +30,7 @@ export async function handleFeedbackSubmit(
   dialog.hideError();
 
   try {
-    const resp = await sendFeedback({ ...feedback, source: 'widget' }, options);
+    const resp = await sendFeedback({ ...feedback, source: FEEDBACK_WIDGET_SOURCE }, options);
 
     // Success!
     return resp;

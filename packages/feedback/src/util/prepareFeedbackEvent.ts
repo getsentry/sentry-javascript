@@ -27,7 +27,6 @@ export async function prepareFeedbackEvent({
     scope,
     client,
   )) as FeedbackEvent | null;
-
   if (preparedEvent === null) {
     // Taken from baseclient's `_processEvent` method, where this is handled for errors/transactions
     client.recordDroppedEvent('event_processor', 'feedback', event);
@@ -38,6 +37,9 @@ export async function prepareFeedbackEvent({
   // but since we do not use this private method from the client, but rather the plain import
   // we need to do this manually.
   preparedEvent.platform = preparedEvent.platform || 'javascript';
+
+  // No use for breadcrumbs in feedb
+  delete preparedEvent.breadcrumbs;
 
   return preparedEvent;
 }

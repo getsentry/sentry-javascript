@@ -1,6 +1,7 @@
 import { createEventEnvelope, getCurrentHub } from '@sentry/core';
 import type { FeedbackEvent, TransportMakeRequestResponse } from '@sentry/types';
 
+import { FEEDBACK_WIDGET_SOURCE } from '../constants';
 import type { SendFeedbackData } from '../types';
 import { prepareFeedbackEvent } from './prepareFeedbackEvent';
 
@@ -33,6 +34,10 @@ export async function sendFeedbackRequest({
     },
     type: 'feedback',
   };
+
+  if (source === FEEDBACK_WIDGET_SOURCE) {
+    scope.setLevel('info');
+  }
 
   const feedbackEvent = await prepareFeedbackEvent({
     scope,
