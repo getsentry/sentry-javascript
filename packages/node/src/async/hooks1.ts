@@ -4,16 +4,13 @@ import * as async_hooks from 'async_hooks';
 
 interface AsyncLocalStorage<T> {
   getStore(): T | undefined;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   run<R, TArgs extends any[]>(store: T, callback: (...args: TArgs) => R, ...args: TArgs): R;
 }
 
 type AsyncLocalStorageConstructor = { new <T>(): AsyncLocalStorage<T> };
-// AsyncLocalStorage only exists in async_hook after Node v12.17.0 or v13.10.0
 type NewerAsyncHooks = typeof async_hooks & { AsyncLocalStorage: AsyncLocalStorageConstructor };
 
 let asyncStorage: AsyncLocalStorage<Hub>;
-
 /**
  * Sets the async context strategy to use AsyncLocalStorage which requires Node v12.17.0 or v13.10.0.
  */
@@ -36,8 +33,6 @@ export function setHooksAsyncContextStrategy(): void {
     const existingHub = getCurrentHub();
 
     if (existingHub && options?.reuseExisting) {
-      // We're already in an async context, so we don't need to create a new one
-      // just call the callback with the current hub
       return callback();
     }
 
@@ -50,6 +45,7 @@ export function setHooksAsyncContextStrategy(): void {
 
   setAsyncContextStrategy({ getCurrentHub, runWithAsyncContext });
 }
+
 /**
  * Initiates the counting of created promises and settled promises.
  *

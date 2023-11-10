@@ -1,7 +1,8 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import type { Hub } from '@sentry/core';
 import { getCurrentHub, runWithAsyncContext, setAsyncContextStrategy } from '@sentry/core';
 
-import { setHooksAsyncContextStrategy } from '../../src/async/hooks';
+import { setHooksAsyncContextStrategy , startCounter } from '../../src/async/hooks';
 import { conditionalTest } from '../utils';
 
 conditionalTest({ min: 12 })('async_hooks', () => {
@@ -144,5 +145,64 @@ conditionalTest({ min: 12 })('async_hooks', () => {
         }
       }, 0);
     });
+  });
+});
+
+describe('startCounter', () => {
+  test('should track created and settled promises when locations and continuation are true', async () => {
+    const trackPromises = startCounter({ locations: true, continuation: true });
+
+    // Simulate promise creation and settlement
+    const promise1 = new Promise((resolve) => setTimeout(resolve, 100));
+    const promise2 = new Promise((resolve) => setTimeout(resolve, 200));
+
+    // Wait for promises to settle
+    await Promise.all([promise1, promise2]);
+
+    // Call trackPromises to get the results
+    const result = trackPromises();
+
+    // Assert expected results
+    expect(result.created).toBe(2); // Two promises were created
+    expect(result.settled).toBe(2); // Two promises were settled
+    expect(result.locations).toBeDefined(); // Locations are tracked
+  });
+
+  test('should track created and settled promises when locations is true and continuation is false', async () => {
+    const trackPromises = startCounter({ locations: true, continuation: false });
+
+    // Simulate promise creation and settlement
+    const promise1 = new Promise((resolve) => setTimeout(resolve, 100));
+    const promise2 = new Promise((resolve) => setTimeout(resolve, 200));
+
+    // Wait for promises to settle
+    await Promise.all([promise1, promise2]);
+
+    // Call trackPromises to get the results
+    const result = trackPromises();
+
+    // Assert expected results
+    expect(result.created).toBe(2); // Two promises were created
+    expect(result.settled).toBe(2); // Two promises were settled
+    expect(result.locations).toBeDefined(); // Locations are tracked
+  });
+
+  test('should track promises when locations and continuation are false', async () => {
+    const trackPromises = startCounter({ locations: false, continuation: false });
+
+    // Simulate promise creation and settlement
+    const promise1 = new Promise((resolve) => setTimeout(resolve, 100));
+    const promise2 = new Promise((resolve) => setTimeout(resolve, 200));
+
+    // Wait for promises to settle
+    await Promise.all([promise1, promise2]);
+
+    // Call trackPromises to get the results
+    const result = trackPromises();
+
+    // Assert expected results
+    expect(result.created).toBe(2); // Two promises were created
+    expect(result.settled).toBe(2); // Two promises were settled
+    expect(result.locations).toEqual({}); // Locations are not tracked
   });
 });
