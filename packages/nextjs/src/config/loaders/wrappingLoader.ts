@@ -102,12 +102,11 @@ export default function wrappingLoader(
     }
   } else if (wrappingTargetKind === 'page' || wrappingTargetKind === 'api-route') {
     // Get the parameterized route name from this page's filepath
-    const parameterizedPagesRoute = path.posix
-      .normalize(
-        path
-          // Get the path of the file insde of the pages directory
-          .relative(pagesDir, this.resourcePath),
-      )
+    const parameterizedPagesRoute = path
+      // Get the path of the file insde of the pages directory
+      .relative(pagesDir, this.resourcePath)
+      // Replace all backslashes with forward slashes (windows)
+      .replace(/\\/g, '/')
       // Add a slash at the beginning
       .replace(/(.*)/, '/$1')
       // Pull off the file extension
@@ -139,8 +138,11 @@ export default function wrappingLoader(
     templateCode = templateCode.replace(/__ROUTE__/g, parameterizedPagesRoute.replace(/\\/g, '\\\\'));
   } else if (wrappingTargetKind === 'server-component' || wrappingTargetKind === 'route-handler') {
     // Get the parameterized route name from this page's filepath
-    const parameterizedPagesRoute = path.posix
-      .normalize(path.relative(appDir, this.resourcePath))
+    const parameterizedPagesRoute = path
+      // Get the path of the file insde of the app directory
+      .relative(appDir, this.resourcePath)
+      // Replace all backslashes with forward slashes (windows)
+      .replace(/\\/g, '/')
       // Add a slash at the beginning
       .replace(/(.*)/, '/$1')
       // Pull off the file name
