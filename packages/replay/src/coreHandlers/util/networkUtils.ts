@@ -1,5 +1,5 @@
 import type { TextEncoderInternal } from '@sentry/types';
-import { dropUndefinedKeys, stringMatchesSomePattern } from '@sentry/utils';
+import { dropUndefinedKeys, logger, stringMatchesSomePattern } from '@sentry/utils';
 
 import { NETWORK_BODY_MAX_SIZE, WINDOW } from '../../constants';
 import type {
@@ -74,7 +74,9 @@ export function getBodyString(body: unknown): string | undefined {
     if (body instanceof FormData) {
       return _serializeFormData(body);
     }
-  } catch {} // eslint-disable-line no-empty
+  } catch {
+    __DEBUG_BUILD__ && logger.warn('[Replay] Failed to serialize body', body);
+  }
 
   return undefined;
 }
