@@ -40,7 +40,7 @@ const serverComponentWrapperTemplateCode = fs.readFileSync(serverComponentWrappe
 const routeHandlerWrapperTemplatePath = path.resolve(__dirname, '..', 'templates', 'routeHandlerWrapperTemplate.js');
 const routeHandlerWrapperTemplateCode = fs.readFileSync(routeHandlerWrapperTemplatePath, { encoding: 'utf8' });
 
-type LoaderOptions = {
+export type WrappingLoaderOptions = {
   pagesDir: string;
   appDir: string;
   pageExtensionRegex: string;
@@ -58,7 +58,7 @@ type LoaderOptions = {
  */
 // eslint-disable-next-line complexity
 export default function wrappingLoader(
-  this: LoaderThis<LoaderOptions>,
+  this: LoaderThis<WrappingLoaderOptions>,
   userCode: string,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   userModuleSourceMap: any,
