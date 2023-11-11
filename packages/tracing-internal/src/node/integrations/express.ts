@@ -544,7 +544,7 @@ export function preventDuplicateSegments(
   layerPath?: string,
 ): string | undefined {
   // filter query params
-  const normalizeURL = originalUrl?.split('?')?.[0];
+  const normalizeURL = stripUrlQueryAndFragment(originalUrl || '');
   const originalUrlSplit = normalizeURL?.split('/').filter(v => !!v);
   let tempCounter = 0;
   const currentOffset = reconstructedRoute?.split('/').filter(v => !!v).length || 0;
