@@ -1,10 +1,19 @@
+import type { ConsoleLevel } from '@sentry/types';
+
 import { GLOBAL_OBJ } from './worldwide';
 
 /** Prefix for logging strings */
 const PREFIX = 'Sentry Logger ';
 
-export const CONSOLE_LEVELS = ['debug', 'info', 'warn', 'error', 'log', 'assert', 'trace'] as const;
-export type ConsoleLevel = (typeof CONSOLE_LEVELS)[number];
+export const CONSOLE_LEVELS: readonly ConsoleLevel[] = [
+  'debug',
+  'info',
+  'warn',
+  'error',
+  'log',
+  'assert',
+  'trace',
+] as const;
 
 type LoggerMethod = (...args: unknown[]) => void;
 type LoggerConsoleMethods = Record<ConsoleLevel, LoggerMethod>;

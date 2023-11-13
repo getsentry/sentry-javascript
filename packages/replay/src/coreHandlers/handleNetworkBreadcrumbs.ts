@@ -6,7 +6,7 @@ import type {
   TextEncoderInternal,
   XhrBreadcrumbData,
 } from '@sentry/types';
-import { addInstrumentationHandler, logger } from '@sentry/utils';
+import { addFetchInstrumentationHandler, addXhrInstrumentationHandler, logger } from '@sentry/utils';
 
 import type { FetchHint, ReplayContainer, ReplayNetworkOptions, XhrHint } from '../types';
 import { handleFetchSpanListener } from './handleFetch';
@@ -53,8 +53,8 @@ export function handleNetworkBreadcrumbs(replay: ReplayContainer): void {
       client.on('beforeAddBreadcrumb', (breadcrumb, hint) => beforeAddNetworkBreadcrumb(options, breadcrumb, hint));
     } else {
       // Fallback behavior
-      addInstrumentationHandler('fetch', handleFetchSpanListener(replay));
-      addInstrumentationHandler('xhr', handleXhrSpanListener(replay));
+      addFetchInstrumentationHandler(handleFetchSpanListener(replay));
+      addXhrInstrumentationHandler(handleXhrSpanListener(replay));
     }
   } catch {
     // Do nothing

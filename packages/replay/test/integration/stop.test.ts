@@ -20,18 +20,14 @@ describe('Integration | stop', () => {
   let integration: Replay;
   const prevLocation = WINDOW.location;
 
-  type MockAddInstrumentationHandler = jest.MockedFunction<typeof SentryUtils.addInstrumentationHandler>;
   const { record: mockRecord } = mockRrweb();
 
-  let mockAddInstrumentationHandler: MockAddInstrumentationHandler;
+  let mockAddDomInstrumentationHandler: jest.SpyInstance;
   let mockRunFlush: MockRunFlush;
 
   beforeAll(async () => {
     jest.setSystemTime(new Date(BASE_TIMESTAMP));
-    mockAddInstrumentationHandler = jest.spyOn(
-      SentryUtils,
-      'addInstrumentationHandler',
-    ) as MockAddInstrumentationHandler;
+    mockAddDomInstrumentationHandler = jest.spyOn(SentryUtils, 'addClickKeypressInstrumentationHandler');
 
     ({ replay, integration } = await mockSdk());
 
@@ -56,7 +52,7 @@ describe('Integration | stop', () => {
     replay['_initializeSessionForSampling']();
     replay.setInitialState();
     mockRecord.takeFullSnapshot.mockClear();
-    mockAddInstrumentationHandler.mockClear();
+    mockAddDomInstrumentationHandler.mockClear();
     Object.defineProperty(WINDOW, 'location', {
       value: prevLocation,
       writable: true,
@@ -166,13 +162,13 @@ describe('Integration | stop', () => {
     });
   });
 
-  it('does not call core SDK `addInstrumentationHandler` after initial setup', async function () {
-    // NOTE: We clear addInstrumentationHandler mock after every test
+  it('does not call core SDK `addClickKeypressInstrumentationHandler` after initial setup', async function () {
+    // NOTE: We clear mockAddDomInstrumentationHandler after every test
     await integration.stop();
     integration.start();
     await integration.stop();
     integration.start();
 
-    expect(mockAddInstrumentationHandler).not.toHaveBeenCalled();
+    expect(mockAddDomInstrumentationHandler).not.toHaveBeenCalled();
   });
 });

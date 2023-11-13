@@ -1,4 +1,4 @@
-import type { ConsoleLevel } from './logger';
+import type { ConsoleLevel } from '@sentry/types';
 
 /** An error emitted by Sentry SDKs and related utilities. */
 export class SentryError extends Error {

@@ -1,8 +1,9 @@
 /* eslint-disable max-lines */
 import { getCurrentHub, getDynamicSamplingContextFromClient, hasTracingEnabled } from '@sentry/core';
-import type { HandlerDataFetch, Span } from '@sentry/types';
+import type { SentryWrappedXMLHttpRequest, Span } from '@sentry/types';
 import {
-  addInstrumentationHandler,
+  addFetchInstrumentationHandler,
+  addXhrInstrumentationHandler,
   BAGGAGE_HEADER_NAME,
   browserPerformanceTimeOrigin,
   dynamicSamplingContextToSentryBaggageHeader,
@@ -13,6 +14,13 @@ import {
 
 import { instrumentFetchRequest } from '../common/fetch';
 import { addPerformanceInstrumentationHandler } from './instrument';
+
+/** Exported only for tests. */
+export type ExtendedSentryWrappedXMLHttpRequest = SentryWrappedXMLHttpRequest & {
+  __sentry_xhr_span_id__?: string;
+  setRequestHeader?: (key: string, val: string) => void;
+  getRequestHeader?: (key: string) => string;
+};
 
 export const DEFAULT_TRACE_PROPAGATION_TARGETS = ['localhost', /^\/(?!\/)/];
 
@@ -81,8 +89,6 @@ export interface XHRData {
     getRequestHeader?: (key: string) => string;
     __sentry_own_request__?: boolean;
   };
-  startTimestamp: number;
-  endTimestamp?: number;
 }
 
 export const defaultRequestInstrumentationOptions: RequestInstrumentationOptions = {
@@ -123,7 +129,7 @@ export function instrumentOutgoingRequests(_options?: Partial<RequestInstrumenta
   const spans: Record<string, Span> = {};
 
   if (traceFetch) {
-    addInstrumentationHandler('fetch', (handlerData: HandlerDataFetch) => {
+    addFetchInstrumentationHandler(handlerData => {
       const createdSpan = instrumentFetchRequest(handlerData, shouldCreateSpan, shouldAttachHeadersWithTargets, spans);
       if (enableHTTPTimings && createdSpan) {
         addHTTPTimings(createdSpan);
@@ -132,7 +138,7 @@ export function instrumentOutgoingRequests(_options?: Partial<RequestInstrumenta
   }
 
   if (traceXHR) {
-    addInstrumentationHandler('xhr', (handlerData: XHRData) => {
+    addXhrInstrumentationHandler(handlerData => {
       const createdSpan = xhrCallback(handlerData, shouldCreateSpan, shouldAttachHeadersWithTargets, spans);
       if (enableHTTPTimings && createdSpan) {
         addHTTPTimings(createdSpan);
@@ -252,12 +258,12 @@ export function shouldAttachHeaders(url: string, tracePropagationTargets: (strin
  */
 // eslint-disable-next-line complexity
 export function xhrCallback(
-  handlerData: XHRData,
+  handlerData: HandlerDataXhr,
   shouldCreateSpan: (url: string) => boolean,
   shouldAttachHeaders: (url: string) => boolean,
   spans: Record<string, Span>,
 ): Span | undefined {
-  const xhr = handlerData.xhr;
+  const xhr = handlerData.xhr as ExtendedSentryWrappedXMLHttpRequest;
   const sentryXhrData = xhr && xhr[SENTRY_XHR_DATA_KEY];
 
   if (!hasTracingEnabled() || (xhr && xhr.__sentry_own_request__) || !xhr || !sentryXhrData) {
@@ -272,7 +278,7 @@ export function xhrCallback(
     if (!spanId) return;
 
     const span = spans[spanId];
-    if (span) {
+    if (span && sentryXhrData.status_code !== undefined) {
       span.setHttpStatus(sentryXhrData.status_code);
       span.finish();
 
@@ -290,7 +296,6 @@ export function xhrCallback(
     shouldCreateSpanResult && parentSpan
       ? parentSpan.startChild({
           data: {
-            ...sentryXhrData.data,
             type: 'xhr',
             'http.method': sentryXhrData.method,
             url: sentryXhrData.url,
@@ -327,7 +332,7 @@ export function xhrCallback(
 }
 
 function setHeaderOnXhr(
-  xhr: NonNullable<XHRData['xhr']>,
+  xhr: ExtendedSentryWrappedXMLHttpRequest,
   sentryTraceHeader: string,
   sentryBaggageHeader: string | undefined,
 ): void {

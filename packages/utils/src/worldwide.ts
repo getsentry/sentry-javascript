@@ -24,12 +24,12 @@ export interface InternalGlobal {
     Integrations?: Integration[];
   };
   onerror?: {
-    (msg: unknown, url: unknown, line: unknown, column: unknown, error: unknown): boolean;
+    (event: Event | string, source?: string, lineno?: number, colno?: number, error?: Error): any;
     __SENTRY_INSTRUMENTED__?: true;
     __SENTRY_LOADER__?: true;
   };
   onunhandledrejection?: {
-    (event: unknown): boolean;
+    (event: PromiseRejectionEvent): boolean;
     __SENTRY_INSTRUMENTED__?: true;
     __SENTRY_LOADER__?: true;
   };

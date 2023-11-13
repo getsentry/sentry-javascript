@@ -3,15 +3,17 @@
 // Make sure to cast it where needed!
 type XHRSendInput = unknown;
 
+export type ConsoleLevel = 'debug' | 'info' | 'warn' | 'error' | 'log' | 'assert' | 'trace';
+
 export interface SentryWrappedXMLHttpRequest {
-  __sentry_xhr_v2__?: SentryXhrData;
+  __sentry_xhr_v3__?: SentryXhrData;
   __sentry_own_request__?: boolean;
 }
 
 // WARNING: When the shape of this type is changed bump the version in `SentryWrappedXMLHttpRequest`
 export interface SentryXhrData {
-  method?: string;
-  url?: string;
+  method: string;
+  url: string;
   status_code?: number;
   body?: XHRSendInput;
   request_body_size?: number;
@@ -20,6 +22,9 @@ export interface SentryXhrData {
 }
 
 export interface HandlerDataXhr {
+  /**
+   * @deprecated This property will be removed in v8.
+   */
   args: [string, string];
   xhr: SentryWrappedXMLHttpRequest;
   startTimestamp?: number;
@@ -54,4 +59,33 @@ export interface HandlerDataFetch {
     };
   };
   error?: unknown;
+}
+
+export interface HandlerDataDom {
+  event: Event | { target: EventTarget };
+  name: string;
+  global?: boolean;
+}
+
+export interface HandlerDataConsole {
+  level: ConsoleLevel;
+  args: any[];
+}
+
+export interface HandlerDataHistory {
+  from: string | undefined;
+  to: string;
+}
+
+export interface HandlerDataError {
+  column?: number;
+  error?: Error;
+  line?: number;
+  msg: string | Event;
+  url?: string;
+}
+
+export interface HandlerDataUnhandledRejection {
+  reason?: Error;
+  detail?: { reason?: Error };
 }

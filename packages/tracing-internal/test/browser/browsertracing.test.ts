@@ -1,8 +1,7 @@
 /* eslint-disable deprecation/deprecation */
 import { Hub, makeMain, TRACING_DEFAULTS } from '@sentry/core';
 import * as hubExtensions from '@sentry/core';
-import type { BaseTransportOptions, ClientOptions, DsnComponents } from '@sentry/types';
-import type { InstrumentHandlerCallback, InstrumentHandlerType } from '@sentry/utils';
+import type { BaseTransportOptions, ClientOptions, DsnComponents, HandlerDataHistory } from '@sentry/types';
 import { JSDOM } from 'jsdom';
 
 import type { IdleTransaction } from '../../../tracing/src';
@@ -15,17 +14,15 @@ import { instrumentRoutingWithDefaults } from '../../src/browser/router';
 import { WINDOW } from '../../src/browser/types';
 import { TestClient } from '../utils/TestClient';
 
-let mockChangeHistory: ({ to, from }: { to: string; from?: string }) => void = () => undefined;
+let mockChangeHistory: (data: HandlerDataHistory) => void = () => {};
 
 jest.mock('@sentry/utils', () => {
   const actual = jest.requireActual('@sentry/utils');
   return {
     ...actual,
-    addInstrumentationHandler: (type: InstrumentHandlerType, callback: InstrumentHandlerCallback): void => {
-      if (type === 'history') {
-        // rather than actually add the navigation-change handler, grab a reference to it, so we can trigger it manually
-        mockChangeHistory = callback;
-      }
+
+    addHistoryInstrumentationHandler: (callback: (data: HandlerDataHistory) => void): void => {
+      mockChangeHistory = callback;
     },
   };
 });
