@@ -53,6 +53,7 @@ export {
   withScope,
   captureCheckIn,
   withMonitor,
+  hapiErrorPlugin,
 } from '@sentry/node';
 
 export type {
