@@ -1,14 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { getCurrentHub } from '@sentry/core';
-import type {
-  Event,
-  EventHint,
-  HandlerDataUnhandledRejection,
-  Hub,
-  Integration,
-  Primitive,
-  StackParser,
-} from '@sentry/types';
+import type { Event, EventHint, Hub, Integration, Primitive, StackParser } from '@sentry/types';
 import {
   addExceptionMechanism,
   addGlobalErrorInstrumentationHandler,
@@ -85,7 +77,6 @@ export class GlobalHandlers implements Integration {
   }
 }
 
-/** JSDoc */
 function _installGlobalOnErrorHandler(): void {
   addGlobalErrorInstrumentationHandler(data => {
     const [hub, stackParser, attachStacktrace] = getHubAndOptions();
@@ -113,37 +104,18 @@ function _installGlobalOnErrorHandler(): void {
   });
 }
 
-/** JSDoc */
 function _installGlobalOnUnhandledRejectionHandler(): void {
   addGlobalUnhandledRejectionInstrumentationHandler(e => {
     const [hub, stackParser, attachStacktrace] = getHubAndOptions();
     if (!hub.getIntegration(GlobalHandlers)) {
       return;
     }
-    let error: Error | HandlerDataUnhandledRejection = e;
-
-    // dig the object of the rejection out of known event types
-    try {
-      // PromiseRejectionEvents store the object of the rejection under 'reason'
-      // see https://developer.mozilla.org/en-US/docs/Web/API/PromiseRejectionEvent
-      if ('reason' in e && e.reason) {
-        error = e.reason;
-      }
-      // something, somewhere, (likely a browser extension) effectively casts PromiseRejectionEvents
-      // to CustomEvents, moving the `promise` and `reason` attributes of the PRE into
-      // the CustomEvent's `detail` attribute, since they're not part of CustomEvent's spec
-      // see https://developer.mozilla.org/en-US/docs/Web/API/CustomEvent and
-      // https://github.com/getsentry/sentry-javascript/issues/2380
-      else if ('detail' in e && e.detail && 'reason' in e.detail && e.detail.reason) {
-        error = e.detail.reason;
-      }
-    } catch (_oO) {
-      // no-empty
-    }
 
     if (shouldIgnoreOnError()) {
       return true;
     }
+
+    const error = _getUnhandledRejectionError(e as unknown);
 
     const event = isPrimitive(error)
       ? _eventFromRejectionWithPrimitive(error)
@@ -154,6 +126,35 @@ function _installGlobalOnUnhandledRejectionHandler(): void {
     addMechanismAndCapture(hub, error, event, 'onunhandledrejection');
     return;
   });
+}
+
+function _getUnhandledRejectionError(error: unknown): unknown {
+  if (isPrimitive(error)) {
+    return error;
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const e = error as any;
+
+  // dig the object of the rejection out of known event types
+  try {
+    // PromiseRejectionEvents store the object of the rejection under 'reason'
+    // see https://developer.mozilla.org/en-US/docs/Web/API/PromiseRejectionEvent
+    if ('reason' in e) {
+      return e.reason;
+    }
+
+    // something, somewhere, (likely a browser extension) effectively casts PromiseRejectionEvents
+    // to CustomEvents, moving the `promise` and `reason` attributes of the PRE into
+    // the CustomEvent's `detail` attribute, since they're not part of CustomEvent's spec
+    // see https://developer.mozilla.org/en-US/docs/Web/API/CustomEvent and
+    // https://github.com/getsentry/sentry-javascript/issues/2380
+    else if ('detail' in e && 'reason' in e.detail) {
+      return e.detail.reason;
+    }
+  } catch {} // eslint-disable-line no-empty
+
+  return error;
 }
 
 /**
