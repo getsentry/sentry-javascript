@@ -86,11 +86,11 @@ function findDefaultSdkInitFile(type: 'server' | 'client'): string | undefined {
 }
 
 function getSourcemapsAssetsGlob(config: AstroConfig): string {
-  // outDir is stored as a `file://` URL
-  const outDirPathname = config.outDir && config.outDir.pathname;
-  const rootDirName = config.root && config.root.pathname;
+  // paths are stored as "file://" URLs
+  const outDirPathname = config.outDir && path.resolve(config.outDir.pathname);
+  const rootDirName = path.resolve((config.root && config.root.pathname) || process.cwd());
 
-  if (outDirPathname && rootDirName) {
+  if (outDirPathname) {
     const relativePath = path.relative(rootDirName, outDirPathname);
     return `${relativePath}/**/*`;
   }
