@@ -851,10 +851,10 @@ jobs:
       REACT_APP_E2E_TEST_DSN: ${{ secrets.E2E_TEST_DSN }}
       E2E_TEST_SENTRY_ORG_SLUG: 'sentry-javascript-sdks'
       E2E_TEST_SENTRY_TEST_PROJECT: 'sentry-javascript-e2e-tests'
+    runs-on: ${{ matrix.os || 'ubuntu-20.04' }}
     strategy:
       fail-fast: false
       matrix:
-        os: ['ubuntu-20.04']
         test-application:
           [
             'node-express-app',
@@ -897,7 +897,6 @@ jobs:
           - test-application: 'nextjs-app-dir'
             os: windows-latest
             label: 'nextjs-app-dir (windows)'
-    runs-on: ${{ matrix.os }}
 
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
