@@ -90,8 +90,6 @@ function getSourcemapsAssetsGlob(config: AstroConfig): string {
   const outDirPathname = config.outDir && config.outDir.pathname;
   const rootDirName = config.root && config.root.pathname;
 
-  console.log({ outDirPathname, rootDirName });
-
   if (outDirPathname && rootDirName) {
     const relativePath = path.relative(rootDirName, outDirPathname);
     return `${relativePath}/**/*`;
