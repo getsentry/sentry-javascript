@@ -841,7 +841,6 @@ jobs:
       (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) &&
       github.actor != 'dependabot[bot]'
     needs: [job_get_metadata, job_build, job_e2e_prepare]
-    runs-on: ${{ matrix.os }}
     timeout-minutes: 10
     env:
       E2E_TEST_AUTH_TOKEN: ${{ secrets.E2E_TEST_AUTH_TOKEN }}
@@ -855,7 +854,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-latest, ubuntu-20.04]
+        os: [ubuntu-20.04]
         test-application:
           [
             'node-express-app',
@@ -892,6 +891,13 @@ jobs:
           - test-application: 'nextjs-app-dir'
             build-command: 'test:build-13'
             label: 'nextjs-app-dir (next@13)'
+          - test-application: 'create-next-app'
+            os: windows-latest
+            label: 'create-next-app (windows)'
+          - test-application: 'nextjs-app-dir'
+            os: windows-latest
+            label: 'nextjs-app-dir (windows)'
+    runs-on: ${{ matrix.os }}
 
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
