@@ -29,7 +29,7 @@ export interface InternalGlobal {
     __SENTRY_LOADER__?: true;
   };
   onunhandledrejection?: {
-    (event: PromiseRejectionEvent): boolean;
+    (event: unknown): boolean;
     __SENTRY_INSTRUMENTED__?: true;
     __SENTRY_LOADER__?: true;
   };
