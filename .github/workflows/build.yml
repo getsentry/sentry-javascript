@@ -854,7 +854,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-20.04]
+        os: ['ubuntu-20.04']
         test-application:
           [
             'node-express-app',
