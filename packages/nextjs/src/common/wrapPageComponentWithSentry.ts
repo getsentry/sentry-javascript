@@ -1,4 +1,4 @@
-import { captureException, configureScope, runWithAsyncContext } from '@sentry/core';
+import { addTracingExtensions, captureException, configureScope, runWithAsyncContext } from '@sentry/core';
 import { addExceptionMechanism, extractTraceparentData } from '@sentry/utils';
 
 interface FunctionComponent {
@@ -21,6 +21,7 @@ function isReactClassComponent(target: unknown): target is ClassComponent {
  * Wraps a page component with Sentry error instrumentation.
  */
 export function wrapPageComponentWithSentry(pageComponent: FunctionComponent | ClassComponent): unknown {
+  addTracingExtensions();
   if (isReactClassComponent(pageComponent)) {
     return class SentryWrappedPageComponent extends pageComponent {
       public render(...args: unknown[]): unknown {
