@@ -16,6 +16,7 @@ import {
   dropUndefinedKeys,
   extractPathForTransaction,
   isString,
+  isThenable,
   logger,
   normalize,
   tracingContextFromHeaders,
@@ -326,7 +327,7 @@ interface SentryTrpcMiddlewareOptions {
 
 interface TrpcMiddlewareArguments<T> {
   path: string;
-  type: 'query' | 'mutation' | 'subscription';
+  type: string;
   next: () => T;
   rawInput: unknown;
 }
@@ -338,7 +339,7 @@ interface TrpcMiddlewareArguments<T> {
  * e.g. Express Request Handlers or Next.js SDK.
  */
 export function trpcMiddleware(options: SentryTrpcMiddlewareOptions = {}) {
-  return async function <T>({ path, type, next, rawInput }: TrpcMiddlewareArguments<T>): Promise<T> {
+  return function <T>({ path, type, next, rawInput }: TrpcMiddlewareArguments<T>): T {
     const hub = getCurrentHub();
     const clientOptions = hub.getClient()?.getOptions();
     const sentryTransaction = hub.getScope().getTransaction();
@@ -358,36 +359,49 @@ export function trpcMiddleware(options: SentryTrpcMiddlewareOptions = {}) {
       sentryTransaction.setContext('trpc', trpcContext);
     }
 
-    function captureError(e: unknown): void {
-      captureException(e, scope => {
-        scope.addEventProcessor(event => {
-          addExceptionMechanism(event, {
-            handled: false,
-          });
-          return event;
-        });
+    function shouldCaptureError(e: unknown): boolean {
+      if (typeof e === 'object' && e && 'code' in e) {
+        // Is likely TRPCError - we only want to capture internal server errors
+        return e.code === 'INTERNAL_SERVER_ERROR';
+      } else {
+        // Is likely random error that bubbles up
+        return true;
+      }
+    }
 
-        return scope;
+    function handleErrorCase(e: unknown): void {
+      if (shouldCaptureError(e)) {
+        captureException(e, scope => {
+          scope.addEventProcessor(event => {
+            addExceptionMechanism(event, {
+              handled: false,
+            });
+            return event;
+          });
+
+          return scope;
+        });
+      }
+    }
+
+    let maybePromiseResult;
+
+    try {
+      maybePromiseResult = next();
+    } catch (e) {
+      handleErrorCase(e);
+      throw e;
+    }
+
+    if (isThenable(maybePromiseResult)) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      Promise.resolve(maybePromiseResult).then(null, e => {
+        handleErrorCase(e);
       });
     }
 
-    try {
-      return await next();
-    } catch (e: unknown) {
-      if (typeof e === 'object' && e) {
-        if ('code' in e) {
-          // Is likely TRPCError - we only want to capture internal server errors
-          if (e.code === 'INTERNAL_SERVER_ERROR') {
-            captureError(e);
-          }
-        } else {
-          // Is likely random error that bubbles up
-          captureError(e);
-        }
-      }
-
-      throw e;
-    }
+    // We return the original promise just to be safe.
+    return maybePromiseResult;
   };
 }
 
