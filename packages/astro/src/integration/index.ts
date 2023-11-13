@@ -1,6 +1,6 @@
 /* eslint-disable no-console */
 import { sentryVitePlugin } from '@sentry/vite-plugin';
-import type { AstroIntegration } from 'astro';
+import type { AstroConfig, AstroIntegration } from 'astro';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -13,7 +13,8 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
   return {
     name: PKG_NAME,
     hooks: {
-      'astro:config:setup': async ({ updateConfig, injectScript }) => {
+      // eslint-disable-next-line complexity
+      'astro:config:setup': async ({ updateConfig, injectScript, config }) => {
         // The third param here enables loading of all env vars, regardless of prefix
         // see: https://main.vitejs.dev/config/#using-environment-variables-in-config
 
@@ -40,6 +41,10 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
                   project: uploadOptions.project ?? env.SENTRY_PROJECT,
                   authToken: uploadOptions.authToken ?? env.SENTRY_AUTH_TOKEN,
                   telemetry: uploadOptions.telemetry ?? true,
+                  sourcemaps: {
+                    assets: [getSourcemapsAssetsGlob(config)],
+                  },
+                  debug: options.debug ?? false,
                 }),
               ],
             },
@@ -78,4 +83,20 @@ function findDefaultSdkInitFile(type: 'server' | 'client'): string | undefined {
   return fileExtensions
     .map(ext => path.resolve(path.join(process.cwd(), `sentry.${type}.config.${ext}`)))
     .find(filename => fs.existsSync(filename));
+}
+
+function getSourcemapsAssetsGlob(config: AstroConfig): string {
+  // outDir is stored as a `file://` URL
+  const outDirPathname = config.outDir && config.outDir.pathname;
+  const rootDirName = config.root && config.root.pathname;
+
+  console.log({ outDirPathname, rootDirName });
+
+  if (outDirPathname && rootDirName) {
+    const relativePath = path.relative(rootDirName, outDirPathname);
+    return `${relativePath}/**/*`;
+  }
+
+  // fallback to default output dir
+  return 'dist/**/*';
 }
