@@ -2,13 +2,8 @@ import { expect } from '@playwright/test';
 
 import { sentryTest } from '../../../utils/fixtures';
 import { envelopeRequestParser, getEnvelopeType } from '../../../utils/helpers';
-import { shouldSkipReplayTest } from '../../../utils/replayHelpers';
 
 sentryTest('should capture feedback (@sentry-internal/feedback import)', async ({ getLocalTestPath, page }) => {
-  if (shouldSkipReplayTest()) {
-    sentryTest.skip();
-  }
-
   const feedbackRequestPromise = page.waitForResponse(res => {
     const req = res.request();
 
@@ -45,6 +40,9 @@ sentryTest('should capture feedback (@sentry-internal/feedback import)', async (
   const feedbackEvent = envelopeRequestParser((await feedbackRequestPromise).request());
   expect(feedbackEvent).toEqual({
     type: 'feedback',
+    // feedback does not use breadcrumbs, so it should be cleared (otherwise a
+    // click would have been captured)
+    breadcrumbs: [],
     contexts: {
       feedback: {
         contact_email: 'janedoe@example.org',

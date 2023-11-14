@@ -1,7 +1,7 @@
 import { createEventEnvelope, getCurrentHub } from '@sentry/core';
 import type { FeedbackEvent, TransportMakeRequestResponse } from '@sentry/types';
 
-import { FEEDBACK_WIDGET_SOURCE } from '../constants';
+import { FEEDBACK_API_SOURCE, FEEDBACK_WIDGET_SOURCE } from '../constants';
 import type { SendFeedbackData } from '../types';
 import { prepareFeedbackEvent } from './prepareFeedbackEvent';
 
@@ -13,7 +13,6 @@ export async function sendFeedbackRequest({
 }: SendFeedbackData): Promise<void | TransportMakeRequestResponse> {
   const hub = getCurrentHub();
   const client = hub.getClient();
-  const scope = hub.getScope();
   const transport = client && client.getTransport();
   const dsn = client && client.getDsn();
 
@@ -35,7 +34,13 @@ export async function sendFeedbackRequest({
     type: 'feedback',
   };
 
-  if (source === FEEDBACK_WIDGET_SOURCE) {
+  // Create a new scope
+  const scope = hub.pushScope();
+
+  // No use for breadcrumbs in feedback
+  scope.clearBreadcrumbs();
+
+  if ([FEEDBACK_API_SOURCE, FEEDBACK_WIDGET_SOURCE].includes(String(source))) {
     scope.setLevel('info');
   }
 
@@ -45,51 +50,11 @@ export async function sendFeedbackRequest({
     event: baseEvent,
   });
 
+  hub.popScope();
+
   if (feedbackEvent === null) {
     return;
   }
-
-  /*
-  For reference, the fully built event looks something like this:
-  {
-      "type": "feedback",
-      "event_id": "d2132d31b39445f1938d7e21b6bf0ec4",
-      "timestamp": 1597977777.6189718,
-      "dist": "1.12",
-      "platform": "javascript",
-      "environment": "production",
-      "release": 42,
-      "tags": {"transaction": "/organizations/:orgId/performance/:eventSlug/"},
-      "sdk": {"name": "name", "version": "version"},
-      "user": {
-          "id": "123",
-          "username": "user",
-          "email": "user@site.com",
-          "ip_address": "192.168.11.12",
-      },
-      "request": {
-          "url": None,
-          "headers": {
-              "user-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.5 Safari/605.1.15"
-          },
-      },
-      "contexts": {
-          "feedback": {
-              "message": "test message",
-              "contact_email": "test@example.com",
-              "type": "feedback",
-          },
-          "trace": {
-              "trace_id": "4C79F60C11214EB38604F4AE0781BFB2",
-              "span_id": "FA90FDEAD5F74052",
-              "type": "trace",
-          },
-          "replay": {
-              "replay_id": "e2d42047b1c5431c8cba85ee2a8ab25d",
-          },
-      },
-    }
-  */
 
   const envelope = createEventEnvelope(feedbackEvent, dsn, client.getOptions()._metadata, client.getOptions().tunnel);
 
@@ -122,3 +87,45 @@ export async function sendFeedbackRequest({
 
   return response;
 }
+
+/*
+ * For reference, the fully built event looks something like this:
+ * {
+ *     "type": "feedback",
+ *     "event_id": "d2132d31b39445f1938d7e21b6bf0ec4",
+ *     "timestamp": 1597977777.6189718,
+ *     "dist": "1.12",
+ *     "platform": "javascript",
+ *     "environment": "production",
+ *     "release": 42,
+ *     "tags": {"transaction": "/organizations/:orgId/performance/:eventSlug/"},
+ *     "sdk": {"name": "name", "version": "version"},
+ *     "user": {
+ *         "id": "123",
+ *         "username": "user",
+ *         "email": "user@site.com",
+ *         "ip_address": "192.168.11.12",
+ *     },
+ *     "request": {
+ *         "url": None,
+ *         "headers": {
+ *             "user-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.5 Safari/605.1.15"
+ *         },
+ *     },
+ *     "contexts": {
+ *         "feedback": {
+ *             "message": "test message",
+ *             "contact_email": "test@example.com",
+ *             "type": "feedback",
+ *         },
+ *         "trace": {
+ *             "trace_id": "4C79F60C11214EB38604F4AE0781BFB2",
+ *             "span_id": "FA90FDEAD5F74052",
+ *             "type": "trace",
+ *         },
+ *         "replay": {
+ *             "replay_id": "e2d42047b1c5431c8cba85ee2a8ab25d",
+ *         },
+ *     },
+ *   }
+ */

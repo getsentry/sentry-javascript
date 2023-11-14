@@ -38,8 +38,5 @@ export async function prepareFeedbackEvent({
   // we need to do this manually.
   preparedEvent.platform = preparedEvent.platform || 'javascript';
 
-  // No use for breadcrumbs in feedb
-  delete preparedEvent.breadcrumbs;
-
   return preparedEvent;
 }
