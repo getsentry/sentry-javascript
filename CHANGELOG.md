@@ -4,6 +4,11 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.80.2-alpha.1
+
+No longer will prioritize the component names for replays, as this will break searching by CSS selector.
+Instead, adds `componentName` as an additional field in the payload
+
 ## 7.80.2-alpha.0
 
 - feat(utils): Prioritize Component name attributes over HTML Tree String (#9496)
