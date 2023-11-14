@@ -8,6 +8,7 @@ const { withSentryConfig } = require('@sentry/nextjs');
 const moduleExports = {
   experimental: {
     appDir: true,
+    serverActions: true,
   },
 };
 
