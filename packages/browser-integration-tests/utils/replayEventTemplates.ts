@@ -212,6 +212,7 @@ export const expectedClickBreadcrumb = {
       tagName: expect.any(String),
       textContent: expect.any(String),
     },
+    componentName: expect.any(String),
   },
 };
 
