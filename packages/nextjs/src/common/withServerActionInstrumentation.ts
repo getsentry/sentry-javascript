@@ -5,6 +5,8 @@ import { platformSupportsStreaming } from './utils/platformSupportsStreaming';
 
 interface Options {
   formData?: FormData;
+  // TODO: Whenever we decide to drop support for Next.js <= 12 we can automatically pick up the headers becauase "next/headers" will be resolvable.
+  headers?: Headers;
   recordResponse?: boolean;
 }
 
@@ -52,13 +54,9 @@ async function withServerActionInstrumentationImplementation<A extends (...args:
     let baggageHeader;
     const fullHeadersObject: Record<string, string> = {};
     try {
-      // @ts-expect-errors Weird warnings about dynamic imports we do not care about.
-      // eslint-disable-next-line import/no-unresolved
-      const { headers }: { headers(): Headers } = await import('next/headers');
-      const headersList = headers();
-      sentryTraceHeader = headersList.get('sentry-trace') ?? undefined;
-      baggageHeader = headersList.get('baggage');
-      headersList.forEach((value, key) => {
+      sentryTraceHeader = options.headers?.get('sentry-trace') ?? undefined;
+      baggageHeader = options.headers?.get('baggage');
+      options.headers?.forEach((value, key) => {
         fullHeadersObject[key] = value;
       });
     } catch (e) {
