@@ -180,4 +180,6 @@ export interface ReportDialogOptions {
   successMessage?: string;
   /** Callback after reportDialog showed up */
   onLoad?(this: void): void;
+  /** Callback after reportDialog closed */
+  onClose?(this: void): void;
 }

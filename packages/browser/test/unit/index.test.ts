@@ -16,6 +16,7 @@ import {
   Integrations,
   Scope,
   showReportDialog,
+  WINDOW,
   wrap,
 } from '../../src';
 import { getDefaultBrowserClientOptions } from './helper/browser-client-options';
@@ -121,6 +122,65 @@ describe('SentryBrowser', () => {
           expect.any(Object),
           expect.objectContaining({ user: { email: DIALOG_OPTION_USER.email } }),
         );
+      });
+    });
+
+    describe('onClose', () => {
+      const dummyErrorHandler = jest.fn();
+      beforeEach(() => {
+        // this prevents jest-environment-jsdom from failing the test
+        // when an error in `onClose` is thrown
+        // it does not prevent errors thrown directly inside the test,
+        // so we don't have to worry about tests passing that should
+        // otherwise fail
+        // see: https://github.com/jestjs/jest/blob/main/packages/jest-environment-jsdom/src/index.ts#L95-L115
+        WINDOW.addEventListener('error', dummyErrorHandler);
+      });
+
+      afterEach(() => {
+        WINDOW.removeEventListener('error', dummyErrorHandler);
+      });
+
+      const waitForPostMessage = async (message: string) => {
+        WINDOW.postMessage(message, '*');
+        await flush(10);
+      };
+
+      it('should call `onClose` when receiving `reportdialog_closed` MessageEvent', async () => {
+        const onClose = jest.fn();
+        showReportDialog({ onClose });
+
+        await waitForPostMessage('reportdialog_closed');
+        expect(onClose).toHaveBeenCalledTimes(1);
+
+        // ensure the event handler has been removed so onClose is not called again
+        await waitForPostMessage('reportdialog_closed');
+        expect(onClose).toHaveBeenCalledTimes(1);
+      });
+
+      it('should call `onClose` only once even if it throws', async () => {
+        const onClose = jest.fn(() => {
+          throw new Error();
+        });
+        showReportDialog({ onClose });
+
+        await waitForPostMessage('reportdialog_closed');
+        expect(onClose).toHaveBeenCalledTimes(1);
+
+        // ensure the event handler has been removed so onClose is not called again
+        await waitForPostMessage('reportdialog_closed');
+        expect(onClose).toHaveBeenCalledTimes(1);
+      });
+
+      it('should not call `onClose` for other MessageEvents', async () => {
+        const onClose = jest.fn();
+        showReportDialog({ onClose });
+
+        await waitForPostMessage('some_message');
+        expect(onClose).not.toHaveBeenCalled();
+
+        await waitForPostMessage('reportdialog_closed');
+        expect(onClose).toHaveBeenCalledTimes(1);
       });
     });
   });
