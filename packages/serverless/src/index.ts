@@ -14,7 +14,9 @@ export {
   SDK_VERSION,
   Scope,
   addBreadcrumb,
+  // eslint-disable-next-line deprecation/deprecation
   addGlobalEventProcessor,
+  addEventProcessor,
   addIntegration,
   autoDiscoverNodePerformanceMonitoringIntegrations,
   captureEvent,

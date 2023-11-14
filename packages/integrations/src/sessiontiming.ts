@@ -23,7 +23,7 @@ export class SessionTiming implements Integration {
   /**
    * @inheritDoc
    */
-  public setupOnce(_addGlobaleventProcessor: unknown, _getCurrentHub: unknown): void {
+  public setupOnce(_addGlobalEventProcessor: unknown, _getCurrentHub: unknown): void {
     // noop
   }
 
