@@ -58,7 +58,6 @@ export function getKeyboardBreadcrumb(event: KeyboardEvent): Breadcrumb | null {
       ctrlKey,
       altKey,
       key,
-      componentName: getElementIdentifier(target),
     },
   });
 }

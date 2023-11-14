@@ -75,7 +75,6 @@ sentryTest('captures keyboard events', async ({ forceFlushReplay, getLocalTestPa
         ctrlKey: true,
         altKey: false,
         key: 'Control',
-        componentName: 'body',
       },
     },
     {
@@ -91,7 +90,6 @@ sentryTest('captures keyboard events', async ({ forceFlushReplay, getLocalTestPa
         ctrlKey: true,
         altKey: false,
         key: 'A',
-        componentName: 'body',
       },
     },
     {
@@ -107,7 +105,6 @@ sentryTest('captures keyboard events', async ({ forceFlushReplay, getLocalTestPa
           tagName: 'input',
           textContent: '',
         },
-        componentName: 'body > input#input',
       },
     },
   ]);

@@ -70,7 +70,6 @@ export function getBaseDomBreadcrumb(target: Node | null, message: string): Brea
               .map(text => (text as string).trim())
               .join(''),
             attributes: getAttributesToRecord(element.attributes),
-            componentName: getElementIdentifier(target),
           },
         }
       : {},
