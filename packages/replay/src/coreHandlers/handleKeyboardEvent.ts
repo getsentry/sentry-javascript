@@ -1,5 +1,5 @@
 import type { Breadcrumb } from '@sentry/types';
-import { getElementIdentifier, htmlTreeAsString } from '@sentry/utils';
+import { htmlTreeAsString } from '@sentry/utils';
 
 import type { ReplayContainer } from '../types';
 import { createBreadcrumb } from '../util/createBreadcrumb';
