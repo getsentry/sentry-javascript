@@ -6,8 +6,10 @@
 
 # Sentry Integration for Feedback
 
-This SDK is **considered experimental and in an alpha state**. It may experience breaking changes, and may be discontinued at any time. Please reach out on
+This SDK is **considered experimental and in a beta state**. It may experience breaking changes, and may be discontinued at any time. Please reach out on
 [GitHub](https://github.com/getsentry/sentry-javascript/issues/new/choose) if you have any feedback/concerns.
+
+To view Feedback in Sentry, your [Sentry organization must be an early adopter](https://docs.sentry.io/product/accounts/early-adopter-features/).
 
 ## Pre-requisites
 
