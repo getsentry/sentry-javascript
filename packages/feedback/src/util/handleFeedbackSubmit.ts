@@ -29,7 +29,7 @@ export async function handleFeedbackSubmit(
   dialog.hideError();
 
   try {
-    const resp = await sendFeedback(feedback, options);
+    const resp = await sendFeedback({ ...feedback, source: 'widget' }, options);
 
     // Success!
     return resp;

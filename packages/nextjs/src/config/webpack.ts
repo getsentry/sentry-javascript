@@ -35,6 +35,7 @@ const RUNTIME_TO_SDK_ENTRYPOINT_MAP = {
 let showedMissingAuthTokenErrorMsg = false;
 let showedMissingOrgSlugErrorMsg = false;
 let showedMissingProjectSlugErrorMsg = false;
+let showedMissingCLiBinaryErrorMsg = false;
 let showedHiddenSourceMapsWarningMsg = false;
 
 // TODO: merge default SentryWebpackPlugin ignore with their SentryWebpackPlugin ignore or ignoreFile
@@ -844,10 +845,15 @@ function shouldEnableWebpackPlugin(buildContext: BuildContext, userSentryOptions
 
   // @ts-expect-error - this exists, the dynamic import just doesn't know it
   if (!SentryWebpackPlugin || !SentryWebpackPlugin.cliBinaryExists()) {
-    // eslint-disable-next-line no-console
-    console.error(
-      `${chalk.red('error')} - ${chalk.bold('Sentry CLI binary not found.')} Source maps will not be uploaded.\n`,
-    );
+    if (!showedMissingCLiBinaryErrorMsg) {
+      // eslint-disable-next-line no-console
+      console.error(
+        `${chalk.red('error')} - ${chalk.bold(
+          'Sentry CLI binary not found.',
+        )} Source maps will not be uploaded. Please check that postinstall scripts are enabled in your package manager when installing your dependencies and please run your build once without any caching to avoid caching issues of dependencies.\n`,
+      );
+      showedMissingCLiBinaryErrorMsg = true;
+    }
     return false;
   }
 
