@@ -4,9 +4,14 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
-## 7.80.0-alpha.0
+## 7.80.1
 
-- feat(utils): Prioritize Component name attributes over HTML Tree String (#9496)
+- fix(astro): Adjust Vite plugin config to upload server source maps (#9541)
+- fix(nextjs): Add tracing extensions in all serverside wrappers (#9537)
+- fix(nextjs): Fix serverside transaction names on Windows (#9526)
+- fix(node): Fix tRPC middleware typing (#9540)
+- fix(replay): Add additional safeguards for capturing network bodies (#9506)
+- fix(tracing): Update prisma span to be `db.prisma` (#9512)
 
 ## 7.80.0
 

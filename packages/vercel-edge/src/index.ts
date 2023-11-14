@@ -32,6 +32,7 @@ export {
   close,
   configureScope,
   createTransport,
+  // eslint-disable-next-line deprecation/deprecation
   extractTraceparentData,
   flush,
   getActiveTransaction,
