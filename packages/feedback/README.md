@@ -212,7 +212,7 @@ import {BrowserClient, getCurrentHub} from '@sentry/react';
 import {Feedback} from '@sentry-internal/feedback';
 
 function MyFeedbackButton() {
-    const client = hub && getCurrentHub().getClient<BrowserClient>();
+    const client = getCurrentHub().getClient<BrowserClient>();
     const feedback = client?.getIntegration(Feedback);
 
     // Don't render custom feedback button if Feedback integration not installed
@@ -230,7 +230,21 @@ function MyFeedbackButton() {
 
 ### Bring Your Own Widget
 
-You can also bring your own widget and UI and simply pass a feedback object to the `sendFeedback()` function.
+You can also bring your own widget and UI and simply pass a feedback object to the `sendFeedback()` function. The `sendFeedback` function accepts two parameters:
+* a feedback object with a required `message` property, and additionally, optional `name` and `email` properties
+* an options object
+
+```javascript
+sendFeedback({
+  name: 'Jane Doe', // optional
+  email: 'email@example.org', // optional
+  message: 'This is an example feedback', // required
+}, {
+  includeReplay: true, // optional
+})
+```
+
+Here is a simple example
 
 ```html
 <form id="my-feedback-form">
@@ -238,14 +252,18 @@ You can also bring your own widget and UI and simply pass a feedback object to t
   <input name="email" />
   <textarea name="message" placeholder="What's the issue?" />
 </form>
+```
 
-<script>
+```javascript
+import {BrowserClient, getCurrentHub} from '@sentry/react';
+import {Feedback} from '@sentry-internal/feedback';
+
 document.getElementById('my-feedback-form').addEventListener('submit', (event) => {
+  const feedback = getCurrentHub().getClient<BrowserClient>()?.getIntegration(Feedback);
   const formData = new FormData(event.currentTarget);
-  Feedback.sendFeedback(formData);
+  feedback.sendFeedback(formData);
   event.preventDefault();
 });
-</script>
 ```
 
 ## Alerting on User Feedback Reports
