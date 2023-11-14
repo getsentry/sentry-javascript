@@ -101,9 +101,15 @@ export function setupIntegrations(client: Client, integrations: Integration[]): 
 export function setupIntegration(client: Client, integration: Integration, integrationIndex: IntegrationIndex): void {
   integrationIndex[integration.name] = integration;
 
+  // `setupOnce` is only called the first time
   if (installedIntegrations.indexOf(integration.name) === -1) {
     integration.setupOnce(addGlobalEventProcessor, getCurrentHub);
     installedIntegrations.push(integration.name);
+  }
+
+  // `setup` is run for each client
+  if (integration.setup && typeof integration.setup === 'function') {
+    integration.setup(client);
   }
 
   if (client.on && typeof integration.preprocessEvent === 'function') {
