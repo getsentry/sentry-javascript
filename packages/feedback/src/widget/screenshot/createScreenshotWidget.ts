@@ -5,7 +5,7 @@ import { createElement } from '../util/createElement';
 import { ScreenshotForm } from './Form';
 import { createScreenshotStyles } from './Screenshot.css';
 import { ScreenshotAnnotator } from './ScreenshotAnnotator';
-import type { Rect } from './ScreenshotEditor';
+// import type { Rect } from './ScreenshotEditor';
 import { ScreenshotEditor } from './ScreenshotEditor';
 
 async function blobToUint8Array(blob: Blob): Promise<Uint8Array> {
@@ -33,10 +33,9 @@ export function createScreenshotWidget(): {
   formEl: HTMLDivElement | null;
   ScreenshotForm: ReturnType<typeof ScreenshotForm>;
   ScreenshotStyles: ReturnType<typeof createScreenshotStyles>;
-  // processScreenshot: (scope: Scope) => void;
   getData: () => Promise<Screenshot[]>;
 } {
-  let selection: Rect | undefined;
+  // let selection: Rect | undefined;
   let screenshot: Blob | null = null;
   let screenshotCutout: Blob | null = null;
   let screenshotPreview: string = '';
@@ -86,7 +85,7 @@ export function createScreenshotWidget(): {
   async function handleEditorSubmit(
     newScreenshot: Blob | null,
     newCutout?: Blob | null,
-    newSelection?: Rect,
+    // newSelection?: Rect,
   ): Promise<void> {
     setScreenshot(newScreenshot);
     setScreenshotCutout(newCutout || null);
@@ -94,7 +93,7 @@ export function createScreenshotWidget(): {
     setScreenshotCutoutPreview((newCutout && (await blobToBase64(newCutout))) || '');
     screenshotForm.setFormPreview(await blobToBase64(newScreenshot));
     screenshotForm.setFormCutoutPreview((newCutout && (await blobToBase64(newCutout))) || '');
-    selection = newSelection;
+    // selection = newSelection;
 
     screenshotEditor.hide();
   }
