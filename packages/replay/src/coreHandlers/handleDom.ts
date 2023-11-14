@@ -2,7 +2,7 @@ import { record } from '@sentry-internal/rrweb';
 import type { serializedElementNodeWithId, serializedNodeWithId } from '@sentry-internal/rrweb-snapshot';
 import { NodeType } from '@sentry-internal/rrweb-snapshot';
 import type { Breadcrumb } from '@sentry/types';
-import { getElementIdentifier } from '@sentry/utils';
+import { getElementIdentifier, htmlTreeAsString } from '@sentry/utils';
 
 import type { ReplayContainer } from '../types';
 import { createBreadcrumb } from '../util/createBreadcrumb';
@@ -70,6 +70,7 @@ export function getBaseDomBreadcrumb(target: Node | null, message: string): Brea
               .map(text => (text as string).trim())
               .join(''),
             attributes: getAttributesToRecord(element.attributes),
+            componentName: getElementIdentifier(target),
           },
         }
       : {},
@@ -98,7 +99,7 @@ function getDomTarget(handlerData: DomHandlerData): { target: Node | null; messa
   // Accessing event.target can throw (see getsentry/raven-js#838, #768)
   try {
     target = isClick ? getClickTargetNode(handlerData.event) : getTargetNode(handlerData.event);
-    message = getElementIdentifier(target, { maxStringLength: 200 }) || '<unknown>';
+    message = htmlTreeAsString(target, { maxStringLength: 200 }) || '<unknown>';
   } catch (e) {
     message = '<unknown>';
   }
