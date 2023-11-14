@@ -4,6 +4,10 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.80.2-alpha.0
+
+- feat(utils): Prioritize Component name attributes over HTML Tree String (#9496)
+
 ## 7.80.1
 
 - fix(astro): Adjust Vite plugin config to upload server source maps (#9541)
