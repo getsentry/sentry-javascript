@@ -3,8 +3,6 @@ import { SyncPromise, getGlobalSingleton, isThenable, logger } from '@sentry/uti
 
 import { DEBUG_BUILD } from './debug-build';
 
-import { getCurrentHub } from './hub';
-
 /**
  * Returns the global event processors.
  * @deprecated Global event processors will be removed in v8.
@@ -20,20 +18,6 @@ export function getGlobalEventProcessors(): EventProcessor[] {
 export function addGlobalEventProcessor(callback: EventProcessor): void {
   // eslint-disable-next-line deprecation/deprecation
   getGlobalEventProcessors().push(callback);
-}
-
-/**
- * Add an event processor to the current client.
- * This event processor will run for all events processed by this client.
- */
-export function addEventProcessor(callback: EventProcessor): void {
-  const client = getCurrentHub().getClient();
-
-  if (!client || !client.addEventProcessor) {
-    return;
-  }
-
-  client.addEventProcessor(callback);
 }
 
 /**

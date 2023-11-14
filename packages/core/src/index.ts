@@ -44,10 +44,9 @@ export { Scope } from './scope';
 export {
   // eslint-disable-next-line deprecation/deprecation
   addGlobalEventProcessor,
-  addEventProcessor,
 } from './eventProcessors';
 export { getEnvelopeEndpointWithUrlEncodedAuth, getReportDialogEndpoint } from './api';
-export { BaseClient } from './baseclient';
+export { BaseClient, addEventProcessor } from './baseclient';
 export { ServerRuntimeClient } from './server-runtime-client';
 export { initAndBind } from './sdk';
 export { createTransport } from './transports/base';
