@@ -20,7 +20,6 @@ import {
   Postgres,
   Prisma,
   Span as SpanT,
-  // eslint-disable-next-line deprecation/deprecation
   SpanStatus as SpanStatusT,
   spanStatusfromHttpCode as spanStatusfromHttpCodeT,
   startIdleTransaction as startIdleTransactionT,
@@ -70,6 +69,7 @@ export const getActiveTransaction = getActiveTransactionT;
  *
  * `extractTraceparentData` can be imported from `@sentry/node`, `@sentry/browser`, or your framework SDK
  */
+// eslint-disable-next-line deprecation/deprecation
 export const extractTraceparentData = extractTraceparentDataT;
 
 /**
