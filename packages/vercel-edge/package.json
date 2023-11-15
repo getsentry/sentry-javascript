@@ -25,7 +25,8 @@
   "dependencies": {
     "@sentry/core": "7.80.1",
     "@sentry/types": "7.80.1",
-    "@sentry/utils": "7.80.1"
+    "@sentry/utils": "7.80.1",
+    "@sentry-internal/tracing": "7.80.1"
   },
   "devDependencies": {
     "@edge-runtime/jest-environment": "2.2.3",
