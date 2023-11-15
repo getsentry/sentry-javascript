@@ -1,6 +1,13 @@
 import { instrumentFetchRequest } from '@sentry-internal/tracing';
-import { getCurrentHub } from '@sentry/core';
-import type { EventProcessor, HandlerDataFetch, Integration, Span } from '@sentry/types';
+import { getCurrentHub, isSentryRequestUrl } from '@sentry/core';
+import type {
+  EventProcessor,
+  FetchBreadcrumbData,
+  FetchBreadcrumbHint,
+  HandlerDataFetch,
+  Integration,
+  Span,
+} from '@sentry/types';
 import { addInstrumentationHandler, LRUMap, stringMatchesSomePattern } from '@sentry/utils';
 
 export interface Options {
@@ -54,7 +61,9 @@ export class WinterCGFetch implements Integration {
         return;
       }
 
-      // TODO: Ignore if sentry request
+      if (isSentryRequestUrl(handlerData.fetchData.url, hub)) {
+        return;
+      }
 
       instrumentFetchRequest(
         handlerData,
@@ -64,7 +73,9 @@ export class WinterCGFetch implements Integration {
         'auto.http.wintercg_fetch',
       );
 
-      // TODO: Breadcrumbs
+      if (this._options.breadcrumbs) {
+        createBreadcrumb(handlerData);
+      }
     });
   }
 
@@ -107,5 +118,53 @@ export class WinterCGFetch implements Integration {
     const decision = this._options.shouldCreateSpanForRequest(url);
     this._createSpanUrlMap.set(url, decision);
     return decision;
+  }
+}
+
+function createBreadcrumb(handlerData: HandlerDataFetch): void {
+  const { startTimestamp, endTimestamp } = handlerData;
+
+  // We only capture complete fetch requests
+  if (!endTimestamp) {
+    return;
+  }
+
+  if (handlerData.error) {
+    const data = handlerData.fetchData;
+    const hint: FetchBreadcrumbHint = {
+      data: handlerData.error,
+      input: handlerData.args,
+      startTimestamp,
+      endTimestamp,
+    };
+
+    getCurrentHub().addBreadcrumb(
+      {
+        category: 'fetch',
+        data,
+        level: 'error',
+        type: 'http',
+      },
+      hint,
+    );
+  } else {
+    const data: FetchBreadcrumbData = {
+      ...handlerData.fetchData,
+      status_code: handlerData.response && handlerData.response.status,
+    };
+    const hint: FetchBreadcrumbHint = {
+      input: handlerData.args,
+      response: handlerData.response,
+      startTimestamp,
+      endTimestamp,
+    };
+    getCurrentHub().addBreadcrumb(
+      {
+        category: 'fetch',
+        data,
+        type: 'http',
+      },
+      hint,
+    );
   }
 }
