@@ -40,9 +40,6 @@ sentryTest('should capture feedback (@sentry-internal/feedback import)', async (
   const feedbackEvent = envelopeRequestParser((await feedbackRequestPromise).request());
   expect(feedbackEvent).toEqual({
     type: 'feedback',
-    // feedback does not use breadcrumbs, so it should be cleared (otherwise a
-    // click would have been captured)
-    breadcrumbs: [],
     contexts: {
       feedback: {
         contact_email: 'janedoe@example.org',
