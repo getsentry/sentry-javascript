@@ -1,13 +1,12 @@
 /* eslint-disable max-lines */
 import { getCurrentHub, getDynamicSamplingContextFromClient, hasTracingEnabled } from '@sentry/core';
-import type { Client, HandlerDataFetch, Scope, Span } from '@sentry/types';
+import type { HandlerDataFetch, Span } from '@sentry/types';
 import {
   addInstrumentationHandler,
   BAGGAGE_HEADER_NAME,
   browserPerformanceTimeOrigin,
   dynamicSamplingContextToSentryBaggageHeader,
   generateSentryTraceHeader,
-  isInstanceOf,
   SENTRY_XHR_DATA_KEY,
   stringMatchesSomePattern,
 } from '@sentry/utils';
