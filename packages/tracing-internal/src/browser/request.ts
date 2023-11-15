@@ -135,10 +135,6 @@ export function instrumentOutgoingRequests(_options?: Partial<RequestInstrumenta
 
   if (traceFetch) {
     addInstrumentationHandler('fetch', (handlerData: HandlerDataFetch) => {
-      if (!hasTracingEnabled()) {
-        return;
-      }
-
       const createdSpan = instrumentFetchRequest(handlerData, shouldCreateSpan, shouldAttachHeadersWithTargets, spans);
       if (enableHTTPTimings && createdSpan) {
         addHTTPTimings(createdSpan);

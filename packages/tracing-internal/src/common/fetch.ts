@@ -1,4 +1,4 @@
-import { getCurrentHub, getDynamicSamplingContextFromClient } from '@sentry/core';
+import { getCurrentHub, getDynamicSamplingContextFromClient, hasTracingEnabled } from '@sentry/core';
 import type { Client, HandlerDataFetch, Scope, Span, SpanOrigin } from '@sentry/types';
 import {
   BAGGAGE_HEADER_NAME,
@@ -30,7 +30,7 @@ export function instrumentFetchRequest(
   spans: Record<string, Span>,
   spanOrigin: SpanOrigin = 'auto.http.browser',
 ): Span | undefined {
-  if (!handlerData.fetchData) {
+  if (!hasTracingEnabled() || !handlerData.fetchData) {
     return undefined;
   }
 

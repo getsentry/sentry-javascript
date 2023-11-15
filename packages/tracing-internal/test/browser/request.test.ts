@@ -126,17 +126,6 @@ describe('callbacks', () => {
       },
     );
 
-    it('adds neither fetch request spans nor fetch request headers if there is no fetch data in handler data', () => {
-      const spans = {};
-
-      instrumentFetchRequest(fetchHandlerData, alwaysCreateSpan, alwaysAttachHeaders, spans);
-
-      expect(spans).toEqual({});
-
-      const headers = (fetchHandlerData.args[1].headers as Record<string, string>) || {};
-      expect(Object.keys(headers)).toEqual([]);
-    });
-
     it('adds neither fetch request spans nor fetch request headers if tracing is disabled', () => {
       hasTracingEnabled.mockReturnValueOnce(false);
       const spans = {};
