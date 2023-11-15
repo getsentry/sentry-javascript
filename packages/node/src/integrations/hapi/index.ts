@@ -1,8 +1,8 @@
-import type { Boom } from '@hapi/boom';
-import type { RequestEvent, ResponseObject, Server } from '@hapi/hapi';
 import { captureException, configureScope, continueTrace, getActiveTransaction, startTransaction } from '@sentry/core';
 import type { Integration } from '@sentry/types';
 import { addExceptionMechanism, dynamicSamplingContextToSentryBaggageHeader, fill } from '@sentry/utils';
+
+import type { Boom, RequestEvent, ResponseObject, Server } from './types';
 
 function isResponseObject(response: ResponseObject | Boom): response is ResponseObject {
   return response && (response as ResponseObject).statusCode !== undefined;
