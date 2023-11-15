@@ -1,25 +1,6 @@
 import { captureException, continueTrace, runWithAsyncContext, startSpan, Transaction } from '@sentry/core';
 import type { Integration } from '@sentry/types';
-import { addExceptionMechanism, getSanitizedUrlString, parseUrl } from '@sentry/utils';
-
-function sendErrorToSentry(e: unknown): unknown {
-  captureException(e, scope => {
-    scope.addEventProcessor(event => {
-      addExceptionMechanism(event, {
-        type: 'bun',
-        handled: false,
-        data: {
-          function: 'serve',
-        },
-      });
-      return event;
-    });
-
-    return scope;
-  });
-
-  return e;
-}
+import { getSanitizedUrlString, parseUrl } from '@sentry/utils';
 
 /**
  * Instruments `Bun.serve` to automatically create transactions and capture errors.
@@ -115,7 +96,15 @@ function instrumentBunServeOptions(serveOptions: Parameters<typeof Bun.serve>[0]
                   }
                   return response;
                 } catch (e) {
-                  sendErrorToSentry(e);
+                  captureException(e, {
+                    mechanism: {
+                      type: 'bun',
+                      handled: false,
+                      data: {
+                        function: 'serve',
+                      },
+                    },
+                  });
                   throw e;
                 }
               },

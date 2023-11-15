@@ -390,7 +390,7 @@ const testHarness = ({
         const captureExceptionSpy = client.captureException;
         expect(captureExceptionSpy).toHaveBeenCalledTimes(1);
         const error = captureExceptionSpy.mock.calls[0][0];
-        const contexts = captureExceptionSpy.mock.calls[0][2]._contexts;
+        const contexts = captureExceptionSpy.mock.calls[0][1].captureContext.contexts;
 
         expect(error).toBeInstanceOf(DummyError);
 

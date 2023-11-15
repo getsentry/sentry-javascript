@@ -1,5 +1,4 @@
 import * as SentryNode from '@sentry/node';
-import * as SentryUtils from '@sentry/utils';
 import { vi } from 'vitest';
 
 import { handleRequest, interpolateRouteFromUrlAndParams } from '../../src/server/middleware';
@@ -59,12 +58,7 @@ describe('sentryMiddleware', () => {
   });
 
   it('throws and sends an error to sentry if `next()` throws', async () => {
-    const scope = {
-      addEventProcessor: vi.fn().mockImplementation(cb => cb({})),
-    };
-    // @ts-expect-error, just testing the callback, this is okay for this test
-    const captureExceptionSpy = vi.spyOn(SentryNode, 'captureException').mockImplementation((ex, cb) => cb(scope));
-    const addExMechanismSpy = vi.spyOn(SentryUtils, 'addExceptionMechanism');
+    const captureExceptionSpy = vi.spyOn(SentryNode, 'captureException');
 
     const middleware = handleRequest();
     const ctx = {
@@ -86,16 +80,9 @@ describe('sentryMiddleware', () => {
     // @ts-expect-error, a partial ctx object is fine here
     await expect(async () => middleware(ctx, next)).rejects.toThrowError();
 
-    expect(captureExceptionSpy).toHaveBeenCalledWith(error, expect.any(Function));
-    expect(scope.addEventProcessor).toHaveBeenCalledTimes(1);
-    expect(addExMechanismSpy).toHaveBeenCalledWith(
-      {}, // the mocked event
-      {
-        handled: false,
-        type: 'astro',
-        data: { function: 'astroMiddleware' },
-      },
-    );
+    expect(captureExceptionSpy).toHaveBeenCalledWith(error, {
+      mechanism: { handled: false, type: 'astro', data: { function: 'astroMiddleware' } },
+    });
   });
 
   it('attaches tracing headers', async () => {

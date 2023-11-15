@@ -1,6 +1,6 @@
 import type { ReportDialogOptions, Scope } from '@sentry/browser';
 import { captureException, getCurrentHub, showReportDialog, withScope } from '@sentry/browser';
-import { addExceptionMechanism, isError, logger } from '@sentry/utils';
+import { isError, logger } from '@sentry/utils';
 import hoistNonReactStatics from 'hoist-non-react-statics';
 import * as React from 'react';
 
@@ -139,12 +139,12 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
         beforeCapture(scope, error, componentStack);
       }
 
-      scope.addEventProcessor(event => {
-        addExceptionMechanism(event, { handled: false })
-        return event;
-      })
-
-      const eventId = captureException(error, { contexts: { react: { componentStack } } });
+      const eventId = captureException(error, {
+        captureContext: {
+          contexts: { react: { componentStack } },
+        },
+        mechanism: { handled: false },
+      });
 
       if (onError) {
         onError(error, componentStack, eventId);

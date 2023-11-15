@@ -6,7 +6,7 @@ import {
   runWithAsyncContext,
   startTransaction,
 } from '@sentry/core';
-import { addExceptionMechanism, tracingContextFromHeaders } from '@sentry/utils';
+import { tracingContextFromHeaders } from '@sentry/utils';
 
 import { isNotFoundNavigationError, isRedirectNavigationError } from '../common/nextNavigationErrorUtils';
 import type { ServerComponentContext } from '../common/types';
@@ -62,15 +62,10 @@ export function wrapServerComponentWithSentry<F extends (...args: any[]) => any>
           } else {
             transaction.setStatus('internal_error');
 
-            captureException(e, scope => {
-              scope.addEventProcessor(event => {
-                addExceptionMechanism(event, {
-                  handled: false,
-                });
-                return event;
-              });
-
-              return scope;
+            captureException(e, {
+              mechanism: {
+                handled: false,
+              },
             });
           }
 

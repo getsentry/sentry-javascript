@@ -238,7 +238,10 @@ describe('ErrorBoundary', () => {
 
       expect(mockCaptureException).toHaveBeenCalledTimes(1);
       expect(mockCaptureException).toHaveBeenLastCalledWith(expect.any(Error), {
-        contexts: { react: { componentStack: expect.any(String) } },
+        captureContext: {
+          contexts: { react: { componentStack: expect.any(String) } },
+        },
+        mechanism: { handled: false },
       });
 
       expect(mockOnError.mock.calls[0][0]).toEqual(mockCaptureException.mock.calls[0][0]);
@@ -246,7 +249,7 @@ describe('ErrorBoundary', () => {
       // Check if error.cause -> react component stack
       const error = mockCaptureException.mock.calls[0][0];
       const cause = error.cause;
-      expect(cause.stack).toEqual(mockCaptureException.mock.calls[0][1].contexts.react.componentStack);
+      expect(cause.stack).toEqual(mockCaptureException.mock.calls[0][1].captureContext.contexts.react.componentStack);
       expect(cause.name).toContain('React ErrorBoundary');
       expect(cause.message).toEqual(error.message);
     });
@@ -293,7 +296,10 @@ describe('ErrorBoundary', () => {
 
       expect(mockCaptureException).toHaveBeenCalledTimes(1);
       expect(mockCaptureException).toHaveBeenLastCalledWith('bam', {
-        contexts: { react: { componentStack: expect.any(String) } },
+        captureContext: {
+          contexts: { react: { componentStack: expect.any(String) } },
+        },
+        mechanism: { handled: false },
       });
 
       // Check if error.cause -> react component stack
@@ -329,7 +335,10 @@ describe('ErrorBoundary', () => {
 
       expect(mockCaptureException).toHaveBeenCalledTimes(1);
       expect(mockCaptureException).toHaveBeenLastCalledWith(expect.any(Error), {
-        contexts: { react: { componentStack: expect.any(String) } },
+        captureContext: {
+          contexts: { react: { componentStack: expect.any(String) } },
+        },
+        mechanism: { handled: false },
       });
 
       expect(mockOnError.mock.calls[0][0]).toEqual(mockCaptureException.mock.calls[0][0]);
@@ -338,7 +347,7 @@ describe('ErrorBoundary', () => {
       const secondError = thirdError.cause;
       const firstError = secondError.cause;
       const cause = firstError.cause;
-      expect(cause.stack).toEqual(mockCaptureException.mock.calls[0][1].contexts.react.componentStack);
+      expect(cause.stack).toEqual(mockCaptureException.mock.calls[0][1].captureContext.contexts.react.componentStack);
       expect(cause.name).toContain('React ErrorBoundary');
       expect(cause.message).toEqual(thirdError.message);
     });
@@ -370,7 +379,10 @@ describe('ErrorBoundary', () => {
 
       expect(mockCaptureException).toHaveBeenCalledTimes(1);
       expect(mockCaptureException).toHaveBeenLastCalledWith(expect.any(Error), {
-        contexts: { react: { componentStack: expect.any(String) } },
+        captureContext: {
+          contexts: { react: { componentStack: expect.any(String) } },
+        },
+        mechanism: { handled: false },
       });
 
       expect(mockOnError.mock.calls[0][0]).toEqual(mockCaptureException.mock.calls[0][0]);
@@ -378,7 +390,9 @@ describe('ErrorBoundary', () => {
       const error = mockCaptureException.mock.calls[0][0];
       const cause = error.cause;
       // We need to make sure that recursive error.cause does not cause infinite loop
-      expect(cause.stack).not.toEqual(mockCaptureException.mock.calls[0][1].contexts.react.componentStack);
+      expect(cause.stack).not.toEqual(
+        mockCaptureException.mock.calls[0][1].captureContext.contexts.react.componentStack,
+      );
       expect(cause.name).not.toContain('React ErrorBoundary');
     });
 

@@ -6,14 +6,7 @@ import {
   startTransaction,
 } from '@sentry/core';
 import type { Transaction } from '@sentry/types';
-import {
-  addExceptionMechanism,
-  isString,
-  logger,
-  objectify,
-  stripUrlQueryAndFragment,
-  tracingContextFromHeaders,
-} from '@sentry/utils';
+import { isString, logger, objectify, stripUrlQueryAndFragment, tracingContextFromHeaders } from '@sentry/utils';
 
 import type { AugmentedNextApiRequest, AugmentedNextApiResponse, NextApiHandler } from './types';
 import { platformSupportsStreaming } from './utils/platformSupportsStreaming';
@@ -187,19 +180,16 @@ export function withSentry(apiHandler: NextApiHandler, parameterizedRoute?: stri
             // way to prevent it from actually being reported twice.)
             const objectifiedErr = objectify(e);
 
-            currentScope.addEventProcessor(event => {
-              addExceptionMechanism(event, {
+            captureException(objectifiedErr, {
+              mechanism: {
                 type: 'instrument',
                 handled: false,
                 data: {
                   wrapped_handler: wrappingTarget.name,
                   function: 'withSentry',
                 },
-              });
-              return event;
+              },
             });
-
-            captureException(objectifiedErr);
 
             // Because we're going to finish and send the transaction before passing the error onto nextjs, it won't yet
             // have had a chance to set the status to 500, so unless we do it ourselves now, we'll incorrectly report that

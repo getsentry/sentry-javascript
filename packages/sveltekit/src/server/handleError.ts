@@ -1,5 +1,4 @@
 import { captureException } from '@sentry/node';
-import { addExceptionMechanism } from '@sentry/utils';
 // For now disable the import/no-unresolved rule, because we don't have a way to
 // tell eslint that we are only importing types from the @sveltejs/kit package without
 // adding a custom resolver, which will take too much time.
@@ -27,15 +26,11 @@ export function handleErrorWithSentry(handleError: HandleServerError = defaultEr
       return handleError(input);
     }
 
-    captureException(input.error, scope => {
-      scope.addEventProcessor(event => {
-        addExceptionMechanism(event, {
-          type: 'sveltekit',
-          handled: false,
-        });
-        return event;
-      });
-      return scope;
+    captureException(input.error, {
+      mechanism: {
+        type: 'sveltekit',
+        handled: false,
+      },
     });
 
     await flushIfServerless();

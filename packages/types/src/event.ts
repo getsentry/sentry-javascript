@@ -5,6 +5,7 @@ import type { DebugMeta } from './debugMeta';
 import type { Exception } from './exception';
 import type { Extras } from './extra';
 import type { Measurements } from './measurement';
+import type { Mechanism } from './mechanism';
 import type { Primitive } from './misc';
 import type { Request } from './request';
 import type { CaptureContext } from './scope';
@@ -74,6 +75,7 @@ export interface TransactionEvent extends Event {
 export interface EventHint {
   event_id?: string;
   captureContext?: CaptureContext;
+  mechanism?: Partial<Mechanism>;
   syntheticException?: Error | null;
   originalException?: unknown;
   attachments?: Attachment[];

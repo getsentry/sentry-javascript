@@ -1,5 +1,23 @@
-import type { Client, ClientOptions, Event, EventHint, StackFrame, StackParser } from '@sentry/types';
-import { dateTimestampInSeconds, GLOBAL_OBJ, normalize, resolvedSyncPromise, truncate, uuid4 } from '@sentry/utils';
+import type {
+  CaptureContext,
+  Client,
+  ClientOptions,
+  Event,
+  EventHint,
+  ScopeContext,
+  StackFrame,
+  StackParser,
+} from '@sentry/types';
+import {
+  addExceptionMechanism,
+  dateTimestampInSeconds,
+  dropUndefinedKeys,
+  GLOBAL_OBJ,
+  normalize,
+  resolvedSyncPromise,
+  truncate,
+  uuid4,
+} from '@sentry/utils';
 
 import { DEFAULT_ENVIRONMENT } from '../constants';
 import { getGlobalEventProcessors, notifyEventProcessors } from '../eventProcessors';
@@ -50,6 +68,10 @@ export function prepareEvent(
   let finalScope = scope;
   if (hint.captureContext) {
     finalScope = Scope.clone(finalScope).update(hint.captureContext);
+  }
+
+  if (hint.mechanism) {
+    addExceptionMechanism(prepared, hint.mechanism);
   }
 
   // We prepare the result here with a resolved Event.
@@ -308,4 +330,40 @@ function normalizeEvent(event: Event | null, depth: number, maxBreadth: number):
   }
 
   return normalized;
+}
+
+/**
+ * Parse either an `EventHint` directly, or convert a `CaptureContext` to an `EventHint`.
+ * This is used to allow to update method signatures that used to accept a `CaptureContext` but should now accept an `EventHint`.
+ */
+export function parseEventHintOrCaptureContext(hint: CaptureContext | EventHint | undefined): EventHint | undefined {
+  if (!hint) {
+    return undefined;
+  }
+
+  // If you pass a Scope or `() => Scope` as CaptureContext, we just return this as captureContext
+  if (hintIsScopeOrFunction(hint)) {
+    return { captureContext: hint };
+  }
+
+  const hintOrScopeContext = hint as Partial<ScopeContext> & Partial<EventHint>;
+
+  // Else, we need to make sure to pick the legacy CaptureContext fields off & merge them into the hint
+  const { user, level, extra, contexts, tags, fingerprint, requestSession, propagationContext, ...eventHint } =
+    hintOrScopeContext;
+
+  const captureContext = {
+    ...dropUndefinedKeys({ user, level, extra, contexts, tags, fingerprint, requestSession, propagationContext }),
+    ...hintOrScopeContext.captureContext,
+  };
+
+  if (Object.keys(captureContext).length) {
+    eventHint.captureContext = captureContext;
+  }
+
+  return eventHint;
+}
+
+function hintIsScopeOrFunction(hint: CaptureContext | EventHint): hint is Scope | (() => Scope) {
+  return hint instanceof Scope || typeof hint === 'function';
 }
