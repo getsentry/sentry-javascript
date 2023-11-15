@@ -785,17 +785,17 @@ other-header: test`;
                 request: {
                   size: largeBody.length,
                   headers: {},
-                  body: { a: `${LARGE_BODY.slice(0, NETWORK_BODY_MAX_SIZE - 6)}~~` },
+                  body: largeBody.slice(0, NETWORK_BODY_MAX_SIZE),
                   _meta: {
-                    warnings: ['JSON_TRUNCATED'],
+                    warnings: ['MAYBE_JSON_TRUNCATED'],
                   },
                 },
                 response: {
                   size: largeBody.length,
                   headers: {},
-                  body: { a: `${LARGE_BODY.slice(0, NETWORK_BODY_MAX_SIZE - 6)}~~` },
+                  body: largeBody.slice(0, NETWORK_BODY_MAX_SIZE),
                   _meta: {
-                    warnings: ['JSON_TRUNCATED'],
+                    warnings: ['MAYBE_JSON_TRUNCATED'],
                   },
                 },
               },
@@ -1211,17 +1211,17 @@ other-header: test`;
                 request: {
                   size: largeBody.length,
                   headers: {},
-                  body: { a: `${LARGE_BODY.slice(0, NETWORK_BODY_MAX_SIZE - 6)}~~` },
+                  body: largeBody.slice(0, NETWORK_BODY_MAX_SIZE),
                   _meta: {
-                    warnings: ['JSON_TRUNCATED'],
+                    warnings: ['MAYBE_JSON_TRUNCATED'],
                   },
                 },
                 response: {
                   size: largeBody.length,
                   headers: {},
-                  body: { a: `${LARGE_BODY.slice(0, NETWORK_BODY_MAX_SIZE - 6)}~~` },
+                  body: largeBody.slice(0, NETWORK_BODY_MAX_SIZE),
                   _meta: {
-                    warnings: ['JSON_TRUNCATED'],
+                    warnings: ['MAYBE_JSON_TRUNCATED'],
                   },
                 },
               },

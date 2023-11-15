@@ -6,8 +6,10 @@
 
 # Sentry Integration for Feedback
 
-This SDK is **considered experimental and in an alpha state**. It may experience breaking changes, and may be discontinued at any time. Please reach out on
+This SDK is **considered experimental and in a beta state**. It may experience breaking changes, and may be discontinued at any time. Please reach out on
 [GitHub](https://github.com/getsentry/sentry-javascript/issues/new/choose) if you have any feedback/concerns.
+
+To view Feedback in Sentry, your [Sentry organization must be an early adopter](https://docs.sentry.io/product/accounts/early-adopter-features/).
 
 ## Pre-requisites
 
@@ -126,15 +128,19 @@ Colors can be customized via the Feedback constructor or by defining CSS variabl
 | `submitBackground` | `--submit-background` | `rgba(88, 74, 192, 1)` | `rgba(88, 74, 192, 1)` | Background color for the submit button |
 | `submitBackgroundHover` | `--submit-background-hover` | `rgba(108, 95, 199, 1)` | `rgba(108, 95, 199, 1)` | Background color when hovering over the submit button |
 | `submitBorder` | `--submit-border` | `rgba(108, 95, 199, 1)` | `rgba(108, 95, 199, 1)` | Border style for the submit button |
+| `submitOutlineFocus` | `--submit-outline-focus` | `rgba(108, 95, 199, 1)` | `rgba(108, 95, 199, 1)` | Outline color for the submit button, in the focused state |
 | `submitForeground` | `--submit-foreground` | `#ffffff` | `#ffffff` | Foreground color for the submit button |
+| `submitForegroundHover` | `--submit-foreground-hover` | `#ffffff` | `#ffffff` | Foreground color for the submit button when hovering |
 | `cancelBackground` | `--cancel-background` | `transparent` | `transparent` | Background color for the cancel button |
 | `cancelBackgroundHover` | `--cancel-background-hover` | `var(--background-hover)` | `var(--background-hover)` | Background color when hovering over the cancel button |
 | `cancelBorder` | `--cancel-border` | `var(--border)` | `var(--border)` | Border style for the cancel button | 
+| `cancelOutlineFocus` | `--cancel-outline-focus` | `var(--input-outline-focus)` | `var(--input-outline-focus)` | Outline color for the cancel button, in the focused state |
 | `cancelForeground` | `--cancel-foreground` | `var(--foreground)` | `var(--foreground)` | Foreground color for the cancel button |
+| `cancelForegroundHover` | `--cancel-foreground-hover` | `var(--foreground)` | `var(--foreground)` | Foreground color for the cancel button when hovering |
 | `inputBackground` | `--input-background` | `inherit` | `inherit` | Background color for form inputs |
 | `inputForeground` | `--input-foreground` | `inherit` | `inherit` | Foreground color for form inputs |
 | `inputBorder` | `--input-border` | `var(--border)` | `var(--border)` | Border styles for form inputs |
-| `inputBorderFocus` | `--input-border-focus` | `rgba(108, 95, 199, 1)` | `rgba(108, 95, 199, 1)` | Border styles for form inputs when focused |
+| `inputOutlineFocus` | `--input-outline-focus` | `rgba(108, 95, 199, 1)` | `rgba(108, 95, 199, 1)` | Outline color for form inputs when focused |
 
 Here is an example of customizing only the background color for the light theme using the Feedback constructor configuration.
 ```javascript
@@ -199,9 +205,46 @@ feedback.attachTo(document.querySelector('#your-button'), {
 });
 ```
 
+Alternatively you can call `feedback.openDialog()`:
+
+```typescript
+import {BrowserClient, getCurrentHub} from '@sentry/react';
+import {Feedback} from '@sentry-internal/feedback';
+
+function MyFeedbackButton() {
+    const client = getCurrentHub().getClient<BrowserClient>();
+    const feedback = client?.getIntegration(Feedback);
+
+    // Don't render custom feedback button if Feedback integration not installed
+    if (!feedback) {
+        return null;
+    }
+
+    return (
+        <button type="button" onClick={() => feedback.openDialog()}>
+            Give me feedback
+        </button>
+    )
+}
+```
+
 ### Bring Your Own Widget
 
-You can also bring your own widget and UI and simply pass a feedback object to the `sendFeedback()` function.
+You can also bring your own widget and UI and simply pass a feedback object to the `sendFeedback()` function. The `sendFeedback` function accepts two parameters:
+* a feedback object with a required `message` property, and additionally, optional `name` and `email` properties
+* an options object
+
+```javascript
+sendFeedback({
+  name: 'Jane Doe', // optional
+  email: 'email@example.org', // optional
+  message: 'This is an example feedback', // required
+}, {
+  includeReplay: true, // optional
+})
+```
+
+Here is a simple example
 
 ```html
 <form id="my-feedback-form">
@@ -209,14 +252,18 @@ You can also bring your own widget and UI and simply pass a feedback object to t
   <input name="email" />
   <textarea name="message" placeholder="What's the issue?" />
 </form>
+```
 
-<script>
+```javascript
+import {BrowserClient, getCurrentHub} from '@sentry/react';
+import {Feedback} from '@sentry-internal/feedback';
+
 document.getElementById('my-feedback-form').addEventListener('submit', (event) => {
+  const feedback = getCurrentHub().getClient<BrowserClient>()?.getIntegration(Feedback);
   const formData = new FormData(event.currentTarget);
-  Feedback.sendFeedback(formData);
+  feedback.sendFeedback(formData);
   event.preventDefault();
 });
-</script>
 ```
 
 ## Alerting on User Feedback Reports

@@ -99,23 +99,7 @@ sentryTest('should capture very large console logs', async ({ getLocalTestPath, 
         type: 'default',
         category: 'console',
         data: {
-          arguments: [
-            expect.objectContaining({
-              'item-0': {
-                aa: expect.objectContaining({
-                  'item-0': {
-                    aa: expect.any(Object),
-                    bb: expect.any(String),
-                    cc: expect.any(String),
-                    dd: expect.any(String),
-                  },
-                }),
-                bb: expect.any(String),
-                cc: expect.any(String),
-                dd: expect.any(String),
-              },
-            }),
-          ],
+          arguments: [expect.any(String)],
           logger: 'console',
           _meta: {
             warnings: ['CONSOLE_ARG_TRUNCATED'],

@@ -14,9 +14,7 @@ export function wrapRouteHandlerWithSentry<F extends (...args: any[]) => any>(
   context: RouteHandlerContext,
 ): (...args: Parameters<F>) => ReturnType<F> extends Promise<unknown> ? ReturnType<F> : Promise<ReturnType<F>> {
   addTracingExtensions();
-
   const { method, parameterizedRoute, baggageHeader, sentryTraceHeader } = context;
-
   return new Proxy(routeHandler, {
     apply: (originalFunction, thisArg, args) => {
       return runWithAsyncContext(async () => {

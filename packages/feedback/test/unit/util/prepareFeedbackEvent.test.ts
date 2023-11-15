@@ -1,8 +1,7 @@
 import type { Hub, Scope } from '@sentry/core';
 import { getCurrentHub } from '@sentry/core';
-import type { Client } from '@sentry/types';
+import type { Client, FeedbackEvent } from '@sentry/types';
 
-import type { FeedbackEvent } from '../../../src/types';
 import { prepareFeedbackEvent } from '../../../src/util/prepareFeedbackEvent';
 import { getDefaultClientOptions, TestClient } from '../../utils/TestClient';
 
@@ -18,15 +17,6 @@ describe('Unit | util | prepareFeedbackEvent', () => {
 
     client = hub.getClient()!;
     scope = hub.getScope()!;
-
-    jest.spyOn(client, 'getSdkMetadata').mockImplementation(() => {
-      return {
-        sdk: {
-          name: 'sentry.javascript.testSdk',
-          version: '1.0.0',
-        },
-      };
-    });
   });
 
   afterEach(() => {
@@ -41,13 +31,14 @@ describe('Unit | util | prepareFeedbackEvent', () => {
     const event: FeedbackEvent = {
       timestamp: 1670837008.634,
       event_id: 'feedback-ID',
-      feedback: {
-        contact_email: 'test@test.com',
-        message: 'looks great!',
-        replay_id: replayId,
-        url: 'https://sentry.io/',
-      },
+      type: 'feedback',
       contexts: {
+        feedback: {
+          contact_email: 'test@test.com',
+          message: 'looks great!',
+          replay_id: replayId,
+          url: 'https://sentry.io/',
+        },
         replay: {
           error_sample_rate: 1.0,
           session_sample_rate: 0.1,
@@ -57,31 +48,26 @@ describe('Unit | util | prepareFeedbackEvent', () => {
 
     const feedbackEvent = await prepareFeedbackEvent({ scope, client, event });
 
-    expect(client.getSdkMetadata).toHaveBeenCalledTimes(1);
-
     expect(feedbackEvent).toEqual({
       timestamp: 1670837008.634,
       event_id: 'feedback-ID',
-      feedback: {
-        contact_email: 'test@test.com',
-        message: 'looks great!',
-        replay_id: replayId,
-        url: 'https://sentry.io/',
-      },
       platform: 'javascript',
       environment: 'production',
       contexts: {
+        feedback: {
+          contact_email: 'test@test.com',
+          message: 'looks great!',
+          replay_id: replayId,
+          url: 'https://sentry.io/',
+        },
         replay: {
           error_sample_rate: 1.0,
           session_sample_rate: 0.1,
         },
       },
-      sdk: {
-        name: 'sentry.javascript.testSdk',
-        version: '1.0.0',
-      },
       sdkProcessingMetadata: expect.any(Object),
       breadcrumbs: undefined,
+      type: 'feedback',
     });
   });
 });

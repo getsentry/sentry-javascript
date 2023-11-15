@@ -13,17 +13,21 @@ function getThemedCssVariables(theme: FeedbackTheme): string {
   --submit-background: ${theme.submitBackground};
   --submit-background-hover: ${theme.submitBackgroundHover};
   --submit-border: ${theme.submitBorder};
+  --submit-outline-focus: ${theme.submitOutlineFocus};
   --submit-foreground: ${theme.submitForeground};
+  --submit-foreground-hover: ${theme.submitForegroundHover};
 
   --cancel-background: ${theme.cancelBackground};
   --cancel-background-hover: ${theme.cancelBackgroundHover};
   --cancel-border: ${theme.cancelBorder};
+  --cancel-outline-focus: ${theme.cancelOutlineFocus};
   --cancel-foreground: ${theme.cancelForeground};
+  --cancel-foreground-hover: ${theme.cancelForegroundHover};
 
   --input-background: ${theme.inputBackground};
   --input-foreground: ${theme.inputForeground};
   --input-border: ${theme.inputBorder};
-  --input-border-focus: ${theme.inputBorderFocus};
+  --input-outline-focus: ${theme.inputOutlineFocus};
   `;
 }
 

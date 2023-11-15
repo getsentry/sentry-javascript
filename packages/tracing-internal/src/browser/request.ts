@@ -1,13 +1,12 @@
 /* eslint-disable max-lines */
 import { getCurrentHub, getDynamicSamplingContextFromClient, hasTracingEnabled } from '@sentry/core';
-import type { Client, HandlerDataFetch, Scope, Span } from '@sentry/types';
+import type { HandlerDataFetch, Span } from '@sentry/types';
 import {
   addInstrumentationHandler,
   BAGGAGE_HEADER_NAME,
   browserPerformanceTimeOrigin,
   dynamicSamplingContextToSentryBaggageHeader,
   generateSentryTraceHeader,
-  isInstanceOf,
   SENTRY_XHR_DATA_KEY,
   stringMatchesSomePattern,
 } from '@sentry/utils';
@@ -86,17 +85,6 @@ export interface XHRData {
   endTimestamp?: number;
 }
 
-type PolymorphicRequestHeaders =
-  | Record<string, string | undefined>
-  | Array<[string, string]>
-  // the below is not preicsely the Header type used in Request, but it'll pass duck-typing
-  | {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      [key: string]: any;
-      append: (key: string, value: string) => void;
-      get: (key: string) => string | null | undefined;
-    };
-
 export const defaultRequestInstrumentationOptions: RequestInstrumentationOptions = {
   traceFetch: true,
   traceXHR: true,
@@ -136,10 +124,6 @@ export function instrumentOutgoingRequests(_options?: Partial<RequestInstrumenta
 
   if (traceFetch) {
     addInstrumentationHandler('fetch', (handlerData: HandlerDataFetch) => {
-      if (!hasTracingEnabled()) {
-        return;
-      }
-
       const createdSpan = instrumentFetchRequest(handlerData, shouldCreateSpan, shouldAttachHeadersWithTargets, spans);
       if (enableHTTPTimings && createdSpan) {
         addHTTPTimings(createdSpan);

@@ -37,10 +37,6 @@ describe('Integration | Transactions', () => {
         metadata: { requestPath: 'test-path' },
       },
       span => {
-        if (!span) {
-          return;
-        }
-
         addBreadcrumb({ message: 'test breadcrumb 2', timestamp: 123456 });
 
         span.setAttributes({
@@ -48,15 +44,11 @@ describe('Integration | Transactions', () => {
         });
 
         const subSpan = startInactiveSpan({ name: 'inner span 1' });
-        subSpan?.end();
+        subSpan.end();
 
         setTag('test.tag', 'test value');
 
         startSpan({ name: 'inner span 2' }, innerSpan => {
-          if (!innerSpan) {
-            return;
-          }
-
           addBreadcrumb({ message: 'test breadcrumb 3', timestamp: 123456 });
 
           innerSpan.setAttributes({
@@ -96,6 +88,7 @@ describe('Integration | Transactions', () => {
             span_id: expect.any(String),
             status: 'ok',
             trace_id: expect.any(String),
+            origin: 'auto.test',
           },
         },
         environment: 'production',
@@ -186,10 +179,6 @@ describe('Integration | Transactions', () => {
     addBreadcrumb({ message: 'test breadcrumb 1', timestamp: 123456 });
 
     startSpan({ op: 'test op', name: 'test name', source: 'task', origin: 'auto.test' }, span => {
-      if (!span) {
-        return;
-      }
-
       addBreadcrumb({ message: 'test breadcrumb 2', timestamp: 123456 });
 
       span.setAttributes({
@@ -197,15 +186,11 @@ describe('Integration | Transactions', () => {
       });
 
       const subSpan = startInactiveSpan({ name: 'inner span 1' });
-      subSpan?.end();
+      subSpan.end();
 
       setTag('test.tag', 'test value');
 
       startSpan({ name: 'inner span 2' }, innerSpan => {
-        if (!innerSpan) {
-          return;
-        }
-
         addBreadcrumb({ message: 'test breadcrumb 3', timestamp: 123456 });
 
         innerSpan.setAttributes({
@@ -215,10 +200,6 @@ describe('Integration | Transactions', () => {
     });
 
     startSpan({ op: 'test op b', name: 'test name b' }, span => {
-      if (!span) {
-        return;
-      }
-
       addBreadcrumb({ message: 'test breadcrumb 2b', timestamp: 123456 });
 
       span.setAttributes({
@@ -226,15 +207,11 @@ describe('Integration | Transactions', () => {
       });
 
       const subSpan = startInactiveSpan({ name: 'inner span 1b' });
-      subSpan?.end();
+      subSpan.end();
 
       setTag('test.tag', 'test value b');
 
       startSpan({ name: 'inner span 2b' }, innerSpan => {
-        if (!innerSpan) {
-          return;
-        }
-
         addBreadcrumb({ message: 'test breadcrumb 3b', timestamp: 123456 });
 
         innerSpan.setAttributes({
@@ -265,6 +242,7 @@ describe('Integration | Transactions', () => {
             span_id: expect.any(String),
             status: 'ok',
             trace_id: expect.any(String),
+            origin: 'auto.test',
           },
         }),
         spans: [
@@ -306,6 +284,7 @@ describe('Integration | Transactions', () => {
             span_id: expect.any(String),
             status: 'ok',
             trace_id: expect.any(String),
+            origin: 'manual',
           },
         }),
         spans: [
@@ -359,19 +338,11 @@ describe('Integration | Transactions', () => {
     context.with(
       trace.setSpanContext(setPropagationContextOnContext(context.active(), propagationContext), spanContext),
       () => {
-        startSpan({ op: 'test op', name: 'test name', source: 'task', origin: 'auto.test' }, span => {
-          if (!span) {
-            return;
-          }
-
+        startSpan({ op: 'test op', name: 'test name', source: 'task', origin: 'auto.test' }, () => {
           const subSpan = startInactiveSpan({ name: 'inner span 1' });
-          subSpan?.end();
+          subSpan.end();
 
-          startSpan({ name: 'inner span 2' }, innerSpan => {
-            if (!innerSpan) {
-              return;
-            }
-          });
+          startSpan({ name: 'inner span 2' }, () => {});
         });
       },
     );
@@ -392,6 +363,7 @@ describe('Integration | Transactions', () => {
             parent_span_id: parentSpanId,
             status: 'ok',
             trace_id: traceId,
+            origin: 'auto.test',
           },
         }),
         // spans are circular (they have a reference to the transaction), which leads to jest choking on this

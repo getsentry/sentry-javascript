@@ -14,6 +14,13 @@ process.env = {
   SENTRY_AUTH_TOKEN: 'my-token',
 };
 
+const updateConfig = vi.fn();
+const injectScript = vi.fn();
+const config = {
+  root: new URL('file://path/to/project'),
+  outDir: new URL('file://path/to/project/out'),
+};
+
 describe('sentryAstro integration', () => {
   afterEach(() => {
     vi.clearAllMocks();
@@ -28,12 +35,10 @@ describe('sentryAstro integration', () => {
     const integration = sentryAstro({
       sourceMapsUploadOptions: { enabled: true, org: 'my-org', project: 'my-project', telemetry: false },
     });
-    const updateConfig = vi.fn();
-    const injectScript = vi.fn();
 
     expect(integration.hooks['astro:config:setup']).toBeDefined();
     // @ts-expect-error - the hook exists and we only need to pass what we actually use
-    await integration.hooks['astro:config:setup']({ updateConfig, injectScript });
+    await integration.hooks['astro:config:setup']({ updateConfig, injectScript, config });
 
     expect(updateConfig).toHaveBeenCalledTimes(1);
     expect(updateConfig).toHaveBeenCalledWith({
@@ -51,6 +56,30 @@ describe('sentryAstro integration', () => {
       org: 'my-org',
       project: 'my-project',
       telemetry: false,
+      debug: false,
+      sourcemaps: {
+        assets: ['out/**/*'],
+      },
+    });
+  });
+
+  it('falls back to default output dir, if out and root dir are not available', async () => {
+    const integration = sentryAstro({
+      sourceMapsUploadOptions: { enabled: true, org: 'my-org', project: 'my-project', telemetry: false },
+    });
+    // @ts-expect-error - the hook exists and we only need to pass what we actually use
+    await integration.hooks['astro:config:setup']({ updateConfig, injectScript, config: {} });
+
+    expect(sentryVitePluginSpy).toHaveBeenCalledTimes(1);
+    expect(sentryVitePluginSpy).toHaveBeenCalledWith({
+      authToken: 'my-token',
+      org: 'my-org',
+      project: 'my-project',
+      telemetry: false,
+      debug: false,
+      sourcemaps: {
+        assets: ['dist/**/*'],
+      },
     });
   });
 
@@ -58,12 +87,10 @@ describe('sentryAstro integration', () => {
     const integration = sentryAstro({
       sourceMapsUploadOptions: { enabled: false },
     });
-    const updateConfig = vi.fn();
-    const injectScript = vi.fn();
 
     expect(integration.hooks['astro:config:setup']).toBeDefined();
     // @ts-expect-error - the hook exists and we only need to pass what we actually use
-    await integration.hooks['astro:config:setup']({ updateConfig, injectScript });
+    await integration.hooks['astro:config:setup']({ updateConfig, injectScript, config });
 
     expect(updateConfig).toHaveBeenCalledTimes(0);
     expect(sentryVitePluginSpy).toHaveBeenCalledTimes(0);
@@ -71,12 +98,10 @@ describe('sentryAstro integration', () => {
 
   it('injects client and server init scripts', async () => {
     const integration = sentryAstro({});
-    const updateConfig = vi.fn();
-    const injectScript = vi.fn();
 
     expect(integration.hooks['astro:config:setup']).toBeDefined();
     // @ts-expect-error - the hook exists and we only need to pass what we actually use
-    await integration.hooks['astro:config:setup']({ updateConfig, injectScript });
+    await integration.hooks['astro:config:setup']({ updateConfig, injectScript, config });
 
     expect(injectScript).toHaveBeenCalledTimes(2);
     expect(injectScript).toHaveBeenCalledWith('page', expect.stringContaining('Sentry.init'));
@@ -89,12 +114,9 @@ describe('sentryAstro integration', () => {
       serverInitPath: 'my-server-init-path.js',
     });
 
-    const updateConfig = vi.fn();
-    const injectScript = vi.fn();
-
     expect(integration.hooks['astro:config:setup']).toBeDefined();
     // @ts-expect-error - the hook exists and we only need to pass what we actually use
-    await integration.hooks['astro:config:setup']({ updateConfig, injectScript });
+    await integration.hooks['astro:config:setup']({ updateConfig, injectScript, config });
 
     expect(injectScript).toHaveBeenCalledTimes(2);
     expect(injectScript).toHaveBeenCalledWith('page', expect.stringContaining('my-client-init-path.js'));

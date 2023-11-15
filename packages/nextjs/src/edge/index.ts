@@ -1,9 +1,11 @@
-import { SDK_VERSION } from '@sentry/core';
+import { addTracingExtensions, SDK_VERSION } from '@sentry/core';
 import { RewriteFrames } from '@sentry/integrations';
 import type { SdkMetadata } from '@sentry/types';
 import { addOrUpdateIntegration, escapeStringForRegex, GLOBAL_OBJ } from '@sentry/utils';
 import type { VercelEdgeOptions } from '@sentry/vercel-edge';
 import { init as vercelEdgeInit } from '@sentry/vercel-edge';
+
+import { isBuild } from '../common/utils/isBuild';
 
 export type EdgeOptions = VercelEdgeOptions;
 
@@ -14,6 +16,12 @@ const globalWithInjectedValues = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
 
 /** Inits the Sentry NextJS SDK on the Edge Runtime. */
 export function init(options: VercelEdgeOptions = {}): void {
+  addTracingExtensions();
+
+  if (isBuild()) {
+    return;
+  }
+
   const opts = {
     _metadata: {} as SdkMetadata,
     ...options,
