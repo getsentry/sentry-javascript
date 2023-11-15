@@ -11,7 +11,7 @@ describe('sendFeedback', () => {
     await sendFeedback({
       name: 'doe',
       email: 're@example.org',
-      message: 'mi',
+      comments: 'mi',
     });
     expect(mockTransport).toHaveBeenCalledWith([
       { event_id: expect.any(String), sent_at: expect.any(String) },

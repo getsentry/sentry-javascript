@@ -81,7 +81,7 @@ export function Form({
         const feedback = {
           name: retrieveStringValue(formData, 'name'),
           email: retrieveStringValue(formData, 'email'),
-          message: retrieveStringValue(formData, 'message'),
+          comments: retrieveStringValue(formData, 'comments'),
         };
 
         onSubmit(feedback);
@@ -129,10 +129,10 @@ export function Form({
   });
 
   const messageEl = createElement('textarea', {
-    id: 'message',
+    id: 'comments',
     autoFocus: 'true',
     rows: '5',
-    name: 'message',
+    name: 'comments',
     required: true,
     className: 'form__input form__input--textarea',
     placeholder: messagePlaceholder,
@@ -187,7 +187,7 @@ export function Form({
       createElement(
         'label',
         {
-          htmlFor: 'message',
+          htmlFor: 'comments',
           className: 'form__label',
         },
         [

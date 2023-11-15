@@ -6,7 +6,7 @@ import type { SendFeedbackOptions } from './types';
 import { sendFeedbackRequest } from './util/sendFeedbackRequest';
 
 interface SendFeedbackParams {
-  message: string;
+  comments: string;
   name?: string;
   email?: string;
   url?: string;
@@ -17,7 +17,7 @@ interface SendFeedbackParams {
  * Public API to send a Feedback item to Sentry
  */
 export function sendFeedback(
-  { name, email, message, source = 'api', url = getLocationHref() }: SendFeedbackParams,
+  { name, email, comments, source = 'api', url = getLocationHref() }: SendFeedbackParams,
   { includeReplay = true }: SendFeedbackOptions = {},
 ): ReturnType<typeof sendFeedbackRequest> {
   const client = getCurrentHub().getClient<BrowserClient>();
@@ -27,7 +27,7 @@ export function sendFeedback(
   replay && replay.flush();
   const replayId = replay && replay.getReplayId();
 
-  if (!message) {
+  if (!comments) {
     throw new Error('Unable to submit feedback with empty message');
   }
 
@@ -35,7 +35,7 @@ export function sendFeedback(
     feedback: {
       name,
       email,
-      message,
+      comments,
       url,
       replay_id: replayId,
       source,

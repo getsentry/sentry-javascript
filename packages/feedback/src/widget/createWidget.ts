@@ -89,7 +89,7 @@ export function createWidget({
     }
 
     // Simple validation for now, just check for non-empty message
-    if (!feedback.message) {
+    if (!feedback.comments) {
       dialog.showError('Please enter in some feedback before submitting!');
       return;
     }

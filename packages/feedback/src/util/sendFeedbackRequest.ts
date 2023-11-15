@@ -8,7 +8,7 @@ import { prepareFeedbackEvent } from './prepareFeedbackEvent';
  * Send feedback using transport
  */
 export async function sendFeedbackRequest({
-  feedback: { message, email, name, source, replay_id, url },
+  feedback: { comments, email, name, source, replay_id, url },
 }: SendFeedbackData): Promise<void | TransportMakeRequestResponse> {
   const hub = getCurrentHub();
   const client = hub.getClient();
@@ -25,7 +25,7 @@ export async function sendFeedbackRequest({
       feedback: {
         contact_email: email,
         name,
-        message,
+        message: comments,
         replay_id,
         url,
         source,
@@ -70,7 +70,7 @@ export async function sendFeedbackRequest({
       },
       "contexts": {
           "feedback": {
-              "message": "test message",
+              "comments": "test message",
               "contact_email": "test@example.com",
               "type": "feedback",
           },

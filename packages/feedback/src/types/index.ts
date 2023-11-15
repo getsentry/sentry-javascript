@@ -7,7 +7,7 @@ export type SentryTags = { [key: string]: Primitive } | undefined;
 
 export interface SendFeedbackData {
   feedback: {
-    message: string;
+    comments: string;
     url: string;
     email?: string;
     replay_id?: string;
@@ -27,7 +27,7 @@ export interface SendFeedbackOptions {
  * Feedback data expected from UI/form
  */
 export interface FeedbackFormData {
-  message: string;
+  comments: string;
   email?: string;
   name?: string;
 }
