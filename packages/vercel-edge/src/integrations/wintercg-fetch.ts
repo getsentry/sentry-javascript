@@ -79,7 +79,7 @@ export class WinterCGFetch implements Integration {
     });
   }
 
-  /** TODO */
+  /** Decides whether to attach trace data to the outgoing fetch request */
   private _shouldAttachTraceData(url: string): boolean {
     const hub = getCurrentHub();
     const client = hub.getClient();
