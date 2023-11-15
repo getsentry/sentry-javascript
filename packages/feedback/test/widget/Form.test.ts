@@ -50,7 +50,7 @@ describe('Form', () => {
     expect(emailInput).not.toBeNull();
     expect(nameInput.value).toBe('Foo Bar');
     expect(emailInput.value).toBe('foo@example.com');
-    expect(formComponent.el.querySelector('[name="message"]')).not.toBeNull();
+    expect(formComponent.el.querySelector('[name="comments"]')).not.toBeNull();
 
     const button = formComponent.el.querySelector('button[type="submit"]') as HTMLButtonElement | null;
     expect(button?.textContent).toBe('Submit!');
@@ -69,7 +69,7 @@ describe('Form', () => {
     expect(emailInput).not.toBeNull();
     expect(nameInput.value).toBe('Foo Bar');
     expect(emailInput.value).toBe('foo@example.com');
-    expect(formComponent.el.querySelector('[name="message"]')).not.toBeNull();
+    expect(formComponent.el.querySelector('[name="comments"]')).not.toBeNull();
   });
 
   it('can change text labels', () => {
@@ -84,14 +84,14 @@ describe('Form', () => {
 
     const nameLabel = formComponent.el.querySelector('label[htmlFor="name"]') as HTMLLabelElement;
     const emailLabel = formComponent.el.querySelector('label[htmlFor="email"]') as HTMLLabelElement;
-    const messageLabel = formComponent.el.querySelector('label[htmlFor="message"]') as HTMLLabelElement;
+    const messageLabel = formComponent.el.querySelector('label[htmlFor="comments"]') as HTMLLabelElement;
     expect(nameLabel.textContent).toBe('Name!');
     expect(emailLabel.textContent).toBe('Email!');
     expect(messageLabel.textContent).toBe('Description! (required)');
 
     const nameInput = formComponent.el.querySelector('[name="name"]') as HTMLInputElement;
     const emailInput = formComponent.el.querySelector('[name="email"]') as HTMLInputElement;
-    const messageInput = formComponent.el.querySelector('[name="message"]') as HTMLTextAreaElement;
+    const messageInput = formComponent.el.querySelector('[name="comments"]') as HTMLTextAreaElement;
 
     expect(nameInput.placeholder).toBe('Your full name!');
     expect(emailInput.placeholder).toBe('foo@example.org!');
@@ -101,7 +101,7 @@ describe('Form', () => {
   it('submit is enabled if message is not empty', () => {
     const formComponent = renderForm();
 
-    const message = formComponent.el.querySelector('[name="message"]') as HTMLTextAreaElement;
+    const message = formComponent.el.querySelector('[name="comments"]') as HTMLTextAreaElement;
 
     message.value = 'Foo (message)';
     message.dispatchEvent(new KeyboardEvent('keyup'));
@@ -140,7 +140,7 @@ describe('Form', () => {
 
     expect(onSubmit).toHaveBeenCalledWith({
       email: 'foo@example.com',
-      message: '',
+      comments: '',
       name: 'Foo Bar',
     });
   });
@@ -158,16 +158,16 @@ describe('Form', () => {
     const emailInput = formComponent.el.querySelector('[name="email"][type="text"]') as HTMLInputElement;
     expect(nameInput).toBeNull();
     expect(emailInput).toBeNull();
-    expect(formComponent.el.querySelector('[name="message"]')).not.toBeNull();
+    expect(formComponent.el.querySelector('[name="comments"]')).not.toBeNull();
 
-    const message = formComponent.el.querySelector('[name="message"]') as HTMLTextAreaElement;
+    const message = formComponent.el.querySelector('[name="comments"]') as HTMLTextAreaElement;
     message.value = 'Foo (message)';
     message.dispatchEvent(new KeyboardEvent('keyup'));
 
     formComponent.el.dispatchEvent(submitEvent);
     expect(onSubmit).toHaveBeenCalledWith({
       email: '',
-      message: 'Foo (message)',
+      comments: 'Foo (message)',
       name: '',
     });
   });
