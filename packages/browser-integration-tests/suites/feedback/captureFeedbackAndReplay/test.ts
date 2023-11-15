@@ -2,15 +2,10 @@ import { expect } from '@playwright/test';
 
 import { sentryTest } from '../../../utils/fixtures';
 import { envelopeRequestParser, getEnvelopeType } from '../../../utils/helpers';
-import {
-  getCustomRecordingEvents,
-  getReplayEvent,
-  shouldSkipReplayTest,
-  waitForReplayRequest,
-} from '../../../utils/replayHelpers';
+import { getCustomRecordingEvents, getReplayEvent, waitForReplayRequest } from '../../../utils/replayHelpers';
 
 sentryTest('should capture feedback (@sentry-internal/feedback import)', async ({ getLocalTestPath, page }) => {
-  if (shouldSkipReplayTest()) {
+  if (process.env.PW_BUNDLE) {
     sentryTest.skip();
   }
 

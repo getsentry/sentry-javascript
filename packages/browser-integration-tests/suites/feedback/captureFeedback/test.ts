@@ -4,6 +4,10 @@ import { sentryTest } from '../../../utils/fixtures';
 import { envelopeRequestParser, getEnvelopeType } from '../../../utils/helpers';
 
 sentryTest('should capture feedback (@sentry-internal/feedback import)', async ({ getLocalTestPath, page }) => {
+  if (process.env.PW_BUNDLE) {
+    sentryTest.skip();
+  }
+
   const feedbackRequestPromise = page.waitForResponse(res => {
     const req = res.request();
 
