@@ -1,6 +1,6 @@
 {
   "name": "@sentry/replay",
-  "version": "7.80.1",
+  "version": "7.80.2-alpha.1",
   "description": "User replays for Sentry",
   "main": "build/npm/cjs/index.js",
   "module": "build/npm/esm/index.js",
@@ -51,17 +51,17 @@
   "homepage": "https://docs.sentry.io/platforms/javascript/session-replay/",
   "devDependencies": {
     "@babel/core": "^7.17.5",
-    "@sentry-internal/replay-worker": "7.80.1",
+    "@sentry-internal/replay-worker": "7.80.2-alpha.1",
     "@sentry-internal/rrweb": "2.2.0",
     "@sentry-internal/rrweb-snapshot": "2.2.0",
     "fflate": "^0.8.1",
     "jsdom-worker": "^0.2.1"
   },
   "dependencies": {
-    "@sentry-internal/tracing": "7.80.1",
-    "@sentry/core": "7.80.1",
-    "@sentry/types": "7.80.1",
-    "@sentry/utils": "7.80.1"
+    "@sentry-internal/tracing": "7.80.2-alpha.1",
+    "@sentry/core": "7.80.2-alpha.1",
+    "@sentry/types": "7.80.2-alpha.1",
+    "@sentry/utils": "7.80.2-alpha.1"
   },
   "engines": {
     "node": ">=12"
