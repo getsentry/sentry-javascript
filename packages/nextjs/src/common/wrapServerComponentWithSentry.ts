@@ -1,6 +1,7 @@
 import {
   addTracingExtensions,
   captureException,
+  flush,
   getCurrentHub,
   runWithAsyncContext,
   startTransaction,
@@ -19,7 +20,6 @@ export function wrapServerComponentWithSentry<F extends (...args: any[]) => any>
   context: ServerComponentContext,
 ): F {
   addTracingExtensions();
-
   const { componentRoute, componentType } = context;
 
   // Even though users may define server components as async functions, for the client bundles
@@ -81,6 +81,7 @@ export function wrapServerComponentWithSentry<F extends (...args: any[]) => any>
           maybePromiseResult = originalFunction.apply(thisArg, args);
         } catch (e) {
           handleErrorCase(e);
+          void flush();
           throw e;
         }
 
@@ -94,12 +95,14 @@ export function wrapServerComponentWithSentry<F extends (...args: any[]) => any>
               handleErrorCase(e);
             },
           );
+          void flush();
 
           // It is very important that we return the original promise here, because Next.js attaches various properties
           // to that promise and will throw if they are not on the returned value.
           return maybePromiseResult;
         } else {
           transaction.finish();
+          void flush();
           return maybePromiseResult;
         }
       });

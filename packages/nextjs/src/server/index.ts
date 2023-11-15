@@ -1,3 +1,4 @@
+import { addTracingExtensions } from '@sentry/core';
 import { RewriteFrames } from '@sentry/integrations';
 import type { NodeOptions } from '@sentry/node';
 import { configureScope, getCurrentHub, init as nodeInit, Integrations } from '@sentry/node';
@@ -63,6 +64,12 @@ const IS_VERCEL = !!process.env.VERCEL;
 
 /** Inits the Sentry NextJS SDK on node. */
 export function init(options: NodeOptions): void {
+  addTracingExtensions();
+
+  if (isBuild()) {
+    return;
+  }
+
   const opts = {
     environment: process.env.SENTRY_ENVIRONMENT || getVercelEnv(false) || process.env.NODE_ENV,
     ...options,

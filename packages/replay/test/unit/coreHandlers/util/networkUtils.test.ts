@@ -72,8 +72,8 @@ describe('Unit | coreHandlers | util | networkUtils', () => {
   describe('buildNetworkRequestOrResponse', () => {
     it.each([
       ['just text', 'just text', undefined],
-      ['[invalid JSON]', '[invalid JSON]', { warnings: ['INVALID_JSON'] }],
-      ['{invalid JSON}', '{invalid JSON}', { warnings: ['INVALID_JSON'] }],
+      ['[invalid JSON]', '[invalid JSON]', undefined],
+      ['{invalid JSON}', '{invalid JSON}', undefined],
       ['[]', [], undefined],
       [JSON.stringify([1, 'a', true, null, undefined]), [1, 'a', true, null, null], undefined],
       [JSON.stringify([1, [2, [3, [4, [5, [6, [7, [8]]]]]]]]), [1, [2, [3, [4, [5, [6, [7, [8]]]]]]]], undefined],
@@ -195,10 +195,10 @@ describe('Unit | coreHandlers | util | networkUtils', () => {
         JSON.stringify({
           aa: 'a'.repeat(NETWORK_BODY_MAX_SIZE + 10),
         }),
-        {
-          aa: `${'a'.repeat(NETWORK_BODY_MAX_SIZE - 7)}~~`,
-        },
-        { warnings: ['JSON_TRUNCATED'] },
+        JSON.stringify({
+          aa: 'a'.repeat(NETWORK_BODY_MAX_SIZE + 10),
+        }).slice(0, NETWORK_BODY_MAX_SIZE),
+        { warnings: ['MAYBE_JSON_TRUNCATED'] },
       ],
       [
         'large plain string',
@@ -211,8 +211,11 @@ describe('Unit | coreHandlers | util | networkUtils', () => {
         `{--${JSON.stringify({
           aa: 'a'.repeat(NETWORK_BODY_MAX_SIZE + 10),
         })}`,
-        `{--{"aa":"${'a'.repeat(NETWORK_BODY_MAX_SIZE - 10)}…`,
-        { warnings: ['INVALID_JSON', 'TEXT_TRUNCATED'] },
+
+        `{--${JSON.stringify({
+          aa: 'a'.repeat(NETWORK_BODY_MAX_SIZE + 10),
+        })}`.slice(0, NETWORK_BODY_MAX_SIZE),
+        { warnings: ['MAYBE_JSON_TRUNCATED'] },
       ],
     ])('works with %s', (label, input, expectedBody, expectedMeta) => {
       const actual = buildNetworkRequestOrResponse({}, 1, input);

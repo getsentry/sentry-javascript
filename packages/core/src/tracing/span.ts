@@ -332,6 +332,7 @@ export class Span implements SpanInterface {
       status: this.status,
       tags: Object.keys(this.tags).length > 0 ? this.tags : undefined,
       trace_id: this.traceId,
+      origin: this.origin,
     });
   }
 

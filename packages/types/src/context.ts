@@ -1,4 +1,5 @@
 import type { Primitive } from './misc';
+import type { SpanOrigin } from './span';
 
 export type Context = Record<string, unknown>;
 
@@ -101,6 +102,7 @@ export interface TraceContext extends Record<string, unknown> {
   status?: string;
   tags?: { [key: string]: Primitive };
   trace_id: string;
+  origin?: SpanOrigin;
 }
 
 export interface CloudResourceContext extends Record<string, unknown> {

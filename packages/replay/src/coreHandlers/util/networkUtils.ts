@@ -1,5 +1,5 @@
 import type { TextEncoderInternal } from '@sentry/types';
-import { dropUndefinedKeys, stringMatchesSomePattern } from '@sentry/utils';
+import { dropUndefinedKeys, logger, stringMatchesSomePattern } from '@sentry/utils';
 
 import { NETWORK_BODY_MAX_SIZE, WINDOW } from '../../constants';
 import type {
@@ -10,7 +10,6 @@ import type {
   ReplayNetworkRequestOrResponse,
   ReplayPerformanceEntry,
 } from '../../types';
-import { fixJson } from '../../util/truncateJson/fixJson';
 
 /** Get the size of a body. */
 export function getBodySize(
@@ -63,16 +62,20 @@ export function parseContentLengthHeader(header: string | null | undefined): num
 
 /** Get the string representation of a body. */
 export function getBodyString(body: unknown): string | undefined {
-  if (typeof body === 'string') {
-    return body;
-  }
+  try {
+    if (typeof body === 'string') {
+      return body;
+    }
 
-  if (body instanceof URLSearchParams) {
-    return body.toString();
-  }
+    if (body instanceof URLSearchParams) {
+      return body.toString();
+    }
 
-  if (body instanceof FormData) {
-    return _serializeFormData(body);
+    if (body instanceof FormData) {
+      return _serializeFormData(body);
+    }
+  } catch {
+    __DEBUG_BUILD__ && logger.warn('[Replay] Failed to serialize body', body);
   }
 
   return undefined;
@@ -161,7 +164,7 @@ export function buildNetworkRequestOrResponse(
 
   const { body: normalizedBody, warnings } = normalizeNetworkBody(body);
   info.body = normalizedBody;
-  if (warnings.length > 0) {
+  if (warnings && warnings.length > 0) {
     info._meta = {
       warnings,
     };
@@ -191,36 +194,46 @@ function _serializeFormData(formData: FormData): string {
 
 function normalizeNetworkBody(body: string | undefined): {
   body: NetworkBody | undefined;
-  warnings: NetworkMetaWarning[];
+  warnings?: NetworkMetaWarning[];
 } {
   if (!body || typeof body !== 'string') {
     return {
       body,
-      warnings: [],
     };
   }
 
   const exceedsSizeLimit = body.length > NETWORK_BODY_MAX_SIZE;
+  const isProbablyJson = _strIsProbablyJson(body);
 
-  if (_strIsProbablyJson(body)) {
-    try {
-      const json = exceedsSizeLimit ? fixJson(body.slice(0, NETWORK_BODY_MAX_SIZE)) : body;
-      const normalizedBody = JSON.parse(json);
+  if (exceedsSizeLimit) {
+    const truncatedBody = body.slice(0, NETWORK_BODY_MAX_SIZE);
+
+    if (isProbablyJson) {
       return {
-        body: normalizedBody,
-        warnings: exceedsSizeLimit ? ['JSON_TRUNCATED'] : [],
+        body: truncatedBody,
+        warnings: ['MAYBE_JSON_TRUNCATED'],
+      };
+    }
+
+    return {
+      body: `${truncatedBody}…`,
+      warnings: ['TEXT_TRUNCATED'],
+    };
+  }
+
+  if (isProbablyJson) {
+    try {
+      const jsonBody = JSON.parse(body);
+      return {
+        body: jsonBody,
       };
     } catch {
-      return {
-        body: exceedsSizeLimit ? `${body.slice(0, NETWORK_BODY_MAX_SIZE)}…` : body,
-        warnings: exceedsSizeLimit ? ['INVALID_JSON', 'TEXT_TRUNCATED'] : ['INVALID_JSON'],
-      };
+      // fall back to just send the body as string
     }
   }
 
   return {
-    body: exceedsSizeLimit ? `${body.slice(0, NETWORK_BODY_MAX_SIZE)}…` : body,
-    warnings: exceedsSizeLimit ? ['TEXT_TRUNCATED'] : [],
+    body,
   };
 }
 

@@ -34,13 +34,15 @@ export function Actor({ buttonLabel, onClick }: ActorProps): ActorComponent {
       ['aria-hidden']: 'false',
     },
     Icon().el,
-    createElement(
-      'span',
-      {
-        className: 'widget__actor__text',
-      },
-      buttonLabel,
-    ),
+    buttonLabel
+      ? createElement(
+          'span',
+          {
+            className: 'widget__actor__text',
+          },
+          buttonLabel,
+        )
+      : null,
   );
 
   el.addEventListener('click', _handleClick);

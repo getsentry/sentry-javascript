@@ -122,9 +122,8 @@ export function createDialogStyles(d: Document): HTMLStyleElement {
   padding: 6px 12px;
 }
 
-.form__input:focus {
-  outline: 1px solid transparent;
-  outline-color: var(--input-border-focus);
+.form__input:focus-visible {
+  outline: 1px auto var(--input-outline-focus);
 }
 
 .form__input--textarea {
@@ -159,6 +158,10 @@ export function createDialogStyles(d: Document): HTMLStyleElement {
 }
 .btn--primary:hover {
   background-color: var(--submit-background-hover);
+  color: var(--submit-foreground-hover);
+}
+.btn--primary:focus-visible {
+  outline: 1px auto var(--submit-outline-focus);
 }
 
 .btn--default {
@@ -168,6 +171,10 @@ export function createDialogStyles(d: Document): HTMLStyleElement {
 }
 .btn--default:hover {
   background-color: var(--cancel-background-hover);
+  color: var(--cancel-foreground-hover);
+}
+.btn--default:focus-visible {
+  outline: 1px auto var(--cancel-outline-focus);
 }
 
 .success-message {

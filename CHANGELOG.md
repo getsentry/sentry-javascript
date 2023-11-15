@@ -4,15 +4,75 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.80.1
+
+- fix(astro): Adjust Vite plugin config to upload server source maps (#9541)
+- fix(nextjs): Add tracing extensions in all serverside wrappers (#9537)
+- fix(nextjs): Fix serverside transaction names on Windows (#9526)
+- fix(node): Fix tRPC middleware typing (#9540)
+- fix(replay): Add additional safeguards for capturing network bodies (#9506)
+- fix(tracing): Update prisma span to be `db.prisma` (#9512)
+
+## 7.80.0
+
+- feat(astro): Add distributed tracing via `<meta>` tags (#9483)
+- feat(node): Capture internal server errors in trpc middleware (#9482)
+- feat(remix): Export a type to use for `MetaFunction` parameters (#9493)
+- fix(astro): Mark SDK package as Astro-external (#9509)
+- ref(nextjs): Don't initialize Server SDK during build (#9503)
+
+## 7.79.0
+
+- feat(tracing): Add span `origin` to trace context (#9472)
+- fix(deno): Emit .mjs files (#9485)
+- fix(nextjs): Flush servercomponent events for edge (#9487)
+
+## 7.78.0
+
+### Important Changes
+
+- **Replay Bundle Size improvements**
+
+We've dramatically decreased the bundle size of our Replay package, reducing the minified & gzipped bundle size by ~20 KB!
+This was possible by extensive use of tree shaking and a host of small changes to reduce our footprint:
+
+- feat(replay): Update rrweb to 2.2.0 (#9414)
+- ref(replay): Use fflate instead of pako for compression (#9436)
+
+By using [tree shaking](https://docs.sentry.io/platforms/javascript/configuration/tree-shaking/) it is possible to shave up to 10 additional KB off the bundle.
+
+### Other Changes
+
+- feat(astro): Add Sentry middleware (#9445)
+- feat(feedback): Add "outline focus" and "foreground hover" vars (#9462)
+- feat(feedback): Add `openDialog` and `closeDialog` onto integration interface (#9464)
+- feat(feedback): Implement new user feedback embeddable widget (#9217)
+- feat(nextjs): Add automatic sourcemapping for edge part of the SDK (#9454)
+- feat(nextjs): Add client routing instrumentation for app router (#9446)
+- feat(node-experimental): Add hapi tracing support (#9449)
+- feat(replay): Allow to configure `beforeErrorSampling` (#9470)
+- feat(replay): Stop fixing truncated JSONs in SDK (#9437)
+- fix(nextjs): Fix sourcemaps resolving for local dev when basePath is set (#9457)
+- fix(nextjs): Only inject basepath in dev mode (#9465)
+- fix(replay): Ensure we stop for rate limit headers (#9420)
+- ref(feedback): Add treeshaking for logger statements (#9475)
+- ref(replay): Use rrweb for slow click detection (#9408)
+- build(polyfills): Remove output format specific logic (#9467)
+
 ## 7.77.0
+
+### Security Fixes
+
+- fix(nextjs): Match only numbers as orgid in tunnelRoute (#9416) (CVE-2023-46729)
+- fix(nextjs): Strictly validate tunnel target parameters (#9415) (CVE-2023-46729)
+
+### Other Changes
 
 - feat: Move LinkedErrors integration to @sentry/core (#9404)
 - feat(remix): Update sentry-cli version to ^2.21.2 (#9401)
 - feat(replay): Allow to treeshake & configure compression worker URL (#9409)
 - fix(angular-ivy): Adjust package entry points to support Angular 17 with SSR config (#9412)
 - fix(feedback): Fixing feedback import (#9403)
-- fix(nextjs): Match only numbers as orgid in tunnelRoute (#9416)
-- fix(nextjs): Strictly validate tunnel target parameters (#9415)
 - fix(utils): Avoid keeping a reference of last used event (#9387)
 
 ## 7.76.0

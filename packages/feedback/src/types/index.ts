@@ -1,25 +1,9 @@
-import type { Event, Primitive } from '@sentry/types';
+import type { Primitive } from '@sentry/types';
 
 import type { ActorComponent } from '../widget/Actor';
 import type { DialogComponent } from '../widget/Dialog';
 
 export type SentryTags = { [key: string]: Primitive } | undefined;
-
-/**
- * NOTE: These types are still considered Beta and subject to change.
- * @hidden
- */
-export interface FeedbackEvent extends Event {
-  feedback: {
-    message: string;
-    url: string;
-    contact_email?: string;
-    name?: string;
-    replay_id?: string;
-  };
-  // TODO: Add this event type to Event
-  // type: 'feedback_event';
-}
 
 export interface SendFeedbackData {
   feedback: {
@@ -28,6 +12,7 @@ export interface SendFeedbackData {
     email?: string;
     replay_id?: string;
     name?: string;
+    source?: string;
   };
 }
 
@@ -270,9 +255,18 @@ export interface FeedbackTheme {
    */
   submitBorder: string;
   /**
+   * Border style for the submit button, in the focued state
+   */
+  submitOutlineFocus: string;
+  /**
    * Foreground color for the submit button
    */
   submitForeground: string;
+
+  /**
+   * Foreground color for the submit button, in the hover state
+   */
+  submitForegroundHover: string;
 
   /**
    * Background color for the cancel button
@@ -287,9 +281,17 @@ export interface FeedbackTheme {
    */
   cancelBorder: string;
   /**
+   * Border style for the cancel button, in the focued state
+   */
+  cancelOutlineFocus: string;
+  /**
    * Foreground color for the cancel button
    */
   cancelForeground: string;
+  /**
+   * Foreground color for the cancel button, in the hover state
+   */
+  cancelForegroundHover: string;
 
   /**
    * Background color for form inputs
@@ -306,7 +308,7 @@ export interface FeedbackTheme {
   /**
    * Border styles for form inputs when focused
    */
-  inputBorderFocus: string;
+  inputOutlineFocus: string;
 }
 
 export interface FeedbackThemes {
@@ -324,7 +326,7 @@ export interface FeedbackComponent<T extends HTMLElement> {
  *   - dialog + feedback form
  *   - shadow root?
  */
-export interface Widget {
+export interface FeedbackWidget {
   actor: ActorComponent | undefined;
   dialog: DialogComponent | undefined;
 
@@ -333,6 +335,6 @@ export interface Widget {
   removeActor: () => void;
 
   openDialog: () => void;
-  hideDialog: () => void;
+  closeDialog: () => void;
   removeDialog: () => void;
 }
