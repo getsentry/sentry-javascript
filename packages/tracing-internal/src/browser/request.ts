@@ -85,17 +85,6 @@ export interface XHRData {
   endTimestamp?: number;
 }
 
-type PolymorphicRequestHeaders =
-  | Record<string, string | undefined>
-  | Array<[string, string]>
-  // the below is not preicsely the Header type used in Request, but it'll pass duck-typing
-  | {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      [key: string]: any;
-      append: (key: string, value: string) => void;
-      get: (key: string) => string | null | undefined;
-    };
-
 export const defaultRequestInstrumentationOptions: RequestInstrumentationOptions = {
   traceFetch: true,
   traceXHR: true,
