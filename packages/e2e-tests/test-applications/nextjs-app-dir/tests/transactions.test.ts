@@ -2,10 +2,12 @@ import { test, expect } from '@playwright/test';
 import { waitForTransaction } from '../event-proxy-server';
 import axios, { AxiosError } from 'axios';
 
+const packageJson = require('../package.json');
+
 const authToken = process.env.E2E_TEST_AUTH_TOKEN;
 const sentryTestOrgSlug = process.env.E2E_TEST_SENTRY_ORG_SLUG;
 const sentryTestProject = process.env.E2E_TEST_SENTRY_TEST_PROJECT;
-const EVENT_POLLING_TIMEOUT = 30_000;
+const EVENT_POLLING_TIMEOUT = 90_000;
 
 test('Sends a pageload transaction', async ({ page }) => {
   const pageloadTransactionEventPromise = waitForTransaction('nextjs-13-app-dir', transactionEvent => {
@@ -112,3 +114,26 @@ if (process.env.TEST_ENV === 'production') {
     expect((await serverComponentTransactionPromise).contexts?.trace?.status).toBe('not_found');
   });
 }
+
+test('Should send a transaction for instrumented server actions', async ({ page }) => {
+  const nextjsVersion = packageJson.dependencies.next;
+  const nextjsMajor = Number(nextjsVersion.split('.')[0]);
+  test.skip(!isNaN(nextjsMajor) && nextjsMajor < 14, 'only applies to nextjs apps >= version 14');
+
+  const serverComponentTransactionPromise = waitForTransaction('nextjs-13-app-dir', async transactionEvent => {
+    return transactionEvent?.transaction === 'serverAction/myServerAction';
+  });
+
+  await page.goto('/server-action');
+  await page.getByText('Run Action').click();
+
+  expect(await serverComponentTransactionPromise).toBeDefined();
+  expect((await serverComponentTransactionPromise).contexts?.trace?.data?.['server_action_form_data']).toEqual(
+    expect.objectContaining({ 'some-text-value': 'some-default-value' }),
+  );
+  expect((await serverComponentTransactionPromise).contexts?.trace?.data?.['server_action_result']).toEqual({
+    city: 'Vienna',
+  });
+
+  expect(Object.keys((await serverComponentTransactionPromise).request?.headers || {}).length).toBeGreaterThan(0);
+});

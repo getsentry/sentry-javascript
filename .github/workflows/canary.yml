@@ -27,7 +27,7 @@ jobs:
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version-file: 'package.json'
       - name: Check canary cache
@@ -89,7 +89,7 @@ jobs:
         with:
           version: 8.3.1
       - name: Set up Node
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version-file: 'package.json'
 
@@ -152,7 +152,7 @@ jobs:
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version-file: 'package.json'
       - name: Install dependencies

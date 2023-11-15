@@ -101,7 +101,7 @@ export class Prisma implements Integration {
         return trace(
           {
             name: model ? `${model} ${action}` : action,
-            op: 'db.sql.prisma',
+            op: 'db.prisma',
             origin: 'auto.db.prisma',
             data: { ...clientData, 'db.operation': action },
           },

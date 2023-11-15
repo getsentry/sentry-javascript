@@ -16,6 +16,7 @@ export {
   withMonitor,
   configureScope,
   createTransport,
+  // eslint-disable-next-line deprecation/deprecation
   extractTraceparentData,
   getActiveTransaction,
   getHubFromCarrier,
@@ -62,5 +63,6 @@ export {
 export * from '@sentry/node';
 
 export { init } from './server/sdk';
+export { handleRequest } from './server/middleware';
 
 export default sentryAstro;

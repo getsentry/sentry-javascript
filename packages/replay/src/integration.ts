@@ -61,6 +61,7 @@ export class Replay implements Integration {
     maxReplayDuration = MAX_REPLAY_DURATION,
     stickySession = true,
     useCompression = true,
+    workerUrl,
     _experiments = {},
     sessionSampleRate,
     errorSampleRate,
@@ -89,6 +90,7 @@ export class Replay implements Integration {
     maskFn,
 
     beforeAddRecordingEvent,
+    beforeErrorSampling,
 
     // eslint-disable-next-line deprecation/deprecation
     blockClass,
@@ -163,6 +165,7 @@ export class Replay implements Integration {
       sessionSampleRate,
       errorSampleRate,
       useCompression,
+      workerUrl,
       blockAllMedia,
       maskAllInputs,
       maskAllText,
@@ -176,6 +179,7 @@ export class Replay implements Integration {
       networkRequestHeaders: _getMergedNetworkHeaders(networkRequestHeaders),
       networkResponseHeaders: _getMergedNetworkHeaders(networkResponseHeaders),
       beforeAddRecordingEvent,
+      beforeErrorSampling,
 
       _experiments,
     };

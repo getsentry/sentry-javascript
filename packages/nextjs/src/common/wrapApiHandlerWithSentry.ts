@@ -1,4 +1,10 @@
-import { captureException, getCurrentHub, runWithAsyncContext, startTransaction } from '@sentry/core';
+import {
+  addTracingExtensions,
+  captureException,
+  getCurrentHub,
+  runWithAsyncContext,
+  startTransaction,
+} from '@sentry/core';
 import type { Transaction } from '@sentry/types';
 import {
   addExceptionMechanism,
@@ -73,6 +79,8 @@ export function withSentry(apiHandler: NextApiHandler, parameterizedRoute?: stri
         return wrappingTarget.apply(thisArg, args);
       }
       req.__withSentry_applied__ = true;
+
+      addTracingExtensions();
 
       // eslint-disable-next-line complexity, @typescript-eslint/no-explicit-any
       const boundHandler = runWithAsyncContext(

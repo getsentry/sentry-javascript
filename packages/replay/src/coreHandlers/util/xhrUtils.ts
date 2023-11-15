@@ -20,7 +20,7 @@ import {
  */
 export async function captureXhrBreadcrumbToReplay(
   breadcrumb: Breadcrumb & { data: XhrBreadcrumbData },
-  hint: XhrHint,
+  hint: Partial<XhrHint>,
   options: ReplayNetworkOptions & { replay: ReplayContainer },
 ): Promise<void> {
   try {
@@ -41,10 +41,14 @@ export async function captureXhrBreadcrumbToReplay(
  */
 export function enrichXhrBreadcrumb(
   breadcrumb: Breadcrumb & { data: XhrBreadcrumbData },
-  hint: XhrHint,
+  hint: Partial<XhrHint>,
   options: { textEncoder: TextEncoderInternal },
 ): void {
   const { xhr, input } = hint;
+
+  if (!xhr) {
+    return;
+  }
 
   const reqSize = getBodySize(input, options.textEncoder);
   const resSize = xhr.getResponseHeader('content-length')
@@ -61,10 +65,11 @@ export function enrichXhrBreadcrumb(
 
 function _prepareXhrData(
   breadcrumb: Breadcrumb & { data: XhrBreadcrumbData },
-  hint: XhrHint,
+  hint: Partial<XhrHint>,
   options: ReplayNetworkOptions,
 ): ReplayNetworkRequestData | null {
-  const { startTimestamp, endTimestamp, input, xhr } = hint;
+  const now = Date.now();
+  const { startTimestamp = now, endTimestamp = now, input, xhr } = hint;
 
   const {
     url,
@@ -78,7 +83,7 @@ function _prepareXhrData(
     return null;
   }
 
-  if (!urlMatches(url, options.networkDetailAllowUrls) || urlMatches(url, options.networkDetailDenyUrls)) {
+  if (!xhr || !urlMatches(url, options.networkDetailAllowUrls) || urlMatches(url, options.networkDetailDenyUrls)) {
     const request = buildSkippedNetworkRequestOrResponse(requestBodySize);
     const response = buildSkippedNetworkRequestOrResponse(responseBodySize);
     return {
@@ -98,16 +103,11 @@ function _prepareXhrData(
     : {};
   const networkResponseHeaders = getAllowedHeaders(getResponseHeaders(xhr), options.networkResponseHeaders);
 
-  const request = buildNetworkRequestOrResponse(
-    networkRequestHeaders,
-    requestBodySize,
-    options.networkCaptureBodies ? getBodyString(input) : undefined,
-  );
-  const response = buildNetworkRequestOrResponse(
-    networkResponseHeaders,
-    responseBodySize,
-    options.networkCaptureBodies ? hint.xhr.responseText : undefined,
-  );
+  const requestBody = options.networkCaptureBodies ? getBodyString(input) : undefined;
+  const responseBody = options.networkCaptureBodies ? _getXhrResponseBody(xhr) : undefined;
+
+  const request = buildNetworkRequestOrResponse(networkRequestHeaders, requestBodySize, requestBody);
+  const response = buildNetworkRequestOrResponse(networkResponseHeaders, responseBodySize, responseBody);
 
   return {
     startTimestamp,
@@ -132,4 +132,18 @@ function getResponseHeaders(xhr: XMLHttpRequest): Record<string, string> {
     acc[key.toLowerCase()] = value;
     return acc;
   }, {});
+}
+
+function _getXhrResponseBody(xhr: XMLHttpRequest): string | undefined {
+  try {
+    return xhr.responseText;
+  } catch {} // eslint-disable-line no-empty
+
+  // Try to manually parse the response body, if responseText fails
+  try {
+    const response = xhr.response;
+    return getBodyString(response);
+  } catch {} // eslint-disable-line no-empty
+
+  return undefined;
 }

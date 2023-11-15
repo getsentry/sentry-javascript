@@ -19,6 +19,7 @@ export {
   captureMessage,
   configureScope,
   createTransport,
+  // eslint-disable-next-line deprecation/deprecation
   extractTraceparentData,
   getActiveTransaction,
   getHubFromCarrier,
@@ -61,6 +62,8 @@ export { ErrorBoundary, withErrorBoundary } from '@sentry/react';
 export { remixRouterInstrumentation, withSentry } from './client/performance';
 export { captureRemixErrorBoundaryError } from './client/errors';
 export { wrapExpressCreateRequestHandler } from './utils/serverAdapters/express';
+
+export type { SentryMetaArgs } from './utils/types';
 
 function sdkAlreadyInitialized(): boolean {
   const hub = getCurrentHub();

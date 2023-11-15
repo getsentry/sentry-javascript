@@ -1,6 +1,6 @@
 {
   "name": "@sentry/bun",
-  "version": "7.76.0",
+  "version": "7.80.1",
   "description": "Official Sentry SDK for bun",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/bun",
@@ -23,10 +23,10 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/core": "7.76.0",
-    "@sentry/node": "7.76.0",
-    "@sentry/types": "7.76.0",
-    "@sentry/utils": "7.76.0"
+    "@sentry/core": "7.80.1",
+    "@sentry/node": "7.80.1",
+    "@sentry/types": "7.80.1",
+    "@sentry/utils": "7.80.1"
   },
   "devDependencies": {
     "bun-types": "latest"

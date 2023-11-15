@@ -1,6 +1,6 @@
 {
   "name": "@sentry-internal/replay-worker",
-  "version": "7.76.0",
+  "version": "7.80.1",
   "description": "Worker for @sentry/replay",
   "main": "build/npm/esm/index.js",
   "module": "build/npm/esm/index.js",
@@ -17,6 +17,7 @@
   "scripts": {
     "build": "run-p build:transpile build:types",
     "build:transpile": "rollup -c rollup.worker.config.js",
+    "build:examples": "rollup -c rollup.examples.config.js",
     "build:types": "run-s build:types:core build:types:downlevel",
     "build:types:core": "tsc -p tsconfig.types.json",
     "build:types:downlevel": "yarn downlevel-dts build/npm/types build/npm/types-ts3.8 --to ts3.8",
@@ -45,12 +46,8 @@
     "url": "https://github.com/getsentry/sentry-javascript/issues"
   },
   "homepage": "https://docs.sentry.io/platforms/javascript/session-replay/",
-  "devDependencies": {
-    "@rollup/plugin-commonjs": "^21.0.1",
-    "@types/pako": "^2.0.0"
-  },
   "dependencies": {
-    "pako": "2.1.0"
+    "fflate": "0.8.1"
   },
   "engines": {
     "node": ">=12"

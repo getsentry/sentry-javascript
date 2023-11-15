@@ -267,44 +267,6 @@ describe('Integration | coreHandlers | handleGlobalEvent', () => {
     expect(handleGlobalEventListener(replay)(errorEvent, {})).toEqual(errorEvent);
   });
 
-  it('skips rrweb internal errors', () => {
-    const errorEvent: Event = {
-      exception: {
-        values: [
-          {
-            type: 'TypeError',
-            value: "Cannot read properties of undefined (reading 'contains')",
-            stacktrace: {
-              frames: [
-                {
-                  filename:
-                    'http://example.com/..node_modules/packages/replay/build/npm/esm/node_modules/rrweb/es/rrweb/packages/rrweb/src/record/mutation.js?v=90704e8a',
-                  function: 'MutationBuffer.processMutations',
-                  in_app: true,
-                  lineno: 101,
-                  colno: 23,
-                },
-                {
-                  filename: '<anonymous>',
-                  function: 'Array.forEach',
-                  in_app: true,
-                },
-              ],
-            },
-            mechanism: {
-              type: 'generic',
-              handled: true,
-            },
-          },
-        ],
-      },
-      level: 'error',
-      event_id: 'ff1616b1e13744c6964281349aecc82a',
-    };
-
-    expect(handleGlobalEventListener(replay)(errorEvent, {})).toEqual(null);
-  });
-
   it('skips exception with __rrweb__ set', () => {
     const errorEvent: Event = {
       exception: {

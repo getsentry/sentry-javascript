@@ -1,4 +1,5 @@
 export {
+  // eslint-disable-next-line deprecation/deprecation
   extractTraceparentData,
   getActiveTransaction,
   hasTracingEnabled,

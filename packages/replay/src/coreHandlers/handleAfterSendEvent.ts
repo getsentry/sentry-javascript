@@ -63,12 +63,19 @@ function handleErrorEvent(replay: ReplayContainer, event: ErrorEvent): void {
 
   // If error event is tagged with replay id it means it was sampled (when in buffer mode)
   // Need to be very careful that this does not cause an infinite loop
-  if (replay.recordingMode === 'buffer' && event.tags && event.tags.replayId) {
-    setTimeout(() => {
-      // Capture current event buffer as new replay
-      void replay.sendBufferedReplayOrFlush();
-    });
+  if (replay.recordingMode !== 'buffer' || !event.tags || !event.tags.replayId) {
+    return;
   }
+
+  const { beforeErrorSampling } = replay.getOptions();
+  if (typeof beforeErrorSampling === 'function' && !beforeErrorSampling(event)) {
+    return;
+  }
+
+  setTimeout(() => {
+    // Capture current event buffer as new replay
+    void replay.sendBufferedReplayOrFlush();
+  });
 }
 
 function isBaseTransportSend(): boolean {
