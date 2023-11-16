@@ -117,7 +117,7 @@ describe('Form', () => {
   });
 
   it('submit is enabled if name is required and is not empty', () => {
-    const formComponent = renderForm({isNameRequired: true});
+    const formComponent = renderForm({ isNameRequired: true });
 
     const name = formComponent.el.querySelector('[name="name"]') as HTMLTextAreaElement;
 
@@ -129,7 +129,7 @@ describe('Form', () => {
   });
 
   it('submit is enabled if email is required and is not empty', () => {
-    const formComponent = renderForm({isEmailRequired: true});
+    const formComponent = renderForm({ isEmailRequired: true });
 
     const email = formComponent.el.querySelector('[name="email"]') as HTMLTextAreaElement;
 
