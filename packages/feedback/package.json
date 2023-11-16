@@ -42,7 +42,7 @@
     "build:types:watch": "tsc -p tsconfig.types.json --watch",
     "build:tarball": "ts-node ../../scripts/prepack.ts --bundles && npm pack ./build/npm",
     "circularDepCheck": "madge --circular src/index.ts",
-    "clean": "rimraf build sentry-replay-*.tgz",
+    "clean": "rimraf build sentry-feedback-*.tgz",
     "fix": "eslint . --format stylish --fix",
     "lint": "eslint . --format stylish",
     "test": "jest",
