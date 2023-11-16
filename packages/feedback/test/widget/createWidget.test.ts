@@ -140,7 +140,7 @@ describe('createWidget', () => {
     nameEl.value = 'Jane Doe';
     const emailEl = widget.dialog?.el?.querySelector('[name="email"]') as HTMLInputElement;
     emailEl.value = 'jane@example.com';
-    const messageEl = widget.dialog?.el?.querySelector('[name="message"]') as HTMLTextAreaElement;
+    const messageEl = widget.dialog?.el?.querySelector('[name="comments"]') as HTMLTextAreaElement;
     messageEl.value = 'My feedback';
 
     nameEl.dispatchEvent(new Event('change'));
@@ -152,7 +152,7 @@ describe('createWidget', () => {
       feedback: {
         name: 'Jane Doe',
         email: 'jane@example.com',
-        message: 'My feedback',
+        comments: 'My feedback',
         url: 'http://localhost/',
         replay_id: undefined,
         source: 'widget',
@@ -182,7 +182,7 @@ describe('createWidget', () => {
     });
     widget.actor?.el?.dispatchEvent(new Event('click'));
 
-    const messageEl = widget.dialog?.el?.querySelector('[name="message"]') as HTMLTextAreaElement;
+    const messageEl = widget.dialog?.el?.querySelector('[name="comments"]') as HTMLTextAreaElement;
     messageEl.value = 'My feedback';
 
     messageEl.dispatchEvent(new Event('change'));
@@ -192,7 +192,7 @@ describe('createWidget', () => {
       feedback: {
         name: '',
         email: '',
-        message: 'My feedback',
+        comments: 'My feedback',
         url: 'http://localhost/',
         replay_id: undefined,
         source: 'widget',
