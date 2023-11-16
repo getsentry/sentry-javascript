@@ -2,15 +2,16 @@ import { createEventEnvelope, getCurrentHub } from '@sentry/core';
 import type { FeedbackEvent, TransportMakeRequestResponse } from '@sentry/types';
 
 import { FEEDBACK_API_SOURCE, FEEDBACK_WIDGET_SOURCE } from '../constants';
-import type { SendFeedbackData } from '../types';
+import type { SendFeedbackData, SendFeedbackOptions } from '../types';
 import { prepareFeedbackEvent } from './prepareFeedbackEvent';
 
 /**
  * Send feedback using transport
  */
-export async function sendFeedbackRequest({
-  feedback: { message, email, name, source, replay_id, url },
-}: SendFeedbackData): Promise<void | TransportMakeRequestResponse> {
+export async function sendFeedbackRequest(
+  { feedback: { message, email, name, source, url } }: SendFeedbackData,
+  { includeReplay = true }: SendFeedbackOptions = {},
+): Promise<void | TransportMakeRequestResponse> {
   const hub = getCurrentHub();
   const client = hub.getClient();
   const transport = client && client.getTransport();
@@ -26,7 +27,6 @@ export async function sendFeedbackRequest({
         contact_email: email,
         name,
         message,
-        replay_id,
         url,
         source,
       },
@@ -52,6 +52,10 @@ export async function sendFeedbackRequest({
       if (feedbackEvent === null) {
         resolve();
         return;
+      }
+
+      if (client && client.emit) {
+        client.emit('afterPrepareFeedback', feedbackEvent, { includeReplay: Boolean(includeReplay) });
       }
 
       const envelope = createEventEnvelope(

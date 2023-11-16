@@ -57,6 +57,17 @@ export function addGlobalListeners(replay: ReplayContainer): void {
     client.on('finishTransaction', transaction => {
       replay.lastTransaction = transaction;
     });
+
+    // We want to flush replay
+    client.on('afterPrepareFeedback', (feedbackEvent, options) => {
+      const replayId = replay.getSessionId();
+      if (options && options.includeReplay && replay.isEnabled() && replayId) {
+        void replay.flush();
+        if (feedbackEvent.contexts && feedbackEvent.contexts.feedback) {
+          feedbackEvent.contexts.feedback.replay_id = replayId;
+        }
+      }
+    });
   }
 }
 

@@ -27,6 +27,7 @@ import type {
   Transport,
   TransportMakeRequestResponse,
 } from '@sentry/types';
+import type { FeedbackEvent } from '@sentry/types';
 import {
   addItemToEnvelope,
   checkOrSetAlreadyCaught,
@@ -414,6 +415,12 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   public on(hook: 'otelSpanEnd', callback: (otelSpan: unknown, mutableOptions: { drop: boolean }) => void): void;
 
   /** @inheritdoc */
+  public on(
+    hook: 'afterPrepareFeedback',
+    callback: (feedback: FeedbackEvent, options?: { includeReplay: boolean }) => void,
+  ): void;
+
+  /** @inheritdoc */
   public on(hook: string, callback: unknown): void {
     if (!this._hooks[hook]) {
       this._hooks[hook] = [];
@@ -449,6 +456,9 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
 
   /** @inheritdoc */
   public emit(hook: 'otelSpanEnd', otelSpan: unknown, mutableOptions: { drop: boolean }): void;
+
+  /** @inheritdoc */
+  public emit(hook: 'afterPrepareFeedback', feedback: FeedbackEvent, options?: { includeReplay: boolean }): void;
 
   /** @inheritdoc */
   public emit(hook: string, ...rest: unknown[]): void {
