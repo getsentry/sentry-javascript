@@ -1,4 +1,4 @@
-import { WINDOW } from '@sentry/browser';
+import { WINDOW } from '../../constants';
 
 /**
  * Helper function to create an element. Could be used as a JSX factory
