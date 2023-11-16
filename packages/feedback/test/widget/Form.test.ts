@@ -9,6 +9,8 @@ function renderForm({
   showName = true,
   showEmail = true,
   isAnonymous = false,
+  isNameRequired = false,
+  isEmailRequired = false,
   defaultName = 'Foo Bar',
   defaultEmail = 'foo@example.com',
   nameLabel = 'Name',
@@ -25,6 +27,8 @@ function renderForm({
     isAnonymous,
     showName,
     showEmail,
+    isNameRequired,
+    isEmailRequired,
     defaultName,
     defaultEmail,
     nameLabel,
@@ -80,13 +84,15 @@ describe('Form', () => {
       emailPlaceholder: 'foo@example.org!',
       messageLabel: 'Description!',
       messagePlaceholder: 'What is the issue?!',
+      isNameRequired: true,
+      isEmailRequired: true,
     });
 
     const nameLabel = formComponent.el.querySelector('label[htmlFor="name"]') as HTMLLabelElement;
     const emailLabel = formComponent.el.querySelector('label[htmlFor="email"]') as HTMLLabelElement;
     const messageLabel = formComponent.el.querySelector('label[htmlFor="message"]') as HTMLLabelElement;
-    expect(nameLabel.textContent).toBe('Name!');
-    expect(emailLabel.textContent).toBe('Email!');
+    expect(nameLabel.textContent).toBe('Name! (required)');
+    expect(emailLabel.textContent).toBe('Email! (required)');
     expect(messageLabel.textContent).toBe('Description! (required)');
 
     const nameInput = formComponent.el.querySelector('[name="name"]') as HTMLInputElement;
@@ -108,6 +114,30 @@ describe('Form', () => {
 
     message.value = '';
     message.dispatchEvent(new KeyboardEvent('keyup'));
+  });
+
+  it('submit is enabled if name is required and is not empty', () => {
+    const formComponent = renderForm({isNameRequired: true});
+
+    const name = formComponent.el.querySelector('[name="name"]') as HTMLTextAreaElement;
+
+    name.value = 'Foo Bar';
+    name.dispatchEvent(new KeyboardEvent('keyup'));
+
+    name.value = '';
+    name.dispatchEvent(new KeyboardEvent('keyup'));
+  });
+
+  it('submit is enabled if email is required and is not empty', () => {
+    const formComponent = renderForm({isEmailRequired: true});
+
+    const email = formComponent.el.querySelector('[name="email"]') as HTMLTextAreaElement;
+
+    email.value = 'foo@example.org';
+    email.dispatchEvent(new KeyboardEvent('keyup'));
+
+    email.value = '';
+    email.dispatchEvent(new KeyboardEvent('keyup'));
   });
 
   it('can show error', () => {
@@ -148,6 +178,8 @@ describe('Form', () => {
   it('does not show name or email inputs for anonymous mode', () => {
     const onSubmit = jest.fn();
     const formComponent = renderForm({
+      isNameRequired: true,
+      isEmailRequired: true,
       isAnonymous: true,
       onSubmit,
     });

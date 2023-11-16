@@ -159,6 +159,8 @@ export function createWidget({
         showName: options.showName,
         showEmail: options.showEmail,
         isAnonymous: options.isAnonymous,
+        isNameRequired: options.isNameRequired,
+        isEmailRequired: options.isEmailRequired,
         formTitle: options.formTitle,
         cancelButtonLabel: options.cancelButtonLabel,
         submitButtonLabel: options.submitButtonLabel,
