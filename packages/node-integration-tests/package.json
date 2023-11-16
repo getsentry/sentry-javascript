@@ -27,7 +27,7 @@
     "@types/mysql": "^2.15.21",
     "@types/pg": "^8.6.5",
     "apollo-server": "^3.11.1",
-    "axios": "^0.27.2",
+    "axios": "^1.6.0",
     "cors": "^2.8.5",
     "express": "^4.17.3",
     "graphql": "^16.3.0",
