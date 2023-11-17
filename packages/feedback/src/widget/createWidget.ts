@@ -99,7 +99,7 @@ export function createWidget({
     if (!feedback.message) {
       emptyField.push(options.messageLabel);
     }
-    if (!emptyField.length) {
+    if (emptyField.length != 0) {
       dialog.showError(`Please enter in the following required fields: ${emptyField.join(', ')}`);
       return;
     }
