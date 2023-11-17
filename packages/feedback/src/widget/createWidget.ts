@@ -92,11 +92,9 @@ export function createWidget({
     const emptyField = [];
     if (options.isNameRequired && !feedback.name) {
       emptyField.push(options.nameLabel);
-      return;
     }
     if (options.isEmailRequired && !feedback.email) {
       emptyField.push(options.emailLabel);
-      return;
     }
     if (!feedback.message) {
       emptyField.push(options.messageLabel);
