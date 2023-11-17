@@ -20,6 +20,7 @@ import { isThenable, logger, timestampInSeconds, uuid4 } from '@sentry/utils';
 import type { Hub } from './hub';
 import { getCurrentHub } from './hub';
 import type { Scope } from './scope';
+import type { ExclusiveEventHintOrCaptureContext } from './utils/prepareEvent';
 import { parseEventHintOrCaptureContext } from './utils/prepareEvent';
 
 // Note: All functions in this file are typed with a return value of `ReturnType<Hub[HUB_FUNCTION]>`,
@@ -37,7 +38,7 @@ import { parseEventHintOrCaptureContext } from './utils/prepareEvent';
 export function captureException(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   exception: any,
-  hint?: CaptureContext | EventHint,
+  hint?: ExclusiveEventHintOrCaptureContext,
 ): ReturnType<Hub['captureException']> {
   return getCurrentHub().captureException(exception, parseEventHintOrCaptureContext(hint));
 }

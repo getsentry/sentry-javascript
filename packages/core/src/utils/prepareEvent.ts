@@ -4,6 +4,7 @@ import type {
   ClientOptions,
   Event,
   EventHint,
+  Scope as ScopeInterface,
   ScopeContext,
   StackFrame,
   StackParser,
@@ -11,7 +12,6 @@ import type {
 import {
   addExceptionMechanism,
   dateTimestampInSeconds,
-  dropUndefinedKeys,
   GLOBAL_OBJ,
   normalize,
   resolvedSyncPromise,
@@ -22,6 +22,15 @@ import {
 import { DEFAULT_ENVIRONMENT } from '../constants';
 import { getGlobalEventProcessors, notifyEventProcessors } from '../eventProcessors';
 import { Scope } from '../scope';
+
+/**
+ * This type makes sure that we get either a CaptureContext, OR an EventHint.
+ * It does not allow mixing them, which could lead to unexpected outcomes, e.g. this is disallowed:
+ * { user: { id: '123' }, mechanism: { handled: false } }
+ */
+export type ExclusiveEventHintOrCaptureContext =
+  | (CaptureContext & Partial<{ [key in keyof EventHint]: never }>)
+  | (EventHint & Partial<{ [key in keyof ScopeContext]: never }>);
 
 /**
  * Adds common information to events.
@@ -336,7 +345,9 @@ function normalizeEvent(event: Event | null, depth: number, maxBreadth: number):
  * Parse either an `EventHint` directly, or convert a `CaptureContext` to an `EventHint`.
  * This is used to allow to update method signatures that used to accept a `CaptureContext` but should now accept an `EventHint`.
  */
-export function parseEventHintOrCaptureContext(hint: CaptureContext | EventHint | undefined): EventHint | undefined {
+export function parseEventHintOrCaptureContext(
+  hint: ExclusiveEventHintOrCaptureContext | undefined,
+): EventHint | undefined {
   if (!hint) {
     return undefined;
   }
@@ -346,24 +357,33 @@ export function parseEventHintOrCaptureContext(hint: CaptureContext | EventHint 
     return { captureContext: hint };
   }
 
-  const hintOrScopeContext = hint as Partial<ScopeContext> & Partial<EventHint>;
-
-  // Else, we need to make sure to pick the legacy CaptureContext fields off & merge them into the hint
-  const { user, level, extra, contexts, tags, fingerprint, requestSession, propagationContext, ...eventHint } =
-    hintOrScopeContext;
-
-  const captureContext = {
-    ...dropUndefinedKeys({ user, level, extra, contexts, tags, fingerprint, requestSession, propagationContext }),
-    ...hintOrScopeContext.captureContext,
-  };
-
-  if (Object.keys(captureContext).length) {
-    eventHint.captureContext = captureContext;
+  if (hintIsScopeContext(hint)) {
+    return {
+      captureContext: hint,
+    };
   }
 
-  return eventHint;
+  return hint;
 }
 
-function hintIsScopeOrFunction(hint: CaptureContext | EventHint): hint is Scope | (() => Scope) {
+function hintIsScopeOrFunction(
+  hint: CaptureContext | EventHint,
+): hint is ScopeInterface | ((scope: ScopeInterface) => ScopeInterface) {
   return hint instanceof Scope || typeof hint === 'function';
+}
+
+type ScopeContextProperty = keyof ScopeContext;
+const captureContextKeys: readonly ScopeContextProperty[] = [
+  'user',
+  'level',
+  'extra',
+  'contexts',
+  'tags',
+  'fingerprint',
+  'requestSession',
+  'propagationContext',
+] as const;
+
+function hintIsScopeContext(hint: Partial<ScopeContext> | EventHint): hint is Partial<ScopeContext> {
+  return Object.keys(hint).some(key => captureContextKeys.includes(key as ScopeContextProperty));
 }
