@@ -88,21 +88,21 @@ export function createWidget({
       return;
     }
 
-    // Simple validation for now, just check for non-empty message
-    if (!feedback.message) {
-      dialog.showError('Please enter in some feedback before submitting!');
-      return;
-    }
-
-    // Simple validation for now, just check for non-empty message if name required
+    // Simple validation for now, just check for non-empty required fields
+    const emptyField = [];
     if (options.isNameRequired && !feedback.name) {
-      dialog.showError('Please enter in a name before submitting!');
+      emptyField.push(options.nameLabel);
       return;
     }
-
-    // Simple validation for now, just check for non-empty message if email required
     if (options.isEmailRequired && !feedback.email) {
-      dialog.showError('Please enter in an email before submitting!');
+      emptyField.push(options.emailLabel);
+      return;
+    }
+    if (!feedback.message) {
+      emptyField.push(options.messageLabel);
+    }
+    if (!emptyField.length) {
+      dialog.showError(`Please enter in the following required fields: ${emptyField.join(', ')}`);
       return;
     }
 
