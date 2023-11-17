@@ -100,7 +100,7 @@ export function createWidget({
       return;
     }
 
-    // Simple validation for now, just check for non-empty message if name required
+    // Simple validation for now, just check for non-empty message if email required
     if (options.isEmailRequired && !feedback.email) {
       dialog.showError('Please enter in an email before submitting!');
       return;
