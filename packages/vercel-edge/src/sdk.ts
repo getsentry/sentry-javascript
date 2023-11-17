@@ -3,6 +3,7 @@ import { createStackParser, GLOBAL_OBJ, nodeStackLineParser, stackParserFromStac
 
 import { setAsyncLocalStorageAsyncContextStrategy } from './async';
 import { VercelEdgeClient } from './client';
+import { WinterCGFetch } from './integrations/wintercg-fetch';
 import { makeEdgeTransport } from './transports';
 import type { VercelEdgeClientOptions, VercelEdgeOptions } from './types';
 import { getVercelEnv } from './utils/vercel';
@@ -17,6 +18,7 @@ export const defaultIntegrations = [
   new CoreIntegrations.InboundFilters(),
   new CoreIntegrations.FunctionToString(),
   new CoreIntegrations.LinkedErrors(),
+  new WinterCGFetch(),
 ];
 
 /** Inits the Sentry NextJS SDK on the Edge Runtime. */

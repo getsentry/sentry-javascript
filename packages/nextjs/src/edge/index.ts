@@ -11,6 +11,7 @@ export type EdgeOptions = VercelEdgeOptions;
 
 const globalWithInjectedValues = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
   __rewriteFramesDistDir__?: string;
+  fetch: (...args: unknown[]) => unknown;
 };
 
 /** Inits the Sentry NextJS SDK on the Edge Runtime. */

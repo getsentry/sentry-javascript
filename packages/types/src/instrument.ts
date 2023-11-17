@@ -37,7 +37,7 @@ interface SentryFetchData {
 
 export interface HandlerDataFetch {
   args: any[];
-  fetchData: SentryFetchData;
+  fetchData: SentryFetchData; // This data is among other things dumped directly onto the fetch breadcrumb data
   startTimestamp: number;
   endTimestamp?: number;
   // This is actually `Response` - Note: this type is not complete. Add to it if necessary.
