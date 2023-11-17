@@ -135,15 +135,24 @@ function getResponseHeaders(xhr: XMLHttpRequest): Record<string, string> {
 }
 
 function _getXhrResponseBody(xhr: XMLHttpRequest): string | undefined {
+  // We collect errors that happen, but only log them if we can't get any response body
+  const errors: unknown[] = [];
+
   try {
     return xhr.responseText;
-  } catch {} // eslint-disable-line no-empty
+  } catch (e) {
+    errors.push(e);
+  }
 
   // Try to manually parse the response body, if responseText fails
   try {
     const response = xhr.response;
     return getBodyString(response);
-  } catch {} // eslint-disable-line no-empty
+  } catch (e) {
+    errors.push(e);
+  }
+
+  __DEBUG_BUILD__ && logger.warn('[Replay] Failed to get xhr response body', ...errors);
 
   return undefined;
 }

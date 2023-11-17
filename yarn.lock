@@ -5067,7 +5067,7 @@
     magic-string "0.27.0"
     unplugin "1.0.1"
 
-"@sentry/cli@^1.74.4", "@sentry/cli@^1.74.6":
+"@sentry/cli@^1.74.4":
   version "1.74.6"
   resolved "https://registry.yarnpkg.com/@sentry/cli/-/cli-1.74.6.tgz#c4f276e52c6f5e8c8d692845a965988068ebc6f5"
   integrity sha512-pJ7JJgozyjKZSTjOGi86chIngZMLUlYt2HOog+OJn+WGvqEkVymu8m462j1DiXAnex9NspB4zLLNuZ/R6rTQHg==
@@ -5076,6 +5076,18 @@
     mkdirp "^0.5.5"
     node-fetch "^2.6.7"
     npmlog "^4.1.2"
+    progress "^2.0.3"
+    proxy-from-env "^1.1.0"
+    which "^2.0.2"
+
+"@sentry/cli@^1.77.1":
+  version "1.77.1"
+  resolved "https://registry.yarnpkg.com/@sentry/cli/-/cli-1.77.1.tgz#ebcf884712ef6c3c75443f491ec16f6a22148aec"
+  integrity sha512-OtJ7U9LeuPUAY/xow9wwcjM9w42IJIpDtClTKI/RliE685vd/OJUIpiAvebHNthDYpQynvwb/0iuF4fonh+CKw==
+  dependencies:
+    https-proxy-agent "^5.0.0"
+    mkdirp "^0.5.5"
+    node-fetch "^2.6.7"
     progress "^2.0.3"
     proxy-from-env "^1.1.0"
     which "^2.0.2"
@@ -5124,12 +5136,12 @@
   dependencies:
     "@sentry/cli" "^1.74.4"
 
-"@sentry/webpack-plugin@1.20.0":
-  version "1.20.0"
-  resolved "https://registry.yarnpkg.com/@sentry/webpack-plugin/-/webpack-plugin-1.20.0.tgz#e7add76122708fb6b4ee7951294b521019720e58"
-  integrity sha512-Ssj1mJVFsfU6vMCOM2d+h+KQR7QHSfeIP16t4l20Uq/neqWXZUQ2yvQfe4S3BjdbJXz/X4Rw8Hfy1Sd0ocunYw==
+"@sentry/webpack-plugin@1.21.0":
+  version "1.21.0"
+  resolved "https://registry.yarnpkg.com/@sentry/webpack-plugin/-/webpack-plugin-1.21.0.tgz#bbe7cb293751f80246a4a56f9a7dd6de00f14b58"
+  integrity sha512-x0PYIMWcsTauqxgl7vWUY6sANl+XGKtx7DCVnnY7aOIIlIna0jChTAPANTfA2QrK+VK+4I/4JxatCEZBnXh3Og==
   dependencies:
-    "@sentry/cli" "^1.74.6"
+    "@sentry/cli" "^1.77.1"
     webpack-sources "^2.0.0 || ^3.0.0"
 
 "@sideway/address@^4.1.3":
