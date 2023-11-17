@@ -244,7 +244,7 @@ export interface Client<O extends ClientOptions = ClientOptions> {
    * about what kind of mutation it expects.
    */
   on?(
-    hook: 'afterPrepareFeedback',
+    hook: 'beforeSendFeedback',
     callback: (feedback: FeedbackEvent, options?: { includeReplay?: boolean }) => void,
   ): void;
 
@@ -307,7 +307,7 @@ export interface Client<O extends ClientOptions = ClientOptions> {
    * a feedback event as the second argument, and an optional options object as
    * third argument.
    */
-  emit?(hook: 'afterPrepareFeedback', feedback: FeedbackEvent, options?: { includeReplay?: boolean }): void;
+  emit?(hook: 'beforeSendFeedback', feedback: FeedbackEvent, options?: { includeReplay?: boolean }): void;
 
   /* eslint-enable @typescript-eslint/unified-signatures */
 }

@@ -55,7 +55,7 @@ export async function sendFeedbackRequest(
       }
 
       if (client && client.emit) {
-        client.emit('afterPrepareFeedback', feedbackEvent, { includeReplay: Boolean(includeReplay) });
+        client.emit('beforeSendFeedback', feedbackEvent, { includeReplay: Boolean(includeReplay) });
       }
 
       const envelope = createEventEnvelope(

@@ -416,7 +416,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
 
   /** @inheritdoc */
   public on(
-    hook: 'afterPrepareFeedback',
+    hook: 'beforeSendFeedback',
     callback: (feedback: FeedbackEvent, options?: { includeReplay: boolean }) => void,
   ): void;
 
@@ -458,7 +458,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   public emit(hook: 'otelSpanEnd', otelSpan: unknown, mutableOptions: { drop: boolean }): void;
 
   /** @inheritdoc */
-  public emit(hook: 'afterPrepareFeedback', feedback: FeedbackEvent, options?: { includeReplay: boolean }): void;
+  public emit(hook: 'beforeSendFeedback', feedback: FeedbackEvent, options?: { includeReplay: boolean }): void;
 
   /** @inheritdoc */
   public emit(hook: string, ...rest: unknown[]): void {
