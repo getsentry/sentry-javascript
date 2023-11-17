@@ -36,11 +36,13 @@ function sendErrorToSentry(errorData: object): void {
 export const hapiErrorPlugin = {
   name: 'SentryHapiErrorPlugin',
   version: '0.0.1',
-  register: async function (server: Server) {
+  register: async function (serverArg: Record<any, any>) {
+    const server = serverArg as unknown as Server;
+
     server.events.on('request', (request, event) => {
       const transaction = getActiveTransaction();
 
-      if (isBoomObject(request.response)) {
+      if (request.response && isBoomObject(request.response)) {
         sendErrorToSentry(request.response);
       } else if (isErrorEvent(event)) {
         sendErrorToSentry(event.error);
@@ -57,7 +59,9 @@ export const hapiErrorPlugin = {
 export const hapiTracingPlugin = {
   name: 'SentryHapiTracingPlugin',
   version: '0.0.1',
-  register: async function (server: Server) {
+  register: async function (serverArg: Record<any, any>) {
+    const server = serverArg as unknown as Server;
+
     server.ext('onPreHandler', (request, h) => {
       const transaction = continueTrace(
         {
@@ -68,8 +72,8 @@ export const hapiTracingPlugin = {
           return startTransaction({
             ...transactionContext,
             op: 'hapi.request',
-            name: request.path,
-            description: request.route ? request.route.path : '',
+            name: request.route.path,
+            description: `${request.route.method} ${request.path}`,
           });
         },
       );
@@ -84,7 +88,7 @@ export const hapiTracingPlugin = {
     server.ext('onPreResponse', (request, h) => {
       const transaction = getActiveTransaction();
 
-      if (isResponseObject(request.response) && transaction) {
+      if (request.response && isResponseObject(request.response) && transaction) {
         const response = request.response as ResponseObject;
         response.header('sentry-trace', transaction.toTraceparent());
 
@@ -93,7 +97,7 @@ export const hapiTracingPlugin = {
         );
 
         if (dynamicSamplingContext) {
-          response.header('sentry-baggage', dynamicSamplingContext);
+          response.header('baggage', dynamicSamplingContext);
         }
       }
 
@@ -103,7 +107,7 @@ export const hapiTracingPlugin = {
     server.ext('onPostHandler', (request, h) => {
       const transaction = getActiveTransaction();
 
-      if (isResponseObject(request.response) && transaction) {
+      if (request.response && isResponseObject(request.response) && transaction) {
         transaction.setHttpStatus(request.response.statusCode);
       }
 
@@ -118,7 +122,7 @@ export const hapiTracingPlugin = {
 
 export type HapiOptions = {
   /** Hapi server instance */
-  server?: Server;
+  server?: Record<any, any>;
 };
 
 /**
@@ -139,7 +143,9 @@ export class Hapi implements Integration {
 
   public constructor(options?: HapiOptions) {
     if (options?.server) {
-      this._hapiServer = options.server;
+      const server = options.server as unknown as Server;
+
+      this._hapiServer = server;
     }
 
     this.name = Hapi.id;
