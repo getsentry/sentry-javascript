@@ -1,13 +1,6 @@
 import { instrumentFetchRequest } from '@sentry-internal/tracing';
 import { getCurrentHub, isSentryRequestUrl } from '@sentry/core';
-import type {
-  EventProcessor,
-  FetchBreadcrumbData,
-  FetchBreadcrumbHint,
-  HandlerDataFetch,
-  Integration,
-  Span,
-} from '@sentry/types';
+import type { FetchBreadcrumbData, FetchBreadcrumbHint, HandlerDataFetch, Integration, Span } from '@sentry/types';
 import { addInstrumentationHandler, LRUMap, stringMatchesSomePattern } from '@sentry/utils';
 
 export interface Options {
@@ -52,7 +45,7 @@ export class WinterCGFetch implements Integration {
   /**
    * @inheritDoc
    */
-  public setupOnce(_addGlobalEventProcessor: (callback: EventProcessor) => void): void {
+  public setupOnce(): void {
     const spans: Record<string, Span> = {};
 
     addInstrumentationHandler('fetch', (handlerData: HandlerDataFetch) => {
