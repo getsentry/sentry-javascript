@@ -114,8 +114,8 @@ export function Form({
 
   const nameEl = createElement('input', {
     id: 'name',
-    type: showName || isNameRequired ? 'text' : 'hidden',
-    ['aria-hidden']: showName || isNameRequired ? 'false' : 'true',
+    type: showName ? 'text' : 'hidden',
+    ['aria-hidden']: showName ? 'false' : 'true',
     name: 'name',
     required: isNameRequired,
     className: 'form__input',
@@ -125,8 +125,8 @@ export function Form({
 
   const emailEl = createElement('input', {
     id: 'email',
-    type: showEmail || isEmailRequired ? 'text' : 'hidden',
-    ['aria-hidden']: showEmail || isEmailRequired ? 'false' : 'true',
+    type: showEmail ? 'text' : 'hidden',
+    ['aria-hidden']: showEmail ? 'false' : 'true',
     name: 'email',
     required: isEmailRequired,
     className: 'form__input',
@@ -167,48 +167,44 @@ export function Form({
       errorEl,
 
       !isAnonymous &&
-        (showName || isNameRequired) &&
+        showName &&
         createElement(
           'label',
           {
             htmlFor: 'name',
             className: 'form__label',
           },
-          isNameRequired
-            ? [
-                createElement(
-                  'span',
-                  { className: 'form__label__text' },
-                  nameLabel,
-                  createElement('span', { className: 'form__label__text--required' }, ' (required)'),
-                ),
-                nameEl,
-              ]
-            : [nameLabel, nameEl],
+          [
+            createElement(
+              'span',
+              { className: 'form__label__text' },
+              nameLabel,
+              isNameRequired && createElement('span', { className: 'form__label__text--required' }, ' (required)'),
+            ),
+            nameEl,
+          ],
         ),
-      !isAnonymous && !(showName || isNameRequired) && nameEl,
+      !isAnonymous && !showName && nameEl,
 
       !isAnonymous &&
-        (showEmail || isEmailRequired) &&
+        showEmail &&
         createElement(
           'label',
           {
             htmlFor: 'email',
             className: 'form__label',
           },
-          isEmailRequired
-            ? [
-                createElement(
-                  'span',
-                  { className: 'form__label__text' },
-                  emailLabel,
-                  createElement('span', { className: 'form__label__text--required' }, ' (required)'),
-                ),
-                emailEl,
-              ]
-            : [emailLabel, emailEl],
+          [
+            createElement(
+              'span',
+              { className: 'form__label__text' },
+              emailLabel,
+              isEmailRequired && createElement('span', { className: 'form__label__text--required' }, ' (required)'),
+            ),
+            emailEl,
+          ],
         ),
-      !isAnonymous && !(showEmail || isEmailRequired) && emailEl,
+      !isAnonymous && !showEmail && emailEl,
 
       createElement(
         'label',

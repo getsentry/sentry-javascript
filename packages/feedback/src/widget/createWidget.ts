@@ -94,6 +94,18 @@ export function createWidget({
       return;
     }
 
+    // Simple validation for now, just check for non-empty message if name required
+    if (options.isNameRequired && !feedback.name) {
+      dialog.showError('Please enter in a name before submitting!');
+      return;
+    }
+
+    // Simple validation for now, just check for non-empty message if name required
+    if (options.isEmailRequired && !feedback.email) {
+      dialog.showError('Please enter in an email before submitting!');
+      return;
+    }
+
     const result = await handleFeedbackSubmit(dialog, feedback);
 
     // Error submitting feedback
@@ -156,8 +168,8 @@ export function createWidget({
       dialog = Dialog({
         colorScheme: options.colorScheme,
         showBranding: options.showBranding,
-        showName: options.showName,
-        showEmail: options.showEmail,
+        showName: options.showName || options.isNameRequired,
+        showEmail: options.showEmail || options.isEmailRequired,
         isAnonymous: options.isAnonymous,
         isNameRequired: options.isNameRequired,
         isEmailRequired: options.isEmailRequired,

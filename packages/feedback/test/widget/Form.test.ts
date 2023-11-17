@@ -104,42 +104,6 @@ describe('Form', () => {
     expect(messageInput.placeholder).toBe('What is the issue?!');
   });
 
-  it('submit is enabled if message is not empty', () => {
-    const formComponent = renderForm();
-
-    const message = formComponent.el.querySelector('[name="message"]') as HTMLTextAreaElement;
-
-    message.value = 'Foo (message)';
-    message.dispatchEvent(new KeyboardEvent('keyup'));
-
-    message.value = '';
-    message.dispatchEvent(new KeyboardEvent('keyup'));
-  });
-
-  it('submit is enabled if name is required and is not empty', () => {
-    const formComponent = renderForm({ isNameRequired: true });
-
-    const name = formComponent.el.querySelector('[name="name"]') as HTMLTextAreaElement;
-
-    name.value = 'Foo Bar';
-    name.dispatchEvent(new KeyboardEvent('keyup'));
-
-    name.value = '';
-    name.dispatchEvent(new KeyboardEvent('keyup'));
-  });
-
-  it('submit is enabled if email is required and is not empty', () => {
-    const formComponent = renderForm({ isEmailRequired: true });
-
-    const email = formComponent.el.querySelector('[name="email"]') as HTMLTextAreaElement;
-
-    email.value = 'foo@example.org';
-    email.dispatchEvent(new KeyboardEvent('keyup'));
-
-    email.value = '';
-    email.dispatchEvent(new KeyboardEvent('keyup'));
-  });
-
   it('can show error', () => {
     const formComponent = renderForm();
     const errorEl = formComponent.el.querySelector('.form__error-container') as HTMLDivElement;
