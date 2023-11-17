@@ -78,6 +78,8 @@ export function getBodyString(body: unknown): string | undefined {
     __DEBUG_BUILD__ && logger.warn('[Replay] Failed to serialize body', body);
   }
 
+  __DEBUG_BUILD__ && logger.info('[Replay] Skipping network body because of body type', body);
+
   return undefined;
 }
 

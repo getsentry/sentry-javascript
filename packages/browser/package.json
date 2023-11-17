@@ -87,7 +87,7 @@
     "test:package": "node test/package/npm-build.js && rm test/package/tmp.js",
     "test:unit:watch": "jest --watch",
     "test:integration:watch": "test/integration/run.js --watch",
-    "yalc:publish": "ts-node ../../scripts/prepack.ts --bundles && yalc publish ./build/npm --push"
+    "yalc:publish": "ts-node ../../scripts/prepack.ts --bundles && yalc publish ./build/npm --push --sig"
   },
   "volta": {
     "extends": "../../package.json"

@@ -27,7 +27,6 @@ export async function prepareFeedbackEvent({
     scope,
     client,
   )) as FeedbackEvent | null;
-
   if (preparedEvent === null) {
     // Taken from baseclient's `_processEvent` method, where this is handled for errors/transactions
     client.recordDroppedEvent('event_processor', 'feedback', event);
