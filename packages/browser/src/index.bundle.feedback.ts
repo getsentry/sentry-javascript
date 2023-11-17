@@ -1,6 +1,6 @@
 // This is exported so the loader does not fail when switching off Replay/Tracing
-import { BrowserTracing, Feedback, addTracingExtensions } from '@sentry-internal/integration-shims';
-import { Replay } from '@sentry/replay';
+import { Feedback } from '@sentry-internal/feedback';
+import { addTracingExtensions, BrowserTracing, Replay } from '@sentry-internal/integration-shims';
 
 import * as Sentry from './index.bundle.base';
 

@@ -6,6 +6,7 @@
   // level.
   "exclude": [
     "src/index.bundle.ts",
+    "src/index.bundle.feedback.ts",
     "src/index.bundle.replay.ts"
   ],
   "compilerOptions": {

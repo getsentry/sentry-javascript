@@ -1,9 +1,9 @@
-import { BrowserTracing as BrowserTracingShim, Feedback as FeedbackShim } from '@sentry-internal/integration-shims';
-import { Replay } from '@sentry/browser';
+import { BrowserTracing as BrowserTracingShim, Replay as ReplayShim } from '@sentry-internal/integration-shims';
+import { Feedback } from '@sentry/browser';
 
-import * as TracingReplayBundle from '../../src/index.bundle.replay';
+import * as TracingReplayBundle from '../../src/index.bundle.feedback';
 
-describe('index.bundle.replay', () => {
+describe('index.bundle.feedback', () => {
   it('has correct exports', () => {
     Object.keys(TracingReplayBundle.Integrations).forEach(key => {
       // Skip BrowserTracing because it doesn't have a static id field.
@@ -14,12 +14,12 @@ describe('index.bundle.replay', () => {
       expect((TracingReplayBundle.Integrations[key] as any).id).toStrictEqual(expect.any(String));
     });
 
-    expect(TracingReplayBundle.Integrations.Replay).toBe(Replay);
-    expect(TracingReplayBundle.Replay).toBe(Replay);
+    expect(TracingReplayBundle.Integrations.Replay).toBe(ReplayShim);
+    expect(TracingReplayBundle.Replay).toBe(ReplayShim);
 
     expect(TracingReplayBundle.Integrations.BrowserTracing).toBe(BrowserTracingShim);
     expect(TracingReplayBundle.BrowserTracing).toBe(BrowserTracingShim);
 
-    expect(TracingReplayBundle.Feedback).toBe(FeedbackShim);
+    expect(TracingReplayBundle.Feedback).toBe(Feedback);
   });
 });

@@ -5048,6 +5048,15 @@
     semver "7.3.2"
     semver-intersect "1.4.0"
 
+"@sentry-internal/feedback@0.0.1-alpha.15":
+  version "0.0.1-alpha.15"
+  resolved "https://registry.yarnpkg.com/@sentry-internal/feedback/-/feedback-0.0.1-alpha.15.tgz#58a089db5c61a1ef4004b955b6d022452c9c9c54"
+  integrity sha512-4oShjRapfgei/YlE1A/X0mvYNWOexNuWhIGC470f1iNyFH1P71XjGCEtJuT5LLsBSN6sAEyzNSd7NsrBSmC80Q==
+  dependencies:
+    "@sentry/core" "7.81.1"
+    "@sentry/types" "7.81.1"
+    "@sentry/utils" "7.81.1"
+
 "@sentry-internal/rrdom@2.2.0":
   version "2.2.0"
   resolved "https://registry.yarnpkg.com/@sentry-internal/rrdom/-/rrdom-2.2.0.tgz#edc292e55263e1e2541a9ed282ff998aae272a0a"
