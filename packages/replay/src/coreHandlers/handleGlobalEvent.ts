@@ -43,6 +43,8 @@ export function handleGlobalEventListener(
       }
 
       if (isFeedbackEvent(event)) {
+        void replay.flush();
+        event.contexts.feedback.replay_id = replay.getSessionId();
         // Add a replay breadcrumb for this piece of feedback
         addFeedbackBreadcrumb(replay, event);
         return event;

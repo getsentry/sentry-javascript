@@ -1,4 +1,4 @@
-import { getCurrentHub } from '@sentry/core';
+import { addTracingExtensions, getCurrentHub } from '@sentry/core';
 import type { GetStaticProps } from 'next';
 
 import { isBuild } from './utils/isBuild';
@@ -22,6 +22,8 @@ export function wrapGetStaticPropsWithSentry(
       if (isBuild()) {
         return wrappingTarget.apply(thisArg, args);
       }
+
+      addTracingExtensions();
 
       const errorWrappedGetStaticProps = withErrorInstrumentation(wrappingTarget);
       const options = getCurrentHub().getClient()?.getOptions();

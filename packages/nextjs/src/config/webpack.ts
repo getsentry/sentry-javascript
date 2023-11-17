@@ -7,6 +7,7 @@ import * as chalk from 'chalk';
 import * as fs from 'fs';
 import * as path from 'path';
 import { sync as resolveSync } from 'resolve';
+import type { Compiler } from 'webpack';
 
 import type { VercelCronsConfig } from '../common/types';
 // Note: If you need to import a type from Webpack, do it in `types.ts` and export it from there. Otherwise, our
@@ -22,6 +23,7 @@ import type {
   WebpackConfigObjectWithModuleRules,
   WebpackEntryProperty,
   WebpackModuleRule,
+  WebpackPluginInstance,
 } from './types';
 
 const RUNTIME_TO_SDK_ENTRYPOINT_MAP = {
@@ -36,6 +38,7 @@ let showedMissingAuthTokenErrorMsg = false;
 let showedMissingOrgSlugErrorMsg = false;
 let showedMissingProjectSlugErrorMsg = false;
 let showedHiddenSourceMapsWarningMsg = false;
+let showedMissingCliBinaryWarningMsg = false;
 
 // TODO: merge default SentryWebpackPlugin ignore with their SentryWebpackPlugin ignore or ignoreFile
 // TODO: merge default SentryWebpackPlugin include with their SentryWebpackPlugin include
@@ -375,6 +378,7 @@ export function constructWebpackConfigFunction(
         const SentryWebpackPlugin = loadModule<SentryCliPlugin>('@sentry/webpack-plugin');
         if (SentryWebpackPlugin) {
           newConfig.plugins = newConfig.plugins || [];
+          newConfig.plugins.push(new SentryCliDownloadPlugin());
           newConfig.plugins.push(
             // @ts-expect-error - this exists, the dynamic import just doesn't know about it
             new SentryWebpackPlugin(
@@ -738,6 +742,19 @@ export function getWebpackPluginOptions(
       if (err) {
         const errorMessagePrefix = `${chalk.red('error')} -`;
 
+        if (err.message.includes('ENOENT')) {
+          if (!showedMissingCliBinaryWarningMsg) {
+            // eslint-disable-next-line no-console
+            console.error(
+              `\n${errorMessagePrefix} ${chalk.bold(
+                'The Sentry binary to upload sourcemaps could not be found.',
+              )} Source maps will not be uploaded. Please check that post-install scripts are enabled in your package manager when installing your dependencies and please run your build once without any caching to avoid caching issues of dependencies.\n`,
+            );
+            showedMissingCliBinaryWarningMsg = true;
+          }
+          return;
+        }
+
         // Hardcoded way to check for missing auth token until we have a better way of doing this.
         if (err.message.includes('Authentication credentials were not provided.')) {
           let msg;
@@ -833,25 +850,6 @@ export function getWebpackPluginOptions(
 function shouldEnableWebpackPlugin(buildContext: BuildContext, userSentryOptions: UserSentryOptions): boolean {
   const { isServer } = buildContext;
   const { disableServerWebpackPlugin, disableClientWebpackPlugin } = userSentryOptions;
-
-  /** Non-negotiable */
-
-  // This check is necessary because currently, `@sentry/cli` uses a post-install script to download an
-  // architecture-specific version of the `sentry-cli` binary. If `yarn install`, `npm install`, or `npm ci` are run
-  // with the `--ignore-scripts` option, this will be blocked and the missing binary will cause an error when users
-  // try to build their apps.
-  const SentryWebpackPlugin = loadModule<SentryCliPlugin>('@sentry/webpack-plugin');
-
-  // @ts-expect-error - this exists, the dynamic import just doesn't know it
-  if (!SentryWebpackPlugin || !SentryWebpackPlugin.cliBinaryExists()) {
-    // eslint-disable-next-line no-console
-    console.error(
-      `${chalk.red('error')} - ${chalk.bold('Sentry CLI binary not found.')} Source maps will not be uploaded.\n`,
-    );
-    return false;
-  }
-
-  /** User override */
 
   if (isServer && disableServerWebpackPlugin !== undefined) {
     return !disableServerWebpackPlugin;
@@ -1040,4 +1038,55 @@ function getRequestAsyncStorageModuleLocation(
   }
 
   return undefined;
+}
+
+let downloadingCliAttempted = false;
+
+class SentryCliDownloadPlugin implements WebpackPluginInstance {
+  public apply(compiler: Compiler): void {
+    compiler.hooks.beforeRun.tapAsync('SentryCliDownloadPlugin', (compiler, callback) => {
+      const SentryWebpackPlugin = loadModule<SentryCliPlugin>('@sentry/webpack-plugin');
+      if (!SentryWebpackPlugin) {
+        // Pretty much an invariant.
+        return callback();
+      }
+
+      // @ts-expect-error - this exists, the dynamic import just doesn't know it
+      if (SentryWebpackPlugin.cliBinaryExists()) {
+        return callback();
+      }
+
+      if (!downloadingCliAttempted) {
+        downloadingCliAttempted = true;
+        // eslint-disable-next-line no-console
+        console.log(
+          `\n${chalk.cyan('info')}  - ${chalk.bold(
+            'Sentry binary to upload source maps not found.',
+          )} Package manager post-install scripts are likely disabled or there is a caching issue. Manually downloading instead...`,
+        );
+
+        // @ts-expect-error - this exists, the dynamic import just doesn't know it
+        const cliDownloadPromise: Promise<void> = SentryWebpackPlugin.downloadCliBinary({
+          log: () => {
+            // No logs from directly from CLI
+          },
+        });
+
+        cliDownloadPromise.then(
+          () => {
+            // eslint-disable-next-line no-console
+            console.log(`${chalk.cyan('info')}  - Sentry binary was successfully downloaded.\n`);
+            return callback();
+          },
+          e => {
+            // eslint-disable-next-line no-console
+            console.error(`${chalk.red('error')} - Sentry binary download failed:`, e);
+            return callback();
+          },
+        );
+      } else {
+        return callback();
+      }
+    });
+  }
 }

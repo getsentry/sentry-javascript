@@ -1,5 +1,5 @@
 import type { TextEncoderInternal } from '@sentry/types';
-import { dropUndefinedKeys, stringMatchesSomePattern } from '@sentry/utils';
+import { dropUndefinedKeys, logger, stringMatchesSomePattern } from '@sentry/utils';
 
 import { NETWORK_BODY_MAX_SIZE, WINDOW } from '../../constants';
 import type {
@@ -62,17 +62,23 @@ export function parseContentLengthHeader(header: string | null | undefined): num
 
 /** Get the string representation of a body. */
 export function getBodyString(body: unknown): string | undefined {
-  if (typeof body === 'string') {
-    return body;
+  try {
+    if (typeof body === 'string') {
+      return body;
+    }
+
+    if (body instanceof URLSearchParams) {
+      return body.toString();
+    }
+
+    if (body instanceof FormData) {
+      return _serializeFormData(body);
+    }
+  } catch {
+    __DEBUG_BUILD__ && logger.warn('[Replay] Failed to serialize body', body);
   }
 
-  if (body instanceof URLSearchParams) {
-    return body.toString();
-  }
-
-  if (body instanceof FormData) {
-    return _serializeFormData(body);
-  }
+  __DEBUG_BUILD__ && logger.info('[Replay] Skipping network body because of body type', body);
 
   return undefined;
 }
@@ -199,7 +205,6 @@ function normalizeNetworkBody(body: string | undefined): {
   }
 
   const exceedsSizeLimit = body.length > NETWORK_BODY_MAX_SIZE;
-
   const isProbablyJson = _strIsProbablyJson(body);
 
   if (exceedsSizeLimit) {

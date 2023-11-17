@@ -30,6 +30,7 @@ describe('sendFeedback', () => {
                 url: 'http://localhost/',
               },
             },
+            level: 'info',
             environment: 'production',
             event_id: expect.any(String),
             platform: 'javascript',

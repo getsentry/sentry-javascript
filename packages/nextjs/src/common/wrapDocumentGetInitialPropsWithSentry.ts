@@ -1,4 +1,4 @@
-import { getCurrentHub } from '@sentry/core';
+import { addTracingExtensions, getCurrentHub } from '@sentry/core';
 import type Document from 'next/document';
 
 import { isBuild } from './utils/isBuild';
@@ -22,6 +22,8 @@ export function wrapDocumentGetInitialPropsWithSentry(
       if (isBuild()) {
         return wrappingTarget.apply(thisArg, args);
       }
+
+      addTracingExtensions();
 
       const [context] = args;
       const { req, res } = context;
