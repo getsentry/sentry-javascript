@@ -54,7 +54,9 @@ test('Should trace outgoing fetch requests inside middleware and create breadcru
     );
   });
 
-  request.get('/api/endpoint-behind-middleware', { headers: { 'x-should-make-request': '1' } });
+  request.get('/api/endpoint-behind-middleware', { headers: { 'x-should-make-request': '1' } }).catch(() => {
+    // Noop
+  });
 
   const middlewareTransaction = await middlewareTransactionPromise;
 
