@@ -47,7 +47,7 @@ describe('sentryMiddleware', () => {
           source: 'route',
         },
         name: 'GET /users/[id]/details',
-        op: 'http.server.get',
+        op: 'http.server',
         origin: 'auto.http.astro',
         status: 'ok',
       },
