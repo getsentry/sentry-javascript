@@ -1,5 +1,4 @@
 import { WINDOW } from '../constants';
-
 import type { FeedbackInternalOptions } from '../types';
 import { setAttributesNS } from '../util/setAttributesNS';
 
