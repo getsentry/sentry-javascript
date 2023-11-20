@@ -132,7 +132,7 @@ describe('createWidget', () => {
     });
 
     (sendFeedbackRequest as jest.Mock).mockImplementation(() => {
-      return true;
+      return Promise.resolve(true);
     });
     widget.actor?.el?.dispatchEvent(new Event('click'));
 
@@ -154,10 +154,9 @@ describe('createWidget', () => {
         email: 'jane@example.com',
         message: 'My feedback',
         url: 'http://localhost/',
-        replay_id: undefined,
         source: 'widget',
       },
-    });
+    }, {})
 
     // sendFeedbackRequest is async
     await flushPromises();
@@ -221,10 +220,9 @@ describe('createWidget', () => {
         email: 'jane@example.com',
         message: 'My feedback',
         url: 'http://localhost/',
-        replay_id: undefined,
         source: 'widget',
       },
-    });
+    }, {});
 
     // sendFeedbackRequest is async
     await flushPromises();
@@ -260,10 +258,9 @@ describe('createWidget', () => {
         email: '',
         message: 'My feedback',
         url: 'http://localhost/',
-        replay_id: undefined,
         source: 'widget',
       },
-    });
+    }, {});
 
     // sendFeedbackRequest is async
     await flushPromises();
