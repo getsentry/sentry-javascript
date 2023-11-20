@@ -4,8 +4,8 @@
 import type { Event, EventProcessor, Hub, Integration, PolymorphicRequest, Transaction } from '@sentry/types';
 import { extractPathForTransaction } from '@sentry/utils';
 
-import type { AddRequestDataToEventOptions, TransactionNamingScheme } from '../requestdata';
-import { addRequestDataToEvent } from '../requestdata';
+import type { AddRequestDataToEventOptions, TransactionNamingScheme } from '../../../node/src/requestdata';
+import { addRequestDataToEvent } from '../../../node/src/requestdata';
 
 export type RequestDataIntegrationOptions = {
   /**
