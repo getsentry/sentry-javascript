@@ -99,7 +99,7 @@ export function createWidget({
     if (!feedback.message) {
       emptyField.push(options.messageLabel);
     }
-    if (emptyField.length != 0) {
+    if (emptyField.length > 0) {
       dialog.showError(`Please enter in the following required fields: ${emptyField.join(', ')}`);
       return;
     }
@@ -159,7 +159,7 @@ export function createWidget({
         return;
       }
 
-      const userKey = !options.isAnonymous && options.useSentryUser;
+      const userKey = options.useSentryUser;
       const scope = getCurrentHub().getScope();
       const user = scope && scope.getUser();
 
@@ -168,7 +168,6 @@ export function createWidget({
         showBranding: options.showBranding,
         showName: options.showName || options.isNameRequired,
         showEmail: options.showEmail || options.isEmailRequired,
-        isAnonymous: options.isAnonymous,
         isNameRequired: options.isNameRequired,
         isEmailRequired: options.isEmailRequired,
         formTitle: options.formTitle,

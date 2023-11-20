@@ -48,7 +48,6 @@ export function Dialog({
   isNameRequired,
   isEmailRequired,
   colorScheme,
-  isAnonymous,
   defaultName,
   defaultEmail,
   onClosed,
@@ -103,7 +102,6 @@ export function Dialog({
   } = Form({
     showEmail,
     showName,
-    isAnonymous,
     isEmailRequired,
     isNameRequired,
 

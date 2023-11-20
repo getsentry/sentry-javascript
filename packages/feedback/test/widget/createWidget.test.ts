@@ -30,7 +30,6 @@ const DEFAULT_OPTIONS = {
     email: 'email',
     name: 'username',
   },
-  isAnonymous: false,
   isEmailRequired: false,
   isNameRequired: false,
 

@@ -8,7 +8,6 @@ type NonNullableFields<T> = {
 function renderForm({
   showName = true,
   showEmail = true,
-  isAnonymous = false,
   isNameRequired = false,
   isEmailRequired = false,
   defaultName = 'Foo Bar',
@@ -24,7 +23,6 @@ function renderForm({
   ...rest
 }: Partial<FormComponentProps> = {}) {
   return Form({
-    isAnonymous,
     showName,
     showEmail,
     isNameRequired,
@@ -136,35 +134,6 @@ describe('Form', () => {
       email: 'foo@example.com',
       message: '',
       name: 'Foo Bar',
-    });
-  });
-
-  it('does not show name or email inputs for anonymous mode', () => {
-    const onSubmit = jest.fn();
-    const formComponent = renderForm({
-      isNameRequired: true,
-      isEmailRequired: true,
-      isAnonymous: true,
-      onSubmit,
-    });
-    const submitEvent = new Event('submit');
-
-    expect(formComponent.el).toBeInstanceOf(HTMLFormElement);
-    const nameInput = formComponent.el.querySelector('[name="name"][type="text"]') as HTMLInputElement;
-    const emailInput = formComponent.el.querySelector('[name="email"][type="text"]') as HTMLInputElement;
-    expect(nameInput).toBeNull();
-    expect(emailInput).toBeNull();
-    expect(formComponent.el.querySelector('[name="message"]')).not.toBeNull();
-
-    const message = formComponent.el.querySelector('[name="message"]') as HTMLTextAreaElement;
-    message.value = 'Foo (message)';
-    message.dispatchEvent(new KeyboardEvent('keyup'));
-
-    formComponent.el.dispatchEvent(submitEvent);
-    expect(onSubmit).toHaveBeenCalledWith({
-      email: '',
-      message: 'Foo (message)',
-      name: '',
     });
   });
 });

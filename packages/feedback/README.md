@@ -65,7 +65,8 @@ The following options can be configured as options to the integration, in `new F
 | --------- | ------- | ------- | ----------- |
 | `showName`       | `boolean` | `true`  | Displays the name field on the feedback form, however will still capture the name (if available) from Sentry SDK context. |
 | `showEmail`       | `boolean` | `true`  | Displays the email field on the feedback form, however will still capture the email (if available) from Sentry SDK context. |
-| `isAnonymous`       | `boolean` | `false` | Hides both name and email fields and does not use Sentry SDK's user context. |
+| `isNameRequired` | `boolean` | `false`  | Requires the name field on the feedback form to be filled in. |
+| `isEmailRequired` | `boolean` | `false`  | Requires the email field on the feedback form to be filled in. |
 | `useSentryUser` | `Record<string, string>` | `{ email: 'email', name: 'username'}` | Map of the `email` and `name` fields to the corresponding Sentry SDK user fields that were called with `Sentry.setUser`. |
 
 By default the Feedback integration will attempt to fill in the name/email fields if you have set a user context via [`Sentry.setUser`](https://docs.sentry.io/platforms/javascript/enriching-events/identify-user/). By default it expects the email and name fields to be `email` and `username`. Below is an example configuration with non-default user fields.
@@ -133,7 +134,7 @@ Colors can be customized via the Feedback constructor or by defining CSS variabl
 | `submitForegroundHover` | `--submit-foreground-hover` | `#ffffff` | `#ffffff` | Foreground color for the submit button when hovering |
 | `cancelBackground` | `--cancel-background` | `transparent` | `transparent` | Background color for the cancel button |
 | `cancelBackgroundHover` | `--cancel-background-hover` | `var(--background-hover)` | `var(--background-hover)` | Background color when hovering over the cancel button |
-| `cancelBorder` | `--cancel-border` | `var(--border)` | `var(--border)` | Border style for the cancel button | 
+| `cancelBorder` | `--cancel-border` | `var(--border)` | `var(--border)` | Border style for the cancel button |
 | `cancelOutlineFocus` | `--cancel-outline-focus` | `var(--input-outline-focus)` | `var(--input-outline-focus)` | Outline color for the cancel button, in the focused state |
 | `cancelForeground` | `--cancel-foreground` | `var(--foreground)` | `var(--foreground)` | Foreground color for the cancel button |
 | `cancelForegroundHover` | `--cancel-foreground-hover` | `var(--foreground)` | `var(--foreground)` | Foreground color for the cancel button when hovering |
@@ -270,7 +271,7 @@ document.getElementById('my-feedback-form').addEventListener('submit', (event) =
 
 Note: The following instructions are to be followed in the Sentry product.
 
-If you have Sentry's default issue alert ("Alert me on every new issue") turned on for the project you are setting up User Feedback on, no action is required to have alerting on each user feedback report. 
+If you have Sentry's default issue alert ("Alert me on every new issue") turned on for the project you are setting up User Feedback on, no action is required to have alerting on each user feedback report.
 
 If you don't have Sentry's default issue alert turned on, follow these steps:
 

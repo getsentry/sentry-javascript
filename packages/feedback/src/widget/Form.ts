@@ -7,7 +7,6 @@ export interface FormComponentProps
     FeedbackInternalOptions,
     | 'showName'
     | 'showEmail'
-    | 'isAnonymous'
     | 'isNameRequired'
     | 'isEmailRequired'
     | Exclude<keyof FeedbackTextConfiguration, 'buttonLabel' | 'formTitle' | 'successMessageText'>
@@ -59,7 +58,6 @@ export function Form({
 
   showName,
   showEmail,
-  isAnonymous,
   isNameRequired,
   isEmailRequired,
 
@@ -166,8 +164,7 @@ export function Form({
     [
       errorEl,
 
-      !isAnonymous &&
-        showName &&
+      showName &&
         createElement(
           'label',
           {
@@ -184,10 +181,9 @@ export function Form({
             nameEl,
           ],
         ),
-      !isAnonymous && !showName && nameEl,
+      !showName && nameEl,
 
-      !isAnonymous &&
-        showEmail &&
+      showEmail &&
         createElement(
           'label',
           {
@@ -204,7 +200,7 @@ export function Form({
             emailEl,
           ],
         ),
-      !isAnonymous && !showEmail && emailEl,
+      !showEmail && emailEl,
 
       createElement(
         'label',
