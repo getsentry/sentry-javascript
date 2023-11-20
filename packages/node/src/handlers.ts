@@ -68,6 +68,7 @@ export function tracingHandler(): (
           name,
           op: 'http.server',
           origin: 'auto.http.node.tracingHandler',
+          ...ctx,
           metadata: {
             ...ctx.metadata,
             // The request should already have been stored in `scope.sdkProcessingMetadata` (which will become
