@@ -23,7 +23,6 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/browser": "7.81.0",
     "@sentry/core": "7.81.0",
     "@sentry/types": "7.81.0",
     "@sentry/utils": "7.81.0"
