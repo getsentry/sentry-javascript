@@ -8,6 +8,12 @@ npx @sentry/migr8@latest
 
 This will let you select which updates to run, and automatically update your code. Make sure to still review all code changes!
 
+## Deprecate `extractTraceParentData` export from `@sentry/core` & downstream packages
+
+Instead, import this directly from `@sentry/utils`.
+
+Generally, in most cases you should probably use `continueTrace` instead, which abstracts this away from you and handles scope propagation for you.
+
 ## Deprecate `timestampWithMs` export - #7878
 
 The `timestampWithMs` util is deprecated in favor of using `timestampInSeconds`.

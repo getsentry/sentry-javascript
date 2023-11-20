@@ -236,7 +236,6 @@ export interface UndiciResponse {
 
 export interface RequestWithSentry extends UndiciRequest {
   __sentry_span__?: Span;
-  __sentry_has_headers__?: boolean;
 }
 
 export interface RequestCreateMessage {
