@@ -131,7 +131,7 @@ describe('createWidget', () => {
     });
 
     (sendFeedbackRequest as jest.Mock).mockImplementation(() => {
-      return true;
+      return Promise.resolve(true);
     });
     widget.actor?.el?.dispatchEvent(new Event('click'));
 
@@ -147,16 +147,18 @@ describe('createWidget', () => {
     messageEl.dispatchEvent(new Event('change'));
 
     widget.dialog?.el?.querySelector('form')?.dispatchEvent(new Event('submit'));
-    expect(sendFeedbackRequest).toHaveBeenCalledWith({
-      feedback: {
-        name: 'Jane Doe',
-        email: 'jane@example.com',
-        message: 'My feedback',
-        url: 'http://localhost/',
-        replay_id: undefined,
-        source: 'widget',
+    expect(sendFeedbackRequest).toHaveBeenCalledWith(
+      {
+        feedback: {
+          name: 'Jane Doe',
+          email: 'jane@example.com',
+          message: 'My feedback',
+          url: 'http://localhost/',
+          source: 'widget',
+        },
       },
-    });
+      {},
+    );
 
     // sendFeedbackRequest is async
     await flushPromises();
@@ -214,16 +216,18 @@ describe('createWidget', () => {
     messageEl.value = 'My feedback';
 
     widget.dialog?.el?.querySelector('form')?.dispatchEvent(new Event('submit'));
-    expect(sendFeedbackRequest).toHaveBeenCalledWith({
-      feedback: {
-        name: 'Jane Doe',
-        email: 'jane@example.com',
-        message: 'My feedback',
-        url: 'http://localhost/',
-        replay_id: undefined,
-        source: 'widget',
+    expect(sendFeedbackRequest).toHaveBeenCalledWith(
+      {
+        feedback: {
+          name: 'Jane Doe',
+          email: 'jane@example.com',
+          message: 'My feedback',
+          url: 'http://localhost/',
+          source: 'widget',
+        },
       },
-    });
+      {},
+    );
 
     // sendFeedbackRequest is async
     await flushPromises();
@@ -253,16 +257,18 @@ describe('createWidget', () => {
     messageEl.dispatchEvent(new Event('change'));
 
     widget.dialog?.el?.querySelector('form')?.dispatchEvent(new Event('submit'));
-    expect(sendFeedbackRequest).toHaveBeenCalledWith({
-      feedback: {
-        name: '',
-        email: '',
-        message: 'My feedback',
-        url: 'http://localhost/',
-        replay_id: undefined,
-        source: 'widget',
+    expect(sendFeedbackRequest).toHaveBeenCalledWith(
+      {
+        feedback: {
+          name: '',
+          email: '',
+          message: 'My feedback',
+          url: 'http://localhost/',
+          source: 'widget',
+        },
       },
-    });
+      {},
+    );
 
     // sendFeedbackRequest is async
     await flushPromises();

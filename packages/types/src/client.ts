@@ -6,6 +6,7 @@ import type { DsnComponents } from './dsn';
 import type { DynamicSamplingContext, Envelope } from './envelope';
 import type { Event, EventHint } from './event';
 import type { EventProcessor } from './eventprocessor';
+import type { FeedbackEvent } from './feedback';
 import type { Integration, IntegrationClass } from './integration';
 import type { ClientOptions } from './options';
 import type { Scope } from './scope';
@@ -238,6 +239,16 @@ export interface Client<O extends ClientOptions = ClientOptions> {
   on?(hook: 'otelSpanEnd', callback: (otelSpan: unknown, mutableOptions: { drop: boolean }) => void): void;
 
   /**
+   * Register a callback when a Feedback event has been prepared.
+   * This should be used to mutate the event. The options argument can hint
+   * about what kind of mutation it expects.
+   */
+  on?(
+    hook: 'beforeSendFeedback',
+    callback: (feedback: FeedbackEvent, options?: { includeReplay?: boolean }) => void,
+  ): void;
+
+  /**
    * Fire a hook event for transaction start.
    * Expects to be given a transaction as the second argument.
    */
@@ -290,6 +301,13 @@ export interface Client<O extends ClientOptions = ClientOptions> {
    * The option argument may be mutated to drop the span.
    */
   emit?(hook: 'otelSpanEnd', otelSpan: unknown, mutableOptions: { drop: boolean }): void;
+
+  /**
+   * Fire a hook event for after preparing a feedback event. Events to be given
+   * a feedback event as the second argument, and an optional options object as
+   * third argument.
+   */
+  emit?(hook: 'beforeSendFeedback', feedback: FeedbackEvent, options?: { includeReplay?: boolean }): void;
 
   /* eslint-enable @typescript-eslint/unified-signatures */
 }
