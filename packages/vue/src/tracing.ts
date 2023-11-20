@@ -23,6 +23,9 @@ interface VueSentry extends ViewModel {
 const HOOKS: { [key in Operation]: Hook[] } = {
   activate: ['activated', 'deactivated'],
   create: ['beforeCreate', 'created'],
+  // Vue 3
+  unmount: ['beforeUnmount', 'unmounted'],
+  // Vue 2
   destroy: ['beforeDestroy', 'destroyed'],
   mount: ['beforeMount', 'mounted'],
   update: ['beforeUpdate', 'updated'],

@@ -76,12 +76,14 @@ export type Hook =
   | 'activated'
   | 'beforeCreate'
   | 'beforeDestroy'
+  | 'beforeUnmount'
   | 'beforeMount'
   | 'beforeUpdate'
   | 'created'
   | 'deactivated'
   | 'destroyed'
+  | 'unmounted'
   | 'mounted'
   | 'updated';
 
-export type Operation = 'activate' | 'create' | 'destroy' | 'mount' | 'update';
+export type Operation = 'activate' | 'create' | 'destroy' | 'mount' | 'update' | 'unmount';
