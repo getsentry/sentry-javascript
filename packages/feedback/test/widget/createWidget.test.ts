@@ -171,6 +171,72 @@ describe('createWidget', () => {
     expect(shadow.querySelector('.success-message')).toBeNull();
   });
 
+  it('only submits feedback successfully when all required fields are filled', async () => {
+    const onSubmitSuccess = jest.fn(() => {});
+    const { shadow, widget } = createShadowAndWidget({
+      isNameRequired: true,
+      isEmailRequired: true,
+      onSubmitSuccess,
+    });
+
+    (sendFeedbackRequest as jest.Mock).mockImplementation(() => {
+      return true;
+    });
+    widget.actor?.el?.dispatchEvent(new Event('click'));
+
+    const nameEl = widget.dialog?.el?.querySelector('[name="name"]') as HTMLInputElement;
+    const emailEl = widget.dialog?.el?.querySelector('[name="email"]') as HTMLInputElement;
+    const messageEl = widget.dialog?.el?.querySelector('[name="message"]') as HTMLTextAreaElement;
+
+    nameEl.value = '';
+    emailEl.value = '';
+    messageEl.value = '';
+
+    widget.dialog?.el?.querySelector('form')?.dispatchEvent(new Event('submit'));
+    expect(sendFeedbackRequest).toHaveBeenCalledTimes(0);
+
+    // sendFeedbackRequest is async
+    await flushPromises();
+    expect(onSubmitSuccess).toHaveBeenCalledTimes(0);
+
+    nameEl.value = '';
+    emailEl.value = '';
+    messageEl.value = 'My feedback';
+
+    widget.dialog?.el?.querySelector('form')?.dispatchEvent(new Event('submit'));
+    expect(sendFeedbackRequest).toHaveBeenCalledTimes(0);
+
+    // sendFeedbackRequest is async
+    await flushPromises();
+    expect(onSubmitSuccess).toHaveBeenCalledTimes(0);
+
+    nameEl.value = 'Jane Doe';
+    emailEl.value = 'jane@example.com';
+    messageEl.value = 'My feedback';
+
+    widget.dialog?.el?.querySelector('form')?.dispatchEvent(new Event('submit'));
+    expect(sendFeedbackRequest).toHaveBeenCalledWith({
+      feedback: {
+        name: 'Jane Doe',
+        email: 'jane@example.com',
+        message: 'My feedback',
+        url: 'http://localhost/',
+        replay_id: undefined,
+        source: 'widget',
+      },
+    });
+
+    // sendFeedbackRequest is async
+    await flushPromises();
+    expect(onSubmitSuccess).toHaveBeenCalledTimes(1);
+
+    expect(widget.dialog).toBeUndefined();
+    expect(shadow.querySelector('.success-message')?.textContent).toBe(SUCCESS_MESSAGE_TEXT);
+
+    jest.runAllTimers();
+    expect(shadow.querySelector('.success-message')).toBeNull();
+  });
+
   it('submits feedback with error on request', async () => {
     const onSubmitError = jest.fn(() => {});
     const { shadow, widget } = createShadowAndWidget({

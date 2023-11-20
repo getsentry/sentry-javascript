@@ -9,6 +9,8 @@ function renderForm({
   showName = true,
   showEmail = true,
   isAnonymous = false,
+  isNameRequired = false,
+  isEmailRequired = false,
   defaultName = 'Foo Bar',
   defaultEmail = 'foo@example.com',
   nameLabel = 'Name',
@@ -25,6 +27,8 @@ function renderForm({
     isAnonymous,
     showName,
     showEmail,
+    isNameRequired,
+    isEmailRequired,
     defaultName,
     defaultEmail,
     nameLabel,
@@ -80,13 +84,15 @@ describe('Form', () => {
       emailPlaceholder: 'foo@example.org!',
       messageLabel: 'Description!',
       messagePlaceholder: 'What is the issue?!',
+      isNameRequired: true,
+      isEmailRequired: true,
     });
 
     const nameLabel = formComponent.el.querySelector('label[htmlFor="name"]') as HTMLLabelElement;
     const emailLabel = formComponent.el.querySelector('label[htmlFor="email"]') as HTMLLabelElement;
     const messageLabel = formComponent.el.querySelector('label[htmlFor="message"]') as HTMLLabelElement;
-    expect(nameLabel.textContent).toBe('Name!');
-    expect(emailLabel.textContent).toBe('Email!');
+    expect(nameLabel.textContent).toBe('Name! (required)');
+    expect(emailLabel.textContent).toBe('Email! (required)');
     expect(messageLabel.textContent).toBe('Description! (required)');
 
     const nameInput = formComponent.el.querySelector('[name="name"]') as HTMLInputElement;
@@ -96,18 +102,6 @@ describe('Form', () => {
     expect(nameInput.placeholder).toBe('Your full name!');
     expect(emailInput.placeholder).toBe('foo@example.org!');
     expect(messageInput.placeholder).toBe('What is the issue?!');
-  });
-
-  it('submit is enabled if message is not empty', () => {
-    const formComponent = renderForm();
-
-    const message = formComponent.el.querySelector('[name="message"]') as HTMLTextAreaElement;
-
-    message.value = 'Foo (message)';
-    message.dispatchEvent(new KeyboardEvent('keyup'));
-
-    message.value = '';
-    message.dispatchEvent(new KeyboardEvent('keyup'));
   });
 
   it('can show error', () => {
@@ -148,6 +142,8 @@ describe('Form', () => {
   it('does not show name or email inputs for anonymous mode', () => {
     const onSubmit = jest.fn();
     const formComponent = renderForm({
+      isNameRequired: true,
+      isEmailRequired: true,
       isAnonymous: true,
       onSubmit,
     });

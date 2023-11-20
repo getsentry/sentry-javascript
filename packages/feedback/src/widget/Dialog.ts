@@ -45,6 +45,8 @@ export function Dialog({
   showBranding,
   showName,
   showEmail,
+  isNameRequired,
+  isEmailRequired,
   colorScheme,
   isAnonymous,
   defaultName,
@@ -102,6 +104,8 @@ export function Dialog({
     showEmail,
     showName,
     isAnonymous,
+    isEmailRequired,
+    isNameRequired,
 
     defaultName,
     defaultEmail,
