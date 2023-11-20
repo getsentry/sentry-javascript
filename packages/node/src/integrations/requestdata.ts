@@ -1,6 +1,3 @@
-// TODO (v8 or v9): Whenever this becomes a default integration for `@sentry/browser`, move this to `@sentry/core`. For
-// now, we leave it in `@sentry/integrations` so that it doesn't contribute bytes to our CDN bundles.
-
 import type { Event, EventProcessor, Hub, Integration, PolymorphicRequest, Transaction } from '@sentry/types';
 import { extractPathForTransaction } from '@sentry/utils';
 
@@ -18,6 +15,7 @@ export type RequestDataIntegrationOptions = {
     ip?: boolean;
     query_string?: boolean;
     url?: boolean;
+    // TODO(v8): Think really hard about whether we want this integration to concern itself with user data. Likely not, so we should remove it.
     user?:
       | boolean
       | {
@@ -27,6 +25,11 @@ export type RequestDataIntegrationOptions = {
         };
   };
 
+  // TODO(v8): Think really hard whether we want the `RequestData` integration to concern itself with setting the
+  // `transaction`(previously known as "culprit") field on error events.A better approach is likely to have
+  // instrumentation set this independently of this integration, to separate concerns.The instrumentation should have
+  // knowledge of request objects and should therefore have all information necessary to create a meaningful
+  // `transaction` value.
   /** Whether to identify transactions by parameterized path, parameterized path with method, or handler name */
   transactionNamingScheme?: TransactionNamingScheme;
 };
@@ -61,10 +64,15 @@ export class RequestData implements Integration {
    */
   public name: string = RequestData.id;
 
+  // TODO(v8): Remove this method as it will become redundant once we strictly type the request interface on `sdkProcessingMetadata`.
   /**
    * Function for adding request data to event. Defaults to `addRequestDataToEvent` from `@sentry/node` for now, but
    * left as a property so this integration can be moved to `@sentry/core` as a base class in case we decide to use
    * something similar in browser-based SDKs in the future.
+   *
+   * @deprecated In the future the transaction API will likely have a more strictly typed interface, meaning
+   * instrumentation itself will be responsible for passing normalized request data to the `sdkProcessingMetadata`
+   * field, rendering this method useless.
    */
   protected _addRequestData: (event: Event, req: PolymorphicRequest, options?: { [key: string]: unknown }) => Event;
 
@@ -74,6 +82,7 @@ export class RequestData implements Integration {
    * @inheritDoc
    */
   public constructor(options: RequestDataIntegrationOptions = {}) {
+    // eslint-disable-next-line deprecation/deprecation
     this._addRequestData = addRequestDataToEvent;
     this._options = {
       ...DEFAULT_OPTIONS,
@@ -127,6 +136,7 @@ export class RequestData implements Integration {
         sdkProcessingMetadata.requestDataOptionsFromGCPWrapper ||
         convertReqDataIntegrationOptsToAddReqDataOpts(this._options);
 
+      // eslint-disable-next-line deprecation/deprecation
       const processedEvent = this._addRequestData(event, req, addRequestDataOptions);
 
       // Transaction events already have the right `transaction` value

@@ -47,6 +47,7 @@ export interface Event {
   measurements?: Measurements;
   debug_meta?: DebugMeta;
   // A place to stash data which is needed at some point in the SDK's event processing pipeline but which shouldn't get sent to Sentry
+  // TODO(v8): Properly type this out for the `request` key.
   sdkProcessingMetadata?: { [key: string]: any };
   transaction_info?: {
     source: TransactionSource;

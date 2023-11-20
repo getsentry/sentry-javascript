@@ -12,6 +12,11 @@ export interface PolymorphicEvent {
   readonly currentTarget?: unknown;
 }
 
+// TODO(v8): Instead of having this mess of a type we should simply stricly define *some* request interface for the
+// `sdkProcessingMetadata` and than have a variety of utility functions that map to this type to be used by the
+// RequestData integration.e.g. `normalizeExpressRequest`, or`normalizeKoaRequest`.
+// These utility functions are then used by the respective integrations to transform the Framework specific request
+// objects to a format that is compatible with the`RequestData` integration.
 /** A `Request` type compatible with Node, Express, browser, etc., because everything is optional */
 export type PolymorphicRequest = BaseRequest &
   BrowserRequest &

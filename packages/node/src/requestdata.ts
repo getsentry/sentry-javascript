@@ -1,3 +1,5 @@
+// TODO(v8): Evaluate whether the exported functtions still make sense after we have a strictly typed `sdkProcessingMetadata.request` and related framework/instrumentation-specific mapping functions.
+
 import type {
   Event,
   ExtractedNodeRequestData,
@@ -32,6 +34,7 @@ export type AddRequestDataToEventOptions = {
   };
 };
 
+// TODO(v8): Decide whether we want to keep this and delete it in case we don't. The `RequestData` integration should most likely not set the `transaction` field
 export type TransactionNamingScheme = 'path' | 'methodPath' | 'handler';
 
 /**
