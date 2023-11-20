@@ -80,7 +80,6 @@ export class Feedback implements Integration {
       email: 'email',
       name: 'username',
     },
-    isAnonymous = false,
     isEmailRequired = false,
     isNameRequired = false,
 
@@ -120,7 +119,6 @@ export class Feedback implements Integration {
       id,
       showBranding,
       autoInject,
-      isAnonymous,
       isEmailRequired,
       isNameRequired,
       showEmail,
