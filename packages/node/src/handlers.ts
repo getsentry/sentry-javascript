@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import {
   captureException,
+  continueTrace,
   flush,
   getCurrentHub,
   hasTracingEnabled,
@@ -19,7 +20,6 @@ import {
   isThenable,
   logger,
   normalize,
-  tracingContextFromHeaders,
 } from '@sentry/utils';
 import type * as http from 'http';
 
@@ -57,35 +57,30 @@ export function tracingHandler(): (
 
     const sentryTrace = req.headers && isString(req.headers['sentry-trace']) ? req.headers['sentry-trace'] : undefined;
     const baggage = req.headers?.baggage;
-    const { traceparentData, dynamicSamplingContext, propagationContext } = tracingContextFromHeaders(
-      sentryTrace,
-      baggage,
-    );
-    hub.getScope().setPropagationContext(propagationContext);
-
     if (!hasTracingEnabled(options)) {
       return next();
     }
 
     const [name, source] = extractPathForTransaction(req, { path: true, method: true });
-    const transaction = startTransaction(
-      {
-        name,
-        op: 'http.server',
-        origin: 'auto.http.node.tracingHandler',
-        ...traceparentData,
-        metadata: {
-          dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
-          // The request should already have been stored in `scope.sdkProcessingMetadata` (which will become
-          // `event.sdkProcessingMetadata` the same way the metadata here will) by `sentryRequestMiddleware`, but on the
-          // off chance someone is using `sentryTracingMiddleware` without `sentryRequestMiddleware`, it doesn't hurt to
-          // be sure
-          request: req,
-          source,
+    const transaction = continueTrace({ sentryTrace, baggage }, ctx =>
+      startTransaction(
+        {
+          name,
+          op: 'http.server',
+          origin: 'auto.http.node.tracingHandler',
+          metadata: {
+            ...ctx.metadata,
+            // The request should already have been stored in `scope.sdkProcessingMetadata` (which will become
+            // `event.sdkProcessingMetadata` the same way the metadata here will) by `sentryRequestMiddleware`, but on the
+            // off chance someone is using `sentryTracingMiddleware` without `sentryRequestMiddleware`, it doesn't hurt to
+            // be sure
+            request: req,
+            source,
+          },
         },
-      },
-      // extra context passed to the tracesSampler
-      { request: extractRequestData(req) },
+        // extra context passed to the tracesSampler
+        { request: extractRequestData(req) },
+      ),
     );
 
     // We put the transaction on the scope so users can attach children to it
