@@ -88,9 +88,19 @@ export function createWidget({
       return;
     }
 
-    // Simple validation for now, just check for non-empty message
+    // Simple validation for now, just check for non-empty required fields
+    const emptyField = [];
+    if (options.isNameRequired && !feedback.name) {
+      emptyField.push(options.nameLabel);
+    }
+    if (options.isEmailRequired && !feedback.email) {
+      emptyField.push(options.emailLabel);
+    }
     if (!feedback.message) {
-      dialog.showError('Please enter in some feedback before submitting!');
+      emptyField.push(options.messageLabel);
+    }
+    if (emptyField.length > 0) {
+      dialog.showError(`Please enter in the following required fields: ${emptyField.join(', ')}`);
       return;
     }
 
@@ -149,16 +159,17 @@ export function createWidget({
         return;
       }
 
-      const userKey = !options.isAnonymous && options.useSentryUser;
+      const userKey = options.useSentryUser;
       const scope = getCurrentHub().getScope();
       const user = scope && scope.getUser();
 
       dialog = Dialog({
         colorScheme: options.colorScheme,
         showBranding: options.showBranding,
-        showName: options.showName,
-        showEmail: options.showEmail,
-        isAnonymous: options.isAnonymous,
+        showName: options.showName || options.isNameRequired,
+        showEmail: options.showEmail || options.isEmailRequired,
+        isNameRequired: options.isNameRequired,
+        isEmailRequired: options.isEmailRequired,
         formTitle: options.formTitle,
         cancelButtonLabel: options.cancelButtonLabel,
         submitButtonLabel: options.submitButtonLabel,

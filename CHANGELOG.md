@@ -4,6 +4,16 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.81.1
+
+- fix(astro): Remove method from span op (#9603)
+- fix(deno): Make sure files get published (#9611)
+- fix(nextjs): Use `globalThis` instead of `global` in edge runtime (#9612)
+- fix(node): Improve error handling and shutdown handling for ANR (#9548)
+- fix(tracing-internal): Fix case when originalURL contain query params (#9531)
+
+Work in this release contributed by @powerfulyang, @LubomirIgonda1, @joshkel, and @alexgleason. Thank you for your contributions!
+
 ## 7.81.0
 
 ### Important Changes

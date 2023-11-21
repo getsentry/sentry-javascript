@@ -215,15 +215,21 @@ function handleChildProcess(options: Options): void {
 
   async function watchdogTimeout(): Promise<void> {
     log('Watchdog timeout');
-    const pauseAndCapture = await debuggerPause;
 
-    if (pauseAndCapture) {
-      log('Pausing debugger to capture stack trace');
-      pauseAndCapture();
-    } else {
-      log('Capturing event');
-      sendAnrEvent();
+    try {
+      const pauseAndCapture = await debuggerPause;
+
+      if (pauseAndCapture) {
+        log('Pausing debugger to capture stack trace');
+        pauseAndCapture();
+        return;
+      }
+    } catch (_) {
+      // ignore
     }
+
+    log('Capturing event');
+    sendAnrEvent();
   }
 
   const { poll } = watchdogTimer(createHrTimer, options.pollInterval, options.anrThreshold, watchdogTimeout);
@@ -233,6 +239,10 @@ function handleChildProcess(options: Options): void {
       session = makeSession(msg.session);
     }
     poll();
+  });
+  process.on('disconnect', () => {
+    // Parent process has exited.
+    process.exit();
   });
 }
 

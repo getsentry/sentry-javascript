@@ -83,7 +83,7 @@ export const handleRequest: (options?: MiddlewareOptions) => MiddlewareResponseH
       const res = await startSpan(
         {
           name: `${method} ${interpolateRouteFromUrlAndParams(ctx.url.pathname, ctx.params)}`,
-          op: `http.server.${method.toLowerCase()}`,
+          op: 'http.server',
           origin: 'auto.http.astro',
           status: 'ok',
           ...traceparentData,

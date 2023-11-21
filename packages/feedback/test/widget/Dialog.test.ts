@@ -9,7 +9,8 @@ function renderDialog({
   showName = true,
   showEmail = true,
   showBranding = false,
-  isAnonymous = false,
+  isNameRequired = false,
+  isEmailRequired = false,
   formTitle = 'Feedback',
   defaultName = 'Foo Bar',
   defaultEmail = 'foo@example.com',
@@ -27,9 +28,10 @@ function renderDialog({
   return Dialog({
     formTitle,
 
-    isAnonymous,
     showName,
     showEmail,
+    isNameRequired,
+    isEmailRequired,
     showBranding,
     defaultName,
     defaultEmail,
