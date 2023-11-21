@@ -15,13 +15,6 @@ import {
 import { instrumentFetchRequest } from '../common/fetch';
 import { addPerformanceInstrumentationHandler } from './instrument';
 
-/** Exported only for tests. */
-export type ExtendedSentryWrappedXMLHttpRequest = SentryWrappedXMLHttpRequest & {
-  __sentry_xhr_span_id__?: string;
-  setRequestHeader?: (key: string, val: string) => void;
-  getRequestHeader?: (key: string) => string;
-};
-
 export const DEFAULT_TRACE_PROPAGATION_TARGETS = ['localhost', /^\/(?!\/)/];
 
 /** Options for Request Instrumentation */
@@ -263,7 +256,7 @@ export function xhrCallback(
   shouldAttachHeaders: (url: string) => boolean,
   spans: Record<string, Span>,
 ): Span | undefined {
-  const xhr = handlerData.xhr as ExtendedSentryWrappedXMLHttpRequest;
+  const xhr = handlerData.xhr;
   const sentryXhrData = xhr && xhr[SENTRY_XHR_DATA_KEY];
 
   if (!hasTracingEnabled() || (xhr && xhr.__sentry_own_request__) || !xhr || !sentryXhrData) {
@@ -332,7 +325,7 @@ export function xhrCallback(
 }
 
 function setHeaderOnXhr(
-  xhr: ExtendedSentryWrappedXMLHttpRequest,
+  xhr: SentryWrappedXMLHttpRequest,
   sentryTraceHeader: string,
   sentryBaggageHeader: string | undefined,
 ): void {

@@ -8,6 +8,10 @@ export type ConsoleLevel = 'debug' | 'info' | 'warn' | 'error' | 'log' | 'assert
 export interface SentryWrappedXMLHttpRequest {
   __sentry_xhr_v3__?: SentryXhrData;
   __sentry_own_request__?: boolean;
+  // span id for the xhr request
+  __sentry_xhr_span_id__?: string;
+  setRequestHeader?: (key: string, val: string) => void;
+  getRequestHeader?: (key: string) => string;
 }
 
 // WARNING: When the shape of this type is changed bump the version in `SentryWrappedXMLHttpRequest`

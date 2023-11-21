@@ -1,13 +1,12 @@
 /* eslint-disable deprecation/deprecation */
 import * as sentryCore from '@sentry/core';
-import type { HandlerDataFetch } from '@sentry/types';
+import type { HandlerDataFetch, SentryWrappedXMLHttpRequest } from '@sentry/types';
 import * as utils from '@sentry/utils';
 import { SENTRY_XHR_DATA_KEY } from '@sentry/utils';
 
 import type { Transaction } from '../../../tracing/src';
 import { addExtensionMethods, Span, spanStatusfromHttpCode } from '../../../tracing/src';
 import { getDefaultBrowserClientOptions } from '../../../tracing/test/testutils';
-import type { ExtendedSentryWrappedXMLHttpRequest } from '../../src/browser/request';
 import {
   extractNetworkProtocol,
   instrumentOutgoingRequests,
@@ -296,7 +295,7 @@ describe('callbacks', () => {
           },
           __sentry_xhr_span_id__: '1231201211212012',
           setRequestHeader,
-        } as ExtendedSentryWrappedXMLHttpRequest,
+        } as SentryWrappedXMLHttpRequest,
         startTimestamp,
       };
     });
@@ -352,7 +351,7 @@ describe('callbacks', () => {
       });
       expect(newSpan.description).toBe('GET http://dogs.are.great/');
       expect(newSpan.op).toBe('http.client');
-      const spanId = (xhrHandlerData.xhr as ExtendedSentryWrappedXMLHttpRequest | undefined)?.__sentry_xhr_span_id__;
+      const spanId = xhrHandlerData.xhr?.__sentry_xhr_span_id__;
       expect(spanId).toBeDefined();
       expect(spanId).toEqual(newSpan?.spanId);
 
