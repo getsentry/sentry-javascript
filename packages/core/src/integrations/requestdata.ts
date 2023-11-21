@@ -1,11 +1,6 @@
-// TODO (v8 or v9): Whenever this becomes a default integration for `@sentry/browser`, move this to `@sentry/core`. For
-// now, we leave it in `@sentry/integrations` so that it doesn't contribute bytes to our CDN bundles.
-
 import type { Event, EventProcessor, Hub, Integration, PolymorphicRequest, Transaction } from '@sentry/types';
-import { extractPathForTransaction } from '@sentry/utils';
-
-import type { AddRequestDataToEventOptions, TransactionNamingScheme } from '../../../node/src/requestdata';
-import { addRequestDataToEvent } from '../../../node/src/requestdata';
+import type { AddRequestDataToEventOptions, TransactionNamingScheme } from '@sentry/utils';
+import { addRequestDataToEvent, extractPathForTransaction } from '@sentry/utils';
 
 export type RequestDataIntegrationOptions = {
   /**
@@ -59,7 +54,7 @@ export class RequestData implements Integration {
   /**
    * @inheritDoc
    */
-  public name: string = RequestData.id;
+  public name: string;
 
   /**
    * Function for adding request data to event. Defaults to `addRequestDataToEvent` from `@sentry/node` for now, but
@@ -74,6 +69,7 @@ export class RequestData implements Integration {
    * @inheritDoc
    */
   public constructor(options: RequestDataIntegrationOptions = {}) {
+    this.name = RequestData.id;
     this._addRequestData = addRequestDataToEvent;
     this._options = {
       ...DEFAULT_OPTIONS,

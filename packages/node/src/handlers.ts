@@ -15,6 +15,7 @@ import {
   addRequestDataToTransaction,
   dropUndefinedKeys,
   extractPathForTransaction,
+  extractRequestData,
   isString,
   isThenable,
   logger,
@@ -24,7 +25,6 @@ import {
 import type * as http from 'http';
 
 import type { NodeClient } from './client';
-import { extractRequestData } from './requestdata';
 // TODO (v8 / XXX) Remove this import
 import type { ParseRequestOptions } from './requestDataDeprecated';
 import { isAutoSessionTrackingEnabled } from './sdk';

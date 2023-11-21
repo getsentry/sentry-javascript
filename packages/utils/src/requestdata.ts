@@ -18,7 +18,7 @@ const DEFAULT_INCLUDES = {
   user: true,
 };
 const DEFAULT_REQUEST_INCLUDES = ['cookies', 'data', 'headers', 'method', 'query_string', 'url'];
-const DEFAULT_USER_INCLUDES = ['id', 'username', 'email'];
+export const DEFAULT_USER_INCLUDES = ['id', 'username', 'email'];
 
 type InjectedNodeDeps = {
   cookie: {
