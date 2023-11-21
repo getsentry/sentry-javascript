@@ -180,9 +180,8 @@ Pass these callbacks when you initialize the Feedback integration:
 
 ```javascript
 new Feedback({
-  onActorClick: () => {},
-  onDialogOpen: () => {},
-  onDialogClose: () => {},
+  onFormOpen: () => {},
+  onFormClose: () => {},
   onSubmitSuccess: () => {},
   onSubmitError: () => {},
 });
