@@ -99,9 +99,8 @@ export class Feedback implements Integration {
     nameLabel = NAME_LABEL,
     successMessageText = SUCCESS_MESSAGE_TEXT,
 
-    onActorClick,
-    onDialogClose,
-    onDialogOpen,
+    onFormClose,
+    onFormOpen,
     onSubmitError,
     onSubmitSuccess,
   }: OptionalFeedbackConfiguration = {}) {
@@ -147,9 +146,8 @@ export class Feedback implements Integration {
       namePlaceholder,
       successMessageText,
 
-      onActorClick,
-      onDialogClose,
-      onDialogOpen,
+      onFormClose,
+      onFormOpen,
       onSubmitError,
       onSubmitSuccess,
     };

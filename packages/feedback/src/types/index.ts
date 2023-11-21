@@ -156,19 +156,14 @@ export interface FeedbackTextConfiguration {
  */
 export interface FeedbackCallbacks {
   /**
-   * Callback when dialog is closed
+   * Callback when form is closed
    */
-  onDialogClose?: () => void;
+  onFormClose?: () => void;
 
   /**
-   * Callback when dialog is opened
+   * Callback when form is opened
    */
-  onDialogOpen?: () => void;
-
-  /**
-   * Callback when widget actor is clicked
-   */
-  onActorClick?: () => void;
+  onFormOpen?: () => void;
 
   /**
    * Callback when feedback is successfully submitted

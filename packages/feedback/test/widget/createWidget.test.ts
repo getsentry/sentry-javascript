@@ -49,9 +49,8 @@ const DEFAULT_OPTIONS = {
   nameLabel: NAME_LABEL,
   successMessageText: SUCCESS_MESSAGE_TEXT,
 
-  onActorClick: jest.fn(),
-  onDialogClose: jest.fn(),
-  onDialogOpen: jest.fn(),
+  onFormClose: jest.fn(),
+  onFormOpen: jest.fn(),
   onSubmitError: jest.fn(),
   onSubmitSuccess: jest.fn(),
 };
@@ -111,8 +110,8 @@ describe('createWidget', () => {
   });
 
   it('clicking on actor opens dialog and hides the actor', () => {
-    const onDialogOpen = jest.fn();
-    const { widget } = createShadowAndWidget({ onDialogOpen });
+    const onFormOpen = jest.fn();
+    const { widget } = createShadowAndWidget({ onFormOpen });
     widget.actor?.el?.dispatchEvent(new Event('click'));
 
     // Dialog is now visible
@@ -121,7 +120,7 @@ describe('createWidget', () => {
     // Actor should be hidden
     expect(widget.actor?.el?.getAttribute('aria-hidden')).toBe('true');
 
-    expect(onDialogOpen).toHaveBeenCalledTimes(1);
+    expect(onFormOpen).toHaveBeenCalledTimes(1);
   });
 
   it('submits feedback successfully', async () => {
@@ -282,8 +281,8 @@ describe('createWidget', () => {
   });
 
   it('closes when Cancel button is clicked', () => {
-    const onDialogClose = jest.fn();
-    const { widget } = createShadowAndWidget({ onDialogClose });
+    const onFormClose = jest.fn();
+    const { widget } = createShadowAndWidget({ onFormClose });
 
     widget.actor?.el?.dispatchEvent(new Event('click'));
     expect(widget.dialog?.el).toBeInstanceOf(HTMLDialogElement);
@@ -296,7 +295,7 @@ describe('createWidget', () => {
     // Element/component should still exist, but it will be in a closed state
     expect(widget.dialog?.el).toBeInstanceOf(HTMLDialogElement);
     expect(widget.dialog?.el?.open).toBe(false);
-    expect(onDialogClose).toHaveBeenCalledTimes(1);
+    expect(onFormClose).toHaveBeenCalledTimes(1);
 
     // Actor should now be visible too
     expect(widget.actor?.el?.getAttribute('aria-hidden')).toBe('false');
@@ -309,8 +308,8 @@ describe('createWidget', () => {
   });
 
   it('closes when dialog (background)) is clicked', () => {
-    const onDialogClose = jest.fn();
-    const { widget } = createShadowAndWidget({ onDialogClose });
+    const onFormClose = jest.fn();
+    const { widget } = createShadowAndWidget({ onFormClose });
 
     widget.actor?.el?.dispatchEvent(new Event('click'));
     expect(widget.dialog?.el).toBeInstanceOf(HTMLDialogElement);
@@ -323,7 +322,7 @@ describe('createWidget', () => {
     // Element/component should still exist, but it will be in a closed state
     expect(widget.dialog?.el).toBeInstanceOf(HTMLDialogElement);
     expect(widget.dialog?.el?.open).toBe(false);
-    expect(onDialogClose).toHaveBeenCalledTimes(1);
+    expect(onFormClose).toHaveBeenCalledTimes(1);
 
     // Actor should now be visible too
     expect(widget.actor?.el?.getAttribute('aria-hidden')).toBe('false');
@@ -336,7 +335,7 @@ describe('createWidget', () => {
   });
 
   it('attaches to a custom actor element', () => {
-    const onDialogOpen = jest.fn();
+    const onFormOpen = jest.fn();
     // This element is in the normal DOM
     const myActor = document.createElement('div');
     myActor.textContent = 'my button';
@@ -344,7 +343,7 @@ describe('createWidget', () => {
     const { widget } = createShadowAndWidget(
       {
         autoInject: false,
-        onDialogOpen,
+        onFormOpen,
       },
       {
         attachTo: myActor,
@@ -354,7 +353,7 @@ describe('createWidget', () => {
     myActor.dispatchEvent(new Event('click'));
     expect(widget.dialog?.el).toBeInstanceOf(HTMLDialogElement);
     expect(widget.dialog?.el?.open).toBe(true);
-    expect(onDialogOpen).toHaveBeenCalledTimes(1);
+    expect(onFormOpen).toHaveBeenCalledTimes(1);
     // This is all we do with `attachTo` (open dialog)
   });
 });
