@@ -16,7 +16,7 @@ import {
   getBodySize,
   getBodyString,
   makeNetworkReplayBreadcrumb,
-  mergeWarningsIntoMeta,
+  mergeWarning,
   parseContentLengthHeader,
   urlMatches,
 } from './networkUtils';
@@ -116,22 +116,14 @@ function _prepareXhrData(
   const request = buildNetworkRequestOrResponse(networkRequestHeaders, requestBodySize, requestBody);
   const response = buildNetworkRequestOrResponse(networkResponseHeaders, responseBodySize, responseBody);
 
-  if (request && requestWarning) {
-    request._meta = mergeWarningsIntoMeta(request._meta, [requestWarning]);
-  }
-
-  if (response && responseWarning) {
-    response._meta = mergeWarningsIntoMeta(response._meta, [responseWarning]);
-  }
-
   return {
     startTimestamp,
     endTimestamp,
     url,
     method,
     statusCode,
-    request,
-    response,
+    request: requestWarning ? mergeWarning(request, requestWarning) : request,
+    response: responseWarning ? mergeWarning(response, responseWarning) : response,
   };
 }
 

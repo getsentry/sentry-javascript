@@ -23,6 +23,8 @@ async function waitForReplayEventBuffer() {
   await Promise.resolve();
   await Promise.resolve();
   await Promise.resolve();
+  await Promise.resolve();
+  await Promise.resolve();
 }
 
 const LARGE_BODY = 'a'.repeat(NETWORK_BODY_MAX_SIZE + 1);

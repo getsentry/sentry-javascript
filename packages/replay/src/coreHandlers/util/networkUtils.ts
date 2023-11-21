@@ -84,16 +84,27 @@ export function getBodyString(body: unknown): [string | undefined, NetworkMetaWa
   return [undefined];
 }
 
-/** Merge warnings into an possibly existing meta. */
-export function mergeWarningsIntoMeta(
-  meta: ReplayNetworkRequestOrResponse['_meta'],
-  warnings: NetworkMetaWarning[],
-): ReplayNetworkRequestOrResponse['_meta'] {
-  const newMeta = { ...meta };
-  const existingWarnings = newMeta.warnings || [];
-  newMeta.warnings = [...existingWarnings, ...warnings];
+/** Merge a warning into an existing network request/response. */
+export function mergeWarning(
+  info: ReplayNetworkRequestOrResponse | undefined,
+  warning: NetworkMetaWarning,
+): ReplayNetworkRequestOrResponse {
+  if (!info) {
+    return {
+      headers: {},
+      size: undefined,
+      _meta: {
+        warnings: [warning],
+      },
+    };
+  }
 
-  return newMeta;
+  const newMeta = { ...info._meta };
+  const existingWarnings = newMeta.warnings || [];
+  newMeta.warnings = [...existingWarnings, warning];
+
+  info._meta = newMeta;
+  return info;
 }
 
 /** Convert ReplayNetworkRequestData to a PerformanceEntry. */
