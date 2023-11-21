@@ -19,7 +19,7 @@ export default function valueInjectionLoader(this: LoaderThis<LoaderOptions>, us
   this.cacheable(false);
 
   // Define some global proxy that works on server and on the browser.
-  let injectedCode = 'var _sentryCollisionFreeGlobalObject = typeof window === "undefined" ? global : window;\n';
+  let injectedCode = 'var _sentryCollisionFreeGlobalObject = typeof window === "undefined" ? globalThis : window;\n';
 
   Object.entries(values).forEach(([key, value]) => {
     injectedCode += `_sentryCollisionFreeGlobalObject["${key}"] = ${JSON.stringify(value)};\n`;
