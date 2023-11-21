@@ -195,7 +195,12 @@ function connectToSpotlight(options: NodeOptions): void {
   const client = getCurrentHub().getClient();
   if (client) {
     client.setupIntegrations(true);
+    let tries = 0;
     client.on('beforeEnvelope', envelope => {
+      if (tries > 3) {
+        logger.warn('[Spotlight] Disabled Sentry -> Spotlight integration due to too many failed requests');
+        return;
+      }
       fetch(spotlightUrl, {
         method: 'POST',
         body: serializeEnvelope(envelope),
@@ -204,6 +209,7 @@ function connectToSpotlight(options: NodeOptions): void {
         },
         mode: 'cors',
       }).catch(() => {
+        tries++;
         logger.warn('[Spotlight] Failed to send envelope to Spotlight Sidecar');
       });
     });
