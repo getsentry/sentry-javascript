@@ -6,14 +6,14 @@
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/deno",
   "author": "Sentry",
   "license": "MIT",
-  "module": "build/index.js",
+  "module": "build/index.mjs",
   "types": "build/index.d.ts",
   "publishConfig": {
     "access": "public"
   },
   "files": [
-    "index.js",
-    "index.js.map",
+    "index.mjs",
+    "index.mjs.map",
     "index.d.ts"
   ],
   "dependencies": {
