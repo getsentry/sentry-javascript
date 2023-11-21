@@ -3,14 +3,14 @@
 // TODO (v8 / #5257): Remove everything related to the deprecated functions
 
 import type { Event, PolymorphicRequest, TransactionSource, User } from '@sentry/types';
-import type * as net from 'net';
-
-import type { AddRequestDataToEventOptions } from '../src/requestdata';
+import type { AddRequestDataToEventOptions } from '@sentry/utils';
 import {
   addRequestDataToEvent,
   extractPathForTransaction,
   extractRequestData as newExtractRequestData,
-} from '../src/requestdata';
+} from '@sentry/utils';
+import type * as net from 'net';
+
 import type { ExpressRequest } from '../src/requestDataDeprecated';
 import { extractRequestData as oldExtractRequestData, parseRequest } from '../src/requestDataDeprecated';
 

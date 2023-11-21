@@ -2,6 +2,7 @@ export type { ClientClass } from './sdk';
 export type { AsyncContextStrategy, Carrier, Layer, RunWithAsyncContextOptions } from './hub';
 export type { OfflineStore, OfflineTransportOptions } from './transports/offline';
 export type { ServerRuntimeClientOptions } from './server-runtime-client';
+export type { RequestDataIntegrationOptions } from './integrations/requestdata';
 
 export * from './tracing';
 export { createEventEnvelope } from './envelope';

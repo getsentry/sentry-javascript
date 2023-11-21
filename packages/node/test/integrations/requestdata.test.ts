@@ -1,15 +1,14 @@
-import { getCurrentHub, Hub, makeMain } from '@sentry/core';
+import type { RequestDataIntegrationOptions } from '@sentry/core';
+import { getCurrentHub, Hub, makeMain, RequestData } from '@sentry/core';
 import type { Event, EventProcessor, PolymorphicRequest } from '@sentry/types';
+import * as sentryUtils from '@sentry/utils';
 import * as http from 'http';
 
 import { NodeClient } from '../../src/client';
 import { requestHandler } from '../../src/handlers';
-import type { RequestDataIntegrationOptions } from '../../src/integrations/requestdata';
-import { RequestData } from '../../src/integrations/requestdata';
-import * as requestDataModule from '../../src/requestdata';
 import { getDefaultNodeClientOptions } from '../helper/node-client-options';
 
-const addRequestDataToEventSpy = jest.spyOn(requestDataModule, 'addRequestDataToEvent');
+const addRequestDataToEventSpy = jest.spyOn(sentryUtils, 'addRequestDataToEvent');
 const requestDataEventProcessor = jest.fn();
 
 const headers = { ears: 'furry', nose: 'wet', tongue: 'spotted', cookie: 'favorite=zukes' };
