@@ -79,6 +79,12 @@ export interface BaseNodeOptions {
 
   /** Callback that is executed when a fatal global error occurs. */
   onFatalError?(this: void, error: Error): void;
+
+  /**
+   * The SDK tries to relay all events to Spotlight in development.
+   * Either set it to true, or provide a specific Spotlight URL.
+   */
+  spotlight?: boolean | string;
 }
 
 /**

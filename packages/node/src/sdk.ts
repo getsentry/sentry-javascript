@@ -10,7 +10,9 @@ import type { SessionStatus, StackParser } from '@sentry/types';
 import {
   createStackParser,
   GLOBAL_OBJ,
+  logger,
   nodeStackLineParser,
+  serializeEnvelope,
   stackParserFromStackParserOptions,
   tracingContextFromHeaders,
 } from '@sentry/utils';
@@ -179,6 +181,33 @@ export function init(options: NodeOptions = {}): void {
   }
 
   updateScopeFromEnvVariables();
+
+  connectToSpotlight(options);
+}
+
+function connectToSpotlight(options: NodeOptions): void {
+  if (!options.spotlight) {
+    return;
+  }
+
+  const spotlightUrl = typeof options.spotlight === 'string' ? options.spotlight : 'http://localhost:8969/stream';
+
+  const client = getCurrentHub().getClient();
+  if (client) {
+    client.setupIntegrations(true);
+    client.on('beforeEnvelope', envelope => {
+      fetch(spotlightUrl, {
+        method: 'POST',
+        body: serializeEnvelope(envelope),
+        headers: {
+          'Content-Type': 'application/x-sentry-envelope',
+        },
+        mode: 'cors',
+      }).catch(() => {
+        logger.warn('[Spotlight] Failed to send envelope to Spotlight Sidecar');
+      });
+    });
+  }
 }
 
 /**
