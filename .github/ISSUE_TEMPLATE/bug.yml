@@ -35,6 +35,7 @@ body:
         - '@sentry/angular'
         - '@sentry/angular-ivy'
         - '@sentry/bun'
+        - '@sentry/deno'
         - '@sentry/ember'
         - '@sentry/gatsby'
         - '@sentry/nextjs'
