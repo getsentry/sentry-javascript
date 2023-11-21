@@ -3,6 +3,7 @@ import { logger } from '@sentry/utils';
 
 import type {
   FetchHint,
+  NetworkMetaWarning,
   ReplayContainer,
   ReplayNetworkOptions,
   ReplayNetworkRequestData,
@@ -16,6 +17,7 @@ import {
   getBodySize,
   getBodyString,
   makeNetworkReplayBreadcrumb,
+  mergeWarningsIntoMeta,
   parseContentLengthHeader,
   urlMatches,
 } from './networkUtils';
@@ -118,8 +120,14 @@ function _getRequestInfo(
 
   // We only want to transmit string or string-like bodies
   const requestBody = _getFetchRequestArgBody(input);
-  const bodyStr = getBodyString(requestBody);
-  return buildNetworkRequestOrResponse(headers, requestBodySize, bodyStr);
+  const [bodyStr, warning] = getBodyString(requestBody);
+  const data = buildNetworkRequestOrResponse(headers, requestBodySize, bodyStr);
+
+  if (data && warning) {
+    data._meta = mergeWarningsIntoMeta(data._meta, [warning]);
+  }
+
+  return data;
 }
 
 async function _getResponseInfo(
@@ -145,11 +153,40 @@ async function _getResponseInfo(
   }
 
   // Only clone the response if we need to
-  try {
-    // We have to clone this, as the body can only be read once
-    const res = response.clone();
-    const bodyText = await _parseFetchBody(res);
 
+  const [bodyText, warning] = await _parseFetchResponseBody(response);
+  const result = getResponseData(bodyText, {
+    networkCaptureBodies,
+    textEncoder,
+    responseBodySize,
+    captureDetails,
+    headers,
+  });
+
+  if (result && warning) {
+    result._meta = mergeWarningsIntoMeta(result._meta, [warning]);
+  }
+
+  return result;
+}
+
+function getResponseData(
+  bodyText: string | undefined,
+  {
+    networkCaptureBodies,
+    textEncoder,
+    responseBodySize,
+    captureDetails,
+    headers,
+  }: {
+    captureDetails: boolean;
+    networkCaptureBodies: boolean;
+    responseBodySize: number | undefined;
+    headers: Record<string, string>;
+    textEncoder: TextEncoderInternal;
+  },
+): ReplayNetworkRequestOrResponse | undefined {
+  try {
     const size =
       bodyText && bodyText.length && responseBodySize === undefined
         ? getBodySize(bodyText, textEncoder)
@@ -171,11 +208,15 @@ async function _getResponseInfo(
   }
 }
 
-async function _parseFetchBody(response: Response): Promise<string | undefined> {
+async function _parseFetchResponseBody(response: Response): Promise<[string | undefined, NetworkMetaWarning?]> {
   try {
-    return await response.text();
-  } catch {
-    return undefined;
+    // We have to clone this, as the body can only be read once
+    const res = response.clone();
+    const text = await res.text();
+    return [text];
+  } catch (errorr) {
+    __DEBUG_BUILD__ && logger.warn('[Replay] Failed to read response body', errorr);
+    return [undefined, 'BODY_PARSE_ERROR'];
   }
 }
 

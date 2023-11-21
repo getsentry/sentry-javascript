@@ -61,26 +61,39 @@ export function parseContentLengthHeader(header: string | null | undefined): num
 }
 
 /** Get the string representation of a body. */
-export function getBodyString(body: unknown): string | undefined {
+export function getBodyString(body: unknown): [string | undefined, NetworkMetaWarning?] {
   try {
     if (typeof body === 'string') {
-      return body;
+      return [body];
     }
 
     if (body instanceof URLSearchParams) {
-      return body.toString();
+      return [body.toString()];
     }
 
     if (body instanceof FormData) {
-      return _serializeFormData(body);
+      return [_serializeFormData(body)];
     }
   } catch {
     __DEBUG_BUILD__ && logger.warn('[Replay] Failed to serialize body', body);
+    return [undefined, 'BODY_PARSE_ERROR'];
   }
 
   __DEBUG_BUILD__ && logger.info('[Replay] Skipping network body because of body type', body);
 
-  return undefined;
+  return [undefined];
+}
+
+/** Merge warnings into an possibly existing meta. */
+export function mergeWarningsIntoMeta(
+  meta: ReplayNetworkRequestOrResponse['_meta'],
+  warnings: NetworkMetaWarning[],
+): ReplayNetworkRequestOrResponse['_meta'] {
+  const newMeta = { ...meta };
+  const existingWarnings = newMeta.warnings || [];
+  newMeta.warnings = [...existingWarnings, ...warnings];
+
+  return newMeta;
 }
 
 /** Convert ReplayNetworkRequestData to a PerformanceEntry. */
