@@ -1,8 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { getCurrentHub } from '@sentry/core';
-import type { Event, EventHint, Hub, Integration, Primitive, StackParser } from '@sentry/types';
+import type { Event, Hub, Integration, Primitive, StackParser } from '@sentry/types';
 import {
-  addExceptionMechanism,
   addGlobalErrorInstrumentationHandler,
   addGlobalUnhandledRejectionInstrumentationHandler,
   getLocationHref,
@@ -100,7 +99,13 @@ function _installGlobalOnErrorHandler(): void {
 
     event.level = 'error';
 
-    addMechanismAndCapture(hub, error, event, 'onerror');
+    hub.captureEvent(event, {
+      originalException: error,
+      mechanism: {
+        handled: false,
+        type: 'onerror',
+      },
+    });
   });
 }
 
@@ -123,7 +128,14 @@ function _installGlobalOnUnhandledRejectionHandler(): void {
 
     event.level = 'error';
 
-    addMechanismAndCapture(hub, error, event, 'onunhandledrejection');
+    hub.captureEvent(event, {
+      originalException: error,
+      mechanism: {
+        handled: false,
+        type: 'unhandledrejection',
+      },
+    });
+
     return;
   });
 }
