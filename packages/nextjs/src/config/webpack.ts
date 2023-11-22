@@ -124,9 +124,6 @@ export function constructWebpackConfigFunction(
       ? path.join(appDirPath, '..')
       : projectDir;
 
-    const middlewareJsPath = path.join(middlewareLocationFolder, 'middleware.js');
-    const middlewareTsPath = path.join(middlewareLocationFolder, 'middleware.ts');
-
     // Default page extensions per https://github.com/vercel/next.js/blob/f1dbc9260d48c7995f6c52f8fbcc65f08e627992/packages/next/server/config-shared.ts#L161
     const pageExtensions = userNextConfig.pageExtensions || ['tsx', 'ts', 'jsx', 'js'];
     const dotPrefixedPageExtensions = pageExtensions.map(ext => `.${ext}`);
@@ -176,7 +173,10 @@ export function constructWebpackConfigFunction(
 
     const isMiddlewareResource = (resourcePath: string): boolean => {
       const normalizedAbsoluteResourcePath = normalizeLoaderResourcePath(resourcePath);
-      return normalizedAbsoluteResourcePath === middlewareJsPath || normalizedAbsoluteResourcePath === middlewareTsPath;
+      return (
+        normalizedAbsoluteResourcePath.startsWith(middlewareLocationFolder + path.sep) &&
+        !!normalizedAbsoluteResourcePath.match(/[\\/]middleware\.(js|jsx|ts|tsx)$/)
+      );
     };
 
     const isServerComponentResource = (resourcePath: string): boolean => {
