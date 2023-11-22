@@ -28,6 +28,11 @@ export class OpenTelemetryHub extends Hub {
   }
 }
 
+/** Custom getClient method that uses the custom hub. */
+export function getClient<C extends Client>(): C | undefined {
+  return getCurrentHub().getClient<C>();
+}
+
 /**
  * *******************************************************************************
  * Everything below here is a copy of the stuff from core's hub.ts,

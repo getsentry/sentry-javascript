@@ -2,7 +2,7 @@ import type { Span } from '@opentelemetry/api';
 import { SpanKind } from '@opentelemetry/api';
 import type { Instrumentation } from '@opentelemetry/instrumentation';
 import { hasTracingEnabled } from '@sentry/core';
-import { _INTERNAL, getCurrentHub, getSpanKind } from '@sentry/opentelemetry';
+import { _INTERNAL, getCurrentHub, getSpanKind, getClient } from '@sentry/opentelemetry';
 import type { Integration } from '@sentry/types';
 
 import type { NodeExperimentalClient } from '../types';
@@ -87,7 +87,7 @@ export class NodeFetch extends NodePerformanceIntegration<NodeFetchOptions> impl
   public setupOnce(): void {
     super.setupOnce();
 
-    const client = getCurrentHub().getClient<NodeExperimentalClient>();
+    const client = getClient<NodeExperimentalClient>();
     const clientOptions = client?.getOptions();
 
     // This is used in the sampler function

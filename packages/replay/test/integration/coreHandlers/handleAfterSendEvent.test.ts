@@ -1,4 +1,4 @@
-import { getCurrentHub } from '@sentry/core';
+import { getClient } from '@sentry/core';
 import type { ErrorEvent, Event } from '@sentry/types';
 
 import { UNABLE_TO_SEND_REPLAY } from '../../../src/constants';
@@ -152,7 +152,7 @@ describe('Integration | coreHandlers | handleAfterSendEvent', () => {
       },
     }));
 
-    const client = getCurrentHub().getClient()!;
+    const client = getClient()!;
     // @ts-expect-error make sure to remove this
     delete client.getTransport()!.send.__sentry__baseTransport__;
 
@@ -186,7 +186,7 @@ describe('Integration | coreHandlers | handleAfterSendEvent', () => {
       },
     }));
 
-    const mockSend = getCurrentHub().getClient()!.getTransport()!.send as unknown as jest.SpyInstance<any>;
+    const mockSend = getClient()!.getTransport()!.send as unknown as jest.SpyInstance<any>;
 
     const error1 = Error({ event_id: 'err1', tags: { replayId: 'replayid1' } });
 
@@ -225,7 +225,7 @@ describe('Integration | coreHandlers | handleAfterSendEvent', () => {
       },
     }));
 
-    const mockSend = getCurrentHub().getClient()!.getTransport()!.send as unknown as jest.SpyInstance<any>;
+    const mockSend = getClient()!.getTransport()!.send as unknown as jest.SpyInstance<any>;
 
     const error1 = Error({ event_id: 'err1' });
 
@@ -259,7 +259,7 @@ describe('Integration | coreHandlers | handleAfterSendEvent', () => {
       },
     }));
 
-    const mockSend = getCurrentHub().getClient()!.getTransport()!.send as unknown as jest.SpyInstance<any>;
+    const mockSend = getClient()!.getTransport()!.send as unknown as jest.SpyInstance<any>;
 
     const profileEvent: Event = { type: 'profile' };
     const replayEvent: Event = { type: 'replay_event' };
@@ -294,7 +294,7 @@ describe('Integration | coreHandlers | handleAfterSendEvent', () => {
       },
     }));
 
-    const mockSend = getCurrentHub().getClient()!.getTransport()!.send as unknown as jest.SpyInstance<any>;
+    const mockSend = getClient()!.getTransport()!.send as unknown as jest.SpyInstance<any>;
 
     const error1 = Error({ event_id: 'err1' });
 
@@ -328,7 +328,7 @@ describe('Integration | coreHandlers | handleAfterSendEvent', () => {
       },
     }));
 
-    const mockSend = getCurrentHub().getClient()!.getTransport()!.send as unknown as jest.SpyInstance<any>;
+    const mockSend = getClient()!.getTransport()!.send as unknown as jest.SpyInstance<any>;
 
     const error1: ErrorEvent = { event_id: 'err1', type: undefined };
 
@@ -362,7 +362,7 @@ describe('Integration | coreHandlers | handleAfterSendEvent', () => {
       },
     }));
 
-    const mockSend = getCurrentHub().getClient()!.getTransport()!.send as unknown as jest.SpyInstance<any>;
+    const mockSend = getClient()!.getTransport()!.send as unknown as jest.SpyInstance<any>;
 
     const error1 = Error({ event_id: 'err1', message: UNABLE_TO_SEND_REPLAY });
 
@@ -396,7 +396,7 @@ describe('Integration | coreHandlers | handleAfterSendEvent', () => {
       },
     }));
 
-    const mockSend = getCurrentHub().getClient()!.getTransport()!.send as unknown as jest.SpyInstance<any>;
+    const mockSend = getClient()!.getTransport()!.send as unknown as jest.SpyInstance<any>;
 
     const error1 = Error({ event_id: 'err1', tags: { replayId: 'replayid1' } });
 
@@ -429,7 +429,7 @@ describe('Integration | coreHandlers | handleAfterSendEvent', () => {
       },
     }));
 
-    const mockSend = getCurrentHub().getClient()!.getTransport()!.send as unknown as jest.SpyInstance<any>;
+    const mockSend = getClient()!.getTransport()!.send as unknown as jest.SpyInstance<any>;
 
     const handler = handleAfterSendEvent(replay);
 

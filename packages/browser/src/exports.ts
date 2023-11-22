@@ -33,6 +33,7 @@ export {
   flush,
   getHubFromCarrier,
   getCurrentHub,
+  getClient,
   Hub,
   lastEventId,
   makeMain,

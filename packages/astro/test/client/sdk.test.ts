@@ -1,6 +1,6 @@
 import type { BrowserClient } from '@sentry/browser';
 import * as SentryBrowser from '@sentry/browser';
-import { BrowserTracing, getCurrentHub, SDK_VERSION, WINDOW } from '@sentry/browser';
+import { BrowserTracing, getClient, getCurrentHub, SDK_VERSION, WINDOW } from '@sentry/browser';
 import { vi } from 'vitest';
 
 import { init } from '../../../astro/src/client/sdk';
@@ -60,7 +60,7 @@ describe('Sentry client SDK', () => {
         });
 
         const integrationsToInit = browserInit.mock.calls[0][0]?.integrations;
-        const browserTracing = (getCurrentHub().getClient() as BrowserClient)?.getIntegrationById('BrowserTracing');
+        const browserTracing = getClient<BrowserClient>()?.getIntegrationById('BrowserTracing');
 
         expect(integrationsToInit).toContainEqual(expect.objectContaining({ name: 'BrowserTracing' }));
         expect(browserTracing).toBeDefined();
@@ -76,7 +76,7 @@ describe('Sentry client SDK', () => {
         });
 
         const integrationsToInit = browserInit.mock.calls[0][0]?.integrations;
-        const browserTracing = (getCurrentHub().getClient() as BrowserClient)?.getIntegrationById('BrowserTracing');
+        const browserTracing = getClient<BrowserClient>()?.getIntegrationById('BrowserTracing');
 
         expect(integrationsToInit).not.toContainEqual(expect.objectContaining({ name: 'BrowserTracing' }));
         expect(browserTracing).toBeUndefined();
@@ -91,7 +91,7 @@ describe('Sentry client SDK', () => {
         });
 
         const integrationsToInit = browserInit.mock.calls[0][0]?.integrations;
-        const browserTracing = (getCurrentHub().getClient() as BrowserClient)?.getIntegrationById('BrowserTracing');
+        const browserTracing = getClient<BrowserClient>()?.getIntegrationById('BrowserTracing');
 
         expect(integrationsToInit).not.toContainEqual(expect.objectContaining({ name: 'BrowserTracing' }));
         expect(browserTracing).toBeUndefined();
@@ -108,9 +108,7 @@ describe('Sentry client SDK', () => {
 
         const integrationsToInit = browserInit.mock.calls[0][0]?.integrations;
 
-        const browserTracing = (getCurrentHub().getClient() as BrowserClient)?.getIntegrationById(
-          'BrowserTracing',
-        ) as BrowserTracing;
+        const browserTracing = getClient<BrowserClient>()?.getIntegrationById('BrowserTracing') as BrowserTracing;
         const options = browserTracing.options;
 
         expect(integrationsToInit).toContainEqual(expect.objectContaining({ name: 'BrowserTracing' }));

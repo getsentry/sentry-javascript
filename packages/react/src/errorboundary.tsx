@@ -1,5 +1,5 @@
 import type { ReportDialogOptions, Scope } from '@sentry/browser';
-import { captureException, getCurrentHub, showReportDialog, withScope } from '@sentry/browser';
+import { captureException, getClient, showReportDialog, withScope } from '@sentry/browser';
 import { isError, logger } from '@sentry/utils';
 import hoistNonReactStatics from 'hoist-non-react-statics';
 import * as React from 'react';
@@ -104,7 +104,7 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
     this.state = INITIAL_STATE;
     this._openFallbackReportDialog = true;
 
-    const client = getCurrentHub().getClient();
+    const client = getClient();
     if (client && client.on && props.showDialog) {
       this._openFallbackReportDialog = false;
       client.on('afterSendEvent', event => {

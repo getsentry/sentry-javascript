@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { addGlobalEventProcessor, configureScope, getCurrentHub } from '@sentry/browser';
+import { addGlobalEventProcessor, configureScope, getClient } from '@sentry/browser';
 import type { Scope } from '@sentry/types';
 import { addNonEnumerableProperty } from '@sentry/utils';
 
@@ -130,7 +130,7 @@ function createReduxEnhancer(enhancerOptions?: Partial<SentryEnhancerOptions>): 
           /* Set latest state to scope */
           const transformedState = options.stateTransformer(newState);
           if (typeof transformedState !== 'undefined' && transformedState !== null) {
-            const client = getCurrentHub().getClient();
+            const client = getClient();
             const options = client && client.getOptions();
             const normalizationDepth = (options && options.normalizeDepth) || 3; // default state normalization depth to 3
 

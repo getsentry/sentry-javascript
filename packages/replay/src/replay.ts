@@ -1,6 +1,6 @@
 /* eslint-disable max-lines */ // TODO: We might want to split this file up
 import { EventType, record } from '@sentry-internal/rrweb';
-import { captureException, getCurrentHub } from '@sentry/core';
+import { captureException, getClient, getCurrentHub } from '@sentry/core';
 import type { ReplayRecordingMode, Transaction } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
@@ -1107,7 +1107,7 @@ export class ReplayContainer implements ReplayContainerInterface {
       // In this case, we want to completely stop the replay - otherwise, we may get inconsistent segments
       void this.stop({ reason: 'sendReplay' });
 
-      const client = getCurrentHub().getClient();
+      const client = getClient();
 
       if (client) {
         client.recordDroppedEvent('send_error', 'replay');

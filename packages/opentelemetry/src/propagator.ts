@@ -6,7 +6,7 @@ import type { DynamicSamplingContext, PropagationContext } from '@sentry/types';
 import { generateSentryTraceHeader, SENTRY_BAGGAGE_KEY_PREFIX, tracingContextFromHeaders } from '@sentry/utils';
 
 import { SENTRY_BAGGAGE_HEADER, SENTRY_TRACE_HEADER } from './constants';
-import { getCurrentHub } from './custom/hub';
+import { getClient } from './custom/hub';
 import { getPropagationContextFromContext, setPropagationContextOnContext } from './utils/contextData';
 import { getSpanScope } from './utils/spanData';
 
@@ -90,7 +90,7 @@ function getDsc(
   }
 
   // Else, we try to generate a new one
-  const client = getCurrentHub().getClient();
+  const client = getClient();
   const activeSpan = trace.getSpan(context);
   const scope = activeSpan ? getSpanScope(activeSpan) : undefined;
 

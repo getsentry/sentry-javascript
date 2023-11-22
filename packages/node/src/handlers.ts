@@ -3,6 +3,7 @@ import {
   captureException,
   continueTrace,
   flush,
+  getClient,
   getCurrentHub,
   hasTracingEnabled,
   runWithAsyncContext,
@@ -278,7 +279,7 @@ export function errorHandler(options?: {
           _scope.setSpan(transaction);
         }
 
-        const client = getCurrentHub().getClient<NodeClient>();
+        const client = getClient<NodeClient>();
         if (client && isAutoSessionTrackingEnabled(client)) {
           // Check if the `SessionFlusher` is instantiated on the client to go into this branch that marks the
           // `requestSession.status` as `Crashed`, and this check is necessary because the `SessionFlusher` is only

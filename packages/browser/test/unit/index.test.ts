@@ -11,6 +11,7 @@ import {
   captureMessage,
   configureScope,
   flush,
+  getClient,
   getCurrentHub,
   init,
   Integrations,
@@ -271,11 +272,11 @@ describe('SentryBrowser initialization', () => {
     it('should set SDK data when Sentry.init() is called', () => {
       init({ dsn });
 
-      const sdkData = (getCurrentHub().getClient() as any).getOptions()._metadata.sdk;
+      const sdkData = getClient()?.getOptions()._metadata?.sdk || {};
 
       expect(sdkData?.name).toBe('sentry.javascript.browser');
-      expect(sdkData?.packages[0].name).toBe('npm:@sentry/browser');
-      expect(sdkData?.packages[0].version).toBe(SDK_VERSION);
+      expect(sdkData?.packages?.[0].name).toBe('npm:@sentry/browser');
+      expect(sdkData?.packages?.[0].version).toBe(SDK_VERSION);
       expect(sdkData?.version).toBe(SDK_VERSION);
     });
 
@@ -283,9 +284,9 @@ describe('SentryBrowser initialization', () => {
       global.SENTRY_SDK_SOURCE = 'loader';
       init({ dsn });
 
-      const sdkData = (getCurrentHub().getClient() as any).getOptions()._metadata.sdk;
+      const sdkData = getClient()?.getOptions()._metadata?.sdk || {};
 
-      expect(sdkData?.packages[0].name).toBe('loader:@sentry/browser');
+      expect(sdkData.packages?.[0].name).toBe('loader:@sentry/browser');
       delete global.SENTRY_SDK_SOURCE;
     });
 
@@ -293,9 +294,9 @@ describe('SentryBrowser initialization', () => {
       const spy = jest.spyOn(utils, 'getSDKSource').mockReturnValue('cdn');
       init({ dsn });
 
-      const sdkData = (getCurrentHub().getClient() as any).getOptions()._metadata.sdk;
+      const sdkData = getClient()?.getOptions()._metadata?.sdk || {};
 
-      expect(sdkData?.packages[0].name).toBe('cdn:@sentry/browser');
+      expect(sdkData.packages?.[0].name).toBe('cdn:@sentry/browser');
       expect(utils.getSDKSource).toBeCalledTimes(1);
       spy.mockRestore();
     });
@@ -332,11 +333,11 @@ describe('SentryBrowser initialization', () => {
         },
       });
 
-      const sdkData = (getCurrentHub().getClient() as any).getOptions()._metadata?.sdk;
+      const sdkData = getClient()?.getOptions()._metadata?.sdk || {};
 
       expect(sdkData.name).toBe('sentry.javascript.angular');
-      expect(sdkData.packages[0].name).toBe('npm:@sentry/angular');
-      expect(sdkData.packages[0].version).toBe(SDK_VERSION);
+      expect(sdkData.packages?.[0].name).toBe('npm:@sentry/angular');
+      expect(sdkData.packages?.[0].version).toBe(SDK_VERSION);
       expect(sdkData.version).toBe(SDK_VERSION);
     });
   });

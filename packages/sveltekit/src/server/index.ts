@@ -19,6 +19,7 @@ export {
   getActiveTransaction,
   getHubFromCarrier,
   getCurrentHub,
+  getClient,
   Hub,
   makeMain,
   Scope,

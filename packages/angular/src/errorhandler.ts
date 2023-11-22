@@ -115,7 +115,7 @@ class SentryErrorHandler implements AngularErrorHandler {
 
     // Optionally show user dialog to provide details on what happened.
     if (this._options.showDialog) {
-      const client = Sentry.getCurrentHub().getClient();
+      const client = Sentry.getClient();
 
       if (client && client.on && !this._registeredAfterSendEventHandler) {
         client.on('afterSendEvent', (event: Event) => {

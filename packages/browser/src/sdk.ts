@@ -1,5 +1,6 @@
 import type { Hub } from '@sentry/core';
 import {
+  getClient,
   getCurrentHub,
   getIntegrationsToSetup,
   getReportDialogEndpoint,
@@ -252,7 +253,7 @@ function startSessionTracking(): void {
  * Captures user feedback and sends it to Sentry.
  */
 export function captureUserFeedback(feedback: UserFeedback): void {
-  const client = getCurrentHub().getClient<BrowserClient>();
+  const client = getClient<BrowserClient>();
   if (client) {
     client.captureUserFeedback(feedback);
   }

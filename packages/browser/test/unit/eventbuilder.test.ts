@@ -1,5 +1,3 @@
-import type { Client } from '@sentry/types';
-
 import { defaultStackParser } from '../../src';
 import { eventFromPlainObject } from '../../src/eventbuilder';
 
@@ -7,9 +5,14 @@ jest.mock('@sentry/core', () => {
   const original = jest.requireActual('@sentry/core');
   return {
     ...original,
-    getCurrentHub(): {
-      getClient(): Client;
-    } {
+    getClient() {
+      return {
+        getOptions(): any {
+          return { normalizeDepth: 6 };
+        },
+      };
+    },
+    getCurrentHub() {
       return {
         getClient(): any {
           return {

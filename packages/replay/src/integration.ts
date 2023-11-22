@@ -1,4 +1,4 @@
-import { getCurrentHub } from '@sentry/core';
+import { getClient } from '@sentry/core';
 import type { BrowserClientReplayOptions, Integration } from '@sentry/types';
 import { dropUndefinedKeys, isBrowser } from '@sentry/utils';
 
@@ -343,7 +343,7 @@ Sentry.init({ replaysOnErrorSampleRate: ${errorSampleRate} })`,
 
 /** Parse Replay-related options from SDK options */
 function loadReplayOptionsFromClient(initialOptions: InitialReplayPluginOptions): ReplayPluginOptions {
-  const client = getCurrentHub().getClient();
+  const client = getClient();
   const opt = client && (client.getOptions() as BrowserClientReplayOptions);
 
   const finalOptions = { sessionSampleRate: 0, errorSampleRate: 0, ...dropUndefinedKeys(initialOptions) };

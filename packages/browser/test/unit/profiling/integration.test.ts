@@ -48,12 +48,12 @@ describe('BrowserProfilingIntegration', () => {
       integrations: [new Sentry.BrowserTracing(), new BrowserProfilingIntegration()],
     });
 
-    const client = Sentry.getCurrentHub().getClient() as BrowserClient;
+    const client = Sentry.getClient<BrowserClient>();
 
     const currentTransaction = Sentry.getCurrentHub().getScope().getTransaction();
     expect(currentTransaction?.op).toBe('pageload');
     currentTransaction?.finish();
-    await client.flush(1000);
+    await client?.flush(1000);
 
     expect(send).toHaveBeenCalledTimes(1);
 

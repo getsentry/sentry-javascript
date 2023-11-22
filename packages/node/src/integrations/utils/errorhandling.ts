@@ -1,4 +1,4 @@
-import { getCurrentHub } from '@sentry/core';
+import { getClient } from '@sentry/core';
 import { logger } from '@sentry/utils';
 
 import type { NodeClient } from '../../client';
@@ -12,7 +12,7 @@ export function logAndExitProcess(error: Error): void {
   // eslint-disable-next-line no-console
   console.error(error);
 
-  const client = getCurrentHub().getClient<NodeClient>();
+  const client = getClient<NodeClient>();
 
   if (client === undefined) {
     __DEBUG_BUILD__ && logger.warn('No NodeClient was defined, we are exiting the process now.');

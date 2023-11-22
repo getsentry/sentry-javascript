@@ -24,6 +24,7 @@ export {
   setTags,
   setUser,
   withScope,
+  getClient,
 } from './exports';
 export {
   getCurrentHub,
