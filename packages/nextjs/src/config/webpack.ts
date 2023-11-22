@@ -98,26 +98,34 @@ export function constructWebpackConfigFunction(
       ],
     });
 
-    let pagesDirPath: string;
+    let pagesDirPath: string | undefined;
     const maybePagesDirPath = path.join(projectDir, 'pages');
+    const maybeSrcPagesDirPath = path.join(projectDir, 'src', 'pages');
     if (fs.existsSync(maybePagesDirPath) && fs.lstatSync(maybePagesDirPath).isDirectory()) {
       pagesDirPath = path.join(projectDir, 'pages');
-    } else {
+    } else if (fs.existsSync(maybeSrcPagesDirPath) && fs.lstatSync(maybeSrcPagesDirPath).isDirectory()) {
       pagesDirPath = path.join(projectDir, 'src', 'pages');
     }
 
-    let appDirPath: string;
+    let appDirPath: string | undefined;
     const maybeAppDirPath = path.join(projectDir, 'app');
+    const maybeSrcAppDirPath = path.join(projectDir, 'app');
     if (fs.existsSync(maybeAppDirPath) && fs.lstatSync(maybeAppDirPath).isDirectory()) {
       appDirPath = path.join(projectDir, 'app');
-    } else {
+    } else if (fs.existsSync(maybeSrcAppDirPath) && fs.lstatSync(maybeSrcAppDirPath).isDirectory()) {
       appDirPath = path.join(projectDir, 'src', 'app');
     }
 
-    const apiRoutesPath = path.join(pagesDirPath, 'api');
+    const apiRoutesPath = pagesDirPath ? path.join(pagesDirPath, 'api') : undefined;
 
-    const middlewareJsPath = path.join(pagesDirPath, '..', 'middleware.js');
-    const middlewareTsPath = path.join(pagesDirPath, '..', 'middleware.ts');
+    const middlewareLocationFolder = pagesDirPath
+      ? path.join(pagesDirPath, '..')
+      : appDirPath
+      ? path.join(appDirPath, '..')
+      : projectDir;
+
+    const middlewareJsPath = path.join(middlewareLocationFolder, 'middleware.js');
+    const middlewareTsPath = path.join(middlewareLocationFolder, 'middleware.ts');
 
     // Default page extensions per https://github.com/vercel/next.js/blob/f1dbc9260d48c7995f6c52f8fbcc65f08e627992/packages/next/server/config-shared.ts#L161
     const pageExtensions = userNextConfig.pageExtensions || ['tsx', 'ts', 'jsx', 'js'];
@@ -151,6 +159,7 @@ export function constructWebpackConfigFunction(
     const isPageResource = (resourcePath: string): boolean => {
       const normalizedAbsoluteResourcePath = normalizeLoaderResourcePath(resourcePath);
       return (
+        pagesDirPath !== undefined &&
         normalizedAbsoluteResourcePath.startsWith(pagesDirPath + path.sep) &&
         !normalizedAbsoluteResourcePath.startsWith(apiRoutesPath + path.sep) &&
         dotPrefixedPageExtensions.some(ext => normalizedAbsoluteResourcePath.endsWith(ext))
@@ -176,6 +185,7 @@ export function constructWebpackConfigFunction(
       // ".js, .jsx, or .tsx file extensions can be used for Pages"
       // https://beta.nextjs.org/docs/routing/pages-and-layouts#pages:~:text=.js%2C%20.jsx%2C%20or%20.tsx%20file%20extensions%20can%20be%20used%20for%20Pages.
       return (
+        appDirPath !== undefined &&
         normalizedAbsoluteResourcePath.startsWith(appDirPath + path.sep) &&
         !!normalizedAbsoluteResourcePath.match(/[\\/](page|layout|loading|head|not-found)\.(js|jsx|tsx)$/)
       );
@@ -184,6 +194,7 @@ export function constructWebpackConfigFunction(
     const isRouteHandlerResource = (resourcePath: string): boolean => {
       const normalizedAbsoluteResourcePath = normalizeLoaderResourcePath(resourcePath);
       return (
+        appDirPath !== undefined &&
         normalizedAbsoluteResourcePath.startsWith(appDirPath + path.sep) &&
         !!normalizedAbsoluteResourcePath.match(/[\\/]route\.(js|jsx|ts|tsx)$/)
       );
