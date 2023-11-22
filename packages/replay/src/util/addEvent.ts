@@ -1,5 +1,5 @@
 import { EventType } from '@sentry-internal/rrweb';
-import { getCurrentHub } from '@sentry/core';
+import { getClient } from '@sentry/core';
 import { logger } from '@sentry/utils';
 
 import { EventBufferSizeExceededError } from '../eventBuffer/error';
@@ -80,7 +80,7 @@ async function _addEvent(
     __DEBUG_BUILD__ && logger.error(error);
     await replay.stop({ reason });
 
-    const client = getCurrentHub().getClient();
+    const client = getClient();
 
     if (client) {
       client.recordDroppedEvent('internal_sdk_error', 'replay');

@@ -1,6 +1,6 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import * as SentryBrowser from '@sentry/browser';
-import type { Event } from '@sentry/types';
+import type { Client, Event } from '@sentry/types';
 
 import { createErrorHandler, SentryErrorHandler } from '../src/errorhandler';
 
@@ -505,10 +505,7 @@ describe('SentryErrorHandler', () => {
           }),
         };
 
-        // @ts-expect-error this is a minmal hub, we're missing a few props but that's ok
-        jest.spyOn(SentryBrowser, 'getCurrentHub').mockImplementationOnce(() => {
-          return { getClient: () => client };
-        });
+        jest.spyOn(SentryBrowser, 'getClient').mockImplementationOnce(() => client as unknown as Client);
 
         const showReportDialogSpy = jest.spyOn(SentryBrowser, 'showReportDialog');
 

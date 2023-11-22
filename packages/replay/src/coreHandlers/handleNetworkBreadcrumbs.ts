@@ -1,4 +1,4 @@
-import { getCurrentHub } from '@sentry/core';
+import { getClient } from '@sentry/core';
 import type {
   Breadcrumb,
   BreadcrumbHint,
@@ -26,7 +26,7 @@ interface ExtendedNetworkBreadcrumbsOptions extends ReplayNetworkOptions {
  *   (enriching it with further data that is _not_ added to the regular breadcrumbs)
  */
 export function handleNetworkBreadcrumbs(replay: ReplayContainer): void {
-  const client = getCurrentHub().getClient();
+  const client = getClient();
 
   try {
     const textEncoder = new TextEncoder();

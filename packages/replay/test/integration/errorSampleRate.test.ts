@@ -1,4 +1,4 @@
-import { captureException, getCurrentHub } from '@sentry/core';
+import { captureException, getClient } from '@sentry/core';
 
 import {
   BUFFER_CHECKOUT_TIME,
@@ -718,7 +718,7 @@ describe('Integration | errorSampleRate', () => {
 
       // Now wait after session expires - should stop recording
       mockRecord.takeFullSnapshot.mockClear();
-      (getCurrentHub().getClient()!.getTransport()!.send as unknown as jest.SpyInstance<any>).mockClear();
+      (getClient()!.getTransport()!.send as unknown as jest.SpyInstance<any>).mockClear();
 
       expect(replay).not.toHaveLastSentReplay();
 
@@ -786,7 +786,7 @@ describe('Integration | errorSampleRate', () => {
 
       // Now wait after session expires - should stop recording
       mockRecord.takeFullSnapshot.mockClear();
-      (getCurrentHub().getClient()!.getTransport()!.send as unknown as jest.SpyInstance<any>).mockClear();
+      (getClient()!.getTransport()!.send as unknown as jest.SpyInstance<any>).mockClear();
 
       jest.advanceTimersByTime(MAX_REPLAY_DURATION);
       await new Promise(process.nextTick);

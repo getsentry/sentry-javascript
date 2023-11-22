@@ -1,4 +1,4 @@
-import { getCurrentHub } from '@sentry/core';
+import { getClient } from '@sentry/core';
 import type { ErrorEvent, Event, TransactionEvent, Transport, TransportMakeRequestResponse } from '@sentry/types';
 
 import type { ReplayContainer } from '../types';
@@ -79,7 +79,7 @@ function handleErrorEvent(replay: ReplayContainer, event: ErrorEvent): void {
 }
 
 function isBaseTransportSend(): boolean {
-  const client = getCurrentHub().getClient();
+  const client = getClient();
   if (!client) {
     return false;
   }

@@ -2,7 +2,7 @@ import type { Context } from '@opentelemetry/api';
 import { context, SpanKind, trace } from '@opentelemetry/api';
 import { suppressTracing } from '@opentelemetry/core';
 import type { Span as OtelSpan, SpanProcessor as OtelSpanProcessor } from '@opentelemetry/sdk-trace-base';
-import { addGlobalEventProcessor, addTracingExtensions, getCurrentHub, Transaction } from '@sentry/core';
+import { addGlobalEventProcessor, addTracingExtensions, getClient, getCurrentHub, Transaction } from '@sentry/core';
 import type { DynamicSamplingContext, Span as SentrySpan, TraceparentData, TransactionContext } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
@@ -100,7 +100,7 @@ export class SentrySpanProcessor implements OtelSpanProcessor {
       return;
     }
 
-    const client = getCurrentHub().getClient();
+    const client = getClient();
 
     const mutableOptions = { drop: false };
     client && client.emit && client?.emit('otelSpanEnd', otelSpan, mutableOptions);
@@ -141,7 +141,7 @@ export class SentrySpanProcessor implements OtelSpanProcessor {
    * @inheritDoc
    */
   public async forceFlush(): Promise<void> {
-    const client = getCurrentHub().getClient();
+    const client = getClient();
     if (client) {
       return client.flush().then();
     }

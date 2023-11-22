@@ -19,6 +19,7 @@ import {
   severityLevelFromString,
 } from '@sentry/utils';
 
+import { getClient } from '../exports';
 import { WINDOW } from '../helpers';
 
 type HandlerData = Record<string, unknown>;
@@ -103,7 +104,7 @@ export class Breadcrumbs implements Integration {
       addInstrumentationHandler('history', _historyBreadcrumb);
     }
     if (this.options.sentry) {
-      const client = getCurrentHub().getClient();
+      const client = getClient();
       client && client.on && client.on('beforeSendEvent', addSentryBreadcrumb);
     }
   }

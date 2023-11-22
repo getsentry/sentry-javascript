@@ -5,6 +5,7 @@ import type { DebugImage, Envelope, Event, StackFrame, StackParser, Transaction 
 import type { Profile, ThreadCpuProfile } from '@sentry/types/src/profiling';
 import { browserPerformanceTimeOrigin, forEachEnvelopeItem, GLOBAL_OBJ, logger, uuid4 } from '@sentry/utils';
 
+import { getClient } from '../exports';
 import { WINDOW } from '../helpers';
 import type { JSSelfProfile, JSSelfProfiler, JSSelfProfilerConstructor, JSSelfProfileStack } from './jsSelfProfiling';
 
@@ -532,7 +533,7 @@ export function shouldProfileTransaction(transaction: Transaction): boolean {
     return false;
   }
 
-  const client = getCurrentHub().getClient();
+  const client = getClient();
   const options = client && client.getOptions();
   if (!options) {
     __DEBUG_BUILD__ && logger.log('[Profiling] Profiling disabled, no options found.');

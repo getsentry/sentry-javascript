@@ -1,5 +1,5 @@
 import type { Scope } from '@sentry/core';
-import { getCurrentHub } from '@sentry/core';
+import { getClient, getCurrentHub } from '@sentry/core';
 import type { Integration } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
@@ -86,7 +86,7 @@ export class OnUncaughtException implements Integration {
 
     return (error: Error): void => {
       let onFatalError: OnFatalErrorHandler = logAndExitProcess;
-      const client = getCurrentHub().getClient<NodeClient>();
+      const client = getClient<NodeClient>();
 
       if (this._options.onFatalError) {
         onFatalError = this._options.onFatalError;

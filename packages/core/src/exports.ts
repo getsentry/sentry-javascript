@@ -2,6 +2,7 @@ import type {
   Breadcrumb,
   CaptureContext,
   CheckIn,
+  Client,
   CustomSamplingContext,
   Event,
   EventHint,
@@ -266,7 +267,7 @@ export function withMonitor<T>(
  * doesn't (or if there's no client defined).
  */
 export async function flush(timeout?: number): Promise<boolean> {
-  const client = getCurrentHub().getClient();
+  const client = getClient();
   if (client) {
     return client.flush(timeout);
   }
@@ -283,7 +284,7 @@ export async function flush(timeout?: number): Promise<boolean> {
  * doesn't (or if there's no client defined).
  */
 export async function close(timeout?: number): Promise<boolean> {
-  const client = getCurrentHub().getClient();
+  const client = getClient();
   if (client) {
     return client.close(timeout);
   }
@@ -298,4 +299,11 @@ export async function close(timeout?: number): Promise<boolean> {
  */
 export function lastEventId(): string | undefined {
   return getCurrentHub().lastEventId();
+}
+
+/**
+ * Get the currently active client.
+ */
+export function getClient<C extends Client>(): C | undefined {
+  return getCurrentHub().getClient<C>();
 }

@@ -1,4 +1,4 @@
-import { getCurrentHub, Scope } from '@sentry/browser';
+import { getClient, getCurrentHub, Scope } from '@sentry/browser';
 import { fireEvent, render, screen } from '@testing-library/react';
 import * as React from 'react';
 import { useState } from 'react';
@@ -422,7 +422,7 @@ describe('ErrorBoundary', () => {
     });
 
     it('shows a Sentry Report Dialog with correct options if client does not have hooks', () => {
-      expect(getCurrentHub().getClient()).toBeUndefined();
+      expect(getClient()).toBeUndefined();
 
       const options = { title: 'custom title' };
       render(

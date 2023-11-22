@@ -5,7 +5,7 @@ import { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
 import { SemanticResourceAttributes } from '@opentelemetry/semantic-conventions';
 import { SDK_VERSION } from '@sentry/core';
 import {
-  getCurrentHub,
+  getClient,
   SentryPropagator,
   SentrySampler,
   setupEventContextTrace,
@@ -20,7 +20,7 @@ import { NodeExperimentalSentrySpanProcessor } from './spanProcessor';
  * Initialize OpenTelemetry for Node.
  */
 export function initOtel(): void {
-  const client = getCurrentHub().getClient<NodeExperimentalClient>();
+  const client = getClient<NodeExperimentalClient>();
 
   if (!client) {
     __DEBUG_BUILD__ &&

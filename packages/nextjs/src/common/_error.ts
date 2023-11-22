@@ -1,4 +1,4 @@
-import { captureException, getCurrentHub, withScope } from '@sentry/core';
+import { captureException, getClient, withScope } from '@sentry/core';
 import type { NextPageContext } from 'next';
 
 type ContextOrProps = {
@@ -11,7 +11,7 @@ type ContextOrProps = {
 
 /** Platform-agnostic version of `flush` */
 function flush(timeout?: number): PromiseLike<boolean> {
-  const client = getCurrentHub().getClient();
+  const client = getClient();
   return client ? client.flush(timeout) : Promise.resolve(false);
 }
 

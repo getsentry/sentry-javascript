@@ -13,6 +13,7 @@ import type {
   EventDropReason,
   EventHint,
   EventProcessor,
+  FeedbackEvent,
   Integration,
   IntegrationClass,
   Outcome,
@@ -27,7 +28,6 @@ import type {
   Transport,
   TransportMakeRequestResponse,
 } from '@sentry/types';
-import type { FeedbackEvent } from '@sentry/types';
 import {
   addItemToEnvelope,
   checkOrSetAlreadyCaught,

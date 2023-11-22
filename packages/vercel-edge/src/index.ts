@@ -38,6 +38,7 @@ export {
   getActiveTransaction,
   getHubFromCarrier,
   getCurrentHub,
+  getClient,
   Hub,
   lastEventId,
   makeMain,
