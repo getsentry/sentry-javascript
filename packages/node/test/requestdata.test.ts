@@ -1,6 +1,6 @@
 /* eslint-disable deprecation/deprecation */
 
-// TODO (v8 / #5257): Remove everything related to the deprecated functions
+// TODO (v8 / #5257): Remove everything related to the deprecated functions and move tests into `@sentry/utils`
 
 import type { Event, PolymorphicRequest, TransactionSource, User } from '@sentry/types';
 import type { AddRequestDataToEventOptions } from '@sentry/utils';
