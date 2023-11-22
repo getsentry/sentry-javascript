@@ -8,7 +8,11 @@ test('Should create a transaction for edge routes', async ({ request }) => {
     );
   });
 
-  const response = await request.get('/api/edge-endpoint');
+  const response = await request.get('/api/edge-endpoint', {
+    headers: {
+      'x-yeet': 'test-value',
+    },
+  });
   expect(await response.json()).toStrictEqual({ name: 'Jim Halpert' });
 
   const edgerouteTransaction = await edgerouteTransactionPromise;
@@ -16,6 +20,7 @@ test('Should create a transaction for edge routes', async ({ request }) => {
   expect(edgerouteTransaction.contexts?.trace?.status).toBe('ok');
   expect(edgerouteTransaction.contexts?.trace?.op).toBe('http.server');
   expect(edgerouteTransaction.contexts?.runtime?.name).toBe('vercel-edge');
+  expect(edgerouteTransaction.request?.headers?.['x-yeet']).toBe('test-value');
 });
 
 test('Should create a transaction with error status for faulty edge routes', async ({ request }) => {

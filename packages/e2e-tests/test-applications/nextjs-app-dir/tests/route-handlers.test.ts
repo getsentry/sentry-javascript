@@ -6,13 +6,14 @@ test('Should create a transaction for route handlers', async ({ request }) => {
     return transactionEvent?.transaction === 'GET /route-handlers/[param]';
   });
 
-  const response = await request.get('/route-handlers/foo');
+  const response = await request.get('/route-handlers/foo', { headers: { 'x-yeet': 'test-value' } });
   expect(await response.json()).toStrictEqual({ name: 'John Doe' });
 
   const routehandlerTransaction = await routehandlerTransactionPromise;
 
   expect(routehandlerTransaction.contexts?.trace?.status).toBe('ok');
   expect(routehandlerTransaction.contexts?.trace?.op).toBe('http.server');
+  expect(routehandlerTransaction.request?.headers?.['x-yeet']).toBe('test-value');
 });
 
 test('Should create a transaction for route handlers and correctly set span status depending on http status', async ({
