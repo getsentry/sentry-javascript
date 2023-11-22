@@ -1,24 +1,11 @@
-import { addTracingExtensions, Scope } from '@sentry/svelte';
+import * as SentrySvelte from '@sentry/svelte';
 import type { Load } from '@sveltejs/kit';
 import { redirect } from '@sveltejs/kit';
 import { vi } from 'vitest';
 
 import { wrapLoadWithSentry } from '../../src/client/load';
 
-const mockCaptureException = vi.fn();
-let mockScope = new Scope();
-
-vi.mock('@sentry/svelte', async () => {
-  const original = (await vi.importActual('@sentry/svelte')) as any;
-  return {
-    ...original,
-    captureException: (err: unknown, cb: (arg0: unknown) => unknown) => {
-      cb(mockScope);
-      mockCaptureException(err, cb);
-      return original.captureException(err, cb);
-    },
-  };
-});
+const mockCaptureException = vi.spyOn(SentrySvelte, 'captureException').mockImplementation(() => 'xx');
 
 const mockTrace = vi.fn();
 
@@ -30,16 +17,6 @@ vi.mock('@sentry/core', async () => {
       mockTrace(...args);
       return original.trace(...args);
     },
-  };
-});
-
-const mockAddExceptionMechanism = vi.fn();
-
-vi.mock('@sentry/utils', async () => {
-  const original = (await vi.importActual('@sentry/utils')) as any;
-  return {
-    ...original,
-    addExceptionMechanism: (...args: unknown[]) => mockAddExceptionMechanism(...args),
   };
 });
 
@@ -56,15 +33,13 @@ const MOCK_LOAD_ARGS: any = {
 };
 
 beforeAll(() => {
-  addTracingExtensions();
+  SentrySvelte.addTracingExtensions();
 });
 
 describe('wrapLoadWithSentry', () => {
   beforeEach(() => {
     mockCaptureException.mockClear();
-    mockAddExceptionMechanism.mockClear();
     mockTrace.mockClear();
-    mockScope = new Scope();
   });
 
   it('calls captureException', async () => {
@@ -151,11 +126,6 @@ describe('wrapLoadWithSentry', () => {
   });
 
   it('adds an exception mechanism', async () => {
-    const addEventProcessorSpy = vi.spyOn(mockScope, 'addEventProcessor').mockImplementationOnce(callback => {
-      void callback({}, { event_id: 'fake-event-id' });
-      return mockScope;
-    });
-
     async function load({ params }: Parameters<Load>[0]): Promise<ReturnType<Load>> {
       return {
         post: getById(params.id),
@@ -166,12 +136,10 @@ describe('wrapLoadWithSentry', () => {
     const res = wrappedLoad(MOCK_LOAD_ARGS);
     await expect(res).rejects.toThrow();
 
-    expect(addEventProcessorSpy).toBeCalledTimes(1);
-    expect(mockAddExceptionMechanism).toBeCalledTimes(1);
-    expect(mockAddExceptionMechanism).toBeCalledWith(
-      {},
-      { handled: false, type: 'sveltekit', data: { function: 'load' } },
-    );
+    expect(mockCaptureException).toHaveBeenCalledTimes(1);
+    expect(mockCaptureException).toHaveBeenCalledWith(expect.any(Error), {
+      mechanism: { handled: false, type: 'sveltekit', data: { function: 'load' } },
+    });
   });
 
   it("doesn't wrap load more than once if the wrapper was applied multiple times", async () => {

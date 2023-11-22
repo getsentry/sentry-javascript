@@ -1,5 +1,5 @@
 import { addTracingExtensions, captureException, flush, getCurrentHub, runWithAsyncContext, trace } from '@sentry/core';
-import { addExceptionMechanism, logger, tracingContextFromHeaders } from '@sentry/utils';
+import { logger, tracingContextFromHeaders } from '@sentry/utils';
 
 import { platformSupportsStreaming } from './utils/platformSupportsStreaming';
 
@@ -111,16 +111,7 @@ async function withServerActionInstrumentationImplementation<A extends (...args:
           return result;
         },
         error => {
-          captureException(error, scope => {
-            scope.addEventProcessor(event => {
-              addExceptionMechanism(event, {
-                handled: false,
-              });
-              return event;
-            });
-
-            return scope;
-          });
+          captureException(error, { mechanism: { handled: false } });
         },
       );
     } finally {

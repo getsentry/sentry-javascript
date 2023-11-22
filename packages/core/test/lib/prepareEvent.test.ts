@@ -1,7 +1,8 @@
-import type { Event } from '@sentry/types';
+import type { Event, EventHint, ScopeContext } from '@sentry/types';
 import { createStackParser, GLOBAL_OBJ } from '@sentry/utils';
 
-import { applyDebugIds, applyDebugMeta } from '../../src/utils/prepareEvent';
+import { Scope } from '../../src/scope';
+import { applyDebugIds, applyDebugMeta, parseEventHintOrCaptureContext } from '../../src/utils/prepareEvent';
 
 describe('applyDebugIds', () => {
   afterEach(() => {
@@ -102,6 +103,73 @@ describe('applyDebugMeta', () => {
       type: 'sourcemap',
       code_file: 'filename2.js',
       debug_id: 'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb',
+    });
+  });
+});
+
+describe('parseEventHintOrCaptureContext', () => {
+  it('works with undefined', () => {
+    const actual = parseEventHintOrCaptureContext(undefined);
+    expect(actual).toEqual(undefined);
+  });
+
+  it('works with an empty object', () => {
+    const actual = parseEventHintOrCaptureContext({});
+    expect(actual).toEqual({});
+  });
+
+  it('works with a Scope', () => {
+    const scope = new Scope();
+    const actual = parseEventHintOrCaptureContext(scope);
+    expect(actual).toEqual({ captureContext: scope });
+  });
+
+  it('works with a function', () => {
+    const scope = () => new Scope();
+    const actual = parseEventHintOrCaptureContext(scope);
+    expect(actual).toEqual({ captureContext: scope });
+  });
+
+  it('works with an EventHint', () => {
+    const hint: EventHint = {
+      mechanism: { handled: false },
+    };
+    const actual = parseEventHintOrCaptureContext(hint);
+    expect(actual).toEqual(hint);
+  });
+
+  it('works with a ScopeContext', () => {
+    const scopeContext: ScopeContext = {
+      user: { id: 'xxx' },
+      level: 'debug',
+      extra: { foo: 'bar' },
+      contexts: { os: { name: 'linux' } },
+      tags: { foo: 'bar' },
+      fingerprint: ['xx', 'yy'],
+      requestSession: { status: 'ok' },
+      propagationContext: {
+        traceId: 'xxx',
+        spanId: 'yyy',
+      },
+    };
+
+    const actual = parseEventHintOrCaptureContext(scopeContext);
+    expect(actual).toEqual({ captureContext: scopeContext });
+  });
+
+  it('triggers a TS error if trying to mix ScopeContext & EventHint', () => {
+    const actual = parseEventHintOrCaptureContext({
+      // @ts-expect-error We are specifically testing that this errors!
+      user: { id: 'xxx' },
+      mechanism: { handled: false },
+    });
+
+    // ScopeContext takes presedence in this case, but this is actually not supported
+    expect(actual).toEqual({
+      captureContext: {
+        user: { id: 'xxx' },
+        mechanism: { handled: false },
+      },
     });
   });
 });

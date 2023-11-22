@@ -1,6 +1,6 @@
 import { captureException, configureScope, getCurrentHub, startSpan } from '@sentry/node';
 import type { Hub, Span } from '@sentry/types';
-import { addExceptionMechanism, objectify, stripUrlQueryAndFragment, tracingContextFromHeaders } from '@sentry/utils';
+import { objectify, stripUrlQueryAndFragment, tracingContextFromHeaders } from '@sentry/utils';
 import type { APIContext, MiddlewareResponseHandler } from 'astro';
 
 import { getTracingMetaTags } from './meta';
@@ -34,19 +34,14 @@ function sendErrorToSentry(e: unknown): unknown {
   // store a seen flag on it.
   const objectifiedErr = objectify(e);
 
-  captureException(objectifiedErr, scope => {
-    scope.addEventProcessor(event => {
-      addExceptionMechanism(event, {
-        type: 'astro',
-        handled: false,
-        data: {
-          function: 'astroMiddleware',
-        },
-      });
-      return event;
-    });
-
-    return scope;
+  captureException(objectifiedErr, {
+    mechanism: {
+      type: 'astro',
+      handled: false,
+      data: {
+        function: 'astroMiddleware',
+      },
+    },
   });
 
   return objectifiedErr;

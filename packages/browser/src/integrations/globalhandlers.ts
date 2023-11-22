@@ -1,15 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { getCurrentHub } from '@sentry/core';
-import type { Event, EventHint, Hub, Integration, Primitive, StackParser } from '@sentry/types';
-import {
-  addExceptionMechanism,
-  addInstrumentationHandler,
-  getLocationHref,
-  isErrorEvent,
-  isPrimitive,
-  isString,
-  logger,
-} from '@sentry/utils';
+import type { Event, Hub, Integration, Primitive, StackParser } from '@sentry/types';
+import { addInstrumentationHandler, getLocationHref, isErrorEvent, isPrimitive, isString, logger } from '@sentry/utils';
 
 import type { BrowserClient } from '../client';
 import { eventFromUnknownInput } from '../eventbuilder';
@@ -103,7 +95,13 @@ function _installGlobalOnErrorHandler(): void {
 
       event.level = 'error';
 
-      addMechanismAndCapture(hub, error, event, 'onerror');
+      hub.captureEvent(event, {
+        originalException: error,
+        mechanism: {
+          handled: false,
+          type: 'onerror',
+        },
+      });
     },
   );
 }
@@ -149,7 +147,14 @@ function _installGlobalOnUnhandledRejectionHandler(): void {
 
       event.level = 'error';
 
-      addMechanismAndCapture(hub, error, event, 'onunhandledrejection');
+      hub.captureEvent(event, {
+        originalException: error,
+        mechanism: {
+          handled: false,
+          type: 'onunhandledrejection',
+        },
+      });
+
       return;
     },
   );
@@ -241,16 +246,6 @@ function _enhanceEventWithInitialFrame(event: Event, url: any, line: any, column
 
 function globalHandlerLog(type: string): void {
   __DEBUG_BUILD__ && logger.log(`Global Handler attached: ${type}`);
-}
-
-function addMechanismAndCapture(hub: Hub, error: EventHint['originalException'], event: Event, type: string): void {
-  addExceptionMechanism(event, {
-    handled: false,
-    type,
-  });
-  hub.captureEvent(event, {
-    originalException: error,
-  });
 }
 
 function getHubAndOptions(): [Hub, StackParser, boolean | undefined] {

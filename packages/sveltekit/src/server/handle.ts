@@ -2,7 +2,7 @@
 import type { Span } from '@sentry/core';
 import { getActiveTransaction, getCurrentHub, runWithAsyncContext, startSpan } from '@sentry/core';
 import { captureException } from '@sentry/node';
-import { addExceptionMechanism, dynamicSamplingContextToSentryBaggageHeader, objectify } from '@sentry/utils';
+import { dynamicSamplingContextToSentryBaggageHeader, objectify } from '@sentry/utils';
 import type { Handle, ResolveOptions } from '@sveltejs/kit';
 
 import { isHttpError, isRedirect } from '../common/utils';
@@ -39,19 +39,14 @@ function sendErrorToSentry(e: unknown): unknown {
     return objectifiedErr;
   }
 
-  captureException(objectifiedErr, scope => {
-    scope.addEventProcessor(event => {
-      addExceptionMechanism(event, {
-        type: 'sveltekit',
-        handled: false,
-        data: {
-          function: 'handle',
-        },
-      });
-      return event;
-    });
-
-    return scope;
+  captureException(objectifiedErr, {
+    mechanism: {
+      type: 'sveltekit',
+      handled: false,
+      data: {
+        function: 'handle',
+      },
+    },
   });
 
   return objectifiedErr;
