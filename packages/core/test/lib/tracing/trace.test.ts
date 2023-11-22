@@ -320,4 +320,45 @@ describe('continueTrace', () => {
 
     expect(scope['_sdkProcessingMetadata']).toEqual({});
   });
+
+  it('returns response of callback', () => {
+    const expectedContext = {
+      metadata: {
+        dynamicSamplingContext: {},
+      },
+      parentSampled: false,
+      parentSpanId: '1121201211212012',
+      traceId: '12312012123120121231201212312012',
+    };
+
+    const result = continueTrace(
+      {
+        sentryTrace: '12312012123120121231201212312012-1121201211212012-0',
+        baggage: undefined,
+      },
+      ctx => {
+        return { ctx };
+      },
+    );
+
+    expect(result).toEqual({ ctx: expectedContext });
+  });
+
+  it('works without a callback', () => {
+    const expectedContext = {
+      metadata: {
+        dynamicSamplingContext: {},
+      },
+      parentSampled: false,
+      parentSpanId: '1121201211212012',
+      traceId: '12312012123120121231201212312012',
+    };
+
+    const ctx = continueTrace({
+      sentryTrace: '12312012123120121231201212312012-1121201211212012-0',
+      baggage: undefined,
+    });
+
+    expect(ctx).toEqual(expectedContext);
+  });
 });
