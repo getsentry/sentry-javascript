@@ -2,7 +2,7 @@ import type { Span } from '@opentelemetry/api';
 import { SpanKind } from '@opentelemetry/api';
 import type { Instrumentation } from '@opentelemetry/instrumentation';
 import { hasTracingEnabled } from '@sentry/core';
-import { _INTERNAL, getCurrentHub, getSpanKind, getClient } from '@sentry/opentelemetry';
+import { _INTERNAL, getClient, getCurrentHub, getSpanKind } from '@sentry/opentelemetry';
 import type { Integration } from '@sentry/types';
 
 import type { NodeExperimentalClient } from '../types';
