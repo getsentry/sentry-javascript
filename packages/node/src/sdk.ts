@@ -1,5 +1,6 @@
 /* eslint-disable max-lines */
 import {
+  addIntegration,
   getCurrentHub,
   getIntegrationsToSetup,
   getMainCarrier,
@@ -10,9 +11,7 @@ import type { SessionStatus, StackParser } from '@sentry/types';
 import {
   createStackParser,
   GLOBAL_OBJ,
-  logger,
   nodeStackLineParser,
-  serializeEnvelope,
   stackParserFromStackParserOptions,
   tracingContextFromHeaders,
 } from '@sentry/utils';
@@ -30,6 +29,7 @@ import {
   OnUncaughtException,
   OnUnhandledRejection,
   RequestData,
+  Spotlight,
   Undici,
 } from './integrations';
 import { getModuleFromFilename } from './module';
@@ -182,37 +182,15 @@ export function init(options: NodeOptions = {}): void {
 
   updateScopeFromEnvVariables();
 
-  connectToSpotlight(options);
-}
-
-function connectToSpotlight(options: NodeOptions): void {
-  if (!options.spotlight) {
-    return;
-  }
-
-  const spotlightUrl = typeof options.spotlight === 'string' ? options.spotlight : 'http://localhost:8969/stream';
-
-  const client = getCurrentHub().getClient();
-  if (client) {
-    client.setupIntegrations(true);
-    let tries = 0;
-    client.on('beforeEnvelope', envelope => {
-      if (tries > 3) {
-        logger.warn('[Spotlight] Disabled Sentry -> Spotlight integration due to too many failed requests');
-        return;
-      }
-      fetch(spotlightUrl, {
-        method: 'POST',
-        body: serializeEnvelope(envelope),
-        headers: {
-          'Content-Type': 'application/x-sentry-envelope',
-        },
-        mode: 'cors',
-      }).catch(() => {
-        tries++;
-        logger.warn('[Spotlight] Failed to send envelope to Spotlight Sidecar');
-      });
-    });
+  if (options.spotlight) {
+    const client = getCurrentHub().getClient();
+    if (client && client.addIntegration) {
+      // force integrations to be setup even if no DSN was set
+      client.setupIntegrations(true);
+      client.addIntegration(
+        new Spotlight({ sidecarUrl: typeof options.spotlight === 'string' ? options.spotlight : undefined }),
+      );
+    }
   }
 }
 
