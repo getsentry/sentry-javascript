@@ -15,7 +15,7 @@ import { getVisibilityWatcher } from '../web-vitals/lib/getVisibilityWatcher';
 import type { NavigatorDeviceMemory, NavigatorNetworkInformation } from '../web-vitals/types';
 import { _startChild, isMeasurementValue } from './utils';
 
-const ONE_GB_IN_BYTES = 1000000000;
+const MAX_INT_AS_BYTES = 2147483647;
 
 /**
  * Converts from milliseconds to seconds
@@ -497,7 +497,7 @@ function setResourceEntrySizeData(
   dataKey: 'http.response_transfer_size' | 'http.response_content_length' | 'http.decoded_response_content_length',
 ): void {
   const entryVal = entry[key];
-  if (entryVal !== undefined && entryVal < ONE_GB_IN_BYTES) {
+  if (entryVal !== undefined && entryVal < MAX_INT_AS_BYTES) {
     data[dataKey] = entryVal;
   }
 }
