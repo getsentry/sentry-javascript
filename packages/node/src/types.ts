@@ -67,7 +67,7 @@ export interface BaseNodeOptions {
    *
    * More details: https://spotlightjs.com/
    *
-   * IMPORTANT: Only set this optoin to `true` while developing, not in production!
+   * IMPORTANT: Only set this option to `true` while developing, not in production!
    */
   spotlight?: boolean | string;
 
