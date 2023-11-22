@@ -146,15 +146,15 @@ describe('SentryBrowser', () => {
         await flush(10);
       };
 
-      it('should call `onClose` when receiving `reportdialog_closed` MessageEvent', async () => {
+      it('should call `onClose` when receiving `__sentry_reportdialog_closed__` MessageEvent', async () => {
         const onClose = jest.fn();
         showReportDialog({ onClose });
 
-        await waitForPostMessage('reportdialog_closed');
+        await waitForPostMessage('__sentry_reportdialog_closed__');
         expect(onClose).toHaveBeenCalledTimes(1);
 
         // ensure the event handler has been removed so onClose is not called again
-        await waitForPostMessage('reportdialog_closed');
+        await waitForPostMessage('__sentry_reportdialog_closed__');
         expect(onClose).toHaveBeenCalledTimes(1);
       });
 
@@ -164,11 +164,11 @@ describe('SentryBrowser', () => {
         });
         showReportDialog({ onClose });
 
-        await waitForPostMessage('reportdialog_closed');
+        await waitForPostMessage('__sentry_reportdialog_closed__');
         expect(onClose).toHaveBeenCalledTimes(1);
 
         // ensure the event handler has been removed so onClose is not called again
-        await waitForPostMessage('reportdialog_closed');
+        await waitForPostMessage('__sentry_reportdialog_closed__');
         expect(onClose).toHaveBeenCalledTimes(1);
       });
 
@@ -179,7 +179,7 @@ describe('SentryBrowser', () => {
         await waitForPostMessage('some_message');
         expect(onClose).not.toHaveBeenCalled();
 
-        await waitForPostMessage('reportdialog_closed');
+        await waitForPostMessage('__sentry_reportdialog_closed__');
         expect(onClose).toHaveBeenCalledTimes(1);
       });
     });

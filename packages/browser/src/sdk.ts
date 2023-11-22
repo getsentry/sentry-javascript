@@ -168,7 +168,7 @@ export function showReportDialog(options: ReportDialogOptions = {}, hub: Hub = g
   const { onClose } = options;
   if (onClose) {
     const reportDialogClosedMessageHandler = (event: MessageEvent): void => {
-      if (event.data === 'reportdialog_closed') {
+      if (event.data === '__sentry_reportdialog_closed__') {
         try {
           onClose();
         } finally {
