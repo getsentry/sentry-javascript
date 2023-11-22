@@ -4,6 +4,69 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.81.1
+
+- fix(astro): Remove method from span op (#9603)
+- fix(deno): Make sure files get published (#9611)
+- fix(nextjs): Use `globalThis` instead of `global` in edge runtime (#9612)
+- fix(node): Improve error handling and shutdown handling for ANR (#9548)
+- fix(tracing-internal): Fix case when originalURL contain query params (#9531)
+
+Work in this release contributed by @powerfulyang, @LubomirIgonda1, @joshkel, and @alexgleason. Thank you for your contributions!
+
+## 7.81.0
+
+### Important Changes
+
+**- feat(nextjs): Add instrumentation utility for server actions (#9553)**
+
+This release adds a utility function `withServerActionInstrumentation` to the `@sentry/nextjs` SDK for instrumenting your Next.js server actions with error and performance monitoring.
+
+You can optionally pass form data and headers to record them, and configure the wrapper to record the Server Action responses:
+
+```tsx
+import * as Sentry from "@sentry/nextjs";
+import { headers } from "next/headers";
+
+export default function ServerComponent() {
+  async function myServerAction(formData: FormData) {
+    "use server";
+    return await Sentry.withServerActionInstrumentation(
+      "myServerAction", // The name you want to associate this Server Action with in Sentry
+      {
+        formData, // Optionally pass in the form data
+        headers: headers(), // Optionally pass in headers
+        recordResponse: true, // Optionally record the server action response
+      },
+      async () => {
+        // ... Your Server Action code
+
+        return { name: "John Doe" };
+      }
+    );
+  }
+
+  return (
+    <form action={myServerAction}>
+      <input type="text" name="some-input-value" />
+      <button type="submit">Run Action</button>
+    </form>
+  );
+}
+```
+
+### Other Changes
+
+- docs(feedback): Example docs on `sendFeedback` (#9560)
+- feat(feedback): Add `level` and remove breadcrumbs from feedback event (#9533)
+- feat(vercel-edge): Add fetch instrumentation (#9504)
+- feat(vue): Support Vue 3 lifecycle hooks in mixin options (#9578)
+- fix(nextjs): Download CLI binary if it can't be found (#9584)
+- ref: Deprecate `extractTraceParentData` from `@sentry/core` & downstream packages (#9158)
+- ref(replay): Add further logging to network body parsing (#9566)
+
+Work in this release contributed by @snoozbuster. Thank you for your contribution!
+
 ## 7.80.1
 
 - fix(astro): Adjust Vite plugin config to upload server source maps (#9541)

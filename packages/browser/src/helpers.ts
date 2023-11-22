@@ -1,5 +1,5 @@
 import { captureException, withScope } from '@sentry/core';
-import type { DsnLike, Event as SentryEvent, Mechanism, Scope, WrappedFunction } from '@sentry/types';
+import type { DsnLike, Mechanism, WrappedFunction } from '@sentry/types';
 import {
   addExceptionMechanism,
   addExceptionTypeValue,
@@ -99,8 +99,8 @@ export function wrap(
     } catch (ex) {
       ignoreNextOnError();
 
-      withScope((scope: Scope) => {
-        scope.addEventProcessor((event: SentryEvent) => {
+      withScope(scope => {
+        scope.addEventProcessor(event => {
           if (options.mechanism) {
             addExceptionTypeValue(event, undefined, undefined);
             addExceptionMechanism(event, options.mechanism);

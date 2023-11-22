@@ -30,7 +30,6 @@ const DEFAULT_OPTIONS = {
     email: 'email',
     name: 'username',
   },
-  isAnonymous: false,
   isEmailRequired: false,
   isNameRequired: false,
 
@@ -50,9 +49,8 @@ const DEFAULT_OPTIONS = {
   nameLabel: NAME_LABEL,
   successMessageText: SUCCESS_MESSAGE_TEXT,
 
-  onActorClick: jest.fn(),
-  onDialogClose: jest.fn(),
-  onDialogOpen: jest.fn(),
+  onFormClose: jest.fn(),
+  onFormOpen: jest.fn(),
   onSubmitError: jest.fn(),
   onSubmitSuccess: jest.fn(),
 };
@@ -112,8 +110,8 @@ describe('createWidget', () => {
   });
 
   it('clicking on actor opens dialog and hides the actor', () => {
-    const onDialogOpen = jest.fn();
-    const { widget } = createShadowAndWidget({ onDialogOpen });
+    const onFormOpen = jest.fn();
+    const { widget } = createShadowAndWidget({ onFormOpen });
     widget.actor?.el?.dispatchEvent(new Event('click'));
 
     // Dialog is now visible
@@ -122,7 +120,7 @@ describe('createWidget', () => {
     // Actor should be hidden
     expect(widget.actor?.el?.getAttribute('aria-hidden')).toBe('true');
 
-    expect(onDialogOpen).toHaveBeenCalledTimes(1);
+    expect(onFormOpen).toHaveBeenCalledTimes(1);
   });
 
   it('submits feedback successfully', async () => {
@@ -132,7 +130,7 @@ describe('createWidget', () => {
     });
 
     (sendFeedbackRequest as jest.Mock).mockImplementation(() => {
-      return true;
+      return Promise.resolve(true);
     });
     widget.actor?.el?.dispatchEvent(new Event('click'));
 
@@ -148,20 +146,90 @@ describe('createWidget', () => {
     messageEl.dispatchEvent(new Event('change'));
 
     widget.dialog?.el?.querySelector('form')?.dispatchEvent(new Event('submit'));
-    expect(sendFeedbackRequest).toHaveBeenCalledWith({
-      feedback: {
-        name: 'Jane Doe',
-        email: 'jane@example.com',
-        message: 'My feedback',
-        url: 'http://localhost/',
-        replay_id: undefined,
-        source: 'widget',
+    expect(sendFeedbackRequest).toHaveBeenCalledWith(
+      {
+        feedback: {
+          name: 'Jane Doe',
+          email: 'jane@example.com',
+          message: 'My feedback',
+          url: 'http://localhost/',
+          source: 'widget',
+        },
       },
-    });
+      {},
+    );
 
     // sendFeedbackRequest is async
     await flushPromises();
 
+    expect(onSubmitSuccess).toHaveBeenCalledTimes(1);
+
+    expect(widget.dialog).toBeUndefined();
+    expect(shadow.querySelector('.success-message')?.textContent).toBe(SUCCESS_MESSAGE_TEXT);
+
+    jest.runAllTimers();
+    expect(shadow.querySelector('.success-message')).toBeNull();
+  });
+
+  it('only submits feedback successfully when all required fields are filled', async () => {
+    const onSubmitSuccess = jest.fn(() => {});
+    const { shadow, widget } = createShadowAndWidget({
+      isNameRequired: true,
+      isEmailRequired: true,
+      onSubmitSuccess,
+    });
+
+    (sendFeedbackRequest as jest.Mock).mockImplementation(() => {
+      return true;
+    });
+    widget.actor?.el?.dispatchEvent(new Event('click'));
+
+    const nameEl = widget.dialog?.el?.querySelector('[name="name"]') as HTMLInputElement;
+    const emailEl = widget.dialog?.el?.querySelector('[name="email"]') as HTMLInputElement;
+    const messageEl = widget.dialog?.el?.querySelector('[name="message"]') as HTMLTextAreaElement;
+
+    nameEl.value = '';
+    emailEl.value = '';
+    messageEl.value = '';
+
+    widget.dialog?.el?.querySelector('form')?.dispatchEvent(new Event('submit'));
+    expect(sendFeedbackRequest).toHaveBeenCalledTimes(0);
+
+    // sendFeedbackRequest is async
+    await flushPromises();
+    expect(onSubmitSuccess).toHaveBeenCalledTimes(0);
+
+    nameEl.value = '';
+    emailEl.value = '';
+    messageEl.value = 'My feedback';
+
+    widget.dialog?.el?.querySelector('form')?.dispatchEvent(new Event('submit'));
+    expect(sendFeedbackRequest).toHaveBeenCalledTimes(0);
+
+    // sendFeedbackRequest is async
+    await flushPromises();
+    expect(onSubmitSuccess).toHaveBeenCalledTimes(0);
+
+    nameEl.value = 'Jane Doe';
+    emailEl.value = 'jane@example.com';
+    messageEl.value = 'My feedback';
+
+    widget.dialog?.el?.querySelector('form')?.dispatchEvent(new Event('submit'));
+    expect(sendFeedbackRequest).toHaveBeenCalledWith(
+      {
+        feedback: {
+          name: 'Jane Doe',
+          email: 'jane@example.com',
+          message: 'My feedback',
+          url: 'http://localhost/',
+          source: 'widget',
+        },
+      },
+      {},
+    );
+
+    // sendFeedbackRequest is async
+    await flushPromises();
     expect(onSubmitSuccess).toHaveBeenCalledTimes(1);
 
     expect(widget.dialog).toBeUndefined();
@@ -188,16 +256,18 @@ describe('createWidget', () => {
     messageEl.dispatchEvent(new Event('change'));
 
     widget.dialog?.el?.querySelector('form')?.dispatchEvent(new Event('submit'));
-    expect(sendFeedbackRequest).toHaveBeenCalledWith({
-      feedback: {
-        name: '',
-        email: '',
-        message: 'My feedback',
-        url: 'http://localhost/',
-        replay_id: undefined,
-        source: 'widget',
+    expect(sendFeedbackRequest).toHaveBeenCalledWith(
+      {
+        feedback: {
+          name: '',
+          email: '',
+          message: 'My feedback',
+          url: 'http://localhost/',
+          source: 'widget',
+        },
       },
-    });
+      {},
+    );
 
     // sendFeedbackRequest is async
     await flushPromises();
@@ -211,8 +281,8 @@ describe('createWidget', () => {
   });
 
   it('closes when Cancel button is clicked', () => {
-    const onDialogClose = jest.fn();
-    const { widget } = createShadowAndWidget({ onDialogClose });
+    const onFormClose = jest.fn();
+    const { widget } = createShadowAndWidget({ onFormClose });
 
     widget.actor?.el?.dispatchEvent(new Event('click'));
     expect(widget.dialog?.el).toBeInstanceOf(HTMLDialogElement);
@@ -225,7 +295,7 @@ describe('createWidget', () => {
     // Element/component should still exist, but it will be in a closed state
     expect(widget.dialog?.el).toBeInstanceOf(HTMLDialogElement);
     expect(widget.dialog?.el?.open).toBe(false);
-    expect(onDialogClose).toHaveBeenCalledTimes(1);
+    expect(onFormClose).toHaveBeenCalledTimes(1);
 
     // Actor should now be visible too
     expect(widget.actor?.el?.getAttribute('aria-hidden')).toBe('false');
@@ -238,8 +308,8 @@ describe('createWidget', () => {
   });
 
   it('closes when dialog (background)) is clicked', () => {
-    const onDialogClose = jest.fn();
-    const { widget } = createShadowAndWidget({ onDialogClose });
+    const onFormClose = jest.fn();
+    const { widget } = createShadowAndWidget({ onFormClose });
 
     widget.actor?.el?.dispatchEvent(new Event('click'));
     expect(widget.dialog?.el).toBeInstanceOf(HTMLDialogElement);
@@ -252,7 +322,7 @@ describe('createWidget', () => {
     // Element/component should still exist, but it will be in a closed state
     expect(widget.dialog?.el).toBeInstanceOf(HTMLDialogElement);
     expect(widget.dialog?.el?.open).toBe(false);
-    expect(onDialogClose).toHaveBeenCalledTimes(1);
+    expect(onFormClose).toHaveBeenCalledTimes(1);
 
     // Actor should now be visible too
     expect(widget.actor?.el?.getAttribute('aria-hidden')).toBe('false');
@@ -265,7 +335,7 @@ describe('createWidget', () => {
   });
 
   it('attaches to a custom actor element', () => {
-    const onDialogOpen = jest.fn();
+    const onFormOpen = jest.fn();
     // This element is in the normal DOM
     const myActor = document.createElement('div');
     myActor.textContent = 'my button';
@@ -273,7 +343,7 @@ describe('createWidget', () => {
     const { widget } = createShadowAndWidget(
       {
         autoInject: false,
-        onDialogOpen,
+        onFormOpen,
       },
       {
         attachTo: myActor,
@@ -283,7 +353,7 @@ describe('createWidget', () => {
     myActor.dispatchEvent(new Event('click'));
     expect(widget.dialog?.el).toBeInstanceOf(HTMLDialogElement);
     expect(widget.dialog?.el?.open).toBe(true);
-    expect(onDialogOpen).toHaveBeenCalledTimes(1);
+    expect(onFormOpen).toHaveBeenCalledTimes(1);
     // This is all we do with `attachTo` (open dialog)
   });
 });

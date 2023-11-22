@@ -203,6 +203,23 @@ export function getActiveSpan(): Span | undefined {
   return getCurrentHub().getScope().getSpan();
 }
 
+export function continueTrace({
+  sentryTrace,
+  baggage,
+}: {
+  sentryTrace: Parameters<typeof tracingContextFromHeaders>[0];
+  baggage: Parameters<typeof tracingContextFromHeaders>[1];
+}): Partial<TransactionContext>;
+export function continueTrace<V>(
+  {
+    sentryTrace,
+    baggage,
+  }: {
+    sentryTrace: Parameters<typeof tracingContextFromHeaders>[0];
+    baggage: Parameters<typeof tracingContextFromHeaders>[1];
+  },
+  callback: (transactionContext: Partial<TransactionContext>) => V,
+): V;
 /**
  * Continue a trace from `sentry-trace` and `baggage` values.
  * These values can be obtained from incoming request headers,
@@ -219,8 +236,8 @@ export function continueTrace<V>(
     sentryTrace: Parameters<typeof tracingContextFromHeaders>[0];
     baggage: Parameters<typeof tracingContextFromHeaders>[1];
   },
-  callback: (transactionContext: Partial<TransactionContext>) => V,
-): V {
+  callback?: (transactionContext: Partial<TransactionContext>) => V,
+): V | Partial<TransactionContext> {
   const hub = getCurrentHub();
   const currentScope = hub.getScope();
 
@@ -241,6 +258,10 @@ export function continueTrace<V>(
       dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
     }),
   };
+
+  if (!callback) {
+    return transactionContext;
+  }
 
   return callback(transactionContext);
 }

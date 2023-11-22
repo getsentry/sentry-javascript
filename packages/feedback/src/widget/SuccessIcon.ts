@@ -1,5 +1,4 @@
-import { WINDOW } from '@sentry/browser';
-
+import { WINDOW } from '../constants';
 import { setAttributesNS } from '../util/setAttributesNS';
 
 const WIDTH = 16;

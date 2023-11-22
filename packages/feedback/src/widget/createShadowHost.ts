@@ -1,6 +1,6 @@
-import { WINDOW } from '@sentry/browser';
 import { logger } from '@sentry/utils';
 
+import { WINDOW } from '../constants';
 import type { FeedbackInternalOptions } from '../types';
 import { createDialogStyles } from './Dialog.css';
 import { createMainStyles } from './Main.css';

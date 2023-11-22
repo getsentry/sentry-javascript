@@ -1,7 +1,13 @@
 import type { Breadcrumb, TextEncoderInternal, XhrBreadcrumbData } from '@sentry/types';
 import { logger, SENTRY_XHR_DATA_KEY } from '@sentry/utils';
 
-import type { ReplayContainer, ReplayNetworkOptions, ReplayNetworkRequestData, XhrHint } from '../../types';
+import type {
+  NetworkMetaWarning,
+  ReplayContainer,
+  ReplayNetworkOptions,
+  ReplayNetworkRequestData,
+  XhrHint,
+} from '../../types';
 import { addNetworkBreadcrumb } from './addNetworkBreadcrumb';
 import {
   buildNetworkRequestOrResponse,
@@ -10,6 +16,7 @@ import {
   getBodySize,
   getBodyString,
   makeNetworkReplayBreadcrumb,
+  mergeWarning,
   parseContentLengthHeader,
   urlMatches,
 } from './networkUtils';
@@ -103,8 +110,8 @@ function _prepareXhrData(
     : {};
   const networkResponseHeaders = getAllowedHeaders(getResponseHeaders(xhr), options.networkResponseHeaders);
 
-  const requestBody = options.networkCaptureBodies ? getBodyString(input) : undefined;
-  const responseBody = options.networkCaptureBodies ? _getXhrResponseBody(xhr) : undefined;
+  const [requestBody, requestWarning] = options.networkCaptureBodies ? getBodyString(input) : [undefined];
+  const [responseBody, responseWarning] = options.networkCaptureBodies ? _getXhrResponseBody(xhr) : [undefined];
 
   const request = buildNetworkRequestOrResponse(networkRequestHeaders, requestBodySize, requestBody);
   const response = buildNetworkRequestOrResponse(networkResponseHeaders, responseBodySize, responseBody);
@@ -115,8 +122,8 @@ function _prepareXhrData(
     url,
     method,
     statusCode,
-    request,
-    response,
+    request: requestWarning ? mergeWarning(request, requestWarning) : request,
+    response: responseWarning ? mergeWarning(response, responseWarning) : response,
   };
 }
 
@@ -134,12 +141,12 @@ function getResponseHeaders(xhr: XMLHttpRequest): Record<string, string> {
   }, {});
 }
 
-function _getXhrResponseBody(xhr: XMLHttpRequest): string | undefined {
+function _getXhrResponseBody(xhr: XMLHttpRequest): [string | undefined, NetworkMetaWarning?] {
   // We collect errors that happen, but only log them if we can't get any response body
   const errors: unknown[] = [];
 
   try {
-    return xhr.responseText;
+    return [xhr.responseText];
   } catch (e) {
     errors.push(e);
   }
@@ -154,5 +161,5 @@ function _getXhrResponseBody(xhr: XMLHttpRequest): string | undefined {
 
   __DEBUG_BUILD__ && logger.warn('[Replay] Failed to get xhr response body', ...errors);
 
-  return undefined;
+  return [undefined];
 }

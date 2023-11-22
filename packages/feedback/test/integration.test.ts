@@ -70,7 +70,7 @@ describe('Feedback integration', () => {
   });
 
   it('attaches to a custom actor element', () => {
-    const onDialogOpen = jest.fn();
+    const onFormOpen = jest.fn();
     // This element is in the normal DOM
     const myActor = document.createElement('div');
     myActor.textContent = 'my button';
@@ -79,7 +79,7 @@ describe('Feedback integration', () => {
     let widget = feedback.getWidget();
     expect(widget).toBe(null);
 
-    feedback.attachTo(myActor, { onDialogOpen });
+    feedback.attachTo(myActor, { onFormOpen });
 
     myActor.dispatchEvent(new Event('click'));
 
@@ -87,7 +87,7 @@ describe('Feedback integration', () => {
 
     expect(widget?.dialog?.el).toBeInstanceOf(HTMLDialogElement);
     expect(widget?.dialog?.el?.open).toBe(true);
-    expect(onDialogOpen).toHaveBeenCalledTimes(1);
+    expect(onFormOpen).toHaveBeenCalledTimes(1);
     // This is all we do with `attachTo` (open dialog)
   });
 

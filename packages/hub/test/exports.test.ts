@@ -80,7 +80,7 @@ describe('Top Level API', () => {
         const captureContext = { extra: { foo: 'wat' } };
         captureException(e, captureContext);
         expect(client.captureException.mock.calls[0][0]).toBe(e);
-        expect(client.captureException.mock.calls[0][1].captureContext).toBe(captureContext);
+        expect(client.captureException.mock.calls[0][1].captureContext).toEqual(captureContext);
       });
     });
 

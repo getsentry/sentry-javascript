@@ -1,7 +1,8 @@
-import { captureException, withScope } from '@sentry/core';
-import { addExceptionMechanism, isNodeEnv, isString } from '@sentry/utils';
+import { captureException } from '@sentry/core';
+import { isNodeEnv, isString } from '@sentry/utils';
 
 import { isRouteErrorResponse } from '../utils/vendor/response';
+import type { ErrorResponse } from '../utils/vendor/types';
 
 /**
  * Captures an error that is thrown inside a Remix ErrorBoundary.
@@ -28,29 +29,26 @@ export function captureRemixErrorBoundaryError(error: unknown): string | undefin
           function: 'ReactError',
         };
 
-    withScope(scope => {
-      scope.addEventProcessor(event => {
-        addExceptionMechanism(event, {
-          type: 'instrument',
-          handled: false,
-          data: eventData,
-        });
-        return event;
-      });
-
-      if (isRemixErrorResponse) {
-        if (isString(error.data)) {
-          eventId = captureException(error.data);
-        } else if (error.statusText) {
-          eventId = captureException(error.statusText);
-        } else {
-          eventId = captureException(error);
-        }
-      } else {
-        eventId = captureException(error);
-      }
+    const actualError = isRemixErrorResponse ? getExceptionToCapture(error) : error;
+    eventId = captureException(actualError, {
+      mechanism: {
+        type: 'instrument',
+        handled: false,
+        data: eventData,
+      },
     });
   }
 
   return eventId;
+}
+
+function getExceptionToCapture(error: ErrorResponse): string | ErrorResponse {
+  if (isString(error.data)) {
+    return error.data;
+  }
+  if (error.statusText) {
+    return error.statusText;
+  }
+
+  return error;
 }
