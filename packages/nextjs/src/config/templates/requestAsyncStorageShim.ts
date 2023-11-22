@@ -1,9 +1,7 @@
 export interface RequestAsyncStorage {
   getStore: () =>
     | {
-        headers: {
-          get: Headers['get'];
-        };
+        headers: Headers;
       }
     | undefined;
 }

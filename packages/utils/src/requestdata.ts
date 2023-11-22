@@ -8,6 +8,7 @@ import type {
 
 import { parseCookie } from './cookie';
 import { isPlainObject, isString } from './is';
+import { logger } from './logger';
 import { normalize } from './normalize';
 import { stripUrlQueryAndFragment } from './url';
 
@@ -360,4 +361,37 @@ function extractQueryParams(
     (deps && deps.url && deps.url.parse(originalUrl).query) ||
     undefined
   );
+}
+
+/**
+ * Transforms a `Headers` object that implements the `Web Fetch API` (https://developer.mozilla.org/en-US/docs/Web/API/Headers) into a simple key-value dict.
+ * The header keys will be lower case: e.g. A "Content-Type" header will be stored as "content-type".
+ */
+export function winterCGHeadersToDict(winterCGHeaders: Headers): Record<string, string> {
+  const headers: Record<string, string> = {};
+  try {
+    winterCGHeaders.forEach((value, key) => {
+      if (typeof value === 'string') {
+        // We check that value is a string even though it might be redundant to make sure prototype pollution is not possible.
+        headers[key] = value;
+      }
+    });
+  } catch (e) {
+    __DEBUG_BUILD__ &&
+      logger.warn('Sentry failed extracting headers from a request object. If you see this, please file an issue.');
+  }
+
+  return headers;
+}
+
+/**
+ * Converts a `Request` object that implements the `Web Fetch API` (https://developer.mozilla.org/en-US/docs/Web/API/Headers) into the format that the `RequestData` integration understands.
+ */
+export function winterCGRequestToRequestData(req: Request): PolymorphicRequest {
+  const headers = winterCGHeadersToDict(req.headers);
+  return {
+    method: req.method,
+    url: req.url,
+    headers,
+  };
 }

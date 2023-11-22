@@ -27,12 +27,14 @@ if (typeof serverComponent === 'function') {
     apply: (originalFunction, thisArg, args) => {
       let sentryTraceHeader: string | undefined | null = undefined;
       let baggageHeader: string | undefined | null = undefined;
+      let headers: Headers | undefined = undefined;
 
       // We try-catch here just in `requestAsyncStorage` is undefined since it may not be defined
       try {
         const requestAsyncStore = requestAsyncStorage.getStore();
         sentryTraceHeader = requestAsyncStore?.headers.get('sentry-trace');
         baggageHeader = requestAsyncStore?.headers.get('baggage');
+        headers = requestAsyncStore?.headers;
       } catch (e) {
         /** empty */
       }
@@ -42,6 +44,7 @@ if (typeof serverComponent === 'function') {
         componentType: '__COMPONENT_TYPE__',
         sentryTraceHeader,
         baggageHeader,
+        headers,
       }).apply(thisArg, args);
     },
   });
