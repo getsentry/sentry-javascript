@@ -132,7 +132,7 @@ function _installGlobalOnUnhandledRejectionHandler(): void {
       originalException: error,
       mechanism: {
         handled: false,
-        type: 'unhandledrejection',
+        type: 'onunhandledrejection',
       },
     });
 
