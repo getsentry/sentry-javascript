@@ -70,6 +70,7 @@ describe('Integration | errorSampleRate', () => {
       // Does not capture on mouse click
       domHandler({
         name: 'click',
+        event: new Event('click'),
       });
       jest.runAllTimers();
       await new Promise(process.nextTick);
@@ -121,6 +122,7 @@ describe('Integration | errorSampleRate', () => {
       // Check that click will get captured
       domHandler({
         name: 'click',
+        event: new Event('click'),
       });
 
       await waitForFlush();
@@ -156,6 +158,7 @@ describe('Integration | errorSampleRate', () => {
       // Does not capture on mouse click
       domHandler({
         name: 'click',
+        event: new Event('click'),
       });
       jest.runAllTimers();
       await new Promise(process.nextTick);
@@ -195,6 +198,7 @@ describe('Integration | errorSampleRate', () => {
       // Check that click will not get captured
       domHandler({
         name: 'click',
+        event: new Event('click'),
       });
 
       await waitForFlush();
@@ -239,6 +243,7 @@ describe('Integration | errorSampleRate', () => {
       // Does not capture on mouse click
       domHandler({
         name: 'click',
+        event: new Event('click'),
       });
       jest.runAllTimers();
       await new Promise(process.nextTick);
@@ -279,6 +284,7 @@ describe('Integration | errorSampleRate', () => {
       // Check that click will not get captured
       domHandler({
         name: 'click',
+        event: new Event('click'),
       });
 
       await waitForFlush();
@@ -517,6 +523,7 @@ describe('Integration | errorSampleRate', () => {
 
       domHandler({
         name: 'click',
+        event: new Event('click'),
       });
 
       await waitForFlush();

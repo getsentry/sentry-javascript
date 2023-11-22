@@ -118,6 +118,8 @@ describe('Unit | coreHandlers | handleNetworkBreadcrumbs', () => {
         value: 'test response',
       });
       xhr[SENTRY_XHR_DATA_KEY] = {
+        method: 'GET',
+        url: 'https://example.com',
         request_headers: {
           'content-type': 'text/plain',
           'other-header': 'test',

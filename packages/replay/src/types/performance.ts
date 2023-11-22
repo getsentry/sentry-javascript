@@ -131,7 +131,7 @@ export interface NetworkRequestData {
 }
 
 export interface HistoryData {
-  previous: string;
+  previous: string | undefined;
 }
 
 export type AllEntryData = AllPerformanceEntryData | MemoryData | NetworkRequestData | HistoryData;

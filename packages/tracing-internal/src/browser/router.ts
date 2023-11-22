@@ -1,5 +1,5 @@
 import type { Transaction, TransactionContext } from '@sentry/types';
-import { addInstrumentationHandler, browserPerformanceTimeOrigin, logger } from '@sentry/utils';
+import { addHistoryInstrumentationHandler, browserPerformanceTimeOrigin, logger } from '@sentry/utils';
 
 import { WINDOW } from './types';
 
@@ -31,7 +31,7 @@ export function instrumentRoutingWithDefaults<T extends Transaction>(
   }
 
   if (startTransactionOnLocationChange) {
-    addInstrumentationHandler('history', ({ to, from }: { to: string; from?: string }) => {
+    addHistoryInstrumentationHandler(({ to, from }) => {
       /**
        * This early return is there to account for some cases where a navigation transaction starts right after
        * long-running pageload. We make sure that if `from` is undefined and a valid `startingURL` exists, we don't

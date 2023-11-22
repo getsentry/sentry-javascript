@@ -8,7 +8,12 @@ import {
   Integrations as CoreIntegrations,
 } from '@sentry/core';
 import type { UserFeedback } from '@sentry/types';
-import { addInstrumentationHandler, logger, stackParserFromStackParserOptions, supportsFetch } from '@sentry/utils';
+import {
+  addHistoryInstrumentationHandler,
+  logger,
+  stackParserFromStackParserOptions,
+  supportsFetch,
+} from '@sentry/utils';
 
 import type { BrowserClientOptions, BrowserOptions } from './client';
 import { BrowserClient } from './client';
@@ -255,9 +260,9 @@ function startSessionTracking(): void {
   startSessionOnHub(hub);
 
   // We want to create a session for every navigation as well
-  addInstrumentationHandler('history', ({ from, to }) => {
+  addHistoryInstrumentationHandler(({ from, to }) => {
     // Don't create an additional session for the initial route or if the location did not change
-    if (!(from === undefined || from === to)) {
+    if (from !== undefined && from !== to) {
       startSessionOnHub(getCurrentHub());
     }
   });
