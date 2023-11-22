@@ -110,21 +110,6 @@ export function makeNetworkReplayBreadcrumb(
   return result;
 }
 
-/** Get either a JSON network body, or a text representation. */
-export function getNetworkBody(bodyText: string | undefined): NetworkBody | undefined {
-  if (!bodyText) {
-    return;
-  }
-
-  try {
-    return JSON.parse(bodyText);
-  } catch {
-    // return text
-  }
-
-  return bodyText;
-}
-
 /** Build the request or response part of a replay network breadcrumb that was skipped. */
 export function buildSkippedNetworkRequestOrResponse(bodySize: number | undefined): ReplayNetworkRequestOrResponse {
   return {
