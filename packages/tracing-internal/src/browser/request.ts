@@ -242,7 +242,7 @@ export function xhrCallback(
   const xhr = handlerData.xhr;
   const sentryXhrData = xhr && xhr[SENTRY_XHR_DATA_KEY];
 
-  if (!hasTracingEnabled() || (xhr && xhr.__sentry_own_request__) || !xhr || !sentryXhrData) {
+  if (!hasTracingEnabled() || !xhr || xhr.__sentry_own_request__ || !sentryXhrData) {
     return undefined;
   }
 
