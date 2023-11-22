@@ -1,8 +1,14 @@
 /* eslint-disable max-lines */
 import type { Hub, IdleTransaction } from '@sentry/core';
-import { addTracingExtensions, getActiveTransaction, startIdleTransaction, TRACING_DEFAULTS } from '@sentry/core';
+import {
+  addTracingExtensions,
+  getActiveTransaction,
+  startIdleTransaction,
+  startTransaction,
+  TRACING_DEFAULTS,
+} from '@sentry/core';
 import type { EventProcessor, Integration, Transaction, TransactionContext, TransactionSource } from '@sentry/types';
-import { getDomElement, logger, tracingContextFromHeaders } from '@sentry/utils';
+import { getDomElement, htmlTreeAsString, logger, timestampInSeconds, tracingContextFromHeaders } from '@sentry/utils';
 
 import { registerBackgroundTabDetection } from './backgroundtab';
 import {
@@ -378,10 +384,25 @@ export class BrowserTracing implements Integration {
 
   /** Start listener for interaction transactions */
   private _registerInteractionListener(): void {
-    let inflightInteractionTransaction: IdleTransaction | undefined;
-    const registerInteractionTransaction = (): void => {
+    let inflightIdleInteractionTransaction: IdleTransaction | undefined;
+    let inflightInteractionTransaction: Transaction | undefined;
+
+    const supportedEventTypes = ['click', 'mouseup', 'mousedown', 'contextmenu'] as const;
+    type SupportedEventTypes = (typeof supportedEventTypes)[number];
+
+    const getTypeFromAction = (
+      type: SupportedEventTypes,
+      e: Event & { button: number },
+    ): `ui.action.${'left' | 'right' | 'unknown'}.${SupportedEventTypes}` => {
+      const button = e?.button === 0 ? 'left' : e?.button === 2 ? 'right' : 'unknown';
+      return `ui.action.${button}.${type}`;
+    };
+
+    const registerInteractionTransaction = (e: Event): void => {
       const { idleTimeout, finalTimeout, heartbeatInterval } = this.options;
-      const op = 'ui.action.click';
+      const type = e.type as SupportedEventTypes;
+      const target = e.target as HTMLElement;
+      const op = getTypeFromAction(type, e as Event & { button: number });
 
       const currentTransaction = getActiveTransaction();
       if (currentTransaction && currentTransaction.op && ['navigation', 'pageload'].includes(currentTransaction.op)) {
@@ -392,10 +413,21 @@ export class BrowserTracing implements Integration {
         return undefined;
       }
 
-      if (inflightInteractionTransaction) {
-        inflightInteractionTransaction.setFinishReason('interactionInterrupted');
+      if (op === 'ui.action.left.mouseup' && inflightInteractionTransaction) {
+        inflightInteractionTransaction.startChild({
+          description: htmlTreeAsString(target),
+          op,
+          startTimestamp: timestampInSeconds(),
+          endTimestamp: timestampInSeconds() + 0.001,
+        });
         inflightInteractionTransaction.finish();
-        inflightInteractionTransaction = undefined;
+        return;
+      }
+
+      if (inflightIdleInteractionTransaction) {
+        inflightIdleInteractionTransaction.setFinishReason('interactionInterrupted');
+        inflightIdleInteractionTransaction.finish();
+        inflightIdleInteractionTransaction = undefined;
       }
 
       if (!this._getCurrentHub) {
@@ -414,6 +446,7 @@ export class BrowserTracing implements Integration {
 
       const context: TransactionContext = {
         name: this._latestRouteName,
+        description: htmlTreeAsString(target),
         op,
         trimEnd: true,
         metadata: {
@@ -421,18 +454,29 @@ export class BrowserTracing implements Integration {
         },
       };
 
-      inflightInteractionTransaction = startIdleTransaction(
-        hub,
-        context,
-        idleTimeout,
-        finalTimeout,
-        true,
-        { location }, // for use in the tracesSampler
-        heartbeatInterval,
-      );
+      if (op === 'ui.action.left.click' || op === 'ui.action.right.contextmenu') {
+        inflightIdleInteractionTransaction = startIdleTransaction(
+          hub,
+          context,
+          idleTimeout,
+          finalTimeout,
+          true,
+          { location }, // for use in the tracesSampler
+          heartbeatInterval,
+        );
+      }
+      if (op === 'ui.action.left.mousedown') {
+        inflightInteractionTransaction = startTransaction(context);
+        inflightInteractionTransaction.startChild({
+          description: htmlTreeAsString(target),
+          op: 'ui.action.mousedown',
+          startTimestamp: timestampInSeconds(),
+          endTimestamp: timestampInSeconds() + 0.001,
+        });
+      }
     };
 
-    ['click'].forEach(type => {
+    supportedEventTypes.forEach(type => {
       addEventListener(type, registerInteractionTransaction, { once: false, capture: true });
     });
   }

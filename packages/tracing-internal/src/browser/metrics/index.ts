@@ -15,6 +15,20 @@ import { getVisibilityWatcher } from '../web-vitals/lib/getVisibilityWatcher';
 import type { NavigatorDeviceMemory, NavigatorNetworkInformation } from '../web-vitals/types';
 import { _startChild, isMeasurementValue } from './utils';
 
+// see full list here https://developer.mozilla.org/en-US/docs/Web/API/PerformanceEventTiming#events_exposed
+type ClickEvents = 'auxclick' | 'click' | 'contextmenu' | 'dblclick';
+type PointerEvents =
+  | 'pointerover'
+  | 'pointerenter'
+  | 'pointerdown'
+  | 'pointerup'
+  | 'pointercancel'
+  | 'pointerout'
+  | 'pointerleave'
+  | 'gotpointercapture'
+  | 'lostpointercapture';
+type Events = ClickEvents | PointerEvents; // We can extend this in the future to include more eventTypes
+
 /**
  * Converts from milliseconds to seconds
  * @param time time in ms
@@ -95,13 +109,16 @@ export function startTrackingInteractions(): void {
         return;
       }
 
-      if (entry.name === 'click') {
+      const entryName = entry.name as Events;
+      const supportedEntryNames: Events[] = ['click', 'contextmenu'];
+
+      if (supportedEntryNames.includes(entryName)) {
         const startTime = msToSec((browserPerformanceTimeOrigin as number) + entry.startTime);
         const duration = msToSec(entry.duration);
 
         transaction.startChild({
           description: htmlTreeAsString(entry.target),
-          op: `ui.interaction.${entry.name}`,
+          op: `ui.interaction.${entryName}`,
           origin: 'auto.ui.browser.metrics',
           startTimestamp: startTime,
           endTimestamp: startTime + duration,
