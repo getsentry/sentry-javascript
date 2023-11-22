@@ -26,9 +26,9 @@ export class Spotlight implements Integration {
 
   private readonly _options: Required<SpotlightConnectionOptions>;
 
-  public constructor(options: SpotlightConnectionOptions) {
+  public constructor(options?: SpotlightConnectionOptions) {
     this._options = {
-      sidecarUrl: options.sidecarUrl || 'http://localhost:8969',
+      sidecarUrl: options?.sidecarUrl || 'http://localhost:8969',
     };
   }
 
@@ -43,6 +43,9 @@ export class Spotlight implements Integration {
    * Sets up forwarding envelopes to the Spotlight Sidecar
    */
   public setup(client: Client): void {
+    if (process.env.NODE_ENV !== 'development') {
+      logger.warn("[Spotlight] It seems you're not in dev mode. Do you really want to have Spoltight enabled?");
+    }
     connectToSpotlight(client, this._options);
   }
 }

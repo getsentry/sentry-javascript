@@ -1,6 +1,5 @@
 /* eslint-disable max-lines */
 import {
-  addIntegration,
   getCurrentHub,
   getIntegrationsToSetup,
   getMainCarrier,

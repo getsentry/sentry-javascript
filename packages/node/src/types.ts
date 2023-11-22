@@ -59,6 +59,18 @@ export interface BaseNodeOptions {
    *  */
   clientClass?: typeof NodeClient;
 
+  /**
+   * If you use Spotlight by Sentry during development, use
+   * this option to forward captured Sentry events to Spotlight.
+   *
+   * Either set it to true, or provide a specific Spotlight Sidecar URL.
+   *
+   * More details: https://spotlightjs.com/
+   *
+   * IMPORTANT: Only set this optoin to `true` while developing, not in production!
+   */
+  spotlight?: boolean | string;
+
   // TODO (v8): Remove this in v8
   /**
    * @deprecated Moved to constructor options of the `Http` and `Undici` integration.
@@ -79,12 +91,6 @@ export interface BaseNodeOptions {
 
   /** Callback that is executed when a fatal global error occurs. */
   onFatalError?(this: void, error: Error): void;
-
-  /**
-   * The SDK tries to relay all events to Spotlight in development.
-   * Either set it to true, or provide a specific Spotlight URL.
-   */
-  spotlight?: boolean | string;
 }
 
 /**
