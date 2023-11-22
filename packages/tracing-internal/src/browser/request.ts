@@ -1,6 +1,6 @@
 /* eslint-disable max-lines */
 import { getCurrentHub, getDynamicSamplingContextFromClient, hasTracingEnabled } from '@sentry/core';
-import type { SentryWrappedXMLHttpRequest, Span } from '@sentry/types';
+import type { HandlerDataXhr, SentryWrappedXMLHttpRequest, Span } from '@sentry/types';
 import {
   addFetchInstrumentationHandler,
   addXhrInstrumentationHandler,
@@ -65,23 +65,6 @@ export interface RequestInstrumentationOptions {
    * Default: (url: string) => true
    */
   shouldCreateSpanForRequest?(this: void, url: string): boolean;
-}
-
-/** Data returned from XHR request */
-export interface XHRData {
-  xhr?: {
-    [SENTRY_XHR_DATA_KEY]?: {
-      method: string;
-      url: string;
-      status_code: number;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      data: Record<string, any>;
-    };
-    __sentry_xhr_span_id__?: string;
-    setRequestHeader?: (key: string, val: string) => void;
-    getRequestHeader?: (key: string) => string;
-    __sentry_own_request__?: boolean;
-  };
 }
 
 export const defaultRequestInstrumentationOptions: RequestInstrumentationOptions = {

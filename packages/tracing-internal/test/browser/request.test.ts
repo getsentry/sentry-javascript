@@ -1,6 +1,6 @@
 /* eslint-disable deprecation/deprecation */
 import * as sentryCore from '@sentry/core';
-import type { HandlerDataFetch, SentryWrappedXMLHttpRequest } from '@sentry/types';
+import type { HandlerDataFetch, HandlerDataXhr, SentryWrappedXMLHttpRequest } from '@sentry/types';
 import * as utils from '@sentry/utils';
 import { SENTRY_XHR_DATA_KEY } from '@sentry/utils';
 
