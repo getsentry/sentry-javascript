@@ -166,6 +166,20 @@ export function showReportDialog(options: ReportDialogOptions = {}, hub: Hub = g
     script.onload = options.onLoad;
   }
 
+  const { onClose } = options;
+  if (onClose) {
+    const reportDialogClosedMessageHandler = (event: MessageEvent): void => {
+      if (event.data === '__sentry_reportdialog_closed__') {
+        try {
+          onClose();
+        } finally {
+          WINDOW.removeEventListener('message', reportDialogClosedMessageHandler);
+        }
+      }
+    };
+    WINDOW.addEventListener('message', reportDialogClosedMessageHandler);
+  }
+
   const injectionPoint = WINDOW.document.head || WINDOW.document.body;
   if (injectionPoint) {
     injectionPoint.appendChild(script);
