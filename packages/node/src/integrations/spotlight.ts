@@ -17,9 +17,6 @@ type SpotlightConnectionOptions = {
  * Learn more about spotlight at https://spotlightjs.com
  *
  * Important: This integration only works with Node 18 or newer
- *
- * @param options
- * @returns
  */
 export class Spotlight implements Integration {
   public static id = 'Spotlight';
