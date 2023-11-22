@@ -22,7 +22,8 @@ type SpotlightConnectionOptions = {
  * @returns
  */
 export class Spotlight implements Integration {
-  public name = 'Spotlight';
+  public static id = 'Spotlight';
+  public name = Spotlight.id;
 
   private readonly _options: Required<SpotlightConnectionOptions>;
 

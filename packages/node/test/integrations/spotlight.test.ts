@@ -17,9 +17,10 @@ describe('Spotlight', () => {
   const options = getDefaultNodeClientOptions();
   const client = new NodeClient(options);
 
-  it('has a name', () => {
+  it('has a name and id', () => {
     const integration = new Spotlight();
     expect(integration.name).toEqual('Spotlight');
+    expect(Spotlight.id).toEqual('Spotlight');
   });
 
   it('registers a callback on the `beforeEnvelope` hook', () => {
