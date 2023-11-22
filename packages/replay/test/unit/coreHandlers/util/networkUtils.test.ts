@@ -4,6 +4,7 @@ import { NETWORK_BODY_MAX_SIZE } from '../../../../src/constants';
 import {
   buildNetworkRequestOrResponse,
   getBodySize,
+  getBodyString,
   getFullUrl,
   parseContentLengthHeader,
 } from '../../../../src/coreHandlers/util/networkUtils';
@@ -246,6 +247,41 @@ describe('Unit | coreHandlers | util | networkUtils', () => {
     ])('works with %s & baseURI %s', (url, baseURI, expected) => {
       const actual = getFullUrl(url, baseURI);
       expect(actual).toBe(expected);
+    });
+  });
+
+  describe('getBodyString', () => {
+    it('works with a string', () => {
+      const actual = getBodyString('abc');
+      expect(actual).toEqual(['abc']);
+    });
+
+    it('works with URLSearchParams', () => {
+      const body = new URLSearchParams();
+      body.append('name', 'Anne');
+      body.append('age', '32');
+      const actual = getBodyString(body);
+      expect(actual).toEqual(['name=Anne&age=32']);
+    });
+
+    it('works with FormData', () => {
+      const body = new FormData();
+      body.append('name', 'Anne');
+      body.append('age', '32');
+      const actual = getBodyString(body);
+      expect(actual).toEqual(['name=Anne&age=32']);
+    });
+
+    it('works with empty  data', () => {
+      const body = undefined;
+      const actual = getBodyString(body);
+      expect(actual).toEqual([undefined]);
+    });
+
+    it('works with other type of data', () => {
+      const body = {};
+      const actual = getBodyString(body);
+      expect(actual).toEqual([undefined, 'UNPARSEABLE_BODY_TYPE']);
     });
   });
 });
