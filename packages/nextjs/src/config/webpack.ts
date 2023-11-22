@@ -102,18 +102,18 @@ export function constructWebpackConfigFunction(
     const maybePagesDirPath = path.join(projectDir, 'pages');
     const maybeSrcPagesDirPath = path.join(projectDir, 'src', 'pages');
     if (fs.existsSync(maybePagesDirPath) && fs.lstatSync(maybePagesDirPath).isDirectory()) {
-      pagesDirPath = path.join(projectDir, 'pages');
+      pagesDirPath = maybePagesDirPath;
     } else if (fs.existsSync(maybeSrcPagesDirPath) && fs.lstatSync(maybeSrcPagesDirPath).isDirectory()) {
-      pagesDirPath = path.join(projectDir, 'src', 'pages');
+      pagesDirPath = maybeSrcPagesDirPath;
     }
 
     let appDirPath: string | undefined;
     const maybeAppDirPath = path.join(projectDir, 'app');
     const maybeSrcAppDirPath = path.join(projectDir, 'app');
     if (fs.existsSync(maybeAppDirPath) && fs.lstatSync(maybeAppDirPath).isDirectory()) {
-      appDirPath = path.join(projectDir, 'app');
+      appDirPath = maybeAppDirPath;
     } else if (fs.existsSync(maybeSrcAppDirPath) && fs.lstatSync(maybeSrcAppDirPath).isDirectory()) {
-      appDirPath = path.join(projectDir, 'src', 'app');
+      appDirPath = maybeSrcAppDirPath;
     }
 
     const apiRoutesPath = pagesDirPath ? path.join(pagesDirPath, 'api') : undefined;
