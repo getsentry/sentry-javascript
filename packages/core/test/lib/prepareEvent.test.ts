@@ -157,7 +157,7 @@ describe('parseEventHintOrCaptureContext', () => {
     expect(actual).toEqual({ captureContext: scopeContext });
   });
 
-  it('it TS errors if trying to mix ScopeContext & EventHint xxx', () => {
+  it('triggers a TS error if trying to mix ScopeContext & EventHint', () => {
     const actual = parseEventHintOrCaptureContext({
       // @ts-expect-error We are specifically testing that this errors!
       user: { id: 'xxx' },
