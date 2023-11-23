@@ -1,7 +1,7 @@
 // This should be: null | Blob | BufferSource | FormData | URLSearchParams | string
 // But since not all of those are available in node, we just export `unknown` here for now
 
-import { WebFetchHeaders } from './webfetchapi';
+import type { WebFetchHeaders } from './webfetchapi';
 
 // Make sure to cast it where needed!
 type XHRSendInput = unknown;
