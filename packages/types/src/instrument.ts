@@ -1,5 +1,8 @@
 // This should be: null | Blob | BufferSource | FormData | URLSearchParams | string
 // But since not all of those are available in node, we just export `unknown` here for now
+
+import type { WebFetchHeaders } from './webfetchapi';
+
 // Make sure to cast it where needed!
 type XHRSendInput = unknown;
 
@@ -54,13 +57,7 @@ export interface HandlerDataFetch {
     readonly ok: boolean;
     readonly status: number;
     readonly url: string;
-    headers: {
-      append(name: string, value: string): void;
-      delete(name: string): void;
-      get(name: string): string | null;
-      has(name: string): boolean;
-      set(name: string, value: string): void;
-    };
+    headers: WebFetchHeaders;
   };
   error?: unknown;
 }

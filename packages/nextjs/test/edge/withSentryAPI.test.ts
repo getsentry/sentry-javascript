@@ -52,7 +52,7 @@ describe('wrapApiHandlerWithSentry', () => {
     expect(startTransactionSpy).toHaveBeenCalledTimes(1);
     expect(startTransactionSpy).toHaveBeenCalledWith(
       expect.objectContaining({
-        metadata: { source: 'route' },
+        metadata: expect.objectContaining({ source: 'route' }),
         name: 'POST /user/[userId]/post/[postId]',
         op: 'http.server',
       }),

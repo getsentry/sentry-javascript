@@ -1,5 +1,5 @@
 import { addTracingExtensions, captureException, flush, getCurrentHub, runWithAsyncContext, trace } from '@sentry/core';
-import { tracingContextFromHeaders } from '@sentry/utils';
+import { tracingContextFromHeaders, winterCGRequestToRequestData } from '@sentry/utils';
 
 import { isRedirectNavigationError } from './nextNavigationErrorUtils';
 import type { RouteHandlerContext } from './types';
@@ -14,12 +14,20 @@ export function wrapRouteHandlerWithSentry<F extends (...args: any[]) => any>(
   context: RouteHandlerContext,
 ): (...args: Parameters<F>) => ReturnType<F> extends Promise<unknown> ? ReturnType<F> : Promise<ReturnType<F>> {
   addTracingExtensions();
+  // eslint-disable-next-line deprecation/deprecation
   const { method, parameterizedRoute, baggageHeader, sentryTraceHeader } = context;
   return new Proxy(routeHandler, {
     apply: (originalFunction, thisArg, args) => {
       return runWithAsyncContext(async () => {
         const hub = getCurrentHub();
         const currentScope = hub.getScope();
+
+        let req: Request | undefined;
+        let reqMethod: string | undefined;
+        if (args[0] instanceof Request) {
+          req = args[0];
+          reqMethod = req.method;
+        }
 
         const { traceparentData, dynamicSamplingContext, propagationContext } = tracingContextFromHeaders(
           sentryTraceHeader,
@@ -32,10 +40,11 @@ export function wrapRouteHandlerWithSentry<F extends (...args: any[]) => any>(
           res = await trace(
             {
               op: 'http.server',
-              name: `${method} ${parameterizedRoute}`,
+              name: `${reqMethod ?? method} ${parameterizedRoute}`,
               status: 'ok',
               ...traceparentData,
               metadata: {
+                request: req ? winterCGRequestToRequestData(req) : undefined,
                 source: 'route',
                 dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
               },

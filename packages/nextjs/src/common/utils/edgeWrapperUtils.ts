@@ -1,6 +1,12 @@
 import { addTracingExtensions, captureException, flush, getCurrentHub, startTransaction } from '@sentry/core';
 import type { Span } from '@sentry/types';
-import { addExceptionMechanism, logger, objectify, tracingContextFromHeaders } from '@sentry/utils';
+import {
+  addExceptionMechanism,
+  logger,
+  objectify,
+  tracingContextFromHeaders,
+  winterCGRequestToRequestData,
+} from '@sentry/utils';
 
 import type { EdgeRouteHandler } from '../../edge/types';
 
@@ -44,6 +50,7 @@ export function withEdgeWrapping<H extends EdgeRouteHandler>(
         origin: 'auto.ui.nextjs.withEdgeWrapping',
         ...traceparentData,
         metadata: {
+          request: winterCGRequestToRequestData(req),
           dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
           source: 'route',
         },

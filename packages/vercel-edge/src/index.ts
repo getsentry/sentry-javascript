@@ -69,13 +69,14 @@ export type { SpanStatusType } from '@sentry/core';
 export { VercelEdgeClient } from './client';
 export { defaultIntegrations, init } from './sdk';
 
-import { Integrations as CoreIntegrations } from '@sentry/core';
+import { Integrations as CoreIntegrations, RequestData } from '@sentry/core';
 
 import { WinterCGFetch } from './integrations/wintercg-fetch';
 
 const INTEGRATIONS = {
   ...CoreIntegrations,
-  ...WinterCGFetch,
+  WinterCGFetch,
+  RequestData,
 };
 
 export { INTEGRATIONS as Integrations };
