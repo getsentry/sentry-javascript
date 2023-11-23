@@ -1,4 +1,4 @@
-import type { Transaction, WrappedFunction } from '@sentry/types';
+import type { Transaction, WebFetchHeaders, WrappedFunction } from '@sentry/types';
 import type { NextApiRequest, NextApiResponse } from 'next';
 
 export type ServerComponentContext = {
@@ -14,7 +14,7 @@ export type ServerComponentContext = {
    * @deprecated pass a complete `Headers` object with the `headers` field instead.
    */
   baggageHeader?: string;
-  headers?: Headers;
+  headers?: WebFetchHeaders;
 };
 
 export interface RouteHandlerContext {

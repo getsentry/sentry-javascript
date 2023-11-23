@@ -4,6 +4,8 @@ import type {
   PolymorphicRequest,
   Transaction,
   TransactionSource,
+  WebFetchHeaders,
+  WebFetchRequest,
 } from '@sentry/types';
 
 import { parseCookie } from './cookie';
@@ -367,7 +369,7 @@ function extractQueryParams(
  * Transforms a `Headers` object that implements the `Web Fetch API` (https://developer.mozilla.org/en-US/docs/Web/API/Headers) into a simple key-value dict.
  * The header keys will be lower case: e.g. A "Content-Type" header will be stored as "content-type".
  */
-export function winterCGHeadersToDict(winterCGHeaders: Headers): Record<string, string> {
+export function winterCGHeadersToDict(winterCGHeaders: WebFetchHeaders): Record<string, string> {
   const headers: Record<string, string> = {};
   try {
     winterCGHeaders.forEach((value, key) => {
@@ -387,7 +389,7 @@ export function winterCGHeadersToDict(winterCGHeaders: Headers): Record<string, 
 /**
  * Converts a `Request` object that implements the `Web Fetch API` (https://developer.mozilla.org/en-US/docs/Web/API/Headers) into the format that the `RequestData` integration understands.
  */
-export function winterCGRequestToRequestData(req: Request): PolymorphicRequest {
+export function winterCGRequestToRequestData(req: WebFetchRequest): PolymorphicRequest {
   const headers = winterCGHeadersToDict(req.headers);
   return {
     method: req.method,

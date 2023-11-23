@@ -7,6 +7,7 @@ import { requestAsyncStorage } from '__SENTRY_NEXTJS_REQUEST_ASYNC_STORAGE_SHIM_
 import * as serverComponentModule from '__SENTRY_WRAPPING_TARGET_FILE__';
 // eslint-disable-next-line import/no-extraneous-dependencies
 import * as Sentry from '@sentry/nextjs';
+import type { WebFetchHeaders } from '@sentry/types';
 
 import type { RequestAsyncStorage } from './requestAsyncStorageShim';
 
@@ -27,7 +28,7 @@ if (typeof serverComponent === 'function') {
     apply: (originalFunction, thisArg, args) => {
       let sentryTraceHeader: string | undefined | null = undefined;
       let baggageHeader: string | undefined | null = undefined;
-      let headers: Headers | undefined = undefined;
+      let headers: WebFetchHeaders | undefined = undefined;
 
       // We try-catch here just in `requestAsyncStorage` is undefined since it may not be defined
       try {
