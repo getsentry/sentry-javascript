@@ -109,7 +109,7 @@ export function constructWebpackConfigFunction(
 
     let appDirPath: string | undefined;
     const maybeAppDirPath = path.join(projectDir, 'app');
-    const maybeSrcAppDirPath = path.join(projectDir, 'app');
+    const maybeSrcAppDirPath = path.join(projectDir, 'src', 'app');
     if (fs.existsSync(maybeAppDirPath) && fs.lstatSync(maybeAppDirPath).isDirectory()) {
       appDirPath = maybeAppDirPath;
     } else if (fs.existsSync(maybeSrcAppDirPath) && fs.lstatSync(maybeSrcAppDirPath).isDirectory()) {
