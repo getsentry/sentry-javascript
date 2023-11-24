@@ -73,6 +73,45 @@ describe('Spotlight', () => {
     );
   });
 
+  it('sends an envelope POST request to a custom sidecar url', () => {
+    const httpSpy = jest.spyOn(http, 'request').mockImplementationOnce(() => {
+      return {
+        on: jest.fn(),
+        write: jest.fn(),
+        end: jest.fn(),
+      } as any;
+    });
+
+    let callback: (envelope: Envelope) => void = () => {};
+    const clientWithSpy = {
+      ...client,
+      on: jest.fn().mockImplementationOnce((_, cb) => (callback = cb)),
+    };
+
+    const integration = new Spotlight({ sidecarUrl: 'http://mylocalhost:8888/abcd' });
+    // @ts-expect-error - this is fine in tests
+    integration.setup(clientWithSpy);
+
+    const envelope = createEnvelope<EventEnvelope>({ event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2', sent_at: '123' }, [
+      [{ type: 'event' }, { event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2' }],
+    ]);
+
+    callback(envelope);
+
+    expect(httpSpy).toHaveBeenCalledWith(
+      {
+        headers: {
+          'Content-Type': 'application/x-sentry-envelope',
+        },
+        hostname: 'mylocalhost',
+        method: 'POST',
+        path: '/abcd',
+        port: '8888',
+      },
+      expect.any(Function),
+    );
+  });
+
   describe('no-ops if', () => {
     it('an invalid URL is passed', () => {
       const integration = new Spotlight({ sidecarUrl: 'invalid-url' });

@@ -1,4 +1,4 @@
-import type { Client, Integration } from '@sentry/types';
+import type { Client, Envelope, Integration } from '@sentry/types';
 import { logger, serializeEnvelope } from '@sentry/utils';
 import * as http from 'http';
 import { URL } from 'url';
@@ -6,7 +6,7 @@ import { URL } from 'url';
 type SpotlightConnectionOptions = {
   /**
    * Set this if the Spotlight Sidecar is not running on localhost:8969
-   * By default, the Url is set to http://localhost:8969
+   * By default, the Url is set to http://localhost:8969/stream
    */
   sidecarUrl?: string;
 };
@@ -26,7 +26,7 @@ export class Spotlight implements Integration {
 
   public constructor(options?: SpotlightConnectionOptions) {
     this._options = {
-      sidecarUrl: options?.sidecarUrl || 'http://localhost:8969',
+      sidecarUrl: options?.sidecarUrl || 'http://localhost:8969/stream',
     };
   }
 
@@ -61,7 +61,7 @@ function connectToSpotlight(client: Client, options: Required<SpotlightConnectio
     return;
   }
 
-  client.on('beforeEnvelope', envelope => {
+  client.on('beforeEnvelope', (envelope: Envelope) => {
     if (failedRequests > 3) {
       logger.warn('[Spotlight] Disabled Sentry -> Spotlight integration due to too many failed requests');
       return;
@@ -72,7 +72,7 @@ function connectToSpotlight(client: Client, options: Required<SpotlightConnectio
     const req = http.request(
       {
         method: 'POST',
-        path: '/stream',
+        path: spotlightUrl.pathname,
         hostname: spotlightUrl.hostname,
         port: spotlightUrl.port,
         headers: {
@@ -102,7 +102,7 @@ function connectToSpotlight(client: Client, options: Required<SpotlightConnectio
 
 function parseSidecarUrl(url: string): URL | undefined {
   try {
-    return new URL(`${url}/stream`);
+    return new URL(`${url}`);
   } catch {
     logger.warn(`[Spotlight] Invalid sidecar URL: ${url}`);
     return undefined;
