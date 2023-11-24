@@ -27,9 +27,9 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
         const uploadOptions = options.sourceMapsUploadOptions || {};
 
         const shouldUploadSourcemaps = uploadOptions?.enabled ?? true;
-        const authToken = uploadOptions.authToken || env.SENTRY_AUTH_TOKEN;
 
-        if (shouldUploadSourcemaps && authToken) {
+        // We don't need to check for AUTH_TOKEN here, because the plugin will pick it up from the env
+        if (shouldUploadSourcemaps) {
           updateConfig({
             vite: {
               build: {
