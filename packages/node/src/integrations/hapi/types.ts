@@ -6,8 +6,16 @@
 
 // Vendored and simplified from:
 // - @types/hapi__hapi
+//   v17.8.9999
+//   https://github.com/DefinitelyTyped/DefinitelyTyped/blob/c73060bd14bb74a2f1906ccfc714d385863bc07d/types/hapi/v17/index.d.ts
+//
 // - @types/podium
+//   v1.0.9999
+//   https://github.com/DefinitelyTyped/DefinitelyTyped/blob/c73060bd14bb74a2f1906ccfc714d385863bc07d/types/podium/index.d.ts
+//
 // - @types/boom
+//   v7.3.9999
+//   https://github.com/DefinitelyTyped/DefinitelyTyped/blob/c73060bd14bb74a2f1906ccfc714d385863bc07d/types/boom/v4/index.d.ts
 
 import type * as stream from 'stream';
 import type * as url from 'url';

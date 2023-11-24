@@ -1,6 +1,13 @@
-import { captureException, configureScope, continueTrace, getActiveTransaction, startTransaction } from '@sentry/core';
+import {
+  captureException,
+  configureScope,
+  continueTrace,
+  getActiveTransaction,
+  SDK_VERSION,
+  startTransaction,
+} from '@sentry/core';
 import type { Integration } from '@sentry/types';
-import { addExceptionMechanism, dynamicSamplingContextToSentryBaggageHeader, fill } from '@sentry/utils';
+import { dynamicSamplingContextToSentryBaggageHeader, fill } from '@sentry/utils';
 
 import type { Boom, RequestEvent, ResponseObject, Server } from './types';
 
@@ -17,25 +24,20 @@ function isErrorEvent(event: RequestEvent): event is RequestEvent {
 }
 
 function sendErrorToSentry(errorData: object): void {
-  captureException(errorData, scope => {
-    scope.addEventProcessor(event => {
-      addExceptionMechanism(event, {
-        type: 'hapi',
-        handled: false,
-        data: {
-          function: 'hapiErrorPlugin',
-        },
-      });
-      return event;
-    });
-
-    return scope;
+  captureException(errorData, {
+    mechanism: {
+      type: 'hapi',
+      handled: false,
+      data: {
+        function: 'hapiErrorPlugin',
+      },
+    },
   });
 }
 
 export const hapiErrorPlugin = {
   name: 'SentryHapiErrorPlugin',
-  version: '0.0.1',
+  version: SDK_VERSION,
   register: async function (serverArg: Record<any, any>) {
     const server = serverArg as unknown as Server;
 
@@ -58,7 +60,7 @@ export const hapiErrorPlugin = {
 
 export const hapiTracingPlugin = {
   name: 'SentryHapiTracingPlugin',
-  version: '0.0.1',
+  version: SDK_VERSION,
   register: async function (serverArg: Record<any, any>) {
     const server = serverArg as unknown as Server;
 
