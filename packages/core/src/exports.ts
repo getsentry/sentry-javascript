@@ -223,11 +223,20 @@ export function captureCheckIn(checkIn: CheckIn, upsertMonitorConfig?: MonitorCo
  * to create a monitor automatically when sending a check in.
  */
 export function withMonitor<T>(
-  monitorSlug: CheckIn['monitorSlug'],
+  monitorSlugOrOptions:
+    | CheckIn['monitorSlug']
+    | { monitorSlug: CheckIn['monitorSlug']; checkInId?: FinishedCheckIn['checkInId'] },
   callback: () => T,
   upsertMonitorConfig?: MonitorConfig,
 ): T {
-  const checkInId = captureCheckIn({ monitorSlug, status: 'in_progress' }, upsertMonitorConfig);
+  const monitorSlug =
+    typeof monitorSlugOrOptions === 'string' ? monitorSlugOrOptions : monitorSlugOrOptions.monitorSlug;
+  const chosenCheckInId = typeof monitorSlugOrOptions === 'string' ? undefined : monitorSlugOrOptions.checkInId;
+
+  const checkInId = captureCheckIn(
+    { monitorSlug, checkInId: chosenCheckInId, status: 'in_progress' },
+    upsertMonitorConfig,
+  );
   const now = timestampInSeconds();
 
   function finishCheckIn(status: FinishedCheckIn['status']): void {

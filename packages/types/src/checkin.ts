@@ -48,6 +48,8 @@ export interface InProgressCheckIn {
   monitorSlug: SerializedCheckIn['monitor_slug'];
   // The status of the check-in.
   status: 'in_progress';
+  // Check-In ID (unique and client generated).
+  checkInId?: SerializedCheckIn['check_in_id'];
 }
 
 export interface FinishedCheckIn {
