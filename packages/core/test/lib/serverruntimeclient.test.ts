@@ -141,6 +141,20 @@ describe('ServerRuntimeClient', () => {
       ]);
     });
 
+    it('can select a custom checkInId', () => {
+      const options = getDefaultClientOptions({
+        dsn: PUBLIC_DSN,
+        serverName: 'bar',
+        release: '1.0.0',
+        environment: 'dev',
+      });
+      client = new ServerRuntimeClient(options);
+
+      const id = client.captureCheckIn({ monitorSlug: 'foo', status: 'in_progress', checkInId: 'custom_id' });
+
+      expect(id).toEqual('custom_id');
+    });
+
     it('does not send a checkIn envelope if disabled', () => {
       const options = getDefaultClientOptions({ dsn: PUBLIC_DSN, serverName: 'bar', enabled: false });
       client = new ServerRuntimeClient(options);
