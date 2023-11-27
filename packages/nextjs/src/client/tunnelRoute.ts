@@ -1,6 +1,8 @@
 import type { BrowserOptions } from '@sentry/react';
 import { dsnFromString, logger } from '@sentry/utils';
 
+import { DEBUG_BUILD } from '../common/debug-build';
+
 const globalWithInjectedValues = global as typeof global & {
   __sentryRewritesTunnelPath__?: string;
 };
@@ -20,9 +22,9 @@ export function applyTunnelRouteOption(options: BrowserOptions): void {
       const orgId = sentrySaasDsnMatch[1];
       const tunnelPath = `${tunnelRouteOption}?o=${orgId}&p=${dsnComponents.projectId}`;
       options.tunnel = tunnelPath;
-      __DEBUG_BUILD__ && logger.info(`Tunneling events to "${tunnelPath}"`);
+      DEBUG_BUILD && logger.info(`Tunneling events to "${tunnelPath}"`);
     } else {
-      __DEBUG_BUILD__ && logger.warn('Provided DSN is not a Sentry SaaS DSN. Will not tunnel events.');
+      DEBUG_BUILD && logger.warn('Provided DSN is not a Sentry SaaS DSN. Will not tunnel events.');
     }
   }
 }

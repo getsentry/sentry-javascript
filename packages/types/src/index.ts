@@ -48,10 +48,6 @@ export type { Event, EventHint, EventType, ErrorEvent, TransactionEvent } from '
 export type { EventProcessor } from './eventprocessor';
 export type { Exception } from './exception';
 export type { Extra, Extras } from './extra';
-// This is a dummy export, purely for the purpose of loading `globals.ts`, in order to take advantage of its side effect
-// of putting variables into the global namespace. See
-// https://www.typescriptlang.org/docs/handbook/declaration-files/templates/global-modifying-module-d-ts.html.
-export type {} from './globals';
 export type { Hub } from './hub';
 export type { Integration, IntegrationClass } from './integration';
 export type { Mechanism } from './mechanism';

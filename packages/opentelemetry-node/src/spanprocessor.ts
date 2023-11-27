@@ -7,6 +7,7 @@ import type { DynamicSamplingContext, Span as SentrySpan, TraceparentData, Trans
 import { logger } from '@sentry/utils';
 
 import { SENTRY_DYNAMIC_SAMPLING_CONTEXT_KEY, SENTRY_TRACE_PARENT_CONTEXT_KEY } from './constants';
+import { DEBUG_BUILD } from './debug-build';
 import { maybeCaptureExceptionForTimedEvent } from './utils/captureExceptionForTimedEvent';
 import { isSentryRequestSpan } from './utils/isSentryRequest';
 import { mapOtelStatus } from './utils/mapOtelStatus';
@@ -85,8 +86,7 @@ export class SentrySpanProcessor implements OtelSpanProcessor {
     const sentrySpan = getSentrySpan(otelSpanId);
 
     if (!sentrySpan) {
-      __DEBUG_BUILD__ &&
-        logger.error(`SentrySpanProcessor could not find span with OTEL-spanId ${otelSpanId} to finish.`);
+      DEBUG_BUILD && logger.error(`SentrySpanProcessor could not find span with OTEL-spanId ${otelSpanId} to finish.`);
       clearSpan(otelSpanId);
       return;
     }

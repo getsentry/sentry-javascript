@@ -13,6 +13,7 @@ import {
 } from '@sentry/opentelemetry';
 import { logger } from '@sentry/utils';
 
+import { DEBUG_BUILD } from '../debug-build';
 import type { NodeExperimentalClient } from '../types';
 import { NodeExperimentalSentrySpanProcessor } from './spanProcessor';
 
@@ -23,7 +24,7 @@ export function initOtel(): void {
   const client = getClient<NodeExperimentalClient>();
 
   if (!client) {
-    __DEBUG_BUILD__ &&
+    DEBUG_BUILD &&
       logger.warn(
         'No client available, skipping OpenTelemetry setup. This probably means that `Sentry.init()` was not called before `initOtel()`.',
       );

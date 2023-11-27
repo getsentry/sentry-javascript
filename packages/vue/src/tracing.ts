@@ -3,6 +3,7 @@ import type { Span, Transaction } from '@sentry/types';
 import { logger, timestampInSeconds } from '@sentry/utils';
 
 import { DEFAULT_HOOKS } from './constants';
+import { DEBUG_BUILD } from './debug-build';
 import type { Hook, Operation, TracingOptions, ViewModel, Vue } from './types';
 import { formatComponentName } from './vendor/components';
 
@@ -63,7 +64,7 @@ export const createTracingMixins = (options: TracingOptions): Mixins => {
     // eg. mount => ['beforeMount', 'mounted']
     const internalHooks = HOOKS[operation];
     if (!internalHooks) {
-      __DEBUG_BUILD__ && logger.warn(`Unknown hook: ${operation}`);
+      DEBUG_BUILD && logger.warn(`Unknown hook: ${operation}`);
       continue;
     }
 

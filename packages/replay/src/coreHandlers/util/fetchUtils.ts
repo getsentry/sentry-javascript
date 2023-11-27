@@ -1,6 +1,7 @@
 import type { Breadcrumb, FetchBreadcrumbData, TextEncoderInternal } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
+import { DEBUG_BUILD } from '../../debug-build';
 import type {
   FetchHint,
   NetworkMetaWarning,
@@ -41,7 +42,7 @@ export async function captureFetchBreadcrumbToReplay(
     const result = makeNetworkReplayBreadcrumb('resource.fetch', data);
     addNetworkBreadcrumb(options.replay, result);
   } catch (error) {
-    __DEBUG_BUILD__ && logger.error('[Replay] Failed to capture fetch breadcrumb', error);
+    DEBUG_BUILD && logger.error('[Replay] Failed to capture fetch breadcrumb', error);
   }
 }
 
@@ -201,7 +202,7 @@ function getResponseData(
 
     return buildNetworkRequestOrResponse(headers, size, undefined);
   } catch (error) {
-    __DEBUG_BUILD__ && logger.warn('[Replay] Failed to serialize response body', error);
+    DEBUG_BUILD && logger.warn('[Replay] Failed to serialize response body', error);
     // fallback
     return buildNetworkRequestOrResponse(headers, responseBodySize, undefined);
   }
@@ -218,7 +219,7 @@ async function _parseFetchResponseBody(response: Response): Promise<[string | un
     const text = await _tryGetResponseText(res);
     return [text];
   } catch (error) {
-    __DEBUG_BUILD__ && logger.warn('[Replay] Failed to get text body from response', error);
+    DEBUG_BUILD && logger.warn('[Replay] Failed to get text body from response', error);
     return [undefined, 'BODY_PARSE_ERROR'];
   }
 }
@@ -288,7 +289,7 @@ function _tryCloneResponse(response: Response): Response | void {
     return response.clone();
   } catch (error) {
     // this can throw if the response was already consumed before
-    __DEBUG_BUILD__ && logger.warn('[Replay] Failed to clone response body', error);
+    DEBUG_BUILD && logger.warn('[Replay] Failed to clone response body', error);
   }
 }
 

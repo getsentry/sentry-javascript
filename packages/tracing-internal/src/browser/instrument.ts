@@ -1,5 +1,6 @@
 import { getFunctionName, logger } from '@sentry/utils';
 
+import { DEBUG_BUILD } from '../common/debug-build';
 import { onCLS } from './web-vitals/getCLS';
 import { onFID } from './web-vitals/getFID';
 import { onLCP } from './web-vitals/getLCP';
@@ -148,7 +149,7 @@ function triggerHandlers(type: InstrumentHandlerType, data: unknown): void {
     try {
       handler(data);
     } catch (e) {
-      __DEBUG_BUILD__ &&
+      DEBUG_BUILD &&
         logger.error(
           `Error while triggering instrumentation handler.\nType: ${type}\nName: ${getFunctionName(handler)}\nError:`,
           e,

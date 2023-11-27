@@ -13,6 +13,7 @@ import {
   tracingContextFromHeaders,
 } from '@sentry/utils';
 
+import { DEBUG_BUILD } from './debug-build';
 import { getFutureFlagsServer, getRemixVersionFromBuild } from './futureFlags';
 import {
   extractData,
@@ -92,7 +93,7 @@ export async function captureRemixServerException(err: unknown, name: string, re
   // Skip capturing if the request is aborted as Remix docs suggest
   // Ref: https://remix.run/docs/en/main/file-conventions/entry.server#handleerror
   if (request.signal.aborted) {
-    __DEBUG_BUILD__ && logger.warn('Skipping capture of aborted request');
+    DEBUG_BUILD && logger.warn('Skipping capture of aborted request');
     return;
   }
 
@@ -103,7 +104,7 @@ export async function captureRemixServerException(err: unknown, name: string, re
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     normalizedRequest = normalizeRemixRequest(request as unknown as any);
   } catch (e) {
-    __DEBUG_BUILD__ && logger.warn('Failed to normalize Remix request');
+    DEBUG_BUILD && logger.warn('Failed to normalize Remix request');
   }
 
   captureException(isResponse(err) ? await extractResponseError(err) : err, scope => {
@@ -278,8 +279,7 @@ function makeWrappedRootLoader(remixVersion: number) {
         // We skip injection of trace and baggage in those cases.
         // For `redirect`, a valid internal redirection target will have the trace and baggage injected.
         if (isRedirectResponse(res) || isCatchResponse(res)) {
-          __DEBUG_BUILD__ &&
-            logger.warn('Skipping injection of trace and baggage as the response does not have a body');
+          DEBUG_BUILD && logger.warn('Skipping injection of trace and baggage as the response does not have a body');
           return res;
         } else {
           const data = await extractData(res);
@@ -290,8 +290,7 @@ function makeWrappedRootLoader(remixVersion: number) {
               { headers: res.headers, statusText: res.statusText, status: res.status },
             );
           } else {
-            __DEBUG_BUILD__ &&
-              logger.warn('Skipping injection of trace and baggage as the response body is not an object');
+            DEBUG_BUILD && logger.warn('Skipping injection of trace and baggage as the response body is not an object');
             return res;
           }
         }
@@ -388,7 +387,7 @@ function wrapRequestHandler(origRequestHandler: RequestHandler, build: ServerBui
       try {
         normalizedRequest = normalizeRemixRequest(request);
       } catch (e) {
-        __DEBUG_BUILD__ && logger.warn('Failed to normalize Remix request');
+        DEBUG_BUILD && logger.warn('Failed to normalize Remix request');
       }
 
       const url = new URL(request.url);
@@ -502,7 +501,7 @@ export function instrumentServer(): void {
   const pkg = loadModule<{ createRequestHandler: CreateRequestHandlerFunction }>('@remix-run/server-runtime');
 
   if (!pkg) {
-    __DEBUG_BUILD__ && logger.warn('Remix SDK was unable to require `@remix-run/server-runtime` package.');
+    DEBUG_BUILD && logger.warn('Remix SDK was unable to require `@remix-run/server-runtime` package.');
 
     return;
   }

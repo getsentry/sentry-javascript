@@ -1,6 +1,7 @@
 import type { ReplayRecordingData } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
+import { DEBUG_BUILD } from '../debug-build';
 import type { AddEventResult, EventBuffer, EventBufferType, RecordingEvent } from '../types';
 import { logInfo } from '../util/log';
 import { EventBufferArray } from './EventBufferArray';
@@ -116,7 +117,7 @@ export class EventBufferProxy implements EventBuffer {
     try {
       await Promise.all(addEventPromises);
     } catch (error) {
-      __DEBUG_BUILD__ && logger.warn('[Replay] Failed to add events when switching buffers.', error);
+      DEBUG_BUILD && logger.warn('[Replay] Failed to add events when switching buffers.', error);
     }
   }
 }

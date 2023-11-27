@@ -1,5 +1,6 @@
 import type { ConsoleLevel } from '@sentry/types';
 
+import { DEBUG_BUILD } from './debug-build';
 import { GLOBAL_OBJ } from './worldwide';
 
 /** Prefix for logging strings */
@@ -76,7 +77,7 @@ function makeLogger(): Logger {
     isEnabled: () => enabled,
   };
 
-  if (__DEBUG_BUILD__) {
+  if (DEBUG_BUILD) {
     CONSOLE_LEVELS.forEach(name => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       logger[name] = (...args: any[]) => {

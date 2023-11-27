@@ -2,6 +2,7 @@ import type { IdleTransaction, SpanStatusType } from '@sentry/core';
 import { getActiveTransaction } from '@sentry/core';
 import { logger } from '@sentry/utils';
 
+import { DEBUG_BUILD } from '../common/debug-build';
 import { WINDOW } from './types';
 
 /**
@@ -15,7 +16,7 @@ export function registerBackgroundTabDetection(): void {
       if (WINDOW.document.hidden && activeTransaction) {
         const statusType: SpanStatusType = 'cancelled';
 
-        __DEBUG_BUILD__ &&
+        DEBUG_BUILD &&
           logger.log(
             `[Tracing] Transaction: ${statusType} -> since tab moved to the background, op: ${activeTransaction.op}`,
           );
@@ -29,7 +30,6 @@ export function registerBackgroundTabDetection(): void {
       }
     });
   } else {
-    __DEBUG_BUILD__ &&
-      logger.warn('[Tracing] Could not set up background tab detection due to lack of global document');
+    DEBUG_BUILD && logger.warn('[Tracing] Could not set up background tab detection due to lack of global document');
   }
 }

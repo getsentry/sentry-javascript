@@ -17,6 +17,7 @@ import {
 
 import type { BrowserClientOptions, BrowserOptions } from './client';
 import { BrowserClient } from './client';
+import { DEBUG_BUILD } from './debug-build';
 import type { ReportDialogOptions } from './helpers';
 import { WINDOW, wrap as internalWrap } from './helpers';
 import { Breadcrumbs, Dedupe, GlobalHandlers, HttpContext, LinkedErrors, TryCatch } from './integrations';
@@ -140,14 +141,14 @@ export function init(options: BrowserOptions = {}): void {
 export function showReportDialog(options: ReportDialogOptions = {}, hub: Hub = getCurrentHub()): void {
   // doesn't work without a document (React Native)
   if (!WINDOW.document) {
-    __DEBUG_BUILD__ && logger.error('Global document not defined in showReportDialog call');
+    DEBUG_BUILD && logger.error('Global document not defined in showReportDialog call');
     return;
   }
 
   const { client, scope } = hub.getStackTop();
   const dsn = options.dsn || (client && client.getDsn());
   if (!dsn) {
-    __DEBUG_BUILD__ && logger.error('DSN not configured for showReportDialog call');
+    DEBUG_BUILD && logger.error('DSN not configured for showReportDialog call');
     return;
   }
 
@@ -189,7 +190,7 @@ export function showReportDialog(options: ReportDialogOptions = {}, hub: Hub = g
   if (injectionPoint) {
     injectionPoint.appendChild(script);
   } else {
-    __DEBUG_BUILD__ && logger.error('Not injecting report dialog. No injection point found in HTML');
+    DEBUG_BUILD && logger.error('Not injecting report dialog. No injection point found in HTML');
   }
 }
 
@@ -236,8 +237,7 @@ function startSessionOnHub(hub: Hub): void {
  */
 function startSessionTracking(): void {
   if (typeof WINDOW.document === 'undefined') {
-    __DEBUG_BUILD__ &&
-      logger.warn('Session tracking in non-browser environment with @sentry/browser is not supported.');
+    DEBUG_BUILD && logger.warn('Session tracking in non-browser environment with @sentry/browser is not supported.');
     return;
   }
 

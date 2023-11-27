@@ -1,6 +1,7 @@
 import type { DsnComponents, DsnLike, DsnProtocol } from '@sentry/types';
 
-import { logger } from './logger';
+import { DEBUG_BUILD } from './debug-build';
+import { consoleSandbox, logger } from './logger';
 
 /** Regular expression used to parse a Dsn. */
 const DSN_REGEX = /^(?:(\w+):)\/\/(?:(\w+)(?::(\w+)?)?@)([\w.-]+)(?::(\d+))?\/(.+)/;
@@ -37,8 +38,10 @@ export function dsnFromString(str: string): DsnComponents | undefined {
 
   if (!match) {
     // This should be logged to the console
-    // eslint-disable-next-line no-console
-    console.error(`Invalid Sentry Dsn: ${str}`);
+    consoleSandbox(() => {
+      // eslint-disable-next-line no-console
+      console.error(`Invalid Sentry Dsn: ${str}`);
+    });
     return undefined;
   }
 
@@ -75,7 +78,7 @@ function dsnFromComponents(components: DsnComponents): DsnComponents {
 }
 
 function validateDsn(dsn: DsnComponents): boolean {
-  if (!__DEBUG_BUILD__) {
+  if (!DEBUG_BUILD) {
     return true;
   }
 

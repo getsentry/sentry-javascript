@@ -2,6 +2,7 @@ import type { Hub } from '@sentry/core';
 import type { EventProcessor } from '@sentry/types';
 import { arrayify, fill, isThenable, loadModule, logger } from '@sentry/utils';
 
+import { DEBUG_BUILD } from '../../common/debug-build';
 import type { LazyLoadedIntegration } from './lazy';
 import { shouldDisableAutoInstrumentation } from './utils/node-utils';
 
@@ -77,7 +78,7 @@ export class Apollo implements LazyLoadedIntegration<GraphQLModule & ApolloModul
    */
   public setupOnce(_: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
     if (shouldDisableAutoInstrumentation(getCurrentHub)) {
-      __DEBUG_BUILD__ && logger.log('Apollo Integration is skipped because of instrumenter configuration.');
+      DEBUG_BUILD && logger.log('Apollo Integration is skipped because of instrumenter configuration.');
       return;
     }
 
@@ -85,7 +86,7 @@ export class Apollo implements LazyLoadedIntegration<GraphQLModule & ApolloModul
       const pkg = this.loadDependency();
 
       if (!pkg) {
-        __DEBUG_BUILD__ && logger.error('Apollo-NestJS Integration was unable to require @nestjs/graphql package.');
+        DEBUG_BUILD && logger.error('Apollo-NestJS Integration was unable to require @nestjs/graphql package.');
         return;
       }
 
@@ -118,7 +119,7 @@ export class Apollo implements LazyLoadedIntegration<GraphQLModule & ApolloModul
       const pkg = this.loadDependency();
 
       if (!pkg) {
-        __DEBUG_BUILD__ && logger.error('Apollo Integration was unable to require apollo-server-core package.');
+        DEBUG_BUILD && logger.error('Apollo Integration was unable to require apollo-server-core package.');
         return;
       }
 
@@ -130,7 +131,7 @@ export class Apollo implements LazyLoadedIntegration<GraphQLModule & ApolloModul
           config: { resolvers?: ApolloModelResolvers[]; schema?: unknown; modules?: unknown };
         }) {
           if (!this.config.resolvers) {
-            if (__DEBUG_BUILD__) {
+            if (DEBUG_BUILD) {
               if (this.config.schema) {
                 logger.warn(
                   'Apollo integration is not able to trace `ApolloServer` instances constructed via `schema` property.' +

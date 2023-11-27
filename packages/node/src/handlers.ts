@@ -25,6 +25,7 @@ import {
 import type * as http from 'http';
 
 import type { NodeClient } from './client';
+import { DEBUG_BUILD } from './debug-build';
 // TODO (v8 / XXX) Remove this import
 import type { ParseRequestOptions } from './requestDataDeprecated';
 import { isAutoSessionTrackingEnabled } from './sdk';
@@ -178,7 +179,7 @@ export function requestHandler(
             _end.call(this, chunk, encoding, cb);
           })
           .then(null, e => {
-            __DEBUG_BUILD__ && logger.error(e);
+            DEBUG_BUILD && logger.error(e);
             _end.call(this, chunk, encoding, cb);
           });
       };
