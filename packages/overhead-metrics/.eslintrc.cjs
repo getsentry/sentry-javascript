@@ -7,7 +7,6 @@ module.exports = {
       rules: {
         'no-console': 'off',
         '@typescript-eslint/no-non-null-assertion': 'off',
-        'import/no-unresolved': 'off',
         '@sentry-internal/sdk/no-optional-chaining': 'off',
         '@sentry-internal/sdk/no-nullish-coalescing': 'off',
         '@sentry-internal/sdk/no-unsupported-es6-methods': 'off',

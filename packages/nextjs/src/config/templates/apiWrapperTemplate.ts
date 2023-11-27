@@ -7,9 +7,7 @@
  */
 
 // @ts-expect-error See above
-// eslint-disable-next-line import/no-unresolved
 import * as origModule from '__SENTRY_WRAPPING_TARGET_FILE__';
-// eslint-disable-next-line import/no-extraneous-dependencies
 import * as Sentry from '@sentry/nextjs';
 import type { PageConfig } from 'next';
 
@@ -69,5 +67,4 @@ export default wrappedHandler;
 // Re-export anything exported by the page module we're wrapping. When processing this code, Rollup is smart enough to
 // not include anything whose name matchs something we've explicitly exported above.
 // @ts-expect-error See above
-// eslint-disable-next-line import/no-unresolved
 export * from '__SENTRY_WRAPPING_TARGET_FILE__';

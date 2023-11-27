@@ -11,7 +11,7 @@ module.exports = {
   parserOptions: {
     ecmaVersion: 2018,
   },
-  extends: ['@sentry-internal/sdk'],
+  extends: ['@sentry-internal/sdk/src/base'],
   ignorePatterns: [
     'coverage/**',
     'build/**',

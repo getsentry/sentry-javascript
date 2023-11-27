@@ -6,7 +6,6 @@ import * as child_process from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 // @ts-expect-error -sorcery has no types :(
-// eslint-disable-next-line import/default
 import * as sorcery from 'sorcery';
 import type { Plugin } from 'vite';
 

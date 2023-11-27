@@ -1,9 +1,5 @@
 import { captureException } from '@sentry/svelte';
 import { consoleSandbox } from '@sentry/utils';
-// For now disable the import/no-unresolved rule, because we don't have a way to
-// tell eslint that we are only importing types from the @sveltejs/kit package without
-// adding a custom resolver, which will take too much time.
-// eslint-disable-next-line import/no-unresolved
 import type { HandleClientError, NavigationEvent } from '@sveltejs/kit';
 
 // The SvelteKit default error handler just logs the error to the console
