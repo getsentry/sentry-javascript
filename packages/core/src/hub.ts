@@ -377,13 +377,11 @@ export class Hub implements HubInterface {
     if (DEBUG_BUILD && !result) {
       const client = this.getClient();
       if (!client) {
-        // eslint-disable-next-line no-console
-        console.warn(
+        logger.warn(
           "Tracing extension 'startTransaction' is missing. You should 'init' the SDK before calling 'startTransaction'",
         );
       } else {
-        // eslint-disable-next-line no-console
-        console.warn(`Tracing extension 'startTransaction' has not been added. Call 'addTracingExtensions' before calling 'init':
+        logger.warn(`Tracing extension 'startTransaction' has not been added. Call 'addTracingExtensions' before calling 'init':
 Sentry.addTracingExtensions();
 Sentry.init({...});
 `);

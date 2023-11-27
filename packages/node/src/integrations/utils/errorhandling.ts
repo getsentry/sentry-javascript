@@ -1,5 +1,5 @@
 import { getClient } from '@sentry/core';
-import { logger } from '@sentry/utils';
+import { consoleSandbox, logger } from '@sentry/utils';
 
 import type { NodeClient } from '../../client';
 import { DEBUG_BUILD } from '../../debug-build';
@@ -10,8 +10,10 @@ const DEFAULT_SHUTDOWN_TIMEOUT = 2000;
  * @hidden
  */
 export function logAndExitProcess(error: Error): void {
-  // eslint-disable-next-line no-console
-  console.error(error);
+  consoleSandbox(() => {
+    // eslint-disable-next-line no-console
+    console.error(error);
+  });
 
   const client = getClient<NodeClient>();
 
