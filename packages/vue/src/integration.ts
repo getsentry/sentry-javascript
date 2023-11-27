@@ -54,8 +54,8 @@ export class VueIntegration implements Integration {
         // eslint-disable-next-line no-console
         console.warn(
           `[@sentry/vue]: Misconfigured SDK. Vue specific errors will not be captured.
-  Update your \`Sentry.init\` call with an appropriate config option:
-  \`app\` (Application Instance - Vue 3) or \`Vue\` (Vue Constructor - Vue 2).`,
+Update your \`Sentry.init\` call with an appropriate config option:
+\`app\` (Application Instance - Vue 3) or \`Vue\` (Vue Constructor - Vue 2).`,
         );
       });
       return;
