@@ -26,12 +26,8 @@
     "build:transpile:watch": "yarn build:transpile --watch",
     "build:types:watch": "tsc -p tsconfig.types.json --watch",
     "clean": "rimraf build",
-    "fix": "run-s fix:eslint fix:biome",
-    "fix:eslint": "eslint . --format stylish --fix",
-    "fix:biome": "biome format --write .",
-    "lint": "run-s lint:biome lint:eslint",
-    "lint:eslint": "eslint . --format stylish",
-    "lint:biome": "biome format ."
+    "fix": "eslint . --format stylish --fix",
+    "lint": "eslint . --format stylish"
   },
   "repository": {
     "type": "git",
