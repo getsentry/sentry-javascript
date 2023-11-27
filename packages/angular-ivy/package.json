@@ -50,12 +50,8 @@
     "build:syncSymlinks": "ts-node ./scripts/syncSourceFiles.ts",
     "circularDepCheck": "madge --circular src/index.ts",
     "clean": "rimraf build coverage sentry-angular-ivy-*.tgz",
-    "fix": "run-s fix:eslint fix:biome",
-    "fix:eslint": "eslint . --format stylish --fix",
-    "fix:biome": "biome format --write .",
-    "lint": "run-s lint:biome lint:eslint",
-    "lint:eslint": "eslint . --format stylish",
-    "lint:biome": "biome format .",
+    "fix": "eslint . --format stylish --fix",
+    "lint": "eslint . --format stylish",
     "yalc:publish": "ts-node ./scripts/prepack.ts && yalc publish build --push --sig"
   },
   "volta": {

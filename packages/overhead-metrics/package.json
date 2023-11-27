@@ -13,12 +13,8 @@
     "dev:run:replay": "npx chrome ./test-apps/booking-app/with-replay.html",
     "ci:collect": "ts-node-esm ./configs/ci/collect.ts",
     "ci:process": "ts-node-esm ./configs/ci/process.ts",
-    "fix": "run-s fix:eslint fix:biome",
-    "fix:eslint": "eslint . --format stylish --fix",
-    "fix:biome": "biome format --write .",
-    "lint": "run-s lint:biome lint:eslint",
-    "lint:eslint": "eslint . --format stylish",
-    "lint:biome": "biome format ."
+    "fix": "eslint . --format stylish --fix",
+    "lint": "eslint . --format stylish"
   },
   "dependencies": {
     "@octokit/rest": "^19.0.5",

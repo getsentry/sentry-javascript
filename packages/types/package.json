@@ -35,12 +35,8 @@
     "build:types:watch": "tsc -p tsconfig.types.json --watch",
     "build:tarball": "ts-node ../../scripts/prepack.ts && npm pack ./build",
     "clean": "rimraf build sentry-types-*.tgz",
-    "lint": "run-s lint:biome lint:eslint",
-    "lint:eslint": "eslint . --format stylish",
-    "lint:biome": "biome format .",
-    "fix": "run-s fix:eslint fix:biome",
-    "fix:eslint": "eslint . --format stylish --fix",
-    "fix:biome": "biome format --write .",
+    "lint": "eslint . --format stylish",
+    "fix": "eslint . --format stylish --fix",
     "yalc:publish": "ts-node ../../scripts/prepack.ts && yalc publish build --push --sig"
   },
   "volta": {

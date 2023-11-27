@@ -26,12 +26,8 @@
   },
   "scripts": {
     "clean": "yarn rimraf sentry-internal-eslint-plugin-sdk-*.tgz",
-    "fix": "run-s fix:eslint fix:biome",
-    "fix:eslint": "eslint . --format stylish --fix",
-    "fix:biome": "biome format --write .",
-    "lint": "run-s lint:biome lint:eslint",
-    "lint:eslint": "eslint . --format stylish",
-    "lint:biome": "biome format .",
+    "fix": "eslint . --format stylish --fix",
+    "lint": "eslint . --format stylish",
     "test": "mocha test --recursive",
     "build:tarball": "npm pack",
     "circularDepCheck": "madge --circular src/index.js"
