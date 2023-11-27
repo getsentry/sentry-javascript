@@ -38,8 +38,6 @@
   },
   "scripts": {
     "clean": "yarn rimraf sentry-internal-eslint-config-sdk-*.tgz",
-    "lint": "prettier --check \"**/*.js\"",
-    "fix": "prettier --write \"**/*.js\"",
     "build:tarball": "npm pack",
     "circularDepCheck": "madge --circular src/index.js"
   },
