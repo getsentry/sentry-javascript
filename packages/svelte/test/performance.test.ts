@@ -2,7 +2,6 @@ import type { Scope } from '@sentry/core';
 import { act, render } from '@testing-library/svelte';
 
 // linter doesn't like Svelte component imports
-// eslint-disable-next-line import/no-unresolved
 import DummyComponent from './components/Dummy.svelte';
 
 let returnUndefinedTransaction = false;

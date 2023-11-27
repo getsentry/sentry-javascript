@@ -5,7 +5,6 @@ import { captureException, captureMessage, flush, getCurrentHub, withScope } fro
 import type { Integration, SdkMetadata } from '@sentry/types';
 import { isString, logger, tracingContextFromHeaders } from '@sentry/utils';
 // NOTE: I have no idea how to fix this right now, and don't want to waste more time, as it builds just fine — Kamil
-// eslint-disable-next-line import/no-unresolved
 import type { Context, Handler } from 'aws-lambda';
 import { existsSync } from 'fs';
 import { hostname } from 'os';

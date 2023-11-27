@@ -1,5 +1,4 @@
 import { Hub, makeMain } from '@sentry/core';
-// eslint-disable-next-line import/no-unresolved
 import { beforeAll, beforeEach, describe, expect, test } from 'bun:test';
 
 import { BunClient } from '../../src/client';

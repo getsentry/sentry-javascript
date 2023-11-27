@@ -1,4 +1,3 @@
-/* eslint-disable import/export */
 import type { NodeOptions } from '@sentry/node';
 import { configureScope, getCurrentHub, init as nodeInit } from '@sentry/node';
 import { logger } from '@sentry/utils';
