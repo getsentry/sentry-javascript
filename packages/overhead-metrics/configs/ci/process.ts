@@ -35,7 +35,9 @@ if (baseBranch != branch) {
   await prComment.addAdditionalResultsSet(
     `Baseline results on branch: <code>${baseBranch}</code>`,
     // We skip the first one here because it's already included as `Baseline` column above in addCurrentResult().
-    baseResults.items().slice(1, 10),
+    baseResults
+      .items()
+      .slice(1, 10),
   );
 } else {
   await prComment.addCurrentResult(await ResultsAnalyzer.analyze(latestResult, previousResults), 'Previous');

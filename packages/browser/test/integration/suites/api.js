@@ -82,7 +82,7 @@ describe('API', function () {
         summary.events[0].exception.values[0].stacktrace.frames[
           summary.events[0].exception.values[0].stacktrace.frames.length - 1
         ].function,
-        'bar'
+        'bar',
       );
       assert.isAtLeast(summary.events[0].exception.values[0].stacktrace.frames.length, 2);
       assert.isAtMost(summary.events[0].exception.values[0].stacktrace.frames.length, 4);

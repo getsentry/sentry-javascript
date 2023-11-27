@@ -29,7 +29,7 @@ describe('data-fetching function wrappers', () => {
           ({
             getOptions: () => ({ instrumenter: 'sentry' }),
             getDsn: () => {},
-          } as any);
+          }) as any;
 
         return hub;
       });

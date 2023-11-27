@@ -133,8 +133,8 @@ export function addTracingHeadersToFetchRequest(
   const dynamicSamplingContext = transaction
     ? transaction.getDynamicSamplingContext()
     : dsc
-    ? dsc
-    : getDynamicSamplingContextFromClient(traceId, client, scope);
+      ? dsc
+      : getDynamicSamplingContextFromClient(traceId, client, scope);
 
   const sentryBaggageHeader = dynamicSamplingContextToSentryBaggageHeader(dynamicSamplingContext);
 

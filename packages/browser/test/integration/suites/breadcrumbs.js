@@ -106,7 +106,7 @@ describe('breadcrumbs', function () {
           },
           function () {
             Sentry.captureMessage('test');
-          }
+          },
         )
         .then(function () {
           window.finalizeManualTest();
@@ -146,7 +146,7 @@ describe('breadcrumbs', function () {
           },
           function () {
             Sentry.captureMessage('test');
-          }
+          },
         )
         .then(function () {
           window.finalizeManualTest();
@@ -187,7 +187,7 @@ describe('breadcrumbs', function () {
           },
           function () {
             Sentry.captureMessage('test');
-          }
+          },
         )
         .then(function () {
           window.finalizeManualTest();
@@ -734,7 +734,7 @@ describe('breadcrumbs', function () {
         assert.ok(/\[object Object\]$/.test(summary.breadcrumbs[3].data.from), "'from' url is incorrect");
         assert.ok(/\/bar\?a=1#fragment/.test(summary.breadcrumbs[3].data.to), "'to' url is incorrect");
       });
-    }
+    },
   );
 
   it(optional('should preserve native code detection compatibility', IS_LOADER), function () {

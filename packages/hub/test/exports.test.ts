@@ -288,14 +288,14 @@ describe('Top Level API', () => {
   test('setExtra', () => {
     init({});
     setExtra('a', 'b');
-    // prettier-ignore
+    // biome-ignore format: Follow-up for prettier
     expect(global.__SENTRY__.hub._stack[0].scope._extra).toEqual({ 'a': 'b' });
   });
 
   test('setTag', () => {
     init({});
     setTag('a', 'b');
-    // prettier-ignore
+    // biome-ignore format: Follow-up for prettier
     expect(global.__SENTRY__.hub._stack[0].scope._tags).toEqual({ 'a': 'b' });
   });
 

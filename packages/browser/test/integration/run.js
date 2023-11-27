@@ -73,23 +73,25 @@ function build() {
 
   writeFile(
     'artifacts/dedupe.js',
-    readFile('../../../integrations/build/bundles/dedupe.js').replace('//# sourceMappingURL=dedupe.js.map', '')
+    readFile('../../../integrations/build/bundles/dedupe.js').replace('//# sourceMappingURL=dedupe.js.map', ''),
   );
   concatFiles('artifacts/setup.js', ['artifacts/dedupe.js', 'common/utils.js', 'common/triggers.js', 'common/init.js']);
   rmdir('artifacts/dedupe.js');
 
   writeFile(
     'artifacts/sdk.js',
-    readFile('../../build/bundles/bundle.js').replace('//# sourceMappingURL=bundle.js.map', '')
+    readFile('../../build/bundles/bundle.js').replace('//# sourceMappingURL=bundle.js.map', ''),
   );
   writeFile(
     'artifacts/loader.js',
-    readFile('../../src/loader.js').replace('../../build/bundles/bundle.js', '/base/artifacts/sdk.js')
+    readFile('../../src/loader.js').replace('../../build/bundles/bundle.js', '/base/artifacts/sdk.js'),
   );
 
   writeFile(
     'artifacts/tests.js',
-    [readFile('polyfills/promise.js'), readFile('suites/helpers.js'), replacePlaceholders('suites/shell.js')].join('\n')
+    [readFile('polyfills/promise.js'), readFile('suites/helpers.js'), replacePlaceholders('suites/shell.js')].join(
+      '\n',
+    ),
   );
 }
 

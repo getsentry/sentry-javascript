@@ -21,10 +21,13 @@
     "indentWidth": 2,
     "lineWidth": 120,
     "ignore": [
-      "*.md",
-      ".nxcache",
       "packages/browser-integration-tests/fixtures/loader.js",
-      "packages/browser/examples/bundle.js"
+      "packages/browser-integration-tests/suites/**/*.json",
+      "packages/browser-integration-tests/loader-suites/**/*.js",
+      "packages/browser-integration-tests/suites/stacktraces/**/*.js",
+      "**/fixtures/*/*.json",
+      "packages/browser/examples/bundle.js",
+      "**/*.min.js"
     ]
   },
   "javascript": {

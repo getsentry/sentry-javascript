@@ -10,7 +10,7 @@ describe('wrapped built-ins', function () {
           window.context = this;
           foo();
         },
-        false
+        false,
       );
       var click = new MouseEvent('click');
       div.dispatchEvent(click);
@@ -252,7 +252,7 @@ describe('wrapped built-ins', function () {
         function namedFunction() {
           foo();
         },
-        false
+        false,
       );
       var click = new MouseEvent('click');
       div.dispatchEvent(click);
@@ -297,7 +297,7 @@ describe('wrapped built-ins', function () {
           function () {
             foo();
           },
-          false
+          false,
         );
         var click = new MouseEvent('click');
         div.dispatchEvent(click);
@@ -321,6 +321,6 @@ describe('wrapped built-ins', function () {
           });
         }
       });
-    }
+    },
   );
 });

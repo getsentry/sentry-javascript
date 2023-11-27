@@ -299,15 +299,18 @@ export class TestEnv {
           return false;
         });
 
-      setTimeout(() => {
-        nock.removeInterceptor(mock);
+      setTimeout(
+        () => {
+          nock.removeInterceptor(mock);
 
-        nock.cleanAll();
+          nock.cleanAll();
 
-        void this._closeServer().then(() => {
-          resolve(reqCount);
-        });
-      }, options.timeout || 1000);
+          void this._closeServer().then(() => {
+            resolve(reqCount);
+          });
+        },
+        options.timeout || 1000,
+      );
     });
   }
 

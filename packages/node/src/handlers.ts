@@ -112,9 +112,9 @@ export function tracingHandler(): (
 export type RequestHandlerOptions =
   // TODO (v8 / XXX) Remove ParseRequestOptions type and eslint override
   // eslint-disable-next-line deprecation/deprecation
-  | (ParseRequestOptions | AddRequestDataToEventOptions) & {
-      flushTimeout?: number;
-    };
+  (ParseRequestOptions | AddRequestDataToEventOptions) & {
+    flushTimeout?: number;
+  };
 
 /**
  * Backwards compatibility shim which can be removed in v8. Forces the given options to follow the

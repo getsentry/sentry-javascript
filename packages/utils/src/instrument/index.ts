@@ -62,7 +62,6 @@ export {
   addGlobalErrorInstrumentationHandler,
   addGlobalUnhandledRejectionInstrumentationHandler,
   SENTRY_XHR_DATA_KEY,
-
   // Only exported for tests
   resetInstrumentationHandlers,
 };
