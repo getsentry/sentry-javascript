@@ -110,6 +110,38 @@ describe('sentryAstro integration', () => {
     });
   });
 
+  it('prefers user-specified assets-globs over the default values', async () => {
+    const integration = sentryAstro({
+      sourceMapsUploadOptions: {
+        enabled: true,
+        org: 'my-org',
+        project: 'my-project',
+        assets: ['dist/server/**/*, dist/client/**/*'],
+      },
+    });
+    // @ts-expect-error - the hook exists and we only need to pass what we actually use
+    await integration.hooks['astro:config:setup']({
+      updateConfig,
+      injectScript,
+      // @ts-expect-error - only passing in partial config
+      config: {
+        outDir: new URL('file://path/to/project/build'),
+      },
+    });
+
+    expect(sentryVitePluginSpy).toHaveBeenCalledTimes(1);
+    expect(sentryVitePluginSpy).toHaveBeenCalledWith({
+      authToken: 'my-token',
+      org: 'my-org',
+      project: 'my-project',
+      telemetry: true,
+      debug: false,
+      sourcemaps: {
+        assets: ['dist/server/**/*, dist/client/**/*'],
+      },
+    });
+  });
+
   it("doesn't enable source maps if `sourceMapsUploadOptions.enabled` is `false`", async () => {
     const integration = sentryAstro({
       sourceMapsUploadOptions: { enabled: false },

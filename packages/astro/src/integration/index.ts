@@ -42,7 +42,7 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
                   authToken: uploadOptions.authToken ?? env.SENTRY_AUTH_TOKEN,
                   telemetry: uploadOptions.telemetry ?? true,
                   sourcemaps: {
-                    assets: [getSourcemapsAssetsGlob(config)],
+                    assets: uploadOptions.assets ?? [getSourcemapsAssetsGlob(config)],
                   },
                   debug: options.debug ?? false,
                 }),
