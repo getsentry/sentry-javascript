@@ -43,7 +43,8 @@
     "url": "https://github.com/getsentry/sentry-javascript/issues"
   },
   "dependencies": {
-    "@sentry/types": "7.81.1"
+    "@sentry/types": "7.81.1",
+    "@sentry/utils": "7.81.1"
   },
   "engines": {
     "node": ">=12"
