@@ -2,7 +2,6 @@ import { captureException, configureScope, getCurrentHub, startSpan } from '@sen
 import type { Hub, Span } from '@sentry/types';
 import {
   addNonEnumerableProperty,
-  logger,
   objectify,
   stripUrlQueryAndFragment,
   tracingContextFromHeaders,
