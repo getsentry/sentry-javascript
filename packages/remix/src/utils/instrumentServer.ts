@@ -93,7 +93,7 @@ export async function captureRemixServerException(err: unknown, name: string, re
   // Skip capturing if the request is aborted as Remix docs suggest
   // Ref: https://remix.run/docs/en/main/file-conventions/entry.server#handleerror
   if (request.signal.aborted) {
-    __DEBUG_BUILD__ && logger.warn('Skipping capture of aborted request');
+    DEBUG_BUILD && logger.warn('Skipping capture of aborted request');
     return;
   }
 
