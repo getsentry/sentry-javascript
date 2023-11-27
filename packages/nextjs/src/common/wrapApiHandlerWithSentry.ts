@@ -6,7 +6,14 @@ import {
   startTransaction,
 } from '@sentry/core';
 import type { Transaction } from '@sentry/types';
-import { isString, logger, objectify, stripUrlQueryAndFragment, tracingContextFromHeaders } from '@sentry/utils';
+import {
+  consoleSandbox,
+  isString,
+  logger,
+  objectify,
+  stripUrlQueryAndFragment,
+  tracingContextFromHeaders,
+} from '@sentry/utils';
 
 import { DEBUG_BUILD } from './debug-build';
 import type { AugmentedNextApiRequest, AugmentedNextApiResponse, NextApiHandler } from './types';
@@ -165,12 +172,14 @@ export function withSentry(apiHandler: NextApiHandler, parameterizedRoute?: stri
               // This can only happen (not always) when the user is using `withSentry` manually, which we're deprecating.
               // Warning suppression on Next.JS is only necessary in that case.
             ) {
-              // eslint-disable-next-line no-console
-              console.warn(
-                `[sentry] If Next.js logs a warning "API resolved without sending a response", it's a false positive, which may happen when you use \`withSentry\` manually to wrap your routes.
-              To suppress this warning, set \`SENTRY_IGNORE_API_RESOLUTION_ERROR\` to 1 in your env.
-              To suppress the nextjs warning, use the \`externalResolver\` API route option (see https://nextjs.org/docs/api-routes/api-middlewares#custom-config for details).`,
-              );
+              consoleSandbox(() => {
+                // eslint-disable-next-line no-console
+                console.warn(
+                  `[sentry] If Next.js logs a warning "API resolved without sending a response", it's a false positive, which may happen when you use \`withSentry\` manually to wrap your routes.
+                To suppress this warning, set \`SENTRY_IGNORE_API_RESOLUTION_ERROR\` to 1 in your env.
+                To suppress the nextjs warning, use the \`externalResolver\` API route option (see https://nextjs.org/docs/api-routes/api-middlewares#custom-config for details).`,
+                );
+              });
             }
 
             return handlerResult;

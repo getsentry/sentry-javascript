@@ -1071,7 +1071,7 @@ class SentryCliDownloadPlugin implements WebpackPluginInstance {
       if (!downloadingCliAttempted) {
         downloadingCliAttempted = true;
         // eslint-disable-next-line no-console
-        console.log(
+        logger.info(
           `\n${chalk.cyan('info')}  - ${chalk.bold(
             'Sentry binary to upload source maps not found.',
           )} Package manager post-install scripts are likely disabled or there is a caching issue. Manually downloading instead...`,
@@ -1087,12 +1087,12 @@ class SentryCliDownloadPlugin implements WebpackPluginInstance {
         cliDownloadPromise.then(
           () => {
             // eslint-disable-next-line no-console
-            console.log(`${chalk.cyan('info')}  - Sentry binary was successfully downloaded.\n`);
+            logger.info(`${chalk.cyan('info')}  - Sentry binary was successfully downloaded.\n`);
             return callback();
           },
           e => {
             // eslint-disable-next-line no-console
-            console.error(`${chalk.red('error')} - Sentry binary download failed:`, e);
+            logger.error(`${chalk.red('error')} - Sentry binary download failed:`, e);
             return callback();
           },
         );

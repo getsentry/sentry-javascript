@@ -1,6 +1,6 @@
 import { hasTracingEnabled } from '@sentry/core';
 import type { Hub, Integration } from '@sentry/types';
-import { arrayify, GLOBAL_OBJ } from '@sentry/utils';
+import { arrayify, consoleSandbox, GLOBAL_OBJ } from '@sentry/utils';
 
 import { DEFAULT_HOOKS } from './constants';
 import { attachErrorHandler } from './errorhandler';
@@ -50,12 +50,14 @@ export class VueIntegration implements Integration {
     const options: Options = { ...DEFAULT_CONFIG, ...(client && client.getOptions()), ...this._options };
 
     if (!options.Vue && !options.app) {
-      // eslint-disable-next-line no-console
-      console.warn(
-        `[@sentry/vue]: Misconfigured SDK. Vue specific errors will not be captured.
+      consoleSandbox(() => {
+        // eslint-disable-next-line no-console
+        console.warn(
+          `[@sentry/vue]: Misconfigured SDK. Vue specific errors will not be captured.
 Update your \`Sentry.init\` call with an appropriate config option:
 \`app\` (Application Instance - Vue 3) or \`Vue\` (Vue Constructor - Vue 2).`,
-      );
+        );
+      });
       return;
     }
 
@@ -80,10 +82,12 @@ const vueInit = (app: Vue, options: Options): void => {
 
   const isMounted = appWithInstance._instance && appWithInstance._instance.isMounted;
   if (isMounted === true) {
-    // eslint-disable-next-line no-console
-    console.warn(
-      '[@sentry/vue]: Misconfigured SDK. Vue app is already mounted. Make sure to call `app.mount()` after `Sentry.init()`.',
-    );
+    consoleSandbox(() => {
+      // eslint-disable-next-line no-console
+      console.warn(
+        '[@sentry/vue]: Misconfigured SDK. Vue app is already mounted. Make sure to call `app.mount()` after `Sentry.init()`.',
+      );
+    });
   }
 
   attachErrorHandler(app, options);

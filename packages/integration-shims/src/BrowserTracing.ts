@@ -1,4 +1,5 @@
 import type { Integration } from '@sentry/types';
+import { consoleSandbox } from '@sentry/utils';
 
 /**
  * This is a shim for the BrowserTracing integration.
@@ -20,8 +21,10 @@ class BrowserTracingShim implements Integration {
   public constructor(_options: any) {
     this.name = BrowserTracingShim.id;
 
-    // eslint-disable-next-line no-console
-    console.error('You are using new BrowserTracing() even though this bundle does not include tracing.');
+    consoleSandbox(() => {
+      // eslint-disable-next-line no-console
+      console.error('You are using new BrowserTracing() even though this bundle does not include tracing.');
+    });
   }
 
   /** jsdoc */
