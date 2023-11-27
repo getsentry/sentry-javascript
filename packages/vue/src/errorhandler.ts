@@ -1,4 +1,5 @@
 import { getCurrentHub } from '@sentry/browser';
+import { consoleSandbox } from '@sentry/utils';
 
 import type { ViewModel, Vue, VueOptions } from './types';
 import { formatComponentName, generateComponentTrace } from './vendor/components';
@@ -46,8 +47,10 @@ export const attachErrorHandler = (app: Vue, options: VueOptions): void => {
       if (warnHandler) {
         (warnHandler as UnknownFunc).call(null, message, vm, trace);
       } else if (hasConsole && !silent) {
-        // eslint-disable-next-line no-console
-        console.error(`[Vue warn]: ${message}${trace}`);
+        consoleSandbox(() => {
+          // eslint-disable-next-line no-console
+          console.error(`[Vue warn]: ${message}${trace}`);
+        });
       }
     }
   };
