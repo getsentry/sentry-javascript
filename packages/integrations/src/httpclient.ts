@@ -16,6 +16,8 @@ import {
   supportsNativeFetch,
 } from '@sentry/utils';
 
+import { DEBUG_BUILD } from './debug-build';
+
 export type HttpStatusCodeRange = [number, number] | number;
 export type HttpRequestTarget = string | RegExp;
 interface HttpClientOptions {
@@ -113,7 +115,7 @@ export class HttpClient implements Integration {
                 cookies = this._parseCookieString(cookieString);
               }
             } catch (e) {
-              __DEBUG_BUILD__ && logger.log(`Could not extract cookies from header ${cookieHeader}`);
+              DEBUG_BUILD && logger.log(`Could not extract cookies from header ${cookieHeader}`);
             }
 
             return {
@@ -157,13 +159,13 @@ export class HttpClient implements Integration {
             responseCookies = this._parseCookieString(cookieString);
           }
         } catch (e) {
-          __DEBUG_BUILD__ && logger.log('Could not extract cookies from response headers');
+          DEBUG_BUILD && logger.log('Could not extract cookies from response headers');
         }
 
         try {
           responseHeaders = this._getXHRResponseHeaders(xhr);
         } catch (e) {
-          __DEBUG_BUILD__ && logger.log('Could not extract headers from response');
+          DEBUG_BUILD && logger.log('Could not extract headers from response');
         }
 
         requestHeaders = headers;
@@ -333,7 +335,7 @@ export class HttpClient implements Integration {
       try {
         this._xhrResponseHandler(xhr, method, headers);
       } catch (e) {
-        __DEBUG_BUILD__ && logger.warn('Error while extracting response event form XHR response', e);
+        DEBUG_BUILD && logger.warn('Error while extracting response event form XHR response', e);
       }
     });
   }

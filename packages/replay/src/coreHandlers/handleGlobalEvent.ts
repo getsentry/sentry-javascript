@@ -1,6 +1,7 @@
 import type { Event, EventHint } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
+import { DEBUG_BUILD } from '../debug-build';
 import type { ReplayContainer } from '../types';
 import { isErrorEvent, isFeedbackEvent, isReplayEvent, isTransactionEvent } from '../util/eventUtils';
 import { isRrwebError } from '../util/isRrwebError';
@@ -53,7 +54,7 @@ export function handleGlobalEventListener(
       // Unless `captureExceptions` is enabled, we want to ignore errors coming from rrweb
       // As there can be a bunch of stuff going wrong in internals there, that we don't want to bubble up to users
       if (isRrwebError(event, hint) && !replay.getOptions()._experiments.captureExceptions) {
-        __DEBUG_BUILD__ && logger.log('[Replay] Ignoring error from rrweb internals', event);
+        DEBUG_BUILD && logger.log('[Replay] Ignoring error from rrweb internals', event);
         return null;
       }
 

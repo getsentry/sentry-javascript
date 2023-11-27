@@ -2,6 +2,7 @@ import { EventType } from '@sentry-internal/rrweb';
 import { logger } from '@sentry/utils';
 
 import { updateClickDetectorForRecordingEvent } from '../coreHandlers/handleClick';
+import { DEBUG_BUILD } from '../debug-build';
 import { saveSession } from '../session/saveSession';
 import type { RecordingEvent, ReplayContainer, ReplayOptionFrameEvent } from '../types';
 import { addEventSync } from './addEvent';
@@ -20,7 +21,7 @@ export function getHandleRecordingEmit(replay: ReplayContainer): RecordingEmitCa
   return (event: RecordingEvent, _isCheckout?: boolean) => {
     // If this is false, it means session is expired, create and a new session and wait for checkout
     if (!replay.checkAndHandleExpiredSession()) {
-      __DEBUG_BUILD__ && logger.warn('[Replay] Received replay event after session expired.');
+      DEBUG_BUILD && logger.warn('[Replay] Received replay event after session expired.');
 
       return;
     }

@@ -1,3 +1,4 @@
+import { DEBUG_BUILD } from '../debug-build';
 import type {
   InstrumentHandlerCallback as _InstrumentHandlerCallback,
   InstrumentHandlerType as _InstrumentHandlerType,
@@ -35,7 +36,7 @@ export function addInstrumentationHandler(type: _InstrumentHandlerType, callback
     case 'unhandledrejection':
       return addGlobalUnhandledRejectionInstrumentationHandler(callback);
     default:
-      __DEBUG_BUILD__ && logger.warn('unknown instrumentation type:', type);
+      DEBUG_BUILD && logger.warn('unknown instrumentation type:', type);
   }
 }
 

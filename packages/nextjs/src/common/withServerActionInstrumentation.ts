@@ -1,6 +1,7 @@
 import { addTracingExtensions, captureException, flush, getCurrentHub, runWithAsyncContext, trace } from '@sentry/core';
 import { logger, tracingContextFromHeaders } from '@sentry/utils';
 
+import { DEBUG_BUILD } from './debug-build';
 import { platformSupportsStreaming } from './utils/platformSupportsStreaming';
 
 interface Options {
@@ -60,7 +61,7 @@ async function withServerActionInstrumentationImplementation<A extends (...args:
         fullHeadersObject[key] = value;
       });
     } catch (e) {
-      __DEBUG_BUILD__ &&
+      DEBUG_BUILD &&
         logger.warn(
           "Sentry wasn't able to extract the tracing headers for a server action. Will not trace this request.",
         );

@@ -1,3 +1,4 @@
+import { DEBUG_BUILD } from '../debug-build';
 import { logger } from '../logger';
 import { getFunctionName } from '../stacktrace';
 
@@ -44,7 +45,7 @@ export function triggerHandlers(type: InstrumentHandlerType, data: unknown): voi
     try {
       handler(data);
     } catch (e) {
-      __DEBUG_BUILD__ &&
+      DEBUG_BUILD &&
         logger.error(
           `Error while triggering instrumentation handler.\nType: ${type}\nName: ${getFunctionName(handler)}\nError:`,
           e,

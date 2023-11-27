@@ -1,6 +1,7 @@
 import type { Breadcrumb, TextEncoderInternal, XhrBreadcrumbData } from '@sentry/types';
 import { logger, SENTRY_XHR_DATA_KEY } from '@sentry/utils';
 
+import { DEBUG_BUILD } from '../../debug-build';
 import type {
   NetworkMetaWarning,
   ReplayContainer,
@@ -37,7 +38,7 @@ export async function captureXhrBreadcrumbToReplay(
     const result = makeNetworkReplayBreadcrumb('resource.xhr', data);
     addNetworkBreadcrumb(options.replay, result);
   } catch (error) {
-    __DEBUG_BUILD__ && logger.error('[Replay] Failed to capture xhr breadcrumb', error);
+    DEBUG_BUILD && logger.error('[Replay] Failed to capture xhr breadcrumb', error);
   }
 }
 
@@ -159,7 +160,7 @@ function _getXhrResponseBody(xhr: XMLHttpRequest): [string | undefined, NetworkM
     errors.push(e);
   }
 
-  __DEBUG_BUILD__ && logger.warn('[Replay] Failed to get xhr response body', ...errors);
+  DEBUG_BUILD && logger.warn('[Replay] Failed to get xhr response body', ...errors);
 
   return [undefined];
 }

@@ -8,6 +8,7 @@ import {
 import type { Transaction } from '@sentry/types';
 import { isString, logger, objectify, stripUrlQueryAndFragment, tracingContextFromHeaders } from '@sentry/utils';
 
+import { DEBUG_BUILD } from './debug-build';
 import type { AugmentedNextApiRequest, AugmentedNextApiResponse, NextApiHandler } from './types';
 import { platformSupportsStreaming } from './utils/platformSupportsStreaming';
 import { autoEndTransactionOnResponseEnd, finishTransaction, flushQueue } from './utils/responseEnd';
@@ -96,7 +97,7 @@ export function withSentry(apiHandler: NextApiHandler, parameterizedRoute?: stri
             );
             currentScope.setPropagationContext(propagationContext);
 
-            if (__DEBUG_BUILD__ && traceparentData) {
+            if (DEBUG_BUILD && traceparentData) {
               logger.log(`[Tracing] Continuing trace ${traceparentData.traceId}.`);
             }
 

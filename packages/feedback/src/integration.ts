@@ -16,6 +16,7 @@ import {
   SUCCESS_MESSAGE_TEXT,
   WINDOW,
 } from './constants';
+import { DEBUG_BUILD } from './debug-build';
 import type { FeedbackInternalOptions, FeedbackWidget, OptionalFeedbackConfiguration } from './types';
 import { mergeOptions } from './util/mergeOptions';
 import { createActorStyles } from './widget/Actor.css';
@@ -173,7 +174,7 @@ export class Feedback implements Integration {
 
       this._createWidget(this.options);
     } catch (err) {
-      __DEBUG_BUILD__ && logger.error(err);
+      DEBUG_BUILD && logger.error(err);
     }
   }
 
@@ -218,7 +219,7 @@ export class Feedback implements Integration {
           typeof el === 'string' ? doc.querySelector(el) : typeof el.addEventListener === 'function' ? el : null;
 
         if (!targetEl) {
-          __DEBUG_BUILD__ && logger.error('[Feedback] Unable to attach to target element');
+          DEBUG_BUILD && logger.error('[Feedback] Unable to attach to target element');
           return null;
         }
 
@@ -232,7 +233,7 @@ export class Feedback implements Integration {
         return widget;
       });
     } catch (err) {
-      __DEBUG_BUILD__ && logger.error(err);
+      DEBUG_BUILD && logger.error(err);
       return null;
     }
   }
@@ -246,7 +247,7 @@ export class Feedback implements Integration {
     try {
       return this._createWidget(mergeOptions(this.options, optionOverrides || {}));
     } catch (err) {
-      __DEBUG_BUILD__ && logger.error(err);
+      DEBUG_BUILD && logger.error(err);
       return null;
     }
   }
@@ -273,7 +274,7 @@ export class Feedback implements Integration {
         return true;
       }
     } catch (err) {
-      __DEBUG_BUILD__ && logger.error(err);
+      DEBUG_BUILD && logger.error(err);
     }
 
     return false;

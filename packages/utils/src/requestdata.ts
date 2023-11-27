@@ -9,6 +9,7 @@ import type {
 } from '@sentry/types';
 
 import { parseCookie } from './cookie';
+import { DEBUG_BUILD } from './debug-build';
 import { isPlainObject, isString } from './is';
 import { logger } from './logger';
 import { normalize } from './normalize';
@@ -379,7 +380,7 @@ export function winterCGHeadersToDict(winterCGHeaders: WebFetchHeaders): Record<
       }
     });
   } catch (e) {
-    __DEBUG_BUILD__ &&
+    DEBUG_BUILD &&
       logger.warn('Sentry failed extracting headers from a request object. If you see this, please file an issue.');
   }
 

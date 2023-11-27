@@ -1,12 +1,14 @@
 import type { Envelope, InternalBaseTransportOptions, Transport, TransportMakeRequestResponse } from '@sentry/types';
 import { envelopeContainsItemType, logger, parseRetryAfterHeader } from '@sentry/utils';
 
+import { DEBUG_BUILD } from '../debug-build';
+
 export const MIN_DELAY = 100; // 100 ms
 export const START_DELAY = 5_000; // 5 seconds
 const MAX_DELAY = 3.6e6; // 1 hour
 
 function log(msg: string, error?: Error): void {
-  __DEBUG_BUILD__ && logger.info(`[Offline]: ${msg}`, error);
+  DEBUG_BUILD && logger.info(`[Offline]: ${msg}`, error);
 }
 
 export interface OfflineStore {

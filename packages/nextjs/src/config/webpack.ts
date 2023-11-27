@@ -9,6 +9,7 @@ import * as path from 'path';
 import { sync as resolveSync } from 'resolve';
 import type { Compiler } from 'webpack';
 
+import { DEBUG_BUILD } from '../common/debug-build';
 import type { VercelCronsConfig } from '../common/types';
 // Note: If you need to import a type from Webpack, do it in `types.ts` and export it from there. Otherwise, our
 // circular dependency check thinks this file is importing from itself. See https://github.com/pahen/madge/issues/306.
@@ -528,7 +529,7 @@ async function addSentryToEntryProperty(
         // We always skip these, so it's not worth telling the user that we've done so
         !['pages/_app', 'pages/_document'].includes(entryPointName)
       ) {
-        __DEBUG_BUILD__ && logger.log(`Skipping Sentry injection for ${entryPointName.replace(/^pages/, '')}`);
+        DEBUG_BUILD && logger.log(`Skipping Sentry injection for ${entryPointName.replace(/^pages/, '')}`);
       }
     }
   }
@@ -662,7 +663,7 @@ function checkWebpackPluginOverrides(
   // warn if any of the default options for the webpack plugin are getting overridden
   const sentryWebpackPluginOptionOverrides = Object.keys(defaultOptions).filter(key => key in userOptions);
   if (sentryWebpackPluginOptionOverrides.length > 0) {
-    __DEBUG_BUILD__ &&
+    DEBUG_BUILD &&
       logger.warn(
         '[Sentry] You are overriding the following automatically-set SentryWebpackPlugin config options:\n' +
           `\t${sentryWebpackPluginOptionOverrides.toString()},\n` +

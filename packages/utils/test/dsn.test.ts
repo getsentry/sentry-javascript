@@ -1,3 +1,4 @@
+import { DEBUG_BUILD } from '../src/debug-build';
 import { dsnToString, makeDsn } from '../src/dsn';
 import { logger } from '../src/logger';
 
@@ -48,7 +49,7 @@ describe('Dsn', () => {
       expect(dsn?.projectId).toBe('123');
     });
 
-    testIf(__DEBUG_BUILD__)('returns `undefined` for missing components', () => {
+    testIf(DEBUG_BUILD)('returns `undefined` for missing components', () => {
       expect(
         makeDsn({
           host: '',
@@ -85,7 +86,7 @@ describe('Dsn', () => {
       expect(loggerErrorSpy).toHaveBeenCalledTimes(4);
     });
 
-    testIf(__DEBUG_BUILD__)('returns `undefined` if components are invalid', () => {
+    testIf(DEBUG_BUILD)('returns `undefined` if components are invalid', () => {
       expect(
         makeDsn({
           host: 'sentry.io',
@@ -164,12 +165,12 @@ describe('Dsn', () => {
       expect(dsn?.projectId).toBe('321');
     });
 
-    testIf(__DEBUG_BUILD__)('returns undefined when provided invalid Dsn', () => {
+    testIf(DEBUG_BUILD)('returns undefined when provided invalid Dsn', () => {
       expect(makeDsn('some@random.dsn')).toBeUndefined();
       expect(consoleErrorSpy).toHaveBeenCalledTimes(1);
     });
 
-    testIf(__DEBUG_BUILD__)('returns undefined if mandatory fields are missing', () => {
+    testIf(DEBUG_BUILD)('returns undefined if mandatory fields are missing', () => {
       expect(makeDsn('://abc@sentry.io/123')).toBeUndefined();
       expect(makeDsn('https://@sentry.io/123')).toBeUndefined();
       expect(makeDsn('https://abc@123')).toBeUndefined();
@@ -177,7 +178,7 @@ describe('Dsn', () => {
       expect(consoleErrorSpy).toHaveBeenCalledTimes(4);
     });
 
-    testIf(__DEBUG_BUILD__)('returns undefined if fields are invalid', () => {
+    testIf(DEBUG_BUILD)('returns undefined if fields are invalid', () => {
       expect(makeDsn('httpx://abc@sentry.io/123')).toBeUndefined();
       expect(makeDsn('httpx://abc@sentry.io:xxx/123')).toBeUndefined();
       expect(makeDsn('http://abc@sentry.io/abc')).toBeUndefined();

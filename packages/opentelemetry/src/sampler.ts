@@ -7,6 +7,7 @@ import { hasTracingEnabled } from '@sentry/core';
 import type { Client, ClientOptions, SamplingContext } from '@sentry/types';
 import { isNaN, logger } from '@sentry/utils';
 
+import { DEBUG_BUILD } from './debug-build';
 import { InternalSentrySemanticAttributes } from './semanticAttributes';
 import { getPropagationContextFromContext } from './utils/contextData';
 
@@ -44,12 +45,11 @@ export class SentrySampler implements Sampler {
     if (parentContext && isSpanContextValid(parentContext) && parentContext.traceId === traceId) {
       if (parentContext.isRemote) {
         parentSampled = getParentRemoteSampled(parentContext, context);
-        __DEBUG_BUILD__ &&
+        DEBUG_BUILD &&
           logger.log(`[Tracing] Inheriting remote parent's sampled decision for ${spanName}: ${parentSampled}`);
       } else {
         parentSampled = Boolean(parentContext.traceFlags & TraceFlags.SAMPLED);
-        __DEBUG_BUILD__ &&
-          logger.log(`[Tracing] Inheriting parent's sampled decision for ${spanName}: ${parentSampled}`);
+        DEBUG_BUILD && logger.log(`[Tracing] Inheriting parent's sampled decision for ${spanName}: ${parentSampled}`);
       }
     }
 
@@ -72,7 +72,7 @@ export class SentrySampler implements Sampler {
     // Since this is coming from the user (or from a function provided by the user), who knows what we might get. (The
     // only valid values are booleans or numbers between 0 and 1.)
     if (!isValidSampleRate(sampleRate)) {
-      __DEBUG_BUILD__ && logger.warn('[Tracing] Discarding span because of invalid sample rate.');
+      DEBUG_BUILD && logger.warn('[Tracing] Discarding span because of invalid sample rate.');
 
       return {
         decision: SamplingDecision.NOT_RECORD,
@@ -82,7 +82,7 @@ export class SentrySampler implements Sampler {
 
     // if the function returned 0 (or false), or if `tracesSampleRate` is 0, it's a sign the transaction should be dropped
     if (!sampleRate) {
-      __DEBUG_BUILD__ &&
+      DEBUG_BUILD &&
         logger.log(
           `[Tracing] Discarding span because ${
             typeof options.tracesSampler === 'function'
@@ -103,7 +103,7 @@ export class SentrySampler implements Sampler {
 
     // if we're not going to keep it, we're done
     if (!isSampled) {
-      __DEBUG_BUILD__ &&
+      DEBUG_BUILD &&
         logger.log(
           `[Tracing] Discarding span because it's not included in the random sample (sampling rate = ${Number(
             sampleRate,
@@ -159,7 +159,7 @@ function isValidSampleRate(rate: unknown): boolean {
   // we need to check NaN explicitly because it's of type 'number' and therefore wouldn't get caught by this typecheck
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   if (isNaN(rate) || !(typeof rate === 'number' || typeof rate === 'boolean')) {
-    __DEBUG_BUILD__ &&
+    DEBUG_BUILD &&
       logger.warn(
         `[Tracing] Given sample rate is invalid. Sample rate must be a boolean or a number between 0 and 1. Got ${JSON.stringify(
           rate,
@@ -170,7 +170,7 @@ function isValidSampleRate(rate: unknown): boolean {
 
   // in case sampleRate is a boolean, it will get automatically cast to 1 if it's true and 0 if it's false
   if (rate < 0 || rate > 1) {
-    __DEBUG_BUILD__ &&
+    DEBUG_BUILD &&
       logger.warn(`[Tracing] Given sample rate is invalid. Sample rate must be between 0 and 1. Got ${rate}.`);
     return false;
   }
