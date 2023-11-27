@@ -4,6 +4,7 @@ import {
   logger,
 } from '@sentry/utils';
 
+import { DEBUG_BUILD } from '../debug-build';
 import type { SpanStatusType } from './span';
 import { getActiveTransaction } from './utils';
 
@@ -29,7 +30,7 @@ function errorCallback(): void {
   const activeTransaction = getActiveTransaction();
   if (activeTransaction) {
     const status: SpanStatusType = 'internal_error';
-    __DEBUG_BUILD__ && logger.log(`[Tracing] Transaction: ${status} -> Global error occured`);
+    DEBUG_BUILD && logger.log(`[Tracing] Transaction: ${status} -> Global error occured`);
     activeTransaction.setStatus(status);
   }
 }

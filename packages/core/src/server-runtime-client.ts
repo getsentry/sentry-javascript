@@ -15,6 +15,7 @@ import { eventFromMessage, eventFromUnknownInput, logger, resolvedSyncPromise, u
 
 import { BaseClient } from './baseclient';
 import { createCheckInEnvelope } from './checkin';
+import { DEBUG_BUILD } from './debug-build';
 import { getCurrentHub } from './hub';
 import type { Scope } from './scope';
 import { SessionFlusher } from './sessionflusher';
@@ -129,7 +130,7 @@ export class ServerRuntimeClient<
   public initSessionFlusher(): void {
     const { release, environment } = this._options;
     if (!release) {
-      __DEBUG_BUILD__ && logger.warn('Cannot initialise an instance of SessionFlusher if no release is provided!');
+      DEBUG_BUILD && logger.warn('Cannot initialise an instance of SessionFlusher if no release is provided!');
     } else {
       this._sessionFlusher = new SessionFlusher(this, {
         release,
@@ -148,7 +149,7 @@ export class ServerRuntimeClient<
   public captureCheckIn(checkIn: CheckIn, monitorConfig?: MonitorConfig, scope?: Scope): string {
     const id = checkIn.status !== 'in_progress' && checkIn.checkInId ? checkIn.checkInId : uuid4();
     if (!this._isEnabled()) {
-      __DEBUG_BUILD__ && logger.warn('SDK not enabled, will not capture checkin.');
+      DEBUG_BUILD && logger.warn('SDK not enabled, will not capture checkin.');
       return id;
     }
 
@@ -191,7 +192,7 @@ export class ServerRuntimeClient<
       this.getDsn(),
     );
 
-    __DEBUG_BUILD__ && logger.info('Sending checkin:', checkIn.monitorSlug, checkIn.status);
+    DEBUG_BUILD && logger.info('Sending checkin:', checkIn.monitorSlug, checkIn.status);
     void this._sendEnvelope(envelope);
     return id;
   }
@@ -202,7 +203,7 @@ export class ServerRuntimeClient<
    */
   protected _captureRequestSession(): void {
     if (!this._sessionFlusher) {
-      __DEBUG_BUILD__ && logger.warn('Discarded request mode session because autoSessionTracking option was disabled');
+      DEBUG_BUILD && logger.warn('Discarded request mode session because autoSessionTracking option was disabled');
     } else {
       this._sessionFlusher.incrementSessionStatusCount();
     }

@@ -8,6 +8,7 @@ import type {
 } from '@sentry/types';
 import { addFetchInstrumentationHandler, addXhrInstrumentationHandler, logger } from '@sentry/utils';
 
+import { DEBUG_BUILD } from '../debug-build';
 import type { FetchHint, ReplayContainer, ReplayNetworkOptions, XhrHint } from '../types';
 import { handleFetchSpanListener } from './handleFetch';
 import { handleXhrSpanListener } from './handleXhr';
@@ -90,7 +91,7 @@ export function beforeAddNetworkBreadcrumb(
       void captureFetchBreadcrumbToReplay(breadcrumb, hint, options);
     }
   } catch (e) {
-    __DEBUG_BUILD__ && logger.warn('Error when enriching network breadcrumb');
+    DEBUG_BUILD && logger.warn('Error when enriching network breadcrumb');
   }
 }
 

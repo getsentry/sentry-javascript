@@ -4,6 +4,7 @@ import { Scope } from '@sentry/core';
 import type { Breadcrumb, SeverityLevel, Span as SentrySpan } from '@sentry/types';
 import { dateTimestampInSeconds, dropUndefinedKeys, logger, normalize } from '@sentry/utils';
 
+import { DEBUG_BUILD } from '../debug-build';
 import { InternalSentrySemanticAttributes } from '../semanticAttributes';
 import { convertOtelTimeToSeconds } from '../utils/convertOtelTimeToSeconds';
 import { getActiveSpan, getRootSpan } from '../utils/getActiveSpan';
@@ -48,8 +49,7 @@ export class OpenTelemetryScope extends Scope {
    * Instead, use the global `getActiveSpan()`.
    */
   public getSpan(): undefined {
-    __DEBUG_BUILD__ &&
-      logger.warn('Calling getSpan() is a noop in @sentry/opentelemetry. Use `getActiveSpan()` instead.');
+    DEBUG_BUILD && logger.warn('Calling getSpan() is a noop in @sentry/opentelemetry. Use `getActiveSpan()` instead.');
 
     return undefined;
   }
@@ -59,7 +59,7 @@ export class OpenTelemetryScope extends Scope {
    * Instead, use the global `startSpan()` to define the active span.
    */
   public setSpan(_span: SentrySpan): this {
-    __DEBUG_BUILD__ && logger.warn('Calling setSpan() is a noop in @sentry/opentelemetry. Use `startSpan()` instead.');
+    DEBUG_BUILD && logger.warn('Calling setSpan() is a noop in @sentry/opentelemetry. Use `startSpan()` instead.');
 
     return this;
   }

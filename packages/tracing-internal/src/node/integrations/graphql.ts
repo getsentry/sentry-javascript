@@ -2,6 +2,7 @@ import type { Hub } from '@sentry/core';
 import type { EventProcessor } from '@sentry/types';
 import { fill, isThenable, loadModule, logger } from '@sentry/utils';
 
+import { DEBUG_BUILD } from '../../common/debug-build';
 import type { LazyLoadedIntegration } from './lazy';
 import { shouldDisableAutoInstrumentation } from './utils/node-utils';
 
@@ -37,14 +38,14 @@ export class GraphQL implements LazyLoadedIntegration<GraphQLModule> {
    */
   public setupOnce(_: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
     if (shouldDisableAutoInstrumentation(getCurrentHub)) {
-      __DEBUG_BUILD__ && logger.log('GraphQL Integration is skipped because of instrumenter configuration.');
+      DEBUG_BUILD && logger.log('GraphQL Integration is skipped because of instrumenter configuration.');
       return;
     }
 
     const pkg = this.loadDependency();
 
     if (!pkg) {
-      __DEBUG_BUILD__ && logger.error('GraphQL Integration was unable to require graphql/execution package.');
+      DEBUG_BUILD && logger.error('GraphQL Integration was unable to require graphql/execution package.');
       return;
     }
 

@@ -2,6 +2,7 @@ import type { TransportMakeRequestResponse } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
 import { FEEDBACK_WIDGET_SOURCE } from '../constants';
+import { DEBUG_BUILD } from '../debug-build';
 import { sendFeedback } from '../sendFeedback';
 import type { FeedbackFormData, SendFeedbackOptions } from '../types';
 import type { DialogComponent } from '../widget/Dialog';
@@ -35,7 +36,7 @@ export async function handleFeedbackSubmit(
     // Success!
     return resp;
   } catch (err) {
-    __DEBUG_BUILD__ && logger.error(err);
+    DEBUG_BUILD && logger.error(err);
     showFetchError();
   }
 }

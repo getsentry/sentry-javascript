@@ -2,6 +2,8 @@ import type { Carrier, Hub, RunWithAsyncContextOptions } from '@sentry/core';
 import { ensureHubOnCarrier, getHubFromCarrier, setAsyncContextStrategy } from '@sentry/core';
 import { GLOBAL_OBJ, logger } from '@sentry/utils';
 
+import { DEBUG_BUILD } from './debug-build';
+
 interface AsyncLocalStorage<T> {
   getStore(): T | undefined;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -18,7 +20,7 @@ let asyncStorage: AsyncLocalStorage<Hub>;
  */
 export function setAsyncLocalStorageAsyncContextStrategy(): void {
   if (!MaybeGlobalAsyncLocalStorage) {
-    __DEBUG_BUILD__ &&
+    DEBUG_BUILD &&
       logger.warn(
         "Tried to register AsyncLocalStorage async context strategy in a runtime that doesn't support AsyncLocalStorage.",
       );

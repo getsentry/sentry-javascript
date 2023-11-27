@@ -1,5 +1,6 @@
 import type { DsnComponents, DsnLike, DsnProtocol } from '@sentry/types';
 
+import { DEBUG_BUILD } from './debug-build';
 import { logger } from './logger';
 
 /** Regular expression used to parse a Dsn. */
@@ -75,7 +76,7 @@ function dsnFromComponents(components: DsnComponents): DsnComponents {
 }
 
 function validateDsn(dsn: DsnComponents): boolean {
-  if (!__DEBUG_BUILD__) {
+  if (!DEBUG_BUILD) {
     return true;
   }
 

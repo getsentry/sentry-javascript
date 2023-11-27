@@ -4,6 +4,7 @@ import type { Transaction, TransactionContext } from '@sentry/types';
 import { isNodeEnv, logger } from '@sentry/utils';
 import * as React from 'react';
 
+import { DEBUG_BUILD } from '../utils/debug-build';
 import { getFutureFlagsBrowser, readRemixVersionFromLoader } from '../utils/futureFlags';
 
 const DEFAULT_TAGS = {
@@ -108,7 +109,7 @@ export function withSentry<P extends Record<string, unknown>, R extends React.Co
   const SentryRoot: React.FC<P> = (props: P) => {
     // Early return when any of the required functions is not available.
     if (!_useEffect || !_useLocation || !_useMatches || !_customStartTransaction) {
-      __DEBUG_BUILD__ &&
+      DEBUG_BUILD &&
         !isNodeEnv() &&
         logger.warn('Remix SDK was unable to wrap your root because of one or more missing parameters.');
 

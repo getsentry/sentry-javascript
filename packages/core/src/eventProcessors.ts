@@ -1,6 +1,8 @@
 import type { Event, EventHint, EventProcessor } from '@sentry/types';
 import { getGlobalSingleton, isThenable, logger, SyncPromise } from '@sentry/utils';
 
+import { DEBUG_BUILD } from './debug-build';
+
 /**
  * Returns the global event processors.
  */
@@ -32,10 +34,7 @@ export function notifyEventProcessors(
     } else {
       const result = processor({ ...event }, hint) as Event | null;
 
-      __DEBUG_BUILD__ &&
-        processor.id &&
-        result === null &&
-        logger.log(`Event processor "${processor.id}" dropped event`);
+      DEBUG_BUILD && processor.id && result === null && logger.log(`Event processor "${processor.id}" dropped event`);
 
       if (isThenable(result)) {
         void result

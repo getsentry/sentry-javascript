@@ -18,6 +18,7 @@ import type {
 } from '@sentry/types';
 import { isThenable, logger, timestampInSeconds, uuid4 } from '@sentry/utils';
 
+import { DEBUG_BUILD } from './debug-build';
 import type { Hub } from './hub';
 import { getCurrentHub } from './hub';
 import type { Scope } from './scope';
@@ -205,9 +206,9 @@ export function captureCheckIn(checkIn: CheckIn, upsertMonitorConfig?: MonitorCo
   const scope = hub.getScope();
   const client = hub.getClient();
   if (!client) {
-    __DEBUG_BUILD__ && logger.warn('Cannot capture check-in. No client defined.');
+    DEBUG_BUILD && logger.warn('Cannot capture check-in. No client defined.');
   } else if (!client.captureCheckIn) {
-    __DEBUG_BUILD__ && logger.warn('Cannot capture check-in. Client does not support sending check-ins.');
+    DEBUG_BUILD && logger.warn('Cannot capture check-in. Client does not support sending check-ins.');
   } else {
     return client.captureCheckIn(checkIn, upsertMonitorConfig, scope);
   }
@@ -271,7 +272,7 @@ export async function flush(timeout?: number): Promise<boolean> {
   if (client) {
     return client.flush(timeout);
   }
-  __DEBUG_BUILD__ && logger.warn('Cannot flush events. No client defined.');
+  DEBUG_BUILD && logger.warn('Cannot flush events. No client defined.');
   return Promise.resolve(false);
 }
 
@@ -288,7 +289,7 @@ export async function close(timeout?: number): Promise<boolean> {
   if (client) {
     return client.close(timeout);
   }
-  __DEBUG_BUILD__ && logger.warn('Cannot flush events and disable SDK. No client defined.');
+  DEBUG_BUILD && logger.warn('Cannot flush events and disable SDK. No client defined.');
   return Promise.resolve(false);
 }
 

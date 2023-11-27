@@ -1,6 +1,7 @@
 import type { Client, ClientOptions } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
+import { DEBUG_BUILD } from './debug-build';
 import { getCurrentHub } from './hub';
 
 /** A class object that can instantiate Client objects. */
@@ -18,7 +19,7 @@ export function initAndBind<F extends Client, O extends ClientOptions>(
   options: O,
 ): void {
   if (options.debug === true) {
-    if (__DEBUG_BUILD__) {
+    if (DEBUG_BUILD) {
       logger.enable();
     } else {
       // use `console.warn` rather than `logger.warn` since by non-debug bundles have all `logger.x` statements stripped

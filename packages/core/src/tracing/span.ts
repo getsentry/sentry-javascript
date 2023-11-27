@@ -10,6 +10,8 @@ import type {
 } from '@sentry/types';
 import { dropUndefinedKeys, generateSentryTraceHeader, logger, timestampInSeconds, uuid4 } from '@sentry/utils';
 
+import { DEBUG_BUILD } from '../debug-build';
+
 /**
  * Keeps track of finished spans for a given transaction
  * @internal
@@ -190,7 +192,7 @@ export class Span implements SpanInterface {
 
     childSpan.transaction = this.transaction;
 
-    if (__DEBUG_BUILD__ && childSpan.transaction) {
+    if (DEBUG_BUILD && childSpan.transaction) {
       const opStr = (spanContext && spanContext.op) || '< unknown op >';
       const nameStr = childSpan.transaction.name || '< unknown name >';
       const idStr = childSpan.transaction.spanId;
@@ -260,7 +262,7 @@ export class Span implements SpanInterface {
    */
   public finish(endTimestamp?: number): void {
     if (
-      __DEBUG_BUILD__ &&
+      DEBUG_BUILD &&
       // Don't call this for transactions
       this.transaction &&
       this.transaction.spanId !== this.spanId
