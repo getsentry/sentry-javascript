@@ -13,7 +13,8 @@ import type { ErrorResponse } from '../utils/vendor/types';
 export function captureRemixErrorBoundaryError(error: unknown): string | undefined {
   let eventId: string | undefined;
   const isClientSideRuntimeError = !isNodeEnv() && error instanceof Error;
-  const isRemixErrorResponse = isRouteErrorResponse(error);
+  // We only capture `ErrorResponse`s that are 5xx errors.
+  const isRemixErrorResponse = isRouteErrorResponse(error) && error.status >= 500;
   // Server-side errors apart from `ErrorResponse`s also appear here without their stacktraces.
   // So, we only capture:
   //    1. `ErrorResponse`s
