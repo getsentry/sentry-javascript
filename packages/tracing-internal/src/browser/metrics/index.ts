@@ -497,7 +497,7 @@ function setResourceEntrySizeData(
   dataKey: 'http.response_transfer_size' | 'http.response_content_length' | 'http.decoded_response_content_length',
 ): void {
   const entryVal = entry[key];
-  if (entryVal !== undefined && entryVal < MAX_INT_AS_BYTES) {
+  if (entryVal != null && entryVal < MAX_INT_AS_BYTES) {
     data[dataKey] = entryVal;
   }
 }
