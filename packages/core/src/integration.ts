@@ -2,6 +2,7 @@ import type { Client, Event, EventHint, Integration, Options } from '@sentry/typ
 import { arrayify, logger } from '@sentry/utils';
 
 import { addGlobalEventProcessor } from './eventProcessors';
+import { getClient } from './exports';
 import { getCurrentHub } from './hub';
 
 declare module '@sentry/types' {
@@ -101,9 +102,15 @@ export function setupIntegrations(client: Client, integrations: Integration[]): 
 export function setupIntegration(client: Client, integration: Integration, integrationIndex: IntegrationIndex): void {
   integrationIndex[integration.name] = integration;
 
+  // `setupOnce` is only called the first time
   if (installedIntegrations.indexOf(integration.name) === -1) {
     integration.setupOnce(addGlobalEventProcessor, getCurrentHub);
     installedIntegrations.push(integration.name);
+  }
+
+  // `setup` is run for each client
+  if (integration.setup && typeof integration.setup === 'function') {
+    integration.setup(client);
   }
 
   if (client.on && typeof integration.preprocessEvent === 'function') {
@@ -126,7 +133,7 @@ export function setupIntegration(client: Client, integration: Integration, integ
 
 /** Add an integration to the current hub's client. */
 export function addIntegration(integration: Integration): void {
-  const client = getCurrentHub().getClient();
+  const client = getClient();
 
   if (!client || !client.addIntegration) {
     __DEBUG_BUILD__ && logger.warn(`Cannot add integration "${integration.name}" because no SDK Client is available.`);

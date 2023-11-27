@@ -1,7 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import {
   captureException,
+  continueTrace,
   flush,
+  getClient,
   getCurrentHub,
   hasTracingEnabled,
   runWithAsyncContext,
@@ -11,20 +13,18 @@ import {
 import type { Span } from '@sentry/types';
 import type { AddRequestDataToEventOptions } from '@sentry/utils';
 import {
-  addExceptionMechanism,
   addRequestDataToTransaction,
   dropUndefinedKeys,
   extractPathForTransaction,
+  extractRequestData,
   isString,
   isThenable,
   logger,
   normalize,
-  tracingContextFromHeaders,
 } from '@sentry/utils';
 import type * as http from 'http';
 
 import type { NodeClient } from './client';
-import { extractRequestData } from './requestdata';
 // TODO (v8 / XXX) Remove this import
 import type { ParseRequestOptions } from './requestDataDeprecated';
 import { isAutoSessionTrackingEnabled } from './sdk';
@@ -57,35 +57,31 @@ export function tracingHandler(): (
 
     const sentryTrace = req.headers && isString(req.headers['sentry-trace']) ? req.headers['sentry-trace'] : undefined;
     const baggage = req.headers?.baggage;
-    const { traceparentData, dynamicSamplingContext, propagationContext } = tracingContextFromHeaders(
-      sentryTrace,
-      baggage,
-    );
-    hub.getScope().setPropagationContext(propagationContext);
-
     if (!hasTracingEnabled(options)) {
       return next();
     }
 
     const [name, source] = extractPathForTransaction(req, { path: true, method: true });
-    const transaction = startTransaction(
-      {
-        name,
-        op: 'http.server',
-        origin: 'auto.http.node.tracingHandler',
-        ...traceparentData,
-        metadata: {
-          dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
-          // The request should already have been stored in `scope.sdkProcessingMetadata` (which will become
-          // `event.sdkProcessingMetadata` the same way the metadata here will) by `sentryRequestMiddleware`, but on the
-          // off chance someone is using `sentryTracingMiddleware` without `sentryRequestMiddleware`, it doesn't hurt to
-          // be sure
-          request: req,
-          source,
+    const transaction = continueTrace({ sentryTrace, baggage }, ctx =>
+      startTransaction(
+        {
+          name,
+          op: 'http.server',
+          origin: 'auto.http.node.tracingHandler',
+          ...ctx,
+          metadata: {
+            ...ctx.metadata,
+            // The request should already have been stored in `scope.sdkProcessingMetadata` (which will become
+            // `event.sdkProcessingMetadata` the same way the metadata here will) by `sentryRequestMiddleware`, but on the
+            // off chance someone is using `sentryTracingMiddleware` without `sentryRequestMiddleware`, it doesn't hurt to
+            // be sure
+            request: req,
+            source,
+          },
         },
-      },
-      // extra context passed to the tracesSampler
-      { request: extractRequestData(req) },
+        // extra context passed to the tracesSampler
+        { request: extractRequestData(req) },
+      ),
     );
 
     // We put the transaction on the scope so users can attach children to it
@@ -283,7 +279,7 @@ export function errorHandler(options?: {
           _scope.setSpan(transaction);
         }
 
-        const client = getCurrentHub().getClient<NodeClient>();
+        const client = getClient<NodeClient>();
         if (client && isAutoSessionTrackingEnabled(client)) {
           // Check if the `SessionFlusher` is instantiated on the client to go into this branch that marks the
           // `requestSession.status` as `Crashed`, and this check is necessary because the `SessionFlusher` is only
@@ -302,12 +298,7 @@ export function errorHandler(options?: {
           }
         }
 
-        _scope.addEventProcessor(event => {
-          addExceptionMechanism(event, { type: 'middleware', handled: false });
-          return event;
-        });
-
-        const eventId = captureException(error);
+        const eventId = captureException(error, { mechanism: { type: 'middleware', handled: false } });
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         (res as any).sentry = eventId;
         next(error);
@@ -371,16 +362,7 @@ export function trpcMiddleware(options: SentryTrpcMiddlewareOptions = {}) {
 
     function handleErrorCase(e: unknown): void {
       if (shouldCaptureError(e)) {
-        captureException(e, scope => {
-          scope.addEventProcessor(event => {
-            addExceptionMechanism(event, {
-              handled: false,
-            });
-            return event;
-          });
-
-          return scope;
-        });
+        captureException(e, { mechanism: { handled: false } });
       }
     }
 

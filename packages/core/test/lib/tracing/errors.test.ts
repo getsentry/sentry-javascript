@@ -1,27 +1,26 @@
 import { BrowserClient } from '@sentry/browser';
 import { addTracingExtensions, Hub, makeMain } from '@sentry/core';
-import type { InstrumentHandlerCallback, InstrumentHandlerType } from '@sentry/utils';
+import type { HandlerDataError, HandlerDataUnhandledRejection } from '@sentry/types';
 
 import { getDefaultBrowserClientOptions } from '../../../../tracing/test/testutils';
 import { registerErrorInstrumentation } from '../../../src/tracing/errors';
 
-const mockAddInstrumentationHandler = jest.fn();
-let mockErrorCallback: InstrumentHandlerCallback = () => undefined;
-let mockUnhandledRejectionCallback: InstrumentHandlerCallback = () => undefined;
+const mockAddGlobalErrorInstrumentationHandler = jest.fn();
+const mockAddGlobalUnhandledRejectionInstrumentationHandler = jest.fn();
+let mockErrorCallback: (data: HandlerDataError) => void = () => {};
+let mockUnhandledRejectionCallback: (data: HandlerDataUnhandledRejection) => void = () => {};
 jest.mock('@sentry/utils', () => {
   const actual = jest.requireActual('@sentry/utils');
   return {
     ...actual,
-    addInstrumentationHandler: (type: InstrumentHandlerType, callback: InstrumentHandlerCallback) => {
-      if (type === 'error') {
-        mockErrorCallback = callback;
-      }
-      if (type === 'unhandledrejection') {
-        mockUnhandledRejectionCallback = callback;
-      }
-      if (typeof mockAddInstrumentationHandler === 'function') {
-        return mockAddInstrumentationHandler(type, callback);
-      }
+    addGlobalErrorInstrumentationHandler: (callback: () => void) => {
+      mockErrorCallback = callback;
+
+      return mockAddGlobalErrorInstrumentationHandler(callback);
+    },
+    addGlobalUnhandledRejectionInstrumentationHandler: (callback: () => void) => {
+      mockUnhandledRejectionCallback = callback;
+      return mockAddGlobalUnhandledRejectionInstrumentationHandler(callback);
     },
   };
 });
@@ -33,7 +32,8 @@ beforeAll(() => {
 describe('registerErrorHandlers()', () => {
   let hub: Hub;
   beforeEach(() => {
-    mockAddInstrumentationHandler.mockClear();
+    mockAddGlobalErrorInstrumentationHandler.mockClear();
+    mockAddGlobalUnhandledRejectionInstrumentationHandler.mockClear();
     const options = getDefaultBrowserClientOptions();
     hub = new Hub(new BrowserClient(options));
     makeMain(hub);
@@ -45,9 +45,10 @@ describe('registerErrorHandlers()', () => {
 
   it('registers error instrumentation', () => {
     registerErrorInstrumentation();
-    expect(mockAddInstrumentationHandler).toHaveBeenCalledTimes(2);
-    expect(mockAddInstrumentationHandler).toHaveBeenNthCalledWith(1, 'error', expect.any(Function));
-    expect(mockAddInstrumentationHandler).toHaveBeenNthCalledWith(2, 'unhandledrejection', expect.any(Function));
+    expect(mockAddGlobalErrorInstrumentationHandler).toHaveBeenCalledTimes(1);
+    expect(mockAddGlobalUnhandledRejectionInstrumentationHandler).toHaveBeenCalledTimes(1);
+    expect(mockAddGlobalErrorInstrumentationHandler).toHaveBeenCalledWith(expect.any(Function));
+    expect(mockAddGlobalUnhandledRejectionInstrumentationHandler).toHaveBeenCalledWith(expect.any(Function));
   });
 
   it('does not set status if transaction is not on scope', () => {
@@ -55,7 +56,7 @@ describe('registerErrorHandlers()', () => {
     const transaction = hub.startTransaction({ name: 'test' });
     expect(transaction.status).toBe(undefined);
 
-    mockErrorCallback({});
+    mockErrorCallback({} as HandlerDataError);
     expect(transaction.status).toBe(undefined);
 
     mockUnhandledRejectionCallback({});
@@ -68,7 +69,7 @@ describe('registerErrorHandlers()', () => {
     const transaction = hub.startTransaction({ name: 'test' });
     hub.configureScope(scope => scope.setSpan(transaction));
 
-    mockErrorCallback({});
+    mockErrorCallback({} as HandlerDataError);
     expect(transaction.status).toBe('internal_error');
 
     transaction.finish();

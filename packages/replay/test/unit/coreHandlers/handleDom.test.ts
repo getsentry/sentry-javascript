@@ -1,5 +1,6 @@
+import type { HandlerDataDom } from '@sentry/types';
+
 import { handleDom } from '../../../src/coreHandlers/handleDom';
-import type { DomHandlerData } from '../../../src/coreHandlers/util/domUtils';
 
 describe('Unit | coreHandlers | handleDom', () => {
   test('it works with a basic click event on a div', () => {
@@ -8,7 +9,7 @@ describe('Unit | coreHandlers | handleDom', () => {
     target.classList.add('my-class', 'other-class');
     parent.appendChild(target);
 
-    const handlerData: DomHandlerData = {
+    const handlerData: HandlerDataDom = {
       name: 'click',
       event: {
         target,
@@ -30,7 +31,7 @@ describe('Unit | coreHandlers | handleDom', () => {
     target.classList.add('my-class', 'other-class');
     parent.appendChild(target);
 
-    const handlerData: DomHandlerData = {
+    const handlerData: HandlerDataDom = {
       name: 'click',
       event: {
         target,
@@ -55,7 +56,7 @@ describe('Unit | coreHandlers | handleDom', () => {
     const target = document.createElement('span');
     interactive.appendChild(target);
 
-    const handlerData: DomHandlerData = {
+    const handlerData: HandlerDataDom = {
       name: 'click',
       event: {
         target,
@@ -80,7 +81,7 @@ describe('Unit | coreHandlers | handleDom', () => {
     const target = document.createElement('span');
     interactive.appendChild(target);
 
-    const handlerData: DomHandlerData = {
+    const handlerData: HandlerDataDom = {
       name: 'click',
       event: {
         target,
@@ -111,7 +112,7 @@ describe('Unit | coreHandlers | handleDom', () => {
     target.classList.add('my-class', 'other-class');
     current.appendChild(target);
 
-    const handlerData: DomHandlerData = {
+    const handlerData: HandlerDataDom = {
       name: 'click',
       event: {
         target,

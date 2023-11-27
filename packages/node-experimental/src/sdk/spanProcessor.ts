@@ -1,7 +1,7 @@
 import { SpanKind } from '@opentelemetry/api';
 import type { Span } from '@opentelemetry/sdk-trace-base';
 import { SemanticAttributes } from '@opentelemetry/semantic-conventions';
-import { getCurrentHub, SentrySpanProcessor } from '@sentry/opentelemetry';
+import { getClient, SentrySpanProcessor } from '@sentry/opentelemetry';
 
 import { Http } from '../integrations/http';
 import { NodeFetch } from '../integrations/node-fetch';
@@ -13,7 +13,7 @@ import type { NodeExperimentalClient } from '../types';
 export class NodeExperimentalSentrySpanProcessor extends SentrySpanProcessor {
   /** @inheritDoc */
   protected _shouldSendSpanToSentry(span: Span): boolean {
-    const client = getCurrentHub().getClient<NodeExperimentalClient>();
+    const client = getClient<NodeExperimentalClient>();
     const httpIntegration = client ? client.getIntegration(Http) : undefined;
     const fetchIntegration = client ? client.getIntegration(NodeFetch) : undefined;
 

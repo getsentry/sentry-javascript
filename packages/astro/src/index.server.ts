@@ -4,6 +4,7 @@
 // on the top - level namespace.
 
 import { sentryAstro } from './integration';
+import { handleRequest } from './server/middleware';
 
 // Hence, we export everything from the Node SDK explicitly:
 export {
@@ -21,6 +22,7 @@ export {
   getActiveTransaction,
   getHubFromCarrier,
   getCurrentHub,
+  getClient,
   Hub,
   makeMain,
   Scope,
@@ -63,6 +65,8 @@ export {
 export * from '@sentry/node';
 
 export { init } from './server/sdk';
-export { handleRequest } from './server/middleware';
 
 export default sentryAstro;
+
+// This exports the `handleRequest` middleware for manual usage
+export { handleRequest };

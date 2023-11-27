@@ -378,6 +378,44 @@ describe('setupIntegration', () => {
     expect(integration4.setupOnce).not.toHaveBeenCalled();
   });
 
+  it('calls setup for each client', () => {
+    class CustomIntegration implements Integration {
+      name = 'test';
+      setupOnce = jest.fn();
+      setup = jest.fn();
+    }
+
+    const client1 = getTestClient();
+    const client2 = getTestClient();
+
+    const integrationIndex = {};
+    const integration1 = new CustomIntegration();
+    const integration2 = new CustomIntegration();
+    const integration3 = new CustomIntegration();
+    const integration4 = new CustomIntegration();
+
+    setupIntegration(client1, integration1, integrationIndex);
+    setupIntegration(client1, integration2, integrationIndex);
+    setupIntegration(client2, integration3, integrationIndex);
+    setupIntegration(client2, integration4, integrationIndex);
+
+    expect(integrationIndex).toEqual({ test: integration4 });
+    expect(integration1.setupOnce).toHaveBeenCalledTimes(1);
+    expect(integration2.setupOnce).not.toHaveBeenCalled();
+    expect(integration3.setupOnce).not.toHaveBeenCalled();
+    expect(integration4.setupOnce).not.toHaveBeenCalled();
+
+    expect(integration1.setup).toHaveBeenCalledTimes(1);
+    expect(integration2.setup).toHaveBeenCalledTimes(1);
+    expect(integration3.setup).toHaveBeenCalledTimes(1);
+    expect(integration4.setup).toHaveBeenCalledTimes(1);
+
+    expect(integration1.setup).toHaveBeenCalledWith(client1);
+    expect(integration2.setup).toHaveBeenCalledWith(client1);
+    expect(integration3.setup).toHaveBeenCalledWith(client2);
+    expect(integration4.setup).toHaveBeenCalledWith(client2);
+  });
+
   it('binds preprocessEvent for each client', () => {
     class CustomIntegration implements Integration {
       name = 'test';

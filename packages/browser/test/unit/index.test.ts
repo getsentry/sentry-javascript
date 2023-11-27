@@ -11,11 +11,13 @@ import {
   captureMessage,
   configureScope,
   flush,
+  getClient,
   getCurrentHub,
   init,
   Integrations,
   Scope,
   showReportDialog,
+  WINDOW,
   wrap,
 } from '../../src';
 import { getDefaultBrowserClientOptions } from './helper/browser-client-options';
@@ -121,6 +123,65 @@ describe('SentryBrowser', () => {
           expect.any(Object),
           expect.objectContaining({ user: { email: DIALOG_OPTION_USER.email } }),
         );
+      });
+    });
+
+    describe('onClose', () => {
+      const dummyErrorHandler = jest.fn();
+      beforeEach(() => {
+        // this prevents jest-environment-jsdom from failing the test
+        // when an error in `onClose` is thrown
+        // it does not prevent errors thrown directly inside the test,
+        // so we don't have to worry about tests passing that should
+        // otherwise fail
+        // see: https://github.com/jestjs/jest/blob/main/packages/jest-environment-jsdom/src/index.ts#L95-L115
+        WINDOW.addEventListener('error', dummyErrorHandler);
+      });
+
+      afterEach(() => {
+        WINDOW.removeEventListener('error', dummyErrorHandler);
+      });
+
+      const waitForPostMessage = async (message: string) => {
+        WINDOW.postMessage(message, '*');
+        await flush(10);
+      };
+
+      it('should call `onClose` when receiving `__sentry_reportdialog_closed__` MessageEvent', async () => {
+        const onClose = jest.fn();
+        showReportDialog({ onClose });
+
+        await waitForPostMessage('__sentry_reportdialog_closed__');
+        expect(onClose).toHaveBeenCalledTimes(1);
+
+        // ensure the event handler has been removed so onClose is not called again
+        await waitForPostMessage('__sentry_reportdialog_closed__');
+        expect(onClose).toHaveBeenCalledTimes(1);
+      });
+
+      it('should call `onClose` only once even if it throws', async () => {
+        const onClose = jest.fn(() => {
+          throw new Error();
+        });
+        showReportDialog({ onClose });
+
+        await waitForPostMessage('__sentry_reportdialog_closed__');
+        expect(onClose).toHaveBeenCalledTimes(1);
+
+        // ensure the event handler has been removed so onClose is not called again
+        await waitForPostMessage('__sentry_reportdialog_closed__');
+        expect(onClose).toHaveBeenCalledTimes(1);
+      });
+
+      it('should not call `onClose` for other MessageEvents', async () => {
+        const onClose = jest.fn();
+        showReportDialog({ onClose });
+
+        await waitForPostMessage('some_message');
+        expect(onClose).not.toHaveBeenCalled();
+
+        await waitForPostMessage('__sentry_reportdialog_closed__');
+        expect(onClose).toHaveBeenCalledTimes(1);
       });
     });
   });
@@ -271,11 +332,11 @@ describe('SentryBrowser initialization', () => {
     it('should set SDK data when Sentry.init() is called', () => {
       init({ dsn });
 
-      const sdkData = (getCurrentHub().getClient() as any).getOptions()._metadata.sdk;
+      const sdkData = getClient()?.getOptions()._metadata?.sdk || {};
 
       expect(sdkData?.name).toBe('sentry.javascript.browser');
-      expect(sdkData?.packages[0].name).toBe('npm:@sentry/browser');
-      expect(sdkData?.packages[0].version).toBe(SDK_VERSION);
+      expect(sdkData?.packages?.[0].name).toBe('npm:@sentry/browser');
+      expect(sdkData?.packages?.[0].version).toBe(SDK_VERSION);
       expect(sdkData?.version).toBe(SDK_VERSION);
     });
 
@@ -283,9 +344,9 @@ describe('SentryBrowser initialization', () => {
       global.SENTRY_SDK_SOURCE = 'loader';
       init({ dsn });
 
-      const sdkData = (getCurrentHub().getClient() as any).getOptions()._metadata.sdk;
+      const sdkData = getClient()?.getOptions()._metadata?.sdk || {};
 
-      expect(sdkData?.packages[0].name).toBe('loader:@sentry/browser');
+      expect(sdkData.packages?.[0].name).toBe('loader:@sentry/browser');
       delete global.SENTRY_SDK_SOURCE;
     });
 
@@ -293,9 +354,9 @@ describe('SentryBrowser initialization', () => {
       const spy = jest.spyOn(utils, 'getSDKSource').mockReturnValue('cdn');
       init({ dsn });
 
-      const sdkData = (getCurrentHub().getClient() as any).getOptions()._metadata.sdk;
+      const sdkData = getClient()?.getOptions()._metadata?.sdk || {};
 
-      expect(sdkData?.packages[0].name).toBe('cdn:@sentry/browser');
+      expect(sdkData.packages?.[0].name).toBe('cdn:@sentry/browser');
       expect(utils.getSDKSource).toBeCalledTimes(1);
       spy.mockRestore();
     });
@@ -332,11 +393,11 @@ describe('SentryBrowser initialization', () => {
         },
       });
 
-      const sdkData = (getCurrentHub().getClient() as any).getOptions()._metadata?.sdk;
+      const sdkData = getClient()?.getOptions()._metadata?.sdk || {};
 
       expect(sdkData.name).toBe('sentry.javascript.angular');
-      expect(sdkData.packages[0].name).toBe('npm:@sentry/angular');
-      expect(sdkData.packages[0].version).toBe(SDK_VERSION);
+      expect(sdkData.packages?.[0].name).toBe('npm:@sentry/angular');
+      expect(sdkData.packages?.[0].version).toBe(SDK_VERSION);
       expect(sdkData.version).toBe(SDK_VERSION);
     });
   });

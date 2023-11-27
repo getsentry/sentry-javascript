@@ -2,6 +2,7 @@ export type { ClientClass } from './sdk';
 export type { AsyncContextStrategy, Carrier, Layer, RunWithAsyncContextOptions } from './hub';
 export type { OfflineStore, OfflineTransportOptions } from './transports/offline';
 export type { ServerRuntimeClientOptions } from './server-runtime-client';
+export type { RequestDataIntegrationOptions } from './integrations/requestdata';
 
 export * from './tracing';
 export { createEventEnvelope } from './envelope';
@@ -24,6 +25,7 @@ export {
   setTags,
   setUser,
   withScope,
+  getClient,
 } from './exports';
 export {
   getCurrentHub,
@@ -56,6 +58,7 @@ export { hasTracingEnabled } from './utils/hasTracingEnabled';
 export { isSentryRequestUrl } from './utils/isSentryRequestUrl';
 export { DEFAULT_ENVIRONMENT } from './constants';
 export { ModuleMetadata } from './integrations/metadata';
+export { RequestData } from './integrations/requestdata';
 import * as Integrations from './integrations';
 
 export { Integrations };

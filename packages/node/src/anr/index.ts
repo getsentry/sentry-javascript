@@ -1,4 +1,4 @@
-import { makeSession, updateSession } from '@sentry/core';
+import { getClient, makeSession, updateSession } from '@sentry/core';
 import type { Event, Session, StackFrame } from '@sentry/types';
 import { logger, watchdogTimer } from '@sentry/utils';
 import { spawn } from 'child_process';
@@ -173,7 +173,7 @@ function handleChildProcess(options: Options): void {
     if (session) {
       log('Sending abnormal session');
       updateSession(session, { status: 'abnormal', abnormal_mechanism: 'anr_foreground' });
-      getCurrentHub().getClient()?.sendSession(session);
+      getClient()?.sendSession(session);
 
       try {
         // Notify the main process that the session has ended so the session can be cleared from the scope

@@ -28,6 +28,7 @@ import {
   OnUncaughtException,
   OnUnhandledRejection,
   RequestData,
+  Spotlight,
   Undici,
 } from './integrations';
 import { getModuleFromFilename } from './module';
@@ -179,6 +180,17 @@ export function init(options: NodeOptions = {}): void {
   }
 
   updateScopeFromEnvVariables();
+
+  if (options.spotlight) {
+    const client = getCurrentHub().getClient();
+    if (client && client.addIntegration) {
+      // force integrations to be setup even if no DSN was set
+      client.setupIntegrations(true);
+      client.addIntegration(
+        new Spotlight({ sidecarUrl: typeof options.spotlight === 'string' ? options.spotlight : undefined }),
+      );
+    }
+  }
 }
 
 /**

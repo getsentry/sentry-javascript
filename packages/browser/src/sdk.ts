@@ -1,5 +1,6 @@
 import type { Hub } from '@sentry/core';
 import {
+  getClient,
   getCurrentHub,
   getIntegrationsToSetup,
   getReportDialogEndpoint,
@@ -7,7 +8,12 @@ import {
   Integrations as CoreIntegrations,
 } from '@sentry/core';
 import type { UserFeedback } from '@sentry/types';
-import { addInstrumentationHandler, logger, stackParserFromStackParserOptions, supportsFetch } from '@sentry/utils';
+import {
+  addHistoryInstrumentationHandler,
+  logger,
+  stackParserFromStackParserOptions,
+  supportsFetch,
+} from '@sentry/utils';
 
 import type { BrowserClientOptions, BrowserOptions } from './client';
 import { BrowserClient } from './client';
@@ -165,6 +171,20 @@ export function showReportDialog(options: ReportDialogOptions = {}, hub: Hub = g
     script.onload = options.onLoad;
   }
 
+  const { onClose } = options;
+  if (onClose) {
+    const reportDialogClosedMessageHandler = (event: MessageEvent): void => {
+      if (event.data === '__sentry_reportdialog_closed__') {
+        try {
+          onClose();
+        } finally {
+          WINDOW.removeEventListener('message', reportDialogClosedMessageHandler);
+        }
+      }
+    };
+    WINDOW.addEventListener('message', reportDialogClosedMessageHandler);
+  }
+
   const injectionPoint = WINDOW.document.head || WINDOW.document.body;
   if (injectionPoint) {
     injectionPoint.appendChild(script);
@@ -240,9 +260,9 @@ function startSessionTracking(): void {
   startSessionOnHub(hub);
 
   // We want to create a session for every navigation as well
-  addInstrumentationHandler('history', ({ from, to }) => {
+  addHistoryInstrumentationHandler(({ from, to }) => {
     // Don't create an additional session for the initial route or if the location did not change
-    if (!(from === undefined || from === to)) {
+    if (from !== undefined && from !== to) {
       startSessionOnHub(getCurrentHub());
     }
   });
@@ -252,7 +272,7 @@ function startSessionTracking(): void {
  * Captures user feedback and sends it to Sentry.
  */
 export function captureUserFeedback(feedback: UserFeedback): void {
-  const client = getCurrentHub().getClient<BrowserClient>();
+  const client = getClient<BrowserClient>();
   if (client) {
     client.captureUserFeedback(feedback);
   }

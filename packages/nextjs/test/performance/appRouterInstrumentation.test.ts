@@ -5,7 +5,7 @@ import { JSDOM } from 'jsdom';
 
 import { appRouterInstrumentation } from '../../src/client/routing/appRouterRoutingInstrumentation';
 
-const addInstrumentationHandlerSpy = jest.spyOn(sentryUtils, 'addInstrumentationHandler');
+const addFetchInstrumentationHandlerSpy = jest.spyOn(sentryUtils, 'addFetchInstrumentationHandler');
 
 function setUpPage(url: string) {
   const dom = new JSDOM('<body><h1>nothingness</h1></body>', { url });
@@ -55,7 +55,7 @@ describe('appRouterInstrumentation', () => {
     setUpPage('https://example.com/some/page?someParam=foobar');
     let fetchInstrumentationHandlerCallback: (arg: HandlerDataFetch) => void;
 
-    addInstrumentationHandlerSpy.mockImplementationOnce((_type, callback) => {
+    addFetchInstrumentationHandlerSpy.mockImplementationOnce(callback => {
       fetchInstrumentationHandlerCallback = callback;
     });
 
@@ -138,7 +138,7 @@ describe('appRouterInstrumentation', () => {
       setUpPage('https://example.com/some/page?someParam=foobar');
       let fetchInstrumentationHandlerCallback: (arg: HandlerDataFetch) => void;
 
-      addInstrumentationHandlerSpy.mockImplementationOnce((_type, callback) => {
+      addFetchInstrumentationHandlerSpy.mockImplementationOnce(callback => {
         fetchInstrumentationHandlerCallback = callback;
       });
 
@@ -151,11 +151,11 @@ describe('appRouterInstrumentation', () => {
 
   it('should not create navigation transactions when `startTransactionOnLocationChange` is false', () => {
     setUpPage('https://example.com/some/page?someParam=foobar');
-    const addInstrumentationHandlerImpl = jest.fn();
+    const addFetchInstrumentationHandlerImpl = jest.fn();
     const startTransactionCallbackFn = jest.fn();
 
-    addInstrumentationHandlerSpy.mockImplementationOnce(addInstrumentationHandlerImpl);
+    addFetchInstrumentationHandlerSpy.mockImplementationOnce(addFetchInstrumentationHandlerImpl);
     appRouterInstrumentation(startTransactionCallbackFn, false, false);
-    expect(addInstrumentationHandlerImpl).not.toHaveBeenCalled();
+    expect(addFetchInstrumentationHandlerImpl).not.toHaveBeenCalled();
   });
 });

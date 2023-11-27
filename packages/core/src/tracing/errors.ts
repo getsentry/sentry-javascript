@@ -1,4 +1,8 @@
-import { addInstrumentationHandler, logger } from '@sentry/utils';
+import {
+  addGlobalErrorInstrumentationHandler,
+  addGlobalUnhandledRejectionInstrumentationHandler,
+  logger,
+} from '@sentry/utils';
 
 import type { SpanStatusType } from './span';
 import { getActiveTransaction } from './utils';
@@ -14,8 +18,8 @@ export function registerErrorInstrumentation(): void {
   }
 
   errorsInstrumented = true;
-  addInstrumentationHandler('error', errorCallback);
-  addInstrumentationHandler('unhandledrejection', errorCallback);
+  addGlobalErrorInstrumentationHandler(errorCallback);
+  addGlobalUnhandledRejectionInstrumentationHandler(errorCallback);
 }
 
 /**

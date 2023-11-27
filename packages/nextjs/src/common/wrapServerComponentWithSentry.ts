@@ -6,7 +6,7 @@ import {
   runWithAsyncContext,
   startTransaction,
 } from '@sentry/core';
-import { addExceptionMechanism, tracingContextFromHeaders } from '@sentry/utils';
+import { tracingContextFromHeaders, winterCGHeadersToDict } from '@sentry/utils';
 
 import { isNotFoundNavigationError, isRedirectNavigationError } from '../common/nextNavigationErrorUtils';
 import type { ServerComponentContext } from '../common/types';
@@ -33,9 +33,15 @@ export function wrapServerComponentWithSentry<F extends (...args: any[]) => any>
 
         let maybePromiseResult;
 
+        const completeHeadersDict: Record<string, string> = context.headers
+          ? winterCGHeadersToDict(context.headers)
+          : {};
+
         const { traceparentData, dynamicSamplingContext, propagationContext } = tracingContextFromHeaders(
-          context.sentryTraceHeader,
-          context.baggageHeader,
+          // eslint-disable-next-line deprecation/deprecation
+          context.sentryTraceHeader ?? completeHeadersDict['sentry-trace'],
+          // eslint-disable-next-line deprecation/deprecation
+          context.baggageHeader ?? completeHeadersDict['baggage'],
         );
         currentScope.setPropagationContext(propagationContext);
 
@@ -46,6 +52,9 @@ export function wrapServerComponentWithSentry<F extends (...args: any[]) => any>
           origin: 'auto.function.nextjs',
           ...traceparentData,
           metadata: {
+            request: {
+              headers: completeHeadersDict,
+            },
             source: 'component',
             dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
           },
@@ -62,15 +71,10 @@ export function wrapServerComponentWithSentry<F extends (...args: any[]) => any>
           } else {
             transaction.setStatus('internal_error');
 
-            captureException(e, scope => {
-              scope.addEventProcessor(event => {
-                addExceptionMechanism(event, {
-                  handled: false,
-                });
-                return event;
-              });
-
-              return scope;
+            captureException(e, {
+              mechanism: {
+                handled: false,
+              },
             });
           }
 

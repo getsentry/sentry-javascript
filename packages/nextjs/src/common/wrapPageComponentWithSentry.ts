@@ -1,5 +1,5 @@
 import { addTracingExtensions, captureException, configureScope, runWithAsyncContext } from '@sentry/core';
-import { addExceptionMechanism, extractTraceparentData } from '@sentry/utils';
+import { extractTraceparentData } from '@sentry/utils';
 
 interface FunctionComponent {
   (...args: unknown[]): unknown;
@@ -48,15 +48,10 @@ export function wrapPageComponentWithSentry(pageComponent: FunctionComponent | C
           try {
             return super.render(...args);
           } catch (e) {
-            captureException(e, scope => {
-              scope.addEventProcessor(event => {
-                addExceptionMechanism(event, {
-                  handled: false,
-                });
-                return event;
-              });
-
-              return scope;
+            captureException(e, {
+              mechanism: {
+                handled: false,
+              },
             });
             throw e;
           }
@@ -82,15 +77,10 @@ export function wrapPageComponentWithSentry(pageComponent: FunctionComponent | C
           try {
             return target.apply(thisArg, argArray);
           } catch (e) {
-            captureException(e, scope => {
-              scope.addEventProcessor(event => {
-                addExceptionMechanism(event, {
-                  handled: false,
-                });
-                return event;
-              });
-
-              return scope;
+            captureException(e, {
+              mechanism: {
+                handled: false,
+              },
             });
             throw e;
           }

@@ -2,6 +2,7 @@ import type {
   Breadcrumb,
   CaptureContext,
   CheckIn,
+  Client,
   CustomSamplingContext,
   Event,
   EventHint,
@@ -20,6 +21,8 @@ import { isThenable, logger, timestampInSeconds, uuid4 } from '@sentry/utils';
 import type { Hub } from './hub';
 import { getCurrentHub } from './hub';
 import type { Scope } from './scope';
+import type { ExclusiveEventHintOrCaptureContext } from './utils/prepareEvent';
+import { parseEventHintOrCaptureContext } from './utils/prepareEvent';
 
 // Note: All functions in this file are typed with a return value of `ReturnType<Hub[HUB_FUNCTION]>`,
 // where HUB_FUNCTION is some method on the Hub class.
@@ -30,14 +33,15 @@ import type { Scope } from './scope';
 
 /**
  * Captures an exception event and sends it to Sentry.
- *
- * @param exception An exception-like object.
- * @param captureContext Additional scope data to apply to exception event.
- * @returns The generated eventId.
+ * This accepts an event hint as optional second parameter.
+ * Alternatively, you can also pass a CaptureContext directly as second parameter.
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/explicit-module-boundary-types
-export function captureException(exception: any, captureContext?: CaptureContext): ReturnType<Hub['captureException']> {
-  return getCurrentHub().captureException(exception, { captureContext });
+export function captureException(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  exception: any,
+  hint?: ExclusiveEventHintOrCaptureContext,
+): ReturnType<Hub['captureException']> {
+  return getCurrentHub().captureException(exception, parseEventHintOrCaptureContext(hint));
 }
 
 /**
@@ -263,7 +267,7 @@ export function withMonitor<T>(
  * doesn't (or if there's no client defined).
  */
 export async function flush(timeout?: number): Promise<boolean> {
-  const client = getCurrentHub().getClient();
+  const client = getClient();
   if (client) {
     return client.flush(timeout);
   }
@@ -280,7 +284,7 @@ export async function flush(timeout?: number): Promise<boolean> {
  * doesn't (or if there's no client defined).
  */
 export async function close(timeout?: number): Promise<boolean> {
-  const client = getCurrentHub().getClient();
+  const client = getClient();
   if (client) {
     return client.close(timeout);
   }
@@ -295,4 +299,11 @@ export async function close(timeout?: number): Promise<boolean> {
  */
 export function lastEventId(): string | undefined {
   return getCurrentHub().lastEventId();
+}
+
+/**
+ * Get the currently active client.
+ */
+export function getClient<C extends Client>(): C | undefined {
+  return getCurrentHub().getClient<C>();
 }

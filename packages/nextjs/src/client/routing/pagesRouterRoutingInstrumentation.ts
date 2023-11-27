@@ -1,4 +1,4 @@
-import { getCurrentHub } from '@sentry/core';
+import { getClient, getCurrentHub } from '@sentry/core';
 import { WINDOW } from '@sentry/react';
 import type { Primitive, Transaction, TransactionContext, TransactionSource } from '@sentry/types';
 import {
@@ -101,7 +101,7 @@ let activeTransaction: Transaction | undefined = undefined;
 // This is either a route or a pathname.
 let prevLocationName: string | undefined = undefined;
 
-const client = getCurrentHub().getClient();
+const client = getClient();
 
 /**
  * Instruments the Next.js pages router. Only supported for

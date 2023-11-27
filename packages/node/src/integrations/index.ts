@@ -5,6 +5,7 @@ export { OnUnhandledRejection } from './onunhandledrejection';
 export { Modules } from './modules';
 export { ContextLines } from './contextlines';
 export { Context } from './context';
-export { RequestData } from './requestdata';
+export { RequestData } from '@sentry/core';
 export { LocalVariables } from './localvariables';
 export { Undici } from './undici';
+export { Spotlight } from './spotlight';

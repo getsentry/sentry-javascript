@@ -1,6 +1,6 @@
 import { trace } from '@sentry/core';
 import { captureException } from '@sentry/svelte';
-import { addExceptionMechanism, addNonEnumerableProperty, objectify } from '@sentry/utils';
+import { addNonEnumerableProperty, objectify } from '@sentry/utils';
 import type { LoadEvent } from '@sveltejs/kit';
 
 import type { SentryWrappedFlag } from '../common/utils';
@@ -18,19 +18,14 @@ function sendErrorToSentry(e: unknown): unknown {
     return objectifiedErr;
   }
 
-  captureException(objectifiedErr, scope => {
-    scope.addEventProcessor(event => {
-      addExceptionMechanism(event, {
-        type: 'sveltekit',
-        handled: false,
-        data: {
-          function: 'load',
-        },
-      });
-      return event;
-    });
-
-    return scope;
+  captureException(objectifiedErr, {
+    mechanism: {
+      type: 'sveltekit',
+      handled: false,
+      data: {
+        function: 'load',
+      },
+    },
   });
 
   return objectifiedErr;

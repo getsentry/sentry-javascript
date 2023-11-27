@@ -1,4 +1,5 @@
-import { getIntegrationsToSetup, initAndBind, Integrations as CoreIntegrations } from '@sentry/core';
+import { getIntegrationsToSetup, initAndBind, Integrations as CoreIntegrations, RequestData } from '@sentry/core';
+import type { Integration } from '@sentry/types';
 import { createStackParser, GLOBAL_OBJ, nodeStackLineParser, stackParserFromStackParserOptions } from '@sentry/utils';
 
 import { setAsyncLocalStorageAsyncContextStrategy } from './async';
@@ -25,8 +26,16 @@ export const defaultIntegrations = [
 export function init(options: VercelEdgeOptions = {}): void {
   setAsyncLocalStorageAsyncContextStrategy();
 
+  const sdkDefaultIntegrations: Integration[] = [...defaultIntegrations];
+
+  // TODO(v8): Add the request data integration by default.
+  // We don't want to add this functionality OOTB without a breaking change because it might contain PII
+  if (options.sendDefaultPii) {
+    sdkDefaultIntegrations.push(new RequestData());
+  }
+
   if (options.defaultIntegrations === undefined) {
-    options.defaultIntegrations = defaultIntegrations;
+    options.defaultIntegrations = sdkDefaultIntegrations;
   }
 
   if (options.dsn === undefined && process.env.SENTRY_DSN) {

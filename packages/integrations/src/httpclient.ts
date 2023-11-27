@@ -2,15 +2,14 @@ import { getCurrentHub, isSentryRequestUrl } from '@sentry/core';
 import type {
   Event as SentryEvent,
   EventProcessor,
-  HandlerDataFetch,
-  HandlerDataXhr,
   Hub,
   Integration,
   SentryWrappedXMLHttpRequest,
 } from '@sentry/types';
 import {
   addExceptionMechanism,
-  addInstrumentationHandler,
+  addFetchInstrumentationHandler,
+  addXhrInstrumentationHandler,
   GLOBAL_OBJ,
   logger,
   SENTRY_XHR_DATA_KEY,
@@ -172,7 +171,7 @@ export class HttpClient implements Integration {
 
       const event = this._createEvent({
         url: xhr.responseURL,
-        method: method,
+        method,
         status: xhr.status,
         requestHeaders,
         // Can't access request cookies from XHR
@@ -300,7 +299,7 @@ export class HttpClient implements Integration {
       return;
     }
 
-    addInstrumentationHandler('fetch', (handlerData: HandlerDataFetch & { response?: Response }) => {
+    addFetchInstrumentationHandler(handlerData => {
       const { response, args } = handlerData;
       const [requestInfo, requestInit] = args as [RequestInfo, RequestInit | undefined];
 
@@ -308,7 +307,7 @@ export class HttpClient implements Integration {
         return;
       }
 
-      this._fetchResponseHandler(requestInfo, response, requestInit);
+      this._fetchResponseHandler(requestInfo, response as Response, requestInit);
     });
   }
 
@@ -320,30 +319,23 @@ export class HttpClient implements Integration {
       return;
     }
 
-    addInstrumentationHandler(
-      'xhr',
-      (handlerData: HandlerDataXhr & { xhr: SentryWrappedXMLHttpRequest & XMLHttpRequest }) => {
-        const { xhr } = handlerData;
+    addXhrInstrumentationHandler(handlerData => {
+      const xhr = handlerData.xhr as SentryWrappedXMLHttpRequest & XMLHttpRequest;
 
-        const sentryXhrData = xhr[SENTRY_XHR_DATA_KEY];
+      const sentryXhrData = xhr[SENTRY_XHR_DATA_KEY];
 
-        if (!sentryXhrData) {
-          return;
-        }
+      if (!sentryXhrData) {
+        return;
+      }
 
-        const { method, request_headers: headers } = sentryXhrData;
+      const { method, request_headers: headers } = sentryXhrData;
 
-        if (!method) {
-          return;
-        }
-
-        try {
-          this._xhrResponseHandler(xhr, method, headers);
-        } catch (e) {
-          __DEBUG_BUILD__ && logger.warn('Error while extracting response event form XHR response', e);
-        }
-      },
-    );
+      try {
+        this._xhrResponseHandler(xhr, method, headers);
+      } catch (e) {
+        __DEBUG_BUILD__ && logger.warn('Error while extracting response event form XHR response', e);
+      }
+    });
   }
 
   /**

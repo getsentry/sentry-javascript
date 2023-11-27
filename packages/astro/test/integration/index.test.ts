@@ -122,4 +122,88 @@ describe('sentryAstro integration', () => {
     expect(injectScript).toHaveBeenCalledWith('page', expect.stringContaining('my-client-init-path.js'));
     expect(injectScript).toHaveBeenCalledWith('page-ssr', expect.stringContaining('my-server-init-path.js'));
   });
+
+  it.each(['server', 'hybrid'])(
+    'adds middleware by default if in %s mode and `addMiddleware` is available',
+    async mode => {
+      const integration = sentryAstro({});
+      const addMiddleware = vi.fn();
+      const updateConfig = vi.fn();
+      const injectScript = vi.fn();
+
+      expect(integration.hooks['astro:config:setup']).toBeDefined();
+      // @ts-expect-error - the hook exists and we only need to pass what we actually use
+      await integration.hooks['astro:config:setup']({
+        // @ts-expect-error - we only need to pass what we actually use
+        config: { output: mode },
+        addMiddleware,
+        updateConfig,
+        injectScript,
+      });
+
+      expect(addMiddleware).toHaveBeenCalledTimes(1);
+      expect(addMiddleware).toHaveBeenCalledWith({
+        order: 'pre',
+        entrypoint: '@sentry/astro/middleware',
+      });
+    },
+  );
+
+  it.each([{ output: 'static' }, { output: undefined }])(
+    "doesn't add middleware if in static mode (config %s)",
+    async config => {
+      const integration = sentryAstro({});
+      const addMiddleware = vi.fn();
+      const updateConfig = vi.fn();
+      const injectScript = vi.fn();
+
+      expect(integration.hooks['astro:config:setup']).toBeDefined();
+      // @ts-expect-error - the hook exists and we only need to pass what we actually use
+      await integration.hooks['astro:config:setup']({
+        config,
+        addMiddleware,
+        updateConfig,
+        injectScript,
+      });
+
+      expect(addMiddleware).toHaveBeenCalledTimes(0);
+    },
+  );
+
+  it("doesn't add middleware if disabled by users", async () => {
+    const integration = sentryAstro({ autoInstrumentation: { requestHandler: false } });
+    const addMiddleware = vi.fn();
+    const updateConfig = vi.fn();
+    const injectScript = vi.fn();
+
+    expect(integration.hooks['astro:config:setup']).toBeDefined();
+    // @ts-expect-error - the hook exists and we only need to pass what we actually use
+    await integration.hooks['astro:config:setup']({
+      // @ts-expect-error - we only need to pass what we actually use
+      config: { output: 'server' },
+      addMiddleware,
+      updateConfig,
+      injectScript,
+    });
+
+    expect(addMiddleware).toHaveBeenCalledTimes(0);
+  });
+
+  it("doesn't add middleware (i.e. crash) if `addMiddleware` is N/A", async () => {
+    const integration = sentryAstro({ autoInstrumentation: { requestHandler: false } });
+    const updateConfig = vi.fn();
+    const injectScript = vi.fn();
+
+    expect(integration.hooks['astro:config:setup']).toBeDefined();
+    // @ts-expect-error - the hook exists and we only need to pass what we actually use
+    await integration.hooks['astro:config:setup']({
+      // @ts-expect-error - we only need to pass what we actually use
+      config: { output: 'server' },
+      updateConfig,
+      injectScript,
+    });
+
+    expect(updateConfig).toHaveBeenCalledTimes(1);
+    expect(injectScript).toHaveBeenCalledTimes(2);
+  });
 });

@@ -1,6 +1,11 @@
 import { captureException, configureScope, getCurrentHub, startSpan } from '@sentry/node';
 import type { Hub, Span } from '@sentry/types';
-import { addExceptionMechanism, objectify, stripUrlQueryAndFragment, tracingContextFromHeaders } from '@sentry/utils';
+import {
+  addNonEnumerableProperty,
+  objectify,
+  stripUrlQueryAndFragment,
+  tracingContextFromHeaders,
+} from '@sentry/utils';
 import type { APIContext, MiddlewareResponseHandler } from 'astro';
 
 import { getTracingMetaTags } from './meta';
@@ -34,28 +39,34 @@ function sendErrorToSentry(e: unknown): unknown {
   // store a seen flag on it.
   const objectifiedErr = objectify(e);
 
-  captureException(objectifiedErr, scope => {
-    scope.addEventProcessor(event => {
-      addExceptionMechanism(event, {
-        type: 'astro',
-        handled: false,
-        data: {
-          function: 'astroMiddleware',
-        },
-      });
-      return event;
-    });
-
-    return scope;
+  captureException(objectifiedErr, {
+    mechanism: {
+      type: 'astro',
+      handled: false,
+      data: {
+        function: 'astroMiddleware',
+      },
+    },
   });
 
   return objectifiedErr;
 }
 
+type AstroLocalsWithSentry = Record<string, unknown> & {
+  __sentry_wrapped__?: boolean;
+};
+
 export const handleRequest: (options?: MiddlewareOptions) => MiddlewareResponseHandler = (
   options = { trackClientIp: false, trackHeaders: false },
 ) => {
   return async (ctx, next) => {
+    // Make sure we don't accidentally double wrap (e.g. user added middleware and integration auto added it)
+    const locals = ctx.locals as AstroLocalsWithSentry;
+    if (locals && locals.__sentry_wrapped__) {
+      return next();
+    }
+    addNonEnumerableProperty(locals, '__sentry_wrapped__', true);
+
     const method = ctx.request.method;
     const headers = ctx.request.headers;
 

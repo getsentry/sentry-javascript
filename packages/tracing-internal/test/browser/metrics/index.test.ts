@@ -169,4 +169,24 @@ describe('_addResourceSpans', () => {
       }),
     );
   });
+
+  it('does not attach resource sizes that exceed MAX_INT bytes', () => {
+    const entry: ResourceEntry = {
+      initiatorType: 'css',
+      transferSize: 2147483647,
+      encodedBodySize: 2147483647,
+      decodedBodySize: 2147483647,
+    };
+
+    _addResourceSpans(transaction, entry, '/assets/to/css', 100, 23, 345);
+
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    expect(transaction.startChild).toHaveBeenCalledTimes(1);
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    expect(transaction.startChild).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        data: {},
+      }),
+    );
+  });
 });

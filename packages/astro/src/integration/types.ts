@@ -71,6 +71,29 @@ type SourceMapsOptions = {
   };
 };
 
+type InstrumentationOptions = {
+  /**
+   * Options for automatic instrumentation of your application.
+   */
+  autoInstrumentation?: {
+    /**
+     * If this flag is `true` and your application is configured for SSR (or hybrid) mode,
+     * the Sentry integration will automatically add middleware to:
+     *
+     * - capture server performance data and spans for incoming server requests
+     * - enable distributed tracing between server and client
+     * - annotate server errors with more information
+     *
+     * This middleware will only be added automatically in Astro 3.5.0 and newer.
+     * For older versions, add the `Sentry.handleRequest` middleware manually
+     * in your `src/middleware.js` file.
+     *
+     * @default true in SSR/hybrid mode, false in SSG/static mode
+     */
+    requestHandler?: boolean;
+  };
+};
+
 /**
  * A subset of Sentry SDK options that can be set via the `sentryAstro` integration.
  * Some options (e.g. integrations) are set by default and cannot be changed here.
@@ -83,4 +106,5 @@ type SourceMapsOptions = {
 export type SentryOptions = SdkInitPaths &
   Pick<Options, 'dsn' | 'release' | 'environment' | 'sampleRate' | 'tracesSampleRate' | 'debug'> &
   Pick<BrowserOptions, 'replaysSessionSampleRate' | 'replaysOnErrorSampleRate'> &
-  SourceMapsOptions;
+  SourceMapsOptions &
+  InstrumentationOptions;

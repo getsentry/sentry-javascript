@@ -41,8 +41,8 @@ const routeHandlerWrapperTemplatePath = path.resolve(__dirname, '..', 'templates
 const routeHandlerWrapperTemplateCode = fs.readFileSync(routeHandlerWrapperTemplatePath, { encoding: 'utf8' });
 
 export type WrappingLoaderOptions = {
-  pagesDir: string;
-  appDir: string;
+  pagesDir: string | undefined;
+  appDir: string | undefined;
   pageExtensionRegex: string;
   excludeServerRoutes: Array<RegExp | string>;
   wrappingTargetKind: 'page' | 'api-route' | 'middleware' | 'server-component' | 'sentry-init' | 'route-handler';
@@ -101,6 +101,11 @@ export default function wrappingLoader(
       return;
     }
   } else if (wrappingTargetKind === 'page' || wrappingTargetKind === 'api-route') {
+    if (pagesDir === undefined) {
+      this.callback(null, userCode, userModuleSourceMap);
+      return;
+    }
+
     // Get the parameterized route name from this page's filepath
     const parameterizedPagesRoute = path
       // Get the path of the file insde of the pages directory
@@ -137,6 +142,11 @@ export default function wrappingLoader(
     // Inject the route and the path to the file we're wrapping into the template
     templateCode = templateCode.replace(/__ROUTE__/g, parameterizedPagesRoute.replace(/\\/g, '\\\\'));
   } else if (wrappingTargetKind === 'server-component' || wrappingTargetKind === 'route-handler') {
+    if (appDir === undefined) {
+      this.callback(null, userCode, userModuleSourceMap);
+      return;
+    }
+
     // Get the parameterized route name from this page's filepath
     const parameterizedPagesRoute = path
       // Get the path of the file insde of the app directory

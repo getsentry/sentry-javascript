@@ -26,6 +26,7 @@ export {
   createTransport,
   getActiveTransaction,
   getCurrentHub,
+  getClient,
   getHubFromCarrier,
   makeMain,
   setContext,

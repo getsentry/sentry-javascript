@@ -1,4 +1,4 @@
-import { getCurrentHub } from '@sentry/core';
+import { getClient } from '@sentry/core';
 
 import { sendFeedback } from '../src/sendFeedback';
 import { mockSdk } from './utils/mockSdk';
@@ -6,7 +6,7 @@ import { mockSdk } from './utils/mockSdk';
 describe('sendFeedback', () => {
   it('sends feedback', async () => {
     mockSdk();
-    const mockTransport = jest.spyOn(getCurrentHub().getClient()!.getTransport()!, 'send');
+    const mockTransport = jest.spyOn(getClient()!.getTransport()!, 'send');
 
     await sendFeedback({
       name: 'doe',

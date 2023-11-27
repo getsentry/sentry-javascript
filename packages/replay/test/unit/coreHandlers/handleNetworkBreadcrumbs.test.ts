@@ -23,6 +23,8 @@ async function waitForReplayEventBuffer() {
   await Promise.resolve();
   await Promise.resolve();
   await Promise.resolve();
+  await Promise.resolve();
+  await Promise.resolve();
 }
 
 const LARGE_BODY = 'a'.repeat(NETWORK_BODY_MAX_SIZE + 1);
@@ -116,6 +118,8 @@ describe('Unit | coreHandlers | handleNetworkBreadcrumbs', () => {
         value: 'test response',
       });
       xhr[SENTRY_XHR_DATA_KEY] = {
+        method: 'GET',
+        url: 'https://example.com',
         request_headers: {
           'content-type': 'text/plain',
           'other-header': 'test',

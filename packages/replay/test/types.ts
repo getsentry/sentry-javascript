@@ -1,1 +1,3 @@
-export type DomHandler = (args: any) => any;
+import type { HandlerDataDom } from '@sentry/types';
+
+export type DomHandler = (data: HandlerDataDom) => void;

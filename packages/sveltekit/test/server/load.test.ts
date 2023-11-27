@@ -1,25 +1,12 @@
 import { addTracingExtensions } from '@sentry/core';
-import { Scope } from '@sentry/node';
+import * as SentryNode from '@sentry/node';
 import type { Load, ServerLoad } from '@sveltejs/kit';
 import { error, redirect } from '@sveltejs/kit';
 import { vi } from 'vitest';
 
 import { wrapLoadWithSentry, wrapServerLoadWithSentry } from '../../src/server/load';
 
-const mockCaptureException = vi.fn();
-let mockScope = new Scope();
-
-vi.mock('@sentry/node', async () => {
-  const original = (await vi.importActual('@sentry/node')) as any;
-  return {
-    ...original,
-    captureException: (err: unknown, cb: (arg0: unknown) => unknown) => {
-      cb(mockScope);
-      mockCaptureException(err, cb);
-      return original.captureException(err, cb);
-    },
-  };
-});
+const mockCaptureException = vi.spyOn(SentryNode, 'captureException').mockImplementation(() => 'xx');
 
 const mockStartSpan = vi.fn();
 
@@ -30,18 +17,6 @@ vi.mock('@sentry/core', async () => {
     startSpan: (...args: unknown[]) => {
       mockStartSpan(...args);
       return original.startSpan(...args);
-    },
-  };
-});
-
-const mockAddExceptionMechanism = vi.fn((_e, _m) => {});
-
-vi.mock('@sentry/utils', async () => {
-  const original = (await vi.importActual('@sentry/utils')) as any;
-  return {
-    ...original,
-    addExceptionMechanism: (...args: unknown[]) => {
-      return mockAddExceptionMechanism(args[0], args[1]);
     },
   };
 });
@@ -131,9 +106,7 @@ beforeAll(() => {
 
 afterEach(() => {
   mockCaptureException.mockClear();
-  mockAddExceptionMechanism.mockClear();
   mockStartSpan.mockClear();
-  mockScope = new Scope();
 });
 
 describe.each([
@@ -194,11 +167,6 @@ describe.each([
   });
 
   it('adds an exception mechanism', async () => {
-    const addEventProcessorSpy = vi.spyOn(mockScope, 'addEventProcessor').mockImplementationOnce(callback => {
-      void callback({}, { event_id: 'fake-event-id' });
-      return mockScope;
-    });
-
     async function load({ params }) {
       return {
         post: getById(params.id),
@@ -209,12 +177,10 @@ describe.each([
     const res = wrappedLoad(getServerOnlyArgs());
     await expect(res).rejects.toThrow();
 
-    expect(addEventProcessorSpy).toHaveBeenCalledTimes(1);
-    expect(mockAddExceptionMechanism).toBeCalledTimes(1);
-    expect(mockAddExceptionMechanism).toBeCalledWith(
-      {},
-      { handled: false, type: 'sveltekit', data: { function: 'load' } },
-    );
+    expect(mockCaptureException).toHaveBeenCalledTimes(1);
+    expect(mockCaptureException).toHaveBeenCalledWith(expect.any(Error), {
+      mechanism: { handled: false, type: 'sveltekit', data: { function: 'load' } },
+    });
   });
 });
 describe('wrapLoadWithSentry calls trace', () => {

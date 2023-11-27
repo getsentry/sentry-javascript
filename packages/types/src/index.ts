@@ -122,9 +122,21 @@ export type {
   TransportRequestExecutor,
 } from './transport';
 export type { User, UserFeedback } from './user';
+export type { WebFetchHeaders, WebFetchRequest } from './webfetchapi';
 export type { WrappedFunction } from './wrappedfunction';
 export type { Instrumenter } from './instrumenter';
-export type { HandlerDataFetch, HandlerDataXhr, SentryXhrData, SentryWrappedXMLHttpRequest } from './instrument';
+export type {
+  HandlerDataFetch,
+  HandlerDataXhr,
+  HandlerDataDom,
+  HandlerDataConsole,
+  HandlerDataHistory,
+  HandlerDataError,
+  HandlerDataUnhandledRejection,
+  ConsoleLevel,
+  SentryXhrData,
+  SentryWrappedXMLHttpRequest,
+} from './instrument';
 
 export type { BrowserClientReplayOptions, BrowserClientProfilingOptions } from './browseroptions';
 export type { CheckIn, MonitorConfig, FinishedCheckIn, InProgressCheckIn, SerializedCheckIn } from './checkin';

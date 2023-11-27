@@ -26,10 +26,8 @@ export async function resetSdkMock({ replayOptions, sentryOptions, autoStart }: 
   getGlobalSingleton<EventProcessor[]>('globalEventProcessors', () => []).length = 0;
 
   const SentryUtils = await import('@sentry/utils');
-  jest.spyOn(SentryUtils, 'addInstrumentationHandler').mockImplementation((type, handler: (args: any) => any) => {
-    if (type === 'dom') {
-      domHandler = handler;
-    }
+  jest.spyOn(SentryUtils, 'addClickKeypressInstrumentationHandler').mockImplementation(handler => {
+    domHandler = handler;
   });
   const { mockRrweb } = await import('./mockRrweb');
   const { record: mockRecord } = mockRrweb();

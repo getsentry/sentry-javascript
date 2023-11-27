@@ -28,6 +28,12 @@
       "import": "./build/esm/index.client.js",
       "require": "./build/cjs/index.server.js",
       "types": "./build/types/index.types.d.ts"
+    },
+    "./middleware": {
+      "node": "./build/esm/integration/middleware/index.js",
+      "import": "./build/esm/integration/middleware/index.js",
+      "require": "./build/cjs/integration/middleware/index.js",
+      "types": "./build/types/integration/middleware/index.types.d.ts"
     }
   },
   "publishConfig": {
@@ -45,7 +51,7 @@
     "@sentry/vite-plugin": "^2.8.0"
   },
   "devDependencies": {
-    "astro": "^3.2.3",
+    "astro": "^3.5.0",
     "rollup": "^3.20.2",
     "vite": "4.0.5"
   },

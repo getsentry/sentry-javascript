@@ -27,6 +27,16 @@ export interface Integration {
   setupOnce(addGlobalEventProcessor: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void;
 
   /**
+   * Set up an integration for the given client.
+   * Receives the client as argument.
+   *
+   * Whenever possible, prefer this over `setupOnce`, as that is only run for the first client,
+   * whereas `setup` runs for each client. Only truly global things (e.g. registering global handlers)
+   * should be done in `setupOnce`.
+   */
+  setup?(client: Client): void;
+
+  /**
    * An optional hook that allows to preprocess an event _before_ it is passed to all other event processors.
    */
   preprocessEvent?(event: Event, hint: EventHint | undefined, client: Client): void;

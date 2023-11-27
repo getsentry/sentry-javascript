@@ -1,7 +1,7 @@
 import type { BaseClient } from '@sentry/core';
-import { addGlobalEventProcessor, getCurrentHub } from '@sentry/core';
+import { addGlobalEventProcessor, getClient, getCurrentHub } from '@sentry/core';
 import type { Client, DynamicSamplingContext } from '@sentry/types';
-import { addInstrumentationHandler } from '@sentry/utils';
+import { addClickKeypressInstrumentationHandler, addHistoryInstrumentationHandler } from '@sentry/utils';
 
 import { handleAfterSendEvent } from '../coreHandlers/handleAfterSendEvent';
 import { handleDomListener } from '../coreHandlers/handleDom';
@@ -17,11 +17,11 @@ import type { ReplayContainer } from '../types';
 export function addGlobalListeners(replay: ReplayContainer): void {
   // Listeners from core SDK //
   const scope = getCurrentHub().getScope();
-  const client = getCurrentHub().getClient();
+  const client = getClient();
 
   scope.addScopeListener(handleScopeListener(replay));
-  addInstrumentationHandler('dom', handleDomListener(replay));
-  addInstrumentationHandler('history', handleHistorySpanListener(replay));
+  addClickKeypressInstrumentationHandler(handleDomListener(replay));
+  addHistoryInstrumentationHandler(handleHistorySpanListener(replay));
   handleNetworkBreadcrumbs(replay);
 
   // Tag all (non replay) events that get sent to Sentry with the current

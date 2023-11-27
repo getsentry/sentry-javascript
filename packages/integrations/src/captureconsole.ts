@@ -1,7 +1,7 @@
 import type { EventProcessor, Hub, Integration } from '@sentry/types';
 import {
+  addConsoleInstrumentationHandler,
   addExceptionMechanism,
-  addInstrumentationHandler,
   CONSOLE_LEVELS,
   GLOBAL_OBJ,
   safeJoin,
@@ -43,7 +43,7 @@ export class CaptureConsole implements Integration {
 
     const levels = this._levels;
 
-    addInstrumentationHandler('console', ({ args, level }: { args: unknown[]; level: string }) => {
+    addConsoleInstrumentationHandler(({ args, level }) => {
       if (!levels.includes(level)) {
         return;
       }

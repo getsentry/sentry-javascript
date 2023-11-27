@@ -9,6 +9,7 @@ import { createPerformanceEntries } from '../../src/util/createPerformanceEntrie
 import { createPerformanceSpans } from '../../src/util/createPerformanceSpans';
 import * as SendReplay from '../../src/util/sendReplay';
 import { BASE_TIMESTAMP, mockRrweb, mockSdk } from '../index';
+import type { DomHandler } from '../types';
 import { getTestEventCheckout } from '../utils/getTestEvent';
 import { useFakeTimers } from '../utils/use-fake-timers';
 
@@ -30,7 +31,7 @@ const prevLocation = WINDOW.location;
 const prevBrowserPerformanceTimeOrigin = SentryUtils.browserPerformanceTimeOrigin;
 
 describe('Integration | flush', () => {
-  let domHandler: (args: any) => any;
+  let domHandler: DomHandler;
 
   const { record: mockRecord } = mockRrweb();
 
@@ -43,10 +44,8 @@ describe('Integration | flush', () => {
   let mockAddPerformanceEntries: MockAddPerformanceEntries;
 
   beforeAll(async () => {
-    jest.spyOn(SentryUtils, 'addInstrumentationHandler').mockImplementation((type, handler: (args: any) => any) => {
-      if (type === 'dom') {
-        domHandler = handler;
-      }
+    jest.spyOn(SentryUtils, 'addClickKeypressInstrumentationHandler').mockImplementation(handler => {
+      domHandler = handler;
     });
 
     ({ replay } = await mockSdk());
@@ -162,6 +161,7 @@ describe('Integration | flush', () => {
     // This will attempt to flush in 5 seconds (flushMinDelay)
     domHandler({
       name: 'click',
+      event: new Event('click'),
     });
     await advanceTimers(DEFAULT_FLUSH_MIN_DELAY);
     // flush #2 @ t=5s - due to click
@@ -259,6 +259,7 @@ describe('Integration | flush', () => {
     // click happens first
     domHandler({
       name: 'click',
+      event: new Event('click'),
     });
 
     // checkout
@@ -284,6 +285,7 @@ describe('Integration | flush', () => {
     // click happens first
     domHandler({
       name: 'click',
+      event: new Event('click'),
     });
 
     // checkout
@@ -324,6 +326,7 @@ describe('Integration | flush', () => {
     // click happens first
     domHandler({
       name: 'click',
+      event: new Event('click'),
     });
 
     // checkout
@@ -355,6 +358,7 @@ describe('Integration | flush', () => {
     // click happens first
     domHandler({
       name: 'click',
+      event: new Event('click'),
     });
 
     // no checkout!
