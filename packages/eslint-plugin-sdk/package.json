@@ -26,12 +26,12 @@
   },
   "scripts": {
     "clean": "yarn rimraf sentry-internal-eslint-plugin-sdk-*.tgz",
-    "fix": "run-s fix:eslint fix:prettier",
+    "fix": "run-s fix:eslint fix:biome",
     "fix:eslint": "eslint . --format stylish --fix",
-    "fix:prettier": "prettier --write \"{src,test}/**/*.js\"",
-    "lint": "run-s lint:prettier lint:eslint",
+    "fix:biome": "biome format --write .",
+    "lint": "run-s lint:biome lint:eslint",
     "lint:eslint": "eslint . --format stylish",
-    "lint:prettier": "prettier --check \"{src,test}/**/*.js\"",
+    "lint:biome": "biome format .",
     "test": "mocha test --recursive",
     "build:tarball": "npm pack",
     "circularDepCheck": "madge --circular src/index.js"
