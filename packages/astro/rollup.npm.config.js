@@ -2,7 +2,7 @@ import { makeBaseNPMConfig, makeNPMConfigVariants } from '../../rollup/index.js'
 
 const variants = makeNPMConfigVariants(
   makeBaseNPMConfig({
-    entrypoints: ['src/index.server.ts', 'src/index.client.ts'],
+    entrypoints: ['src/index.server.ts', 'src/index.client.ts', 'src/integration/middleware/index.ts'],
     packageSpecificConfig: {
       output: {
         dynamicImportInCjs: true,
