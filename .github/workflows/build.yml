@@ -466,7 +466,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node: [8, 10, 12, 14, 16, 18, 20]
+        node: [8, 10, 12, 14, 16, 18, 20, 21]
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v4
@@ -498,7 +498,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node: [10, 12, 14, 16, 18, 20]
+        node: [10, 12, 14, 16, 18, 20, 21]
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v4
@@ -733,7 +733,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node: [10, 12, 14, 16, 18, 20]
+        node: [10, 12, 14, 16, 18, 20, 21]
         typescript:
           - false
         include:
@@ -774,7 +774,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node: [14, 16, 18, 20]
+        node: [14, 16, 18, 20, 21]
         remix: [1, 2]
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
