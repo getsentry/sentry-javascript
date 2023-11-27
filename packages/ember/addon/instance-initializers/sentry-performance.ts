@@ -418,8 +418,10 @@ export async function instrumentForPerformance(appInstance: ApplicationInstance)
     routingInstrumentation: (customStartTransaction, startTransactionOnPageLoad) => {
       // eslint-disable-next-line ember/no-private-routing-service
       const routerMain = appInstance.lookup('router:main') as EmberRouterMain;
-      let routerService = appInstance.lookup('service:router') as
-        | RouterService & { externalRouter?: RouterService; _hasMountedSentryPerformanceRouting?: boolean };
+      let routerService = appInstance.lookup('service:router') as RouterService & {
+        externalRouter?: RouterService;
+        _hasMountedSentryPerformanceRouting?: boolean;
+      };
 
       if (routerService.externalRouter) {
         // Using ember-engines-router-service in an engine.

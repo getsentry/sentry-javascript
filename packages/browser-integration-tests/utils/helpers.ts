@@ -68,10 +68,13 @@ export const countEnvelopes = async (
 
     page.on('request', requestHandler);
 
-    setTimeout(() => {
-      page.off('request', requestHandler);
-      resolve(reqCount);
-    }, options?.timeout || 1000);
+    setTimeout(
+      () => {
+        page.off('request', requestHandler);
+        resolve(reqCount);
+      },
+      options?.timeout || 1000,
+    );
   });
 
   if (options?.url) {

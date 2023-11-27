@@ -33,10 +33,10 @@ export function getTracingMetaTags(span: Span | undefined, hub: Hub): { sentryTr
   const dynamicSamplingContext = transaction
     ? transaction.getDynamicSamplingContext()
     : dsc
-    ? dsc
-    : client
-    ? getDynamicSamplingContextFromClient(traceId, client, scope)
-    : undefined;
+      ? dsc
+      : client
+        ? getDynamicSamplingContextFromClient(traceId, client, scope)
+        : undefined;
 
   const baggage = dynamicSamplingContextToSentryBaggageHeader(dynamicSamplingContext);
 

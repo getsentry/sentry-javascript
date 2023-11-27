@@ -122,8 +122,8 @@ export function constructWebpackConfigFunction(
     const middlewareLocationFolder = pagesDirPath
       ? path.join(pagesDirPath, '..')
       : appDirPath
-      ? path.join(appDirPath, '..')
-      : projectDir;
+        ? path.join(appDirPath, '..')
+        : projectDir;
 
     // Default page extensions per https://github.com/vercel/next.js/blob/f1dbc9260d48c7995f6c52f8fbcc65f08e627992/packages/next/server/config-shared.ts#L161
     const pageExtensions = userNextConfig.pageExtensions || ['tsx', 'ts', 'jsx', 'js'];
@@ -511,8 +511,8 @@ async function addSentryToEntryProperty(
     nextRuntime === 'edge'
       ? getUserConfigFile(projectDir, 'edge')
       : isServer
-      ? getUserConfigFile(projectDir, 'server')
-      : getUserConfigFile(projectDir, 'client');
+        ? getUserConfigFile(projectDir, 'server')
+        : getUserConfigFile(projectDir, 'client');
 
   // we need to turn the filename into a path so webpack can find it
   const filesToInject = userConfigFile ? [`./${userConfigFile}`] : [];

@@ -8,7 +8,13 @@ function assertSessions(actual, expected) {
 }
 
 function constructStrippedSessionObject(actual) {
-  const { init, status, errors, attrs: { release }, did } = actual;
+  const {
+    init,
+    status,
+    errors,
+    attrs: { release },
+    did,
+  } = actual;
   return { init, status, errors, release, did };
 }
 
