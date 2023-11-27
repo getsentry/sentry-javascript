@@ -89,6 +89,13 @@ export async function captureRemixServerException(err: unknown, name: string, re
     return;
   }
 
+  // Skip capturing if the request is aborted as Remix docs suggest
+  // Ref: https://remix.run/docs/en/main/file-conventions/entry.server#handleerror
+  if (request.signal.aborted) {
+    __DEBUG_BUILD__ && logger.warn('Skipping capture of aborted request');
+    return;
+  }
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let normalizedRequest: Record<string, unknown> = request as unknown as any;
 
