@@ -80,9 +80,9 @@ type InstrumentationOptions = {
      * If this flag is `true` and your application is configured for SSR (or hybrid) mode,
      * the Sentry integration will automatically add middleware to:
      *
+     * - capture server performance data and spans for incoming server requests
      * - enable distributed tracing between server and client
-     * - capture server performance data and spans
-     * - annotate errors with more information
+     * - annotate server errors with more information
      *
      * This middleware will only be added automatically in Astro 3.5.0 and newer.
      * For older versions, add the `Sentry.handleRequest` middleware manually
