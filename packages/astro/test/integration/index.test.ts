@@ -149,23 +149,26 @@ describe('sentryAstro integration', () => {
     },
   );
 
-  it.each([{ output: 'static' }, undefined])("doesn't add middleware if in static mode (config %s)", async config => {
-    const integration = sentryAstro({});
-    const addMiddleware = vi.fn();
-    const updateConfig = vi.fn();
-    const injectScript = vi.fn();
+  it.each([{ output: 'static' }, { output: undefined }])(
+    "doesn't add middleware if in static mode (config %s)",
+    async config => {
+      const integration = sentryAstro({});
+      const addMiddleware = vi.fn();
+      const updateConfig = vi.fn();
+      const injectScript = vi.fn();
 
-    expect(integration.hooks['astro:config:setup']).toBeDefined();
-    // @ts-expect-error - the hook exists and we only need to pass what we actually use
-    await integration.hooks['astro:config:setup']({
-      config,
-      addMiddleware,
-      updateConfig,
-      injectScript,
-    });
+      expect(integration.hooks['astro:config:setup']).toBeDefined();
+      // @ts-expect-error - the hook exists and we only need to pass what we actually use
+      await integration.hooks['astro:config:setup']({
+        config,
+        addMiddleware,
+        updateConfig,
+        injectScript,
+      });
 
-    expect(addMiddleware).toHaveBeenCalledTimes(0);
-  });
+      expect(addMiddleware).toHaveBeenCalledTimes(0);
+    },
+  );
 
   it("doesn't add middleware if disabled by users", async () => {
     const integration = sentryAstro({ autoInstrumentation: { requestHandler: false } });
