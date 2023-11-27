@@ -83,6 +83,33 @@ describe('sentryAstro integration', () => {
     });
   });
 
+  it('sets the correct assets glob for vercel if the Vercel adapter is used', async () => {
+    const integration = sentryAstro({
+      sourceMapsUploadOptions: { enabled: true, org: 'my-org', project: 'my-project', telemetry: false },
+    });
+    // @ts-expect-error - the hook exists and we only need to pass what we actually use
+    await integration.hooks['astro:config:setup']({
+      updateConfig,
+      injectScript,
+      config: {
+        // @ts-expect-error - we only need to pass what we actually use
+        adapter: { name: '@astrojs/vercel/serverless' },
+      },
+    });
+
+    expect(sentryVitePluginSpy).toHaveBeenCalledTimes(1);
+    expect(sentryVitePluginSpy).toHaveBeenCalledWith({
+      authToken: 'my-token',
+      org: 'my-org',
+      project: 'my-project',
+      telemetry: false,
+      debug: false,
+      sourcemaps: {
+        assets: ['{.vercel,dist}/**/*'],
+      },
+    });
+  });
+
   it("doesn't enable source maps if `sourceMapsUploadOptions.enabled` is `false`", async () => {
     const integration = sentryAstro({
       sourceMapsUploadOptions: { enabled: false },
