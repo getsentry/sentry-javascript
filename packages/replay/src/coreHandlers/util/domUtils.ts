@@ -1,5 +1,4 @@
 import type { INode } from '@sentry-internal/rrweb-snapshot';
-import type { HandlerDataDom } from '@sentry/types';
 
 const INTERACTIVE_SELECTOR = 'button,a';
 
@@ -15,7 +14,7 @@ export function getClosestInteractive(element: Element): Element {
  * This is useful because if you click on the image in <button><img></button>,
  * The target will be the image, not the button, which we don't want here
  */
-export function getClickTargetNode(event: HandlerDataDom['event'] | MouseEvent | Node): Node | INode | null {
+export function getClickTargetNode(event: Event | MouseEvent | Node): Node | INode | null {
   const target = getTargetNode(event);
 
   if (!target || !(target instanceof Element)) {
