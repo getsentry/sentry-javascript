@@ -1,5 +1,4 @@
 import type { INode } from '@sentry-internal/rrweb-snapshot';
-import type { HandlerDataDom } from '@sentry/types';
 
 const INTERACTIVE_SELECTOR = 'button,a';
 
