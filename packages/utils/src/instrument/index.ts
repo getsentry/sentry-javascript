@@ -1,3 +1,5 @@
+// TODO(v8): Consider moving this file (or at least parts of it) into the browser package. The registered handlers are mostly non-generic and we risk leaking runtime specific code into generic packages.
+
 import { DEBUG_BUILD } from '../debug-build';
 import type {
   InstrumentHandlerCallback as _InstrumentHandlerCallback,
