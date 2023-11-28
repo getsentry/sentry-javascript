@@ -155,6 +155,19 @@ describe('sentryAstro integration', () => {
     expect(sentryVitePluginSpy).toHaveBeenCalledTimes(0);
   });
 
+  it("doesn't add the Vite plugin in dev mode", async () => {
+    const integration = sentryAstro({
+      sourceMapsUploadOptions: { enabled: true },
+    });
+
+    expect(integration.hooks['astro:config:setup']).toBeDefined();
+    // @ts-expect-error - the hook exists and we only need to pass what we actually use
+    await integration.hooks['astro:config:setup']({ updateConfig, injectScript, config, command: 'dev' });
+
+    expect(updateConfig).toHaveBeenCalledTimes(0);
+    expect(sentryVitePluginSpy).toHaveBeenCalledTimes(0);
+  });
+
   it('injects client and server init scripts', async () => {
     const integration = sentryAstro({});
 
