@@ -1,4 +1,5 @@
 import type { BrowserOptions } from '@sentry/browser';
+import { NodeOptions } from '@sentry/node';
 import type { Options } from '@sentry/types';
 
 type SdkInitPaths = {
