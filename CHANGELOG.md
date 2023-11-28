@@ -4,6 +4,37 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.83.0
+
+- chore(astro): Allow Astro 4.0 in peer dependencies (#9683)
+- feat(astro): Add `assets` option to source maps upload options (#9668)
+- feat(react): Support `exactOptionalPropertyTypes` on `ErrorBoundary` (#9098)
+- fix: Don't depend on browser types in `types` (#9682)
+- fix(astro): Configure sourcemap assets directory for Vercel adapter (#9665)
+- fix(remix): Check the error data before spreading. (#9664)
+
+## 7.82.0
+
+- feat(astro): Automatically add Sentry middleware in Astro integration (#9532)
+- feat(core): Add optional `setup` hook to integrations (#9556)
+- feat(core): Add top level `getClient()` method (#9638)
+- feat(core): Allow to pass `mechanism` as event hint (#9590)
+- feat(core): Allow to use `continueTrace` without callback (#9615)
+- feat(feedback): Add onClose callback to showReportDialog (#9433) (#9550)
+- feat(nextjs): Add request data to all edge-capable functionalities (#9636)
+- feat(node): Add Spotlight option to Node SDK (#9629)
+- feat(utils): Refactor `addInstrumentationHandler` to dedicated methods (#9542)
+- fix: Make full url customizable for Spotlight (#9652)
+- fix(astro): Remove Auth Token existence check (#9651)
+- fix(nextjs): Fix middleware detection logic (#9637)
+- fix(remix): Skip capturing aborted requests (#9659)
+- fix(replay): Add `BODY_PARSE_ERROR` warning & time out fetch response load (#9622)
+- fix(tracing): Filter out invalid resource sizes (#9641)
+- ref: Hoist `RequestData` integration to `@sentry/core` (#9597)
+- ref(feedback): Rename onDialog* to onForm*, remove onActorClick (#9625)
+
+Work in this release contributed by @arya-s. Thank you for your contribution!
+
 ## 7.81.1
 
 - fix(astro): Remove method from span op (#9603)

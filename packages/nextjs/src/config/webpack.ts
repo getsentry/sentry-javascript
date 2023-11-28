@@ -172,12 +172,12 @@ export function constructWebpackConfigFunction(
       );
     };
 
+    const possibleMiddlewareLocations = ['js', 'jsx', 'ts', 'tsx'].map(middlewareFileEnding => {
+      return path.join(middlewareLocationFolder, `middleware.${middlewareFileEnding}`);
+    });
     const isMiddlewareResource = (resourcePath: string): boolean => {
       const normalizedAbsoluteResourcePath = normalizeLoaderResourcePath(resourcePath);
-      return (
-        normalizedAbsoluteResourcePath.startsWith(middlewareLocationFolder + path.sep) &&
-        !!normalizedAbsoluteResourcePath.match(/[\\/]middleware\.(js|jsx|ts|tsx)$/)
-      );
+      return possibleMiddlewareLocations.includes(normalizedAbsoluteResourcePath);
     };
 
     const isServerComponentResource = (resourcePath: string): boolean => {

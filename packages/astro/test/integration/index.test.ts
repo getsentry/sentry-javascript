@@ -83,6 +83,65 @@ describe('sentryAstro integration', () => {
     });
   });
 
+  it('sets the correct assets glob for vercel if the Vercel adapter is used', async () => {
+    const integration = sentryAstro({
+      sourceMapsUploadOptions: { enabled: true, org: 'my-org', project: 'my-project', telemetry: false },
+    });
+    // @ts-expect-error - the hook exists and we only need to pass what we actually use
+    await integration.hooks['astro:config:setup']({
+      updateConfig,
+      injectScript,
+      config: {
+        // @ts-expect-error - we only need to pass what we actually use
+        adapter: { name: '@astrojs/vercel/serverless' },
+      },
+    });
+
+    expect(sentryVitePluginSpy).toHaveBeenCalledTimes(1);
+    expect(sentryVitePluginSpy).toHaveBeenCalledWith({
+      authToken: 'my-token',
+      org: 'my-org',
+      project: 'my-project',
+      telemetry: false,
+      debug: false,
+      sourcemaps: {
+        assets: ['{.vercel,dist}/**/*'],
+      },
+    });
+  });
+
+  it('prefers user-specified assets-globs over the default values', async () => {
+    const integration = sentryAstro({
+      sourceMapsUploadOptions: {
+        enabled: true,
+        org: 'my-org',
+        project: 'my-project',
+        assets: ['dist/server/**/*, dist/client/**/*'],
+      },
+    });
+    // @ts-expect-error - the hook exists and we only need to pass what we actually use
+    await integration.hooks['astro:config:setup']({
+      updateConfig,
+      injectScript,
+      // @ts-expect-error - only passing in partial config
+      config: {
+        outDir: new URL('file://path/to/project/build'),
+      },
+    });
+
+    expect(sentryVitePluginSpy).toHaveBeenCalledTimes(1);
+    expect(sentryVitePluginSpy).toHaveBeenCalledWith({
+      authToken: 'my-token',
+      org: 'my-org',
+      project: 'my-project',
+      telemetry: true,
+      debug: false,
+      sourcemaps: {
+        assets: ['dist/server/**/*, dist/client/**/*'],
+      },
+    });
+  });
+
   it("doesn't enable source maps if `sourceMapsUploadOptions.enabled` is `false`", async () => {
     const integration = sentryAstro({
       sourceMapsUploadOptions: { enabled: false },
@@ -91,6 +150,19 @@ describe('sentryAstro integration', () => {
     expect(integration.hooks['astro:config:setup']).toBeDefined();
     // @ts-expect-error - the hook exists and we only need to pass what we actually use
     await integration.hooks['astro:config:setup']({ updateConfig, injectScript, config });
+
+    expect(updateConfig).toHaveBeenCalledTimes(0);
+    expect(sentryVitePluginSpy).toHaveBeenCalledTimes(0);
+  });
+
+  it("doesn't add the Vite plugin in dev mode", async () => {
+    const integration = sentryAstro({
+      sourceMapsUploadOptions: { enabled: true },
+    });
+
+    expect(integration.hooks['astro:config:setup']).toBeDefined();
+    // @ts-expect-error - the hook exists and we only need to pass what we actually use
+    await integration.hooks['astro:config:setup']({ updateConfig, injectScript, config, command: 'dev' });
 
     expect(updateConfig).toHaveBeenCalledTimes(0);
     expect(sentryVitePluginSpy).toHaveBeenCalledTimes(0);

@@ -1,3 +1,5 @@
+// TODO(v8): Move everything in this file into the browser package. Nothing here is generic and we run risk of leaking browser types into non-browser packages.
+
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/ban-types */
 import type { HandlerDataXhr, SentryWrappedXMLHttpRequest, WrappedFunction } from '@sentry/types';
