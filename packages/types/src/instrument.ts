@@ -63,7 +63,8 @@ export interface HandlerDataFetch {
 }
 
 export interface HandlerDataDom {
-  event: Event | { target: EventTarget };
+  // TODO: Replace `object` here with an vendored type for browser Events. We can't depend on the `DOM` or `react` TS types package here.
+  event: object | { target: object };
   name: string;
   global?: boolean;
 }
@@ -82,7 +83,8 @@ export interface HandlerDataError {
   column?: number;
   error?: Error;
   line?: number;
-  msg: string | Event;
+  // TODO: Replace `object` here with an vendored type for browser Events. We can't depend on the `DOM` or `react` TS types package here.
+  msg: string | object;
   url?: string;
 }
 
