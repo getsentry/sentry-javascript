@@ -100,6 +100,16 @@ function findDefaultSdkInitFile(type: 'server' | 'client'): string | undefined {
 }
 
 function getSourcemapsAssetsGlob(config: AstroConfig): string {
+  // The vercel adapter puts the output into its .vercel directory
+  // However, the way this adapter is written, the config.outDir value is update too late for
+  // us to reliably detect it. Also, server files are first temporarily written to <root>/dist and then
+  // only copied over to <root>/.vercel. This seems to happen too late though.
+  // So we glob on both of these directories.
+  // Another case of "it ain't pretty but it works":(
+  if (config.adapter && config.adapter.name?.startsWith('@astrojs/vercel')) {
+    return '{.vercel,dist}/**/*';
+  }
+
   // paths are stored as "file://" URLs
   const outDirPathname = config.outDir && path.resolve(config.outDir.pathname);
   const rootDirName = path.resolve((config.root && config.root.pathname) || process.cwd());
