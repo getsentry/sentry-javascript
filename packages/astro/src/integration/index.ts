@@ -42,7 +42,7 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
                   authToken: uploadOptions.authToken ?? env.SENTRY_AUTH_TOKEN,
                   telemetry: uploadOptions.telemetry ?? true,
                   sourcemaps: {
-                    assets: [getSourcemapsAssetsGlob(config)],
+                    assets: uploadOptions.assets ?? [getSourcemapsAssetsGlob(config)],
                   },
                   debug: options.debug ?? false,
                 }),
@@ -106,13 +106,13 @@ function getSourcemapsAssetsGlob(config: AstroConfig): string {
   // only copied over to <root>/.vercel. This seems to happen too late though.
   // So we glob on both of these directories.
   // Another case of "it ain't pretty but it works":(
-  if (config.adapter && config.adapter.name?.startsWith('@astrojs/vercel')) {
+  if (config.adapter?.name?.startsWith('@astrojs/vercel')) {
     return '{.vercel,dist}/**/*';
   }
 
   // paths are stored as "file://" URLs
   const outDirPathname = config.outDir && path.resolve(config.outDir.pathname);
-  const rootDirName = path.resolve((config.root && config.root.pathname) || process.cwd());
+  const rootDirName = path.resolve(config.root?.pathname || process.cwd());
 
   if (outDirPathname) {
     const relativePath = path.relative(rootDirName, outDirPathname);
