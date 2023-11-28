@@ -9,7 +9,20 @@
     "enabled": true
   },
   "linter": {
-    "enabled": false
+    "enabled": true,
+    "rules": {
+      "recommended": false,
+      "correctness": {
+        "all": false,
+        "noUnusedVariables": "error",
+        "noPrecisionLoss": "error"
+      },
+      "suspicious": {
+        "all": false,
+        "noControlCharactersInRegex": "error"
+      }
+    },
+    "ignore": [".vscode/*", "**/*.json"]
   },
   "files": {
     "ignoreUnknown": true
@@ -37,6 +50,9 @@
       "arrowParentheses": "asNeeded",
       "trailingComma": "all",
       "lineEnding": "lf"
+    },
+    "parser": {
+      "unsafeParameterDecoratorsEnabled": true
     }
   },
   "json": {

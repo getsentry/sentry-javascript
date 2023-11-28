@@ -37,6 +37,7 @@ local.log
 ._*
 .Spotlight-V100
 .Trashes
+.nx
 
 .rpt2_cache
 
