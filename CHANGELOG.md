@@ -4,6 +4,15 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.83.0
+
+- chore(astro): Allow Astro 4.0 in peer dependencies (#9683)
+- feat(astro): Add `assets` option to source maps upload options (#9668)
+- feat(react): Support `exactOptionalPropertyTypes` on `ErrorBoundary` (#9098)
+- fix: Don't depend on browser types in `types` (#9682)
+- fix(astro): Configure sourcemap assets directory for Vercel adapter (#9665)
+- fix(remix): Check the error data before spreading. (#9664)
+
 ## 7.82.0
 
 - feat(astro): Automatically add Sentry middleware in Astro integration (#9532)

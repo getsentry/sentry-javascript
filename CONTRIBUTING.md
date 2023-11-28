@@ -69,7 +69,7 @@ Pro tip: If any of your breakpoints are in code run by multiple tests, and you r
 
 ## Debug Build Flags
 
-Throughout the codebase, you will find the `__DEBUG_BUILD__` flag guarding various code sections. This flag serves two purposes:
+Throughout the codebase, you will find a `__DEBUG_BUILD__` constant. This flag serves two purposes:
 
 1. It enables us to remove debug code from our minified CDN bundles during build, by replacing the flag with `false` before tree-shaking occurs.
 2. It enables users to remove Sentry debug code from their production bundles during their own build. When we build our npm packages, we replace the flag with `(typeof __SENTRY_DEBUG__ === 'undefined' || __SENTRY_DEBUG__)`. If the user does nothing, this evaluates to `true` and logging is included. But if the user runs their own replacement during build (again replacing the flag with `false`), the build will tree-shake the logging away, just as our bundle builds do.

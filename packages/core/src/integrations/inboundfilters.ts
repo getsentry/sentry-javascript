@@ -1,6 +1,8 @@
 import type { Client, Event, EventHint, Integration, StackFrame } from '@sentry/types';
 import { getEventDescription, logger, stringMatchesSomePattern } from '@sentry/utils';
 
+import { DEBUG_BUILD } from '../debug-build';
+
 // "Script error." is hard coded into browsers for errors that it can't read.
 // this is the result of a script being pulled in from an external domain and CORS.
 const DEFAULT_IGNORE_ERRORS = [/^Script error\.?$/, /^Javascript error: Script error\.? on line 0$/];
@@ -85,26 +87,26 @@ export function _mergeOptions(
 /** JSDoc */
 export function _shouldDropEvent(event: Event, options: Partial<InboundFiltersOptions>): boolean {
   if (options.ignoreInternal && _isSentryError(event)) {
-    __DEBUG_BUILD__ &&
+    DEBUG_BUILD &&
       logger.warn(`Event dropped due to being internal Sentry Error.\nEvent: ${getEventDescription(event)}`);
     return true;
   }
   if (_isIgnoredError(event, options.ignoreErrors)) {
-    __DEBUG_BUILD__ &&
+    DEBUG_BUILD &&
       logger.warn(
         `Event dropped due to being matched by \`ignoreErrors\` option.\nEvent: ${getEventDescription(event)}`,
       );
     return true;
   }
   if (_isIgnoredTransaction(event, options.ignoreTransactions)) {
-    __DEBUG_BUILD__ &&
+    DEBUG_BUILD &&
       logger.warn(
         `Event dropped due to being matched by \`ignoreTransactions\` option.\nEvent: ${getEventDescription(event)}`,
       );
     return true;
   }
   if (_isDeniedUrl(event, options.denyUrls)) {
-    __DEBUG_BUILD__ &&
+    DEBUG_BUILD &&
       logger.warn(
         `Event dropped due to being matched by \`denyUrls\` option.\nEvent: ${getEventDescription(
           event,
@@ -113,7 +115,7 @@ export function _shouldDropEvent(event: Event, options: Partial<InboundFiltersOp
     return true;
   }
   if (!_isAllowedUrl(event, options.allowUrls)) {
-    __DEBUG_BUILD__ &&
+    DEBUG_BUILD &&
       logger.warn(
         `Event dropped due to not being matched by \`allowUrls\` option.\nEvent: ${getEventDescription(
           event,
@@ -185,7 +187,7 @@ function _getPossibleEventMessages(event: Event): string[] {
     }
   }
 
-  if (__DEBUG_BUILD__ && possibleMessages.length === 0) {
+  if (DEBUG_BUILD && possibleMessages.length === 0) {
     logger.error(`Could not extract message for event ${getEventDescription(event)}`);
   }
 
@@ -226,7 +228,7 @@ function _getEventFilterUrl(event: Event): string | null {
     }
     return frames ? _getLastValidUrl(frames) : null;
   } catch (oO) {
-    __DEBUG_BUILD__ && logger.error(`Cannot extract url for event ${getEventDescription(event)}`);
+    DEBUG_BUILD && logger.error(`Cannot extract url for event ${getEventDescription(event)}`);
     return null;
   }
 }

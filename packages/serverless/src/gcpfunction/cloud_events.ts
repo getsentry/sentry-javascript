@@ -1,6 +1,7 @@
 import { captureException, flush, getCurrentHub } from '@sentry/node';
 import { isThenable, logger } from '@sentry/utils';
 
+import { DEBUG_BUILD } from '../debug-build';
 import { domainify, markEventUnhandled, proxyFunction } from '../utils';
 import type { CloudEventFunction, CloudEventFunctionWithCallback, WrapperOptions } from './general';
 
@@ -56,7 +57,7 @@ function _wrapCloudEventFunction(
 
       void flush(options.flushTimeout)
         .then(null, e => {
-          __DEBUG_BUILD__ && logger.error(e);
+          DEBUG_BUILD && logger.error(e);
         })
         .then(() => {
           callback(...args);

@@ -40,7 +40,7 @@
     "access": "public"
   },
   "peerDependencies": {
-    "astro": "3.x"
+    "astro": ">=3.x"
   },
   "dependencies": {
     "@sentry/browser": "7.82.0",

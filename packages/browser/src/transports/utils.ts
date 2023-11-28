@@ -1,5 +1,6 @@
 import { isNativeFetch, logger } from '@sentry/utils';
 
+import { DEBUG_BUILD } from '../debug-build';
 import { WINDOW } from '../helpers';
 
 let cachedFetchImpl: FetchImpl | undefined = undefined;
@@ -70,8 +71,7 @@ export function getNativeFetchImplementation(): FetchImpl {
       }
       document.head.removeChild(sandbox);
     } catch (e) {
-      __DEBUG_BUILD__ &&
-        logger.warn('Could not create sandbox iframe for pure fetch check, bailing to window.fetch: ', e);
+      DEBUG_BUILD && logger.warn('Could not create sandbox iframe for pure fetch check, bailing to window.fetch: ', e);
     }
   }
 

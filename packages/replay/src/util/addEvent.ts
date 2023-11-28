@@ -2,6 +2,7 @@ import { EventType } from '@sentry-internal/rrweb';
 import { getClient } from '@sentry/core';
 import { logger } from '@sentry/utils';
 
+import { DEBUG_BUILD } from '../debug-build';
 import { EventBufferSizeExceededError } from '../eventBuffer/error';
 import type { AddEventResult, RecordingEvent, ReplayContainer, ReplayFrameEvent, ReplayPluginOptions } from '../types';
 import { logInfo } from './log';
@@ -77,7 +78,7 @@ async function _addEvent(
   } catch (error) {
     const reason = error && error instanceof EventBufferSizeExceededError ? 'addEventSizeExceeded' : 'addEvent';
 
-    __DEBUG_BUILD__ && logger.error(error);
+    DEBUG_BUILD && logger.error(error);
     await replay.stop({ reason });
 
     const client = getClient();
@@ -125,7 +126,7 @@ function maybeApplyCallback(
       return callback(event);
     }
   } catch (error) {
-    __DEBUG_BUILD__ &&
+    DEBUG_BUILD &&
       logger.error('[Replay] An error occured in the `beforeAddRecordingEvent` callback, skipping the event...', error);
     return null;
   }

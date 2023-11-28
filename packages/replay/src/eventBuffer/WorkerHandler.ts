@@ -1,5 +1,6 @@
 import { logger } from '@sentry/utils';
 
+import { DEBUG_BUILD } from '../debug-build';
 import type { WorkerRequest, WorkerResponse } from '../types';
 import { logInfo } from '../util/log';
 
@@ -84,7 +85,7 @@ export class WorkerHandler {
 
         if (!response.success) {
           // TODO: Do some error handling, not sure what
-          __DEBUG_BUILD__ && logger.error('[Replay]', response.response);
+          DEBUG_BUILD && logger.error('[Replay]', response.response);
 
           reject(new Error('Error in compression worker'));
           return;

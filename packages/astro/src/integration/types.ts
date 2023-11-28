@@ -68,6 +68,18 @@ type SourceMapsOptions = {
      * @default true
      */
     telemetry?: boolean;
+
+    /**
+     * A glob or an array of globs that specify the build artifacts and source maps that will uploaded to Sentry.
+     *
+     * If this option is not specified, sensible defaults based on your `outDir`, `rootDir` and `adapter`
+     * config will be used. Use this option to override these defaults, for instance if you have a
+     * customized build setup that diverges from Astro's defaults.
+     *
+     * The globbing patterns must follow the implementation of the `glob` package.
+     * @see https://www.npmjs.com/package/glob#glob-primer
+     */
+    assets?: string | Array<string>;
   };
 };
 

@@ -41,7 +41,7 @@ export const handleDomListener: (replay: ReplayContainer) => (handlerData: Handl
       handleClick(
         replay.clickDetector,
         result as Breadcrumb & { timestamp: number; data: { nodeId: number } },
-        getClickTargetNode(handlerData.event) as HTMLElement,
+        getClickTargetNode(handlerData.event as Event) as HTMLElement,
       );
     }
 
@@ -97,7 +97,7 @@ function getDomTarget(handlerData: HandlerDataDom): { target: Node | null; messa
 
   // Accessing event.target can throw (see getsentry/raven-js#838, #768)
   try {
-    target = isClick ? getClickTargetNode(handlerData.event) : getTargetNode(handlerData.event);
+    target = isClick ? getClickTargetNode(handlerData.event as Event) : getTargetNode(handlerData.event as Event);
     message = htmlTreeAsString(target, { maxStringLength: 200 }) || '<unknown>';
   } catch (e) {
     message = '<unknown>';

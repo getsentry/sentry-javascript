@@ -6,6 +6,7 @@ import type {
   TransportRequest,
   TransportRequestExecutor,
 } from '@sentry/types';
+import { consoleSandbox } from '@sentry/utils';
 import * as http from 'http';
 import * as https from 'https';
 import { HttpsProxyAgent } from 'https-proxy-agent';
@@ -53,10 +54,12 @@ export function makeNodeTransport(options: NodeTransportOptions): Transport {
   try {
     urlSegments = new URL(options.url);
   } catch (e) {
-    // eslint-disable-next-line no-console
-    console.warn(
-      '[@sentry/node]: Invalid dsn or tunnel option, will not send any events. The tunnel option must be a full URL when used.',
-    );
+    consoleSandbox(() => {
+      // eslint-disable-next-line no-console
+      console.warn(
+        '[@sentry/node]: Invalid dsn or tunnel option, will not send any events. The tunnel option must be a full URL when used.',
+      );
+    });
     return createTransport(options, () => Promise.resolve({}));
   }
 

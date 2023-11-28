@@ -12,6 +12,7 @@ import {
 } from '@sentry/utils';
 
 import type { BrowserClient } from '../client';
+import { DEBUG_BUILD } from '../debug-build';
 import { eventFromUnknownInput } from '../eventbuilder';
 import { shouldIgnoreOnError } from '../helpers';
 
@@ -254,7 +255,7 @@ function _enhanceEventWithInitialFrame(event: Event, url: any, line: any, column
 }
 
 function globalHandlerLog(type: string): void {
-  __DEBUG_BUILD__ && logger.log(`Global Handler attached: ${type}`);
+  DEBUG_BUILD && logger.log(`Global Handler attached: ${type}`);
 }
 
 function getHubAndOptions(): [Hub, StackParser, boolean | undefined] {

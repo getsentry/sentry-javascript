@@ -9,6 +9,7 @@ import {
 } from '@sentry/utils';
 
 import type { EdgeRouteHandler } from '../../edge/types';
+import { DEBUG_BUILD } from '../debug-build';
 
 /**
  * Wraps a function on the edge runtime with error and performance monitoring.
@@ -41,7 +42,7 @@ export function withEdgeWrapping<H extends EdgeRouteHandler>(
       );
       currentScope.setPropagationContext(propagationContext);
       if (traceparentData) {
-        __DEBUG_BUILD__ && logger.log(`[Tracing] Continuing trace ${traceparentData.traceId}.`);
+        DEBUG_BUILD && logger.log(`[Tracing] Continuing trace ${traceparentData.traceId}.`);
       }
 
       span = startTransaction({

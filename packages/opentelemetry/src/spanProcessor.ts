@@ -5,6 +5,7 @@ import { BatchSpanProcessor } from '@opentelemetry/sdk-trace-base';
 import { logger } from '@sentry/utils';
 
 import { getCurrentHub } from './custom/hub';
+import { DEBUG_BUILD } from './debug-build';
 import { SentrySpanExporter } from './spanExporter';
 import { maybeCaptureExceptionForTimedEvent } from './utils/captureExceptionForTimedEvent';
 import { getHubFromContext } from './utils/contextData';
@@ -57,14 +58,14 @@ export class SentrySpanProcessor extends BatchSpanProcessor implements SpanProce
   public onStart(span: Span, parentContext: Context): void {
     onSpanStart(span, parentContext);
 
-    __DEBUG_BUILD__ && logger.log(`[Tracing] Starting span "${span.name}" (${span.spanContext().spanId})`);
+    DEBUG_BUILD && logger.log(`[Tracing] Starting span "${span.name}" (${span.spanContext().spanId})`);
 
     return super.onStart(span, parentContext);
   }
 
   /** @inheritDoc */
   public onEnd(span: Span): void {
-    __DEBUG_BUILD__ && logger.log(`[Tracing] Finishing span "${span.name}" (${span.spanContext().spanId})`);
+    DEBUG_BUILD && logger.log(`[Tracing] Finishing span "${span.name}" (${span.spanContext().spanId})`);
 
     if (!this._shouldSendSpanToSentry(span)) {
       // Prevent this being called to super.onEnd(), which would pass this to the span exporter

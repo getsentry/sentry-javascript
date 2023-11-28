@@ -1,6 +1,7 @@
 import type { ClientOptions, CustomSamplingContext, TransactionContext } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
+import { DEBUG_BUILD } from '../debug-build';
 import type { Hub } from '../hub';
 import { getMainCarrier } from '../hub';
 import { registerErrorInstrumentation } from './errors';
@@ -47,7 +48,7 @@ function _startTransaction(
   const transactionInstrumenter = transactionContext.instrumenter || 'sentry';
 
   if (configInstrumenter !== transactionInstrumenter) {
-    __DEBUG_BUILD__ &&
+    DEBUG_BUILD &&
       logger.error(
         `A transaction was started with instrumenter=\`${transactionInstrumenter}\`, but the SDK is configured with the \`${configInstrumenter}\` instrumenter.
 The transaction will not be sampled. Please use the ${configInstrumenter} instrumentation to start transactions.`,

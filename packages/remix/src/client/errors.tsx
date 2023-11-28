@@ -23,13 +23,14 @@ export function captureRemixErrorBoundaryError(error: unknown): string | undefin
     const eventData = isRemixErrorResponse
       ? {
           function: 'ErrorResponse',
-          ...error.data,
+          ...getErrorData(error),
         }
       : {
           function: 'ReactError',
         };
 
     const actualError = isRemixErrorResponse ? getExceptionToCapture(error) : error;
+
     eventId = captureException(actualError, {
       mechanism: {
         type: 'instrument',
@@ -42,10 +43,21 @@ export function captureRemixErrorBoundaryError(error: unknown): string | undefin
   return eventId;
 }
 
+function getErrorData(error: ErrorResponse): object {
+  if (isString(error.data)) {
+    return {
+      error: error.data,
+    };
+  }
+
+  return error.data;
+}
+
 function getExceptionToCapture(error: ErrorResponse): string | ErrorResponse {
   if (isString(error.data)) {
     return error.data;
   }
+
   if (error.statusText) {
     return error.statusText;
   }

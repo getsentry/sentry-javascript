@@ -1,3 +1,6 @@
+// TODO(v8): Consider moving this file (or at least parts of it) into the browser package. The registered handlers are mostly non-generic and we risk leaking runtime specific code into generic packages.
+
+import { DEBUG_BUILD } from '../debug-build';
 import type {
   InstrumentHandlerCallback as _InstrumentHandlerCallback,
   InstrumentHandlerType as _InstrumentHandlerType,
@@ -35,7 +38,7 @@ export function addInstrumentationHandler(type: _InstrumentHandlerType, callback
     case 'unhandledrejection':
       return addGlobalUnhandledRejectionInstrumentationHandler(callback);
     default:
-      __DEBUG_BUILD__ && logger.warn('unknown instrumentation type:', type);
+      DEBUG_BUILD && logger.warn('unknown instrumentation type:', type);
   }
 }
 

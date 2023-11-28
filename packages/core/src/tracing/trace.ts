@@ -1,6 +1,7 @@
 import type { TransactionContext } from '@sentry/types';
 import { dropUndefinedKeys, isThenable, logger, tracingContextFromHeaders } from '@sentry/utils';
 
+import { DEBUG_BUILD } from '../debug-build';
 import type { Hub } from '../hub';
 import { getCurrentHub } from '../hub';
 import { hasTracingEnabled } from '../utils/hasTracingEnabled';
@@ -248,7 +249,7 @@ export function continueTrace<V>(
 
   currentScope.setPropagationContext(propagationContext);
 
-  if (__DEBUG_BUILD__ && traceparentData) {
+  if (DEBUG_BUILD && traceparentData) {
     logger.log(`[Tracing] Continuing trace ${traceparentData.traceId}.`);
   }
 
