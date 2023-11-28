@@ -1,5 +1,5 @@
 import type { Span } from '@opentelemetry/api';
-import { context, trace, TraceFlags } from '@opentelemetry/api';
+import { TraceFlags, context, trace } from '@opentelemetry/api';
 import type { ReadableSpan } from '@opentelemetry/sdk-trace-base';
 import type { PropagationContext } from '@sentry/types';
 

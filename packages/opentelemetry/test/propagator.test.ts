@@ -1,13 +1,13 @@
 import {
+  ROOT_CONTEXT,
+  TraceFlags,
   defaultTextMapGetter,
   defaultTextMapSetter,
   propagation,
-  ROOT_CONTEXT,
   trace,
-  TraceFlags,
 } from '@opentelemetry/api';
 import { suppressTracing } from '@opentelemetry/core';
-import { addTracingExtensions, Hub, makeMain } from '@sentry/core';
+import { Hub, addTracingExtensions, makeMain } from '@sentry/core';
 import type { PropagationContext } from '@sentry/types';
 
 import { SENTRY_BAGGAGE_HEADER, SENTRY_TRACE_HEADER } from '../src/constants';

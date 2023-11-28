@@ -3,10 +3,10 @@ import { makeMain } from '@sentry/core';
 
 import { OpenTelemetryHub } from '../../src/custom/hub';
 import { setupEventContextTrace } from '../../src/setupEventContextTrace';
+import type { TestClientInterface } from '../helpers/TestClient';
+import { TestClient, getDefaultTestClientOptions } from '../helpers/TestClient';
 import { setupOtel } from '../helpers/initOtel';
 import { cleanupOtel } from '../helpers/mockSdkInit';
-import type { TestClientInterface } from '../helpers/TestClient';
-import { getDefaultTestClientOptions, TestClient } from '../helpers/TestClient';
 
 const PUBLIC_DSN = 'https://username@domain/123';
 

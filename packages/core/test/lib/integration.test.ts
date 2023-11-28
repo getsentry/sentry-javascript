@@ -3,7 +3,7 @@ import { logger } from '@sentry/utils';
 
 import { Hub, makeMain } from '../../src/hub';
 import { addIntegration, getIntegrationsToSetup, installedIntegrations, setupIntegration } from '../../src/integration';
-import { getDefaultTestClientOptions, TestClient } from '../mocks/client';
+import { TestClient, getDefaultTestClientOptions } from '../mocks/client';
 
 function getTestClient(): TestClient {
   return new TestClient(

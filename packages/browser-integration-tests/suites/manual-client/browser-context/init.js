@@ -1,14 +1,14 @@
 import {
-  BrowserClient,
   Breadcrumbs,
+  BrowserClient,
   Dedupe,
   FunctionToString,
   HttpContext,
+  Hub,
   InboundFilters,
   LinkedErrors,
   defaultStackParser,
   makeFetchTransport,
-  Hub,
 } from '@sentry/browser';
 
 const integrations = [

@@ -9,7 +9,7 @@ import { getOwnConfig, isTesting, macroCondition } from '@embroider/macros';
 import * as Sentry from '@sentry/browser';
 import type { ExtendedBackburner } from '@sentry/ember/runloop';
 import type { Span, Transaction } from '@sentry/types';
-import { browserPerformanceTimeOrigin, GLOBAL_OBJ, timestampInSeconds } from '@sentry/utils';
+import { GLOBAL_OBJ, browserPerformanceTimeOrigin, timestampInSeconds } from '@sentry/utils';
 
 import type { BrowserClient } from '..';
 import { getActiveTransaction } from '..';

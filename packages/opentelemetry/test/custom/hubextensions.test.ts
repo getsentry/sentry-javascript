@@ -1,6 +1,6 @@
 import { getCurrentHub } from '../../src/custom/hub';
 import { addTracingExtensions } from '../../src/custom/hubextensions';
-import { getDefaultTestClientOptions, TestClient } from '../helpers/TestClient';
+import { TestClient, getDefaultTestClientOptions } from '../helpers/TestClient';
 
 describe('hubextensions', () => {
   afterEach(() => {

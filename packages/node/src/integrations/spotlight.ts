@@ -1,7 +1,7 @@
-import type { Client, Envelope, Integration } from '@sentry/types';
-import { logger, serializeEnvelope } from '@sentry/utils';
 import * as http from 'http';
 import { URL } from 'url';
+import type { Client, Envelope, Integration } from '@sentry/types';
+import { logger, serializeEnvelope } from '@sentry/utils';
 
 type SpotlightConnectionOptions = {
   /**

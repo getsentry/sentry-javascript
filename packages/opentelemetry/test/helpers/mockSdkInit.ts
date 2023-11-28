@@ -1,12 +1,12 @@
-import { context, propagation, ProxyTracerProvider, trace } from '@opentelemetry/api';
+import { ProxyTracerProvider, context, propagation, trace } from '@opentelemetry/api';
 import { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
 import type { ClientOptions, Options } from '@sentry/types';
 import { GLOBAL_OBJ } from '@sentry/utils';
 
 import { setOpenTelemetryContextAsyncContextStrategy } from '../../src/asyncContextStrategy';
 import { setupGlobalHub } from '../../src/custom/hub';
-import { initOtel } from './initOtel';
 import { init as initTestClient } from './TestClient';
+import { initOtel } from './initOtel';
 
 const PUBLIC_DSN = 'https://username@domain/123';
 

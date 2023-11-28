@@ -3,8 +3,8 @@ import 'jsdom-worker';
 import { BASE_TIMESTAMP } from '../..';
 import { REPLAY_MAX_EVENT_BUFFER_SIZE } from '../../../src/constants';
 import { createEventBuffer } from '../../../src/eventBuffer';
-import { EventBufferSizeExceededError } from '../../../src/eventBuffer/error';
 import { EventBufferProxy } from '../../../src/eventBuffer/EventBufferProxy';
+import { EventBufferSizeExceededError } from '../../../src/eventBuffer/error';
 import { decompress } from '../../utils/compression';
 import { getTestEventIncremental } from '../../utils/getTestEvent';
 

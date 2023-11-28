@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 import axios, { AxiosError } from 'axios';
 
 const EVENT_POLLING_TIMEOUT = 90_000;

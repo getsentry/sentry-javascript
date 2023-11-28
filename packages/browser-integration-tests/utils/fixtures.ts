@@ -1,7 +1,7 @@
-/* eslint-disable no-empty-pattern */
-import { test as base } from '@playwright/test';
 import fs from 'fs';
 import path from 'path';
+/* eslint-disable no-empty-pattern */
+import { test as base } from '@playwright/test';
 
 import { generatePage } from './generatePage';
 

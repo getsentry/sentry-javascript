@@ -1,8 +1,8 @@
+import * as http from 'http';
 import type { RequestDataIntegrationOptions } from '@sentry/core';
-import { getCurrentHub, Hub, makeMain, RequestData } from '@sentry/core';
+import { Hub, RequestData, getCurrentHub, makeMain } from '@sentry/core';
 import type { Event, EventProcessor, PolymorphicRequest } from '@sentry/types';
 import * as sentryUtils from '@sentry/utils';
-import * as http from 'http';
 
 import { NodeClient } from '../../src/client';
 import { requestHandler } from '../../src/handlers';

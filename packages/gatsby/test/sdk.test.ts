@@ -1,4 +1,4 @@
-import { BrowserTracing, init, SDK_VERSION } from '@sentry/react';
+import { BrowserTracing, SDK_VERSION, init } from '@sentry/react';
 import type { Integration } from '@sentry/types';
 
 import { init as gatsbyInit } from '../src/sdk';

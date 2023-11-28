@@ -1,4 +1,4 @@
-import { assertSentryEvent, TestEnv } from '../../../../utils';
+import { TestEnv, assertSentryEvent } from '../../../../utils';
 
 test('should record multiple extras of different types', async () => {
   const env = await TestEnv.init(__dirname);

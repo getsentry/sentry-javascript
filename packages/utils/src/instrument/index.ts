@@ -1,19 +1,19 @@
 // TODO(v8): Consider moving this file (or at least parts of it) into the browser package. The registered handlers are mostly non-generic and we risk leaking runtime specific code into generic packages.
 
 import { DEBUG_BUILD } from '../debug-build';
+import { logger } from './../logger';
 import type {
   InstrumentHandlerCallback as _InstrumentHandlerCallback,
   InstrumentHandlerType as _InstrumentHandlerType,
 } from './_handlers';
 import { resetInstrumentationHandlers } from './_handlers';
-import { logger } from './../logger';
 import { addConsoleInstrumentationHandler } from './console';
 import { addClickKeypressInstrumentationHandler } from './dom';
 import { addFetchInstrumentationHandler } from './fetch';
 import { addGlobalErrorInstrumentationHandler } from './globalError';
 import { addGlobalUnhandledRejectionInstrumentationHandler } from './globalUnhandledRejection';
 import { addHistoryInstrumentationHandler } from './history';
-import { addXhrInstrumentationHandler, SENTRY_XHR_DATA_KEY } from './xhr';
+import { SENTRY_XHR_DATA_KEY, addXhrInstrumentationHandler } from './xhr';
 
 /**
  * Add handler that will be called when given type of instrumentation triggers.

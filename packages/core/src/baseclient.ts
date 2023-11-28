@@ -29,6 +29,8 @@ import type {
   TransportMakeRequestResponse,
 } from '@sentry/types';
 import {
+  SentryError,
+  SyncPromise,
   addItemToEnvelope,
   checkOrSetAlreadyCaught,
   createAttachmentEnvelopeItem,
@@ -39,8 +41,6 @@ import {
   makeDsn,
   rejectedSyncPromise,
   resolvedSyncPromise,
-  SentryError,
-  SyncPromise,
 } from '@sentry/utils';
 
 import { getEnvelopeEndpointWithUrlEncodedAuth } from './api';

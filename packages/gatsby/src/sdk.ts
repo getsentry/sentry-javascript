@@ -1,4 +1,4 @@
-import { init as reactInit, SDK_VERSION } from '@sentry/react';
+import { SDK_VERSION, init as reactInit } from '@sentry/react';
 
 import { getIntegrationsFromOptions } from './utils/integrations';
 import type { GatsbyOptions } from './utils/types';

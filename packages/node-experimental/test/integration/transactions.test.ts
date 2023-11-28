@@ -1,7 +1,7 @@
-import { context, SpanKind, trace, TraceFlags } from '@opentelemetry/api';
+import { SpanKind, TraceFlags, context, trace } from '@opentelemetry/api';
 import type { SpanProcessor } from '@opentelemetry/sdk-trace-base';
 import { SemanticAttributes } from '@opentelemetry/semantic-conventions';
-import { getCurrentHub, SentrySpanProcessor, setPropagationContextOnContext } from '@sentry/opentelemetry';
+import { SentrySpanProcessor, getCurrentHub, setPropagationContextOnContext } from '@sentry/opentelemetry';
 import type { Integration, PropagationContext, TransactionEvent } from '@sentry/types';
 import { logger } from '@sentry/utils';
 

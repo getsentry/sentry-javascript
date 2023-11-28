@@ -1,5 +1,5 @@
 import type { Event, EventHint, ScopeContext } from '@sentry/types';
-import { createStackParser, GLOBAL_OBJ } from '@sentry/utils';
+import { GLOBAL_OBJ, createStackParser } from '@sentry/utils';
 
 import { Scope } from '../../src/scope';
 import { applyDebugIds, applyDebugMeta, parseEventHintOrCaptureContext } from '../../src/utils/prepareEvent';

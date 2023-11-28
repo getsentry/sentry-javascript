@@ -1,4 +1,4 @@
-import { assertSentryTransaction, TestEnv } from '../../../../utils';
+import { TestEnv, assertSentryTransaction } from '../../../../utils';
 
 test('should send a manually started transaction when @sentry/tracing is imported using unnamed import.', async () => {
   const env = await TestEnv.init(__dirname);

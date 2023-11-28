@@ -4,7 +4,7 @@ import type { Debugger, InspectorNotification } from 'inspector';
 
 import { defaultStackParser } from '../../src';
 import type { DebugSession, FrameVariables } from '../../src/integrations/localvariables';
-import { createCallbackList, createRateLimiter, LocalVariables } from '../../src/integrations/localvariables';
+import { LocalVariables, createCallbackList, createRateLimiter } from '../../src/integrations/localvariables';
 import { NODE_VERSION } from '../../src/nodeVersion';
 import { getDefaultNodeClientOptions } from '../../test/helper/node-client-options';
 

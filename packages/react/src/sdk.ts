@@ -1,5 +1,5 @@
 import type { BrowserOptions } from '@sentry/browser';
-import { init as browserInit, SDK_VERSION } from '@sentry/browser';
+import { SDK_VERSION, init as browserInit } from '@sentry/browser';
 import type { SdkMetadata } from '@sentry/types';
 
 /**

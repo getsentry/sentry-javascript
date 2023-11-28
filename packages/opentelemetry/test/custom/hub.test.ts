@@ -1,4 +1,4 @@
-import { getCurrentHub, OpenTelemetryHub } from '../../src/custom/hub';
+import { OpenTelemetryHub, getCurrentHub } from '../../src/custom/hub';
 import { OpenTelemetryScope } from '../../src/custom/scope';
 
 describe('OpenTelemetryHub', () => {

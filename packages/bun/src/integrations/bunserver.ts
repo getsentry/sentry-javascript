@@ -1,4 +1,4 @@
-import { captureException, continueTrace, runWithAsyncContext, startSpan, Transaction } from '@sentry/core';
+import { Transaction, captureException, continueTrace, runWithAsyncContext, startSpan } from '@sentry/core';
 import type { Integration } from '@sentry/types';
 import { getSanitizedUrlString, parseUrl } from '@sentry/utils';
 

@@ -1,4 +1,4 @@
-import { assertSentryEvent, TestEnv } from '../../../../utils';
+import { TestEnv, assertSentryEvent } from '../../../../utils';
 
 test('should add an empty breadcrumb, when an empty object is given', async () => {
   const env = await TestEnv.init(__dirname);

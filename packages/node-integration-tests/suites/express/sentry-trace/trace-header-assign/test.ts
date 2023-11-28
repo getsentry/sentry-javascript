@@ -1,5 +1,5 @@
-import { TRACEPARENT_REGEXP } from '@sentry/utils';
 import * as path from 'path';
+import { TRACEPARENT_REGEXP } from '@sentry/utils';
 
 import { TestEnv } from '../../../../utils/index';
 import type { TestAPIResponse } from '../server';

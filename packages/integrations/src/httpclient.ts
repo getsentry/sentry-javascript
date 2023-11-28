@@ -7,12 +7,12 @@ import type {
   SentryWrappedXMLHttpRequest,
 } from '@sentry/types';
 import {
+  GLOBAL_OBJ,
+  SENTRY_XHR_DATA_KEY,
   addExceptionMechanism,
   addFetchInstrumentationHandler,
   addXhrInstrumentationHandler,
-  GLOBAL_OBJ,
   logger,
-  SENTRY_XHR_DATA_KEY,
   supportsNativeFetch,
 } from '@sentry/utils';
 

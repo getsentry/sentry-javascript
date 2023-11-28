@@ -1,6 +1,6 @@
 /* eslint-disable no-bitwise */
 import type { Attributes, Context, SpanContext } from '@opentelemetry/api';
-import { isSpanContextValid, trace, TraceFlags } from '@opentelemetry/api';
+import { TraceFlags, isSpanContextValid, trace } from '@opentelemetry/api';
 import type { Sampler, SamplingResult } from '@opentelemetry/sdk-trace-base';
 import { SamplingDecision } from '@opentelemetry/sdk-trace-base';
 import { hasTracingEnabled } from '@sentry/core';

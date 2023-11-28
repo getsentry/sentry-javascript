@@ -1,6 +1,6 @@
+import * as Integrations from '@sentry/integrations';
 import * as Sentry from '@sentry/node';
 import '@sentry/tracing';
-import * as Integrations from '@sentry/integrations';
 import express from 'express';
 
 declare global {

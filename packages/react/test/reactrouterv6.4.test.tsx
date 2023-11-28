@@ -2,12 +2,12 @@ import { render } from '@testing-library/react';
 import { Request } from 'node-fetch';
 import * as React from 'react';
 import {
+  Navigate,
+  RouterProvider,
   createMemoryRouter,
   createRoutesFromChildren,
   matchPath,
   matchRoutes,
-  Navigate,
-  RouterProvider,
   useLocation,
   useNavigationType,
 } from 'react-router-6.4';

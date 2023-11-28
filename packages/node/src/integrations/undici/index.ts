@@ -1,11 +1,11 @@
 import { getCurrentHub, getDynamicSamplingContextFromClient, isSentryRequestUrl } from '@sentry/core';
 import type { EventProcessor, Integration, Span } from '@sentry/types';
 import {
+  LRUMap,
   dynamicRequire,
   dynamicSamplingContextToSentryBaggageHeader,
   generateSentryTraceHeader,
   getSanitizedUrlString,
-  LRUMap,
   parseUrl,
   stringMatchesSomePattern,
 } from '@sentry/utils';

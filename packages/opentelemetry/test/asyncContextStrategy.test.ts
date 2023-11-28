@@ -4,9 +4,9 @@ import { runWithAsyncContext, setAsyncContextStrategy } from '@sentry/core';
 
 import { setOpenTelemetryContextAsyncContextStrategy } from '../src/asyncContextStrategy';
 import { getCurrentHub } from '../src/custom/hub';
+import { TestClient, getDefaultTestClientOptions } from './helpers/TestClient';
 import { setupOtel } from './helpers/initOtel';
 import { cleanupOtel } from './helpers/mockSdkInit';
-import { getDefaultTestClientOptions, TestClient } from './helpers/TestClient';
 
 describe('asyncContextStrategy', () => {
   let provider: BasicTracerProvider | undefined;

@@ -1,3 +1,4 @@
+import type * as http from 'http';
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import {
   captureException,
@@ -22,7 +23,6 @@ import {
   logger,
   normalize,
 } from '@sentry/utils';
-import type * as http from 'http';
 
 import type { NodeClient } from './client';
 import { DEBUG_BUILD } from './debug-build';

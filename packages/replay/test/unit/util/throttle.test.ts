@@ -1,5 +1,5 @@
 import { BASE_TIMESTAMP } from '../..';
-import { SKIPPED, throttle, THROTTLED } from '../../../src/util/throttle';
+import { SKIPPED, THROTTLED, throttle } from '../../../src/util/throttle';
 
 jest.useFakeTimers();
 

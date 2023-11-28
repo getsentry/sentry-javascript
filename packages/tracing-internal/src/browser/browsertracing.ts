@@ -1,6 +1,6 @@
 /* eslint-disable max-lines */
 import type { Hub, IdleTransaction } from '@sentry/core';
-import { addTracingExtensions, getActiveTransaction, startIdleTransaction, TRACING_DEFAULTS } from '@sentry/core';
+import { TRACING_DEFAULTS, addTracingExtensions, getActiveTransaction, startIdleTransaction } from '@sentry/core';
 import type { EventProcessor, Integration, Transaction, TransactionContext, TransactionSource } from '@sentry/types';
 import { getDomElement, logger, tracingContextFromHeaders } from '@sentry/utils';
 

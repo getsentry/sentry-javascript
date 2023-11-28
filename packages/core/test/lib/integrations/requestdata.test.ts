@@ -1,10 +1,10 @@
+import type { IncomingMessage } from 'http';
 import type { RequestDataIntegrationOptions } from '@sentry/core';
-import { getCurrentHub, Hub, makeMain, RequestData } from '@sentry/core';
+import { Hub, RequestData, getCurrentHub, makeMain } from '@sentry/core';
 import type { Event, EventProcessor } from '@sentry/types';
 import * as sentryUtils from '@sentry/utils';
-import type { IncomingMessage } from 'http';
 
-import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
+import { TestClient, getDefaultTestClientOptions } from '../../mocks/client';
 
 const addRequestDataToEventSpy = jest.spyOn(sentryUtils, 'addRequestDataToEvent');
 const requestDataEventProcessor = jest.fn();

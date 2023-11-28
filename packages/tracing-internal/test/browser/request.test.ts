@@ -5,7 +5,7 @@ import * as utils from '@sentry/utils';
 import { SENTRY_XHR_DATA_KEY } from '@sentry/utils';
 
 import type { Transaction } from '../../../tracing/src';
-import { addExtensionMethods, Span, spanStatusfromHttpCode } from '../../../tracing/src';
+import { Span, addExtensionMethods, spanStatusfromHttpCode } from '../../../tracing/src';
 import { getDefaultBrowserClientOptions } from '../../../tracing/test/testutils';
 import {
   extractNetworkProtocol,

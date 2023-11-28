@@ -1,6 +1,6 @@
-import { getIntegrationsToSetup, initAndBind, Integrations as CoreIntegrations, RequestData } from '@sentry/core';
+import { Integrations as CoreIntegrations, RequestData, getIntegrationsToSetup, initAndBind } from '@sentry/core';
 import type { Integration } from '@sentry/types';
-import { createStackParser, GLOBAL_OBJ, nodeStackLineParser, stackParserFromStackParserOptions } from '@sentry/utils';
+import { GLOBAL_OBJ, createStackParser, nodeStackLineParser, stackParserFromStackParserOptions } from '@sentry/utils';
 
 import { setAsyncLocalStorageAsyncContextStrategy } from './async';
 import { VercelEdgeClient } from './client';

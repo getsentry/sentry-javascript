@@ -1,7 +1,7 @@
+import { randomBytes } from 'crypto';
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { PrismaClient } from '@prisma/client';
 import * as Sentry from '@sentry/node';
-import { randomBytes } from 'crypto';
 
 const client = new PrismaClient();
 

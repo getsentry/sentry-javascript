@@ -1,6 +1,6 @@
+import { TextEncoder } from 'util';
 import type { EventEnvelope, EventItem } from '@sentry/types';
 import { createEnvelope, serializeEnvelope } from '@sentry/utils';
-import { TextEncoder } from 'util';
 
 import type { BrowserTransportOptions } from '../../../src/transports/types';
 import { makeXHRTransport } from '../../../src/transports/xhr';

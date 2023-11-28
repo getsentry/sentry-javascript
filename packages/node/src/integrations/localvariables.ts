@@ -1,6 +1,6 @@
 /* eslint-disable max-lines */
 import type { Event, EventProcessor, Exception, Hub, Integration, StackFrame, StackParser } from '@sentry/types';
-import { logger, LRUMap } from '@sentry/utils';
+import { LRUMap, logger } from '@sentry/utils';
 import type { Debugger, InspectorNotification, Runtime, Session } from 'inspector';
 
 import { NODE_VERSION } from '../nodeVersion';

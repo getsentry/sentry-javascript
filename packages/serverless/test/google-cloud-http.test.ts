@@ -1,8 +1,8 @@
+import * as fs from 'fs';
+import * as path from 'path';
 import { BigQuery } from '@google-cloud/bigquery';
 import * as SentryNode from '@sentry/node';
-import * as fs from 'fs';
 import * as nock from 'nock';
-import * as path from 'path';
 
 import { GoogleCloudHttp } from '../src/google-cloud-http';
 

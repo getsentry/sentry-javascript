@@ -1,6 +1,6 @@
 import { flush } from '@sentry/node';
 import type { StackFrame } from '@sentry/types';
-import { basename, escapeStringForRegex, GLOBAL_OBJ, join, logger, tracingContextFromHeaders } from '@sentry/utils';
+import { GLOBAL_OBJ, basename, escapeStringForRegex, join, logger, tracingContextFromHeaders } from '@sentry/utils';
 import type { RequestEvent } from '@sveltejs/kit';
 
 import { DEBUG_BUILD } from '../common/debug-build';

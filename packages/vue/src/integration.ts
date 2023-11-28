@@ -1,6 +1,6 @@
 import { hasTracingEnabled } from '@sentry/core';
 import type { Hub, Integration } from '@sentry/types';
-import { arrayify, consoleSandbox, GLOBAL_OBJ } from '@sentry/utils';
+import { GLOBAL_OBJ, arrayify, consoleSandbox } from '@sentry/utils';
 
 import { DEFAULT_HOOKS } from './constants';
 import { attachErrorHandler } from './errorhandler';

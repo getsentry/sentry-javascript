@@ -1,7 +1,7 @@
+import { spawn } from 'child_process';
 import { getClient, makeSession, updateSession } from '@sentry/core';
 import type { Event, Session, StackFrame } from '@sentry/types';
 import { logger, watchdogTimer } from '@sentry/utils';
-import { spawn } from 'child_process';
 
 import { addGlobalEventProcessor, captureEvent, flush, getCurrentHub } from '..';
 import { captureStackTrace } from './debugger';

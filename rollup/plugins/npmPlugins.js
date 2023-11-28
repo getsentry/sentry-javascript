@@ -7,9 +7,9 @@
  * Sucrase plugin docs: https://github.com/rollup/plugins/tree/master/packages/sucrase
  */
 
-import cleanup from 'rollup-plugin-cleanup';
 import replace from '@rollup/plugin-replace';
 import sucrase from '@rollup/plugin-sucrase';
+import cleanup from 'rollup-plugin-cleanup';
 
 /**
  * Create a plugin to transpile TS syntax using `sucrase`.

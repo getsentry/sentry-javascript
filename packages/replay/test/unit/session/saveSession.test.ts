@@ -1,6 +1,6 @@
 import { REPLAY_SESSION_KEY, WINDOW } from '../../../src/constants';
-import { saveSession } from '../../../src/session/saveSession';
 import { makeSession } from '../../../src/session/Session';
+import { saveSession } from '../../../src/session/saveSession';
 
 describe('Unit | session | saveSession', () => {
   beforeAll(() => {

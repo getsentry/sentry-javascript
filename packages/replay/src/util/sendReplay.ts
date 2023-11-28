@@ -3,7 +3,7 @@ import { captureException, setContext } from '@sentry/core';
 import { RETRY_BASE_INTERVAL, RETRY_MAX_COUNT, UNABLE_TO_SEND_REPLAY } from '../constants';
 import { DEBUG_BUILD } from '../debug-build';
 import type { SendReplayData } from '../types';
-import { RateLimitError, sendReplayRequest, TransportStatusCodeError } from './sendReplayRequest';
+import { RateLimitError, TransportStatusCodeError, sendReplayRequest } from './sendReplayRequest';
 
 /**
  * Finalize and send the current replay event to Sentry
