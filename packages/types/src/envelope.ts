@@ -109,5 +109,11 @@ export type ReplayEnvelope = [ReplayEnvelopeHeaders, [ReplayEventItem, ReplayRec
 export type CheckInEnvelope = BaseEnvelope<CheckInEnvelopeHeaders, CheckInItem>;
 export type StatsdEnvelope = BaseEnvelope<StatsdEnvelopeHeaders, StatsdItem>;
 
-export type Envelope = EventEnvelope | SessionEnvelope | ClientReportEnvelope | ReplayEnvelope | CheckInEnvelope;
+export type Envelope =
+  | EventEnvelope
+  | SessionEnvelope
+  | ClientReportEnvelope
+  | ReplayEnvelope
+  | CheckInEnvelope
+  | StatsdEnvelope;
 export type EnvelopeItem = Envelope[1][number];

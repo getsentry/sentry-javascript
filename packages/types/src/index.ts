@@ -42,6 +42,8 @@ export type {
   UserFeedbackItem,
   CheckInItem,
   CheckInEnvelope,
+  StatsdItem,
+  StatsdEnvelope,
 } from './envelope';
 export type { ExtendedError } from './error';
 export type { Event, EventHint, EventType, ErrorEvent, TransactionEvent } from './event';
@@ -136,3 +138,4 @@ export type {
 
 export type { BrowserClientReplayOptions, BrowserClientProfilingOptions } from './browseroptions';
 export type { CheckIn, MonitorConfig, FinishedCheckIn, InProgressCheckIn, SerializedCheckIn } from './checkin';
+export type { Metric, CounterMetric, GaugeMetric, DistributionMetric, SetMetric } from './metrics';
