@@ -27,7 +27,6 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/cli": "^2.21.2",
     "@sentry/core": "7.85.0",
     "@sentry/node": "7.85.0",
     "@sentry/react": "7.85.0",
@@ -35,6 +34,9 @@
     "@sentry/utils": "7.85.0",
     "glob": "^10.3.4",
     "yargs": "^17.6.0"
+  },
+  "optionalDependencies": {
+    "@sentry/cli": "^2.21.2"
   },
   "devDependencies": {
     "@remix-run/node": "^1.4.3",
