@@ -1,7 +1,7 @@
 import type { Carrier, Scope } from '@sentry/core';
 import { Hub } from '@sentry/core';
 import type { Client } from '@sentry/types';
-import { getGlobalSingleton, GLOBAL_OBJ } from '@sentry/utils';
+import { GLOBAL_OBJ, getGlobalSingleton } from '@sentry/utils';
 
 import { OpenTelemetryScope } from './scope';
 

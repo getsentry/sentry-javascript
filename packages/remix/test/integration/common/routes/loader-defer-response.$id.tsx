@@ -1,4 +1,4 @@
-import { defer, LoaderFunction } from '@remix-run/node';
+import { LoaderFunction, defer } from '@remix-run/node';
 import { useLoaderData } from '@remix-run/react';
 
 type LoaderData = { id: string };

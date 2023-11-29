@@ -1,7 +1,7 @@
 import { act, render } from '@testing-library/react';
 import { createMemoryHistory } from 'history-4';
 import * as React from 'react';
-import { matchPath, Route, Router, Switch } from 'react-router-4';
+import { Route, Router, Switch, matchPath } from 'react-router-4';
 
 import { reactRouterV4Instrumentation, withSentryRouting } from '../src';
 import type { RouteConfig } from '../src/reactrouter';

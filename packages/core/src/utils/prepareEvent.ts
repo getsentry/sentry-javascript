@@ -10,9 +10,9 @@ import type {
   StackParser,
 } from '@sentry/types';
 import {
+  GLOBAL_OBJ,
   addExceptionMechanism,
   dateTimestampInSeconds,
-  GLOBAL_OBJ,
   normalize,
   resolvedSyncPromise,
   truncate,

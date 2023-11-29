@@ -2,7 +2,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import * as SentryBrowser from '@sentry/browser';
 import type { Client, Event } from '@sentry/types';
 
-import { createErrorHandler, SentryErrorHandler } from '../src/errorhandler';
+import { SentryErrorHandler, createErrorHandler } from '../src/errorhandler';
 
 const captureExceptionSpy = jest.spyOn(SentryBrowser, 'captureException');
 

@@ -1,4 +1,4 @@
-import { diag, DiagLogLevel } from '@opentelemetry/api';
+import { DiagLogLevel, diag } from '@opentelemetry/api';
 import { AsyncLocalStorageContextManager } from '@opentelemetry/context-async-hooks';
 import { Resource } from '@opentelemetry/resources';
 import { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';

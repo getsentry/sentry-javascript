@@ -1,7 +1,7 @@
 import { SpanKind } from '@opentelemetry/api';
 import type { Span } from '@opentelemetry/sdk-trace-base';
 import { SemanticAttributes } from '@opentelemetry/semantic-conventions';
-import { getClient, SentrySpanProcessor } from '@sentry/opentelemetry';
+import { SentrySpanProcessor, getClient } from '@sentry/opentelemetry';
 
 import { Http } from '../integrations/http';
 import { NodeFetch } from '../integrations/node-fetch';

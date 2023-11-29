@@ -1,9 +1,9 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 import type { ConsoleLevel, Event, Hub, Integration } from '@sentry/types';
 import {
-  addConsoleInstrumentationHandler,
   CONSOLE_LEVELS,
   GLOBAL_OBJ,
+  addConsoleInstrumentationHandler,
   originalConsoleMethods,
   resetInstrumentationHandlers,
 } from '@sentry/utils';

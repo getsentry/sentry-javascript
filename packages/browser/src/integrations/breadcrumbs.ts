@@ -16,6 +16,7 @@ import type {
   XhrBreadcrumbHint,
 } from '@sentry/types/build/types/breadcrumb';
 import {
+  SENTRY_XHR_DATA_KEY,
   addClickKeypressInstrumentationHandler,
   addConsoleInstrumentationHandler,
   addFetchInstrumentationHandler,
@@ -26,7 +27,6 @@ import {
   logger,
   parseUrl,
   safeJoin,
-  SENTRY_XHR_DATA_KEY,
   severityLevelFromString,
 } from '@sentry/utils';
 

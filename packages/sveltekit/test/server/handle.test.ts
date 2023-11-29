@@ -1,4 +1,4 @@
-import { addTracingExtensions, Hub, makeMain } from '@sentry/core';
+import { Hub, addTracingExtensions, makeMain } from '@sentry/core';
 import { NodeClient } from '@sentry/node';
 import * as SentryNode from '@sentry/node';
 import type { Transaction } from '@sentry/types';

@@ -1,6 +1,6 @@
-import { getMultipleSentryEnvelopeRequests } from './utils/helpers';
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 import { Event } from '@sentry/types';
+import { getMultipleSentryEnvelopeRequests } from './utils/helpers';
 
 test('should capture error triggered on click', async ({ page }) => {
   await page.goto('/errorClick');

@@ -1,9 +1,9 @@
 import { withScope } from '@sentry/core';
 
-import { getCurrentHub, OpenTelemetryHub } from '../../src/custom/hub';
+import { OpenTelemetryHub, getCurrentHub } from '../../src/custom/hub';
 import { startSpan } from '../../src/trace';
-import { cleanupOtel, mockSdkInit } from '../helpers/mockSdkInit';
 import type { TestClientInterface } from '../helpers/TestClient';
+import { cleanupOtel, mockSdkInit } from '../helpers/mockSdkInit';
 
 describe('Integration | breadcrumbs', () => {
   const beforeSendTransaction = jest.fn(() => null);

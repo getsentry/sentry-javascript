@@ -1,10 +1,10 @@
 import type { Baggage, Context, TextMapGetter, TextMapSetter } from '@opentelemetry/api';
-import { isSpanContextValid, propagation, trace, TraceFlags } from '@opentelemetry/api';
-import { isTracingSuppressed, W3CBaggagePropagator } from '@opentelemetry/core';
+import { TraceFlags, isSpanContextValid, propagation, trace } from '@opentelemetry/api';
+import { W3CBaggagePropagator, isTracingSuppressed } from '@opentelemetry/core';
 import {
+  SENTRY_BAGGAGE_KEY_PREFIX,
   baggageHeaderToDynamicSamplingContext,
   extractTraceparentData,
-  SENTRY_BAGGAGE_KEY_PREFIX,
 } from '@sentry/utils';
 
 import {

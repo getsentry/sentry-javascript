@@ -1,7 +1,7 @@
+import * as util from 'util';
 import { getCurrentHub } from '@sentry/core';
 import type { Integration } from '@sentry/types';
 import { addConsoleInstrumentationHandler, severityLevelFromString } from '@sentry/utils';
-import * as util from 'util';
 
 /** Console module integration */
 export class Console implements Integration {

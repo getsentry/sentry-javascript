@@ -1,8 +1,8 @@
+import * as fs from 'fs';
+import * as path from 'path';
 /* eslint-disable no-console */
 import { sentryVitePlugin } from '@sentry/vite-plugin';
 import type { AstroConfig, AstroIntegration } from 'astro';
-import * as fs from 'fs';
-import * as path from 'path';
 
 import { buildClientSnippet, buildSdkInitFileImportSnippet, buildServerSnippet } from './snippets';
 import type { SentryOptions } from './types';

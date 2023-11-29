@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 import { waitForError } from '../event-proxy-server';
 
 test.describe('dev mode error symbolification', () => {

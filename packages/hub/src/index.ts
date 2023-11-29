@@ -1,6 +1,9 @@
 export type { Carrier, Layer } from '@sentry/core';
 
 import {
+  Hub as HubCore,
+  Scope as ScopeCore,
+  SessionFlusher as SessionFlusherCore,
   addBreadcrumb as addBreadcrumbCore,
   addGlobalEventProcessor as addGlobalEventProcessorCore,
   captureEvent as captureEventCore,
@@ -11,11 +14,8 @@ import {
   getCurrentHub as getCurrentHubCore,
   getHubFromCarrier as getHubFromCarrierCore,
   getMainCarrier as getMainCarrierCore,
-  Hub as HubCore,
   makeMain as makeMainCore,
   makeSession as makeSessionCore,
-  Scope as ScopeCore,
-  SessionFlusher as SessionFlusherCore,
   setContext as setContextCore,
   setExtra as setExtraCore,
   setExtras as setExtrasCore,

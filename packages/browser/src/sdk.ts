@@ -1,11 +1,11 @@
 import type { Hub } from '@sentry/core';
 import {
+  Integrations as CoreIntegrations,
   getClient,
   getCurrentHub,
   getIntegrationsToSetup,
   getReportDialogEndpoint,
   initAndBind,
-  Integrations as CoreIntegrations,
 } from '@sentry/core';
 import type { UserFeedback } from '@sentry/types';
 import {

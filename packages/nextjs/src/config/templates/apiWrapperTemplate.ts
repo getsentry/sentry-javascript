@@ -6,9 +6,9 @@
  * this causes both TS and ESLint to complain, hence the pragma comments below.
  */
 
+import * as Sentry from '@sentry/nextjs';
 // @ts-expect-error See above
 import * as origModule from '__SENTRY_WRAPPING_TARGET_FILE__';
-import * as Sentry from '@sentry/nextjs';
 import type { PageConfig } from 'next';
 
 import type { NextApiHandler, VercelCronsConfig } from '../../common/types';

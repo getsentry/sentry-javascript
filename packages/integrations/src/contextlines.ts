@@ -1,5 +1,5 @@
 import type { Event, Integration, StackFrame } from '@sentry/types';
-import { addContextToFrame, GLOBAL_OBJ, stripUrlQueryAndFragment } from '@sentry/utils';
+import { GLOBAL_OBJ, addContextToFrame, stripUrlQueryAndFragment } from '@sentry/utils';
 
 const WINDOW = GLOBAL_OBJ as typeof GLOBAL_OBJ & Window;
 

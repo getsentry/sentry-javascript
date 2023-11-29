@@ -1,5 +1,6 @@
 import type { Integration } from '@sentry/types';
 
+import type { NodePerformanceIntegration } from './NodePerformanceIntegration';
 import { Express } from './express';
 import { Fastify } from './fastify';
 import { GraphQL } from './graphql';
@@ -9,7 +10,6 @@ import { Mongoose } from './mongoose';
 import { Mysql } from './mysql';
 import { Mysql2 } from './mysql2';
 import { Nest } from './nest';
-import type { NodePerformanceIntegration } from './NodePerformanceIntegration';
 import { Postgres } from './postgres';
 import { Prisma } from './prisma';
 

@@ -1,6 +1,6 @@
+import * as os from 'os';
 import { Scope, SessionFlusher } from '@sentry/core';
 import type { Event, EventHint } from '@sentry/types';
-import * as os from 'os';
 
 import { NodeClient } from '../src';
 import { getDefaultNodeClientOptions } from './helper/node-client-options';

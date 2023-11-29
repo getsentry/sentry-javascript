@@ -3,12 +3,12 @@
 import { DEFAULT_ENVIRONMENT, getCurrentHub } from '@sentry/core';
 import type { DebugImage, Envelope, Event, StackFrame, StackParser, Transaction } from '@sentry/types';
 import type { Profile, ThreadCpuProfile } from '@sentry/types/src/profiling';
-import { browserPerformanceTimeOrigin, forEachEnvelopeItem, GLOBAL_OBJ, logger, uuid4 } from '@sentry/utils';
+import { GLOBAL_OBJ, browserPerformanceTimeOrigin, forEachEnvelopeItem, logger, uuid4 } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../debug-build';
 import { getClient } from '../exports';
 import { WINDOW } from '../helpers';
-import type { JSSelfProfile, JSSelfProfiler, JSSelfProfilerConstructor, JSSelfProfileStack } from './jsSelfProfiling';
+import type { JSSelfProfile, JSSelfProfileStack, JSSelfProfiler, JSSelfProfilerConstructor } from './jsSelfProfiling';
 
 const MS_TO_NS = 1e6;
 // Use 0 as main thread id which is identical to threadId in node:worker_threads

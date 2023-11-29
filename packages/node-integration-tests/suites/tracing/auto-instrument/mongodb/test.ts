@@ -1,6 +1,6 @@
 import { MongoMemoryServer } from 'mongodb-memory-server-global';
 
-import { assertSentryTransaction, conditionalTest, TestEnv } from '../../../../utils';
+import { TestEnv, assertSentryTransaction, conditionalTest } from '../../../../utils';
 
 // This test can take longer.
 jest.setTimeout(15000);

@@ -1,6 +1,6 @@
-import * as glob from 'glob';
-import * as path from 'path';
 import * as childProcess from 'child_process';
+import * as path from 'path';
+import * as glob from 'glob';
 
 async function run(): Promise<void> {
   let testPaths: string[] = [];

@@ -1,7 +1,7 @@
 /* eslint-disable deprecation/deprecation */
 import { BrowserClient, Hub } from '@sentry/browser';
 
-import { addExtensionMethods, Transaction } from '../src';
+import { Transaction, addExtensionMethods } from '../src';
 import { getDefaultBrowserClientOptions } from './testutils';
 
 describe('`Transaction` class', () => {

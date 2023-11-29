@@ -1,7 +1,7 @@
-import { addTracingExtensions, SDK_VERSION } from '@sentry/core';
+import { SDK_VERSION, addTracingExtensions } from '@sentry/core';
 import { RewriteFrames } from '@sentry/integrations';
 import type { SdkMetadata } from '@sentry/types';
-import { addOrUpdateIntegration, escapeStringForRegex, GLOBAL_OBJ } from '@sentry/utils';
+import { GLOBAL_OBJ, addOrUpdateIntegration, escapeStringForRegex } from '@sentry/utils';
 import type { VercelEdgeOptions } from '@sentry/vercel-edge';
 import { init as vercelEdgeInit } from '@sentry/vercel-edge';
 

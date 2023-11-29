@@ -1,10 +1,10 @@
 import { getDynamicSamplingContextFromClient } from '@sentry/core';
 import type { Hub, Span } from '@sentry/types';
 import {
+  TRACEPARENT_REGEXP,
   dynamicSamplingContextToSentryBaggageHeader,
   generateSentryTraceHeader,
   logger,
-  TRACEPARENT_REGEXP,
 } from '@sentry/utils';
 
 /**

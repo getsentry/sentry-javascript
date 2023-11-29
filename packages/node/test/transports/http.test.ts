@@ -1,9 +1,9 @@
-import { createTransport } from '@sentry/core';
-import type { EventEnvelope, EventItem } from '@sentry/types';
-import { addItemToEnvelope, createAttachmentEnvelopeItem, createEnvelope, serializeEnvelope } from '@sentry/utils';
 import * as http from 'http';
 import { TextEncoder } from 'util';
 import { createGunzip } from 'zlib';
+import { createTransport } from '@sentry/core';
+import type { EventEnvelope, EventItem } from '@sentry/types';
+import { addItemToEnvelope, createAttachmentEnvelopeItem, createEnvelope, serializeEnvelope } from '@sentry/utils';
 
 import { makeNodeTransport } from '../../src/transports';
 

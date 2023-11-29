@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 import { waitForError, waitForTransaction } from '../event-proxy-server';
 
 test('Should record exceptions for faulty edge server components', async ({ page }) => {

@@ -1,3 +1,7 @@
+import { existsSync } from 'fs';
+import { hostname } from 'os';
+import { basename, resolve } from 'path';
+import { types } from 'util';
 /* eslint-disable max-lines */
 import type { Scope } from '@sentry/node';
 import * as Sentry from '@sentry/node';
@@ -6,11 +10,7 @@ import type { Integration, SdkMetadata } from '@sentry/types';
 import { isString, logger, tracingContextFromHeaders } from '@sentry/utils';
 // NOTE: I have no idea how to fix this right now, and don't want to waste more time, as it builds just fine — Kamil
 import type { Context, Handler } from 'aws-lambda';
-import { existsSync } from 'fs';
-import { hostname } from 'os';
-import { basename, resolve } from 'path';
 import { performance } from 'perf_hooks';
-import { types } from 'util';
 
 import { AWSServices } from './awsservices';
 import { DEBUG_BUILD } from './debug-build';

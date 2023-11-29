@@ -1,6 +1,6 @@
 import { hasTracingEnabled } from '@sentry/core';
 import type { BrowserOptions } from '@sentry/svelte';
-import { BrowserTracing, configureScope, init as initSvelteSdk, WINDOW } from '@sentry/svelte';
+import { BrowserTracing, WINDOW, configureScope, init as initSvelteSdk } from '@sentry/svelte';
 import { addOrUpdateIntegration } from '@sentry/utils';
 
 import { applySdkMetadata } from '../common/metadata';

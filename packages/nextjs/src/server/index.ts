@@ -1,11 +1,11 @@
+import * as path from 'path';
 import { addTracingExtensions } from '@sentry/core';
 import { RewriteFrames } from '@sentry/integrations';
 import type { NodeOptions } from '@sentry/node';
-import { configureScope, getCurrentHub, init as nodeInit, Integrations } from '@sentry/node';
+import { Integrations, configureScope, getCurrentHub, init as nodeInit } from '@sentry/node';
 import type { EventProcessor } from '@sentry/types';
 import type { IntegrationWithExclusionOption } from '@sentry/utils';
 import { addOrUpdateIntegration, escapeStringForRegex, logger } from '@sentry/utils';
-import * as path from 'path';
 
 import { DEBUG_BUILD } from '../common/debug-build';
 import { devErrorSymbolicationEventProcessor } from '../common/devErrorSymbolicationEventProcessor';

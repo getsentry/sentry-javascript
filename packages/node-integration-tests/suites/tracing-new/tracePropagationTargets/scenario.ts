@@ -1,6 +1,6 @@
+import * as http from 'http';
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import * as Sentry from '@sentry/node';
-import * as http from 'http';
 
 Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',

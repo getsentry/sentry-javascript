@@ -1,15 +1,15 @@
 /* eslint-disable max-lines */
 import {
+  Integrations as CoreIntegrations,
   getCurrentHub,
   getIntegrationsToSetup,
   getMainCarrier,
   initAndBind,
-  Integrations as CoreIntegrations,
 } from '@sentry/core';
 import type { SessionStatus, StackParser } from '@sentry/types';
 import {
-  createStackParser,
   GLOBAL_OBJ,
+  createStackParser,
   nodeStackLineParser,
   stackParserFromStackParserOptions,
   tracingContextFromHeaders,

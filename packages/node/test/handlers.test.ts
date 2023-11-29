@@ -1,9 +1,9 @@
+import * as http from 'http';
 import type { Hub } from '@sentry/core';
 import * as sentryCore from '@sentry/core';
-import { setAsyncContextStrategy, Transaction } from '@sentry/core';
+import { Transaction, setAsyncContextStrategy } from '@sentry/core';
 import type { Event, PropagationContext } from '@sentry/types';
 import { SentryError } from '@sentry/utils';
-import * as http from 'http';
 
 import { NodeClient } from '../src/client';
 import { errorHandler, requestHandler, tracingHandler } from '../src/handlers';

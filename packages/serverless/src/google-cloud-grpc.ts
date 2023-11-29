@@ -1,7 +1,7 @@
+import type { EventEmitter } from 'events';
 import { getCurrentHub } from '@sentry/node';
 import type { Integration, Span } from '@sentry/types';
 import { fill } from '@sentry/utils';
-import type { EventEmitter } from 'events';
 
 interface GrpcFunction extends CallableFunction {
   (...args: unknown[]): EventEmitter;

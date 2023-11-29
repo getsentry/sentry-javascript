@@ -1,5 +1,5 @@
-import fs from 'fs-extra';
 import path from 'path';
+import fs from 'fs-extra';
 
 import { ResultsAnalyzer } from '../../src/results/analyzer.js';
 import { PrCommentBuilder } from '../../src/results/pr-comment.js';

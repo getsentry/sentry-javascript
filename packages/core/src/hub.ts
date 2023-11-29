@@ -20,7 +20,7 @@ import type {
   TransactionContext,
   User,
 } from '@sentry/types';
-import { consoleSandbox, dateTimestampInSeconds, getGlobalSingleton, GLOBAL_OBJ, logger, uuid4 } from '@sentry/utils';
+import { GLOBAL_OBJ, consoleSandbox, dateTimestampInSeconds, getGlobalSingleton, logger, uuid4 } from '@sentry/utils';
 
 import { DEFAULT_ENVIRONMENT } from './constants';
 import { DEBUG_BUILD } from './debug-build';

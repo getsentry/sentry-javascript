@@ -2,7 +2,7 @@ import type { Event, EventProcessor } from '@sentry/types';
 
 import type { InboundFiltersOptions } from '../../../src/integrations/inboundfilters';
 import { InboundFilters } from '../../../src/integrations/inboundfilters';
-import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
+import { TestClient, getDefaultTestClientOptions } from '../../mocks/client';
 
 const PUBLIC_DSN = 'https://username@domain/123';
 

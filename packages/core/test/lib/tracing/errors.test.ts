@@ -1,5 +1,5 @@
 import { BrowserClient } from '@sentry/browser';
-import { addTracingExtensions, Hub, makeMain } from '@sentry/core';
+import { Hub, addTracingExtensions, makeMain } from '@sentry/core';
 import type { HandlerDataError, HandlerDataUnhandledRejection } from '@sentry/types';
 
 import { getDefaultBrowserClientOptions } from '../../../../tracing/test/testutils';

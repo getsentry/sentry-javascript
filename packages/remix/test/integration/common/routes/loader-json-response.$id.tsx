@@ -1,4 +1,4 @@
-import { json, LoaderFunction, redirect } from '@remix-run/node';
+import { LoaderFunction, json, redirect } from '@remix-run/node';
 import { useLoaderData } from '@remix-run/react';
 
 type LoaderData = { id: string };

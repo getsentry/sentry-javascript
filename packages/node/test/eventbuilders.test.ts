@@ -1,7 +1,7 @@
 import type { Client } from '@sentry/types';
 import { eventFromUnknownInput } from '@sentry/utils';
 
-import { defaultStackParser, getCurrentHub, Scope } from '../src';
+import { Scope, defaultStackParser, getCurrentHub } from '../src';
 
 const testScope = new Scope();
 

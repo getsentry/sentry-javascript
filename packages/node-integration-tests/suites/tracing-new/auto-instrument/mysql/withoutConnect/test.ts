@@ -1,4 +1,4 @@
-import { assertSentryTransaction, TestEnv } from '../../../../../utils';
+import { TestEnv, assertSentryTransaction } from '../../../../../utils';
 
 test('should auto-instrument `mysql` package without connection.connect()', async () => {
   const env = await TestEnv.init(__dirname);

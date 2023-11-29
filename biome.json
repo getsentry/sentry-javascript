@@ -6,7 +6,7 @@
     "useIgnoreFile": true
   },
   "organizeImports": {
-    "enabled": false
+    "enabled": true
   },
   "linter": {
     "enabled": false

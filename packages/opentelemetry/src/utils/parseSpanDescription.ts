@@ -1,4 +1,4 @@
-import type { Attributes, AttributeValue } from '@opentelemetry/api';
+import type { AttributeValue, Attributes } from '@opentelemetry/api';
 import { SpanKind } from '@opentelemetry/api';
 import { SemanticAttributes } from '@opentelemetry/semantic-conventions';
 import type { TransactionSource } from '@sentry/types';

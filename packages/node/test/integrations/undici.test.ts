@@ -1,6 +1,6 @@
+import * as http from 'http';
 import type { Transaction } from '@sentry/core';
 import { Hub, makeMain, runWithAsyncContext } from '@sentry/core';
-import * as http from 'http';
 import type { fetch as FetchType } from 'undici';
 
 import { NodeClient } from '../../src/client';

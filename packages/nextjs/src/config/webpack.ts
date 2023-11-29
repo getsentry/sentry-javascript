@@ -1,11 +1,11 @@
+import * as fs from 'fs';
+import * as path from 'path';
 /* eslint-disable complexity */
 /* eslint-disable max-lines */
 import { getSentryRelease } from '@sentry/node';
 import { arrayify, dropUndefinedKeys, escapeStringForRegex, loadModule, logger } from '@sentry/utils';
 import type SentryCliPlugin from '@sentry/webpack-plugin';
 import * as chalk from 'chalk';
-import * as fs from 'fs';
-import * as path from 'path';
 import { sync as resolveSync } from 'resolve';
 import type { Compiler } from 'webpack';
 

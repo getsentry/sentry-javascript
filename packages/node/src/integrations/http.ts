@@ -1,3 +1,5 @@
+import type * as http from 'http';
+import type * as https from 'https';
 import type { Hub } from '@sentry/core';
 import { getCurrentHub, getDynamicSamplingContextFromClient, isSentryRequestUrl } from '@sentry/core';
 import type {
@@ -8,15 +10,13 @@ import type {
   TracePropagationTargets,
 } from '@sentry/types';
 import {
+  LRUMap,
   dynamicSamplingContextToSentryBaggageHeader,
   fill,
   generateSentryTraceHeader,
   logger,
-  LRUMap,
   stringMatchesSomePattern,
 } from '@sentry/utils';
-import type * as http from 'http';
-import type * as https from 'https';
 
 import type { NodeClient } from '../client';
 import { DEBUG_BUILD } from '../debug-build';

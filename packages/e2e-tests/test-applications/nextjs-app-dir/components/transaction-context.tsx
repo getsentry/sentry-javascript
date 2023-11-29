@@ -1,8 +1,8 @@
 'use client';
 
-import { createContext, PropsWithChildren, useState } from 'react';
+import { getCurrentHub, startTransaction } from '@sentry/nextjs';
 import { Transaction } from '@sentry/types';
-import { startTransaction, getCurrentHub } from '@sentry/nextjs';
+import { PropsWithChildren, createContext, useState } from 'react';
 
 export const TransactionContext = createContext<
   { transactionActive: false; start: (transactionName: string) => void } | { transactionActive: true; stop: () => void }

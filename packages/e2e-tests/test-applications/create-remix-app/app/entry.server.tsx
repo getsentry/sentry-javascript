@@ -6,12 +6,12 @@
 
 import { PassThrough } from 'node:stream';
 
-import type { AppLoadContext, EntryContext, DataFunctionArgs } from '@remix-run/node';
+import type { AppLoadContext, DataFunctionArgs, EntryContext } from '@remix-run/node';
 import { Response } from '@remix-run/node';
 import { RemixServer } from '@remix-run/react';
+import * as Sentry from '@sentry/remix';
 import isbot from 'isbot';
 import { renderToPipeableStream } from 'react-dom/server';
-import * as Sentry from '@sentry/remix';
 
 const ABORT_DELAY = 5_000;
 

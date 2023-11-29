@@ -1,4 +1,4 @@
-import { writeFileSync, existsSync } from 'fs';
+import { existsSync, writeFileSync } from 'fs';
 import { download } from './download.mjs';
 
 if (!existsSync('lib.deno.d.ts')) {
