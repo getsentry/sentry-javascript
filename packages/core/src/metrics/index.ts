@@ -1,4 +1,4 @@
-import type { DsnComponents, DynamicSamplingContext, SdkMetadata, StatsdEnvelope, StatsdItem } from '@sentry/types'
+import type { DsnComponents, DynamicSamplingContext, SdkMetadata, StatsdEnvelope, StatsdItem } from '@sentry/types';
 import { createEnvelope, dropUndefinedKeys, dsnToString } from '@sentry/utils';
 
 /**

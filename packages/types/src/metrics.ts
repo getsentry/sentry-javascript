@@ -1,10 +1,10 @@
-import type { Primitive } from './misc';
 import type { MeasurementUnit } from './measurement';
+import type { Primitive } from './misc';
 
 export interface BaseMetric {
   name: string;
   timestamp: number;
-  unit: MeasurementUnit;
+  unit?: MeasurementUnit;
   tags?: { [key: string]: Primitive };
 }
 
