@@ -1,10 +1,7 @@
-import type { CounterMetric, DistributionMetric, GaugeMetric, Metric, SetMetric } from '@sentry/types';
-import { timestampInSeconds } from '@sentry/utils';
+import type { CounterMetric, DistributionMetric, GaugeMetric, SetMetric } from '@sentry/types';
 
-interface MetricData {
-  tags?: Metric['tags'];
-  unit?: Metric['unit'];
-}
+import { timestampInSeconds } from '@sentry/utils';
+import type { MetricData } from './types';
 
 /**
  * Increment a counter by a specified value.
@@ -18,7 +15,7 @@ export function increment(name: string, value: number, data: MetricData): void {
     timestamp: timestampInSeconds(),
     value,
     ...data,
-  }
+  };
 
   // @ts-expect-error TODO: Implement
   return _metric;
@@ -35,7 +32,7 @@ export function distribution(name: string, value: number, data: MetricData): voi
     timestamp: timestampInSeconds(),
     value: [value],
     ...data,
-  }
+  };
 
   // @ts-expect-error TODO: Implement
   return _metric;
@@ -52,7 +49,7 @@ export function set(name: string, value: number, data: MetricData): void {
     timestamp: timestampInSeconds(),
     value: new Set([value]),
     ...data,
-  }
+  };
 
   // @ts-expect-error TODO: Implement
   return _metric;
@@ -74,7 +71,7 @@ export function gauge(name: string, value: number, data: MetricData): void {
     sum: value,
     count: 1,
     ...data,
-  }
+  };
 
   // @ts-expect-error TODO: Implement
   return _metric;

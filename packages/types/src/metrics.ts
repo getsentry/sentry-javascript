@@ -6,6 +6,7 @@ export interface BaseMetric {
   timestamp: number;
   unit?: MeasurementUnit;
   tags?: { [key: string]: Primitive };
+  add(value: number): void;
 }
 
 export interface CounterMetric extends BaseMetric {
@@ -15,6 +16,7 @@ export interface CounterMetric extends BaseMetric {
 export interface GaugeMetric extends BaseMetric {
   value: number;
   first: number;
+  last: number;
   min: number;
   max: number;
   sum: number;
