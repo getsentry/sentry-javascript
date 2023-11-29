@@ -13,7 +13,7 @@
     "@sentry/node": "latest || *"
   },
   "devDependencies": {
-    "rollup": "^4.0.2",
+    "rollup": "*",
     "vitest": "^0.34.6",
     "@sentry/rollup-plugin": "2.8.0"
   },
