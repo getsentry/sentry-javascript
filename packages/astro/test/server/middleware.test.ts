@@ -15,7 +15,7 @@ describe('sentryMiddleware', () => {
 
   const getSpanMock = vi.fn(() => {});
   // @ts-expect-error only returning a partial hub here
-  const getCurrentHubSpy = vi.spyOn(SentryNode, 'getCurrentHub').mockImplementation(() => {
+  vi.spyOn(SentryNode, 'getCurrentHub').mockImplementation(() => {
     return {
       getScope: () => ({
         getSpan: getSpanMock,
