@@ -4,7 +4,7 @@ const { execSync } = require('child_process');
 
 // Webpack test does not work in Node 18 and above.
 if (Number(process.versions.node.split('.')[0]) >= 18) {
-  return;
+  process.exit(0);
 }
 
 // biome-ignore format: Follow-up for prettier
