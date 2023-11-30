@@ -147,7 +147,7 @@ export class ServerRuntimeClient<
    * to create a monitor automatically when sending a check in.
    */
   public captureCheckIn(checkIn: CheckIn, monitorConfig?: MonitorConfig, scope?: Scope): string {
-    const id = checkIn.status !== 'in_progress' && checkIn.checkInId ? checkIn.checkInId : uuid4();
+    const id = 'checkInId' in checkIn && checkIn.checkInId ? checkIn.checkInId : uuid4();
     if (!this._isEnabled()) {
       DEBUG_BUILD && logger.warn('SDK not enabled, will not capture checkin.');
       return id;
@@ -164,7 +164,7 @@ export class ServerRuntimeClient<
       environment,
     };
 
-    if (checkIn.status !== 'in_progress') {
+    if ('duration' in checkIn) {
       serializedCheckIn.duration = checkIn.duration;
     }
 
