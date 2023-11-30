@@ -1,10 +1,10 @@
-import type { Span, Transaction } from '@sentry/core';
-import * as sentryCore from '@sentry/core';
-import { addTracingExtensions, Hub } from '@sentry/core';
-import type { TransactionContext } from '@sentry/types';
-import { logger, TRACEPARENT_REGEXP } from '@sentry/utils';
 import * as http from 'http';
 import * as https from 'https';
+import type { Span, Transaction } from '@sentry/core';
+import * as sentryCore from '@sentry/core';
+import { Hub, addTracingExtensions } from '@sentry/core';
+import type { TransactionContext } from '@sentry/types';
+import { TRACEPARENT_REGEXP, logger } from '@sentry/utils';
 import * as HttpsProxyAgent from 'https-proxy-agent';
 import * as nock from 'nock';
 

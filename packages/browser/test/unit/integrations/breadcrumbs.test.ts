@@ -1,15 +1,18 @@
 import { getCurrentHub } from '@sentry/core';
+import type { Client } from '@sentry/types';
 
-import { Breadcrumbs, BrowserClient, flush, Hub } from '../../../src';
+import { Breadcrumbs, BrowserClient, Hub, flush } from '../../../src';
 import { getDefaultBrowserClientOptions } from '../helper/browser-client-options';
 
 const hub = new Hub();
+let client: Client | undefined;
 
 jest.mock('@sentry/core', () => {
   const original = jest.requireActual('@sentry/core');
   return {
     ...original,
     getCurrentHub: () => hub,
+    getClient: () => client,
   };
 });
 
@@ -18,7 +21,7 @@ describe('Breadcrumbs', () => {
     const addBreadcrumb = jest.fn();
     hub.addBreadcrumb = addBreadcrumb;
 
-    const client = new BrowserClient({
+    client = new BrowserClient({
       ...getDefaultBrowserClientOptions(),
       dsn: 'https://username@domain/123',
       integrations: [new Breadcrumbs()],

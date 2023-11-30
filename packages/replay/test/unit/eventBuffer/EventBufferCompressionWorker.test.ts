@@ -1,12 +1,11 @@
 import 'jsdom-worker';
 
-import pako from 'pako';
-
 import { BASE_TIMESTAMP } from '../..';
 import { REPLAY_MAX_EVENT_BUFFER_SIZE } from '../../../src/constants';
 import { createEventBuffer } from '../../../src/eventBuffer';
-import { EventBufferSizeExceededError } from '../../../src/eventBuffer/error';
 import { EventBufferProxy } from '../../../src/eventBuffer/EventBufferProxy';
+import { EventBufferSizeExceededError } from '../../../src/eventBuffer/error';
+import { decompress } from '../../utils/compression';
 import { getTestEventIncremental } from '../../utils/getTestEvent';
 
 const TEST_EVENT = getTestEventIncremental({ timestamp: BASE_TIMESTAMP });
@@ -27,7 +26,7 @@ describe('Unit | eventBuffer | EventBufferCompressionWorker', () => {
 
     const result = await buffer.finish();
     expect(result).toBeInstanceOf(Uint8Array);
-    const restored = pako.inflate(result as Uint8Array, { to: 'string' });
+    const restored = decompress(result as Uint8Array);
 
     expect(restored).toEqual(JSON.stringify([TEST_EVENT, TEST_EVENT]));
   });
@@ -51,7 +50,7 @@ describe('Unit | eventBuffer | EventBufferCompressionWorker', () => {
 
     const result = await buffer.finish();
     expect(result).toBeInstanceOf(Uint8Array);
-    const restored = pako.inflate(result as Uint8Array, { to: 'string' });
+    const restored = decompress(result as Uint8Array);
 
     expect(restored).toEqual(JSON.stringify([{ ...TEST_EVENT, type: 2 }]));
   });
@@ -73,8 +72,8 @@ describe('Unit | eventBuffer | EventBufferCompressionWorker', () => {
 
     const result1 = (await promise1) as Uint8Array;
     const result2 = (await promise2) as Uint8Array;
-    const restored1 = pako.inflate(result1, { to: 'string' });
-    const restored2 = pako.inflate(result2, { to: 'string' });
+    const restored1 = decompress(result1);
+    const restored2 = decompress(result2);
 
     expect(restored1).toEqual(JSON.stringify([TEST_EVENT]));
     expect(restored2).toEqual(JSON.stringify([]));
@@ -100,9 +99,8 @@ describe('Unit | eventBuffer | EventBufferCompressionWorker', () => {
 
     const result1 = (await promise1) as Uint8Array;
     const result2 = (await promise2) as Uint8Array;
-
-    const restored1 = pako.inflate(result1, { to: 'string' });
-    const restored2 = pako.inflate(result2, { to: 'string' });
+    const restored1 = decompress(result1);
+    const restored2 = decompress(result2);
 
     expect(restored1).toEqual(JSON.stringify([TEST_EVENT]));
     expect(restored2).toEqual(JSON.stringify([{ ...TEST_EVENT, type: 5 }]));

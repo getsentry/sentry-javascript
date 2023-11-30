@@ -24,6 +24,7 @@
 
 import { logger } from '@sentry/utils';
 
+import { DEBUG_BUILD } from './debug-build';
 import { getClientIPAddress } from './vendor/getIpAddress';
 import type { RemixRequest } from './vendor/types';
 
@@ -125,7 +126,7 @@ export const normalizeRemixRequest = (request: RemixRequest): Record<string, any
   try {
     ip = getClientIPAddress(headers);
   } catch (e) {
-    __DEBUG_BUILD__ && logger.warn('Could not get client IP address', e);
+    DEBUG_BUILD && logger.warn('Could not get client IP address', e);
   }
 
   // HTTP-network fetch step 4.2

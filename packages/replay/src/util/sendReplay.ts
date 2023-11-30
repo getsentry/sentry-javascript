@@ -1,8 +1,9 @@
 import { captureException, setContext } from '@sentry/core';
 
 import { RETRY_BASE_INTERVAL, RETRY_MAX_COUNT, UNABLE_TO_SEND_REPLAY } from '../constants';
+import { DEBUG_BUILD } from '../debug-build';
 import type { SendReplayData } from '../types';
-import { sendReplayRequest, TransportStatusCodeError } from './sendReplayRequest';
+import { RateLimitError, TransportStatusCodeError, sendReplayRequest } from './sendReplayRequest';
 
 /**
  * Finalize and send the current replay event to Sentry
@@ -25,7 +26,7 @@ export async function sendReplay(
     await sendReplayRequest(replayData);
     return true;
   } catch (err) {
-    if (err instanceof TransportStatusCodeError) {
+    if (err instanceof TransportStatusCodeError || err instanceof RateLimitError) {
       throw err;
     }
 
@@ -34,7 +35,7 @@ export async function sendReplay(
       _retryCount: retryConfig.count,
     });
 
-    if (__DEBUG_BUILD__ && options._experiments && options._experiments.captureExceptions) {
+    if (DEBUG_BUILD && options._experiments && options._experiments.captureExceptions) {
       captureException(err);
     }
 

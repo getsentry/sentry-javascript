@@ -11,7 +11,7 @@ module.exports = {
   parserOptions: {
     ecmaVersion: 2018,
   },
-  extends: ['@sentry-internal/sdk'],
+  extends: ['@sentry-internal/sdk/src/base'],
   ignorePatterns: [
     'coverage/**',
     'build/**',
@@ -24,9 +24,21 @@ module.exports = {
   ],
   overrides: [
     {
+      files: ['*'],
+      rules: {
+        // Disabled because it's included with Biome's linter
+        'no-control-regex': 'off',
+      },
+    },
+    {
       files: ['*.ts', '*.tsx', '*.d.ts'],
       parserOptions: {
         project: ['tsconfig.json'],
+      },
+      rules: {
+        // Disabled because it's included with Biome's linter
+        '@typescript-eslint/no-unused-vars': 'off',
+        '@typescript-eslint/no-loss-of-precision': 'off',
       },
     },
     {

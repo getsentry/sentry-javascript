@@ -1,6 +1,6 @@
-import type { EventProcessor, Hub, Integration } from '@sentry/types';
 import { existsSync, readFileSync } from 'fs';
 import { dirname, join } from 'path';
+import type { EventProcessor, Hub, Integration } from '@sentry/types';
 
 let moduleCache: { [key: string]: string };
 

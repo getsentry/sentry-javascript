@@ -1,7 +1,7 @@
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 import axios, { AxiosError } from 'axios';
 
-const EVENT_POLLING_TIMEOUT = 30_000;
+const EVENT_POLLING_TIMEOUT = 90_000;
 
 const authToken = process.env.E2E_TEST_AUTH_TOKEN;
 const sentryTestOrgSlug = process.env.E2E_TEST_SENTRY_ORG_SLUG;
@@ -205,4 +205,32 @@ test('Sends a client-side ErrorBoundary exception to Sentry', async ({ page }) =
       },
     )
     .toBe(200);
+});
+
+test('Renders `sentry-trace` and `baggage` meta tags for the root route', async ({ page }) => {
+  await page.goto('/');
+
+  const sentryTraceMetaTag = await page.waitForSelector('meta[name="sentry-trace"]', {
+    state: 'attached',
+  });
+  const baggageMetaTag = await page.waitForSelector('meta[name="baggage"]', {
+    state: 'attached',
+  });
+
+  expect(sentryTraceMetaTag).toBeTruthy();
+  expect(baggageMetaTag).toBeTruthy();
+});
+
+test('Renders `sentry-trace` and `baggage` meta tags for a sub-route', async ({ page }) => {
+  await page.goto('/user/123');
+
+  const sentryTraceMetaTag = await page.waitForSelector('meta[name="sentry-trace"]', {
+    state: 'attached',
+  });
+  const baggageMetaTag = await page.waitForSelector('meta[name="baggage"]', {
+    state: 'attached',
+  });
+
+  expect(sentryTraceMetaTag).toBeTruthy();
+  expect(baggageMetaTag).toBeTruthy();
 });

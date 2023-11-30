@@ -1,10 +1,12 @@
 import type { Event, EventHint } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
+import { DEBUG_BUILD } from '../debug-build';
 import type { ReplayContainer } from '../types';
-import { isErrorEvent, isReplayEvent, isTransactionEvent } from '../util/eventUtils';
+import { isErrorEvent, isFeedbackEvent, isReplayEvent, isTransactionEvent } from '../util/eventUtils';
 import { isRrwebError } from '../util/isRrwebError';
 import { handleAfterSendEvent } from './handleAfterSendEvent';
+import { addFeedbackBreadcrumb } from './util/addFeedbackBreadcrumb';
 import { shouldSampleForBufferEvent } from './util/shouldSampleForBufferEvent';
 
 /**
@@ -30,8 +32,8 @@ export function handleGlobalEventListener(
         return event;
       }
 
-      // We only want to handle errors & transactions, nothing else
-      if (!isErrorEvent(event) && !isTransactionEvent(event)) {
+      // We only want to handle errors, transactions, and feedbacks, nothing else
+      if (!isErrorEvent(event) && !isTransactionEvent(event) && !isFeedbackEvent(event)) {
         return event;
       }
 
@@ -41,10 +43,18 @@ export function handleGlobalEventListener(
         return event;
       }
 
+      if (isFeedbackEvent(event)) {
+        void replay.flush();
+        event.contexts.feedback.replay_id = replay.getSessionId();
+        // Add a replay breadcrumb for this piece of feedback
+        addFeedbackBreadcrumb(replay, event);
+        return event;
+      }
+
       // Unless `captureExceptions` is enabled, we want to ignore errors coming from rrweb
       // As there can be a bunch of stuff going wrong in internals there, that we don't want to bubble up to users
       if (isRrwebError(event, hint) && !replay.getOptions()._experiments.captureExceptions) {
-        __DEBUG_BUILD__ && logger.log('[Replay] Ignoring error from rrweb internals', event);
+        DEBUG_BUILD && logger.log('[Replay] Ignoring error from rrweb internals', event);
         return null;
       }
 

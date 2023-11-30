@@ -24,6 +24,10 @@ targets:
   - name: npm
     id: '@sentry/replay'
     includeNames: /^sentry-replay-\d.*\.tgz$/
+  ## 1.6. OpenTelemetry package
+  - name: npm
+    id: '@sentry/opentelemetry'
+    includeNames: /^sentry-opentelemetry-\d.*\.tgz$/
 
   ## 2. Browser & Node SDKs
   - name: npm
@@ -63,6 +67,17 @@ targets:
   - name: npm
     id: '@sentry/vercel-edge'
     includeNames: /^sentry-vercel-edge-\d.*\.tgz$/
+  - name: npm
+    id: '@sentry/deno'
+    includeNames: /^sentry-deno-\d.*\.tgz$/
+  - name: commit-on-git-repository
+    # This will publish on the Deno registry
+    id: getsentry/deno
+    archive: /^sentry-deno-\d.*\.tgz$/
+    repositoryUrl: https://github.com/getsentry/sentry-deno.git
+    stripComponents: 1
+    branch: main
+    createTag: true
 
   ## 5. Node-based Packages
   - name: npm
@@ -167,6 +182,8 @@ targets:
         onlyIfPresent: /^sentry-angular-ivy-\d.*\.tgz$/
       'npm:@sentry/angular':
         onlyIfPresent: /^sentry-angular-\d.*\.tgz$/
+      'npm:@sentry/astro':
+        onlyIfPresent: /^sentry-astro-\d.*\.tgz$/
       'npm:@sentry/wasm':
         onlyIfPresent: /^sentry-wasm-\d.*\.tgz$/
       'npm:@sentry/nextjs':

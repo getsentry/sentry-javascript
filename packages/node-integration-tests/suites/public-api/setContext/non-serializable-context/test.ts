@@ -1,6 +1,6 @@
 import type { Event } from '@sentry/node';
 
-import { assertSentryEvent, TestEnv } from '../../../../utils';
+import { TestEnv, assertSentryEvent } from '../../../../utils';
 
 test('should normalize non-serializable context', async () => {
   const env = await TestEnv.init(__dirname);

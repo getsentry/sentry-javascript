@@ -1,12 +1,13 @@
-import { hasTracingEnabled } from '@sentry/core';
+import * as path from 'path';
+import { addTracingExtensions } from '@sentry/core';
 import { RewriteFrames } from '@sentry/integrations';
 import type { NodeOptions } from '@sentry/node';
-import { configureScope, getCurrentHub, init as nodeInit, Integrations } from '@sentry/node';
+import { Integrations, configureScope, getCurrentHub, init as nodeInit } from '@sentry/node';
 import type { EventProcessor } from '@sentry/types';
 import type { IntegrationWithExclusionOption } from '@sentry/utils';
 import { addOrUpdateIntegration, escapeStringForRegex, logger } from '@sentry/utils';
-import * as path from 'path';
 
+import { DEBUG_BUILD } from '../common/debug-build';
 import { devErrorSymbolicationEventProcessor } from '../common/devErrorSymbolicationEventProcessor';
 import { getVercelEnv } from '../common/getVercelEnv';
 import { buildMetadata } from '../common/metadata';
@@ -51,7 +52,7 @@ export function showReportDialog(): void {
 }
 
 const globalWithInjectedValues = global as typeof global & {
-  __rewriteFramesDistDir__: string;
+  __rewriteFramesDistDir__?: string;
 };
 
 // TODO (v8): Remove this
@@ -64,6 +65,12 @@ const IS_VERCEL = !!process.env.VERCEL;
 
 /** Inits the Sentry NextJS SDK on node. */
 export function init(options: NodeOptions): void {
+  addTracingExtensions();
+
+  if (isBuild()) {
+    return;
+  }
+
   const opts = {
     environment: process.env.SENTRY_ENVIRONMENT || getVercelEnv(false) || process.env.NODE_ENV,
     ...options,
@@ -71,14 +78,14 @@ export function init(options: NodeOptions): void {
     autoSessionTracking: false,
   };
 
-  if (__DEBUG_BUILD__ && opts.debug) {
+  if (DEBUG_BUILD && opts.debug) {
     logger.enable();
   }
 
-  __DEBUG_BUILD__ && logger.log('Initializing SDK...');
+  DEBUG_BUILD && logger.log('Initializing SDK...');
 
   if (sdkAlreadyInitialized()) {
-    __DEBUG_BUILD__ && logger.log('SDK already initialized');
+    DEBUG_BUILD && logger.log('SDK already initialized');
     return;
   }
 
@@ -107,7 +114,7 @@ export function init(options: NodeOptions): void {
     }
   });
 
-  __DEBUG_BUILD__ && logger.log('SDK successfully initialized');
+  DEBUG_BUILD && logger.log('SDK successfully initialized');
 }
 
 function sdkAlreadyInitialized(): boolean {
@@ -120,19 +127,21 @@ function addServerIntegrations(options: NodeOptions): void {
 
   // This value is injected at build time, based on the output directory specified in the build config. Though a default
   // is set there, we set it here as well, just in case something has gone wrong with the injection.
-  const distDirName = globalWithInjectedValues.__rewriteFramesDistDir__ || '.next';
-  // nextjs always puts the build directory at the project root level, which is also where you run `next start` from, so
-  // we can read in the project directory from the currently running process
-  const distDirAbsPath = path.resolve(process.cwd(), distDirName);
-  const SOURCEMAP_FILENAME_REGEX = new RegExp(escapeStringForRegex(distDirAbsPath));
+  const distDirName = globalWithInjectedValues.__rewriteFramesDistDir__;
+  if (distDirName) {
+    // nextjs always puts the build directory at the project root level, which is also where you run `next start` from, so
+    // we can read in the project directory from the currently running process
+    const distDirAbsPath = path.resolve(distDirName).replace(/(\/|\\)$/, ''); // We strip trailing slashes because "app:///_next" also doesn't have one
+    const SOURCEMAP_FILENAME_REGEX = new RegExp(escapeStringForRegex(distDirAbsPath));
 
-  const defaultRewriteFramesIntegration = new RewriteFrames({
-    iteratee: frame => {
-      frame.filename = frame.filename?.replace(SOURCEMAP_FILENAME_REGEX, 'app:///_next');
-      return frame;
-    },
-  });
-  integrations = addOrUpdateIntegration(defaultRewriteFramesIntegration, integrations);
+    const defaultRewriteFramesIntegration = new RewriteFrames({
+      iteratee: frame => {
+        frame.filename = frame.filename?.replace(SOURCEMAP_FILENAME_REGEX, 'app:///_next');
+        return frame;
+      },
+    });
+    integrations = addOrUpdateIntegration(defaultRewriteFramesIntegration, integrations);
+  }
 
   const defaultOnUncaughtExceptionIntegration: IntegrationWithExclusionOption = new Integrations.OnUncaughtException({
     exitEvenIfOtherHandlersAreRegistered: false,
@@ -142,12 +151,10 @@ function addServerIntegrations(options: NodeOptions): void {
     _options: { exitEvenIfOtherHandlersAreRegistered: false },
   });
 
-  if (hasTracingEnabled(options)) {
-    const defaultHttpTracingIntegration = new Integrations.Http({ tracing: true });
-    integrations = addOrUpdateIntegration(defaultHttpTracingIntegration, integrations, {
-      _tracing: {},
-    });
-  }
+  const defaultHttpTracingIntegration = new Integrations.Http({ tracing: true });
+  integrations = addOrUpdateIntegration(defaultHttpTracingIntegration, integrations, {
+    _tracing: {},
+  });
 
   options.integrations = integrations;
 }

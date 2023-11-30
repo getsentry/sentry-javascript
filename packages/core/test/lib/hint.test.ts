@@ -2,7 +2,7 @@ import { captureEvent, configureScope } from '@sentry/core';
 import { GLOBAL_OBJ } from '@sentry/utils';
 
 import { initAndBind } from '../../src/sdk';
-import { getDefaultTestClientOptions, TestClient } from '../mocks/client';
+import { TestClient, getDefaultTestClientOptions } from '../mocks/client';
 import { AddAttachmentTestIntegration } from '../mocks/integration';
 
 const PUBLIC_DSN = 'https://username@domain/123';

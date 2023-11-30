@@ -1,4 +1,4 @@
-import { getCurrentHub } from '@sentry/core';
+import { getClient } from '@sentry/core';
 
 import { WINDOW } from '../../src/constants';
 import type { ReplayContainer } from '../../src/replay';
@@ -36,7 +36,7 @@ describe('Integration | events', () => {
       },
     }));
 
-    mockTransportSend = jest.spyOn(getCurrentHub().getClient()!.getTransport()!, 'send');
+    mockTransportSend = jest.spyOn(getClient()!.getTransport()!, 'send');
 
     // Create a new session and clear mocks because a segment (from initial
     // checkout) will have already been uploaded by the time the tests run
@@ -142,7 +142,7 @@ describe('Integration | events', () => {
     // We pass a negative start time as it's a bit difficult to mock
     // `@sentry/utils/browserPerformanceTimeOrigin`. This would not happen in
     // real world.
-    replay.performanceEvents.push(
+    replay.performanceEntries.push(
       PerformanceEntryResource({
         startTime: -ELAPSED,
       }),

@@ -32,7 +32,8 @@
     "@sentry/tracing": "file:../../../tracing",
     "@sentry-internal/tracing": "file:../../../tracing-internal",
     "@sentry/types": "file:../../../types",
-    "@sentry/utils": "file:../../../utils"
+    "@sentry/utils": "file:../../../utils",
+    "@vanilla-extract/css": "1.13.0"
   },
   "engines": {
     "node": ">=14"

@@ -1,8 +1,6 @@
 // NOTE: I have no idea how to fix this right now, and don't want to waste more time, as it builds just fine — Kamil
-// eslint-disable-next-line import/no-unresolved
 import * as SentryNode from '@sentry/node';
 import type { Event } from '@sentry/types';
-// eslint-disable-next-line import/no-unresolved
 import type { Callback, Handler } from 'aws-lambda';
 
 import * as Sentry from '../src';
@@ -533,31 +531,6 @@ describe('AWSLambda', () => {
           },
         }),
       );
-    });
-
-    test('enhance event with correct mechanism value', () => {
-      const eventWithSomeData = {
-        exception: {
-          values: [{}],
-        },
-      };
-
-      // @ts-expect-error see "Why @ts-expect-error" note
-      Sentry.addGlobalEventProcessor.mockImplementationOnce(cb => cb(eventWithSomeData));
-      Sentry.AWSLambda.init({});
-
-      expect(eventWithSomeData).toEqual({
-        exception: {
-          values: [
-            {
-              mechanism: {
-                handled: false,
-                type: 'generic',
-              },
-            },
-          ],
-        },
-      });
     });
   });
 });

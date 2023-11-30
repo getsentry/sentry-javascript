@@ -1,6 +1,6 @@
 import { runWithAsyncContext } from '@sentry/core';
 import * as SentryNode from '@sentry/node';
-import { getCurrentHub, NodeClient } from '@sentry/node';
+import { NodeClient, getCurrentHub } from '@sentry/node';
 import type { Integration } from '@sentry/types';
 import { GLOBAL_OBJ, logger } from '@sentry/utils';
 
@@ -186,15 +186,6 @@ describe('Server init()', () => {
         expect(httpIntegration).toEqual(expect.objectContaining({ _tracing: {} }));
       });
 
-      it('does not add `Http` integration if tracing not enabled in SDK', () => {
-        init({});
-
-        const nodeInitOptions = nodeInit.mock.calls[0][0] as ModifiedInitOptions;
-        const httpIntegration = findIntegrationByName(nodeInitOptions.integrations, 'Http');
-
-        expect(httpIntegration).toBeUndefined();
-      });
-
       it('forces `_tracing = true` if `tracesSampleRate` is set', () => {
         init({
           tracesSampleRate: 1.0,
@@ -219,18 +210,6 @@ describe('Server init()', () => {
 
         expect(httpIntegration).toBeDefined();
         expect(httpIntegration).toEqual(expect.objectContaining({ _tracing: {} }));
-      });
-
-      it('does not force `_tracing = true` if tracing not enabled in SDK', () => {
-        init({
-          integrations: [new Integrations.Http({ tracing: false })],
-        });
-
-        const nodeInitOptions = nodeInit.mock.calls[0][0] as ModifiedInitOptions;
-        const httpIntegration = findIntegrationByName(nodeInitOptions.integrations, 'Http');
-
-        expect(httpIntegration).toBeDefined();
-        expect(httpIntegration).toEqual(expect.objectContaining({ _tracing: undefined }));
       });
     });
   });

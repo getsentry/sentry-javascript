@@ -1,6 +1,6 @@
+import * as domain from 'domain';
 import * as SentryNode from '@sentry/node';
 import type { Event } from '@sentry/types';
-import * as domain from 'domain';
 
 import * as Sentry from '../src';
 import { wrapCloudEventFunction, wrapEventFunction, wrapHttpFunction } from '../src/gcpfunction';
@@ -683,31 +683,6 @@ describe('GCPFunction', () => {
           },
         }),
       );
-    });
-
-    test('enhance event with correct mechanism value', () => {
-      const eventWithSomeData = {
-        exception: {
-          values: [{}],
-        },
-      };
-
-      // @ts-expect-error see "Why @ts-expect-error" note
-      Sentry.addGlobalEventProcessor.mockImplementationOnce(cb => cb(eventWithSomeData));
-      Sentry.GCPFunction.init({});
-
-      expect(eventWithSomeData).toEqual({
-        exception: {
-          values: [
-            {
-              mechanism: {
-                handled: false,
-                type: 'generic',
-              },
-            },
-          ],
-        },
-      });
     });
   });
 });

@@ -1,10 +1,20 @@
+import type { ConsoleLevel } from '@sentry/types';
+
+import { DEBUG_BUILD } from './debug-build';
 import { GLOBAL_OBJ } from './worldwide';
 
 /** Prefix for logging strings */
 const PREFIX = 'Sentry Logger ';
 
-export const CONSOLE_LEVELS = ['debug', 'info', 'warn', 'error', 'log', 'assert', 'trace'] as const;
-export type ConsoleLevel = (typeof CONSOLE_LEVELS)[number];
+export const CONSOLE_LEVELS: readonly ConsoleLevel[] = [
+  'debug',
+  'info',
+  'warn',
+  'error',
+  'log',
+  'assert',
+  'trace',
+] as const;
 
 type LoggerMethod = (...args: unknown[]) => void;
 type LoggerConsoleMethods = Record<ConsoleLevel, LoggerMethod>;
@@ -67,7 +77,7 @@ function makeLogger(): Logger {
     isEnabled: () => enabled,
   };
 
-  if (__DEBUG_BUILD__) {
+  if (DEBUG_BUILD) {
     CONSOLE_LEVELS.forEach(name => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       logger[name] = (...args: any[]) => {

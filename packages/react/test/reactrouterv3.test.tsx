@@ -1,6 +1,6 @@
 import { act, render } from '@testing-library/react';
 import * as React from 'react';
-import { createMemoryHistory, createRoutes, IndexRoute, match, Route, Router } from 'react-router-3';
+import { IndexRoute, Route, Router, createMemoryHistory, createRoutes, match } from 'react-router-3';
 
 import type { Match, Route as RouteType } from '../src/reactrouterv3';
 import { reactRouterV3Instrumentation } from '../src/reactrouterv3';

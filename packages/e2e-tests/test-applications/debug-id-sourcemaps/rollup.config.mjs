@@ -1,5 +1,5 @@
-import { defineConfig } from 'rollup';
 import { sentryRollupPlugin } from '@sentry/rollup-plugin';
+import { defineConfig } from 'rollup';
 
 export default defineConfig({
   input: './src/app.js',

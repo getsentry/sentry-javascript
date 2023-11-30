@@ -20,9 +20,10 @@ import type {
   TransactionContext,
   User,
 } from '@sentry/types';
-import { consoleSandbox, dateTimestampInSeconds, getGlobalSingleton, GLOBAL_OBJ, logger, uuid4 } from '@sentry/utils';
+import { GLOBAL_OBJ, consoleSandbox, dateTimestampInSeconds, getGlobalSingleton, logger, uuid4 } from '@sentry/utils';
 
 import { DEFAULT_ENVIRONMENT } from './constants';
+import { DEBUG_BUILD } from './debug-build';
 import { Scope } from './scope';
 import { closeSession, makeSession, updateSession } from './session';
 
@@ -362,7 +363,7 @@ export class Hub implements HubInterface {
     try {
       return client.getIntegration(integration);
     } catch (_oO) {
-      __DEBUG_BUILD__ && logger.warn(`Cannot retrieve integration ${integration.id} from the current Hub`);
+      DEBUG_BUILD && logger.warn(`Cannot retrieve integration ${integration.id} from the current Hub`);
       return null;
     }
   }
@@ -373,16 +374,14 @@ export class Hub implements HubInterface {
   public startTransaction(context: TransactionContext, customSamplingContext?: CustomSamplingContext): Transaction {
     const result = this._callExtensionMethod<Transaction>('startTransaction', context, customSamplingContext);
 
-    if (__DEBUG_BUILD__ && !result) {
+    if (DEBUG_BUILD && !result) {
       const client = this.getClient();
       if (!client) {
-        // eslint-disable-next-line no-console
-        console.warn(
+        logger.warn(
           "Tracing extension 'startTransaction' is missing. You should 'init' the SDK before calling 'startTransaction'",
         );
       } else {
-        // eslint-disable-next-line no-console
-        console.warn(`Tracing extension 'startTransaction' has not been added. Call 'addTracingExtensions' before calling 'init':
+        logger.warn(`Tracing extension 'startTransaction' has not been added. Call 'addTracingExtensions' before calling 'init':
 Sentry.addTracingExtensions();
 Sentry.init({...});
 `);
@@ -505,7 +504,7 @@ Sentry.init({...});
     if (sentry && sentry.extensions && typeof sentry.extensions[method] === 'function') {
       return sentry.extensions[method].apply(this, args);
     }
-    __DEBUG_BUILD__ && logger.warn(`Extension method ${method} couldn't be found, doing nothing.`);
+    DEBUG_BUILD && logger.warn(`Extension method ${method} couldn't be found, doing nothing.`);
   }
 }
 

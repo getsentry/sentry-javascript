@@ -49,8 +49,8 @@ mkdir test-applications/my-new-test-application # Name of the new folder doesn't
 
 # Create an npm configuration file that uses the fake test registry
 cat > test-applications/my-new-test-application/.npmrc << EOF
-@sentry:registry=http://localhost:4873
-@sentry-internal:registry=http://localhost:4873
+@sentry:registry=http://127.0.0.1:4873
+@sentry-internal:registry=http://127.0.0.1:4873
 EOF
 ```
 
@@ -60,7 +60,7 @@ Add the new test app to `test-application` matrix in `.github/workflows/build.ym
 want to run a canary test, add it to the `canary.yml` workflow.
 
 **An important thing to note:** In the context of the build/test commands the fake test registry is available at
-`http://localhost:4873`. It hosts all of our packages as if they were to be published with the state of the current
+`http://127.0.0.1:4873`. It hosts all of our packages as if they were to be published with the state of the current
 branch. This means we can install the packages from this registry via the `.npmrc` configuration as seen above. If you
 add Sentry dependencies to your test application, you should set the dependency versions set to `latest || *` in order
 for it to work with both regular and prerelease versions:

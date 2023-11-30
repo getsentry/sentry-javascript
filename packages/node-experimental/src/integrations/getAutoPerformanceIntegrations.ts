@@ -1,14 +1,15 @@
 import type { Integration } from '@sentry/types';
 
+import type { NodePerformanceIntegration } from './NodePerformanceIntegration';
 import { Express } from './express';
 import { Fastify } from './fastify';
 import { GraphQL } from './graphql';
+import { Hapi } from './hapi';
 import { Mongo } from './mongo';
 import { Mongoose } from './mongoose';
 import { Mysql } from './mysql';
 import { Mysql2 } from './mysql2';
 import { Nest } from './nest';
-import type { NodePerformanceIntegration } from './NodePerformanceIntegration';
 import { Postgres } from './postgres';
 import { Prisma } from './prisma';
 
@@ -42,6 +43,9 @@ const INTEGRATIONS: (() => NodePerformanceIntegration<unknown>)[] = [
   },
   () => {
     return new Nest();
+  },
+  () => {
+    return new Hapi();
   },
 ];
 

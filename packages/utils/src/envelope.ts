@@ -208,6 +208,9 @@ const ITEM_TYPE_TO_DATA_CATEGORY_MAP: Record<EnvelopeItemType, DataCategory> = {
   replay_event: 'replay',
   replay_recording: 'replay',
   check_in: 'monitor',
+  feedback: 'feedback',
+  // TODO: This is a temporary workaround until we have a proper data category for metrics
+  statsd: 'unknown',
 };
 
 /**

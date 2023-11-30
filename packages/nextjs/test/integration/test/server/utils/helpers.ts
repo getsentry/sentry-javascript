@@ -1,10 +1,10 @@
-import { TestEnv } from '../../../../../../node-integration-tests/utils';
 import * as http from 'http';
+import { Server, createServer } from 'http';
+import { AddressInfo } from 'net';
 import * as path from 'path';
-import { createServer, Server } from 'http';
 import { parse } from 'url';
 import next from 'next';
-import { AddressInfo } from 'net';
+import { TestEnv } from '../../../../../../node-integration-tests/utils';
 
 // Type not exported from NextJS
 // @ts-expect-error

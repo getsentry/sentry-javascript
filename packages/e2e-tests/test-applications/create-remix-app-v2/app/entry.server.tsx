@@ -6,13 +6,13 @@
 
 import { PassThrough } from 'node:stream';
 
-import type { AppLoadContext, EntryContext, DataFunctionArgs } from '@remix-run/node';
+import type { AppLoadContext, DataFunctionArgs, EntryContext } from '@remix-run/node';
 import { createReadableStreamFromReadable } from '@remix-run/node';
-import { RemixServer } from '@remix-run/react';
-import { renderToPipeableStream } from 'react-dom/server';
-import * as Sentry from '@sentry/remix';
 import { installGlobals } from '@remix-run/node';
+import { RemixServer } from '@remix-run/react';
+import * as Sentry from '@sentry/remix';
 import isbot from 'isbot';
+import { renderToPipeableStream } from 'react-dom/server';
 
 installGlobals();
 

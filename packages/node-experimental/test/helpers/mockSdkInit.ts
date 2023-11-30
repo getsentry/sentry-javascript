@@ -1,4 +1,4 @@
-import { context, propagation, ProxyTracerProvider, trace } from '@opentelemetry/api';
+import { ProxyTracerProvider, context, propagation, trace } from '@opentelemetry/api';
 import { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
 import { GLOBAL_OBJ } from '@sentry/utils';
 

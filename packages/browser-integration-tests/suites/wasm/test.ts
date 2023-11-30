@@ -1,6 +1,6 @@
-import { expect } from '@playwright/test';
 import fs from 'fs';
 import path from 'path';
+import { expect } from '@playwright/test';
 
 import { sentryTest } from '../../utils/fixtures';
 import { shouldSkipWASMTests } from '../../utils/wasmHelpers';

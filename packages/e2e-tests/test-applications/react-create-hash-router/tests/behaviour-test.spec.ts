@@ -1,8 +1,8 @@
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 import axios, { AxiosError } from 'axios';
 import { ReplayRecordingData } from './fixtures/ReplayRecordingData';
 
-const EVENT_POLLING_TIMEOUT = 30_000;
+const EVENT_POLLING_TIMEOUT = 90_000;
 
 const authToken = process.env.E2E_TEST_AUTH_TOKEN;
 const sentryTestOrgSlug = process.env.E2E_TEST_SENTRY_ORG_SLUG;
@@ -183,6 +183,9 @@ test('Sends a Replay recording to Sentry', async ({ browser }) => {
     return window.sentryReplayId;
   });
 
+  // Keypress event ensures LCP is finished
+  await page.type('body', 'Y');
+
   // Wait for replay to be sent
 
   if (replayId === undefined) {
@@ -229,10 +232,7 @@ test('Sends a Replay recording to Sentry', async ({ browser }) => {
             { headers: { Authorization: `Bearer ${authToken}` } },
           );
 
-          return {
-            status: response.status,
-            data: response.data,
-          };
+          return response.status === 200 ? response.data[0] : response.status;
         } catch (e) {
           if (e instanceof AxiosError && e.response) {
             if (e.response.status !== 404) {
@@ -249,8 +249,5 @@ test('Sends a Replay recording to Sentry', async ({ browser }) => {
         timeout: EVENT_POLLING_TIMEOUT,
       },
     )
-    .toEqual({
-      status: 200,
-      data: ReplayRecordingData,
-    });
+    .toEqual(ReplayRecordingData);
 });

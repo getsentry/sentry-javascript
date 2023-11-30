@@ -1,6 +1,6 @@
+import type { IncomingMessage, ServerResponse } from 'http';
 import * as SentryCore from '@sentry/core';
 import { addTracingExtensions } from '@sentry/core';
-import type { IncomingMessage, ServerResponse } from 'http';
 
 import { wrapGetInitialPropsWithSentry, wrapGetServerSidePropsWithSentry } from '../../src/common';
 
@@ -29,7 +29,7 @@ describe('data-fetching function wrappers', () => {
           ({
             getOptions: () => ({ instrumenter: 'sentry' }),
             getDsn: () => {},
-          } as any);
+          }) as any;
 
         return hub;
       });

@@ -1,5 +1,4 @@
-import { captureException, getCurrentHub, withScope } from '@sentry/core';
-import { addExceptionMechanism } from '@sentry/utils';
+import { captureException, getClient, withScope } from '@sentry/core';
 import type { NextPageContext } from 'next';
 
 type ContextOrProps = {
@@ -12,7 +11,7 @@ type ContextOrProps = {
 
 /** Platform-agnostic version of `flush` */
 function flush(timeout?: number): PromiseLike<boolean> {
-  const client = getCurrentHub().getClient();
+  const client = getClient();
   return client ? client.flush(timeout) : Promise.resolve(false);
 }
 
@@ -42,24 +41,21 @@ export async function captureUnderscoreErrorException(contextOrProps: ContextOrP
   }
 
   withScope(scope => {
-    scope.addEventProcessor(event => {
-      addExceptionMechanism(event, {
-        type: 'instrument',
-        handled: false,
-        data: {
-          function: '_error.getInitialProps',
-        },
-      });
-      return event;
-    });
-
     if (req) {
       scope.setSDKProcessingMetadata({ request: req });
     }
 
     // If third-party libraries (or users themselves) throw something falsy, we want to capture it as a message (which
     // is what passing a string to `captureException` will wind up doing)
-    captureException(err || `_error.js called with falsy error (${err})`);
+    captureException(err || `_error.js called with falsy error (${err})`, {
+      mechanism: {
+        type: 'instrument',
+        handled: false,
+        data: {
+          function: '_error.getInitialProps',
+        },
+      },
+    });
   });
 
   // In case this is being run as part of a serverless function (as is the case with the server half of nextjs apps

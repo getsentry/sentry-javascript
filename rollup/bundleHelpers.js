@@ -7,17 +7,18 @@ import { builtinModules } from 'module';
 import deepMerge from 'deepmerge';
 
 import {
+  getEs5Polyfills,
   makeBrowserBuildPlugin,
+  makeCleanupPlugin,
   makeCommonJSPlugin,
   makeIsDebugBuildPlugin,
   makeLicensePlugin,
   makeNodeResolvePlugin,
-  makeCleanupPlugin,
-  makeSucrasePlugin,
-  makeTerserPlugin,
-  makeTSPlugin,
+  makeRrwebBuildPlugin,
   makeSetSDKSourcePlugin,
-  getEs5Polyfills,
+  makeSucrasePlugin,
+  makeTSPlugin,
+  makeTerserPlugin,
 } from './plugins/index.js';
 import { mergePlugins } from './utils';
 
@@ -34,6 +35,10 @@ export function makeBaseBundleConfig(options) {
   const markAsBrowserBuildPlugin = makeBrowserBuildPlugin(true);
   const licensePlugin = makeLicensePlugin(licenseTitle);
   const tsPlugin = makeTSPlugin('es5');
+  const rrwebBuildPlugin = makeRrwebBuildPlugin({
+    excludeIframe: false,
+    excludeShadowDom: false,
+  });
 
   // The `commonjs` plugin is the `esModuleInterop` of the bundling world. When used with `transformMixedEsModules`, it
   // will include all dependencies, imported or required, in the final bundle. (Without it, CJS modules aren't included
@@ -51,7 +56,7 @@ export function makeBaseBundleConfig(options) {
       },
     },
     context: 'window',
-    plugins: [markAsBrowserBuildPlugin],
+    plugins: [rrwebBuildPlugin, markAsBrowserBuildPlugin],
   };
 
   // used by `@sentry/integrations` and `@sentry/wasm` (bundles which need to be combined with a stand-alone SDK bundle)
@@ -84,7 +89,7 @@ export function makeBaseBundleConfig(options) {
       // code to add after the CJS wrapper
       footer: '}(window));',
     },
-    plugins: [markAsBrowserBuildPlugin],
+    plugins: [rrwebBuildPlugin, markAsBrowserBuildPlugin],
   };
 
   // used by `@sentry/serverless`, when creating the lambda layer

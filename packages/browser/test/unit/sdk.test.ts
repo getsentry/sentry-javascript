@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/unbound-method */
-import { createTransport, Scope } from '@sentry/core';
+import { Scope, createTransport } from '@sentry/core';
 import type { Client, Integration } from '@sentry/types';
 import { resolvedSyncPromise } from '@sentry/utils';
 

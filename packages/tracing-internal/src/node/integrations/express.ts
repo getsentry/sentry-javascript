@@ -1,6 +1,7 @@
 /* eslint-disable max-lines */
 import type { Hub, Integration, PolymorphicRequest, Transaction } from '@sentry/types';
 import {
+  GLOBAL_OBJ,
   extractPathForTransaction,
   getNumberOfUrlSegments,
   isRegExp,
@@ -8,6 +9,7 @@ import {
   stripUrlQueryAndFragment,
 } from '@sentry/utils';
 
+import { DEBUG_BUILD } from '../../common/debug-build';
 import { shouldDisableAutoInstrumentation } from './utils/node-utils';
 
 type Method =
@@ -65,7 +67,7 @@ type Layer = {
   route?: { path: RouteType | RouteType[] };
   path?: string;
   regexp?: RegExp;
-  keys?: { name: string; offset: number; optional: boolean }[];
+  keys?: { name: string | number; offset: number; optional: boolean }[];
 };
 
 type RouteType = string | RegExp;
@@ -118,12 +120,12 @@ export class Express implements Integration {
    */
   public setupOnce(_: unknown, getCurrentHub: () => Hub): void {
     if (!this._router) {
-      __DEBUG_BUILD__ && logger.error('ExpressIntegration is missing an Express instance');
+      DEBUG_BUILD && logger.error('ExpressIntegration is missing an Express instance');
       return;
     }
 
     if (shouldDisableAutoInstrumentation(getCurrentHub)) {
-      __DEBUG_BUILD__ && logger.log('Express Integration is skipped because of instrumenter configuration.');
+      DEBUG_BUILD && logger.log('Express Integration is skipped because of instrumenter configuration.');
       return;
     }
 
@@ -292,8 +294,8 @@ function instrumentRouter(appOrRouter: ExpressRouter): void {
 
     TODO: Proper Express 5 support
     */
-    __DEBUG_BUILD__ && logger.debug('Cannot instrument router for URL Parameterization (did not find a valid router).');
-    __DEBUG_BUILD__ && logger.debug('Routing instrumentation is currently only supported in Express 4.');
+    DEBUG_BUILD && logger.debug('Cannot instrument router for URL Parameterization (did not find a valid router).');
+    DEBUG_BUILD && logger.debug('Routing instrumentation is currently only supported in Express 4.');
     return;
   }
 
@@ -358,7 +360,7 @@ function instrumentRouter(appOrRouter: ExpressRouter): void {
     // Now we check if we are in the "last" part of the route. We determine this by comparing the
     // number of URL segments from the original URL to that of our reconstructed parameterized URL.
     // If we've reached our final destination, we update the transaction name.
-    const urlLength = getNumberOfUrlSegments(req.originalUrl || '') + numExtraSegments;
+    const urlLength = getNumberOfUrlSegments(stripUrlQueryAndFragment(req.originalUrl || '')) + numExtraSegments;
     const routeLength = getNumberOfUrlSegments(req._reconstructedRoute);
 
     if (urlLength === routeLength) {
@@ -433,30 +435,34 @@ export const extractOriginalRoute = (
   /**
    * iterate param matches from regexp.exec
    */
-  paramIndices.forEach(([startOffset, endOffset], index: number) => {
-    /**
-     * isolate part before param
-     */
-    const substr1 = resultPath.substring(0, startOffset - indexShift);
-    /**
-     * define paramName as replacement in format :pathParam
-     */
-    const replacement = `:${orderedKeys[index].name}`;
+  paramIndices.forEach((item: [number, number] | undefined, index: number) => {
+    /** check if offsets is define because in some cases regex d flag returns undefined */
+    if (item) {
+      const [startOffset, endOffset] = item;
+      /**
+       * isolate part before param
+       */
+      const substr1 = resultPath.substring(0, startOffset - indexShift);
+      /**
+       * define paramName as replacement in format :pathParam
+       */
+      const replacement = `:${orderedKeys[index].name}`;
 
-    /**
-     * isolate part after param
-     */
-    const substr2 = resultPath.substring(endOffset - indexShift);
+      /**
+       * isolate part after param
+       */
+      const substr2 = resultPath.substring(endOffset - indexShift);
 
-    /**
-     * recreate original path but with param replacement
-     */
-    resultPath = substr1 + replacement + substr2;
+      /**
+       * recreate original path but with param replacement
+       */
+      resultPath = substr1 + replacement + substr2;
 
-    /**
-     * calculate new index shift after resultPath was modified
-     */
-    indexShift = indexShift + (endOffset - startOffset - replacement.length);
+      /**
+       * calculate new index shift after resultPath was modified
+       */
+      indexShift = indexShift + (endOffset - startOffset - replacement.length);
+    }
   });
 
   return resultPath;
@@ -481,7 +487,8 @@ function getLayerRoutePathInfo(layer: Layer): LayerRoutePathInfo {
 
   if (!lrp) {
     // parse node.js major version
-    const [major] = process.versions.node.split('.').map(Number);
+    // Next.js will complain if we directly use `proces.versions` here because of edge runtime.
+    const [major] = (GLOBAL_OBJ as unknown as NodeJS.Global).process.versions.node.split('.').map(Number);
 
     // allow call extractOriginalRoute only if node version support Regex d flag, node 16+
     if (major >= 16) {
@@ -539,7 +546,9 @@ export function preventDuplicateSegments(
   reconstructedRoute?: string,
   layerPath?: string,
 ): string | undefined {
-  const originalUrlSplit = originalUrl?.split('/').filter(v => !!v);
+  // filter query params
+  const normalizeURL = stripUrlQueryAndFragment(originalUrl || '');
+  const originalUrlSplit = normalizeURL?.split('/').filter(v => !!v);
   let tempCounter = 0;
   const currentOffset = reconstructedRoute?.split('/').filter(v => !!v).length || 0;
   const result = layerPath

@@ -6,8 +6,7 @@ jest.mock('@sentry/utils', () => ({
 }));
 
 import { WINDOW } from '../../../src/constants';
-import { createPerformanceEntries } from '../../../src/util/createPerformanceEntries';
-import { PerformanceEntryLcp } from '../../fixtures/performanceEntry/lcp';
+import { createPerformanceEntries, getLargestContentfulPaint } from '../../../src/util/createPerformanceEntries';
 import { PerformanceEntryNavigation } from '../../fixtures/performanceEntry/navigation';
 
 describe('Unit | util | createPerformanceEntries', () => {
@@ -58,20 +57,22 @@ describe('Unit | util | createPerformanceEntries', () => {
     expect(createPerformanceEntries([data])).toEqual([]);
   });
 
-  it('has correct LCP entry when no navigation event', function () {
-    const result = createPerformanceEntries([PerformanceEntryLcp()]);
-    expect(result).toEqual([
-      {
-        data: {
-          nodeId: -1,
-          size: 7619,
-          value: 5108.299,
-        },
-        name: 'largest-contentful-paint',
+  describe('getLargestContentfulPaint', () => {
+    it('works with an LCP metric', async () => {
+      const metric = {
+        value: 5108.299,
+        entries: [],
+      };
+
+      const event = getLargestContentfulPaint(metric);
+
+      expect(event).toEqual({
         type: 'largest-contentful-paint',
-        end: 1672531205.108299,
+        name: 'largest-contentful-paint',
         start: 1672531205.108299,
-      },
-    ]);
+        end: 1672531205.108299,
+        data: { value: 5108.299, size: 5108.299, nodeId: undefined },
+      });
+    });
   });
 });

@@ -1,6 +1,7 @@
 import { getCurrentHub, getDynamicSamplingContextFromClient, isSentryRequestUrl } from '@sentry/core';
 import type { EventProcessor, Integration, Span } from '@sentry/types';
 import {
+  LRUMap,
   dynamicRequire,
   dynamicSamplingContextToSentryBaggageHeader,
   generateSentryTraceHeader,
@@ -8,7 +9,6 @@ import {
   parseUrl,
   stringMatchesSomePattern,
 } from '@sentry/utils';
-import { LRUMap } from 'lru_map';
 
 import type { NodeClient } from '../../client';
 import { NODE_VERSION } from '../../nodeVersion';
@@ -272,7 +272,10 @@ function setHeadersOnRequest(
   sentryTrace: string,
   sentryBaggageHeader: string | undefined,
 ): void {
-  if (request.__sentry_has_headers__) {
+  const headerLines = request.headers.split('\r\n');
+  const hasSentryHeaders = headerLines.some(headerLine => headerLine.startsWith('sentry-trace:'));
+
+  if (hasSentryHeaders) {
     return;
   }
 
@@ -280,8 +283,6 @@ function setHeadersOnRequest(
   if (sentryBaggageHeader) {
     request.addHeader('baggage', sentryBaggageHeader);
   }
-
-  request.__sentry_has_headers__ = true;
 }
 
 function createRequestSpan(

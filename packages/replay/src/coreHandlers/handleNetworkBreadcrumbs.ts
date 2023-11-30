@@ -1,4 +1,4 @@
-import { getCurrentHub } from '@sentry/core';
+import { getClient } from '@sentry/core';
 import type {
   Breadcrumb,
   BreadcrumbHint,
@@ -6,8 +6,9 @@ import type {
   TextEncoderInternal,
   XhrBreadcrumbData,
 } from '@sentry/types';
-import { addInstrumentationHandler, logger } from '@sentry/utils';
+import { addFetchInstrumentationHandler, addXhrInstrumentationHandler, logger } from '@sentry/utils';
 
+import { DEBUG_BUILD } from '../debug-build';
 import type { FetchHint, ReplayContainer, ReplayNetworkOptions, XhrHint } from '../types';
 import { handleFetchSpanListener } from './handleFetch';
 import { handleXhrSpanListener } from './handleXhr';
@@ -26,7 +27,7 @@ interface ExtendedNetworkBreadcrumbsOptions extends ReplayNetworkOptions {
  *   (enriching it with further data that is _not_ added to the regular breadcrumbs)
  */
 export function handleNetworkBreadcrumbs(replay: ReplayContainer): void {
-  const client = getCurrentHub().getClient();
+  const client = getClient();
 
   try {
     const textEncoder = new TextEncoder();
@@ -53,8 +54,8 @@ export function handleNetworkBreadcrumbs(replay: ReplayContainer): void {
       client.on('beforeAddBreadcrumb', (breadcrumb, hint) => beforeAddNetworkBreadcrumb(options, breadcrumb, hint));
     } else {
       // Fallback behavior
-      addInstrumentationHandler('fetch', handleFetchSpanListener(replay));
-      addInstrumentationHandler('xhr', handleXhrSpanListener(replay));
+      addFetchInstrumentationHandler(handleFetchSpanListener(replay));
+      addXhrInstrumentationHandler(handleXhrSpanListener(replay));
     }
   } catch {
     // Do nothing
@@ -90,7 +91,7 @@ export function beforeAddNetworkBreadcrumb(
       void captureFetchBreadcrumbToReplay(breadcrumb, hint, options);
     }
   } catch (e) {
-    __DEBUG_BUILD__ && logger.warn('Error when enriching network breadcrumb');
+    DEBUG_BUILD && logger.warn('Error when enriching network breadcrumb');
   }
 }
 

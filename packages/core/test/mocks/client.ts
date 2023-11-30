@@ -1,3 +1,4 @@
+import { TextEncoder } from 'util';
 import type {
   ClientOptions,
   Event,
@@ -10,7 +11,6 @@ import type {
   SeverityLevel,
 } from '@sentry/types';
 import { resolvedSyncPromise } from '@sentry/utils';
-import { TextEncoder } from 'util';
 
 import { BaseClient } from '../../src/baseclient';
 import { initAndBind } from '../../src/sdk';

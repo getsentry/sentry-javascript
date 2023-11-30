@@ -32,11 +32,13 @@ export {
   close,
   configureScope,
   createTransport,
+  // eslint-disable-next-line deprecation/deprecation
   extractTraceparentData,
   flush,
   getActiveTransaction,
   getHubFromCarrier,
   getCurrentHub,
+  getClient,
   Hub,
   lastEventId,
   makeMain,
@@ -54,6 +56,7 @@ export {
   trace,
   withScope,
   captureCheckIn,
+  withMonitor,
   setMeasurement,
   getActiveSpan,
   startSpan,
@@ -66,10 +69,14 @@ export type { SpanStatusType } from '@sentry/core';
 export { VercelEdgeClient } from './client';
 export { defaultIntegrations, init } from './sdk';
 
-import { Integrations as CoreIntegrations } from '@sentry/core';
+import { Integrations as CoreIntegrations, RequestData } from '@sentry/core';
+
+import { WinterCGFetch } from './integrations/wintercg-fetch';
 
 const INTEGRATIONS = {
   ...CoreIntegrations,
+  WinterCGFetch,
+  RequestData,
 };
 
 export { INTEGRATIONS as Integrations };

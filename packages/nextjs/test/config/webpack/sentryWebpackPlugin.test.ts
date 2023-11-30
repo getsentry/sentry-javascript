@@ -1,7 +1,7 @@
-import { default as SentryWebpackPlugin } from '@sentry/webpack-plugin';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
+import { default as SentryWebpackPlugin } from '@sentry/webpack-plugin';
 
 import type { BuildContext, ExportedNextConfig } from '../../../src/config/types';
 import { getUserConfigFile, getWebpackPluginOptions } from '../../../src/config/webpack';
@@ -141,8 +141,7 @@ describe('Sentry webpack plugin config', () => {
       ) as SentryWebpackPlugin;
 
       expect(sentryWebpackPluginInstance.options.include).toEqual([
-        { paths: [`${serverBuildContextWebpack4.dir}/.next/server/pages/`], urlPrefix: '~/_next/server/pages' },
-        { paths: [`${serverBuildContextWebpack4.dir}/.next/server/app/`], urlPrefix: '~/_next/server/app' },
+        { paths: [`${serverBuildContextWebpack4.dir}/.next/server/`], urlPrefix: '~/_next/server' },
       ]);
     });
 
@@ -159,9 +158,7 @@ describe('Sentry webpack plugin config', () => {
       ) as SentryWebpackPlugin;
 
       expect(sentryWebpackPluginInstance.options.include).toEqual([
-        { paths: [`${serverBuildContext.dir}/.next/server/pages/`], urlPrefix: '~/_next/server/pages' },
-        { paths: [`${serverBuildContext.dir}/.next/server/app/`], urlPrefix: '~/_next/server/app' },
-        { paths: [`${serverBuildContext.dir}/.next/server/chunks/`], urlPrefix: '~/_next/server/chunks' },
+        { paths: [`${serverBuildContext.dir}/.next/server/`], urlPrefix: '~/_next/server' },
       ]);
     });
   });

@@ -1,10 +1,10 @@
 import type { ClientOptions, EventProcessor } from '@sentry/types';
+import type { LRUMap } from '@sentry/utils';
 import type { Debugger, InspectorNotification } from 'inspector';
-import type { LRUMap } from 'lru_map';
 
 import { defaultStackParser } from '../../src';
 import type { DebugSession, FrameVariables } from '../../src/integrations/localvariables';
-import { createCallbackList, createRateLimiter, LocalVariables } from '../../src/integrations/localvariables';
+import { LocalVariables, createCallbackList, createRateLimiter } from '../../src/integrations/localvariables';
 import { NODE_VERSION } from '../../src/nodeVersion';
 import { getDefaultNodeClientOptions } from '../../test/helper/node-client-options';
 
@@ -178,11 +178,7 @@ describeIf((NODE_VERSION.major || 0) >= 18)('LocalVariables', () => {
 
     expect((localVariables as unknown as LocalVariablesPrivate)._cachedFrames.size).toBe(1);
 
-    let frames: FrameVariables[] | undefined;
-
-    (localVariables as unknown as LocalVariablesPrivate)._cachedFrames.forEach(f => {
-      frames = f;
-    });
+    const frames: FrameVariables[] = (localVariables as unknown as LocalVariablesPrivate)._cachedFrames.values()[0];
 
     expect(frames).toBeDefined();
 
@@ -274,11 +270,7 @@ describeIf((NODE_VERSION.major || 0) >= 18)('LocalVariables', () => {
 
     expect((localVariables as unknown as LocalVariablesPrivate)._cachedFrames.size).toBe(1);
 
-    let frames: FrameVariables[] | undefined;
-
-    (localVariables as unknown as LocalVariablesPrivate)._cachedFrames.forEach(f => {
-      frames = f;
-    });
+    const frames: FrameVariables[] = (localVariables as unknown as LocalVariablesPrivate)._cachedFrames.values()[0];
 
     expect(frames).toBeDefined();
 

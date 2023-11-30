@@ -1,6 +1,8 @@
 // mock helper functions not tested directly in this file
 import './mocks';
 
+import * as fs from 'fs';
+
 import type { ModuleRuleUseProperty, WebpackModuleRule } from '../../src/config/types';
 import {
   clientBuildContext,
@@ -10,6 +12,9 @@ import {
   serverWebpackConfig,
 } from './fixtures';
 import { materializeFinalWebpackConfig } from './testUtils';
+
+const existsSyncSpy = jest.spyOn(fs, 'existsSync');
+const lstatSyncSpy = jest.spyOn(fs, 'lstatSync');
 
 type MatcherResult = { pass: boolean; message: () => string };
 
@@ -72,7 +77,7 @@ describe('webpack loaders', () => {
       });
 
       expect(finalWebpackConfig.module.rules).toContainEqual({
-        test: /sentry\.server\.config\.(jsx?|tsx?)/,
+        test: /sentry\.(server|edge)\.config\.(jsx?|tsx?)/,
         use: [
           {
             loader: expect.stringEndingWith('valueInjectionLoader.js'),
@@ -85,6 +90,7 @@ describe('webpack loaders', () => {
       });
     });
 
+    // For these tests we assume that we have an app and pages folder in {rootdir}/src
     it.each([
       {
         resourcePath: '/Users/Maisey/projects/squirrelChasingSimulator/src/pages/testPage.tsx',
@@ -139,8 +145,9 @@ describe('webpack loaders', () => {
         resourcePath: '/Users/Maisey/projects/squirrelChasingSimulator/src/middleware.ts',
         expectedWrappingTargetKind: 'middleware',
       },
+      // Since we assume we have a pages file in src middleware will only be included in the build if it is also in src
       {
-        resourcePath: '/Users/Maisey/projects/squirrelChasingSimulator/src/middleware.tsx',
+        resourcePath: '/Users/Maisey/projects/squirrelChasingSimulator/middleware.tsx',
         expectedWrappingTargetKind: undefined,
       },
       {
@@ -182,6 +189,22 @@ describe('webpack loaders', () => {
     ])(
       'should apply the right wrappingTargetKind with wrapping loader ($resourcePath)',
       async ({ resourcePath, expectedWrappingTargetKind }) => {
+        // We assume that we have an app and pages folder in {rootdir}/src
+        existsSyncSpy.mockImplementation(path => {
+          if (
+            path.toString().startsWith('/Users/Maisey/projects/squirrelChasingSimulator/app') ||
+            path.toString().startsWith('/Users/Maisey/projects/squirrelChasingSimulator/pages')
+          ) {
+            return false;
+          }
+          return true;
+        });
+
+        // @ts-expect-error Too lazy to mock the entire thing
+        lstatSyncSpy.mockImplementation(() => ({
+          isDirectory: () => true,
+        }));
+
         const finalWebpackConfig = await materializeFinalWebpackConfig({
           exportedNextConfig,
           incomingWebpackConfig: serverWebpackConfig,

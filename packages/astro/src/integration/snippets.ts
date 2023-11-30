@@ -1,10 +1,12 @@
+import * as path from 'path';
+
 import type { SentryOptions } from './types';
 
 /**
  * Creates a snippet that imports a Sentry.init file.
  */
 export function buildSdkInitFileImportSnippet(filePath: string): string {
-  return `import "${filePath}";`;
+  return `import "${pathToPosix(filePath)}";`;
 }
 
 /**
@@ -16,7 +18,7 @@ export function buildClientSnippet(options: SentryOptions): string {
 
 Sentry.init({
   ${buildCommonInitOptions(options)}
-  integrations: [new Sentry.BrowserTracing(), new Sentry.Replay()],
+  integrations: [${buildClientIntegrations(options)}],
   replaysSessionSampleRate: ${options.replaysSessionSampleRate ?? 0.1},
   replaysOnErrorSampleRate: ${options.replaysOnErrorSampleRate ?? 1.0},
 });`;
@@ -41,5 +43,35 @@ const buildCommonInitOptions = (options: SentryOptions): string => `dsn: ${
   environment: ${options.environment ? JSON.stringify(options.environment) : 'import.meta.env.PUBLIC_VERCEL_ENV'},
   release: ${options.release ? JSON.stringify(options.release) : 'import.meta.env.PUBLIC_VERCEL_GIT_COMMIT_SHA'},
   tracesSampleRate: ${options.tracesSampleRate ?? 1.0},${
-  options.sampleRate ? `\n  sampleRate: ${options.sampleRate},` : ''
-}`;
+    options.sampleRate ? `\n  sampleRate: ${options.sampleRate},` : ''
+  }`;
+
+/**
+ * We don't include the `BrowserTracing` integration if the tracesSampleRate is set to 0.
+ * Likewise, we don't include the `Replay` integration if the replaysSessionSampleRate
+ * and replaysOnErrorSampleRate are set to 0.
+ *
+ * This way, we avoid unnecessarily adding the integrations and thereby enable tree shaking of the integrations.
+ */
+const buildClientIntegrations = (options: SentryOptions): string => {
+  const integrations: string[] = [];
+
+  if (options.tracesSampleRate == null || options.tracesSampleRate) {
+    integrations.push('new Sentry.BrowserTracing()');
+  }
+
+  if (
+    options.replaysSessionSampleRate == null ||
+    options.replaysSessionSampleRate ||
+    options.replaysOnErrorSampleRate == null ||
+    options.replaysOnErrorSampleRate
+  ) {
+    integrations.push('new Sentry.Replay()');
+  }
+
+  return integrations.join(', ');
+};
+
+function pathToPosix(originalPath: string): string {
+  return originalPath.split(path.sep).join(path.posix.sep);
+}

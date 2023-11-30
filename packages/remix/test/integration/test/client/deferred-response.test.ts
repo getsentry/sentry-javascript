@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 test('should receive correct data from instrumented defer response', async ({ page }) => {
   await page.goto('/loader-defer-response/98765');

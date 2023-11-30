@@ -3,30 +3,29 @@ import type {
   SpanStatusType as SpanStatusTypeT,
 } from '@sentry-internal/tracing';
 import {
-  addExtensionMethods as addExtensionMethodsT,
   Apollo,
   BROWSER_TRACING_INTEGRATION_ID as BROWSER_TRACING_INTEGRATION_ID_T,
   BrowserTracing as BrowserTracingT,
-  defaultRequestInstrumentationOptions as defaultRequestInstrumentationOptionsT,
   Express,
-  extractTraceparentData as extractTraceparentDataT,
-  getActiveTransaction as getActiveTransactionT,
   GraphQL,
-  hasTracingEnabled as hasTracingEnabledT,
   IdleTransaction as IdleTransactionT,
-  instrumentOutgoingRequests as instrumentOutgoingRequestsT,
   Mongo,
   Mysql,
   Postgres,
   Prisma,
   Span as SpanT,
-  // eslint-disable-next-line deprecation/deprecation
   SpanStatus as SpanStatusT,
+  TRACEPARENT_REGEXP as TRACEPARENT_REGEXP_T,
+  Transaction as TransactionT,
+  addExtensionMethods as addExtensionMethodsT,
+  defaultRequestInstrumentationOptions as defaultRequestInstrumentationOptionsT,
+  extractTraceparentData as extractTraceparentDataT,
+  getActiveTransaction as getActiveTransactionT,
+  hasTracingEnabled as hasTracingEnabledT,
+  instrumentOutgoingRequests as instrumentOutgoingRequestsT,
   spanStatusfromHttpCode as spanStatusfromHttpCodeT,
   startIdleTransaction as startIdleTransactionT,
   stripUrlQueryAndFragment as stripUrlQueryAndFragmentT,
-  TRACEPARENT_REGEXP as TRACEPARENT_REGEXP_T,
-  Transaction as TransactionT,
 } from '@sentry-internal/tracing';
 
 // BrowserTracing is already exported as part of `Integrations` below (and for the moment will remain so for
@@ -70,6 +69,7 @@ export const getActiveTransaction = getActiveTransactionT;
  *
  * `extractTraceparentData` can be imported from `@sentry/node`, `@sentry/browser`, or your framework SDK
  */
+// eslint-disable-next-line deprecation/deprecation
 export const extractTraceparentData = extractTraceparentDataT;
 
 /**

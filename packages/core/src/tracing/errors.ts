@@ -1,5 +1,10 @@
-import { addInstrumentationHandler, logger } from '@sentry/utils';
+import {
+  addGlobalErrorInstrumentationHandler,
+  addGlobalUnhandledRejectionInstrumentationHandler,
+  logger,
+} from '@sentry/utils';
 
+import { DEBUG_BUILD } from '../debug-build';
 import type { SpanStatusType } from './span';
 import { getActiveTransaction } from './utils';
 
@@ -14,8 +19,8 @@ export function registerErrorInstrumentation(): void {
   }
 
   errorsInstrumented = true;
-  addInstrumentationHandler('error', errorCallback);
-  addInstrumentationHandler('unhandledrejection', errorCallback);
+  addGlobalErrorInstrumentationHandler(errorCallback);
+  addGlobalUnhandledRejectionInstrumentationHandler(errorCallback);
 }
 
 /**
@@ -25,7 +30,7 @@ function errorCallback(): void {
   const activeTransaction = getActiveTransaction();
   if (activeTransaction) {
     const status: SpanStatusType = 'internal_error';
-    __DEBUG_BUILD__ && logger.log(`[Tracing] Transaction: ${status} -> Global error occured`);
+    DEBUG_BUILD && logger.log(`[Tracing] Transaction: ${status} -> Global error occured`);
     activeTransaction.setStatus(status);
   }
 }

@@ -31,11 +31,11 @@ function makeHappyTransport(options) {
       method: 'POST',
       referrerPolicy: 'origin',
       headers: options.headers,
-      ...options.fetchOptions
+      ...options.fetchOptions,
     };
 
     // you define how `sendMyCustomRequest` works
-    const sendMyCustomRequest = (r) => fetch(options.url, r);
+    const sendMyCustomRequest = r => fetch(options.url, r);
     return sendMyCustomRequest(myCustomRequest).then(response => ({
       statusCode: response.status,
       headers: {

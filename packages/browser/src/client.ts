@@ -14,6 +14,7 @@ import type {
 } from '@sentry/types';
 import { createClientReportEnvelope, dsnToString, getSDKSource, logger } from '@sentry/utils';
 
+import { DEBUG_BUILD } from './debug-build';
 import { eventFromException, eventFromMessage } from './eventbuilder';
 import { WINDOW } from './helpers';
 import type { BrowserTransportOptions } from './transports/types';
@@ -97,7 +98,7 @@ export class BrowserClient extends BaseClient<BrowserClientOptions> {
    */
   public captureUserFeedback(feedback: UserFeedback): void {
     if (!this._isEnabled()) {
-      __DEBUG_BUILD__ && logger.warn('SDK not enabled, will not capture user feedback.');
+      DEBUG_BUILD && logger.warn('SDK not enabled, will not capture user feedback.');
       return;
     }
 
@@ -124,17 +125,17 @@ export class BrowserClient extends BaseClient<BrowserClientOptions> {
     const outcomes = this._clearOutcomes();
 
     if (outcomes.length === 0) {
-      __DEBUG_BUILD__ && logger.log('No outcomes to send');
+      DEBUG_BUILD && logger.log('No outcomes to send');
       return;
     }
 
     // This is really the only place where we want to check for a DSN and only send outcomes then
     if (!this._dsn) {
-      __DEBUG_BUILD__ && logger.log('No dsn provided, will not send outcomes');
+      DEBUG_BUILD && logger.log('No dsn provided, will not send outcomes');
       return;
     }
 
-    __DEBUG_BUILD__ && logger.log('Sending outcomes:', outcomes);
+    DEBUG_BUILD && logger.log('Sending outcomes:', outcomes);
 
     const envelope = createClientReportEnvelope(outcomes, this._options.tunnel && dsnToString(this._dsn));
     void this._sendEnvelope(envelope);

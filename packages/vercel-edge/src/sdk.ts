@@ -1,8 +1,10 @@
-import { getIntegrationsToSetup, initAndBind, Integrations as CoreIntegrations } from '@sentry/core';
-import { createStackParser, GLOBAL_OBJ, nodeStackLineParser, stackParserFromStackParserOptions } from '@sentry/utils';
+import { Integrations as CoreIntegrations, RequestData, getIntegrationsToSetup, initAndBind } from '@sentry/core';
+import type { Integration } from '@sentry/types';
+import { GLOBAL_OBJ, createStackParser, nodeStackLineParser, stackParserFromStackParserOptions } from '@sentry/utils';
 
 import { setAsyncLocalStorageAsyncContextStrategy } from './async';
 import { VercelEdgeClient } from './client';
+import { WinterCGFetch } from './integrations/wintercg-fetch';
 import { makeEdgeTransport } from './transports';
 import type { VercelEdgeClientOptions, VercelEdgeOptions } from './types';
 import { getVercelEnv } from './utils/vercel';
@@ -13,14 +15,27 @@ declare const process: {
 
 const nodeStackParser = createStackParser(nodeStackLineParser());
 
-export const defaultIntegrations = [new CoreIntegrations.InboundFilters(), new CoreIntegrations.FunctionToString()];
+export const defaultIntegrations = [
+  new CoreIntegrations.InboundFilters(),
+  new CoreIntegrations.FunctionToString(),
+  new CoreIntegrations.LinkedErrors(),
+  new WinterCGFetch(),
+];
 
 /** Inits the Sentry NextJS SDK on the Edge Runtime. */
 export function init(options: VercelEdgeOptions = {}): void {
   setAsyncLocalStorageAsyncContextStrategy();
 
+  const sdkDefaultIntegrations: Integration[] = [...defaultIntegrations];
+
+  // TODO(v8): Add the request data integration by default.
+  // We don't want to add this functionality OOTB without a breaking change because it might contain PII
+  if (options.sendDefaultPii) {
+    sdkDefaultIntegrations.push(new RequestData());
+  }
+
   if (options.defaultIntegrations === undefined) {
-    options.defaultIntegrations = defaultIntegrations;
+    options.defaultIntegrations = sdkDefaultIntegrations;
   }
 
   if (options.dsn === undefined && process.env.SENTRY_DSN) {

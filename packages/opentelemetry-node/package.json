@@ -1,6 +1,6 @@
 {
   "name": "@sentry/opentelemetry-node",
-  "version": "7.74.0",
+  "version": "7.84.0",
   "description": "Official Sentry SDK for OpenTelemetry Node.js",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/opentelemetry-node",
@@ -23,9 +23,9 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/core": "7.74.0",
-    "@sentry/types": "7.74.0",
-    "@sentry/utils": "7.74.0"
+    "@sentry/core": "7.84.0",
+    "@sentry/types": "7.84.0",
+    "@sentry/utils": "7.84.0"
   },
   "peerDependencies": {
     "@opentelemetry/api": "1.x",
@@ -35,11 +35,11 @@
   },
   "devDependencies": {
     "@opentelemetry/api": "^1.6.0",
-    "@opentelemetry/core": "^1.7.0",
-    "@opentelemetry/sdk-trace-base": "^1.17.0",
-    "@opentelemetry/sdk-trace-node": "^1.17.0",
-    "@opentelemetry/semantic-conventions": "^1.17.0",
-    "@sentry/node": "7.74.0"
+    "@opentelemetry/core": "^1.17.1",
+    "@opentelemetry/sdk-trace-base": "^1.17.1",
+    "@opentelemetry/sdk-trace-node": "^1.17.1",
+    "@opentelemetry/semantic-conventions": "^1.17.1",
+    "@sentry/node": "7.84.0"
   },
   "scripts": {
     "build": "run-p build:transpile build:types",
@@ -55,16 +55,12 @@
     "build:tarball": "ts-node ../../scripts/prepack.ts && npm pack ./build",
     "circularDepCheck": "madge --circular src/index.ts",
     "clean": "rimraf build coverage sentry-opentelemetry-node-*.tgz",
-    "fix": "run-s fix:eslint fix:prettier",
-    "fix:eslint": "eslint . --format stylish --fix",
-    "fix:prettier": "prettier --write \"{src,test,scripts}/**/**.ts\"",
-    "lint": "run-s lint:prettier lint:eslint",
-    "lint:eslint": "eslint . --format stylish",
-    "lint:prettier": "prettier --check \"{src,test,scripts}/**/**.ts\"",
+    "fix": "eslint . --format stylish --fix",
+    "lint": "eslint . --format stylish",
     "test": "yarn test:jest",
     "test:jest": "jest",
     "test:watch": "jest --watch",
-    "yalc:publish": "ts-node ../../scripts/prepack.ts && yalc publish build --push"
+    "yalc:publish": "ts-node ../../scripts/prepack.ts && yalc publish build --push --sig"
   },
   "volta": {
     "extends": "../../package.json"

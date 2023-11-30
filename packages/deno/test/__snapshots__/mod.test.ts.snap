@@ -15,7 +15,7 @@ snapshot[`captureException 1`] = `
     },
     runtime: {
       name: "deno",
-      version: "1.37.1",
+      version: "{{version}}",
     },
     trace: {
       span_id: "{{id}}",
@@ -82,7 +82,7 @@ snapshot[`captureException 1`] = `
               filename: "app:///test/mod.test.ts",
               function: "<anonymous>",
               in_app: true,
-              lineno: 43,
+              lineno: 46,
               post_context: [
                 "",
                 "  await delay(200);",
@@ -90,7 +90,7 @@ snapshot[`captureException 1`] = `
                 "});",
                 "",
                 "Deno.test('captureMessage', async t => {",
-                "  let ev: Event | undefined;",
+                "  let ev: sentryTypes.Event | undefined;",
               ],
               pre_context: [
                 "    ev = event;",
@@ -108,7 +108,7 @@ snapshot[`captureException 1`] = `
               filename: "app:///test/mod.test.ts",
               function: "something",
               in_app: true,
-              lineno: 40,
+              lineno: 43,
               post_context: [
                 "  }",
                 "",
@@ -120,7 +120,7 @@ snapshot[`captureException 1`] = `
               ],
               pre_context: [
                 "Deno.test('captureException', async t => {",
-                "  let ev: Event | undefined;",
+                "  let ev: sentryTypes.Event | undefined;",
                 "  const [hub] = getTestClient(event => {",
                 "    ev = event;",
                 "  });",
@@ -135,13 +135,13 @@ snapshot[`captureException 1`] = `
       },
     ],
   },
-  platform: "deno",
+  platform: "javascript",
   sdk: {
     integrations: [
       "InboundFilters",
       "FunctionToString",
-      "Dedupe",
       "LinkedErrors",
+      "Dedupe",
       "Breadcrumbs",
       "DenoContext",
       "ContextLines",
@@ -176,7 +176,7 @@ snapshot[`captureMessage 1`] = `
     },
     runtime: {
       name: "deno",
-      version: "1.37.1",
+      version: "{{version}}",
     },
     trace: {
       span_id: "{{id}}",
@@ -195,13 +195,13 @@ snapshot[`captureMessage 1`] = `
   event_id: "{{id}}",
   level: "info",
   message: "Some error message",
-  platform: "deno",
+  platform: "javascript",
   sdk: {
     integrations: [
       "InboundFilters",
       "FunctionToString",
-      "Dedupe",
       "LinkedErrors",
+      "Dedupe",
       "Breadcrumbs",
       "DenoContext",
       "ContextLines",

@@ -2,6 +2,7 @@ import type { AddRequestDataToEventOptions } from '@sentry/node';
 import { captureException, flush, getCurrentHub } from '@sentry/node';
 import { isString, isThenable, logger, stripUrlQueryAndFragment, tracingContextFromHeaders } from '@sentry/utils';
 
+import { DEBUG_BUILD } from '../debug-build';
 import { domainify, markEventUnhandled, proxyFunction } from './../utils';
 import type { HttpFunction, WrapperOptions } from './general';
 
@@ -111,7 +112,7 @@ function _wrapHttpFunction(fn: HttpFunction, wrapOptions: Partial<HttpFunctionWr
 
       void flush(options.flushTimeout)
         .then(null, e => {
-          __DEBUG_BUILD__ && logger.error(e);
+          DEBUG_BUILD && logger.error(e);
         })
         .then(() => {
           _end.call(this, chunk, encoding, cb);

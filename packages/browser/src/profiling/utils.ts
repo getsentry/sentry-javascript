@@ -1,12 +1,14 @@
 /* eslint-disable max-lines */
 
 import { DEFAULT_ENVIRONMENT, getCurrentHub } from '@sentry/core';
-import type { DebugImage, Envelope, Event, StackFrame, StackParser } from '@sentry/types';
+import type { DebugImage, Envelope, Event, StackFrame, StackParser, Transaction } from '@sentry/types';
 import type { Profile, ThreadCpuProfile } from '@sentry/types/src/profiling';
-import { browserPerformanceTimeOrigin, forEachEnvelopeItem, GLOBAL_OBJ, logger, uuid4 } from '@sentry/utils';
+import { GLOBAL_OBJ, browserPerformanceTimeOrigin, forEachEnvelopeItem, logger, uuid4 } from '@sentry/utils';
 
+import { DEBUG_BUILD } from '../debug-build';
+import { getClient } from '../exports';
 import { WINDOW } from '../helpers';
-import type { JSSelfProfile, JSSelfProfileStack } from './jsSelfProfiling';
+import type { JSSelfProfile, JSSelfProfileStack, JSSelfProfiler, JSSelfProfilerConstructor } from './jsSelfProfiling';
 
 const MS_TO_NS = 1e6;
 // Use 0 as main thread id which is identical to threadId in node:worker_threads
@@ -95,7 +97,7 @@ function getTraceId(event: Event): string {
   // All profiles and transactions are rejected if this is the case and we want to
   // warn users that this is happening if they enable debug flag
   if (typeof traceId === 'string' && traceId.length !== 32) {
-    if (__DEBUG_BUILD__) {
+    if (DEBUG_BUILD) {
       logger.log(`[Profiling] Invalid traceId: ${traceId} on profiled event`);
     }
   }
@@ -119,9 +121,10 @@ function getTraceId(event: Event): string {
  * Creates a profiling event envelope from a Sentry event.
  */
 export function createProfilePayload(
-  event: ProfiledEvent,
-  processedProfile: JSSelfProfile,
   profile_id: string,
+  start_timestamp: number | undefined,
+  processed_profile: JSSelfProfile,
+  event: ProfiledEvent,
 ): Profile {
   if (event.type !== 'transaction') {
     // createProfilingEventEnvelope should only be called for transactions,
@@ -129,15 +132,19 @@ export function createProfilePayload(
     throw new TypeError('Profiling events may only be attached to transactions, this should never occur.');
   }
 
-  if (processedProfile === undefined || processedProfile === null) {
+  if (processed_profile === undefined || processed_profile === null) {
     throw new TypeError(
-      `Cannot construct profiling event envelope without a valid profile. Got ${processedProfile} instead.`,
+      `Cannot construct profiling event envelope without a valid profile. Got ${processed_profile} instead.`,
     );
   }
 
   const traceId = getTraceId(event);
-  const enrichedThreadProfile = enrichWithThreadInformation(processedProfile);
-  const transactionStartMs = typeof event.start_timestamp === 'number' ? event.start_timestamp * 1000 : Date.now();
+  const enrichedThreadProfile = enrichWithThreadInformation(processed_profile);
+  const transactionStartMs = start_timestamp
+    ? start_timestamp
+    : typeof event.start_timestamp === 'number'
+      ? event.start_timestamp * 1000
+      : Date.now();
   const transactionEndMs = typeof event.timestamp === 'number' ? event.timestamp * 1000 : Date.now();
 
   const profile: Profile = {
@@ -164,7 +171,7 @@ export function createProfilePayload(
       is_emulator: false,
     },
     debug_meta: {
-      images: applyDebugMetadata(processedProfile.resources),
+      images: applyDebugMetadata(processed_profile.resources),
     },
     profile: enrichedThreadProfile,
     transactions: [
@@ -187,6 +194,16 @@ export function createProfilePayload(
  */
 export function isProfiledTransactionEvent(event: Event): event is ProfiledEvent {
   return !!(event.sdkProcessingMetadata && event.sdkProcessingMetadata['profile']);
+}
+
+/*
+  See packages/tracing-internal/src/browser/router.ts
+*/
+/**
+ *
+ */
+export function isAutomatedPageLoadTransaction(transaction: Transaction): boolean {
+  return transaction.op === 'pageload';
 }
 
 /**
@@ -402,7 +419,7 @@ export function applyDebugMetadata(resource_paths: ReadonlyArray<string>): Debug
 export function isValidSampleRate(rate: unknown): boolean {
   // we need to check NaN explicitly because it's of type 'number' and therefore wouldn't get caught by this typecheck
   if ((typeof rate !== 'number' && typeof rate !== 'boolean') || (typeof rate === 'number' && isNaN(rate))) {
-    __DEBUG_BUILD__ &&
+    DEBUG_BUILD &&
       logger.warn(
         `[Profiling] Invalid sample rate. Sample rate must be a boolean or a number between 0 and 1. Got ${JSON.stringify(
           rate,
@@ -418,8 +435,7 @@ export function isValidSampleRate(rate: unknown): boolean {
 
   // in case sampleRate is a boolean, it will get automatically cast to 1 if it's true and 0 if it's false
   if (rate < 0 || rate > 1) {
-    __DEBUG_BUILD__ &&
-      logger.warn(`[Profiling] Invalid sample rate. Sample rate must be between 0 and 1. Got ${rate}.`);
+    DEBUG_BUILD && logger.warn(`[Profiling] Invalid sample rate. Sample rate must be between 0 and 1. Got ${rate}.`);
     return false;
   }
   return true;
@@ -427,7 +443,7 @@ export function isValidSampleRate(rate: unknown): boolean {
 
 function isValidProfile(profile: JSSelfProfile): profile is JSSelfProfile & { profile_id: string } {
   if (profile.samples.length < 2) {
-    if (__DEBUG_BUILD__) {
+    if (DEBUG_BUILD) {
       // Log a warning if the profile has less than 2 samples so users can know why
       // they are not seeing any profiling data and we cant avoid the back and forth
       // of asking them to provide us with a dump of the profile data.
@@ -437,9 +453,123 @@ function isValidProfile(profile: JSSelfProfile): profile is JSSelfProfile & { pr
   }
 
   if (!profile.frames.length) {
-    if (__DEBUG_BUILD__) {
+    if (DEBUG_BUILD) {
       logger.log('[Profiling] Discarding profile because it contains no frames');
     }
+    return false;
+  }
+
+  return true;
+}
+
+// Keep a flag value to avoid re-initializing the profiler constructor. If it fails
+// once, it will always fail and this allows us to early return.
+let PROFILING_CONSTRUCTOR_FAILED: boolean = false;
+export const MAX_PROFILE_DURATION_MS = 30_000;
+
+/**
+ * Check if profiler constructor is available.
+ * @param maybeProfiler
+ */
+function isJSProfilerSupported(maybeProfiler: unknown): maybeProfiler is typeof JSSelfProfilerConstructor {
+  return typeof maybeProfiler === 'function';
+}
+
+/**
+ * Starts the profiler and returns the profiler instance.
+ */
+export function startJSSelfProfile(): JSSelfProfiler | undefined {
+  // Feature support check first
+  const JSProfilerConstructor = WINDOW.Profiler;
+
+  if (!isJSProfilerSupported(JSProfilerConstructor)) {
+    if (DEBUG_BUILD) {
+      logger.log(
+        '[Profiling] Profiling is not supported by this browser, Profiler interface missing on window object.',
+      );
+    }
+    return;
+  }
+
+  // From initial testing, it seems that the minimum value for sampleInterval is 10ms.
+  const samplingIntervalMS = 10;
+  // Start the profiler
+  const maxSamples = Math.floor(MAX_PROFILE_DURATION_MS / samplingIntervalMS);
+
+  // Attempt to initialize the profiler constructor, if it fails, we disable profiling for the current user session.
+  // This is likely due to a missing 'Document-Policy': 'js-profiling' header. We do not want to throw an error if this happens
+  // as we risk breaking the user's application, so just disable profiling and log an error.
+  try {
+    return new JSProfilerConstructor({ sampleInterval: samplingIntervalMS, maxBufferSize: maxSamples });
+  } catch (e) {
+    if (DEBUG_BUILD) {
+      logger.log(
+        "[Profiling] Failed to initialize the Profiling constructor, this is likely due to a missing 'Document-Policy': 'js-profiling' header.",
+      );
+      logger.log('[Profiling] Disabling profiling for current user session.');
+    }
+    PROFILING_CONSTRUCTOR_FAILED = true;
+  }
+
+  return;
+}
+
+/**
+ * Determine if a profile should be profiled.
+ */
+export function shouldProfileTransaction(transaction: Transaction): boolean {
+  // If constructor failed once, it will always fail, so we can early return.
+  if (PROFILING_CONSTRUCTOR_FAILED) {
+    if (DEBUG_BUILD) {
+      logger.log('[Profiling] Profiling has been disabled for the duration of the current user session.');
+    }
+    return false;
+  }
+
+  if (!transaction.sampled) {
+    if (DEBUG_BUILD) {
+      logger.log('[Profiling] Discarding profile because transaction was not sampled.');
+    }
+    return false;
+  }
+
+  const client = getClient();
+  const options = client && client.getOptions();
+  if (!options) {
+    DEBUG_BUILD && logger.log('[Profiling] Profiling disabled, no options found.');
+    return false;
+  }
+
+  // @ts-expect-error profilesSampleRate is not part of the browser options yet
+  const profilesSampleRate: number | boolean | undefined = options.profilesSampleRate;
+
+  // Since this is coming from the user (or from a function provided by the user), who knows what we might get. (The
+  // only valid values are booleans or numbers between 0 and 1.)
+  if (!isValidSampleRate(profilesSampleRate)) {
+    DEBUG_BUILD && logger.warn('[Profiling] Discarding profile because of invalid sample rate.');
+    return false;
+  }
+
+  // if the function returned 0 (or false), or if `profileSampleRate` is 0, it's a sign the profile should be dropped
+  if (!profilesSampleRate) {
+    DEBUG_BUILD &&
+      logger.log(
+        '[Profiling] Discarding profile because a negative sampling decision was inherited or profileSampleRate is set to 0',
+      );
+    return false;
+  }
+
+  // Now we roll the dice. Math.random is inclusive of 0, but not of 1, so strict < is safe here. In case sampleRate is
+  // a boolean, the < comparison will cause it to be automatically cast to 1 if it's true and 0 if it's false.
+  const sampled = profilesSampleRate === true ? true : Math.random() < profilesSampleRate;
+  // Check if we should sample this profile
+  if (!sampled) {
+    DEBUG_BUILD &&
+      logger.log(
+        `[Profiling] Discarding profile because it's not included in the random sample (sampling rate = ${Number(
+          profilesSampleRate,
+        )})`,
+      );
     return false;
   }
 
@@ -451,19 +581,41 @@ function isValidProfile(profile: JSSelfProfile): profile is JSSelfProfile & { pr
  * @param event
  * @returns {Profile | null}
  */
-export function createProfilingEvent(profile_id: string, profile: JSSelfProfile, event: ProfiledEvent): Profile | null {
+export function createProfilingEvent(
+  profile_id: string,
+  start_timestamp: number | undefined,
+  profile: JSSelfProfile,
+  event: ProfiledEvent,
+): Profile | null {
   if (!isValidProfile(profile)) {
     return null;
   }
 
-  return createProfilePayload(event, profile, profile_id);
+  return createProfilePayload(profile_id, start_timestamp, profile, event);
 }
 
-export const PROFILE_MAP: Map<string, JSSelfProfile> = new Map();
+const PROFILE_MAP: Map<string, JSSelfProfile> = new Map();
 /**
  *
  */
-export function addProfileToMap(profile_id: string, profile: JSSelfProfile): void {
+export function getActiveProfilesCount(): number {
+  return PROFILE_MAP.size;
+}
+
+/**
+ * Retrieves profile from global cache and removes it.
+ */
+export function takeProfileFromGlobalCache(profile_id: string): JSSelfProfile | undefined {
+  const profile = PROFILE_MAP.get(profile_id);
+  if (profile) {
+    PROFILE_MAP.delete(profile_id);
+  }
+  return profile;
+}
+/**
+ * Adds profile to global cache and evicts the oldest profile if the cache is full.
+ */
+export function addProfileToGlobalCache(profile_id: string, profile: JSSelfProfile): void {
   PROFILE_MAP.set(profile_id, profile);
 
   if (PROFILE_MAP.size > 30) {

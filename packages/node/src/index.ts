@@ -18,9 +18,8 @@ export type {
   Transaction,
   User,
 } from '@sentry/types';
-export type { AddRequestDataToEventOptions } from '@sentry/utils';
+export type { AddRequestDataToEventOptions, TransactionNamingScheme } from '@sentry/utils';
 
-export type { TransactionNamingScheme } from './requestdata';
 export type { NodeOptions } from './types';
 
 export {
@@ -33,11 +32,13 @@ export {
   close,
   configureScope,
   createTransport,
+  // eslint-disable-next-line deprecation/deprecation
   extractTraceparentData,
   flush,
   getActiveTransaction,
   getHubFromCarrier,
   getCurrentHub,
+  getClient,
   Hub,
   lastEventId,
   makeMain,
@@ -55,6 +56,7 @@ export {
   trace,
   withScope,
   captureCheckIn,
+  withMonitor,
   setMeasurement,
   getActiveSpan,
   startSpan,
@@ -70,7 +72,7 @@ export { autoDiscoverNodePerformanceMonitoringIntegrations } from './tracing';
 export { NodeClient } from './client';
 export { makeNodeTransport } from './transports';
 export { defaultIntegrations, init, defaultStackParser, getSentryRelease } from './sdk';
-export { addRequestDataToEvent, DEFAULT_USER_INCLUDES, extractRequestData } from './requestdata';
+export { addRequestDataToEvent, DEFAULT_USER_INCLUDES, extractRequestData } from '@sentry/utils';
 export { deepReadDirSync } from './utils';
 export { getModuleFromFilename } from './module';
 export { enableAnrDetection } from './anr';

@@ -2,6 +2,7 @@ import type { Hub } from '@sentry/core';
 import type { EventProcessor, Span } from '@sentry/types';
 import { fill, loadModule, logger } from '@sentry/utils';
 
+import { DEBUG_BUILD } from '../../common/debug-build';
 import type { LazyLoadedIntegration } from './lazy';
 import { shouldDisableAutoInstrumentation } from './utils/node-utils';
 
@@ -46,14 +47,14 @@ export class Mysql implements LazyLoadedIntegration<MysqlConnection> {
    */
   public setupOnce(_: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
     if (shouldDisableAutoInstrumentation(getCurrentHub)) {
-      __DEBUG_BUILD__ && logger.log('Mysql Integration is skipped because of instrumenter configuration.');
+      DEBUG_BUILD && logger.log('Mysql Integration is skipped because of instrumenter configuration.');
       return;
     }
 
     const pkg = this.loadDependency();
 
     if (!pkg) {
-      __DEBUG_BUILD__ && logger.error('Mysql Integration was unable to require `mysql` package.');
+      DEBUG_BUILD && logger.error('Mysql Integration was unable to require `mysql` package.');
       return;
     }
 
@@ -69,7 +70,7 @@ export class Mysql implements LazyLoadedIntegration<MysqlConnection> {
         },
       });
     } catch (e) {
-      __DEBUG_BUILD__ && logger.error('Mysql Integration was unable to instrument `mysql` config.');
+      DEBUG_BUILD && logger.error('Mysql Integration was unable to instrument `mysql` config.');
     }
 
     function spanDataFromConfig(): Record<string, unknown> {

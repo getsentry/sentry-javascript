@@ -2,7 +2,6 @@
  *
  * @deprecated Use string literals - if you require type casting, cast to SpanStatusType type
  */
-// eslint-disable-next-line import/export
 export enum SpanStatus {
   /** The operation completed successfully. */
   Ok = 'ok',

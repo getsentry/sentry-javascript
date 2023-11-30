@@ -2,9 +2,9 @@ import * as svelteCompiler from 'svelte/compiler';
 
 /* eslint-disable deprecation/deprecation */
 import {
+  FIRST_PASS_COMPONENT_TRACKING_PREPROC_ID,
   componentTrackingPreprocessor,
   defaultComponentTrackingOptions,
-  FIRST_PASS_COMPONENT_TRACKING_PREPROC_ID,
 } from '../src/preprocessors';
 import type { SentryPreprocessorGroup } from '../src/types';
 

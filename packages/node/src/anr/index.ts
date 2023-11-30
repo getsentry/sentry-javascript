@@ -1,8 +1,9 @@
-import type { Event, StackFrame } from '@sentry/types';
-import { logger, watchdogTimer } from '@sentry/utils';
 import { spawn } from 'child_process';
+import { getClient, makeSession, updateSession } from '@sentry/core';
+import type { Event, Session, StackFrame } from '@sentry/types';
+import { logger, watchdogTimer } from '@sentry/utils';
 
-import { addGlobalEventProcessor, captureEvent, flush } from '..';
+import { addGlobalEventProcessor, captureEvent, flush, getCurrentHub } from '..';
 import { captureStackTrace } from './debugger';
 
 const DEFAULT_INTERVAL = 50;
@@ -41,8 +42,8 @@ interface Options {
   debug: boolean;
 }
 
-function sendEvent(blockedMs: number, frames?: StackFrame[]): void {
-  const event: Event = {
+function createAnrEvent(blockedMs: number, frames?: StackFrame[]): Event {
+  return {
     level: 'error',
     exception: {
       values: [
@@ -58,13 +59,6 @@ function sendEvent(blockedMs: number, frames?: StackFrame[]): void {
       ],
     },
   };
-
-  captureEvent(event);
-
-  void flush(3000).then(() => {
-    // We only capture one event to avoid spamming users with errors
-    process.exit();
-  });
 }
 
 interface InspectorApi {
@@ -97,6 +91,8 @@ function startChildProcess(options: Options): void {
     logger.log(`[ANR] ${message}`, ...args);
   }
 
+  const hub = getCurrentHub();
+
   try {
     const env = { ...process.env };
     env.SENTRY_ANR_CHILD_PROCESS = 'true';
@@ -105,7 +101,7 @@ function startChildProcess(options: Options): void {
       env.SENTRY_INSPECT_URL = startInspector();
     }
 
-    log(`Spawning child process with execPath:'${process.execPath}' and entryScript'${options.entryScript}'`);
+    log(`Spawning child process with execPath:'${process.execPath}' and entryScript:'${options.entryScript}'`);
 
     const child = spawn(process.execPath, [options.entryScript], {
       env,
@@ -116,12 +112,23 @@ function startChildProcess(options: Options): void {
 
     const timer = setInterval(() => {
       try {
+        const currentSession = hub.getScope()?.getSession();
+        // We need to copy the session object and remove the toJSON method so it can be sent to the child process
+        // serialized without making it a SerializedSession
+        const session = currentSession ? { ...currentSession, toJSON: undefined } : undefined;
         // message the child process to tell it the main event loop is still running
-        child.send('ping');
+        child.send({ session });
       } catch (_) {
         //
       }
     }, options.pollInterval);
+
+    child.on('message', (msg: string) => {
+      if (msg === 'session-ended') {
+        log('ANR event sent from child process. Clearing session in this process.');
+        hub.getScope()?.setSession(undefined);
+      }
+    });
 
     const end = (type: string): ((...args: unknown[]) => void) => {
       return (...args): void => {
@@ -153,13 +160,36 @@ function createHrTimer(): { getTimeMs: () => number; reset: () => void } {
 }
 
 function handleChildProcess(options: Options): void {
+  process.title = 'sentry-anr';
+
   function log(message: string): void {
     logger.log(`[ANR child process] ${message}`);
   }
 
-  process.title = 'sentry-anr';
-
   log('Started');
+  let session: Session | undefined;
+
+  function sendAnrEvent(frames?: StackFrame[]): void {
+    if (session) {
+      log('Sending abnormal session');
+      updateSession(session, { status: 'abnormal', abnormal_mechanism: 'anr_foreground' });
+      getClient()?.sendSession(session);
+
+      try {
+        // Notify the main process that the session has ended so the session can be cleared from the scope
+        process.send?.('session-ended');
+      } catch (_) {
+        // ignore
+      }
+    }
+
+    captureEvent(createAnrEvent(options.anrThreshold, frames));
+
+    void flush(3000).then(() => {
+      // We only capture one event to avoid spamming users with errors
+      process.exit();
+    });
+  }
 
   addGlobalEventProcessor(event => {
     // Strip sdkProcessingMetadata from all child process events to remove trace info
@@ -179,27 +209,40 @@ function handleChildProcess(options: Options): void {
 
     debuggerPause = captureStackTrace(process.env.SENTRY_INSPECT_URL, frames => {
       log('Capturing event with stack frames');
-      sendEvent(options.anrThreshold, frames);
+      sendAnrEvent(frames);
     });
   }
 
   async function watchdogTimeout(): Promise<void> {
     log('Watchdog timeout');
-    const pauseAndCapture = await debuggerPause;
 
-    if (pauseAndCapture) {
-      log('Pausing debugger to capture stack trace');
-      pauseAndCapture();
-    } else {
-      log('Capturing event');
-      sendEvent(options.anrThreshold);
+    try {
+      const pauseAndCapture = await debuggerPause;
+
+      if (pauseAndCapture) {
+        log('Pausing debugger to capture stack trace');
+        pauseAndCapture();
+        return;
+      }
+    } catch (_) {
+      // ignore
     }
+
+    log('Capturing event');
+    sendAnrEvent();
   }
 
   const { poll } = watchdogTimer(createHrTimer, options.pollInterval, options.anrThreshold, watchdogTimeout);
 
-  process.on('message', () => {
+  process.on('message', (msg: { session: Session | undefined }) => {
+    if (msg.session) {
+      session = makeSession(msg.session);
+    }
     poll();
+  });
+  process.on('disconnect', () => {
+    // Parent process has exited.
+    process.exit();
   });
 }
 

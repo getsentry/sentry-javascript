@@ -1,8 +1,8 @@
-/* eslint-disable import/export */
 import type { NodeOptions } from '@sentry/node';
 import { configureScope, getCurrentHub, init as nodeInit } from '@sentry/node';
 import { logger } from '@sentry/utils';
 
+import { DEBUG_BUILD } from './utils/debug-build';
 import { instrumentServer } from './utils/instrumentServer';
 import { buildMetadata } from './utils/metadata';
 import type { RemixOptions } from './utils/remixOptions';
@@ -13,11 +13,13 @@ export {
   addGlobalEventProcessor,
   addBreadcrumb,
   captureCheckIn,
+  withMonitor,
   captureException,
   captureEvent,
   captureMessage,
   configureScope,
   createTransport,
+  // eslint-disable-next-line deprecation/deprecation
   extractTraceparentData,
   getActiveTransaction,
   getHubFromCarrier,
@@ -61,6 +63,8 @@ export { remixRouterInstrumentation, withSentry } from './client/performance';
 export { captureRemixErrorBoundaryError } from './client/errors';
 export { wrapExpressCreateRequestHandler } from './utils/serverAdapters/express';
 
+export type { SentryMetaArgs } from './utils/types';
+
 function sdkAlreadyInitialized(): boolean {
   const hub = getCurrentHub();
   return !!hub.getClient();
@@ -71,7 +75,7 @@ export function init(options: RemixOptions): void {
   buildMetadata(options, ['remix', 'node']);
 
   if (sdkAlreadyInitialized()) {
-    __DEBUG_BUILD__ && logger.log('SDK already initialized');
+    DEBUG_BUILD && logger.log('SDK already initialized');
 
     return;
   }

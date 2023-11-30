@@ -1,6 +1,6 @@
-import { getMultipleSentryEnvelopeRequests, countEnvelopes } from './utils/helpers';
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 import { Transaction } from '@sentry/types';
+import { countEnvelopes, getMultipleSentryEnvelopeRequests } from './utils/helpers';
 
 test('should instrument `getInitialProps` for performance tracing', async ({ page }) => {
   const transaction = await getMultipleSentryEnvelopeRequests<Transaction>(page, 1, {

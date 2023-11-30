@@ -1,12 +1,13 @@
 import type { Context } from '@opentelemetry/api';
-import { context, SpanKind, trace } from '@opentelemetry/api';
+import { SpanKind, context, trace } from '@opentelemetry/api';
 import { suppressTracing } from '@opentelemetry/core';
 import type { Span as OtelSpan, SpanProcessor as OtelSpanProcessor } from '@opentelemetry/sdk-trace-base';
-import { addGlobalEventProcessor, addTracingExtensions, getCurrentHub, Transaction } from '@sentry/core';
+import { Transaction, addGlobalEventProcessor, addTracingExtensions, getClient, getCurrentHub } from '@sentry/core';
 import type { DynamicSamplingContext, Span as SentrySpan, TraceparentData, TransactionContext } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
 import { SENTRY_DYNAMIC_SAMPLING_CONTEXT_KEY, SENTRY_TRACE_PARENT_CONTEXT_KEY } from './constants';
+import { DEBUG_BUILD } from './debug-build';
 import { maybeCaptureExceptionForTimedEvent } from './utils/captureExceptionForTimedEvent';
 import { isSentryRequestSpan } from './utils/isSentryRequest';
 import { mapOtelStatus } from './utils/mapOtelStatus';
@@ -85,8 +86,7 @@ export class SentrySpanProcessor implements OtelSpanProcessor {
     const sentrySpan = getSentrySpan(otelSpanId);
 
     if (!sentrySpan) {
-      __DEBUG_BUILD__ &&
-        logger.error(`SentrySpanProcessor could not find span with OTEL-spanId ${otelSpanId} to finish.`);
+      DEBUG_BUILD && logger.error(`SentrySpanProcessor could not find span with OTEL-spanId ${otelSpanId} to finish.`);
       clearSpan(otelSpanId);
       return;
     }
@@ -100,7 +100,7 @@ export class SentrySpanProcessor implements OtelSpanProcessor {
       return;
     }
 
-    const client = getCurrentHub().getClient();
+    const client = getClient();
 
     const mutableOptions = { drop: false };
     client && client.emit && client?.emit('otelSpanEnd', otelSpan, mutableOptions);
@@ -141,7 +141,7 @@ export class SentrySpanProcessor implements OtelSpanProcessor {
    * @inheritDoc
    */
   public async forceFlush(): Promise<void> {
-    const client = getCurrentHub().getClient();
+    const client = getClient();
     if (client) {
       return client.flush().then();
     }

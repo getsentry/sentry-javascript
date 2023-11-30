@@ -1,7 +1,7 @@
 /* eslint-disable no-console */
 
-import * as fse from 'fs-extra';
 import * as path from 'path';
+import * as fse from 'fs-extra';
 
 const buildDir = path.resolve('build');
 const srcIntegrationDir = path.resolve(path.join('src', 'integration'));

@@ -6,11 +6,9 @@
  * this causes both TS and ESLint to complain, hence the pragma comments below.
  */
 
-// @ts-expect-error See above
-// eslint-disable-next-line import/no-unresolved
-import * as wrapee from '__SENTRY_WRAPPING_TARGET_FILE__';
-// eslint-disable-next-line import/no-extraneous-dependencies
 import * as Sentry from '@sentry/nextjs';
+// @ts-expect-error See above
+import * as wrapee from '__SENTRY_WRAPPING_TARGET_FILE__';
 import type { GetServerSideProps, GetStaticProps, NextPage as NextPageComponent } from 'next';
 
 type NextPageModule = {
@@ -49,10 +47,9 @@ export const getServerSideProps =
     ? Sentry.wrapGetServerSidePropsWithSentry(origGetServerSideProps, '__ROUTE__')
     : undefined;
 
-export default pageComponent;
+export default pageComponent ? Sentry.wrapPageComponentWithSentry(pageComponent as unknown) : pageComponent;
 
 // Re-export anything exported by the page module we're wrapping. When processing this code, Rollup is smart enough to
 // not include anything whose name matchs something we've explicitly exported above.
 // @ts-expect-error See above
-// eslint-disable-next-line import/no-unresolved
 export * from '__SENTRY_WRAPPING_TARGET_FILE__';

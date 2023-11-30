@@ -33,7 +33,7 @@ export class VercelEdgeClient extends ServerRuntimeClient<VercelEdgeClientOption
 
     const clientOptions: ServerRuntimeClientOptions = {
       ...options,
-      platform: 'vercel-edge',
+      platform: 'javascript',
       // TODO: Grab version information
       runtime: { name: 'vercel-edge' },
       serverName: options.serverName || process.env.SENTRY_NAME,

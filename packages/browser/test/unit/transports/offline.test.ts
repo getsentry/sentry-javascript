@@ -1,5 +1,6 @@
 import 'fake-indexeddb/auto';
 
+import { TextDecoder, TextEncoder } from 'util';
 import { createTransport } from '@sentry/core';
 import type {
   EventEnvelope,
@@ -8,7 +9,6 @@ import type {
   TransportMakeRequestResponse,
 } from '@sentry/types';
 import { createEnvelope } from '@sentry/utils';
-import { TextDecoder, TextEncoder } from 'util';
 
 import { MIN_DELAY } from '../../../../core/src/transports/offline';
 import { createStore, insert, makeBrowserOfflineTransport, pop } from '../../../src/transports/offline';

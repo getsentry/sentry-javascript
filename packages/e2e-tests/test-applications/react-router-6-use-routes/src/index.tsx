@@ -1,12 +1,12 @@
+import * as Sentry from '@sentry/react';
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import * as Sentry from '@sentry/react';
 import {
   BrowserRouter,
-  useLocation,
-  useNavigationType,
   createRoutesFromChildren,
   matchRoutes,
+  useLocation,
+  useNavigationType,
   useRoutes,
 } from 'react-router-dom';
 import Index from './pages/Index';

@@ -1,6 +1,6 @@
 /* eslint-disable max-lines */ // TODO: We might want to split this file up
 import { EventType, record } from '@sentry-internal/rrweb';
-import { captureException, getCurrentHub } from '@sentry/core';
+import { captureException, getClient, getCurrentHub } from '@sentry/core';
 import type { ReplayRecordingMode, Transaction } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
@@ -15,6 +15,7 @@ import {
 import { ClickDetector } from './coreHandlers/handleClick';
 import { handleKeyboardEvent } from './coreHandlers/handleKeyboardEvent';
 import { setupPerformanceObserver } from './coreHandlers/performanceObserver';
+import { DEBUG_BUILD } from './debug-build';
 import { createEventBuffer } from './eventBuffer';
 import { clearSession } from './session/clearSession';
 import { loadOrCreateSession } from './session/loadOrCreateSession';
@@ -24,6 +25,7 @@ import type {
   AddEventResult,
   AddUpdateCallback,
   AllPerformanceEntry,
+  AllPerformanceEntryData,
   EventBuffer,
   InternalEventContext,
   PopEventContext,
@@ -31,6 +33,7 @@ import type {
   RecordingOptions,
   ReplayBreadcrumbFrame,
   ReplayContainer as ReplayContainerInterface,
+  ReplayPerformanceEntry,
   ReplayPluginOptions,
   SendBufferedReplayOptions,
   Session,
@@ -51,7 +54,7 @@ import { isSessionExpired } from './util/isSessionExpired';
 import { logInfo, logInfoNextTick } from './util/log';
 import { sendReplay } from './util/sendReplay';
 import type { SKIPPED } from './util/throttle';
-import { throttle, THROTTLED } from './util/throttle';
+import { THROTTLED, throttle } from './util/throttle';
 
 /**
  * The main replay container class, which holds all the state and methods for recording and sending replays.
@@ -59,10 +62,9 @@ import { throttle, THROTTLED } from './util/throttle';
 export class ReplayContainer implements ReplayContainerInterface {
   public eventBuffer: EventBuffer | null;
 
-  /**
-   * List of PerformanceEntry from PerformanceObserver
-   */
-  public performanceEvents: AllPerformanceEntry[];
+  public performanceEntries: AllPerformanceEntry[];
+
+  public replayPerformanceEntries: ReplayPerformanceEntry<AllPerformanceEntryData>[];
 
   public session: Session | undefined;
 
@@ -101,7 +103,7 @@ export class ReplayContainer implements ReplayContainerInterface {
 
   private readonly _options: ReplayPluginOptions;
 
-  private _performanceObserver: PerformanceObserver | undefined;
+  private _performanceCleanupCallback?: () => void;
 
   private _debouncedFlush: ReturnType<typeof debounce>;
   private _flushLock: Promise<unknown> | undefined;
@@ -144,7 +146,8 @@ export class ReplayContainer implements ReplayContainerInterface {
     recordingOptions: RecordingOptions;
   }) {
     this.eventBuffer = null;
-    this.performanceEvents = [];
+    this.performanceEntries = [];
+    this.replayPerformanceEntries = [];
     this.recordingMode = 'session';
     this.timeouts = {
       sessionIdlePause: SESSION_IDLE_PAUSE_DURATION,
@@ -638,7 +641,8 @@ export class ReplayContainer implements ReplayContainerInterface {
     const urlPath = `${WINDOW.location.pathname}${WINDOW.location.hash}${WINDOW.location.search}`;
     const url = `${WINDOW.location.origin}${urlPath}`;
 
-    this.performanceEvents = [];
+    this.performanceEntries = [];
+    this.replayPerformanceEntries = [];
 
     // Reset _context as well
     this._clearContext();
@@ -708,6 +712,7 @@ export class ReplayContainer implements ReplayContainerInterface {
 
     this.eventBuffer = createEventBuffer({
       useCompression: this._options.useCompression,
+      workerUrl: this._options.workerUrl,
     });
 
     this._removeListeners();
@@ -722,9 +727,9 @@ export class ReplayContainer implements ReplayContainerInterface {
 
   /** A wrapper to conditionally capture exceptions. */
   private _handleException(error: unknown): void {
-    __DEBUG_BUILD__ && logger.error('[Replay]', error);
+    DEBUG_BUILD && logger.error('[Replay]', error);
 
-    if (__DEBUG_BUILD__ && this._options._experiments && this._options._experiments.captureExceptions) {
+    if (DEBUG_BUILD && this._options._experiments && this._options._experiments.captureExceptions) {
       captureException(error);
     }
   }
@@ -817,12 +822,7 @@ export class ReplayContainer implements ReplayContainerInterface {
       this._handleException(err);
     }
 
-    // PerformanceObserver //
-    if (!('PerformanceObserver' in WINDOW)) {
-      return;
-    }
-
-    this._performanceObserver = setupPerformanceObserver(this);
+    this._performanceCleanupCallback = setupPerformanceObserver(this);
   }
 
   /**
@@ -840,9 +840,8 @@ export class ReplayContainer implements ReplayContainerInterface {
         this.clickDetector.removeListeners();
       }
 
-      if (this._performanceObserver) {
-        this._performanceObserver.disconnect();
-        this._performanceObserver = undefined;
+      if (this._performanceCleanupCallback) {
+        this._performanceCleanupCallback();
       }
     } catch (err) {
       this._handleException(err);
@@ -945,19 +944,6 @@ export class ReplayContainer implements ReplayContainerInterface {
   }
 
   /**
-   * Trigger rrweb to take a full snapshot which will cause this plugin to
-   * create a new Replay event.
-   */
-  private _triggerFullSnapshot(checkout = true): void {
-    try {
-      logInfo('[Replay] Taking full rrweb snapshot');
-      record.takeFullSnapshot(checkout);
-    } catch (err) {
-      this._handleException(err);
-    }
-  }
-
-  /**
    * Update user activity (across session lifespans)
    */
   private _updateUserActivity(_lastActivity: number = Date.now()): void {
@@ -991,15 +977,16 @@ export class ReplayContainer implements ReplayContainerInterface {
   }
 
   /**
-   * Observed performance events are added to `this.performanceEvents`. These
+   * Observed performance events are added to `this.performanceEntries`. These
    * are included in the replay event before it is finished and sent to Sentry.
    */
   private _addPerformanceEntries(): Promise<Array<AddEventResult | null>> {
-    // Copy and reset entries before processing
-    const entries = [...this.performanceEvents];
-    this.performanceEvents = [];
+    const performanceEntries = createPerformanceEntries(this.performanceEntries).concat(this.replayPerformanceEntries);
 
-    return Promise.all(createPerformanceSpans(this, createPerformanceEntries(entries)));
+    this.performanceEntries = [];
+    this.replayPerformanceEntries = [];
+
+    return Promise.all(createPerformanceSpans(this, performanceEntries));
   }
 
   /**
@@ -1059,7 +1046,7 @@ export class ReplayContainer implements ReplayContainerInterface {
     const replayId = this.getSessionId();
 
     if (!this.session || !this.eventBuffer || !replayId) {
-      __DEBUG_BUILD__ && logger.error('[Replay] No session or eventBuffer found to flush.');
+      DEBUG_BUILD && logger.error('[Replay] No session or eventBuffer found to flush.');
       return;
     }
 
@@ -1121,7 +1108,7 @@ export class ReplayContainer implements ReplayContainerInterface {
       // In this case, we want to completely stop the replay - otherwise, we may get inconsistent segments
       void this.stop({ reason: 'sendReplay' });
 
-      const client = getCurrentHub().getClient();
+      const client = getClient();
 
       if (client) {
         client.recordDroppedEvent('send_error', 'replay');
@@ -1149,12 +1136,12 @@ export class ReplayContainer implements ReplayContainerInterface {
     }
 
     if (!this.checkAndHandleExpiredSession()) {
-      __DEBUG_BUILD__ && logger.error('[Replay] Attempting to finish replay event after session expired.');
+      DEBUG_BUILD && logger.error('[Replay] Attempting to finish replay event after session expired.');
       return;
     }
 
     if (!this.session) {
-      __DEBUG_BUILD__ && logger.error('[Replay] No session found to flush.');
+      // should never happen, as we would have bailed out before
       return;
     }
 
@@ -1207,7 +1194,7 @@ export class ReplayContainer implements ReplayContainerInterface {
     try {
       await this._flushLock;
     } catch (err) {
-      __DEBUG_BUILD__ && logger.error(err);
+      DEBUG_BUILD && logger.error(err);
     } finally {
       this._debouncedFlush();
     }

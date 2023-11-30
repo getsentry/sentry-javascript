@@ -1,5 +1,6 @@
 import type {
   Breadcrumb,
+  ErrorEvent,
   FetchBreadcrumbHint,
   HandlerDataFetch,
   ReplayRecordingData,
@@ -10,7 +11,7 @@ import type {
 } from '@sentry/types';
 
 import type { SKIPPED, THROTTLED } from '../util/throttle';
-import type { AllPerformanceEntry } from './performance';
+import type { AllPerformanceEntry, AllPerformanceEntryData, ReplayPerformanceEntry } from './performance';
 import type { ReplayFrameEvent } from './replayFrame';
 import type { ReplayNetworkRequestOrResponse } from './request';
 import type { ReplayEventWithTime, RrwebRecordOptions } from './rrweb';
@@ -137,6 +138,12 @@ export interface ReplayPluginOptions extends ReplayNetworkOptions {
   useCompression: boolean;
 
   /**
+   * If defined, use this worker URL instead of the default included one for compression.
+   * This will only be used if `useCompression` is not false.
+   */
+  workerUrl?: string;
+
+  /**
    * Block all media (e.g. images, svg, video) in recordings.
    */
   blockAllMedia: boolean;
@@ -204,6 +211,16 @@ export interface ReplayPluginOptions extends ReplayNetworkOptions {
    * continue to function.
    */
   beforeAddRecordingEvent?: BeforeAddRecordingEvent;
+
+  /**
+   * An optional callback to be called before we decide to sample based on an error.
+   * If specified, this callback will receive an error that was captured by Sentry.
+   * Return `true` to continue sampling for this error, or `false` to ignore this error for replay sampling.
+   * Note that returning `true` means that the `replaysOnErrorSampleRate` will be checked,
+   * not that it will definitely be sampled.
+   * Use this to filter out groups of errors that should def. not be sampled.
+   */
+  beforeErrorSampling?: (event: ErrorEvent) => boolean;
 
   /**
    * _experiments allows users to enable experimental or internal features.
@@ -435,13 +452,29 @@ export interface SendBufferedReplayOptions {
 export interface ReplayClickDetector {
   addListeners(): void;
   removeListeners(): void;
+
+  /** Handle a click breadcrumb. */
   handleClick(breadcrumb: Breadcrumb, node: HTMLElement): void;
+  /** Register a mutation that happened at a given time. */
+  registerMutation(timestamp?: number): void;
+  /** Register a scroll that happened at a given time. */
+  registerScroll(timestamp?: number): void;
+  /** Register that a click on an element happened. */
+  registerClick(element: HTMLElement): void;
 }
 
 export interface ReplayContainer {
   eventBuffer: EventBuffer | null;
   clickDetector: ReplayClickDetector | undefined;
-  performanceEvents: AllPerformanceEntry[];
+  /**
+   * List of PerformanceEntry from PerformanceObservers.
+   */
+  performanceEntries: AllPerformanceEntry[];
+
+  /**
+   * List of already processed performance data, ready to be added to replay.
+   */
+  replayPerformanceEntries: ReplayPerformanceEntry<AllPerformanceEntryData>[];
   session: Session | undefined;
   recordingMode: ReplayRecordingMode;
   timeouts: Timeouts;

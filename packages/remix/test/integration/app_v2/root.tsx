@@ -1,4 +1,4 @@
-import { V2_MetaFunction, LoaderFunction, json, defer, redirect } from '@remix-run/node';
+import { LoaderFunction, V2_MetaFunction, defer, json, redirect } from '@remix-run/node';
 import { Links, LiveReload, Meta, Outlet, Scripts, ScrollRestoration, useRouteError } from '@remix-run/react';
 import { V2_ErrorBoundaryComponent } from '@remix-run/react/dist/routeModules';
 import { captureRemixErrorBoundaryError, withSentry } from '@sentry/remix';

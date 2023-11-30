@@ -1,5 +1,6 @@
-import { addTracingExtensions, Hub, makeMain, Scope } from '@sentry/core';
+import { Hub, addTracingExtensions, makeMain } from '@sentry/core';
 import { NodeClient } from '@sentry/node';
+import * as SentryNode from '@sentry/node';
 import type { Transaction } from '@sentry/types';
 import type { Handle } from '@sveltejs/kit';
 import { redirect } from '@sveltejs/kit';
@@ -8,30 +9,7 @@ import { vi } from 'vitest';
 import { sentryHandle, transformPageChunk } from '../../src/server/handle';
 import { getDefaultNodeClientOptions } from '../utils';
 
-const mockCaptureException = vi.fn();
-let mockScope = new Scope();
-
-vi.mock('@sentry/node', async () => {
-  const original = (await vi.importActual('@sentry/node')) as any;
-  return {
-    ...original,
-    captureException: (err: unknown, cb: (arg0: unknown) => unknown) => {
-      cb(mockScope);
-      mockCaptureException(err, cb);
-      return original.captureException(err, cb);
-    },
-  };
-});
-
-const mockAddExceptionMechanism = vi.fn();
-
-vi.mock('@sentry/utils', async () => {
-  const original = (await vi.importActual('@sentry/utils')) as any;
-  return {
-    ...original,
-    addExceptionMechanism: (...args: unknown[]) => mockAddExceptionMechanism(...args),
-  };
-});
+const mockCaptureException = vi.spyOn(SentryNode, 'captureException').mockImplementation(() => 'xx');
 
 function mockEvent(override: Record<string, unknown> = {}): Parameters<Handle>[0]['event'] {
   const event: Parameters<Handle>[0]['event'] = {
@@ -111,14 +89,12 @@ beforeAll(() => {
 });
 
 beforeEach(() => {
-  mockScope = new Scope();
   const options = getDefaultNodeClientOptions({ tracesSampleRate: 1.0 });
   client = new NodeClient(options);
   hub = new Hub(client);
   makeMain(hub);
 
   mockCaptureException.mockClear();
-  mockAddExceptionMechanism.mockClear();
 });
 
 describe('handleSentry', () => {
@@ -286,21 +262,13 @@ describe('handleSentry', () => {
     });
 
     it('send errors to Sentry', async () => {
-      const addEventProcessorSpy = vi.spyOn(mockScope, 'addEventProcessor').mockImplementationOnce(callback => {
-        void callback({}, { event_id: 'fake-event-id' });
-        return mockScope;
-      });
-
       try {
         await sentryHandle()({ event: mockEvent(), resolve: resolve(type, isError) });
       } catch (e) {
         expect(mockCaptureException).toBeCalledTimes(1);
-        expect(addEventProcessorSpy).toBeCalledTimes(1);
-        expect(mockAddExceptionMechanism).toBeCalledTimes(2);
-        expect(mockAddExceptionMechanism).toBeCalledWith(
-          {},
-          { handled: false, type: 'sveltekit', data: { function: 'handle' } },
-        );
+        expect(mockCaptureException).toBeCalledWith(expect.any(Error), {
+          mechanism: { handled: false, type: 'sveltekit', data: { function: 'handle' } },
+        });
       }
     });
 

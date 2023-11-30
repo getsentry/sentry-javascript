@@ -1,7 +1,7 @@
-import type { Package } from '@sentry/types';
 import fs from 'fs';
-import HtmlWebpackPlugin, { createHtmlTagObject } from 'html-webpack-plugin';
 import path from 'path';
+import type { Package } from '@sentry/types';
+import HtmlWebpackPlugin, { createHtmlTagObject } from 'html-webpack-plugin';
 import type { Compiler } from 'webpack';
 
 import { addStaticAsset, addStaticAssetSymlink } from './staticAssets';

@@ -12,12 +12,12 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 import commonjs from '@rollup/plugin-commonjs';
-import deepMerge from 'deepmerge';
-import license from 'rollup-plugin-license';
 import { nodeResolve } from '@rollup/plugin-node-resolve';
 import replace from '@rollup/plugin-replace';
-import { terser } from 'rollup-plugin-terser';
 import typescript from '@rollup/plugin-typescript';
+import deepMerge from 'deepmerge';
+import license from 'rollup-plugin-license';
+import { terser } from 'rollup-plugin-terser';
 
 /**
  * Create a plugin to add an identification banner to the top of stand-alone bundles.
@@ -131,6 +131,9 @@ export function makeTerserPlugin() {
           '_meta',
           // Object we inject debug IDs into with bundler plugins
           '_sentryDebugIds',
+          // These are used by instrument.ts in utils for identifying HTML elements & events
+          '_sentryCaptured',
+          '_sentryId',
         ],
       },
     },

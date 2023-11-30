@@ -1,7 +1,8 @@
+import { TextEncoder } from 'util';
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { getCurrentHub } from '@sentry/core';
 import type { ReplayRecordingData, Transport } from '@sentry/types';
-import { TextEncoder } from 'util';
+import * as SentryUtils from '@sentry/utils';
 
 import type { ReplayContainer, Session } from './src/types';
 
@@ -10,11 +11,7 @@ import type { ReplayContainer, Session } from './src/types';
 
 type MockTransport = jest.MockedFunction<Transport['send']>;
 
-jest.mock('./src/util/isBrowser', () => {
-  return {
-    isBrowser: () => true,
-  };
-});
+jest.spyOn(SentryUtils, 'isBrowser').mockImplementation(() => true);
 
 type EnvelopeHeader = {
   event_id: string;

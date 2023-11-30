@@ -1,11 +1,12 @@
 import {
   addTracingExtensions,
   captureException,
+  flush,
   getCurrentHub,
   runWithAsyncContext,
   startTransaction,
 } from '@sentry/core';
-import { addExceptionMechanism, tracingContextFromHeaders } from '@sentry/utils';
+import { tracingContextFromHeaders, winterCGHeadersToDict } from '@sentry/utils';
 
 import { isNotFoundNavigationError, isRedirectNavigationError } from '../common/nextNavigationErrorUtils';
 import type { ServerComponentContext } from '../common/types';
@@ -19,7 +20,6 @@ export function wrapServerComponentWithSentry<F extends (...args: any[]) => any>
   context: ServerComponentContext,
 ): F {
   addTracingExtensions();
-
   const { componentRoute, componentType } = context;
 
   // Even though users may define server components as async functions, for the client bundles
@@ -33,9 +33,15 @@ export function wrapServerComponentWithSentry<F extends (...args: any[]) => any>
 
         let maybePromiseResult;
 
+        const completeHeadersDict: Record<string, string> = context.headers
+          ? winterCGHeadersToDict(context.headers)
+          : {};
+
         const { traceparentData, dynamicSamplingContext, propagationContext } = tracingContextFromHeaders(
-          context.sentryTraceHeader,
-          context.baggageHeader,
+          // eslint-disable-next-line deprecation/deprecation
+          context.sentryTraceHeader ?? completeHeadersDict['sentry-trace'],
+          // eslint-disable-next-line deprecation/deprecation
+          context.baggageHeader ?? completeHeadersDict['baggage'],
         );
         currentScope.setPropagationContext(propagationContext);
 
@@ -46,6 +52,9 @@ export function wrapServerComponentWithSentry<F extends (...args: any[]) => any>
           origin: 'auto.function.nextjs',
           ...traceparentData,
           metadata: {
+            request: {
+              headers: completeHeadersDict,
+            },
             source: 'component',
             dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
           },
@@ -62,15 +71,10 @@ export function wrapServerComponentWithSentry<F extends (...args: any[]) => any>
           } else {
             transaction.setStatus('internal_error');
 
-            captureException(e, scope => {
-              scope.addEventProcessor(event => {
-                addExceptionMechanism(event, {
-                  handled: false,
-                });
-                return event;
-              });
-
-              return scope;
+            captureException(e, {
+              mechanism: {
+                handled: false,
+              },
             });
           }
 
@@ -81,6 +85,7 @@ export function wrapServerComponentWithSentry<F extends (...args: any[]) => any>
           maybePromiseResult = originalFunction.apply(thisArg, args);
         } catch (e) {
           handleErrorCase(e);
+          void flush();
           throw e;
         }
 
@@ -94,12 +99,14 @@ export function wrapServerComponentWithSentry<F extends (...args: any[]) => any>
               handleErrorCase(e);
             },
           );
+          void flush();
 
           // It is very important that we return the original promise here, because Next.js attaches various properties
           // to that promise and will throw if they are not on the returned value.
           return maybePromiseResult;
         } else {
           transaction.finish();
+          void flush();
           return maybePromiseResult;
         }
       });

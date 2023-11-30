@@ -1,6 +1,5 @@
 import type { Event, EventProcessor, Integration, StackFrame } from '@sentry/types';
-import { addContextToFrame } from '@sentry/utils';
-import { LRUMap } from 'lru_map';
+import { LRUMap, addContextToFrame } from '@sentry/utils';
 
 const FILE_CONTENT_CACHE = new LRUMap<string, string | null>(100);
 const DEFAULT_LINES_OF_CONTEXT = 7;

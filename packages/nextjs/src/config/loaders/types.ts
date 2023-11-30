@@ -9,13 +9,6 @@ export type LoaderThis<Options> = {
   resourcePath: string;
 
   /**
-   * Query at the end of resolved file name ("../some-folder/some-module?foobar" -> resourceQuery: "?foobar")
-   *
-   * https://webpack.js.org/api/loaders/#thisresourcequery
-   */
-  resourceQuery: string;
-
-  /**
    * Function to add outside file used by loader to `watch` process
    *
    * https://webpack.js.org/api/loaders/#thisadddependency

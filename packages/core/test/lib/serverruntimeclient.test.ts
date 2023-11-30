@@ -22,13 +22,13 @@ describe('ServerRuntimeClient', () => {
   describe('_prepareEvent', () => {
     test('adds platform to event', () => {
       const options = getDefaultClientOptions({ dsn: PUBLIC_DSN });
-      const client = new ServerRuntimeClient({ ...options, platform: 'edge' });
+      const client = new ServerRuntimeClient({ ...options, platform: 'blargh' });
 
       const event: Event = {};
       const hint: EventHint = {};
       (client as any)._prepareEvent(event, hint);
 
-      expect(event.platform).toEqual('edge');
+      expect(event.platform).toEqual('blargh');
     });
 
     test('adds server_name to event', () => {

@@ -1,4 +1,4 @@
-import { rejectedSyncPromise, resolvedSyncPromise, SyncPromise } from '../src/syncpromise';
+import { SyncPromise, rejectedSyncPromise, resolvedSyncPromise } from '../src/syncpromise';
 
 describe('SyncPromise', () => {
   test('simple', async () => {

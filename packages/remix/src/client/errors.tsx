@@ -1,7 +1,8 @@
-import { captureException, withScope } from '@sentry/core';
-import { addExceptionMechanism, isNodeEnv, isString } from '@sentry/utils';
+import { captureException } from '@sentry/core';
+import { isNodeEnv, isString } from '@sentry/utils';
 
 import { isRouteErrorResponse } from '../utils/vendor/response';
+import type { ErrorResponse } from '../utils/vendor/types';
 
 /**
  * Captures an error that is thrown inside a Remix ErrorBoundary.
@@ -12,7 +13,8 @@ import { isRouteErrorResponse } from '../utils/vendor/response';
 export function captureRemixErrorBoundaryError(error: unknown): string | undefined {
   let eventId: string | undefined;
   const isClientSideRuntimeError = !isNodeEnv() && error instanceof Error;
-  const isRemixErrorResponse = isRouteErrorResponse(error);
+  // We only capture `ErrorResponse`s that are 5xx errors.
+  const isRemixErrorResponse = isRouteErrorResponse(error) && error.status >= 500;
   // Server-side errors apart from `ErrorResponse`s also appear here without their stacktraces.
   // So, we only capture:
   //    1. `ErrorResponse`s
@@ -22,35 +24,44 @@ export function captureRemixErrorBoundaryError(error: unknown): string | undefin
     const eventData = isRemixErrorResponse
       ? {
           function: 'ErrorResponse',
-          ...error.data,
+          ...getErrorData(error),
         }
       : {
           function: 'ReactError',
         };
 
-    withScope(scope => {
-      scope.addEventProcessor(event => {
-        addExceptionMechanism(event, {
-          type: 'instrument',
-          handled: false,
-          data: eventData,
-        });
-        return event;
-      });
+    const actualError = isRemixErrorResponse ? getExceptionToCapture(error) : error;
 
-      if (isRemixErrorResponse) {
-        if (isString(error.data)) {
-          eventId = captureException(error.data);
-        } else if (error.statusText) {
-          eventId = captureException(error.statusText);
-        } else {
-          eventId = captureException(error);
-        }
-      } else {
-        eventId = captureException(error);
-      }
+    eventId = captureException(actualError, {
+      mechanism: {
+        type: 'instrument',
+        handled: false,
+        data: eventData,
+      },
     });
   }
 
   return eventId;
+}
+
+function getErrorData(error: ErrorResponse): object {
+  if (isString(error.data)) {
+    return {
+      error: error.data,
+    };
+  }
+
+  return error.data;
+}
+
+function getExceptionToCapture(error: ErrorResponse): string | ErrorResponse {
+  if (isString(error.data)) {
+    return error.data;
+  }
+
+  if (error.statusText) {
+    return error.statusText;
+  }
+
+  return error;
 }

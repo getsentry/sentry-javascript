@@ -1,4 +1,4 @@
-import { assertSentryTransaction, TestEnv } from '../../../utils/index';
+import { TestEnv, assertSentryTransaction } from '../../../utils/index';
 
 test('should create and send transactions for Express routes and spans for middlewares.', async () => {
   const env = await TestEnv.init(__dirname, `${__dirname}/server.ts`);

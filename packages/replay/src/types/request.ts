@@ -3,7 +3,7 @@ type JsonArray = unknown[];
 
 export type NetworkBody = JsonObject | JsonArray | string;
 
-export type NetworkMetaWarning = 'JSON_TRUNCATED' | 'TEXT_TRUNCATED' | 'INVALID_JSON' | 'URL_SKIPPED';
+export type NetworkMetaWarning = 'MAYBE_JSON_TRUNCATED' | 'TEXT_TRUNCATED' | 'URL_SKIPPED' | 'BODY_PARSE_ERROR';
 
 interface NetworkMeta {
   warnings?: NetworkMetaWarning[];

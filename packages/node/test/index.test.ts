@@ -1,19 +1,20 @@
-import { getMainCarrier, initAndBind, runWithAsyncContext, SDK_VERSION } from '@sentry/core';
+import { LinkedErrors, SDK_VERSION, getMainCarrier, initAndBind, runWithAsyncContext } from '@sentry/core';
 import type { EventHint, Integration } from '@sentry/types';
 
 import type { Event, Scope } from '../src';
 import {
+  NodeClient,
   addBreadcrumb,
   captureEvent,
   captureException,
   captureMessage,
   configureScope,
+  getClient,
   getCurrentHub,
   init,
-  NodeClient,
 } from '../src';
 import { setNodeAsyncContextStrategy } from '../src/async';
-import { ContextLines, LinkedErrors } from '../src/integrations';
+import { ContextLines } from '../src/integrations';
 import { defaultStackParser } from '../src/sdk';
 import type { NodeClientOptions } from '../src/types';
 import { getDefaultNodeClientOptions } from './helper/node-client-options';
@@ -296,6 +297,7 @@ describe('SentryNode', () => {
         const hub = getCurrentHub();
         hub.bindClient(client);
         expect(getCurrentHub().getClient()).toBe(client);
+        expect(getClient()).toBe(client);
         hub.captureEvent({ message: 'test domain' });
       });
     });
@@ -366,12 +368,11 @@ describe('SentryNode initialization', () => {
     it('should set SDK data when `Sentry.init()` is called', () => {
       init({ dsn });
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const sdkData = (getCurrentHub().getClient() as any).getOptions()._metadata.sdk;
+      const sdkData = getClient()?.getOptions()._metadata?.sdk || {};
 
       expect(sdkData.name).toEqual('sentry.javascript.node');
-      expect(sdkData.packages[0].name).toEqual('npm:@sentry/node');
-      expect(sdkData.packages[0].version).toEqual(SDK_VERSION);
+      expect(sdkData.packages?.[0].name).toEqual('npm:@sentry/node');
+      expect(sdkData.packages?.[0].version).toEqual(SDK_VERSION);
       expect(sdkData.version).toEqual(SDK_VERSION);
     });
 
@@ -408,12 +409,11 @@ describe('SentryNode initialization', () => {
         },
       });
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const sdkData = (getCurrentHub().getClient() as any).getOptions()._metadata.sdk;
+      const sdkData = getClient()?.getOptions()._metadata?.sdk || {};
 
       expect(sdkData.name).toEqual('sentry.javascript.serverless');
-      expect(sdkData.packages[0].name).toEqual('npm:@sentry/serverless');
-      expect(sdkData.packages[0].version).toEqual(SDK_VERSION);
+      expect(sdkData.packages?.[0].name).toEqual('npm:@sentry/serverless');
+      expect(sdkData.packages?.[0].version).toEqual(SDK_VERSION);
       expect(sdkData.version).toEqual(SDK_VERSION);
     });
   });

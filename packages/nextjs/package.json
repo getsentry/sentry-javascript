@@ -1,6 +1,6 @@
 {
   "name": "@sentry/nextjs",
-  "version": "7.74.0",
+  "version": "7.84.0",
   "description": "Official Sentry SDK for Next.js",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/nextjs",
@@ -25,19 +25,18 @@
   },
   "dependencies": {
     "@rollup/plugin-commonjs": "24.0.0",
-    "@sentry/core": "7.74.0",
-    "@sentry/integrations": "7.74.0",
-    "@sentry/node": "7.74.0",
-    "@sentry/react": "7.74.0",
-    "@sentry/types": "7.74.0",
-    "@sentry/utils": "7.74.0",
-    "@sentry/vercel-edge": "7.74.0",
-    "@sentry/webpack-plugin": "1.20.0",
+    "@sentry/core": "7.84.0",
+    "@sentry/integrations": "7.84.0",
+    "@sentry/node": "7.84.0",
+    "@sentry/react": "7.84.0",
+    "@sentry/types": "7.84.0",
+    "@sentry/utils": "7.84.0",
+    "@sentry/vercel-edge": "7.84.0",
+    "@sentry/webpack-plugin": "1.21.0",
     "chalk": "3.0.0",
     "resolve": "1.22.8",
     "rollup": "2.78.0",
-    "stacktrace-parser": "^0.1.10",
-    "tslib": "^2.4.1 || ^1.9.3"
+    "stacktrace-parser": "^0.1.10"
   },
   "devDependencies": {
     "@types/resolve": "1.20.3",
@@ -46,7 +45,7 @@
     "next": "10.1.3"
   },
   "peerDependencies": {
-    "next": "^10.0.8 || ^11.0 || ^12.0 || ^13.0",
+    "next": "^10.0.8 || ^11.0 || ^12.0 || ^13.0 || ^14.0",
     "react": "16.x || 17.x || 18.x",
     "webpack": ">= 4.0.0"
   },
@@ -69,12 +68,8 @@
     "build:tarball": "ts-node ../../scripts/prepack.ts && npm pack ./build",
     "circularDepCheck": "madge --circular src/index.client.ts && madge --circular src/edge/index.ts && madge --circular src/index.server.ts && madge --circular src/index.types.ts",
     "clean": "rimraf build coverage sentry-nextjs-*.tgz",
-    "fix": "run-s fix:eslint fix:prettier",
-    "fix:eslint": "eslint . --format stylish --fix",
-    "fix:prettier": "prettier --write \"{src,test,scripts}/**/**.ts\"",
-    "lint": "run-s lint:prettier lint:eslint",
-    "lint:eslint": "eslint . --format stylish",
-    "lint:prettier": "prettier --check \"{src,test,scripts}/**/**.ts\"",
+    "fix": "eslint . --format stylish --fix",
+    "lint": "eslint . --format stylish",
     "test": "yarn test:unit",
     "test:all": "run-s test:unit test:integration test:build",
     "test:build": "yarn ts-node test/buildProcess/runTest.ts",
@@ -87,7 +82,7 @@
     "test:watch": "jest --watch",
     "vercel:branch": "source vercel/set-up-branch-for-test-app-use.sh",
     "vercel:project": "source vercel/make-project-use-current-branch.sh",
-    "yalc:publish": "ts-node ../../scripts/prepack.ts && yalc publish build --push"
+    "yalc:publish": "ts-node ../../scripts/prepack.ts && yalc publish build --push --sig"
   },
   "volta": {
     "extends": "../../package.json"

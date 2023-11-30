@@ -1,6 +1,6 @@
 /* eslint-disable max-lines */
 import { Integrations as CoreIntegrations } from '@sentry/core';
-import { init as initNode, Integrations as NodeIntegrations } from '@sentry/node';
+import { Integrations as NodeIntegrations, init as initNode } from '@sentry/node';
 
 import { BunClient } from './client';
 import { BunServer } from './integrations';
@@ -11,6 +11,7 @@ export const defaultIntegrations = [
   // Common
   new CoreIntegrations.InboundFilters(),
   new CoreIntegrations.FunctionToString(),
+  new CoreIntegrations.LinkedErrors(),
   // Native Wrappers
   new NodeIntegrations.Console(),
   new NodeIntegrations.Http(),
@@ -24,8 +25,6 @@ export const defaultIntegrations = [
   new NodeIntegrations.Context(),
   new NodeIntegrations.Modules(),
   new NodeIntegrations.RequestData(),
-  // Misc
-  new NodeIntegrations.LinkedErrors(),
   // Bun Specific
   new BunServer(),
 ];

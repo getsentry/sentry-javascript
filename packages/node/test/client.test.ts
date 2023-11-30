@@ -1,6 +1,6 @@
+import * as os from 'os';
 import { Scope, SessionFlusher } from '@sentry/core';
 import type { Event, EventHint } from '@sentry/types';
-import * as os from 'os';
 
 import { NodeClient } from '../src';
 import { getDefaultNodeClientOptions } from './helper/node-client-options';
@@ -345,6 +345,38 @@ describe('NodeClient', () => {
               check_in_id: id,
               monitor_slug: 'foo',
               duration: 1222,
+              status: 'ok',
+              release: '1.0.0',
+              environment: 'dev',
+            },
+          ],
+        ],
+      ]);
+    });
+
+    it('sends a checkIn envelope for heartbeat checkIns', () => {
+      const options = getDefaultNodeClientOptions({
+        dsn: PUBLIC_DSN,
+        serverName: 'server',
+        release: '1.0.0',
+        environment: 'dev',
+      });
+      client = new NodeClient(options);
+
+      // @ts-expect-error accessing private method
+      const sendEnvelopeSpy = jest.spyOn(client, '_sendEnvelope');
+
+      const id = client.captureCheckIn({ monitorSlug: 'heartbeat-monitor', status: 'ok' });
+
+      expect(sendEnvelopeSpy).toHaveBeenCalledTimes(1);
+      expect(sendEnvelopeSpy).toHaveBeenCalledWith([
+        expect.any(Object),
+        [
+          [
+            expect.any(Object),
+            {
+              check_in_id: id,
+              monitor_slug: 'heartbeat-monitor',
               status: 'ok',
               release: '1.0.0',
               environment: 'dev',

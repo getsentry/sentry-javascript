@@ -1,7 +1,7 @@
+import * as util from 'util';
 import { getCurrentHub } from '@sentry/core';
 import type { Integration } from '@sentry/types';
-import { addInstrumentationHandler, severityLevelFromString } from '@sentry/utils';
-import * as util from 'util';
+import { addConsoleInstrumentationHandler, severityLevelFromString } from '@sentry/utils';
 
 /** Console module integration */
 export class Console implements Integration {
@@ -19,7 +19,7 @@ export class Console implements Integration {
    * @inheritDoc
    */
   public setupOnce(): void {
-    addInstrumentationHandler('console', ({ args, level }: { args: unknown[]; level: string }) => {
+    addConsoleInstrumentationHandler(({ args, level }) => {
       const hub = getCurrentHub();
 
       if (!hub.getIntegration(Console)) {

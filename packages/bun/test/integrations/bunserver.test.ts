@@ -1,6 +1,5 @@
-import { Hub, makeMain } from '@sentry/core';
-// eslint-disable-next-line import/no-unresolved
 import { beforeAll, beforeEach, describe, expect, test } from 'bun:test';
+import { Hub, makeMain } from '@sentry/core';
 
 import { BunClient } from '../../src/client';
 import { instrumentBunServe } from '../../src/integrations/bunserver';

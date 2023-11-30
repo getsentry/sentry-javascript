@@ -29,3 +29,9 @@
 
 # broccoli-debug
 /DEBUG/
+
+# These get created when packaging
+/instance-initializers
+index.d.ts
+runloop.d.ts
+types.d.ts

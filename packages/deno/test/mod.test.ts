@@ -1,18 +1,21 @@
 import { assertEquals } from 'https://deno.land/std@0.202.0/assert/assert_equals.ts';
 import { assertSnapshot } from 'https://deno.land/std@0.202.0/testing/snapshot.ts';
-import type { Event, Integration } from 'npm:@sentry/types';
-import { createStackParser, nodeStackLineParser } from 'npm:@sentry/utils';
 
-import { defaultIntegrations, DenoClient, Hub, Scope } from '../build/index.js';
+import type { sentryTypes } from '../build-test/index.js';
+import { sentryUtils } from '../build-test/index.js';
+import { DenoClient, Hub, Scope, defaultIntegrations } from '../build/index.mjs';
 import { getNormalizedEvent } from './normalize.ts';
 import { makeTestTransport } from './transport.ts';
 
-function getTestClient(callback: (event?: Event) => void, integrations: Integration[] = []): [Hub, DenoClient] {
+function getTestClient(
+  callback: (event?: sentryTypes.Event) => void,
+  integrations: sentryTypes.Integration[] = [],
+): [Hub, DenoClient] {
   const client = new DenoClient({
     dsn: 'https://233a45e5efe34c47a3536797ce15dafa@nothing.here/5650507',
     debug: true,
     integrations: [...defaultIntegrations, ...integrations],
-    stackParser: createStackParser(nodeStackLineParser()),
+    stackParser: sentryUtils.createStackParser(sentryUtils.nodeStackLineParser()),
     transport: makeTestTransport(envelope => {
       callback(getNormalizedEvent(envelope));
     }),
@@ -31,7 +34,7 @@ function delay(time: number): Promise<void> {
 }
 
 Deno.test('captureException', async t => {
-  let ev: Event | undefined;
+  let ev: sentryTypes.Event | undefined;
   const [hub] = getTestClient(event => {
     ev = event;
   });
@@ -47,7 +50,7 @@ Deno.test('captureException', async t => {
 });
 
 Deno.test('captureMessage', async t => {
-  let ev: Event | undefined;
+  let ev: sentryTypes.Event | undefined;
   const [hub] = getTestClient(event => {
     ev = event;
   });

@@ -1,8 +1,8 @@
+import * as fs from 'fs';
+import * as path from 'path';
 /* eslint-disable @sentry-internal/sdk/no-optional-chaining */
 import type { ExportNamedDeclaration } from '@babel/types';
-import * as fs from 'fs';
 import { parseModule } from 'magicast';
-import * as path from 'path';
 import type { Plugin } from 'vite';
 
 export const WRAPPED_MODULE_SUFFIX = '?sentry-auto-wrap';

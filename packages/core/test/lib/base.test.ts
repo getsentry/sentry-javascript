@@ -1,9 +1,9 @@
 import type { Client, Envelope, Event, Span, Transaction } from '@sentry/types';
-import { dsnToString, logger, SentryError, SyncPromise } from '@sentry/utils';
+import { SentryError, SyncPromise, dsnToString, logger } from '@sentry/utils';
 
-import { Hub, makeSession, Scope } from '../../src';
+import { Hub, Scope, makeSession } from '../../src';
 import * as integrationModule from '../../src/integration';
-import { getDefaultTestClientOptions, TestClient } from '../mocks/client';
+import { TestClient, getDefaultTestClientOptions } from '../mocks/client';
 import { AdHocIntegration, TestIntegration } from '../mocks/integration';
 import { makeFakeTransport } from '../mocks/transport';
 

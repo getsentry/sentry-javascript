@@ -13,6 +13,7 @@ import type {
   EventDropReason,
   EventHint,
   EventProcessor,
+  FeedbackEvent,
   Integration,
   IntegrationClass,
   Outcome,
@@ -29,6 +30,8 @@ import type {
   TransportMakeRequestResponse,
 } from '@sentry/types';
 import {
+  SentryError,
+  SyncPromise,
   addItemToEnvelope,
   checkOrSetAlreadyCaught,
   createAttachmentEnvelopeItem,
@@ -40,11 +43,10 @@ import {
   makeDsn,
   rejectedSyncPromise,
   resolvedSyncPromise,
-  SentryError,
-  SyncPromise,
 } from '@sentry/utils';
 
 import { getEnvelopeEndpointWithUrlEncodedAuth } from './api';
+import { DEBUG_BUILD } from './debug-build';
 import { createEventEnvelope, createSessionEnvelope } from './envelope';
 import type { IntegrationIndex } from './integration';
 import { setupIntegration, setupIntegrations } from './integration';
@@ -129,7 +131,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
     if (options.dsn) {
       this._dsn = makeDsn(options.dsn);
     } else {
-      __DEBUG_BUILD__ && logger.warn('No DSN provided, client will not send events.');
+      DEBUG_BUILD && logger.warn('No DSN provided, client will not send events.');
     }
 
     if (this._dsn) {
@@ -149,7 +151,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   public captureException(exception: any, hint?: EventHint, scope?: Scope): string | undefined {
     // ensure we haven't captured this very object before
     if (checkOrSetAlreadyCaught(exception)) {
-      __DEBUG_BUILD__ && logger.log(ALREADY_SEEN_ERROR);
+      DEBUG_BUILD && logger.log(ALREADY_SEEN_ERROR);
       return;
     }
 
@@ -201,7 +203,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   public captureEvent(event: Event, hint?: EventHint, scope?: Scope): string | undefined {
     // ensure we haven't captured this very object before
     if (hint && hint.originalException && checkOrSetAlreadyCaught(hint.originalException)) {
-      __DEBUG_BUILD__ && logger.log(ALREADY_SEEN_ERROR);
+      DEBUG_BUILD && logger.log(ALREADY_SEEN_ERROR);
       return;
     }
 
@@ -221,7 +223,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
    */
   public captureSession(session: Session): void {
     if (!(typeof session.release === 'string')) {
-      __DEBUG_BUILD__ && logger.warn('Discarded session because of missing or non-string release');
+      DEBUG_BUILD && logger.warn('Discarded session because of missing or non-string release');
     } else {
       this.sendSession(session);
       // After sending, we set init false to indicate it's not the first occurrence
@@ -319,7 +321,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
     try {
       return (this._integrations[integration.id] as T) || null;
     } catch (_oO) {
-      __DEBUG_BUILD__ && logger.warn(`Cannot retrieve integration ${integration.id} from the current Client`);
+      DEBUG_BUILD && logger.warn(`Cannot retrieve integration ${integration.id} from the current Client`);
       return null;
     }
   }
@@ -377,7 +379,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
       // would be `Partial<Record<SentryRequestType, Partial<Record<Outcome, number>>>>`
       // With typescript 4.1 we could even use template literal types
       const key = `${reason}:${category}`;
-      __DEBUG_BUILD__ && logger.log(`Adding outcome: "${key}"`);
+      DEBUG_BUILD && logger.log(`Adding outcome: "${key}"`);
 
       // The following works because undefined + 1 === NaN and NaN is falsy
       this._outcomes[key] = this._outcomes[key] + 1 || 1;
@@ -418,6 +420,12 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   public on(hook: 'otelSpanEnd', callback: (otelSpan: unknown, mutableOptions: { drop: boolean }) => void): void;
 
   /** @inheritdoc */
+  public on(
+    hook: 'beforeSendFeedback',
+    callback: (feedback: FeedbackEvent, options?: { includeReplay: boolean }) => void,
+  ): void;
+
+  /** @inheritdoc */
   public on(hook: string, callback: unknown): void {
     if (!this._hooks[hook]) {
       this._hooks[hook] = [];
@@ -453,6 +461,9 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
 
   /** @inheritdoc */
   public emit(hook: 'otelSpanEnd', otelSpan: unknown, mutableOptions: { drop: boolean }): void;
+
+  /** @inheritdoc */
+  public emit(hook: 'beforeSendFeedback', feedback: FeedbackEvent, options?: { includeReplay: boolean }): void;
 
   /** @inheritdoc */
   public emit(hook: string, ...rest: unknown[]): void {
@@ -598,7 +609,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
         return finalEvent.event_id;
       },
       reason => {
-        if (__DEBUG_BUILD__) {
+        if (DEBUG_BUILD) {
           // If something's gone wrong, log the error as a warning. If it's just us having used a `SentryError` for
           // control flow, log just the message (no stack) as a log-level log.
           const sentryError = reason as SentryError;
@@ -733,10 +744,10 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
 
     if (this._isEnabled() && this._transport) {
       return this._transport.send(envelope).then(null, reason => {
-        __DEBUG_BUILD__ && logger.error('Error while sending event:', reason);
+        DEBUG_BUILD && logger.error('Error while sending event:', reason);
       });
     } else {
-      __DEBUG_BUILD__ && logger.error('Transport disabled');
+      DEBUG_BUILD && logger.error('Transport disabled');
     }
   }
 

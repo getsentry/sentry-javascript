@@ -1,4 +1,4 @@
-import { json, LoaderFunction } from '@remix-run/node';
+import { LoaderFunction, json } from '@remix-run/node';
 
 import * as Sentry from '@sentry/remix';
 

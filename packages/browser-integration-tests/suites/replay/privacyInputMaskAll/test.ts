@@ -57,22 +57,24 @@ sentryTest(
     const url = await getLocalTestPath({ testDir: __dirname });
 
     await page.goto(url);
-    const fullSnapshot = getFullRecordingSnapshots(await reqPromise0);
+
+    const text = 'test';
+
+    const [req0] = await Promise.all([reqPromise0, page.locator('#input').fill(text)]);
+    await forceFlushReplay();
+
+    const fullSnapshot = getFullRecordingSnapshots(req0);
     const stringifiedSnapshot = JSON.stringify(fullSnapshot);
     expect(stringifiedSnapshot.includes('Submit form')).toBe(false);
     expect(stringifiedSnapshot.includes('Unmasked button')).toBe(true);
 
-    const text = 'test';
-
-    await page.locator('#input').fill(text);
+    const [req1] = await Promise.all([reqPromise1, page.locator('#input-unmasked').fill(text)]);
     await forceFlushReplay();
 
-    const snapshots = getIncrementalRecordingSnapshots(await reqPromise1).filter(isInputMutation);
+    const snapshots = getIncrementalRecordingSnapshots(req1).filter(isInputMutation);
     const lastSnapshot = snapshots[snapshots.length - 1];
     expect(lastSnapshot.data.text).toBe('*'.repeat(text.length));
 
-    await page.locator('#input-unmasked').fill(text);
-    await forceFlushReplay();
     const snapshots2 = getIncrementalRecordingSnapshots(await reqPromise2).filter(isInputMutation);
     const lastSnapshot2 = snapshots2[snapshots2.length - 1];
     expect(lastSnapshot2.data.text).toBe(text);
@@ -120,18 +122,18 @@ sentryTest(
 
     await page.goto(url);
 
-    await reqPromise0;
-
     const text = 'test';
 
-    await page.locator('#textarea').fill(text);
+    await Promise.all([reqPromise0, page.locator('#textarea').fill(text)]);
     await forceFlushReplay();
-    const snapshots = getIncrementalRecordingSnapshots(await reqPromise1).filter(isInputMutation);
+
+    const [req1] = await Promise.all([reqPromise1, page.locator('#textarea-unmasked').fill(text)]);
+    await forceFlushReplay();
+
+    const snapshots = getIncrementalRecordingSnapshots(req1).filter(isInputMutation);
     const lastSnapshot = snapshots[snapshots.length - 1];
     expect(lastSnapshot.data.text).toBe('*'.repeat(text.length));
 
-    await page.locator('#textarea-unmasked').fill(text);
-    await forceFlushReplay();
     const snapshots2 = getIncrementalRecordingSnapshots(await reqPromise2).filter(isInputMutation);
     const lastSnapshot2 = snapshots2[snapshots2.length - 1];
     expect(lastSnapshot2.data.text).toBe(text);

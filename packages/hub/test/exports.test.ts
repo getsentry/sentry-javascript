@@ -80,7 +80,7 @@ describe('Top Level API', () => {
         const captureContext = { extra: { foo: 'wat' } };
         captureException(e, captureContext);
         expect(client.captureException.mock.calls[0][0]).toBe(e);
-        expect(client.captureException.mock.calls[0][1].captureContext).toBe(captureContext);
+        expect(client.captureException.mock.calls[0][1].captureContext).toEqual(captureContext);
       });
     });
 
@@ -288,14 +288,14 @@ describe('Top Level API', () => {
   test('setExtra', () => {
     init({});
     setExtra('a', 'b');
-    // prettier-ignore
+    // biome-ignore format: Follow-up for prettier
     expect(global.__SENTRY__.hub._stack[0].scope._extra).toEqual({ 'a': 'b' });
   });
 
   test('setTag', () => {
     init({});
     setTag('a', 'b');
-    // prettier-ignore
+    // biome-ignore format: Follow-up for prettier
     expect(global.__SENTRY__.hub._stack[0].scope._tags).toEqual({ 'a': 'b' });
   });
 

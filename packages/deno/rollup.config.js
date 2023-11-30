@@ -1,6 +1,5 @@
 // @ts-check
 import nodeResolve from '@rollup/plugin-node-resolve';
-import commonjs from '@rollup/plugin-commonjs';
 import sucrase from '@rollup/plugin-sucrase';
 import { defineConfig } from 'rollup';
 
@@ -8,7 +7,7 @@ export default defineConfig({
   input: ['src/index.ts'],
   treeshake: 'smallest',
   output: {
-    dir: 'build',
+    file: 'build/index.mjs',
     sourcemap: true,
     preserveModules: false,
     strict: false,
@@ -21,7 +20,6 @@ export default defineConfig({
     nodeResolve({
       extensions: ['.mjs', '.js', '.json', '.node', '.ts', '.tsx'],
     }),
-    commonjs(),
     sucrase({ transforms: ['typescript'] }),
   ],
 });

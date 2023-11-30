@@ -1,12 +1,9 @@
+import type { HandlerDataHistory } from '@sentry/types';
+
 import type { HistoryData, ReplayContainer, ReplayPerformanceEntry } from '../types';
 import { createPerformanceSpans } from '../util/createPerformanceSpans';
 
-interface HistoryHandlerData {
-  from: string;
-  to: string;
-}
-
-function handleHistory(handlerData: HistoryHandlerData): ReplayPerformanceEntry<HistoryData> {
+function handleHistory(handlerData: HandlerDataHistory): ReplayPerformanceEntry<HistoryData> {
   const { from, to } = handlerData;
 
   const now = Date.now() / 1000;
@@ -23,10 +20,10 @@ function handleHistory(handlerData: HistoryHandlerData): ReplayPerformanceEntry<
 }
 
 /**
- * Returns a listener to be added to `addInstrumentationHandler('history', listener)`.
+ * Returns a listener to be added to `addHistoryInstrumentationHandler(listener)`.
  */
-export function handleHistorySpanListener(replay: ReplayContainer): (handlerData: HistoryHandlerData) => void {
-  return (handlerData: HistoryHandlerData) => {
+export function handleHistorySpanListener(replay: ReplayContainer): (handlerData: HandlerDataHistory) => void {
+  return (handlerData: HandlerDataHistory) => {
     if (!replay.isEnabled()) {
       return;
     }

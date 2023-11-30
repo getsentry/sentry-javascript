@@ -1,15 +1,15 @@
 /* eslint-disable max-lines */
 import {
+  Integrations as CoreIntegrations,
   getCurrentHub,
   getIntegrationsToSetup,
   getMainCarrier,
   initAndBind,
-  Integrations as CoreIntegrations,
 } from '@sentry/core';
 import type { SessionStatus, StackParser } from '@sentry/types';
 import {
-  createStackParser,
   GLOBAL_OBJ,
+  createStackParser,
   nodeStackLineParser,
   stackParserFromStackParserOptions,
   tracingContextFromHeaders,
@@ -23,12 +23,12 @@ import {
   Context,
   ContextLines,
   Http,
-  LinkedErrors,
   LocalVariables,
   Modules,
   OnUncaughtException,
   OnUnhandledRejection,
   RequestData,
+  Spotlight,
   Undici,
 } from './integrations';
 import { getModuleFromFilename } from './module';
@@ -39,6 +39,7 @@ export const defaultIntegrations = [
   // Common
   new CoreIntegrations.InboundFilters(),
   new CoreIntegrations.FunctionToString(),
+  new CoreIntegrations.LinkedErrors(),
   // Native Wrappers
   new Console(),
   new Http(),
@@ -52,8 +53,6 @@ export const defaultIntegrations = [
   new Context(),
   new Modules(),
   new RequestData(),
-  // Misc
-  new LinkedErrors(),
 ];
 
 /**
@@ -181,6 +180,17 @@ export function init(options: NodeOptions = {}): void {
   }
 
   updateScopeFromEnvVariables();
+
+  if (options.spotlight) {
+    const client = getCurrentHub().getClient();
+    if (client && client.addIntegration) {
+      // force integrations to be setup even if no DSN was set
+      client.setupIntegrations(true);
+      client.addIntegration(
+        new Spotlight({ sidecarUrl: typeof options.spotlight === 'string' ? options.spotlight : undefined }),
+      );
+    }
+  }
 }
 
 /**

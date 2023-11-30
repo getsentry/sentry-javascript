@@ -1,3 +1,8 @@
+import { execFile } from 'child_process';
+import { readFile, readdir } from 'fs';
+import * as os from 'os';
+import { join } from 'path';
+import { promisify } from 'util';
 /* eslint-disable max-lines */
 import type {
   AppContext,
@@ -10,11 +15,6 @@ import type {
   Integration,
   OsContext,
 } from '@sentry/types';
-import { execFile } from 'child_process';
-import { readdir, readFile } from 'fs';
-import * as os from 'os';
-import { join } from 'path';
-import { promisify } from 'util';
 
 // TODO: Required until we drop support for Node v8
 export const readFileAsync = promisify(readFile);

@@ -8,12 +8,13 @@ import * as path from 'path';
 import deepMerge from 'deepmerge';
 
 import {
+  makeCleanupPlugin,
+  makeDebugBuildStatementReplacePlugin,
   makeExtractPolyfillsPlugin,
   makeNodeResolvePlugin,
-  makeCleanupPlugin,
-  makeSucrasePlugin,
-  makeDebugBuildStatementReplacePlugin,
+  makeRrwebBuildPlugin,
   makeSetSDKSourcePlugin,
+  makeSucrasePlugin,
 } from './plugins/index.js';
 import { mergePlugins } from './utils';
 
@@ -34,6 +35,10 @@ export function makeBaseNPMConfig(options = {}) {
   const cleanupPlugin = makeCleanupPlugin();
   const extractPolyfillsPlugin = makeExtractPolyfillsPlugin();
   const setSdkSourcePlugin = makeSetSDKSourcePlugin('npm');
+  const rrwebBuildPlugin = makeRrwebBuildPlugin({
+    excludeShadowDom: undefined,
+    excludeIframe: undefined,
+  });
 
   const defaultBaseConfig = {
     input: entrypoints,
@@ -84,7 +89,14 @@ export function makeBaseNPMConfig(options = {}) {
       interop: esModuleInterop ? 'auto' : 'esModule',
     },
 
-    plugins: [nodeResolvePlugin, setSdkSourcePlugin, sucrasePlugin, debugBuildStatementReplacePlugin, cleanupPlugin],
+    plugins: [
+      nodeResolvePlugin,
+      setSdkSourcePlugin,
+      sucrasePlugin,
+      debugBuildStatementReplacePlugin,
+      rrwebBuildPlugin,
+      cleanupPlugin,
+    ],
 
     // don't include imported modules from outside the package in the final output
     external: [

@@ -8,6 +8,25 @@ module.exports = [
     limit: '90 KB',
   },
   {
+    name: '@sentry/browser (incl. Tracing, Replay) - Webpack with treeshaking flags (gzipped)',
+    path: 'packages/browser/build/npm/esm/index.js',
+    import: '{ init, Replay, BrowserTracing }',
+    gzip: true,
+    limit: '90 KB',
+    modifyWebpackConfig: function (config) {
+      const webpack = require('webpack');
+      config.plugins.push(
+        new webpack.DefinePlugin({
+          __SENTRY_DEBUG__: false,
+          __RRWEB_EXCLUDE_SHADOW_DOM__: true,
+          __RRWEB_EXCLUDE_IFRAME__: true,
+          __SENTRY_EXCLUDE_REPLAY_WORKER__: true,
+        }),
+      );
+      return config;
+    },
+  },
+  {
     name: '@sentry/browser (incl. Tracing) - Webpack (gzipped)',
     path: 'packages/browser/build/npm/esm/index.js',
     import: '{ init, BrowserTracing }',
@@ -101,5 +120,12 @@ module.exports = [
     import: '{ init }',
     gzip: true,
     limit: '57 KB',
+  },
+  {
+    name: '@sentry-internal/feedback - Webpack (gzipped)',
+    path: 'packages/feedback/build/npm/esm/index.js',
+    import: '{ Feedback }',
+    gzip: true,
+    limit: '35 KB',
   },
 ];

@@ -34,7 +34,7 @@ export function handleXhr(handlerData: HandlerDataXhr): ReplayPerformanceEntry<N
 }
 
 /**
- * Returns a listener to be added to `addInstrumentationHandler('xhr', listener)`.
+ * Returns a listener to be added to `addXhrInstrumentationHandler(listener)`.
  */
 export function handleXhrSpanListener(replay: ReplayContainer): (handlerData: HandlerDataXhr) => void {
   return (handlerData: HandlerDataXhr) => {

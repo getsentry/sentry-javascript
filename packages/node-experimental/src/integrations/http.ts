@@ -1,19 +1,16 @@
+import type { ClientRequest, IncomingMessage, ServerResponse } from 'http';
 import type { Span } from '@opentelemetry/api';
 import { SpanKind } from '@opentelemetry/api';
 import { registerInstrumentations } from '@opentelemetry/instrumentation';
 import { HttpInstrumentation } from '@opentelemetry/instrumentation-http';
 import { hasTracingEnabled, isSentryRequestUrl } from '@sentry/core';
+import { _INTERNAL, getClient, getCurrentHub, getSpanKind, setSpanMetadata } from '@sentry/opentelemetry';
 import type { EventProcessor, Hub, Integration } from '@sentry/types';
 import { stringMatchesSomePattern } from '@sentry/utils';
-import type { ClientRequest, IncomingMessage, ServerResponse } from 'http';
 
-import { OTEL_ATTR_ORIGIN } from '../constants';
-import { setSpanMetadata } from '../opentelemetry/spanData';
-import type { NodeExperimentalClient } from '../sdk/client';
-import { getCurrentHub } from '../sdk/hub';
-import { getRequestSpanData } from '../utils/getRequestSpanData';
+import type { NodeExperimentalClient } from '../types';
+import { addOriginToSpan } from '../utils/addOriginToSpan';
 import { getRequestUrl } from '../utils/getRequestUrl';
-import { getSpanKind } from '../utils/getSpanKind';
 
 interface HttpOptions {
   /**
@@ -87,7 +84,7 @@ export class Http implements Integration {
       return;
     }
 
-    const client = getCurrentHub().getClient<NodeExperimentalClient>();
+    const client = getClient<NodeExperimentalClient>();
     const clientOptions = client?.getOptions();
 
     // This is used in the sampler function
@@ -148,7 +145,7 @@ export class Http implements Integration {
 
   /** Update the span with data we need. */
   private _updateSpan(span: Span, request: ClientRequest | IncomingMessage): void {
-    span.setAttribute(OTEL_ATTR_ORIGIN, 'auto.http.otel.http');
+    addOriginToSpan(span, 'auto.http.otel.http');
 
     if (getSpanKind(span) === SpanKind.SERVER) {
       setSpanMetadata(span, { request });
@@ -161,7 +158,7 @@ export class Http implements Integration {
       return;
     }
 
-    const data = getRequestSpanData(span);
+    const data = _INTERNAL.getRequestSpanData(span);
     getCurrentHub().addBreadcrumb(
       {
         category: 'http',

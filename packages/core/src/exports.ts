@@ -2,11 +2,13 @@ import type {
   Breadcrumb,
   CaptureContext,
   CheckIn,
+  Client,
   CustomSamplingContext,
   Event,
   EventHint,
   Extra,
   Extras,
+  FinishedCheckIn,
   MonitorConfig,
   Primitive,
   Severity,
@@ -14,11 +16,14 @@ import type {
   TransactionContext,
   User,
 } from '@sentry/types';
-import { logger, uuid4 } from '@sentry/utils';
+import { isThenable, logger, timestampInSeconds, uuid4 } from '@sentry/utils';
 
+import { DEBUG_BUILD } from './debug-build';
 import type { Hub } from './hub';
 import { getCurrentHub } from './hub';
 import type { Scope } from './scope';
+import type { ExclusiveEventHintOrCaptureContext } from './utils/prepareEvent';
+import { parseEventHintOrCaptureContext } from './utils/prepareEvent';
 
 // Note: All functions in this file are typed with a return value of `ReturnType<Hub[HUB_FUNCTION]>`,
 // where HUB_FUNCTION is some method on the Hub class.
@@ -29,14 +34,15 @@ import type { Scope } from './scope';
 
 /**
  * Captures an exception event and sends it to Sentry.
- *
- * @param exception An exception-like object.
- * @param captureContext Additional scope data to apply to exception event.
- * @returns The generated eventId.
+ * This accepts an event hint as optional second parameter.
+ * Alternatively, you can also pass a CaptureContext directly as second parameter.
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/explicit-module-boundary-types
-export function captureException(exception: any, captureContext?: CaptureContext): ReturnType<Hub['captureException']> {
-  return getCurrentHub().captureException(exception, { captureContext });
+export function captureException(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  exception: any,
+  hint?: ExclusiveEventHintOrCaptureContext,
+): ReturnType<Hub['captureException']> {
+  return getCurrentHub().captureException(exception, parseEventHintOrCaptureContext(hint));
 }
 
 /**
@@ -200,14 +206,57 @@ export function captureCheckIn(checkIn: CheckIn, upsertMonitorConfig?: MonitorCo
   const scope = hub.getScope();
   const client = hub.getClient();
   if (!client) {
-    __DEBUG_BUILD__ && logger.warn('Cannot capture check-in. No client defined.');
+    DEBUG_BUILD && logger.warn('Cannot capture check-in. No client defined.');
   } else if (!client.captureCheckIn) {
-    __DEBUG_BUILD__ && logger.warn('Cannot capture check-in. Client does not support sending check-ins.');
+    DEBUG_BUILD && logger.warn('Cannot capture check-in. Client does not support sending check-ins.');
   } else {
     return client.captureCheckIn(checkIn, upsertMonitorConfig, scope);
   }
 
   return uuid4();
+}
+
+/**
+ * Wraps a callback with a cron monitor check in. The check in will be sent to Sentry when the callback finishes.
+ *
+ * @param monitorSlug The distinct slug of the monitor.
+ * @param upsertMonitorConfig An optional object that describes a monitor config. Use this if you want
+ * to create a monitor automatically when sending a check in.
+ */
+export function withMonitor<T>(
+  monitorSlug: CheckIn['monitorSlug'],
+  callback: () => T,
+  upsertMonitorConfig?: MonitorConfig,
+): T {
+  const checkInId = captureCheckIn({ monitorSlug, status: 'in_progress' }, upsertMonitorConfig);
+  const now = timestampInSeconds();
+
+  function finishCheckIn(status: FinishedCheckIn['status']): void {
+    captureCheckIn({ monitorSlug, status, checkInId, duration: timestampInSeconds() - now });
+  }
+
+  let maybePromiseResult: T;
+  try {
+    maybePromiseResult = callback();
+  } catch (e) {
+    finishCheckIn('error');
+    throw e;
+  }
+
+  if (isThenable(maybePromiseResult)) {
+    Promise.resolve(maybePromiseResult).then(
+      () => {
+        finishCheckIn('ok');
+      },
+      () => {
+        finishCheckIn('error');
+      },
+    );
+  } else {
+    finishCheckIn('ok');
+  }
+
+  return maybePromiseResult;
 }
 
 /**
@@ -219,11 +268,11 @@ export function captureCheckIn(checkIn: CheckIn, upsertMonitorConfig?: MonitorCo
  * doesn't (or if there's no client defined).
  */
 export async function flush(timeout?: number): Promise<boolean> {
-  const client = getCurrentHub().getClient();
+  const client = getClient();
   if (client) {
     return client.flush(timeout);
   }
-  __DEBUG_BUILD__ && logger.warn('Cannot flush events. No client defined.');
+  DEBUG_BUILD && logger.warn('Cannot flush events. No client defined.');
   return Promise.resolve(false);
 }
 
@@ -236,11 +285,11 @@ export async function flush(timeout?: number): Promise<boolean> {
  * doesn't (or if there's no client defined).
  */
 export async function close(timeout?: number): Promise<boolean> {
-  const client = getCurrentHub().getClient();
+  const client = getClient();
   if (client) {
     return client.close(timeout);
   }
-  __DEBUG_BUILD__ && logger.warn('Cannot flush events and disable SDK. No client defined.');
+  DEBUG_BUILD && logger.warn('Cannot flush events and disable SDK. No client defined.');
   return Promise.resolve(false);
 }
 
@@ -251,4 +300,11 @@ export async function close(timeout?: number): Promise<boolean> {
  */
 export function lastEventId(): string | undefined {
   return getCurrentHub().lastEventId();
+}
+
+/**
+ * Get the currently active client.
+ */
+export function getClient<C extends Client>(): C | undefined {
+  return getCurrentHub().getClient<C>();
 }

@@ -2,14 +2,17 @@ import type { EventProcessor, Hub, Integration, Transaction } from '@sentry/type
 import type { Profile } from '@sentry/types/src/profiling';
 import { logger } from '@sentry/utils';
 
-import type { BrowserClient } from './../client';
-import { wrapTransactionWithProfiling } from './hubextensions';
+import { DEBUG_BUILD } from '../debug-build';
+import { startProfileForTransaction } from './hubextensions';
 import type { ProfiledEvent } from './utils';
 import {
   addProfilesToEnvelope,
   createProfilingEvent,
   findProfiledTransactionsFromEnvelope,
-  PROFILE_MAP,
+  getActiveProfilesCount,
+  isAutomatedPageLoadTransaction,
+  shouldProfileTransaction,
+  takeProfileFromGlobalCache,
 } from './utils';
 
 /**
@@ -37,16 +40,29 @@ export class BrowserProfilingIntegration implements Integration {
    */
   public setupOnce(_addGlobalEventProcessor: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
     this.getCurrentHub = getCurrentHub;
-    const client = this.getCurrentHub().getClient() as BrowserClient;
+
+    const hub = this.getCurrentHub();
+    const client = hub.getClient();
+    const scope = hub.getScope();
+
+    const transaction = scope.getTransaction();
+
+    if (transaction && isAutomatedPageLoadTransaction(transaction)) {
+      if (shouldProfileTransaction(transaction)) {
+        startProfileForTransaction(transaction);
+      }
+    }
 
     if (client && typeof client.on === 'function') {
       client.on('startTransaction', (transaction: Transaction) => {
-        wrapTransactionWithProfiling(transaction);
+        if (shouldProfileTransaction(transaction)) {
+          startProfileForTransaction(transaction);
+        }
       });
 
       client.on('beforeEnvelope', (envelope): void => {
         // if not profiles are in queue, there is nothing to add to the envelope.
-        if (!PROFILE_MAP['size']) {
+        if (!getActiveProfilesCount()) {
           return;
         }
 
@@ -59,11 +75,16 @@ export class BrowserProfilingIntegration implements Integration {
 
         for (const profiledTransaction of profiledTransactionEvents) {
           const context = profiledTransaction && profiledTransaction.contexts;
-          const profile_id = context && context['profile'] && (context['profile']['profile_id'] as string);
+          const profile_id = context && context['profile'] && context['profile']['profile_id'];
+          const start_timestamp = context && context['profile'] && context['profile']['start_timestamp'];
+
+          if (typeof profile_id !== 'string') {
+            DEBUG_BUILD && logger.log('[Profiling] cannot find profile for a transaction without a profile context');
+            continue;
+          }
 
           if (!profile_id) {
-            __DEBUG_BUILD__ &&
-              logger.log('[Profiling] cannot find profile for a transaction without a profile context');
+            DEBUG_BUILD && logger.log('[Profiling] cannot find profile for a transaction without a profile context');
             continue;
           }
 
@@ -72,15 +93,18 @@ export class BrowserProfilingIntegration implements Integration {
             delete context.profile;
           }
 
-          const profile = PROFILE_MAP.get(profile_id);
+          const profile = takeProfileFromGlobalCache(profile_id);
           if (!profile) {
-            __DEBUG_BUILD__ && logger.log(`[Profiling] Could not retrieve profile for transaction: ${profile_id}`);
+            DEBUG_BUILD && logger.log(`[Profiling] Could not retrieve profile for transaction: ${profile_id}`);
             continue;
           }
 
-          PROFILE_MAP.delete(profile_id);
-          const profileEvent = createProfilingEvent(profile_id, profile, profiledTransaction as ProfiledEvent);
-
+          const profileEvent = createProfilingEvent(
+            profile_id,
+            start_timestamp as number | undefined,
+            profile,
+            profiledTransaction as ProfiledEvent,
+          );
           if (profileEvent) {
             profilesToAddToEnvelope.push(profileEvent);
           }

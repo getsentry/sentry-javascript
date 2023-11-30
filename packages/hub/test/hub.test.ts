@@ -3,7 +3,7 @@
 
 import type { Client, Event, EventType } from '@sentry/types';
 
-import { getCurrentHub, Hub, Scope } from '../src';
+import { Hub, Scope, getCurrentHub } from '../src';
 
 const clientFn: any = jest.fn();
 

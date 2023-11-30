@@ -1,11 +1,12 @@
 import type { INode } from '@sentry-internal/rrweb-snapshot';
 
-export interface DomHandlerData {
-  name: string;
-  event: Node | { target: EventTarget };
-}
-
 const INTERACTIVE_SELECTOR = 'button,a';
+
+/** Get the closest interactive parent element, or else return the given element. */
+export function getClosestInteractive(element: Element): Element {
+  const closestInteractive = element.closest(INTERACTIVE_SELECTOR);
+  return closestInteractive || element;
+}
 
 /**
  * For clicks, we check if the target is inside of a button or link
@@ -13,15 +14,14 @@ const INTERACTIVE_SELECTOR = 'button,a';
  * This is useful because if you click on the image in <button><img></button>,
  * The target will be the image, not the button, which we don't want here
  */
-export function getClickTargetNode(event: DomHandlerData['event'] | MouseEvent): Node | INode | null {
+export function getClickTargetNode(event: Event | MouseEvent | Node): Node | INode | null {
   const target = getTargetNode(event);
 
   if (!target || !(target instanceof Element)) {
     return target;
   }
 
-  const closestInteractive = target.closest(INTERACTIVE_SELECTOR);
-  return closestInteractive || target;
+  return getClosestInteractive(target);
 }
 
 /** Get the event target node. */

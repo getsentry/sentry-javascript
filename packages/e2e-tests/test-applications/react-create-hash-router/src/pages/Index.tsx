@@ -1,5 +1,5 @@
-import * as React from 'react';
 import * as Sentry from '@sentry/react';
+import * as React from 'react';
 import { Link } from 'react-router-dom';
 
 const Index = () => {

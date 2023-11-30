@@ -1,4 +1,4 @@
-import { getCurrentHub, hasTracingEnabled } from '@sentry/core';
+import { addTracingExtensions, getClient } from '@sentry/core';
 import type { GetStaticProps } from 'next';
 
 import { isBuild } from './utils/isBuild';
@@ -23,10 +23,12 @@ export function wrapGetStaticPropsWithSentry(
         return wrappingTarget.apply(thisArg, args);
       }
 
-      const errorWrappedGetStaticProps = withErrorInstrumentation(wrappingTarget);
-      const options = getCurrentHub().getClient()?.getOptions();
+      addTracingExtensions();
 
-      if (hasTracingEnabled() && options?.instrumenter === 'sentry') {
+      const errorWrappedGetStaticProps = withErrorInstrumentation(wrappingTarget);
+      const options = getClient()?.getOptions();
+
+      if (options?.instrumenter === 'sentry') {
         return callDataFetcherTraced(errorWrappedGetStaticProps, args, {
           parameterizedRoute,
           dataFetchingMethodName: 'getStaticProps',

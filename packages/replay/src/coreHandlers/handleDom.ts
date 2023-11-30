@@ -1,21 +1,20 @@
 import { record } from '@sentry-internal/rrweb';
 import type { serializedElementNodeWithId, serializedNodeWithId } from '@sentry-internal/rrweb-snapshot';
 import { NodeType } from '@sentry-internal/rrweb-snapshot';
-import type { Breadcrumb } from '@sentry/types';
+import type { Breadcrumb, HandlerDataDom } from '@sentry/types';
 import { htmlTreeAsString } from '@sentry/utils';
 
 import type { ReplayContainer } from '../types';
 import { createBreadcrumb } from '../util/createBreadcrumb';
 import { handleClick } from './handleClick';
 import { addBreadcrumbEvent } from './util/addBreadcrumbEvent';
-import type { DomHandlerData } from './util/domUtils';
 import { getClickTargetNode, getTargetNode } from './util/domUtils';
 import { getAttributesToRecord } from './util/getAttributesToRecord';
 
-export const handleDomListener: (replay: ReplayContainer) => (handlerData: DomHandlerData) => void = (
+export const handleDomListener: (replay: ReplayContainer) => (handlerData: HandlerDataDom) => void = (
   replay: ReplayContainer,
 ) => {
-  return (handlerData: DomHandlerData): void => {
+  return (handlerData: HandlerDataDom): void => {
     if (!replay.isEnabled()) {
       return;
     }
@@ -27,12 +26,13 @@ export const handleDomListener: (replay: ReplayContainer) => (handlerData: DomHa
     }
 
     const isClick = handlerData.name === 'click';
-    const event = isClick && (handlerData.event as PointerEvent);
+    const event = isClick ? (handlerData.event as PointerEvent) : undefined;
     // Ignore clicks if ctrl/alt/meta/shift keys are held down as they alter behavior of clicks (e.g. open in new tab)
     if (
       isClick &&
       replay.clickDetector &&
       event &&
+      event.target &&
       !event.altKey &&
       !event.metaKey &&
       !event.ctrlKey &&
@@ -41,7 +41,7 @@ export const handleDomListener: (replay: ReplayContainer) => (handlerData: DomHa
       handleClick(
         replay.clickDetector,
         result as Breadcrumb & { timestamp: number; data: { nodeId: number } },
-        getClickTargetNode(handlerData.event) as HTMLElement,
+        getClickTargetNode(handlerData.event as Event) as HTMLElement,
       );
     }
 
@@ -80,7 +80,7 @@ export function getBaseDomBreadcrumb(target: Node | null, message: string): Brea
  * An event handler to react to DOM events.
  * Exported for tests.
  */
-export function handleDom(handlerData: DomHandlerData): Breadcrumb | null {
+export function handleDom(handlerData: HandlerDataDom): Breadcrumb | null {
   const { target, message } = getDomTarget(handlerData);
 
   return createBreadcrumb({
@@ -89,7 +89,7 @@ export function handleDom(handlerData: DomHandlerData): Breadcrumb | null {
   });
 }
 
-function getDomTarget(handlerData: DomHandlerData): { target: Node | null; message: string } {
+function getDomTarget(handlerData: HandlerDataDom): { target: Node | null; message: string } {
   const isClick = handlerData.name === 'click';
 
   let message: string | undefined;
@@ -97,7 +97,7 @@ function getDomTarget(handlerData: DomHandlerData): { target: Node | null; messa
 
   // Accessing event.target can throw (see getsentry/raven-js#838, #768)
   try {
-    target = isClick ? getClickTargetNode(handlerData.event) : getTargetNode(handlerData.event);
+    target = isClick ? getClickTargetNode(handlerData.event as Event) : getTargetNode(handlerData.event as Event);
     message = htmlTreeAsString(target, { maxStringLength: 200 }) || '<unknown>';
   } catch (e) {
     message = '<unknown>';

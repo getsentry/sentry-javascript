@@ -1,9 +1,10 @@
 import type { Scope } from '@sentry/core';
-import { getCurrentHub } from '@sentry/core';
+import { getClient, getCurrentHub } from '@sentry/core';
 import type { Integration } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
 import type { NodeClient } from '../client';
+import { DEBUG_BUILD } from '../debug-build';
 import { logAndExitProcess } from './utils/errorhandling';
 
 type OnFatalErrorHandler = (firstError: Error, secondError?: Error) => void;
@@ -86,7 +87,7 @@ export class OnUncaughtException implements Integration {
 
     return (error: Error): void => {
       let onFatalError: OnFatalErrorHandler = logAndExitProcess;
-      const client = getCurrentHub().getClient<NodeClient>();
+      const client = getClient<NodeClient>();
 
       if (this._options.onFatalError) {
         onFatalError = this._options.onFatalError;
@@ -148,7 +149,7 @@ export class OnUncaughtException implements Integration {
         if (shouldApplyFatalHandlingLogic) {
           if (calledFatalError) {
             // we hit an error *after* calling onFatalError - pretty boned at this point, just shut it down
-            __DEBUG_BUILD__ &&
+            DEBUG_BUILD &&
               logger.warn(
                 'uncaught exception after calling fatal error shutdown callback - this is bad! forcing shutdown',
               );

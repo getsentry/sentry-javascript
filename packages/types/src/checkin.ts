@@ -43,7 +43,14 @@ export interface SerializedCheckIn {
   };
 }
 
-interface InProgressCheckIn {
+export interface HeartbeatCheckIn {
+  // The distinct slug of the monitor.
+  monitorSlug: SerializedCheckIn['monitor_slug'];
+  // The status of the check-in.
+  status: 'ok' | 'error';
+}
+
+export interface InProgressCheckIn {
   // The distinct slug of the monitor.
   monitorSlug: SerializedCheckIn['monitor_slug'];
   // The status of the check-in.
@@ -61,7 +68,7 @@ export interface FinishedCheckIn {
   duration?: SerializedCheckIn['duration'];
 }
 
-export type CheckIn = InProgressCheckIn | FinishedCheckIn;
+export type CheckIn = HeartbeatCheckIn | InProgressCheckIn | FinishedCheckIn;
 
 type SerializedMonitorConfig = NonNullable<SerializedCheckIn['monitor_config']>;
 

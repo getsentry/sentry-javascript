@@ -1,7 +1,7 @@
 import type { Sampled, Session, SessionOptions } from '../types';
 import { isSampled } from '../util/isSampled';
-import { saveSession } from './saveSession';
 import { makeSession } from './Session';
+import { saveSession } from './saveSession';
 
 /**
  * Get the sampled status for a session based on sample rates & current sampled status.

@@ -4,11 +4,10 @@ import { Directive, Injectable, Input, NgModule } from '@angular/core';
 import type { ActivatedRouteSnapshot, Event, RouterState } from '@angular/router';
 // Duplicated import to work around a TypeScript bug where it'd complain that `Router` isn't imported as a type.
 // We need to import it as a value to satisfy Angular dependency injection. So:
-// eslint-disable-next-line @typescript-eslint/consistent-type-imports, import/no-duplicates
+// eslint-disable-next-line @typescript-eslint/consistent-type-imports
 import { NavigationCancel, NavigationError, Router } from '@angular/router';
-// eslint-disable-next-line import/no-duplicates
 import { NavigationEnd, NavigationStart, ResolveEnd } from '@angular/router';
-import { getCurrentHub, WINDOW } from '@sentry/browser';
+import { WINDOW, getCurrentHub } from '@sentry/browser';
 import type { Span, Transaction, TransactionContext } from '@sentry/types';
 import { logger, stripUrlQueryAndFragment, timestampInSeconds } from '@sentry/utils';
 import type { Observable } from 'rxjs';

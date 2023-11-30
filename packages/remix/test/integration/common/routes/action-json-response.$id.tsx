@@ -1,4 +1,4 @@
-import { ActionFunction, json, redirect, LoaderFunction } from '@remix-run/node';
+import { ActionFunction, LoaderFunction, json, redirect } from '@remix-run/node';
 import { useActionData } from '@remix-run/react';
 
 export const loader: LoaderFunction = async ({ params: { id } }) => {

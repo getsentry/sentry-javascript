@@ -1,7 +1,7 @@
 import type { ServerRuntimeClient } from '@sentry/core';
 import { flush, getCurrentHub } from '@sentry/core';
-import type { Event, EventHint, Hub, Integration, Primitive, StackParser } from '@sentry/types';
-import { addExceptionMechanism, eventFromUnknownInput, isPrimitive } from '@sentry/utils';
+import type { Event, Hub, Integration, Primitive, StackParser } from '@sentry/types';
+import { eventFromUnknownInput, isPrimitive } from '@sentry/utils';
 
 type GlobalHandlersIntegrationsOptionKeys = 'error' | 'unhandledrejection';
 
@@ -74,7 +74,13 @@ function installGlobalErrorHandler(): void {
 
     event.level = 'fatal';
 
-    addMechanismAndCapture(hub, error, event, 'error');
+    hub.captureEvent(event, {
+      originalException: error,
+      mechanism: {
+        handled: false,
+        type: 'error',
+      },
+    });
 
     // Stop the app from exiting for now
     data.preventDefault();
@@ -111,7 +117,13 @@ function installGlobalUnhandledRejectionHandler(): void {
 
     event.level = 'fatal';
 
-    addMechanismAndCapture(hub, error as unknown as Error, event, 'unhandledrejection');
+    hub.captureEvent(event, {
+      originalException: error,
+      mechanism: {
+        handled: false,
+        type: 'unhandledrejection',
+      },
+    });
 
     // Stop the app from exiting for now
     e.preventDefault();
@@ -142,16 +154,6 @@ function eventFromRejectionWithPrimitive(reason: Primitive): Event {
       ],
     },
   };
-}
-
-function addMechanismAndCapture(hub: Hub, error: EventHint['originalException'], event: Event, type: string): void {
-  addExceptionMechanism(event, {
-    handled: false,
-    type,
-  });
-  hub.captureEvent(event, {
-    originalException: error,
-  });
 }
 
 function getHubAndOptions(): [Hub, StackParser] {

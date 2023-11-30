@@ -1,7 +1,9 @@
+import { defineConfig } from 'rollup';
+// @ts-check
 import dts from 'rollup-plugin-dts';
 
-export default {
-  input: './build/index.d.ts',
+export default defineConfig({
+  input: './build-types/index.d.ts',
   output: [{ file: 'build/index.d.ts', format: 'es' }],
   plugins: [
     dts({ respectExternal: true }),
@@ -14,4 +16,4 @@ export default {
       },
     },
   ],
-};
+});
