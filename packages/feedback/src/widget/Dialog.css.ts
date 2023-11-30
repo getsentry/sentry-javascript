@@ -47,9 +47,7 @@ export function createDialogStyles(d: Document): HTMLStyleElement {
   max-height: calc(100% - 2rem);
   display: flex;
   flex-direction: column;
-  box-shadow:
-    0 0 0 1px rgba(0, 0, 0, 0.05),
-    0 4px 16px rgba(0, 0, 0, 0.2);
+  box-shadow: var(--box-shadow);
   transition: transform 0.2s ease-in-out;
   transform: translate(0, 0) scale(1);
 }
