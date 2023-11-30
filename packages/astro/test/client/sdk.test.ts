@@ -1,6 +1,6 @@
 import type { BrowserClient } from '@sentry/browser';
 import * as SentryBrowser from '@sentry/browser';
-import { BrowserTracing, getClient, getCurrentHub, SDK_VERSION, WINDOW } from '@sentry/browser';
+import { BrowserTracing, SDK_VERSION, WINDOW, getClient, getCurrentHub } from '@sentry/browser';
 import { vi } from 'vitest';
 
 import { init } from '../../../astro/src/client/sdk';

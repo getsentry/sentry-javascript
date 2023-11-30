@@ -1,4 +1,4 @@
-import { assertSentryEvent, TestEnv } from '../../../../utils/index';
+import { TestEnv, assertSentryEvent } from '../../../../utils/index';
 
 test('should construct correct url with common infixes with multiple parameterized routers.', async () => {
   const env = await TestEnv.init(__dirname, `${__dirname}/server.ts`);

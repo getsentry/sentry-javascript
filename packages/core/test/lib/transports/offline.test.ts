@@ -1,3 +1,4 @@
+import { TextEncoder } from 'util';
 import type {
   ClientReport,
   Envelope,
@@ -16,11 +17,10 @@ import {
   dsnFromString,
   getSdkMetadataForEnvelopeHeader,
 } from '@sentry/utils';
-import { TextEncoder } from 'util';
 
 import { createTransport } from '../../../src';
 import type { CreateOfflineStore, OfflineTransportOptions } from '../../../src/transports/offline';
-import { makeOfflineTransport, START_DELAY } from '../../../src/transports/offline';
+import { START_DELAY, makeOfflineTransport } from '../../../src/transports/offline';
 
 const ERROR_ENVELOPE = createEnvelope<EventEnvelope>({ event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2', sent_at: '123' }, [
   [{ type: 'event' }, { event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2' }] as EventItem,

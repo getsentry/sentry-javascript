@@ -1,5 +1,5 @@
 /* eslint-disable deprecation/deprecation */
-import { Hub, makeMain, TRACING_DEFAULTS } from '@sentry/core';
+import { Hub, TRACING_DEFAULTS, makeMain } from '@sentry/core';
 import * as hubExtensions from '@sentry/core';
 import type { BaseTransportOptions, ClientOptions, DsnComponents, HandlerDataHistory } from '@sentry/types';
 import { JSDOM } from 'jsdom';

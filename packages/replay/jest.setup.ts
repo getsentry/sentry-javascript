@@ -1,8 +1,8 @@
+import { TextEncoder } from 'util';
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { getCurrentHub } from '@sentry/core';
 import type { ReplayRecordingData, Transport } from '@sentry/types';
 import * as SentryUtils from '@sentry/utils';
-import { TextEncoder } from 'util';
 
 import type { ReplayContainer, Session } from './src/types';
 

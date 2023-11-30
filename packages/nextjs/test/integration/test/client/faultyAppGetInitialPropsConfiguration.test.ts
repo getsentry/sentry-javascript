@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 // This test verifies that a faulty configuration of `getInitialProps` in `_app` will not cause our
 // auto - wrapping / instrumentation to throw an error.

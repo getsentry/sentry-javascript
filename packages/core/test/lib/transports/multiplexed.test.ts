@@ -1,3 +1,4 @@
+import { TextDecoder, TextEncoder } from 'util';
 import type {
   BaseTransportOptions,
   ClientReport,
@@ -7,7 +8,6 @@ import type {
   Transport,
 } from '@sentry/types';
 import { createClientReportEnvelope, createEnvelope, dsnFromString, parseEnvelope } from '@sentry/utils';
-import { TextDecoder, TextEncoder } from 'util';
 
 import { createTransport, getEnvelopeEndpointWithUrlEncodedAuth, makeMultiplexedTransport } from '../../../src';
 import { eventFromEnvelope } from '../../../src/transports/multiplexed';

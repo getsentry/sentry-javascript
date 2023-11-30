@@ -1,8 +1,8 @@
 const useV2 = process.env.REMIX_VERSION === '2';
 
-import { getFirstSentryEnvelopeRequest } from './utils/helpers';
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 import { Event } from '@sentry/types';
+import { getFirstSentryEnvelopeRequest } from './utils/helpers';
 
 test('should add `pageload` transaction on load.', async ({ page }) => {
   const envelope = await getFirstSentryEnvelopeRequest<Event>(page, '/');

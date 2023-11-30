@@ -2,8 +2,8 @@ import { expect } from '@playwright/test';
 
 import { sentryTest } from '../../../utils/fixtures';
 import {
-  getReplaySnapshot,
   REPLAY_DEFAULT_FLUSH_MAX_DELAY,
+  getReplaySnapshot,
   shouldSkipReplayTest,
   waitForReplayRequest,
 } from '../../../utils/replayHelpers';

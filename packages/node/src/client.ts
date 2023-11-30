@@ -1,7 +1,7 @@
-import type { ServerRuntimeClientOptions } from '@sentry/core';
-import { SDK_VERSION, ServerRuntimeClient } from '@sentry/core';
 import * as os from 'os';
 import { TextEncoder } from 'util';
+import type { ServerRuntimeClientOptions } from '@sentry/core';
+import { SDK_VERSION, ServerRuntimeClient } from '@sentry/core';
 
 import type { NodeClientOptions } from './types';
 

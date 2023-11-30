@@ -2,7 +2,7 @@ import * as SentryNode from '@sentry/node';
 import { getCurrentHub } from '@sentry/node';
 import { GLOBAL_OBJ } from '@sentry/utils';
 
-import { init, Integrations } from '../src/index.server';
+import { Integrations, init } from '../src/index.server';
 
 const nodeInit = jest.spyOn(SentryNode, 'init');
 

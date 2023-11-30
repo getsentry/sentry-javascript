@@ -1,3 +1,4 @@
+import type { ParsedUrlQuery } from 'querystring';
 import { getClient, getCurrentHub } from '@sentry/core';
 import { WINDOW } from '@sentry/react';
 import type { Primitive, Transaction, TransactionContext, TransactionSource } from '@sentry/types';
@@ -9,7 +10,6 @@ import {
 } from '@sentry/utils';
 import type { NEXT_DATA as NextData } from 'next/dist/next-server/lib/utils';
 import { default as Router } from 'next/router';
-import type { ParsedUrlQuery } from 'querystring';
 
 import { DEBUG_BUILD } from '../../common/debug-build';
 

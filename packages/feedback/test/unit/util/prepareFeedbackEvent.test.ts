@@ -3,7 +3,7 @@ import { getCurrentHub } from '@sentry/core';
 import type { Client, FeedbackEvent } from '@sentry/types';
 
 import { prepareFeedbackEvent } from '../../../src/util/prepareFeedbackEvent';
-import { getDefaultClientOptions, TestClient } from '../../utils/TestClient';
+import { TestClient, getDefaultClientOptions } from '../../utils/TestClient';
 
 describe('Unit | util | prepareFeedbackEvent', () => {
   let hub: Hub;

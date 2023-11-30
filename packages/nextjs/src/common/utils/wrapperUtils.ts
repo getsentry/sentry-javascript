@@ -1,3 +1,4 @@
+import type { IncomingMessage, ServerResponse } from 'http';
 import {
   captureException,
   getActiveTransaction,
@@ -7,7 +8,6 @@ import {
 } from '@sentry/core';
 import type { Span, Transaction } from '@sentry/types';
 import { isString, tracingContextFromHeaders } from '@sentry/utils';
-import type { IncomingMessage, ServerResponse } from 'http';
 
 import { platformSupportsStreaming } from './platformSupportsStreaming';
 import { autoEndTransactionOnResponseEnd, flushQueue } from './responseEnd';

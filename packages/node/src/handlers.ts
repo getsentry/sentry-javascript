@@ -1,3 +1,4 @@
+import type * as http from 'http';
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import {
   captureException,
@@ -22,7 +23,6 @@ import {
   logger,
   normalize,
 } from '@sentry/utils';
-import type * as http from 'http';
 
 import type { NodeClient } from './client';
 import { DEBUG_BUILD } from './debug-build';
@@ -112,9 +112,9 @@ export function tracingHandler(): (
 export type RequestHandlerOptions =
   // TODO (v8 / XXX) Remove ParseRequestOptions type and eslint override
   // eslint-disable-next-line deprecation/deprecation
-  | (ParseRequestOptions | AddRequestDataToEventOptions) & {
-      flushTimeout?: number;
-    };
+  (ParseRequestOptions | AddRequestDataToEventOptions) & {
+    flushTimeout?: number;
+  };
 
 /**
  * Backwards compatibility shim which can be removed in v8. Forces the given options to follow the

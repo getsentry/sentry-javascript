@@ -1,4 +1,3 @@
-/* eslint-disable import/export */
 import { configureScope, init as reactInit } from '@sentry/react';
 
 import { buildMetadata } from './utils/metadata';

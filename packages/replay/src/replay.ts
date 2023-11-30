@@ -54,7 +54,7 @@ import { isSessionExpired } from './util/isSessionExpired';
 import { logInfo, logInfoNextTick } from './util/log';
 import { sendReplay } from './util/sendReplay';
 import type { SKIPPED } from './util/throttle';
-import { throttle, THROTTLED } from './util/throttle';
+import { THROTTLED, throttle } from './util/throttle';
 
 /**
  * The main replay container class, which holds all the state and methods for recording and sending replays.

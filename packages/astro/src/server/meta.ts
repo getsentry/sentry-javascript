@@ -1,10 +1,10 @@
 import { getDynamicSamplingContextFromClient } from '@sentry/core';
 import type { Hub, Span } from '@sentry/types';
 import {
+  TRACEPARENT_REGEXP,
   dynamicSamplingContextToSentryBaggageHeader,
   generateSentryTraceHeader,
   logger,
-  TRACEPARENT_REGEXP,
 } from '@sentry/utils';
 
 /**
@@ -33,10 +33,10 @@ export function getTracingMetaTags(span: Span | undefined, hub: Hub): { sentryTr
   const dynamicSamplingContext = transaction
     ? transaction.getDynamicSamplingContext()
     : dsc
-    ? dsc
-    : client
-    ? getDynamicSamplingContextFromClient(traceId, client, scope)
-    : undefined;
+      ? dsc
+      : client
+        ? getDynamicSamplingContextFromClient(traceId, client, scope)
+        : undefined;
 
   const baggage = dynamicSamplingContextToSentryBaggageHeader(dynamicSamplingContext);
 

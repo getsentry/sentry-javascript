@@ -1,9 +1,9 @@
 /* eslint-disable max-lines */
 import type { Hub, Integration, PolymorphicRequest, Transaction } from '@sentry/types';
 import {
+  GLOBAL_OBJ,
   extractPathForTransaction,
   getNumberOfUrlSegments,
-  GLOBAL_OBJ,
   isRegExp,
   logger,
   stripUrlQueryAndFragment,

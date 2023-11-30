@@ -77,9 +77,12 @@ ENTRY_POINTS.filter(entryPoint => newPkgJson[entryPoint]).forEach(entryPoint => 
 
 if (newPkgJson[EXPORT_MAP_ENTRY_POINT]) {
   Object.entries(newPkgJson[EXPORT_MAP_ENTRY_POINT]).forEach(([key, val]) => {
-    newPkgJson[EXPORT_MAP_ENTRY_POINT][key] = Object.entries(val).reduce((acc, [key, val]) => {
-      return { ...acc, [key]: val.replace(`${buildDir}/`, '') };
-    }, {} as typeof val);
+    newPkgJson[EXPORT_MAP_ENTRY_POINT][key] = Object.entries(val).reduce(
+      (acc, [key, val]) => {
+        return { ...acc, [key]: val.replace(`${buildDir}/`, '') };
+      },
+      {} as typeof val,
+    );
   });
 }
 

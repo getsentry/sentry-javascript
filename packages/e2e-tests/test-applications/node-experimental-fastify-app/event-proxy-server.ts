@@ -1,5 +1,3 @@
-import type { Envelope, EnvelopeItem, Event } from '@sentry/types';
-import { parseEnvelope } from '@sentry/utils';
 import * as fs from 'fs';
 import * as http from 'http';
 import * as https from 'https';
@@ -8,6 +6,8 @@ import * as os from 'os';
 import * as path from 'path';
 import * as util from 'util';
 import * as zlib from 'zlib';
+import type { Envelope, EnvelopeItem, Event } from '@sentry/types';
+import { parseEnvelope } from '@sentry/utils';
 
 const readFile = util.promisify(fs.readFile);
 const writeFile = util.promisify(fs.writeFile);

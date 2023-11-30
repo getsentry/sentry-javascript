@@ -1,8 +1,8 @@
-import { parseEnvelope } from '@sentry/utils';
 import { TextDecoder, TextEncoder } from 'util';
+import { parseEnvelope } from '@sentry/utils';
 
 import { createTransport } from '../../src/transports/base';
-import { getDefaultTestClientOptions, TestClient } from '../mocks/client';
+import { TestClient, getDefaultTestClientOptions } from '../mocks/client';
 
 describe('Attachments', () => {
   beforeEach(() => {

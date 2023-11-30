@@ -1,5 +1,5 @@
 import type { Event, EventHint, EventProcessor } from '@sentry/types';
-import { getGlobalSingleton, isThenable, logger, SyncPromise } from '@sentry/utils';
+import { SyncPromise, getGlobalSingleton, isThenable, logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from './debug-build';
 

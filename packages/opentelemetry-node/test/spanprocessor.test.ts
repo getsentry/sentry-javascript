@@ -6,19 +6,19 @@ import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
 import { SemanticAttributes, SemanticResourceAttributes } from '@opentelemetry/semantic-conventions';
 import type { SpanStatusType } from '@sentry/core';
 import {
-  addTracingExtensions,
-  createTransport,
   Hub,
-  makeMain,
   Scope,
   Span as SentrySpan,
   Transaction,
+  addTracingExtensions,
+  createTransport,
+  makeMain,
 } from '@sentry/core';
 import { NodeClient } from '@sentry/node';
 import { resolvedSyncPromise } from '@sentry/utils';
 
 import { SentrySpanProcessor } from '../src/spanprocessor';
-import { clearSpan, getSentrySpan, SPAN_MAP } from '../src/utils/spanMap';
+import { SPAN_MAP, clearSpan, getSentrySpan } from '../src/utils/spanMap';
 
 const SENTRY_DSN = 'https://0@0.ingest.sentry.io/0';
 

@@ -1,8 +1,8 @@
+import * as childProcess from 'child_process';
+import * as path from 'path';
 import type { Event } from '@sentry/node';
 import type { SerializedSession } from '@sentry/types';
 import { parseSemver } from '@sentry/utils';
-import * as childProcess from 'child_process';
-import * as path from 'path';
 
 const NODE_VERSION = parseSemver(process.versions.node).major || 0;
 

@@ -1,6 +1,6 @@
-import { countEnvelopes, getMultipleSentryEnvelopeRequests } from './utils/helpers';
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 import { Transaction } from '@sentry/types';
+import { countEnvelopes, getMultipleSentryEnvelopeRequests } from './utils/helpers';
 
 test('should correctly instrument `fetch` for performance tracing', async ({ page }) => {
   await page.route('http://example.com/**/*', route => {

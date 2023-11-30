@@ -4,7 +4,7 @@ import type { Client, ReplayEvent } from '@sentry/types';
 
 import { REPLAY_EVENT_NAME } from '../../../src/constants';
 import { prepareReplayEvent } from '../../../src/util/prepareReplayEvent';
-import { getDefaultClientOptions, TestClient } from '../../utils/TestClient';
+import { TestClient, getDefaultClientOptions } from '../../utils/TestClient';
 
 describe('Unit | util | prepareReplayEvent', () => {
   let hub: Hub;

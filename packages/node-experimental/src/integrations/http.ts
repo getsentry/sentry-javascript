@@ -1,3 +1,4 @@
+import type { ClientRequest, IncomingMessage, ServerResponse } from 'http';
 import type { Span } from '@opentelemetry/api';
 import { SpanKind } from '@opentelemetry/api';
 import { registerInstrumentations } from '@opentelemetry/instrumentation';
@@ -6,7 +7,6 @@ import { hasTracingEnabled, isSentryRequestUrl } from '@sentry/core';
 import { _INTERNAL, getClient, getCurrentHub, getSpanKind, setSpanMetadata } from '@sentry/opentelemetry';
 import type { EventProcessor, Hub, Integration } from '@sentry/types';
 import { stringMatchesSomePattern } from '@sentry/utils';
-import type { ClientRequest, IncomingMessage, ServerResponse } from 'http';
 
 import type { NodeExperimentalClient } from '../types';
 import { addOriginToSpan } from '../utils/addOriginToSpan';

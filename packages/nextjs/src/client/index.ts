@@ -3,10 +3,10 @@ import { RewriteFrames } from '@sentry/integrations';
 import type { BrowserOptions } from '@sentry/react';
 import {
   BrowserTracing,
+  Integrations,
   configureScope,
   defaultRequestInstrumentationOptions,
   init as reactInit,
-  Integrations,
 } from '@sentry/react';
 import type { EventProcessor } from '@sentry/types';
 import { addOrUpdateIntegration } from '@sentry/utils';

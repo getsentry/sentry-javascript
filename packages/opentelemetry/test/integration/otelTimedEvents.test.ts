@@ -2,8 +2,8 @@ import { SemanticAttributes } from '@opentelemetry/semantic-conventions';
 
 import { getCurrentHub } from '../../src/custom/hub';
 import { startSpan } from '../../src/trace';
-import { cleanupOtel, mockSdkInit } from '../helpers/mockSdkInit';
 import type { TestClientInterface } from '../helpers/TestClient';
+import { cleanupOtel, mockSdkInit } from '../helpers/mockSdkInit';
 
 describe('Integration | OTEL TimedEvents', () => {
   afterEach(() => {

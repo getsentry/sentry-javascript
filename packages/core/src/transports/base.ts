@@ -12,6 +12,7 @@ import type {
 } from '@sentry/types';
 import type { PromiseBuffer, RateLimits } from '@sentry/utils';
 import {
+  SentryError,
   createEnvelope,
   envelopeItemTypeToDataCategory,
   forEachEnvelopeItem,
@@ -19,7 +20,6 @@ import {
   logger,
   makePromiseBuffer,
   resolvedSyncPromise,
-  SentryError,
   serializeEnvelope,
   updateRateLimits,
 } from '@sentry/utils';

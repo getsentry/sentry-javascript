@@ -6,9 +6,9 @@ import { DEBUG_BUILD } from '../debug-build';
 import { WINDOW } from '../helpers';
 import type { JSSelfProfile } from './jsSelfProfiling';
 import {
+  MAX_PROFILE_DURATION_MS,
   addProfileToGlobalCache,
   isAutomatedPageLoadTransaction,
-  MAX_PROFILE_DURATION_MS,
   shouldProfileTransaction,
   startJSSelfProfile,
 } from './utils';

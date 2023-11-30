@@ -1,9 +1,9 @@
 import type { EventProcessor, Hub, Integration } from '@sentry/types';
 import {
-  addConsoleInstrumentationHandler,
-  addExceptionMechanism,
   CONSOLE_LEVELS,
   GLOBAL_OBJ,
+  addConsoleInstrumentationHandler,
+  addExceptionMechanism,
   safeJoin,
   severityLevelFromString,
 } from '@sentry/utils';

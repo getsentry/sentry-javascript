@@ -1,8 +1,9 @@
-import { getMainCarrier, initAndBind, LinkedErrors, runWithAsyncContext, SDK_VERSION } from '@sentry/core';
+import { LinkedErrors, SDK_VERSION, getMainCarrier, initAndBind, runWithAsyncContext } from '@sentry/core';
 import type { EventHint, Integration } from '@sentry/types';
 
 import type { Event, Scope } from '../src';
 import {
+  NodeClient,
   addBreadcrumb,
   captureEvent,
   captureException,
@@ -11,7 +12,6 @@ import {
   getClient,
   getCurrentHub,
   init,
-  NodeClient,
 } from '../src';
 import { setNodeAsyncContextStrategy } from '../src/async';
 import { ContextLines } from '../src/integrations';

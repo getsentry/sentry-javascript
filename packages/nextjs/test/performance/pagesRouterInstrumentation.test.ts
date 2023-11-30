@@ -53,7 +53,7 @@ function createMockStartTransaction() {
           finish: () => undefined,
         }),
         finish: () => undefined,
-      } as Transaction),
+      }) as Transaction,
   );
 }
 

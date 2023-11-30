@@ -1,5 +1,5 @@
 import type { Breadcrumb, TextEncoderInternal, XhrBreadcrumbData } from '@sentry/types';
-import { logger, SENTRY_XHR_DATA_KEY } from '@sentry/utils';
+import { SENTRY_XHR_DATA_KEY, logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../../debug-build';
 import type {

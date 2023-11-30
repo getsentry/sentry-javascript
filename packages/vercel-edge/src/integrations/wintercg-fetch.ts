@@ -1,7 +1,7 @@
 import { instrumentFetchRequest } from '@sentry-internal/tracing';
 import { getCurrentHub, isSentryRequestUrl } from '@sentry/core';
 import type { FetchBreadcrumbData, FetchBreadcrumbHint, HandlerDataFetch, Integration, Span } from '@sentry/types';
-import { addFetchInstrumentationHandler, LRUMap, stringMatchesSomePattern } from '@sentry/utils';
+import { LRUMap, addFetchInstrumentationHandler, stringMatchesSomePattern } from '@sentry/utils';
 
 export interface Options {
   /**

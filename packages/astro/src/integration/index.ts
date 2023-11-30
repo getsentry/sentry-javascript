@@ -1,8 +1,8 @@
+import * as fs from 'fs';
+import * as path from 'path';
 /* eslint-disable no-console */
 import { sentryVitePlugin } from '@sentry/vite-plugin';
 import type { AstroConfig, AstroIntegration } from 'astro';
-import * as fs from 'fs';
-import * as path from 'path';
 
 import { buildClientSnippet, buildSdkInitFileImportSnippet, buildServerSnippet } from './snippets';
 import type { SentryOptions } from './types';
@@ -14,7 +14,7 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
     name: PKG_NAME,
     hooks: {
       // eslint-disable-next-line complexity
-      'astro:config:setup': async ({ updateConfig, injectScript, addMiddleware, config }) => {
+      'astro:config:setup': async ({ updateConfig, injectScript, addMiddleware, config, command }) => {
         // The third param here enables loading of all env vars, regardless of prefix
         // see: https://main.vitejs.dev/config/#using-environment-variables-in-config
 
@@ -29,7 +29,7 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
         const shouldUploadSourcemaps = uploadOptions?.enabled ?? true;
 
         // We don't need to check for AUTH_TOKEN here, because the plugin will pick it up from the env
-        if (shouldUploadSourcemaps) {
+        if (shouldUploadSourcemaps && command !== 'dev') {
           updateConfig({
             vite: {
               build: {

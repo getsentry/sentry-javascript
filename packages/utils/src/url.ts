@@ -70,8 +70,9 @@ export function getSanitizedUrlString(url: PartialURL): string {
         // Always filter out authority
         .replace(/^.*@/, '[filtered]:[filtered]@')
         // Don't show standard :80 (http) and :443 (https) ports to reduce the noise
-        .replace(':80', '')
-        .replace(':443', '')) ||
+        // TODO: Use new URL global if it exists
+        .replace(/(:80)$/, '')
+        .replace(/(:443)$/, '')) ||
     '';
 
   return `${protocol ? `${protocol}://` : ''}${filteredHost}${path}`;

@@ -17,7 +17,7 @@ const getMockHubWithIntegration = (integration: Integration) =>
   ({
     ...mockHub,
     getIntegration: jest.fn(() => integration),
-  } as unknown as Hub);
+  }) as unknown as Hub;
 
 const mockReportingObserverConstructor = jest.fn();
 const mockObserve = jest.fn();

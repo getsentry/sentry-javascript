@@ -1,19 +1,18 @@
+import * as child_process from 'child_process';
+import * as fs from 'fs';
+import * as path from 'path';
 import { getSentryRelease } from '@sentry/node';
 import { escapeStringForRegex, uuid4 } from '@sentry/utils';
 import type { SentryVitePluginOptions } from '@sentry/vite-plugin';
 import { sentryVitePlugin } from '@sentry/vite-plugin';
-import * as child_process from 'child_process';
-import * as fs from 'fs';
-import * as path from 'path';
 // @ts-expect-error -sorcery has no types :(
-// eslint-disable-next-line import/default
 import * as sorcery from 'sorcery';
 import type { Plugin } from 'vite';
 
 import { WRAPPED_MODULE_SUFFIX } from './autoInstrument';
 import type { SupportedSvelteKitAdapters } from './detectAdapter';
 import type { GlobalSentryValues } from './injectGlobalValues';
-import { getGlobalValueInjectionCode, VIRTUAL_GLOBAL_VALUES_FILE } from './injectGlobalValues';
+import { VIRTUAL_GLOBAL_VALUES_FILE, getGlobalValueInjectionCode } from './injectGlobalValues';
 import { getAdapterOutputDir, getHooksFileName, loadSvelteConfig } from './svelteConfig';
 
 // sorcery has no types, so these are some basic type definitions:

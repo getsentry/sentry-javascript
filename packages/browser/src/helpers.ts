@@ -1,11 +1,11 @@
 import { captureException, withScope } from '@sentry/core';
 import type { DsnLike, Mechanism, WrappedFunction } from '@sentry/types';
 import {
+  GLOBAL_OBJ,
   addExceptionMechanism,
   addExceptionTypeValue,
   addNonEnumerableProperty,
   getOriginalFunction,
-  GLOBAL_OBJ,
   markFunctionWrapped,
 } from '@sentry/utils';
 

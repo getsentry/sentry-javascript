@@ -1,6 +1,6 @@
 import { runWithAsyncContext } from '@sentry/core';
 import * as SentryNode from '@sentry/node';
-import { getCurrentHub, NodeClient } from '@sentry/node';
+import { NodeClient, getCurrentHub } from '@sentry/node';
 import type { Integration } from '@sentry/types';
 import { GLOBAL_OBJ, logger } from '@sentry/utils';
 

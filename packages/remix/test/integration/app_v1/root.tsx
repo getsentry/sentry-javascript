@@ -1,4 +1,4 @@
-import { MetaFunction, LoaderFunction, json, defer, redirect } from '@remix-run/node';
+import { LoaderFunction, MetaFunction, defer, json, redirect } from '@remix-run/node';
 import { Links, LiveReload, Meta, Outlet, Scripts, ScrollRestoration } from '@remix-run/react';
 import { withSentry } from '@sentry/remix';
 

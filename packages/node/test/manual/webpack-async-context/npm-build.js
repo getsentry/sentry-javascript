@@ -7,7 +7,7 @@ if (Number(process.versions.node.split('.')[0]) >= 18) {
   return;
 }
 
-// prettier-ignore
+// biome-ignore format: Follow-up for prettier
 webpack(
   {
     entry: './index.js',

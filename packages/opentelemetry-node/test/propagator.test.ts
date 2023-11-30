@@ -1,13 +1,13 @@
 import {
+  ROOT_CONTEXT,
+  TraceFlags,
   defaultTextMapGetter,
   defaultTextMapSetter,
   propagation,
-  ROOT_CONTEXT,
   trace,
-  TraceFlags,
 } from '@opentelemetry/api';
 import { suppressTracing } from '@opentelemetry/core';
-import { addTracingExtensions, Hub, makeMain, Transaction } from '@sentry/core';
+import { Hub, Transaction, addTracingExtensions, makeMain } from '@sentry/core';
 import type { TransactionContext } from '@sentry/types';
 
 import {
@@ -17,7 +17,7 @@ import {
   SENTRY_TRACE_PARENT_CONTEXT_KEY,
 } from '../src/constants';
 import { SentryPropagator } from '../src/propagator';
-import { setSentrySpan, SPAN_MAP } from '../src/utils/spanMap';
+import { SPAN_MAP, setSentrySpan } from '../src/utils/spanMap';
 
 beforeAll(() => {
   addTracingExtensions();

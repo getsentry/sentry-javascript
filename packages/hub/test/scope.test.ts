@@ -3,7 +3,7 @@
 import type { Event, EventHint, RequestSessionStatus } from '@sentry/types';
 import { GLOBAL_OBJ } from '@sentry/utils';
 
-import { addGlobalEventProcessor, Scope } from '../src';
+import { Scope, addGlobalEventProcessor } from '../src';
 
 describe('Scope', () => {
   afterEach(() => {

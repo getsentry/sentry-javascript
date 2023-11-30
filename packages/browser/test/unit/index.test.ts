@@ -1,11 +1,14 @@
-import { getReportDialogEndpoint, SDK_VERSION } from '@sentry/core';
+import { SDK_VERSION, getReportDialogEndpoint } from '@sentry/core';
 import type { WrappedFunction } from '@sentry/types';
 import * as utils from '@sentry/utils';
 
 import type { Event } from '../../src';
 import {
-  addBreadcrumb,
   BrowserClient,
+  Integrations,
+  Scope,
+  WINDOW,
+  addBreadcrumb,
   captureEvent,
   captureException,
   captureMessage,
@@ -14,10 +17,7 @@ import {
   getClient,
   getCurrentHub,
   init,
-  Integrations,
-  Scope,
   showReportDialog,
-  WINDOW,
   wrap,
 } from '../../src';
 import { getDefaultBrowserClientOptions } from './helper/browser-client-options';

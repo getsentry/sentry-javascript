@@ -1,4 +1,4 @@
-import { NextApiResponse, NextApiRequest } from 'next';
+import { NextApiRequest, NextApiResponse } from 'next';
 
 if (process.env.NEXT_PUBLIC_SOME_FALSE_ENV_VAR === 'enabled') {
   require('../../test/server/utils/throw'); // Should not throw unless the hoisting in the wrapping loader is messed up!

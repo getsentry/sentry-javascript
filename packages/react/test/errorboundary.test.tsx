@@ -1,10 +1,10 @@
-import { getClient, getCurrentHub, Scope } from '@sentry/browser';
+import { Scope, getClient, getCurrentHub } from '@sentry/browser';
 import { fireEvent, render, screen } from '@testing-library/react';
 import * as React from 'react';
 import { useState } from 'react';
 
 import type { ErrorBoundaryProps } from '../src/errorboundary';
-import { ErrorBoundary, isAtLeastReact17, UNKNOWN_COMPONENT, withErrorBoundary } from '../src/errorboundary';
+import { ErrorBoundary, UNKNOWN_COMPONENT, isAtLeastReact17, withErrorBoundary } from '../src/errorboundary';
 
 const mockCaptureException = jest.fn();
 const mockShowReportDialog = jest.fn();

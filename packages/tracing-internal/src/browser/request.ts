@@ -2,13 +2,13 @@
 import { getCurrentHub, getDynamicSamplingContextFromClient, hasTracingEnabled } from '@sentry/core';
 import type { HandlerDataXhr, SentryWrappedXMLHttpRequest, Span } from '@sentry/types';
 import {
+  BAGGAGE_HEADER_NAME,
+  SENTRY_XHR_DATA_KEY,
   addFetchInstrumentationHandler,
   addXhrInstrumentationHandler,
-  BAGGAGE_HEADER_NAME,
   browserPerformanceTimeOrigin,
   dynamicSamplingContextToSentryBaggageHeader,
   generateSentryTraceHeader,
-  SENTRY_XHR_DATA_KEY,
   stringMatchesSomePattern,
 } from '@sentry/utils';
 

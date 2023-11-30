@@ -2,9 +2,9 @@ import { trace } from '@opentelemetry/api';
 import type { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
 
 import { getActiveSpan, getRootSpan } from '../../src/utils/getActiveSpan';
+import { TestClient, getDefaultTestClientOptions } from '../helpers/TestClient';
 import { setupOtel } from '../helpers/initOtel';
 import { cleanupOtel } from '../helpers/mockSdkInit';
-import { getDefaultTestClientOptions, TestClient } from '../helpers/TestClient';
 
 describe('getActiveSpan', () => {
   let provider: BasicTracerProvider | undefined;

@@ -1,3 +1,8 @@
+import * as http from 'http';
+import * as https from 'https';
+import { Readable } from 'stream';
+import { URL } from 'url';
+import { createGzip } from 'zlib';
 import { createTransport } from '@sentry/core';
 import type {
   BaseTransportOptions,
@@ -7,12 +12,7 @@ import type {
   TransportRequestExecutor,
 } from '@sentry/types';
 import { consoleSandbox } from '@sentry/utils';
-import * as http from 'http';
-import * as https from 'https';
 import { HttpsProxyAgent } from 'https-proxy-agent';
-import { Readable } from 'stream';
-import { URL } from 'url';
-import { createGzip } from 'zlib';
 
 import type { HTTPModule } from './http-module';
 

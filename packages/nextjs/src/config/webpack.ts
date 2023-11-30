@@ -1,11 +1,11 @@
+import * as fs from 'fs';
+import * as path from 'path';
 /* eslint-disable complexity */
 /* eslint-disable max-lines */
 import { getSentryRelease } from '@sentry/node';
 import { arrayify, dropUndefinedKeys, escapeStringForRegex, loadModule, logger } from '@sentry/utils';
 import type SentryCliPlugin from '@sentry/webpack-plugin';
 import * as chalk from 'chalk';
-import * as fs from 'fs';
-import * as path from 'path';
 import { sync as resolveSync } from 'resolve';
 import type { Compiler } from 'webpack';
 
@@ -122,8 +122,8 @@ export function constructWebpackConfigFunction(
     const middlewareLocationFolder = pagesDirPath
       ? path.join(pagesDirPath, '..')
       : appDirPath
-      ? path.join(appDirPath, '..')
-      : projectDir;
+        ? path.join(appDirPath, '..')
+        : projectDir;
 
     // Default page extensions per https://github.com/vercel/next.js/blob/f1dbc9260d48c7995f6c52f8fbcc65f08e627992/packages/next/server/config-shared.ts#L161
     const pageExtensions = userNextConfig.pageExtensions || ['tsx', 'ts', 'jsx', 'js'];
@@ -172,12 +172,12 @@ export function constructWebpackConfigFunction(
       );
     };
 
+    const possibleMiddlewareLocations = ['js', 'jsx', 'ts', 'tsx'].map(middlewareFileEnding => {
+      return path.join(middlewareLocationFolder, `middleware.${middlewareFileEnding}`);
+    });
     const isMiddlewareResource = (resourcePath: string): boolean => {
       const normalizedAbsoluteResourcePath = normalizeLoaderResourcePath(resourcePath);
-      return (
-        normalizedAbsoluteResourcePath.startsWith(middlewareLocationFolder + path.sep) &&
-        !!normalizedAbsoluteResourcePath.match(/[\\/]middleware\.(js|jsx|ts|tsx)$/)
-      );
+      return possibleMiddlewareLocations.includes(normalizedAbsoluteResourcePath);
     };
 
     const isServerComponentResource = (resourcePath: string): boolean => {
@@ -220,7 +220,7 @@ export function constructWebpackConfigFunction(
 
       let vercelCronsConfig: VercelCronsConfig = undefined;
       try {
-        if (process.env.VERCEL && userSentryOptions.automaticVercelMonitors !== false) {
+        if (process.env.VERCEL && userSentryOptions.automaticVercelMonitors) {
           // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
           vercelCronsConfig = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'vercel.json'), 'utf8')).crons;
           if (vercelCronsConfig) {
@@ -511,8 +511,8 @@ async function addSentryToEntryProperty(
     nextRuntime === 'edge'
       ? getUserConfigFile(projectDir, 'edge')
       : isServer
-      ? getUserConfigFile(projectDir, 'server')
-      : getUserConfigFile(projectDir, 'client');
+        ? getUserConfigFile(projectDir, 'server')
+        : getUserConfigFile(projectDir, 'client');
 
   // we need to turn the filename into a path so webpack can find it
   const filesToInject = userConfigFile ? [`./${userConfigFile}`] : [];

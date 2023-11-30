@@ -1,4 +1,4 @@
-import { test, expect, Page } from '@playwright/test';
+import { Page, expect, test } from '@playwright/test';
 
 async function getRouteData(page: Page): Promise<any> {
   return page.evaluate('window.__remixContext.state.loaderData').catch(err => {

@@ -20,8 +20,12 @@ import { OpenTelemetryScope } from './scope';
  * const client = new OpenTelemetryClient(options);
  */
 export function wrapClientClass<
-  ClassConstructor extends new (...args: any[]) => Client & BaseClient<any>,
-  WrappedClassConstructor extends new (...args: any[]) => Client & BaseClient<any> & OpenTelemetryClientInterface,
+  ClassConstructor extends new (
+    ...args: any[]
+  ) => Client & BaseClient<any>,
+  WrappedClassConstructor extends new (
+    ...args: any[]
+  ) => Client & BaseClient<any> & OpenTelemetryClientInterface,
 >(ClientClass: ClassConstructor): WrappedClassConstructor {
   class OpenTelemetryClient extends ClientClass implements OpenTelemetryClientInterface {
     public traceProvider: BasicTracerProvider | undefined;

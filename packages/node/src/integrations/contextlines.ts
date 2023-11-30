@@ -1,6 +1,6 @@
-import type { Event, EventProcessor, Hub, Integration, StackFrame } from '@sentry/types';
-import { addContextToFrame, LRUMap } from '@sentry/utils';
 import { readFile } from 'fs';
+import type { Event, EventProcessor, Hub, Integration, StackFrame } from '@sentry/types';
+import { LRUMap, addContextToFrame } from '@sentry/utils';
 
 const FILE_CONTENT_CACHE = new LRUMap<string, string[] | null>(100);
 const DEFAULT_LINES_OF_CONTEXT = 7;
