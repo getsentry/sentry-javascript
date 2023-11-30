@@ -1,4 +1,5 @@
 import { Feedback } from '@sentry-internal/integration-shims';
+import { BrowserTracing, Span, addExtensionMethods } from '@sentry-internal/tracing';
 import { Replay } from '@sentry/replay';
 
 import * as Sentry from './index.bundle.base';
