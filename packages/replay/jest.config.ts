@@ -1,17 +1,28 @@
-import type { Config } from '@jest/types';
+import type { JestConfigWithTsJest } from 'ts-jest';
 import { jsWithTs as jsWithTsPreset } from 'ts-jest/presets';
 
-export default async (): Promise<Config.InitialOptions> => {
-  return {
-    ...jsWithTsPreset,
-    globals: {
-      'ts-jest': {
+const config: JestConfigWithTsJest = {
+  preset: 'ts-jest/presets/js-with-ts',
+  transform: {
+    '^.+\\.ts$': [
+      'ts-jest',
+      {
         tsconfig: '<rootDir>/tsconfig.test.json',
       },
-      __DEBUG_BUILD__: true,
-    },
-    setupFilesAfterEnv: ['./jest.setup.ts'],
-    testEnvironment: 'jsdom',
-    testMatch: ['<rootDir>/test/**/*(*.)@(spec|test).ts'],
-  };
+    ],
+    '^.+\\.tsx$': [
+      'ts-jest',
+      {
+        tsconfig: '<rootDir>/tsconfig.test.json',
+      },
+    ],
+  },
+  globals: {
+    __DEBUG_BUILD__: true,
+  },
+  setupFilesAfterEnv: ['./jest.setup.ts'],
+  testEnvironment: 'jsdom',
+  testMatch: ['<rootDir>/test/**/*(*.)@(spec|test).ts'],
 };
+
+export default config;

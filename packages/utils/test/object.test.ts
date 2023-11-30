@@ -28,7 +28,7 @@ describe('fill()', () => {
     fill(source, name, replacement);
 
     expect(source.foo()).toEqual(42);
-    expect(replacement).toBeCalled();
+    expect(replacement).toHaveBeenCalled();
   });
 
   test('can do anything inside replacement function', () => {
@@ -44,7 +44,7 @@ describe('fill()', () => {
     fill(source, name, replacement);
 
     expect(source.foo()).toEqual(1337);
-    expect(replacement).toBeCalled();
+    expect(replacement).toHaveBeenCalled();
     expect.assertions(3);
   });
 
@@ -67,8 +67,8 @@ describe('fill()', () => {
     fill(source, name, replacement2);
 
     expect(source.foo()).toEqual(1338);
-    expect(replacement).toBeCalled();
-    expect(replacement2).toBeCalled();
+    expect(replacement).toHaveBeenCalled();
+    expect(replacement2).toHaveBeenCalled();
     expect.assertions(5);
   });
 

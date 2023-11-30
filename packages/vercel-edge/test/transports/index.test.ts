@@ -142,7 +142,7 @@ describe('IsolatedPromiseBuffer', () => {
     await ipb.add(task2);
     await ipb.add(task3);
 
-    await expect(ipb.add(task4)).rejects.toThrowError('Not adding Promise because buffer limit was reached.');
+    await expect(ipb.add(task4)).rejects.toThrow('Not adding Promise because buffer limit was reached.');
   });
 
   it('should not throw when one of the tasks throws when drained', async () => {

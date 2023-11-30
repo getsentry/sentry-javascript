@@ -18,9 +18,9 @@ describe('Unit | util | getPrivacyOptions', () => {
         ignore: ['.custom-ignore'],
       }),
     ).toMatchInlineSnapshot(`
-      Object {
-        "blockSelector": ".custom-block,.sentry-block,[data-sentry-block],base[href=\\"/\\"]",
-        "ignoreSelector": ".custom-ignore,.sentry-ignore,[data-sentry-ignore],input[type=\\"file\\"]",
+      {
+        "blockSelector": ".custom-block,.sentry-block,[data-sentry-block],base[href="/"]",
+        "ignoreSelector": ".custom-ignore,.sentry-ignore,[data-sentry-ignore],input[type="file"]",
         "maskTextSelector": ".custom-mask,.sentry-mask,[data-sentry-mask]",
         "unblockSelector": ".custom-unblock,.sentry-unblock,[data-sentry-unblock]",
         "unmaskTextSelector": ".custom-unmask,.sentry-unmask,[data-sentry-unmask]",
@@ -44,9 +44,9 @@ describe('Unit | util | getPrivacyOptions', () => {
         ignoreClass: 'deprecated-ignore-class',
       }),
     ).toMatchInlineSnapshot(`
-      Object {
-        "blockSelector": ".custom-block,.deprecated-block-selector,.sentry-block,[data-sentry-block],base[href=\\"/\\"],.deprecated-block-class",
-        "ignoreSelector": ".custom-ignore,.sentry-ignore,[data-sentry-ignore],input[type=\\"file\\"],.deprecated-ignore-class",
+      {
+        "blockSelector": ".custom-block,.deprecated-block-selector,.sentry-block,[data-sentry-block],base[href="/"],.deprecated-block-class",
+        "ignoreSelector": ".custom-ignore,.sentry-ignore,[data-sentry-ignore],input[type="file"],.deprecated-ignore-class",
         "maskTextSelector": ".custom-mask,.deprecated-mask-selector,.sentry-mask,[data-sentry-mask],.deprecated-mask-class",
         "unblockSelector": ".custom-unblock,.sentry-unblock,[data-sentry-unblock]",
         "unmaskTextSelector": ".custom-unmask,.sentry-unmask,[data-sentry-unmask]",
@@ -67,10 +67,10 @@ describe('Unit | util | getPrivacyOptions', () => {
         maskTextClass: /deprecated-mask-*/,
       }),
     ).toMatchInlineSnapshot(`
-      Object {
+      {
         "blockClass": /deprecated-block-\\*/,
-        "blockSelector": ".custom-block,.sentry-block,[data-sentry-block],base[href=\\"/\\"]",
-        "ignoreSelector": ".custom-ignore,.sentry-ignore,[data-sentry-ignore],input[type=\\"file\\"]",
+        "blockSelector": ".custom-block,.sentry-block,[data-sentry-block],base[href="/"]",
+        "ignoreSelector": ".custom-ignore,.sentry-ignore,[data-sentry-ignore],input[type="file"]",
         "maskTextClass": /deprecated-mask-\\*/,
         "maskTextSelector": ".custom-mask,.sentry-mask,[data-sentry-mask]",
         "unblockSelector": ".custom-unblock,.sentry-unblock,[data-sentry-unblock]",

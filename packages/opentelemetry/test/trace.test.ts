@@ -501,7 +501,7 @@ describe('trace (sampling)', () => {
       expect(outerSpan).toBeDefined();
     });
 
-    expect(tracesSampler).toBeCalledTimes(1);
+    expect(tracesSampler).toHaveBeenCalledTimes(1);
     expect(tracesSampler).toHaveBeenLastCalledWith({
       parentSampled: undefined,
       transactionContext: { name: 'outer', parentSampled: undefined },
@@ -540,7 +540,7 @@ describe('trace (sampling)', () => {
       expect(outerSpan).toBeDefined();
     });
 
-    expect(tracesSampler).toBeCalledTimes(1);
+    expect(tracesSampler).toHaveBeenCalledTimes(1);
     expect(tracesSampler).toHaveBeenLastCalledWith({
       parentSampled: undefined,
       transactionContext: { name: 'outer', parentSampled: undefined },
@@ -612,7 +612,7 @@ describe('trace (sampling)', () => {
       },
     );
 
-    expect(tracesSampler).toBeCalledTimes(1);
+    expect(tracesSampler).toHaveBeenCalledTimes(1);
     expect(tracesSampler).toHaveBeenLastCalledWith({
       parentSampled: true,
       transactionContext: {

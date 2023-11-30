@@ -43,15 +43,15 @@ function expectScopeSettings(fakeTransactionContext: any) {
   // @ts-expect-error see "Why @ts-expect-error" note
   const fakeTransaction = { ...SentryNode.fakeTransaction, ...fakeTransactionContext };
   // @ts-expect-error see "Why @ts-expect-error" note
-  expect(SentryNode.fakeScope.setTransactionName).toBeCalledWith('functionName');
+  expect(SentryNode.fakeScope.setTransactionName).toHaveBeenCalledWith('functionName');
   // @ts-expect-error see "Why @ts-expect-error" note
-  expect(SentryNode.fakeScope.setSpan).toBeCalledWith(fakeTransaction);
+  expect(SentryNode.fakeScope.setSpan).toHaveBeenCalledWith(fakeTransaction);
   // @ts-expect-error see "Why @ts-expect-error" note
-  expect(SentryNode.fakeScope.setTag).toBeCalledWith('server_name', expect.anything());
+  expect(SentryNode.fakeScope.setTag).toHaveBeenCalledWith('server_name', expect.anything());
   // @ts-expect-error see "Why @ts-expect-error" note
-  expect(SentryNode.fakeScope.setTag).toBeCalledWith('url', 'awslambda:///functionName');
+  expect(SentryNode.fakeScope.setTag).toHaveBeenCalledWith('url', 'awslambda:///functionName');
   // @ts-expect-error see "Why @ts-expect-error" note
-  expect(SentryNode.fakeScope.setContext).toBeCalledWith(
+  expect(SentryNode.fakeScope.setContext).toHaveBeenCalledWith(
     'aws.lambda',
     expect.objectContaining({
       aws_request_id: 'awsRequestId',
@@ -62,7 +62,7 @@ function expectScopeSettings(fakeTransactionContext: any) {
     }),
   );
   // @ts-expect-error see "Why @ts-expect-error" note
-  expect(SentryNode.fakeScope.setContext).toBeCalledWith(
+  expect(SentryNode.fakeScope.setContext).toHaveBeenCalledWith(
     'aws.cloudwatch.logs',
     expect.objectContaining({
       log_group: 'logGroupName',
@@ -91,7 +91,7 @@ describe('AWSLambda', () => {
       const wrappedHandler = wrapHandler(handler, { flushTimeout: 1337 });
 
       await wrappedHandler(fakeEvent, fakeContext, fakeCallback);
-      expect(SentryNode.flush).toBeCalledWith(1337);
+      expect(SentryNode.flush).toHaveBeenCalledWith(1337);
     });
 
     test('captureTimeoutWarning enabled (default)', async () => {
@@ -105,9 +105,9 @@ describe('AWSLambda', () => {
       const wrappedHandler = wrapHandler(handler);
       await wrappedHandler(fakeEvent, fakeContext, fakeCallback);
 
-      expect(Sentry.captureMessage).toBeCalled();
+      expect(Sentry.captureMessage).toHaveBeenCalled();
       // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeScope.setTag).toBeCalledWith('timeout', '1s');
+      expect(SentryNode.fakeScope.setTag).toHaveBeenCalledWith('timeout', '1s');
     });
 
     test('captureTimeoutWarning disabled', async () => {
@@ -123,8 +123,8 @@ describe('AWSLambda', () => {
       });
       await wrappedHandler(fakeEvent, fakeContext, fakeCallback);
 
-      expect(Sentry.withScope).not.toBeCalled();
-      expect(Sentry.captureMessage).not.toBeCalled();
+      expect(Sentry.withScope).not.toHaveBeenCalled();
+      expect(Sentry.captureMessage).not.toHaveBeenCalled();
     });
 
     test('captureTimeoutWarning with configured timeoutWarningLimit', async () => {
@@ -153,16 +153,16 @@ describe('AWSLambda', () => {
         fakeCallback,
       );
 
-      expect(Sentry.captureMessage).toBeCalled();
+      expect(Sentry.captureMessage).toHaveBeenCalled();
       // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeScope.setTag).toBeCalledWith('timeout', '1m40s');
+      expect(SentryNode.fakeScope.setTag).toHaveBeenCalledWith('timeout', '1m40s');
     });
 
     test('captureAllSettledReasons disabled (default)', async () => {
       const handler = () => Promise.resolve([{ status: 'rejected', reason: new Error() }]);
       const wrappedHandler = wrapHandler(handler, { flushTimeout: 1337 });
       await wrappedHandler(fakeEvent, fakeContext, fakeCallback);
-      expect(SentryNode.captureException).toBeCalledTimes(0);
+      expect(SentryNode.captureException).toHaveBeenCalledTimes(0);
     });
 
     test('captureAllSettledReasons enable', async () => {
@@ -178,7 +178,7 @@ describe('AWSLambda', () => {
       await wrappedHandler(fakeEvent, fakeContext, fakeCallback);
       expect(SentryNode.captureException).toHaveBeenNthCalledWith(1, error, expect.any(Function));
       expect(SentryNode.captureException).toHaveBeenNthCalledWith(2, error2, expect.any(Function));
-      expect(SentryNode.captureException).toBeCalledTimes(2);
+      expect(SentryNode.captureException).toHaveBeenCalledTimes(2);
     });
 
     // "wrapHandler() ... successful execution" tests the default of startTrace enabled
@@ -190,11 +190,11 @@ describe('AWSLambda', () => {
       await wrappedHandler(fakeEvent, fakeContext, fakeCallback);
 
       // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeScope.setTransactionName).toBeCalledTimes(0);
+      expect(SentryNode.fakeScope.setTransactionName).toHaveBeenCalledTimes(0);
       // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeScope.setTag).toBeCalledTimes(0);
+      expect(SentryNode.fakeScope.setTag).toHaveBeenCalledTimes(0);
       // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeHub.startTransaction).toBeCalledTimes(0);
+      expect(SentryNode.fakeHub.startTransaction).toHaveBeenCalledTimes(0);
     });
   });
 
@@ -217,11 +217,11 @@ describe('AWSLambda', () => {
 
       expect(rv).toStrictEqual(42);
       // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeHub.startTransaction).toBeCalledWith(fakeTransactionContext);
+      expect(SentryNode.fakeHub.startTransaction).toHaveBeenCalledWith(fakeTransactionContext);
       expectScopeSettings(fakeTransactionContext);
       // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeTransaction.finish).toBeCalled();
-      expect(SentryNode.flush).toBeCalledWith(2000);
+      expect(SentryNode.fakeTransaction.finish).toHaveBeenCalled();
+      expect(SentryNode.flush).toHaveBeenCalledWith(2000);
     });
 
     test('unsuccessful execution', async () => {
@@ -244,12 +244,12 @@ describe('AWSLambda', () => {
         };
 
         // @ts-expect-error see "Why @ts-expect-error" note
-        expect(SentryNode.fakeHub.startTransaction).toBeCalledWith(fakeTransactionContext);
+        expect(SentryNode.fakeHub.startTransaction).toHaveBeenCalledWith(fakeTransactionContext);
         expectScopeSettings(fakeTransactionContext);
-        expect(SentryNode.captureException).toBeCalledWith(error, expect.any(Function));
+        expect(SentryNode.captureException).toHaveBeenCalledWith(error, expect.any(Function));
         // @ts-expect-error see "Why @ts-expect-error" note
-        expect(SentryNode.fakeTransaction.finish).toBeCalled();
-        expect(SentryNode.flush).toBeCalledWith(2000);
+        expect(SentryNode.fakeTransaction.finish).toHaveBeenCalled();
+        expect(SentryNode.flush).toHaveBeenCalledWith(2000);
       }
     });
 
@@ -275,7 +275,7 @@ describe('AWSLambda', () => {
 
       const handler: Handler = (_event, _context, callback) => {
         // @ts-expect-error see "Why @ts-expect-error" note
-        expect(SentryNode.fakeHub.startTransaction).toBeCalledWith(
+        expect(SentryNode.fakeHub.startTransaction).toHaveBeenCalledWith(
           expect.objectContaining({
             parentSpanId: '1121201211212012',
             parentSampled: false,
@@ -323,12 +323,12 @@ describe('AWSLambda', () => {
         };
 
         // @ts-expect-error see "Why @ts-expect-error" note
-        expect(SentryNode.fakeHub.startTransaction).toBeCalledWith(fakeTransactionContext);
+        expect(SentryNode.fakeHub.startTransaction).toHaveBeenCalledWith(fakeTransactionContext);
         expectScopeSettings(fakeTransactionContext);
-        expect(SentryNode.captureException).toBeCalledWith(e, expect.any(Function));
+        expect(SentryNode.captureException).toHaveBeenCalledWith(e, expect.any(Function));
         // @ts-expect-error see "Why @ts-expect-error" note
-        expect(SentryNode.fakeTransaction.finish).toBeCalled();
-        expect(SentryNode.flush).toBeCalled();
+        expect(SentryNode.fakeTransaction.finish).toHaveBeenCalled();
+        expect(SentryNode.flush).toHaveBeenCalled();
       }
     });
   });
@@ -352,11 +352,11 @@ describe('AWSLambda', () => {
 
       expect(rv).toStrictEqual(42);
       // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeHub.startTransaction).toBeCalledWith(fakeTransactionContext);
+      expect(SentryNode.fakeHub.startTransaction).toHaveBeenCalledWith(fakeTransactionContext);
       expectScopeSettings(fakeTransactionContext);
       // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeTransaction.finish).toBeCalled();
-      expect(SentryNode.flush).toBeCalled();
+      expect(SentryNode.fakeTransaction.finish).toHaveBeenCalled();
+      expect(SentryNode.flush).toHaveBeenCalled();
     });
 
     test('event and context are correctly passed to the original handler', async () => {
@@ -390,12 +390,12 @@ describe('AWSLambda', () => {
         };
 
         // @ts-expect-error see "Why @ts-expect-error" note
-        expect(SentryNode.fakeHub.startTransaction).toBeCalledWith(fakeTransactionContext);
+        expect(SentryNode.fakeHub.startTransaction).toHaveBeenCalledWith(fakeTransactionContext);
         expectScopeSettings(fakeTransactionContext);
-        expect(SentryNode.captureException).toBeCalledWith(error, expect.any(Function));
+        expect(SentryNode.captureException).toHaveBeenCalledWith(error, expect.any(Function));
         // @ts-expect-error see "Why @ts-expect-error" note
-        expect(SentryNode.fakeTransaction.finish).toBeCalled();
-        expect(SentryNode.flush).toBeCalled();
+        expect(SentryNode.fakeTransaction.finish).toHaveBeenCalled();
+        expect(SentryNode.flush).toHaveBeenCalled();
       }
     });
 
@@ -434,11 +434,11 @@ describe('AWSLambda', () => {
 
       expect(rv).toStrictEqual(42);
       // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeHub.startTransaction).toBeCalledWith(fakeTransactionContext);
+      expect(SentryNode.fakeHub.startTransaction).toHaveBeenCalledWith(fakeTransactionContext);
       expectScopeSettings(fakeTransactionContext);
       // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeTransaction.finish).toBeCalled();
-      expect(SentryNode.flush).toBeCalled();
+      expect(SentryNode.fakeTransaction.finish).toHaveBeenCalled();
+      expect(SentryNode.flush).toHaveBeenCalled();
     });
 
     test('event and context are correctly passed to the original handler', async () => {
@@ -472,12 +472,12 @@ describe('AWSLambda', () => {
         };
 
         // @ts-expect-error see "Why @ts-expect-error" note
-        expect(SentryNode.fakeHub.startTransaction).toBeCalledWith(fakeTransactionContext);
+        expect(SentryNode.fakeHub.startTransaction).toHaveBeenCalledWith(fakeTransactionContext);
         expectScopeSettings(fakeTransactionContext);
-        expect(SentryNode.captureException).toBeCalledWith(error, expect.any(Function));
+        expect(SentryNode.captureException).toHaveBeenCalledWith(error, expect.any(Function));
         // @ts-expect-error see "Why @ts-expect-error" note
-        expect(SentryNode.fakeTransaction.finish).toBeCalled();
-        expect(SentryNode.flush).toBeCalled();
+        expect(SentryNode.fakeTransaction.finish).toHaveBeenCalled();
+        expect(SentryNode.flush).toHaveBeenCalled();
       }
     });
   });
@@ -494,7 +494,7 @@ describe('AWSLambda', () => {
     try {
       await wrappedHandler(fakeEvent, fakeContext, fakeCallback);
     } catch (e) {
-      expect(SentryNode.captureException).toBeCalledWith(error, expect.any(Function));
+      expect(SentryNode.captureException).toHaveBeenCalledWith(error, expect.any(Function));
       // @ts-expect-error see "Why @ts-expect-error" note
       const scopeFunction = SentryNode.captureException.mock.calls[0][1];
       const event: Event = { exception: { values: [{}] } };
@@ -514,7 +514,7 @@ describe('AWSLambda', () => {
     test('calls Sentry.init with correct sdk info metadata', () => {
       Sentry.AWSLambda.init({});
 
-      expect(Sentry.init).toBeCalledWith(
+      expect(Sentry.init).toHaveBeenCalledWith(
         expect.objectContaining({
           _metadata: {
             sdk: {

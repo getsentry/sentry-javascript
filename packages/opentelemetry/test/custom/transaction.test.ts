@@ -21,8 +21,8 @@ describe('NodeExperimentalTransaction', () => {
 
     const res = transaction.finishWithScope();
 
-    expect(mockSend).toBeCalledTimes(1);
-    expect(mockSend).toBeCalledWith(
+    expect(mockSend).toHaveBeenCalledTimes(1);
+    expect(mockSend).toHaveBeenCalledWith(
       expect.objectContaining({
         contexts: {
           trace: {
@@ -68,8 +68,8 @@ describe('NodeExperimentalTransaction', () => {
 
     const res = transaction.finishWithScope(1234567);
 
-    expect(mockSend).toBeCalledTimes(1);
-    expect(mockSend).toBeCalledWith(
+    expect(mockSend).toHaveBeenCalledTimes(1);
+    expect(mockSend).toHaveBeenCalledWith(
       expect.objectContaining({
         start_timestamp: 123456,
         timestamp: 1234567,
@@ -100,8 +100,8 @@ describe('NodeExperimentalTransaction', () => {
 
     const res = transaction.finishWithScope(1234567, scope);
 
-    expect(mockSend).toBeCalledTimes(1);
-    expect(mockSend).toBeCalledWith(
+    expect(mockSend).toHaveBeenCalledTimes(1);
+    expect(mockSend).toHaveBeenCalledWith(
       expect.objectContaining({
         contexts: {
           trace: {

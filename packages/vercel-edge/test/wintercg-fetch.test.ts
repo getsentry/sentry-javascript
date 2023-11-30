@@ -139,7 +139,7 @@ describe('WinterCGFetch instrumentation', () => {
     };
     fetchInstrumentationHandlerCallback(startHandlerData);
 
-    expect(addBreadcrumbSpy).toBeCalledWith(
+    expect(addBreadcrumbSpy).toHaveBeenCalledWith(
       {
         category: 'fetch',
         data: { method: 'POST', status_code: 201, url: 'http://my-website.com/' },

@@ -58,13 +58,13 @@ describe('GoogleCloudHttp tracing', () => {
       const resp = await bigquery.query('SELECT true AS foo');
       expect(resp).toEqual([[{ foo: true }]]);
       // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeTransaction.startChild).toBeCalledWith({
+      expect(SentryNode.fakeTransaction.startChild).toHaveBeenCalledWith({
         op: 'http.client.bigquery',
         origin: 'auto.http.serverless',
         description: 'POST /jobs',
       });
       // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeTransaction.startChild).toBeCalledWith({
+      expect(SentryNode.fakeTransaction.startChild).toHaveBeenCalledWith({
         op: 'http.client.bigquery',
         origin: 'auto.http.serverless',
         description: expect.stringMatching(new RegExp('^GET /queries/.+')),

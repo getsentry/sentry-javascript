@@ -52,7 +52,7 @@ describe('Debug integration setup should register an event processor that', () =
     testEventLogged(debugIntegration, testEvent);
 
     expect(mockConsoleLog).toHaveBeenCalledTimes(1);
-    expect(mockConsoleLog).toBeCalledWith(testEvent);
+    expect(mockConsoleLog).toHaveBeenCalledWith(testEvent);
   });
 
   it('logs an event hint if available', () => {
@@ -64,8 +64,8 @@ describe('Debug integration setup should register an event processor that', () =
     testEventLogged(debugIntegration, testEvent, testEventHint);
 
     expect(mockConsoleLog).toHaveBeenCalledTimes(2);
-    expect(mockConsoleLog).toBeCalledWith(testEvent);
-    expect(mockConsoleLog).toBeCalledWith(testEventHint);
+    expect(mockConsoleLog).toHaveBeenCalledWith(testEvent);
+    expect(mockConsoleLog).toHaveBeenCalledWith(testEventHint);
   });
 
   it('logs events in stringified format when `stringify` option was set', () => {
@@ -75,7 +75,7 @@ describe('Debug integration setup should register an event processor that', () =
     testEventLogged(debugIntegration, testEvent);
 
     expect(mockConsoleLog).toHaveBeenCalledTimes(1);
-    expect(mockConsoleLog).toBeCalledWith(JSON.stringify(testEvent, null, 2));
+    expect(mockConsoleLog).toHaveBeenCalledWith(JSON.stringify(testEvent, null, 2));
   });
 
   it('logs event hints in stringified format when `stringify` option was set', () => {
@@ -87,6 +87,6 @@ describe('Debug integration setup should register an event processor that', () =
     testEventLogged(debugIntegration, testEvent, testEventHint);
 
     expect(mockConsoleLog).toHaveBeenCalledTimes(2);
-    expect(mockConsoleLog).toBeCalledWith(JSON.stringify(testEventHint, null, 2));
+    expect(mockConsoleLog).toHaveBeenCalledWith(JSON.stringify(testEventHint, null, 2));
   });
 });

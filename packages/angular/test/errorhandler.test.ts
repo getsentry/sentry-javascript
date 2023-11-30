@@ -516,7 +516,7 @@ describe('SentryErrorHandler', () => {
         // this simulates the afterSend hook being called
         client.cb({});
 
-        expect(showReportDialogSpy).toBeCalledTimes(1);
+        expect(showReportDialogSpy).toHaveBeenCalledTimes(1);
       });
 
       it('by just calling `showReportDialog` if hooks are not available', () => {
@@ -525,7 +525,7 @@ describe('SentryErrorHandler', () => {
         const errorHandler = createErrorHandler({ showDialog: true });
         errorHandler.handleError(new Error('test'));
 
-        expect(showReportDialogSpy).toBeCalledTimes(1);
+        expect(showReportDialogSpy).toHaveBeenCalledTimes(1);
       });
     });
   });

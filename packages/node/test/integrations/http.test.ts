@@ -276,7 +276,7 @@ describe('tracing', () => {
       () => hub,
     );
 
-    expect(loggerLogSpy).toBeCalledWith('HTTP Integration is skipped because of instrumenter configuration.');
+    expect(loggerLogSpy).toHaveBeenCalledWith('HTTP Integration is skipped because of instrumenter configuration.');
   });
 
   it('omits query and fragment from description and adds to span data instead', () => {

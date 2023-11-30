@@ -996,8 +996,8 @@ describe('BaseClient', () => {
       expect(TestClient.instance!.event).toBeUndefined();
       // This proves that the reason the event didn't send/didn't get set on the test client is not because there was an
       // error, but because `beforeSend` returned `null`
-      expect(captureExceptionSpy).not.toBeCalled();
-      expect(loggerWarnSpy).toBeCalledWith('before send for type `error` returned `null`, will not send event.');
+      expect(captureExceptionSpy).not.toHaveBeenCalled();
+      expect(loggerWarnSpy).toHaveBeenCalledWith('before send for type `error` returned `null`, will not send event.');
     });
 
     test('calls `beforeSendTransaction` and discards the event', () => {
@@ -1015,8 +1015,10 @@ describe('BaseClient', () => {
       expect(TestClient.instance!.event).toBeUndefined();
       // This proves that the reason the event didn't send/didn't get set on the test client is not because there was an
       // error, but because `beforeSendTransaction` returned `null`
-      expect(captureExceptionSpy).not.toBeCalled();
-      expect(loggerWarnSpy).toBeCalledWith('before send for type `transaction` returned `null`, will not send event.');
+      expect(captureExceptionSpy).not.toHaveBeenCalled();
+      expect(loggerWarnSpy).toHaveBeenCalledWith(
+        'before send for type `transaction` returned `null`, will not send event.',
+      );
     });
 
     test('calls `beforeSend` and logs info about invalid return value', () => {
@@ -1034,7 +1036,7 @@ describe('BaseClient', () => {
 
         expect(beforeSend).toHaveBeenCalled();
         expect(TestClient.instance!.event).toBeUndefined();
-        expect(loggerWarnSpy).toBeCalledWith(
+        expect(loggerWarnSpy).toHaveBeenCalledWith(
           new SentryError('before send for type `error` must return `null` or a valid event.'),
         );
       }
@@ -1055,7 +1057,7 @@ describe('BaseClient', () => {
 
         expect(beforeSendTransaction).toHaveBeenCalled();
         expect(TestClient.instance!.event).toBeUndefined();
-        expect(loggerWarnSpy).toBeCalledWith(
+        expect(loggerWarnSpy).toHaveBeenCalledWith(
           new SentryError('before send for type `transaction` must return `null` or a valid event.'),
         );
       }
@@ -1317,8 +1319,8 @@ describe('BaseClient', () => {
       expect(TestClient.instance!.event).toBeUndefined();
       // This proves that the reason the event didn't send/didn't get set on the test client is not because there was an
       // error, but because the event processor returned `null`
-      expect(captureExceptionSpy).not.toBeCalled();
-      expect(loggerLogSpy).toBeCalledWith('An event processor returned `null`, will not send event.');
+      expect(captureExceptionSpy).not.toHaveBeenCalled();
+      expect(loggerLogSpy).toHaveBeenCalledWith('An event processor returned `null`, will not send event.');
     });
 
     test('event processor drops transaction event when it returns `null`', () => {
@@ -1335,8 +1337,8 @@ describe('BaseClient', () => {
       expect(TestClient.instance!.event).toBeUndefined();
       // This proves that the reason the event didn't send/didn't get set on the test client is not because there was an
       // error, but because the event processor returned `null`
-      expect(captureExceptionSpy).not.toBeCalled();
-      expect(loggerLogSpy).toBeCalledWith('An event processor returned `null`, will not send event.');
+      expect(captureExceptionSpy).not.toHaveBeenCalled();
+      expect(loggerLogSpy).toHaveBeenCalledWith('An event processor returned `null`, will not send event.');
     });
 
     test('event processor records dropped error events', () => {
@@ -1440,13 +1442,13 @@ describe('BaseClient', () => {
       client.captureEvent({ message: 'hello' }, {}, scope);
 
       expect(TestClient.instance!.event!.exception!.values![0]).toStrictEqual({ type: 'Error', value: 'sorry' });
-      expect(captureExceptionSpy).toBeCalledWith(exception, {
+      expect(captureExceptionSpy).toHaveBeenCalledWith(exception, {
         data: {
           __sentry__: true,
         },
         originalException: exception,
       });
-      expect(loggerWarnSpy).toBeCalledWith(
+      expect(loggerWarnSpy).toHaveBeenCalledWith(
         new SentryError(
           `Event processing pipeline threw an error, original event will not be sent. Details have been sent as a new event.\nReason: ${exception}`,
         ),
@@ -1670,9 +1672,9 @@ describe('BaseClient', () => {
       await undefined;
       await undefined;
 
-      expect(mockSend).toBeCalledTimes(1);
-      expect(callback).toBeCalledTimes(1);
-      expect(callback).toBeCalledWith(errorEvent, {});
+      expect(mockSend).toHaveBeenCalledTimes(1);
+      expect(callback).toHaveBeenCalledTimes(1);
+      expect(callback).toHaveBeenCalledWith(errorEvent, {});
     });
 
     it('emits `afterSendEvent` when sending a transaction', async () => {
@@ -1698,9 +1700,9 @@ describe('BaseClient', () => {
       await undefined;
       await undefined;
 
-      expect(mockSend).toBeCalledTimes(1);
-      expect(callback).toBeCalledTimes(1);
-      expect(callback).toBeCalledWith(transactionEvent, {});
+      expect(mockSend).toHaveBeenCalledTimes(1);
+      expect(callback).toHaveBeenCalledTimes(1);
+      expect(callback).toHaveBeenCalledWith(transactionEvent, {});
     });
 
     it('still triggers `afterSendEvent` when transport.send rejects', async () => {
@@ -1730,9 +1732,9 @@ describe('BaseClient', () => {
       await undefined;
       await undefined;
 
-      expect(mockSend).toBeCalledTimes(1);
-      expect(callback).toBeCalledTimes(1);
-      expect(callback).toBeCalledWith(errorEvent, undefined);
+      expect(mockSend).toHaveBeenCalledTimes(1);
+      expect(callback).toHaveBeenCalledTimes(1);
+      expect(callback).toHaveBeenCalledWith(errorEvent, undefined);
     });
 
     it('passes the response to the hook', async () => {
@@ -1762,9 +1764,9 @@ describe('BaseClient', () => {
       await undefined;
       await undefined;
 
-      expect(mockSend).toBeCalledTimes(1);
-      expect(callback).toBeCalledTimes(1);
-      expect(callback).toBeCalledWith(errorEvent, { statusCode: 200 });
+      expect(mockSend).toHaveBeenCalledTimes(1);
+      expect(callback).toHaveBeenCalledTimes(1);
+      expect(callback).toHaveBeenCalledWith(errorEvent, { statusCode: 200 });
     });
   });
 

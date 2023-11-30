@@ -1,4 +1,6 @@
 import * as SentryBrowser from '@sentry/browser';
+import type { BrowserTransportOptions } from '@sentry/browser/src/transports/types';
+import type { Options } from '@sentry/types';
 
 import { defaultIntegrations, init } from '../src/index';
 
@@ -26,19 +28,19 @@ describe('init', () => {
 
       expect(browserInitSpy).toHaveBeenCalledTimes(1);
 
-      const options = browserInitSpy.mock.calls[0][0] || {};
-      expect(options.defaultIntegrations).not.toContainEqual(expect.objectContaining({ name: 'TryCatch' }));
+      const options = browserInitSpy.mock.calls[0][0] as Options<BrowserTransportOptions> | undefined;
+      expect(options?.defaultIntegrations).not.toContainEqual(expect.objectContaining({ name: 'TryCatch' }));
     });
 
     it.each([false as const, defaultIntegrations])(
       "doesn't filter if `defaultIntegrations` is set to %s",
-      defaultIntegrations => {
+      (defaultIntegrations: Options<BrowserTransportOptions>['defaultIntegrations']) => {
         init({ defaultIntegrations });
 
         expect(browserInitSpy).toHaveBeenCalledTimes(1);
 
-        const options = browserInitSpy.mock.calls[0][0] || {};
-        expect(options.defaultIntegrations).toEqual(defaultIntegrations);
+        const options = browserInitSpy.mock.calls[0][0] as Options<BrowserTransportOptions> | undefined;
+        expect(options?.defaultIntegrations).toEqual(defaultIntegrations);
       },
     );
   });

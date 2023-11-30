@@ -16,7 +16,7 @@ describe('Integration | integrationSettings', () => {
       const { replay } = await mockSdk({ replayOptions: { blockSelector: '' } });
 
       expect(replay['_recordingOptions'].blockSelector).toMatchInlineSnapshot(
-        '",.sentry-block,[data-sentry-block],base[href=\\"/\\"],img,image,svg,video,object,picture,embed,map,audio,link[rel=\\"icon\\"],link[rel=\\"apple-touch-icon\\"]"',
+        '",.sentry-block,[data-sentry-block],base[href="/"],img,image,svg,video,object,picture,embed,map,audio,link[rel="icon"],link[rel="apple-touch-icon"]"',
       );
     });
 
@@ -26,7 +26,7 @@ describe('Integration | integrationSettings', () => {
       });
 
       expect(replay['_recordingOptions'].blockSelector).toMatchInlineSnapshot(
-        '"[data-test-blockSelector],.sentry-block,[data-sentry-block],base[href=\\"/\\"],img,image,svg,video,object,picture,embed,map,audio,link[rel=\\"icon\\"],link[rel=\\"apple-touch-icon\\"]"',
+        '"[data-test-blockSelector],.sentry-block,[data-sentry-block],base[href="/"],img,image,svg,video,object,picture,embed,map,audio,link[rel="icon"],link[rel="apple-touch-icon"]"',
       );
     });
   });
@@ -49,7 +49,7 @@ describe('Integration | integrationSettings', () => {
       });
 
       expect(replay.getOptions().sessionSampleRate).toBe(0.5);
-      expect(mockConsole).toBeCalledTimes(1);
+      expect(mockConsole).toHaveBeenCalledTimes(1);
     });
 
     it('works with defining 0 in integration but logs warnings', async () => {
@@ -59,21 +59,21 @@ describe('Integration | integrationSettings', () => {
       });
 
       expect(replay.getOptions().sessionSampleRate).toBe(0);
-      expect(mockConsole).toBeCalledTimes(1);
+      expect(mockConsole).toHaveBeenCalledTimes(1);
     });
 
     it('works with defining settings in SDK', async () => {
       const { replay } = await mockSdk({ sentryOptions: { replaysSessionSampleRate: 0.5 }, replayOptions: {} });
 
       expect(replay.getOptions().sessionSampleRate).toBe(0.5);
-      expect(mockConsole).toBeCalledTimes(0);
+      expect(mockConsole).toHaveBeenCalledTimes(0);
     });
 
     it('works with defining 0 in SDK', async () => {
       const { replay } = await mockSdk({ sentryOptions: { replaysSessionSampleRate: 0 }, replayOptions: {} });
 
       expect(replay.getOptions().sessionSampleRate).toBe(0);
-      expect(mockConsole).toBeCalledTimes(0);
+      expect(mockConsole).toHaveBeenCalledTimes(0);
     });
 
     it('SDK option takes precedence', async () => {
@@ -83,7 +83,7 @@ describe('Integration | integrationSettings', () => {
       });
 
       expect(replay.getOptions().sessionSampleRate).toBe(0.5);
-      expect(mockConsole).toBeCalledTimes(1);
+      expect(mockConsole).toHaveBeenCalledTimes(1);
     });
 
     it('SDK option takes precedence even when 0', async () => {
@@ -93,7 +93,7 @@ describe('Integration | integrationSettings', () => {
       });
 
       expect(replay.getOptions().sessionSampleRate).toBe(0);
-      expect(mockConsole).toBeCalledTimes(1);
+      expect(mockConsole).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -115,7 +115,7 @@ describe('Integration | integrationSettings', () => {
       });
 
       expect(replay.getOptions().errorSampleRate).toBe(0.5);
-      expect(mockConsole).toBeCalledTimes(1);
+      expect(mockConsole).toHaveBeenCalledTimes(1);
     });
 
     it('works with defining 0 in integration', async () => {
@@ -125,21 +125,21 @@ describe('Integration | integrationSettings', () => {
       });
 
       expect(replay.getOptions().errorSampleRate).toBe(0);
-      expect(mockConsole).toBeCalledTimes(1);
+      expect(mockConsole).toHaveBeenCalledTimes(1);
     });
 
     it('works with defining settings in SDK', async () => {
       const { replay } = await mockSdk({ sentryOptions: { replaysOnErrorSampleRate: 0.5 }, replayOptions: {} });
 
       expect(replay.getOptions().errorSampleRate).toBe(0.5);
-      expect(mockConsole).toBeCalledTimes(0);
+      expect(mockConsole).toHaveBeenCalledTimes(0);
     });
 
     it('works with defining 0 in SDK', async () => {
       const { replay } = await mockSdk({ sentryOptions: { replaysOnErrorSampleRate: 0 }, replayOptions: {} });
 
       expect(replay.getOptions().errorSampleRate).toBe(0);
-      expect(mockConsole).toBeCalledTimes(0);
+      expect(mockConsole).toHaveBeenCalledTimes(0);
     });
 
     it('SDK option takes precedence', async () => {
@@ -149,7 +149,7 @@ describe('Integration | integrationSettings', () => {
       });
 
       expect(replay.getOptions().errorSampleRate).toBe(0.5);
-      expect(mockConsole).toBeCalledTimes(1);
+      expect(mockConsole).toHaveBeenCalledTimes(1);
     });
 
     it('SDK option takes precedence even when 0', async () => {
@@ -159,7 +159,7 @@ describe('Integration | integrationSettings', () => {
       });
 
       expect(replay.getOptions().errorSampleRate).toBe(0);
-      expect(mockConsole).toBeCalledTimes(1);
+      expect(mockConsole).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -182,7 +182,7 @@ describe('Integration | integrationSettings', () => {
 
       expect(replay.getOptions().sessionSampleRate).toBe(0);
       expect(replay.getOptions().errorSampleRate).toBe(0);
-      expect(mockConsole).toBeCalledTimes(1);
+      expect(mockConsole).toHaveBeenCalledTimes(1);
     });
   });
 

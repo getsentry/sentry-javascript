@@ -311,10 +311,10 @@ describe('Sentry webpack plugin config', () => {
     });
 
     it('errors when files are missing', () => {
-      expect(() => getUserConfigFile(tempDir, 'server')).toThrowError(
+      expect(() => getUserConfigFile(tempDir, 'server')).toThrow(
         `Cannot find 'sentry.server.config.ts' or 'sentry.server.config.js' in '${tempDir}'`,
       );
-      expect(() => getUserConfigFile(tempDir, 'client')).toThrowError(
+      expect(() => getUserConfigFile(tempDir, 'client')).toThrow(
         `Cannot find 'sentry.client.config.ts' or 'sentry.client.config.js' in '${tempDir}'`,
       );
     });

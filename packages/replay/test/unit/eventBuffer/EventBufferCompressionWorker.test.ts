@@ -166,7 +166,7 @@ describe('Unit | eventBuffer | EventBufferCompressionWorker', () => {
       await buffer.addEvent(largeEvent);
 
       // Now it should error
-      await expect(() => buffer.addEvent(largeEvent)).rejects.toThrowError(EventBufferSizeExceededError);
+      await expect(() => buffer.addEvent(largeEvent)).rejects.toThrow(EventBufferSizeExceededError);
     });
 
     it('resets size limit on clear', async function () {

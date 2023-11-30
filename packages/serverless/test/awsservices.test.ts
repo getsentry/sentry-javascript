@@ -31,13 +31,13 @@ describe('AWSServices', () => {
       const data = await s3.getObject({ Bucket: 'foo', Key: 'bar' }).promise();
       expect(data.Body?.toString('utf-8')).toEqual('contents');
       // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeTransaction.startChild).toBeCalledWith({
+      expect(SentryNode.fakeTransaction.startChild).toHaveBeenCalledWith({
         op: 'http.client',
         origin: 'auto.http.serverless',
         description: 'aws.s3.getObject foo',
       });
       // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeSpan.finish).toBeCalled();
+      expect(SentryNode.fakeSpan.finish).toHaveBeenCalled();
     });
 
     test('getObject with callback', done => {
@@ -49,7 +49,7 @@ describe('AWSServices', () => {
         done();
       });
       // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeTransaction.startChild).toBeCalledWith({
+      expect(SentryNode.fakeTransaction.startChild).toHaveBeenCalledWith({
         op: 'http.client',
         origin: 'auto.http.serverless',
         description: 'aws.s3.getObject foo',
@@ -65,7 +65,7 @@ describe('AWSServices', () => {
       const data = await lambda.invoke({ FunctionName: 'foo' }).promise();
       expect(data.Payload?.toString('utf-8')).toEqual('reply');
       // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeTransaction.startChild).toBeCalledWith({
+      expect(SentryNode.fakeTransaction.startChild).toHaveBeenCalledWith({
         op: 'http.client',
         origin: 'auto.http.serverless',
         description: 'aws.lambda.invoke foo',

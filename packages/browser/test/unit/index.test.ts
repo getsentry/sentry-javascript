@@ -357,7 +357,7 @@ describe('SentryBrowser initialization', () => {
       const sdkData = getClient()?.getOptions()._metadata?.sdk || {};
 
       expect(sdkData.packages?.[0].name).toBe('cdn:@sentry/browser');
-      expect(utils.getSDKSource).toBeCalledTimes(1);
+      expect(utils.getSDKSource).toHaveBeenCalledTimes(1);
       spy.mockRestore();
     });
 

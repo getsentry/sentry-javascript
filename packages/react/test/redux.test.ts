@@ -36,7 +36,7 @@ describe('createReduxEnhancer', () => {
     const action = { type: 'TEST_ACTION' };
     store.dispatch(action);
 
-    expect(mockAddBreadcrumb).toBeCalledWith({
+    expect(mockAddBreadcrumb).toHaveBeenCalledWith({
       category: 'redux.action',
       data: action,
       type: 'info',
@@ -67,7 +67,7 @@ describe('createReduxEnhancer', () => {
     const updateAction = { type: ACTION_TYPE, newValue: 'updated' };
     store.dispatch(updateAction);
 
-    expect(mockSetContext).toBeCalledWith('state', {
+    expect(mockSetContext).toHaveBeenCalledWith('state', {
       state: {
         type: 'redux',
         value: {
@@ -93,7 +93,7 @@ describe('createReduxEnhancer', () => {
 
       Redux.createStore((state = initialState) => state, enhancer);
 
-      expect(mockSetContext).toBeCalledWith('state', {
+      expect(mockSetContext).toHaveBeenCalledWith('state', {
         state: {
           type: 'redux',
           value: {
@@ -117,7 +117,7 @@ describe('createReduxEnhancer', () => {
       Redux.createStore((state = initialState) => state, enhancer);
 
       // Check that state is cleared
-      expect(mockSetContext).toBeCalledWith('state', null);
+      expect(mockSetContext).toHaveBeenCalledWith('state', null);
     });
 
     it('transforms actions', () => {
@@ -147,7 +147,7 @@ describe('createReduxEnhancer', () => {
         type: ACTION_TYPES.SECRET,
       });
 
-      expect(mockAddBreadcrumb).toBeCalledWith({
+      expect(mockAddBreadcrumb).toHaveBeenCalledWith({
         category: 'redux.action',
         data: {
           secret: 'I love pizza',
@@ -162,14 +162,14 @@ describe('createReduxEnhancer', () => {
       };
       store.dispatch(safeAction);
 
-      expect(mockAddBreadcrumb).toBeCalledWith({
+      expect(mockAddBreadcrumb).toHaveBeenCalledWith({
         category: 'redux.action',
         data: safeAction,
         type: 'info',
       });
 
       // first time is redux initialize
-      expect(mockAddBreadcrumb).toBeCalledTimes(3);
+      expect(mockAddBreadcrumb).toHaveBeenCalledTimes(3);
     });
 
     it("doesn't send action if transformer returns null", () => {
@@ -201,8 +201,8 @@ describe('createReduxEnhancer', () => {
       store.dispatch(secretAction);
 
       // first time is redux initialize
-      expect(mockAddBreadcrumb).toBeCalledTimes(2);
-      expect(mockAddBreadcrumb).toBeCalledWith({
+      expect(mockAddBreadcrumb).toHaveBeenCalledTimes(2);
+      expect(mockAddBreadcrumb).toHaveBeenCalledWith({
         category: 'redux.action',
         data: safeAction,
         type: 'info',
@@ -243,7 +243,7 @@ describe('createReduxEnhancer', () => {
     let scopeRef;
     Sentry.configureScope(scope => (scopeRef = scope));
 
-    expect(configureScopeWithState).toBeCalledWith(scopeRef, {
+    expect(configureScopeWithState).toHaveBeenCalledWith(scopeRef, {
       value: 'latest',
     });
   });

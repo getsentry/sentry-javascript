@@ -96,7 +96,7 @@ describe('GCPFunction', () => {
       const wrappedHandler = wrapHttpFunction(handler, { flushTimeout: 1337 });
 
       await handleHttp(wrappedHandler);
-      expect(SentryNode.flush).toBeCalledWith(1337);
+      expect(SentryNode.flush).toHaveBeenCalledWith(1337);
     });
   });
 
@@ -121,14 +121,14 @@ describe('GCPFunction', () => {
       const fakeTransaction = { ...SentryNode.fakeTransaction, ...fakeTransactionContext };
 
       // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeHub.startTransaction).toBeCalledWith(fakeTransactionContext);
+      expect(SentryNode.fakeHub.startTransaction).toHaveBeenCalledWith(fakeTransactionContext);
       // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeScope.setSpan).toBeCalledWith(fakeTransaction);
+      expect(SentryNode.fakeScope.setSpan).toHaveBeenCalledWith(fakeTransaction);
       // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeTransaction.setHttpStatus).toBeCalledWith(200);
+      expect(SentryNode.fakeTransaction.setHttpStatus).toHaveBeenCalledWith(200);
       // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeTransaction.finish).toBeCalled();
-      expect(SentryNode.flush).toBeCalledWith(2000);
+      expect(SentryNode.fakeTransaction.finish).toHaveBeenCalled();
+      expect(SentryNode.flush).toHaveBeenCalledWith(2000);
     });
 
     test('incoming trace headers are correctly parsed and used', async () => {
@@ -161,7 +161,7 @@ describe('GCPFunction', () => {
       };
 
       // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeHub.startTransaction).toBeCalledWith(fakeTransactionContext);
+      expect(SentryNode.fakeHub.startTransaction).toHaveBeenCalledWith(fakeTransactionContext);
     });
 
     test('capture error', async () => {
@@ -192,13 +192,13 @@ describe('GCPFunction', () => {
       const fakeTransaction = { ...SentryNode.fakeTransaction, ...fakeTransactionContext };
 
       // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeHub.startTransaction).toBeCalledWith(fakeTransactionContext);
+      expect(SentryNode.fakeHub.startTransaction).toHaveBeenCalledWith(fakeTransactionContext);
       // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeScope.setSpan).toBeCalledWith(fakeTransaction);
-      expect(SentryNode.captureException).toBeCalledWith(error, expect.any(Function));
+      expect(SentryNode.fakeScope.setSpan).toHaveBeenCalledWith(fakeTransaction);
+      expect(SentryNode.captureException).toHaveBeenCalledWith(error, expect.any(Function));
       // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeTransaction.finish).toBeCalled();
-      expect(SentryNode.flush).toBeCalled();
+      expect(SentryNode.fakeTransaction.finish).toHaveBeenCalled();
+      expect(SentryNode.flush).toHaveBeenCalled();
     });
 
     test('should not throw when flush rejects', async () => {
@@ -283,12 +283,12 @@ describe('GCPFunction', () => {
       const fakeTransaction = { ...SentryNode.fakeTransaction, ...fakeTransactionContext };
 
       // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeHub.startTransaction).toBeCalledWith(fakeTransactionContext);
+      expect(SentryNode.fakeHub.startTransaction).toHaveBeenCalledWith(fakeTransactionContext);
       // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeScope.setSpan).toBeCalledWith(fakeTransaction);
+      expect(SentryNode.fakeScope.setSpan).toHaveBeenCalledWith(fakeTransaction);
       // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeTransaction.finish).toBeCalled();
-      expect(SentryNode.flush).toBeCalledWith(2000);
+      expect(SentryNode.fakeTransaction.finish).toHaveBeenCalled();
+      expect(SentryNode.flush).toHaveBeenCalledWith(2000);
     });
 
     test('capture error', async () => {
@@ -299,7 +299,7 @@ describe('GCPFunction', () => {
         throw error;
       };
       const wrappedHandler = wrapEventFunction(handler);
-      await expect(handleEvent(wrappedHandler)).rejects.toThrowError(error);
+      await expect(handleEvent(wrappedHandler)).rejects.toThrow(error);
 
       const fakeTransactionContext = {
         name: 'event.type',
@@ -311,13 +311,13 @@ describe('GCPFunction', () => {
       const fakeTransaction = { ...SentryNode.fakeTransaction, ...fakeTransactionContext };
 
       // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeHub.startTransaction).toBeCalledWith(fakeTransactionContext);
+      expect(SentryNode.fakeHub.startTransaction).toHaveBeenCalledWith(fakeTransactionContext);
       // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeScope.setSpan).toBeCalledWith(fakeTransaction);
-      expect(SentryNode.captureException).toBeCalledWith(error, expect.any(Function));
+      expect(SentryNode.fakeScope.setSpan).toHaveBeenCalledWith(fakeTransaction);
+      expect(SentryNode.captureException).toHaveBeenCalledWith(error, expect.any(Function));
       // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeTransaction.finish).toBeCalled();
-      expect(SentryNode.flush).toBeCalled();
+      expect(SentryNode.fakeTransaction.finish).toHaveBeenCalled();
+      expect(SentryNode.flush).toHaveBeenCalled();
     });
   });
 
@@ -344,12 +344,12 @@ describe('GCPFunction', () => {
       const fakeTransaction = { ...SentryNode.fakeTransaction, ...fakeTransactionContext };
 
       // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeHub.startTransaction).toBeCalledWith(fakeTransactionContext);
+      expect(SentryNode.fakeHub.startTransaction).toHaveBeenCalledWith(fakeTransactionContext);
       // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeScope.setSpan).toBeCalledWith(fakeTransaction);
+      expect(SentryNode.fakeScope.setSpan).toHaveBeenCalledWith(fakeTransaction);
       // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeTransaction.finish).toBeCalled();
-      expect(SentryNode.flush).toBeCalledWith(2000);
+      expect(SentryNode.fakeTransaction.finish).toHaveBeenCalled();
+      expect(SentryNode.flush).toHaveBeenCalledWith(2000);
     });
 
     test('capture error', async () => {
@@ -364,7 +364,7 @@ describe('GCPFunction', () => {
         });
 
       const wrappedHandler = wrapEventFunction(handler);
-      await expect(handleEvent(wrappedHandler)).rejects.toThrowError(error);
+      await expect(handleEvent(wrappedHandler)).rejects.toThrow(error);
 
       const fakeTransactionContext = {
         name: 'event.type',
@@ -376,13 +376,13 @@ describe('GCPFunction', () => {
       const fakeTransaction = { ...SentryNode.fakeTransaction, ...fakeTransactionContext };
 
       // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeHub.startTransaction).toBeCalledWith(fakeTransactionContext);
+      expect(SentryNode.fakeHub.startTransaction).toHaveBeenCalledWith(fakeTransactionContext);
       // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeScope.setSpan).toBeCalledWith(fakeTransaction);
-      expect(SentryNode.captureException).toBeCalledWith(error, expect.any(Function));
+      expect(SentryNode.fakeScope.setSpan).toHaveBeenCalledWith(fakeTransaction);
+      expect(SentryNode.captureException).toHaveBeenCalledWith(error, expect.any(Function));
       // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeTransaction.finish).toBeCalled();
-      expect(SentryNode.flush).toBeCalled();
+      expect(SentryNode.fakeTransaction.finish).toHaveBeenCalled();
+      expect(SentryNode.flush).toHaveBeenCalled();
     });
   });
 
@@ -406,12 +406,12 @@ describe('GCPFunction', () => {
       const fakeTransaction = { ...SentryNode.fakeTransaction, ...fakeTransactionContext };
 
       // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeHub.startTransaction).toBeCalledWith(fakeTransactionContext);
+      expect(SentryNode.fakeHub.startTransaction).toHaveBeenCalledWith(fakeTransactionContext);
       // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeScope.setSpan).toBeCalledWith(fakeTransaction);
+      expect(SentryNode.fakeScope.setSpan).toHaveBeenCalledWith(fakeTransaction);
       // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeTransaction.finish).toBeCalled();
-      expect(SentryNode.flush).toBeCalledWith(2000);
+      expect(SentryNode.fakeTransaction.finish).toHaveBeenCalled();
+      expect(SentryNode.flush).toHaveBeenCalledWith(2000);
     });
 
     test('capture error', async () => {
@@ -422,7 +422,7 @@ describe('GCPFunction', () => {
         cb(error);
       };
       const wrappedHandler = wrapEventFunction(handler);
-      await expect(handleEvent(wrappedHandler)).rejects.toThrowError(error);
+      await expect(handleEvent(wrappedHandler)).rejects.toThrow(error);
 
       const fakeTransactionContext = {
         name: 'event.type',
@@ -434,13 +434,13 @@ describe('GCPFunction', () => {
       const fakeTransaction = { ...SentryNode.fakeTransaction, ...fakeTransactionContext };
 
       // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeHub.startTransaction).toBeCalledWith(fakeTransactionContext);
+      expect(SentryNode.fakeHub.startTransaction).toHaveBeenCalledWith(fakeTransactionContext);
       // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeScope.setSpan).toBeCalledWith(fakeTransaction);
-      expect(SentryNode.captureException).toBeCalledWith(error, expect.any(Function));
+      expect(SentryNode.fakeScope.setSpan).toHaveBeenCalledWith(fakeTransaction);
+      expect(SentryNode.captureException).toHaveBeenCalledWith(error, expect.any(Function));
       // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeTransaction.finish).toBeCalled();
-      expect(SentryNode.flush).toBeCalled();
+      expect(SentryNode.fakeTransaction.finish).toHaveBeenCalled();
+      expect(SentryNode.flush).toHaveBeenCalled();
     });
 
     test('capture exception', async () => {
@@ -451,7 +451,7 @@ describe('GCPFunction', () => {
         throw error;
       };
       const wrappedHandler = wrapEventFunction(handler);
-      await expect(handleEvent(wrappedHandler)).rejects.toThrowError(error);
+      await expect(handleEvent(wrappedHandler)).rejects.toThrow(error);
 
       const fakeTransactionContext = {
         name: 'event.type',
@@ -463,10 +463,10 @@ describe('GCPFunction', () => {
       const fakeTransaction = { ...SentryNode.fakeTransaction, ...fakeTransactionContext };
 
       // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeHub.startTransaction).toBeCalledWith(fakeTransactionContext);
+      expect(SentryNode.fakeHub.startTransaction).toHaveBeenCalledWith(fakeTransactionContext);
       // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeScope.setSpan).toBeCalledWith(fakeTransaction);
-      expect(SentryNode.captureException).toBeCalledWith(error, expect.any(Function));
+      expect(SentryNode.fakeScope.setSpan).toHaveBeenCalledWith(fakeTransaction);
+      expect(SentryNode.captureException).toHaveBeenCalledWith(error, expect.any(Function));
     });
   });
 
@@ -478,9 +478,9 @@ describe('GCPFunction', () => {
       throw error;
     };
     const wrappedHandler = wrapEventFunction(handler);
-    await expect(handleEvent(wrappedHandler)).rejects.toThrowError(error);
+    await expect(handleEvent(wrappedHandler)).rejects.toThrow(error);
 
-    expect(SentryNode.captureException).toBeCalledWith(error, expect.any(Function));
+    expect(SentryNode.captureException).toHaveBeenCalledWith(error, expect.any(Function));
 
     // @ts-expect-error just mocking around...
     const scopeFunction = SentryNode.captureException.mock.calls[0][1];
@@ -503,7 +503,7 @@ describe('GCPFunction', () => {
     const wrappedHandler = wrapEventFunction(handler);
     await handleEvent(wrappedHandler);
     // @ts-expect-error see "Why @ts-expect-error" note
-    expect(SentryNode.fakeScope.setContext).toBeCalledWith('gcp.function.context', {
+    expect(SentryNode.fakeScope.setContext).toHaveBeenCalledWith('gcp.function.context', {
       eventType: 'event.type',
       resource: 'some.resource',
     });
@@ -529,12 +529,12 @@ describe('GCPFunction', () => {
       const fakeTransaction = { ...SentryNode.fakeTransaction, ...fakeTransactionContext };
 
       // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeHub.startTransaction).toBeCalledWith(fakeTransactionContext);
+      expect(SentryNode.fakeHub.startTransaction).toHaveBeenCalledWith(fakeTransactionContext);
       // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeScope.setSpan).toBeCalledWith(fakeTransaction);
+      expect(SentryNode.fakeScope.setSpan).toHaveBeenCalledWith(fakeTransaction);
       // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeTransaction.finish).toBeCalled();
-      expect(SentryNode.flush).toBeCalledWith(2000);
+      expect(SentryNode.fakeTransaction.finish).toHaveBeenCalled();
+      expect(SentryNode.flush).toHaveBeenCalledWith(2000);
     });
 
     test('capture error', async () => {
@@ -545,7 +545,7 @@ describe('GCPFunction', () => {
         throw error;
       };
       const wrappedHandler = wrapCloudEventFunction(handler);
-      await expect(handleCloudEvent(wrappedHandler)).rejects.toThrowError(error);
+      await expect(handleCloudEvent(wrappedHandler)).rejects.toThrow(error);
 
       const fakeTransactionContext = {
         name: 'event.type',
@@ -557,13 +557,13 @@ describe('GCPFunction', () => {
       const fakeTransaction = { ...SentryNode.fakeTransaction, ...fakeTransactionContext };
 
       // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeHub.startTransaction).toBeCalledWith(fakeTransactionContext);
+      expect(SentryNode.fakeHub.startTransaction).toHaveBeenCalledWith(fakeTransactionContext);
       // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeScope.setSpan).toBeCalledWith(fakeTransaction);
-      expect(SentryNode.captureException).toBeCalledWith(error, expect.any(Function));
+      expect(SentryNode.fakeScope.setSpan).toHaveBeenCalledWith(fakeTransaction);
+      expect(SentryNode.captureException).toHaveBeenCalledWith(error, expect.any(Function));
       // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeTransaction.finish).toBeCalled();
-      expect(SentryNode.flush).toBeCalled();
+      expect(SentryNode.fakeTransaction.finish).toHaveBeenCalled();
+      expect(SentryNode.flush).toHaveBeenCalled();
     });
   });
 
@@ -587,12 +587,12 @@ describe('GCPFunction', () => {
       const fakeTransaction = { ...SentryNode.fakeTransaction, ...fakeTransactionContext };
 
       // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeHub.startTransaction).toBeCalledWith(fakeTransactionContext);
+      expect(SentryNode.fakeHub.startTransaction).toHaveBeenCalledWith(fakeTransactionContext);
       // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeScope.setSpan).toBeCalledWith(fakeTransaction);
+      expect(SentryNode.fakeScope.setSpan).toHaveBeenCalledWith(fakeTransaction);
       // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeTransaction.finish).toBeCalled();
-      expect(SentryNode.flush).toBeCalledWith(2000);
+      expect(SentryNode.fakeTransaction.finish).toHaveBeenCalled();
+      expect(SentryNode.flush).toHaveBeenCalledWith(2000);
     });
 
     test('capture error', async () => {
@@ -603,7 +603,7 @@ describe('GCPFunction', () => {
         cb(error);
       };
       const wrappedHandler = wrapCloudEventFunction(handler);
-      await expect(handleCloudEvent(wrappedHandler)).rejects.toThrowError(error);
+      await expect(handleCloudEvent(wrappedHandler)).rejects.toThrow(error);
 
       const fakeTransactionContext = {
         name: 'event.type',
@@ -615,13 +615,13 @@ describe('GCPFunction', () => {
       const fakeTransaction = { ...SentryNode.fakeTransaction, ...fakeTransactionContext };
 
       // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeHub.startTransaction).toBeCalledWith(fakeTransactionContext);
+      expect(SentryNode.fakeHub.startTransaction).toHaveBeenCalledWith(fakeTransactionContext);
       // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeScope.setSpan).toBeCalledWith(fakeTransaction);
-      expect(SentryNode.captureException).toBeCalledWith(error, expect.any(Function));
+      expect(SentryNode.fakeScope.setSpan).toHaveBeenCalledWith(fakeTransaction);
+      expect(SentryNode.captureException).toHaveBeenCalledWith(error, expect.any(Function));
       // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeTransaction.finish).toBeCalled();
-      expect(SentryNode.flush).toBeCalled();
+      expect(SentryNode.fakeTransaction.finish).toHaveBeenCalled();
+      expect(SentryNode.flush).toHaveBeenCalled();
     });
 
     test('capture exception', async () => {
@@ -632,7 +632,7 @@ describe('GCPFunction', () => {
         throw error;
       };
       const wrappedHandler = wrapCloudEventFunction(handler);
-      await expect(handleCloudEvent(wrappedHandler)).rejects.toThrowError(error);
+      await expect(handleCloudEvent(wrappedHandler)).rejects.toThrow(error);
 
       const fakeTransactionContext = {
         name: 'event.type',
@@ -644,11 +644,11 @@ describe('GCPFunction', () => {
       const fakeTransaction = { ...SentryNode.fakeTransaction, ...fakeTransactionContext };
 
       // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeHub.startTransaction).toBeCalledWith(fakeTransactionContext);
+      expect(SentryNode.fakeHub.startTransaction).toHaveBeenCalledWith(fakeTransactionContext);
       // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeScope.setSpan).toBeCalledWith(fakeTransaction);
+      expect(SentryNode.fakeScope.setSpan).toHaveBeenCalledWith(fakeTransaction);
 
-      expect(SentryNode.captureException).toBeCalledWith(error, expect.any(Function));
+      expect(SentryNode.captureException).toHaveBeenCalledWith(error, expect.any(Function));
     });
   });
 
@@ -659,14 +659,14 @@ describe('GCPFunction', () => {
     const wrappedHandler = wrapCloudEventFunction(handler);
     await handleCloudEvent(wrappedHandler);
     // @ts-expect-error see "Why @ts-expect-error" note
-    expect(SentryNode.fakeScope.setContext).toBeCalledWith('gcp.function.context', { type: 'event.type' });
+    expect(SentryNode.fakeScope.setContext).toHaveBeenCalledWith('gcp.function.context', { type: 'event.type' });
   });
 
   describe('init()', () => {
     test('calls Sentry.init with correct sdk info metadata', () => {
       Sentry.GCPFunction.init({});
 
-      expect(Sentry.init).toBeCalledWith(
+      expect(Sentry.init).toHaveBeenCalledWith(
         expect.objectContaining({
           _metadata: {
             sdk: {

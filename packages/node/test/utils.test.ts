@@ -44,10 +44,10 @@ describe('deepReadDirSync', () => {
   });
 
   it('errors if directory does not exist', () => {
-    expect(() => deepReadDirSync('./IDontExist')).toThrowError('Directory does not exist.');
+    expect(() => deepReadDirSync('./IDontExist')).toThrow('Directory does not exist.');
   });
 
   it('errors if given path is not a directory', () => {
-    expect(() => deepReadDirSync('package.json')).toThrowError('it is not a directory');
+    expect(() => deepReadDirSync('package.json')).toThrow('it is not a directory');
   });
 });

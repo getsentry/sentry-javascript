@@ -127,7 +127,7 @@ describe('GoogleCloudGrpc tracing', () => {
       const resp = await pubsub.topic('nicetopic').publish(Buffer.from('data'));
       expect(resp).toEqual('1637084156623860');
       // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeTransaction.startChild).toBeCalledWith({
+      expect(SentryNode.fakeTransaction.startChild).toHaveBeenCalledWith({
         op: 'grpc.pubsub',
         origin: 'auto.grpc.serverless',
         description: 'unary call publish',
