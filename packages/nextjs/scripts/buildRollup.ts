@@ -10,7 +10,7 @@ function run(cmd: string, options?: childProcess.ExecSyncOptions): string | Buff
   return childProcess.execSync(cmd, { stdio: 'inherit', ...options });
 }
 
-run('yarn rollup -c rollup.npm.config.js');
+run('yarn rollup -c rollup.npm.config.mjs');
 
 // Regardless of whether nextjs is using the CJS or ESM version of our SDK, we want the code from our templates to be in
 // ESM (since we'll be adding it onto page files which are themselves written in ESM), so copy the ESM versions of the

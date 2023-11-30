@@ -9,7 +9,7 @@ function run(cmd: string, options?: childProcess.ExecSyncOptions): string | Buff
   return childProcess.execSync(cmd, { stdio: 'inherit', ...options });
 }
 
-run('yarn rollup -c rollup.npm.config.js');
+run('yarn rollup -c rollup.npm.config.mjs');
 
 // We want to distribute the README because it contains the MIT license blurb from Sucrase and Rollup
 fs.copyFileSync('src/buildPolyfills/README.md', 'build/cjs/buildPolyfills/README.md');
