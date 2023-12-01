@@ -1,4 +1,4 @@
-import { assertSentryEvent, TestEnv } from '../../../../utils';
+import { TestEnv, assertSentryEvent } from '../../../../utils';
 
 test('should capture a parameterized representation of the message', async () => {
   const env = await TestEnv.init(__dirname);
