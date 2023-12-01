@@ -39,7 +39,7 @@ describe.each(['builtin', 'express'])('Remix API Loaders with adapter = %s', ada
             stacktrace: expect.any(Object),
             mechanism: {
               data: {
-                function: useV2 ? 'remix.server' : 'loader',
+                function: useV2 ? 'remix.server.handleError' : 'loader',
               },
               handled: false,
               type: 'instrument',
@@ -138,7 +138,7 @@ describe.each(['builtin', 'express'])('Remix API Loaders with adapter = %s', ada
             stacktrace: expect.any(Object),
             mechanism: {
               data: {
-                function: useV2 ? 'remix.server' : 'loader',
+                function: useV2 ? 'remix.server.handleError' : 'loader',
               },
               handled: false,
               type: 'instrument',

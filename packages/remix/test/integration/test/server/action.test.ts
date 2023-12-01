@@ -81,7 +81,7 @@ describe.each(['builtin', 'express'])('Remix API Actions with adapter = %s', ada
             stacktrace: expect.any(Object),
             mechanism: {
               data: {
-                function: useV2 ? 'remix.server' : 'action',
+                function: useV2 ? 'remix.server.handleError' : 'action',
               },
               handled: false,
               type: 'instrument',
@@ -201,7 +201,7 @@ describe.each(['builtin', 'express'])('Remix API Actions with adapter = %s', ada
             stacktrace: expect.any(Object),
             mechanism: {
               data: {
-                function: useV2 ? 'remix.server' : 'loader',
+                function: useV2 ? 'remix.server.handleError' : 'loader',
               },
               handled: false,
               type: 'instrument',
@@ -418,6 +418,112 @@ describe.each(['builtin', 'express'])('Remix API Actions with adapter = %s', ada
             mechanism: {
               data: {
                 function: useV2 ? 'ErrorResponse' : 'action',
+              },
+              handled: false,
+              type: 'instrument',
+            },
+          },
+        ],
+      },
+    });
+  });
+
+  it('handles thrown string from an action', async () => {
+    const env = await RemixTestEnv.init(adapter);
+    const url = `${env.url}/server-side-unexpected-errors/-1`;
+
+    const envelopes = await env.getMultipleEnvelopeRequest({
+      url,
+      count: 2,
+      method: 'post',
+      envelopeType: ['event', 'transaction'],
+    });
+
+    const [transaction] = envelopes.filter(envelope => envelope[1].type === 'transaction');
+    const [event] = envelopes.filter(envelope => envelope[1].type === 'event');
+
+    assertSentryTransaction(transaction[2], {
+      contexts: {
+        trace: {
+          op: 'http.server',
+          status: 'internal_error',
+          tags: {
+            method: 'POST',
+            'http.status_code': '500',
+          },
+          data: {
+            'http.response.status_code': 500,
+          },
+        },
+      },
+      tags: {
+        transaction: `routes/server-side-unexpected-errors${useV2 ? '.' : '/'}$id`,
+      },
+    });
+
+    assertSentryEvent(event[2], {
+      exception: {
+        values: [
+          {
+            type: 'Error',
+            value: 'Thrown String Error',
+            stacktrace: expect.any(Object),
+            mechanism: {
+              data: {
+                function: useV2 ? 'remix.server.handleError' : 'action',
+              },
+              handled: false,
+              type: 'instrument',
+            },
+          },
+        ],
+      },
+    });
+  });
+
+  it('handles thrown object from an action', async () => {
+    const env = await RemixTestEnv.init(adapter);
+    const url = `${env.url}/server-side-unexpected-errors/-2`;
+
+    const envelopes = await env.getMultipleEnvelopeRequest({
+      url,
+      count: 2,
+      method: 'post',
+      envelopeType: ['event', 'transaction'],
+    });
+
+    const [transaction] = envelopes.filter(envelope => envelope[1].type === 'transaction');
+    const [event] = envelopes.filter(envelope => envelope[1].type === 'event');
+
+    assertSentryTransaction(transaction[2], {
+      contexts: {
+        trace: {
+          op: 'http.server',
+          status: 'internal_error',
+          tags: {
+            method: 'POST',
+            'http.status_code': '500',
+          },
+          data: {
+            'http.response.status_code': 500,
+          },
+        },
+      },
+      tags: {
+        transaction: `routes/server-side-unexpected-errors${useV2 ? '.' : '/'}$id`,
+      },
+    });
+
+    assertSentryEvent(event[2], {
+      exception: {
+        values: [
+          {
+            type: 'Error',
+            value: 'Thrown Object Error',
+            stacktrace: expect.any(Object),
+            mechanism: {
+              data: {
+                function: useV2 ? 'remix.server.handleError' : 'action',
               },
               handled: false,
               type: 'instrument',

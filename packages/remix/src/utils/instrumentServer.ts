@@ -10,6 +10,7 @@ import {
   isNodeEnv,
   loadModule,
   logger,
+  objectify,
   tracingContextFromHeaders,
 } from '@sentry/utils';
 
@@ -32,6 +33,7 @@ import type {
   EntryContext,
   FutureConfig,
   HandleDocumentRequestFunction,
+  HandleErrorFunction,
   ReactRouterDomPkg,
   RemixRequest,
   RequestHandler,
@@ -71,6 +73,44 @@ async function extractResponseError(response: Response): Promise<unknown> {
 }
 
 /**
+ *
+ */
+export function wrapRemixHandleError(this: unknown, err: unknown, { request }: DataFunctionArgs): void {
+  // We are skipping thrown responses here as they are either handled:
+  // - Remix v1: by captureRemixServerException at loader / action
+  // - Remix v2: by ErrorBoundary
+  // We don't want to capture them twice.
+  // https://remix.run/docs/en/main/file-conventions/entry.server#thrown-responses
+  // https://remix.run/docs/en/v1/api/conventions#throwing-responses-in-loaders
+  if (isResponse(err) || isRouteErrorResponse(err)) {
+    return;
+  }
+
+  if (err && typeof err === 'object' && 'error' in err) {
+    // No need to await here as we're skipping the error responses
+    void captureRemixServerException(err, 'remix.server.handleError', request);
+  } else {
+    const objectifiedErr = objectify(err);
+
+    captureException(objectifiedErr, scope => {
+      scope.addEventProcessor(event => {
+        addExceptionMechanism(event, {
+          type: 'instrument',
+          handled: false,
+          data: {
+            function: 'remix.server.handleError',
+          },
+        });
+
+        return event;
+      });
+
+      return scope;
+    });
+  }
+}
+
+/**
  * Captures an exception happened in the Remix server.
  *
  * @param err The error to capture.
@@ -107,7 +147,9 @@ export async function captureRemixServerException(err: unknown, name: string, re
     DEBUG_BUILD && logger.warn('Failed to normalize Remix request');
   }
 
-  captureException(isResponse(err) ? await extractResponseError(err) : err, scope => {
+  const objectifiedErr = objectify(err);
+
+  captureException(isResponse(objectifiedErr) ? await extractResponseError(objectifiedErr) : objectifiedErr, scope => {
     const activeTransactionName = getActiveTransaction()?.name;
 
     scope.setSDKProcessingMetadata({
@@ -240,7 +282,10 @@ const makeWrappedLoader =
     return makeWrappedDataFunction(origLoader, id, 'loader', remixVersion);
   };
 
-function getTraceAndBaggage(): { sentryTrace?: string; sentryBaggage?: string } {
+function getTraceAndBaggage(): {
+  sentryTrace?: string;
+  sentryBaggage?: string;
+} {
   const transaction = getActiveTransaction();
   const currentScope = getCurrentHub().getScope();
 
@@ -287,7 +332,11 @@ function makeWrappedRootLoader(remixVersion: number) {
           if (typeof data === 'object') {
             return json(
               { ...data, ...traceAndBaggage, remixVersion },
-              { headers: res.headers, statusText: res.statusText, status: res.status },
+              {
+                headers: res.headers,
+                statusText: res.statusText,
+                status: res.status,
+              },
             );
           } else {
             DEBUG_BUILD && logger.warn('Skipping injection of trace and baggage as the response body is not an object');
@@ -498,7 +547,9 @@ function makeWrappedCreateRequestHandler(
  * which Remix Adapters (https://remix.run/docs/en/v1/api/remix) use underneath.
  */
 export function instrumentServer(): void {
-  const pkg = loadModule<{ createRequestHandler: CreateRequestHandlerFunction }>('@remix-run/server-runtime');
+  const pkg = loadModule<{
+    createRequestHandler: CreateRequestHandlerFunction;
+  }>('@remix-run/server-runtime');
 
   if (!pkg) {
     DEBUG_BUILD && logger.warn('Remix SDK was unable to require `@remix-run/server-runtime` package.');
