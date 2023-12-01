@@ -98,10 +98,6 @@ describe('sentryMiddleware', () => {
   });
 
   it('attaches tracing headers', async () => {
-    const scope = { setUser: vi.fn(), setPropagationContext: vi.fn() };
-    // @ts-expect-error, only passing a partial Scope object
-    const configureScopeSpy = vi.spyOn(SentryNode, 'configureScope').mockImplementation(cb => cb(scope));
-
     const middleware = handleRequest();
     const ctx = {
       request: {
@@ -119,17 +115,6 @@ describe('sentryMiddleware', () => {
 
     // @ts-expect-error, a partial ctx object is fine here
     await middleware(ctx, next);
-
-    expect(configureScopeSpy).toHaveBeenCalledTimes(1);
-    expect(scope.setPropagationContext).toHaveBeenCalledWith({
-      dsc: {
-        release: '1.0.0',
-      },
-      parentSpanId: '1234567890123456',
-      sampled: true,
-      spanId: expect.any(String),
-      traceId: '12345678901234567890123456789012',
-    });
 
     expect(startSpanSpy).toHaveBeenCalledWith(
       expect.objectContaining({

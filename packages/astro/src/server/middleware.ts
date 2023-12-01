@@ -1,4 +1,11 @@
-import { captureException, configureScope, getCurrentHub, runWithAsyncContext, startSpan } from '@sentry/node';
+import {
+  captureException,
+  configureScope,
+  continueTrace,
+  getCurrentHub,
+  runWithAsyncContext,
+  startSpan,
+} from '@sentry/node';
 import type { Hub, Span } from '@sentry/types';
 import {
   addNonEnumerableProperty,
@@ -87,37 +94,38 @@ async function instrumentRequest(
   const method = ctx.request.method;
   const headers = ctx.request.headers;
 
-  const { dynamicSamplingContext, traceparentData, propagationContext } = tracingContextFromHeaders(
-    headers.get('sentry-trace') || undefined,
-    headers.get('baggage'),
-  );
+  const traceCtx = continueTrace({
+    sentryTrace: headers.get('sentry-trace') || undefined,
+    baggage: headers.get('baggage'),
+  });
 
   const allHeaders: Record<string, string> = {};
-  headers.forEach((value, key) => {
-    allHeaders[key] = value;
-  });
 
-  configureScope(scope => {
-    scope.setPropagationContext(propagationContext);
+  if (options.trackHeaders) {
+    headers.forEach((value, key) => {
+      allHeaders[key] = value;
+    });
+  }
 
-    if (options.trackClientIp) {
+  if (options.trackClientIp) {
+    configureScope(scope => {
       scope.setUser({ ip_address: ctx.clientAddress });
-    }
-  });
+    });
+  }
 
   try {
     // storing res in a variable instead of directly returning is necessary to
     // invoke the catch block if next() throws
     const res = await startSpan(
       {
+        ...traceCtx,
         name: `${method} ${interpolateRouteFromUrlAndParams(ctx.url.pathname, ctx.params)}`,
         op: 'http.server',
         origin: 'auto.http.astro',
         status: 'ok',
-        ...traceparentData,
         metadata: {
+          ...traceCtx?.metadata,
           source: 'route',
-          dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
         },
         data: {
           method,
@@ -171,7 +179,7 @@ async function instrumentRequest(
     sendErrorToSentry(e);
     throw e;
   }
-  // TODO: flush if serveless (first extract function)
+  // TODO: flush if serverless (first extract function)
 }
 
 /**

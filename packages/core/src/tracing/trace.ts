@@ -211,6 +211,7 @@ export function continueTrace({
   sentryTrace: Parameters<typeof tracingContextFromHeaders>[0];
   baggage: Parameters<typeof tracingContextFromHeaders>[1];
 }): Partial<TransactionContext>;
+
 export function continueTrace<V>(
   {
     sentryTrace,
