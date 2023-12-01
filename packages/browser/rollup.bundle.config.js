@@ -29,13 +29,21 @@ targets.forEach(jsVersion => {
 });
 
 if (targets.includes('es6')) {
-  // Replay bundles only available for es6
+  // Replay/Feedback bundles only available for es6
   const replayBaseBundleConfig = makeBaseBundleConfig({
     bundleType: 'standalone',
     entrypoints: ['src/index.bundle.replay.ts'],
     jsVersion: 'es6',
     licenseTitle: '@sentry/browser & @sentry/replay',
     outputFileBase: () => 'bundles/bundle.replay',
+  });
+
+  const feedbackBaseBundleConfig = makeBaseBundleConfig({
+    bundleType: 'standalone',
+    entrypoints: ['src/index.bundle.feedback.ts'],
+    jsVersion: 'es6',
+    licenseTitle: '@sentry/browser & @sentry/feedback',
+    outputFileBase: () => 'bundles/bundle.feedback',
   });
 
   const tracingReplayBaseBundleConfig = makeBaseBundleConfig({
@@ -46,9 +54,19 @@ if (targets.includes('es6')) {
     outputFileBase: () => 'bundles/bundle.tracing.replay',
   });
 
+  const tracingReplayFeedbackBaseBundleConfig = makeBaseBundleConfig({
+    bundleType: 'standalone',
+    entrypoints: ['src/index.bundle.tracing.replay.feedback.ts'],
+    jsVersion: 'es6',
+    licenseTitle: '@sentry/browser & @sentry/tracing & @sentry/replay & @sentry/feedback',
+    outputFileBase: () => 'bundles/bundle.tracing.replay.feedback',
+  });
+
   builds.push(
     ...makeBundleConfigVariants(replayBaseBundleConfig),
+    ...makeBundleConfigVariants(feedbackBaseBundleConfig),
     ...makeBundleConfigVariants(tracingReplayBaseBundleConfig),
+    ...makeBundleConfigVariants(tracingReplayFeedbackBaseBundleConfig),
   );
 }
 

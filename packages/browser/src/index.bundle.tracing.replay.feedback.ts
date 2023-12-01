@@ -1,4 +1,4 @@
-import { Feedback } from '@sentry-internal/integration-shims';
+import { Feedback } from '@sentry-internal/feedback';
 import { BrowserTracing, Span, addExtensionMethods } from '@sentry-internal/tracing';
 import { Replay } from '@sentry/replay';
 
