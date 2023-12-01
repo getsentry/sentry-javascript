@@ -339,6 +339,8 @@ export class ReplayContainer implements ReplayContainerInterface {
         ...(this.recordingMode === 'buffer' && { checkoutEveryNms: BUFFER_CHECKOUT_TIME }),
         emit: getHandleRecordingEmit(this),
         onMutation: this._onMutationHandler,
+        recordCanvas: this._options._experiments.enableCanvas,
+        ...(this._options._experiments.enableCanvas && { sampling: { canvas: 4, }, dataURLOptions: { quality: 0.6, } }),
       });
     } catch (err) {
       this._handleException(err);
