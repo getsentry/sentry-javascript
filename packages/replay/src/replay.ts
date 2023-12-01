@@ -339,7 +339,11 @@ export class ReplayContainer implements ReplayContainerInterface {
         ...(this.recordingMode === 'buffer' && { checkoutEveryNms: BUFFER_CHECKOUT_TIME }),
         emit: getHandleRecordingEmit(this),
         onMutation: this._onMutationHandler,
-        ...(this._options._experiments.enableCanvas && { recordCanvas: true, sampling: { canvas: 4 }, dataURLOptions: { quality: 0.6 } }),
+        ...(this._options._experiments.enableCanvas && {
+          recordCanvas: true,
+          sampling: { canvas: 4 },
+          dataURLOptions: { quality: 0.6 },
+        }),
       });
     } catch (err) {
       this._handleException(err);
