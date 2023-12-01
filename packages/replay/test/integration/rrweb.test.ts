@@ -34,6 +34,7 @@ describe('Integration | rrweb', () => {
         "maskTextFn": undefined,
         "maskTextSelector": ".sentry-mask,[data-sentry-mask]",
         "onMutation": [Function],
+        "recordCanvas": undefined,
         "slimDOMOptions": "all",
         "unblockSelector": ".sentry-unblock,[data-sentry-unblock]",
         "unmaskTextSelector": ".sentry-unmask,[data-sentry-unmask]",
