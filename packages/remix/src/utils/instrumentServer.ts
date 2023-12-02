@@ -75,7 +75,7 @@ async function extractResponseError(response: Response): Promise<unknown> {
 /**
  *
  */
-export function wrapRemixHandleError(this: unknown, err: unknown, { request }: DataFunctionArgs): void {
+export function wrapRemixHandleError(err: unknown, { request }: DataFunctionArgs): void {
   // We are skipping thrown responses here as they are either handled:
   // - Remix v1: by captureRemixServerException at loader / action
   // - Remix v2: by ErrorBoundary
@@ -85,29 +85,7 @@ export function wrapRemixHandleError(this: unknown, err: unknown, { request }: D
   if (isResponse(err) || isRouteErrorResponse(err)) {
     return;
   }
-
-  if (err && typeof err === 'object' && 'error' in err) {
-    // No need to await here as we're skipping the error responses
-    void captureRemixServerException(err, 'remix.server.handleError', request);
-  } else {
-    const objectifiedErr = objectify(err);
-
-    captureException(objectifiedErr, scope => {
-      scope.addEventProcessor(event => {
-        addExceptionMechanism(event, {
-          type: 'instrument',
-          handled: false,
-          data: {
-            function: 'remix.server.handleError',
-          },
-        });
-
-        return event;
-      });
-
-      return scope;
-    });
-  }
+  void captureRemixServerException(err, 'remix.server.handleError', request);
 }
 
 /**
