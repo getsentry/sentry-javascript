@@ -72,7 +72,12 @@ async function extractResponseError(response: Response): Promise<unknown> {
 }
 
 /**
+ * Sentry utility to be used in place of `handleError` function of Remix v2
+ * Remix Docs: https://remix.run/docs/en/main/file-conventions/entry.server#handleerror
  *
+ * Should be used in `entry.server` like:
+ *
+ * export const handleError = Sentry.wrapRemixHandleError
  */
 export function wrapRemixHandleError(err: unknown, { request }: DataFunctionArgs): void {
   // We are skipping thrown responses here as they are either handled:
