@@ -190,38 +190,28 @@ function makeWrappedDocumentRequestFunction(remixVersion: number) {
       context: EntryContext,
       loadContext?: Record<string, unknown>,
     ): Promise<Response> {
-      let res: Response;
-
       const activeTransaction = getActiveTransaction();
 
-      try {
-        const span = activeTransaction?.startChild({
-          op: 'function.remix.document_request',
-          origin: 'auto.function.remix',
-          description: activeTransaction.name,
-          tags: {
-            method: request.method,
-            url: request.url,
-          },
-        });
+      const span = activeTransaction?.startChild({
+        op: 'function.remix.document_request',
+        origin: 'auto.function.remix',
+        description: activeTransaction.name,
+        tags: {
+          method: request.method,
+          url: request.url,
+        },
+      });
 
-        res = await origDocumentRequestFunction.call(
-          this,
-          request,
-          responseStatusCode,
-          responseHeaders,
-          context,
-          loadContext,
-        );
+      const res = await origDocumentRequestFunction.call(
+        this,
+        request,
+        responseStatusCode,
+        responseHeaders,
+        context,
+        loadContext,
+      );
 
-        span?.finish();
-      } catch (err) {
-        if (!FUTURE_FLAGS?.v2_errorBoundary && remixVersion !== 2) {
-          await captureRemixServerException(err, 'documentRequest', request);
-        }
-
-        throw err;
-      }
+      span?.finish();
 
       return res;
     };
