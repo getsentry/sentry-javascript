@@ -33,7 +33,6 @@ import type {
   EntryContext,
   FutureConfig,
   HandleDocumentRequestFunction,
-  HandleErrorFunction,
   ReactRouterDomPkg,
   RemixRequest,
   RequestHandler,

@@ -206,10 +206,6 @@ export interface DataFunctionArgs {
   params: Params;
 }
 
-export interface HandleErrorFunction {
-  (error: unknown, args: DataFunctionArgs): void;
-}
-
 export interface DataFunction {
   (args: DataFunctionArgs): Promise<Response> | Response | Promise<AppData> | AppData;
 }
