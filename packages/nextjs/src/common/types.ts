@@ -19,6 +19,10 @@ export type ServerComponentContext = {
 };
 
 export interface RouteHandlerContext {
+  // TODO(v8): Remove
+  /**
+   * @deprecated The SDK will automatically pick up the method from the incoming Request object instead.
+   */
   method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 'HEAD' | 'OPTIONS';
   parameterizedRoute: string;
   // TODO(v8): Remove
