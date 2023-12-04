@@ -31,6 +31,7 @@
     "@sentry/replay": "file:../../../replay",
     "@sentry/tracing": "file:../../../tracing",
     "@sentry-internal/tracing": "file:../../../tracing-internal",
+    "@sentry-internal/feedback": "file:../../../feedback",
     "@sentry/types": "file:../../../types",
     "@sentry/utils": "file:../../../utils",
     "@vanilla-extract/css": "1.13.0"
