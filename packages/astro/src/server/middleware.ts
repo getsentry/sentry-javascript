@@ -91,8 +91,7 @@ async function instrumentRequest(
   }
   addNonEnumerableProperty(locals, '__sentry_wrapped__', true);
 
-  const method = ctx.request.method;
-  const headers = ctx.request.headers;
+  const { method, headers } = ctx.request;
 
   const traceCtx = continueTrace({
     sentryTrace: headers.get('sentry-trace') || undefined,
@@ -160,10 +159,12 @@ async function instrumentRequest(
           return originalResponse;
         }
 
+        const decoder = new TextDecoder();
+
         const newResponseStream = new ReadableStream({
           start: async controller => {
             for await (const chunk of originalBody) {
-              const html = typeof chunk === 'string' ? chunk : new TextDecoder().decode(chunk);
+              const html = typeof chunk === 'string' ? chunk : decoder.decode(chunk);
               const modifiedHtml = addMetaTagToHead(html, hub, span);
               controller.enqueue(new TextEncoder().encode(modifiedHtml));
             }
