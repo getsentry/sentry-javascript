@@ -2,12 +2,18 @@ import * as Sentry from '@sentry/nextjs';
 // @ts-expect-error Because we cannot be sure if the RequestAsyncStorage module exists (it is not part of the Next.js public
 // API) we use a shim if it doesn't exist. The logic for this is in the wrapping loader.
 import { requestAsyncStorage } from '__SENTRY_NEXTJS_REQUEST_ASYNC_STORAGE_SHIM__';
+// @ts-expect-error Because we cannot be sure if the staticGenerationAsyncStorage module exists (it is not part of the Next.js public
+// API) we use a shim if it doesn't exist. The logic for this is in the wrapping loader.
+import { staticGenerationAsyncStorage } from '__SENTRY_NEXTJS_STATIC_GENERATION_ASYNC_STORAGE_SHIM__';
 // @ts-expect-error See above
 import * as routeModule from '__SENTRY_WRAPPING_TARGET_FILE__';
+import { storeHasStaticBehaviour } from '../../common/utils/hasStaticBehaviour';
 
 import type { RequestAsyncStorage } from './requestAsyncStorageShim';
+import type { StaticGenerationAsyncStorage } from './staticGenerationAsyncStorageShim';
 
 declare const requestAsyncStorage: RequestAsyncStorage;
+declare const staticGenerationAsyncStorage: StaticGenerationAsyncStorage;
 
 declare const routeModule: {
   GET?: (...args: unknown[]) => unknown;
@@ -44,12 +50,23 @@ function wrapHandler<T>(handler: T, method: 'GET' | 'POST' | 'PUT' | 'PATCH' | '
         /** empty */
       }
 
+      let hasStaticBehaviour: boolean | undefined = false;
+      try {
+        const staticGenerationStore = staticGenerationAsyncStorage.getStore();
+        if (staticGenerationStore) {
+          hasStaticBehaviour = storeHasStaticBehaviour(staticGenerationStore);
+        }
+      } catch (e) {
+        /** empty */
+      }
+
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
       return Sentry.wrapRouteHandlerWithSentry(originalFunction as any, {
         method,
         parameterizedRoute: '__ROUTE__',
         sentryTraceHeader,
         baggageHeader,
+        hasStaticBehaviour,
       }).apply(thisArg, args);
     },
   });

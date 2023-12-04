@@ -24,7 +24,8 @@ const pageWrapperTemplateCode = fs.readFileSync(pageWrapperTemplatePath, { encod
 const middlewareWrapperTemplatePath = path.resolve(__dirname, '..', 'templates', 'middlewareWrapperTemplate.js');
 const middlewareWrapperTemplateCode = fs.readFileSync(middlewareWrapperTemplatePath, { encoding: 'utf8' });
 
-let showedMissingAsyncStorageModuleWarning = false;
+let showedMissingRequestAsyncStorageModuleWarning = false;
+let showedMissingStaticGenerationAsyncStorageModuleWarning = false;
 
 const sentryInitWrapperTemplatePath = path.resolve(__dirname, '..', 'templates', 'sentryInitWrapperTemplate.js');
 const sentryInitWrapperTemplateCode = fs.readFileSync(sentryInitWrapperTemplatePath, { encoding: 'utf8' });
@@ -49,6 +50,7 @@ export type WrappingLoaderOptions = {
   sentryConfigFilePath?: string;
   vercelCronsConfig?: VercelCronsConfig;
   nextjsRequestAsyncStorageModulePath?: string;
+  nextjsStaticGenerationAsyncStorageModulePath?: string;
 };
 
 /**
@@ -73,6 +75,7 @@ export default function wrappingLoader(
     sentryConfigFilePath,
     vercelCronsConfig,
     nextjsRequestAsyncStorageModulePath,
+    nextjsStaticGenerationAsyncStorageModulePath,
   } = 'getOptions' in this ? this.getOptions() : this.query;
 
   this.async();
@@ -190,18 +193,39 @@ export default function wrappingLoader(
         nextjsRequestAsyncStorageModulePath,
       );
     } else {
-      if (!showedMissingAsyncStorageModuleWarning) {
+      if (!showedMissingRequestAsyncStorageModuleWarning) {
         // eslint-disable-next-line no-console
         console.warn(
           `${chalk.yellow('warn')}  - The Sentry SDK could not access the ${chalk.bold.cyan(
             'RequestAsyncStorage',
           )} module. Certain features may not work. There is nothing you can do to fix this yourself, but future SDK updates may resolve this.\n`,
         );
-        showedMissingAsyncStorageModuleWarning = true;
+        showedMissingRequestAsyncStorageModuleWarning = true;
       }
       templateCode = templateCode.replace(
         /__SENTRY_NEXTJS_REQUEST_ASYNC_STORAGE_SHIM__/g,
         '@sentry/nextjs/esm/config/templates/requestAsyncStorageShim.js',
+      );
+    }
+
+    if (nextjsStaticGenerationAsyncStorageModulePath !== undefined) {
+      templateCode = templateCode.replace(
+        /__SENTRY_NEXTJS_STATIC_GENERATION_ASYNC_STORAGE_SHIM__/g,
+        nextjsStaticGenerationAsyncStorageModulePath,
+      );
+    } else {
+      if (!showedMissingStaticGenerationAsyncStorageModuleWarning) {
+        // eslint-disable-next-line no-console
+        console.warn(
+          `${chalk.yellow('warn')}  - The Sentry SDK could not access the ${chalk.bold.cyan(
+            'StaticGenerationAsyncStorage',
+          )} module. Certain features may not work. There is nothing you can do to fix this yourself, but future SDK updates may resolve this.\n`,
+        );
+        showedMissingStaticGenerationAsyncStorageModuleWarning = true;
+      }
+      templateCode = templateCode.replace(
+        /__SENTRY_NEXTJS_STATIC_GENERATION_ASYNC_STORAGE_SHIM__/g,
+        '@sentry/nextjs/esm/config/templates/staticGenerationAsyncStorageShim.js',
       );
     }
 

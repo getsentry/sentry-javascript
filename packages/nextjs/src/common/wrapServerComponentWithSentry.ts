@@ -20,7 +20,7 @@ export function wrapServerComponentWithSentry<F extends (...args: any[]) => any>
   context: ServerComponentContext,
 ): F {
   addTracingExtensions();
-  const { componentRoute, componentType } = context;
+  const { componentRoute, componentType, hasStaticBehaviour } = context;
 
   // Even though users may define server components as async functions, for the client bundles
   // Next.js will turn them into synchronous functions and it will transform any `await`s into instances of the `use`
@@ -33,9 +33,9 @@ export function wrapServerComponentWithSentry<F extends (...args: any[]) => any>
 
         let maybePromiseResult;
 
-        const completeHeadersDict: Record<string, string> = context.headers
-          ? winterCGHeadersToDict(context.headers)
-          : {};
+        const completeHeadersDict: Record<string, string> =
+          // We should not use any headers whent the component has static behaviour
+          !hasStaticBehaviour && context.headers ? winterCGHeadersToDict(context.headers) : {};
 
         const { traceparentData, dynamicSamplingContext, propagationContext } = tracingContextFromHeaders(
           // eslint-disable-next-line deprecation/deprecation

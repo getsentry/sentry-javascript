@@ -15,13 +15,10 @@ export type ServerComponentContext = {
    */
   baggageHeader?: string;
   headers?: WebFetchHeaders;
+  hasStaticBehaviour?: boolean;
 };
 
 export interface RouteHandlerContext {
-  // TODO(v8): Remove
-  /**
-   * @deprecated The SDK will automatically pick up the method from the incoming Request object instead.
-   */
   method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 'HEAD' | 'OPTIONS';
   parameterizedRoute: string;
   // TODO(v8): Remove
@@ -34,6 +31,7 @@ export interface RouteHandlerContext {
    * @deprecated The SDK will automatically pick up the `baggage` header from the incoming Request object instead.
    */
   baggageHeader?: string;
+  hasStaticBehaviour?: boolean;
 }
 
 export type VercelCronsConfig = { path?: string; schedule?: string }[] | undefined;
@@ -85,3 +83,13 @@ export type AugmentedNextApiResponse = NextApiResponse & {
 
 export type ResponseEndMethod = AugmentedNextApiResponse['end'];
 export type WrappedResponseEndMethod = AugmentedNextApiResponse['end'] & WrappedFunction;
+
+export interface StaticGenerationStore {
+  forceStatic?: boolean;
+  dynamicShouldError?: boolean;
+  isStaticGeneration?: boolean;
+  experimental?: {
+    ppr?: boolean;
+  };
+  ppr?: boolean;
+}

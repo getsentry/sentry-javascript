@@ -15,7 +15,7 @@ export function wrapRouteHandlerWithSentry<F extends (...args: any[]) => any>(
 ): (...args: Parameters<F>) => ReturnType<F> extends Promise<unknown> ? ReturnType<F> : Promise<ReturnType<F>> {
   addTracingExtensions();
   // eslint-disable-next-line deprecation/deprecation
-  const { method, parameterizedRoute, baggageHeader, sentryTraceHeader } = context;
+  const { method, parameterizedRoute, baggageHeader, sentryTraceHeader, hasStaticBehaviour } = context;
   return new Proxy(routeHandler, {
     apply: (originalFunction, thisArg, args) => {
       return runWithAsyncContext(async () => {
@@ -23,15 +23,14 @@ export function wrapRouteHandlerWithSentry<F extends (...args: any[]) => any>(
         const currentScope = hub.getScope();
 
         let req: Request | undefined;
-        let reqMethod: string | undefined;
-        if (args[0] instanceof Request) {
+        // We are not allowed to access the Request object when a route has static behavious. Otherwise Next.js will throw.
+        if (args[0] instanceof Request && !hasStaticBehaviour) {
           req = args[0];
-          reqMethod = req.method;
         }
 
         const { traceparentData, dynamicSamplingContext, propagationContext } = tracingContextFromHeaders(
-          sentryTraceHeader,
-          baggageHeader,
+          sentryTraceHeader ?? req?.headers.get('sentry-trace') ?? undefined,
+          baggageHeader ?? req?.headers.get('baggage') ?? undefined,
         );
         currentScope.setPropagationContext(propagationContext);
 
@@ -40,7 +39,7 @@ export function wrapRouteHandlerWithSentry<F extends (...args: any[]) => any>(
           res = await trace(
             {
               op: 'http.server',
-              name: `${reqMethod ?? method} ${parameterizedRoute}`,
+              name: `${method} ${parameterizedRoute}`,
               status: 'ok',
               ...traceparentData,
               metadata: {

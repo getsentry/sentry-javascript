@@ -41,6 +41,24 @@ let showedMissingProjectSlugErrorMsg = false;
 let showedHiddenSourceMapsWarningMsg = false;
 let showedMissingCliBinaryWarningMsg = false;
 
+const POTENTIAL_REQUEST_ASNYC_STORAGE_LOCATIONS = [
+  // Original location of RequestAsyncStorage
+  // https://github.com/vercel/next.js/blob/46151dd68b417e7850146d00354f89930d10b43b/packages/next/src/client/components/request-async-storage.ts
+  'next/dist/client/components/request-async-storage.js',
+  // Introduced in Next.js 13.4.20
+  // https://github.com/vercel/next.js/blob/e1bc270830f2fc2df3542d4ef4c61b916c802df3/packages/next/src/client/components/request-async-storage.external.ts
+  'next/dist/client/components/request-async-storage.external.js',
+];
+
+const POTENTIAL_STATIC_GENERATION_ASNYC_STORAGE_LOCATIONS = [
+  // Original location of StaticGenerationAsyncStorage
+  // https://github.com/vercel/next.js/blob/46151dd68b417e7850146d00354f89930d10b43b/packages/next/src/client/components/static-generation-async-storage.ts
+  'next/dist/client/components/static-generation-async-storage.js',
+  // Introduced in Next.js 13.4.20
+  // https://github.com/vercel/next.js/blob/e1bc270830f2fc2df3542d4ef4c61b916c802df3/packages/next/src/client/components/static-generation-async-storage.external.ts
+  'next/dist/client/components/static-generation-async-storage.external.js',
+];
+
 // TODO: merge default SentryWebpackPlugin ignore with their SentryWebpackPlugin ignore or ignoreFile
 // TODO: merge default SentryWebpackPlugin include with their SentryWebpackPlugin include
 // TODO: drop merged keys from override check? `includeDefaults` option?
@@ -136,7 +154,13 @@ export function constructWebpackConfigFunction(
       pageExtensionRegex,
       excludeServerRoutes: userSentryOptions.excludeServerRoutes,
       sentryConfigFilePath: getUserConfigFilePath(projectDir, runtime),
-      nextjsRequestAsyncStorageModulePath: getRequestAsyncStorageModuleLocation(
+      nextjsRequestAsyncStorageModulePath: getNextjsModuleLocation(
+        POTENTIAL_REQUEST_ASNYC_STORAGE_LOCATIONS,
+        projectDir,
+        rawNewConfig.resolve?.modules,
+      ),
+      nextjsStaticGenerationAsyncStorageModulePath: getNextjsModuleLocation(
+        POTENTIAL_STATIC_GENERATION_ASNYC_STORAGE_LOCATIONS,
         projectDir,
         rawNewConfig.resolve?.modules,
       ),
@@ -1016,16 +1040,8 @@ function resolveNextPackageDirFromDirectory(basedir: string): string | undefined
   }
 }
 
-const POTENTIAL_REQUEST_ASNYC_STORAGE_LOCATIONS = [
-  // Original location of RequestAsyncStorage
-  // https://github.com/vercel/next.js/blob/46151dd68b417e7850146d00354f89930d10b43b/packages/next/src/client/components/request-async-storage.ts
-  'next/dist/client/components/request-async-storage.js',
-  // Introduced in Next.js 13.4.20
-  // https://github.com/vercel/next.js/blob/e1bc270830f2fc2df3542d4ef4c61b916c802df3/packages/next/src/client/components/request-async-storage.external.ts
-  'next/dist/client/components/request-async-storage.external.js',
-];
-
-function getRequestAsyncStorageModuleLocation(
+function getNextjsModuleLocation(
+  potentialLocations: string[],
   webpackContextDir: string,
   webpackResolvableModuleLocations: string[] | undefined,
 ): string | undefined {
@@ -1040,7 +1056,7 @@ function getRequestAsyncStorageModuleLocation(
   for (const webpackResolvableLocation of absoluteWebpackResolvableModuleLocations) {
     const nextPackageDir = resolveNextPackageDirFromDirectory(webpackResolvableLocation);
     if (nextPackageDir) {
-      const asyncLocalStorageLocation = POTENTIAL_REQUEST_ASNYC_STORAGE_LOCATIONS.find(loc =>
+      const asyncLocalStorageLocation = potentialLocations.find(loc =>
         fs.existsSync(path.join(nextPackageDir, '..', loc)),
       );
       if (asyncLocalStorageLocation) {

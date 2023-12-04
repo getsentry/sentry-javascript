@@ -8,6 +8,15 @@ import * as serverComponentModule from '__SENTRY_WRAPPING_TARGET_FILE__';
 
 import type { RequestAsyncStorage } from './requestAsyncStorageShim';
 
+// @ts-expect-error Because we cannot be sure if the staticGenerationAsyncStorage module exists (it is not part of the Next.js public
+// API) we use a shim if it doesn't exist. The logic for this is in the wrapping loader.
+import { staticGenerationAsyncStorage } from '__SENTRY_NEXTJS_STATIC_GENERATION_ASYNC_STORAGE_SHIM__';
+
+import { storeHasStaticBehaviour } from '../../common/utils/hasStaticBehaviour';
+import type { StaticGenerationAsyncStorage } from './staticGenerationAsyncStorageShim';
+
+declare const staticGenerationAsyncStorage: StaticGenerationAsyncStorage;
+
 declare const requestAsyncStorage: RequestAsyncStorage;
 
 declare const serverComponentModule: {
@@ -37,12 +46,23 @@ if (typeof serverComponent === 'function') {
         /** empty */
       }
 
+      let hasStaticBehaviour: boolean | undefined = false;
+      try {
+        const staticGenerationStore = staticGenerationAsyncStorage.getStore();
+        if (staticGenerationStore) {
+          hasStaticBehaviour = storeHasStaticBehaviour(staticGenerationStore);
+        }
+      } catch (e) {
+        /** empty */
+      }
+
       return Sentry.wrapServerComponentWithSentry(originalFunction, {
         componentRoute: '__ROUTE__',
         componentType: '__COMPONENT_TYPE__',
         sentryTraceHeader,
         baggageHeader,
         headers,
+        hasStaticBehaviour,
       }).apply(thisArg, args);
     },
   });
