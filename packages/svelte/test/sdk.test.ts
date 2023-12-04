@@ -7,8 +7,8 @@ import { detectAndReportSvelteKit, init as svelteInit, isSvelteKitApp } from '..
 let passedEventProcessor: EventProcessor | undefined;
 
 const browserInit = jest.spyOn(SentryBrowser, 'init');
-const addGlobalEventProcessor = jest
-  .spyOn(SentryBrowser, 'addGlobalEventProcessor')
+const addEventProcessor = jest
+  .spyOn(SentryBrowser, 'addEventProcessor')
   .mockImplementation((eventProcessor: EventProcessor) => {
     passedEventProcessor = eventProcessor;
     return () => {};
@@ -79,10 +79,10 @@ describe('detectAndReportSvelteKit()', () => {
     passedEventProcessor = undefined;
   });
 
-  it('registers a global event processor', async () => {
+  it('registers an event processor', async () => {
     detectAndReportSvelteKit();
 
-    expect(addGlobalEventProcessor).toHaveBeenCalledTimes(1);
+    expect(addEventProcessor).toHaveBeenCalledTimes(1);
     expect(passedEventProcessor?.id).toEqual('svelteKitProcessor');
   });
 

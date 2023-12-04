@@ -40,7 +40,7 @@ export class VueIntegration implements Integration {
   }
 
   /** @inheritDoc */
-  public setupOnce(_addGlobaleventProcessor: unknown, getCurrentHub: () => Hub): void {
+  public setupOnce(_addGlobalEventProcessor: unknown, getCurrentHub: () => Hub): void {
     this._setupIntegration(getCurrentHub());
   }
 

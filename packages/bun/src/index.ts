@@ -24,7 +24,9 @@ export type { TransactionNamingScheme } from '@sentry/node';
 export type { BunOptions } from './types';
 
 export {
+  // eslint-disable-next-line deprecation/deprecation
   addGlobalEventProcessor,
+  addEventProcessor,
   addBreadcrumb,
   addIntegration,
   captureException,

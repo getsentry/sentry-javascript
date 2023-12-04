@@ -16,7 +16,7 @@ Sentry.init({
   // that it will also get attached to your source maps
 });
 
-Sentry.addGlobalEventProcessor(event => {
+Sentry.addEventProcessor(event => {
   if (
     event.type === 'transaction' &&
     (event.contexts?.trace?.op === 'pageload' || event.contexts?.trace?.op === 'navigation')

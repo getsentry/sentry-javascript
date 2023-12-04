@@ -523,7 +523,12 @@ export class Scope implements ScopeInterface {
 
     // TODO (v8): Update this order to be: Global > Client > Scope
     return notifyEventProcessors(
-      [...(additionalEventProcessors || []), ...getGlobalEventProcessors(), ...this._eventProcessors],
+      [
+        ...(additionalEventProcessors || []),
+        // eslint-disable-next-line deprecation/deprecation
+        ...getGlobalEventProcessors(),
+        ...this._eventProcessors,
+      ],
       event,
       hint,
     );

@@ -13,7 +13,7 @@ declare global {
   }
 }
 
-Sentry.addGlobalEventProcessor(event => {
+Sentry.addEventProcessor(event => {
   if (isTesting()) {
     if (!window._sentryTestEvents) {
       window._sentryTestEvents = [];
