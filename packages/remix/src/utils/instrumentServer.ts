@@ -8,6 +8,7 @@ import {
   dynamicSamplingContextToSentryBaggageHeader,
   fill,
   isNodeEnv,
+  isPrimitive,
   loadModule,
   logger,
   objectify,
@@ -80,15 +81,16 @@ async function extractResponseError(response: Response): Promise<unknown> {
  * export const handleError = Sentry.wrapRemixHandleError
  */
 export function wrapRemixHandleError(err: unknown, { request }: DataFunctionArgs): void {
-  // We are skipping thrown responses here as they are either handled:
-  // - Remix v1: by captureRemixServerException at loader / action
-  // - Remix v2: by ErrorBoundary
+  // We are skipping thrown responses here as they are handled by
+  // `captureRemixServerException` at loader / action level
   // We don't want to capture them twice.
+  // This function if only for capturing unhandled server-side exceptions.
   // https://remix.run/docs/en/main/file-conventions/entry.server#thrown-responses
   // https://remix.run/docs/en/v1/api/conventions#throwing-responses-in-loaders
   if (isResponse(err) || isRouteErrorResponse(err)) {
     return;
   }
+
   void captureRemixServerException(err, 'remix.server.handleError', request);
 }
 
@@ -162,7 +164,7 @@ export async function captureRemixServerException(err: unknown, name: string, re
   });
 }
 
-function makeWrappedDocumentRequestFunction(remixVersion: number) {
+function makeWrappedDocumentRequestFunction(remixVersion?: number) {
   return function (origDocumentRequestFunction: HandleDocumentRequestFunction): HandleDocumentRequestFunction {
     return async function (
       this: unknown,
@@ -172,28 +174,42 @@ function makeWrappedDocumentRequestFunction(remixVersion: number) {
       context: EntryContext,
       loadContext?: Record<string, unknown>,
     ): Promise<Response> {
+      let res: Response;
       const activeTransaction = getActiveTransaction();
 
-      const span = activeTransaction?.startChild({
-        op: 'function.remix.document_request',
-        origin: 'auto.function.remix',
-        description: activeTransaction.name,
-        tags: {
-          method: request.method,
-          url: request.url,
-        },
-      });
+      try {
+        const span = activeTransaction?.startChild({
+          op: 'function.remix.document_request',
+          origin: 'auto.function.remix',
+          description: activeTransaction.name,
+          tags: {
+            method: request.method,
+            url: request.url,
+          },
+        });
 
-      const res = await origDocumentRequestFunction.call(
-        this,
-        request,
-        responseStatusCode,
-        responseHeaders,
-        context,
-        loadContext,
-      );
+        res = await origDocumentRequestFunction.call(
+          this,
+          request,
+          responseStatusCode,
+          responseHeaders,
+          context,
+          loadContext,
+        );
 
-      span?.finish();
+        span?.finish();
+      } catch (err) {
+        const isRemixV1 = !FUTURE_FLAGS?.v2_errorBoundary && remixVersion !== 2;
+
+        // This exists to capture the server-side rendering errors on Remix v1
+        // On Remix v2, we capture SSR errors at `handleError`
+        // We also skip primitives here, as we can't dedupe them, and also we don't expect any primitive SSR errors.
+        if (isRemixV1 && !isPrimitive(err)) {
+          await captureRemixServerException(err, 'documentRequest', request);
+        }
+
+        throw err;
+      }
 
       return res;
     };
@@ -231,7 +247,12 @@ function makeWrappedDataFunction(
       currentScope.setSpan(activeTransaction);
       span?.finish();
     } catch (err) {
-      if (!FUTURE_FLAGS?.v2_errorBoundary && remixVersion !== 2) {
+      const isRemixV2 = FUTURE_FLAGS?.v2_errorBoundary || remixVersion === 2;
+
+      // On Remix v2, we capture all unexpected errors (except the `Route Error Response`s / Thrown Responses) in `handleError` function.
+      // This is both for consistency and also avoid duplicates such as primitives like `string` or `number` being captured twice.
+      // Remix v1 does not have a `handleError` function, so we capture all errors here.
+      if (isRemixV2 ? isResponse(err) : true) {
         await captureRemixServerException(err, name, args.request);
       }
 

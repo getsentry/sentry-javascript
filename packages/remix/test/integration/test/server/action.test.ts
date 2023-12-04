@@ -140,7 +140,7 @@ describe.each(['builtin', 'express'])('Remix API Actions with adapter = %s', ada
     });
   });
 
-  it('handles a thrown 500 response', async () => {
+  it('handles an error-throwing redirection target', async () => {
     const env = await RemixTestEnv.init(adapter);
     const url = `${env.url}/action-json-response/-2`;
 
@@ -254,7 +254,7 @@ describe.each(['builtin', 'express'])('Remix API Actions with adapter = %s', ada
             stacktrace: expect.any(Object),
             mechanism: {
               data: {
-                function: useV2 ? 'ErrorResponse' : 'action',
+                function: 'action',
               },
               handled: false,
               type: 'instrument',
@@ -303,13 +303,11 @@ describe.each(['builtin', 'express'])('Remix API Actions with adapter = %s', ada
         values: [
           {
             type: 'Error',
-            value: useV2
-              ? 'Object captured as exception with keys: data, internal, status, statusText'
-              : 'Object captured as exception with keys: data',
+            value: 'Object captured as exception with keys: data',
             stacktrace: expect.any(Object),
             mechanism: {
               data: {
-                function: useV2 ? 'ErrorResponse' : 'action',
+                function: 'action',
               },
               handled: false,
               type: 'instrument',
@@ -362,7 +360,7 @@ describe.each(['builtin', 'express'])('Remix API Actions with adapter = %s', ada
             stacktrace: expect.any(Object),
             mechanism: {
               data: {
-                function: useV2 ? 'ErrorResponse' : 'action',
+                function: 'action',
               },
               handled: false,
               type: 'instrument',
@@ -411,13 +409,11 @@ describe.each(['builtin', 'express'])('Remix API Actions with adapter = %s', ada
         values: [
           {
             type: 'Error',
-            value: useV2
-              ? 'Object captured as exception with keys: data, internal, status, statusText'
-              : 'Object captured as exception with keys: [object has no keys]',
+            value: 'Object captured as exception with keys: [object has no keys]',
             stacktrace: expect.any(Object),
             mechanism: {
               data: {
-                function: useV2 ? 'ErrorResponse' : 'action',
+                function: 'action',
               },
               handled: false,
               type: 'instrument',
@@ -428,7 +424,7 @@ describe.each(['builtin', 'express'])('Remix API Actions with adapter = %s', ada
     });
   });
 
-  it('handles thrown string from an action', async () => {
+  it('handles thrown string (primitive) from an action', async () => {
     const env = await RemixTestEnv.init(adapter);
     const url = `${env.url}/server-side-unexpected-errors/-1`;
 

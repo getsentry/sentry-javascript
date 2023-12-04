@@ -78,7 +78,7 @@ describe.each(['builtin', 'express'])('Remix API Loaders with adapter = %s', ada
     });
   });
 
-  it('handles a thrown 500 response', async () => {
+  it('handles an error-throwing redirection target', async () => {
     const env = await RemixTestEnv.init(adapter);
     const url = `${env.url}/loader-json-response/-1`;
 
