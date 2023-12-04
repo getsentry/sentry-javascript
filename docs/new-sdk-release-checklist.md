@@ -49,6 +49,8 @@ This page serves as a checklist of what to do when releasing a new SDK for the f
 
 - [ ] Make sure it is added to the [Verdaccio config](https://github.com/getsentry/sentry-javascript/blob/develop/packages/e2e-tests/verdaccio-config/config.yaml) for the E2E tests
 
+- [ ] If the package you're adding is a dependency of fullstack frameworks (e.g. Remix or NextJS), make sure that your package is added to the integration test apps' `"resolutions"` field in their `package.json`s.
+
 ## Cutting the Release
 
 When you’re ready to make the first release, there are a couple of steps that need to be performed in the **correct order**. Note that you can prepare the PRs at any time but the **merging oder** is important:
