@@ -2,7 +2,7 @@ import type { Context } from '@opentelemetry/api';
 import { SpanKind, context, trace } from '@opentelemetry/api';
 import { suppressTracing } from '@opentelemetry/core';
 import type { Span as OtelSpan, SpanProcessor as OtelSpanProcessor } from '@opentelemetry/sdk-trace-base';
-import { addEventProcessor, addTracingExtensions, getClient, getCurrentHub, Transaction } from '@sentry/core';
+import { Transaction, addEventProcessor, addTracingExtensions, getClient, getCurrentHub } from '@sentry/core';
 import type { DynamicSamplingContext, Span as SentrySpan, TraceparentData, TransactionContext } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
