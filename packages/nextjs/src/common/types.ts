@@ -85,3 +85,15 @@ export type AugmentedNextApiResponse = NextApiResponse & {
 
 export type ResponseEndMethod = AugmentedNextApiResponse['end'];
 export type WrappedResponseEndMethod = AugmentedNextApiResponse['end'] & WrappedFunction;
+
+export interface FunctionComponent {
+  (...args: unknown[]): unknown;
+}
+
+export interface ClassComponent {
+  new (...args: unknown[]): {
+    props?: unknown;
+    render(...args: unknown[]): unknown;
+    componentDidUpdate(prevProps: unknown, prevState: unknown): void;
+  };
+}

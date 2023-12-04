@@ -1,21 +1,7 @@
 import { addTracingExtensions, captureException, configureScope, runWithAsyncContext } from '@sentry/core';
 import { extractTraceparentData } from '@sentry/utils';
-
-interface FunctionComponent {
-  (...args: unknown[]): unknown;
-}
-
-interface ClassComponent {
-  new (...args: unknown[]): {
-    props?: unknown;
-    render(...args: unknown[]): unknown;
-  };
-}
-
-function isReactClassComponent(target: unknown): target is ClassComponent {
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-  return typeof target === 'function' && target?.prototype?.isReactComponent;
-}
+import type { ClassComponent, FunctionComponent } from './types';
+import { isReactClassComponent } from './utils/isReactClassComponent';
 
 /**
  * Wraps a page component with Sentry error instrumentation.
