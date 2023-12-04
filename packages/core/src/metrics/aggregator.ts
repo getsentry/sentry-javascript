@@ -97,20 +97,22 @@ function addDistributionMetric(metric: DistributionMetric, value: number): void 
   metric.value.push(value);
 }
 
-function createCounterMetric(
-  name: string,
-  value: number,
-  unit: MeasurementUnit,
-  tags: NonNullable<Metric['tags']>,
-): CounterMetric {
+function createCounterMetric(name: string, value: number, unit: MeasurementUnit, tags: Metric['tags']): CounterMetric {
   return {
     name,
     value,
     unit,
     timestamp: timestampInSeconds(),
     tags,
-    add: (newValue: number) => {
-      this.value += newValue;
-    },
+  };
+}
+
+function createGaugeMetric(name: string, value: number, unit: MeasurementUnit, tags: Metric['tags']): GaugeMetric {
+  return {
+    name,
+    value,
+    unit,
+    timestamp: timestampInSeconds(),
+    tags,
   };
 }
