@@ -8,6 +8,14 @@ npx @sentry/migr8@latest
 
 This will let you select which updates to run, and automatically update your code. Make sure to still review all code changes!
 
+## Deprecate `addGlobalEventProcessor` in favor of `addEventProcessor`
+
+Instead of using `addGlobalEventProcessor`, you should use `addEventProcessor` which does not add the event processor globally, but to the current client.
+
+For the vast majority of cases, the behavior of these should be the same. Only in the case where you have multiple clients will this differ - but you'll likely want to add event processors per-client then anyhow, not globally.
+
+In v8, we will remove the global event processors overall, as that allows us to avoid keeping global state that is not necessary.
+
 ## Deprecate `extractTraceParentData` export from `@sentry/core` & downstream packages
 
 Instead, import this directly from `@sentry/utils`.

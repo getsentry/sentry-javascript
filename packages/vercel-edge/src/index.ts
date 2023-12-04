@@ -23,7 +23,9 @@ export type { AddRequestDataToEventOptions } from '@sentry/utils';
 export type { VercelEdgeOptions } from './types';
 
 export {
+  // eslint-disable-next-line deprecation/deprecation
   addGlobalEventProcessor,
+  addEventProcessor,
   addBreadcrumb,
   addIntegration,
   captureException,

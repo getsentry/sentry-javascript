@@ -107,7 +107,7 @@ A standardized frontend test application has the following features:
   be done with an event processor:
 
   ```ts
-  Sentry.addGlobalEventProcessor(event => {
+  Sentry.addEventProcessor(event => {
     if (
       event.type === 'transaction' &&
       (event.contexts?.trace?.op === 'pageload' || event.contexts?.trace?.op === 'navigation')

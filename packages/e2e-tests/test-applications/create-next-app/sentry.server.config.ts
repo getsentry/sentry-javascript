@@ -23,7 +23,7 @@ Sentry.init({
   integrations: [new Sentry.Integrations.LocalVariables()],
 });
 
-Sentry.addGlobalEventProcessor(event => {
+Sentry.addEventProcessor(event => {
   global.transactionIds = global.transactionIds || [];
 
   if (event.type === 'transaction') {

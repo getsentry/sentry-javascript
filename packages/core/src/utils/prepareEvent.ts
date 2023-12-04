@@ -110,7 +110,15 @@ export function prepareEvent(
   } else {
     // Apply client & global event processors even if there is no scope
     // TODO (v8): Update the order to be Global > Client
-    result = notifyEventProcessors([...clientEventProcessors, ...getGlobalEventProcessors()], prepared, hint);
+    result = notifyEventProcessors(
+      [
+        ...clientEventProcessors,
+        // eslint-disable-next-line deprecation/deprecation
+        ...getGlobalEventProcessors(),
+      ],
+      prepared,
+      hint,
+    );
   }
 
   return result.then(evt => {

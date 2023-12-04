@@ -3,7 +3,7 @@ import { getClient, makeSession, updateSession } from '@sentry/core';
 import type { Event, Session, StackFrame } from '@sentry/types';
 import { logger, watchdogTimer } from '@sentry/utils';
 
-import { addGlobalEventProcessor, captureEvent, flush, getCurrentHub } from '..';
+import { addEventProcessor, captureEvent, flush, getCurrentHub } from '..';
 import { captureStackTrace } from './debugger';
 
 const DEFAULT_INTERVAL = 50;
@@ -191,7 +191,7 @@ function handleChildProcess(options: Options): void {
     });
   }
 
-  addGlobalEventProcessor(event => {
+  addEventProcessor(event => {
     // Strip sdkProcessingMetadata from all child process events to remove trace info
     delete event.sdkProcessingMetadata;
     event.tags = {
