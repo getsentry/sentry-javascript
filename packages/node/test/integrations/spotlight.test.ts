@@ -162,7 +162,7 @@ describe('Spotlight', () => {
     const originalProcess = process;
 
     // @ts-expect-error - TS complains but we explicitly wanna test this
-    delete globalThis.process;
+    delete global.process;
 
     const integration = new Spotlight({ sidecarUrl: 'http://localhost:8969' });
     integration.setup(client);
@@ -171,7 +171,7 @@ describe('Spotlight', () => {
       expect.stringContaining("It seems you're not in dev mode. Do you really want to have Spotlight enabled?"),
     );
 
-    globalThis.process = originalProcess;
+    global.process = originalProcess;
   });
 
   it('handles `process.env` not being available', () => {
