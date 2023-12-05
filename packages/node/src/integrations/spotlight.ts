@@ -41,8 +41,8 @@ export class Spotlight implements Integration {
    * Sets up forwarding envelopes to the Spotlight Sidecar
    */
   public setup(client: Client): void {
-    if (process.env.NODE_ENV !== 'development') {
-      logger.warn("[Spotlight] It seems you're not in dev mode. Do you really want to have Spoltight enabled?");
+    if (typeof process === 'object' && process.env && process.env.NODE_ENV !== 'development') {
+      logger.warn("[Spotlight] It seems you're not in dev mode. Do you really want to have Spotlight enabled?");
     }
     connectToSpotlight(client, this._options);
   }
