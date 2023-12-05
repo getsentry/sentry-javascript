@@ -40,12 +40,27 @@ const serverComponentWrapperTemplateCode = fs.readFileSync(serverComponentWrappe
 const routeHandlerWrapperTemplatePath = path.resolve(__dirname, '..', 'templates', 'routeHandlerWrapperTemplate.js');
 const routeHandlerWrapperTemplateCode = fs.readFileSync(routeHandlerWrapperTemplatePath, { encoding: 'utf8' });
 
+const errorComponentWrapperTemplatePath = path.resolve(
+  __dirname,
+  '..',
+  'templates',
+  'errorComponentWrapperTemplate.js',
+);
+const errorComponentWrapperTemplateCode = fs.readFileSync(errorComponentWrapperTemplatePath, { encoding: 'utf8' });
+
 export type WrappingLoaderOptions = {
   pagesDir: string | undefined;
   appDir: string | undefined;
   pageExtensionRegex: string;
   excludeServerRoutes: Array<RegExp | string>;
-  wrappingTargetKind: 'page' | 'api-route' | 'middleware' | 'server-component' | 'sentry-init' | 'route-handler';
+  wrappingTargetKind:
+    | 'page'
+    | 'api-route'
+    | 'middleware'
+    | 'server-component'
+    | 'sentry-init'
+    | 'route-handler'
+    | 'error-component';
   sentryConfigFilePath?: string;
   vercelCronsConfig?: VercelCronsConfig;
   nextjsRequestAsyncStorageModulePath?: string;
@@ -239,6 +254,8 @@ export default function wrappingLoader(
     }
   } else if (wrappingTargetKind === 'middleware') {
     templateCode = middlewareWrapperTemplateCode;
+  } else if (wrappingTargetKind === 'error-component') {
+    templateCode = errorComponentWrapperTemplateCode;
   } else {
     throw new Error(`Invariant: Could not get template code of unknown kind "${wrappingTargetKind}"`);
   }

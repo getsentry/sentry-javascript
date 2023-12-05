@@ -6,7 +6,7 @@ import { isReactClassComponent } from './utils/isReactClassComponent';
 /**
  * Wraps a page component with Sentry error instrumentation.
  */
-export function wrapClientErrorPageWithSentry(pageComponent: FunctionComponent | ClassComponent): unknown {
+export function wrapErrorComponentWithSentry(pageComponent: FunctionComponent | ClassComponent): unknown {
   if (isReactClassComponent(pageComponent)) {
     return class SentryWrappedPageComponent extends pageComponent {
       public componentDidMount(...componentDidMountArgs: unknown[]): void {

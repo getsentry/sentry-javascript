@@ -192,6 +192,18 @@ export function constructWebpackConfigFunction(
       );
     };
 
+    const isErrorComponentResource = (resourcePath: string): boolean => {
+      const normalizedAbsoluteResourcePath = normalizeLoaderResourcePath(resourcePath);
+
+      // ".js, .jsx, or .tsx file extensions can be used for Pages"
+      // https://beta.nextjs.org/docs/routing/pages-and-layouts#pages:~:text=.js%2C%20.jsx%2C%20or%20.tsx%20file%20extensions%20can%20be%20used%20for%20Pages.
+      return (
+        appDirPath !== undefined &&
+        normalizedAbsoluteResourcePath.startsWith(appDirPath + path.sep) &&
+        !!normalizedAbsoluteResourcePath.match(/[\\/](error)\.(js|jsx|tsx)$/)
+      );
+    };
+
     const isRouteHandlerResource = (resourcePath: string): boolean => {
       const normalizedAbsoluteResourcePath = normalizeLoaderResourcePath(resourcePath);
       return (
@@ -200,6 +212,21 @@ export function constructWebpackConfigFunction(
         !!normalizedAbsoluteResourcePath.match(/[\\/]route\.(js|jsx|ts|tsx)$/)
       );
     };
+
+    if (runtime === 'client') {
+      newConfig.module.rules.unshift({
+        test: isErrorComponentResource,
+        use: [
+          {
+            loader: path.resolve(__dirname, 'loaders', 'wrappingLoader.js'),
+            options: {
+              ...staticWrappingLoaderOptions,
+              wrappingTargetKind: 'error-component',
+            },
+          },
+        ],
+      });
+    }
 
     if (isServer && userSentryOptions.autoInstrumentServerFunctions !== false) {
       // It is very important that we insert our loaders at the beginning of the array because we expect any sort of transformations/transpilations (e.g. TS -> JS) to already have happened.

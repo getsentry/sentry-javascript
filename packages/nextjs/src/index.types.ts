@@ -194,4 +194,4 @@ export declare function wrapPageComponentWithSentry<C>(WrappingTarget: C): C;
 /**
  * Wraps an app directory error component with Sentry error instrumentation.
  */
-export declare function wrapClientErrorPageWithSentry<C>(WrappingTarget: C): C;
+export declare function wrapErrorComponentWithSentry<C>(WrappingTarget: C): C;
