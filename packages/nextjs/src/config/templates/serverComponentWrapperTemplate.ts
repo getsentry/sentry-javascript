@@ -12,7 +12,7 @@ import type { RequestAsyncStorage } from './requestAsyncStorageShim';
 // API) we use a shim if it doesn't exist. The logic for this is in the wrapping loader.
 import { staticGenerationAsyncStorage } from '__SENTRY_NEXTJS_STATIC_GENERATION_ASYNC_STORAGE_SHIM__';
 
-import { storeHasStaticBehaviour } from '../../common/utils/hasStaticBehaviour';
+import type { StaticGenerationStore } from '../../common/types';
 import type { StaticGenerationAsyncStorage } from './staticGenerationAsyncStorageShim';
 
 declare const staticGenerationAsyncStorage: StaticGenerationAsyncStorage;
@@ -22,6 +22,16 @@ declare const requestAsyncStorage: RequestAsyncStorage;
 declare const serverComponentModule: {
   default: unknown;
 };
+
+function storeHasStaticBehaviour(staticGenerationStore: StaticGenerationStore): boolean {
+  return !!(
+    staticGenerationStore?.forceStatic ||
+    staticGenerationStore?.isStaticGeneration ||
+    staticGenerationStore?.dynamicShouldError ||
+    staticGenerationStore?.experimental?.ppr ||
+    staticGenerationStore?.ppr
+  );
+}
 
 const serverComponent = serverComponentModule.default;
 

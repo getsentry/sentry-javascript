@@ -7,7 +7,7 @@ import { requestAsyncStorage } from '__SENTRY_NEXTJS_REQUEST_ASYNC_STORAGE_SHIM_
 import { staticGenerationAsyncStorage } from '__SENTRY_NEXTJS_STATIC_GENERATION_ASYNC_STORAGE_SHIM__';
 // @ts-expect-error See above
 import * as routeModule from '__SENTRY_WRAPPING_TARGET_FILE__';
-import { storeHasStaticBehaviour } from '../../common/utils/hasStaticBehaviour';
+import type { StaticGenerationStore } from '../../common/types';
 
 import type { RequestAsyncStorage } from './requestAsyncStorageShim';
 import type { StaticGenerationAsyncStorage } from './staticGenerationAsyncStorageShim';
@@ -24,6 +24,16 @@ declare const routeModule: {
   HEAD?: (...args: unknown[]) => unknown;
   OPTIONS?: (...args: unknown[]) => unknown;
 };
+
+function storeHasStaticBehaviour(staticGenerationStore: StaticGenerationStore): boolean {
+  return !!(
+    staticGenerationStore?.forceStatic ||
+    staticGenerationStore?.isStaticGeneration ||
+    staticGenerationStore?.dynamicShouldError ||
+    staticGenerationStore?.experimental?.ppr ||
+    staticGenerationStore?.ppr
+  );
+}
 
 function wrapHandler<T>(handler: T, method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 'HEAD' | 'OPTIONS'): T {
   // Running the instrumentation code during the build phase will mark any function as "dynamic" because we're accessing

@@ -23,14 +23,15 @@ export function wrapRouteHandlerWithSentry<F extends (...args: any[]) => any>(
         const currentScope = hub.getScope();
 
         let req: Request | undefined;
-        // We are not allowed to access the Request object when a route has static behavious. Otherwise Next.js will throw.
-        if (args[0] instanceof Request && !hasStaticBehaviour) {
+        let reqMethod: string | undefined;
+        if (args[0] instanceof Request) {
           req = args[0];
+          reqMethod = req.method;
         }
 
         const { traceparentData, dynamicSamplingContext, propagationContext } = tracingContextFromHeaders(
-          sentryTraceHeader ?? req?.headers.get('sentry-trace') ?? undefined,
-          baggageHeader ?? req?.headers.get('baggage') ?? undefined,
+          hasStaticBehaviour ? undefined : sentryTraceHeader,
+          hasStaticBehaviour ? undefined : baggageHeader,
         );
         currentScope.setPropagationContext(propagationContext);
 
@@ -39,7 +40,7 @@ export function wrapRouteHandlerWithSentry<F extends (...args: any[]) => any>(
           res = await trace(
             {
               op: 'http.server',
-              name: `${method} ${parameterizedRoute}`,
+              name: `${reqMethod ?? method} ${parameterizedRoute}`,
               status: 'ok',
               ...traceparentData,
               metadata: {
