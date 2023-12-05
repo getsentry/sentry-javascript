@@ -226,7 +226,6 @@ export function continueTrace<V>(
  * These values can be obtained from incoming request headers,
  * or in the browser from `<meta name="sentry-trace">` and `<meta name="baggage">` HTML tags.
  *
- * It also takes an optional `request` option, which if provided will also be added to the scope & transaction metadata.
  * The callback receives a transactionContext that may be used for `startTransaction` or `startSpan`.
  */
 export function continueTrace<V>(

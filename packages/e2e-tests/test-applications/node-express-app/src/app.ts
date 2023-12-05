@@ -89,7 +89,7 @@ app.listen(port, () => {
   console.log(`Example app listening on port ${port}`);
 });
 
-Sentry.addGlobalEventProcessor(event => {
+Sentry.addEventProcessor(event => {
   global.transactionIds = global.transactionIds || [];
 
   if (event.type === 'transaction') {

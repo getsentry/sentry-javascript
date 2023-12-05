@@ -4,6 +4,15 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.85.0
+
+- feat(core): Add `addEventProcessor` method (#9554)
+- feat(crons): Add interface for heartbeat checkin (#9706)
+- feat(feedback): Include Feedback package in browser SDK (#9586)
+- fix(astro): Isolate request instrumentation in middleware (#9709)
+- fix(replay): Capture JSON XHR response bodies (#9623)
+- ref(feedback): Change form `box-shadow` to use CSS var (#9630)
+
 ## 7.84.0
 
 ### Important Changes

@@ -10,7 +10,9 @@ import type { RemixOptions } from './utils/remixOptions';
 // We need to explicitly export @sentry/node as they end up under `default` in ESM builds
 // See: https://github.com/getsentry/sentry-javascript/issues/8474
 export {
+  // eslint-disable-next-line deprecation/deprecation
   addGlobalEventProcessor,
+  addEventProcessor,
   addBreadcrumb,
   captureCheckIn,
   withMonitor,
@@ -57,7 +59,7 @@ export {
 // Keeping the `*` exports for backwards compatibility and types
 export * from '@sentry/node';
 
-export { captureRemixServerException } from './utils/instrumentServer';
+export { captureRemixServerException, wrapRemixHandleError } from './utils/instrumentServer';
 export { ErrorBoundary, withErrorBoundary } from '@sentry/react';
 export { remixRouterInstrumentation, withSentry } from './client/performance';
 export { captureRemixErrorBoundaryError } from './client/errors';

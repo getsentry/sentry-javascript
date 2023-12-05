@@ -24,7 +24,9 @@ export {
   extractRequestData,
   deepReadDirSync,
   getModuleFromFilename,
+  // eslint-disable-next-line deprecation/deprecation
   addGlobalEventProcessor,
+  addEventProcessor,
   addBreadcrumb,
   captureException,
   captureEvent,

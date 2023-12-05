@@ -1,6 +1,6 @@
 {
   "name": "@sentry/remix",
-  "version": "7.84.0",
+  "version": "7.85.0",
   "description": "Official Sentry SDK for Remix",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/remix",
@@ -27,12 +27,12 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/cli": "^2.21.2",
-    "@sentry/core": "7.84.0",
-    "@sentry/node": "7.84.0",
-    "@sentry/react": "7.84.0",
-    "@sentry/types": "7.84.0",
-    "@sentry/utils": "7.84.0",
+    "@sentry/cli": "^2.22.3",
+    "@sentry/core": "7.85.0",
+    "@sentry/node": "7.85.0",
+    "@sentry/react": "7.85.0",
+    "@sentry/types": "7.85.0",
+    "@sentry/utils": "7.85.0",
     "glob": "^10.3.4",
     "yargs": "^17.6.0"
   },

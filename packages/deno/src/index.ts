@@ -23,7 +23,9 @@ export type { AddRequestDataToEventOptions } from '@sentry/utils';
 export type { DenoOptions } from './types';
 
 export {
+  // eslint-disable-next-line deprecation/deprecation
   addGlobalEventProcessor,
+  addEventProcessor,
   addBreadcrumb,
   captureException,
   captureEvent,

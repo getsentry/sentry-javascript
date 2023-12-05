@@ -12,6 +12,18 @@ vi.mock('../../src/server/meta', () => ({
 
 describe('sentryMiddleware', () => {
   const startSpanSpy = vi.spyOn(SentryNode, 'startSpan');
+
+  const getSpanMock = vi.fn(() => {});
+  // @ts-expect-error only returning a partial hub here
+  vi.spyOn(SentryNode, 'getCurrentHub').mockImplementation(() => {
+    return {
+      getScope: () => ({
+        getSpan: getSpanMock,
+      }),
+      getClient: () => ({}),
+    };
+  });
+
   const nextResult = Promise.resolve(new Response(null, { status: 200, headers: new Headers() }));
 
   afterEach(() => {
@@ -86,10 +98,6 @@ describe('sentryMiddleware', () => {
   });
 
   it('attaches tracing headers', async () => {
-    const scope = { setUser: vi.fn(), setPropagationContext: vi.fn() };
-    // @ts-expect-error, only passing a partial Scope object
-    const configureScopeSpy = vi.spyOn(SentryNode, 'configureScope').mockImplementation(cb => cb(scope));
-
     const middleware = handleRequest();
     const ctx = {
       request: {
@@ -107,17 +115,6 @@ describe('sentryMiddleware', () => {
 
     // @ts-expect-error, a partial ctx object is fine here
     await middleware(ctx, next);
-
-    expect(configureScopeSpy).toHaveBeenCalledTimes(1);
-    expect(scope.setPropagationContext).toHaveBeenCalledWith({
-      dsc: {
-        release: '1.0.0',
-      },
-      parentSpanId: '1234567890123456',
-      sampled: true,
-      spanId: expect.any(String),
-      traceId: '12345678901234567890123456789012',
-    });
 
     expect(startSpanSpy).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -174,11 +171,6 @@ describe('sentryMiddleware', () => {
   });
 
   it('injects tracing <meta> tags into the HTML of a pageload response', async () => {
-    vi.spyOn(SentryNode, 'getCurrentHub').mockImplementation(() => ({
-      // @ts-expect-error this is fine
-      getClient: () => ({}),
-    }));
-
     const middleware = handleRequest();
 
     const ctx = {
@@ -260,6 +252,48 @@ describe('sentryMiddleware', () => {
     const html = await resultFromNext?.text();
 
     expect(html).toBe(originalHtml);
+  });
+
+  describe('async context isolation', () => {
+    const runWithAsyncContextSpy = vi.spyOn(SentryNode, 'runWithAsyncContext');
+    afterEach(() => {
+      vi.clearAllMocks();
+      runWithAsyncContextSpy.mockRestore();
+    });
+
+    it('starts a new async context if no span is active', async () => {
+      getSpanMock.mockReturnValueOnce(undefined);
+      const handler = handleRequest();
+      const ctx = {};
+      const next = vi.fn();
+
+      try {
+        // @ts-expect-error, a partial ctx object is fine here
+        await handler(ctx, next);
+      } catch {
+        // this is fine, it's not required to pass in this test
+      }
+
+      expect(runWithAsyncContextSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it("doesn't start a new async context if a span is active", async () => {
+      // @ts-expect-error, a empty span is fine here
+      getSpanMock.mockReturnValueOnce({});
+
+      const handler = handleRequest();
+      const ctx = {};
+      const next = vi.fn();
+
+      try {
+        // @ts-expect-error, a partial ctx object is fine here
+        await handler(ctx, next);
+      } catch {
+        // this is fine, it's not required to pass in this test
+      }
+
+      expect(runWithAsyncContextSpy).not.toHaveBeenCalled();
+    });
   });
 });
 

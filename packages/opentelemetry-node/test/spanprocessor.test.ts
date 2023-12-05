@@ -863,9 +863,14 @@ describe('SentrySpanProcessor', () => {
     });
   });
 
-  it('associates an error to a transaction', () => {
+  it('associates an error to a transaction', async () => {
     let sentryEvent: any;
     let otelSpan: any;
+
+    // Clear provider & setup a new one
+    // As we need a custom client
+    await provider.forceFlush();
+    await provider.shutdown();
 
     client = new NodeClient({
       ...DEFAULT_NODE_CLIENT_OPTIONS,
@@ -876,6 +881,16 @@ describe('SentrySpanProcessor', () => {
     });
     hub = new Hub(client);
     makeMain(hub);
+
+    // Need to register the spanprocessor again
+    spanProcessor = new SentrySpanProcessor();
+    provider = new NodeTracerProvider({
+      resource: new Resource({
+        [SemanticResourceAttributes.SERVICE_NAME]: 'test-service',
+      }),
+    });
+    provider.addSpanProcessor(spanProcessor);
+    provider.register();
 
     const tracer = provider.getTracer('default');
 

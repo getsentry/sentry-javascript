@@ -11,9 +11,7 @@ Sentry.init({
   autoSessionTracking: false,
 });
 
-export function handleError(error: unknown, { request }: DataFunctionArgs): void {
-  Sentry.captureRemixServerException(error, 'remix.server', request);
-}
+export const handleError = Sentry.wrapRemixHandleError;
 
 export default function handleRequest(
   request: Request,

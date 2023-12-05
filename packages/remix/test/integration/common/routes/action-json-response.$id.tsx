@@ -2,7 +2,7 @@ import { ActionFunction, LoaderFunction, json, redirect } from '@remix-run/node'
 import { useActionData } from '@remix-run/react';
 
 export const loader: LoaderFunction = async ({ params: { id } }) => {
-  if (id === '-1') {
+  if (id === '-100') {
     throw new Error('Unexpected Server Error');
   }
 
@@ -16,7 +16,7 @@ export const action: ActionFunction = async ({ params: { id } }) => {
 
   if (id === '-2') {
     // Note: This GET request triggers the `Loader` of the URL, not the `Action`.
-    throw redirect('/action-json-response/-1');
+    throw redirect('/action-json-response/-100');
   }
 
   if (id === '-3') {

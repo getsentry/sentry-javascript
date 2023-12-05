@@ -46,7 +46,8 @@ export const getCurrentHub = getCurrentHubCore;
 /**
  * @deprecated This export has moved to @sentry/core. The @sentry/hub package will be removed in v8.
  */
-export const addGlobalEventProcessor = addGlobalEventProcessorCore;
+
+export const addGlobalEventProcessor = addGlobalEventProcessorCore; // eslint-disable-line deprecation/deprecation
 
 /**
  * @deprecated This export has moved to @sentry/core. The @sentry/hub package will be removed in v8.

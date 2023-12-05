@@ -1,8 +1,7 @@
 import { captureException } from '@sentry/core';
-import { isNodeEnv, isString } from '@sentry/utils';
+import { isNodeEnv } from '@sentry/utils';
 
-import { isRouteErrorResponse } from '../utils/vendor/response';
-import type { ErrorResponse } from '../utils/vendor/types';
+import { isResponse } from '../utils/vendor/response';
 
 /**
  * Captures an error that is thrown inside a Remix ErrorBoundary.
@@ -11,57 +10,26 @@ import type { ErrorResponse } from '../utils/vendor/types';
  * @returns void
  */
 export function captureRemixErrorBoundaryError(error: unknown): string | undefined {
-  let eventId: string | undefined;
-  const isClientSideRuntimeError = !isNodeEnv() && error instanceof Error;
-  // We only capture `ErrorResponse`s that are 5xx errors.
-  const isRemixErrorResponse = isRouteErrorResponse(error) && error.status >= 500;
-  // Server-side errors apart from `ErrorResponse`s also appear here without their stacktraces.
-  // So, we only capture:
-  //    1. `ErrorResponse`s
-  //    2. Client-side runtime errors here,
-  //    And other server-side errors captured in `handleError` function where stacktraces are available.
-  if (isRemixErrorResponse || isClientSideRuntimeError) {
-    const eventData = isRemixErrorResponse
-      ? {
-          function: 'ErrorResponse',
-          ...getErrorData(error),
-        }
-      : {
-          function: 'ReactError',
-        };
+  // Server-side errors also appear here without their stacktraces.
+  // So, we only capture client-side runtime errors here.
+  // ErrorResponses that are 5xx errors captured at loader / action level by `captureRemixRouteError` function,
+  // And other server-side errors captured in `handleError` function where stacktraces are available.
+  //
+  // We don't want to capture:
+  // - Response Errors / Objects [They are originated and handled on the server-side]
+  // - SSR Errors [They are originated and handled on the server-side]
+  // - Anything without a stacktrace [Remix trims the stacktrace of the errors that are thrown on the server-side]
+  if (isResponse(error) || isNodeEnv() || !(error instanceof Error)) {
+    return;
+  }
 
-    const actualError = isRemixErrorResponse ? getExceptionToCapture(error) : error;
-
-    eventId = captureException(actualError, {
-      mechanism: {
-        type: 'instrument',
-        handled: false,
-        data: eventData,
+  return captureException(error, {
+    mechanism: {
+      type: 'instrument',
+      handled: false,
+      data: {
+        function: 'ReactError',
       },
-    });
-  }
-
-  return eventId;
-}
-
-function getErrorData(error: ErrorResponse): object {
-  if (isString(error.data)) {
-    return {
-      error: error.data,
-    };
-  }
-
-  return error.data;
-}
-
-function getExceptionToCapture(error: ErrorResponse): string | ErrorResponse {
-  if (isString(error.data)) {
-    return error.data;
-  }
-
-  if (error.statusText) {
-    return error.statusText;
-  }
-
-  return error;
+    },
+  });
 }

@@ -644,6 +644,7 @@ describe('Scope', () => {
       const localScope = new Scope();
       localScope.setExtra('a', 'b');
 
+      // eslint-disable-next-line deprecation/deprecation
       addGlobalEventProcessor((processedEvent: Event) => {
         processedEvent.dist = '1';
         return processedEvent;

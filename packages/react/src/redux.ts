@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { addGlobalEventProcessor, configureScope, getClient } from '@sentry/browser';
+import { addEventProcessor, configureScope, getClient } from '@sentry/browser';
 import type { Scope } from '@sentry/types';
 import { addNonEnumerableProperty } from '@sentry/utils';
 
@@ -97,7 +97,7 @@ function createReduxEnhancer(enhancerOptions?: Partial<SentryEnhancerOptions>): 
   return (next: StoreEnhancerStoreCreator): StoreEnhancerStoreCreator =>
     <S = any, A extends Action = AnyAction>(reducer: Reducer<S, A>, initialState?: PreloadedState<S>) => {
       options.attachReduxState &&
-        addGlobalEventProcessor((event, hint) => {
+        addEventProcessor((event, hint) => {
           try {
             // @ts-expect-error try catch to reduce bundle size
             if (event.type === undefined && event.contexts.state.state.type === 'redux') {

@@ -5,6 +5,7 @@ import { DEBUG_BUILD } from './debug-build';
 
 /**
  * Returns the global event processors.
+ * @deprecated Global event processors will be removed in v8.
  */
 export function getGlobalEventProcessors(): EventProcessor[] {
   return getGlobalSingleton<EventProcessor[]>('globalEventProcessors', () => []);
@@ -12,9 +13,10 @@ export function getGlobalEventProcessors(): EventProcessor[] {
 
 /**
  * Add a EventProcessor to be kept globally.
- * @param callback EventProcessor to add
+ * @deprecated Use `addEventProcessor` instead. Global event processors will be removed in v8.
  */
 export function addGlobalEventProcessor(callback: EventProcessor): void {
+  // eslint-disable-next-line deprecation/deprecation
   getGlobalEventProcessors().push(callback);
 }
 
