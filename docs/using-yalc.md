@@ -43,7 +43,7 @@ to add the local SDK package to your project.
 
 ### My changes are not applied to the test project
 
-Did you run `yarn build && yarn publish:yalc` after making your changes?
+Did you run `yarn build && yarn yalc:publish` after making your changes?
 
 ### My test project uses Vite and I still don't see changes
 
