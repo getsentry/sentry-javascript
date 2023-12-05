@@ -331,6 +331,15 @@ export class ReplayContainer implements ReplayContainerInterface {
    */
   public startRecording(): void {
     try {
+      // default canvas to 4 fps and quality of 0.6
+      if (this._options._experiments.canvas) {
+        if (!this._options._experiments.canvas.fps) {
+          this._options._experiments.canvas.fps = 4;
+        }
+        if (!this._options._experiments.canvas.fps) {
+          this._options._experiments.canvas.fps = 0.6;
+        }
+      }
       this._stopRecording = record({
         ...this._recordingOptions,
         // When running in error sampling mode, we need to overwrite `checkoutEveryNms`
