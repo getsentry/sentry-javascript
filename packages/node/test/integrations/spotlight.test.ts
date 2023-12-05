@@ -138,7 +138,7 @@ describe('Spotlight', () => {
     integration.setup(client);
 
     expect(loggerSpy).toHaveBeenCalledWith(
-      expect.stringContaining("It seems you're not in dev mode. Do you really want to have Spoltight enabled?"),
+      expect.stringContaining("It seems you're not in dev mode. Do you really want to have Spotlight enabled?"),
     );
 
     process.env.NODE_ENV = oldEnvValue;
@@ -152,9 +152,41 @@ describe('Spotlight', () => {
     integration.setup(client);
 
     expect(loggerSpy).not.toHaveBeenCalledWith(
-      expect.stringContaining("It seems you're not in dev mode. Do you really want to have Spoltight enabled?"),
+      expect.stringContaining("It seems you're not in dev mode. Do you really want to have Spotlight enabled?"),
     );
 
     process.env.NODE_ENV = oldEnvValue;
+  });
+
+  it('handles `process` not being available', () => {
+    const originalProcess = process;
+
+    // @ts-expect-error - TS complains but we explicitly wanna test this
+    delete globalThis.process;
+
+    const integration = new Spotlight({ sidecarUrl: 'http://localhost:8969' });
+    integration.setup(client);
+
+    expect(loggerSpy).not.toHaveBeenCalledWith(
+      expect.stringContaining("It seems you're not in dev mode. Do you really want to have Spotlight enabled?"),
+    );
+
+    globalThis.process = originalProcess;
+  });
+
+  it('handles `process.env` not being available', () => {
+    const originalEnv = process.env;
+
+    // @ts-expect-error - TS complains but we explicitly wanna test this
+    delete process.env;
+
+    const integration = new Spotlight({ sidecarUrl: 'http://localhost:8969' });
+    integration.setup(client);
+
+    expect(loggerSpy).not.toHaveBeenCalledWith(
+      expect.stringContaining("It seems you're not in dev mode. Do you really want to have Spotlight enabled?"),
+    );
+
+    process.env = originalEnv;
   });
 });
