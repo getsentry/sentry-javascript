@@ -232,7 +232,10 @@ export interface ReplayPluginOptions extends ReplayNetworkOptions {
   _experiments: Partial<{
     captureExceptions: boolean;
     traceInternals: boolean;
-    enableCanvas: boolean;
+    canvas: {
+      fps: number,
+      quality: number
+    };
   }>;
 }
 

@@ -1,5 +1,5 @@
 /* eslint-disable max-lines */ // TODO: We might want to split this file up
-import { EventType, record } from '@sentry-internal/rrweb';
+import { EventType, getCanvasManager, record } from '@sentry-internal/rrweb';
 import { captureException, getClient, getCurrentHub } from '@sentry/core';
 import type { ReplayRecordingMode, Transaction } from '@sentry/types';
 import { logger } from '@sentry/utils';
@@ -339,10 +339,11 @@ export class ReplayContainer implements ReplayContainerInterface {
         ...(this.recordingMode === 'buffer' && { checkoutEveryNms: BUFFER_CHECKOUT_TIME }),
         emit: getHandleRecordingEmit(this),
         onMutation: this._onMutationHandler,
-        ...(this._options._experiments.enableCanvas && {
+        ...(this._options._experiments.canvas && {
           recordCanvas: true,
-          sampling: { canvas: 4 },
-          dataURLOptions: { quality: 0.6 },
+          sampling: { canvas: this._options._experiments.canvas.fps },
+          dataURLOptions: { quality: this._options._experiments.canvas.quality },
+          getCanvasManager,
         }),
       });
     } catch (err) {
