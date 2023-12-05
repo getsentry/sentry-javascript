@@ -15,6 +15,7 @@ import type { AllPerformanceEntry, AllPerformanceEntryData, ReplayPerformanceEnt
 import type { ReplayFrameEvent } from './replayFrame';
 import type { ReplayNetworkRequestOrResponse } from './request';
 import type { ReplayEventWithTime, RrwebRecordOptions } from './rrweb';
+import type { getCanvasManager } from '@sentry-internal/rrweb';
 
 export type RecordingEvent = ReplayFrameEvent | ReplayEventWithTime;
 export type RecordingOptions = RrwebRecordOptions;
@@ -235,6 +236,7 @@ export interface ReplayPluginOptions extends ReplayNetworkOptions {
     canvas: {
       fps: number;
       quality: number;
+      manager: typeof getCanvasManager;
     };
   }>;
 }

@@ -343,7 +343,7 @@ export class ReplayContainer implements ReplayContainerInterface {
           recordCanvas: true,
           sampling: { canvas: this._options._experiments.canvas.fps },
           dataURLOptions: { quality: this._options._experiments.canvas.quality },
-          getCanvasManager,
+          ...this._options._experiments.canvas.manager,
         }),
       });
     } catch (err) {
