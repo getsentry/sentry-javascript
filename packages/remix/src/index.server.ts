@@ -59,7 +59,7 @@ export {
 // Keeping the `*` exports for backwards compatibility and types
 export * from '@sentry/node';
 
-export { captureRemixServerException } from './utils/instrumentServer';
+export { captureRemixServerException, wrapRemixHandleError } from './utils/instrumentServer';
 export { ErrorBoundary, withErrorBoundary } from '@sentry/react';
 export { remixRouterInstrumentation, withSentry } from './client/performance';
 export { captureRemixErrorBoundaryError } from './client/errors';
