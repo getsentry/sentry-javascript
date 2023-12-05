@@ -1,4 +1,5 @@
 import * as Sentry from '@sentry/nextjs';
+import type { WebFetchHeaders } from '@sentry/types';
 // @ts-expect-error Because we cannot be sure if the RequestAsyncStorage module exists (it is not part of the Next.js public
 // API) we use a shim if it doesn't exist. The logic for this is in the wrapping loader.
 import { requestAsyncStorage } from '__SENTRY_NEXTJS_REQUEST_ASYNC_STORAGE_SHIM__';
@@ -34,12 +35,14 @@ function wrapHandler<T>(handler: T, method: 'GET' | 'POST' | 'PUT' | 'PATCH' | '
     apply: (originalFunction, thisArg, args) => {
       let sentryTraceHeader: string | undefined | null = undefined;
       let baggageHeader: string | undefined | null = undefined;
+      let headers: WebFetchHeaders | undefined = undefined;
 
       // We try-catch here just in case the API around `requestAsyncStorage` changes unexpectedly since it is not public API
       try {
         const requestAsyncStore = requestAsyncStorage.getStore();
         sentryTraceHeader = requestAsyncStore?.headers.get('sentry-trace') ?? undefined;
         baggageHeader = requestAsyncStore?.headers.get('baggage') ?? undefined;
+        headers = requestAsyncStore?.headers;
       } catch (e) {
         /** empty */
       }
@@ -50,6 +53,7 @@ function wrapHandler<T>(handler: T, method: 'GET' | 'POST' | 'PUT' | 'PATCH' | '
         parameterizedRoute: '__ROUTE__',
         sentryTraceHeader,
         baggageHeader,
+        headers,
       }).apply(thisArg, args);
     },
   });
