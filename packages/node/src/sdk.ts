@@ -235,6 +235,8 @@ export function getSentryRelease(fallback?: string): string | undefined {
     process.env.ZEIT_GITHUB_COMMIT_SHA ||
     process.env.ZEIT_GITLAB_COMMIT_SHA ||
     process.env.ZEIT_BITBUCKET_COMMIT_SHA ||
+    // Cloudflare Pages - https://developers.cloudflare.com/pages/platform/build-configuration/#environment-variables
+    process.env.CF_PAGES_COMMIT_SHA ||
     fallback
   );
 }
