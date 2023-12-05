@@ -93,7 +93,8 @@ export interface FunctionComponent {
 export interface ClassComponent {
   new (...args: unknown[]): {
     props?: unknown;
-    render(...args: unknown[]): unknown;
-    componentDidUpdate(prevProps: unknown, prevState: unknown): void;
+    render?(...args: unknown[]): unknown;
+    componentDidUpdate?(prevProps: unknown, prevState: unknown): void;
+    componentDidMount?(): void;
   };
 }

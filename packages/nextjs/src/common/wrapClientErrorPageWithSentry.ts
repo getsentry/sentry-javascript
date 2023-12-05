@@ -1,5 +1,4 @@
-import { addTracingExtensions, captureException, configureScope, runWithAsyncContext } from '@sentry/core';
-import { extractTraceparentData } from '@sentry/utils';
+import { captureException } from '@sentry/core';
 import { useEffect } from 'react';
 import type { ClassComponent, FunctionComponent } from './types';
 import { isReactClassComponent } from './utils/isReactClassComponent';
@@ -7,20 +6,46 @@ import { isReactClassComponent } from './utils/isReactClassComponent';
 /**
  * Wraps a page component with Sentry error instrumentation.
  */
-export function wrapPageComponentWithSentry(pageComponent: FunctionComponent | ClassComponent): unknown {
+export function wrapClientErrorPageWithSentry(pageComponent: FunctionComponent | ClassComponent): unknown {
   if (isReactClassComponent(pageComponent)) {
     return class SentryWrappedPageComponent extends pageComponent {
       public componentDidMount(...componentDidMountArgs: unknown[]): void {
-        // TODO
-        return super.componentDidUpdate.apply(this, componentDidMountArgs);
-      }
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
+        const err: unknown = ((this.props as any) || {}).error;
 
-      public componentDidUpdate(...componentDidUpdateArgs: unknown[]): void {
-        if (this.props.userID !== prevProps.userID) {
-          // TODO
+        if (err) {
+          captureException(err, {
+            mechanism: {
+              handled: false,
+            },
+          });
         }
 
-        return super.componentDidUpdate.apply(this, componentDidUpdateArgs);
+        if (super.componentDidMount) {
+          return super.componentDidMount.apply(this, componentDidMountArgs);
+        }
+      }
+
+      public componentDidUpdate(...componentDidUpdateArgs: [unknown]): void {
+        const prevProps = componentDidUpdateArgs[0];
+
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
+        const prevError: unknown = ((prevProps as any) || {}).error;
+
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
+        const currError: unknown = ((this.props as any) || {}).error;
+
+        if (currError && prevError !== currError) {
+          captureException(currError, {
+            mechanism: {
+              handled: false,
+            },
+          });
+        }
+
+        if (super.componentDidUpdate) {
+          return super.componentDidUpdate.apply(this, componentDidUpdateArgs);
+        }
       }
     };
   } else if (typeof pageComponent === 'function') {

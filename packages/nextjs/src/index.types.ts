@@ -190,3 +190,8 @@ export declare function wrapApiHandlerWithSentryVercelCrons<F extends (...args: 
  * Wraps a page component with Sentry error instrumentation.
  */
 export declare function wrapPageComponentWithSentry<C>(WrappingTarget: C): C;
+
+/**
+ * Wraps an app directory error component with Sentry error instrumentation.
+ */
+export declare function wrapClientErrorPageWithSentry<C>(WrappingTarget: C): C;

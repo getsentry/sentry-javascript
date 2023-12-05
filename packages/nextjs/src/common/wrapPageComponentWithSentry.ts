@@ -32,7 +32,9 @@ export function wrapPageComponentWithSentry(pageComponent: FunctionComponent | C
           });
 
           try {
-            return super.render(...args);
+            if (super.render) {
+              return super.render(...args);
+            }
           } catch (e) {
             captureException(e, {
               mechanism: {
