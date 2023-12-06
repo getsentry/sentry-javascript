@@ -14,7 +14,7 @@ import type { SKIPPED, THROTTLED } from '../util/throttle';
 import type { AllPerformanceEntry, AllPerformanceEntryData, ReplayPerformanceEntry } from './performance';
 import type { ReplayFrameEvent } from './replayFrame';
 import type { ReplayNetworkRequestOrResponse } from './request';
-import type { ReplayEventWithTime, RrwebRecordOptions } from './rrweb';
+import type { CanvasManagerInterface, GetCanvasManagerOptions, ReplayEventWithTime, RrwebRecordOptions } from './rrweb';
 
 export type RecordingEvent = ReplayFrameEvent | ReplayEventWithTime;
 export type RecordingOptions = RrwebRecordOptions;
@@ -235,8 +235,7 @@ export interface ReplayPluginOptions extends ReplayNetworkOptions {
     canvas: {
       fps?: number;
       quality?: number;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      manager: () => any;
+      manager: (options: GetCanvasManagerOptions) => CanvasManagerInterface;
     };
   }>;
 }
