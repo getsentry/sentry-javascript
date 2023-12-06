@@ -341,8 +341,8 @@ export class ReplayContainer implements ReplayContainerInterface {
         onMutation: this._onMutationHandler,
         ...(this._options._experiments.canvas && {
           recordCanvas: true,
-          sampling: { canvas: this._options._experiments.canvas.fps || 4},
-          dataURLOptions: { quality: this._options._experiments.canvas.quality || 0.6},
+          sampling: { canvas: this._options._experiments.canvas.fps || 4 },
+          dataURLOptions: { quality: this._options._experiments.canvas.quality || 0.6 },
           getCanvasManager: this._options._experiments.canvas.manager,
         }),
       });
