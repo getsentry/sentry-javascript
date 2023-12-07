@@ -46,7 +46,7 @@ export function instrumentXHR(): void {
       const url = parseUrl(args[1]);
 
       if (!method || !url) {
-        return;
+        return originalOpen.apply(this, args);
       }
 
       this[SENTRY_XHR_DATA_KEY] = {
@@ -124,7 +124,7 @@ export function instrumentXHR(): void {
       const sentryXhrData = this[SENTRY_XHR_DATA_KEY];
 
       if (!sentryXhrData) {
-        return;
+        return originalSend.apply(this, args);
       }
 
       if (args[0] !== undefined) {
