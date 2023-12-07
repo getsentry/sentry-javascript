@@ -26,6 +26,7 @@ import { DEFAULT_ENVIRONMENT } from './constants';
 import { DEBUG_BUILD } from './debug-build';
 import { Scope } from './scope';
 import { closeSession, makeSession, updateSession } from './session';
+import { SDK_VERSION } from './version';
 
 /**
  * API compatibility version of this hub.
@@ -35,7 +36,7 @@ import { closeSession, makeSession, updateSession } from './session';
  *
  * @hidden
  */
-export const API_VERSION = 4;
+export const API_VERSION = parseFloat(SDK_VERSION);
 
 /**
  * Default maximum number of breadcrumbs added to an event. Can be overwritten

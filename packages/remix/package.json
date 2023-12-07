@@ -27,7 +27,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/cli": "^2.21.2",
+    "@sentry/cli": "^2.22.3",
     "@sentry/core": "7.85.0",
     "@sentry/node": "7.85.0",
     "@sentry/react": "7.85.0",

@@ -40,6 +40,7 @@ let showedMissingOrgSlugErrorMsg = false;
 let showedMissingProjectSlugErrorMsg = false;
 let showedHiddenSourceMapsWarningMsg = false;
 let showedMissingCliBinaryWarningMsg = false;
+let showedMissingGlobalErrorWarningMsg = false;
 
 // TODO: merge default SentryWebpackPlugin ignore with their SentryWebpackPlugin ignore or ignoreFile
 // TODO: merge default SentryWebpackPlugin include with their SentryWebpackPlugin include
@@ -326,6 +327,24 @@ export function constructWebpackConfigFunction(
           },
         ],
       });
+    }
+
+    if (appDirPath) {
+      const hasGlobalErrorFile = ['global-error.js', 'global-error.jsx', 'global-error.ts', 'global-error.tsx'].some(
+        globalErrorFile => fs.existsSync(path.join(appDirPath!, globalErrorFile)),
+      );
+
+      if (!hasGlobalErrorFile && !showedMissingGlobalErrorWarningMsg) {
+        // eslint-disable-next-line no-console
+        console.log(
+          `${chalk.yellow(
+            'warn',
+          )}  - It seems like you don't have a global error handler set up. It is recommended that you add a ${chalk.cyan(
+            'global-error.js',
+          )} file with Sentry instrumentation so that React rendering errors are reported to Sentry. Read more: https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/#react-render-errors-in-app-router`,
+        );
+        showedMissingGlobalErrorWarningMsg = true;
+      }
     }
 
     // The SDK uses syntax (ES6 and ES6+ features like object spread) which isn't supported by older browsers. For users

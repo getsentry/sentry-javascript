@@ -14,9 +14,9 @@
 
  - [Official SDK Docs](https://docs.sentry.io/platforms/javascript/guides/astro/)
 
-## Experimental Note
+## SDK Status
 
-This SDK is experimental and in Alpha state. Breaking changes can occurr at any time.
+This SDK is in Beta and not yet fully stable.
 If you have feedback or encounter any bugs, feel free to [open an issue](https://github.com/getsentry/sentry-javascript/issues/new/choose).
 
 ## General
@@ -58,9 +58,9 @@ SENTRY_AUTH_TOKEN="your-token"
 
 ### Server Instrumentation
 
-For Astro apps configured for (hybrid) Server Side Rendering (SSR), the Sentry integration will automatically add middleware to your server to instrument incoming requests **if you're using Astro 3.5.0 or newer**.
+For Astro apps configured for (hybrid) Server Side Rendering (SSR), the Sentry integration will automatically add middleware to your server to instrument incoming requests **if you're using Astro 3.5.2 or newer**.
 
-If you're using Astro <3.5.0, complete the setup by adding the Sentry middleware to your `src/middleware.js` file:
+If you're using Astro <3.5.2, complete the setup by adding the Sentry middleware to your `src/middleware.js` file:
 
 ```javascript
 // src/middleware.js

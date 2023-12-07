@@ -24,9 +24,7 @@ Sentry.init({
   tracesSampleRate: 1.0, // Capture 100% of the transactions, reduce in production!
 });
 
-export function handleError(error: unknown, { request }: DataFunctionArgs): void {
-  Sentry.captureRemixServerException(error, 'remix.server', request);
-}
+export const handleError = Sentry.wrapRemixHandleError;
 
 export default function handleRequest(
   request: Request,

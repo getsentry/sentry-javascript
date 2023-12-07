@@ -18,22 +18,19 @@ export type ServerComponentContext = {
 };
 
 export interface RouteHandlerContext {
-  // TODO(v8): Remove
-  /**
-   * @deprecated The SDK will automatically pick up the method from the incoming Request object instead.
-   */
   method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 'HEAD' | 'OPTIONS';
   parameterizedRoute: string;
   // TODO(v8): Remove
   /**
-   * @deprecated The SDK will automatically pick up the `sentry-trace` header from the incoming Request object instead.
+   * @deprecated pass a complete `Headers` object with the `headers` field instead.
    */
   sentryTraceHeader?: string;
   // TODO(v8): Remove
   /**
-   * @deprecated The SDK will automatically pick up the `baggage` header from the incoming Request object instead.
+   * @deprecated pass a complete `Headers` object with the `headers` field instead.
    */
   baggageHeader?: string;
+  headers?: WebFetchHeaders;
 }
 
 export type VercelCronsConfig = { path?: string; schedule?: string }[] | undefined;

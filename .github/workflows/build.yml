@@ -976,8 +976,7 @@ jobs:
     runs-on: ubuntu-20.04
     timeout-minutes: 30
     if: |
-      contains(github.event.pull_request.labels.*.name, 'ci-overhead-measurements') ||
-      needs.job_get_metadata.outputs.is_develop == 'true'
+      contains(github.event.pull_request.labels.*.name, 'ci-overhead-measurements')
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v4

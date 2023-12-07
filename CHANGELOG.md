@@ -4,6 +4,17 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.86.0
+
+- feat(core): Use SDK_VERSION for hub API version (#9732)
+- feat(nextjs): Emit warning if your app directory doesn't have a global-error.js file (#9753)
+- feat(node): Add cloudflare pages commit sha (#9751)
+- feat(remix): Bump @sentry/cli to 2.22.3 (#9741)
+- fix(nextjs): Don't accidentally trigger static generation bailout (#9749)
+- fix(node): Guard `process.env.NODE_ENV` access in Spotlight integration (#9748)
+- fix(utils): Fix XHR instrumentation early return (#9770)
+- ref(remix): Rework Error Handling (#9725)
+
 ## 7.85.0
 
 - feat(core): Add `addEventProcessor` method (#9554)
