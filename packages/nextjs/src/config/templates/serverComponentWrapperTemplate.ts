@@ -12,6 +12,9 @@ declare const requestAsyncStorage: RequestAsyncStorage;
 
 declare const serverComponentModule: {
   default: unknown;
+  generateMetadata?: () => unknown;
+  generateImageMetadata?: () => unknown;
+  generateViewport?: () => unknown;
 };
 
 const serverComponent = serverComponentModule.default;
@@ -49,6 +52,33 @@ if (typeof serverComponent === 'function') {
 } else {
   wrappedServerComponent = serverComponent;
 }
+
+export const generateMetadata = serverComponentModule.generateMetadata
+  ? Sentry.wrapGenerationFunctionWithSentry(serverComponentModule.generateMetadata, {
+      componentRoute: '__ROUTE__',
+      componentType: '__COMPONENT_TYPE__',
+      generationFunctionIdentifier: 'generateMetadata',
+      requestAsyncStorage,
+    })
+  : undefined;
+
+export const generateImageMetadata = serverComponentModule.generateImageMetadata
+  ? Sentry.wrapGenerationFunctionWithSentry(serverComponentModule.generateImageMetadata, {
+      componentRoute: '__ROUTE__',
+      componentType: '__COMPONENT_TYPE__',
+      generationFunctionIdentifier: 'generateImageMetadata',
+      requestAsyncStorage,
+    })
+  : undefined;
+
+export const generateViewport = serverComponentModule.generateViewport
+  ? Sentry.wrapGenerationFunctionWithSentry(serverComponentModule.generateViewport, {
+      componentRoute: '__ROUTE__',
+      componentType: '__COMPONENT_TYPE__',
+      generationFunctionIdentifier: 'generateViewport',
+      requestAsyncStorage,
+    })
+  : undefined;
 
 // Re-export anything exported by the page module we're wrapping. When processing this code, Rollup is smart enough to
 // not include anything whose name matchs something we've explicitly exported above.
