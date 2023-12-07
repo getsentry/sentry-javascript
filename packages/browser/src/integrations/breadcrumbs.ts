@@ -1,5 +1,5 @@
 /* eslint-disable max-lines */
-import { getCurrentHub } from '@sentry/core';
+import { getClient, getCurrentHub } from '@sentry/core';
 import type {
   Event as SentryEvent,
   HandlerDataConsole,
@@ -31,7 +31,6 @@ import {
 } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../debug-build';
-import { getClient } from '../exports';
 import { WINDOW } from '../helpers';
 
 /** JSDoc */
