@@ -351,36 +351,26 @@ export function trpcMiddleware(options: SentryTrpcMiddlewareOptions = {}) {
       sentryTransaction.setContext('trpc', trpcContext);
     }
 
-    function shouldCaptureError(e: unknown): boolean {
-      if (typeof e === 'object' && e && 'code' in e) {
-        // Is likely TRPCError - we only want to capture internal server errors
-        return e.code === 'INTERNAL_SERVER_ERROR';
-      } else {
-        // Is likely random error that bubbles up
-        return true;
+    function captureIfError(nextResult: { ok: false; error?: Error } | { ok: true }): void {
+      if (!nextResult.ok) {
+        captureException(nextResult.error, { mechanism: { handled: false } });
       }
     }
 
-    function handleErrorCase(e: unknown): void {
-      if (shouldCaptureError(e)) {
-        captureException(e, { mechanism: { handled: false } });
-      }
-    }
-
-    let maybePromiseResult;
-
-    try {
-      maybePromiseResult = next();
-    } catch (e) {
-      handleErrorCase(e);
-      throw e;
-    }
+    const maybePromiseResult = next();
 
     if (isThenable(maybePromiseResult)) {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      Promise.resolve(maybePromiseResult).then(null, e => {
-        handleErrorCase(e);
-      });
+      Promise.resolve(maybePromiseResult).then(
+        nextResult => {
+          captureIfError(nextResult as any);
+        },
+        () => {
+          // noop
+        },
+      );
+    } else {
+      captureIfError(maybePromiseResult as any);
     }
 
     // We return the original promise just to be safe.
