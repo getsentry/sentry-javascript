@@ -331,6 +331,7 @@ export class ReplayContainer implements ReplayContainerInterface {
    */
   public startRecording(): void {
     try {
+      const canvas = this._options._experiments.canvas;
       this._stopRecording = record({
         ...this._recordingOptions,
         // When running in error sampling mode, we need to overwrite `checkoutEveryNms`
@@ -339,11 +340,11 @@ export class ReplayContainer implements ReplayContainerInterface {
         ...(this.recordingMode === 'buffer' && { checkoutEveryNms: BUFFER_CHECKOUT_TIME }),
         emit: getHandleRecordingEmit(this),
         onMutation: this._onMutationHandler,
-        ...(this._options._experiments.canvas && {
+        ...(canvas && {
           recordCanvas: true,
-          sampling: { canvas: this._options._experiments.canvas.fps || 4 },
-          dataURLOptions: { quality: this._options._experiments.canvas.quality || 0.6 },
-          getCanvasManager: this._options._experiments.canvas.manager,
+          sampling: { canvas: canvas.fps || 4 },
+          dataURLOptions: { quality: canvas.quality || 0.6 },
+          getCanvasManager: canvas.manager,
         }),
       });
     } catch (err) {
