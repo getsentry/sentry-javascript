@@ -1,6 +1,6 @@
 {
   "name": "@sentry/hub",
-  "version": "7.85.0",
+  "version": "7.86.0",
   "description": "Sentry hub which handles global state managment.",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/hub",
@@ -23,9 +23,9 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/core": "7.85.0",
-    "@sentry/types": "7.85.0",
-    "@sentry/utils": "7.85.0"
+    "@sentry/core": "7.86.0",
+    "@sentry/types": "7.86.0",
+    "@sentry/utils": "7.86.0"
   },
   "scripts": {
     "build": "run-p build:transpile build:types",
