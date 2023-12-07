@@ -122,7 +122,8 @@ function addClientIntegrations(options: BrowserOptions): void {
                 /^(?=.*localhost)(?!.*webpack\.hot-update\.json).*/,
                 /^\/(?!\/)/,
               ]
-            : [...defaultRequestInstrumentationOptions.tracingOrigins, /^(api\/)/],
+            : // eslint-disable-next-line deprecation/deprecation
+              [...defaultRequestInstrumentationOptions.tracingOrigins, /^(api\/)/],
         routingInstrumentation: nextRouterInstrumentation,
       });
 
