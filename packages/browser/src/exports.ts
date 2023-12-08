@@ -56,6 +56,11 @@ export {
   withScope,
   FunctionToString,
   InboundFilters,
+  incr,
+  distribution,
+  set,
+  gauge,
+  Metrics,
 } from '@sentry/core';
 
 export { WINDOW } from './helpers';

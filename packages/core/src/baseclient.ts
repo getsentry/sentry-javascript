@@ -49,6 +49,7 @@ import { createEventEnvelope, createSessionEnvelope } from './envelope';
 import { getCurrentHub } from './hub';
 import type { IntegrationIndex } from './integration';
 import { setupIntegration, setupIntegrations } from './integration';
+import type { MetricsAggregator } from './metrics/types';
 import type { Scope } from './scope';
 import { updateSession } from './session';
 import { getDynamicSamplingContextFromClient } from './tracing/dynamicSamplingContext';
@@ -88,6 +89,13 @@ const ALREADY_SEEN_ERROR = "Not capturing exception because it's already been ca
  * }
  */
 export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
+  /**
+   * A reference to a metrics aggregator
+   *
+   * @experimental Note this is alpha API. It may experience breaking changes in the future.
+   */
+  public metricsAggregator: MetricsAggregator | undefined;
+
   /** Options passed to the SDK. */
   protected readonly _options: O;
 
@@ -264,6 +272,9 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   public flush(timeout?: number): PromiseLike<boolean> {
     const transport = this._transport;
     if (transport) {
+      if (this.metricsAggregator) {
+        this.metricsAggregator.flush();
+      }
       return this._isClientDoneProcessing(timeout).then(clientFinished => {
         return transport.flush(timeout).then(transportFlushed => clientFinished && transportFlushed);
       });

@@ -1,13 +1,11 @@
-import type { DsnComponents, DynamicSamplingContext, SdkMetadata, StatsdEnvelope, StatsdItem } from '@sentry/types';
-import { createEnvelope, dropUndefinedKeys, dsnToString } from '@sentry/utils';
+import type { DsnComponents, SdkMetadata, StatsdEnvelope, StatsdItem } from '@sentry/types';
+import { createEnvelope, dsnToString } from '@sentry/utils';
 
 /**
  * Create envelope from a metric aggregate.
  */
 export function createMetricEnvelope(
-  // TODO(abhi): Add type for this
   metricAggregate: string,
-  dynamicSamplingContext?: Partial<DynamicSamplingContext>,
   metadata?: SdkMetadata,
   tunnel?: string,
   dsn?: DsnComponents,
@@ -27,10 +25,6 @@ export function createMetricEnvelope(
     headers.dsn = dsnToString(dsn);
   }
 
-  if (dynamicSamplingContext) {
-    headers.trace = dropUndefinedKeys(dynamicSamplingContext) as DynamicSamplingContext;
-  }
-
   const item = createMetricEnvelopeItem(metricAggregate);
   return createEnvelope<StatsdEnvelope>(headers, [item]);
 }
@@ -38,6 +32,8 @@ export function createMetricEnvelope(
 function createMetricEnvelopeItem(metricAggregate: string): StatsdItem {
   const metricHeaders: StatsdItem[0] = {
     type: 'statsd',
+    content_type: 'application/octet-stream',
+    length: metricAggregate.length,
   };
   return [metricHeaders, metricAggregate];
 }
