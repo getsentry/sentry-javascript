@@ -6,6 +6,10 @@ const WINDOW = getGlobalObject<Window>();
 
 const DEFAULT_MAX_STRING_LENGTH = 80;
 
+type SimpleNode = {
+  parentNode: SimpleNode;
+} | null;
+
 /**
  * Given a child DOM element, returns a query-selector statement describing that
  * and its ancestors
@@ -16,9 +20,8 @@ export function htmlTreeAsString(
   elem: unknown,
   options: string[] | { keyAttrs?: string[]; maxStringLength?: number } = {},
 ): string {
-  type SimpleNode = {
-    parentNode: SimpleNode;
-  } | null;
+
+  console.log('html tree as string')
 
   if (!elem) {
     return '<unknown>';
@@ -56,6 +59,7 @@ export function htmlTreeAsString(
       currentElem = currentElem.parentNode;
     }
 
+    console.log(out.reverse().join(separator))
     return out.reverse().join(separator);
   } catch (_oO) {
     return '<unknown>';
@@ -84,6 +88,11 @@ function _htmlElementAsString(el: unknown, keyAttrs?: string[]): string {
 
   if (!elem || !elem.tagName) {
     return '';
+  }
+
+  // If using the component name annotation plugin, this value may be available on the DOM node
+  if (elem instanceof HTMLElement && elem.dataset && elem.dataset['sentryComponent']) {
+    return elem.dataset['sentryComponent']
   }
 
   out.push(elem.tagName.toLowerCase());
@@ -156,4 +165,21 @@ export function getDomElement<E = any>(selector: string): E | null {
     return WINDOW.document.querySelector(selector) as unknown as E;
   }
   return null;
+}
+
+export function getComponentName(elem: unknown) {
+  let currentElem = elem as SimpleNode;
+  const MAX_TRAVERSE_HEIGHT = 5;
+
+  for (let i = 0; i < MAX_TRAVERSE_HEIGHT; i++) {
+    if (!currentElem) {
+      return null;
+    }
+
+    if (currentElem instanceof HTMLElement && currentElem.dataset['sentryComponent']) {
+      return `<${currentElem.dataset['sentryComponent']}>`;
+    }
+
+    currentElem = currentElem.parentNode
+  }
 }

@@ -22,6 +22,7 @@ import {
   addFetchInstrumentationHandler,
   addHistoryInstrumentationHandler,
   addXhrInstrumentationHandler,
+  getComponentName,
   getEventDescription,
   htmlTreeAsString,
   logger,
@@ -143,6 +144,7 @@ function addSentryBreadcrumb(event: SentryEvent): void {
 function _domBreadcrumb(dom: BreadcrumbsOptions['dom']): (handlerData: HandlerDataDom) => void {
   function _innerDomBreadcrumb(handlerData: HandlerDataDom): void {
     let target;
+    let componentName;
     let keyAttrs = typeof dom === 'object' ? dom.serializeAttribute : undefined;
 
     let maxStringLength =
@@ -165,8 +167,13 @@ function _domBreadcrumb(dom: BreadcrumbsOptions['dom']): (handlerData: HandlerDa
       target = _isEvent(event)
         ? htmlTreeAsString(event.target, { keyAttrs, maxStringLength })
         : htmlTreeAsString(event, { keyAttrs, maxStringLength });
+
+      componentName = _isEvent(event)
+        ? getComponentName(event.target)
+        : getComponentName(event);
     } catch (e) {
       target = '<unknown>';
+      componentName = null;
     }
 
     if (target.length === 0) {
@@ -177,6 +184,7 @@ function _domBreadcrumb(dom: BreadcrumbsOptions['dom']): (handlerData: HandlerDa
       {
         category: `ui.${handlerData.name}`,
         message: target,
+        data: {componentName}
       },
       {
         event: handlerData.event,
