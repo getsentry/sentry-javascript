@@ -26,10 +26,12 @@ function parseJsonLines<T extends unknown[]>(input: string, expected: number): T
 
 describe('should report ANR when event loop blocked', () => {
   test('CJS', done => {
-    // The stack trace is different when node < 12
-    const testFramesDetails = NODE_VERSION >= 12;
+    if (NODE_VERSION < 12) {
+      done();
+      return;
+    }
 
-    expect.assertions(testFramesDetails ? 7 : 5);
+    expect.assertions(7);
 
     const testScriptPath = path.resolve(__dirname, 'basic.js');
 
@@ -41,10 +43,8 @@ describe('should report ANR when event loop blocked', () => {
       expect(event.exception?.values?.[0].value).toEqual('Application Not Responding for at least 200 ms');
       expect(event.exception?.values?.[0].stacktrace?.frames?.length).toBeGreaterThan(4);
 
-      if (testFramesDetails) {
-        expect(event.exception?.values?.[0].stacktrace?.frames?.[2].function).toEqual('?');
-        expect(event.exception?.values?.[0].stacktrace?.frames?.[3].function).toEqual('longWork');
-      }
+      expect(event.exception?.values?.[0].stacktrace?.frames?.[2].function).toEqual('?');
+      expect(event.exception?.values?.[0].stacktrace?.frames?.[3].function).toEqual('longWork');
 
       done();
     });
@@ -66,7 +66,7 @@ describe('should report ANR when event loop blocked', () => {
       expect(event.exception?.values?.[0].mechanism).toEqual({ type: 'ANR' });
       expect(event.exception?.values?.[0].type).toEqual('ApplicationNotResponding');
       expect(event.exception?.values?.[0].value).toEqual('Application Not Responding for at least 200 ms');
-      expect(event.exception?.values?.[0].stacktrace?.frames?.length).toBeGreaterThan(4);
+      expect(event.exception?.values?.[0].stacktrace?.frames?.length).toBeGreaterThanOrEqual(4);
       expect(event.exception?.values?.[0].stacktrace?.frames?.[2].function).toEqual('?');
       expect(event.exception?.values?.[0].stacktrace?.frames?.[3].function).toEqual('longWork');
 
@@ -75,10 +75,12 @@ describe('should report ANR when event loop blocked', () => {
   });
 
   test('With session', done => {
-    // The stack trace is different when node < 12
-    const testFramesDetails = NODE_VERSION >= 12;
+    if (NODE_VERSION < 12) {
+      done();
+      return;
+    }
 
-    expect.assertions(testFramesDetails ? 9 : 7);
+    expect.assertions(9);
 
     const testScriptPath = path.resolve(__dirname, 'basic-session.js');
 
@@ -90,10 +92,8 @@ describe('should report ANR when event loop blocked', () => {
       expect(event.exception?.values?.[0].value).toEqual('Application Not Responding for at least 200 ms');
       expect(event.exception?.values?.[0].stacktrace?.frames?.length).toBeGreaterThan(4);
 
-      if (testFramesDetails) {
-        expect(event.exception?.values?.[0].stacktrace?.frames?.[2].function).toEqual('?');
-        expect(event.exception?.values?.[0].stacktrace?.frames?.[3].function).toEqual('longWork');
-      }
+      expect(event.exception?.values?.[0].stacktrace?.frames?.[2].function).toEqual('?');
+      expect(event.exception?.values?.[0].stacktrace?.frames?.[3].function).toEqual('longWork');
 
       expect(session.status).toEqual('abnormal');
       expect(session.abnormal_mechanism).toEqual('anr_foreground');
@@ -103,10 +103,12 @@ describe('should report ANR when event loop blocked', () => {
   });
 
   test('from forked process', done => {
-    // The stack trace is different when node < 12
-    const testFramesDetails = NODE_VERSION >= 12;
+    if (NODE_VERSION < 12) {
+      done();
+      return;
+    }
 
-    expect.assertions(testFramesDetails ? 7 : 5);
+    expect.assertions(7);
 
     const testScriptPath = path.resolve(__dirname, 'forker.js');
 
@@ -118,10 +120,8 @@ describe('should report ANR when event loop blocked', () => {
       expect(event.exception?.values?.[0].value).toEqual('Application Not Responding for at least 200 ms');
       expect(event.exception?.values?.[0].stacktrace?.frames?.length).toBeGreaterThan(4);
 
-      if (testFramesDetails) {
-        expect(event.exception?.values?.[0].stacktrace?.frames?.[2].function).toEqual('?');
-        expect(event.exception?.values?.[0].stacktrace?.frames?.[3].function).toEqual('longWork');
-      }
+      expect(event.exception?.values?.[0].stacktrace?.frames?.[2].function).toEqual('?');
+      expect(event.exception?.values?.[0].stacktrace?.frames?.[3].function).toEqual('longWork');
 
       done();
     });

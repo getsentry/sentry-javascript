@@ -1,23 +1,24 @@
-import { spawn } from 'child_process';
 import { getClient, makeSession, updateSession } from '@sentry/core';
 import type { Event, Session, StackFrame } from '@sentry/types';
-import { logger, watchdogTimer } from '@sentry/utils';
+import { createDebugPauseMessageHandler, dynamicRequire, logger, watchdogTimer } from '@sentry/utils';
+import type { Session as InspectorSession } from 'inspector';
 
-import { addEventProcessor, captureEvent, flush, getCurrentHub } from '..';
-import { captureStackTrace } from './debugger';
+import type { MessagePort, Worker } from 'worker_threads';
+import { addEventProcessor, captureEvent, flush, getCurrentHub, getModuleFromFilename } from '..';
+import { NODE_VERSION } from '../nodeVersion';
 
 const DEFAULT_INTERVAL = 50;
 const DEFAULT_HANG_THRESHOLD = 5000;
 
 interface Options {
   /**
-   * The app entry script. This is used to run the same script as the child process.
+   * The app entry script. This is used to run the same script as the ANR worker.
    *
    * Defaults to `process.argv[1]`.
    */
   entryScript: string;
   /**
-   * Interval to send heartbeat messages to the child process.
+   * Interval to send heartbeat messages to the ANR worker.
    *
    * Defaults to 50ms.
    */
@@ -61,6 +62,23 @@ function createAnrEvent(blockedMs: number, frames?: StackFrame[]): Event {
   };
 }
 
+type WorkerThreads = {
+  Worker: typeof Worker;
+  isMainThread: boolean;
+  parentPort: null | MessagePort;
+  workerData: { inspectorUrl?: string };
+};
+
+/**
+ * We need to use dynamicRequire because worker_threads is not available in node < v12 and webpack error will when
+ * targeting those versions
+ */
+function getWorkerThreads(): WorkerThreads {
+  return dynamicRequire(module, 'worker_threads');
+}
+
+type InspectorSessionNodeV12 = InspectorSession & { connectToMainThread: () => void };
+
 interface InspectorApi {
   open: (port: number) => void;
   url: () => string | undefined;
@@ -86,7 +104,9 @@ function startInspector(startPort: number = 9229): string | undefined {
   return inspectorUrl;
 }
 
-function startChildProcess(options: Options): void {
+function startAnrWorker(options: Options): void {
+  const { Worker } = getWorkerThreads();
+
   function log(message: string, ...args: unknown[]): void {
     logger.log(`[ANR] ${message}`, ...args);
   }
@@ -94,38 +114,29 @@ function startChildProcess(options: Options): void {
   const hub = getCurrentHub();
 
   try {
-    const env = { ...process.env };
-    env.SENTRY_ANR_CHILD_PROCESS = 'true';
+    log(`Spawning worker with entryScript:'${options.entryScript}'`);
 
-    if (options.captureStackTrace) {
-      env.SENTRY_INSPECT_URL = startInspector();
-    }
-
-    log(`Spawning child process with execPath:'${process.execPath}' and entryScript:'${options.entryScript}'`);
-
-    const child = spawn(process.execPath, [options.entryScript], {
-      env,
-      stdio: logger.isEnabled() ? ['inherit', 'inherit', 'inherit', 'ipc'] : ['ignore', 'ignore', 'ignore', 'ipc'],
-    });
-    // The child process should not keep the main process alive
-    child.unref();
+    const inspectorUrl = options.captureStackTrace ? startInspector() : undefined;
+    const worker = new Worker(options.entryScript, { workerData: { inspectorUrl } });
+    // The worker should not keep the main process alive
+    worker.unref();
 
     const timer = setInterval(() => {
       try {
         const currentSession = hub.getScope()?.getSession();
-        // We need to copy the session object and remove the toJSON method so it can be sent to the child process
+        // We need to copy the session object and remove the toJSON method so it can be sent to the worker
         // serialized without making it a SerializedSession
         const session = currentSession ? { ...currentSession, toJSON: undefined } : undefined;
-        // message the child process to tell it the main event loop is still running
-        child.send({ session });
+        // message the worker to tell it the main event loop is still running
+        worker.postMessage({ session });
       } catch (_) {
         //
       }
     }, options.pollInterval);
 
-    child.on('message', (msg: string) => {
+    worker.on('message', (msg: string) => {
       if (msg === 'session-ended') {
-        log('ANR event sent from child process. Clearing session in this process.');
+        log('ANR event sent from ANR worker. Clearing session in this process.');
         hub.getScope()?.setSession(undefined);
       }
     });
@@ -133,15 +144,14 @@ function startChildProcess(options: Options): void {
     const end = (type: string): ((...args: unknown[]) => void) => {
       return (...args): void => {
         clearInterval(timer);
-        log(`Child process ${type}`, ...args);
+        log(`ANR worker ${type}`, ...args);
       };
     };
 
-    child.on('error', end('error'));
-    child.on('disconnect', end('disconnect'));
-    child.on('exit', end('exit'));
+    worker.on('error', end('error'));
+    worker.on('exit', end('exit'));
   } catch (e) {
-    log('Failed to start child process', e);
+    log('Failed to start worker', e);
   }
 }
 
@@ -159,17 +169,27 @@ function createHrTimer(): { getTimeMs: () => number; reset: () => void } {
   };
 }
 
-function handleChildProcess(options: Options): void {
-  process.title = 'sentry-anr';
+function handlerAnrWorker(options: Options): void {
+  const { parentPort, workerData } = getWorkerThreads();
+
+  let anrEventSent = false;
 
   function log(message: string): void {
-    logger.log(`[ANR child process] ${message}`);
+    logger.log(`[ANR Worker] ${message}`);
   }
 
   log('Started');
   let session: Session | undefined;
 
   function sendAnrEvent(frames?: StackFrame[]): void {
+    if (anrEventSent) {
+      return;
+    }
+
+    anrEventSent = true;
+
+    log('Sending ANR event');
+
     if (session) {
       log('Sending abnormal session');
       updateSession(session, { status: 'abnormal', abnormal_mechanism: 'anr_foreground' });
@@ -177,7 +197,7 @@ function handleChildProcess(options: Options): void {
 
       try {
         // Notify the main process that the session has ended so the session can be cleared from the scope
-        process.send?.('session-ended');
+        parentPort?.postMessage('session-ended');
       } catch (_) {
         // ignore
       }
@@ -186,13 +206,16 @@ function handleChildProcess(options: Options): void {
     captureEvent(createAnrEvent(options.anrThreshold, frames));
 
     void flush(3000).then(() => {
-      // We only capture one event to avoid spamming users with errors
-      process.exit();
+      // We exit so we only capture one event to avoid spamming users with errors
+      // We wait 5 seconds to ensure stdio has been flushed from the worker
+      setTimeout(() => {
+        process.exit();
+      }, 5_000);
     });
   }
 
   addEventProcessor(event => {
-    // Strip sdkProcessingMetadata from all child process events to remove trace info
+    // Strip sdkProcessingMetadata from all ANR worker events to remove trace info
     delete event.sdkProcessingMetadata;
     event.tags = {
       ...event.tags,
@@ -201,27 +224,43 @@ function handleChildProcess(options: Options): void {
     return event;
   });
 
-  let debuggerPause: Promise<() => void> | undefined;
+  let debuggerPause: () => void | undefined;
 
-  // if attachStackTrace is enabled, we'll have a debugger url to connect to
-  if (process.env.SENTRY_INSPECT_URL) {
+  const { inspectorUrl } = workerData;
+
+  // if attachStackTrace was enabled, we'll have a debugger url to connect to
+  if (inspectorUrl) {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { Session } = require('inspector');
     log('Connecting to debugger');
+    const session: InspectorSessionNodeV12 = new Session();
+    session.connectToMainThread();
 
-    debuggerPause = captureStackTrace(process.env.SENTRY_INSPECT_URL, frames => {
-      log('Capturing event with stack frames');
-      sendAnrEvent(frames);
+    const handler = createDebugPauseMessageHandler(
+      cmd => session.post(cmd),
+      getModuleFromFilename,
+      frames => sendAnrEvent(frames),
+    );
+
+    session.on('inspectorNotification', params => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      handler(params as any);
     });
+
+    debuggerPause = () => {
+      session.post('Debugger.enable', () => {
+        session.post('Debugger.pause');
+      });
+    };
   }
 
   async function watchdogTimeout(): Promise<void> {
     log('Watchdog timeout');
 
     try {
-      const pauseAndCapture = await debuggerPause;
-
-      if (pauseAndCapture) {
+      if (debuggerPause) {
         log('Pausing debugger to capture stack trace');
-        pauseAndCapture();
+        debuggerPause();
         return;
       }
     } catch (_) {
@@ -234,32 +273,34 @@ function handleChildProcess(options: Options): void {
 
   const { poll } = watchdogTimer(createHrTimer, options.pollInterval, options.anrThreshold, watchdogTimeout);
 
-  process.on('message', (msg: { session: Session | undefined }) => {
+  parentPort?.on('message', (msg: { session: Session | undefined }) => {
     if (msg.session) {
       session = makeSession(msg.session);
     }
+
     poll();
-  });
-  process.on('disconnect', () => {
-    // Parent process has exited.
-    process.exit();
   });
 }
 
 /**
- * Returns true if the current process is an ANR child process.
+ * Returns true if the current thread is the ANR worker.
  */
-export function isAnrChildProcess(): boolean {
-  return !!process.send && !!process.env.SENTRY_ANR_CHILD_PROCESS;
+export function isAnrWorker(): boolean {
+  try {
+    const { isMainThread } = dynamicRequire(module, 'worker_threads') as WorkerThreads;
+    return !isMainThread;
+  } catch (_) {
+    return false;
+  }
 }
 
 /**
  * **Note** This feature is still in beta so there may be breaking changes in future releases.
  *
- * Starts a child process that detects Application Not Responding (ANR) errors.
+ * Starts a ANR worker that detects Application Not Responding (ANR) errors.
  *
- * It's important to await on the returned promise before your app code to ensure this code does not run in the ANR
- * child process.
+ * It's important to await on the returned promise before your app code to ensure this code does not run in the
+ * ANR worker.
  *
  * ```js
  * import { init, enableAnrDetection } from '@sentry/node';
@@ -277,6 +318,10 @@ export function isAnrChildProcess(): boolean {
  * ```
  */
 export function enableAnrDetection(options: Partial<Options>): Promise<void> {
+  if ((NODE_VERSION.major || 0) < 12 || ((NODE_VERSION.major || 0) === 12 && (NODE_VERSION.minor || 0) < 11)) {
+    throw new Error('ANR detection requires Node 12.11.0 or later');
+  }
+
   // When pm2 runs the script in cluster mode, process.argv[1] is the pm2 script and process.env.pm_exec_path is the
   // path to the entry script
   const entryScript = options.entryScript || process.env.pm_exec_path || process.argv[1];
@@ -290,14 +335,14 @@ export function enableAnrDetection(options: Partial<Options>): Promise<void> {
     debug: !!options.debug,
   };
 
-  if (isAnrChildProcess()) {
-    handleChildProcess(anrOptions);
-    // In the child process, the promise never resolves which stops the app code from running
+  if (isAnrWorker()) {
+    handlerAnrWorker(anrOptions);
+    // In the ANR worker, the promise never resolves which stops the app code from running
     return new Promise<void>(() => {
       // Never resolve
     });
   } else {
-    startChildProcess(anrOptions);
+    startAnrWorker(anrOptions);
     // In the main process, the promise resolves immediately
     return Promise.resolve();
   }

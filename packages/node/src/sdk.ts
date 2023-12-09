@@ -15,7 +15,7 @@ import {
   tracingContextFromHeaders,
 } from '@sentry/utils';
 
-import { isAnrChildProcess } from './anr';
+import { isAnrWorker } from './anr';
 import { setNodeAsyncContextStrategy } from './async';
 import { NodeClient } from './client';
 import {
@@ -112,7 +112,7 @@ export const defaultIntegrations = [
  */
 // eslint-disable-next-line complexity
 export function init(options: NodeOptions = {}): void {
-  if (isAnrChildProcess()) {
+  if (isAnrWorker()) {
     options.autoSessionTracking = false;
     options.tracesSampleRate = 0;
   }

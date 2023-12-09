@@ -7,7 +7,7 @@ const { transport } = require('./test-transport.js');
 // close both processes after 5 seconds
 setTimeout(() => {
   process.exit();
-}, 5000);
+}, 10000);
 
 Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
