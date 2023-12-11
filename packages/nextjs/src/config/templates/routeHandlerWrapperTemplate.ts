@@ -5,9 +5,11 @@ import type { WebFetchHeaders } from '@sentry/types';
 import { requestAsyncStorage } from '__SENTRY_NEXTJS_REQUEST_ASYNC_STORAGE_SHIM__';
 // @ts-expect-error See above
 import * as routeModule from '__SENTRY_WRAPPING_TARGET_FILE__';
+import type { VercelCronsConfig } from '../../common/types';
 
 import type { RequestAsyncStorage } from './requestAsyncStorageShim';
 
+declare const __VERCEL_CRONS_CONFIGURATION__: VercelCronsConfig;
 declare const requestAsyncStorage: RequestAsyncStorage;
 
 declare const routeModule: {
@@ -47,8 +49,17 @@ function wrapHandler<T>(handler: T, method: 'GET' | 'POST' | 'PUT' | 'PATCH' | '
         /** empty */
       }
 
+      let cronsWrappedFunction = originalFunction;
+      if (__VERCEL_CRONS_CONFIGURATION__) {
+        cronsWrappedFunction = Sentry.wrapApiHandlerWithSentryVercelCrons(
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          originalFunction as any,
+          __VERCEL_CRONS_CONFIGURATION__,
+        );
+      }
+
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
-      return Sentry.wrapRouteHandlerWithSentry(originalFunction as any, {
+      return Sentry.wrapRouteHandlerWithSentry(cronsWrappedFunction as any, {
         method,
         parameterizedRoute: '__ROUTE__',
         sentryTraceHeader,

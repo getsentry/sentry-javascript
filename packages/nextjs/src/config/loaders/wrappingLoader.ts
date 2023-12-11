@@ -137,8 +137,6 @@ export default function wrappingLoader(
       throw new Error(`Invariant: Could not get template code of unknown kind "${wrappingTargetKind}"`);
     }
 
-    templateCode = templateCode.replace(/__VERCEL_CRONS_CONFIGURATION__/g, JSON.stringify(vercelCronsConfig));
-
     // Inject the route and the path to the file we're wrapping into the template
     templateCode = templateCode.replace(/__ROUTE__/g, parameterizedPagesRoute.replace(/\\/g, '\\\\'));
   } else if (wrappingTargetKind === 'server-component' || wrappingTargetKind === 'route-handler') {
@@ -245,6 +243,9 @@ export default function wrappingLoader(
 
   // Replace the import path of the wrapping target in the template with a path that the `wrapUserCode` function will understand.
   templateCode = templateCode.replace(/__SENTRY_WRAPPING_TARGET_FILE__/g, WRAPPING_TARGET_MODULE_NAME);
+
+  // Inject vercel crons configuration as JSON object if it is used in the template.
+  templateCode = templateCode.replace(/__VERCEL_CRONS_CONFIGURATION__/g, JSON.stringify(vercelCronsConfig));
 
   // Run the proxy module code through Rollup, in order to split the `export * from '<wrapped file>'` out into
   // individual exports (which nextjs seems to require).
