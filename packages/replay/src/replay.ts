@@ -138,6 +138,8 @@ export class ReplayContainer implements ReplayContainerInterface {
 
   private _context: InternalEventContext;
 
+  private _hydrationBreadcrumbCount: number;
+
   public constructor({
     options,
     recordingOptions,
@@ -164,6 +166,7 @@ export class ReplayContainer implements ReplayContainerInterface {
       initialTimestamp: Date.now(),
       initialUrl: '',
     };
+    this._hydrationBreadcrumbCount = 0;
 
     this._recordingOptions = recordingOptions;
     this._options = options;
@@ -833,29 +836,7 @@ export class ReplayContainer implements ReplayContainerInterface {
 
     const client = getClient();
     // Start listening for errors that occur in the core SDK
-    client && client.on && client.on('beforeSendEvent', (event: SentryEvent) => {
-      // eslint-disable-next-line @sentry-internal/sdk/no-optional-chaining
-      const exceptionValue = event.exception?.values?.[0]?.value;
-      if (typeof exceptionValue !== 'string') {
-        return;
-      }
-
-      const isHydrationError =
-        // development
-        exceptionValue.match(/nextjs.org\/docs\/messages\/react-hydration-error/) ||
-        // production
-        exceptionValue.match(/https:\/\/reactjs\.org\/docs\/error-decoder\.html\?invariant=(418|419|422|423|425)/);
-
-      // There was an error while hydrating. Because the error happened outside of a Suspense boundary, the entire root will switch to client rendering.
-      if (isHydrationError) {
-        console.log('Found hydration error')
-        const breadcrumb = createBreadcrumb({
-          category: 'replay.hydrate',
-          data: {}
-        })
-        this._createCustomBreadcrumb(breadcrumb);
-      }
-    })
+    client && client.on && client.on('beforeSendEvent', this._handleSentryEvent);
   }
 
   /**
@@ -1269,5 +1250,30 @@ export class ReplayContainer implements ReplayContainerInterface {
 
     // `true` means we use the regular mutation handling by rrweb
     return true;
+  };
+
+  private _handleSentryEvent = (event: SentryEvent): void => {
+    const exceptionValue = event.exception && event.exception.values && event.exception.values[0].value;
+    if (typeof exceptionValue !== 'string') {
+      return;
+    }
+
+    const hydrationBreadcrumbLimit = this._options.hydrationBreadcrumbLimit;
+    const overHydrationBreadcrumbLimit =
+      hydrationBreadcrumbLimit && this._hydrationBreadcrumbCount > hydrationBreadcrumbLimit;
+
+    if (
+      !overHydrationBreadcrumbLimit &&
+      // Only matches errors in production builds of react-dom
+      // Example https://reactjs.org/docs/error-decoder.html?invariant=423
+      exceptionValue.match(/reactjs\.org\/docs\/error-decoder\.html\?invariant=(418|419|422|423|425)/)
+    ) {
+      const breadcrumb = createBreadcrumb({
+        category: 'replay.hydrate',
+        data: {},
+      });
+      this._createCustomBreadcrumb(breadcrumb);
+      this._hydrationBreadcrumbCount++;
+    }
   };
 }

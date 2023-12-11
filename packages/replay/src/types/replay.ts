@@ -166,6 +166,11 @@ export interface ReplayPluginOptions extends ReplayNetworkOptions {
   mutationBreadcrumbLimit: number;
 
   /**
+   * Maximum number of breadcrumbs to record for hydration error events.
+   */
+  hydrationBreadcrumbLimit: number;
+
+  /**
    * A high number of DOM mutations (in a single event loop) can cause
    * performance regressions in end-users' browsers. This setting will cause
    * recording to stop when the limit has been reached.
