@@ -94,6 +94,16 @@ export class SimpleMetricsAggregator implements MetricsAggregator {
 
 /**
  * Serialize metrics buckets into a string based on statsd format.
+ *
+ * Example of format:
+ * metric.name@second:1:1.2|d|#a:value,b:anothervalue|T12345677
+ * Segments:
+ * name: metric.name
+ * unit: second
+ * value: [1, 1.2]
+ * type of metric: d (distribution)
+ * tags: { a: value, b: anothervalue }
+ * timestamp: 12345677
  */
 export function serializeBuckets(buckets: SimpleMetricBucket): string {
   let out = '';
