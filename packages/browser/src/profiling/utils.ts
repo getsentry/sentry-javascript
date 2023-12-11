@@ -1,12 +1,11 @@
 /* eslint-disable max-lines */
 
-import { DEFAULT_ENVIRONMENT, getCurrentHub } from '@sentry/core';
+import { DEFAULT_ENVIRONMENT, getClient, getCurrentHub } from '@sentry/core';
 import type { DebugImage, Envelope, Event, StackFrame, StackParser, Transaction } from '@sentry/types';
 import type { Profile, ThreadCpuProfile } from '@sentry/types/src/profiling';
 import { GLOBAL_OBJ, browserPerformanceTimeOrigin, forEachEnvelopeItem, logger, uuid4 } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../debug-build';
-import { getClient } from '../exports';
 import { WINDOW } from '../helpers';
 import type { JSSelfProfile, JSSelfProfileStack, JSSelfProfiler, JSSelfProfilerConstructor } from './jsSelfProfiling';
 
