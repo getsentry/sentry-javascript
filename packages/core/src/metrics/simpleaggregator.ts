@@ -1,6 +1,10 @@
 import type { Client, ClientOptions, MeasurementUnit, Primitive } from '@sentry/types';
 import { timestampInSeconds } from '@sentry/utils';
-import { DEFAULT_FLUSH_INTERVAL, NAME_AND_TAG_KEY_REGEX, TAG_VALUE_REGEX } from './constants';
+import {
+  DEFAULT_FLUSH_INTERVAL,
+  NAME_AND_TAG_KEY_NORMALIZATION_REGEX,
+  TAG_VALUE_NORMALIZATION_REGEX,
+} from './constants';
 import type { Metric } from './instance';
 import { METRIC_MAP } from './instance';
 import type { MetricType, MetricsAggregator } from './types';
@@ -45,7 +49,7 @@ export class SimpleMetricsAggregator implements MetricsAggregator {
     maybeFloatTimestamp = timestampInSeconds(),
   ): void {
     const timestamp = Math.floor(maybeFloatTimestamp);
-    const name = unsanitizedName.replace(NAME_AND_TAG_KEY_REGEX, '_');
+    const name = unsanitizedName.replace(NAME_AND_TAG_KEY_NORMALIZATION_REGEX, '_');
     const tags = sanitizeTags(unsanitizedTags);
 
     const bucketKey = getBucketKey(metricType, name, unit, tags);
@@ -112,8 +116,8 @@ function sanitizeTags(unsanitizedTags: { [key: string]: Primitive }): { [key: st
   const tags: { [key: string]: string } = {};
   for (const key in unsanitizedTags) {
     if (Object.prototype.hasOwnProperty.call(unsanitizedTags, key)) {
-      const sanitizedKey = key.replace(NAME_AND_TAG_KEY_REGEX, '_');
-      tags[sanitizedKey] = String(unsanitizedTags[key]).replace(TAG_VALUE_REGEX, '_');
+      const sanitizedKey = key.replace(NAME_AND_TAG_KEY_NORMALIZATION_REGEX, '_');
+      tags[sanitizedKey] = String(unsanitizedTags[key]).replace(TAG_VALUE_NORMALIZATION_REGEX, '_');
     }
   }
   return tags;
