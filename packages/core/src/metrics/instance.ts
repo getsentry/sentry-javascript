@@ -9,16 +9,16 @@ interface MetricInstance {
  * A metric instance representing a counter.
  */
 export class CounterMetric implements MetricInstance {
-  public constructor(public value: number) {}
+  public constructor(private _value: number) {}
 
   /** JSDoc */
   public add(value: number): void {
-    this.value += value;
+    this._value += value;
   }
 
   /** JSDoc */
   public toString(): string {
-    return `${this.value}`;
+    return `${this._value}`;
   }
 }
 
@@ -26,33 +26,33 @@ export class CounterMetric implements MetricInstance {
  * A metric instance representing a gauge.
  */
 export class GaugeMetric implements MetricInstance {
-  public last: number;
-  public min: number;
-  public max: number;
-  public sum: number;
-  public count: number;
+  private _last: number;
+  private _min: number;
+  private _max: number;
+  private _sum: number;
+  private _count: number;
 
-  public constructor(public value: number) {
-    this.last = value;
-    this.min = value;
-    this.max = value;
-    this.sum = value;
-    this.count = 1;
+  public constructor(private _value: number) {
+    this._last = _value;
+    this._min = _value;
+    this._max = _value;
+    this._sum = _value;
+    this._count = 1;
   }
 
   /** JSDoc */
   public add(value: number): void {
-    this.value = value;
-    this.last = value;
-    this.min = Math.min(this.min, value);
-    this.max = Math.max(this.max, value);
-    this.sum += value;
-    this.count += 1;
+    this._value = value;
+    this._value = value;
+    this._min = Math.min(this._min, value);
+    this._max = Math.max(this._max, value);
+    this._sum += value;
+    this._count += 1;
   }
 
   /** JSDoc */
   public toString(): string {
-    return `${this.last}:${this.min}:${this.max}:${this.sum}:${this.count}`;
+    return `${this._last}:${this._min}:${this._max}:${this._sum}:${this._count}`;
   }
 }
 
@@ -60,20 +60,20 @@ export class GaugeMetric implements MetricInstance {
  * A metric instance representing a distribution.
  */
 export class DistributionMetric implements MetricInstance {
-  public value: number[];
+  private _value: number[];
 
   public constructor(first: number) {
-    this.value = [first];
+    this._value = [first];
   }
 
   /** JSDoc */
   public add(value: number): void {
-    this.value.push(value);
+    this._value.push(value);
   }
 
   /** JSDoc */
   public toString(): string {
-    return this.value.join(':');
+    return this._value.join(':');
   }
 }
 
@@ -81,20 +81,20 @@ export class DistributionMetric implements MetricInstance {
  * A metric instance representing a set.
  */
 export class SetMetric implements MetricInstance {
-  public value: Set<number>;
+  private _value: Set<number>;
 
   public constructor(public first: number) {
-    this.value = new Set([first]);
+    this._value = new Set([first]);
   }
 
   /** JSDoc */
   public add(value: number): void {
-    this.value.add(value);
+    this._value.add(value);
   }
 
   /** JSDoc */
   public toString(): string {
-    return `${Array.from(this.value).join(':')}`;
+    return `${Array.from(this._value).join(':')}`;
   }
 }
 
