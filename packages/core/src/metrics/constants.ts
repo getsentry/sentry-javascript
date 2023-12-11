@@ -23,4 +23,8 @@ export const NAME_AND_TAG_KEY_NORMALIZATION_REGEX = /[^a-zA-Z0-9_/.-]+/g;
  */
 export const TAG_VALUE_NORMALIZATION_REGEX = /[^\w\d_:/@.{}[\]$-]+/g;
 
+/**
+ * This does not match spec in https://develop.sentry.dev/sdk/metrics
+ * but was chosen to optimize for the most common case in browser environments.
+ */
 export const DEFAULT_FLUSH_INTERVAL = 5000;
