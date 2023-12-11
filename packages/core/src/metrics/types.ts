@@ -19,7 +19,7 @@ export interface MetricsAggregator {
     name: string,
     value: number,
     unit?: MeasurementUnit,
-    tags?: { [key: string]: Primitive },
+    tags?: Record<string, Primitive>,
     timestamp?: number,
   ): void;
 

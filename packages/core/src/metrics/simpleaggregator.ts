@@ -45,7 +45,7 @@ export class SimpleMetricsAggregator implements MetricsAggregator {
     unsanitizedName: string,
     value: number,
     unit: MeasurementUnit = 'none',
-    unsanitizedTags: { [key: string]: Primitive } = {},
+    unsanitizedTags: Record<string, Primitive> = {},
     maybeFloatTimestamp = timestampInSeconds(),
   ): void {
     const timestamp = Math.floor(maybeFloatTimestamp);
@@ -112,8 +112,8 @@ export function serializeBuckets(buckets: SimpleMetricBucket): string {
   return out;
 }
 
-function sanitizeTags(unsanitizedTags: { [key: string]: Primitive }): { [key: string]: string } {
-  const tags: { [key: string]: string } = {};
+function sanitizeTags(unsanitizedTags: Record<string, Primitive>): Record<string, string> {
+  const tags: Record<string, string> = {};
   for (const key in unsanitizedTags) {
     if (Object.prototype.hasOwnProperty.call(unsanitizedTags, key)) {
       const sanitizedKey = key.replace(NAME_AND_TAG_KEY_NORMALIZATION_REGEX, '_');

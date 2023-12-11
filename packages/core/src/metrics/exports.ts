@@ -8,7 +8,7 @@ import type { MetricType } from './types';
 
 interface MetricData {
   unit?: MeasurementUnit;
-  tags?: { [key: string]: Primitive };
+  tags?: Record<string, Primitive>;
   timestamp?: number;
 }
 
