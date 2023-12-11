@@ -1,7 +1,13 @@
 import { COUNTER_METRIC_TYPE, DISTRIBUTION_METRIC_TYPE, GAUGE_METRIC_TYPE, SET_METRIC_TYPE } from './constants';
 
 interface MetricInstance {
+  /**
+   * Adds a value to a metric.
+   */
   add(value: number): void;
+  /**
+   * Serializes the metric into a statsd format string.
+   */
   toString(): string;
 }
 
@@ -11,12 +17,12 @@ interface MetricInstance {
 export class CounterMetric implements MetricInstance {
   public constructor(private _value: number) {}
 
-  /** JSDoc */
+  /** @inheritdoc */
   public add(value: number): void {
     this._value += value;
   }
 
-  /** JSDoc */
+  /** @inheritdoc */
   public toString(): string {
     return `${this._value}`;
   }
@@ -40,7 +46,7 @@ export class GaugeMetric implements MetricInstance {
     this._count = 1;
   }
 
-  /** JSDoc */
+  /** @inheritdoc */
   public add(value: number): void {
     this._value = value;
     this._value = value;
@@ -50,7 +56,7 @@ export class GaugeMetric implements MetricInstance {
     this._count += 1;
   }
 
-  /** JSDoc */
+  /** @inheritdoc */
   public toString(): string {
     return `${this._last}:${this._min}:${this._max}:${this._sum}:${this._count}`;
   }
@@ -66,12 +72,12 @@ export class DistributionMetric implements MetricInstance {
     this._value = [first];
   }
 
-  /** JSDoc */
+  /** @inheritdoc */
   public add(value: number): void {
     this._value.push(value);
   }
 
-  /** JSDoc */
+  /** @inheritdoc */
   public toString(): string {
     return this._value.join(':');
   }
@@ -87,12 +93,12 @@ export class SetMetric implements MetricInstance {
     this._value = new Set([first]);
   }
 
-  /** JSDoc */
+  /** @inheritdoc */
   public add(value: number): void {
     this._value.add(value);
   }
 
-  /** JSDoc */
+  /** @inheritdoc */
   public toString(): string {
     return `${Array.from(this._value).join(':')}`;
   }
