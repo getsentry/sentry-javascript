@@ -95,7 +95,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
    *
    * @experimental Note this is alpha API. It may experience breaking changes in the future.
    */
-  public metricsAggregator: MetricsAggregator | undefined;
+  public metricsAggregator?: MetricsAggregator;
 
   /** Options passed to the SDK. */
   protected readonly _options: O;
