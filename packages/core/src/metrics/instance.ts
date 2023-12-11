@@ -1,3 +1,5 @@
+import { COUNTER_METRIC_TYPE, DISTRIBUTION_METRIC_TYPE, GAUGE_METRIC_TYPE, SET_METRIC_TYPE } from './constants';
+
 interface MetricInstance {
   add(value: number): void;
   toString(): string;
@@ -99,8 +101,8 @@ export class SetMetric implements MetricInstance {
 export type Metric = CounterMetric | GaugeMetric | DistributionMetric | SetMetric;
 
 export const METRIC_MAP = {
-  c: CounterMetric,
-  g: GaugeMetric,
-  d: DistributionMetric,
-  s: SetMetric,
+  [COUNTER_METRIC_TYPE]: CounterMetric,
+  [GAUGE_METRIC_TYPE]: GaugeMetric,
+  [DISTRIBUTION_METRIC_TYPE]: DistributionMetric,
+  [SET_METRIC_TYPE]: SetMetric,
 };

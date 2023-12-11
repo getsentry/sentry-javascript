@@ -1,6 +1,5 @@
 import type { MeasurementUnit, Primitive } from '@sentry/types';
 import type { COUNTER_METRIC_TYPE, DISTRIBUTION_METRIC_TYPE, GAUGE_METRIC_TYPE, SET_METRIC_TYPE } from './constants';
-import { Metric } from './instance';
 
 export type MetricType =
   | typeof COUNTER_METRIC_TYPE

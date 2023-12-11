@@ -3,6 +3,7 @@ import { logger } from '@sentry/utils';
 import type { BaseClient } from '../baseclient';
 import { DEBUG_BUILD } from '../debug-build';
 import { getCurrentHub } from '../hub';
+import { COUNTER_METRIC_TYPE, DISTRIBUTION_METRIC_TYPE, GAUGE_METRIC_TYPE, SET_METRIC_TYPE } from './constants';
 import type { MetricType } from './types';
 
 interface MetricData {
@@ -48,7 +49,7 @@ function addToMetricsAggregator(metricType: MetricType, name: string, value: num
  * @experimental This API is experimental and might having breaking changes in the future.
  */
 export function incr(name: string, value: number, data?: MetricData): void {
-  addToMetricsAggregator('c', name, value, data);
+  addToMetricsAggregator(COUNTER_METRIC_TYPE, name, value, data);
 }
 
 /**
@@ -57,7 +58,7 @@ export function incr(name: string, value: number, data?: MetricData): void {
  * @experimental This API is experimental and might having breaking changes in the future.
  */
 export function distribution(name: string, value: number, data?: MetricData): void {
-  addToMetricsAggregator('d', name, value, data);
+  addToMetricsAggregator(DISTRIBUTION_METRIC_TYPE, name, value, data);
 }
 
 /**
@@ -66,7 +67,7 @@ export function distribution(name: string, value: number, data?: MetricData): vo
  * @experimental This API is experimental and might having breaking changes in the future.
  */
 export function set(name: string, value: number, data?: MetricData): void {
-  addToMetricsAggregator('s', name, value, data);
+  addToMetricsAggregator(SET_METRIC_TYPE, name, value, data);
 }
 
 /**
@@ -75,5 +76,5 @@ export function set(name: string, value: number, data?: MetricData): void {
  * @experimental This API is experimental and might having breaking changes in the future.
  */
 export function gauge(name: string, value: number, data?: MetricData): void {
-  addToMetricsAggregator('s', name, value, data);
+  addToMetricsAggregator(GAUGE_METRIC_TYPE, name, value, data);
 }
