@@ -353,11 +353,17 @@ export function trpcMiddleware(options: SentryTrpcMiddlewareOptions = {}) {
 
     function captureIfError(nextResult: { ok: false; error?: Error } | { ok: true }): void {
       if (!nextResult.ok) {
-        captureException(nextResult.error, { mechanism: { handled: false } });
+        captureException(nextResult.error, { mechanism: { handled: false, data: { function: 'trpcMiddleware' } } });
       }
     }
 
-    const maybePromiseResult = next();
+    let maybePromiseResult;
+    try {
+      maybePromiseResult = next();
+    } catch (e) {
+      captureException(e, { mechanism: { handled: false, data: { function: 'trpcMiddleware' } } });
+      throw e;
+    }
 
     if (isThenable(maybePromiseResult)) {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
@@ -365,8 +371,8 @@ export function trpcMiddleware(options: SentryTrpcMiddlewareOptions = {}) {
         nextResult => {
           captureIfError(nextResult as any);
         },
-        () => {
-          // noop
+        e => {
+          captureException(e, { mechanism: { handled: false, data: { function: 'trpcMiddleware' } } });
         },
       );
     } else {
