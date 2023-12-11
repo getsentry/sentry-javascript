@@ -48,7 +48,7 @@ function addToMetricsAggregator(metricType: MetricType, name: string, value: num
  *
  * @experimental This API is experimental and might having breaking changes in the future.
  */
-export function incr(name: string, value: number, data?: MetricData): void {
+export function incr(name: string, value: number = 1, data?: MetricData): void {
   addToMetricsAggregator(COUNTER_METRIC_TYPE, name, value, data);
 }
 
@@ -62,11 +62,12 @@ export function distribution(name: string, value: number, data?: MetricData): vo
 }
 
 /**
- * Adds a value to a set metric
+ * Adds a value to a set metric. Value must be a string or integer.
  *
  * @experimental This API is experimental and might having breaking changes in the future.
  */
-export function set(name: string, value: number, data?: MetricData): void {
+export function set(name: string, incomingValue: number | string, data?: MetricData): void {
+  const value = typeof incomingValue === 'string' ? parseInt(incomingValue) : Math.floor(incomingValue);
   addToMetricsAggregator(SET_METRIC_TYPE, name, value, data);
 }
 
