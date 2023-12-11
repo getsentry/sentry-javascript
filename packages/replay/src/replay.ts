@@ -1268,15 +1268,15 @@ export class ReplayContainer implements ReplayContainerInterface {
       // Example https://reactjs.org/docs/error-decoder.html?invariant=423
       (exceptionValue.match(/reactjs\.org\/docs\/error-decoder\.html\?invariant=(418|419|422|423|425)/) ||
         // Development builds of react-dom
-        // Example Text content did not match. Server: "A" Client: "B"
+        // Example Text: content did not match. Server: "A" Client: "B"
         exceptionValue.match(/(hydration|content does not match|did not match)/i))
     ) {
+      this._hydrationBreadcrumbCount++;
       const breadcrumb = createBreadcrumb({
         category: 'replay.hydrate',
         data: {},
       });
       this._createCustomBreadcrumb(breadcrumb);
-      this._hydrationBreadcrumbCount++;
     }
   };
 }
