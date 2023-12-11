@@ -1,6 +1,12 @@
 import { getClient, makeSession, updateSession } from '@sentry/core';
-import type { Event, Session, StackFrame } from '@sentry/types';
-import { createDebugPauseMessageHandler, dynamicRequire, logger, watchdogTimer } from '@sentry/utils';
+import type { Event, Session, StackFrame, TraceContext } from '@sentry/types';
+import {
+  callFrameToStackFrame,
+  dynamicRequire,
+  logger,
+  stripSentryFramesAndReverse,
+  watchdogTimer,
+} from '@sentry/utils';
 import type { Session as InspectorSession } from 'inspector';
 
 import type { MessagePort, Worker } from 'worker_threads';
@@ -136,20 +142,20 @@ function startAnrWorker(options: Options): void {
 
     worker.on('message', (msg: string) => {
       if (msg === 'session-ended') {
-        log('ANR event sent from ANR worker. Clearing session in this process.');
+        log('ANR event sent from ANR worker. Clearing session in this thread.');
         hub.getScope()?.setSession(undefined);
       }
     });
 
-    const end = (type: string): ((...args: unknown[]) => void) => {
-      return (...args): void => {
-        clearInterval(timer);
-        log(`ANR worker ${type}`, ...args);
-      };
-    };
+    worker.on('error', (err: Error) => {
+      clearInterval(timer);
+      log('ANR worker error', err);
+    });
 
-    worker.on('error', end('error'));
-    worker.on('exit', end('exit'));
+    worker.on('exit', (code: number) => {
+      clearInterval(timer);
+      log('ANR worker exit', code);
+    });
   } catch (e) {
     log('Failed to start worker', e);
   }
@@ -181,7 +187,7 @@ function handlerAnrWorker(options: Options): void {
   log('Started');
   let session: Session | undefined;
 
-  function sendAnrEvent(frames?: StackFrame[]): void {
+  function sendAnrEvent(frames?: StackFrame[], traceContext?: TraceContext): void {
     if (anrEventSent) {
       return;
     }
@@ -203,7 +209,9 @@ function handlerAnrWorker(options: Options): void {
       }
     }
 
-    captureEvent(createAnrEvent(options.anrThreshold, frames));
+    captureEvent(createAnrEvent(options.anrThreshold, frames), {
+      captureContext: { contexts: { trace: traceContext } },
+    });
 
     void flush(3000).then(() => {
       // We exit so we only capture one event to avoid spamming users with errors
@@ -230,21 +238,55 @@ function handlerAnrWorker(options: Options): void {
 
   // if attachStackTrace was enabled, we'll have a debugger url to connect to
   if (inspectorUrl) {
+    log('Connecting to debugger');
+
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const { Session } = require('inspector');
-    log('Connecting to debugger');
     const session: InspectorSessionNodeV12 = new Session();
     session.connectToMainThread();
 
-    const handler = createDebugPauseMessageHandler(
-      cmd => session.post(cmd),
-      getModuleFromFilename,
-      frames => sendAnrEvent(frames),
-    );
+    // Collect scriptId -> url map so we can look up the filenames later
+    const scripts = new Map<string, string>();
 
-    session.on('inspectorNotification', params => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      handler(params as any);
+    session.on('Debugger.scriptParsed', event => {
+      scripts.set(event.params.scriptId, event.params.url);
+    });
+
+    session.on('Debugger.paused', event => {
+      if (event.params.reason !== 'other') {
+        return;
+      }
+
+      // copy the frames
+      const callFrames = [...event.params.callFrames];
+
+      const stackFrames = stripSentryFramesAndReverse(
+        callFrames.map(frame =>
+          callFrameToStackFrame(frame, scripts.get(frame.location.scriptId), getModuleFromFilename),
+        ),
+      );
+
+      // Evaluate a script in the currently paused context
+      session.post(
+        'Runtime.evaluate',
+        {
+          // Grab the trace context from the current scope
+          expression: 'const ctx = __SENTRY__.hub.getScope().getPropagationContext(); ctx.traceId + "-" + ctx.spanId',
+          // Don't re-trigger the debugger if this causes an error
+          silent: true,
+        },
+        (_, param) => {
+          const traceId = param && param.result ? (param.result.value as string) : '-';
+          const [trace_id, span_id] = traceId.split('-');
+
+          // Resume immediately
+          session.post('Debugger.resume');
+          session.post('Debugger.disable');
+
+          const context = trace_id && span_id ? { trace_id, span_id } : undefined;
+          sendAnrEvent(stackFrames, context);
+        },
+      );
     });
 
     debuggerPause = () => {
@@ -267,7 +309,7 @@ function handlerAnrWorker(options: Options): void {
       // ignore
     }
 
-    log('Capturing event');
+    log('Capturing event without a stack trace');
     sendAnrEvent();
   }
 

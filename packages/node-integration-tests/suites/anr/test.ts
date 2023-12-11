@@ -31,7 +31,7 @@ describe('should report ANR when event loop blocked', () => {
       return;
     }
 
-    expect.assertions(7);
+    expect.assertions(9);
 
     const testScriptPath = path.resolve(__dirname, 'basic.js');
 
@@ -45,6 +45,9 @@ describe('should report ANR when event loop blocked', () => {
 
       expect(event.exception?.values?.[0].stacktrace?.frames?.[2].function).toEqual('?');
       expect(event.exception?.values?.[0].stacktrace?.frames?.[3].function).toEqual('longWork');
+
+      expect(event.contexts?.trace?.trace_id).toBeDefined();
+      expect(event.contexts?.trace?.span_id).toBeDefined();
 
       done();
     });
