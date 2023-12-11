@@ -1,8 +1,6 @@
-import type { ClientOptions, MeasurementUnit, Primitive } from '@sentry/types';
+import type { Client, ClientOptions, MeasurementUnit, Primitive } from '@sentry/types';
 import { timestampInSeconds } from '@sentry/utils';
-import type { BaseClient } from '../baseclient';
-import { NAME_AND_TAG_KEY_REGEX, TAG_VALUE_REGEX } from './constants';
-import { createMetricEnvelope } from './envelope';
+import { DEFAULT_FLUSH_INTERVAL, NAME_AND_TAG_KEY_REGEX, TAG_VALUE_REGEX } from './constants';
 import type { Metric } from './instance';
 import { METRIC_MAP } from './instance';
 import type { MetricType, MetricsAggregator } from './types';
@@ -22,14 +20,17 @@ type SimpleMetricBucket = Map<
 
 /**
  * A simple metrics aggregator that aggregates metrics in memory and flushes them periodically.
+ * Default flush interval is 5 seconds.
  *
  * @experimental This API is experimental and might change in the future.
  */
 export class SimpleMetricsAggregator implements MetricsAggregator {
   private _buckets: SimpleMetricBucket;
+  private readonly _interval: ReturnType<typeof setInterval>;
 
-  public constructor(private readonly _client: BaseClient<ClientOptions>) {
+  public constructor(private readonly _client: Client<ClientOptions>) {
     this._buckets = new Map();
+    this._interval = setInterval(() => this.flush(), DEFAULT_FLUSH_INTERVAL);
   }
 
   /**
@@ -71,18 +72,18 @@ export class SimpleMetricsAggregator implements MetricsAggregator {
       return;
     }
 
-    // Allow of this logic should be in the client, but we want to
-    const metrics = serializeBuckets(this._buckets);
-    const sdkMetadata = this._client.getSdkMetadata && this._client.getSdkMetadata();
-    const metricsEnvelope = createMetricEnvelope(
-      metrics,
-      sdkMetadata,
-      this._client.getOptions().tunnel,
-      this._client.getDsn(),
-    );
+    if (this._client.captureSerializedMetrics) {
+      this._client.captureSerializedMetrics(serializeBuckets(this._buckets));
+    }
+    this._buckets.clear();
+  }
 
-    // TODO(abhi): Remove this hack - only here until we decide on final API for metrics on client
-    void this._client['_sendEnvelope'](metricsEnvelope);
+  /**
+   * @inheritDoc
+   */
+  public close(): void {
+    clearInterval(this._interval);
+    this.flush();
     this._buckets.clear();
   }
 }

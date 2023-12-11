@@ -49,6 +49,7 @@ import { createEventEnvelope, createSessionEnvelope } from './envelope';
 import { getCurrentHub } from './hub';
 import type { IntegrationIndex } from './integration';
 import { setupIntegration, setupIntegrations } from './integration';
+import { createMetricEnvelope } from './metrics/envelope';
 import type { MetricsAggregator } from './metrics/types';
 import type { Scope } from './scope';
 import { updateSession } from './session';
@@ -289,6 +290,9 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   public close(timeout?: number): PromiseLike<boolean> {
     return this.flush(timeout).then(result => {
       this.getOptions().enabled = false;
+      if (this.metricsAggregator) {
+        this.metricsAggregator.close();
+      }
       return result;
     });
   }
@@ -392,6 +396,19 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
       // The following works because undefined + 1 === NaN and NaN is falsy
       this._outcomes[key] = this._outcomes[key] + 1 || 1;
     }
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public captureSerializedMetrics(serializedMetrics: string): void {
+    const metricsEnvelope = createMetricEnvelope(
+      serializedMetrics,
+      this._dsn,
+      this._options._metadata,
+      this._options.tunnel,
+    );
+    void this._sendEnvelope(metricsEnvelope);
   }
 
   // Keep on() & emit() signatures in sync with types' client.ts interface

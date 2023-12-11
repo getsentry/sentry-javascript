@@ -28,4 +28,9 @@ export interface MetricsAggregator {
    * Flushes the current metrics to the transport via the transport.
    */
   flush(): void;
+
+  /**
+   * Shuts down metrics aggregator and clears all metrics.
+   */
+  close(): void;
 }

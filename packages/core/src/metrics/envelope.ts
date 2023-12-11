@@ -6,9 +6,9 @@ import { createEnvelope, dsnToString } from '@sentry/utils';
  */
 export function createMetricEnvelope(
   metricAggregate: string,
+  dsn?: DsnComponents,
   metadata?: SdkMetadata,
   tunnel?: string,
-  dsn?: DsnComponents,
 ): StatsdEnvelope {
   const headers: StatsdEnvelope[0] = {
     sent_at: new Date().toISOString(),
