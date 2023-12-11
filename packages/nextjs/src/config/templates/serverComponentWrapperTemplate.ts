@@ -33,14 +33,15 @@ if (typeof serverComponent === 'function') {
       // We try-catch here just in `requestAsyncStorage` is undefined since it may not be defined
       try {
         const requestAsyncStore = requestAsyncStorage.getStore();
-        sentryTraceHeader = requestAsyncStore?.headers.get('sentry-trace');
-        baggageHeader = requestAsyncStore?.headers.get('baggage');
+        sentryTraceHeader = requestAsyncStore?.headers.get('sentry-trace') ?? undefined;
+        baggageHeader = requestAsyncStore?.headers.get('baggage') ?? undefined;
         headers = requestAsyncStore?.headers;
       } catch (e) {
         /** empty */
       }
 
-      return Sentry.wrapServerComponentWithSentry(originalFunction, {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      return Sentry.wrapServerComponentWithSentry(originalFunction as any, {
         componentRoute: '__ROUTE__',
         componentType: '__COMPONENT_TYPE__',
         sentryTraceHeader,

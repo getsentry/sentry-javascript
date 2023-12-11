@@ -67,6 +67,9 @@ export function wrapGenerationFunctionWithSentry<F extends (...args: any[]) => a
             captureException(err, {
               mechanism: {
                 handled: false,
+                data: {
+                  function: 'wrapGenerationFunctionWithSentry',
+                },
               },
             });
           },
