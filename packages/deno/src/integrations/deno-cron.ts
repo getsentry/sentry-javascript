@@ -1,3 +1,4 @@
+import { withMonitor } from '@sentry/core';
 import type { Integration } from '@sentry/types';
 import type { DenoClient } from '../client';
 
@@ -44,31 +45,7 @@ export class DenoCron implements Integration {
         }
 
         async function cronCalled(): Promise<void> {
-          const checkInId = client.captureCheckIn(
-            { monitorSlug, status: 'in_progress' },
-            { schedule: { type: 'crontab', value: schedule } },
-          );
-
-          const startTime = Date.now() / 1000;
-
-          try {
-            await fn();
-            client.captureCheckIn({
-              checkInId,
-              monitorSlug,
-              status: 'ok',
-              duration: Date.now() / 1000 - startTime,
-            });
-          } catch (e) {
-            client.captureCheckIn({
-              checkInId,
-              monitorSlug,
-              status: 'error',
-              duration: Date.now() / 1000 - startTime,
-            });
-
-            throw e;
-          }
+          await withMonitor(monitorSlug, async () => fn(), { schedule: { type: 'crontab', value: schedule } });
         }
 
         return target.call(thisArg, monitorSlug, schedule, options || {}, cronCalled);
