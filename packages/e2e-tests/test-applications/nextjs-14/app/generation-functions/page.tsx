@@ -1,5 +1,3 @@
-import type { Viewport } from 'next';
-
 export const dynamic = 'force-dynamic';
 
 export default function Page() {
@@ -24,7 +22,7 @@ export function generateViewport({
   searchParams,
 }: {
   searchParams: { [key: string]: string | undefined };
-}): Viewport {
+}) {
   if (searchParams['shouldThrowInGenerateViewport']) {
     throw new Error('generateViewport Error');
   }

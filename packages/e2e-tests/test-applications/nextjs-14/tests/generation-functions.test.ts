@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import { waitForError, waitForTransaction } from '../event-proxy-server';
 
 test('Should send a transaction event for a generateMetadata() function invokation', async ({ page }, testInfo) => {
-  const transactionPromise = waitForTransaction('nextjs-13-app-dir', async transactionEvent => {
+  const transactionPromise = waitForTransaction('nextjs-14', async transactionEvent => {
     return (
       transactionEvent?.transaction === 'Page.generateMetadata (/generation-functions)' &&
       transactionEvent.contexts?.trace?.data?.['searchParams']?.['metadataTitle'] === testInfo.testId
@@ -20,14 +20,14 @@ test('Should send a transaction event for a generateMetadata() function invokati
 test('Should send a transaction and an error event for a faulty generateMetadata() function invokation', async ({
   page,
 }, testInfo) => {
-  const transactionPromise = waitForTransaction('nextjs-13-app-dir', async transactionEvent => {
+  const transactionPromise = waitForTransaction('nextjs-14', async transactionEvent => {
     return (
       transactionEvent?.transaction === 'Page.generateMetadata (/generation-functions)' &&
       transactionEvent.contexts?.trace?.data?.['searchParams']?.['metadataTitle'] === testInfo.testId
     );
   });
 
-  const errorEventPromise = waitForError('nextjs-13-app-dir', errorEvent => {
+  const errorEventPromise = waitForError('nextjs-14', errorEvent => {
     return errorEvent?.exception?.values?.[0]?.value === 'generateMetadata Error';
   });
 
@@ -38,7 +38,7 @@ test('Should send a transaction and an error event for a faulty generateMetadata
 });
 
 test('Should send a transaction event for a generateViewport() function invokation', async ({ page }, testInfo) => {
-  const transactionPromise = waitForTransaction('nextjs-13-app-dir', async transactionEvent => {
+  const transactionPromise = waitForTransaction('nextjs-14', async transactionEvent => {
     return (
       transactionEvent?.transaction === 'Page.generateViewport (/generation-functions)' &&
       transactionEvent.contexts?.trace?.data?.['searchParams']?.['viewportThemeColor'] === testInfo.testId
@@ -53,14 +53,14 @@ test('Should send a transaction event for a generateViewport() function invokati
 test('Should send a transaction and an error event for a faulty generateViewport() function invokation', async ({
   page,
 }, testInfo) => {
-  const transactionPromise = waitForTransaction('nextjs-13-app-dir', async transactionEvent => {
+  const transactionPromise = waitForTransaction('nextjs-14', async transactionEvent => {
     return (
       transactionEvent?.transaction === 'Page.generateViewport (/generation-functions)' &&
       transactionEvent.contexts?.trace?.data?.['searchParams']?.['viewportThemeColor'] === testInfo.testId
     );
   });
 
-  const errorEventPromise = waitForError('nextjs-13-app-dir', errorEvent => {
+  const errorEventPromise = waitForError('nextjs-14', errorEvent => {
     return errorEvent?.exception?.values?.[0]?.value === 'generateViewport Error';
   });
 
