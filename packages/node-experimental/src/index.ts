@@ -13,7 +13,29 @@ export { getAutoPerformanceIntegrations } from './integrations/getAutoPerformanc
 export * as Handlers from './sdk/handlers';
 export type { Span } from './types';
 
-export { startSpan, startInactiveSpan, getCurrentHub, getClient, getActiveSpan } from '@sentry/opentelemetry';
+export { startSpan, startInactiveSpan, getActiveSpan } from '@sentry/opentelemetry';
+export {
+  getClient,
+  addBreadcrumb,
+  captureException,
+  captureEvent,
+  captureMessage,
+  addGlobalEventProcessor,
+  addEventProcessor,
+  lastEventId,
+  setContext,
+  setExtra,
+  setExtras,
+  setTag,
+  setTags,
+  setUser,
+  withScope,
+  withIsolationScope,
+  // eslint-disable-next-line deprecation/deprecation
+  configureScope,
+} from './sdk/api';
+export { getCurrentHub, makeMain } from './sdk/hub';
+export { Scope } from './sdk/scope';
 
 export {
   makeNodeTransport,
@@ -24,36 +46,16 @@ export {
   extractRequestData,
   deepReadDirSync,
   getModuleFromFilename,
-  // eslint-disable-next-line deprecation/deprecation
-  addGlobalEventProcessor,
-  addEventProcessor,
-  addBreadcrumb,
-  captureException,
-  captureEvent,
-  captureMessage,
   close,
-  // eslint-disable-next-line deprecation/deprecation
-  configureScope,
   createTransport,
   // eslint-disable-next-line deprecation/deprecation
   extractTraceparentData,
   flush,
-  getActiveTransaction,
   Hub,
-  lastEventId,
-  makeMain,
   runWithAsyncContext,
-  Scope,
   SDK_VERSION,
-  setContext,
-  setExtra,
-  setExtras,
-  setTag,
-  setTags,
-  setUser,
   spanStatusfromHttpCode,
   trace,
-  withScope,
   captureCheckIn,
   withMonitor,
   hapiErrorPlugin,

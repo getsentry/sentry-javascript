@@ -46,7 +46,7 @@ function filterDuplicates(integrations: Integration[]): Integration[] {
 }
 
 /** Gets integrations to install */
-export function getIntegrationsToSetup(options: Options): Integration[] {
+export function getIntegrationsToSetup(options: Pick<Options, 'defaultIntegrations' | 'integrations'>): Integration[] {
   const defaultIntegrations = options.defaultIntegrations || [];
   const userIntegrations = options.integrations;
 

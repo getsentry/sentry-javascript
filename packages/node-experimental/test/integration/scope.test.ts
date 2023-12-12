@@ -101,6 +101,7 @@ describe('Integration | Scope', () => {
               tag1: 'val1',
               tag2: 'val2',
               tag3: 'val3',
+              tag4: 'val4',
             },
             timestamp: expect.any(Number),
             transaction: 'outer',
