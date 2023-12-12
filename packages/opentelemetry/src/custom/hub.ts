@@ -13,19 +13,6 @@ export class OpenTelemetryHub extends Hub {
   public constructor(client?: Client, scope: Scope = new OpenTelemetryScope()) {
     super(client, scope);
   }
-
-  /**
-   * @inheritDoc
-   */
-  public pushScope(): Scope {
-    // We want to clone the content of prev scope
-    const scope = OpenTelemetryScope.clone(this.getScope());
-    this.getStack().push({
-      client: this.getClient(),
-      scope,
-    });
-    return scope;
-  }
 }
 
 /** Custom getClient method that uses the custom hub. */
