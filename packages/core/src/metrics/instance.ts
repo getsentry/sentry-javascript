@@ -38,18 +38,17 @@ export class GaugeMetric implements MetricInstance {
   private _sum: number;
   private _count: number;
 
-  public constructor(private _value: number) {
-    this._last = _value;
-    this._min = _value;
-    this._max = _value;
-    this._sum = _value;
+  public constructor(value: number) {
+    this._last = value;
+    this._min = value;
+    this._max = value;
+    this._sum = value;
     this._count = 1;
   }
 
   /** @inheritdoc */
   public add(value: number): void {
-    this._value = value;
-    this._value = value;
+    this._last = value;
     this._min = Math.min(this._min, value);
     this._max = Math.max(this._max, value);
     this._sum += value;
