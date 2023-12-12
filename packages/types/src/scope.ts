@@ -27,12 +27,31 @@ export interface ScopeContext {
   propagationContext: PropagationContext;
 }
 
+export interface ScopeData {
+  eventProcessors: EventProcessor[];
+  breadcrumbs: Breadcrumb[];
+  user: User;
+  tags: { [key: string]: Primitive };
+  extra: Extras;
+  contexts: Contexts;
+  attachments: Attachment[];
+  propagationContext: PropagationContext;
+  sdkProcessingMetadata: { [key: string]: unknown };
+  fingerprint: string[];
+  level?: SeverityLevel;
+  transactionName?: string;
+  span?: Span;
+}
+
 /**
  * Holds additional event information. {@link Scope.applyToEvent} will be called by the client before an event is sent.
  */
 export interface Scope {
   /** Add new event processor that will be called after {@link applyToEvent}. */
   addEventProcessor(callback: EventProcessor): this;
+
+  /** Get the data of this scope, which should be applied to an event. */
+  getScopeData(): ScopeData;
 
   /**
    * Updates user context information for future events.

@@ -72,7 +72,7 @@ export type { ReplayEvent, ReplayRecordingData, ReplayRecordingMode } from './re
 export type { FeedbackEvent } from './feedback';
 export type { QueryParams, Request, SanitizedRequestData } from './request';
 export type { Runtime } from './runtime';
-export type { CaptureContext, Scope, ScopeContext } from './scope';
+export type { CaptureContext, Scope, ScopeContext, ScopeData } from './scope';
 export type { SdkInfo } from './sdkinfo';
 export type { SdkMetadata } from './sdkmetadata';
 export type {
