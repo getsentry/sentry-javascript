@@ -69,6 +69,14 @@ export function getIsolationScope(): Scope {
 }
 
 /**
+ * Set the currently active isolation scope.
+ * Use this with caution! As it updates the isolation scope for the current execution context.
+ */
+export function setIsolationScope(isolationScope: Scope): void {
+  getScopes().isolationScope = isolationScope;
+}
+
+/**
  * Fork a scope from the current scope, and make it the current scope in the given callback
  */
 export function withScope<T>(callback: (scope: Scope) => T): T {
