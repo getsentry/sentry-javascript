@@ -4,7 +4,6 @@ const Sentry = require('@sentry/node');
 
 const { transport } = require('./test-transport.js');
 
-// close both processes after 5 seconds
 setTimeout(() => {
   process.exit();
 }, 10000);
