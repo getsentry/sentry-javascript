@@ -1,7 +1,7 @@
-export const COUNTER_METRIC_TYPE = 'c';
-export const GAUGE_METRIC_TYPE = 'g';
-export const SET_METRIC_TYPE = 's';
-export const DISTRIBUTION_METRIC_TYPE = 'd';
+export const COUNTER_METRIC_TYPE = 'c' as const;
+export const GAUGE_METRIC_TYPE = 'g' as const;
+export const SET_METRIC_TYPE = 's' as const;
+export const DISTRIBUTION_METRIC_TYPE = 'd' as const;
 
 /**
  * Normalization regex for metric names and metric tag names.

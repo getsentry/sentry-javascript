@@ -1,11 +1,12 @@
-import type { DsnComponents, SdkMetadata, StatsdEnvelope, StatsdItem } from '@sentry/types';
+import type { DsnComponents, MetricBucketItem, SdkMetadata, StatsdEnvelope, StatsdItem } from '@sentry/types';
 import { createEnvelope, dsnToString } from '@sentry/utils';
+import { serializeMetricBuckets } from './utils';
 
 /**
  * Create envelope from a metric aggregate.
  */
 export function createMetricEnvelope(
-  metricAggregate: string,
+  metricBucketItems: Array<MetricBucketItem>,
   dsn?: DsnComponents,
   metadata?: SdkMetadata,
   tunnel?: string,
@@ -25,14 +26,15 @@ export function createMetricEnvelope(
     headers.dsn = dsnToString(dsn);
   }
 
-  const item = createMetricEnvelopeItem(metricAggregate);
+  const item = createMetricEnvelopeItem(metricBucketItems);
   return createEnvelope<StatsdEnvelope>(headers, [item]);
 }
 
-function createMetricEnvelopeItem(metricAggregate: string): StatsdItem {
+function createMetricEnvelopeItem(metricBucketItems: Array<MetricBucketItem>): StatsdItem {
+  const payload = serializeMetricBuckets(metricBucketItems);
   const metricHeaders: StatsdItem[0] = {
     type: 'statsd',
-    length: metricAggregate.length,
+    length: payload.length,
   };
-  return [metricHeaders, metricAggregate];
+  return [metricHeaders, payload];
 }

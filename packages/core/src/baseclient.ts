@@ -16,6 +16,8 @@ import type {
   FeedbackEvent,
   Integration,
   IntegrationClass,
+  MetricBucketItem,
+  MetricsAggregator,
   Outcome,
   PropagationContext,
   SdkMetadata,
@@ -50,7 +52,6 @@ import { getCurrentHub } from './hub';
 import type { IntegrationIndex } from './integration';
 import { setupIntegration, setupIntegrations } from './integration';
 import { createMetricEnvelope } from './metrics/envelope';
-import type { MetricsAggregator } from './metrics/types';
 import type { Scope } from './scope';
 import { updateSession } from './session';
 import { getDynamicSamplingContextFromClient } from './tracing/dynamicSamplingContext';
@@ -401,9 +402,9 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   /**
    * @inheritDoc
    */
-  public captureSerializedMetrics(serializedMetrics: string): void {
+  public captureAggregateMetrics(metricBucketItems: Array<MetricBucketItem>): void {
     const metricsEnvelope = createMetricEnvelope(
-      serializedMetrics,
+      metricBucketItems,
       this._dsn,
       this._options._metadata,
       this._options.tunnel,

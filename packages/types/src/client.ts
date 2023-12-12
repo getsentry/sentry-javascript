@@ -8,6 +8,7 @@ import type { Event, EventHint } from './event';
 import type { EventProcessor } from './eventprocessor';
 import type { FeedbackEvent } from './feedback';
 import type { Integration, IntegrationClass } from './integration';
+import type { MetricBucketItem } from './metrics';
 import type { ClientOptions } from './options';
 import type { Scope } from './scope';
 import type { SdkMetadata } from './sdkmetadata';
@@ -184,7 +185,7 @@ export interface Client<O extends ClientOptions = ClientOptions> {
    *
    * @experimental This API is experimental and might experience breaking changes
    */
-  captureSerializedMetrics?(serializedMetrics: string): void;
+  captureAggregateMetrics?(metricBucketItems: Array<MetricBucketItem>): void;
 
   // HOOKS
   // TODO(v8): Make the hooks non-optional.

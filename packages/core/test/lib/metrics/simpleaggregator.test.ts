@@ -1,5 +1,6 @@
 import { CounterMetric } from '../../../src/metrics/instance';
-import { SimpleMetricsAggregator, serializeBuckets } from '../../../src/metrics/simpleaggregator';
+import { SimpleMetricsAggregator } from '../../../src/metrics/simpleaggregator';
+import { serializeMetricBuckets } from '../../../src/metrics/utils';
 import { TestClient, getDefaultTestClientOptions } from '../../mocks/client';
 
 describe('SimpleMetricsAggregator', () => {
@@ -25,7 +26,7 @@ describe('SimpleMetricsAggregator', () => {
     const firstValue = aggregator['_buckets'].values().next().value;
     expect(firstValue).toEqual([expect.any(CounterMetric), expect.any(Number), 'c', 'requests', 'none', {}]);
 
-    expect(firstValue[0].value).toEqual(2);
+    expect(firstValue[0]._value).toEqual(2);
   });
 
   it('differentiates based on tag value', () => {
@@ -45,13 +46,16 @@ describe('SimpleMetricsAggregator', () => {
       aggregator.add('g', 'cpu', 52);
       aggregator.add('d', 'lcp', 1, 'second', { a: 'value', b: 'anothervalue' });
       aggregator.add('d', 'lcp', 1.2, 'second', { a: 'value', b: 'anothervalue' });
-      aggregator.add('s', 'important_org_ids', 1, 'none', { numericKey: 2 });
-      aggregator.add('s', 'important_org_ids', 2, 'none', { numericKey: 2 });
+      aggregator.add('s', 'important_people', 'a', 'none', { numericKey: 2 });
+      aggregator.add('s', 'important_people', 'b', 'none', { numericKey: 2 });
 
-      expect(serializeBuckets(aggregator['_buckets'])).toContain('requests@none:8|c|T');
-      expect(serializeBuckets(aggregator['_buckets'])).toContain('cpu@none:52:50:55:157:3|g|T');
-      expect(serializeBuckets(aggregator['_buckets'])).toContain('lcp@second:1:1.2|d|#a:value,b:anothervalue|T');
-      expect(serializeBuckets(aggregator['_buckets'])).toContain('important_org_ids@none:1:2|s|#numericKey:2|T');
+      const metricBuckets = Array.from(aggregator['_buckets']).map(([, bucketItem]) => bucketItem);
+      const serializedBuckets = serializeMetricBuckets(metricBuckets);
+
+      expect(serializedBuckets).toContain('requests@none:8|c|T');
+      expect(serializedBuckets).toContain('cpu@none:52:50:55:157:3|g|T');
+      expect(serializedBuckets).toContain('lcp@second:1:1.2|d|#a:value,b:anothervalue|T');
+      expect(serializedBuckets).toContain('important_people@none:97:98|s|#numericKey:2|T');
     });
   });
 });

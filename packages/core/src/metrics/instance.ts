@@ -1,16 +1,6 @@
+import type { MetricInstance } from '@sentry/types';
 import { COUNTER_METRIC_TYPE, DISTRIBUTION_METRIC_TYPE, GAUGE_METRIC_TYPE, SET_METRIC_TYPE } from './constants';
 import { simpleHash } from './utils';
-
-interface MetricInstance {
-  /**
-   * Adds a value to a metric.
-   */
-  add(value: number | string): void;
-  /**
-   * Serializes the metric into a statsd format string.
-   */
-  toString(): string;
-}
 
 /**
  * A metric instance representing a counter.
