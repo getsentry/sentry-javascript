@@ -7,6 +7,7 @@ export * from './client';
 export * from './server';
 export * from './edge';
 
+export type { BrowserTracing, Feedback, Replay } from '@sentry/react';
 import type { Integration, Options, StackParser } from '@sentry/types';
 
 import type * as clientSdk from './client';

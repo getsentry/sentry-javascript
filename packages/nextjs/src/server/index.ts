@@ -6,6 +6,8 @@ import { Integrations, configureScope, getCurrentHub, init as nodeInit } from '@
 import type { EventProcessor } from '@sentry/types';
 import type { IntegrationWithExclusionOption } from '@sentry/utils';
 import { addOrUpdateIntegration, escapeStringForRegex, logger } from '@sentry/utils';
+// This is exported to warn when server/edge SDK inits invoke client only modules and to avoid compilation warnings for uninvoked client only configuration
+export { BrowserTracing, Feedback, Replay } from '@sentry-internal/integration-shims';
 
 import { DEBUG_BUILD } from '../common/debug-build';
 import { devErrorSymbolicationEventProcessor } from '../common/devErrorSymbolicationEventProcessor';
