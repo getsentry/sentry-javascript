@@ -1,10 +1,13 @@
 import type {
   Client,
   CustomSamplingContext,
+  EventHint,
   Hub,
   Integration,
   IntegrationClass,
   Session,
+  Severity,
+  SeverityLevel,
   TransactionContext,
 } from '@sentry/types';
 
@@ -64,8 +67,17 @@ export function getCurrentHub(): Hub {
     withScope,
     getClient,
     getScope: getCurrentScope,
-    captureException,
-    captureMessage,
+    captureException: (exception: unknown, hint?: EventHint) => {
+      return getCurrentScope().captureException(exception, hint);
+    },
+    captureMessage: (
+      message: string,
+      // eslint-disable-next-line deprecation/deprecation
+      level?: Severity | SeverityLevel,
+      hint?: EventHint,
+    ) => {
+      return getCurrentScope().captureMessage(message, level, hint);
+    },
     captureEvent,
     lastEventId,
     addBreadcrumb,

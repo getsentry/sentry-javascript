@@ -5,6 +5,7 @@ import { DEFAULT_ENVIRONMENT, closeSession, makeSession, updateSession } from '@
 import type {
   Breadcrumb,
   BreadcrumbHint,
+  CaptureContext,
   Client,
   Event,
   EventHint,
@@ -17,9 +18,10 @@ import type {
   SeverityLevel,
   User,
 } from '@sentry/types';
-import { GLOBAL_OBJ, consoleSandbox, dateTimestampInSeconds, logger } from '@sentry/utils';
+import { GLOBAL_OBJ, consoleSandbox, dateTimestampInSeconds } from '@sentry/utils';
 
 import { getScopesFromContext, setScopesOnContext } from '../utils/contextData';
+import { ExclusiveEventHintOrCaptureContext, parseEventHintOrCaptureContext } from '../utils/prepareEvent';
 import { getGlobalCarrier } from './globals';
 import { Scope } from './scope';
 import type { CurrentScopes, SentryCarrier } from './types';
@@ -118,18 +120,22 @@ export function configureScope(callback: (scope: Scope) => void): void {
 }
 
 /** Capture an exception to Sentry. */
-export function captureException(exception: unknown, hint?: EventHint): string {
-  return getCurrentScope().captureException(exception, hint);
+export function captureException(exception: unknown, hint?: ExclusiveEventHintOrCaptureContext): string {
+  return getCurrentScope().captureException(exception, parseEventHintOrCaptureContext(hint));
 }
 
 /** Capture a message to Sentry. */
 export function captureMessage(
   message: string,
   // eslint-disable-next-line deprecation/deprecation
-  level?: Severity | SeverityLevel,
-  hint?: EventHint,
+  captureContext?: CaptureContext | Severity | SeverityLevel,
 ): string {
-  return getCurrentScope().captureMessage(message, level, hint);
+  // This is necessary to provide explicit scopes upgrade, without changing the original
+  // arity of the `captureMessage(message, level)` method.
+  const level = typeof captureContext === 'string' ? captureContext : undefined;
+  const context = typeof captureContext !== 'string' ? { captureContext } : undefined;
+
+  return getCurrentScope().captureMessage(message, level, context);
 }
 
 /** Capture a generic event to Sentry. */
