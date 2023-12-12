@@ -138,8 +138,6 @@ export class ReplayContainer implements ReplayContainerInterface {
 
   private _context: InternalEventContext;
 
-  private _hydrationBreadcrumbCount: number;
-
   public constructor({
     options,
     recordingOptions,
@@ -166,7 +164,6 @@ export class ReplayContainer implements ReplayContainerInterface {
       initialTimestamp: Date.now(),
       initialUrl: '',
     };
-    this._hydrationBreadcrumbCount = 0;
 
     this._recordingOptions = recordingOptions;
     this._options = options;
