@@ -32,7 +32,6 @@ export function createMetricEnvelope(
 function createMetricEnvelopeItem(metricAggregate: string): StatsdItem {
   const metricHeaders: StatsdItem[0] = {
     type: 'statsd',
-    content_type: 'application/octet-stream',
     length: metricAggregate.length,
   };
   return [metricHeaders, metricAggregate];
