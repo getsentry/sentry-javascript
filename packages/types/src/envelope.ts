@@ -3,6 +3,7 @@ import type { ClientReport } from './clientreport';
 import type { DsnComponents } from './dsn';
 import type { Event } from './event';
 import type { FeedbackEvent } from './feedback';
+import type { Profile } from './profiling';
 import type { ReplayEvent, ReplayRecordingData } from './replay';
 import type { SdkInfo } from './sdkinfo';
 import type { SerializedSession, Session, SessionAggregates } from './session';
@@ -77,6 +78,7 @@ type ReplayEventItemHeaders = { type: 'replay_event' };
 type ReplayRecordingItemHeaders = { type: 'replay_recording'; length: number };
 type CheckInItemHeaders = { type: 'check_in' };
 type StatsdItemHeaders = { type: 'statsd' };
+type ProfileItemHeaders = { type: 'profile' };
 
 export type EventItem = BaseEnvelopeItem<EventItemHeaders, Event>;
 export type AttachmentItem = BaseEnvelopeItem<AttachmentItemHeaders, string | Uint8Array>;
@@ -91,6 +93,7 @@ type ReplayEventItem = BaseEnvelopeItem<ReplayEventItemHeaders, ReplayEvent>;
 type ReplayRecordingItem = BaseEnvelopeItem<ReplayRecordingItemHeaders, ReplayRecordingData>;
 export type StatsdItem = BaseEnvelopeItem<StatsdItemHeaders, string>;
 export type FeedbackItem = BaseEnvelopeItem<FeedbackItemHeaders, FeedbackEvent>;
+export type ProfileItem = BaseEnvelopeItem<ProfileItemHeaders, Profile>;
 
 export type EventEnvelopeHeaders = { event_id: string; sent_at: string; trace?: DynamicSamplingContext };
 type SessionEnvelopeHeaders = { sent_at: string };
@@ -101,7 +104,7 @@ type StatsdEnvelopeHeaders = BaseEnvelopeHeaders;
 
 export type EventEnvelope = BaseEnvelope<
   EventEnvelopeHeaders,
-  EventItem | AttachmentItem | UserFeedbackItem | FeedbackItem
+  EventItem | AttachmentItem | UserFeedbackItem | FeedbackItem | ProfileItem
 >;
 export type SessionEnvelope = BaseEnvelope<SessionEnvelopeHeaders, SessionItem>;
 export type ClientReportEnvelope = BaseEnvelope<ClientReportEnvelopeHeaders, ClientReportItem>;
