@@ -51,7 +51,7 @@ function addToMetricsAggregator(
  *
  * @experimental This API is experimental and might having breaking changes in the future.
  */
-export function incr(name: string, value: number = 1, data?: MetricData): void {
+export function increment(name: string, value: number = 1, data?: MetricData): void {
   addToMetricsAggregator(COUNTER_METRIC_TYPE, name, value, data);
 }
 
@@ -83,7 +83,7 @@ export function gauge(name: string, value: number, data?: MetricData): void {
 }
 
 export const metrics = {
-  incr,
+  increment,
   distribution,
   set,
   gauge,
