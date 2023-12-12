@@ -16,11 +16,11 @@ export function handleBeforeSendEvent(replay: ReplayContainer): BeforeSendEventC
       return;
     }
 
-    handleErrorEvent(replay, event);
+    handleHydrationError(replay, event);
   };
 }
 
-function handleErrorEvent(replay: ReplayContainer, event: ErrorEvent): void {
+function handleHydrationError(replay: ReplayContainer, event: ErrorEvent): void {
   const exceptionValue = event.exception && event.exception.values && event.exception.values[0].value;
   if (typeof exceptionValue !== 'string') {
     return;
