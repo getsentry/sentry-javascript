@@ -34,7 +34,7 @@ describe('Integration | coreHandlers | handleBeforeSendEvent', () => {
     expect(addBreadcrumbSpy).toHaveBeenCalledWith({
       data: {
         payload: {
-          category: 'replay.hydrate',
+          category: 'replay.hydrate-error',
           data: {},
           timestamp: expect.any(Number),
           type: 'default',
@@ -68,7 +68,7 @@ describe('Integration | coreHandlers | handleBeforeSendEvent', () => {
     expect(addBreadcrumbSpy).toHaveBeenCalledWith({
       data: {
         payload: {
-          category: 'replay.hydrate',
+          category: 'replay.hydrate-error',
           data: {},
           timestamp: expect.any(Number),
           type: 'default',

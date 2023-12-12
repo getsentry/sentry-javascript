@@ -35,7 +35,7 @@ function handleErrorEvent(replay: ReplayContainer, event: ErrorEvent): void {
     exceptionValue.match(/(hydration|content does not match|did not match)/i)
   ) {
     const breadcrumb = createBreadcrumb({
-      category: 'replay.hydrate',
+      category: 'replay.hydrate-error',
     });
     addBreadcrumbEvent(replay, breadcrumb);
   }
