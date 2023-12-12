@@ -1,10 +1,11 @@
 import { COUNTER_METRIC_TYPE, DISTRIBUTION_METRIC_TYPE, GAUGE_METRIC_TYPE, SET_METRIC_TYPE } from './constants';
+import { simpleHash } from './utils';
 
 interface MetricInstance {
   /**
    * Adds a value to a metric.
    */
-  add(value: number): void;
+  add(value: number | string): void;
   /**
    * Serializes the metric into a statsd format string.
    */
@@ -86,20 +87,22 @@ export class DistributionMetric implements MetricInstance {
  * A metric instance representing a set.
  */
 export class SetMetric implements MetricInstance {
-  private _value: Set<number>;
+  private _value: Set<number | string>;
 
-  public constructor(public first: number) {
+  public constructor(public first: number | string) {
     this._value = new Set([first]);
   }
 
   /** @inheritdoc */
-  public add(value: number): void {
+  public add(value: number | string): void {
     this._value.add(value);
   }
 
   /** @inheritdoc */
   public toString(): string {
-    return `${Array.from(this._value).join(':')}`;
+    return `${Array.from(this._value)
+      .map(val => (typeof val === 'string' ? simpleHash(val) : val))
+      .join(':')}`;
   }
 }
 

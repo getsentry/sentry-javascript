@@ -12,7 +12,12 @@ interface MetricData {
   timestamp?: number;
 }
 
-function addToMetricsAggregator(metricType: MetricType, name: string, value: number, data: MetricData = {}): void {
+function addToMetricsAggregator(
+  metricType: MetricType,
+  name: string,
+  value: number | string,
+  data: MetricData = {},
+): void {
   const hub = getCurrentHub();
   const client = hub.getClient() as BaseClient<ClientOptions>;
   const scope = hub.getScope();
@@ -64,8 +69,7 @@ export function distribution(name: string, value: number, data?: MetricData): vo
  *
  * @experimental This API is experimental and might having breaking changes in the future.
  */
-export function set(name: string, incomingValue: number | string, data?: MetricData): void {
-  const value = typeof incomingValue === 'string' ? parseInt(incomingValue) : Math.floor(incomingValue);
+export function set(name: string, value: number | string, data?: MetricData): void {
   addToMetricsAggregator(SET_METRIC_TYPE, name, value, data);
 }
 

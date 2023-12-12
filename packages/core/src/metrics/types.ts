@@ -17,7 +17,7 @@ export interface MetricsAggregator {
   add(
     metricType: MetricType,
     name: string,
-    value: number,
+    value: number | string,
     unit?: MeasurementUnit,
     tags?: Record<string, Primitive>,
     timestamp?: number,

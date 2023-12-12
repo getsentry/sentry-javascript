@@ -108,15 +108,12 @@ export class SimpleMetricsAggregator implements MetricsAggregator {
 export function serializeBuckets(buckets: SimpleMetricBucket): string {
   let out = '';
   buckets.forEach(([metric, timestamp, metricType, name, unit, tags]) => {
-    out += `${name}@${unit}:${metric}|${metricType}`;
-    if (Object.keys(tags).length) {
-      out += '|#';
-      out += Object.entries(tags)
-        .map(([key, value]) => `${key}:${String(value)}`)
-        .join(',');
-    }
-    // timestamp must be an integer
-    out += `|T${timestamp}\n`;
+    const maybeTags = Object.keys(tags).length
+      ? `|#${Object.entries(tags)
+          .map(([key, value]) => `${key}:${String(value)}`)
+          .join(',')}`
+      : '';
+    out += `${name}@${unit}:${metric}|${metricType}${maybeTags}|T${timestamp}\n`;
   });
 
   return out;
