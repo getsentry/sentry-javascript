@@ -4,6 +4,7 @@ import type { Client, DynamicSamplingContext } from '@sentry/types';
 import { addClickKeypressInstrumentationHandler, addHistoryInstrumentationHandler } from '@sentry/utils';
 
 import { handleAfterSendEvent } from '../coreHandlers/handleAfterSendEvent';
+import { handleBeforeSendEvent } from '../coreHandlers/handleBeforeSendEvent';
 import { handleDomListener } from '../coreHandlers/handleDom';
 import { handleGlobalEventListener } from '../coreHandlers/handleGlobalEvent';
 import { handleHistorySpanListener } from '../coreHandlers/handleHistory';
@@ -35,6 +36,7 @@ export function addGlobalListeners(replay: ReplayContainer): void {
 
   // If a custom client has no hooks yet, we continue to use the "old" implementation
   if (hasHooks(client)) {
+    client.on('beforeSendEvent', handleBeforeSendEvent(replay));
     client.on('afterSendEvent', handleAfterSendEvent(replay));
     client.on('createDsc', (dsc: DynamicSamplingContext) => {
       const replayId = replay.getSessionId();
