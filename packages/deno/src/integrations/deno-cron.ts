@@ -45,7 +45,11 @@ export class DenoCron implements Integration {
         }
 
         async function cronCalled(): Promise<void> {
-          await withMonitor(monitorSlug, async () => fn(), { schedule: { type: 'crontab', value: schedule } });
+          await withMonitor(monitorSlug, async () => fn(), {
+            schedule: { type: 'crontab', value: schedule },
+            // (minutes) so 12 hours - just a very high arbitrary number since we don't know the actual duration of the users cron job
+            maxRuntime: 60 * 12,
+          });
         }
 
         return target.call(thisArg, monitorSlug, schedule, options || {}, cronCalled);
