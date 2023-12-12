@@ -147,12 +147,12 @@ function startAnrWorker(options: Options): void {
       }
     });
 
-    worker.on('error', (err: Error) => {
+    worker.once('error', (err: Error) => {
       clearInterval(timer);
       log('ANR worker error', err);
     });
 
-    worker.on('exit', (code: number) => {
+    worker.once('exit', (code: number) => {
       clearInterval(timer);
       log('ANR worker exit', code);
     });
