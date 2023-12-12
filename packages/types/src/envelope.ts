@@ -104,14 +104,13 @@ type StatsdEnvelopeHeaders = BaseEnvelopeHeaders;
 
 export type EventEnvelope = BaseEnvelope<
   EventEnvelopeHeaders,
-  EventItem | AttachmentItem | UserFeedbackItem | FeedbackItem
+  EventItem | AttachmentItem | UserFeedbackItem | FeedbackItem | ProfileItem
 >;
 export type SessionEnvelope = BaseEnvelope<SessionEnvelopeHeaders, SessionItem>;
 export type ClientReportEnvelope = BaseEnvelope<ClientReportEnvelopeHeaders, ClientReportItem>;
 export type ReplayEnvelope = [ReplayEnvelopeHeaders, [ReplayEventItem, ReplayRecordingItem]];
 export type CheckInEnvelope = BaseEnvelope<CheckInEnvelopeHeaders, CheckInItem>;
 export type StatsdEnvelope = BaseEnvelope<StatsdEnvelopeHeaders, StatsdItem>;
-export type ProfiledEventEnvelope = [EventEnvelopeHeaders, [EventItem, ProfileItem]];
 
 export type Envelope =
   | EventEnvelope
@@ -119,6 +118,5 @@ export type Envelope =
   | ClientReportEnvelope
   | ReplayEnvelope
   | CheckInEnvelope
-  | StatsdEnvelope
-  | ProfiledEventEnvelope;
+  | StatsdEnvelope;
 export type EnvelopeItem = Envelope[1][number];

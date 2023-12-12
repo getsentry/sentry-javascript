@@ -1,16 +1,9 @@
 /* eslint-disable max-lines */
 
 import { DEFAULT_ENVIRONMENT, getClient, getCurrentHub } from '@sentry/core';
-import type { DebugImage, Envelope, Event, StackFrame, StackParser, Transaction } from '@sentry/types';
+import type { DebugImage, Envelope, Event, EventEnvelope, StackFrame, StackParser, Transaction } from '@sentry/types';
 import type { Profile, ThreadCpuProfile } from '@sentry/types/src/profiling';
-import {
-  GLOBAL_OBJ,
-  addItemToEnvelope,
-  browserPerformanceTimeOrigin,
-  forEachEnvelopeItem,
-  logger,
-  uuid4,
-} from '@sentry/utils';
+import { GLOBAL_OBJ, browserPerformanceTimeOrigin, forEachEnvelopeItem, logger, uuid4 } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../debug-build';
 import { WINDOW } from '../helpers';
@@ -307,13 +300,13 @@ export function convertJSSelfProfileToSampledFormat(input: JSSelfProfile): Profi
  * Adds items to envelope if they are not already present - mutates the envelope.
  * @param envelope
  */
-export function addProfilesToEnvelope(envelope: Envelope, profiles: Profile[]): Envelope {
+export function addProfilesToEnvelope(envelope: EventEnvelope, profiles: Profile[]): Envelope {
   if (!profiles.length) {
     return envelope;
   }
 
   for (const profile of profiles) {
-    addItemToEnvelope(envelope, [{ type: 'profile' }, profile]);
+    envelope[1].push([{ type: 'profile' }, profile]);
   }
   return envelope;
 }
