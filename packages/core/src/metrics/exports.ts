@@ -25,9 +25,7 @@ function addToMetricsAggregator(metricType: MetricType, name: string, value: num
     const { unit, tags, timestamp } = data;
     const { release, environment } = client.getOptions();
     const transaction = scope.getTransaction();
-    const metricTags = {
-      ...tags,
-    };
+    const metricTags: Record<string, string> = {};
     if (release) {
       metricTags.release = release;
     }
@@ -39,7 +37,7 @@ function addToMetricsAggregator(metricType: MetricType, name: string, value: num
     }
 
     DEBUG_BUILD && logger.log(`Adding value of ${value} to ${metricType} metric ${name}`);
-    client.metricsAggregator.add(metricType, name, value, unit, metricTags, timestamp);
+    client.metricsAggregator.add(metricType, name, value, unit, { ...metricTags, ...tags }, timestamp);
   }
 }
 
