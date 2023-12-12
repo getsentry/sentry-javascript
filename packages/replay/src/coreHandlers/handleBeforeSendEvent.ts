@@ -36,7 +36,6 @@ function handleErrorEvent(replay: ReplayContainer, event: ErrorEvent): void {
   ) {
     const breadcrumb = createBreadcrumb({
       category: 'replay.hydrate',
-      data: {},
     });
     addBreadcrumbEvent(replay, breadcrumb);
   }
