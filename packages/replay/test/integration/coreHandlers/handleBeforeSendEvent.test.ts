@@ -35,7 +35,6 @@ describe('Integration | coreHandlers | handleBeforeSendEvent', () => {
       data: {
         payload: {
           category: 'replay.hydrate-error',
-          data: {},
           timestamp: expect.any(Number),
           type: 'default',
         },
@@ -69,7 +68,6 @@ describe('Integration | coreHandlers | handleBeforeSendEvent', () => {
       data: {
         payload: {
           category: 'replay.hydrate-error',
-          data: {},
           timestamp: expect.any(Number),
           type: 'default',
         },
