@@ -1,5 +1,5 @@
 import { Scope } from '@sentry/core';
-import { CaptureContext, EventHint, Scope as ScopeInterface, ScopeContext } from '@sentry/types';
+import type { CaptureContext, EventHint, Scope as ScopeInterface, ScopeContext } from '@sentry/types';
 
 /**
  * This type makes sure that we get either a CaptureContext, OR an EventHint.

@@ -21,7 +21,8 @@ import type {
 import { GLOBAL_OBJ, consoleSandbox, dateTimestampInSeconds } from '@sentry/utils';
 
 import { getScopesFromContext, setScopesOnContext } from '../utils/contextData';
-import { ExclusiveEventHintOrCaptureContext, parseEventHintOrCaptureContext } from '../utils/prepareEvent';
+import type { ExclusiveEventHintOrCaptureContext} from '../utils/prepareEvent';
+import { parseEventHintOrCaptureContext } from '../utils/prepareEvent';
 import { getGlobalCarrier } from './globals';
 import { Scope } from './scope';
 import type { CurrentScopes, SentryCarrier } from './types';
