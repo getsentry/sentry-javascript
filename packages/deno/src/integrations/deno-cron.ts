@@ -30,7 +30,6 @@ export class DenoCron implements Integration {
 
     // eslint-disable-next-line deprecation/deprecation
     Deno.cron = new Proxy(Deno.cron, {
-      // eslint-disable-next-line deprecation/deprecation
       apply(target, thisArg, argArray: CronParams) {
         const [monitorSlug, schedule, opt1, opt2] = argArray;
         let options: CronOptions | undefined;
