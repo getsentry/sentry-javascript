@@ -10,6 +10,7 @@ import type {
   Integration,
 } from '@sentry/types';
 import type {
+  Breadcrumb,
   FetchBreadcrumbData,
   FetchBreadcrumbHint,
   XhrBreadcrumbData,
@@ -180,12 +181,17 @@ function _domBreadcrumb(dom: BreadcrumbsOptions['dom']): (handlerData: HandlerDa
       return;
     }
 
+    const breadcrumb: Breadcrumb = {
+      category: `ui.${handlerData.name}`,
+      message: target,
+    }
+
+    if (componentName) {
+      breadcrumb.data = {componentName}
+    }
+
     getCurrentHub().addBreadcrumb(
-      {
-        category: `ui.${handlerData.name}`,
-        message: target,
-        data: {componentName}
-      },
+      breadcrumb,
       {
         event: handlerData.event,
         name: handlerData.name,

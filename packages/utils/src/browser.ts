@@ -21,8 +21,6 @@ export function htmlTreeAsString(
   options: string[] | { keyAttrs?: string[]; maxStringLength?: number } = {},
 ): string {
 
-  console.log('html tree as string')
-
   if (!elem) {
     return '<unknown>';
   }
@@ -59,7 +57,6 @@ export function htmlTreeAsString(
       currentElem = currentElem.parentNode;
     }
 
-    console.log(out.reverse().join(separator))
     return out.reverse().join(separator);
   } catch (_oO) {
     return '<unknown>';
@@ -177,9 +174,11 @@ export function getComponentName(elem: unknown) {
     }
 
     if (currentElem instanceof HTMLElement && currentElem.dataset['sentryComponent']) {
-      return `<${currentElem.dataset['sentryComponent']}>`;
+      return currentElem.dataset['sentryComponent'];
     }
 
     currentElem = currentElem.parentNode
   }
+
+  return null;
 }
