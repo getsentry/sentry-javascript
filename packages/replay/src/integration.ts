@@ -72,8 +72,6 @@ export class Replay implements Integration {
     mutationBreadcrumbLimit = 750,
     mutationLimit = 10_000,
 
-    hydrationBreadcrumbLimit = 1,
-
     slowClickTimeout = 7_000,
     slowClickIgnoreSelectors = [],
 
@@ -173,7 +171,6 @@ export class Replay implements Integration {
       maskAllText,
       mutationBreadcrumbLimit,
       mutationLimit,
-      hydrationBreadcrumbLimit,
       slowClickTimeout,
       slowClickIgnoreSelectors,
       networkDetailAllowUrls,

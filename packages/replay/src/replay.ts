@@ -1247,32 +1247,4 @@ export class ReplayContainer implements ReplayContainerInterface {
     // `true` means we use the regular mutation handling by rrweb
     return true;
   };
-
-  private _handleSentryEvent = (event: SentryEvent): void => {
-    const exceptionValue = event.exception && event.exception.values && event.exception.values[0].value;
-    if (typeof exceptionValue !== 'string') {
-      return;
-    }
-
-    const hydrationBreadcrumbLimit = this._options.hydrationBreadcrumbLimit;
-    const overHydrationBreadcrumbLimit =
-      hydrationBreadcrumbLimit && this._hydrationBreadcrumbCount > hydrationBreadcrumbLimit;
-
-    if (
-      !overHydrationBreadcrumbLimit &&
-      // Only matches errors in production builds of react-dom
-      // Example https://reactjs.org/docs/error-decoder.html?invariant=423
-      (exceptionValue.match(/reactjs\.org\/docs\/error-decoder\.html\?invariant=(418|419|422|423|425)/) ||
-        // Development builds of react-dom
-        // Example Text: content did not match. Server: "A" Client: "B"
-        exceptionValue.match(/(hydration|content does not match|did not match)/i))
-    ) {
-      this._hydrationBreadcrumbCount++;
-      const breadcrumb = createBreadcrumb({
-        category: 'replay.hydrate',
-        data: {},
-      });
-      this._createCustomBreadcrumb(breadcrumb);
-    }
-  };
 }
