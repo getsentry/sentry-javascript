@@ -56,10 +56,7 @@ export {
   withScope,
   FunctionToString,
   InboundFilters,
-  incr,
-  distribution,
-  set,
-  gauge,
+  metrics,
   Metrics,
 } from '@sentry/core';
 

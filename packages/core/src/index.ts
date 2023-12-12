@@ -63,12 +63,7 @@ export { DEFAULT_ENVIRONMENT } from './constants';
 export { ModuleMetadata } from './integrations/metadata';
 export { RequestData } from './integrations/requestdata';
 import * as Integrations from './integrations';
-export {
-  incr,
-  distribution,
-  set,
-  gauge,
-} from './metrics/exports';
+export { metrics } from './metrics/exports';
 export { Metrics } from './metrics/integration';
 
 export { Integrations };

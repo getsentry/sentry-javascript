@@ -81,3 +81,10 @@ export function set(name: string, value: number | string, data?: MetricData): vo
 export function gauge(name: string, value: number, data?: MetricData): void {
   addToMetricsAggregator(GAUGE_METRIC_TYPE, name, value, data);
 }
+
+export const metrics = {
+  incr,
+  distribution,
+  set,
+  gauge,
+};
