@@ -833,10 +833,6 @@ export class ReplayContainer implements ReplayContainerInterface {
     }
 
     this._performanceCleanupCallback = setupPerformanceObserver(this);
-
-    const client = getClient();
-    // Start listening for errors that occur in the core SDK
-    client && client.on && client.on('beforeSendEvent', this._handleSentryEvent);
   }
 
   /**

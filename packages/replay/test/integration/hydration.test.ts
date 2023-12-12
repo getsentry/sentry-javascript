@@ -10,7 +10,9 @@ describe('Integration | hydration', () => {
   let replay: ReplayContainer;
 
   beforeEach(async () => {
-    ({ replay } = await resetSdkMock({}));
+    ({ replay } = await resetSdkMock({
+      autoStart: true,
+    }));
   });
 
   it('adds a hydration breadcrumb on error', async () => {
