@@ -329,7 +329,7 @@ function handlerAnrWorker(options: Options): void {
  */
 export function isAnrWorker(): boolean {
   try {
-    const { isMainThread } = dynamicRequire(module, 'worker_threads') as WorkerThreads;
+    const { isMainThread } = getWorkerThreads();
     return !isMainThread;
   } catch (_) {
     return false;
