@@ -842,7 +842,7 @@ jobs:
       github.actor != 'dependabot[bot]'
     needs: [job_get_metadata, job_build, job_e2e_prepare]
     runs-on: ubuntu-20.04
-    timeout-minutes: 20
+    timeout-minutes: 10
     env:
       E2E_TEST_AUTH_TOKEN: ${{ secrets.E2E_TEST_AUTH_TOKEN }}
       E2E_TEST_DSN: ${{ secrets.E2E_TEST_DSN }}
