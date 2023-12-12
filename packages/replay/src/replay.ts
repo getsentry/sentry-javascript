@@ -1,7 +1,7 @@
 /* eslint-disable max-lines */ // TODO: We might want to split this file up
 import { EventType, record } from '@sentry-internal/rrweb';
 import { captureException, getClient, getCurrentHub } from '@sentry/core';
-import type { ReplayRecordingMode, Transaction } from '@sentry/types';
+import type { Event as SentryEvent, ReplayRecordingMode, Transaction } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
 import {

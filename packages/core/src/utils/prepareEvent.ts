@@ -74,10 +74,7 @@ export function prepareEvent(
 
   // If we have scope given to us, use it as the base for further modifications.
   // This allows us to prevent unnecessary copying of data if `captureContext` is not provided.
-  let finalScope = scope;
-  if (hint.captureContext) {
-    finalScope = Scope.clone(finalScope).update(hint.captureContext);
-  }
+  const finalScope = getFinalScope(scope, hint.captureContext);
 
   if (hint.mechanism) {
     addExceptionMechanism(prepared, hint.mechanism);
@@ -347,6 +344,16 @@ function normalizeEvent(event: Event | null, depth: number, maxBreadth: number):
   }
 
   return normalized;
+}
+
+function getFinalScope(scope: Scope | undefined, captureContext: CaptureContext | undefined): Scope | undefined {
+  if (!captureContext) {
+    return scope;
+  }
+
+  const finalScope = scope ? scope.clone() : new Scope();
+  finalScope.update(captureContext);
+  return finalScope;
 }
 
 /**
