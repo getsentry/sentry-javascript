@@ -69,6 +69,43 @@ describe('sentryMiddleware', () => {
     expect(resultFromNext).toStrictEqual(nextResult);
   });
 
+  it("sets source route if the url couldn't be decoded correctly", async () => {
+    const middleware = handleRequest();
+    const ctx = {
+      request: {
+        method: 'GET',
+        url: '/a%xx',
+        headers: new Headers(),
+      },
+      url: { pathname: 'a%xx', href: 'http://localhost:1234/a%xx' },
+      params: {},
+    };
+    const next = vi.fn(() => nextResult);
+
+    // @ts-expect-error, a partial ctx object is fine here
+    const resultFromNext = middleware(ctx, next);
+
+    expect(startSpanSpy).toHaveBeenCalledWith(
+      {
+        data: {
+          method: 'GET',
+          url: 'http://localhost:1234/a%xx',
+        },
+        metadata: {
+          source: 'url',
+        },
+        name: 'GET a%xx',
+        op: 'http.server',
+        origin: 'auto.http.astro',
+        status: 'ok',
+      },
+      expect.any(Function), // the `next` function
+    );
+
+    expect(next).toHaveBeenCalled();
+    expect(resultFromNext).toStrictEqual(nextResult);
+  });
+
   it('throws and sends an error to sentry if `next()` throws', async () => {
     const captureExceptionSpy = vi.spyOn(SentryNode, 'captureException');
 
@@ -299,12 +336,28 @@ describe('sentryMiddleware', () => {
 
 describe('interpolateRouteFromUrlAndParams', () => {
   it.each([
+    ['/', {}, '/'],
     ['/foo/bar', {}, '/foo/bar'],
     ['/users/123', { id: '123' }, '/users/[id]'],
     ['/users/123', { id: '123', foo: 'bar' }, '/users/[id]'],
     ['/lang/en-US', { lang: 'en', region: 'US' }, '/lang/[lang]-[region]'],
     ['/lang/en-US/posts', { lang: 'en', region: 'US' }, '/lang/[lang]-[region]/posts'],
+    // edge cases that astro doesn't support
+    ['/lang/-US', { region: 'US' }, '/lang/-[region]'],
+    ['/lang/en-', { lang: 'en' }, '/lang/[lang]-'],
   ])('interpolates route from URL and params %s', (rawUrl, params, expectedRoute) => {
+    expect(interpolateRouteFromUrlAndParams(rawUrl, params)).toEqual(expectedRoute);
+  });
+
+  it.each([
+    ['/(a+)+/aaaaaaaaa!', { id: '(a+)+', slug: 'aaaaaaaaa!' }, '/[id]/[slug]'],
+    ['/([a-zA-Z]+)*/aaaaaaaaa!', { id: '([a-zA-Z]+)*', slug: 'aaaaaaaaa!' }, '/[id]/[slug]'],
+    ['/(a|aa)+/aaaaaaaaa!', { id: '(a|aa)+', slug: 'aaaaaaaaa!' }, '/[id]/[slug]'],
+    ['/(a|a?)+/aaaaaaaaa!', { id: '(a|a?)+', slug: 'aaaaaaaaa!' }, '/[id]/[slug]'],
+    // with URL encoding
+    ['/(a%7Caa)+/aaaaaaaaa!', { id: '(a|aa)+', slug: 'aaaaaaaaa!' }, '/[id]/[slug]'],
+    ['/(a%7Ca?)+/aaaaaaaaa!', { id: '(a|a?)+', slug: 'aaaaaaaaa!' }, '/[id]/[slug]'],
+  ])('handles regex characters in param values correctly %s', (rawUrl, params, expectedRoute) => {
     expect(interpolateRouteFromUrlAndParams(rawUrl, params)).toEqual(expectedRoute);
   });
 
@@ -322,6 +375,13 @@ describe('interpolateRouteFromUrlAndParams', () => {
     const rawUrl = '/usernames/username';
     const params = { name: 'username' };
     const expectedRoute = '/usernames/[name]';
+    expect(interpolateRouteFromUrlAndParams(rawUrl, params)).toEqual(expectedRoute);
+  });
+
+  it('handles set but undefined params', () => {
+    const rawUrl = '/usernames/user';
+    const params = { name: undefined, name2: '' };
+    const expectedRoute = '/usernames/user';
     expect(interpolateRouteFromUrlAndParams(rawUrl, params)).toEqual(expectedRoute);
   });
 });
