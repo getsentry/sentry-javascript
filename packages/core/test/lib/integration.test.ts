@@ -722,6 +722,7 @@ describe('makeIntegrationFn', () => {
 });
 
 describe('convertIntegrationFnToClass', () => {
+  /* eslint-disable deprecation/deprecation */
   it('works with a minimal integration', () => {
     const integrationFn = makeIntegrationFn('testName', () => ({}));
 
@@ -764,4 +765,5 @@ describe('convertIntegrationFnToClass', () => {
       preprocessEvent,
     });
   });
+  /* eslint-enable deprecation/deprecation */
 });

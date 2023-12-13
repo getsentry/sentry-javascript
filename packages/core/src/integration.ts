@@ -169,10 +169,10 @@ function findIndex<T>(arr: T[], callback: (item: T) => boolean): number {
  * Generate a full integration function from a simple function.
  * This will ensure to add the given name both to the function definition, as well as to the integration return value.
  */
-export function makeIntegrationFn<Fn extends (...rest: any[]) => Partial<IntegrationFnResult>>(
-  name: string,
-  fn: Fn,
-): ((...rest: Parameters<Fn>) => ReturnType<Fn> & { name: string }) & { id: string } {
+export function makeIntegrationFn<
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  Fn extends (...rest: any[]) => Partial<IntegrationFnResult>,
+>(name: string, fn: Fn): ((...rest: Parameters<Fn>) => ReturnType<Fn> & { name: string }) & { id: string } {
   const patchedFn = addIdToIntegrationFnResult(name, fn);
 
   return Object.assign(patchedFn, { id: name });
@@ -181,11 +181,15 @@ export function makeIntegrationFn<Fn extends (...rest: any[]) => Partial<Integra
 /**
  * Convert a new integration function to the legacy class syntax.
  * In v8, we can remove this and instead export the integration functions directly.
+ *
+ * @deprecated This will be removed in v8!
  */
-export function convertIntegrationFnToClass<Fn extends IntegrationFn<(...rest: any[]) => IntegrationFnResult>>(
-  fn: Fn,
-): IntegrationClass<Integration> {
+export function convertIntegrationFnToClass<
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  Fn extends IntegrationFn<(...rest: any[]) => IntegrationFnResult>,
+>(fn: Fn): IntegrationClass<Integration> {
   return Object.assign(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     function ConvertedIntegration(...rest: any[]) {
       const res = {
         // eslint-disable-next-line @typescript-eslint/no-empty-function
@@ -200,10 +204,10 @@ export function convertIntegrationFnToClass<Fn extends IntegrationFn<(...rest: a
   ) as unknown as IntegrationClass<Integration>;
 }
 
-function addIdToIntegrationFnResult<Fn extends (...rest: any[]) => Partial<IntegrationFnResult>>(
-  name: string,
-  fn: Fn,
-): (...rest: Parameters<Fn>) => ReturnType<Fn> & { name: string } {
+function addIdToIntegrationFnResult<
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  Fn extends (...rest: any[]) => Partial<IntegrationFnResult>,
+>(name: string, fn: Fn): (...rest: Parameters<Fn>) => ReturnType<Fn> & { name: string } {
   const patchedFn = (...rest: Parameters<Fn>): ReturnType<Fn> & { name: string } => {
     return { ...fn(...rest), name } as ReturnType<Fn> & { name: string };
   };
