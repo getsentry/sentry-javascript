@@ -4,6 +4,18 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.87.0
+
+- feat: Add top level `getCurrentScope()` method (#9800)
+- feat(replay): Bump `rrweb` to 2.5.0 (#9803)
+- feat(replay): Capture hydration error breadcrumb (#9759)
+- feat(types): Add profile envelope types (#9798)
+- fix(astro): Avoid RegExp creation during route interpolation (#9815)
+- fix(browser): Avoid importing from `./exports` (#9775)
+- fix(nextjs): Catch rejecting flushes (#9811)
+- fix(nextjs): Fix devserver CORS blockage when `assetPrefix` is defined (#9766)
+- fix(node): Capture errors in tRPC middleware (#9782)
+
 ## 7.86.0
 
 - feat(core): Use SDK_VERSION for hub API version (#9732)
