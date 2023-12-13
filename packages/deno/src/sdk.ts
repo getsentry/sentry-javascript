@@ -5,7 +5,7 @@ import type { StackParser } from '@sentry/types';
 import { createStackParser, nodeStackLineParser, stackParserFromStackParserOptions } from '@sentry/utils';
 
 import { DenoClient } from './client';
-import { ContextLines, DenoContext, DenoCron, GlobalHandlers, NormalizePaths } from './integrations';
+import { ContextLines, DenoContext, GlobalHandlers, NormalizePaths } from './integrations';
 import { makeFetchTransport } from './transports';
 import type { DenoOptions } from './types';
 

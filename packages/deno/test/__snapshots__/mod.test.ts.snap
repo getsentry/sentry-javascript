@@ -147,7 +147,6 @@ snapshot[`captureException 1`] = `
       "ContextLines",
       "NormalizePaths",
       "GlobalHandlers",
-      "DenoCron",
     ],
     name: "sentry.javascript.deno",
     packages: [
@@ -208,7 +207,6 @@ snapshot[`captureMessage 1`] = `
       "ContextLines",
       "NormalizePaths",
       "GlobalHandlers",
-      "DenoCron",
     ],
     name: "sentry.javascript.deno",
     packages: [
