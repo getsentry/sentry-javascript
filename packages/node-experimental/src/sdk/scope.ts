@@ -3,8 +3,60 @@ import { OpenTelemetryScope } from '@sentry/opentelemetry';
 import type { Breadcrumb, Client, Event, EventHint, EventProcessor, Severity, SeverityLevel } from '@sentry/types';
 import { uuid4 } from '@sentry/utils';
 
-import { getClient, getGlobalScope, getIsolationScope } from './api';
-import type { Scope as ScopeInterface, ScopeData } from './types';
+import { getGlobalCarrier } from './globals';
+import type { CurrentScopes, Scope as ScopeInterface, ScopeData, SentryCarrier } from './types';
+
+/** Get the current scope. */
+export function getCurrentScope(): Scope {
+  return getScopes().scope as Scope;
+}
+
+/**
+ * Set the current scope on the execution context.
+ * This should mostly only be called in Sentry.init()
+ */
+export function setCurrentScope(scope: Scope): void {
+  getScopes().scope = scope;
+}
+
+/** Get the global scope. */
+export function getGlobalScope(): Scope {
+  const carrier = getGlobalCarrier();
+
+  if (!carrier.globalScope) {
+    carrier.globalScope = new Scope();
+  }
+
+  return carrier.globalScope as Scope;
+}
+
+/** Get the currently active isolation scope. */
+export function getIsolationScope(): Scope {
+  return getScopes().isolationScope as Scope;
+}
+
+/**
+ * Set the currently active isolation scope.
+ * Use this with caution! As it updates the isolation scope for the current execution context.
+ */
+export function setIsolationScope(isolationScope: Scope): void {
+  getScopes().isolationScope = isolationScope;
+}
+
+/** Get the currently active client. */
+export function getClient<C extends Client>(): C {
+  const currentScope = getCurrentScope();
+  const isolationScope = getIsolationScope();
+  const globalScope = getGlobalScope();
+
+  const client = currentScope.getClient() || isolationScope.getClient() || globalScope.getClient();
+  if (client) {
+    return client as C;
+  }
+
+  // TODO otherwise ensure we use a noop client
+  return {} as C;
+}
 
 /** A fork of the classic scope with some otel specific stuff. */
 export class Scope extends OpenTelemetryScope implements ScopeInterface {
@@ -292,4 +344,29 @@ function mergeArray<Prop extends 'breadcrumbs' | 'fingerprint'>(
 
   const merged = [...(prevVal || []), ...mergeVal] as ScopeData[Prop];
   event[prop] = merged.length ? merged : undefined;
+}
+
+function getScopes(): CurrentScopes {
+  const carrier = getGlobalCarrier();
+
+  if (carrier.acs && carrier.acs.getScopes) {
+    const scopes = carrier.acs.getScopes();
+
+    if (scopes) {
+      return scopes;
+    }
+  }
+
+  return getGlobalCurrentScopes(carrier);
+}
+
+function getGlobalCurrentScopes(carrier: SentryCarrier): CurrentScopes {
+  if (!carrier.scopes) {
+    carrier.scopes = {
+      scope: new Scope(),
+      isolationScope: new Scope(),
+    };
+  }
+
+  return carrier.scopes;
 }
