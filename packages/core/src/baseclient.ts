@@ -34,6 +34,8 @@ import {
   addItemToEnvelope,
   checkOrSetAlreadyCaught,
   createAttachmentEnvelopeItem,
+  createEventEnvelope,
+  createSessionEnvelope,
   isPlainObject,
   isPrimitive,
   isThenable,
@@ -45,7 +47,6 @@ import {
 
 import { getEnvelopeEndpointWithUrlEncodedAuth } from './api';
 import { DEBUG_BUILD } from './debug-build';
-import { createEventEnvelope, createSessionEnvelope } from './envelope';
 import { getCurrentHub } from './hub';
 import type { IntegrationIndex } from './integration';
 import { setupIntegration, setupIntegrations } from './integration';

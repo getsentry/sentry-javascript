@@ -1,5 +1,6 @@
-import { createEventEnvelope, getCurrentHub } from '@sentry/core';
+import { getCurrentHub } from '@sentry/core';
 import type { FeedbackEvent, TransportMakeRequestResponse } from '@sentry/types';
+import { createEventEnvelope } from '@sentry/utils';
 
 import { FEEDBACK_API_SOURCE, FEEDBACK_WIDGET_SOURCE } from '../constants';
 import type { SendFeedbackData, SendFeedbackOptions } from '../types';
