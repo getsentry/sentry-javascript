@@ -41,6 +41,7 @@ export {
   getHubFromCarrier,
   getCurrentHub,
   getClient,
+  getCurrentScope,
   Hub,
   lastEventId,
   makeMain,
