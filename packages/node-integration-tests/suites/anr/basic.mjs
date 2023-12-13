@@ -2,8 +2,6 @@ import * as crypto from 'crypto';
 
 import * as Sentry from '@sentry/node';
 
-const { transport } = await import('./test-transport.js');
-
 setTimeout(() => {
   process.exit();
 }, 10000);
@@ -13,10 +11,8 @@ Sentry.init({
   release: '1.0',
   debug: true,
   autoSessionTracking: false,
-  transport,
+  integrations: [new Sentry.Integrations.Anr({ captureStackTrace: true, anrThreshold: 200 })],
 });
-
-await Sentry.enableAnrDetection({ captureStackTrace: true, anrThreshold: 200 });
 
 function longWork() {
   for (let i = 0; i < 100; i++) {

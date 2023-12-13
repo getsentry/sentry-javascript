@@ -67,16 +67,6 @@ interface CallFrame {
   url: string;
 }
 
-interface ScriptParsedEventDataType {
-  scriptId: string;
-  url: string;
-}
-
-interface PausedEventDataType {
-  callFrames: CallFrame[];
-  reason: string;
-}
-
 /**
  * Converts Debugger.CallFrame to Sentry StackFrame
  */

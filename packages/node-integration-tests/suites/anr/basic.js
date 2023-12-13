@@ -2,8 +2,6 @@ const crypto = require('crypto');
 
 const Sentry = require('@sentry/node');
 
-const { transport } = require('./test-transport.js');
-
 setTimeout(() => {
   process.exit();
 }, 10000);
@@ -13,19 +11,17 @@ Sentry.init({
   release: '1.0',
   debug: true,
   autoSessionTracking: false,
-  transport,
+  integrations: [new Sentry.Integrations.Anr({ captureStackTrace: true, anrThreshold: 200 })],
 });
 
-Sentry.enableAnrDetection({ captureStackTrace: true, anrThreshold: 200 }).then(() => {
-  function longWork() {
-    for (let i = 0; i < 100; i++) {
-      const salt = crypto.randomBytes(128).toString('base64');
-      // eslint-disable-next-line no-unused-vars
-      const hash = crypto.pbkdf2Sync('myPassword', salt, 10000, 512, 'sha512');
-    }
+function longWork() {
+  for (let i = 0; i < 100; i++) {
+    const salt = crypto.randomBytes(128).toString('base64');
+    // eslint-disable-next-line no-unused-vars
+    const hash = crypto.pbkdf2Sync('myPassword', salt, 10000, 512, 'sha512');
   }
+}
 
-  setTimeout(() => {
-    longWork();
-  }, 1000);
-});
+setTimeout(() => {
+  longWork();
+}, 1000);
