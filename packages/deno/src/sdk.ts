@@ -26,7 +26,6 @@ export const defaultIntegrations = [
   new ContextLines(),
   new NormalizePaths(),
   new GlobalHandlers(),
-  new DenoCron(),
 ];
 
 const defaultStackParser: StackParser = createStackParser(nodeStackLineParser());
