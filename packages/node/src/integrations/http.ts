@@ -1,14 +1,7 @@
 import type * as http from 'http';
 import type * as https from 'https';
-import type { Hub } from '@sentry/core';
 import { getCurrentHub, getDynamicSamplingContextFromClient, isSentryRequestUrl } from '@sentry/core';
-import type {
-  DynamicSamplingContext,
-  EventProcessor,
-  Integration,
-  SanitizedRequestData,
-  TracePropagationTargets,
-} from '@sentry/types';
+import type { DynamicSamplingContext, Integration, SanitizedRequestData, TracePropagationTargets } from '@sentry/types';
 import {
   LRUMap,
   dynamicSamplingContextToSentryBaggageHeader,
@@ -91,19 +84,19 @@ export class Http implements Integration {
     this._tracing = !options.tracing ? undefined : options.tracing === true ? {} : options.tracing;
   }
 
-  /**
-   * @inheritDoc
-   */
-  public setupOnce(
-    _addGlobalEventProcessor: (callback: EventProcessor) => void,
-    setupOnceGetCurrentHub: () => Hub,
-  ): void {
+  /** @inheritdoc */
+  public setupOnce(): void {
+    //
+  }
+
+  /** @inheritdoc */
+  public setup(client: NodeClient): void {
     // No need to instrument if we don't want to track anything
     if (!this._breadcrumbs && !this._tracing) {
       return;
     }
 
-    const clientOptions = setupOnceGetCurrentHub().getClient<NodeClient>()?.getOptions();
+    const clientOptions = client.getOptions();
 
     // Do not auto-instrument for other instrumenter
     if (clientOptions && clientOptions.instrumenter !== 'sentry') {

@@ -11,7 +11,6 @@ import type {
   CultureContext,
   DeviceContext,
   Event,
-  EventProcessor,
   Integration,
   OsContext,
 } from '@sentry/types';
@@ -63,12 +62,14 @@ export class Context implements Integration {
   /**
    * @inheritDoc
    */
-  public setupOnce(addGlobalEventProcessor: (callback: EventProcessor) => void): void {
-    addGlobalEventProcessor(event => this.addContext(event));
+  public setupOnce(): void {
+    //
   }
 
-  /** Processes an event and adds context */
-  public async addContext(event: Event): Promise<Event> {
+  /**
+   * @inheritDoc
+   */
+  public async processEvent(event: Event): Promise<Event | null> {
     if (this._cachedContext === undefined) {
       this._cachedContext = this._getContexts();
     }

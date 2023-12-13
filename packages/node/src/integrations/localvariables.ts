@@ -1,10 +1,10 @@
 /* eslint-disable max-lines */
-import type { Event, EventProcessor, Exception, Hub, Integration, StackFrame, StackParser } from '@sentry/types';
+import type { Event, Exception, Integration, StackFrame, StackParser } from '@sentry/types';
 import { LRUMap, logger } from '@sentry/utils';
 import type { Debugger, InspectorNotification, Runtime, Session } from 'inspector';
+import type { NodeClient } from '../client';
 
 import { NODE_VERSION } from '../nodeVersion';
-import type { NodeClientOptions } from '../types';
 
 type Variables = Record<string, unknown>;
 type OnPauseEvent = InspectorNotification<Debugger.PausedEventDataType>;
@@ -341,53 +341,56 @@ export class LocalVariables implements Integration {
   /**
    * @inheritDoc
    */
-  public setupOnce(addGlobalEventProcessor: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
-    this._setup(addGlobalEventProcessor, getCurrentHub().getClient()?.getOptions());
+  public setupOnce(): void {
+    //
   }
 
-  /** Setup in a way that's easier to call from tests */
-  private _setup(
-    addGlobalEventProcessor: (callback: EventProcessor) => void,
-    clientOptions: NodeClientOptions | undefined,
-  ): void {
-    if (this._session && clientOptions?.includeLocalVariables) {
-      // Only setup this integration if the Node version is >= v18
-      // https://github.com/getsentry/sentry-javascript/issues/7697
-      const unsupportedNodeVersion = (NODE_VERSION.major || 0) < 18;
-
-      if (unsupportedNodeVersion) {
-        logger.log('The `LocalVariables` integration is only supported on Node >= v18.');
-        return;
-      }
-
-      const captureAll = this._options.captureAllExceptions !== false;
-
-      this._session.configureAndConnect(
-        (ev, complete) =>
-          this._handlePaused(clientOptions.stackParser, ev as InspectorNotification<PausedExceptionEvent>, complete),
-        captureAll,
-      );
-
-      if (captureAll) {
-        const max = this._options.maxExceptionsPerSecond || 50;
-
-        this._rateLimiter = createRateLimiter(
-          max,
-          () => {
-            logger.log('Local variables rate-limit lifted.');
-            this._session?.setPauseOnExceptions(true);
-          },
-          seconds => {
-            logger.log(
-              `Local variables rate-limit exceeded. Disabling capturing of caught exceptions for ${seconds} seconds.`,
-            );
-            this._session?.setPauseOnExceptions(false);
-          },
-        );
-      }
-
-      addGlobalEventProcessor(async event => this._addLocalVariables(event));
+  /** @inheritdoc */
+  public setup(client: NodeClient): void {
+    const clientOptions = client.getOptions();
+    if (!this._session || !clientOptions?.includeLocalVariables) {
+      return;
     }
+
+    // Only setup this integration if the Node version is >= v18
+    // https://github.com/getsentry/sentry-javascript/issues/7697
+    const unsupportedNodeVersion = (NODE_VERSION.major || 0) < 18;
+
+    if (unsupportedNodeVersion) {
+      logger.log('The `LocalVariables` integration is only supported on Node >= v18.');
+      return;
+    }
+
+    const captureAll = this._options.captureAllExceptions !== false;
+
+    this._session.configureAndConnect(
+      (ev, complete) =>
+        this._handlePaused(clientOptions.stackParser, ev as InspectorNotification<PausedExceptionEvent>, complete),
+      captureAll,
+    );
+
+    if (captureAll) {
+      const max = this._options.maxExceptionsPerSecond || 50;
+
+      this._rateLimiter = createRateLimiter(
+        max,
+        () => {
+          logger.log('Local variables rate-limit lifted.');
+          this._session?.setPauseOnExceptions(true);
+        },
+        seconds => {
+          logger.log(
+            `Local variables rate-limit exceeded. Disabling capturing of caught exceptions for ${seconds} seconds.`,
+          );
+          this._session?.setPauseOnExceptions(false);
+        },
+      );
+    }
+  }
+
+  /** @inheritdoc */
+  public processEvent(event: Event): Event | null {
+    return this._addLocalVariables(event);
   }
 
   /**
