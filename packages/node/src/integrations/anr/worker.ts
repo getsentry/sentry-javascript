@@ -40,6 +40,12 @@ async function sendAbnormalSession(): Promise<void> {
   if (session) {
     log('Sending abnormal session');
     updateSession(session, { status: 'abnormal', abnormal_mechanism: 'anr_foreground' });
+
+    if (options.debug) {
+      // eslint-disable-next-line no-console
+      console.log(JSON.stringify(session));
+    }
+
     const envelope = createSessionEnvelope(session, options.dsn, options.sdkMetadata);
     await getTransport().send(envelope);
 

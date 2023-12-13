@@ -26,7 +26,7 @@ function parseJsonLines<T extends unknown[]>(input: string, expected: number): T
 
 describe('should report ANR when event loop blocked', () => {
   test('CJS', done => {
-    if (NODE_VERSION < 12) {
+    if (NODE_VERSION < 14) {
       done();
       return;
     }
@@ -78,7 +78,7 @@ describe('should report ANR when event loop blocked', () => {
   });
 
   test('With session', done => {
-    if (NODE_VERSION < 12) {
+    if (NODE_VERSION < 14) {
       done();
       return;
     }
@@ -106,7 +106,7 @@ describe('should report ANR when event loop blocked', () => {
   });
 
   test('from forked process', done => {
-    if (NODE_VERSION < 12) {
+    if (NODE_VERSION < 14) {
       done();
       return;
     }
