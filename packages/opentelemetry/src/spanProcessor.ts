@@ -36,7 +36,7 @@ function onSpanStart(span: Span, parentContext: Context, ScopeClass: typeof Open
     setSpanHub(span, actualHub);
 
     // Use this scope for finishing the span
-    const finishScope = ScopeClass.clone(scope as OpenTelemetryScope) as OpenTelemetryScope;
+    const finishScope = (scope as OpenTelemetryScope).clone();
     finishScope.activeSpan = span;
     setSpanFinishScope(span, finishScope);
   }
