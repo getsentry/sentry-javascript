@@ -10,6 +10,7 @@ import {
 
 import type { EdgeRouteHandler } from '../../edge/types';
 import { DEBUG_BUILD } from '../debug-build';
+import { flushQueue } from './responseEnd';
 
 /**
  * Wraps a function on the edge runtime with error and performance monitoring.
@@ -97,7 +98,7 @@ export function withEdgeWrapping<H extends EdgeRouteHandler>(
     } finally {
       span?.finish();
       currentScope?.setSpan(prevSpan);
-      await flush(2000);
+      await flushQueue();
     }
   };
 }
