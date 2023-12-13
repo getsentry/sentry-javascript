@@ -84,8 +84,8 @@ export class Anr implements Integration {
 
   /** @inheritdoc */
   public setup(client: NodeClient): void {
-    if ((NODE_VERSION.major || 0) < 14 || ((NODE_VERSION.major || 0) === 14 && (NODE_VERSION.minor || 0) < 7)) {
-      throw new Error('ANR detection requires Node 14.7.0 or later');
+    if ((NODE_VERSION.major || 0) < 16) {
+      throw new Error('ANR detection requires Node 16 or later');
     }
 
     // setImmediate is used to ensure that all other integrations have been setup
