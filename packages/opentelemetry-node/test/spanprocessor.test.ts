@@ -5,15 +5,7 @@ import type { Span as OtelSpan } from '@opentelemetry/sdk-trace-base';
 import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
 import { SemanticAttributes, SemanticResourceAttributes } from '@opentelemetry/semantic-conventions';
 import type { SpanStatusType } from '@sentry/core';
-import {
-  Hub,
-  Scope,
-  Span as SentrySpan,
-  Transaction,
-  addTracingExtensions,
-  createTransport,
-  makeMain,
-} from '@sentry/core';
+import { Hub, Span as SentrySpan, Transaction, addTracingExtensions, createTransport, makeMain } from '@sentry/core';
 import { NodeClient } from '@sentry/node';
 import { resolvedSyncPromise } from '@sentry/utils';
 
@@ -973,7 +965,7 @@ describe('SentrySpanProcessor', () => {
     hub = new Hub(client);
     makeMain(hub);
 
-    const newHub = new Hub(client, Scope.clone(hub.getScope()));
+    const newHub = new Hub(client, hub.getScope().clone());
     newHub.configureScope(scope => {
       scope.setTag('foo', 'bar');
     });

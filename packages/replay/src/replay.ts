@@ -1,7 +1,7 @@
 /* eslint-disable max-lines */ // TODO: We might want to split this file up
 import { EventType, record } from '@sentry-internal/rrweb';
 import { captureException, getClient, getCurrentHub } from '@sentry/core';
-import type { ReplayRecordingMode, Transaction } from '@sentry/types';
+import type { Event as SentryEvent, ReplayRecordingMode, Transaction } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
 import {
@@ -331,6 +331,7 @@ export class ReplayContainer implements ReplayContainerInterface {
    */
   public startRecording(): void {
     try {
+      const canvas = this._options._experiments.canvas;
       this._stopRecording = record({
         ...this._recordingOptions,
         // When running in error sampling mode, we need to overwrite `checkoutEveryNms`
@@ -339,6 +340,12 @@ export class ReplayContainer implements ReplayContainerInterface {
         ...(this.recordingMode === 'buffer' && { checkoutEveryNms: BUFFER_CHECKOUT_TIME }),
         emit: getHandleRecordingEmit(this),
         onMutation: this._onMutationHandler,
+        ...(canvas && {
+          recordCanvas: true,
+          sampling: { canvas: canvas.fps || 4 },
+          dataURLOptions: { quality: canvas.quality || 0.6 },
+          getCanvasManager: canvas.manager,
+        }),
       });
     } catch (err) {
       this._handleException(err);

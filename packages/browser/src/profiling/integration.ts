@@ -1,4 +1,4 @@
-import type { EventProcessor, Hub, Integration, Transaction } from '@sentry/types';
+import type { EventEnvelope, EventProcessor, Hub, Integration, Transaction } from '@sentry/types';
 import type { Profile } from '@sentry/types/src/profiling';
 import { logger } from '@sentry/utils';
 
@@ -110,7 +110,7 @@ export class BrowserProfilingIntegration implements Integration {
           }
         }
 
-        addProfilesToEnvelope(envelope, profilesToAddToEnvelope);
+        addProfilesToEnvelope(envelope as EventEnvelope, profilesToAddToEnvelope);
       });
     } else {
       logger.warn('[Profiling] Client does not support hooks, profiling will be disabled');

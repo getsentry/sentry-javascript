@@ -308,3 +308,10 @@ export function lastEventId(): string | undefined {
 export function getClient<C extends Client>(): C | undefined {
   return getCurrentHub().getClient<C>();
 }
+
+/**
+ * Get the currently active scope.
+ */
+export function getCurrentScope(): Scope {
+  return getCurrentHub().getScope();
+}

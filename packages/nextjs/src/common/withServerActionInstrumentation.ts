@@ -3,6 +3,7 @@ import { logger, tracingContextFromHeaders } from '@sentry/utils';
 
 import { DEBUG_BUILD } from './debug-build';
 import { platformSupportsStreaming } from './utils/platformSupportsStreaming';
+import { flushQueue } from './utils/responseEnd';
 
 interface Options {
   formData?: FormData;
@@ -118,11 +119,11 @@ async function withServerActionInstrumentationImplementation<A extends (...args:
     } finally {
       if (!platformSupportsStreaming()) {
         // Lambdas require manual flushing to prevent execution freeze before the event is sent
-        await flush(1000);
+        await flushQueue();
       }
 
       if (process.env.NEXT_RUNTIME === 'edge') {
-        void flush();
+        void flushQueue();
       }
     }
 

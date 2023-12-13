@@ -112,8 +112,8 @@ function maybeSend(spans: ReadableSpan[]): ReadableSpan[] {
 
     // Now finish the transaction, which will send it together with all the spans
     // We make sure to use the current span as the activeSpan for this transaction
-    const scope = getSpanScope(span);
-    const forkedScope = OpenTelemetryScope.clone(scope as OpenTelemetryScope | undefined) as OpenTelemetryScope;
+    const scope = getSpanScope(span) as OpenTelemetryScope | undefined;
+    const forkedScope = scope ? scope.clone() : new OpenTelemetryScope();
     forkedScope.activeSpan = span as unknown as Span;
 
     transaction.finishWithScope(convertOtelTimeToSeconds(span.endTime), forkedScope);
