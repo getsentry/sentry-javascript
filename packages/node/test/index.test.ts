@@ -165,24 +165,24 @@ describe('SentryNode', () => {
       }
     });
 
-    test('capture an exception with pre/post context', done => {
-      expect.assertions(10);
+    test('capture an exception with pre/post context', async () => {
+      const beforeSend = jest.fn((event: Event) => {
+        expect(event.tags).toEqual({ test: '1' });
+        expect(event.exception).not.toBeUndefined();
+        expect(event.exception!.values![0]).not.toBeUndefined();
+        expect(event.exception!.values![0].stacktrace!).not.toBeUndefined();
+        expect(event.exception!.values![0].stacktrace!.frames![1]).not.toBeUndefined();
+        expect(event.exception!.values![0].stacktrace!.frames![1].pre_context).not.toBeUndefined();
+        expect(event.exception!.values![0].stacktrace!.frames![1].post_context).not.toBeUndefined();
+        expect(event.exception!.values![0].type).toBe('Error');
+        expect(event.exception!.values![0].value).toBe('test');
+        expect(event.exception!.values![0].stacktrace).toBeTruthy();
+        return null;
+      });
+
       const options = getDefaultNodeClientOptions({
         stackParser: defaultStackParser,
-        beforeSend: (event: Event) => {
-          expect(event.tags).toEqual({ test: '1' });
-          expect(event.exception).not.toBeUndefined();
-          expect(event.exception!.values![0]).not.toBeUndefined();
-          expect(event.exception!.values![0].stacktrace!).not.toBeUndefined();
-          expect(event.exception!.values![0].stacktrace!.frames![1]).not.toBeUndefined();
-          expect(event.exception!.values![0].stacktrace!.frames![1].pre_context).not.toBeUndefined();
-          expect(event.exception!.values![0].stacktrace!.frames![1].post_context).not.toBeUndefined();
-          expect(event.exception!.values![0].type).toBe('Error');
-          expect(event.exception!.values![0].value).toBe('test');
-          expect(event.exception!.values![0].stacktrace).toBeTruthy();
-          done();
-          return null;
-        },
+        beforeSend,
         dsn,
         integrations: [new ContextLines()],
       });
@@ -195,7 +195,9 @@ describe('SentryNode', () => {
         captureException(e);
       }
 
-     void client.flush();
+      await client.flush();
+
+      expect(beforeSend).toHaveBeenCalledTimes(1);
     });
 
     test('capture a linked exception with pre/post context', done => {
