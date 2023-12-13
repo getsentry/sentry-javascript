@@ -1,6 +1,15 @@
 import { notifyEventProcessors } from '@sentry/core';
 import { OpenTelemetryScope } from '@sentry/opentelemetry';
-import type { Breadcrumb, Client, Event, EventHint, EventProcessor, Severity, SeverityLevel } from '@sentry/types';
+import type {
+  Attachment,
+  Breadcrumb,
+  Client,
+  Event,
+  EventHint,
+  EventProcessor,
+  Severity,
+  SeverityLevel,
+} from '@sentry/types';
 import { uuid4 } from '@sentry/utils';
 
 import { getGlobalCarrier } from './globals';
@@ -103,6 +112,19 @@ export class Scope extends OpenTelemetryScope implements ScopeInterface {
    */
   public getClient(): Client | undefined {
     return this._client;
+  }
+
+  /** @inheritdoc */
+  public getAttachments(): Attachment[] {
+    const data = getGlobalScope().getScopeData();
+    const isolationScopeData = this._getIsolationScope().getScopeData();
+    const scopeData = this.getScopeData();
+
+    // Merge data together, in order
+    mergeData(data, isolationScopeData);
+    mergeData(data, scopeData);
+
+    return data.attachments;
   }
 
   /** Capture an exception for this scope. */
@@ -232,11 +254,11 @@ export class Scope extends OpenTelemetryScope implements ScopeInterface {
     const { extra, tags, user, contexts, level, sdkProcessingMetadata, breadcrumbs, fingerprint, eventProcessors } =
       data;
 
-    mergeProp(event, 'extra', extra);
-    mergeProp(event, 'tags', tags);
-    mergeProp(event, 'user', user);
-    mergeProp(event, 'contexts', contexts);
-    mergeProp(event, 'sdkProcessingMetadata', sdkProcessingMetadata);
+    mergePropKeep(event, 'extra', extra);
+    mergePropKeep(event, 'tags', tags);
+    mergePropKeep(event, 'user', user);
+    mergePropKeep(event, 'contexts', contexts);
+    mergePropKeep(event, 'sdkProcessingMetadata', sdkProcessingMetadata);
     event.sdkProcessingMetadata = {
       ...event.sdkProcessingMetadata,
       propagationContext: this._propagationContext,
@@ -267,29 +289,26 @@ export class Scope extends OpenTelemetryScope implements ScopeInterface {
     return this._breadcrumbs;
   }
 
-  /**
-   * @inheritDoc
-   */
-  protected _getBreadcrumbs(): Breadcrumb[] {
-    // breadcrumbs added directly to this scope, or to the active span
-    const breadcrumbs = super._getBreadcrumbs();
-
-    // add breadcrumbs from global scope and isolation scope
-    const globalBreadcrumbs = getGlobalScope().getBreadcrumbs();
-    const isolationBreadcrumbs = this._getIsolationScope().getBreadcrumbs();
-
-    return breadcrumbs.concat(globalBreadcrumbs, isolationBreadcrumbs);
-  }
-
   /** Get the isolation scope for this scope. */
   protected _getIsolationScope(): Scope {
     return this.isolationScope || getIsolationScope();
   }
 }
 
-function mergeData(data: ScopeData, mergeData: ScopeData): void {
-  const { extra, tags, user, contexts, level, sdkProcessingMetadata, breadcrumbs, fingerprint, eventProcessors } =
-    mergeData;
+/** Exported only for tests */
+export function mergeData(data: ScopeData, mergeData: ScopeData): void {
+  const {
+    extra,
+    tags,
+    user,
+    contexts,
+    level,
+    sdkProcessingMetadata,
+    breadcrumbs,
+    fingerprint,
+    eventProcessors,
+    attachments,
+  } = mergeData;
 
   mergePropOverwrite(data, 'extra', extra);
   mergePropOverwrite(data, 'tags', tags);
@@ -312,9 +331,17 @@ function mergeData(data: ScopeData, mergeData: ScopeData): void {
   if (eventProcessors.length) {
     data.eventProcessors = [...data.eventProcessors, ...eventProcessors];
   }
+
+  if (attachments.length) {
+    data.attachments = [...data.attachments, ...attachments];
+  }
 }
 
-function mergePropOverwrite<
+/**
+ * Merge properties, overwriting existing keys.
+ * Exported only for tests.
+ */
+export function mergePropOverwrite<
   Prop extends 'extra' | 'tags' | 'user' | 'contexts' | 'sdkProcessingMetadata',
   Data extends ScopeData | Event,
 >(data: Data, prop: Prop, mergeVal: Data[Prop]): void {
@@ -323,7 +350,11 @@ function mergePropOverwrite<
   }
 }
 
-function mergeProp<
+/**
+ * Merge properties, keeping existing keys.
+ * Exported only for tests.
+ */
+export function mergePropKeep<
   Prop extends 'extra' | 'tags' | 'user' | 'contexts' | 'sdkProcessingMetadata',
   Data extends ScopeData | Event,
 >(data: Data, prop: Prop, mergeVal: Data[Prop]): void {
@@ -332,13 +363,16 @@ function mergeProp<
   }
 }
 
-function mergeArray<Prop extends 'breadcrumbs' | 'fingerprint'>(
+/** Exported only for tests */
+export function mergeArray<Prop extends 'breadcrumbs' | 'fingerprint'>(
   event: Event,
   prop: Prop,
   mergeVal: ScopeData[Prop],
 ): void {
   const prevVal = event[prop];
-  if (!prevVal && !mergeVal.length) {
+  // If we are not merging any new values,
+  // we only need to proceed if there was an empty array before (as we want to replace it with undefined)
+  if (!mergeVal.length && (!prevVal || prevVal.length)) {
     return;
   }
 
