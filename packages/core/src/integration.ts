@@ -1,4 +1,4 @@
-import type { Client, Event, EventHint, Integration, Options } from '@sentry/types';
+import type { Client, Event, EventHint, Integration, IntegrationFn, IntegrationFnResult, Options } from '@sentry/types';
 import { arrayify, logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from './debug-build';
@@ -154,4 +154,28 @@ function findIndex<T>(arr: T[], callback: (item: T) => boolean): number {
   }
 
   return -1;
+}
+
+/**
+ * Generate a full integration function from a simple function.
+ * This will ensure to add the given name both to the function definition, as well as to the integration return value.
+ */
+export function makeIntegrationFn<
+  Fn extends (...rest: any[]) => Partial<IntegrationFnResult>,
+>(name: string, fn: Fn): ((...rest: Parameters<Fn>) => ReturnType<Fn> & { name: string }) & { id: string } {
+  const patchedFn = addIdToIntegrationFnResult(name, fn);
+
+
+  return Object.assign(patchedFn, { id: name });
+}
+
+function addIdToIntegrationFnResult<Fn extends (...rest: any[]) => Partial<IntegrationFnResult>>(
+  name: string,
+  fn: Fn,
+): (...rest: Parameters<Fn>) => ReturnType<Fn> & { name: string } {
+  const patchedFn = ((...rest: Parameters<Fn>): ReturnType<Fn> & { name: string } => {
+    return { ...fn(...rest), name } as ReturnType<Fn> & { name: string };
+  });
+
+  return patchedFn;
 }

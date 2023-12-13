@@ -2,7 +2,13 @@ import type { Integration, Options } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
 import { Hub, makeMain } from '../../src/hub';
-import { addIntegration, getIntegrationsToSetup, installedIntegrations, setupIntegration } from '../../src/integration';
+import {
+  addIntegration,
+  getIntegrationsToSetup,
+  installedIntegrations,
+  makeIntegrationFn,
+  setupIntegration,
+} from '../../src/integration';
 import { TestClient, getDefaultTestClientOptions } from '../mocks/client';
 
 function getTestClient(): TestClient {
@@ -645,5 +651,71 @@ describe('addIntegration', () => {
     expect(integration.setupOnce).not.toHaveBeenCalled();
     expect(warnings).toHaveBeenCalledTimes(1);
     expect(warnings).toHaveBeenCalledWith('Cannot add integration "test" because no SDK Client is available.');
+  });
+});
+
+describe('makeIntegrationFn', () => {
+  it('works with a minimal integration', () => {
+    const myIntegration = makeIntegrationFn('testName', () => {
+      return {};
+    });
+
+    expect(myIntegration.id).toBe('testName');
+
+    const integration = myIntegration();
+    expect(integration).toEqual({
+      name: 'testName',
+    });
+
+    // @ts-expect-error This SHOULD error
+    myIntegration({});
+  });
+
+  it('works with integration options', () => {
+    const myIntegration = makeIntegrationFn('testName', (_options: { xxx: string }) => {
+      return {};
+    });
+
+    expect(myIntegration.id).toBe('testName');
+
+    const integration = myIntegration({ xxx: 'aa' });
+    expect(integration).toEqual({
+      name: 'testName',
+    });
+
+    // @ts-expect-error This SHOULD error
+    myIntegration();
+    // @ts-expect-error This SHOULD error
+    myIntegration({});
+  });
+
+  it('works with integration hooks', () => {
+    const setup = jest.fn();
+    const setupOnce = jest.fn();
+    const processEvent = jest.fn();
+    const preprocessEvent = jest.fn();
+
+    const myIntegration = makeIntegrationFn('testName', () => {
+      return {
+        setup,
+        setupOnce,
+        processEvent,
+        preprocessEvent,
+      };
+    });
+
+    expect(myIntegration.id).toBe('testName');
+
+    const integration = myIntegration();
+    expect(integration).toEqual({
+      name: 'testName',
+      setup,
+      setupOnce,
+      processEvent,
+      preprocessEvent,
+    });
+
+    // @ts-expect-error This SHOULD error
+    makeIntegrationFn('testName', () => ({ other: 'aha' }));
   });
 });
