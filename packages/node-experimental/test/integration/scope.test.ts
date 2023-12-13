@@ -2,7 +2,7 @@ import { getCurrentHub, getSpanScope } from '@sentry/opentelemetry';
 
 import * as Sentry from '../../src/';
 import type { NodeExperimentalClient } from '../../src/types';
-import { cleanupOtel, mockSdkInit } from '../helpers/mockSdkInit';
+import { cleanupOtel, mockSdkInit, resetGlobals } from '../helpers/mockSdkInit';
 
 describe('Integration | Scope', () => {
   afterEach(() => {
@@ -225,6 +225,459 @@ describe('Integration | Scope', () => {
       if (enableTracing) {
         expect(beforeSendTransaction).toHaveBeenCalledTimes(2);
       }
+    });
+  });
+
+  describe('global scope', () => {
+    beforeEach(() => {
+      resetGlobals();
+    });
+
+    it('works before calling init', () => {
+      const globalScope = Sentry.getGlobalScope();
+      expect(globalScope).toBeDefined();
+      expect(globalScope).toBeInstanceOf(Sentry.Scope);
+      // No client attached
+      expect(globalScope.getClient()).toBeUndefined();
+      // Repeatedly returns the same instance
+      expect(Sentry.getGlobalScope()).toBe(globalScope);
+
+      globalScope.setTag('tag1', 'val1');
+      globalScope.setTag('tag2', 'val2');
+
+      expect(globalScope.getScopeData().tags).toEqual({ tag1: 'val1', tag2: 'val2' });
+
+      // Now when we call init, the global scope remains intact
+      Sentry.init({ dsn: 'https://username@domain/123', defaultIntegrations: false });
+
+      expect(globalScope.getClient()).toBeDefined();
+      expect(Sentry.getGlobalScope()).toBe(globalScope);
+      expect(globalScope.getScopeData().tags).toEqual({ tag1: 'val1', tag2: 'val2' });
+    });
+
+    it('is applied to events', async () => {
+      const beforeSend = jest.fn();
+      mockSdkInit({ beforeSend });
+      const client = Sentry.getClient();
+
+      const globalScope = Sentry.getGlobalScope();
+      globalScope.setTag('tag1', 'val1');
+      globalScope.setTag('tag2', 'val2');
+
+      const error = new Error('test error');
+      Sentry.captureException(error);
+
+      await client.flush();
+
+      expect(beforeSend).toHaveBeenCalledTimes(1);
+      expect(beforeSend).toHaveBeenCalledWith(
+        expect.objectContaining({
+          tags: {
+            tag1: 'val1',
+            tag2: 'val2',
+          },
+        }),
+        {
+          event_id: expect.any(String),
+          originalException: error,
+          syntheticException: expect.any(Error),
+        },
+      );
+    });
+  });
+
+  describe('isolation scope', () => {
+    beforeEach(() => {
+      resetGlobals();
+    });
+
+    it('works before calling init', () => {
+      const isolationScope = Sentry.getIsolationScope();
+      expect(isolationScope).toBeDefined();
+      expect(isolationScope).toBeInstanceOf(Sentry.Scope);
+      // No client attached
+      expect(isolationScope.getClient()).toBeUndefined();
+      // Repeatedly returns the same instance
+      expect(Sentry.getIsolationScope()).toBe(isolationScope);
+
+      isolationScope.setTag('tag1', 'val1');
+      isolationScope.setTag('tag2', 'val2');
+
+      expect(isolationScope.getScopeData().tags).toEqual({ tag1: 'val1', tag2: 'val2' });
+
+      // Now when we call init, the isolation scope remains intact
+      Sentry.init({ dsn: 'https://username@domain/123', defaultIntegrations: false });
+
+      // client is only attached to global scope by default
+      expect(isolationScope.getClient()).toBeUndefined();
+      expect(Sentry.getIsolationScope()).toBe(isolationScope);
+      expect(isolationScope.getScopeData().tags).toEqual({ tag1: 'val1', tag2: 'val2' });
+    });
+
+    it('is applied to events', async () => {
+      const beforeSend = jest.fn();
+      mockSdkInit({ beforeSend });
+      const client = Sentry.getClient();
+
+      const isolationScope = Sentry.getIsolationScope();
+      isolationScope.setTag('tag1', 'val1');
+      isolationScope.setTag('tag2', 'val2');
+
+      const error = new Error('test error');
+      Sentry.captureException(error);
+
+      await client.flush();
+
+      expect(beforeSend).toHaveBeenCalledTimes(1);
+      expect(beforeSend).toHaveBeenCalledWith(
+        expect.objectContaining({
+          tags: {
+            tag1: 'val1',
+            tag2: 'val2',
+          },
+        }),
+        {
+          event_id: expect.any(String),
+          originalException: error,
+          syntheticException: expect.any(Error),
+        },
+      );
+    });
+
+    it('withIsolationScope works', async () => {
+      const beforeSend = jest.fn();
+      mockSdkInit({ beforeSend });
+      const client = Sentry.getClient();
+
+      const initialIsolationScope = Sentry.getIsolationScope();
+      initialIsolationScope.setTag('tag1', 'val1');
+      initialIsolationScope.setTag('tag2', 'val2');
+
+      const error = new Error('test error');
+
+      Sentry.withIsolationScope((_currentScope, newIsolationScope) => {
+        newIsolationScope.setTag('tag4', 'val4');
+      });
+
+      Sentry.withIsolationScope((currentScope, newIsolationScope) => {
+        expect(Sentry.getCurrentScope()).toBe(currentScope);
+        expect(Sentry.getIsolationScope()).toBe(newIsolationScope);
+        expect(newIsolationScope).not.toBe(initialIsolationScope);
+
+        // Data is forked off original isolation scope
+        expect(newIsolationScope.getScopeData().tags).toEqual({ tag1: 'val1', tag2: 'val2' });
+        newIsolationScope.setTag('tag3', 'val3');
+
+        Sentry.captureException(error);
+      });
+
+      expect(initialIsolationScope.getScopeData().tags).toEqual({ tag1: 'val1', tag2: 'val2' });
+
+      await client.flush();
+
+      expect(beforeSend).toHaveBeenCalledTimes(1);
+      expect(beforeSend).toHaveBeenCalledWith(
+        expect.objectContaining({
+          tags: {
+            tag1: 'val1',
+            tag2: 'val2',
+            tag3: 'val3',
+          },
+        }),
+        {
+          event_id: expect.any(String),
+          originalException: error,
+          syntheticException: expect.any(Error),
+        },
+      );
+    });
+
+    it('can be deeply nested', async () => {
+      const beforeSend = jest.fn();
+      mockSdkInit({ beforeSend });
+      const client = Sentry.getClient();
+
+      const initialIsolationScope = Sentry.getIsolationScope();
+      initialIsolationScope.setTag('tag1', 'val1');
+
+      const error = new Error('test error');
+
+      Sentry.withIsolationScope((_currentScope, newIsolationScope) => {
+        newIsolationScope.setTag('tag2', 'val2');
+
+        Sentry.withIsolationScope((_currentScope, newIsolationScope) => {
+          newIsolationScope.setTag('tag3', 'val3');
+
+          Sentry.withIsolationScope((_currentScope, newIsolationScope) => {
+            newIsolationScope.setTag('tag4', 'val4');
+          });
+
+          Sentry.captureException(error);
+        });
+      });
+
+      await client.flush();
+
+      expect(beforeSend).toHaveBeenCalledTimes(1);
+      expect(beforeSend).toHaveBeenCalledWith(
+        expect.objectContaining({
+          tags: {
+            tag1: 'val1',
+            tag2: 'val2',
+            tag3: 'val3',
+          },
+        }),
+        {
+          event_id: expect.any(String),
+          originalException: error,
+          syntheticException: expect.any(Error),
+        },
+      );
+    });
+  });
+
+  describe('current scope', () => {
+    beforeEach(() => {
+      resetGlobals();
+    });
+
+    it('works before calling init', () => {
+      const currentScope = Sentry.getCurrentScope();
+      expect(currentScope).toBeDefined();
+      expect(currentScope).toBeInstanceOf(Sentry.Scope);
+      // No client attached
+      expect(currentScope.getClient()).toBeUndefined();
+      // Repeatedly returns the same instance
+      expect(Sentry.getCurrentScope()).toBe(currentScope);
+
+      currentScope.setTag('tag1', 'val1');
+      currentScope.setTag('tag2', 'val2');
+
+      expect(currentScope.getScopeData().tags).toEqual({ tag1: 'val1', tag2: 'val2' });
+
+      // Now when we call init, the current scope remains intact
+      Sentry.init({ dsn: 'https://username@domain/123', defaultIntegrations: false });
+
+      // client is only attached to global scope by default
+      expect(currentScope.getClient()).toBeUndefined();
+      // current scope remains intact
+      expect(Sentry.getCurrentScope()).toBe(currentScope);
+      expect(currentScope.getScopeData().tags).toEqual({ tag1: 'val1', tag2: 'val2' });
+    });
+
+    it('is applied to events', async () => {
+      const beforeSend = jest.fn();
+      mockSdkInit({ beforeSend });
+      const client = Sentry.getClient();
+
+      const currentScope = Sentry.getCurrentScope();
+      currentScope.setTag('tag1', 'val1');
+      currentScope.setTag('tag2', 'val2');
+
+      const error = new Error('test error');
+      Sentry.captureException(error);
+
+      await client.flush();
+
+      expect(beforeSend).toHaveBeenCalledTimes(1);
+      expect(beforeSend).toHaveBeenCalledWith(
+        expect.objectContaining({
+          tags: {
+            tag1: 'val1',
+            tag2: 'val2',
+          },
+        }),
+        {
+          event_id: expect.any(String),
+          originalException: error,
+          syntheticException: expect.any(Error),
+        },
+      );
+    });
+
+    it('withScope works', async () => {
+      const beforeSend = jest.fn();
+      mockSdkInit({ beforeSend });
+      const client = Sentry.getClient();
+
+      const isolationScope = Sentry.getIsolationScope();
+      const initialCurrentScope = Sentry.getCurrentScope();
+      initialCurrentScope.setTag('tag1', 'val1');
+      initialCurrentScope.setTag('tag2', 'val2');
+
+      const error = new Error('test error');
+
+      Sentry.withScope(newCurrentScope => {
+        newCurrentScope.setTag('tag4', 'val4');
+      });
+
+      Sentry.withScope(newCurrentScope => {
+        expect(Sentry.getCurrentScope()).toBe(newCurrentScope);
+        expect(Sentry.getIsolationScope()).toBe(isolationScope);
+        expect(newCurrentScope).not.toBe(initialCurrentScope);
+
+        // Data is forked off original isolation scope
+        expect(newCurrentScope.getScopeData().tags).toEqual({ tag1: 'val1', tag2: 'val2' });
+        newCurrentScope.setTag('tag3', 'val3');
+
+        Sentry.captureException(error);
+      });
+
+      expect(initialCurrentScope.getScopeData().tags).toEqual({ tag1: 'val1', tag2: 'val2' });
+
+      await client.flush();
+
+      expect(beforeSend).toHaveBeenCalledTimes(1);
+      expect(beforeSend).toHaveBeenCalledWith(
+        expect.objectContaining({
+          tags: {
+            tag1: 'val1',
+            tag2: 'val2',
+            tag3: 'val3',
+          },
+        }),
+        {
+          event_id: expect.any(String),
+          originalException: error,
+          syntheticException: expect.any(Error),
+        },
+      );
+    });
+
+    it('can be deeply nested', async () => {
+      const beforeSend = jest.fn();
+      mockSdkInit({ beforeSend });
+      const client = Sentry.getClient();
+
+      const initialCurrentScope = Sentry.getCurrentScope();
+      initialCurrentScope.setTag('tag1', 'val1');
+
+      const error = new Error('test error');
+
+      Sentry.withScope(currentScope => {
+        currentScope.setTag('tag2', 'val2');
+        expect(Sentry.getCurrentScope()).toBe(currentScope);
+
+        Sentry.withScope(currentScope => {
+          currentScope.setTag('tag3', 'val3');
+          expect(Sentry.getCurrentScope()).toBe(currentScope);
+
+          Sentry.withScope(currentScope => {
+            currentScope.setTag('tag4', 'val4');
+            expect(Sentry.getCurrentScope()).toBe(currentScope);
+          });
+
+          Sentry.captureException(error);
+        });
+      });
+
+      await client.flush();
+
+      expect(beforeSend).toHaveBeenCalledTimes(1);
+      expect(beforeSend).toHaveBeenCalledWith(
+        expect.objectContaining({
+          tags: {
+            tag1: 'val1',
+            tag2: 'val2',
+            tag3: 'val3',
+          },
+        }),
+        {
+          event_id: expect.any(String),
+          originalException: error,
+          syntheticException: expect.any(Error),
+        },
+      );
+    });
+
+    it('automatically forks with OTEL context', async () => {
+      const beforeSend = jest.fn();
+      mockSdkInit({ beforeSend });
+      const client = Sentry.getClient();
+
+      const initialCurrentScope = Sentry.getCurrentScope();
+      initialCurrentScope.setTag('tag1', 'val1');
+
+      const error = new Error('test error');
+
+      Sentry.startSpan({ name: 'outer' }, () => {
+        Sentry.getCurrentScope().setTag('tag2', 'val2');
+
+        Sentry.startSpan({ name: 'inner 1' }, () => {
+          Sentry.getCurrentScope().setTag('tag3', 'val3');
+
+          Sentry.startSpan({ name: 'inner 2' }, () => {
+            Sentry.getCurrentScope().setTag('tag4', 'val4');
+          });
+
+          Sentry.captureException(error);
+        });
+      });
+
+      await client.flush();
+
+      expect(beforeSend).toHaveBeenCalledTimes(1);
+      expect(beforeSend).toHaveBeenCalledWith(
+        expect.objectContaining({
+          tags: {
+            tag1: 'val1',
+            tag2: 'val2',
+            tag3: 'val3',
+          },
+        }),
+        {
+          event_id: expect.any(String),
+          originalException: error,
+          syntheticException: expect.any(Error),
+        },
+      );
+    });
+  });
+
+  describe('scope merging', () => {
+    beforeEach(() => {
+      resetGlobals();
+    });
+
+    it('merges data from global, isolation and current scope', async () => {
+      const beforeSend = jest.fn();
+      mockSdkInit({ beforeSend });
+      const client = Sentry.getClient();
+
+      Sentry.getGlobalScope().setTag('tag1', 'val1');
+
+      const error = new Error('test error');
+
+      Sentry.withIsolationScope((currentScope, isolationScope) => {
+        currentScope.setTag('tag2', 'val2a');
+        isolationScope.setTag('tag2', 'val2b');
+        isolationScope.setTag('tag3', 'val3');
+
+        Sentry.withScope(currentScope => {
+          currentScope.setTag('tag4', 'val4');
+
+          Sentry.captureException(error);
+        });
+      });
+
+      await client.flush();
+
+      expect(beforeSend).toHaveBeenCalledTimes(1);
+      expect(beforeSend).toHaveBeenCalledWith(
+        expect.objectContaining({
+          tags: {
+            tag1: 'val1',
+            tag2: 'val2a',
+            tag3: 'val3',
+            tag4: 'val4',
+          },
+        }),
+        {
+          event_id: expect.any(String),
+          originalException: error,
+          syntheticException: expect.any(Error),
+        },
+      );
     });
   });
 });

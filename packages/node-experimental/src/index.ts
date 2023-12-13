@@ -33,6 +33,11 @@ export {
   withIsolationScope,
   // eslint-disable-next-line deprecation/deprecation
   configureScope,
+  getCurrentScope,
+  getGlobalScope,
+  getIsolationScope,
+  setIsolationScope,
+  setCurrentScope,
 } from './sdk/api';
 export { getCurrentHub, makeMain } from './sdk/hub';
 export { Scope } from './sdk/scope';
