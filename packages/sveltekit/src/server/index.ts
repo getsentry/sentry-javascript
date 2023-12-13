@@ -22,6 +22,7 @@ export {
   getHubFromCarrier,
   getCurrentHub,
   getClient,
+  getCurrentScope,
   Hub,
   makeMain,
   Scope,

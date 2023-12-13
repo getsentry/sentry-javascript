@@ -142,7 +142,7 @@ export class Hub implements HubInterface {
    */
   public pushScope(): Scope {
     // We want to clone the content of prev scope
-    const scope = Scope.clone(this.getScope());
+    const scope = this.getScope().clone();
     this.getStack().push({
       client: this.getClient(),
       scope,
@@ -578,7 +578,7 @@ export function ensureHubOnCarrier(carrier: Carrier, parent: Hub = getGlobalHub(
   // If there's no hub on current domain, or it's an old API, assign a new one
   if (!hasHubOnCarrier(carrier) || getHubFromCarrier(carrier).isOlderThan(API_VERSION)) {
     const globalHubTopStack = parent.getStackTop();
-    setHubOnCarrier(carrier, new Hub(globalHubTopStack.client, Scope.clone(globalHubTopStack.scope)));
+    setHubOnCarrier(carrier, new Hub(globalHubTopStack.client, globalHubTopStack.scope.clone()));
   }
 }
 
