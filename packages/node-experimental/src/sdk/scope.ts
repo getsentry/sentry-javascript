@@ -1,41 +1,13 @@
 import { notifyEventProcessors } from '@sentry/core';
 import { OpenTelemetryScope } from '@sentry/opentelemetry';
-import type {
-  Attachment,
-  Breadcrumb,
-  Client,
-  Contexts,
-  Event,
-  EventHint,
-  EventProcessor,
-  Extras,
-  Primitive,
-  PropagationContext,
-  Severity,
-  SeverityLevel,
-  User,
-} from '@sentry/types';
+import type { Breadcrumb, Client, Event, EventHint, EventProcessor, Severity, SeverityLevel } from '@sentry/types';
 import { uuid4 } from '@sentry/utils';
 
 import { getClient, getGlobalScope, getIsolationScope } from './api';
-
-interface ScopeData {
-  eventProcessors: EventProcessor[];
-  breadcrumbs: Breadcrumb[];
-  user: User;
-  tags: { [key: string]: Primitive };
-  extra: Extras;
-  contexts: Contexts;
-  attachments: Attachment[];
-  propagationContext: PropagationContext;
-  sdkProcessingMetadata: { [key: string]: unknown };
-  fingerprint: string[];
-  // eslint-disable-next-line deprecation/deprecation
-  level?: Severity | SeverityLevel;
-}
+import type { Scope as ScopeInterface, ScopeData } from './types';
 
 /** A fork of the classic scope with some otel specific stuff. */
-export class Scope extends OpenTelemetryScope {
+export class Scope extends OpenTelemetryScope implements ScopeInterface {
   // Overwrite this if you want to use a specific isolation scope here
   public isolationScope: Scope | undefined;
 

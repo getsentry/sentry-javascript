@@ -44,7 +44,7 @@ export function getClient<C extends Client>(): C {
 
 /** Get the current scope. */
 export function getCurrentScope(): Scope {
-  return getScopes().scope;
+  return getScopes().scope as Scope;
 }
 
 /**
@@ -63,12 +63,12 @@ export function getGlobalScope(): Scope {
     carrier.globalScope = new Scope();
   }
 
-  return carrier.globalScope;
+  return carrier.globalScope as Scope;
 }
 
 /** Get the currently active isolation scope. */
 export function getIsolationScope(): Scope {
-  return getScopes().isolationScope;
+  return getScopes().isolationScope as Scope;
 }
 
 /**
