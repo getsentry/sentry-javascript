@@ -186,13 +186,16 @@ describe('SentryNode', () => {
         dsn,
         integrations: [new ContextLines()],
       });
-      getCurrentHub().bindClient(new NodeClient(options));
+      const client = new NodeClient(options);
+      getCurrentHub().bindClient(client);
       getCurrentScope().setTag('test', '1');
       try {
         throw new Error('test');
       } catch (e) {
         captureException(e);
       }
+
+     void client.flush();
     });
 
     test('capture a linked exception with pre/post context', done => {
