@@ -55,13 +55,14 @@ export class ContextLines implements Integration {
   /**
    * @inheritDoc
    */
-  public setupOnce(_addGlobalEventProcessor: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
-    // noop
-  }
-
-  /** @inheritDoc */
-  public processEvent(event: Event): Promise<Event> {
-    return this.addSourceContext(event);
+  public setupOnce(addGlobalEventProcessor: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
+    addGlobalEventProcessor(event => {
+      const self = getCurrentHub().getIntegration(ContextLines);
+      if (!self) {
+        return event;
+      }
+      return this.addSourceContext(event);
+    });
   }
 
   /** Processes an event and adds context lines */
