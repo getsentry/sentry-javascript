@@ -1,5 +1,5 @@
 import { TextDecoder, TextEncoder } from 'util';
-import type { Event, EventEnvelope } from '@sentry/types';
+import type { DsnComponents, DynamicSamplingContext, Event, EventEnvelope } from '@sentry/types';
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
@@ -7,6 +7,7 @@ const decoder = new TextDecoder();
 import {
   addItemToEnvelope,
   createEnvelope,
+  createEventEnvelope,
   forEachEnvelopeItem,
   parseEnvelope,
   serializeEnvelope,
@@ -23,6 +24,82 @@ describe('envelope', () => {
       expect(env).toHaveLength(2);
       expect(env[0]).toStrictEqual(headers);
       expect(env[1]).toStrictEqual(items);
+    });
+  });
+
+  describe('createEventEnvelope', () => {
+    const testDsn: DsnComponents = { protocol: 'https', projectId: 'abc', host: 'testry.io', publicKey: 'pubKey123' };
+
+    describe('trace header', () => {
+      const testTable: Array<[string, Event, DynamicSamplingContext]> = [
+        [
+          'adds minimal baggage items',
+          {
+            type: 'transaction',
+            sdkProcessingMetadata: {
+              dynamicSamplingContext: { trace_id: '1234', public_key: 'pubKey123' },
+            },
+          },
+          { trace_id: '1234', public_key: 'pubKey123' },
+        ],
+        [
+          'adds multiple baggage items',
+          {
+            type: 'transaction',
+            sdkProcessingMetadata: {
+              dynamicSamplingContext: {
+                environment: 'prod',
+                release: '1.0.0',
+                public_key: 'pubKey123',
+                trace_id: '1234',
+              },
+            },
+          },
+          { release: '1.0.0', environment: 'prod', trace_id: '1234', public_key: 'pubKey123' },
+        ],
+        [
+          'adds all baggage items',
+          {
+            type: 'transaction',
+            sdkProcessingMetadata: {
+              dynamicSamplingContext: {
+                environment: 'prod',
+                release: '1.0.0',
+                transaction: 'TX',
+                user_segment: 'segmentA',
+                sample_rate: '0.95',
+                public_key: 'pubKey123',
+                trace_id: '1234',
+              },
+            },
+          },
+          {
+            environment: 'prod',
+            release: '1.0.0',
+            transaction: 'TX',
+            user_segment: 'segmentA',
+            sample_rate: '0.95',
+            public_key: 'pubKey123',
+            trace_id: '1234',
+          },
+        ],
+        [
+          'with error event',
+          {
+            sdkProcessingMetadata: {
+              dynamicSamplingContext: { trace_id: '1234', public_key: 'pubKey123' },
+            },
+          },
+          { trace_id: '1234', public_key: 'pubKey123' },
+        ],
+      ];
+      it.each(testTable)('%s', (_: string, event, trace) => {
+        const envelopeHeaders = createEventEnvelope(event, testDsn)[0];
+
+        expect(envelopeHeaders).toBeDefined();
+        expect(envelopeHeaders.trace).toBeDefined();
+        expect(envelopeHeaders.trace).toEqual(trace);
+      });
     });
   });
 
