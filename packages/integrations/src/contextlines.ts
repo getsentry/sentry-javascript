@@ -49,8 +49,8 @@ export class ContextLines implements Integration {
   }
 
   /** @inheritDoc */
-  public processEvent(event: Event): Event {
-    return this.addSourceContext(event);
+  public preprocessEvent(event: Event): void {
+    this.addSourceContext(event);
   }
 
   /**
