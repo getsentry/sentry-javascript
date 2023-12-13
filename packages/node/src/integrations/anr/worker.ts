@@ -71,6 +71,7 @@ async function sendAnrEvent(frames?: StackFrame[], traceContext?: TraceContext):
     release: options.release,
     environment: options.environment,
     dist: options.dist,
+    platform: 'node',
     level: 'error',
     exception: {
       values: [
