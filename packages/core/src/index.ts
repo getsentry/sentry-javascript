@@ -26,6 +26,7 @@ export {
   setUser,
   withScope,
   getClient,
+  getCurrentScope,
 } from './exports';
 export {
   getCurrentHub,
