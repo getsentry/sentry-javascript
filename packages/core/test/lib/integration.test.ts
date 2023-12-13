@@ -4,6 +4,7 @@ import { logger } from '@sentry/utils';
 import { Hub, makeMain } from '../../src/hub';
 import {
   addIntegration,
+  convertIntegrationFnToClass,
   getIntegrationsToSetup,
   installedIntegrations,
   makeIntegrationFn,
@@ -717,5 +718,50 @@ describe('makeIntegrationFn', () => {
 
     // @ts-expect-error This SHOULD error
     makeIntegrationFn('testName', () => ({ other: 'aha' }));
+  });
+});
+
+describe('convertIntegrationFnToClass', () => {
+  it('works with a minimal integration', () => {
+    const integrationFn = makeIntegrationFn('testName', () => ({}));
+
+    const IntegrationClass = convertIntegrationFnToClass(integrationFn);
+
+    expect(IntegrationClass.id).toBe('testName');
+
+    const integration = new IntegrationClass();
+    expect(integration).toEqual({
+      name: 'testName',
+      setupOnce: expect.any(Function),
+    });
+  });
+
+  it('works with integration hooks', () => {
+    const setup = jest.fn();
+    const setupOnce = jest.fn();
+    const processEvent = jest.fn();
+    const preprocessEvent = jest.fn();
+
+    const integrationFn = makeIntegrationFn('testName', () => {
+      return {
+        setup,
+        setupOnce,
+        processEvent,
+        preprocessEvent,
+      };
+    });
+
+    const IntegrationClass = convertIntegrationFnToClass(integrationFn);
+
+    expect(IntegrationClass.id).toBe('testName');
+
+    const integration = new IntegrationClass();
+    expect(integration).toEqual({
+      name: 'testName',
+      setupOnce,
+      setup,
+      processEvent,
+      preprocessEvent,
+    });
   });
 });

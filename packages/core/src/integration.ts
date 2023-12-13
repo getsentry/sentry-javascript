@@ -1,4 +1,13 @@
-import type { Client, Event, EventHint, Integration, IntegrationFn, IntegrationFnResult, Options } from '@sentry/types';
+import type {
+  Client,
+  Event,
+  EventHint,
+  Integration,
+  IntegrationClass,
+  IntegrationFn,
+  IntegrationFnResult,
+  Options,
+} from '@sentry/types';
 import { arrayify, logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from './debug-build';
@@ -160,22 +169,44 @@ function findIndex<T>(arr: T[], callback: (item: T) => boolean): number {
  * Generate a full integration function from a simple function.
  * This will ensure to add the given name both to the function definition, as well as to the integration return value.
  */
-export function makeIntegrationFn<
-  Fn extends (...rest: any[]) => Partial<IntegrationFnResult>,
->(name: string, fn: Fn): ((...rest: Parameters<Fn>) => ReturnType<Fn> & { name: string }) & { id: string } {
+export function makeIntegrationFn<Fn extends (...rest: any[]) => Partial<IntegrationFnResult>>(
+  name: string,
+  fn: Fn,
+): ((...rest: Parameters<Fn>) => ReturnType<Fn> & { name: string }) & { id: string } {
   const patchedFn = addIdToIntegrationFnResult(name, fn);
 
-
   return Object.assign(patchedFn, { id: name });
+}
+
+/**
+ * Convert a new integration function to the legacy class syntax.
+ * In v8, we can remove this and instead export the integration functions directly.
+ */
+export function convertIntegrationFnToClass<Fn extends IntegrationFn<(...rest: any[]) => IntegrationFnResult>>(
+  fn: Fn,
+): IntegrationClass<Integration> {
+  return Object.assign(
+    function ConvertedIntegration(...rest: any[]) {
+      const res = {
+        // eslint-disable-next-line @typescript-eslint/no-empty-function
+        setupOnce: () => {},
+        ...fn(...rest),
+        name: fn.id,
+      };
+
+      return res;
+    },
+    { id: fn.id },
+  ) as unknown as IntegrationClass<Integration>;
 }
 
 function addIdToIntegrationFnResult<Fn extends (...rest: any[]) => Partial<IntegrationFnResult>>(
   name: string,
   fn: Fn,
 ): (...rest: Parameters<Fn>) => ReturnType<Fn> & { name: string } {
-  const patchedFn = ((...rest: Parameters<Fn>): ReturnType<Fn> & { name: string } => {
+  const patchedFn = (...rest: Parameters<Fn>): ReturnType<Fn> & { name: string } => {
     return { ...fn(...rest), name } as ReturnType<Fn> & { name: string };
-  });
+  };
 
   return patchedFn;
 }
