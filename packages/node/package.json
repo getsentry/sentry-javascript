@@ -54,7 +54,7 @@
     "clean": "rimraf build coverage sentry-node-*.tgz",
     "fix": "eslint . --format stylish --fix",
     "lint": "eslint . --format stylish",
-    "test": "run-s test:jest test:express test:webpack test:release-health",
+    "test": "run-s build:transpile test:jest test:express test:webpack test:release-health",
     "test:express": "node test/manual/express-scope-separation/start.js",
     "test:jest": "jest",
     "test:release-health": "node test/manual/release-health/runner.js",
