@@ -7,7 +7,7 @@ import {
   startSpan,
 } from '@sentry/node';
 import type { Hub, Span } from '@sentry/types';
-import { addNonEnumerableProperty, escapeStringForRegex, objectify, stripUrlQueryAndFragment } from '@sentry/utils';
+import { addNonEnumerableProperty, objectify, stripUrlQueryAndFragment } from '@sentry/utils';
 import type { APIContext, MiddlewareResponseHandler } from 'astro';
 
 import { getTracingMetaTags } from './meta';
