@@ -167,7 +167,8 @@ function findIndex<T>(arr: T[], callback: (item: T) => boolean): number {
 
 /**
  * Generate a full integration function from a simple function.
- * This will ensure to add the given name both to the function definition, as well as to the integration return value.
+ * This will ensure to add the given name both to the function definition (as id),
+ * as well as to the integration return value.
  */
 export function makeIntegrationFn<
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
