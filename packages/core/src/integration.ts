@@ -174,7 +174,7 @@ export function makeIntegrationFn<
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   Fn extends (...rest: any[]) => Partial<IntegrationFnResult>,
 >(name: string, fn: Fn): ((...rest: Parameters<Fn>) => ReturnType<Fn> & { name: string }) & { id: string } {
-  const patchedFn = addIdToIntegrationFnResult(name, fn);
+  const patchedFn = addNameToIntegrationFnResult(name, fn);
 
   return Object.assign(patchedFn, { id: name });
 }
@@ -205,7 +205,7 @@ export function convertIntegrationFnToClass<
   ) as unknown as IntegrationClass<Integration>;
 }
 
-function addIdToIntegrationFnResult<
+function addNameToIntegrationFnResult<
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   Fn extends (...rest: any[]) => Partial<IntegrationFnResult>,
 >(name: string, fn: Fn): (...rest: Parameters<Fn>) => ReturnType<Fn> & { name: string } {

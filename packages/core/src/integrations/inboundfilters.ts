@@ -35,8 +35,8 @@ const inboundFiltersIntegration = makeIntegrationFn('InboundFilters', (options: 
       const clientOptions = client.getOptions();
       const mergedOptions = _mergeOptions(options, clientOptions);
       return _shouldDropEvent(event, mergedOptions) ? null : event;
-    }
-  }
+    },
+  };
 });
 
 /** Inbound filters configurable by the user */

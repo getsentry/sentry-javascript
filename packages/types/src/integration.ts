@@ -10,7 +10,7 @@ export interface IntegrationClass<T> {
    */
   id: string;
 
-  new(...args: any[]): T;
+  new (...args: any[]): T;
 }
 
 /**
@@ -18,7 +18,7 @@ export interface IntegrationClass<T> {
  * This is expected to return an integration result,
  * and also have a `name` property that holds the integration name (so we can e.g. filter these before actually calling them).
  */
-export type IntegrationFn<Fn extends ((...rest: any[]) => IntegrationFnResult)> = { id: string } & Fn;
+export type IntegrationFn<Fn extends (...rest: any[]) => IntegrationFnResult> = { id: string } & Fn;
 
 export interface IntegrationFnResult {
   /**
