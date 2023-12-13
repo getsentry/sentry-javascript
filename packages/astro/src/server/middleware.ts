@@ -7,12 +7,7 @@ import {
   startSpan,
 } from '@sentry/node';
 import type { Hub, Span } from '@sentry/types';
-import {
-  addNonEnumerableProperty,
-  objectify,
-  stripUrlQueryAndFragment,
-  tracingContextFromHeaders,
-} from '@sentry/utils';
+import { addNonEnumerableProperty, objectify, stripUrlQueryAndFragment } from '@sentry/utils';
 import type { APIContext, MiddlewareResponseHandler } from 'astro';
 
 import { getTracingMetaTags } from './meta';
@@ -64,7 +59,11 @@ type AstroLocalsWithSentry = Record<string, unknown> & {
 };
 
 export const handleRequest: (options?: MiddlewareOptions) => MiddlewareResponseHandler = options => {
-  const handlerOptions = { trackClientIp: false, trackHeaders: false, ...options };
+  const handlerOptions = {
+    trackClientIp: false,
+    trackHeaders: false,
+    ...options,
+  };
 
   return async (ctx, next) => {
     // if there is an active span, we know that this handle call is nested and hence
@@ -113,18 +112,19 @@ async function instrumentRequest(
   }
 
   try {
+    const interpolatedRoute = interpolateRouteFromUrlAndParams(ctx.url.pathname, ctx.params);
     // storing res in a variable instead of directly returning is necessary to
     // invoke the catch block if next() throws
     const res = await startSpan(
       {
         ...traceCtx,
-        name: `${method} ${interpolateRouteFromUrlAndParams(ctx.url.pathname, ctx.params)}`,
+        name: `${method} ${interpolatedRoute || ctx.url.pathname}`,
         op: 'http.server',
         origin: 'auto.http.astro',
         status: 'ok',
         metadata: {
           ...traceCtx?.metadata,
-          source: 'route',
+          source: interpolatedRoute ? 'route' : 'url',
         },
         data: {
           method,
@@ -202,10 +202,76 @@ function addMetaTagToHead(htmlChunk: string, hub: Hub, span?: Span): string {
  * Best we can do to get a route name instead of a raw URL.
  *
  * exported for testing
+ *
+ * @param rawUrlPathname - The raw URL pathname, e.g. '/users/123/details'
+ * @param params - The params object, e.g. `{ userId: '123' }`
+ *
+ * @returns The interpolated route, e.g. '/users/[userId]/details'
  */
-export function interpolateRouteFromUrlAndParams(rawUrl: string, params: APIContext['params']): string {
-  return Object.entries(params).reduce((interpolateRoute, value) => {
-    const [paramId, paramValue] = value;
-    return interpolateRoute.replace(new RegExp(`(/|-)${paramValue}(/|-|$)`), `$1[${paramId}]$2`);
-  }, rawUrl);
+export function interpolateRouteFromUrlAndParams(
+  rawUrlPathname: string,
+  params: APIContext['params'],
+): string | undefined {
+  const decodedUrlPathname = tryDecodeUrl(rawUrlPathname);
+  if (!decodedUrlPathname) {
+    return undefined;
+  }
+
+  // Invert params map so that the param values are the keys
+  // differentiate between rest params spanning multiple url segments
+  // and normal, single-segment params.
+  const valuesToMultiSegmentParams: Record<string, string> = {};
+  const valuesToParams: Record<string, string> = {};
+  Object.entries(params).forEach(([key, value]) => {
+    if (!value) {
+      return;
+    }
+    if (value.includes('/')) {
+      valuesToMultiSegmentParams[value] = key;
+      return;
+    }
+    valuesToParams[value] = key;
+  });
+
+  function replaceWithParamName(segment: string): string {
+    const param = valuesToParams[segment];
+    if (param) {
+      return `[${param}]`;
+    }
+    return segment;
+  }
+
+  // before we match single-segment params, we first replace multi-segment params
+  const urlWithReplacedMultiSegmentParams = Object.keys(valuesToMultiSegmentParams).reduce((acc, key) => {
+    return acc.replace(key, `[${valuesToMultiSegmentParams[key]}]`);
+  }, decodedUrlPathname);
+
+  return urlWithReplacedMultiSegmentParams
+    .split('/')
+    .map(segment => {
+      if (!segment) {
+        return '';
+      }
+
+      if (valuesToParams[segment]) {
+        return replaceWithParamName(segment);
+      }
+
+      // astro permits multiple params in a single path segment, e.g. /[foo]-[bar]/
+      const segmentParts = segment.split('-');
+      if (segmentParts.length > 1) {
+        return segmentParts.map(part => replaceWithParamName(part)).join('-');
+      }
+
+      return segment;
+    })
+    .join('/');
+}
+
+function tryDecodeUrl(url: string): string | undefined {
+  try {
+    return decodeURI(url);
+  } catch {
+    return undefined;
+  }
 }
