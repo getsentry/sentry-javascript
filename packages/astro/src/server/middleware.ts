@@ -202,6 +202,11 @@ function addMetaTagToHead(htmlChunk: string, hub: Hub, span?: Span): string {
  * Best we can do to get a route name instead of a raw URL.
  *
  * exported for testing
+ *
+ * @param rawUrlPathname - The raw URL pathname, e.g. '/users/123/details'
+ * @param params - The params object, e.g. `{ userId: '123' }`
+ *
+ * @returns The interpolated route, e.g. '/users/[userId]/details'
  */
 export function interpolateRouteFromUrlAndParams(
   rawUrlPathname: string,
