@@ -84,7 +84,7 @@ module.exports = {
         '@typescript-eslint/no-unused-expressions': ['error', { allowShortCircuit: true }],
 
         // Make sure Promises are handled appropriately
-        '@typescript-eslint/no-floating-promises': 'error',
+        '@typescript-eslint/no-floating-promises': ['error', { ignoreVoid: false }],
 
         // Disallow delete operator. We should make this operation opt in (by disabling this rule).
         '@typescript-eslint/no-dynamic-delete': 'error',
