@@ -132,7 +132,7 @@ export class Http implements Integration {
 
             // Update the isolation scope, isolation this request
             if (getSpanKind(span) === SpanKind.SERVER) {
-              setIsolationScope(Scope.clone(getIsolationScope()));
+              setIsolationScope(getIsolationScope().clone());
             }
           },
           responseHook: (span, res) => {

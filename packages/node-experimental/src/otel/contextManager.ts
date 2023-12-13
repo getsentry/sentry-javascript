@@ -31,7 +31,7 @@ export class SentryContextManager extends AsyncLocalStorageContextManager {
     const currentScope = previousScopes ? previousScopes.scope : getCurrentScope();
     const isolationScope = previousScopes ? previousScopes.isolationScope : getIsolationScope();
 
-    const newCurrentScope = Scope.clone(currentScope);
+    const newCurrentScope = currentScope.clone();
     const scopes: CurrentScopes = { scope: newCurrentScope, isolationScope };
 
     // We also need to "mock" the hub on the context, as the original @sentry/opentelemetry uses that...

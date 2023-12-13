@@ -100,7 +100,7 @@ export function withIsolationScope<T>(callback: (scope: Scope, isolationScope: S
         isolationScope: getIsolationScope(),
       };
 
-  scopes.isolationScope = Scope.clone(scopes.isolationScope);
+  scopes.isolationScope = scopes.isolationScope.clone();
 
   return context.with(setScopesOnContext(ctx, scopes), () => {
     return callback(getCurrentScope(), getIsolationScope());
