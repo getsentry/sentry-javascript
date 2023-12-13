@@ -58,7 +58,12 @@ export class DenoContext implements Integration {
   public name: string = DenoContext.id;
 
   /** @inheritDoc */
-  public setupOnce(addGlobalEventProcessor: (callback: EventProcessor) => void): void {
-    addGlobalEventProcessor(async (event: Event) => denoRuntime(event));
+  public setupOnce(_addGlobalEventProcessor: (callback: EventProcessor) => void): void {
+    // noop
+  }
+
+  /** @inheritDoc */
+  public processEvent(event: Event): Promise<Event> {
+    return denoRuntime(event);
   }
 }
