@@ -1,7 +1,6 @@
 import {
   addTracingExtensions,
   captureException,
-  flush,
   getCurrentHub,
   runWithAsyncContext,
   startTransaction,
@@ -10,6 +9,7 @@ import { tracingContextFromHeaders, winterCGHeadersToDict } from '@sentry/utils'
 
 import { isNotFoundNavigationError, isRedirectNavigationError } from '../common/nextNavigationErrorUtils';
 import type { ServerComponentContext } from '../common/types';
+import { flushQueue } from './utils/responseEnd';
 
 /**
  * Wraps an `app` directory server component with Sentry error instrumentation.
@@ -85,28 +85,31 @@ export function wrapServerComponentWithSentry<F extends (...args: any[]) => any>
           maybePromiseResult = originalFunction.apply(thisArg, args);
         } catch (e) {
           handleErrorCase(e);
-          void flush();
+          void flushQueue();
           throw e;
         }
 
         if (typeof maybePromiseResult === 'object' && maybePromiseResult !== null && 'then' in maybePromiseResult) {
           // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-          Promise.resolve(maybePromiseResult).then(
-            () => {
-              transaction.finish();
-            },
-            e => {
-              handleErrorCase(e);
-            },
-          );
-          void flush();
+          Promise.resolve(maybePromiseResult)
+            .then(
+              () => {
+                transaction.finish();
+              },
+              e => {
+                handleErrorCase(e);
+              },
+            )
+            .finally(() => {
+              void flushQueue();
+            });
 
           // It is very important that we return the original promise here, because Next.js attaches various properties
           // to that promise and will throw if they are not on the returned value.
           return maybePromiseResult;
         } else {
           transaction.finish();
-          void flush();
+          void flushQueue();
           return maybePromiseResult;
         }
       });
