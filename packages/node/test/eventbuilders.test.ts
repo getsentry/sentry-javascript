@@ -12,7 +12,6 @@ jest.mock('@sentry/core', () => {
     getCurrentHub(): {
       getClient(): Client;
       getScope(): Scope;
-      configureScope(scopeFunction: (scope: Scope) => void): void;
     } {
       return {
         getClient(): any {
@@ -23,10 +22,7 @@ jest.mock('@sentry/core', () => {
           };
         },
         getScope(): Scope {
-          return new Scope();
-        },
-        configureScope(scopeFunction: (scope: Scope) => void): void {
-          scopeFunction(testScope);
+          return testScope;
         },
       };
     },

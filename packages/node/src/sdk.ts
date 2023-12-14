@@ -223,7 +223,7 @@ export function getSentryRelease(fallback?: string): string | undefined {
 
   return (
     // GitHub Actions - https://help.github.com/en/actions/configuring-and-managing-workflows/using-environment-variables#default-environment-variables
-    process.env.GITHUB_SHA ||
+    (process.env.GITHUB_SHA ||
     // Netlify - https://docs.netlify.com/configure-builds/environment-variables/#build-metadata
     process.env.COMMIT_REF ||
     // Vercel - https://vercel.com/docs/v2/build-step#system-environment-variables
@@ -236,8 +236,7 @@ export function getSentryRelease(fallback?: string): string | undefined {
     process.env.ZEIT_GITLAB_COMMIT_SHA ||
     process.env.ZEIT_BITBUCKET_COMMIT_SHA ||
     // Cloudflare Pages - https://developers.cloudflare.com/pages/platform/build-configuration/#environment-variables
-    process.env.CF_PAGES_COMMIT_SHA ||
-    fallback
+    process.env.CF_PAGES_COMMIT_SHA || fallback)
   );
 }
 

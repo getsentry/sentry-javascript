@@ -172,7 +172,7 @@ describe('sentryMiddleware', () => {
   it('attaches client IP and request headers if options are set', async () => {
     const scope = { setUser: vi.fn(), setPropagationContext: vi.fn() };
     // @ts-expect-error, only passing a partial Scope object
-    const configureScopeSpy = vi.spyOn(SentryNode, 'configureScope').mockImplementation(cb => cb(scope));
+    const getCurrentScopeSpy = vi.spyOn(SentryNode, 'getCurrentScope').mockImplementation(() => scope);
 
     const middleware = handleRequest({ trackClientIp: true, trackHeaders: true });
     const ctx = {
@@ -192,7 +192,7 @@ describe('sentryMiddleware', () => {
     // @ts-expect-error, a partial ctx object is fine here
     await middleware(ctx, next);
 
-    expect(configureScopeSpy).toHaveBeenCalledTimes(1);
+    expect(getCurrentScopeSpy).toHaveBeenCalledTimes(1);
     expect(scope.setUser).toHaveBeenCalledWith({ ip_address: '192.168.0.1' });
 
     expect(startSpanSpy).toHaveBeenCalledWith(
