@@ -139,4 +139,4 @@ export type {
 
 export type { BrowserClientReplayOptions, BrowserClientProfilingOptions } from './browseroptions';
 export type { CheckIn, MonitorConfig, FinishedCheckIn, InProgressCheckIn, SerializedCheckIn } from './checkin';
-export type { Metric, CounterMetric, GaugeMetric, DistributionMetric, SetMetric } from './metrics';
+export type { MetricsAggregator, MetricBucketItem, MetricInstance } from './metrics';

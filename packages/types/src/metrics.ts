@@ -1,32 +1,54 @@
 import type { MeasurementUnit } from './measurement';
 import type { Primitive } from './misc';
 
-export interface BaseMetric {
-  name: string;
-  timestamp: number;
-  unit?: MeasurementUnit;
-  tags?: { [key: string]: Primitive };
+export interface MetricInstance {
+  /**
+   * Adds a value to a metric.
+   */
+  add(value: number | string): void;
+  /**
+   * Serializes the metric into a statsd format string.
+   */
+  toString(): string;
 }
 
-export interface CounterMetric extends BaseMetric {
-  value: number;
-}
+export type MetricBucketItem = [
+  metric: MetricInstance,
+  timestamp: number,
+  metricType: 'c' | 'g' | 's' | 'd',
+  name: string,
+  unit: MeasurementUnit,
+  tags: { [key: string]: string },
+];
 
-export interface GaugeMetric extends BaseMetric {
-  value: number;
-  first: number;
-  min: number;
-  max: number;
-  sum: number;
-  count: number;
-}
+/**
+ * A metrics aggregator that aggregates metrics in memory and flushes them periodically.
+ */
+export interface MetricsAggregator {
+  /**
+   * Add a metric to the aggregator.
+   */
+  add(
+    metricType: 'c' | 'g' | 's' | 'd',
+    name: string,
+    value: number | string,
+    unit?: MeasurementUnit,
+    tags?: Record<string, Primitive>,
+    timestamp?: number,
+  ): void;
 
-export interface DistributionMetric extends BaseMetric {
-  value: number[];
-}
+  /**
+   * Flushes the current metrics to the transport via the transport.
+   */
+  flush(): void;
 
-export interface SetMetric extends BaseMetric {
-  value: Set<number>;
-}
+  /**
+   * Shuts down metrics aggregator and clears all metrics.
+   */
+  close(): void;
 
-export type Metric = CounterMetric | GaugeMetric | DistributionMetric | SetMetric;
+  /**
+   * Returns a string representation of the aggregator.
+   */
+  toString(): string;
+}

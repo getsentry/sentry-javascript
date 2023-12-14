@@ -64,5 +64,6 @@ export { DEFAULT_ENVIRONMENT } from './constants';
 export { ModuleMetadata } from './integrations/metadata';
 export { RequestData } from './integrations/requestdata';
 import * as Integrations from './integrations';
+export { metrics } from './metrics/exports';
 
 export { Integrations };
