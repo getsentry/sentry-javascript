@@ -21,6 +21,9 @@ sentryTest(
 
     const transactionReq = waitForTransactionRequest(page);
 
+    // Wait for this to be available
+    await page.waitForFunction('!!window.Replay');
+
     await page.evaluate(() => {
       (window as unknown as TestWindow).Replay.start();
     });
