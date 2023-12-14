@@ -78,8 +78,11 @@ export function captureEvent(event: Event, hint?: EventHint): ReturnType<Hub['ca
 /**
  * Callback to set context information onto the scope.
  * @param callback Callback function that receives Scope.
+ *
+ * @deprecated Use getCurrentScope() directly.
  */
 export function configureScope(callback: (scope: Scope) => void): ReturnType<Hub['configureScope']> {
+  // eslint-disable-next-line deprecation/deprecation
   getCurrentHub().configureScope(callback);
 }
 

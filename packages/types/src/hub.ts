@@ -171,6 +171,7 @@ export interface Hub {
    * Callback to set context information onto the scope.
    *
    * @param callback Callback function that receives Scope.
+   * @deprecated Use `getScope()` directly.
    */
   configureScope(callback: (scope: Scope) => void): void;
 
