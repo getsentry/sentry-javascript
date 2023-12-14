@@ -52,11 +52,11 @@ export function wrapServerComponentWithSentry<F extends (...args: any[]) => any>
           (e, span) => {
             if (isNotFoundNavigationError(e)) {
               // We don't want to report "not-found"s
-              span.setStatus('not_found');
+              span?.setStatus('not_found');
             } else if (isRedirectNavigationError(e)) {
               // We don't want to report redirects
             } else {
-              span.setStatus('internal_error');
+              span?.setStatus('internal_error');
 
               captureException(e, {
                 mechanism: {
