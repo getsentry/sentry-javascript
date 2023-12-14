@@ -171,7 +171,7 @@ export function getDomElement<E = any>(selector: string): E | null {
  *
  * @returns a string representation of the component for the provided DOM element, or `null` if not found
  */
-export function getComponentName(elem: unknown) {
+export function getComponentName(elem: unknown): string | null {
   let currentElem = elem as SimpleNode;
   const MAX_TRAVERSE_HEIGHT = 5;
 
