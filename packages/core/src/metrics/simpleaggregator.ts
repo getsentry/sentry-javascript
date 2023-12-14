@@ -76,7 +76,6 @@ export class SimpleMetricsAggregator implements MetricsAggregator {
   public close(): void {
     clearInterval(this._interval);
     this.flush();
-    this._buckets.clear();
   }
 }
 

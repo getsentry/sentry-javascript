@@ -11,8 +11,8 @@ export function getBucketKey(
   unit: MeasurementUnit,
   tags: Record<string, string>,
 ): string {
-  const stringifiedTags = Object.entries(dropUndefinedKeys(tags)).sort() as unknown as string[];
-  return [metricType, name, unit].concat(stringifiedTags).join('');
+  const stringifiedTags = Object.entries(dropUndefinedKeys(tags)).sort((a, b) => a[0].localeCompare(b[0]));
+  return `${metricType}${name}${unit}${stringifiedTags}`;
 }
 
 /* eslint-disable no-bitwise */

@@ -4,6 +4,7 @@ import type { BaseClient } from '../baseclient';
 import { DEBUG_BUILD } from '../debug-build';
 import { getCurrentHub } from '../hub';
 import { COUNTER_METRIC_TYPE, DISTRIBUTION_METRIC_TYPE, GAUGE_METRIC_TYPE, SET_METRIC_TYPE } from './constants';
+import { MetricsAggregator } from './integration';
 import type { MetricType } from './types';
 
 interface MetricData {
@@ -24,7 +25,7 @@ function addToMetricsAggregator(
   if (client) {
     if (!client.metricsAggregator) {
       DEBUG_BUILD &&
-        logger.warn('No metrics aggregator enabled. Please add the Metrics integration to use metrics APIs');
+        logger.warn('No metrics aggregator enabled. Please add the MetricsAggregator integration to use metrics APIs');
       return;
     }
     const { unit, tags, timestamp } = data;
@@ -87,4 +88,5 @@ export const metrics = {
   distribution,
   set,
   gauge,
+  MetricsAggregator,
 };

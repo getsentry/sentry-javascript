@@ -57,7 +57,6 @@ export {
   FunctionToString,
   InboundFilters,
   metrics,
-  Metrics,
 } from '@sentry/core';
 
 export { WINDOW } from './helpers';

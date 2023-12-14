@@ -40,10 +40,14 @@ export class GaugeMetric implements MetricInstance {
   /** @inheritdoc */
   public add(value: number): void {
     this._last = value;
-    this._min = Math.min(this._min, value);
-    this._max = Math.max(this._max, value);
+    if (value < this._min) {
+      this._min = value;
+    }
+    if (value > this._max) {
+      this._max = value;
+    }
     this._sum += value;
-    this._count += 1;
+    this._count++;
   }
 
   /** @inheritdoc */

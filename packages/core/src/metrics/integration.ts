@@ -7,11 +7,11 @@ import { SimpleMetricsAggregator } from './simpleaggregator';
  *
  * @experimental This API is experimental and might having breaking changes in the future.
  */
-export class Metrics implements Integration {
+export class MetricsAggregator implements Integration {
   /**
    * @inheritDoc
    */
-  public static id: string = 'Metrics';
+  public static id: string = 'MetricsAggregator';
 
   /**
    * @inheritDoc
@@ -19,7 +19,7 @@ export class Metrics implements Integration {
   public name: string;
 
   public constructor() {
-    this.name = Metrics.id;
+    this.name = MetricsAggregator.id;
   }
 
   /**
