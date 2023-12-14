@@ -164,6 +164,13 @@ export function getDomElement<E = any>(selector: string): E | null {
   return null;
 }
 
+/**
+ * Given a DOM element, traverses up the tree until it finds the first ancestor node
+ * that has the `data-sentry-component` attribute. This attribute is added at build-time
+ * by projects that have the component name annotation plugin installed.
+ *
+ * @returns a string representation of the component for the provided DOM element, or `null` if not found
+ */
 export function getComponentName(elem: unknown) {
   let currentElem = elem as SimpleNode;
   const MAX_TRAVERSE_HEIGHT = 5;
