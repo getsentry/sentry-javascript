@@ -31,7 +31,7 @@ export class Offline implements Integration {
   /**
    * @inheritDoc
    */
-  public static id: string = 'Offline';
+  public static id = 'Offline';
 
   /**
    * @inheritDoc

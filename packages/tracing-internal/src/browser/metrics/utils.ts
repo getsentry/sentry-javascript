@@ -5,7 +5,7 @@ import type { Span, SpanContext } from '@sentry/types';
  * Checks if a given value is a valid measurement value.
  */
 export function isMeasurementValue(value: unknown): value is number {
-  return typeof value === 'number' && isFinite(value);
+  return typeof value === 'number' && Number.isFinite(value);
 }
 
 /**

@@ -1,7 +1,6 @@
 import type { Agent } from 'https';
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable max-lines */
-/* eslint-disable @typescript-eslint/ban-types */
 // Types vendored from @remix-run/server-runtime@1.6.0:
 // https://github.com/remix-run/remix/blob/f3691d51027b93caa3fd2cdfe146d7b62a6eb8f2/packages/remix-server-runtime/server.ts
 // Copyright 2021 Remix Software Inc.
@@ -123,8 +122,8 @@ export interface HtmlMetaDescriptor {
   title?: string;
 }
 
-export type CatchBoundaryComponent = ComponentType<{}>;
-export type RouteComponent = ComponentType<{}>;
+export type CatchBoundaryComponent = ComponentType<Record<string, unknown>>;
+export type RouteComponent = ComponentType<Record<string, unknown>>;
 export type ErrorBoundaryComponent = ComponentType<{ error: Error }>;
 export type RouteHandle = any;
 export interface LinksFunction {

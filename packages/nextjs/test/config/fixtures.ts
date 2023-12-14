@@ -87,7 +87,7 @@ export const clientWebpackConfig: WebpackConfigObject = {
 export function getBuildContext(
   buildTarget: 'server' | 'client' | 'edge',
   materializedNextConfig: ExportedNextConfig,
-  webpackVersion: string = '5.4.15',
+  webpackVersion = '5.4.15',
 ): BuildContext {
   return {
     dev: false,

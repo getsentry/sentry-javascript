@@ -54,12 +54,12 @@ export function setupSentryTest(hooks: NestedHooks): void {
     );
 
     // @ts-expect-error this is fine
-    QUnit.onError = function ({ message }: { message: string }) {
+    QUnit.onError = ({ message }: { message: string }) => {
       errorMessages.push(message.split('Error: ')[1]);
       return true;
     };
 
-    setupOnerror(function (error) {
+    setupOnerror(error => {
       errorMessages.push(error.message);
       throw error;
     });

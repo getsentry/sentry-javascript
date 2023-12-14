@@ -205,11 +205,7 @@ export class TestEnv {
    * @param {Record<string, string>} [headers]
    * @return {*}  {Promise<any>}
    */
-  public async getAPIResponse(
-    url?: string,
-    headers: Record<string, string> = {},
-    endServer: boolean = true,
-  ): Promise<unknown> {
+  public async getAPIResponse(url?: string, headers: Record<string, string> = {}, endServer = true): Promise<unknown> {
     try {
       const { data } = await axios.get(url || this.url, { headers });
       return data;

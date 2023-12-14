@@ -108,7 +108,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   /** Holds flushable  */
   private _outcomes: { [key: string]: number };
 
-  // eslint-disable-next-line @typescript-eslint/ban-types
+  // biome-ignore lint/complexity/noBannedTypes: Ignore for next line.
   private _hooks: Record<string, Function[]>;
 
   private _eventProcessors: EventProcessor[];
@@ -516,7 +516,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
    */
   protected _isClientDoneProcessing(timeout?: number): PromiseLike<boolean> {
     return new SyncPromise(resolve => {
-      let ticked: number = 0;
+      let ticked = 0;
       const tick: number = 1;
 
       const interval = setInterval(() => {

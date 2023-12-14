@@ -1,7 +1,6 @@
 // TODO(v8): Move everything in this file into the browser package. Nothing here is generic and we run risk of leaking browser types into non-browser packages.
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable @typescript-eslint/ban-types */
 import type { HandlerDataDom } from '@sentry/types';
 
 import { uuid4 } from '../misc';
@@ -25,6 +24,7 @@ type RemoveEventListener = (
 type InstrumentedElement = Element & {
   __sentry_instrumentation_handlers__?: {
     [key in 'click' | 'keypress']?: {
+      // biome-ignore lint/complexity/noBannedTypes: Disable
       handler?: Function;
       /** The number of custom listeners attached to this element */
       refCount: number;
@@ -78,47 +78,50 @@ export function instrumentDOM(): void {
       return;
     }
 
-    fill(proto, 'addEventListener', function (originalAddEventListener: AddEventListener): AddEventListener {
-      return function (
-        this: Element,
-        type: string,
-        listener: EventListenerOrEventListenerObject,
-        options?: boolean | AddEventListenerOptions,
-      ): AddEventListener {
-        if (type === 'click' || type == 'keypress') {
-          try {
-            const el = this as InstrumentedElement;
-            const handlers = (el.__sentry_instrumentation_handlers__ = el.__sentry_instrumentation_handlers__ || {});
-            const handlerForType = (handlers[type] = handlers[type] || { refCount: 0 });
+    fill(
+      proto,
+      'addEventListener',
+      (originalAddEventListener: AddEventListener): AddEventListener =>
+        function (
+          this: Element,
+          type: string,
+          listener: EventListenerOrEventListenerObject,
+          options?: boolean | AddEventListenerOptions,
+        ): AddEventListener {
+          if (type === 'click' || type === 'keypress') {
+            try {
+              const el = this as InstrumentedElement;
+              const handlers = (el.__sentry_instrumentation_handlers__ = el.__sentry_instrumentation_handlers__ || {});
+              const handlerForType = (handlers[type] = handlers[type] || { refCount: 0 });
 
-            if (!handlerForType.handler) {
-              const handler = makeDOMEventHandler(triggerDOMHandler);
-              handlerForType.handler = handler;
-              originalAddEventListener.call(this, type, handler, options);
+              if (!handlerForType.handler) {
+                const handler = makeDOMEventHandler(triggerDOMHandler);
+                handlerForType.handler = handler;
+                originalAddEventListener.call(this, type, handler, options);
+              }
+
+              handlerForType.refCount++;
+            } catch (e) {
+              // Accessing dom properties is always fragile.
+              // Also allows us to skip `addEventListenrs` calls with no proper `this` context.
             }
-
-            handlerForType.refCount++;
-          } catch (e) {
-            // Accessing dom properties is always fragile.
-            // Also allows us to skip `addEventListenrs` calls with no proper `this` context.
           }
-        }
 
-        return originalAddEventListener.call(this, type, listener, options);
-      };
-    });
+          return originalAddEventListener.call(this, type, listener, options);
+        },
+    );
 
     fill(
       proto,
       'removeEventListener',
-      function (originalRemoveEventListener: RemoveEventListener): RemoveEventListener {
-        return function (
+      (originalRemoveEventListener: RemoveEventListener): RemoveEventListener =>
+        function (
           this: Element,
           type: string,
           listener: EventListenerOrEventListenerObject,
           options?: boolean | EventListenerOptions,
         ): () => void {
-          if (type === 'click' || type == 'keypress') {
+          if (type === 'click' || type === 'keypress') {
             try {
               const el = this as InstrumentedElement;
               const handlers = el.__sentry_instrumentation_handlers__ || {};
@@ -145,8 +148,7 @@ export function instrumentDOM(): void {
           }
 
           return originalRemoveEventListener.call(this, type, listener, options);
-        };
-      },
+        },
     );
   });
 }
@@ -203,10 +205,7 @@ function shouldSkipDOMEvent(eventType: string, target: SentryWrappedTarget | nul
 /**
  * Wraps addEventListener to capture UI breadcrumbs
  */
-function makeDOMEventHandler(
-  handler: (data: HandlerDataDom) => void,
-  globalListener: boolean = false,
-): (event: Event) => void {
+function makeDOMEventHandler(handler: (data: HandlerDataDom) => void, globalListener = false): (event: Event) => void {
   return (event: Event & { _sentryCaptured?: true }): void => {
     // It's possible this handler might trigger multiple times for the same
     // event (e.g. event propagation through node ancestors).

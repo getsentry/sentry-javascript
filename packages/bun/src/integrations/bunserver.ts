@@ -9,7 +9,7 @@ export class BunServer implements Integration {
   /**
    * @inheritDoc
    */
-  public static id: string = 'BunServer';
+  public static id = 'BunServer';
 
   /**
    * @inheritDoc

@@ -25,7 +25,7 @@ export class VueIntegration implements Integration {
   /**
    * @inheritDoc
    */
-  public static id: string = 'Vue';
+  public static id = 'Vue';
 
   /**
    * @inheritDoc

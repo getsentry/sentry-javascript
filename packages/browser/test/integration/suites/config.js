@@ -1,19 +1,18 @@
-describe('config', function () {
-  it('should allow to ignore specific errors', function () {
-    return runInSandbox(sandbox, function () {
+describe('config', () => {
+  it('should allow to ignore specific errors', () =>
+    runInSandbox(sandbox, () => {
       Sentry.captureException(new Error('foo'));
       Sentry.captureException(new Error('ignoreErrorTest'));
       Sentry.captureException(new Error('bar'));
-    }).then(function (summary) {
+    }).then(summary => {
       assert.equal(summary.events[0].exception.values[0].type, 'Error');
       assert.equal(summary.events[0].exception.values[0].value, 'foo');
       assert.equal(summary.events[1].exception.values[0].type, 'Error');
       assert.equal(summary.events[1].exception.values[0].value, 'bar');
-    });
-  });
+    }));
 
-  it('should allow to ignore specific urls', function () {
-    return runInSandbox(sandbox, function () {
+  it('should allow to ignore specific urls', () =>
+    runInSandbox(sandbox, () => {
       /**
        * We always filter on the caller, not the cause of the error
        *
@@ -46,10 +45,9 @@ describe('config', function () {
 
       Sentry.captureException(urlWithDeniedUrl);
       Sentry.captureException(urlWithoutDeniedUrl);
-    }).then(function (summary) {
+    }).then(summary => {
       assert.lengthOf(summary.events, 1);
       assert.equal(summary.events[0].exception.values[0].type, 'Error');
       assert.equal(summary.events[0].exception.values[0].value, 'pass');
-    });
-  });
+    }));
 });

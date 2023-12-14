@@ -4,7 +4,6 @@
  *
  * Based on https://github.com/facebook/lexical/pull/3233
  */
-'use strict';
 
 // ------------------------------------------------------------------------------
 // Rule Definition

@@ -103,7 +103,6 @@ function _htmlElementAsString(el: unknown, keyAttrs?: string[]): string {
       out.push(`#${elem.id}`);
     }
 
-    // eslint-disable-next-line prefer-const
     className = elem.className;
     if (className && isString(className)) {
       classes = className.split(/\s+/);

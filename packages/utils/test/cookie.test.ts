@@ -30,36 +30,36 @@
 
 import { parseCookie } from '../src/cookie';
 
-describe('parseCookie(str)', function () {
-  it('should parse cookie string to object', function () {
+describe('parseCookie(str)', () => {
+  it('should parse cookie string to object', () => {
     expect(parseCookie('foo=bar')).toEqual({ foo: 'bar' });
     expect(parseCookie('foo=123')).toEqual({ foo: '123' });
   });
 
-  it('should ignore OWS', function () {
+  it('should ignore OWS', () => {
     expect(parseCookie('FOO    = bar;   baz  =   raz')).toEqual({ FOO: 'bar', baz: 'raz' });
   });
 
-  it('should parse cookie with empty value', function () {
+  it('should parse cookie with empty value', () => {
     expect(parseCookie('foo= ; bar=')).toEqual({ foo: '', bar: '' });
   });
 
-  it('should URL-decode values', function () {
+  it('should URL-decode values', () => {
     expect(parseCookie('foo="bar=123456789&name=Magic+Mouse"')).toEqual({ foo: 'bar=123456789&name=Magic+Mouse' });
 
     expect(parseCookie('email=%20%22%2c%3b%2f')).toEqual({ email: ' ",;/' });
   });
 
-  it('should return original value on escape error', function () {
+  it('should return original value on escape error', () => {
     expect(parseCookie('foo=%1;bar=bar')).toEqual({ foo: '%1', bar: 'bar' });
   });
 
-  it('should ignore cookies without value', function () {
+  it('should ignore cookies without value', () => {
     expect(parseCookie('foo=bar;fizz  ;  buzz')).toEqual({ foo: 'bar' });
     expect(parseCookie('  fizz; foo=  bar')).toEqual({ foo: 'bar' });
   });
 
-  it('should ignore duplicate cookies', function () {
+  it('should ignore duplicate cookies', () => {
     expect(parseCookie('foo=%1;bar=bar;foo=boo')).toEqual({ foo: '%1', bar: 'bar' });
     expect(parseCookie('foo=false;bar=bar;foo=tre')).toEqual({ foo: 'false', bar: 'bar' });
     expect(parseCookie('foo=;bar=bar;foo=boo')).toEqual({ foo: '', bar: 'bar' });

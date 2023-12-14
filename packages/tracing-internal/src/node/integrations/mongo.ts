@@ -107,7 +107,7 @@ export class Mongo implements LazyLoadedIntegration<MongoModule> {
   /**
    * @inheritDoc
    */
-  public static id: string = 'Mongo';
+  public static id = 'Mongo';
 
   /**
    * @inheritDoc
@@ -171,54 +171,57 @@ export class Mongo implements LazyLoadedIntegration<MongoModule> {
 
     const getSpanContext = this._getSpanContextFromOperationArguments.bind(this);
 
-    fill(collection.prototype, operation, function (orig: () => void | Promise<unknown>) {
-      return function (this: unknown, ...args: unknown[]) {
-        const lastArg = args[args.length - 1];
-        const scope = getCurrentHub().getScope();
-        const parentSpan = scope.getSpan();
+    fill(
+      collection.prototype,
+      operation,
+      (orig: () => void | Promise<unknown>) =>
+        function (this: unknown, ...args: unknown[]) {
+          const lastArg = args[args.length - 1];
+          const scope = getCurrentHub().getScope();
+          const parentSpan = scope.getSpan();
 
-        // Check if the operation was passed a callback. (mapReduce requires a different check, as
-        // its (non-callback) arguments can also be functions.)
-        if (typeof lastArg !== 'function' || (operation === 'mapReduce' && args.length === 2)) {
-          const span = parentSpan?.startChild(getSpanContext(this, operation, args));
-          const maybePromiseOrCursor = orig.call(this, ...args);
+          // Check if the operation was passed a callback. (mapReduce requires a different check, as
+          // its (non-callback) arguments can also be functions.)
+          if (typeof lastArg !== 'function' || (operation === 'mapReduce' && args.length === 2)) {
+            const span = parentSpan?.startChild(getSpanContext(this, operation, args));
+            const maybePromiseOrCursor = orig.call(this, ...args);
 
-          if (isThenable(maybePromiseOrCursor)) {
-            return maybePromiseOrCursor.then((res: unknown) => {
-              span?.finish();
-              return res;
-            });
-          }
-          // If the operation returns a Cursor
-          // we need to attach a listener to it to finish the span when the cursor is closed.
-          else if (isCursor(maybePromiseOrCursor)) {
-            const cursor = maybePromiseOrCursor as MongoCursor;
-
-            try {
-              cursor.once('close', () => {
+            if (isThenable(maybePromiseOrCursor)) {
+              return maybePromiseOrCursor.then((res: unknown) => {
                 span?.finish();
+                return res;
               });
-            } catch (e) {
-              // If the cursor is already closed, `once` will throw an error. In that case, we can
-              // finish the span immediately.
-              span?.finish();
             }
+            // If the operation returns a Cursor
+            // we need to attach a listener to it to finish the span when the cursor is closed.
+            else if (isCursor(maybePromiseOrCursor)) {
+              const cursor = maybePromiseOrCursor as MongoCursor;
 
-            return cursor;
-          } else {
-            span?.finish();
-            return maybePromiseOrCursor;
+              try {
+                cursor.once('close', () => {
+                  span?.finish();
+                });
+              } catch (e) {
+                // If the cursor is already closed, `once` will throw an error. In that case, we can
+                // finish the span immediately.
+                span?.finish();
+              }
+
+              return cursor;
+            } else {
+              span?.finish();
+              return maybePromiseOrCursor;
+            }
           }
-        }
 
-        const span = parentSpan?.startChild(getSpanContext(this, operation, args.slice(0, -1)));
+          const span = parentSpan?.startChild(getSpanContext(this, operation, args.slice(0, -1)));
 
-        return orig.call(this, ...args.slice(0, -1), function (err: Error, result: unknown) {
-          span?.finish();
-          lastArg(err, result);
-        });
-      };
-    });
+          return orig.call(this, ...args.slice(0, -1), (err: Error, result: unknown) => {
+            span?.finish();
+            lastArg(err, result);
+          });
+        },
+    );
   }
 
   /**

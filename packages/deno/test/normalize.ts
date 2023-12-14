@@ -71,8 +71,8 @@ function normalizeEvent(event: sentryTypes.Event): sentryTypes.Event {
     event.sdk.version = '{{version}}';
   }
 
-  if (event?.sdk?.packages) {
-    for (const pkg of event?.sdk?.packages) {
+  if (event.sdk?.packages) {
+    for (const pkg of event.sdk.packages) {
       if (pkg.version) {
         pkg.version = '{{version}}';
       }
@@ -91,10 +91,8 @@ function normalizeEvent(event: sentryTypes.Event): sentryTypes.Event {
     event.contexts.v8.version = '{{version}}';
   }
 
-  if (event.contexts?.runtime) {
-    if (event.contexts.runtime?.version) {
-      event.contexts.runtime.version = '{{version}}';
-    }
+  if (event.contexts?.runtime?.version) {
+    event.contexts.runtime.version = '{{version}}';
   }
 
   if (event.contexts?.device?.arch) {

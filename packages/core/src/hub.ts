@@ -88,7 +88,7 @@ export interface Carrier {
     integrations?: Integration[];
     extensions?: {
       /** Extension methods for the hub, which are bound to the current Hub instance */
-      // eslint-disable-next-line @typescript-eslint/ban-types
+      // biome-ignore lint/complexity/noBannedTypes: Ignore for next line.
       [key: string]: Function;
     };
   };
@@ -402,10 +402,11 @@ Sentry.init({...});
   /**
    * @inheritDoc
    */
-  public captureSession(endSession: boolean = false): void {
+  public captureSession(endSession = false): void {
     // both send the update and pull the session from the scope
     if (endSession) {
-      return this.endSession();
+      this.endSession();
+      return;
     }
 
     // only send the update

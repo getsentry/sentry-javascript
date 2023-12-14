@@ -1,5 +1,5 @@
 // biome-ignore format: Disabled due to trailing comma not working in IE10/11
-(function(
+((
   _window,
   _document,
   _script,
@@ -10,7 +10,7 @@
   _sdkBundleUrl,
   _config,
   _lazy
-) {
+) => {
   var lazy = _lazy;
   var forceLoad = false;
 
@@ -30,7 +30,7 @@
 
   // Create a namespace and attach function that will store captured exception
   // Because functions are also objects, we can attach the queue itself straight to it and save some bytes
-  var queue = function(content) {
+  var queue = (content) => {
     // content.e = error
     // content.p = promise rejection
     // content.f = function call the Sentry
@@ -68,7 +68,7 @@
     _newScriptTag.crossOrigin = 'anonymous';
 
     // Once our SDK is loaded
-    _newScriptTag.addEventListener('load', function() {
+    _newScriptTag.addEventListener('load', () => {
       try {
         // Restore onerror/onunhandledrejection handlers
         _window[_onerror] = _oldOnerror;
@@ -82,7 +82,7 @@
         var oldInit = SDK.init;
 
         // Configure it using provided DSN and config object
-        SDK.init = function(options) {
+        SDK.init = (options) => {
           var target = _config;
           for (var key in options) {
             if (Object.prototype.hasOwnProperty.call(options, key)) {
@@ -160,7 +160,7 @@
   // We make sure we do not overwrite window.Sentry since there could be already integrations in there
   _window[_namespace] = _window[_namespace] || {};
 
-  _window[_namespace].onLoad = function (callback) {
+  _window[_namespace].onLoad = (callback) => {
     onLoadCallbacks.push(callback);
     if (lazy && !forceLoad) {
       return;
@@ -168,10 +168,10 @@
     injectSdk(onLoadCallbacks);
   };
 
-  _window[_namespace].forceLoad = function() {
+  _window[_namespace].forceLoad = () => {
     forceLoad = true;
     if (lazy) {
-      setTimeout(function() {
+      setTimeout(() => {
         injectSdk(onLoadCallbacks);
       });
     }
@@ -187,8 +187,8 @@
     'configureScope',
     'withScope',
     'showReportDialog'
-  ].forEach(function(f) {
-    _window[_namespace][f] = function() {
+  ].forEach((f) => {
+    _window[_namespace][f] = () => {
       queue({ f: f, a: arguments });
     };
   });
@@ -196,7 +196,7 @@
   // Store reference to the old `onerror` handler and override it with our own function
   // that will just push exceptions to the queue and call through old handler if we found one
   var _oldOnerror = _window[_onerror];
-  _window[_onerror] = function(message, source, lineno, colno, exception) {
+  _window[_onerror] = (message, source, lineno, colno, exception) => {
     // Use keys as "data type" to save some characters"
     queue({
       e: [].slice.call(arguments)
@@ -207,7 +207,7 @@
 
   // Do the same store/queue/call operations for `onunhandledrejection` event
   var _oldOnunhandledrejection = _window[_onunhandledrejection];
-  _window[_onunhandledrejection] = function(e) {
+  _window[_onunhandledrejection] = (e) => {
     queue({
       p: 'reason' in e ? e.reason : 'detail' in e && 'reason' in e.detail ? e.detail.reason : e
     });
@@ -215,7 +215,7 @@
   };
 
   if (!lazy) {
-    setTimeout(function () {
+    setTimeout(() => {
       injectSdk(onLoadCallbacks);
     });
   }

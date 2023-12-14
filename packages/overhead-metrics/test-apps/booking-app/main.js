@@ -1,4 +1,4 @@
-(function () {
+(() => {
   const searchForm = document.querySelector('#search');
 
   searchForm.addEventListener('submit', event => {
@@ -7,7 +7,7 @@
     updateOffers();
   });
 
-  const obs = new MutationObserver(function (mutations) {
+  const obs = new MutationObserver(mutations => {
     console.log(mutations);
   });
 
@@ -25,7 +25,7 @@ function updateOffers() {
   const list = document.querySelector('.result-list');
 
   // Clear out existing children
-  for (let el of list.children) {
+  for (const el of list.children) {
     list.removeChild(el);
   }
 

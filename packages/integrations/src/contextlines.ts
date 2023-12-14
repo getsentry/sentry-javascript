@@ -30,7 +30,7 @@ export class ContextLines implements Integration {
   /**
    * @inheritDoc
    */
-  public static id: string = 'ContextLines';
+  public static id = 'ContextLines';
 
   /**
    * @inheritDoc

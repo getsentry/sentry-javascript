@@ -33,7 +33,7 @@ export class NodeFetch extends NodePerformanceIntegration<NodeFetchOptions> impl
   /**
    * @inheritDoc
    */
-  public static id: string = 'NodeFetch';
+  public static id = 'NodeFetch';
 
   /**
    * @inheritDoc

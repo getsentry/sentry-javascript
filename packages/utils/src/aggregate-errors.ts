@@ -9,7 +9,7 @@ import { truncate } from './string';
 export function applyAggregateErrorsToEvent(
   exceptionFromErrorImplementation: (stackParser: StackParser, ex: Error) => Exception,
   parser: StackParser,
-  maxValueLimit: number = 250,
+  maxValueLimit: number | undefined = 250,
   key: string,
   limit: number,
   event: Event,

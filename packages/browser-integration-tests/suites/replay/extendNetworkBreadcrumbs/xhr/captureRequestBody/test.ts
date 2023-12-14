@@ -41,7 +41,7 @@ sentryTest('captures text request body', async ({ getLocalTestPath, page, browse
     xhr.open('POST', 'http://localhost:7654/foo');
     xhr.send('input body');
 
-    xhr.addEventListener('readystatechange', function () {
+    xhr.addEventListener('readystatechange', () => {
       if (xhr.readyState === 4) {
         // @ts-expect-error Sentry is a global
         setTimeout(() => Sentry.captureException('test error', 0));
@@ -122,7 +122,7 @@ sentryTest('captures JSON request body', async ({ getLocalTestPath, page, browse
     xhr.open('POST', 'http://localhost:7654/foo');
     xhr.send('{"foo":"bar"}');
 
-    xhr.addEventListener('readystatechange', function () {
+    xhr.addEventListener('readystatechange', () => {
       if (xhr.readyState === 4) {
         // @ts-expect-error Sentry is a global
         setTimeout(() => Sentry.captureException('test error', 0));
@@ -207,7 +207,7 @@ sentryTest('captures non-text request body', async ({ getLocalTestPath, page, br
     xhr.open('POST', 'http://localhost:7654/foo');
     xhr.send(body);
 
-    xhr.addEventListener('readystatechange', function () {
+    xhr.addEventListener('readystatechange', () => {
       if (xhr.readyState === 4) {
         // @ts-expect-error Sentry is a global
         setTimeout(() => Sentry.captureException('test error', 0));
@@ -288,7 +288,7 @@ sentryTest('captures text request body when matching relative URL', async ({ get
     xhr.open('POST', '/foo');
     xhr.send('input body');
 
-    xhr.addEventListener('readystatechange', function () {
+    xhr.addEventListener('readystatechange', () => {
       if (xhr.readyState === 4) {
         // @ts-expect-error Sentry is a global
         setTimeout(() => Sentry.captureException('test error', 0));
@@ -369,7 +369,7 @@ sentryTest('does not capture request body when URL does not match', async ({ get
     xhr.open('POST', 'http://localhost:7654/bar');
     xhr.send('input body');
 
-    xhr.addEventListener('readystatechange', function () {
+    xhr.addEventListener('readystatechange', () => {
       if (xhr.readyState === 4) {
         // @ts-expect-error Sentry is a global
         setTimeout(() => Sentry.captureException('test error', 0));

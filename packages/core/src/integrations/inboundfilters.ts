@@ -33,7 +33,7 @@ export class InboundFilters implements Integration {
   /**
    * @inheritDoc
    */
-  public static id: string = 'InboundFilters';
+  public static id = 'InboundFilters';
 
   /**
    * @inheritDoc

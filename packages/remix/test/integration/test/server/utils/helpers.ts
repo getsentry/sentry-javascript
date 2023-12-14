@@ -12,7 +12,7 @@ export class RemixTestEnv extends TestEnv {
     super(server, url);
   }
 
-  public static async init(adapter: string = 'builtin'): Promise<RemixTestEnv> {
+  public static async init(adapter = 'builtin'): Promise<RemixTestEnv> {
     const requestHandlerFactory =
       adapter === 'express' ? wrapExpressCreateRequestHandler(createRequestHandler) : createRequestHandler;
 

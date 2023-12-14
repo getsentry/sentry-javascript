@@ -9,8 +9,8 @@ import { WINDOW } from './types';
  */
 export function instrumentRoutingWithDefaults<T extends Transaction>(
   customStartTransaction: (context: TransactionContext) => T | undefined,
-  startTransactionOnPageLoad: boolean = true,
-  startTransactionOnLocationChange: boolean = true,
+  startTransactionOnPageLoad = true,
+  startTransactionOnLocationChange = true,
 ): void {
   if (!WINDOW || !WINDOW.location) {
     DEBUG_BUILD && logger.warn('Could not initialize routing instrumentation due to invalid location');

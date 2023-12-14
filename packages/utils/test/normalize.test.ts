@@ -190,7 +190,6 @@ describe('normalize()', () => {
     });
 
     test('circular arrays', () => {
-      // eslint-disable-next-line @typescript-eslint/ban-types
       const obj: object[] = [];
       obj.push(obj);
       obj.push(obj);
@@ -198,7 +197,6 @@ describe('normalize()', () => {
     });
 
     test('circular arrays with intermediaries', () => {
-      // eslint-disable-next-line @typescript-eslint/ban-types
       const obj: object[] = [];
       obj.push({ name: 'Alice', self: obj });
       obj.push({ name: 'Bob', self: obj });

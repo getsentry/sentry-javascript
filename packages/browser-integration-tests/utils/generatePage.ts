@@ -10,7 +10,7 @@ export async function generatePage(
   subjectPath: string,
   templatePath: string,
   outPath: string,
-  outPageName: string = 'index.html',
+  outPageName = 'index.html',
 ): Promise<void> {
   const localPath = `${outPath}/dist`;
   const bundlePath = `${localPath}/${outPageName}}`;

@@ -1,3 +1,3 @@
-new Promise(function (resolve, reject) {
+new Promise((resolve, reject) => {
   reject('this is unhandled');
 });

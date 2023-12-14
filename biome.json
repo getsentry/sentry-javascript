@@ -11,18 +11,60 @@
   "linter": {
     "enabled": true,
     "rules": {
-      "recommended": false,
+      "recommended": true,
+      "a11y": {
+        "all": false
+      },
+      "complexity": {
+        "noForEach": "off",
+        "noUselessConstructor": "off",
+        "noStaticOnlyClass": "off",
+        "useOptionalChain": "off",
+        "useLiteralKeys": "off"
+      },
       "correctness": {
-        "all": false,
-        "noUnusedVariables": "error",
-        "noPrecisionLoss": "error"
+        "noEmptyPattern": "off",
+        "noInnerDeclarations": "off",
+        "noVoidTypeReturn": "off",
+        "noEmptyCharacterClassInRegex": "off"
+      },
+      "performance": {
+        "noDelete": "off"
+      },
+      "security": {
+        "all": true
+      },
+      "style": {
+        "noArguments": "off",
+        "noCommaOperator": "off",
+        "noNonNullAssertion": "off",
+        "noUselessElse": "off",
+        "useTemplate": "off",
+        "noVar": "off",
+        "useSingleVarDeclarator": "off",
+        "useDefaultParameterLast": "off",
+        "useExponentiationOperator": "off"
       },
       "suspicious": {
-        "all": false,
-        "noControlCharactersInRegex": "error"
+        "noDebugger": "off",
+        "noDoubleEquals": "off",
+        "noExplicitAny": "off",
+        "noRedeclare": "off",
+        "noAssignInExpressions": "off",
+        "noConfusingVoidType": "off",
+        "noPrototypeBuiltins": "off",
+        "noShadowRestrictedNames": "off",
+        "noControlCharactersInRegex": "off"
       }
     },
-    "ignore": [".vscode/*", "**/*.json"]
+    "ignore": [
+      ".vscode/*",
+      "**/*.json",
+      "**/*.min.js",
+      "packages/browser-integration-tests/fixtures/loader.js",
+      "packages/browser/test/integration/polyfills/*.js",
+      "packages/replay-worker/examples/worker.js"
+    ]
   },
   "files": {
     "ignoreUnknown": true
@@ -44,6 +86,7 @@
     ]
   },
   "javascript": {
+    "globals": ["expect", "describe", "test", "it", "beforeEach", "afterEach", "beforeAll", "afterAll"],
     "formatter": {
       "enabled": true,
       "quoteStyle": "single",

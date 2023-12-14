@@ -23,12 +23,6 @@ const buildDir = packageWithBundles ? NPM_BUILD_DIR : BUILD_DIR;
 
 type PackageJsonEntryPoints = Record<(typeof ENTRY_POINTS)[number], string>;
 
-interface TypeVersions {
-  [key: string]: {
-    [key: string]: string[];
-  };
-}
-
 interface PackageJson extends Record<string, unknown>, PackageJsonEntryPoints {
   [EXPORT_MAP_ENTRY_POINT]: {
     [key: string]: {
@@ -40,7 +34,7 @@ interface PackageJson extends Record<string, unknown>, PackageJsonEntryPoints {
       default: string;
     };
   };
-  [TYPES_VERSIONS_ENTRY_POINT]: TypeVersions;
+  [TYPES_VERSIONS_ENTRY_POINT]: Record<string, Record<string, string[]>>;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -79,7 +73,8 @@ if (newPkgJson[EXPORT_MAP_ENTRY_POINT]) {
   Object.entries(newPkgJson[EXPORT_MAP_ENTRY_POINT]).forEach(([key, val]) => {
     newPkgJson[EXPORT_MAP_ENTRY_POINT][key] = Object.entries(val).reduce(
       (acc, [key, val]) => {
-        return { ...acc, [key]: val.replace(`${buildDir}/`, '') };
+        acc[key as keyof typeof acc] = val.replace(`${buildDir}/`, '');
+        return acc;
       },
       {} as typeof val,
     );
@@ -88,10 +83,14 @@ if (newPkgJson[EXPORT_MAP_ENTRY_POINT]) {
 
 if (newPkgJson[TYPES_VERSIONS_ENTRY_POINT]) {
   Object.entries(newPkgJson[TYPES_VERSIONS_ENTRY_POINT]).forEach(([key, val]) => {
-    newPkgJson[TYPES_VERSIONS_ENTRY_POINT][key] = Object.entries(val).reduce((acc, [key, val]) => {
-      const newKey = key.replace(`${buildDir}/`, '');
-      return { ...acc, [newKey]: val.map(v => v.replace(`${buildDir}/`, '')) };
-    }, {});
+    newPkgJson[TYPES_VERSIONS_ENTRY_POINT][key] = Object.entries(val).reduce(
+      (acc, [key, val]) => {
+        const newKey = key.replace(`${buildDir}/`, '');
+        acc[newKey] = val.map(v => v.replace(`${buildDir}/`, ''));
+        return acc;
+      },
+      {} as Record<string, string[]>,
+    );
   });
 }
 

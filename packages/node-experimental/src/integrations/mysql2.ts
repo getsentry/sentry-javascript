@@ -14,7 +14,7 @@ export class Mysql2 extends NodePerformanceIntegration<void> implements Integrat
   /**
    * @inheritDoc
    */
-  public static id: string = 'Mysql2';
+  public static id = 'Mysql2';
 
   /**
    * @inheritDoc

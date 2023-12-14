@@ -41,7 +41,7 @@ sentryTest('captures request body size when body is sent', async ({ getLocalTest
     xhr.open('POST', 'http://localhost:7654/foo');
     xhr.send('{"foo":"bar"}');
 
-    xhr.addEventListener('readystatechange', function () {
+    xhr.addEventListener('readystatechange', () => {
       if (xhr.readyState === 4) {
         // @ts-expect-error Sentry is a global
         setTimeout(() => Sentry.captureException('test error', 0));
@@ -132,7 +132,7 @@ sentryTest('captures request size from non-text request body', async ({ getLocal
     xhr.open('POST', 'http://localhost:7654/foo');
     xhr.send(blob);
 
-    xhr.addEventListener('readystatechange', function () {
+    xhr.addEventListener('readystatechange', () => {
       if (xhr.readyState === 4) {
         // @ts-expect-error Sentry is a global
         setTimeout(() => Sentry.captureException('test error', 0));

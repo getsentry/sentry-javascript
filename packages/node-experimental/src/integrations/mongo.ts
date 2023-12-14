@@ -14,7 +14,7 @@ export class Mongo extends NodePerformanceIntegration<void> implements Integrati
   /**
    * @inheritDoc
    */
-  public static id: string = 'Mongo';
+  public static id = 'Mongo';
 
   /**
    * @inheritDoc

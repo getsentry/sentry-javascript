@@ -13,7 +13,7 @@ const connection = mysql.createConnection({
   password: 'docker',
 });
 
-connection.connect(function (err: unknown) {
+connection.connect((err: unknown) => {
   if (err) {
     return;
   }

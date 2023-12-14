@@ -12,9 +12,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License. */
 
-document.addEventListener('DOMContentLoaded', function () {
-  'use strict';
-
+document.addEventListener('DOMContentLoaded', () => {
   var app = {},
     proto = document.querySelector('.proto'),
     movers,
@@ -33,7 +31,7 @@ document.addEventListener('DOMContentLoaded', function () {
   app.count = minimum;
   app.enableApp = true;
 
-  app.init = function () {
+  app.init = () => {
     if (movers) {
       bodySize = document.body.getBoundingClientRect();
       for (var i = 0; i < movers.length; i++) {
@@ -44,8 +42,8 @@ document.addEventListener('DOMContentLoaded', function () {
       document.body.removeChild(proto);
       maxHeight = Math.floor(bodySize.height - ballSize.height);
     }
+    var m = proto.cloneNode();
     for (var i = 0; i < app.count; i++) {
-      var m = proto.cloneNode();
       var top = Math.floor(Math.random() * maxHeight);
       if (top === maxHeight) {
         m.classList.add('up');
@@ -59,7 +57,7 @@ document.addEventListener('DOMContentLoaded', function () {
     movers = document.querySelectorAll('.mover');
   };
 
-  app.update = function (timestamp) {
+  app.update = timestamp => {
     for (var i = 0; i < app.count; i++) {
       var m = movers[i];
       if (!app.optimize) {
@@ -94,7 +92,7 @@ document.addEventListener('DOMContentLoaded', function () {
     frame = window.requestAnimationFrame(app.update);
   };
 
-  document.querySelector('.stop').addEventListener('click', function (e) {
+  document.querySelector('.stop').addEventListener('click', e => {
     if (app.enableApp) {
       cancelAnimationFrame(frame);
       e.target.textContent = 'Start';
@@ -106,7 +104,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   });
 
-  document.querySelector('.optimize').addEventListener('click', function (e) {
+  document.querySelector('.optimize').addEventListener('click', e => {
     if (e.target.textContent === 'Optimize') {
       app.optimize = true;
       e.target.textContent = 'Un-Optimize';
@@ -116,7 +114,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   });
 
-  add.addEventListener('click', function (e) {
+  add.addEventListener('click', e => {
     cancelAnimationFrame(frame);
     app.count += incrementor;
     subtract.disabled = false;
@@ -124,7 +122,7 @@ document.addEventListener('DOMContentLoaded', function () {
     frame = requestAnimationFrame(app.update);
   });
 
-  subtract.addEventListener('click', function () {
+  subtract.addEventListener('click', () => {
     cancelAnimationFrame(frame);
     app.count -= incrementor;
     app.init();
@@ -137,20 +135,19 @@ document.addEventListener('DOMContentLoaded', function () {
   function debounce(func, wait, immediate) {
     var timeout;
     return function () {
-      var context = this,
-        args = arguments;
-      var later = function () {
+      var args = arguments;
+      var later = () => {
         timeout = null;
-        if (!immediate) func.apply(context, args);
+        if (!immediate) func.apply(this, args);
       };
       var callNow = immediate && !timeout;
       clearTimeout(timeout);
       timeout = setTimeout(later, wait);
-      if (callNow) func.apply(context, args);
+      if (callNow) func.apply(this, args);
     };
   }
 
-  var onResize = debounce(function () {
+  var onResize = debounce(() => {
     if (app.enableApp) {
       cancelAnimationFrame(frame);
       app.init();

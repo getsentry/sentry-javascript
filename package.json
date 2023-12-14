@@ -20,7 +20,7 @@
     "codecov": "codecov",
     "fix": "run-s fix:lerna fix:biome",
     "fix:lerna": "lerna run fix",
-    "fix:biome": "biome check --apply-unsafe .",
+    "fix:biome": "biome check --apply .",
     "changelog": "ts-node ./scripts/get-commit-list.ts",
     "link:yarn": "lerna exec yarn link",
     "lint": "run-s lint:lerna lint:biome",

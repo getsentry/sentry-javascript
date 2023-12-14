@@ -6,7 +6,7 @@ import { mockSdk } from './../../index';
 jest.useFakeTimers();
 
 describe('Integration | coreHandlers | handleScope', () => {
-  it('returns a breadcrumb only if last breadcrumb has changed', async function () {
+  it('returns a breadcrumb only if last breadcrumb has changed', async () => {
     const { replay } = await mockSdk({ autoStart: false });
 
     // Note: mocks don't work for calls inside of the same module,

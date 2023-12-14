@@ -13,7 +13,7 @@ export class ExtraErrorData implements Integration {
   /**
    * @inheritDoc
    */
-  public static id: string = 'ExtraErrorData';
+  public static id = 'ExtraErrorData';
 
   /**
    * @inheritDoc
@@ -57,7 +57,7 @@ export class ExtraErrorData implements Integration {
   }
 }
 
-function _enhanceEventWithErrorData(event: Event, hint: EventHint = {}, depth: number): Event {
+function _enhanceEventWithErrorData(event: Event, hint: EventHint | undefined = {}, depth: number): Event {
   if (!hint.originalException || !isError(hint.originalException)) {
     return event;
   }

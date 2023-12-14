@@ -39,7 +39,7 @@ function isSentryInitialized() {
 }
 
 function areSentryOptionsDefined(params) {
-  if (params == undefined) return false;
+  if (params === undefined) return false;
   // Even if there aren't any options, there's a `plugins` property defined as an empty array
   if (Object.keys(params).length == 1 && Array.isArray(params.plugins) && params.plugins.length == 0) {
     return false;

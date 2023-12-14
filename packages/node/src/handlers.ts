@@ -331,7 +331,7 @@ interface TrpcMiddlewareArguments<T> {
  * e.g. Express Request Handlers or Next.js SDK.
  */
 export function trpcMiddleware(options: SentryTrpcMiddlewareOptions = {}) {
-  return function <T>({ path, type, next, rawInput }: TrpcMiddlewareArguments<T>): T {
+  return <T>({ path, type, next, rawInput }: TrpcMiddlewareArguments<T>): T => {
     const hub = getCurrentHub();
     const clientOptions = hub.getClient()?.getOptions();
     const sentryTransaction = hub.getScope().getTransaction();

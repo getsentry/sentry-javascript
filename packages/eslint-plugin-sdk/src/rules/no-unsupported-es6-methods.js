@@ -1,5 +1,3 @@
-'use strict';
-
 /**
  * Taken and adapted from https://github.com/nkt/eslint-plugin-es5/blob/master/src/rules/no-es6-methods.js
  */

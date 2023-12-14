@@ -7,9 +7,9 @@ import { Integrations, Span } from '../../../src';
 import { getTestClient } from '../../testutils';
 
 class Collection {
-  public collectionName: string = 'mockedCollectionName';
-  public dbName: string = 'mockedDbName';
-  public namespace: string = 'mockedNamespace';
+  public collectionName = 'mockedCollectionName';
+  public dbName = 'mockedDbName';
+  public namespace = 'mockedNamespace';
 
   // Method that can have a callback as last argument, or return a promise otherwise.
   public insertOne(_doc: unknown, _options: unknown, callback?: () => void) {
@@ -70,7 +70,7 @@ describe('patchOperation()', () => {
   });
 
   it('should wrap method accepting callback as the last argument', done => {
-    collection.insertOne(doc, {}, function () {
+    collection.insertOne(doc, {}, () => {
       expect(scope.getSpan).toBeCalled();
       expect(parentSpan.startChild).toBeCalledWith({
         data: {
@@ -86,7 +86,7 @@ describe('patchOperation()', () => {
       });
       expect(childSpan.finish).toBeCalled();
       done();
-    }) as void;
+    }) as any;
   });
 
   it('should wrap method accepting no callback as the last argument but returning promise', async () => {

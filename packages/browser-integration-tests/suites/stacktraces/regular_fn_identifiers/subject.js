@@ -14,9 +14,9 @@ class Test {
   }
 }
 
-const qux = function() {
+const qux = () => {
   (() => {
-    (function() {
+    (() => {
       foo();
     })();
   })();

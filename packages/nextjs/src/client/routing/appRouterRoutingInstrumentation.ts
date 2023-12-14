@@ -13,8 +13,8 @@ const DEFAULT_TAGS = {
  */
 export function appRouterInstrumentation(
   startTransactionCb: StartTransactionCb,
-  startTransactionOnPageLoad: boolean = true,
-  startTransactionOnLocationChange: boolean = true,
+  startTransactionOnPageLoad = true,
+  startTransactionOnLocationChange = true,
 ): void {
   // We keep track of the active transaction so we can finish it when we start a navigation transaction.
   let activeTransaction: Transaction | undefined = undefined;

@@ -13,7 +13,7 @@ const connection = mysql.createConnection({
   password: 'docker',
 });
 
-connection.connect(function (err: unknown) {
+connection.connect((err: unknown) => {
   if (err) {
     return;
   }
@@ -28,7 +28,7 @@ Sentry.configureScope(scope => {
   scope.setSpan(transaction);
 });
 
-connection.query('SELECT 1 + 1 AS solution', function () {
+connection.query('SELECT 1 + 1 AS solution', () => {
   connection.query('SELECT NOW()', ['1', '2'], () => {
     if (transaction) transaction.finish();
     connection.end();

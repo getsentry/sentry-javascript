@@ -62,9 +62,7 @@ describe('Integration | events', () => {
   it('does not create replay event when there are no events to send', async () => {
     Object.defineProperty(document, 'visibilityState', {
       configurable: true,
-      get: function () {
-        return 'hidden';
-      },
+      get: () => 'hidden',
     });
 
     document.dispatchEvent(new Event('visibilitychange'));
@@ -91,16 +89,14 @@ describe('Integration | events', () => {
     });
   });
 
-  it('has correct timestamps when there are events earlier than initial timestamp', async function () {
+  it('has correct timestamps when there are events earlier than initial timestamp', async () => {
     clearSession(replay);
     replay['_initializeSessionForSampling']();
     replay.setInitialState();
     mockTransportSend.mockClear();
     Object.defineProperty(document, 'visibilityState', {
       configurable: true,
-      get: function () {
-        return 'hidden';
-      },
+      get: () => 'hidden',
     });
 
     document.dispatchEvent(new Event('visibilitychange'));
@@ -134,7 +130,7 @@ describe('Integration | events', () => {
     });
   });
 
-  it('does not have stale `replay_start_timestamp` due to an old time origin', async function () {
+  it('does not have stale `replay_start_timestamp` due to an old time origin', async () => {
     const ELAPSED = 86400000 * 2; // 2 days
     // Add a mock performance event that happens 2 days ago. This can happen in the browser
     // when a tab has sat idle for a long period and user comes back to it.

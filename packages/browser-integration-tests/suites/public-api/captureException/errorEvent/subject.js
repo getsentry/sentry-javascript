@@ -1,4 +1,4 @@
-window.addEventListener('error', function (event) {
+window.addEventListener('error', event => {
   Sentry.captureException(event);
 });
 

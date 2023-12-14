@@ -28,8 +28,8 @@ export function onWindowOpen(cb: WindowOpenHandler): () => void {
 }
 
 function monkeyPatchWindowOpen(): void {
-  fill(WINDOW, 'open', function (originalWindowOpen: () => void): () => void {
-    return function (...args: unknown[]): void {
+  fill(WINDOW, 'open', (originalWindowOpen: () => void): (() => void) =>
+    (...args: unknown[]): void => {
       if (handlers) {
         try {
           handlers.forEach(handler => handler());
@@ -39,6 +39,5 @@ function monkeyPatchWindowOpen(): void {
       }
 
       return originalWindowOpen.apply(WINDOW, args);
-    };
-  });
+    });
 }

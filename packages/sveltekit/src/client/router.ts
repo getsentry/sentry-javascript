@@ -20,8 +20,8 @@ const DEFAULT_TAGS = {
  */
 export function svelteKitRoutingInstrumentation<T extends Transaction>(
   startTransactionFn: (context: TransactionContext) => T | undefined,
-  startTransactionOnPageLoad: boolean = true,
-  startTransactionOnLocationChange: boolean = true,
+  startTransactionOnPageLoad = true,
+  startTransactionOnLocationChange = true,
 ): void {
   if (startTransactionOnPageLoad) {
     instrumentPageload(startTransactionFn);

@@ -43,7 +43,7 @@ export class OnUncaughtException implements Integration {
   /**
    * @inheritDoc
    */
-  public static id: string = 'OnUncaughtException';
+  public static id = 'OnUncaughtException';
 
   /**
    * @inheritDoc
@@ -80,9 +80,9 @@ export class OnUncaughtException implements Integration {
    */
   private _makeErrorHandler(): (error: Error) => void {
     const timeout = 2000;
-    let caughtFirstError: boolean = false;
-    let caughtSecondError: boolean = false;
-    let calledFatalError: boolean = false;
+    let caughtFirstError = false;
+    let caughtSecondError = false;
+    let calledFatalError = false;
     let firstError: Error;
 
     return (error: Error): void => {

@@ -23,7 +23,7 @@ function throwNonError() {
 }
 
 function throwError(message) {
-  // eslint-disable-next-line no-param-reassign
+  // biome-ignore lint/style/noParameterAssign: Disable
   message = message || 'foo';
   try {
     throw new Error(message);
@@ -46,7 +46,7 @@ function throwSameConsecutiveErrors(message) {
 }
 
 function captureMessage(message) {
-  // eslint-disable-next-line no-param-reassign
+  // biome-ignore lint/style/noParameterAssign: Disable
   message = message || 'message';
   Sentry.captureMessage(message);
 }

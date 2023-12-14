@@ -17,7 +17,7 @@ export class GoogleCloudHttp implements Integration {
   /**
    * @inheritDoc
    */
-  public static id: string = 'GoogleCloudHttp';
+  public static id = 'GoogleCloudHttp';
 
   /**
    * @inheritDoc

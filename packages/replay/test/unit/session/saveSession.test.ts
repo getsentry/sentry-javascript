@@ -11,7 +11,7 @@ describe('Unit | session | saveSession', () => {
     WINDOW.sessionStorage.clear();
   });
 
-  it('saves a valid session', function () {
+  it('saves a valid session', () => {
     const session = makeSession({
       id: 'fd09adfc4117477abc8de643e5a5798a',
       segmentId: 0,

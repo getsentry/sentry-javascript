@@ -115,8 +115,8 @@ const client = getClient();
  */
 export function pagesRouterInstrumentation(
   startTransactionCb: StartTransactionCb,
-  startTransactionOnPageLoad: boolean = true,
-  startTransactionOnLocationChange: boolean = true,
+  startTransactionOnPageLoad = true,
+  startTransactionOnLocationChange = true,
 ): void {
   const { route, params, sentryTrace, baggage } = extractNextDataTagInformation();
   const { traceparentData, dynamicSamplingContext, propagationContext } = tracingContextFromHeaders(

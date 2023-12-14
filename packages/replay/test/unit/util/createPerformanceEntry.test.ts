@@ -10,7 +10,7 @@ import { createPerformanceEntries, getLargestContentfulPaint } from '../../../sr
 import { PerformanceEntryNavigation } from '../../fixtures/performanceEntry/navigation';
 
 describe('Unit | util | createPerformanceEntries', () => {
-  beforeEach(function () {
+  beforeEach(() => {
     if (!WINDOW.performance.getEntriesByType) {
       WINDOW.performance.getEntriesByType = jest.fn((type: string) => {
         if (type === 'navigation') {
@@ -21,12 +21,12 @@ describe('Unit | util | createPerformanceEntries', () => {
     }
   });
 
-  afterAll(function () {
+  afterAll(() => {
     jest.clearAllMocks();
     jest.useRealTimers();
   });
 
-  it('ignores sdks own requests', function () {
+  it('ignores sdks own requests', () => {
     const data = {
       name: 'https://ingest.f00.f00/api/1/envelope/?sentry_key=dsn&sentry_version=7',
       entryType: 'resource',

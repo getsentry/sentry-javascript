@@ -14,7 +14,7 @@ export class Express extends NodePerformanceIntegration<void> implements Integra
   /**
    * @inheritDoc
    */
-  public static id: string = 'Express';
+  public static id = 'Express';
 
   /**
    * @inheritDoc

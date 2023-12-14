@@ -33,7 +33,7 @@ export function withSentryConfig(
       );
 
       if (isThenable(maybeUserNextConfigObject)) {
-        return maybeUserNextConfigObject.then(function (userNextConfigObject: NextConfigObjectWithSentry) {
+        return maybeUserNextConfigObject.then((userNextConfigObject: NextConfigObjectWithSentry) => {
           const userSentryOptions = { ...userNextConfigObject.sentry, ...sentryOptions };
           return getFinalConfigObject(userNextConfigObject, userSentryOptions, userSentryWebpackPluginOptions);
         });

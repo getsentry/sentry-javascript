@@ -50,7 +50,7 @@ export class Postgres implements LazyLoadedIntegration<PGModule> {
   /**
    * @inheritDoc
    */
-  public static id: string = 'Postgres';
+  public static id = 'Postgres';
 
   /**
    * @inheritDoc
@@ -102,65 +102,68 @@ export class Postgres implements LazyLoadedIntegration<PGModule> {
      * function (query, params) => Promise
      * function (pg.Cursor) => pg.Cursor
      */
-    fill(Client.prototype, 'query', function (orig: PgClientQuery) {
-      return function (this: PgClientThis, config: unknown, values: unknown, callback: unknown) {
-        const scope = getCurrentHub().getScope();
-        const parentSpan = scope.getSpan();
+    fill(
+      Client.prototype,
+      'query',
+      (orig: PgClientQuery) =>
+        function (this: PgClientThis, config: unknown, values: unknown, callback: unknown) {
+          const scope = getCurrentHub().getScope();
+          const parentSpan = scope.getSpan();
 
-        const data: Record<string, string | number> = {
-          'db.system': 'postgresql',
-        };
+          const data: Record<string, string | number> = {
+            'db.system': 'postgresql',
+          };
 
-        try {
-          if (this.database) {
-            data['db.name'] = this.database;
+          try {
+            if (this.database) {
+              data['db.name'] = this.database;
+            }
+            if (this.host) {
+              data['server.address'] = this.host;
+            }
+            if (this.port) {
+              data['server.port'] = this.port;
+            }
+            if (this.user) {
+              data['db.user'] = this.user;
+            }
+          } catch (e) {
+            // ignore
           }
-          if (this.host) {
-            data['server.address'] = this.host;
-          }
-          if (this.port) {
-            data['server.port'] = this.port;
-          }
-          if (this.user) {
-            data['db.user'] = this.user;
-          }
-        } catch (e) {
-          // ignore
-        }
 
-        const span = parentSpan?.startChild({
-          description: typeof config === 'string' ? config : (config as { text: string }).text,
-          op: 'db',
-          origin: 'auto.db.postgres',
-          data,
-        });
-
-        if (typeof callback === 'function') {
-          return orig.call(this, config, values, function (err: Error, result: unknown) {
-            span?.finish();
-            callback(err, result);
+          const span = parentSpan?.startChild({
+            description: typeof config === 'string' ? config : (config as { text: string }).text,
+            op: 'db',
+            origin: 'auto.db.postgres',
+            data,
           });
-        }
 
-        if (typeof values === 'function') {
-          return orig.call(this, config, function (err: Error, result: unknown) {
-            span?.finish();
-            values(err, result);
-          });
-        }
+          if (typeof callback === 'function') {
+            return orig.call(this, config, values, (err: Error, result: unknown) => {
+              span?.finish();
+              callback(err, result);
+            });
+          }
 
-        const rv = typeof values !== 'undefined' ? orig.call(this, config, values) : orig.call(this, config);
+          if (typeof values === 'function') {
+            return orig.call(this, config, (err: Error, result: unknown) => {
+              span?.finish();
+              values(err, result);
+            });
+          }
 
-        if (isThenable(rv)) {
-          return rv.then((res: unknown) => {
-            span?.finish();
-            return res;
-          });
-        }
+          const rv = typeof values !== 'undefined' ? orig.call(this, config, values) : orig.call(this, config);
 
-        span?.finish();
-        return rv;
-      };
-    });
+          if (isThenable(rv)) {
+            return rv.then((res: unknown) => {
+              span?.finish();
+              return res;
+            });
+          }
+
+          span?.finish();
+          return rv;
+        },
+    );
   }
 }

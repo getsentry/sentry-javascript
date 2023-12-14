@@ -1,5 +1,5 @@
 import type { Options, SamplingContext } from '@sentry/types';
-import { isNaN, logger } from '@sentry/utils';
+import { logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../debug-build';
 import { hasTracingEnabled } from '../utils/hasTracingEnabled';
@@ -103,7 +103,7 @@ export function sampleTransaction<T extends Transaction>(
 function isValidSampleRate(rate: unknown): boolean {
   // we need to check NaN explicitly because it's of type 'number' and therefore wouldn't get caught by this typecheck
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  if (isNaN(rate) || !(typeof rate === 'number' || typeof rate === 'boolean')) {
+  if (Number.isNaN(rate) || !(typeof rate === 'number' || typeof rate === 'boolean')) {
     DEBUG_BUILD &&
       logger.warn(
         `[Tracing] Given sample rate is invalid. Sample rate must be a boolean or a number between 0 and 1. Got ${JSON.stringify(

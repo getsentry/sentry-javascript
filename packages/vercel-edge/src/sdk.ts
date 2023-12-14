@@ -44,7 +44,7 @@ export function init(options: VercelEdgeOptions = {}): void {
 
   if (options.tracesSampleRate === undefined && process.env.SENTRY_TRACES_SAMPLE_RATE) {
     const tracesSampleRate = parseFloat(process.env.SENTRY_TRACES_SAMPLE_RATE);
-    if (isFinite(tracesSampleRate)) {
+    if (Number.isFinite(tracesSampleRate)) {
       options.tracesSampleRate = tracesSampleRate;
     }
   }

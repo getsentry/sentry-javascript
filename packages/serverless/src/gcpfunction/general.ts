@@ -9,7 +9,8 @@ export interface EventFunction {
 }
 
 export interface EventFunctionWithCallback {
-  (data: Record<string, any>, context: Context, callback: Function): any; // eslint-disable-line @typescript-eslint/no-explicit-any, @typescript-eslint/ban-types
+  // biome-ignore lint/complexity/noBannedTypes: Disable
+  (data: Record<string, any>, context: Context, callback: Function): any; // eslint-disable-line @typescript-eslint/no-explicit-any
 }
 
 export interface CloudEventFunction {
@@ -17,7 +18,8 @@ export interface CloudEventFunction {
 }
 
 export interface CloudEventFunctionWithCallback {
-  (cloudevent: CloudEventsContext, callback: Function): any; // eslint-disable-line @typescript-eslint/no-explicit-any, @typescript-eslint/ban-types
+  // biome-ignore lint/complexity/noBannedTypes: Disable
+  (cloudevent: CloudEventsContext, callback: Function): any; // eslint-disable-line @typescript-eslint/no-explicit-any
 }
 
 export interface CloudFunctionsContext {

@@ -9,7 +9,7 @@ export { escapeStringForRegex } from './vendor/escapeStringForRegex';
  * @param max Maximum number of characters in truncated string (0 = unlimited)
  * @returns string Encoded
  */
-export function truncate(str: string, max: number = 0): string {
+export function truncate(str: string, max = 0): string {
   if (typeof str !== 'string' || max === 0) {
     return str;
   }
@@ -31,7 +31,7 @@ export function snipLine(line: string, colno: number): string {
     return newLine;
   }
   if (colno > lineLength) {
-    // eslint-disable-next-line no-param-reassign
+    // biome-ignore lint/style/noParameterAssign: Disable
     colno = lineLength;
   }
 
@@ -102,11 +102,7 @@ export function safeJoin(input: any[], delimiter?: string): string {
  * @param requireExactStringMatch If true, `value` must match `pattern` exactly. If false, `value` will match
  * `pattern` if it contains `pattern`. Only applies to string-type patterns.
  */
-export function isMatchingPattern(
-  value: string,
-  pattern: RegExp | string,
-  requireExactStringMatch: boolean = false,
-): boolean {
+export function isMatchingPattern(value: string, pattern: RegExp | string, requireExactStringMatch = false): boolean {
   if (!isString(value)) {
     return false;
   }
@@ -134,7 +130,7 @@ export function isMatchingPattern(
 export function stringMatchesSomePattern(
   testString: string,
   patterns: Array<string | RegExp> = [],
-  requireExactStringMatch: boolean = false,
+  requireExactStringMatch = false,
 ): boolean {
   return patterns.some(pattern => isMatchingPattern(testString, pattern, requireExactStringMatch));
 }

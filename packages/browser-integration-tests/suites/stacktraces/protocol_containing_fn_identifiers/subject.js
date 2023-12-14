@@ -14,7 +14,7 @@ class Response {
   }
 }
 
-const decodeBlob = function() {
+const decodeBlob = () => {
   (function readFile() {
     httpsCall();
   })();

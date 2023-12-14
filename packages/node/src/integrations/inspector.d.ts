@@ -3,7 +3,6 @@
 /* eslint-disable @typescript-eslint/unified-signatures */
 /* eslint-disable @typescript-eslint/explicit-member-accessibility */
 /* eslint-disable max-lines */
-/* eslint-disable @typescript-eslint/ban-types */
 // Type definitions for inspector
 
 // These definitions were copied from:
@@ -277,7 +276,7 @@ declare module 'inspector' {
       /**
        * Embedder-specific auxiliary data.
        */
-      auxData?: {} | undefined;
+      auxData?: Record<string, unknown> | undefined;
     }
     /**
      * Detailed information about exception (or error) that was thrown during script compilation or execution.
@@ -710,7 +709,7 @@ declare module 'inspector' {
     }
     interface InspectRequestedEventDataType {
       object: RemoteObject;
-      hints: {};
+      hints: Record<string, unknown>;
     }
   }
   namespace Debugger {
@@ -1182,7 +1181,7 @@ declare module 'inspector' {
       /**
        * Embedder-specific auxiliary data.
        */
-      executionContextAuxData?: {} | undefined;
+      executionContextAuxData?: Record<string, unknown> | undefined;
       /**
        * True, if this script is generated as a result of the live edit operation.
        * @experimental
@@ -1246,7 +1245,7 @@ declare module 'inspector' {
       /**
        * Embedder-specific auxiliary data.
        */
-      executionContextAuxData?: {} | undefined;
+      executionContextAuxData?: Record<string, unknown> | undefined;
       /**
        * URL of source map associated with script (if any).
        */
@@ -1291,7 +1290,7 @@ declare module 'inspector' {
       /**
        * Object containing break-specific auxiliary properties.
        */
-      data?: {} | undefined;
+      data?: Record<string, unknown> | undefined;
       /**
        * Hit breakpoints IDs
        */
@@ -1706,7 +1705,7 @@ declare module 'inspector' {
       categories: string[];
     }
     interface DataCollectedEventDataType {
-      value: Array<{}>;
+      value: Record<string, unknown>[];
     }
   }
   namespace NodeWorker {
@@ -1812,8 +1811,12 @@ declare module 'inspector' {
      * protocol.
      * @since v8.0.0
      */
-    post(method: string, params?: {}, callback?: (err: Error | null, params?: {}) => void): void;
-    post(method: string, callback?: (err: Error | null, params?: {}) => void): void;
+    post(
+      method: string,
+      params?: Record<string, unknown>,
+      callback?: (err: Error | null, params?: Record<string, unknown>) => void,
+    ): void;
+    post(method: string, callback?: (err: Error | null, params?: Record<string, unknown>) => void): void;
     /**
      * Returns supported domains.
      */
@@ -2402,7 +2405,10 @@ declare module 'inspector' {
     /**
      * Emitted when any notification from the V8 Inspector is received.
      */
-    addListener(event: 'inspectorNotification', listener: (message: InspectorNotification<{}>) => void): this;
+    addListener(
+      event: 'inspectorNotification',
+      listener: (message: InspectorNotification<Record<string, unknown>>) => void,
+    ): this;
     /**
      * Issued when new execution context is created.
      */
@@ -2564,7 +2570,7 @@ declare module 'inspector' {
      */
     addListener(event: 'NodeRuntime.waitingForDisconnect', listener: () => void): this;
     emit(event: string | symbol, ...args: any[]): boolean;
-    emit(event: 'inspectorNotification', message: InspectorNotification<{}>): boolean;
+    emit(event: 'inspectorNotification', message: InspectorNotification<Record<string, unknown>>): boolean;
     emit(
       event: 'Runtime.executionContextCreated',
       message: InspectorNotification<Runtime.ExecutionContextCreatedEventDataType>,
@@ -2649,7 +2655,10 @@ declare module 'inspector' {
     /**
      * Emitted when any notification from the V8 Inspector is received.
      */
-    on(event: 'inspectorNotification', listener: (message: InspectorNotification<{}>) => void): this;
+    on(
+      event: 'inspectorNotification',
+      listener: (message: InspectorNotification<Record<string, unknown>>) => void,
+    ): this;
     /**
      * Issued when new execution context is created.
      */
@@ -2814,7 +2823,10 @@ declare module 'inspector' {
     /**
      * Emitted when any notification from the V8 Inspector is received.
      */
-    once(event: 'inspectorNotification', listener: (message: InspectorNotification<{}>) => void): this;
+    once(
+      event: 'inspectorNotification',
+      listener: (message: InspectorNotification<Record<string, unknown>>) => void,
+    ): this;
     /**
      * Issued when new execution context is created.
      */
@@ -2979,7 +2991,10 @@ declare module 'inspector' {
     /**
      * Emitted when any notification from the V8 Inspector is received.
      */
-    prependListener(event: 'inspectorNotification', listener: (message: InspectorNotification<{}>) => void): this;
+    prependListener(
+      event: 'inspectorNotification',
+      listener: (message: InspectorNotification<Record<string, unknown>>) => void,
+    ): this;
     /**
      * Issued when new execution context is created.
      */
@@ -3144,7 +3159,10 @@ declare module 'inspector' {
     /**
      * Emitted when any notification from the V8 Inspector is received.
      */
-    prependOnceListener(event: 'inspectorNotification', listener: (message: InspectorNotification<{}>) => void): this;
+    prependOnceListener(
+      event: 'inspectorNotification',
+      listener: (message: InspectorNotification<Record<string, unknown>>) => void,
+    ): this;
     /**
      * Issued when new execution context is created.
      */

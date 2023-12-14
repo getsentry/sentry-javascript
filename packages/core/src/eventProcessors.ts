@@ -27,7 +27,7 @@ export function notifyEventProcessors(
   processors: EventProcessor[],
   event: Event | null,
   hint: EventHint,
-  index: number = 0,
+  index = 0,
 ): PromiseLike<Event | null> {
   return new SyncPromise<Event | null>((resolve, reject) => {
     const processor = processors[index];

@@ -1,5 +1,3 @@
-'use strict';
-
 function run(n) {
   if (n == null) return run(1000);
   if (n === 0) throw new Error('we did it!');

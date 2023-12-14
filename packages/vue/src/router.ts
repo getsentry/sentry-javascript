@@ -56,8 +56,8 @@ export function vueRouterInstrumentation(
 ): VueRouterInstrumentation {
   return (
     startTransaction: (context: TransactionContext) => Transaction | undefined,
-    startTransactionOnPageLoad: boolean = true,
-    startTransactionOnLocationChange: boolean = true,
+    startTransactionOnPageLoad = true,
+    startTransactionOnLocationChange = true,
   ) => {
     const tags = {
       'routing.instrumentation': 'vue-router',

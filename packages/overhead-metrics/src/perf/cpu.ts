@@ -20,7 +20,7 @@ class MetricsDataPoint {
 
 class CpuUsageSampler {
   private _snapshots: TimeBasedMap<number> = new TimeBasedMap<number>();
-  private _average: number = 0;
+  private _average = 0;
   private _initial?: MetricsDataPoint = undefined;
   private _startTime!: number;
   private _lastTimestamp!: number;
@@ -36,7 +36,7 @@ class CpuUsageSampler {
 
   private async _collect(metrics: PerfMetrics): Promise<void> {
     const data = new MetricsDataPoint(metrics.Timestamp, metrics.Duration);
-    if (this._initial == undefined) {
+    if (this._initial === undefined) {
       this._initial = data;
       this._startTime = data.timestamp;
     } else {

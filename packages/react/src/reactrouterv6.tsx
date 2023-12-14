@@ -79,7 +79,7 @@ function getNormalizedName(
   routes: RouteObject[],
   location: Location,
   branches: RouteMatch[],
-  basename: string = '',
+  basename = '',
 ): [string, TransactionSource] {
   if (!routes || routes.length === 0) {
     return [location.pathname, 'url'];
@@ -183,7 +183,7 @@ export function withSentryReactRouterV6Routing<P extends Record<string, any>, R 
     return Routes;
   }
 
-  let isMountRenderPass: boolean = true;
+  let isMountRenderPass = true;
 
   const SentryRoutes: React.FC<P> = (props: P) => {
     const location = _useLocation();
@@ -227,7 +227,7 @@ export function wrapUseRoutes(origUseRoutes: UseRoutes): UseRoutes {
     return origUseRoutes;
   }
 
-  let isMountRenderPass: boolean = true;
+  let isMountRenderPass = true;
 
   const SentryRoutes: React.FC<{
     children?: React.ReactNode;
@@ -275,7 +275,7 @@ export function wrapCreateBrowserRouter<
   // `opts` for createBrowserHistory and createMemoryHistory are different, but also not relevant for us at the moment.
   // `basename` is the only option that is relevant for us, and it is the same for all.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return function (routes: RouteObject[], opts?: Record<string, any> & { basename?: string }): TRouter {
+  return (routes: RouteObject[], opts?: Record<string, any> & { basename?: string }): TRouter => {
     const router = createRouterFunction(routes, opts);
     const basename = opts && opts.basename;
 

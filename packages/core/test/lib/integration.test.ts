@@ -330,7 +330,7 @@ describe('getIntegrationsToSetup', () => {
 });
 
 describe('setupIntegration', () => {
-  beforeEach(function () {
+  beforeEach(() => {
     // Reset the (global!) list of installed integrations
     installedIntegrations.splice(0, installedIntegrations.length);
   });
@@ -601,7 +601,7 @@ describe('setupIntegration', () => {
 });
 
 describe('addIntegration', () => {
-  beforeEach(function () {
+  beforeEach(() => {
     // Reset the (global!) list of installed integrations
     installedIntegrations.splice(0, installedIntegrations.length);
   });

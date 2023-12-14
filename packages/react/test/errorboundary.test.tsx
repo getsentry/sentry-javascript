@@ -39,7 +39,6 @@ interface TestAppProps extends ErrorBoundaryProps {
 }
 
 const TestApp: React.FC<TestAppProps> = ({ children, errorComp, ...props }) => {
-  // eslint-disable-next-line no-param-reassign
   const customErrorComp = errorComp || <Bam />;
   const [isError, setError] = React.useState(false);
   return (

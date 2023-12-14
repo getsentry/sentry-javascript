@@ -118,10 +118,10 @@ function trim(arr: string[]): string[] {
 // posix version
 /** JSDoc */
 export function relative(from: string, to: string): string {
-  /* eslint-disable no-param-reassign */
+  // biome-ignore lint/style/noParameterAssign: Disable
   from = resolve(from).slice(1);
+  // biome-ignore lint/style/noParameterAssign: Disable
   to = resolve(to).slice(1);
-  /* eslint-enable no-param-reassign */
 
   const fromParts = trim(from.split('/'));
   const toParts = trim(to.split('/'));

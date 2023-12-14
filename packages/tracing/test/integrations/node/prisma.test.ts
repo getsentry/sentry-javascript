@@ -41,7 +41,7 @@ class PrismaClient {
   }
 }
 
-describe('setupOnce', function () {
+describe('setupOnce', () => {
   beforeEach(() => {
     mockTrace.mockClear();
     mockTrace.mockReset();

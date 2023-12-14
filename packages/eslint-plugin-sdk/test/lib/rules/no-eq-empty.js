@@ -2,7 +2,6 @@
  * @fileoverview Rule to disallow using the equality operator with empty array
  * @author Abhijeet Prasad
  */
-'use strict';
 
 // ------------------------------------------------------------------------------
 // Requirements

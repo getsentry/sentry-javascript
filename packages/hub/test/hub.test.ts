@@ -27,7 +27,7 @@ function makeClient() {
  * By default, the args passed to the first call of the function are returned, but it is also possible to retrieve the
  * nth call by passing `callIndex`. If the function wasn't called, an error message is returned instead.
  */
-function getPassedArgs(mock: (...args: any[]) => any, callIndex: number = 0): any[] {
+function getPassedArgs(mock: (...args: any[]) => any, callIndex = 0): any[] {
   const asMock = mock as jest.MockedFunction<(...args: any[]) => any>;
   return asMock.mock.calls[callIndex] || ["Error: Function wasn't called."];
 }

@@ -36,8 +36,8 @@ export function reactRouterV3Instrumentation(
 ): ReactRouterInstrumentation {
   return (
     startTransaction: (context: TransactionContext) => Transaction | undefined,
-    startTransactionOnPageLoad: boolean = true,
-    startTransactionOnLocationChange: boolean = true,
+    startTransactionOnPageLoad = true,
+    startTransactionOnLocationChange = true,
   ) => {
     let activeTransaction: Transaction | undefined;
     let prevName: string | undefined;

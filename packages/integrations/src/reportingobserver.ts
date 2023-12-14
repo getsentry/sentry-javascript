@@ -44,7 +44,7 @@ export class ReportingObserver implements Integration {
   /**
    * @inheritDoc
    */
-  public static id: string = 'ReportingObserver';
+  public static id = 'ReportingObserver';
 
   /**
    * @inheritDoc

@@ -17,7 +17,7 @@ function assertSessionAggregates(session, expected) {
   }
   // For loop is added here just in the rare occasion that the session count do not land in the same aggregate
   // bucket
-  session.aggregates.forEach(function (_, idx) {
+  session.aggregates.forEach((_, idx) => {
     delete session.aggregates[idx].started;
     // Session Aggregates keys need to be ordered for JSON.stringify comparison
     const ordered = Object.keys(session.aggregates[idx])

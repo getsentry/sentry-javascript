@@ -70,7 +70,7 @@ export class Modules implements Integration {
   /**
    * @inheritDoc
    */
-  public static id: string = 'Modules';
+  public static id = 'Modules';
 
   /**
    * @inheritDoc

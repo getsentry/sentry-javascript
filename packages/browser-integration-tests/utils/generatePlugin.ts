@@ -130,10 +130,10 @@ function generateSentryAlias(): Record<string, string> {
 
 class SentryScenarioGenerationPlugin {
   public requiredIntegrations: string[] = [];
-  public requiresWASMIntegration: boolean = false;
+  public requiresWASMIntegration = false;
   public localOutPath: string;
 
-  private _name: string = 'SentryScenarioGenerationPlugin';
+  private _name = 'SentryScenarioGenerationPlugin';
 
   public constructor(localOutPath: string) {
     this.localOutPath = localOutPath;

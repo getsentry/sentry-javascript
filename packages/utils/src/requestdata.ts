@@ -140,7 +140,6 @@ function extractTransaction(req: PolymorphicRequest, type: boolean | Transaction
     case 'handler': {
       return (req.route && req.route.stack && req.route.stack[0] && req.route.stack[0].name) || '<anonymous>';
     }
-    case 'methodPath':
     default: {
       // if exist _reconstructedRoute return that path instead of route.path
       const customRoute = req._reconstructedRoute ? req._reconstructedRoute : undefined;
@@ -174,6 +173,8 @@ function extractUserData(
  * @param req The request object from which to extract data
  * @param options.include An optional array of keys to include in the normalized data. Defaults to
  * DEFAULT_REQUEST_INCLUDES if not provided.
+ * @param options
+ * @param options.include Included items an array
  * @param options.deps Injected, platform-specific dependencies
  * @returns An object containing normalized request data
  */
@@ -360,7 +361,7 @@ function extractQueryParams(
   try {
     return (
       req.query ||
-      (typeof URL !== undefined && new URL(originalUrl).search.slice(1)) ||
+      (typeof URL !== 'undefined' && new URL(originalUrl).search.slice(1)) ||
       // In Node 8, `URL` isn't in the global scope, so we have to use the built-in module from Node
       (deps && deps.url && deps.url.parse(originalUrl).query) ||
       undefined

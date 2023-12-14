@@ -165,8 +165,8 @@ export async function captureRemixServerException(err: unknown, name: string, re
 }
 
 function makeWrappedDocumentRequestFunction(remixVersion?: number) {
-  return function (origDocumentRequestFunction: HandleDocumentRequestFunction): HandleDocumentRequestFunction {
-    return async function (
+  return (origDocumentRequestFunction: HandleDocumentRequestFunction): HandleDocumentRequestFunction =>
+    async function (
       this: unknown,
       request: Request,
       responseStatusCode: number,
@@ -213,7 +213,6 @@ function makeWrappedDocumentRequestFunction(remixVersion?: number) {
 
       return res;
     };
-  };
 }
 
 function makeWrappedDataFunction(
@@ -299,8 +298,8 @@ function getTraceAndBaggage(): {
 }
 
 function makeWrappedRootLoader(remixVersion: number) {
-  return function (origLoader: DataFunction): DataFunction {
-    return async function (this: unknown, args: DataFunctionArgs): Promise<Response | AppData> {
+  return (origLoader: DataFunction): DataFunction =>
+    async function (this: unknown, args: DataFunctionArgs): Promise<Response | AppData> {
       const res = await origLoader.call(this, args);
       const traceAndBaggage = getTraceAndBaggage();
 
@@ -340,7 +339,6 @@ function makeWrappedRootLoader(remixVersion: number) {
 
       return { ...res, ...traceAndBaggage, remixVersion };
     };
-  };
 }
 
 /**

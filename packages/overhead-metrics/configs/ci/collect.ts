@@ -8,7 +8,7 @@ import { latestResultFile } from './env.js';
 
 function checkStdDev(results: Metrics[], name: string, provider: NumberProvider, max: number): boolean {
   const value = MetricsStats.stddev(results, provider);
-  if (value == undefined) {
+  if (value === undefined) {
     console.warn(`✗ | Discarding results because StandardDeviation(${name}) is undefined`);
     return false;
   } else if (value > max) {

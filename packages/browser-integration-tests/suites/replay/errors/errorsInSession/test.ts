@@ -18,7 +18,7 @@ sentryTest(
       sentryTest.skip();
     }
 
-    let errorEventId: string = 'invalid_id';
+    let errorEventId = 'invalid_id';
 
     const reqPromise0 = waitForReplayRequest(page, 0);
     const reqPromise1 = waitForReplayRequest(page, 1);

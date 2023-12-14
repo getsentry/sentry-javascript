@@ -73,7 +73,7 @@ export class Http implements Integration {
   /**
    * @inheritDoc
    */
-  public static id: string = 'Http';
+  public static id = 'Http';
 
   /**
    * @inheritDoc
@@ -282,29 +282,24 @@ function _createWrappedRequestMethodFactory(
       return originalRequestMethod
         .apply(httpModule, requestArgs)
         .once('response', function (this: http.ClientRequest, res: http.IncomingMessage): void {
-          // eslint-disable-next-line @typescript-eslint/no-this-alias
-          const req = this;
           if (breadcrumbsEnabled) {
-            addRequestBreadcrumb('response', data, req, res);
+            addRequestBreadcrumb('response', data, this, res);
           }
           if (requestSpan) {
             if (res.statusCode) {
               requestSpan.setHttpStatus(res.statusCode);
             }
-            requestSpan.description = cleanSpanDescription(requestSpan.description, requestOptions, req);
+            requestSpan.description = cleanSpanDescription(requestSpan.description, requestOptions, this);
             requestSpan.finish();
           }
         })
         .once('error', function (this: http.ClientRequest): void {
-          // eslint-disable-next-line @typescript-eslint/no-this-alias
-          const req = this;
-
           if (breadcrumbsEnabled) {
-            addRequestBreadcrumb('error', data, req);
+            addRequestBreadcrumb('error', data, this);
           }
           if (requestSpan) {
             requestSpan.setHttpStatus(500);
-            requestSpan.description = cleanSpanDescription(requestSpan.description, requestOptions, req);
+            requestSpan.description = cleanSpanDescription(requestSpan.description, requestOptions, this);
             requestSpan.finish();
           }
         });

@@ -14,18 +14,18 @@ let optionsEvent: ReplayOptionFrameEvent;
 describe('Unit | util | handleRecordingEmit', () => {
   let addEventMock: jest.SpyInstance;
 
-  beforeEach(function () {
+  beforeEach(() => {
     jest.setSystemTime(BASE_TIMESTAMP);
     addEventMock = jest.spyOn(SentryAddEvent, 'addEventSync').mockImplementation(() => {
       return true;
     });
   });
 
-  afterEach(function () {
+  afterEach(() => {
     addEventMock.mockReset();
   });
 
-  it('interprets first event as checkout event', async function () {
+  it('interprets first event as checkout event', async () => {
     const replay = setupReplayContainer({
       options: {
         errorSampleRate: 0,
@@ -58,7 +58,7 @@ describe('Unit | util | handleRecordingEmit', () => {
     expect(addEventMock).toHaveBeenLastCalledWith(replay, event, false);
   });
 
-  it('interprets any event with isCheckout as checkout', async function () {
+  it('interprets any event with isCheckout as checkout', async () => {
     const replay = setupReplayContainer({
       options: {
         errorSampleRate: 0,

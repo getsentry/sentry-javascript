@@ -190,6 +190,7 @@ function useProfiler(
     return undefined;
   });
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: We only run this once.
   React.useEffect(() => {
     if (mountSpan) {
       mountSpan.finish();
@@ -206,8 +207,6 @@ function useProfiler(
         });
       }
     };
-    // We only want this to run once.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 }
 

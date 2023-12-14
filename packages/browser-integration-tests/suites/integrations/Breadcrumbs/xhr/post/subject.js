@@ -5,7 +5,7 @@ xhr.setRequestHeader('Accept', 'application/json');
 xhr.setRequestHeader('Content-Type', 'application/json');
 xhr.send('{"my":"body"}');
 
-xhr.addEventListener('readystatechange', function () {
+xhr.addEventListener('readystatechange', () => {
   if (xhr.readyState === 4) {
     Sentry.captureException('test error');
   }

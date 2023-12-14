@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable @typescript-eslint/ban-types */
 import type { ConsoleLevel, HandlerDataConsole } from '@sentry/types';
 
 import { CONSOLE_LEVELS, originalConsoleMethods } from '../logger';
@@ -24,15 +23,16 @@ function instrumentConsole(): void {
     return;
   }
 
-  CONSOLE_LEVELS.forEach(function (level: ConsoleLevel): void {
+  CONSOLE_LEVELS.forEach((level: ConsoleLevel): void => {
     if (!(level in GLOBAL_OBJ.console)) {
       return;
     }
 
-    fill(GLOBAL_OBJ.console, level, function (originalConsoleMethod: () => any): Function {
+    // biome-ignore lint/complexity/noBannedTypes: Disable
+    fill(GLOBAL_OBJ.console, level, (originalConsoleMethod: () => any): Function => {
       originalConsoleMethods[level] = originalConsoleMethod;
 
-      return function (...args: any[]): void {
+      return (...args: any[]): void => {
         const handlerData: HandlerDataConsole = { args, level };
         triggerHandlers('console', handlerData);
 

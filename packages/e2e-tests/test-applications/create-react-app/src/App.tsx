@@ -12,6 +12,7 @@ function App() {
           <div>{error.toString()}</div>
           <div>{componentStack}</div>
           <button
+            type="button"
             onClick={() => {
               // When resetError() is called it will remove the Fallback component and render the Sentry ErrorBoundary's
               // children in their initial state
@@ -34,6 +35,7 @@ function App() {
           </a>
         </header>
         <button
+          type="button"
           onClick={() => {
             Sentry.captureException(new Error('I am a captured error!'));
           }}

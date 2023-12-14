@@ -14,7 +14,7 @@ function createSession(extra?: Record<string, any>) {
 }
 
 describe('Unit | util | isSessionExpired', () => {
-  it('session last activity is older than expiry time', function () {
+  it('session last activity is older than expiry time', () => {
     expect(
       isSessionExpired(createSession(), {
         maxReplayDuration: MAX_REPLAY_DURATION,
@@ -24,7 +24,7 @@ describe('Unit | util | isSessionExpired', () => {
     ).toBe(true); // Session expired at ts = 100
   });
 
-  it('session last activity is not older than expiry time', function () {
+  it('session last activity is not older than expiry time', () => {
     expect(
       isSessionExpired(createSession({ lastActivity: 100 }), {
         maxReplayDuration: MAX_REPLAY_DURATION,
@@ -34,7 +34,7 @@ describe('Unit | util | isSessionExpired', () => {
     ).toBe(false); // Session expires at ts >= 250
   });
 
-  it('session age is not older than max session life', function () {
+  it('session age is not older than max session life', () => {
     expect(
       isSessionExpired(createSession(), {
         maxReplayDuration: MAX_REPLAY_DURATION,
@@ -44,7 +44,7 @@ describe('Unit | util | isSessionExpired', () => {
     ).toBe(false);
   });
 
-  it('session age is older than max session life', function () {
+  it('session age is older than max session life', () => {
     expect(
       isSessionExpired(createSession(), {
         maxReplayDuration: MAX_REPLAY_DURATION,

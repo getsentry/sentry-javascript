@@ -14,7 +14,7 @@ export class Mongoose extends NodePerformanceIntegration<void> implements Integr
   /**
    * @inheritDoc
    */
-  public static id: string = 'Mongoose';
+  public static id = 'Mongoose';
 
   /**
    * @inheritDoc

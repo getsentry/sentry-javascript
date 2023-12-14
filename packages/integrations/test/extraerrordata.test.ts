@@ -141,11 +141,9 @@ describe('ExtraErrorData()', () => {
   it('toJSON props should have priority over directly assigned ones', () => {
     const error = new TypeError('foo') as ExtendedError;
     error.baz = 42;
-    error.toJSON = function () {
-      return {
-        baz: 1337,
-      };
-    };
+    error.toJSON = () => ({
+      baz: 1337,
+    });
 
     const enhancedEvent = extraErrorData.enhanceEventWithErrorData(event, {
       originalException: error,
@@ -161,11 +159,9 @@ describe('ExtraErrorData()', () => {
   it('toJSON props should allow for usage of native names', () => {
     const error = new TypeError('foo') as ExtendedError;
     error.baz = 42;
-    error.toJSON = function () {
-      return {
-        message: 'bar',
-      };
-    };
+    error.toJSON = () => ({
+      message: 'bar',
+    });
 
     const enhancedEvent = extraErrorData.enhanceEventWithErrorData(event, {
       originalException: error,

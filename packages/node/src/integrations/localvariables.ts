@@ -202,7 +202,7 @@ class AsyncSession implements DebugSession {
   private _unrollArray(objectId: string, name: string, vars: Variables, next: (vars: Variables) => void): void {
     this._getProperties(objectId, props => {
       vars[name] = props
-        .filter(v => v.name !== 'length' && !isNaN(parseInt(v.name, 10)))
+        .filter(v => v.name !== 'length' && !Number.isNaN(parseInt(v.name, 10)))
         .sort((a, b) => parseInt(a.name, 10) - parseInt(b.name, 10))
         .map(v => v?.value?.value);
 
@@ -326,7 +326,7 @@ interface Options {
  * Default: 50
  */
 export class LocalVariables implements Integration {
-  public static id: string = 'LocalVariables';
+  public static id = 'LocalVariables';
 
   public readonly name: string = LocalVariables.id;
 
@@ -408,7 +408,7 @@ export class LocalVariables implements Integration {
     // data.description contains the original error.stack
     const exceptionHash = hashFromStack(stackParser, data?.description);
 
-    if (exceptionHash == undefined) {
+    if (exceptionHash === undefined) {
       complete();
       return;
     }

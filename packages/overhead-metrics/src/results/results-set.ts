@@ -71,14 +71,14 @@ export class ResultsSet {
       .map(file => {
         return new ResultSetItem(path.join(this._directory, file.name));
       })
-      .filter(item => !isNaN(item.number))
+      .filter(item => !Number.isNaN(item.number))
       .sort((a, b) => a.number - b.number);
   }
 
   /**
    *
    */
-  public async add(newFile: string, onlyIfDifferent: boolean = false): Promise<void> {
+  public async add(newFile: string, onlyIfDifferent = false): Promise<void> {
     console.log(`Preparing to add ${newFile} to ${this._directory}`);
     assert(fs.existsSync(newFile));
 

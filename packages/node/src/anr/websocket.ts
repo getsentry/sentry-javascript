@@ -145,7 +145,7 @@ function parseFrame(buffer: Buffer): Frame {
       const rightPart = buffer.readUInt32BE(currentOffset);
       currentOffset += 4;
 
-      payloadLength = leftPart * Math.pow(2, 32) + rightPart;
+      payloadLength = leftPart * 2 ** 32 + rightPart;
     } else {
       throw new Error('Unknown payload length');
     }

@@ -54,7 +54,7 @@ describe('Unit | session | loadOrCreateSession', () => {
   });
 
   describe('stickySession: false', () => {
-    it('creates new session', function () {
+    it('creates new session', () => {
       const session = loadOrCreateSession(
         {
           ...DEFAULT_OPTIONS,
@@ -77,7 +77,7 @@ describe('Unit | session | loadOrCreateSession', () => {
       expect(FetchSession.fetchSession()).toBe(null);
     });
 
-    it('creates new session, even if something is in sessionStorage', function () {
+    it('creates new session, even if something is in sessionStorage', () => {
       const sessionInStorage = createMockSession(Date.now() - 10000, 'test_old_session_uuid');
       saveSession(sessionInStorage);
 
@@ -104,7 +104,7 @@ describe('Unit | session | loadOrCreateSession', () => {
       expect(FetchSession.fetchSession()).toEqual(sessionInStorage);
     });
 
-    it('uses passed in previousSessionId', function () {
+    it('uses passed in previousSessionId', () => {
       const session = loadOrCreateSession(
         {
           ...DEFAULT_OPTIONS,
@@ -128,7 +128,7 @@ describe('Unit | session | loadOrCreateSession', () => {
   });
 
   describe('stickySession: true', () => {
-    it('creates new session if none exists', function () {
+    it('creates new session if none exists', () => {
       const session = loadOrCreateSession(
         {
           ...DEFAULT_OPTIONS,
@@ -152,7 +152,7 @@ describe('Unit | session | loadOrCreateSession', () => {
       expect(FetchSession.fetchSession()).toEqual(expectedSession);
     });
 
-    it('creates new session if session in sessionStorage is expired', function () {
+    it('creates new session if session in sessionStorage is expired', () => {
       const now = Date.now();
       const date = now - 2000;
       saveSession(createMockSession(date, 'test_old_session_uuid'));
@@ -182,7 +182,7 @@ describe('Unit | session | loadOrCreateSession', () => {
       expect(FetchSession.fetchSession()).toEqual(expectedSession);
     });
 
-    it('returns session from sessionStorage if not expired', function () {
+    it('returns session from sessionStorage if not expired', () => {
       const date = Date.now() - 2000;
       saveSession(createMockSession(date, 'test_old_session_uuid'));
 
@@ -206,7 +206,7 @@ describe('Unit | session | loadOrCreateSession', () => {
       });
     });
 
-    it('ignores previousSessionId when loading from sessionStorage', function () {
+    it('ignores previousSessionId when loading from sessionStorage', () => {
       const now = Date.now();
       const currentSession = createMockSession(now - 10000, 'test_storage_session_uuid');
       saveSession(currentSession);
@@ -225,7 +225,7 @@ describe('Unit | session | loadOrCreateSession', () => {
       expect(session).toEqual(currentSession);
     });
 
-    it('uses previousSessionId when creating new session', function () {
+    it('uses previousSessionId when creating new session', () => {
       const session = loadOrCreateSession(
         {
           ...DEFAULT_OPTIONS,
@@ -253,7 +253,7 @@ describe('Unit | session | loadOrCreateSession', () => {
   });
 
   describe('buffering', () => {
-    it('returns current session when buffering, even if expired', function () {
+    it('returns current session when buffering, even if expired', () => {
       const now = Date.now();
       const currentSession = makeSession({
         id: 'test_session_uuid_2',
@@ -275,7 +275,7 @@ describe('Unit | session | loadOrCreateSession', () => {
       expect(session).toEqual(currentSession);
     });
 
-    it('returns new session when buffering & expired, if segmentId>0', function () {
+    it('returns new session when buffering & expired, if segmentId>0', () => {
       const now = Date.now();
       const currentSession = makeSession({
         id: 'test_session_uuid_2',
@@ -300,7 +300,7 @@ describe('Unit | session | loadOrCreateSession', () => {
       expect(session.segmentId).toBe(0);
     });
 
-    it('returns existing session when buffering & not expired, if segmentId>0', function () {
+    it('returns existing session when buffering & not expired, if segmentId>0', () => {
       const now = Date.now();
       const currentSession = makeSession({
         id: 'test_session_uuid_2',
@@ -324,7 +324,7 @@ describe('Unit | session | loadOrCreateSession', () => {
   });
 
   describe('sampling', () => {
-    it('returns unsampled session if sample rates are 0', function () {
+    it('returns unsampled session if sample rates are 0', () => {
       const session = loadOrCreateSession(
         {
           ...DEFAULT_OPTIONS,
@@ -346,7 +346,7 @@ describe('Unit | session | loadOrCreateSession', () => {
       expect(session).toEqual(expectedSession);
     });
 
-    it('returns `session` session if sessionSampleRate===1', function () {
+    it('returns `session` session if sessionSampleRate===1', () => {
       const session = loadOrCreateSession(
         {
           ...DEFAULT_OPTIONS,
@@ -361,7 +361,7 @@ describe('Unit | session | loadOrCreateSession', () => {
       expect(session.sampled).toBe('session');
     });
 
-    it('returns `buffer` session if allowBuffering===true', function () {
+    it('returns `buffer` session if allowBuffering===true', () => {
       const session = loadOrCreateSession(
         {
           ...DEFAULT_OPTIONS,

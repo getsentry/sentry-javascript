@@ -8,7 +8,7 @@ export class FunctionToString implements Integration {
   /**
    * @inheritDoc
    */
-  public static id: string = 'FunctionToString';
+  public static id = 'FunctionToString';
 
   /**
    * @inheritDoc

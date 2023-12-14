@@ -35,7 +35,7 @@ export class Wasm implements Integration {
   /**
    * @inheritDoc
    */
-  public static id: string = 'Wasm';
+  public static id = 'Wasm';
 
   /**
    * @inheritDoc

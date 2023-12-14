@@ -9,7 +9,7 @@ export class LinkedErrors implements Integration {
   /**
    * @inheritDoc
    */
-  public static id: string = 'LinkedErrors';
+  public static id = 'LinkedErrors';
 
   /**
    * @inheritDoc

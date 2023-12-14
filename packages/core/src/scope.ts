@@ -356,7 +356,7 @@ export class Scope implements ScopeInterface {
         this._propagationContext = captureContext._propagationContext;
       }
     } else if (isPlainObject(captureContext)) {
-      // eslint-disable-next-line no-param-reassign
+      // biome-ignore lint/style/noParameterAssign: Disable
       captureContext = captureContext as ScopeContext;
       this._tags = { ...this._tags, ...captureContext.tags };
       this._extra = { ...this._extra, ...captureContext.extra };

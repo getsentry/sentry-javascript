@@ -20,7 +20,7 @@ describe('Unit | eventBuffer | EventBufferProxy', () => {
     consoleErrorSpy.mockRestore();
   });
 
-  it('waits for the worker to be loaded when calling finish', async function () {
+  it('waits for the worker to be loaded when calling finish', async () => {
     const buffer = createEventBuffer({
       useCompression: true,
     }) as EventBufferProxy;
@@ -36,7 +36,7 @@ describe('Unit | eventBuffer | EventBufferProxy', () => {
     expect(restored).toEqual(JSON.stringify([TEST_EVENT, TEST_EVENT]));
   });
 
-  it('keeps using simple buffer if worker cannot be loaded', async function () {
+  it('keeps using simple buffer if worker cannot be loaded', async () => {
     const workerString = 'window.triggerBlaError();';
     const workerBlob = new Blob([workerString]);
     const workerUrl = URL.createObjectURL(workerBlob);

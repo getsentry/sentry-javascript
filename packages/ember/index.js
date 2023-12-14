@@ -1,4 +1,3 @@
-'use strict';
 const fs = require('fs');
 const crypto = require('crypto');
 
@@ -75,8 +74,8 @@ function isSerializable(obj) {
 
   if (isPlainObject(obj)) {
     // eslint-disable-next-line guard-for-in
-    for (let property in obj) {
-      let value = obj[property];
+    for (const property in obj) {
+      const value = obj[property];
       if (!isSerializable(value)) {
         return false;
       }

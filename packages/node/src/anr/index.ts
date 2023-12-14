@@ -71,7 +71,7 @@ interface InspectorApi {
  *
  * When inspector.url() returns undefined, it means the port is already in use so we try the next port.
  */
-function startInspector(startPort: number = 9229): string | undefined {
+function startInspector(startPort = 9229): string | undefined {
   // eslint-disable-next-line @typescript-eslint/no-var-requires
   const inspector: InspectorApi = require('inspector');
   let inspectorUrl: string | undefined = undefined;

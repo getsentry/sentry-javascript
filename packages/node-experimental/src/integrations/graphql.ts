@@ -14,7 +14,7 @@ export class GraphQL extends NodePerformanceIntegration<void> implements Integra
   /**
    * @inheritDoc
    */
-  public static id: string = 'GraphQL';
+  public static id = 'GraphQL';
 
   /**
    * @inheritDoc

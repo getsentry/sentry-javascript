@@ -179,7 +179,7 @@ function getOwnProperties(obj: unknown): { [key: string]: unknown } {
  * and truncated list that will be used inside the event message.
  * eg. `Non-error exception captured with keys: foo, bar, baz`
  */
-export function extractExceptionKeysForMessage(exception: Record<string, unknown>, maxLength: number = 40): string {
+export function extractExceptionKeysForMessage(exception: Record<string, unknown>, maxLength = 40): string {
   const keys = Object.keys(convertToPlainObject(exception));
   keys.sort();
 

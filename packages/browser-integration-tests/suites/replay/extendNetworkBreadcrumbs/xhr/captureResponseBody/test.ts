@@ -45,7 +45,7 @@ sentryTest('captures text response body', async ({ getLocalTestPath, page, brows
     xhr.open('POST', 'http://localhost:7654/foo');
     xhr.send();
 
-    xhr.addEventListener('readystatechange', function () {
+    xhr.addEventListener('readystatechange', () => {
       if (xhr.readyState === 4) {
         // @ts-expect-error Sentry is a global
         setTimeout(() => Sentry.captureException('test error', 0));
@@ -130,7 +130,7 @@ sentryTest('captures JSON response body', async ({ getLocalTestPath, page, brows
     xhr.open('POST', 'http://localhost:7654/foo');
     xhr.send();
 
-    xhr.addEventListener('readystatechange', function () {
+    xhr.addEventListener('readystatechange', () => {
       if (xhr.readyState === 4) {
         // @ts-expect-error Sentry is a global
         setTimeout(() => Sentry.captureException('test error', 0));
@@ -217,7 +217,7 @@ sentryTest('captures JSON response body when responseType=json', async ({ getLoc
     xhr.responseType = 'json';
     xhr.send();
 
-    xhr.addEventListener('readystatechange', function () {
+    xhr.addEventListener('readystatechange', () => {
       if (xhr.readyState === 4) {
         // @ts-expect-error Sentry is a global
         setTimeout(() => Sentry.captureException('test error', 0));
@@ -302,7 +302,7 @@ sentryTest('captures non-text response body', async ({ getLocalTestPath, page, b
     xhr.open('POST', 'http://localhost:7654/foo');
     xhr.send();
 
-    xhr.addEventListener('readystatechange', function () {
+    xhr.addEventListener('readystatechange', () => {
       if (xhr.readyState === 4) {
         // @ts-expect-error Sentry is a global
         setTimeout(() => Sentry.captureException('test error', 0));
@@ -389,7 +389,7 @@ sentryTest(
       xhr.open('POST', 'http://localhost:7654/bar');
       xhr.send();
 
-      xhr.addEventListener('readystatechange', function () {
+      xhr.addEventListener('readystatechange', () => {
         if (xhr.readyState === 4) {
           // @ts-expect-error Sentry is a global
           setTimeout(() => Sentry.captureException('test error', 0));

@@ -65,7 +65,7 @@ export class Undici implements Integration {
   /**
    * @inheritDoc
    */
-  public static id: string = 'Undici';
+  public static id = 'Undici';
 
   /**
    * @inheritDoc

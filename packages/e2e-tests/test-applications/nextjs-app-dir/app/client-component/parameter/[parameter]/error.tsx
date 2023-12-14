@@ -4,7 +4,9 @@ export default function Error({ error, reset }: { error: Error; reset: () => voi
   return (
     <div style={{ border: '1px solid lightgrey', padding: '12px' }}>
       <h2>Error (/client-component/[parameter])</h2>
-      <button onClick={() => reset()}>Reset</button>
+      <button type="button" onClick={() => reset()}>
+        Reset
+      </button>
       Error: {error.toString()}
     </div>
   );

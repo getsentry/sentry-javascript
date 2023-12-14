@@ -78,14 +78,14 @@ ${changedPaths.join('\n')}
     console.log('');
     console.log('');
 
-    console.error(`⚠️ Some tests failed.`);
+    console.error('⚠️ Some tests failed.');
     console.error(error);
     process.exit(1);
   }
 
   console.log('');
   console.log('');
-  console.log(`☑️ All tests passed.`);
+  console.log('☑️ All tests passed.');
 }
 
 function getTestPaths(): string[] {

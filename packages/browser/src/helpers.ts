@@ -11,7 +11,7 @@ import {
 
 export const WINDOW = GLOBAL_OBJ as typeof GLOBAL_OBJ & Window;
 
-let ignoreOnError: number = 0;
+let ignoreOnError = 0;
 
 /**
  * @hidden

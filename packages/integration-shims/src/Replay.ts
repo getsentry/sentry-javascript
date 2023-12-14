@@ -10,7 +10,7 @@ class ReplayShim implements Integration {
   /**
    * @inheritDoc
    */
-  public static id: string = 'Replay';
+  public static id = 'Replay';
 
   /**
    * @inheritDoc

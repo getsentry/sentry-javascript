@@ -2,25 +2,23 @@ import { getKeyboardBreadcrumb } from '../../../src/coreHandlers/handleKeyboardE
 
 describe('Unit | coreHandlers | handleKeyboardEvent', () => {
   describe('getKeyboardBreadcrumb', () => {
-    it('returns null for event on input', function () {
+    it('returns null for event on input', () => {
       const event = makeKeyboardEvent({ tagName: 'input', key: 'Escape' });
       const actual = getKeyboardBreadcrumb(event);
       expect(actual).toBeNull();
     });
 
-    it('returns null for event on textarea', function () {
+    it('returns null for event on textarea', () => {
       const event = makeKeyboardEvent({ tagName: 'textarea', key: 'Escape' });
       const actual = getKeyboardBreadcrumb(event);
       expect(actual).toBeNull();
     });
 
-    it('returns null for event on contenteditable div', function () {
+    it('returns null for event on contenteditable div', () => {
       // JSOM does not support contentEditable properly :(
       const target = document.createElement('div');
       Object.defineProperty(target, 'isContentEditable', {
-        get: function () {
-          return true;
-        },
+        get: () => true,
       });
 
       const event = makeKeyboardEvent({ target, key: 'Escape' });
@@ -28,7 +26,7 @@ describe('Unit | coreHandlers | handleKeyboardEvent', () => {
       expect(actual).toBeNull();
     });
 
-    it('returns breadcrumb for Escape event on body', function () {
+    it('returns breadcrumb for Escape event on body', () => {
       const event = makeKeyboardEvent({ tagName: 'body', key: 'Escape' });
       const actual = getKeyboardBreadcrumb(event);
       expect(actual).toEqual({

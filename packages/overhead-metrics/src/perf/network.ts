@@ -17,8 +17,8 @@ export class NetworkEvent {
       data.url as string,
       data.requestSize as number,
       data.responseSize as number,
-      data.requestTimeNs == undefined ? undefined : BigInt(data.requestTimeNs),
-      data.responseTimeNs == undefined ? undefined : BigInt(data.responseTimeNs),
+      data.requestTimeNs === undefined ? undefined : BigInt(data.requestTimeNs),
+      data.responseTimeNs === undefined ? undefined : BigInt(data.responseTimeNs),
     );
   }
 }

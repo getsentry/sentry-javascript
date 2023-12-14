@@ -12,7 +12,7 @@ function nockRequest() {
 }
 
 const memwatch = require('memwatch-next');
-memwatch.on('stats', function (stats) {
+memwatch.on('stats', stats => {
   process._rawDebug(
     util.format(
       'gc #%d: min %d, max %d, est base %d, curr base %d',
@@ -71,7 +71,7 @@ app.get('/breadcrumbs/auto/http', (req, res, next) => {
   const scope = nock('http://www.example.com').get('/hello').reply(200, 'hello world');
 
   http
-    .get('http://www.example.com/hello', function (nockRes) {
+    .get('http://www.example.com/hello', nockRes => {
       scope.done();
       res.textToSend = 'hello there! we got hello world from example.com';
       next();
@@ -91,8 +91,8 @@ app.get('/gc', (req, res, next) => {
 });
 
 app.get('/shutdown', (req, res, next) => {
-  setTimeout(function () {
-    server.close(function () {
+  setTimeout(() => {
+    server.close(() => {
       process.exit();
     });
   }, 100);

@@ -46,7 +46,7 @@ sentryTest('captures correct timestamps', async ({ getLocalTestPath, page, brows
     xhr.setRequestHeader('X-Test-Header', 'test-value');
     xhr.send();
 
-    xhr.addEventListener('readystatechange', function () {
+    xhr.addEventListener('readystatechange', () => {
       if (xhr.readyState === 4) {
         // @ts-expect-error Sentry is a global
         setTimeout(() => Sentry.captureException('test error', 0));

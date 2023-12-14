@@ -51,7 +51,7 @@ export interface InternalGlobal {
     logger: any;
     extensions?: {
       /** Extension methods for the hub, which are bound to the current Hub instance */
-      // eslint-disable-next-line @typescript-eslint/ban-types
+      // biome-ignore lint/complexity/noBannedTypes: Ignore for next line.
       [key: string]: Function;
     };
   };
@@ -89,16 +89,16 @@ export interface InternalGlobal {
 
 /** Returns 'obj' if it's the global object, otherwise returns undefined */
 function isGlobalObj(obj: { Math?: Math }): any | undefined {
-  return obj && obj.Math == Math ? obj : undefined;
+  return obj && obj.Math === Math ? obj : undefined;
 }
 
 /** Get's the global object for the current JavaScript runtime */
 export const GLOBAL_OBJ: InternalGlobal =
-  (typeof globalThis == 'object' && isGlobalObj(globalThis)) ||
+  (typeof globalThis === 'object' && isGlobalObj(globalThis)) ||
   // eslint-disable-next-line no-restricted-globals
-  (typeof window == 'object' && isGlobalObj(window)) ||
-  (typeof self == 'object' && isGlobalObj(self)) ||
-  (typeof global == 'object' && isGlobalObj(global)) ||
+  (typeof window === 'object' && isGlobalObj(window)) ||
+  (typeof self === 'object' && isGlobalObj(self)) ||
+  (typeof global === 'object' && isGlobalObj(global)) ||
   (function (this: any) {
     return this;
   })() ||

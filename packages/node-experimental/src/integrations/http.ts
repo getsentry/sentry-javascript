@@ -43,7 +43,7 @@ export class Http implements Integration {
   /**
    * @inheritDoc
    */
-  public static id: string = 'Http';
+  public static id = 'Http';
 
   /**
    * @inheritDoc

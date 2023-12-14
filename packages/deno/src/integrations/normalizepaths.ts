@@ -42,7 +42,7 @@ function getCwd(): string | undefined {
   const permission = Deno.permissions.querySync({ name: 'read', path: './' });
 
   try {
-    if (permission.state == 'granted') {
+    if (permission.state === 'granted') {
       return Deno.cwd();
     }
   } catch (_) {

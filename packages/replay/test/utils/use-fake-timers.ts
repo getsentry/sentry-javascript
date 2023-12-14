@@ -4,11 +4,11 @@ export function useFakeTimers(): void {
   jest.useFakeTimers();
 
   let interval: any;
-  beforeAll(function () {
+  beforeAll(() => {
     interval = _setInterval(() => jest.advanceTimersByTime(20), 20);
   });
 
-  afterAll(function () {
+  afterAll(() => {
     _clearInterval(interval);
   });
 }

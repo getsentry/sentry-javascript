@@ -12,7 +12,7 @@ class EventHandlerClass {
 
 const objectListener = new EventHandlerClass();
 
-window.attachListeners = function () {
+window.attachListeners = () => {
   window.addEventListener('click', functionListener);
   window.addEventListener('click', objectListener);
 };

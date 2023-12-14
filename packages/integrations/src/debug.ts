@@ -16,7 +16,7 @@ export class Debug implements Integration {
   /**
    * @inheritDoc
    */
-  public static id: string = 'Debug';
+  public static id = 'Debug';
 
   /**
    * @inheritDoc

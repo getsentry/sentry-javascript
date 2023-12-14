@@ -7,7 +7,7 @@ import { getTestEventIncremental } from '../../utils/getTestEvent';
 const TEST_EVENT = getTestEventIncremental({ timestamp: BASE_TIMESTAMP });
 
 describe('Unit | eventBuffer | EventBufferArray', () => {
-  it('adds events to normal event buffer', async function () {
+  it('adds events to normal event buffer', async () => {
     const buffer = createEventBuffer({ useCompression: false });
 
     buffer.addEvent(TEST_EVENT);
@@ -18,7 +18,7 @@ describe('Unit | eventBuffer | EventBufferArray', () => {
     expect(result).toEqual(JSON.stringify([TEST_EVENT, TEST_EVENT]));
   });
 
-  it('adds checkout event to normal event buffer', async function () {
+  it('adds checkout event to normal event buffer', async () => {
     const buffer = createEventBuffer({ useCompression: false });
 
     buffer.addEvent(TEST_EVENT);
@@ -33,7 +33,7 @@ describe('Unit | eventBuffer | EventBufferArray', () => {
     expect(result).toEqual(JSON.stringify([TEST_EVENT]));
   });
 
-  it('calling `finish()` multiple times does not result in duplicated events', async function () {
+  it('calling `finish()` multiple times does not result in duplicated events', async () => {
     const buffer = createEventBuffer({ useCompression: false });
 
     buffer.addEvent(TEST_EVENT);
@@ -49,7 +49,7 @@ describe('Unit | eventBuffer | EventBufferArray', () => {
   });
 
   describe('size limit', () => {
-    it('rejects if size exceeds limit', async function () {
+    it('rejects if size exceeds limit', async () => {
       const buffer = createEventBuffer({ useCompression: false });
 
       const largeEvent = getTestEventIncremental({
@@ -64,7 +64,7 @@ describe('Unit | eventBuffer | EventBufferArray', () => {
       await expect(() => buffer.addEvent(largeEvent)).rejects.toThrowError(EventBufferSizeExceededError);
     });
 
-    it('resets size limit on clear', async function () {
+    it('resets size limit on clear', async () => {
       const buffer = createEventBuffer({ useCompression: false });
 
       const largeEvent = getTestEventIncremental({
@@ -80,7 +80,7 @@ describe('Unit | eventBuffer | EventBufferArray', () => {
       await buffer.addEvent(largeEvent);
     });
 
-    it('resets size limit on finish', async function () {
+    it('resets size limit on finish', async () => {
       const buffer = createEventBuffer({ useCompression: false });
 
       const largeEvent = getTestEventIncremental({

@@ -489,7 +489,7 @@ describe('trace (sampling)', () => {
   });
 
   it('samples with a tracesSampler returning a boolean', () => {
-    let tracesSamplerResponse: boolean = true;
+    let tracesSamplerResponse = true;
 
     const tracesSampler = jest.fn(() => {
       return tracesSamplerResponse;
@@ -528,7 +528,7 @@ describe('trace (sampling)', () => {
   it('samples with a tracesSampler returning a number', () => {
     jest.spyOn(Math, 'random').mockImplementation(() => 0.6);
 
-    let tracesSamplerResponse: number = 1;
+    let tracesSamplerResponse = 1;
 
     const tracesSampler = jest.fn(() => {
       return tracesSamplerResponse;

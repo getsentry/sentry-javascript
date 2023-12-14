@@ -20,7 +20,6 @@ export function getModuleFromFilename(
 
   const normalizedFilename = normalizeWindowsPathSeparator ? normalizeWindowsPath(filename) : filename;
 
-  // eslint-disable-next-line prefer-const
   let { root, dir, base: basename, ext } = posix.parse(normalizedFilename);
 
   const base = (require && require.main && require.main.filename && dir) || global.process.cwd();

@@ -15,7 +15,7 @@ Sentry.init({
   includeLocalVariables: true,
   integrations: [new Integrations.HttpClient()],
   debug: true,
-  tunnel: `http://localhost:3031/`, // proxy server
+  tunnel: 'http://localhost:3031/', // proxy server
   tracesSampleRate: 1,
 });
 
@@ -25,15 +25,15 @@ const port = 3030;
 app.use(Sentry.Handlers.requestHandler());
 app.use(Sentry.Handlers.tracingHandler());
 
-app.get('/test-success', function (req, res) {
+app.get('/test-success', (req, res) => {
   res.send({ version: 'v1' });
 });
 
-app.get('/test-param/:param', function (req, res) {
+app.get('/test-param/:param', (req, res) => {
   res.send({ paramWas: req.params.param });
 });
 
-app.get('/test-transaction', async function (req, res) {
+app.get('/test-transaction', async (req, res) => {
   const transaction = Sentry.startTransaction({ name: 'test-transaction', op: 'e2e-test' });
   Sentry.getCurrentHub().configureScope(scope => scope.setSpan(transaction));
 
@@ -49,7 +49,7 @@ app.get('/test-transaction', async function (req, res) {
   });
 });
 
-app.get('/test-error', async function (req, res) {
+app.get('/test-error', async (req, res) => {
   const exceptionId = Sentry.captureException(new Error('This is an error'));
 
   await Sentry.flush(2000);
@@ -57,12 +57,12 @@ app.get('/test-error', async function (req, res) {
   res.send({ exceptionId });
 });
 
-app.get('/test-local-variables-uncaught', function (req, res) {
+app.get('/test-local-variables-uncaught', (req, res) => {
   const randomVariableToRecord = Math.random();
   throw new Error(`Uncaught Local Variable Error - ${JSON.stringify({ randomVariableToRecord })}`);
 });
 
-app.get('/test-local-variables-caught', function (req, res) {
+app.get('/test-local-variables-caught', (req, res) => {
   const randomVariableToRecord = Math.random();
 
   let exceptionId: string;

@@ -175,7 +175,7 @@ export function extractNetworkProtocol(nextHopProtocol: string): { name: string;
       break;
     }
     // h2, h3 etc.
-    if (!isNaN(Number(char))) {
+    if (!Number.isNaN(Number(char))) {
       name = _name === 'h' ? 'http' : _name;
       version = nextHopProtocol.split(_name)[1];
       break;
@@ -189,7 +189,7 @@ export function extractNetworkProtocol(nextHopProtocol: string): { name: string;
   return { name, version };
 }
 
-function getAbsoluteTime(time: number = 0): number {
+function getAbsoluteTime(time: number | undefined = 0): number {
   return ((browserPerformanceTimeOrigin || performance.timeOrigin) + time) / 1000;
 }
 

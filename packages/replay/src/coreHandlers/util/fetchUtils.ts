@@ -309,8 +309,6 @@ function _tryGetResponseText(response: Response): Promise<string | undefined> {
       )
       .finally(() => clearTimeout(timeout));
   });
-
-  return _getResponseText(response);
 }
 
 async function _getResponseText(response: Response): Promise<string> {

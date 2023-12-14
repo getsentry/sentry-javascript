@@ -28,6 +28,10 @@ module.exports = {
       rules: {
         // Disabled because it's included with Biome's linter
         'no-control-regex': 'off',
+        'no-param-reassign': 'off',
+        'prefer-const': 'off',
+        '@typescript-eslint/ban-types': 'off',
+        'react-hooks/exhaustive-deps': 'off',
       },
     },
     {

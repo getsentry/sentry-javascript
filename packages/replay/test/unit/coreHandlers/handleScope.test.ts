@@ -11,7 +11,7 @@ describe('Unit | coreHandlers | handleScope', () => {
     mockHandleScope.mockClear();
   });
 
-  it('returns a breadcrumb only if last breadcrumb has changed', function () {
+  it('returns a breadcrumb only if last breadcrumb has changed', () => {
     const scope = {
       _breadcrumbs: [],
       getLastBreadcrumb() {

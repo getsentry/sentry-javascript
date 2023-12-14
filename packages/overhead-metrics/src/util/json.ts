@@ -7,7 +7,7 @@ export function JsonStringify<T>(object: T): string {
   return JSON.stringify(
     object,
     (_: unknown, value: any): unknown => {
-      if (typeof value != 'undefined' && typeof value.toJSON == 'function') {
+      if (value !== undefined && typeof value.toJSON == 'function') {
         return value.toJSON();
       } else if (typeof value == 'bigint') {
         return value.toString();

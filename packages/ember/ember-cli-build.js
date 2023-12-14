@@ -1,8 +1,6 @@
-'use strict';
-
 const EmberAddon = require('ember-cli/lib/broccoli/ember-addon');
 
-module.exports = function (defaults) {
+module.exports = defaults => {
   const environment = process.env.EMBER_ENV || 'development';
   const isProd = environment === 'production';
 

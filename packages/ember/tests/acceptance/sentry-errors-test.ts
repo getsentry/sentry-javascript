@@ -7,7 +7,7 @@ import type { SentryTestContext } from '../helpers/setup-sentry';
 import { setupSentryTest } from '../helpers/setup-sentry';
 import { assertSentryErrorCount, assertSentryErrors } from '../helpers/utils';
 
-module('Acceptance | Sentry Errors', function (hooks) {
+module('Acceptance | Sentry Errors', hooks => {
   setupApplicationTest(hooks);
   setupSentryTest(hooks);
 

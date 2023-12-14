@@ -54,12 +54,12 @@ export class ResultsAnalyzer {
 
     const scenarioResults = this._result.scenarioResults;
 
-    const pushIfDefined = function (
+    const pushIfDefined = (
       metric: AnalyzerItemMetric,
       unit: AnalyzerItemUnit,
       source: NumberProvider,
       fn: AnalyticsFunction,
-    ): void {
+    ): void => {
       const values = scenarioResults.map(items => fn(items, source));
       // only push if at least one value is defined
       if (values.findIndex(v => v != undefined) >= 0) {
@@ -85,10 +85,10 @@ export class ResultsAnalyzer {
 }
 
 export enum AnalyzerItemUnit {
-  ms,
-  ratio, // 1.0 == 100 %
-  bytes,
-  integer,
+  ms = 0,
+  ratio = 1, // 1.0 == 100 %
+  bytes = 2,
+  integer = 3,
 }
 
 export interface AnalyzerItemValues {
@@ -129,7 +129,7 @@ class AnalyzerItemNumberValues implements AnalyzerItemValues {
     return this._values[index]!;
   }
 
-  private _withUnit(value: number, isDiff: boolean = false): string {
+  private _withUnit(value: number, isDiff = false): string {
     switch (this._unit) {
       case AnalyzerItemUnit.bytes:
         return filesize(value) as string;
@@ -144,15 +144,15 @@ class AnalyzerItemNumberValues implements AnalyzerItemValues {
 }
 
 export enum AnalyzerItemMetric {
-  lcp,
-  cls,
-  cpu,
-  memoryAvg,
-  memoryMax,
-  netTx,
-  netRx,
-  netCount,
-  netTime,
+  lcp = 0,
+  cls = 1,
+  cpu = 2,
+  memoryAvg = 3,
+  memoryMax = 4,
+  netTx = 5,
+  netRx = 6,
+  netCount = 7,
+  netTime = 8,
 }
 
 export interface AnalyzerItem {

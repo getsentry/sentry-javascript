@@ -1,6 +1,6 @@
 import { getAttributesToRecord } from '../../../../src/coreHandlers/util/getAttributesToRecord';
 
-it('records only included attributes', function () {
+it('records only included attributes', () => {
   expect(
     getAttributesToRecord({
       id: 'foo',

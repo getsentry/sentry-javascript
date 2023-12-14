@@ -65,9 +65,7 @@ describe('Integration | session', () => {
   it('does not create a new session when document becomes visible after [SESSION_IDLE_EXPIRE_DURATION]ms', () => {
     Object.defineProperty(document, 'visibilityState', {
       configurable: true,
-      get: function () {
-        return 'visible';
-      },
+      get: () => 'visible',
     });
 
     const initialSession = { ...replay.session } as Session;
@@ -96,9 +94,7 @@ describe('Integration | session', () => {
 
     Object.defineProperty(document, 'visibilityState', {
       configurable: true,
-      get: function () {
-        return 'hidden';
-      },
+      get: () => 'hidden',
     });
     document.dispatchEvent(new Event('visibilitychange'));
     expect(mockRecord.takeFullSnapshot).not.toHaveBeenCalled();
@@ -108,9 +104,7 @@ describe('Integration | session', () => {
     jest.advanceTimersByTime(SESSION_IDLE_EXPIRE_DURATION - 1);
     Object.defineProperty(document, 'visibilityState', {
       configurable: true,
-      get: function () {
-        return 'visible';
-      },
+      get: () => 'visible',
     });
     document.dispatchEvent(new Event('visibilitychange'));
 
@@ -424,9 +418,7 @@ describe('Integration | session', () => {
 
     Object.defineProperty(document, 'visibilityState', {
       configurable: true,
-      get: function () {
-        return 'hidden';
-      },
+      get: () => 'hidden',
     });
 
     // Pretend 5 seconds have passed

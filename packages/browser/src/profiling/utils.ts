@@ -416,7 +416,7 @@ export function applyDebugMetadata(resource_paths: ReadonlyArray<string>): Debug
  */
 export function isValidSampleRate(rate: unknown): boolean {
   // we need to check NaN explicitly because it's of type 'number' and therefore wouldn't get caught by this typecheck
-  if ((typeof rate !== 'number' && typeof rate !== 'boolean') || (typeof rate === 'number' && isNaN(rate))) {
+  if ((typeof rate !== 'number' && typeof rate !== 'boolean') || (typeof rate === 'number' && Number.isNaN(rate))) {
     DEBUG_BUILD &&
       logger.warn(
         `[Profiling] Invalid sample rate. Sample rate must be a boolean or a number between 0 and 1. Got ${JSON.stringify(
@@ -462,7 +462,7 @@ function isValidProfile(profile: JSSelfProfile): profile is JSSelfProfile & { pr
 
 // Keep a flag value to avoid re-initializing the profiler constructor. If it fails
 // once, it will always fail and this allows us to early return.
-let PROFILING_CONSTRUCTOR_FAILED: boolean = false;
+let PROFILING_CONSTRUCTOR_FAILED = false;
 export const MAX_PROFILE_DURATION_MS = 30_000;
 
 /**

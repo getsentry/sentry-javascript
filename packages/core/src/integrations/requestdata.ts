@@ -49,7 +49,7 @@ export class RequestData implements Integration {
   /**
    * @inheritDoc
    */
-  public static id: string = 'RequestData';
+  public static id = 'RequestData';
 
   /**
    * @inheritDoc

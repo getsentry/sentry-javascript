@@ -8,7 +8,7 @@ export class Dedupe implements Integration {
   /**
    * @inheritDoc
    */
-  public static id: string = 'Dedupe';
+  public static id = 'Dedupe';
 
   /**
    * @inheritDoc

@@ -107,7 +107,7 @@ function createIndexedDbStore(options: BrowserOfflineTransportOptions): OfflineS
 
   // Lazily create the store only when it's needed
   function getStore(): Store {
-    if (store == undefined) {
+    if (store === undefined) {
       store = createStore(options.dbName || 'sentry-offline', options.storeName || 'queue');
     }
 

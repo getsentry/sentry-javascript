@@ -13,7 +13,7 @@ export class CaptureConsole implements Integration {
   /**
    * @inheritDoc
    */
-  public static id: string = 'CaptureConsole';
+  public static id = 'CaptureConsole';
 
   /**
    * @inheritDoc

@@ -18,7 +18,7 @@ const DEFAULT_DATA: HandlerDataXhr = {
 };
 
 describe('Unit | coreHandlers | handleXhr', () => {
-  it('formats fetch calls from core SDK to replay breadcrumbs', function () {
+  it('formats fetch calls from core SDK to replay breadcrumbs', () => {
     expect(handleXhr(DEFAULT_DATA)).toEqual({
       type: 'resource.xhr',
       name: '/api/0/organizations/sentry/',
@@ -31,7 +31,7 @@ describe('Unit | coreHandlers | handleXhr', () => {
     });
   });
 
-  it('ignores xhr that have not completed yet', function () {
+  it('ignores xhr that have not completed yet', () => {
     const data = {
       ...DEFAULT_DATA,
       endTimestamp: undefined,
@@ -41,7 +41,7 @@ describe('Unit | coreHandlers | handleXhr', () => {
   });
 
   // This cannot happen as of now, this test just shows the expected behavior
-  it('ignores request/response sizes', function () {
+  it('ignores request/response sizes', () => {
     const data: HandlerDataXhr = {
       ...DEFAULT_DATA,
       xhr: {

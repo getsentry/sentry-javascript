@@ -23,7 +23,7 @@ export class SpanRecorder {
 
   private readonly _maxlen: number;
 
-  public constructor(maxlen: number = 1000) {
+  public constructor(maxlen = 1000) {
     this._maxlen = maxlen;
     this.spans = [];
   }

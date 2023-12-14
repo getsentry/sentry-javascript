@@ -93,7 +93,7 @@ export class Express implements Integration {
   /**
    * @inheritDoc
    */
-  public static id: string = 'Express';
+  public static id = 'Express';
 
   /**
    * @inheritDoc
@@ -148,8 +148,10 @@ export class Express implements Integration {
  *
  * They all internally delegate to the `router[method]` of the given application instance.
  */
-// eslint-disable-next-line @typescript-eslint/ban-types, @typescript-eslint/no-explicit-any
+/* eslint-disable @typescript-eslint/no-explicit-any */
+// biome-ignore lint/complexity/noBannedTypes: Ignore for next line.
 function wrap(fn: Function, method: Method): (...args: any[]) => void {
+  /* eslint-enable @typescript-eslint/no-explicit-any */
   const arity = fn.length;
 
   switch (arity) {

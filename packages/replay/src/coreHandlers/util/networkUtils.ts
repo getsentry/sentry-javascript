@@ -58,7 +58,7 @@ export function parseContentLengthHeader(header: string | null | undefined): num
   }
 
   const size = parseInt(header, 10);
-  return isNaN(size) ? undefined : size;
+  return Number.isNaN(size) ? undefined : size;
 }
 
 /** Get the string representation of a body. */

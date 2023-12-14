@@ -10,7 +10,7 @@ class BrowserTracingShim implements Integration {
   /**
    * @inheritDoc
    */
-  public static id: string = 'BrowserTracing';
+  public static id = 'BrowserTracing';
 
   /**
    * @inheritDoc

@@ -134,7 +134,7 @@ const estimateP98LongestInteraction = (): Interaction => {
  */
 export const onINP = (onReport: ReportCallback, opts?: ReportOpts): void => {
   // Set defaults
-  // eslint-disable-next-line no-param-reassign
+  // biome-ignore lint/style/noParameterAssign: Disable
   opts = opts || {};
 
   // https://web.dev/inp/#what's-a-%22good%22-inp-value
@@ -144,7 +144,7 @@ export const onINP = (onReport: ReportCallback, opts?: ReportOpts): void => {
   initInteractionCountPolyfill();
 
   const metric = initMetric('INP');
-  // eslint-disable-next-line prefer-const
+  // biome-ignore lint/style/useConst: Disable const for now.
   let report: ReturnType<typeof bindReporter>;
 
   const handleEntries = (entries: INPMetric['entries']): void => {

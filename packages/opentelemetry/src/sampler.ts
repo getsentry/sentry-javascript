@@ -5,7 +5,7 @@ import type { Sampler, SamplingResult } from '@opentelemetry/sdk-trace-base';
 import { SamplingDecision } from '@opentelemetry/sdk-trace-base';
 import { hasTracingEnabled } from '@sentry/core';
 import type { Client, ClientOptions, SamplingContext } from '@sentry/types';
-import { isNaN, logger } from '@sentry/utils';
+import { logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from './debug-build';
 import { InternalSentrySemanticAttributes } from './semanticAttributes';
@@ -158,7 +158,7 @@ function getSampleRate(
 function isValidSampleRate(rate: unknown): boolean {
   // we need to check NaN explicitly because it's of type 'number' and therefore wouldn't get caught by this typecheck
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  if (isNaN(rate) || !(typeof rate === 'number' || typeof rate === 'boolean')) {
+  if (Number.isNaN(rate) || !(typeof rate === 'number' || typeof rate === 'boolean')) {
     DEBUG_BUILD &&
       logger.warn(
         `[Tracing] Given sample rate is invalid. Sample rate must be a boolean or a number between 0 and 1. Got ${JSON.stringify(

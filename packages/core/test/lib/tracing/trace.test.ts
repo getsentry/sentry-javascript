@@ -6,7 +6,7 @@ beforeAll(() => {
   addTracingExtensions();
 });
 
-const enum Type {
+enum Type {
   Sync = 'sync',
   Async = 'async',
 }

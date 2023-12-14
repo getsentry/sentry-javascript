@@ -6,7 +6,7 @@ import sinon from 'sinon';
 
 import { setupSentryTest } from '../helpers/setup-sentry';
 
-module('Unit | Utility | instrument-route-performance', function (hooks) {
+module('Unit | Utility | instrument-route-performance', hooks => {
   setupTest(hooks);
   setupSentryTest(hooks);
 

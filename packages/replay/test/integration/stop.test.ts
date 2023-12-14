@@ -66,9 +66,7 @@ describe('Integration | stop', () => {
   it('does not upload replay if it was stopped and can resume replays afterwards', async () => {
     Object.defineProperty(document, 'visibilityState', {
       configurable: true,
-      get: function () {
-        return 'hidden';
-      },
+      get: () => 'hidden',
     });
     const ELAPSED = 5000;
     // Not sure where the 20ms comes from tbh
@@ -140,7 +138,7 @@ describe('Integration | stop', () => {
     expect(replay.session?.lastActivity).toBe(BASE_TIMESTAMP + ELAPSED + 20);
   });
 
-  it('does not buffer new events after being stopped', async function () {
+  it('does not buffer new events after being stopped', async () => {
     const TEST_EVENT = getTestEventIncremental({ timestamp: BASE_TIMESTAMP });
     addEvent(replay, TEST_EVENT);
     expect(replay.eventBuffer?.hasEvents).toBe(true);
@@ -162,7 +160,7 @@ describe('Integration | stop', () => {
     });
   });
 
-  it('does not call core SDK `addClickKeypressInstrumentationHandler` after initial setup', async function () {
+  it('does not call core SDK `addClickKeypressInstrumentationHandler` after initial setup', async () => {
     // NOTE: We clear mockAddDomInstrumentationHandler after every test
     await integration.stop();
     integration.start();

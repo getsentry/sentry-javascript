@@ -98,7 +98,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
    * Attaches SpanRecorder to the span itself
    * @param maxlen maximum number of spans that can be recorded
    */
-  public initSpanRecorder(maxlen: number = 1000): void {
+  public initSpanRecorder(maxlen = 1000): void {
     if (!this.spanRecorder) {
       this.spanRecorder = new SpanRecorder(maxlen);
     }

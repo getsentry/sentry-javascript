@@ -3,38 +3,38 @@ import { NextTestEnv } from './utils/helpers';
 const cases = [
   {
     name: 'unwrappedNoParamURL',
-    url: `/api/wrapApiHandlerWithSentry/unwrapped/noParams`,
+    url: '/api/wrapApiHandlerWithSentry/unwrapped/noParams',
     transactionName: '/api/wrapApiHandlerWithSentry/unwrapped/noParams',
   },
   {
     name: 'unwrappedDynamicURL',
-    url: `/api/wrapApiHandlerWithSentry/unwrapped/dog`,
+    url: '/api/wrapApiHandlerWithSentry/unwrapped/dog',
     transactionName: '/api/wrapApiHandlerWithSentry/unwrapped/[animal]',
   },
   {
     name: 'unwrappedCatchAllURL',
-    url: `/api/wrapApiHandlerWithSentry/unwrapped/dog/facts`,
+    url: '/api/wrapApiHandlerWithSentry/unwrapped/dog/facts',
     transactionName: '/api/wrapApiHandlerWithSentry/unwrapped/[...pathParts]',
   },
   {
     name: 'wrappedNoParamURL',
-    url: `/api/wrapApiHandlerWithSentry/wrapped/noParams`,
+    url: '/api/wrapApiHandlerWithSentry/wrapped/noParams',
     transactionName: '/api/wrapApiHandlerWithSentry/wrapped/noParams',
   },
   {
     name: 'wrappedDynamicURL',
-    url: `/api/wrapApiHandlerWithSentry/wrapped/dog`,
+    url: '/api/wrapApiHandlerWithSentry/wrapped/dog',
     transactionName: '/api/wrapApiHandlerWithSentry/wrapped/[animal]',
   },
   {
     name: 'wrappedCatchAllURL',
-    url: `/api/wrapApiHandlerWithSentry/wrapped/dog/facts`,
+    url: '/api/wrapApiHandlerWithSentry/wrapped/dog/facts',
     transactionName: '/api/wrapApiHandlerWithSentry/wrapped/[...pathParts]',
   },
 ];
 
 describe('getServerSideProps', () => {
-  it.each(cases)(`should capture a transaction for %s`, async ({ url, transactionName }) => {
+  it.each(cases)('should capture a transaction for %s', async ({ url, transactionName }) => {
     const env = await NextTestEnv.init();
 
     const fullUrl = `${env.url}${url}`;

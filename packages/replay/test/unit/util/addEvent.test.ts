@@ -11,7 +11,7 @@ import { useFakeTimers } from '../../utils/use-fake-timers';
 useFakeTimers();
 
 describe('Unit | util | addEvent', () => {
-  it('stops when encountering a compression error', async function () {
+  it('stops when encountering a compression error', async () => {
     jest.setSystemTime(BASE_TIMESTAMP);
 
     const replay = setupReplayContainer({
@@ -32,7 +32,7 @@ describe('Unit | util | addEvent', () => {
     expect(replay.isEnabled()).toEqual(false);
   });
 
-  it('stops when exceeding buffer size limit', async function () {
+  it('stops when exceeding buffer size limit', async () => {
     jest.setSystemTime(BASE_TIMESTAMP);
 
     const replay = setupReplayContainer({

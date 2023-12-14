@@ -8,7 +8,7 @@ export class RewriteFrames implements Integration {
   /**
    * @inheritDoc
    */
-  public static id: string = 'RewriteFrames';
+  public static id = 'RewriteFrames';
 
   /**
    * @inheritDoc

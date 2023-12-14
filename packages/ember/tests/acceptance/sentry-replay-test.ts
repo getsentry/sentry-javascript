@@ -6,11 +6,11 @@ import { module, test } from 'qunit';
 
 import { setupSentryTest } from '../helpers/setup-sentry';
 
-module('Acceptance | Sentry Session Replay', function (hooks) {
+module('Acceptance | Sentry Session Replay', hooks => {
   setupApplicationTest(hooks);
   setupSentryTest(hooks);
 
-  test('Test replay', async function (assert) {
+  test('Test replay', async assert => {
     await visit('/replay');
 
     const integration = Sentry.getCurrentHub().getIntegration(Sentry.Replay);

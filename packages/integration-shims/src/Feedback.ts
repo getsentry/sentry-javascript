@@ -9,7 +9,7 @@ class FeedbackShim implements Integration {
   /**
    * @inheritDoc
    */
-  public static id: string = 'Feedback';
+  public static id = 'Feedback';
 
   /**
    * @inheritDoc

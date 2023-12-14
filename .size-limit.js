@@ -20,7 +20,7 @@ module.exports = [
     import: '{ init, Replay, BrowserTracing }',
     gzip: true,
     limit: '75 KB',
-    modifyWebpackConfig: function (config) {
+    modifyWebpackConfig: config => {
       const webpack = require('webpack');
       config.plugins.push(
         new webpack.DefinePlugin({

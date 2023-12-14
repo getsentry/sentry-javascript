@@ -22,9 +22,7 @@ export function groupSpansWithParents(spans: ReadableSpan[]): SpanNode[] {
     createOrUpdateSpanNodeAndRefs(nodeMap, span);
   }
 
-  return Array.from(nodeMap, function ([_id, spanNode]) {
-    return spanNode;
-  });
+  return Array.from(nodeMap, ([_id, spanNode]) => spanNode);
 }
 
 function createOrUpdateSpanNodeAndRefs(nodeMap: SpanMap, span: ReadableSpan): void {

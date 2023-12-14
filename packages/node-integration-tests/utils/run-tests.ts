@@ -95,7 +95,7 @@ function checkSkippedAllTests(output: string, workerNumber: number, testPath: st
   if (matches) {
     const skipped = Number(matches[1]);
     const total = Number(matches[2]);
-    if (!isNaN(skipped) && !isNaN(total) && total === skipped) {
+    if (!Number.isNaN(skipped) && !Number.isNaN(total) && total === skipped) {
       return `(Worker ${workerNumber}) > Skipped all (${total} tests) in ${testPath}`;
     }
   }

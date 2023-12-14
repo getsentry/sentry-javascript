@@ -28,7 +28,7 @@ export type GetModuleFn = (filename: string | undefined) => string | undefined;
 /**
  * Does this filename look like it's part of the app code?
  */
-export function filenameIsInApp(filename: string, isNative: boolean = false): boolean {
+export function filenameIsInApp(filename: string, isNative = false): boolean {
   const isInternal =
     isNative ||
     (filename &&

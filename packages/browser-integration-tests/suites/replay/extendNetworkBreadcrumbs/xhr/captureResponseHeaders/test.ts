@@ -48,7 +48,7 @@ sentryTest('captures response headers', async ({ getLocalTestPath, page, browser
     xhr.open('GET', 'http://localhost:7654/foo');
     xhr.send();
 
-    xhr.addEventListener('readystatechange', function () {
+    xhr.addEventListener('readystatechange', () => {
       if (xhr.readyState === 4) {
         // @ts-expect-error Sentry is a global
         setTimeout(() => Sentry.captureException('test error', 0));
@@ -139,7 +139,7 @@ sentryTest(
       xhr.open('GET', 'http://localhost:7654/bar');
       xhr.send();
 
-      xhr.addEventListener('readystatechange', function () {
+      xhr.addEventListener('readystatechange', () => {
         if (xhr.readyState === 4) {
           // @ts-expect-error Sentry is a global
           setTimeout(() => Sentry.captureException('test error', 0));

@@ -5,7 +5,7 @@ export class SessionTiming implements Integration {
   /**
    * @inheritDoc
    */
-  public static id: string = 'SessionTiming';
+  public static id = 'SessionTiming';
 
   /**
    * @inheritDoc

@@ -20,7 +20,7 @@ export class AWSServices implements Integration {
   /**
    * @inheritDoc
    */
-  public static id: string = 'AWSServices';
+  public static id = 'AWSServices';
 
   /**
    * @inheritDoc

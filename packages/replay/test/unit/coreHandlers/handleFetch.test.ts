@@ -22,7 +22,7 @@ const DEFAULT_DATA: HandlerDataFetch = {
 };
 
 describe('Unit | coreHandlers | handleFetch', () => {
-  it('formats fetch calls from core SDK to replay breadcrumbs', function () {
+  it('formats fetch calls from core SDK to replay breadcrumbs', () => {
     expect(handleFetch(DEFAULT_DATA)).toEqual({
       type: 'resource.fetch',
       name: '/api/0/organizations/sentry/',
@@ -35,7 +35,7 @@ describe('Unit | coreHandlers | handleFetch', () => {
     });
   });
 
-  it('ignores fetches that have not completed yet', function () {
+  it('ignores fetches that have not completed yet', () => {
     const data = {
       ...DEFAULT_DATA,
       endTimestamp: undefined,
@@ -46,7 +46,7 @@ describe('Unit | coreHandlers | handleFetch', () => {
   });
 
   // This cannot happen as of now, this test just shows the expected behavior
-  it('ignores request/response sizes', function () {
+  it('ignores request/response sizes', () => {
     const data = {
       ...DEFAULT_DATA,
       fetchData: {

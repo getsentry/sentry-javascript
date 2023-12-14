@@ -2,7 +2,6 @@
  * @fileoverview eslint plugins for Sentry SDKs
  * @author Abhijeet Prasad
  */
-'use strict';
 
 // ------------------------------------------------------------------------------
 // Plugin Definition

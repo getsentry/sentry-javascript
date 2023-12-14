@@ -14,7 +14,7 @@ export class Fastify extends NodePerformanceIntegration<void> implements Integra
   /**
    * @inheritDoc
    */
-  public static id: string = 'Fastify';
+  public static id = 'Fastify';
 
   /**
    * @inheritDoc

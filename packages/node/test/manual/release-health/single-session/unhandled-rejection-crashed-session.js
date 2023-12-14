@@ -48,8 +48,8 @@ Sentry.init({
  * extracts event data and uses it to update the Session and sends it. The second session update is sent on the
  * `beforeExit` event which happens right before the process exits.
  */
-new Promise(function (resolve, reject) {
+new Promise((resolve, reject) => {
   reject();
-}).then(function () {
+}).then(() => {
   console.log('Promise Resolved');
 });

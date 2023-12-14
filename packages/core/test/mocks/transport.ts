@@ -8,7 +8,7 @@ async function sleep(delay: number): Promise<void> {
   return new SyncPromise(resolve => setTimeout(resolve, delay));
 }
 
-export function makeFakeTransport(delay: number = 2000): {
+export function makeFakeTransport(delay = 2000): {
   makeTransport: () => Transport;
   getSendCalled: () => number;
   getSentCount: () => number;

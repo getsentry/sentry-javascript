@@ -11,11 +11,11 @@ function runVariant(variant) {
 
     var sandbox;
 
-    beforeEach(function (done) {
+    beforeEach(done => {
       sandbox = createSandbox(done, variant);
     });
 
-    afterEach(function () {
+    afterEach(() => {
       document.body.removeChild(sandbox);
     });
 
@@ -33,7 +33,7 @@ function runVariant(variant) {
 }
 
 for (var idx in variants) {
-  (function () {
+  (() => {
     runVariant(variants[idx]);
   })();
 }

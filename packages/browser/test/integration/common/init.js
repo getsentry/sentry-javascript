@@ -26,12 +26,12 @@ function initSDK() {
     attachStacktrace: true,
     ignoreErrors: ['ignoreErrorTest'],
     denyUrls: ['foo.js'],
-    beforeSend: function (event, eventHint) {
+    beforeSend: (event, eventHint) => {
       events.push(event);
       eventHints.push(eventHint);
       return event;
     },
-    beforeBreadcrumb: function (breadcrumb, breadcrumbHint) {
+    beforeBreadcrumb: (breadcrumb, breadcrumbHint) => {
       // Filter console logs as we use them for debugging *a lot* and they are not *that* important
       // But allow then if we explicitly say so (for one of integration tests)
       if (breadcrumb.category === 'console' && !window.allowConsoleBreadcrumbs) {

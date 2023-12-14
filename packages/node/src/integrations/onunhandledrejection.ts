@@ -12,7 +12,7 @@ export class OnUnhandledRejection implements Integration {
   /**
    * @inheritDoc
    */
-  public static id: string = 'OnUnhandledRejection';
+  public static id = 'OnUnhandledRejection';
 
   /**
    * @inheritDoc

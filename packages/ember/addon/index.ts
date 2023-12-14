@@ -54,7 +54,7 @@ export function InitSentryForEmber(_runtimeConfig?: BrowserOptions): void {
     if (environmentConfig.ignoreEmberOnErrorWarning) {
       return;
     }
-    next(null, function () {
+    next(null, () => {
       warn(
         'Ember.onerror found. Using Ember.onerror can hide some errors (such as flushed runloop errors) from Sentry. Use Sentry.captureException to capture errors within Ember.onError or remove it to have errors caught by Sentry directly. This error can be silenced via addon configuration.',
         !Ember.onerror,

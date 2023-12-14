@@ -102,7 +102,7 @@ export async function materializeFinalWebpackConfig(options: {
 export function findWebpackPlugin(
   webpackConfig: WebpackConfigObject,
   pluginName: string,
-  multipleAllowed: boolean = false,
+  multipleAllowed = false,
 ): WebpackPluginInstance | SentryWebpackPlugin | WebpackPluginInstance[] | SentryWebpackPlugin[] | undefined {
   const plugins = webpackConfig.plugins || [];
   const matchingPlugins = plugins.filter(plugin => plugin.constructor.name === pluginName);

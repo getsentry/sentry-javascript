@@ -8,7 +8,7 @@ type MockIntegrationOptions = {
 };
 
 class DogIntegration implements Integration {
-  public static id: string = 'Dog';
+  public static id = 'Dog';
   public name: string = DogIntegration.id;
 
   public dogName: string;
@@ -29,7 +29,7 @@ class DogIntegration implements Integration {
 }
 
 class CatIntegration implements Integration {
-  public static id: string = 'Cat';
+  public static id = 'Cat';
   public name: string = CatIntegration.id;
 
   public catName: string;

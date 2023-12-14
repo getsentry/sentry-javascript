@@ -78,7 +78,8 @@ export const generateComponentTrace = (vm?: ViewModel): string => {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         if (last.constructor === vm.constructor) {
           currentRecursiveSequence++;
-          vm = vm.$parent; // eslint-disable-line no-param-reassign
+          // biome-ignore lint/style/noParameterAssign: Disable
+          vm = vm.$parent;
           continue;
         } else if (currentRecursiveSequence > 0) {
           tree[tree.length - 1] = [last, currentRecursiveSequence];
@@ -86,7 +87,8 @@ export const generateComponentTrace = (vm?: ViewModel): string => {
         }
       }
       tree.push(vm);
-      vm = vm.$parent; // eslint-disable-line no-param-reassign
+      // biome-ignore lint/style/noParameterAssign: Disable
+      vm = vm.$parent;
     }
 
     const formattedTree = tree

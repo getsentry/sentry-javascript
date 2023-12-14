@@ -13,7 +13,7 @@ export class Hapi extends NodePerformanceIntegration<void> implements Integratio
   /**
    * @inheritDoc
    */
-  public static id: string = 'Hapi';
+  public static id = 'Hapi';
 
   /**
    * @inheritDoc

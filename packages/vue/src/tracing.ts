@@ -100,7 +100,7 @@ export const createTracingMixins = (options: TracingOptions): Mixins => {
 
         // Start a new span if current hook is a 'before' hook.
         // Otherwise, retrieve the current span and finish it.
-        if (internalHook == internalHooks[0]) {
+        if (internalHook === internalHooks[0]) {
           const activeTransaction = (this.$root && this.$root.$_sentryRootSpan) || getActiveTransaction();
           if (activeTransaction) {
             // Cancel old span for this hook operation in case it didn't get cleaned up. We're not actually sure if it

@@ -73,7 +73,7 @@ async function tryAddOrUpdateComment(commentBuilder: PrCommentBuilder): Promise<
     }
   }
 
-  if (prNumber == undefined) return false;
+  if (prNumber === undefined) return false;
 
   // Determine the PR comment author:
   // Trying to fetch `octokit.users.getAuthenticated()` throws (in CI only):
@@ -101,7 +101,7 @@ async function tryAddOrUpdateComment(commentBuilder: PrCommentBuilder): Promise<
     return undefined;
   })();
 
-  if (comment != undefined) {
+  if (comment !== undefined) {
     console.log(`Updating PR comment ${comment.html_url} body`);
     await octokit.rest.issues.updateComment({
       ...defaultArgs,
@@ -140,7 +140,7 @@ export const GitHub = {
         }
         return undefined;
       })();
-      if (workflow == undefined) {
+      if (workflow === undefined) {
         console.log(
           `Skipping previous artifact '${artifactName}' download for branch '${branch}' - not running in CI?`,
           "Environment variable GITHUB_WORKFLOW isn't set.",
@@ -167,7 +167,7 @@ export const GitHub = {
         })
       ).data.artifacts.find(it => it.name == artifactName);
 
-      if (artifact == undefined) {
+      if (artifact === undefined) {
         console.warn(`Couldn't find any artifact matching ${artifactName}`);
         return;
       }

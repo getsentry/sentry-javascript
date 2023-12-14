@@ -33,7 +33,7 @@ import type { FIDMetric, PerformanceEventTiming, ReportCallback } from './types'
 export const onFID = (onReport: ReportCallback): void => {
   const visibilityWatcher = getVisibilityWatcher();
   const metric = initMetric('FID');
-  // eslint-disable-next-line prefer-const
+  // biome-ignore lint/style/useConst: Disable const for now.
   let report: ReturnType<typeof bindReporter>;
 
   const handleEntry = (entry: PerformanceEventTiming): void => {

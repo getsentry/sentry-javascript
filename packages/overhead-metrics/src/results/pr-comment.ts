@@ -30,7 +30,7 @@ function printableMetricName(metric: AnalyzerItemMetric): string {
 }
 
 export class PrCommentBuilder {
-  private _buffer: string = '';
+  private _buffer = '';
 
   /**
    *
@@ -60,9 +60,7 @@ export class PrCommentBuilder {
   public async addCurrentResult(analysis: Analysis, otherName: string): Promise<void> {
     // Decides whether to print the "Other" for comparison depending on it being set in the input data.
     const hasOther = analysis.otherHash != undefined;
-    const maybeOther = function (content: () => string): string {
-      return hasOther ? content() : '';
-    };
+    const maybeOther = (content: () => string): string => (hasOther ? content() : '');
 
     const currentHash = await Git.hash;
 
@@ -91,8 +89,7 @@ export class PrCommentBuilder {
           <th align="right">Ratio</th>
         </tr>`;
 
-    const valueColumns = function (values: AnalyzerItemValues): string {
-      return `
+    const valueColumns = (values: AnalyzerItemValues): string => `
         <td align="right">${values.value(0)}</td>
         <td align="right">${values.value(1)}</td>
         <td align="right"><strong>${values.diff(0, 1)}</strong></td>
@@ -101,7 +98,6 @@ export class PrCommentBuilder {
         <td align="right"><strong>${values.diff(0, 2)}</strong></td>
         <td align="right"><strong>${values.percent(0, 2)}</strong></td>
       `;
-    };
 
     for (const item of analysis.items) {
       if (hasOther) {

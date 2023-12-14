@@ -30,7 +30,7 @@ export class GoogleCloudGrpc implements Integration {
   /**
    * @inheritDoc
    */
-  public static id: string = 'GoogleCloudGrpc';
+  public static id = 'GoogleCloudGrpc';
 
   /**
    * @inheritDoc
@@ -69,7 +69,7 @@ export class GoogleCloudGrpc implements Integration {
 function wrapCreateStub(origCreate: CreateStubFunc): CreateStubFunc {
   return async function (this: unknown, ...args: Parameters<CreateStubFunc>) {
     const servicePath = args[1]?.servicePath;
-    if (servicePath == null || servicePath == undefined) {
+    if (servicePath == null) {
       return origCreate.apply(this, args);
     }
     const serviceIdentifier = identifyService(servicePath);
@@ -95,7 +95,7 @@ function fillGrpcFunction(stub: Stub, serviceIdentifier: string, methodName: str
         : !funcObj.requestStream && funcObj.responseStream
           ? 'server stream'
           : 'bidi stream';
-  if (callType != 'unary call') {
+  if (callType !== 'unary call') {
     return;
   }
   fill(

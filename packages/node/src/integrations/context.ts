@@ -38,7 +38,7 @@ export class Context implements Integration {
   /**
    * @inheritDoc
    */
-  public static id: string = 'Context';
+  public static id = 'Context';
 
   /**
    * @inheritDoc

@@ -24,7 +24,7 @@ function startChild() {
   child = child_process.spawn('node', [serverPath]);
   child.stdout.pipe(process.stdout);
   child.stderr.pipe(process.stderr);
-  child.on('exit', function () {
+  child.on('exit', () => {
     console.log('child exited');
     startChild();
   });

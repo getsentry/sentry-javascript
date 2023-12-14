@@ -27,8 +27,8 @@ let stashedStartTransactionOnLocationChange: boolean;
  */
 export function routingInstrumentation(
   customStartTransaction: (context: TransactionContext) => Transaction | undefined,
-  startTransactionOnPageLoad: boolean = true,
-  startTransactionOnLocationChange: boolean = true,
+  startTransactionOnPageLoad = true,
+  startTransactionOnLocationChange = true,
 ): void {
   instrumentationInitialized = true;
   stashedStartTransaction = customStartTransaction;
@@ -260,7 +260,8 @@ export function TraceClassDecorator(): ClassDecorator {
  * Decorator function that can be used to capture a single lifecycle methods of the component.
  */
 export function TraceMethodDecorator(): MethodDecorator {
-  // eslint-disable-next-line @typescript-eslint/explicit-function-return-type, @typescript-eslint/ban-types
+  // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+  // biome-ignore lint/complexity/noBannedTypes: Disable
   return (target: Object, propertyKey: string | symbol, descriptor: PropertyDescriptor) => {
     const originalMethod = descriptor.value;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -300,7 +301,7 @@ export function getParameterizedRouteFromSnapshot(route?: ActivatedRouteSnapshot
   let currentRoute = route && route.firstChild;
   while (currentRoute) {
     const path = currentRoute && currentRoute.routeConfig && currentRoute.routeConfig.path;
-    if (path === null || path === undefined) {
+    if (path == null) {
       break;
     }
 

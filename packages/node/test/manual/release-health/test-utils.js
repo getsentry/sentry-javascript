@@ -1,5 +1,7 @@
 function assertSessions(actual, expected) {
+  // biome-ignore lint/style/noParameterAssign: Disable.
   actual = JSON.stringify(actual);
+  // biome-ignore lint/style/noParameterAssign: Disable.
   expected = JSON.stringify(expected);
   if (actual !== expected) {
     process.stdout.write(`Expected Session:\n  ${expected}\nActual Session:\n  ${actual}`);

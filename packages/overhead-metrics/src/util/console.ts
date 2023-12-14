@@ -34,7 +34,7 @@ export function printAnalysis(analysis: Analysis): void {
       value: item.values.value(0),
       withSentry: item.values.diff(0, 1),
       withReplay: item.values.diff(0, 2),
-      ...(item.others == undefined
+      ...(item.others === undefined
         ? {}
         : {
             previous: item.others.value(0),

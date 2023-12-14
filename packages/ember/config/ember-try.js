@@ -1,5 +1,3 @@
-'use strict';
-
 const getChannelURL = require('ember-source-channel-url');
 const { embroiderOptimized } = require('@embroider/test-setup');
 
@@ -9,9 +7,9 @@ const { embroiderOptimized } = require('@embroider/test-setup');
  *
  * @returns The versions which should be tested, along with their respective config
  */
-module.exports = async function () {
+module.exports = async () => {
   // whenever and wherever we test, we want to at least test against the latest version of ember
-  let scenarios = [
+  const scenarios = [
     {
       name: 'ember-release',
       npm: {

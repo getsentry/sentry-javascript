@@ -10,5 +10,6 @@ declare module '@sentry/ember/templates/*' {
  * See https://github.com/emberjs/ember.js/blob/master/packages/@ember/instrumentation/index.ts
  */
 declare module '@ember/instrumentation' {
+  // biome-ignore lint/complexity/noBannedTypes: Disable for now
   export function subscribe(pattern: string, object: {}): any;
 }

@@ -1,8 +1,8 @@
-describe('window.onerror', function () {
-  it('should catch syntax errors', function () {
-    return runInSandbox(sandbox, function () {
+describe('window.onerror', () => {
+  it('should catch syntax errors', () =>
+    runInSandbox(sandbox, () => {
       eval('foo{};');
-    }).then(function (summary) {
+    }).then(summary => {
       // ¯\_(ツ)_/¯
       if (summary.window.isBelowIE11()) {
         assert.equal(summary.events[0].exception.values[0].type, 'Error');
@@ -10,21 +10,20 @@ describe('window.onerror', function () {
         assert.match(summary.events[0].exception.values[0].type, /SyntaxError/);
       }
       assert.equal(summary.events[0].exception.values[0].stacktrace.frames.length, 1); // just one frame
-    });
-  });
+    }));
 
-  it('should catch thrown strings', function () {
-    return runInSandbox(sandbox, { manual: true }, function () {
+  it('should catch thrown strings', () =>
+    runInSandbox(sandbox, { manual: true }, () => {
       // intentionally loading this error via a script file to make
       // sure it is 1) not caught by instrumentation 2) doesn't trigger
       // "Script error"
       var script = document.createElement('script');
       script.src = '/base/subjects/throw-string.js';
-      script.onload = function () {
+      script.onload = () => {
         window.finalizeManualTest();
       };
       document.head.appendChild(script);
-    }).then(function (summary) {
+    }).then(summary => {
       assert.match(summary.events[0].exception.values[0].value, /stringError$/);
       assert.equal(summary.events[0].exception.values[0].stacktrace.frames.length, 1); // always 1 because thrown strings can't provide > 1 frame
 
@@ -38,21 +37,20 @@ describe('window.onerror', function () {
         summary.events[0].exception.values[0].stacktrace.frames[0]['function'],
         /throwStringError|\?|global code/i,
       );
-    });
-  });
+    }));
 
-  it('should catch thrown objects', function () {
-    return runInSandbox(sandbox, { manual: true }, function () {
+  it('should catch thrown objects', () =>
+    runInSandbox(sandbox, { manual: true }, () => {
       // intentionally loading this error via a script file to make
       // sure it is 1) not caught by instrumentation 2) doesn't trigger
       // "Script error"
       var script = document.createElement('script');
       script.src = '/base/subjects/throw-object.js';
-      script.onload = function () {
+      script.onload = () => {
         window.finalizeManualTest();
       };
       document.head.appendChild(script);
-    }).then(function (summary) {
+    }).then(summary => {
       assert.equal(summary.events[0].exception.values[0].type, 'Error');
 
       // ¯\_(ツ)_/¯
@@ -76,21 +74,20 @@ describe('window.onerror', function () {
         summary.events[0].exception.values[0].stacktrace.frames[0]['function'],
         /throwStringError|\?|global code/i,
       );
-    });
-  });
+    }));
 
-  it('should catch thrown errors', function () {
-    return runInSandbox(sandbox, { manual: true }, function () {
+  it('should catch thrown errors', () =>
+    runInSandbox(sandbox, { manual: true }, () => {
       // intentionally loading this error via a script file to make
       // sure it is 1) not caught by instrumentation 2) doesn't trigger
       // "Script error"
       var script = document.createElement('script');
       script.src = '/base/subjects/throw-error.js';
-      script.onload = function () {
+      script.onload = () => {
         window.finalizeManualTest();
       };
       document.head.appendChild(script);
-    }).then(function (summary) {
+    }).then(summary => {
       // ¯\_(ツ)_/¯
       if (summary.window.isBelowIE11()) {
         assert.equal(summary.events[0].exception.values[0].type, 'Error');
@@ -106,16 +103,15 @@ describe('window.onerror', function () {
         summary.events[0].exception.values[0].stacktrace.frames[0]['function'],
         /\?|global code|throwRealError/i,
       );
-    });
-  });
+    }));
 
-  it('should onerror calls with non-string first argument gracefully', function () {
-    return runInSandbox(sandbox, function () {
+  it('should onerror calls with non-string first argument gracefully', () =>
+    runInSandbox(sandbox, () => {
       window.onerror({
         type: 'error',
         otherKey: 'hi',
       });
-    }).then(function (summary) {
+    }).then(summary => {
       assert.equal(summary.events[0].exception.values[0].type, 'Error');
       assert.equal(
         summary.events[0].exception.values[0].value,
@@ -125,22 +121,20 @@ describe('window.onerror', function () {
         type: 'error',
         otherKey: 'hi',
       });
-    });
-  });
+    }));
 
-  it('should NOT catch an exception already caught [but rethrown] via Sentry.captureException', function () {
-    return runInSandbox(sandbox, function () {
+  it('should NOT catch an exception already caught [but rethrown] via Sentry.captureException', () =>
+    runInSandbox(sandbox, () => {
       try {
         foo();
       } catch (e) {
         Sentry.captureException(e);
         throw e; // intentionally re-throw
       }
-    }).then(function (summary) {
+    }).then(summary => {
       // IE10 uses different type (Error instead of ReferenceError) for rethrown errors...
       if (!summary.window.isBelowIE11()) {
         assert.equal(summary.events.length, 1);
       }
-    });
-  });
+    }));
 });

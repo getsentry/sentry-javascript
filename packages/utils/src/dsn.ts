@@ -19,7 +19,7 @@ function isValidProtocol(protocol?: string): protocol is DsnProtocol {
  *
  * @param withPassword When set to true, the password will be included.
  */
-export function dsnToString(dsn: DsnComponents, withPassword: boolean = false): string {
+export function dsnToString(dsn: DsnComponents, withPassword = false): string {
   const { host, path, pass, port, projectId, protocol, publicKey } = dsn;
   return (
     `${protocol}://${publicKey}${withPassword && pass ? `:${pass}` : ''}` +
@@ -107,7 +107,7 @@ function validateDsn(dsn: DsnComponents): boolean {
     return false;
   }
 
-  if (port && isNaN(parseInt(port, 10))) {
+  if (port && Number.isNaN(parseInt(port, 10))) {
     logger.error(`Invalid Sentry Dsn: Invalid port ${port}`);
     return false;
   }

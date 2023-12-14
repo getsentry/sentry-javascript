@@ -26,7 +26,7 @@ const getNavigationEntryFromPerformanceTiming = (): NavigationTimingPolyfillEntr
   const navigationEntry: { [key: string]: number | string } = {
     entryType: 'navigation',
     startTime: 0,
-    type: type == 2 ? 'back_forward' : type === 1 ? 'reload' : 'navigate',
+    type: type === 2 ? 'back_forward' : type === 1 ? 'reload' : 'navigate',
   };
 
   for (const key in timing) {

@@ -24,7 +24,7 @@ export class Mysql implements LazyLoadedIntegration<MysqlConnection> {
   /**
    * @inheritDoc
    */
-  public static id: string = 'Mysql';
+  public static id = 'Mysql';
 
   /**
    * @inheritDoc
@@ -101,43 +101,46 @@ export class Mysql implements LazyLoadedIntegration<MysqlConnection> {
     //    function (callback) => void
     //    function (options, callback) => void
     //    function (options, values, callback) => void
-    fill(pkg, 'createQuery', function (orig: () => void) {
-      return function (this: unknown, options: unknown, values: unknown, callback: unknown) {
-        const scope = getCurrentHub().getScope();
-        const parentSpan = scope.getSpan();
+    fill(
+      pkg,
+      'createQuery',
+      (orig: () => void) =>
+        function (this: unknown, options: unknown, values: unknown, callback: unknown) {
+          const scope = getCurrentHub().getScope();
+          const parentSpan = scope.getSpan();
 
-        const span = parentSpan?.startChild({
-          description: typeof options === 'string' ? options : (options as { sql: string }).sql,
-          op: 'db',
-          origin: 'auto.db.mysql',
-          data: {
-            'db.system': 'mysql',
-          },
-        });
-
-        if (typeof callback === 'function') {
-          return orig.call(this, options, values, function (err: Error, result: unknown, fields: unknown) {
-            finishSpan(span);
-            callback(err, result, fields);
+          const span = parentSpan?.startChild({
+            description: typeof options === 'string' ? options : (options as { sql: string }).sql,
+            op: 'db',
+            origin: 'auto.db.mysql',
+            data: {
+              'db.system': 'mysql',
+            },
           });
-        }
 
-        if (typeof values === 'function') {
-          return orig.call(this, options, function (err: Error, result: unknown, fields: unknown) {
+          if (typeof callback === 'function') {
+            return orig.call(this, options, values, (err: Error, result: unknown, fields: unknown) => {
+              finishSpan(span);
+              callback(err, result, fields);
+            });
+          }
+
+          if (typeof values === 'function') {
+            return orig.call(this, options, (err: Error, result: unknown, fields: unknown) => {
+              finishSpan(span);
+              values(err, result, fields);
+            });
+          }
+
+          // streaming, no callback!
+          const query = orig.call(this, options, values) as { on: (event: string, callback: () => void) => void };
+
+          query.on('end', () => {
             finishSpan(span);
-            values(err, result, fields);
           });
-        }
 
-        // streaming, no callback!
-        const query = orig.call(this, options, values) as { on: (event: string, callback: () => void) => void };
-
-        query.on('end', () => {
-          finishSpan(span);
-        });
-
-        return query;
-      };
-    });
+          return query;
+        },
+    );
   }
 }

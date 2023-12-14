@@ -25,7 +25,7 @@ import {
  * @experimental
  */
 export class BrowserProfilingIntegration implements Integration {
-  public static id: string = 'BrowserProfilingIntegration';
+  public static id = 'BrowserProfilingIntegration';
 
   public readonly name: string;
 

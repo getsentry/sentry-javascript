@@ -46,7 +46,7 @@ export class HttpClient implements Integration {
   /**
    * @inheritDoc
    */
-  public static id: string = 'HttpClient';
+  public static id = 'HttpClient';
 
   /**
    * @inheritDoc

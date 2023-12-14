@@ -19,5 +19,3 @@ assert.match(buildStdout, /● \/client-component\/parameter\/\[parameter\]/);
 assert.match(buildStdout, /λ \/server-component/);
 assert.match(buildStdout, /λ \/server-component\/parameter\/\[\.\.\.parameters\]/);
 assert.match(buildStdout, /λ \/server-component\/parameter\/\[parameter\]/);
-
-export {};

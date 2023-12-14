@@ -13,7 +13,7 @@ export class Mysql extends NodePerformanceIntegration<void> implements Integrati
   /**
    * @inheritDoc
    */
-  public static id: string = 'Mysql';
+  public static id = 'Mysql';
 
   /**
    * @inheritDoc

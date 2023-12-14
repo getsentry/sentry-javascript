@@ -138,7 +138,7 @@ export function init(options: NodeOptions = {}): void {
   const sentryTracesSampleRate = process.env.SENTRY_TRACES_SAMPLE_RATE;
   if (options.tracesSampleRate === undefined && sentryTracesSampleRate) {
     const tracesSampleRate = parseFloat(sentryTracesSampleRate);
-    if (isFinite(tracesSampleRate)) {
+    if (Number.isFinite(tracesSampleRate)) {
       options.tracesSampleRate = tracesSampleRate;
     }
   }

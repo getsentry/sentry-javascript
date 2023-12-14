@@ -20,7 +20,7 @@ app.use(cors());
 
 const APIv1 = express.Router();
 
-APIv1.get('/:userId', function (_req, res) {
+APIv1.get('/:userId', (_req, res) => {
   Sentry.captureMessage('Custom Message');
   res.send('Success');
 });

@@ -13,7 +13,7 @@ export class Nest extends NodePerformanceIntegration<void> implements Integratio
   /**
    * @inheritDoc
    */
-  public static id: string = 'Nest';
+  public static id = 'Nest';
 
   /**
    * @inheritDoc

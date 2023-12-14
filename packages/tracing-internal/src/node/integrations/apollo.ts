@@ -39,7 +39,7 @@ export class Apollo implements LazyLoadedIntegration<GraphQLModule & ApolloModul
   /**
    * @inheritDoc
    */
-  public static id: string = 'Apollo';
+  public static id = 'Apollo';
 
   /**
    * @inheritDoc
@@ -96,24 +96,23 @@ export class Apollo implements LazyLoadedIntegration<GraphQLModule & ApolloModul
       fill(
         pkg.GraphQLFactory.prototype,
         'mergeWithSchema',
-        function (orig: (this: unknown, ...args: unknown[]) => unknown) {
-          return function (
-            this: { resolversExplorerService: { explore: () => ApolloModelResolvers[] } },
-            ...args: unknown[]
-          ) {
-            fill(this.resolversExplorerService, 'explore', function (orig: () => ApolloModelResolvers[]) {
-              return function (this: unknown) {
-                const resolvers = arrayify(orig.call(this));
+        (orig: (this: unknown, ...args: unknown[]) => unknown) =>
+          function (this: { resolversExplorerService: { explore: () => ApolloModelResolvers[] } }, ...args: unknown[]) {
+            fill(
+              this.resolversExplorerService,
+              'explore',
+              (orig: () => ApolloModelResolvers[]) =>
+                function (this: unknown) {
+                  const resolvers = arrayify(orig.call(this));
 
-                const instrumentedResolvers = instrumentResolvers(resolvers, getCurrentHub);
+                  const instrumentedResolvers = instrumentResolvers(resolvers, getCurrentHub);
 
-                return instrumentedResolvers;
-              };
-            });
+                  return instrumentedResolvers;
+                },
+            );
 
             return orig.call(this, ...args);
-          };
-        },
+          },
       );
     } else {
       const pkg = this.loadDependency();
@@ -126,37 +125,40 @@ export class Apollo implements LazyLoadedIntegration<GraphQLModule & ApolloModul
       /**
        * Iterate over resolvers of the ApolloServer instance before schemas are constructed.
        */
-      fill(pkg.ApolloServerBase.prototype, 'constructSchema', function (orig: (config: unknown) => unknown) {
-        return function (this: {
-          config: { resolvers?: ApolloModelResolvers[]; schema?: unknown; modules?: unknown };
-        }) {
-          if (!this.config.resolvers) {
-            if (DEBUG_BUILD) {
-              if (this.config.schema) {
-                logger.warn(
-                  'Apollo integration is not able to trace `ApolloServer` instances constructed via `schema` property.' +
-                    'If you are using NestJS with Apollo, please use `Sentry.Integrations.Apollo({ useNestjs: true })` instead.',
-                );
-                logger.warn();
-              } else if (this.config.modules) {
-                logger.warn(
-                  'Apollo integration is not able to trace `ApolloServer` instances constructed via `modules` property.',
-                );
+      fill(
+        pkg.ApolloServerBase.prototype,
+        'constructSchema',
+        (orig: (config: unknown) => unknown) =>
+          function (this: {
+            config: { resolvers?: ApolloModelResolvers[]; schema?: unknown; modules?: unknown };
+          }) {
+            if (!this.config.resolvers) {
+              if (DEBUG_BUILD) {
+                if (this.config.schema) {
+                  logger.warn(
+                    'Apollo integration is not able to trace `ApolloServer` instances constructed via `schema` property.' +
+                      'If you are using NestJS with Apollo, please use `Sentry.Integrations.Apollo({ useNestjs: true })` instead.',
+                  );
+                  logger.warn();
+                } else if (this.config.modules) {
+                  logger.warn(
+                    'Apollo integration is not able to trace `ApolloServer` instances constructed via `modules` property.',
+                  );
+                }
+
+                logger.error('Skipping tracing as no resolvers found on the `ApolloServer` instance.');
               }
 
-              logger.error('Skipping tracing as no resolvers found on the `ApolloServer` instance.');
+              return orig.call(this);
             }
 
+            const resolvers = arrayify(this.config.resolvers);
+
+            this.config.resolvers = instrumentResolvers(resolvers, getCurrentHub);
+
             return orig.call(this);
-          }
-
-          const resolvers = arrayify(this.config.resolvers);
-
-          this.config.resolvers = instrumentResolvers(resolvers, getCurrentHub);
-
-          return orig.call(this);
-        };
-      });
+          },
+      );
     }
   }
 }
@@ -186,28 +188,31 @@ function wrapResolver(
   resolverName: string,
   getCurrentHub: () => Hub,
 ): void {
-  fill(model[resolverGroupName], resolverName, function (orig: () => unknown | Promise<unknown>) {
-    return function (this: unknown, ...args: unknown[]) {
-      const scope = getCurrentHub().getScope();
-      const parentSpan = scope.getSpan();
-      const span = parentSpan?.startChild({
-        description: `${resolverGroupName}.${resolverName}`,
-        op: 'graphql.resolve',
-        origin: 'auto.graphql.apollo',
-      });
-
-      const rv = orig.call(this, ...args);
-
-      if (isThenable(rv)) {
-        return rv.then((res: unknown) => {
-          span?.finish();
-          return res;
+  fill(
+    model[resolverGroupName],
+    resolverName,
+    (orig: () => unknown | Promise<unknown>) =>
+      function (this: unknown, ...args: unknown[]) {
+        const scope = getCurrentHub().getScope();
+        const parentSpan = scope.getSpan();
+        const span = parentSpan?.startChild({
+          description: `${resolverGroupName}.${resolverName}`,
+          op: 'graphql.resolve',
+          origin: 'auto.graphql.apollo',
         });
-      }
 
-      span?.finish();
+        const rv = orig.call(this, ...args);
 
-      return rv;
-    };
-  });
+        if (isThenable(rv)) {
+          return rv.then((res: unknown) => {
+            span?.finish();
+            return res;
+          });
+        }
+
+        span?.finish();
+
+        return rv;
+      },
+  );
 }

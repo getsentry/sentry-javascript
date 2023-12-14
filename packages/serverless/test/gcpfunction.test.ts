@@ -56,7 +56,7 @@ describe('GCPFunction', () => {
       d.on('error', reject);
       d.run(() =>
         process.nextTick(fn, {}, context, (err: any, result: any) => {
-          if (err != null || err != undefined) {
+          if (err != null) {
             reject(err);
           } else {
             resolve(result);
@@ -76,7 +76,7 @@ describe('GCPFunction', () => {
       d.on('error', reject);
       d.run(() =>
         process.nextTick(fn, context, (err: any, result: any) => {
-          if (err != null || err != undefined) {
+          if (err != null) {
             reject(err);
           } else {
             resolve(result);

@@ -55,14 +55,14 @@ export class PerfMetrics {
    *
    */
   private _find(name: string): number {
-    return this._metrics.find(metric => metric.name == name)!.value;
+    return this._metrics.find(metric => metric.name === name)!.value;
   }
 }
 
 export class PerfMetricsSampler {
   private _consumers: PerfMetricsConsumer[] = [];
   private _timer!: NodeJS.Timer;
-  private _errorPrinted: boolean = false;
+  private _errorPrinted = false;
 
   private constructor(private _cdp: playwright.CDPSession) {}
 

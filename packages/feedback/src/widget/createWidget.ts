@@ -41,7 +41,7 @@ export function createWidget({
 }: CreateWidgetParams): FeedbackWidget {
   let actor: ActorComponent | undefined;
   let dialog: DialogComponent | undefined;
-  let isDialogOpen: boolean = false;
+  let isDialogOpen = false;
 
   /**
    * Show the success message for 5 seconds

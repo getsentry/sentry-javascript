@@ -1,7 +1,7 @@
 Sentry.forceLoad();
 
 setTimeout(() => {
-  Sentry.onLoad(function () {
+  Sentry.onLoad(() => {
     Sentry.captureException('Test exception');
   });
 }, 200);

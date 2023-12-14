@@ -118,7 +118,7 @@ export function withSentry<P extends Record<string, unknown>, R extends React.Co
       return <OrigApp {...props} />;
     }
 
-    let isBaseLocation: boolean = false;
+    let isBaseLocation = false;
 
     const location = _useLocation();
     const matches = _useMatches();

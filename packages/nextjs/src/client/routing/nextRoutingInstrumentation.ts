@@ -11,8 +11,8 @@ type StartTransactionCb = (context: TransactionContext) => Transaction | undefin
  */
 export function nextRouterInstrumentation(
   startTransactionCb: StartTransactionCb,
-  startTransactionOnPageLoad: boolean = true,
-  startTransactionOnLocationChange: boolean = true,
+  startTransactionOnPageLoad = true,
+  startTransactionOnLocationChange = true,
 ): void {
   const isAppRouter = !WINDOW.document.getElementById('__NEXT_DATA__');
   if (isAppRouter) {

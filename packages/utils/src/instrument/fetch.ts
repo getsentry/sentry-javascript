@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable @typescript-eslint/ban-types */
 import type { HandlerDataFetch } from '@sentry/types';
 
 import { fill } from '../object';
@@ -28,8 +27,8 @@ function instrumentFetch(): void {
     return;
   }
 
-  fill(GLOBAL_OBJ, 'fetch', function (originalFetch: () => void): () => void {
-    return function (...args: any[]): void {
+  fill(GLOBAL_OBJ, 'fetch', (originalFetch: () => void): (() => void) =>
+    (...args: any[]): void => {
       const { method, url } = parseFetchArgs(args);
 
       const handlerData: HandlerDataFetch = {
@@ -71,8 +70,7 @@ function instrumentFetch(): void {
           throw error;
         },
       );
-    };
-  });
+    });
 }
 
 function hasProp<T extends string>(obj: unknown, prop: T): obj is Record<string, string> {

@@ -59,7 +59,7 @@ export class Breadcrumbs implements Integration {
   /**
    * @inheritDoc
    */
-  public static id: string = 'Breadcrumbs';
+  public static id = 'Breadcrumbs';
 
   /**
    * @inheritDoc

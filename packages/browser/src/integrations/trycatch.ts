@@ -53,7 +53,7 @@ export class TryCatch implements Integration {
   /**
    * @inheritDoc
    */
-  public static id: string = 'TryCatch';
+  public static id = 'TryCatch';
 
   /**
    * @inheritDoc
@@ -148,14 +148,12 @@ function _wrapRAF(original: any): (callback: () => void) => any {
 function _wrapXHR(originalSend: () => void): () => void {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return function (this: XMLHttpRequest, ...args: any[]): void {
-    // eslint-disable-next-line @typescript-eslint/no-this-alias
-    const xhr = this;
     const xmlHttpRequestProps: XMLHttpRequestProp[] = ['onload', 'onerror', 'onprogress', 'onreadystatechange'];
 
     xmlHttpRequestProps.forEach(prop => {
-      if (prop in xhr && typeof xhr[prop] === 'function') {
+      if (prop in this && typeof this[prop] === 'function') {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        fill(xhr, prop, function (original: WrappedFunction): () => any {
+        fill(this, prop, (original: WrappedFunction): (() => any) => {
           const wrapOptions = {
             mechanism: {
               data: {
@@ -195,69 +193,75 @@ function _wrapEventTarget(target: string): void {
     return;
   }
 
-  fill(proto, 'addEventListener', function (original: VoidFunction,): (
-    eventName: string,
-    fn: EventListenerObject,
-    options?: boolean | AddEventListenerOptions,
-  ) => void {
-    return function (
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      this: any,
-      eventName: string,
-      fn: EventListenerObject,
-      options?: boolean | AddEventListenerOptions,
-    ): (eventName: string, fn: EventListenerObject, capture?: boolean, secure?: boolean) => void {
-      try {
-        if (typeof fn.handleEvent === 'function') {
-          // ESlint disable explanation:
-          //  First, it is generally safe to call `wrap` with an unbound function. Furthermore, using `.bind()` would
-          //  introduce a bug here, because bind returns a new function that doesn't have our
-          //  flags(like __sentry_original__) attached. `wrap` checks for those flags to avoid unnecessary wrapping.
-          //  Without those flags, every call to addEventListener wraps the function again, causing a memory leak.
-          // eslint-disable-next-line @typescript-eslint/unbound-method
-          fn.handleEvent = wrap(fn.handleEvent, {
+  fill(
+    proto,
+    'addEventListener',
+    (
+      original: VoidFunction,
+    ): ((eventName: string, fn: EventListenerObject, options?: boolean | AddEventListenerOptions) => void) =>
+      function (
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        this: any,
+        eventName: string,
+        fn: EventListenerObject,
+        options?: boolean | AddEventListenerOptions,
+      ): (eventName: string, fn: EventListenerObject, capture?: boolean, secure?: boolean) => void {
+        try {
+          if (typeof fn.handleEvent === 'function') {
+            // ESlint disable explanation:
+            //  First, it is generally safe to call `wrap` with an unbound function. Furthermore, using `.bind()` would
+            //  introduce a bug here, because bind returns a new function that doesn't have our
+            //  flags(like __sentry_original__) attached. `wrap` checks for those flags to avoid unnecessary wrapping.
+            //  Without those flags, every call to addEventListener wraps the function again, causing a memory leak.
+            // eslint-disable-next-line @typescript-eslint/unbound-method
+            fn.handleEvent = wrap(fn.handleEvent, {
+              mechanism: {
+                data: {
+                  function: 'handleEvent',
+                  handler: getFunctionName(fn),
+                  target,
+                },
+                handled: false,
+                type: 'instrument',
+              },
+            });
+          }
+        } catch (err) {
+          // can sometimes get 'Permission denied to access property "handle Event'
+        }
+
+        return original.apply(this, [
+          eventName,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          wrap(fn as any as WrappedFunction, {
             mechanism: {
               data: {
-                function: 'handleEvent',
+                function: 'addEventListener',
                 handler: getFunctionName(fn),
                 target,
               },
               handled: false,
               type: 'instrument',
             },
-          });
-        }
-      } catch (err) {
-        // can sometimes get 'Permission denied to access property "handle Event'
-      }
-
-      return original.apply(this, [
-        eventName,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        wrap(fn as any as WrappedFunction, {
-          mechanism: {
-            data: {
-              function: 'addEventListener',
-              handler: getFunctionName(fn),
-              target,
-            },
-            handled: false,
-            type: 'instrument',
-          },
-        }),
-        options,
-      ]);
-    };
-  });
+          }),
+          options,
+        ]);
+      },
+  );
 
   fill(
     proto,
     'removeEventListener',
-    function (
+    (
       originalRemoveEventListener: () => void,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ): (this: any, eventName: string, fn: EventListenerObject, options?: boolean | EventListenerOptions) => () => void {
-      return function (
+    ): ((
+      this: any,
+      eventName: string,
+      fn: EventListenerObject,
+      options?: boolean | EventListenerOptions,
+    ) => () => void) =>
+      function (
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         this: any,
         eventName: string,
@@ -291,7 +295,6 @@ function _wrapEventTarget(target: string): void {
           // ignore, accessing __sentry_wrapped__ will throw in some Selenium environments
         }
         return originalRemoveEventListener.call(this, eventName, wrappedEventHandler, options);
-      };
-    },
+      },
   );
 }

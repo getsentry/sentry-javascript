@@ -1,5 +1,6 @@
 const ButtonPage = (): JSX.Element => (
   <button
+    type="button"
     onClick={() => {
       throw new Error('Sentry Frontend Error');
     }}

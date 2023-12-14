@@ -1,6 +1,6 @@
 import type { Primitive } from '@sentry/types';
 
-import { isNaN, isSyntheticEvent, isVueViewModel } from './is';
+import { isSyntheticEvent, isVueViewModel } from './is';
 import type { MemoFunc } from './memo';
 import { memoBuilder } from './memo';
 import { convertToPlainObject } from './object';
@@ -33,7 +33,7 @@ type ObjOrArray<T> = { [key: string]: T };
  * @returns A normalized version of the object, or `"**non-serializable**"` if any errors are thrown during normalization.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function normalize(input: unknown, depth: number = 100, maxProperties: number = +Infinity): any {
+export function normalize(input: unknown, depth = 100, maxProperties = +Infinity): any {
   try {
     // since we're at the outermost level, we don't provide a key
     return visit('', input, depth, maxProperties);
@@ -47,7 +47,7 @@ export function normalizeToSize<T>(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   object: { [key: string]: any },
   // Default Node.js REPL depth
-  depth: number = 3,
+  depth = 3,
   // 100kB, as 200kB is max payload size, so half sounds reasonable
   maxSize: number = 100 * 1024,
 ): T {
@@ -72,8 +72,8 @@ export function normalizeToSize<T>(
 function visit(
   key: string,
   value: unknown,
-  depth: number = +Infinity,
-  maxProperties: number = +Infinity,
+  depth = +Infinity,
+  maxProperties = +Infinity,
   memo: MemoFunc = memoBuilder(),
 ): Primitive | ObjOrArray<unknown> {
   const [memoize, unmemoize] = memo;
@@ -81,7 +81,7 @@ function visit(
   // Get the simple cases out of the way first
   if (
     value == null || // this matches null and undefined -> eqeq not eqeqeq
-    (['number', 'boolean', 'string'].includes(typeof value) && !isNaN(value))
+    (['number', 'boolean', 'string'].includes(typeof value) && !Number.isNaN(value))
   ) {
     return value as Primitive;
   }
@@ -225,7 +225,7 @@ function stringifyValue(
       return '[SyntheticEvent]';
     }
 
-    if (typeof value === 'number' && value !== value) {
+    if (typeof value === 'number' && Number.isNaN(value)) {
       return '[NaN]';
     }
 

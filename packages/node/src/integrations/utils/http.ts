@@ -60,7 +60,6 @@ export function cleanSpanDescription(
     return description;
   }
 
-  // eslint-disable-next-line prefer-const
   let [method, requestUrl] = description.split(' ');
 
   // superagent sticks the protocol in a weird place (we check for host because if both host *and* protocol are missing,

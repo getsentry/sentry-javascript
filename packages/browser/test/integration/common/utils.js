@@ -67,7 +67,7 @@ function waitForXHR(xhr, cb) {
     return cb();
   }
 
-  setTimeout(function () {
+  setTimeout(() => {
     waitForXHR(xhr, cb);
   }, 1000 / 60);
 }

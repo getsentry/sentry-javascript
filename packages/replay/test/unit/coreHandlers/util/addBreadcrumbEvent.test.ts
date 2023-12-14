@@ -5,8 +5,8 @@ import { setupReplayContainer } from '../../../utils/setupReplayContainer';
 
 jest.useFakeTimers();
 
-describe('Unit | coreHandlers | util | addBreadcrumbEvent', function () {
-  beforeEach(function () {
+describe('Unit | coreHandlers | util | addBreadcrumbEvent', () => {
+  beforeEach(() => {
     jest.setSystemTime(BASE_TIMESTAMP);
   });
 

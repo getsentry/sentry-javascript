@@ -17,7 +17,7 @@ export class Prisma extends NodePerformanceIntegration<void> implements Integrat
   /**
    * @inheritDoc
    */
-  public static id: string = 'Prisma';
+  public static id = 'Prisma';
 
   /**
    * @inheritDoc

@@ -71,7 +71,7 @@ describe('setupOnce', () => {
     });
 
     it(`should wrap ${pgApi}'s query method accepting callback as the last argument`, done => {
-      Client.query('SELECT NOW()', {}, function () {
+      Client.query('SELECT NOW()', {}, () => {
         expect(scope.getSpan).toBeCalled();
         expect(parentSpan.startChild).toBeCalledWith({
           description: 'SELECT NOW()',
@@ -83,11 +83,11 @@ describe('setupOnce', () => {
         });
         expect(childSpan.finish).toBeCalled();
         done();
-      }) as void;
+      }) as any;
     });
 
     it(`should wrap ${pgApi}'s query method accepting callback as the second argument`, done => {
-      Client.query('SELECT NOW()', function () {
+      Client.query('SELECT NOW()', () => {
         expect(scope.getSpan).toBeCalled();
         expect(parentSpan.startChild).toBeCalledWith({
           description: 'SELECT NOW()',
@@ -99,7 +99,7 @@ describe('setupOnce', () => {
         });
         expect(childSpan.finish).toBeCalled();
         done();
-      }) as void;
+      }) as any;
     });
 
     it(`should wrap ${pgApi}'s query method accepting no callback as the last argument but returning promise`, async () => {

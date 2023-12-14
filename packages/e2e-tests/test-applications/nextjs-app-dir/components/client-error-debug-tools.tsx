@@ -21,6 +21,7 @@ export function ClientErrorDebugTools() {
     <div>
       {transactionContextValue.transactionActive ? (
         <button
+          type="button"
           onClick={() => {
             transactionContextValue.stop();
             setTransactionName('');
@@ -39,6 +40,7 @@ export function ClientErrorDebugTools() {
             }}
           />
           <button
+            type="button"
             onClick={() => {
               transactionContextValue.start(transactionName);
             }}
@@ -50,6 +52,7 @@ export function ClientErrorDebugTools() {
       <br />
       <br />
       <button
+        type="button"
         onClick={() => {
           throw new Error('Click Error');
         }}
@@ -58,6 +61,7 @@ export function ClientErrorDebugTools() {
       </button>
       <br />
       <button
+        type="button"
         onClick={() => {
           return Promise.reject('Promise Click Error');
         }}
@@ -66,6 +70,7 @@ export function ClientErrorDebugTools() {
       </button>
       <br />
       <button
+        type="button"
         onClick={() => {
           setRenderError(true);
         }}
@@ -75,6 +80,7 @@ export function ClientErrorDebugTools() {
       <br />
       <br />
       <button
+        type="button"
         onClick={async () => {
           setIsFetchingAPIRoute(true);
           try {
@@ -90,6 +96,7 @@ export function ClientErrorDebugTools() {
       </button>
       <br />
       <button
+        type="button"
         onClick={async () => {
           setIsFetchingEdgeAPIRoute(true);
           try {
@@ -105,6 +112,7 @@ export function ClientErrorDebugTools() {
       </button>
       <br />
       <button
+        type="button"
         onClick={async () => {
           setIsFetchingExternalAPIRoute(true);
           try {

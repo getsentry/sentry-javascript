@@ -16,7 +16,7 @@ export class ModuleMetadata implements Integration {
   /*
    * @inheritDoc
    */
-  public static id: string = 'ModuleMetadata';
+  public static id = 'ModuleMetadata';
 
   /**
    * @inheritDoc

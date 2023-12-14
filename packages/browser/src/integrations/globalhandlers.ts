@@ -26,7 +26,7 @@ export class GlobalHandlers implements Integration {
   /**
    * @inheritDoc
    */
-  public static id: string = 'GlobalHandlers';
+  public static id = 'GlobalHandlers';
 
   /**
    * @inheritDoc
@@ -236,8 +236,8 @@ function _enhanceEventWithInitialFrame(event: Event, url: any, line: any, column
   // event.exception.values[0].stacktrace.frames
   const ev0sf = (ev0s.frames = ev0s.frames || []);
 
-  const colno = isNaN(parseInt(column, 10)) ? undefined : column;
-  const lineno = isNaN(parseInt(line, 10)) ? undefined : line;
+  const colno = Number.isNaN(parseInt(column, 10)) ? undefined : column;
+  const lineno = Number.isNaN(parseInt(line, 10)) ? undefined : line;
   const filename = isString(url) && url.length > 0 ? url : getLocationHref();
 
   // event.exception.values[0].stacktrace.frames

@@ -4,7 +4,6 @@
  *
  * Based on https://github.com/jsx-eslint/eslint-plugin-react/blob/master/lib/rules/state-in-constructor.js
  */
-'use strict';
 
 // ------------------------------------------------------------------------------
 // Rule Definition

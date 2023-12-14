@@ -15,7 +15,7 @@ export class GraphQL implements LazyLoadedIntegration<GraphQLModule> {
   /**
    * @inheritDoc
    */
-  public static id: string = 'GraphQL';
+  public static id = 'GraphQL';
 
   /**
    * @inheritDoc
@@ -49,34 +49,37 @@ export class GraphQL implements LazyLoadedIntegration<GraphQLModule> {
       return;
     }
 
-    fill(pkg, 'execute', function (orig: () => void | Promise<unknown>) {
-      return function (this: unknown, ...args: unknown[]) {
-        const scope = getCurrentHub().getScope();
-        const parentSpan = scope.getSpan();
+    fill(
+      pkg,
+      'execute',
+      (orig: () => void | Promise<unknown>) =>
+        function (this: unknown, ...args: unknown[]) {
+          const scope = getCurrentHub().getScope();
+          const parentSpan = scope.getSpan();
 
-        const span = parentSpan?.startChild({
-          description: 'execute',
-          op: 'graphql.execute',
-          origin: 'auto.graphql.graphql',
-        });
-
-        scope?.setSpan(span);
-
-        const rv = orig.call(this, ...args);
-
-        if (isThenable(rv)) {
-          return rv.then((res: unknown) => {
-            span?.finish();
-            scope?.setSpan(parentSpan);
-
-            return res;
+          const span = parentSpan?.startChild({
+            description: 'execute',
+            op: 'graphql.execute',
+            origin: 'auto.graphql.graphql',
           });
-        }
 
-        span?.finish();
-        scope?.setSpan(parentSpan);
-        return rv;
-      };
-    });
+          scope?.setSpan(span);
+
+          const rv = orig.call(this, ...args);
+
+          if (isThenable(rv)) {
+            return rv.then((res: unknown) => {
+              span?.finish();
+              scope?.setSpan(parentSpan);
+
+              return res;
+            });
+          }
+
+          span?.finish();
+          scope?.setSpan(parentSpan);
+          return rv;
+        },
+    );
   }
 }

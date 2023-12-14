@@ -18,7 +18,7 @@ webpack(
     target: 'node',
     mode: 'development',
   },
-  function (err, stats) {
+  (err, stats) => {
     if (err) {
       console.error(err.stack || err);
       if (err.details) {

@@ -53,7 +53,7 @@ export class Prisma implements Integration {
   /**
    * @inheritDoc
    */
-  public static id: string = 'Prisma';
+  public static id = 'Prisma';
 
   /**
    * @inheritDoc

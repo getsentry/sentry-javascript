@@ -31,7 +31,7 @@ function getBrowserPerformanceAPI(): Performance | undefined {
   return WINDOW && WINDOW.addEventListener && WINDOW.performance;
 }
 
-let _performanceCursor: number = 0;
+let _performanceCursor = 0;
 
 let _measurements: Measurements = {};
 let _lcpEntry: LargestContentfulPaint | undefined;

@@ -80,9 +80,7 @@ describe('Integration | sendReplayEvent', () => {
     mockRecord.takeFullSnapshot.mockClear();
     Object.defineProperty(document, 'visibilityState', {
       configurable: true,
-      get: function () {
-        return 'hidden';
-      },
+      get: () => 'hidden',
     });
 
     // Pretend 5 seconds have passed
@@ -209,9 +207,7 @@ describe('Integration | sendReplayEvent', () => {
   it('uploads a replay event when WINDOW is blurred', async () => {
     Object.defineProperty(document, 'visibilityState', {
       configurable: true,
-      get: function () {
-        return 'hidden';
-      },
+      get: () => 'hidden',
     });
 
     // Pretend 5 seconds have passed
@@ -248,9 +244,7 @@ describe('Integration | sendReplayEvent', () => {
   it('uploads a replay event when document becomes hidden', async () => {
     Object.defineProperty(document, 'visibilityState', {
       configurable: true,
-      get: function () {
-        return 'hidden';
-      },
+      get: () => 'hidden',
     });
     // Pretend 5 seconds have passed
     const ELAPSED = 5000;

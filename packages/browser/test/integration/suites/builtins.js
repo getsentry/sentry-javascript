@@ -1,6 +1,6 @@
-describe('wrapped built-ins', function () {
-  it('should capture exceptions from event listeners', function () {
-    return runInSandbox(sandbox, function () {
+describe('wrapped built-ins', () => {
+  it('should capture exceptions from event listeners', () =>
+    runInSandbox(sandbox, () => {
       var div = document.createElement('div');
       document.body.appendChild(div);
       div.addEventListener(
@@ -14,40 +14,38 @@ describe('wrapped built-ins', function () {
       );
       var click = new MouseEvent('click');
       div.dispatchEvent(click);
-    }).then(function (summary) {
+    }).then(summary => {
       // Make sure we preserve the correct context
       assert.equal(summary.window.element, summary.window.context);
       delete summary.window.element;
       delete summary.window.context;
       assert.match(summary.events[0].exception.values[0].value, /baz/);
-    });
-  });
+    }));
 
-  it('should transparently remove event listeners from wrapped functions', function () {
-    return runInSandbox(sandbox, function () {
+  it('should transparently remove event listeners from wrapped functions', () =>
+    runInSandbox(sandbox, () => {
       var div = document.createElement('div');
       document.body.appendChild(div);
-      var fooFn = function () {
+      var fooFn = () => {
         foo();
       };
-      var barFn = function () {
+      var barFn = () => {
         bar();
       };
       div.addEventListener('click', fooFn);
       div.addEventListener('click', barFn);
       div.removeEventListener('click', barFn);
       div.dispatchEvent(new MouseEvent('click'));
-    }).then(function (summary) {
+    }).then(summary => {
       assert.lengthOf(summary.events, 1);
-    });
-  });
+    }));
 
-  it('should remove the original callback if it was registered before Sentry initialized (w. original method)', function () {
-    return runInSandbox(sandbox, function () {
+  it('should remove the original callback if it was registered before Sentry initialized (w. original method)', () =>
+    runInSandbox(sandbox, () => {
       var div = document.createElement('div');
       document.body.appendChild(div);
       window.capturedCall = false;
-      var captureFn = function () {
+      var captureFn = () => {
         window.capturedCall = true;
       };
       // Use original addEventListener to simulate non-wrapped behavior (callback is attached without __sentry_wrapped__)
@@ -56,73 +54,69 @@ describe('wrapped built-ins', function () {
       div.addEventListener('click', captureFn);
       div.removeEventListener('click', captureFn);
       div.dispatchEvent(new MouseEvent('click'));
-    }).then(function (summary) {
+    }).then(summary => {
       assert.equal(summary.window.capturedCall, false);
       delete summary.window.capturedCalls;
-    });
-  });
+    }));
 
-  it('should capture exceptions inside setTimeout', function () {
-    return runInSandbox(sandbox, function () {
-      setTimeout(function () {
+  it('should capture exceptions inside setTimeout', () =>
+    runInSandbox(sandbox, () => {
+      setTimeout(() => {
         foo();
       });
-    }).then(function (summary) {
+    }).then(summary => {
       assert.match(summary.events[0].exception.values[0].value, /baz/);
-    });
-  });
+    }));
 
-  it('should capture exceptions inside setInterval', function () {
-    return runInSandbox(sandbox, function () {
-      var exceptionInterval = setInterval(function () {
+  it('should capture exceptions inside setInterval', () =>
+    runInSandbox(sandbox, () => {
+      var exceptionInterval = setInterval(() => {
         clearInterval(exceptionInterval);
         foo();
       }, 0);
-    }).then(function (summary) {
+    }).then(summary => {
       assert.match(summary.events[0].exception.values[0].value, /baz/);
-    });
-  });
+    }));
 
-  describe('requestAnimationFrame', function () {
-    it('should capture exceptions inside callback', function () {
+  describe('requestAnimationFrame', () => {
+    it('should capture exceptions inside callback', () => {
       // needs to be visible or requestAnimationFrame won't ever fire
       sandbox.style.display = 'block';
 
-      return runInSandbox(sandbox, { manual: true }, function () {
-        requestAnimationFrame(function () {
+      return runInSandbox(sandbox, { manual: true }, () => {
+        requestAnimationFrame(() => {
           window.finalizeManualTest();
           foo();
         });
-      }).then(function (summary) {
+      }).then(summary => {
         assert.match(summary.events[0].exception.values[0].value, /baz/);
       });
     });
 
-    it('wrapped callback should preserve correct context - window (not-bound)', function () {
+    it('wrapped callback should preserve correct context - window (not-bound)', () => {
       // needs to be visible or requestAnimationFrame won't ever fire
       sandbox.style.display = 'block';
-      return runInSandbox(sandbox, { manual: true }, function () {
+      return runInSandbox(sandbox, { manual: true }, () => {
         requestAnimationFrame(function () {
           window.capturedCtx = this;
           window.finalizeManualTest();
         });
-      }).then(function (summary) {
+      }).then(summary => {
         assert.strictEqual(summary.window.capturedCtx, summary.window);
         delete summary.window.capturedCtx;
       });
     });
 
-    it('wrapped callback should preserve correct context - class bound method', function () {
+    it('wrapped callback should preserve correct context - class bound method', () => {
       // needs to be visible or requestAnimationFrame won't ever fire
       sandbox.style.display = 'block';
-      return runInSandbox(sandbox, { manual: true }, function () {
+      return runInSandbox(sandbox, { manual: true }, () => {
         // TypeScript-transpiled class syntax
-        var Foo = (function () {
+        var Foo = (() => {
           function Foo() {
-            var _this = this;
             this.magicNumber = 42;
-            this.getThis = function () {
-              window.capturedCtx = _this;
+            this.getThis = () => {
+              window.capturedCtx = this;
               window.finalizeManualTest();
             };
           }
@@ -130,30 +124,30 @@ describe('wrapped built-ins', function () {
         })();
         var foo = new Foo();
         requestAnimationFrame(foo.getThis);
-      }).then(function (summary) {
+      }).then(summary => {
         assert.strictEqual(summary.window.capturedCtx.magicNumber, 42);
         delete summary.window.capturedCtx;
       });
     });
 
-    it('wrapped callback should preserve correct context - `bind` bound method', function () {
+    it('wrapped callback should preserve correct context - `bind` bound method', () => {
       // needs to be visible or requestAnimationFrame won't ever fire
       sandbox.style.display = 'block';
-      return runInSandbox(sandbox, { manual: true }, function () {
+      return runInSandbox(sandbox, { manual: true }, () => {
         function foo() {
           window.capturedCtx = this;
           window.finalizeManualTest();
         }
         requestAnimationFrame(foo.bind({ magicNumber: 42 }));
-      }).then(function (summary) {
+      }).then(summary => {
         assert.strictEqual(summary.window.capturedCtx.magicNumber, 42);
         delete summary.window.capturedCtx;
       });
     });
   });
 
-  it('should capture exceptions from XMLHttpRequest event handlers (e.g. onreadystatechange)', function () {
-    return runInSandbox(sandbox, { manual: true }, function () {
+  it('should capture exceptions from XMLHttpRequest event handlers (e.g. onreadystatechange)', () =>
+    runInSandbox(sandbox, { manual: true }, () => {
       var xhr = new XMLHttpRequest();
       xhr.open('GET', '/base/subjects/example.json');
       // intentionally assign event handlers *after* open, since this is what jQuery does
@@ -161,11 +155,11 @@ describe('wrapped built-ins', function () {
         window.finalizeManualTest();
         // replace onreadystatechange with no-op so exception doesn't
         // fire more than once as XHR changes loading state
-        xhr.onreadystatechange = function () {};
+        xhr.onreadystatechange = () => {};
         foo();
       };
       xhr.send();
-    }).then(function (summary) {
+    }).then(summary => {
       assert.match(summary.events[0].exception.values[0].value, /baz/);
 
       if (IS_LOADER) {
@@ -188,11 +182,10 @@ describe('wrapped built-ins', function () {
           },
         });
       }
-    });
-  });
+    }));
 
-  it('should not call XMLHttpRequest onreadystatechange more than once per state', function () {
-    return runInSandbox(sandbox, { manual: true }, function () {
+  it('should not call XMLHttpRequest onreadystatechange more than once per state', () =>
+    runInSandbox(sandbox, { manual: true }, () => {
       window.calls = {};
       var xhr = new XMLHttpRequest();
       xhr.open('GET', '/base/subjects/example.json');
@@ -203,7 +196,7 @@ describe('wrapped built-ins', function () {
         }
       };
       xhr.send();
-    }).then(function (summary) {
+    }).then(summary => {
       for (var state in summary.window.calls) {
         assert.equal(summary.window.calls[state], 1);
       }
@@ -212,15 +205,14 @@ describe('wrapped built-ins', function () {
       assert.isAtLeast(Object.keys(summary.window.calls).length, 3);
       assert.isAtMost(Object.keys(summary.window.calls).length, 4);
       delete summary.window.calls;
-    });
-  });
+    }));
 
-  it(optional("should capture built-in's mechanism type as instrument", IS_LOADER), function () {
-    return runInSandbox(sandbox, function () {
-      setTimeout(function () {
+  it(optional("should capture built-in's mechanism type as instrument", IS_LOADER), () =>
+    runInSandbox(sandbox, () => {
+      setTimeout(() => {
         foo();
       });
-    }).then(function (summary) {
+    }).then(summary => {
       if (IS_LOADER) {
         // The async loader doesn't wrap setTimeout
         // so we don't receive the full mechanism
@@ -240,11 +232,11 @@ describe('wrapped built-ins', function () {
           handled: false,
         });
       }
-    });
-  });
+    }),
+  );
 
-  it(optional("should capture built-in's handlers fn name in mechanism data", IS_LOADER), function () {
-    return runInSandbox(sandbox, function () {
+  it(optional("should capture built-in's handlers fn name in mechanism data", IS_LOADER), () =>
+    runInSandbox(sandbox, () => {
       var div = document.createElement('div');
       document.body.appendChild(div);
       div.addEventListener(
@@ -256,7 +248,7 @@ describe('wrapped built-ins', function () {
       );
       var click = new MouseEvent('click');
       div.dispatchEvent(click);
-    }).then(function (summary) {
+    }).then(summary => {
       if (IS_LOADER) {
         // The async loader doesn't wrap addEventListener
         // so we don't receive the full mechanism
@@ -283,44 +275,41 @@ describe('wrapped built-ins', function () {
           },
         });
       }
-    });
-  });
+    }),
+  );
 
-  it(
-    optional('should fallback to <anonymous> fn name in mechanism data if one is unavailable', IS_LOADER),
-    function () {
-      return runInSandbox(sandbox, function () {
-        var div = document.createElement('div');
-        document.body.appendChild(div);
-        div.addEventListener(
-          'click',
-          function () {
-            foo();
+  it(optional('should fallback to <anonymous> fn name in mechanism data if one is unavailable', IS_LOADER), () =>
+    runInSandbox(sandbox, () => {
+      var div = document.createElement('div');
+      document.body.appendChild(div);
+      div.addEventListener(
+        'click',
+        () => {
+          foo();
+        },
+        false,
+      );
+      var click = new MouseEvent('click');
+      div.dispatchEvent(click);
+    }).then(summary => {
+      if (IS_LOADER) {
+        // The async loader doesn't wrap
+        assert.ok(summary.events[0].exception.values[0].mechanism);
+      } else {
+        var target = summary.events[0].exception.values[0].mechanism.data.target;
+        delete summary.events[0].exception.values[0].mechanism.data.target;
+
+        // IE vs. Rest of the world
+        assert.oneOf(target, ['Node', 'EventTarget']);
+        assert.deepEqual(summary.events[0].exception.values[0].mechanism, {
+          type: 'instrument',
+          handled: false,
+          data: {
+            function: 'addEventListener',
+            handler: '<anonymous>',
           },
-          false,
-        );
-        var click = new MouseEvent('click');
-        div.dispatchEvent(click);
-      }).then(function (summary) {
-        if (IS_LOADER) {
-          // The async loader doesn't wrap
-          assert.ok(summary.events[0].exception.values[0].mechanism);
-        } else {
-          var target = summary.events[0].exception.values[0].mechanism.data.target;
-          delete summary.events[0].exception.values[0].mechanism.data.target;
-
-          // IE vs. Rest of the world
-          assert.oneOf(target, ['Node', 'EventTarget']);
-          assert.deepEqual(summary.events[0].exception.values[0].mechanism, {
-            type: 'instrument',
-            handled: false,
-            data: {
-              function: 'addEventListener',
-              handler: '<anonymous>',
-            },
-          });
-        }
-      });
-    },
+        });
+      }
+    }),
   );
 });

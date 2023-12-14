@@ -43,7 +43,7 @@ function mockEvent(override: Record<string, unknown> = {}): Parameters<Handle>[0
 
 const mockResponse = { status: 200, headers: {}, body: '' } as any;
 
-const enum Type {
+enum Type {
   Sync = 'sync',
   Async = 'async',
 }

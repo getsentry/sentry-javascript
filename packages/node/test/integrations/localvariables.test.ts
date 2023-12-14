@@ -421,6 +421,7 @@ describeIf((NODE_VERSION.major || 0) >= 18)('LocalVariables', () => {
 
       add(n => {
         throw new Error('test');
+        // biome-ignore lint/correctness/noUnreachable: Intended change.
         next(n + 1);
       });
 

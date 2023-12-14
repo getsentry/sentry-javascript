@@ -138,9 +138,9 @@ export function parseSemver(input: string): SemVer {
   const patch = parseInt(match[3], 10);
   return {
     buildmetadata: match[5],
-    major: isNaN(major) ? undefined : major,
-    minor: isNaN(minor) ? undefined : minor,
-    patch: isNaN(patch) ? undefined : patch,
+    major: Number.isNaN(major) ? undefined : major,
+    minor: Number.isNaN(minor) ? undefined : minor,
+    patch: Number.isNaN(patch) ? undefined : patch,
     prerelease: match[4],
   };
 }
@@ -152,7 +152,7 @@ export function parseSemver(input: string): SemVer {
  * @param frame StackFrame that will be mutated
  * @param linesOfContext number of context lines we want to add pre/post
  */
-export function addContextToFrame(lines: string[], frame: StackFrame, linesOfContext: number = 5): void {
+export function addContextToFrame(lines: string[], frame: StackFrame, linesOfContext = 5): void {
   // When there is no line number in the frame, attaching context is nonsensical and will even break grouping
   if (frame.lineno === undefined) {
     return;

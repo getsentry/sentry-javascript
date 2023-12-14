@@ -6,7 +6,7 @@ class CustomIntegration {
   setupOnce() {}
 }
 
-Sentry.onLoad(function () {
+Sentry.onLoad(() => {
   Sentry.init({
     integrations: [new CustomIntegration()],
   });

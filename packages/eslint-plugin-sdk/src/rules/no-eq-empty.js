@@ -2,7 +2,6 @@
  * @fileoverview Rule to disallow using the equality operator with empty arrays or objects
  * @author Abhijeet Prasad
  */
-'use strict';
 
 // ------------------------------------------------------------------------------
 // Rule Definition
@@ -22,7 +21,7 @@ module.exports = {
       equality: 'Do not apply the equality operator on an empty {{ name }}.{{ fix }}',
     },
   },
-  create: function (context) {
+  create: context => {
     // variables should be defined here
 
     // ----------------------------------------------------------------------

@@ -136,7 +136,7 @@ describe('SyncPromise', () => {
   test('calling the callback immediately', () => {
     expect.assertions(1);
 
-    let foo: number = 1;
+    let foo = 1;
 
     // eslint-disable-next-line @typescript-eslint/no-floating-promises
     new SyncPromise<number>(_ => {

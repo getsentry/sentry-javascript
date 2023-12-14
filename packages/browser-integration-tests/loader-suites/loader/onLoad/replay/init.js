@@ -1,3 +1,3 @@
-Sentry.onLoad(function () {
+Sentry.onLoad(() => {
   Sentry.init({});
 });

@@ -50,7 +50,7 @@ export async function startEventProxyServer(options: EventProxyServerOptions): P
           ? zlib.gunzipSync(Buffer.concat(proxyRequestChunks)).toString()
           : Buffer.concat(proxyRequestChunks).toString();
 
-      let envelopeHeader = JSON.parse(proxyRequestBody.split('\n')[0]);
+      const envelopeHeader = JSON.parse(proxyRequestBody.split('\n')[0]);
 
       if (!envelopeHeader.dsn) {
         throw new Error('[event-proxy-server] No dsn on envelope header. Please set tunnel option.');

@@ -20,7 +20,7 @@ const STRIP_FRAME_REGEXP = /captureMessage|captureException/;
 export function createStackParser(...parsers: StackLineParser[]): StackParser {
   const sortedParsers = parsers.sort((a, b) => a[0] - b[0]).map(p => p[1]);
 
-  return (stack: string, skipFirst: number = 0): StackFrame[] => {
+  return (stack: string, skipFirst = 0): StackFrame[] => {
     const frames: StackFrame[] = [];
     const lines = stack.split('\n');
 

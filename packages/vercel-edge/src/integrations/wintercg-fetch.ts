@@ -23,7 +23,7 @@ export class WinterCGFetch implements Integration {
   /**
    * @inheritDoc
    */
-  public static id: string = 'WinterCGFetch';
+  public static id = 'WinterCGFetch';
 
   /**
    * @inheritDoc

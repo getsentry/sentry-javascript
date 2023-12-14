@@ -20,7 +20,7 @@ describe('BrowserProfilingIntegration', () => {
     });
 
     class MockProfiler {
-      stopped: boolean = false;
+      stopped = false;
       constructor(_opts: { sampleInterval: number; maxBufferSize: number }) {}
       stop() {
         this.stopped = true;

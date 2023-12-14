@@ -13,12 +13,12 @@ export const DEFAULT_RETRY_AFTER = 60 * 1000; // 60 seconds
  */
 export function parseRetryAfterHeader(header: string, now: number = Date.now()): number {
   const headerDelay = parseInt(`${header}`, 10);
-  if (!isNaN(headerDelay)) {
+  if (!Number.isNaN(headerDelay)) {
     return headerDelay * 1000;
   }
 
   const headerDate = Date.parse(`${header}`);
-  if (!isNaN(headerDate)) {
+  if (!Number.isNaN(headerDate)) {
     return headerDate - now;
   }
 
@@ -78,7 +78,7 @@ export function updateRateLimits(
     for (const limit of rateLimitHeader.trim().split(',')) {
       const [retryAfter, categories] = limit.split(':', 2);
       const headerDelay = parseInt(retryAfter, 10);
-      const delay = (!isNaN(headerDelay) ? headerDelay : 60) * 1000; // 60sec default
+      const delay = (!Number.isNaN(headerDelay) ? headerDelay : 60) * 1000; // 60sec default
       if (!categories) {
         updatedRateLimits.all = now + delay;
       } else {

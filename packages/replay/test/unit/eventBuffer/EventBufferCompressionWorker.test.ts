@@ -11,7 +11,7 @@ import { getTestEventIncremental } from '../../utils/getTestEvent';
 const TEST_EVENT = getTestEventIncremental({ timestamp: BASE_TIMESTAMP });
 
 describe('Unit | eventBuffer | EventBufferCompressionWorker', () => {
-  it('adds events to event buffer with compression worker', async function () {
+  it('adds events to event buffer with compression worker', async () => {
     const buffer = createEventBuffer({
       useCompression: true,
     }) as EventBufferProxy;
@@ -31,7 +31,7 @@ describe('Unit | eventBuffer | EventBufferCompressionWorker', () => {
     expect(restored).toEqual(JSON.stringify([TEST_EVENT, TEST_EVENT]));
   });
 
-  it('adds checkout events to event buffer with compression worker', async function () {
+  it('adds checkout events to event buffer with compression worker', async () => {
     const buffer = createEventBuffer({
       useCompression: true,
     }) as EventBufferProxy;
@@ -55,7 +55,7 @@ describe('Unit | eventBuffer | EventBufferCompressionWorker', () => {
     expect(restored).toEqual(JSON.stringify([{ ...TEST_EVENT, type: 2 }]));
   });
 
-  it('calling `finish()` multiple times does not result in duplicated events', async function () {
+  it('calling `finish()` multiple times does not result in duplicated events', async () => {
     const buffer = createEventBuffer({
       useCompression: true,
     }) as EventBufferProxy;
@@ -79,7 +79,7 @@ describe('Unit | eventBuffer | EventBufferCompressionWorker', () => {
     expect(restored2).toEqual(JSON.stringify([]));
   });
 
-  it('calling `finish()` multiple times, with events in between, does not result in duplicated or dropped events', async function () {
+  it('calling `finish()` multiple times, with events in between, does not result in duplicated or dropped events', async () => {
     const buffer = createEventBuffer({
       useCompression: true,
     }) as EventBufferProxy;
@@ -106,7 +106,7 @@ describe('Unit | eventBuffer | EventBufferCompressionWorker', () => {
     expect(restored2).toEqual(JSON.stringify([{ ...TEST_EVENT, type: 5 }]));
   });
 
-  it('handles an error when compressing the payload', async function () {
+  it('handles an error when compressing the payload', async () => {
     const buffer = createEventBuffer({
       useCompression: true,
     }) as EventBufferProxy;
@@ -127,7 +127,7 @@ describe('Unit | eventBuffer | EventBufferCompressionWorker', () => {
     await expect(() => buffer.finish()).rejects.toBeDefined();
   });
 
-  it('handles an error when adding an event', async function () {
+  it('handles an error when adding an event', async () => {
     const buffer = createEventBuffer({
       useCompression: true,
     }) as EventBufferProxy;
@@ -149,7 +149,7 @@ describe('Unit | eventBuffer | EventBufferCompressionWorker', () => {
   });
 
   describe('size limit', () => {
-    it('rejects if size exceeds limit', async function () {
+    it('rejects if size exceeds limit', async () => {
       const buffer = createEventBuffer({
         useCompression: true,
       }) as EventBufferProxy;
@@ -169,7 +169,7 @@ describe('Unit | eventBuffer | EventBufferCompressionWorker', () => {
       await expect(() => buffer.addEvent(largeEvent)).rejects.toThrowError(EventBufferSizeExceededError);
     });
 
-    it('resets size limit on clear', async function () {
+    it('resets size limit on clear', async () => {
       const buffer = createEventBuffer({
         useCompression: true,
       }) as EventBufferProxy;
@@ -190,7 +190,7 @@ describe('Unit | eventBuffer | EventBufferCompressionWorker', () => {
       await buffer.addEvent(largeEvent);
     });
 
-    it('resets size limit on finish', async function () {
+    it('resets size limit on finish', async () => {
       const buffer = createEventBuffer({
         useCompression: true,
       }) as EventBufferProxy;

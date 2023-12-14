@@ -47,7 +47,7 @@ declare global {
 function applyRuleToResource(rule: WebpackModuleRule, resourcePath: string): ModuleRuleUseProperty[] {
   const applications = [];
 
-  let shouldApply: boolean = false;
+  let shouldApply = false;
   if (typeof rule.test === 'function') {
     shouldApply = rule.test(resourcePath);
   } else if (rule.test instanceof RegExp) {

@@ -14,7 +14,7 @@ class File {
   }
 }
 
-const blob = function() {
+const blob = () => {
   (function file() {
     https();
   })();

@@ -7,7 +7,7 @@ export class HttpContext implements Integration {
   /**
    * @inheritDoc
    */
-  public static id: string = 'HttpContext';
+  public static id = 'HttpContext';
 
   /**
    * @inheritDoc

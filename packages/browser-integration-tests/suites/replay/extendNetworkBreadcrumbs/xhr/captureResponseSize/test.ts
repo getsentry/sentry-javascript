@@ -46,7 +46,7 @@ sentryTest(
       xhr.open('GET', 'http://localhost:7654/foo');
       xhr.send();
 
-      xhr.addEventListener('readystatechange', function () {
+      xhr.addEventListener('readystatechange', () => {
         if (xhr.readyState === 4) {
           // @ts-expect-error Sentry is a global
           setTimeout(() => Sentry.captureException('test error', 0));
@@ -142,7 +142,7 @@ sentryTest('captures response size without Content-Length header', async ({ getL
     xhr.open('GET', 'http://localhost:7654/foo');
     xhr.send();
 
-    xhr.addEventListener('readystatechange', function () {
+    xhr.addEventListener('readystatechange', () => {
       if (xhr.readyState === 4) {
         // @ts-expect-error Sentry is a global
         setTimeout(() => Sentry.captureException('test error', 0));
@@ -235,7 +235,7 @@ sentryTest('captures response size for non-string bodies', async ({ getLocalTest
     xhr.open('POST', 'http://localhost:7654/foo');
     xhr.send();
 
-    xhr.addEventListener('readystatechange', function () {
+    xhr.addEventListener('readystatechange', () => {
       if (xhr.readyState === 4) {
         // @ts-expect-error Sentry is a global
         setTimeout(() => Sentry.captureException('test error', 0));

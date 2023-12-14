@@ -1,7 +1,7 @@
 window.__sentryOnLoad = 0;
 
 setTimeout(() => {
-  Sentry.onLoad(function () {
+  Sentry.onLoad(() => {
     window.__hadSentry = window.sentryIsLoaded();
 
     Sentry.init({

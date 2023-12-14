@@ -120,7 +120,7 @@ if (process.env.TEST_ENV === 'production') {
 test('Should send a transaction for instrumented server actions', async ({ page }) => {
   const nextjsVersion = packageJson.dependencies.next;
   const nextjsMajor = Number(nextjsVersion.split('.')[0]);
-  test.skip(!isNaN(nextjsMajor) && nextjsMajor < 14, 'only applies to nextjs apps >= version 14');
+  test.skip(!Number.isNaN(nextjsMajor) && nextjsMajor < 14, 'only applies to nextjs apps >= version 14');
 
   const serverComponentTransactionPromise = waitForTransaction('nextjs-13-app-dir', async transactionEvent => {
     return transactionEvent?.transaction === 'serverAction/myServerAction';

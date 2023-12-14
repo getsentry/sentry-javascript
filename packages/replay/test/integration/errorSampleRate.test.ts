@@ -318,9 +318,7 @@ describe('Integration | errorSampleRate', () => {
     it('does not send a replay when triggering a full dom snapshot when document becomes visible after [SESSION_IDLE_EXPIRE_DURATION]ms', async () => {
       Object.defineProperty(document, 'visibilityState', {
         configurable: true,
-        get: function () {
-          return 'visible';
-        },
+        get: () => 'visible',
       });
 
       jest.advanceTimersByTime(SESSION_IDLE_EXPIRE_DURATION + 1);
@@ -336,9 +334,7 @@ describe('Integration | errorSampleRate', () => {
     it('does not send a replay if user hides the tab and comes back within 60 seconds', async () => {
       Object.defineProperty(document, 'visibilityState', {
         configurable: true,
-        get: function () {
-          return 'hidden';
-        },
+        get: () => 'hidden',
       });
       document.dispatchEvent(new Event('visibilitychange'));
 
@@ -351,9 +347,7 @@ describe('Integration | errorSampleRate', () => {
       jest.advanceTimersByTime(SESSION_IDLE_EXPIRE_DURATION - 100);
       Object.defineProperty(document, 'visibilityState', {
         configurable: true,
-        get: function () {
-          return 'visible';
-        },
+        get: () => 'visible',
       });
       document.dispatchEvent(new Event('visibilitychange'));
 
@@ -367,9 +361,7 @@ describe('Integration | errorSampleRate', () => {
     it('does not upload a replay event when document becomes hidden', async () => {
       Object.defineProperty(document, 'visibilityState', {
         configurable: true,
-        get: function () {
-          return 'hidden';
-        },
+        get: () => 'hidden',
       });
 
       // Pretend 5 seconds have passed

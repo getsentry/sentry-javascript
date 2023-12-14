@@ -6,7 +6,6 @@
  *
  * Based on: https://github.com/mysticatea/eslint-plugin-es/blob/v4.1.0/lib/rules/no-nullish-coalescing-operators.js
  */
-'use strict';
 
 // ------------------------------------------------------------------------------
 // Rule Definition

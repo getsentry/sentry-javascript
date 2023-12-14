@@ -3,9 +3,9 @@ import type { Event, EventProcessor, Integration } from '@sentry/types';
 import { configureScope, getCurrentHub } from '../../src';
 
 export class TestIntegration implements Integration {
-  public static id: string = 'TestIntegration';
+  public static id = 'TestIntegration';
 
-  public name: string = 'TestIntegration';
+  public name = 'TestIntegration';
 
   public setupOnce(): void {
     const eventProcessor: EventProcessor = (event: Event) => {
@@ -25,9 +25,9 @@ export class TestIntegration implements Integration {
 }
 
 export class AddAttachmentTestIntegration implements Integration {
-  public static id: string = 'AddAttachmentTestIntegration';
+  public static id = 'AddAttachmentTestIntegration';
 
-  public name: string = 'AddAttachmentTestIntegration';
+  public name = 'AddAttachmentTestIntegration';
 
   public setupOnce(addGlobalEventProcessor: (callback: EventProcessor) => void): void {
     addGlobalEventProcessor((event, hint) => {
@@ -38,9 +38,9 @@ export class AddAttachmentTestIntegration implements Integration {
 }
 
 export class AdHocIntegration implements Integration {
-  public static id: string = 'AdHockIntegration';
+  public static id = 'AdHockIntegration';
 
-  public name: string = 'AdHockIntegration';
+  public name = 'AdHockIntegration';
 
   public setupOnce(): void {
     // Noop

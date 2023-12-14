@@ -17,7 +17,7 @@ var fdeb = new u8([
 // code length index map
 var clim = new u8([16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15]);
 // get base, reverse index map from extra bits
-var freb = function (eb, start) {
+var freb = (eb, start) => {
   var b = new u16(31);
   for (var i = 0; i < 31; ++i) {
     b[i] = start += 1 << eb[i - 1];
@@ -50,7 +50,7 @@ for (var i = 0; i < 32768; ++i) {
 // create huffman tree from u8 "map": index -> code length for code index
 // mb (max bits) must be at most 15
 // TODO: optimize/split up?
-var hMap = function (cd, mb, r) {
+var hMap = (cd, mb, r) => {
   var s = cd.length;
   // index
   var i = 0;
@@ -111,12 +111,10 @@ var flm = /*#__PURE__*/ hMap(flt, 9, 0);
 // fixed distance map
 var fdm = /*#__PURE__*/ hMap(fdt, 5, 0);
 // get end of byte
-var shft = function (p) {
-  return ((p + 7) / 8) | 0;
-};
+var shft = p => ((p + 7) / 8) | 0;
 // typed array slice - allows garbage collector to free original reference,
 // while being more compatible than .slice
-var slc = function (v, s, e) {
+var slc = (v, s, e) => {
   if (s == null || s < 0) s = 0;
   if (e == null || e > v.length) e = v.length;
   // can't use .constructor in case user-supplied
@@ -140,7 +138,7 @@ var ec = [
   'invalid zip data',
   // determined by unknown compression method
 ];
-var err = function (ind, msg, nt) {
+var err = (ind, msg, nt) => {
   var e = new Error(msg || ec[ind]);
   e.code = ind;
   if (Error.captureStackTrace) Error.captureStackTrace(e, err);
@@ -148,14 +146,14 @@ var err = function (ind, msg, nt) {
   return e;
 };
 // starting at p, write the minimum number of bits that can hold v to d
-var wbits = function (d, p, v) {
+var wbits = (d, p, v) => {
   v <<= p & 7;
   var o = (p / 8) | 0;
   d[o] |= v;
   d[o + 1] |= v >> 8;
 };
 // starting at p, write the minimum number of bits (>8) that can hold v to d
-var wbits16 = function (d, p, v) {
+var wbits16 = (d, p, v) => {
   v <<= p & 7;
   var o = (p / 8) | 0;
   d[o] |= v;
@@ -163,7 +161,7 @@ var wbits16 = function (d, p, v) {
   d[o + 2] |= v >> 16;
 };
 // creates code lengths from a frequency table
-var hTree = function (d, mb) {
+var hTree = (d, mb) => {
   // Need extra info to make a tree
   var t = [];
   for (var i = 0; i < d.length; ++i) {
@@ -177,9 +175,7 @@ var hTree = function (d, mb) {
     v[t[0].s] = 1;
     return { t: v, l: 1 };
   }
-  t.sort(function (a, b) {
-    return a.f - b.f;
-  });
+  t.sort((a, b) => a.f - b.f);
   // after i2 reaches last ind, will be stopped
   // freq must be greater than largest possible number of symbols
   t.push({ s: -1, f: 25001 });
@@ -216,9 +212,7 @@ var hTree = function (d, mb) {
     //    left            cost
     var lft = mbt - mb,
       cst = 1 << lft;
-    t2.sort(function (a, b) {
-      return tr[b.s] - tr[a.s] || a.f - b.f;
-    });
+    t2.sort((a, b) => tr[b.s] - tr[a.s] || a.f - b.f);
     for (; i < s; ++i) {
       var i2_1 = t2[i].s;
       if (tr[i2_1] > mb) {
@@ -244,11 +238,9 @@ var hTree = function (d, mb) {
   return { t: new u8(tr), l: mbt };
 };
 // get the max length and assign length codes
-var ln = function (n, l, d) {
-  return n.s == -1 ? Math.max(ln(n.l, l, d + 1), ln(n.r, l, d + 1)) : (l[n.s] = d);
-};
+var ln = (n, l, d) => (n.s == -1 ? Math.max(ln(n.l, l, d + 1), ln(n.r, l, d + 1)) : (l[n.s] = d));
 // length codes generation
-var lc = function (c) {
+var lc = c => {
   var s = c.length;
   // Note that the semicolon was intentional
   while (s && !c[--s]);
@@ -257,7 +249,7 @@ var lc = function (c) {
   var cli = 0,
     cln = c[0],
     cls = 1;
-  var w = function (v) {
+  var w = v => {
     cl[cli++] = v;
   };
   for (var i = 1; i <= s; ++i) {
@@ -282,14 +274,14 @@ var lc = function (c) {
   return { c: cl.subarray(0, cli), n: s };
 };
 // calculate the length of output from tree, code lengths
-var clen = function (cf, cl) {
+var clen = (cf, cl) => {
   var l = 0;
   for (var i = 0; i < cl.length; ++i) l += cf[i] * cl[i];
   return l;
 };
 // writes a fixed block
 // returns the new bit pos
-var wfblk = function (out, pos, dat) {
+var wfblk = (out, pos, dat) => {
   // no need to write 00 as type: TypedArray defaults to 0
   var s = dat.length;
   var o = shft(pos + 2);
@@ -301,7 +293,7 @@ var wfblk = function (out, pos, dat) {
   return (o + 4 + s) * 8;
 };
 // writes a block
-var wblk = function (dat, out, final, syms, lf, df, eb, li, bs, bl, p) {
+var wblk = (dat, out, final, syms, lf, df, eb, li, bs, bl, p) => {
   wbits(out, p++, final);
   ++lf[256];
   var _a = hTree(lf, 15),
@@ -381,7 +373,7 @@ var deo = /*#__PURE__*/ new i32([65540, 131080, 131088, 131104, 262176, 1048704,
 // empty
 var et = /*#__PURE__*/ new u8(0);
 // compresses data into a raw DEFLATE buffer
-var dflt = function (dat, lvl, plvl, pre, post, st) {
+var dflt = (dat, lvl, plvl, pre, post, st) => {
   var s = st.z || dat.length;
   var o = new u8(pre + s + 5 * (1 + Math.ceil(s / 7000)) + post);
   // writing to this writes to the output buffer
@@ -399,9 +391,7 @@ var dflt = function (dat, lvl, plvl, pre, post, st) {
       head = st.h || new u16(msk_1 + 1);
     var bs1_1 = Math.ceil(plvl / 3),
       bs2_1 = 2 * bs1_1;
-    var hsh = function (i) {
-      return (dat[i] ^ (dat[i + 1] << bs1_1) ^ (dat[i + 2] << bs2_1)) & msk_1;
-    };
+    var hsh = i => (dat[i] ^ (dat[i + 1] << bs1_1) ^ (dat[i + 2] << bs2_1)) & msk_1;
     // 24576 is an arbitrary number of maximum symbols per block
     // 424 buffer for last block
     var syms = new i32(25000);
@@ -516,7 +506,7 @@ var dflt = function (dat, lvl, plvl, pre, post, st) {
   return slc(o, 0, pre + shft(pos) + post);
 };
 // CRC32 table
-var crct = /*#__PURE__*/ (function () {
+var crct = /*#__PURE__*/ (() => {
   var t = new Int32Array(256);
   for (var i = 0; i < 256; ++i) {
     var c = i,
@@ -527,26 +517,24 @@ var crct = /*#__PURE__*/ (function () {
   return t;
 })();
 // CRC32
-var crc = function () {
+var crc = () => {
   var c = -1;
   return {
-    p: function (d) {
+    p: d => {
       // closures have awful performance
       var cr = c;
       for (var i = 0; i < d.length; ++i) cr = crct[(cr & 255) ^ d[i]] ^ (cr >>> 8);
       c = cr;
     },
-    d: function () {
-      return ~c;
-    },
+    d: () => ~c,
   };
 };
 // Adler32
-var adler = function () {
+var adler = () => {
   var a = 1,
     b = 0;
   return {
-    p: function (d) {
+    p: d => {
       // closures have awful performance
       var n = a,
         m = b;
@@ -558,14 +546,14 @@ var adler = function () {
       }
       (a = n), (b = m);
     },
-    d: function () {
+    d: () => {
       (a %= 65521), (b %= 65521);
       return ((a & 255) << 24) | ((a & 0xff00) << 8) | ((b & 255) << 8) | (b >> 8);
     },
   };
 };
 // deflate with opts
-var dopt = function (dat, opt, pre, post, st) {
+var dopt = (dat, opt, pre, post, st) => {
   if (!st) {
     st = { l: 1 };
     if (opt.dictionary) {
@@ -587,11 +575,11 @@ var dopt = function (dat, opt, pre, post, st) {
   );
 };
 // write bytes
-var wbytes = function (d, b, v) {
+var wbytes = (d, b, v) => {
   for (; v; ++b) (d[b] = v), (v >>>= 8);
 };
 // gzip header
-var gzh = function (c, o) {
+var gzh = (c, o) => {
   var fn = o.filename;
   (c[0] = 31), (c[1] = 139), (c[2] = 8), (c[8] = o.level < 2 ? 4 : o.level == 9 ? 2 : 0), (c[9] = 3); // assume Unix
   if (o.mtime != 0) wbytes(c, 4, Math.floor(new Date(o.mtime || Date.now()) / 1000));
@@ -601,11 +589,9 @@ var gzh = function (c, o) {
   }
 };
 // gzip header length
-var gzhl = function (o) {
-  return 10 + (o.filename ? o.filename.length + 1 : 0);
-};
+var gzhl = o => 10 + (o.filename ? o.filename.length + 1 : 0);
 // zlib header
-var zlh = function (c, o) {
+var zlh = (c, o) => {
   var lv = o.level,
     fl = lv == 0 ? 0 : lv < 6 ? 1 : lv == 9 ? 3 : 2;
   (c[0] = 120), (c[1] = (fl << 6) | (o.dictionary && 32));
@@ -619,9 +605,9 @@ var zlh = function (c, o) {
 /**
  * Streaming DEFLATE compression
  */
-var Deflate = /*#__PURE__*/ (function () {
+var Deflate = /*#__PURE__*/ (() => {
   function Deflate(opts, cb) {
-    if (typeof opts == 'function') (cb = opts), (opts = {});
+    if (typeof opts === 'function') (cb = opts), (opts = {});
     this.ondata = cb;
     this.o = opts || {};
     this.s = { l: 0, i: 32768, w: 32768, z: 32768 };
@@ -692,7 +678,7 @@ function gzipSync(data, opts) {
 /**
  * Streaming Zlib compression
  */
-var Zlib = /*#__PURE__*/ (function () {
+var Zlib = /*#__PURE__*/ (() => {
   function Zlib(opts, cb) {
     this.c = adler();
     this.v = 1;
@@ -725,7 +711,7 @@ try {
 /**
  * Streaming UTF-8 encoding
  */
-var EncodeUTF8 = /*#__PURE__*/ (function () {
+var EncodeUTF8 = /*#__PURE__*/ (() => {
   /**
    * Creates a UTF-8 decoding stream
    * @param cb The callback to call whenever data is encoded
@@ -762,7 +748,7 @@ function strToU8(str, latin1) {
   var l = str.length;
   var ar = new u8(str.length + (str.length >> 1));
   var ai = 0;
-  var w = function (v) {
+  var w = v => {
     ar[ai++] = v;
   };
   for (var i = 0; i < l; ++i) {

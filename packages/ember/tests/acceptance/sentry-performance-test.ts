@@ -7,11 +7,11 @@ import { assertSentryTransactionCount, assertSentryTransactions } from '../helpe
 
 const SLOW_TRANSITION_WAIT = 3000;
 
-module('Acceptance | Sentry Performance', function (hooks) {
+module('Acceptance | Sentry Performance', hooks => {
   setupApplicationTest(hooks);
   setupSentryTest(hooks);
 
-  test('Test transaction', async function (assert) {
+  test('Test transaction', async assert => {
     await visit('/tracing');
 
     assertSentryTransactionCount(assert, 1);
@@ -28,7 +28,7 @@ module('Acceptance | Sentry Performance', function (hooks) {
     });
   });
 
-  test('Test navigating to slow route', async function (assert) {
+  test('Test navigating to slow route', async assert => {
     await visit('/tracing');
 
     await click('[data-test-button="Transition to slow loading route"]');

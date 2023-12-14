@@ -22,7 +22,7 @@ const spyConnect = jest.spyOn(http2, 'connect');
 
 /** Fake HTTP2 stream */
 class FakeStream extends EventEmitter {
-  public rstCode: number = 0;
+  public rstCode = 0;
   close() {
     this.emit('end');
     this.emit('close');
