@@ -38,12 +38,10 @@ describe('tracing', () => {
     const hub = new Hub(new NodeClient(options));
     addTracingExtensions();
 
-    hub.configureScope(scope =>
-      scope.setUser({
-        id: 'uid123',
-        segment: 'segmentA',
-      }),
-    );
+    hub.getScope().setUser({
+      id: 'uid123',
+      segment: 'segmentA',
+    });
 
     jest.spyOn(sentryCore, 'getCurrentHub').mockReturnValue(hub);
 

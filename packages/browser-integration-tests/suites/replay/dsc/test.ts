@@ -28,10 +28,9 @@ sentryTest(
     await waitForReplayRunning(page);
 
     await page.evaluate(() => {
-      (window as unknown as TestWindow).Sentry.configureScope(scope => {
-        scope.setUser({ id: 'user123', segment: 'segmentB' });
-        scope.setTransactionName('testTransactionDSC');
-      });
+      const scope = (window as unknown as TestWindow).Sentry.getCurrentScope();
+      scope.setUser({ id: 'user123', segment: 'segmentB' });
+      scope.setTransactionName('testTransactionDSC');
     });
 
     const req0 = await transactionReq;
@@ -74,10 +73,9 @@ sentryTest(
     await waitForReplayRunning(page);
 
     await page.evaluate(() => {
-      (window as unknown as TestWindow).Sentry.configureScope(scope => {
-        scope.setUser({ id: 'user123', segment: 'segmentB' });
-        scope.setTransactionName('testTransactionDSC');
-      });
+      const scope = (window as unknown as TestWindow).Sentry.getCurrentScope();
+      scope.setUser({ id: 'user123', segment: 'segmentB' });
+      scope.setTransactionName('testTransactionDSC');
     });
 
     const req0 = await transactionReq;
@@ -132,10 +130,9 @@ sentryTest(
     });
 
     await page.evaluate(() => {
-      (window as unknown as TestWindow).Sentry.configureScope(scope => {
-        scope.setUser({ id: 'user123', segment: 'segmentB' });
-        scope.setTransactionName('testTransactionDSC');
-      });
+      const scope = (window as unknown as TestWindow).Sentry.getCurrentScope();
+      scope.setUser({ id: 'user123', segment: 'segmentB' });
+      scope.setTransactionName('testTransactionDSC');
     });
 
     const req0 = await transactionReq;
@@ -181,10 +178,9 @@ sentryTest(
     const transactionReq = waitForTransactionRequest(page);
 
     await page.evaluate(async () => {
-      (window as unknown as TestWindow).Sentry.configureScope(scope => {
-        scope.setUser({ id: 'user123', segment: 'segmentB' });
-        scope.setTransactionName('testTransactionDSC');
-      });
+      const scope = (window as unknown as TestWindow).Sentry.getCurrentScope();
+      scope.setUser({ id: 'user123', segment: 'segmentB' });
+      scope.setTransactionName('testTransactionDSC');
     });
 
     const req0 = await transactionReq;

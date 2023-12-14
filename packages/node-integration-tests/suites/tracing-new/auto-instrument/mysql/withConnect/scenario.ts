@@ -24,9 +24,7 @@ const transaction = Sentry.startTransaction({
   name: 'Test Transaction',
 });
 
-Sentry.configureScope(scope => {
-  scope.setSpan(transaction);
-});
+Sentry.getCurrentScope().setSpan(transaction);
 
 connection.query('SELECT 1 + 1 AS solution', function () {
   connection.query('SELECT NOW()', ['1', '2'], () => {

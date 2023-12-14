@@ -13,9 +13,7 @@ const transaction = Sentry.startTransaction({
   name: 'Test Transaction',
 });
 
-Sentry.configureScope(scope => {
-  scope.setSpan(transaction);
-});
+Sentry.getCurrentScope().setSpan(transaction);
 
 const client = new pg.Client();
 client.query('SELECT * FROM foo where bar ilike "baz%"', ['a', 'b'], () =>
