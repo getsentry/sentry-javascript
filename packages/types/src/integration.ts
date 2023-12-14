@@ -16,9 +16,8 @@ export interface IntegrationClass<T> {
 /**
  * An integration in function form.
  * This is expected to return an integration result,
- * and also have a `name` property that holds the integration name (so we can e.g. filter these before actually calling them).
  */
-export type IntegrationFn<Fn extends (...rest: any[]) => IntegrationFnResult> = { id: string } & Fn;
+export type IntegrationFn = (...rest: any[]) => IntegrationFnResult;
 
 export interface IntegrationFnResult {
   /**

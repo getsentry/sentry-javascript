@@ -29,8 +29,10 @@ export interface InboundFiltersOptions {
   disableTransactionDefaults: boolean;
 }
 
-const inboundFiltersIntegration = makeIntegrationFn('InboundFilters', (options: Partial<InboundFiltersOptions>) => {
+const INTEGRATION_NAME = 'InboundFilters';
+const inboundFiltersIntegration = makeIntegrationFn((options: Partial<InboundFiltersOptions>) => {
   return {
+    name: INTEGRATION_NAME,
     processEvent(event, _hint, client) {
       const clientOptions = client.getOptions();
       const mergedOptions = _mergeOptions(options, clientOptions);
@@ -41,7 +43,7 @@ const inboundFiltersIntegration = makeIntegrationFn('InboundFilters', (options: 
 
 /** Inbound filters configurable by the user */
 // eslint-disable-next-line deprecation/deprecation
-export const InboundFilters = convertIntegrationFnToClass(inboundFiltersIntegration);
+export const InboundFilters = convertIntegrationFnToClass(INTEGRATION_NAME, inboundFiltersIntegration);
 
 function _mergeOptions(
   internalOptions: Partial<InboundFiltersOptions> = {},

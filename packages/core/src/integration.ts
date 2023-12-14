@@ -170,16 +170,8 @@ function findIndex<T>(arr: T[], callback: (item: T) => boolean): number {
  * This will ensure to add the given name both to the function definition (as id),
  * as well as to the integration return value.
  */
-export function makeIntegrationFn<
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  Fn extends (...rest: any[]) => Partial<IntegrationFnResult>,
->(name: string, fn: Fn): ((...rest: Parameters<Fn>) => ReturnType<Fn> & { name: string }) & { id: string } {
-  const patchedFn = addNameToIntegrationFnResult(name, fn) as ((
-    ...rest: Parameters<Fn>
-  ) => ReturnType<Fn> & { name: string }) & { id: string };
-
-  patchedFn.id = name;
-  return patchedFn;
+export function makeIntegrationFn<Fn extends IntegrationFn>(fn: Fn): Fn {
+  return fn;
 }
 
 /**
@@ -188,10 +180,10 @@ export function makeIntegrationFn<
  *
  * @deprecated This will be removed in v8!
  */
-export function convertIntegrationFnToClass<
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  Fn extends IntegrationFn<(...rest: any[]) => IntegrationFnResult>,
->(fn: Fn): IntegrationClass<Integration> {
+export function convertIntegrationFnToClass<Fn extends IntegrationFn>(
+  name: string,
+  fn: Fn,
+): IntegrationClass<Integration> {
   return Object.assign(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     function ConvertedIntegration(...rest: any[]) {
@@ -199,22 +191,8 @@ export function convertIntegrationFnToClass<
         // eslint-disable-next-line @typescript-eslint/no-empty-function
         setupOnce: () => {},
         ...fn(...rest),
-        name: fn.id,
       };
     },
-    { id: fn.id },
+    { id: name },
   ) as unknown as IntegrationClass<Integration>;
-}
-
-function addNameToIntegrationFnResult<
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  Fn extends (...rest: any[]) => Partial<IntegrationFnResult>,
->(name: string, fn: Fn): (...rest: Parameters<Fn>) => ReturnType<Fn> & { name: string } {
-  const patchedFn = (...rest: Parameters<Fn>): ReturnType<Fn> & { name: string } => {
-    const result = fn(...rest);
-    result.name = name;
-    return result as ReturnType<Fn> & { name: string };
-  };
-
-  return patchedFn;
 }

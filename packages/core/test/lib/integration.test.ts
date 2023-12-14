@@ -657,11 +657,11 @@ describe('addIntegration', () => {
 
 describe('makeIntegrationFn', () => {
   it('works with a minimal integration', () => {
-    const myIntegration = makeIntegrationFn('testName', () => {
-      return {};
+    const myIntegration = makeIntegrationFn(() => {
+      return {
+        name: 'testName'
+      };
     });
-
-    expect(myIntegration.id).toBe('testName');
 
     const integration = myIntegration();
     expect(integration).toEqual({
@@ -673,11 +673,11 @@ describe('makeIntegrationFn', () => {
   });
 
   it('works with integration options', () => {
-    const myIntegration = makeIntegrationFn('testName', (_options: { xxx: string }) => {
-      return {};
+    const myIntegration = makeIntegrationFn((_options: { xxx: string }) => {
+      return {
+        name: 'testName'
+      };
     });
-
-    expect(myIntegration.id).toBe('testName');
 
     const integration = myIntegration({ xxx: 'aa' });
     expect(integration).toEqual({
@@ -696,16 +696,15 @@ describe('makeIntegrationFn', () => {
     const processEvent = jest.fn();
     const preprocessEvent = jest.fn();
 
-    const myIntegration = makeIntegrationFn('testName', () => {
+    const myIntegration = makeIntegrationFn(() => {
       return {
+        name: 'testName',
         setup,
         setupOnce,
         processEvent,
         preprocessEvent,
       };
     });
-
-    expect(myIntegration.id).toBe('testName');
 
     const integration = myIntegration();
     expect(integration).toEqual({
@@ -724,9 +723,9 @@ describe('makeIntegrationFn', () => {
 describe('convertIntegrationFnToClass', () => {
   /* eslint-disable deprecation/deprecation */
   it('works with a minimal integration', () => {
-    const integrationFn = makeIntegrationFn('testName', () => ({}));
+    const integrationFn = makeIntegrationFn(() => ({ name: 'testName'}));
 
-    const IntegrationClass = convertIntegrationFnToClass(integrationFn);
+    const IntegrationClass = convertIntegrationFnToClass('testName', integrationFn);
 
     expect(IntegrationClass.id).toBe('testName');
 
@@ -743,8 +742,9 @@ describe('convertIntegrationFnToClass', () => {
     const processEvent = jest.fn();
     const preprocessEvent = jest.fn();
 
-    const integrationFn = makeIntegrationFn('testName', () => {
+    const integrationFn = makeIntegrationFn( () => {
       return {
+        name: 'testName',
         setup,
         setupOnce,
         processEvent,
@@ -752,7 +752,7 @@ describe('convertIntegrationFnToClass', () => {
       };
     });
 
-    const IntegrationClass = convertIntegrationFnToClass(integrationFn);
+    const IntegrationClass = convertIntegrationFnToClass('testName', integrationFn);
 
     expect(IntegrationClass.id).toBe('testName');
 
