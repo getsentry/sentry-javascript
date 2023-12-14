@@ -25,15 +25,13 @@ function log(msg: string): void {
   }
 }
 
-function getTransport(): Transport {
-  const url = getEnvelopeEndpointWithUrlEncodedAuth(options.dsn);
-  return makeNodeTransport({
-    url,
-    recordDroppedEvent: () => {
-      //
-    },
-  });
-}
+const url = getEnvelopeEndpointWithUrlEncodedAuth(options.dsn);
+const transport = makeNodeTransport({
+  url,
+  recordDroppedEvent: () => {
+    //
+  },
+});
 
 async function sendAbnormalSession(): Promise<void> {
   // of we have an existing session passed from the main thread, send it as abnormal
@@ -47,7 +45,7 @@ async function sendAbnormalSession(): Promise<void> {
     }
 
     const envelope = createSessionEnvelope(session, options.dsn, options.sdkMetadata);
-    await getTransport().send(envelope);
+    await transport.send(envelope);
 
     try {
       // Notify the main process that the session has ended so the session can be cleared from the scope
@@ -99,8 +97,6 @@ async function sendAnrEvent(frames?: StackFrame[], traceContext?: TraceContext):
   }
 
   const envelope = createEventEnvelope(event, options.dsn, options.sdkMetadata);
-  const transport = getTransport();
-
   await transport.send(envelope);
   await transport.flush(2000);
 
