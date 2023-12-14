@@ -70,12 +70,12 @@ export function configureScope(callback: (scope: Scope) => void): void {
   callback(getCurrentScope());
 }
 
-/** Capture an exception to Sentry. */
+/** Record an exception and send it to Sentry. */
 export function captureException(exception: unknown, hint?: ExclusiveEventHintOrCaptureContext): string {
   return getCurrentScope().captureException(exception, parseEventHintOrCaptureContext(hint));
 }
 
-/** Capture a message to Sentry. */
+/** Record a message and send it to Sentry. */
 export function captureMessage(
   message: string,
   // eslint-disable-next-line deprecation/deprecation
@@ -89,13 +89,13 @@ export function captureMessage(
   return getCurrentScope().captureMessage(message, level, context);
 }
 
-/** Capture a generic event to Sentry. */
+/** Capture a generic event and send it to Sentry. */
 export function captureEvent(event: Event, hint?: EventHint): string {
   return getCurrentScope().captureEvent(event, hint);
 }
 
 /**
- * Add a breadcrumb.
+ * Add a breadcrumb to the current isolation scope.
  */
 export function addBreadcrumb(breadcrumb: Breadcrumb, hint?: BreadcrumbHint): void {
   const client = getClient();
@@ -127,7 +127,7 @@ export function addGlobalEventProcessor(eventProcessor: EventProcessor): void {
 }
 
 /**
- * Add an event processor to the current isolation scope..
+ * Add an event processor to the current isolation scope.
  */
 export function addEventProcessor(eventProcessor: EventProcessor): void {
   getIsolationScope().addEventProcessor(eventProcessor);

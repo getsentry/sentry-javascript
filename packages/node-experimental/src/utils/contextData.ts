@@ -14,7 +14,7 @@ export function getScopesFromContext(context: Context): CurrentScopes | undefine
 }
 
 /**
- * Set the current scopes on an OTEL context..
+ * Set the current scopes on an OTEL context.
  * This will return a forked context with the Propagation Context set.
  */
 export function setScopesOnContext(context: Context, scopes: CurrentScopes): Context {
