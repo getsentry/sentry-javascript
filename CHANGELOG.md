@@ -4,6 +4,65 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.88.0
+
+### Important Changes
+
+- **feat(browser): Add browser metrics sdk (#9794)**
+
+The release adds alpha support for [Sentry developer metrics](https://github.com/getsentry/sentry/discussions/58584) in the Browser SDKs (`@sentry/browser` and related framework SDKs). Via the newly introduced APIs, you can now flush metrics directly to Sentry.
+
+To enable capturing metrics, you first need to add the `MetricsAggregator` integration.
+
+```js
+Sentry.init({
+  dsn: '__DSN__',
+  integrations: [
+    new Sentry.metrics.MetricsAggregator(),
+  ],
+});
+```
+
+Then you'll be able to add `counters`, `sets`, `distributions`, and `gauges` under the `Sentry.metrics` namespace.
+
+```js
+// Add 4 to a counter named `hits`
+Sentry.metrics.increment('hits', 4);
+
+// Add 2 to gauge named `parallel_requests`, tagged with `happy: "no"`
+Sentry.metrics.gauge('parallel_requests', 2, { tags: { happy: 'no' } });
+
+// Add 4.6 to a distribution named `response_time` with unit seconds
+Sentry.metrics.distribution('response_time', 4.6, { unit: 'seconds' });
+
+// Add 2 to a set named `valuable.ids`
+Sentry.metrics.set('valuable.ids', 2);
+```
+
+In a future release we'll add support for server runtimes (Node, Deno, Bun, Vercel Edge, etc.)
+
+- **feat(deno): Optionally instrument `Deno.cron` (#9808)**
+
+This releases add support for instrumenting [Deno cron's](https://deno.com/blog/cron) with [Sentry cron monitors](https://docs.sentry.io/product/crons/). This requires v1.38 of Deno run with the `--unstable` flag and the usage of the `DenoCron` Sentry integration.
+
+```ts
+// Import from the Deno registry
+import * as Sentry from "https://deno.land/x/sentry/index.mjs";
+
+Sentry.init({
+  dsn: '__DSN__',
+  integrations: [
+    new Sentry.DenoCron(),
+  ],
+});
+```
+
+### Other Changes
+
+- feat(replay): Bump `rrweb` to 2.6.0 (#9847)
+- fix(nextjs): Guard against injecting multiple times (#9807)
+- ref(remix): Bump Sentry CLI to ^2.23.0 (#9773)
+
 ## 7.87.0
 
 - feat: Add top level `getCurrentScope()` method (#9800)
