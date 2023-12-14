@@ -22,7 +22,7 @@ export function createMetricEnvelope(
     };
   }
 
-  if (!!tunnel && !!dsn) {
+  if (!!tunnel && dsn) {
     headers.dsn = dsnToString(dsn);
   }
 

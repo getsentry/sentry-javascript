@@ -14,7 +14,7 @@ export const DISTRIBUTION_METRIC_TYPE = 'd' as const;
 export const NAME_AND_TAG_KEY_NORMALIZATION_REGEX = /[^a-zA-Z0-9_/.-]+/g;
 
 /**
- * Normalization regex for metric tag balues.
+ * Normalization regex for metric tag values.
  *
  * This enforces that values only contain words, digits, or the following
  * special characters: _:/@.{}[\]$-
