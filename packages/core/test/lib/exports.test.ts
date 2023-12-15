@@ -1,4 +1,4 @@
-import { Hub, Scope, makeMain, withScope, getCurrentScope } from '../../src';
+import { Hub, Scope, getCurrentScope, makeMain, withScope } from '../../src';
 import { TestClient, getDefaultTestClientOptions } from '../mocks/client';
 
 function getTestClient(): TestClient {
@@ -42,12 +42,12 @@ describe('withScope', () => {
     expect(res).toBe('foo');
   });
 
-  it('works with an async function',async  () => {
+  it('works with an async function', async () => {
     const res = withScope(async scope => {
       return 'foo';
     });
 
     expect(res).toBeInstanceOf(Promise);
-    expect(await res).toBe('foo')
+    expect(await res).toBe('foo');
   });
 });
