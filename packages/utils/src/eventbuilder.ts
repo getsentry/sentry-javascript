@@ -63,6 +63,8 @@ function getMessageForObject(exception: object): string {
 
 /**
  * Builds and Event from a Exception
+ *
+ * TODO(v8): Remove getHub fallback
  * @hidden
  */
 export function eventFromUnknownInput(
