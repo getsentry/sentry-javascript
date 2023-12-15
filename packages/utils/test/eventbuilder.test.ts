@@ -36,4 +36,9 @@ describe('eventFromUnknownInput', () => {
     const event = eventFromUnknownInput(getCurrentHub, stackParser, { foo: { bar: 'baz' }, message: 'Some message' });
     expect(event.exception?.values?.[0].value).toBe('Some message');
   });
+
+  test('passing client directly', () => {
+    const event = eventFromUnknownInput(undefined, stackParser, { foo: { bar: 'baz' }, prop: 1 });
+    expect(event.exception?.values?.[0].value).toBe('Object captured as exception with keys: foo, prop');
+  });
 });

@@ -1,5 +1,6 @@
 import type { ServerRuntimeClient } from '@sentry/core';
-import { flush, getCurrentHub } from '@sentry/core';
+import { getClient, getCurrentHub, getCurrentScope } from '@sentry/core';
+import { flush } from '@sentry/core';
 import type { Event, Hub, Integration, Primitive, StackParser } from '@sentry/types';
 import { eventFromUnknownInput, isPrimitive } from '@sentry/utils';
 
@@ -70,7 +71,7 @@ function installGlobalErrorHandler(): void {
     const [hub, stackParser] = getHubAndOptions();
     const { message, error } = data;
 
-    const event = eventFromUnknownInput(getCurrentHub, stackParser, error || message);
+    const event = eventFromUnknownInput(getClient(), stackParser, error || message);
 
     event.level = 'fatal';
 
@@ -113,7 +114,7 @@ function installGlobalUnhandledRejectionHandler(): void {
 
     const event = isPrimitive(error)
       ? eventFromRejectionWithPrimitive(error)
-      : eventFromUnknownInput(getCurrentHub, stackParser, error, undefined);
+      : eventFromUnknownInput(getClient(), stackParser, error, undefined);
 
     event.level = 'fatal';
 
