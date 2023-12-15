@@ -17,7 +17,7 @@
     "access": "public"
   },
   "peerDependencies": {
-    "@sveltejs/kit": "1.x"
+    "@sveltejs/kit": ">=1.x"
   },
   "dependencies": {
     "@sentry-internal/tracing": "7.88.0",
