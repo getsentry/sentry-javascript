@@ -21,16 +21,12 @@ jest.mock('@sentry/browser', () => {
   const original = jest.requireActual('@sentry/browser');
   return {
     ...original,
-    getCurrentHub: () => {
+    getCurrentScope() {
       return {
-        getScope: () => {
-          return {
-            getTransaction: () => {
-              return transaction;
-            },
-          };
+        getTransaction: () => {
+          return transaction;
         },
-      } as unknown as Hub;
+      };
     },
   };
 });

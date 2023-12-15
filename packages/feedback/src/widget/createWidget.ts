@@ -1,4 +1,4 @@
-import { getCurrentHub } from '@sentry/core';
+import { getCurrentScope } from '@sentry/core';
 import { logger } from '@sentry/utils';
 
 import type { FeedbackFormData, FeedbackInternalOptions, FeedbackWidget } from '../types';
@@ -160,7 +160,7 @@ export function createWidget({
       }
 
       const userKey = options.useSentryUser;
-      const scope = getCurrentHub().getScope();
+      const scope = getCurrentScope();
       const user = scope && scope.getUser();
 
       dialog = Dialog({

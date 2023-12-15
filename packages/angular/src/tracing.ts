@@ -7,7 +7,7 @@ import type { ActivatedRouteSnapshot, Event, RouterState } from '@angular/router
 // eslint-disable-next-line @typescript-eslint/consistent-type-imports
 import { NavigationCancel, NavigationError, Router } from '@angular/router';
 import { NavigationEnd, NavigationStart, ResolveEnd } from '@angular/router';
-import { WINDOW, getCurrentHub } from '@sentry/browser';
+import { WINDOW, getCurrentScope } from '@sentry/browser';
 import type { Span, Transaction, TransactionContext } from '@sentry/types';
 import { logger, stripUrlQueryAndFragment, timestampInSeconds } from '@sentry/utils';
 import type { Observable } from 'rxjs';
@@ -50,14 +50,7 @@ export const instrumentAngularRouting = routingInstrumentation;
  * Grabs active transaction off scope
  */
 export function getActiveTransaction(): Transaction | undefined {
-  const currentHub = getCurrentHub();
-
-  if (currentHub) {
-    const scope = currentHub.getScope();
-    return scope.getTransaction();
-  }
-
-  return undefined;
+  return getCurrentScope().getTransaction();
 }
 
 /**

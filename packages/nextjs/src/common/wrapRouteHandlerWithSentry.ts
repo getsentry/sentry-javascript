@@ -1,4 +1,4 @@
-import { addTracingExtensions, captureException, flush, getCurrentHub, runWithAsyncContext, trace } from '@sentry/core';
+import { addTracingExtensions, captureException, getCurrentScope, runWithAsyncContext, trace } from '@sentry/core';
 import { tracingContextFromHeaders, winterCGHeadersToDict } from '@sentry/utils';
 
 import { isRedirectNavigationError } from './nextNavigationErrorUtils';
@@ -20,14 +20,11 @@ export function wrapRouteHandlerWithSentry<F extends (...args: any[]) => any>(
   return new Proxy(routeHandler, {
     apply: (originalFunction, thisArg, args) => {
       return runWithAsyncContext(async () => {
-        const hub = getCurrentHub();
-        const currentScope = hub.getScope();
-
         const { traceparentData, dynamicSamplingContext, propagationContext } = tracingContextFromHeaders(
           sentryTraceHeader ?? headers?.get('sentry-trace') ?? undefined,
           baggageHeader ?? headers?.get('baggage'),
         );
-        currentScope.setPropagationContext(propagationContext);
+        getCurrentScope().setPropagationContext(propagationContext);
 
         let res;
         try {
