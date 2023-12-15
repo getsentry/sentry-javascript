@@ -240,7 +240,7 @@ function _createWrappedRequestMethodFactory(
       const requestUrl = extractUrl(requestOptions);
 
       // we don't want to record requests to Sentry as either breadcrumbs or spans, so just use the original method
-      if (isSentryRequestUrl(requestUrl, getCurrentHub())) {
+      if (isSentryRequestUrl(requestUrl, getClient())) {
         return originalRequestMethod.apply(httpModule, requestArgs);
       }
 
