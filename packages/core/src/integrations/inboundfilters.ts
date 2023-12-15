@@ -1,4 +1,4 @@
-import type {  Event, IntegrationFn, StackFrame } from '@sentry/types';
+import type { Event, IntegrationFn, StackFrame } from '@sentry/types';
 import { getEventDescription, logger, stringMatchesSomePattern } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../debug-build';
@@ -39,7 +39,7 @@ const inboundFiltersIntegration: IntegrationFn = (options: Partial<InboundFilter
       return _shouldDropEvent(event, mergedOptions) ? null : event;
     },
   };
-}
+};
 
 /** Inbound filters configurable by the user */
 // eslint-disable-next-line deprecation/deprecation

@@ -654,12 +654,10 @@ describe('addIntegration', () => {
   });
 });
 
-
-
 describe('convertIntegrationFnToClass', () => {
   /* eslint-disable deprecation/deprecation */
   it('works with a minimal integration', () => {
-    const integrationFn = () => ({ name: 'testName'});
+    const integrationFn = () => ({ name: 'testName' });
 
     const IntegrationClass = convertIntegrationFnToClass('testName', integrationFn);
 

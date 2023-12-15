@@ -1,12 +1,4 @@
-import type {
-  Client,
-  Event,
-  EventHint,
-  Integration,
-  IntegrationClass,
-  IntegrationFn,
-  Options,
-} from '@sentry/types';
+import type { Client, Event, EventHint, Integration, IntegrationClass, IntegrationFn, Options } from '@sentry/types';
 import { arrayify, logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from './debug-build';
