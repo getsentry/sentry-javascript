@@ -1,37 +1,7 @@
-import type { Client } from '@sentry/types';
+import type { Hub } from '@sentry/types';
 import { eventFromUnknownInput } from '@sentry/utils';
 
-import { Scope, defaultStackParser, getCurrentHub } from '../src';
-
-const testScope = new Scope();
-
-jest.mock('@sentry/core', () => {
-  const original = jest.requireActual('@sentry/core');
-  return {
-    ...original,
-    getCurrentHub(): {
-      getClient(): Client;
-      getScope(): Scope;
-    } {
-      return {
-        getClient(): any {
-          return {
-            getOptions(): any {
-              return { normalizeDepth: 6 };
-            },
-          };
-        },
-        getScope(): Scope {
-          return testScope;
-        },
-      };
-    },
-  };
-});
-
-afterEach(() => {
-  jest.resetAllMocks();
-});
+import { defaultStackParser } from '../src';
 
 describe('eventFromUnknownInput', () => {
   test('uses normalizeDepth from init options', () => {
@@ -51,9 +21,60 @@ describe('eventFromUnknownInput', () => {
       },
     };
 
-    eventFromUnknownInput(getCurrentHub, defaultStackParser, deepObject);
+    const client = {
+      getOptions(): any {
+        return { normalizeDepth: 6 };
+      },
+    } as any;
+    const event = eventFromUnknownInput(client, defaultStackParser, deepObject);
 
-    const serializedObject = (testScope as any)._extra.__serialized__;
+    const serializedObject = event.extra?.__serialized__;
+    expect(serializedObject).toBeDefined();
+    expect(serializedObject).toEqual({
+      a: {
+        b: {
+          c: {
+            d: {
+              e: {
+                f: '[Object]',
+              },
+            },
+          },
+        },
+      },
+    });
+  });
+
+  test('uses normalizeDepth from init options (passing getCurrentHub)', () => {
+    const deepObject = {
+      a: {
+        b: {
+          c: {
+            d: {
+              e: {
+                f: {
+                  g: 'foo',
+                },
+              },
+            },
+          },
+        },
+      },
+    };
+
+    const getCurrentHub = jest.fn(() => {
+      return {
+        getClient: () => ({
+          getOptions(): any {
+            return { normalizeDepth: 6 };
+          },
+        }),
+      } as unknown as Hub;
+    });
+
+    const event = eventFromUnknownInput(getCurrentHub, defaultStackParser, deepObject);
+
+    const serializedObject = event.extra?.__serialized__;
     expect(serializedObject).toBeDefined();
     expect(serializedObject).toEqual({
       a: {
