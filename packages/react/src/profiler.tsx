@@ -63,7 +63,7 @@ class Profiler extends React.Component<ProfilerProps> {
         description: `<${name}>`,
         op: REACT_MOUNT_OP,
         origin: 'auto.ui.react.profiler',
-        data: {'ui.component_name': name}
+        data: { 'ui.component_name': name },
       });
     }
   }
@@ -88,7 +88,7 @@ class Profiler extends React.Component<ProfilerProps> {
         this._updateSpan = this._mountSpan.startChild({
           data: {
             changedProps,
-            'ui.component_name': this.props.name
+            'ui.component_name': this.props.name,
           },
           description: `<${this.props.name}>`,
           op: REACT_UPDATE_OP,
@@ -122,7 +122,7 @@ class Profiler extends React.Component<ProfilerProps> {
         op: REACT_RENDER_OP,
         origin: 'auto.ui.react.profiler',
         startTimestamp: this._mountSpan.endTimestamp,
-        data: {'ui.component_name': name}
+        data: { 'ui.component_name': name },
       });
     }
   }
@@ -187,7 +187,7 @@ function useProfiler(
         description: `<${name}>`,
         op: REACT_MOUNT_OP,
         origin: 'auto.ui.react.profiler',
-        data: {'ui.component_name': name}
+        data: { 'ui.component_name': name },
       });
     }
 
@@ -207,7 +207,7 @@ function useProfiler(
           op: REACT_RENDER_OP,
           origin: 'auto.ui.react.profiler',
           startTimestamp: mountSpan.endTimestamp,
-          data: {'ui.component_name': name}
+          data: { 'ui.component_name': name },
         });
       }
     };

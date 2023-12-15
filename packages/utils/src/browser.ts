@@ -20,7 +20,6 @@ export function htmlTreeAsString(
   elem: unknown,
   options: string[] | { keyAttrs?: string[]; maxStringLength?: number } = {},
 ): string {
-
   if (!elem) {
     return '<unknown>';
   }
@@ -89,7 +88,7 @@ function _htmlElementAsString(el: unknown, keyAttrs?: string[]): string {
 
   // If using the component name annotation plugin, this value may be available on the DOM node
   if (elem instanceof HTMLElement && elem.dataset && elem.dataset['sentryComponent']) {
-    return elem.dataset['sentryComponent']
+    return elem.dataset['sentryComponent'];
   }
 
   out.push(elem.tagName.toLowerCase());
@@ -184,7 +183,7 @@ export function getComponentName(elem: unknown): string | null {
       return currentElem.dataset['sentryComponent'];
     }
 
-    currentElem = currentElem.parentNode
+    currentElem = currentElem.parentNode;
   }
 
   return null;

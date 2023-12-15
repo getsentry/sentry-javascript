@@ -108,11 +108,11 @@ export function startTrackingInteractions(): void {
           origin: 'auto.ui.browser.metrics',
           startTimestamp: startTime,
           endTimestamp: startTime + duration,
-        }
+        };
 
         const componentName = getComponentName(entry.target);
         if (componentName) {
-          span.data = {'ui.component_name': componentName}
+          span.data = { 'ui.component_name': componentName };
         }
 
         transaction.startChild(span);

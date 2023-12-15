@@ -169,9 +169,7 @@ function _domBreadcrumb(dom: BreadcrumbsOptions['dom']): (handlerData: HandlerDa
         ? htmlTreeAsString(event.target, { keyAttrs, maxStringLength })
         : htmlTreeAsString(event, { keyAttrs, maxStringLength });
 
-      componentName = _isEvent(event)
-        ? getComponentName(event.target)
-        : getComponentName(event);
+      componentName = _isEvent(event) ? getComponentName(event.target) : getComponentName(event);
     } catch (e) {
       target = '<unknown>';
       componentName = null;
@@ -184,20 +182,17 @@ function _domBreadcrumb(dom: BreadcrumbsOptions['dom']): (handlerData: HandlerDa
     const breadcrumb: Breadcrumb = {
       category: `ui.${handlerData.name}`,
       message: target,
-    }
+    };
 
     if (componentName) {
-      breadcrumb.data = {componentName}
+      breadcrumb.data = { componentName };
     }
 
-    getCurrentHub().addBreadcrumb(
-      breadcrumb,
-      {
-        event: handlerData.event,
-        name: handlerData.name,
-        global: handlerData.global,
-      },
-    );
+    getCurrentHub().addBreadcrumb(breadcrumb, {
+      event: handlerData.event,
+      name: handlerData.name,
+      global: handlerData.global,
+    });
   }
 
   return _innerDomBreadcrumb;
