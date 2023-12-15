@@ -1,12 +1,12 @@
 import {
   captureException,
   continueTrace,
-  getCurrentHub,
+  getClient,
   getCurrentScope,
   runWithAsyncContext,
   startSpan,
 } from '@sentry/node';
-import type { Hub, Span } from '@sentry/types';
+import type { Client, Scope, Span } from '@sentry/types';
 import { addNonEnumerableProperty, objectify, stripUrlQueryAndFragment } from '@sentry/utils';
 import type { APIContext, MiddlewareResponseHandler } from 'astro';
 
@@ -69,7 +69,7 @@ export const handleRequest: (options?: MiddlewareOptions) => MiddlewareResponseH
     // if there is an active span, we know that this handle call is nested and hence
     // we don't create a new domain for it. If we created one, nested server calls would
     // create new transactions instead of adding a child span to the currently active span.
-    if (getCurrentHub().getScope().getSpan()) {
+    if (getCurrentScope().getSpan()) {
       return instrumentRequest(ctx, next, handlerOptions);
     }
     return runWithAsyncContext(() => {
@@ -139,8 +139,8 @@ async function instrumentRequest(
           span.setHttpStatus(originalResponse.status);
         }
 
-        const hub = getCurrentHub();
-        const client = hub.getClient();
+        const scope = getCurrentScope();
+        const client = getClient();
         const contentType = originalResponse.headers.get('content-type');
 
         const isPageloadRequest = contentType && contentType.startsWith('text/html');
@@ -163,7 +163,7 @@ async function instrumentRequest(
           start: async controller => {
             for await (const chunk of originalBody) {
               const html = typeof chunk === 'string' ? chunk : decoder.decode(chunk);
-              const modifiedHtml = addMetaTagToHead(html, hub, span);
+              const modifiedHtml = addMetaTagToHead(html, scope, client, span);
               controller.enqueue(new TextEncoder().encode(modifiedHtml));
             }
             controller.close();
@@ -185,12 +185,12 @@ async function instrumentRequest(
  * This function optimistically assumes that the HTML coming in chunks will not be split
  * within the <head> tag. If this still happens, we simply won't replace anything.
  */
-function addMetaTagToHead(htmlChunk: string, hub: Hub, span?: Span): string {
+function addMetaTagToHead(htmlChunk: string, scope: Scope, client: Client, span?: Span): string {
   if (typeof htmlChunk !== 'string') {
     return htmlChunk;
   }
 
-  const { sentryTrace, baggage } = getTracingMetaTags(span, hub);
+  const { sentryTrace, baggage } = getTracingMetaTags(span, scope, client);
   const content = `<head>\n${sentryTrace}\n${baggage}\n`;
   return htmlChunk.replace('<head>', content);
 }

@@ -1,8 +1,8 @@
 import * as path from 'path';
-import { addTracingExtensions } from '@sentry/core';
+import { addTracingExtensions, getClient } from '@sentry/core';
 import { RewriteFrames } from '@sentry/integrations';
 import type { NodeOptions } from '@sentry/node';
-import { Integrations, getCurrentHub, getCurrentScope, init as nodeInit } from '@sentry/node';
+import { Integrations, getCurrentScope, init as nodeInit } from '@sentry/node';
 import type { EventProcessor } from '@sentry/types';
 import type { IntegrationWithExclusionOption } from '@sentry/utils';
 import { addOrUpdateIntegration, escapeStringForRegex, logger } from '@sentry/utils';
@@ -117,8 +117,7 @@ export function init(options: NodeOptions): void {
 }
 
 function sdkAlreadyInitialized(): boolean {
-  const hub = getCurrentHub();
-  return !!hub.getClient();
+  return !!getClient();
 }
 
 function addServerIntegrations(options: NodeOptions): void {

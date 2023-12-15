@@ -1,6 +1,7 @@
 import type * as http from 'http';
 import type * as https from 'https';
 import type { Hub } from '@sentry/core';
+import { getClient, getCurrentScope } from '@sentry/core';
 import { getCurrentHub, getDynamicSamplingContextFromClient, isSentryRequestUrl } from '@sentry/core';
 import type {
   DynamicSamplingContext,
@@ -243,8 +244,7 @@ function _createWrappedRequestMethodFactory(
         return originalRequestMethod.apply(httpModule, requestArgs);
       }
 
-      const hub = getCurrentHub();
-      const scope = hub.getScope();
+      const scope = getCurrentScope();
       const parentSpan = scope.getSpan();
 
       const data = getRequestSpanData(requestUrl, requestOptions);
@@ -264,7 +264,7 @@ function _createWrappedRequestMethodFactory(
           const dynamicSamplingContext = requestSpan?.transaction?.getDynamicSamplingContext();
           addHeadersToRequestOptions(requestOptions, requestUrl, sentryTraceHeader, dynamicSamplingContext);
         } else {
-          const client = hub.getClient();
+          const client = getClient();
           const { traceId, sampled, dsc } = scope.getPropagationContext();
           const sentryTraceHeader = generateSentryTraceHeader(traceId, undefined, sampled);
           const dynamicSamplingContext =

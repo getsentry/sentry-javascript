@@ -2,6 +2,7 @@ import type { TransactionContext } from '@sentry/types';
 import { dropUndefinedKeys, isThenable, logger, tracingContextFromHeaders } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../debug-build';
+import { getCurrentScope } from '../exports';
 import type { Hub } from '../hub';
 import { getCurrentHub } from '../hub';
 import { hasTracingEnabled } from '../utils/hasTracingEnabled';
@@ -28,7 +29,7 @@ export function trace<T>(
   const ctx = normalizeContext(context);
 
   const hub = getCurrentHub();
-  const scope = hub.getScope();
+  const scope = getCurrentScope();
   const parentSpan = scope.getSpan();
 
   const activeSpan = createChildSpanOrTransaction(hub, parentSpan, ctx);
@@ -37,7 +38,7 @@ export function trace<T>(
 
   function finishAndSetSpan(): void {
     activeSpan && activeSpan.finish();
-    hub.getScope().setSpan(parentSpan);
+    scope.setSpan(parentSpan);
   }
 
   let maybePromiseResult: T;
@@ -83,7 +84,7 @@ export function startSpan<T>(context: TransactionContext, callback: (span: Span 
   const ctx = normalizeContext(context);
 
   const hub = getCurrentHub();
-  const scope = hub.getScope();
+  const scope = getCurrentScope();
   const parentSpan = scope.getSpan();
 
   const activeSpan = createChildSpanOrTransaction(hub, parentSpan, ctx);
@@ -91,7 +92,7 @@ export function startSpan<T>(context: TransactionContext, callback: (span: Span 
 
   function finishAndSetSpan(): void {
     activeSpan && activeSpan.finish();
-    hub.getScope().setSpan(parentSpan);
+    scope.setSpan(parentSpan);
   }
 
   let maybePromiseResult: T;
@@ -143,7 +144,7 @@ export function startSpanManual<T>(
   const ctx = normalizeContext(context);
 
   const hub = getCurrentHub();
-  const scope = hub.getScope();
+  const scope = getCurrentScope();
   const parentSpan = scope.getSpan();
 
   const activeSpan = createChildSpanOrTransaction(hub, parentSpan, ctx);
@@ -151,7 +152,7 @@ export function startSpanManual<T>(
 
   function finishAndSetSpan(): void {
     activeSpan && activeSpan.finish();
-    hub.getScope().setSpan(parentSpan);
+    scope.setSpan(parentSpan);
   }
 
   let maybePromiseResult: T;
@@ -201,7 +202,7 @@ export function startInactiveSpan(context: TransactionContext): Span | undefined
  * Returns the currently active span.
  */
 export function getActiveSpan(): Span | undefined {
-  return getCurrentHub().getScope().getSpan();
+  return getCurrentScope().getSpan();
 }
 
 export function continueTrace({
@@ -238,8 +239,7 @@ export function continueTrace<V>(
   },
   callback?: (transactionContext: Partial<TransactionContext>) => V,
 ): V | Partial<TransactionContext> {
-  const hub = getCurrentHub();
-  const currentScope = hub.getScope();
+  const currentScope = getCurrentScope();
 
   const { traceparentData, dynamicSamplingContext, propagationContext } = tracingContextFromHeaders(
     sentryTrace,

@@ -6,8 +6,7 @@ import type {
   SessionFlusherLike,
 } from '@sentry/types';
 import { dropUndefinedKeys } from '@sentry/utils';
-
-import { getCurrentHub } from './hub';
+import { getCurrentScope } from './exports';
 
 type ReleaseHealthAttributes = {
   environment?: string;
@@ -75,7 +74,7 @@ export class SessionFlusher implements SessionFlusherLike {
     if (!this._isEnabled) {
       return;
     }
-    const scope = getCurrentHub().getScope();
+    const scope = getCurrentScope();
     const requestSession = scope.getRequestSession();
 
     if (requestSession && requestSession.status) {

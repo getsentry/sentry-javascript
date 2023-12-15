@@ -1,5 +1,6 @@
 import * as SentryNode from '@sentry/node';
-import { vi } from 'vitest';
+import type { Client } from '@sentry/types';
+import { SpyInstance, vi } from 'vitest';
 
 import { handleRequest, interpolateRouteFromUrlAndParams } from '../../src/server/middleware';
 
@@ -14,14 +15,17 @@ describe('sentryMiddleware', () => {
   const startSpanSpy = vi.spyOn(SentryNode, 'startSpan');
 
   const getSpanMock = vi.fn(() => {});
-  // @ts-expect-error only returning a partial hub here
-  vi.spyOn(SentryNode, 'getCurrentHub').mockImplementation(() => {
-    return {
-      getScope: () => ({
+  const setUserMock = vi.fn();
+
+  beforeEach(() => {
+    vi.spyOn(SentryNode, 'getCurrentScope').mockImplementation(() => {
+      return {
+        setUser: setUserMock,
+        setPropagationContext: vi.fn(),
         getSpan: getSpanMock,
-      }),
-      getClient: () => ({}),
-    };
+      } as any;
+    });
+    vi.spyOn(SentryNode, 'getClient').mockImplementation(() => ({}) as Client);
   });
 
   const nextResult = Promise.resolve(new Response(null, { status: 200, headers: new Headers() }));
@@ -170,10 +174,6 @@ describe('sentryMiddleware', () => {
   });
 
   it('attaches client IP and request headers if options are set', async () => {
-    const scope = { setUser: vi.fn(), setPropagationContext: vi.fn() };
-    // @ts-expect-error, only passing a partial Scope object
-    const getCurrentScopeSpy = vi.spyOn(SentryNode, 'getCurrentScope').mockImplementation(() => scope);
-
     const middleware = handleRequest({ trackClientIp: true, trackHeaders: true });
     const ctx = {
       request: {
@@ -192,8 +192,7 @@ describe('sentryMiddleware', () => {
     // @ts-expect-error, a partial ctx object is fine here
     await middleware(ctx, next);
 
-    expect(getCurrentScopeSpy).toHaveBeenCalledTimes(1);
-    expect(scope.setUser).toHaveBeenCalledWith({ ip_address: '192.168.0.1' });
+    expect(setUserMock).toHaveBeenCalledWith({ ip_address: '192.168.0.1' });
 
     expect(startSpanSpy).toHaveBeenCalledWith(
       expect.objectContaining({

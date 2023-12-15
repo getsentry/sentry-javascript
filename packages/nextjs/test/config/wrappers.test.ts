@@ -2,10 +2,10 @@ import type { IncomingMessage, ServerResponse } from 'http';
 import * as SentryCore from '@sentry/core';
 import { addTracingExtensions } from '@sentry/core';
 
+import type { Client } from '@sentry/types';
 import { wrapGetInitialPropsWithSentry, wrapGetServerSidePropsWithSentry } from '../../src/common';
 
 const startTransactionSpy = jest.spyOn(SentryCore, 'startTransaction');
-const originalGetCurrentHub = jest.requireActual('@sentry/node').getCurrentHub;
 
 // The wrap* functions require the hub to have tracing extensions. This is normally called by the NodeClient
 // constructor but the client isn't used in these tests.
@@ -22,16 +22,11 @@ describe('data-fetching function wrappers', () => {
       res = { end: jest.fn() } as unknown as ServerResponse;
 
       jest.spyOn(SentryCore, 'hasTracingEnabled').mockReturnValue(true);
-      jest.spyOn(SentryCore, 'getCurrentHub').mockImplementation(() => {
-        const hub = originalGetCurrentHub();
-
-        hub.getClient = () =>
-          ({
-            getOptions: () => ({ instrumenter: 'sentry' }),
-            getDsn: () => {},
-          }) as any;
-
-        return hub;
+      jest.spyOn(SentryCore, 'getClient').mockImplementation(() => {
+        return {
+          getOptions: () => ({ instrumenter: 'sentry' }),
+          getDsn: () => {},
+        } as Client;
       });
     });
 

@@ -29,6 +29,8 @@ const fakeHubInstance = new FakeHub(
 );
 
 jest.spyOn(sentryCore, 'getCurrentHub').mockImplementation(() => fakeHubInstance);
+jest.spyOn(sentryCore, 'getCurrentScope').mockImplementation(() => fakeHubInstance.getScope());
+jest.spyOn(sentryCore, 'getClient').mockImplementation(() => fakeHubInstance.getClient());
 
 const addFetchInstrumentationHandlerSpy = jest.spyOn(sentryUtils, 'addFetchInstrumentationHandler');
 const instrumentFetchRequestSpy = jest.spyOn(internalTracing, 'instrumentFetchRequest');
