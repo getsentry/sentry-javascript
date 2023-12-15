@@ -1,7 +1,7 @@
 import type * as http from 'http';
 import type * as https from 'https';
 import type { Hub } from '@sentry/core';
-import { getClient, getCurrentScope } from '@sentry/core';
+import { addBreadcrumb, getClient, getCurrentScope } from '@sentry/core';
 import { getCurrentHub, getDynamicSamplingContextFromClient, isSentryRequestUrl } from '@sentry/core';
 import type {
   DynamicSamplingContext,
@@ -214,7 +214,7 @@ function _createWrappedRequestMethodFactory(
       return;
     }
 
-    getCurrentHub().addBreadcrumb(
+    addBreadcrumb(
       {
         category: 'http',
         data: {

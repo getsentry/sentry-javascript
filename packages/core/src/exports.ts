@@ -1,5 +1,6 @@
 import type {
   Breadcrumb,
+  BreadcrumbHint,
   CaptureContext,
   CheckIn,
   Client,
@@ -90,8 +91,8 @@ export function configureScope(callback: (scope: Scope) => void): ReturnType<Hub
  *
  * @param breadcrumb The breadcrumb to record.
  */
-export function addBreadcrumb(breadcrumb: Breadcrumb): ReturnType<Hub['addBreadcrumb']> {
-  getCurrentHub().addBreadcrumb(breadcrumb);
+export function addBreadcrumb(breadcrumb: Breadcrumb, hint?: BreadcrumbHint): ReturnType<Hub['addBreadcrumb']> {
+  getCurrentHub().addBreadcrumb(breadcrumb, hint);
 }
 
 /**
