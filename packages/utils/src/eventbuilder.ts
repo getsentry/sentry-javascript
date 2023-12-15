@@ -83,12 +83,12 @@ export function eventFromUnknownInput(
     type: 'generic',
   };
 
-  const extras: Extras = {};
+  let extras: Extras | undefined;
 
   if (!isError(exception)) {
     if (isPlainObject(exception)) {
       const normalizeDepth = client && client.getOptions().normalizeDepth;
-      extras['__serialized__'] = normalizeToSize(exception as Record<string, unknown>, normalizeDepth);
+      extras = { ['__serialized__']: normalizeToSize(exception as Record<string, unknown>, normalizeDepth) };
 
       const message = getMessageForObject(exception);
       ex = (hint && hint.syntheticException) || new Error(message);
@@ -106,8 +106,11 @@ export function eventFromUnknownInput(
     exception: {
       values: [exceptionFromError(stackParser, ex as Error)],
     },
-    extra: extras,
   };
+
+  if (extras) {
+    event.extra = extras;
+  }
 
   addExceptionTypeValue(event, undefined, undefined);
   addExceptionMechanism(event, mechanism);
