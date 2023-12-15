@@ -59,7 +59,6 @@ export {
   addIntegration,
   // eslint-disable-next-line deprecation/deprecation
   convertIntegrationFnToClass,
-  makeIntegrationFn,
 } from './integration';
 export { FunctionToString, InboundFilters, LinkedErrors } from './integrations';
 export { prepareEvent } from './utils/prepareEvent';

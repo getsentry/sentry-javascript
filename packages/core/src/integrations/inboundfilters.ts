@@ -1,8 +1,8 @@
-import type { Client, Event, EventHint, Integration, StackFrame } from '@sentry/types';
+import type {  Event, IntegrationFn, StackFrame } from '@sentry/types';
 import { getEventDescription, logger, stringMatchesSomePattern } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../debug-build';
-import { convertIntegrationFnToClass, makeIntegrationFn } from '../integration';
+import { convertIntegrationFnToClass } from '../integration';
 
 // "Script error." is hard coded into browsers for errors that it can't read.
 // this is the result of a script being pulled in from an external domain and CORS.
@@ -30,7 +30,7 @@ export interface InboundFiltersOptions {
 }
 
 const INTEGRATION_NAME = 'InboundFilters';
-const inboundFiltersIntegration = makeIntegrationFn((options: Partial<InboundFiltersOptions>) => {
+const inboundFiltersIntegration: IntegrationFn = (options: Partial<InboundFiltersOptions>) => {
   return {
     name: INTEGRATION_NAME,
     processEvent(event, _hint, client) {
@@ -39,7 +39,7 @@ const inboundFiltersIntegration = makeIntegrationFn((options: Partial<InboundFil
       return _shouldDropEvent(event, mergedOptions) ? null : event;
     },
   };
-});
+}
 
 /** Inbound filters configurable by the user */
 // eslint-disable-next-line deprecation/deprecation

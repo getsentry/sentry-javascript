@@ -7,7 +7,6 @@ import {
   convertIntegrationFnToClass,
   getIntegrationsToSetup,
   installedIntegrations,
-  makeIntegrationFn,
   setupIntegration,
 } from '../../src/integration';
 import { TestClient, getDefaultTestClientOptions } from '../mocks/client';
@@ -655,75 +654,12 @@ describe('addIntegration', () => {
   });
 });
 
-describe('makeIntegrationFn', () => {
-  it('works with a minimal integration', () => {
-    const myIntegration = makeIntegrationFn(() => {
-      return {
-        name: 'testName'
-      };
-    });
 
-    const integration = myIntegration();
-    expect(integration).toEqual({
-      name: 'testName',
-    });
-
-    // @ts-expect-error This SHOULD error
-    myIntegration({});
-  });
-
-  it('works with integration options', () => {
-    const myIntegration = makeIntegrationFn((_options: { xxx: string }) => {
-      return {
-        name: 'testName'
-      };
-    });
-
-    const integration = myIntegration({ xxx: 'aa' });
-    expect(integration).toEqual({
-      name: 'testName',
-    });
-
-    // @ts-expect-error This SHOULD error
-    myIntegration();
-    // @ts-expect-error This SHOULD error
-    myIntegration({});
-  });
-
-  it('works with integration hooks', () => {
-    const setup = jest.fn();
-    const setupOnce = jest.fn();
-    const processEvent = jest.fn();
-    const preprocessEvent = jest.fn();
-
-    const myIntegration = makeIntegrationFn(() => {
-      return {
-        name: 'testName',
-        setup,
-        setupOnce,
-        processEvent,
-        preprocessEvent,
-      };
-    });
-
-    const integration = myIntegration();
-    expect(integration).toEqual({
-      name: 'testName',
-      setup,
-      setupOnce,
-      processEvent,
-      preprocessEvent,
-    });
-
-    // @ts-expect-error This SHOULD error
-    makeIntegrationFn('testName', () => ({ other: 'aha' }));
-  });
-});
 
 describe('convertIntegrationFnToClass', () => {
   /* eslint-disable deprecation/deprecation */
   it('works with a minimal integration', () => {
-    const integrationFn = makeIntegrationFn(() => ({ name: 'testName'}));
+    const integrationFn = () => ({ name: 'testName'});
 
     const IntegrationClass = convertIntegrationFnToClass('testName', integrationFn);
 
@@ -742,7 +678,7 @@ describe('convertIntegrationFnToClass', () => {
     const processEvent = jest.fn();
     const preprocessEvent = jest.fn();
 
-    const integrationFn = makeIntegrationFn( () => {
+    const integrationFn = () => {
       return {
         name: 'testName',
         setup,
@@ -750,7 +686,7 @@ describe('convertIntegrationFnToClass', () => {
         processEvent,
         preprocessEvent,
       };
-    });
+    };
 
     const IntegrationClass = convertIntegrationFnToClass('testName', integrationFn);
 

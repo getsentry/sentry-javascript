@@ -5,7 +5,6 @@ import type {
   Integration,
   IntegrationClass,
   IntegrationFn,
-  IntegrationFnResult,
   Options,
 } from '@sentry/types';
 import { arrayify, logger } from '@sentry/utils';
@@ -163,15 +162,6 @@ function findIndex<T>(arr: T[], callback: (item: T) => boolean): number {
   }
 
   return -1;
-}
-
-/**
- * Generate a full integration function from a simple function.
- * This will ensure to add the given name both to the function definition (as id),
- * as well as to the integration return value.
- */
-export function makeIntegrationFn<Fn extends IntegrationFn>(fn: Fn): Fn {
-  return fn;
 }
 
 /**
