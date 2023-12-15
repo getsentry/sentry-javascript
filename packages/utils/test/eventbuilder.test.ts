@@ -1,10 +1,17 @@
-import type { Hub } from '@sentry/types';
+import type { Hub, Scope } from '@sentry/types';
 
 import { createStackParser, eventFromUnknownInput, nodeStackLineParser } from '../src';
 
 function getCurrentHub(): Hub {
   // Some fake hub to get us through
-  return { getClient: () => undefined, configureScope: () => {} } as unknown as Hub;
+  return {
+    getClient: () => undefined,
+    getScope: () => {
+      return {
+        setExtra: () => {},
+      } as unknown as Scope;
+    },
+  } as unknown as Hub;
 }
 
 const stackParser = createStackParser(nodeStackLineParser());

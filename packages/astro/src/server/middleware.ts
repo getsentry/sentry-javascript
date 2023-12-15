@@ -1,8 +1,8 @@
 import {
   captureException,
-  configureScope,
   continueTrace,
   getCurrentHub,
+  getCurrentScope,
   runWithAsyncContext,
   startSpan,
 } from '@sentry/node';
@@ -106,9 +106,7 @@ async function instrumentRequest(
   }
 
   if (options.trackClientIp) {
-    configureScope(scope => {
-      scope.setUser({ ip_address: ctx.clientAddress });
-    });
+    getCurrentScope().setUser({ ip_address: ctx.clientAddress });
   }
 
   try {

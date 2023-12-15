@@ -1,16 +1,16 @@
 import { LinkedErrors, SDK_VERSION, getMainCarrier, initAndBind, runWithAsyncContext } from '@sentry/core';
 import type { EventHint, Integration } from '@sentry/types';
 
-import type { Event, Scope } from '../src';
+import type { Event } from '../src';
 import {
   NodeClient,
   addBreadcrumb,
   captureEvent,
   captureException,
   captureMessage,
-  configureScope,
   getClient,
   getCurrentHub,
+  getCurrentScope,
   init,
 } from '../src';
 import { setNodeAsyncContextStrategy } from '../src/async';
@@ -48,27 +48,21 @@ describe('SentryNode', () => {
 
   describe('getContext() / setContext()', () => {
     test('store/load extra', async () => {
-      configureScope((scope: Scope) => {
-        scope.setExtra('abc', { def: [1] });
-      });
+      getCurrentScope().setExtra('abc', { def: [1] });
       expect(global.__SENTRY__.hub._stack[1].scope._extra).toEqual({
         abc: { def: [1] },
       });
     });
 
     test('store/load tags', async () => {
-      configureScope((scope: Scope) => {
-        scope.setTag('abc', 'def');
-      });
+      getCurrentScope().setTag('abc', 'def');
       expect(global.__SENTRY__.hub._stack[1].scope._tags).toEqual({
         abc: 'def',
       });
     });
 
     test('store/load user', async () => {
-      configureScope((scope: Scope) => {
-        scope.setUser({ id: 'def' });
-      });
+      getCurrentScope().setUser({ id: 'def' });
       expect(global.__SENTRY__.hub._stack[1].scope._user).toEqual({
         id: 'def',
       });
@@ -138,9 +132,7 @@ describe('SentryNode', () => {
         dsn,
       });
       getCurrentHub().bindClient(new NodeClient(options));
-      configureScope((scope: Scope) => {
-        scope.setTag('test', '1');
-      });
+      getCurrentScope().setTag('test', '1');
       try {
         throw new Error('test');
       } catch (e) {
@@ -165,9 +157,7 @@ describe('SentryNode', () => {
         dsn,
       });
       getCurrentHub().bindClient(new NodeClient(options));
-      configureScope((scope: Scope) => {
-        scope.setTag('test', '1');
-      });
+      getCurrentScope().setTag('test', '1');
       try {
         throw 'test string exception';
       } catch (e) {
@@ -197,9 +187,7 @@ describe('SentryNode', () => {
         integrations: [new ContextLines()],
       });
       getCurrentHub().bindClient(new NodeClient(options));
-      configureScope((scope: Scope) => {
-        scope.setTag('test', '1');
-      });
+      getCurrentScope().setTag('test', '1');
       try {
         throw new Error('test');
       } catch (e) {

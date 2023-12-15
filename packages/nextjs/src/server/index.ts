@@ -2,7 +2,7 @@ import * as path from 'path';
 import { addTracingExtensions } from '@sentry/core';
 import { RewriteFrames } from '@sentry/integrations';
 import type { NodeOptions } from '@sentry/node';
-import { Integrations, configureScope, getCurrentHub, init as nodeInit } from '@sentry/node';
+import { Integrations, getCurrentHub, getCurrentScope, init as nodeInit } from '@sentry/node';
 import type { EventProcessor } from '@sentry/types';
 import type { IntegrationWithExclusionOption } from '@sentry/utils';
 import { addOrUpdateIntegration, escapeStringForRegex, logger } from '@sentry/utils';
@@ -101,18 +101,17 @@ export function init(options: NodeOptions): void {
 
   filterTransactions.id = 'NextServer404TransactionFilter';
 
-  configureScope(scope => {
-    scope.setTag('runtime', 'node');
-    if (IS_VERCEL) {
-      scope.setTag('vercel', true);
-    }
+  const scope = getCurrentScope();
+  scope.setTag('runtime', 'node');
+  if (IS_VERCEL) {
+    scope.setTag('vercel', true);
+  }
 
-    scope.addEventProcessor(filterTransactions);
+  scope.addEventProcessor(filterTransactions);
 
-    if (process.env.NODE_ENV === 'development') {
-      scope.addEventProcessor(devErrorSymbolicationEventProcessor);
-    }
-  });
+  if (process.env.NODE_ENV === 'development') {
+    scope.addEventProcessor(devErrorSymbolicationEventProcessor);
+  }
 
   DEBUG_BUILD && logger.log('SDK successfully initialized');
 }

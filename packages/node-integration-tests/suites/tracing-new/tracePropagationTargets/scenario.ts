@@ -12,9 +12,7 @@ Sentry.init({
 
 const transaction = Sentry.startTransaction({ name: 'test_transaction' });
 
-Sentry.configureScope(scope => {
-  scope.setSpan(transaction);
-});
+Sentry.getCurrentScope().setSpan(transaction);
 
 http.get('http://match-this-url.com/api/v0');
 http.get('http://match-this-url.com/api/v1');

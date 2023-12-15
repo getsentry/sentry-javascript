@@ -86,9 +86,7 @@ export function tracingHandler(): (
     );
 
     // We put the transaction on the scope so users can attach children to it
-    hub.configureScope(scope => {
-      scope.setSpan(transaction);
-    });
+    hub.getScope().setSpan(transaction);
 
     // We also set __sentry_transaction on the response so people can grab the transaction there to add
     // spans to it later.
@@ -186,20 +184,18 @@ export function requestHandler(
     }
     runWithAsyncContext(() => {
       const currentHub = getCurrentHub();
-      currentHub.configureScope(scope => {
-        scope.setSDKProcessingMetadata({
-          request: req,
-          // TODO (v8): Stop passing this
-          requestDataOptionsFromExpressHandler: requestDataOptions,
-        });
-
-        const client = currentHub.getClient<NodeClient>();
-        if (isAutoSessionTrackingEnabled(client)) {
-          const scope = currentHub.getScope();
-          // Set `status` of `RequestSession` to Ok, at the beginning of the request
-          scope.setRequestSession({ status: 'ok' });
-        }
+      const scope = currentHub.getScope();
+      scope.setSDKProcessingMetadata({
+        request: req,
+        // TODO (v8): Stop passing this
+        requestDataOptionsFromExpressHandler: requestDataOptions,
       });
+
+      const client = currentHub.getClient<NodeClient>();
+      if (isAutoSessionTrackingEnabled(client)) {
+        // Set `status` of `RequestSession` to Ok, at the beginning of the request
+        scope.setRequestSession({ status: 'ok' });
+      }
 
       res.once('finish', () => {
         const client = currentHub.getClient<NodeClient>();

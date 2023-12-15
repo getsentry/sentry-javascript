@@ -35,7 +35,7 @@ app.get('/test-param/:param', function (req, res) {
 
 app.get('/test-transaction', async function (req, res) {
   const transaction = Sentry.startTransaction({ name: 'test-transaction', op: 'e2e-test' });
-  Sentry.getCurrentHub().configureScope(scope => scope.setSpan(transaction));
+  Sentry.getCurrentHub().getScope().setSpan(transaction);
 
   const span = transaction.startChild();
 

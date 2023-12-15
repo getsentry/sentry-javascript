@@ -82,9 +82,7 @@ export function eventFromUnknownInput(
       const hub = getCurrentHub();
       const client = hub.getClient();
       const normalizeDepth = client && client.getOptions().normalizeDepth;
-      hub.configureScope(scope => {
-        scope.setExtra('__serialized__', normalizeToSize(exception, normalizeDepth));
-      });
+      hub.getScope().setExtra('__serialized__', normalizeToSize(exception, normalizeDepth));
 
       const message = getMessageForObject(exception);
       ex = (hint && hint.syntheticException) || new Error(message);

@@ -1,5 +1,5 @@
 import type { NodeOptions } from '@sentry/node';
-import { configureScope, getCurrentHub, init as nodeInit } from '@sentry/node';
+import { getCurrentHub, getCurrentScope, init as nodeInit } from '@sentry/node';
 import { logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from './utils/debug-build';
@@ -86,7 +86,5 @@ export function init(options: RemixOptions): void {
 
   nodeInit(options as NodeOptions);
 
-  configureScope(scope => {
-    scope.setTag('runtime', 'node');
-  });
+  getCurrentScope().setTag('runtime', 'node');
 }
