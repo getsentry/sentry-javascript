@@ -5,14 +5,15 @@ import {
   makeSession,
   updateSession,
 } from '@sentry/core';
-import type { Event, Session, StackFrame, TraceContext, Transport } from '@sentry/types';
+import type { Event, Session, StackFrame, TraceContext } from '@sentry/types';
 import { callFrameToStackFrame, stripSentryFramesAndReverse, watchdogTimer } from '@sentry/utils';
 import { Session as InspectorSession } from 'inspector';
 import { parentPort, workerData } from 'worker_threads';
 import { makeNodeTransport } from '../../transports';
 import type { WorkerStartData } from './common';
 
-type InspectorSessionNodeV12 = InspectorSession & { connectToMainThread: () => void };
+type VoidFunction = () => void;
+type InspectorSessionNodeV12 = InspectorSession & { connectToMainThread: VoidFunction };
 
 const options: WorkerStartData = workerData;
 let session: Session | undefined;
@@ -39,10 +40,7 @@ async function sendAbnormalSession(): Promise<void> {
     log('Sending abnormal session');
     updateSession(session, { status: 'abnormal', abnormal_mechanism: 'anr_foreground' });
 
-    if (options.debug) {
-      // eslint-disable-next-line no-console
-      console.log(JSON.stringify(session));
-    }
+    log(JSON.stringify(session));
 
     const envelope = createSessionEnvelope(session, options.dsn, options.sdkMetadata);
     await transport.send(envelope);
@@ -91,10 +89,7 @@ async function sendAnrEvent(frames?: StackFrame[], traceContext?: TraceContext):
     tags: { 'process.name': 'ANR' },
   };
 
-  if (options.debug) {
-    // eslint-disable-next-line no-console
-    console.log(JSON.stringify(event));
-  }
+  log(JSON.stringify(event));
 
   const envelope = createEventEnvelope(event, options.dsn, options.sdkMetadata);
   await transport.send(envelope);
@@ -107,7 +102,7 @@ async function sendAnrEvent(frames?: StackFrame[], traceContext?: TraceContext):
   }, 5_000);
 }
 
-let debuggerPause: () => void | undefined;
+let debuggerPause: VoidFunction | undefined;
 
 if (options.captureStackTrace) {
   log('Connecting to debugger');
@@ -177,7 +172,8 @@ if (options.captureStackTrace) {
   };
 }
 
-function createHrTimer(): { getTimeMs: () => number; reset: () => void } {
+function createHrTimer(): { getTimeMs: () => number; reset: VoidFunction } {
+  // TODO (v8): We can use process.hrtime.bigint() after we drop node v8
   let lastPoll = process.hrtime();
 
   return {

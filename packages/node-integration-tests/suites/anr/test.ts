@@ -2,17 +2,16 @@ import * as childProcess from 'child_process';
 import * as path from 'path';
 import type { Event } from '@sentry/node';
 import type { SerializedSession } from '@sentry/types';
-import { parseSemver } from '@sentry/utils';
-
-const NODE_VERSION = parseSemver(process.versions.node).major || 0;
+import { conditionalTest } from '../../utils';
 
 /** The output will contain logging so we need to find the line that parses as JSON */
 function parseJsonLines<T extends unknown[]>(input: string, expected: number): T {
   const results = input
     .split('\n')
     .map(line => {
+      const trimmed = line.startsWith('[ANR Worker] ') ? line.slice(13) : line;
       try {
-        return JSON.parse(line) as T;
+        return JSON.parse(trimmed) as T;
       } catch {
         return undefined;
       }
@@ -24,13 +23,8 @@ function parseJsonLines<T extends unknown[]>(input: string, expected: number): T
   return results;
 }
 
-describe('should report ANR when event loop blocked', () => {
+conditionalTest({ min: 14 })('should report ANR when event loop blocked', () => {
   test('CJS', done => {
-    if (NODE_VERSION < 16) {
-      done();
-      return;
-    }
-
     expect.assertions(9);
 
     const testScriptPath = path.resolve(__dirname, 'basic.js');
@@ -54,11 +48,6 @@ describe('should report ANR when event loop blocked', () => {
   });
 
   test('ESM', done => {
-    if (NODE_VERSION < 16) {
-      done();
-      return;
-    }
-
     expect.assertions(7);
 
     const testScriptPath = path.resolve(__dirname, 'basic.mjs');
@@ -78,11 +67,6 @@ describe('should report ANR when event loop blocked', () => {
   });
 
   test('With session', done => {
-    if (NODE_VERSION < 16) {
-      done();
-      return;
-    }
-
     expect.assertions(9);
 
     const testScriptPath = path.resolve(__dirname, 'basic-session.js');
@@ -106,11 +90,6 @@ describe('should report ANR when event loop blocked', () => {
   });
 
   test('from forked process', done => {
-    if (NODE_VERSION < 16) {
-      done();
-      return;
-    }
-
     expect.assertions(7);
 
     const testScriptPath = path.resolve(__dirname, 'forker.js');

@@ -1,3 +1,4 @@
+// TODO (v8): This import can be removed once we only support Node with global URL
 import { URL } from 'url';
 import { getCurrentHub } from '@sentry/core';
 import type { Contexts, Event, EventHint, Integration } from '@sentry/types';
@@ -50,26 +51,6 @@ interface InspectorApi {
 }
 
 /**
- * Starts the node debugger and returns the inspector url.
- *
- * When inspector.url() returns undefined, it means the port is already in use so we try the next port.
- */
-function startInspector(startPort: number = 9229): string | undefined {
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const inspector: InspectorApi = require('inspector');
-  let inspectorUrl: string | undefined = undefined;
-  let port = startPort;
-
-  while (inspectorUrl === undefined && port < startPort + 100) {
-    inspector.open(port);
-    inspectorUrl = inspector.url();
-    port++;
-  }
-
-  return inspectorUrl;
-}
-
-/**
  * Starts a thread to detect App Not Responding (ANR) events
  */
 export class Anr implements Integration {
@@ -79,7 +60,7 @@ export class Anr implements Integration {
 
   /** @inheritdoc */
   public setupOnce(): void {
-    //
+    // Do nothing
   }
 
   /** @inheritdoc */
@@ -97,8 +78,6 @@ export class Anr implements Integration {
    */
   private async _startWorker(client: NodeClient): Promise<void> {
     const contexts = await getContexts(client);
-    const initOptions = client.getOptions();
-
     const dsn = client.getDsn();
 
     if (!dsn) {
@@ -109,9 +88,11 @@ export class Anr implements Integration {
     delete contexts.app?.app_memory;
     delete contexts.device?.free_memory;
 
+    const initOptions = client.getOptions();
+
     const sdkMetadata = client.getSdkMetadata() || {};
     if (sdkMetadata.sdk) {
-      sdkMetadata.sdk.integrations = client.getOptions().integrations.map(i => i.name);
+      sdkMetadata.sdk.integrations = initOptions.integrations.map(i => i.name);
     }
 
     const options: WorkerStartData = {
@@ -128,7 +109,9 @@ export class Anr implements Integration {
     };
 
     if (options.captureStackTrace) {
-      startInspector();
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const inspector: InspectorApi = require('inspector');
+      inspector.open(0);
     }
 
     const { Worker } = getWorkerThreads();

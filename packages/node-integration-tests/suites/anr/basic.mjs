@@ -1,3 +1,4 @@
+import * as assert from 'assert';
 import * as crypto from 'crypto';
 
 import * as Sentry from '@sentry/node';
@@ -19,6 +20,7 @@ function longWork() {
     const salt = crypto.randomBytes(128).toString('base64');
     // eslint-disable-next-line no-unused-vars
     const hash = crypto.pbkdf2Sync('myPassword', salt, 10000, 512, 'sha512');
+    assert.ok(hash);
   }
 }
 

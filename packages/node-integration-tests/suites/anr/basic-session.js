@@ -1,4 +1,5 @@
 const crypto = require('crypto');
+const assert = require('assert');
 
 const Sentry = require('@sentry/node');
 
@@ -18,6 +19,7 @@ function longWork() {
     const salt = crypto.randomBytes(128).toString('base64');
     // eslint-disable-next-line no-unused-vars
     const hash = crypto.pbkdf2Sync('myPassword', salt, 10000, 512, 'sha512');
+    assert.ok(hash);
   }
 }
 
