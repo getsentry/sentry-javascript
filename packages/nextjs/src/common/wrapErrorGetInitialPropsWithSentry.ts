@@ -1,4 +1,4 @@
-import { addTracingExtensions, getCurrentHub } from '@sentry/core';
+import { addTracingExtensions, getClient, getCurrentScope } from '@sentry/core';
 import { dynamicSamplingContextToSentryBaggageHeader } from '@sentry/utils';
 import type { NextPageContext } from 'next';
 import type { ErrorProps } from 'next/error';
@@ -35,8 +35,7 @@ export function wrapErrorGetInitialPropsWithSentry(
       const { req, res } = context;
 
       const errorWrappedGetInitialProps = withErrorInstrumentation(wrappingTarget);
-      const hub = getCurrentHub();
-      const options = hub.getClient()?.getOptions();
+      const options = getClient()?.getOptions();
 
       // Generally we can assume that `req` and `res` are always defined on the server:
       // https://nextjs.org/docs/api-reference/data-fetching/get-initial-props#context-object
@@ -54,7 +53,7 @@ export function wrapErrorGetInitialPropsWithSentry(
           _sentryBaggage?: string;
         } = await tracedGetInitialProps.apply(thisArg, args);
 
-        const requestTransaction = getTransactionFromRequest(req) ?? hub.getScope().getTransaction();
+        const requestTransaction = getTransactionFromRequest(req) ?? getCurrentScope().getTransaction();
         if (requestTransaction) {
           errorGetInitialProps._sentryTraceData = requestTransaction.toTraceparent();
 

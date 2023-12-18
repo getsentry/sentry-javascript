@@ -1,6 +1,6 @@
 import { existsSync, readFileSync } from 'fs';
 import { dirname, join } from 'path';
-import type { EventProcessor, Hub, Integration } from '@sentry/types';
+import type { Event, EventProcessor, Hub, Integration } from '@sentry/types';
 
 let moduleCache: { [key: string]: string };
 
@@ -65,6 +65,14 @@ function collectModules(): {
   return infos;
 }
 
+/** Fetches the list of modules and the versions loaded by the entry file for your node.js app. */
+function _getModules(): { [key: string]: string } {
+  if (!moduleCache) {
+    moduleCache = collectModules();
+  }
+  return moduleCache;
+}
+
 /** Add node modules / packages to the event */
 export class Modules implements Integration {
   /**
@@ -80,26 +88,18 @@ export class Modules implements Integration {
   /**
    * @inheritDoc
    */
-  public setupOnce(addGlobalEventProcessor: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
-    addGlobalEventProcessor(event => {
-      if (!getCurrentHub().getIntegration(Modules)) {
-        return event;
-      }
-      return {
-        ...event,
-        modules: {
-          ...event.modules,
-          ...this._getModules(),
-        },
-      };
-    });
+  public setupOnce(_addGlobalEventProcessor: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
+    // noop
   }
 
-  /** Fetches the list of modules and the versions loaded by the entry file for your node.js app. */
-  private _getModules(): { [key: string]: string } {
-    if (!moduleCache) {
-      moduleCache = collectModules();
-    }
-    return moduleCache;
+  /** @inheritdoc */
+  public processEvent(event: Event): Event {
+    return {
+      ...event,
+      modules: {
+        ...event.modules,
+        ..._getModules(),
+      },
+    };
   }
 }

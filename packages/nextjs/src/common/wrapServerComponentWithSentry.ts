@@ -1,7 +1,7 @@
 import {
   addTracingExtensions,
   captureException,
-  getCurrentHub,
+  getCurrentScope,
   runWithAsyncContext,
   startTransaction,
 } from '@sentry/core';
@@ -28,9 +28,7 @@ export function wrapServerComponentWithSentry<F extends (...args: any[]) => any>
   return new Proxy(appDirComponent, {
     apply: (originalFunction, thisArg, args) => {
       return runWithAsyncContext(() => {
-        const hub = getCurrentHub();
-        const currentScope = hub.getScope();
-
+        const currentScope = getCurrentScope();
         let maybePromiseResult;
 
         const completeHeadersDict: Record<string, string> = context.headers

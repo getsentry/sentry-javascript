@@ -1,4 +1,4 @@
-import { getCurrentHub, getDynamicSamplingContextFromClient, isSentryRequestUrl } from '@sentry/core';
+import { getCurrentHub, getCurrentScope, getDynamicSamplingContextFromClient, isSentryRequestUrl } from '@sentry/core';
 import type { EventProcessor, Integration, Span } from '@sentry/types';
 import {
   LRUMap,
@@ -147,7 +147,7 @@ export class Undici implements Integration {
     }
 
     const clientOptions = client.getOptions();
-    const scope = hub.getScope();
+    const scope = getCurrentScope();
 
     const parentSpan = scope.getSpan();
 

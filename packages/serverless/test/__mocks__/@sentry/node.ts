@@ -35,6 +35,7 @@ export const fakeTransaction = {
 export const init = jest.fn();
 export const addGlobalEventProcessor = jest.fn();
 export const getCurrentHub = jest.fn(() => fakeHub);
+export const getCurrentScope = jest.fn(() => fakeScope);
 export const startTransaction = jest.fn(_ => fakeTransaction);
 export const captureException = jest.fn();
 export const captureMessage = jest.fn();

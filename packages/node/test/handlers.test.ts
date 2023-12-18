@@ -458,10 +458,11 @@ describe('tracingHandler', () => {
     const hub = new sentryCore.Hub(new NodeClient(options));
 
     jest.spyOn(sentryCore, 'getCurrentHub').mockReturnValue(hub);
+    jest.spyOn(sentryCore, 'getCurrentScope').mockImplementation(() => hub.getScope());
 
     sentryTracingMiddleware(req, res, next);
 
-    const transaction = sentryCore.getCurrentHub().getScope().getTransaction();
+    const transaction = sentryCore.getCurrentScope().getTransaction();
 
     expect(transaction?.metadata.request).toEqual(req);
   });

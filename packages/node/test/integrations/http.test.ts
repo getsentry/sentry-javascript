@@ -38,14 +38,14 @@ describe('tracing', () => {
     const hub = new Hub(new NodeClient(options));
     addTracingExtensions();
 
-    hub.configureScope(scope =>
-      scope.setUser({
-        id: 'uid123',
-        segment: 'segmentA',
-      }),
-    );
+    hub.getScope().setUser({
+      id: 'uid123',
+      segment: 'segmentA',
+    });
 
     jest.spyOn(sentryCore, 'getCurrentHub').mockReturnValue(hub);
+    jest.spyOn(sentryCore, 'getCurrentScope').mockImplementation(() => hub.getScope());
+    jest.spyOn(sentryCore, 'getClient').mockReturnValue(hub.getClient());
 
     const transaction = hub.startTransaction({
       name: 'dogpark',
@@ -69,7 +69,8 @@ describe('tracing', () => {
     });
     const hub = new Hub(new NodeClient(options));
     jest.spyOn(sentryCore, 'getCurrentHub').mockReturnValue(hub);
-
+    jest.spyOn(sentryCore, 'getCurrentScope').mockImplementation(() => hub.getScope());
+    jest.spyOn(sentryCore, 'getClient').mockReturnValue(hub.getClient());
     return hub;
   }
 
@@ -238,11 +239,7 @@ describe('tracing', () => {
     const baggageHeader = request.getHeader('baggage') as string;
 
     const parts = sentryTraceHeader.split('-');
-    expect(parts.length).toEqual(3);
-    expect(parts[0]).toEqual('86f39e84263a4de99c326acab3bfe3bd');
-    expect(parts[1]).toEqual(expect.any(String));
-    expect(parts[2]).toEqual('1');
-
+    expect(parts).toEqual(['86f39e84263a4de99c326acab3bfe3bd', expect.any(String), '1']);
     expect(baggageHeader).toEqual('sentry-trace_id=86f39e84263a4de99c326acab3bfe3bd,sentry-public_key=test-public-key');
   });
 
@@ -357,7 +354,9 @@ describe('tracing', () => {
 
       const hub = new Hub();
 
-      jest.spyOn(sentryCore, 'getCurrentHub').mockImplementation(() => hub);
+      jest.spyOn(sentryCore, 'getCurrentHub').mockReturnValue(hub);
+      jest.spyOn(sentryCore, 'getCurrentScope').mockImplementation(() => hub.getScope());
+      jest.spyOn(sentryCore, 'getClient').mockReturnValue(hub.getClient());
 
       const client = new NodeClient(options);
       jest.spyOn(hub, 'getClient').mockImplementation(() => client);
@@ -381,6 +380,10 @@ describe('tracing', () => {
         const httpIntegration = new HttpIntegration({ tracing: true });
 
         const hub = createHub({ shouldCreateSpanForRequest: () => false });
+
+        jest.spyOn(sentryCore, 'getCurrentHub').mockReturnValue(hub);
+        jest.spyOn(sentryCore, 'getCurrentScope').mockImplementation(() => hub.getScope());
+        jest.spyOn(sentryCore, 'getClient').mockReturnValue(hub.getClient());
 
         httpIntegration.setupOnce(
           () => undefined,
@@ -486,6 +489,10 @@ describe('tracing', () => {
         });
 
         const hub = createHub();
+
+        jest.spyOn(sentryCore, 'getCurrentHub').mockReturnValue(hub);
+        jest.spyOn(sentryCore, 'getCurrentScope').mockImplementation(() => hub.getScope());
+        jest.spyOn(sentryCore, 'getClient').mockReturnValue(hub.getClient());
 
         httpIntegration.setupOnce(
           () => undefined,

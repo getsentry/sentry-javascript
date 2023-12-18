@@ -1,4 +1,4 @@
-import { getCurrentHub, hasTracingEnabled } from '@sentry/core';
+import { getClient, getCurrentHub, getCurrentScope, hasTracingEnabled } from '@sentry/core';
 import { flush } from '@sentry/node';
 import type { Transaction } from '@sentry/types';
 import { extractRequestData, isString, logger } from '@sentry/utils';
@@ -59,8 +59,8 @@ function wrapExpressRequestHandler(
 
     const request = extractRequestData(req);
     const hub = getCurrentHub();
-    const options = hub.getClient()?.getOptions();
-    const scope = hub.getScope();
+    const options = getClient()?.getOptions();
+    const scope = getCurrentScope();
 
     scope.setSDKProcessingMetadata({ request });
 

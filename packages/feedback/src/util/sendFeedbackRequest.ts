@@ -1,4 +1,4 @@
-import { createEventEnvelope, getCurrentHub } from '@sentry/core';
+import { createEventEnvelope, getClient, withScope } from '@sentry/core';
 import type { FeedbackEvent, TransportMakeRequestResponse } from '@sentry/types';
 
 import { FEEDBACK_API_SOURCE, FEEDBACK_WIDGET_SOURCE } from '../constants';
@@ -12,8 +12,7 @@ export async function sendFeedbackRequest(
   { feedback: { message, email, name, source, url } }: SendFeedbackData,
   { includeReplay = true }: SendFeedbackOptions = {},
 ): Promise<void | TransportMakeRequestResponse> {
-  const hub = getCurrentHub();
-  const client = hub.getClient();
+  const client = getClient();
   const transport = client && client.getTransport();
   const dsn = client && client.getDsn();
 
@@ -35,7 +34,7 @@ export async function sendFeedbackRequest(
   };
 
   return new Promise((resolve, reject) => {
-    hub.withScope(async scope => {
+    withScope(async scope => {
       // No use for breadcrumbs in feedback
       scope.clearBreadcrumbs();
 
@@ -49,12 +48,12 @@ export async function sendFeedbackRequest(
         event: baseEvent,
       });
 
-      if (feedbackEvent === null) {
+      if (!feedbackEvent) {
         resolve();
         return;
       }
 
-      if (client && client.emit) {
+      if (client.emit) {
         client.emit('beforeSendFeedback', feedbackEvent, { includeReplay: Boolean(includeReplay) });
       }
 

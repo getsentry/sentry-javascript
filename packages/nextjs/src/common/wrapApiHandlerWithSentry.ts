@@ -1,7 +1,8 @@
 import {
   addTracingExtensions,
   captureException,
-  getCurrentHub,
+  getClient,
+  getCurrentScope,
   runWithAsyncContext,
   startTransaction,
 } from '@sentry/core';
@@ -87,10 +88,9 @@ export function withSentry(apiHandler: NextApiHandler, parameterizedRoute?: stri
       const boundHandler = runWithAsyncContext(
         // eslint-disable-next-line complexity
         async () => {
-          const hub = getCurrentHub();
           let transaction: Transaction | undefined;
-          const currentScope = hub.getScope();
-          const options = hub.getClient()?.getOptions();
+          const currentScope = getCurrentScope();
+          const options = getClient()?.getOptions();
 
           currentScope.setSDKProcessingMetadata({ request: req });
 

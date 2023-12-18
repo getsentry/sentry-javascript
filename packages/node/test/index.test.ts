@@ -1,16 +1,16 @@
 import { LinkedErrors, SDK_VERSION, getMainCarrier, initAndBind, runWithAsyncContext } from '@sentry/core';
 import type { EventHint, Integration } from '@sentry/types';
 
-import type { Event, Scope } from '../src';
+import type { Event } from '../src';
 import {
   NodeClient,
   addBreadcrumb,
   captureEvent,
   captureException,
   captureMessage,
-  configureScope,
   getClient,
   getCurrentHub,
+  getCurrentScope,
   init,
 } from '../src';
 import { setNodeAsyncContextStrategy } from '../src/async';
@@ -48,27 +48,21 @@ describe('SentryNode', () => {
 
   describe('getContext() / setContext()', () => {
     test('store/load extra', async () => {
-      configureScope((scope: Scope) => {
-        scope.setExtra('abc', { def: [1] });
-      });
+      getCurrentScope().setExtra('abc', { def: [1] });
       expect(global.__SENTRY__.hub._stack[1].scope._extra).toEqual({
         abc: { def: [1] },
       });
     });
 
     test('store/load tags', async () => {
-      configureScope((scope: Scope) => {
-        scope.setTag('abc', 'def');
-      });
+      getCurrentScope().setTag('abc', 'def');
       expect(global.__SENTRY__.hub._stack[1].scope._tags).toEqual({
         abc: 'def',
       });
     });
 
     test('store/load user', async () => {
-      configureScope((scope: Scope) => {
-        scope.setUser({ id: 'def' });
-      });
+      getCurrentScope().setUser({ id: 'def' });
       expect(global.__SENTRY__.hub._stack[1].scope._user).toEqual({
         id: 'def',
       });
@@ -138,9 +132,7 @@ describe('SentryNode', () => {
         dsn,
       });
       getCurrentHub().bindClient(new NodeClient(options));
-      configureScope((scope: Scope) => {
-        scope.setTag('test', '1');
-      });
+      getCurrentScope().setTag('test', '1');
       try {
         throw new Error('test');
       } catch (e) {
@@ -165,9 +157,7 @@ describe('SentryNode', () => {
         dsn,
       });
       getCurrentHub().bindClient(new NodeClient(options));
-      configureScope((scope: Scope) => {
-        scope.setTag('test', '1');
-      });
+      getCurrentScope().setTag('test', '1');
       try {
         throw 'test string exception';
       } catch (e) {
@@ -175,36 +165,39 @@ describe('SentryNode', () => {
       }
     });
 
-    test('capture an exception with pre/post context', done => {
-      expect.assertions(10);
+    test('capture an exception with pre/post context', async () => {
+      const beforeSend = jest.fn((event: Event) => {
+        expect(event.tags).toEqual({ test: '1' });
+        expect(event.exception).not.toBeUndefined();
+        expect(event.exception!.values![0]).not.toBeUndefined();
+        expect(event.exception!.values![0].stacktrace!).not.toBeUndefined();
+        expect(event.exception!.values![0].stacktrace!.frames![1]).not.toBeUndefined();
+        expect(event.exception!.values![0].stacktrace!.frames![1].pre_context).not.toBeUndefined();
+        expect(event.exception!.values![0].stacktrace!.frames![1].post_context).not.toBeUndefined();
+        expect(event.exception!.values![0].type).toBe('Error');
+        expect(event.exception!.values![0].value).toBe('test');
+        expect(event.exception!.values![0].stacktrace).toBeTruthy();
+        return null;
+      });
+
       const options = getDefaultNodeClientOptions({
         stackParser: defaultStackParser,
-        beforeSend: (event: Event) => {
-          expect(event.tags).toEqual({ test: '1' });
-          expect(event.exception).not.toBeUndefined();
-          expect(event.exception!.values![0]).not.toBeUndefined();
-          expect(event.exception!.values![0].stacktrace!).not.toBeUndefined();
-          expect(event.exception!.values![0].stacktrace!.frames![1]).not.toBeUndefined();
-          expect(event.exception!.values![0].stacktrace!.frames![1].pre_context).not.toBeUndefined();
-          expect(event.exception!.values![0].stacktrace!.frames![1].post_context).not.toBeUndefined();
-          expect(event.exception!.values![0].type).toBe('Error');
-          expect(event.exception!.values![0].value).toBe('test');
-          expect(event.exception!.values![0].stacktrace).toBeTruthy();
-          done();
-          return null;
-        },
+        beforeSend,
         dsn,
         integrations: [new ContextLines()],
       });
-      getCurrentHub().bindClient(new NodeClient(options));
-      configureScope((scope: Scope) => {
-        scope.setTag('test', '1');
-      });
+      const client = new NodeClient(options);
+      getCurrentHub().bindClient(client);
+      getCurrentScope().setTag('test', '1');
       try {
         throw new Error('test');
       } catch (e) {
         captureException(e);
       }
+
+      await client.flush();
+
+      expect(beforeSend).toHaveBeenCalledTimes(1);
     });
 
     test('capture a linked exception with pre/post context', done => {

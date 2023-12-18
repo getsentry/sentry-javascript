@@ -18,9 +18,7 @@ async function run(): Promise<void> {
     op: 'transaction',
   });
 
-  Sentry.configureScope(scope => {
-    scope.setSpan(transaction);
-  });
+  Sentry.getCurrentScope().setSpan(transaction);
 
   try {
     await client.user.create({
