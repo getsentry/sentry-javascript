@@ -305,7 +305,7 @@ export function wrapHandler<TEvent, TResult>(
         sentryTrace,
         baggage,
       );
-      hub.getScope().setPropagationContext(propagationContext);
+      Sentry.getCurrentScope().setPropagationContext(propagationContext);
 
       transaction = hub.startTransaction({
         name: context.functionName,

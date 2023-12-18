@@ -1,4 +1,4 @@
-import { getCurrentHub, isSentryRequestUrl } from '@sentry/core';
+import { getClient, isSentryRequestUrl } from '@sentry/core';
 
 import { DEBUG_BUILD } from '../debug-build';
 import type { ReplayContainer } from '../types';
@@ -13,5 +13,5 @@ export function shouldFilterRequest(replay: ReplayContainer, url: string): boole
     return false;
   }
 
-  return isSentryRequestUrl(url, getCurrentHub());
+  return isSentryRequestUrl(url, getClient());
 }

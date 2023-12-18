@@ -1,7 +1,7 @@
 /* eslint-disable max-lines */ // TODO: We might want to split this file up
 import { EventType, record } from '@sentry-internal/rrweb';
-import { captureException, getClient, getCurrentHub } from '@sentry/core';
-import type { Event as SentryEvent, ReplayRecordingMode, Transaction } from '@sentry/types';
+import { captureException, getClient, getCurrentScope } from '@sentry/core';
+import type { ReplayRecordingMode, Transaction } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
 import {
@@ -698,7 +698,7 @@ export class ReplayContainer implements ReplayContainerInterface {
    * This is only available if performance is enabled, and if an instrumented router is used.
    */
   public getCurrentRoute(): string | undefined {
-    const lastTransaction = this.lastTransaction || getCurrentHub().getScope().getTransaction();
+    const lastTransaction = this.lastTransaction || getCurrentScope().getTransaction();
     if (!lastTransaction || !['route', 'custom'].includes(lastTransaction.metadata.source)) {
       return undefined;
     }

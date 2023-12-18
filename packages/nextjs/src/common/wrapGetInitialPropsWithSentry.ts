@@ -1,4 +1,4 @@
-import { addTracingExtensions, getCurrentHub } from '@sentry/core';
+import { addTracingExtensions, getClient, getCurrentScope } from '@sentry/core';
 import { dynamicSamplingContextToSentryBaggageHeader } from '@sentry/utils';
 import type { NextPage } from 'next';
 
@@ -31,8 +31,7 @@ export function wrapGetInitialPropsWithSentry(origGetInitialProps: GetInitialPro
       const { req, res } = context;
 
       const errorWrappedGetInitialProps = withErrorInstrumentation(wrappingTarget);
-      const hub = getCurrentHub();
-      const options = hub.getClient()?.getOptions();
+      const options = getClient()?.getOptions();
 
       // Generally we can assume that `req` and `res` are always defined on the server:
       // https://nextjs.org/docs/api-reference/data-fetching/get-initial-props#context-object
@@ -50,7 +49,7 @@ export function wrapGetInitialPropsWithSentry(origGetInitialProps: GetInitialPro
           _sentryBaggage?: string;
         } = (await tracedGetInitialProps.apply(thisArg, args)) ?? {}; // Next.js allows undefined to be returned from a getInitialPropsFunction.
 
-        const requestTransaction = getTransactionFromRequest(req) ?? hub.getScope().getTransaction();
+        const requestTransaction = getTransactionFromRequest(req) ?? getCurrentScope().getTransaction();
         if (requestTransaction) {
           initialProps._sentryTraceData = requestTransaction.toTraceparent();
 

@@ -54,7 +54,12 @@ export { createTransport } from './transports/base';
 export { makeOfflineTransport } from './transports/offline';
 export { makeMultiplexedTransport } from './transports/multiplexed';
 export { SDK_VERSION } from './version';
-export { getIntegrationsToSetup, addIntegration } from './integration';
+export {
+  getIntegrationsToSetup,
+  addIntegration,
+  // eslint-disable-next-line deprecation/deprecation
+  convertIntegrationFnToClass,
+} from './integration';
 export { FunctionToString, InboundFilters, LinkedErrors } from './integrations';
 export { prepareEvent } from './utils/prepareEvent';
 export { createCheckInEnvelope } from './checkin';
@@ -64,5 +69,6 @@ export { DEFAULT_ENVIRONMENT } from './constants';
 export { ModuleMetadata } from './integrations/metadata';
 export { RequestData } from './integrations/requestdata';
 import * as Integrations from './integrations';
+export { metrics } from './metrics/exports';
 
 export { Integrations };
