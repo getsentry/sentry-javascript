@@ -100,7 +100,9 @@ export function getHandleRecordingEmit(replay: ReplayContainer): RecordingEmitCa
         // a previous session ID. In this case, we want to buffer events
         // for a set amount of time before flushing. This can help avoid
         // capturing replays of users that immediately close the window.
-        void replay.flush();
+        replay.flush().then(null, e => {
+          DEBUG_BUILD && logger.warn('[Replay] Flushing replay failed.', e);
+        });
       }
 
       return true;

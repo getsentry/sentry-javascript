@@ -785,7 +785,9 @@ export class ReplayContainer implements ReplayContainerInterface {
         maxReplayDuration: this._options.maxReplayDuration,
       })
     ) {
-      void this._refreshSession(currentSession);
+      this._refreshSession(currentSession).then(null, e => {
+        DEBUG_BUILD && logger.warn('[Replay] Refreshing the session failed.', e);
+      });
       return false;
     }
 
@@ -924,7 +926,9 @@ export class ReplayContainer implements ReplayContainerInterface {
     // Send replay when the page/tab becomes hidden. There is no reason to send
     // replay if it becomes visible, since no actions we care about were done
     // while it was hidden
-    void this.conditionalFlush();
+    this.conditionalFlush().then(null, e => {
+      DEBUG_BUILD && logger.warn('[Replay] Background flushing failed.', e);
+    });
   }
 
   /**
@@ -972,13 +976,17 @@ export class ReplayContainer implements ReplayContainerInterface {
    */
   private _createCustomBreadcrumb(breadcrumb: ReplayBreadcrumbFrame): void {
     this.addUpdate(() => {
-      void this.throttledAddEvent({
-        type: EventType.Custom,
-        timestamp: breadcrumb.timestamp || 0,
-        data: {
-          tag: 'breadcrumb',
-          payload: breadcrumb,
-        },
+      Promise.resolve(
+        this.throttledAddEvent({
+          type: EventType.Custom,
+          timestamp: breadcrumb.timestamp || 0,
+          data: {
+            tag: 'breadcrumb',
+            payload: breadcrumb,
+          },
+        }),
+      ).then(null, e => {
+        DEBUG_BUILD && logger.warn('[Replay] Adding custom breadcrumb failed.', e);
       });
     });
   }
@@ -1113,7 +1121,9 @@ export class ReplayContainer implements ReplayContainerInterface {
       // This means we retried 3 times and all of them failed,
       // or we ran into a problem we don't want to retry, like rate limiting.
       // In this case, we want to completely stop the replay - otherwise, we may get inconsistent segments
-      void this.stop({ reason: 'sendReplay' });
+      this.stop({ reason: 'sendReplay' }).then(null, e => {
+        DEBUG_BUILD && logger.warn('[Replay] Stopping the replay failed.', e);
+      });
 
       const client = getClient();
 
@@ -1237,7 +1247,9 @@ export class ReplayContainer implements ReplayContainerInterface {
 
     // Stop replay if over the mutation limit
     if (overMutationLimit) {
-      void this.stop({ reason: 'mutationLimit', forceFlush: this.recordingMode === 'session' });
+      this.stop({ reason: 'mutationLimit', forceFlush: this.recordingMode === 'session' }).then(null, e => {
+        DEBUG_BUILD && logger.warn('[Replay] Stopping the replay because due to mutation limit failed.', e);
+      });
       return false;
     }
 

@@ -25,7 +25,9 @@ export function addEventSync(replay: ReplayContainer, event: RecordingEvent, isC
     return false;
   }
 
-  void _addEvent(replay, event, isCheckout);
+  _addEvent(replay, event, isCheckout).then(null, e => {
+    DEBUG_BUILD && logger.warn('[Replay] Adding event to the event buffer failed.', e);
+  });
 
   return true;
 }

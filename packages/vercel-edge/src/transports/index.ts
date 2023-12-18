@@ -60,13 +60,13 @@ export class IsolatedPromiseBuffer {
         }
       }, timeout);
 
-      void Promise.all(
+      Promise.all(
         oldTaskProducers.map(taskProducer =>
           taskProducer().then(null, () => {
             // catch all failed requests
           }),
         ),
-      ).then(() => {
+      ).finally(() => {
         // resolve to true if all fetch requests settled
         clearTimeout(timer);
         resolve(true);

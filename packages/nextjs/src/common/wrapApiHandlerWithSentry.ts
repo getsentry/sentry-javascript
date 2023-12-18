@@ -153,7 +153,7 @@ export function withSentry(apiHandler: NextApiHandler, parameterizedRoute?: stri
               const origResEnd = res.end;
               res.end = async function (this: unknown, ...args: unknown[]) {
                 if (transaction) {
-                  await finishTransaction(transaction, res);
+                  finishTransaction(transaction, res);
                   await flushQueue();
                 }
 
@@ -213,9 +213,9 @@ export function withSentry(apiHandler: NextApiHandler, parameterizedRoute?: stri
             // deployed serverlessly will run into this cleanup code again in `res.end(), but the transaction will already
             // be finished and the queue will already be empty, so effectively it'll just no-op.)
             if (platformSupportsStreaming() && !wrappingTarget.__sentry_test_doesnt_support_streaming__) {
-              void finishTransaction(transaction, res);
+              finishTransaction(transaction, res);
             } else {
-              await finishTransaction(transaction, res);
+              finishTransaction(transaction, res);
               await flushQueue();
             }
 

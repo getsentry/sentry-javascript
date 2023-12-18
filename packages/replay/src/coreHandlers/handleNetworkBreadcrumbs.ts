@@ -79,7 +79,9 @@ export function beforeAddNetworkBreadcrumb(
       // So any async mutations to it will not be reflected in the final breadcrumb
       enrichXhrBreadcrumb(breadcrumb, hint, options);
 
-      void captureXhrBreadcrumbToReplay(breadcrumb, hint, options);
+      // This call should not reject
+      // eslint-disable-next-line @typescript-eslint/no-floating-promises
+      captureXhrBreadcrumbToReplay(breadcrumb, hint, options);
     }
 
     if (_isFetchBreadcrumb(breadcrumb) && _isFetchHint(hint)) {
@@ -88,7 +90,9 @@ export function beforeAddNetworkBreadcrumb(
       // So any async mutations to it will not be reflected in the final breadcrumb
       enrichFetchBreadcrumb(breadcrumb, hint, options);
 
-      void captureFetchBreadcrumbToReplay(breadcrumb, hint, options);
+      // This call should not reject
+      // eslint-disable-next-line @typescript-eslint/no-floating-promises
+      captureFetchBreadcrumbToReplay(breadcrumb, hint, options);
     }
   } catch (e) {
     DEBUG_BUILD && logger.warn('Error when enriching network breadcrumb');

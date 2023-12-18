@@ -44,7 +44,9 @@ export function handleGlobalEventListener(
       }
 
       if (isFeedbackEvent(event)) {
-        void replay.flush();
+        replay.flush().then(null, e => {
+          DEBUG_BUILD && logger.warn('[Replay] Flushing replay failed.', e);
+        });
         event.contexts.feedback.replay_id = replay.getSessionId();
         // Add a replay breadcrumb for this piece of feedback
         addFeedbackBreadcrumb(replay, event);

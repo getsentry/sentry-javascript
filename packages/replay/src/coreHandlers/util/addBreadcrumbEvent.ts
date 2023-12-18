@@ -1,6 +1,7 @@
 import { EventType } from '@sentry-internal/rrweb';
 import type { Breadcrumb } from '@sentry/types';
-import { normalize } from '@sentry/utils';
+import { logger, normalize } from '@sentry/utils';
+import { DEBUG_BUILD } from '../../debug-build';
 
 import type { ReplayContainer } from '../../types';
 
@@ -19,16 +20,20 @@ export function addBreadcrumbEvent(replay: ReplayContainer, breadcrumb: Breadcru
   }
 
   replay.addUpdate(() => {
-    void replay.throttledAddEvent({
-      type: EventType.Custom,
-      // TODO: We were converting from ms to seconds for breadcrumbs, spans,
-      // but maybe we should just keep them as milliseconds
-      timestamp: (breadcrumb.timestamp || 0) * 1000,
-      data: {
-        tag: 'breadcrumb',
-        // normalize to max. 10 depth and 1_000 properties per object
-        payload: normalize(breadcrumb, 10, 1_000),
-      },
+    Promise.resolve(
+      replay.throttledAddEvent({
+        type: EventType.Custom,
+        // TODO: We were converting from ms to seconds for breadcrumbs, spans,
+        // but maybe we should just keep them as milliseconds
+        timestamp: (breadcrumb.timestamp || 0) * 1000,
+        data: {
+          tag: 'breadcrumb',
+          // normalize to max. 10 depth and 1_000 properties per object
+          payload: normalize(breadcrumb, 10, 1_000),
+        },
+      }),
+    ).then(null, e => {
+      DEBUG_BUILD && logger.warn('[Replay] Adding breadcrumb event failed.', e);
     });
 
     // Do not flush after console log messages

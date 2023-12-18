@@ -113,7 +113,8 @@ export function waitForReplayRequests(
   const responses: Response[] = [];
 
   return new Promise<Response[]>(resolve => {
-    void page.waitForResponse(
+    // eslint-disable-next-line @typescript-eslint/no-floating-promises
+    page.waitForResponse(
       res => {
         const req = res.request();
 

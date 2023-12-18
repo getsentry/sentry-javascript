@@ -2,7 +2,7 @@ import type { BaseClient } from '@sentry/core';
 import { getCurrentScope } from '@sentry/core';
 import { addEventProcessor, getClient } from '@sentry/core';
 import type { Client, DynamicSamplingContext } from '@sentry/types';
-import { addClickKeypressInstrumentationHandler, addHistoryInstrumentationHandler } from '@sentry/utils';
+import { addClickKeypressInstrumentationHandler, addHistoryInstrumentationHandler, logger } from '@sentry/utils';
 
 import { handleAfterSendEvent } from '../coreHandlers/handleAfterSendEvent';
 import { handleBeforeSendEvent } from '../coreHandlers/handleBeforeSendEvent';
@@ -11,6 +11,7 @@ import { handleGlobalEventListener } from '../coreHandlers/handleGlobalEvent';
 import { handleHistorySpanListener } from '../coreHandlers/handleHistory';
 import { handleNetworkBreadcrumbs } from '../coreHandlers/handleNetworkBreadcrumbs';
 import { handleScopeListener } from '../coreHandlers/handleScope';
+import { DEBUG_BUILD } from '../debug-build';
 import type { ReplayContainer } from '../types';
 
 /**
@@ -65,7 +66,9 @@ export function addGlobalListeners(replay: ReplayContainer): void {
     client.on('beforeSendFeedback', (feedbackEvent, options) => {
       const replayId = replay.getSessionId();
       if (options && options.includeReplay && replay.isEnabled() && replayId) {
-        void replay.flush();
+        void replay.flush().then(null, e => {
+          DEBUG_BUILD && logger.warn('[Replay] Flushing replay failed.', e);
+        });
         if (feedbackEvent.contexts && feedbackEvent.contexts.feedback) {
           feedbackEvent.contexts.feedback.replay_id = replayId;
         }

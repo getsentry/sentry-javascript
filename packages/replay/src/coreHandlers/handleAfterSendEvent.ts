@@ -1,5 +1,7 @@
 import { getClient } from '@sentry/core';
 import type { ErrorEvent, Event, TransactionEvent, Transport, TransportMakeRequestResponse } from '@sentry/types';
+import { logger } from '@sentry/utils';
+import { DEBUG_BUILD } from '../debug-build';
 
 import type { ReplayContainer } from '../types';
 import { isErrorEvent, isTransactionEvent } from '../util/eventUtils';
@@ -74,7 +76,9 @@ function handleErrorEvent(replay: ReplayContainer, event: ErrorEvent): void {
 
   setTimeout(() => {
     // Capture current event buffer as new replay
-    void replay.sendBufferedReplayOrFlush();
+    replay.sendBufferedReplayOrFlush().then(null, e => {
+      DEBUG_BUILD && logger.warn('[Replay] Sending buffered replay failed.', e);
+    });
   });
 }
 

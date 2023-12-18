@@ -158,7 +158,17 @@ module.exports = {
       env: {
         jest: true,
       },
-      files: ['test.ts', '*.test.ts', '*.test.tsx', '*.test.js', '*.test.jsx', 'test/**/*.ts', 'test/**/*.js'],
+      files: [
+        'test.ts',
+        '*.test.ts',
+        '*.test.tsx',
+        '*.test.js',
+        '*.test.jsx',
+        'test/**/*.ts',
+        'test/**/*.js',
+        'tests/**/*.ts',
+        'tests/**/*.js',
+      ],
       rules: {
         'max-lines': 'off',
         '@typescript-eslint/explicit-function-return-type': 'off',
@@ -171,6 +181,7 @@ module.exports = {
         '@typescript-eslint/no-empty-function': 'off',
         '@sentry-internal/sdk/no-optional-chaining': 'off',
         '@sentry-internal/sdk/no-nullish-coalescing': 'off',
+        '@typescript-eslint/no-floating-promises': 'off',
       },
     },
     {
