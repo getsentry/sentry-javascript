@@ -872,6 +872,7 @@ jobs:
             'sveltekit',
             'generic-ts3.8',
             'node-experimental-fastify-app',
+            'node-hapi-app',
           ]
         build-command:
           - false

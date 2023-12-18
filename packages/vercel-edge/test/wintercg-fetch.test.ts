@@ -34,7 +34,7 @@ jest.spyOn(sentryCore, 'getClient').mockImplementation(() => fakeHubInstance.get
 
 const addFetchInstrumentationHandlerSpy = jest.spyOn(sentryUtils, 'addFetchInstrumentationHandler');
 const instrumentFetchRequestSpy = jest.spyOn(internalTracing, 'instrumentFetchRequest');
-const addBreadcrumbSpy = jest.spyOn(fakeHubInstance, 'addBreadcrumb');
+const addBreadcrumbSpy = jest.spyOn(sentryCore, 'addBreadcrumb');
 
 beforeEach(() => {
   jest.clearAllMocks();
