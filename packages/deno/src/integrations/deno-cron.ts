@@ -1,11 +1,12 @@
 import { withMonitor } from '@sentry/core';
 import type { Integration } from '@sentry/types';
 import type { DenoClient } from '../client';
+import { parseScheduleToString } from './deno-cron-format';
 
 type CronOptions = { backoffSchedule?: number[]; signal?: AbortSignal };
 type CronFn = () => void | Promise<void>;
 // Parameters<typeof Deno.cron> doesn't work well with the overloads 🤔
-type CronParams = [string, string, CronFn | CronOptions, CronFn | CronOptions | undefined];
+type CronParams = [string, string | Deno.CronSchedule, CronFn | CronOptions, CronFn | CronOptions | undefined];
 
 /** Instruments Deno.cron to automatically capture cron check-ins */
 export class DenoCron implements Integration {
@@ -21,7 +22,7 @@ export class DenoCron implements Integration {
   }
 
   /** @inheritDoc */
-  public setup(client: DenoClient): void {
+  public setup(): void {
     // eslint-disable-next-line deprecation/deprecation
     if (!Deno.cron) {
       // The cron API is not available in this Deno version use --unstable flag!
@@ -45,9 +46,11 @@ export class DenoCron implements Integration {
 
         async function cronCalled(): Promise<void> {
           await withMonitor(monitorSlug, async () => fn(), {
-            schedule: { type: 'crontab', value: schedule },
+            schedule: { type: 'crontab', value: parseScheduleToString(schedule) },
             // (minutes) so 12 hours - just a very high arbitrary number since we don't know the actual duration of the users cron job
             maxRuntime: 60 * 12,
+            // Deno Deploy docs say that the cron job will be called within 1 minute of the scheduled time
+            checkinMargin: 1,
           });
         }
 
