@@ -1,7 +1,8 @@
-import type { Client, Event, EventHint, Integration, StackFrame } from '@sentry/types';
+import type { Event, IntegrationFn, StackFrame } from '@sentry/types';
 import { getEventDescription, logger, stringMatchesSomePattern } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../debug-build';
+import { convertIntegrationFnToClass } from '../integration';
 
 // "Script error." is hard coded into browsers for errors that it can't read.
 // this is the result of a script being pulled in from an external domain and CORS.
@@ -28,42 +29,23 @@ export interface InboundFiltersOptions {
   disableTransactionDefaults: boolean;
 }
 
+const INTEGRATION_NAME = 'InboundFilters';
+const inboundFiltersIntegration: IntegrationFn = (options: Partial<InboundFiltersOptions>) => {
+  return {
+    name: INTEGRATION_NAME,
+    processEvent(event, _hint, client) {
+      const clientOptions = client.getOptions();
+      const mergedOptions = _mergeOptions(options, clientOptions);
+      return _shouldDropEvent(event, mergedOptions) ? null : event;
+    },
+  };
+};
+
 /** Inbound filters configurable by the user */
-export class InboundFilters implements Integration {
-  /**
-   * @inheritDoc
-   */
-  public static id: string = 'InboundFilters';
+// eslint-disable-next-line deprecation/deprecation
+export const InboundFilters = convertIntegrationFnToClass(INTEGRATION_NAME, inboundFiltersIntegration);
 
-  /**
-   * @inheritDoc
-   */
-  public name: string;
-
-  private readonly _options: Partial<InboundFiltersOptions>;
-
-  public constructor(options: Partial<InboundFiltersOptions> = {}) {
-    this.name = InboundFilters.id;
-    this._options = options;
-  }
-
-  /**
-   * @inheritDoc
-   */
-  public setupOnce(_addGlobalEventProcessor: unknown, _getCurrentHub: unknown): void {
-    // noop
-  }
-
-  /** @inheritDoc */
-  public processEvent(event: Event, _eventHint: EventHint, client: Client): Event | null {
-    const clientOptions = client.getOptions();
-    const options = _mergeOptions(this._options, clientOptions);
-    return _shouldDropEvent(event, options) ? null : event;
-  }
-}
-
-/** JSDoc */
-export function _mergeOptions(
+function _mergeOptions(
   internalOptions: Partial<InboundFiltersOptions> = {},
   clientOptions: Partial<InboundFiltersOptions> = {},
 ): Partial<InboundFiltersOptions> {
@@ -84,8 +66,7 @@ export function _mergeOptions(
   };
 }
 
-/** JSDoc */
-export function _shouldDropEvent(event: Event, options: Partial<InboundFiltersOptions>): boolean {
+function _shouldDropEvent(event: Event, options: Partial<InboundFiltersOptions>): boolean {
   if (options.ignoreInternal && _isSentryError(event)) {
     DEBUG_BUILD &&
       logger.warn(`Event dropped due to being internal Sentry Error.\nEvent: ${getEventDescription(event)}`);
