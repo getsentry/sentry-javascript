@@ -48,8 +48,9 @@ export function wrapGenerationFunctionWithSentry<F extends (...args: any[]) => a
           sentryTrace: headers?.get('sentry-trace') ?? undefined,
         });
 
+        // If there is no incoming trace, we are setting the transaction context to one that is shared between all other
+        // transactions for this request. We do this based on the `headers` object, which is the same for all components.
         const propagationContext = getCurrentScope().getPropagationContext();
-
         if (!transactionContext.traceId && !transactionContext.parentSpanId) {
           const { traceId: commonTraceId, spanId: commonSpanId } = commonObjectToPropagationContext(
             headers,
