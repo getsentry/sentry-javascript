@@ -1,7 +1,9 @@
 /* eslint-disable max-lines */
 import {
   Integrations as CoreIntegrations,
+  getClient,
   getCurrentHub,
+  getCurrentScope,
   getIntegrationsToSetup,
   getMainCarrier,
   initAndBind,
@@ -176,7 +178,7 @@ export function init(options: NodeOptions = {}): void {
   updateScopeFromEnvVariables();
 
   if (options.spotlight) {
-    const client = getCurrentHub().getClient();
+    const client = getClient();
     if (client && client.addIntegration) {
       // force integrations to be setup even if no DSN was set
       client.setupIntegrations(true);
@@ -271,6 +273,6 @@ function updateScopeFromEnvVariables(): void {
     const sentryTraceEnv = process.env.SENTRY_TRACE;
     const baggageEnv = process.env.SENTRY_BAGGAGE;
     const { propagationContext } = tracingContextFromHeaders(sentryTraceEnv, baggageEnv);
-    getCurrentHub().getScope().setPropagationContext(propagationContext);
+    getCurrentScope().setPropagationContext(propagationContext);
   }
 }

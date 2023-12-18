@@ -44,4 +44,6 @@ export { wrapMiddlewareWithSentry } from './wrapMiddlewareWithSentry';
 
 export { wrapPageComponentWithSentry } from './wrapPageComponentWithSentry';
 
+export { wrapGenerationFunctionWithSentry } from './wrapGenerationFunctionWithSentry';
+
 export { withServerActionInstrumentation } from './withServerActionInstrumentation';

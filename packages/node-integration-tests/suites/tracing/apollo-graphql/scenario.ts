@@ -31,9 +31,7 @@ const server = new ApolloServer({
 
 const transaction = Sentry.startTransaction({ name: 'test_transaction', op: 'transaction' });
 
-Sentry.configureScope(scope => {
-  scope.setSpan(transaction);
-});
+Sentry.getCurrentScope().setSpan(transaction);
 
 void (async () => {
   // Ref: https://www.apollographql.com/docs/apollo-server/testing/testing/#testing-using-executeoperation

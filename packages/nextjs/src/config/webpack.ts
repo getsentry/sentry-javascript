@@ -625,6 +625,9 @@ function addFilesToExistingEntryPoint(
 
   if (typeof currentEntryPoint === 'string' || Array.isArray(currentEntryPoint)) {
     newEntryPoint = arrayify(currentEntryPoint);
+    if (newEntryPoint.some(entry => filesToInsert.includes(entry))) {
+      return;
+    }
 
     if (isDevMode) {
       // Inserting at beginning breaks dev mode so we insert at the end
@@ -638,6 +641,9 @@ function addFilesToExistingEntryPoint(
   else if (typeof currentEntryPoint === 'object' && 'import' in currentEntryPoint) {
     const currentImportValue = currentEntryPoint.import;
     const newImportValue = arrayify(currentImportValue);
+    if (newImportValue.some(entry => filesToInsert.includes(entry))) {
+      return;
+    }
 
     if (isDevMode) {
       // Inserting at beginning breaks dev mode so we insert at the end

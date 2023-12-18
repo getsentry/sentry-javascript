@@ -65,7 +65,7 @@ export interface Hub {
    *
    * @param callback that will be enclosed into push/popScope.
    */
-  withScope(callback: (scope: Scope) => void): void;
+  withScope<T>(callback: (scope: Scope) => T): T;
 
   /** Returns the client of the top stack. */
   getClient(): Client | undefined;

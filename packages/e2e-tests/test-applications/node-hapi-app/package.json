@@ -1,0 +1,29 @@
+{
+  "name": "node-hapi-app",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "tsc",
+    "start": "node src/app.js",
+    "test": "playwright test",
+    "clean": "npx rimraf node_modules,pnpm-lock.yaml",
+    "test:build": "pnpm install",
+    "test:assert": "pnpm test"
+  },
+  "dependencies": {
+    "@hapi/hapi": "21.3.2",
+    "@sentry/integrations": "latest || *",
+    "@sentry/node": "latest || *",
+    "@sentry/tracing": "latest || *",
+    "@sentry/types": "latest || *",
+    "@types/node": "18.15.1",
+    "typescript": "4.9.5"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.27.1",
+    "ts-node": "10.9.1"
+  },
+  "volta": {
+    "extends": "../../package.json"
+  }
+}

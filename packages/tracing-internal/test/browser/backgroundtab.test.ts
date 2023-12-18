@@ -30,7 +30,7 @@ conditionalTest({ min: 10 })('registerBackgroundTabDetection', () => {
 
   afterEach(() => {
     events = {};
-    hub.configureScope(scope => scope.setSpan(undefined));
+    hub.getScope().setSpan(undefined);
   });
 
   it('does not create an event listener if global document is undefined', () => {
@@ -48,7 +48,7 @@ conditionalTest({ min: 10 })('registerBackgroundTabDetection', () => {
   it('finishes a transaction on visibility change', () => {
     registerBackgroundTabDetection();
     const transaction = hub.startTransaction({ name: 'test' });
-    hub.configureScope(scope => scope.setSpan(transaction));
+    hub.getScope().setSpan(transaction);
 
     // Simulate document visibility hidden event
     // @ts-expect-error need to override global document

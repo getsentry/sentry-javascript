@@ -161,10 +161,10 @@ export class Hub implements HubInterface {
   /**
    * @inheritDoc
    */
-  public withScope(callback: (scope: Scope) => void): void {
+  public withScope<T>(callback: (scope: Scope) => T): T {
     const scope = this.pushScope();
     try {
-      callback(scope);
+      return callback(scope);
     } finally {
       this.popScope();
     }

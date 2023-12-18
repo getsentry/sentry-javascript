@@ -92,3 +92,5 @@ const INTEGRATIONS = {
 };
 
 export { INTEGRATIONS as Integrations, Handlers };
+
+export { hapiErrorPlugin } from './integrations/hapi';

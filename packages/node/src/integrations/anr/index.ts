@@ -1,6 +1,6 @@
 // TODO (v8): This import can be removed once we only support Node with global URL
 import { URL } from 'url';
-import { getCurrentHub } from '@sentry/core';
+import { getCurrentScope } from '@sentry/core';
 import type { Contexts, Event, EventHint, Integration } from '@sentry/types';
 import { dynamicRequire, logger } from '@sentry/utils';
 import type { Worker, WorkerOptions } from 'worker_threads';
@@ -124,7 +124,7 @@ export class Anr implements Integration {
 
     const timer = setInterval(() => {
       try {
-        const currentSession = getCurrentHub().getScope()?.getSession();
+        const currentSession = getCurrentScope().getSession();
         // We need to copy the session object and remove the toJSON method so it can be sent to the worker
         // serialized without making it a SerializedSession
         const session = currentSession ? { ...currentSession, toJSON: undefined } : undefined;
@@ -138,7 +138,7 @@ export class Anr implements Integration {
     worker.on('message', (msg: string) => {
       if (msg === 'session-ended') {
         log('ANR event sent from ANR worker. Clearing session in this thread.');
-        getCurrentHub().getScope()?.setSession(undefined);
+        getCurrentScope().setSession(undefined);
       }
     });
 

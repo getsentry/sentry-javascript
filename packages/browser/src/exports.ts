@@ -57,6 +57,7 @@ export {
   withScope,
   FunctionToString,
   InboundFilters,
+  metrics,
 } from '@sentry/core';
 
 export { WINDOW } from './helpers';

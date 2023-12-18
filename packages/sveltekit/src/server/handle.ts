@@ -1,6 +1,7 @@
 /* eslint-disable @sentry-internal/sdk/no-optional-chaining */
 import type { Span } from '@sentry/core';
-import { getActiveTransaction, getCurrentHub, runWithAsyncContext, startSpan } from '@sentry/core';
+import { getCurrentScope } from '@sentry/core';
+import { getActiveTransaction, runWithAsyncContext, startSpan } from '@sentry/core';
 import { captureException } from '@sentry/node';
 import { dynamicSamplingContextToSentryBaggageHeader, objectify } from '@sentry/utils';
 import type { Handle, ResolveOptions } from '@sveltejs/kit';
@@ -102,7 +103,7 @@ export function sentryHandle(handlerOptions?: SentryHandleOptions): Handle {
     // if there is an active transaction, we know that this handle call is nested and hence
     // we don't create a new domain for it. If we created one, nested server calls would
     // create new transactions instead of adding a child span to the currently active span.
-    if (getCurrentHub().getScope().getSpan()) {
+    if (getCurrentScope().getSpan()) {
       return instrumentHandle(input, options);
     }
     return runWithAsyncContext(() => {
@@ -122,7 +123,7 @@ async function instrumentHandle(
   }
 
   const { dynamicSamplingContext, traceparentData, propagationContext } = getTracePropagationData(event);
-  getCurrentHub().getScope().setPropagationContext(propagationContext);
+  getCurrentScope().setPropagationContext(propagationContext);
 
   try {
     const resolveResult = await startSpan(

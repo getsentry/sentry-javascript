@@ -77,7 +77,7 @@ type ClientReportItemHeaders = { type: 'client_report' };
 type ReplayEventItemHeaders = { type: 'replay_event' };
 type ReplayRecordingItemHeaders = { type: 'replay_recording'; length: number };
 type CheckInItemHeaders = { type: 'check_in' };
-type StatsdItemHeaders = { type: 'statsd' };
+type StatsdItemHeaders = { type: 'statsd'; length: number };
 type ProfileItemHeaders = { type: 'profile' };
 
 export type EventItem = BaseEnvelopeItem<EventItemHeaders, Event>;

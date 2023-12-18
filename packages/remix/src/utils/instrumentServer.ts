@@ -1,5 +1,5 @@
 /* eslint-disable max-lines */
-import { getActiveTransaction, hasTracingEnabled, runWithAsyncContext } from '@sentry/core';
+import { getActiveTransaction, getClient, getCurrentScope, hasTracingEnabled, runWithAsyncContext } from '@sentry/core';
 import type { Hub } from '@sentry/node';
 import { captureException, getCurrentHub } from '@sentry/node';
 import type { Transaction, TransactionSource, WrappedFunction } from '@sentry/types';
@@ -225,7 +225,7 @@ function makeWrappedDataFunction(
   return async function (this: unknown, args: DataFunctionArgs): Promise<Response | AppData> {
     let res: Response | AppData;
     const activeTransaction = getActiveTransaction();
-    const currentScope = getCurrentHub().getScope();
+    const currentScope = getCurrentScope();
 
     try {
       const span = activeTransaction?.startChild({
@@ -280,7 +280,7 @@ function getTraceAndBaggage(): {
   sentryBaggage?: string;
 } {
   const transaction = getActiveTransaction();
-  const currentScope = getCurrentHub().getScope();
+  const currentScope = getCurrentScope();
 
   if (isNodeEnv() && hasTracingEnabled()) {
     const span = currentScope.getSpan();
@@ -421,8 +421,8 @@ function wrapRequestHandler(origRequestHandler: RequestHandler, build: ServerBui
   return async function (this: unknown, request: RemixRequest, loadContext?: unknown): Promise<Response> {
     return runWithAsyncContext(async () => {
       const hub = getCurrentHub();
-      const options = hub.getClient()?.getOptions();
-      const scope = hub.getScope();
+      const options = getClient()?.getOptions();
+      const scope = getCurrentScope();
 
       let normalizedRequest: Record<string, unknown> = request;
 
