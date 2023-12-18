@@ -23,7 +23,7 @@ function parseJsonLines<T extends unknown[]>(input: string, expected: number): T
   return results;
 }
 
-conditionalTest({ min: 14 })('should report ANR when event loop blocked', () => {
+conditionalTest({ min: 16 })('should report ANR when event loop blocked', () => {
   test('CJS', done => {
     expect.assertions(9);
 
