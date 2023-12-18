@@ -60,13 +60,15 @@ export class IsolatedPromiseBuffer {
         }
       }, timeout);
 
+      // This cannot reject
+      // eslint-disable-next-line @typescript-eslint/no-floating-promises
       Promise.all(
         oldTaskProducers.map(taskProducer =>
           taskProducer().then(null, () => {
             // catch all failed requests
           }),
         ),
-      ).finally(() => {
+      ).then(() => {
         // resolve to true if all fetch requests settled
         clearTimeout(timer);
         resolve(true);

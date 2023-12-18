@@ -44,9 +44,9 @@ export function handleGlobalEventListener(
       }
 
       if (isFeedbackEvent(event)) {
-        replay.flush().then(null, e => {
-          DEBUG_BUILD && logger.warn('[Replay] Flushing replay failed.', e);
-        });
+        // This should never reject
+        // eslint-disable-next-line @typescript-eslint/no-floating-promises
+        replay.flush();
         event.contexts.feedback.replay_id = replay.getSessionId();
         // Add a replay breadcrumb for this piece of feedback
         addFeedbackBreadcrumb(replay, event);

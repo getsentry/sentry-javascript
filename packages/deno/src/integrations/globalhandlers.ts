@@ -87,10 +87,16 @@ function installGlobalErrorHandler(): void {
     data.preventDefault();
     isExiting = true;
 
-    void flush().finally(() => {
-      // rethrow to replicate Deno default behavior
-      throw error;
-    });
+    void flush().then(
+      () => {
+        // rethrow to replicate Deno default behavior
+        throw error;
+      },
+      () => {
+        // rethrow to replicate Deno default behavior
+        throw error;
+      },
+    );
   });
 }
 
@@ -130,10 +136,16 @@ function installGlobalUnhandledRejectionHandler(): void {
     e.preventDefault();
     isExiting = true;
 
-    flush().finally(() => {
-      // rethrow to replicate Deno default behavior
-      throw error;
-    });
+    flush().then(
+      () => {
+        // rethrow to replicate Deno default behavior
+        throw error;
+      },
+      () => {
+        // rethrow to replicate Deno default behavior
+        throw error;
+      },
+    );
   });
 }
 
