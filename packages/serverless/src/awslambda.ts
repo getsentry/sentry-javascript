@@ -319,35 +319,35 @@ export function wrapHandler<TEvent, TResult>(
       });
     }
 
-    const scope = hub.pushScope();
-    let rv: TResult;
-    try {
-      enhanceScopeWithEnvironmentData(scope, context, START_TIME);
-      if (options.startTrace) {
-        enhanceScopeWithTransactionData(scope, context);
-        // We put the transaction on the scope so users can attach children to it
-        scope.setSpan(transaction);
-      }
-      rv = await asyncHandler(event, context);
+    return withScope(async scope => {
+      let rv: TResult;
+      try {
+        enhanceScopeWithEnvironmentData(scope, context, START_TIME);
+        if (options.startTrace) {
+          enhanceScopeWithTransactionData(scope, context);
+          // We put the transaction on the scope so users can attach children to it
+          scope.setSpan(transaction);
+        }
+        rv = await asyncHandler(event, context);
 
-      // We manage lambdas that use Promise.allSettled by capturing the errors of failed promises
-      if (options.captureAllSettledReasons && Array.isArray(rv) && isPromiseAllSettledResult(rv)) {
-        const reasons = getRejectedReasons(rv);
-        reasons.forEach(exception => {
-          captureException(exception, scope => markEventUnhandled(scope));
+        // We manage lambdas that use Promise.allSettled by capturing the errors of failed promises
+        if (options.captureAllSettledReasons && Array.isArray(rv) && isPromiseAllSettledResult(rv)) {
+          const reasons = getRejectedReasons(rv);
+          reasons.forEach(exception => {
+            captureException(exception, scope => markEventUnhandled(scope));
+          });
+        }
+      } catch (e) {
+        captureException(e, scope => markEventUnhandled(scope));
+        throw e;
+      } finally {
+        clearTimeout(timeoutWarningTimer);
+        transaction?.finish();
+        await flush(options.flushTimeout).catch(e => {
+          DEBUG_BUILD && logger.error(e);
         });
       }
-    } catch (e) {
-      captureException(e, scope => markEventUnhandled(scope));
-      throw e;
-    } finally {
-      clearTimeout(timeoutWarningTimer);
-      transaction?.finish();
-      hub.popScope();
-      await flush(options.flushTimeout).catch(e => {
-        DEBUG_BUILD && logger.error(e);
-      });
-    }
-    return rv;
+      return rv;
+    });
   };
 }
