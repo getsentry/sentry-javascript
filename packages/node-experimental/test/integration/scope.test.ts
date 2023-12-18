@@ -353,14 +353,16 @@ describe('Integration | Scope', () => {
       initialIsolationScope.setTag('tag1', 'val1');
       initialIsolationScope.setTag('tag2', 'val2');
 
+      const initialCurrentScope = Sentry.getCurrentScope();
+
       const error = new Error('test error');
 
-      Sentry.withIsolationScope((_currentScope, newIsolationScope) => {
+      Sentry.withIsolationScope(newIsolationScope => {
         newIsolationScope.setTag('tag4', 'val4');
       });
 
-      Sentry.withIsolationScope((currentScope, newIsolationScope) => {
-        expect(Sentry.getCurrentScope()).toBe(currentScope);
+      Sentry.withIsolationScope(newIsolationScope => {
+        expect(Sentry.getCurrentScope()).not.toBe(initialCurrentScope);
         expect(Sentry.getIsolationScope()).toBe(newIsolationScope);
         expect(newIsolationScope).not.toBe(initialIsolationScope);
 
@@ -402,13 +404,13 @@ describe('Integration | Scope', () => {
 
       const error = new Error('test error');
 
-      Sentry.withIsolationScope((_currentScope, newIsolationScope) => {
+      Sentry.withIsolationScope(newIsolationScope => {
         newIsolationScope.setTag('tag2', 'val2');
 
-        Sentry.withIsolationScope((_currentScope, newIsolationScope) => {
+        Sentry.withIsolationScope(newIsolationScope => {
           newIsolationScope.setTag('tag3', 'val3');
 
-          Sentry.withIsolationScope((_currentScope, newIsolationScope) => {
+          Sentry.withIsolationScope(newIsolationScope => {
             newIsolationScope.setTag('tag4', 'val4');
           });
 
@@ -648,8 +650,8 @@ describe('Integration | Scope', () => {
 
       const error = new Error('test error');
 
-      Sentry.withIsolationScope((currentScope, isolationScope) => {
-        currentScope.setTag('tag2', 'val2a');
+      Sentry.withIsolationScope(isolationScope => {
+        Sentry.getCurrentScope().setTag('tag2', 'val2a');
         isolationScope.setTag('tag2', 'val2b');
         isolationScope.setTag('tag3', 'val3');
 

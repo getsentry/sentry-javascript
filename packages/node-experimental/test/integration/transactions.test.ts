@@ -181,7 +181,7 @@ describe('Integration | Transactions', () => {
 
     Sentry.addBreadcrumb({ message: 'test breadcrumb 1', timestamp: 123456 });
 
-    Sentry.withIsolationScope((scope, isolationScope) => {
+    Sentry.withIsolationScope(() => {
       Sentry.startSpan({ op: 'test op', name: 'test name', source: 'task', origin: 'auto.test' }, span => {
         Sentry.addBreadcrumb({ message: 'test breadcrumb 2', timestamp: 123456 });
 

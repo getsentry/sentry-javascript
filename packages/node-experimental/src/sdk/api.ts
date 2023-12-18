@@ -37,10 +37,10 @@ export function withScope<T>(callback: (scope: Scope) => T): T {
 }
 
 /**
- * Fork a scope from the current scope, and make it the current scope in the given callback.
- * Additionally, also setup a new isolation scope for the callback.
+ * For a new isolation scope from the current isolation scope,
+ * and make it the current isolation scope in the given callback.
  */
-export function withIsolationScope<T>(callback: (scope: Scope, isolationScope: Scope) => T): T {
+export function withIsolationScope<T>(callback: (isolationScope: Scope) => T): T {
   const ctx = context.active();
   const currentScopes = getScopesFromContext(ctx);
   const scopes = currentScopes
@@ -53,7 +53,7 @@ export function withIsolationScope<T>(callback: (scope: Scope, isolationScope: S
   scopes.isolationScope = scopes.isolationScope.clone();
 
   return context.with(setScopesOnContext(ctx, scopes), () => {
-    return callback(getCurrentScope(), getIsolationScope());
+    return callback(getIsolationScope());
   });
 }
 
