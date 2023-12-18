@@ -163,8 +163,8 @@ export function setUser(user: User | null): ReturnType<Hub['setUser']> {
  *
  * @param callback that will be enclosed into push/popScope.
  */
-export function withScope(callback: (scope: Scope) => void): ReturnType<Hub['withScope']> {
-  getCurrentHub().withScope(callback);
+export function withScope<T>(callback: (scope: Scope) => T): T {
+  return getCurrentHub().withScope(callback);
 }
 
 /**
