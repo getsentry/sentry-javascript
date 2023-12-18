@@ -8,7 +8,6 @@ type CronFn = () => void | Promise<void>;
 // Parameters<typeof Deno.cron> doesn't work well with the overloads 🤔
 type CronParams = [string, string | Deno.CronSchedule, CronFn | CronOptions, CronFn | CronOptions | undefined];
 
-
 /** Instruments Deno.cron to automatically capture cron check-ins */
 export class DenoCron implements Integration {
   /** @inheritDoc */
@@ -23,7 +22,7 @@ export class DenoCron implements Integration {
   }
 
   /** @inheritDoc */
-  public setup(client: DenoClient): void {
+  public setup(): void {
     // eslint-disable-next-line deprecation/deprecation
     if (!Deno.cron) {
       // The cron API is not available in this Deno version use --unstable flag!
