@@ -47,6 +47,30 @@ conditionalTest({ min: 16 })('should report ANR when event loop blocked', () => 
     });
   });
 
+  test('Legacy API', done => {
+    // TODO (v8): Remove this old API and this test
+    expect.assertions(9);
+
+    const testScriptPath = path.resolve(__dirname, 'legacy.js');
+
+    childProcess.exec(`node ${testScriptPath}`, { encoding: 'utf8' }, (_, stdout) => {
+      const [event] = parseJsonLines<[Event]>(stdout, 1);
+
+      expect(event.exception?.values?.[0].mechanism).toEqual({ type: 'ANR' });
+      expect(event.exception?.values?.[0].type).toEqual('ApplicationNotResponding');
+      expect(event.exception?.values?.[0].value).toEqual('Application Not Responding for at least 200 ms');
+      expect(event.exception?.values?.[0].stacktrace?.frames?.length).toBeGreaterThan(4);
+
+      expect(event.exception?.values?.[0].stacktrace?.frames?.[2].function).toEqual('?');
+      expect(event.exception?.values?.[0].stacktrace?.frames?.[3].function).toEqual('longWork');
+
+      expect(event.contexts?.trace?.trace_id).toBeDefined();
+      expect(event.contexts?.trace?.span_id).toBeDefined();
+
+      done();
+    });
+  });
+
   test('ESM', done => {
     expect.assertions(7);
 
