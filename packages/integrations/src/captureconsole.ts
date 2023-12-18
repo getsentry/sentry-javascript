@@ -1,4 +1,5 @@
-import type { EventProcessor, Hub, Integration } from '@sentry/types';
+import { captureException, captureMessage, getClient, withScope } from '@sentry/core';
+import type { CaptureContext, Client, EventProcessor, Hub, Integration } from '@sentry/types';
 import {
   CONSOLE_LEVELS,
   GLOBAL_OBJ,
@@ -36,7 +37,12 @@ export class CaptureConsole implements Integration {
   /**
    * @inheritDoc
    */
-  public setupOnce(_: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
+  public setupOnce(_: (callback: EventProcessor) => void, _getCurrentHub: () => Hub): void {
+    // noop
+  }
+
+  /** @inheritdoc */
+  public client(client: Client): void {
     if (!('console' in GLOBAL_OBJ)) {
       return;
     }
@@ -44,25 +50,24 @@ export class CaptureConsole implements Integration {
     const levels = this._levels;
 
     addConsoleInstrumentationHandler(({ args, level }) => {
-      if (!levels.includes(level)) {
+      if (getClient() !== client || !levels.includes(level)) {
         return;
       }
 
-      const hub = getCurrentHub();
-
-      if (!hub.getIntegration(CaptureConsole)) {
-        return;
-      }
-
-      consoleHandler(hub, args, level);
+      consoleHandler(args, level);
     });
   }
 }
 
-function consoleHandler(hub: Hub, args: unknown[], level: string): void {
-  hub.withScope(scope => {
-    scope.setLevel(severityLevelFromString(level));
-    scope.setExtra('arguments', args);
+function consoleHandler(args: unknown[], level: string): void {
+  const captureContext: CaptureContext = {
+    level: severityLevelFromString(level),
+    extra: {
+      arguments: args,
+    },
+  };
+
+  withScope(scope => {
     scope.addEventProcessor(event => {
       event.logger = 'console';
 
@@ -74,18 +79,20 @@ function consoleHandler(hub: Hub, args: unknown[], level: string): void {
       return event;
     });
 
-    let message = safeJoin(args, ' ');
-    const error = args.find(arg => arg instanceof Error);
-    if (level === 'assert') {
-      if (args[0] === false) {
-        message = `Assertion failed: ${safeJoin(args.slice(1), ' ') || 'console.assert'}`;
-        scope.setExtra('arguments', args.slice(1));
-        hub.captureMessage(message);
-      }
-    } else if (level === 'error' && error) {
-      hub.captureException(error);
-    } else {
-      hub.captureMessage(message);
+    if (level === 'assert' && args[0] === false) {
+      const message = `Assertion failed: ${safeJoin(args.slice(1), ' ') || 'console.assert'}`;
+      scope.setExtra('arguments', args.slice(1));
+      captureMessage(message, captureContext);
+      return;
     }
+
+    const error = args.find(arg => arg instanceof Error);
+    if (level === 'error' && error) {
+      captureException(error, captureContext);
+      return;
+    }
+
+    const message = safeJoin(args, ' ');
+    captureMessage(message, captureContext);
   });
 }
