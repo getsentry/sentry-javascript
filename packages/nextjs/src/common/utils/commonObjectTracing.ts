@@ -10,9 +10,9 @@ export function commonObjectToPropagationContext(
   propagationContext: PropagationContext,
 ): PropagationContext {
   if (typeof commonObject === 'object' && commonObject) {
-    const memoTraceId = commonMap.get(commonObject);
-    if (memoTraceId) {
-      return memoTraceId;
+    const memoPropagationContext = commonMap.get(commonObject);
+    if (memoPropagationContext) {
+      return memoPropagationContext;
     } else {
       commonMap.set(commonObject, propagationContext);
       return propagationContext;
