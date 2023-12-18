@@ -8,6 +8,10 @@ npx @sentry/migr8@latest
 
 This will let you select which updates to run, and automatically update your code. Make sure to still review all code changes!
 
+## Deprecate `pushScope` & `popScope` in favor of `withScope`
+
+Instead of manually pushing/popping a scope, you should use `Sentry.withScope(callback: (scope: Scope))` instead.
+
 ## Deprecate `configureScope` in favor of using `getCurrentScope()`
 
 Instead of updating the scope in a callback via `configureScope()`, you should access it via `getCurrentScope()` and configure it directly:
