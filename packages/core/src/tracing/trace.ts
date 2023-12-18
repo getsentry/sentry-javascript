@@ -24,7 +24,9 @@ export function trace<T>(
   context: TransactionContext,
   callback: (span?: Span) => T,
   // eslint-disable-next-line @typescript-eslint/no-empty-function
-  onError: (error: unknown) => void = () => {},
+  onError: (error: unknown, span?: Span) => void = () => {},
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
+  afterFinish: () => void = () => {},
 ): T {
   const ctx = normalizeContext(context);
 
@@ -46,8 +48,9 @@ export function trace<T>(
     maybePromiseResult = callback(activeSpan);
   } catch (e) {
     activeSpan && activeSpan.setStatus('internal_error');
-    onError(e);
+    onError(e, activeSpan);
     finishAndSetSpan();
+    afterFinish();
     throw e;
   }
 
@@ -55,15 +58,18 @@ export function trace<T>(
     Promise.resolve(maybePromiseResult).then(
       () => {
         finishAndSetSpan();
+        afterFinish();
       },
       e => {
         activeSpan && activeSpan.setStatus('internal_error');
-        onError(e);
+        onError(e, activeSpan);
         finishAndSetSpan();
+        afterFinish();
       },
     );
   } else {
     finishAndSetSpan();
+    afterFinish();
   }
 
   return maybePromiseResult;
