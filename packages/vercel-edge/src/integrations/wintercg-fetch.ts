@@ -54,7 +54,7 @@ export class WinterCGFetch implements Integration {
         return;
       }
 
-      if (isSentryRequestUrl(handlerData.fetchData.url, hub)) {
+      if (isSentryRequestUrl(handlerData.fetchData.url, getClient())) {
         return;
       }
 

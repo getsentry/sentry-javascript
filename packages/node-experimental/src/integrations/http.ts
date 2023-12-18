@@ -102,7 +102,7 @@ export class Http implements Integration {
               return false;
             }
 
-            if (isSentryRequestUrl(url, getCurrentHub())) {
+            if (isSentryRequestUrl(url, getClient())) {
               return true;
             }
 

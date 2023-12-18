@@ -1,4 +1,10 @@
-import { getCurrentHub, getCurrentScope, getDynamicSamplingContextFromClient, isSentryRequestUrl } from '@sentry/core';
+import {
+  getClient,
+  getCurrentHub,
+  getCurrentScope,
+  getDynamicSamplingContextFromClient,
+  isSentryRequestUrl,
+} from '@sentry/core';
 import type { EventProcessor, Integration, Span } from '@sentry/types';
 import {
   LRUMap,
@@ -137,12 +143,12 @@ export class Undici implements Integration {
 
     const stringUrl = request.origin ? request.origin.toString() + request.path : request.path;
 
-    if (isSentryRequestUrl(stringUrl, hub) || request.__sentry_span__ !== undefined) {
+    const client = getClient<NodeClient>();
+    if (!client) {
       return;
     }
 
-    const client = hub.getClient<NodeClient>();
-    if (!client) {
+    if (isSentryRequestUrl(stringUrl, client) || request.__sentry_span__ !== undefined) {
       return;
     }
 
@@ -197,7 +203,7 @@ export class Undici implements Integration {
 
     const stringUrl = request.origin ? request.origin.toString() + request.path : request.path;
 
-    if (isSentryRequestUrl(stringUrl, hub)) {
+    if (isSentryRequestUrl(stringUrl, getClient())) {
       return;
     }
 
@@ -237,7 +243,7 @@ export class Undici implements Integration {
 
     const stringUrl = request.origin ? request.origin.toString() + request.path : request.path;
 
-    if (isSentryRequestUrl(stringUrl, hub)) {
+    if (isSentryRequestUrl(stringUrl, getClient())) {
       return;
     }
 
