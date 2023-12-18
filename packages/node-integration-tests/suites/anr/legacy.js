@@ -15,7 +15,7 @@ Sentry.init({
 });
 
 // eslint-disable-next-line deprecation/deprecation
-Sentry.enableAnrDetection({captureStackTrace: true, anrThreshold: 200}).then(() => {
+Sentry.enableAnrDetection({ captureStackTrace: true, anrThreshold: 200 }).then(() => {
   function longWork() {
     for (let i = 0; i < 100; i++) {
       const salt = crypto.randomBytes(128).toString('base64');
