@@ -14,6 +14,7 @@ export {
   captureEvent,
   captureMessage,
   close,
+  // eslint-disable-next-line deprecation/deprecation
   configureScope,
   flush,
   lastEventId,
