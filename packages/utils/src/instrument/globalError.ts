@@ -21,7 +21,7 @@ function instrumentError(): void {
   _oldOnErrorHandler = GLOBAL_OBJ.onerror;
 
   GLOBAL_OBJ.onerror = function (
-    msg: string | Event,
+    msg: string | object,
     url?: string,
     line?: number,
     column?: number,

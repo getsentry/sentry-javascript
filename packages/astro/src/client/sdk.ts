@@ -1,6 +1,6 @@
 import type { BrowserOptions } from '@sentry/browser';
 import { BrowserTracing, init as initBrowserSdk } from '@sentry/browser';
-import { configureScope, hasTracingEnabled } from '@sentry/core';
+import { getCurrentScope, hasTracingEnabled } from '@sentry/core';
 import { addOrUpdateIntegration } from '@sentry/utils';
 
 import { applySdkMetadata } from '../common/metadata';
@@ -20,9 +20,7 @@ export function init(options: BrowserOptions): void {
 
   initBrowserSdk(options);
 
-  configureScope(scope => {
-    scope.setTag('runtime', 'browser');
-  });
+  getCurrentScope().setTag('runtime', 'browser');
 }
 
 function addClientIntegrations(options: BrowserOptions): void {

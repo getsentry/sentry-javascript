@@ -1,5 +1,5 @@
 import { getDynamicSamplingContextFromClient } from '@sentry/core';
-import type { Hub, Span } from '@sentry/types';
+import type { Client, Scope, Span } from '@sentry/types';
 import {
   TRACEPARENT_REGEXP,
   dynamicSamplingContextToSentryBaggageHeader,
@@ -22,9 +22,11 @@ import {
  *
  * @returns an object with the two serialized <meta> tags
  */
-export function getTracingMetaTags(span: Span | undefined, hub: Hub): { sentryTrace: string; baggage?: string } {
-  const scope = hub.getScope();
-  const client = hub.getClient();
+export function getTracingMetaTags(
+  span: Span | undefined,
+  scope: Scope,
+  client: Client | undefined,
+): { sentryTrace: string; baggage?: string } {
   const { dsc, sampled, traceId } = scope.getPropagationContext();
   const transaction = span?.transaction;
 

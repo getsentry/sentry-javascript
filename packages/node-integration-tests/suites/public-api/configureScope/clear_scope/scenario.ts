@@ -5,11 +5,10 @@ Sentry.init({
   release: '1.0',
 });
 
-Sentry.configureScope(scope => {
-  scope.setTag('foo', 'bar');
-  scope.setUser({ id: 'baz' });
-  scope.setExtra('qux', 'quux');
-  scope.clear();
-});
+const scope = Sentry.getCurrentScope();
+scope.setTag('foo', 'bar');
+scope.setUser({ id: 'baz' });
+scope.setExtra('qux', 'quux');
+scope.clear();
 
 Sentry.captureMessage('cleared_scope');

@@ -1,6 +1,6 @@
 /* eslint-disable max-lines */
 
-import { DEFAULT_ENVIRONMENT, getClient, getCurrentHub } from '@sentry/core';
+import { DEFAULT_ENVIRONMENT, getClient } from '@sentry/core';
 import type { DebugImage, Envelope, Event, EventEnvelope, StackFrame, StackParser, Transaction } from '@sentry/types';
 import type { Profile, ThreadCpuProfile } from '@sentry/types/src/profiling';
 import { GLOBAL_OBJ, browserPerformanceTimeOrigin, forEachEnvelopeItem, logger, uuid4 } from '@sentry/utils';
@@ -347,19 +347,10 @@ export function applyDebugMetadata(resource_paths: ReadonlyArray<string>): Debug
     return [];
   }
 
-  const hub = getCurrentHub();
-  if (!hub) {
-    return [];
-  }
-  const client = hub.getClient();
-  if (!client) {
-    return [];
-  }
-  const options = client.getOptions();
-  if (!options) {
-    return [];
-  }
-  const stackParser = options.stackParser;
+  const client = getClient();
+  const options = client && client.getOptions();
+  const stackParser = options && options.stackParser;
+
   if (!stackParser) {
     return [];
   }

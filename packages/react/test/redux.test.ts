@@ -9,11 +9,12 @@ const mockSetContext = jest.fn();
 
 jest.mock('@sentry/browser', () => ({
   ...jest.requireActual('@sentry/browser'),
-  configureScope: (callback: (scope: any) => Partial<Scope>) =>
-    callback({
+  getCurrentScope() {
+    return {
       addBreadcrumb: mockAddBreadcrumb,
       setContext: mockSetContext,
-    }),
+    };
+  },
   addEventProcessor: jest.fn(),
 }));
 
@@ -240,8 +241,7 @@ describe('createReduxEnhancer', () => {
       value: 'latest',
     });
 
-    let scopeRef;
-    Sentry.configureScope(scope => (scopeRef = scope));
+    const scopeRef = Sentry.getCurrentScope();
 
     expect(configureScopeWithState).toBeCalledWith(scopeRef, {
       value: 'latest',

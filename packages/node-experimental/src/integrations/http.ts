@@ -3,7 +3,7 @@ import type { Span } from '@opentelemetry/api';
 import { SpanKind } from '@opentelemetry/api';
 import { registerInstrumentations } from '@opentelemetry/instrumentation';
 import { HttpInstrumentation } from '@opentelemetry/instrumentation-http';
-import { hasTracingEnabled, isSentryRequestUrl } from '@sentry/core';
+import { addBreadcrumb, hasTracingEnabled, isSentryRequestUrl } from '@sentry/core';
 import { _INTERNAL, getClient, getCurrentHub, getSpanKind, setSpanMetadata } from '@sentry/opentelemetry';
 import type { EventProcessor, Hub, Integration } from '@sentry/types';
 import { stringMatchesSomePattern } from '@sentry/utils';
@@ -102,7 +102,7 @@ export class Http implements Integration {
               return false;
             }
 
-            if (isSentryRequestUrl(url, getCurrentHub())) {
+            if (isSentryRequestUrl(url, getClient())) {
               return true;
             }
 
@@ -159,7 +159,7 @@ export class Http implements Integration {
     }
 
     const data = _INTERNAL.getRequestSpanData(span);
-    getCurrentHub().addBreadcrumb(
+    addBreadcrumb(
       {
         category: 'http',
         data: {

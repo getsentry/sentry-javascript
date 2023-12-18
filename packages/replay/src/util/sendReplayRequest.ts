@@ -1,4 +1,4 @@
-import { getCurrentHub } from '@sentry/core';
+import { getClient, getCurrentScope } from '@sentry/core';
 import type { ReplayEvent, TransportMakeRequestResponse } from '@sentry/types';
 import type { RateLimits } from '@sentry/utils';
 import { isRateLimited, updateRateLimits } from '@sentry/utils';
@@ -30,9 +30,8 @@ export async function sendReplayRequest({
 
   const { urls, errorIds, traceIds, initialTimestamp } = eventContext;
 
-  const hub = getCurrentHub();
-  const client = hub.getClient();
-  const scope = hub.getScope();
+  const client = getClient();
+  const scope = getCurrentScope();
   const transport = client && client.getTransport();
   const dsn = client && client.getDsn();
 

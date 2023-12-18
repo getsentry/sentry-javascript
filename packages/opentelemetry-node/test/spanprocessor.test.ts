@@ -966,9 +966,7 @@ describe('SentrySpanProcessor', () => {
     makeMain(hub);
 
     const newHub = new Hub(client, hub.getScope().clone());
-    newHub.configureScope(scope => {
-      scope.setTag('foo', 'bar');
-    });
+    newHub.getScope().setTag('foo', 'bar');
 
     const tracer = provider.getTracer('default');
 
