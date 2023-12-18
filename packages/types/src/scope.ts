@@ -50,7 +50,7 @@ export interface Scope {
   /** Add new event processor that will be called after {@link applyToEvent}. */
   addEventProcessor(callback: EventProcessor): this;
 
-  /** Get the data of this scope, which should be applied to an event. */
+  /** Get the data of this scope, which is applied to an event during processing. */
   getScopeData(): ScopeData;
 
   /**
