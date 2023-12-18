@@ -1,5 +1,5 @@
 import { instrumentFetchRequest } from '@sentry-internal/tracing';
-import { getClient, getCurrentHub, isSentryRequestUrl } from '@sentry/core';
+import { addBreadcrumb, getClient, getCurrentHub, isSentryRequestUrl } from '@sentry/core';
 import type { FetchBreadcrumbData, FetchBreadcrumbHint, HandlerDataFetch, Integration, Span } from '@sentry/types';
 import { LRUMap, addFetchInstrumentationHandler, stringMatchesSomePattern } from '@sentry/utils';
 
@@ -130,7 +130,7 @@ function createBreadcrumb(handlerData: HandlerDataFetch): void {
       endTimestamp,
     };
 
-    getCurrentHub().addBreadcrumb(
+    addBreadcrumb(
       {
         category: 'fetch',
         data,
@@ -150,7 +150,7 @@ function createBreadcrumb(handlerData: HandlerDataFetch): void {
       startTimestamp,
       endTimestamp,
     };
-    getCurrentHub().addBreadcrumb(
+    addBreadcrumb(
       {
         category: 'fetch',
         data,

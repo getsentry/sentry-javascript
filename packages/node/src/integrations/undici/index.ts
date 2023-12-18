@@ -1,4 +1,5 @@
 import {
+  addBreadcrumb,
   getClient,
   getCurrentHub,
   getCurrentScope,
@@ -214,7 +215,7 @@ export class Undici implements Integration {
     }
 
     if (this._options.breadcrumbs) {
-      hub.addBreadcrumb(
+      addBreadcrumb(
         {
           category: 'http',
           data: {
@@ -254,7 +255,7 @@ export class Undici implements Integration {
     }
 
     if (this._options.breadcrumbs) {
-      hub.addBreadcrumb(
+      addBreadcrumb(
         {
           category: 'http',
           data: {

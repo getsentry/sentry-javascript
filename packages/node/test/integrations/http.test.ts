@@ -592,6 +592,7 @@ describe('default protocols', () => {
   function captureBreadcrumb(key: string): Promise<Breadcrumb> {
     const hub = new Hub();
     jest.spyOn(sentryCore, 'getCurrentHub').mockReturnValue(hub);
+    jest.spyOn(sentryCore, 'addBreadcrumb').mockImplementation((...rest) => hub.addBreadcrumb(...rest));
 
     let resolve: (value: Breadcrumb | PromiseLike<Breadcrumb>) => void;
     const p = new Promise<Breadcrumb>(r => {

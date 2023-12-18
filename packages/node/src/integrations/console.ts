@@ -1,5 +1,5 @@
 import * as util from 'util';
-import { getCurrentHub } from '@sentry/core';
+import { addBreadcrumb, getCurrentHub } from '@sentry/core';
 import type { Integration } from '@sentry/types';
 import { addConsoleInstrumentationHandler, severityLevelFromString } from '@sentry/utils';
 
@@ -26,7 +26,7 @@ export class Console implements Integration {
         return;
       }
 
-      hub.addBreadcrumb(
+      addBreadcrumb(
         {
           category: 'console',
           level: severityLevelFromString(level),
