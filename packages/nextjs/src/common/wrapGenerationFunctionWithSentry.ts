@@ -3,6 +3,7 @@ import {
   captureException,
   continueTrace,
   getCurrentHub,
+  getCurrentScope,
   runWithAsyncContext,
   trace,
 } from '@sentry/core';
@@ -10,6 +11,7 @@ import type { WebFetchHeaders } from '@sentry/types';
 import { winterCGHeadersToDict } from '@sentry/utils';
 
 import type { GenerationFunctionContext } from '../common/types';
+import { commonObjectToPropagationContext } from './utils/commonObjectTracing';
 
 /**
  * Wraps a generation function (e.g. generateMetadata) with Sentry error and performance instrumentation.
@@ -45,6 +47,18 @@ export function wrapGenerationFunctionWithSentry<F extends (...args: any[]) => a
           baggage: headers?.get('baggage'),
           sentryTrace: headers?.get('sentry-trace') ?? undefined,
         });
+
+        const propagationContext = getCurrentScope().getPropagationContext();
+
+        if (!transactionContext.traceId && !transactionContext.parentSpanId) {
+          const { traceId: commonTraceId, spanId: commonSpanId } = commonObjectToPropagationContext(
+            headers,
+            propagationContext,
+          );
+          transactionContext.traceId = commonTraceId;
+          transactionContext.parentSpanId = commonSpanId;
+        }
+
         return trace(
           {
             op: 'function.nextjs',
