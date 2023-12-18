@@ -32,6 +32,7 @@ export {
   captureEvent,
   captureMessage,
   close,
+  // eslint-disable-next-line deprecation/deprecation
   configureScope,
   createTransport,
   // eslint-disable-next-line deprecation/deprecation
@@ -93,3 +94,5 @@ const INTEGRATIONS = {
 };
 
 export { INTEGRATIONS as Integrations, Handlers };
+
+export { hapiErrorPlugin } from './integrations/hapi';

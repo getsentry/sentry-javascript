@@ -13,6 +13,7 @@ import { getVercelEnv } from '../common/getVercelEnv';
 import { buildMetadata } from '../common/metadata';
 import { isBuild } from '../common/utils/isBuild';
 
+export { createReduxEnhancer } from '@sentry/react';
 export * from '@sentry/node';
 export { captureUnderscoreErrorException } from '../common/_error';
 

@@ -1,7 +1,7 @@
 import type * as http from 'http';
 import type * as https from 'https';
 import type { Hub } from '@sentry/core';
-import { getClient, getCurrentScope } from '@sentry/core';
+import { addBreadcrumb, getClient, getCurrentScope } from '@sentry/core';
 import { getCurrentHub, getDynamicSamplingContextFromClient, isSentryRequestUrl } from '@sentry/core';
 import type {
   DynamicSamplingContext,
@@ -214,7 +214,7 @@ function _createWrappedRequestMethodFactory(
       return;
     }
 
-    getCurrentHub().addBreadcrumb(
+    addBreadcrumb(
       {
         category: 'http',
         data: {
@@ -240,7 +240,7 @@ function _createWrappedRequestMethodFactory(
       const requestUrl = extractUrl(requestOptions);
 
       // we don't want to record requests to Sentry as either breadcrumbs or spans, so just use the original method
-      if (isSentryRequestUrl(requestUrl, getCurrentHub())) {
+      if (isSentryRequestUrl(requestUrl, getClient())) {
         return originalRequestMethod.apply(httpModule, requestArgs);
       }
 
