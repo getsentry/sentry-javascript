@@ -1,9 +1,9 @@
 import {
+  SDK_VERSION,
   captureException,
-  configureScope,
   continueTrace,
   getActiveTransaction,
-  SDK_VERSION,
+  getCurrentScope,
   startTransaction,
 } from '@sentry/core';
 import type { Integration } from '@sentry/types';
@@ -80,9 +80,7 @@ export const hapiTracingPlugin = {
         },
       );
 
-      configureScope(scope => {
-        scope.setSpan(transaction);
-      });
+      getCurrentScope().setSpan(transaction);
 
       return h.continue;
     });
