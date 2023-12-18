@@ -64,7 +64,7 @@ export class NodeExperimentalClient extends NodeClient {
 
     // Remove `captureContext` hint and instead clone already here
     if (hint && hint.captureContext) {
-      actualScope = getFinalScope(scope, hint.captureContext);
+      actualScope = getScopeForEvent(scope, hint.captureContext);
       delete hint.captureContext;
     }
 
@@ -72,7 +72,7 @@ export class NodeExperimentalClient extends NodeClient {
   }
 }
 
-function getFinalScope(scope: Scope | undefined, captureContext: CaptureContext): Scope | undefined {
+function getScopeForEvent(scope: Scope | undefined, captureContext: CaptureContext): Scope | undefined {
   const finalScope = scope ? scope.clone() : new Scope();
   finalScope.update(captureContext);
   return finalScope;

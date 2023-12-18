@@ -170,7 +170,7 @@ export function setContext(
 /** Start a session on the current isolation scope. */
 export function startSession(context?: Session): Session {
   const client = getClient();
-  const scope = getIsolationScope();
+  const isolationScope = getIsolationScope();
 
   const { release, environment = DEFAULT_ENVIRONMENT } = client.getOptions();
 
@@ -180,35 +180,35 @@ export function startSession(context?: Session): Session {
   const session = makeSession({
     release,
     environment,
-    user: scope.getUser(),
+    user: isolationScope.getUser(),
     ...(userAgent && { userAgent }),
     ...context,
   });
 
   // End existing session if there's one
-  const currentSession = scope.getSession && scope.getSession();
+  const currentSession = isolationScope.getSession && isolationScope.getSession();
   if (currentSession && currentSession.status === 'ok') {
     updateSession(currentSession, { status: 'exited' });
   }
   endSession();
 
   // Afterwards we set the new session on the scope
-  scope.setSession(session);
+  isolationScope.setSession(session);
 
   return session;
 }
 
 /** End the session on the current isolation scope. */
 export function endSession(): void {
-  const scope = getIsolationScope();
-  const session = scope.getSession();
+  const isolationScope = getIsolationScope();
+  const session = isolationScope.getSession();
   if (session) {
     closeSession(session);
   }
   _sendSessionUpdate();
 
   // the session is over; take it off of the scope
-  scope.setSession();
+  isolationScope.setSession();
 }
 
 /**
