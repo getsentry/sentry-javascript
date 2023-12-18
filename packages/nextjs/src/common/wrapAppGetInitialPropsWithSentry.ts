@@ -1,4 +1,4 @@
-import { getCurrentHub } from '@sentry/core';
+import { addTracingExtensions, getClient, getCurrentScope } from '@sentry/core';
 import { dynamicSamplingContextToSentryBaggageHeader } from '@sentry/utils';
 import type App from 'next/app';
 
@@ -26,12 +26,13 @@ export function wrapAppGetInitialPropsWithSentry(origAppGetInitialProps: AppGetI
         return wrappingTarget.apply(thisArg, args);
       }
 
+      addTracingExtensions();
+
       const [context] = args;
       const { req, res } = context.ctx;
 
       const errorWrappedAppGetInitialProps = withErrorInstrumentation(wrappingTarget);
-      const hub = getCurrentHub();
-      const options = hub.getClient()?.getOptions();
+      const options = getClient()?.getOptions();
 
       // Generally we can assume that `req` and `res` are always defined on the server:
       // https://nextjs.org/docs/api-reference/data-fetching/get-initial-props#context-object
@@ -51,7 +52,7 @@ export function wrapAppGetInitialPropsWithSentry(origAppGetInitialProps: AppGetI
           };
         } = await tracedGetInitialProps.apply(thisArg, args);
 
-        const requestTransaction = getTransactionFromRequest(req) ?? hub.getScope().getTransaction();
+        const requestTransaction = getTransactionFromRequest(req) ?? getCurrentScope().getTransaction();
 
         // Per definition, `pageProps` is not optional, however an increased amount of users doesn't seem to call
         // `App.getInitialProps(appContext)` in their custom `_app` pages which is required as per

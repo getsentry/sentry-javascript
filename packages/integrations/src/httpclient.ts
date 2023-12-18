@@ -1,21 +1,22 @@
-import { getCurrentHub, isSentryRequestUrl } from '@sentry/core';
+import { getClient, isSentryRequestUrl } from '@sentry/core';
 import type {
   Event as SentryEvent,
   EventProcessor,
-  HandlerDataFetch,
-  HandlerDataXhr,
   Hub,
   Integration,
   SentryWrappedXMLHttpRequest,
 } from '@sentry/types';
 import {
-  addExceptionMechanism,
-  addInstrumentationHandler,
   GLOBAL_OBJ,
-  logger,
   SENTRY_XHR_DATA_KEY,
+  addExceptionMechanism,
+  addFetchInstrumentationHandler,
+  addXhrInstrumentationHandler,
+  logger,
   supportsNativeFetch,
 } from '@sentry/utils';
+
+import { DEBUG_BUILD } from './debug-build';
 
 export type HttpStatusCodeRange = [number, number] | number;
 export type HttpRequestTarget = string | RegExp;
@@ -114,7 +115,7 @@ export class HttpClient implements Integration {
                 cookies = this._parseCookieString(cookieString);
               }
             } catch (e) {
-              __DEBUG_BUILD__ && logger.log(`Could not extract cookies from header ${cookieHeader}`);
+              DEBUG_BUILD && logger.log(`Could not extract cookies from header ${cookieHeader}`);
             }
 
             return {
@@ -158,13 +159,13 @@ export class HttpClient implements Integration {
             responseCookies = this._parseCookieString(cookieString);
           }
         } catch (e) {
-          __DEBUG_BUILD__ && logger.log('Could not extract cookies from response headers');
+          DEBUG_BUILD && logger.log('Could not extract cookies from response headers');
         }
 
         try {
           responseHeaders = this._getXHRResponseHeaders(xhr);
         } catch (e) {
-          __DEBUG_BUILD__ && logger.log('Could not extract headers from response');
+          DEBUG_BUILD && logger.log('Could not extract headers from response');
         }
 
         requestHeaders = headers;
@@ -172,7 +173,7 @@ export class HttpClient implements Integration {
 
       const event = this._createEvent({
         url: xhr.responseURL,
-        method: method,
+        method,
         status: xhr.status,
         requestHeaders,
         // Can't access request cookies from XHR
@@ -300,7 +301,7 @@ export class HttpClient implements Integration {
       return;
     }
 
-    addInstrumentationHandler('fetch', (handlerData: HandlerDataFetch & { response?: Response }) => {
+    addFetchInstrumentationHandler(handlerData => {
       const { response, args } = handlerData;
       const [requestInfo, requestInit] = args as [RequestInfo, RequestInit | undefined];
 
@@ -308,7 +309,7 @@ export class HttpClient implements Integration {
         return;
       }
 
-      this._fetchResponseHandler(requestInfo, response, requestInit);
+      this._fetchResponseHandler(requestInfo, response as Response, requestInit);
     });
   }
 
@@ -320,30 +321,23 @@ export class HttpClient implements Integration {
       return;
     }
 
-    addInstrumentationHandler(
-      'xhr',
-      (handlerData: HandlerDataXhr & { xhr: SentryWrappedXMLHttpRequest & XMLHttpRequest }) => {
-        const { xhr } = handlerData;
+    addXhrInstrumentationHandler(handlerData => {
+      const xhr = handlerData.xhr as SentryWrappedXMLHttpRequest & XMLHttpRequest;
 
-        const sentryXhrData = xhr[SENTRY_XHR_DATA_KEY];
+      const sentryXhrData = xhr[SENTRY_XHR_DATA_KEY];
 
-        if (!sentryXhrData) {
-          return;
-        }
+      if (!sentryXhrData) {
+        return;
+      }
 
-        const { method, request_headers: headers } = sentryXhrData;
+      const { method, request_headers: headers } = sentryXhrData;
 
-        if (!method) {
-          return;
-        }
-
-        try {
-          this._xhrResponseHandler(xhr, method, headers);
-        } catch (e) {
-          __DEBUG_BUILD__ && logger.warn('Error while extracting response event form XHR response', e);
-        }
-      },
-    );
+      try {
+        this._xhrResponseHandler(xhr, method, headers);
+      } catch (e) {
+        DEBUG_BUILD && logger.warn('Error while extracting response event form XHR response', e);
+      }
+    });
   }
 
   /**
@@ -354,9 +348,7 @@ export class HttpClient implements Integration {
    */
   private _shouldCaptureResponse(status: number, url: string): boolean {
     return (
-      this._isInGivenStatusRanges(status) &&
-      this._isInGivenRequestTargets(url) &&
-      !isSentryRequestUrl(url, getCurrentHub())
+      this._isInGivenStatusRanges(status) && this._isInGivenRequestTargets(url) && !isSentryRequestUrl(url, getClient())
     );
   }
 

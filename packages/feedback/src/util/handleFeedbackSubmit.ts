@@ -1,18 +1,24 @@
+import type { TransportMakeRequestResponse } from '@sentry/types';
+import { logger } from '@sentry/utils';
+
+import { FEEDBACK_WIDGET_SOURCE } from '../constants';
+import { DEBUG_BUILD } from '../debug-build';
 import { sendFeedback } from '../sendFeedback';
 import type { FeedbackFormData, SendFeedbackOptions } from '../types';
 import type { DialogComponent } from '../widget/Dialog';
 
 /**
- * Calls `sendFeedback` to send feedback, handles UI behavior of dialog.
+ * Handles UI behavior of dialog when feedback is submitted, calls
+ * `sendFeedback` to send feedback.
  */
 export async function handleFeedbackSubmit(
   dialog: DialogComponent | null,
   feedback: FeedbackFormData,
   options?: SendFeedbackOptions,
-): Promise<Response | false> {
+): Promise<TransportMakeRequestResponse | void> {
   if (!dialog) {
     // Not sure when this would happen
-    return false;
+    return;
   }
 
   const showFetchError = (): void => {
@@ -22,21 +28,15 @@ export async function handleFeedbackSubmit(
     dialog.showError('There was a problem submitting feedback, please wait and try again.');
   };
 
-  try {
-    dialog.hideError();
-    const resp = await sendFeedback(feedback, options);
+  dialog.hideError();
 
-    if (!resp) {
-      // Errored... re-enable submit button
-      showFetchError();
-      return false;
-    }
+  try {
+    const resp = await sendFeedback({ ...feedback, source: FEEDBACK_WIDGET_SOURCE }, options);
 
     // Success!
     return resp;
-  } catch {
-    // Errored... re-enable submit button
+  } catch (err) {
+    DEBUG_BUILD && logger.error(err);
     showFetchError();
-    return false;
   }
 }

@@ -4,7 +4,9 @@
 // on the top - level namespace.
 // Hence, we export everything from the Node SDK explicitly:
 export {
+  // eslint-disable-next-line deprecation/deprecation
   addGlobalEventProcessor,
+  addEventProcessor,
   addBreadcrumb,
   addIntegration,
   captureException,
@@ -12,12 +14,16 @@ export {
   captureMessage,
   captureCheckIn,
   withMonitor,
+  // eslint-disable-next-line deprecation/deprecation
   configureScope,
   createTransport,
+  // eslint-disable-next-line deprecation/deprecation
   extractTraceparentData,
   getActiveTransaction,
   getHubFromCarrier,
   getCurrentHub,
+  getClient,
+  getCurrentScope,
   Hub,
   makeMain,
   Scope,

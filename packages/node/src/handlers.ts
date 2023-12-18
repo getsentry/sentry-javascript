@@ -1,8 +1,11 @@
+import type * as http from 'http';
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import {
   captureException,
+  continueTrace,
   flush,
-  getCurrentHub,
+  getClient,
+  getCurrentScope,
   hasTracingEnabled,
   runWithAsyncContext,
   startTransaction,
@@ -11,19 +14,18 @@ import {
 import type { Span } from '@sentry/types';
 import type { AddRequestDataToEventOptions } from '@sentry/utils';
 import {
-  addExceptionMechanism,
   addRequestDataToTransaction,
   dropUndefinedKeys,
   extractPathForTransaction,
+  extractRequestData,
   isString,
+  isThenable,
   logger,
   normalize,
-  tracingContextFromHeaders,
 } from '@sentry/utils';
-import type * as http from 'http';
 
 import type { NodeClient } from './client';
-import { extractRequestData } from './requestdata';
+import { DEBUG_BUILD } from './debug-build';
 // TODO (v8 / XXX) Remove this import
 import type { ParseRequestOptions } from './requestDataDeprecated';
 import { isAutoSessionTrackingEnabled } from './sdk';
@@ -42,8 +44,7 @@ export function tracingHandler(): (
     res: http.ServerResponse,
     next: (error?: any) => void,
   ): void {
-    const hub = getCurrentHub();
-    const options = hub.getClient()?.getOptions();
+    const options = getClient()?.getOptions();
 
     if (
       !options ||
@@ -56,41 +57,35 @@ export function tracingHandler(): (
 
     const sentryTrace = req.headers && isString(req.headers['sentry-trace']) ? req.headers['sentry-trace'] : undefined;
     const baggage = req.headers?.baggage;
-    const { traceparentData, dynamicSamplingContext, propagationContext } = tracingContextFromHeaders(
-      sentryTrace,
-      baggage,
-    );
-    hub.getScope().setPropagationContext(propagationContext);
-
     if (!hasTracingEnabled(options)) {
       return next();
     }
 
     const [name, source] = extractPathForTransaction(req, { path: true, method: true });
-    const transaction = startTransaction(
-      {
-        name,
-        op: 'http.server',
-        origin: 'auto.http.node.tracingHandler',
-        ...traceparentData,
-        metadata: {
-          dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
-          // The request should already have been stored in `scope.sdkProcessingMetadata` (which will become
-          // `event.sdkProcessingMetadata` the same way the metadata here will) by `sentryRequestMiddleware`, but on the
-          // off chance someone is using `sentryTracingMiddleware` without `sentryRequestMiddleware`, it doesn't hurt to
-          // be sure
-          request: req,
-          source,
+    const transaction = continueTrace({ sentryTrace, baggage }, ctx =>
+      startTransaction(
+        {
+          name,
+          op: 'http.server',
+          origin: 'auto.http.node.tracingHandler',
+          ...ctx,
+          metadata: {
+            ...ctx.metadata,
+            // The request should already have been stored in `scope.sdkProcessingMetadata` (which will become
+            // `event.sdkProcessingMetadata` the same way the metadata here will) by `sentryRequestMiddleware`, but on the
+            // off chance someone is using `sentryTracingMiddleware` without `sentryRequestMiddleware`, it doesn't hurt to
+            // be sure
+            request: req,
+            source,
+          },
         },
-      },
-      // extra context passed to the tracesSampler
-      { request: extractRequestData(req) },
+        // extra context passed to the tracesSampler
+        { request: extractRequestData(req) },
+      ),
     );
 
     // We put the transaction on the scope so users can attach children to it
-    hub.configureScope(scope => {
-      scope.setSpan(transaction);
-    });
+    getCurrentScope().setSpan(transaction);
 
     // We also set __sentry_transaction on the response so people can grab the transaction there to add
     // spans to it later.
@@ -114,9 +109,9 @@ export function tracingHandler(): (
 export type RequestHandlerOptions =
   // TODO (v8 / XXX) Remove ParseRequestOptions type and eslint override
   // eslint-disable-next-line deprecation/deprecation
-  | (ParseRequestOptions | AddRequestDataToEventOptions) & {
-      flushTimeout?: number;
-    };
+  (ParseRequestOptions | AddRequestDataToEventOptions) & {
+    flushTimeout?: number;
+  };
 
 /**
  * Backwards compatibility shim which can be removed in v8. Forces the given options to follow the
@@ -153,15 +148,14 @@ export function requestHandler(
   // TODO (v8): Get rid of this
   const requestDataOptions = convertReqHandlerOptsToAddReqDataOpts(options);
 
-  const currentHub = getCurrentHub();
-  const client = currentHub.getClient<NodeClient>();
+  const client = getClient<NodeClient>();
   // Initialise an instance of SessionFlusher on the client when `autoSessionTracking` is enabled and the
   // `requestHandler` middleware is used indicating that we are running in SessionAggregates mode
   if (client && isAutoSessionTrackingEnabled(client)) {
     client.initSessionFlusher();
 
     // If Scope contains a Single mode Session, it is removed in favor of using Session Aggregates mode
-    const scope = currentHub.getScope();
+    const scope = getCurrentScope();
     if (scope.getSession()) {
       scope.setSession();
     }
@@ -181,30 +175,27 @@ export function requestHandler(
             _end.call(this, chunk, encoding, cb);
           })
           .then(null, e => {
-            __DEBUG_BUILD__ && logger.error(e);
+            DEBUG_BUILD && logger.error(e);
             _end.call(this, chunk, encoding, cb);
           });
       };
     }
     runWithAsyncContext(() => {
-      const currentHub = getCurrentHub();
-      currentHub.configureScope(scope => {
-        scope.setSDKProcessingMetadata({
-          request: req,
-          // TODO (v8): Stop passing this
-          requestDataOptionsFromExpressHandler: requestDataOptions,
-        });
-
-        const client = currentHub.getClient<NodeClient>();
-        if (isAutoSessionTrackingEnabled(client)) {
-          const scope = currentHub.getScope();
-          // Set `status` of `RequestSession` to Ok, at the beginning of the request
-          scope.setRequestSession({ status: 'ok' });
-        }
+      const scope = getCurrentScope();
+      scope.setSDKProcessingMetadata({
+        request: req,
+        // TODO (v8): Stop passing this
+        requestDataOptionsFromExpressHandler: requestDataOptions,
       });
 
+      const client = getClient<NodeClient>();
+      if (isAutoSessionTrackingEnabled(client)) {
+        // Set `status` of `RequestSession` to Ok, at the beginning of the request
+        scope.setRequestSession({ status: 'ok' });
+      }
+
       res.once('finish', () => {
-        const client = currentHub.getClient<NodeClient>();
+        const client = getClient<NodeClient>();
         if (isAutoSessionTrackingEnabled(client)) {
           setImmediate(() => {
             // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
@@ -282,7 +273,7 @@ export function errorHandler(options?: {
           _scope.setSpan(transaction);
         }
 
-        const client = getCurrentHub().getClient<NodeClient>();
+        const client = getClient<NodeClient>();
         if (client && isAutoSessionTrackingEnabled(client)) {
           // Check if the `SessionFlusher` is instantiated on the client to go into this branch that marks the
           // `requestSession.status` as `Crashed`, and this check is necessary because the `SessionFlusher` is only
@@ -301,12 +292,7 @@ export function errorHandler(options?: {
           }
         }
 
-        _scope.addEventProcessor(event => {
-          addExceptionMechanism(event, { type: 'middleware', handled: false });
-          return event;
-        });
-
-        const eventId = captureException(error);
+        const eventId = captureException(error, { mechanism: { type: 'middleware', handled: false } });
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         (res as any).sentry = eventId;
         next(error);
@@ -326,7 +312,7 @@ interface SentryTrpcMiddlewareOptions {
 
 interface TrpcMiddlewareArguments<T> {
   path: string;
-  type: 'query' | 'mutation' | 'subscription';
+  type: string;
   next: () => T;
   rawInput: unknown;
 }
@@ -339,9 +325,8 @@ interface TrpcMiddlewareArguments<T> {
  */
 export function trpcMiddleware(options: SentryTrpcMiddlewareOptions = {}) {
   return function <T>({ path, type, next, rawInput }: TrpcMiddlewareArguments<T>): T {
-    const hub = getCurrentHub();
-    const clientOptions = hub.getClient()?.getOptions();
-    const sentryTransaction = hub.getScope().getTransaction();
+    const clientOptions = getClient()?.getOptions();
+    const sentryTransaction = getCurrentScope().getTransaction();
 
     if (sentryTransaction) {
       sentryTransaction.setName(`trpc/${path}`, 'route');
@@ -358,7 +343,36 @@ export function trpcMiddleware(options: SentryTrpcMiddlewareOptions = {}) {
       sentryTransaction.setContext('trpc', trpcContext);
     }
 
-    return next();
+    function captureIfError(nextResult: { ok: false; error?: Error } | { ok: true }): void {
+      if (!nextResult.ok) {
+        captureException(nextResult.error, { mechanism: { handled: false, data: { function: 'trpcMiddleware' } } });
+      }
+    }
+
+    let maybePromiseResult;
+    try {
+      maybePromiseResult = next();
+    } catch (e) {
+      captureException(e, { mechanism: { handled: false, data: { function: 'trpcMiddleware' } } });
+      throw e;
+    }
+
+    if (isThenable(maybePromiseResult)) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      Promise.resolve(maybePromiseResult).then(
+        nextResult => {
+          captureIfError(nextResult as any);
+        },
+        e => {
+          captureException(e, { mechanism: { handled: false, data: { function: 'trpcMiddleware' } } });
+        },
+      );
+    } else {
+      captureIfError(maybePromiseResult as any);
+    }
+
+    // We return the original promise just to be safe.
+    return maybePromiseResult;
   };
 }
 

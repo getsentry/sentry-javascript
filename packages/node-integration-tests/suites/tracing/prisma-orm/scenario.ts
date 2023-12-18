@@ -1,8 +1,8 @@
+import { randomBytes } from 'crypto';
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { PrismaClient } from '@prisma/client';
 import * as Sentry from '@sentry/node';
 import * as Tracing from '@sentry/tracing';
-import { randomBytes } from 'crypto';
 
 const client = new PrismaClient();
 
@@ -20,9 +20,7 @@ async function run(): Promise<void> {
     op: 'transaction',
   });
 
-  Sentry.configureScope(scope => {
-    scope.setSpan(transaction);
-  });
+  Sentry.getCurrentScope().setSpan(transaction);
 
   try {
     await client.user.create({

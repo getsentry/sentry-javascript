@@ -5,6 +5,8 @@ import type { Event, EventProcessor, Hub, Integration } from '@sentry/types';
 import { GLOBAL_OBJ, logger, normalize, uuid4 } from '@sentry/utils';
 import localForage from 'localforage';
 
+import { DEBUG_BUILD } from './debug-build';
+
 const WINDOW = GLOBAL_OBJ as typeof GLOBAL_OBJ & Window;
 
 type LocalForage = {
@@ -73,7 +75,7 @@ export class Offline implements Integration {
     if ('addEventListener' in WINDOW) {
       WINDOW.addEventListener('online', () => {
         void this._sendEvents().catch(() => {
-          __DEBUG_BUILD__ && logger.warn('could not send cached events');
+          DEBUG_BUILD && logger.warn('could not send cached events');
         });
       });
     }
@@ -82,12 +84,12 @@ export class Offline implements Integration {
       if (this.hub && this.hub.getIntegration(Offline)) {
         // cache if we are positively offline
         if ('navigator' in WINDOW && 'onLine' in WINDOW.navigator && !WINDOW.navigator.onLine) {
-          __DEBUG_BUILD__ && logger.log('Event dropped due to being a offline - caching instead');
+          DEBUG_BUILD && logger.log('Event dropped due to being a offline - caching instead');
 
           void this._cacheEvent(event)
             .then((_event: Event): Promise<void> => this._enforceMaxEvents())
             .catch((_error): void => {
-              __DEBUG_BUILD__ && logger.warn('could not cache event while offline');
+              DEBUG_BUILD && logger.warn('could not cache event while offline');
             });
 
           // return null on success or failure, because being offline will still result in an error
@@ -104,7 +106,7 @@ export class Offline implements Integration {
     // if online now, send any events stored in a previous offline session
     if ('navigator' in WINDOW && 'onLine' in WINDOW.navigator && WINDOW.navigator.onLine) {
       void this._sendEvents().catch(() => {
-        __DEBUG_BUILD__ && logger.warn('could not send cached events');
+        DEBUG_BUILD && logger.warn('could not send cached events');
       });
     }
   }
@@ -140,7 +142,7 @@ export class Offline implements Integration {
           ),
       )
       .catch((_error): void => {
-        __DEBUG_BUILD__ && logger.warn('could not enforce max events');
+        DEBUG_BUILD && logger.warn('could not enforce max events');
       });
   }
 
@@ -168,10 +170,10 @@ export class Offline implements Integration {
         this.hub.captureEvent(event);
 
         void this._purgeEvent(cacheKey).catch((_error): void => {
-          __DEBUG_BUILD__ && logger.warn('could not purge event from cache');
+          DEBUG_BUILD && logger.warn('could not purge event from cache');
         });
       } else {
-        __DEBUG_BUILD__ && logger.warn('no hub found - could not send cached event');
+        DEBUG_BUILD && logger.warn('no hub found - could not send cached event');
       }
     });
   }

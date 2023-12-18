@@ -1,5 +1,6 @@
 import { addTracingExtensions as _addTracingExtensions, getMainCarrier } from '@sentry/core';
 import type { CustomSamplingContext, TransactionContext } from '@sentry/types';
+import { consoleSandbox } from '@sentry/utils';
 
 /**
  * Add tracing extensions, ensuring a patched `startTransaction` to work with OTEL.
@@ -22,8 +23,10 @@ function startTransactionNoop(
   _transactionContext: TransactionContext,
   _customSamplingContext?: CustomSamplingContext,
 ): unknown {
-  // eslint-disable-next-line no-console
-  console.warn('startTransaction is a noop in @sentry/opentelemetry. Use `startSpan` instead.');
+  consoleSandbox(() => {
+    // eslint-disable-next-line no-console
+    console.warn('startTransaction is a noop in @sentry/opentelemetry. Use `startSpan` instead.');
+  });
   // We return an object here as hub.ts checks for the result of this
   // and renders a different warning if this is empty
   return {};

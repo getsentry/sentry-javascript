@@ -1,6 +1,7 @@
-import { captureException, flush, getCurrentHub } from '@sentry/node';
+import { captureException, flush, getCurrentHub, getCurrentScope } from '@sentry/node';
 import { isThenable, logger } from '@sentry/utils';
 
+import { DEBUG_BUILD } from '../debug-build';
 import { domainify, markEventUnhandled, proxyFunction } from '../utils';
 import type { EventFunction, EventFunctionWithCallback, WrapperOptions } from './general';
 
@@ -44,11 +45,10 @@ function _wrapEventFunction<F extends EventFunction | EventFunctionWithCallback>
     // getCurrentHub() is expected to use current active domain as a carrier
     // since functions-framework creates a domain for each incoming request.
     // So adding of event processors every time should not lead to memory bloat.
-    hub.configureScope(scope => {
-      scope.setContext('gcp.function.context', { ...context });
-      // We put the transaction on the scope so users can attach children to it
-      scope.setSpan(transaction);
-    });
+    const scope = getCurrentScope();
+    scope.setContext('gcp.function.context', { ...context });
+    // We put the transaction on the scope so users can attach children to it
+    scope.setSpan(transaction);
 
     const newCallback = domainify((...args: unknown[]) => {
       if (args[0] !== null && args[0] !== undefined) {
@@ -58,7 +58,7 @@ function _wrapEventFunction<F extends EventFunction | EventFunctionWithCallback>
 
       void flush(options.flushTimeout)
         .then(null, e => {
-          __DEBUG_BUILD__ && logger.error(e);
+          DEBUG_BUILD && logger.error(e);
         })
         .then(() => {
           if (typeof callback === 'function') {

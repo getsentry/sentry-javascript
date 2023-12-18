@@ -1,6 +1,6 @@
-import { getMultipleSentryEnvelopeRequests } from './utils/helpers';
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 import { Event } from '@sentry/types';
+import { getMultipleSentryEnvelopeRequests } from './utils/helpers';
 
 test('should report a manually captured error.', async ({ page }) => {
   const envelopes = await getMultipleSentryEnvelopeRequests<Event>(page, 2, { url: '/capture-exception' });

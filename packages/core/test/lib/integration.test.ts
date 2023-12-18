@@ -2,8 +2,14 @@ import type { Integration, Options } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
 import { Hub, makeMain } from '../../src/hub';
-import { addIntegration, getIntegrationsToSetup, installedIntegrations, setupIntegration } from '../../src/integration';
-import { getDefaultTestClientOptions, TestClient } from '../mocks/client';
+import {
+  addIntegration,
+  convertIntegrationFnToClass,
+  getIntegrationsToSetup,
+  installedIntegrations,
+  setupIntegration,
+} from '../../src/integration';
+import { TestClient, getDefaultTestClientOptions } from '../mocks/client';
 
 function getTestClient(): TestClient {
   return new TestClient(
@@ -378,6 +384,44 @@ describe('setupIntegration', () => {
     expect(integration4.setupOnce).not.toHaveBeenCalled();
   });
 
+  it('calls setup for each client', () => {
+    class CustomIntegration implements Integration {
+      name = 'test';
+      setupOnce = jest.fn();
+      setup = jest.fn();
+    }
+
+    const client1 = getTestClient();
+    const client2 = getTestClient();
+
+    const integrationIndex = {};
+    const integration1 = new CustomIntegration();
+    const integration2 = new CustomIntegration();
+    const integration3 = new CustomIntegration();
+    const integration4 = new CustomIntegration();
+
+    setupIntegration(client1, integration1, integrationIndex);
+    setupIntegration(client1, integration2, integrationIndex);
+    setupIntegration(client2, integration3, integrationIndex);
+    setupIntegration(client2, integration4, integrationIndex);
+
+    expect(integrationIndex).toEqual({ test: integration4 });
+    expect(integration1.setupOnce).toHaveBeenCalledTimes(1);
+    expect(integration2.setupOnce).not.toHaveBeenCalled();
+    expect(integration3.setupOnce).not.toHaveBeenCalled();
+    expect(integration4.setupOnce).not.toHaveBeenCalled();
+
+    expect(integration1.setup).toHaveBeenCalledTimes(1);
+    expect(integration2.setup).toHaveBeenCalledTimes(1);
+    expect(integration3.setup).toHaveBeenCalledTimes(1);
+    expect(integration4.setup).toHaveBeenCalledTimes(1);
+
+    expect(integration1.setup).toHaveBeenCalledWith(client1);
+    expect(integration2.setup).toHaveBeenCalledWith(client1);
+    expect(integration3.setup).toHaveBeenCalledWith(client2);
+    expect(integration4.setup).toHaveBeenCalledWith(client2);
+  });
+
   it('binds preprocessEvent for each client', () => {
     class CustomIntegration implements Integration {
       name = 'test';
@@ -608,4 +652,52 @@ describe('addIntegration', () => {
     expect(warnings).toHaveBeenCalledTimes(1);
     expect(warnings).toHaveBeenCalledWith('Cannot add integration "test" because no SDK Client is available.');
   });
+});
+
+describe('convertIntegrationFnToClass', () => {
+  /* eslint-disable deprecation/deprecation */
+  it('works with a minimal integration', () => {
+    const integrationFn = () => ({ name: 'testName' });
+
+    const IntegrationClass = convertIntegrationFnToClass('testName', integrationFn);
+
+    expect(IntegrationClass.id).toBe('testName');
+
+    const integration = new IntegrationClass();
+    expect(integration).toEqual({
+      name: 'testName',
+      setupOnce: expect.any(Function),
+    });
+  });
+
+  it('works with integration hooks', () => {
+    const setup = jest.fn();
+    const setupOnce = jest.fn();
+    const processEvent = jest.fn();
+    const preprocessEvent = jest.fn();
+
+    const integrationFn = () => {
+      return {
+        name: 'testName',
+        setup,
+        setupOnce,
+        processEvent,
+        preprocessEvent,
+      };
+    };
+
+    const IntegrationClass = convertIntegrationFnToClass('testName', integrationFn);
+
+    expect(IntegrationClass.id).toBe('testName');
+
+    const integration = new IntegrationClass();
+    expect(integration).toEqual({
+      name: 'testName',
+      setupOnce,
+      setup,
+      processEvent,
+      preprocessEvent,
+    });
+  });
+  /* eslint-enable deprecation/deprecation */
 });

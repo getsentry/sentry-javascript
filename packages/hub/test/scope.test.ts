@@ -3,7 +3,7 @@
 import type { Event, EventHint, RequestSessionStatus } from '@sentry/types';
 import { GLOBAL_OBJ } from '@sentry/utils';
 
-import { addGlobalEventProcessor, Scope } from '../src';
+import { Scope, addGlobalEventProcessor } from '../src';
 
 describe('Scope', () => {
   afterEach(() => {
@@ -644,6 +644,7 @@ describe('Scope', () => {
       const localScope = new Scope();
       localScope.setExtra('a', 'b');
 
+      // eslint-disable-next-line deprecation/deprecation
       addGlobalEventProcessor((processedEvent: Event) => {
         processedEvent.dist = '1';
         return processedEvent;

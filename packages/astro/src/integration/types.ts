@@ -68,6 +68,41 @@ type SourceMapsOptions = {
      * @default true
      */
     telemetry?: boolean;
+
+    /**
+     * A glob or an array of globs that specify the build artifacts and source maps that will uploaded to Sentry.
+     *
+     * If this option is not specified, sensible defaults based on your `outDir`, `rootDir` and `adapter`
+     * config will be used. Use this option to override these defaults, for instance if you have a
+     * customized build setup that diverges from Astro's defaults.
+     *
+     * The globbing patterns must follow the implementation of the `glob` package.
+     * @see https://www.npmjs.com/package/glob#glob-primer
+     */
+    assets?: string | Array<string>;
+  };
+};
+
+type InstrumentationOptions = {
+  /**
+   * Options for automatic instrumentation of your application.
+   */
+  autoInstrumentation?: {
+    /**
+     * If this flag is `true` and your application is configured for SSR (or hybrid) mode,
+     * the Sentry integration will automatically add middleware to:
+     *
+     * - capture server performance data and spans for incoming server requests
+     * - enable distributed tracing between server and client
+     * - annotate server errors with more information
+     *
+     * This middleware will only be added automatically in Astro 3.5.0 and newer.
+     * For older versions, add the `Sentry.handleRequest` middleware manually
+     * in your `src/middleware.js` file.
+     *
+     * @default true in SSR/hybrid mode, false in SSG/static mode
+     */
+    requestHandler?: boolean;
   };
 };
 
@@ -83,4 +118,5 @@ type SourceMapsOptions = {
 export type SentryOptions = SdkInitPaths &
   Pick<Options, 'dsn' | 'release' | 'environment' | 'sampleRate' | 'tracesSampleRate' | 'debug'> &
   Pick<BrowserOptions, 'replaysSessionSampleRate' | 'replaysOnErrorSampleRate'> &
-  SourceMapsOptions;
+  SourceMapsOptions &
+  InstrumentationOptions;

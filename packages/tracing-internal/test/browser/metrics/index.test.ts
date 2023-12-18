@@ -169,4 +169,46 @@ describe('_addResourceSpans', () => {
       }),
     );
   });
+
+  it('does not attach resource sizes that exceed MAX_INT bytes', () => {
+    const entry: ResourceEntry = {
+      initiatorType: 'css',
+      transferSize: 2147483647,
+      encodedBodySize: 2147483647,
+      decodedBodySize: 2147483647,
+    };
+
+    _addResourceSpans(transaction, entry, '/assets/to/css', 100, 23, 345);
+
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    expect(transaction.startChild).toHaveBeenCalledTimes(1);
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    expect(transaction.startChild).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        data: {},
+      }),
+    );
+  });
+
+  // resource sizes can be set as null on some browsers
+  // https://github.com/getsentry/sentry/pull/60601
+  it('does not attach null resource sizes', () => {
+    const entry = {
+      initiatorType: 'css',
+      transferSize: null,
+      encodedBodySize: null,
+      decodedBodySize: null,
+    } as unknown as ResourceEntry;
+
+    _addResourceSpans(transaction, entry, '/assets/to/css', 100, 23, 345);
+
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    expect(transaction.startChild).toHaveBeenCalledTimes(1);
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    expect(transaction.startChild).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        data: {},
+      }),
+    );
+  });
 });

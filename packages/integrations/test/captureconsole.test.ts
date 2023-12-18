@@ -1,10 +1,9 @@
 /* eslint-disable @typescript-eslint/unbound-method */
-import type { Event, Hub, Integration } from '@sentry/types';
-import type { ConsoleLevel } from '@sentry/utils';
+import type { ConsoleLevel, Event, Hub, Integration } from '@sentry/types';
 import {
-  addInstrumentationHandler,
   CONSOLE_LEVELS,
   GLOBAL_OBJ,
+  addConsoleInstrumentationHandler,
   originalConsoleMethods,
   resetInstrumentationHandlers,
 } from '@sentry/utils';
@@ -45,7 +44,7 @@ function getMockHub(integration: Integration): Hub {
 
 describe('CaptureConsole setup', () => {
   // Ensure we've initialized the instrumentation so we can get the original one
-  addInstrumentationHandler('console', () => {});
+  addConsoleInstrumentationHandler(() => {});
   const _originalConsoleMethods = Object.assign({}, originalConsoleMethods);
 
   beforeEach(() => {

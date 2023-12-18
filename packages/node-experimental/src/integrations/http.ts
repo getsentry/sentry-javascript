@@ -1,12 +1,12 @@
+import type { ClientRequest, IncomingMessage, ServerResponse } from 'http';
 import type { Span } from '@opentelemetry/api';
 import { SpanKind } from '@opentelemetry/api';
 import { registerInstrumentations } from '@opentelemetry/instrumentation';
 import { HttpInstrumentation } from '@opentelemetry/instrumentation-http';
-import { hasTracingEnabled, isSentryRequestUrl } from '@sentry/core';
-import { _INTERNAL, getCurrentHub, getSpanKind, setSpanMetadata } from '@sentry/opentelemetry';
+import { addBreadcrumb, hasTracingEnabled, isSentryRequestUrl } from '@sentry/core';
+import { _INTERNAL, getClient, getCurrentHub, getSpanKind, setSpanMetadata } from '@sentry/opentelemetry';
 import type { EventProcessor, Hub, Integration } from '@sentry/types';
 import { stringMatchesSomePattern } from '@sentry/utils';
-import type { ClientRequest, IncomingMessage, ServerResponse } from 'http';
 
 import type { NodeExperimentalClient } from '../types';
 import { addOriginToSpan } from '../utils/addOriginToSpan';
@@ -84,7 +84,7 @@ export class Http implements Integration {
       return;
     }
 
-    const client = getCurrentHub().getClient<NodeExperimentalClient>();
+    const client = getClient<NodeExperimentalClient>();
     const clientOptions = client?.getOptions();
 
     // This is used in the sampler function
@@ -102,7 +102,7 @@ export class Http implements Integration {
               return false;
             }
 
-            if (isSentryRequestUrl(url, getCurrentHub())) {
+            if (isSentryRequestUrl(url, getClient())) {
               return true;
             }
 
@@ -159,7 +159,7 @@ export class Http implements Integration {
     }
 
     const data = _INTERNAL.getRequestSpanData(span);
-    getCurrentHub().addBreadcrumb(
+    addBreadcrumb(
       {
         category: 'http',
         data: {

@@ -1,7 +1,7 @@
 import { getCurrentHub } from '../../src/custom/hub';
 import { OpenTelemetryScope } from '../../src/custom/scope';
 import { OpenTelemetryTransaction, startTransaction } from '../../src/custom/transaction';
-import { getDefaultTestClientOptions, TestClient } from '../helpers/TestClient';
+import { TestClient, getDefaultTestClientOptions } from '../helpers/TestClient';
 
 describe('NodeExperimentalTransaction', () => {
   afterEach(() => {
@@ -28,6 +28,7 @@ describe('NodeExperimentalTransaction', () => {
           trace: {
             span_id: expect.any(String),
             trace_id: expect.any(String),
+            origin: 'manual',
           },
         },
         spans: [],
@@ -106,6 +107,7 @@ describe('NodeExperimentalTransaction', () => {
           trace: {
             span_id: expect.any(String),
             trace_id: expect.any(String),
+            origin: 'manual',
           },
         },
         spans: [],

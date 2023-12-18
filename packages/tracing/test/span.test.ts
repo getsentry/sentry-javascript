@@ -1,6 +1,6 @@
 /* eslint-disable deprecation/deprecation */
 import { BrowserClient } from '@sentry/browser';
-import { Hub, makeMain, Scope } from '@sentry/core';
+import { Hub, Scope, makeMain } from '@sentry/core';
 import type { BaseTransportOptions, ClientOptions, TransactionSource } from '@sentry/types';
 
 import { Span, TRACEPARENT_REGEXP, Transaction } from '../src';
@@ -226,9 +226,7 @@ describe('Span', () => {
         const childSpanOne = transaction.startChild();
         childSpanOne.finish();
 
-        hub.configureScope(scope => {
-          scope.setSpan(childSpanOne);
-        });
+        hub.getScope().setSpan(childSpanOne);
 
         const spanTwo = transaction.startChild();
         spanTwo.finish();
@@ -282,9 +280,7 @@ describe('Span', () => {
 
         childSpanOne.finish();
 
-        hub.configureScope(scope => {
-          scope.setSpan(transaction);
-        });
+        hub.getScope().setSpan(transaction);
 
         const spanTwo = transaction.startChild({});
         spanTwo.finish();
@@ -327,6 +323,7 @@ describe('Span', () => {
       expect(context).toStrictEqual({
         span_id: 'd',
         trace_id: 'c',
+        origin: 'manual',
       });
     });
   });

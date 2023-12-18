@@ -24,7 +24,7 @@ export { isSentryRequestSpan } from './utils/isSentryRequest';
 export { getActiveSpan, getRootSpan } from './utils/getActiveSpan';
 export { startSpan, startInactiveSpan } from './trace';
 
-export { getCurrentHub, setupGlobalHub } from './custom/hub';
+export { getCurrentHub, setupGlobalHub, getClient } from './custom/hub';
 export { addTracingExtensions } from './custom/hubextensions';
 export { setupEventContextTrace } from './setupEventContextTrace';
 

@@ -74,6 +74,10 @@ describe('getSanitizedUrlString', () => {
     ['same-origin url', '/api/v4/users?id=123', '/api/v4/users'],
     ['url without a protocol', 'example.com', 'example.com'],
     ['url without a protocol with a path', 'example.com/sub/path?id=123', 'example.com/sub/path'],
+    ['url with port 8080', 'http://172.31.12.144:8080/test', 'http://172.31.12.144:8080/test'],
+    ['url with port 4433', 'http://172.31.12.144:4433/test', 'http://172.31.12.144:4433/test'],
+    ['url with port 443', 'http://172.31.12.144:443/test', 'http://172.31.12.144/test'],
+    ['url with IP and port 80', 'http://172.31.12.144:80/test', 'http://172.31.12.144/test'],
   ])('returns a sanitized URL for a %s', (_, rawUrl: string, sanitizedURL: string) => {
     const urlObject = parseUrl(rawUrl);
     expect(getSanitizedUrlString(urlObject)).toEqual(sanitizedURL);

@@ -1,6 +1,6 @@
+import * as Sentry from '@sentry/nextjs';
 import Head from 'next/head';
 import Link from 'next/link';
-import * as Sentry from '@sentry/nextjs';
 
 export default function Home() {
   return (

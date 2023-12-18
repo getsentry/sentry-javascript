@@ -1,6 +1,8 @@
 import type { Contexts, Event, EventHint, ExtendedError, Integration } from '@sentry/types';
 import { addNonEnumerableProperty, isError, isPlainObject, logger, normalize } from '@sentry/utils';
 
+import { DEBUG_BUILD } from './debug-build';
+
 /** JSDoc */
 interface ExtraErrorDataOptions {
   depth: number;
@@ -36,7 +38,7 @@ export class ExtraErrorData implements Integration {
   /**
    * @inheritDoc
    */
-  public setupOnce(_addGlobaleventProcessor: unknown, _getCurrentHub: unknown): void {
+  public setupOnce(_addGlobalEventProcessor: unknown, _getCurrentHub: unknown): void {
     // noop
   }
 
@@ -127,7 +129,7 @@ function _extractErrorData(error: ExtendedError): Record<string, unknown> | null
 
     return extraErrorInfo;
   } catch (oO) {
-    __DEBUG_BUILD__ && logger.error('Unable to extract extra data from the Error object:', oO);
+    DEBUG_BUILD && logger.error('Unable to extract extra data from the Error object:', oO);
   }
 
   return null;

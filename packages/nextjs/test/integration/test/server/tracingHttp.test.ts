@@ -1,5 +1,5 @@
-import { NextTestEnv } from './utils/helpers';
 import nock from 'nock';
+import { NextTestEnv } from './utils/helpers';
 
 describe('Tracing HTTP', () => {
   it('should capture a transaction', async () => {

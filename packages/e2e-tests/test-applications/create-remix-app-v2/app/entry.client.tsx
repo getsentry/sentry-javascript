@@ -5,9 +5,9 @@
  */
 
 import { RemixBrowser, useLocation, useMatches } from '@remix-run/react';
-import { startTransition, StrictMode, useEffect } from 'react';
-import { hydrateRoot } from 'react-dom/client';
 import * as Sentry from '@sentry/remix';
+import { StrictMode, startTransition, useEffect } from 'react';
+import { hydrateRoot } from 'react-dom/client';
 
 Sentry.init({
   dsn: window.ENV.SENTRY_DSN,
@@ -24,7 +24,7 @@ Sentry.init({
   replaysOnErrorSampleRate: 1.0, // If you're not already sampling the entire session, change the sample rate to 100% when sampling sessions where errors occur.
 });
 
-Sentry.addGlobalEventProcessor(event => {
+Sentry.addEventProcessor(event => {
   if (
     event.type === 'transaction' &&
     (event.contexts?.trace?.op === 'pageload' || event.contexts?.trace?.op === 'navigation')

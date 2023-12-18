@@ -110,27 +110,33 @@ export class Scope implements ScopeInterface {
 
   /**
    * Inherit values from the parent scope.
-   * @param scope to clone.
+   * @deprecated Use `scope.clone()` and `new Scope()` instead.
    */
   public static clone(scope?: Scope): Scope {
+    return scope ? scope.clone() : new Scope();
+  }
+
+  /**
+   * Clone this scope instance.
+   */
+  public clone(): Scope {
     const newScope = new Scope();
-    if (scope) {
-      newScope._breadcrumbs = [...scope._breadcrumbs];
-      newScope._tags = { ...scope._tags };
-      newScope._extra = { ...scope._extra };
-      newScope._contexts = { ...scope._contexts };
-      newScope._user = scope._user;
-      newScope._level = scope._level;
-      newScope._span = scope._span;
-      newScope._session = scope._session;
-      newScope._transactionName = scope._transactionName;
-      newScope._fingerprint = scope._fingerprint;
-      newScope._eventProcessors = [...scope._eventProcessors];
-      newScope._requestSession = scope._requestSession;
-      newScope._attachments = [...scope._attachments];
-      newScope._sdkProcessingMetadata = { ...scope._sdkProcessingMetadata };
-      newScope._propagationContext = { ...scope._propagationContext };
-    }
+    newScope._breadcrumbs = [...this._breadcrumbs];
+    newScope._tags = { ...this._tags };
+    newScope._extra = { ...this._extra };
+    newScope._contexts = { ...this._contexts };
+    newScope._user = this._user;
+    newScope._level = this._level;
+    newScope._span = this._span;
+    newScope._session = this._session;
+    newScope._transactionName = this._transactionName;
+    newScope._fingerprint = this._fingerprint;
+    newScope._eventProcessors = [...this._eventProcessors];
+    newScope._requestSession = this._requestSession;
+    newScope._attachments = [...this._attachments];
+    newScope._sdkProcessingMetadata = { ...this._sdkProcessingMetadata };
+    newScope._propagationContext = { ...this._propagationContext };
+
     return newScope;
   }
 
@@ -523,7 +529,12 @@ export class Scope implements ScopeInterface {
 
     // TODO (v8): Update this order to be: Global > Client > Scope
     return notifyEventProcessors(
-      [...(additionalEventProcessors || []), ...getGlobalEventProcessors(), ...this._eventProcessors],
+      [
+        ...(additionalEventProcessors || []),
+        // eslint-disable-next-line deprecation/deprecation
+        ...getGlobalEventProcessors(),
+        ...this._eventProcessors,
+      ],
       event,
       hint,
     );

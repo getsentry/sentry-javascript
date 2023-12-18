@@ -36,23 +36,23 @@ export type {
   EventEnvelopeHeaders,
   EventItem,
   ReplayEnvelope,
+  FeedbackItem,
   SessionEnvelope,
   SessionItem,
   UserFeedbackItem,
   CheckInItem,
   CheckInEnvelope,
+  StatsdItem,
+  StatsdEnvelope,
+  ProfileItem,
 } from './envelope';
 export type { ExtendedError } from './error';
 export type { Event, EventHint, EventType, ErrorEvent, TransactionEvent } from './event';
 export type { EventProcessor } from './eventprocessor';
 export type { Exception } from './exception';
 export type { Extra, Extras } from './extra';
-// This is a dummy export, purely for the purpose of loading `globals.ts`, in order to take advantage of its side effect
-// of putting variables into the global namespace. See
-// https://www.typescriptlang.org/docs/handbook/declaration-files/templates/global-modifying-module-d-ts.html.
-export type {} from './globals';
 export type { Hub } from './hub';
-export type { Integration, IntegrationClass } from './integration';
+export type { Integration, IntegrationClass, IntegrationFn, IntegrationFnResult } from './integration';
 export type { Mechanism } from './mechanism';
 export type { ExtractedNodeRequestData, HttpHeaderValue, Primitive, WorkerLocation } from './misc';
 export type { ClientOptions, Options } from './options';
@@ -69,6 +69,7 @@ export type {
   Profile,
 } from './profiling';
 export type { ReplayEvent, ReplayRecordingData, ReplayRecordingMode } from './replay';
+export type { FeedbackEvent } from './feedback';
 export type { QueryParams, Request, SanitizedRequestData } from './request';
 export type { Runtime } from './runtime';
 export type { CaptureContext, Scope, ScopeContext } from './scope';
@@ -120,9 +121,22 @@ export type {
   TransportRequestExecutor,
 } from './transport';
 export type { User, UserFeedback } from './user';
+export type { WebFetchHeaders, WebFetchRequest } from './webfetchapi';
 export type { WrappedFunction } from './wrappedfunction';
 export type { Instrumenter } from './instrumenter';
-export type { HandlerDataFetch, HandlerDataXhr, SentryXhrData, SentryWrappedXMLHttpRequest } from './instrument';
+export type {
+  HandlerDataFetch,
+  HandlerDataXhr,
+  HandlerDataDom,
+  HandlerDataConsole,
+  HandlerDataHistory,
+  HandlerDataError,
+  HandlerDataUnhandledRejection,
+  ConsoleLevel,
+  SentryXhrData,
+  SentryWrappedXMLHttpRequest,
+} from './instrument';
 
 export type { BrowserClientReplayOptions, BrowserClientProfilingOptions } from './browseroptions';
 export type { CheckIn, MonitorConfig, FinishedCheckIn, InProgressCheckIn, SerializedCheckIn } from './checkin';
+export type { MetricsAggregator, MetricBucketItem, MetricInstance } from './metrics';

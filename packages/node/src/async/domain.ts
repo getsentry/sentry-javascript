@@ -1,6 +1,6 @@
+import * as domain from 'domain';
 import type { Carrier, Hub, RunWithAsyncContextOptions } from '@sentry/core';
 import { ensureHubOnCarrier, getHubFromCarrier, setAsyncContextStrategy, setHubOnCarrier } from '@sentry/core';
-import * as domain from 'domain';
 
 function getActiveDomain<T>(): T | undefined {
   // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any

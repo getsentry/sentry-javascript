@@ -32,11 +32,11 @@ describe('window.onerror', function () {
       // but not all - falls back to frame url
       assert.match(
         summary.events[0].exception.values[0].stacktrace.frames[0].filename,
-        /(\/subjects\/throw-string.js|\/base\/variants\/)/
+        /(\/subjects\/throw-string.js|\/base\/variants\/)/,
       );
       assert.match(
         summary.events[0].exception.values[0].stacktrace.frames[0]['function'],
-        /throwStringError|\?|global code/i
+        /throwStringError|\?|global code/i,
       );
     });
   });
@@ -61,7 +61,7 @@ describe('window.onerror', function () {
       } else {
         assert.equal(
           summary.events[0].exception.values[0].value,
-          'Object captured as exception with keys: error, somekey'
+          'Object captured as exception with keys: error, somekey',
         );
       }
       assert.equal(summary.events[0].exception.values[0].stacktrace.frames.length, 1); // always 1 because thrown objects can't provide > 1 frame
@@ -70,11 +70,11 @@ describe('window.onerror', function () {
       // but not all - falls back to frame url
       assert.match(
         summary.events[0].exception.values[0].stacktrace.frames[0].filename,
-        /(\/subjects\/throw-object.js|\/base\/variants\/)/
+        /(\/subjects\/throw-object.js|\/base\/variants\/)/,
       );
       assert.match(
         summary.events[0].exception.values[0].stacktrace.frames[0]['function'],
-        /throwStringError|\?|global code/i
+        /throwStringError|\?|global code/i,
       );
     });
   });
@@ -104,7 +104,7 @@ describe('window.onerror', function () {
       assert.match(summary.events[0].exception.values[0].stacktrace.frames[0].filename, /\/subjects\/throw-error\.js/);
       assert.match(
         summary.events[0].exception.values[0].stacktrace.frames[0]['function'],
-        /\?|global code|throwRealError/i
+        /\?|global code|throwRealError/i,
       );
     });
   });
@@ -119,7 +119,7 @@ describe('window.onerror', function () {
       assert.equal(summary.events[0].exception.values[0].type, 'Error');
       assert.equal(
         summary.events[0].exception.values[0].value,
-        'Object captured as exception with keys: otherKey, type'
+        'Object captured as exception with keys: otherKey, type',
       );
       assert.deepEqual(summary.events[0].extra.__serialized__, {
         type: 'error',

@@ -1,5 +1,5 @@
-import { getMultipleSentryEnvelopeRequests, countEnvelopes } from './utils/helpers';
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
+import { countEnvelopes, getMultipleSentryEnvelopeRequests } from './utils/helpers';
 
 test('should create a pageload transaction when the `app` directory is used with a client component.', async ({
   page,

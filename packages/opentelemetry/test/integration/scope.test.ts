@@ -1,11 +1,11 @@
 import { captureException, setTag, withScope } from '@sentry/core';
 
-import { getCurrentHub, OpenTelemetryHub } from '../../src/custom/hub';
+import { OpenTelemetryHub, getCurrentHub } from '../../src/custom/hub';
 import { OpenTelemetryScope } from '../../src/custom/scope';
 import { startSpan } from '../../src/trace';
 import { getSpanScope } from '../../src/utils/spanData';
-import { cleanupOtel, mockSdkInit } from '../helpers/mockSdkInit';
 import type { TestClientInterface } from '../helpers/TestClient';
+import { cleanupOtel, mockSdkInit } from '../helpers/mockSdkInit';
 
 describe('Integration | Scope', () => {
   afterEach(() => {
@@ -98,6 +98,7 @@ describe('Integration | Scope', () => {
                 span_id: spanId,
                 status: 'ok',
                 trace_id: traceId,
+                origin: 'manual',
               },
             }),
 

@@ -1,6 +1,8 @@
 import type { Event, Exception, Integration, StackFrame } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
+import { DEBUG_BUILD } from '../debug-build';
+
 /** Deduplication filter */
 export class Dedupe implements Integration {
   /**
@@ -23,7 +25,7 @@ export class Dedupe implements Integration {
   }
 
   /** @inheritDoc */
-  public setupOnce(_addGlobaleventProcessor: unknown, _getCurrentHub: unknown): void {
+  public setupOnce(_addGlobalEventProcessor: unknown, _getCurrentHub: unknown): void {
     // noop
   }
 
@@ -40,7 +42,7 @@ export class Dedupe implements Integration {
     // Juuust in case something goes wrong
     try {
       if (_shouldDropEvent(currentEvent, this._previousEvent)) {
-        __DEBUG_BUILD__ && logger.warn('Event dropped due to being a duplicate of previously captured event.');
+        DEBUG_BUILD && logger.warn('Event dropped due to being a duplicate of previously captured event.');
         return null;
       }
     } catch (_oO) {} // eslint-disable-line no-empty

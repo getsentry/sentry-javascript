@@ -1,7 +1,8 @@
 import type { ServerRuntimeClient } from '@sentry/core';
-import { flush, getCurrentHub } from '@sentry/core';
-import type { Event, EventHint, Hub, Integration, Primitive, StackParser } from '@sentry/types';
-import { addExceptionMechanism, eventFromUnknownInput, isPrimitive } from '@sentry/utils';
+import { getClient, getCurrentHub, getCurrentScope } from '@sentry/core';
+import { flush } from '@sentry/core';
+import type { Event, Hub, Integration, Primitive, StackParser } from '@sentry/types';
+import { eventFromUnknownInput, isPrimitive } from '@sentry/utils';
 
 type GlobalHandlersIntegrationsOptionKeys = 'error' | 'unhandledrejection';
 
@@ -70,11 +71,17 @@ function installGlobalErrorHandler(): void {
     const [hub, stackParser] = getHubAndOptions();
     const { message, error } = data;
 
-    const event = eventFromUnknownInput(getCurrentHub, stackParser, error || message);
+    const event = eventFromUnknownInput(getClient(), stackParser, error || message);
 
     event.level = 'fatal';
 
-    addMechanismAndCapture(hub, error, event, 'error');
+    hub.captureEvent(event, {
+      originalException: error,
+      mechanism: {
+        handled: false,
+        type: 'error',
+      },
+    });
 
     // Stop the app from exiting for now
     data.preventDefault();
@@ -107,11 +114,17 @@ function installGlobalUnhandledRejectionHandler(): void {
 
     const event = isPrimitive(error)
       ? eventFromRejectionWithPrimitive(error)
-      : eventFromUnknownInput(getCurrentHub, stackParser, error, undefined);
+      : eventFromUnknownInput(getClient(), stackParser, error, undefined);
 
     event.level = 'fatal';
 
-    addMechanismAndCapture(hub, error as unknown as Error, event, 'unhandledrejection');
+    hub.captureEvent(event, {
+      originalException: error,
+      mechanism: {
+        handled: false,
+        type: 'unhandledrejection',
+      },
+    });
 
     // Stop the app from exiting for now
     e.preventDefault();
@@ -142,16 +155,6 @@ function eventFromRejectionWithPrimitive(reason: Primitive): Event {
       ],
     },
   };
-}
-
-function addMechanismAndCapture(hub: Hub, error: EventHint['originalException'], event: Event, type: string): void {
-  addExceptionMechanism(event, {
-    handled: false,
-    type,
-  });
-  hub.captureEvent(event, {
-    originalException: error,
-  });
 }
 
 function getHubAndOptions(): [Hub, StackParser] {

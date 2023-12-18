@@ -1,4 +1,4 @@
-import { configureScope } from '@sentry/core';
+import { getCurrentScope } from '@sentry/core';
 import { RewriteFrames } from '@sentry/integrations';
 import type { NodeOptions } from '@sentry/node';
 import { init as initNodeSdk } from '@sentry/node';
@@ -18,9 +18,7 @@ export function init(options: NodeOptions): void {
 
   initNodeSdk(options);
 
-  configureScope(scope => {
-    scope.setTag('runtime', 'node');
-  });
+  getCurrentScope().setTag('runtime', 'node');
 }
 
 function addServerIntegrations(options: NodeOptions): void {

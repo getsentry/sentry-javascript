@@ -10,8 +10,8 @@
   typeof exports === 'object' && typeof module !== 'undefined'
     ? (module.exports = factory())
     : typeof define === 'function' && define.amd
-    ? define(factory)
-    : (global.ES6Promise = factory());
+      ? define(factory)
+      : (global.ES6Promise = factory());
 })(this, function () {
   'use strict';
 
@@ -279,7 +279,7 @@
 
           reject(promise, reason);
         },
-        'Settle: ' + (promise._label || ' unknown promise')
+        'Settle: ' + (promise._label || ' unknown promise'),
       );
 
       if (!sealed && error) {
@@ -303,7 +303,7 @@
         },
         function (reason) {
           return reject(promise, reason);
-        }
+        },
       );
     }
   }
@@ -458,7 +458,7 @@
         },
         function rejectPromise(reason) {
           reject(promise, reason);
-        }
+        },
       );
     } catch (e) {
       reject(promise, e);
@@ -549,7 +549,7 @@
             new c(function (resolve$$1) {
               return resolve$$1(entry);
             }),
-            i
+            i,
           );
         }
       } else {
@@ -586,7 +586,7 @@
         },
         function (reason) {
           return enumerator._settledAt(REJECTED, i, reason);
-        }
+        },
       );
     };
 
@@ -775,7 +775,7 @@
 
   function needsNew() {
     throw new TypeError(
-      "Failed to construct 'Promise': Please use the 'new' operator, this object constructor cannot be called as a function."
+      "Failed to construct 'Promise': Please use the 'new' operator, this object constructor cannot be called as a function.",
     );
   }
 
@@ -1138,7 +1138,7 @@
             return constructor.resolve(callback()).then(function () {
               throw reason;
             });
-          }
+          },
         );
       }
 

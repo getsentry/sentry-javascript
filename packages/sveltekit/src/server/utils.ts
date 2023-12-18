@@ -1,8 +1,9 @@
 import { flush } from '@sentry/node';
 import type { StackFrame } from '@sentry/types';
-import { basename, escapeStringForRegex, GLOBAL_OBJ, join, logger, tracingContextFromHeaders } from '@sentry/utils';
+import { GLOBAL_OBJ, basename, escapeStringForRegex, join, logger, tracingContextFromHeaders } from '@sentry/utils';
 import type { RequestEvent } from '@sveltejs/kit';
 
+import { DEBUG_BUILD } from '../common/debug-build';
 import { WRAPPED_MODULE_SUFFIX } from '../vite/autoInstrument';
 import type { GlobalWithSentryValues } from '../vite/injectGlobalValues';
 
@@ -76,11 +77,11 @@ export async function flushIfServerless(): Promise<void> {
 
   if (!platformSupportsStreaming) {
     try {
-      __DEBUG_BUILD__ && logger.log('Flushing events...');
+      DEBUG_BUILD && logger.log('Flushing events...');
       await flush(2000);
-      __DEBUG_BUILD__ && logger.log('Done flushing events');
+      DEBUG_BUILD && logger.log('Done flushing events');
     } catch (e) {
-      __DEBUG_BUILD__ && logger.log('Error while flushing events:\n', e);
+      DEBUG_BUILD && logger.log('Error while flushing events:\n', e);
     }
   }
 }

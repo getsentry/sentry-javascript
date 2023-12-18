@@ -2,7 +2,6 @@ import type { Scope } from '@sentry/core';
 import { act, render } from '@testing-library/svelte';
 
 // linter doesn't like Svelte component imports
-// eslint-disable-next-line import/no-unresolved
 import DummyComponent from './components/Dummy.svelte';
 
 let returnUndefinedTransaction = false;
@@ -23,18 +22,12 @@ jest.mock('@sentry/core', () => {
   const original = jest.requireActual('@sentry/core');
   return {
     ...original,
-    getCurrentHub(): {
-      getScope(): Scope;
-    } {
+    getCurrentScope(): Scope {
       return {
-        getScope(): any {
-          return {
-            getTransaction: () => {
-              return returnUndefinedTransaction ? undefined : testTransaction;
-            },
-          };
+        getTransaction: () => {
+          return returnUndefinedTransaction ? undefined : testTransaction;
         },
-      };
+      } as Scope;
     },
   };
 });

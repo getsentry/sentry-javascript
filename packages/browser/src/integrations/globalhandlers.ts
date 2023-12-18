@@ -1,9 +1,9 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { getCurrentHub } from '@sentry/core';
-import type { Event, EventHint, Hub, Integration, Primitive, StackParser } from '@sentry/types';
+import type { Event, Hub, Integration, Primitive, StackParser } from '@sentry/types';
 import {
-  addExceptionMechanism,
-  addInstrumentationHandler,
+  addGlobalErrorInstrumentationHandler,
+  addGlobalUnhandledRejectionInstrumentationHandler,
   getLocationHref,
   isErrorEvent,
   isPrimitive,
@@ -12,6 +12,7 @@ import {
 } from '@sentry/utils';
 
 import type { BrowserClient } from '../client';
+import { DEBUG_BUILD } from '../debug-build';
 import { eventFromUnknownInput } from '../eventbuilder';
 import { shouldIgnoreOnError } from '../helpers';
 
@@ -76,83 +77,97 @@ export class GlobalHandlers implements Integration {
   }
 }
 
-/** JSDoc */
 function _installGlobalOnErrorHandler(): void {
-  addInstrumentationHandler(
-    'error',
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (data: { msg: any; url: any; line: any; column: any; error: any }) => {
-      const [hub, stackParser, attachStacktrace] = getHubAndOptions();
-      if (!hub.getIntegration(GlobalHandlers)) {
-        return;
-      }
-      const { msg, url, line, column, error } = data;
-      if (shouldIgnoreOnError() || (error && error.__sentry_own_request__)) {
-        return;
-      }
+  addGlobalErrorInstrumentationHandler(data => {
+    const [hub, stackParser, attachStacktrace] = getHubAndOptions();
+    if (!hub.getIntegration(GlobalHandlers)) {
+      return;
+    }
+    const { msg, url, line, column, error } = data;
+    if (shouldIgnoreOnError()) {
+      return;
+    }
 
-      const event =
-        error === undefined && isString(msg)
-          ? _eventFromIncompleteOnError(msg, url, line, column)
-          : _enhanceEventWithInitialFrame(
-              eventFromUnknownInput(stackParser, error || msg, undefined, attachStacktrace, false),
-              url,
-              line,
-              column,
-            );
+    const event =
+      error === undefined && isString(msg)
+        ? _eventFromIncompleteOnError(msg, url, line, column)
+        : _enhanceEventWithInitialFrame(
+            eventFromUnknownInput(stackParser, error || msg, undefined, attachStacktrace, false),
+            url,
+            line,
+            column,
+          );
 
-      event.level = 'error';
+    event.level = 'error';
 
-      addMechanismAndCapture(hub, error, event, 'onerror');
-    },
-  );
+    hub.captureEvent(event, {
+      originalException: error,
+      mechanism: {
+        handled: false,
+        type: 'onerror',
+      },
+    });
+  });
 }
 
-/** JSDoc */
 function _installGlobalOnUnhandledRejectionHandler(): void {
-  addInstrumentationHandler(
-    'unhandledrejection',
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (e: any) => {
-      const [hub, stackParser, attachStacktrace] = getHubAndOptions();
-      if (!hub.getIntegration(GlobalHandlers)) {
-        return;
-      }
-      let error = e;
-
-      // dig the object of the rejection out of known event types
-      try {
-        // PromiseRejectionEvents store the object of the rejection under 'reason'
-        // see https://developer.mozilla.org/en-US/docs/Web/API/PromiseRejectionEvent
-        if ('reason' in e) {
-          error = e.reason;
-        }
-        // something, somewhere, (likely a browser extension) effectively casts PromiseRejectionEvents
-        // to CustomEvents, moving the `promise` and `reason` attributes of the PRE into
-        // the CustomEvent's `detail` attribute, since they're not part of CustomEvent's spec
-        // see https://developer.mozilla.org/en-US/docs/Web/API/CustomEvent and
-        // https://github.com/getsentry/sentry-javascript/issues/2380
-        else if ('detail' in e && 'reason' in e.detail) {
-          error = e.detail.reason;
-        }
-      } catch (_oO) {
-        // no-empty
-      }
-
-      if (shouldIgnoreOnError() || (error && error.__sentry_own_request__)) {
-        return true;
-      }
-
-      const event = isPrimitive(error)
-        ? _eventFromRejectionWithPrimitive(error)
-        : eventFromUnknownInput(stackParser, error, undefined, attachStacktrace, true);
-
-      event.level = 'error';
-
-      addMechanismAndCapture(hub, error, event, 'onunhandledrejection');
+  addGlobalUnhandledRejectionInstrumentationHandler(e => {
+    const [hub, stackParser, attachStacktrace] = getHubAndOptions();
+    if (!hub.getIntegration(GlobalHandlers)) {
       return;
-    },
-  );
+    }
+
+    if (shouldIgnoreOnError()) {
+      return true;
+    }
+
+    const error = _getUnhandledRejectionError(e as unknown);
+
+    const event = isPrimitive(error)
+      ? _eventFromRejectionWithPrimitive(error)
+      : eventFromUnknownInput(stackParser, error, undefined, attachStacktrace, true);
+
+    event.level = 'error';
+
+    hub.captureEvent(event, {
+      originalException: error,
+      mechanism: {
+        handled: false,
+        type: 'onunhandledrejection',
+      },
+    });
+
+    return;
+  });
+}
+
+function _getUnhandledRejectionError(error: unknown): unknown {
+  if (isPrimitive(error)) {
+    return error;
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const e = error as any;
+
+  // dig the object of the rejection out of known event types
+  try {
+    // PromiseRejectionEvents store the object of the rejection under 'reason'
+    // see https://developer.mozilla.org/en-US/docs/Web/API/PromiseRejectionEvent
+    if ('reason' in e) {
+      return e.reason;
+    }
+
+    // something, somewhere, (likely a browser extension) effectively casts PromiseRejectionEvents
+    // to CustomEvents, moving the `promise` and `reason` attributes of the PRE into
+    // the CustomEvent's `detail` attribute, since they're not part of CustomEvent's spec
+    // see https://developer.mozilla.org/en-US/docs/Web/API/CustomEvent and
+    // https://github.com/getsentry/sentry-javascript/issues/2380
+    else if ('detail' in e && 'reason' in e.detail) {
+      return e.detail.reason;
+    }
+  } catch {} // eslint-disable-line no-empty
+
+  return error;
 }
 
 /**
@@ -240,17 +255,7 @@ function _enhanceEventWithInitialFrame(event: Event, url: any, line: any, column
 }
 
 function globalHandlerLog(type: string): void {
-  __DEBUG_BUILD__ && logger.log(`Global Handler attached: ${type}`);
-}
-
-function addMechanismAndCapture(hub: Hub, error: EventHint['originalException'], event: Event, type: string): void {
-  addExceptionMechanism(event, {
-    handled: false,
-    type,
-  });
-  hub.captureEvent(event, {
-    originalException: error,
-  });
+  DEBUG_BUILD && logger.log(`Global Handler attached: ${type}`);
 }
 
 function getHubAndOptions(): [Hub, StackParser, boolean | undefined] {

@@ -72,8 +72,7 @@ describe('vueRouterInstrumentation()', () => {
     onErrorCallback(testError);
 
     expect(captureExceptionSpy).toHaveBeenCalledTimes(1);
-    // second function is the scope callback
-    expect(captureExceptionSpy).toHaveBeenCalledWith(testError, expect.any(Function));
+    expect(captureExceptionSpy).toHaveBeenCalledWith(testError, { mechanism: { handled: false } });
   });
 
   it.each([

@@ -1,7 +1,7 @@
-import { getCurrentHub } from '@sentry/core';
+import { getCurrentScope } from '@sentry/core';
 import { logger } from '@sentry/utils';
 
-import type { FeedbackFormData, FeedbackInternalOptions, Widget } from '../types';
+import type { FeedbackFormData, FeedbackInternalOptions, FeedbackWidget } from '../types';
 import { handleFeedbackSubmit } from '../util/handleFeedbackSubmit';
 import type { ActorComponent } from './Actor';
 import { Actor } from './Actor';
@@ -10,15 +10,35 @@ import { Dialog } from './Dialog';
 import { SuccessMessage } from './SuccessMessage';
 
 interface CreateWidgetParams {
+  /**
+   * Shadow DOM to append to
+   */
   shadow: ShadowRoot;
-  options: FeedbackInternalOptions;
+
+  /**
+   * Feedback integration options
+   */
+  options: FeedbackInternalOptions & { shouldCreateActor?: boolean };
+
+  /**
+   * An element to attach to, that when clicked, will open a dialog
+   */
   attachTo?: Element;
+
+  /**
+   * If false, will not create an actor
+   */
+  shouldCreateActor?: boolean;
 }
 
 /**
  * Creates a new widget. Returns public methods that control widget behavior.
  */
-export function createWidget({ shadow, options, attachTo }: CreateWidgetParams): Widget {
+export function createWidget({
+  shadow,
+  options: { shouldCreateActor = true, ...options },
+  attachTo,
+}: CreateWidgetParams): FeedbackWidget {
   let actor: ActorComponent | undefined;
   let dialog: DialogComponent | undefined;
   let isDialogOpen: boolean = false;
@@ -68,9 +88,19 @@ export function createWidget({ shadow, options, attachTo }: CreateWidgetParams):
       return;
     }
 
-    // Simple validation for now, just check for non-empty message
+    // Simple validation for now, just check for non-empty required fields
+    const emptyField = [];
+    if (options.isNameRequired && !feedback.name) {
+      emptyField.push(options.nameLabel);
+    }
+    if (options.isEmailRequired && !feedback.email) {
+      emptyField.push(options.emailLabel);
+    }
     if (!feedback.message) {
-      dialog.showError('Please enter in some feedback before submitting!');
+      emptyField.push(options.messageLabel);
+    }
+    if (emptyField.length > 0) {
+      dialog.showError(`Please enter in the following required fields: ${emptyField.join(', ')}`);
       return;
     }
 
@@ -123,22 +153,23 @@ export function createWidget({ shadow, options, attachTo }: CreateWidgetParams):
       if (dialog) {
         dialog.open();
         isDialogOpen = true;
-        if (options.onDialogOpen) {
-          options.onDialogOpen();
+        if (options.onFormOpen) {
+          options.onFormOpen();
         }
         return;
       }
 
-      const userKey = !options.isAnonymous && options.useSentryUser;
-      const scope = getCurrentHub().getScope();
+      const userKey = options.useSentryUser;
+      const scope = getCurrentScope();
       const user = scope && scope.getUser();
 
       dialog = Dialog({
         colorScheme: options.colorScheme,
         showBranding: options.showBranding,
-        showName: options.showName,
-        showEmail: options.showEmail,
-        isAnonymous: options.isAnonymous,
+        showName: options.showName || options.isNameRequired,
+        showEmail: options.showEmail || options.isEmailRequired,
+        isNameRequired: options.isNameRequired,
+        isEmailRequired: options.isEmailRequired,
         formTitle: options.formTitle,
         cancelButtonLabel: options.cancelButtonLabel,
         submitButtonLabel: options.submitButtonLabel,
@@ -154,12 +185,12 @@ export function createWidget({ shadow, options, attachTo }: CreateWidgetParams):
           showActor();
           isDialogOpen = false;
 
-          if (options.onDialogClose) {
-            options.onDialogClose();
+          if (options.onFormClose) {
+            options.onFormClose();
           }
         },
         onCancel: () => {
-          hideDialog();
+          closeDialog();
           showActor();
         },
         onSubmit: _handleFeedbackSubmit,
@@ -174,8 +205,8 @@ export function createWidget({ shadow, options, attachTo }: CreateWidgetParams):
       // Hides the default actor whenever dialog is opened
       hideActor();
 
-      if (options.onDialogOpen) {
-        options.onDialogOpen();
+      if (options.onFormOpen) {
+        options.onFormOpen();
       }
     } catch (err) {
       // TODO: Error handling?
@@ -184,15 +215,15 @@ export function createWidget({ shadow, options, attachTo }: CreateWidgetParams):
   }
 
   /**
-   * Hides the dialog
+   * Closes the dialog
    */
-  function hideDialog(): void {
+  function closeDialog(): void {
     if (dialog) {
       dialog.close();
       isDialogOpen = false;
 
-      if (options.onDialogClose) {
-        options.onDialogClose();
+      if (options.onFormClose) {
+        options.onFormClose();
       }
     }
   }
@@ -202,7 +233,7 @@ export function createWidget({ shadow, options, attachTo }: CreateWidgetParams):
    */
   function removeDialog(): void {
     if (dialog) {
-      hideDialog();
+      closeDialog();
       const dialogEl = dialog.el;
       dialogEl && dialogEl.remove();
       dialog = undefined;
@@ -220,17 +251,13 @@ export function createWidget({ shadow, options, attachTo }: CreateWidgetParams):
 
     // Hide actor button
     hideActor();
-
-    if (options.onActorClick) {
-      options.onActorClick();
-    }
   }
 
-  if (!attachTo) {
+  if (attachTo) {
+    attachTo.addEventListener('click', handleActorClick);
+  } else if (shouldCreateActor) {
     actor = Actor({ buttonLabel: options.buttonLabel, onClick: handleActorClick });
     actor.el && shadow.appendChild(actor.el);
-  } else {
-    attachTo.addEventListener('click', handleActorClick);
   }
 
   return {
@@ -246,7 +273,7 @@ export function createWidget({ shadow, options, attachTo }: CreateWidgetParams):
     removeActor,
 
     openDialog,
-    hideDialog,
+    closeDialog,
     removeDialog,
   };
 }

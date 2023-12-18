@@ -13,7 +13,7 @@ export { getAutoPerformanceIntegrations } from './integrations/getAutoPerformanc
 export * as Handlers from './sdk/handlers';
 export type { Span } from './types';
 
-export { startSpan, startInactiveSpan, getCurrentHub, getActiveSpan } from '@sentry/opentelemetry';
+export { startSpan, startInactiveSpan, getCurrentHub, getClient, getActiveSpan } from '@sentry/opentelemetry';
 
 export {
   makeNodeTransport,
@@ -24,14 +24,18 @@ export {
   extractRequestData,
   deepReadDirSync,
   getModuleFromFilename,
+  // eslint-disable-next-line deprecation/deprecation
   addGlobalEventProcessor,
+  addEventProcessor,
   addBreadcrumb,
   captureException,
   captureEvent,
   captureMessage,
   close,
+  // eslint-disable-next-line deprecation/deprecation
   configureScope,
   createTransport,
+  // eslint-disable-next-line deprecation/deprecation
   extractTraceparentData,
   flush,
   getActiveTransaction,
@@ -52,6 +56,7 @@ export {
   withScope,
   captureCheckIn,
   withMonitor,
+  hapiErrorPlugin,
 } from '@sentry/node';
 
 export type {

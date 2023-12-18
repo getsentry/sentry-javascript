@@ -35,6 +35,22 @@ describe('unit Test for preventDuplicateSegments', () => {
     const result1 = preventDuplicateSegments(originalUrl, reconstructedRoute, layerPath);
     expect(result1).toBe('1234');
   });
+
+  it('should prevent duplicate segment v1 originalUrl with query param without trailing slash', () => {
+    const originalUrl = '/api/v1/1234?queryParam=123';
+    const reconstructedRoute = '/api/v1';
+    const layerPath = '/v1/1234';
+    const result1 = preventDuplicateSegments(originalUrl, reconstructedRoute, layerPath);
+    expect(result1).toBe('1234');
+  });
+
+  it('should prevent duplicate segment v1 originalUrl with query param with trailing slash', () => {
+    const originalUrl = '/api/v1/1234/?queryParam=123';
+    const reconstructedRoute = '/api/v1';
+    const layerPath = '/v1/1234';
+    const result1 = preventDuplicateSegments(originalUrl, reconstructedRoute, layerPath);
+    expect(result1).toBe('1234');
+  });
 });
 describe('preventDuplicateSegments should handle empty input gracefully', () => {
   it('Empty input values', () => {

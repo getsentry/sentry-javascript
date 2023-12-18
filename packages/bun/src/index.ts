@@ -24,20 +24,26 @@ export type { TransactionNamingScheme } from '@sentry/node';
 export type { BunOptions } from './types';
 
 export {
+  // eslint-disable-next-line deprecation/deprecation
   addGlobalEventProcessor,
+  addEventProcessor,
   addBreadcrumb,
   addIntegration,
   captureException,
   captureEvent,
   captureMessage,
   close,
+  // eslint-disable-next-line deprecation/deprecation
   configureScope,
   createTransport,
+  // eslint-disable-next-line deprecation/deprecation
   extractTraceparentData,
   flush,
   getActiveTransaction,
   getHubFromCarrier,
   getCurrentHub,
+  getClient,
+  getCurrentScope,
   Hub,
   lastEventId,
   makeMain,

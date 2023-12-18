@@ -1,11 +1,11 @@
-import { test, expect } from '@playwright/test';
-import { waitForTransaction } from '../event-proxy-server';
+import { expect, test } from '@playwright/test';
 import axios, { AxiosError } from 'axios';
+import { waitForTransaction } from '../event-proxy-server';
 
 const authToken = process.env.E2E_TEST_AUTH_TOKEN;
 const sentryTestOrgSlug = process.env.E2E_TEST_SENTRY_ORG_SLUG;
 const sentryTestProject = process.env.E2E_TEST_SENTRY_TEST_PROJECT;
-const EVENT_POLLING_TIMEOUT = 30_000;
+const EVENT_POLLING_TIMEOUT = 90_000;
 
 test('Sends an API route transaction', async ({ baseURL }) => {
   const pageloadTransactionEventPromise = waitForTransaction('node-experimental-fastify-app', transactionEvent => {
@@ -36,6 +36,7 @@ test('Sends an API route transaction', async ({ baseURL }) => {
             'http.status_code': 200,
           },
           trace_id: expect.any(String),
+          origin: 'auto.http.otel.http',
         },
       }),
 

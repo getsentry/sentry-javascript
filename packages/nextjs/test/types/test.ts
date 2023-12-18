@@ -1,6 +1,6 @@
+import { execSync } from 'child_process';
 /* eslint-disable no-console */
 import { parseSemver } from '@sentry/utils';
-import { execSync } from 'child_process';
 
 const NODE_VERSION = parseSemver(process.versions.node);
 

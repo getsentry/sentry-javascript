@@ -1,5 +1,13 @@
+import { GLOBAL_OBJ } from '@sentry/utils';
+
+// exporting a separate copy of `WINDOW` rather than exporting the one from `@sentry/browser`
+// prevents the browser package from being bundled in the CDN bundle, and avoids a
+// circular dependency between the browser and feedback packages
+export const WINDOW = GLOBAL_OBJ as typeof GLOBAL_OBJ & Window;
+
 const LIGHT_BACKGROUND = '#ffffff';
 const INHERIT = 'inherit';
+const SUBMIT_COLOR = 'rgba(108, 95, 199, 1)';
 const LIGHT_THEME = {
   fontFamily: "'Helvetica Neue', Arial, sans-serif",
   fontSize: '14px',
@@ -14,19 +22,23 @@ const LIGHT_THEME = {
   error: '#df3338',
 
   submitBackground: 'rgba(88, 74, 192, 1)',
-  submitBackgroundHover: 'rgba(108, 95, 199, 1)',
-  submitBorder: 'rgba(108, 95, 199, 1)',
+  submitBackgroundHover: SUBMIT_COLOR,
+  submitBorder: SUBMIT_COLOR,
+  submitOutlineFocus: '#29232f',
   submitForeground: LIGHT_BACKGROUND,
+  submitForegroundHover: LIGHT_BACKGROUND,
 
   cancelBackground: 'transparent',
   cancelBackgroundHover: 'var(--background-hover)',
   cancelBorder: 'var(--border)',
+  cancelOutlineFocus: 'var(--input-outline-focus)',
   cancelForeground: 'var(--foreground)',
+  cancelForegroundHover: 'var(--foreground)',
 
   inputBackground: INHERIT,
   inputForeground: INHERIT,
   inputBorder: 'var(--border)',
-  inputBorderFocus: 'rgba(108, 95, 199, 1)',
+  inputOutlineFocus: SUBMIT_COLOR,
 };
 
 export const DEFAULT_THEME = {
@@ -55,3 +67,6 @@ export const MESSAGE_LABEL = 'Description';
 export const NAME_PLACEHOLDER = 'Your Name';
 export const NAME_LABEL = 'Name';
 export const SUCCESS_MESSAGE_TEXT = 'Thank you for your report!';
+
+export const FEEDBACK_WIDGET_SOURCE = 'widget';
+export const FEEDBACK_API_SOURCE = 'api';

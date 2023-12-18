@@ -1,18 +1,44 @@
-import type { Transaction, WrappedFunction } from '@sentry/types';
+import type { Transaction, WebFetchHeaders, WrappedFunction } from '@sentry/types';
 import type { NextApiRequest, NextApiResponse } from 'next';
+import type { RequestAsyncStorage } from '../config/templates/requestAsyncStorageShim';
 
 export type ServerComponentContext = {
   componentRoute: string;
   componentType: string;
+  // TODO(v8): Remove
+  /**
+   * @deprecated pass a complete `Headers` object with the `headers` field instead.
+   */
   sentryTraceHeader?: string;
+  // TODO(v8): Remove
+  /**
+   * @deprecated pass a complete `Headers` object with the `headers` field instead.
+   */
   baggageHeader?: string;
+  headers?: WebFetchHeaders;
+};
+
+export type GenerationFunctionContext = {
+  requestAsyncStorage?: RequestAsyncStorage;
+  componentRoute: string;
+  componentType: string;
+  generationFunctionIdentifier: string;
 };
 
 export interface RouteHandlerContext {
   method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 'HEAD' | 'OPTIONS';
   parameterizedRoute: string;
+  // TODO(v8): Remove
+  /**
+   * @deprecated pass a complete `Headers` object with the `headers` field instead.
+   */
   sentryTraceHeader?: string;
+  // TODO(v8): Remove
+  /**
+   * @deprecated pass a complete `Headers` object with the `headers` field instead.
+   */
   baggageHeader?: string;
+  headers?: WebFetchHeaders;
 }
 
 export type VercelCronsConfig = { path?: string; schedule?: string }[] | undefined;

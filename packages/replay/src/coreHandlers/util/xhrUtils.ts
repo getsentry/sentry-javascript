@@ -1,7 +1,14 @@
 import type { Breadcrumb, TextEncoderInternal, XhrBreadcrumbData } from '@sentry/types';
-import { logger, SENTRY_XHR_DATA_KEY } from '@sentry/utils';
+import { SENTRY_XHR_DATA_KEY, logger } from '@sentry/utils';
 
-import type { ReplayContainer, ReplayNetworkOptions, ReplayNetworkRequestData, XhrHint } from '../../types';
+import { DEBUG_BUILD } from '../../debug-build';
+import type {
+  NetworkMetaWarning,
+  ReplayContainer,
+  ReplayNetworkOptions,
+  ReplayNetworkRequestData,
+  XhrHint,
+} from '../../types';
 import { addNetworkBreadcrumb } from './addNetworkBreadcrumb';
 import {
   buildNetworkRequestOrResponse,
@@ -10,6 +17,7 @@ import {
   getBodySize,
   getBodyString,
   makeNetworkReplayBreadcrumb,
+  mergeWarning,
   parseContentLengthHeader,
   urlMatches,
 } from './networkUtils';
@@ -20,7 +28,7 @@ import {
  */
 export async function captureXhrBreadcrumbToReplay(
   breadcrumb: Breadcrumb & { data: XhrBreadcrumbData },
-  hint: XhrHint,
+  hint: Partial<XhrHint>,
   options: ReplayNetworkOptions & { replay: ReplayContainer },
 ): Promise<void> {
   try {
@@ -30,7 +38,7 @@ export async function captureXhrBreadcrumbToReplay(
     const result = makeNetworkReplayBreadcrumb('resource.xhr', data);
     addNetworkBreadcrumb(options.replay, result);
   } catch (error) {
-    __DEBUG_BUILD__ && logger.error('[Replay] Failed to capture xhr breadcrumb', error);
+    DEBUG_BUILD && logger.error('[Replay] Failed to capture xhr breadcrumb', error);
   }
 }
 
@@ -41,15 +49,19 @@ export async function captureXhrBreadcrumbToReplay(
  */
 export function enrichXhrBreadcrumb(
   breadcrumb: Breadcrumb & { data: XhrBreadcrumbData },
-  hint: XhrHint,
+  hint: Partial<XhrHint>,
   options: { textEncoder: TextEncoderInternal },
 ): void {
   const { xhr, input } = hint;
 
+  if (!xhr) {
+    return;
+  }
+
   const reqSize = getBodySize(input, options.textEncoder);
   const resSize = xhr.getResponseHeader('content-length')
     ? parseContentLengthHeader(xhr.getResponseHeader('content-length'))
-    : getBodySize(xhr.response, options.textEncoder);
+    : _getBodySize(xhr.response, xhr.responseType, options.textEncoder);
 
   if (reqSize !== undefined) {
     breadcrumb.data.request_body_size = reqSize;
@@ -61,10 +73,11 @@ export function enrichXhrBreadcrumb(
 
 function _prepareXhrData(
   breadcrumb: Breadcrumb & { data: XhrBreadcrumbData },
-  hint: XhrHint,
+  hint: Partial<XhrHint>,
   options: ReplayNetworkOptions,
 ): ReplayNetworkRequestData | null {
-  const { startTimestamp, endTimestamp, input, xhr } = hint;
+  const now = Date.now();
+  const { startTimestamp = now, endTimestamp = now, input, xhr } = hint;
 
   const {
     url,
@@ -78,7 +91,7 @@ function _prepareXhrData(
     return null;
   }
 
-  if (!urlMatches(url, options.networkDetailAllowUrls) || urlMatches(url, options.networkDetailDenyUrls)) {
+  if (!xhr || !urlMatches(url, options.networkDetailAllowUrls) || urlMatches(url, options.networkDetailDenyUrls)) {
     const request = buildSkippedNetworkRequestOrResponse(requestBodySize);
     const response = buildSkippedNetworkRequestOrResponse(responseBodySize);
     return {
@@ -98,16 +111,11 @@ function _prepareXhrData(
     : {};
   const networkResponseHeaders = getAllowedHeaders(getResponseHeaders(xhr), options.networkResponseHeaders);
 
-  const request = buildNetworkRequestOrResponse(
-    networkRequestHeaders,
-    requestBodySize,
-    options.networkCaptureBodies ? getBodyString(input) : undefined,
-  );
-  const response = buildNetworkRequestOrResponse(
-    networkResponseHeaders,
-    responseBodySize,
-    options.networkCaptureBodies ? hint.xhr.responseText : undefined,
-  );
+  const [requestBody, requestWarning] = options.networkCaptureBodies ? getBodyString(input) : [undefined];
+  const [responseBody, responseWarning] = options.networkCaptureBodies ? _getXhrResponseBody(xhr) : [undefined];
+
+  const request = buildNetworkRequestOrResponse(networkRequestHeaders, requestBodySize, requestBody);
+  const response = buildNetworkRequestOrResponse(networkResponseHeaders, responseBodySize, responseBody);
 
   return {
     startTimestamp,
@@ -115,8 +123,8 @@ function _prepareXhrData(
     url,
     method,
     statusCode,
-    request,
-    response,
+    request: requestWarning ? mergeWarning(request, requestWarning) : request,
+    response: responseWarning ? mergeWarning(response, responseWarning) : response,
   };
 }
 
@@ -132,4 +140,80 @@ function getResponseHeaders(xhr: XMLHttpRequest): Record<string, string> {
     acc[key.toLowerCase()] = value;
     return acc;
   }, {});
+}
+
+function _getXhrResponseBody(xhr: XMLHttpRequest): [string | undefined, NetworkMetaWarning?] {
+  // We collect errors that happen, but only log them if we can't get any response body
+  const errors: unknown[] = [];
+
+  try {
+    return [xhr.responseText];
+  } catch (e) {
+    errors.push(e);
+  }
+
+  // Try to manually parse the response body, if responseText fails
+  try {
+    return _parseXhrResponse(xhr.response, xhr.responseType);
+  } catch (e) {
+    errors.push(e);
+  }
+
+  DEBUG_BUILD && logger.warn('[Replay] Failed to get xhr response body', ...errors);
+
+  return [undefined];
+}
+
+/**
+ * Get the string representation of the XHR response.
+ * Based on MDN, these are the possible types of the response:
+ * string
+ * ArrayBuffer
+ * Blob
+ * Document
+ * POJO
+ *
+ * Exported only for tests.
+ */
+export function _parseXhrResponse(
+  body: XMLHttpRequest['response'],
+  responseType: XMLHttpRequest['responseType'],
+): [string | undefined, NetworkMetaWarning?] {
+  try {
+    if (typeof body === 'string') {
+      return [body];
+    }
+
+    if (body instanceof Document) {
+      return [body.body.outerHTML];
+    }
+
+    if (responseType === 'json' && body && typeof body === 'object') {
+      return [JSON.stringify(body)];
+    }
+
+    if (!body) {
+      return [undefined];
+    }
+  } catch {
+    DEBUG_BUILD && logger.warn('[Replay] Failed to serialize body', body);
+    return [undefined, 'BODY_PARSE_ERROR'];
+  }
+
+  DEBUG_BUILD && logger.info('[Replay] Skipping network body because of body type', body);
+
+  return [undefined, 'UNPARSEABLE_BODY_TYPE'];
+}
+
+function _getBodySize(
+  body: XMLHttpRequest['response'],
+  responseType: XMLHttpRequest['responseType'],
+  textEncoder: TextEncoder | TextEncoderInternal,
+): number | undefined {
+  try {
+    const bodyStr = responseType === 'json' && body && typeof body === 'object' ? JSON.stringify(body) : body;
+    return getBodySize(bodyStr, textEncoder);
+  } catch {
+    return undefined;
+  }
 }

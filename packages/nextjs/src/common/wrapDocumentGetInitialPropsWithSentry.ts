@@ -1,4 +1,4 @@
-import { getCurrentHub } from '@sentry/core';
+import { addTracingExtensions, getClient } from '@sentry/core';
 import type Document from 'next/document';
 
 import { isBuild } from './utils/isBuild';
@@ -23,11 +23,13 @@ export function wrapDocumentGetInitialPropsWithSentry(
         return wrappingTarget.apply(thisArg, args);
       }
 
+      addTracingExtensions();
+
       const [context] = args;
       const { req, res } = context;
 
       const errorWrappedGetInitialProps = withErrorInstrumentation(wrappingTarget);
-      const options = getCurrentHub().getClient()?.getOptions();
+      const options = getClient()?.getOptions();
 
       // Generally we can assume that `req` and `res` are always defined on the server:
       // https://nextjs.org/docs/api-reference/data-fetching/get-initial-props#context-object

@@ -1,7 +1,7 @@
-import { context, SpanKind, trace, TraceFlags } from '@opentelemetry/api';
+import { SpanKind, TraceFlags, context, trace } from '@opentelemetry/api';
 import type { SpanProcessor } from '@opentelemetry/sdk-trace-base';
 import { SemanticAttributes } from '@opentelemetry/semantic-conventions';
-import { getCurrentHub, SentrySpanProcessor, setPropagationContextOnContext } from '@sentry/opentelemetry';
+import { SentrySpanProcessor, getCurrentHub, setPropagationContextOnContext } from '@sentry/opentelemetry';
 import type { Integration, PropagationContext, TransactionEvent } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
@@ -37,10 +37,6 @@ describe('Integration | Transactions', () => {
         metadata: { requestPath: 'test-path' },
       },
       span => {
-        if (!span) {
-          return;
-        }
-
         Sentry.addBreadcrumb({ message: 'test breadcrumb 2', timestamp: 123456 });
 
         span.setAttributes({
@@ -48,15 +44,11 @@ describe('Integration | Transactions', () => {
         });
 
         const subSpan = Sentry.startInactiveSpan({ name: 'inner span 1' });
-        subSpan?.end();
+        subSpan.end();
 
         Sentry.setTag('test.tag', 'test value');
 
         Sentry.startSpan({ name: 'inner span 2' }, innerSpan => {
-          if (!innerSpan) {
-            return;
-          }
-
           Sentry.addBreadcrumb({ message: 'test breadcrumb 3', timestamp: 123456 });
 
           innerSpan.setAttributes({
@@ -97,6 +89,7 @@ describe('Integration | Transactions', () => {
             span_id: expect.any(String),
             status: 'ok',
             trace_id: expect.any(String),
+            origin: 'auto.test',
           },
         },
         environment: 'production',
@@ -189,10 +182,6 @@ describe('Integration | Transactions', () => {
     Sentry.addBreadcrumb({ message: 'test breadcrumb 1', timestamp: 123456 });
 
     Sentry.startSpan({ op: 'test op', name: 'test name', source: 'task', origin: 'auto.test' }, span => {
-      if (!span) {
-        return;
-      }
-
       Sentry.addBreadcrumb({ message: 'test breadcrumb 2', timestamp: 123456 });
 
       span.setAttributes({
@@ -200,15 +189,11 @@ describe('Integration | Transactions', () => {
       });
 
       const subSpan = Sentry.startInactiveSpan({ name: 'inner span 1' });
-      subSpan?.end();
+      subSpan.end();
 
       Sentry.setTag('test.tag', 'test value');
 
       Sentry.startSpan({ name: 'inner span 2' }, innerSpan => {
-        if (!innerSpan) {
-          return;
-        }
-
         Sentry.addBreadcrumb({ message: 'test breadcrumb 3', timestamp: 123456 });
 
         innerSpan.setAttributes({
@@ -218,10 +203,6 @@ describe('Integration | Transactions', () => {
     });
 
     Sentry.startSpan({ op: 'test op b', name: 'test name b' }, span => {
-      if (!span) {
-        return;
-      }
-
       Sentry.addBreadcrumb({ message: 'test breadcrumb 2b', timestamp: 123456 });
 
       span.setAttributes({
@@ -229,15 +210,11 @@ describe('Integration | Transactions', () => {
       });
 
       const subSpan = Sentry.startInactiveSpan({ name: 'inner span 1b' });
-      subSpan?.end();
+      subSpan.end();
 
       Sentry.setTag('test.tag', 'test value b');
 
       Sentry.startSpan({ name: 'inner span 2b' }, innerSpan => {
-        if (!innerSpan) {
-          return;
-        }
-
         Sentry.addBreadcrumb({ message: 'test breadcrumb 3b', timestamp: 123456 });
 
         innerSpan.setAttributes({
@@ -268,6 +245,7 @@ describe('Integration | Transactions', () => {
             span_id: expect.any(String),
             status: 'ok',
             trace_id: expect.any(String),
+            origin: 'auto.test',
           },
         }),
         spans: [
@@ -309,6 +287,7 @@ describe('Integration | Transactions', () => {
             span_id: expect.any(String),
             status: 'ok',
             trace_id: expect.any(String),
+            origin: 'manual',
           },
         }),
         spans: [
@@ -362,19 +341,11 @@ describe('Integration | Transactions', () => {
     context.with(
       trace.setSpanContext(setPropagationContextOnContext(context.active(), propagationContext), spanContext),
       () => {
-        Sentry.startSpan({ op: 'test op', name: 'test name', source: 'task', origin: 'auto.test' }, span => {
-          if (!span) {
-            return;
-          }
-
+        Sentry.startSpan({ op: 'test op', name: 'test name', source: 'task', origin: 'auto.test' }, () => {
           const subSpan = Sentry.startInactiveSpan({ name: 'inner span 1' });
-          subSpan?.end();
+          subSpan.end();
 
-          Sentry.startSpan({ name: 'inner span 2' }, innerSpan => {
-            if (!innerSpan) {
-              return;
-            }
-          });
+          Sentry.startSpan({ name: 'inner span 2' }, () => {});
         });
       },
     );
@@ -395,6 +366,7 @@ describe('Integration | Transactions', () => {
             parent_span_id: parentSpanId,
             status: 'ok',
             trace_id: traceId,
+            origin: 'auto.test',
           },
         }),
         // spans are circular (they have a reference to the transaction), which leads to jest choking on this
@@ -481,20 +453,12 @@ describe('Integration | Transactions', () => {
     let innerSpan1Id: string | undefined;
     let innerSpan2Id: string | undefined;
 
-    void Sentry.startSpan({ name: 'test name' }, async span => {
-      if (!span) {
-        return;
-      }
-
+    void Sentry.startSpan({ name: 'test name' }, async () => {
       const subSpan = Sentry.startInactiveSpan({ name: 'inner span 1' });
       innerSpan1Id = subSpan?.spanContext().spanId;
-      subSpan?.end();
+      subSpan.end();
 
       Sentry.startSpan({ name: 'inner span 2' }, innerSpan => {
-        if (!innerSpan) {
-          return;
-        }
-
         innerSpan2Id = innerSpan.spanContext().spanId;
       });
 

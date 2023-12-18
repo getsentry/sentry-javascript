@@ -5,7 +5,6 @@ import { CONSOLE_ARG_MAX_SIZE } from '../constants';
 import type { ReplayContainer } from '../types';
 import type { ReplayFrame } from '../types/replayFrame';
 import { createBreadcrumb } from '../util/createBreadcrumb';
-import { fixJson } from '../util/truncateJson/fixJson';
 import { addBreadcrumbEvent } from './util/addBreadcrumbEvent';
 
 let _LAST_BREADCRUMB: null | Breadcrumb = null;
@@ -95,11 +94,9 @@ export function normalizeConsoleBreadcrumb(
         const normalizedArg = normalize(arg, 7);
         const stringified = JSON.stringify(normalizedArg);
         if (stringified.length > CONSOLE_ARG_MAX_SIZE) {
-          const fixedJson = fixJson(stringified.slice(0, CONSOLE_ARG_MAX_SIZE));
-          const json = JSON.parse(fixedJson);
-          // We only set this after JSON.parse() was successfull, so we know we didn't run into `catch`
           isTruncated = true;
-          return json;
+          // We use the pretty printed JSON string here as a base
+          return `${JSON.stringify(normalizedArg, null, 2).slice(0, CONSOLE_ARG_MAX_SIZE)}…`;
         }
         return normalizedArg;
       } catch {

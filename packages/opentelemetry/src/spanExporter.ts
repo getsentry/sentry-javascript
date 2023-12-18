@@ -12,6 +12,7 @@ import { getCurrentHub } from './custom/hub';
 import { OpenTelemetryScope } from './custom/scope';
 import type { OpenTelemetryTransaction } from './custom/transaction';
 import { startTransaction } from './custom/transaction';
+import { DEBUG_BUILD } from './debug-build';
 import { InternalSentrySemanticAttributes } from './semanticAttributes';
 import { convertOtelTimeToSeconds } from './utils/convertOtelTimeToSeconds';
 import { getRequestSpanData } from './utils/getRequestSpanData';
@@ -54,12 +55,12 @@ export class SentrySpanExporter implements SpanExporter {
     const remainingOpenSpanCount = remainingSpans.length;
     const sentSpanCount = openSpanCount + newSpanCount - remainingOpenSpanCount;
 
-    __DEBUG_BUILD__ &&
+    DEBUG_BUILD &&
       logger.log(`SpanExporter exported ${sentSpanCount} spans, ${remainingOpenSpanCount} unsent spans remaining`);
 
     this._finishedSpans = remainingSpans.filter(span => {
       const shouldDrop = shouldCleanupSpan(span, 5 * 60);
-      __DEBUG_BUILD__ &&
+      DEBUG_BUILD &&
         shouldDrop &&
         logger.log(
           `SpanExporter dropping span ${span.name} (${
@@ -111,8 +112,8 @@ function maybeSend(spans: ReadableSpan[]): ReadableSpan[] {
 
     // Now finish the transaction, which will send it together with all the spans
     // We make sure to use the current span as the activeSpan for this transaction
-    const scope = getSpanScope(span);
-    const forkedScope = OpenTelemetryScope.clone(scope as OpenTelemetryScope | undefined) as OpenTelemetryScope;
+    const scope = getSpanScope(span) as OpenTelemetryScope | undefined;
+    const forkedScope = scope ? scope.clone() : new OpenTelemetryScope();
     forkedScope.activeSpan = span as unknown as Span;
 
     transaction.finishWithScope(convertOtelTimeToSeconds(span.endTime), forkedScope);

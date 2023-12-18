@@ -9,6 +9,7 @@ import { createPerformanceEntries } from '../../src/util/createPerformanceEntrie
 import { createPerformanceSpans } from '../../src/util/createPerformanceSpans';
 import * as SendReplayRequest from '../../src/util/sendReplayRequest';
 import { BASE_TIMESTAMP, mockRrweb, mockSdk } from '../index';
+import type { DomHandler } from '../types';
 import { useFakeTimers } from '../utils/use-fake-timers';
 
 useFakeTimers();
@@ -25,15 +26,13 @@ describe('Integration | beforeAddRecordingEvent', () => {
   let integration: Replay;
   let mockTransportSend: MockTransportSend;
   let mockSendReplayRequest: jest.SpyInstance<any>;
-  let domHandler: (args: any) => any;
+  let domHandler: DomHandler;
   const { record: mockRecord } = mockRrweb();
 
   beforeAll(async () => {
     jest.setSystemTime(new Date(BASE_TIMESTAMP));
-    jest.spyOn(SentryUtils, 'addInstrumentationHandler').mockImplementation((type, handler: (args: any) => any) => {
-      if (type === 'dom') {
-        domHandler = handler;
-      }
+    jest.spyOn(SentryUtils, 'addClickKeypressInstrumentationHandler').mockImplementation(handler => {
+      domHandler = handler;
     });
 
     ({ replay, integration } = await mockSdk({
@@ -104,6 +103,7 @@ describe('Integration | beforeAddRecordingEvent', () => {
   it('changes click breadcrumbs message', async () => {
     domHandler({
       name: 'click',
+      event: new Event('click'),
     });
 
     await advanceTimers(5000);

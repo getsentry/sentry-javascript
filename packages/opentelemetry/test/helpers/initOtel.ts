@@ -1,4 +1,4 @@
-import { diag, DiagLogLevel } from '@opentelemetry/api';
+import { DiagLogLevel, diag } from '@opentelemetry/api';
 import { AsyncLocalStorageContextManager } from '@opentelemetry/context-async-hooks';
 import { Resource } from '@opentelemetry/resources';
 import { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
@@ -8,6 +8,7 @@ import { logger } from '@sentry/utils';
 
 import { wrapContextManagerClass } from '../../src/contextManager';
 import { getCurrentHub } from '../../src/custom/hub';
+import { DEBUG_BUILD } from '../../src/debug-build';
 import { SentryPropagator } from '../../src/propagator';
 import { SentrySampler } from '../../src/sampler';
 import { setupEventContextTrace } from '../../src/setupEventContextTrace';
@@ -21,7 +22,7 @@ export function initOtel(): void {
   const client = getCurrentHub().getClient<TestClientInterface>();
 
   if (!client) {
-    __DEBUG_BUILD__ &&
+    DEBUG_BUILD &&
       logger.warn(
         'No client available, skipping OpenTelemetry setup. This probably means that `Sentry.init()` was not called before `initOtel()`.',
       );

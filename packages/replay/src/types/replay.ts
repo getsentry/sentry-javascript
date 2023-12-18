@@ -1,5 +1,6 @@
 import type {
   Breadcrumb,
+  ErrorEvent,
   FetchBreadcrumbHint,
   HandlerDataFetch,
   ReplayRecordingData,
@@ -13,7 +14,7 @@ import type { SKIPPED, THROTTLED } from '../util/throttle';
 import type { AllPerformanceEntry, AllPerformanceEntryData, ReplayPerformanceEntry } from './performance';
 import type { ReplayFrameEvent } from './replayFrame';
 import type { ReplayNetworkRequestOrResponse } from './request';
-import type { ReplayEventWithTime, RrwebRecordOptions } from './rrweb';
+import type { CanvasManagerInterface, GetCanvasManagerOptions, ReplayEventWithTime, RrwebRecordOptions } from './rrweb';
 
 export type RecordingEvent = ReplayFrameEvent | ReplayEventWithTime;
 export type RecordingOptions = RrwebRecordOptions;
@@ -212,6 +213,16 @@ export interface ReplayPluginOptions extends ReplayNetworkOptions {
   beforeAddRecordingEvent?: BeforeAddRecordingEvent;
 
   /**
+   * An optional callback to be called before we decide to sample based on an error.
+   * If specified, this callback will receive an error that was captured by Sentry.
+   * Return `true` to continue sampling for this error, or `false` to ignore this error for replay sampling.
+   * Note that returning `true` means that the `replaysOnErrorSampleRate` will be checked,
+   * not that it will definitely be sampled.
+   * Use this to filter out groups of errors that should def. not be sampled.
+   */
+  beforeErrorSampling?: (event: ErrorEvent) => boolean;
+
+  /**
    * _experiments allows users to enable experimental or internal features.
    * We don't consider such features as part of the public API and hence we don't guarantee semver for them.
    * Experimental features can be added, changed or removed at any time.
@@ -221,6 +232,11 @@ export interface ReplayPluginOptions extends ReplayNetworkOptions {
   _experiments: Partial<{
     captureExceptions: boolean;
     traceInternals: boolean;
+    canvas: {
+      fps?: number;
+      quality?: number;
+      manager: (options: GetCanvasManagerOptions) => CanvasManagerInterface;
+    };
   }>;
 }
 

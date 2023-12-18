@@ -1,6 +1,9 @@
 export type { Carrier, Layer } from '@sentry/core';
 
 import {
+  Hub as HubCore,
+  Scope as ScopeCore,
+  SessionFlusher as SessionFlusherCore,
   addBreadcrumb as addBreadcrumbCore,
   addGlobalEventProcessor as addGlobalEventProcessorCore,
   captureEvent as captureEventCore,
@@ -11,11 +14,8 @@ import {
   getCurrentHub as getCurrentHubCore,
   getHubFromCarrier as getHubFromCarrierCore,
   getMainCarrier as getMainCarrierCore,
-  Hub as HubCore,
   makeMain as makeMainCore,
   makeSession as makeSessionCore,
-  Scope as ScopeCore,
-  SessionFlusher as SessionFlusherCore,
   setContext as setContextCore,
   setExtra as setExtraCore,
   setExtras as setExtrasCore,
@@ -46,7 +46,8 @@ export const getCurrentHub = getCurrentHubCore;
 /**
  * @deprecated This export has moved to @sentry/core. The @sentry/hub package will be removed in v8.
  */
-export const addGlobalEventProcessor = addGlobalEventProcessorCore;
+
+export const addGlobalEventProcessor = addGlobalEventProcessorCore; // eslint-disable-line deprecation/deprecation
 
 /**
  * @deprecated This export has moved to @sentry/core. The @sentry/hub package will be removed in v8.
@@ -111,6 +112,7 @@ export const captureMessage = captureMessageCore;
 /**
  * @deprecated This export has moved to @sentry/core. The @sentry/hub package will be removed in v8.
  */
+// eslint-disable-next-line deprecation/deprecation
 export const configureScope = configureScopeCore;
 
 /**

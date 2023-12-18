@@ -3,7 +3,7 @@ import { assertSnapshot } from 'https://deno.land/std@0.202.0/testing/snapshot.t
 
 import type { sentryTypes } from '../build-test/index.js';
 import { sentryUtils } from '../build-test/index.js';
-import { defaultIntegrations, DenoClient, Hub, Scope } from '../build/index.js';
+import { DenoClient, Hub, Scope, defaultIntegrations } from '../build/index.mjs';
 import { getNormalizedEvent } from './normalize.ts';
 import { makeTestTransport } from './transport.ts';
 

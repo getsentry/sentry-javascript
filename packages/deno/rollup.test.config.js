@@ -1,8 +1,8 @@
-// @ts-check
-import dts from 'rollup-plugin-dts';
 import nodeResolve from '@rollup/plugin-node-resolve';
 import sucrase from '@rollup/plugin-sucrase';
 import { defineConfig } from 'rollup';
+// @ts-check
+import dts from 'rollup-plugin-dts';
 
 export default [
   defineConfig({

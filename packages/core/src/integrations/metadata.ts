@@ -1,4 +1,4 @@
-import type { EventItem, EventProcessor, Hub, Integration } from '@sentry/types';
+import type { Client, Event, EventItem, EventProcessor, Hub, Integration } from '@sentry/types';
 import { forEachEnvelopeItem } from '@sentry/utils';
 
 import { addMetadataToStackFrames, stripMetadataFromStackFrames } from '../metadata';
@@ -30,10 +30,13 @@ export class ModuleMetadata implements Integration {
   /**
    * @inheritDoc
    */
-  public setupOnce(addGlobalEventProcessor: (processor: EventProcessor) => void, getCurrentHub: () => Hub): void {
-    const client = getCurrentHub().getClient();
+  public setupOnce(_addGlobalEventProcessor: (processor: EventProcessor) => void, _getCurrentHub: () => Hub): void {
+    // noop
+  }
 
-    if (!client || typeof client.on !== 'function') {
+  /** @inheritDoc */
+  public setup(client: Client): void {
+    if (typeof client.on !== 'function') {
       return;
     }
 
@@ -50,12 +53,12 @@ export class ModuleMetadata implements Integration {
         }
       });
     });
+  }
 
+  /** @inheritDoc */
+  public processEvent(event: Event, _hint: unknown, client: Client): Event {
     const stackParser = client.getOptions().stackParser;
-
-    addGlobalEventProcessor(event => {
-      addMetadataToStackFrames(stackParser, event);
-      return event;
-    });
+    addMetadataToStackFrames(stackParser, event);
+    return event;
   }
 }

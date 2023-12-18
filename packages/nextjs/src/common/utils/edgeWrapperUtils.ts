@@ -1,8 +1,16 @@
-import { captureException, flush, getCurrentHub, startTransaction } from '@sentry/core';
+import { addTracingExtensions, captureException, getCurrentScope, startTransaction } from '@sentry/core';
 import type { Span } from '@sentry/types';
-import { addExceptionMechanism, logger, objectify, tracingContextFromHeaders } from '@sentry/utils';
+import {
+  addExceptionMechanism,
+  logger,
+  objectify,
+  tracingContextFromHeaders,
+  winterCGRequestToRequestData,
+} from '@sentry/utils';
 
 import type { EdgeRouteHandler } from '../../edge/types';
+import { DEBUG_BUILD } from '../debug-build';
+import { flushQueue } from './responseEnd';
 
 /**
  * Wraps a function on the edge runtime with error and performance monitoring.
@@ -12,8 +20,10 @@ export function withEdgeWrapping<H extends EdgeRouteHandler>(
   options: { spanDescription: string; spanOp: string; mechanismFunctionName: string },
 ): (...params: Parameters<H>) => Promise<ReturnType<H>> {
   return async function (this: unknown, ...args) {
+    addTracingExtensions();
+
     const req = args[0];
-    const currentScope = getCurrentHub().getScope();
+    const currentScope = getCurrentScope();
     const prevSpan = currentScope.getSpan();
 
     let span: Span | undefined;
@@ -33,7 +43,7 @@ export function withEdgeWrapping<H extends EdgeRouteHandler>(
       );
       currentScope.setPropagationContext(propagationContext);
       if (traceparentData) {
-        __DEBUG_BUILD__ && logger.log(`[Tracing] Continuing trace ${traceparentData.traceId}.`);
+        DEBUG_BUILD && logger.log(`[Tracing] Continuing trace ${traceparentData.traceId}.`);
       }
 
       span = startTransaction({
@@ -42,6 +52,7 @@ export function withEdgeWrapping<H extends EdgeRouteHandler>(
         origin: 'auto.ui.nextjs.withEdgeWrapping',
         ...traceparentData,
         metadata: {
+          request: winterCGRequestToRequestData(req),
           dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
           source: 'route',
         },
@@ -87,7 +98,7 @@ export function withEdgeWrapping<H extends EdgeRouteHandler>(
     } finally {
       span?.finish();
       currentScope?.setSpan(prevSpan);
-      await flush(2000);
+      await flushQueue();
     }
   };
 }

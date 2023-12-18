@@ -1,18 +1,19 @@
-import { test, expect } from '@playwright/test';
-import { waitForTransaction, waitForError } from '../event-proxy-server';
+import { expect, test } from '@playwright/test';
+import { waitForError, waitForTransaction } from '../event-proxy-server';
 
 test('Should create a transaction for route handlers', async ({ request }) => {
   const routehandlerTransactionPromise = waitForTransaction('nextjs-13-app-dir', async transactionEvent => {
     return transactionEvent?.transaction === 'GET /route-handlers/[param]';
   });
 
-  const response = await request.get('/route-handlers/foo');
+  const response = await request.get('/route-handlers/foo', { headers: { 'x-yeet': 'test-value' } });
   expect(await response.json()).toStrictEqual({ name: 'John Doe' });
 
   const routehandlerTransaction = await routehandlerTransactionPromise;
 
   expect(routehandlerTransaction.contexts?.trace?.status).toBe('ok');
   expect(routehandlerTransaction.contexts?.trace?.op).toBe('http.server');
+  expect(routehandlerTransaction.request?.headers?.['x-yeet']).toBe('test-value');
 });
 
 test('Should create a transaction for route handlers and correctly set span status depending on http status', async ({
@@ -92,4 +93,11 @@ test.describe('Edge runtime', () => {
     expect(routehandlerError.exception?.values?.[0].value).toBe('route-handler-edge-error');
     expect(routehandlerError.contexts?.runtime?.name).toBe('vercel-edge');
   });
+});
+
+test('should not crash route handlers that are configured with `export const dynamic = "error"`', async ({
+  request,
+}) => {
+  const response = await request.get('/route-handlers/static');
+  expect(await response.json()).toStrictEqual({ result: 'static response' });
 });

@@ -33,6 +33,8 @@ export type {
   ReplaySpanFrameEvent,
 } from '@sentry/replay';
 
+export { Feedback } from '@sentry-internal/feedback';
+
 export {
   BrowserTracing,
   defaultRequestInstrumentationOptions,
@@ -42,6 +44,7 @@ export type { RequestInstrumentationOptions } from '@sentry-internal/tracing';
 export {
   addTracingExtensions,
   setMeasurement,
+  // eslint-disable-next-line deprecation/deprecation
   extractTraceparentData,
   getActiveTransaction,
   spanStatusfromHttpCode,

@@ -1,6 +1,6 @@
-import { getCurrentHub } from '@sentry/core';
+import { getClient } from '@sentry/core';
 import type { BrowserClientReplayOptions, Integration } from '@sentry/types';
-import { dropUndefinedKeys, isBrowser } from '@sentry/utils';
+import { consoleSandbox, dropUndefinedKeys, isBrowser } from '@sentry/utils';
 
 import {
   DEFAULT_FLUSH_MAX_DELAY,
@@ -90,6 +90,7 @@ export class Replay implements Integration {
     maskFn,
 
     beforeAddRecordingEvent,
+    beforeErrorSampling,
 
     // eslint-disable-next-line deprecation/deprecation
     blockClass,
@@ -178,6 +179,7 @@ export class Replay implements Integration {
       networkRequestHeaders: _getMergedNetworkHeaders(networkRequestHeaders),
       networkResponseHeaders: _getMergedNetworkHeaders(networkResponseHeaders),
       beforeAddRecordingEvent,
+      beforeErrorSampling,
 
       _experiments,
     };
@@ -341,14 +343,16 @@ Sentry.init({ replaysOnErrorSampleRate: ${errorSampleRate} })`,
 
 /** Parse Replay-related options from SDK options */
 function loadReplayOptionsFromClient(initialOptions: InitialReplayPluginOptions): ReplayPluginOptions {
-  const client = getCurrentHub().getClient();
+  const client = getClient();
   const opt = client && (client.getOptions() as BrowserClientReplayOptions);
 
   const finalOptions = { sessionSampleRate: 0, errorSampleRate: 0, ...dropUndefinedKeys(initialOptions) };
 
   if (!opt) {
-    // eslint-disable-next-line no-console
-    console.warn('SDK client is not available.');
+    consoleSandbox(() => {
+      // eslint-disable-next-line no-console
+      console.warn('SDK client is not available.');
+    });
     return finalOptions;
   }
 
@@ -358,10 +362,12 @@ function loadReplayOptionsFromClient(initialOptions: InitialReplayPluginOptions)
     opt.replaysSessionSampleRate == null &&
     opt.replaysOnErrorSampleRate == null
   ) {
-    // eslint-disable-next-line no-console
-    console.warn(
-      'Replay is disabled because neither `replaysSessionSampleRate` nor `replaysOnErrorSampleRate` are set.',
-    );
+    consoleSandbox(() => {
+      // eslint-disable-next-line no-console
+      console.warn(
+        'Replay is disabled because neither `replaysSessionSampleRate` nor `replaysOnErrorSampleRate` are set.',
+      );
+    });
   }
 
   if (typeof opt.replaysSessionSampleRate === 'number') {

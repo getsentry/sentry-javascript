@@ -14,9 +14,9 @@
 
  - [Official SDK Docs](https://docs.sentry.io/platforms/javascript/guides/astro/)
 
-## Experimental Note
+## SDK Status
 
-This SDK is experimental and in Alpha state. Breaking changes can occurr at any time.
+This SDK is in Beta and not yet fully stable.
 If you have feedback or encounter any bugs, feel free to [open an issue](https://github.com/getsentry/sentry-javascript/issues/new/choose).
 
 ## General
@@ -56,7 +56,11 @@ Follow [this guide](https://docs.sentry.io/product/accounts/auth-tokens/#organiz
 SENTRY_AUTH_TOKEN="your-token"
 ```
 
-Complete the setup by adding the Sentry middleware to your `src/middleware.js` file:
+### Server Instrumentation
+
+For Astro apps configured for (hybrid) Server Side Rendering (SSR), the Sentry integration will automatically add middleware to your server to instrument incoming requests **if you're using Astro 3.5.2 or newer**.
+
+If you're using Astro <3.5.2, complete the setup by adding the Sentry middleware to your `src/middleware.js` file:
 
 ```javascript
 // src/middleware.js
@@ -64,12 +68,35 @@ import { sequence } from "astro:middleware";
 import * as Sentry from "@sentry/astro";
 
 export const onRequest = sequence(
-  Sentry.sentryMiddleware(),
-  // Add your other handlers after sentryMiddleware
+  Sentry.handleRequest(),
+  // Add your other handlers after Sentry.handleRequest()
 );
 ```
 
-This middleware creates server-side spans to monitor performance on the server for page load and endpoint requests.
+The Sentry middleware enhances the data collected by Sentry on the server side by:
+- Enabeling distributed tracing between client and server
+- Collecting performance spans for incoming requests
+- Enhancing captured errors with additional information
+
+#### Disable Automatic Server Instrumentation
+
+You can opt out of using the automatic sentry server instrumentation in your `astro.config.mjs` file:
+
+```javascript
+import { defineConfig } from "astro/config";
+import sentry from "@sentry/astro";
+
+export default defineConfig({
+  integrations: [
+    sentry({
+      dsn: "__DSN__",
+      autoInstrumentation: {
+        requestHandler: false,
+      }
+    }),
+  ],
+});
+```
 
 
 ## Configuration

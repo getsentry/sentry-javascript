@@ -1,18 +1,27 @@
-import { SDK_VERSION } from '@sentry/core';
+import { SDK_VERSION, addTracingExtensions } from '@sentry/core';
 import { RewriteFrames } from '@sentry/integrations';
 import type { SdkMetadata } from '@sentry/types';
-import { addOrUpdateIntegration, escapeStringForRegex, GLOBAL_OBJ } from '@sentry/utils';
+import { GLOBAL_OBJ, addOrUpdateIntegration, escapeStringForRegex } from '@sentry/utils';
 import type { VercelEdgeOptions } from '@sentry/vercel-edge';
 import { init as vercelEdgeInit } from '@sentry/vercel-edge';
+
+import { isBuild } from '../common/utils/isBuild';
 
 export type EdgeOptions = VercelEdgeOptions;
 
 const globalWithInjectedValues = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
   __rewriteFramesDistDir__?: string;
+  fetch: (...args: unknown[]) => unknown;
 };
 
 /** Inits the Sentry NextJS SDK on the Edge Runtime. */
 export function init(options: VercelEdgeOptions = {}): void {
+  addTracingExtensions();
+
+  if (isBuild()) {
+    return;
+  }
+
   const opts = {
     _metadata: {} as SdkMetadata,
     ...options,
@@ -66,12 +75,10 @@ export function withSentryConfig<T>(exportedUserNextConfig: T): T {
 export * from '@sentry/vercel-edge';
 export { Span, Transaction } from '@sentry/core';
 
-// eslint-disable-next-line import/export
 export * from '../common';
 
 export {
-  // eslint-disable-next-line deprecation/deprecation, import/export
+  // eslint-disable-next-line deprecation/deprecation
   withSentryAPI,
-  // eslint-disable-next-line import/export
   wrapApiHandlerWithSentry,
 } from './wrapApiHandlerWithSentry';

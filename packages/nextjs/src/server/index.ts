@@ -1,16 +1,19 @@
+import * as path from 'path';
+import { addTracingExtensions, getClient } from '@sentry/core';
 import { RewriteFrames } from '@sentry/integrations';
 import type { NodeOptions } from '@sentry/node';
-import { configureScope, getCurrentHub, init as nodeInit, Integrations } from '@sentry/node';
+import { Integrations, getCurrentScope, init as nodeInit } from '@sentry/node';
 import type { EventProcessor } from '@sentry/types';
 import type { IntegrationWithExclusionOption } from '@sentry/utils';
 import { addOrUpdateIntegration, escapeStringForRegex, logger } from '@sentry/utils';
-import * as path from 'path';
 
+import { DEBUG_BUILD } from '../common/debug-build';
 import { devErrorSymbolicationEventProcessor } from '../common/devErrorSymbolicationEventProcessor';
 import { getVercelEnv } from '../common/getVercelEnv';
 import { buildMetadata } from '../common/metadata';
 import { isBuild } from '../common/utils/isBuild';
 
+export { createReduxEnhancer } from '@sentry/react';
 export * from '@sentry/node';
 export { captureUnderscoreErrorException } from '../common/_error';
 
@@ -63,6 +66,12 @@ const IS_VERCEL = !!process.env.VERCEL;
 
 /** Inits the Sentry NextJS SDK on node. */
 export function init(options: NodeOptions): void {
+  addTracingExtensions();
+
+  if (isBuild()) {
+    return;
+  }
+
   const opts = {
     environment: process.env.SENTRY_ENVIRONMENT || getVercelEnv(false) || process.env.NODE_ENV,
     ...options,
@@ -70,14 +79,14 @@ export function init(options: NodeOptions): void {
     autoSessionTracking: false,
   };
 
-  if (__DEBUG_BUILD__ && opts.debug) {
+  if (DEBUG_BUILD && opts.debug) {
     logger.enable();
   }
 
-  __DEBUG_BUILD__ && logger.log('Initializing SDK...');
+  DEBUG_BUILD && logger.log('Initializing SDK...');
 
   if (sdkAlreadyInitialized()) {
-    __DEBUG_BUILD__ && logger.log('SDK already initialized');
+    DEBUG_BUILD && logger.log('SDK already initialized');
     return;
   }
 
@@ -93,25 +102,23 @@ export function init(options: NodeOptions): void {
 
   filterTransactions.id = 'NextServer404TransactionFilter';
 
-  configureScope(scope => {
-    scope.setTag('runtime', 'node');
-    if (IS_VERCEL) {
-      scope.setTag('vercel', true);
-    }
+  const scope = getCurrentScope();
+  scope.setTag('runtime', 'node');
+  if (IS_VERCEL) {
+    scope.setTag('vercel', true);
+  }
 
-    scope.addEventProcessor(filterTransactions);
+  scope.addEventProcessor(filterTransactions);
 
-    if (process.env.NODE_ENV === 'development') {
-      scope.addEventProcessor(devErrorSymbolicationEventProcessor);
-    }
-  });
+  if (process.env.NODE_ENV === 'development') {
+    scope.addEventProcessor(devErrorSymbolicationEventProcessor);
+  }
 
-  __DEBUG_BUILD__ && logger.log('SDK successfully initialized');
+  DEBUG_BUILD && logger.log('SDK successfully initialized');
 }
 
 function sdkAlreadyInitialized(): boolean {
-  const hub = getCurrentHub();
-  return !!hub.getClient();
+  return !!getClient();
 }
 
 function addServerIntegrations(options: NodeOptions): void {

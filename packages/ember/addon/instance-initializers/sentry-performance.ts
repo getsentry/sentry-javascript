@@ -9,7 +9,7 @@ import { getOwnConfig, isTesting, macroCondition } from '@embroider/macros';
 import * as Sentry from '@sentry/browser';
 import type { ExtendedBackburner } from '@sentry/ember/runloop';
 import type { Span, Transaction } from '@sentry/types';
-import { browserPerformanceTimeOrigin, GLOBAL_OBJ, timestampInSeconds } from '@sentry/utils';
+import { GLOBAL_OBJ, browserPerformanceTimeOrigin, timestampInSeconds } from '@sentry/utils';
 
 import type { BrowserClient } from '..';
 import { getActiveTransaction } from '..';
@@ -418,8 +418,10 @@ export async function instrumentForPerformance(appInstance: ApplicationInstance)
     routingInstrumentation: (customStartTransaction, startTransactionOnPageLoad) => {
       // eslint-disable-next-line ember/no-private-routing-service
       const routerMain = appInstance.lookup('router:main') as EmberRouterMain;
-      let routerService = appInstance.lookup('service:router') as
-        | RouterService & { externalRouter?: RouterService; _hasMountedSentryPerformanceRouting?: boolean };
+      let routerService = appInstance.lookup('service:router') as RouterService & {
+        externalRouter?: RouterService;
+        _hasMountedSentryPerformanceRouting?: boolean;
+      };
 
       if (routerService.externalRouter) {
         // Using ember-engines-router-service in an engine.

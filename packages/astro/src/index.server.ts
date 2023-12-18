@@ -4,22 +4,29 @@
 // on the top - level namespace.
 
 import { sentryAstro } from './integration';
+import { handleRequest } from './server/middleware';
 
 // Hence, we export everything from the Node SDK explicitly:
 export {
+  // eslint-disable-next-line deprecation/deprecation
   addGlobalEventProcessor,
+  addEventProcessor,
   addBreadcrumb,
   captureException,
   captureEvent,
   captureMessage,
   captureCheckIn,
   withMonitor,
+  // eslint-disable-next-line deprecation/deprecation
   configureScope,
   createTransport,
+  // eslint-disable-next-line deprecation/deprecation
   extractTraceparentData,
   getActiveTransaction,
   getHubFromCarrier,
   getCurrentHub,
+  getClient,
+  getCurrentScope,
   Hub,
   makeMain,
   Scope,
@@ -62,6 +69,8 @@ export {
 export * from '@sentry/node';
 
 export { init } from './server/sdk';
-export { handleRequest } from './server/middleware';
 
 export default sentryAstro;
+
+// This exports the `handleRequest` middleware for manual usage
+export { handleRequest };

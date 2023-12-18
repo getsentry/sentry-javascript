@@ -1,4 +1,4 @@
-import { assertSentryTransaction, assertSentryEvent, RemixTestEnv } from './utils/helpers';
+import { RemixTestEnv, assertSentryEvent, assertSentryTransaction } from './utils/helpers';
 
 const useV2 = process.env.REMIX_VERSION === '2';
 
@@ -81,7 +81,7 @@ describe.each(['builtin', 'express'])('Remix API Actions with adapter = %s', ada
             stacktrace: expect.any(Object),
             mechanism: {
               data: {
-                function: useV2 ? 'remix.server' : 'action',
+                function: useV2 ? 'remix.server.handleError' : 'action',
               },
               handled: false,
               type: 'instrument',
@@ -140,7 +140,7 @@ describe.each(['builtin', 'express'])('Remix API Actions with adapter = %s', ada
     });
   });
 
-  it('handles a thrown 500 response', async () => {
+  it('handles an error-throwing redirection target', async () => {
     const env = await RemixTestEnv.init(adapter);
     const url = `${env.url}/action-json-response/-2`;
 
@@ -201,7 +201,7 @@ describe.each(['builtin', 'express'])('Remix API Actions with adapter = %s', ada
             stacktrace: expect.any(Object),
             mechanism: {
               data: {
-                function: useV2 ? 'remix.server' : 'loader',
+                function: useV2 ? 'remix.server.handleError' : 'loader',
               },
               handled: false,
               type: 'instrument',
@@ -254,7 +254,7 @@ describe.each(['builtin', 'express'])('Remix API Actions with adapter = %s', ada
             stacktrace: expect.any(Object),
             mechanism: {
               data: {
-                function: useV2 ? 'ErrorResponse' : 'action',
+                function: 'action',
               },
               handled: false,
               type: 'instrument',
@@ -303,13 +303,11 @@ describe.each(['builtin', 'express'])('Remix API Actions with adapter = %s', ada
         values: [
           {
             type: 'Error',
-            value: useV2
-              ? 'Object captured as exception with keys: data, internal, status, statusText'
-              : 'Object captured as exception with keys: data',
+            value: 'Object captured as exception with keys: data',
             stacktrace: expect.any(Object),
             mechanism: {
               data: {
-                function: useV2 ? 'ErrorResponse' : 'action',
+                function: 'action',
               },
               handled: false,
               type: 'instrument',
@@ -362,7 +360,7 @@ describe.each(['builtin', 'express'])('Remix API Actions with adapter = %s', ada
             stacktrace: expect.any(Object),
             mechanism: {
               data: {
-                function: useV2 ? 'ErrorResponse' : 'action',
+                function: 'action',
               },
               handled: false,
               type: 'instrument',
@@ -411,13 +409,117 @@ describe.each(['builtin', 'express'])('Remix API Actions with adapter = %s', ada
         values: [
           {
             type: 'Error',
-            value: useV2
-              ? 'Object captured as exception with keys: data, internal, status, statusText'
-              : 'Object captured as exception with keys: [object has no keys]',
+            value: 'Object captured as exception with keys: [object has no keys]',
             stacktrace: expect.any(Object),
             mechanism: {
               data: {
-                function: useV2 ? 'ErrorResponse' : 'action',
+                function: 'action',
+              },
+              handled: false,
+              type: 'instrument',
+            },
+          },
+        ],
+      },
+    });
+  });
+
+  it('handles thrown string (primitive) from an action', async () => {
+    const env = await RemixTestEnv.init(adapter);
+    const url = `${env.url}/server-side-unexpected-errors/-1`;
+
+    const envelopes = await env.getMultipleEnvelopeRequest({
+      url,
+      count: 2,
+      method: 'post',
+      envelopeType: ['event', 'transaction'],
+    });
+
+    const [transaction] = envelopes.filter(envelope => envelope[1].type === 'transaction');
+    const [event] = envelopes.filter(envelope => envelope[1].type === 'event');
+
+    assertSentryTransaction(transaction[2], {
+      contexts: {
+        trace: {
+          op: 'http.server',
+          status: 'internal_error',
+          tags: {
+            method: 'POST',
+            'http.status_code': '500',
+          },
+          data: {
+            'http.response.status_code': 500,
+          },
+        },
+      },
+      tags: {
+        transaction: `routes/server-side-unexpected-errors${useV2 ? '.' : '/'}$id`,
+      },
+    });
+
+    assertSentryEvent(event[2], {
+      exception: {
+        values: [
+          {
+            type: 'Error',
+            value: 'Thrown String Error',
+            stacktrace: expect.any(Object),
+            mechanism: {
+              data: {
+                function: useV2 ? 'remix.server.handleError' : 'action',
+              },
+              handled: false,
+              type: 'instrument',
+            },
+          },
+        ],
+      },
+    });
+  });
+
+  it('handles thrown object from an action', async () => {
+    const env = await RemixTestEnv.init(adapter);
+    const url = `${env.url}/server-side-unexpected-errors/-2`;
+
+    const envelopes = await env.getMultipleEnvelopeRequest({
+      url,
+      count: 2,
+      method: 'post',
+      envelopeType: ['event', 'transaction'],
+    });
+
+    const [transaction] = envelopes.filter(envelope => envelope[1].type === 'transaction');
+    const [event] = envelopes.filter(envelope => envelope[1].type === 'event');
+
+    assertSentryTransaction(transaction[2], {
+      contexts: {
+        trace: {
+          op: 'http.server',
+          status: 'internal_error',
+          tags: {
+            method: 'POST',
+            'http.status_code': '500',
+          },
+          data: {
+            'http.response.status_code': 500,
+          },
+        },
+      },
+      tags: {
+        transaction: `routes/server-side-unexpected-errors${useV2 ? '.' : '/'}$id`,
+      },
+    });
+
+    assertSentryEvent(event[2], {
+      exception: {
+        values: [
+          {
+            type: 'Error',
+            value: 'Thrown Object Error',
+            stacktrace: expect.any(Object),
+            mechanism: {
+              data: {
+                function: useV2 ? 'remix.server.handleError' : 'action',
               },
               handled: false,
               type: 'instrument',

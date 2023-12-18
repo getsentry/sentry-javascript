@@ -1,113 +1,131 @@
-import { getCurrentHub } from '@sentry/core';
-import { dsnToString } from '@sentry/utils';
+import { createEventEnvelope, getClient, withScope } from '@sentry/core';
+import type { FeedbackEvent, TransportMakeRequestResponse } from '@sentry/types';
 
-import type { SendFeedbackData } from '../types';
+import { FEEDBACK_API_SOURCE, FEEDBACK_WIDGET_SOURCE } from '../constants';
+import type { SendFeedbackData, SendFeedbackOptions } from '../types';
 import { prepareFeedbackEvent } from './prepareFeedbackEvent';
 
 /**
- * Send feedback using `fetch()`
+ * Send feedback using transport
  */
-export async function sendFeedbackRequest({
-  feedback: { message, email, name, replay_id, url },
-}: SendFeedbackData): Promise<Response | null> {
-  const hub = getCurrentHub();
-
-  if (!hub) {
-    return null;
-  }
-
-  const client = hub.getClient();
-  const scope = hub.getScope();
+export async function sendFeedbackRequest(
+  { feedback: { message, email, name, source, url } }: SendFeedbackData,
+  { includeReplay = true }: SendFeedbackOptions = {},
+): Promise<void | TransportMakeRequestResponse> {
+  const client = getClient();
   const transport = client && client.getTransport();
   const dsn = client && client.getDsn();
 
   if (!client || !transport || !dsn) {
-    return null;
+    return;
   }
 
-  const baseEvent = {
-    feedback: {
-      contact_email: email,
-      name,
-      message,
-      replay_id,
-      url,
+  const baseEvent: FeedbackEvent = {
+    contexts: {
+      feedback: {
+        contact_email: email,
+        name,
+        message,
+        url,
+        source,
+      },
     },
-    // type: 'feedback_event',
+    type: 'feedback',
   };
 
-  const feedbackEvent = await prepareFeedbackEvent({
-    scope,
-    client,
-    event: baseEvent,
-  });
+  return withScope(async scope => {
+    // No use for breadcrumbs in feedback
+    scope.clearBreadcrumbs();
 
-  if (!feedbackEvent) {
-    // Taken from baseclient's `_processEvent` method, where this is handled for errors/transactions
-    // client.recordDroppedEvent('event_processor', 'feedback', baseEvent);
-    return null;
-  }
-
-  /*
-  For reference, the fully built event looks something like this:
-  {
-    "data": {
-      "dist": "abc123",
-      "environment": "production",
-      "feedback": {
-        "contact_email": "colton.allen@sentry.io",
-        "message": "I really like this user-feedback feature!",
-        "replay_id": "ec3b4dc8b79f417596f7a1aa4fcca5d2",
-        "url": "https://docs.sentry.io/platforms/javascript/"
-      },
-      "id": "1ffe0775ac0f4417aed9de36d9f6f8dc",
-      "platform": "javascript",
-      "release": "version@1.3",
-      "request": {
-        "headers": {
-          "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36"
-        }
-      },
-      "sdk": {
-        "name": "sentry.javascript.react",
-        "version": "6.18.1"
-      },
-      "tags": {
-        "key": "value"
-      },
-      "timestamp": "2023-08-31T14:10:34.954048",
-      "user": {
-        "email": "username@example.com",
-        "id": "123",
-        "ip_address": "127.0.0.1",
-        "name": "user",
-        "username": "user2270129"
-      }
+    if ([FEEDBACK_API_SOURCE, FEEDBACK_WIDGET_SOURCE].includes(String(source))) {
+      scope.setLevel('info');
     }
-  }
-  */
 
-  // Prevent this data (which, if it exists, was used in earlier steps in the processing pipeline) from being sent to
-  // sentry. (Note: Our use of this property comes and goes with whatever we might be debugging, whatever hacks we may
-  // have temporarily added, etc. Even if we don't happen to be using it at some point in the future, let's not get rid
-  // of this `delete`, lest we miss putting it back in the next time the property is in use.)
-  delete feedbackEvent.sdkProcessingMetadata;
-
-  try {
-    const path = 'https://sentry.io/api/0/feedback/';
-    const response = await fetch(path, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `DSN ${dsnToString(dsn)}`,
-      },
-      body: JSON.stringify(feedbackEvent),
+    const feedbackEvent = await prepareFeedbackEvent({
+      scope,
+      client,
+      event: baseEvent,
     });
-    if (!response.ok) {
-      return null;
+
+    if (!feedbackEvent) {
+      return;
     }
+
+    if (client.emit) {
+      client.emit('beforeSendFeedback', feedbackEvent, { includeReplay: Boolean(includeReplay) });
+    }
+
+    const envelope = createEventEnvelope(feedbackEvent, dsn, client.getOptions()._metadata, client.getOptions().tunnel);
+
+    let response: void | TransportMakeRequestResponse;
+
+    try {
+      response = await transport.send(envelope);
+    } catch (err) {
+      const error = new Error('Unable to send Feedback');
+
+      try {
+        // In case browsers don't allow this property to be writable
+        // @ts-expect-error This needs lib es2022 and newer
+        error.cause = err;
+      } catch {
+        // nothing to do
+      }
+      throw error;
+    }
+
+    // TODO (v8): we can remove this guard once transport.send's type signature doesn't include void anymore
+    if (!response) {
+      return;
+    }
+
+    // Require valid status codes, otherwise can assume feedback was not sent successfully
+    if (typeof response.statusCode === 'number' && (response.statusCode < 200 || response.statusCode >= 300)) {
+      throw new Error('Unable to send Feedback');
+    }
+
     return response;
-  } catch (err) {
-    return null;
-  }
+  });
 }
+
+/*
+ * For reference, the fully built event looks something like this:
+ * {
+ *     "type": "feedback",
+ *     "event_id": "d2132d31b39445f1938d7e21b6bf0ec4",
+ *     "timestamp": 1597977777.6189718,
+ *     "dist": "1.12",
+ *     "platform": "javascript",
+ *     "environment": "production",
+ *     "release": 42,
+ *     "tags": {"transaction": "/organizations/:orgId/performance/:eventSlug/"},
+ *     "sdk": {"name": "name", "version": "version"},
+ *     "user": {
+ *         "id": "123",
+ *         "username": "user",
+ *         "email": "user@site.com",
+ *         "ip_address": "192.168.11.12",
+ *     },
+ *     "request": {
+ *         "url": None,
+ *         "headers": {
+ *             "user-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.5 Safari/605.1.15"
+ *         },
+ *     },
+ *     "contexts": {
+ *         "feedback": {
+ *             "message": "test message",
+ *             "contact_email": "test@example.com",
+ *             "type": "feedback",
+ *         },
+ *         "trace": {
+ *             "trace_id": "4C79F60C11214EB38604F4AE0781BFB2",
+ *             "span_id": "FA90FDEAD5F74052",
+ *             "type": "trace",
+ *         },
+ *         "replay": {
+ *             "replay_id": "e2d42047b1c5431c8cba85ee2a8ab25d",
+ *         },
+ *     },
+ *   }
+ */

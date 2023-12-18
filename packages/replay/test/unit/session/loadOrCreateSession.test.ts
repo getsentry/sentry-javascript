@@ -1,9 +1,9 @@
 import { MAX_REPLAY_DURATION, SESSION_IDLE_EXPIRE_DURATION, WINDOW } from '../../../src/constants';
+import { makeSession } from '../../../src/session/Session';
 import * as CreateSession from '../../../src/session/createSession';
 import * as FetchSession from '../../../src/session/fetchSession';
 import { loadOrCreateSession } from '../../../src/session/loadOrCreateSession';
 import { saveSession } from '../../../src/session/saveSession';
-import { makeSession } from '../../../src/session/Session';
 import type { SessionOptions } from '../../../src/types';
 
 jest.mock('@sentry/utils', () => {

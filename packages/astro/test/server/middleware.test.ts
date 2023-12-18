@@ -1,11 +1,34 @@
 import * as SentryNode from '@sentry/node';
-import * as SentryUtils from '@sentry/utils';
-import { vi } from 'vitest';
+import type { Client } from '@sentry/types';
+import { SpyInstance, vi } from 'vitest';
 
 import { handleRequest, interpolateRouteFromUrlAndParams } from '../../src/server/middleware';
 
+vi.mock('../../src/server/meta', () => ({
+  getTracingMetaTags: () => ({
+    sentryTrace: '<meta name="sentry-trace" content="123">',
+    baggage: '<meta name="baggage" content="abc">',
+  }),
+}));
+
 describe('sentryMiddleware', () => {
   const startSpanSpy = vi.spyOn(SentryNode, 'startSpan');
+
+  const getSpanMock = vi.fn(() => {});
+  const setUserMock = vi.fn();
+
+  beforeEach(() => {
+    vi.spyOn(SentryNode, 'getCurrentScope').mockImplementation(() => {
+      return {
+        setUser: setUserMock,
+        setPropagationContext: vi.fn(),
+        getSpan: getSpanMock,
+      } as any;
+    });
+    vi.spyOn(SentryNode, 'getClient').mockImplementation(() => ({}) as Client);
+  });
+
+  const nextResult = Promise.resolve(new Response(null, { status: 200, headers: new Headers() }));
 
   afterEach(() => {
     vi.clearAllMocks();
@@ -24,7 +47,6 @@ describe('sentryMiddleware', () => {
         id: '123',
       },
     };
-    const nextResult = Promise.resolve({ status: 200 });
     const next = vi.fn(() => nextResult);
 
     // @ts-expect-error, a partial ctx object is fine here
@@ -40,7 +62,44 @@ describe('sentryMiddleware', () => {
           source: 'route',
         },
         name: 'GET /users/[id]/details',
-        op: 'http.server.get',
+        op: 'http.server',
+        origin: 'auto.http.astro',
+        status: 'ok',
+      },
+      expect.any(Function), // the `next` function
+    );
+
+    expect(next).toHaveBeenCalled();
+    expect(resultFromNext).toStrictEqual(nextResult);
+  });
+
+  it("sets source route if the url couldn't be decoded correctly", async () => {
+    const middleware = handleRequest();
+    const ctx = {
+      request: {
+        method: 'GET',
+        url: '/a%xx',
+        headers: new Headers(),
+      },
+      url: { pathname: 'a%xx', href: 'http://localhost:1234/a%xx' },
+      params: {},
+    };
+    const next = vi.fn(() => nextResult);
+
+    // @ts-expect-error, a partial ctx object is fine here
+    const resultFromNext = middleware(ctx, next);
+
+    expect(startSpanSpy).toHaveBeenCalledWith(
+      {
+        data: {
+          method: 'GET',
+          url: 'http://localhost:1234/a%xx',
+        },
+        metadata: {
+          source: 'url',
+        },
+        name: 'GET a%xx',
+        op: 'http.server',
         origin: 'auto.http.astro',
         status: 'ok',
       },
@@ -52,12 +111,7 @@ describe('sentryMiddleware', () => {
   });
 
   it('throws and sends an error to sentry if `next()` throws', async () => {
-    const scope = {
-      addEventProcessor: vi.fn().mockImplementation(cb => cb({})),
-    };
-    // @ts-expect-error, just testing the callback, this is okay for this test
-    const captureExceptionSpy = vi.spyOn(SentryNode, 'captureException').mockImplementation((ex, cb) => cb(scope));
-    const addExMechanismSpy = vi.spyOn(SentryUtils, 'addExceptionMechanism');
+    const captureExceptionSpy = vi.spyOn(SentryNode, 'captureException');
 
     const middleware = handleRequest();
     const ctx = {
@@ -79,23 +133,12 @@ describe('sentryMiddleware', () => {
     // @ts-expect-error, a partial ctx object is fine here
     await expect(async () => middleware(ctx, next)).rejects.toThrowError();
 
-    expect(captureExceptionSpy).toHaveBeenCalledWith(error, expect.any(Function));
-    expect(scope.addEventProcessor).toHaveBeenCalledTimes(1);
-    expect(addExMechanismSpy).toHaveBeenCalledWith(
-      {}, // the mocked event
-      {
-        handled: false,
-        type: 'astro',
-        data: { function: 'astroMiddleware' },
-      },
-    );
+    expect(captureExceptionSpy).toHaveBeenCalledWith(error, {
+      mechanism: { handled: false, type: 'astro', data: { function: 'astroMiddleware' } },
+    });
   });
 
   it('attaches tracing headers', async () => {
-    const scope = { setUser: vi.fn(), setPropagationContext: vi.fn() };
-    // @ts-expect-error, only passing a partial Scope object
-    const configureScopeSpy = vi.spyOn(SentryNode, 'configureScope').mockImplementation(cb => cb(scope));
-
     const middleware = handleRequest();
     const ctx = {
       request: {
@@ -109,21 +152,10 @@ describe('sentryMiddleware', () => {
       params: {},
       url: new URL('https://myDomain.io/users/'),
     };
-    const next = vi.fn();
+    const next = vi.fn(() => nextResult);
 
     // @ts-expect-error, a partial ctx object is fine here
     await middleware(ctx, next);
-
-    expect(configureScopeSpy).toHaveBeenCalledTimes(1);
-    expect(scope.setPropagationContext).toHaveBeenCalledWith({
-      dsc: {
-        release: '1.0.0',
-      },
-      parentSpanId: '1234567890123456',
-      sampled: true,
-      spanId: expect.any(String),
-      traceId: '12345678901234567890123456789012',
-    });
 
     expect(startSpanSpy).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -142,10 +174,6 @@ describe('sentryMiddleware', () => {
   });
 
   it('attaches client IP and request headers if options are set', async () => {
-    const scope = { setUser: vi.fn(), setPropagationContext: vi.fn() };
-    // @ts-expect-error, only passing a partial Scope object
-    const configureScopeSpy = vi.spyOn(SentryNode, 'configureScope').mockImplementation(cb => cb(scope));
-
     const middleware = handleRequest({ trackClientIp: true, trackHeaders: true });
     const ctx = {
       request: {
@@ -159,13 +187,12 @@ describe('sentryMiddleware', () => {
       params: {},
       url: new URL('https://myDomain.io/users/'),
     };
-    const next = vi.fn();
+    const next = vi.fn(() => nextResult);
 
     // @ts-expect-error, a partial ctx object is fine here
     await middleware(ctx, next);
 
-    expect(configureScopeSpy).toHaveBeenCalledTimes(1);
-    expect(scope.setUser).toHaveBeenCalledWith({ ip_address: '192.168.0.1' });
+    expect(setUserMock).toHaveBeenCalledWith({ ip_address: '192.168.0.1' });
 
     expect(startSpanSpy).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -178,16 +205,158 @@ describe('sentryMiddleware', () => {
       expect.any(Function), // the `next` function
     );
   });
+
+  it('injects tracing <meta> tags into the HTML of a pageload response', async () => {
+    const middleware = handleRequest();
+
+    const ctx = {
+      request: {
+        method: 'GET',
+        url: '/users',
+        headers: new Headers(),
+      },
+      params: {},
+      url: new URL('https://myDomain.io/users/'),
+    };
+    const next = vi.fn(() =>
+      Promise.resolve(
+        new Response('<head><meta name="something" content=""/></head>', {
+          headers: new Headers({ 'content-type': 'text/html' }),
+        }),
+      ),
+    );
+
+    // @ts-expect-error, a partial ctx object is fine here
+    const resultFromNext = await middleware(ctx, next);
+
+    expect(resultFromNext?.headers.get('content-type')).toEqual('text/html');
+
+    const html = await resultFromNext?.text();
+
+    expect(html).toContain('<meta name="sentry-trace" content="');
+    expect(html).toContain('<meta name="baggage" content="');
+  });
+
+  it("no-ops if the response isn't HTML", async () => {
+    const middleware = handleRequest();
+
+    const ctx = {
+      request: {
+        method: 'GET',
+        url: '/users',
+        headers: new Headers(),
+      },
+      params: {},
+      url: new URL('https://myDomain.io/users/'),
+    };
+
+    const originalResponse = new Response('{"foo": "bar"}', {
+      headers: new Headers({ 'content-type': 'application/json' }),
+    });
+    const next = vi.fn(() => Promise.resolve(originalResponse));
+
+    // @ts-expect-error, a partial ctx object is fine here
+    const resultFromNext = await middleware(ctx, next);
+
+    expect(resultFromNext).toBe(originalResponse);
+  });
+
+  it("no-ops if there's no <head> tag in the response", async () => {
+    const middleware = handleRequest();
+
+    const ctx = {
+      request: {
+        method: 'GET',
+        url: '/users',
+        headers: new Headers(),
+      },
+      params: {},
+      url: new URL('https://myDomain.io/users/'),
+    };
+
+    const originalHtml = '<p>no head</p>';
+    const originalResponse = new Response(originalHtml, {
+      headers: new Headers({ 'content-type': 'text/html' }),
+    });
+    const next = vi.fn(() => Promise.resolve(originalResponse));
+
+    // @ts-expect-error, a partial ctx object is fine here
+    const resultFromNext = await middleware(ctx, next);
+
+    expect(resultFromNext?.headers.get('content-type')).toEqual('text/html');
+
+    const html = await resultFromNext?.text();
+
+    expect(html).toBe(originalHtml);
+  });
+
+  describe('async context isolation', () => {
+    const runWithAsyncContextSpy = vi.spyOn(SentryNode, 'runWithAsyncContext');
+    afterEach(() => {
+      vi.clearAllMocks();
+      runWithAsyncContextSpy.mockRestore();
+    });
+
+    it('starts a new async context if no span is active', async () => {
+      getSpanMock.mockReturnValueOnce(undefined);
+      const handler = handleRequest();
+      const ctx = {};
+      const next = vi.fn();
+
+      try {
+        // @ts-expect-error, a partial ctx object is fine here
+        await handler(ctx, next);
+      } catch {
+        // this is fine, it's not required to pass in this test
+      }
+
+      expect(runWithAsyncContextSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it("doesn't start a new async context if a span is active", async () => {
+      // @ts-expect-error, a empty span is fine here
+      getSpanMock.mockReturnValueOnce({});
+
+      const handler = handleRequest();
+      const ctx = {};
+      const next = vi.fn();
+
+      try {
+        // @ts-expect-error, a partial ctx object is fine here
+        await handler(ctx, next);
+      } catch {
+        // this is fine, it's not required to pass in this test
+      }
+
+      expect(runWithAsyncContextSpy).not.toHaveBeenCalled();
+    });
+  });
 });
 
 describe('interpolateRouteFromUrlAndParams', () => {
   it.each([
+    ['/', {}, '/'],
     ['/foo/bar', {}, '/foo/bar'],
     ['/users/123', { id: '123' }, '/users/[id]'],
     ['/users/123', { id: '123', foo: 'bar' }, '/users/[id]'],
     ['/lang/en-US', { lang: 'en', region: 'US' }, '/lang/[lang]-[region]'],
     ['/lang/en-US/posts', { lang: 'en', region: 'US' }, '/lang/[lang]-[region]/posts'],
+    // edge cases that astro doesn't support
+    ['/lang/-US', { region: 'US' }, '/lang/-[region]'],
+    ['/lang/en-', { lang: 'en' }, '/lang/[lang]-'],
   ])('interpolates route from URL and params %s', (rawUrl, params, expectedRoute) => {
+    expect(interpolateRouteFromUrlAndParams(rawUrl, params)).toEqual(expectedRoute);
+  });
+
+  it.each([
+    ['/(a+)+/aaaaaaaaa!', { id: '(a+)+', slug: 'aaaaaaaaa!' }, '/[id]/[slug]'],
+    ['/([a-zA-Z]+)*/aaaaaaaaa!', { id: '([a-zA-Z]+)*', slug: 'aaaaaaaaa!' }, '/[id]/[slug]'],
+    ['/(a|aa)+/aaaaaaaaa!', { id: '(a|aa)+', slug: 'aaaaaaaaa!' }, '/[id]/[slug]'],
+    ['/(a|a?)+/aaaaaaaaa!', { id: '(a|a?)+', slug: 'aaaaaaaaa!' }, '/[id]/[slug]'],
+    // with URL encoding
+    ['/(a%7Caa)+/aaaaaaaaa!', { id: '(a|aa)+', slug: 'aaaaaaaaa!' }, '/[id]/[slug]'],
+    ['/(a%7Ca?)+/aaaaaaaaa!', { id: '(a|a?)+', slug: 'aaaaaaaaa!' }, '/[id]/[slug]'],
+  ])('handles regex characters in param values correctly %s', (rawUrl, params, expectedRoute) => {
     expect(interpolateRouteFromUrlAndParams(rawUrl, params)).toEqual(expectedRoute);
   });
 
@@ -205,6 +374,13 @@ describe('interpolateRouteFromUrlAndParams', () => {
     const rawUrl = '/usernames/username';
     const params = { name: 'username' };
     const expectedRoute = '/usernames/[name]';
+    expect(interpolateRouteFromUrlAndParams(rawUrl, params)).toEqual(expectedRoute);
+  });
+
+  it('handles set but undefined params', () => {
+    const rawUrl = '/usernames/user';
+    const params = { name: undefined, name2: '' };
+    const expectedRoute = '/usernames/user';
     expect(interpolateRouteFromUrlAndParams(rawUrl, params)).toEqual(expectedRoute);
   });
 });

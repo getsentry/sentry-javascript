@@ -1,8 +1,11 @@
 import type { Event, EventHint, EventProcessor } from '@sentry/types';
-import { getGlobalSingleton, isThenable, logger, SyncPromise } from '@sentry/utils';
+import { SyncPromise, getGlobalSingleton, isThenable, logger } from '@sentry/utils';
+
+import { DEBUG_BUILD } from './debug-build';
 
 /**
  * Returns the global event processors.
+ * @deprecated Global event processors will be removed in v8.
  */
 export function getGlobalEventProcessors(): EventProcessor[] {
   return getGlobalSingleton<EventProcessor[]>('globalEventProcessors', () => []);
@@ -10,9 +13,10 @@ export function getGlobalEventProcessors(): EventProcessor[] {
 
 /**
  * Add a EventProcessor to be kept globally.
- * @param callback EventProcessor to add
+ * @deprecated Use `addEventProcessor` instead. Global event processors will be removed in v8.
  */
 export function addGlobalEventProcessor(callback: EventProcessor): void {
+  // eslint-disable-next-line deprecation/deprecation
   getGlobalEventProcessors().push(callback);
 }
 
@@ -32,10 +36,7 @@ export function notifyEventProcessors(
     } else {
       const result = processor({ ...event }, hint) as Event | null;
 
-      __DEBUG_BUILD__ &&
-        processor.id &&
-        result === null &&
-        logger.log(`Event processor "${processor.id}" dropped event`);
+      DEBUG_BUILD && processor.id && result === null && logger.log(`Event processor "${processor.id}" dropped event`);
 
       if (isThenable(result)) {
         void result

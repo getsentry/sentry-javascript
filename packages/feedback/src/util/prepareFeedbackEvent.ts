@@ -1,8 +1,6 @@
 import type { Scope } from '@sentry/core';
 import { prepareEvent } from '@sentry/core';
-import type { Client } from '@sentry/types';
-
-import type { FeedbackEvent } from '../types';
+import type { Client, FeedbackEvent } from '@sentry/types';
 
 interface PrepareFeedbackEventParams {
   client: Client;
@@ -17,7 +15,7 @@ export async function prepareFeedbackEvent({
   scope,
   event,
 }: PrepareFeedbackEventParams): Promise<FeedbackEvent | null> {
-  const eventHint = { integrations: undefined };
+  const eventHint = {};
   if (client.emit) {
     client.emit('preprocessEvent', event, eventHint);
   }
@@ -25,12 +23,14 @@ export async function prepareFeedbackEvent({
   const preparedEvent = (await prepareEvent(
     client.getOptions(),
     event,
-    { integrations: undefined },
+    eventHint,
     scope,
+    client,
   )) as FeedbackEvent | null;
 
-  // If e.g. a global event processor returned null
-  if (!preparedEvent) {
+  if (preparedEvent === null) {
+    // Taken from baseclient's `_processEvent` method, where this is handled for errors/transactions
+    client.recordDroppedEvent('event_processor', 'feedback', event);
     return null;
   }
 
@@ -39,14 +39,5 @@ export async function prepareFeedbackEvent({
   // we need to do this manually.
   preparedEvent.platform = preparedEvent.platform || 'javascript';
 
-  // extract the SDK name because `client._prepareEvent` doesn't add it to the event
-  const metadata = client.getSdkMetadata && client.getSdkMetadata();
-  const { name, version } = (metadata && metadata.sdk) || {};
-
-  preparedEvent.sdk = {
-    ...preparedEvent.sdk,
-    name: name || 'sentry.javascript.unknown',
-    version: version || '0.0.0',
-  };
   return preparedEvent;
 }

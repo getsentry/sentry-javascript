@@ -20,11 +20,13 @@ import type {
   TransactionContext,
   User,
 } from '@sentry/types';
-import { consoleSandbox, dateTimestampInSeconds, getGlobalSingleton, GLOBAL_OBJ, logger, uuid4 } from '@sentry/utils';
+import { GLOBAL_OBJ, consoleSandbox, dateTimestampInSeconds, getGlobalSingleton, logger, uuid4 } from '@sentry/utils';
 
 import { DEFAULT_ENVIRONMENT } from './constants';
+import { DEBUG_BUILD } from './debug-build';
 import { Scope } from './scope';
 import { closeSession, makeSession, updateSession } from './session';
+import { SDK_VERSION } from './version';
 
 /**
  * API compatibility version of this hub.
@@ -34,7 +36,7 @@ import { closeSession, makeSession, updateSession } from './session';
  *
  * @hidden
  */
-export const API_VERSION = 4;
+export const API_VERSION = parseFloat(SDK_VERSION);
 
 /**
  * Default maximum number of breadcrumbs added to an event. Can be overwritten
@@ -137,10 +139,12 @@ export class Hub implements HubInterface {
 
   /**
    * @inheritDoc
+   *
+   * @deprecated Use `withScope` instead.
    */
   public pushScope(): Scope {
     // We want to clone the content of prev scope
-    const scope = Scope.clone(this.getScope());
+    const scope = this.getScope().clone();
     this.getStack().push({
       client: this.getClient(),
       scope,
@@ -150,6 +154,8 @@ export class Hub implements HubInterface {
 
   /**
    * @inheritDoc
+   *
+   * @deprecated Use `withScope` instead.
    */
   public popScope(): boolean {
     if (this.getStack().length <= 1) return false;
@@ -159,11 +165,13 @@ export class Hub implements HubInterface {
   /**
    * @inheritDoc
    */
-  public withScope(callback: (scope: Scope) => void): void {
+  public withScope<T>(callback: (scope: Scope) => T): T {
+    // eslint-disable-next-line deprecation/deprecation
     const scope = this.pushScope();
     try {
-      callback(scope);
+      return callback(scope);
     } finally {
+      // eslint-disable-next-line deprecation/deprecation
       this.popScope();
     }
   }
@@ -333,6 +341,8 @@ export class Hub implements HubInterface {
 
   /**
    * @inheritDoc
+   *
+   * @deprecated Use `getScope()` directly.
    */
   public configureScope(callback: (scope: Scope) => void): void {
     const { scope, client } = this.getStackTop();
@@ -362,7 +372,7 @@ export class Hub implements HubInterface {
     try {
       return client.getIntegration(integration);
     } catch (_oO) {
-      __DEBUG_BUILD__ && logger.warn(`Cannot retrieve integration ${integration.id} from the current Hub`);
+      DEBUG_BUILD && logger.warn(`Cannot retrieve integration ${integration.id} from the current Hub`);
       return null;
     }
   }
@@ -373,16 +383,14 @@ export class Hub implements HubInterface {
   public startTransaction(context: TransactionContext, customSamplingContext?: CustomSamplingContext): Transaction {
     const result = this._callExtensionMethod<Transaction>('startTransaction', context, customSamplingContext);
 
-    if (__DEBUG_BUILD__ && !result) {
+    if (DEBUG_BUILD && !result) {
       const client = this.getClient();
       if (!client) {
-        // eslint-disable-next-line no-console
-        console.warn(
+        logger.warn(
           "Tracing extension 'startTransaction' is missing. You should 'init' the SDK before calling 'startTransaction'",
         );
       } else {
-        // eslint-disable-next-line no-console
-        console.warn(`Tracing extension 'startTransaction' has not been added. Call 'addTracingExtensions' before calling 'init':
+        logger.warn(`Tracing extension 'startTransaction' has not been added. Call 'addTracingExtensions' before calling 'init':
 Sentry.addTracingExtensions();
 Sentry.init({...});
 `);
@@ -505,7 +513,7 @@ Sentry.init({...});
     if (sentry && sentry.extensions && typeof sentry.extensions[method] === 'function') {
       return sentry.extensions[method].apply(this, args);
     }
-    __DEBUG_BUILD__ && logger.warn(`Extension method ${method} couldn't be found, doing nothing.`);
+    DEBUG_BUILD && logger.warn(`Extension method ${method} couldn't be found, doing nothing.`);
   }
 }
 
@@ -578,7 +586,7 @@ export function ensureHubOnCarrier(carrier: Carrier, parent: Hub = getGlobalHub(
   // If there's no hub on current domain, or it's an old API, assign a new one
   if (!hasHubOnCarrier(carrier) || getHubFromCarrier(carrier).isOlderThan(API_VERSION)) {
     const globalHubTopStack = parent.getStackTop();
-    setHubOnCarrier(carrier, new Hub(globalHubTopStack.client, Scope.clone(globalHubTopStack.scope)));
+    setHubOnCarrier(carrier, new Hub(globalHubTopStack.client, globalHubTopStack.scope.clone()));
   }
 }
 

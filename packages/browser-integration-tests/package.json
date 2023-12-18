@@ -1,6 +1,6 @@
 {
   "name": "@sentry-internal/browser-integration-tests",
-  "version": "7.77.0",
+  "version": "7.88.0",
   "main": "index.js",
   "license": "MIT",
   "engines": {
@@ -10,12 +10,8 @@
   "scripts": {
     "clean": "rimraf -g suites/**/dist loader-suites/**/dist tmp",
     "install-browsers": "playwright install --with-deps",
-    "lint": "run-s lint:prettier lint:eslint",
-    "lint:eslint": "eslint . --format stylish",
-    "lint:prettier": "prettier --check \"{suites,utils}/**/*.ts\"",
-    "fix": "run-s fix:eslint fix:prettier",
-    "fix:eslint": "eslint . --format stylish --fix",
-    "fix:prettier": "prettier --write \"{suites,utils}/**/*.ts\"",
+    "lint": "eslint . --format stylish",
+    "fix": "eslint . --format stylish --fix",
     "type-check": "tsc",
     "pretest": "yarn clean && yarn type-check",
     "test": "playwright test ./suites --project='chromium'",
@@ -49,7 +45,7 @@
   "dependencies": {
     "@babel/preset-typescript": "^7.16.7",
     "@playwright/test": "^1.31.1",
-    "axios": "1.3.4",
+    "axios": "1.6.0",
     "babel-loader": "^8.2.2",
     "html-webpack-plugin": "^5.5.0",
     "pako": "^2.1.0",

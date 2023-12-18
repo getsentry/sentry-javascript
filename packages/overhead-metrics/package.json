@@ -1,6 +1,6 @@
 {
   "private": true,
-  "version": "7.77.0",
+  "version": "7.88.0",
   "name": "@sentry-internal/overhead-metrics",
   "main": "index.js",
   "author": "Sentry",
@@ -13,12 +13,8 @@
     "dev:run:replay": "npx chrome ./test-apps/booking-app/with-replay.html",
     "ci:collect": "ts-node-esm ./configs/ci/collect.ts",
     "ci:process": "ts-node-esm ./configs/ci/process.ts",
-    "fix": "run-s fix:eslint fix:prettier",
-    "fix:eslint": "eslint . --format stylish --fix",
-    "fix:prettier": "prettier --write \"{src,test-apps,configs}/**/*.{ts,js,html,css}\"",
-    "lint": "run-s lint:prettier lint:eslint",
-    "lint:eslint": "eslint . --format stylish",
-    "lint:prettier": "prettier --check \"{src,test-apps,configs}/**/*.{ts,js,html,css}\""
+    "fix": "eslint . --format stylish --fix",
+    "lint": "eslint . --format stylish"
   },
   "dependencies": {
     "@octokit/rest": "^19.0.5",

@@ -1,7 +1,8 @@
-import type { EventProcessor, Hub, Integration, Transaction } from '@sentry/types';
+import type { EventEnvelope, EventProcessor, Hub, Integration, Transaction } from '@sentry/types';
 import type { Profile } from '@sentry/types/src/profiling';
 import { logger } from '@sentry/utils';
 
+import { DEBUG_BUILD } from '../debug-build';
 import { startProfileForTransaction } from './hubextensions';
 import type { ProfiledEvent } from './utils';
 import {
@@ -78,14 +79,12 @@ export class BrowserProfilingIntegration implements Integration {
           const start_timestamp = context && context['profile'] && context['profile']['start_timestamp'];
 
           if (typeof profile_id !== 'string') {
-            __DEBUG_BUILD__ &&
-              logger.log('[Profiling] cannot find profile for a transaction without a profile context');
+            DEBUG_BUILD && logger.log('[Profiling] cannot find profile for a transaction without a profile context');
             continue;
           }
 
           if (!profile_id) {
-            __DEBUG_BUILD__ &&
-              logger.log('[Profiling] cannot find profile for a transaction without a profile context');
+            DEBUG_BUILD && logger.log('[Profiling] cannot find profile for a transaction without a profile context');
             continue;
           }
 
@@ -96,7 +95,7 @@ export class BrowserProfilingIntegration implements Integration {
 
           const profile = takeProfileFromGlobalCache(profile_id);
           if (!profile) {
-            __DEBUG_BUILD__ && logger.log(`[Profiling] Could not retrieve profile for transaction: ${profile_id}`);
+            DEBUG_BUILD && logger.log(`[Profiling] Could not retrieve profile for transaction: ${profile_id}`);
             continue;
           }
 
@@ -111,7 +110,7 @@ export class BrowserProfilingIntegration implements Integration {
           }
         }
 
-        addProfilesToEnvelope(envelope, profilesToAddToEnvelope);
+        addProfilesToEnvelope(envelope as EventEnvelope, profilesToAddToEnvelope);
       });
     } else {
       logger.warn('[Profiling] Client does not support hooks, profiling will be disabled');

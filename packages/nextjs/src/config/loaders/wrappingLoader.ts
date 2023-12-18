@@ -1,8 +1,8 @@
+import * as fs from 'fs';
+import * as path from 'path';
 import commonjs from '@rollup/plugin-commonjs';
 import { stringMatchesSomePattern } from '@sentry/utils';
 import * as chalk from 'chalk';
-import * as fs from 'fs';
-import * as path from 'path';
 import type { RollupBuild, RollupError } from 'rollup';
 import { rollup } from 'rollup';
 
@@ -40,9 +40,9 @@ const serverComponentWrapperTemplateCode = fs.readFileSync(serverComponentWrappe
 const routeHandlerWrapperTemplatePath = path.resolve(__dirname, '..', 'templates', 'routeHandlerWrapperTemplate.js');
 const routeHandlerWrapperTemplateCode = fs.readFileSync(routeHandlerWrapperTemplatePath, { encoding: 'utf8' });
 
-type LoaderOptions = {
-  pagesDir: string;
-  appDir: string;
+export type WrappingLoaderOptions = {
+  pagesDir: string | undefined;
+  appDir: string | undefined;
   pageExtensionRegex: string;
   excludeServerRoutes: Array<RegExp | string>;
   wrappingTargetKind: 'page' | 'api-route' | 'middleware' | 'server-component' | 'sentry-init' | 'route-handler';
@@ -58,7 +58,7 @@ type LoaderOptions = {
  */
 // eslint-disable-next-line complexity
 export default function wrappingLoader(
-  this: LoaderThis<LoaderOptions>,
+  this: LoaderThis<WrappingLoaderOptions>,
   userCode: string,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   userModuleSourceMap: any,
@@ -101,13 +101,17 @@ export default function wrappingLoader(
       return;
     }
   } else if (wrappingTargetKind === 'page' || wrappingTargetKind === 'api-route') {
+    if (pagesDir === undefined) {
+      this.callback(null, userCode, userModuleSourceMap);
+      return;
+    }
+
     // Get the parameterized route name from this page's filepath
-    const parameterizedPagesRoute = path.posix
-      .normalize(
-        path
-          // Get the path of the file insde of the pages directory
-          .relative(pagesDir, this.resourcePath),
-      )
+    const parameterizedPagesRoute = path
+      // Get the path of the file insde of the pages directory
+      .relative(pagesDir, this.resourcePath)
+      // Replace all backslashes with forward slashes (windows)
+      .replace(/\\/g, '/')
       // Add a slash at the beginning
       .replace(/(.*)/, '/$1')
       // Pull off the file extension
@@ -138,15 +142,21 @@ export default function wrappingLoader(
     // Inject the route and the path to the file we're wrapping into the template
     templateCode = templateCode.replace(/__ROUTE__/g, parameterizedPagesRoute.replace(/\\/g, '\\\\'));
   } else if (wrappingTargetKind === 'server-component' || wrappingTargetKind === 'route-handler') {
+    if (appDir === undefined) {
+      this.callback(null, userCode, userModuleSourceMap);
+      return;
+    }
+
     // Get the parameterized route name from this page's filepath
-    const parameterizedPagesRoute = path.posix
-      .normalize(path.relative(appDir, this.resourcePath))
+    const parameterizedPagesRoute = path
+      // Get the path of the file insde of the app directory
+      .relative(appDir, this.resourcePath)
+      // Replace all backslashes with forward slashes (windows)
+      .replace(/\\/g, '/')
       // Add a slash at the beginning
       .replace(/(.*)/, '/$1')
       // Pull off the file name
       .replace(/\/[^/]+\.(js|ts|jsx|tsx)$/, '')
-      // Remove routing groups: https://beta.nextjs.org/docs/routing/defining-routes#example-creating-multiple-root-layouts
-      .replace(/\/(\(.*?\)\/)+/g, '/')
       // In case all of the above have left us with an empty string (which will happen if we're dealing with the
       // homepage), sub back in the root route
       .replace(/^$/, '/');

@@ -1,4 +1,4 @@
-import { getCurrentHub, OpenTelemetryHub } from '../../src/custom/hub';
+import { OpenTelemetryHub, getCurrentHub } from '../../src/custom/hub';
 import { OpenTelemetryScope } from '../../src/custom/scope';
 
 describe('OpenTelemetryHub', () => {
@@ -26,6 +26,7 @@ describe('OpenTelemetryHub', () => {
   it('pushScope() creates correct scope', () => {
     const hub = new OpenTelemetryHub();
 
+    // eslint-disable-next-line deprecation/deprecation
     const scope = hub.pushScope();
     expect(scope).toBeInstanceOf(OpenTelemetryScope);
 

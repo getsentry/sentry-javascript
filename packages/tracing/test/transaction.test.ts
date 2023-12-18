@@ -1,7 +1,7 @@
 /* eslint-disable deprecation/deprecation */
 import { BrowserClient, Hub } from '@sentry/browser';
 
-import { addExtensionMethods, Transaction } from '../src';
+import { Transaction, addExtensionMethods } from '../src';
 import { getDefaultBrowserClientOptions } from './testutils';
 
 describe('`Transaction` class', () => {
@@ -153,6 +153,7 @@ describe('`Transaction` class', () => {
             trace: {
               span_id: transaction.spanId,
               trace_id: transaction.traceId,
+              origin: 'manual',
             },
           },
         }),
@@ -179,6 +180,7 @@ describe('`Transaction` class', () => {
             trace: {
               span_id: transaction.spanId,
               trace_id: transaction.traceId,
+              origin: 'manual',
             },
           },
         }),

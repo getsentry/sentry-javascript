@@ -1,5 +1,5 @@
 import { SemanticAttributes } from '@opentelemetry/semantic-conventions';
-import { getCurrentHub, isSentryRequestUrl } from '@sentry/core';
+import { getClient, isSentryRequestUrl } from '@sentry/core';
 
 import type { AbstractSpan } from '../types';
 import { spanHasAttributes } from './spanTypes';
@@ -22,5 +22,5 @@ export function isSentryRequestSpan(span: AbstractSpan): boolean {
     return false;
   }
 
-  return isSentryRequestUrl(httpUrl.toString(), getCurrentHub());
+  return isSentryRequestUrl(httpUrl.toString(), getClient());
 }

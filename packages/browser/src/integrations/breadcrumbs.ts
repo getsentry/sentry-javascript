@@ -1,7 +1,14 @@
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable max-lines */
-import { getCurrentHub } from '@sentry/core';
-import type { Event as SentryEvent, HandlerDataFetch, HandlerDataXhr, Integration } from '@sentry/types';
+import { addBreadcrumb, getClient } from '@sentry/core';
+import type {
+  Event as SentryEvent,
+  HandlerDataConsole,
+  HandlerDataDom,
+  HandlerDataFetch,
+  HandlerDataHistory,
+  HandlerDataXhr,
+  Integration,
+} from '@sentry/types';
 import type {
   FetchBreadcrumbData,
   FetchBreadcrumbHint,
@@ -9,19 +16,22 @@ import type {
   XhrBreadcrumbHint,
 } from '@sentry/types/build/types/breadcrumb';
 import {
-  addInstrumentationHandler,
+  SENTRY_XHR_DATA_KEY,
+  addClickKeypressInstrumentationHandler,
+  addConsoleInstrumentationHandler,
+  addFetchInstrumentationHandler,
+  addHistoryInstrumentationHandler,
+  addXhrInstrumentationHandler,
   getEventDescription,
   htmlTreeAsString,
   logger,
   parseUrl,
   safeJoin,
-  SENTRY_XHR_DATA_KEY,
   severityLevelFromString,
 } from '@sentry/utils';
 
+import { DEBUG_BUILD } from '../debug-build';
 import { WINDOW } from '../helpers';
-
-type HandlerData = Record<string, unknown>;
 
 /** JSDoc */
 interface BreadcrumbsOptions {
@@ -88,22 +98,22 @@ export class Breadcrumbs implements Integration {
    */
   public setupOnce(): void {
     if (this.options.console) {
-      addInstrumentationHandler('console', _consoleBreadcrumb);
+      addConsoleInstrumentationHandler(_consoleBreadcrumb);
     }
     if (this.options.dom) {
-      addInstrumentationHandler('dom', _domBreadcrumb(this.options.dom));
+      addClickKeypressInstrumentationHandler(_domBreadcrumb(this.options.dom));
     }
     if (this.options.xhr) {
-      addInstrumentationHandler('xhr', _xhrBreadcrumb);
+      addXhrInstrumentationHandler(_xhrBreadcrumb);
     }
     if (this.options.fetch) {
-      addInstrumentationHandler('fetch', _fetchBreadcrumb);
+      addFetchInstrumentationHandler(_fetchBreadcrumb);
     }
     if (this.options.history) {
-      addInstrumentationHandler('history', _historyBreadcrumb);
+      addHistoryInstrumentationHandler(_historyBreadcrumb);
     }
     if (this.options.sentry) {
-      const client = getCurrentHub().getClient();
+      const client = getClient();
       client && client.on && client.on('beforeSendEvent', addSentryBreadcrumb);
     }
   }
@@ -113,7 +123,7 @@ export class Breadcrumbs implements Integration {
  * Adds a breadcrumb for Sentry events or transactions if this option is enabled.
  */
 function addSentryBreadcrumb(event: SentryEvent): void {
-  getCurrentHub().addBreadcrumb(
+  addBreadcrumb(
     {
       category: `sentry.${event.type === 'transaction' ? 'transaction' : 'event'}`,
       event_id: event.event_id,
@@ -130,15 +140,15 @@ function addSentryBreadcrumb(event: SentryEvent): void {
  * A HOC that creaes a function that creates breadcrumbs from DOM API calls.
  * This is a HOC so that we get access to dom options in the closure.
  */
-function _domBreadcrumb(dom: BreadcrumbsOptions['dom']): (handlerData: HandlerData) => void {
-  function _innerDomBreadcrumb(handlerData: HandlerData): void {
+function _domBreadcrumb(dom: BreadcrumbsOptions['dom']): (handlerData: HandlerDataDom) => void {
+  function _innerDomBreadcrumb(handlerData: HandlerDataDom): void {
     let target;
     let keyAttrs = typeof dom === 'object' ? dom.serializeAttribute : undefined;
 
     let maxStringLength =
       typeof dom === 'object' && typeof dom.maxStringLength === 'number' ? dom.maxStringLength : undefined;
     if (maxStringLength && maxStringLength > MAX_ALLOWED_STRING_LENGTH) {
-      __DEBUG_BUILD__ &&
+      DEBUG_BUILD &&
         logger.warn(
           `\`dom.maxStringLength\` cannot exceed ${MAX_ALLOWED_STRING_LENGTH}, but a value of ${maxStringLength} was configured. Sentry will use ${MAX_ALLOWED_STRING_LENGTH} instead.`,
         );
@@ -163,7 +173,7 @@ function _domBreadcrumb(dom: BreadcrumbsOptions['dom']): (handlerData: HandlerDa
       return;
     }
 
-    getCurrentHub().addBreadcrumb(
+    addBreadcrumb(
       {
         category: `ui.${handlerData.name}`,
         message: target,
@@ -182,7 +192,7 @@ function _domBreadcrumb(dom: BreadcrumbsOptions['dom']): (handlerData: HandlerDa
 /**
  * Creates breadcrumbs from console API calls
  */
-function _consoleBreadcrumb(handlerData: HandlerData & { args: unknown[]; level: string }): void {
+function _consoleBreadcrumb(handlerData: HandlerDataConsole): void {
   const breadcrumb = {
     category: 'console',
     data: {
@@ -203,7 +213,7 @@ function _consoleBreadcrumb(handlerData: HandlerData & { args: unknown[]; level:
     }
   }
 
-  getCurrentHub().addBreadcrumb(breadcrumb, {
+  addBreadcrumb(breadcrumb, {
     input: handlerData.args,
     level: handlerData.level,
   });
@@ -212,7 +222,7 @@ function _consoleBreadcrumb(handlerData: HandlerData & { args: unknown[]; level:
 /**
  * Creates breadcrumbs from XHR API calls
  */
-function _xhrBreadcrumb(handlerData: HandlerData & HandlerDataXhr): void {
+function _xhrBreadcrumb(handlerData: HandlerDataXhr): void {
   const { startTimestamp, endTimestamp } = handlerData;
 
   const sentryXhrData = handlerData.xhr[SENTRY_XHR_DATA_KEY];
@@ -237,7 +247,7 @@ function _xhrBreadcrumb(handlerData: HandlerData & HandlerDataXhr): void {
     endTimestamp,
   };
 
-  getCurrentHub().addBreadcrumb(
+  addBreadcrumb(
     {
       category: 'xhr',
       data,
@@ -250,7 +260,7 @@ function _xhrBreadcrumb(handlerData: HandlerData & HandlerDataXhr): void {
 /**
  * Creates breadcrumbs from fetch API calls
  */
-function _fetchBreadcrumb(handlerData: HandlerData & HandlerDataFetch & { response?: Response }): void {
+function _fetchBreadcrumb(handlerData: HandlerDataFetch): void {
   const { startTimestamp, endTimestamp } = handlerData;
 
   // We only capture complete fetch requests
@@ -272,7 +282,7 @@ function _fetchBreadcrumb(handlerData: HandlerData & HandlerDataFetch & { respon
       endTimestamp,
     };
 
-    getCurrentHub().addBreadcrumb(
+    addBreadcrumb(
       {
         category: 'fetch',
         data,
@@ -282,17 +292,18 @@ function _fetchBreadcrumb(handlerData: HandlerData & HandlerDataFetch & { respon
       hint,
     );
   } else {
+    const response = handlerData.response as Response | undefined;
     const data: FetchBreadcrumbData = {
       ...handlerData.fetchData,
-      status_code: handlerData.response && handlerData.response.status,
+      status_code: response && response.status,
     };
     const hint: FetchBreadcrumbHint = {
       input: handlerData.args,
-      response: handlerData.response,
+      response,
       startTimestamp,
       endTimestamp,
     };
-    getCurrentHub().addBreadcrumb(
+    addBreadcrumb(
       {
         category: 'fetch',
         data,
@@ -306,15 +317,15 @@ function _fetchBreadcrumb(handlerData: HandlerData & HandlerDataFetch & { respon
 /**
  * Creates breadcrumbs from history API calls
  */
-function _historyBreadcrumb(handlerData: HandlerData & { from: string; to: string }): void {
+function _historyBreadcrumb(handlerData: HandlerDataHistory): void {
   let from: string | undefined = handlerData.from;
   let to: string | undefined = handlerData.to;
   const parsedLoc = parseUrl(WINDOW.location.href);
-  let parsedFrom = parseUrl(from);
+  let parsedFrom = from ? parseUrl(from) : undefined;
   const parsedTo = parseUrl(to);
 
   // Initial pushState doesn't provide `from` information
-  if (!parsedFrom.path) {
+  if (!parsedFrom || !parsedFrom.path) {
     parsedFrom = parsedLoc;
   }
 
@@ -327,7 +338,7 @@ function _historyBreadcrumb(handlerData: HandlerData & { from: string; to: strin
     from = parsedFrom.relative;
   }
 
-  getCurrentHub().addBreadcrumb({
+  addBreadcrumb({
     category: 'navigation',
     data: {
       from,

@@ -1,28 +1,17 @@
-// TODO: Remove this file once equivalent integration is used everywhere
-
-/* eslint-disable complexity */
-/**
- * The functions here, which enrich an event with request data, are mostly for use in Node, but are safe for use in a
- * browser context. They live here in `@sentry/utils` rather than in `@sentry/node` so that they can be used in
- * frameworks (like nextjs), which, because of SSR, run the same code in both Node and browser contexts.
- *
- * TODO (v8 / #5257): Remove the note below
- * Note that for now, the tests for this code have to live in `@sentry/node`, since they test both these functions and
- * the backwards-compatibility-preserving wrappers which still live in `handlers.ts` there.
- */
-
-/* eslint-disable max-lines */
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 import type {
   Event,
   ExtractedNodeRequestData,
   PolymorphicRequest,
   Transaction,
   TransactionSource,
+  WebFetchHeaders,
+  WebFetchRequest,
 } from '@sentry/types';
 
+import { parseCookie } from './cookie';
+import { DEBUG_BUILD } from './debug-build';
 import { isPlainObject, isString } from './is';
+import { logger } from './logger';
 import { normalize } from './normalize';
 import { stripUrlQueryAndFragment } from './url';
 
@@ -33,7 +22,7 @@ const DEFAULT_INCLUDES = {
   user: true,
 };
 const DEFAULT_REQUEST_INCLUDES = ['cookies', 'data', 'headers', 'method', 'query_string', 'url'];
-const DEFAULT_USER_INCLUDES = ['id', 'username', 'email'];
+export const DEFAULT_USER_INCLUDES = ['id', 'username', 'email'];
 
 type InjectedNodeDeps = {
   cookie: {
@@ -45,6 +34,33 @@ type InjectedNodeDeps = {
     };
   };
 };
+
+/**
+ * Options deciding what parts of the request to use when enhancing an event
+ */
+export type AddRequestDataToEventOptions = {
+  /** Flags controlling whether each type of data should be added to the event */
+  include?: {
+    ip?: boolean;
+    request?: boolean | Array<(typeof DEFAULT_REQUEST_INCLUDES)[number]>;
+    transaction?: boolean | TransactionNamingScheme;
+    user?: boolean | Array<(typeof DEFAULT_USER_INCLUDES)[number]>;
+  };
+
+  /** Injected platform-specific dependencies */
+  deps?: {
+    cookie: {
+      parse: (cookieStr: string) => Record<string, string>;
+    };
+    url: {
+      parse: (urlStr: string) => {
+        query: string | null;
+      };
+    };
+  };
+};
+
+export type TransactionNamingScheme = 'path' | 'methodPath' | 'handler';
 
 /**
  * Sets parameterized route as transaction name e.g.: `GET /users/:id`
@@ -115,8 +131,6 @@ export function extractPathForTransaction(
   return [name, source];
 }
 
-type TransactionNamingScheme = 'path' | 'methodPath' | 'handler';
-
 /** JSDoc */
 function extractTransaction(req: PolymorphicRequest, type: boolean | TransactionNamingScheme): string {
   switch (type) {
@@ -128,7 +142,9 @@ function extractTransaction(req: PolymorphicRequest, type: boolean | Transaction
     }
     case 'methodPath':
     default: {
-      return extractPathForTransaction(req, { path: true, method: true })[0];
+      // if exist _reconstructedRoute return that path instead of route.path
+      const customRoute = req._reconstructedRoute ? req._reconstructedRoute : undefined;
+      return extractPathForTransaction(req, { path: true, method: true, customRoute })[0];
     }
   }
 }
@@ -136,11 +152,11 @@ function extractTransaction(req: PolymorphicRequest, type: boolean | Transaction
 /** JSDoc */
 function extractUserData(
   user: {
-    [key: string]: any;
+    [key: string]: unknown;
   },
   keys: boolean | string[],
-): { [key: string]: any } {
-  const extractedUser: { [key: string]: any } = {};
+): { [key: string]: unknown } {
+  const extractedUser: { [key: string]: unknown } = {};
   const attributes = Array.isArray(keys) ? keys : DEFAULT_USER_INCLUDES;
 
   attributes.forEach(key => {
@@ -194,11 +210,17 @@ export function extractRequestData(
   //   koa, nextjs: req.url
   const originalUrl = req.originalUrl || req.url || '';
   // absolute url
-  const absoluteUrl = `${protocol}://${host}${originalUrl}`;
+  const absoluteUrl = originalUrl.startsWith(protocol) ? originalUrl : `${protocol}://${host}${originalUrl}`;
   include.forEach(key => {
     switch (key) {
       case 'headers': {
         requestData.headers = headers;
+
+        // Remove the Cookie header in case cookie data should not be included in the event
+        if (!include.includes('cookies')) {
+          delete (requestData.headers as { cookie?: string }).cookie;
+        }
+
         break;
       }
       case 'method': {
@@ -213,11 +235,10 @@ export function extractRequestData(
         // cookies:
         //   node, express, koa: req.headers.cookie
         //   vercel, sails.js, express (w/ cookie middleware), nextjs: req.cookies
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         requestData.cookies =
           // TODO (v8 / #5257): We're only sending the empty object for backwards compatibility, so the last bit can
           // come off in v8
-          req.cookies || (headers.cookie && deps && deps.cookie && deps.cookie.parse(headers.cookie)) || {};
+          req.cookies || (headers.cookie && parseCookie(headers.cookie)) || {};
         break;
       }
       case 'query_string': {
@@ -245,7 +266,7 @@ export function extractRequestData(
       }
       default: {
         if ({}.hasOwnProperty.call(req, key)) {
-          requestData[key] = (req as { [key: string]: any })[key];
+          requestData[key] = (req as { [key: string]: unknown })[key];
         }
       }
     }
@@ -255,38 +276,13 @@ export function extractRequestData(
 }
 
 /**
- * Options deciding what parts of the request to use when enhancing an event
- */
-export interface AddRequestDataToEventOptions {
-  /** Flags controlling whether each type of data should be added to the event */
-  include?: {
-    ip?: boolean;
-    request?: boolean | string[];
-    transaction?: boolean | TransactionNamingScheme;
-    user?: boolean | string[];
-  };
-
-  /** Injected platform-specific dependencies */
-  deps?: {
-    cookie: {
-      parse: (cookieStr: string) => Record<string, string>;
-    };
-    url: {
-      parse: (urlStr: string) => {
-        query: string | null;
-      };
-    };
-  };
-}
-
-/**
  * Add data from the given request to the given event
  *
  * @param event The event to which the request data will be added
  * @param req Request object
  * @param options.include Flags to control what data is included
  * @param options.deps Injected platform-specific dependencies
- * @hidden
+ * @returns The mutated `Event` object
  */
 export function addRequestDataToEvent(
   event: Event,
@@ -361,11 +357,48 @@ function extractQueryParams(
     originalUrl = `http://dogs.are.great${originalUrl}`;
   }
 
-  return (
-    req.query ||
-    (typeof URL !== undefined && new URL(originalUrl).search.replace('?', '')) ||
-    // In Node 8, `URL` isn't in the global scope, so we have to use the built-in module from Node
-    (deps && deps.url && deps.url.parse(originalUrl).query) ||
-    undefined
-  );
+  try {
+    return (
+      req.query ||
+      (typeof URL !== undefined && new URL(originalUrl).search.slice(1)) ||
+      // In Node 8, `URL` isn't in the global scope, so we have to use the built-in module from Node
+      (deps && deps.url && deps.url.parse(originalUrl).query) ||
+      undefined
+    );
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Transforms a `Headers` object that implements the `Web Fetch API` (https://developer.mozilla.org/en-US/docs/Web/API/Headers) into a simple key-value dict.
+ * The header keys will be lower case: e.g. A "Content-Type" header will be stored as "content-type".
+ */
+export function winterCGHeadersToDict(winterCGHeaders: WebFetchHeaders): Record<string, string> {
+  const headers: Record<string, string> = {};
+  try {
+    winterCGHeaders.forEach((value, key) => {
+      if (typeof value === 'string') {
+        // We check that value is a string even though it might be redundant to make sure prototype pollution is not possible.
+        headers[key] = value;
+      }
+    });
+  } catch (e) {
+    DEBUG_BUILD &&
+      logger.warn('Sentry failed extracting headers from a request object. If you see this, please file an issue.');
+  }
+
+  return headers;
+}
+
+/**
+ * Converts a `Request` object that implements the `Web Fetch API` (https://developer.mozilla.org/en-US/docs/Web/API/Headers) into the format that the `RequestData` integration understands.
+ */
+export function winterCGRequestToRequestData(req: WebFetchRequest): PolymorphicRequest {
+  const headers = winterCGHeadersToDict(req.headers);
+  return {
+    method: req.method,
+    url: req.url,
+    headers,
+  };
 }

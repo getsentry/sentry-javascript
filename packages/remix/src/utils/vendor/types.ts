@@ -1,3 +1,4 @@
+import type { Agent } from 'https';
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable max-lines */
 /* eslint-disable @typescript-eslint/ban-types */
@@ -11,7 +12,6 @@
 //
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 import type * as Express from 'express';
-import type { Agent } from 'https';
 import type { ComponentType } from 'react';
 
 type Dev = {
@@ -108,7 +108,12 @@ export type DeferredData = {
 };
 
 export interface MetaFunction {
-  (args: { data: AppData; parentsData: RouteData; params: Params; location: Location }): HtmlMetaDescriptor;
+  (args: {
+    data: AppData;
+    parentsData: RouteData;
+    params: Params;
+    location: Location;
+  }): HtmlMetaDescriptor;
 }
 
 export interface HtmlMetaDescriptor {
@@ -143,7 +148,11 @@ export interface LoaderFunction {
 }
 
 export interface HeadersFunction {
-  (args: { loaderHeaders: Headers; parentHeaders: Headers; actionHeaders: Headers }): Headers | HeadersInit;
+  (args: {
+    loaderHeaders: Headers;
+    parentHeaders: Headers;
+    actionHeaders: Headers;
+  }): Headers | HeadersInit;
 }
 
 export interface ServerRouteModule extends EntryRouteModule {

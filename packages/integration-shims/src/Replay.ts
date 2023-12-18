@@ -1,4 +1,5 @@
 import type { Integration } from '@sentry/types';
+import { consoleSandbox } from '@sentry/utils';
 
 /**
  * This is a shim for the Replay integration.
@@ -20,8 +21,10 @@ class ReplayShim implements Integration {
   public constructor(_options: any) {
     this.name = ReplayShim.id;
 
-    // eslint-disable-next-line no-console
-    console.error('You are using new Replay() even though this bundle does not include replay.');
+    consoleSandbox(() => {
+      // eslint-disable-next-line no-console
+      console.error('You are using new Replay() even though this bundle does not include replay.');
+    });
   }
 
   /** jsdoc */

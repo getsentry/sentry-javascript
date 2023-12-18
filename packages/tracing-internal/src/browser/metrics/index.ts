@@ -4,6 +4,7 @@ import { getActiveTransaction } from '@sentry/core';
 import type { Measurements } from '@sentry/types';
 import { browserPerformanceTimeOrigin, htmlTreeAsString, logger } from '@sentry/utils';
 
+import { DEBUG_BUILD } from '../../common/debug-build';
 import {
   addClsInstrumentationHandler,
   addFidInstrumentationHandler,
@@ -14,6 +15,8 @@ import { WINDOW } from '../types';
 import { getVisibilityWatcher } from '../web-vitals/lib/getVisibilityWatcher';
 import type { NavigatorDeviceMemory, NavigatorNetworkInformation } from '../web-vitals/types';
 import { _startChild, isMeasurementValue } from './utils';
+
+const MAX_INT_AS_BYTES = 2147483647;
 
 /**
  * Converts from milliseconds to seconds
@@ -119,7 +122,7 @@ function _trackCLS(): () => void {
       return;
     }
 
-    __DEBUG_BUILD__ && logger.log('[Measurements] Adding CLS');
+    DEBUG_BUILD && logger.log('[Measurements] Adding CLS');
     _measurements['cls'] = { value: metric.value, unit: '' };
     _clsEntry = entry as LayoutShift;
   });
@@ -133,7 +136,7 @@ function _trackLCP(): () => void {
       return;
     }
 
-    __DEBUG_BUILD__ && logger.log('[Measurements] Adding LCP');
+    DEBUG_BUILD && logger.log('[Measurements] Adding LCP');
     _measurements['lcp'] = { value: metric.value, unit: 'millisecond' };
     _lcpEntry = entry as LargestContentfulPaint;
   });
@@ -149,7 +152,7 @@ function _trackFID(): () => void {
 
     const timeOrigin = msToSec(browserPerformanceTimeOrigin as number);
     const startTime = msToSec(entry.startTime);
-    __DEBUG_BUILD__ && logger.log('[Measurements] Adding FID');
+    DEBUG_BUILD && logger.log('[Measurements] Adding FID');
     _measurements['fid'] = { value: metric.value, unit: 'millisecond' };
     _measurements['mark.fid'] = { value: timeOrigin + startTime, unit: 'second' };
   });
@@ -163,7 +166,7 @@ export function addPerformanceEntries(transaction: Transaction): void {
     return;
   }
 
-  __DEBUG_BUILD__ && logger.log('[Tracing] Adding & adjusting spans using Performance API');
+  DEBUG_BUILD && logger.log('[Tracing] Adding & adjusting spans using Performance API');
   const timeOrigin = msToSec(browserPerformanceTimeOrigin);
 
   const performanceEntries = performance.getEntries();
@@ -198,11 +201,11 @@ export function addPerformanceEntries(transaction: Transaction): void {
         const shouldRecord = entry.startTime < firstHidden.firstHiddenTime;
 
         if (entry.name === 'first-paint' && shouldRecord) {
-          __DEBUG_BUILD__ && logger.log('[Measurements] Adding FP');
+          DEBUG_BUILD && logger.log('[Measurements] Adding FP');
           _measurements['fp'] = { value: entry.startTime, unit: 'millisecond' };
         }
         if (entry.name === 'first-contentful-paint' && shouldRecord) {
-          __DEBUG_BUILD__ && logger.log('[Measurements] Adding FCP');
+          DEBUG_BUILD && logger.log('[Measurements] Adding FCP');
           _measurements['fcp'] = { value: entry.startTime, unit: 'millisecond' };
         }
         break;
@@ -226,7 +229,7 @@ export function addPerformanceEntries(transaction: Transaction): void {
     // Generate TTFB (Time to First Byte), which measured as the time between the beginning of the transaction and the
     // start of the response in milliseconds
     if (typeof responseStartTimestamp === 'number') {
-      __DEBUG_BUILD__ && logger.log('[Measurements] Adding TTFB');
+      DEBUG_BUILD && logger.log('[Measurements] Adding TTFB');
       _measurements['ttfb'] = {
         value: (responseStartTimestamp - transaction.startTimestamp) * 1000,
         unit: 'millisecond',
@@ -256,8 +259,7 @@ export function addPerformanceEntries(transaction: Transaction): void {
       const normalizedValue = Math.abs((measurementTimestamp - transaction.startTimestamp) * 1000);
       const delta = normalizedValue - oldValue;
 
-      __DEBUG_BUILD__ &&
-        logger.log(`[Measurements] Normalized ${name} from ${oldValue} to ${normalizedValue} (${delta})`);
+      DEBUG_BUILD && logger.log(`[Measurements] Normalized ${name} from ${oldValue} to ${normalizedValue} (${delta})`);
       _measurements[name].value = normalizedValue;
     });
 
@@ -402,15 +404,9 @@ export function _addResourceSpans(
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const data: Record<string, any> = {};
-  if ('transferSize' in entry) {
-    data['http.response_transfer_size'] = entry.transferSize;
-  }
-  if ('encodedBodySize' in entry) {
-    data['http.response_content_length'] = entry.encodedBodySize;
-  }
-  if ('decodedBodySize' in entry) {
-    data['http.decoded_response_content_length'] = entry.decodedBodySize;
-  }
+  setResourceEntrySizeData(data, entry, 'transferSize', 'http.response_transfer_size');
+  setResourceEntrySizeData(data, entry, 'encodedBodySize', 'http.response_content_length');
+  setResourceEntrySizeData(data, entry, 'decodedBodySize', 'http.decoded_response_content_length');
   if ('renderBlockingStatus' in entry) {
     data['resource.render_blocking_status'] = entry.renderBlockingStatus;
   }
@@ -465,7 +461,7 @@ function _trackNavigator(transaction: Transaction): void {
 /** Add LCP / CLS data to transaction to allow debugging */
 function _tagMetricInfo(transaction: Transaction): void {
   if (_lcpEntry) {
-    __DEBUG_BUILD__ && logger.log('[Measurements] Adding LCP Data');
+    DEBUG_BUILD && logger.log('[Measurements] Adding LCP Data');
 
     // Capture Properties of the LCP element that contributes to the LCP.
 
@@ -487,9 +483,21 @@ function _tagMetricInfo(transaction: Transaction): void {
 
   // See: https://developer.mozilla.org/en-US/docs/Web/API/LayoutShift
   if (_clsEntry && _clsEntry.sources) {
-    __DEBUG_BUILD__ && logger.log('[Measurements] Adding CLS Data');
+    DEBUG_BUILD && logger.log('[Measurements] Adding CLS Data');
     _clsEntry.sources.forEach((source, index) =>
       transaction.setTag(`cls.source.${index + 1}`, htmlTreeAsString(source.node)),
     );
+  }
+}
+
+function setResourceEntrySizeData(
+  data: Record<string, unknown>,
+  entry: ResourceEntry,
+  key: keyof Pick<ResourceEntry, 'transferSize' | 'encodedBodySize' | 'decodedBodySize'>,
+  dataKey: 'http.response_transfer_size' | 'http.response_content_length' | 'http.decoded_response_content_length',
+): void {
+  const entryVal = entry[key];
+  if (entryVal != null && entryVal < MAX_INT_AS_BYTES) {
+    data[dataKey] = entryVal;
   }
 }

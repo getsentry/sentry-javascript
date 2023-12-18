@@ -1,6 +1,6 @@
 {
   "name": "@sentry/replay",
-  "version": "7.77.0",
+  "version": "7.88.0",
   "description": "User replays for Sentry",
   "main": "build/npm/cjs/index.js",
   "module": "build/npm/esm/index.js",
@@ -29,15 +29,11 @@
     "build:tarball": "ts-node ../../scripts/prepack.ts --bundles && npm pack ./build/npm",
     "circularDepCheck": "madge --circular src/index.ts",
     "clean": "rimraf build sentry-replay-*.tgz",
-    "fix": "run-s fix:eslint fix:prettier",
-    "fix:eslint": "eslint . --format stylish --fix",
-    "fix:prettier": "prettier --write \"{src,test,scripts}/**/*.ts\"",
-    "lint": "run-s lint:prettier lint:eslint",
-    "lint:eslint": "eslint . --format stylish",
-    "lint:prettier": "prettier --check \"{src,test,scripts}/**/*.ts\"",
+    "fix": "eslint . --format stylish --fix",
+    "lint": "eslint . --format stylish",
     "test": "jest",
     "test:watch": "jest --watch",
-    "yalc:publish": "ts-node ../../scripts/prepack.ts --bundles && yalc publish ./build/npm --push"
+    "yalc:publish": "ts-node ../../scripts/prepack.ts --bundles && yalc publish ./build/npm --push --sig"
   },
   "repository": {
     "type": "git",
@@ -51,17 +47,17 @@
   "homepage": "https://docs.sentry.io/platforms/javascript/session-replay/",
   "devDependencies": {
     "@babel/core": "^7.17.5",
-    "@sentry-internal/replay-worker": "7.77.0",
-    "@sentry-internal/rrweb": "2.2.0",
-    "@sentry-internal/rrweb-snapshot": "2.2.0",
+    "@sentry-internal/replay-worker": "7.88.0",
+    "@sentry-internal/rrweb": "2.6.0",
+    "@sentry-internal/rrweb-snapshot": "2.6.0",
     "fflate": "^0.8.1",
     "jsdom-worker": "^0.2.1"
   },
   "dependencies": {
-    "@sentry-internal/tracing": "7.77.0",
-    "@sentry/core": "7.77.0",
-    "@sentry/types": "7.77.0",
-    "@sentry/utils": "7.77.0"
+    "@sentry-internal/tracing": "7.88.0",
+    "@sentry/core": "7.88.0",
+    "@sentry/types": "7.88.0",
+    "@sentry/utils": "7.88.0"
   },
   "engines": {
     "node": ">=12"

@@ -1,6 +1,6 @@
+import { TextEncoder } from 'util';
 import type { Transport } from '@sentry/types';
 import { SyncPromise } from '@sentry/utils';
-import { TextEncoder } from 'util';
 
 import { createTransport } from '../../src/transports/base';
 
