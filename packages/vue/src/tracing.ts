@@ -1,4 +1,4 @@
-import { getCurrentHub, getCurrentScope } from '@sentry/browser';
+import { getCurrentScope } from '@sentry/browser';
 import type { Span, Transaction } from '@sentry/types';
 import { logger, timestampInSeconds } from '@sentry/utils';
 

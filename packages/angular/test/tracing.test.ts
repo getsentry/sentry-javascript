@@ -1,6 +1,5 @@
 import { Component } from '@angular/core';
 import type { ActivatedRouteSnapshot, CanActivate, RouterStateSnapshot } from '@angular/router';
-import type { Hub } from '@sentry/types';
 
 import { TraceClassDecorator, TraceDirective, TraceMethodDecorator, instrumentAngularRouting } from '../src';
 import { getParameterizedRouteFromSnapshot } from '../src/tracing';

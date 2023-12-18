@@ -1,5 +1,5 @@
 import type { ServerRuntimeClient } from '@sentry/core';
-import { getClient, getCurrentHub, getCurrentScope } from '@sentry/core';
+import { getClient, getCurrentHub } from '@sentry/core';
 import { flush } from '@sentry/core';
 import type { Event, Hub, Integration, Primitive, StackParser } from '@sentry/types';
 import { eventFromUnknownInput, isPrimitive } from '@sentry/utils';

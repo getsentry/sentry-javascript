@@ -1,6 +1,5 @@
 import { withMonitor } from '@sentry/core';
 import type { Integration } from '@sentry/types';
-import type { DenoClient } from '../client';
 import { parseScheduleToString } from './deno-cron-format';
 
 type CronOptions = { backoffSchedule?: number[]; signal?: AbortSignal };

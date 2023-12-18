@@ -1,6 +1,5 @@
 import * as Sentry from '@sentry/browser';
-// eslint-disable-next-line no-unused-vars
-import * as _ from '@sentry/tracing';
+import '@sentry/tracing';
 
 window.Sentry = Sentry;
 
