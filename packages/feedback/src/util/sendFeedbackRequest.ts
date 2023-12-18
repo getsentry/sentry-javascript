@@ -33,67 +33,58 @@ export async function sendFeedbackRequest(
     type: 'feedback',
   };
 
-  return new Promise((resolve, reject) => {
-    withScope(async scope => {
-      // No use for breadcrumbs in feedback
-      scope.clearBreadcrumbs();
+  return withScope(async scope => {
+    // No use for breadcrumbs in feedback
+    scope.clearBreadcrumbs();
 
-      if ([FEEDBACK_API_SOURCE, FEEDBACK_WIDGET_SOURCE].includes(String(source))) {
-        scope.setLevel('info');
-      }
+    if ([FEEDBACK_API_SOURCE, FEEDBACK_WIDGET_SOURCE].includes(String(source))) {
+      scope.setLevel('info');
+    }
 
-      const feedbackEvent = await prepareFeedbackEvent({
-        scope,
-        client,
-        event: baseEvent,
-      });
+    const feedbackEvent = await prepareFeedbackEvent({
+      scope,
+      client,
+      event: baseEvent,
+    });
 
-      if (!feedbackEvent) {
-        resolve();
-        return;
-      }
+    if (!feedbackEvent) {
+      return;
+    }
 
-      if (client.emit) {
-        client.emit('beforeSendFeedback', feedbackEvent, { includeReplay: Boolean(includeReplay) });
-      }
+    if (client.emit) {
+      client.emit('beforeSendFeedback', feedbackEvent, { includeReplay: Boolean(includeReplay) });
+    }
 
-      const envelope = createEventEnvelope(
-        feedbackEvent,
-        dsn,
-        client.getOptions()._metadata,
-        client.getOptions().tunnel,
-      );
+    const envelope = createEventEnvelope(feedbackEvent, dsn, client.getOptions()._metadata, client.getOptions().tunnel);
 
-      let response: void | TransportMakeRequestResponse;
+    let response: void | TransportMakeRequestResponse;
+
+    try {
+      response = await transport.send(envelope);
+    } catch (err) {
+      const error = new Error('Unable to send Feedback');
 
       try {
-        response = await transport.send(envelope);
-      } catch (err) {
-        const error = new Error('Unable to send Feedback');
-
-        try {
-          // In case browsers don't allow this property to be writable
-          // @ts-expect-error This needs lib es2022 and newer
-          error.cause = err;
-        } catch {
-          // nothing to do
-        }
-        reject(error);
+        // In case browsers don't allow this property to be writable
+        // @ts-expect-error This needs lib es2022 and newer
+        error.cause = err;
+      } catch {
+        // nothing to do
       }
+      throw error;
+    }
 
-      // TODO (v8): we can remove this guard once transport.send's type signature doesn't include void anymore
-      if (!response) {
-        resolve(response);
-        return;
-      }
+    // TODO (v8): we can remove this guard once transport.send's type signature doesn't include void anymore
+    if (!response) {
+      return;
+    }
 
-      // Require valid status codes, otherwise can assume feedback was not sent successfully
-      if (typeof response.statusCode === 'number' && (response.statusCode < 200 || response.statusCode >= 300)) {
-        reject(new Error('Unable to send Feedback'));
-      }
+    // Require valid status codes, otherwise can assume feedback was not sent successfully
+    if (typeof response.statusCode === 'number' && (response.statusCode < 200 || response.statusCode >= 300)) {
+      throw new Error('Unable to send Feedback');
+    }
 
-      resolve(response);
-    });
+    return response;
   });
 }
 

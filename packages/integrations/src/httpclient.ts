@@ -1,4 +1,4 @@
-import { getCurrentHub, isSentryRequestUrl } from '@sentry/core';
+import { getClient, isSentryRequestUrl } from '@sentry/core';
 import type {
   Event as SentryEvent,
   EventProcessor,
@@ -348,9 +348,7 @@ export class HttpClient implements Integration {
    */
   private _shouldCaptureResponse(status: number, url: string): boolean {
     return (
-      this._isInGivenStatusRanges(status) &&
-      this._isInGivenRequestTargets(url) &&
-      !isSentryRequestUrl(url, getCurrentHub())
+      this._isInGivenStatusRanges(status) && this._isInGivenRequestTargets(url) && !isSentryRequestUrl(url, getClient())
     );
   }
 

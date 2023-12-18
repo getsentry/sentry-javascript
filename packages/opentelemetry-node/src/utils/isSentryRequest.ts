@@ -1,6 +1,6 @@
 import type { Span as OtelSpan } from '@opentelemetry/sdk-trace-base';
 import { SemanticAttributes } from '@opentelemetry/semantic-conventions';
-import { getCurrentHub, isSentryRequestUrl } from '@sentry/core';
+import { getClient, isSentryRequestUrl } from '@sentry/core';
 
 /**
  *
@@ -16,5 +16,5 @@ export function isSentryRequestSpan(otelSpan: OtelSpan): boolean {
     return false;
   }
 
-  return isSentryRequestUrl(httpUrl.toString(), getCurrentHub());
+  return isSentryRequestUrl(httpUrl.toString(), getClient());
 }
