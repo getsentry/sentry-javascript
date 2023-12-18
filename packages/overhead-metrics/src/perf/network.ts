@@ -71,11 +71,13 @@ export class NetworkUsageCollector {
       this._events.push(event);
       // Note: playwright would error out on file:/// requests. They are used to access local test app resources.
       if (url.startsWith('file:///')) {
-        void route.continue();
+        // eslint-disable-next-line @typescript-eslint/no-floating-promises
+        route.continue();
       } else {
         const response = await route.fetch();
         const body = await response.body();
-        void route.fulfill({ response, body });
+        // eslint-disable-next-line @typescript-eslint/no-floating-promises
+        route.fulfill({ response, body });
         event.responseTimeNs = process.hrtime.bigint();
         event.responseSize = body.length;
       }
