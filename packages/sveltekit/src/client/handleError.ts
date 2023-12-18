@@ -11,13 +11,16 @@ function defaultErrorHandler({ error }: Parameters<HandleClientError>[0]): Retur
   });
 }
 
+// TODO: add backwards-compatible type for kit 1.x (soon)
+type HandleClientErrorInput = Parameters<HandleClientError>[0];
+
 /**
  * Wrapper for the SvelteKit error handler that sends the error to Sentry.
  *
  * @param handleError The original SvelteKit error handler.
  */
 export function handleErrorWithSentry(handleError: HandleClientError = defaultErrorHandler): HandleClientError {
-  return (input: { error: unknown; event: NavigationEvent }): ReturnType<HandleClientError> => {
+  return (input: HandleClientErrorInput): ReturnType<HandleClientError> => {
     captureException(input.error, {
       mechanism: {
         type: 'sveltekit',
