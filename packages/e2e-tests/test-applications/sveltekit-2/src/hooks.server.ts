@@ -1,9 +1,9 @@
-import { env } from '$env/dynamic/private';
+import { E2E_TEST_DSN } from '$env/static/private';
 import * as Sentry from '@sentry/sveltekit';
 
 Sentry.init({
   environment: 'qa', // dynamic sampling bias to keep transactions
-  dsn: env.E2E_TEST_DSN,
+  dsn: E2E_TEST_DSN,
   debug: true,
   tunnel: `http://localhost:3031/`, // proxy server
   tracesSampleRate: 1.0,
