@@ -85,7 +85,7 @@ export class Scope extends OpenTelemetryScope implements ScopeInterface {
     newScope._tags = { ...this['_tags'] };
     newScope._extra = { ...this['_extra'] };
     newScope._contexts = { ...this['_contexts'] };
-    newScope._user = this['_user'];
+    newScope._user = { ...this['_user'] };
     newScope._level = this['_level'];
     newScope._span = this['_span'];
     newScope._session = this['_session'];
