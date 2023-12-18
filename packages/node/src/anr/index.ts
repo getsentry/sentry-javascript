@@ -1,9 +1,9 @@
 import { spawn } from 'child_process';
-import { getClient, makeSession, updateSession } from '@sentry/core';
+import { getClient, getCurrentScope, makeSession, updateSession } from '@sentry/core';
 import type { Event, Session, StackFrame } from '@sentry/types';
 import { logger, watchdogTimer } from '@sentry/utils';
 
-import { addEventProcessor, captureEvent, flush, getCurrentHub } from '..';
+import { addEventProcessor, captureEvent, flush } from '..';
 import { captureStackTrace } from './debugger';
 
 const DEFAULT_INTERVAL = 50;
@@ -91,8 +91,6 @@ function startChildProcess(options: Options): void {
     logger.log(`[ANR] ${message}`, ...args);
   }
 
-  const hub = getCurrentHub();
-
   try {
     const env = { ...process.env };
     env.SENTRY_ANR_CHILD_PROCESS = 'true';
@@ -112,7 +110,7 @@ function startChildProcess(options: Options): void {
 
     const timer = setInterval(() => {
       try {
-        const currentSession = hub.getScope()?.getSession();
+        const currentSession = getCurrentScope()?.getSession();
         // We need to copy the session object and remove the toJSON method so it can be sent to the child process
         // serialized without making it a SerializedSession
         const session = currentSession ? { ...currentSession, toJSON: undefined } : undefined;
@@ -126,7 +124,7 @@ function startChildProcess(options: Options): void {
     child.on('message', (msg: string) => {
       if (msg === 'session-ended') {
         log('ANR event sent from child process. Clearing session in this process.');
-        hub.getScope()?.setSession(undefined);
+        getCurrentScope()?.setSession(undefined);
       }
     });
 

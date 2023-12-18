@@ -25,18 +25,16 @@ describe('IdleTransaction', () => {
       );
       transaction.initSpanRecorder(10);
 
-      hub.configureScope(s => {
-        expect(s.getTransaction()).toBe(transaction);
-      });
+      const scope = hub.getScope();
+      expect(scope.getTransaction()).toBe(transaction);
     });
 
     it('does not set the transaction on the scope on creation if onScope is falsey', () => {
       const transaction = new IdleTransaction({ name: 'foo' }, hub);
       transaction.initSpanRecorder(10);
 
-      hub.configureScope(s => {
-        expect(s.getTransaction()).toBe(undefined);
-      });
+      const scope = hub.getScope();
+      expect(scope.getTransaction()).toBe(undefined);
     });
 
     it('removes sampled transaction from scope on finish if onScope is true', () => {
@@ -53,9 +51,8 @@ describe('IdleTransaction', () => {
       transaction.finish();
       jest.runAllTimers();
 
-      hub.configureScope(s => {
-        expect(s.getTransaction()).toBe(undefined);
-      });
+      const scope = hub.getScope();
+      expect(scope.getTransaction()).toBe(undefined);
     });
 
     it('removes unsampled transaction from scope on finish if onScope is true', () => {
@@ -71,9 +68,8 @@ describe('IdleTransaction', () => {
       transaction.finish();
       jest.runAllTimers();
 
-      hub.configureScope(s => {
-        expect(s.getTransaction()).toBe(undefined);
-      });
+      const scope = hub.getScope();
+      expect(scope.getTransaction()).toBe(undefined);
     });
 
     it('does not remove transaction from scope on finish if another transaction was set there', () => {
@@ -94,9 +90,8 @@ describe('IdleTransaction', () => {
       transaction.finish();
       jest.runAllTimers();
 
-      hub.configureScope(s => {
-        expect(s.getTransaction()).toBe(otherTransaction);
-      });
+      const scope = hub.getScope();
+      expect(scope.getTransaction()).toBe(otherTransaction);
     });
   });
 

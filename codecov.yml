@@ -3,6 +3,11 @@ codecov:
   notify:
     require_ci_to_pass: no
 
+ai_pr_review:
+  enabled: true
+  method: "label"
+  label_name: "ci-codecov-ai-review"
+
 coverage:
   precision: 2
   round: down

@@ -1,12 +1,11 @@
 /* eslint-disable max-lines */
 
-import { DEFAULT_ENVIRONMENT, getCurrentHub } from '@sentry/core';
-import type { DebugImage, Envelope, Event, StackFrame, StackParser, Transaction } from '@sentry/types';
+import { DEFAULT_ENVIRONMENT, getClient } from '@sentry/core';
+import type { DebugImage, Envelope, Event, EventEnvelope, StackFrame, StackParser, Transaction } from '@sentry/types';
 import type { Profile, ThreadCpuProfile } from '@sentry/types/src/profiling';
 import { GLOBAL_OBJ, browserPerformanceTimeOrigin, forEachEnvelopeItem, logger, uuid4 } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../debug-build';
-import { getClient } from '../exports';
 import { WINDOW } from '../helpers';
 import type { JSSelfProfile, JSSelfProfileStack, JSSelfProfiler, JSSelfProfilerConstructor } from './jsSelfProfiling';
 
@@ -301,13 +300,12 @@ export function convertJSSelfProfileToSampledFormat(input: JSSelfProfile): Profi
  * Adds items to envelope if they are not already present - mutates the envelope.
  * @param envelope
  */
-export function addProfilesToEnvelope(envelope: Envelope, profiles: Profile[]): Envelope {
+export function addProfilesToEnvelope(envelope: EventEnvelope, profiles: Profile[]): Envelope {
   if (!profiles.length) {
     return envelope;
   }
 
   for (const profile of profiles) {
-    // @ts-expect-error untyped envelope
     envelope[1].push([{ type: 'profile' }, profile]);
   }
   return envelope;
@@ -349,19 +347,10 @@ export function applyDebugMetadata(resource_paths: ReadonlyArray<string>): Debug
     return [];
   }
 
-  const hub = getCurrentHub();
-  if (!hub) {
-    return [];
-  }
-  const client = hub.getClient();
-  if (!client) {
-    return [];
-  }
-  const options = client.getOptions();
-  if (!options) {
-    return [];
-  }
-  const stackParser = options.stackParser;
+  const client = getClient();
+  const options = client && client.getOptions();
+  const stackParser = options && options.stackParser;
+
   if (!stackParser) {
     return [];
   }

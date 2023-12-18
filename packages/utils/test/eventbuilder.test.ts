@@ -1,10 +1,17 @@
-import type { Hub } from '@sentry/types';
+import type { Hub, Scope } from '@sentry/types';
 
 import { createStackParser, eventFromUnknownInput, nodeStackLineParser } from '../src';
 
 function getCurrentHub(): Hub {
   // Some fake hub to get us through
-  return { getClient: () => undefined, configureScope: () => {} } as unknown as Hub;
+  return {
+    getClient: () => undefined,
+    getScope: () => {
+      return {
+        setExtra: () => {},
+      } as unknown as Scope;
+    },
+  } as unknown as Hub;
 }
 
 const stackParser = createStackParser(nodeStackLineParser());
@@ -28,5 +35,10 @@ describe('eventFromUnknownInput', () => {
   test('object with message prop', () => {
     const event = eventFromUnknownInput(getCurrentHub, stackParser, { foo: { bar: 'baz' }, message: 'Some message' });
     expect(event.exception?.values?.[0].value).toBe('Some message');
+  });
+
+  test('passing client directly', () => {
+    const event = eventFromUnknownInput(undefined, stackParser, { foo: { bar: 'baz' }, prop: 1 });
+    expect(event.exception?.values?.[0].value).toBe('Object captured as exception with keys: foo, prop');
   });
 });

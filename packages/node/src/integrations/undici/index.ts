@@ -1,4 +1,11 @@
-import { getCurrentHub, getDynamicSamplingContextFromClient, isSentryRequestUrl } from '@sentry/core';
+import {
+  addBreadcrumb,
+  getClient,
+  getCurrentHub,
+  getCurrentScope,
+  getDynamicSamplingContextFromClient,
+  isSentryRequestUrl,
+} from '@sentry/core';
 import type { EventProcessor, Integration, Span } from '@sentry/types';
 import {
   LRUMap,
@@ -137,17 +144,17 @@ export class Undici implements Integration {
 
     const stringUrl = request.origin ? request.origin.toString() + request.path : request.path;
 
-    if (isSentryRequestUrl(stringUrl, hub) || request.__sentry_span__ !== undefined) {
-      return;
-    }
-
-    const client = hub.getClient<NodeClient>();
+    const client = getClient<NodeClient>();
     if (!client) {
       return;
     }
 
+    if (isSentryRequestUrl(stringUrl, client) || request.__sentry_span__ !== undefined) {
+      return;
+    }
+
     const clientOptions = client.getOptions();
-    const scope = hub.getScope();
+    const scope = getCurrentScope();
 
     const parentSpan = scope.getSpan();
 
@@ -197,7 +204,7 @@ export class Undici implements Integration {
 
     const stringUrl = request.origin ? request.origin.toString() + request.path : request.path;
 
-    if (isSentryRequestUrl(stringUrl, hub)) {
+    if (isSentryRequestUrl(stringUrl, getClient())) {
       return;
     }
 
@@ -208,7 +215,7 @@ export class Undici implements Integration {
     }
 
     if (this._options.breadcrumbs) {
-      hub.addBreadcrumb(
+      addBreadcrumb(
         {
           category: 'http',
           data: {
@@ -237,7 +244,7 @@ export class Undici implements Integration {
 
     const stringUrl = request.origin ? request.origin.toString() + request.path : request.path;
 
-    if (isSentryRequestUrl(stringUrl, hub)) {
+    if (isSentryRequestUrl(stringUrl, getClient())) {
       return;
     }
 
@@ -248,7 +255,7 @@ export class Undici implements Integration {
     }
 
     if (this._options.breadcrumbs) {
-      hub.addBreadcrumb(
+      addBreadcrumb(
         {
           category: 'http',
           data: {

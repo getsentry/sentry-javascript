@@ -4,8 +4,8 @@ import type { BrowserOptions } from '@sentry/react';
 import {
   BrowserTracing,
   Integrations,
-  configureScope,
   defaultRequestInstrumentationOptions,
+  getCurrentScope,
   init as reactInit,
 } from '@sentry/react';
 import type { EventProcessor } from '@sentry/types';
@@ -56,17 +56,16 @@ export function init(options: BrowserOptions): void {
 
   reactInit(opts);
 
-  configureScope(scope => {
-    scope.setTag('runtime', 'browser');
-    const filterTransactions: EventProcessor = event =>
-      event.type === 'transaction' && event.transaction === '/404' ? null : event;
-    filterTransactions.id = 'NextClient404Filter';
-    scope.addEventProcessor(filterTransactions);
+  const scope = getCurrentScope();
+  scope.setTag('runtime', 'browser');
+  const filterTransactions: EventProcessor = event =>
+    event.type === 'transaction' && event.transaction === '/404' ? null : event;
+  filterTransactions.id = 'NextClient404Filter';
+  scope.addEventProcessor(filterTransactions);
 
-    if (process.env.NODE_ENV === 'development') {
-      scope.addEventProcessor(devErrorSymbolicationEventProcessor);
-    }
-  });
+  if (process.env.NODE_ENV === 'development') {
+    scope.addEventProcessor(devErrorSymbolicationEventProcessor);
+  }
 }
 
 function addClientIntegrations(options: BrowserOptions): void {
@@ -113,7 +112,17 @@ function addClientIntegrations(options: BrowserOptions): void {
     if (hasTracingEnabled(options)) {
       const defaultBrowserTracingIntegration = new BrowserTracing({
         // eslint-disable-next-line deprecation/deprecation
-        tracingOrigins: [...defaultRequestInstrumentationOptions.tracingOrigins, /^(api\/)/],
+        tracingOrigins:
+          process.env.NODE_ENV === 'development'
+            ? [
+                // Will match any URL that contains "localhost" but not "webpack.hot-update.json" - The webpack dev-server
+                // has cors and it doesn't like extra headers when it's accessed from a different URL.
+                // TODO(v8): Ideally we rework our tracePropagationTargets logic so this hack won't be necessary anymore (see issue #9764)
+                /^(?=.*localhost)(?!.*webpack\.hot-update\.json).*/,
+                /^\/(?!\/)/,
+              ]
+            : // eslint-disable-next-line deprecation/deprecation
+              [...defaultRequestInstrumentationOptions.tracingOrigins, /^(api\/)/],
         routingInstrumentation: nextRouterInstrumentation,
       });
 

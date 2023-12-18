@@ -73,16 +73,15 @@ By default the Feedback integration will attempt to fill in the name/email field
 
 ```javascript
 Sentry.setUser({
-    email: 'foo@example.com',
+    userEmail: 'foo@example.com',
     fullName: 'Jane Doe',
 });
 
-
 new Feedback({
-    useSentryUser({
-        email: 'email',
-        name: 'fullName',
-    }),
+  useSentryUser: {
+    email: 'userEmail',
+    name: 'fullName',
+  },
 })
 ```
 
