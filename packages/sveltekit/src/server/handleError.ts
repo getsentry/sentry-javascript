@@ -1,5 +1,5 @@
 import { captureException } from '@sentry/node';
-import type { HandleServerError, RequestEvent } from '@sveltejs/kit';
+import type { HandleServerError } from '@sveltejs/kit';
 
 import { flushIfServerless } from './utils';
 
@@ -11,14 +11,28 @@ function defaultErrorHandler({ error }: Parameters<HandleServerError>[0]): Retur
   console.error(error && error.stack);
 }
 
+type HandleServerErrorInput = Parameters<HandleServerError>[0];
+
+/**
+ * Backwards-compatible HandleServerError Input type for SvelteKit 1.x and 2.x
+ * `message` and `status` were added in 2.x.
+ * For backwards-compatibility, we make them optional
+ *
+ * @see https://kit.svelte.dev/docs/migrating-to-sveltekit-2#improved-error-handling
+ */
+type SafeHandleServerErrorInput = Omit<HandleServerErrorInput, 'status' | 'message'> &
+  Partial<Pick<HandleServerErrorInput, 'status' | 'message'>>;
+
 /**
  * Wrapper for the SvelteKit error handler that sends the error to Sentry.
  *
  * @param handleError The original SvelteKit error handler.
  */
 export function handleErrorWithSentry(handleError: HandleServerError = defaultErrorHandler): HandleServerError {
-  return async (input: { error: unknown; event: RequestEvent }): Promise<void | App.Error> => {
+  return async (input: SafeHandleServerErrorInput): Promise<void | App.Error> => {
     if (isNotFoundError(input)) {
+      // We're extra cautious with SafeHandleServerErrorInput - this type is not compatible with HandleServerErrorInput
+      // @ts-expect-error - we're still passing the same object, just with a different (backwards-compatible) type
       return handleError(input);
     }
 
@@ -31,6 +45,8 @@ export function handleErrorWithSentry(handleError: HandleServerError = defaultEr
 
     await flushIfServerless();
 
+    // We're extra cautious with SafeHandleServerErrorInput - this type is not compatible with HandleServerErrorInput
+    // @ts-expect-error - we're still passing the same object, just with a different (backwards-compatible) type
     return handleError(input);
   };
 }
@@ -41,9 +57,17 @@ export function handleErrorWithSentry(handleError: HandleServerError = defaultEr
  * so we have to check if the error is a "Not found" error by checking if the route id is missing and
  * by checking the error message on top of the raw stack trace.
  */
-function isNotFoundError(input: { error: unknown; event: RequestEvent }): boolean {
-  const { error, event } = input;
+function isNotFoundError(input: SafeHandleServerErrorInput): boolean {
+  const { error, event, status, message } = input;
 
+  // SvelteKit 2.0 offers a reliable way to check for a Not Found error:
+  if (status === 404 && message === 'Not Found') {
+    return true;
+  }
+
+  // SvelteKit 1.x doesn't offer a reliable way to check for a Not Found error.
+  // So we check the route id (shouldn't exist) and the raw stack trace
+  // We can delete all of this below whenever we drop Kit 1.x support
   const hasNoRouteId = !event.route || !event.route.id;
 
   const rawStack: string =
