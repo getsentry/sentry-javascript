@@ -74,6 +74,8 @@ export function wrapServerComponentWithSentry<F extends (...args: any[]) => any>
               span?.setStatus('not_found');
             } else if (isRedirectNavigationError(e)) {
               // We don't want to report redirects
+              // Since `trace` will automatically set the span status to "internal_error" we need to set it back to "ok"
+              span?.setStatus('ok');
             } else {
               span?.setStatus('internal_error');
 

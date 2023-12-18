@@ -4,8 +4,8 @@ import type { BrowserOptions } from '@sentry/react';
 import {
   BrowserTracing,
   Integrations,
-  configureScope,
   defaultRequestInstrumentationOptions,
+  getCurrentScope,
   init as reactInit,
 } from '@sentry/react';
 import type { EventProcessor } from '@sentry/types';
@@ -56,17 +56,16 @@ export function init(options: BrowserOptions): void {
 
   reactInit(opts);
 
-  configureScope(scope => {
-    scope.setTag('runtime', 'browser');
-    const filterTransactions: EventProcessor = event =>
-      event.type === 'transaction' && event.transaction === '/404' ? null : event;
-    filterTransactions.id = 'NextClient404Filter';
-    scope.addEventProcessor(filterTransactions);
+  const scope = getCurrentScope();
+  scope.setTag('runtime', 'browser');
+  const filterTransactions: EventProcessor = event =>
+    event.type === 'transaction' && event.transaction === '/404' ? null : event;
+  filterTransactions.id = 'NextClient404Filter';
+  scope.addEventProcessor(filterTransactions);
 
-    if (process.env.NODE_ENV === 'development') {
-      scope.addEventProcessor(devErrorSymbolicationEventProcessor);
-    }
-  });
+  if (process.env.NODE_ENV === 'development') {
+    scope.addEventProcessor(devErrorSymbolicationEventProcessor);
+  }
 }
 
 function addClientIntegrations(options: BrowserOptions): void {

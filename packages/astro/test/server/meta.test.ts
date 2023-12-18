@@ -10,22 +10,20 @@ const mockedSpan = {
       environment: 'production',
     }),
   },
-};
+} as any;
 
-const mockedHub = {
-  getScope: () => ({
-    getPropagationContext: () => ({
-      traceId: '123',
-    }),
+const mockedClient = {} as any;
+
+const mockedScope = {
+  getPropagationContext: () => ({
+    traceId: '123',
   }),
-  getClient: () => ({}),
-};
+} as any;
 
 describe('getTracingMetaTags', () => {
   it('returns the tracing tags from the span, if it is provided', () => {
     {
-      // @ts-expect-error - only passing a partial span object
-      const tags = getTracingMetaTags(mockedSpan, mockedHub);
+      const tags = getTracingMetaTags(mockedSpan, mockedScope, mockedClient);
 
       expect(tags).toEqual({
         sentryTrace: '<meta name="sentry-trace" content="12345678901234567890123456789012-1234567890123456-1"/>',
@@ -35,10 +33,9 @@ describe('getTracingMetaTags', () => {
   });
 
   it('returns propagationContext DSC data if no span is available', () => {
-    const tags = getTracingMetaTags(undefined, {
-      ...mockedHub,
-      // @ts-expect-error - only passing a partial scope object
-      getScope: () => ({
+    const tags = getTracingMetaTags(
+      undefined,
+      {
         getPropagationContext: () => ({
           traceId: '12345678901234567890123456789012',
           sampled: true,
@@ -49,8 +46,9 @@ describe('getTracingMetaTags', () => {
             trace_id: '12345678901234567890123456789012',
           },
         }),
-      }),
-    });
+      } as any,
+      mockedClient,
+    );
 
     expect(tags).toEqual({
       sentryTrace: expect.stringMatching(
@@ -73,7 +71,8 @@ describe('getTracingMetaTags', () => {
         toTraceparent: () => '12345678901234567890123456789012-1234567890123456-1',
         transaction: undefined,
       },
-      mockedHub,
+      mockedScope,
+      mockedClient,
     );
 
     expect(tags).toEqual({
@@ -93,10 +92,8 @@ describe('getTracingMetaTags', () => {
         toTraceparent: () => '12345678901234567890123456789012-1234567890123456-1',
         transaction: undefined,
       },
-      {
-        ...mockedHub,
-        getClient: () => undefined,
-      },
+      mockedScope,
+      undefined,
     );
 
     expect(tags).toEqual({

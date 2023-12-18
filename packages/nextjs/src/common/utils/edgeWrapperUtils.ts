@@ -1,4 +1,4 @@
-import { addTracingExtensions, captureException, flush, getCurrentHub, startTransaction } from '@sentry/core';
+import { addTracingExtensions, captureException, getCurrentScope, startTransaction } from '@sentry/core';
 import type { Span } from '@sentry/types';
 import {
   addExceptionMechanism,
@@ -23,7 +23,7 @@ export function withEdgeWrapping<H extends EdgeRouteHandler>(
     addTracingExtensions();
 
     const req = args[0];
-    const currentScope = getCurrentHub().getScope();
+    const currentScope = getCurrentScope();
     const prevSpan = currentScope.getSpan();
 
     let span: Span | undefined;

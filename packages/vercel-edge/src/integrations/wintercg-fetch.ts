@@ -1,5 +1,5 @@
 import { instrumentFetchRequest } from '@sentry-internal/tracing';
-import { getCurrentHub, isSentryRequestUrl } from '@sentry/core';
+import { getClient, getCurrentHub, isSentryRequestUrl } from '@sentry/core';
 import type { FetchBreadcrumbData, FetchBreadcrumbHint, HandlerDataFetch, Integration, Span } from '@sentry/types';
 import { LRUMap, addFetchInstrumentationHandler, stringMatchesSomePattern } from '@sentry/utils';
 
@@ -54,7 +54,7 @@ export class WinterCGFetch implements Integration {
         return;
       }
 
-      if (isSentryRequestUrl(handlerData.fetchData.url, hub)) {
+      if (isSentryRequestUrl(handlerData.fetchData.url, getClient())) {
         return;
       }
 
@@ -74,8 +74,7 @@ export class WinterCGFetch implements Integration {
 
   /** Decides whether to attach trace data to the outgoing fetch request */
   private _shouldAttachTraceData(url: string): boolean {
-    const hub = getCurrentHub();
-    const client = hub.getClient();
+    const client = getClient();
 
     if (!client) {
       return false;

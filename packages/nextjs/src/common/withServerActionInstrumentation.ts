@@ -1,4 +1,11 @@
-import { addTracingExtensions, captureException, flush, getCurrentHub, runWithAsyncContext, trace } from '@sentry/core';
+import {
+  addTracingExtensions,
+  captureException,
+  getClient,
+  getCurrentScope,
+  runWithAsyncContext,
+  trace,
+} from '@sentry/core';
 import { logger, tracingContextFromHeaders } from '@sentry/utils';
 
 import { DEBUG_BUILD } from './debug-build';
@@ -49,8 +56,7 @@ async function withServerActionInstrumentationImplementation<A extends (...args:
 ): Promise<ReturnType<A>> {
   addTracingExtensions();
   return runWithAsyncContext(async () => {
-    const hub = getCurrentHub();
-    const sendDefaultPii = hub.getClient()?.getOptions().sendDefaultPii;
+    const sendDefaultPii = getClient()?.getOptions().sendDefaultPii;
 
     let sentryTraceHeader;
     let baggageHeader;
@@ -68,7 +74,7 @@ async function withServerActionInstrumentationImplementation<A extends (...args:
         );
     }
 
-    const currentScope = hub.getScope();
+    const currentScope = getCurrentScope();
     const { traceparentData, dynamicSamplingContext, propagationContext } = tracingContextFromHeaders(
       sentryTraceHeader,
       baggageHeader,

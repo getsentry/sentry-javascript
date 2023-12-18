@@ -1,5 +1,6 @@
 import type { BaseClient } from '@sentry/core';
-import { addEventProcessor, getClient, getCurrentHub } from '@sentry/core';
+import { getCurrentScope } from '@sentry/core';
+import { addEventProcessor, getClient } from '@sentry/core';
 import type { Client, DynamicSamplingContext } from '@sentry/types';
 import { addClickKeypressInstrumentationHandler, addHistoryInstrumentationHandler } from '@sentry/utils';
 
@@ -17,7 +18,7 @@ import type { ReplayContainer } from '../types';
  */
 export function addGlobalListeners(replay: ReplayContainer): void {
   // Listeners from core SDK //
-  const scope = getCurrentHub().getScope();
+  const scope = getCurrentScope();
   const client = getClient();
 
   scope.addScopeListener(handleScopeListener(replay));

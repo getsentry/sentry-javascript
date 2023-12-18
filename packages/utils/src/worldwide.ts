@@ -24,7 +24,7 @@ export interface InternalGlobal {
     Integrations?: Integration[];
   };
   onerror?: {
-    (event: Event | string, source?: string, lineno?: number, colno?: number, error?: Error): any;
+    (event: object | string, source?: string, lineno?: number, colno?: number, error?: Error): any;
     __SENTRY_INSTRUMENTED__?: true;
     __SENTRY_LOADER__?: true;
   };

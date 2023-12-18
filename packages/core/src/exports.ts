@@ -163,8 +163,8 @@ export function setUser(user: User | null): ReturnType<Hub['setUser']> {
  *
  * @param callback that will be enclosed into push/popScope.
  */
-export function withScope(callback: (scope: Scope) => void): ReturnType<Hub['withScope']> {
-  getCurrentHub().withScope(callback);
+export function withScope<T>(callback: (scope: Scope) => T): T {
+  return getCurrentHub().withScope(callback);
 }
 
 /**
@@ -202,9 +202,8 @@ export function startTransaction(
  * to create a monitor automatically when sending a check in.
  */
 export function captureCheckIn(checkIn: CheckIn, upsertMonitorConfig?: MonitorConfig): string {
-  const hub = getCurrentHub();
-  const scope = hub.getScope();
-  const client = hub.getClient();
+  const scope = getCurrentScope();
+  const client = getClient();
   if (!client) {
     DEBUG_BUILD && logger.warn('Cannot capture check-in. No client defined.');
   } else if (!client.captureCheckIn) {
