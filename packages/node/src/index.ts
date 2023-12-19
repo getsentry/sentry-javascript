@@ -79,7 +79,7 @@ export { defaultIntegrations, init, defaultStackParser, getSentryRelease } from 
 export { addRequestDataToEvent, DEFAULT_USER_INCLUDES, extractRequestData } from '@sentry/utils';
 export { deepReadDirSync } from './utils';
 export { getModuleFromFilename } from './module';
-export { enableAnrDetection } from './anr';
+export { enableAnrDetection, isAnrChildProcess } from './anr';
 export { cron } from './cron';
 
 import { Integrations as CoreIntegrations } from '@sentry/core';
