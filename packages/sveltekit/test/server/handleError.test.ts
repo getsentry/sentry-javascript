@@ -26,7 +26,7 @@ describe('handleError', () => {
     consoleErrorSpy.mockClear();
   });
 
-  it('doesn\'t capture "Not found" errors for incorrect navigations', async () => {
+  it('doesn\'t capture "Not found" errors for incorrect navigations [Kit 1.x]', async () => {
     const wrappedHandleError = handleErrorWithSentry();
     const mockError = new Error('Not found: /asdf/123');
     const mockEvent = {
@@ -43,7 +43,7 @@ describe('handleError', () => {
     expect(consoleErrorSpy).toHaveBeenCalledTimes(1);
   });
 
-  it('doesn\'t capture "Not found" errors for incorrect navigations', async () => {
+  it('doesn\'t capture "Not found" errors for incorrect navigations [Kit 2.x]', async () => {
     const wrappedHandleError = handleErrorWithSentry();
 
     const returnVal = await wrappedHandleError({

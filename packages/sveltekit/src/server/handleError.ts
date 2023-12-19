@@ -53,15 +53,12 @@ export function handleErrorWithSentry(handleError: HandleServerError = defaultEr
 
 /**
  * When a page request fails because the page is not found, SvelteKit throws a "Not found" error.
- * In the error handler here, we can't access the response yet (which we do in the load instrumentation),
- * so we have to check if the error is a "Not found" error by checking if the route id is missing and
- * by checking the error message on top of the raw stack trace.
  */
 function isNotFoundError(input: SafeHandleServerErrorInput): boolean {
-  const { error, event, status, message } = input;
+  const { error, event, status } = input;
 
   // SvelteKit 2.0 offers a reliable way to check for a Not Found error:
-  if (status === 404 && message === 'Not Found') {
+  if (status === 404) {
     return true;
   }
 
