@@ -30,10 +30,8 @@ type SafeHandleServerErrorInput = Omit<HandleClientErrorInput, 'status' | 'messa
  */
 export function handleErrorWithSentry(handleError: HandleClientError = defaultErrorHandler): HandleClientError {
   return (input: SafeHandleServerErrorInput): ReturnType<HandleClientError> => {
-    const { status, message } = input;
-    const isNotFoundError = status === 404 && message === 'Not Found';
-
-    if (!isNotFoundError) {
+    // SvelteKit 2.0 offers a reliable way to check for a 404 error:
+    if (input.status !== 404) {
       captureException(input.error, {
         mechanism: {
           type: 'sveltekit',

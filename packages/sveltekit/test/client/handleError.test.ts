@@ -62,7 +62,7 @@ describe('handleError', () => {
     });
   });
 
-  it('doesn\'t capture "Not Found" errors', async () => {
+  it("doesn't capture 404 errors", async () => {
     const wrappedHandleError = handleErrorWithSentry(handleError);
     const returnVal = (await wrappedHandleError({
       error: new Error('404 Not Found'),
