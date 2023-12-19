@@ -1,5 +1,6 @@
-import { getCurrentHub, isSentryRequestUrl } from '@sentry/core';
+import { captureEvent, getClient, isSentryRequestUrl } from '@sentry/core';
 import type {
+  Client,
   Event as SentryEvent,
   EventProcessor,
   Hub,
@@ -20,6 +21,7 @@ import { DEBUG_BUILD } from './debug-build';
 
 export type HttpStatusCodeRange = [number, number] | number;
 export type HttpRequestTarget = string | RegExp;
+
 interface HttpClientOptions {
   /**
    * HTTP status codes that should be considered failed.
@@ -56,11 +58,6 @@ export class HttpClient implements Integration {
   private readonly _options: HttpClientOptions;
 
   /**
-   * Returns current hub.
-   */
-  private _getCurrentHub?: () => Hub;
-
-  /**
    * @inheritDoc
    *
    * @param options
@@ -79,10 +76,14 @@ export class HttpClient implements Integration {
    *
    * @param options
    */
-  public setupOnce(_: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
-    this._getCurrentHub = getCurrentHub;
-    this._wrapFetch();
-    this._wrapXHR();
+  public setupOnce(_: (callback: EventProcessor) => void, _getCurrentHub: () => Hub): void {
+    // noop
+  }
+
+  /** @inheritdoc */
+  public setup(client: Client): void {
+    this._wrapFetch(client);
+    this._wrapXHR(client);
   }
 
   /**
@@ -93,13 +94,12 @@ export class HttpClient implements Integration {
    * @param requestInit The request init object
    */
   private _fetchResponseHandler(requestInfo: RequestInfo, response: Response, requestInit?: RequestInit): void {
-    if (this._getCurrentHub && this._shouldCaptureResponse(response.status, response.url)) {
+    if (this._shouldCaptureResponse(response.status, response.url)) {
       const request = _getRequest(requestInfo, requestInit);
-      const hub = this._getCurrentHub();
 
       let requestHeaders, responseHeaders, requestCookies, responseCookies;
 
-      if (hub.shouldSendDefaultPii()) {
+      if (_shouldSendDefaultPii()) {
         [{ headers: requestHeaders, cookies: requestCookies }, { headers: responseHeaders, cookies: responseCookies }] =
           [
             { cookieHeader: 'Cookie', obj: request },
@@ -135,7 +135,7 @@ export class HttpClient implements Integration {
         responseCookies,
       });
 
-      hub.captureEvent(event);
+      captureEvent(event);
     }
   }
 
@@ -147,11 +147,10 @@ export class HttpClient implements Integration {
    * @param headers The HTTP headers
    */
   private _xhrResponseHandler(xhr: XMLHttpRequest, method: string, headers: Record<string, string>): void {
-    if (this._getCurrentHub && this._shouldCaptureResponse(xhr.status, xhr.responseURL)) {
+    if (this._shouldCaptureResponse(xhr.status, xhr.responseURL)) {
       let requestHeaders, responseCookies, responseHeaders;
-      const hub = this._getCurrentHub();
 
-      if (hub.shouldSendDefaultPii()) {
+      if (_shouldSendDefaultPii()) {
         try {
           const cookieString = xhr.getResponseHeader('Set-Cookie') || xhr.getResponseHeader('set-cookie') || undefined;
 
@@ -181,7 +180,7 @@ export class HttpClient implements Integration {
         responseCookies,
       });
 
-      hub.captureEvent(event);
+      captureEvent(event);
     }
   }
 
@@ -296,12 +295,16 @@ export class HttpClient implements Integration {
   /**
    * Wraps `fetch` function to capture request and response data
    */
-  private _wrapFetch(): void {
+  private _wrapFetch(client: Client): void {
     if (!supportsNativeFetch()) {
       return;
     }
 
     addFetchInstrumentationHandler(handlerData => {
+      if (getClient() !== client) {
+        return;
+      }
+
       const { response, args } = handlerData;
       const [requestInfo, requestInit] = args as [RequestInfo, RequestInit | undefined];
 
@@ -316,12 +319,16 @@ export class HttpClient implements Integration {
   /**
    * Wraps XMLHttpRequest to capture request and response data
    */
-  private _wrapXHR(): void {
+  private _wrapXHR(client: Client): void {
     if (!('XMLHttpRequest' in GLOBAL_OBJ)) {
       return;
     }
 
     addXhrInstrumentationHandler(handlerData => {
+      if (getClient() !== client) {
+        return;
+      }
+
       const xhr = handlerData.xhr as SentryWrappedXMLHttpRequest & XMLHttpRequest;
 
       const sentryXhrData = xhr[SENTRY_XHR_DATA_KEY];
@@ -348,9 +355,7 @@ export class HttpClient implements Integration {
    */
   private _shouldCaptureResponse(status: number, url: string): boolean {
     return (
-      this._isInGivenStatusRanges(status) &&
-      this._isInGivenRequestTargets(url) &&
-      !isSentryRequestUrl(url, getCurrentHub())
+      this._isInGivenStatusRanges(status) && this._isInGivenRequestTargets(url) && !isSentryRequestUrl(url, getClient())
     );
   }
 
@@ -419,4 +424,9 @@ function _getRequest(requestInfo: RequestInfo, requestInit?: RequestInit): Reque
   }
 
   return new Request(requestInfo, requestInit);
+}
+
+function _shouldSendDefaultPii(): boolean {
+  const client = getClient();
+  return client ? Boolean(client.getOptions().sendDefaultPii) : false;
 }

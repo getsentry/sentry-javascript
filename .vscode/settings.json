@@ -30,8 +30,8 @@
   ],
   "deno.enablePaths": ["packages/deno/test"],
   "editor.codeActionsOnSave": {
-    "source.organizeImports.biome": true,
-    "quickfix.biome": true
+    "source.organizeImports.biome": "explicit",
+    "quickfix.biome": "explicit"
   },
   "editor.defaultFormatter": "biomejs.biome"
 }

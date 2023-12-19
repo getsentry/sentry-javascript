@@ -16,7 +16,7 @@ import { eventFromMessage, eventFromUnknownInput, logger, resolvedSyncPromise, u
 import { BaseClient } from './baseclient';
 import { createCheckInEnvelope } from './checkin';
 import { DEBUG_BUILD } from './debug-build';
-import { getCurrentHub } from './hub';
+import { getClient } from './exports';
 import type { Scope } from './scope';
 import { SessionFlusher } from './sessionflusher';
 import { addTracingExtensions, getDynamicSamplingContextFromClient } from './tracing';
@@ -50,7 +50,7 @@ export class ServerRuntimeClient<
    * @inheritDoc
    */
   public eventFromException(exception: unknown, hint?: EventHint): PromiseLike<Event> {
-    return resolvedSyncPromise(eventFromUnknownInput(getCurrentHub, this._options.stackParser, exception, hint));
+    return resolvedSyncPromise(eventFromUnknownInput(getClient(), this._options.stackParser, exception, hint));
   }
 
   /**

@@ -24,11 +24,13 @@ export {
   captureMessage,
   captureCheckIn,
   withMonitor,
+  // eslint-disable-next-line deprecation/deprecation
   configureScope,
   createTransport,
   getActiveTransaction,
   getCurrentHub,
   getClient,
+  getCurrentScope,
   getHubFromCarrier,
   makeMain,
   setContext,

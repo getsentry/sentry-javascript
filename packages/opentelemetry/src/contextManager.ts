@@ -1,7 +1,8 @@
 import type { Context, ContextManager } from '@opentelemetry/api';
 import type { Carrier, Hub } from '@sentry/core';
+import { ensureHubOnCarrier } from '@sentry/core';
 
-import { ensureHubOnCarrier, getCurrentHub, getHubFromCarrier } from './custom/hub';
+import { getCurrentHub, getHubFromCarrier } from './custom/hub';
 import { setHubOnContext } from './utils/contextData';
 
 function createNewHub(parent: Hub | undefined): Hub {

@@ -1,5 +1,6 @@
 import type {
   Breadcrumb,
+  BreadcrumbHint,
   CaptureContext,
   CheckIn,
   Client,
@@ -77,8 +78,11 @@ export function captureEvent(event: Event, hint?: EventHint): ReturnType<Hub['ca
 /**
  * Callback to set context information onto the scope.
  * @param callback Callback function that receives Scope.
+ *
+ * @deprecated Use getCurrentScope() directly.
  */
 export function configureScope(callback: (scope: Scope) => void): ReturnType<Hub['configureScope']> {
+  // eslint-disable-next-line deprecation/deprecation
   getCurrentHub().configureScope(callback);
 }
 
@@ -90,8 +94,8 @@ export function configureScope(callback: (scope: Scope) => void): ReturnType<Hub
  *
  * @param breadcrumb The breadcrumb to record.
  */
-export function addBreadcrumb(breadcrumb: Breadcrumb): ReturnType<Hub['addBreadcrumb']> {
-  getCurrentHub().addBreadcrumb(breadcrumb);
+export function addBreadcrumb(breadcrumb: Breadcrumb, hint?: BreadcrumbHint): ReturnType<Hub['addBreadcrumb']> {
+  getCurrentHub().addBreadcrumb(breadcrumb, hint);
 }
 
 /**
@@ -163,8 +167,8 @@ export function setUser(user: User | null): ReturnType<Hub['setUser']> {
  *
  * @param callback that will be enclosed into push/popScope.
  */
-export function withScope(callback: (scope: Scope) => void): ReturnType<Hub['withScope']> {
-  getCurrentHub().withScope(callback);
+export function withScope<T>(callback: (scope: Scope) => T): T {
+  return getCurrentHub().withScope(callback);
 }
 
 /**
@@ -202,9 +206,8 @@ export function startTransaction(
  * to create a monitor automatically when sending a check in.
  */
 export function captureCheckIn(checkIn: CheckIn, upsertMonitorConfig?: MonitorConfig): string {
-  const hub = getCurrentHub();
-  const scope = hub.getScope();
-  const client = hub.getClient();
+  const scope = getCurrentScope();
+  const client = getClient();
   if (!client) {
     DEBUG_BUILD && logger.warn('Cannot capture check-in. No client defined.');
   } else if (!client.captureCheckIn) {
@@ -307,4 +310,11 @@ export function lastEventId(): string | undefined {
  */
 export function getClient<C extends Client>(): C | undefined {
   return getCurrentHub().getClient<C>();
+}
+
+/**
+ * Get the currently active scope.
+ */
+export function getCurrentScope(): Scope {
+  return getCurrentHub().getScope();
 }

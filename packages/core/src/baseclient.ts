@@ -16,6 +16,8 @@ import type {
   FeedbackEvent,
   Integration,
   IntegrationClass,
+  MetricBucketItem,
+  MetricsAggregator,
   Outcome,
   PropagationContext,
   SdkMetadata,
@@ -46,9 +48,10 @@ import {
 import { getEnvelopeEndpointWithUrlEncodedAuth } from './api';
 import { DEBUG_BUILD } from './debug-build';
 import { createEventEnvelope, createSessionEnvelope } from './envelope';
-import { getCurrentHub } from './hub';
+import { getClient } from './exports';
 import type { IntegrationIndex } from './integration';
 import { setupIntegration, setupIntegrations } from './integration';
+import { createMetricEnvelope } from './metrics/envelope';
 import type { Scope } from './scope';
 import { updateSession } from './session';
 import { getDynamicSamplingContextFromClient } from './tracing/dynamicSamplingContext';
@@ -88,6 +91,13 @@ const ALREADY_SEEN_ERROR = "Not capturing exception because it's already been ca
  * }
  */
 export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
+  /**
+   * A reference to a metrics aggregator
+   *
+   * @experimental Note this is alpha API. It may experience breaking changes in the future.
+   */
+  public metricsAggregator?: MetricsAggregator;
+
   /** Options passed to the SDK. */
   protected readonly _options: O;
 
@@ -105,13 +115,13 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   /** Number of calls being processed */
   protected _numProcessing: number;
 
+  protected _eventProcessors: EventProcessor[];
+
   /** Holds flushable  */
   private _outcomes: { [key: string]: number };
 
   // eslint-disable-next-line @typescript-eslint/ban-types
   private _hooks: Record<string, Function[]>;
-
-  private _eventProcessors: EventProcessor[];
 
   /**
    * Initializes this client instance.
@@ -264,6 +274,9 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   public flush(timeout?: number): PromiseLike<boolean> {
     const transport = this._transport;
     if (transport) {
+      if (this.metricsAggregator) {
+        this.metricsAggregator.flush();
+      }
       return this._isClientDoneProcessing(timeout).then(clientFinished => {
         return transport.flush(timeout).then(transportFlushed => clientFinished && transportFlushed);
       });
@@ -278,6 +291,9 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   public close(timeout?: number): PromiseLike<boolean> {
     return this.flush(timeout).then(result => {
       this.getOptions().enabled = false;
+      if (this.metricsAggregator) {
+        this.metricsAggregator.close();
+      }
       return result;
     });
   }
@@ -381,6 +397,19 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
       // The following works because undefined + 1 === NaN and NaN is falsy
       this._outcomes[key] = this._outcomes[key] + 1 || 1;
     }
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public captureAggregateMetrics(metricBucketItems: Array<MetricBucketItem>): void {
+    const metricsEnvelope = createMetricEnvelope(
+      metricBucketItems,
+      this._dsn,
+      this._options._metadata,
+      this._options.tunnel,
+    );
+    void this._sendEnvelope(metricsEnvelope);
   }
 
   // Keep on() & emit() signatures in sync with types' client.ts interface
@@ -841,7 +870,7 @@ function isTransactionEvent(event: Event): event is TransactionEvent {
  * This event processor will run for all events processed by this client.
  */
 export function addEventProcessor(callback: EventProcessor): void {
-  const client = getCurrentHub().getClient();
+  const client = getClient();
 
   if (!client || !client.addEventProcessor) {
     return;

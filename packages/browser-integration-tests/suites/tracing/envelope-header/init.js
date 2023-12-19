@@ -11,7 +11,6 @@ Sentry.init({
   debug: true,
 });
 
-Sentry.configureScope(scope => {
-  scope.setUser({ id: 'user123', segment: 'segmentB' });
-  scope.setTransactionName('testTransactionDSC');
-});
+const scope = Sentry.getCurrentScope();
+scope.setUser({ id: 'user123', segment: 'segmentB' });
+scope.setTransactionName('testTransactionDSC');

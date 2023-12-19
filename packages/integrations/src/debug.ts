@@ -1,4 +1,4 @@
-import type { Event, EventHint, EventProcessor, Hub, Integration } from '@sentry/types';
+import type { Client, Event, EventHint, EventProcessor, Hub, Integration } from '@sentry/types';
 import { consoleSandbox } from '@sentry/utils';
 
 interface DebugOptions {
@@ -38,32 +38,40 @@ export class Debug implements Integration {
   /**
    * @inheritDoc
    */
-  public setupOnce(_addGlobalEventProcessor: (eventProcessor: EventProcessor) => void, getCurrentHub: () => Hub): void {
-    const client = getCurrentHub().getClient();
+  public setupOnce(
+    _addGlobalEventProcessor: (eventProcessor: EventProcessor) => void,
+    _getCurrentHub: () => Hub,
+  ): void {
+    // noop
+  }
 
-    if (client && client.on) {
-      client.on('beforeSendEvent', (event: Event, hint?: EventHint) => {
-        if (this._options.debugger) {
-          // eslint-disable-next-line no-debugger
-          debugger;
-        }
-
-        /* eslint-disable no-console */
-        consoleSandbox(() => {
-          if (this._options.stringify) {
-            console.log(JSON.stringify(event, null, 2));
-            if (hint && Object.keys(hint).length) {
-              console.log(JSON.stringify(hint, null, 2));
-            }
-          } else {
-            console.log(event);
-            if (hint && Object.keys(hint).length) {
-              console.log(hint);
-            }
-          }
-        });
-        /* eslint-enable no-console */
-      });
+  /** @inheritdoc */
+  public setup(client: Client): void {
+    if (!client.on) {
+      return;
     }
+
+    client.on('beforeSendEvent', (event: Event, hint?: EventHint) => {
+      if (this._options.debugger) {
+        // eslint-disable-next-line no-debugger
+        debugger;
+      }
+
+      /* eslint-disable no-console */
+      consoleSandbox(() => {
+        if (this._options.stringify) {
+          console.log(JSON.stringify(event, null, 2));
+          if (hint && Object.keys(hint).length) {
+            console.log(JSON.stringify(hint, null, 2));
+          }
+        } else {
+          console.log(event);
+          if (hint && Object.keys(hint).length) {
+            console.log(hint);
+          }
+        }
+      });
+      /* eslint-enable no-console */
+    });
   }
 }

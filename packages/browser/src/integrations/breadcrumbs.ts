@@ -1,5 +1,5 @@
 /* eslint-disable max-lines */
-import { getClient, getCurrentHub } from '@sentry/core';
+import { addBreadcrumb, getClient } from '@sentry/core';
 import type {
   Event as SentryEvent,
   HandlerDataConsole,
@@ -125,7 +125,7 @@ export class Breadcrumbs implements Integration {
  * Adds a breadcrumb for Sentry events or transactions if this option is enabled.
  */
 function addSentryBreadcrumb(event: SentryEvent): void {
-  getCurrentHub().addBreadcrumb(
+  addBreadcrumb(
     {
       category: `sentry.${event.type === 'transaction' ? 'transaction' : 'event'}`,
       event_id: event.event_id,
@@ -187,7 +187,7 @@ function _domBreadcrumb(dom: BreadcrumbsOptions['dom']): (handlerData: HandlerDa
       breadcrumb.data = { componentName };
     }
 
-    getCurrentHub().addBreadcrumb(breadcrumb, {
+    addBreadcrumb(breadcrumb, {
       event: handlerData.event,
       name: handlerData.name,
       global: handlerData.global,
@@ -221,7 +221,7 @@ function _consoleBreadcrumb(handlerData: HandlerDataConsole): void {
     }
   }
 
-  getCurrentHub().addBreadcrumb(breadcrumb, {
+  addBreadcrumb(breadcrumb, {
     input: handlerData.args,
     level: handlerData.level,
   });
@@ -255,7 +255,7 @@ function _xhrBreadcrumb(handlerData: HandlerDataXhr): void {
     endTimestamp,
   };
 
-  getCurrentHub().addBreadcrumb(
+  addBreadcrumb(
     {
       category: 'xhr',
       data,
@@ -290,7 +290,7 @@ function _fetchBreadcrumb(handlerData: HandlerDataFetch): void {
       endTimestamp,
     };
 
-    getCurrentHub().addBreadcrumb(
+    addBreadcrumb(
       {
         category: 'fetch',
         data,
@@ -311,7 +311,7 @@ function _fetchBreadcrumb(handlerData: HandlerDataFetch): void {
       startTimestamp,
       endTimestamp,
     };
-    getCurrentHub().addBreadcrumb(
+    addBreadcrumb(
       {
         category: 'fetch',
         data,
@@ -346,7 +346,7 @@ function _historyBreadcrumb(handlerData: HandlerDataHistory): void {
     from = parsedFrom.relative;
   }
 
-  getCurrentHub().addBreadcrumb({
+  addBreadcrumb({
     category: 'navigation',
     data: {
       from,

@@ -67,8 +67,13 @@ export class ContextLines implements Integration {
   /**
    * @inheritDoc
    */
-  public setupOnce(addGlobalEventProcessor: (callback: EventProcessor) => void): void {
-    addGlobalEventProcessor(event => this.addSourceContext(event));
+  public setupOnce(_addGlobalEventProcessor: (callback: EventProcessor) => void): void {
+    // noop
+  }
+
+  /** @inheritDoc */
+  public processEvent(event: Event): Promise<Event> {
+    return this.addSourceContext(event);
   }
 
   /** Processes an event and adds context lines */

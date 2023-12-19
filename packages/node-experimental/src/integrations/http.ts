@@ -3,11 +3,13 @@ import type { Span } from '@opentelemetry/api';
 import { SpanKind } from '@opentelemetry/api';
 import { registerInstrumentations } from '@opentelemetry/instrumentation';
 import { HttpInstrumentation } from '@opentelemetry/instrumentation-http';
-import { hasTracingEnabled, isSentryRequestUrl } from '@sentry/core';
+import { addBreadcrumb, hasTracingEnabled, isSentryRequestUrl } from '@sentry/core';
 import { _INTERNAL, getClient, getCurrentHub, getSpanKind, setSpanMetadata } from '@sentry/opentelemetry';
 import type { EventProcessor, Hub, Integration } from '@sentry/types';
 import { stringMatchesSomePattern } from '@sentry/utils';
 
+import { getIsolationScope, setIsolationScope } from '../sdk/api';
+import { Scope } from '../sdk/scope';
 import type { NodeExperimentalClient } from '../types';
 import { addOriginToSpan } from '../utils/addOriginToSpan';
 import { getRequestUrl } from '../utils/getRequestUrl';
@@ -102,7 +104,7 @@ export class Http implements Integration {
               return false;
             }
 
-            if (isSentryRequestUrl(url, getCurrentHub())) {
+            if (isSentryRequestUrl(url, getClient())) {
               return true;
             }
 
@@ -127,6 +129,11 @@ export class Http implements Integration {
           requireParentforIncomingSpans: false,
           requestHook: (span, req) => {
             this._updateSpan(span, req);
+
+            // Update the isolation scope, isolate this request
+            if (getSpanKind(span) === SpanKind.SERVER) {
+              setIsolationScope(getIsolationScope().clone());
+            }
           },
           responseHook: (span, res) => {
             this._addRequestBreadcrumb(span, res);
@@ -159,7 +166,7 @@ export class Http implements Integration {
     }
 
     const data = _INTERNAL.getRequestSpanData(span);
-    getCurrentHub().addBreadcrumb(
+    addBreadcrumb(
       {
         category: 'http',
         data: {

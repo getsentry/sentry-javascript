@@ -9,19 +9,12 @@ import type {
   StackFrame,
   StackParser,
 } from '@sentry/types';
-import {
-  GLOBAL_OBJ,
-  addExceptionMechanism,
-  dateTimestampInSeconds,
-  normalize,
-  resolvedSyncPromise,
-  truncate,
-  uuid4,
-} from '@sentry/utils';
+import { GLOBAL_OBJ, addExceptionMechanism, dateTimestampInSeconds, normalize, truncate, uuid4 } from '@sentry/utils';
 
 import { DEFAULT_ENVIRONMENT } from '../constants';
 import { getGlobalEventProcessors, notifyEventProcessors } from '../eventProcessors';
 import { Scope } from '../scope';
+import { applyScopeDataToEvent } from './applyScopeDataToEvent';
 
 /**
  * This type makes sure that we get either a CaptureContext, OR an EventHint.
@@ -74,19 +67,19 @@ export function prepareEvent(
 
   // If we have scope given to us, use it as the base for further modifications.
   // This allows us to prevent unnecessary copying of data if `captureContext` is not provided.
-  let finalScope = scope;
-  if (hint.captureContext) {
-    finalScope = Scope.clone(finalScope).update(hint.captureContext);
-  }
+  const finalScope = getFinalScope(scope, hint.captureContext);
 
   if (hint.mechanism) {
     addExceptionMechanism(prepared, hint.mechanism);
   }
 
-  // We prepare the result here with a resolved Event.
-  let result = resolvedSyncPromise<Event | null>(prepared);
-
   const clientEventProcessors = client && client.getEventProcessors ? client.getEventProcessors() : [];
+  // TODO (v8): Update this order to be: Global > Client > Scope
+  const eventProcessors = [
+    ...clientEventProcessors,
+    // eslint-disable-next-line deprecation/deprecation
+    ...getGlobalEventProcessors(),
+  ];
 
   // This should be the last thing called, since we want that
   // {@link Hub.addEventProcessor} gets the finished prepared event.
@@ -105,21 +98,14 @@ export function prepareEvent(
       }
     }
 
-    // In case we have a hub we reassign it.
-    result = finalScope.applyToEvent(prepared, hint, clientEventProcessors);
-  } else {
-    // Apply client & global event processors even if there is no scope
-    // TODO (v8): Update the order to be Global > Client
-    result = notifyEventProcessors(
-      [
-        ...clientEventProcessors,
-        // eslint-disable-next-line deprecation/deprecation
-        ...getGlobalEventProcessors(),
-      ],
-      prepared,
-      hint,
-    );
+    const scopeData = finalScope.getScopeData();
+    applyScopeDataToEvent(prepared, scopeData);
+
+    // Run scope event processors _after_ all other processors
+    eventProcessors.push(...scopeData.eventProcessors);
   }
+
+  const result = notifyEventProcessors(eventProcessors, prepared, hint);
 
   return result.then(evt => {
     if (evt) {
@@ -347,6 +333,16 @@ function normalizeEvent(event: Event | null, depth: number, maxBreadth: number):
   }
 
   return normalized;
+}
+
+function getFinalScope(scope: Scope | undefined, captureContext: CaptureContext | undefined): Scope | undefined {
+  if (!captureContext) {
+    return scope;
+  }
+
+  const finalScope = scope ? scope.clone() : new Scope();
+  finalScope.update(captureContext);
+  return finalScope;
 }
 
 /**

@@ -32,6 +32,7 @@ export {
   captureEvent,
   captureMessage,
   close,
+  // eslint-disable-next-line deprecation/deprecation
   configureScope,
   createTransport,
   // eslint-disable-next-line deprecation/deprecation
@@ -41,6 +42,7 @@ export {
   getHubFromCarrier,
   getCurrentHub,
   getClient,
+  getCurrentScope,
   Hub,
   lastEventId,
   makeMain,
@@ -77,7 +79,8 @@ export { defaultIntegrations, init, defaultStackParser, getSentryRelease } from 
 export { addRequestDataToEvent, DEFAULT_USER_INCLUDES, extractRequestData } from '@sentry/utils';
 export { deepReadDirSync } from './utils';
 export { getModuleFromFilename } from './module';
-export { enableAnrDetection } from './anr';
+// eslint-disable-next-line deprecation/deprecation
+export { enableAnrDetection } from './integrations/anr/legacy';
 
 import { Integrations as CoreIntegrations } from '@sentry/core';
 
@@ -92,3 +95,5 @@ const INTEGRATIONS = {
 };
 
 export { INTEGRATIONS as Integrations, Handlers };
+
+export { hapiErrorPlugin } from './integrations/hapi';

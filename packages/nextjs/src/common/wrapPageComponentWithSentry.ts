@@ -1,4 +1,4 @@
-import { addTracingExtensions, captureException, configureScope, runWithAsyncContext } from '@sentry/core';
+import { addTracingExtensions, captureException, getCurrentScope, runWithAsyncContext } from '@sentry/core';
 import { extractTraceparentData } from '@sentry/utils';
 
 interface FunctionComponent {
@@ -26,24 +26,23 @@ export function wrapPageComponentWithSentry(pageComponent: FunctionComponent | C
     return class SentryWrappedPageComponent extends pageComponent {
       public render(...args: unknown[]): unknown {
         return runWithAsyncContext(() => {
-          configureScope(scope => {
-            // We extract the sentry trace data that is put in the component props by datafetcher wrappers
-            const sentryTraceData =
-              typeof this.props === 'object' &&
-              this.props !== null &&
-              '_sentryTraceData' in this.props &&
-              typeof this.props._sentryTraceData === 'string'
-                ? this.props._sentryTraceData
-                : undefined;
+          const scope = getCurrentScope();
+          // We extract the sentry trace data that is put in the component props by datafetcher wrappers
+          const sentryTraceData =
+            typeof this.props === 'object' &&
+            this.props !== null &&
+            '_sentryTraceData' in this.props &&
+            typeof this.props._sentryTraceData === 'string'
+              ? this.props._sentryTraceData
+              : undefined;
 
-            if (sentryTraceData) {
-              const traceparentData = extractTraceparentData(sentryTraceData);
-              scope.setContext('trace', {
-                span_id: traceparentData?.parentSpanId,
-                trace_id: traceparentData?.traceId,
-              });
-            }
-          });
+          if (sentryTraceData) {
+            const traceparentData = extractTraceparentData(sentryTraceData);
+            scope.setContext('trace', {
+              span_id: traceparentData?.parentSpanId,
+              trace_id: traceparentData?.traceId,
+            });
+          }
 
           try {
             return super.render(...args);
@@ -62,18 +61,18 @@ export function wrapPageComponentWithSentry(pageComponent: FunctionComponent | C
     return new Proxy(pageComponent, {
       apply(target, thisArg, argArray: [{ _sentryTraceData?: string } | undefined]) {
         return runWithAsyncContext(() => {
-          configureScope(scope => {
-            // We extract the sentry trace data that is put in the component props by datafetcher wrappers
-            const sentryTraceData = argArray?.[0]?._sentryTraceData;
+          const scope = getCurrentScope();
+          // We extract the sentry trace data that is put in the component props by datafetcher wrappers
+          const sentryTraceData = argArray?.[0]?._sentryTraceData;
 
-            if (sentryTraceData) {
-              const traceparentData = extractTraceparentData(sentryTraceData);
-              scope.setContext('trace', {
-                span_id: traceparentData?.parentSpanId,
-                trace_id: traceparentData?.traceId,
-              });
-            }
-          });
+          if (sentryTraceData) {
+            const traceparentData = extractTraceparentData(sentryTraceData);
+            scope.setContext('trace', {
+              span_id: traceparentData?.parentSpanId,
+              trace_id: traceparentData?.traceId,
+            });
+          }
+
           try {
             return target.apply(thisArg, argArray);
           } catch (e) {

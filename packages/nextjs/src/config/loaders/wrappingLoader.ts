@@ -157,8 +157,6 @@ export default function wrappingLoader(
       .replace(/(.*)/, '/$1')
       // Pull off the file name
       .replace(/\/[^/]+\.(js|ts|jsx|tsx)$/, '')
-      // Remove routing groups: https://beta.nextjs.org/docs/routing/defining-routes#example-creating-multiple-root-layouts
-      .replace(/\/(\(.*?\)\/)+/g, '/')
       // In case all of the above have left us with an empty string (which will happen if we're dealing with the
       // homepage), sub back in the root route
       .replace(/^$/, '/');

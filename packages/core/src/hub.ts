@@ -139,10 +139,12 @@ export class Hub implements HubInterface {
 
   /**
    * @inheritDoc
+   *
+   * @deprecated Use `withScope` instead.
    */
   public pushScope(): Scope {
     // We want to clone the content of prev scope
-    const scope = Scope.clone(this.getScope());
+    const scope = this.getScope().clone();
     this.getStack().push({
       client: this.getClient(),
       scope,
@@ -152,6 +154,8 @@ export class Hub implements HubInterface {
 
   /**
    * @inheritDoc
+   *
+   * @deprecated Use `withScope` instead.
    */
   public popScope(): boolean {
     if (this.getStack().length <= 1) return false;
@@ -161,11 +165,13 @@ export class Hub implements HubInterface {
   /**
    * @inheritDoc
    */
-  public withScope(callback: (scope: Scope) => void): void {
+  public withScope<T>(callback: (scope: Scope) => T): T {
+    // eslint-disable-next-line deprecation/deprecation
     const scope = this.pushScope();
     try {
-      callback(scope);
+      return callback(scope);
     } finally {
+      // eslint-disable-next-line deprecation/deprecation
       this.popScope();
     }
   }
@@ -335,6 +341,8 @@ export class Hub implements HubInterface {
 
   /**
    * @inheritDoc
+   *
+   * @deprecated Use `getScope()` directly.
    */
   public configureScope(callback: (scope: Scope) => void): void {
     const { scope, client } = this.getStackTop();
@@ -578,7 +586,7 @@ export function ensureHubOnCarrier(carrier: Carrier, parent: Hub = getGlobalHub(
   // If there's no hub on current domain, or it's an old API, assign a new one
   if (!hasHubOnCarrier(carrier) || getHubFromCarrier(carrier).isOlderThan(API_VERSION)) {
     const globalHubTopStack = parent.getStackTop();
-    setHubOnCarrier(carrier, new Hub(globalHubTopStack.client, Scope.clone(globalHubTopStack.scope)));
+    setHubOnCarrier(carrier, new Hub(globalHubTopStack.client, globalHubTopStack.scope.clone()));
   }
 }
 

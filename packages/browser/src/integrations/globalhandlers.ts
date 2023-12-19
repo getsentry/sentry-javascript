@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
-import { getCurrentHub } from '@sentry/core';
-import type { Event, Hub, Integration, Primitive, StackParser } from '@sentry/types';
+import { captureEvent, getClient } from '@sentry/core';
+import type { Client, Event, Integration, Primitive, StackParser } from '@sentry/types';
 import {
   addGlobalErrorInstrumentationHandler,
   addGlobalUnhandledRejectionInstrumentationHandler,
@@ -36,12 +36,6 @@ export class GlobalHandlers implements Integration {
   /** JSDoc */
   private readonly _options: GlobalHandlersIntegrations;
 
-  /**
-   * Stores references functions to installing handlers. Will set to undefined
-   * after they have been run so that they are not used twice.
-   */
-  private _installFunc: Record<GlobalHandlersIntegrationsOptionKeys, (() => void) | undefined>;
-
   /** JSDoc */
   public constructor(options?: GlobalHandlersIntegrations) {
     this.name = GlobalHandlers.id;
@@ -50,43 +44,36 @@ export class GlobalHandlers implements Integration {
       onunhandledrejection: true,
       ...options,
     };
-
-    this._installFunc = {
-      onerror: _installGlobalOnErrorHandler,
-      onunhandledrejection: _installGlobalOnUnhandledRejectionHandler,
-    };
   }
   /**
    * @inheritDoc
    */
   public setupOnce(): void {
     Error.stackTraceLimit = 50;
-    const options = this._options;
+  }
 
-    // We can disable guard-for-in as we construct the options object above + do checks against
-    // `this._installFunc` for the property.
-    // eslint-disable-next-line guard-for-in
-    for (const key in options) {
-      const installFunc = this._installFunc[key as GlobalHandlersIntegrationsOptionKeys];
-      if (installFunc && options[key as GlobalHandlersIntegrationsOptionKeys]) {
-        globalHandlerLog(key);
-        installFunc();
-        this._installFunc[key as GlobalHandlersIntegrationsOptionKeys] = undefined;
-      }
+  /** @inheritdoc */
+  public setup(client: Client): void {
+    if (this._options.onerror) {
+      _installGlobalOnErrorHandler(client);
+      globalHandlerLog('onerror');
+    }
+    if (this._options.onunhandledrejection) {
+      _installGlobalOnUnhandledRejectionHandler(client);
+      globalHandlerLog('onunhandledrejection');
     }
   }
 }
 
-function _installGlobalOnErrorHandler(): void {
+function _installGlobalOnErrorHandler(client: Client): void {
   addGlobalErrorInstrumentationHandler(data => {
-    const [hub, stackParser, attachStacktrace] = getHubAndOptions();
-    if (!hub.getIntegration(GlobalHandlers)) {
+    const { stackParser, attachStacktrace } = getOptions();
+
+    if (getClient() !== client || shouldIgnoreOnError()) {
       return;
     }
+
     const { msg, url, line, column, error } = data;
-    if (shouldIgnoreOnError()) {
-      return;
-    }
 
     const event =
       error === undefined && isString(msg)
@@ -100,7 +87,7 @@ function _installGlobalOnErrorHandler(): void {
 
     event.level = 'error';
 
-    hub.captureEvent(event, {
+    captureEvent(event, {
       originalException: error,
       mechanism: {
         handled: false,
@@ -110,15 +97,12 @@ function _installGlobalOnErrorHandler(): void {
   });
 }
 
-function _installGlobalOnUnhandledRejectionHandler(): void {
+function _installGlobalOnUnhandledRejectionHandler(client: Client): void {
   addGlobalUnhandledRejectionInstrumentationHandler(e => {
-    const [hub, stackParser, attachStacktrace] = getHubAndOptions();
-    if (!hub.getIntegration(GlobalHandlers)) {
-      return;
-    }
+    const { stackParser, attachStacktrace } = getOptions();
 
-    if (shouldIgnoreOnError()) {
-      return true;
+    if (getClient() !== client || shouldIgnoreOnError()) {
+      return;
     }
 
     const error = _getUnhandledRejectionError(e as unknown);
@@ -129,15 +113,13 @@ function _installGlobalOnUnhandledRejectionHandler(): void {
 
     event.level = 'error';
 
-    hub.captureEvent(event, {
+    captureEvent(event, {
       originalException: error,
       mechanism: {
         handled: false,
         type: 'onunhandledrejection',
       },
     });
-
-    return;
   });
 }
 
@@ -258,12 +240,11 @@ function globalHandlerLog(type: string): void {
   DEBUG_BUILD && logger.log(`Global Handler attached: ${type}`);
 }
 
-function getHubAndOptions(): [Hub, StackParser, boolean | undefined] {
-  const hub = getCurrentHub();
-  const client = hub.getClient<BrowserClient>();
+function getOptions(): { stackParser: StackParser; attachStacktrace?: boolean } {
+  const client = getClient<BrowserClient>();
   const options = (client && client.getOptions()) || {
     stackParser: () => [],
     attachStacktrace: false,
   };
-  return [hub, options.stackParser, options.attachStacktrace];
+  return options;
 }

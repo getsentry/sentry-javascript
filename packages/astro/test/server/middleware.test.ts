@@ -1,5 +1,6 @@
 import * as SentryNode from '@sentry/node';
-import { vi } from 'vitest';
+import type { Client } from '@sentry/types';
+import { SpyInstance, vi } from 'vitest';
 
 import { handleRequest, interpolateRouteFromUrlAndParams } from '../../src/server/middleware';
 
@@ -14,14 +15,17 @@ describe('sentryMiddleware', () => {
   const startSpanSpy = vi.spyOn(SentryNode, 'startSpan');
 
   const getSpanMock = vi.fn(() => {});
-  // @ts-expect-error only returning a partial hub here
-  vi.spyOn(SentryNode, 'getCurrentHub').mockImplementation(() => {
-    return {
-      getScope: () => ({
+  const setUserMock = vi.fn();
+
+  beforeEach(() => {
+    vi.spyOn(SentryNode, 'getCurrentScope').mockImplementation(() => {
+      return {
+        setUser: setUserMock,
+        setPropagationContext: vi.fn(),
         getSpan: getSpanMock,
-      }),
-      getClient: () => ({}),
-    };
+      } as any;
+    });
+    vi.spyOn(SentryNode, 'getClient').mockImplementation(() => ({}) as Client);
   });
 
   const nextResult = Promise.resolve(new Response(null, { status: 200, headers: new Headers() }));
@@ -58,6 +62,43 @@ describe('sentryMiddleware', () => {
           source: 'route',
         },
         name: 'GET /users/[id]/details',
+        op: 'http.server',
+        origin: 'auto.http.astro',
+        status: 'ok',
+      },
+      expect.any(Function), // the `next` function
+    );
+
+    expect(next).toHaveBeenCalled();
+    expect(resultFromNext).toStrictEqual(nextResult);
+  });
+
+  it("sets source route if the url couldn't be decoded correctly", async () => {
+    const middleware = handleRequest();
+    const ctx = {
+      request: {
+        method: 'GET',
+        url: '/a%xx',
+        headers: new Headers(),
+      },
+      url: { pathname: 'a%xx', href: 'http://localhost:1234/a%xx' },
+      params: {},
+    };
+    const next = vi.fn(() => nextResult);
+
+    // @ts-expect-error, a partial ctx object is fine here
+    const resultFromNext = middleware(ctx, next);
+
+    expect(startSpanSpy).toHaveBeenCalledWith(
+      {
+        data: {
+          method: 'GET',
+          url: 'http://localhost:1234/a%xx',
+        },
+        metadata: {
+          source: 'url',
+        },
+        name: 'GET a%xx',
         op: 'http.server',
         origin: 'auto.http.astro',
         status: 'ok',
@@ -133,10 +174,6 @@ describe('sentryMiddleware', () => {
   });
 
   it('attaches client IP and request headers if options are set', async () => {
-    const scope = { setUser: vi.fn(), setPropagationContext: vi.fn() };
-    // @ts-expect-error, only passing a partial Scope object
-    const configureScopeSpy = vi.spyOn(SentryNode, 'configureScope').mockImplementation(cb => cb(scope));
-
     const middleware = handleRequest({ trackClientIp: true, trackHeaders: true });
     const ctx = {
       request: {
@@ -155,8 +192,7 @@ describe('sentryMiddleware', () => {
     // @ts-expect-error, a partial ctx object is fine here
     await middleware(ctx, next);
 
-    expect(configureScopeSpy).toHaveBeenCalledTimes(1);
-    expect(scope.setUser).toHaveBeenCalledWith({ ip_address: '192.168.0.1' });
+    expect(setUserMock).toHaveBeenCalledWith({ ip_address: '192.168.0.1' });
 
     expect(startSpanSpy).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -299,12 +335,28 @@ describe('sentryMiddleware', () => {
 
 describe('interpolateRouteFromUrlAndParams', () => {
   it.each([
+    ['/', {}, '/'],
     ['/foo/bar', {}, '/foo/bar'],
     ['/users/123', { id: '123' }, '/users/[id]'],
     ['/users/123', { id: '123', foo: 'bar' }, '/users/[id]'],
     ['/lang/en-US', { lang: 'en', region: 'US' }, '/lang/[lang]-[region]'],
     ['/lang/en-US/posts', { lang: 'en', region: 'US' }, '/lang/[lang]-[region]/posts'],
+    // edge cases that astro doesn't support
+    ['/lang/-US', { region: 'US' }, '/lang/-[region]'],
+    ['/lang/en-', { lang: 'en' }, '/lang/[lang]-'],
   ])('interpolates route from URL and params %s', (rawUrl, params, expectedRoute) => {
+    expect(interpolateRouteFromUrlAndParams(rawUrl, params)).toEqual(expectedRoute);
+  });
+
+  it.each([
+    ['/(a+)+/aaaaaaaaa!', { id: '(a+)+', slug: 'aaaaaaaaa!' }, '/[id]/[slug]'],
+    ['/([a-zA-Z]+)*/aaaaaaaaa!', { id: '([a-zA-Z]+)*', slug: 'aaaaaaaaa!' }, '/[id]/[slug]'],
+    ['/(a|aa)+/aaaaaaaaa!', { id: '(a|aa)+', slug: 'aaaaaaaaa!' }, '/[id]/[slug]'],
+    ['/(a|a?)+/aaaaaaaaa!', { id: '(a|a?)+', slug: 'aaaaaaaaa!' }, '/[id]/[slug]'],
+    // with URL encoding
+    ['/(a%7Caa)+/aaaaaaaaa!', { id: '(a|aa)+', slug: 'aaaaaaaaa!' }, '/[id]/[slug]'],
+    ['/(a%7Ca?)+/aaaaaaaaa!', { id: '(a|a?)+', slug: 'aaaaaaaaa!' }, '/[id]/[slug]'],
+  ])('handles regex characters in param values correctly %s', (rawUrl, params, expectedRoute) => {
     expect(interpolateRouteFromUrlAndParams(rawUrl, params)).toEqual(expectedRoute);
   });
 
@@ -322,6 +374,13 @@ describe('interpolateRouteFromUrlAndParams', () => {
     const rawUrl = '/usernames/username';
     const params = { name: 'username' };
     const expectedRoute = '/usernames/[name]';
+    expect(interpolateRouteFromUrlAndParams(rawUrl, params)).toEqual(expectedRoute);
+  });
+
+  it('handles set but undefined params', () => {
+    const rawUrl = '/usernames/user';
+    const params = { name: undefined, name2: '' };
+    const expectedRoute = '/usernames/user';
     expect(interpolateRouteFromUrlAndParams(rawUrl, params)).toEqual(expectedRoute);
   });
 });

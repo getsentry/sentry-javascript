@@ -72,29 +72,32 @@ export class NormalizePaths implements Integration {
   public name: string = NormalizePaths.id;
 
   /** @inheritDoc */
-  public setupOnce(addGlobalEventProcessor: (callback: EventProcessor) => void): void {
+  public setupOnce(_addGlobalEventProcessor: (callback: EventProcessor) => void): void {
+    // noop
+  }
+
+  /** @inheritDoc */
+  public processEvent(event: Event): Event | null {
     // This error.stack hopefully contains paths that traverse the app cwd
     const error = new Error();
 
-    addGlobalEventProcessor((event: Event): Event | null => {
-      const appRoot = getAppRoot(error);
+    const appRoot = getAppRoot(error);
 
-      if (appRoot) {
-        for (const exception of event.exception?.values || []) {
-          for (const frame of exception.stacktrace?.frames || []) {
-            if (frame.filename && frame.in_app) {
-              const startIndex = frame.filename.indexOf(appRoot);
+    if (appRoot) {
+      for (const exception of event.exception?.values || []) {
+        for (const frame of exception.stacktrace?.frames || []) {
+          if (frame.filename && frame.in_app) {
+            const startIndex = frame.filename.indexOf(appRoot);
 
-              if (startIndex > -1) {
-                const endIndex = startIndex + appRoot.length;
-                frame.filename = `app://${frame.filename.substring(endIndex)}`;
-              }
+            if (startIndex > -1) {
+              const endIndex = startIndex + appRoot.length;
+              frame.filename = `app://${frame.filename.substring(endIndex)}`;
             }
           }
         }
       }
+    }
 
-      return event;
-    });
+    return event;
   }
 }

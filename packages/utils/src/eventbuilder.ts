@@ -1,7 +1,9 @@
 import type {
+  Client,
   Event,
   EventHint,
   Exception,
+  Extras,
   Hub,
   Mechanism,
   Severity,
@@ -61,14 +63,18 @@ function getMessageForObject(exception: object): string {
 
 /**
  * Builds and Event from a Exception
+ *
+ * TODO(v8): Remove getHub fallback
  * @hidden
  */
 export function eventFromUnknownInput(
-  getCurrentHub: () => Hub,
+  getHubOrClient: (() => Hub) | Client | undefined,
   stackParser: StackParser,
   exception: unknown,
   hint?: EventHint,
 ): Event {
+  const client = typeof getHubOrClient === 'function' ? getHubOrClient().getClient() : getHubOrClient;
+
   let ex: unknown = exception;
   const providedMechanism: Mechanism | undefined =
     hint && hint.data && (hint.data as { mechanism: Mechanism }).mechanism;
@@ -77,14 +83,12 @@ export function eventFromUnknownInput(
     type: 'generic',
   };
 
+  let extras: Extras | undefined;
+
   if (!isError(exception)) {
     if (isPlainObject(exception)) {
-      const hub = getCurrentHub();
-      const client = hub.getClient();
       const normalizeDepth = client && client.getOptions().normalizeDepth;
-      hub.configureScope(scope => {
-        scope.setExtra('__serialized__', normalizeToSize(exception, normalizeDepth));
-      });
+      extras = { ['__serialized__']: normalizeToSize(exception as Record<string, unknown>, normalizeDepth) };
 
       const message = getMessageForObject(exception);
       ex = (hint && hint.syntheticException) || new Error(message);
@@ -98,11 +102,15 @@ export function eventFromUnknownInput(
     mechanism.synthetic = true;
   }
 
-  const event = {
+  const event: Event = {
     exception: {
       values: [exceptionFromError(stackParser, ex as Error)],
     },
   };
+
+  if (extras) {
+    event.extra = extras;
+  }
 
   addExceptionTypeValue(event, undefined, undefined);
   addExceptionMechanism(event, mechanism);

@@ -1,5 +1,6 @@
 import type { NodeOptions } from '@sentry/node';
-import { configureScope, getCurrentHub, init as nodeInit } from '@sentry/node';
+import { getClient } from '@sentry/node';
+import { getCurrentScope, init as nodeInit } from '@sentry/node';
 import { logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from './utils/debug-build';
@@ -19,6 +20,7 @@ export {
   captureException,
   captureEvent,
   captureMessage,
+  // eslint-disable-next-line deprecation/deprecation
   configureScope,
   createTransport,
   // eslint-disable-next-line deprecation/deprecation
@@ -68,8 +70,7 @@ export { wrapExpressCreateRequestHandler } from './utils/serverAdapters/express'
 export type { SentryMetaArgs } from './utils/types';
 
 function sdkAlreadyInitialized(): boolean {
-  const hub = getCurrentHub();
-  return !!hub.getClient();
+  return !!getClient();
 }
 
 /** Initializes Sentry Remix SDK on Node. */
@@ -86,7 +87,5 @@ export function init(options: RemixOptions): void {
 
   nodeInit(options as NodeOptions);
 
-  configureScope(scope => {
-    scope.setTag('runtime', 'node');
-  });
+  getCurrentScope().setTag('runtime', 'node');
 }
