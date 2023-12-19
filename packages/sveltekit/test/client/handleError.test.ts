@@ -38,6 +38,7 @@ describe('handleError', () => {
     it('invokes the default handler if no handleError func is provided', async () => {
       const wrappedHandleError = handleErrorWithSentry();
       const mockError = new Error('test');
+      // @ts-expect-error - purposefully omitting status and message to cover SvelteKit 1.x compatibility
       const returnVal = await wrappedHandleError({ error: mockError, event: navigationEvent });
 
       expect(returnVal).not.toBeDefined();
@@ -50,6 +51,7 @@ describe('handleError', () => {
     it('invokes the user-provided error handler', async () => {
       const wrappedHandleError = handleErrorWithSentry(handleError);
       const mockError = new Error('test');
+      // @ts-expect-error - purposefully omitting status and message to cover SvelteKit 1.x compatibility
       const returnVal = (await wrappedHandleError({ error: mockError, event: navigationEvent })) as any;
 
       expect(returnVal.message).toEqual('Whoops!');
@@ -58,5 +60,20 @@ describe('handleError', () => {
       // Check that the default handler wasn't invoked
       expect(consoleErrorSpy).toHaveBeenCalledTimes(0);
     });
+  });
+
+  it("doesn't capture 404 errors", async () => {
+    const wrappedHandleError = handleErrorWithSentry(handleError);
+    const returnVal = (await wrappedHandleError({
+      error: new Error('404 Not Found'),
+      event: navigationEvent,
+      status: 404,
+      message: 'Not Found',
+    })) as any;
+
+    expect(returnVal.message).toEqual('Whoops!');
+    expect(mockCaptureException).not.toHaveBeenCalled();
+    // Check that the default handler wasn't invoked
+    expect(consoleErrorSpy).toHaveBeenCalledTimes(0);
   });
 });

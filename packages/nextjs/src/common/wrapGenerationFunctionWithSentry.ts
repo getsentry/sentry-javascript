@@ -2,7 +2,7 @@ import {
   addTracingExtensions,
   captureException,
   continueTrace,
-  getCurrentHub,
+  getClient,
   getCurrentScope,
   runWithAsyncContext,
   trace,
@@ -34,7 +34,7 @@ export function wrapGenerationFunctionWithSentry<F extends (...args: any[]) => a
       }
 
       let data: Record<string, unknown> | undefined = undefined;
-      if (getCurrentHub().getClient()?.getOptions().sendDefaultPii) {
+      if (getClient()?.getOptions().sendDefaultPii) {
         const props: unknown = args[0];
         const params = props && typeof props === 'object' && 'params' in props ? props.params : undefined;
         const searchParams =
