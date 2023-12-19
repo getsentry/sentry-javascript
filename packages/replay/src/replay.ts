@@ -341,11 +341,12 @@ export class ReplayContainer implements ReplayContainerInterface {
         ...(this.recordingMode === 'buffer' && { checkoutEveryNms: BUFFER_CHECKOUT_TIME }),
         emit: getHandleRecordingEmit(this),
         onMutation: this._onMutationHandler,
-        ...(canvas && canvas.manager && {
-          recordCanvas: true,
-          getCanvasManager: canvas.manager,
-          ...(CANVAS_QUALITY[canvas.quality || 'medium'] || CANVAS_QUALITY.medium)
-        }),
+        ...(canvas &&
+          canvas.manager && {
+            recordCanvas: true,
+            getCanvasManager: canvas.manager,
+            ...(CANVAS_QUALITY[canvas.quality || 'medium'] || CANVAS_QUALITY.medium),
+          }),
       });
     } catch (err) {
       this._handleException(err);

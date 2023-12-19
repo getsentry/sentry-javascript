@@ -82,4 +82,4 @@ export const CANVAS_QUALITY = {
       quality: 0.5,
     },
   },
-}
+};
