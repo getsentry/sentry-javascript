@@ -6,8 +6,11 @@ script_dir=$(cd "$(dirname "$0")" && pwd)
 # Function to calculate SHA checksums for files
 calculate_sha_checksum() {
     file="$1"
+    # Strip the directory name from the file path
+    file_name=$(basename "$file")
     sha_checksum=$(sha256sum "$file" | awk '{print $1}')
-    echo "$file: $sha_checksum"
+    # Align the output
+    printf "%-48s: %s\n" "$file_name" "$sha_checksum"
 }
 
 # Main function to process files recursively
