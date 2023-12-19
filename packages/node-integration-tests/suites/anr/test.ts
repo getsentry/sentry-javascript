@@ -25,7 +25,7 @@ function parseJsonLines<T extends unknown[]>(input: string, expected: number): T
 
 conditionalTest({ min: 16 })('should report ANR when event loop blocked', () => {
   test('CJS', done => {
-    expect.assertions(9);
+    expect.assertions(13);
 
     const testScriptPath = path.resolve(__dirname, 'basic.js');
 
