@@ -1,7 +1,7 @@
 import * as SentryCore from '@sentry/core';
 
+import { cron } from '../src';
 import type { NodeCron, NodeCronOptions } from '../src/cron/node-cron';
-import { instrumentNodeCron } from '../src/cron/node-cron';
 
 describe('cron', () => {
   let withMonitorSpy: jest.SpyInstance;
@@ -25,7 +25,7 @@ describe('cron', () => {
         },
       };
 
-      const cronWithCheckIn = instrumentNodeCron(nodeCron);
+      const cronWithCheckIn = cron.instrumentNodeCron(nodeCron);
 
       cronWithCheckIn.schedule(
         '* * * Jan,Sep Sun',
@@ -47,7 +47,7 @@ describe('cron', () => {
         },
       };
 
-      const cronWithCheckIn = instrumentNodeCron(nodeCron);
+      const cronWithCheckIn = cron.instrumentNodeCron(nodeCron);
 
       expect(() => {
         cronWithCheckIn.schedule('* * * * *', () => {

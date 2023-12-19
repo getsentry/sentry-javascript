@@ -81,13 +81,7 @@ export { deepReadDirSync } from './utils';
 export { getModuleFromFilename } from './module';
 export { enableAnrDetection, isAnrChildProcess } from './anr';
 
-/** Methods to instrument cron libraries for Sentry check-ins */
-export const cron = {
-  instrumentNodeCron,
-};
-
 import { Integrations as CoreIntegrations } from '@sentry/core';
-import { instrumentNodeCron } from './cron/node-cron';
 
 import * as Handlers from './handlers';
 import * as NodeIntegrations from './integrations';
@@ -102,3 +96,10 @@ const INTEGRATIONS = {
 export { INTEGRATIONS as Integrations, Handlers };
 
 export { hapiErrorPlugin } from './integrations/hapi';
+
+import { instrumentNodeCron } from './cron/node-cron';
+
+/** Methods to instrument cron libraries for Sentry check-ins */
+export const cron = {
+  instrumentNodeCron,
+};
