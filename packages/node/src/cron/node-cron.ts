@@ -58,7 +58,7 @@ function toSentryCrontab(cronExpression: string): string {
 }
 
 /**
- * Wraps the node-cron library with check-in monitoring.
+ * Wraps the `node-cron` library with check-in monitoring.
  *
  * ```ts
  * import * as Sentry from "@sentry/node";

@@ -80,9 +80,14 @@ export { addRequestDataToEvent, DEFAULT_USER_INCLUDES, extractRequestData } from
 export { deepReadDirSync } from './utils';
 export { getModuleFromFilename } from './module';
 export { enableAnrDetection, isAnrChildProcess } from './anr';
-export { cron } from './cron';
+
+/** Methods to instrument cron libraries for Sentry check-ins */
+export const cron = {
+  instrumentNodeCron,
+};
 
 import { Integrations as CoreIntegrations } from '@sentry/core';
+import { instrumentNodeCron } from './cron/node-cron';
 
 import * as Handlers from './handlers';
 import * as NodeIntegrations from './integrations';
