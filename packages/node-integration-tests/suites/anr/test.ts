@@ -43,6 +43,11 @@ conditionalTest({ min: 16 })('should report ANR when event loop blocked', () => 
       expect(event.contexts?.trace?.trace_id).toBeDefined();
       expect(event.contexts?.trace?.span_id).toBeDefined();
 
+      expect(event.contexts?.device?.arch).toBeDefined();
+      expect(event.contexts?.app?.app_start_time).toBeDefined();
+      expect(event.contexts?.os?.name).toBeDefined();
+      expect(event.contexts?.culture?.timezone).toBeDefined();
+
       done();
     });
   });
