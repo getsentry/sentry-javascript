@@ -6,6 +6,7 @@ import { logger } from '@sentry/utils';
 
 import {
   BUFFER_CHECKOUT_TIME,
+  CANVAS_QUALITY,
   SESSION_IDLE_EXPIRE_DURATION,
   SESSION_IDLE_PAUSE_DURATION,
   SLOW_CLICK_SCROLL_TIMEOUT,
@@ -340,15 +341,12 @@ export class ReplayContainer implements ReplayContainerInterface {
         ...(this.recordingMode === 'buffer' && { checkoutEveryNms: BUFFER_CHECKOUT_TIME }),
         emit: getHandleRecordingEmit(this),
         onMutation: this._onMutationHandler,
-        ...(canvas && {
-          recordCanvas: true,
-          sampling: { canvas: canvas.fps || 4 },
-          dataURLOptions: {
-            type: canvas.type || 'image/webp',
-            quality: canvas.quality || 0.6,
-          },
-          getCanvasManager: canvas.manager,
-        }),
+        ...(canvas &&
+          canvas.manager && {
+            recordCanvas: true,
+            getCanvasManager: canvas.manager,
+            ...(CANVAS_QUALITY[canvas.quality || 'medium'] || CANVAS_QUALITY.medium),
+          }),
       });
     } catch (err) {
       this._handleException(err);
