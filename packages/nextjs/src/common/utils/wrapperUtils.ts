@@ -2,7 +2,7 @@ import type { IncomingMessage, ServerResponse } from 'http';
 import {
   captureException,
   getActiveTransaction,
-  getCurrentHub,
+  getCurrentScope,
   runWithAsyncContext,
   startTransaction,
 } from '@sentry/core';
@@ -84,8 +84,7 @@ export function withTracedServerSideDataFetcher<F extends (...args: any[]) => Pr
 ): (...params: Parameters<F>) => Promise<ReturnType<F>> {
   return async function (this: unknown, ...args: Parameters<F>): Promise<ReturnType<F>> {
     return runWithAsyncContext(async () => {
-      const hub = getCurrentHub();
-      const scope = hub.getScope();
+      const scope = getCurrentScope();
       const previousSpan: Span | undefined = getTransactionFromRequest(req) ?? scope.getSpan();
       let dataFetcherSpan;
 

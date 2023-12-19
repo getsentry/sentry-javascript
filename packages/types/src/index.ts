@@ -52,7 +52,7 @@ export type { EventProcessor } from './eventprocessor';
 export type { Exception } from './exception';
 export type { Extra, Extras } from './extra';
 export type { Hub } from './hub';
-export type { Integration, IntegrationClass } from './integration';
+export type { Integration, IntegrationClass, IntegrationFn, IntegrationFnResult } from './integration';
 export type { Mechanism } from './mechanism';
 export type { ExtractedNodeRequestData, HttpHeaderValue, Primitive, WorkerLocation } from './misc';
 export type { ClientOptions, Options } from './options';

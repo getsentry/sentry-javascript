@@ -2,7 +2,7 @@ import type { ClientOptions, MeasurementUnit, Primitive } from '@sentry/types';
 import { logger } from '@sentry/utils';
 import type { BaseClient } from '../baseclient';
 import { DEBUG_BUILD } from '../debug-build';
-import { getCurrentHub } from '../hub';
+import { getClient, getCurrentScope } from '../exports';
 import { COUNTER_METRIC_TYPE, DISTRIBUTION_METRIC_TYPE, GAUGE_METRIC_TYPE, SET_METRIC_TYPE } from './constants';
 import { MetricsAggregator } from './integration';
 import type { MetricType } from './types';
@@ -19,9 +19,8 @@ function addToMetricsAggregator(
   value: number | string,
   data: MetricData = {},
 ): void {
-  const hub = getCurrentHub();
-  const client = hub.getClient() as BaseClient<ClientOptions>;
-  const scope = hub.getScope();
+  const client = getClient<BaseClient<ClientOptions>>();
+  const scope = getCurrentScope();
   if (client) {
     if (!client.metricsAggregator) {
       DEBUG_BUILD &&

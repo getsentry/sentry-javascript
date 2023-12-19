@@ -1,5 +1,5 @@
-import { getCurrentHub } from '@sentry/core';
-import type { Event, Hub, Scope } from '@sentry/types';
+import { getClient, getCurrentScope } from '@sentry/core';
+import type { Event } from '@sentry/types';
 
 import { BASE_TIMESTAMP } from '..';
 import { resetSdkMock } from '../mocks/resetSdkMock';
@@ -9,16 +9,11 @@ import { useFakeTimers } from '../utils/use-fake-timers';
 useFakeTimers();
 
 describe('Integration | eventProcessors', () => {
-  let hub: Hub;
-  let scope: Scope;
-
   beforeEach(() => {
-    hub = getCurrentHub();
-    scope = hub.pushScope();
+    getCurrentScope().clear();
   });
 
   afterEach(() => {
-    hub.popScope();
     jest.resetAllMocks();
   });
 
@@ -31,7 +26,7 @@ describe('Integration | eventProcessors', () => {
       },
     });
 
-    const client = hub.getClient()!;
+    const client = getClient()!;
 
     jest.runAllTimers();
     const mockTransportSend = jest.spyOn(client.getTransport()!, 'send');
@@ -47,7 +42,7 @@ describe('Integration | eventProcessors', () => {
       return null;
     });
 
-    scope.addEventProcessor(handler1);
+    getCurrentScope().addEventProcessor(handler1);
 
     const TEST_EVENT = getTestEventIncremental({ timestamp: BASE_TIMESTAMP });
 
@@ -58,7 +53,7 @@ describe('Integration | eventProcessors', () => {
 
     expect(mockTransportSend).toHaveBeenCalledTimes(1);
 
-    scope.addEventProcessor(handler2);
+    getCurrentScope().addEventProcessor(handler2);
 
     const TEST_EVENT2 = getTestEventIncremental({ timestamp: BASE_TIMESTAMP });
 

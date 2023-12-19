@@ -48,7 +48,7 @@ import {
 import { getEnvelopeEndpointWithUrlEncodedAuth } from './api';
 import { DEBUG_BUILD } from './debug-build';
 import { createEventEnvelope, createSessionEnvelope } from './envelope';
-import { getCurrentHub } from './hub';
+import { getClient } from './exports';
 import type { IntegrationIndex } from './integration';
 import { setupIntegration, setupIntegrations } from './integration';
 import { createMetricEnvelope } from './metrics/envelope';
@@ -115,13 +115,13 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   /** Number of calls being processed */
   protected _numProcessing: number;
 
+  protected _eventProcessors: EventProcessor[];
+
   /** Holds flushable  */
   private _outcomes: { [key: string]: number };
 
   // eslint-disable-next-line @typescript-eslint/ban-types
   private _hooks: Record<string, Function[]>;
-
-  private _eventProcessors: EventProcessor[];
 
   /**
    * Initializes this client instance.
@@ -870,7 +870,7 @@ function isTransactionEvent(event: Event): event is TransactionEvent {
  * This event processor will run for all events processed by this client.
  */
 export function addEventProcessor(callback: EventProcessor): void {
-  const client = getCurrentHub().getClient();
+  const client = getClient();
 
   if (!client || !client.addEventProcessor) {
     return;

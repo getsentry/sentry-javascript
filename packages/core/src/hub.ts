@@ -139,6 +139,8 @@ export class Hub implements HubInterface {
 
   /**
    * @inheritDoc
+   *
+   * @deprecated Use `withScope` instead.
    */
   public pushScope(): Scope {
     // We want to clone the content of prev scope
@@ -152,6 +154,8 @@ export class Hub implements HubInterface {
 
   /**
    * @inheritDoc
+   *
+   * @deprecated Use `withScope` instead.
    */
   public popScope(): boolean {
     if (this.getStack().length <= 1) return false;
@@ -161,11 +165,13 @@ export class Hub implements HubInterface {
   /**
    * @inheritDoc
    */
-  public withScope(callback: (scope: Scope) => void): void {
+  public withScope<T>(callback: (scope: Scope) => T): T {
+    // eslint-disable-next-line deprecation/deprecation
     const scope = this.pushScope();
     try {
-      callback(scope);
+      return callback(scope);
     } finally {
+      // eslint-disable-next-line deprecation/deprecation
       this.popScope();
     }
   }
@@ -335,6 +341,8 @@ export class Hub implements HubInterface {
 
   /**
    * @inheritDoc
+   *
+   * @deprecated Use `getScope()` directly.
    */
   public configureScope(callback: (scope: Scope) => void): void {
     const { scope, client } = this.getStackTop();

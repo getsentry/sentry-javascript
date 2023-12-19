@@ -1,7 +1,7 @@
 /* eslint-disable max-lines */ // TODO: We might want to split this file up
 import { EventType, record } from '@sentry-internal/rrweb';
-import { captureException, getClient, getCurrentHub } from '@sentry/core';
-import type { Event as SentryEvent, ReplayRecordingMode, Transaction } from '@sentry/types';
+import { captureException, getClient, getCurrentScope } from '@sentry/core';
+import type { ReplayRecordingMode, Transaction } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
 import {
@@ -343,7 +343,10 @@ export class ReplayContainer implements ReplayContainerInterface {
         ...(canvas && {
           recordCanvas: true,
           sampling: { canvas: canvas.fps || 4 },
-          dataURLOptions: { quality: canvas.quality || 0.6 },
+          dataURLOptions: {
+            type: canvas.type || 'image/webp',
+            quality: canvas.quality || 0.6,
+          },
           getCanvasManager: canvas.manager,
         }),
       });
@@ -698,7 +701,7 @@ export class ReplayContainer implements ReplayContainerInterface {
    * This is only available if performance is enabled, and if an instrumented router is used.
    */
   public getCurrentRoute(): string | undefined {
-    const lastTransaction = this.lastTransaction || getCurrentHub().getScope().getTransaction();
+    const lastTransaction = this.lastTransaction || getCurrentScope().getTransaction();
     if (!lastTransaction || !['route', 'custom'].includes(lastTransaction.metadata.source)) {
       return undefined;
     }

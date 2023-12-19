@@ -32,6 +32,7 @@ export {
   captureEvent,
   captureMessage,
   close,
+  // eslint-disable-next-line deprecation/deprecation
   configureScope,
   createTransport,
   // eslint-disable-next-line deprecation/deprecation
@@ -78,7 +79,7 @@ export { defaultIntegrations, init, defaultStackParser, getSentryRelease } from 
 export { addRequestDataToEvent, DEFAULT_USER_INCLUDES, extractRequestData } from '@sentry/utils';
 export { deepReadDirSync } from './utils';
 export { getModuleFromFilename } from './module';
-export { enableAnrDetection } from './anr';
+export { enableAnrDetection, isAnrChildProcess } from './anr';
 
 import { Integrations as CoreIntegrations } from '@sentry/core';
 
@@ -93,3 +94,5 @@ const INTEGRATIONS = {
 };
 
 export { INTEGRATIONS as Integrations, Handlers };
+
+export { hapiErrorPlugin } from './integrations/hapi';

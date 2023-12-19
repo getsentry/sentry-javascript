@@ -864,13 +864,16 @@ jobs:
             'create-remix-app-v2',
             'debug-id-sourcemaps',
             'nextjs-app-dir',
+            'nextjs-14',
             'react-create-hash-router',
             'react-router-6-use-routes',
             'standard-frontend-react',
             'standard-frontend-react-tracing-import',
             'sveltekit',
+            'sveltekit-2',
             'generic-ts3.8',
             'node-experimental-fastify-app',
+            'node-hapi-app',
           ]
         build-command:
           - false

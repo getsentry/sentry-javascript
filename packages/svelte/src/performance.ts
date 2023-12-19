@@ -1,4 +1,4 @@
-import { getCurrentHub } from '@sentry/browser';
+import { getCurrentScope } from '@sentry/browser';
 import type { Span, Transaction } from '@sentry/types';
 import { afterUpdate, beforeUpdate, onMount } from 'svelte';
 import { current_component } from 'svelte/internal';
@@ -92,5 +92,5 @@ function recordUpdateSpans(componentName: string, initSpan?: Span): void {
 }
 
 function getActiveTransaction(): Transaction | undefined {
-  return getCurrentHub().getScope().getTransaction();
+  return getCurrentScope().getTransaction();
 }

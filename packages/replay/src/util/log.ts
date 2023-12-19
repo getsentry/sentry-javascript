@@ -1,4 +1,4 @@
-import { getCurrentHub } from '@sentry/core';
+import { addBreadcrumb } from '@sentry/core';
 import { logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../debug-build';
@@ -14,7 +14,7 @@ export function logInfo(message: string, shouldAddBreadcrumb?: boolean): void {
   logger.info(message);
 
   if (shouldAddBreadcrumb) {
-    addBreadcrumb(message);
+    addLogBreadcrumb(message);
   }
 }
 
@@ -33,14 +33,13 @@ export function logInfoNextTick(message: string, shouldAddBreadcrumb?: boolean):
     // Wait a tick here to avoid race conditions for some initial logs
     // which may be added before replay is initialized
     setTimeout(() => {
-      addBreadcrumb(message);
+      addLogBreadcrumb(message);
     }, 0);
   }
 }
 
-function addBreadcrumb(message: string): void {
-  const hub = getCurrentHub();
-  hub.addBreadcrumb(
+function addLogBreadcrumb(message: string): void {
+  addBreadcrumb(
     {
       category: 'console',
       data: {

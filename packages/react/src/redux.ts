@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { addEventProcessor, configureScope, getClient } from '@sentry/browser';
+import { addEventProcessor, getClient, getCurrentScope } from '@sentry/browser';
 import type { Scope } from '@sentry/types';
 import { addNonEnumerableProperty } from '@sentry/utils';
 
@@ -116,44 +116,43 @@ function createReduxEnhancer(enhancerOptions?: Partial<SentryEnhancerOptions>): 
       const sentryReducer: Reducer<S, A> = (state, action): S => {
         const newState = reducer(state, action);
 
-        configureScope(scope => {
-          /* Action breadcrumbs */
-          const transformedAction = options.actionTransformer(action);
-          if (typeof transformedAction !== 'undefined' && transformedAction !== null) {
-            scope.addBreadcrumb({
-              category: ACTION_BREADCRUMB_CATEGORY,
-              data: transformedAction,
-              type: ACTION_BREADCRUMB_TYPE,
-            });
-          }
+        const scope = getCurrentScope();
+        /* Action breadcrumbs */
+        const transformedAction = options.actionTransformer(action);
+        if (typeof transformedAction !== 'undefined' && transformedAction !== null) {
+          scope.addBreadcrumb({
+            category: ACTION_BREADCRUMB_CATEGORY,
+            data: transformedAction,
+            type: ACTION_BREADCRUMB_TYPE,
+          });
+        }
 
-          /* Set latest state to scope */
-          const transformedState = options.stateTransformer(newState);
-          if (typeof transformedState !== 'undefined' && transformedState !== null) {
-            const client = getClient();
-            const options = client && client.getOptions();
-            const normalizationDepth = (options && options.normalizeDepth) || 3; // default state normalization depth to 3
+        /* Set latest state to scope */
+        const transformedState = options.stateTransformer(newState);
+        if (typeof transformedState !== 'undefined' && transformedState !== null) {
+          const client = getClient();
+          const options = client && client.getOptions();
+          const normalizationDepth = (options && options.normalizeDepth) || 3; // default state normalization depth to 3
 
-            // Set the normalization depth of the redux state to the configured `normalizeDepth` option or a sane number as a fallback
-            const newStateContext = { state: { type: 'redux', value: transformedState } };
-            addNonEnumerableProperty(
-              newStateContext,
-              '__sentry_override_normalization_depth__',
-              3 + // 3 layers for `state.value.transformedState`
-                normalizationDepth, // rest for the actual state
-            );
+          // Set the normalization depth of the redux state to the configured `normalizeDepth` option or a sane number as a fallback
+          const newStateContext = { state: { type: 'redux', value: transformedState } };
+          addNonEnumerableProperty(
+            newStateContext,
+            '__sentry_override_normalization_depth__',
+            3 + // 3 layers for `state.value.transformedState`
+              normalizationDepth, // rest for the actual state
+          );
 
-            scope.setContext('state', newStateContext);
-          } else {
-            scope.setContext('state', null);
-          }
+          scope.setContext('state', newStateContext);
+        } else {
+          scope.setContext('state', null);
+        }
 
-          /* Allow user to configure scope with latest state */
-          const { configureScopeWithState } = options;
-          if (typeof configureScopeWithState === 'function') {
-            configureScopeWithState(scope, newState);
-          }
-        });
+        /* Allow user to configure scope with latest state */
+        const { configureScopeWithState } = options;
+        if (typeof configureScopeWithState === 'function') {
+          configureScopeWithState(scope, newState);
+        }
 
         return newState;
       };

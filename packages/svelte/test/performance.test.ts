@@ -22,18 +22,12 @@ jest.mock('@sentry/core', () => {
   const original = jest.requireActual('@sentry/core');
   return {
     ...original,
-    getCurrentHub(): {
-      getScope(): Scope;
-    } {
+    getCurrentScope(): Scope {
       return {
-        getScope(): any {
-          return {
-            getTransaction: () => {
-              return returnUndefinedTransaction ? undefined : testTransaction;
-            },
-          };
+        getTransaction: () => {
+          return returnUndefinedTransaction ? undefined : testTransaction;
         },
-      };
+      } as Scope;
     },
   };
 });

@@ -1,6 +1,6 @@
 import { hasTracingEnabled } from '@sentry/core';
 import type { BrowserOptions } from '@sentry/svelte';
-import { BrowserTracing, WINDOW, configureScope, init as initSvelteSdk } from '@sentry/svelte';
+import { BrowserTracing, WINDOW, getCurrentScope, init as initSvelteSdk } from '@sentry/svelte';
 import { addOrUpdateIntegration } from '@sentry/utils';
 
 import { applySdkMetadata } from '../common/metadata';
@@ -34,9 +34,7 @@ export function init(options: BrowserOptions): void {
     restoreFetch(actualFetch);
   }
 
-  configureScope(scope => {
-    scope.setTag('runtime', 'browser');
-  });
+  getCurrentScope().setTag('runtime', 'browser');
 }
 
 function addClientIntegrations(options: BrowserOptions): void {

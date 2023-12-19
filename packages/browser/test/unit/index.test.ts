@@ -12,10 +12,10 @@ import {
   captureEvent,
   captureException,
   captureMessage,
-  configureScope,
   flush,
   getClient,
   getCurrentHub,
+  getCurrentScope,
   init,
   showReportDialog,
   wrap,
@@ -37,9 +37,10 @@ jest.mock('@sentry/core', () => {
 });
 
 describe('SentryBrowser', () => {
-  const beforeSend = jest.fn();
+  const beforeSend = jest.fn(event => event);
 
-  beforeAll(() => {
+  beforeEach(() => {
+    WINDOW.__SENTRY__ = { hub: undefined, logger: undefined, globalEventProcessors: [] };
     init({
       beforeSend,
       dsn,
@@ -47,39 +48,28 @@ describe('SentryBrowser', () => {
     });
   });
 
-  beforeEach(() => {
-    getCurrentHub().pushScope();
-  });
-
   afterEach(() => {
-    getCurrentHub().popScope();
-    beforeSend.mockReset();
+    beforeSend.mockClear();
   });
 
   describe('getContext() / setContext()', () => {
     it('should store/load extra', () => {
-      configureScope((scope: Scope) => {
-        scope.setExtra('abc', { def: [1] });
-      });
-      expect(global.__SENTRY__.hub._stack[1].scope._extra).toEqual({
+      getCurrentScope().setExtra('abc', { def: [1] });
+      expect(global.__SENTRY__.hub._stack[0].scope._extra).toEqual({
         abc: { def: [1] },
       });
     });
 
     it('should store/load tags', () => {
-      configureScope((scope: Scope) => {
-        scope.setTag('abc', 'def');
-      });
-      expect(global.__SENTRY__.hub._stack[1].scope._tags).toEqual({
+      getCurrentScope().setTag('abc', 'def');
+      expect(global.__SENTRY__.hub._stack[0].scope._tags).toEqual({
         abc: 'def',
       });
     });
 
     it('should store/load user', () => {
-      configureScope((scope: Scope) => {
-        scope.setUser({ id: 'def' });
-      });
-      expect(global.__SENTRY__.hub._stack[1].scope._user).toEqual({
+      getCurrentScope().setUser({ id: 'def' });
+      expect(global.__SENTRY__.hub._stack[0].scope._user).toEqual({
         id: 'def',
       });
     });
@@ -95,9 +85,7 @@ describe('SentryBrowser', () => {
       const options = getDefaultBrowserClientOptions({ dsn });
       const client = new BrowserClient(options);
       it('uses the user on the scope', () => {
-        configureScope(scope => {
-          scope.setUser(EX_USER);
-        });
+        getCurrentScope().setUser(EX_USER);
         getCurrentHub().bindClient(client);
 
         showReportDialog();
@@ -110,9 +98,7 @@ describe('SentryBrowser', () => {
       });
 
       it('prioritizes options user over scope user', () => {
-        configureScope(scope => {
-          scope.setUser(EX_USER);
-        });
+        getCurrentScope().setUser(EX_USER);
         getCurrentHub().bindClient(client);
 
         const DIALOG_OPTION_USER = { email: 'option@example.com' };
