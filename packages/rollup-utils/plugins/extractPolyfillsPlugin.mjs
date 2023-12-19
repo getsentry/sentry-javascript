@@ -1,7 +1,7 @@
 import * as path from 'path';
 
+import * as acorn from 'acorn';
 import * as recast from 'recast';
-import * as acornParser from 'recast/parsers/acorn';
 
 const POLYFILL_NAMES = new Set([
   '_asyncNullishCoalesce',
@@ -53,7 +53,7 @@ export function makeExtractPolyfillsPlugin() {
         // See https://github.com/benjamn/recast/issues/578.
         parser: {
           parse(source, options) {
-            return acornParser.parse(source, {
+            return acorn.parse(source, {
               ...options,
               // By this point in the build, everything should already have been down-compiled to whatever JS version
               // we're targeting. Setting this parser to `latest` just means that whatever that version is (or changes

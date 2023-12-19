@@ -2,6 +2,7 @@
  * Rollup config docs: https://rollupjs.org/guide/en/#big-list-of-options
  */
 
+import * as fs from 'fs';
 import { builtinModules } from 'module';
 import * as path from 'path';
 
@@ -15,10 +16,10 @@ import {
   makeRrwebBuildPlugin,
   makeSetSDKSourcePlugin,
   makeSucrasePlugin,
-} from './plugins/index.js';
-import { mergePlugins } from './utils';
+} from './plugins/index.mjs';
+import { mergePlugins } from './utils.mjs';
 
-const packageDotJSON = require(path.resolve(process.cwd(), './package.json'));
+const packageDotJSON = JSON.parse(fs.readFileSync(path.resolve(process.cwd(), './package.json'), { encoding: 'utf8' }));
 
 export function makeBaseNPMConfig(options = {}) {
   const {

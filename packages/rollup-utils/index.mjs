@@ -1,9 +1,9 @@
 Error.stackTraceLimit = Infinity;
 
 // TODO Is this necessary?
-import * as plugins from './plugins/index.js';
+import * as plugins from './plugins/index.mjs';
 export { plugins };
 
-export * from './bundleHelpers.js';
-export * from './npmHelpers.js';
-export { insertAt } from './utils.js';
+export * from './bundleHelpers.mjs';
+export * from './npmHelpers.mjs';
+export { insertAt } from './utils.mjs';

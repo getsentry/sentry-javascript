@@ -1,2 +1,2 @@
-export * from './bundlePlugins';
-export * from './npmPlugins';
+export * from './bundlePlugins.mjs';
+export * from './npmPlugins.mjs';

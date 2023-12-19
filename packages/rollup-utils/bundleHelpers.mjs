@@ -19,8 +19,8 @@ import {
   makeSucrasePlugin,
   makeTSPlugin,
   makeTerserPlugin,
-} from './plugins/index.js';
-import { mergePlugins } from './utils';
+} from './plugins/index.mjs';
+import { mergePlugins } from './utils.mjs';
 
 const BUNDLE_VARIANTS = ['.js', '.min.js', '.debug.min.js'];
 

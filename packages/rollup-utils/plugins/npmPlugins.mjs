@@ -130,4 +130,4 @@ export function makeRrwebBuildPlugin({ excludeShadowDom, excludeIframe } = {}) {
   });
 }
 
-export { makeExtractPolyfillsPlugin } from './extractPolyfillsPlugin.js';
+export { makeExtractPolyfillsPlugin } from './extractPolyfillsPlugin.mjs';
