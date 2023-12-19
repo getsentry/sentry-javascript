@@ -1,5 +1,6 @@
 import * as http from 'http';
-import type { RequestDataIntegrationOptions} from '@sentry/core';
+import type { RequestDataIntegrationOptions } from '@sentry/core';
+import { applyScopeDataToEvent } from '@sentry/core';
 import { getCurrentScope } from '@sentry/core';
 import { RequestData, getCurrentHub } from '@sentry/core';
 import type { Event, EventProcessor, PolymorphicRequest } from '@sentry/types';
@@ -68,7 +69,7 @@ describe('`RequestData` integration', () => {
 
       sentryRequestMiddleware(req, res, next);
 
-      await getCurrentScope().applyToEvent(event, {});
+      applyScopeDataToEvent(event, getCurrentScope().getScopeData());
       void requestDataEventProcessor(event, {});
 
       const passedOptions = addRequestDataToEventSpy.mock.calls[0][2];
@@ -97,7 +98,7 @@ describe('`RequestData` integration', () => {
 
       wrappedGCPFunction(req, res);
 
-      await getCurrentScope().applyToEvent(event, {});
+      applyScopeDataToEvent(event, getCurrentScope().getScopeData());
       void requestDataEventProcessor(event, {});
 
       const passedOptions = addRequestDataToEventSpy.mock.calls[0][2];

@@ -90,11 +90,6 @@ export class OpenTelemetryScope extends Scope {
     return this._addBreadcrumb(breadcrumb, maxBreadcrumbs);
   }
 
-  /** Add a breadcrumb to this scope. */
-  protected _addBreadcrumb(breadcrumb: Breadcrumb, maxBreadcrumbs?: number): this {
-    return super.addBreadcrumb(breadcrumb, maxBreadcrumbs);
-  }
-
   /** @inheritDoc */
   public getScopeData(): ScopeData {
     const data = super.getScopeData();
@@ -102,6 +97,11 @@ export class OpenTelemetryScope extends Scope {
     data.breadcrumbs = this._getBreadcrumbs();
 
     return data;
+  }
+
+  /** Add a breadcrumb to this scope. */
+  protected _addBreadcrumb(breadcrumb: Breadcrumb, maxBreadcrumbs?: number): this {
+    return super.addBreadcrumb(breadcrumb, maxBreadcrumbs);
   }
 
   /**

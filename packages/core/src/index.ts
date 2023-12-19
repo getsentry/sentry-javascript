@@ -63,6 +63,7 @@ export {
   convertIntegrationFnToClass,
 } from './integration';
 export { FunctionToString, InboundFilters, LinkedErrors } from './integrations';
+export { applyScopeDataToEvent } from './utils/applyScopeDataToEvent';
 export { prepareEvent } from './utils/prepareEvent';
 export { createCheckInEnvelope } from './checkin';
 export { hasTracingEnabled } from './utils/hasTracingEnabled';
