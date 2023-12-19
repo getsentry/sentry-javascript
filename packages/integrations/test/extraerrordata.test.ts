@@ -178,4 +178,42 @@ describe('ExtraErrorData()', () => {
       },
     });
   });
+
+  it('captures Error causes when captureErrorCause = true', () => {
+    const extraErrorDataWithCauseCapture = new ExtraErrorData({ captureErrorCause: true });
+
+    // @ts-expect-error TS apparently doesn't understand error causes
+    const error = new Error('foo', { cause: { woot: 'foo' } }) as ExtendedError;
+
+    const enhancedEvent = extraErrorDataWithCauseCapture.enhanceEventWithErrorData(event, {
+      originalException: error,
+    });
+
+    expect(enhancedEvent.contexts).toEqual({
+      Error: {
+        cause: {
+          woot: 'foo',
+        },
+      },
+    });
+  });
+
+  it("doesn't capture Error causes when captureErrorCause != true", () => {
+    const extraErrorDataWithoutCauseCapture = new ExtraErrorData();
+
+    // @ts-expect-error TS apparently doesn't understand error causes
+    const error = new Error('foo', { cause: { woot: 'foo' } }) as ExtendedError;
+
+    const enhancedEvent = extraErrorDataWithoutCauseCapture.enhanceEventWithErrorData(event, {
+      originalException: error,
+    });
+
+    expect(enhancedEvent.contexts).not.toEqual({
+      Error: {
+        cause: {
+          woot: 'foo',
+        },
+      },
+    });
+  });
 });
