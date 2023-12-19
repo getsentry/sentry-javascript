@@ -870,6 +870,7 @@ jobs:
             'standard-frontend-react',
             'standard-frontend-react-tracing-import',
             'sveltekit',
+            'sveltekit-2',
             'generic-ts3.8',
             'node-experimental-fastify-app',
             'node-hapi-app',
