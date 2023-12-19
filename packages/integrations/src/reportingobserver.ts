@@ -1,4 +1,5 @@
-import type { EventProcessor, Hub, Integration } from '@sentry/types';
+import { captureMessage, getClient, withScope } from '@sentry/core';
+import type { Client, EventProcessor, Hub, Integration } from '@sentry/types';
 import { GLOBAL_OBJ, supportsReportingObserver } from '@sentry/utils';
 
 const WINDOW = GLOBAL_OBJ as typeof GLOBAL_OBJ & Window;
@@ -39,6 +40,8 @@ interface InterventionReportBody {
   columnNumber?: number;
 }
 
+const SETUP_CLIENTS: Client[] = [];
+
 /** Reporting API integration - https://w3c.github.io/reporting/ */
 export class ReportingObserver implements Integration {
   /**
@@ -50,11 +53,6 @@ export class ReportingObserver implements Integration {
    * @inheritDoc
    */
   public readonly name: string;
-
-  /**
-   * Returns current hub.
-   */
-  private _getCurrentHub?: () => Hub;
 
   private readonly _types: ReportTypes[];
 
@@ -74,12 +72,10 @@ export class ReportingObserver implements Integration {
   /**
    * @inheritDoc
    */
-  public setupOnce(_: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
+  public setupOnce(_: (callback: EventProcessor) => void, _getCurrentHub: () => Hub): void {
     if (!supportsReportingObserver()) {
       return;
     }
-
-    this._getCurrentHub = getCurrentHub;
 
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
     const observer = new (WINDOW as any).ReportingObserver(this.handler.bind(this), {
@@ -91,16 +87,25 @@ export class ReportingObserver implements Integration {
     observer.observe();
   }
 
+  /** @inheritdoc */
+  public setup(client: Client): void {
+    if (!supportsReportingObserver()) {
+      return;
+    }
+
+    SETUP_CLIENTS.push(client);
+  }
+
   /**
    * @inheritDoc
    */
   public handler(reports: Report[]): void {
-    const hub = this._getCurrentHub && this._getCurrentHub();
-    if (!hub || !hub.getIntegration(ReportingObserver)) {
+    if (!SETUP_CLIENTS.includes(getClient() as Client)) {
       return;
     }
+
     for (const report of reports) {
-      hub.withScope(scope => {
+      withScope(scope => {
         scope.setExtra('url', report.url);
 
         const label = `ReportingObserver [${report.type}]`;
@@ -129,7 +134,7 @@ export class ReportingObserver implements Integration {
           }
         }
 
-        hub.captureMessage(`${label}: ${details}`);
+        captureMessage(`${label}: ${details}`);
       });
     }
   }
