@@ -7,7 +7,7 @@ export default makeNPMConfigVariants(
       external: ['$app/stores'],
       output: {
         dynamicImportInCjs: true,
-      }
+      },
     },
   }),
 );

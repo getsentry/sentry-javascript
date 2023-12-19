@@ -1,16 +1,18 @@
-import { getMainCarrier, initAndBind, LinkedErrors, runWithAsyncContext, SDK_VERSION } from '@sentry/core';
+import { LinkedErrors, SDK_VERSION, getMainCarrier, initAndBind, runWithAsyncContext } from '@sentry/core';
 import type { EventHint, Integration } from '@sentry/types';
+import { GLOBAL_OBJ } from '@sentry/utils';
 
-import type { Event, Scope } from '../src';
+import type { Event } from '../src';
 import {
+  NodeClient,
   addBreadcrumb,
   captureEvent,
   captureException,
   captureMessage,
-  configureScope,
+  getClient,
   getCurrentHub,
+  getCurrentScope,
   init,
-  NodeClient,
 } from '../src';
 import { setNodeAsyncContextStrategy } from '../src/async';
 import { ContextLines } from '../src/integrations';
@@ -32,43 +34,33 @@ const dsn = 'https://53039209a22b4ec1bcc296a3c9fdecd6@sentry.io/4291';
 declare var global: any;
 
 describe('SentryNode', () => {
-  beforeAll(() => {
+  beforeEach(() => {
+    GLOBAL_OBJ.__SENTRY__ = { hub: undefined, logger: undefined, globalEventProcessors: [] };
     init({ dsn });
   });
 
   beforeEach(() => {
     jest.clearAllMocks();
-    getCurrentHub().pushScope();
-  });
-
-  afterEach(() => {
-    getCurrentHub().popScope();
   });
 
   describe('getContext() / setContext()', () => {
     test('store/load extra', async () => {
-      configureScope((scope: Scope) => {
-        scope.setExtra('abc', { def: [1] });
-      });
-      expect(global.__SENTRY__.hub._stack[1].scope._extra).toEqual({
+      getCurrentScope().setExtra('abc', { def: [1] });
+      expect(global.__SENTRY__.hub._stack[0].scope._extra).toEqual({
         abc: { def: [1] },
       });
     });
 
     test('store/load tags', async () => {
-      configureScope((scope: Scope) => {
-        scope.setTag('abc', 'def');
-      });
-      expect(global.__SENTRY__.hub._stack[1].scope._tags).toEqual({
+      getCurrentScope().setTag('abc', 'def');
+      expect(global.__SENTRY__.hub._stack[0].scope._tags).toEqual({
         abc: 'def',
       });
     });
 
     test('store/load user', async () => {
-      configureScope((scope: Scope) => {
-        scope.setUser({ id: 'def' });
-      });
-      expect(global.__SENTRY__.hub._stack[1].scope._user).toEqual({
+      getCurrentScope().setUser({ id: 'def' });
+      expect(global.__SENTRY__.hub._stack[0].scope._user).toEqual({
         id: 'def',
       });
     });
@@ -137,9 +129,7 @@ describe('SentryNode', () => {
         dsn,
       });
       getCurrentHub().bindClient(new NodeClient(options));
-      configureScope((scope: Scope) => {
-        scope.setTag('test', '1');
-      });
+      getCurrentScope().setTag('test', '1');
       try {
         throw new Error('test');
       } catch (e) {
@@ -164,9 +154,7 @@ describe('SentryNode', () => {
         dsn,
       });
       getCurrentHub().bindClient(new NodeClient(options));
-      configureScope((scope: Scope) => {
-        scope.setTag('test', '1');
-      });
+      getCurrentScope().setTag('test', '1');
       try {
         throw 'test string exception';
       } catch (e) {
@@ -174,36 +162,39 @@ describe('SentryNode', () => {
       }
     });
 
-    test('capture an exception with pre/post context', done => {
-      expect.assertions(10);
+    test('capture an exception with pre/post context', async () => {
+      const beforeSend = jest.fn((event: Event) => {
+        expect(event.tags).toEqual({ test: '1' });
+        expect(event.exception).not.toBeUndefined();
+        expect(event.exception!.values![0]).not.toBeUndefined();
+        expect(event.exception!.values![0].stacktrace!).not.toBeUndefined();
+        expect(event.exception!.values![0].stacktrace!.frames![1]).not.toBeUndefined();
+        expect(event.exception!.values![0].stacktrace!.frames![1].pre_context).not.toBeUndefined();
+        expect(event.exception!.values![0].stacktrace!.frames![1].post_context).not.toBeUndefined();
+        expect(event.exception!.values![0].type).toBe('Error');
+        expect(event.exception!.values![0].value).toBe('test');
+        expect(event.exception!.values![0].stacktrace).toBeTruthy();
+        return null;
+      });
+
       const options = getDefaultNodeClientOptions({
         stackParser: defaultStackParser,
-        beforeSend: (event: Event) => {
-          expect(event.tags).toEqual({ test: '1' });
-          expect(event.exception).not.toBeUndefined();
-          expect(event.exception!.values![0]).not.toBeUndefined();
-          expect(event.exception!.values![0].stacktrace!).not.toBeUndefined();
-          expect(event.exception!.values![0].stacktrace!.frames![1]).not.toBeUndefined();
-          expect(event.exception!.values![0].stacktrace!.frames![1].pre_context).not.toBeUndefined();
-          expect(event.exception!.values![0].stacktrace!.frames![1].post_context).not.toBeUndefined();
-          expect(event.exception!.values![0].type).toBe('Error');
-          expect(event.exception!.values![0].value).toBe('test');
-          expect(event.exception!.values![0].stacktrace).toBeTruthy();
-          done();
-          return null;
-        },
+        beforeSend,
         dsn,
         integrations: [new ContextLines()],
       });
-      getCurrentHub().bindClient(new NodeClient(options));
-      configureScope((scope: Scope) => {
-        scope.setTag('test', '1');
-      });
+      const client = new NodeClient(options);
+      getCurrentHub().bindClient(client);
+      getCurrentScope().setTag('test', '1');
       try {
         throw new Error('test');
       } catch (e) {
         captureException(e);
       }
+
+      await client.flush();
+
+      expect(beforeSend).toHaveBeenCalledTimes(1);
     });
 
     test('capture a linked exception with pre/post context', done => {
@@ -296,6 +287,7 @@ describe('SentryNode', () => {
         const hub = getCurrentHub();
         hub.bindClient(client);
         expect(getCurrentHub().getClient()).toBe(client);
+        expect(getClient()).toBe(client);
         hub.captureEvent({ message: 'test domain' });
       });
     });
@@ -366,12 +358,11 @@ describe('SentryNode initialization', () => {
     it('should set SDK data when `Sentry.init()` is called', () => {
       init({ dsn });
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const sdkData = (getCurrentHub().getClient() as any).getOptions()._metadata.sdk;
+      const sdkData = getClient()?.getOptions()._metadata?.sdk || {};
 
       expect(sdkData.name).toEqual('sentry.javascript.node');
-      expect(sdkData.packages[0].name).toEqual('npm:@sentry/node');
-      expect(sdkData.packages[0].version).toEqual(SDK_VERSION);
+      expect(sdkData.packages?.[0].name).toEqual('npm:@sentry/node');
+      expect(sdkData.packages?.[0].version).toEqual(SDK_VERSION);
       expect(sdkData.version).toEqual(SDK_VERSION);
     });
 
@@ -408,12 +399,11 @@ describe('SentryNode initialization', () => {
         },
       });
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const sdkData = (getCurrentHub().getClient() as any).getOptions()._metadata.sdk;
+      const sdkData = getClient()?.getOptions()._metadata?.sdk || {};
 
       expect(sdkData.name).toEqual('sentry.javascript.serverless');
-      expect(sdkData.packages[0].name).toEqual('npm:@sentry/serverless');
-      expect(sdkData.packages[0].version).toEqual(SDK_VERSION);
+      expect(sdkData.packages?.[0].name).toEqual('npm:@sentry/serverless');
+      expect(sdkData.packages?.[0].version).toEqual(SDK_VERSION);
       expect(sdkData.version).toEqual(SDK_VERSION);
     });
   });

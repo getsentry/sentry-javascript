@@ -23,12 +23,15 @@ export type { AddRequestDataToEventOptions } from '@sentry/utils';
 export type { DenoOptions } from './types';
 
 export {
+  // eslint-disable-next-line deprecation/deprecation
   addGlobalEventProcessor,
+  addEventProcessor,
   addBreadcrumb,
   captureException,
   captureEvent,
   captureMessage,
   close,
+  // eslint-disable-next-line deprecation/deprecation
   configureScope,
   createTransport,
   // eslint-disable-next-line deprecation/deprecation
@@ -38,6 +41,8 @@ export {
   getActiveTransaction,
   getHubFromCarrier,
   getCurrentHub,
+  getClient,
+  getCurrentScope,
   Hub,
   lastEventId,
   makeMain,

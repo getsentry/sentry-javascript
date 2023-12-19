@@ -1,8 +1,8 @@
-import { captureEvent, configureScope } from '@sentry/core';
+import { captureEvent, getCurrentScope } from '@sentry/core';
 import { GLOBAL_OBJ } from '@sentry/utils';
 
 import { initAndBind } from '../../src/sdk';
-import { getDefaultTestClientOptions, TestClient } from '../mocks/client';
+import { TestClient, getDefaultTestClientOptions } from '../mocks/client';
 import { AddAttachmentTestIntegration } from '../mocks/integration';
 
 const PUBLIC_DSN = 'https://username@domain/123';
@@ -109,7 +109,7 @@ describe('Hint', () => {
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
       initAndBind(TestClient, options);
 
-      configureScope(scope => scope.addAttachment({ filename: 'scope.file', data: 'great content!' }));
+      getCurrentScope().addAttachment({ filename: 'scope.file', data: 'great content!' });
 
       captureEvent({}, { attachments: [{ filename: 'some-file.txt', data: 'Hello' }] });
 

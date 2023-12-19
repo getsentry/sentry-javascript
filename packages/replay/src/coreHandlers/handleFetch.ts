@@ -27,7 +27,7 @@ export function handleFetch(handlerData: HandlerDataFetch): null | ReplayPerform
 }
 
 /**
- * Returns a listener to be added to `addInstrumentationHandler('fetch', listener)`.
+ * Returns a listener to be added to `addFetchInstrumentationHandler(listener)`.
  */
 export function handleFetchSpanListener(replay: ReplayContainer): (handlerData: HandlerDataFetch) => void {
   return (handlerData: HandlerDataFetch) => {

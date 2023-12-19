@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 import { waitForError, waitForTransaction } from '../event-proxy-server';
 
 test('Will capture error for SSR rendering error with a connected trace (Class Component)', async ({ page }) => {

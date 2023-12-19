@@ -1,4 +1,7 @@
+import type * as http from 'http';
+import type * as https from 'https';
 import type { Hub } from '@sentry/core';
+import { addBreadcrumb, getClient, getCurrentScope } from '@sentry/core';
 import { getCurrentHub, getDynamicSamplingContextFromClient, isSentryRequestUrl } from '@sentry/core';
 import type {
   DynamicSamplingContext,
@@ -8,17 +11,16 @@ import type {
   TracePropagationTargets,
 } from '@sentry/types';
 import {
+  LRUMap,
   dynamicSamplingContextToSentryBaggageHeader,
   fill,
   generateSentryTraceHeader,
   logger,
-  LRUMap,
   stringMatchesSomePattern,
 } from '@sentry/utils';
-import type * as http from 'http';
-import type * as https from 'https';
 
 import type { NodeClient } from '../client';
+import { DEBUG_BUILD } from '../debug-build';
 import { NODE_VERSION } from '../nodeVersion';
 import type { RequestMethod, RequestMethodArgs, RequestOptions } from './utils/http';
 import { cleanSpanDescription, extractRawUrl, extractUrl, normalizeRequestArgs } from './utils/http';
@@ -106,7 +108,7 @@ export class Http implements Integration {
 
     // Do not auto-instrument for other instrumenter
     if (clientOptions && clientOptions.instrumenter !== 'sentry') {
-      __DEBUG_BUILD__ && logger.log('HTTP Integration is skipped because of instrumenter configuration.');
+      DEBUG_BUILD && logger.log('HTTP Integration is skipped because of instrumenter configuration.');
       return;
     }
 
@@ -212,7 +214,7 @@ function _createWrappedRequestMethodFactory(
       return;
     }
 
-    getCurrentHub().addBreadcrumb(
+    addBreadcrumb(
       {
         category: 'http',
         data: {
@@ -238,12 +240,11 @@ function _createWrappedRequestMethodFactory(
       const requestUrl = extractUrl(requestOptions);
 
       // we don't want to record requests to Sentry as either breadcrumbs or spans, so just use the original method
-      if (isSentryRequestUrl(requestUrl, getCurrentHub())) {
+      if (isSentryRequestUrl(requestUrl, getClient())) {
         return originalRequestMethod.apply(httpModule, requestArgs);
       }
 
-      const hub = getCurrentHub();
-      const scope = hub.getScope();
+      const scope = getCurrentScope();
       const parentSpan = scope.getSpan();
 
       const data = getRequestSpanData(requestUrl, requestOptions);
@@ -263,7 +264,7 @@ function _createWrappedRequestMethodFactory(
           const dynamicSamplingContext = requestSpan?.transaction?.getDynamicSamplingContext();
           addHeadersToRequestOptions(requestOptions, requestUrl, sentryTraceHeader, dynamicSamplingContext);
         } else {
-          const client = hub.getClient();
+          const client = getClient();
           const { traceId, sampled, dsc } = scope.getPropagationContext();
           const sentryTraceHeader = generateSentryTraceHeader(traceId, undefined, sampled);
           const dynamicSamplingContext =
@@ -271,7 +272,7 @@ function _createWrappedRequestMethodFactory(
           addHeadersToRequestOptions(requestOptions, requestUrl, sentryTraceHeader, dynamicSamplingContext);
         }
       } else {
-        __DEBUG_BUILD__ &&
+        DEBUG_BUILD &&
           logger.log(
             `[Tracing] Not adding sentry-trace header to outgoing request (${requestUrl}) due to mismatching tracePropagationTargets option.`,
           );
@@ -323,7 +324,7 @@ function addHeadersToRequestOptions(
     return;
   }
 
-  __DEBUG_BUILD__ &&
+  DEBUG_BUILD &&
     logger.log(`[Tracing] Adding sentry-trace header ${sentryTraceHeader} to outgoing request to "${requestUrl}": `);
   const sentryBaggage = dynamicSamplingContextToSentryBaggageHeader(dynamicSamplingContext);
   const sentryBaggageHeader =

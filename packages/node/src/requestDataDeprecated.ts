@@ -7,9 +7,8 @@
 /* eslint-disable deprecation/deprecation */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { Event, ExtractedNodeRequestData, PolymorphicRequest } from '@sentry/types';
-
-import type { AddRequestDataToEventOptions } from './requestdata';
-import { addRequestDataToEvent, extractRequestData as _extractRequestData } from './requestdata';
+import type { AddRequestDataToEventOptions } from '@sentry/utils';
+import { addRequestDataToEvent, extractRequestData as _extractRequestData } from '@sentry/utils';
 
 /**
  * @deprecated `Handlers.ExpressRequest` is deprecated and will be removed in v8. Use `PolymorphicRequest` instead.

@@ -1,6 +1,8 @@
 import type { TransactionContext } from '@sentry/types';
 import { dropUndefinedKeys, isThenable, logger, tracingContextFromHeaders } from '@sentry/utils';
 
+import { DEBUG_BUILD } from '../debug-build';
+import { getCurrentScope } from '../exports';
 import type { Hub } from '../hub';
 import { getCurrentHub } from '../hub';
 import { hasTracingEnabled } from '../utils/hasTracingEnabled';
@@ -22,12 +24,14 @@ export function trace<T>(
   context: TransactionContext,
   callback: (span?: Span) => T,
   // eslint-disable-next-line @typescript-eslint/no-empty-function
-  onError: (error: unknown) => void = () => {},
+  onError: (error: unknown, span?: Span) => void = () => {},
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
+  afterFinish: () => void = () => {},
 ): T {
   const ctx = normalizeContext(context);
 
   const hub = getCurrentHub();
-  const scope = hub.getScope();
+  const scope = getCurrentScope();
   const parentSpan = scope.getSpan();
 
   const activeSpan = createChildSpanOrTransaction(hub, parentSpan, ctx);
@@ -36,7 +40,7 @@ export function trace<T>(
 
   function finishAndSetSpan(): void {
     activeSpan && activeSpan.finish();
-    hub.getScope().setSpan(parentSpan);
+    scope.setSpan(parentSpan);
   }
 
   let maybePromiseResult: T;
@@ -44,8 +48,9 @@ export function trace<T>(
     maybePromiseResult = callback(activeSpan);
   } catch (e) {
     activeSpan && activeSpan.setStatus('internal_error');
-    onError(e);
+    onError(e, activeSpan);
     finishAndSetSpan();
+    afterFinish();
     throw e;
   }
 
@@ -53,15 +58,18 @@ export function trace<T>(
     Promise.resolve(maybePromiseResult).then(
       () => {
         finishAndSetSpan();
+        afterFinish();
       },
       e => {
         activeSpan && activeSpan.setStatus('internal_error');
-        onError(e);
+        onError(e, activeSpan);
         finishAndSetSpan();
+        afterFinish();
       },
     );
   } else {
     finishAndSetSpan();
+    afterFinish();
   }
 
   return maybePromiseResult;
@@ -82,7 +90,7 @@ export function startSpan<T>(context: TransactionContext, callback: (span: Span 
   const ctx = normalizeContext(context);
 
   const hub = getCurrentHub();
-  const scope = hub.getScope();
+  const scope = getCurrentScope();
   const parentSpan = scope.getSpan();
 
   const activeSpan = createChildSpanOrTransaction(hub, parentSpan, ctx);
@@ -90,7 +98,7 @@ export function startSpan<T>(context: TransactionContext, callback: (span: Span 
 
   function finishAndSetSpan(): void {
     activeSpan && activeSpan.finish();
-    hub.getScope().setSpan(parentSpan);
+    scope.setSpan(parentSpan);
   }
 
   let maybePromiseResult: T;
@@ -142,7 +150,7 @@ export function startSpanManual<T>(
   const ctx = normalizeContext(context);
 
   const hub = getCurrentHub();
-  const scope = hub.getScope();
+  const scope = getCurrentScope();
   const parentSpan = scope.getSpan();
 
   const activeSpan = createChildSpanOrTransaction(hub, parentSpan, ctx);
@@ -150,7 +158,7 @@ export function startSpanManual<T>(
 
   function finishAndSetSpan(): void {
     activeSpan && activeSpan.finish();
-    hub.getScope().setSpan(parentSpan);
+    scope.setSpan(parentSpan);
   }
 
   let maybePromiseResult: T;
@@ -200,15 +208,31 @@ export function startInactiveSpan(context: TransactionContext): Span | undefined
  * Returns the currently active span.
  */
 export function getActiveSpan(): Span | undefined {
-  return getCurrentHub().getScope().getSpan();
+  return getCurrentScope().getSpan();
 }
 
+export function continueTrace({
+  sentryTrace,
+  baggage,
+}: {
+  sentryTrace: Parameters<typeof tracingContextFromHeaders>[0];
+  baggage: Parameters<typeof tracingContextFromHeaders>[1];
+}): Partial<TransactionContext>;
+export function continueTrace<V>(
+  {
+    sentryTrace,
+    baggage,
+  }: {
+    sentryTrace: Parameters<typeof tracingContextFromHeaders>[0];
+    baggage: Parameters<typeof tracingContextFromHeaders>[1];
+  },
+  callback: (transactionContext: Partial<TransactionContext>) => V,
+): V;
 /**
  * Continue a trace from `sentry-trace` and `baggage` values.
  * These values can be obtained from incoming request headers,
  * or in the browser from `<meta name="sentry-trace">` and `<meta name="baggage">` HTML tags.
  *
- * It also takes an optional `request` option, which if provided will also be added to the scope & transaction metadata.
  * The callback receives a transactionContext that may be used for `startTransaction` or `startSpan`.
  */
 export function continueTrace<V>(
@@ -219,10 +243,9 @@ export function continueTrace<V>(
     sentryTrace: Parameters<typeof tracingContextFromHeaders>[0];
     baggage: Parameters<typeof tracingContextFromHeaders>[1];
   },
-  callback: (transactionContext: Partial<TransactionContext>) => V,
-): V {
-  const hub = getCurrentHub();
-  const currentScope = hub.getScope();
+  callback?: (transactionContext: Partial<TransactionContext>) => V,
+): V | Partial<TransactionContext> {
+  const currentScope = getCurrentScope();
 
   const { traceparentData, dynamicSamplingContext, propagationContext } = tracingContextFromHeaders(
     sentryTrace,
@@ -231,7 +254,7 @@ export function continueTrace<V>(
 
   currentScope.setPropagationContext(propagationContext);
 
-  if (__DEBUG_BUILD__ && traceparentData) {
+  if (DEBUG_BUILD && traceparentData) {
     logger.log(`[Tracing] Continuing trace ${traceparentData.traceId}.`);
   }
 
@@ -241,6 +264,10 @@ export function continueTrace<V>(
       dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
     }),
   };
+
+  if (!callback) {
+    return transactionContext;
+  }
 
   return callback(transactionContext);
 }

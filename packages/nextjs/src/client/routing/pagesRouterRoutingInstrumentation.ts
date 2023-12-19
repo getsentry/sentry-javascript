@@ -1,4 +1,5 @@
-import { getCurrentHub } from '@sentry/core';
+import type { ParsedUrlQuery } from 'querystring';
+import { getClient, getCurrentScope } from '@sentry/core';
 import { WINDOW } from '@sentry/react';
 import type { Primitive, Transaction, TransactionContext, TransactionSource } from '@sentry/types';
 import {
@@ -9,7 +10,8 @@ import {
 } from '@sentry/utils';
 import type { NEXT_DATA as NextData } from 'next/dist/next-server/lib/utils';
 import { default as Router } from 'next/router';
-import type { ParsedUrlQuery } from 'querystring';
+
+import { DEBUG_BUILD } from '../../common/debug-build';
 
 const globalObject = WINDOW as typeof WINDOW & {
   __BUILD_MANIFEST?: {
@@ -62,7 +64,7 @@ function extractNextDataTagInformation(): NextDataTagInfo {
     try {
       nextData = JSON.parse(nextDataTag.innerHTML);
     } catch (e) {
-      __DEBUG_BUILD__ && logger.warn('Could not extract __NEXT_DATA__');
+      DEBUG_BUILD && logger.warn('Could not extract __NEXT_DATA__');
     }
   }
 
@@ -101,7 +103,7 @@ let activeTransaction: Transaction | undefined = undefined;
 // This is either a route or a pathname.
 let prevLocationName: string | undefined = undefined;
 
-const client = getCurrentHub().getClient();
+const client = getClient();
 
 /**
  * Instruments the Next.js pages router. Only supported for
@@ -122,7 +124,7 @@ export function pagesRouterInstrumentation(
     baggage,
   );
 
-  getCurrentHub().getScope().setPropagationContext(propagationContext);
+  getCurrentScope().setPropagationContext(propagationContext);
   prevLocationName = route || globalObject.location.pathname;
 
   if (startTransactionOnPageLoad) {

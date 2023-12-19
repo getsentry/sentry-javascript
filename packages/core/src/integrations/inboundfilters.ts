@@ -1,5 +1,8 @@
-import type { Client, Event, EventHint, Integration, StackFrame } from '@sentry/types';
+import type { Event, IntegrationFn, StackFrame } from '@sentry/types';
 import { getEventDescription, logger, stringMatchesSomePattern } from '@sentry/utils';
+
+import { DEBUG_BUILD } from '../debug-build';
+import { convertIntegrationFnToClass } from '../integration';
 
 // "Script error." is hard coded into browsers for errors that it can't read.
 // this is the result of a script being pulled in from an external domain and CORS.
@@ -26,42 +29,23 @@ export interface InboundFiltersOptions {
   disableTransactionDefaults: boolean;
 }
 
+const INTEGRATION_NAME = 'InboundFilters';
+const inboundFiltersIntegration: IntegrationFn = (options: Partial<InboundFiltersOptions>) => {
+  return {
+    name: INTEGRATION_NAME,
+    processEvent(event, _hint, client) {
+      const clientOptions = client.getOptions();
+      const mergedOptions = _mergeOptions(options, clientOptions);
+      return _shouldDropEvent(event, mergedOptions) ? null : event;
+    },
+  };
+};
+
 /** Inbound filters configurable by the user */
-export class InboundFilters implements Integration {
-  /**
-   * @inheritDoc
-   */
-  public static id: string = 'InboundFilters';
+// eslint-disable-next-line deprecation/deprecation
+export const InboundFilters = convertIntegrationFnToClass(INTEGRATION_NAME, inboundFiltersIntegration);
 
-  /**
-   * @inheritDoc
-   */
-  public name: string;
-
-  private readonly _options: Partial<InboundFiltersOptions>;
-
-  public constructor(options: Partial<InboundFiltersOptions> = {}) {
-    this.name = InboundFilters.id;
-    this._options = options;
-  }
-
-  /**
-   * @inheritDoc
-   */
-  public setupOnce(_addGlobaleventProcessor: unknown, _getCurrentHub: unknown): void {
-    // noop
-  }
-
-  /** @inheritDoc */
-  public processEvent(event: Event, _eventHint: EventHint, client: Client): Event | null {
-    const clientOptions = client.getOptions();
-    const options = _mergeOptions(this._options, clientOptions);
-    return _shouldDropEvent(event, options) ? null : event;
-  }
-}
-
-/** JSDoc */
-export function _mergeOptions(
+function _mergeOptions(
   internalOptions: Partial<InboundFiltersOptions> = {},
   clientOptions: Partial<InboundFiltersOptions> = {},
 ): Partial<InboundFiltersOptions> {
@@ -82,29 +66,28 @@ export function _mergeOptions(
   };
 }
 
-/** JSDoc */
-export function _shouldDropEvent(event: Event, options: Partial<InboundFiltersOptions>): boolean {
+function _shouldDropEvent(event: Event, options: Partial<InboundFiltersOptions>): boolean {
   if (options.ignoreInternal && _isSentryError(event)) {
-    __DEBUG_BUILD__ &&
+    DEBUG_BUILD &&
       logger.warn(`Event dropped due to being internal Sentry Error.\nEvent: ${getEventDescription(event)}`);
     return true;
   }
   if (_isIgnoredError(event, options.ignoreErrors)) {
-    __DEBUG_BUILD__ &&
+    DEBUG_BUILD &&
       logger.warn(
         `Event dropped due to being matched by \`ignoreErrors\` option.\nEvent: ${getEventDescription(event)}`,
       );
     return true;
   }
   if (_isIgnoredTransaction(event, options.ignoreTransactions)) {
-    __DEBUG_BUILD__ &&
+    DEBUG_BUILD &&
       logger.warn(
         `Event dropped due to being matched by \`ignoreTransactions\` option.\nEvent: ${getEventDescription(event)}`,
       );
     return true;
   }
   if (_isDeniedUrl(event, options.denyUrls)) {
-    __DEBUG_BUILD__ &&
+    DEBUG_BUILD &&
       logger.warn(
         `Event dropped due to being matched by \`denyUrls\` option.\nEvent: ${getEventDescription(
           event,
@@ -113,7 +96,7 @@ export function _shouldDropEvent(event: Event, options: Partial<InboundFiltersOp
     return true;
   }
   if (!_isAllowedUrl(event, options.allowUrls)) {
-    __DEBUG_BUILD__ &&
+    DEBUG_BUILD &&
       logger.warn(
         `Event dropped due to not being matched by \`allowUrls\` option.\nEvent: ${getEventDescription(
           event,
@@ -185,7 +168,7 @@ function _getPossibleEventMessages(event: Event): string[] {
     }
   }
 
-  if (__DEBUG_BUILD__ && possibleMessages.length === 0) {
+  if (DEBUG_BUILD && possibleMessages.length === 0) {
     logger.error(`Could not extract message for event ${getEventDescription(event)}`);
   }
 
@@ -226,7 +209,7 @@ function _getEventFilterUrl(event: Event): string | null {
     }
     return frames ? _getLastValidUrl(frames) : null;
   } catch (oO) {
-    __DEBUG_BUILD__ && logger.error(`Cannot extract url for event ${getEventDescription(event)}`);
+    DEBUG_BUILD && logger.error(`Cannot extract url for event ${getEventDescription(event)}`);
     return null;
   }
 }

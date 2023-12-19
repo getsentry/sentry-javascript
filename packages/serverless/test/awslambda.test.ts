@@ -1,8 +1,6 @@
 // NOTE: I have no idea how to fix this right now, and don't want to waste more time, as it builds just fine — Kamil
-// eslint-disable-next-line import/no-unresolved
 import * as SentryNode from '@sentry/node';
 import type { Event } from '@sentry/types';
-// eslint-disable-next-line import/no-unresolved
 import type { Callback, Handler } from 'aws-lambda';
 
 import * as Sentry from '../src';
@@ -97,8 +95,6 @@ describe('AWSLambda', () => {
     });
 
     test('captureTimeoutWarning enabled (default)', async () => {
-      expect.assertions(2);
-
       const handler: Handler = (_event, _context, callback) => {
         setTimeout(() => {
           callback(null, 42);
@@ -107,14 +103,13 @@ describe('AWSLambda', () => {
       const wrappedHandler = wrapHandler(handler);
       await wrappedHandler(fakeEvent, fakeContext, fakeCallback);
 
+      expect(Sentry.withScope).toBeCalledTimes(2);
       expect(Sentry.captureMessage).toBeCalled();
       // @ts-expect-error see "Why @ts-expect-error" note
       expect(SentryNode.fakeScope.setTag).toBeCalledWith('timeout', '1s');
     });
 
     test('captureTimeoutWarning disabled', async () => {
-      expect.assertions(2);
-
       const handler: Handler = (_event, _context, callback) => {
         setTimeout(() => {
           callback(null, 42);
@@ -125,8 +120,10 @@ describe('AWSLambda', () => {
       });
       await wrappedHandler(fakeEvent, fakeContext, fakeCallback);
 
-      expect(Sentry.withScope).not.toBeCalled();
+      expect(Sentry.withScope).toBeCalledTimes(1);
       expect(Sentry.captureMessage).not.toBeCalled();
+      // @ts-expect-error see "Why @ts-expect-error" note
+      expect(SentryNode.fakeScope.setTag).not.toBeCalledWith('timeout', '1s');
     });
 
     test('captureTimeoutWarning with configured timeoutWarningLimit', async () => {

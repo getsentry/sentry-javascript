@@ -1,7 +1,7 @@
 import type { Carrier, Scope } from '@sentry/core';
 import { Hub } from '@sentry/core';
 import type { Client } from '@sentry/types';
-import { getGlobalSingleton, GLOBAL_OBJ } from '@sentry/utils';
+import { GLOBAL_OBJ, getGlobalSingleton } from '@sentry/utils';
 
 import { OpenTelemetryScope } from './scope';
 
@@ -13,19 +13,11 @@ export class OpenTelemetryHub extends Hub {
   public constructor(client?: Client, scope: Scope = new OpenTelemetryScope()) {
     super(client, scope);
   }
+}
 
-  /**
-   * @inheritDoc
-   */
-  public pushScope(): Scope {
-    // We want to clone the content of prev scope
-    const scope = OpenTelemetryScope.clone(this.getScope());
-    this.getStack().push({
-      client: this.getClient(),
-      scope,
-    });
-    return scope;
-  }
+/** Custom getClient method that uses the custom hub. */
+export function getClient<C extends Client>(): C | undefined {
+  return getCurrentHub().getClient<C>();
 }
 
 /**
@@ -105,10 +97,7 @@ export function ensureHubOnCarrier(carrier: Carrier, parent: Hub = getGlobalHub(
   // If there's no hub on current domain, or it's an old API, assign a new one
   if (!hasHubOnCarrier(carrier) || getHubFromCarrier(carrier).isOlderThan(API_VERSION)) {
     const globalHubTopStack = parent.getStackTop();
-    setHubOnCarrier(
-      carrier,
-      new OpenTelemetryHub(globalHubTopStack.client, OpenTelemetryScope.clone(globalHubTopStack.scope)),
-    );
+    setHubOnCarrier(carrier, new OpenTelemetryHub(globalHubTopStack.client, globalHubTopStack.scope.clone()));
   }
 }
 

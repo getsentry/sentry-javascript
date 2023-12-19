@@ -1,9 +1,36 @@
-import type { Client, ClientOptions, Event, EventHint, StackFrame, StackParser } from '@sentry/types';
-import { dateTimestampInSeconds, GLOBAL_OBJ, normalize, resolvedSyncPromise, truncate, uuid4 } from '@sentry/utils';
+import type {
+  CaptureContext,
+  Client,
+  ClientOptions,
+  Event,
+  EventHint,
+  Scope as ScopeInterface,
+  ScopeContext,
+  StackFrame,
+  StackParser,
+} from '@sentry/types';
+import {
+  GLOBAL_OBJ,
+  addExceptionMechanism,
+  dateTimestampInSeconds,
+  normalize,
+  resolvedSyncPromise,
+  truncate,
+  uuid4,
+} from '@sentry/utils';
 
 import { DEFAULT_ENVIRONMENT } from '../constants';
 import { getGlobalEventProcessors, notifyEventProcessors } from '../eventProcessors';
 import { Scope } from '../scope';
+
+/**
+ * This type makes sure that we get either a CaptureContext, OR an EventHint.
+ * It does not allow mixing them, which could lead to unexpected outcomes, e.g. this is disallowed:
+ * { user: { id: '123' }, mechanism: { handled: false } }
+ */
+export type ExclusiveEventHintOrCaptureContext =
+  | (CaptureContext & Partial<{ [key in keyof EventHint]: never }>)
+  | (EventHint & Partial<{ [key in keyof ScopeContext]: never }>);
 
 /**
  * Adds common information to events.
@@ -47,9 +74,10 @@ export function prepareEvent(
 
   // If we have scope given to us, use it as the base for further modifications.
   // This allows us to prevent unnecessary copying of data if `captureContext` is not provided.
-  let finalScope = scope;
-  if (hint.captureContext) {
-    finalScope = Scope.clone(finalScope).update(hint.captureContext);
+  const finalScope = getFinalScope(scope, hint.captureContext);
+
+  if (hint.mechanism) {
+    addExceptionMechanism(prepared, hint.mechanism);
   }
 
   // We prepare the result here with a resolved Event.
@@ -79,7 +107,15 @@ export function prepareEvent(
   } else {
     // Apply client & global event processors even if there is no scope
     // TODO (v8): Update the order to be Global > Client
-    result = notifyEventProcessors([...clientEventProcessors, ...getGlobalEventProcessors()], prepared, hint);
+    result = notifyEventProcessors(
+      [
+        ...clientEventProcessors,
+        // eslint-disable-next-line deprecation/deprecation
+        ...getGlobalEventProcessors(),
+      ],
+      prepared,
+      hint,
+    );
   }
 
   return result.then(evt => {
@@ -308,4 +344,61 @@ function normalizeEvent(event: Event | null, depth: number, maxBreadth: number):
   }
 
   return normalized;
+}
+
+function getFinalScope(scope: Scope | undefined, captureContext: CaptureContext | undefined): Scope | undefined {
+  if (!captureContext) {
+    return scope;
+  }
+
+  const finalScope = scope ? scope.clone() : new Scope();
+  finalScope.update(captureContext);
+  return finalScope;
+}
+
+/**
+ * Parse either an `EventHint` directly, or convert a `CaptureContext` to an `EventHint`.
+ * This is used to allow to update method signatures that used to accept a `CaptureContext` but should now accept an `EventHint`.
+ */
+export function parseEventHintOrCaptureContext(
+  hint: ExclusiveEventHintOrCaptureContext | undefined,
+): EventHint | undefined {
+  if (!hint) {
+    return undefined;
+  }
+
+  // If you pass a Scope or `() => Scope` as CaptureContext, we just return this as captureContext
+  if (hintIsScopeOrFunction(hint)) {
+    return { captureContext: hint };
+  }
+
+  if (hintIsScopeContext(hint)) {
+    return {
+      captureContext: hint,
+    };
+  }
+
+  return hint;
+}
+
+function hintIsScopeOrFunction(
+  hint: CaptureContext | EventHint,
+): hint is ScopeInterface | ((scope: ScopeInterface) => ScopeInterface) {
+  return hint instanceof Scope || typeof hint === 'function';
+}
+
+type ScopeContextProperty = keyof ScopeContext;
+const captureContextKeys: readonly ScopeContextProperty[] = [
+  'user',
+  'level',
+  'extra',
+  'contexts',
+  'tags',
+  'fingerprint',
+  'requestSession',
+  'propagationContext',
+] as const;
+
+function hintIsScopeContext(hint: Partial<ScopeContext> | EventHint): hint is Partial<ScopeContext> {
+  return Object.keys(hint).some(key => captureContextKeys.includes(key as ScopeContextProperty));
 }

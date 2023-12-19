@@ -1,5 +1,5 @@
 import { withSentryConfig } from '../src/config';
-import { componentTrackingPreprocessor, FIRST_PASS_COMPONENT_TRACKING_PREPROC_ID } from '../src/preprocessors';
+import { FIRST_PASS_COMPONENT_TRACKING_PREPROC_ID, componentTrackingPreprocessor } from '../src/preprocessors';
 import type { SentryPreprocessorGroup, SentrySvelteConfigOptions, SvelteConfig } from '../src/types';
 
 describe('withSentryConfig', () => {

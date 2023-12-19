@@ -1,5 +1,5 @@
-import * as Sentry from '@sentry/browser';
 import { Feedback } from '@sentry-internal/feedback';
+import * as Sentry from '@sentry/browser';
 
 window.Sentry = Sentry;
 

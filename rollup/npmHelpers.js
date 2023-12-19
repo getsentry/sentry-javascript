@@ -8,13 +8,13 @@ import * as path from 'path';
 import deepMerge from 'deepmerge';
 
 import {
+  makeCleanupPlugin,
+  makeDebugBuildStatementReplacePlugin,
   makeExtractPolyfillsPlugin,
   makeNodeResolvePlugin,
-  makeCleanupPlugin,
-  makeSucrasePlugin,
   makeRrwebBuildPlugin,
-  makeDebugBuildStatementReplacePlugin,
   makeSetSDKSourcePlugin,
+  makeSucrasePlugin,
 } from './plugins/index.js';
 import { mergePlugins } from './utils';
 

@@ -2,8 +2,8 @@ import type {
   Context,
   Contexts,
   DynamicSamplingContext,
-  Measurements,
   MeasurementUnit,
+  Measurements,
   Transaction as TransactionInterface,
   TransactionContext,
   TransactionEvent,
@@ -11,6 +11,7 @@ import type {
 } from '@sentry/types';
 import { dropUndefinedKeys, logger } from '@sentry/utils';
 
+import { DEBUG_BUILD } from '../debug-build';
 import type { Hub } from '../hub';
 import { getCurrentHub } from '../hub';
 import { getDynamicSamplingContextFromClient } from './dynamicSamplingContext';
@@ -226,7 +227,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
     }
 
     if (!this.name) {
-      __DEBUG_BUILD__ && logger.warn('Transaction has no name, falling back to `<unlabeled transaction>`.');
+      DEBUG_BUILD && logger.warn('Transaction has no name, falling back to `<unlabeled transaction>`.');
       this.name = '<unlabeled transaction>';
     }
 
@@ -240,7 +241,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
 
     if (this.sampled !== true) {
       // At this point if `sampled !== true` we want to discard the transaction.
-      __DEBUG_BUILD__ && logger.log('[Tracing] Discarding transaction because its trace was not chosen to be sampled.');
+      DEBUG_BUILD && logger.log('[Tracing] Discarding transaction because its trace was not chosen to be sampled.');
 
       if (client) {
         client.recordDroppedEvent('sample_rate', 'transaction');
@@ -288,7 +289,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
     const hasMeasurements = Object.keys(this._measurements).length > 0;
 
     if (hasMeasurements) {
-      __DEBUG_BUILD__ &&
+      DEBUG_BUILD &&
         logger.log(
           '[Measurements] Adding measurements to transaction',
           JSON.stringify(this._measurements, undefined, 2),
@@ -296,7 +297,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
       transaction.measurements = this._measurements;
     }
 
-    __DEBUG_BUILD__ && logger.log(`[Tracing] Finishing ${this.op} transaction: ${this.name}.`);
+    DEBUG_BUILD && logger.log(`[Tracing] Finishing ${this.op} transaction: ${this.name}.`);
 
     return transaction;
   }

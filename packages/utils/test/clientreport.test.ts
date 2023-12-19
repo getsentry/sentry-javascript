@@ -1,5 +1,5 @@
-import type { ClientReport } from '@sentry/types';
 import { TextDecoder, TextEncoder } from 'util';
+import type { ClientReport } from '@sentry/types';
 
 import { createClientReportEnvelope } from '../src/clientreport';
 import { parseEnvelope, serializeEnvelope } from '../src/envelope';

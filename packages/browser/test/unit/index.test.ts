@@ -1,20 +1,22 @@
-import { getReportDialogEndpoint, SDK_VERSION } from '@sentry/core';
+import { SDK_VERSION, getReportDialogEndpoint } from '@sentry/core';
 import type { WrappedFunction } from '@sentry/types';
 import * as utils from '@sentry/utils';
 
 import type { Event } from '../../src';
 import {
-  addBreadcrumb,
   BrowserClient,
+  Integrations,
+  Scope,
+  WINDOW,
+  addBreadcrumb,
   captureEvent,
   captureException,
   captureMessage,
-  configureScope,
   flush,
+  getClient,
   getCurrentHub,
+  getCurrentScope,
   init,
-  Integrations,
-  Scope,
   showReportDialog,
   wrap,
 } from '../../src';
@@ -35,9 +37,10 @@ jest.mock('@sentry/core', () => {
 });
 
 describe('SentryBrowser', () => {
-  const beforeSend = jest.fn();
+  const beforeSend = jest.fn(event => event);
 
-  beforeAll(() => {
+  beforeEach(() => {
+    WINDOW.__SENTRY__ = { hub: undefined, logger: undefined, globalEventProcessors: [] };
     init({
       beforeSend,
       dsn,
@@ -45,39 +48,28 @@ describe('SentryBrowser', () => {
     });
   });
 
-  beforeEach(() => {
-    getCurrentHub().pushScope();
-  });
-
   afterEach(() => {
-    getCurrentHub().popScope();
-    beforeSend.mockReset();
+    beforeSend.mockClear();
   });
 
   describe('getContext() / setContext()', () => {
     it('should store/load extra', () => {
-      configureScope((scope: Scope) => {
-        scope.setExtra('abc', { def: [1] });
-      });
-      expect(global.__SENTRY__.hub._stack[1].scope._extra).toEqual({
+      getCurrentScope().setExtra('abc', { def: [1] });
+      expect(global.__SENTRY__.hub._stack[0].scope._extra).toEqual({
         abc: { def: [1] },
       });
     });
 
     it('should store/load tags', () => {
-      configureScope((scope: Scope) => {
-        scope.setTag('abc', 'def');
-      });
-      expect(global.__SENTRY__.hub._stack[1].scope._tags).toEqual({
+      getCurrentScope().setTag('abc', 'def');
+      expect(global.__SENTRY__.hub._stack[0].scope._tags).toEqual({
         abc: 'def',
       });
     });
 
     it('should store/load user', () => {
-      configureScope((scope: Scope) => {
-        scope.setUser({ id: 'def' });
-      });
-      expect(global.__SENTRY__.hub._stack[1].scope._user).toEqual({
+      getCurrentScope().setUser({ id: 'def' });
+      expect(global.__SENTRY__.hub._stack[0].scope._user).toEqual({
         id: 'def',
       });
     });
@@ -93,9 +85,7 @@ describe('SentryBrowser', () => {
       const options = getDefaultBrowserClientOptions({ dsn });
       const client = new BrowserClient(options);
       it('uses the user on the scope', () => {
-        configureScope(scope => {
-          scope.setUser(EX_USER);
-        });
+        getCurrentScope().setUser(EX_USER);
         getCurrentHub().bindClient(client);
 
         showReportDialog();
@@ -108,9 +98,7 @@ describe('SentryBrowser', () => {
       });
 
       it('prioritizes options user over scope user', () => {
-        configureScope(scope => {
-          scope.setUser(EX_USER);
-        });
+        getCurrentScope().setUser(EX_USER);
         getCurrentHub().bindClient(client);
 
         const DIALOG_OPTION_USER = { email: 'option@example.com' };
@@ -121,6 +109,65 @@ describe('SentryBrowser', () => {
           expect.any(Object),
           expect.objectContaining({ user: { email: DIALOG_OPTION_USER.email } }),
         );
+      });
+    });
+
+    describe('onClose', () => {
+      const dummyErrorHandler = jest.fn();
+      beforeEach(() => {
+        // this prevents jest-environment-jsdom from failing the test
+        // when an error in `onClose` is thrown
+        // it does not prevent errors thrown directly inside the test,
+        // so we don't have to worry about tests passing that should
+        // otherwise fail
+        // see: https://github.com/jestjs/jest/blob/main/packages/jest-environment-jsdom/src/index.ts#L95-L115
+        WINDOW.addEventListener('error', dummyErrorHandler);
+      });
+
+      afterEach(() => {
+        WINDOW.removeEventListener('error', dummyErrorHandler);
+      });
+
+      const waitForPostMessage = async (message: string) => {
+        WINDOW.postMessage(message, '*');
+        await flush(10);
+      };
+
+      it('should call `onClose` when receiving `__sentry_reportdialog_closed__` MessageEvent', async () => {
+        const onClose = jest.fn();
+        showReportDialog({ onClose });
+
+        await waitForPostMessage('__sentry_reportdialog_closed__');
+        expect(onClose).toHaveBeenCalledTimes(1);
+
+        // ensure the event handler has been removed so onClose is not called again
+        await waitForPostMessage('__sentry_reportdialog_closed__');
+        expect(onClose).toHaveBeenCalledTimes(1);
+      });
+
+      it('should call `onClose` only once even if it throws', async () => {
+        const onClose = jest.fn(() => {
+          throw new Error();
+        });
+        showReportDialog({ onClose });
+
+        await waitForPostMessage('__sentry_reportdialog_closed__');
+        expect(onClose).toHaveBeenCalledTimes(1);
+
+        // ensure the event handler has been removed so onClose is not called again
+        await waitForPostMessage('__sentry_reportdialog_closed__');
+        expect(onClose).toHaveBeenCalledTimes(1);
+      });
+
+      it('should not call `onClose` for other MessageEvents', async () => {
+        const onClose = jest.fn();
+        showReportDialog({ onClose });
+
+        await waitForPostMessage('some_message');
+        expect(onClose).not.toHaveBeenCalled();
+
+        await waitForPostMessage('__sentry_reportdialog_closed__');
+        expect(onClose).toHaveBeenCalledTimes(1);
       });
     });
   });
@@ -271,11 +318,11 @@ describe('SentryBrowser initialization', () => {
     it('should set SDK data when Sentry.init() is called', () => {
       init({ dsn });
 
-      const sdkData = (getCurrentHub().getClient() as any).getOptions()._metadata.sdk;
+      const sdkData = getClient()?.getOptions()._metadata?.sdk || {};
 
       expect(sdkData?.name).toBe('sentry.javascript.browser');
-      expect(sdkData?.packages[0].name).toBe('npm:@sentry/browser');
-      expect(sdkData?.packages[0].version).toBe(SDK_VERSION);
+      expect(sdkData?.packages?.[0].name).toBe('npm:@sentry/browser');
+      expect(sdkData?.packages?.[0].version).toBe(SDK_VERSION);
       expect(sdkData?.version).toBe(SDK_VERSION);
     });
 
@@ -283,9 +330,9 @@ describe('SentryBrowser initialization', () => {
       global.SENTRY_SDK_SOURCE = 'loader';
       init({ dsn });
 
-      const sdkData = (getCurrentHub().getClient() as any).getOptions()._metadata.sdk;
+      const sdkData = getClient()?.getOptions()._metadata?.sdk || {};
 
-      expect(sdkData?.packages[0].name).toBe('loader:@sentry/browser');
+      expect(sdkData.packages?.[0].name).toBe('loader:@sentry/browser');
       delete global.SENTRY_SDK_SOURCE;
     });
 
@@ -293,9 +340,9 @@ describe('SentryBrowser initialization', () => {
       const spy = jest.spyOn(utils, 'getSDKSource').mockReturnValue('cdn');
       init({ dsn });
 
-      const sdkData = (getCurrentHub().getClient() as any).getOptions()._metadata.sdk;
+      const sdkData = getClient()?.getOptions()._metadata?.sdk || {};
 
-      expect(sdkData?.packages[0].name).toBe('cdn:@sentry/browser');
+      expect(sdkData.packages?.[0].name).toBe('cdn:@sentry/browser');
       expect(utils.getSDKSource).toBeCalledTimes(1);
       spy.mockRestore();
     });
@@ -332,11 +379,11 @@ describe('SentryBrowser initialization', () => {
         },
       });
 
-      const sdkData = (getCurrentHub().getClient() as any).getOptions()._metadata?.sdk;
+      const sdkData = getClient()?.getOptions()._metadata?.sdk || {};
 
       expect(sdkData.name).toBe('sentry.javascript.angular');
-      expect(sdkData.packages[0].name).toBe('npm:@sentry/angular');
-      expect(sdkData.packages[0].version).toBe(SDK_VERSION);
+      expect(sdkData.packages?.[0].name).toBe('npm:@sentry/angular');
+      expect(sdkData.packages?.[0].version).toBe(SDK_VERSION);
       expect(sdkData.version).toBe(SDK_VERSION);
     });
   });

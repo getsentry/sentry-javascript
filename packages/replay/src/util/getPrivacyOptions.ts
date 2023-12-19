@@ -1,3 +1,5 @@
+import { consoleSandbox } from '@sentry/utils';
+
 import type { DeprecatedPrivacyOptions, ReplayIntegrationPrivacyOptions } from '../types';
 
 type GetPrivacyOptions = Required<Omit<ReplayIntegrationPrivacyOptions, 'maskFn'>> &
@@ -37,10 +39,12 @@ function getOption(
       allSelectors.push(`.${deprecatedClassOption}`);
     }
 
-    // eslint-disable-next-line no-console
-    console.warn(
-      '[Replay] You are using a deprecated configuration item for privacy. Read the documentation on how to use the new privacy configuration.',
-    );
+    consoleSandbox(() => {
+      // eslint-disable-next-line no-console
+      console.warn(
+        '[Replay] You are using a deprecated configuration item for privacy. Read the documentation on how to use the new privacy configuration.',
+      );
+    });
   }
 
   return allSelectors.join(',');

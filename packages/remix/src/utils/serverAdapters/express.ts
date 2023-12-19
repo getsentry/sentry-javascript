@@ -1,9 +1,10 @@
-import { getCurrentHub, hasTracingEnabled } from '@sentry/core';
+import { getClient, getCurrentHub, getCurrentScope, hasTracingEnabled } from '@sentry/core';
 import { flush } from '@sentry/node';
 import type { Transaction } from '@sentry/types';
 import { extractRequestData, isString, logger } from '@sentry/utils';
 import { cwd } from 'process';
 
+import { DEBUG_BUILD } from '../debug-build';
 import {
   createRoutes,
   getTransactionName,
@@ -48,7 +49,7 @@ function wrapExpressRequestHandler(
         pkg = await import(`${cwd()}/node_modules/react-router-dom`);
       } finally {
         if (!pkg) {
-          __DEBUG_BUILD__ && logger.error('Could not find `react-router-dom` package.');
+          DEBUG_BUILD && logger.error('Could not find `react-router-dom` package.');
         }
       }
     }
@@ -58,8 +59,8 @@ function wrapExpressRequestHandler(
 
     const request = extractRequestData(req);
     const hub = getCurrentHub();
-    const options = hub.getClient()?.getOptions();
-    const scope = hub.getScope();
+    const options = getClient()?.getOptions();
+    const scope = getCurrentScope();
 
     scope.setSDKProcessingMetadata({ request });
 
@@ -151,10 +152,10 @@ async function finishSentryProcessing(res: AugmentedExpressResponse): Promise<vo
   // Flush the event queue to ensure that events get sent to Sentry before the response is finished and the lambda
   // ends. If there was an error, rethrow it so that the normal exception-handling mechanisms can apply.
   try {
-    __DEBUG_BUILD__ && logger.log('Flushing events...');
+    DEBUG_BUILD && logger.log('Flushing events...');
     await flush(2000);
-    __DEBUG_BUILD__ && logger.log('Done flushing events');
+    DEBUG_BUILD && logger.log('Done flushing events');
   } catch (e) {
-    __DEBUG_BUILD__ && logger.log('Error while flushing events:\n', e);
+    DEBUG_BUILD && logger.log('Error while flushing events:\n', e);
   }
 }

@@ -1,3 +1,4 @@
+import { TextEncoder } from 'util';
 import type {
   Breadcrumb,
   BreadcrumbHint,
@@ -7,7 +8,6 @@ import type {
   XhrBreadcrumbHint,
 } from '@sentry/types';
 import { SENTRY_XHR_DATA_KEY } from '@sentry/utils';
-import { TextEncoder } from 'util';
 
 import { BASE_TIMESTAMP } from '../..';
 import { NETWORK_BODY_MAX_SIZE } from '../../../src/constants';
@@ -20,6 +20,8 @@ jest.useFakeTimers();
 
 async function waitForReplayEventBuffer() {
   // Need one Promise.resolve() per await in the util functions
+  await Promise.resolve();
+  await Promise.resolve();
   await Promise.resolve();
   await Promise.resolve();
   await Promise.resolve();
@@ -116,6 +118,8 @@ describe('Unit | coreHandlers | handleNetworkBreadcrumbs', () => {
         value: 'test response',
       });
       xhr[SENTRY_XHR_DATA_KEY] = {
+        method: 'GET',
+        url: 'https://example.com',
         request_headers: {
           'content-type': 'text/plain',
           'other-header': 'test',

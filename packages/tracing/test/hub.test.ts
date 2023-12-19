@@ -5,7 +5,7 @@ import { Hub, makeMain } from '@sentry/core';
 import * as utilsModule from '@sentry/utils'; // for mocking
 import { logger } from '@sentry/utils';
 
-import { addExtensionMethods, BrowserTracing, extractTraceparentData, TRACEPARENT_REGEXP, Transaction } from '../src';
+import { BrowserTracing, TRACEPARENT_REGEXP, Transaction, addExtensionMethods, extractTraceparentData } from '../src';
 import {
   addDOMPropertiesToGlobal,
   getDefaultBrowserClientOptions,
@@ -40,9 +40,7 @@ describe('Hub', () => {
       const transaction = hub.startTransaction({ name: 'dogpark' });
       transaction.sampled = true;
 
-      hub.configureScope(scope => {
-        scope.setSpan(transaction);
-      });
+      hub.getScope().setSpan(transaction);
 
       expect(hub.getScope().getTransaction()).toBe(transaction);
     });
@@ -53,9 +51,7 @@ describe('Hub', () => {
       makeMain(hub);
       const transaction = hub.startTransaction({ name: 'dogpark', sampled: false });
 
-      hub.configureScope(scope => {
-        scope.setSpan(transaction);
-      });
+      hub.getScope().setSpan(transaction);
 
       expect(hub.getScope().getTransaction()).toBe(transaction);
     });
@@ -472,9 +468,7 @@ The transaction will not be sampled. Please use the otel instrumentation to star
           makeMain(hub);
 
           const transaction = hub.startTransaction({ name: 'dogpark' });
-          hub.configureScope(scope => {
-            scope.setSpan(transaction);
-          });
+          hub.getScope().setSpan(transaction);
 
           const request = new XMLHttpRequest();
           await new Promise(resolve => {
@@ -513,9 +507,7 @@ The transaction will not be sampled. Please use the otel instrumentation to star
           makeMain(hub);
 
           const transaction = hub.startTransaction({ name: 'dogpark', sampled: false });
-          hub.configureScope(scope => {
-            scope.setSpan(transaction);
-          });
+          hub.getScope().setSpan(transaction);
 
           const request = new XMLHttpRequest();
           await new Promise(resolve => {

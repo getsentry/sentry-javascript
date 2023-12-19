@@ -1,8 +1,10 @@
 import type { Breadcrumb, FetchBreadcrumbData, TextEncoderInternal } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
+import { DEBUG_BUILD } from '../../debug-build';
 import type {
   FetchHint,
+  NetworkMetaWarning,
   ReplayContainer,
   ReplayNetworkOptions,
   ReplayNetworkRequestData,
@@ -16,6 +18,7 @@ import {
   getBodySize,
   getBodyString,
   makeNetworkReplayBreadcrumb,
+  mergeWarning,
   parseContentLengthHeader,
   urlMatches,
 } from './networkUtils';
@@ -39,7 +42,7 @@ export async function captureFetchBreadcrumbToReplay(
     const result = makeNetworkReplayBreadcrumb('resource.fetch', data);
     addNetworkBreadcrumb(options.replay, result);
   } catch (error) {
-    __DEBUG_BUILD__ && logger.error('[Replay] Failed to capture fetch breadcrumb', error);
+    DEBUG_BUILD && logger.error('[Replay] Failed to capture fetch breadcrumb', error);
   }
 }
 
@@ -118,17 +121,24 @@ function _getRequestInfo(
 
   // We only want to transmit string or string-like bodies
   const requestBody = _getFetchRequestArgBody(input);
-  const bodyStr = getBodyString(requestBody);
-  return buildNetworkRequestOrResponse(headers, requestBodySize, bodyStr);
+  const [bodyStr, warning] = getBodyString(requestBody);
+  const data = buildNetworkRequestOrResponse(headers, requestBodySize, bodyStr);
+
+  if (warning) {
+    return mergeWarning(data, warning);
+  }
+
+  return data;
 }
 
-async function _getResponseInfo(
+/** Exported only for tests. */
+export async function _getResponseInfo(
   captureDetails: boolean,
   {
     networkCaptureBodies,
     textEncoder,
     networkResponseHeaders,
-  }: ReplayNetworkOptions & {
+  }: Pick<ReplayNetworkOptions, 'networkCaptureBodies' | 'networkResponseHeaders'> & {
     textEncoder: TextEncoderInternal;
   },
   response: Response | undefined,
@@ -144,12 +154,39 @@ async function _getResponseInfo(
     return buildNetworkRequestOrResponse(headers, responseBodySize, undefined);
   }
 
-  // Only clone the response if we need to
-  try {
-    // We have to clone this, as the body can only be read once
-    const res = response.clone();
-    const bodyText = await _parseFetchBody(res);
+  const [bodyText, warning] = await _parseFetchResponseBody(response);
+  const result = getResponseData(bodyText, {
+    networkCaptureBodies,
+    textEncoder,
+    responseBodySize,
+    captureDetails,
+    headers,
+  });
 
+  if (warning) {
+    return mergeWarning(result, warning);
+  }
+
+  return result;
+}
+
+function getResponseData(
+  bodyText: string | undefined,
+  {
+    networkCaptureBodies,
+    textEncoder,
+    responseBodySize,
+    captureDetails,
+    headers,
+  }: {
+    captureDetails: boolean;
+    networkCaptureBodies: boolean;
+    responseBodySize: number | undefined;
+    headers: Record<string, string>;
+    textEncoder: TextEncoderInternal;
+  },
+): ReplayNetworkRequestOrResponse | undefined {
+  try {
     const size =
       bodyText && bodyText.length && responseBodySize === undefined
         ? getBodySize(bodyText, textEncoder)
@@ -165,17 +202,25 @@ async function _getResponseInfo(
 
     return buildNetworkRequestOrResponse(headers, size, undefined);
   } catch (error) {
-    __DEBUG_BUILD__ && logger.warn('[Replay] Failed to serialize response body', error);
+    DEBUG_BUILD && logger.warn('[Replay] Failed to serialize response body', error);
     // fallback
     return buildNetworkRequestOrResponse(headers, responseBodySize, undefined);
   }
 }
 
-async function _parseFetchBody(response: Response): Promise<string | undefined> {
+async function _parseFetchResponseBody(response: Response): Promise<[string | undefined, NetworkMetaWarning?]> {
+  const res = _tryCloneResponse(response);
+
+  if (!res) {
+    return [undefined, 'BODY_PARSE_ERROR'];
+  }
+
   try {
-    return await response.text();
-  } catch {
-    return undefined;
+    const text = await _tryGetResponseText(res);
+    return [text];
+  } catch (error) {
+    DEBUG_BUILD && logger.warn('[Replay] Failed to get text body from response', error);
+    return [undefined, 'BODY_PARSE_ERROR'];
   }
 }
 
@@ -236,4 +281,40 @@ function getHeadersFromOptions(
   }
 
   return getAllowedHeaders(headers, allowedHeaders);
+}
+
+function _tryCloneResponse(response: Response): Response | void {
+  try {
+    // We have to clone this, as the body can only be read once
+    return response.clone();
+  } catch (error) {
+    // this can throw if the response was already consumed before
+    DEBUG_BUILD && logger.warn('[Replay] Failed to clone response body', error);
+  }
+}
+
+/**
+ * Get the response body of a fetch request, or timeout after 500ms.
+ * Fetch can return a streaming body, that may not resolve (or not for a long time).
+ * If that happens, we rather abort after a short time than keep waiting for this.
+ */
+function _tryGetResponseText(response: Response): Promise<string | undefined> {
+  return new Promise((resolve, reject) => {
+    const timeout = setTimeout(() => reject(new Error('Timeout while trying to read response body')), 500);
+
+    _getResponseText(response)
+      .then(
+        txt => resolve(txt),
+        reason => reject(reason),
+      )
+      .finally(() => clearTimeout(timeout));
+  });
+
+  return _getResponseText(response);
+}
+
+async function _getResponseText(response: Response): Promise<string> {
+  // Force this to be a promise, just to be safe
+  // eslint-disable-next-line no-return-await
+  return await response.text();
 }

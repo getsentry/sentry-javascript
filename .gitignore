@@ -37,6 +37,7 @@ local.log
 ._*
 .Spotlight-V100
 .Trashes
+.nx
 
 .rpt2_cache
 
@@ -48,3 +49,12 @@ tmp.js
 # eslint
 .eslintcache
 **/eslintcache/*
+
+# deno
+packages/deno/build-types
+packages/deno/build-test
+packages/deno/lib.deno.d.ts
+
+# gatsby
+packages/gatsby/gatsby-browser.d.ts
+packages/gatsby/gatsby-node.d.ts

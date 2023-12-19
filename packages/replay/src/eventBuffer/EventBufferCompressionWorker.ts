@@ -3,8 +3,8 @@ import type { ReplayRecordingData } from '@sentry/types';
 import { REPLAY_MAX_EVENT_BUFFER_SIZE } from '../constants';
 import type { AddEventResult, EventBuffer, EventBufferType, RecordingEvent } from '../types';
 import { timestampToMs } from '../util/timestamp';
-import { EventBufferSizeExceededError } from './error';
 import { WorkerHandler } from './WorkerHandler';
+import { EventBufferSizeExceededError } from './error';
 
 /**
  * Event buffer that uses a web worker to compress events.

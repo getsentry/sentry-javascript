@@ -1,7 +1,7 @@
-import { default as SentryWebpackPlugin } from '@sentry/webpack-plugin';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
+import { default as SentryWebpackPlugin } from '@sentry/webpack-plugin';
 
 import type { BuildContext, ExportedNextConfig } from '../../../src/config/types';
 import { getUserConfigFile, getWebpackPluginOptions } from '../../../src/config/webpack';

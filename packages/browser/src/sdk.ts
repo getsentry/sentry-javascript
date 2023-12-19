@@ -1,16 +1,23 @@
 import type { Hub } from '@sentry/core';
 import {
+  Integrations as CoreIntegrations,
+  getClient,
   getCurrentHub,
   getIntegrationsToSetup,
   getReportDialogEndpoint,
   initAndBind,
-  Integrations as CoreIntegrations,
 } from '@sentry/core';
 import type { UserFeedback } from '@sentry/types';
-import { addInstrumentationHandler, logger, stackParserFromStackParserOptions, supportsFetch } from '@sentry/utils';
+import {
+  addHistoryInstrumentationHandler,
+  logger,
+  stackParserFromStackParserOptions,
+  supportsFetch,
+} from '@sentry/utils';
 
 import type { BrowserClientOptions, BrowserOptions } from './client';
 import { BrowserClient } from './client';
+import { DEBUG_BUILD } from './debug-build';
 import type { ReportDialogOptions } from './helpers';
 import { WINDOW, wrap as internalWrap } from './helpers';
 import { Breadcrumbs, Dedupe, GlobalHandlers, HttpContext, LinkedErrors, TryCatch } from './integrations';
@@ -134,14 +141,14 @@ export function init(options: BrowserOptions = {}): void {
 export function showReportDialog(options: ReportDialogOptions = {}, hub: Hub = getCurrentHub()): void {
   // doesn't work without a document (React Native)
   if (!WINDOW.document) {
-    __DEBUG_BUILD__ && logger.error('Global document not defined in showReportDialog call');
+    DEBUG_BUILD && logger.error('Global document not defined in showReportDialog call');
     return;
   }
 
   const { client, scope } = hub.getStackTop();
   const dsn = options.dsn || (client && client.getDsn());
   if (!dsn) {
-    __DEBUG_BUILD__ && logger.error('DSN not configured for showReportDialog call');
+    DEBUG_BUILD && logger.error('DSN not configured for showReportDialog call');
     return;
   }
 
@@ -165,11 +172,25 @@ export function showReportDialog(options: ReportDialogOptions = {}, hub: Hub = g
     script.onload = options.onLoad;
   }
 
+  const { onClose } = options;
+  if (onClose) {
+    const reportDialogClosedMessageHandler = (event: MessageEvent): void => {
+      if (event.data === '__sentry_reportdialog_closed__') {
+        try {
+          onClose();
+        } finally {
+          WINDOW.removeEventListener('message', reportDialogClosedMessageHandler);
+        }
+      }
+    };
+    WINDOW.addEventListener('message', reportDialogClosedMessageHandler);
+  }
+
   const injectionPoint = WINDOW.document.head || WINDOW.document.body;
   if (injectionPoint) {
     injectionPoint.appendChild(script);
   } else {
-    __DEBUG_BUILD__ && logger.error('Not injecting report dialog. No injection point found in HTML');
+    DEBUG_BUILD && logger.error('Not injecting report dialog. No injection point found in HTML');
   }
 }
 
@@ -216,8 +237,7 @@ function startSessionOnHub(hub: Hub): void {
  */
 function startSessionTracking(): void {
   if (typeof WINDOW.document === 'undefined') {
-    __DEBUG_BUILD__ &&
-      logger.warn('Session tracking in non-browser environment with @sentry/browser is not supported.');
+    DEBUG_BUILD && logger.warn('Session tracking in non-browser environment with @sentry/browser is not supported.');
     return;
   }
 
@@ -240,9 +260,9 @@ function startSessionTracking(): void {
   startSessionOnHub(hub);
 
   // We want to create a session for every navigation as well
-  addInstrumentationHandler('history', ({ from, to }) => {
+  addHistoryInstrumentationHandler(({ from, to }) => {
     // Don't create an additional session for the initial route or if the location did not change
-    if (!(from === undefined || from === to)) {
+    if (from !== undefined && from !== to) {
       startSessionOnHub(getCurrentHub());
     }
   });
@@ -252,7 +272,7 @@ function startSessionTracking(): void {
  * Captures user feedback and sends it to Sentry.
  */
 export function captureUserFeedback(feedback: UserFeedback): void {
-  const client = getCurrentHub().getClient<BrowserClient>();
+  const client = getClient<BrowserClient>();
   if (client) {
     client.captureUserFeedback(feedback);
   }

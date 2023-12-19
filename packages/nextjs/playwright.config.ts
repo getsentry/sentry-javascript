@@ -1,5 +1,5 @@
-import type { PlaywrightTestConfig } from '@playwright/test';
 import * as path from 'path';
+import type { PlaywrightTestConfig } from '@playwright/test';
 
 const config: PlaywrightTestConfig = {
   retries: 0, // We do not accept flakes.

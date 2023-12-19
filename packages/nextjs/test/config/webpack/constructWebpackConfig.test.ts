@@ -54,7 +54,7 @@ describe('constructWebpackConfigFunction()', () => {
         ({
           ...serverWebpackConfig,
           devtool: 'something-besides-source-map',
-        } as any),
+        }) as any,
       sentry: { disableServerWebpackPlugin: true },
     });
     const finalWebpackConfig = finalNextConfig.webpack?.(serverWebpackConfig, serverBuildContext);

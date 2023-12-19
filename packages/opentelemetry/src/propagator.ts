@@ -1,12 +1,12 @@
 import type { Baggage, Context, SpanContext, TextMapGetter, TextMapSetter } from '@opentelemetry/api';
-import { propagation, trace, TraceFlags } from '@opentelemetry/api';
-import { isTracingSuppressed, W3CBaggagePropagator } from '@opentelemetry/core';
+import { TraceFlags, propagation, trace } from '@opentelemetry/api';
+import { W3CBaggagePropagator, isTracingSuppressed } from '@opentelemetry/core';
 import { getDynamicSamplingContextFromClient } from '@sentry/core';
 import type { DynamicSamplingContext, PropagationContext } from '@sentry/types';
-import { generateSentryTraceHeader, SENTRY_BAGGAGE_KEY_PREFIX, tracingContextFromHeaders } from '@sentry/utils';
+import { SENTRY_BAGGAGE_KEY_PREFIX, generateSentryTraceHeader, tracingContextFromHeaders } from '@sentry/utils';
 
 import { SENTRY_BAGGAGE_HEADER, SENTRY_TRACE_HEADER } from './constants';
-import { getCurrentHub } from './custom/hub';
+import { getClient } from './custom/hub';
 import { getPropagationContextFromContext, setPropagationContextOnContext } from './utils/contextData';
 import { getSpanScope } from './utils/spanData';
 
@@ -90,7 +90,7 @@ function getDsc(
   }
 
   // Else, we try to generate a new one
-  const client = getCurrentHub().getClient();
+  const client = getClient();
   const activeSpan = trace.getSpan(context);
   const scope = activeSpan ? getSpanScope(activeSpan) : undefined;
 

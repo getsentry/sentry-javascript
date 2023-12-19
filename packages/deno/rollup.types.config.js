@@ -1,6 +1,6 @@
+import { defineConfig } from 'rollup';
 // @ts-check
 import dts from 'rollup-plugin-dts';
-import { defineConfig } from 'rollup';
 
 export default defineConfig({
   input: './build-types/index.d.ts',

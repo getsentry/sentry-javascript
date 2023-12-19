@@ -1,4 +1,4 @@
-import { assertSentryTransaction, conditionalTest, TestEnv } from '../../../utils';
+import { TestEnv, assertSentryTransaction, conditionalTest } from '../../../utils';
 
 // Node 10 is not supported by `graphql-js`
 // Ref: https://github.com/graphql/graphql-js/blob/main/package.json

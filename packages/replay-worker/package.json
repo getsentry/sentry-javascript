@@ -1,6 +1,6 @@
 {
   "name": "@sentry-internal/replay-worker",
-  "version": "7.81.1",
+  "version": "7.88.0",
   "description": "Worker for @sentry/replay",
   "main": "build/npm/esm/index.js",
   "module": "build/npm/esm/index.js",
@@ -27,12 +27,8 @@
     "build:transpile:watch": "yarn build:transpile --watch",
     "build:types:watch": "tsc -p tsconfig.types.json --watch",
     "clean": "rimraf build",
-    "fix": "run-s fix:eslint fix:prettier",
-    "fix:eslint": "eslint . --format stylish --fix",
-    "fix:prettier": "prettier --write \"{src,test}/**/*.ts\"",
-    "lint": "run-s lint:prettier lint:eslint",
-    "lint:eslint": "eslint . --format stylish",
-    "lint:prettier": "prettier --check \"{src,test}/**/*.ts\"",
+    "fix": "eslint . --format stylish --fix",
+    "lint": "eslint . --format stylish",
     "test": "jest",
     "test:watch": "jest --watch"
   },

@@ -7,18 +7,18 @@ import { builtinModules } from 'module';
 import deepMerge from 'deepmerge';
 
 import {
+  getEs5Polyfills,
   makeBrowserBuildPlugin,
+  makeCleanupPlugin,
   makeCommonJSPlugin,
   makeIsDebugBuildPlugin,
-  makeRrwebBuildPlugin,
   makeLicensePlugin,
   makeNodeResolvePlugin,
-  makeCleanupPlugin,
-  makeSucrasePlugin,
-  makeTerserPlugin,
-  makeTSPlugin,
+  makeRrwebBuildPlugin,
   makeSetSDKSourcePlugin,
-  getEs5Polyfills,
+  makeSucrasePlugin,
+  makeTSPlugin,
+  makeTerserPlugin,
 } from './plugins/index.js';
 import { mergePlugins } from './utils';
 

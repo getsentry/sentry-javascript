@@ -29,10 +29,12 @@ const fakeHubInstance = new FakeHub(
 );
 
 jest.spyOn(sentryCore, 'getCurrentHub').mockImplementation(() => fakeHubInstance);
+jest.spyOn(sentryCore, 'getCurrentScope').mockImplementation(() => fakeHubInstance.getScope());
+jest.spyOn(sentryCore, 'getClient').mockImplementation(() => fakeHubInstance.getClient());
 
-const addInstrumentationHandlerSpy = jest.spyOn(sentryUtils, 'addInstrumentationHandler');
+const addFetchInstrumentationHandlerSpy = jest.spyOn(sentryUtils, 'addFetchInstrumentationHandler');
 const instrumentFetchRequestSpy = jest.spyOn(internalTracing, 'instrumentFetchRequest');
-const addBreadcrumbSpy = jest.spyOn(fakeHubInstance, 'addBreadcrumb');
+const addBreadcrumbSpy = jest.spyOn(sentryCore, 'addBreadcrumb');
 
 beforeEach(() => {
   jest.clearAllMocks();
@@ -41,13 +43,11 @@ beforeEach(() => {
 describe('WinterCGFetch instrumentation', () => {
   it('should call `instrumentFetchRequest` for outgoing fetch requests', () => {
     const integration = new WinterCGFetch();
-    addInstrumentationHandlerSpy.mockImplementationOnce(() => undefined);
+    addFetchInstrumentationHandlerSpy.mockImplementationOnce(() => undefined);
 
     integration.setupOnce();
 
-    const [fetchInstrumentationHandlerType, fetchInstrumentationHandlerCallback] =
-      addInstrumentationHandlerSpy.mock.calls[0];
-    expect(fetchInstrumentationHandlerType).toBe('fetch');
+    const [fetchInstrumentationHandlerCallback] = addFetchInstrumentationHandlerSpy.mock.calls[0];
     expect(fetchInstrumentationHandlerCallback).toBeDefined();
 
     const startHandlerData: HandlerDataFetch = {
@@ -76,13 +76,11 @@ describe('WinterCGFetch instrumentation', () => {
 
   it('should call `instrumentFetchRequest` for outgoing fetch requests to Sentry', () => {
     const integration = new WinterCGFetch();
-    addInstrumentationHandlerSpy.mockImplementationOnce(() => undefined);
+    addFetchInstrumentationHandlerSpy.mockImplementationOnce(() => undefined);
 
     integration.setupOnce();
 
-    const [fetchInstrumentationHandlerType, fetchInstrumentationHandlerCallback] =
-      addInstrumentationHandlerSpy.mock.calls[0];
-    expect(fetchInstrumentationHandlerType).toBe('fetch');
+    const [fetchInstrumentationHandlerCallback] = addFetchInstrumentationHandlerSpy.mock.calls[0];
     expect(fetchInstrumentationHandlerCallback).toBeDefined();
 
     const startHandlerData: HandlerDataFetch = {
@@ -101,13 +99,11 @@ describe('WinterCGFetch instrumentation', () => {
         return url === 'http://only-acceptable-url.com/';
       },
     });
-    addInstrumentationHandlerSpy.mockImplementationOnce(() => undefined);
+    addFetchInstrumentationHandlerSpy.mockImplementationOnce(() => undefined);
 
     integration.setupOnce();
 
-    const [fetchInstrumentationHandlerType, fetchInstrumentationHandlerCallback] =
-      addInstrumentationHandlerSpy.mock.calls[0];
-    expect(fetchInstrumentationHandlerType).toBe('fetch');
+    const [fetchInstrumentationHandlerCallback] = addFetchInstrumentationHandlerSpy.mock.calls[0];
     expect(fetchInstrumentationHandlerCallback).toBeDefined();
 
     const startHandlerData: HandlerDataFetch = {
@@ -126,13 +122,11 @@ describe('WinterCGFetch instrumentation', () => {
 
   it('should create a breadcrumb for an outgoing request', () => {
     const integration = new WinterCGFetch();
-    addInstrumentationHandlerSpy.mockImplementationOnce(() => undefined);
+    addFetchInstrumentationHandlerSpy.mockImplementationOnce(() => undefined);
 
     integration.setupOnce();
 
-    const [fetchInstrumentationHandlerType, fetchInstrumentationHandlerCallback] =
-      addInstrumentationHandlerSpy.mock.calls[0];
-    expect(fetchInstrumentationHandlerType).toBe('fetch');
+    const [fetchInstrumentationHandlerCallback] = addFetchInstrumentationHandlerSpy.mock.calls[0];
     expect(fetchInstrumentationHandlerCallback).toBeDefined();
 
     const startTimestamp = Date.now();
@@ -166,13 +160,11 @@ describe('WinterCGFetch instrumentation', () => {
     const integration = new WinterCGFetch({
       breadcrumbs: false,
     });
-    addInstrumentationHandlerSpy.mockImplementationOnce(() => undefined);
+    addFetchInstrumentationHandlerSpy.mockImplementationOnce(() => undefined);
 
     integration.setupOnce();
 
-    const [fetchInstrumentationHandlerType, fetchInstrumentationHandlerCallback] =
-      addInstrumentationHandlerSpy.mock.calls[0];
-    expect(fetchInstrumentationHandlerType).toBe('fetch');
+    const [fetchInstrumentationHandlerCallback] = addFetchInstrumentationHandlerSpy.mock.calls[0];
     expect(fetchInstrumentationHandlerCallback).toBeDefined();
 
     const startTimestamp = Date.now();

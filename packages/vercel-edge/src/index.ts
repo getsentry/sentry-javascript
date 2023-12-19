@@ -23,13 +23,16 @@ export type { AddRequestDataToEventOptions } from '@sentry/utils';
 export type { VercelEdgeOptions } from './types';
 
 export {
+  // eslint-disable-next-line deprecation/deprecation
   addGlobalEventProcessor,
+  addEventProcessor,
   addBreadcrumb,
   addIntegration,
   captureException,
   captureEvent,
   captureMessage,
   close,
+  // eslint-disable-next-line deprecation/deprecation
   configureScope,
   createTransport,
   // eslint-disable-next-line deprecation/deprecation
@@ -38,6 +41,8 @@ export {
   getActiveTransaction,
   getHubFromCarrier,
   getCurrentHub,
+  getClient,
+  getCurrentScope,
   Hub,
   lastEventId,
   makeMain,
@@ -68,13 +73,14 @@ export type { SpanStatusType } from '@sentry/core';
 export { VercelEdgeClient } from './client';
 export { defaultIntegrations, init } from './sdk';
 
-import { Integrations as CoreIntegrations } from '@sentry/core';
+import { Integrations as CoreIntegrations, RequestData } from '@sentry/core';
 
 import { WinterCGFetch } from './integrations/wintercg-fetch';
 
 const INTEGRATIONS = {
   ...CoreIntegrations,
-  ...WinterCGFetch,
+  WinterCGFetch,
+  RequestData,
 };
 
 export { INTEGRATIONS as Integrations };

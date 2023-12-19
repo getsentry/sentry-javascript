@@ -1,15 +1,17 @@
 /* eslint-disable max-lines */
 import {
+  Integrations as CoreIntegrations,
+  getClient,
   getCurrentHub,
+  getCurrentScope,
   getIntegrationsToSetup,
   getMainCarrier,
   initAndBind,
-  Integrations as CoreIntegrations,
 } from '@sentry/core';
 import type { SessionStatus, StackParser } from '@sentry/types';
 import {
-  createStackParser,
   GLOBAL_OBJ,
+  createStackParser,
   nodeStackLineParser,
   stackParserFromStackParserOptions,
   tracingContextFromHeaders,
@@ -28,6 +30,7 @@ import {
   OnUncaughtException,
   OnUnhandledRejection,
   RequestData,
+  Spotlight,
   Undici,
 } from './integrations';
 import { getModuleFromFilename } from './module';
@@ -179,6 +182,17 @@ export function init(options: NodeOptions = {}): void {
   }
 
   updateScopeFromEnvVariables();
+
+  if (options.spotlight) {
+    const client = getClient();
+    if (client && client.addIntegration) {
+      // force integrations to be setup even if no DSN was set
+      client.setupIntegrations(true);
+      client.addIntegration(
+        new Spotlight({ sidecarUrl: typeof options.spotlight === 'string' ? options.spotlight : undefined }),
+      );
+    }
+  }
 }
 
 /**
@@ -223,6 +237,8 @@ export function getSentryRelease(fallback?: string): string | undefined {
     process.env.ZEIT_GITHUB_COMMIT_SHA ||
     process.env.ZEIT_GITLAB_COMMIT_SHA ||
     process.env.ZEIT_BITBUCKET_COMMIT_SHA ||
+    // Cloudflare Pages - https://developers.cloudflare.com/pages/platform/build-configuration/#environment-variables
+    process.env.CF_PAGES_COMMIT_SHA ||
     fallback
   );
 }
@@ -263,6 +279,6 @@ function updateScopeFromEnvVariables(): void {
     const sentryTraceEnv = process.env.SENTRY_TRACE;
     const baggageEnv = process.env.SENTRY_BAGGAGE;
     const { propagationContext } = tracingContextFromHeaders(sentryTraceEnv, baggageEnv);
-    getCurrentHub().getScope().setPropagationContext(propagationContext);
+    getCurrentScope().setPropagationContext(propagationContext);
   }
 }

@@ -1,6 +1,6 @@
-import { test } from 'vitest';
 import childProcess from 'child_process';
 import path from 'path';
+import { test } from 'vitest';
 
 const authToken = process.env.E2E_TEST_AUTH_TOKEN;
 const sentryTestOrgSlug = process.env.E2E_TEST_SENTRY_ORG_SLUG;

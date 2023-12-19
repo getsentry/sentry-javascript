@@ -1,8 +1,9 @@
+import type { ServerResponse } from 'http';
 import { flush } from '@sentry/core';
 import type { Transaction } from '@sentry/types';
 import { fill, logger } from '@sentry/utils';
-import type { ServerResponse } from 'http';
 
+import { DEBUG_BUILD } from '../debug-build';
 import type { ResponseEndMethod, WrappedResponseEndMethod } from '../types';
 
 /**
@@ -48,10 +49,10 @@ export async function finishTransaction(transaction: Transaction | undefined, re
 /** Flush the event queue to ensure that events get sent to Sentry before the response is finished and the lambda ends */
 export async function flushQueue(): Promise<void> {
   try {
-    __DEBUG_BUILD__ && logger.log('Flushing events...');
+    DEBUG_BUILD && logger.log('Flushing events...');
     await flush(2000);
-    __DEBUG_BUILD__ && logger.log('Done flushing events');
+    DEBUG_BUILD && logger.log('Done flushing events');
   } catch (e) {
-    __DEBUG_BUILD__ && logger.log('Error while flushing events:\n', e);
+    DEBUG_BUILD && logger.log('Error while flushing events:\n', e);
   }
 }

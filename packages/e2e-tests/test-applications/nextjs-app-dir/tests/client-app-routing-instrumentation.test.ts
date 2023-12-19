@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '../event-proxy-server';
 
 test('Creates a pageload transaction for app router routes', async ({ page }) => {

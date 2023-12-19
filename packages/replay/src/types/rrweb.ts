@@ -44,3 +44,23 @@ export type RrwebRecordOptions = {
   blockSelector?: string;
   maskInputOptions?: Record<string, boolean>;
 } & Record<string, unknown>;
+
+export interface CanvasManagerInterface {
+  reset(): void;
+  freeze(): void;
+  unfreeze(): void;
+  lock(): void;
+  unlock(): void;
+}
+
+export interface GetCanvasManagerOptions {
+  recordCanvas: boolean;
+  blockClass: string | RegExp;
+  blockSelector: string | null;
+  unblockSelector: string | null;
+  sampling?: 'all' | number;
+  dataURLOptions: Partial<{
+    type: string;
+    quality: number;
+  }>;
+}

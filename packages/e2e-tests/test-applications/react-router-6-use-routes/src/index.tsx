@@ -1,12 +1,12 @@
+import * as Sentry from '@sentry/react';
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import * as Sentry from '@sentry/react';
 import {
   BrowserRouter,
-  useLocation,
-  useNavigationType,
   createRoutesFromChildren,
   matchRoutes,
+  useLocation,
+  useNavigationType,
   useRoutes,
 } from 'react-router-dom';
 import Index from './pages/Index';
@@ -45,7 +45,7 @@ Object.defineProperty(window, 'sentryReplayId', {
   },
 });
 
-Sentry.addGlobalEventProcessor(event => {
+Sentry.addEventProcessor(event => {
   if (
     event.type === 'transaction' &&
     (event.contexts?.trace?.op === 'pageload' || event.contexts?.trace?.op === 'navigation')

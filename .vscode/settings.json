@@ -23,11 +23,15 @@
   "yaml.schemas": {
     "https://json.schemastore.org/github-workflow.json": ".github/workflows/**.yml"
   },
-  "eslint.packageManager": "yarn",
   "eslint.workingDirectories": [
     {
       "mode": "auto"
     }
   ],
-  "deno.enablePaths": ["packages/deno/test"]
+  "deno.enablePaths": ["packages/deno/test"],
+  "editor.codeActionsOnSave": {
+    "source.organizeImports.biome": "explicit",
+    "quickfix.biome": "explicit"
+  },
+  "editor.defaultFormatter": "biomejs.biome"
 }

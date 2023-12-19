@@ -1,6 +1,6 @@
 {
   "name": "@sentry/astro",
-  "version": "7.81.1",
+  "version": "7.88.0",
   "description": "Official Sentry SDK for Astro",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/astro",
@@ -28,24 +28,30 @@
       "import": "./build/esm/index.client.js",
       "require": "./build/cjs/index.server.js",
       "types": "./build/types/index.types.d.ts"
+    },
+    "./middleware": {
+      "node": "./build/esm/integration/middleware/index.js",
+      "import": "./build/esm/integration/middleware/index.js",
+      "require": "./build/cjs/integration/middleware/index.js",
+      "types": "./build/types/integration/middleware/index.types.d.ts"
     }
   },
   "publishConfig": {
     "access": "public"
   },
   "peerDependencies": {
-    "astro": "3.x"
+    "astro": ">=3.x || >=4.0.0-beta"
   },
   "dependencies": {
-    "@sentry/browser": "7.81.1",
-    "@sentry/core": "7.81.1",
-    "@sentry/node": "7.81.1",
-    "@sentry/types": "7.81.1",
-    "@sentry/utils": "7.81.1",
+    "@sentry/browser": "7.88.0",
+    "@sentry/core": "7.88.0",
+    "@sentry/node": "7.88.0",
+    "@sentry/types": "7.88.0",
+    "@sentry/utils": "7.88.0",
     "@sentry/vite-plugin": "^2.8.0"
   },
   "devDependencies": {
-    "astro": "^3.2.3",
+    "astro": "^3.5.0",
     "rollup": "^3.20.2",
     "vite": "4.0.5"
   },
@@ -61,12 +67,8 @@
     "build:tarball": "ts-node ../../scripts/prepack.ts && npm pack ./build",
     "circularDepCheck": "madge --circular src/index.client.ts && madge --circular src/index.server.ts && madge --circular src/index.types.ts",
     "clean": "rimraf build coverage sentry-astro-*.tgz",
-    "fix": "run-s fix:eslint fix:prettier",
-    "fix:eslint": "eslint . --format stylish --fix",
-    "fix:prettier": "prettier --write \"{src,test,scripts}/**/**.ts\"",
-    "lint": "run-s lint:prettier lint:eslint",
-    "lint:eslint": "eslint . --format stylish",
-    "lint:prettier": "prettier --check \"{src,test,scripts}/**/**.ts\"",
+    "fix": "eslint . --format stylish --fix",
+    "lint": "eslint . --format stylish",
     "test": "yarn test:unit",
     "test:unit": "vitest run",
     "test:watch": "vitest --watch",

@@ -4,6 +4,152 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.88.0
+
+### Important Changes
+
+- **feat(browser): Add browser metrics sdk (#9794)**
+
+The release adds alpha support for [Sentry developer metrics](https://github.com/getsentry/sentry/discussions/58584) in the Browser SDKs (`@sentry/browser` and related framework SDKs). Via the newly introduced APIs, you can now flush metrics directly to Sentry.
+
+To enable capturing metrics, you first need to add the `MetricsAggregator` integration.
+
+```js
+Sentry.init({
+  dsn: '__DSN__',
+  integrations: [
+    new Sentry.metrics.MetricsAggregator(),
+  ],
+});
+```
+
+Then you'll be able to add `counters`, `sets`, `distributions`, and `gauges` under the `Sentry.metrics` namespace.
+
+```js
+// Add 4 to a counter named `hits`
+Sentry.metrics.increment('hits', 4);
+
+// Add 2 to gauge named `parallel_requests`, tagged with `happy: "no"`
+Sentry.metrics.gauge('parallel_requests', 2, { tags: { happy: 'no' } });
+
+// Add 4.6 to a distribution named `response_time` with unit seconds
+Sentry.metrics.distribution('response_time', 4.6, { unit: 'seconds' });
+
+// Add 2 to a set named `valuable.ids`
+Sentry.metrics.set('valuable.ids', 2);
+```
+
+In a future release we'll add support for server runtimes (Node, Deno, Bun, Vercel Edge, etc.)
+
+- **feat(deno): Optionally instrument `Deno.cron` (#9808)**
+
+This releases add support for instrumenting [Deno cron's](https://deno.com/blog/cron) with [Sentry cron monitors](https://docs.sentry.io/product/crons/). This requires v1.38 of Deno run with the `--unstable` flag and the usage of the `DenoCron` Sentry integration.
+
+```ts
+// Import from the Deno registry
+import * as Sentry from "https://deno.land/x/sentry/index.mjs";
+
+Sentry.init({
+  dsn: '__DSN__',
+  integrations: [
+    new Sentry.DenoCron(),
+  ],
+});
+```
+
+### Other Changes
+
+- feat(replay): Bump `rrweb` to 2.6.0 (#9847)
+- fix(nextjs): Guard against injecting multiple times (#9807)
+- ref(remix): Bump Sentry CLI to ^2.23.0 (#9773)
+
+## 7.87.0
+
+- feat: Add top level `getCurrentScope()` method (#9800)
+- feat(replay): Bump `rrweb` to 2.5.0 (#9803)
+- feat(replay): Capture hydration error breadcrumb (#9759)
+- feat(types): Add profile envelope types (#9798)
+- fix(astro): Avoid RegExp creation during route interpolation (#9815)
+- fix(browser): Avoid importing from `./exports` (#9775)
+- fix(nextjs): Catch rejecting flushes (#9811)
+- fix(nextjs): Fix devserver CORS blockage when `assetPrefix` is defined (#9766)
+- fix(node): Capture errors in tRPC middleware (#9782)
+
+## 7.86.0
+
+- feat(core): Use SDK_VERSION for hub API version (#9732)
+- feat(nextjs): Emit warning if your app directory doesn't have a global-error.js file (#9753)
+- feat(node): Add cloudflare pages commit sha (#9751)
+- feat(remix): Bump @sentry/cli to 2.22.3 (#9741)
+- fix(nextjs): Don't accidentally trigger static generation bailout (#9749)
+- fix(node): Guard `process.env.NODE_ENV` access in Spotlight integration (#9748)
+- fix(utils): Fix XHR instrumentation early return (#9770)
+- ref(remix): Rework Error Handling (#9725)
+
+## 7.85.0
+
+- feat(core): Add `addEventProcessor` method (#9554)
+- feat(crons): Add interface for heartbeat checkin (#9706)
+- feat(feedback): Include Feedback package in browser SDK (#9586)
+- fix(astro): Isolate request instrumentation in middleware (#9709)
+- fix(replay): Capture JSON XHR response bodies (#9623)
+- ref(feedback): Change form `box-shadow` to use CSS var (#9630)
+
+## 7.84.0
+
+### Important Changes
+
+- **ref(nextjs): Set `automaticVercelMonitors` to be `false` by default (#9697)**
+
+From this version onwards the default for the `automaticVercelMonitors` option in the Next.js SDK is set to false.
+Previously, if you made use of Vercel Crons the SDK automatically instrumented the relevant routes to create Sentry monitors.
+Because this feature will soon be generally available, we are now flipping the default to avoid situations where quota is used unexpectedly.
+
+If you want to continue using this feature, make sure to set the `automaticVercelMonitors` flag to `true` in your `next.config.js` Sentry settings.
+
+### Other Changes
+
+- chore(astro): Add 4.0.0 preview versions to `astro` peer dependency range (#9696)
+- feat(metrics): Add interfaces for metrics (#9698)
+- feat(web-vitals): Vendor in INP from web-vitals library (#9690)
+- fix(astro): Avoid adding the Sentry Vite plugin in dev mode (#9688)
+- fix(nextjs): Don't match files called `middleware` in node_modules (#9686)
+- fix(remix): Don't capture error responses that are not 5xx on Remix v2. (#9655)
+- fix(tracing): Don't attach resource size if null (#9669)
+- fix(utils): Regex match port to stop accidental replace (#9676)
+- fix(utils): Try catch new URL when extracting query params (#9675)
+
+## 7.83.0
+
+- chore(astro): Allow Astro 4.0 in peer dependencies (#9683)
+- feat(astro): Add `assets` option to source maps upload options (#9668)
+- feat(react): Support `exactOptionalPropertyTypes` on `ErrorBoundary` (#9098)
+- fix: Don't depend on browser types in `types` (#9682)
+- fix(astro): Configure sourcemap assets directory for Vercel adapter (#9665)
+- fix(remix): Check the error data before spreading. (#9664)
+
+## 7.82.0
+
+- feat(astro): Automatically add Sentry middleware in Astro integration (#9532)
+- feat(core): Add optional `setup` hook to integrations (#9556)
+- feat(core): Add top level `getClient()` method (#9638)
+- feat(core): Allow to pass `mechanism` as event hint (#9590)
+- feat(core): Allow to use `continueTrace` without callback (#9615)
+- feat(feedback): Add onClose callback to showReportDialog (#9433) (#9550)
+- feat(nextjs): Add request data to all edge-capable functionalities (#9636)
+- feat(node): Add Spotlight option to Node SDK (#9629)
+- feat(utils): Refactor `addInstrumentationHandler` to dedicated methods (#9542)
+- fix: Make full url customizable for Spotlight (#9652)
+- fix(astro): Remove Auth Token existence check (#9651)
+- fix(nextjs): Fix middleware detection logic (#9637)
+- fix(remix): Skip capturing aborted requests (#9659)
+- fix(replay): Add `BODY_PARSE_ERROR` warning & time out fetch response load (#9622)
+- fix(tracing): Filter out invalid resource sizes (#9641)
+- ref: Hoist `RequestData` integration to `@sentry/core` (#9597)
+- ref(feedback): Rename onDialog* to onForm*, remove onActorClick (#9625)
+
+Work in this release contributed by @arya-s. Thank you for your contribution!
+
 ## 7.81.1
 
 - fix(astro): Remove method from span op (#9603)
@@ -147,12 +293,12 @@ By using [tree shaking](https://docs.sentry.io/platforms/javascript/configuratio
 This release adds `Sentry.withMonitor()`, a wrapping function that wraps a callback with a cron monitor that will automatically report completions and failures:
 
 ```ts
-import * as Sentry from '@sentry/node';
+import * as Sentry from "@sentry/node";
 
 // withMonitor() will send checkin when callback is started/finished
 // works with async and sync callbacks.
 const result = Sentry.withMonitor(
-  'dailyEmail',
+  "dailyEmail",
   () => {
     // withCheckIn return value is same return value here
     return sendEmail();
@@ -160,12 +306,12 @@ const result = Sentry.withMonitor(
   // Optional upsert options
   {
     schedule: {
-      type: 'crontab',
-      value: '0 * * * *',
+      type: "crontab",
+      value: "0 * * * *",
     },
     // 🇨🇦🫡
-    timezone: 'Canada/Eastern',
-  },
+    timezone: "Canada/Eastern",
+  }
 );
 ```
 
@@ -204,12 +350,11 @@ You can read more about [@sentry/opentelemetry in the Readme](https://github.com
 
 Starting with this release, you can configure the following build-time flags in order to reduce the SDK bundle size:
 
-* `__RRWEB_EXCLUDE_CANVAS__`
-* `__RRWEB_EXCLUDE_IFRAME__`
-* `__RRWEB_EXCLUDE_SHADOW_DOM__`
+- `__RRWEB_EXCLUDE_CANVAS__`
+- `__RRWEB_EXCLUDE_IFRAME__`
+- `__RRWEB_EXCLUDE_SHADOW_DOM__`
 
 You can read more about [tree shaking in our docs](https://docs.sentry.io/platforms/javascript/configuration/tree-shaking/).
-
 
 ### Other Changes
 
@@ -338,7 +483,7 @@ Here are benchmarks comparing the version 1 of rrweb to version 2
 - fix(nextjs): Fix `RequestAsyncStorage` fallback path (#9126)
 - fix(node-otel): Suppress tracing for generated sentry spans (#9142)
 - fix(node): fill in span data from http request options object (#9112)
-- fix(node): Fixes and improvements to ANR detection  (#9128)
+- fix(node): Fixes and improvements to ANR detection (#9128)
 - fix(sveltekit): Avoid data invalidation in wrapped client-side `load` functions (#9071)
 - ref(core): Refactor `InboundFilters` integration to use `processEvent` (#9020)
 - ref(wasm): Refactor Wasm integration to use `processEvent` (#9019)
@@ -450,15 +595,15 @@ This release introduces a new set of top level APIs for the Performance Monitori
 
 ```js
 // Start a span that tracks the duration of expensiveFunction
-const result = Sentry.startSpan({ name: 'important function' }, () => {
+const result = Sentry.startSpan({ name: "important function" }, () => {
   return expensiveFunction();
 });
 
 // You can also mutate the span wrapping the callback to set data or status
-Sentry.startSpan({ name: 'important function' }, (span) => {
+Sentry.startSpan({ name: "important function" }, (span) => {
   // span is undefined if performance monitoring is turned off or if
   // the span was not sampled. This is done to reduce overhead.
-  span?.setData('version', '1.0.0');
+  span?.setData("version", "1.0.0");
   return expensiveFunction();
 });
 ```
@@ -468,8 +613,8 @@ If you don't want the span to finish when the callback returns, use `Sentry.star
 ```js
 // Start a span that tracks the duration of middleware
 function middleware(_req, res, next) {
-  return Sentry.startSpanManual({ name: 'middleware' }, (span, finish) => {
-    res.once('finish', () => {
+  return Sentry.startSpanManual({ name: "middleware" }, (span, finish) => {
+    res.once("finish", () => {
       span?.setHttpStatus(res.status);
       finish();
     });
@@ -481,15 +626,15 @@ function middleware(_req, res, next) {
 `Sentry.startSpan` and `Sentry.startSpanManual` create a span and make it active for the duration of the callback. Any spans created while this active span is running will be added as a child span to it. If you want to create a span without making it active, use `Sentry.startInactiveSpan`. This is useful for creating parallel spans that are not related to each other.
 
 ```js
-const span1 = Sentry.startInactiveSpan({ name: 'span1' });
+const span1 = Sentry.startInactiveSpan({ name: "span1" });
 
 someWork();
 
-const span2 = Sentry.startInactiveSpan({ name: 'span2' });
+const span2 = Sentry.startInactiveSpan({ name: "span2" });
 
 moreWork();
 
-const span3 = Sentry.startInactiveSpan({ name: 'span3' });
+const span3 = Sentry.startInactiveSpan({ name: "span3" });
 
 evenMoreWork();
 
@@ -504,7 +649,7 @@ span3?.finish();
 - build(eslint): Enforce that ts-expect-error is used (#8987)
 - feat(integration): Ensure `LinkedErrors` integration runs before all event processors (#8956)
 - feat(node-experimental): Keep breadcrumbs on transaction (#8967)
-- feat(redux): Add 'attachReduxState' option  (#8953)
+- feat(redux): Add 'attachReduxState' option (#8953)
 - feat(remix): Accept `org`, `project` and `url` as args to upload script (#8985)
 - fix(utils): Prevent iterating over VueViewModel (#8981)
 - fix(utils): uuidv4 fix for cloudflare (#8968)
@@ -675,7 +820,7 @@ Sentry.init({
 
 - **feat(node-experimental): Add `@sentry/node-experimental` package as MVP for POTEL (#8609)**
 
-This introduces a new, *experimental* package, `@sentry/node-experimental`.
+This introduces a new, _experimental_ package, `@sentry/node-experimental`.
 This is a variant of the Node SDK which uses OpenTelemetry under the hood for performance instrumentation.
 
 Note that this package is very much WIP, considered unstable and may change at any time.
@@ -704,8 +849,8 @@ You can optionally configure the min. replay duration (defaults to 5s):
 
 ```js
 new Replay({
-  minReplayDuration: 10000 // in ms - note that this is capped at 15s max!
-})
+  minReplayDuration: 10000, // in ms - note that this is capped at 15s max!
+});
 ```
 
 ### Other Changes
@@ -798,7 +943,10 @@ This release adds support for [distributed tracing](https://docs.sentry.io/platf
 
 ```js
 Sentry.init({
-  tracePropagationTargets: ["third-party-site.com", /^https:\/\/yourserver\.io\/api/],
+  tracePropagationTargets: [
+    "third-party-site.com",
+    /^https:\/\/yourserver\.io\/api/,
+  ],
 });
 ```
 
@@ -863,7 +1011,7 @@ Instead of passing `tracePropagationTargets` to the `BrowserTracing` integration
 
 ```js
 Sentry.init({
-  tracePropagationTargets: ['api.site.com'],
+  tracePropagationTargets: ["api.site.com"],
 });
 ```
 
@@ -936,38 +1084,40 @@ Event `ErrorEvent` captured as exception with message `Script error.`
 
   All SDKs now filter out health check transactions by default.
   These are transactions where the transaction name matches typical API health check calls, such as `/^.*healthy.*$/` or `/^.  *heartbeat.*$/`. Take a look at [this list](https://github.com/getsentry/sentry-javascript/blob/8c6ad156829f7c4eec34e4a67e6dd866ba482d5d/packages/core/src/integrations/inboundfilters.ts#L8C2-L16) to learn which regexes we currently use to match transaction names.
-  We believe that these transactions do not provide value in most cases and we want to save you some of your quota by   filtering them out by default.
+  We believe that these transactions do not provide value in most cases and we want to save you some of your quota by filtering them out by default.
   These filters are implemented as default values for the top level `ignoreTransactions` option.
 
-  You can disable this filtering by manually specifiying the `InboundFilters` integration and setting the   `disableTransactionDefaults` option:
+  You can disable this filtering by manually specifiying the `InboundFilters` integration and setting the `disableTransactionDefaults` option:
+
   ```js
   Sentry.init({
     //...
     integrations: [new InboundFilters({ disableTransactionDefaults: true })],
-  })
+  });
   ```
 
 - **feat(replay): Add `mutationBreadcrumbLimit` and `mutationLimit` to Replay Options (#8228)**
 
-  The previously experimental options `mutationBreadcumbLimit` and `mutationLimit` have been promoted to regular Replay   integration options.
+  The previously experimental options `mutationBreadcumbLimit` and `mutationLimit` have been promoted to regular Replay integration options.
 
   A high number of DOM mutations (in a single event loop) can cause performance regressions in end-users' browsers.
   Use `mutationBreadcrumbLimit` to send a breadcrumb along with your recording if the mutation limit was reached.
   Use `mutationLimit` to stop recording if the mutation limit was reached.
 
 - **feat(sveltekit): Add source maps support for Vercel (lambda) (#8256)**
+
   - feat(sveltekit): Auto-detect SvelteKit adapters (#8193)
 
   The SvelteKit SDK can now be used if you deploy your SvelteKit app to Vercel.
   By default, the SDK's Vite plugin will detect the used adapter and adjust the source map uploading config as necessary.
-  If you want to override the default adapter detection, you can specify the `adapter` option in the `sentrySvelteKit`  options:
+  If you want to override the default adapter detection, you can specify the `adapter` option in the `sentrySvelteKit` options:
 
   ```js
   // vite.config.js
   export default defineConfig({
     plugins: [
       sentrySvelteKit({
-        adapter: 'vercel',
+        adapter: "vercel",
       }),
       sveltekit(),
     ],
@@ -1021,7 +1171,6 @@ Event `ErrorEvent` captured as exception with message `Script error.`
 
 - feat(replay): Capture slow clicks (experimental) (#8052)
 
-
 ## 7.52.0
 
 ### Important Next.js SDK changes:
@@ -1067,7 +1216,7 @@ const nextConfig = {
 - feat(replay): Improve click target detection (#8026)
 - fix(node): Make sure we use same ID for checkIns (#8050)
 - fix(replay: Keep session active on key press (#8037)
-- fix(replay): Move error sampling to before send  (#8057)
+- fix(replay): Move error sampling to before send (#8057)
 - fix(sveltekit): Wrap `load` when typed explicitly (#8049)
 
 **Replay `rrweb` changes:**
@@ -1088,8 +1237,8 @@ Work in this release contributed by @sreetamdas. Thank you for your contribution
 
 `@sentry/sveltekit` now auto-wraps `load` functions in
 
-* `+(page|layout).(ts|js)` files (universal loads)
-* `+(page|layout).server.(ts|js)` files (server-only loads)
+- `+(page|layout).(ts|js)` files (universal loads)
+- `+(page|layout).server.(ts|js)` files (server-only loads)
 
 This means that you don't have to manually add the `wrapLoadWithSentry` and `wrapServerLoadWithSentry` functions around your load functions. The SDK will not interfere with already wrapped `load` functions.
 
@@ -1109,12 +1258,12 @@ This release adds [Sentry cron monitoring](https://docs.sentry.io/product/crons/
 Check-in monitoring allows you to track a job's progress by completing two check-ins: one at the start of your job and another at the end of your job. This two-step process allows Sentry to notify you if your job didn't start when expected (missed) or if it exceeded its maximum runtime (failed).
 
 ```ts
-const Sentry = require('@sentry/node');
+const Sentry = require("@sentry/node");
 
 // 🟡 Notify Sentry your job is running:
 const checkInId = Sentry.captureCheckIn({
-  monitorSlug: '<monitor-slug>',
-  status: 'in_progress',
+  monitorSlug: "<monitor-slug>",
+  status: "in_progress",
 });
 
 // Execute your scheduled task here...
@@ -1123,8 +1272,8 @@ const checkInId = Sentry.captureCheckIn({
 Sentry.captureCheckIn({
   // make sure you pass in the checkInId generated by the first call to captureCheckIn
   checkInId,
-  monitorSlug: '<monitor-slug>',
-  status: 'ok',
+  monitorSlug: "<monitor-slug>",
+  status: "ok",
 });
 ```
 
@@ -1134,8 +1283,8 @@ If your job execution fails, you can notify Sentry about the failure:
 // 🔴 Notify Sentry your job has failed:
 Sentry.captureCheckIn({
   checkInId,
-  monitorSlug: '<monitor-slug>',
-  status: 'error',
+  monitorSlug: "<monitor-slug>",
+  status: "error",
 });
 ```
 
@@ -1183,7 +1332,7 @@ You have to define an allowlist of URLs you want to capture additional informati
 
 ```js
 new Replay({
-  networkDetailAllowUrls: ['https://sentry.io/api'],
+  networkDetailAllowUrls: ["https://sentry.io/api"],
 });
 ```
 
@@ -1192,21 +1341,22 @@ You can configure this with some additional configuration:
 
 ```js
 new Replay({
-  networkDetailAllowUrls: ['https://sentry.io/api'],
+  networkDetailAllowUrls: ["https://sentry.io/api"],
   // opt-out of capturing bodies
   networkCaptureBodies: false,
   // These headers are captured _in addition to_ the default headers
-  networkRequestHeaders: ['X-Custom-Header'],
-  networkResponseHeaders: ['X-Custom-Header', 'X-Custom-Header-2']
+  networkRequestHeaders: ["X-Custom-Header"],
+  networkResponseHeaders: ["X-Custom-Header", "X-Custom-Header-2"],
 });
 ```
 
 Note that bodies will be truncated to a max length of ~150k characters.
 
 **- feat(replay): Changes of sampling behavior & public API**
-  - feat(replay): Change the behavior of error-based sampling (#7768)
-  - feat(replay): Change `flush()` API to record current event buffer (#7743)
-  - feat(replay): Change `stop()` to flush and remove current session (#7741)
+
+- feat(replay): Change the behavior of error-based sampling (#7768)
+- feat(replay): Change `flush()` API to record current event buffer (#7743)
+- feat(replay): Change `stop()` to flush and remove current session (#7741)
 
 We have changed the behavior of error-based sampling, as well as adding & adjusting APIs a bit to be more aligned with expectations.
 See [Sampling](./packages/replay/README.md#sampling) for details.
@@ -1219,23 +1369,23 @@ We added a new transport to support multiplexing.
 With this, you can configure Sentry to send events to different DSNs, depending on a logic of your choosing:
 
 ```js
-import { makeMultiplexedTransport } from '@sentry/core';
-import { init, captureException, makeFetchTransport } from '@sentry/browser';
+import { makeMultiplexedTransport } from "@sentry/core";
+import { init, captureException, makeFetchTransport } from "@sentry/browser";
 
 function dsnFromFeature({ getEvent }) {
   const event = getEvent();
-  switch(event?.tags?.feature) {
-    case 'cart':
-      return ['__CART_DSN__'];
-    case 'gallery':
-      return ['__GALLERY_DSN__'];
+  switch (event?.tags?.feature) {
+    case "cart":
+      return ["__CART_DSN__"];
+    case "gallery":
+      return ["__GALLERY_DSN__"];
   }
-  return []
+  return [];
 }
 
 init({
-  dsn: '__FALLBACK_DSN__',
-  transport: makeMultiplexedTransport(makeFetchTransport, dsnFromFeature)
+  dsn: "__FALLBACK_DSN__",
+  transport: makeMultiplexedTransport(makeFetchTransport, dsnFromFeature),
 });
 ```
 
@@ -1309,15 +1459,15 @@ This release switches the SDK to use [`AsyncLocalStorage`](https://nodejs.org/ap
 If you want to manually add async context isolation to your application, you can use the new `runWithAsyncContext` API.
 
 ```js
-import * as Sentry from '@sentry/node';
+import * as Sentry from "@sentry/node";
 
 const requestHandler = (ctx, next) => {
   return new Promise((resolve, reject) => {
     Sentry.runWithAsyncContext(async () => {
       const hub = Sentry.getCurrentHub();
 
-      hub.configureScope(scope =>
-        scope.addEventProcessor(event =>
+      hub.configureScope((scope) =>
+        scope.addEventProcessor((event) =>
           Sentry.addRequestDataToEvent(event, ctx.request, {
             include: {
               user: false,
@@ -1348,8 +1498,8 @@ This release removes our `withSentryViteConfig` wrapper we previously instructed
 
 ```js
 // vite.config.js
-import { sveltekit } from '@sveltejs/kit/vite';
-import { sentrySvelteKit } from '@sentry/sveltekit';
+import { sveltekit } from "@sveltejs/kit/vite";
+import { sentrySvelteKit } from "@sentry/sveltekit";
 
 export default {
   plugins: [sentrySvelteKit(), sveltekit()],
@@ -1417,6 +1567,7 @@ Sentry.captureUserFeedback(userFeedback);
 Note that feedback needs to be coupled to an event but as in the example above, you can just use `Sentry.captureMessage` to generate one.
 
 You could also collect feedback in a custom way if an error happens and use the SDK to send it along:
+
 ```js
 Sentry.init({
   dsn: '__DSN__',
@@ -1451,14 +1602,13 @@ Please take a look at the [Migration docs](./MIGRATION.md/#remove-requirement-fo
 - fix(node): Disable `LocalVariables` integration on Node < v18 (#7748)
 - fix(node): Redact URL authority only in breadcrumbs and spans (#7740)
 - fix(react): Only show report dialog if event was sent to Sentry (#7754)
-- fix(remix): Remove unnecessary dependencies  (#7708)
+- fix(remix): Remove unnecessary dependencies (#7708)
 - fix(replay): Ensure circular references are handled (#7752)
 - fix(sveltekit): Don't capture thrown `Redirect`s as exceptions (#7731)
 - fix(sveltekit): Log error to console by default in `handleErrorWithSentry` (#7674)
 - fix(tracing): Make sure idle transaction does not override other transactions (#7725)
 
 Work in this release contributed by @de-don and @TrySound. Thank you for your contributions!
-
 
 ## 7.46.0
 
@@ -1478,8 +1628,8 @@ You can now easily filter out certain transactions from being sent to Sentry bas
 
 ```ts
 Sentry.init({
-  ignoreTransactions: ['/api/healthcheck', '/ping'],
-})
+  ignoreTransactions: ["/api/healthcheck", "/ping"],
+});
 ```
 
 - **feat(node)**: Undici integration (#7582)
@@ -1491,7 +1641,7 @@ We've added an integration that automatically instruments [Undici](https://githu
 ```ts
 Sentry.init({
   integrations: [new Sentry.Integrations.Undici()],
-})
+});
 ```
 
 In our Next.js and SvelteKit SDKs, this integration is automatically added.
@@ -1501,14 +1651,14 @@ In our Next.js and SvelteKit SDKs, this integration is automatically added.
 We've added a new middleware for [trpc](https://trpc.io/) that automatically adds TRPC information to Sentry transactions. This middleware is meant to be used in combination with a Sentry server integration (Next.js, Express, etc).
 
 ```ts
-import { initTRPC } from '@trpc/server';
-import * as Sentry from '@sentry/node';
+import { initTRPC } from "@trpc/server";
+import * as Sentry from "@sentry/node";
 
 const t = initTRPC.context().create();
 const sentryMiddleware = t.middleware(
   Sentry.Handlers.trpcMiddleware({
     attachRpcInput: true,
-  }),
+  })
 );
 
 const sentrifiedProcedure = t.procedure.use(sentryMiddleware);
@@ -1594,7 +1744,6 @@ This release introduces the first alpha version of `@sentry/sveltekit`, our newe
 - fix(serverless): Explicitly export node package exports (#7457)
 - fix(vue): Do not depend on `window.location` for SSR environments (#7518)
 
-
 **Replay `rrweb` changes:**
 
 `@sentry-internal/rrweb` was updated from 1.105.0 to 1.106.0:
@@ -1615,7 +1764,6 @@ Work in this release contributed by @woochanleee and @baked-dev. Thank you for y
 - fix(nextjs): Don't crash build when auth token is missing
 - fix(node): Revert to dynamic `require` call to fix monkey patching (#7430)
 - fix(types): Fix node types & add E2E test (#7429)
-
 
 ## 7.42.0
 
@@ -1722,7 +1870,7 @@ This release includes changes and fixes around text masking and blocking in Repl
 
 SDK Changes:
 
-- fix(replay): Fix svgs not getting unblocked  (#7132)
+- fix(replay): Fix svgs not getting unblocked (#7132)
 
 ## 7.37.1
 
@@ -2071,7 +2219,7 @@ which is available as an alpha release to integrate OpenTelemetry performance tr
 Give it a try and let us know if you have any feedback or problems with using it. (#6000)
 
 This release also deprecates the `tracingOrigins` option in favor of using `shouldCreateSpanForRequest` and `tracePropagationTargets`.
- See [#6176](https://github.com/getsentry/sentry-javascript/pull/6176) for details.
+See [#6176](https://github.com/getsentry/sentry-javascript/pull/6176) for details.
 
 - feat(node): Allow keepAlive override (#6161)
 - feat(tracing): Add `transaction.setContext` method (#6154)
@@ -2198,7 +2346,7 @@ Work in this release contributed by @outsideris. Thank you for your contribution
 - feat(nextjs): Auto-wrap API routes (#5778)
 - feat(nextjs): Promote option to automatically wrap data fetchers and API routes to non-experimental (#5793)
 - feat(utils): Modern implementation of `getGlobalObject` (#5809)
-- fix(gatsby): Include app-* entrypoints as they may include user source code (#5685)
+- fix(gatsby): Include app-\* entrypoints as they may include user source code (#5685)
 - fix(nextjs): Handle `pathname` being passed in object in `instrumentServer` (#5782)
 - fix(nextjs): Pass request in sampling context of data fetchers wrapper transaction (#5784)
 - fix(nextjs): Reverse order of checks for instrumenting server (#5828)
@@ -2323,7 +2471,7 @@ This release adds the [`tracePropagationTargets`](https://docs.sentry.io/platfor
 - fix(node): Adjust Express URL parameterization for RegEx routes (#5483)
 - fix(node): Check if router exists before it is instrumented (#5502)
 - fix(node): Correctly handle Windows paths when resolving module name (#5476)
-- fix(node): Ensure that self._handler exists before calling it in LinkedErrors (#5497)
+- fix(node): Ensure that self.\_handler exists before calling it in LinkedErrors (#5497)
 - ref(tracing): Simplify sample_rate serialization for DSC (#5475)
 
 ## 7.8.0
@@ -2406,7 +2554,7 @@ Work in this release contributed by @jkcorrea and @nfelger. Thank you for your c
 
 ## 7.4.1
 
-This release includes the first *published* version of `@sentry/remix`.
+This release includes the first _published_ version of `@sentry/remix`.
 
 - build(remix): Make remix package public (#5349)
 
@@ -2525,7 +2673,7 @@ If you are a regular consumer of the Sentry JavaScript SDK you only need to focu
 - Removed support for [Node v6](./MIGRATION.md#dropping-support-for-nodejs-v6). (#4851)
 - Removed `@sentry/minimal` package in favour of using [`@sentry/hub`](./MIGRATION.md#removal-of-sentryminimal). (#4971)
 - Removed support for Opera browser pre v15 (#4923)
-- Removed `ignoreSentryErrors` option from AWS lambda SDK. Errors originating from the SDK will now *always* be caught internally. (#4994)
+- Removed `ignoreSentryErrors` option from AWS lambda SDK. Errors originating from the SDK will now _always_ be caught internally. (#4994)
 - Removed `Integrations.BrowserTracing` export from `@sentry/nextjs`. Please import `BrowserTracing` from `@sentry/nextjs` directly.
 - Removed static `id` property from `BrowserTracing` integration.
 - Removed `SDK_NAME` export from `@sentry/browser`, `@sentry/node`, `@sentry/tracing` and `@sentry/vue` packages. (#5040)
@@ -2625,7 +2773,7 @@ Work in this release contributed by @MikevPeeren. Thank you for your contributio
 - feat(browser): Add new v7 Fetch Transport (#4765)
 - feat(browser): Add new v7 XHR Transport (#4803)
 - fix(core): Use correct version of event when tagging normalization (#4780)
-- fix(core): Stop mangling _experiments (#4807)
+- fix(core): Stop mangling \_experiments (#4807)
 - feat(node): Add new v7 http/s Transports (#4781)
 
 ## 6.19.2
@@ -2685,7 +2833,7 @@ Work in this release contributed by @Ignigena. Thank you for your contribution!
 
 ## 6.18.1
 
-- fix(ember): use _backburner if it exists (#4603)
+- fix(ember): use \_backburner if it exists (#4603)
 - feat(gatsby): Upgrade Sentry Webpack Plugin to 1.18.8 (#4636)
 - feat(nextjs): Upgrade Sentry Webpack Plugin to 1.18.8 (#4643)
 - fix(nextjs): webpack as optional peer-dependency (#4634)
@@ -2787,7 +2935,7 @@ This release contains several internal refactors that help reduce the bundle siz
 - feat(core): Add processing metadata to scope and event (#4252)
 - feat(core): Deprecate API class (#4281)
 - feat(ember): Update ember dependencies (#4253)
-- fix(nextjs): Inject sentry.x.config.js into pages/_error (#4397)
+- fix(nextjs): Inject sentry.x.config.js into pages/\_error (#4397)
 - fix(nextjs): Add sentry-cli existence check for enabling webpack plugin #4311
 - ref(tracing): deprecate span status enum (#4299)
 - ref(tracing): Remove script evaluation span (#4433)
@@ -2814,7 +2962,7 @@ Work in this release contributed by @KATT. Thank you for your contribution!
 - feat(angular): Add Angular 13 to peer dep (#4183)
 - fix(angular): Finish routing span before starting another one (#4191)
 - fix(angular): Use ui category for span operations (#4222)
-- feat(ember): Use @types/ember__debug (#4173)
+- feat(ember): Use @types/ember\_\_debug (#4173)
 - fix(ember): Use ui category for span operations (#4221)
 - feat(eslint-config): Enable array-callback-return rule (#4229)
 - ref(eslint-config): Update spaced-comment rule (#4235)
@@ -2925,7 +3073,7 @@ Work in this release contributed by @tmilar, @deammer, and @freekii. Thank you f
 - fix(vue): Attach props only if VM is available (#3902)
 - feat(tracing): Add pg-native support to Postgres integration. (#3894)
 - ref(ember): Update addon to support Ember 4.0.0 (beta) (#3915)
-- feat(react): Make Profiler _mountSpan attribute protected (#3904)
+- feat(react): Make Profiler \_mountSpan attribute protected (#3904)
 - fix(ember): allow ember-beta to fail (#3910)
 - fix(tracing): Prevent metrics erroring module load in web workers (#3941)
 - misc(browser): Log when event is dropped by Dedupe integration (#3943)
@@ -4256,8 +4404,8 @@ Here are some examples of how the new SDKs work. Please note that the API for al
 _Old_:
 
 ```js
-Raven.config('___PUBLIC_DSN___', {
-  release: '1.3.0',
+Raven.config("___PUBLIC_DSN___", {
+  release: "1.3.0",
 }).install();
 ```
 
@@ -4265,8 +4413,8 @@ _New_:
 
 ```js
 Sentry.init({
-  dsn: '___PUBLIC_DSN___',
-  release: '1.3.0',
+  dsn: "___PUBLIC_DSN___",
+  release: "1.3.0",
 });
 ```
 
@@ -4275,14 +4423,14 @@ Sentry.init({
 _Old_:
 
 ```js
-Raven.setTagsContext({ key: 'value' });
+Raven.setTagsContext({ key: "value" });
 ```
 
 _New_:
 
 ```js
 Sentry.configureScope((scope) => {
-  scope.setTag('key', 'value');
+  scope.setTag("key", "value");
 });
 ```
 
@@ -4305,7 +4453,7 @@ try {
   throwingFunction();
 } catch (e) {
   Sentry.withScope((scope) => {
-    scope.setExtra('debug', false);
+    scope.setExtra("debug", false);
     Sentry.captureException(e);
   });
 }
@@ -4316,15 +4464,15 @@ try {
 _Old_:
 
 ```js
-Raven.captureMessage('test', 'info', { extra: { debug: false } });
+Raven.captureMessage("test", "info", { extra: { debug: false } });
 ```
 
 _New_:
 
 ```js
 Sentry.withScope((scope) => {
-  scope.setExtra('debug', false);
-  Sentry.captureMessage('test', 'info');
+  scope.setExtra("debug", false);
+  Sentry.captureMessage("test", "info");
 });
 ```
 
@@ -4334,11 +4482,11 @@ _Old_:
 
 ```js
 Raven.captureBreadcrumb({
-  message: 'Item added to shopping cart',
-  category: 'action',
+  message: "Item added to shopping cart",
+  category: "action",
   data: {
-    isbn: '978-1617290541',
-    cartSize: '3',
+    isbn: "978-1617290541",
+    cartSize: "3",
   },
 });
 ```
@@ -4347,11 +4495,11 @@ _New_:
 
 ```js
 Sentry.addBreadcrumb({
-  message: 'Item added to shopping cart',
-  category: 'action',
+  message: "Item added to shopping cart",
+  category: "action",
   data: {
-    isbn: '978-1617290541',
-    cartSize: '3',
+    isbn: "978-1617290541",
+    cartSize: "3",
   },
 });
 ```

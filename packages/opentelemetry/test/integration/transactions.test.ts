@@ -1,4 +1,4 @@
-import { context, trace, TraceFlags } from '@opentelemetry/api';
+import { TraceFlags, context, trace } from '@opentelemetry/api';
 import type { SpanProcessor } from '@opentelemetry/sdk-trace-base';
 import { addBreadcrumb, setTag } from '@sentry/core';
 import type { PropagationContext, TransactionEvent } from '@sentry/types';
@@ -8,8 +8,8 @@ import { getCurrentHub } from '../../src/custom/hub';
 import { SentrySpanProcessor } from '../../src/spanProcessor';
 import { startInactiveSpan, startSpan } from '../../src/trace';
 import { setPropagationContextOnContext } from '../../src/utils/contextData';
-import { cleanupOtel, getProvider, mockSdkInit } from '../helpers/mockSdkInit';
 import type { TestClientInterface } from '../helpers/TestClient';
+import { cleanupOtel, getProvider, mockSdkInit } from '../helpers/mockSdkInit';
 
 describe('Integration | Transactions', () => {
   afterEach(() => {

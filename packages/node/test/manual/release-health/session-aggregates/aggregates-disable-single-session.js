@@ -65,7 +65,7 @@ Sentry.init({
 app.use(Sentry.Handlers.requestHandler());
 
 // Hack that resets the 60s default flush interval, and replaces it with just a one second interval
-const flusher = Sentry.getCurrentHub().getClient()._sessionFlusher;
+const flusher = Sentry.getClient()._sessionFlusher;
 clearInterval(flusher._intervalId);
 flusher._intervalId = setInterval(() => flusher.flush(), 1000);
 

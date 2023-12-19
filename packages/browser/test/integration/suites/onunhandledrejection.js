@@ -40,7 +40,7 @@ describe('window.onunhandledrejection', function () {
               // all we're testing is that it gets dug out correctly
               reason: new Error('test2'),
             },
-          })
+          }),
         );
       } else {
         window.resolveTest({ window: window });
@@ -77,7 +77,7 @@ describe('window.onunhandledrejection', function () {
         // non-error rejections don't provide stacktraces so we can skip that assertion
         assert.equal(
           summary.events[0].exception.values[0].value,
-          'Event `Event` (type=unhandledrejection) captured as promise rejection'
+          'Event `Event` (type=unhandledrejection) captured as promise rejection',
         );
         assert.equal(summary.events[0].exception.values[0].type, 'Event');
         assert.equal(summary.events[0].exception.values[0].mechanism.handled, false);
@@ -101,7 +101,7 @@ describe('window.onunhandledrejection', function () {
         // non-error rejections don't provide stacktraces so we can skip that assertion
         assert.equal(
           summary.events[0].exception.values[0].value,
-          'Non-Error promise rejection captured with value: test'
+          'Non-Error promise rejection captured with value: test',
         );
         assert.equal(summary.events[0].exception.values[0].type, 'UnhandledRejection');
         assert.equal(summary.events[0].exception.values[0].mechanism.handled, false);
@@ -123,7 +123,7 @@ describe('window.onunhandledrejection', function () {
         assert.equal(summary.events[0].exception.values[0].value.length, 253);
         assert.include(
           summary.events[0].exception.values[0].value,
-          'Non-Error promise rejection captured with value: '
+          'Non-Error promise rejection captured with value: ',
         );
         assert.equal(summary.events[0].exception.values[0].type, 'UnhandledRejection');
         assert.equal(summary.events[0].exception.values[0].mechanism.handled, false);
@@ -144,7 +144,7 @@ describe('window.onunhandledrejection', function () {
         // non-error rejections don't provide stacktraces so we can skip that assertion
         assert.equal(
           summary.events[0].exception.values[0].value,
-          'Object captured as promise rejection with keys: a, b, c'
+          'Object captured as promise rejection with keys: a, b, c',
         );
         assert.equal(summary.events[0].exception.values[0].type, 'UnhandledRejection');
         assert.equal(summary.events[0].exception.values[0].mechanism.handled, false);
@@ -172,7 +172,7 @@ describe('window.onunhandledrejection', function () {
         // non-error rejections don't provide stacktraces so we can skip that assertion
         assert.equal(
           summary.events[0].exception.values[0].value,
-          'Object captured as promise rejection with keys: a, b, c, d, e'
+          'Object captured as promise rejection with keys: a, b, c, d, e',
         );
         assert.equal(summary.events[0].exception.values[0].type, 'UnhandledRejection');
         assert.equal(summary.events[0].exception.values[0].mechanism.handled, false);
@@ -193,7 +193,7 @@ describe('window.onunhandledrejection', function () {
         // non-error rejections don't provide stacktraces so we can skip that assertion
         assert.equal(
           summary.events[0].exception.values[0].value,
-          'Non-Error promise rejection captured with value: 1337'
+          'Non-Error promise rejection captured with value: 1337',
         );
         assert.equal(summary.events[0].exception.values[0].type, 'UnhandledRejection');
         assert.equal(summary.events[0].exception.values[0].mechanism.handled, false);
@@ -214,7 +214,7 @@ describe('window.onunhandledrejection', function () {
         // non-error rejections don't provide stacktraces so we can skip that assertion
         assert.equal(
           summary.events[0].exception.values[0].value,
-          'Non-Error promise rejection captured with value: null'
+          'Non-Error promise rejection captured with value: null',
         );
         assert.equal(summary.events[0].exception.values[0].type, 'UnhandledRejection');
         assert.equal(summary.events[0].exception.values[0].mechanism.handled, false);
@@ -235,31 +235,11 @@ describe('window.onunhandledrejection', function () {
         // non-error rejections don't provide stacktraces so we can skip that assertion
         assert.equal(
           summary.events[0].exception.values[0].value,
-          'Non-Error promise rejection captured with value: undefined'
+          'Non-Error promise rejection captured with value: undefined',
         );
         assert.equal(summary.events[0].exception.values[0].type, 'UnhandledRejection');
         assert.equal(summary.events[0].exception.values[0].mechanism.handled, false);
         assert.equal(summary.events[0].exception.values[0].mechanism.type, 'onunhandledrejection');
-      }
-    });
-  });
-
-  it('should skip our own failed requests that somehow bubbled-up to unhandledrejection handler', function () {
-    return runInSandbox(sandbox, function () {
-      if (supportsOnunhandledRejection()) {
-        Promise.reject({
-          __sentry_own_request__: true,
-        });
-        Promise.reject({
-          __sentry_own_request__: false,
-        });
-        Promise.reject({});
-      } else {
-        window.resolveTest({ window: window });
-      }
-    }).then(function (summary) {
-      if (summary.window.supportsOnunhandledRejection()) {
-        assert.equal(summary.events.length, 2);
       }
     });
   });

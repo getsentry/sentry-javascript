@@ -1,19 +1,38 @@
+import type { Context } from '@opentelemetry/api';
 import { SpanKind } from '@opentelemetry/api';
 import type { Span } from '@opentelemetry/sdk-trace-base';
 import { SemanticAttributes } from '@opentelemetry/semantic-conventions';
-import { getCurrentHub, SentrySpanProcessor } from '@sentry/opentelemetry';
+import { SentrySpanProcessor, getClient, getSpanFinishScope } from '@sentry/opentelemetry';
 
 import { Http } from '../integrations/http';
 import { NodeFetch } from '../integrations/node-fetch';
 import type { NodeExperimentalClient } from '../types';
+import { getIsolationScope } from './api';
+import { Scope } from './scope';
 
 /**
  * Implement custom code to avoid sending spans in certain cases.
  */
 export class NodeExperimentalSentrySpanProcessor extends SentrySpanProcessor {
+  public constructor() {
+    super({ scopeClass: Scope });
+  }
+
+  /** @inheritDoc */
+  public onStart(span: Span, parentContext: Context): void {
+    super.onStart(span, parentContext);
+
+    // We need to make sure that we use the correct isolation scope when finishing the span
+    // so we store it on the span finish scope for later use
+    const scope = getSpanFinishScope(span) as Scope | undefined;
+    if (scope) {
+      scope.isolationScope = getIsolationScope();
+    }
+  }
+
   /** @inheritDoc */
   protected _shouldSendSpanToSentry(span: Span): boolean {
-    const client = getCurrentHub().getClient<NodeExperimentalClient>();
+    const client = getClient<NodeExperimentalClient>();
     const httpIntegration = client ? client.getIntegration(Http) : undefined;
     const fetchIntegration = client ? client.getIntegration(NodeFetch) : undefined;
 

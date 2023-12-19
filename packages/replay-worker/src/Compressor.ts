@@ -1,4 +1,4 @@
-import { compressSync, EncodeUTF8, strToU8, Zlib } from 'fflate';
+import { EncodeUTF8, Zlib, compressSync, strToU8 } from 'fflate';
 
 /**
  * A stateful compressor that can be used to batch compress events.

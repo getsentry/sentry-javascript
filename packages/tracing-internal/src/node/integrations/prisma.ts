@@ -2,6 +2,7 @@ import { getCurrentHub, trace } from '@sentry/core';
 import type { Integration } from '@sentry/types';
 import { addNonEnumerableProperty, logger } from '@sentry/utils';
 
+import { DEBUG_BUILD } from '../../common/debug-build';
 import { shouldDisableAutoInstrumentation } from './utils/node-utils';
 
 type PrismaAction =
@@ -109,7 +110,7 @@ export class Prisma implements Integration {
         );
       });
     } else {
-      __DEBUG_BUILD__ &&
+      DEBUG_BUILD &&
         logger.warn('Unsupported Prisma client provided to PrismaIntegration. Provided client:', options.client);
     }
   }

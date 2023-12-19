@@ -1,6 +1,6 @@
 {
   "name": "@sentry-internal/node-integration-tests",
-  "version": "7.81.1",
+  "version": "7.88.0",
   "license": "MIT",
   "engines": {
     "node": ">=10"
@@ -10,12 +10,8 @@
     "clean": "rimraf -g **/node_modules",
     "prisma:init": "(cd suites/tracing/prisma-orm && ts-node ./setup.ts)",
     "prisma:init:new": "(cd suites/tracing-new/prisma-orm && ts-node ./setup.ts)",
-    "lint": "run-s lint:prettier lint:eslint",
-    "lint:eslint": "eslint . --format stylish",
-    "lint:prettier": "prettier --check \"{suites,utils}/**/*.ts\"",
-    "fix": "run-s fix:eslint fix:prettier",
-    "fix:eslint": "eslint . --format stylish --fix",
-    "fix:prettier": "prettier --write \"{suites,utils}/**/*.ts\"",
+    "lint": "eslint . --format stylish",
+    "fix": "eslint . --format stylish --fix",
     "type-check": "tsc",
     "pretest": "run-s --silent prisma:init prisma:init:new",
     "test": "ts-node ./utils/run-tests.ts",

@@ -2,7 +2,7 @@ import { Component } from '@angular/core';
 import type { ActivatedRouteSnapshot, CanActivate, RouterStateSnapshot } from '@angular/router';
 import type { Hub } from '@sentry/types';
 
-import { instrumentAngularRouting, TraceClassDecorator, TraceDirective, TraceMethodDecorator } from '../src';
+import { TraceClassDecorator, TraceDirective, TraceMethodDecorator, instrumentAngularRouting } from '../src';
 import { getParameterizedRouteFromSnapshot } from '../src/tracing';
 import { AppComponent, TestEnv } from './utils/index';
 
@@ -21,16 +21,12 @@ jest.mock('@sentry/browser', () => {
   const original = jest.requireActual('@sentry/browser');
   return {
     ...original,
-    getCurrentHub: () => {
+    getCurrentScope() {
       return {
-        getScope: () => {
-          return {
-            getTransaction: () => {
-              return transaction;
-            },
-          };
+        getTransaction: () => {
+          return transaction;
         },
-      } as unknown as Hub;
+      };
     },
   };
 });

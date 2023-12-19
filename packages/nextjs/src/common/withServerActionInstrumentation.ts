@@ -1,7 +1,16 @@
-import { addTracingExtensions, captureException, flush, getCurrentHub, runWithAsyncContext, trace } from '@sentry/core';
-import { addExceptionMechanism, logger, tracingContextFromHeaders } from '@sentry/utils';
+import {
+  addTracingExtensions,
+  captureException,
+  getClient,
+  getCurrentScope,
+  runWithAsyncContext,
+  trace,
+} from '@sentry/core';
+import { logger, tracingContextFromHeaders } from '@sentry/utils';
 
+import { DEBUG_BUILD } from './debug-build';
 import { platformSupportsStreaming } from './utils/platformSupportsStreaming';
+import { flushQueue } from './utils/responseEnd';
 
 interface Options {
   formData?: FormData;
@@ -47,8 +56,7 @@ async function withServerActionInstrumentationImplementation<A extends (...args:
 ): Promise<ReturnType<A>> {
   addTracingExtensions();
   return runWithAsyncContext(async () => {
-    const hub = getCurrentHub();
-    const sendDefaultPii = hub.getClient()?.getOptions().sendDefaultPii;
+    const sendDefaultPii = getClient()?.getOptions().sendDefaultPii;
 
     let sentryTraceHeader;
     let baggageHeader;
@@ -60,13 +68,13 @@ async function withServerActionInstrumentationImplementation<A extends (...args:
         fullHeadersObject[key] = value;
       });
     } catch (e) {
-      __DEBUG_BUILD__ &&
+      DEBUG_BUILD &&
         logger.warn(
           "Sentry wasn't able to extract the tracing headers for a server action. Will not trace this request.",
         );
     }
 
-    const currentScope = hub.getScope();
+    const currentScope = getCurrentScope();
     const { traceparentData, dynamicSamplingContext, propagationContext } = tracingContextFromHeaders(
       sentryTraceHeader,
       baggageHeader,
@@ -111,26 +119,17 @@ async function withServerActionInstrumentationImplementation<A extends (...args:
           return result;
         },
         error => {
-          captureException(error, scope => {
-            scope.addEventProcessor(event => {
-              addExceptionMechanism(event, {
-                handled: false,
-              });
-              return event;
-            });
-
-            return scope;
-          });
+          captureException(error, { mechanism: { handled: false } });
         },
       );
     } finally {
       if (!platformSupportsStreaming()) {
         // Lambdas require manual flushing to prevent execution freeze before the event is sent
-        await flush(1000);
+        await flushQueue();
       }
 
       if (process.env.NEXT_RUNTIME === 'edge') {
-        void flush();
+        void flushQueue();
       }
     }
 

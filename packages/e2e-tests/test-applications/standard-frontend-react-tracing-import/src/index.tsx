@@ -1,15 +1,15 @@
-import React from 'react';
-import ReactDOM from 'react-dom/client';
 import * as Sentry from '@sentry/react';
 import { BrowserTracing } from '@sentry/tracing';
+import React from 'react';
+import ReactDOM from 'react-dom/client';
 import {
-  Routes,
   BrowserRouter,
-  useLocation,
-  useNavigationType,
+  Route,
+  Routes,
   createRoutesFromChildren,
   matchRoutes,
-  Route,
+  useLocation,
+  useNavigationType,
 } from 'react-router-dom';
 import Index from './pages/Index';
 import User from './pages/User';
@@ -34,7 +34,7 @@ Sentry.init({
   release: 'e2e-test',
 });
 
-Sentry.addGlobalEventProcessor(event => {
+Sentry.addEventProcessor(event => {
   if (
     event.type === 'transaction' &&
     (event.contexts?.trace?.op === 'pageload' || event.contexts?.trace?.op === 'navigation')

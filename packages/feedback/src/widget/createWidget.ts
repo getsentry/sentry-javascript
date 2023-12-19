@@ -1,4 +1,4 @@
-import { getCurrentHub } from '@sentry/core';
+import { getCurrentScope } from '@sentry/core';
 import { logger } from '@sentry/utils';
 
 import type { FeedbackFormData, FeedbackInternalOptions, FeedbackWidget } from '../types';
@@ -153,14 +153,14 @@ export function createWidget({
       if (dialog) {
         dialog.open();
         isDialogOpen = true;
-        if (options.onDialogOpen) {
-          options.onDialogOpen();
+        if (options.onFormOpen) {
+          options.onFormOpen();
         }
         return;
       }
 
       const userKey = options.useSentryUser;
-      const scope = getCurrentHub().getScope();
+      const scope = getCurrentScope();
       const user = scope && scope.getUser();
 
       dialog = Dialog({
@@ -185,8 +185,8 @@ export function createWidget({
           showActor();
           isDialogOpen = false;
 
-          if (options.onDialogClose) {
-            options.onDialogClose();
+          if (options.onFormClose) {
+            options.onFormClose();
           }
         },
         onCancel: () => {
@@ -205,8 +205,8 @@ export function createWidget({
       // Hides the default actor whenever dialog is opened
       hideActor();
 
-      if (options.onDialogOpen) {
-        options.onDialogOpen();
+      if (options.onFormOpen) {
+        options.onFormOpen();
       }
     } catch (err) {
       // TODO: Error handling?
@@ -222,8 +222,8 @@ export function createWidget({
       dialog.close();
       isDialogOpen = false;
 
-      if (options.onDialogClose) {
-        options.onDialogClose();
+      if (options.onFormClose) {
+        options.onFormClose();
       }
     }
   }
@@ -251,10 +251,6 @@ export function createWidget({
 
     // Hide actor button
     hideActor();
-
-    if (options.onActorClick) {
-      options.onActorClick();
-    }
   }
 
   if (attachTo) {

@@ -18,6 +18,7 @@ import { createOptionsEvent } from '../../src/util/handleRecordingEmit';
 import { BASE_TIMESTAMP } from '../index';
 import type { RecordMock } from '../mocks/mockRrweb';
 import { resetSdkMock } from '../mocks/resetSdkMock';
+import type { DomHandler } from '../types';
 import { getTestEventCheckout, getTestEventIncremental } from '../utils/getTestEvent';
 import { useFakeTimers } from '../utils/use-fake-timers';
 
@@ -32,7 +33,7 @@ const prevLocation = WINDOW.location;
 
 describe('Integration | session', () => {
   let replay: ReplayContainer;
-  let domHandler: (args: any) => any;
+  let domHandler: DomHandler;
   let mockRecord: RecordMock;
 
   beforeEach(async () => {
@@ -185,6 +186,7 @@ describe('Integration | session', () => {
     // Now do a click which will create a new session and start recording again
     domHandler({
       name: 'click',
+      event: new Event('click'),
     });
 
     const optionsEvent = createOptionsEvent(replay);
@@ -294,6 +296,7 @@ describe('Integration | session', () => {
     // Now do a click which will create a new session and start recording again
     domHandler({
       name: 'click',
+      event: new Event('click'),
     });
 
     // Should be same session
@@ -367,6 +370,7 @@ describe('Integration | session', () => {
     // Now do a click
     domHandler({
       name: 'click',
+      event: new Event('click'),
     });
 
     // 20 is for the process.nextTick

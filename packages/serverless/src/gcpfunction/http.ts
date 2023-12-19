@@ -1,7 +1,9 @@
 import type { AddRequestDataToEventOptions } from '@sentry/node';
+import { getCurrentScope } from '@sentry/node';
 import { captureException, flush, getCurrentHub } from '@sentry/node';
 import { isString, isThenable, logger, stripUrlQueryAndFragment, tracingContextFromHeaders } from '@sentry/utils';
 
+import { DEBUG_BUILD } from '../debug-build';
 import { domainify, markEventUnhandled, proxyFunction } from './../utils';
 import type { HttpFunction, WrapperOptions } from './general';
 
@@ -62,6 +64,7 @@ function _wrapHttpFunction(fn: HttpFunction, wrapOptions: Partial<HttpFunctionWr
   };
   return (req, res) => {
     const hub = getCurrentHub();
+    const scope = getCurrentScope();
 
     const reqMethod = (req.method || '').toUpperCase();
     const reqUrl = stripUrlQueryAndFragment(req.originalUrl || req.url || '');
@@ -72,7 +75,7 @@ function _wrapHttpFunction(fn: HttpFunction, wrapOptions: Partial<HttpFunctionWr
       sentryTrace,
       baggage,
     );
-    hub.getScope().setPropagationContext(propagationContext);
+    scope.setPropagationContext(propagationContext);
 
     const transaction = hub.startTransaction({
       name: `${reqMethod} ${reqUrl}`,
@@ -88,14 +91,12 @@ function _wrapHttpFunction(fn: HttpFunction, wrapOptions: Partial<HttpFunctionWr
     // getCurrentHub() is expected to use current active domain as a carrier
     // since functions-framework creates a domain for each incoming request.
     // So adding of event processors every time should not lead to memory bloat.
-    hub.configureScope(scope => {
-      scope.setSDKProcessingMetadata({
-        request: req,
-        requestDataOptionsFromGCPWrapper: options.addRequestDataToEventOptions,
-      });
-      // We put the transaction on the scope so users can attach children to it
-      scope.setSpan(transaction);
+    scope.setSDKProcessingMetadata({
+      request: req,
+      requestDataOptionsFromGCPWrapper: options.addRequestDataToEventOptions,
     });
+    // We put the transaction on the scope so users can attach children to it
+    scope.setSpan(transaction);
 
     // We also set __sentry_transaction on the response so people can grab the transaction there to add
     // spans to it later.
@@ -111,7 +112,7 @@ function _wrapHttpFunction(fn: HttpFunction, wrapOptions: Partial<HttpFunctionWr
 
       void flush(options.flushTimeout)
         .then(null, e => {
-          __DEBUG_BUILD__ && logger.error(e);
+          DEBUG_BUILD && logger.error(e);
         })
         .then(() => {
           _end.call(this, chunk, encoding, cb);

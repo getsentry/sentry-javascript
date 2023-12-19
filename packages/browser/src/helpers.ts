@@ -1,11 +1,11 @@
 import { captureException, withScope } from '@sentry/core';
-import type { DsnLike, Event as SentryEvent, Mechanism, Scope, WrappedFunction } from '@sentry/types';
+import type { DsnLike, Mechanism, WrappedFunction } from '@sentry/types';
 import {
+  GLOBAL_OBJ,
   addExceptionMechanism,
   addExceptionTypeValue,
   addNonEnumerableProperty,
   getOriginalFunction,
-  GLOBAL_OBJ,
   markFunctionWrapped,
 } from '@sentry/utils';
 
@@ -99,8 +99,8 @@ export function wrap(
     } catch (ex) {
       ignoreNextOnError();
 
-      withScope((scope: Scope) => {
-        scope.addEventProcessor((event: SentryEvent) => {
+      withScope(scope => {
+        scope.addEventProcessor(event => {
           if (options.mechanism) {
             addExceptionTypeValue(event, undefined, undefined);
             addExceptionMechanism(event, options.mechanism);
@@ -180,4 +180,6 @@ export interface ReportDialogOptions {
   successMessage?: string;
   /** Callback after reportDialog showed up */
   onLoad?(this: void): void;
+  /** Callback after reportDialog closed */
+  onClose?(this: void): void;
 }

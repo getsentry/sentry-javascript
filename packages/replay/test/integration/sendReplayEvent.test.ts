@@ -8,6 +8,7 @@ import { clearSession } from '../../src/session/clearSession';
 import { addEvent } from '../../src/util/addEvent';
 import * as SendReplayRequest from '../../src/util/sendReplayRequest';
 import { BASE_TIMESTAMP, mockRrweb, mockSdk } from '../index';
+import type { DomHandler } from '../types';
 import { getTestEventCheckout, getTestEventIncremental } from '../utils/getTestEvent';
 import { useFakeTimers } from '../utils/use-fake-timers';
 
@@ -24,15 +25,13 @@ describe('Integration | sendReplayEvent', () => {
   let replay: ReplayContainer;
   let mockTransportSend: MockTransportSend;
   let mockSendReplayRequest: jest.SpyInstance<any>;
-  let domHandler: (args: any) => any;
+  let domHandler: DomHandler;
   const { record: mockRecord } = mockRrweb();
 
   beforeAll(async () => {
     jest.setSystemTime(new Date(BASE_TIMESTAMP));
-    jest.spyOn(SentryUtils, 'addInstrumentationHandler').mockImplementation((type, handler: (args: any) => any) => {
-      if (type === 'dom') {
-        domHandler = handler;
-      }
+    jest.spyOn(SentryUtils, 'addClickKeypressInstrumentationHandler').mockImplementation(handler => {
+      domHandler = handler;
     });
 
     ({ replay } = await mockSdk({
@@ -115,6 +114,7 @@ describe('Integration | sendReplayEvent', () => {
 
     domHandler({
       name: 'click',
+      event: new Event('click'),
     });
 
     expect(replay.session?.lastActivity).toBe(BASE_TIMESTAMP);
@@ -125,6 +125,7 @@ describe('Integration | sendReplayEvent', () => {
 
     domHandler({
       name: 'click',
+      event: new Event('click'),
     });
 
     expect(replay.session?.lastActivity).toBe(BASE_TIMESTAMP + ELAPSED);
@@ -135,6 +136,7 @@ describe('Integration | sendReplayEvent', () => {
 
     domHandler({
       name: 'input',
+      event: new Event('keypress'),
     });
 
     expect(replay.session?.lastActivity).toBe(BASE_TIMESTAMP);
@@ -145,6 +147,7 @@ describe('Integration | sendReplayEvent', () => {
 
     domHandler({
       name: 'input',
+      event: new Event('keypress'),
     });
 
     expect(replay.session?.lastActivity).toBe(BASE_TIMESTAMP + ELAPSED);
@@ -273,6 +276,7 @@ describe('Integration | sendReplayEvent', () => {
   it('uploads a dom breadcrumb 5 seconds after listener receives an event', async () => {
     domHandler({
       name: 'click',
+      event: new Event('click'),
     });
 
     // Pretend 5 seconds have passed

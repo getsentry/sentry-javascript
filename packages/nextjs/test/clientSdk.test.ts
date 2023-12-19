@@ -6,7 +6,7 @@ import type { UserIntegrationsFunction } from '@sentry/utils';
 import { logger } from '@sentry/utils';
 import { JSDOM } from 'jsdom';
 
-import { init, Integrations, nextRouterInstrumentation } from '../src/client';
+import { Integrations, init, nextRouterInstrumentation } from '../src/client';
 
 const reactInit = jest.spyOn(SentryReact, 'init');
 const captureEvent = jest.spyOn(BaseClient.prototype, 'captureEvent');

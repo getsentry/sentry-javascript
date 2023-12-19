@@ -1,5 +1,5 @@
 import type { Event, EventProcessor, Integration, StackFrame } from '@sentry/types';
-import { addContextToFrame, LRUMap } from '@sentry/utils';
+import { LRUMap, addContextToFrame } from '@sentry/utils';
 
 const FILE_CONTENT_CACHE = new LRUMap<string, string | null>(100);
 const DEFAULT_LINES_OF_CONTEXT = 7;
@@ -67,8 +67,13 @@ export class ContextLines implements Integration {
   /**
    * @inheritDoc
    */
-  public setupOnce(addGlobalEventProcessor: (callback: EventProcessor) => void): void {
-    addGlobalEventProcessor(event => this.addSourceContext(event));
+  public setupOnce(_addGlobalEventProcessor: (callback: EventProcessor) => void): void {
+    // noop
+  }
+
+  /** @inheritDoc */
+  public processEvent(event: Event): Promise<Event> {
+    return this.addSourceContext(event);
   }
 
   /** Processes an event and adds context lines */

@@ -1,6 +1,6 @@
+import { TextEncoder } from 'util';
 import type { EventEnvelope, EventItem } from '@sentry/types';
 import { createEnvelope, serializeEnvelope } from '@sentry/utils';
-import { TextEncoder } from 'util';
 
 import { makeFetchTransport } from '../../../src/transports/fetch';
 import type { BrowserTransportOptions } from '../../../src/transports/types';

@@ -2,9 +2,9 @@ import type { ClientOptions, EventProcessor } from '@sentry/types';
 import type { LRUMap } from '@sentry/utils';
 import type { Debugger, InspectorNotification } from 'inspector';
 
-import { defaultStackParser } from '../../src';
+import { NodeClient, defaultStackParser } from '../../src';
 import type { DebugSession, FrameVariables } from '../../src/integrations/localvariables';
-import { createCallbackList, createRateLimiter, LocalVariables } from '../../src/integrations/localvariables';
+import { LocalVariables, createCallbackList, createRateLimiter } from '../../src/integrations/localvariables';
 import { NODE_VERSION } from '../../src/nodeVersion';
 import { getDefaultNodeClientOptions } from '../../test/helper/node-client-options';
 
@@ -52,7 +52,6 @@ class MockDebugSession implements DebugSession {
 
 interface LocalVariablesPrivate {
   _cachedFrames: LRUMap<string, FrameVariables[]>;
-  _setup(addGlobalEventProcessor: (callback: EventProcessor) => void, clientOptions: ClientOptions): void;
 }
 
 const exceptionEvent = {
@@ -154,8 +153,6 @@ const exceptionEvent100Frames = {
 
 describeIf((NODE_VERSION.major || 0) >= 18)('LocalVariables', () => {
   it('Adds local variables to stack frames', async () => {
-    expect.assertions(7);
-
     const session = new MockDebugSession({
       '-6224981551105448869.1.2': { name: 'tim' },
       '-6224981551105448869.1.6': { arr: [1, 2, 3] },
@@ -164,13 +161,14 @@ describeIf((NODE_VERSION.major || 0) >= 18)('LocalVariables', () => {
     const options = getDefaultNodeClientOptions({
       stackParser: defaultStackParser,
       includeLocalVariables: true,
+      integrations: [localVariables],
     });
 
-    let eventProcessor: EventProcessor | undefined;
+    const client = new NodeClient(options);
+    client.setupIntegrations(true);
 
-    (localVariables as unknown as LocalVariablesPrivate)._setup(callback => {
-      eventProcessor = callback;
-    }, options);
+    const eventProcessors = client['_eventProcessors'];
+    const eventProcessor = eventProcessors.find(processor => processor.id === 'LocalVariables');
 
     expect(eventProcessor).toBeDefined();
 
@@ -189,7 +187,7 @@ describeIf((NODE_VERSION.major || 0) >= 18)('LocalVariables', () => {
       { function: 'one', vars: { arr: [1, 2, 3] } },
     ]);
 
-    const event = await eventProcessor?.(
+    const event = await eventProcessor!(
       {
         event_id: '9cbf882ade9a415986632ac4e16918eb',
         platform: 'node',
@@ -249,22 +247,16 @@ describeIf((NODE_VERSION.major || 0) >= 18)('LocalVariables', () => {
   });
 
   it('Only considers the first 5 frames', async () => {
-    expect.assertions(4);
-
     const session = new MockDebugSession({});
     const localVariables = new LocalVariables({}, session);
     const options = getDefaultNodeClientOptions({
       stackParser: defaultStackParser,
       includeLocalVariables: true,
+      integrations: [localVariables],
     });
 
-    let eventProcessor: EventProcessor | undefined;
-
-    (localVariables as unknown as LocalVariablesPrivate)._setup(callback => {
-      eventProcessor = callback;
-    }, options);
-
-    expect(eventProcessor).toBeDefined();
+    const client = new NodeClient(options);
+    client.setupIntegrations(true);
 
     await session.runPause(exceptionEvent100Frames);
 
@@ -280,16 +272,16 @@ describeIf((NODE_VERSION.major || 0) >= 18)('LocalVariables', () => {
   });
 
   it('Should not lookup variables for non-exception reasons', async () => {
-    expect.assertions(1);
-
     const session = new MockDebugSession({}, { getLocalVariables: true });
     const localVariables = new LocalVariables({}, session);
     const options = getDefaultNodeClientOptions({
       stackParser: defaultStackParser,
       includeLocalVariables: true,
+      integrations: [localVariables],
     });
 
-    (localVariables as unknown as LocalVariablesPrivate)._setup(_ => {}, options);
+    const client = new NodeClient(options);
+    client.setupIntegrations(true);
 
     const nonExceptionEvent = {
       method: exceptionEvent.method,
@@ -302,43 +294,41 @@ describeIf((NODE_VERSION.major || 0) >= 18)('LocalVariables', () => {
   });
 
   it('Should not initialize when disabled', async () => {
-    expect.assertions(1);
-
     const session = new MockDebugSession({}, { configureAndConnect: true });
     const localVariables = new LocalVariables({}, session);
     const options = getDefaultNodeClientOptions({
       stackParser: defaultStackParser,
+      integrations: [localVariables],
     });
 
-    let eventProcessor: EventProcessor | undefined;
+    const client = new NodeClient(options);
+    client.setupIntegrations(true);
 
-    (localVariables as unknown as LocalVariablesPrivate)._setup(callback => {
-      eventProcessor = callback;
-    }, options);
+    const eventProcessors = client['_eventProcessors'];
+    const eventProcessor = eventProcessors.find(processor => processor.id === 'LocalVariables');
 
-    expect(eventProcessor).toBeUndefined();
+    expect(eventProcessor).toBeDefined();
+    expect(localVariables['_shouldProcessEvent']).toBe(false);
   });
 
   it('Should not initialize when inspector not loaded', async () => {
-    expect.assertions(1);
-
     const localVariables = new LocalVariables({}, undefined);
     const options = getDefaultNodeClientOptions({
       stackParser: defaultStackParser,
+      integrations: [localVariables],
     });
 
-    let eventProcessor: EventProcessor | undefined;
+    const client = new NodeClient(options);
+    client.setupIntegrations(true);
 
-    (localVariables as unknown as LocalVariablesPrivate)._setup(callback => {
-      eventProcessor = callback;
-    }, options);
+    const eventProcessors = client['_eventProcessors'];
+    const eventProcessor = eventProcessors.find(processor => processor.id === 'LocalVariables');
 
-    expect(eventProcessor).toBeUndefined();
+    expect(eventProcessor).toBeDefined();
+    expect(localVariables['_shouldProcessEvent']).toBe(false);
   });
 
   it('Should cache identical uncaught exception events', async () => {
-    expect.assertions(1);
-
     const session = new MockDebugSession({
       '-6224981551105448869.1.2': { name: 'tim' },
       '-6224981551105448869.1.6': { arr: [1, 2, 3] },
@@ -347,9 +337,11 @@ describeIf((NODE_VERSION.major || 0) >= 18)('LocalVariables', () => {
     const options = getDefaultNodeClientOptions({
       stackParser: defaultStackParser,
       includeLocalVariables: true,
+      integrations: [localVariables],
     });
 
-    (localVariables as unknown as LocalVariablesPrivate)._setup(_ => {}, options);
+    const client = new NodeClient(options);
+    client.setupIntegrations(true);
 
     await session.runPause(exceptionEvent);
     await session.runPause(exceptionEvent);

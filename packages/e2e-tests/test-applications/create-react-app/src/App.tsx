@@ -1,7 +1,7 @@
-import React from 'react';
-import logo from './logo.svg';
 import * as Sentry from '@sentry/react';
+import React from 'react';
 import './App.css';
+import logo from './logo.svg';
 
 function App() {
   return (

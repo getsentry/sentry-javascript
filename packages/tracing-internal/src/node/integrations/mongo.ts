@@ -2,6 +2,7 @@ import type { Hub } from '@sentry/core';
 import type { EventProcessor, SpanContext } from '@sentry/types';
 import { fill, isThenable, loadModule, logger } from '@sentry/utils';
 
+import { DEBUG_BUILD } from '../../common/debug-build';
 import type { LazyLoadedIntegration } from './lazy';
 import { shouldDisableAutoInstrumentation } from './utils/node-utils';
 
@@ -140,7 +141,7 @@ export class Mongo implements LazyLoadedIntegration<MongoModule> {
    */
   public setupOnce(_: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
     if (shouldDisableAutoInstrumentation(getCurrentHub)) {
-      __DEBUG_BUILD__ && logger.log('Mongo Integration is skipped because of instrumenter configuration.');
+      DEBUG_BUILD && logger.log('Mongo Integration is skipped because of instrumenter configuration.');
       return;
     }
 
@@ -148,7 +149,7 @@ export class Mongo implements LazyLoadedIntegration<MongoModule> {
 
     if (!pkg) {
       const moduleName = this._useMongoose ? 'mongoose' : 'mongodb';
-      __DEBUG_BUILD__ && logger.error(`Mongo Integration was unable to require \`${moduleName}\` package.`);
+      DEBUG_BUILD && logger.error(`Mongo Integration was unable to require \`${moduleName}\` package.`);
       return;
     }
 

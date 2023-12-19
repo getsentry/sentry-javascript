@@ -4,7 +4,7 @@ import { SDK_VERSION } from '@sentry/core';
 import type { Client } from '@sentry/types';
 import { isThenable } from '@sentry/utils';
 
-import { getCurrentHub } from './custom/hub';
+import { getClient } from './custom/hub';
 import { InternalSentrySemanticAttributes } from './semanticAttributes';
 import type { OpenTelemetryClient, OpenTelemetrySpanContext } from './types';
 import { setSpanMetadata } from './utils/spanData';
@@ -85,7 +85,7 @@ export function startInactiveSpan(spanContext: OpenTelemetrySpanContext): Span {
 }
 
 function getTracer(): Tracer {
-  const client = getCurrentHub().getClient<Client & OpenTelemetryClient>();
+  const client = getClient<Client & OpenTelemetryClient>();
   return (client && client.tracer) || trace.getTracer('@sentry/opentelemetry', SDK_VERSION);
 }
 

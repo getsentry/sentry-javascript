@@ -1,7 +1,7 @@
-import type { EntryContext, DataFunctionArgs } from '@remix-run/node';
+import type { DataFunctionArgs, EntryContext } from '@remix-run/node';
 import { RemixServer } from '@remix-run/react';
-import { renderToString } from 'react-dom/server';
 import * as Sentry from '@sentry/remix';
+import { renderToString } from 'react-dom/server';
 
 Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
@@ -11,9 +11,7 @@ Sentry.init({
   autoSessionTracking: false,
 });
 
-export function handleError(error: unknown, { request }: DataFunctionArgs): void {
-  Sentry.captureRemixServerException(error, 'remix.server', request);
-}
+export const handleError = Sentry.wrapRemixHandleError;
 
 export default function handleRequest(
   request: Request,

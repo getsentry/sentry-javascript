@@ -1,6 +1,6 @@
 {
   "name": "@sentry/gatsby",
-  "version": "7.81.1",
+  "version": "7.88.0",
   "description": "Official Sentry SDK for Gatsby.js",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/gatsby",
@@ -27,10 +27,10 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/core": "7.81.1",
-    "@sentry/react": "7.81.1",
-    "@sentry/types": "7.81.1",
-    "@sentry/utils": "7.81.1",
+    "@sentry/core": "7.88.0",
+    "@sentry/react": "7.88.0",
+    "@sentry/types": "7.88.0",
+    "@sentry/utils": "7.88.0",
     "@sentry/webpack-plugin": "1.19.0"
   },
   "peerDependencies": {
@@ -57,12 +57,8 @@
     "build:tarball": "ts-node ../../scripts/prepack.ts && npm pack ./build",
     "circularDepCheck": "madge --circular src/index.ts",
     "clean": "rimraf build coverage *.d.ts sentry-gatsby-*.tgz",
-    "fix": "run-s fix:eslint fix:prettier",
-    "fix:eslint": "eslint . --format stylish --fix",
-    "fix:prettier": "prettier --write \"{src,test,scripts}/**/**.{ts,tsx,js}\"",
-    "lint": "run-s lint:prettier lint:eslint",
-    "lint:eslint": "eslint . --format stylish",
-    "lint:prettier": "prettier --check \"{src,test,scripts}/**/**.{ts,tsx,js}\"",
+    "fix": "eslint . --format stylish --fix",
+    "lint": "eslint . --format stylish",
     "test": "yarn ts-node scripts/pretest.ts && yarn jest",
     "test:watch": "yarn ts-node scripts/pretest.ts && yarn jest --watch",
     "yalc:publish": "ts-node ../../scripts/prepack.ts && yalc publish build --push --sig"

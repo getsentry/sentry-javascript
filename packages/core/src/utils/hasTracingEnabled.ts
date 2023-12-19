@@ -1,6 +1,6 @@
 import type { Options } from '@sentry/types';
 
-import { getCurrentHub } from '../hub';
+import { getClient } from '../exports';
 
 // Treeshakable guard to remove all code related to tracing
 declare const __SENTRY_TRACING__: boolean | undefined;
@@ -17,7 +17,7 @@ export function hasTracingEnabled(
     return false;
   }
 
-  const client = getCurrentHub().getClient();
+  const client = getClient();
   const options = maybeOptions || (client && client.getOptions());
   return !!options && (options.enableTracing || 'tracesSampleRate' in options || 'tracesSampler' in options);
 }

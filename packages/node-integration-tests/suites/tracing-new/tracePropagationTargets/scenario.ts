@@ -1,6 +1,6 @@
+import * as http from 'http';
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import * as Sentry from '@sentry/node';
-import * as http from 'http';
 
 Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
@@ -12,9 +12,7 @@ Sentry.init({
 
 const transaction = Sentry.startTransaction({ name: 'test_transaction' });
 
-Sentry.configureScope(scope => {
-  scope.setSpan(transaction);
-});
+Sentry.getCurrentScope().setSpan(transaction);
 
 http.get('http://match-this-url.com/api/v0');
 http.get('http://match-this-url.com/api/v1');

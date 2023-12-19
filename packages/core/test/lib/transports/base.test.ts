@@ -1,7 +1,7 @@
+import { TextEncoder } from 'util';
 import type { AttachmentItem, EventEnvelope, EventItem, TransportMakeRequestResponse } from '@sentry/types';
 import type { PromiseBuffer } from '@sentry/utils';
 import { createEnvelope, resolvedSyncPromise, serializeEnvelope } from '@sentry/utils';
-import { TextEncoder } from 'util';
 
 import { createTransport } from '../../../src/transports/base';
 

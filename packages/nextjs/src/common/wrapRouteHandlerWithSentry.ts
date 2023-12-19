@@ -1,9 +1,10 @@
-import { addTracingExtensions, captureException, flush, getCurrentHub, runWithAsyncContext, trace } from '@sentry/core';
-import { addExceptionMechanism, tracingContextFromHeaders } from '@sentry/utils';
+import { addTracingExtensions, captureException, getCurrentScope, runWithAsyncContext, trace } from '@sentry/core';
+import { tracingContextFromHeaders, winterCGHeadersToDict } from '@sentry/utils';
 
 import { isRedirectNavigationError } from './nextNavigationErrorUtils';
 import type { RouteHandlerContext } from './types';
 import { platformSupportsStreaming } from './utils/platformSupportsStreaming';
+import { flushQueue } from './utils/responseEnd';
 
 /**
  * Wraps a Next.js route handler with performance and error instrumentation.
@@ -14,18 +15,16 @@ export function wrapRouteHandlerWithSentry<F extends (...args: any[]) => any>(
   context: RouteHandlerContext,
 ): (...args: Parameters<F>) => ReturnType<F> extends Promise<unknown> ? ReturnType<F> : Promise<ReturnType<F>> {
   addTracingExtensions();
-  const { method, parameterizedRoute, baggageHeader, sentryTraceHeader } = context;
+  // eslint-disable-next-line deprecation/deprecation
+  const { method, parameterizedRoute, baggageHeader, sentryTraceHeader, headers } = context;
   return new Proxy(routeHandler, {
     apply: (originalFunction, thisArg, args) => {
       return runWithAsyncContext(async () => {
-        const hub = getCurrentHub();
-        const currentScope = hub.getScope();
-
         const { traceparentData, dynamicSamplingContext, propagationContext } = tracingContextFromHeaders(
-          sentryTraceHeader,
-          baggageHeader,
+          sentryTraceHeader ?? headers?.get('sentry-trace') ?? undefined,
+          baggageHeader ?? headers?.get('baggage'),
         );
-        currentScope.setPropagationContext(propagationContext);
+        getCurrentScope().setPropagationContext(propagationContext);
 
         let res;
         try {
@@ -36,6 +35,9 @@ export function wrapRouteHandlerWithSentry<F extends (...args: any[]) => any>(
               status: 'ok',
               ...traceparentData,
               metadata: {
+                request: {
+                  headers: headers ? winterCGHeadersToDict(headers) : undefined,
+                },
                 source: 'route',
                 dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
               },
@@ -54,15 +56,10 @@ export function wrapRouteHandlerWithSentry<F extends (...args: any[]) => any>(
             error => {
               // Next.js throws errors when calling `redirect()`. We don't wanna report these.
               if (!isRedirectNavigationError(error)) {
-                captureException(error, scope => {
-                  scope.addEventProcessor(event => {
-                    addExceptionMechanism(event, {
-                      handled: false,
-                    });
-                    return event;
-                  });
-
-                  return scope;
+                captureException(error, {
+                  mechanism: {
+                    handled: false,
+                  },
                 });
               }
             },
@@ -71,7 +68,7 @@ export function wrapRouteHandlerWithSentry<F extends (...args: any[]) => any>(
           if (!platformSupportsStreaming() || process.env.NEXT_RUNTIME === 'edge') {
             // 1. Edge tranpsort requires manual flushing
             // 2. Lambdas require manual flushing to prevent execution freeze before the event is sent
-            await flush(1000);
+            await flushQueue();
           }
         }
 

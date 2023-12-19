@@ -1,4 +1,4 @@
-import { getCurrentHub, getDynamicSamplingContextFromClient, hasTracingEnabled } from '@sentry/core';
+import { getClient, getCurrentScope, getDynamicSamplingContextFromClient, hasTracingEnabled } from '@sentry/core';
 import type { Client, HandlerDataFetch, Scope, Span, SpanOrigin } from '@sentry/types';
 import {
   BAGGAGE_HEADER_NAME,
@@ -65,9 +65,8 @@ export function instrumentFetchRequest(
     return undefined;
   }
 
-  const hub = getCurrentHub();
-  const scope = hub.getScope();
-  const client = hub.getClient();
+  const scope = getCurrentScope();
+  const client = getClient();
   const parentSpan = scope.getSpan();
 
   const { method, url } = handlerData.fetchData;
@@ -133,8 +132,8 @@ export function addTracingHeadersToFetchRequest(
   const dynamicSamplingContext = transaction
     ? transaction.getDynamicSamplingContext()
     : dsc
-    ? dsc
-    : getDynamicSamplingContextFromClient(traceId, client, scope);
+      ? dsc
+      : getDynamicSamplingContextFromClient(traceId, client, scope);
 
   const sentryBaggageHeader = dynamicSamplingContextToSentryBaggageHeader(dynamicSamplingContext);
 

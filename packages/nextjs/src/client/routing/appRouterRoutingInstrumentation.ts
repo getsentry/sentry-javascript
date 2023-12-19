@@ -1,6 +1,6 @@
 import { WINDOW } from '@sentry/react';
-import type { HandlerDataFetch, Primitive, Transaction, TransactionContext } from '@sentry/types';
-import { addInstrumentationHandler, browserPerformanceTimeOrigin } from '@sentry/utils';
+import type { Primitive, Transaction, TransactionContext } from '@sentry/types';
+import { addFetchInstrumentationHandler, browserPerformanceTimeOrigin } from '@sentry/utils';
 
 type StartTransactionCb = (context: TransactionContext) => Transaction | undefined;
 
@@ -36,7 +36,7 @@ export function appRouterInstrumentation(
   }
 
   if (startTransactionOnLocationChange) {
-    addInstrumentationHandler('fetch', (handlerData: HandlerDataFetch) => {
+    addFetchInstrumentationHandler(handlerData => {
       // The instrumentation handler is invoked twice - once for starting a request and once when the req finishes
       // We can use the existence of the end-timestamp to filter out "finishing"-events.
       if (handlerData.endTimestamp !== undefined) {

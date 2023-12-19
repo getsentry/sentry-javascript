@@ -1,13 +1,14 @@
 import {
   addTracingExtensions,
   captureException,
-  getCurrentHub,
+  getClient,
+  getCurrentScope,
   runWithAsyncContext,
   startTransaction,
 } from '@sentry/core';
 import type { Transaction } from '@sentry/types';
 import {
-  addExceptionMechanism,
+  consoleSandbox,
   isString,
   logger,
   objectify,
@@ -15,6 +16,7 @@ import {
   tracingContextFromHeaders,
 } from '@sentry/utils';
 
+import { DEBUG_BUILD } from './debug-build';
 import type { AugmentedNextApiRequest, AugmentedNextApiResponse, NextApiHandler } from './types';
 import { platformSupportsStreaming } from './utils/platformSupportsStreaming';
 import { autoEndTransactionOnResponseEnd, finishTransaction, flushQueue } from './utils/responseEnd';
@@ -86,10 +88,9 @@ export function withSentry(apiHandler: NextApiHandler, parameterizedRoute?: stri
       const boundHandler = runWithAsyncContext(
         // eslint-disable-next-line complexity
         async () => {
-          const hub = getCurrentHub();
           let transaction: Transaction | undefined;
-          const currentScope = hub.getScope();
-          const options = hub.getClient()?.getOptions();
+          const currentScope = getCurrentScope();
+          const options = getClient()?.getOptions();
 
           currentScope.setSDKProcessingMetadata({ request: req });
 
@@ -103,7 +104,7 @@ export function withSentry(apiHandler: NextApiHandler, parameterizedRoute?: stri
             );
             currentScope.setPropagationContext(propagationContext);
 
-            if (__DEBUG_BUILD__ && traceparentData) {
+            if (DEBUG_BUILD && traceparentData) {
               logger.log(`[Tracing] Continuing trace ${traceparentData.traceId}.`);
             }
 
@@ -171,12 +172,14 @@ export function withSentry(apiHandler: NextApiHandler, parameterizedRoute?: stri
               // This can only happen (not always) when the user is using `withSentry` manually, which we're deprecating.
               // Warning suppression on Next.JS is only necessary in that case.
             ) {
-              // eslint-disable-next-line no-console
-              console.warn(
-                `[sentry] If Next.js logs a warning "API resolved without sending a response", it's a false positive, which may happen when you use \`withSentry\` manually to wrap your routes.
-              To suppress this warning, set \`SENTRY_IGNORE_API_RESOLUTION_ERROR\` to 1 in your env.
-              To suppress the nextjs warning, use the \`externalResolver\` API route option (see https://nextjs.org/docs/api-routes/api-middlewares#custom-config for details).`,
-              );
+              consoleSandbox(() => {
+                // eslint-disable-next-line no-console
+                console.warn(
+                  `[sentry] If Next.js logs a warning "API resolved without sending a response", it's a false positive, which may happen when you use \`withSentry\` manually to wrap your routes.
+                To suppress this warning, set \`SENTRY_IGNORE_API_RESOLUTION_ERROR\` to 1 in your env.
+                To suppress the nextjs warning, use the \`externalResolver\` API route option (see https://nextjs.org/docs/api-routes/api-middlewares#custom-config for details).`,
+                );
+              });
             }
 
             return handlerResult;
@@ -187,19 +190,16 @@ export function withSentry(apiHandler: NextApiHandler, parameterizedRoute?: stri
             // way to prevent it from actually being reported twice.)
             const objectifiedErr = objectify(e);
 
-            currentScope.addEventProcessor(event => {
-              addExceptionMechanism(event, {
+            captureException(objectifiedErr, {
+              mechanism: {
                 type: 'instrument',
                 handled: false,
                 data: {
                   wrapped_handler: wrappingTarget.name,
                   function: 'withSentry',
                 },
-              });
-              return event;
+              },
             });
-
-            captureException(objectifiedErr);
 
             // Because we're going to finish and send the transaction before passing the error onto nextjs, it won't yet
             // have had a chance to set the status to 500, so unless we do it ourselves now, we'll incorrectly report that

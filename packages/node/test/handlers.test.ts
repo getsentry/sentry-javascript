@@ -1,9 +1,9 @@
+import * as http from 'http';
 import type { Hub } from '@sentry/core';
 import * as sentryCore from '@sentry/core';
-import { setAsyncContextStrategy, Transaction } from '@sentry/core';
+import { Transaction, setAsyncContextStrategy } from '@sentry/core';
 import type { Event, PropagationContext } from '@sentry/types';
 import { SentryError } from '@sentry/utils';
-import * as http from 'http';
 
 import { NodeClient } from '../src/client';
 import { errorHandler, requestHandler, tracingHandler } from '../src/handlers';
@@ -458,10 +458,11 @@ describe('tracingHandler', () => {
     const hub = new sentryCore.Hub(new NodeClient(options));
 
     jest.spyOn(sentryCore, 'getCurrentHub').mockReturnValue(hub);
+    jest.spyOn(sentryCore, 'getCurrentScope').mockImplementation(() => hub.getScope());
 
     sentryTracingMiddleware(req, res, next);
 
-    const transaction = sentryCore.getCurrentHub().getScope().getTransaction();
+    const transaction = sentryCore.getCurrentScope().getTransaction();
 
     expect(transaction?.metadata.request).toEqual(req);
   });

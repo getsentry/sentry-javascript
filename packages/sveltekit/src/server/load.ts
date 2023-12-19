@@ -1,8 +1,8 @@
 /* eslint-disable @sentry-internal/sdk/no-optional-chaining */
-import { getCurrentHub, startSpan } from '@sentry/core';
+import { getCurrentScope, startSpan } from '@sentry/core';
 import { captureException } from '@sentry/node';
 import type { TransactionContext } from '@sentry/types';
-import { addExceptionMechanism, addNonEnumerableProperty, objectify } from '@sentry/utils';
+import { addNonEnumerableProperty, objectify } from '@sentry/utils';
 import type { LoadEvent, ServerLoadEvent } from '@sveltejs/kit';
 
 import type { SentryWrappedFlag } from '../common/utils';
@@ -29,19 +29,14 @@ function sendErrorToSentry(e: unknown): unknown {
     return objectifiedErr;
   }
 
-  captureException(objectifiedErr, scope => {
-    scope.addEventProcessor(event => {
-      addExceptionMechanism(event, {
-        type: 'sveltekit',
-        handled: false,
-        data: {
-          function: 'load',
-        },
-      });
-      return event;
-    });
-
-    return scope;
+  captureException(objectifiedErr, {
+    mechanism: {
+      type: 'sveltekit',
+      handled: false,
+      data: {
+        function: 'load',
+      },
+    },
   });
 
   return objectifiedErr;
@@ -135,7 +130,7 @@ export function wrapServerLoadWithSentry<T extends (...args: any) => any>(origSe
       const routeId = event.route && (Object.getOwnPropertyDescriptor(event.route, 'id')?.value as string | undefined);
 
       const { dynamicSamplingContext, traceparentData, propagationContext } = getTracePropagationData(event);
-      getCurrentHub().getScope().setPropagationContext(propagationContext);
+      getCurrentScope().setPropagationContext(propagationContext);
 
       const traceLoadContext: TransactionContext = {
         op: 'function.sveltekit.server.load',

@@ -1,7 +1,7 @@
-import { getCurrentHub } from '@sentry/node';
+import type { EventEmitter } from 'events';
+import { getCurrentScope } from '@sentry/node';
 import type { Integration, Span } from '@sentry/types';
 import { fill } from '@sentry/utils';
-import type { EventEmitter } from 'events';
 
 interface GrpcFunction extends CallableFunction {
   (...args: unknown[]): EventEmitter;
@@ -91,10 +91,10 @@ function fillGrpcFunction(stub: Stub, serviceIdentifier: string, methodName: str
     !funcObj.requestStream && !funcObj.responseStream
       ? 'unary call'
       : funcObj.requestStream && !funcObj.responseStream
-      ? 'client stream'
-      : !funcObj.requestStream && funcObj.responseStream
-      ? 'server stream'
-      : 'bidi stream';
+        ? 'client stream'
+        : !funcObj.requestStream && funcObj.responseStream
+          ? 'server stream'
+          : 'bidi stream';
   if (callType != 'unary call') {
     return;
   }
@@ -108,7 +108,7 @@ function fillGrpcFunction(stub: Stub, serviceIdentifier: string, methodName: str
           return ret;
         }
         let span: Span | undefined;
-        const scope = getCurrentHub().getScope();
+        const scope = getCurrentScope();
         const transaction = scope.getTransaction();
         if (transaction) {
           span = transaction.startChild({

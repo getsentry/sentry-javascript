@@ -22,13 +22,13 @@ function runVariant(variant) {
     /**
      * The test runner will replace each of these placeholders with the contents of the corresponding file.
      */
-    {{ suites/config.js }} // prettier-ignore
-    {{ suites/api.js }} // prettier-ignore
-    {{ suites/onerror.js }} // prettier-ignore
-    {{ suites/onunhandledrejection.js }} // prettier-ignore
-    {{ suites/builtins.js }} // prettier-ignore
-    {{ suites/breadcrumbs.js }} // prettier-ignore
-    {{ suites/loader.js }} // prettier-ignore
+    {{ suites/config.js }} // biome-ignore format: No trailing commas
+    {{ suites/api.js }} // biome-ignore format: No trailing commas
+    {{ suites/onerror.js }} // biome-ignore format: No trailing commas
+    {{ suites/onunhandledrejection.js }} // biome-ignore format: No trailing commas
+    {{ suites/builtins.js }} // biome-ignore format: No trailing commas
+    {{ suites/breadcrumbs.js }} // biome-ignore format: No trailing commas
+    {{ suites/loader.js }} // biome-ignore format: No trailing commas
   });
 }
 
@@ -38,4 +38,4 @@ for (var idx in variants) {
   })();
 }
 
-{{ suites/loader-specific.js }} // prettier-ignore
+{{ suites/loader-specific.js }} // biome-ignore format: No trailing commas

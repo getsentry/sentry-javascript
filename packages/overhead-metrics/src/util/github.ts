@@ -1,8 +1,8 @@
+import * as fs from 'fs';
+import path from 'path';
 import { Octokit } from '@octokit/rest';
 import axios from 'axios';
 import extract from 'extract-zip';
-import * as fs from 'fs';
-import path from 'path';
 
 import type { PrCommentBuilder } from '../results/pr-comment.js';
 import { consoleGroup } from './console.js';

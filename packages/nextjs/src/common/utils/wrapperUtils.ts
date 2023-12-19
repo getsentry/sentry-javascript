@@ -1,13 +1,13 @@
+import type { IncomingMessage, ServerResponse } from 'http';
 import {
   captureException,
   getActiveTransaction,
-  getCurrentHub,
+  getCurrentScope,
   runWithAsyncContext,
   startTransaction,
 } from '@sentry/core';
 import type { Span, Transaction } from '@sentry/types';
-import { addExceptionMechanism, isString, tracingContextFromHeaders } from '@sentry/utils';
-import type { IncomingMessage, ServerResponse } from 'http';
+import { isString, tracingContextFromHeaders } from '@sentry/utils';
 
 import { platformSupportsStreaming } from './platformSupportsStreaming';
 import { autoEndTransactionOnResponseEnd, flushQueue } from './responseEnd';
@@ -47,16 +47,7 @@ export function withErrorInstrumentation<F extends (...args: any[]) => any>(
       return await origFunction.apply(this, origFunctionArguments);
     } catch (e) {
       // TODO: Extract error logic from `withSentry` in here or create a new wrapper with said logic or something like that.
-      captureException(e, scope => {
-        scope.addEventProcessor(event => {
-          addExceptionMechanism(event, {
-            handled: false,
-          });
-          return event;
-        });
-
-        return scope;
-      });
+      captureException(e, { mechanism: { handled: false } });
 
       throw e;
     }
@@ -93,8 +84,7 @@ export function withTracedServerSideDataFetcher<F extends (...args: any[]) => Pr
 ): (...params: Parameters<F>) => Promise<ReturnType<F>> {
   return async function (this: unknown, ...args: Parameters<F>): Promise<ReturnType<F>> {
     return runWithAsyncContext(async () => {
-      const hub = getCurrentHub();
-      const scope = hub.getScope();
+      const scope = getCurrentScope();
       const previousSpan: Span | undefined = getTransactionFromRequest(req) ?? scope.getSpan();
       let dataFetcherSpan;
 
@@ -232,16 +222,7 @@ export async function callDataFetcherTraced<F extends (...args: any[]) => Promis
     span.finish();
 
     // TODO Copy more robust error handling over from `withSentry`
-    captureException(err, scope => {
-      scope.addEventProcessor(event => {
-        addExceptionMechanism(event, {
-          handled: false,
-        });
-        return event;
-      });
-
-      return scope;
-    });
+    captureException(err, { mechanism: { handled: false } });
 
     throw err;
   }

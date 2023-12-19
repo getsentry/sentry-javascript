@@ -2,6 +2,7 @@ import type { TextEncoderInternal } from '@sentry/types';
 import { dropUndefinedKeys, logger, stringMatchesSomePattern } from '@sentry/utils';
 
 import { NETWORK_BODY_MAX_SIZE, WINDOW } from '../../constants';
+import { DEBUG_BUILD } from '../../debug-build';
 import type {
   NetworkBody,
   NetworkMetaWarning,
@@ -61,26 +62,54 @@ export function parseContentLengthHeader(header: string | null | undefined): num
 }
 
 /** Get the string representation of a body. */
-export function getBodyString(body: unknown): string | undefined {
+export function getBodyString(body: unknown): [string | undefined, NetworkMetaWarning?] {
   try {
     if (typeof body === 'string') {
-      return body;
+      return [body];
     }
 
     if (body instanceof URLSearchParams) {
-      return body.toString();
+      return [body.toString()];
     }
 
     if (body instanceof FormData) {
-      return _serializeFormData(body);
+      return [_serializeFormData(body)];
+    }
+
+    if (!body) {
+      return [undefined];
     }
   } catch {
-    __DEBUG_BUILD__ && logger.warn('[Replay] Failed to serialize body', body);
+    DEBUG_BUILD && logger.warn('[Replay] Failed to serialize body', body);
+    return [undefined, 'BODY_PARSE_ERROR'];
   }
 
-  __DEBUG_BUILD__ && logger.info('[Replay] Skipping network body because of body type', body);
+  DEBUG_BUILD && logger.info('[Replay] Skipping network body because of body type', body);
 
-  return undefined;
+  return [undefined, 'UNPARSEABLE_BODY_TYPE'];
+}
+
+/** Merge a warning into an existing network request/response. */
+export function mergeWarning(
+  info: ReplayNetworkRequestOrResponse | undefined,
+  warning: NetworkMetaWarning,
+): ReplayNetworkRequestOrResponse {
+  if (!info) {
+    return {
+      headers: {},
+      size: undefined,
+      _meta: {
+        warnings: [warning],
+      },
+    };
+  }
+
+  const newMeta = { ...info._meta };
+  const existingWarnings = newMeta.warnings || [];
+  newMeta.warnings = [...existingWarnings, warning];
+
+  info._meta = newMeta;
+  return info;
 }
 
 /** Convert ReplayNetworkRequestData to a PerformanceEntry. */
@@ -108,21 +137,6 @@ export function makeNetworkReplayBreadcrumb(
   };
 
   return result;
-}
-
-/** Get either a JSON network body, or a text representation. */
-export function getNetworkBody(bodyText: string | undefined): NetworkBody | undefined {
-  if (!bodyText) {
-    return;
-  }
-
-  try {
-    return JSON.parse(bodyText);
-  } catch {
-    // return text
-  }
-
-  return bodyText;
 }
 
 /** Build the request or response part of a replay network breadcrumb that was skipped. */

@@ -1,4 +1,4 @@
-import { captureException, getCurrentHub } from '@sentry/core';
+import { captureException, getClient } from '@sentry/core';
 
 import {
   BUFFER_CHECKOUT_TIME,
@@ -70,6 +70,7 @@ describe('Integration | errorSampleRate', () => {
       // Does not capture on mouse click
       domHandler({
         name: 'click',
+        event: new Event('click'),
       });
       jest.runAllTimers();
       await new Promise(process.nextTick);
@@ -121,6 +122,7 @@ describe('Integration | errorSampleRate', () => {
       // Check that click will get captured
       domHandler({
         name: 'click',
+        event: new Event('click'),
       });
 
       await waitForFlush();
@@ -156,6 +158,7 @@ describe('Integration | errorSampleRate', () => {
       // Does not capture on mouse click
       domHandler({
         name: 'click',
+        event: new Event('click'),
       });
       jest.runAllTimers();
       await new Promise(process.nextTick);
@@ -195,6 +198,7 @@ describe('Integration | errorSampleRate', () => {
       // Check that click will not get captured
       domHandler({
         name: 'click',
+        event: new Event('click'),
       });
 
       await waitForFlush();
@@ -239,6 +243,7 @@ describe('Integration | errorSampleRate', () => {
       // Does not capture on mouse click
       domHandler({
         name: 'click',
+        event: new Event('click'),
       });
       jest.runAllTimers();
       await new Promise(process.nextTick);
@@ -279,6 +284,7 @@ describe('Integration | errorSampleRate', () => {
       // Check that click will not get captured
       domHandler({
         name: 'click',
+        event: new Event('click'),
       });
 
       await waitForFlush();
@@ -517,6 +523,7 @@ describe('Integration | errorSampleRate', () => {
 
       domHandler({
         name: 'click',
+        event: new Event('click'),
       });
 
       await waitForFlush();
@@ -718,7 +725,7 @@ describe('Integration | errorSampleRate', () => {
 
       // Now wait after session expires - should stop recording
       mockRecord.takeFullSnapshot.mockClear();
-      (getCurrentHub().getClient()!.getTransport()!.send as unknown as jest.SpyInstance<any>).mockClear();
+      (getClient()!.getTransport()!.send as unknown as jest.SpyInstance<any>).mockClear();
 
       expect(replay).not.toHaveLastSentReplay();
 
@@ -786,7 +793,7 @@ describe('Integration | errorSampleRate', () => {
 
       // Now wait after session expires - should stop recording
       mockRecord.takeFullSnapshot.mockClear();
-      (getCurrentHub().getClient()!.getTransport()!.send as unknown as jest.SpyInstance<any>).mockClear();
+      (getClient()!.getTransport()!.send as unknown as jest.SpyInstance<any>).mockClear();
 
       jest.advanceTimersByTime(MAX_REPLAY_DURATION);
       await new Promise(process.nextTick);

@@ -30,6 +30,7 @@ describe('NodeExperimentalScope', () => {
     scope['_attachments'] = [{ data: '123', filename: 'test.txt' }];
     scope['_sdkProcessingMetadata'] = { sdk: 'bar' };
 
+    // eslint-disable-next-line deprecation/deprecation
     const scope2 = OpenTelemetryScope.clone(scope);
 
     expect(scope2).toBeInstanceOf(OpenTelemetryScope);
@@ -68,6 +69,7 @@ describe('NodeExperimentalScope', () => {
   });
 
   it('clone() works without existing scope', () => {
+    // eslint-disable-next-line deprecation/deprecation
     const scope = OpenTelemetryScope.clone(undefined);
 
     expect(scope).toBeInstanceOf(OpenTelemetryScope);

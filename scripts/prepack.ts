@@ -15,6 +15,7 @@ const NPM_IGNORE = fs.existsSync('.npmignore') ? '.npmignore' : '../../.npmignor
 
 const ASSETS = ['README.md', 'LICENSE', 'package.json', NPM_IGNORE] as const;
 const ENTRY_POINTS = ['main', 'module', 'types', 'browser'] as const;
+const CONDITIONAL_EXPORT_ENTRY_POINTS = ['import', 'require', ...ENTRY_POINTS] as const;
 const EXPORT_MAP_ENTRY_POINT = 'exports';
 const TYPES_VERSIONS_ENTRY_POINT = 'typesVersions';
 
@@ -22,6 +23,7 @@ const packageWithBundles = process.argv.includes('--bundles');
 const buildDir = packageWithBundles ? NPM_BUILD_DIR : BUILD_DIR;
 
 type PackageJsonEntryPoints = Record<(typeof ENTRY_POINTS)[number], string>;
+type ConditionalExportEntryPoints = Record<(typeof CONDITIONAL_EXPORT_ENTRY_POINTS)[number], string>;
 
 interface TypeVersions {
   [key: string]: {
@@ -29,17 +31,12 @@ interface TypeVersions {
   };
 }
 
+type PackageJsonExports = Partial<ConditionalExportEntryPoints> & {
+  [key: string]: Partial<ConditionalExportEntryPoints>;
+};
+
 interface PackageJson extends Record<string, unknown>, PackageJsonEntryPoints {
-  [EXPORT_MAP_ENTRY_POINT]: {
-    [key: string]: {
-      import: string;
-      require: string;
-      types: string;
-      node: string;
-      browser: string;
-      default: string;
-    };
-  };
+  [EXPORT_MAP_ENTRY_POINT]: PackageJsonExports;
   [TYPES_VERSIONS_ENTRY_POINT]: TypeVersions;
 }
 
@@ -75,11 +72,26 @@ ENTRY_POINTS.filter(entryPoint => newPkgJson[entryPoint]).forEach(entryPoint => 
   newPkgJson[entryPoint] = newPkgJson[entryPoint].replace(`${buildDir}/`, '');
 });
 
+/**
+ * Recursively traverses the exports object and rewrites all string values to remove the build directory.
+ */
+function rewriteConditionalExportEntryPoint(
+  exportsObject: Record<string, string | Record<string, string>>,
+  key: string,
+): void {
+  const exportsField = exportsObject[key];
+  if (typeof exportsField === 'string') {
+    exportsObject[key] = exportsField.replace(`${buildDir}/`, '');
+    return;
+  }
+  Object.keys(exportsField).forEach(subfieldKey => {
+    rewriteConditionalExportEntryPoint(exportsField, subfieldKey);
+  });
+}
+
 if (newPkgJson[EXPORT_MAP_ENTRY_POINT]) {
-  Object.entries(newPkgJson[EXPORT_MAP_ENTRY_POINT]).forEach(([key, val]) => {
-    newPkgJson[EXPORT_MAP_ENTRY_POINT][key] = Object.entries(val).reduce((acc, [key, val]) => {
-      return { ...acc, [key]: val.replace(`${buildDir}/`, '') };
-    }, {} as typeof val);
+  Object.keys(newPkgJson[EXPORT_MAP_ENTRY_POINT]).forEach(key => {
+    rewriteConditionalExportEntryPoint(newPkgJson[EXPORT_MAP_ENTRY_POINT], key);
   });
 }
 
@@ -87,7 +99,10 @@ if (newPkgJson[TYPES_VERSIONS_ENTRY_POINT]) {
   Object.entries(newPkgJson[TYPES_VERSIONS_ENTRY_POINT]).forEach(([key, val]) => {
     newPkgJson[TYPES_VERSIONS_ENTRY_POINT][key] = Object.entries(val).reduce((acc, [key, val]) => {
       const newKey = key.replace(`${buildDir}/`, '');
-      return { ...acc, [newKey]: val.map(v => v.replace(`${buildDir}/`, '')) };
+      return {
+        ...acc,
+        [newKey]: val.map(v => v.replace(`${buildDir}/`, '')),
+      };
     }, {});
   });
 }

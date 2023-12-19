@@ -1,7 +1,7 @@
 import { instrumentFetchRequest } from '@sentry-internal/tracing';
-import { getCurrentHub, isSentryRequestUrl } from '@sentry/core';
+import { addBreadcrumb, getClient, getCurrentHub, isSentryRequestUrl } from '@sentry/core';
 import type { FetchBreadcrumbData, FetchBreadcrumbHint, HandlerDataFetch, Integration, Span } from '@sentry/types';
-import { addInstrumentationHandler, LRUMap, stringMatchesSomePattern } from '@sentry/utils';
+import { LRUMap, addFetchInstrumentationHandler, stringMatchesSomePattern } from '@sentry/utils';
 
 export interface Options {
   /**
@@ -48,13 +48,13 @@ export class WinterCGFetch implements Integration {
   public setupOnce(): void {
     const spans: Record<string, Span> = {};
 
-    addInstrumentationHandler('fetch', (handlerData: HandlerDataFetch) => {
+    addFetchInstrumentationHandler(handlerData => {
       const hub = getCurrentHub();
       if (!hub.getIntegration(WinterCGFetch)) {
         return;
       }
 
-      if (isSentryRequestUrl(handlerData.fetchData.url, hub)) {
+      if (isSentryRequestUrl(handlerData.fetchData.url, getClient())) {
         return;
       }
 
@@ -74,8 +74,7 @@ export class WinterCGFetch implements Integration {
 
   /** Decides whether to attach trace data to the outgoing fetch request */
   private _shouldAttachTraceData(url: string): boolean {
-    const hub = getCurrentHub();
-    const client = hub.getClient();
+    const client = getClient();
 
     if (!client) {
       return false;
@@ -131,7 +130,7 @@ function createBreadcrumb(handlerData: HandlerDataFetch): void {
       endTimestamp,
     };
 
-    getCurrentHub().addBreadcrumb(
+    addBreadcrumb(
       {
         category: 'fetch',
         data,
@@ -151,7 +150,7 @@ function createBreadcrumb(handlerData: HandlerDataFetch): void {
       startTimestamp,
       endTimestamp,
     };
-    getCurrentHub().addBreadcrumb(
+    addBreadcrumb(
       {
         category: 'fetch',
         data,

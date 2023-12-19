@@ -1,17 +1,15 @@
-import type { InstrumentHandlerCallback, InstrumentHandlerType } from '@sentry/utils';
+import type { HandlerDataHistory } from '@sentry/types';
 import { JSDOM } from 'jsdom';
 
 import { conditionalTest } from '../../../tracing/test/testutils';
 import { instrumentRoutingWithDefaults } from '../../src/browser/router';
 
-let mockChangeHistory: ({ to, from }: { to: string; from?: string }) => void = () => undefined;
-let addInstrumentationHandlerType: string = '';
+let mockChangeHistory: undefined | ((data: HandlerDataHistory) => void);
 jest.mock('@sentry/utils', () => {
   const actual = jest.requireActual('@sentry/utils');
   return {
     ...actual,
-    addInstrumentationHandler: (type: InstrumentHandlerType, callback: InstrumentHandlerCallback): void => {
-      addInstrumentationHandlerType = type;
+    addHistoryInstrumentationHandler: (callback: (data: HandlerDataHistory) => void): void => {
       mockChangeHistory = callback;
     },
   };
@@ -59,8 +57,7 @@ conditionalTest({ min: 16 })('instrumentRoutingWithDefaults', () => {
 
   describe('navigation transaction', () => {
     beforeEach(() => {
-      mockChangeHistory = () => undefined;
-      addInstrumentationHandlerType = '';
+      mockChangeHistory = undefined;
     });
 
     it('it is not created automatically', () => {
@@ -75,8 +72,8 @@ conditionalTest({ min: 16 })('instrumentRoutingWithDefaults', () => {
 
     it('is created on location change', () => {
       instrumentRoutingWithDefaults(customStartTransaction);
-      mockChangeHistory({ to: 'here', from: 'there' });
-      expect(addInstrumentationHandlerType).toBe('history');
+      expect(mockChangeHistory).toBeDefined();
+      mockChangeHistory!({ to: 'here', from: 'there' });
 
       expect(customStartTransaction).toHaveBeenCalledTimes(2);
       expect(customStartTransaction).toHaveBeenLastCalledWith({
@@ -89,8 +86,7 @@ conditionalTest({ min: 16 })('instrumentRoutingWithDefaults', () => {
 
     it('is not created if startTransactionOnLocationChange is false', () => {
       instrumentRoutingWithDefaults(customStartTransaction, true, false);
-      mockChangeHistory({ to: 'here', from: 'there' });
-      expect(addInstrumentationHandlerType).toBe('');
+      expect(mockChangeHistory).toBeUndefined();
 
       expect(customStartTransaction).toHaveBeenCalledTimes(1);
     });
@@ -98,27 +94,31 @@ conditionalTest({ min: 16 })('instrumentRoutingWithDefaults', () => {
     it('finishes the last active transaction', () => {
       instrumentRoutingWithDefaults(customStartTransaction);
 
+      expect(mockChangeHistory).toBeDefined();
+
       expect(mockFinish).toHaveBeenCalledTimes(0);
-      mockChangeHistory({ to: 'here', from: 'there' });
+      mockChangeHistory!({ to: 'here', from: 'there' });
       expect(mockFinish).toHaveBeenCalledTimes(1);
     });
 
     it('will finish active transaction multiple times', () => {
       instrumentRoutingWithDefaults(customStartTransaction);
 
+      expect(mockChangeHistory).toBeDefined();
+
       expect(mockFinish).toHaveBeenCalledTimes(0);
-      mockChangeHistory({ to: 'here', from: 'there' });
+      mockChangeHistory!({ to: 'here', from: 'there' });
       expect(mockFinish).toHaveBeenCalledTimes(1);
-      mockChangeHistory({ to: 'over/there', from: 'here' });
+      mockChangeHistory!({ to: 'over/there', from: 'here' });
       expect(mockFinish).toHaveBeenCalledTimes(2);
-      mockChangeHistory({ to: 'nowhere', from: 'over/there' });
+      mockChangeHistory!({ to: 'nowhere', from: 'over/there' });
       expect(mockFinish).toHaveBeenCalledTimes(3);
     });
 
     it('not created if `from` is equal to `to`', () => {
       instrumentRoutingWithDefaults(customStartTransaction);
-      mockChangeHistory({ to: 'first/path', from: 'first/path' });
-      expect(addInstrumentationHandlerType).toBe('history');
+      expect(mockChangeHistory).toBeDefined();
+      mockChangeHistory!({ to: 'first/path', from: 'first/path' });
 
       expect(customStartTransaction).toHaveBeenCalledTimes(1);
       expect(customStartTransaction).not.toHaveBeenLastCalledWith('navigation');

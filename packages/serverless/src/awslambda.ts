@@ -1,3 +1,7 @@
+import { existsSync } from 'fs';
+import { hostname } from 'os';
+import { basename, resolve } from 'path';
+import { types } from 'util';
 /* eslint-disable max-lines */
 import type { Scope } from '@sentry/node';
 import * as Sentry from '@sentry/node';
@@ -5,15 +9,11 @@ import { captureException, captureMessage, flush, getCurrentHub, withScope } fro
 import type { Integration, SdkMetadata } from '@sentry/types';
 import { isString, logger, tracingContextFromHeaders } from '@sentry/utils';
 // NOTE: I have no idea how to fix this right now, and don't want to waste more time, as it builds just fine — Kamil
-// eslint-disable-next-line import/no-unresolved
 import type { Context, Handler } from 'aws-lambda';
-import { existsSync } from 'fs';
-import { hostname } from 'os';
-import { basename, resolve } from 'path';
 import { performance } from 'perf_hooks';
-import { types } from 'util';
 
 import { AWSServices } from './awsservices';
+import { DEBUG_BUILD } from './debug-build';
 import { markEventUnhandled } from './utils';
 
 export * from '@sentry/node';
@@ -131,7 +131,7 @@ export function tryPatchHandler(taskRoot: string, handlerPath: string): void {
   const handlerDesc = basename(handlerPath);
   const match = handlerDesc.match(/^([^.]*)\.(.*)$/);
   if (!match) {
-    __DEBUG_BUILD__ && logger.error(`Bad handler ${handlerDesc}`);
+    DEBUG_BUILD && logger.error(`Bad handler ${handlerDesc}`);
     return;
   }
 
@@ -142,7 +142,7 @@ export function tryPatchHandler(taskRoot: string, handlerPath: string): void {
     const handlerDir = handlerPath.substring(0, handlerPath.indexOf(handlerDesc));
     obj = tryRequire(taskRoot, handlerDir, handlerMod);
   } catch (e) {
-    __DEBUG_BUILD__ && logger.error(`Cannot require ${handlerPath} in ${taskRoot}`, e);
+    DEBUG_BUILD && logger.error(`Cannot require ${handlerPath} in ${taskRoot}`, e);
     return;
   }
 
@@ -154,11 +154,11 @@ export function tryPatchHandler(taskRoot: string, handlerPath: string): void {
     functionName = name;
   });
   if (!obj) {
-    __DEBUG_BUILD__ && logger.error(`${handlerPath} is undefined or not exported`);
+    DEBUG_BUILD && logger.error(`${handlerPath} is undefined or not exported`);
     return;
   }
   if (typeof obj !== 'function') {
-    __DEBUG_BUILD__ && logger.error(`${handlerPath} is not a function`);
+    DEBUG_BUILD && logger.error(`${handlerPath} is not a function`);
     return;
   }
 
@@ -305,7 +305,7 @@ export function wrapHandler<TEvent, TResult>(
         sentryTrace,
         baggage,
       );
-      hub.getScope().setPropagationContext(propagationContext);
+      Sentry.getCurrentScope().setPropagationContext(propagationContext);
 
       transaction = hub.startTransaction({
         name: context.functionName,
@@ -319,35 +319,35 @@ export function wrapHandler<TEvent, TResult>(
       });
     }
 
-    const scope = hub.pushScope();
-    let rv: TResult;
-    try {
-      enhanceScopeWithEnvironmentData(scope, context, START_TIME);
-      if (options.startTrace) {
-        enhanceScopeWithTransactionData(scope, context);
-        // We put the transaction on the scope so users can attach children to it
-        scope.setSpan(transaction);
-      }
-      rv = await asyncHandler(event, context);
+    return withScope(async scope => {
+      let rv: TResult;
+      try {
+        enhanceScopeWithEnvironmentData(scope, context, START_TIME);
+        if (options.startTrace) {
+          enhanceScopeWithTransactionData(scope, context);
+          // We put the transaction on the scope so users can attach children to it
+          scope.setSpan(transaction);
+        }
+        rv = await asyncHandler(event, context);
 
-      // We manage lambdas that use Promise.allSettled by capturing the errors of failed promises
-      if (options.captureAllSettledReasons && Array.isArray(rv) && isPromiseAllSettledResult(rv)) {
-        const reasons = getRejectedReasons(rv);
-        reasons.forEach(exception => {
-          captureException(exception, scope => markEventUnhandled(scope));
+        // We manage lambdas that use Promise.allSettled by capturing the errors of failed promises
+        if (options.captureAllSettledReasons && Array.isArray(rv) && isPromiseAllSettledResult(rv)) {
+          const reasons = getRejectedReasons(rv);
+          reasons.forEach(exception => {
+            captureException(exception, scope => markEventUnhandled(scope));
+          });
+        }
+      } catch (e) {
+        captureException(e, scope => markEventUnhandled(scope));
+        throw e;
+      } finally {
+        clearTimeout(timeoutWarningTimer);
+        transaction?.finish();
+        await flush(options.flushTimeout).catch(e => {
+          DEBUG_BUILD && logger.error(e);
         });
       }
-    } catch (e) {
-      captureException(e, scope => markEventUnhandled(scope));
-      throw e;
-    } finally {
-      clearTimeout(timeoutWarningTimer);
-      transaction?.finish();
-      hub.popScope();
-      await flush(options.flushTimeout).catch(e => {
-        __DEBUG_BUILD__ && logger.error(e);
-      });
-    }
-    return rv;
+      return rv;
+    });
   };
 }

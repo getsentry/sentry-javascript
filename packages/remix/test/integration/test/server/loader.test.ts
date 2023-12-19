@@ -1,5 +1,5 @@
-import { assertSentryTransaction, RemixTestEnv, assertSentryEvent } from './utils/helpers';
 import { Event } from '@sentry/types';
+import { RemixTestEnv, assertSentryEvent, assertSentryTransaction } from './utils/helpers';
 
 const useV2 = process.env.REMIX_VERSION === '2';
 
@@ -39,7 +39,7 @@ describe.each(['builtin', 'express'])('Remix API Loaders with adapter = %s', ada
             stacktrace: expect.any(Object),
             mechanism: {
               data: {
-                function: useV2 ? 'remix.server' : 'loader',
+                function: useV2 ? 'remix.server.handleError' : 'loader',
               },
               handled: false,
               type: 'instrument',
@@ -78,7 +78,7 @@ describe.each(['builtin', 'express'])('Remix API Loaders with adapter = %s', ada
     });
   });
 
-  it('handles a thrown 500 response', async () => {
+  it('handles an error-throwing redirection target', async () => {
     const env = await RemixTestEnv.init(adapter);
     const url = `${env.url}/loader-json-response/-1`;
 
@@ -138,7 +138,7 @@ describe.each(['builtin', 'express'])('Remix API Loaders with adapter = %s', ada
             stacktrace: expect.any(Object),
             mechanism: {
               data: {
-                function: useV2 ? 'remix.server' : 'loader',
+                function: useV2 ? 'remix.server.handleError' : 'loader',
               },
               handled: false,
               type: 'instrument',
@@ -240,5 +240,17 @@ describe.each(['builtin', 'express'])('Remix API Loaders with adapter = %s', ada
             },
           ],
     });
+  });
+
+  it('does not capture thrown redirect responses', async () => {
+    const env = await RemixTestEnv.init(adapter);
+    const url = `${env.url}/throw-redirect`;
+
+    const envelopesCount = await env.countEnvelopes({
+      url,
+      envelopeType: ['event'],
+    });
+
+    expect(envelopesCount).toBe(0);
   });
 });

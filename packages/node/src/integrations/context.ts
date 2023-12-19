@@ -1,3 +1,8 @@
+import { execFile } from 'child_process';
+import { readFile, readdir } from 'fs';
+import * as os from 'os';
+import { join } from 'path';
+import { promisify } from 'util';
 /* eslint-disable max-lines */
 import type {
   AppContext,
@@ -6,15 +11,9 @@ import type {
   CultureContext,
   DeviceContext,
   Event,
-  EventProcessor,
   Integration,
   OsContext,
 } from '@sentry/types';
-import { execFile } from 'child_process';
-import { readdir, readFile } from 'fs';
-import * as os from 'os';
-import { join } from 'path';
-import { promisify } from 'util';
 
 // TODO: Required until we drop support for Node v8
 export const readFileAsync = promisify(readFile);
@@ -60,20 +59,25 @@ export class Context implements Integration {
     },
   ) {}
 
-  /**
-   * @inheritDoc
-   */
-  public setupOnce(addGlobalEventProcessor: (callback: EventProcessor) => void): void {
-    addGlobalEventProcessor(event => this.addContext(event));
+  /** @inheritDoc */
+  public setupOnce(_addGlobaleventProcessor: unknown, _getCurrentHub: unknown): void {
+    // noop
   }
 
-  /** Processes an event and adds context */
+  /** @inheritDoc */
+  public processEvent(event: Event): Promise<Event> {
+    return this.addContext(event);
+  }
+
+  /**
+   * Processes an event and adds context.
+   */
   public async addContext(event: Event): Promise<Event> {
     if (this._cachedContext === undefined) {
       this._cachedContext = this._getContexts();
     }
 
-    const updatedContext = this._updateContext(await this._cachedContext);
+    const updatedContext = _updateContext(await this._cachedContext);
 
     event.contexts = {
       ...event.contexts,
@@ -85,22 +89,6 @@ export class Context implements Integration {
     };
 
     return event;
-  }
-
-  /**
-   * Updates the context with dynamic values that can change
-   */
-  private _updateContext(contexts: Contexts): Contexts {
-    // Only update properties if they exist
-    if (contexts?.app?.app_memory) {
-      contexts.app.app_memory = process.memoryUsage().rss;
-    }
-
-    if (contexts?.device?.free_memory) {
-      contexts.device.free_memory = os.freemem();
-    }
-
-    return contexts;
   }
 
   /**
@@ -135,6 +123,22 @@ export class Context implements Integration {
 
     return contexts;
   }
+}
+
+/**
+ * Updates the context with dynamic values that can change
+ */
+function _updateContext(contexts: Contexts): Contexts {
+  // Only update properties if they exist
+  if (contexts?.app?.app_memory) {
+    contexts.app.app_memory = process.memoryUsage().rss;
+  }
+
+  if (contexts?.device?.free_memory) {
+    contexts.device.free_memory = os.freemem();
+  }
+
+  return contexts;
 }
 
 /**

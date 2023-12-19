@@ -1,4 +1,4 @@
-import type { Attributes, AttributeValue } from '@opentelemetry/api';
+import type { AttributeValue, Attributes } from '@opentelemetry/api';
 import { SpanKind } from '@opentelemetry/api';
 import type { Span as OtelSpan } from '@opentelemetry/sdk-trace-base';
 import { SemanticAttributes } from '@opentelemetry/semantic-conventions';

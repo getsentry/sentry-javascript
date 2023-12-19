@@ -1,14 +1,15 @@
 /* eslint-disable max-lines */
 import type { Hub, Integration, PolymorphicRequest, Transaction } from '@sentry/types';
 import {
+  GLOBAL_OBJ,
   extractPathForTransaction,
   getNumberOfUrlSegments,
-  GLOBAL_OBJ,
   isRegExp,
   logger,
   stripUrlQueryAndFragment,
 } from '@sentry/utils';
 
+import { DEBUG_BUILD } from '../../common/debug-build';
 import { shouldDisableAutoInstrumentation } from './utils/node-utils';
 
 type Method =
@@ -119,12 +120,12 @@ export class Express implements Integration {
    */
   public setupOnce(_: unknown, getCurrentHub: () => Hub): void {
     if (!this._router) {
-      __DEBUG_BUILD__ && logger.error('ExpressIntegration is missing an Express instance');
+      DEBUG_BUILD && logger.error('ExpressIntegration is missing an Express instance');
       return;
     }
 
     if (shouldDisableAutoInstrumentation(getCurrentHub)) {
-      __DEBUG_BUILD__ && logger.log('Express Integration is skipped because of instrumenter configuration.');
+      DEBUG_BUILD && logger.log('Express Integration is skipped because of instrumenter configuration.');
       return;
     }
 
@@ -293,8 +294,8 @@ function instrumentRouter(appOrRouter: ExpressRouter): void {
 
     TODO: Proper Express 5 support
     */
-    __DEBUG_BUILD__ && logger.debug('Cannot instrument router for URL Parameterization (did not find a valid router).');
-    __DEBUG_BUILD__ && logger.debug('Routing instrumentation is currently only supported in Express 4.');
+    DEBUG_BUILD && logger.debug('Cannot instrument router for URL Parameterization (did not find a valid router).');
+    DEBUG_BUILD && logger.debug('Routing instrumentation is currently only supported in Express 4.');
     return;
   }
 

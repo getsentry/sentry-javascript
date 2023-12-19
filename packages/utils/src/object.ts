@@ -3,6 +3,7 @@
 import type { WrappedFunction } from '@sentry/types';
 
 import { htmlTreeAsString } from './browser';
+import { DEBUG_BUILD } from './debug-build';
 import { isElement, isError, isEvent, isInstanceOf, isPlainObject, isPrimitive } from './is';
 import { logger } from './logger';
 import { truncate } from './string';
@@ -51,7 +52,7 @@ export function addNonEnumerableProperty(obj: object, name: string, value: unkno
       configurable: true,
     });
   } catch (o_O) {
-    __DEBUG_BUILD__ && logger.log(`Failed to add non-enumerable property "${name}" to object`, obj);
+    DEBUG_BUILD && logger.log(`Failed to add non-enumerable property "${name}" to object`, obj);
   }
 }
 
@@ -101,7 +102,9 @@ export function urlEncode(object: { [key: string]: any }): string {
  * @returns An Event or Error turned into an object - or the value argurment itself, when value is neither an Event nor
  *  an Error.
  */
-export function convertToPlainObject<V>(value: V):
+export function convertToPlainObject<V>(
+  value: V,
+):
   | {
       [ownProps: string]: unknown;
       type: string;
