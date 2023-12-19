@@ -1,4 +1,4 @@
-import { makeBaseBundleConfig, makeBaseNPMConfig, makeBundleConfigVariants } from '../../rollup/index.js';
+import { makeBaseBundleConfig, makeBaseNPMConfig, makeBundleConfigVariants } from '@sentry-internal/rollup-utils';
 
 export default [
   // The SDK

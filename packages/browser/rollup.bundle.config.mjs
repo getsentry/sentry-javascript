@@ -1,4 +1,4 @@
-import { makeBaseBundleConfig, makeBundleConfigVariants } from '../../rollup/index.js';
+import { makeBaseBundleConfig, makeBundleConfigVariants } from '@sentry-internal/rollup-utils';
 
 const builds = [];
 

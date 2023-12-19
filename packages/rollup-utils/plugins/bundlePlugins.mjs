@@ -8,8 +8,10 @@
  * Typescript plugin docs: https://github.com/rollup/plugins/tree/master/packages/typescript/#readme
  */
 
+import * as childProcess from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
+import { fileURLToPath } from 'url';
 
 import commonjs from '@rollup/plugin-commonjs';
 import { nodeResolve } from '@rollup/plugin-node-resolve';
@@ -26,7 +28,7 @@ import { terser } from 'rollup-plugin-terser';
  * @returns An instance of the `rollup-plugin-license` plugin
  */
 export function makeLicensePlugin(title) {
-  const commitHash = require('child_process').execSync('git rev-parse --short HEAD', { encoding: 'utf-8' }).trim();
+  const commitHash = childProcess.execSync('git rev-parse --short HEAD', { encoding: 'utf-8' }).trim();
 
   const plugin = license({
     banner: {
@@ -42,8 +44,7 @@ export function makeLicensePlugin(title) {
 }
 
 export function getEs5Polyfills() {
-  // Note: __dirname resolves to e.g. packages/browser or packages/tracing
-  return fs.readFileSync(path.join(__dirname, '../../rollup/polyfills/es5.js'), 'utf-8');
+  return fs.readFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), '../polyfills/es5.js'), 'utf-8');
 }
 
 /**
