@@ -172,7 +172,6 @@ function _domBreadcrumb(dom: BreadcrumbsOptions['dom']): (handlerData: HandlerDa
       componentName = _isEvent(event) ? getComponentName(event.target) : getComponentName(event);
     } catch (e) {
       target = '<unknown>';
-      componentName = null;
     }
 
     if (target.length === 0) {
