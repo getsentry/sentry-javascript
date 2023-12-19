@@ -3,6 +3,7 @@ import type { Hub, Integration, PolymorphicRequest, Transaction } from '@sentry/
 import {
   extractPathForTransaction,
   getNumberOfUrlSegments,
+  GLOBAL_OBJ,
   isRegExp,
   logger,
   stripUrlQueryAndFragment,
@@ -485,7 +486,8 @@ function getLayerRoutePathInfo(layer: Layer): LayerRoutePathInfo {
 
   if (!lrp) {
     // parse node.js major version
-    const [major] = process.versions.node.split('.').map(Number);
+    // Next.js will complain if we directly use `proces.versions` here because of edge runtime.
+    const [major] = (GLOBAL_OBJ as unknown as NodeJS.Global).process.versions.node.split('.').map(Number);
 
     // allow call extractOriginalRoute only if node version support Regex d flag, node 16+
     if (major >= 16) {
@@ -543,7 +545,9 @@ export function preventDuplicateSegments(
   reconstructedRoute?: string,
   layerPath?: string,
 ): string | undefined {
-  const originalUrlSplit = originalUrl?.split('/').filter(v => !!v);
+  // filter query params
+  const normalizeURL = stripUrlQueryAndFragment(originalUrl || '');
+  const originalUrlSplit = normalizeURL?.split('/').filter(v => !!v);
   let tempCounter = 0;
   const currentOffset = reconstructedRoute?.split('/').filter(v => !!v).length || 0;
   const result = layerPath

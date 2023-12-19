@@ -1,4 +1,3 @@
-import { WINDOW } from '@sentry/browser';
 import type { Integration } from '@sentry/types';
 import { isBrowser, logger } from '@sentry/utils';
 
@@ -15,6 +14,7 @@ import {
   NAME_PLACEHOLDER,
   SUBMIT_BUTTON_LABEL,
   SUCCESS_MESSAGE_TEXT,
+  WINDOW,
 } from './constants';
 import type { FeedbackInternalOptions, FeedbackWidget, OptionalFeedbackConfiguration } from './types';
 import { mergeOptions } from './util/mergeOptions';
@@ -80,7 +80,6 @@ export class Feedback implements Integration {
       email: 'email',
       name: 'username',
     },
-    isAnonymous = false,
     isEmailRequired = false,
     isNameRequired = false,
 
@@ -120,7 +119,6 @@ export class Feedback implements Integration {
       id,
       showBranding,
       autoInject,
-      isAnonymous,
       isEmailRequired,
       isNameRequired,
       showEmail,

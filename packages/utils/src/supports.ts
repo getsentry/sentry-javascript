@@ -4,6 +4,8 @@ import { getGlobalObject } from './worldwide';
 // eslint-disable-next-line deprecation/deprecation
 const WINDOW = getGlobalObject<Window>();
 
+declare const EdgeRuntime: string | undefined;
+
 export { supportsHistory } from './vendor/supportsHistory';
 
 /**
@@ -89,6 +91,10 @@ export function isNativeFetch(func: Function): boolean {
  * @returns true if `window.fetch` is natively implemented, false otherwise
  */
 export function supportsNativeFetch(): boolean {
+  if (typeof EdgeRuntime === 'string') {
+    return true;
+  }
+
   if (!supportsFetch()) {
     return false;
   }

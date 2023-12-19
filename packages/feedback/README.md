@@ -6,8 +6,10 @@
 
 # Sentry Integration for Feedback
 
-This SDK is **considered experimental and in an alpha state**. It may experience breaking changes, and may be discontinued at any time. Please reach out on
+This SDK is **considered experimental and in a beta state**. It may experience breaking changes, and may be discontinued at any time. Please reach out on
 [GitHub](https://github.com/getsentry/sentry-javascript/issues/new/choose) if you have any feedback/concerns.
+
+To view Feedback in Sentry, your [Sentry organization must be an early adopter](https://docs.sentry.io/product/accounts/early-adopter-features/).
 
 ## Pre-requisites
 
@@ -63,7 +65,8 @@ The following options can be configured as options to the integration, in `new F
 | --------- | ------- | ------- | ----------- |
 | `showName`       | `boolean` | `true`  | Displays the name field on the feedback form, however will still capture the name (if available) from Sentry SDK context. |
 | `showEmail`       | `boolean` | `true`  | Displays the email field on the feedback form, however will still capture the email (if available) from Sentry SDK context. |
-| `isAnonymous`       | `boolean` | `false` | Hides both name and email fields and does not use Sentry SDK's user context. |
+| `isNameRequired` | `boolean` | `false`  | Requires the name field on the feedback form to be filled in. |
+| `isEmailRequired` | `boolean` | `false`  | Requires the email field on the feedback form to be filled in. |
 | `useSentryUser` | `Record<string, string>` | `{ email: 'email', name: 'username'}` | Map of the `email` and `name` fields to the corresponding Sentry SDK user fields that were called with `Sentry.setUser`. |
 
 By default the Feedback integration will attempt to fill in the name/email fields if you have set a user context via [`Sentry.setUser`](https://docs.sentry.io/platforms/javascript/enriching-events/identify-user/). By default it expects the email and name fields to be `email` and `username`. Below is an example configuration with non-default user fields.
@@ -131,7 +134,7 @@ Colors can be customized via the Feedback constructor or by defining CSS variabl
 | `submitForegroundHover` | `--submit-foreground-hover` | `#ffffff` | `#ffffff` | Foreground color for the submit button when hovering |
 | `cancelBackground` | `--cancel-background` | `transparent` | `transparent` | Background color for the cancel button |
 | `cancelBackgroundHover` | `--cancel-background-hover` | `var(--background-hover)` | `var(--background-hover)` | Background color when hovering over the cancel button |
-| `cancelBorder` | `--cancel-border` | `var(--border)` | `var(--border)` | Border style for the cancel button | 
+| `cancelBorder` | `--cancel-border` | `var(--border)` | `var(--border)` | Border style for the cancel button |
 | `cancelOutlineFocus` | `--cancel-outline-focus` | `var(--input-outline-focus)` | `var(--input-outline-focus)` | Outline color for the cancel button, in the focused state |
 | `cancelForeground` | `--cancel-foreground` | `var(--foreground)` | `var(--foreground)` | Foreground color for the cancel button |
 | `cancelForegroundHover` | `--cancel-foreground-hover` | `var(--foreground)` | `var(--foreground)` | Foreground color for the cancel button when hovering |
@@ -210,7 +213,7 @@ import {BrowserClient, getCurrentHub} from '@sentry/react';
 import {Feedback} from '@sentry-internal/feedback';
 
 function MyFeedbackButton() {
-    const client = hub && getCurrentHub().getClient<BrowserClient>();
+    const client = getCurrentHub().getClient<BrowserClient>();
     const feedback = client?.getIntegration(Feedback);
 
     // Don't render custom feedback button if Feedback integration not installed
@@ -228,7 +231,21 @@ function MyFeedbackButton() {
 
 ### Bring Your Own Widget
 
-You can also bring your own widget and UI and simply pass a feedback object to the `sendFeedback()` function.
+You can also bring your own widget and UI and simply pass a feedback object to the `sendFeedback()` function. The `sendFeedback` function accepts two parameters:
+* a feedback object with a required `message` property, and additionally, optional `name` and `email` properties
+* an options object
+
+```javascript
+sendFeedback({
+  name: 'Jane Doe', // optional
+  email: 'email@example.org', // optional
+  message: 'This is an example feedback', // required
+}, {
+  includeReplay: true, // optional
+})
+```
+
+Here is a simple example
 
 ```html
 <form id="my-feedback-form">
@@ -236,21 +253,25 @@ You can also bring your own widget and UI and simply pass a feedback object to t
   <input name="email" />
   <textarea name="message" placeholder="What's the issue?" />
 </form>
+```
 
-<script>
+```javascript
+import {BrowserClient, getCurrentHub} from '@sentry/react';
+import {Feedback} from '@sentry-internal/feedback';
+
 document.getElementById('my-feedback-form').addEventListener('submit', (event) => {
+  const feedback = getCurrentHub().getClient<BrowserClient>()?.getIntegration(Feedback);
   const formData = new FormData(event.currentTarget);
-  Feedback.sendFeedback(formData);
+  feedback.sendFeedback(formData);
   event.preventDefault();
 });
-</script>
 ```
 
 ## Alerting on User Feedback Reports
 
 Note: The following instructions are to be followed in the Sentry product.
 
-If you have Sentry's default issue alert ("Alert me on every new issue") turned on for the project you are setting up User Feedback on, no action is required to have alerting on each user feedback report. 
+If you have Sentry's default issue alert ("Alert me on every new issue") turned on for the project you are setting up User Feedback on, no action is required to have alerting on each user feedback report.
 
 If you don't have Sentry's default issue alert turned on, follow these steps:
 

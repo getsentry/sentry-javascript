@@ -53,11 +53,6 @@ export interface FeedbackGeneralConfiguration {
   autoInject: boolean;
 
   /**
-   * If true, will not collect user data (email/name).
-   */
-  isAnonymous: boolean;
-
-  /**
    * Should the email field be required?
    */
   isEmailRequired: boolean;

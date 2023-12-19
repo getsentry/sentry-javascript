@@ -32,6 +32,7 @@ export {
   close,
   configureScope,
   createTransport,
+  // eslint-disable-next-line deprecation/deprecation
   extractTraceparentData,
   flush,
   getActiveTransaction,
@@ -69,8 +70,11 @@ export { defaultIntegrations, init } from './sdk';
 
 import { Integrations as CoreIntegrations } from '@sentry/core';
 
+import { WinterCGFetch } from './integrations/wintercg-fetch';
+
 const INTEGRATIONS = {
   ...CoreIntegrations,
+  ...WinterCGFetch,
 };
 
 export { INTEGRATIONS as Integrations };

@@ -156,8 +156,8 @@ describe('startCounter', () => {
     const promise1 = new Promise((resolve) => setTimeout(resolve, 100));
     const promise2 = new Promise((resolve) => setTimeout(resolve, 200));
 
-    // Wait for promises to settle
-    await Promise.all([promise1, promise2]);
+    // Manually advance timers to ensure promises settle
+    jest.advanceTimersByTime(300);
 
     // Call trackPromises to get the results
     const result = trackPromises();
