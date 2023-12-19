@@ -26,7 +26,7 @@ describe('handleError', () => {
     consoleErrorSpy.mockClear();
   });
 
-  it('doesn\'t capture "Not found" errors for incorrect navigations', async () => {
+  it('doesn\'t capture "Not found" errors for incorrect navigations [Kit 1.x]', async () => {
     const wrappedHandleError = handleErrorWithSentry();
     const mockError = new Error('Not found: /asdf/123');
     const mockEvent = {
@@ -35,7 +35,23 @@ describe('handleError', () => {
       // ...
     } as RequestEvent;
 
+    // @ts-expect-error - purposefully omitting status and message to cover SvelteKit 1.x compatibility
     const returnVal = await wrappedHandleError({ error: mockError, event: mockEvent });
+
+    expect(returnVal).not.toBeDefined();
+    expect(mockCaptureException).toHaveBeenCalledTimes(0);
+    expect(consoleErrorSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('doesn\'t capture "Not found" errors for incorrect navigations [Kit 2.x]', async () => {
+    const wrappedHandleError = handleErrorWithSentry();
+
+    const returnVal = await wrappedHandleError({
+      error: new Error('404 /asdf/123'),
+      event: requestEvent,
+      status: 404,
+      message: 'Not Found',
+    });
 
     expect(returnVal).not.toBeDefined();
     expect(mockCaptureException).toHaveBeenCalledTimes(0);
@@ -46,7 +62,12 @@ describe('handleError', () => {
     it('invokes the default handler if no handleError func is provided', async () => {
       const wrappedHandleError = handleErrorWithSentry();
       const mockError = new Error('test');
-      const returnVal = await wrappedHandleError({ error: mockError, event: requestEvent });
+      const returnVal = await wrappedHandleError({
+        error: mockError,
+        event: requestEvent,
+        status: 500,
+        message: 'Internal Error',
+      });
 
       expect(returnVal).not.toBeDefined();
       expect(mockCaptureException).toHaveBeenCalledTimes(1);
@@ -58,7 +79,12 @@ describe('handleError', () => {
     it('invokes the user-provided error handler', async () => {
       const wrappedHandleError = handleErrorWithSentry(handleError);
       const mockError = new Error('test');
-      const returnVal = (await wrappedHandleError({ error: mockError, event: requestEvent })) as any;
+      const returnVal = (await wrappedHandleError({
+        error: mockError,
+        event: requestEvent,
+        status: 500,
+        message: 'Internal Error',
+      })) as any;
 
       expect(returnVal.message).toEqual('Whoops!');
       expect(mockCaptureException).toHaveBeenCalledTimes(1);

@@ -235,6 +235,7 @@ export interface ReplayPluginOptions extends ReplayNetworkOptions {
     canvas: {
       fps?: number;
       quality?: number;
+      type?: string;
       manager: (options: GetCanvasManagerOptions) => CanvasManagerInterface;
     };
   }>;

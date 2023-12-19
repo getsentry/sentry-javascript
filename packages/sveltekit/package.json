@@ -1,6 +1,6 @@
 {
   "name": "@sentry/sveltekit",
-  "version": "7.88.0",
+  "version": "7.89.0",
   "description": "Official Sentry SDK for SvelteKit",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/sveltekit",
@@ -13,29 +13,39 @@
   "module": "build/esm/index.server.js",
   "browser": "build/esm/index.client.js",
   "types": "build/types/index.types.d.ts",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "browser": {
+        "import": "./build/esm/index.client.js",
+        "require": "./build/cjs/index.client.js"
+      },
+      "node": "./build/cjs/index.server.js"
+    }
+  },
   "publishConfig": {
     "access": "public"
   },
   "peerDependencies": {
-    "@sveltejs/kit": "1.x"
+    "@sveltejs/kit": "1.x || 2.x"
   },
   "dependencies": {
-    "@sentry-internal/tracing": "7.88.0",
-    "@sentry/core": "7.88.0",
-    "@sentry/integrations": "7.88.0",
-    "@sentry/node": "7.88.0",
-    "@sentry/svelte": "7.88.0",
-    "@sentry/types": "7.88.0",
-    "@sentry/utils": "7.88.0",
+    "@sentry-internal/tracing": "7.89.0",
+    "@sentry/core": "7.89.0",
+    "@sentry/integrations": "7.89.0",
+    "@sentry/node": "7.89.0",
+    "@sentry/svelte": "7.89.0",
+    "@sentry/types": "7.89.0",
+    "@sentry/utils": "7.89.0",
     "@sentry/vite-plugin": "^0.6.1",
     "magicast": "0.2.8",
     "sorcery": "0.11.0"
   },
   "devDependencies": {
-    "@sveltejs/kit": "^1.11.0",
+    "@sveltejs/kit": "^2.0.2",
     "rollup": "^3.20.2",
-    "svelte": "^3.44.0",
-    "vite": "4.0.5"
+    "svelte": "^4.2.8",
+    "vite": "^5.0.10"
   },
   "scripts": {
     "build": "run-p build:transpile build:types",
