@@ -344,7 +344,7 @@ export class ReplayContainer implements ReplayContainerInterface {
         ...(canvas && canvas.manager && {
           recordCanvas: true,
           getCanvasManager: canvas.manager,
-          ...(CANVAS_QUALITY[canvas.quality || 'normal'] || CANVAS_QUALITY.normal)
+          ...(CANVAS_QUALITY[canvas.quality || 'medium'] || CANVAS_QUALITY.medium)
         }),
       });
     } catch (err) {

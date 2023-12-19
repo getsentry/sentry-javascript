@@ -64,7 +64,7 @@ export const CANVAS_QUALITY = {
       quality: 0.25,
     },
   },
-  normal: {
+  medium: {
     sampling: {
       canvas: 2,
     },
