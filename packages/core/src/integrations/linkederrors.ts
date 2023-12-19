@@ -1,59 +1,39 @@
-import type { Client, Event, EventHint, Integration } from '@sentry/types';
+import type { IntegrationFn } from '@sentry/types';
 import { applyAggregateErrorsToEvent, exceptionFromError } from '@sentry/utils';
+import { convertIntegrationFnToClass } from '../integration';
+
+interface LinkedErrorsOptions {
+  key?: string;
+  limit?: number;
+}
 
 const DEFAULT_KEY = 'cause';
 const DEFAULT_LIMIT = 5;
 
+const INTEGRATION_NAME = 'LinkedErrors';
+
+const linkedErrorsIntegration: IntegrationFn = (options: LinkedErrorsOptions = {}) => {
+  const limit = options.limit || DEFAULT_LIMIT;
+  const key = options.key || DEFAULT_KEY;
+
+  return {
+    name: INTEGRATION_NAME,
+    preprocessEvent(event, hint, client) {
+      const options = client.getOptions();
+
+      applyAggregateErrorsToEvent(
+        exceptionFromError,
+        options.stackParser,
+        options.maxValueLength,
+        key,
+        limit,
+        event,
+        hint,
+      );
+    },
+  };
+};
+
 /** Adds SDK info to an event. */
-export class LinkedErrors implements Integration {
-  /**
-   * @inheritDoc
-   */
-  public static id: string = 'LinkedErrors';
-
-  /**
-   * @inheritDoc
-   */
-  public readonly name: string;
-
-  /**
-   * @inheritDoc
-   */
-  private readonly _key: string;
-
-  /**
-   * @inheritDoc
-   */
-  private readonly _limit: number;
-
-  /**
-   * @inheritDoc
-   */
-  public constructor(options: { key?: string; limit?: number } = {}) {
-    this._key = options.key || DEFAULT_KEY;
-    this._limit = options.limit || DEFAULT_LIMIT;
-    this.name = LinkedErrors.id;
-  }
-
-  /** @inheritdoc */
-  public setupOnce(): void {
-    // noop
-  }
-
-  /**
-   * @inheritDoc
-   */
-  public preprocessEvent(event: Event, hint: EventHint | undefined, client: Client): void {
-    const options = client.getOptions();
-
-    applyAggregateErrorsToEvent(
-      exceptionFromError,
-      options.stackParser,
-      options.maxValueLength,
-      this._key,
-      this._limit,
-      event,
-      hint,
-    );
-  }
-}
+// eslint-disable-next-line deprecation/deprecation
+export const LinkedErrors = convertIntegrationFnToClass(INTEGRATION_NAME, linkedErrorsIntegration);
