@@ -139,18 +139,19 @@ if (options.captureStackTrace) {
         'Runtime.evaluate',
         {
           // Grab the trace context from the current scope
-          expression: 'const ctx = __SENTRY__.hub.getScope().getPropagationContext(); ctx.traceId + "-" + ctx.spanId',
+          expression:
+            'const ctx = __SENTRY__.hub.getScope().getPropagationContext(); ctx.traceId + "-" + ctx.spanId + "-" + ctx.parentSpanId',
           // Don't re-trigger the debugger if this causes an error
           silent: true,
         },
         (_, param) => {
-          const traceId = param && param.result ? (param.result.value as string) : '-';
-          const [trace_id, span_id] = traceId.split('-');
+          const traceId = param && param.result ? (param.result.value as string) : '--';
+          const [trace_id, span_id, parent_span_id] = traceId.split('-') as (string | undefined)[];
 
           session.post('Debugger.resume');
           session.post('Debugger.disable');
 
-          const context = trace_id && span_id ? { trace_id, span_id } : undefined;
+          const context = trace_id?.length && span_id?.length ? { trace_id, span_id, parent_span_id } : undefined;
           void sendAnrEvent(stackFrames, context);
         },
       );
