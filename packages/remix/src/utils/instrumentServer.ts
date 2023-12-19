@@ -106,14 +106,13 @@ export function wrapRemixHandleError(err: unknown, { request }: DataFunctionArgs
 export async function captureRemixServerException(err: unknown, name: string, request: Request): Promise<void> {
   // Skip capturing if the thrown error is not a 5xx response
   // https://remix.run/docs/en/v1/api/conventions#throwing-responses-in-loaders
-  if (IS_REMIX_V2) {
-    if (isRouteErrorResponse(err) && err.status < 500) {
-      return;
-    }
-  } else if (isResponse(err) && err.status < 500) {
+  if (IS_REMIX_V2 && isRouteErrorResponse(err) && err.status < 500) {
     return;
   }
 
+  if (isResponse(err) && err.status < 500) {
+    return;
+  }
   // Skip capturing if the request is aborted as Remix docs suggest
   // Ref: https://remix.run/docs/en/main/file-conventions/entry.server#handleerror
   if (request.signal.aborted) {

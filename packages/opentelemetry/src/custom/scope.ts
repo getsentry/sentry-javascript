@@ -87,6 +87,11 @@ export class OpenTelemetryScope extends Scope {
       return this;
     }
 
+    return this._addBreadcrumb(breadcrumb, maxBreadcrumbs);
+  }
+
+  /** Add a breadcrumb to this scope. */
+  protected _addBreadcrumb(breadcrumb: Breadcrumb, maxBreadcrumbs?: number): this {
     return super.addBreadcrumb(breadcrumb, maxBreadcrumbs);
   }
 

@@ -44,6 +44,7 @@ export { makeSession, closeSession, updateSession } from './session';
 export { SessionFlusher } from './sessionflusher';
 export { Scope } from './scope';
 export {
+  notifyEventProcessors,
   // eslint-disable-next-line deprecation/deprecation
   addGlobalEventProcessor,
 } from './eventProcessors';

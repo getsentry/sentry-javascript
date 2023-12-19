@@ -241,4 +241,16 @@ describe.each(['builtin', 'express'])('Remix API Loaders with adapter = %s', ada
           ],
     });
   });
+
+  it('does not capture thrown redirect responses', async () => {
+    const env = await RemixTestEnv.init(adapter);
+    const url = `${env.url}/throw-redirect`;
+
+    const envelopesCount = await env.countEnvelopes({
+      url,
+      envelopeType: ['event'],
+    });
+
+    expect(envelopesCount).toBe(0);
+  });
 });

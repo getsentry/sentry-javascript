@@ -7,14 +7,17 @@ import type { NodeExperimentalClientOptions } from '../../src/types';
 
 const PUBLIC_DSN = 'https://username@domain/123';
 
-export function mockSdkInit(options?: Partial<NodeExperimentalClientOptions>) {
+export function resetGlobals(): void {
   GLOBAL_OBJ.__SENTRY__ = {
     extensions: {},
     hub: undefined,
     globalEventProcessors: [],
     logger: undefined,
   };
+}
 
+export function mockSdkInit(options?: Partial<NodeExperimentalClientOptions>) {
+  resetGlobals();
   init({ dsn: PUBLIC_DSN, defaultIntegrations: false, ...options });
 }
 

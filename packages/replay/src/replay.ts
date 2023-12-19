@@ -343,7 +343,10 @@ export class ReplayContainer implements ReplayContainerInterface {
         ...(canvas && {
           recordCanvas: true,
           sampling: { canvas: canvas.fps || 4 },
-          dataURLOptions: { quality: canvas.quality || 0.6 },
+          dataURLOptions: {
+            type: canvas.type || 'image/webp',
+            quality: canvas.quality || 0.6,
+          },
           getCanvasManager: canvas.manager,
         }),
       });
