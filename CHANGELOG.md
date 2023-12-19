@@ -4,6 +4,74 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.89.0
+
+### Important Changes
+
+#### Deprecations
+
+- **feat(core): Deprecate `configureScope` (#9887)**
+- **feat(core): Deprecate `pushScope` & `popScope` (#9890)**
+
+This release deprecates `configureScope`, `pushScope`, and `popScope`, which will be removed in the upcoming v8 major release.
+
+#### Hapi Integration
+
+- **feat(node): Add Hapi Integration (#9539)**
+
+This release adds an integration for Hapi. It can be used as follows:
+
+```ts
+const Sentry = require('@sentry/node');
+const Hapi = require('@hapi/hapi');
+
+const init = async () => {
+    const server = Hapi.server({
+      // your server configuration ...
+    });
+
+    Sentry.init({
+      dsn: '__DSN__',
+      tracesSampleRate: 1.0,
+      integrations: [
+        new Sentry.Integrations.Hapi({ server }),
+      ],
+    });
+
+    server.route({
+      // your route configuration ...
+    });
+
+    await server.start();
+};
+```
+
+#### SvelteKit 2.0
+
+- **chore(sveltekit): Add SvelteKit 2.0 to peer dependencies (#9861)**
+
+This release adds support for SvelteKit 2.0 in the `@sentry/sveltekit` package. If you're upgrading from SvelteKit 1.x to 2.x and already use the Sentry SvelteKit SDK, no changes apart from upgrading to this (or a newer) version are necessary.
+
+### Other Changes
+
+- feat(core): Add type & utility for function-based integrations (#9818)
+- feat(core): Update `withScope` to return callback return value (#9866)
+- feat(deno): Support `Deno.CronSchedule` for cron jobs (#9880)
+- feat(nextjs): Auto instrument generation functions (#9781)
+- feat(nextjs): Connect server component transactions if there is no incoming trace (#9845)
+- feat(node-experimental): Update to new Scope APIs (#9799)
+- feat(replay): Add `canvas.type` setting (#9877)
+- fix(nextjs): Export `createReduxEnhancer` (#9854)
+- fix(remix): Do not capture thrown redirect responses. (#9909)
+- fix(sveltekit): Add conditional exports (#9872)
+- fix(sveltekit): Avoid capturing 404 errors on client side (#9902)
+- fix(utils): Do not use `Event` type in worldwide (#9864)
+- fix(utils): Support crypto.getRandomValues in old Chromium versions (#9251)
+- fix(utils): Update `eventFromUnknownInput` to avoid scope pollution & `getCurrentHub` (#9868)
+- ref: Use `addBreadcrumb` directly & allow to pass hint (#9867)
+
+Work in this release contributed by @adam187, and @jghinestrosa. Thank you for your contributions!
+
 ## 7.88.0
 
 ### Important Changes
