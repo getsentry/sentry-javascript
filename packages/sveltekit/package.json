@@ -14,8 +14,14 @@
   "browser": "build/esm/index.client.js",
   "types": "build/types/index.types.d.ts",
   "exports": {
-    "browser": "./build/esm/index.client.js",
-    "node": "./build/cjs/index.server.js"
+    "./package.json": "./package.json",
+    ".": {
+      "browser": {
+        "import": "./build/esm/index.client.js",
+        "require": "./build/cjs/index.client.js"
+      },
+      "node": "./build/cjs/index.server.js"
+    }
   },
   "publishConfig": {
     "access": "public"

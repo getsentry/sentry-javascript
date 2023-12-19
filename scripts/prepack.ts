@@ -31,10 +31,12 @@ interface TypeVersions {
   };
 }
 
+type PackageJsonExports = Partial<ConditionalExportEntryPoints> & {
+  [key: string]: Partial<ConditionalExportEntryPoints>;
+};
+
 interface PackageJson extends Record<string, unknown>, PackageJsonEntryPoints {
-  [EXPORT_MAP_ENTRY_POINT]: Partial<ConditionalExportEntryPoints> & {
-    [key: string]: Partial<ConditionalExportEntryPoints>;
-  };
+  [EXPORT_MAP_ENTRY_POINT]: PackageJsonExports;
   [TYPES_VERSIONS_ENTRY_POINT]: TypeVersions;
 }
 
@@ -70,21 +72,26 @@ ENTRY_POINTS.filter(entryPoint => newPkgJson[entryPoint]).forEach(entryPoint => 
   newPkgJson[entryPoint] = newPkgJson[entryPoint].replace(`${buildDir}/`, '');
 });
 
+/**
+ * Recursively traverses the exports object and rewrites all string values to remove the build directory.
+ */
+function rewriteConditionalExportEntryPoint(
+  exportsObject: Record<string, string | Record<string, string>>,
+  key: string,
+): void {
+  const exportsField = exportsObject[key];
+  if (typeof exportsField === 'string') {
+    exportsObject[key] = exportsField.replace(`${buildDir}/`, '');
+    return;
+  }
+  Object.keys(exportsField).forEach(subfieldKey => {
+    rewriteConditionalExportEntryPoint(exportsField, subfieldKey);
+  });
+}
+
 if (newPkgJson[EXPORT_MAP_ENTRY_POINT]) {
-  Object.entries(newPkgJson[EXPORT_MAP_ENTRY_POINT]).forEach(([key, val]) => {
-    if (typeof val === 'string') {
-      // case 1: key is already a conditional export entry point
-      // @ts-expect-error I'm too dumb for TS :'D
-      newPkgJson[EXPORT_MAP_ENTRY_POINT][key] = val.replace(`${buildDir}/`, '');
-      return;
-    }
-    // case 2: key is a sub-path export
-    newPkgJson[EXPORT_MAP_ENTRY_POINT][key] = Object.entries(val).reduce(
-      (acc, [key, val]) => {
-        return { ...acc, [key]: val.replace(`${buildDir}/`, '') };
-      },
-      {} as typeof val,
-    );
+  Object.keys(newPkgJson[EXPORT_MAP_ENTRY_POINT]).forEach(key => {
+    rewriteConditionalExportEntryPoint(newPkgJson[EXPORT_MAP_ENTRY_POINT], key);
   });
 }
 
