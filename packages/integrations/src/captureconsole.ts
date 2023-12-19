@@ -42,7 +42,7 @@ export class CaptureConsole implements Integration {
   }
 
   /** @inheritdoc */
-  public client(client: Client): void {
+  public setup(client: Client): void {
     if (!('console' in GLOBAL_OBJ)) {
       return;
     }
