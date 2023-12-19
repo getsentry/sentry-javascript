@@ -23,11 +23,12 @@ import type {
   Transaction,
   User,
 } from '@sentry/types';
-import { arrayify, dateTimestampInSeconds, isPlainObject, uuid4 } from '@sentry/utils';
+import { dateTimestampInSeconds, isPlainObject, uuid4 } from '@sentry/utils';
 
 import { getGlobalEventProcessors, notifyEventProcessors } from './eventProcessors';
+import { getGlobalData } from './globals';
 import { updateSession } from './session';
-import { applyScopeDataToEvent } from './utils/applyScopeDataToEvent';
+import { applyScopeDataToEvent, mergeScopeData } from './utils/applyScopeDataToEvent';
 
 /**
  * Default value for maximum number of breadcrumbs added to an event.
@@ -457,7 +458,9 @@ export class Scope implements ScopeInterface {
    * @inheritDoc
    */
   public getAttachments(): Attachment[] {
-    return this._attachments;
+    const data = this.getScopeData();
+
+    return data.attachments;
   }
 
   /**
@@ -469,7 +472,7 @@ export class Scope implements ScopeInterface {
   }
 
   /** @inheritDoc */
-  public getScopeData(): ScopeData {
+  public getPerScopeData(): ScopeData {
     const {
       _breadcrumbs,
       _attachments,
@@ -501,6 +504,16 @@ export class Scope implements ScopeInterface {
       transactionName: _transactionName,
       span: _span,
     };
+  }
+
+  /** @inheritdoc */
+  public getScopeData(): ScopeData {
+    const data = getGlobalScope().getPerScopeData();
+    const scopeData = this.getPerScopeData();
+
+    mergeScopeData(data, scopeData);
+
+    return data;
   }
 
   /**
@@ -568,6 +581,19 @@ export class Scope implements ScopeInterface {
       this._notifyingListeners = false;
     }
   }
+}
+
+/**
+ * Get the global scope.
+ * This scope is applied to _all_ events.
+ */
+export function getGlobalScope(): ScopeInterface {
+  const globalData = getGlobalData();
+  if (!globalData.globalScope) {
+    globalData.globalScope = new Scope();
+  }
+
+  return globalData.globalScope;
 }
 
 function generatePropagationContext(): PropagationContext {

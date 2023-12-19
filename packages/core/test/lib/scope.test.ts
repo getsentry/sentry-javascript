@@ -1,10 +1,13 @@
 import { applyScopeDataToEvent } from '@sentry/core';
-import type { Attachment, Breadcrumb, Client, EventProcessor } from '@sentry/types';
-import { Scope, getIsolationScope } from '../../src';
-import { getGlobalScope } from '../../src/sdk/scope';
-import { mockSdkInit, resetGlobals } from '../helpers/mockSdkInit';
+import type { Attachment, Breadcrumb, EventProcessor } from '@sentry/types';
+import { clearGlobalData } from '../../src/globals';
+import { Scope, getGlobalScope } from '../../src/scope';
 
 describe('Unit | Scope', () => {
+  beforeEach(() => {
+    clearGlobalData();
+  });
+
   it('allows to create & update a scope', () => {
     const scope = new Scope();
 
@@ -86,32 +89,28 @@ describe('Unit | Scope', () => {
     });
   });
 
-  it('allows to set & get a client', () => {
-    const scope = new Scope();
-    expect(scope.getClient()).toBeUndefined();
-    const client = {} as Client;
-    scope.setClient(client);
-    expect(scope.getClient()).toBe(client);
+  describe('global scope', () => {
+    beforeEach(() => {
+      clearGlobalData();
+    });
+
+    it('works', () => {
+      const globalScope = getGlobalScope();
+      expect(globalScope).toBeDefined();
+      expect(globalScope).toBeInstanceOf(Scope);
+
+      // Repeatedly returns the same instance
+      expect(getGlobalScope()).toBe(globalScope);
+
+      globalScope.setTag('tag1', 'val1');
+      globalScope.setTag('tag2', 'val2');
+
+      expect(globalScope.getScopeData().tags).toEqual({ tag1: 'val1', tag2: 'val2' });
+    });
   });
 
-  it('gets the correct isolationScope in _getIsolationScope', () => {
-    resetGlobals();
-
-    const scope = new Scope();
-    const globalIsolationScope = getIsolationScope();
-
-    expect(scope['_getIsolationScope']()).toBe(globalIsolationScope);
-
-    const customIsolationScope = new Scope();
-    scope.isolationScope = customIsolationScope;
-
-    expect(scope['_getIsolationScope']()).toBe(customIsolationScope);
-  });
-
-  describe('applyToEvent', () => {
+  describe('applyScopeDataToEvent', () => {
     it('works without any data', async () => {
-      mockSdkInit();
-
       const scope = new Scope();
 
       const event = { message: 'foo' };
@@ -129,16 +128,12 @@ describe('Unit | Scope', () => {
     });
 
     it('merges scope data', async () => {
-      mockSdkInit();
-
       const breadcrumb1 = { message: '1', timestamp: 111 } as Breadcrumb;
       const breadcrumb2 = { message: '2', timestamp: 222 } as Breadcrumb;
-      const breadcrumb3 = { message: '3', timestamp: 123 } as Breadcrumb;
-      const breadcrumb4 = { message: '4', timestamp: 333 } as Breadcrumb;
+      const breadcrumb3 = { message: '4', timestamp: 333 } as Breadcrumb;
 
       const eventProcessor1 = jest.fn((a: unknown) => a) as EventProcessor;
       const eventProcessor2 = jest.fn((b: unknown) => b) as EventProcessor;
-      const eventProcessor3 = jest.fn((c: unknown) => c) as EventProcessor;
 
       const scope = new Scope();
       scope.update({
@@ -151,19 +146,15 @@ describe('Unit | Scope', () => {
       });
       scope.addBreadcrumb(breadcrumb1);
       scope.addEventProcessor(eventProcessor1);
+      scope.setSDKProcessingMetadata({ aa: 'aa' });
 
       const globalScope = getGlobalScope();
-      const isolationScope = getIsolationScope();
 
       globalScope.addBreadcrumb(breadcrumb2);
       globalScope.addEventProcessor(eventProcessor2);
-      globalScope.setSDKProcessingMetadata({ aa: 'aa' });
-
-      isolationScope.addBreadcrumb(breadcrumb3);
-      isolationScope.addEventProcessor(eventProcessor3);
       globalScope.setSDKProcessingMetadata({ bb: 'bb' });
 
-      const event = { message: 'foo', breadcrumbs: [breadcrumb4], fingerprint: ['dd'] };
+      const event = { message: 'foo', breadcrumbs: [breadcrumb3], fingerprint: ['dd'] };
 
       applyScopeDataToEvent(event, scope.getScopeData());
 
@@ -174,7 +165,7 @@ describe('Unit | Scope', () => {
         extra: { extra1: 'aa', extra2: 'aa' },
         contexts: { os: { name: 'os1' }, culture: { display_name: 'name1' } },
         fingerprint: ['dd', 'aa'],
-        breadcrumbs: [breadcrumb4, breadcrumb2, breadcrumb3, breadcrumb1],
+        breadcrumbs: [breadcrumb3, breadcrumb2, breadcrumb1],
         sdkProcessingMetadata: {
           aa: 'aa',
           bb: 'bb',
@@ -189,8 +180,6 @@ describe('Unit | Scope', () => {
 
   describe('getAttachments', () => {
     it('works without any data', async () => {
-      mockSdkInit();
-
       const scope = new Scope();
 
       const actual = scope.getAttachments();
@@ -198,23 +187,18 @@ describe('Unit | Scope', () => {
     });
 
     it('merges attachments data', async () => {
-      mockSdkInit();
-
       const attachment1 = { filename: '1' } as Attachment;
       const attachment2 = { filename: '2' } as Attachment;
-      const attachment3 = { filename: '3' } as Attachment;
 
       const scope = new Scope();
       scope.addAttachment(attachment1);
 
       const globalScope = getGlobalScope();
-      const isolationScope = getIsolationScope();
 
       globalScope.addAttachment(attachment2);
-      isolationScope.addAttachment(attachment3);
 
       const actual = scope.getAttachments();
-      expect(actual).toEqual([attachment2, attachment3, attachment1]);
+      expect(actual).toEqual([attachment2, attachment1]);
     });
   });
 });
