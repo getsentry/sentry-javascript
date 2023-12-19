@@ -6,9 +6,16 @@ export type { OpenTelemetryClient } from './types';
 export { wrapClientClass } from './custom/client';
 
 export { getSpanKind } from './utils/getSpanKind';
-export { getSpanHub, getSpanMetadata, getSpanParent, getSpanScope, setSpanMetadata } from './utils/spanData';
+export {
+  getSpanHub,
+  getSpanMetadata,
+  getSpanParent,
+  getSpanScope,
+  setSpanMetadata,
+  getSpanFinishScope,
+} from './utils/spanData';
 
-export { getPropagationContextFromContext, setPropagationContextOnContext } from './utils/contextData';
+export { getPropagationContextFromContext, setPropagationContextOnContext, setHubOnContext } from './utils/contextData';
 
 export {
   spanHasAttributes,
@@ -25,6 +32,7 @@ export { getActiveSpan, getRootSpan } from './utils/getActiveSpan';
 export { startSpan, startInactiveSpan } from './trace';
 
 export { getCurrentHub, setupGlobalHub, getClient } from './custom/hub';
+export { OpenTelemetryScope } from './custom/scope';
 export { addTracingExtensions } from './custom/hubextensions';
 export { setupEventContextTrace } from './setupEventContextTrace';
 

@@ -1,8 +1,16 @@
-import { addTracingExtensions, captureException, continueTrace, runWithAsyncContext, trace } from '@sentry/core';
+import {
+  addTracingExtensions,
+  captureException,
+  continueTrace,
+  getCurrentScope,
+  runWithAsyncContext,
+  trace,
+} from '@sentry/core';
 import { winterCGHeadersToDict } from '@sentry/utils';
 
 import { isNotFoundNavigationError, isRedirectNavigationError } from '../common/nextNavigationErrorUtils';
 import type { ServerComponentContext } from '../common/types';
+import { commonObjectToPropagationContext } from './utils/commonObjectTracing';
 import { flushQueue } from './utils/responseEnd';
 
 /**
@@ -32,6 +40,18 @@ export function wrapServerComponentWithSentry<F extends (...args: any[]) => any>
           // eslint-disable-next-line deprecation/deprecation
           baggage: context.baggageHeader ?? completeHeadersDict['baggage'],
         });
+
+        // If there is no incoming trace, we are setting the transaction context to one that is shared between all other
+        // transactions for this request. We do this based on the `headers` object, which is the same for all components.
+        const propagationContext = getCurrentScope().getPropagationContext();
+        if (!transactionContext.traceId && !transactionContext.parentSpanId) {
+          const { traceId: commonTraceId, spanId: commonSpanId } = commonObjectToPropagationContext(
+            context.headers,
+            propagationContext,
+          );
+          transactionContext.traceId = commonTraceId;
+          transactionContext.parentSpanId = commonSpanId;
+        }
 
         const res = trace(
           {

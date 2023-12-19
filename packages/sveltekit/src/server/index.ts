@@ -14,6 +14,7 @@ export {
   captureMessage,
   captureCheckIn,
   withMonitor,
+  // eslint-disable-next-line deprecation/deprecation
   configureScope,
   createTransport,
   // eslint-disable-next-line deprecation/deprecation

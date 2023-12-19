@@ -2,9 +2,9 @@
 import type { Event, EventProcessor, Exception, Hub, Integration, StackFrame, StackParser } from '@sentry/types';
 import { LRUMap, logger } from '@sentry/utils';
 import type { Debugger, InspectorNotification, Runtime, Session } from 'inspector';
+import type { NodeClient } from '../client';
 
 import { NODE_VERSION } from '../nodeVersion';
-import type { NodeClientOptions } from '../types';
 
 type Variables = Record<string, unknown>;
 type OnPauseEvent = InspectorNotification<Debugger.PausedEventDataType>;
@@ -332,6 +332,7 @@ export class LocalVariables implements Integration {
 
   private readonly _cachedFrames: LRUMap<string, FrameVariables[]> = new LRUMap(20);
   private _rateLimiter: RateLimitIncrement | undefined;
+  private _shouldProcessEvent = false;
 
   public constructor(
     private readonly _options: Options = {},
@@ -341,16 +342,15 @@ export class LocalVariables implements Integration {
   /**
    * @inheritDoc
    */
-  public setupOnce(addGlobalEventProcessor: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
-    this._setup(addGlobalEventProcessor, getCurrentHub().getClient()?.getOptions());
+  public setupOnce(_addGlobalEventProcessor: (callback: EventProcessor) => void, _getCurrentHub: () => Hub): void {
+    // noop
   }
 
-  /** Setup in a way that's easier to call from tests */
-  private _setup(
-    addGlobalEventProcessor: (callback: EventProcessor) => void,
-    clientOptions: NodeClientOptions | undefined,
-  ): void {
-    if (this._session && clientOptions?.includeLocalVariables) {
+  /** @inheritdoc */
+  public setup(client: NodeClient): void {
+    const clientOptions = client.getOptions();
+
+    if (this._session && clientOptions.includeLocalVariables) {
       // Only setup this integration if the Node version is >= v18
       // https://github.com/getsentry/sentry-javascript/issues/7697
       const unsupportedNodeVersion = (NODE_VERSION.major || 0) < 18;
@@ -386,8 +386,17 @@ export class LocalVariables implements Integration {
         );
       }
 
-      addGlobalEventProcessor(async event => this._addLocalVariables(event));
+      this._shouldProcessEvent = true;
     }
+  }
+
+  /** @inheritdoc */
+  public processEvent(event: Event): Event {
+    if (this._shouldProcessEvent) {
+      return this._addLocalVariables(event);
+    }
+
+    return event;
   }
 
   /**

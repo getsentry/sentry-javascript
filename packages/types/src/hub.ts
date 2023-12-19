@@ -40,6 +40,8 @@ export interface Hub {
    * when the operation finishes or throws.
    *
    * @returns Scope, the new cloned scope
+   *
+   * @deprecated Use `withScope` instead.
    */
   pushScope(): Scope;
 
@@ -49,6 +51,8 @@ export interface Hub {
    * This restores the state before the scope was pushed. All breadcrumbs and
    * context information added since the last call to {@link this.pushScope} are
    * discarded.
+   *
+   * @deprecated Use `withScope` instead.
    */
   popScope(): boolean;
 
@@ -171,6 +175,7 @@ export interface Hub {
    * Callback to set context information onto the scope.
    *
    * @param callback Callback function that receives Scope.
+   * @deprecated Use `getScope()` directly.
    */
   configureScope(callback: (scope: Scope) => void): void;
 

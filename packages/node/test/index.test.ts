@@ -1,5 +1,6 @@
 import { LinkedErrors, SDK_VERSION, getMainCarrier, initAndBind, runWithAsyncContext } from '@sentry/core';
 import type { EventHint, Integration } from '@sentry/types';
+import { GLOBAL_OBJ } from '@sentry/utils';
 
 import type { Event } from '../src';
 import {
@@ -33,37 +34,33 @@ const dsn = 'https://53039209a22b4ec1bcc296a3c9fdecd6@sentry.io/4291';
 declare var global: any;
 
 describe('SentryNode', () => {
-  beforeAll(() => {
+  beforeEach(() => {
+    GLOBAL_OBJ.__SENTRY__ = { hub: undefined, logger: undefined, globalEventProcessors: [] };
     init({ dsn });
   });
 
   beforeEach(() => {
     jest.clearAllMocks();
-    getCurrentHub().pushScope();
-  });
-
-  afterEach(() => {
-    getCurrentHub().popScope();
   });
 
   describe('getContext() / setContext()', () => {
     test('store/load extra', async () => {
       getCurrentScope().setExtra('abc', { def: [1] });
-      expect(global.__SENTRY__.hub._stack[1].scope._extra).toEqual({
+      expect(global.__SENTRY__.hub._stack[0].scope._extra).toEqual({
         abc: { def: [1] },
       });
     });
 
     test('store/load tags', async () => {
       getCurrentScope().setTag('abc', 'def');
-      expect(global.__SENTRY__.hub._stack[1].scope._tags).toEqual({
+      expect(global.__SENTRY__.hub._stack[0].scope._tags).toEqual({
         abc: 'def',
       });
     });
 
     test('store/load user', async () => {
       getCurrentScope().setUser({ id: 'def' });
-      expect(global.__SENTRY__.hub._stack[1].scope._user).toEqual({
+      expect(global.__SENTRY__.hub._stack[0].scope._user).toEqual({
         id: 'def',
       });
     });
