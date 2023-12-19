@@ -7,7 +7,13 @@
   "author": "Sentry",
   "license": "MIT",
   "private": true,
+  "main": "./index.mjs",
+  "dependencies": {
+    "acorn": "^8.7.0",
+    "recast": "^0.20.5"
+  },
   "volta": {
     "extends": "../../package.json"
-  }
+  },
+  "type": "module"
 }
