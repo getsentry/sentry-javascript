@@ -80,6 +80,7 @@ export { addRequestDataToEvent, DEFAULT_USER_INCLUDES, extractRequestData } from
 export { deepReadDirSync } from './utils';
 export { getModuleFromFilename } from './module';
 export { enableAnrDetection } from './anr';
+export { cron } from './cron';
 
 import { Integrations as CoreIntegrations } from '@sentry/core';
 

@@ -1,11 +1,11 @@
 import { withMonitor } from '@sentry/core';
 
-interface NodeCronOptions {
+export interface NodeCronOptions {
   name?: string;
   timezone?: string;
 }
 
-interface NodeCron {
+export interface NodeCron {
   schedule: (cronExpression: string, callback: () => void, options?: NodeCronOptions) => unknown;
 }
 
@@ -61,16 +61,18 @@ function toSentryCrontab(cronExpression: string): string {
  * Wraps the node-cron library with check-in monitoring.
  *
  * ```ts
- * import * as Sentry from '@sentry/node';
- * import cron from 'node-cron';
+ * import * as Sentry from "@sentry/node";
+ * import cron from "node-cron";
  *
- * const cronWithCheckIn = Sentry.instrumentNodeCron(cron);
+ * const cronWithCheckIn = Sentry.cron.instrumentNodeCron(cron);
  *
- * cronWithCheckIn.schedule('* * * * *', () => {
- *   console.log('running a task every minute');
+ * cronWithCheckIn.schedule(
+ *   "* * * * *",
+ *   () => {
+ *     console.log("running a task every minute");
  *   },
- *   { name: 'my-cron-job' },
- * });
+ *   { name: "my-cron-job" },
+ * );
  * ```
  */
 export function instrumentNodeCron<T>(lib: Partial<NodeCron> & T): T {
@@ -83,7 +85,7 @@ export function instrumentNodeCron<T>(lib: Partial<NodeCron> & T): T {
             const [expression, _, options] = argArray;
 
             if (!options?.name) {
-              throw new Error('Missing "name" for scheduled job. This is required for Sentry check-in monitoring.');
+              throw new Error('Missing "name" for scheduled job. A name is required for Sentry check-in monitoring.');
             }
 
             return withMonitor(
