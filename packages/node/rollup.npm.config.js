@@ -1,5 +1,5 @@
 import { makeBaseNPMConfig, makeNPMConfigVariants } from '../../rollup/index.js';
-import { anrWorkerConfigs } from './rollup.anr-worker.config.js';
+import { anrWorkerConfigs } from './rollup.anr-worker.config.mjs';
 
 export default [
   ...makeNPMConfigVariants(makeBaseNPMConfig()),

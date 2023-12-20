@@ -15,7 +15,9 @@ export function addFeedbackBreadcrumb(replay: ReplayContainer, event: FeedbackEv
       return true;
     }
 
-    void replay.throttledAddEvent({
+    // This should never reject
+    // eslint-disable-next-line @typescript-eslint/no-floating-promises
+    replay.throttledAddEvent({
       type: EventType.Custom,
       timestamp: event.timestamp * 1000,
       data: {

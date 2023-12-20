@@ -153,7 +153,7 @@ export function withSentry(apiHandler: NextApiHandler, parameterizedRoute?: stri
               const origResEnd = res.end;
               res.end = async function (this: unknown, ...args: unknown[]) {
                 if (transaction) {
-                  await finishTransaction(transaction, res);
+                  finishTransaction(transaction, res);
                   await flushQueue();
                 }
 
@@ -207,15 +207,14 @@ export function withSentry(apiHandler: NextApiHandler, parameterizedRoute?: stri
             res.statusCode = 500;
             res.statusMessage = 'Internal Server Error';
 
+            finishTransaction(transaction, res);
+
             // Make sure we have a chance to finish the transaction and flush events to Sentry before the handler errors
             // out. (Apps which are deployed on Vercel run their API routes in lambdas, and those lambdas will shut down the
             // moment they detect an error, so it's important to get this done before rethrowing the error. Apps not
             // deployed serverlessly will run into this cleanup code again in `res.end(), but the transaction will already
             // be finished and the queue will already be empty, so effectively it'll just no-op.)
             if (platformSupportsStreaming() && !wrappingTarget.__sentry_test_doesnt_support_streaming__) {
-              void finishTransaction(transaction, res);
-            } else {
-              await finishTransaction(transaction, res);
               await flushQueue();
             }
 

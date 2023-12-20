@@ -110,7 +110,8 @@ function _wrapHttpFunction(fn: HttpFunction, wrapOptions: Partial<HttpFunctionWr
       transaction?.setHttpStatus(res.statusCode);
       transaction?.finish();
 
-      void flush(options.flushTimeout)
+      // eslint-disable-next-line @typescript-eslint/no-floating-promises
+      flush(options.flushTimeout)
         .then(null, e => {
           DEBUG_BUILD && logger.error(e);
         })

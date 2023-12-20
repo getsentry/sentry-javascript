@@ -1,6 +1,6 @@
 {
   "name": "@sentry/deno",
-  "version": "7.89.0",
+  "version": "7.90.0",
   "description": "Official Sentry SDK for Deno",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/deno",
@@ -17,10 +17,10 @@
     "index.d.ts"
   ],
   "dependencies": {
-    "@sentry/browser": "7.89.0",
-    "@sentry/core": "7.89.0",
-    "@sentry/types": "7.89.0",
-    "@sentry/utils": "7.89.0"
+    "@sentry/browser": "7.90.0",
+    "@sentry/core": "7.90.0",
+    "@sentry/types": "7.90.0",
+    "@sentry/utils": "7.90.0"
   },
   "devDependencies": {
     "@rollup/plugin-typescript": "^11.1.5",
@@ -34,7 +34,7 @@
     "build:transpile": "yarn deno-types && rollup -c rollup.config.js",
     "build:types": "run-s deno-types build:types:tsc build:types:bundle",
     "build:types:tsc": "tsc -p tsconfig.types.json",
-    "build:types:bundle": "rollup -c rollup.types.config.js",
+    "build:types:bundle": "rollup -c rollup.types.config.mjs",
     "build:tarball": "ts-node ../../scripts/prepack.ts && npm pack ./build",
     "circularDepCheck": "madge --circular src/index.ts",
     "clean": "rimraf build build-types build-test coverage",
@@ -45,7 +45,7 @@
     "install:deno": "node ./scripts/install-deno.mjs",
     "pretest": "run-s deno-types test:build",
     "test": "run-s install:deno test:types test:unit",
-    "test:build": "tsc -p tsconfig.test.types.json && rollup -c rollup.test.config.js",
+    "test:build": "tsc -p tsconfig.test.types.json && rollup -c rollup.test.config.mjs",
     "test:types": "deno check ./build/index.mjs",
     "test:unit": "deno test --allow-read --allow-run",
     "test:unit:update": "deno test --allow-read --allow-write --allow-run -- --update",

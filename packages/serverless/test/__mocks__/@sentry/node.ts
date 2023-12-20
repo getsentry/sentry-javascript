@@ -41,6 +41,7 @@ export const captureException = jest.fn();
 export const captureMessage = jest.fn();
 export const withScope = jest.fn(cb => cb(fakeScope));
 export const flush = jest.fn(() => Promise.resolve());
+export const getClient = jest.fn(() => ({}));
 
 export const resetMocks = (): void => {
   fakeTransaction.setHttpStatus.mockClear();
@@ -68,4 +69,5 @@ export const resetMocks = (): void => {
   captureMessage.mockClear();
   withScope.mockClear();
   flush.mockClear();
+  getClient.mockClear();
 };
