@@ -13,8 +13,8 @@ import { GLOBAL_OBJ, addExceptionMechanism, dateTimestampInSeconds, normalize, t
 
 import { DEFAULT_ENVIRONMENT } from '../constants';
 import { getGlobalEventProcessors, notifyEventProcessors } from '../eventProcessors';
-import { Scope } from '../scope';
-import { applyScopeDataToEvent } from './applyScopeDataToEvent';
+import { Scope, getGlobalScope } from '../scope';
+import { applyScopeDataToEvent, mergeScopeData } from './applyScopeDataToEvent';
 
 /**
  * This type makes sure that we get either a CaptureContext, OR an EventHint.
@@ -74,36 +74,32 @@ export function prepareEvent(
   }
 
   const clientEventProcessors = client && client.getEventProcessors ? client.getEventProcessors() : [];
+
+  // This should be the last thing called, since we want that
+  // {@link Hub.addEventProcessor} gets the finished prepared event.
+  // Merge scope data together
+  const data = getGlobalScope().getScopeData();
+
+  if (finalScope) {
+    const finalScopeData = finalScope.getScopeData();
+    mergeScopeData(data, finalScopeData);
+  }
+
+  const attachments = [...(hint.attachments || []), ...data.attachments];
+  if (attachments.length) {
+    hint.attachments = attachments;
+  }
+
+  applyScopeDataToEvent(prepared, data);
+
   // TODO (v8): Update this order to be: Global > Client > Scope
   const eventProcessors = [
     ...clientEventProcessors,
     // eslint-disable-next-line deprecation/deprecation
     ...getGlobalEventProcessors(),
-  ];
-
-  // This should be the last thing called, since we want that
-  // {@link Hub.addEventProcessor} gets the finished prepared event.
-  //
-  // We need to check for the existence of `finalScope.getAttachments`
-  // because `getAttachments` can be undefined if users are using an older version
-  // of `@sentry/core` that does not have the `getAttachments` method.
-  // See: https://github.com/getsentry/sentry-javascript/issues/5229
-  if (finalScope) {
-    // Collect attachments from the hint and scope
-    if (finalScope.getAttachments) {
-      const attachments = [...(hint.attachments || []), ...finalScope.getAttachments()];
-
-      if (attachments.length) {
-        hint.attachments = attachments;
-      }
-    }
-
-    const scopeData = finalScope.getScopeData();
-    applyScopeDataToEvent(prepared, scopeData);
-
     // Run scope event processors _after_ all other processors
-    eventProcessors.push(...scopeData.eventProcessors);
-  }
+    ...data.eventProcessors,
+  ];
 
   const result = notifyEventProcessors(eventProcessors, prepared, hint);
 

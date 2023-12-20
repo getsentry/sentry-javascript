@@ -1,8 +1,23 @@
-import type { Event, EventHint, ScopeContext } from '@sentry/types';
+import type {
+  Attachment,
+  Breadcrumb,
+  Client,
+  ClientOptions,
+  Event,
+  EventHint,
+  EventProcessor,
+  ScopeContext,
+} from '@sentry/types';
 import { GLOBAL_OBJ, createStackParser } from '@sentry/utils';
+import { clearGlobalData } from '../../src';
 
-import { Scope } from '../../src/scope';
-import { applyDebugIds, applyDebugMeta, parseEventHintOrCaptureContext } from '../../src/utils/prepareEvent';
+import { Scope, getGlobalScope } from '../../src/scope';
+import {
+  applyDebugIds,
+  applyDebugMeta,
+  parseEventHintOrCaptureContext,
+  prepareEvent,
+} from '../../src/utils/prepareEvent';
 
 describe('applyDebugIds', () => {
   afterEach(() => {
@@ -169,6 +184,173 @@ describe('parseEventHintOrCaptureContext', () => {
       captureContext: {
         user: { id: 'xxx' },
         mechanism: { handled: false },
+      },
+    });
+  });
+});
+
+describe('prepareEvent', () => {
+  beforeEach(() => {
+    clearGlobalData();
+  });
+
+  it('works without any scope data', async () => {
+    const eventProcessor = jest.fn((a: unknown) => a) as EventProcessor;
+
+    const scope = new Scope();
+
+    const event = { message: 'foo' };
+
+    const options = {} as ClientOptions;
+    const client = {
+      getEventProcessors() {
+        return [eventProcessor];
+      },
+    } as Client;
+    const processedEvent = await prepareEvent(
+      options,
+      event,
+      {
+        integrations: [],
+      },
+      scope,
+      client,
+    );
+
+    expect(eventProcessor).toHaveBeenCalledWith(processedEvent, {
+      integrations: [],
+      // no attachments are added to hint
+    });
+
+    expect(processedEvent).toEqual({
+      timestamp: expect.any(Number),
+      event_id: expect.any(String),
+      environment: 'production',
+      message: 'foo',
+      sdkProcessingMetadata: {
+        propagationContext: {
+          spanId: expect.any(String),
+          traceId: expect.any(String),
+        },
+      },
+    });
+  });
+
+  it('merges scope data', async () => {
+    const breadcrumb1 = { message: '1', timestamp: 111 } as Breadcrumb;
+    const breadcrumb2 = { message: '2', timestamp: 222 } as Breadcrumb;
+    const breadcrumb3 = { message: '3', timestamp: 123 } as Breadcrumb;
+
+    const eventProcessor1 = jest.fn((a: unknown) => a) as EventProcessor;
+    const eventProcessor2 = jest.fn((b: unknown) => b) as EventProcessor;
+
+    const attachment1 = { filename: '1' } as Attachment;
+    const attachment2 = { filename: '2' } as Attachment;
+
+    const scope = new Scope();
+    scope.update({
+      user: { id: '1', email: 'test@example.com' },
+      tags: { tag1: 'aa', tag2: 'aa' },
+      extra: { extra1: 'aa', extra2: 'aa' },
+      contexts: { os: { name: 'os1' }, culture: { display_name: 'name1' } },
+      propagationContext: { spanId: '1', traceId: '1' },
+      fingerprint: ['aa'],
+    });
+    scope.addBreadcrumb(breadcrumb1);
+    scope.addEventProcessor(eventProcessor1);
+    scope.addAttachment(attachment1);
+
+    const globalScope = getGlobalScope();
+
+    globalScope.addBreadcrumb(breadcrumb2);
+    globalScope.addEventProcessor(eventProcessor2);
+    globalScope.setSDKProcessingMetadata({ aa: 'aa' });
+    globalScope.addAttachment(attachment2);
+
+    const event = { message: 'foo', breadcrumbs: [breadcrumb3], fingerprint: ['dd'] };
+
+    const options = {} as ClientOptions;
+    const processedEvent = await prepareEvent(
+      options,
+      event,
+      {
+        integrations: [],
+      },
+      scope,
+    );
+
+    expect(eventProcessor1).toHaveBeenCalledTimes(1);
+    expect(eventProcessor2).toHaveBeenCalledTimes(1);
+
+    // Test that attachments are correctly merged
+    expect(eventProcessor1).toHaveBeenCalledWith(processedEvent, {
+      integrations: [],
+      attachments: [attachment2, attachment1],
+    });
+
+    expect(processedEvent).toEqual({
+      timestamp: expect.any(Number),
+      event_id: expect.any(String),
+      environment: 'production',
+      message: 'foo',
+      user: { id: '1', email: 'test@example.com' },
+      tags: { tag1: 'aa', tag2: 'aa' },
+      extra: { extra1: 'aa', extra2: 'aa' },
+      contexts: { os: { name: 'os1' }, culture: { display_name: 'name1' } },
+      fingerprint: ['dd', 'aa'],
+      breadcrumbs: [breadcrumb3, breadcrumb2, breadcrumb1],
+      sdkProcessingMetadata: {
+        aa: 'aa',
+        propagationContext: {
+          spanId: '1',
+          traceId: '1',
+        },
+      },
+    });
+  });
+
+  it('works without a scope', async () => {
+    const breadcrumb1 = { message: '1', timestamp: 111 } as Breadcrumb;
+    const breadcrumb2 = { message: '2', timestamp: 222 } as Breadcrumb;
+
+    const eventProcessor1 = jest.fn((a: unknown) => a) as EventProcessor;
+
+    const attachment1 = { filename: '1' } as Attachment;
+    const attachment2 = { filename: '2' } as Attachment;
+
+    const globalScope = getGlobalScope();
+
+    globalScope.addBreadcrumb(breadcrumb1);
+    globalScope.addEventProcessor(eventProcessor1);
+    globalScope.setSDKProcessingMetadata({ aa: 'aa' });
+    globalScope.addAttachment(attachment1);
+
+    const event = { message: 'foo', breadcrumbs: [breadcrumb2], fingerprint: ['dd'] };
+
+    const options = {} as ClientOptions;
+    const processedEvent = await prepareEvent(options, event, {
+      integrations: [],
+      attachments: [attachment2],
+    });
+
+    expect(eventProcessor1).toHaveBeenCalledTimes(1);
+
+    // Test that attachments are correctly merged
+    expect(eventProcessor1).toHaveBeenCalledWith(processedEvent, {
+      integrations: [],
+      attachments: [attachment2, attachment1],
+    });
+
+    expect(processedEvent).toEqual({
+      timestamp: expect.any(Number),
+      event_id: expect.any(String),
+      environment: 'production',
+      message: 'foo',
+      fingerprint: ['dd'],
+      breadcrumbs: [breadcrumb2, breadcrumb1],
+      sdkProcessingMetadata: {
+        aa: 'aa',
+        propagationContext: globalScope.getPropagationContext(),
       },
     });
   });

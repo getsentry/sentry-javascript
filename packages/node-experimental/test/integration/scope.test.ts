@@ -246,14 +246,14 @@ describe('Integration | Scope', () => {
       globalScope.setTag('tag1', 'val1');
       globalScope.setTag('tag2', 'val2');
 
-      expect(globalScope.getPerScopeData().tags).toEqual({ tag1: 'val1', tag2: 'val2' });
+      expect(globalScope.getScopeData().tags).toEqual({ tag1: 'val1', tag2: 'val2' });
 
       // Now when we call init, the global scope remains intact
       Sentry.init({ dsn: 'https://username@domain/123', defaultIntegrations: false });
 
       expect(globalScope.getClient()).toBeDefined();
       expect(Sentry.getGlobalScope()).toBe(globalScope);
-      expect(globalScope.getPerScopeData().tags).toEqual({ tag1: 'val1', tag2: 'val2' });
+      expect(globalScope.getScopeData().tags).toEqual({ tag1: 'val1', tag2: 'val2' });
     });
 
     it('is applied to events', async () => {
@@ -304,7 +304,7 @@ describe('Integration | Scope', () => {
       isolationScope.setTag('tag1', 'val1');
       isolationScope.setTag('tag2', 'val2');
 
-      expect(isolationScope.getPerScopeData().tags).toEqual({ tag1: 'val1', tag2: 'val2' });
+      expect(isolationScope.getScopeData().tags).toEqual({ tag1: 'val1', tag2: 'val2' });
 
       // Now when we call init, the isolation scope remains intact
       Sentry.init({ dsn: 'https://username@domain/123', defaultIntegrations: false });
@@ -312,7 +312,7 @@ describe('Integration | Scope', () => {
       // client is only attached to global scope by default
       expect(isolationScope.getClient()).toBeUndefined();
       expect(Sentry.getIsolationScope()).toBe(isolationScope);
-      expect(isolationScope.getPerScopeData().tags).toEqual({ tag1: 'val1', tag2: 'val2' });
+      expect(isolationScope.getScopeData().tags).toEqual({ tag1: 'val1', tag2: 'val2' });
     });
 
     it('is applied to events', async () => {
@@ -368,13 +368,13 @@ describe('Integration | Scope', () => {
         expect(newIsolationScope).not.toBe(initialIsolationScope);
 
         // Data is forked off original isolation scope
-        expect(newIsolationScope.getPerScopeData().tags).toEqual({ tag1: 'val1', tag2: 'val2' });
+        expect(newIsolationScope.getScopeData().tags).toEqual({ tag1: 'val1', tag2: 'val2' });
         newIsolationScope.setTag('tag3', 'val3');
 
         Sentry.captureException(error);
       });
 
-      expect(initialIsolationScope.getPerScopeData().tags).toEqual({ tag1: 'val1', tag2: 'val2' });
+      expect(initialIsolationScope.getScopeData().tags).toEqual({ tag1: 'val1', tag2: 'val2' });
 
       await client.flush();
 

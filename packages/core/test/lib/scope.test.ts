@@ -127,13 +127,9 @@ describe('Unit | Scope', () => {
       });
     });
 
-    it('merges scope data', async () => {
+    it('works with data', async () => {
       const breadcrumb1 = { message: '1', timestamp: 111 } as Breadcrumb;
-      const breadcrumb2 = { message: '2', timestamp: 222 } as Breadcrumb;
-      const breadcrumb3 = { message: '4', timestamp: 333 } as Breadcrumb;
-
-      const eventProcessor1 = jest.fn((a: unknown) => a) as EventProcessor;
-      const eventProcessor2 = jest.fn((b: unknown) => b) as EventProcessor;
+      const breadcrumb2 = { message: '1', timestamp: 111 } as Breadcrumb;
 
       const scope = new Scope();
       scope.update({
@@ -145,16 +141,9 @@ describe('Unit | Scope', () => {
         fingerprint: ['aa'],
       });
       scope.addBreadcrumb(breadcrumb1);
-      scope.addEventProcessor(eventProcessor1);
       scope.setSDKProcessingMetadata({ aa: 'aa' });
 
-      const globalScope = getGlobalScope();
-
-      globalScope.addBreadcrumb(breadcrumb2);
-      globalScope.addEventProcessor(eventProcessor2);
-      globalScope.setSDKProcessingMetadata({ bb: 'bb' });
-
-      const event = { message: 'foo', breadcrumbs: [breadcrumb3], fingerprint: ['dd'] };
+      const event = { message: 'foo', breadcrumbs: [breadcrumb2], fingerprint: ['dd'] };
 
       applyScopeDataToEvent(event, scope.getScopeData());
 
@@ -165,10 +154,9 @@ describe('Unit | Scope', () => {
         extra: { extra1: 'aa', extra2: 'aa' },
         contexts: { os: { name: 'os1' }, culture: { display_name: 'name1' } },
         fingerprint: ['dd', 'aa'],
-        breadcrumbs: [breadcrumb3, breadcrumb2, breadcrumb1],
+        breadcrumbs: [breadcrumb2, breadcrumb1],
         sdkProcessingMetadata: {
           aa: 'aa',
-          bb: 'bb',
           propagationContext: {
             spanId: '1',
             traceId: '1',
@@ -179,6 +167,7 @@ describe('Unit | Scope', () => {
   });
 
   describe('getAttachments', () => {
+    /* eslint-disable deprecation/deprecation */
     it('works without any data', async () => {
       const scope = new Scope();
 
@@ -186,19 +175,17 @@ describe('Unit | Scope', () => {
       expect(actual).toEqual([]);
     });
 
-    it('merges attachments data', async () => {
+    it('works with attachments', async () => {
       const attachment1 = { filename: '1' } as Attachment;
       const attachment2 = { filename: '2' } as Attachment;
 
       const scope = new Scope();
       scope.addAttachment(attachment1);
-
-      const globalScope = getGlobalScope();
-
-      globalScope.addAttachment(attachment2);
+      scope.addAttachment(attachment2);
 
       const actual = scope.getAttachments();
-      expect(actual).toEqual([attachment2, attachment1]);
+      expect(actual).toEqual([attachment1, attachment2]);
     });
+    /* eslint-enable deprecation/deprecation */
   });
 });

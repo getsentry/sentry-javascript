@@ -1,5 +1,5 @@
-import { applyScopeDataToEvent } from '@sentry/core';
-import type { Attachment, Breadcrumb, Client, EventProcessor } from '@sentry/types';
+import { prepareEvent } from '@sentry/core';
+import type { Attachment, Breadcrumb, Client, ClientOptions, EventProcessor } from '@sentry/types';
 import { Scope, getIsolationScope } from '../../src';
 import { getGlobalScope } from '../../src/sdk/scope';
 import { mockSdkInit, resetGlobals } from '../helpers/mockSdkInit';
@@ -108,16 +108,41 @@ describe('Unit | Scope', () => {
     expect(scope['_getIsolationScope']()).toBe(customIsolationScope);
   });
 
-  describe('applyToEvent', () => {
-    it('works without any data', async () => {
+  describe('prepareEvent', () => {
+    it('works without any scope data', async () => {
       mockSdkInit();
+
+      const eventProcessor = jest.fn((a: unknown) => a) as EventProcessor;
 
       const scope = new Scope();
 
       const event = { message: 'foo' };
-      applyScopeDataToEvent(event, scope.getScopeData());
 
-      expect(event).toEqual({
+      const options = {} as ClientOptions;
+      const client = {
+        getEventProcessors() {
+          return [eventProcessor];
+        },
+      } as Client;
+      const processedEvent = await prepareEvent(
+        options,
+        event,
+        {
+          integrations: [],
+        },
+        scope,
+        client,
+      );
+
+      expect(eventProcessor).toHaveBeenCalledWith(processedEvent, {
+        integrations: [],
+        // no attachments are added to hint
+      });
+
+      expect(processedEvent).toEqual({
+        timestamp: expect.any(Number),
+        event_id: expect.any(String),
+        environment: 'production',
         message: 'foo',
         sdkProcessingMetadata: {
           propagationContext: {
@@ -140,6 +165,10 @@ describe('Unit | Scope', () => {
       const eventProcessor2 = jest.fn((b: unknown) => b) as EventProcessor;
       const eventProcessor3 = jest.fn((c: unknown) => c) as EventProcessor;
 
+      const attachment1 = { filename: '1' } as Attachment;
+      const attachment2 = { filename: '2' } as Attachment;
+      const attachment3 = { filename: '3' } as Attachment;
+
       const scope = new Scope();
       scope.update({
         user: { id: '1', email: 'test@example.com' },
@@ -151,6 +180,7 @@ describe('Unit | Scope', () => {
       });
       scope.addBreadcrumb(breadcrumb1);
       scope.addEventProcessor(eventProcessor1);
+      scope.addAttachment(attachment1);
 
       const globalScope = getGlobalScope();
       const isolationScope = getIsolationScope();
@@ -158,16 +188,39 @@ describe('Unit | Scope', () => {
       globalScope.addBreadcrumb(breadcrumb2);
       globalScope.addEventProcessor(eventProcessor2);
       globalScope.setSDKProcessingMetadata({ aa: 'aa' });
+      globalScope.addAttachment(attachment2);
 
       isolationScope.addBreadcrumb(breadcrumb3);
       isolationScope.addEventProcessor(eventProcessor3);
-      globalScope.setSDKProcessingMetadata({ bb: 'bb' });
+      isolationScope.setSDKProcessingMetadata({ bb: 'bb' });
+      isolationScope.addAttachment(attachment3);
 
       const event = { message: 'foo', breadcrumbs: [breadcrumb4], fingerprint: ['dd'] };
 
-      applyScopeDataToEvent(event, scope.getScopeData());
+      const options = {} as ClientOptions;
+      const processedEvent = await prepareEvent(
+        options,
+        event,
+        {
+          integrations: [],
+        },
+        scope,
+      );
 
-      expect(event).toEqual({
+      expect(eventProcessor1).toHaveBeenCalledTimes(1);
+      expect(eventProcessor2).toHaveBeenCalledTimes(1);
+      expect(eventProcessor3).toHaveBeenCalledTimes(1);
+
+      // Test that attachments are correctly merged
+      expect(eventProcessor1).toHaveBeenCalledWith(processedEvent, {
+        integrations: [],
+        attachments: [attachment2, attachment3, attachment1],
+      });
+
+      expect(processedEvent).toEqual({
+        timestamp: expect.any(Number),
+        event_id: expect.any(String),
+        environment: 'production',
         message: 'foo',
         user: { id: '1', email: 'test@example.com' },
         tags: { tag1: 'aa', tag2: 'aa' },
@@ -184,37 +237,6 @@ describe('Unit | Scope', () => {
           },
         },
       });
-    });
-  });
-
-  describe('getAttachments', () => {
-    it('works without any data', async () => {
-      mockSdkInit();
-
-      const scope = new Scope();
-
-      const actual = scope.getAttachments();
-      expect(actual).toEqual([]);
-    });
-
-    it('merges attachments data', async () => {
-      mockSdkInit();
-
-      const attachment1 = { filename: '1' } as Attachment;
-      const attachment2 = { filename: '2' } as Attachment;
-      const attachment3 = { filename: '3' } as Attachment;
-
-      const scope = new Scope();
-      scope.addAttachment(attachment1);
-
-      const globalScope = getGlobalScope();
-      const isolationScope = getIsolationScope();
-
-      globalScope.addAttachment(attachment2);
-      isolationScope.addAttachment(attachment3);
-
-      const actual = scope.getAttachments();
-      expect(actual).toEqual([attachment2, attachment3, attachment1]);
     });
   });
 });

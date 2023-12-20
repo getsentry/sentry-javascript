@@ -456,6 +456,7 @@ export class Scope implements ScopeInterface {
 
   /**
    * @inheritDoc
+   * @deprecated Use `getScopeData()` instead.
    */
   public getAttachments(): Attachment[] {
     const data = this.getScopeData();
@@ -472,7 +473,7 @@ export class Scope implements ScopeInterface {
   }
 
   /** @inheritDoc */
-  public getPerScopeData(): ScopeData {
+  public getScopeData(): ScopeData {
     const {
       _breadcrumbs,
       _attachments,
@@ -504,16 +505,6 @@ export class Scope implements ScopeInterface {
       transactionName: _transactionName,
       span: _span,
     };
-  }
-
-  /** @inheritdoc */
-  public getScopeData(): ScopeData {
-    const data = getGlobalScope().getPerScopeData();
-    const scopeData = this.getPerScopeData();
-
-    mergeScopeData(data, scopeData);
-
-    return data;
   }
 
   /**

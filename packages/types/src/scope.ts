@@ -53,9 +53,6 @@ export interface Scope {
   /** Get the data of this scope, which is applied to an event during processing. */
   getScopeData(): ScopeData;
 
-  /** Get the data of this scope only, ignoring all other related scopes. */
-  getPerScopeData(): ScopeData;
-
   /**
    * Updates user context information for future events.
    *
