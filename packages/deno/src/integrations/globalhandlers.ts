@@ -79,7 +79,7 @@ function installGlobalErrorHandler(client: Client): void {
     data.preventDefault();
     isExiting = true;
 
-    void flush().then(
+    flush().then(
       () => {
         // rethrow to replicate Deno default behavior
         throw error;
