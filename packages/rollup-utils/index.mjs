@@ -1,5 +1,3 @@
-Error.stackTraceLimit = Infinity;
-
 // TODO Is this necessary?
 import * as plugins from './plugins/index.mjs';
 export { plugins };
