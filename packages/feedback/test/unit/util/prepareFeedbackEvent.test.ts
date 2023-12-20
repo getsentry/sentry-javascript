@@ -16,7 +16,7 @@ describe('Unit | util | prepareFeedbackEvent', () => {
     hub.bindClient(client);
 
     client = hub.getClient()!;
-    scope = hub.getScope()!;
+    scope = hub.getScope();
   });
 
   afterEach(() => {

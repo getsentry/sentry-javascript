@@ -1,6 +1,6 @@
 {
   "name": "@sentry/node",
-  "version": "7.88.0",
+  "version": "7.89.0",
   "description": "Official Sentry SDK for Node.js",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/node",
@@ -23,10 +23,10 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry-internal/tracing": "7.88.0",
-    "@sentry/core": "7.88.0",
-    "@sentry/types": "7.88.0",
-    "@sentry/utils": "7.88.0",
+    "@sentry-internal/tracing": "7.89.0",
+    "@sentry/core": "7.89.0",
+    "@sentry/types": "7.89.0",
+    "@sentry/utils": "7.89.0",
     "https-proxy-agent": "^5.0.0"
   },
   "devDependencies": {
@@ -41,8 +41,8 @@
   "scripts": {
     "build": "run-p build:transpile build:types",
     "build:dev": "yarn build",
-    "build:transpile": "rollup -c rollup.npm.config.mjs",
-    "build:types": "run-s build:types:core build:types:downlevel",
+    "build:transpile": "yarn build:anr-worker && rollup -c rollup.npm.config.mjs",
+    "build:types": "run-s build:anr-worker build:types:core build:types:downlevel",
     "build:types:core": "tsc -p tsconfig.types.json",
     "build:types:downlevel": "yarn downlevel-dts build/types build/types-ts3.8 --to ts3.8",
     "build:watch": "run-p build:transpile:watch build:types:watch",
@@ -50,11 +50,13 @@
     "build:transpile:watch": "rollup -c rollup.npm.config.mjs --watch",
     "build:types:watch": "tsc -p tsconfig.types.json --watch",
     "build:tarball": "ts-node ../../scripts/prepack.ts && npm pack ./build",
+    "build:anr-worker": "rollup -c rollup.anr-worker.config.mjs",
+    "build:anr-worker-stub": "echo 'export const base64WorkerScript=\"\";' > src/integrations/anr/worker-script.ts",
     "circularDepCheck": "madge --circular src/index.ts",
     "clean": "rimraf build coverage sentry-node-*.tgz",
     "fix": "eslint . --format stylish --fix",
     "lint": "eslint . --format stylish",
-    "test": "run-s test:jest test:express test:webpack test:release-health",
+    "test": "run-s build:anr-worker-stub test:jest test:express test:webpack test:release-health",
     "test:express": "node test/manual/express-scope-separation/start.js",
     "test:jest": "jest",
     "test:release-health": "node test/manual/release-health/runner.js",

@@ -53,3 +53,33 @@ export const MAX_REPLAY_DURATION = 3_600_000; // 60 minutes in ms;
 
 /** Default attributes to be ignored when `maskAllText` is enabled */
 export const DEFAULT_IGNORED_ATTRIBUTES = ['title', 'placeholder'];
+
+export const CANVAS_QUALITY = {
+  low: {
+    sampling: {
+      canvas: 1,
+    },
+    dataURLOptions: {
+      type: 'image/webp',
+      quality: 0.25,
+    },
+  },
+  medium: {
+    sampling: {
+      canvas: 2,
+    },
+    dataURLOptions: {
+      type: 'image/webp',
+      quality: 0.4,
+    },
+  },
+  high: {
+    sampling: {
+      canvas: 4,
+    },
+    dataURLOptions: {
+      type: 'image/webp',
+      quality: 0.5,
+    },
+  },
+};

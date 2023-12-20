@@ -38,6 +38,7 @@ function sendErrorToSentry(errorData: object): void {
 export const hapiErrorPlugin = {
   name: 'SentryHapiErrorPlugin',
   version: SDK_VERSION,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   register: async function (serverArg: Record<any, any>) {
     const server = serverArg as unknown as Server;
 
@@ -61,6 +62,7 @@ export const hapiErrorPlugin = {
 export const hapiTracingPlugin = {
   name: 'SentryHapiTracingPlugin',
   version: SDK_VERSION,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   register: async function (serverArg: Record<any, any>) {
     const server = serverArg as unknown as Server;
 
@@ -122,6 +124,7 @@ export const hapiTracingPlugin = {
 
 export type HapiOptions = {
   /** Hapi server instance */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   server?: Record<any, any>;
 };
 
