@@ -39,12 +39,10 @@
     "undici": "^5.21.0"
   },
   "scripts": {
-    "build": "run-p build:transpile build:types",
+    "build": "run-s build:transpile build:types",
     "build:dev": "yarn build",
-    "build:transpile": "run-s build:transpile-anr-worker build:transpile-sdk",
-    "build:transpile-sdk": "rollup -c rollup.npm.config.mjs",
-    "build:transpile-anr-worker": "rollup -c rollup.anr-worker.config.mjs",
-    "build:types": "run-s build:transpile-anr-worker build:types:core build:types:downlevel",
+    "build:transpile": "rollup -c rollup.npm.config.js",
+    "build:types": "run-s build:types:core build:types:downlevel",
     "build:types:core": "tsc -p tsconfig.types.json",
     "build:types:downlevel": "yarn downlevel-dts build/types build/types-ts3.8 --to ts3.8",
     "build:watch": "run-p build:transpile:watch build:types:watch",
