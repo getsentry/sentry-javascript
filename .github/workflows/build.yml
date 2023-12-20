@@ -176,7 +176,7 @@ jobs:
         # so no need to reinstall them
       - name: Compute dependency cache key
         id: compute_lockfile_hash
-        run: echo "hash=${{ hashFiles('yarn.lock') }}" >> "$GITHUB_OUTPUT"
+        run: echo "hash=${{ hashFiles('yarn.lock', '**/package.json') }}" >> "$GITHUB_OUTPUT"
 
       - name: Check dependency cache
         uses: actions/cache@v3
