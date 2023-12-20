@@ -4,6 +4,7 @@ import {
   defaultIntegrations as defaultNodeIntegrations,
   defaultStackParser,
   getSentryRelease,
+  isAnrChildProcess,
   makeNodeTransport,
 } from '@sentry/node';
 import type { Integration } from '@sentry/types';
@@ -112,14 +113,15 @@ function getClientOptions(options: NodeExperimentalOptions): NodeExperimentalCli
 
   const release = getRelease(options.release);
 
+  // If there is no release, or we are in an ANR child process, we disable autoSessionTracking by default
   const autoSessionTracking =
-    typeof release !== 'string'
+    typeof release !== 'string' || isAnrChildProcess()
       ? false
       : options.autoSessionTracking === undefined
         ? true
         : options.autoSessionTracking;
-
-  const tracesSampleRate = getTracesSampleRate(options.tracesSampleRate);
+  // We enforce tracesSampleRate = 0 in ANR child processes
+  const tracesSampleRate = isAnrChildProcess() ? 0 : getTracesSampleRate(options.tracesSampleRate);
 
   const baseOptions = dropUndefinedKeys({
     transport: makeNodeTransport,
