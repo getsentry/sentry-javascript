@@ -2,10 +2,10 @@ import * as Sentry from '@sentry/nextjs';
 import type { WebFetchHeaders } from '@sentry/types';
 // @ts-expect-error Because we cannot be sure if the RequestAsyncStorage module exists (it is not part of the Next.js public
 // API) we use a shim if it doesn't exist. The logic for this is in the wrapping loader.
-// biome-ignore lint/nursery/noUnusedImports: Biome doesn't understand the shim with variable import path
+// biome-ignore lint/nursery/noUnusedImports: Biome doesn't understand declare const
 import { requestAsyncStorage } from '__SENTRY_NEXTJS_REQUEST_ASYNC_STORAGE_SHIM__';
 // @ts-expect-error See above
-// biome-ignore lint/nursery/noUnusedImports: Biome doesn't understand the shim with variable import path
+// biome-ignore lint/nursery/noUnusedImports: Biome doesn't understand declare const
 import * as routeModule from '__SENTRY_WRAPPING_TARGET_FILE__';
 
 import type { RequestAsyncStorage } from './requestAsyncStorageShim';
