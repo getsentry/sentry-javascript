@@ -5,7 +5,7 @@ export type { ServerRuntimeClientOptions } from './server-runtime-client';
 export type { RequestDataIntegrationOptions } from './integrations/requestdata';
 
 export * from './tracing';
-export { createEventEnvelope, createSessionEnvelope } from './envelope';
+export { createEventEnvelope } from './envelope';
 export {
   addBreadcrumb,
   captureCheckIn,

@@ -50,9 +50,6 @@ tmp.js
 .eslintcache
 **/eslintcache/*
 
-# node worker scripts
-packages/node/src/integrations/anr/worker-script.*
-
 # deno
 packages/deno/build-types
 packages/deno/build-test

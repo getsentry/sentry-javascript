@@ -9,5 +9,4 @@ export { RequestData } from '@sentry/core';
 export { LocalVariables } from './localvariables';
 export { Undici } from './undici';
 export { Spotlight } from './spotlight';
-export { Anr } from './anr';
 export { Hapi } from './hapi';

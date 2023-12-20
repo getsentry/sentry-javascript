@@ -26,7 +26,7 @@ import type { ResponseEndMethod, WrappedResponseEndMethod } from '../types';
 export function autoEndTransactionOnResponseEnd(transaction: Transaction, res: ServerResponse): void {
   const wrapEndMethod = (origEnd: ResponseEndMethod): WrappedResponseEndMethod => {
     return function sentryWrappedEnd(this: ServerResponse, ...args: unknown[]) {
-      void finishTransaction(transaction, this);
+      finishTransaction(transaction, this);
       return origEnd.call(this, ...args);
     };
   };
@@ -39,7 +39,7 @@ export function autoEndTransactionOnResponseEnd(transaction: Transaction, res: S
 }
 
 /** Finish the given response's transaction and set HTTP status data */
-export async function finishTransaction(transaction: Transaction | undefined, res: ServerResponse): Promise<void> {
+export function finishTransaction(transaction: Transaction | undefined, res: ServerResponse): void {
   if (transaction) {
     transaction.setHttpStatus(res.statusCode);
     transaction.finish();

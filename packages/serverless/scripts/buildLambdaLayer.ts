@@ -54,7 +54,8 @@ async function buildLambdaLayer(): Promise<void> {
   run(`zip -r -y ${zipFilename} .`, { cwd: 'build/aws/dist-serverless' });
 }
 
-void buildLambdaLayer();
+// eslint-disable-next-line @typescript-eslint/no-floating-promises
+buildLambdaLayer();
 
 /**
  * Make a directory synchronously, overwriting the old directory if necessary.

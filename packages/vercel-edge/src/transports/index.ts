@@ -60,7 +60,9 @@ export class IsolatedPromiseBuffer {
         }
       }, timeout);
 
-      void Promise.all(
+      // This cannot reject
+      // eslint-disable-next-line @typescript-eslint/no-floating-promises
+      Promise.all(
         oldTaskProducers.map(taskProducer =>
           taskProducer().then(null, () => {
             // catch all failed requests

@@ -79,8 +79,7 @@ export { defaultIntegrations, init, defaultStackParser, getSentryRelease } from 
 export { addRequestDataToEvent, DEFAULT_USER_INCLUDES, extractRequestData } from '@sentry/utils';
 export { deepReadDirSync } from './utils';
 export { getModuleFromFilename } from './module';
-// eslint-disable-next-line deprecation/deprecation
-export { enableAnrDetection } from './integrations/anr/legacy';
+export { enableAnrDetection, isAnrChildProcess } from './anr';
 
 import { Integrations as CoreIntegrations } from '@sentry/core';
 

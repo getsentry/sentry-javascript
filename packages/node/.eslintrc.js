@@ -2,7 +2,6 @@ module.exports = {
   env: {
     node: true,
   },
-  ignorePatterns: ['src/integrations/anr/worker-script.ts'],
   extends: ['../../.eslintrc.js'],
   rules: {
     '@sentry-internal/sdk/no-optional-chaining': 'off',
