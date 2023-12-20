@@ -1,6 +1,6 @@
 import * as domain from 'domain';
 import * as SentryNode from '@sentry/node';
-import type { Event } from '@sentry/types';
+import type { Event, Integration } from '@sentry/types';
 
 import * as Sentry from '../src';
 import { wrapCloudEventFunction, wrapEventFunction, wrapHttpFunction } from '../src/gcpfunction';
@@ -234,8 +234,6 @@ describe('GCPFunction', () => {
   // integration is included in the defaults and the necessary data is stored in `sdkProcessingMetadata`. The
   // integration's tests cover testing that it uses that data correctly.
   test('wrapHttpFunction request data prereqs', async () => {
-    expect.assertions(2);
-
     Sentry.GCPFunction.init({});
 
     const handler: HttpFunction = (_req, res) => {
@@ -245,11 +243,10 @@ describe('GCPFunction', () => {
 
     await handleHttp(wrappedHandler);
 
-    expect(SentryNode.init).toHaveBeenCalledWith(
-      expect.objectContaining({
-        defaultIntegrations: expect.arrayContaining([expect.any(SentryNode.Integrations.RequestData)]),
-      }),
-    );
+    const initOptions = (SentryNode.init as unknown as jest.SpyInstance).mock.calls[0];
+    const defaultIntegrations = initOptions[0].defaultIntegrations.map((i: Integration) => i.name);
+
+    expect(defaultIntegrations).toContain('RequestData');
 
     // @ts-expect-error see "Why @ts-expect-error" note
     expect(SentryNode.fakeScope.setSDKProcessingMetadata).toHaveBeenCalledWith({

@@ -1,5 +1,7 @@
 /* eslint-disable @typescript-eslint/unbound-method */
-import type { ConsoleLevel, Event, Hub, Integration } from '@sentry/types';
+
+import * as SentryCore from '@sentry/core';
+import type { Client, ConsoleLevel, Event } from '@sentry/types';
 import {
   CONSOLE_LEVELS,
   GLOBAL_OBJ,
@@ -20,34 +22,32 @@ const mockConsole: { [key in ConsoleLevel]: jest.Mock<any> } = {
   trace: jest.fn(),
 };
 
-function getMockHub(integration: Integration): Hub {
-  const mockScope = {
-    setLevel: jest.fn(),
-    setExtra: jest.fn(),
-    addEventProcessor: jest.fn(),
-  };
-
-  const mockHub = {
-    withScope: jest.fn(callback => {
-      callback(mockScope);
-    }),
-    captureMessage: jest.fn(),
-    captureException: jest.fn(),
-    getScope: jest.fn(() => mockScope),
-  };
-
-  return {
-    ...mockHub,
-    getIntegration: jest.fn(() => integration),
-  } as unknown as Hub;
-}
-
 describe('CaptureConsole setup', () => {
   // Ensure we've initialized the instrumentation so we can get the original one
   addConsoleInstrumentationHandler(() => {});
   const _originalConsoleMethods = Object.assign({}, originalConsoleMethods);
 
+  let mockClient: Client;
+
+  const mockScope = {
+    setExtra: jest.fn(),
+    addEventProcessor: jest.fn(),
+  };
+
+  const captureMessage = jest.fn();
+  const captureException = jest.fn();
+  const withScope = jest.fn(callback => {
+    return callback(mockScope);
+  });
+
   beforeEach(() => {
+    mockClient = {} as Client;
+
+    jest.spyOn(SentryCore, 'captureMessage').mockImplementation(captureMessage);
+    jest.spyOn(SentryCore, 'captureException').mockImplementation(captureException);
+    jest.spyOn(SentryCore, 'getClient').mockImplementation(() => mockClient);
+    jest.spyOn(SentryCore, 'withScope').mockImplementation(withScope);
+
     CONSOLE_LEVELS.forEach(key => {
       originalConsoleMethods[key] = mockConsole[key];
     });
@@ -66,26 +66,18 @@ describe('CaptureConsole setup', () => {
   describe('monkeypatching', () => {
     it('should patch user-configured console levels', () => {
       const captureConsoleIntegration = new CaptureConsole({ levels: ['log', 'warn'] });
-      const mockHub = getMockHub(captureConsoleIntegration);
-      captureConsoleIntegration.setupOnce(
-        () => undefined,
-        () => mockHub,
-      );
+      captureConsoleIntegration.setup(mockClient);
 
       GLOBAL_OBJ.console.error('msg 1');
       GLOBAL_OBJ.console.log('msg 2');
       GLOBAL_OBJ.console.warn('msg 3');
 
-      expect(mockHub.captureMessage).toHaveBeenCalledTimes(2);
+      expect(captureMessage).toHaveBeenCalledTimes(2);
     });
 
     it('should fall back to default console levels if none are provided', () => {
       const captureConsoleIntegration = new CaptureConsole();
-      const mockHub = getMockHub(captureConsoleIntegration);
-      captureConsoleIntegration.setupOnce(
-        () => undefined,
-        () => mockHub,
-      );
+      captureConsoleIntegration.setup(mockClient);
 
       // Assert has a special handling
       (['debug', 'info', 'warn', 'error', 'log', 'trace'] as const).forEach(key => {
@@ -94,22 +86,18 @@ describe('CaptureConsole setup', () => {
 
       GLOBAL_OBJ.console.assert(false);
 
-      expect(mockHub.captureMessage).toHaveBeenCalledTimes(7);
+      expect(captureMessage).toHaveBeenCalledTimes(7);
     });
 
     it('should not wrap any functions with an empty levels option', () => {
       const captureConsoleIntegration = new CaptureConsole({ levels: [] });
-      const mockHub = getMockHub(captureConsoleIntegration);
-      captureConsoleIntegration.setupOnce(
-        () => undefined,
-        () => mockHub,
-      );
+      captureConsoleIntegration.setup(mockClient);
 
       CONSOLE_LEVELS.forEach(key => {
         GLOBAL_OBJ.console[key]('msg');
       });
 
-      expect(mockHub.captureMessage).toHaveBeenCalledTimes(0);
+      expect(captureMessage).toHaveBeenCalledTimes(0);
     });
   });
 
@@ -119,76 +107,27 @@ describe('CaptureConsole setup', () => {
     delete GLOBAL_OBJ.console;
 
     const captureConsoleIntegration = new CaptureConsole();
-    const mockHub = getMockHub(captureConsoleIntegration);
     expect(() => {
-      captureConsoleIntegration.setupOnce(
-        () => undefined,
-        () => mockHub,
-      );
+      captureConsoleIntegration.setup(mockClient);
     }).not.toThrow();
 
     // reinstate initial console
     GLOBAL_OBJ.console = consoleRef;
   });
 
-  it('should set a level in the scope when console function is called', () => {
-    const captureConsoleIntegration = new CaptureConsole({ levels: ['error'] });
-    const mockHub = getMockHub(captureConsoleIntegration);
-    captureConsoleIntegration.setupOnce(
-      () => undefined,
-      () => mockHub,
-    );
-
-    const mockScope = mockHub.getScope();
-
-    // call a wrapped function
-    GLOBAL_OBJ.console.error('some logging message');
-
-    expect(mockScope.setLevel).toHaveBeenCalledTimes(1);
-    expect(mockScope.setLevel).toHaveBeenCalledWith('error');
-  });
-
-  it('should send arguments as extra data', () => {
-    const captureConsoleIntegration = new CaptureConsole({ levels: ['log'] });
-    const mockHub = getMockHub(captureConsoleIntegration);
-    captureConsoleIntegration.setupOnce(
-      () => undefined,
-      () => mockHub,
-    );
-
-    const mockScope = mockHub.getScope();
-
-    GLOBAL_OBJ.console.log('some arg 1', 'some arg 2');
-
-    expect(mockScope.setExtra).toHaveBeenCalledTimes(1);
-    expect(mockScope.setExtra).toHaveBeenCalledWith('arguments', ['some arg 1', 'some arg 2']);
-  });
-
   it('should send empty arguments as extra data', () => {
     const captureConsoleIntegration = new CaptureConsole({ levels: ['log'] });
-    const mockHub = getMockHub(captureConsoleIntegration);
-    captureConsoleIntegration.setupOnce(
-      () => undefined,
-      () => mockHub,
-    );
-
-    const mockScope = mockHub.getScope();
+    captureConsoleIntegration.setup(mockClient);
 
     GLOBAL_OBJ.console.log();
 
-    expect(mockScope.setExtra).toHaveBeenCalledTimes(1);
-    expect(mockScope.setExtra).toHaveBeenCalledWith('arguments', []);
+    expect(captureMessage).toHaveBeenCalledTimes(1);
+    expect(captureMessage).toHaveBeenCalledWith('', { extra: { arguments: [] }, level: 'log' });
   });
 
   it('should add an event processor that sets the `logger` field of events', () => {
     const captureConsoleIntegration = new CaptureConsole({ levels: ['log'] });
-    const mockHub = getMockHub(captureConsoleIntegration);
-    captureConsoleIntegration.setupOnce(
-      () => undefined,
-      () => mockHub,
-    );
-
-    const mockScope = mockHub.getScope();
+    captureConsoleIntegration.setup(mockClient);
 
     // call a wrapped function
     GLOBAL_OBJ.console.log('some message');
@@ -204,135 +143,119 @@ describe('CaptureConsole setup', () => {
 
   it('should capture message on a failed assertion', () => {
     const captureConsoleIntegration = new CaptureConsole({ levels: ['assert'] });
-    const mockHub = getMockHub(captureConsoleIntegration);
-    captureConsoleIntegration.setupOnce(
-      () => undefined,
-      () => mockHub,
-    );
-
-    const mockScope = mockHub.getScope();
+    captureConsoleIntegration.setup(mockClient);
 
     GLOBAL_OBJ.console.assert(1 + 1 === 3);
 
     expect(mockScope.setExtra).toHaveBeenLastCalledWith('arguments', []);
-    expect(mockHub.captureMessage).toHaveBeenCalledTimes(1);
-    expect(mockHub.captureMessage).toHaveBeenCalledWith('Assertion failed: console.assert');
+    expect(captureMessage).toHaveBeenCalledTimes(1);
+    expect(captureMessage).toHaveBeenCalledWith('Assertion failed: console.assert', {
+      extra: { arguments: [false] },
+      level: 'log',
+    });
   });
 
   it('should capture correct message on a failed assertion with message', () => {
     const captureConsoleIntegration = new CaptureConsole({ levels: ['assert'] });
-    const mockHub = getMockHub(captureConsoleIntegration);
-    captureConsoleIntegration.setupOnce(
-      () => undefined,
-      () => mockHub,
-    );
-
-    const mockScope = mockHub.getScope();
+    captureConsoleIntegration.setup(mockClient);
 
     GLOBAL_OBJ.console.assert(1 + 1 === 3, 'expression is false');
 
     expect(mockScope.setExtra).toHaveBeenLastCalledWith('arguments', ['expression is false']);
-    expect(mockHub.captureMessage).toHaveBeenCalledTimes(1);
-    expect(mockHub.captureMessage).toHaveBeenCalledWith('Assertion failed: expression is false');
+    expect(captureMessage).toHaveBeenCalledTimes(1);
+    expect(captureMessage).toHaveBeenCalledWith('Assertion failed: expression is false', {
+      extra: { arguments: [false, 'expression is false'] },
+      level: 'log',
+    });
   });
 
   it('should not capture message on a successful assertion', () => {
     const captureConsoleIntegration = new CaptureConsole({ levels: ['assert'] });
-    const mockHub = getMockHub(captureConsoleIntegration);
-    captureConsoleIntegration.setupOnce(
-      () => undefined,
-      () => mockHub,
-    );
+    captureConsoleIntegration.setup(mockClient);
 
     GLOBAL_OBJ.console.assert(1 + 1 === 2);
   });
 
   it('should capture exception when console logs an error object with level set to "error"', () => {
     const captureConsoleIntegration = new CaptureConsole({ levels: ['error'] });
-    const mockHub = getMockHub(captureConsoleIntegration);
-    captureConsoleIntegration.setupOnce(
-      () => undefined,
-      () => mockHub,
-    );
+    captureConsoleIntegration.setup(mockClient);
 
     const someError = new Error('some error');
     GLOBAL_OBJ.console.error(someError);
 
-    expect(mockHub.captureException).toHaveBeenCalledTimes(1);
-    expect(mockHub.captureException).toHaveBeenCalledWith(someError);
+    expect(captureException).toHaveBeenCalledTimes(1);
+    expect(captureException).toHaveBeenCalledWith(someError, {
+      extra: { arguments: [someError] },
+      level: 'error',
+    });
   });
 
   it('should capture exception on `console.error` when no levels are provided in constructor', () => {
     const captureConsoleIntegration = new CaptureConsole();
-    const mockHub = getMockHub(captureConsoleIntegration);
-    captureConsoleIntegration.setupOnce(
-      () => undefined,
-      () => mockHub,
-    );
+    captureConsoleIntegration.setup(mockClient);
 
     const someError = new Error('some error');
     GLOBAL_OBJ.console.error(someError);
 
-    expect(mockHub.captureException).toHaveBeenCalledTimes(1);
-    expect(mockHub.captureException).toHaveBeenCalledWith(someError);
+    expect(captureException).toHaveBeenCalledTimes(1);
+    expect(captureException).toHaveBeenCalledWith(someError, {
+      extra: { arguments: [someError] },
+      level: 'error',
+    });
   });
 
   it('should capture exception when console logs an error object in any of the args when level set to "error"', () => {
     const captureConsoleIntegration = new CaptureConsole({ levels: ['error'] });
-    const mockHub = getMockHub(captureConsoleIntegration);
-    captureConsoleIntegration.setupOnce(
-      () => undefined,
-      () => mockHub,
-    );
+    captureConsoleIntegration.setup(mockClient);
 
     const someError = new Error('some error');
     GLOBAL_OBJ.console.error('Something went wrong', someError);
 
-    expect(mockHub.captureException).toHaveBeenCalledTimes(1);
-    expect(mockHub.captureException).toHaveBeenCalledWith(someError);
+    expect(captureException).toHaveBeenCalledTimes(1);
+    expect(captureException).toHaveBeenCalledWith(someError, {
+      extra: { arguments: ['Something went wrong', someError] },
+      level: 'error',
+    });
   });
 
   it('should capture message on `console.log` when no levels are provided in constructor', () => {
     const captureConsoleIntegration = new CaptureConsole();
-    const mockHub = getMockHub(captureConsoleIntegration);
-    captureConsoleIntegration.setupOnce(
-      () => undefined,
-      () => mockHub,
-    );
+    captureConsoleIntegration.setup(mockClient);
 
     GLOBAL_OBJ.console.error('some message');
 
-    expect(mockHub.captureMessage).toHaveBeenCalledTimes(1);
-    expect(mockHub.captureMessage).toHaveBeenCalledWith('some message');
+    expect(captureMessage).toHaveBeenCalledTimes(1);
+    expect(captureMessage).toHaveBeenCalledWith('some message', {
+      extra: { arguments: ['some message'] },
+      level: 'error',
+    });
   });
 
   it('should capture message when console logs a non-error object with level set to "error"', () => {
     const captureConsoleIntegration = new CaptureConsole({ levels: ['error'] });
-    const mockHub = getMockHub(captureConsoleIntegration);
-    captureConsoleIntegration.setupOnce(
-      () => undefined,
-      () => mockHub,
-    );
+    captureConsoleIntegration.setup(mockClient);
 
     GLOBAL_OBJ.console.error('some non-error message');
 
-    expect(mockHub.captureMessage).toHaveBeenCalledTimes(1);
-    expect(mockHub.captureMessage).toHaveBeenCalledWith('some non-error message');
-    expect(mockHub.captureException).not.toHaveBeenCalled();
+    expect(captureMessage).toHaveBeenCalledTimes(1);
+    expect(captureMessage).toHaveBeenCalledWith('some non-error message', {
+      extra: { arguments: ['some non-error message'] },
+      level: 'error',
+    });
+    expect(captureException).not.toHaveBeenCalled();
   });
 
   it('should capture a message for non-error log levels', () => {
     const captureConsoleIntegration = new CaptureConsole({ levels: ['info'] });
-    const mockHub = getMockHub(captureConsoleIntegration);
-    captureConsoleIntegration.setupOnce(
-      () => undefined,
-      () => mockHub,
-    );
+    captureConsoleIntegration.setup(mockClient);
 
     GLOBAL_OBJ.console.info('some message');
 
-    expect(mockHub.captureMessage).toHaveBeenCalledTimes(1);
-    expect(mockHub.captureMessage).toHaveBeenCalledWith('some message');
+    expect(captureMessage).toHaveBeenCalledTimes(1);
+    expect(captureMessage).toHaveBeenCalledWith('some message', {
+      extra: { arguments: ['some message'] },
+      level: 'info',
+    });
   });
 
   it('should call the original console function when console members are called', () => {
@@ -342,11 +265,7 @@ describe('CaptureConsole setup', () => {
     GLOBAL_OBJ.console.log = mockConsoleLog;
 
     const captureConsoleIntegration = new CaptureConsole({ levels: ['log'] });
-    const mockHub = getMockHub(captureConsoleIntegration);
-    captureConsoleIntegration.setupOnce(
-      () => undefined,
-      () => mockHub,
-    );
+    captureConsoleIntegration.setup(mockClient);
 
     GLOBAL_OBJ.console.log('some message 1', 'some message 2');
 
@@ -359,11 +278,7 @@ describe('CaptureConsole setup', () => {
 
   it('should not wrap any levels that are not members of console', () => {
     const captureConsoleIntegration = new CaptureConsole({ levels: ['log', 'someNonExistingLevel', 'error'] });
-    const mockHub = getMockHub(captureConsoleIntegration);
-    captureConsoleIntegration.setupOnce(
-      () => undefined,
-      () => mockHub,
-    );
+    captureConsoleIntegration.setup(mockClient);
 
     // The provided level should not be created
     expect((GLOBAL_OBJ.console as any)['someNonExistingLevel']).toBeUndefined();
@@ -371,26 +286,19 @@ describe('CaptureConsole setup', () => {
 
   it('should wrap the console when the client does not have a registered captureconsole integration, but not capture any messages', () => {
     const captureConsoleIntegration = new CaptureConsole({ levels: ['log', 'error'] });
-    const mockHub = getMockHub(null as any); // simulate not having the integration registered
-    captureConsoleIntegration.setupOnce(
-      () => undefined,
-      () => mockHub,
-    );
+    // when `setup` is not called on the current client, it will not trigger
+    captureConsoleIntegration.setup({} as Client);
 
     // Should not capture messages
     GLOBAL_OBJ.console.log('some message');
-    expect(mockHub.captureMessage).not.toHaveBeenCalledWith();
+    expect(captureMessage).not.toHaveBeenCalledWith();
   });
 
   it("should not crash when the original console methods don't exist at time of invocation", () => {
     originalConsoleMethods.log = undefined;
 
     const captureConsoleIntegration = new CaptureConsole({ levels: ['log'] });
-    const mockHub = getMockHub(captureConsoleIntegration);
-    captureConsoleIntegration.setupOnce(
-      () => undefined,
-      () => mockHub,
-    );
+    captureConsoleIntegration.setup(mockClient);
 
     expect(() => {
       GLOBAL_OBJ.console.log('some message');
@@ -401,13 +309,7 @@ describe('CaptureConsole setup', () => {
     // const addExceptionMechanismSpy = jest.spyOn(utils, 'addExceptionMechanism');
 
     const captureConsoleIntegration = new CaptureConsole({ levels: ['error'] });
-    const mockHub = getMockHub(captureConsoleIntegration);
-    captureConsoleIntegration.setupOnce(
-      () => undefined,
-      () => mockHub,
-    );
-
-    const mockScope = mockHub.getScope();
+    captureConsoleIntegration.setup(mockClient);
 
     const someError = new Error('some error');
     GLOBAL_OBJ.console.error(someError);
@@ -420,7 +322,7 @@ describe('CaptureConsole setup', () => {
     };
     addedEventProcessor(someEvent);
 
-    expect(mockHub.captureException).toHaveBeenCalledTimes(1);
+    expect(captureException).toHaveBeenCalledTimes(1);
     expect(mockScope.addEventProcessor).toHaveBeenCalledTimes(1);
 
     expect(someEvent.exception?.values?.[0].mechanism).toEqual({

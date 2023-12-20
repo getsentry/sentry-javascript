@@ -1,3 +1,4 @@
+import { applyScopeDataToEvent } from '@sentry/core';
 import type { Attachment, Breadcrumb, Client, EventProcessor } from '@sentry/types';
 import { Scope, getIsolationScope } from '../../src';
 import { getGlobalScope, mergeArray, mergeData, mergePropKeep, mergePropOverwrite } from '../../src/sdk/scope';
@@ -295,8 +296,7 @@ describe('Unit | Scope', () => {
         extra: { extra1: 'aa', extra2: 'bb', extra3: 'bb' },
         contexts: { os: { name: 'os2' }, culture: { display_name: 'name1' } },
         attachments: [attachment1, attachment2, attachment3],
-        // This is not merged, we always use the one from the scope here anyhow
-        propagationContext: { spanId: '1', traceId: '1' },
+        propagationContext: { spanId: '2', traceId: '2' },
         sdkProcessingMetadata: { aa: 'aa', bb: 'bb', cc: 'bb' },
         fingerprint: ['aa', 'bb', 'cc'],
       });
@@ -309,7 +309,8 @@ describe('Unit | Scope', () => {
 
       const scope = new Scope();
 
-      const event = await scope.applyToEvent({ message: 'foo' });
+      const event = { message: 'foo' };
+      applyScopeDataToEvent(event, scope.getScopeData());
 
       expect(event).toEqual({
         message: 'foo',
@@ -357,11 +358,9 @@ describe('Unit | Scope', () => {
       isolationScope.addEventProcessor(eventProcessor3);
       globalScope.setSDKProcessingMetadata({ bb: 'bb' });
 
-      const event = await scope.applyToEvent({
-        message: 'foo',
-        breadcrumbs: [breadcrumb4],
-        fingerprint: ['dd'],
-      });
+      const event = { message: 'foo', breadcrumbs: [breadcrumb4], fingerprint: ['dd'] };
+
+      applyScopeDataToEvent(event, scope.getScopeData());
 
       expect(event).toEqual({
         message: 'foo',
