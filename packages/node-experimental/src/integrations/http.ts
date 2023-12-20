@@ -8,6 +8,8 @@ import { _INTERNAL, getClient, getSpanKind, setSpanMetadata } from '@sentry/open
 import type { EventProcessor, Hub, Integration } from '@sentry/types';
 import { stringMatchesSomePattern } from '@sentry/utils';
 
+import { getIsolationScope, setIsolationScope } from '../sdk/api';
+import { Scope } from '../sdk/scope';
 import type { NodeExperimentalClient } from '../types';
 import { addOriginToSpan } from '../utils/addOriginToSpan';
 import { getRequestUrl } from '../utils/getRequestUrl';
@@ -127,6 +129,11 @@ export class Http implements Integration {
           requireParentforIncomingSpans: false,
           requestHook: (span, req) => {
             this._updateSpan(span, req);
+
+            // Update the isolation scope, isolate this request
+            if (getSpanKind(span) === SpanKind.SERVER) {
+              setIsolationScope(getIsolationScope().clone());
+            }
           },
           responseHook: (span, res) => {
             this._addRequestBreadcrumb(span, res);

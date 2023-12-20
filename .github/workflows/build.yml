@@ -86,9 +86,9 @@ jobs:
               - 'CHANGELOG.md'
               - '.github/**'
               - 'jest/**'
-              - 'rollup/**'
               - 'scripts/**'
               - 'packages/core/**'
+              - 'packages/rollup-utils/**'
               - 'packages/tracing/**'
               - 'packages/tracing-internal/**'
               - 'packages/utils/**'
@@ -176,7 +176,7 @@ jobs:
         # so no need to reinstall them
       - name: Compute dependency cache key
         id: compute_lockfile_hash
-        run: echo "hash=${{ hashFiles('yarn.lock') }}" >> "$GITHUB_OUTPUT"
+        run: echo "hash=${{ hashFiles('yarn.lock', '**/package.json') }}" >> "$GITHUB_OUTPUT"
 
       - name: Check dependency cache
         uses: actions/cache@v3
@@ -870,6 +870,7 @@ jobs:
             'standard-frontend-react',
             'standard-frontend-react-tracing-import',
             'sveltekit',
+            'sveltekit-2',
             'generic-ts3.8',
             'node-experimental-fastify-app',
             'node-hapi-app',

@@ -1,7 +1,6 @@
 import type { ServerRuntimeClient } from '@sentry/core';
-import { getClient, getCurrentHub } from '@sentry/core';
-import { flush } from '@sentry/core';
-import type { Event, Hub, Integration, Primitive, StackParser } from '@sentry/types';
+import { captureEvent, flush, getClient } from '@sentry/core';
+import type { Client, Event, Integration, Primitive, StackParser } from '@sentry/types';
 import { eventFromUnknownInput, isPrimitive } from '@sentry/utils';
 
 type GlobalHandlersIntegrationsOptionKeys = 'error' | 'unhandledrejection';
@@ -26,15 +25,6 @@ export class GlobalHandlers implements Integration {
   /** JSDoc */
   private readonly _options: GlobalHandlersIntegrations;
 
-  /**
-   * Stores references functions to installing handlers. Will set to undefined
-   * after they have been run so that they are not used twice.
-   */
-  private _installFunc: Record<GlobalHandlersIntegrationsOptionKeys, (() => void) | undefined> = {
-    error: installGlobalErrorHandler,
-    unhandledrejection: installGlobalUnhandledRejectionHandler,
-  };
-
   /** JSDoc */
   public constructor(options?: GlobalHandlersIntegrations) {
     this._options = {
@@ -47,35 +37,35 @@ export class GlobalHandlers implements Integration {
    * @inheritDoc
    */
   public setupOnce(): void {
-    const options = this._options;
+    // noop
+  }
 
-    // We can disable guard-for-in as we construct the options object above + do checks against
-    // `this._installFunc` for the property.
-    // eslint-disable-next-line guard-for-in
-    for (const key in options) {
-      const installFunc = this._installFunc[key as GlobalHandlersIntegrationsOptionKeys];
-      if (installFunc && options[key as GlobalHandlersIntegrationsOptionKeys]) {
-        installFunc();
-        this._installFunc[key as GlobalHandlersIntegrationsOptionKeys] = undefined;
-      }
+  /** @inheritdoc */
+  public setup(client: Client): void {
+    if (this._options.error) {
+      installGlobalErrorHandler(client);
+    }
+    if (this._options.unhandledrejection) {
+      installGlobalUnhandledRejectionHandler(client);
     }
   }
 }
 
-function installGlobalErrorHandler(): void {
+function installGlobalErrorHandler(client: Client): void {
   globalThis.addEventListener('error', data => {
-    if (isExiting) {
+    if (getClient() !== client || isExiting) {
       return;
     }
 
-    const [hub, stackParser] = getHubAndOptions();
+    const stackParser = getStackParser();
+
     const { message, error } = data;
 
     const event = eventFromUnknownInput(getClient(), stackParser, error || message);
 
     event.level = 'fatal';
 
-    hub.captureEvent(event, {
+    captureEvent(event, {
       originalException: error,
       mechanism: {
         handled: false,
@@ -87,20 +77,26 @@ function installGlobalErrorHandler(): void {
     data.preventDefault();
     isExiting = true;
 
-    void flush().then(() => {
-      // rethrow to replicate Deno default behavior
-      throw error;
-    });
+    flush().then(
+      () => {
+        // rethrow to replicate Deno default behavior
+        throw error;
+      },
+      () => {
+        // rethrow to replicate Deno default behavior
+        throw error;
+      },
+    );
   });
 }
 
-function installGlobalUnhandledRejectionHandler(): void {
+function installGlobalUnhandledRejectionHandler(client: Client): void {
   globalThis.addEventListener('unhandledrejection', (e: PromiseRejectionEvent) => {
-    if (isExiting) {
+    if (getClient() !== client || isExiting) {
       return;
     }
 
-    const [hub, stackParser] = getHubAndOptions();
+    const stackParser = getStackParser();
     let error = e;
 
     // dig the object of the rejection out of known event types
@@ -118,7 +114,7 @@ function installGlobalUnhandledRejectionHandler(): void {
 
     event.level = 'fatal';
 
-    hub.captureEvent(event, {
+    captureEvent(event, {
       originalException: error,
       mechanism: {
         handled: false,
@@ -130,10 +126,16 @@ function installGlobalUnhandledRejectionHandler(): void {
     e.preventDefault();
     isExiting = true;
 
-    void flush().then(() => {
-      // rethrow to replicate Deno default behavior
-      throw error;
-    });
+    flush().then(
+      () => {
+        // rethrow to replicate Deno default behavior
+        throw error;
+      },
+      () => {
+        // rethrow to replicate Deno default behavior
+        throw error;
+      },
+    );
   });
 }
 
@@ -157,12 +159,12 @@ function eventFromRejectionWithPrimitive(reason: Primitive): Event {
   };
 }
 
-function getHubAndOptions(): [Hub, StackParser] {
-  const hub = getCurrentHub();
-  const client = hub.getClient<ServerRuntimeClient>();
-  const options = (client && client.getOptions()) || {
-    stackParser: () => [],
-    attachStacktrace: false,
-  };
-  return [hub, options.stackParser];
+function getStackParser(): StackParser {
+  const client = getClient<ServerRuntimeClient>();
+
+  if (!client) {
+    return () => [];
+  }
+
+  return client.getOptions().stackParser;
 }

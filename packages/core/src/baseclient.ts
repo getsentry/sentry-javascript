@@ -115,13 +115,13 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   /** Number of calls being processed */
   protected _numProcessing: number;
 
+  protected _eventProcessors: EventProcessor[];
+
   /** Holds flushable  */
   private _outcomes: { [key: string]: number };
 
   // eslint-disable-next-line @typescript-eslint/ban-types
   private _hooks: Record<string, Function[]>;
-
-  private _eventProcessors: EventProcessor[];
 
   /**
    * Initializes this client instance.
@@ -375,7 +375,10 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
    */
   public sendSession(session: Session | SessionAggregates): void {
     const env = createSessionEnvelope(session, this._dsn, this._options._metadata, this._options.tunnel);
-    void this._sendEnvelope(env);
+
+    // _sendEnvelope should not throw
+    // eslint-disable-next-line @typescript-eslint/no-floating-promises
+    this._sendEnvelope(env);
   }
 
   /**
@@ -409,7 +412,10 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
       this._options._metadata,
       this._options.tunnel,
     );
-    void this._sendEnvelope(metricsEnvelope);
+
+    // _sendEnvelope should not throw
+    // eslint-disable-next-line @typescript-eslint/no-floating-promises
+    this._sendEnvelope(metricsEnvelope);
   }
 
   // Keep on() & emit() signatures in sync with types' client.ts interface

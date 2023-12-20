@@ -44,6 +44,7 @@ export { makeSession, closeSession, updateSession } from './session';
 export { SessionFlusher } from './sessionflusher';
 export { Scope } from './scope';
 export {
+  notifyEventProcessors,
   // eslint-disable-next-line deprecation/deprecation
   addGlobalEventProcessor,
 } from './eventProcessors';
@@ -62,6 +63,7 @@ export {
   convertIntegrationFnToClass,
 } from './integration';
 export { FunctionToString, InboundFilters, LinkedErrors } from './integrations';
+export { applyScopeDataToEvent } from './utils/applyScopeDataToEvent';
 export { prepareEvent } from './utils/prepareEvent';
 export { createCheckInEnvelope } from './checkin';
 export { hasTracingEnabled } from './utils/hasTracingEnabled';

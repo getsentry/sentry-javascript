@@ -1,4 +1,14 @@
-import type { Client, Event, EventHint, Integration, IntegrationClass, IntegrationFn, Options } from '@sentry/types';
+import type {
+  Client,
+  Event,
+  EventHint,
+  EventProcessor,
+  Hub,
+  Integration,
+  IntegrationClass,
+  IntegrationFn,
+  Options,
+} from '@sentry/types';
 import { arrayify, logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from './debug-build';
@@ -46,7 +56,7 @@ function filterDuplicates(integrations: Integration[]): Integration[] {
 }
 
 /** Gets integrations to install */
-export function getIntegrationsToSetup(options: Options): Integration[] {
+export function getIntegrationsToSetup(options: Pick<Options, 'defaultIntegrations' | 'integrations'>): Integration[] {
   const defaultIntegrations = options.defaultIntegrations || [];
   const userIntegrations = options.integrations;
 
@@ -165,7 +175,11 @@ function findIndex<T>(arr: T[], callback: (item: T) => boolean): number {
 export function convertIntegrationFnToClass<Fn extends IntegrationFn>(
   name: string,
   fn: Fn,
-): IntegrationClass<Integration> {
+): IntegrationClass<
+  Integration & {
+    setupOnce: (addGlobalEventProcessor?: (callback: EventProcessor) => void, getCurrentHub?: () => Hub) => void;
+  }
+> {
   return Object.assign(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     function ConvertedIntegration(...rest: any[]) {
@@ -176,5 +190,9 @@ export function convertIntegrationFnToClass<Fn extends IntegrationFn>(
       };
     },
     { id: name },
-  ) as unknown as IntegrationClass<Integration>;
+  ) as unknown as IntegrationClass<
+    Integration & {
+      setupOnce: (addGlobalEventProcessor?: (callback: EventProcessor) => void, getCurrentHub?: () => Hub) => void;
+    }
+  >;
 }

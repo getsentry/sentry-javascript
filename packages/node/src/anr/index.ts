@@ -183,10 +183,16 @@ function handleChildProcess(options: Options): void {
 
     captureEvent(createAnrEvent(options.anrThreshold, frames));
 
-    void flush(3000).then(() => {
-      // We only capture one event to avoid spamming users with errors
-      process.exit();
-    });
+    flush(3000).then(
+      () => {
+        // We only capture one event to avoid spamming users with errors
+        process.exit();
+      },
+      () => {
+        // We only capture one event to avoid spamming users with errors
+        process.exit();
+      },
+    );
   }
 
   addEventProcessor(event => {

@@ -65,7 +65,9 @@ export function addGlobalListeners(replay: ReplayContainer): void {
     client.on('beforeSendFeedback', (feedbackEvent, options) => {
       const replayId = replay.getSessionId();
       if (options && options.includeReplay && replay.isEnabled() && replayId) {
-        void replay.flush();
+        // This should never reject
+        // eslint-disable-next-line @typescript-eslint/no-floating-promises
+        replay.flush();
         if (feedbackEvent.contexts && feedbackEvent.contexts.feedback) {
           feedbackEvent.contexts.feedback.replay_id = replayId;
         }

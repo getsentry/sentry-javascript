@@ -193,7 +193,11 @@ export class ServerRuntimeClient<
     );
 
     DEBUG_BUILD && logger.info('Sending checkin:', checkIn.monitorSlug, checkIn.status);
-    void this._sendEnvelope(envelope);
+
+    // _sendEnvelope should not throw
+    // eslint-disable-next-line @typescript-eslint/no-floating-promises
+    this._sendEnvelope(envelope);
+
     return id;
   }
 

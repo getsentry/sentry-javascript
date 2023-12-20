@@ -139,7 +139,8 @@ export function startProfileForTransaction(transaction: Transaction): Transactio
       );
     }
     // If the timeout exceeds, we want to stop profiling, but not finish the transaction
-    void onProfileHandler();
+    // eslint-disable-next-line @typescript-eslint/no-floating-promises
+    onProfileHandler();
   }, MAX_PROFILE_DURATION_MS);
 
   // We need to reference the original finish call to avoid creating an infinite loop

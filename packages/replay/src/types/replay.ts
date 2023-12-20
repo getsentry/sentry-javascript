@@ -233,8 +233,7 @@ export interface ReplayPluginOptions extends ReplayNetworkOptions {
     captureExceptions: boolean;
     traceInternals: boolean;
     canvas: {
-      fps?: number;
-      quality?: number;
+      quality?: 'low' | 'medium' | 'high';
       manager: (options: GetCanvasManagerOptions) => CanvasManagerInterface;
     };
   }>;
