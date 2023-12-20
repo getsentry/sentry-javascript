@@ -176,9 +176,10 @@ export function convertIntegrationFnToClass<Fn extends IntegrationFn>(
   name: string,
   fn: Fn,
 ): IntegrationClass<
-  Integration & {
-    setupOnce: (addGlobalEventProcessor?: (callback: EventProcessor) => void, getCurrentHub?: () => Hub) => void;
-  }
+  Integration &
+    ReturnType<Fn> & {
+      setupOnce: (addGlobalEventProcessor?: (callback: EventProcessor) => void, getCurrentHub?: () => Hub) => void;
+    }
 > {
   return Object.assign(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -191,8 +192,9 @@ export function convertIntegrationFnToClass<Fn extends IntegrationFn>(
     },
     { id: name },
   ) as unknown as IntegrationClass<
-    Integration & {
-      setupOnce: (addGlobalEventProcessor?: (callback: EventProcessor) => void, getCurrentHub?: () => Hub) => void;
-    }
+    Integration &
+      ReturnType<Fn> & {
+        setupOnce: (addGlobalEventProcessor?: (callback: EventProcessor) => void, getCurrentHub?: () => Hub) => void;
+      }
   >;
 }
