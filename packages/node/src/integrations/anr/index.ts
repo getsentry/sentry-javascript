@@ -1,5 +1,6 @@
-// TODO (v8): This import can be removed once we only support Node with global URL
-import { URL } from 'url';
+import * as path from 'path';
+import { fileURLToPath } from 'url';
+import type { URL } from 'url';
 import { getCurrentScope } from '@sentry/core';
 import type { Contexts, Event, EventHint, Integration } from '@sentry/types';
 import { dynamicRequire, logger } from '@sentry/utils';
@@ -7,7 +8,6 @@ import type { Worker, WorkerOptions } from 'worker_threads';
 import type { NodeClient } from '../../client';
 import { NODE_VERSION } from '../../nodeVersion';
 import type { Options, WorkerStartData } from './common';
-import { base64WorkerScript } from './worker-script';
 
 const DEFAULT_INTERVAL = 50;
 const DEFAULT_HANG_THRESHOLD = 5000;
@@ -116,9 +116,11 @@ export class Anr implements Integration {
 
     const { Worker } = getWorkerThreads();
 
-    const worker = new Worker(new URL(`data:application/javascript;base64,${base64WorkerScript}`), {
+    // @ts-expect-error TS is complaining about import meta but we don't care about that because rollup understands it.
+    const worker = new Worker(path.join(path.dirname(fileURLToPath(import.meta.url)), '..', '..', 'worker.js'), {
       workerData: options,
     });
+
     // Ensure this thread can't block app exit
     worker.unref();
 
