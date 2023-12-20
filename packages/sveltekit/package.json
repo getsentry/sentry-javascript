@@ -20,7 +20,8 @@
         "import": "./build/esm/index.client.js",
         "require": "./build/cjs/index.client.js"
       },
-      "node": "./build/cjs/index.server.js"
+      "node": "./build/cjs/index.server.js",
+      "types": "./build/types/index.types.d.ts"
     }
   },
   "publishConfig": {

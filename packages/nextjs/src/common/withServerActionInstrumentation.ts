@@ -129,7 +129,9 @@ async function withServerActionInstrumentationImplementation<A extends (...args:
       }
 
       if (process.env.NEXT_RUNTIME === 'edge') {
-        void flushQueue();
+        // flushQueue should not throw
+        // eslint-disable-next-line @typescript-eslint/no-floating-promises
+        flushQueue();
       }
     }
 

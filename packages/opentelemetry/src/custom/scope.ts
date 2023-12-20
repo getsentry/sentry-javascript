@@ -1,7 +1,7 @@
 import type { Span } from '@opentelemetry/api';
 import type { TimedEvent } from '@opentelemetry/sdk-trace-base';
 import { Scope } from '@sentry/core';
-import type { Breadcrumb, SeverityLevel, Span as SentrySpan } from '@sentry/types';
+import type { Breadcrumb, ScopeData, SeverityLevel, Span as SentrySpan } from '@sentry/types';
 import { dateTimestampInSeconds, dropUndefinedKeys, logger, normalize } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../debug-build';
@@ -88,6 +88,15 @@ export class OpenTelemetryScope extends Scope {
     }
 
     return this._addBreadcrumb(breadcrumb, maxBreadcrumbs);
+  }
+
+  /** @inheritDoc */
+  public getScopeData(): ScopeData {
+    const data = super.getScopeData();
+
+    data.breadcrumbs = this._getBreadcrumbs();
+
+    return data;
   }
 
   /** Add a breadcrumb to this scope. */

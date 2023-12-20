@@ -17,7 +17,7 @@ describe('Unit | util | prepareReplayEvent', () => {
     hub.bindClient(client);
 
     client = hub.getClient()!;
-    scope = hub.getScope()!;
+    scope = hub.getScope();
 
     jest.spyOn(client, 'getSdkMetadata').mockImplementation(() => {
       return {
