@@ -152,7 +152,9 @@ if (options.captureStackTrace) {
           session.post('Debugger.disable');
 
           const context = trace_id?.length && span_id?.length ? { trace_id, span_id, parent_span_id } : undefined;
-          void sendAnrEvent(stackFrames, context);
+          sendAnrEvent(stackFrames, context).then(null, () => {
+            log('Sending ANR event failed.');
+          });
         },
       );
     } catch (e) {
@@ -196,7 +198,9 @@ function watchdogTimeout(): void {
     debuggerPause();
   } else {
     log('Capturing event without a stack trace');
-    void sendAnrEvent();
+    sendAnrEvent().then(null, () => {
+      log('Sending ANR event failed on watchdog timeout.');
+    });
   }
 }
 

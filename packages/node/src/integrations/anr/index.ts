@@ -84,7 +84,7 @@ export class Anr implements Integration {
       return;
     }
 
-    // These will not be inaccurate if sent later from the worker thread
+    // These will not be accurate if sent later from the worker thread
     delete contexts.app?.app_memory;
     delete contexts.device?.free_memory;
 
