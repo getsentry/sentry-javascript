@@ -1,8 +1,8 @@
 /* eslint-disable max-lines */
 import type { IdleTransaction, Transaction } from '@sentry/core';
 import { getActiveTransaction } from '@sentry/core';
-import type { Measurements } from '@sentry/types';
-import { browserPerformanceTimeOrigin, htmlTreeAsString, logger } from '@sentry/utils';
+import type { Measurements, SpanContext } from '@sentry/types';
+import { browserPerformanceTimeOrigin, getComponentName, htmlTreeAsString, logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../../common/debug-build';
 import {
@@ -102,13 +102,20 @@ export function startTrackingInteractions(): void {
         const startTime = msToSec((browserPerformanceTimeOrigin as number) + entry.startTime);
         const duration = msToSec(entry.duration);
 
-        transaction.startChild({
+        const span: SpanContext = {
           description: htmlTreeAsString(entry.target),
           op: `ui.interaction.${entry.name}`,
           origin: 'auto.ui.browser.metrics',
           startTimestamp: startTime,
           endTimestamp: startTime + duration,
-        });
+        };
+
+        const componentName = getComponentName(entry.target);
+        if (componentName) {
+          span.data = { 'ui.component_name': componentName };
+        }
+
+        transaction.startChild(span);
       }
     }
   });
