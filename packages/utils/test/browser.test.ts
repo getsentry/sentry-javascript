@@ -6,6 +6,8 @@ beforeAll(() => {
   const dom = new JSDOM();
   // @ts-expect-error need to override global document
   global.document = dom.window.document;
+  // @ts-expect-error need to add HTMLElement type or it will not be found
+  global.HTMLElement = new JSDOM().window.HTMLElement;
 });
 
 describe('htmlTreeAsString', () => {
