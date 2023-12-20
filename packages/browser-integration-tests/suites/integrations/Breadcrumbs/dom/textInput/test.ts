@@ -64,3 +64,48 @@ sentryTest('captures Breadcrumb for events on inputs & debounced them', async ({
     },
   ]);
 });
+
+sentryTest(
+  'includes the annotated component name within the breadcrumb message and data',
+  async ({ getLocalTestUrl, page }) => {
+    const url = await getLocalTestUrl({ testDir: __dirname });
+
+    await page.route('**/foo', route => {
+      return route.fulfill({
+        status: 200,
+        body: JSON.stringify({
+          userNames: ['John', 'Jane'],
+        }),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+    });
+
+    const promise = getFirstSentryEnvelopeRequest<Event>(page);
+
+    await page.goto(url);
+
+    await page.click('#annotated-input');
+    await page.type('#annotated-input', 'John', { delay: 1 });
+
+    await page.evaluate('Sentry.captureException("test exception")');
+    const eventData = await promise;
+    expect(eventData.exception?.values).toHaveLength(1);
+
+    expect(eventData.breadcrumbs).toEqual([
+      {
+        timestamp: expect.any(Number),
+        category: 'ui.click',
+        message: 'body > AnnotatedInput',
+        data: { componentName: 'AnnotatedInput' },
+      },
+      {
+        timestamp: expect.any(Number),
+        category: 'ui.input',
+        message: 'body > AnnotatedInput',
+        data: { componentName: 'AnnotatedInput' },
+      },
+    ]);
+  },
+);
