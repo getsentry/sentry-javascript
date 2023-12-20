@@ -86,9 +86,12 @@ function _htmlElementAsString(el: unknown, keyAttrs?: string[]): string {
     return '';
   }
 
-  // If using the component name annotation plugin, this value may be available on the DOM node
-  if (elem instanceof HTMLElement && elem.dataset && elem.dataset['sentryComponent']) {
-    return elem.dataset['sentryComponent'];
+  // @ts-expect-error WINDOW has HTMLElement
+  if (WINDOW.HTMLElement) {
+    // If using the component name annotation plugin, this value may be available on the DOM node
+    if (elem instanceof HTMLElement && elem.dataset && elem.dataset['sentryComponent']) {
+      return elem.dataset['sentryComponent'];
+    }
   }
 
   out.push(elem.tagName.toLowerCase());
@@ -171,6 +174,11 @@ export function getDomElement<E = any>(selector: string): E | null {
  * @returns a string representation of the component for the provided DOM element, or `null` if not found
  */
 export function getComponentName(elem: unknown): string | null {
+  // @ts-expect-error WINDOW has HTMLElement
+  if (!WINDOW.HTMLElement) {
+    return null;
+  }
+
   let currentElem = elem as SimpleNode;
   const MAX_TRAVERSE_HEIGHT = 5;
   for (let i = 0; i < MAX_TRAVERSE_HEIGHT; i++) {
