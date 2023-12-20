@@ -1,4 +1,4 @@
-import { convertIntegrationFnToClass, withMonitor } from '@sentry/core';
+import { convertIntegrationFnToClass, getClient, withMonitor } from '@sentry/core';
 import type { IntegrationFn } from '@sentry/types';
 import { parseScheduleToString } from './deno-cron-format';
 
@@ -9,10 +9,10 @@ type CronParams = [string, string | Deno.CronSchedule, CronFn | CronOptions, Cro
 
 const INTEGRATION_NAME = 'DenoCron';
 
-const denoCronIntegration: IntegrationFn = () => {
+const denoCronIntegration = (() => {
   return {
     name: INTEGRATION_NAME,
-    setupOnce() {
+    setup(client) {
       // eslint-disable-next-line deprecation/deprecation
       if (!Deno.cron) {
         // The cron API is not available in this Deno version use --unstable flag!
@@ -35,6 +35,10 @@ const denoCronIntegration: IntegrationFn = () => {
           }
 
           async function cronCalled(): Promise<void> {
+            if (getClient() !== client) {
+              return;
+            }
+
             await withMonitor(monitorSlug, async () => fn(), {
               schedule: { type: 'crontab', value: parseScheduleToString(schedule) },
               // (minutes) so 12 hours - just a very high arbitrary number since we don't know the actual duration of the users cron job
@@ -49,7 +53,7 @@ const denoCronIntegration: IntegrationFn = () => {
       });
     },
   };
-};
+}) satisfies IntegrationFn;
 
 /** Instruments Deno.cron to automatically capture cron check-ins */
 // eslint-disable-next-line deprecation/deprecation
