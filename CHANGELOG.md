@@ -4,6 +4,12 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.90.0
+
+- feat(replay): Change to use preset quality values (#9903)
+- fix(replay): Adjust development hydration error messages (#9922)
+- fix(sveltekit): Add `types` field to package.json `exports` (#9926)
+
 ## 7.89.0
 
 ### Important Changes
