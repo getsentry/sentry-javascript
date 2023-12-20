@@ -786,7 +786,9 @@ export class ReplayContainer implements ReplayContainerInterface {
         maxReplayDuration: this._options.maxReplayDuration,
       })
     ) {
-      void this._refreshSession(currentSession);
+      // This should never reject
+      // eslint-disable-next-line @typescript-eslint/no-floating-promises
+      this._refreshSession(currentSession);
       return false;
     }
 
@@ -925,6 +927,8 @@ export class ReplayContainer implements ReplayContainerInterface {
     // Send replay when the page/tab becomes hidden. There is no reason to send
     // replay if it becomes visible, since no actions we care about were done
     // while it was hidden
+    // This should never reject
+    // eslint-disable-next-line @typescript-eslint/no-floating-promises
     void this.conditionalFlush();
   }
 
@@ -973,7 +977,9 @@ export class ReplayContainer implements ReplayContainerInterface {
    */
   private _createCustomBreadcrumb(breadcrumb: ReplayBreadcrumbFrame): void {
     this.addUpdate(() => {
-      void this.throttledAddEvent({
+      // This should never reject
+      // eslint-disable-next-line @typescript-eslint/no-floating-promises
+      this.throttledAddEvent({
         type: EventType.Custom,
         timestamp: breadcrumb.timestamp || 0,
         data: {
@@ -1114,7 +1120,9 @@ export class ReplayContainer implements ReplayContainerInterface {
       // This means we retried 3 times and all of them failed,
       // or we ran into a problem we don't want to retry, like rate limiting.
       // In this case, we want to completely stop the replay - otherwise, we may get inconsistent segments
-      void this.stop({ reason: 'sendReplay' });
+      // This should never reject
+      // eslint-disable-next-line @typescript-eslint/no-floating-promises
+      this.stop({ reason: 'sendReplay' });
 
       const client = getClient();
 
@@ -1238,7 +1246,9 @@ export class ReplayContainer implements ReplayContainerInterface {
 
     // Stop replay if over the mutation limit
     if (overMutationLimit) {
-      void this.stop({ reason: 'mutationLimit', forceFlush: this.recordingMode === 'session' });
+      // This should never reject
+      // eslint-disable-next-line @typescript-eslint/no-floating-promises
+      this.stop({ reason: 'mutationLimit', forceFlush: this.recordingMode === 'session' });
       return false;
     }
 
