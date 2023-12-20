@@ -1,4 +1,3 @@
-import type { ClientOptions, EventProcessor } from '@sentry/types';
 import type { LRUMap } from '@sentry/utils';
 import type { Debugger, InspectorNotification } from 'inspector';
 

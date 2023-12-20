@@ -1,4 +1,4 @@
-import type { Client, Event, EventHint, Hub, Integration } from '@sentry/types';
+import type { Client, Event, EventHint } from '@sentry/types';
 
 import { Debug } from '../src/debug';
 

@@ -9,7 +9,6 @@ import type { EventProcessor, Hub, Integration } from '@sentry/types';
 import { stringMatchesSomePattern } from '@sentry/utils';
 
 import { getIsolationScope, setIsolationScope } from '../sdk/api';
-import { Scope } from '../sdk/scope';
 import type { NodeExperimentalClient } from '../types';
 import { addOriginToSpan } from '../utils/addOriginToSpan';
 import { getRequestUrl } from '../utils/getRequestUrl';

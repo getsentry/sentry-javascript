@@ -5,7 +5,6 @@ import type {
   Hub,
   Integration,
   IntegrationClass,
-  Session,
   Severity,
   SeverityLevel,
   TransactionContext,
@@ -14,8 +13,6 @@ import type {
 import {
   addBreadcrumb,
   captureEvent,
-  captureException,
-  captureMessage,
   configureScope,
   endSession,
   getClient,

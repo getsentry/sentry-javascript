@@ -23,7 +23,7 @@ import type {
   Transaction,
   User,
 } from '@sentry/types';
-import { arrayify, dateTimestampInSeconds, isPlainObject, uuid4 } from '@sentry/utils';
+import { dateTimestampInSeconds, isPlainObject, uuid4 } from '@sentry/utils';
 
 import { getGlobalEventProcessors, notifyEventProcessors } from './eventProcessors';
 import { updateSession } from './session';

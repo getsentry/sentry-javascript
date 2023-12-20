@@ -1,4 +1,3 @@
-import { get } from 'http';
 /* eslint-disable max-lines */
 import { addBreadcrumb, convertIntegrationFnToClass, getClient } from '@sentry/core';
 import type {
