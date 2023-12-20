@@ -1,4 +1,4 @@
-import { makeBaseBundleConfig } from '../../rollup/index.js';
+import { makeBaseBundleConfig } from '@sentry-internal/rollup-utils';
 
 function createAnrWorkerConfig(destDir, esm) {
   return makeBaseBundleConfig({
