@@ -593,6 +593,7 @@ export function getGlobalScope(): ScopeInterface {
 
 /**
  * This is mainly needed for tests.
+ * DO NOT USE this, as this is an internal API and subject to change.
  * @hidden
  */
 export function setGlobalScope(scope: ScopeInterface | undefined): void {
