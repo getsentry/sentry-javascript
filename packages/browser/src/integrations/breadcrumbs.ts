@@ -155,10 +155,10 @@ function _getDomBreadcrumbHandler(
     // Accessing event.target can throw (see getsentry/raven-js#838, #768)
     try {
       const event = handlerData.event as Event | Node;
-      target = _isEvent(event)
-        ? htmlTreeAsString(event.target, { keyAttrs, maxStringLength })
-        : htmlTreeAsString(event, { keyAttrs, maxStringLength });
-      componentName = _isEvent(event) ? getComponentName(event.target) : getComponentName(event);
+      const element = _isEvent(event) ? event.target : event;
+   
+      target = htmlTreeAsString(element, { keyAttrs, maxStringLength });
+      componentName = getComponentName(element);
     } catch (e) {
       target = '<unknown>';
     }
