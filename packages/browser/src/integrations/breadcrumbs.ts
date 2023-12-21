@@ -1,4 +1,3 @@
-import { get } from 'http';
 /* eslint-disable max-lines */
 import { addBreadcrumb, convertIntegrationFnToClass, getClient } from '@sentry/core';
 import type {
@@ -12,6 +11,7 @@ import type {
   IntegrationFn,
 } from '@sentry/types';
 import type {
+  Breadcrumb,
   FetchBreadcrumbData,
   FetchBreadcrumbHint,
   XhrBreadcrumbData,
@@ -24,6 +24,7 @@ import {
   addFetchInstrumentationHandler,
   addHistoryInstrumentationHandler,
   addXhrInstrumentationHandler,
+  getComponentName,
   getEventDescription,
   htmlTreeAsString,
   logger,
@@ -133,6 +134,7 @@ function _getDomBreadcrumbHandler(
     }
 
     let target;
+    let componentName;
     let keyAttrs = typeof dom === 'object' ? dom.serializeAttribute : undefined;
 
     let maxStringLength =
@@ -152,9 +154,10 @@ function _getDomBreadcrumbHandler(
     // Accessing event.target can throw (see getsentry/raven-js#838, #768)
     try {
       const event = handlerData.event as Event | Node;
-      target = _isEvent(event)
-        ? htmlTreeAsString(event.target, { keyAttrs, maxStringLength })
-        : htmlTreeAsString(event, { keyAttrs, maxStringLength });
+      const element = _isEvent(event) ? event.target : event;
+
+      target = htmlTreeAsString(element, { keyAttrs, maxStringLength });
+      componentName = getComponentName(element);
     } catch (e) {
       target = '<unknown>';
     }
@@ -163,17 +166,20 @@ function _getDomBreadcrumbHandler(
       return;
     }
 
-    addBreadcrumb(
-      {
-        category: `ui.${handlerData.name}`,
-        message: target,
-      },
-      {
-        event: handlerData.event,
-        name: handlerData.name,
-        global: handlerData.global,
-      },
-    );
+    const breadcrumb: Breadcrumb = {
+      category: `ui.${handlerData.name}`,
+      message: target,
+    };
+
+    if (componentName) {
+      breadcrumb.data = { 'ui.component_name': componentName };
+    }
+
+    addBreadcrumb(breadcrumb, {
+      event: handlerData.event,
+      name: handlerData.name,
+      global: handlerData.global,
+    });
   };
 }
 

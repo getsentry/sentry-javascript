@@ -407,6 +407,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
    * @inheritDoc
    */
   public captureAggregateMetrics(metricBucketItems: Array<MetricBucketItem>): void {
+    DEBUG_BUILD && logger.log(`Flushing aggregated metrics, number of metrics: ${metricBucketItems.length}`);
     const metricsEnvelope = createMetricEnvelope(
       metricBucketItems,
       this._dsn,
