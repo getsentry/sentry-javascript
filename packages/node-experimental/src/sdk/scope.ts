@@ -189,32 +189,6 @@ export class Scope extends OpenTelemetryScope implements ScopeInterface {
   public getOwnScopeData(): ScopeData {
     return super.getScopeData();
   }
-
-  /** @inheritdoc */
-  public getScopeData(): ScopeData {
-    const globalScope = getGlobalScope();
-    const isolationScope = this._getIsolationScope();
-
-    // Special case: If this is the global/isolation scope, no need to merge other data in here
-    if (this === globalScope || this === isolationScope) {
-      return this.getOwnScopeData();
-    }
-
-    // Global scope is applied anyhow in prepareEvent,
-    // but we need to merge the isolation scope in here
-    const data = isolationScope.getOwnScopeData();
-    const scopeData = this.getOwnScopeData();
-
-    // Merge data together, in order
-    mergeScopeData(data, scopeData);
-
-    return data;
-  }
-
-  /** Get the isolation scope for this scope. */
-  protected _getIsolationScope(): Scope {
-    return this.isolationScope || getIsolationScope();
-  }
 }
 
 function getScopes(): CurrentScopes {
