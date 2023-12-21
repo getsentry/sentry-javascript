@@ -1,5 +1,5 @@
 import type { Session } from 'node:inspector/promises';
-import type { Event, EventProcessor, Exception, Hub, Integration, StackFrame, StackParser } from '@sentry/types';
+import type { Event, EventProcessor, Exception, Hub, Integration, StackParser } from '@sentry/types';
 import { LRUMap, logger } from '@sentry/utils';
 import type { Debugger, InspectorNotification, Runtime } from 'inspector';
 import type { NodeClient } from '../../client';
@@ -7,6 +7,13 @@ import type { NodeClient } from '../../client';
 import type { NodeClientOptions } from '../../types';
 import type { FrameVariables, Options, PausedExceptionEvent, RateLimitIncrement, Variables } from './common';
 import { createRateLimiter, functionNamesMatch, hashFrames, hashFromStack } from './common';
+
+/**
+ * When targeting older versions of node, webpack will throw an error if we try to import libraries that are not available
+ */
+function dynamicImport<T>(module: string): Promise<T> {
+  return import(module);
+}
 
 async function unrollArray(session: Session, objectId: string, name: string, vars: Variables): Promise<void> {
   const properties: Runtime.GetPropertiesReturnType = await session.post('Runtime.getProperties', {
@@ -95,7 +102,7 @@ export class LocalVariablesAsync implements Integration {
       return;
     }
 
-    import('node:inspector/promises')
+    dynamicImport<{ Session: typeof Session }>('node:inspector/promises')
       .then(({ Session }) => this._startDebugger(new Session(), clientOptions))
       .catch(e => logger.error('Failed to load inspector API', e));
   }
