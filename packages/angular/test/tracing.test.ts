@@ -153,7 +153,7 @@ describe('Angular Tracing', () => {
 
       const finishMock = jest.fn();
       transaction.startChild = jest.fn(() => ({
-        finish: finishMock,
+        end: finishMock,
       }));
 
       await env.navigateInAngular('/');
@@ -172,7 +172,7 @@ describe('Angular Tracing', () => {
 
       const finishMock = jest.fn();
       transaction.startChild = jest.fn(() => ({
-        finish: finishMock,
+        end: finishMock,
       }));
 
       await env.navigateInAngular('/');
@@ -198,7 +198,7 @@ describe('Angular Tracing', () => {
 
       const finishMock = jest.fn();
       transaction.startChild = jest.fn(() => ({
-        finish: finishMock,
+        end: finishMock,
       }));
 
       await env.navigateInAngular('/somewhere');
@@ -232,7 +232,7 @@ describe('Angular Tracing', () => {
 
       const finishMock = jest.fn();
       transaction.startChild = jest.fn(() => ({
-        finish: finishMock,
+        end: finishMock,
       }));
 
       await env.navigateInAngular('/cancel');
@@ -375,7 +375,7 @@ describe('Angular Tracing', () => {
       });
 
       transaction.startChild = jest.fn(() => ({
-        finish: finishMock,
+        end: finishMock,
       }));
 
       directive.componentName = 'test-component';
@@ -402,7 +402,7 @@ describe('Angular Tracing', () => {
       });
 
       transaction.startChild = jest.fn(() => ({
-        finish: finishMock,
+        end: finishMock,
       }));
 
       directive.ngOnInit();
@@ -436,7 +436,7 @@ describe('Angular Tracing', () => {
     it('Instruments `ngOnInit` and `ngAfterViewInit` methods of the decorated class', async () => {
       const finishMock = jest.fn();
       const startChildMock = jest.fn(() => ({
-        finish: finishMock,
+        end: finishMock,
       }));
 
       const customStartTransaction = jest.fn((ctx: any) => {

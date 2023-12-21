@@ -220,7 +220,7 @@ function createAndFinishSpanForOtelSpan(node: SpanNode, sentryParentSpan: Sentry
     createAndFinishSpanForOtelSpan(child, sentrySpan, remaining);
   });
 
-  sentrySpan.finish(convertOtelTimeToSeconds(span.endTime));
+  sentrySpan.end(convertOtelTimeToSeconds(span.endTime));
 }
 
 function getSpanData(span: ReadableSpan): {

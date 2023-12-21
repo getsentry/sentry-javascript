@@ -1,3 +1,4 @@
+import { setGlobalScope } from '@sentry/core';
 import { getCurrentHub, getSpanScope } from '@sentry/opentelemetry';
 
 import * as Sentry from '../../src/';
@@ -230,7 +231,7 @@ describe('Integration | Scope', () => {
 
   describe('global scope', () => {
     beforeEach(() => {
-      resetGlobals();
+      setGlobalScope(undefined);
     });
 
     it('works before calling init', () => {

@@ -1,8 +1,12 @@
-import type { Client, Event, EventHint } from '@sentry/types';
+import type { Client, Event, EventHint, Integration } from '@sentry/types';
 
 import { Debug } from '../src/debug';
 
-function testEventLogged(integration: Debug, testEvent?: Event, testEventHint?: EventHint) {
+interface IntegrationWithSetup extends Integration {
+  setup: (client: Client) => void;
+}
+
+function testEventLogged(integration: IntegrationWithSetup, testEvent?: Event, testEventHint?: EventHint) {
   const callbacks: ((event: Event, hint?: EventHint) => void)[] = [];
 
   const client: Client = {

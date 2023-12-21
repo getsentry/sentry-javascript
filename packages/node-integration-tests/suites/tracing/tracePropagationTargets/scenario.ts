@@ -21,4 +21,4 @@ http.get('http://match-this-url.com/api/v1');
 http.get('http://dont-match-this-url.com/api/v2');
 http.get('http://dont-match-this-url.com/api/v3');
 
-transaction.finish();
+transaction.end();

@@ -19,7 +19,7 @@ const span_1 = transaction.startChild({
 for (let i = 0; i < 2000; i++);
 
 // span_1 finishes
-span_1.finish();
+span_1.end();
 
 // span_2 doesn't finish
 transaction.startChild({ op: 'span_2' });
@@ -32,9 +32,9 @@ for (let i = 0; i < 4000; i++);
 span_3.startChild({ op: 'span_4', data: { qux: 'quux' } });
 
 // span_5 is another child of span_3 but finishes.
-span_3.startChild({ op: 'span_5' }).finish();
+span_3.startChild({ op: 'span_5' }).end();
 
 // span_3 also finishes
-span_3.finish();
+span_3.end();
 
-transaction.finish();
+transaction.end();

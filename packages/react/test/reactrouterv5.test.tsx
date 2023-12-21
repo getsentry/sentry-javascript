@@ -23,7 +23,7 @@ describe('React Router v5', () => {
     const history = createMemoryHistory();
     const mockFinish = jest.fn();
     const mockSetName = jest.fn();
-    const mockStartTransaction = jest.fn().mockReturnValue({ setName: mockSetName, finish: mockFinish });
+    const mockStartTransaction = jest.fn().mockReturnValue({ setName: mockSetName, end: mockFinish });
     reactRouterV5Instrumentation(history, options.routes, options.matchPath)(
       mockStartTransaction,
       options.startTransactionOnPageLoad,

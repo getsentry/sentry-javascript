@@ -25,10 +25,10 @@ export const fakeScope = {
   setPropagationContext: jest.fn(),
 };
 export const fakeSpan = {
-  finish: jest.fn(),
+  end: jest.fn(),
 };
 export const fakeTransaction = {
-  finish: jest.fn(),
+  end: jest.fn(),
   setHttpStatus: jest.fn(),
   startChild: jest.fn(() => fakeSpan),
 };
@@ -45,9 +45,9 @@ export const getClient = jest.fn(() => ({}));
 
 export const resetMocks = (): void => {
   fakeTransaction.setHttpStatus.mockClear();
-  fakeTransaction.finish.mockClear();
+  fakeTransaction.end.mockClear();
   fakeTransaction.startChild.mockClear();
-  fakeSpan.finish.mockClear();
+  fakeSpan.end.mockClear();
   fakeHub.configureScope.mockClear();
   fakeHub.pushScope.mockClear();
   fakeHub.popScope.mockClear();

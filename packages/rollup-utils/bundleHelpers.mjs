@@ -102,6 +102,15 @@ export function makeBaseBundleConfig(options) {
     external: builtinModules,
   };
 
+  const workerBundleConfig = {
+    output: {
+      format: 'esm',
+    },
+    plugins: [commonJSPlugin, makeTerserPlugin()],
+    // Don't bundle any of Node's core modules
+    external: builtinModules,
+  };
+
   // used by all bundles
   const sharedBundleConfig = {
     input: entrypoints,
@@ -123,6 +132,7 @@ export function makeBaseBundleConfig(options) {
     standalone: standAloneBundleConfig,
     addon: addOnBundleConfig,
     node: nodeBundleConfig,
+    'node-worker': workerBundleConfig,
   };
 
   return deepMerge.all([sharedBundleConfig, bundleTypeConfigMap[bundleType], packageSpecificConfig || {}], {

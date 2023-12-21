@@ -1,5 +1,5 @@
-import { captureException, captureMessage, getClient, withScope } from '@sentry/core';
-import type { CaptureContext, Client, EventProcessor, Hub, Integration } from '@sentry/types';
+import { captureException, captureMessage, convertIntegrationFnToClass, getClient, withScope } from '@sentry/core';
+import type { CaptureContext, IntegrationFn } from '@sentry/types';
 import {
   CONSOLE_LEVELS,
   GLOBAL_OBJ,
@@ -9,55 +9,36 @@ import {
   severityLevelFromString,
 } from '@sentry/utils';
 
-/** Send Console API calls as Sentry Events */
-export class CaptureConsole implements Integration {
-  /**
-   * @inheritDoc
-   */
-  public static id: string = 'CaptureConsole';
+interface CaptureConsoleOptions {
+  levels?: string[];
+}
 
-  /**
-   * @inheritDoc
-   */
-  public name: string;
+const INTEGRATION_NAME = 'CaptureConsole';
 
-  /**
-   * @inheritDoc
-   */
-  private readonly _levels: readonly string[];
+const captureConsoleIntegration = ((options: CaptureConsoleOptions = {}) => {
+  const levels = options.levels || CONSOLE_LEVELS;
 
-  /**
-   * @inheritDoc
-   */
-  public constructor(options: { levels?: string[] } = {}) {
-    this.name = CaptureConsole.id;
-    this._levels = options.levels || CONSOLE_LEVELS;
-  }
-
-  /**
-   * @inheritDoc
-   */
-  public setupOnce(_: (callback: EventProcessor) => void, _getCurrentHub: () => Hub): void {
-    // noop
-  }
-
-  /** @inheritdoc */
-  public setup(client: Client): void {
-    if (!('console' in GLOBAL_OBJ)) {
-      return;
-    }
-
-    const levels = this._levels;
-
-    addConsoleInstrumentationHandler(({ args, level }) => {
-      if (getClient() !== client || !levels.includes(level)) {
+  return {
+    name: INTEGRATION_NAME,
+    setup(client) {
+      if (!('console' in GLOBAL_OBJ)) {
         return;
       }
 
-      consoleHandler(args, level);
-    });
-  }
-}
+      addConsoleInstrumentationHandler(({ args, level }) => {
+        if (getClient() !== client || !levels.includes(level)) {
+          return;
+        }
+
+        consoleHandler(args, level);
+      });
+    },
+  };
+}) satisfies IntegrationFn;
+
+/** Send Console API calls as Sentry Events */
+// eslint-disable-next-line deprecation/deprecation
+export const CaptureConsole = convertIntegrationFnToClass(INTEGRATION_NAME, captureConsoleIntegration);
 
 function consoleHandler(args: unknown[], level: string): void {
   const captureContext: CaptureContext = {

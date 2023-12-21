@@ -94,7 +94,7 @@ export class Mysql implements LazyLoadedIntegration<MysqlConnection> {
         span.setData(key, data[key]);
       });
 
-      span.finish();
+      span.end();
     }
 
     // The original function will have one of these signatures:
