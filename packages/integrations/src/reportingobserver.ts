@@ -1,5 +1,5 @@
 import { captureMessage, convertIntegrationFnToClass, getClient, withScope } from '@sentry/core';
-import type { Client, EventProcessor, Hub, Integration, IntegrationFn } from '@sentry/types';
+import type { Client, IntegrationFn } from '@sentry/types';
 import { GLOBAL_OBJ, supportsReportingObserver } from '@sentry/utils';
 
 const WINDOW = GLOBAL_OBJ as typeof GLOBAL_OBJ & Window;
@@ -46,13 +46,13 @@ interface ReportingObserverOptions {
   types?: ReportTypes[];
 }
 
-const SETUP_CLIENTS: Client[] = [];
+const SETUP_CLIENTS = new WeakMap<Client, boolean>();
 
 const reportingObserverIntegration = ((options: ReportingObserverOptions = {}) => {
   const types = options.types || ['crash', 'deprecation', 'intervention'];
 
   function handler(reports: Report[]): void {
-    if (!SETUP_CLIENTS.includes(getClient() as Client)) {
+    if (!SETUP_CLIENTS.has(getClient() as Client)) {
       return;
     }
 
@@ -109,7 +109,7 @@ const reportingObserverIntegration = ((options: ReportingObserverOptions = {}) =
     },
 
     setup(client): void {
-      SETUP_CLIENTS.push(client);
+      SETUP_CLIENTS.set(client, true);
     },
   };
 }) satisfies IntegrationFn;
