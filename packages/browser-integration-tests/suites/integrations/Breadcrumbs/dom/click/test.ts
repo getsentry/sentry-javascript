@@ -86,7 +86,7 @@ sentryTest(
         timestamp: expect.any(Number),
         category: 'ui.click',
         message: 'body > AnnotatedButton',
-        data: { componentName: 'AnnotatedButton' },
+        data: { 'ui.component_name': 'AnnotatedButton' },
       },
     ]);
   },

@@ -173,7 +173,7 @@ function _getDomBreadcrumbHandler(
     };
 
     if (componentName) {
-      breadcrumb.data = { componentName };
+      breadcrumb.data = { 'ui.component_name': componentName };
     }
 
     addBreadcrumb(breadcrumb, {

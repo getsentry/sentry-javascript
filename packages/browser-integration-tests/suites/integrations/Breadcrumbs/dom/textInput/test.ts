@@ -98,13 +98,13 @@ sentryTest(
         timestamp: expect.any(Number),
         category: 'ui.click',
         message: 'body > AnnotatedInput',
-        data: { componentName: 'AnnotatedInput' },
+        data: { 'ui.component_name': 'AnnotatedInput' },
       },
       {
         timestamp: expect.any(Number),
         category: 'ui.input',
         message: 'body > AnnotatedInput',
-        data: { componentName: 'AnnotatedInput' },
+        data: { 'ui.component_name': 'AnnotatedInput' },
       },
     ]);
   },
