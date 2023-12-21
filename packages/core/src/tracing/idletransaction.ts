@@ -7,7 +7,7 @@ import type { Hub } from '../hub';
 import type { Span } from './span';
 import { SpanRecorder } from './span';
 import { Transaction } from './transaction';
-import { timestampToS } from './utils';
+import { ensureTimestampInSeconds } from './utils';
 
 export const TRACING_DEFAULTS = {
   idleTimeout: 1000,
@@ -139,7 +139,7 @@ export class IdleTransaction extends Transaction {
 
   /** {@inheritDoc} */
   public end(endTimestamp: number = timestampInSeconds()): string | undefined {
-    const endTimestampInS = timestampToS(endTimestamp);
+    const endTimestampInS = ensureTimestampInSeconds(endTimestamp);
 
     this._finished = true;
     this.activities = {};

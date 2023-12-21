@@ -16,7 +16,7 @@ import type { Hub } from '../hub';
 import { getCurrentHub } from '../hub';
 import { getDynamicSamplingContextFromClient } from './dynamicSamplingContext';
 import { Span as SpanClass, SpanRecorder } from './span';
-import { timestampToS } from './utils';
+import { ensureTimestampInSeconds } from './utils';
 
 /** JSDoc */
 export class Transaction extends SpanClass implements TransactionInterface {
@@ -136,7 +136,8 @@ export class Transaction extends SpanClass implements TransactionInterface {
    * @inheritDoc
    */
   public end(endTimestamp?: number): string | undefined {
-    const timestampInS = typeof endTimestamp === 'number' ? timestampToS(endTimestamp) : timestampInSeconds();
+    const timestampInS =
+      typeof endTimestamp === 'number' ? ensureTimestampInSeconds(endTimestamp) : timestampInSeconds();
     const transaction = this._finishTransaction(timestampInS);
     if (!transaction) {
       return undefined;

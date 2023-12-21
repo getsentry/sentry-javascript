@@ -31,7 +31,7 @@ export const extractTraceparentData = _extractTraceparentData;
 /**
  * Converts a timestamp to second, if it was in milliseconds, or keeps it as second.
  */
-export function timestampToS(timestamp: number): number {
+export function ensureTimestampInSeconds(timestamp: number): number {
   const isMs = timestamp > 9999999999;
   return isMs ? timestamp / 1000 : timestamp;
 }
