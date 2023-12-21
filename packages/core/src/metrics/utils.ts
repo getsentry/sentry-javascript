@@ -1,5 +1,6 @@
-import type { MeasurementUnit, MetricBucketItem } from '@sentry/types';
+import type { MeasurementUnit, MetricBucketItem, Primitive } from '@sentry/types';
 import { dropUndefinedKeys } from '@sentry/utils';
+import { NAME_AND_TAG_KEY_NORMALIZATION_REGEX, TAG_VALUE_NORMALIZATION_REGEX } from './constants';
 import type { MetricType } from './types';
 
 /**
@@ -43,15 +44,26 @@ export function simpleHash(s: string): number {
  * tags: { a: value, b: anothervalue }
  * timestamp: 12345677
  */
-export function serializeMetricBuckets(metricBucketItems: Array<MetricBucketItem>): string {
+export function serializeMetricBuckets(metricBucketItems: MetricBucketItem[]): string {
   let out = '';
-  for (const [metric, timestamp, metricType, name, unit, tags] of metricBucketItems) {
-    const maybeTags = Object.keys(tags).length
-      ? `|#${Object.entries(tags)
-          .map(([key, value]) => `${key}:${String(value)}`)
-          .join(',')}`
-      : '';
-    out += `${name}@${unit}:${metric}|${metricType}${maybeTags}|T${timestamp}\n`;
+  for (const item of metricBucketItems) {
+    const tagEntries = Object.entries(item.tags);
+    const maybeTags = tagEntries.length > 0 ? `|#${tagEntries.map(([key, value]) => `${key}:${value}`).join(',')}` : '';
+    out += `${item.name}@${item.unit}:${item.metric}|${item.metricType}${maybeTags}|T${item.timestamp}\n`;
   }
   return out;
+}
+
+/**
+ * Sanitizes tags.
+ */
+export function sanitizeTags(unsanitizedTags: Record<string, Primitive>): Record<string, string> {
+  const tags: Record<string, string> = {};
+  for (const key in unsanitizedTags) {
+    if (Object.prototype.hasOwnProperty.call(unsanitizedTags, key)) {
+      const sanitizedKey = key.replace(NAME_AND_TAG_KEY_NORMALIZATION_REGEX, '_');
+      tags[sanitizedKey] = String(unsanitizedTags[key]).replace(TAG_VALUE_NORMALIZATION_REGEX, '_');
+    }
+  }
+  return tags;
 }

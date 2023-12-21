@@ -17,6 +17,7 @@ import { BaseClient } from './baseclient';
 import { createCheckInEnvelope } from './checkin';
 import { DEBUG_BUILD } from './debug-build';
 import { getClient } from './exports';
+import { MetricsAggregator } from './metrics/aggregator';
 import type { Scope } from './scope';
 import { SessionFlusher } from './sessionflusher';
 import { addTracingExtensions, getDynamicSamplingContextFromClient } from './tracing';
@@ -44,6 +45,10 @@ export class ServerRuntimeClient<
     addTracingExtensions();
 
     super(options);
+
+    if (options._experiments && options._experiments['metricsAggregator']) {
+      this.metricsAggregator = new MetricsAggregator(this);
+    }
   }
 
   /**
