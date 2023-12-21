@@ -9,7 +9,7 @@ type CronParams = [string, string | Deno.CronSchedule, CronFn | CronOptions, Cro
 
 const INTEGRATION_NAME = 'DenoCron';
 
-const SETUP_CLIENTS: Client[] = [];
+const SETUP_CLIENTS = new WeakMap<Client, boolean>();
 
 const denoCronIntegration = (() => {
   return {
@@ -37,7 +37,7 @@ const denoCronIntegration = (() => {
           }
 
           async function cronCalled(): Promise<void> {
-            if (SETUP_CLIENTS.includes(getClient() as Client)) {
+            if (SETUP_CLIENTS.has(getClient() as Client)) {
               return;
             }
 
@@ -55,7 +55,7 @@ const denoCronIntegration = (() => {
       });
     },
     setup(client) {
-      SETUP_CLIENTS.push(client);
+      SETUP_CLIENTS.set(client, true);
     },
   };
 }) satisfies IntegrationFn;
