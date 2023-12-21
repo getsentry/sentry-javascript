@@ -256,7 +256,7 @@ export function xhrCallback(
     const span = spans[spanId];
     if (span && sentryXhrData.status_code !== undefined) {
       span.setHttpStatus(sentryXhrData.status_code);
-      span.finish();
+      span.end();
 
       // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
       delete spans[spanId];

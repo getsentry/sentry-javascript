@@ -1,5 +1,5 @@
 import { RewriteFrames } from '@sentry/integrations';
-import type { StackFrame } from '@sentry/types';
+import type { Event, StackFrame } from '@sentry/types';
 import { basename } from '@sentry/utils';
 
 import type { GlobalWithSentryValues } from '../../src/server/utils';
@@ -80,21 +80,30 @@ describe('rewriteFramesIteratee', () => {
     };
 
     const originalRewriteFrames = new RewriteFrames();
-    // @ts-expect-error this property exists
-    const defaultIteratee = originalRewriteFrames._iteratee;
+    const rewriteFrames = new RewriteFrames({ iteratee: rewriteFramesIteratee });
 
-    const defaultResult = defaultIteratee({ ...frame });
-    delete defaultResult.module;
+    const event: Event = {
+      exception: {
+        values: [
+          {
+            stacktrace: {
+              frames: [frame],
+            },
+          },
+        ],
+      },
+    };
 
-    const result = rewriteFramesIteratee({ ...frame });
+    const originalResult = originalRewriteFrames.processEvent(event);
+    const result = rewriteFrames.processEvent(event);
 
-    expect(result).toEqual({
+    expect(result.exception?.values?.[0]?.stacktrace?.frames?.[0]).toEqual({
       filename: 'app:///3-ab34d22f.js',
       lineno: 1,
       colno: 1,
     });
 
-    expect(result).toStrictEqual(defaultResult);
+    expect(result).toStrictEqual(originalResult);
   });
 
   it.each([

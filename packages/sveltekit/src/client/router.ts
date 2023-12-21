@@ -74,7 +74,7 @@ function instrumentNavigations(startTransactionFn: (context: TransactionContext)
       // So in this case, we can finish the routing span. If the transaction was an IdleTransaction,
       // it will finish automatically and if it was user-created users also need to finish it.
       if (routingSpan) {
-        routingSpan.finish();
+        routingSpan.end();
         routingSpan = undefined;
       }
       return;
@@ -114,7 +114,7 @@ function instrumentNavigations(startTransactionFn: (context: TransactionContext)
     if (activeTransaction) {
       if (routingSpan) {
         // If a routing span is still open from a previous navigation, we finish it.
-        routingSpan.finish();
+        routingSpan.end();
       }
       routingSpan = activeTransaction.startChild({
         op: 'ui.sveltekit.routing',

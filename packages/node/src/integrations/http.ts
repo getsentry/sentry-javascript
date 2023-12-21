@@ -292,7 +292,7 @@ function _createWrappedRequestMethodFactory(
               requestSpan.setHttpStatus(res.statusCode);
             }
             requestSpan.description = cleanSpanDescription(requestSpan.description, requestOptions, req);
-            requestSpan.finish();
+            requestSpan.end();
           }
         })
         .once('error', function (this: http.ClientRequest): void {
@@ -305,7 +305,7 @@ function _createWrappedRequestMethodFactory(
           if (requestSpan) {
             requestSpan.setHttpStatus(500);
             requestSpan.description = cleanSpanDescription(requestSpan.description, requestOptions, req);
-            requestSpan.finish();
+            requestSpan.end();
           }
         });
     };

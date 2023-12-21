@@ -1,6 +1,6 @@
 import { Transaction } from '../src/transaction';
 
-const transaction: Transaction = new Transaction();
+const transaction = new Transaction();
 
 describe('Transaction', () => {
   describe('extracts info from module/function of the first `in_app` frame', () => {

@@ -1,59 +1,41 @@
-import type { Event, Exception, Integration, StackFrame } from '@sentry/types';
+import { convertIntegrationFnToClass } from '@sentry/core';
+import type { Event, Exception, IntegrationFn, StackFrame } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from './debug-build';
 
-/** Deduplication filter */
-export class Dedupe implements Integration {
-  /**
-   * @inheritDoc
-   */
-  public static id: string = 'Dedupe';
+const INTEGRATION_NAME = 'Dedupe';
 
-  /**
-   * @inheritDoc
-   */
-  public name: string;
+const dedupeIntegration = (() => {
+  let previousEvent: Event | undefined;
 
-  /**
-   * @inheritDoc
-   */
-  private _previousEvent?: Event;
-
-  public constructor() {
-    this.name = Dedupe.id;
-  }
-
-  /** @inheritDoc */
-  public setupOnce(_addGlobalEventProcessor: unknown, _getCurrentHub: unknown): void {
-    // noop
-  }
-
-  /**
-   * @inheritDoc
-   */
-  public processEvent(currentEvent: Event): Event | null {
-    // We want to ignore any non-error type events, e.g. transactions or replays
-    // These should never be deduped, and also not be compared against as _previousEvent.
-    if (currentEvent.type) {
-      return currentEvent;
-    }
-
-    // Juuust in case something goes wrong
-    try {
-      if (_shouldDropEvent(currentEvent, this._previousEvent)) {
-        DEBUG_BUILD && logger.warn('Event dropped due to being a duplicate of previously captured event.');
-        return null;
+  return {
+    name: INTEGRATION_NAME,
+    processEvent(currentEvent) {
+      // We want to ignore any non-error type events, e.g. transactions or replays
+      // These should never be deduped, and also not be compared against as _previousEvent.
+      if (currentEvent.type) {
+        return currentEvent;
       }
-    } catch (_oO) {
-      return (this._previousEvent = currentEvent);
-    }
 
-    return (this._previousEvent = currentEvent);
-  }
-}
+      // Juuust in case something goes wrong
+      try {
+        if (_shouldDropEvent(currentEvent, previousEvent)) {
+          DEBUG_BUILD && logger.warn('Event dropped due to being a duplicate of previously captured event.');
+          return null;
+        }
+      } catch (_oO) {} // eslint-disable-line no-empty
 
-/** JSDoc */
+      return (previousEvent = currentEvent);
+    },
+  };
+}) satisfies IntegrationFn;
+
+/** Deduplication filter */
+// eslint-disable-next-line deprecation/deprecation
+export const Dedupe = convertIntegrationFnToClass(INTEGRATION_NAME, dedupeIntegration);
+
+/** only exported for tests. */
 export function _shouldDropEvent(currentEvent: Event, previousEvent?: Event): boolean {
   if (!previousEvent) {
     return false;
@@ -70,7 +52,6 @@ export function _shouldDropEvent(currentEvent: Event, previousEvent?: Event): bo
   return false;
 }
 
-/** JSDoc */
 function _isSameMessageEvent(currentEvent: Event, previousEvent: Event): boolean {
   const currentMessage = currentEvent.message;
   const previousMessage = previousEvent.message;
@@ -100,7 +81,6 @@ function _isSameMessageEvent(currentEvent: Event, previousEvent: Event): boolean
   return true;
 }
 
-/** JSDoc */
 function _isSameExceptionEvent(currentEvent: Event, previousEvent: Event): boolean {
   const previousException = _getExceptionFromEvent(previousEvent);
   const currentException = _getExceptionFromEvent(currentEvent);
@@ -124,7 +104,6 @@ function _isSameExceptionEvent(currentEvent: Event, previousEvent: Event): boole
   return true;
 }
 
-/** JSDoc */
 function _isSameStacktrace(currentEvent: Event, previousEvent: Event): boolean {
   let currentFrames = _getFramesFromEvent(currentEvent);
   let previousFrames = _getFramesFromEvent(previousEvent);
@@ -165,7 +144,6 @@ function _isSameStacktrace(currentEvent: Event, previousEvent: Event): boolean {
   return true;
 }
 
-/** JSDoc */
 function _isSameFingerprint(currentEvent: Event, previousEvent: Event): boolean {
   let currentFingerprint = currentEvent.fingerprint;
   let previousFingerprint = previousEvent.fingerprint;
@@ -191,12 +169,10 @@ function _isSameFingerprint(currentEvent: Event, previousEvent: Event): boolean 
   }
 }
 
-/** JSDoc */
 function _getExceptionFromEvent(event: Event): Exception | undefined {
   return event.exception && event.exception.values && event.exception.values[0];
 }
 
-/** JSDoc */
 function _getFramesFromEvent(event: Event): StackFrame[] | undefined {
   const exception = event.exception;
 

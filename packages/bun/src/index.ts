@@ -44,6 +44,8 @@ export {
   getCurrentHub,
   getClient,
   getCurrentScope,
+  getGlobalScope,
+  getIsolationScope,
   Hub,
   lastEventId,
   makeMain,

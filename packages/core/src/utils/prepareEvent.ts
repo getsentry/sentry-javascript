@@ -48,6 +48,7 @@ export function prepareEvent(
   hint: EventHint,
   scope?: Scope,
   client?: Client,
+  isolationScope?: Scope,
 ): PromiseLike<Event | null> {
   const { normalizeDepth = 3, normalizeMaxBreadth = 1_000 } = options;
   const prepared: Event = {
@@ -79,6 +80,11 @@ export function prepareEvent(
   // {@link Hub.addEventProcessor} gets the finished prepared event.
   // Merge scope data together
   const data = getGlobalScope().getScopeData();
+
+  if (isolationScope) {
+    const isolationData = isolationScope.getScopeData();
+    mergeScopeData(data, isolationData);
+  }
 
   if (finalScope) {
     const finalScopeData = finalScope.getScopeData();
