@@ -419,7 +419,7 @@ describe('Hub', () => {
       transaction.end();
 
       expect(transaction.sampled).toBe(false);
-      expect(transaction.finish).toReturnWith(undefined);
+      expect(transaction.end).toReturnWith(undefined);
       expect(client.captureEvent).not.toBeCalled();
     });
 
@@ -436,7 +436,7 @@ describe('Hub', () => {
       transaction.end();
 
       expect(transaction.sampled).toBe(false);
-      expect(transaction.finish).toReturnWith(undefined);
+      expect(transaction.end).toReturnWith(undefined);
       expect(client.captureEvent).not.toBeCalled();
       expect(logger.error).toHaveBeenCalledWith(
         `A transaction was started with instrumenter=\`sentry\`, but the SDK is configured with the \`otel\` instrumenter.

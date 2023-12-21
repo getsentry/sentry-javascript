@@ -39,7 +39,7 @@ describe('sveltekitRoutingInstrumentation', () => {
     end: () => {},
   };
 
-  const routingSpanFinishSpy = vi.spyOn(mockedRoutingSpan, 'finish');
+  const routingSpanFinishSpy = vi.spyOn(mockedRoutingSpan, 'end');
 
   beforeEach(() => {
     navigatingStore = writable();
