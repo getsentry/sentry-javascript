@@ -14,15 +14,17 @@ sentryTest(
     const url = await getLocalTestPath({ testDir: __dirname });
     const envelopePromise = getMultipleSentryEnvelopeRequests<Event>(page, 2);
 
-    const gotoPromise = page.goto(url);
+    await page.goto(url);
+
     const clickPromise = page.getByText('Button 1').click();
 
-    const [_, events] = await Promise.all([gotoPromise, envelopePromise, clickPromise]);
-
+    const [, events] = await Promise.all([clickPromise, envelopePromise]);
     const [txn, err] = events[0]?.type === 'transaction' ? [events[0], events[1]] : [events[1], events[0]];
 
     expect(txn).toMatchObject({ transaction: 'parent_span' });
 
-    expect(err?.exception?.values?.[0]?.value).toBe('[object Promise]');
+    expect(err?.exception?.values?.[0]?.value).toBe(
+      'Non-Error promise rejection captured with value: Async Promise Rejection',
+    );
   },
 );
