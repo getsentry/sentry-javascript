@@ -97,7 +97,7 @@ export function startSpan<T>(context: TransactionContext, callback: (span: Span 
     scope.setSpan(activeSpan);
 
     function finishAndSetSpan(): void {
-      activeSpan && activeSpan.finish();
+      activeSpan && activeSpan.end();
     }
 
     let maybePromiseResult: T;
@@ -157,7 +157,7 @@ export function startSpanManual<T>(
     scope.setSpan(activeSpan);
 
     function finishAndSetSpan(): void {
-      activeSpan && activeSpan.finish();
+      activeSpan && activeSpan.end();
     }
 
     let maybePromiseResult: T;

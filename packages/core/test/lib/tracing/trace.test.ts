@@ -231,7 +231,7 @@ describe('startInactiveSpan', () => {
     expect(span).toBeDefined();
     expect(span?.endTimestamp).toBeUndefined();
 
-    span?.finish();
+    span?.end();
 
     expect(span?.endTimestamp).toBeDefined();
   });
@@ -241,9 +241,10 @@ describe('startInactiveSpan', () => {
 
     const span = startInactiveSpan({ name: 'GET users/[id]' });
 
+    expect(span).toBeDefined();
     expect(initialScope.getSpan()).toBeUndefined();
 
-    span?.finish();
+    span?.end();
 
     expect(initialScope.getSpan()).toBeUndefined();
   });
