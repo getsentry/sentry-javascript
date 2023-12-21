@@ -30,7 +30,7 @@ export function createMetricEnvelope(
   return createEnvelope<StatsdEnvelope>(headers, [item]);
 }
 
-function createMetricEnvelopeItem(metricBucketItems: Array<MetricBucketItem>): StatsdItem {
+function createMetricEnvelopeItem(metricBucketItems: MetricBucketItem[]): StatsdItem {
   const payload = serializeMetricBuckets(metricBucketItems);
   const metricHeaders: StatsdItem[0] = {
     type: 'statsd',

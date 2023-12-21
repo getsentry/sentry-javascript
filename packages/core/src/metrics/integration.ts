@@ -1,7 +1,7 @@
 import type { ClientOptions, IntegrationFn } from '@sentry/types';
 import type { BaseClient } from '../baseclient';
 import { convertIntegrationFnToClass } from '../integration';
-import { SimpleMetricsAggregator } from './simpleaggregator';
+import { BrowserMetricsAggregator } from './browser-aggregator';
 
 const INTEGRATION_NAME = 'MetricsAggregator';
 
@@ -9,7 +9,7 @@ const metricsAggregatorIntegration: IntegrationFn = () => {
   return {
     name: INTEGRATION_NAME,
     setup(client: BaseClient<ClientOptions>) {
-      client.metricsAggregator = new SimpleMetricsAggregator(client);
+      client.metricsAggregator = new BrowserMetricsAggregator(client);
     },
   };
 };

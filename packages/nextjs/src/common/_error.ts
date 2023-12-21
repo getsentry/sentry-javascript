@@ -1,4 +1,4 @@
-import { captureException, getClient, withScope } from '@sentry/core';
+import { captureException, withScope } from '@sentry/core';
 import type { NextPageContext } from 'next';
 import { flushQueue } from './utils/responseEnd';
 

@@ -71,6 +71,7 @@ export {
   startInactiveSpan,
   startSpanManual,
   continueTrace,
+  metrics,
 } from '@sentry/core';
 export type { SpanStatusType } from '@sentry/core';
 export { autoDiscoverNodePerformanceMonitoringIntegrations } from './tracing';
