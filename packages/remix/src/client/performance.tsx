@@ -134,7 +134,7 @@ export function withSentry<P extends Record<string, unknown>, R extends React.Co
     _useEffect(() => {
       if (isBaseLocation) {
         if (activeTransaction) {
-          activeTransaction.finish();
+          activeTransaction.end();
         }
 
         return;
@@ -142,7 +142,7 @@ export function withSentry<P extends Record<string, unknown>, R extends React.Co
 
       if (_startTransactionOnLocationChange && matches && matches.length) {
         if (activeTransaction) {
-          activeTransaction.finish();
+          activeTransaction.end();
         }
 
         activeTransaction = _customStartTransaction({

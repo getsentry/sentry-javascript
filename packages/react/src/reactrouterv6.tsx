@@ -149,7 +149,7 @@ function handleNavigation(
 
   if (_startTransactionOnLocationChange && (navigationType === 'PUSH' || navigationType === 'POP') && branches) {
     if (activeTransaction) {
-      activeTransaction.finish();
+      activeTransaction.end();
     }
 
     const [name, source] = getNormalizedName(routes, location, branches, basename);

@@ -98,7 +98,7 @@ export function tracingHandler(): (
       setImmediate(() => {
         addRequestDataToTransaction(transaction, req);
         transaction.setHttpStatus(res.statusCode);
-        transaction.finish();
+        transaction.end();
       });
     });
 

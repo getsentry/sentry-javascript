@@ -5,7 +5,6 @@ import type {
   Hub,
   Integration,
   IntegrationClass,
-  Session,
   Severity,
   SeverityLevel,
   TransactionContext,
@@ -14,8 +13,6 @@ import type {
 import {
   addBreadcrumb,
   captureEvent,
-  captureException,
-  captureMessage,
   configureScope,
   endSession,
   getClient,
@@ -32,6 +29,7 @@ import {
 } from './api';
 import { callExtensionMethod, getGlobalCarrier } from './globals';
 import type { Scope } from './scope';
+import { getIsolationScope } from './scope';
 import type { SentryCarrier } from './types';
 
 /** Ensure the global hub is our proxied hub. */
@@ -67,6 +65,7 @@ export function getCurrentHub(): Hub {
     withScope,
     getClient,
     getScope: getCurrentScope,
+    getIsolationScope,
     captureException: (exception: unknown, hint?: EventHint) => {
       return getCurrentScope().captureException(exception, hint);
     },

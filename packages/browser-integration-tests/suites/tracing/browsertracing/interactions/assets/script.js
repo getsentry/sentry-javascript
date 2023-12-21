@@ -14,3 +14,4 @@ const delay = e => {
 };
 
 document.querySelector('[data-test-id=interaction-button]').addEventListener('click', delay);
+document.querySelector('[data-test-id=annotated-button]').addEventListener('click', delay);

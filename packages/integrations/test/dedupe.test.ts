@@ -10,7 +10,6 @@ type EventWithException = SentryEvent & {
 type ExceptionWithStacktrace = Exception & { stacktrace: StacktraceWithFrames };
 type StacktraceWithFrames = Stacktrace & { frames: StackFrame[] };
 
-/** JSDoc */
 function clone<T>(data: T): T {
   return JSON.parse(JSON.stringify(data));
 }

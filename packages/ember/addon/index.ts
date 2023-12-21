@@ -94,7 +94,7 @@ export const instrumentRoutePerformance = <T extends RouteConstructor>(BaseRoute
         origin: 'auto.ui.ember',
         startTimestamp,
       })
-      .finish();
+      .end();
     return result;
   };
 

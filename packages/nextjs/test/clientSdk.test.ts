@@ -90,7 +90,7 @@ describe('Client init()', () => {
     const transportSend = jest.spyOn(hub.getClient()!.getTransport()!, 'send');
 
     const transaction = hub.startTransaction({ name: '/404' });
-    transaction.finish();
+    transaction.end();
 
     expect(transportSend).not.toHaveBeenCalled();
     expect(captureEvent.mock.results[0].value).toBeUndefined();

@@ -66,7 +66,7 @@ describe('patchOperation()', () => {
     childSpan = parentSpan.startChild();
     jest.spyOn(scope, 'getSpan').mockReturnValueOnce(parentSpan);
     jest.spyOn(parentSpan, 'startChild').mockReturnValueOnce(childSpan);
-    jest.spyOn(childSpan, 'finish');
+    jest.spyOn(childSpan, 'end');
   });
 
   it('should wrap method accepting callback as the last argument', done => {
@@ -84,7 +84,7 @@ describe('patchOperation()', () => {
         origin: 'auto.db.mongo',
         description: 'insertOne',
       });
-      expect(childSpan.finish).toBeCalled();
+      expect(childSpan.end).toBeCalled();
       done();
     }) as void;
   });
@@ -104,7 +104,7 @@ describe('patchOperation()', () => {
       origin: 'auto.db.mongo',
       description: 'insertOne',
     });
-    expect(childSpan.finish).toBeCalled();
+    expect(childSpan.end).toBeCalled();
   });
 
   it('should wrap method accepting no callback as the last argument and not returning promise', () => {
@@ -121,7 +121,7 @@ describe('patchOperation()', () => {
       origin: 'auto.db.mongo',
       description: 'initializeOrderedBulkOp',
     });
-    expect(childSpan.finish).toBeCalled();
+    expect(childSpan.end).toBeCalled();
   });
 
   it("doesn't attach when using otel instrumenter", () => {
