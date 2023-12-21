@@ -156,7 +156,7 @@ function _getDomBreadcrumbHandler(
     try {
       const event = handlerData.event as Event | Node;
       const element = _isEvent(event) ? event.target : event;
-   
+
       target = htmlTreeAsString(element, { keyAttrs, maxStringLength });
       componentName = getComponentName(element);
     } catch (e) {
