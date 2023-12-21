@@ -68,6 +68,7 @@ export {
   startSpan,
   startInactiveSpan,
   startSpanManual,
+  metrics,
 } from '@sentry/core';
 export type { SpanStatusType } from '@sentry/core';
 

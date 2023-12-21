@@ -7,4 +7,6 @@ export type MetricType =
   | typeof SET_METRIC_TYPE
   | typeof DISTRIBUTION_METRIC_TYPE;
 
-export type SimpleMetricBucket = Map<string, MetricBucketItem>;
+// TODO(@anonrig): Convert this to WeakMap when we support ES6 and
+// use FinalizationRegistry to flush the buckets when the aggregator is garbage collected.
+export type MetricBucket = Map<string, MetricBucketItem>;
