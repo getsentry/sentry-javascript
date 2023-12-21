@@ -670,6 +670,23 @@ describe('convertIntegrationFnToClass', () => {
     });
   });
 
+  it('works with options', () => {
+    const integrationFn = (_options: { num: number }) => ({ name: 'testName' });
+
+    const IntegrationClass = convertIntegrationFnToClass('testName', integrationFn);
+
+    expect(IntegrationClass.id).toBe('testName');
+
+    // @ts-expect-error This should fail TS without options
+    new IntegrationClass();
+
+    const integration = new IntegrationClass({ num: 3 });
+    expect(integration).toEqual({
+      name: 'testName',
+      setupOnce: expect.any(Function),
+    });
+  });
+
   it('works with integration hooks', () => {
     const setup = jest.fn();
     const setupOnce = jest.fn();

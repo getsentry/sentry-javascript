@@ -211,7 +211,7 @@ export class Undici implements Integration {
     const span = request.__sentry_span__;
     if (span) {
       span.setHttpStatus(response.statusCode);
-      span.finish();
+      span.end();
     }
 
     if (this._options.breadcrumbs) {
@@ -251,7 +251,7 @@ export class Undici implements Integration {
     const span = request.__sentry_span__;
     if (span) {
       span.setStatus('internal_error');
-      span.finish();
+      span.end();
     }
 
     if (this._options.breadcrumbs) {

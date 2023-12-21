@@ -169,7 +169,7 @@ export function pagesRouterInstrumentation(
       prevLocationName = transactionName;
 
       if (activeTransaction) {
-        activeTransaction.finish();
+        activeTransaction.end();
       }
 
       const navigationTransaction = startTransactionCb({
@@ -193,7 +193,7 @@ export function pagesRouterInstrumentation(
         });
 
         const finishRouteChangeSpan = (): void => {
-          nextRouteChangeSpan.finish();
+          nextRouteChangeSpan.end();
           Router.events.off('routeChangeComplete', finishRouteChangeSpan);
         };
 

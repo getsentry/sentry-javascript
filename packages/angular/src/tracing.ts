@@ -82,7 +82,7 @@ export class TraceService implements OnDestroy {
 
       if (activeTransaction) {
         if (this._routingSpan) {
-          this._routingSpan.finish();
+          this._routingSpan.end();
         }
         this._routingSpan = activeTransaction.startChild({
           description: `${navigationEvent.url}`,
@@ -131,7 +131,7 @@ export class TraceService implements OnDestroy {
       if (this._routingSpan) {
         runOutsideAngular(() => {
           // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-          this._routingSpan!.finish();
+          this._routingSpan!.end();
         });
         this._routingSpan = null;
       }
@@ -196,7 +196,7 @@ export class TraceDirective implements OnInit, AfterViewInit {
    */
   public ngAfterViewInit(): void {
     if (this._tracingSpan) {
-      this._tracingSpan.finish();
+      this._tracingSpan.end();
     }
   }
 }
@@ -239,7 +239,7 @@ export function TraceClassDecorator(): ClassDecorator {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     target.prototype.ngAfterViewInit = function (...args: any[]): ReturnType<typeof originalAfterViewInit> {
       if (tracingSpan) {
-        tracingSpan.finish();
+        tracingSpan.end();
       }
       if (originalAfterViewInit) {
         return originalAfterViewInit.apply(this, args);

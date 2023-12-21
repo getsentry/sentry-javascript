@@ -37,7 +37,7 @@ describe('AWSServices', () => {
         description: 'aws.s3.getObject foo',
       });
       // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeSpan.finish).toBeCalled();
+      expect(SentryNode.fakeSpan.end).toBeCalled();
     });
 
     test('getObject with callback', done => {

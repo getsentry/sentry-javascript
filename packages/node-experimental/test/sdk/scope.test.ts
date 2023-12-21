@@ -94,20 +94,6 @@ describe('Unit | Scope', () => {
     expect(scope.getClient()).toBe(client);
   });
 
-  it('gets the correct isolationScope in _getIsolationScope', () => {
-    resetGlobals();
-
-    const scope = new Scope();
-    const globalIsolationScope = getIsolationScope();
-
-    expect(scope['_getIsolationScope']()).toBe(globalIsolationScope);
-
-    const customIsolationScope = new Scope();
-    scope.isolationScope = customIsolationScope;
-
-    expect(scope['_getIsolationScope']()).toBe(customIsolationScope);
-  });
-
   describe('prepareEvent', () => {
     it('works without any scope data', async () => {
       mockSdkInit();
@@ -205,6 +191,8 @@ describe('Unit | Scope', () => {
           integrations: [],
         },
         scope,
+        undefined,
+        isolationScope,
       );
 
       expect(eventProcessor1).toHaveBeenCalledTimes(1);

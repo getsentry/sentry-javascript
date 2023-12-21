@@ -7,5 +7,5 @@ const circularObject = chicken;
 const transaction = Sentry.startTransaction({ name: 'circular_object_test_transaction', data: circularObject });
 const span = transaction.startChild({ op: 'circular_object_test_span', data: circularObject });
 
-span.finish();
-transaction.finish();
+span.end();
+transaction.end();

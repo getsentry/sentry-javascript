@@ -219,7 +219,7 @@ describe('AWSLambda', () => {
       expect(SentryNode.fakeHub.startTransaction).toBeCalledWith(fakeTransactionContext);
       expectScopeSettings(fakeTransactionContext);
       // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeTransaction.finish).toBeCalled();
+      expect(SentryNode.fakeTransaction.end).toBeCalled();
       expect(SentryNode.flush).toBeCalledWith(2000);
     });
 
@@ -247,7 +247,7 @@ describe('AWSLambda', () => {
         expectScopeSettings(fakeTransactionContext);
         expect(SentryNode.captureException).toBeCalledWith(error, expect.any(Function));
         // @ts-expect-error see "Why @ts-expect-error" note
-        expect(SentryNode.fakeTransaction.finish).toBeCalled();
+        expect(SentryNode.fakeTransaction.end).toBeCalled();
         expect(SentryNode.flush).toBeCalledWith(2000);
       }
     });
@@ -326,7 +326,7 @@ describe('AWSLambda', () => {
         expectScopeSettings(fakeTransactionContext);
         expect(SentryNode.captureException).toBeCalledWith(e, expect.any(Function));
         // @ts-expect-error see "Why @ts-expect-error" note
-        expect(SentryNode.fakeTransaction.finish).toBeCalled();
+        expect(SentryNode.fakeTransaction.end).toBeCalled();
         expect(SentryNode.flush).toBeCalled();
       }
     });
@@ -354,7 +354,7 @@ describe('AWSLambda', () => {
       expect(SentryNode.fakeHub.startTransaction).toBeCalledWith(fakeTransactionContext);
       expectScopeSettings(fakeTransactionContext);
       // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeTransaction.finish).toBeCalled();
+      expect(SentryNode.fakeTransaction.end).toBeCalled();
       expect(SentryNode.flush).toBeCalled();
     });
 
@@ -393,7 +393,7 @@ describe('AWSLambda', () => {
         expectScopeSettings(fakeTransactionContext);
         expect(SentryNode.captureException).toBeCalledWith(error, expect.any(Function));
         // @ts-expect-error see "Why @ts-expect-error" note
-        expect(SentryNode.fakeTransaction.finish).toBeCalled();
+        expect(SentryNode.fakeTransaction.end).toBeCalled();
         expect(SentryNode.flush).toBeCalled();
       }
     });
@@ -436,7 +436,7 @@ describe('AWSLambda', () => {
       expect(SentryNode.fakeHub.startTransaction).toBeCalledWith(fakeTransactionContext);
       expectScopeSettings(fakeTransactionContext);
       // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeTransaction.finish).toBeCalled();
+      expect(SentryNode.fakeTransaction.end).toBeCalled();
       expect(SentryNode.flush).toBeCalled();
     });
 
@@ -475,7 +475,7 @@ describe('AWSLambda', () => {
         expectScopeSettings(fakeTransactionContext);
         expect(SentryNode.captureException).toBeCalledWith(error, expect.any(Function));
         // @ts-expect-error see "Why @ts-expect-error" note
-        expect(SentryNode.fakeTransaction.finish).toBeCalled();
+        expect(SentryNode.fakeTransaction.end).toBeCalled();
         expect(SentryNode.flush).toBeCalled();
       }
     });

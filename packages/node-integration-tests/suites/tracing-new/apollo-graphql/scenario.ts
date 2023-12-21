@@ -38,5 +38,5 @@ Sentry.getCurrentScope().setSpan(transaction);
     query: '{hello}',
   });
 
-  transaction.finish();
+  transaction.end();
 })();

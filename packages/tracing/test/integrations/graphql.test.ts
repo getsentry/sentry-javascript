@@ -46,7 +46,7 @@ describe('setupOnce', () => {
     jest.spyOn(scope, 'getSpan').mockReturnValueOnce(parentSpan);
     jest.spyOn(scope, 'setSpan');
     jest.spyOn(parentSpan, 'startChild').mockReturnValueOnce(childSpan);
-    jest.spyOn(childSpan, 'finish');
+    jest.spyOn(childSpan, 'end');
   });
 
   it('should wrap execute method', async () => {
@@ -57,7 +57,7 @@ describe('setupOnce', () => {
       op: 'graphql.execute',
       origin: 'auto.graphql.graphql',
     });
-    expect(childSpan.finish).toBeCalled();
+    expect(childSpan.end).toBeCalled();
     expect(scope.setSpan).toHaveBeenCalledTimes(2);
   });
 
