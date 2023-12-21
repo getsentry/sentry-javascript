@@ -1,7 +1,7 @@
 import type { Client, Envelope, Event, Span, Transaction } from '@sentry/types';
 import { SentryError, SyncPromise, dsnToString, logger } from '@sentry/utils';
 
-import { Hub, Scope, clearGlobalData, makeSession } from '../../src';
+import { Hub, Scope, makeSession, setGlobalScope } from '../../src';
 import * as integrationModule from '../../src/integration';
 import { TestClient, getDefaultTestClientOptions } from '../mocks/client';
 import { AdHocIntegration, TestIntegration } from '../mocks/integration';
@@ -54,7 +54,7 @@ describe('BaseClient', () => {
   beforeEach(() => {
     TestClient.sendEventCalled = undefined;
     TestClient.instance = undefined;
-    clearGlobalData();
+    setGlobalScope(undefined);
   });
 
   afterEach(() => {

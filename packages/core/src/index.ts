@@ -42,8 +42,7 @@ export {
 } from './hub';
 export { makeSession, closeSession, updateSession } from './session';
 export { SessionFlusher } from './sessionflusher';
-export { Scope, getGlobalScope } from './scope';
-export { clearGlobalData, getGlobalData } from './globals';
+export { Scope, getGlobalScope, setGlobalScope } from './scope';
 export {
   notifyEventProcessors,
   // eslint-disable-next-line deprecation/deprecation

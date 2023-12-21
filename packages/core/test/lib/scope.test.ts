@@ -1,11 +1,10 @@
-import { applyScopeDataToEvent } from '@sentry/core';
-import type { Attachment, Breadcrumb, EventProcessor } from '@sentry/types';
-import { clearGlobalData } from '../../src/globals';
-import { Scope, getGlobalScope } from '../../src/scope';
+import type { Attachment, Breadcrumb } from '@sentry/types';
+import { applyScopeDataToEvent } from '../../src';
+import { Scope, getGlobalScope, setGlobalScope } from '../../src/scope';
 
 describe('Unit | Scope', () => {
   beforeEach(() => {
-    clearGlobalData();
+    setGlobalScope(undefined);
   });
 
   it('allows to create & update a scope', () => {
@@ -91,7 +90,7 @@ describe('Unit | Scope', () => {
 
   describe('global scope', () => {
     beforeEach(() => {
-      clearGlobalData();
+      setGlobalScope(undefined);
     });
 
     it('works', () => {

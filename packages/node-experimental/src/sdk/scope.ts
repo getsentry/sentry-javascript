@@ -1,4 +1,4 @@
-import { getGlobalData, mergeScopeData } from '@sentry/core';
+import { getGlobalScope as _getGlobalScope, mergeScopeData, setGlobalScope } from '@sentry/core';
 import { OpenTelemetryScope } from '@sentry/opentelemetry';
 import type { Breadcrumb, Client, Event, EventHint, Severity, SeverityLevel } from '@sentry/types';
 import { uuid4 } from '@sentry/utils';
@@ -24,20 +24,17 @@ export function setCurrentScope(scope: Scope): void {
  * We overwrite this from the core implementation to make sure we get the correct Scope class.
  */
 export function getGlobalScope(): Scope {
-  const globalData = getGlobalData();
-
-  if (!globalData.globalScope) {
-    globalData.globalScope = new Scope();
-  }
+  const globalScope = _getGlobalScope();
 
   // If we have a default Scope here by chance, make sure to "upgrade" it to our custom Scope
-  if (!(globalData.globalScope instanceof Scope)) {
-    const oldScope = globalData.globalScope;
-    globalData.globalScope = new Scope();
-    globalData.globalScope.update(oldScope);
+  if (!(globalScope instanceof Scope)) {
+    const newScope = new Scope();
+    newScope.update(globalScope);
+    setGlobalScope(newScope);
+    return newScope;
   }
 
-  return globalData.globalScope as Scope;
+  return globalScope;
 }
 
 /** Get the currently active isolation scope. */
@@ -97,6 +94,7 @@ export class Scope extends OpenTelemetryScope implements ScopeInterface {
     newScope._attachments = [...this['_attachments']];
     newScope._sdkProcessingMetadata = { ...this['_sdkProcessingMetadata'] };
     newScope._propagationContext = { ...this['_propagationContext'] };
+    newScope._client = this._client;
 
     return newScope;
   }

@@ -26,14 +26,19 @@ import type {
 import { dateTimestampInSeconds, isPlainObject, uuid4 } from '@sentry/utils';
 
 import { getGlobalEventProcessors, notifyEventProcessors } from './eventProcessors';
-import { getGlobalData } from './globals';
 import { updateSession } from './session';
-import { applyScopeDataToEvent, mergeScopeData } from './utils/applyScopeDataToEvent';
+import { applyScopeDataToEvent } from './utils/applyScopeDataToEvent';
 
 /**
  * Default value for maximum number of breadcrumbs added to an event.
  */
 const DEFAULT_MAX_BREADCRUMBS = 100;
+
+/**
+ * The global scope is kept in this module.
+ * When accessing this via `getGlobalScope()` we'll make sure to set one if none is currently present.
+ */
+let globalScope: ScopeInterface | undefined;
 
 /**
  * Holds additional event information. {@link Scope.applyToEvent} will be
@@ -579,12 +584,19 @@ export class Scope implements ScopeInterface {
  * This scope is applied to _all_ events.
  */
 export function getGlobalScope(): ScopeInterface {
-  const globalData = getGlobalData();
-  if (!globalData.globalScope) {
-    globalData.globalScope = new Scope();
+  if (!globalScope) {
+    globalScope = new Scope();
   }
 
-  return globalData.globalScope;
+  return globalScope;
+}
+
+/**
+ * This is mainly needed for tests.
+ * @hidden
+ */
+export function setGlobalScope(scope: ScopeInterface | undefined): void {
+  globalScope = scope;
 }
 
 function generatePropagationContext(): PropagationContext {
