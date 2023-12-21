@@ -29,7 +29,7 @@ export { stripUrlQueryAndFragment } from '@sentry/utils';
 export const extractTraceparentData = _extractTraceparentData;
 
 /**
- * Converts a timestamp to s, if it was in ms, or keeps it as s.
+ * Converts a timestamp to second, if it was in milliseconds, or keeps it as second.
  */
 export function timestampToS(timestamp: number): number {
   const isMs = timestamp > 9999999999;
