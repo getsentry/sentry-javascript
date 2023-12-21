@@ -55,7 +55,8 @@ export function trace<T>(
   }
 
   if (isThenable(maybePromiseResult)) {
-    maybePromiseResult.then(
+    // @ts-expect-error - the isThenable check returns the "wrong" type here
+    return maybePromiseResult.then(
       res => {
         finishAndSetSpan();
         afterFinish();
@@ -69,11 +70,10 @@ export function trace<T>(
         throw e;
       },
     );
-  } else {
-    finishAndSetSpan();
-    afterFinish();
   }
 
+  finishAndSetSpan();
+  afterFinish();
   return maybePromiseResult;
 }
 
@@ -91,7 +91,7 @@ export function trace<T>(
 export function startSpan<T>(context: TransactionContext, callback: (span: Span | undefined) => T): T {
   const ctx = normalizeContext(context);
 
-  // @ts-expect-error - wtf
+  // @ts-expect-error - isThenable returns the wrong type
   return withScope(scope => {
     const hub = getCurrentHub();
     const parentSpan = scope.getSpan();
@@ -124,10 +124,10 @@ export function startSpan<T>(context: TransactionContext, callback: (span: Span 
           throw e;
         },
       );
-    } else {
-      finishAndSetSpan();
-      return maybePromiseResult;
     }
+
+    finishAndSetSpan();
+    return maybePromiseResult;
   });
 }
 
@@ -153,6 +153,7 @@ export function startSpanManual<T>(
 ): T {
   const ctx = normalizeContext(context);
 
+  // @ts-expect-error - isThenable returns the wrong type
   return withScope(scope => {
     const hub = getCurrentHub();
     const parentSpan = scope.getSpan();
@@ -173,7 +174,7 @@ export function startSpanManual<T>(
     }
 
     if (isThenable(maybePromiseResult)) {
-      maybePromiseResult.then(
+      return maybePromiseResult.then(
         res => res,
         e => {
           activeSpan && activeSpan.setStatus('internal_error');
