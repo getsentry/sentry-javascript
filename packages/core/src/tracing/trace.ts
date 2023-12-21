@@ -89,9 +89,9 @@ export function trace<T>(
  * and the `span` returned from the callback will be undefined.
  */
 export function startSpan<T>(context: TransactionContext, callback: (span: Span | undefined) => T): T {
-  console.log('START SPAN 2');
   const ctx = normalizeContext(context);
 
+  // @ts-expect-error - wtf
   return withScope(scope => {
     const hub = getCurrentHub();
     const parentSpan = scope.getSpan();
@@ -113,20 +113,21 @@ export function startSpan<T>(context: TransactionContext, callback: (span: Span 
     }
 
     if (isThenable(maybePromiseResult)) {
-      Promise.resolve(maybePromiseResult).then(
-        () => {
+      return maybePromiseResult.then(
+        res => {
           finishAndSetSpan();
+          return res;
         },
-        () => {
+        e => {
           activeSpan && activeSpan.setStatus('internal_error');
           finishAndSetSpan();
+          throw e;
         },
       );
     } else {
       finishAndSetSpan();
+      return maybePromiseResult;
     }
-
-    return maybePromiseResult;
   });
 }
 
@@ -172,9 +173,13 @@ export function startSpanManual<T>(
     }
 
     if (isThenable(maybePromiseResult)) {
-      Promise.resolve(maybePromiseResult).then(undefined, () => {
-        activeSpan && activeSpan.setStatus('internal_error');
-      });
+      maybePromiseResult.then(
+        res => res,
+        e => {
+          activeSpan && activeSpan.setStatus('internal_error');
+          throw e;
+        },
+      );
     }
 
     return maybePromiseResult;

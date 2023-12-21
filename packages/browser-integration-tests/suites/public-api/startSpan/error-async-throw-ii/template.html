@@ -9,8 +9,7 @@
 
     <script type="module">
       async function run() {
-        await Promise.resolve();
-        await Sentry.startSpan({ name: 'parent_span', op: 'test' }, async () => {
+        Sentry.startSpan({ name: 'parent_span', op: 'test' }, async () => {
           console.log('throwing error')
           throw new Error('Async Thrown Error');
         });
