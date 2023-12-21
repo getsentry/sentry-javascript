@@ -1,15 +1,15 @@
-import type { PlaywrightTestConfig } from "@playwright/test";
-import { devices } from "@playwright/test";
+import type { PlaywrightTestConfig } from '@playwright/test';
+import { devices } from '@playwright/test';
 
 // Fix urls not resolving to localhost on Node v17+
 // See: https://github.com/axios/axios/issues/3821#issuecomment-1413727575
-import { setDefaultResultOrder } from "dns";
-setDefaultResultOrder("ipv4first");
+import { setDefaultResultOrder } from 'dns';
+setDefaultResultOrder('ipv4first');
 
 const testEnv = process.env.TEST_ENV;
 
 if (!testEnv) {
-  throw new Error("No test env defined");
+  throw new Error('No test env defined');
 }
 
 const svelteKitPort = 3030;
@@ -19,7 +19,7 @@ const eventProxyPort = 3031;
  * See https://playwright.dev/docs/test-configuration.
  */
 const config: PlaywrightTestConfig = {
-  testDir: "./test",
+  testDir: './test',
   /* Maximum time one test can run for. */
   timeout: 150_000,
   expect: {
@@ -34,9 +34,9 @@ const config: PlaywrightTestConfig = {
   /* Fail the build on CI if you accidentally left test.only in the source code. */
   forbidOnly: !!process.env.CI,
   /* `next dev` is incredibly buggy with the app dir */
-  retries: testEnv === "development" ? 3 : 0,
+  retries: testEnv === 'development' ? 3 : 0,
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
-  reporter: "list",
+  reporter: 'list',
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
     /* Maximum time each action such as `click()` can take. Defaults to 0 (no limit). */
@@ -45,15 +45,15 @@ const config: PlaywrightTestConfig = {
     baseURL: `http://localhost:${svelteKitPort}`,
 
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
-    trace: "on-first-retry",
+    trace: 'on-first-retry',
   },
 
   /* Configure projects for major browsers */
   projects: [
     {
-      name: "chromium",
+      name: 'chromium',
       use: {
-        ...devices["Desktop Chrome"],
+        ...devices['Desktop Chrome'],
       },
     },
   ],
@@ -61,13 +61,13 @@ const config: PlaywrightTestConfig = {
   /* Run your local dev server before starting the tests */
   webServer: [
     {
-      command: "pnpm ts-node-script start-event-proxy.ts",
+      command: 'pnpm ts-node-script start-event-proxy.ts',
       port: eventProxyPort,
       reuseExistingServer: false,
     },
     {
       command:
-        testEnv === "development"
+        testEnv === 'development'
           ? `pnpm wait-port ${eventProxyPort} && pnpm dev --port ${svelteKitPort}`
           : `pnpm wait-port ${eventProxyPort} && pnpm preview --port ${svelteKitPort}`,
       port: svelteKitPort,

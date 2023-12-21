@@ -1,5 +1,5 @@
 export const load = async () => {
   return {
-    msg: "Hi everyone!",
+    msg: 'Hi everyone!',
   };
 };

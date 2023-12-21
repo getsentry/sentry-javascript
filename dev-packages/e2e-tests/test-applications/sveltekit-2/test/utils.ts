@@ -1,5 +1,5 @@
-import { Page } from "@playwright/test";
-import { waitForTransaction } from "../event-proxy-server";
+import { Page } from '@playwright/test';
+import { waitForTransaction } from '../event-proxy-server';
 
 /**
  * Helper function that waits for the initial pageload to complete.
@@ -20,33 +20,27 @@ export async function waitForInitialPageload(
   page: Page,
   opts?: { route?: string; parameterizedRoute?: string; debug: boolean },
 ) {
-  const route = opts?.route ?? "/";
+  const route = opts?.route ?? '/';
   const txnName = opts?.parameterizedRoute ?? route;
   const debug = opts?.debug ?? false;
 
-  const clientPageloadTxnEventPromise = waitForTransaction(
-    "sveltekit-2",
-    (txnEvent) => {
-      debug &&
-        console.log({
-          txn: txnEvent?.transaction,
-          op: txnEvent.contexts?.trace?.op,
-          trace: txnEvent.contexts?.trace?.trace_id,
-          span: txnEvent.contexts?.trace?.span_id,
-          parent: txnEvent.contexts?.trace?.parent_span_id,
-        });
+  const clientPageloadTxnEventPromise = waitForTransaction('sveltekit-2', txnEvent => {
+    debug &&
+      console.log({
+        txn: txnEvent?.transaction,
+        op: txnEvent.contexts?.trace?.op,
+        trace: txnEvent.contexts?.trace?.trace_id,
+        span: txnEvent.contexts?.trace?.span_id,
+        parent: txnEvent.contexts?.trace?.parent_span_id,
+      });
 
-      return (
-        txnEvent?.transaction === txnName &&
-        txnEvent.contexts?.trace?.op === "pageload"
-      );
-    },
-  );
+    return txnEvent?.transaction === txnName && txnEvent.contexts?.trace?.op === 'pageload';
+  });
 
   await Promise.all([
     page.goto(route),
     // the test app adds the "hydrated" class to the body when hydrating
-    page.waitForSelector("body.hydrated"),
+    page.waitForSelector('body.hydrated'),
     // also waiting for the initial pageload txn so that later navigations don't interfere
     clientPageloadTxnEventPromise,
   ]);
@@ -55,5 +49,5 @@ export async function waitForInitialPageload(
   // guess: The layout finishes hydration/mounting before the components within finish
   await page.waitForTimeout(3000);
 
-  debug && console.log("hydrated");
+  debug && console.log('hydrated');
 }
