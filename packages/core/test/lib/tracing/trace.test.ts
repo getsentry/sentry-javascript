@@ -1,5 +1,6 @@
-import { Hub, addTracingExtensions, makeMain } from '../../../src';
-import { continueTrace, startSpan } from '../../../src/tracing';
+import type { Span } from '@sentry/types';
+import { Hub, addTracingExtensions, getCurrentScope, makeMain } from '../../../src';
+import { continueTrace, startInactiveSpan, startSpan, startSpanManual } from '../../../src/tracing';
 import { TestClient, getDefaultTestClientOptions } from '../../mocks/client';
 
 beforeAll(() => {
@@ -78,6 +79,18 @@ describe('startSpan', () => {
 
       expect(ref.name).toEqual('GET users/[id]');
       expect(ref.status).toEqual(isError ? 'internal_error' : undefined);
+    });
+
+    it('creates & finishes span', async () => {
+      let _span: Span | undefined;
+      startSpan({ name: 'GET users/[id]' }, span => {
+        expect(span).toBeDefined();
+        expect(span?.endTimestamp).toBeUndefined();
+        _span = span;
+      });
+
+      expect(_span).toBeDefined();
+      expect(_span?.endTimestamp).toBeDefined();
     });
 
     it('allows traceparent information to be overriden', async () => {
@@ -168,6 +181,72 @@ describe('startSpan', () => {
       expect(ref.spanRecorder.spans).toHaveLength(2);
       expect(ref.spanRecorder.spans[1].op).toEqual('db.query');
     });
+
+    it('forks the scope', () => {
+      const initialScope = getCurrentScope();
+
+      startSpan({ name: 'GET users/[id]' }, span => {
+        expect(getCurrentScope()).not.toBe(initialScope);
+        expect(getCurrentScope().getSpan()).toBe(span);
+      });
+
+      expect(getCurrentScope()).toBe(initialScope);
+      expect(initialScope.getSpan()).toBe(undefined);
+    });
+  });
+});
+
+describe('startSpanManual', () => {
+  it('creates & finishes span', async () => {
+    startSpanManual({ name: 'GET users/[id]' }, (span, finish) => {
+      expect(span).toBeDefined();
+      expect(span?.endTimestamp).toBeUndefined();
+      finish();
+      expect(span?.endTimestamp).toBeDefined();
+    });
+  });
+
+  it('forks the scope automatically', () => {
+    const initialScope = getCurrentScope();
+
+    startSpanManual({ name: 'GET users/[id]' }, (span, finish) => {
+      expect(getCurrentScope()).not.toBe(initialScope);
+      expect(getCurrentScope().getSpan()).toBe(span);
+
+      finish();
+
+      // Is still the active span
+      expect(getCurrentScope().getSpan()).toBe(span);
+    });
+
+    expect(getCurrentScope()).toBe(initialScope);
+    expect(initialScope.getSpan()).toBe(undefined);
+  });
+});
+
+describe('startInactiveSpan', () => {
+  it('creates & finishes span', async () => {
+    const span = startInactiveSpan({ name: 'GET users/[id]' });
+
+    expect(span).toBeDefined();
+    expect(span?.endTimestamp).toBeUndefined();
+
+    span?.end();
+
+    expect(span?.endTimestamp).toBeDefined();
+  });
+
+  it('does not set span on scope', () => {
+    const initialScope = getCurrentScope();
+
+    const span = startInactiveSpan({ name: 'GET users/[id]' });
+
+    expect(span).toBeDefined();
+    expect(initialScope.getSpan()).toBeUndefined();
+
+    span?.end();
+
+    expect(initialScope.getSpan()).toBeUndefined();
   });
 });
 
