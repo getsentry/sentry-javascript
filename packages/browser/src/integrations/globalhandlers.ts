@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
-import { getCurrentHub } from '@sentry/core';
-import type { Event, Hub, Integration, Primitive, StackParser } from '@sentry/types';
+import { captureEvent, convertIntegrationFnToClass, getClient } from '@sentry/core';
+import type { Client, Event, IntegrationFn, Primitive, StackParser } from '@sentry/types';
 import {
   addGlobalErrorInstrumentationHandler,
   addGlobalUnhandledRejectionInstrumentationHandler,
@@ -18,75 +18,48 @@ import { shouldIgnoreOnError } from '../helpers';
 
 type GlobalHandlersIntegrationsOptionKeys = 'onerror' | 'onunhandledrejection';
 
-/** JSDoc */
 type GlobalHandlersIntegrations = Record<GlobalHandlersIntegrationsOptionKeys, boolean>;
 
-/** Global handlers */
-export class GlobalHandlers implements Integration {
-  /**
-   * @inheritDoc
-   */
-  public static id: string = 'GlobalHandlers';
+const INTEGRATION_NAME = 'GlobalHandlers';
 
-  /**
-   * @inheritDoc
-   */
-  public name: string;
+const globalHandlersIntegrations: IntegrationFn = (options: Partial<GlobalHandlersIntegrations> = {}) => {
+  const _options = {
+    onerror: true,
+    onunhandledrejection: true,
+    ...options,
+  };
 
-  /** JSDoc */
-  private readonly _options: GlobalHandlersIntegrations;
-
-  /**
-   * Stores references functions to installing handlers. Will set to undefined
-   * after they have been run so that they are not used twice.
-   */
-  private _installFunc: Record<GlobalHandlersIntegrationsOptionKeys, (() => void) | undefined>;
-
-  /** JSDoc */
-  public constructor(options?: GlobalHandlersIntegrations) {
-    this.name = GlobalHandlers.id;
-    this._options = {
-      onerror: true,
-      onunhandledrejection: true,
-      ...options,
-    };
-
-    this._installFunc = {
-      onerror: _installGlobalOnErrorHandler,
-      onunhandledrejection: _installGlobalOnUnhandledRejectionHandler,
-    };
-  }
-  /**
-   * @inheritDoc
-   */
-  public setupOnce(): void {
-    Error.stackTraceLimit = 50;
-    const options = this._options;
-
-    // We can disable guard-for-in as we construct the options object above + do checks against
-    // `this._installFunc` for the property.
-    // eslint-disable-next-line guard-for-in
-    for (const key in options) {
-      const installFunc = this._installFunc[key as GlobalHandlersIntegrationsOptionKeys];
-      if (installFunc && options[key as GlobalHandlersIntegrationsOptionKeys]) {
-        globalHandlerLog(key);
-        installFunc();
-        this._installFunc[key as GlobalHandlersIntegrationsOptionKeys] = undefined;
+  return {
+    name: INTEGRATION_NAME,
+    setupOnce() {
+      Error.stackTraceLimit = 50;
+    },
+    setup(client) {
+      if (_options.onerror) {
+        _installGlobalOnErrorHandler(client);
+        globalHandlerLog('onerror');
       }
-    }
-  }
-}
+      if (_options.onunhandledrejection) {
+        _installGlobalOnUnhandledRejectionHandler(client);
+        globalHandlerLog('onunhandledrejection');
+      }
+    },
+  };
+};
 
-function _installGlobalOnErrorHandler(): void {
+/** Global handlers */
+// eslint-disable-next-line deprecation/deprecation
+export const GlobalHandlers = convertIntegrationFnToClass(INTEGRATION_NAME, globalHandlersIntegrations);
+
+function _installGlobalOnErrorHandler(client: Client): void {
   addGlobalErrorInstrumentationHandler(data => {
-    const [hub, stackParser, attachStacktrace] = getHubAndOptions();
-    if (!hub.getIntegration(GlobalHandlers)) {
+    const { stackParser, attachStacktrace } = getOptions();
+
+    if (getClient() !== client || shouldIgnoreOnError()) {
       return;
     }
+
     const { msg, url, line, column, error } = data;
-    if (shouldIgnoreOnError()) {
-      return;
-    }
 
     const event =
       error === undefined && isString(msg)
@@ -100,7 +73,7 @@ function _installGlobalOnErrorHandler(): void {
 
     event.level = 'error';
 
-    hub.captureEvent(event, {
+    captureEvent(event, {
       originalException: error,
       mechanism: {
         handled: false,
@@ -110,15 +83,12 @@ function _installGlobalOnErrorHandler(): void {
   });
 }
 
-function _installGlobalOnUnhandledRejectionHandler(): void {
+function _installGlobalOnUnhandledRejectionHandler(client: Client): void {
   addGlobalUnhandledRejectionInstrumentationHandler(e => {
-    const [hub, stackParser, attachStacktrace] = getHubAndOptions();
-    if (!hub.getIntegration(GlobalHandlers)) {
-      return;
-    }
+    const { stackParser, attachStacktrace } = getOptions();
 
-    if (shouldIgnoreOnError()) {
-      return true;
+    if (getClient() !== client || shouldIgnoreOnError()) {
+      return;
     }
 
     const error = _getUnhandledRejectionError(e as unknown);
@@ -129,15 +99,13 @@ function _installGlobalOnUnhandledRejectionHandler(): void {
 
     event.level = 'error';
 
-    hub.captureEvent(event, {
+    captureEvent(event, {
       originalException: error,
       mechanism: {
         handled: false,
         type: 'onunhandledrejection',
       },
     });
-
-    return;
   });
 }
 
@@ -222,7 +190,6 @@ function _eventFromIncompleteOnError(msg: any, url: any, line: any, column: any)
   return _enhanceEventWithInitialFrame(event, url, line, column);
 }
 
-/** JSDoc */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function _enhanceEventWithInitialFrame(event: Event, url: any, line: any, column: any): Event {
   // event.exception
@@ -258,12 +225,11 @@ function globalHandlerLog(type: string): void {
   DEBUG_BUILD && logger.log(`Global Handler attached: ${type}`);
 }
 
-function getHubAndOptions(): [Hub, StackParser, boolean | undefined] {
-  const hub = getCurrentHub();
-  const client = hub.getClient<BrowserClient>();
+function getOptions(): { stackParser: StackParser; attachStacktrace?: boolean } {
+  const client = getClient<BrowserClient>();
   const options = (client && client.getOptions()) || {
     stackParser: () => [],
     attachStacktrace: false,
   };
-  return [hub, options.stackParser, options.attachStacktrace];
+  return options;
 }

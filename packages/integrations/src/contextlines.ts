@@ -1,9 +1,12 @@
-import type { Event, Integration, StackFrame } from '@sentry/types';
+import { convertIntegrationFnToClass } from '@sentry/core';
+import type { Event, IntegrationFn, StackFrame } from '@sentry/types';
 import { GLOBAL_OBJ, addContextToFrame, stripUrlQueryAndFragment } from '@sentry/utils';
 
 const WINDOW = GLOBAL_OBJ as typeof GLOBAL_OBJ & Window;
 
 const DEFAULT_LINES_OF_CONTEXT = 7;
+
+const INTEGRATION_NAME = 'ContextLines';
 
 interface ContextLinesOptions {
   /**
@@ -14,6 +17,17 @@ interface ContextLinesOptions {
    **/
   frameContextLines?: number;
 }
+
+const contextLinesIntegration: IntegrationFn = (options: ContextLinesOptions = {}) => {
+  const contextLines = options.frameContextLines != null ? options.frameContextLines : DEFAULT_LINES_OF_CONTEXT;
+
+  return {
+    name: INTEGRATION_NAME,
+    processEvent(event) {
+      return addSourceContext(event, contextLines);
+    },
+  };
+};
 
 /**
  * Collects source context lines around the lines of stackframes pointing to JS embedded in
@@ -26,73 +40,41 @@ interface ContextLinesOptions {
  * Use this integration if you have inline JS code in HTML pages that can't be accessed
  * by our backend (e.g. due to a login-protected page).
  */
-export class ContextLines implements Integration {
-  /**
-   * @inheritDoc
-   */
-  public static id: string = 'ContextLines';
+// eslint-disable-next-line deprecation/deprecation
+export const ContextLines = convertIntegrationFnToClass(INTEGRATION_NAME, contextLinesIntegration);
 
-  /**
-   * @inheritDoc
-   */
-  public name: string;
-
-  public constructor(private readonly _options: ContextLinesOptions = {}) {
-    this.name = ContextLines.id;
-  }
-
-  /**
-   * @inheritDoc
-   */
-  public setupOnce(_addGlobaleventProcessor: unknown, _getCurrentHub: unknown): void {
-    // noop
-  }
-
-  /** @inheritDoc */
-  public processEvent(event: Event): Event {
-    return this.addSourceContext(event);
-  }
-
-  /**
-   * Processes an event and adds context lines.
-   *
-   * TODO (v8): Make this internal/private
-   */
-  public addSourceContext(event: Event): Event {
-    const doc = WINDOW.document;
-    const htmlFilename = WINDOW.location && stripUrlQueryAndFragment(WINDOW.location.href);
-    if (!doc || !htmlFilename) {
-      return event;
-    }
-
-    const exceptions = event.exception && event.exception.values;
-    if (!exceptions || !exceptions.length) {
-      return event;
-    }
-
-    const html = doc.documentElement.innerHTML;
-    if (!html) {
-      return event;
-    }
-
-    const htmlLines = ['<!DOCTYPE html>', '<html>', ...html.split('\n'), '</html>'];
-
-    exceptions.forEach(exception => {
-      const stacktrace = exception.stacktrace;
-      if (stacktrace && stacktrace.frames) {
-        stacktrace.frames = stacktrace.frames.map(frame =>
-          applySourceContextToFrame(
-            frame,
-            htmlLines,
-            htmlFilename,
-            this._options.frameContextLines != null ? this._options.frameContextLines : DEFAULT_LINES_OF_CONTEXT,
-          ),
-        );
-      }
-    });
-
+/**
+ * Processes an event and adds context lines.
+ */
+function addSourceContext(event: Event, contextLines: number): Event {
+  const doc = WINDOW.document;
+  const htmlFilename = WINDOW.location && stripUrlQueryAndFragment(WINDOW.location.href);
+  if (!doc || !htmlFilename) {
     return event;
   }
+
+  const exceptions = event.exception && event.exception.values;
+  if (!exceptions || !exceptions.length) {
+    return event;
+  }
+
+  const html = doc.documentElement.innerHTML;
+  if (!html) {
+    return event;
+  }
+
+  const htmlLines = ['<!DOCTYPE html>', '<html>', ...html.split('\n'), '</html>'];
+
+  exceptions.forEach(exception => {
+    const stacktrace = exception.stacktrace;
+    if (stacktrace && stacktrace.frames) {
+      stacktrace.frames = stacktrace.frames.map(frame =>
+        applySourceContextToFrame(frame, htmlLines, htmlFilename, contextLines),
+      );
+    }
+  });
+
+  return event;
 }
 
 /**

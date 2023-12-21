@@ -1,5 +1,5 @@
 /* eslint-disable max-lines */
-import { getActiveTransaction, hasTracingEnabled, runWithAsyncContext } from '@sentry/core';
+import { getActiveTransaction, getClient, getCurrentScope, hasTracingEnabled, runWithAsyncContext } from '@sentry/core';
 import type { Hub } from '@sentry/node';
 import { captureException, getCurrentHub } from '@sentry/node';
 import type { Transaction, TransactionSource, WrappedFunction } from '@sentry/types';
@@ -8,8 +8,10 @@ import {
   dynamicSamplingContextToSentryBaggageHeader,
   fill,
   isNodeEnv,
+  isPrimitive,
   loadModule,
   logger,
+  objectify,
   tracingContextFromHeaders,
 } from '@sentry/utils';
 
@@ -71,6 +73,30 @@ async function extractResponseError(response: Response): Promise<unknown> {
 }
 
 /**
+ * Sentry utility to be used in place of `handleError` function of Remix v2
+ * Remix Docs: https://remix.run/docs/en/main/file-conventions/entry.server#handleerror
+ *
+ * Should be used in `entry.server` like:
+ *
+ * export const handleError = Sentry.wrapRemixHandleError
+ */
+export function wrapRemixHandleError(err: unknown, { request }: DataFunctionArgs): void {
+  // We are skipping thrown responses here as they are handled by
+  // `captureRemixServerException` at loader / action level
+  // We don't want to capture them twice.
+  // This function if only for capturing unhandled server-side exceptions.
+  // https://remix.run/docs/en/main/file-conventions/entry.server#thrown-responses
+  // https://remix.run/docs/en/v1/api/conventions#throwing-responses-in-loaders
+  if (isResponse(err) || isRouteErrorResponse(err)) {
+    return;
+  }
+
+  captureRemixServerException(err, 'remix.server.handleError', request).then(null, e => {
+    DEBUG_BUILD && logger.warn('Failed to capture Remix Server exception.', e);
+  });
+}
+
+/**
  * Captures an exception happened in the Remix server.
  *
  * @param err The error to capture.
@@ -82,14 +108,13 @@ async function extractResponseError(response: Response): Promise<unknown> {
 export async function captureRemixServerException(err: unknown, name: string, request: Request): Promise<void> {
   // Skip capturing if the thrown error is not a 5xx response
   // https://remix.run/docs/en/v1/api/conventions#throwing-responses-in-loaders
-  if (IS_REMIX_V2) {
-    if (isRouteErrorResponse(err) && err.status < 500) {
-      return;
-    }
-  } else if (isResponse(err) && err.status < 500) {
+  if (IS_REMIX_V2 && isRouteErrorResponse(err) && err.status < 500) {
     return;
   }
 
+  if (isResponse(err) && err.status < 500) {
+    return;
+  }
   // Skip capturing if the request is aborted as Remix docs suggest
   // Ref: https://remix.run/docs/en/main/file-conventions/entry.server#handleerror
   if (request.signal.aborted) {
@@ -107,7 +132,9 @@ export async function captureRemixServerException(err: unknown, name: string, re
     DEBUG_BUILD && logger.warn('Failed to normalize Remix request');
   }
 
-  captureException(isResponse(err) ? await extractResponseError(err) : err, scope => {
+  const objectifiedErr = objectify(err);
+
+  captureException(isResponse(objectifiedErr) ? await extractResponseError(objectifiedErr) : objectifiedErr, scope => {
     const activeTransactionName = getActiveTransaction()?.name;
 
     scope.setSDKProcessingMetadata({
@@ -138,7 +165,7 @@ export async function captureRemixServerException(err: unknown, name: string, re
   });
 }
 
-function makeWrappedDocumentRequestFunction(remixVersion: number) {
+function makeWrappedDocumentRequestFunction(remixVersion?: number) {
   return function (origDocumentRequestFunction: HandleDocumentRequestFunction): HandleDocumentRequestFunction {
     return async function (
       this: unknown,
@@ -149,7 +176,6 @@ function makeWrappedDocumentRequestFunction(remixVersion: number) {
       loadContext?: Record<string, unknown>,
     ): Promise<Response> {
       let res: Response;
-
       const activeTransaction = getActiveTransaction();
 
       try {
@@ -172,9 +198,14 @@ function makeWrappedDocumentRequestFunction(remixVersion: number) {
           loadContext,
         );
 
-        span?.finish();
+        span?.end();
       } catch (err) {
-        if (!FUTURE_FLAGS?.v2_errorBoundary && remixVersion !== 2) {
+        const isRemixV1 = !FUTURE_FLAGS?.v2_errorBoundary && remixVersion !== 2;
+
+        // This exists to capture the server-side rendering errors on Remix v1
+        // On Remix v2, we capture SSR errors at `handleError`
+        // We also skip primitives here, as we can't dedupe them, and also we don't expect any primitive SSR errors.
+        if (isRemixV1 && !isPrimitive(err)) {
           await captureRemixServerException(err, 'documentRequest', request);
         }
 
@@ -195,7 +226,7 @@ function makeWrappedDataFunction(
   return async function (this: unknown, args: DataFunctionArgs): Promise<Response | AppData> {
     let res: Response | AppData;
     const activeTransaction = getActiveTransaction();
-    const currentScope = getCurrentHub().getScope();
+    const currentScope = getCurrentScope();
 
     try {
       const span = activeTransaction?.startChild({
@@ -215,9 +246,14 @@ function makeWrappedDataFunction(
       res = await origFn.call(this, args);
 
       currentScope.setSpan(activeTransaction);
-      span?.finish();
+      span?.end();
     } catch (err) {
-      if (!FUTURE_FLAGS?.v2_errorBoundary && remixVersion !== 2) {
+      const isRemixV2 = FUTURE_FLAGS?.v2_errorBoundary || remixVersion === 2;
+
+      // On Remix v2, we capture all unexpected errors (except the `Route Error Response`s / Thrown Responses) in `handleError` function.
+      // This is both for consistency and also avoid duplicates such as primitives like `string` or `number` being captured twice.
+      // Remix v1 does not have a `handleError` function, so we capture all errors here.
+      if (isRemixV2 ? isResponse(err) : true) {
         await captureRemixServerException(err, name, args.request);
       }
 
@@ -240,9 +276,12 @@ const makeWrappedLoader =
     return makeWrappedDataFunction(origLoader, id, 'loader', remixVersion);
   };
 
-function getTraceAndBaggage(): { sentryTrace?: string; sentryBaggage?: string } {
+function getTraceAndBaggage(): {
+  sentryTrace?: string;
+  sentryBaggage?: string;
+} {
   const transaction = getActiveTransaction();
-  const currentScope = getCurrentHub().getScope();
+  const currentScope = getCurrentScope();
 
   if (isNodeEnv() && hasTracingEnabled()) {
     const span = currentScope.getSpan();
@@ -287,7 +326,11 @@ function makeWrappedRootLoader(remixVersion: number) {
           if (typeof data === 'object') {
             return json(
               { ...data, ...traceAndBaggage, remixVersion },
-              { headers: res.headers, statusText: res.statusText, status: res.status },
+              {
+                headers: res.headers,
+                statusText: res.statusText,
+                status: res.status,
+              },
             );
           } else {
             DEBUG_BUILD && logger.warn('Skipping injection of trace and baggage as the response body is not an object');
@@ -379,8 +422,8 @@ function wrapRequestHandler(origRequestHandler: RequestHandler, build: ServerBui
   return async function (this: unknown, request: RemixRequest, loadContext?: unknown): Promise<Response> {
     return runWithAsyncContext(async () => {
       const hub = getCurrentHub();
-      const options = hub.getClient()?.getOptions();
-      const scope = hub.getScope();
+      const options = getClient()?.getOptions();
+      const scope = getCurrentScope();
 
       let normalizedRequest: Record<string, unknown> = request;
 
@@ -420,7 +463,7 @@ function wrapRequestHandler(origRequestHandler: RequestHandler, build: ServerBui
         transaction.setHttpStatus(res.status);
       }
 
-      transaction.finish();
+      transaction.end();
 
       return res;
     });
@@ -498,7 +541,9 @@ function makeWrappedCreateRequestHandler(
  * which Remix Adapters (https://remix.run/docs/en/v1/api/remix) use underneath.
  */
 export function instrumentServer(): void {
-  const pkg = loadModule<{ createRequestHandler: CreateRequestHandlerFunction }>('@remix-run/server-runtime');
+  const pkg = loadModule<{
+    createRequestHandler: CreateRequestHandlerFunction;
+  }>('@remix-run/server-runtime');
 
   if (!pkg) {
     DEBUG_BUILD && logger.warn('Remix SDK was unable to require `@remix-run/server-runtime` package.');

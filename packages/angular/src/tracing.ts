@@ -7,7 +7,7 @@ import type { ActivatedRouteSnapshot, Event, RouterState } from '@angular/router
 // eslint-disable-next-line @typescript-eslint/consistent-type-imports
 import { NavigationCancel, NavigationError, Router } from '@angular/router';
 import { NavigationEnd, NavigationStart, ResolveEnd } from '@angular/router';
-import { WINDOW, getCurrentHub } from '@sentry/browser';
+import { WINDOW, getCurrentScope } from '@sentry/browser';
 import type { Span, Transaction, TransactionContext } from '@sentry/types';
 import { logger, stripUrlQueryAndFragment, timestampInSeconds } from '@sentry/utils';
 import type { Observable } from 'rxjs';
@@ -50,14 +50,7 @@ export const instrumentAngularRouting = routingInstrumentation;
  * Grabs active transaction off scope
  */
 export function getActiveTransaction(): Transaction | undefined {
-  const currentHub = getCurrentHub();
-
-  if (currentHub) {
-    const scope = currentHub.getScope();
-    return scope.getTransaction();
-  }
-
-  return undefined;
+  return getCurrentScope().getTransaction();
 }
 
 /**
@@ -89,7 +82,7 @@ export class TraceService implements OnDestroy {
 
       if (activeTransaction) {
         if (this._routingSpan) {
-          this._routingSpan.finish();
+          this._routingSpan.end();
         }
         this._routingSpan = activeTransaction.startChild({
           description: `${navigationEvent.url}`,
@@ -138,7 +131,7 @@ export class TraceService implements OnDestroy {
       if (this._routingSpan) {
         runOutsideAngular(() => {
           // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-          this._routingSpan!.finish();
+          this._routingSpan!.end();
         });
         this._routingSpan = null;
       }
@@ -203,7 +196,7 @@ export class TraceDirective implements OnInit, AfterViewInit {
    */
   public ngAfterViewInit(): void {
     if (this._tracingSpan) {
-      this._tracingSpan.finish();
+      this._tracingSpan.end();
     }
   }
 }
@@ -246,7 +239,7 @@ export function TraceClassDecorator(): ClassDecorator {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     target.prototype.ngAfterViewInit = function (...args: any[]): ReturnType<typeof originalAfterViewInit> {
       if (tracingSpan) {
-        tracingSpan.finish();
+        tracingSpan.end();
       }
       if (originalAfterViewInit) {
         return originalAfterViewInit.apply(this, args);

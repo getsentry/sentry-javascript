@@ -1,8 +1,12 @@
-import type { Client, Event, EventHint, Hub, Integration } from '@sentry/types';
+import type { Client, Event, EventHint, Integration } from '@sentry/types';
 
 import { Debug } from '../src/debug';
 
-function testEventLogged(integration: Integration, testEvent?: Event, testEventHint?: EventHint) {
+interface IntegrationWithSetup extends Integration {
+  setup: (client: Client) => void;
+}
+
+function testEventLogged(integration: IntegrationWithSetup, testEvent?: Event, testEventHint?: EventHint) {
   const callbacks: ((event: Event, hint?: EventHint) => void)[] = [];
 
   const client: Client = {
@@ -12,15 +16,7 @@ function testEventLogged(integration: Integration, testEvent?: Event, testEventH
     },
   } as Client;
 
-  function getCurrentHub() {
-    return {
-      getClient: jest.fn(() => {
-        return client;
-      }),
-    } as unknown as Hub;
-  }
-
-  integration.setupOnce(() => {}, getCurrentHub);
+  integration.setup(client);
 
   expect(callbacks.length).toEqual(1);
 

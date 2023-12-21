@@ -15,6 +15,7 @@ import type {
   RequestSession,
   Scope as ScopeInterface,
   ScopeContext,
+  ScopeData,
   Session,
   Severity,
   SeverityLevel,
@@ -22,15 +23,22 @@ import type {
   Transaction,
   User,
 } from '@sentry/types';
-import { arrayify, dateTimestampInSeconds, isPlainObject, uuid4 } from '@sentry/utils';
+import { dateTimestampInSeconds, isPlainObject, uuid4 } from '@sentry/utils';
 
 import { getGlobalEventProcessors, notifyEventProcessors } from './eventProcessors';
 import { updateSession } from './session';
+import { applyScopeDataToEvent } from './utils/applyScopeDataToEvent';
 
 /**
  * Default value for maximum number of breadcrumbs added to an event.
  */
 const DEFAULT_MAX_BREADCRUMBS = 100;
+
+/**
+ * The global scope is kept in this module.
+ * When accessing this via `getGlobalScope()` we'll make sure to set one if none is currently present.
+ */
+let globalScope: ScopeInterface | undefined;
 
 /**
  * Holds additional event information. {@link Scope.applyToEvent} will be
@@ -110,27 +118,33 @@ export class Scope implements ScopeInterface {
 
   /**
    * Inherit values from the parent scope.
-   * @param scope to clone.
+   * @deprecated Use `scope.clone()` and `new Scope()` instead.
    */
   public static clone(scope?: Scope): Scope {
+    return scope ? scope.clone() : new Scope();
+  }
+
+  /**
+   * Clone this scope instance.
+   */
+  public clone(): Scope {
     const newScope = new Scope();
-    if (scope) {
-      newScope._breadcrumbs = [...scope._breadcrumbs];
-      newScope._tags = { ...scope._tags };
-      newScope._extra = { ...scope._extra };
-      newScope._contexts = { ...scope._contexts };
-      newScope._user = scope._user;
-      newScope._level = scope._level;
-      newScope._span = scope._span;
-      newScope._session = scope._session;
-      newScope._transactionName = scope._transactionName;
-      newScope._fingerprint = scope._fingerprint;
-      newScope._eventProcessors = [...scope._eventProcessors];
-      newScope._requestSession = scope._requestSession;
-      newScope._attachments = [...scope._attachments];
-      newScope._sdkProcessingMetadata = { ...scope._sdkProcessingMetadata };
-      newScope._propagationContext = { ...scope._propagationContext };
-    }
+    newScope._breadcrumbs = [...this._breadcrumbs];
+    newScope._tags = { ...this._tags };
+    newScope._extra = { ...this._extra };
+    newScope._contexts = { ...this._contexts };
+    newScope._user = this._user;
+    newScope._level = this._level;
+    newScope._span = this._span;
+    newScope._session = this._session;
+    newScope._transactionName = this._transactionName;
+    newScope._fingerprint = this._fingerprint;
+    newScope._eventProcessors = [...this._eventProcessors];
+    newScope._requestSession = this._requestSession;
+    newScope._attachments = [...this._attachments];
+    newScope._sdkProcessingMetadata = { ...this._sdkProcessingMetadata };
+    newScope._propagationContext = { ...this._propagationContext };
+
     return newScope;
   }
 
@@ -447,9 +461,12 @@ export class Scope implements ScopeInterface {
 
   /**
    * @inheritDoc
+   * @deprecated Use `getScopeData()` instead.
    */
   public getAttachments(): Attachment[] {
-    return this._attachments;
+    const data = this.getScopeData();
+
+    return data.attachments;
   }
 
   /**
@@ -460,73 +477,65 @@ export class Scope implements ScopeInterface {
     return this;
   }
 
+  /** @inheritDoc */
+  public getScopeData(): ScopeData {
+    const {
+      _breadcrumbs,
+      _attachments,
+      _contexts,
+      _tags,
+      _extra,
+      _user,
+      _level,
+      _fingerprint,
+      _eventProcessors,
+      _propagationContext,
+      _sdkProcessingMetadata,
+      _transactionName,
+      _span,
+    } = this;
+
+    return {
+      breadcrumbs: _breadcrumbs,
+      attachments: _attachments,
+      contexts: _contexts,
+      tags: _tags,
+      extra: _extra,
+      user: _user,
+      level: _level,
+      fingerprint: _fingerprint || [],
+      eventProcessors: _eventProcessors,
+      propagationContext: _propagationContext,
+      sdkProcessingMetadata: _sdkProcessingMetadata,
+      transactionName: _transactionName,
+      span: _span,
+    };
+  }
+
   /**
    * Applies data from the scope to the event and runs all event processors on it.
    *
    * @param event Event
    * @param hint Object containing additional information about the original exception, for use by the event processors.
    * @hidden
+   * @deprecated Use `applyScopeDataToEvent()` directly
    */
   public applyToEvent(
     event: Event,
     hint: EventHint = {},
-    additionalEventProcessors?: EventProcessor[],
+    additionalEventProcessors: EventProcessor[] = [],
   ): PromiseLike<Event | null> {
-    if (this._extra && Object.keys(this._extra).length) {
-      event.extra = { ...this._extra, ...event.extra };
-    }
-    if (this._tags && Object.keys(this._tags).length) {
-      event.tags = { ...this._tags, ...event.tags };
-    }
-    if (this._user && Object.keys(this._user).length) {
-      event.user = { ...this._user, ...event.user };
-    }
-    if (this._contexts && Object.keys(this._contexts).length) {
-      event.contexts = { ...this._contexts, ...event.contexts };
-    }
-    if (this._level) {
-      event.level = this._level;
-    }
-    if (this._transactionName) {
-      event.transaction = this._transactionName;
-    }
-
-    // We want to set the trace context for normal events only if there isn't already
-    // a trace context on the event. There is a product feature in place where we link
-    // errors with transaction and it relies on that.
-    if (this._span) {
-      event.contexts = { trace: this._span.getTraceContext(), ...event.contexts };
-      const transaction = this._span.transaction;
-      if (transaction) {
-        event.sdkProcessingMetadata = {
-          dynamicSamplingContext: transaction.getDynamicSamplingContext(),
-          ...event.sdkProcessingMetadata,
-        };
-        const transactionName = transaction.name;
-        if (transactionName) {
-          event.tags = { transaction: transactionName, ...event.tags };
-        }
-      }
-    }
-
-    this._applyFingerprint(event);
-
-    const scopeBreadcrumbs = this._getBreadcrumbs();
-    const breadcrumbs = [...(event.breadcrumbs || []), ...scopeBreadcrumbs];
-    event.breadcrumbs = breadcrumbs.length > 0 ? breadcrumbs : undefined;
-
-    event.sdkProcessingMetadata = {
-      ...event.sdkProcessingMetadata,
-      ...this._sdkProcessingMetadata,
-      propagationContext: this._propagationContext,
-    };
+    applyScopeDataToEvent(event, this.getScopeData());
 
     // TODO (v8): Update this order to be: Global > Client > Scope
-    return notifyEventProcessors(
-      [...(additionalEventProcessors || []), ...getGlobalEventProcessors(), ...this._eventProcessors],
-      event,
-      hint,
-    );
+    const eventProcessors: EventProcessor[] = [
+      ...additionalEventProcessors,
+      // eslint-disable-next-line deprecation/deprecation
+      ...getGlobalEventProcessors(),
+      ...this._eventProcessors,
+    ];
+
+    return notifyEventProcessors(eventProcessors, event, hint);
   }
 
   /**
@@ -554,13 +563,6 @@ export class Scope implements ScopeInterface {
   }
 
   /**
-   * Get the breadcrumbs for this scope.
-   */
-  protected _getBreadcrumbs(): Breadcrumb[] {
-    return this._breadcrumbs;
-  }
-
-  /**
    * This will be called on every set call.
    */
   protected _notifyScopeListeners(): void {
@@ -575,25 +577,27 @@ export class Scope implements ScopeInterface {
       this._notifyingListeners = false;
     }
   }
+}
 
-  /**
-   * Applies fingerprint from the scope to the event if there's one,
-   * uses message if there's one instead or get rid of empty fingerprint
-   */
-  private _applyFingerprint(event: Event): void {
-    // Make sure it's an array first and we actually have something in place
-    event.fingerprint = event.fingerprint ? arrayify(event.fingerprint) : [];
-
-    // If we have something on the scope, then merge it with event
-    if (this._fingerprint) {
-      event.fingerprint = event.fingerprint.concat(this._fingerprint);
-    }
-
-    // If we have no data at all, remove empty array default
-    if (event.fingerprint && !event.fingerprint.length) {
-      delete event.fingerprint;
-    }
+/**
+ * Get the global scope.
+ * This scope is applied to _all_ events.
+ */
+export function getGlobalScope(): ScopeInterface {
+  if (!globalScope) {
+    globalScope = new Scope();
   }
+
+  return globalScope;
+}
+
+/**
+ * This is mainly needed for tests.
+ * DO NOT USE this, as this is an internal API and subject to change.
+ * @hidden
+ */
+export function setGlobalScope(scope: ScopeInterface | undefined): void {
+  globalScope = scope;
 }
 
 function generatePropagationContext(): PropagationContext {

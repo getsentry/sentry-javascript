@@ -21,9 +21,7 @@ async function run(): Promise<void> {
     op: 'transaction',
   });
 
-  Sentry.configureScope(scope => {
-    scope.setSpan(transaction);
-  });
+  Sentry.getCurrentScope().setSpan(transaction);
 
   try {
     await client.connect();
@@ -38,9 +36,10 @@ async function run(): Promise<void> {
 
     await collection.find({ title: 'South Park' }).toArray();
   } finally {
-    if (transaction) transaction.finish();
+    if (transaction) transaction.end();
     await client.close();
   }
 }
 
-void run();
+// eslint-disable-next-line @typescript-eslint/no-floating-promises
+run();

@@ -362,7 +362,7 @@ describe('tracingHandler', () => {
   it('pulls status code from the response', done => {
     const transaction = new Transaction({ name: 'mockTransaction' });
     jest.spyOn(sentryCore, 'startTransaction').mockReturnValue(transaction as Transaction);
-    const finishTransaction = jest.spyOn(transaction, 'finish');
+    const finishTransaction = jest.spyOn(transaction, 'end');
 
     sentryTracingMiddleware(req, res, next);
     res.statusCode = 200;
@@ -410,7 +410,7 @@ describe('tracingHandler', () => {
   it('closes the transaction when request processing is done', done => {
     const transaction = new Transaction({ name: 'mockTransaction' });
     jest.spyOn(sentryCore, 'startTransaction').mockReturnValue(transaction as Transaction);
-    const finishTransaction = jest.spyOn(transaction, 'finish');
+    const finishTransaction = jest.spyOn(transaction, 'end');
 
     sentryTracingMiddleware(req, res, next);
     res.emit('finish');
@@ -421,7 +421,7 @@ describe('tracingHandler', () => {
     });
   });
 
-  it('waits to finish transaction until all spans are finished, even though `transaction.finish()` is registered on `res.finish` event first', done => {
+  it('waits to finish transaction until all spans are finished, even though `transaction.end()` is registered on `res.finish` event first', done => {
     const transaction = new Transaction({ name: 'mockTransaction', sampled: true });
     transaction.initSpanRecorder();
     const span = transaction.startChild({
@@ -429,8 +429,8 @@ describe('tracingHandler', () => {
       op: 'middleware',
     });
     jest.spyOn(sentryCore, 'startTransaction').mockReturnValue(transaction as Transaction);
-    const finishSpan = jest.spyOn(span, 'finish');
-    const finishTransaction = jest.spyOn(transaction, 'finish');
+    const finishSpan = jest.spyOn(span, 'end');
+    const finishTransaction = jest.spyOn(transaction, 'end');
 
     let sentEvent: Event;
     jest.spyOn((transaction as any)._hub, 'captureEvent').mockImplementation(event => {
@@ -439,7 +439,7 @@ describe('tracingHandler', () => {
 
     sentryTracingMiddleware(req, res, next);
     res.once('finish', () => {
-      span.finish();
+      span.end();
     });
     res.emit('finish');
 
@@ -458,10 +458,11 @@ describe('tracingHandler', () => {
     const hub = new sentryCore.Hub(new NodeClient(options));
 
     jest.spyOn(sentryCore, 'getCurrentHub').mockReturnValue(hub);
+    jest.spyOn(sentryCore, 'getCurrentScope').mockImplementation(() => hub.getScope());
 
     sentryTracingMiddleware(req, res, next);
 
-    const transaction = sentryCore.getCurrentHub().getScope().getTransaction();
+    const transaction = sentryCore.getCurrentScope().getTransaction();
 
     expect(transaction?.metadata.request).toEqual(req);
   });

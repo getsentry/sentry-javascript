@@ -4,6 +4,171 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.90.0
+
+- feat(replay): Change to use preset quality values (#9903)
+- fix(replay): Adjust development hydration error messages (#9922)
+- fix(sveltekit): Add `types` field to package.json `exports` (#9926)
+
+## 7.89.0
+
+### Important Changes
+
+#### Deprecations
+
+- **feat(core): Deprecate `configureScope` (#9887)**
+- **feat(core): Deprecate `pushScope` & `popScope` (#9890)**
+
+This release deprecates `configureScope`, `pushScope`, and `popScope`, which will be removed in the upcoming v8 major release.
+
+#### Hapi Integration
+
+- **feat(node): Add Hapi Integration (#9539)**
+
+This release adds an integration for Hapi. It can be used as follows:
+
+```ts
+const Sentry = require('@sentry/node');
+const Hapi = require('@hapi/hapi');
+
+const init = async () => {
+    const server = Hapi.server({
+      // your server configuration ...
+    });
+
+    Sentry.init({
+      dsn: '__DSN__',
+      tracesSampleRate: 1.0,
+      integrations: [
+        new Sentry.Integrations.Hapi({ server }),
+      ],
+    });
+
+    server.route({
+      // your route configuration ...
+    });
+
+    await server.start();
+};
+```
+
+#### SvelteKit 2.0
+
+- **chore(sveltekit): Add SvelteKit 2.0 to peer dependencies (#9861)**
+
+This release adds support for SvelteKit 2.0 in the `@sentry/sveltekit` package. If you're upgrading from SvelteKit 1.x to 2.x and already use the Sentry SvelteKit SDK, no changes apart from upgrading to this (or a newer) version are necessary.
+
+### Other Changes
+
+- feat(core): Add type & utility for function-based integrations (#9818)
+- feat(core): Update `withScope` to return callback return value (#9866)
+- feat(deno): Support `Deno.CronSchedule` for cron jobs (#9880)
+- feat(nextjs): Auto instrument generation functions (#9781)
+- feat(nextjs): Connect server component transactions if there is no incoming trace (#9845)
+- feat(node-experimental): Update to new Scope APIs (#9799)
+- feat(replay): Add `canvas.type` setting (#9877)
+- fix(nextjs): Export `createReduxEnhancer` (#9854)
+- fix(remix): Do not capture thrown redirect responses. (#9909)
+- fix(sveltekit): Add conditional exports (#9872)
+- fix(sveltekit): Avoid capturing 404 errors on client side (#9902)
+- fix(utils): Do not use `Event` type in worldwide (#9864)
+- fix(utils): Support crypto.getRandomValues in old Chromium versions (#9251)
+- fix(utils): Update `eventFromUnknownInput` to avoid scope pollution & `getCurrentHub` (#9868)
+- ref: Use `addBreadcrumb` directly & allow to pass hint (#9867)
+
+Work in this release contributed by @adam187, and @jghinestrosa. Thank you for your contributions!
+
+## 7.88.0
+
+### Important Changes
+
+- **feat(browser): Add browser metrics sdk (#9794)**
+
+The release adds alpha support for [Sentry developer metrics](https://github.com/getsentry/sentry/discussions/58584) in the Browser SDKs (`@sentry/browser` and related framework SDKs). Via the newly introduced APIs, you can now flush metrics directly to Sentry.
+
+To enable capturing metrics, you first need to add the `MetricsAggregator` integration.
+
+```js
+Sentry.init({
+  dsn: '__DSN__',
+  integrations: [
+    new Sentry.metrics.MetricsAggregator(),
+  ],
+});
+```
+
+Then you'll be able to add `counters`, `sets`, `distributions`, and `gauges` under the `Sentry.metrics` namespace.
+
+```js
+// Add 4 to a counter named `hits`
+Sentry.metrics.increment('hits', 4);
+
+// Add 2 to gauge named `parallel_requests`, tagged with `happy: "no"`
+Sentry.metrics.gauge('parallel_requests', 2, { tags: { happy: 'no' } });
+
+// Add 4.6 to a distribution named `response_time` with unit seconds
+Sentry.metrics.distribution('response_time', 4.6, { unit: 'seconds' });
+
+// Add 2 to a set named `valuable.ids`
+Sentry.metrics.set('valuable.ids', 2);
+```
+
+In a future release we'll add support for server runtimes (Node, Deno, Bun, Vercel Edge, etc.)
+
+- **feat(deno): Optionally instrument `Deno.cron` (#9808)**
+
+This releases add support for instrumenting [Deno cron's](https://deno.com/blog/cron) with [Sentry cron monitors](https://docs.sentry.io/product/crons/). This requires v1.38 of Deno run with the `--unstable` flag and the usage of the `DenoCron` Sentry integration.
+
+```ts
+// Import from the Deno registry
+import * as Sentry from "https://deno.land/x/sentry/index.mjs";
+
+Sentry.init({
+  dsn: '__DSN__',
+  integrations: [
+    new Sentry.DenoCron(),
+  ],
+});
+```
+
+### Other Changes
+
+- feat(replay): Bump `rrweb` to 2.6.0 (#9847)
+- fix(nextjs): Guard against injecting multiple times (#9807)
+- ref(remix): Bump Sentry CLI to ^2.23.0 (#9773)
+
+## 7.87.0
+
+- feat: Add top level `getCurrentScope()` method (#9800)
+- feat(replay): Bump `rrweb` to 2.5.0 (#9803)
+- feat(replay): Capture hydration error breadcrumb (#9759)
+- feat(types): Add profile envelope types (#9798)
+- fix(astro): Avoid RegExp creation during route interpolation (#9815)
+- fix(browser): Avoid importing from `./exports` (#9775)
+- fix(nextjs): Catch rejecting flushes (#9811)
+- fix(nextjs): Fix devserver CORS blockage when `assetPrefix` is defined (#9766)
+- fix(node): Capture errors in tRPC middleware (#9782)
+
+## 7.86.0
+
+- feat(core): Use SDK_VERSION for hub API version (#9732)
+- feat(nextjs): Emit warning if your app directory doesn't have a global-error.js file (#9753)
+- feat(node): Add cloudflare pages commit sha (#9751)
+- feat(remix): Bump @sentry/cli to 2.22.3 (#9741)
+- fix(nextjs): Don't accidentally trigger static generation bailout (#9749)
+- fix(node): Guard `process.env.NODE_ENV` access in Spotlight integration (#9748)
+- fix(utils): Fix XHR instrumentation early return (#9770)
+- ref(remix): Rework Error Handling (#9725)
+
+## 7.85.0
+
+- feat(core): Add `addEventProcessor` method (#9554)
+- feat(crons): Add interface for heartbeat checkin (#9706)
+- feat(feedback): Include Feedback package in browser SDK (#9586)
+- fix(astro): Isolate request instrumentation in middleware (#9709)
+- fix(replay): Capture JSON XHR response bodies (#9623)
+- ref(feedback): Change form `box-shadow` to use CSS var (#9630)
+
 ## 7.84.0
 
 ### Important Changes

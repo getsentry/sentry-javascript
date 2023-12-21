@@ -1,7 +1,10 @@
-import type { EventProcessor, Hub, Integration } from '@sentry/types';
+import { captureMessage, convertIntegrationFnToClass, getClient, withScope } from '@sentry/core';
+import type { Client, IntegrationFn } from '@sentry/types';
 import { GLOBAL_OBJ, supportsReportingObserver } from '@sentry/utils';
 
 const WINDOW = GLOBAL_OBJ as typeof GLOBAL_OBJ & Window;
+
+const INTEGRATION_NAME = 'ReportingObserver';
 
 interface Report {
   [key: string]: unknown;
@@ -39,68 +42,22 @@ interface InterventionReportBody {
   columnNumber?: number;
 }
 
-/** Reporting API integration - https://w3c.github.io/reporting/ */
-export class ReportingObserver implements Integration {
-  /**
-   * @inheritDoc
-   */
-  public static id: string = 'ReportingObserver';
+interface ReportingObserverOptions {
+  types?: ReportTypes[];
+}
 
-  /**
-   * @inheritDoc
-   */
-  public readonly name: string;
+const SETUP_CLIENTS = new WeakMap<Client, boolean>();
 
-  /**
-   * Returns current hub.
-   */
-  private _getCurrentHub?: () => Hub;
+const reportingObserverIntegration = ((options: ReportingObserverOptions = {}) => {
+  const types = options.types || ['crash', 'deprecation', 'intervention'];
 
-  private readonly _types: ReportTypes[];
-
-  /**
-   * @inheritDoc
-   */
-  public constructor(
-    options: {
-      types?: ReportTypes[];
-    } = {},
-  ) {
-    this.name = ReportingObserver.id;
-
-    this._types = options.types || ['crash', 'deprecation', 'intervention'];
-  }
-
-  /**
-   * @inheritDoc
-   */
-  public setupOnce(_: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
-    if (!supportsReportingObserver()) {
+  function handler(reports: Report[]): void {
+    if (!SETUP_CLIENTS.has(getClient() as Client)) {
       return;
     }
 
-    this._getCurrentHub = getCurrentHub;
-
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
-    const observer = new (WINDOW as any).ReportingObserver(this.handler.bind(this), {
-      buffered: true,
-      types: this._types,
-    });
-
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    observer.observe();
-  }
-
-  /**
-   * @inheritDoc
-   */
-  public handler(reports: Report[]): void {
-    const hub = this._getCurrentHub && this._getCurrentHub();
-    if (!hub || !hub.getIntegration(ReportingObserver)) {
-      return;
-    }
     for (const report of reports) {
-      hub.withScope(scope => {
+      withScope(scope => {
         scope.setExtra('url', report.url);
 
         const label = `ReportingObserver [${report.type}]`;
@@ -129,8 +86,34 @@ export class ReportingObserver implements Integration {
           }
         }
 
-        hub.captureMessage(`${label}: ${details}`);
+        captureMessage(`${label}: ${details}`);
       });
     }
   }
-}
+
+  return {
+    name: INTEGRATION_NAME,
+    setupOnce() {
+      if (!supportsReportingObserver()) {
+        return;
+      }
+
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
+      const observer = new (WINDOW as any).ReportingObserver(handler, {
+        buffered: true,
+        types,
+      });
+
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      observer.observe();
+    },
+
+    setup(client): void {
+      SETUP_CLIENTS.set(client, true);
+    },
+  };
+}) satisfies IntegrationFn;
+
+/** Reporting API integration - https://w3c.github.io/reporting/ */
+// eslint-disable-next-line deprecation/deprecation
+export const ReportingObserver = convertIntegrationFnToClass(INTEGRATION_NAME, reportingObserverIntegration);

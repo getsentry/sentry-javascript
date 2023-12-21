@@ -86,9 +86,9 @@ jobs:
               - 'CHANGELOG.md'
               - '.github/**'
               - 'jest/**'
-              - 'rollup/**'
               - 'scripts/**'
               - 'packages/core/**'
+              - 'packages/rollup-utils/**'
               - 'packages/tracing/**'
               - 'packages/tracing-internal/**'
               - 'packages/utils/**'
@@ -176,7 +176,7 @@ jobs:
         # so no need to reinstall them
       - name: Compute dependency cache key
         id: compute_lockfile_hash
-        run: echo "hash=${{ hashFiles('yarn.lock') }}" >> "$GITHUB_OUTPUT"
+        run: echo "hash=${{ hashFiles('yarn.lock', '**/package.json') }}" >> "$GITHUB_OUTPUT"
 
       - name: Check dependency cache
         uses: actions/cache@v3
@@ -445,7 +445,7 @@ jobs:
       - name: Set up Deno
         uses: denoland/setup-deno@v1.1.3
         with:
-          deno-version: v1.37.1
+          deno-version: v1.38.5
       - name: Restore caches
         uses: ./.github/actions/restore-cache
         env:
@@ -864,13 +864,16 @@ jobs:
             'create-remix-app-v2',
             'debug-id-sourcemaps',
             'nextjs-app-dir',
+            'nextjs-14',
             'react-create-hash-router',
             'react-router-6-use-routes',
             'standard-frontend-react',
             'standard-frontend-react-tracing-import',
             'sveltekit',
+            'sveltekit-2',
             'generic-ts3.8',
             'node-experimental-fastify-app',
+            'node-hapi-app',
           ]
         build-command:
           - false
@@ -976,8 +979,7 @@ jobs:
     runs-on: ubuntu-20.04
     timeout-minutes: 30
     if: |
-      contains(github.event.pull_request.labels.*.name, 'ci-overhead-measurements') ||
-      needs.job_get_metadata.outputs.is_develop == 'true'
+      contains(github.event.pull_request.labels.*.name, 'ci-overhead-measurements')
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v4

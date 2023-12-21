@@ -155,7 +155,7 @@ export class Feedback implements Integration {
   }
 
   /**
-   * Setup and initialize replay container
+   * Setup and initialize feedback container
    */
   public setupOnce(): void {
     if (!isBrowser()) {

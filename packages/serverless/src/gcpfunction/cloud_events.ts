@@ -1,4 +1,4 @@
-import { captureException, flush, getCurrentHub } from '@sentry/node';
+import { captureException, flush, getCurrentHub, getCurrentScope } from '@sentry/node';
 import { isThenable, logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../debug-build';
@@ -43,19 +43,19 @@ function _wrapCloudEventFunction(
     // getCurrentHub() is expected to use current active domain as a carrier
     // since functions-framework creates a domain for each incoming request.
     // So adding of event processors every time should not lead to memory bloat.
-    hub.configureScope(scope => {
-      scope.setContext('gcp.function.context', { ...context });
-      // We put the transaction on the scope so users can attach children to it
-      scope.setSpan(transaction);
-    });
+    const scope = getCurrentScope();
+    scope.setContext('gcp.function.context', { ...context });
+    // We put the transaction on the scope so users can attach children to it
+    scope.setSpan(transaction);
 
     const newCallback = domainify((...args: unknown[]) => {
       if (args[0] !== null && args[0] !== undefined) {
         captureException(args[0], scope => markEventUnhandled(scope));
       }
-      transaction?.finish();
+      transaction?.end();
 
-      void flush(options.flushTimeout)
+      // eslint-disable-next-line @typescript-eslint/no-floating-promises
+      flush(options.flushTimeout)
         .then(null, e => {
           DEBUG_BUILD && logger.error(e);
         })

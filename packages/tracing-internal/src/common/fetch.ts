@@ -1,4 +1,4 @@
-import { getCurrentHub, getDynamicSamplingContextFromClient, hasTracingEnabled } from '@sentry/core';
+import { getClient, getCurrentScope, getDynamicSamplingContextFromClient, hasTracingEnabled } from '@sentry/core';
 import type { Client, HandlerDataFetch, Scope, Span, SpanOrigin } from '@sentry/types';
 import {
   BAGGAGE_HEADER_NAME,
@@ -57,7 +57,7 @@ export function instrumentFetchRequest(
       } else if (handlerData.error) {
         span.setStatus('internal_error');
       }
-      span.finish();
+      span.end();
 
       // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
       delete spans[spanId];
@@ -65,9 +65,8 @@ export function instrumentFetchRequest(
     return undefined;
   }
 
-  const hub = getCurrentHub();
-  const scope = hub.getScope();
-  const client = hub.getClient();
+  const scope = getCurrentScope();
+  const client = getClient();
   const parentSpan = scope.getSpan();
 
   const { method, url } = handlerData.fetchData;

@@ -1,4 +1,3 @@
-import type { Span } from '@opentelemetry/api';
 import { SpanKind } from '@opentelemetry/api';
 import type { ExportResult } from '@opentelemetry/core';
 import { ExportResultCode } from '@opentelemetry/core';
@@ -9,7 +8,6 @@ import type { DynamicSamplingContext, Span as SentrySpan, SpanOrigin, Transactio
 import { logger } from '@sentry/utils';
 
 import { getCurrentHub } from './custom/hub';
-import { OpenTelemetryScope } from './custom/scope';
 import type { OpenTelemetryTransaction } from './custom/transaction';
 import { startTransaction } from './custom/transaction';
 import { DEBUG_BUILD } from './debug-build';
@@ -20,7 +18,7 @@ import type { SpanNode } from './utils/groupSpansWithParents';
 import { groupSpansWithParents } from './utils/groupSpansWithParents';
 import { mapStatus } from './utils/mapStatus';
 import { parseSpanDescription } from './utils/parseSpanDescription';
-import { getSpanHub, getSpanMetadata, getSpanScope } from './utils/spanData';
+import { getSpanFinishScope, getSpanHub, getSpanMetadata, getSpanScope } from './utils/spanData';
 
 type SpanNodeCompleted = SpanNode & { span: ReadableSpan };
 
@@ -111,12 +109,9 @@ function maybeSend(spans: ReadableSpan[]): ReadableSpan[] {
     });
 
     // Now finish the transaction, which will send it together with all the spans
-    // We make sure to use the current span as the activeSpan for this transaction
-    const scope = getSpanScope(span);
-    const forkedScope = OpenTelemetryScope.clone(scope as OpenTelemetryScope | undefined) as OpenTelemetryScope;
-    forkedScope.activeSpan = span as unknown as Span;
-
-    transaction.finishWithScope(convertOtelTimeToSeconds(span.endTime), forkedScope);
+    // We make sure to use the finish scope
+    const scope = getSpanFinishScope(span);
+    transaction.finishWithScope(convertOtelTimeToSeconds(span.endTime), scope);
   });
 
   return Array.from(remaining)
@@ -225,7 +220,7 @@ function createAndFinishSpanForOtelSpan(node: SpanNode, sentryParentSpan: Sentry
     createAndFinishSpanForOtelSpan(child, sentrySpan, remaining);
   });
 
-  sentrySpan.finish(convertOtelTimeToSeconds(span.endTime));
+  sentrySpan.end(convertOtelTimeToSeconds(span.endTime));
 }
 
 function getSpanData(span: ReadableSpan): {

@@ -40,6 +40,8 @@ export interface Hub {
    * when the operation finishes or throws.
    *
    * @returns Scope, the new cloned scope
+   *
+   * @deprecated Use `withScope` instead.
    */
   pushScope(): Scope;
 
@@ -49,6 +51,8 @@ export interface Hub {
    * This restores the state before the scope was pushed. All breadcrumbs and
    * context information added since the last call to {@link this.pushScope} are
    * discarded.
+   *
+   * @deprecated Use `withScope` instead.
    */
   popScope(): boolean;
 
@@ -65,13 +69,19 @@ export interface Hub {
    *
    * @param callback that will be enclosed into push/popScope.
    */
-  withScope(callback: (scope: Scope) => void): void;
+  withScope<T>(callback: (scope: Scope) => T): T;
 
   /** Returns the client of the top stack. */
   getClient(): Client | undefined;
 
   /** Returns the scope of the top stack */
   getScope(): Scope;
+
+  /**
+   * Get the currently active isolation scope.
+   * The isolation scope is used to isolate data between different hubs.
+   */
+  getIsolationScope(): Scope;
 
   /**
    * Captures an exception event and sends it to Sentry.
@@ -171,6 +181,7 @@ export interface Hub {
    * Callback to set context information onto the scope.
    *
    * @param callback Callback function that receives Scope.
+   * @deprecated Use `getScope()` directly.
    */
   configureScope(callback: (scope: Scope) => void): void;
 
@@ -195,7 +206,7 @@ export interface Hub {
    *
    * Every child span must be finished before the transaction is finished, otherwise the unfinished spans are discarded.
    *
-   * The transaction must be finished with a call to its `.finish()` method, at which point the transaction with all its
+   * The transaction must be finished with a call to its `.end()` method, at which point the transaction with all its
    * finished child spans will be sent to Sentry.
    *
    * @param context Properties of the new `Transaction`.

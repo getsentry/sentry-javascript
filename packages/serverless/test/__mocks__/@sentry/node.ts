@@ -25,27 +25,29 @@ export const fakeScope = {
   setPropagationContext: jest.fn(),
 };
 export const fakeSpan = {
-  finish: jest.fn(),
+  end: jest.fn(),
 };
 export const fakeTransaction = {
-  finish: jest.fn(),
+  end: jest.fn(),
   setHttpStatus: jest.fn(),
   startChild: jest.fn(() => fakeSpan),
 };
 export const init = jest.fn();
 export const addGlobalEventProcessor = jest.fn();
 export const getCurrentHub = jest.fn(() => fakeHub);
+export const getCurrentScope = jest.fn(() => fakeScope);
 export const startTransaction = jest.fn(_ => fakeTransaction);
 export const captureException = jest.fn();
 export const captureMessage = jest.fn();
 export const withScope = jest.fn(cb => cb(fakeScope));
 export const flush = jest.fn(() => Promise.resolve());
+export const getClient = jest.fn(() => ({}));
 
 export const resetMocks = (): void => {
   fakeTransaction.setHttpStatus.mockClear();
-  fakeTransaction.finish.mockClear();
+  fakeTransaction.end.mockClear();
   fakeTransaction.startChild.mockClear();
-  fakeSpan.finish.mockClear();
+  fakeSpan.end.mockClear();
   fakeHub.configureScope.mockClear();
   fakeHub.pushScope.mockClear();
   fakeHub.popScope.mockClear();
@@ -67,4 +69,5 @@ export const resetMocks = (): void => {
   captureMessage.mockClear();
   withScope.mockClear();
   flush.mockClear();
+  getClient.mockClear();
 };

@@ -40,7 +40,7 @@ describe('registerErrorHandlers()', () => {
   });
 
   afterEach(() => {
-    hub.configureScope(scope => scope.setSpan(undefined));
+    hub.getScope().setSpan(undefined);
   });
 
   it('registers error instrumentation', () => {
@@ -61,27 +61,27 @@ describe('registerErrorHandlers()', () => {
 
     mockUnhandledRejectionCallback({});
     expect(transaction.status).toBe(undefined);
-    transaction.finish();
+    transaction.end();
   });
 
   it('sets status for transaction on scope on error', () => {
     registerErrorInstrumentation();
     const transaction = hub.startTransaction({ name: 'test' });
-    hub.configureScope(scope => scope.setSpan(transaction));
+    hub.getScope().setSpan(transaction);
 
     mockErrorCallback({} as HandlerDataError);
     expect(transaction.status).toBe('internal_error');
 
-    transaction.finish();
+    transaction.end();
   });
 
   it('sets status for transaction on scope on unhandledrejection', () => {
     registerErrorInstrumentation();
     const transaction = hub.startTransaction({ name: 'test' });
-    hub.configureScope(scope => scope.setSpan(transaction));
+    hub.getScope().setSpan(transaction);
 
     mockUnhandledRejectionCallback({});
     expect(transaction.status).toBe('internal_error');
-    transaction.finish();
+    transaction.end();
   });
 });

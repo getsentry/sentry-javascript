@@ -1,8 +1,16 @@
-import { addTracingExtensions, captureException, flush, getCurrentHub, runWithAsyncContext, trace } from '@sentry/core';
+import {
+  addTracingExtensions,
+  captureException,
+  getClient,
+  getCurrentScope,
+  runWithAsyncContext,
+  trace,
+} from '@sentry/core';
 import { logger, tracingContextFromHeaders } from '@sentry/utils';
 
 import { DEBUG_BUILD } from './debug-build';
 import { platformSupportsStreaming } from './utils/platformSupportsStreaming';
+import { flushQueue } from './utils/responseEnd';
 
 interface Options {
   formData?: FormData;
@@ -48,8 +56,7 @@ async function withServerActionInstrumentationImplementation<A extends (...args:
 ): Promise<ReturnType<A>> {
   addTracingExtensions();
   return runWithAsyncContext(async () => {
-    const hub = getCurrentHub();
-    const sendDefaultPii = hub.getClient()?.getOptions().sendDefaultPii;
+    const sendDefaultPii = getClient()?.getOptions().sendDefaultPii;
 
     let sentryTraceHeader;
     let baggageHeader;
@@ -67,7 +74,7 @@ async function withServerActionInstrumentationImplementation<A extends (...args:
         );
     }
 
-    const currentScope = hub.getScope();
+    const currentScope = getCurrentScope();
     const { traceparentData, dynamicSamplingContext, propagationContext } = tracingContextFromHeaders(
       sentryTraceHeader,
       baggageHeader,
@@ -118,11 +125,13 @@ async function withServerActionInstrumentationImplementation<A extends (...args:
     } finally {
       if (!platformSupportsStreaming()) {
         // Lambdas require manual flushing to prevent execution freeze before the event is sent
-        await flush(1000);
+        await flushQueue();
       }
 
       if (process.env.NEXT_RUNTIME === 'edge') {
-        void flush();
+        // flushQueue should not throw
+        // eslint-disable-next-line @typescript-eslint/no-floating-promises
+        flushQueue();
       }
     }
 

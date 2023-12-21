@@ -1,3 +1,4 @@
+import { Feedback } from '@sentry-internal/integration-shims';
 import { BrowserTracing, Span, addExtensionMethods } from '@sentry-internal/tracing';
 import { Replay } from '@sentry/replay';
 
@@ -13,5 +14,5 @@ Sentry.Integrations.BrowserTracing = BrowserTracing;
 // We are patching the global object with our hub extension methods
 addExtensionMethods();
 
-export { Replay, BrowserTracing, Span, addExtensionMethods };
+export { Feedback, Replay, BrowserTracing, Span, addExtensionMethods };
 export * from './index.bundle.base';

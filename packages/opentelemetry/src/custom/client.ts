@@ -3,7 +3,7 @@ import { trace } from '@opentelemetry/api';
 import type { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
 import type { BaseClient, Scope } from '@sentry/core';
 import { SDK_VERSION } from '@sentry/core';
-import type { Client, Event, EventHint } from '@sentry/types';
+import type { CaptureContext, Client, Event, EventHint } from '@sentry/types';
 
 import type { OpenTelemetryClient as OpenTelemetryClientInterface } from '../types';
 import { OpenTelemetryScope } from './scope';
@@ -65,14 +65,19 @@ export function wrapClientClass<
 
     /**
      * Extends the base `_prepareEvent` so that we can properly handle `captureContext`.
-     * This uses `Scope.clone()`, which we need to replace with `NodeExperimentalScope.clone()` for this client.
+     * This uses `Scope.clone()`, which we need to replace with `OpenTelemetryScope.clone()` for this client.
      */
-    protected _prepareEvent(event: Event, hint: EventHint, scope?: Scope): PromiseLike<Event | null> {
+    protected _prepareEvent(
+      event: Event,
+      hint: EventHint,
+      scope?: Scope,
+      isolationScope?: Scope,
+    ): PromiseLike<Event | null> {
       let actualScope = scope;
 
       // Remove `captureContext` hint and instead clone already here
       if (hint && hint.captureContext) {
-        actualScope = OpenTelemetryScope.clone(scope);
+        actualScope = getFinalScope(scope, hint.captureContext);
         delete hint.captureContext;
       }
 
@@ -83,3 +88,9 @@ export function wrapClientClass<
   return OpenTelemetryClient as unknown as WrappedClassConstructor;
 }
 /* eslint-enable @typescript-eslint/no-explicit-any */
+
+function getFinalScope(scope: Scope | undefined, captureContext: CaptureContext): Scope | undefined {
+  const finalScope = scope ? scope.clone() : new OpenTelemetryScope();
+  finalScope.update(captureContext);
+  return finalScope;
+}

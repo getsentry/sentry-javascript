@@ -1,5 +1,5 @@
 /* eslint-disable max-lines */
-import { getCurrentHub, getDynamicSamplingContextFromClient, hasTracingEnabled } from '@sentry/core';
+import { getClient, getCurrentScope, getDynamicSamplingContextFromClient, hasTracingEnabled } from '@sentry/core';
 import type { HandlerDataXhr, SentryWrappedXMLHttpRequest, Span } from '@sentry/types';
 import {
   BAGGAGE_HEADER_NAME,
@@ -256,7 +256,7 @@ export function xhrCallback(
     const span = spans[spanId];
     if (span && sentryXhrData.status_code !== undefined) {
       span.setHttpStatus(sentryXhrData.status_code);
-      span.finish();
+      span.end();
 
       // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
       delete spans[spanId];
@@ -264,8 +264,7 @@ export function xhrCallback(
     return undefined;
   }
 
-  const hub = getCurrentHub();
-  const scope = hub.getScope();
+  const scope = getCurrentScope();
   const parentSpan = scope.getSpan();
 
   const span =
@@ -294,7 +293,7 @@ export function xhrCallback(
       const sentryBaggageHeader = dynamicSamplingContextToSentryBaggageHeader(dynamicSamplingContext);
       setHeaderOnXhr(xhr, span.toTraceparent(), sentryBaggageHeader);
     } else {
-      const client = hub.getClient();
+      const client = getClient();
       const { traceId, sampled, dsc } = scope.getPropagationContext();
       const sentryTraceHeader = generateSentryTraceHeader(traceId, undefined, sampled);
       const dynamicSamplingContext =

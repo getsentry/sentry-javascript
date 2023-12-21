@@ -1,32 +1,70 @@
 import type { MeasurementUnit } from './measurement';
 import type { Primitive } from './misc';
 
-export interface BaseMetric {
-  name: string;
+/**
+ * An abstract definition of the minimum required API
+ * for a metric instance.
+ */
+export abstract class MetricInstance {
+  /**
+   * Returns the weight of the metric.
+   */
+  public get weight(): number {
+    return 1;
+  }
+
+  /**
+   * Adds a value to a metric.
+   */
+  public add(value: number | string): void {
+    // Override this.
+  }
+
+  /**
+   * Serializes the metric into a statsd format string.
+   */
+  public toString(): string {
+    return '';
+  }
+}
+
+export interface MetricBucketItem {
+  metric: MetricInstance;
   timestamp: number;
-  unit?: MeasurementUnit;
-  tags?: { [key: string]: Primitive };
+  metricType: 'c' | 'g' | 's' | 'd';
+  name: string;
+  unit: MeasurementUnit;
+  tags: Record<string, string>;
 }
 
-export interface CounterMetric extends BaseMetric {
-  value: number;
-}
+/**
+ * A metrics aggregator that aggregates metrics in memory and flushes them periodically.
+ */
+export interface MetricsAggregator {
+  /**
+   * Add a metric to the aggregator.
+   */
+  add(
+    metricType: 'c' | 'g' | 's' | 'd',
+    name: string,
+    value: number | string,
+    unit?: MeasurementUnit,
+    tags?: Record<string, Primitive>,
+    timestamp?: number,
+  ): void;
 
-export interface GaugeMetric extends BaseMetric {
-  value: number;
-  first: number;
-  min: number;
-  max: number;
-  sum: number;
-  count: number;
-}
+  /**
+   * Flushes the current metrics to the transport via the transport.
+   */
+  flush(): void;
 
-export interface DistributionMetric extends BaseMetric {
-  value: number[];
-}
+  /**
+   * Shuts down metrics aggregator and clears all metrics.
+   */
+  close(): void;
 
-export interface SetMetric extends BaseMetric {
-  value: Set<number>;
+  /**
+   * Returns a string representation of the aggregator.
+   */
+  toString(): string;
 }
-
-export type Metric = CounterMetric | GaugeMetric | DistributionMetric | SetMetric;

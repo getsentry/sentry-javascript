@@ -24,13 +24,16 @@ export type { TransactionNamingScheme } from '@sentry/node';
 export type { BunOptions } from './types';
 
 export {
+  // eslint-disable-next-line deprecation/deprecation
   addGlobalEventProcessor,
+  addEventProcessor,
   addBreadcrumb,
   addIntegration,
   captureException,
   captureEvent,
   captureMessage,
   close,
+  // eslint-disable-next-line deprecation/deprecation
   configureScope,
   createTransport,
   // eslint-disable-next-line deprecation/deprecation
@@ -40,6 +43,9 @@ export {
   getHubFromCarrier,
   getCurrentHub,
   getClient,
+  getCurrentScope,
+  getGlobalScope,
+  getIsolationScope,
   Hub,
   lastEventId,
   makeMain,
@@ -64,6 +70,7 @@ export {
   startInactiveSpan,
   startSpanManual,
   continueTrace,
+  metrics,
 } from '@sentry/core';
 export type { SpanStatusType } from '@sentry/core';
 export { autoDiscoverNodePerformanceMonitoringIntegrations } from '@sentry/node';

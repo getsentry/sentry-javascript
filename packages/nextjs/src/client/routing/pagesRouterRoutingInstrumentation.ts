@@ -1,5 +1,5 @@
 import type { ParsedUrlQuery } from 'querystring';
-import { getClient, getCurrentHub } from '@sentry/core';
+import { getClient, getCurrentScope } from '@sentry/core';
 import { WINDOW } from '@sentry/react';
 import type { Primitive, Transaction, TransactionContext, TransactionSource } from '@sentry/types';
 import {
@@ -124,7 +124,7 @@ export function pagesRouterInstrumentation(
     baggage,
   );
 
-  getCurrentHub().getScope().setPropagationContext(propagationContext);
+  getCurrentScope().setPropagationContext(propagationContext);
   prevLocationName = route || globalObject.location.pathname;
 
   if (startTransactionOnPageLoad) {
@@ -169,7 +169,7 @@ export function pagesRouterInstrumentation(
       prevLocationName = transactionName;
 
       if (activeTransaction) {
-        activeTransaction.finish();
+        activeTransaction.end();
       }
 
       const navigationTransaction = startTransactionCb({
@@ -193,7 +193,7 @@ export function pagesRouterInstrumentation(
         });
 
         const finishRouteChangeSpan = (): void => {
-          nextRouteChangeSpan.finish();
+          nextRouteChangeSpan.end();
           Router.events.off('routeChangeComplete', finishRouteChangeSpan);
         };
 

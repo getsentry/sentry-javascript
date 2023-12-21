@@ -2,7 +2,7 @@ import type { Context } from '@opentelemetry/api';
 import { SpanKind, context, trace } from '@opentelemetry/api';
 import { suppressTracing } from '@opentelemetry/core';
 import type { Span as OtelSpan, SpanProcessor as OtelSpanProcessor } from '@opentelemetry/sdk-trace-base';
-import { Transaction, addGlobalEventProcessor, addTracingExtensions, getClient, getCurrentHub } from '@sentry/core';
+import { Transaction, addEventProcessor, addTracingExtensions, getClient, getCurrentHub } from '@sentry/core';
 import type { DynamicSamplingContext, Span as SentrySpan, TraceparentData, TransactionContext } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
@@ -22,7 +22,7 @@ export class SentrySpanProcessor implements OtelSpanProcessor {
   public constructor() {
     addTracingExtensions();
 
-    addGlobalEventProcessor(event => {
+    addEventProcessor(event => {
       const otelSpan = trace && trace.getActiveSpan && (trace.getActiveSpan() as OtelSpan | undefined);
       if (!otelSpan) {
         return event;
@@ -124,7 +124,7 @@ export class SentrySpanProcessor implements OtelSpanProcessor {
 
     // Ensure we do not capture any OTEL spans for finishing (and sending) this
     context.with(suppressTracing(context.active()), () => {
-      sentrySpan.finish(convertOtelTimeToSeconds(otelSpan.endTime));
+      sentrySpan.end(convertOtelTimeToSeconds(otelSpan.endTime));
     });
 
     clearSpan(otelSpanId);

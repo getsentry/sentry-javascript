@@ -1,5 +1,6 @@
-import { captureException, getClient, withScope } from '@sentry/core';
+import { captureException, withScope } from '@sentry/core';
 import type { NextPageContext } from 'next';
+import { flushQueue } from './utils/responseEnd';
 
 type ContextOrProps = {
   req?: NextPageContext['req'];
@@ -8,12 +9,6 @@ type ContextOrProps = {
   pathname?: string;
   statusCode?: number;
 };
-
-/** Platform-agnostic version of `flush` */
-function flush(timeout?: number): PromiseLike<boolean> {
-  const client = getClient();
-  return client ? client.flush(timeout) : Promise.resolve(false);
-}
 
 /**
  * Capture the exception passed by nextjs to the `_error` page, adding context data as appropriate.
@@ -60,5 +55,5 @@ export async function captureUnderscoreErrorException(contextOrProps: ContextOrP
 
   // In case this is being run as part of a serverless function (as is the case with the server half of nextjs apps
   // deployed to vercel), make sure the error gets sent to Sentry before the lambda exits.
-  await flush(2000);
+  await flushQueue();
 }

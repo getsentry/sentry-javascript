@@ -2,7 +2,13 @@ import type { Integration, Options } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
 import { Hub, makeMain } from '../../src/hub';
-import { addIntegration, getIntegrationsToSetup, installedIntegrations, setupIntegration } from '../../src/integration';
+import {
+  addIntegration,
+  convertIntegrationFnToClass,
+  getIntegrationsToSetup,
+  installedIntegrations,
+  setupIntegration,
+} from '../../src/integration';
 import { TestClient, getDefaultTestClientOptions } from '../mocks/client';
 
 function getTestClient(): TestClient {
@@ -646,4 +652,69 @@ describe('addIntegration', () => {
     expect(warnings).toHaveBeenCalledTimes(1);
     expect(warnings).toHaveBeenCalledWith('Cannot add integration "test" because no SDK Client is available.');
   });
+});
+
+describe('convertIntegrationFnToClass', () => {
+  /* eslint-disable deprecation/deprecation */
+  it('works with a minimal integration', () => {
+    const integrationFn = () => ({ name: 'testName' });
+
+    const IntegrationClass = convertIntegrationFnToClass('testName', integrationFn);
+
+    expect(IntegrationClass.id).toBe('testName');
+
+    const integration = new IntegrationClass();
+    expect(integration).toEqual({
+      name: 'testName',
+      setupOnce: expect.any(Function),
+    });
+  });
+
+  it('works with options', () => {
+    const integrationFn = (_options: { num: number }) => ({ name: 'testName' });
+
+    const IntegrationClass = convertIntegrationFnToClass('testName', integrationFn);
+
+    expect(IntegrationClass.id).toBe('testName');
+
+    // @ts-expect-error This should fail TS without options
+    new IntegrationClass();
+
+    const integration = new IntegrationClass({ num: 3 });
+    expect(integration).toEqual({
+      name: 'testName',
+      setupOnce: expect.any(Function),
+    });
+  });
+
+  it('works with integration hooks', () => {
+    const setup = jest.fn();
+    const setupOnce = jest.fn();
+    const processEvent = jest.fn();
+    const preprocessEvent = jest.fn();
+
+    const integrationFn = () => {
+      return {
+        name: 'testName',
+        setup,
+        setupOnce,
+        processEvent,
+        preprocessEvent,
+      };
+    };
+
+    const IntegrationClass = convertIntegrationFnToClass('testName', integrationFn);
+
+    expect(IntegrationClass.id).toBe('testName');
+
+    const integration = new IntegrationClass();
+    expect(integration).toEqual({
+      name: 'testName',
+      setupOnce,
+      setup,
+      processEvent,
+      preprocessEvent,
+    });
+  });
+  /* eslint-enable deprecation/deprecation */
 });

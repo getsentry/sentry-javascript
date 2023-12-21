@@ -2,136 +2,138 @@ import { TextEncoder } from 'util';
 
 import { _getResponseInfo } from '../../../../src/coreHandlers/util/fetchUtils';
 
-describe('_getResponseInfo', () => {
-  it('works with captureDetails: false', async () => {
-    const res = await _getResponseInfo(
-      false,
-      {
-        networkCaptureBodies: true,
-        textEncoder: new TextEncoder(),
-        networkResponseHeaders: [],
-      },
-      undefined,
-      undefined,
-    );
+describe('Unit | coreHandlers | util | fetchUtils', () => {
+  describe('_getResponseInfo', () => {
+    it('works with captureDetails: false', async () => {
+      const res = await _getResponseInfo(
+        false,
+        {
+          networkCaptureBodies: true,
+          textEncoder: new TextEncoder(),
+          networkResponseHeaders: [],
+        },
+        undefined,
+        undefined,
+      );
 
-    expect(res).toEqual(undefined);
-  });
-
-  it('works with captureDetails: false & responseBodySize', async () => {
-    const res = await _getResponseInfo(
-      false,
-      {
-        networkCaptureBodies: true,
-        textEncoder: new TextEncoder(),
-        networkResponseHeaders: [],
-      },
-      undefined,
-      123,
-    );
-
-    expect(res).toEqual({
-      headers: {},
-      size: 123,
-      _meta: {
-        warnings: ['URL_SKIPPED'],
-      },
+      expect(res).toEqual(undefined);
     });
-  });
 
-  it('works with text body', async () => {
-    const response = {
-      headers: {
-        has: () => {
-          return false;
+    it('works with captureDetails: false & responseBodySize', async () => {
+      const res = await _getResponseInfo(
+        false,
+        {
+          networkCaptureBodies: true,
+          textEncoder: new TextEncoder(),
+          networkResponseHeaders: [],
         },
-        get: () => {
-          return undefined;
+        undefined,
+        123,
+      );
+
+      expect(res).toEqual({
+        headers: {},
+        size: 123,
+        _meta: {
+          warnings: ['URL_SKIPPED'],
         },
-      },
-      clone: () => response,
-      text: () => Promise.resolve('text body'),
-    } as unknown as Response;
-
-    const res = await _getResponseInfo(
-      true,
-      {
-        networkCaptureBodies: true,
-        textEncoder: new TextEncoder(),
-        networkResponseHeaders: [],
-      },
-      response,
-      undefined,
-    );
-
-    expect(res).toEqual({
-      headers: {},
-      size: 9,
-      body: 'text body',
+      });
     });
-  });
 
-  it('works with body that fails', async () => {
-    const response = {
-      headers: {
-        has: () => {
-          return false;
+    it('works with text body', async () => {
+      const response = {
+        headers: {
+          has: () => {
+            return false;
+          },
+          get: () => {
+            return undefined;
+          },
         },
-        get: () => {
-          return undefined;
+        clone: () => response,
+        text: () => Promise.resolve('text body'),
+      } as unknown as Response;
+
+      const res = await _getResponseInfo(
+        true,
+        {
+          networkCaptureBodies: true,
+          textEncoder: new TextEncoder(),
+          networkResponseHeaders: [],
         },
-      },
-      clone: () => response,
-      text: () => Promise.reject('cannot read'),
-    } as unknown as Response;
+        response,
+        undefined,
+      );
 
-    const res = await _getResponseInfo(
-      true,
-      {
-        networkCaptureBodies: true,
-        textEncoder: new TextEncoder(),
-        networkResponseHeaders: [],
-      },
-      response,
-      undefined,
-    );
-
-    expect(res).toEqual({
-      _meta: { warnings: ['BODY_PARSE_ERROR'] },
-      headers: {},
-      size: undefined,
+      expect(res).toEqual({
+        headers: {},
+        size: 9,
+        body: 'text body',
+      });
     });
-  });
 
-  it('works with body that times out', async () => {
-    const response = {
-      headers: {
-        has: () => {
-          return false;
+    it('works with body that fails', async () => {
+      const response = {
+        headers: {
+          has: () => {
+            return false;
+          },
+          get: () => {
+            return undefined;
+          },
         },
-        get: () => {
-          return undefined;
+        clone: () => response,
+        text: () => Promise.reject('cannot read'),
+      } as unknown as Response;
+
+      const res = await _getResponseInfo(
+        true,
+        {
+          networkCaptureBodies: true,
+          textEncoder: new TextEncoder(),
+          networkResponseHeaders: [],
         },
-      },
-      clone: () => response,
-      text: () => new Promise(resolve => setTimeout(() => resolve('text body'), 1000)),
-    } as unknown as Response;
+        response,
+        undefined,
+      );
 
-    const res = await _getResponseInfo(
-      true,
-      {
-        networkCaptureBodies: true,
-        textEncoder: new TextEncoder(),
-        networkResponseHeaders: [],
-      },
-      response,
-      undefined,
-    );
+      expect(res).toEqual({
+        _meta: { warnings: ['BODY_PARSE_ERROR'] },
+        headers: {},
+        size: undefined,
+      });
+    });
 
-    expect(res).toEqual({
-      _meta: { warnings: ['BODY_PARSE_ERROR'] },
-      headers: {},
-      size: undefined,
+    it('works with body that times out', async () => {
+      const response = {
+        headers: {
+          has: () => {
+            return false;
+          },
+          get: () => {
+            return undefined;
+          },
+        },
+        clone: () => response,
+        text: () => new Promise(resolve => setTimeout(() => resolve('text body'), 1000)),
+      } as unknown as Response;
+
+      const res = await _getResponseInfo(
+        true,
+        {
+          networkCaptureBodies: true,
+          textEncoder: new TextEncoder(),
+          networkResponseHeaders: [],
+        },
+        response,
+        undefined,
+      );
+
+      expect(res).toEqual({
+        _meta: { warnings: ['BODY_PARSE_ERROR'] },
+        headers: {},
+        size: undefined,
+      });
     });
   });
 });

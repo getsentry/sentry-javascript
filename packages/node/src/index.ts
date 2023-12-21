@@ -23,13 +23,16 @@ export type { AddRequestDataToEventOptions, TransactionNamingScheme } from '@sen
 export type { NodeOptions } from './types';
 
 export {
+  // eslint-disable-next-line deprecation/deprecation
   addGlobalEventProcessor,
+  addEventProcessor,
   addBreadcrumb,
   addIntegration,
   captureException,
   captureEvent,
   captureMessage,
   close,
+  // eslint-disable-next-line deprecation/deprecation
   configureScope,
   createTransport,
   // eslint-disable-next-line deprecation/deprecation
@@ -39,6 +42,9 @@ export {
   getHubFromCarrier,
   getCurrentHub,
   getClient,
+  getCurrentScope,
+  getGlobalScope,
+  getIsolationScope,
   Hub,
   lastEventId,
   makeMain,
@@ -65,6 +71,7 @@ export {
   startInactiveSpan,
   startSpanManual,
   continueTrace,
+  metrics,
 } from '@sentry/core';
 export type { SpanStatusType } from '@sentry/core';
 export { autoDiscoverNodePerformanceMonitoringIntegrations } from './tracing';
@@ -75,7 +82,8 @@ export { defaultIntegrations, init, defaultStackParser, getSentryRelease } from 
 export { addRequestDataToEvent, DEFAULT_USER_INCLUDES, extractRequestData } from '@sentry/utils';
 export { deepReadDirSync } from './utils';
 export { getModuleFromFilename } from './module';
-export { enableAnrDetection } from './anr';
+// eslint-disable-next-line deprecation/deprecation
+export { enableAnrDetection } from './integrations/anr/legacy';
 
 import { Integrations as CoreIntegrations } from '@sentry/core';
 
@@ -90,3 +98,5 @@ const INTEGRATIONS = {
 };
 
 export { INTEGRATIONS as Integrations, Handlers };
+
+export { hapiErrorPlugin } from './integrations/hapi';

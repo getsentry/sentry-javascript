@@ -1,6 +1,6 @@
 {
   "name": "@sentry/sveltekit",
-  "version": "7.84.0",
+  "version": "7.90.0",
   "description": "Official Sentry SDK for SvelteKit",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/sveltekit",
@@ -13,38 +13,49 @@
   "module": "build/esm/index.server.js",
   "browser": "build/esm/index.client.js",
   "types": "build/types/index.types.d.ts",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "browser": {
+        "import": "./build/esm/index.client.js",
+        "require": "./build/cjs/index.client.js"
+      },
+      "node": "./build/cjs/index.server.js",
+      "types": "./build/types/index.types.d.ts"
+    }
+  },
   "publishConfig": {
     "access": "public"
   },
   "peerDependencies": {
-    "@sveltejs/kit": "1.x"
+    "@sveltejs/kit": "1.x || 2.x"
   },
   "dependencies": {
-    "@sentry-internal/tracing": "7.84.0",
-    "@sentry/core": "7.84.0",
-    "@sentry/integrations": "7.84.0",
-    "@sentry/node": "7.84.0",
-    "@sentry/svelte": "7.84.0",
-    "@sentry/types": "7.84.0",
-    "@sentry/utils": "7.84.0",
+    "@sentry-internal/tracing": "7.90.0",
+    "@sentry/core": "7.90.0",
+    "@sentry/integrations": "7.90.0",
+    "@sentry/node": "7.90.0",
+    "@sentry/svelte": "7.90.0",
+    "@sentry/types": "7.90.0",
+    "@sentry/utils": "7.90.0",
     "@sentry/vite-plugin": "^0.6.1",
     "magicast": "0.2.8",
     "sorcery": "0.11.0"
   },
   "devDependencies": {
-    "@sveltejs/kit": "^1.11.0",
+    "@sveltejs/kit": "^2.0.2",
     "rollup": "^3.20.2",
-    "svelte": "^3.44.0",
-    "vite": "4.0.5"
+    "svelte": "^4.2.8",
+    "vite": "^5.0.10"
   },
   "scripts": {
     "build": "run-p build:transpile build:types",
     "build:dev": "yarn build",
-    "build:transpile": "rollup -c rollup.npm.config.js --bundleConfigAsCjs",
+    "build:transpile": "rollup -c rollup.npm.config.mjs",
     "build:types": "tsc -p tsconfig.types.json",
     "build:watch": "run-p build:transpile:watch build:types:watch",
     "build:dev:watch": "yarn build:watch",
-    "build:transpile:watch": "rollup -c rollup.npm.config.js --bundleConfigAsCjs --watch",
+    "build:transpile:watch": "rollup -c rollup.npm.config.mjs --watch",
     "build:types:watch": "tsc -p tsconfig.types.json --watch",
     "build:tarball": "ts-node ../../scripts/prepack.ts && npm pack ./build",
     "circularDepCheck": "madge --circular src/index.client.ts && madge --circular src/index.server.ts && madge --circular src/index.types.ts",

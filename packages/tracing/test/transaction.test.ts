@@ -141,7 +141,7 @@ describe('`Transaction` class', () => {
 
       const transaction = hub.startTransaction({ name: 'dogpark' });
       transaction.setContext('foo', { key: 'val' });
-      transaction.finish();
+      transaction.end();
 
       // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(hub.captureEvent).toHaveBeenCalledTimes(1);
@@ -169,7 +169,7 @@ describe('`Transaction` class', () => {
 
       const transaction = hub.startTransaction({ name: 'dogpark' });
       transaction.setContext('trace', { key: 'val' });
-      transaction.finish();
+      transaction.end();
 
       // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(hub.captureEvent).toHaveBeenCalledTimes(1);

@@ -91,7 +91,7 @@ describe('wrapApiHandlerWithSentry', () => {
       }),
     );
 
-    testTransaction.finish();
+    testTransaction.end();
     coreSdk.getCurrentHub().getScope().setSpan(undefined);
   });
 });

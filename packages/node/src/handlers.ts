@@ -5,7 +5,7 @@ import {
   continueTrace,
   flush,
   getClient,
-  getCurrentHub,
+  getCurrentScope,
   hasTracingEnabled,
   runWithAsyncContext,
   startTransaction,
@@ -44,8 +44,7 @@ export function tracingHandler(): (
     res: http.ServerResponse,
     next: (error?: any) => void,
   ): void {
-    const hub = getCurrentHub();
-    const options = hub.getClient()?.getOptions();
+    const options = getClient()?.getOptions();
 
     if (
       !options ||
@@ -86,9 +85,7 @@ export function tracingHandler(): (
     );
 
     // We put the transaction on the scope so users can attach children to it
-    hub.configureScope(scope => {
-      scope.setSpan(transaction);
-    });
+    getCurrentScope().setSpan(transaction);
 
     // We also set __sentry_transaction on the response so people can grab the transaction there to add
     // spans to it later.
@@ -101,7 +98,7 @@ export function tracingHandler(): (
       setImmediate(() => {
         addRequestDataToTransaction(transaction, req);
         transaction.setHttpStatus(res.statusCode);
-        transaction.finish();
+        transaction.end();
       });
     });
 
@@ -151,15 +148,14 @@ export function requestHandler(
   // TODO (v8): Get rid of this
   const requestDataOptions = convertReqHandlerOptsToAddReqDataOpts(options);
 
-  const currentHub = getCurrentHub();
-  const client = currentHub.getClient<NodeClient>();
+  const client = getClient<NodeClient>();
   // Initialise an instance of SessionFlusher on the client when `autoSessionTracking` is enabled and the
   // `requestHandler` middleware is used indicating that we are running in SessionAggregates mode
   if (client && isAutoSessionTrackingEnabled(client)) {
     client.initSessionFlusher();
 
     // If Scope contains a Single mode Session, it is removed in favor of using Session Aggregates mode
-    const scope = currentHub.getScope();
+    const scope = getCurrentScope();
     if (scope.getSession()) {
       scope.setSession();
     }
@@ -185,24 +181,21 @@ export function requestHandler(
       };
     }
     runWithAsyncContext(() => {
-      const currentHub = getCurrentHub();
-      currentHub.configureScope(scope => {
-        scope.setSDKProcessingMetadata({
-          request: req,
-          // TODO (v8): Stop passing this
-          requestDataOptionsFromExpressHandler: requestDataOptions,
-        });
-
-        const client = currentHub.getClient<NodeClient>();
-        if (isAutoSessionTrackingEnabled(client)) {
-          const scope = currentHub.getScope();
-          // Set `status` of `RequestSession` to Ok, at the beginning of the request
-          scope.setRequestSession({ status: 'ok' });
-        }
+      const scope = getCurrentScope();
+      scope.setSDKProcessingMetadata({
+        request: req,
+        // TODO (v8): Stop passing this
+        requestDataOptionsFromExpressHandler: requestDataOptions,
       });
 
+      const client = getClient<NodeClient>();
+      if (isAutoSessionTrackingEnabled(client)) {
+        // Set `status` of `RequestSession` to Ok, at the beginning of the request
+        scope.setRequestSession({ status: 'ok' });
+      }
+
       res.once('finish', () => {
-        const client = currentHub.getClient<NodeClient>();
+        const client = getClient<NodeClient>();
         if (isAutoSessionTrackingEnabled(client)) {
           setImmediate(() => {
             // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
@@ -332,9 +325,8 @@ interface TrpcMiddlewareArguments<T> {
  */
 export function trpcMiddleware(options: SentryTrpcMiddlewareOptions = {}) {
   return function <T>({ path, type, next, rawInput }: TrpcMiddlewareArguments<T>): T {
-    const hub = getCurrentHub();
-    const clientOptions = hub.getClient()?.getOptions();
-    const sentryTransaction = hub.getScope().getTransaction();
+    const clientOptions = getClient()?.getOptions();
+    const sentryTransaction = getCurrentScope().getTransaction();
 
     if (sentryTransaction) {
       sentryTransaction.setName(`trpc/${path}`, 'route');
@@ -351,36 +343,32 @@ export function trpcMiddleware(options: SentryTrpcMiddlewareOptions = {}) {
       sentryTransaction.setContext('trpc', trpcContext);
     }
 
-    function shouldCaptureError(e: unknown): boolean {
-      if (typeof e === 'object' && e && 'code' in e) {
-        // Is likely TRPCError - we only want to capture internal server errors
-        return e.code === 'INTERNAL_SERVER_ERROR';
-      } else {
-        // Is likely random error that bubbles up
-        return true;
-      }
-    }
-
-    function handleErrorCase(e: unknown): void {
-      if (shouldCaptureError(e)) {
-        captureException(e, { mechanism: { handled: false } });
+    function captureIfError(nextResult: { ok: false; error?: Error } | { ok: true }): void {
+      if (!nextResult.ok) {
+        captureException(nextResult.error, { mechanism: { handled: false, data: { function: 'trpcMiddleware' } } });
       }
     }
 
     let maybePromiseResult;
-
     try {
       maybePromiseResult = next();
     } catch (e) {
-      handleErrorCase(e);
+      captureException(e, { mechanism: { handled: false, data: { function: 'trpcMiddleware' } } });
       throw e;
     }
 
     if (isThenable(maybePromiseResult)) {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      Promise.resolve(maybePromiseResult).then(null, e => {
-        handleErrorCase(e);
-      });
+      Promise.resolve(maybePromiseResult).then(
+        nextResult => {
+          captureIfError(nextResult as any);
+        },
+        e => {
+          captureException(e, { mechanism: { handled: false, data: { function: 'trpcMiddleware' } } });
+        },
+      );
+    } else {
+      captureIfError(maybePromiseResult as any);
     }
 
     // We return the original promise just to be safe.

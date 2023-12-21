@@ -1,6 +1,6 @@
 {
   "name": "@sentry/utils",
-  "version": "7.84.0",
+  "version": "7.90.0",
   "description": "Utilities for all Sentry JavaScript SDKs",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/utils",
@@ -23,7 +23,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/types": "7.84.0"
+    "@sentry/types": "7.90.0"
   },
   "devDependencies": {
     "@types/array.prototype.flat": "^1.2.1",
@@ -39,7 +39,7 @@
     "build:types:downlevel": "yarn downlevel-dts build/types build/types-ts3.8 --to ts3.8",
     "build:watch": "run-p build:transpile:watch build:types:watch",
     "build:dev:watch": "yarn build:watch",
-    "build:transpile:watch": "rollup -c rollup.npm.config.js --watch",
+    "build:transpile:watch": "rollup -c rollup.npm.config.mjs --watch",
     "build:types:watch": "tsc -p tsconfig.types.json --watch",
     "build:tarball": "ts-node ../../scripts/prepack.ts && npm pack ./build",
     "circularDepCheck": "madge --circular src/index.ts",

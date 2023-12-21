@@ -1,4 +1,4 @@
-import { getCurrentHub } from '@sentry/browser';
+import { getCurrentScope } from '@sentry/browser';
 import type { Span, Transaction } from '@sentry/types';
 import { logger, timestampInSeconds } from '@sentry/utils';
 
@@ -34,7 +34,7 @@ const HOOKS: { [key in Operation]: Hook[] } = {
 
 /** Grabs active transaction off scope, if any */
 export function getActiveTransaction(): Transaction | undefined {
-  return getCurrentHub().getScope().getTransaction();
+  return getCurrentScope().getTransaction();
 }
 
 /** Finish top-level span and activity with a debounce configured using `timeout` option */
@@ -45,7 +45,7 @@ function finishRootSpan(vm: VueSentry, timestamp: number, timeout: number): void
 
   vm.$_sentryRootSpanTimer = setTimeout(() => {
     if (vm.$root && vm.$root.$_sentryRootSpan) {
-      vm.$root.$_sentryRootSpan.finish(timestamp);
+      vm.$root.$_sentryRootSpan.end(timestamp);
       vm.$root.$_sentryRootSpan = undefined;
     }
   }, timeout);
@@ -108,7 +108,7 @@ export const createTracingMixins = (options: TracingOptions): Mixins => {
             // finished so we finish the span before starting a new one, just to be sure.
             const oldSpan = this.$_sentrySpans[operation];
             if (oldSpan && !oldSpan.endTimestamp) {
-              oldSpan.finish();
+              oldSpan.end();
             }
 
             this.$_sentrySpans[operation] = activeTransaction.startChild({
@@ -123,7 +123,7 @@ export const createTracingMixins = (options: TracingOptions): Mixins => {
           // The before hook did not start the tracking span, so the span was not added.
           // This is probably because it happened before there is an active transaction
           if (!span) return;
-          span.finish();
+          span.end();
 
           finishRootSpan(this, timestampInSeconds(), options.timeout);
         }

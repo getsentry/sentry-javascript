@@ -1,4 +1,4 @@
-import { getCurrentHub } from '@sentry/browser';
+import { getCurrentScope } from '@sentry/browser';
 import type { Span, Transaction } from '@sentry/types';
 import { afterUpdate, beforeUpdate, onMount } from 'svelte';
 import { current_component } from 'svelte/internal';
@@ -54,7 +54,7 @@ function recordInitSpan(transaction: Transaction, componentName: string): Span {
   });
 
   onMount(() => {
-    initSpan.finish();
+    initSpan.end();
   });
 
   return initSpan;
@@ -86,11 +86,11 @@ function recordUpdateSpans(componentName: string, initSpan?: Span): void {
     if (!updateSpan) {
       return;
     }
-    updateSpan.finish();
+    updateSpan.end();
     updateSpan = undefined;
   });
 }
 
 function getActiveTransaction(): Transaction | undefined {
-  return getCurrentHub().getScope().getTransaction();
+  return getCurrentScope().getTransaction();
 }

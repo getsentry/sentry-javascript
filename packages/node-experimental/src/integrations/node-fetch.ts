@@ -1,8 +1,8 @@
 import type { Span } from '@opentelemetry/api';
 import { SpanKind } from '@opentelemetry/api';
 import type { Instrumentation } from '@opentelemetry/instrumentation';
-import { hasTracingEnabled } from '@sentry/core';
-import { _INTERNAL, getClient, getCurrentHub, getSpanKind } from '@sentry/opentelemetry';
+import { addBreadcrumb, hasTracingEnabled } from '@sentry/core';
+import { _INTERNAL, getClient, getSpanKind } from '@sentry/opentelemetry';
 import type { Integration } from '@sentry/types';
 
 import type { NodeExperimentalClient } from '../types';
@@ -114,7 +114,7 @@ export class NodeFetch extends NodePerformanceIntegration<NodeFetchOptions> impl
     }
 
     const data = _INTERNAL.getRequestSpanData(span);
-    getCurrentHub().addBreadcrumb({
+    addBreadcrumb({
       category: 'http',
       data: {
         ...data,

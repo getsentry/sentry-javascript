@@ -1,9 +1,11 @@
 import type { BaseClient } from '@sentry/core';
-import { addGlobalEventProcessor, getClient, getCurrentHub } from '@sentry/core';
+import { getCurrentScope } from '@sentry/core';
+import { addEventProcessor, getClient } from '@sentry/core';
 import type { Client, DynamicSamplingContext } from '@sentry/types';
 import { addClickKeypressInstrumentationHandler, addHistoryInstrumentationHandler } from '@sentry/utils';
 
 import { handleAfterSendEvent } from '../coreHandlers/handleAfterSendEvent';
+import { handleBeforeSendEvent } from '../coreHandlers/handleBeforeSendEvent';
 import { handleDomListener } from '../coreHandlers/handleDom';
 import { handleGlobalEventListener } from '../coreHandlers/handleGlobalEvent';
 import { handleHistorySpanListener } from '../coreHandlers/handleHistory';
@@ -16,7 +18,7 @@ import type { ReplayContainer } from '../types';
  */
 export function addGlobalListeners(replay: ReplayContainer): void {
   // Listeners from core SDK //
-  const scope = getCurrentHub().getScope();
+  const scope = getCurrentScope();
   const client = getClient();
 
   scope.addScopeListener(handleScopeListener(replay));
@@ -30,11 +32,12 @@ export function addGlobalListeners(replay: ReplayContainer): void {
   if (client && client.addEventProcessor) {
     client.addEventProcessor(eventProcessor);
   } else {
-    addGlobalEventProcessor(eventProcessor);
+    addEventProcessor(eventProcessor);
   }
 
   // If a custom client has no hooks yet, we continue to use the "old" implementation
   if (hasHooks(client)) {
+    client.on('beforeSendEvent', handleBeforeSendEvent(replay));
     client.on('afterSendEvent', handleAfterSendEvent(replay));
     client.on('createDsc', (dsc: DynamicSamplingContext) => {
       const replayId = replay.getSessionId();
@@ -62,7 +65,9 @@ export function addGlobalListeners(replay: ReplayContainer): void {
     client.on('beforeSendFeedback', (feedbackEvent, options) => {
       const replayId = replay.getSessionId();
       if (options && options.includeReplay && replay.isEnabled() && replayId) {
-        void replay.flush();
+        // This should never reject
+        // eslint-disable-next-line @typescript-eslint/no-floating-promises
+        replay.flush();
         if (feedbackEvent.contexts && feedbackEvent.contexts.feedback) {
           feedbackEvent.contexts.feedback.replay_id = replayId;
         }

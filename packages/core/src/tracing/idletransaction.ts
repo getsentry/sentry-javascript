@@ -7,6 +7,7 @@ import type { Hub } from '../hub';
 import type { Span } from './span';
 import { SpanRecorder } from './span';
 import { Transaction } from './transaction';
+import { ensureTimestampInSeconds } from './utils';
 
 export const TRACING_DEFAULTS = {
   idleTimeout: 1000,
@@ -45,10 +46,12 @@ export class IdleTransactionSpanRecorder extends SpanRecorder {
     // We should make sure we do not push and pop activities for
     // the transaction that this span recorder belongs to.
     if (span.spanId !== this.transactionSpanId) {
-      // We patch span.finish() to pop an activity after setting an endTimestamp.
-      span.finish = (endTimestamp?: number) => {
-        span.endTimestamp = typeof endTimestamp === 'number' ? endTimestamp : timestampInSeconds();
+      // We patch span.end() to pop an activity after setting an endTimestamp.
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      const originalEnd = span.end;
+      span.end = (...rest: unknown[]) => {
         this._popActivity(span.spanId);
+        return originalEnd.apply(span, rest);
       };
 
       // We should only push new activities if the span does not have an end timestamp.
@@ -121,7 +124,7 @@ export class IdleTransaction extends Transaction {
       // We set the transaction here on the scope so error events pick up the trace
       // context and attach it to the error.
       DEBUG_BUILD && logger.log(`Setting idle transaction on scope. Span ID: ${this.spanId}`);
-      _idleHub.configureScope(scope => scope.setSpan(this));
+      _idleHub.getScope().setSpan(this);
     }
 
     this._restartIdleTimeout();
@@ -129,13 +132,15 @@ export class IdleTransaction extends Transaction {
       if (!this._finished) {
         this.setStatus('deadline_exceeded');
         this._finishReason = IDLE_TRANSACTION_FINISH_REASONS[3];
-        this.finish();
+        this.end();
       }
     }, this._finalTimeout);
   }
 
   /** {@inheritDoc} */
-  public finish(endTimestamp: number = timestampInSeconds()): string | undefined {
+  public end(endTimestamp: number = timestampInSeconds()): string | undefined {
+    const endTimestampInS = ensureTimestampInSeconds(endTimestamp);
+
     this._finished = true;
     this.activities = {};
 
@@ -145,7 +150,7 @@ export class IdleTransaction extends Transaction {
 
     if (this.spanRecorder) {
       DEBUG_BUILD &&
-        logger.log('[Tracing] finishing IdleTransaction', new Date(endTimestamp * 1000).toISOString(), this.op);
+        logger.log('[Tracing] finishing IdleTransaction', new Date(endTimestampInS * 1000).toISOString(), this.op);
 
       for (const callback of this._beforeFinishCallbacks) {
         callback(this, endTimestamp);
@@ -159,13 +164,13 @@ export class IdleTransaction extends Transaction {
 
         // We cancel all pending spans with status "cancelled" to indicate the idle transaction was finished early
         if (!span.endTimestamp) {
-          span.endTimestamp = endTimestamp;
+          span.endTimestamp = endTimestampInS;
           span.setStatus('cancelled');
           DEBUG_BUILD &&
             logger.log('[Tracing] cancelling span since transaction ended early', JSON.stringify(span, undefined, 2));
         }
 
-        const spanStartedBeforeTransactionFinish = span.startTimestamp < endTimestamp;
+        const spanStartedBeforeTransactionFinish = span.startTimestamp < endTimestampInS;
 
         // Add a delta with idle timeout so that we prevent false positives
         const timeoutWithMarginOfError = (this._finalTimeout + this._idleTimeout) / 1000;
@@ -196,7 +201,7 @@ export class IdleTransaction extends Transaction {
       }
     }
 
-    return super.finish(endTimestamp);
+    return super.end(endTimestamp);
   }
 
   /**
@@ -244,7 +249,7 @@ export class IdleTransaction extends Transaction {
    *                                 with the last child span.
    */
   public cancelIdleTimeout(
-    endTimestamp?: Parameters<IdleTransaction['finish']>[0],
+    endTimestamp?: Parameters<IdleTransaction['end']>[0],
     {
       restartOnChildSpanChange,
     }: {
@@ -260,7 +265,7 @@ export class IdleTransaction extends Transaction {
 
       if (Object.keys(this.activities).length === 0 && this._idleTimeoutCanceledPermanently) {
         this._finishReason = IDLE_TRANSACTION_FINISH_REASONS[5];
-        this.finish(endTimestamp);
+        this.end(endTimestamp);
       }
     }
   }
@@ -281,12 +286,12 @@ export class IdleTransaction extends Transaction {
   /**
    * Restarts idle timeout, if there is no running idle timeout it will start one.
    */
-  private _restartIdleTimeout(endTimestamp?: Parameters<IdleTransaction['finish']>[0]): void {
+  private _restartIdleTimeout(endTimestamp?: Parameters<IdleTransaction['end']>[0]): void {
     this.cancelIdleTimeout();
     this._idleTimeoutID = setTimeout(() => {
       if (!this._finished && Object.keys(this.activities).length === 0) {
         this._finishReason = IDLE_TRANSACTION_FINISH_REASONS[1];
-        this.finish(endTimestamp);
+        this.end(endTimestamp);
       }
     }, this._idleTimeout);
   }
@@ -318,7 +323,7 @@ export class IdleTransaction extends Transaction {
       const endTimestamp = timestampInSeconds();
       if (this._idleTimeoutCanceledPermanently) {
         this._finishReason = IDLE_TRANSACTION_FINISH_REASONS[5];
-        this.finish(endTimestamp);
+        this.end(endTimestamp);
       } else {
         // We need to add the timeout here to have the real endtimestamp of the transaction
         // Remember timestampInSeconds is in seconds, timeout is in ms
@@ -351,7 +356,7 @@ export class IdleTransaction extends Transaction {
       DEBUG_BUILD && logger.log('[Tracing] Transaction finished because of no change for 3 heart beats');
       this.setStatus('deadline_exceeded');
       this._finishReason = IDLE_TRANSACTION_FINISH_REASONS[0];
-      this.finish();
+      this.end();
     } else {
       this._pingHeartbeat();
     }

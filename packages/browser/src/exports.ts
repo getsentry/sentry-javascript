@@ -21,19 +21,23 @@ export type { BrowserOptions } from './client';
 export type { ReportDialogOptions } from './helpers';
 
 export {
+  // eslint-disable-next-line deprecation/deprecation
   addGlobalEventProcessor,
+  addEventProcessor,
   addBreadcrumb,
   addIntegration,
   captureException,
   captureEvent,
   captureMessage,
   close,
+  // eslint-disable-next-line deprecation/deprecation
   configureScope,
   createTransport,
   flush,
   getHubFromCarrier,
   getCurrentHub,
   getClient,
+  getCurrentScope,
   Hub,
   lastEventId,
   makeMain,
@@ -54,6 +58,7 @@ export {
   withScope,
   FunctionToString,
   InboundFilters,
+  metrics,
 } from '@sentry/core';
 
 export { WINDOW } from './helpers';

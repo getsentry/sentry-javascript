@@ -1,4 +1,4 @@
-import { getCurrentHub } from '@sentry/node';
+import { getCurrentScope } from '@sentry/node';
 import type { Integration, Span } from '@sentry/types';
 import { fill } from '@sentry/utils';
 // 'aws-sdk/global' import is expected to be type-only so it's erased in the final .js file.
@@ -57,7 +57,7 @@ function wrapMakeRequest<TService extends AWSService, TResult>(
 ): MakeRequestFunction<GenericParams, TResult> {
   return function (this: TService, operation: string, params?: GenericParams, callback?: MakeRequestCallback<TResult>) {
     let span: Span | undefined;
-    const scope = getCurrentHub().getScope();
+    const scope = getCurrentScope();
     const transaction = scope.getTransaction();
     const req = orig.call(this, operation, params);
     req.on('afterBuild', () => {
@@ -71,7 +71,7 @@ function wrapMakeRequest<TService extends AWSService, TResult>(
     });
     req.on('complete', () => {
       if (span) {
-        span.finish();
+        span.end();
       }
     });
 

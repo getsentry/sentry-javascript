@@ -1,5 +1,8 @@
-import type { Event, EventProcessor, Integration } from '@sentry/types';
+import { convertIntegrationFnToClass } from '@sentry/core';
+import type { IntegrationFn } from '@sentry/types';
 import { createStackParser, dirname, nodeStackLineParser } from '@sentry/utils';
+
+const INTEGRATION_NAME = 'NormalizePaths';
 
 function appRootFromErrorStack(error: Error): string | undefined {
   // We know at the other end of the stack from here is the entry point that called 'init'
@@ -52,31 +55,24 @@ function getCwd(): string | undefined {
   return undefined;
 }
 
-// Cached here
-let appRoot: string | undefined;
+const normalizePathsIntegration: IntegrationFn = () => {
+  // Cached here
+  let appRoot: string | undefined;
 
-function getAppRoot(error: Error): string | undefined {
-  if (appRoot === undefined) {
-    appRoot = getCwd() || appRootFromErrorStack(error);
+  function getAppRoot(error: Error): string | undefined {
+    if (appRoot === undefined) {
+      appRoot = getCwd() || appRootFromErrorStack(error);
+    }
+
+    return appRoot;
   }
 
-  return appRoot;
-}
+  return {
+    name: INTEGRATION_NAME,
+    processEvent(event) {
+      // This error.stack hopefully contains paths that traverse the app cwd
+      const error = new Error();
 
-/** Normalises paths to the app root directory. */
-export class NormalizePaths implements Integration {
-  /** @inheritDoc */
-  public static id = 'NormalizePaths';
-
-  /** @inheritDoc */
-  public name: string = NormalizePaths.id;
-
-  /** @inheritDoc */
-  public setupOnce(addGlobalEventProcessor: (callback: EventProcessor) => void): void {
-    // This error.stack hopefully contains paths that traverse the app cwd
-    const error = new Error();
-
-    addGlobalEventProcessor((event: Event): Event | null => {
       const appRoot = getAppRoot(error);
 
       if (appRoot) {
@@ -95,6 +91,10 @@ export class NormalizePaths implements Integration {
       }
 
       return event;
-    });
-  }
-}
+    },
+  };
+};
+
+/** Normalises paths to the app root directory. */
+// eslint-disable-next-line deprecation/deprecation
+export const NormalizePaths = convertIntegrationFnToClass(INTEGRATION_NAME, normalizePathsIntegration);

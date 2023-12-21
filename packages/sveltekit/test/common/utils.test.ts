@@ -1,5 +1,3 @@
-import { redirect } from '@sveltejs/kit';
-
 import { isHttpError, isRedirect } from '../../src/common/utils';
 
 describe('isRedirect', () => {
@@ -34,7 +32,7 @@ describe('isHttpError', () => {
     expect(isHttpError(httpErrorObject)).toBe(true);
   });
 
-  it.each([new Error(), redirect(301, '/users/id'), 'string error', { status: 404 }, { body: 'Not found' }])(
+  it.each([new Error(), { status: 301, message: '/users/id' }, 'string error', { status: 404 }, { body: 'Not found' }])(
     'returns `false` for other thrown objects (%s)',
     httpErrorObject => {
       expect(isHttpError(httpErrorObject)).toBe(false);

@@ -28,6 +28,10 @@ targets:
   - name: npm
     id: '@sentry/opentelemetry'
     includeNames: /^sentry-opentelemetry-\d.*\.tgz$/
+  ## 1.7 Feedback package (browser only)
+  - name: npm
+    id: '@sentry-internal/feedback'
+    includeNames: /^sentry-internal-feedback-\d.*\.tgz$/
 
   ## 2. Browser & Node SDKs
   - name: npm

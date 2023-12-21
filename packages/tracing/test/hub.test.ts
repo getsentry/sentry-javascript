@@ -40,9 +40,7 @@ describe('Hub', () => {
       const transaction = hub.startTransaction({ name: 'dogpark' });
       transaction.sampled = true;
 
-      hub.configureScope(scope => {
-        scope.setSpan(transaction);
-      });
+      hub.getScope().setSpan(transaction);
 
       expect(hub.getScope().getTransaction()).toBe(transaction);
     });
@@ -53,9 +51,7 @@ describe('Hub', () => {
       makeMain(hub);
       const transaction = hub.startTransaction({ name: 'dogpark', sampled: false });
 
-      hub.configureScope(scope => {
-        scope.setSpan(transaction);
-      });
+      hub.getScope().setSpan(transaction);
 
       expect(hub.getScope().getTransaction()).toBe(transaction);
     });
@@ -419,11 +415,11 @@ describe('Hub', () => {
       makeMain(hub);
       const transaction = hub.startTransaction({ name: 'dogpark' });
 
-      jest.spyOn(transaction, 'finish');
-      transaction.finish();
+      jest.spyOn(transaction, 'end');
+      transaction.end();
 
       expect(transaction.sampled).toBe(false);
-      expect(transaction.finish).toReturnWith(undefined);
+      expect(transaction.end).toReturnWith(undefined);
       expect(client.captureEvent).not.toBeCalled();
     });
 
@@ -436,11 +432,11 @@ describe('Hub', () => {
       makeMain(hub);
       const transaction = hub.startTransaction({ name: 'dogpark' });
 
-      jest.spyOn(transaction, 'finish');
-      transaction.finish();
+      jest.spyOn(transaction, 'end');
+      transaction.end();
 
       expect(transaction.sampled).toBe(false);
-      expect(transaction.finish).toReturnWith(undefined);
+      expect(transaction.end).toReturnWith(undefined);
       expect(client.captureEvent).not.toBeCalled();
       expect(logger.error).toHaveBeenCalledWith(
         `A transaction was started with instrumenter=\`sentry\`, but the SDK is configured with the \`otel\` instrumenter.
@@ -472,9 +468,7 @@ The transaction will not be sampled. Please use the otel instrumentation to star
           makeMain(hub);
 
           const transaction = hub.startTransaction({ name: 'dogpark' });
-          hub.configureScope(scope => {
-            scope.setSpan(transaction);
-          });
+          hub.getScope().setSpan(transaction);
 
           const request = new XMLHttpRequest();
           await new Promise(resolve => {
@@ -513,9 +507,7 @@ The transaction will not be sampled. Please use the otel instrumentation to star
           makeMain(hub);
 
           const transaction = hub.startTransaction({ name: 'dogpark', sampled: false });
-          hub.configureScope(scope => {
-            scope.setSpan(transaction);
-          });
+          hub.getScope().setSpan(transaction);
 
           const request = new XMLHttpRequest();
           await new Promise(resolve => {
@@ -641,7 +633,7 @@ The transaction will not be sampled. Please use the otel instrumentation to star
 
       transaction.startChild({ op: 'test', startTimestamp: 1200, endTimestamp: 1500 });
 
-      transaction.finish(2000);
+      transaction.end(2000);
 
       expect(captureEventSpy).toHaveBeenCalledTimes(1);
       expect(captureEventSpy.mock.calls[0][0].timestamp).toEqual(1500);

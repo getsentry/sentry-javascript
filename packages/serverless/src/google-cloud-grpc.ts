@@ -1,5 +1,5 @@
 import type { EventEmitter } from 'events';
-import { getCurrentHub } from '@sentry/node';
+import { getCurrentScope } from '@sentry/node';
 import type { Integration, Span } from '@sentry/types';
 import { fill } from '@sentry/utils';
 
@@ -108,7 +108,7 @@ function fillGrpcFunction(stub: Stub, serviceIdentifier: string, methodName: str
           return ret;
         }
         let span: Span | undefined;
-        const scope = getCurrentHub().getScope();
+        const scope = getCurrentScope();
         const transaction = scope.getTransaction();
         if (transaction) {
           span = transaction.startChild({
@@ -119,7 +119,7 @@ function fillGrpcFunction(stub: Stub, serviceIdentifier: string, methodName: str
         }
         ret.on('status', () => {
           if (span) {
-            span.finish();
+            span.end();
           }
         });
         return ret;

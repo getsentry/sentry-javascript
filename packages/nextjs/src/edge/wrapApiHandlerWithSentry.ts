@@ -1,4 +1,4 @@
-import { getCurrentHub } from '@sentry/core';
+import { getCurrentScope } from '@sentry/core';
 
 import { withEdgeWrapping } from '../common/utils/edgeWrapperUtils';
 import type { EdgeRouteHandler } from './types';
@@ -14,7 +14,7 @@ export function wrapApiHandlerWithSentry<H extends EdgeRouteHandler>(
     apply: (wrappingTarget, thisArg, args: Parameters<H>) => {
       const req = args[0];
 
-      const activeSpan = getCurrentHub().getScope().getSpan();
+      const activeSpan = getCurrentScope().getSpan();
 
       const wrappedHandler = withEdgeWrapping(wrappingTarget, {
         spanDescription:

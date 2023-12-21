@@ -1,4 +1,4 @@
-import { getCurrentHub } from '@sentry/core';
+import { getClient } from '@sentry/core';
 import type {
   Event,
   EventHint,
@@ -58,8 +58,7 @@ export function eventFromPlainObject(
   syntheticException?: Error,
   isUnhandledRejection?: boolean,
 ): Event {
-  const hub = getCurrentHub();
-  const client = hub.getClient();
+  const client = getClient();
   const normalizeDepth = client && client.getOptions().normalizeDepth;
 
   const event: Event = {

@@ -2,7 +2,7 @@ import type { IncomingMessage, ServerResponse } from 'http';
 import {
   captureException,
   getActiveTransaction,
-  getCurrentHub,
+  getCurrentScope,
   runWithAsyncContext,
   startTransaction,
 } from '@sentry/core';
@@ -84,8 +84,7 @@ export function withTracedServerSideDataFetcher<F extends (...args: any[]) => Pr
 ): (...params: Parameters<F>) => Promise<ReturnType<F>> {
   return async function (this: unknown, ...args: Parameters<F>): Promise<ReturnType<F>> {
     return runWithAsyncContext(async () => {
-      const hub = getCurrentHub();
-      const scope = hub.getScope();
+      const scope = getCurrentScope();
       const previousSpan: Span | undefined = getTransactionFromRequest(req) ?? scope.getSpan();
       let dataFetcherSpan;
 
@@ -163,7 +162,7 @@ export function withTracedServerSideDataFetcher<F extends (...args: any[]) => Pr
         previousSpan?.setStatus('internal_error');
         throw e;
       } finally {
-        dataFetcherSpan.finish();
+        dataFetcherSpan.end();
         scope.setSpan(previousSpan);
         if (!platformSupportsStreaming()) {
           await flushQueue();
@@ -220,7 +219,7 @@ export async function callDataFetcherTraced<F extends (...args: any[]) => Promis
     // that set the transaction status, we need to manually set the status of the span & transaction
     transaction.setStatus('internal_error');
     span.setStatus('internal_error');
-    span.finish();
+    span.end();
 
     // TODO Copy more robust error handling over from `withSentry`
     captureException(err, { mechanism: { handled: false } });

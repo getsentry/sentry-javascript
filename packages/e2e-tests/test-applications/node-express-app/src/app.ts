@@ -35,12 +35,12 @@ app.get('/test-param/:param', function (req, res) {
 
 app.get('/test-transaction', async function (req, res) {
   const transaction = Sentry.startTransaction({ name: 'test-transaction', op: 'e2e-test' });
-  Sentry.getCurrentHub().configureScope(scope => scope.setSpan(transaction));
+  Sentry.getCurrentScope().setSpan(transaction);
 
   const span = transaction.startChild();
 
-  span.finish();
-  transaction.finish();
+  span.end();
+  transaction.end();
 
   await Sentry.flush();
 
@@ -89,7 +89,7 @@ app.listen(port, () => {
   console.log(`Example app listening on port ${port}`);
 });
 
-Sentry.addGlobalEventProcessor(event => {
+Sentry.addEventProcessor(event => {
   global.transactionIds = global.transactionIds || [];
 
   if (event.type === 'transaction') {

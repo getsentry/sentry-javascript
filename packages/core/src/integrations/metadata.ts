@@ -1,7 +1,41 @@
-import type { EventItem, EventProcessor, Hub, Integration } from '@sentry/types';
+import type { EventItem, IntegrationFn } from '@sentry/types';
 import { forEachEnvelopeItem } from '@sentry/utils';
+import { convertIntegrationFnToClass } from '../integration';
 
 import { addMetadataToStackFrames, stripMetadataFromStackFrames } from '../metadata';
+
+const INTEGRATION_NAME = 'ModuleMetadata';
+
+const moduleMetadataIntegration: IntegrationFn = () => {
+  return {
+    name: INTEGRATION_NAME,
+    setup(client) {
+      if (typeof client.on !== 'function') {
+        return;
+      }
+
+      // We need to strip metadata from stack frames before sending them to Sentry since these are client side only.
+      client.on('beforeEnvelope', envelope => {
+        forEachEnvelopeItem(envelope, (item, type) => {
+          if (type === 'event') {
+            const event = Array.isArray(item) ? (item as EventItem)[1] : undefined;
+
+            if (event) {
+              stripMetadataFromStackFrames(event);
+              item[1] = event;
+            }
+          }
+        });
+      });
+    },
+
+    processEvent(event, _hint, client) {
+      const stackParser = client.getOptions().stackParser;
+      addMetadataToStackFrames(stackParser, event);
+      return event;
+    },
+  };
+};
 
 /**
  * Adds module metadata to stack frames.
@@ -12,50 +46,5 @@ import { addMetadataToStackFrames, stripMetadataFromStackFrames } from '../metad
  * under the `module_metadata` property. This can be used to help in tagging or routing of events from different teams
  * our sources
  */
-export class ModuleMetadata implements Integration {
-  /*
-   * @inheritDoc
-   */
-  public static id: string = 'ModuleMetadata';
-
-  /**
-   * @inheritDoc
-   */
-  public name: string;
-
-  public constructor() {
-    this.name = ModuleMetadata.id;
-  }
-
-  /**
-   * @inheritDoc
-   */
-  public setupOnce(addGlobalEventProcessor: (processor: EventProcessor) => void, getCurrentHub: () => Hub): void {
-    const client = getCurrentHub().getClient();
-
-    if (!client || typeof client.on !== 'function') {
-      return;
-    }
-
-    // We need to strip metadata from stack frames before sending them to Sentry since these are client side only.
-    client.on('beforeEnvelope', envelope => {
-      forEachEnvelopeItem(envelope, (item, type) => {
-        if (type === 'event') {
-          const event = Array.isArray(item) ? (item as EventItem)[1] : undefined;
-
-          if (event) {
-            stripMetadataFromStackFrames(event);
-            item[1] = event;
-          }
-        }
-      });
-    });
-
-    const stackParser = client.getOptions().stackParser;
-
-    addGlobalEventProcessor(event => {
-      addMetadataToStackFrames(stackParser, event);
-      return event;
-    });
-  }
-}
+// eslint-disable-next-line deprecation/deprecation
+export const ModuleMetadata = convertIntegrationFnToClass(INTEGRATION_NAME, moduleMetadataIntegration);

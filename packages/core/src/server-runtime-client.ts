@@ -17,7 +17,8 @@ import { eventFromMessage, eventFromUnknownInput, logger, resolvedSyncPromise, u
 import { BaseClient } from './baseclient';
 import { createCheckInEnvelope } from './checkin';
 import { DEBUG_BUILD } from './debug-build';
-import { getCurrentHub } from './hub';
+import { getClient } from './exports';
+import { MetricsAggregator } from './metrics/aggregator';
 import type { Scope } from './scope';
 import { SessionFlusher } from './sessionflusher';
 import { addTracingExtensions, getDynamicSamplingContextFromClient } from './tracing';
@@ -45,13 +46,17 @@ export class ServerRuntimeClient<
     addTracingExtensions();
 
     super(options);
+
+    if (options._experiments && options._experiments['metricsAggregator']) {
+      this.metricsAggregator = new MetricsAggregator(this);
+    }
   }
 
   /**
    * @inheritDoc
    */
   public eventFromException(exception: unknown, hint?: EventHint): PromiseLike<Event> {
-    return resolvedSyncPromise(eventFromUnknownInput(getCurrentHub, this._options.stackParser, exception, hint));
+    return resolvedSyncPromise(eventFromUnknownInput(getClient(), this._options.stackParser, exception, hint));
   }
 
   /**
@@ -194,7 +199,11 @@ export class ServerRuntimeClient<
     );
 
     DEBUG_BUILD && logger.info('Sending checkin:', checkIn.monitorSlug, checkIn.status);
-    void this._sendEnvelope(envelope);
+
+    // _sendEnvelope should not throw
+    // eslint-disable-next-line @typescript-eslint/no-floating-promises
+    this._sendEnvelope(envelope);
+
     return id;
   }
 
@@ -213,7 +222,12 @@ export class ServerRuntimeClient<
   /**
    * @inheritDoc
    */
-  protected _prepareEvent(event: Event, hint: EventHint, scope?: Scope): PromiseLike<Event | null> {
+  protected _prepareEvent(
+    event: Event,
+    hint: EventHint,
+    scope?: Scope,
+    isolationScope?: Scope,
+  ): PromiseLike<Event | null> {
     if (this._options.platform) {
       event.platform = event.platform || this._options.platform;
     }
@@ -229,7 +243,7 @@ export class ServerRuntimeClient<
       event.server_name = event.server_name || this._options.serverName;
     }
 
-    return super._prepareEvent(event, hint, scope);
+    return super._prepareEvent(event, hint, scope, isolationScope);
   }
 
   /** Extract trace information from scope */
