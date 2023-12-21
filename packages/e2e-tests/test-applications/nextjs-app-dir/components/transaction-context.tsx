@@ -21,7 +21,7 @@ export function TransactionContextProvider({ children }: PropsWithChildren) {
           ? {
               transactionActive: true,
               stop: () => {
-                transaction.finish();
+                transaction.end();
                 setTransaction(undefined);
               },
             }

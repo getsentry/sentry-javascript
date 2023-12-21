@@ -67,7 +67,7 @@ describe('setupOnce', () => {
       childSpan = parentSpan.startChild();
       jest.spyOn(scope, 'getSpan').mockReturnValueOnce(parentSpan);
       jest.spyOn(parentSpan, 'startChild').mockReturnValueOnce(childSpan);
-      jest.spyOn(childSpan, 'finish');
+      jest.spyOn(childSpan, 'end');
     });
 
     it(`should wrap ${pgApi}'s query method accepting callback as the last argument`, done => {
@@ -81,7 +81,7 @@ describe('setupOnce', () => {
             'db.system': 'postgresql',
           },
         });
-        expect(childSpan.finish).toBeCalled();
+        expect(childSpan.end).toBeCalled();
         done();
       }) as void;
     });
@@ -97,7 +97,7 @@ describe('setupOnce', () => {
             'db.system': 'postgresql',
           },
         });
-        expect(childSpan.finish).toBeCalled();
+        expect(childSpan.end).toBeCalled();
         done();
       }) as void;
     });
@@ -113,7 +113,7 @@ describe('setupOnce', () => {
           'db.system': 'postgresql',
         },
       });
-      expect(childSpan.finish).toBeCalled();
+      expect(childSpan.end).toBeCalled();
     });
   });
 

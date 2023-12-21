@@ -105,7 +105,7 @@ function createReactRouterInstrumentation(
       history.listen((location, action) => {
         if (action && (action === 'PUSH' || action === 'POP')) {
           if (activeTransaction) {
-            activeTransaction.finish();
+            activeTransaction.end();
           }
 
           const [name, source] = normalizeTransactionName(location.pathname);

@@ -200,7 +200,7 @@ export interface Hub {
    *
    * Every child span must be finished before the transaction is finished, otherwise the unfinished spans are discarded.
    *
-   * The transaction must be finished with a call to its `.finish()` method, at which point the transaction with all its
+   * The transaction must be finished with a call to its `.end()` method, at which point the transaction with all its
    * finished child spans will be sent to Sentry.
    *
    * @param context Properties of the new `Transaction`.

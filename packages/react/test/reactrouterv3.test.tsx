@@ -19,7 +19,7 @@ declare module 'react-router-3' {
 function createMockStartTransaction(opts: { finish?: jest.FunctionLike; setMetadata?: jest.FunctionLike } = {}) {
   const { finish = jest.fn(), setMetadata = jest.fn() } = opts;
   return jest.fn().mockReturnValue({
-    finish,
+    end: finish,
     setMetadata,
   });
 }

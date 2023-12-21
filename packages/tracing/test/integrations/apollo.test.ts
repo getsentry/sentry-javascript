@@ -84,7 +84,7 @@ describe('setupOnce', () => {
     jest.spyOn(scope, 'getSpan').mockReturnValueOnce(parentSpan);
     jest.spyOn(scope, 'setSpan');
     jest.spyOn(parentSpan, 'startChild').mockReturnValueOnce(childSpan);
-    jest.spyOn(childSpan, 'finish');
+    jest.spyOn(childSpan, 'end');
   });
 
   it('should wrap a simple resolver', () => {
@@ -95,7 +95,7 @@ describe('setupOnce', () => {
       op: 'graphql.resolve',
       origin: 'auto.graphql.apollo',
     });
-    expect(childSpan.finish).toBeCalled();
+    expect(childSpan.end).toBeCalled();
   });
 
   it('should wrap another simple resolver', () => {
@@ -106,7 +106,7 @@ describe('setupOnce', () => {
       op: 'graphql.resolve',
       origin: 'auto.graphql.apollo',
     });
-    expect(childSpan.finish).toBeCalled();
+    expect(childSpan.end).toBeCalled();
   });
 
   it("doesn't attach when using otel instrumenter", () => {

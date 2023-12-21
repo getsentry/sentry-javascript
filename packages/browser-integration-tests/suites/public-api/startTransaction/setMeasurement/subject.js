@@ -5,4 +5,4 @@ transaction.setMeasurement('metric.bar', 1337, 'nanoseconds');
 transaction.setMeasurement('metric.baz', 99, 's');
 transaction.setMeasurement('metric.baz', 1);
 
-transaction.finish();
+transaction.end();

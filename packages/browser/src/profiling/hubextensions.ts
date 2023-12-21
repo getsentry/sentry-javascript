@@ -143,34 +143,34 @@ export function startProfileForTransaction(transaction: Transaction): Transactio
     onProfileHandler();
   }, MAX_PROFILE_DURATION_MS);
 
-  // We need to reference the original finish call to avoid creating an infinite loop
-  const originalFinish = transaction.finish.bind(transaction);
+  // We need to reference the original end call to avoid creating an infinite loop
+  const originalEnd = transaction.end.bind(transaction);
 
   /**
    * Wraps startTransaction and stopTransaction with profiling related logic.
    * startProfiling is called after the call to startTransaction in order to avoid our own code from
    * being profiled. Because of that same reason, stopProfiling is called before the call to stopTransaction.
    */
-  function profilingWrappedTransactionFinish(): Transaction {
+  function profilingWrappedTransactionEnd(): Transaction {
     if (!transaction) {
-      return originalFinish();
+      return originalEnd();
     }
     // onProfileHandler should always return the same profile even if this is called multiple times.
     // Always call onProfileHandler to ensure stopProfiling is called and the timeout is cleared.
     void onProfileHandler().then(
       () => {
         transaction.setContext('profile', { profile_id: profileId, start_timestamp: startTimestamp });
-        originalFinish();
+        originalEnd();
       },
       () => {
         // If onProfileHandler fails, we still want to call the original finish method.
-        originalFinish();
+        originalEnd();
       },
     );
 
     return transaction;
   }
 
-  transaction.finish = profilingWrappedTransactionFinish;
+  transaction.end = profilingWrappedTransactionEnd;
   return transaction;
 }
