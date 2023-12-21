@@ -9,13 +9,14 @@ import type {
   TransactionEvent,
   TransactionMetadata,
 } from '@sentry/types';
-import { dropUndefinedKeys, logger } from '@sentry/utils';
+import { dropUndefinedKeys, logger, timestampInSeconds } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../debug-build';
 import type { Hub } from '../hub';
 import { getCurrentHub } from '../hub';
 import { getDynamicSamplingContextFromClient } from './dynamicSamplingContext';
 import { Span as SpanClass, SpanRecorder } from './span';
+import { timestampToS } from './utils';
 
 /** JSDoc */
 export class Transaction extends SpanClass implements TransactionInterface {
@@ -134,8 +135,9 @@ export class Transaction extends SpanClass implements TransactionInterface {
   /**
    * @inheritDoc
    */
-  public finish(endTimestamp?: number): string | undefined {
-    const transaction = this._finishTransaction(endTimestamp);
+  public end(endTimestamp?: number): string | undefined {
+    const timestampInS = typeof endTimestamp === 'number' ? timestampToS(endTimestamp) : timestampInSeconds();
+    const transaction = this._finishTransaction(timestampInS);
     if (!transaction) {
       return undefined;
     }
@@ -232,7 +234,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
     }
 
     // just sets the end timestamp
-    super.finish(endTimestamp);
+    super.end(endTimestamp);
 
     const client = this._hub.getClient();
     if (client && client.emit) {

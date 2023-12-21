@@ -52,7 +52,7 @@ export function instrumentRoutingWithDefaults<T extends Transaction>(
         if (activeTransaction) {
           DEBUG_BUILD && logger.log(`[Tracing] Finishing current transaction with op: ${activeTransaction.op}`);
           // If there's an open transaction on the scope, we need to finish it before creating an new one.
-          activeTransaction.finish();
+          activeTransaction.end();
         }
         activeTransaction = customStartTransaction({
           name: WINDOW.location.pathname,

@@ -63,7 +63,7 @@ export function appRouterInstrumentation(
       prevLocationName = transactionName;
 
       if (activeTransaction) {
-        activeTransaction.finish();
+        activeTransaction.end();
       }
 
       startTransactionCb({

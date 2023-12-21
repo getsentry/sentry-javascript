@@ -61,7 +61,7 @@ describe('registerErrorHandlers()', () => {
 
     mockUnhandledRejectionCallback({});
     expect(transaction.status).toBe(undefined);
-    transaction.finish();
+    transaction.end();
   });
 
   it('sets status for transaction on scope on error', () => {
@@ -72,7 +72,7 @@ describe('registerErrorHandlers()', () => {
     mockErrorCallback({} as HandlerDataError);
     expect(transaction.status).toBe('internal_error');
 
-    transaction.finish();
+    transaction.end();
   });
 
   it('sets status for transaction on scope on unhandledrejection', () => {
@@ -82,6 +82,6 @@ describe('registerErrorHandlers()', () => {
 
     mockUnhandledRejectionCallback({});
     expect(transaction.status).toBe('internal_error');
-    transaction.finish();
+    transaction.end();
   });
 });

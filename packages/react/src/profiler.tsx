@@ -70,7 +70,7 @@ class Profiler extends React.Component<ProfilerProps> {
   // If a component mounted, we can finish the mount activity.
   public componentDidMount(): void {
     if (this._mountSpan) {
-      this._mountSpan.finish();
+      this._mountSpan.end();
     }
   }
 
@@ -101,7 +101,7 @@ class Profiler extends React.Component<ProfilerProps> {
 
   public componentDidUpdate(): void {
     if (this._updateSpan) {
-      this._updateSpan.finish();
+      this._updateSpan.end();
       this._updateSpan = undefined;
     }
   }
@@ -192,7 +192,7 @@ function useProfiler(
 
   React.useEffect(() => {
     if (mountSpan) {
-      mountSpan.finish();
+      mountSpan.end();
     }
 
     return (): void => {

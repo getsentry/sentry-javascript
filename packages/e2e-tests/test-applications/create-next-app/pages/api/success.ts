@@ -8,8 +8,8 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
 
   const span = transaction.startChild();
 
-  span.finish();
-  transaction.finish();
+  span.end();
+  transaction.end();
 
   Sentry.flush().then(() => {
     res.status(200).json({

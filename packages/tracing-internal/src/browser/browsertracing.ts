@@ -394,7 +394,7 @@ export class BrowserTracing implements Integration {
 
       if (inflightInteractionTransaction) {
         inflightInteractionTransaction.setFinishReason('interactionInterrupted');
-        inflightInteractionTransaction.finish();
+        inflightInteractionTransaction.end();
         inflightInteractionTransaction = undefined;
       }
 

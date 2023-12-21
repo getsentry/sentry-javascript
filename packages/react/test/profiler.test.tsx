@@ -18,7 +18,7 @@ class MockSpan {
     return new MockSpan(ctx);
   }
 
-  public finish(): void {
+  public end(): void {
     mockFinish();
   }
 }

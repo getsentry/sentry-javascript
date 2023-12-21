@@ -200,12 +200,12 @@ function wrapResolver(
 
       if (isThenable(rv)) {
         return rv.then((res: unknown) => {
-          span?.finish();
+          span?.end();
           return res;
         });
       }
 
-      span?.finish();
+      span?.end();
 
       return rv;
     };
