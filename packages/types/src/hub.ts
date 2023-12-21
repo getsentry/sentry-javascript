@@ -78,6 +78,12 @@ export interface Hub {
   getScope(): Scope;
 
   /**
+   * Get the currently active isolation scope.
+   * The isolation scope is used to isolate data between different hubs.
+   */
+  getIsolationScope(): Scope;
+
+  /**
    * Captures an exception event and sends it to Sentry.
    *
    * @param exception An exception-like object.

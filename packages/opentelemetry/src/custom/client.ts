@@ -67,7 +67,12 @@ export function wrapClientClass<
      * Extends the base `_prepareEvent` so that we can properly handle `captureContext`.
      * This uses `Scope.clone()`, which we need to replace with `OpenTelemetryScope.clone()` for this client.
      */
-    protected _prepareEvent(event: Event, hint: EventHint, scope?: Scope): PromiseLike<Event | null> {
+    protected _prepareEvent(
+      event: Event,
+      hint: EventHint,
+      scope?: Scope,
+      isolationScope?: Scope,
+    ): PromiseLike<Event | null> {
       let actualScope = scope;
 
       // Remove `captureContext` hint and instead clone already here
