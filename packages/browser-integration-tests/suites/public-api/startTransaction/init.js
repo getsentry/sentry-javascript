@@ -1,5 +1,7 @@
+/* eslint-disable no-unused-vars */
 import * as Sentry from '@sentry/browser';
-import '@sentry/tracing';
+// biome-ignore lint/nursery/noUnusedImports: <explanation>
+import  * as _ from '@sentry/tracing';
 
 window.Sentry = Sentry;
 
