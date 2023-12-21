@@ -119,15 +119,13 @@ export class LocalVariablesAsync implements Integration {
       isPaused = false;
     });
 
-    session.on('Debugger.paused', async event => {
+    session.on('Debugger.paused', event => {
       isPaused = true;
 
       this._handlePaused(session, options.stackParser, event.params as PausedExceptionEvent)
-        .then(async () => {
-          if (isPaused) {
-            // After the pause work is complete, resume execution or the exception context memory is leaked
-            await session.post('Debugger.resume');
-          }
+        .then(() => {
+          // After the pause work is complete, resume execution!
+          return isPaused ? session.post('Debugger.resume') : Promise.resolve();
         })
         .catch(_ => {
           //
