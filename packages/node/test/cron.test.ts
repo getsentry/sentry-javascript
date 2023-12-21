@@ -16,6 +16,8 @@ describe('cron', () => {
 
   describe('node-cron', () => {
     test('calls withMonitor', done => {
+      expect.assertions(5);
+
       const nodeCron: NodeCron = {
         schedule: (expression: string, callback: () => void, options?: NodeCronOptions): unknown => {
           expect(expression).toBe('* * * Jan,Sep Sun');
