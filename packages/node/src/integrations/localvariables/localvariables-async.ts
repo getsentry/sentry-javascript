@@ -1,7 +1,7 @@
 import type { Session } from 'node:inspector/promises';
 import type { Event, EventProcessor, Exception, Hub, Integration, StackFrame, StackParser } from '@sentry/types';
 import { LRUMap, logger } from '@sentry/utils';
-import type { Runtime } from 'inspector';
+import type { Debugger, InspectorNotification, Runtime } from 'inspector';
 import type { NodeClient } from '../../client';
 
 import type { NodeClientOptions } from '../../types';
@@ -119,7 +119,7 @@ export class LocalVariablesAsync implements Integration {
       isPaused = false;
     });
 
-    session.on('Debugger.paused', event => {
+    session.on('Debugger.paused', (event: InspectorNotification<Debugger.PausedEventDataType>) => {
       isPaused = true;
 
       this._handlePaused(session, options.stackParser, event.params as PausedExceptionEvent)
