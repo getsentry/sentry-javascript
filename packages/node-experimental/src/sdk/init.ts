@@ -37,7 +37,7 @@ export const defaultIntegrations: Integration[] = [
 ];
 
 // Only add NodeFetch if Node >= 16, as previous versions do not support it
-if (NODE_VERSION.major >= 16) {
+if (NODE_VERSION.major && NODE_VERSION.major >= 16) {
   defaultIntegrations.push(new NodeFetch());
 }
 
