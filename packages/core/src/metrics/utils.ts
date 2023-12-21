@@ -1,6 +1,6 @@
 import type { MeasurementUnit, MetricBucketItem } from '@sentry/types';
 import { dropUndefinedKeys } from '@sentry/utils';
-import type { MetricType, SimpleMetricBucket } from './types';
+import type { MetricType } from './types';
 
 /**
  * Generate bucket key from metric properties.

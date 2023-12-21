@@ -1,5 +1,6 @@
 import { act, render } from '@testing-library/react';
 import { createMemoryHistory } from 'history-4';
+// biome-ignore lint/nursery/noUnusedImports: Need React import for JSX
 import * as React from 'react';
 import { Route, Router, Switch, matchPath } from 'react-router-5';
 

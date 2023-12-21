@@ -1,4 +1,4 @@
-import { getGlobalScope as _getGlobalScope, mergeScopeData, setGlobalScope } from '@sentry/core';
+import { getGlobalScope as _getGlobalScope, setGlobalScope } from '@sentry/core';
 import { OpenTelemetryScope } from '@sentry/opentelemetry';
 import type { Breadcrumb, Client, Event, EventHint, Severity, SeverityLevel } from '@sentry/types';
 import { uuid4 } from '@sentry/utils';

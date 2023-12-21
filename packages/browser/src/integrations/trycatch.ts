@@ -1,5 +1,5 @@
 import { convertIntegrationFnToClass } from '@sentry/core';
-import type { Client, IntegrationFn, WrappedFunction } from '@sentry/types';
+import type { IntegrationFn, WrappedFunction } from '@sentry/types';
 import { fill, getFunctionName, getOriginalFunction } from '@sentry/utils';
 
 import { WINDOW, wrap } from '../helpers';
