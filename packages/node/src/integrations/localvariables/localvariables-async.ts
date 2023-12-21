@@ -1,82 +1,63 @@
+import type { Session } from 'node:inspector/promises';
 import type { Event, EventProcessor, Exception, Hub, Integration, StackFrame, StackParser } from '@sentry/types';
 import { LRUMap, logger } from '@sentry/utils';
-import type { Debugger, InspectorNotification, Runtime } from 'inspector';
+import type { Runtime } from 'inspector';
 import type { NodeClient } from '../../client';
 
 import type { NodeClientOptions } from '../../types';
 import type { FrameVariables, Options, PausedExceptionEvent, RateLimitIncrement, Variables } from './common';
 import { createRateLimiter, functionNamesMatch, hashFrames, hashFromStack } from './common';
 
-type Session = {
-  connect: () => void;
-  new (): Session;
+async function unrollArray(session: Session, objectId: string, name: string, vars: Variables): Promise<void> {
+  const properties: Runtime.GetPropertiesReturnType = await session.post('Runtime.getProperties', {
+    objectId,
+    ownProperties: true,
+  });
 
-  post(method: 'Debugger.pause' | 'Debugger.resume' | 'Debugger.enable' | 'Debugger.disable'): Promise<void>;
-  post(method: 'Debugger.setPauseOnExceptions', params: Debugger.SetPauseOnExceptionsParameterType): Promise<void>;
-  post(
-    method: 'Runtime.getProperties',
-    params: Runtime.GetPropertiesParameterType,
-  ): Promise<Runtime.GetPropertiesReturnType>;
-
-  on(
-    event: 'Debugger.paused',
-    listener: (message: InspectorNotification<Debugger.PausedEventDataType>) => void,
-  ): Session;
-
-  on(event: 'Debugger.resumed', listener: () => void): Session;
-};
-
-async function unrollArray(session: Session, objectId: string, name: string): Promise<Variables> {
-  const properties = await session.post('Runtime.getProperties', { objectId, ownProperties: true });
-
-  return {
-    [name]: properties.result
-      .filter(v => v.name !== 'length' && !isNaN(parseInt(v.name, 10)))
-      .sort((a, b) => parseInt(a.name, 10) - parseInt(b.name, 10))
-      .map(v => v?.value?.value),
-  };
+  vars[name] = properties.result
+    .filter(v => v.name !== 'length' && !isNaN(parseInt(v.name, 10)))
+    .sort((a, b) => parseInt(a.name, 10) - parseInt(b.name, 10))
+    .map(v => v.value?.value);
 }
 
-async function unrollObject(session: Session, objectId: string, name: string): Promise<Variables> {
-  const properties = await session.post('Runtime.getProperties', { objectId, ownProperties: true });
+async function unrollObject(session: Session, objectId: string, name: string, vars: Variables): Promise<void> {
+  const properties: Runtime.GetPropertiesReturnType = await session.post('Runtime.getProperties', {
+    objectId,
+    ownProperties: true,
+  });
 
-  return {
-    [name]: properties.result
-      .map<[string, unknown]>(v => [v.name, v?.value?.value])
-      .reduce((obj, [key, val]) => {
-        obj[key] = val;
-        return obj;
-      }, {} as Variables),
-  };
+  vars[name] = properties.result
+    .map<[string, unknown]>(v => [v.name, v.value?.value])
+    .reduce((obj, [key, val]) => {
+      obj[key] = val;
+      return obj;
+    }, {} as Variables);
 }
 
-function unrollOther(prop: Runtime.PropertyDescriptor): Variables {
+function unrollOther(prop: Runtime.PropertyDescriptor, vars: Variables): void {
   if (prop?.value?.value) {
-    return {
-      [prop.name]: prop.value.value,
-    };
+    vars[prop.name] = prop.value.value;
   } else if (prop?.value?.description && prop?.value?.type !== 'function') {
-    return {
-      [prop.name]: `<${prop.value.description}>`,
-    };
+    vars[prop.name] = `<${prop.value.description}>`;
   }
-
-  return {};
 }
 
 async function getLocalVariables(session: Session, objectId: string): Promise<Variables> {
-  const properties = await session.post('Runtime.getProperties', { objectId, ownProperties: true });
-  let variables = {};
+  const properties: Runtime.GetPropertiesReturnType = await session.post('Runtime.getProperties', {
+    objectId,
+    ownProperties: true,
+  });
+  const variables = {};
 
   for (const prop of properties.result) {
     if (prop?.value?.objectId && prop?.value.className === 'Array') {
       const id = prop.value.objectId;
-      variables = { ...variables, ...(await unrollArray(session, id, prop.name)) };
+      await unrollArray(session, id, prop.name, variables);
     } else if (prop?.value?.objectId && prop?.value?.className === 'Object') {
       const id = prop.value.objectId;
-      variables = { ...variables, ...(await unrollObject(session, id, prop.name)) };
+      await unrollObject(session, id, prop.name, variables);
     } else if (prop?.value?.value || prop?.value?.description) {
-      variables = { ...variables, ...unrollOther(prop) };
+      unrollOther(prop, variables);
     }
   }
 
@@ -115,14 +96,8 @@ export class LocalVariablesAsync implements Integration {
     }
 
     import('node:inspector/promises')
-      .then(async inspector => {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { Session } = inspector as any;
-        return this._startDebugger(Session, clientOptions);
-      })
-      .catch(e => {
-        logger.error('Failed to load inspector API', e);
-      });
+      .then(({ Session }) => this._startDebugger(new Session(), clientOptions))
+      .catch(e => logger.error('Failed to load inspector API', e));
   }
 
   /** @inheritdoc */
@@ -135,8 +110,7 @@ export class LocalVariablesAsync implements Integration {
   }
 
   /** Start and configures the debugger to capture local variables */
-  private async _startDebugger(Session: Session, options: NodeClientOptions): Promise<void> {
-    const session = new Session();
+  private async _startDebugger(session: Session, options: NodeClientOptions): Promise<void> {
     session.connect();
 
     let isPaused = false;
@@ -170,15 +144,15 @@ export class LocalVariablesAsync implements Integration {
 
       this._rateLimiter = createRateLimiter(
         max,
-        async () => {
+        () => {
           logger.log('Local variables rate-limit lifted.');
-          await session.post('Debugger.setPauseOnExceptions', { state: 'all' });
+          return session.post('Debugger.setPauseOnExceptions', { state: 'all' });
         },
-        async seconds => {
+        seconds => {
           logger.log(
             `Local variables rate-limit exceeded. Disabling capturing of caught exceptions for ${seconds} seconds.`,
           );
-          await session.post('Debugger.setPauseOnExceptions', { state: 'uncaught' });
+          return session.post('Debugger.setPauseOnExceptions', { state: 'uncaught' });
         },
       );
     }
@@ -234,7 +208,7 @@ export class LocalVariablesAsync implements Integration {
    * Adds local variables event stack frames.
    */
   private _addLocalVariables(event: Event): Event {
-    for (const exception of event?.exception?.values || []) {
+    for (const exception of event.exception?.values || []) {
       this._addLocalVariablesToException(exception);
     }
 
@@ -245,7 +219,7 @@ export class LocalVariablesAsync implements Integration {
    * Adds local variables to the exception stack frames.
    */
   private _addLocalVariablesToException(exception: Exception): void {
-    const hash = hashFrames(exception?.stacktrace?.frames);
+    const hash = hashFrames(exception.stacktrace?.frames);
 
     if (hash === undefined) {
       return;
@@ -266,7 +240,7 @@ export class LocalVariablesAsync implements Integration {
       const frameIndex = frameCount - i - 1;
 
       // Drop out if we run out of frames to match up
-      if (!exception?.stacktrace?.frames?.[frameIndex] || !cachedFrames[i]) {
+      if (!exception.stacktrace?.frames?.[frameIndex] || !cachedFrames[i]) {
         break;
       }
 

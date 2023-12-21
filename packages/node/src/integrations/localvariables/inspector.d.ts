@@ -3358,6 +3358,30 @@ declare module 'node:inspector' {
   export = inspector;
 }
 
+/**
+ * @types/node doesn't have a `node:inspector/promises` module, maybe because it's still experimental?
+ */
 declare module 'node:inspector/promises' {
-  //
+  /**
+   * Async Debugger session
+   */
+  class Session {
+    constructor();
+
+    connect(): void;
+
+    post(method: 'Debugger.pause' | 'Debugger.resume' | 'Debugger.enable' | 'Debugger.disable'): Promise<void>;
+    post(method: 'Debugger.setPauseOnExceptions', params: Debugger.SetPauseOnExceptionsParameterType): Promise<void>;
+    post(
+      method: 'Runtime.getProperties',
+      params: Runtime.GetPropertiesParameterType,
+    ): Promise<Runtime.GetPropertiesReturnType>;
+
+    on(
+      event: 'Debugger.paused',
+      listener: (message: InspectorNotification<Debugger.PausedEventDataType>) => void,
+    ): Session;
+
+    on(event: 'Debugger.resumed', listener: () => void): Session;
+  }
 }

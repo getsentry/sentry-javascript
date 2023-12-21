@@ -6,7 +6,8 @@ export type Variables = Record<string, unknown>;
 export type RateLimitIncrement = () => void;
 
 /**
- * Creates a rate limiter
+ * Creates a rate limiter that will call the disable callback when the rate limit is reached and the enable callback
+ * when a timeout has occurred.
  * @param maxPerSecond Maximum number of calls per second
  * @param enable Callback to enable capture
  * @param disable Callback to disable capture
@@ -59,7 +60,7 @@ export type PausedExceptionEvent = Debugger.PausedEventDataType & {
 
 /** Could this be an anonymous function? */
 export function isAnonymous(name: string | undefined): boolean {
-  return name !== undefined && ['', '?', '<anonymous>'].includes(name);
+  return name !== undefined && (name.length === 0 || name === '?' || name === '<anonymous>');
 }
 
 /** Do the function names appear to match? */
