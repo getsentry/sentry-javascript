@@ -24,8 +24,6 @@ export class MetricsAggregator implements MetricsAggregatorBase {
   // that we store in memory.
   private _bucketsTotalWeight;
 
-  // TODO(@anonrig): Use `setTimeout` instead of `setInterval` to be more accurate
-  // with the flush interval.
   private readonly _interval: ReturnType<typeof setInterval>;
 
   // SDKs are required to shift the flush interval by random() * rollup_in_seconds.
@@ -44,7 +42,7 @@ export class MetricsAggregator implements MetricsAggregatorBase {
     this._buckets = new Map();
     this._bucketsTotalWeight = 0;
     this._interval = setInterval(() => this._flush(), DEFAULT_FLUSH_INTERVAL);
-    this._flushShift = Math.random() * DEFAULT_FLUSH_INTERVAL;
+    this._flushShift = Math.floor((Math.random() * DEFAULT_FLUSH_INTERVAL) / 1000);
     this._forceFlush = false;
   }
 
@@ -132,12 +130,12 @@ export class MetricsAggregator implements MetricsAggregatorBase {
       this._buckets.clear();
       return;
     }
-    const cutoffSeconds = timestampInSeconds() - DEFAULT_FLUSH_INTERVAL - this._flushShift;
+    const cutoffSeconds = Math.floor(timestampInSeconds()) - DEFAULT_FLUSH_INTERVAL / 1000 - this._flushShift;
     // TODO(@anonrig): Optimization opportunity.
     // Convert this map to an array and store key in the bucketItem.
     const flushedBuckets: MetricBucket = new Map();
     for (const [key, bucket] of this._buckets) {
-      if (bucket.timestamp < cutoffSeconds) {
+      if (bucket.timestamp <= cutoffSeconds) {
         flushedBuckets.set(key, bucket);
         this._bucketsTotalWeight -= bucket.metric.weight;
       }
