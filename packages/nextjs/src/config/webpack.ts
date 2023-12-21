@@ -202,6 +202,34 @@ export function constructWebpackConfigFunction(
       );
     };
 
+    let vercelCronsConfig: VercelCronsConfig = undefined;
+    if (isServer) {
+      try {
+        if (process.env.VERCEL && userSentryOptions.automaticVercelMonitors) {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          vercelCronsConfig = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'vercel.json'), 'utf8')).crons;
+          if (vercelCronsConfig) {
+            // eslint-disable-next-line no-console
+            console.log(
+              `${chalk.cyan(
+                'info',
+              )} - Creating Sentry cron monitors for your Vercel Cron Jobs. You can disable this feature by setting the ${chalk.bold.cyan(
+                'automaticVercelMonitors',
+              )} option to false in you Next.js config.`,
+            );
+          }
+        }
+      } catch (e) {
+        if ((e as { code: string }).code === 'ENOENT') {
+          // noop if file does not exist
+        } else {
+          // log but noop
+          // eslint-disable-next-line no-console
+          console.error(`${chalk.red('error')} - Sentry failed to read vercel.json`, e);
+        }
+      }
+    }
+
     if (isServer && userSentryOptions.autoInstrumentServerFunctions !== false) {
       // It is very important that we insert our loaders at the beginning of the array because we expect any sort of transformations/transpilations (e.g. TS -> JS) to already have happened.
 
@@ -218,30 +246,6 @@ export function constructWebpackConfigFunction(
           },
         ],
       });
-
-      let vercelCronsConfig: VercelCronsConfig = undefined;
-      try {
-        if (process.env.VERCEL && userSentryOptions.automaticVercelMonitors) {
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-          vercelCronsConfig = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'vercel.json'), 'utf8')).crons;
-          if (vercelCronsConfig) {
-            logger.info(
-              `${chalk.cyan(
-                'info',
-              )} - Creating Sentry cron monitors for your Vercel Cron Jobs. You can disable this feature by setting the ${chalk.bold.cyan(
-                'automaticVercelMonitors',
-              )} option to false in you Next.js config.`,
-            );
-          }
-        }
-      } catch (e) {
-        if ((e as { code: string }).code === 'ENOENT') {
-          // noop if file does not exist
-        } else {
-          // log but noop
-          logger.error(`${chalk.red('error')} - Sentry failed to read vercel.json`, e);
-        }
-      }
 
       // Wrap api routes
       newConfig.module.rules.unshift({
@@ -298,6 +302,7 @@ export function constructWebpackConfigFunction(
             loader: path.resolve(__dirname, 'loaders', 'wrappingLoader.js'),
             options: {
               ...staticWrappingLoaderOptions,
+              vercelCronsConfig,
               wrappingTargetKind: 'route-handler',
             },
           },
