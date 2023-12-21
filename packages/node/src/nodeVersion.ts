@@ -1,3 +1,5 @@
 import { parseSemver } from '@sentry/utils';
 
-export const NODE_VERSION: ReturnType<typeof parseSemver> = parseSemver(process.versions.node);
+type SemVerNotOptional = Required<Pick<ReturnType<typeof parseSemver>, 'major' | 'minor' | 'patch'>>;
+
+export const NODE_VERSION = parseSemver(process.versions.node) as SemVerNotOptional;

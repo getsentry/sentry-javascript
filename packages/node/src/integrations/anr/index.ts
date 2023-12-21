@@ -65,7 +65,7 @@ export class Anr implements Integration {
 
   /** @inheritdoc */
   public setup(client: NodeClient): void {
-    if ((NODE_VERSION.major || 0) < 16) {
+    if (NODE_VERSION.major < 16) {
       throw new Error('ANR detection requires Node 16 or later');
     }
 

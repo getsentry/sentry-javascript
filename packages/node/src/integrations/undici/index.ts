@@ -96,7 +96,7 @@ export class Undici implements Integration {
    */
   public setupOnce(_addGlobalEventProcessor: (callback: EventProcessor) => void): void {
     // Requires Node 16+ to use the diagnostics_channel API.
-    if (NODE_VERSION.major && NODE_VERSION.major < 16) {
+    if (NODE_VERSION.major < 16) {
       return;
     }
 

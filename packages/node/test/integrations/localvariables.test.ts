@@ -150,7 +150,7 @@ const exceptionEvent100Frames = {
   },
 };
 
-describeIf((NODE_VERSION.major || 0) >= 18)('LocalVariables', () => {
+describeIf(NODE_VERSION.major >= 18)('LocalVariables', () => {
   it('Adds local variables to stack frames', async () => {
     const session = new MockDebugSession({
       '-6224981551105448869.1.2': { name: 'tim' },
