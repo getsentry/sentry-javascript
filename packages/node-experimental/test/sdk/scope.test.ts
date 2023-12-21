@@ -2,7 +2,7 @@ import { prepareEvent } from '@sentry/core';
 import type { Attachment, Breadcrumb, Client, ClientOptions, EventProcessor } from '@sentry/types';
 import { Scope, getIsolationScope } from '../../src';
 import { getGlobalScope } from '../../src/sdk/scope';
-import { mockSdkInit, resetGlobals } from '../helpers/mockSdkInit';
+import { mockSdkInit } from '../helpers/mockSdkInit';
 
 describe('Unit | Scope', () => {
   it('allows to create & update a scope', () => {
