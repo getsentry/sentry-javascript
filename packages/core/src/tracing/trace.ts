@@ -55,16 +55,18 @@ export function trace<T>(
   }
 
   if (isThenable(maybePromiseResult)) {
-    Promise.resolve(maybePromiseResult).then(
-      () => {
+    maybePromiseResult.then(
+      res => {
         finishAndSetSpan();
         afterFinish();
+        return res;
       },
       e => {
         activeSpan && activeSpan.setStatus('internal_error');
         onError(e, activeSpan);
         finishAndSetSpan();
         afterFinish();
+        throw e;
       },
     );
   } else {
@@ -87,6 +89,7 @@ export function trace<T>(
  * and the `span` returned from the callback will be undefined.
  */
 export function startSpan<T>(context: TransactionContext, callback: (span: Span | undefined) => T): T {
+  console.log('START SPAN 2');
   const ctx = normalizeContext(context);
 
   return withScope(scope => {
