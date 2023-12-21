@@ -23,7 +23,7 @@ import type {
   Transaction,
   User,
 } from '@sentry/types';
-import { arrayify, dateTimestampInSeconds, isPlainObject, uuid4 } from '@sentry/utils';
+import { dateTimestampInSeconds, isPlainObject, uuid4 } from '@sentry/utils';
 
 import { getGlobalEventProcessors, notifyEventProcessors } from './eventProcessors';
 import { updateSession } from './session';
@@ -33,6 +33,12 @@ import { applyScopeDataToEvent } from './utils/applyScopeDataToEvent';
  * Default value for maximum number of breadcrumbs added to an event.
  */
 const DEFAULT_MAX_BREADCRUMBS = 100;
+
+/**
+ * The global scope is kept in this module.
+ * When accessing this via `getGlobalScope()` we'll make sure to set one if none is currently present.
+ */
+let globalScope: ScopeInterface | undefined;
 
 /**
  * Holds additional event information. {@link Scope.applyToEvent} will be
@@ -455,9 +461,12 @@ export class Scope implements ScopeInterface {
 
   /**
    * @inheritDoc
+   * @deprecated Use `getScopeData()` instead.
    */
   public getAttachments(): Attachment[] {
-    return this._attachments;
+    const data = this.getScopeData();
+
+    return data.attachments;
   }
 
   /**
@@ -568,6 +577,27 @@ export class Scope implements ScopeInterface {
       this._notifyingListeners = false;
     }
   }
+}
+
+/**
+ * Get the global scope.
+ * This scope is applied to _all_ events.
+ */
+export function getGlobalScope(): ScopeInterface {
+  if (!globalScope) {
+    globalScope = new Scope();
+  }
+
+  return globalScope;
+}
+
+/**
+ * This is mainly needed for tests.
+ * DO NOT USE this, as this is an internal API and subject to change.
+ * @hidden
+ */
+export function setGlobalScope(scope: ScopeInterface | undefined): void {
+  globalScope = scope;
 }
 
 function generatePropagationContext(): PropagationContext {
