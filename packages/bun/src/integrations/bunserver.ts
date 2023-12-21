@@ -1,28 +1,30 @@
-import { Transaction, captureException, continueTrace, runWithAsyncContext, startSpan } from '@sentry/core';
-import type { Integration } from '@sentry/types';
+import {
+  Transaction,
+  captureException,
+  continueTrace,
+  convertIntegrationFnToClass,
+  runWithAsyncContext,
+  startSpan,
+} from '@sentry/core';
+import type { IntegrationFn } from '@sentry/types';
 import { getSanitizedUrlString, parseUrl } from '@sentry/utils';
+
+const INTEGRATION_NAME = 'BunServer';
+
+const bunServerIntegration: IntegrationFn = () => {
+  return {
+    name: INTEGRATION_NAME,
+    setupOnce() {
+      instrumentBunServe();
+    },
+  };
+};
 
 /**
  * Instruments `Bun.serve` to automatically create transactions and capture errors.
  */
-export class BunServer implements Integration {
-  /**
-   * @inheritDoc
-   */
-  public static id: string = 'BunServer';
-
-  /**
-   * @inheritDoc
-   */
-  public name: string = BunServer.id;
-
-  /**
-   * @inheritDoc
-   */
-  public setupOnce(): void {
-    instrumentBunServe();
-  }
-}
+// eslint-disable-next-line deprecation/deprecation
+export const BunServer = convertIntegrationFnToClass(INTEGRATION_NAME, bunServerIntegration);
 
 /**
  * Instruments Bun.serve by patching it's options.

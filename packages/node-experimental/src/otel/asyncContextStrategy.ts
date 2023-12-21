@@ -1,6 +1,6 @@
 import * as api from '@opentelemetry/api';
 
-import { setAsyncContextStrategy } from './../sdk/globals';
+import { setAsyncContextStrategy } from '../sdk/globals';
 import { getCurrentHub } from './../sdk/hub';
 import type { CurrentScopes } from './../sdk/types';
 import { getScopesFromContext } from './../utils/contextData';

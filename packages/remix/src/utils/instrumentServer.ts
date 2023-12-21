@@ -91,7 +91,9 @@ export function wrapRemixHandleError(err: unknown, { request }: DataFunctionArgs
     return;
   }
 
-  void captureRemixServerException(err, 'remix.server.handleError', request);
+  captureRemixServerException(err, 'remix.server.handleError', request).then(null, e => {
+    DEBUG_BUILD && logger.warn('Failed to capture Remix Server exception.', e);
+  });
 }
 
 /**

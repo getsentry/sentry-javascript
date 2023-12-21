@@ -1,6 +1,6 @@
 {
   "name": "@sentry-internal/integration-shims",
-  "version": "7.89.0",
+  "version": "7.90.0",
   "description": "Shims for integrations in Sentry SDK.",
   "main": "build/cjs/index.js",
   "module": "build/esm/index.js",
@@ -16,7 +16,7 @@
   "private": true,
   "scripts": {
     "build": "run-p build:transpile build:types",
-    "build:transpile": "rollup -c rollup.npm.config.js",
+    "build:transpile": "rollup -c rollup.npm.config.mjs",
     "build:types": "run-s build:types:core build:types:downlevel",
     "build:types:core": "tsc -p tsconfig.types.json",
     "build:types:downlevel": "yarn downlevel-dts build/types build/types-ts3.8 --to ts3.8",
@@ -39,8 +39,8 @@
     "url": "https://github.com/getsentry/sentry-javascript/issues"
   },
   "dependencies": {
-    "@sentry/types": "7.89.0",
-    "@sentry/utils": "7.89.0"
+    "@sentry/types": "7.90.0",
+    "@sentry/utils": "7.90.0"
   },
   "engines": {
     "node": ">=12"

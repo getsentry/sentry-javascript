@@ -1,6 +1,7 @@
-import type { Client, Event, EventProcessor, Hub, Integration, PolymorphicRequest, Transaction } from '@sentry/types';
+import type { Client, IntegrationFn, Transaction } from '@sentry/types';
 import type { AddRequestDataToEventOptions, TransactionNamingScheme } from '@sentry/utils';
 import { addRequestDataToEvent, extractPathForTransaction } from '@sentry/utils';
+import { convertIntegrationFnToClass } from '../integration';
 
 export type RequestDataIntegrationOptions = {
   /**
@@ -43,120 +44,93 @@ const DEFAULT_OPTIONS = {
   transactionNamingScheme: 'methodPath',
 };
 
+const INTEGRATION_NAME = 'RequestData';
+
+const requestDataIntegration: IntegrationFn = (options: RequestDataIntegrationOptions = {}) => {
+  const _addRequestData = addRequestDataToEvent;
+  const _options: Required<RequestDataIntegrationOptions> = {
+    ...DEFAULT_OPTIONS,
+    ...options,
+    include: {
+      // @ts-expect-error It's mad because `method` isn't a known `include` key. (It's only here and not set by default in
+      // `addRequestDataToEvent` for legacy reasons. TODO (v8): Change that.)
+      method: true,
+      ...DEFAULT_OPTIONS.include,
+      ...options.include,
+      user:
+        options.include && typeof options.include.user === 'boolean'
+          ? options.include.user
+          : {
+              ...DEFAULT_OPTIONS.include.user,
+              // Unclear why TS still thinks `options.include.user` could be a boolean at this point
+              ...((options.include || {}).user as Record<string, boolean>),
+            },
+    },
+  };
+
+  return {
+    name: INTEGRATION_NAME,
+
+    processEvent(event, _hint, client) {
+      // Note: In the long run, most of the logic here should probably move into the request data utility functions. For
+      // the moment it lives here, though, until https://github.com/getsentry/sentry-javascript/issues/5718 is addressed.
+      // (TL;DR: Those functions touch many parts of the repo in many different ways, and need to be clened up. Once
+      // that's happened, it will be easier to add this logic in without worrying about unexpected side effects.)
+      const { transactionNamingScheme } = _options;
+
+      const { sdkProcessingMetadata = {} } = event;
+      const req = sdkProcessingMetadata.request;
+
+      if (!req) {
+        return event;
+      }
+
+      // The Express request handler takes a similar `include` option to that which can be passed to this integration.
+      // If passed there, we store it in `sdkProcessingMetadata`. TODO(v8): Force express and GCP people to use this
+      // integration, so that all of this passing and conversion isn't necessary
+      const addRequestDataOptions =
+        sdkProcessingMetadata.requestDataOptionsFromExpressHandler ||
+        sdkProcessingMetadata.requestDataOptionsFromGCPWrapper ||
+        convertReqDataIntegrationOptsToAddReqDataOpts(_options);
+
+      const processedEvent = _addRequestData(event, req, addRequestDataOptions);
+
+      // Transaction events already have the right `transaction` value
+      if (event.type === 'transaction' || transactionNamingScheme === 'handler') {
+        return processedEvent;
+      }
+
+      // In all other cases, use the request's associated transaction (if any) to overwrite the event's `transaction`
+      // value with a high-quality one
+      const reqWithTransaction = req as { _sentryTransaction?: Transaction };
+      const transaction = reqWithTransaction._sentryTransaction;
+      if (transaction) {
+        // TODO (v8): Remove the nextjs check and just base it on `transactionNamingScheme` for all SDKs. (We have to
+        // keep it the way it is for the moment, because changing the names of transactions in Sentry has the potential
+        // to break things like alert rules.)
+        const shouldIncludeMethodInTransactionName =
+          getSDKName(client) === 'sentry.javascript.nextjs'
+            ? transaction.name.startsWith('/api')
+            : transactionNamingScheme !== 'path';
+
+        const [transactionValue] = extractPathForTransaction(req, {
+          path: true,
+          method: shouldIncludeMethodInTransactionName,
+          customRoute: transaction.name,
+        });
+
+        processedEvent.transaction = transactionValue;
+      }
+
+      return processedEvent;
+    },
+  };
+};
+
 /** Add data about a request to an event. Primarily for use in Node-based SDKs, but included in `@sentry/integrations`
  * so it can be used in cross-platform SDKs like `@sentry/nextjs`. */
-export class RequestData implements Integration {
-  /**
-   * @inheritDoc
-   */
-  public static id: string = 'RequestData';
-
-  /**
-   * @inheritDoc
-   */
-  public name: string;
-
-  /**
-   * Function for adding request data to event. Defaults to `addRequestDataToEvent` from `@sentry/node` for now, but
-   * left as a property so this integration can be moved to `@sentry/core` as a base class in case we decide to use
-   * something similar in browser-based SDKs in the future.
-   */
-  protected _addRequestData: (event: Event, req: PolymorphicRequest, options?: { [key: string]: unknown }) => Event;
-
-  private _options: Required<RequestDataIntegrationOptions>;
-
-  /**
-   * @inheritDoc
-   */
-  public constructor(options: RequestDataIntegrationOptions = {}) {
-    this.name = RequestData.id;
-    this._addRequestData = addRequestDataToEvent;
-    this._options = {
-      ...DEFAULT_OPTIONS,
-      ...options,
-      include: {
-        // @ts-expect-error It's mad because `method` isn't a known `include` key. (It's only here and not set by default in
-        // `addRequestDataToEvent` for legacy reasons. TODO (v8): Change that.)
-        method: true,
-        ...DEFAULT_OPTIONS.include,
-        ...options.include,
-        user:
-          options.include && typeof options.include.user === 'boolean'
-            ? options.include.user
-            : {
-                ...DEFAULT_OPTIONS.include.user,
-                // Unclear why TS still thinks `options.include.user` could be a boolean at this point
-                ...((options.include || {}).user as Record<string, boolean>),
-              },
-      },
-    };
-  }
-
-  /**
-   * @inheritDoc
-   */
-  public setupOnce(
-    _addGlobalEventProcessor: (eventProcessor: EventProcessor) => void,
-    _getCurrentHub: () => Hub,
-  ): void {
-    // noop
-  }
-
-  /** @inheritdoc */
-  public processEvent(event: Event, _hint: unknown, client: Client): Event {
-    // Note: In the long run, most of the logic here should probably move into the request data utility functions. For
-    // the moment it lives here, though, until https://github.com/getsentry/sentry-javascript/issues/5718 is addressed.
-    // (TL;DR: Those functions touch many parts of the repo in many different ways, and need to be clened up. Once
-    // that's happened, it will be easier to add this logic in without worrying about unexpected side effects.)
-    const { transactionNamingScheme } = this._options;
-
-    const { sdkProcessingMetadata = {} } = event;
-    const req = sdkProcessingMetadata.request;
-
-    if (!req) {
-      return event;
-    }
-
-    // The Express request handler takes a similar `include` option to that which can be passed to this integration.
-    // If passed there, we store it in `sdkProcessingMetadata`. TODO(v8): Force express and GCP people to use this
-    // integration, so that all of this passing and conversion isn't necessary
-    const addRequestDataOptions =
-      sdkProcessingMetadata.requestDataOptionsFromExpressHandler ||
-      sdkProcessingMetadata.requestDataOptionsFromGCPWrapper ||
-      convertReqDataIntegrationOptsToAddReqDataOpts(this._options);
-
-    const processedEvent = this._addRequestData(event, req, addRequestDataOptions);
-
-    // Transaction events already have the right `transaction` value
-    if (event.type === 'transaction' || transactionNamingScheme === 'handler') {
-      return processedEvent;
-    }
-
-    // In all other cases, use the request's associated transaction (if any) to overwrite the event's `transaction`
-    // value with a high-quality one
-    const reqWithTransaction = req as { _sentryTransaction?: Transaction };
-    const transaction = reqWithTransaction._sentryTransaction;
-    if (transaction) {
-      // TODO (v8): Remove the nextjs check and just base it on `transactionNamingScheme` for all SDKs. (We have to
-      // keep it the way it is for the moment, because changing the names of transactions in Sentry has the potential
-      // to break things like alert rules.)
-      const shouldIncludeMethodInTransactionName =
-        getSDKName(client) === 'sentry.javascript.nextjs'
-          ? transaction.name.startsWith('/api')
-          : transactionNamingScheme !== 'path';
-
-      const [transactionValue] = extractPathForTransaction(req, {
-        path: true,
-        method: shouldIncludeMethodInTransactionName,
-        customRoute: transaction.name,
-      });
-
-      processedEvent.transaction = transactionValue;
-    }
-
-    return processedEvent;
-  }
-}
+// eslint-disable-next-line deprecation/deprecation
+export const RequestData = convertIntegrationFnToClass(INTEGRATION_NAME, requestDataIntegration);
 
 /** Convert this integration's options to match what `addRequestDataToEvent` expects */
 /** TODO: Can possibly be deleted once https://github.com/getsentry/sentry-javascript/issues/5718 is fixed */
