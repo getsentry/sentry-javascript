@@ -180,12 +180,16 @@ describe('ExtraErrorData()', () => {
   });
 
   it('captures Error causes when captureErrorCause = true', () => {
+    if (parseInt(process.version.split('.')[0]) < 16) {
+      return;
+    }
+
     const extraErrorDataWithCauseCapture = new ExtraErrorData({ captureErrorCause: true });
 
     // @ts-expect-error TS apparently doesn't understand error causes
     const error = new Error('foo', { cause: { woot: 'foo' } }) as ExtendedError;
 
-    const enhancedEvent = extraErrorDataWithCauseCapture.enhanceEventWithErrorData(event, {
+    const enhancedEvent = extraErrorDataWithCauseCapture.processEvent(event, {
       originalException: error,
     });
 
@@ -199,12 +203,16 @@ describe('ExtraErrorData()', () => {
   });
 
   it("doesn't capture Error causes when captureErrorCause != true", () => {
+    if (parseInt(process.version.split('.')[0]) < 16) {
+      return;
+    }
+
     const extraErrorDataWithoutCauseCapture = new ExtraErrorData();
 
     // @ts-expect-error TS apparently doesn't understand error causes
     const error = new Error('foo', { cause: { woot: 'foo' } }) as ExtendedError;
 
-    const enhancedEvent = extraErrorDataWithoutCauseCapture.enhanceEventWithErrorData(event, {
+    const enhancedEvent = extraErrorDataWithoutCauseCapture.processEvent(event, {
       originalException: error,
     });
 

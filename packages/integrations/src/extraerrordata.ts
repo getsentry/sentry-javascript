@@ -7,17 +7,29 @@ import { DEBUG_BUILD } from './debug-build';
 const INTEGRATION_NAME = 'ExtraErrorData';
 
 interface ExtraErrorDataOptions {
+  /**
+   * The object depth up to which to capture data on error objects.
+   */
   depth: number;
+
+  /**
+   * Whether to capture error causes.
+   *
+   * More innformation: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Error/cause
+   */
   captureErrorCause: boolean;
 }
 
 const extraErrorDataIntegration = ((options: Partial<ExtraErrorDataOptions> = {}) => {
   const depth = options.depth || 3;
 
+  // TODO(v8): Flip the default for this option to true
+  const captureErrorCause = options.captureErrorCause || false;
+
   return {
     name: INTEGRATION_NAME,
     processEvent(event, hint) {
-      return _enhanceEventWithErrorData(event, hint, depth, options.captureErrorCause);
+      return _enhanceEventWithErrorData(event, hint, depth, captureErrorCause);
     },
   };
 }) satisfies IntegrationFn;
@@ -93,8 +105,8 @@ function _extractErrorData(error: ExtendedError, captureErrorCause: boolean): Re
 
     // Error.cause is a standard property that is non enumerable, we therefore need to access it separately.
     // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Error/cause
-    if (captureErrorCause && error['cause']) {
-      extraErrorInfo['cause'] = isError(error['cause']) ? error['cause'].toString() : error['cause'];
+    if (captureErrorCause && error.cause !== undefined) {
+      extraErrorInfo.cause = isError(error.cause) ? error.cause.toString() : error.cause;
     }
 
     // Check if someone attached `toJSON` method to grab even more properties (eg. axios is doing that)
