@@ -3,9 +3,9 @@ import type { TransactionContext } from '@sentry/types';
 import { logger, timestampInSeconds } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../debug-build';
-import { getClient } from '../exports';
+import { getClient, getCurrentScope } from '../exports';
 import type { Span } from './span';
-import { startSpanManual } from './trace';
+import { getActiveSpan, startSpanManual } from './trace';
 
 export const TRACING_DEFAULTS = {
   idleTimeout: 1000,
@@ -84,6 +84,8 @@ export function startIdleSpan(options: IdleSpanOptions): Span | undefined {
     return;
   }
 
+  const scope = getCurrentScope();
+  const previousActiveSpan = getActiveSpan();
   const _span = _startIdleSpan(transactionContext);
 
   // Span _should_ always be defined here, but TS does not know that...
@@ -210,6 +212,7 @@ export function startIdleSpan(options: IdleSpanOptions): Span | undefined {
   }
 
   function endIdleSpan(): void {
+    scope.setSpan(previousActiveSpan);
     const endTimestamp = span.endTimestamp;
 
     // This should never happen, but to make TS happy...
@@ -301,14 +304,13 @@ export function startIdleSpan(options: IdleSpanOptions): Span | undefined {
 }
 
 function _startIdleSpan(transactionContext: TransactionContext): Span | undefined {
-  // Note: This is a bit hacky, and ONLY works in the browser
-  // because we do not actually have an execution context here anyhow, so the scope is not really forked
-  // Technically, this is incorrect, because the span is only active (spec-wise) inside of the `startSpanManual` callback
-  // But we rely on the incorrect browser behavior here that this is not actually the case
+  // We cannot use `startSpan()` here because that ends the current span when the callback finishes :()
   let span: Span | undefined;
   startSpanManual(transactionContext, _span => {
     span = _span;
   });
+
+  getCurrentScope().setSpan(span);
 
   if (span) {
     DEBUG_BUILD && logger.log(`Setting idle span on scope. Span ID: ${span.spanId}`);
