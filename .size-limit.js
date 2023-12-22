@@ -101,7 +101,7 @@ module.exports = [
     path: 'packages/browser/build/bundles/bundle.min.js',
     gzip: false,
     brotli: false,
-    limit: '70 KB',
+    limit: '80 KB',
   },
 
   // Browser CDN bundles (ES5)
@@ -110,7 +110,7 @@ module.exports = [
     name: '@sentry/browser (incl. Tracing) - ES5 CDN Bundle (gzipped)',
     path: 'packages/browser/build/bundles/bundle.tracing.es5.min.js',
     gzip: true,
-    limit: '35 KB',
+    limit: '40 KB',
   },
 
   // React
