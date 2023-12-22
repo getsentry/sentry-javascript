@@ -25,6 +25,23 @@ export type SentryHandleOptions = {
    * @default false
    */
   handleUnknownRoutes?: boolean;
+
+  /**
+   * Controls if `sentryHandle` should inject a script tag into the page that enables instrumentation
+   * of `fetch` calls in `load` functions.
+   *
+   * @default true
+   */
+  injectFetchProxyScript?: boolean;
+
+  /**
+   * If this option is set, the `sentryHandle` handler will add a nonce attribute to the script
+   * tag it injects into the page. This script is used to enable instrumentation of `fetch` calls
+   * in `load` functions.
+   *
+   * Use this if your CSP policy blocks the fetch proxy script injected by `sentryHandle`.
+   */
+  fetchProxyScriptNonce?: string;
 };
 
 function sendErrorToSentry(e: unknown): unknown {
@@ -53,7 +70,10 @@ function sendErrorToSentry(e: unknown): unknown {
   return objectifiedErr;
 }
 
-const FETCH_PROXY_SCRIPT = `
+/**
+ * Exported only for testing
+ */
+export const FETCH_PROXY_SCRIPT = `
     const f = window.fetch;
     if(f){
       window._sentryFetchProxy = function(...a){return f(...a)}
@@ -61,22 +81,40 @@ const FETCH_PROXY_SCRIPT = `
     }
 `;
 
-export const transformPageChunk: NonNullable<ResolveOptions['transformPageChunk']> = ({ html }) => {
-  const transaction = getActiveTransaction();
-  if (transaction) {
-    const traceparentData = transaction.toTraceparent();
-    const dynamicSamplingContext = dynamicSamplingContextToSentryBaggageHeader(transaction.getDynamicSamplingContext());
-    const content = `<head>
-  <meta name="sentry-trace" content="${traceparentData}"/>
-  <meta name="baggage" content="${dynamicSamplingContext}"/>
-  <script>${FETCH_PROXY_SCRIPT}
-  </script>
-  `;
-    return html.replace('<head>', content);
-  }
+/**
+ * Adds Sentry tracing <meta> tags to the returned html page.
+ * Adds Sentry fetch proxy script to the returned html page if enabled in options.
+ * Also adds a nonce attribute to the script tag if users specified one for CSP.
+ *
+ * Exported only for testing
+ */
+export function addSentryCodeToPage(options: SentryHandleOptions): NonNullable<ResolveOptions['transformPageChunk']> {
+  const { fetchProxyScriptNonce, injectFetchProxyScript } = options;
+  // if injectFetchProxyScript is not set, we default to true
+  const shouldInjectScript = injectFetchProxyScript !== false;
+  const nonce = fetchProxyScriptNonce ? `nonce="${fetchProxyScriptNonce}"` : '';
 
-  return html;
-};
+  return ({ html }) => {
+    const transaction = getActiveTransaction();
+    if (transaction) {
+      const traceparentData = transaction.toTraceparent();
+      const dynamicSamplingContext = dynamicSamplingContextToSentryBaggageHeader(
+        transaction.getDynamicSamplingContext(),
+      );
+      const contentMeta = `<head>
+    <meta name="sentry-trace" content="${traceparentData}"/>
+    <meta name="baggage" content="${dynamicSamplingContext}"/>
+    `;
+      const contentScript = shouldInjectScript ? `<script ${nonce}>${FETCH_PROXY_SCRIPT}</script>` : '';
+
+      const content = `${contentMeta}\n${contentScript}`;
+
+      return html.replace('<head>', content);
+    }
+
+    return html;
+  };
+}
 
 /**
  * A SvelteKit handle function that wraps the request for Sentry error and
@@ -89,13 +127,14 @@ export const transformPageChunk: NonNullable<ResolveOptions['transformPageChunk'
  *
  * export const handle = sentryHandle();
  *
- * // Optionally use the sequence function to add additional handlers.
+ * // Optionally use the `sequence` function to add additional handlers.
  * // export const handle = sequence(sentryHandle(), yourCustomHandler);
  * ```
  */
 export function sentryHandle(handlerOptions?: SentryHandleOptions): Handle {
   const options = {
     handleUnknownRoutes: false,
+    injectFetchProxyScript: true,
     ...handlerOptions,
   };
 
@@ -139,7 +178,9 @@ async function instrumentHandle(
         },
       },
       async (span?: Span) => {
-        const res = await resolve(event, { transformPageChunk });
+        const res = await resolve(event, {
+          transformPageChunk: addSentryCodeToPage(options),
+        });
         if (span) {
           span.setHttpStatus(res.status);
         }
