@@ -100,6 +100,8 @@ export function withSentry(apiHandler: NextApiHandler, parameterizedRoute?: stri
 
         const reqMethod = `${(req.method || 'GET').toUpperCase()} `;
 
+        getCurrentScope().setSDKProcessingMetadata({ request: req });
+
         return startSpanManual(
           {
             ...transactionContext,
@@ -113,8 +115,6 @@ export function withSentry(apiHandler: NextApiHandler, parameterizedRoute?: stri
             },
           },
           async span => {
-            getCurrentScope().setSDKProcessingMetadata({ request: req });
-
             // eslint-disable-next-line @typescript-eslint/unbound-method
             res.end = new Proxy(res.end, {
               apply(target, thisArg, argArray) {
