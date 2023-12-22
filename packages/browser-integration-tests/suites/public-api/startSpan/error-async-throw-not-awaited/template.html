@@ -10,7 +10,6 @@
     <script type="module">
       async function run() {
         Sentry.startSpan({ name: 'parent_span', op: 'test' }, async () => {
-          console.log('throwing error')
           throw new Error('Async Thrown Error');
         });
       }
@@ -18,7 +17,6 @@
       const button = document.getElementById('button1');
       button.addEventListener('click', () => {
         void run();
-        console.log('click');
       });
     </script>
   </body>
