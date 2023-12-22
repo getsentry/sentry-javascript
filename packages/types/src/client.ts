@@ -14,6 +14,7 @@ import type { Scope } from './scope';
 import type { SdkMetadata } from './sdkmetadata';
 import type { Session, SessionAggregates } from './session';
 import type { Severity, SeverityLevel } from './severity';
+import type { Span } from './span';
 import type { Transaction } from './transaction';
 import type { Transport, TransportMakeRequestResponse } from './transport';
 
@@ -204,6 +205,18 @@ export interface Client<O extends ClientOptions = ClientOptions> {
   on?(hook: 'finishTransaction', callback: (transaction: Transaction) => void): void;
 
   /**
+   * Register a callback when a span (or transaction) starts.
+   * Receives the span as argument.
+   */
+  on?(hook: 'spanStart', callback: (span: Span) => void): void;
+
+  /**
+   * Register a callback when a span (or transaction) ends.
+   * Receives the span as argument.
+   */
+  on?(hook: 'spanEnd', callback: (span: Span) => void): void;
+
+  /**
    * Register a callback for transaction start and finish.
    */
   on?(hook: 'beforeEnvelope', callback: (envelope: Envelope) => void): void;
@@ -267,6 +280,18 @@ export interface Client<O extends ClientOptions = ClientOptions> {
    * Expects to be given a transaction as the second argument.
    */
   emit?(hook: 'finishTransaction', transaction: Transaction): void;
+
+  /**
+   * Fire a hook for span (or transaction) start.
+   * Expects to be given a span as the second argument.
+   */
+  emit?(hook: 'spanStart', span: Span): void;
+
+  /**
+   * Fire a hook for span (or transaction) ends.
+   * Expects to be given a span as the second argument.
+   */
+  emit?(hook: 'spanEnd', span: Span): void;
 
   /*
    * Fire a hook event for envelope creation and sending. Expects to be given an envelope as the

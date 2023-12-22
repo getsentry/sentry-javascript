@@ -1,3 +1,4 @@
+/* eslint-disable deprecation/deprecation */
 import { BrowserClient } from '@sentry/browser';
 import { TRACING_DEFAULTS, Transaction } from '@sentry/core';
 

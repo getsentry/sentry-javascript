@@ -74,6 +74,7 @@ The transaction will not be sampled. Please use the ${configInstrumenter} instru
 
 /**
  * Create new idle transaction.
+ * @deprecated Use `startIdleSpan` instead.
  */
 export function startIdleTransaction(
   hub: Hub,
@@ -83,10 +84,12 @@ export function startIdleTransaction(
   onScope?: boolean,
   customSamplingContext?: CustomSamplingContext,
   heartbeatInterval?: number,
+  // eslint-disable-next-line deprecation/deprecation
 ): IdleTransaction {
   const client = hub.getClient();
   const options: Partial<ClientOptions> = (client && client.getOptions()) || {};
 
+  // eslint-disable-next-line deprecation/deprecation
   let transaction = new IdleTransaction(transactionContext, hub, idleTimeout, finalTimeout, heartbeatInterval, onScope);
   transaction = sampleTransaction(transaction, options, {
     parentSampled: transactionContext.parentSampled,

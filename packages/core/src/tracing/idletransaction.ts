@@ -4,16 +4,11 @@ import { logger, timestampInSeconds } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../debug-build';
 import type { Hub } from '../hub';
+import { TRACING_DEFAULTS } from './idlespan';
 import type { Span } from './span';
 import { SpanRecorder } from './span';
 import { Transaction } from './transaction';
 import { ensureTimestampInSeconds } from './utils';
-
-export const TRACING_DEFAULTS = {
-  idleTimeout: 1000,
-  finalTimeout: 30000,
-  heartbeatInterval: 5000,
-};
 
 const FINISH_REASON_TAG = 'finishReason';
 
@@ -64,12 +59,19 @@ export class IdleTransactionSpanRecorder extends SpanRecorder {
   }
 }
 
-export type BeforeFinishCallback = (transactionSpan: IdleTransaction, endTimestamp: number) => void;
+/** @deprecated Use `startIdleSpan` instead */
+export type BeforeFinishCallback = (
+  // eslint-disable-next-line deprecation/deprecation
+  transactionSpan: IdleTransaction,
+  endTimestamp: number,
+) => void;
 
 /**
  * An IdleTransaction is a transaction that automatically finishes. It does this by tracking child spans as activities.
  * You can have multiple IdleTransactions active, but if the `onScope` option is specified, the idle transaction will
  * put itself on the scope on creation.
+ *
+ * @deprecated Use `startIdleSpan` instead.
  */
 export class IdleTransaction extends Transaction {
   // Activities store a list of active spans
@@ -86,6 +88,7 @@ export class IdleTransaction extends Transaction {
   // Idle timeout was canceled and we should finish the transaction with the last span end.
   private _idleTimeoutCanceledPermanently: boolean;
 
+  // eslint-disable-next-line deprecation/deprecation
   private readonly _beforeFinishCallbacks: BeforeFinishCallback[];
 
   /**
@@ -211,7 +214,10 @@ export class IdleTransaction extends Transaction {
    * This is exposed because users have no other way of running something before an idle transaction
    * finishes.
    */
-  public registerBeforeFinishCallback(callback: BeforeFinishCallback): void {
+  public registerBeforeFinishCallback(
+    // eslint-disable-next-line deprecation/deprecation
+    callback: BeforeFinishCallback,
+  ): void {
     this._beforeFinishCallbacks.push(callback);
   }
 
@@ -249,7 +255,7 @@ export class IdleTransaction extends Transaction {
    *                                 with the last child span.
    */
   public cancelIdleTimeout(
-    endTimestamp?: Parameters<IdleTransaction['end']>[0],
+    endTimestamp?: number,
     {
       restartOnChildSpanChange,
     }: {
@@ -286,7 +292,7 @@ export class IdleTransaction extends Transaction {
   /**
    * Restarts idle timeout, if there is no running idle timeout it will start one.
    */
-  private _restartIdleTimeout(endTimestamp?: Parameters<IdleTransaction['end']>[0]): void {
+  private _restartIdleTimeout(endTimestamp?: number): void {
     this.cancelIdleTimeout();
     this._idleTimeoutID = setTimeout(() => {
       if (!this._finished && Object.keys(this.activities).length === 0) {

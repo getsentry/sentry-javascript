@@ -1,7 +1,8 @@
 /* eslint-disable max-lines */
-import type { Hub, IdleTransaction } from '@sentry/core';
-import { TRACING_DEFAULTS, addTracingExtensions, getActiveTransaction, startIdleTransaction } from '@sentry/core';
-import type { EventProcessor, Integration, Transaction, TransactionContext, TransactionSource } from '@sentry/types';
+import type { Hub } from '@sentry/core';
+import { Transaction, getClient, startIdleSpan } from '@sentry/core';
+import { TRACING_DEFAULTS, addTracingExtensions, getActiveTransaction } from '@sentry/core';
+import type { EventProcessor, Integration, Span, TransactionContext, TransactionSource } from '@sentry/types';
 import { getDomElement, logger, tracingContextFromHeaders } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../common/debug-build';
@@ -259,12 +260,13 @@ export class BrowserTracing implements Integration {
 
     instrumentRouting(
       (context: TransactionContext) => {
-        const transaction = this._createRouteTransaction(context);
+        const span = this._createRouteSpan(context);
+        const transaction = span && span instanceof Transaction ? span : undefined;
 
         this.options._experiments.onStartRouteTransaction &&
           this.options._experiments.onStartRouteTransaction(transaction, context, getCurrentHub);
 
-        return transaction;
+        return transaction as Transaction;
       },
       startTransactionOnPageLoad,
       startTransactionOnLocationChange,
@@ -288,10 +290,9 @@ export class BrowserTracing implements Integration {
   }
 
   /** Create routing idle transaction. */
-  private _createRouteTransaction(context: TransactionContext): Transaction | undefined {
+  private _createRouteSpan(context: TransactionContext): Span | undefined {
     if (!this._getCurrentHub) {
-      DEBUG_BUILD &&
-        logger.warn(`[Tracing] Did not create ${context.op} transaction because _getCurrentHub is invalid.`);
+      DEBUG_BUILD && logger.warn(`[Tracing] Did not create ${context.op} span because _getCurrentHub is invalid.`);
       return undefined;
     }
 
@@ -334,22 +335,17 @@ export class BrowserTracing implements Integration {
     this._latestRouteSource = finalContext.metadata && finalContext.metadata.source;
 
     if (finalContext.sampled === false) {
-      DEBUG_BUILD && logger.log(`[Tracing] Will not send ${finalContext.op} transaction because of beforeNavigate.`);
+      DEBUG_BUILD && logger.log(`[Tracing] Will not send ${finalContext.op} span because of beforeNavigate.`);
     }
 
-    DEBUG_BUILD && logger.log(`[Tracing] Starting ${finalContext.op} transaction on scope`);
+    DEBUG_BUILD && logger.log(`[Tracing] Starting ${finalContext.op} span on scope`);
 
-    const { location } = WINDOW;
-
-    const idleTransaction = startIdleTransaction(
-      hub,
-      finalContext,
+    const idleSpan = startIdleSpan({
+      transactionContext: finalContext,
       idleTimeout,
       finalTimeout,
-      true,
-      { location }, // for use in the tracesSampler
       heartbeatInterval,
-    );
+    });
 
     const scope = hub.getScope();
 
@@ -357,29 +353,34 @@ export class BrowserTracing implements Integration {
     // use the traceparentData as the propagation context
     if (isPageloadTransaction && traceparentData) {
       scope.setPropagationContext(propagationContext);
-    } else {
-      // Navigation transactions should set a new propagation context based on the
-      // created idle transaction.
+    } else if (idleSpan) {
+      // Navigation spans should set a new propagation context based on the
+      // created idle span.
       scope.setPropagationContext({
-        traceId: idleTransaction.traceId,
-        spanId: idleTransaction.spanId,
-        parentSpanId: idleTransaction.parentSpanId,
-        sampled: idleTransaction.sampled,
+        traceId: idleSpan.traceId,
+        spanId: idleSpan.spanId,
+        parentSpanId: idleSpan.parentSpanId,
+        sampled: idleSpan.sampled,
       });
     }
 
-    idleTransaction.registerBeforeFinishCallback(transaction => {
-      this._collectWebVitals();
-      addPerformanceEntries(transaction);
-    });
+    const client = getClient();
+    if (client && client.on) {
+      client.on('spanEnd', span => {
+        if (span === idleSpan && span instanceof Transaction) {
+          this._collectWebVitals();
+          addPerformanceEntries(span);
+        }
+      });
+    }
 
-    return idleTransaction as Transaction;
+    return idleSpan;
   }
 
-  /** Start listener for interaction transactions */
+  /** Start listener for interaction span */
   private _registerInteractionListener(): void {
-    let inflightInteractionTransaction: IdleTransaction | undefined;
-    const registerInteractionTransaction = (): void => {
+    let inflightInteractionSpan: Span | undefined;
+    const registerInteractionSpan = (): void => {
       const { idleTimeout, finalTimeout, heartbeatInterval } = this.options;
       const op = 'ui.action.click';
 
@@ -392,10 +393,10 @@ export class BrowserTracing implements Integration {
         return undefined;
       }
 
-      if (inflightInteractionTransaction) {
-        inflightInteractionTransaction.setFinishReason('interactionInterrupted');
-        inflightInteractionTransaction.end();
-        inflightInteractionTransaction = undefined;
+      if (inflightInteractionSpan) {
+        inflightInteractionSpan.setTag('finishReason', 'interactionInterrupted');
+        inflightInteractionSpan.end();
+        inflightInteractionSpan = undefined;
       }
 
       if (!this._getCurrentHub) {
@@ -420,19 +421,16 @@ export class BrowserTracing implements Integration {
         },
       };
 
-      inflightInteractionTransaction = startIdleTransaction(
-        hub,
-        context,
+      inflightInteractionSpan = startIdleSpan({
+        transactionContext: context,
         idleTimeout,
         finalTimeout,
-        true,
-        { location }, // for use in the tracesSampler
         heartbeatInterval,
-      );
+      });
     };
 
     ['click'].forEach(type => {
-      addEventListener(type, registerInteractionTransaction, { once: false, capture: true });
+      addEventListener(type, registerInteractionSpan, { once: false, capture: true });
     });
   }
 }

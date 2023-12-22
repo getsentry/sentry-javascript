@@ -1,5 +1,12 @@
-export { startIdleTransaction, addTracingExtensions } from './hubextensions';
-export { IdleTransaction, TRACING_DEFAULTS } from './idletransaction';
+export {
+  // eslint-disable-next-line deprecation/deprecation
+  startIdleTransaction,
+  addTracingExtensions,
+} from './hubextensions';
+export { startIdleSpan, TRACING_DEFAULTS } from './idlespan';
+// eslint-disable-next-line deprecation/deprecation
+export { IdleTransaction } from './idletransaction';
+// eslint-disable-next-line deprecation/deprecation
 export type { BeforeFinishCallback } from './idletransaction';
 export { Span, spanStatusfromHttpCode } from './span';
 export { Transaction } from './transaction';

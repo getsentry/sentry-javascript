@@ -1,5 +1,5 @@
 import { BrowserClient } from '@sentry/browser';
-import { Hub, addTracingExtensions, makeMain } from '@sentry/core';
+import { Hub, addTracingExtensions, makeMain, startSpan } from '@sentry/core';
 import type { HandlerDataError, HandlerDataUnhandledRejection } from '@sentry/types';
 
 import { getDefaultBrowserClientOptions } from '../../../../tracing/test/testutils';
@@ -34,7 +34,7 @@ describe('registerErrorHandlers()', () => {
   beforeEach(() => {
     mockAddGlobalErrorInstrumentationHandler.mockClear();
     mockAddGlobalUnhandledRejectionInstrumentationHandler.mockClear();
-    const options = getDefaultBrowserClientOptions();
+    const options = getDefaultBrowserClientOptions({ enableTracing: true });
     hub = new Hub(new BrowserClient(options));
     makeMain(hub);
   });
@@ -66,22 +66,20 @@ describe('registerErrorHandlers()', () => {
 
   it('sets status for transaction on scope on error', () => {
     registerErrorInstrumentation();
-    const transaction = hub.startTransaction({ name: 'test' });
-    hub.getScope().setSpan(transaction);
 
-    mockErrorCallback({} as HandlerDataError);
-    expect(transaction.status).toBe('internal_error');
+    startSpan({ name: 'test' }, span => {
+      mockErrorCallback({} as HandlerDataError);
 
-    transaction.end();
+      expect(span?.status).toBe('internal_error');
+    });
   });
 
   it('sets status for transaction on scope on unhandledrejection', () => {
     registerErrorInstrumentation();
-    const transaction = hub.startTransaction({ name: 'test' });
-    hub.getScope().setSpan(transaction);
 
-    mockUnhandledRejectionCallback({});
-    expect(transaction.status).toBe('internal_error');
-    transaction.end();
+    startSpan({ name: 'test' }, span => {
+      mockUnhandledRejectionCallback({});
+      expect(span?.status).toBe('internal_error');
+    });
   });
 });

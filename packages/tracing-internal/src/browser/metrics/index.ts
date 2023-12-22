@@ -1,5 +1,5 @@
 /* eslint-disable max-lines */
-import type { IdleTransaction, Transaction } from '@sentry/core';
+import type { Transaction } from '@sentry/core';
 import { getActiveTransaction } from '@sentry/core';
 import type { Measurements, SpanContext } from '@sentry/types';
 import { browserPerformanceTimeOrigin, getComponentName, htmlTreeAsString, logger } from '@sentry/utils';
@@ -69,7 +69,7 @@ export function startTrackingWebVitals(): () => void {
 export function startTrackingLongTasks(): void {
   addPerformanceInstrumentationHandler('longtask', ({ entries }) => {
     for (const entry of entries) {
-      const transaction = getActiveTransaction() as IdleTransaction | undefined;
+      const transaction = getActiveTransaction();
       if (!transaction) {
         return;
       }
@@ -93,7 +93,7 @@ export function startTrackingLongTasks(): void {
 export function startTrackingInteractions(): void {
   addPerformanceInstrumentationHandler('event', ({ entries }) => {
     for (const entry of entries) {
-      const transaction = getActiveTransaction() as IdleTransaction | undefined;
+      const transaction = getActiveTransaction();
       if (!transaction) {
         return;
       }

@@ -150,11 +150,13 @@ export const TRACEPARENT_REGEXP = TRACEPARENT_REGEXP_T;
 /**
  * @deprecated `@sentry/tracing` has been deprecated and will be moved to to `@sentry/node`, `@sentry/browser`, or your framework SDK in the next major version.
  */
+// eslint-disable-next-line deprecation/deprecation
 export const IdleTransaction = IdleTransactionT;
 
 /**
  * @deprecated `@sentry/tracing` has been deprecated and will be moved to to `@sentry/node`, `@sentry/browser`, or your framework SDK in the next major version.
  */
+// eslint-disable-next-line deprecation/deprecation
 export type IdleTransaction = IdleTransactionT;
 
 /**
@@ -165,6 +167,7 @@ export const instrumentOutgoingRequests = instrumentOutgoingRequestsT;
 /**
  * @deprecated `@sentry/tracing` has been deprecated and will be moved to to `@sentry/node`, `@sentry/browser`, or your framework SDK in the next major version.
  */
+// eslint-disable-next-line deprecation/deprecation
 export const startIdleTransaction = startIdleTransactionT;
 
 /**

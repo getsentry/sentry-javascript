@@ -11,6 +11,7 @@ import type {
 import { dropUndefinedKeys, generateSentryTraceHeader, logger, timestampInSeconds, uuid4 } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../debug-build';
+import { getClient } from '../exports';
 import { ensureTimestampInSeconds } from './utils';
 
 /**
@@ -162,6 +163,11 @@ export class Span implements SpanInterface {
     if (spanContext.endTimestamp) {
       this.endTimestamp = spanContext.endTimestamp;
     }
+
+    const client = getClient();
+    if (client && client.emit) {
+      client.emit('spanStart', this);
+    }
   }
 
   /** An alias for `description` of the Span. */
@@ -283,6 +289,11 @@ export class Span implements SpanInterface {
 
     this.endTimestamp =
       typeof endTimestamp === 'number' ? ensureTimestampInSeconds(endTimestamp) : timestampInSeconds();
+
+    const client = getClient();
+    if (client && client.emit) {
+      client.emit('spanEnd', this);
+    }
   }
 
   /**

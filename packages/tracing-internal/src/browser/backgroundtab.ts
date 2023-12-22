@@ -1,4 +1,4 @@
-import type { IdleTransaction, SpanStatusType } from '@sentry/core';
+import type { SpanStatusType } from '@sentry/core';
 import { getActiveTransaction } from '@sentry/core';
 import { logger } from '@sentry/utils';
 
@@ -12,7 +12,7 @@ import { WINDOW } from './types';
 export function registerBackgroundTabDetection(): void {
   if (WINDOW && WINDOW.document) {
     WINDOW.document.addEventListener('visibilitychange', () => {
-      const activeTransaction = getActiveTransaction() as IdleTransaction;
+      const activeTransaction = getActiveTransaction();
       if (WINDOW.document.hidden && activeTransaction) {
         const statusType: SpanStatusType = 'cancelled';
 
