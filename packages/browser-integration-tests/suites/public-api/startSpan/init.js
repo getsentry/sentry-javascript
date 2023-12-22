@@ -1,6 +1,5 @@
 import * as Sentry from '@sentry/browser';
 // eslint-disable-next-line no-unused-vars
-import * as _ from '@sentry/tracing';
 
 window.Sentry = Sentry;
 
@@ -9,9 +8,4 @@ Sentry.init({
   dsn: 'https://a5e7debbbe074daa916887a3adcd0df5@o447951.ingest.sentry.io/4503942526795776',
   tracesSampleRate: 1.0,
   normalizeDepth: 10,
-  debug: true,
-  beforeSend(event) {
-    console.log('beforeSend', event);
-    return event;
-  },
 });
