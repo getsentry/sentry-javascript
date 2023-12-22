@@ -2,6 +2,7 @@ import {
   addTracingExtensions,
   captureException,
   continueTrace,
+  getCurrentScope,
   runWithAsyncContext,
   startSpanManual,
 } from '@sentry/core';
@@ -112,6 +113,8 @@ export function withSentry(apiHandler: NextApiHandler, parameterizedRoute?: stri
             },
           },
           async span => {
+            getCurrentScope().setSDKProcessingMetadata({ request: req });
+
             // eslint-disable-next-line @typescript-eslint/unbound-method
             res.end = new Proxy(res.end, {
               apply(target, thisArg, argArray) {
