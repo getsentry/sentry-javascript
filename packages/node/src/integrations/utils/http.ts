@@ -183,7 +183,7 @@ export function normalizeRequestArgs(
     // as it will always return `http`, even when using `https` module.
     //
     // See test/integrations/http.test.ts for more details on Node <=v8 protocol issue.
-    if (NODE_VERSION.major && NODE_VERSION.major > 8) {
+    if (NODE_VERSION.major > 8) {
       requestOptions.protocol =
         (httpModule?.globalAgent as any)?.protocol ||
         (requestOptions.agent as any)?.protocol ||

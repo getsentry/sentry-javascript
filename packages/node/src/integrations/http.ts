@@ -132,7 +132,7 @@ export class Http implements Integration {
     // NOTE: Prior to Node 9, `https` used internals of `http` module, thus we don't patch it.
     // If we do, we'd get double breadcrumbs and double spans for `https` calls.
     // It has been changed in Node 9, so for all versions equal and above, we patch `https` separately.
-    if (NODE_VERSION.major && NODE_VERSION.major > 8) {
+    if (NODE_VERSION.major > 8) {
       // eslint-disable-next-line @typescript-eslint/no-var-requires
       const httpsModule = require('https');
       const wrappedHttpsHandlerMaker = _createWrappedRequestMethodFactory(
