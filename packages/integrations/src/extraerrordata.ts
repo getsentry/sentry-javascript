@@ -15,7 +15,7 @@ interface ExtraErrorDataOptions {
   /**
    * Whether to capture error causes.
    *
-   * More innformation: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Error/cause
+   * More information: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Error/cause
    */
   captureErrorCause: boolean;
 }
