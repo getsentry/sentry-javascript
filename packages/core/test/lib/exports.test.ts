@@ -42,12 +42,52 @@ describe('withScope', () => {
     expect(res).toBe('foo');
   });
 
-  it('works with an async function', async () => {
+  it('works with an async function return value', async () => {
     const res = withScope(async scope => {
       return 'foo';
     });
 
     expect(res).toBeInstanceOf(Promise);
     expect(await res).toBe('foo');
+  });
+
+  it('correctly sets & resets the current scope', () => {
+    const scope1 = getCurrentScope();
+
+    withScope(scope2 => {
+      expect(scope2).not.toBe(scope1);
+      expect(getCurrentScope()).toBe(scope2);
+    });
+
+    withScope(scope3 => {
+      expect(scope3).not.toBe(scope1);
+      expect(getCurrentScope()).toBe(scope3);
+    });
+
+    expect(getCurrentScope()).toBe(scope1);
+  });
+
+  it('correctly sets & resets the current scope with async functions', async () => {
+    const scope1 = getCurrentScope();
+
+    await withScope(async scope2 => {
+      expect(scope2).not.toBe(scope1);
+      expect(getCurrentScope()).toBe(scope2);
+
+      await new Promise(resolve => setTimeout(resolve, 10));
+
+      expect(getCurrentScope()).toBe(scope2);
+    });
+
+    await withScope(async scope3 => {
+      expect(scope3).not.toBe(scope1);
+      expect(getCurrentScope()).toBe(scope3);
+
+      await new Promise(resolve => setTimeout(resolve, 10));
+
+      expect(getCurrentScope()).toBe(scope3);
+    });
+
+    expect(getCurrentScope()).toBe(scope1);
   });
 });
