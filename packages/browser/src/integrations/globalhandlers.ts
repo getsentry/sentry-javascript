@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
-import { captureEvent, getClient } from '@sentry/core';
-import type { Client, Event, Integration, Primitive, StackParser } from '@sentry/types';
+import { captureEvent, convertIntegrationFnToClass, getClient } from '@sentry/core';
+import type { Client, Event, IntegrationFn, Primitive, StackParser } from '@sentry/types';
 import {
   addGlobalErrorInstrumentationHandler,
   addGlobalUnhandledRejectionInstrumentationHandler,
@@ -18,52 +18,38 @@ import { shouldIgnoreOnError } from '../helpers';
 
 type GlobalHandlersIntegrationsOptionKeys = 'onerror' | 'onunhandledrejection';
 
-/** JSDoc */
 type GlobalHandlersIntegrations = Record<GlobalHandlersIntegrationsOptionKeys, boolean>;
 
+const INTEGRATION_NAME = 'GlobalHandlers';
+
+const globalHandlersIntegrations: IntegrationFn = (options: Partial<GlobalHandlersIntegrations> = {}) => {
+  const _options = {
+    onerror: true,
+    onunhandledrejection: true,
+    ...options,
+  };
+
+  return {
+    name: INTEGRATION_NAME,
+    setupOnce() {
+      Error.stackTraceLimit = 50;
+    },
+    setup(client) {
+      if (_options.onerror) {
+        _installGlobalOnErrorHandler(client);
+        globalHandlerLog('onerror');
+      }
+      if (_options.onunhandledrejection) {
+        _installGlobalOnUnhandledRejectionHandler(client);
+        globalHandlerLog('onunhandledrejection');
+      }
+    },
+  };
+};
+
 /** Global handlers */
-export class GlobalHandlers implements Integration {
-  /**
-   * @inheritDoc
-   */
-  public static id: string = 'GlobalHandlers';
-
-  /**
-   * @inheritDoc
-   */
-  public name: string;
-
-  /** JSDoc */
-  private readonly _options: GlobalHandlersIntegrations;
-
-  /** JSDoc */
-  public constructor(options?: GlobalHandlersIntegrations) {
-    this.name = GlobalHandlers.id;
-    this._options = {
-      onerror: true,
-      onunhandledrejection: true,
-      ...options,
-    };
-  }
-  /**
-   * @inheritDoc
-   */
-  public setupOnce(): void {
-    Error.stackTraceLimit = 50;
-  }
-
-  /** @inheritdoc */
-  public setup(client: Client): void {
-    if (this._options.onerror) {
-      _installGlobalOnErrorHandler(client);
-      globalHandlerLog('onerror');
-    }
-    if (this._options.onunhandledrejection) {
-      _installGlobalOnUnhandledRejectionHandler(client);
-      globalHandlerLog('onunhandledrejection');
-    }
-  }
-}
+// eslint-disable-next-line deprecation/deprecation
+export const GlobalHandlers = convertIntegrationFnToClass(INTEGRATION_NAME, globalHandlersIntegrations);
 
 function _installGlobalOnErrorHandler(client: Client): void {
   addGlobalErrorInstrumentationHandler(data => {
@@ -204,7 +190,6 @@ function _eventFromIncompleteOnError(msg: any, url: any, line: any, column: any)
   return _enhanceEventWithInitialFrame(event, url, line, column);
 }
 
-/** JSDoc */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function _enhanceEventWithInitialFrame(event: Event, url: any, line: any, column: any): Event {
   // event.exception

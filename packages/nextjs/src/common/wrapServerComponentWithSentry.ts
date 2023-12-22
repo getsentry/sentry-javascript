@@ -88,7 +88,9 @@ export function wrapServerComponentWithSentry<F extends (...args: any[]) => any>
             }
           },
           () => {
-            void flushQueue();
+            // flushQueue should not throw
+            // eslint-disable-next-line @typescript-eslint/no-floating-promises
+            flushQueue();
           },
         );
 

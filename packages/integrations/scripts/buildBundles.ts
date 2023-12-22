@@ -47,7 +47,8 @@ if (runParallel) {
       process.exit(1);
     });
 } else {
-  void (async () => {
+  // eslint-disable-next-line @typescript-eslint/no-floating-promises
+  (async () => {
     for (const integration of getIntegrations()) {
       await buildBundle(integration, 'es5');
       await buildBundle(integration, 'es6');

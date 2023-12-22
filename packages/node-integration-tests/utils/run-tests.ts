@@ -70,7 +70,8 @@ const workers = os.cpus().map(async (_, i) => {
   }
 });
 
-void Promise.all(workers).then(() => {
+// eslint-disable-next-line @typescript-eslint/no-floating-promises
+Promise.all(workers).then(() => {
   console.log('-------------------');
   console.log(`Successfully ran ${numTests} tests.`);
   if (fails.length > 0) {

@@ -1,15 +1,5 @@
-import { notifyEventProcessors } from '@sentry/core';
 import { OpenTelemetryScope } from '@sentry/opentelemetry';
-import type {
-  Attachment,
-  Breadcrumb,
-  Client,
-  Event,
-  EventHint,
-  EventProcessor,
-  Severity,
-  SeverityLevel,
-} from '@sentry/types';
+import type { Attachment, Breadcrumb, Client, Event, EventHint, Severity, SeverityLevel } from '@sentry/types';
 import { uuid4 } from '@sentry/utils';
 
 import { getGlobalCarrier } from './globals';
@@ -116,13 +106,7 @@ export class Scope extends OpenTelemetryScope implements ScopeInterface {
 
   /** @inheritdoc */
   public getAttachments(): Attachment[] {
-    const data = getGlobalScope().getScopeData();
-    const isolationScopeData = this._getIsolationScope().getScopeData();
-    const scopeData = this.getScopeData();
-
-    // Merge data together, in order
-    mergeData(data, isolationScopeData);
-    mergeData(data, scopeData);
+    const data = this.getScopeData();
 
     return data.attachments;
   }
@@ -200,7 +184,7 @@ export class Scope extends OpenTelemetryScope implements ScopeInterface {
   }
 
   /** Get all relevant data for this scope. */
-  public getScopeData(): ScopeData {
+  public getPerScopeData(): ScopeData {
     const {
       _breadcrumbs,
       _attachments,
@@ -230,63 +214,17 @@ export class Scope extends OpenTelemetryScope implements ScopeInterface {
     };
   }
 
-  /**
-   * Applies data from the scope to the event and runs all event processors on it.
-   *
-   * @param event Event
-   * @param hint Object containing additional information about the original exception, for use by the event processors.
-   * @hidden
-   */
-  public applyToEvent(
-    event: Event,
-    hint: EventHint = {},
-    additionalEventProcessors: EventProcessor[] = [],
-  ): PromiseLike<Event | null> {
-    const data = getGlobalScope().getScopeData();
-    const isolationScopeData = this._getIsolationScope().getScopeData();
-    const scopeData = this.getScopeData();
+  /** @inheritdoc */
+  public getScopeData(): ScopeData {
+    const data = getGlobalScope().getPerScopeData();
+    const isolationScopeData = this._getIsolationScope().getPerScopeData();
+    const scopeData = this.getPerScopeData();
 
     // Merge data together, in order
     mergeData(data, isolationScopeData);
     mergeData(data, scopeData);
 
-    // Apply the data
-    const { extra, tags, user, contexts, level, sdkProcessingMetadata, breadcrumbs, fingerprint, eventProcessors } =
-      data;
-
-    mergePropKeep(event, 'extra', extra);
-    mergePropKeep(event, 'tags', tags);
-    mergePropKeep(event, 'user', user);
-    mergePropKeep(event, 'contexts', contexts);
-    mergePropKeep(event, 'sdkProcessingMetadata', sdkProcessingMetadata);
-    event.sdkProcessingMetadata = {
-      ...event.sdkProcessingMetadata,
-      propagationContext: this._propagationContext,
-    };
-
-    mergeArray(event, 'breadcrumbs', breadcrumbs);
-    mergeArray(event, 'fingerprint', fingerprint);
-
-    if (level) {
-      event.level = level;
-    }
-
-    const allEventProcessors = [...additionalEventProcessors, ...eventProcessors];
-
-    // Apply additional things to the event
-    if (this._transactionName) {
-      event.transaction = this._transactionName;
-    }
-
-    return notifyEventProcessors(allEventProcessors, event, hint);
-  }
-
-  /**
-   * Get all breadcrumbs attached to this scope.
-   * @internal
-   */
-  public getBreadcrumbs(): Breadcrumb[] {
-    return this._breadcrumbs;
+    return data;
   }
 
   /** Get the isolation scope for this scope. */
@@ -308,6 +246,7 @@ export function mergeData(data: ScopeData, mergeData: ScopeData): void {
     fingerprint,
     eventProcessors,
     attachments,
+    propagationContext,
   } = mergeData;
 
   mergePropOverwrite(data, 'extra', extra);
@@ -335,6 +274,8 @@ export function mergeData(data: ScopeData, mergeData: ScopeData): void {
   if (attachments.length) {
     data.attachments = [...data.attachments, ...attachments];
   }
+
+  data.propagationContext = { ...data.propagationContext, ...propagationContext };
 }
 
 /**

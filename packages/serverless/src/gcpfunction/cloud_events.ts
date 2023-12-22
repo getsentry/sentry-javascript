@@ -54,7 +54,8 @@ function _wrapCloudEventFunction(
       }
       transaction?.finish();
 
-      void flush(options.flushTimeout)
+      // eslint-disable-next-line @typescript-eslint/no-floating-promises
+      flush(options.flushTimeout)
         .then(null, e => {
           DEBUG_BUILD && logger.error(e);
         })

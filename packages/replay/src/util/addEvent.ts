@@ -25,7 +25,9 @@ export function addEventSync(replay: ReplayContainer, event: RecordingEvent, isC
     return false;
   }
 
-  void _addEvent(replay, event, isCheckout);
+  // This should never reject
+  // eslint-disable-next-line @typescript-eslint/no-floating-promises
+  _addEvent(replay, event, isCheckout);
 
   return true;
 }
