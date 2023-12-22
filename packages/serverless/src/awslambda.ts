@@ -342,7 +342,7 @@ export function wrapHandler<TEvent, TResult>(
         throw e;
       } finally {
         clearTimeout(timeoutWarningTimer);
-        transaction?.finish();
+        transaction?.end();
         await flush(options.flushTimeout).catch(e => {
           DEBUG_BUILD && logger.error(e);
         });

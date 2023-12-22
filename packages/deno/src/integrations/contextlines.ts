@@ -1,6 +1,8 @@
-import type { Event, EventProcessor, Integration, StackFrame } from '@sentry/types';
+import { convertIntegrationFnToClass } from '@sentry/core';
+import type { Event, IntegrationFn, StackFrame } from '@sentry/types';
 import { LRUMap, addContextToFrame } from '@sentry/utils';
 
+const INTEGRATION_NAME = 'ContextLines';
 const FILE_CONTENT_CACHE = new LRUMap<string, string | null>(100);
 const DEFAULT_LINES_OF_CONTEXT = 7;
 
@@ -45,73 +47,54 @@ interface ContextLinesOptions {
   frameContextLines?: number;
 }
 
+const denoContextLinesIntegration: IntegrationFn = (options: ContextLinesOptions = {}) => {
+  const contextLines = options.frameContextLines !== undefined ? options.frameContextLines : DEFAULT_LINES_OF_CONTEXT;
+
+  return {
+    name: INTEGRATION_NAME,
+    processEvent(event) {
+      return addSourceContext(event, contextLines);
+    },
+  };
+};
+
 /** Add node modules / packages to the event */
-export class ContextLines implements Integration {
-  /**
-   * @inheritDoc
-   */
-  public static id = 'ContextLines';
+// eslint-disable-next-line deprecation/deprecation
+export const ContextLines = convertIntegrationFnToClass(INTEGRATION_NAME, denoContextLinesIntegration);
 
-  /**
-   * @inheritDoc
-   */
-  public name: string = ContextLines.id;
-
-  public constructor(private readonly _options: ContextLinesOptions = {}) {}
-
-  /** Get's the number of context lines to add */
-  private get _contextLines(): number {
-    return this._options.frameContextLines !== undefined ? this._options.frameContextLines : DEFAULT_LINES_OF_CONTEXT;
-  }
-
-  /**
-   * @inheritDoc
-   */
-  public setupOnce(_addGlobalEventProcessor: (callback: EventProcessor) => void): void {
-    // noop
-  }
-
-  /** @inheritDoc */
-  public processEvent(event: Event): Promise<Event> {
-    return this.addSourceContext(event);
-  }
-
-  /** Processes an event and adds context lines */
-  public async addSourceContext(event: Event): Promise<Event> {
-    if (this._contextLines > 0 && event.exception && event.exception.values) {
-      for (const exception of event.exception.values) {
-        if (exception.stacktrace && exception.stacktrace.frames) {
-          await this.addSourceContextToFrames(exception.stacktrace.frames);
-        }
+/** Processes an event and adds context lines */
+async function addSourceContext(event: Event, contextLines: number): Promise<Event> {
+  if (contextLines > 0 && event.exception && event.exception.values) {
+    for (const exception of event.exception.values) {
+      if (exception.stacktrace && exception.stacktrace.frames) {
+        await addSourceContextToFrames(exception.stacktrace.frames, contextLines);
       }
     }
-
-    return event;
   }
 
-  /** Adds context lines to frames */
-  public async addSourceContextToFrames(frames: StackFrame[]): Promise<void> {
-    const contextLines = this._contextLines;
+  return event;
+}
 
-    for (const frame of frames) {
-      // Only add context if we have a filename and it hasn't already been added
-      if (frame.filename && frame.in_app && frame.context_line === undefined) {
-        const permission = await Deno.permissions.query({
-          name: 'read',
-          path: frame.filename,
-        });
+/** Adds context lines to frames */
+async function addSourceContextToFrames(frames: StackFrame[], contextLines: number): Promise<void> {
+  for (const frame of frames) {
+    // Only add context if we have a filename and it hasn't already been added
+    if (frame.filename && frame.in_app && frame.context_line === undefined) {
+      const permission = await Deno.permissions.query({
+        name: 'read',
+        path: frame.filename,
+      });
 
-        if (permission.state == 'granted') {
-          const sourceFile = await readSourceFile(frame.filename);
+      if (permission.state == 'granted') {
+        const sourceFile = await readSourceFile(frame.filename);
 
-          if (sourceFile) {
-            try {
-              const lines = sourceFile.split('\n');
-              addContextToFrame(lines, frame, contextLines);
-            } catch (_) {
-              // anomaly, being defensive in case
-              // unlikely to ever happen in practice but can definitely happen in theory
-            }
+        if (sourceFile) {
+          try {
+            const lines = sourceFile.split('\n');
+            addContextToFrame(lines, frame, contextLines);
+          } catch (_) {
+            // anomaly, being defensive in case
+            // unlikely to ever happen in practice but can definitely happen in theory
           }
         }
       }

@@ -1,4 +1,4 @@
-import { getCurrentHub, getCurrentScope } from '@sentry/core';
+import { getCurrentScope } from '@sentry/core';
 
 import { withEdgeWrapping } from '../common/utils/edgeWrapperUtils';
 import type { EdgeRouteHandler } from './types';

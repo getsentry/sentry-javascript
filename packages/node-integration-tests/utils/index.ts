@@ -184,7 +184,8 @@ export class TestEnv {
       envelopeTypeArray,
     );
 
-    void makeRequest(options.method, options.url || this.url, this._axiosConfig);
+    // eslint-disable-next-line @typescript-eslint/no-floating-promises
+    makeRequest(options.method, options.url || this.url, this._axiosConfig);
     return resProm;
   }
 
@@ -305,7 +306,8 @@ export class TestEnv {
 
           nock.cleanAll();
 
-          void this._closeServer().then(() => {
+          // eslint-disable-next-line @typescript-eslint/no-floating-promises
+          this._closeServer().then(() => {
             resolve(reqCount);
           });
         },

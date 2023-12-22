@@ -28,7 +28,7 @@ Sentry.getCurrentScope().setSpan(transaction);
 
 connection.query('SELECT 1 + 1 AS solution', function () {
   connection.query('SELECT NOW()', ['1', '2'], () => {
-    if (transaction) transaction.finish();
+    if (transaction) transaction.end();
     connection.end();
   });
 });

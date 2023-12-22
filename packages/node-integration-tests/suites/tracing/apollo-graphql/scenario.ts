@@ -33,11 +33,12 @@ const transaction = Sentry.startTransaction({ name: 'test_transaction', op: 'tra
 
 Sentry.getCurrentScope().setSpan(transaction);
 
-void (async () => {
+// eslint-disable-next-line @typescript-eslint/no-floating-promises
+(async () => {
   // Ref: https://www.apollographql.com/docs/apollo-server/testing/testing/#testing-using-executeoperation
   await server.executeOperation({
     query: '{hello}',
   });
 
-  transaction.finish();
+  transaction.end();
 })();

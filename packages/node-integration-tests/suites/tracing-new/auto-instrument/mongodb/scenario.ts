@@ -36,9 +36,10 @@ async function run(): Promise<void> {
 
     await collection.find({ title: 'South Park' }).toArray();
   } finally {
-    if (transaction) transaction.finish();
+    if (transaction) transaction.end();
     await client.close();
   }
 }
 
-void run();
+// eslint-disable-next-line @typescript-eslint/no-floating-promises
+run();

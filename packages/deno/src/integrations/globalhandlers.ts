@@ -1,57 +1,41 @@
 import type { ServerRuntimeClient } from '@sentry/core';
+import { convertIntegrationFnToClass } from '@sentry/core';
 import { captureEvent } from '@sentry/core';
 import { getClient } from '@sentry/core';
 import { flush } from '@sentry/core';
-import type { Client, Event, Integration, Primitive, StackParser } from '@sentry/types';
+import type { Client, Event, IntegrationFn, Primitive, StackParser } from '@sentry/types';
 import { eventFromUnknownInput, isPrimitive } from '@sentry/utils';
 
 type GlobalHandlersIntegrationsOptionKeys = 'error' | 'unhandledrejection';
 
-/** JSDoc */
 type GlobalHandlersIntegrations = Record<GlobalHandlersIntegrationsOptionKeys, boolean>;
 
+const INTEGRATION_NAME = 'GlobalHandlers';
 let isExiting = false;
 
+const globalHandlersIntegration: IntegrationFn = (options?: GlobalHandlersIntegrations) => {
+  const _options = {
+    error: true,
+    unhandledrejection: true,
+    ...options,
+  };
+
+  return {
+    name: INTEGRATION_NAME,
+    setup(client) {
+      if (_options.error) {
+        installGlobalErrorHandler(client);
+      }
+      if (_options.unhandledrejection) {
+        installGlobalUnhandledRejectionHandler(client);
+      }
+    },
+  };
+};
+
 /** Global handlers */
-export class GlobalHandlers implements Integration {
-  /**
-   * @inheritDoc
-   */
-  public static id = 'GlobalHandlers';
-
-  /**
-   * @inheritDoc
-   */
-  public name: string = GlobalHandlers.id;
-
-  /** JSDoc */
-  private readonly _options: GlobalHandlersIntegrations;
-
-  /** JSDoc */
-  public constructor(options?: GlobalHandlersIntegrations) {
-    this._options = {
-      error: true,
-      unhandledrejection: true,
-      ...options,
-    };
-  }
-  /**
-   * @inheritDoc
-   */
-  public setupOnce(): void {
-    // noop
-  }
-
-  /** @inheritdoc */
-  public setup(client: Client): void {
-    if (this._options.error) {
-      installGlobalErrorHandler(client);
-    }
-    if (this._options.unhandledrejection) {
-      installGlobalUnhandledRejectionHandler(client);
-    }
-  }
-}
+// eslint-disable-next-line deprecation/deprecation
+export const GlobalHandlers = convertIntegrationFnToClass(INTEGRATION_NAME, globalHandlersIntegration);
 
 function installGlobalErrorHandler(client: Client): void {
   globalThis.addEventListener('error', data => {
@@ -79,10 +63,16 @@ function installGlobalErrorHandler(client: Client): void {
     data.preventDefault();
     isExiting = true;
 
-    void flush().then(() => {
-      // rethrow to replicate Deno default behavior
-      throw error;
-    });
+    flush().then(
+      () => {
+        // rethrow to replicate Deno default behavior
+        throw error;
+      },
+      () => {
+        // rethrow to replicate Deno default behavior
+        throw error;
+      },
+    );
   });
 }
 
@@ -122,10 +112,16 @@ function installGlobalUnhandledRejectionHandler(client: Client): void {
     e.preventDefault();
     isExiting = true;
 
-    void flush().then(() => {
-      // rethrow to replicate Deno default behavior
-      throw error;
-    });
+    flush().then(
+      () => {
+        // rethrow to replicate Deno default behavior
+        throw error;
+      },
+      () => {
+        // rethrow to replicate Deno default behavior
+        throw error;
+      },
+    );
   });
 }
 

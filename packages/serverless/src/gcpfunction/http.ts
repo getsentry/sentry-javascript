@@ -108,9 +108,10 @@ function _wrapHttpFunction(fn: HttpFunction, wrapOptions: Partial<HttpFunctionWr
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     res.end = function (chunk?: any | (() => void), encoding?: string | (() => void), cb?: () => void): any {
       transaction?.setHttpStatus(res.statusCode);
-      transaction?.finish();
+      transaction?.end();
 
-      void flush(options.flushTimeout)
+      // eslint-disable-next-line @typescript-eslint/no-floating-promises
+      flush(options.flushTimeout)
         .then(null, e => {
           DEBUG_BUILD && logger.error(e);
         })

@@ -11,6 +11,7 @@ import type {
 import { dropUndefinedKeys, generateSentryTraceHeader, logger, timestampInSeconds, uuid4 } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../debug-build';
+import { ensureTimestampInSeconds } from './utils';
 
 /**
  * Keeps track of finished spans for a given transaction
@@ -259,8 +260,15 @@ export class Span implements SpanInterface {
 
   /**
    * @inheritDoc
+   *
+   * @deprecated Use `.end()` instead.
    */
   public finish(endTimestamp?: number): void {
+    return this.end(endTimestamp);
+  }
+
+  /** @inheritdoc */
+  public end(endTimestamp?: number): void {
     if (
       DEBUG_BUILD &&
       // Don't call this for transactions
@@ -273,7 +281,8 @@ export class Span implements SpanInterface {
       }
     }
 
-    this.endTimestamp = typeof endTimestamp === 'number' ? endTimestamp : timestampInSeconds();
+    this.endTimestamp =
+      typeof endTimestamp === 'number' ? ensureTimestampInSeconds(endTimestamp) : timestampInSeconds();
   }
 
   /**

@@ -43,6 +43,8 @@ export {
   getCurrentHub,
   getClient,
   getCurrentScope,
+  getGlobalScope,
+  getIsolationScope,
   Hub,
   lastEventId,
   makeMain,
@@ -69,6 +71,7 @@ export {
   startInactiveSpan,
   startSpanManual,
   continueTrace,
+  metrics,
 } from '@sentry/core';
 export type { SpanStatusType } from '@sentry/core';
 export { autoDiscoverNodePerformanceMonitoringIntegrations } from './tracing';
@@ -79,7 +82,8 @@ export { defaultIntegrations, init, defaultStackParser, getSentryRelease } from 
 export { addRequestDataToEvent, DEFAULT_USER_INCLUDES, extractRequestData } from '@sentry/utils';
 export { deepReadDirSync } from './utils';
 export { getModuleFromFilename } from './module';
-export { enableAnrDetection, isAnrChildProcess } from './anr';
+// eslint-disable-next-line deprecation/deprecation
+export { enableAnrDetection } from './integrations/anr/legacy';
 
 import { Integrations as CoreIntegrations } from '@sentry/core';
 

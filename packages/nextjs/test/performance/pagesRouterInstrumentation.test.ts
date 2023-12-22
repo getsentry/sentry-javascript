@@ -50,9 +50,9 @@ function createMockStartTransaction() {
     () =>
       ({
         startChild: () => ({
-          finish: () => undefined,
+          end: () => undefined,
         }),
-        finish: () => undefined,
+        end: () => undefined,
       }) as Transaction,
   );
 }

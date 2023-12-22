@@ -1,6 +1,6 @@
 {
   "name": "@sentry/wasm",
-  "version": "7.88.0",
+  "version": "7.90.0",
   "description": "Support for WASM.",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/wasm",
@@ -23,22 +23,22 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/browser": "7.88.0",
-    "@sentry/types": "7.88.0",
-    "@sentry/utils": "7.88.0"
+    "@sentry/browser": "7.90.0",
+    "@sentry/types": "7.90.0",
+    "@sentry/utils": "7.90.0"
   },
   "scripts": {
     "build": "run-p build:transpile build:bundle build:types",
-    "build:bundle": "rollup --config rollup.bundle.config.js",
+    "build:bundle": "rollup --config rollup.bundle.config.mjs",
     "build:dev": "run-p build:transpile build:types",
-    "build:transpile": "rollup -c rollup.npm.config.js",
+    "build:transpile": "rollup -c rollup.npm.config.mjs",
     "build:types": "run-s build:types:core build:types:downlevel",
     "build:types:core": "tsc -p tsconfig.types.json",
     "build:types:downlevel": "yarn downlevel-dts build/npm/types build/npm/types-ts3.8 --to ts3.8",
     "build:watch": "run-p build:transpile:watch build:bundle:watch build:types:watch",
-    "build:bundle:watch": "rollup --config rollup.bundle.config.js --watch",
+    "build:bundle:watch": "rollup --config rollup.bundle.config.mjs --watch",
     "build:dev:watch": "run-p build:transpile:watch build:types:watch",
-    "build:transpile:watch": "rollup -c rollup.npm.config.js --watch",
+    "build:transpile:watch": "rollup -c rollup.npm.config.mjs --watch",
     "build:types:watch": "tsc -p tsconfig.types.json --watch",
     "build:tarball": "ts-node ../../scripts/prepack.ts --bundles && npm pack ./build/npm",
     "circularDepCheck": "madge --circular src/index.ts",

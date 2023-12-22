@@ -91,7 +91,9 @@ export function wrapRemixHandleError(err: unknown, { request }: DataFunctionArgs
     return;
   }
 
-  void captureRemixServerException(err, 'remix.server.handleError', request);
+  captureRemixServerException(err, 'remix.server.handleError', request).then(null, e => {
+    DEBUG_BUILD && logger.warn('Failed to capture Remix Server exception.', e);
+  });
 }
 
 /**
@@ -196,7 +198,7 @@ function makeWrappedDocumentRequestFunction(remixVersion?: number) {
           loadContext,
         );
 
-        span?.finish();
+        span?.end();
       } catch (err) {
         const isRemixV1 = !FUTURE_FLAGS?.v2_errorBoundary && remixVersion !== 2;
 
@@ -244,7 +246,7 @@ function makeWrappedDataFunction(
       res = await origFn.call(this, args);
 
       currentScope.setSpan(activeTransaction);
-      span?.finish();
+      span?.end();
     } catch (err) {
       const isRemixV2 = FUTURE_FLAGS?.v2_errorBoundary || remixVersion === 2;
 
@@ -461,7 +463,7 @@ function wrapRequestHandler(origRequestHandler: RequestHandler, build: ServerBui
         transaction.setHttpStatus(res.status);
       }
 
-      transaction.finish();
+      transaction.end();
 
       return res;
     });

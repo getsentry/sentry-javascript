@@ -1,8 +1,12 @@
-import type { Event, StackFrame } from '@sentry/types';
+import type { Event, Integration, StackFrame } from '@sentry/types';
 
 import { RewriteFrames } from '../src/rewriteframes';
 
-let rewriteFrames: RewriteFrames;
+interface IntegrationWithProcessEvent extends Integration {
+  processEvent(event: Event): Event;
+}
+
+let rewriteFrames: IntegrationWithProcessEvent;
 let exceptionEvent: Event;
 let exceptionWithoutStackTrace: Event;
 let windowsExceptionEvent: Event;
@@ -102,7 +106,7 @@ describe('RewriteFrames', () => {
     });
 
     it('transforms exceptionEvent frames', () => {
-      const event = rewriteFrames.process(exceptionEvent);
+      const event = rewriteFrames.processEvent(exceptionEvent);
       expect(event.exception!.values![0].stacktrace!.frames![0].filename).toEqual('app:///file1.js');
       expect(event.exception!.values![0].stacktrace!.frames![1].filename).toEqual('app:///file2.js');
     });
@@ -110,7 +114,7 @@ describe('RewriteFrames', () => {
     it('ignore exception without StackTrace', () => {
       // @ts-expect-error Validates that the Stacktrace does not exist before validating the test.
       expect(exceptionWithoutStackTrace.exception?.values[0].stacktrace).toEqual(undefined);
-      const event = rewriteFrames.process(exceptionWithoutStackTrace);
+      const event = rewriteFrames.processEvent(exceptionWithoutStackTrace);
       expect(event.exception!.values![0].stacktrace).toEqual(undefined);
     });
   });
@@ -123,7 +127,7 @@ describe('RewriteFrames', () => {
     });
 
     it('transforms exceptionEvent frames', () => {
-      const event = rewriteFrames.process(exceptionEvent);
+      const event = rewriteFrames.processEvent(exceptionEvent);
       expect(event.exception!.values![0].stacktrace!.frames![0].filename).toEqual('foobar/file1.js');
       expect(event.exception!.values![0].stacktrace!.frames![1].filename).toEqual('foobar/file2.js');
     });
@@ -135,25 +139,25 @@ describe('RewriteFrames', () => {
     });
 
     it('transforms windowsExceptionEvent frames (C:\\)', () => {
-      const event = rewriteFrames.process(windowsExceptionEvent);
+      const event = rewriteFrames.processEvent(windowsExceptionEvent);
       expect(event.exception!.values![0].stacktrace!.frames![0].filename).toEqual('app:///file1.js');
       expect(event.exception!.values![0].stacktrace!.frames![1].filename).toEqual('app:///file2.js');
     });
 
     it('transforms windowsExceptionEvent frames with lower-case prefix (c:\\)', () => {
-      const event = rewriteFrames.process(windowsLowerCaseExceptionEvent);
+      const event = rewriteFrames.processEvent(windowsLowerCaseExceptionEvent);
       expect(event.exception!.values![0].stacktrace!.frames![0].filename).toEqual('app:///file1.js');
       expect(event.exception!.values![0].stacktrace!.frames![1].filename).toEqual('app:///file2.js');
     });
 
     it('transforms windowsExceptionEvent frames with no prefix', () => {
-      const event = rewriteFrames.process(windowsExceptionEventWithoutPrefix);
+      const event = rewriteFrames.processEvent(windowsExceptionEventWithoutPrefix);
       expect(event.exception!.values![0].stacktrace!.frames![0].filename).toEqual('app:///file1.js');
       expect(event.exception!.values![0].stacktrace!.frames![1].filename).toEqual('app:///file2.js');
     });
 
     it('transforms windowsExceptionEvent frames with backslash prefix', () => {
-      const event = rewriteFrames.process(windowsExceptionEventWithBackslashPrefix);
+      const event = rewriteFrames.processEvent(windowsExceptionEventWithBackslashPrefix);
       expect(event.exception!.values![0].stacktrace!.frames![0].filename).toEqual('app:///file1.js');
       expect(event.exception!.values![0].stacktrace!.frames![1].filename).toEqual('app:///file2.js');
     });
@@ -167,31 +171,31 @@ describe('RewriteFrames', () => {
     });
 
     it('transforms exceptionEvent frames', () => {
-      const event = rewriteFrames.process(exceptionEvent);
+      const event = rewriteFrames.processEvent(exceptionEvent);
       expect(event.exception!.values![0].stacktrace!.frames![0].filename).toEqual('app:///src/app/file1.js');
       expect(event.exception!.values![0].stacktrace!.frames![1].filename).toEqual('app:///src/app/mo\\dule/file2.js');
     });
 
     it('transforms windowsExceptionEvent frames', () => {
-      const event = rewriteFrames.process(windowsExceptionEvent);
+      const event = rewriteFrames.processEvent(windowsExceptionEvent);
       expect(event.exception!.values![0].stacktrace!.frames![0].filename).toEqual('app:///src/app/file1.js');
       expect(event.exception!.values![0].stacktrace!.frames![1].filename).toEqual('app:///src/app/file2.js');
     });
 
     it('transforms windowsExceptionEvent lower-case prefix frames', () => {
-      const event = rewriteFrames.process(windowsLowerCaseExceptionEvent);
+      const event = rewriteFrames.processEvent(windowsLowerCaseExceptionEvent);
       expect(event.exception!.values![0].stacktrace!.frames![0].filename).toEqual('app:///src/app/file1.js');
       expect(event.exception!.values![0].stacktrace!.frames![1].filename).toEqual('app:///src/app/file2.js');
     });
 
     it('transforms windowsExceptionEvent frames with no prefix', () => {
-      const event = rewriteFrames.process(windowsExceptionEventWithoutPrefix);
+      const event = rewriteFrames.processEvent(windowsExceptionEventWithoutPrefix);
       expect(event.exception!.values![0].stacktrace!.frames![0].filename).toEqual('app:///src/app/file1.js');
       expect(event.exception!.values![0].stacktrace!.frames![1].filename).toEqual('app:///src/app/file2.js');
     });
 
     it('transforms windowsExceptionEvent frames with backslash prefix', () => {
-      const event = rewriteFrames.process(windowsExceptionEventWithBackslashPrefix);
+      const event = rewriteFrames.processEvent(windowsExceptionEventWithBackslashPrefix);
       expect(event.exception!.values![0].stacktrace!.frames![0].filename).toEqual('app:///src/app/file1.js');
       expect(event.exception!.values![0].stacktrace!.frames![1].filename).toEqual('app:///src/app/file2.js');
     });
@@ -208,7 +212,7 @@ describe('RewriteFrames', () => {
     });
 
     it('transforms exceptionEvent frames', () => {
-      const event = rewriteFrames.process(exceptionEvent);
+      const event = rewriteFrames.processEvent(exceptionEvent);
       expect(event.exception!.values![0].stacktrace!.frames![0].filename).toEqual('/www/src/app/file1.js');
       expect(event.exception!.values![0].stacktrace!.frames![0].function).toEqual('whoops');
       expect(event.exception!.values![0].stacktrace!.frames![1].filename).toEqual('/www/src/app/mo\\dule/file2.js');
@@ -219,7 +223,7 @@ describe('RewriteFrames', () => {
   describe('can process events that contain multiple stacktraces', () => {
     it('with defaults', () => {
       rewriteFrames = new RewriteFrames();
-      const event = rewriteFrames.process(multipleStacktracesEvent);
+      const event = rewriteFrames.processEvent(multipleStacktracesEvent);
       // first stacktrace
       expect(event.exception!.values![0].stacktrace!.frames![0].filename).toEqual('app:///file1.js');
       expect(event.exception!.values![0].stacktrace!.frames![1].filename).toEqual('app:///file2.js');
@@ -235,7 +239,7 @@ describe('RewriteFrames', () => {
       rewriteFrames = new RewriteFrames({
         root: '/www',
       });
-      const event = rewriteFrames.process(multipleStacktracesEvent);
+      const event = rewriteFrames.processEvent(multipleStacktracesEvent);
       // first stacktrace
       expect(event.exception!.values![0].stacktrace!.frames![0].filename).toEqual('app:///src/app/file1.js');
       expect(event.exception!.values![0].stacktrace!.frames![1].filename).toEqual('app:///src/app/mo\\dule/file2.js');
@@ -254,7 +258,7 @@ describe('RewriteFrames', () => {
           function: 'whoops',
         }),
       });
-      const event = rewriteFrames.process(multipleStacktracesEvent);
+      const event = rewriteFrames.processEvent(multipleStacktracesEvent);
       // first stacktrace
       expect(event.exception!.values![0].stacktrace!.frames![0].filename).toEqual('/www/src/app/file1.js');
       expect(event.exception!.values![0].stacktrace!.frames![0].function).toEqual('whoops');
@@ -281,7 +285,7 @@ describe('RewriteFrames', () => {
           values: undefined,
         },
       };
-      expect(rewriteFrames.process(brokenEvent)).toEqual(brokenEvent);
+      expect(rewriteFrames.processEvent(brokenEvent)).toEqual(brokenEvent);
     });
 
     it('no frames', () => {
@@ -295,7 +299,7 @@ describe('RewriteFrames', () => {
           ],
         },
       };
-      expect(rewriteFrames.process(brokenEvent)).toEqual(brokenEvent);
+      expect(rewriteFrames.processEvent(brokenEvent)).toEqual(brokenEvent);
     });
   });
 });

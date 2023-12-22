@@ -40,4 +40,33 @@ describe('Integration | rrweb', () => {
       }
     `);
   });
+
+  it('calls rrweb.record with default canvas options', async () => {
+    const { mockRecord } = await resetSdkMock({
+      replayOptions: {
+        _experiments: {
+          canvas: {
+            // @ts-expect-error This should return
+            // CanvasManagerInterface, but we don't care about it
+            // for this test
+            manager: () => null,
+          },
+        },
+      },
+    });
+
+    expect(mockRecord).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        recordCanvas: true,
+        getCanvasManager: expect.any(Function),
+        dataURLOptions: {
+          quality: 0.4,
+          type: 'image/webp',
+        },
+        sampling: {
+          canvas: 2,
+        },
+      }),
+    );
+  });
 });

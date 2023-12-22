@@ -1,64 +1,30 @@
-import type { Contexts, Event, EventHint, ExtendedError, Integration } from '@sentry/types';
+import { convertIntegrationFnToClass } from '@sentry/core';
+import type { Contexts, Event, EventHint, ExtendedError, IntegrationFn } from '@sentry/types';
 import { addNonEnumerableProperty, isError, isPlainObject, logger, normalize } from '@sentry/utils';
 
 import { DEBUG_BUILD } from './debug-build';
 
-/** JSDoc */
+const INTEGRATION_NAME = 'ExtraErrorData';
+
 interface ExtraErrorDataOptions {
   depth: number;
   captureErrorCause: boolean;
 }
 
-/** Patch toString calls to return proper name for wrapped functions */
-export class ExtraErrorData implements Integration {
-  /**
-   * @inheritDoc
-   */
-  public static id: string = 'ExtraErrorData';
+const extraErrorDataIntegration = ((options: Partial<ExtraErrorDataOptions> = {}) => {
+  const depth = options.depth || 3;
 
-  /**
-   * @inheritDoc
-   */
-  public name: string;
+  return {
+    name: INTEGRATION_NAME,
+    processEvent(event, hint) {
+      return _enhanceEventWithErrorData(event, hint, depth, options.captureErrorCause);
+    },
+  };
+}) satisfies IntegrationFn;
 
-  /** JSDoc */
-  private readonly _options: ExtraErrorDataOptions;
-
-  /**
-   * @inheritDoc
-   */
-  public constructor(options?: Partial<ExtraErrorDataOptions>) {
-    this.name = ExtraErrorData.id;
-
-    this._options = {
-      depth: 3,
-      // TODO(v8): Flip this to true
-      captureErrorCause: false,
-      ...options,
-    };
-  }
-
-  /**
-   * @inheritDoc
-   */
-  public setupOnce(_addGlobalEventProcessor: unknown, _getCurrentHub: unknown): void {
-    // noop
-  }
-
-  /** @inheritDoc */
-  public processEvent(event: Event, hint: EventHint): Event {
-    return this.enhanceEventWithErrorData(event, hint);
-  }
-
-  /**
-   * Attaches extracted information from the Error object to extra field in the Event.
-   *
-   * TODO (v8): Drop this public function.
-   */
-  public enhanceEventWithErrorData(event: Event, hint: EventHint = {}): Event {
-    return _enhanceEventWithErrorData(event, hint, this._options.depth, this._options.captureErrorCause);
-  }
-}
+/** Extract additional data for from original exceptions. */
+// eslint-disable-next-line deprecation/deprecation
+export const ExtraErrorData = convertIntegrationFnToClass(INTEGRATION_NAME, extraErrorDataIntegration);
 
 function _enhanceEventWithErrorData(
   event: Event,

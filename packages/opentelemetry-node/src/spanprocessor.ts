@@ -124,7 +124,7 @@ export class SentrySpanProcessor implements OtelSpanProcessor {
 
     // Ensure we do not capture any OTEL spans for finishing (and sending) this
     context.with(suppressTracing(context.active()), () => {
-      sentrySpan.finish(convertOtelTimeToSeconds(otelSpan.endTime));
+      sentrySpan.end(convertOtelTimeToSeconds(otelSpan.endTime));
     });
 
     clearSpan(otelSpanId);

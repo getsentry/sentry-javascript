@@ -40,8 +40,9 @@ async function run(): Promise<void> {
       },
     });
   } finally {
-    if (transaction) transaction.finish();
+    if (transaction) transaction.end();
   }
 }
 
-void run();
+// eslint-disable-next-line @typescript-eslint/no-floating-promises
+run();

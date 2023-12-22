@@ -1,15 +1,6 @@
-import { notifyEventProcessors } from '@sentry/core';
+import { getGlobalScope as _getGlobalScope, setGlobalScope } from '@sentry/core';
 import { OpenTelemetryScope } from '@sentry/opentelemetry';
-import type {
-  Attachment,
-  Breadcrumb,
-  Client,
-  Event,
-  EventHint,
-  EventProcessor,
-  Severity,
-  SeverityLevel,
-} from '@sentry/types';
+import type { Breadcrumb, Client, Event, EventHint, Severity, SeverityLevel } from '@sentry/types';
 import { uuid4 } from '@sentry/utils';
 
 import { getGlobalCarrier } from './globals';
@@ -28,15 +19,22 @@ export function setCurrentScope(scope: Scope): void {
   getScopes().scope = scope;
 }
 
-/** Get the global scope. */
+/**
+ * Get the global scope.
+ * We overwrite this from the core implementation to make sure we get the correct Scope class.
+ */
 export function getGlobalScope(): Scope {
-  const carrier = getGlobalCarrier();
+  const globalScope = _getGlobalScope();
 
-  if (!carrier.globalScope) {
-    carrier.globalScope = new Scope();
+  // If we have a default Scope here by chance, make sure to "upgrade" it to our custom Scope
+  if (!(globalScope instanceof Scope)) {
+    const newScope = new Scope();
+    newScope.update(globalScope);
+    setGlobalScope(newScope);
+    return newScope;
   }
 
-  return carrier.globalScope as Scope;
+  return globalScope;
 }
 
 /** Get the currently active isolation scope. */
@@ -96,6 +94,7 @@ export class Scope extends OpenTelemetryScope implements ScopeInterface {
     newScope._attachments = [...this['_attachments']];
     newScope._sdkProcessingMetadata = { ...this['_sdkProcessingMetadata'] };
     newScope._propagationContext = { ...this['_propagationContext'] };
+    newScope._client = this._client;
 
     return newScope;
   }
@@ -112,19 +111,6 @@ export class Scope extends OpenTelemetryScope implements ScopeInterface {
    */
   public getClient(): Client | undefined {
     return this._client;
-  }
-
-  /** @inheritdoc */
-  public getAttachments(): Attachment[] {
-    const data = getGlobalScope().getScopeData();
-    const isolationScopeData = this._getIsolationScope().getScopeData();
-    const scopeData = this.getScopeData();
-
-    // Merge data together, in order
-    mergeData(data, isolationScopeData);
-    mergeData(data, scopeData);
-
-    return data.attachments;
   }
 
   /** Capture an exception for this scope. */
@@ -199,185 +185,10 @@ export class Scope extends OpenTelemetryScope implements ScopeInterface {
     return this._addBreadcrumb(breadcrumb, maxBreadcrumbs);
   }
 
-  /** Get all relevant data for this scope. */
-  public getScopeData(): ScopeData {
-    const {
-      _breadcrumbs,
-      _attachments,
-      _contexts,
-      _tags,
-      _extra,
-      _user,
-      _level,
-      _fingerprint,
-      _eventProcessors,
-      _propagationContext,
-      _sdkProcessingMetadata,
-    } = this;
-
-    return {
-      breadcrumbs: _breadcrumbs,
-      attachments: _attachments,
-      contexts: _contexts,
-      tags: _tags,
-      extra: _extra,
-      user: _user,
-      level: _level,
-      fingerprint: _fingerprint || [],
-      eventProcessors: _eventProcessors,
-      propagationContext: _propagationContext,
-      sdkProcessingMetadata: _sdkProcessingMetadata,
-    };
+  /** Get scope data for this scope only. */
+  public getOwnScopeData(): ScopeData {
+    return super.getScopeData();
   }
-
-  /**
-   * Applies data from the scope to the event and runs all event processors on it.
-   *
-   * @param event Event
-   * @param hint Object containing additional information about the original exception, for use by the event processors.
-   * @hidden
-   */
-  public applyToEvent(
-    event: Event,
-    hint: EventHint = {},
-    additionalEventProcessors: EventProcessor[] = [],
-  ): PromiseLike<Event | null> {
-    const data = getGlobalScope().getScopeData();
-    const isolationScopeData = this._getIsolationScope().getScopeData();
-    const scopeData = this.getScopeData();
-
-    // Merge data together, in order
-    mergeData(data, isolationScopeData);
-    mergeData(data, scopeData);
-
-    // Apply the data
-    const { extra, tags, user, contexts, level, sdkProcessingMetadata, breadcrumbs, fingerprint, eventProcessors } =
-      data;
-
-    mergePropKeep(event, 'extra', extra);
-    mergePropKeep(event, 'tags', tags);
-    mergePropKeep(event, 'user', user);
-    mergePropKeep(event, 'contexts', contexts);
-    mergePropKeep(event, 'sdkProcessingMetadata', sdkProcessingMetadata);
-    event.sdkProcessingMetadata = {
-      ...event.sdkProcessingMetadata,
-      propagationContext: this._propagationContext,
-    };
-
-    mergeArray(event, 'breadcrumbs', breadcrumbs);
-    mergeArray(event, 'fingerprint', fingerprint);
-
-    if (level) {
-      event.level = level;
-    }
-
-    const allEventProcessors = [...additionalEventProcessors, ...eventProcessors];
-
-    // Apply additional things to the event
-    if (this._transactionName) {
-      event.transaction = this._transactionName;
-    }
-
-    return notifyEventProcessors(allEventProcessors, event, hint);
-  }
-
-  /**
-   * Get all breadcrumbs attached to this scope.
-   * @internal
-   */
-  public getBreadcrumbs(): Breadcrumb[] {
-    return this._breadcrumbs;
-  }
-
-  /** Get the isolation scope for this scope. */
-  protected _getIsolationScope(): Scope {
-    return this.isolationScope || getIsolationScope();
-  }
-}
-
-/** Exported only for tests */
-export function mergeData(data: ScopeData, mergeData: ScopeData): void {
-  const {
-    extra,
-    tags,
-    user,
-    contexts,
-    level,
-    sdkProcessingMetadata,
-    breadcrumbs,
-    fingerprint,
-    eventProcessors,
-    attachments,
-  } = mergeData;
-
-  mergePropOverwrite(data, 'extra', extra);
-  mergePropOverwrite(data, 'tags', tags);
-  mergePropOverwrite(data, 'user', user);
-  mergePropOverwrite(data, 'contexts', contexts);
-  mergePropOverwrite(data, 'sdkProcessingMetadata', sdkProcessingMetadata);
-
-  if (level) {
-    data.level = level;
-  }
-
-  if (breadcrumbs.length) {
-    data.breadcrumbs = [...data.breadcrumbs, ...breadcrumbs];
-  }
-
-  if (fingerprint.length) {
-    data.fingerprint = [...data.fingerprint, ...fingerprint];
-  }
-
-  if (eventProcessors.length) {
-    data.eventProcessors = [...data.eventProcessors, ...eventProcessors];
-  }
-
-  if (attachments.length) {
-    data.attachments = [...data.attachments, ...attachments];
-  }
-}
-
-/**
- * Merge properties, overwriting existing keys.
- * Exported only for tests.
- */
-export function mergePropOverwrite<
-  Prop extends 'extra' | 'tags' | 'user' | 'contexts' | 'sdkProcessingMetadata',
-  Data extends ScopeData | Event,
->(data: Data, prop: Prop, mergeVal: Data[Prop]): void {
-  if (mergeVal && Object.keys(mergeVal).length) {
-    data[prop] = { ...data[prop], ...mergeVal };
-  }
-}
-
-/**
- * Merge properties, keeping existing keys.
- * Exported only for tests.
- */
-export function mergePropKeep<
-  Prop extends 'extra' | 'tags' | 'user' | 'contexts' | 'sdkProcessingMetadata',
-  Data extends ScopeData | Event,
->(data: Data, prop: Prop, mergeVal: Data[Prop]): void {
-  if (mergeVal && Object.keys(mergeVal).length) {
-    data[prop] = { ...mergeVal, ...data[prop] };
-  }
-}
-
-/** Exported only for tests */
-export function mergeArray<Prop extends 'breadcrumbs' | 'fingerprint'>(
-  event: Event,
-  prop: Prop,
-  mergeVal: ScopeData[Prop],
-): void {
-  const prevVal = event[prop];
-  // If we are not merging any new values,
-  // we only need to proceed if there was an empty array before (as we want to replace it with undefined)
-  if (!mergeVal.length && (!prevVal || prevVal.length)) {
-    return;
-  }
-
-  const merged = [...(prevVal || []), ...mergeVal] as ScopeData[Prop];
-  event[prop] = merged.length ? merged : undefined;
 }
 
 function getScopes(): CurrentScopes {

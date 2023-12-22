@@ -143,7 +143,7 @@ async function finishSentryProcessing(res: AugmentedExpressResponse): Promise<vo
     // transaction closes, and make sure to wait until that's done before flushing events
     await new Promise<void>(resolve => {
       setImmediate(() => {
-        transaction.finish();
+        transaction.end();
         resolve();
       });
     });

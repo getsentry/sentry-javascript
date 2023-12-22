@@ -27,7 +27,8 @@ describe('Integration | coreHandlers | handleBeforeSendEvent', () => {
     const addBreadcrumbSpy = jest.spyOn(replay, 'throttledAddEvent');
 
     const error = Error();
-    error.exception.values[0].value = 'Text content did not match. Server: "A" Client: "B"';
+    error.exception.values[0].value =
+      'Text content does not match server-rendered HTML. Warning: Text content did not match.';
     handler(error);
 
     expect(addBreadcrumbSpy).toHaveBeenCalledTimes(1);

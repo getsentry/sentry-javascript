@@ -31,8 +31,9 @@ function handleHydrationError(replay: ReplayContainer, event: ErrorEvent): void 
     // Example https://reactjs.org/docs/error-decoder.html?invariant=423
     exceptionValue.match(/reactjs\.org\/docs\/error-decoder\.html\?invariant=(418|419|422|423|425)/) ||
     // Development builds of react-dom
-    // Example Text: content did not match. Server: "A" Client: "B"
-    exceptionValue.match(/(hydration|content does not match|did not match)/i)
+    // Error 1: Hydration failed because the initial UI does not match what was rendered on the server.
+    // Error 2: Text content does not match server-rendered HTML. Warning: Text content did not match.
+    exceptionValue.match(/(does not match server-rendered HTML|Hydration failed because)/i)
   ) {
     const breadcrumb = createBreadcrumb({
       category: 'replay.hydrate-error',

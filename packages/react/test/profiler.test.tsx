@@ -1,6 +1,7 @@
 import type { SpanContext } from '@sentry/types';
 import { render } from '@testing-library/react';
 import { renderHook } from '@testing-library/react-hooks';
+// biome-ignore lint/nursery/noUnusedImports: Need React import for JSX
 import * as React from 'react';
 
 import { REACT_MOUNT_OP, REACT_RENDER_OP, REACT_UPDATE_OP } from '../src/constants';
@@ -18,7 +19,7 @@ class MockSpan {
     return new MockSpan(ctx);
   }
 
-  public finish(): void {
+  public end(): void {
     mockFinish();
   }
 }
@@ -80,6 +81,7 @@ describe('withProfiler', () => {
         description: `<${UNKNOWN_COMPONENT}>`,
         op: REACT_MOUNT_OP,
         origin: 'auto.ui.react.profiler',
+        data: { 'ui.component_name': 'unknown' },
       });
     });
   });
@@ -99,6 +101,7 @@ describe('withProfiler', () => {
         op: REACT_RENDER_OP,
         origin: 'auto.ui.react.profiler',
         startTimestamp: undefined,
+        data: { 'ui.component_name': 'unknown' },
       });
     });
 
@@ -114,7 +117,6 @@ describe('withProfiler', () => {
       expect(mockStartChild).toHaveBeenCalledTimes(1);
     });
   });
-
   describe('update span', () => {
     it('is created when component is updated', () => {
       const ProfiledComponent = withProfiler((props: { num: number }) => <div>{props.num}</div>);
@@ -126,7 +128,7 @@ describe('withProfiler', () => {
       rerender(<ProfiledComponent num={1} />);
       expect(mockStartChild).toHaveBeenCalledTimes(2);
       expect(mockStartChild).toHaveBeenLastCalledWith({
-        data: { changedProps: ['num'] },
+        data: { changedProps: ['num'], 'ui.component_name': 'unknown' },
         description: `<${UNKNOWN_COMPONENT}>`,
         op: REACT_UPDATE_OP,
         origin: 'auto.ui.react.profiler',
@@ -137,7 +139,7 @@ describe('withProfiler', () => {
       rerender(<ProfiledComponent num={2} />);
       expect(mockStartChild).toHaveBeenCalledTimes(3);
       expect(mockStartChild).toHaveBeenLastCalledWith({
-        data: { changedProps: ['num'] },
+        data: { changedProps: ['num'], 'ui.component_name': 'unknown' },
         description: `<${UNKNOWN_COMPONENT}>`,
         op: REACT_UPDATE_OP,
         origin: 'auto.ui.react.profiler',
@@ -180,6 +182,7 @@ describe('useProfiler()', () => {
         description: '<Example>',
         op: REACT_MOUNT_OP,
         origin: 'auto.ui.react.profiler',
+        data: { 'ui.component_name': 'Example' },
       });
     });
   });
@@ -203,6 +206,7 @@ describe('useProfiler()', () => {
           description: '<Example>',
           op: REACT_RENDER_OP,
           origin: 'auto.ui.react.profiler',
+          data: { 'ui.component_name': 'Example' },
         }),
       );
     });

@@ -74,7 +74,9 @@ function handleErrorEvent(replay: ReplayContainer, event: ErrorEvent): void {
 
   setTimeout(() => {
     // Capture current event buffer as new replay
-    void replay.sendBufferedReplayOrFlush();
+    // This should never reject
+    // eslint-disable-next-line @typescript-eslint/no-floating-promises
+    replay.sendBufferedReplayOrFlush();
   });
 }
 

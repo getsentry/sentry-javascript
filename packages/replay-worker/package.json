@@ -1,6 +1,6 @@
 {
   "name": "@sentry-internal/replay-worker",
-  "version": "7.88.0",
+  "version": "7.90.0",
   "description": "Worker for @sentry/replay",
   "main": "build/npm/esm/index.js",
   "module": "build/npm/esm/index.js",
@@ -16,8 +16,8 @@
   "private": true,
   "scripts": {
     "build": "run-p build:transpile build:types",
-    "build:transpile": "rollup -c rollup.worker.config.js",
-    "build:examples": "rollup -c rollup.examples.config.js",
+    "build:transpile": "rollup -c rollup.worker.config.mjs",
+    "build:examples": "rollup -c rollup.examples.config.mjs",
     "build:types": "run-s build:types:core build:types:downlevel",
     "build:types:core": "tsc -p tsconfig.types.json",
     "build:types:downlevel": "yarn downlevel-dts build/npm/types build/npm/types-ts3.8 --to ts3.8",

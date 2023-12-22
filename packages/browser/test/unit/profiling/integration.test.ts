@@ -52,7 +52,7 @@ describe('BrowserProfilingIntegration', () => {
 
     const currentTransaction = Sentry.getCurrentHub().getScope().getTransaction();
     expect(currentTransaction?.op).toBe('pageload');
-    currentTransaction?.finish();
+    currentTransaction?.end();
     await client?.flush(1000);
 
     expect(send).toHaveBeenCalledTimes(1);

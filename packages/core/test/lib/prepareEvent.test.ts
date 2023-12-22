@@ -1,8 +1,23 @@
-import type { Event, EventHint, ScopeContext } from '@sentry/types';
+import type {
+  Attachment,
+  Breadcrumb,
+  Client,
+  ClientOptions,
+  Event,
+  EventHint,
+  EventProcessor,
+  ScopeContext,
+} from '@sentry/types';
 import { GLOBAL_OBJ, createStackParser } from '@sentry/utils';
+import { getCurrentHub, getIsolationScope, setGlobalScope } from '../../src';
 
-import { Scope } from '../../src/scope';
-import { applyDebugIds, applyDebugMeta, parseEventHintOrCaptureContext } from '../../src/utils/prepareEvent';
+import { Scope, getGlobalScope } from '../../src/scope';
+import {
+  applyDebugIds,
+  applyDebugMeta,
+  parseEventHintOrCaptureContext,
+  prepareEvent,
+} from '../../src/utils/prepareEvent';
 
 describe('applyDebugIds', () => {
   afterEach(() => {
@@ -169,6 +184,205 @@ describe('parseEventHintOrCaptureContext', () => {
       captureContext: {
         user: { id: 'xxx' },
         mechanism: { handled: false },
+      },
+    });
+  });
+});
+
+describe('prepareEvent', () => {
+  beforeEach(() => {
+    setGlobalScope(undefined);
+    getCurrentHub().getIsolationScope().clear();
+  });
+
+  it('works without any scope data', async () => {
+    const eventProcessor = jest.fn((a: unknown) => a) as EventProcessor;
+
+    const scope = new Scope();
+
+    const event = { message: 'foo' };
+
+    const options = {} as ClientOptions;
+    const client = {
+      getEventProcessors() {
+        return [eventProcessor];
+      },
+    } as Client;
+    const processedEvent = await prepareEvent(
+      options,
+      event,
+      {
+        integrations: [],
+      },
+      scope,
+      client,
+    );
+
+    expect(eventProcessor).toHaveBeenCalledWith(processedEvent, {
+      integrations: [],
+      // no attachments are added to hint
+    });
+
+    expect(processedEvent).toEqual({
+      timestamp: expect.any(Number),
+      event_id: expect.any(String),
+      environment: 'production',
+      message: 'foo',
+      sdkProcessingMetadata: {
+        propagationContext: {
+          spanId: expect.any(String),
+          traceId: expect.any(String),
+        },
+      },
+    });
+  });
+
+  it('merges scope data', async () => {
+    const breadcrumb1 = { message: '1', timestamp: 111 } as Breadcrumb;
+    const breadcrumb2 = { message: '2', timestamp: 222 } as Breadcrumb;
+    const breadcrumb3 = { message: '3', timestamp: 123 } as Breadcrumb;
+    const breadcrumb4 = { message: '4', timestamp: 123 } as Breadcrumb;
+
+    const eventProcessor1 = jest.fn((a: unknown) => a) as EventProcessor;
+    const eventProcessor2 = jest.fn((b: unknown) => b) as EventProcessor;
+    const eventProcessor3 = jest.fn((b: unknown) => b) as EventProcessor;
+
+    const attachment1 = { filename: '1' } as Attachment;
+    const attachment2 = { filename: '2' } as Attachment;
+    const attachment3 = { filename: '3' } as Attachment;
+
+    const scope = new Scope();
+    scope.update({
+      user: { id: '1', email: 'test@example.com' },
+      tags: { tag1: 'aa', tag2: 'aa' },
+      extra: { extra1: 'aa', extra2: 'aa' },
+      contexts: { os: { name: 'os1' }, culture: { display_name: 'name1' } },
+      propagationContext: { spanId: '1', traceId: '1' },
+      fingerprint: ['aa'],
+    });
+    scope.addBreadcrumb(breadcrumb1);
+    scope.addEventProcessor(eventProcessor1);
+    scope.addAttachment(attachment1);
+
+    const globalScope = getGlobalScope();
+    const isolationScope = getIsolationScope();
+
+    globalScope.addBreadcrumb(breadcrumb2);
+    globalScope.addEventProcessor(eventProcessor2);
+    globalScope.setSDKProcessingMetadata({ aa: 'aa' });
+    globalScope.addAttachment(attachment2);
+
+    isolationScope.addBreadcrumb(breadcrumb3);
+    isolationScope.addEventProcessor(eventProcessor3);
+    isolationScope.setSDKProcessingMetadata({ bb: 'bb' });
+    isolationScope.addAttachment(attachment3);
+
+    const event = { message: 'foo', breadcrumbs: [breadcrumb4], fingerprint: ['dd'] };
+
+    const options = {} as ClientOptions;
+    const processedEvent = await prepareEvent(
+      options,
+      event,
+      {
+        integrations: [],
+      },
+      scope,
+      undefined,
+      isolationScope,
+    );
+
+    expect(eventProcessor1).toHaveBeenCalledTimes(1);
+    expect(eventProcessor2).toHaveBeenCalledTimes(1);
+    expect(eventProcessor3).toHaveBeenCalledTimes(1);
+
+    // Test that attachments are correctly merged
+    expect(eventProcessor1).toHaveBeenCalledWith(processedEvent, {
+      integrations: [],
+      attachments: [attachment2, attachment3, attachment1],
+    });
+
+    expect(processedEvent).toEqual({
+      timestamp: expect.any(Number),
+      event_id: expect.any(String),
+      environment: 'production',
+      message: 'foo',
+      user: { id: '1', email: 'test@example.com' },
+      tags: { tag1: 'aa', tag2: 'aa' },
+      extra: { extra1: 'aa', extra2: 'aa' },
+      contexts: { os: { name: 'os1' }, culture: { display_name: 'name1' } },
+      fingerprint: ['dd', 'aa'],
+      breadcrumbs: [breadcrumb4, breadcrumb2, breadcrumb3, breadcrumb1],
+      sdkProcessingMetadata: {
+        aa: 'aa',
+        bb: 'bb',
+        propagationContext: {
+          spanId: '1',
+          traceId: '1',
+        },
+      },
+    });
+  });
+
+  it('works without a scope', async () => {
+    const breadcrumb1 = { message: '1', timestamp: 111 } as Breadcrumb;
+    const breadcrumb2 = { message: '2', timestamp: 222 } as Breadcrumb;
+    const breadcrumb3 = { message: '3', timestamp: 333 } as Breadcrumb;
+
+    const eventProcessor1 = jest.fn((a: unknown) => a) as EventProcessor;
+    const eventProcessor2 = jest.fn((a: unknown) => a) as EventProcessor;
+
+    const attachmentGlobal = { filename: 'global scope attachment' } as Attachment;
+    const attachmentIsolation = { filename: 'isolation scope attachment' } as Attachment;
+    const attachmentHint = { filename: 'hint attachment' } as Attachment;
+
+    const globalScope = getGlobalScope();
+    const isolationScope = getIsolationScope();
+
+    globalScope.addBreadcrumb(breadcrumb1);
+    globalScope.addEventProcessor(eventProcessor1);
+    globalScope.setSDKProcessingMetadata({ aa: 'aa' });
+    globalScope.addAttachment(attachmentGlobal);
+
+    isolationScope.addBreadcrumb(breadcrumb2);
+    isolationScope.addEventProcessor(eventProcessor2);
+    isolationScope.setSDKProcessingMetadata({ bb: 'bb' });
+    isolationScope.addAttachment(attachmentIsolation);
+
+    const event = { message: 'foo', breadcrumbs: [breadcrumb3], fingerprint: ['dd'] };
+
+    const options = {} as ClientOptions;
+    const processedEvent = await prepareEvent(
+      options,
+      event,
+      {
+        integrations: [],
+        attachments: [attachmentHint],
+      },
+      undefined,
+      undefined,
+      isolationScope,
+    );
+
+    expect(eventProcessor1).toHaveBeenCalledTimes(1);
+    expect(eventProcessor2).toHaveBeenCalledTimes(1);
+
+    // Test that attachments are correctly merged
+    expect(eventProcessor1).toHaveBeenCalledWith(processedEvent, {
+      integrations: [],
+      attachments: [attachmentHint, attachmentGlobal, attachmentIsolation],
+    });
+
+    expect(processedEvent).toEqual({
+      timestamp: expect.any(Number),
+      event_id: expect.any(String),
+      environment: 'production',
+      message: 'foo',
+      fingerprint: ['dd'],
+      breadcrumbs: [breadcrumb3, breadcrumb1, breadcrumb2],
+      sdkProcessingMetadata: {
+        aa: 'aa',
+        bb: 'bb',
+        propagationContext: isolationScope.getPropagationContext(),
       },
     });
   });

@@ -135,6 +135,11 @@ export interface Span extends SpanContext {
   finish(endTimestamp?: number): void;
 
   /**
+   * End the current span.
+   */
+  end(endTimestamp?: number): void;
+
+  /**
    * Sets the tag attribute on the current span.
    *
    * Can also be used to unset a tag, by passing `undefined`.
