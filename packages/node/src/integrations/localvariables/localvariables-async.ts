@@ -8,13 +8,6 @@ import type { NodeClientOptions } from '../../types';
 import type { FrameVariables, Options, PausedExceptionEvent, RateLimitIncrement, Variables } from './common';
 import { createRateLimiter, functionNamesMatch, hashFrames, hashFromStack } from './common';
 
-/**
- * When targeting older versions of node, webpack will throw an error if we try to import libraries that are not available
- */
-function dynamicImport<T>(module: string): Promise<T> {
-  return import(module);
-}
-
 async function unrollArray(session: Session, objectId: string, name: string, vars: Variables): Promise<void> {
   const properties: Runtime.GetPropertiesReturnType = await session.post('Runtime.getProperties', {
     objectId,
@@ -102,7 +95,7 @@ export class LocalVariablesAsync implements Integration {
       return;
     }
 
-    dynamicImport<{ Session: typeof Session }>('node:inspector/promises')
+    import(/* webpackIgnore: true */ 'node:inspector/promises')
       .then(({ Session }) => this._startDebugger(new Session(), clientOptions))
       .catch(e => logger.error('Failed to load inspector API', e));
   }
