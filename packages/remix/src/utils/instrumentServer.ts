@@ -198,7 +198,7 @@ function makeWrappedDocumentRequestFunction(remixVersion?: number) {
           loadContext,
         );
 
-        span?.finish();
+        span?.end();
       } catch (err) {
         const isRemixV1 = !FUTURE_FLAGS?.v2_errorBoundary && remixVersion !== 2;
 
@@ -246,7 +246,7 @@ function makeWrappedDataFunction(
       res = await origFn.call(this, args);
 
       currentScope.setSpan(activeTransaction);
-      span?.finish();
+      span?.end();
     } catch (err) {
       const isRemixV2 = FUTURE_FLAGS?.v2_errorBoundary || remixVersion === 2;
 
@@ -463,7 +463,7 @@ function wrapRequestHandler(origRequestHandler: RequestHandler, build: ServerBui
         transaction.setHttpStatus(res.status);
       }
 
-      transaction.finish();
+      transaction.end();
 
       return res;
     });

@@ -54,7 +54,7 @@ function recordInitSpan(transaction: Transaction, componentName: string): Span {
   });
 
   onMount(() => {
-    initSpan.finish();
+    initSpan.end();
   });
 
   return initSpan;
@@ -86,7 +86,7 @@ function recordUpdateSpans(componentName: string, initSpan?: Span): void {
     if (!updateSpan) {
       return;
     }
-    updateSpan.finish();
+    updateSpan.end();
     updateSpan = undefined;
   });
 }

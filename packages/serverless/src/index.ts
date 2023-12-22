@@ -31,6 +31,8 @@ export {
   getCurrentHub,
   getClient,
   getCurrentScope,
+  getGlobalScope,
+  getIsolationScope,
   getHubFromCarrier,
   makeMain,
   setContext,

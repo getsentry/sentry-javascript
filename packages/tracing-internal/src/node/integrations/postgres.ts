@@ -137,14 +137,14 @@ export class Postgres implements LazyLoadedIntegration<PGModule> {
 
         if (typeof callback === 'function') {
           return orig.call(this, config, values, function (err: Error, result: unknown) {
-            span?.finish();
+            span?.end();
             callback(err, result);
           });
         }
 
         if (typeof values === 'function') {
           return orig.call(this, config, function (err: Error, result: unknown) {
-            span?.finish();
+            span?.end();
             values(err, result);
           });
         }
@@ -153,12 +153,12 @@ export class Postgres implements LazyLoadedIntegration<PGModule> {
 
         if (isThenable(rv)) {
           return rv.then((res: unknown) => {
-            span?.finish();
+            span?.end();
             return res;
           });
         }
 
-        span?.finish();
+        span?.end();
         return rv;
       };
     });

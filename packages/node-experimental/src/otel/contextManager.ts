@@ -4,7 +4,6 @@ import { setHubOnContext } from '@sentry/opentelemetry';
 import { getCurrentHub } from '../sdk/hub';
 
 import { getCurrentScope, getIsolationScope } from './../sdk/api';
-import { Scope } from './../sdk/scope';
 import type { CurrentScopes } from './../sdk/types';
 import { getScopesFromContext, setScopesOnContext } from './../utils/contextData';
 

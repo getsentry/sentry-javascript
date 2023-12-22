@@ -1,4 +1,5 @@
 import type { Scope } from '@sentry/core';
+import { getIsolationScope } from '@sentry/core';
 import { prepareEvent } from '@sentry/core';
 import type { IntegrationIndex } from '@sentry/core/build/types/integration';
 import type { Client, EventHint, ReplayEvent } from '@sentry/types';
@@ -34,6 +35,7 @@ export async function prepareReplayEvent({
     eventHint,
     scope,
     client,
+    getIsolationScope(),
   )) as ReplayEvent | null;
 
   // If e.g. a global event processor returned null

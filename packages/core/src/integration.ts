@@ -1,14 +1,4 @@
-import type {
-  Client,
-  Event,
-  EventHint,
-  EventProcessor,
-  Hub,
-  Integration,
-  IntegrationClass,
-  IntegrationFn,
-  Options,
-} from '@sentry/types';
+import type { Client, Event, EventHint, EventProcessor, Hub, Integration, IntegrationFn, Options } from '@sentry/types';
 import { arrayify, logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from './debug-build';
@@ -175,14 +165,16 @@ function findIndex<T>(arr: T[], callback: (item: T) => boolean): number {
 export function convertIntegrationFnToClass<Fn extends IntegrationFn>(
   name: string,
   fn: Fn,
-): IntegrationClass<
-  Integration & {
-    setupOnce: (addGlobalEventProcessor?: (callback: EventProcessor) => void, getCurrentHub?: () => Hub) => void;
-  }
-> {
+): {
+  id: string;
+  new (...args: Parameters<Fn>): Integration &
+    ReturnType<Fn> & {
+      setupOnce: (addGlobalEventProcessor?: (callback: EventProcessor) => void, getCurrentHub?: () => Hub) => void;
+    };
+} {
   return Object.assign(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    function ConvertedIntegration(...rest: any[]) {
+    function ConvertedIntegration(...rest: Parameters<Fn>) {
       return {
         // eslint-disable-next-line @typescript-eslint/no-empty-function
         setupOnce: () => {},
@@ -190,9 +182,11 @@ export function convertIntegrationFnToClass<Fn extends IntegrationFn>(
       };
     },
     { id: name },
-  ) as unknown as IntegrationClass<
-    Integration & {
-      setupOnce: (addGlobalEventProcessor?: (callback: EventProcessor) => void, getCurrentHub?: () => Hub) => void;
-    }
-  >;
+  ) as unknown as {
+    id: string;
+    new (...args: Parameters<Fn>): Integration &
+      ReturnType<Fn> & {
+        setupOnce: (addGlobalEventProcessor?: (callback: EventProcessor) => void, getCurrentHub?: () => Hub) => void;
+      };
+  };
 }

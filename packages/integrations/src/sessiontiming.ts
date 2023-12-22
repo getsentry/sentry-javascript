@@ -1,51 +1,29 @@
-import type { Event, Integration } from '@sentry/types';
+import { convertIntegrationFnToClass } from '@sentry/core';
+import type { IntegrationFn } from '@sentry/types';
+
+const INTEGRATION_NAME = 'SessionTiming';
+
+const sessionTimingIntegration = (() => {
+  const startTime = Date.now();
+
+  return {
+    name: INTEGRATION_NAME,
+    processEvent(event) {
+      const now = Date.now();
+
+      return {
+        ...event,
+        extra: {
+          ...event.extra,
+          ['session:start']: startTime,
+          ['session:duration']: now - startTime,
+          ['session:end']: now,
+        },
+      };
+    },
+  };
+}) satisfies IntegrationFn;
 
 /** This function adds duration since Sentry was initialized till the time event was sent */
-export class SessionTiming implements Integration {
-  /**
-   * @inheritDoc
-   */
-  public static id: string = 'SessionTiming';
-
-  /**
-   * @inheritDoc
-   */
-  public name: string;
-
-  /** Exact time Client was initialized expressed in milliseconds since Unix Epoch. */
-  protected readonly _startTime: number;
-
-  public constructor() {
-    this.name = SessionTiming.id;
-    this._startTime = Date.now();
-  }
-
-  /**
-   * @inheritDoc
-   */
-  public setupOnce(_addGlobalEventProcessor: unknown, _getCurrentHub: unknown): void {
-    // noop
-  }
-
-  /** @inheritDoc */
-  public processEvent(event: Event): Event {
-    return this.process(event);
-  }
-
-  /**
-   * TODO (v8): make this private/internal
-   */
-  public process(event: Event): Event {
-    const now = Date.now();
-
-    return {
-      ...event,
-      extra: {
-        ...event.extra,
-        ['session:start']: this._startTime,
-        ['session:duration']: now - this._startTime,
-        ['session:end']: now,
-      },
-    };
-  }
-}
+// eslint-disable-next-line deprecation/deprecation
+export const SessionTiming = convertIntegrationFnToClass(INTEGRATION_NAME, sessionTimingIntegration);

@@ -1,4 +1,5 @@
 import type { Integration } from '@sentry/types';
+import { consoleSandbox } from '@sentry/utils';
 
 /**
  * This is a shim for the Feedback integration.
@@ -20,8 +21,10 @@ class FeedbackShim implements Integration {
   public constructor(_options: any) {
     this.name = FeedbackShim.id;
 
-    // eslint-disable-next-line no-console
-    console.error('You are using new Feedback() even though this bundle does not include Feedback.');
+    consoleSandbox(() => {
+      // eslint-disable-next-line no-console
+      console.error('You are using new Feedback() even though this bundle does not include Feedback.');
+    });
   }
 
   /** jsdoc */
