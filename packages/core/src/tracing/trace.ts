@@ -55,23 +55,25 @@ export function trace<T>(
   }
 
   if (isThenable(maybePromiseResult)) {
-    Promise.resolve(maybePromiseResult).then(
-      () => {
+    // @ts-expect-error - the isThenable check returns the "wrong" type here
+    return maybePromiseResult.then(
+      res => {
         finishAndSetSpan();
         afterFinish();
+        return res;
       },
       e => {
         activeSpan && activeSpan.setStatus('internal_error');
         onError(e, activeSpan);
         finishAndSetSpan();
         afterFinish();
+        throw e;
       },
     );
-  } else {
-    finishAndSetSpan();
-    afterFinish();
   }
 
+  finishAndSetSpan();
+  afterFinish();
   return maybePromiseResult;
 }
 
@@ -89,6 +91,7 @@ export function trace<T>(
 export function startSpan<T>(context: TransactionContext, callback: (span: Span | undefined) => T): T {
   const ctx = normalizeContext(context);
 
+  // @ts-expect-error - isThenable returns the wrong type
   return withScope(scope => {
     const hub = getCurrentHub();
     const parentSpan = scope.getSpan();
@@ -110,19 +113,20 @@ export function startSpan<T>(context: TransactionContext, callback: (span: Span 
     }
 
     if (isThenable(maybePromiseResult)) {
-      Promise.resolve(maybePromiseResult).then(
-        () => {
+      return maybePromiseResult.then(
+        res => {
           finishAndSetSpan();
+          return res;
         },
-        () => {
+        e => {
           activeSpan && activeSpan.setStatus('internal_error');
           finishAndSetSpan();
+          throw e;
         },
       );
-    } else {
-      finishAndSetSpan();
     }
 
+    finishAndSetSpan();
     return maybePromiseResult;
   });
 }
@@ -149,6 +153,7 @@ export function startSpanManual<T>(
 ): T {
   const ctx = normalizeContext(context);
 
+  // @ts-expect-error - isThenable returns the wrong type
   return withScope(scope => {
     const hub = getCurrentHub();
     const parentSpan = scope.getSpan();
@@ -169,9 +174,13 @@ export function startSpanManual<T>(
     }
 
     if (isThenable(maybePromiseResult)) {
-      Promise.resolve(maybePromiseResult).then(undefined, () => {
-        activeSpan && activeSpan.setStatus('internal_error');
-      });
+      return maybePromiseResult.then(
+        res => res,
+        e => {
+          activeSpan && activeSpan.setStatus('internal_error');
+          throw e;
+        },
+      );
     }
 
     return maybePromiseResult;
