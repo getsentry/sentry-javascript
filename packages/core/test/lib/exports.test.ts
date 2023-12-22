@@ -90,4 +90,38 @@ describe('withScope', () => {
 
     expect(getCurrentScope()).toBe(scope1);
   });
+
+  it('correctly sets & resets the current scope when an error happens', () => {
+    const scope1 = getCurrentScope();
+
+    const error = new Error('foo');
+
+    expect(() =>
+      withScope(scope2 => {
+        expect(scope2).not.toBe(scope1);
+        expect(getCurrentScope()).toBe(scope2);
+
+        throw error;
+      }),
+    ).toThrow(error);
+
+    expect(getCurrentScope()).toBe(scope1);
+  });
+
+  it('correctly sets & resets the current scope with async functions & errors', async () => {
+    const scope1 = getCurrentScope();
+
+    const error = new Error('foo');
+
+    await expect(
+      withScope(async scope2 => {
+        expect(scope2).not.toBe(scope1);
+        expect(getCurrentScope()).toBe(scope2);
+
+        throw error;
+      }),
+    ).rejects.toBe(error);
+
+    expect(getCurrentScope()).toBe(scope1);
+  });
 });
