@@ -186,7 +186,7 @@ describe('ExtraErrorData()', () => {
 
     const extraErrorDataWithCauseCapture = new ExtraErrorData({ captureErrorCause: true });
 
-    // @ts-expect-error TS apparently doesn't understand error causes
+    // @ts-expect-error The typing .d.ts library we have installed isn't aware of Error.cause yet
     const error = new Error('foo', { cause: { woot: 'foo' } }) as ExtendedError;
 
     const enhancedEvent = extraErrorDataWithCauseCapture.processEvent(event, {
@@ -209,7 +209,7 @@ describe('ExtraErrorData()', () => {
 
     const extraErrorDataWithoutCauseCapture = new ExtraErrorData();
 
-    // @ts-expect-error TS apparently doesn't understand error causes
+    // @ts-expect-error The typing .d.ts library we have installed isn't aware of Error.cause yet
     const error = new Error('foo', { cause: { woot: 'foo' } }) as ExtendedError;
 
     const enhancedEvent = extraErrorDataWithoutCauseCapture.processEvent(event, {
