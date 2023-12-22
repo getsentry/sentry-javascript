@@ -37,7 +37,7 @@ query.on('end', () => {
 
     // Wait a bit to ensure the queries completed
     setTimeout(() => {
-      transaction.finish();
+      transaction.end();
     }, 500);
   });
 });

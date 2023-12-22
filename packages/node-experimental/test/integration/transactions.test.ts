@@ -8,7 +8,6 @@ import { logger } from '@sentry/utils';
 import * as Sentry from '../../src';
 import { startSpan } from '../../src';
 import type { Http, NodeFetch } from '../../src/integrations';
-import { getIsolationScope } from '../../src/sdk/api';
 import type { NodeExperimentalClient } from '../../src/types';
 import { cleanupOtel, getProvider, mockSdkInit } from '../helpers/mockSdkInit';
 

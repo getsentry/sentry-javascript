@@ -127,7 +127,7 @@ describe('GCPFunction', () => {
       // @ts-expect-error see "Why @ts-expect-error" note
       expect(SentryNode.fakeTransaction.setHttpStatus).toBeCalledWith(200);
       // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeTransaction.finish).toBeCalled();
+      expect(SentryNode.fakeTransaction.end).toBeCalled();
       expect(SentryNode.flush).toBeCalledWith(2000);
     });
 
@@ -197,7 +197,7 @@ describe('GCPFunction', () => {
       expect(SentryNode.fakeScope.setSpan).toBeCalledWith(fakeTransaction);
       expect(SentryNode.captureException).toBeCalledWith(error, expect.any(Function));
       // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeTransaction.finish).toBeCalled();
+      expect(SentryNode.fakeTransaction.end).toBeCalled();
       expect(SentryNode.flush).toBeCalled();
     });
 
@@ -284,7 +284,7 @@ describe('GCPFunction', () => {
       // @ts-expect-error see "Why @ts-expect-error" note
       expect(SentryNode.fakeScope.setSpan).toBeCalledWith(fakeTransaction);
       // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeTransaction.finish).toBeCalled();
+      expect(SentryNode.fakeTransaction.end).toBeCalled();
       expect(SentryNode.flush).toBeCalledWith(2000);
     });
 
@@ -313,7 +313,7 @@ describe('GCPFunction', () => {
       expect(SentryNode.fakeScope.setSpan).toBeCalledWith(fakeTransaction);
       expect(SentryNode.captureException).toBeCalledWith(error, expect.any(Function));
       // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeTransaction.finish).toBeCalled();
+      expect(SentryNode.fakeTransaction.end).toBeCalled();
       expect(SentryNode.flush).toBeCalled();
     });
   });
@@ -345,7 +345,7 @@ describe('GCPFunction', () => {
       // @ts-expect-error see "Why @ts-expect-error" note
       expect(SentryNode.fakeScope.setSpan).toBeCalledWith(fakeTransaction);
       // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeTransaction.finish).toBeCalled();
+      expect(SentryNode.fakeTransaction.end).toBeCalled();
       expect(SentryNode.flush).toBeCalledWith(2000);
     });
 
@@ -378,7 +378,7 @@ describe('GCPFunction', () => {
       expect(SentryNode.fakeScope.setSpan).toBeCalledWith(fakeTransaction);
       expect(SentryNode.captureException).toBeCalledWith(error, expect.any(Function));
       // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeTransaction.finish).toBeCalled();
+      expect(SentryNode.fakeTransaction.end).toBeCalled();
       expect(SentryNode.flush).toBeCalled();
     });
   });
@@ -407,7 +407,7 @@ describe('GCPFunction', () => {
       // @ts-expect-error see "Why @ts-expect-error" note
       expect(SentryNode.fakeScope.setSpan).toBeCalledWith(fakeTransaction);
       // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeTransaction.finish).toBeCalled();
+      expect(SentryNode.fakeTransaction.end).toBeCalled();
       expect(SentryNode.flush).toBeCalledWith(2000);
     });
 
@@ -436,7 +436,7 @@ describe('GCPFunction', () => {
       expect(SentryNode.fakeScope.setSpan).toBeCalledWith(fakeTransaction);
       expect(SentryNode.captureException).toBeCalledWith(error, expect.any(Function));
       // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeTransaction.finish).toBeCalled();
+      expect(SentryNode.fakeTransaction.end).toBeCalled();
       expect(SentryNode.flush).toBeCalled();
     });
 
@@ -530,7 +530,7 @@ describe('GCPFunction', () => {
       // @ts-expect-error see "Why @ts-expect-error" note
       expect(SentryNode.fakeScope.setSpan).toBeCalledWith(fakeTransaction);
       // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeTransaction.finish).toBeCalled();
+      expect(SentryNode.fakeTransaction.end).toBeCalled();
       expect(SentryNode.flush).toBeCalledWith(2000);
     });
 
@@ -559,7 +559,7 @@ describe('GCPFunction', () => {
       expect(SentryNode.fakeScope.setSpan).toBeCalledWith(fakeTransaction);
       expect(SentryNode.captureException).toBeCalledWith(error, expect.any(Function));
       // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeTransaction.finish).toBeCalled();
+      expect(SentryNode.fakeTransaction.end).toBeCalled();
       expect(SentryNode.flush).toBeCalled();
     });
   });
@@ -588,7 +588,7 @@ describe('GCPFunction', () => {
       // @ts-expect-error see "Why @ts-expect-error" note
       expect(SentryNode.fakeScope.setSpan).toBeCalledWith(fakeTransaction);
       // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeTransaction.finish).toBeCalled();
+      expect(SentryNode.fakeTransaction.end).toBeCalled();
       expect(SentryNode.flush).toBeCalledWith(2000);
     });
 
@@ -617,7 +617,7 @@ describe('GCPFunction', () => {
       expect(SentryNode.fakeScope.setSpan).toBeCalledWith(fakeTransaction);
       expect(SentryNode.captureException).toBeCalledWith(error, expect.any(Function));
       // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeTransaction.finish).toBeCalled();
+      expect(SentryNode.fakeTransaction.end).toBeCalled();
       expect(SentryNode.flush).toBeCalled();
     });
 

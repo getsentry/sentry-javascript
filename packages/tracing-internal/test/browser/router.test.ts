@@ -17,7 +17,7 @@ jest.mock('@sentry/utils', () => {
 
 conditionalTest({ min: 16 })('instrumentRoutingWithDefaults', () => {
   const mockFinish = jest.fn();
-  const customStartTransaction = jest.fn().mockReturnValue({ finish: mockFinish });
+  const customStartTransaction = jest.fn().mockReturnValue({ end: mockFinish });
   beforeEach(() => {
     const dom = new JSDOM();
     // @ts-expect-error need to override global document

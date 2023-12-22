@@ -63,6 +63,7 @@ class Profiler extends React.Component<ProfilerProps> {
         description: `<${name}>`,
         op: REACT_MOUNT_OP,
         origin: 'auto.ui.react.profiler',
+        data: { 'ui.component_name': name },
       });
     }
   }
@@ -70,7 +71,7 @@ class Profiler extends React.Component<ProfilerProps> {
   // If a component mounted, we can finish the mount activity.
   public componentDidMount(): void {
     if (this._mountSpan) {
-      this._mountSpan.finish();
+      this._mountSpan.end();
     }
   }
 
@@ -87,6 +88,7 @@ class Profiler extends React.Component<ProfilerProps> {
         this._updateSpan = this._mountSpan.startChild({
           data: {
             changedProps,
+            'ui.component_name': this.props.name,
           },
           description: `<${this.props.name}>`,
           op: REACT_UPDATE_OP,
@@ -101,7 +103,7 @@ class Profiler extends React.Component<ProfilerProps> {
 
   public componentDidUpdate(): void {
     if (this._updateSpan) {
-      this._updateSpan.finish();
+      this._updateSpan.end();
       this._updateSpan = undefined;
     }
   }
@@ -120,6 +122,7 @@ class Profiler extends React.Component<ProfilerProps> {
         op: REACT_RENDER_OP,
         origin: 'auto.ui.react.profiler',
         startTimestamp: this._mountSpan.endTimestamp,
+        data: { 'ui.component_name': name },
       });
     }
   }
@@ -184,6 +187,7 @@ function useProfiler(
         description: `<${name}>`,
         op: REACT_MOUNT_OP,
         origin: 'auto.ui.react.profiler',
+        data: { 'ui.component_name': name },
       });
     }
 
@@ -192,7 +196,7 @@ function useProfiler(
 
   React.useEffect(() => {
     if (mountSpan) {
-      mountSpan.finish();
+      mountSpan.end();
     }
 
     return (): void => {
@@ -203,6 +207,7 @@ function useProfiler(
           op: REACT_RENDER_OP,
           origin: 'auto.ui.react.profiler',
           startTimestamp: mountSpan.endTimestamp,
+          data: { 'ui.component_name': name },
         });
       }
     };

@@ -204,7 +204,7 @@ module.exports = {
     },
     {
       // Configuration for config files like webpack/rollup
-      files: ['*.config.js'],
+      files: ['*.config.js', '*.config.mjs'],
       parserOptions: {
         sourceType: 'module',
         ecmaVersion: 2018,

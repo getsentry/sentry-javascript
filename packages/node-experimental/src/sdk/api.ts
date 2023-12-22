@@ -6,7 +6,6 @@ import type {
   Breadcrumb,
   BreadcrumbHint,
   CaptureContext,
-  Client,
   Event,
   EventHint,
   EventProcessor,

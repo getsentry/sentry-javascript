@@ -70,7 +70,7 @@ conditionalTest({ min: 10 })('BrowserTracing', () => {
     const activeTransaction = getActiveTransaction();
     if (activeTransaction) {
       // Should unset off of scope.
-      activeTransaction.finish();
+      activeTransaction.end();
     }
   });
 
@@ -178,10 +178,10 @@ conditionalTest({ min: 10 })('BrowserTracing', () => {
 
       const transaction = getActiveTransaction(hub) as IdleTransaction;
       const span = transaction.startChild();
-      span.finish();
+      span.end();
 
       if (span.endTimestamp) {
-        transaction.finish(span.endTimestamp + 12345);
+        transaction.end(span.endTimestamp + 12345);
       }
       expect(transaction.endTimestamp).toBe(span.endTimestamp);
     });
@@ -418,10 +418,10 @@ conditionalTest({ min: 10 })('BrowserTracing', () => {
         createBrowserTracing(true, { routingInstrumentation: customInstrumentRouting });
         const mockFinish = jest.fn();
         const transaction = getActiveTransaction(hub) as IdleTransaction;
-        transaction.finish = mockFinish;
+        transaction.end = mockFinish;
 
         const span = transaction.startChild(); // activities = 1
-        span.finish(); // activities = 0
+        span.end(); // activities = 0
 
         expect(mockFinish).toHaveBeenCalledTimes(0);
         jest.advanceTimersByTime(TRACING_DEFAULTS.idleTimeout);
@@ -432,10 +432,10 @@ conditionalTest({ min: 10 })('BrowserTracing', () => {
         createBrowserTracing(true, { idleTimeout: 2000, routingInstrumentation: customInstrumentRouting });
         const mockFinish = jest.fn();
         const transaction = getActiveTransaction(hub) as IdleTransaction;
-        transaction.finish = mockFinish;
+        transaction.end = mockFinish;
 
         const span = transaction.startChild(); // activities = 1
-        span.finish(); // activities = 0
+        span.end(); // activities = 0
 
         expect(mockFinish).toHaveBeenCalledTimes(0);
         jest.advanceTimersByTime(2000);
@@ -447,7 +447,7 @@ conditionalTest({ min: 10 })('BrowserTracing', () => {
         const transaction = getActiveTransaction(hub) as IdleTransaction;
 
         const span = transaction.startChild(); // activities = 1
-        span.finish(); // activities = 0
+        span.end(); // activities = 0
 
         jest.advanceTimersByTime(TRACING_DEFAULTS.idleTimeout);
         expect(mockStartTrackingWebVitals).toHaveBeenCalledTimes(1);
@@ -460,10 +460,10 @@ conditionalTest({ min: 10 })('BrowserTracing', () => {
         createBrowserTracing(true, { heartbeatInterval: interval, routingInstrumentation: customInstrumentRouting });
         const mockFinish = jest.fn();
         const transaction = getActiveTransaction(hub) as IdleTransaction;
-        transaction.finish = mockFinish;
+        transaction.end = mockFinish;
 
         const span = transaction.startChild(); // activities = 1
-        span.finish(); // activities = 0
+        span.end(); // activities = 0
 
         expect(mockFinish).toHaveBeenCalledTimes(0);
         jest.advanceTimersByTime(interval * 3);

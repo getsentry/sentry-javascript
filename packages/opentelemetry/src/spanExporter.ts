@@ -1,4 +1,3 @@
-import type { Span } from '@opentelemetry/api';
 import { SpanKind } from '@opentelemetry/api';
 import type { ExportResult } from '@opentelemetry/core';
 import { ExportResultCode } from '@opentelemetry/core';
@@ -9,7 +8,6 @@ import type { DynamicSamplingContext, Span as SentrySpan, SpanOrigin, Transactio
 import { logger } from '@sentry/utils';
 
 import { getCurrentHub } from './custom/hub';
-import { OpenTelemetryScope } from './custom/scope';
 import type { OpenTelemetryTransaction } from './custom/transaction';
 import { startTransaction } from './custom/transaction';
 import { DEBUG_BUILD } from './debug-build';
@@ -222,7 +220,7 @@ function createAndFinishSpanForOtelSpan(node: SpanNode, sentryParentSpan: Sentry
     createAndFinishSpanForOtelSpan(child, sentrySpan, remaining);
   });
 
-  sentrySpan.finish(convertOtelTimeToSeconds(span.endTime));
+  sentrySpan.end(convertOtelTimeToSeconds(span.endTime));
 }
 
 function getSpanData(span: ReadableSpan): {

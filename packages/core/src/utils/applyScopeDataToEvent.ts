@@ -22,6 +22,104 @@ export function applyScopeDataToEvent(event: Event, data: ScopeData): void {
   applySdkMetadataToEvent(event, sdkProcessingMetadata, propagationContext);
 }
 
+/** Merge data of two scopes together. */
+export function mergeScopeData(data: ScopeData, mergeData: ScopeData): void {
+  const {
+    extra,
+    tags,
+    user,
+    contexts,
+    level,
+    sdkProcessingMetadata,
+    breadcrumbs,
+    fingerprint,
+    eventProcessors,
+    attachments,
+    propagationContext,
+    transactionName,
+    span,
+  } = mergeData;
+
+  mergePropOverwrite(data, 'extra', extra);
+  mergePropOverwrite(data, 'tags', tags);
+  mergePropOverwrite(data, 'user', user);
+  mergePropOverwrite(data, 'contexts', contexts);
+  mergePropOverwrite(data, 'sdkProcessingMetadata', sdkProcessingMetadata);
+
+  if (level) {
+    data.level = level;
+  }
+
+  if (transactionName) {
+    data.transactionName = transactionName;
+  }
+
+  if (span) {
+    data.span = span;
+  }
+
+  if (breadcrumbs.length) {
+    data.breadcrumbs = [...data.breadcrumbs, ...breadcrumbs];
+  }
+
+  if (fingerprint.length) {
+    data.fingerprint = [...data.fingerprint, ...fingerprint];
+  }
+
+  if (eventProcessors.length) {
+    data.eventProcessors = [...data.eventProcessors, ...eventProcessors];
+  }
+
+  if (attachments.length) {
+    data.attachments = [...data.attachments, ...attachments];
+  }
+
+  data.propagationContext = { ...data.propagationContext, ...propagationContext };
+}
+
+/**
+ * Merge properties, overwriting existing keys.
+ * Exported only for tests.
+ */
+export function mergePropOverwrite<
+  Prop extends 'extra' | 'tags' | 'user' | 'contexts' | 'sdkProcessingMetadata',
+  Data extends ScopeData | Event,
+>(data: Data, prop: Prop, mergeVal: Data[Prop]): void {
+  if (mergeVal && Object.keys(mergeVal).length) {
+    data[prop] = { ...data[prop], ...mergeVal };
+  }
+}
+
+/**
+ * Merge properties, keeping existing keys.
+ * Exported only for tests.
+ */
+export function mergePropKeep<
+  Prop extends 'extra' | 'tags' | 'user' | 'contexts' | 'sdkProcessingMetadata',
+  Data extends ScopeData | Event,
+>(data: Data, prop: Prop, mergeVal: Data[Prop]): void {
+  if (mergeVal && Object.keys(mergeVal).length) {
+    data[prop] = { ...mergeVal, ...data[prop] };
+  }
+}
+
+/** Exported only for tests */
+export function mergeArray<Prop extends 'breadcrumbs' | 'fingerprint'>(
+  event: Event,
+  prop: Prop,
+  mergeVal: ScopeData[Prop],
+): void {
+  const prevVal = event[prop];
+  // If we are not merging any new values,
+  // we only need to proceed if there was an empty array before (as we want to replace it with undefined)
+  if (!mergeVal.length && (!prevVal || prevVal.length)) {
+    return;
+  }
+
+  const merged = [...(prevVal || []), ...mergeVal] as ScopeData[Prop];
+  event[prop] = merged.length ? merged : undefined;
+}
+
 function applyDataToEvent(event: Event, data: ScopeData): void {
   const { extra, tags, user, contexts, level, transactionName } = data;
 

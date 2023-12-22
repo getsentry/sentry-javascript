@@ -163,7 +163,7 @@ function wrap(fn: Function, method: Method): (...args: any[]) => void {
             origin: 'auto.middleware.express',
           });
           res.once('finish', () => {
-            span.finish();
+            span.end();
           });
         }
         return fn.call(this, req, res);
@@ -183,7 +183,7 @@ function wrap(fn: Function, method: Method): (...args: any[]) => void {
           origin: 'auto.middleware.express',
         });
         fn.call(this, req, res, function (this: NodeJS.Global, ...args: unknown[]): void {
-          span?.finish();
+          span?.end();
           next.call(this, ...args);
         });
       };
@@ -203,7 +203,7 @@ function wrap(fn: Function, method: Method): (...args: any[]) => void {
           origin: 'auto.middleware.express',
         });
         fn.call(this, err, req, res, function (this: NodeJS.Global, ...args: unknown[]): void {
-          span?.finish();
+          span?.end();
           next.call(this, ...args);
         });
       };

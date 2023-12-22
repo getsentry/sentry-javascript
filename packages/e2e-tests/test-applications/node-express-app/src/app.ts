@@ -39,8 +39,8 @@ app.get('/test-transaction', async function (req, res) {
 
   const span = transaction.startChild();
 
-  span.finish();
-  transaction.finish();
+  span.end();
+  transaction.end();
 
   await Sentry.flush();
 

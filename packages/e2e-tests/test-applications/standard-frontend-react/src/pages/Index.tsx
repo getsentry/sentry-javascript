@@ -1,4 +1,5 @@
 import * as Sentry from '@sentry/react';
+// biome-ignore lint/nursery/noUnusedImports: Need React import for JSX
 import * as React from 'react';
 import { Link } from 'react-router-dom';
 

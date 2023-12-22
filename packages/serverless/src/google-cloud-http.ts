@@ -64,7 +64,7 @@ function wrapRequestFunction(orig: RequestFunction): RequestFunction {
     }
     orig.call(this, reqOpts, (...args: Parameters<ResponseCallback>) => {
       if (span) {
-        span.finish();
+        span.end();
       }
       callback(...args);
     });

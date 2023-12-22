@@ -128,8 +128,10 @@ describe('ReportingObserver', () => {
       );
       // without calling setup, the integration is not registered
 
+      const handler = mockReportingObserverConstructor.mock.calls[0][0];
+
       expect(() => {
-        reportingObserverIntegration.handler([{ type: 'crash', url: 'some url' }]);
+        handler([{ type: 'crash', url: 'some url' }]);
       }).not.toThrow();
 
       expect(captureMessage).not.toHaveBeenCalled();
@@ -142,8 +144,9 @@ describe('ReportingObserver', () => {
         () => mockHub,
       );
       reportingObserverIntegration.setup(mockClient);
+      const handler = mockReportingObserverConstructor.mock.calls[0][0];
 
-      reportingObserverIntegration.handler([
+      handler([
         { type: 'crash', url: 'some url' },
         { type: 'deprecation', url: 'some url' },
       ]);
@@ -158,8 +161,9 @@ describe('ReportingObserver', () => {
         () => mockHub,
       );
       reportingObserverIntegration.setup(mockClient);
+      const handler = mockReportingObserverConstructor.mock.calls[0][0];
 
-      reportingObserverIntegration.handler([
+      handler([
         { type: 'crash', url: 'some url 1' },
         { type: 'deprecation', url: 'some url 2' },
       ]);
@@ -175,11 +179,12 @@ describe('ReportingObserver', () => {
         () => mockHub,
       );
       reportingObserverIntegration.setup(mockClient);
+      const handler = mockReportingObserverConstructor.mock.calls[0][0];
 
       const report1 = { type: 'crash', url: 'some url 1', body: { crashId: 'id1' } } as const;
       const report2 = { type: 'deprecation', url: 'some url 2', body: { id: 'id2', message: 'message' } } as const;
 
-      reportingObserverIntegration.handler([report1, report2]);
+      handler([report1, report2]);
 
       expect(mockScope.setExtra).toHaveBeenCalledWith('body', report1.body);
       expect(mockScope.setExtra).toHaveBeenCalledWith('body', report2.body);
@@ -192,8 +197,9 @@ describe('ReportingObserver', () => {
         () => mockHub,
       );
       reportingObserverIntegration.setup(mockClient);
+      const handler = mockReportingObserverConstructor.mock.calls[0][0];
 
-      reportingObserverIntegration.handler([{ type: 'crash', url: 'some url' }]);
+      handler([{ type: 'crash', url: 'some url' }]);
 
       expect(mockScope.setExtra).not.toHaveBeenCalledWith('body', expect.anything());
     });
@@ -205,13 +211,14 @@ describe('ReportingObserver', () => {
         () => mockHub,
       );
       reportingObserverIntegration.setup(mockClient);
+      const handler = mockReportingObserverConstructor.mock.calls[0][0];
 
       const report = {
         type: 'crash',
         url: 'some url',
         body: { crashId: 'some id', reason: 'some reason' },
       } as const;
-      reportingObserverIntegration.handler([report]);
+      handler([report]);
 
       expect(captureMessage).toHaveBeenCalledWith(expect.stringContaining(report.type));
       expect(captureMessage).toHaveBeenCalledWith(expect.stringContaining(report.body.crashId));
@@ -225,13 +232,14 @@ describe('ReportingObserver', () => {
         () => mockHub,
       );
       reportingObserverIntegration.setup(mockClient);
+      const handler = mockReportingObserverConstructor.mock.calls[0][0];
 
       const report = {
         type: 'deprecation',
         url: 'some url',
         body: { id: 'some id', message: 'some message' },
       } as const;
-      reportingObserverIntegration.handler([report]);
+      handler([report]);
 
       expect(captureMessage).toHaveBeenCalledWith(expect.stringContaining(report.type));
       expect(captureMessage).toHaveBeenCalledWith(expect.stringContaining(report.body.message));
@@ -244,13 +252,14 @@ describe('ReportingObserver', () => {
         () => mockHub,
       );
       reportingObserverIntegration.setup(mockClient);
+      const handler = mockReportingObserverConstructor.mock.calls[0][0];
 
       const report = {
         type: 'intervention',
         url: 'some url',
         body: { id: 'some id', message: 'some message' },
       } as const;
-      reportingObserverIntegration.handler([report]);
+      handler([report]);
 
       expect(captureMessage).toHaveBeenCalledWith(expect.stringContaining(report.type));
       expect(captureMessage).toHaveBeenCalledWith(expect.stringContaining(report.body.message));
@@ -263,12 +272,13 @@ describe('ReportingObserver', () => {
         () => mockHub,
       );
       reportingObserverIntegration.setup(mockClient);
+      const handler = mockReportingObserverConstructor.mock.calls[0][0];
 
       const report = {
         type: 'intervention',
         url: 'some url',
       } as const;
-      reportingObserverIntegration.handler([report]);
+      handler([report]);
 
       expect(captureMessage).toHaveBeenCalledWith(expect.stringContaining(report.type));
       expect(captureMessage).toHaveBeenCalledWith(expect.stringContaining('No details available'));
@@ -281,9 +291,10 @@ describe('ReportingObserver', () => {
         () => mockHub,
       );
       reportingObserverIntegration.setup(mockClient);
+      const handler = mockReportingObserverConstructor.mock.calls[0][0];
 
       const report = { type: 'crash', url: 'some url', body: { crashId: '', reason: '' } } as const;
-      reportingObserverIntegration.handler([report]);
+      handler([report]);
 
       expect(captureMessage).toHaveBeenCalledWith(expect.stringContaining(report.type));
       expect(captureMessage).toHaveBeenCalledWith(expect.stringContaining('No details available'));
@@ -296,13 +307,14 @@ describe('ReportingObserver', () => {
         () => mockHub,
       );
       reportingObserverIntegration.setup(mockClient);
+      const handler = mockReportingObserverConstructor.mock.calls[0][0];
 
       const report = {
         type: 'deprecation',
         url: 'some url',
         body: { id: 'some id', message: '' },
       } as const;
-      reportingObserverIntegration.handler([report]);
+      handler([report]);
 
       expect(captureMessage).toHaveBeenCalledWith(expect.stringContaining(report.type));
       expect(captureMessage).toHaveBeenCalledWith(expect.stringContaining('No details available'));
@@ -315,13 +327,14 @@ describe('ReportingObserver', () => {
         () => mockHub,
       );
       reportingObserverIntegration.setup(mockClient);
+      const handler = mockReportingObserverConstructor.mock.calls[0][0];
 
       const report = {
         type: 'intervention',
         url: 'some url',
         body: { id: 'some id', message: '' },
       } as const;
-      reportingObserverIntegration.handler([report]);
+      handler([report]);
 
       expect(captureMessage).toHaveBeenCalledWith(expect.stringContaining(report.type));
       expect(captureMessage).toHaveBeenCalledWith(expect.stringContaining('No details available'));

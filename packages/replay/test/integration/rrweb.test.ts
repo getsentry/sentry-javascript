@@ -1,4 +1,3 @@
-import type { CanvasManagerInterface } from '../../src/types';
 import { resetSdkMock } from '../mocks/resetSdkMock';
 import { useFakeTimers } from '../utils/use-fake-timers';
 

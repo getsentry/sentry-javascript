@@ -96,7 +96,7 @@ export function withEdgeWrapping<H extends EdgeRouteHandler>(
 
       throw objectifiedErr;
     } finally {
-      span?.finish();
+      span?.end();
       currentScope?.setSpan(prevSpan);
       await flushQueue();
     }
