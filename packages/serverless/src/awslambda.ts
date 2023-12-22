@@ -3,14 +3,16 @@ import { hostname } from 'os';
 import { basename, resolve } from 'path';
 import { types } from 'util';
 /* eslint-disable max-lines */
-import type { Scope } from '@sentry/node';
-import * as Sentry from '@sentry/node';
+import type { NodeOptions, Scope } from '@sentry/node';
+import { SDK_VERSION } from '@sentry/node';
 import {
   captureException,
   captureMessage,
   continueTrace,
+  defaultIntegrations as nodeDefaultIntegrations,
   flush,
   getCurrentScope,
+  init as initNode,
   startSpanManual,
   withScope,
 } from '@sentry/node';
@@ -63,9 +65,9 @@ export interface WrapperOptions {
   startTrace: boolean;
 }
 
-export const defaultIntegrations: Integration[] = [...Sentry.defaultIntegrations, new AWSServices({ optional: true })];
+export const defaultIntegrations: Integration[] = [...nodeDefaultIntegrations, new AWSServices({ optional: true })];
 
-interface AWSLambdaOptions extends Sentry.NodeOptions {
+interface AWSLambdaOptions extends NodeOptions {
   /**
    * Internal field that is set to `true` when init() is called by the Sentry AWS Lambda layer.
    *
@@ -74,7 +76,7 @@ interface AWSLambdaOptions extends Sentry.NodeOptions {
 }
 
 /**
- * @see {@link Sentry.init}
+ * @see {@link init}
  */
 export function init(options: AWSLambdaOptions = {}): void {
   const opts = {
@@ -89,13 +91,13 @@ export function init(options: AWSLambdaOptions = {}): void {
     packages: [
       {
         name: 'npm:@sentry/serverless',
-        version: Sentry.SDK_VERSION,
+        version: SDK_VERSION,
       },
     ],
-    version: Sentry.SDK_VERSION,
+    version: SDK_VERSION,
   };
 
-  Sentry.init(opts);
+  initNode(opts);
 }
 
 /** */
