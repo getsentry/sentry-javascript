@@ -99,7 +99,10 @@ export function startSpan<T>(context: TransactionContext, callback: (span: Span 
     const activeSpan = createChildSpanOrTransaction(hub, parentSpan, ctx);
     scope.setSpan(activeSpan);
 
+    console.log('activeSpan', activeSpan);
+
     function finishAndSetSpan(): void {
+      console.log('finishAndSetSpan', activeSpan);
       activeSpan && activeSpan.end();
     }
 
