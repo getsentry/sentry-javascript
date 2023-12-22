@@ -77,7 +77,7 @@ interface AWSLambdaOptions extends NodeOptions {
 
 /**
  * Initializes the Sentry AWS Lambda SDK.
- * 
+ *
  * @param options Configuration options for the SDK, @see {@link AWSLambdaOptions}.
  */
 export function init(options: AWSLambdaOptions = {}): void {
