@@ -5,9 +5,17 @@ import { types } from 'util';
 /* eslint-disable max-lines */
 import type { Scope } from '@sentry/node';
 import * as Sentry from '@sentry/node';
-import { captureException, captureMessage, flush, getCurrentHub, withScope } from '@sentry/node';
-import type { Integration, SdkMetadata } from '@sentry/types';
-import { isString, logger, tracingContextFromHeaders } from '@sentry/utils';
+import {
+  captureException,
+  captureMessage,
+  continueTrace,
+  flush,
+  getCurrentScope,
+  startSpanManual,
+  withScope,
+} from '@sentry/node';
+import type { Integration, SdkMetadata, Span } from '@sentry/types';
+import { isString, logger } from '@sentry/utils';
 // NOTE: I have no idea how to fix this right now, and don't want to waste more time, as it builds just fine — Kamil
 import type { Context, Handler } from 'aws-lambda';
 import { performance } from 'perf_hooks';
@@ -290,44 +298,13 @@ export function wrapHandler<TEvent, TResult>(
       }, timeoutWarningDelay) as unknown as NodeJS.Timeout;
     }
 
-    const hub = getCurrentHub();
+    async function processResult(span?: Span): Promise<TResult> {
+      const scope = getCurrentScope();
 
-    let transaction: Sentry.Transaction | undefined;
-    if (options.startTrace) {
-      const eventWithHeaders = event as { headers?: { [key: string]: string } };
-
-      const sentryTrace =
-        eventWithHeaders.headers && isString(eventWithHeaders.headers['sentry-trace'])
-          ? eventWithHeaders.headers['sentry-trace']
-          : undefined;
-      const baggage = eventWithHeaders.headers?.baggage;
-      const { traceparentData, dynamicSamplingContext, propagationContext } = tracingContextFromHeaders(
-        sentryTrace,
-        baggage,
-      );
-      Sentry.getCurrentScope().setPropagationContext(propagationContext);
-
-      transaction = hub.startTransaction({
-        name: context.functionName,
-        op: 'function.aws.lambda',
-        origin: 'auto.function.serverless',
-        ...traceparentData,
-        metadata: {
-          dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
-          source: 'component',
-        },
-      });
-    }
-
-    return withScope(async scope => {
       let rv: TResult;
       try {
         enhanceScopeWithEnvironmentData(scope, context, START_TIME);
-        if (options.startTrace) {
-          enhanceScopeWithTransactionData(scope, context);
-          // We put the transaction on the scope so users can attach children to it
-          scope.setSpan(transaction);
-        }
+
         rv = await asyncHandler(event, context);
 
         // We manage lambdas that use Promise.allSettled by capturing the errors of failed promises
@@ -342,12 +319,46 @@ export function wrapHandler<TEvent, TResult>(
         throw e;
       } finally {
         clearTimeout(timeoutWarningTimer);
-        transaction?.end();
+        span?.end();
         await flush(options.flushTimeout).catch(e => {
           DEBUG_BUILD && logger.error(e);
         });
       }
       return rv;
+    }
+
+    if (options.startTrace) {
+      const eventWithHeaders = event as { headers?: { [key: string]: string } };
+
+      const sentryTrace =
+        eventWithHeaders.headers && isString(eventWithHeaders.headers['sentry-trace'])
+          ? eventWithHeaders.headers['sentry-trace']
+          : undefined;
+      const baggage = eventWithHeaders.headers?.baggage;
+
+      const continueTraceContext = continueTrace({ sentryTrace, baggage });
+
+      return startSpanManual(
+        {
+          name: context.functionName,
+          op: 'function.aws.lambda',
+          origin: 'auto.function.serverless',
+          ...continueTraceContext,
+          metadata: {
+            ...continueTraceContext.metadata,
+            source: 'component',
+          },
+        },
+        span => {
+          enhanceScopeWithTransactionData(getCurrentScope(), context);
+
+          return processResult(span);
+        },
+      );
+    }
+
+    return withScope(async () => {
+      return processResult(undefined);
     });
   };
 }
