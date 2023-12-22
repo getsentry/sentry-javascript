@@ -10,9 +10,6 @@ sentryTest('should capture a thrown error within an async startSpan callback', a
   }
   const envelopePromise = getMultipleSentryEnvelopeRequests<Event>(page, 2);
 
-  page.on('console', msg => console.log(msg.text()));
-  page.on('pageerror', err => console.log(err));
-
   const url = await getLocalTestPath({ testDir: __dirname });
   await page.goto(url);
 
