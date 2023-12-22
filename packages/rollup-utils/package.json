@@ -1,0 +1,19 @@
+{
+  "name": "@sentry-internal/rollup-utils",
+  "version": "7.91.0",
+  "description": "Rollup utilities used at Sentry for the Sentry JavaScript SDK",
+  "repository": "git://github.com/getsentry/sentry-javascript.git",
+  "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/rollup-utils",
+  "author": "Sentry",
+  "license": "MIT",
+  "private": true,
+  "main": "./index.mjs",
+  "dependencies": {
+    "acorn": "^8.7.0",
+    "recast": "^0.20.5"
+  },
+  "volta": {
+    "extends": "../../package.json"
+  },
+  "type": "module"
+}

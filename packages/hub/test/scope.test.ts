@@ -237,8 +237,6 @@ describe('Scope', () => {
 
   describe('applyToEvent', () => {
     test('basic usage', async () => {
-      expect.assertions(9);
-
       const scope = new Scope();
       scope.setExtra('a', 2);
       scope.setTag('a', 'b');
@@ -251,20 +249,20 @@ describe('Scope', () => {
       scope.setSDKProcessingMetadata({ dogs: 'are great!' });
 
       const event: Event = {};
-      return scope.applyToEvent(event).then(processedEvent => {
-        expect(processedEvent!.extra).toEqual({ a: 2 });
-        expect(processedEvent!.tags).toEqual({ a: 'b' });
-        expect(processedEvent!.user).toEqual({ id: '1' });
-        expect(processedEvent!.fingerprint).toEqual(['abcd']);
-        expect(processedEvent!.level).toEqual('warning');
-        expect(processedEvent!.transaction).toEqual('/abc');
-        expect(processedEvent!.breadcrumbs![0]).toHaveProperty('message', 'test');
-        expect(processedEvent!.contexts).toEqual({ os: { id: '1' } });
-        expect(processedEvent!.sdkProcessingMetadata).toEqual({
-          dogs: 'are great!',
-          // @ts-expect-error accessing private property for test
-          propagationContext: scope._propagationContext,
-        });
+      const processedEvent = await scope.applyToEvent(event);
+
+      expect(processedEvent!.extra).toEqual({ a: 2 });
+      expect(processedEvent!.tags).toEqual({ a: 'b' });
+      expect(processedEvent!.user).toEqual({ id: '1' });
+      expect(processedEvent!.fingerprint).toEqual(['abcd']);
+      expect(processedEvent!.level).toEqual('warning');
+      expect(processedEvent!.transaction).toEqual('/abc');
+      expect(processedEvent!.breadcrumbs![0]).toHaveProperty('message', 'test');
+      expect(processedEvent!.contexts).toEqual({ os: { id: '1' } });
+      expect(processedEvent!.sdkProcessingMetadata).toEqual({
+        dogs: 'are great!',
+        // @ts-expect-error accessing private property for test
+        propagationContext: scope._propagationContext,
       });
     });
 
@@ -360,7 +358,6 @@ describe('Scope', () => {
     });
 
     test('adds trace context', async () => {
-      expect.assertions(1);
       const scope = new Scope();
       const span = {
         fake: 'span',
@@ -368,9 +365,8 @@ describe('Scope', () => {
       } as any;
       scope.setSpan(span);
       const event: Event = {};
-      return scope.applyToEvent(event).then(processedEvent => {
-        expect((processedEvent!.contexts!.trace as any).a).toEqual('b');
-      });
+      const processedEvent = await scope.applyToEvent(event);
+      expect((processedEvent!.contexts!.trace as any).a).toEqual('b');
     });
 
     test('existing trace context in event should take precedence', async () => {

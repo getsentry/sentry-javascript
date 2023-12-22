@@ -1,6 +1,6 @@
 {
   "name": "@sentry/integrations",
-  "version": "7.89.0",
+  "version": "7.91.0",
   "description": "Pluggable integrations that can be used to enhance JS SDKs",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/integrations",
@@ -23,26 +23,26 @@
     }
   },
   "dependencies": {
-    "@sentry/core": "7.89.0",
-    "@sentry/types": "7.89.0",
-    "@sentry/utils": "7.89.0",
+    "@sentry/core": "7.91.0",
+    "@sentry/types": "7.91.0",
+    "@sentry/utils": "7.91.0",
     "localforage": "^1.8.1"
   },
   "devDependencies": {
-    "@sentry/browser": "7.89.0",
+    "@sentry/browser": "7.91.0",
     "chai": "^4.1.2"
   },
   "scripts": {
     "build": "run-p build:transpile build:types build:bundle",
     "build:bundle": "ts-node scripts/buildBundles.ts --parallel",
     "build:dev": "run-p build:transpile build:types",
-    "build:transpile": "rollup -c rollup.npm.config.js",
+    "build:transpile": "rollup -c rollup.npm.config.mjs",
     "build:types": "run-s build:types:core build:types:downlevel",
     "build:types:core": "tsc -p tsconfig.types.json",
     "build:types:downlevel": "yarn downlevel-dts build/npm/types build/npm/types-ts3.8 --to ts3.8",
     "build:watch": "run-p build:transpile:watch build:types:watch",
     "build:dev:watch": "yarn build:watch",
-    "build:transpile:watch": "rollup -c rollup.npm.config.js --watch",
+    "build:transpile:watch": "rollup -c rollup.npm.config.mjs --watch",
     "build:types:watch": "tsc -p tsconfig.types.json --watch",
     "build:tarball": "ts-node ../../scripts/prepack.ts --bundles && npm pack ./build/npm",
     "circularDepCheck": "madge --circular src/index.ts",

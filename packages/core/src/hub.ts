@@ -20,7 +20,15 @@ import type {
   TransactionContext,
   User,
 } from '@sentry/types';
-import { GLOBAL_OBJ, consoleSandbox, dateTimestampInSeconds, getGlobalSingleton, logger, uuid4 } from '@sentry/utils';
+import {
+  GLOBAL_OBJ,
+  consoleSandbox,
+  dateTimestampInSeconds,
+  getGlobalSingleton,
+  isThenable,
+  logger,
+  uuid4,
+} from '@sentry/utils';
 
 import { DEFAULT_ENVIRONMENT } from './constants';
 import { DEBUG_BUILD } from './debug-build';
@@ -104,6 +112,8 @@ export class Hub implements HubInterface {
   /** Contains the last event id of a captured event.  */
   private _lastEventId?: string;
 
+  private _isolationScope: Scope;
+
   /**
    * Creates a new instance of the hub, will push one {@link Layer} into the
    * internal stack on creation.
@@ -112,11 +122,18 @@ export class Hub implements HubInterface {
    * @param scope bound to the hub.
    * @param version number, higher number means higher priority.
    */
-  public constructor(client?: Client, scope: Scope = new Scope(), private readonly _version: number = API_VERSION) {
+  public constructor(
+    client?: Client,
+    scope: Scope = new Scope(),
+    isolationScope = new Scope(),
+    private readonly _version: number = API_VERSION,
+  ) {
     this._stack = [{ scope }];
     if (client) {
       this.bindClient(client);
     }
+
+    this._isolationScope = isolationScope;
   }
 
   /**
@@ -168,12 +185,35 @@ export class Hub implements HubInterface {
   public withScope<T>(callback: (scope: Scope) => T): T {
     // eslint-disable-next-line deprecation/deprecation
     const scope = this.pushScope();
+
+    let maybePromiseResult: T;
     try {
-      return callback(scope);
-    } finally {
+      maybePromiseResult = callback(scope);
+    } catch (e) {
       // eslint-disable-next-line deprecation/deprecation
       this.popScope();
+      throw e;
     }
+
+    if (isThenable(maybePromiseResult)) {
+      // @ts-expect-error - isThenable returns the wrong type
+      return maybePromiseResult.then(
+        res => {
+          // eslint-disable-next-line deprecation/deprecation
+          this.popScope();
+          return res;
+        },
+        e => {
+          // eslint-disable-next-line deprecation/deprecation
+          this.popScope();
+          throw e;
+        },
+      );
+    }
+
+    // eslint-disable-next-line deprecation/deprecation
+    this.popScope();
+    return maybePromiseResult;
   }
 
   /**
@@ -186,6 +226,11 @@ export class Hub implements HubInterface {
   /** Returns the scope of the top stack. */
   public getScope(): Scope {
     return this.getStackTop().scope;
+  }
+
+  /** @inheritdoc */
+  public getIsolationScope(): Scope {
+    return this._isolationScope;
   }
 
   /** Returns the scope stack for domains or the process. */
@@ -567,6 +612,15 @@ export function getCurrentHub(): Hub {
   return getGlobalHub(registry);
 }
 
+/**
+ * Get the currently active isolation scope.
+ * The isolation scope is active for the current exection context,
+ * meaning that it will remain stable for the same Hub.
+ */
+export function getIsolationScope(): Scope {
+  return getCurrentHub().getIsolationScope();
+}
+
 function getGlobalHub(registry: Carrier = getMainCarrier()): Hub {
   // If there's no hub, or its an old API, assign a new one
   if (!hasHubOnCarrier(registry) || getHubFromCarrier(registry).isOlderThan(API_VERSION)) {
@@ -585,8 +639,10 @@ function getGlobalHub(registry: Carrier = getMainCarrier()): Hub {
 export function ensureHubOnCarrier(carrier: Carrier, parent: Hub = getGlobalHub()): void {
   // If there's no hub on current domain, or it's an old API, assign a new one
   if (!hasHubOnCarrier(carrier) || getHubFromCarrier(carrier).isOlderThan(API_VERSION)) {
-    const globalHubTopStack = parent.getStackTop();
-    setHubOnCarrier(carrier, new Hub(globalHubTopStack.client, globalHubTopStack.scope.clone()));
+    const client = parent.getClient();
+    const scope = parent.getScope();
+    const isolationScope = parent.getIsolationScope();
+    setHubOnCarrier(carrier, new Hub(client, scope.clone(), isolationScope.clone()));
   }
 }
 

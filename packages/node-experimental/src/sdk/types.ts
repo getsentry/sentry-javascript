@@ -74,7 +74,6 @@ export interface AsyncContextStrategy {
 }
 
 export interface SentryCarrier {
-  globalScope?: Scope;
   scopes?: CurrentScopes;
   acs?: AsyncContextStrategy;
 

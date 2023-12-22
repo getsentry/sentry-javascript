@@ -57,7 +57,7 @@ export function instrumentFetchRequest(
       } else if (handlerData.error) {
         span.setStatus('internal_error');
       }
-      span.finish();
+      span.end();
 
       // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
       delete spans[spanId];

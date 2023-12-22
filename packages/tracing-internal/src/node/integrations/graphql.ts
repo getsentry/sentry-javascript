@@ -66,14 +66,14 @@ export class GraphQL implements LazyLoadedIntegration<GraphQLModule> {
 
         if (isThenable(rv)) {
           return rv.then((res: unknown) => {
-            span?.finish();
+            span?.end();
             scope?.setSpan(parentSpan);
 
             return res;
           });
         }
 
-        span?.finish();
+        span?.end();
         scope?.setSpan(parentSpan);
         return rv;
       };

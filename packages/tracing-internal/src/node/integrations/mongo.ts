@@ -185,7 +185,7 @@ export class Mongo implements LazyLoadedIntegration<MongoModule> {
 
           if (isThenable(maybePromiseOrCursor)) {
             return maybePromiseOrCursor.then((res: unknown) => {
-              span?.finish();
+              span?.end();
               return res;
             });
           }
@@ -196,17 +196,17 @@ export class Mongo implements LazyLoadedIntegration<MongoModule> {
 
             try {
               cursor.once('close', () => {
-                span?.finish();
+                span?.end();
               });
             } catch (e) {
               // If the cursor is already closed, `once` will throw an error. In that case, we can
               // finish the span immediately.
-              span?.finish();
+              span?.end();
             }
 
             return cursor;
           } else {
-            span?.finish();
+            span?.end();
             return maybePromiseOrCursor;
           }
         }
@@ -214,7 +214,7 @@ export class Mongo implements LazyLoadedIntegration<MongoModule> {
         const span = parentSpan?.startChild(getSpanContext(this, operation, args.slice(0, -1)));
 
         return orig.call(this, ...args.slice(0, -1), function (err: Error, result: unknown) {
-          span?.finish();
+          span?.end();
           lastArg(err, result);
         });
       };

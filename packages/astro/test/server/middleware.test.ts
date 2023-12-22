@@ -1,6 +1,6 @@
 import * as SentryNode from '@sentry/node';
 import type { Client } from '@sentry/types';
-import { SpyInstance, vi } from 'vitest';
+import { vi } from 'vitest';
 
 import { handleRequest, interpolateRouteFromUrlAndParams } from '../../src/server/middleware';
 

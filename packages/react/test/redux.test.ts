@@ -1,5 +1,4 @@
 import * as Sentry from '@sentry/browser';
-import type { Scope } from '@sentry/types';
 import * as Redux from 'redux';
 
 import { createReduxEnhancer } from '../src/redux';

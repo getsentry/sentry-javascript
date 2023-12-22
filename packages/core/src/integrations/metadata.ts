@@ -1,4 +1,4 @@
-import type { Event, EventItem, IntegrationFn } from '@sentry/types';
+import type { EventItem, IntegrationFn } from '@sentry/types';
 import { forEachEnvelopeItem } from '@sentry/utils';
 import { convertIntegrationFnToClass } from '../integration';
 

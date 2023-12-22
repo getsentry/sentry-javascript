@@ -1,4 +1,7 @@
-import type { Event, EventProcessor, Integration } from '@sentry/types';
+import { convertIntegrationFnToClass } from '@sentry/core';
+import type { Event, IntegrationFn } from '@sentry/types';
+
+const INTEGRATION_NAME = 'DenoContext';
 
 function getOSName(): string {
   switch (Deno.build.os) {
@@ -19,7 +22,7 @@ function getOSRelease(): string | undefined {
     : undefined;
 }
 
-async function denoRuntime(event: Event): Promise<Event> {
+async function addDenoRuntimeContext(event: Event): Promise<Event> {
   event.contexts = {
     ...{
       app: {
@@ -49,21 +52,15 @@ async function denoRuntime(event: Event): Promise<Event> {
   return event;
 }
 
-/** Adds Electron context to events. */
-export class DenoContext implements Integration {
-  /** @inheritDoc */
-  public static id = 'DenoContext';
+const denoContextIntegration: IntegrationFn = () => {
+  return {
+    name: INTEGRATION_NAME,
+    processEvent(event) {
+      return addDenoRuntimeContext(event);
+    },
+  };
+};
 
-  /** @inheritDoc */
-  public name: string = DenoContext.id;
-
-  /** @inheritDoc */
-  public setupOnce(_addGlobalEventProcessor: (callback: EventProcessor) => void): void {
-    // noop
-  }
-
-  /** @inheritDoc */
-  public processEvent(event: Event): Promise<Event> {
-    return denoRuntime(event);
-  }
-}
+/** Adds Deno context to events. */
+// eslint-disable-next-line deprecation/deprecation
+export const DenoContext = convertIntegrationFnToClass(INTEGRATION_NAME, denoContextIntegration);

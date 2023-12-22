@@ -65,7 +65,7 @@ export class Anr implements Integration {
 
   /** @inheritdoc */
   public setup(client: NodeClient): void {
-    if ((NODE_VERSION.major || 0) < 16) {
+    if (NODE_VERSION.major < 16) {
       throw new Error('ANR detection requires Node 16 or later');
     }
 
@@ -84,7 +84,7 @@ export class Anr implements Integration {
       return;
     }
 
-    // These will not be inaccurate if sent later from the worker thread
+    // These will not be accurate if sent later from the worker thread
     delete contexts.app?.app_memory;
     delete contexts.device?.free_memory;
 

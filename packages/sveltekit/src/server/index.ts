@@ -24,6 +24,8 @@ export {
   getCurrentHub,
   getClient,
   getCurrentScope,
+  getGlobalScope,
+  getIsolationScope,
   Hub,
   makeMain,
   Scope,
