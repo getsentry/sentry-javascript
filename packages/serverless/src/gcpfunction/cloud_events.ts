@@ -1,4 +1,4 @@
-import { captureException, flush, getCurrentHub, getCurrentScope } from '@sentry/node';
+import { captureException, flush, getCurrentScope, startSpanManual } from '@sentry/node';
 import { isThenable, logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../debug-build';
@@ -21,7 +21,6 @@ export function wrapCloudEventFunction(
   return proxyFunction(fn, f => domainify(_wrapCloudEventFunction(f, wrapOptions)));
 }
 
-/** */
 function _wrapCloudEventFunction(
   fn: CloudEventFunction | CloudEventFunctionWithCallback,
   wrapOptions: Partial<CloudEventFunctionWrapperOptions> = {},
@@ -31,63 +30,59 @@ function _wrapCloudEventFunction(
     ...wrapOptions,
   };
   return (context, callback) => {
-    const hub = getCurrentHub();
+    return startSpanManual(
+      {
+        name: context.type || '<unknown>',
+        op: 'function.gcp.cloud_event',
+        origin: 'auto.function.serverless.gcp_cloud_event',
+        metadata: { source: 'component' },
+      },
+      span => {
+        const scope = getCurrentScope();
+        scope.setContext('gcp.function.context', { ...context });
 
-    const transaction = hub.startTransaction({
-      name: context.type || '<unknown>',
-      op: 'function.gcp.cloud_event',
-      origin: 'auto.function.serverless.gcp_cloud_event',
-      metadata: { source: 'component' },
-    }) as ReturnType<typeof hub.startTransaction> | undefined;
+        const newCallback = domainify((...args: unknown[]) => {
+          if (args[0] !== null && args[0] !== undefined) {
+            captureException(args[0], scope => markEventUnhandled(scope));
+          }
+          span?.end();
 
-    // getCurrentHub() is expected to use current active domain as a carrier
-    // since functions-framework creates a domain for each incoming request.
-    // So adding of event processors every time should not lead to memory bloat.
-    const scope = getCurrentScope();
-    scope.setContext('gcp.function.context', { ...context });
-    // We put the transaction on the scope so users can attach children to it
-    scope.setSpan(transaction);
-
-    const newCallback = domainify((...args: unknown[]) => {
-      if (args[0] !== null && args[0] !== undefined) {
-        captureException(args[0], scope => markEventUnhandled(scope));
-      }
-      transaction?.end();
-
-      // eslint-disable-next-line @typescript-eslint/no-floating-promises
-      flush(options.flushTimeout)
-        .then(null, e => {
-          DEBUG_BUILD && logger.error(e);
-        })
-        .then(() => {
-          callback(...args);
+          // eslint-disable-next-line @typescript-eslint/no-floating-promises
+          flush(options.flushTimeout)
+            .then(null, e => {
+              DEBUG_BUILD && logger.error(e);
+            })
+            .then(() => {
+              callback(...args);
+            });
         });
-    });
 
-    if (fn.length > 1) {
-      let fnResult;
-      try {
-        fnResult = (fn as CloudEventFunctionWithCallback)(context, newCallback);
-      } catch (err) {
-        captureException(err, scope => markEventUnhandled(scope));
-        throw err;
-      }
+        if (fn.length > 1) {
+          let fnResult;
+          try {
+            fnResult = (fn as CloudEventFunctionWithCallback)(context, newCallback);
+          } catch (err) {
+            captureException(err, scope => markEventUnhandled(scope));
+            throw err;
+          }
 
-      if (isThenable(fnResult)) {
-        fnResult.then(null, err => {
-          captureException(err, scope => markEventUnhandled(scope));
-          throw err;
-        });
-      }
+          if (isThenable(fnResult)) {
+            fnResult.then(null, err => {
+              captureException(err, scope => markEventUnhandled(scope));
+              throw err;
+            });
+          }
 
-      return fnResult;
-    }
+          return fnResult;
+        }
 
-    return Promise.resolve()
-      .then(() => (fn as CloudEventFunction)(context))
-      .then(
-        result => newCallback(null, result),
-        err => newCallback(err, undefined),
-      );
+        return Promise.resolve()
+          .then(() => (fn as CloudEventFunction)(context))
+          .then(
+            result => newCallback(null, result),
+            err => newCallback(err, undefined),
+          );
+      },
+    );
   };
 }

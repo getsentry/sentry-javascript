@@ -88,8 +88,6 @@ describe('GCPFunction', () => {
 
   describe('wrapHttpFunction() options', () => {
     test('flushTimeout', async () => {
-      expect.assertions(1);
-
       const handler: HttpFunction = (_, res) => {
         res.end();
       };
@@ -102,8 +100,6 @@ describe('GCPFunction', () => {
 
   describe('wrapHttpFunction()', () => {
     test('successful execution', async () => {
-      expect.assertions(5);
-
       const handler: HttpFunction = (_req, res) => {
         res.statusCode = 200;
         res.end();
@@ -117,23 +113,16 @@ describe('GCPFunction', () => {
         origin: 'auto.function.serverless.gcp_http',
         metadata: { source: 'route' },
       };
-      // @ts-expect-error see "Why @ts-expect-error" note
-      const fakeTransaction = { ...SentryNode.fakeTransaction, ...fakeTransactionContext };
 
+      expect(SentryNode.startSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
       // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeHub.startTransaction).toBeCalledWith(fakeTransactionContext);
+      expect(SentryNode.fakeSpan.setHttpStatus).toBeCalledWith(200);
       // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeScope.setSpan).toBeCalledWith(fakeTransaction);
-      // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeTransaction.setHttpStatus).toBeCalledWith(200);
-      // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeTransaction.end).toBeCalled();
+      expect(SentryNode.fakeSpan.end).toBeCalled();
       expect(SentryNode.flush).toBeCalledWith(2000);
     });
 
     test('incoming trace headers are correctly parsed and used', async () => {
-      expect.assertions(1);
-
       const handler: HttpFunction = (_req, res) => {
         res.statusCode = 200;
         res.end();
@@ -160,13 +149,10 @@ describe('GCPFunction', () => {
         },
       };
 
-      // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeHub.startTransaction).toBeCalledWith(fakeTransactionContext);
+      expect(SentryNode.startSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
     });
 
     test('capture error', async () => {
-      expect.assertions(5);
-
       const error = new Error('wat');
       const handler: HttpFunction = (_req, _res) => {
         throw error;
@@ -188,22 +174,15 @@ describe('GCPFunction', () => {
         parentSampled: false,
         metadata: { dynamicSamplingContext: {}, source: 'route' },
       };
-      // @ts-expect-error see "Why @ts-expect-error" note
-      const fakeTransaction = { ...SentryNode.fakeTransaction, ...fakeTransactionContext };
 
-      // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeHub.startTransaction).toBeCalledWith(fakeTransactionContext);
-      // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeScope.setSpan).toBeCalledWith(fakeTransaction);
+      expect(SentryNode.startSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
       expect(SentryNode.captureException).toBeCalledWith(error, expect.any(Function));
       // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeTransaction.end).toBeCalled();
+      expect(SentryNode.fakeSpan.end).toBeCalled();
       expect(SentryNode.flush).toBeCalled();
     });
 
     test('should not throw when flush rejects', async () => {
-      expect.assertions(2);
-
       const handler: HttpFunction = async (_req, res) => {
         res.statusCode = 200;
         res.end();
@@ -262,8 +241,6 @@ describe('GCPFunction', () => {
 
   describe('wrapEventFunction() without callback', () => {
     test('successful execution', async () => {
-      expect.assertions(5);
-
       const func: EventFunction = (_data, _context) => {
         return 42;
       };
@@ -276,21 +253,14 @@ describe('GCPFunction', () => {
         origin: 'auto.function.serverless.gcp_event',
         metadata: { source: 'component' },
       };
-      // @ts-expect-error see "Why @ts-expect-error" note
-      const fakeTransaction = { ...SentryNode.fakeTransaction, ...fakeTransactionContext };
 
+      expect(SentryNode.startSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
       // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeHub.startTransaction).toBeCalledWith(fakeTransactionContext);
-      // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeScope.setSpan).toBeCalledWith(fakeTransaction);
-      // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeTransaction.end).toBeCalled();
+      expect(SentryNode.fakeSpan.end).toBeCalled();
       expect(SentryNode.flush).toBeCalledWith(2000);
     });
 
     test('capture error', async () => {
-      expect.assertions(6);
-
       const error = new Error('wat');
       const handler: EventFunction = (_data, _context) => {
         throw error;
@@ -304,24 +274,17 @@ describe('GCPFunction', () => {
         origin: 'auto.function.serverless.gcp_event',
         metadata: { source: 'component' },
       };
-      // @ts-expect-error see "Why @ts-expect-error" note
-      const fakeTransaction = { ...SentryNode.fakeTransaction, ...fakeTransactionContext };
 
-      // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeHub.startTransaction).toBeCalledWith(fakeTransactionContext);
-      // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeScope.setSpan).toBeCalledWith(fakeTransaction);
+      expect(SentryNode.startSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
       expect(SentryNode.captureException).toBeCalledWith(error, expect.any(Function));
       // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeTransaction.end).toBeCalled();
+      expect(SentryNode.fakeSpan.end).toBeCalled();
       expect(SentryNode.flush).toBeCalled();
     });
   });
 
   describe('wrapEventFunction() as Promise', () => {
     test('successful execution', async () => {
-      expect.assertions(5);
-
       const func: EventFunction = (_data, _context) =>
         new Promise(resolve => {
           setTimeout(() => {
@@ -337,21 +300,14 @@ describe('GCPFunction', () => {
         origin: 'auto.function.serverless.gcp_event',
         metadata: { source: 'component' },
       };
-      // @ts-expect-error see "Why @ts-expect-error" note
-      const fakeTransaction = { ...SentryNode.fakeTransaction, ...fakeTransactionContext };
 
+      expect(SentryNode.startSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
       // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeHub.startTransaction).toBeCalledWith(fakeTransactionContext);
-      // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeScope.setSpan).toBeCalledWith(fakeTransaction);
-      // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeTransaction.end).toBeCalled();
+      expect(SentryNode.fakeSpan.end).toBeCalled();
       expect(SentryNode.flush).toBeCalledWith(2000);
     });
 
     test('capture error', async () => {
-      expect.assertions(6);
-
       const error = new Error('wat');
       const handler: EventFunction = (_data, _context) =>
         new Promise((_, reject) => {
@@ -369,24 +325,17 @@ describe('GCPFunction', () => {
         origin: 'auto.function.serverless.gcp_event',
         metadata: { source: 'component' },
       };
-      // @ts-expect-error see "Why @ts-expect-error" note
-      const fakeTransaction = { ...SentryNode.fakeTransaction, ...fakeTransactionContext };
 
-      // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeHub.startTransaction).toBeCalledWith(fakeTransactionContext);
-      // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeScope.setSpan).toBeCalledWith(fakeTransaction);
+      expect(SentryNode.startSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
       expect(SentryNode.captureException).toBeCalledWith(error, expect.any(Function));
       // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeTransaction.end).toBeCalled();
+      expect(SentryNode.fakeSpan.end).toBeCalled();
       expect(SentryNode.flush).toBeCalled();
     });
   });
 
   describe('wrapEventFunction() with callback', () => {
     test('successful execution', async () => {
-      expect.assertions(5);
-
       const func: EventFunctionWithCallback = (_data, _context, cb) => {
         cb(null, 42);
       };
@@ -399,21 +348,14 @@ describe('GCPFunction', () => {
         origin: 'auto.function.serverless.gcp_event',
         metadata: { source: 'component' },
       };
-      // @ts-expect-error see "Why @ts-expect-error" note
-      const fakeTransaction = { ...SentryNode.fakeTransaction, ...fakeTransactionContext };
 
+      expect(SentryNode.startSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
       // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeHub.startTransaction).toBeCalledWith(fakeTransactionContext);
-      // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeScope.setSpan).toBeCalledWith(fakeTransaction);
-      // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeTransaction.end).toBeCalled();
+      expect(SentryNode.fakeSpan.end).toBeCalled();
       expect(SentryNode.flush).toBeCalledWith(2000);
     });
 
     test('capture error', async () => {
-      expect.assertions(6);
-
       const error = new Error('wat');
       const handler: EventFunctionWithCallback = (_data, _context, cb) => {
         cb(error);
@@ -427,22 +369,15 @@ describe('GCPFunction', () => {
         origin: 'auto.function.serverless.gcp_event',
         metadata: { source: 'component' },
       };
-      // @ts-expect-error see "Why @ts-expect-error" note
-      const fakeTransaction = { ...SentryNode.fakeTransaction, ...fakeTransactionContext };
 
-      // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeHub.startTransaction).toBeCalledWith(fakeTransactionContext);
-      // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeScope.setSpan).toBeCalledWith(fakeTransaction);
+      expect(SentryNode.startSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
       expect(SentryNode.captureException).toBeCalledWith(error, expect.any(Function));
       // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeTransaction.end).toBeCalled();
+      expect(SentryNode.fakeSpan.end).toBeCalled();
       expect(SentryNode.flush).toBeCalled();
     });
 
     test('capture exception', async () => {
-      expect.assertions(4);
-
       const error = new Error('wat');
       const handler: EventFunctionWithCallback = (_data, _context, _cb) => {
         throw error;
@@ -456,20 +391,13 @@ describe('GCPFunction', () => {
         origin: 'auto.function.serverless.gcp_event',
         metadata: { source: 'component' },
       };
-      // @ts-expect-error see "Why @ts-expect-error" note
-      const fakeTransaction = { ...SentryNode.fakeTransaction, ...fakeTransactionContext };
 
-      // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeHub.startTransaction).toBeCalledWith(fakeTransactionContext);
-      // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeScope.setSpan).toBeCalledWith(fakeTransaction);
+      expect(SentryNode.startSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
       expect(SentryNode.captureException).toBeCalledWith(error, expect.any(Function));
     });
   });
 
   test('marks the captured error as unhandled', async () => {
-    expect.assertions(4);
-
     const error = new Error('wat');
     const handler: EventFunctionWithCallback = (_data, _context, _cb) => {
       throw error;
@@ -494,8 +422,6 @@ describe('GCPFunction', () => {
   });
 
   test('wrapEventFunction scope data', async () => {
-    expect.assertions(1);
-
     const handler: EventFunction = (_data, _context) => 42;
     const wrappedHandler = wrapEventFunction(handler);
     await handleEvent(wrappedHandler);
@@ -508,8 +434,6 @@ describe('GCPFunction', () => {
 
   describe('wrapCloudEventFunction() without callback', () => {
     test('successful execution', async () => {
-      expect.assertions(5);
-
       const func: CloudEventFunction = _context => {
         return 42;
       };
@@ -522,21 +446,14 @@ describe('GCPFunction', () => {
         origin: 'auto.function.serverless.gcp_cloud_event',
         metadata: { source: 'component' },
       };
-      // @ts-expect-error see "Why @ts-expect-error" note
-      const fakeTransaction = { ...SentryNode.fakeTransaction, ...fakeTransactionContext };
 
+      expect(SentryNode.startSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
       // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeHub.startTransaction).toBeCalledWith(fakeTransactionContext);
-      // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeScope.setSpan).toBeCalledWith(fakeTransaction);
-      // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeTransaction.end).toBeCalled();
+      expect(SentryNode.fakeSpan.end).toBeCalled();
       expect(SentryNode.flush).toBeCalledWith(2000);
     });
 
     test('capture error', async () => {
-      expect.assertions(6);
-
       const error = new Error('wat');
       const handler: CloudEventFunction = _context => {
         throw error;
@@ -550,24 +467,17 @@ describe('GCPFunction', () => {
         origin: 'auto.function.serverless.gcp_cloud_event',
         metadata: { source: 'component' },
       };
-      // @ts-expect-error see "Why @ts-expect-error" note
-      const fakeTransaction = { ...SentryNode.fakeTransaction, ...fakeTransactionContext };
 
-      // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeHub.startTransaction).toBeCalledWith(fakeTransactionContext);
-      // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeScope.setSpan).toBeCalledWith(fakeTransaction);
+      expect(SentryNode.startSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
       expect(SentryNode.captureException).toBeCalledWith(error, expect.any(Function));
       // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeTransaction.end).toBeCalled();
+      expect(SentryNode.fakeSpan.end).toBeCalled();
       expect(SentryNode.flush).toBeCalled();
     });
   });
 
   describe('wrapCloudEventFunction() with callback', () => {
     test('successful execution', async () => {
-      expect.assertions(5);
-
       const func: CloudEventFunctionWithCallback = (_context, cb) => {
         cb(null, 42);
       };
@@ -580,21 +490,14 @@ describe('GCPFunction', () => {
         origin: 'auto.function.serverless.gcp_cloud_event',
         metadata: { source: 'component' },
       };
-      // @ts-expect-error see "Why @ts-expect-error" note
-      const fakeTransaction = { ...SentryNode.fakeTransaction, ...fakeTransactionContext };
 
+      expect(SentryNode.startSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
       // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeHub.startTransaction).toBeCalledWith(fakeTransactionContext);
-      // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeScope.setSpan).toBeCalledWith(fakeTransaction);
-      // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeTransaction.end).toBeCalled();
+      expect(SentryNode.fakeSpan.end).toBeCalled();
       expect(SentryNode.flush).toBeCalledWith(2000);
     });
 
     test('capture error', async () => {
-      expect.assertions(6);
-
       const error = new Error('wat');
       const handler: CloudEventFunctionWithCallback = (_context, cb) => {
         cb(error);
@@ -608,22 +511,15 @@ describe('GCPFunction', () => {
         origin: 'auto.function.serverless.gcp_cloud_event',
         metadata: { source: 'component' },
       };
-      // @ts-expect-error see "Why @ts-expect-error" note
-      const fakeTransaction = { ...SentryNode.fakeTransaction, ...fakeTransactionContext };
 
-      // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeHub.startTransaction).toBeCalledWith(fakeTransactionContext);
-      // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeScope.setSpan).toBeCalledWith(fakeTransaction);
+      expect(SentryNode.startSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
       expect(SentryNode.captureException).toBeCalledWith(error, expect.any(Function));
       // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeTransaction.end).toBeCalled();
+      expect(SentryNode.fakeSpan.end).toBeCalled();
       expect(SentryNode.flush).toBeCalled();
     });
 
     test('capture exception', async () => {
-      expect.assertions(4);
-
       const error = new Error('wat');
       const handler: CloudEventFunctionWithCallback = (_context, _cb) => {
         throw error;
@@ -637,21 +533,13 @@ describe('GCPFunction', () => {
         origin: 'auto.function.serverless.gcp_cloud_event',
         metadata: { source: 'component' },
       };
-      // @ts-expect-error see "Why @ts-expect-error" note
-      const fakeTransaction = { ...SentryNode.fakeTransaction, ...fakeTransactionContext };
 
-      // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeHub.startTransaction).toBeCalledWith(fakeTransactionContext);
-      // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeScope.setSpan).toBeCalledWith(fakeTransaction);
-
+      expect(SentryNode.startSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
       expect(SentryNode.captureException).toBeCalledWith(error, expect.any(Function));
     });
   });
 
   test('wrapCloudEventFunction scope data', async () => {
-    expect.assertions(1);
-
     const handler: CloudEventFunction = _context => 42;
     const wrappedHandler = wrapCloudEventFunction(handler);
     await handleCloudEvent(wrappedHandler);
