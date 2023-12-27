@@ -13,7 +13,7 @@ export function withEdgeWrapping<H extends EdgeRouteHandler>(
 ): (...params: Parameters<H>) => Promise<ReturnType<H>> {
   return async function (this: unknown, ...args) {
     addTracingExtensions();
-    const req = args[0];
+    const req: unknown = args[0];
 
     let sentryTrace;
     let baggage;
@@ -36,7 +36,7 @@ export function withEdgeWrapping<H extends EdgeRouteHandler>(
         origin: 'auto.function.nextjs.withEdgeWrapping',
         metadata: {
           ...transactionContext.metadata,
-          request: winterCGRequestToRequestData(req),
+          request: req instanceof Request ? winterCGRequestToRequestData(req) : undefined,
           source: 'route',
         },
       },
