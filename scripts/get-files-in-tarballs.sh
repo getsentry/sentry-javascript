@@ -15,7 +15,7 @@ folder_path="$script_dir/.."
 output_file=$1
 
 # Find all .tgz files in the specified folder
-find "$folder_path" -type f -name "*.tgz" | while read -r tgz_file; do
+find "$folder_path" -type f -name "*.tgz" | sort | while read -r tgz_file; do
     echo "Processing $tgz_file..."
 
     # Extract the contents of the .tgz file to a temporary directory
