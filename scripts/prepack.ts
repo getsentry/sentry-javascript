@@ -11,9 +11,13 @@ import * as path from 'path';
 
 const NPM_BUILD_DIR = 'build/npm';
 const BUILD_DIR = 'build';
-const NPM_IGNORE = fs.existsSync('.npmignore') ? '.npmignore' : '../../.npmignore';
 
-const ASSETS = ['README.md', 'LICENSE', 'package.json', NPM_IGNORE] as const;
+const ASSETS = ['README.md', 'LICENSE', 'package.json'];
+
+if (fs.existsSync('.npmignore')) {
+  ASSETS.push('.npmignore');
+}
+
 const ENTRY_POINTS = ['main', 'module', 'types', 'browser'] as const;
 const CONDITIONAL_EXPORT_ENTRY_POINTS = ['import', 'require', ...ENTRY_POINTS] as const;
 const EXPORT_MAP_ENTRY_POINT = 'exports';
