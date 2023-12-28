@@ -9,11 +9,6 @@
   "engines": {
     "node": ">=8"
   },
-  "files": [
-    "cjs",
-    "esm",
-    "build/types"
-  ],
   "main": "build/bundles/sentry-angular.umd.js",
   "module": "build/fesm2015/sentry-angular.js",
   "publishConfig": {
