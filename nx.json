@@ -3,7 +3,7 @@
     "default": {
       "runner": "nx/tasks-runners/default",
       "options": {
-        "cacheableOperations": ["build:bundle", "build:transpile", "build:types", "lint:eslint", "test:unit"],
+        "cacheableOperations": ["build:bundle", "build:transpile", "build:types", "lint:eslint", "test:unit", "build:tarball"],
         "cacheDirectory": ".nxcache"
       }
     }
@@ -11,7 +11,7 @@
   "namedInputs": {
     "default": ["{projectRoot}/**/*", "sharedGlobals"],
     "sharedGlobals": ["{workspaceRoot}/*.js", "{workspaceRoot}/*.json"],
-    "production": ["default", "!{projectRoot}/test/**/*", "!{projectRoot}/**/*.md"]
+    "production": ["default", "!{projectRoot}/test/**/*", "!{projectRoot}/**/*.md", "!{projectRoot}/*.tgz"]
   },
   "targetDefaults": {
     "build:bundle": {
@@ -22,7 +22,7 @@
     "build:tarball": {
       "inputs": ["production", "^production"],
       "dependsOn": ["build:transpile", "^build:transpile", "build:types", "^build:types"],
-      "outputs": []
+      "outputs": ["{projectRoot}/*.tgz"]
     },
     "build:transpile": {
       "inputs": ["production", "^production"],
