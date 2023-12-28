@@ -18,12 +18,7 @@
   "namedInputs": {
     "default": ["{projectRoot}/**/*", "sharedGlobals"],
     "sharedGlobals": ["{workspaceRoot}/*.js", "{workspaceRoot}/*.json"],
-    "production": [
-      "default",
-      "!{projectRoot}/test/**/*",
-      "!{projectRoot}/**/*.md",
-      "!{projectRoot}/*.tgz"
-    ]
+    "production": ["default", "!{projectRoot}/test/**/*", "!{projectRoot}/**/*.md", "!{projectRoot}/*.tgz"]
   },
   "targetDefaults": {
     "build:bundle": {
@@ -33,22 +28,13 @@
     },
     "build:tarball": {
       "inputs": ["production", "^production"],
-      "dependsOn": [
-        "build:transpile",
-        "^build:transpile",
-        "build:types",
-        "^build:types"
-      ],
+      "dependsOn": ["build:transpile", "^build:transpile", "build:types", "^build:types"],
       "outputs": ["{projectRoot}/*.tgz"]
     },
     "build:transpile": {
       "inputs": ["production", "^production"],
       "dependsOn": ["^build:transpile"],
-      "outputs": [
-        "{projectRoot}/build/npm",
-        "{projectRoot}/build/esm",
-        "{projectRoot}/build/cjs"
-      ]
+      "outputs": ["{projectRoot}/build/npm", "{projectRoot}/build/esm", "{projectRoot}/build/cjs"]
     },
     "build:types": {
       "inputs": ["production", "^production"],
@@ -60,12 +46,7 @@
       "outputs": []
     },
     "test:unit": {
-      "dependsOn": [
-        "build:types",
-        "^build:types",
-        "build:transpile",
-        "^build:transpile"
-      ],
+      "dependsOn": ["build:types", "^build:types", "build:transpile", "^build:transpile"],
       "inputs": ["default"],
       "outputs": ["{projectRoot}/coverage"]
     }
