@@ -25,8 +25,11 @@ find "$folder_path" -type f -name "*.tgz" | sort | while read -r tgz_file; do
     # Get the filename of the .tgz file
     tgz_filename=$(basename "$tgz_file")
 
-    # Find and print all file paths prefixed with the filename
-    find "$temp_dir" -type f -printf "%P\t$tgz_filename\n" >> "$output_file"
+    # Find all file paths within the extracted directory and sort them
+    sorted_file_paths=$(find "$temp_dir" -type f -printf "$tgz_filename\t%P\n" | sort)
+
+    # Print the sorted file paths to the output file
+    echo "$sorted_file_paths" >> "$output_file"
 
     # Clean up the temporary directory
     rm -r "$temp_dir"
