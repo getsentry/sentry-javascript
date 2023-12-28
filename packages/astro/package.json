@@ -17,6 +17,13 @@
     "node": ">=18.14.1"
   },
   "type": "module",
+  "files": [
+    "cjs",
+    "esm",
+    "types",
+    "types-ts3.8",
+    "integration"
+  ],
   "main": "build/cjs/index.client.js",
   "module": "build/esm/index.server.js",
   "browser": "build/esm/index.client.js",
