@@ -81,6 +81,19 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
             options.debug && console.log('[sentry-astro] Using default server init.');
             injectScript('page-ssr', buildServerSnippet(options || {}));
           }
+
+          // Prevent Sentry from being externalized for SSR.
+          // Cloudflare like environments have Node.js APIs are available under `node:` prefix.
+          // Ref: https://developers.cloudflare.com/workers/runtime-apis/nodejs/
+          if (config?.adapter?.name.startsWith('@astro/cloudflare')) {
+            updateConfig({
+              vite: {
+                ssr: {
+                  noExternal: ['@sentry/astro', '@sentry/node'],
+                },
+              },
+            });
+          }
         }
 
         const isSSR = config && (config.output === 'server' || config.output === 'hybrid');
