@@ -26,15 +26,21 @@ find "$folder_path" -type f -name "*.tgz" | sort | while read -r tgz_file; do
     tgz_filename=$(basename "$tgz_file")
 
     # Find all file paths within the extracted directory and sort them
-    sorted_file_paths=$(find "$temp_dir" -type f -printf "$tgz_filename\t%P\n" | sort)
+    file_paths=$(find "$temp_dir" -type f -printf "$tgz_filename\t%P\n")
 
-    # Print the sorted file paths to the output file
-    echo "$sorted_file_paths" >> "$output_file"
+    # Print the sorted file paths to a temporary file
+    echo "$file_paths" >> "$output_file.tmp"
 
     # Clean up the temporary directory
     rm -r "$temp_dir"
 
     echo "Done processing $tgz_file."
 done
+
+# Sort the lines in the output file and overwrite the original file
+sort -o "$output_file" "$output_file.tmp"
+
+# Remove the temporary file
+rm "$output_file.tmp"
 
 echo "Script completed. Results are stored in $output_file."
