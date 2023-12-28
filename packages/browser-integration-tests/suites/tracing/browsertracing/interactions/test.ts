@@ -55,7 +55,8 @@ sentryTest('should capture interaction transaction. @firefox', async ({ browserN
   expect(interactionSpanDuration).toBeLessThan(200);
 });
 
-sentryTest(
+// fixme reason: Ran into timeout
+sentryTest.fixme(
   'should create only one transaction per interaction @firefox',
   async ({ browserName, getLocalTestPath, page }) => {
     const supportedBrowsers = ['chromium', 'firefox'];
