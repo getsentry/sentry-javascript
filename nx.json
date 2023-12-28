@@ -21,7 +21,7 @@
     },
     "build:tarball": {
       "inputs": ["production", "^production"],
-      "dependsOn": ["build:transpile", "build:types"],
+      "dependsOn": ["build:transpile", "^build:transpile", "build:types", "^build:types"],
       "outputs": []
     },
     "build:transpile": {
@@ -33,10 +33,7 @@
       "inputs": ["production", "^production"],
       "dependsOn": ["^build:types"],
       "outputs": [
-        "{projectRoot}/build/types",
-        "{projectRoot}/build/types-ts3.8",
-        "{projectRoot}/build/npm/types",
-        "{projectRoot}/build/npm/types-ts3.8"
+        "{projectRoot}/build/**/*.d.ts"
       ]
     },
     "lint:eslint": {
