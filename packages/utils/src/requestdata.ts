@@ -374,6 +374,7 @@ function extractQueryParams(
  * Transforms a `Headers` object that implements the `Web Fetch API` (https://developer.mozilla.org/en-US/docs/Web/API/Headers) into a simple key-value dict.
  * The header keys will be lower case: e.g. A "Content-Type" header will be stored as "content-type".
  */
+// TODO(v8): Make this function return undefined when the extraction fails.
 export function winterCGHeadersToDict(winterCGHeaders: WebFetchHeaders): Record<string, string> {
   const headers: Record<string, string> = {};
   try {
