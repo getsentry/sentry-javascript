@@ -102,9 +102,11 @@ export class Anr implements Integration {
       release: initOptions.release,
       dist: initOptions.dist,
       sdkMetadata,
+      appRootPath: this._options.appRootPath,
       pollInterval: this._options.pollInterval || DEFAULT_INTERVAL,
       anrThreshold: this._options.anrThreshold || DEFAULT_HANG_THRESHOLD,
       captureStackTrace: !!this._options.captureStackTrace,
+      tags: this._options.tags || {},
       contexts,
     };
 
