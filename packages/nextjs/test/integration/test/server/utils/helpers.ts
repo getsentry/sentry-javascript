@@ -3,8 +3,8 @@ import { Server, createServer } from 'http';
 import { AddressInfo } from 'net';
 import * as path from 'path';
 import { parse } from 'url';
+import { TestEnv } from '@sentry-internal/node-integration-tests/utils';
 import next from 'next';
-import { TestEnv } from '../../../../../../../dev-packages/node-integration-tests/utils';
 
 // Type not exported from NextJS
 // @ts-expect-error
