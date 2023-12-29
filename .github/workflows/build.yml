@@ -102,7 +102,7 @@ jobs:
             browser_integration:
               - *shared
               - *browser
-              - 'packages/browser-integration-tests/**'
+              - 'dev-packages/browser-integration-tests/**'
             ember:
               - *shared
               - *browser
@@ -601,7 +601,7 @@ jobs:
         env:
           PW_BUNDLE: ${{ matrix.bundle }}
         run: |
-          cd packages/browser-integration-tests
+          cd dev-packages/browser-integration-tests
           yarn test:ci
 
   job_browser_loader_tests:
@@ -658,7 +658,7 @@ jobs:
         env:
           PW_BUNDLE: ${{ matrix.bundle }}
         run: |
-          cd packages/browser-integration-tests
+          cd dev-packages/browser-integration-tests
           yarn test:loader
 
   job_browser_integration_tests:
