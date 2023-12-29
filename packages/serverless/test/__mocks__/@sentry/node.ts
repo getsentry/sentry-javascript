@@ -7,13 +7,8 @@ export const SDK_VERSION = '6.6.6';
 export const Severity = {
   Warning: 'warning',
 };
-export const fakeHub = {
-  configureScope: jest.fn((fn: (arg: any) => any) => fn(fakeScope)),
-  pushScope: jest.fn(() => fakeScope),
-  popScope: jest.fn(),
-  getScope: jest.fn(() => fakeScope),
-  startTransaction: jest.fn(context => ({ ...fakeTransaction, ...context })),
-};
+export const continueTrace = origSentry.continueTrace;
+
 export const fakeScope = {
   addEventProcessor: jest.fn(),
   setTransactionName: jest.fn(),
@@ -26,6 +21,7 @@ export const fakeScope = {
 };
 export const fakeSpan = {
   end: jest.fn(),
+  setHttpStatus: jest.fn(),
 };
 export const fakeTransaction = {
   end: jest.fn(),
@@ -34,25 +30,20 @@ export const fakeTransaction = {
 };
 export const init = jest.fn();
 export const addGlobalEventProcessor = jest.fn();
-export const getCurrentHub = jest.fn(() => fakeHub);
 export const getCurrentScope = jest.fn(() => fakeScope);
-export const startTransaction = jest.fn(_ => fakeTransaction);
 export const captureException = jest.fn();
 export const captureMessage = jest.fn();
 export const withScope = jest.fn(cb => cb(fakeScope));
 export const flush = jest.fn(() => Promise.resolve());
 export const getClient = jest.fn(() => ({}));
+export const startSpanManual = jest.fn((ctx, callback: (span: any) => any) => callback(fakeSpan));
 
 export const resetMocks = (): void => {
   fakeTransaction.setHttpStatus.mockClear();
   fakeTransaction.end.mockClear();
   fakeTransaction.startChild.mockClear();
   fakeSpan.end.mockClear();
-  fakeHub.configureScope.mockClear();
-  fakeHub.pushScope.mockClear();
-  fakeHub.popScope.mockClear();
-  fakeHub.getScope.mockClear();
-  fakeHub.startTransaction.mockClear();
+  fakeSpan.setHttpStatus.mockClear();
 
   fakeScope.addEventProcessor.mockClear();
   fakeScope.setTransactionName.mockClear();
@@ -63,11 +54,11 @@ export const resetMocks = (): void => {
 
   init.mockClear();
   addGlobalEventProcessor.mockClear();
-  getCurrentHub.mockClear();
-  startTransaction.mockClear();
+
   captureException.mockClear();
   captureMessage.mockClear();
   withScope.mockClear();
   flush.mockClear();
   getClient.mockClear();
+  startSpanManual.mockClear();
 };

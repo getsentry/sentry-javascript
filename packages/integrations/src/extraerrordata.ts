@@ -7,16 +7,29 @@ import { DEBUG_BUILD } from './debug-build';
 const INTEGRATION_NAME = 'ExtraErrorData';
 
 interface ExtraErrorDataOptions {
+  /**
+   * The object depth up to which to capture data on error objects.
+   */
   depth: number;
+
+  /**
+   * Whether to capture error causes.
+   *
+   * More information: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Error/cause
+   */
+  captureErrorCause: boolean;
 }
 
 const extraErrorDataIntegration = ((options: Partial<ExtraErrorDataOptions> = {}) => {
   const depth = options.depth || 3;
 
+  // TODO(v8): Flip the default for this option to true
+  const captureErrorCause = options.captureErrorCause || false;
+
   return {
     name: INTEGRATION_NAME,
     processEvent(event, hint) {
-      return _enhanceEventWithErrorData(event, hint, depth);
+      return _enhanceEventWithErrorData(event, hint, depth, captureErrorCause);
     },
   };
 }) satisfies IntegrationFn;
@@ -25,13 +38,18 @@ const extraErrorDataIntegration = ((options: Partial<ExtraErrorDataOptions> = {}
 // eslint-disable-next-line deprecation/deprecation
 export const ExtraErrorData = convertIntegrationFnToClass(INTEGRATION_NAME, extraErrorDataIntegration);
 
-function _enhanceEventWithErrorData(event: Event, hint: EventHint = {}, depth: number): Event {
+function _enhanceEventWithErrorData(
+  event: Event,
+  hint: EventHint = {},
+  depth: number,
+  captureErrorCause: boolean,
+): Event {
   if (!hint.originalException || !isError(hint.originalException)) {
     return event;
   }
   const exceptionName = (hint.originalException as ExtendedError).name || hint.originalException.constructor.name;
 
-  const errorData = _extractErrorData(hint.originalException as ExtendedError);
+  const errorData = _extractErrorData(hint.originalException as ExtendedError, captureErrorCause);
 
   if (errorData) {
     const contexts: Contexts = {
@@ -59,7 +77,7 @@ function _enhanceEventWithErrorData(event: Event, hint: EventHint = {}, depth: n
 /**
  * Extract extra information from the Error object
  */
-function _extractErrorData(error: ExtendedError): Record<string, unknown> | null {
+function _extractErrorData(error: ExtendedError, captureErrorCause: boolean): Record<string, unknown> | null {
   // We are trying to enhance already existing event, so no harm done if it won't succeed
   try {
     const nativeKeys = [
@@ -83,6 +101,12 @@ function _extractErrorData(error: ExtendedError): Record<string, unknown> | null
       }
       const value = error[key];
       extraErrorInfo[key] = isError(value) ? value.toString() : value;
+    }
+
+    // Error.cause is a standard property that is non enumerable, we therefore need to access it separately.
+    // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Error/cause
+    if (captureErrorCause && error.cause !== undefined) {
+      extraErrorInfo.cause = isError(error.cause) ? error.cause.toString() : error.cause;
     }
 
     // Check if someone attached `toJSON` method to grab even more properties (eg. axios is doing that)

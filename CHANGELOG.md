@@ -4,6 +4,68 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.91.0
+
+### Important Changes
+
+- **feat: Add server runtime metrics aggregator (#9894)**
+
+The release adds alpha support for [Sentry developer metrics](https://github.com/getsentry/sentry/discussions/58584) in the server runtime SDKs (`@sentry/node`, `@sentry/deno`, `@sentry/nextjs` server-side, etc.). Via the newly introduced APIs, you can now flush metrics directly to Sentry.
+
+To enable capturing metrics, you first need to add the `metricsAggregator` experiment to your `Sentry.init` call.
+
+```js
+Sentry.init({
+  dsn: '__DSN__',
+  _experiments: {
+    metricsAggregator: true,
+  },
+});
+```
+
+Then you'll be able to add `counters`, `sets`, `distributions`, and `gauges` under the `Sentry.metrics` namespace.
+
+```js
+// Add 4 to a counter named `hits`
+Sentry.metrics.increment('hits', 4);
+
+// Add 2 to gauge named `parallel_requests`, tagged with `type: "a"`
+Sentry.metrics.gauge('parallel_requests', 2, { tags: { type: 'a' } });
+
+// Add 4.6 to a distribution named `response_time` with unit seconds
+Sentry.metrics.distribution('response_time', 4.6, { unit: 'seconds' });
+
+// Add 2 to a set named `valuable.ids`
+Sentry.metrics.set('valuable.ids', 2);
+```
+
+- **feat(node): Rework ANR to use worker script via an integration (#9945)**
+
+The [ANR tracking integration for Node](https://docs.sentry.io/platforms/node/configuration/application-not-responding/) has been reworked to use an integration. ANR tracking now requires a minimum Node version of 16 or higher. Previously you had to call `Sentry.enableANRDetection` before running your application, now you can simply add the `Anr` integration to your `Sentry.init` call.
+
+```js
+import * as Sentry from '@sentry/node';
+
+Sentry.init({
+  dsn: 'https://public@dsn.ingest.sentry.io/1337',
+  integrations: [new Sentry.Integrations.Anr({ captureStackTrace: true, anrThreshold: 200 })],
+});
+```
+
+### Other Changes
+
+- feat(breadcrumbs): Send component names on UI breadcrumbs (#9946)
+- feat(core): Add `getGlobalScope()` method (#9920)
+- feat(core): Add `getIsolationScope()` method (#9957)
+- feat(core): Add `span.end()` to replace `span.finish()` (#9954)
+- feat(core): Ensure `startSpan` & `startSpanManual` fork scope (#9955)
+- feat(react): Send component name on spans (#9949)
+- feat(replay): Send component names in replay breadcrumbs (#9947)
+- feat(sveltekit): Add options to configure fetch instrumentation script for CSP (#9969)
+- feat(tracing): Send component name on interaction spans (#9948)
+- feat(utils): Add function to extract relevant component name (#9921)
+- fix(core): Rethrow caught promise rejections in `startSpan`, `startSpanManual`, `trace` (#9958)
+
 ## 7.90.0
 
 - feat(replay): Change to use preset quality values (#9903)

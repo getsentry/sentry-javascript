@@ -238,7 +238,7 @@ export class LocalVariablesSync implements Integration {
     if (this._session && clientOptions.includeLocalVariables) {
       // Only setup this integration if the Node version is >= v18
       // https://github.com/getsentry/sentry-javascript/issues/7697
-      const unsupportedNodeVersion = (NODE_VERSION.major || 0) < 18;
+      const unsupportedNodeVersion = NODE_VERSION.major < 18;
 
       if (unsupportedNodeVersion) {
         logger.log('The `LocalVariables` integration is only supported on Node >= v18.');
