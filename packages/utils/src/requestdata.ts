@@ -200,7 +200,10 @@ export function extractRequestData(
   //   express: req.hostname in > 4 and req.host in < 4
   //   koa: req.host
   //   node, nextjs: req.headers.host
-  const host = req.hostname || req.host || headers.host || '<no host>';
+  // Express 4 mistakenly strips off port number from req.host / req.hostname so we can't rely on them
+  // See: https://github.com/expressjs/express/issues/3047#issuecomment-236653223
+  // Also: https://github.com/getsentry/sentry-javascript/issues/1917
+  const host = headers.host || req.hostname || req.host || '<no host>';
   // protocol:
   //   node, nextjs: <n/a>
   //   express, koa: req.protocol
