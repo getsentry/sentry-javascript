@@ -122,7 +122,7 @@ jobs:
             node:
               - *shared
               - 'packages/node/**'
-              - 'packages/node-integration-tests/**'
+              - 'dev-packages/node-integration-tests/**'
             deno:
               - *shared
               - *browser
@@ -762,7 +762,7 @@ jobs:
         env:
           NODE_VERSION: ${{ matrix.node }}
         run: |
-          cd packages/node-integration-tests
+          cd dev-packages/node-integration-tests
           yarn test
 
   job_remix_integration_tests:
