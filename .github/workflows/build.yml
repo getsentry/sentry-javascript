@@ -996,12 +996,12 @@ jobs:
 
       - name: Collect
         run: yarn ci:collect
-        working-directory: packages/overhead-metrics
+        working-directory: dev-packages/overhead-metrics
 
       - name: Process
         id: process
         run: yarn ci:process
-        working-directory: packages/overhead-metrics
+        working-directory: dev-packages/overhead-metrics
         # Don't run on forks - the PR comment cannot be added.
         if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
         env:
