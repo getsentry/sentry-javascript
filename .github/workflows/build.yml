@@ -906,7 +906,7 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
-          node-version-file: 'packages/e2e-tests/package.json'
+          node-version-file: 'dev-packages/e2e-tests/package.json'
       - name: Restore caches
         uses: ./.github/actions/restore-cache
         env:
@@ -921,25 +921,25 @@ jobs:
       - name: Get node version
         id: versions
         run: |
-          echo "echo node=$(jq -r '.volta.node' packages/e2e-tests/package.json)" >> $GITHUB_OUTPUT
+          echo "echo node=$(jq -r '.volta.node' dev-packages/e2e-tests/package.json)" >> $GITHUB_OUTPUT
 
       - name: Validate Verdaccio
         run: yarn test:validate
-        working-directory: packages/e2e-tests
+        working-directory: dev-packages/e2e-tests
 
       - name: Prepare Verdaccio
         run: yarn test:prepare
-        working-directory: packages/e2e-tests
+        working-directory: dev-packages/e2e-tests
         env:
           E2E_TEST_PUBLISH_SCRIPT_NODE_VERSION: ${{ steps.versions.outputs.node }}
 
       - name: Build E2E app
-        working-directory: packages/e2e-tests/test-applications/${{ matrix.test-application }}
+        working-directory: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
         timeout-minutes: 5
         run: yarn ${{ matrix.build-command || 'test:build' }}
 
       - name: Run E2E test
-        working-directory: packages/e2e-tests/test-applications/${{ matrix.test-application }}
+        working-directory: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
         timeout-minutes: 5
         run: yarn test:assert
 
