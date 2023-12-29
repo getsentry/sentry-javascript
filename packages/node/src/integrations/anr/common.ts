@@ -26,7 +26,7 @@ export interface Options {
    */
   tags: { [key: string]: Primitive };
   /**
-   * The path to the application root.
+   * @ignore Internal use only.
    *
    * If this is supplied, stack frame filenames will be rewritten to be relative to this path.
    */
