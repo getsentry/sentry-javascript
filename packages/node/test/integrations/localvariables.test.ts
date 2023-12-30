@@ -1,11 +1,10 @@
-import type { LRUMap } from '@sentry/utils';
 import type { Debugger, InspectorNotification } from 'inspector';
 
 import { NodeClient, defaultStackParser } from '../../src';
-import { createRateLimiter } from '../../src/integrations/localvariables/common';
-import type { FrameVariables } from '../../src/integrations/localvariables/common';
-import type { DebugSession } from '../../src/integrations/localvariables/localvariables-sync';
-import { LocalVariablesSync, createCallbackList } from '../../src/integrations/localvariables/localvariables-sync';
+import { createRateLimiter } from '../../src/integrations/local-variables/common';
+import type { FrameVariables } from '../../src/integrations/local-variables/common';
+import type { DebugSession } from '../../src/integrations/local-variables/local-variables-sync';
+import { LocalVariablesSync, createCallbackList } from '../../src/integrations/local-variables/local-variables-sync';
 import { NODE_VERSION } from '../../src/nodeVersion';
 import { getDefaultNodeClientOptions } from '../../test/helper/node-client-options';
 
@@ -52,7 +51,8 @@ class MockDebugSession implements DebugSession {
 }
 
 interface LocalVariablesPrivate {
-  _cachedFrames: LRUMap<string, FrameVariables[]>;
+  _getCachedFramesCount(): number;
+  _getFirstCachedFrame(): FrameVariables[] | undefined;
 }
 
 const exceptionEvent = {
@@ -175,9 +175,9 @@ describeIf(NODE_VERSION.major >= 18)('LocalVariables', () => {
 
     await session.runPause(exceptionEvent);
 
-    expect((localVariables as unknown as LocalVariablesPrivate)._cachedFrames.size).toBe(1);
+    expect((localVariables as unknown as LocalVariablesPrivate)._getCachedFramesCount()).toBe(1);
 
-    const frames: FrameVariables[] = (localVariables as unknown as LocalVariablesPrivate)._cachedFrames.values()[0];
+    const frames = (localVariables as unknown as LocalVariablesPrivate)._getFirstCachedFrame();
 
     expect(frames).toBeDefined();
 
@@ -244,7 +244,7 @@ describeIf(NODE_VERSION.major >= 18)('LocalVariables', () => {
     expect(event?.exception?.values?.[0].stacktrace?.frames?.[3]?.vars).toEqual({ arr: [1, 2, 3] });
     expect(event?.exception?.values?.[0].stacktrace?.frames?.[4]?.vars).toEqual({ name: 'tim' });
 
-    expect((localVariables as unknown as LocalVariablesPrivate)._cachedFrames.size).toBe(0);
+    expect((localVariables as unknown as LocalVariablesPrivate)._getCachedFramesCount()).toBe(0);
   });
 
   it('Only considers the first 5 frames', async () => {
@@ -261,9 +261,9 @@ describeIf(NODE_VERSION.major >= 18)('LocalVariables', () => {
 
     await session.runPause(exceptionEvent100Frames);
 
-    expect((localVariables as unknown as LocalVariablesPrivate)._cachedFrames.size).toBe(1);
+    expect((localVariables as unknown as LocalVariablesPrivate)._getCachedFramesCount()).toBe(1);
 
-    const frames: FrameVariables[] = (localVariables as unknown as LocalVariablesPrivate)._cachedFrames.values()[0];
+    const frames = (localVariables as unknown as LocalVariablesPrivate)._getFirstCachedFrame();
 
     expect(frames).toBeDefined();
 
@@ -291,7 +291,7 @@ describeIf(NODE_VERSION.major >= 18)('LocalVariables', () => {
 
     await session.runPause(nonExceptionEvent);
 
-    expect((localVariables as unknown as LocalVariablesPrivate)._cachedFrames.size).toBe(0);
+    expect((localVariables as unknown as LocalVariablesPrivate)._getCachedFramesCount()).toBe(0);
   });
 
   it('Should not initialize when disabled', async () => {
@@ -309,7 +309,6 @@ describeIf(NODE_VERSION.major >= 18)('LocalVariables', () => {
     const eventProcessor = eventProcessors.find(processor => processor.id === 'LocalVariablesSync');
 
     expect(eventProcessor).toBeDefined();
-    expect(localVariables['_shouldProcessEvent']).toBe(false);
   });
 
   it('Should not initialize when inspector not loaded', async () => {
@@ -326,7 +325,6 @@ describeIf(NODE_VERSION.major >= 18)('LocalVariables', () => {
     const eventProcessor = eventProcessors.find(processor => processor.id === 'LocalVariablesSync');
 
     expect(eventProcessor).toBeDefined();
-    expect(localVariables['_shouldProcessEvent']).toBe(false);
   });
 
   it('Should cache identical uncaught exception events', async () => {
@@ -350,7 +348,7 @@ describeIf(NODE_VERSION.major >= 18)('LocalVariables', () => {
     await session.runPause(exceptionEvent);
     await session.runPause(exceptionEvent);
 
-    expect((localVariables as unknown as LocalVariablesPrivate)._cachedFrames.size).toBe(1);
+    expect((localVariables as unknown as LocalVariablesPrivate)._getCachedFramesCount()).toBe(1);
   });
 
   describe('createCallbackList', () => {

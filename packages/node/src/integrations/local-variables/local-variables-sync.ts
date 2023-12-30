@@ -217,7 +217,7 @@ export const localVariablesSync: IntegrationFn = (
   options: Options = {},
   session: DebugSession | undefined = tryNewAsyncSession(),
 ) => {
-  const _cachedFrames: LRUMap<string, FrameVariables[]> = new LRUMap(20);
+  const cachedFrames: LRUMap<string, FrameVariables[]> = new LRUMap(20);
   let rateLimiter: RateLimitIncrement | undefined;
   let shouldProcessEvent = false;
 
@@ -242,7 +242,7 @@ export const localVariablesSync: IntegrationFn = (
     }
 
     const { add, next } = createCallbackList<FrameVariables[]>(frames => {
-      _cachedFrames.set(exceptionHash, frames);
+      cachedFrames.set(exceptionHash, frames);
       complete();
     });
 
@@ -284,7 +284,7 @@ export const localVariablesSync: IntegrationFn = (
 
     // Check if we have local variables for an exception that matches the hash
     // remove is identical to get but also removes the entry from the cache
-    const cachedFrame = _cachedFrames.remove(hash);
+    const cachedFrame = cachedFrames.remove(hash);
 
     if (cachedFrame === undefined) {
       return;
@@ -374,6 +374,13 @@ export const localVariablesSync: IntegrationFn = (
       }
 
       return event;
+    },
+    // These are entirely for testing
+    _getCachedFramesCount(): number {
+      return cachedFrames.size;
+    },
+    _getFirstCachedFrame(): FrameVariables[] | undefined {
+      return cachedFrames.values()[0];
     },
   };
 };
