@@ -1,9 +1,10 @@
 import type { Session } from 'node:inspector/promises';
-import type { Event, EventProcessor, Exception, Hub, Integration, StackParser } from '@sentry/types';
-import { LRUMap, logger } from '@sentry/utils';
+import { convertIntegrationFnToClass } from '@sentry/core';
+import type { Event, Exception, IntegrationFn, StackParser } from '@sentry/types';
+import { LRUMap, dynamicRequire, logger } from '@sentry/utils';
 import type { Debugger, InspectorNotification, Runtime } from 'inspector';
-import type { NodeClient } from '../../client';
 
+import type { NodeClient } from '../../client';
 import type { NodeClientOptions } from '../../types';
 import type { FrameVariables, Options, PausedExceptionEvent, RateLimitIncrement, Variables } from './common';
 import { createRateLimiter, functionNamesMatch, hashFrames, hashFromStack } from './common';
@@ -64,104 +65,17 @@ async function getLocalVariables(session: Session, objectId: string): Promise<Va
   return variables;
 }
 
+const INTEGRATION_NAME = 'LocalVariablesAsync';
+
 /**
  * Adds local variables to exception frames
- *
- * Default: 50
  */
-export class LocalVariablesAsync implements Integration {
-  public static id: string = 'LocalVariablesAsync';
+export const localVariablesAsync: IntegrationFn = (options: Options = {}) => {
+  const cachedFrames: LRUMap<string, FrameVariables[]> = new LRUMap(20);
+  let rateLimiter: RateLimitIncrement | undefined;
+  let shouldProcessEvent = false;
 
-  public readonly name: string = LocalVariablesAsync.id;
-
-  private readonly _cachedFrames: LRUMap<string, FrameVariables[]> = new LRUMap(20);
-  private _rateLimiter: RateLimitIncrement | undefined;
-  private _shouldProcessEvent = false;
-
-  public constructor(private readonly _options: Options = {}) {}
-
-  /**
-   * @inheritDoc
-   */
-  public setupOnce(_addGlobalEventProcessor: (callback: EventProcessor) => void, _getCurrentHub: () => Hub): void {
-    // noop
-  }
-
-  /** @inheritdoc */
-  public setup(client: NodeClient): void {
-    const clientOptions = client.getOptions();
-
-    if (!clientOptions.includeLocalVariables) {
-      return;
-    }
-
-    import(/* webpackIgnore: true */ 'node:inspector/promises')
-      .then(({ Session }) => this._startDebugger(new Session(), clientOptions))
-      .catch(e => logger.error('Failed to load inspector API', e));
-  }
-
-  /** @inheritdoc */
-  public processEvent(event: Event): Event {
-    if (this._shouldProcessEvent) {
-      return this._addLocalVariables(event);
-    }
-
-    return event;
-  }
-
-  /** Start and configures the debugger to capture local variables */
-  private async _startDebugger(session: Session, options: NodeClientOptions): Promise<void> {
-    session.connect();
-
-    let isPaused = false;
-
-    session.on('Debugger.resumed', () => {
-      isPaused = false;
-    });
-
-    session.on('Debugger.paused', (event: InspectorNotification<Debugger.PausedEventDataType>) => {
-      isPaused = true;
-
-      this._handlePaused(session, options.stackParser, event.params as PausedExceptionEvent)
-        .then(() => {
-          // After the pause work is complete, resume execution!
-          return isPaused ? session.post('Debugger.resume') : Promise.resolve();
-        })
-        .catch(_ => {
-          //
-        });
-    });
-
-    await session.post('Debugger.enable');
-
-    const captureAll = this._options.captureAllExceptions !== false;
-    await session.post('Debugger.setPauseOnExceptions', { state: captureAll ? 'all' : 'uncaught' });
-
-    if (captureAll) {
-      const max = this._options.maxExceptionsPerSecond || 50;
-
-      this._rateLimiter = createRateLimiter(
-        max,
-        () => {
-          logger.log('Local variables rate-limit lifted.');
-          return session.post('Debugger.setPauseOnExceptions', { state: 'all' });
-        },
-        seconds => {
-          logger.log(
-            `Local variables rate-limit exceeded. Disabling capturing of caught exceptions for ${seconds} seconds.`,
-          );
-          return session.post('Debugger.setPauseOnExceptions', { state: 'uncaught' });
-        },
-      );
-    }
-
-    this._shouldProcessEvent = true;
-  }
-
-  /**
-   * Handle the pause event
-   */
-  private async _handlePaused(
+  async function handlePaused(
     session: Session,
     stackParser: StackParser,
     { reason, data, callFrames }: PausedExceptionEvent,
@@ -170,7 +84,7 @@ export class LocalVariablesAsync implements Integration {
       return;
     }
 
-    this._rateLimiter?.();
+    rateLimiter?.();
 
     // data.description contains the original error.stack
     const exceptionHash = hashFromStack(stackParser, data?.description);
@@ -181,8 +95,6 @@ export class LocalVariablesAsync implements Integration {
 
     const frames = [];
 
-    // Because we're queuing up and making all these calls synchronously, we can potentially overflow the stack
-    // For this reason we only attempt to get local variables for the first 5 frames
     for (let i = 0; i < callFrames.length; i++) {
       const { scopeChain, functionName, this: obj } = callFrames[i];
 
@@ -199,24 +111,59 @@ export class LocalVariablesAsync implements Integration {
       }
     }
 
-    this._cachedFrames.set(exceptionHash, frames);
+    cachedFrames.set(exceptionHash, frames);
   }
 
-  /**
-   * Adds local variables event stack frames.
-   */
-  private _addLocalVariables(event: Event): Event {
-    for (const exception of event.exception?.values || []) {
-      this._addLocalVariablesToException(exception);
+  async function startDebugger(session: Session, clientOptions: NodeClientOptions): Promise<void> {
+    session.connect();
+
+    let isPaused = false;
+
+    session.on('Debugger.resumed', () => {
+      isPaused = false;
+    });
+
+    session.on('Debugger.paused', (event: InspectorNotification<Debugger.PausedEventDataType>) => {
+      isPaused = true;
+
+      handlePaused(session, clientOptions.stackParser, event.params as PausedExceptionEvent).then(
+        () => {
+          // After the pause work is complete, resume execution!
+          return isPaused ? session.post('Debugger.resume') : Promise.resolve();
+        },
+        _ => {
+          // ignore
+        },
+      );
+    });
+
+    await session.post('Debugger.enable');
+
+    const captureAll = options.captureAllExceptions !== false;
+    await session.post('Debugger.setPauseOnExceptions', { state: captureAll ? 'all' : 'uncaught' });
+
+    if (captureAll) {
+      const max = options.maxExceptionsPerSecond || 50;
+
+      rateLimiter = createRateLimiter(
+        max,
+        () => {
+          logger.log('Local variables rate-limit lifted.');
+          return session.post('Debugger.setPauseOnExceptions', { state: 'all' });
+        },
+        seconds => {
+          logger.log(
+            `Local variables rate-limit exceeded. Disabling capturing of caught exceptions for ${seconds} seconds.`,
+          );
+          return session.post('Debugger.setPauseOnExceptions', { state: 'uncaught' });
+        },
+      );
     }
 
-    return event;
+    shouldProcessEvent = true;
   }
 
-  /**
-   * Adds local variables to the exception stack frames.
-   */
-  private _addLocalVariablesToException(exception: Exception): void {
+  function addLocalVariablesToException(exception: Exception): void {
     const hash = hashFrames(exception.stacktrace?.frames);
 
     if (hash === undefined) {
@@ -225,9 +172,9 @@ export class LocalVariablesAsync implements Integration {
 
     // Check if we have local variables for an exception that matches the hash
     // remove is identical to get but also removes the entry from the cache
-    const cachedFrames = this._cachedFrames.remove(hash);
+    const cachedFrame = cachedFrames.remove(hash);
 
-    if (cachedFrames === undefined) {
+    if (cachedFrame === undefined) {
       return;
     }
 
@@ -238,22 +185,68 @@ export class LocalVariablesAsync implements Integration {
       const frameIndex = frameCount - i - 1;
 
       // Drop out if we run out of frames to match up
-      if (!exception.stacktrace?.frames?.[frameIndex] || !cachedFrames[i]) {
+      if (!exception.stacktrace?.frames?.[frameIndex] || !cachedFrame[i]) {
         break;
       }
 
       if (
         // We need to have vars to add
-        cachedFrames[i].vars === undefined ||
+        cachedFrame[i].vars === undefined ||
         // We're not interested in frames that are not in_app because the vars are not relevant
         exception.stacktrace.frames[frameIndex].in_app === false ||
         // The function names need to match
-        !functionNamesMatch(exception.stacktrace.frames[frameIndex].function, cachedFrames[i].function)
+        !functionNamesMatch(exception.stacktrace.frames[frameIndex].function, cachedFrame[i].function)
       ) {
         continue;
       }
 
-      exception.stacktrace.frames[frameIndex].vars = cachedFrames[i].vars;
+      exception.stacktrace.frames[frameIndex].vars = cachedFrame[i].vars;
     }
   }
-}
+
+  function addLocalVariablesToEvent(event: Event): Event {
+    for (const exception of event.exception?.values || []) {
+      addLocalVariablesToException(exception);
+    }
+
+    return event;
+  }
+
+  return {
+    name: INTEGRATION_NAME,
+    setup(client: NodeClient) {
+      const clientOptions = client.getOptions();
+
+      if (!clientOptions.includeLocalVariables) {
+        return;
+      }
+
+      try {
+        // TODO: Use import()...
+        // It would be nice to use import() here, but this built-in library is not in Node <19 so webpack will pick it
+        // up and report it as a missing dependency
+        const { Session } = dynamicRequire(module, 'node:inspector/promises');
+
+        startDebugger(new Session(), clientOptions).catch(e => {
+          logger.error('Failed to start inspector session', e);
+        });
+      } catch (e) {
+        logger.error('Failed to load inspector API', e);
+        return;
+      }
+    },
+    processEvent(event: Event): Event {
+      if (shouldProcessEvent) {
+        return addLocalVariablesToEvent(event);
+      }
+
+      return event;
+    },
+  };
+};
+
+/**
+ * Adds local variables to exception frames
+ */
+// eslint-disable-next-line deprecation/deprecation
+export const LocalVariablesAsync = convertIntegrationFnToClass(INTEGRATION_NAME, localVariablesAsync);

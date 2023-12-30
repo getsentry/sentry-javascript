@@ -1,5 +1,6 @@
 /* eslint-disable max-lines */
-import type { Event, EventProcessor, Exception, Hub, Integration, StackParser } from '@sentry/types';
+import { convertIntegrationFnToClass } from '@sentry/core';
+import type { Event, Exception, IntegrationFn, StackParser } from '@sentry/types';
 import { LRUMap, logger } from '@sentry/utils';
 import type { Debugger, InspectorNotification, Runtime, Session } from 'inspector';
 import type { NodeClient } from '../../client';
@@ -207,87 +208,20 @@ function tryNewAsyncSession(): AsyncSession | undefined {
   }
 }
 
+const INTEGRATION_NAME = 'LocalVariablesSync';
+
 /**
  * Adds local variables to exception frames
  */
-export class LocalVariablesSync implements Integration {
-  public static id: string = 'LocalVariablesSync';
+export const localVariablesSync: IntegrationFn = (
+  options: Options = {},
+  session: DebugSession | undefined = tryNewAsyncSession(),
+) => {
+  const _cachedFrames: LRUMap<string, FrameVariables[]> = new LRUMap(20);
+  let rateLimiter: RateLimitIncrement | undefined;
+  let shouldProcessEvent = false;
 
-  public readonly name: string = LocalVariablesSync.id;
-
-  private readonly _cachedFrames: LRUMap<string, FrameVariables[]> = new LRUMap(20);
-  private _rateLimiter: RateLimitIncrement | undefined;
-  private _shouldProcessEvent = false;
-
-  public constructor(
-    private readonly _options: Options = {},
-    private readonly _session: DebugSession | undefined = tryNewAsyncSession(),
-  ) {}
-
-  /**
-   * @inheritDoc
-   */
-  public setupOnce(_addGlobalEventProcessor: (callback: EventProcessor) => void, _getCurrentHub: () => Hub): void {
-    // noop
-  }
-
-  /** @inheritdoc */
-  public setup(client: NodeClient): void {
-    const clientOptions = client.getOptions();
-
-    if (this._session && clientOptions.includeLocalVariables) {
-      // Only setup this integration if the Node version is >= v18
-      // https://github.com/getsentry/sentry-javascript/issues/7697
-      const unsupportedNodeVersion = NODE_VERSION.major < 18;
-
-      if (unsupportedNodeVersion) {
-        logger.log('The `LocalVariables` integration is only supported on Node >= v18.');
-        return;
-      }
-
-      const captureAll = this._options.captureAllExceptions !== false;
-
-      this._session.configureAndConnect(
-        (ev, complete) =>
-          this._handlePaused(clientOptions.stackParser, ev as InspectorNotification<PausedExceptionEvent>, complete),
-        captureAll,
-      );
-
-      if (captureAll) {
-        const max = this._options.maxExceptionsPerSecond || 50;
-
-        this._rateLimiter = createRateLimiter(
-          max,
-          () => {
-            logger.log('Local variables rate-limit lifted.');
-            this._session?.setPauseOnExceptions(true);
-          },
-          seconds => {
-            logger.log(
-              `Local variables rate-limit exceeded. Disabling capturing of caught exceptions for ${seconds} seconds.`,
-            );
-            this._session?.setPauseOnExceptions(false);
-          },
-        );
-      }
-
-      this._shouldProcessEvent = true;
-    }
-  }
-
-  /** @inheritdoc */
-  public processEvent(event: Event): Event {
-    if (this._shouldProcessEvent) {
-      return this._addLocalVariables(event);
-    }
-
-    return event;
-  }
-
-  /**
-   * Handle the pause event
-   */
-  private _handlePaused(
+  function handlePaused(
     stackParser: StackParser,
     { params: { reason, data, callFrames } }: InspectorNotification<PausedExceptionEvent>,
     complete: () => void,
@@ -297,7 +231,7 @@ export class LocalVariablesSync implements Integration {
       return;
     }
 
-    this._rateLimiter?.();
+    rateLimiter?.();
 
     // data.description contains the original error.stack
     const exceptionHash = hashFromStack(stackParser, data?.description);
@@ -308,7 +242,7 @@ export class LocalVariablesSync implements Integration {
     }
 
     const { add, next } = createCallbackList<FrameVariables[]>(frames => {
-      this._cachedFrames.set(exceptionHash, frames);
+      _cachedFrames.set(exceptionHash, frames);
       complete();
     });
 
@@ -330,7 +264,7 @@ export class LocalVariablesSync implements Integration {
       } else {
         const id = localScope.object.objectId;
         add(frames =>
-          this._session?.getLocalVariables(id, vars => {
+          session?.getLocalVariables(id, vars => {
             frames[i] = { function: fn, vars };
             next(frames);
           }),
@@ -341,21 +275,7 @@ export class LocalVariablesSync implements Integration {
     next([]);
   }
 
-  /**
-   * Adds local variables event stack frames.
-   */
-  private _addLocalVariables(event: Event): Event {
-    for (const exception of event?.exception?.values || []) {
-      this._addLocalVariablesToException(exception);
-    }
-
-    return event;
-  }
-
-  /**
-   * Adds local variables to the exception stack frames.
-   */
-  private _addLocalVariablesToException(exception: Exception): void {
+  function addLocalVariablesToException(exception: Exception): void {
     const hash = hashFrames(exception?.stacktrace?.frames);
 
     if (hash === undefined) {
@@ -364,9 +284,9 @@ export class LocalVariablesSync implements Integration {
 
     // Check if we have local variables for an exception that matches the hash
     // remove is identical to get but also removes the entry from the cache
-    const cachedFrames = this._cachedFrames.remove(hash);
+    const cachedFrame = _cachedFrames.remove(hash);
 
-    if (cachedFrames === undefined) {
+    if (cachedFrame === undefined) {
       return;
     }
 
@@ -377,22 +297,89 @@ export class LocalVariablesSync implements Integration {
       const frameIndex = frameCount - i - 1;
 
       // Drop out if we run out of frames to match up
-      if (!exception?.stacktrace?.frames?.[frameIndex] || !cachedFrames[i]) {
+      if (!exception?.stacktrace?.frames?.[frameIndex] || !cachedFrame[i]) {
         break;
       }
 
       if (
         // We need to have vars to add
-        cachedFrames[i].vars === undefined ||
+        cachedFrame[i].vars === undefined ||
         // We're not interested in frames that are not in_app because the vars are not relevant
         exception.stacktrace.frames[frameIndex].in_app === false ||
         // The function names need to match
-        !functionNamesMatch(exception.stacktrace.frames[frameIndex].function, cachedFrames[i].function)
+        !functionNamesMatch(exception.stacktrace.frames[frameIndex].function, cachedFrame[i].function)
       ) {
         continue;
       }
 
-      exception.stacktrace.frames[frameIndex].vars = cachedFrames[i].vars;
+      exception.stacktrace.frames[frameIndex].vars = cachedFrame[i].vars;
     }
   }
-}
+
+  function addLocalVariablesToEvent(event: Event): Event {
+    for (const exception of event?.exception?.values || []) {
+      addLocalVariablesToException(exception);
+    }
+
+    return event;
+  }
+
+  return {
+    name: INTEGRATION_NAME,
+    setup(client: NodeClient) {
+      const clientOptions = client.getOptions();
+
+      if (session && clientOptions.includeLocalVariables) {
+        // Only setup this integration if the Node version is >= v18
+        // https://github.com/getsentry/sentry-javascript/issues/7697
+        const unsupportedNodeVersion = NODE_VERSION.major < 18;
+
+        if (unsupportedNodeVersion) {
+          logger.log('The `LocalVariables` integration is only supported on Node >= v18.');
+          return;
+        }
+
+        const captureAll = options.captureAllExceptions !== false;
+
+        session.configureAndConnect(
+          (ev, complete) =>
+            handlePaused(clientOptions.stackParser, ev as InspectorNotification<PausedExceptionEvent>, complete),
+          captureAll,
+        );
+
+        if (captureAll) {
+          const max = options.maxExceptionsPerSecond || 50;
+
+          rateLimiter = createRateLimiter(
+            max,
+            () => {
+              logger.log('Local variables rate-limit lifted.');
+              session?.setPauseOnExceptions(true);
+            },
+            seconds => {
+              logger.log(
+                `Local variables rate-limit exceeded. Disabling capturing of caught exceptions for ${seconds} seconds.`,
+              );
+              session?.setPauseOnExceptions(false);
+            },
+          );
+        }
+
+        shouldProcessEvent = true;
+      }
+    },
+    processEvent(event: Event): Event {
+      if (shouldProcessEvent) {
+        return addLocalVariablesToEvent(event);
+      }
+
+      return event;
+    },
+  };
+};
+
+/**
+ * Adds local variables to exception frames
+ */
+// eslint-disable-next-line deprecation/deprecation
+export const LocalVariablesSync = convertIntegrationFnToClass(INTEGRATION_NAME, localVariablesSync);
