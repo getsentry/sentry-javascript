@@ -4,7 +4,6 @@
   "include": ["src/**/*"],
 
   "compilerOptions": {
-    "lib": ["es6"],
-    "module": "NodeNext",
+    "lib": ["es6"]
   }
 }
