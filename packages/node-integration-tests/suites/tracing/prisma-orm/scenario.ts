@@ -40,7 +40,7 @@ async function run(): Promise<void> {
       },
     });
   } finally {
-    if (transaction) transaction.finish();
+    if (transaction) transaction.end();
   }
 }
 

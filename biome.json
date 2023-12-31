@@ -20,6 +20,9 @@
       "suspicious": {
         "all": false,
         "noControlCharactersInRegex": "error"
+      },
+      "nursery": {
+        "noUnusedImports": "error"
       }
     },
     "ignore": [".vscode/*", "**/*.json"]

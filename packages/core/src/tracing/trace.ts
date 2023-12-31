@@ -2,7 +2,7 @@ import type { TransactionContext } from '@sentry/types';
 import { dropUndefinedKeys, isThenable, logger, tracingContextFromHeaders } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../debug-build';
-import { getCurrentScope } from '../exports';
+import { getCurrentScope, withScope } from '../exports';
 import type { Hub } from '../hub';
 import { getCurrentHub } from '../hub';
 import { hasTracingEnabled } from '../utils/hasTracingEnabled';
@@ -39,7 +39,7 @@ export function trace<T>(
   scope.setSpan(activeSpan);
 
   function finishAndSetSpan(): void {
-    activeSpan && activeSpan.finish();
+    activeSpan && activeSpan.end();
     scope.setSpan(parentSpan);
   }
 
@@ -55,23 +55,25 @@ export function trace<T>(
   }
 
   if (isThenable(maybePromiseResult)) {
-    Promise.resolve(maybePromiseResult).then(
-      () => {
+    // @ts-expect-error - the isThenable check returns the "wrong" type here
+    return maybePromiseResult.then(
+      res => {
         finishAndSetSpan();
         afterFinish();
+        return res;
       },
       e => {
         activeSpan && activeSpan.setStatus('internal_error');
         onError(e, activeSpan);
         finishAndSetSpan();
         afterFinish();
+        throw e;
       },
     );
-  } else {
-    finishAndSetSpan();
-    afterFinish();
   }
 
+  finishAndSetSpan();
+  afterFinish();
   return maybePromiseResult;
 }
 
@@ -89,42 +91,44 @@ export function trace<T>(
 export function startSpan<T>(context: TransactionContext, callback: (span: Span | undefined) => T): T {
   const ctx = normalizeContext(context);
 
-  const hub = getCurrentHub();
-  const scope = getCurrentScope();
-  const parentSpan = scope.getSpan();
+  // @ts-expect-error - isThenable returns the wrong type
+  return withScope(scope => {
+    const hub = getCurrentHub();
+    const parentSpan = scope.getSpan();
 
-  const activeSpan = createChildSpanOrTransaction(hub, parentSpan, ctx);
-  scope.setSpan(activeSpan);
+    const activeSpan = createChildSpanOrTransaction(hub, parentSpan, ctx);
+    scope.setSpan(activeSpan);
 
-  function finishAndSetSpan(): void {
-    activeSpan && activeSpan.finish();
-    scope.setSpan(parentSpan);
-  }
+    function finishAndSetSpan(): void {
+      activeSpan && activeSpan.end();
+    }
 
-  let maybePromiseResult: T;
-  try {
-    maybePromiseResult = callback(activeSpan);
-  } catch (e) {
-    activeSpan && activeSpan.setStatus('internal_error');
+    let maybePromiseResult: T;
+    try {
+      maybePromiseResult = callback(activeSpan);
+    } catch (e) {
+      activeSpan && activeSpan.setStatus('internal_error');
+      finishAndSetSpan();
+      throw e;
+    }
+
+    if (isThenable(maybePromiseResult)) {
+      return maybePromiseResult.then(
+        res => {
+          finishAndSetSpan();
+          return res;
+        },
+        e => {
+          activeSpan && activeSpan.setStatus('internal_error');
+          finishAndSetSpan();
+          throw e;
+        },
+      );
+    }
+
     finishAndSetSpan();
-    throw e;
-  }
-
-  if (isThenable(maybePromiseResult)) {
-    Promise.resolve(maybePromiseResult).then(
-      () => {
-        finishAndSetSpan();
-      },
-      () => {
-        activeSpan && activeSpan.setStatus('internal_error');
-        finishAndSetSpan();
-      },
-    );
-  } else {
-    finishAndSetSpan();
-  }
-
-  return maybePromiseResult;
+    return maybePromiseResult;
+  });
 }
 
 /**
@@ -149,33 +153,38 @@ export function startSpanManual<T>(
 ): T {
   const ctx = normalizeContext(context);
 
-  const hub = getCurrentHub();
-  const scope = getCurrentScope();
-  const parentSpan = scope.getSpan();
+  // @ts-expect-error - isThenable returns the wrong type
+  return withScope(scope => {
+    const hub = getCurrentHub();
+    const parentSpan = scope.getSpan();
 
-  const activeSpan = createChildSpanOrTransaction(hub, parentSpan, ctx);
-  scope.setSpan(activeSpan);
+    const activeSpan = createChildSpanOrTransaction(hub, parentSpan, ctx);
+    scope.setSpan(activeSpan);
 
-  function finishAndSetSpan(): void {
-    activeSpan && activeSpan.finish();
-    scope.setSpan(parentSpan);
-  }
+    function finishAndSetSpan(): void {
+      activeSpan && activeSpan.end();
+    }
 
-  let maybePromiseResult: T;
-  try {
-    maybePromiseResult = callback(activeSpan, finishAndSetSpan);
-  } catch (e) {
-    activeSpan && activeSpan.setStatus('internal_error');
-    throw e;
-  }
-
-  if (isThenable(maybePromiseResult)) {
-    Promise.resolve(maybePromiseResult).then(undefined, () => {
+    let maybePromiseResult: T;
+    try {
+      maybePromiseResult = callback(activeSpan, finishAndSetSpan);
+    } catch (e) {
       activeSpan && activeSpan.setStatus('internal_error');
-    });
-  }
+      throw e;
+    }
 
-  return maybePromiseResult;
+    if (isThenable(maybePromiseResult)) {
+      return maybePromiseResult.then(
+        res => res,
+        e => {
+          activeSpan && activeSpan.setStatus('internal_error');
+          throw e;
+        },
+      );
+    }
+
+    return maybePromiseResult;
+  });
 }
 
 /**

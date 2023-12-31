@@ -41,11 +41,9 @@ const fakeCallback: Callback = (err, result) => {
 
 function expectScopeSettings(fakeTransactionContext: any) {
   // @ts-expect-error see "Why @ts-expect-error" note
-  const fakeTransaction = { ...SentryNode.fakeTransaction, ...fakeTransactionContext };
+  const fakeSpan = { ...SentryNode.fakeSpan, ...fakeTransactionContext };
   // @ts-expect-error see "Why @ts-expect-error" note
   expect(SentryNode.fakeScope.setTransactionName).toBeCalledWith('functionName');
-  // @ts-expect-error see "Why @ts-expect-error" note
-  expect(SentryNode.fakeScope.setSpan).toBeCalledWith(fakeTransaction);
   // @ts-expect-error see "Why @ts-expect-error" note
   expect(SentryNode.fakeScope.setTag).toBeCalledWith('server_name', expect.anything());
   // @ts-expect-error see "Why @ts-expect-error" note
@@ -103,7 +101,7 @@ describe('AWSLambda', () => {
       const wrappedHandler = wrapHandler(handler);
       await wrappedHandler(fakeEvent, fakeContext, fakeCallback);
 
-      expect(Sentry.withScope).toBeCalledTimes(2);
+      expect(Sentry.withScope).toBeCalledTimes(1);
       expect(Sentry.captureMessage).toBeCalled();
       // @ts-expect-error see "Why @ts-expect-error" note
       expect(SentryNode.fakeScope.setTag).toBeCalledWith('timeout', '1s');
@@ -120,7 +118,7 @@ describe('AWSLambda', () => {
       });
       await wrappedHandler(fakeEvent, fakeContext, fakeCallback);
 
-      expect(Sentry.withScope).toBeCalledTimes(1);
+      expect(Sentry.withScope).toBeCalledTimes(0);
       expect(Sentry.captureMessage).not.toBeCalled();
       // @ts-expect-error see "Why @ts-expect-error" note
       expect(SentryNode.fakeScope.setTag).not.toBeCalledWith('timeout', '1s');
@@ -192,14 +190,13 @@ describe('AWSLambda', () => {
       expect(SentryNode.fakeScope.setTransactionName).toBeCalledTimes(0);
       // @ts-expect-error see "Why @ts-expect-error" note
       expect(SentryNode.fakeScope.setTag).toBeCalledTimes(0);
-      // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeHub.startTransaction).toBeCalledTimes(0);
+      expect(SentryNode.startSpanManual).toBeCalledTimes(0);
     });
   });
 
   describe('wrapHandler() on sync handler', () => {
     test('successful execution', async () => {
-      expect.assertions(10);
+      expect.assertions(9);
 
       const handler: Handler = (_event, _context, callback) => {
         callback(null, 42);
@@ -215,16 +212,15 @@ describe('AWSLambda', () => {
       };
 
       expect(rv).toStrictEqual(42);
-      // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeHub.startTransaction).toBeCalledWith(fakeTransactionContext);
+      expect(SentryNode.startSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
       expectScopeSettings(fakeTransactionContext);
       // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeTransaction.finish).toBeCalled();
+      expect(SentryNode.fakeSpan.end).toBeCalled();
       expect(SentryNode.flush).toBeCalledWith(2000);
     });
 
     test('unsuccessful execution', async () => {
-      expect.assertions(10);
+      expect.assertions(9);
 
       const error = new Error('sorry');
       const handler: Handler = (_event, _context, callback) => {
@@ -242,12 +238,11 @@ describe('AWSLambda', () => {
           metadata: { source: 'component' },
         };
 
-        // @ts-expect-error see "Why @ts-expect-error" note
-        expect(SentryNode.fakeHub.startTransaction).toBeCalledWith(fakeTransactionContext);
+        expect(SentryNode.startSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
         expectScopeSettings(fakeTransactionContext);
         expect(SentryNode.captureException).toBeCalledWith(error, expect.any(Function));
         // @ts-expect-error see "Why @ts-expect-error" note
-        expect(SentryNode.fakeTransaction.finish).toBeCalled();
+        expect(SentryNode.fakeSpan.end).toBeCalled();
         expect(SentryNode.flush).toBeCalledWith(2000);
       }
     });
@@ -273,8 +268,7 @@ describe('AWSLambda', () => {
       };
 
       const handler: Handler = (_event, _context, callback) => {
-        // @ts-expect-error see "Why @ts-expect-error" note
-        expect(SentryNode.fakeHub.startTransaction).toBeCalledWith(
+        expect(SentryNode.startSpanManual).toBeCalledWith(
           expect.objectContaining({
             parentSpanId: '1121201211212012',
             parentSampled: false,
@@ -289,6 +283,7 @@ describe('AWSLambda', () => {
               source: 'component',
             },
           }),
+          expect.any(Function),
         );
 
         callback(undefined, { its: 'fine' });
@@ -299,7 +294,7 @@ describe('AWSLambda', () => {
     });
 
     test('capture error', async () => {
-      expect.assertions(10);
+      expect.assertions(9);
 
       const error = new Error('wat');
       const handler: Handler = (_event, _context, _callback) => {
@@ -321,12 +316,11 @@ describe('AWSLambda', () => {
           metadata: { dynamicSamplingContext: {}, source: 'component' },
         };
 
-        // @ts-expect-error see "Why @ts-expect-error" note
-        expect(SentryNode.fakeHub.startTransaction).toBeCalledWith(fakeTransactionContext);
+        expect(SentryNode.startSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
         expectScopeSettings(fakeTransactionContext);
         expect(SentryNode.captureException).toBeCalledWith(e, expect.any(Function));
         // @ts-expect-error see "Why @ts-expect-error" note
-        expect(SentryNode.fakeTransaction.finish).toBeCalled();
+        expect(SentryNode.fakeSpan.end).toBeCalled();
         expect(SentryNode.flush).toBeCalled();
       }
     });
@@ -334,7 +328,7 @@ describe('AWSLambda', () => {
 
   describe('wrapHandler() on async handler', () => {
     test('successful execution', async () => {
-      expect.assertions(10);
+      expect.assertions(9);
 
       const handler: Handler = async (_event, _context) => {
         return 42;
@@ -350,11 +344,10 @@ describe('AWSLambda', () => {
       };
 
       expect(rv).toStrictEqual(42);
-      // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeHub.startTransaction).toBeCalledWith(fakeTransactionContext);
+      expect(SentryNode.startSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
       expectScopeSettings(fakeTransactionContext);
       // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeTransaction.finish).toBeCalled();
+      expect(SentryNode.fakeSpan.end).toBeCalled();
       expect(SentryNode.flush).toBeCalled();
     });
 
@@ -370,7 +363,7 @@ describe('AWSLambda', () => {
     });
 
     test('capture error', async () => {
-      expect.assertions(10);
+      expect.assertions(9);
 
       const error = new Error('wat');
       const handler: Handler = async (_event, _context) => {
@@ -388,12 +381,11 @@ describe('AWSLambda', () => {
           metadata: { source: 'component' },
         };
 
-        // @ts-expect-error see "Why @ts-expect-error" note
-        expect(SentryNode.fakeHub.startTransaction).toBeCalledWith(fakeTransactionContext);
+        expect(SentryNode.startSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
         expectScopeSettings(fakeTransactionContext);
         expect(SentryNode.captureException).toBeCalledWith(error, expect.any(Function));
         // @ts-expect-error see "Why @ts-expect-error" note
-        expect(SentryNode.fakeTransaction.finish).toBeCalled();
+        expect(SentryNode.fakeSpan.end).toBeCalled();
         expect(SentryNode.flush).toBeCalled();
       }
     });
@@ -416,7 +408,7 @@ describe('AWSLambda', () => {
 
   describe('wrapHandler() on async handler with a callback method (aka incorrect usage)', () => {
     test('successful execution', async () => {
-      expect.assertions(10);
+      expect.assertions(9);
 
       const handler: Handler = async (_event, _context, _callback) => {
         return 42;
@@ -432,11 +424,10 @@ describe('AWSLambda', () => {
       };
 
       expect(rv).toStrictEqual(42);
-      // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeHub.startTransaction).toBeCalledWith(fakeTransactionContext);
+      expect(SentryNode.startSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
       expectScopeSettings(fakeTransactionContext);
       // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeTransaction.finish).toBeCalled();
+      expect(SentryNode.fakeSpan.end).toBeCalled();
       expect(SentryNode.flush).toBeCalled();
     });
 
@@ -452,7 +443,7 @@ describe('AWSLambda', () => {
     });
 
     test('capture error', async () => {
-      expect.assertions(10);
+      expect.assertions(9);
 
       const error = new Error('wat');
       const handler: Handler = async (_event, _context, _callback) => {
@@ -470,12 +461,11 @@ describe('AWSLambda', () => {
           metadata: { source: 'component' },
         };
 
-        // @ts-expect-error see "Why @ts-expect-error" note
-        expect(SentryNode.fakeHub.startTransaction).toBeCalledWith(fakeTransactionContext);
+        expect(SentryNode.startSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
         expectScopeSettings(fakeTransactionContext);
         expect(SentryNode.captureException).toBeCalledWith(error, expect.any(Function));
         // @ts-expect-error see "Why @ts-expect-error" note
-        expect(SentryNode.fakeTransaction.finish).toBeCalled();
+        expect(SentryNode.fakeSpan.end).toBeCalled();
         expect(SentryNode.flush).toBeCalled();
       }
     });

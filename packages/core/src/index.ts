@@ -31,6 +31,7 @@ export {
 } from './exports';
 export {
   getCurrentHub,
+  getIsolationScope,
   getHubFromCarrier,
   Hub,
   makeMain,

@@ -162,7 +162,7 @@ export function withTracedServerSideDataFetcher<F extends (...args: any[]) => Pr
         previousSpan?.setStatus('internal_error');
         throw e;
       } finally {
-        dataFetcherSpan.finish();
+        dataFetcherSpan.end();
         scope.setSpan(previousSpan);
         if (!platformSupportsStreaming()) {
           await flushQueue();
@@ -219,7 +219,7 @@ export async function callDataFetcherTraced<F extends (...args: any[]) => Promis
     // that set the transaction status, we need to manually set the status of the span & transaction
     transaction.setStatus('internal_error');
     span.setStatus('internal_error');
-    span.finish();
+    span.end();
 
     // TODO Copy more robust error handling over from `withSentry`
     captureException(err, { mechanism: { handled: false } });

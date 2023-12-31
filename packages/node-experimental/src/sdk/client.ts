@@ -4,7 +4,7 @@ import type { Tracer } from '@opentelemetry/api';
 import { trace } from '@opentelemetry/api';
 import type { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
 import type { CaptureContext, Event, EventHint } from '@sentry/types';
-import { Scope } from './scope';
+import { Scope, getIsolationScope } from './scope';
 
 /** A client for using Sentry with Node & OpenTelemetry. */
 export class NodeExperimentalClient extends NodeClient {
@@ -59,7 +59,12 @@ export class NodeExperimentalClient extends NodeClient {
    * Extends the base `_prepareEvent` so that we can properly handle `captureContext`.
    * This uses `new Scope()`, which we need to replace with our own Scope  for this client.
    */
-  protected _prepareEvent(event: Event, hint: EventHint, scope?: Scope): PromiseLike<Event | null> {
+  protected _prepareEvent(
+    event: Event,
+    hint: EventHint,
+    scope?: Scope,
+    _isolationScope?: Scope,
+  ): PromiseLike<Event | null> {
     let actualScope = scope;
 
     // Remove `captureContext` hint and instead clone already here
@@ -68,7 +73,9 @@ export class NodeExperimentalClient extends NodeClient {
       delete hint.captureContext;
     }
 
-    return super._prepareEvent(event, hint, actualScope);
+    const isolationScope = _isolationScope || (scope && scope.isolationScope) || getIsolationScope();
+
+    return super._prepareEvent(event, hint, actualScope, isolationScope);
   }
 }
 

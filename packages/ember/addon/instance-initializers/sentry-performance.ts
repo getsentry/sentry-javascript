@@ -132,13 +132,13 @@ export function _instrumentEmberRouter(
     if (nextInstance) {
       return;
     }
-    activeTransaction?.finish();
+    activeTransaction?.end();
     getBackburner().off('end', finishActiveTransaction);
   };
 
   routerService.on('routeWillChange', (transition: Transition) => {
     const { fromRoute, toRoute } = getTransitionInformation(transition, routerService);
-    activeTransaction?.finish();
+    activeTransaction?.end();
     activeTransaction = startTransaction({
       name: `route:${toRoute}`,
       op: 'navigation',
@@ -160,10 +160,10 @@ export function _instrumentEmberRouter(
     if (!transitionSpan || !activeTransaction) {
       return;
     }
-    transitionSpan.finish();
+    transitionSpan.end();
 
     if (disableRunloopPerformance) {
-      activeTransaction.finish();
+      activeTransaction.end();
       return;
     }
 
@@ -200,7 +200,7 @@ function _instrumentEmberRunloop(config: EmberSentryConfig): void {
       return;
     }
     if (currentQueueSpan) {
-      currentQueueSpan.finish();
+      currentQueueSpan.end();
     }
     currentQueueStart = timestampInSeconds();
 
@@ -218,7 +218,7 @@ function _instrumentEmberRunloop(config: EmberSentryConfig): void {
               startTimestamp: currentQueueStart,
               endTimestamp: now,
             })
-            .finish();
+            .end();
         }
         currentQueueStart = undefined;
       }
@@ -241,7 +241,7 @@ function _instrumentEmberRunloop(config: EmberSentryConfig): void {
       return;
     }
     if (currentQueueSpan) {
-      currentQueueSpan.finish();
+      currentQueueSpan.end();
       currentQueueSpan = undefined;
     }
   });
@@ -378,7 +378,7 @@ function _instrumentInitialLoad(config: EmberSentryConfig): void {
     origin: 'auto.ui.ember',
     startTimestamp,
   });
-  span?.finish(endTimestamp);
+  span?.end(endTimestamp);
   performance.clearMarks(startName);
   performance.clearMarks(endName);
 

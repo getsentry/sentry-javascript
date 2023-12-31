@@ -43,6 +43,8 @@ export {
   getCurrentHub,
   getClient,
   getCurrentScope,
+  getGlobalScope,
+  getIsolationScope,
   Hub,
   lastEventId,
   makeMain,
@@ -67,6 +69,7 @@ export {
   startInactiveSpan,
   startSpanManual,
   continueTrace,
+  metrics,
 } from '@sentry/core';
 export type { SpanStatusType } from '@sentry/core';
 

@@ -36,7 +36,7 @@ async function run(): Promise<void> {
 
     await collection.find({ title: 'South Park' }).toArray();
   } finally {
-    if (transaction) transaction.finish();
+    if (transaction) transaction.end();
     await client.close();
   }
 }

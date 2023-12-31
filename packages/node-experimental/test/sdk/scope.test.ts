@@ -2,7 +2,7 @@ import { prepareEvent } from '@sentry/core';
 import type { Attachment, Breadcrumb, Client, ClientOptions, EventProcessor } from '@sentry/types';
 import { Scope, getIsolationScope } from '../../src';
 import { getGlobalScope } from '../../src/sdk/scope';
-import { mockSdkInit, resetGlobals } from '../helpers/mockSdkInit';
+import { mockSdkInit } from '../helpers/mockSdkInit';
 
 describe('Unit | Scope', () => {
   it('allows to create & update a scope', () => {
@@ -92,20 +92,6 @@ describe('Unit | Scope', () => {
     const client = {} as Client;
     scope.setClient(client);
     expect(scope.getClient()).toBe(client);
-  });
-
-  it('gets the correct isolationScope in _getIsolationScope', () => {
-    resetGlobals();
-
-    const scope = new Scope();
-    const globalIsolationScope = getIsolationScope();
-
-    expect(scope['_getIsolationScope']()).toBe(globalIsolationScope);
-
-    const customIsolationScope = new Scope();
-    scope.isolationScope = customIsolationScope;
-
-    expect(scope['_getIsolationScope']()).toBe(customIsolationScope);
   });
 
   describe('prepareEvent', () => {
@@ -205,6 +191,8 @@ describe('Unit | Scope', () => {
           integrations: [],
         },
         scope,
+        undefined,
+        isolationScope,
       );
 
       expect(eventProcessor1).toHaveBeenCalledTimes(1);

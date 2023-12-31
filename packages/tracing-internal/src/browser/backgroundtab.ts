@@ -26,7 +26,7 @@ export function registerBackgroundTabDetection(): void {
           activeTransaction.setStatus(statusType);
         }
         activeTransaction.setTag('visibilitychange', 'document.hidden');
-        activeTransaction.finish();
+        activeTransaction.end();
       }
     });
   } else {
