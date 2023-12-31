@@ -1,6 +1,6 @@
 import { captureException } from '@sentry/svelte';
 import { consoleSandbox } from '@sentry/utils';
-import type { HandleClientError, NavigationEvent } from '@sveltejs/kit';
+import type { HandleClientError } from '@sveltejs/kit';
 
 // The SvelteKit default error handler just logs the error to the console
 // see: https://github.com/sveltejs/kit/blob/369e7d6851f543a40c947e033bfc4a9506fdc0a8/packages/kit/src/core/sync/write_client_manifest.js#LL127C2-L127C2

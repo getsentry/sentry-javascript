@@ -119,7 +119,7 @@ function fillGrpcFunction(stub: Stub, serviceIdentifier: string, methodName: str
         }
         ret.on('status', () => {
           if (span) {
-            span.finish();
+            span.end();
           }
         });
         return ret;

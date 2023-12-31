@@ -53,7 +53,7 @@ export const hapiErrorPlugin = {
 
       if (transaction) {
         transaction.setStatus('internal_error');
-        transaction.finish();
+        transaction.end();
       }
     });
   },
@@ -114,7 +114,7 @@ export const hapiTracingPlugin = {
       }
 
       if (transaction) {
-        transaction.finish();
+        transaction.end();
       }
 
       return h.continue;

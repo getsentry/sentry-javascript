@@ -1,36 +1,49 @@
+import { BrowserMetricsAggregator } from '../../../src/metrics/browser-aggregator';
 import { CounterMetric } from '../../../src/metrics/instance';
-import { SimpleMetricsAggregator } from '../../../src/metrics/simpleaggregator';
 import { serializeMetricBuckets } from '../../../src/metrics/utils';
 import { TestClient, getDefaultTestClientOptions } from '../../mocks/client';
 
-describe('SimpleMetricsAggregator', () => {
+describe('BrowserMetricsAggregator', () => {
   const options = getDefaultTestClientOptions({ tracesSampleRate: 0.0 });
   const testClient = new TestClient(options);
 
   it('adds items to buckets', () => {
-    const aggregator = new SimpleMetricsAggregator(testClient);
+    const aggregator = new BrowserMetricsAggregator(testClient);
     aggregator.add('c', 'requests', 1);
     expect(aggregator['_buckets'].size).toEqual(1);
 
     const firstValue = aggregator['_buckets'].values().next().value;
-    expect(firstValue).toEqual([expect.any(CounterMetric), expect.any(Number), 'c', 'requests', 'none', {}]);
+    expect(firstValue).toEqual({
+      metric: expect.any(CounterMetric),
+      metricType: 'c',
+      name: 'requests',
+      tags: {},
+      timestamp: expect.any(Number),
+      unit: 'none',
+    });
   });
 
   it('groups same items together', () => {
-    const aggregator = new SimpleMetricsAggregator(testClient);
+    const aggregator = new BrowserMetricsAggregator(testClient);
     aggregator.add('c', 'requests', 1);
     expect(aggregator['_buckets'].size).toEqual(1);
     aggregator.add('c', 'requests', 1);
     expect(aggregator['_buckets'].size).toEqual(1);
 
     const firstValue = aggregator['_buckets'].values().next().value;
-    expect(firstValue).toEqual([expect.any(CounterMetric), expect.any(Number), 'c', 'requests', 'none', {}]);
-
-    expect(firstValue[0]._value).toEqual(2);
+    expect(firstValue).toEqual({
+      metric: expect.any(CounterMetric),
+      metricType: 'c',
+      name: 'requests',
+      tags: {},
+      timestamp: expect.any(Number),
+      unit: 'none',
+    });
+    expect(firstValue.metric._value).toEqual(2);
   });
 
   it('differentiates based on tag value', () => {
-    const aggregator = new SimpleMetricsAggregator(testClient);
+    const aggregator = new BrowserMetricsAggregator(testClient);
     aggregator.add('g', 'cpu', 50);
     expect(aggregator['_buckets'].size).toEqual(1);
     aggregator.add('g', 'cpu', 55, undefined, { a: 'value' });
@@ -39,7 +52,7 @@ describe('SimpleMetricsAggregator', () => {
 
   describe('serializeBuckets', () => {
     it('serializes ', () => {
-      const aggregator = new SimpleMetricsAggregator(testClient);
+      const aggregator = new BrowserMetricsAggregator(testClient);
       aggregator.add('c', 'requests', 8);
       aggregator.add('g', 'cpu', 50);
       aggregator.add('g', 'cpu', 55);

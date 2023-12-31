@@ -15,7 +15,7 @@ describe('ExtraErrorData()', () => {
     error.baz = 42;
     error.foo = 'bar';
 
-    const enhancedEvent = extraErrorData.enhanceEventWithErrorData(event, {
+    const enhancedEvent = extraErrorData.processEvent(event, {
       originalException: error,
     });
 
@@ -31,7 +31,7 @@ describe('ExtraErrorData()', () => {
     const error = new TypeError('foo') as ExtendedError;
     error.cause = new SyntaxError('bar');
 
-    const enhancedEvent = extraErrorData.enhanceEventWithErrorData(event, {
+    const enhancedEvent = extraErrorData.processEvent(event, {
       originalException: error,
     });
 
@@ -52,7 +52,7 @@ describe('ExtraErrorData()', () => {
       },
     };
 
-    const enhancedEvent = extraErrorData.enhanceEventWithErrorData(event, {
+    const enhancedEvent = extraErrorData.processEvent(event, {
       originalException: error,
     });
 
@@ -76,7 +76,7 @@ describe('ExtraErrorData()', () => {
     const error = new TypeError('foo') as ExtendedError;
     error.baz = 42;
 
-    const enhancedEvent = extraErrorData.enhanceEventWithErrorData(event, {
+    const enhancedEvent = extraErrorData.processEvent(event, {
       originalException: error,
     });
 
@@ -91,7 +91,7 @@ describe('ExtraErrorData()', () => {
   it('should return event if originalException is not an Error object', () => {
     const error = 'error message, not object';
 
-    const enhancedEvent = extraErrorData.enhanceEventWithErrorData(event, {
+    const enhancedEvent = extraErrorData.processEvent(event, {
       originalException: error,
     });
 
@@ -99,13 +99,13 @@ describe('ExtraErrorData()', () => {
   });
 
   it('should return event if there is no SentryEventHint', () => {
-    const enhancedEvent = extraErrorData.enhanceEventWithErrorData(event);
+    const enhancedEvent = extraErrorData.processEvent(event, {});
 
     expect(enhancedEvent).toEqual(event);
   });
 
   it('should return event if there is no originalException', () => {
-    const enhancedEvent = extraErrorData.enhanceEventWithErrorData(event, {
+    const enhancedEvent = extraErrorData.processEvent(event, {
       // @ts-expect-error Allow event to have extra properties
       notOriginalException: 'fooled you',
     });
@@ -124,7 +124,7 @@ describe('ExtraErrorData()', () => {
       };
     };
 
-    const enhancedEvent = extraErrorData.enhanceEventWithErrorData(event, {
+    const enhancedEvent = extraErrorData.processEvent(event, {
       originalException: error,
     });
 
@@ -147,7 +147,7 @@ describe('ExtraErrorData()', () => {
       };
     };
 
-    const enhancedEvent = extraErrorData.enhanceEventWithErrorData(event, {
+    const enhancedEvent = extraErrorData.processEvent(event, {
       originalException: error,
     });
 
@@ -167,7 +167,7 @@ describe('ExtraErrorData()', () => {
       };
     };
 
-    const enhancedEvent = extraErrorData.enhanceEventWithErrorData(event, {
+    const enhancedEvent = extraErrorData.processEvent(event, {
       originalException: error,
     });
 
@@ -175,6 +175,56 @@ describe('ExtraErrorData()', () => {
       TypeError: {
         baz: 42,
         message: 'bar',
+      },
+    });
+  });
+
+  it('captures Error causes when captureErrorCause = true', () => {
+    // Error.cause is only available from node 16 upwards
+    const nodeMajorVersion = parseInt(process.versions.node.split('.')[0]);
+    if (nodeMajorVersion < 16) {
+      return;
+    }
+
+    const extraErrorDataWithCauseCapture = new ExtraErrorData({ captureErrorCause: true });
+
+    // @ts-expect-error The typing .d.ts library we have installed isn't aware of Error.cause yet
+    const error = new Error('foo', { cause: { woot: 'foo' } }) as ExtendedError;
+
+    const enhancedEvent = extraErrorDataWithCauseCapture.processEvent(event, {
+      originalException: error,
+    });
+
+    expect(enhancedEvent.contexts).toEqual({
+      Error: {
+        cause: {
+          woot: 'foo',
+        },
+      },
+    });
+  });
+
+  it("doesn't capture Error causes when captureErrorCause != true", () => {
+    // Error.cause is only available from node 16 upwards
+    const nodeMajorVersion = parseInt(process.versions.node.split('.')[0]);
+    if (nodeMajorVersion < 16) {
+      return;
+    }
+
+    const extraErrorDataWithoutCauseCapture = new ExtraErrorData();
+
+    // @ts-expect-error The typing .d.ts library we have installed isn't aware of Error.cause yet
+    const error = new Error('foo', { cause: { woot: 'foo' } }) as ExtendedError;
+
+    const enhancedEvent = extraErrorDataWithoutCauseCapture.processEvent(event, {
+      originalException: error,
+    });
+
+    expect(enhancedEvent.contexts).not.toEqual({
+      Error: {
+        cause: {
+          woot: 'foo',
+        },
       },
     });
   });

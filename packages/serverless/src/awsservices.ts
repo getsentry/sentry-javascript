@@ -71,7 +71,7 @@ function wrapMakeRequest<TService extends AWSService, TResult>(
     });
     req.on('complete', () => {
       if (span) {
-        span.finish();
+        span.end();
       }
     });
 

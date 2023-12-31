@@ -1,4 +1,4 @@
-import { getGlobalScope as _getGlobalScope, mergeScopeData, setGlobalScope } from '@sentry/core';
+import { getGlobalScope as _getGlobalScope, setGlobalScope } from '@sentry/core';
 import { OpenTelemetryScope } from '@sentry/opentelemetry';
 import type { Breadcrumb, Client, Event, EventHint, Severity, SeverityLevel } from '@sentry/types';
 import { uuid4 } from '@sentry/utils';
@@ -188,32 +188,6 @@ export class Scope extends OpenTelemetryScope implements ScopeInterface {
   /** Get scope data for this scope only. */
   public getOwnScopeData(): ScopeData {
     return super.getScopeData();
-  }
-
-  /** @inheritdoc */
-  public getScopeData(): ScopeData {
-    const globalScope = getGlobalScope();
-    const isolationScope = this._getIsolationScope();
-
-    // Special case: If this is the global/isolation scope, no need to merge other data in here
-    if (this === globalScope || this === isolationScope) {
-      return this.getOwnScopeData();
-    }
-
-    // Global scope is applied anyhow in prepareEvent,
-    // but we need to merge the isolation scope in here
-    const data = isolationScope.getOwnScopeData();
-    const scopeData = this.getOwnScopeData();
-
-    // Merge data together, in order
-    mergeScopeData(data, scopeData);
-
-    return data;
-  }
-
-  /** Get the isolation scope for this scope. */
-  protected _getIsolationScope(): Scope {
-    return this.isolationScope || getIsolationScope();
   }
 }
 

@@ -1,4 +1,4 @@
-import { captureException, flush, getCurrentHub, getCurrentScope } from '@sentry/node';
+import { captureException, flush, getCurrentScope, startSpanManual } from '@sentry/node';
 import { isThenable, logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../debug-build';
@@ -33,65 +33,61 @@ function _wrapEventFunction<F extends EventFunction | EventFunctionWithCallback>
   return (...eventFunctionArguments: Parameters<F>): ReturnType<F> | Promise<void> => {
     const [data, context, callback] = eventFunctionArguments;
 
-    const hub = getCurrentHub();
+    return startSpanManual(
+      {
+        name: context.eventType,
+        op: 'function.gcp.event',
+        origin: 'auto.function.serverless.gcp_event',
+        metadata: { source: 'component' },
+      },
+      span => {
+        const scope = getCurrentScope();
+        scope.setContext('gcp.function.context', { ...context });
 
-    const transaction = hub.startTransaction({
-      name: context.eventType,
-      op: 'function.gcp.event',
-      origin: 'auto.function.serverless.gcp_event',
-      metadata: { source: 'component' },
-    }) as ReturnType<typeof hub.startTransaction> | undefined;
-
-    // getCurrentHub() is expected to use current active domain as a carrier
-    // since functions-framework creates a domain for each incoming request.
-    // So adding of event processors every time should not lead to memory bloat.
-    const scope = getCurrentScope();
-    scope.setContext('gcp.function.context', { ...context });
-    // We put the transaction on the scope so users can attach children to it
-    scope.setSpan(transaction);
-
-    const newCallback = domainify((...args: unknown[]) => {
-      if (args[0] !== null && args[0] !== undefined) {
-        captureException(args[0], scope => markEventUnhandled(scope));
-      }
-      transaction?.finish();
-
-      // eslint-disable-next-line @typescript-eslint/no-floating-promises
-      flush(options.flushTimeout)
-        .then(null, e => {
-          DEBUG_BUILD && logger.error(e);
-        })
-        .then(() => {
-          if (typeof callback === 'function') {
-            callback(...args);
+        const newCallback = domainify((...args: unknown[]) => {
+          if (args[0] !== null && args[0] !== undefined) {
+            captureException(args[0], scope => markEventUnhandled(scope));
           }
+          span?.end();
+
+          // eslint-disable-next-line @typescript-eslint/no-floating-promises
+          flush(options.flushTimeout)
+            .then(null, e => {
+              DEBUG_BUILD && logger.error(e);
+            })
+            .then(() => {
+              if (typeof callback === 'function') {
+                callback(...args);
+              }
+            });
         });
-    });
 
-    if (fn.length > 2) {
-      let fnResult;
-      try {
-        fnResult = (fn as EventFunctionWithCallback)(data, context, newCallback);
-      } catch (err) {
-        captureException(err, scope => markEventUnhandled(scope));
-        throw err;
-      }
+        if (fn.length > 2) {
+          let fnResult;
+          try {
+            fnResult = (fn as EventFunctionWithCallback)(data, context, newCallback);
+          } catch (err) {
+            captureException(err, scope => markEventUnhandled(scope));
+            throw err;
+          }
 
-      if (isThenable(fnResult)) {
-        fnResult.then(null, err => {
-          captureException(err, scope => markEventUnhandled(scope));
-          throw err;
-        });
-      }
+          if (isThenable(fnResult)) {
+            fnResult.then(null, err => {
+              captureException(err, scope => markEventUnhandled(scope));
+              throw err;
+            });
+          }
 
-      return fnResult;
-    }
+          return fnResult;
+        }
 
-    return Promise.resolve()
-      .then(() => (fn as EventFunction)(data, context))
-      .then(
-        result => newCallback(null, result),
-        err => newCallback(err, undefined),
-      );
+        return Promise.resolve()
+          .then(() => (fn as EventFunction)(data, context))
+          .then(
+            result => newCallback(null, result),
+            err => newCallback(err, undefined),
+          );
+      },
+    );
   };
 }

@@ -69,7 +69,7 @@ export function reactRouterV3Instrumentation(
       history.listen(location => {
         if (location.action === 'PUSH' || location.action === 'POP') {
           if (activeTransaction) {
-            activeTransaction.finish();
+            activeTransaction.end();
           }
           const tags: Record<string, Primitive> = {
             'routing.instrumentation': 'react-router-v3',

@@ -42,7 +42,7 @@ export function autoEndTransactionOnResponseEnd(transaction: Transaction, res: S
 export function finishTransaction(transaction: Transaction | undefined, res: ServerResponse): void {
   if (transaction) {
     transaction.setHttpStatus(res.statusCode);
-    transaction.finish();
+    transaction.end();
   }
 }
 

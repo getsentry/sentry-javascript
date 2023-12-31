@@ -17,7 +17,7 @@ function addToMetricsAggregator(
   metricType: MetricType,
   name: string,
   value: number | string,
-  data: MetricData = {},
+  data: MetricData | undefined = {},
 ): void {
   const client = getClient<BaseClient<ClientOptions>>();
   const scope = getCurrentScope();
@@ -49,7 +49,7 @@ function addToMetricsAggregator(
 /**
  * Adds a value to a counter metric
  *
- * @experimental This API is experimental and might having breaking changes in the future.
+ * @experimental This API is experimental and might have breaking changes in the future.
  */
 export function increment(name: string, value: number = 1, data?: MetricData): void {
   addToMetricsAggregator(COUNTER_METRIC_TYPE, name, value, data);
@@ -58,7 +58,7 @@ export function increment(name: string, value: number = 1, data?: MetricData): v
 /**
  * Adds a value to a distribution metric
  *
- * @experimental This API is experimental and might having breaking changes in the future.
+ * @experimental This API is experimental and might have breaking changes in the future.
  */
 export function distribution(name: string, value: number, data?: MetricData): void {
   addToMetricsAggregator(DISTRIBUTION_METRIC_TYPE, name, value, data);
@@ -67,7 +67,7 @@ export function distribution(name: string, value: number, data?: MetricData): vo
 /**
  * Adds a value to a set metric. Value must be a string or integer.
  *
- * @experimental This API is experimental and might having breaking changes in the future.
+ * @experimental This API is experimental and might have breaking changes in the future.
  */
 export function set(name: string, value: number | string, data?: MetricData): void {
   addToMetricsAggregator(SET_METRIC_TYPE, name, value, data);
@@ -76,7 +76,7 @@ export function set(name: string, value: number | string, data?: MetricData): vo
 /**
  * Adds a value to a gauge metric
  *
- * @experimental This API is experimental and might having breaking changes in the future.
+ * @experimental This API is experimental and might have breaking changes in the future.
  */
 export function gauge(name: string, value: number, data?: MetricData): void {
   addToMetricsAggregator(GAUGE_METRIC_TYPE, name, value, data);

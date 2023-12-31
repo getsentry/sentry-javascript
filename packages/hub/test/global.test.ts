@@ -19,13 +19,13 @@ describe('global', () => {
   });
 
   test('getGlobalHub', () => {
-    const newestHub = new Hub(undefined, undefined, 999999);
+    const newestHub = new Hub(undefined, undefined, undefined, 999999);
     GLOBAL_OBJ.__SENTRY__.hub = newestHub;
     expect(getCurrentHub()).toBe(newestHub);
   });
 
   test('hub extension methods receive correct hub instance', () => {
-    const newestHub = new Hub(undefined, undefined, 999999);
+    const newestHub = new Hub(undefined, undefined, undefined, 999999);
     GLOBAL_OBJ.__SENTRY__.hub = newestHub;
     const fn = jest.fn().mockImplementation(function (...args: []) {
       // @ts-expect-error typescript complains that this can be `any`

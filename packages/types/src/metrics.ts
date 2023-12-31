@@ -1,25 +1,41 @@
 import type { MeasurementUnit } from './measurement';
 import type { Primitive } from './misc';
 
-export interface MetricInstance {
+/**
+ * An abstract definition of the minimum required API
+ * for a metric instance.
+ */
+export abstract class MetricInstance {
+  /**
+   * Returns the weight of the metric.
+   */
+  public get weight(): number {
+    return 1;
+  }
+
   /**
    * Adds a value to a metric.
    */
-  add(value: number | string): void;
+  public add(value: number | string): void {
+    // Override this.
+  }
+
   /**
    * Serializes the metric into a statsd format string.
    */
-  toString(): string;
+  public toString(): string {
+    return '';
+  }
 }
 
-export type MetricBucketItem = [
-  metric: MetricInstance,
-  timestamp: number,
-  metricType: 'c' | 'g' | 's' | 'd',
-  name: string,
-  unit: MeasurementUnit,
-  tags: { [key: string]: string },
-];
+export interface MetricBucketItem {
+  metric: MetricInstance;
+  timestamp: number;
+  metricType: 'c' | 'g' | 's' | 'd';
+  name: string;
+  unit: MeasurementUnit;
+  tags: Record<string, string>;
+}
 
 /**
  * A metrics aggregator that aggregates metrics in memory and flushes them periodically.
