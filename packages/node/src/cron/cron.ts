@@ -1,6 +1,7 @@
 import { withMonitor } from '@sentry/core';
+import { replaceCronNames } from './common';
 
-type CronJobParams = {
+export type CronJobParams = {
   cronTime: string | Date;
   onTick: (context: unknown, onComplete?: unknown) => void | Promise<void>;
   onComplete?: () => void | Promise<void>;
@@ -12,7 +13,11 @@ type CronJobParams = {
   unrefTimeout?: boolean | null;
 };
 
-type CronJob = {
+export type CronJob = {
+  //
+};
+
+export type CronJobConstructor = {
   from: (param: CronJobParams) => CronJob;
 
   new (
@@ -27,6 +32,8 @@ type CronJob = {
     unrefTimeout?: CronJobParams['unrefTimeout'],
   ): CronJob;
 };
+
+const ERROR_TEXT = 'Automatic instrumentation of CronJob only supports crontab string';
 
 /**
  * Instruments the `cron` library to send a check-in event to Sentry for each job execution.
@@ -43,21 +50,21 @@ type CronJob = {
  * });
  *
  * // or from
- * const job = CronJobWithCheckIn.from({cronTime: '* * * * *', onTick: () => {
+ * const job = CronJobWithCheckIn.from({ cronTime: '* * * * *', onTick: () => {
  *   console.log('You will see this message every minute');
  * });
  * ```
  */
-export function instrumentCron<T>(lib: T & CronJob, monitorSlug: string): T {
+export function instrumentCron<T>(lib: T & CronJobConstructor, monitorSlug: string): T {
   return new Proxy(lib, {
-    construct(target, args: ConstructorParameters<CronJob>) {
+    construct(target, args: ConstructorParameters<CronJobConstructor>) {
       const [cronTime, onTick, onComplete, start, timeZone, ...rest] = args;
 
       if (typeof cronTime !== 'string') {
-        throw new Error('Cron time must be a string');
+        throw new Error(ERROR_TEXT);
       }
 
-      const cronString = cronTime;
+      const cronString = replaceCronNames(cronTime);
 
       function monitoredTick(context: unknown, onComplete?: unknown): void | Promise<void> {
         return withMonitor(
@@ -74,14 +81,16 @@ export function instrumentCron<T>(lib: T & CronJob, monitorSlug: string): T {
 
       return new target(cronTime, monitoredTick, onComplete, start, timeZone, ...rest);
     },
-    get(target, prop: keyof CronJob) {
+    get(target, prop: keyof CronJobConstructor) {
       if (prop === 'from') {
         return (param: CronJobParams) => {
           const { cronTime, onTick, timeZone } = param;
 
           if (typeof cronTime !== 'string') {
-            throw new Error('Cron time must be a string');
+            throw new Error(ERROR_TEXT);
           }
+
+          const cronString = replaceCronNames(cronTime);
 
           param.onTick = (context: unknown, onComplete?: unknown) => {
             return withMonitor(
@@ -90,7 +99,7 @@ export function instrumentCron<T>(lib: T & CronJob, monitorSlug: string): T {
                 return onTick(context, onComplete);
               },
               {
-                schedule: { type: 'crontab', value: cronTime },
+                schedule: { type: 'crontab', value: cronString },
                 ...(timeZone ? { timeZone } : {}),
               },
             );
