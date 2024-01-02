@@ -4,7 +4,7 @@ import type { Instrumenter } from './instrumenter';
 import type { MeasurementUnit } from './measurement';
 import type { ExtractedNodeRequestData, Primitive, WorkerLocation } from './misc';
 import type { PolymorphicRequest } from './polymorphics';
-import type { Span, SpanContext } from './span';
+import type { Span, SpanAttributes, SpanContext } from './span';
 
 /**
  * Interface holding Transaction-specific properties
@@ -67,6 +67,11 @@ export interface Transaction extends TransactionContext, Omit<Span, 'setName' | 
    * @inheritDoc
    */
   data: { [key: string]: any };
+
+  /**
+   * @inheritDoc
+   */
+  attributes: SpanAttributes;
 
   /**
    * Metadata about the transaction

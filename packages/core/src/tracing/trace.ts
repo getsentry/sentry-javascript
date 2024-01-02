@@ -1,4 +1,4 @@
-import type { TransactionContext } from '@sentry/types';
+import type { Span, TransactionContext } from '@sentry/types';
 import { dropUndefinedKeys, isThenable, logger, tracingContextFromHeaders } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../debug-build';
@@ -6,7 +6,6 @@ import { getCurrentScope, withScope } from '../exports';
 import type { Hub } from '../hub';
 import { getCurrentHub } from '../hub';
 import { hasTracingEnabled } from '../utils/hasTracingEnabled';
-import type { Span } from './span';
 
 /**
  * Wraps a function with a transaction/span and finishes the span after the function is done.

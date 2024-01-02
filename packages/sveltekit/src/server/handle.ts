@@ -1,8 +1,8 @@
-/* eslint-disable @sentry-internal/sdk/no-optional-chaining */
-import type { Span } from '@sentry/core';
 import { getCurrentScope } from '@sentry/core';
 import { getActiveTransaction, runWithAsyncContext, startSpan } from '@sentry/core';
 import { captureException } from '@sentry/node';
+/* eslint-disable @sentry-internal/sdk/no-optional-chaining */
+import type { Span } from '@sentry/types';
 import { dynamicSamplingContextToSentryBaggageHeader, objectify } from '@sentry/utils';
 import type { Handle, ResolveOptions } from '@sveltejs/kit';
 
