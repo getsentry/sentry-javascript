@@ -3,8 +3,8 @@
 /**
  * This rule was created to flag usages of the RegExp constructor.
  * It is fine to use `new RegExp` if it is necessary and safe to do so.
- * This means, that the regular expression is NOT created from unchecked or unescaped user input.
- * Avoid creating regular expressions from user input, because it can lead to invalid expressions or ReDoS vulnerabilities.
+ * "safe" means, that the regular expression is NOT created from unchecked or unescaped user input.
+ * Avoid creating regular expressions from user input, because it can lead to invalid expressions or vulnerabilities.
  */
 module.exports = {
   meta: {
