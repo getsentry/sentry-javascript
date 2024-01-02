@@ -412,6 +412,7 @@ export const extractOriginalRoute = (
   const orderedKeys = keys.sort((a, b) => a.offset - b.offset);
 
   // add d flag for getting indices from regexp result
+  // eslint-disable-next-line @sentry-internal/sdk/no-regexp-constructor -- regexp comes from express.js
   const pathRegex = new RegExp(regexp, `${regexp.flags}d`);
   /**
    * use custom type cause of TS error with missing indices in RegExpExecArray
