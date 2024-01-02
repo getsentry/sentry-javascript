@@ -49,6 +49,8 @@ jest.spyOn(fs, 'readFileSync').mockImplementation((filePath, options) => {
   return originalReadfileSync(filePath, options);
 });
 
+import type { LoaderThis } from '../../src/config/loaders/types';
+import type { WrappingLoaderOptions } from '../../src/config/loaders/wrappingLoader';
 import wrappingLoader from '../../src/config/loaders/wrappingLoader';
 
 const DEFAULT_PAGE_EXTENSION_REGEX = ['tsx', 'ts', 'jsx', 'js'].join('|');
@@ -71,7 +73,7 @@ describe('wrappingLoader', () => {
     const userCodeSourceMap = undefined;
 
     const loaderPromise = new Promise<void>(resolve => {
-      const loaderThis: any = {
+      const loaderThis = {
         ...defaultLoaderThis,
         resourcePath: '/my/pages/my/route.ts',
         callback: callback.mockImplementation(() => {
@@ -89,7 +91,7 @@ describe('wrappingLoader', () => {
             nextjsRequestAsyncStorageModulePath: '/my/request-async-storage.js',
           };
         },
-      };
+      } satisfies LoaderThis<WrappingLoaderOptions>;
 
       wrappingLoader.call(loaderThis, userCode, userCodeSourceMap);
     });

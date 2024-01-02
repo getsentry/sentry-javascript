@@ -1,4 +1,4 @@
-import type { LoaderContext } from 'webpack';
+import type webpack from 'webpack';
 
 export type LoaderThis<Options> = {
   /**
@@ -27,14 +27,14 @@ export type LoaderThis<Options> = {
    *
    * https://webpack.js.org/api/loaders/#thisasync
    */
-  async: LoaderContext<Options>['async'];
+  async: webpack.loader.LoaderContext['async'];
 
   /**
    * Return errors, code, and sourcemaps from an asynchronous loader
    *
    * https://webpack.js.org/api/loaders/#thiscallback
    */
-  callback: LoaderContext<Options>['callback'];
+  callback: webpack.loader.LoaderContext['callback'];
 } & (
   | {
       /**
