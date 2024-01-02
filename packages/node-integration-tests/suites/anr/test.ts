@@ -95,6 +95,26 @@ conditionalTest({ min: 16 })('should report ANR when event loop blocked', () => 
     });
   });
 
+  test('With --inspect', done => {
+    expect.assertions(7);
+
+    const testScriptPath = path.resolve(__dirname, 'basic.js');
+
+    childProcess.exec(`node --inspect ${testScriptPath}`, { encoding: 'utf8' }, (_, stdout) => {
+      const [event] = parseJsonLines<[Event]>(stdout, 1);
+
+      expect(event.exception?.values?.[0].mechanism).toEqual({ type: 'ANR' });
+      expect(event.exception?.values?.[0].type).toEqual('ApplicationNotResponding');
+      expect(event.exception?.values?.[0].value).toEqual('Application Not Responding for at least 200 ms');
+      expect(event.exception?.values?.[0].stacktrace?.frames?.length).toBeGreaterThan(4);
+
+      expect(event.exception?.values?.[0].stacktrace?.frames?.[2].function).toEqual('?');
+      expect(event.exception?.values?.[0].stacktrace?.frames?.[3].function).toEqual('longWork');
+
+      done();
+    });
+  });
+
   test('With session', done => {
     expect.assertions(9);
 
