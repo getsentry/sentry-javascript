@@ -27,7 +27,7 @@
     "lint": "run-p lint:lerna lint:biome lint:prettier",
     "lint:lerna": "lerna run lint",
     "lint:biome": "biome check .",
-    "lint:prettier": "prettier **/*.md **/*.css",
+    "lint:prettier": "prettier **/*.md **/*.css --check",
     "validate:es5": "lerna run validate:es5",
     "postpublish": "lerna run --stream --concurrency 1 postpublish",
     "test": "lerna run --ignore \"@sentry-internal/{browser-integration-tests,e2e-tests,integration-shims,node-integration-tests,overhead-metrics}\" test",
