@@ -168,8 +168,21 @@ describe('sentryAstro integration', () => {
     expect(sentryVitePluginSpy).toHaveBeenCalledTimes(0);
   });
 
-  it('injects client and server init scripts', async () => {
-    const integration = sentryAstro({});
+  it("doesn't add the plugin or enable source maps if the SDK is disabled", async () => {
+    const integration = sentryAstro({
+      enabled: false,
+    });
+
+    expect(integration.hooks['astro:config:setup']).toBeDefined();
+    // @ts-expect-error - the hook exists and we only need to pass what we actually use
+    await integration.hooks['astro:config:setup']({ updateConfig, injectScript, config });
+
+    expect(updateConfig).toHaveBeenCalledTimes(0);
+    expect(sentryVitePluginSpy).toHaveBeenCalledTimes(0);
+  });
+
+  it.each([{}, { enabled: true }])('injects client and server init scripts', async options => {
+    const integration = sentryAstro(options);
 
     expect(integration.hooks['astro:config:setup']).toBeDefined();
     // @ts-expect-error - the hook exists and we only need to pass what we actually use
@@ -179,6 +192,41 @@ describe('sentryAstro integration', () => {
     expect(injectScript).toHaveBeenCalledWith('page', expect.stringContaining('Sentry.init'));
     expect(injectScript).toHaveBeenCalledWith('page-ssr', expect.stringContaining('Sentry.init'));
   });
+
+  it("doesn't inject client init script if `enabled.client` is `false`", async () => {
+    const integration = sentryAstro({ enabled: { client: false } });
+
+    expect(integration.hooks['astro:config:setup']).toBeDefined();
+    // @ts-expect-error - the hook exists and we only need to pass what we actually use
+    await integration.hooks['astro:config:setup']({ updateConfig, injectScript, config });
+
+    expect(injectScript).toHaveBeenCalledTimes(1);
+    expect(injectScript).toHaveBeenCalledWith('page-ssr', expect.stringContaining('Sentry.init'));
+  });
+
+  it("doesn't inject server init script if `enabled.server` is `false`", async () => {
+    const integration = sentryAstro({ enabled: { server: false } });
+
+    expect(integration.hooks['astro:config:setup']).toBeDefined();
+    // @ts-expect-error - the hook exists and we only need to pass what we actually use
+    await integration.hooks['astro:config:setup']({ updateConfig, injectScript, config });
+
+    expect(injectScript).toHaveBeenCalledTimes(1);
+    expect(injectScript).toHaveBeenCalledWith('page', expect.stringContaining('Sentry.init'));
+  });
+
+  it.each([false, { client: false, server: false }])(
+    "doesn't inject any init script if `enabled` is generally false (`%s`)",
+    async enabled => {
+      const integration = sentryAstro({ enabled });
+
+      expect(integration.hooks['astro:config:setup']).toBeDefined();
+      // @ts-expect-error - the hook exists and we only need to pass what we actually use
+      await integration.hooks['astro:config:setup']({ updateConfig, injectScript, config });
+
+      expect(injectScript).toHaveBeenCalledTimes(0);
+    },
+  );
 
   it('injects client and server init scripts from custom paths', async () => {
     const integration = sentryAstro({
@@ -277,5 +325,24 @@ describe('sentryAstro integration', () => {
 
     expect(updateConfig).toHaveBeenCalledTimes(1);
     expect(injectScript).toHaveBeenCalledTimes(2);
+  });
+
+  it("doesn't add middleware if the SDK is disabled", () => {
+    const integration = sentryAstro({ enabled: false });
+    const addMiddleware = vi.fn();
+    const updateConfig = vi.fn();
+    const injectScript = vi.fn();
+
+    expect(integration.hooks['astro:config:setup']).toBeDefined();
+    // @ts-expect-error - the hook exists and we only need to pass what we actually use
+    integration.hooks['astro:config:setup']({
+      // @ts-expect-error - we only need to pass what we actually use
+      config: { output: 'server' },
+      addMiddleware,
+      updateConfig,
+      injectScript,
+    });
+
+    expect(addMiddleware).toHaveBeenCalledTimes(0);
   });
 });
