@@ -9,6 +9,12 @@
   "engines": {
     "node": ">=14"
   },
+  "files": [
+    "cjs",
+    "esm",
+    "types",
+    "types-ts3.8"
+  ],
   "main": "build/cjs/index.js",
   "module": "build/esm/index.js",
   "types": "build/types/index.d.ts",

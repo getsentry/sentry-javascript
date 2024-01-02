@@ -11,9 +11,9 @@ import * as path from 'path';
 
 const NPM_BUILD_DIR = 'build/npm';
 const BUILD_DIR = 'build';
-const NPM_IGNORE = fs.existsSync('.npmignore') ? '.npmignore' : '../../.npmignore';
 
-const ASSETS = ['README.md', 'LICENSE', 'package.json', NPM_IGNORE] as const;
+const ASSETS = ['README.md', 'LICENSE', 'package.json', '.npmignore'];
+
 const ENTRY_POINTS = ['main', 'module', 'types', 'browser'] as const;
 const CONDITIONAL_EXPORT_ENTRY_POINTS = ['import', 'require', ...ENTRY_POINTS] as const;
 const EXPORT_MAP_ENTRY_POINT = 'exports';
@@ -53,13 +53,11 @@ if (!fs.existsSync(path.resolve(buildDir))) {
 // copy non-code assets to build dir
 ASSETS.forEach(asset => {
   const assetPath = path.resolve(asset);
-  if (!fs.existsSync(assetPath)) {
-    console.error(`\nERROR: Asset '${asset}' does not exist.`);
-    process.exit(1);
+  if (fs.existsSync(assetPath)) {
+    const destinationPath = path.resolve(buildDir, path.basename(asset));
+    console.log(`Copying ${path.basename(asset)} to ${path.relative('../..', destinationPath)}.`);
+    fs.copyFileSync(assetPath, destinationPath);
   }
-  const destinationPath = path.resolve(buildDir, path.basename(asset));
-  console.log(`Copying ${path.basename(asset)} to ${path.relative('../..', destinationPath)}.`);
-  fs.copyFileSync(assetPath, destinationPath);
 });
 
 // package.json modifications
