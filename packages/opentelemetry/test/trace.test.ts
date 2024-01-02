@@ -1,4 +1,4 @@
-import type { Link, Span } from '@opentelemetry/api';
+import type { Span } from '@opentelemetry/api';
 import { SpanKind } from '@opentelemetry/api';
 import { TraceFlags, context, trace } from '@opentelemetry/api';
 import type { ReadableSpan } from '@opentelemetry/sdk-trace-base';
@@ -236,14 +236,6 @@ describe('trace', () => {
 
     it('allows to pass base SpanOptions', () => {
       const date = Date.now() - 1000;
-      const link: Link = {
-        context: {
-          spanId: 'test-span-id',
-          traceId: 'test-trace-id',
-          traceFlags: TraceFlags.SAMPLED,
-        },
-        attributes: {},
-      };
 
       startSpan(
         {
@@ -253,7 +245,7 @@ describe('trace', () => {
             test1: 'test 1',
             test2: 2,
           },
-          links: [link],
+
           startTime: date,
         },
         span => {
@@ -265,7 +257,6 @@ describe('trace', () => {
             test2: 2,
           });
           expect(getSpanKind(span)).toEqual(SpanKind.CLIENT);
-          expect((span as unknown as ReadableSpan).links).toEqual([link]);
         },
       );
     });
@@ -338,14 +329,6 @@ describe('trace', () => {
 
     it('allows to pass base SpanOptions', () => {
       const date = Date.now() - 1000;
-      const link: Link = {
-        context: {
-          spanId: 'test-span-id',
-          traceId: 'test-trace-id',
-          traceFlags: TraceFlags.SAMPLED,
-        },
-        attributes: {},
-      };
 
       const span = startInactiveSpan({
         name: 'outer',
@@ -354,7 +337,6 @@ describe('trace', () => {
           test1: 'test 1',
           test2: 2,
         },
-        links: [link],
         startTime: date,
       });
 
@@ -366,7 +348,6 @@ describe('trace', () => {
         test2: 2,
       });
       expect(getSpanKind(span)).toEqual(SpanKind.CLIENT);
-      expect((span as unknown as ReadableSpan).links).toEqual([link]);
     });
   });
 
@@ -414,14 +395,6 @@ describe('trace', () => {
 
     it('allows to pass base SpanOptions', () => {
       const date = Date.now() - 1000;
-      const link: Link = {
-        context: {
-          spanId: 'test-span-id',
-          traceId: 'test-trace-id',
-          traceFlags: TraceFlags.SAMPLED,
-        },
-        attributes: {},
-      };
 
       startSpanManual(
         {
@@ -431,7 +404,6 @@ describe('trace', () => {
             test1: 'test 1',
             test2: 2,
           },
-          links: [link],
           startTime: date,
         },
         span => {
@@ -443,7 +415,6 @@ describe('trace', () => {
             test2: 2,
           });
           expect(getSpanKind(span)).toEqual(SpanKind.CLIENT);
-          expect((span as unknown as ReadableSpan).links).toEqual([link]);
         },
       );
     });

@@ -1,4 +1,4 @@
-import type { Span as WriteableSpan, SpanOptions, Tracer } from '@opentelemetry/api';
+import type { Attributes, Span as WriteableSpan, SpanKind, TimeInput, Tracer } from '@opentelemetry/api';
 import type { BasicTracerProvider, ReadableSpan, Span } from '@opentelemetry/sdk-trace-base';
 import type { SpanOrigin, TransactionMetadata, TransactionSource } from '@sentry/types';
 
@@ -7,12 +7,17 @@ export interface OpenTelemetryClient {
   traceProvider: BasicTracerProvider | undefined;
 }
 
-export interface OpenTelemetrySpanContext extends SpanOptions {
+export interface OpenTelemetrySpanContext {
   name: string;
   op?: string;
   metadata?: Partial<TransactionMetadata>;
   origin?: SpanOrigin;
   source?: TransactionSource;
+
+  // Base SpanOptions we support
+  attributes?: Attributes;
+  kind?: SpanKind;
+  startTime?: TimeInput;
 }
 
 /**
