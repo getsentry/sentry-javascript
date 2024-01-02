@@ -4,7 +4,7 @@ import {
   continueTrace,
   getCurrentScope,
   runWithAsyncContext,
-  trace,
+  startSpanManual,
 } from '@sentry/core';
 import { winterCGHeadersToDict } from '@sentry/utils';
 
@@ -53,7 +53,7 @@ export function wrapServerComponentWithSentry<F extends (...args: any[]) => any>
           transactionContext.parentSpanId = commonSpanId;
         }
 
-        const res = trace(
+        const res = startSpanManual(
           {
             ...transactionContext,
             op: 'function.nextjs',
@@ -68,31 +68,49 @@ export function wrapServerComponentWithSentry<F extends (...args: any[]) => any>
               source: 'component',
             },
           },
-          () => originalFunction.apply(thisArg, args),
-          (e, span) => {
-            if (isNotFoundNavigationError(e)) {
-              // We don't want to report "not-found"s
-              span?.setStatus('not_found');
-            } else if (isRedirectNavigationError(e)) {
-              // We don't want to report redirects
-              // Since `trace` will automatically set the span status to "internal_error" we need to set it back to "ok"
-              span?.setStatus('ok');
-            } else {
-              span?.setStatus('internal_error');
+          span => {
+            try {
+              const res = originalFunction.apply(thisArg, args);
+              span?.end();
+              return res;
+            } catch (error) {
+              if (isNotFoundNavigationError(error)) {
+                // We don't want to report "not-found"s
+                span?.setStatus('not_found');
+              } else if (isRedirectNavigationError(error)) {
+                // We don't want to report redirects
+                // Since `startSpan` will automatically set the span status to "internal_error" when an error is thrown,
+                // We cannot set it to `ok` as that will lead to `startSpanManual` overwriting it when the error bubbles up,
+                // so instead we temp. set this to `cancelled` and handle this later before we end the span.
+                span?.setStatus('ok');
+              } else {
+                span?.setStatus('internal_error');
 
-              captureException(e, {
-                mechanism: {
-                  handled: false,
-                },
-              });
+                captureException(error, {
+                  mechanism: {
+                    handled: false,
+                  },
+                });
+              }
+
+              span?.end();
+
+              // flushQueue should not throw
+              // eslint-disable-next-line @typescript-eslint/no-floating-promises
+              flushQueue();
+
+              // flushQueue should not throw
+              // eslint-disable-next-line @typescript-eslint/no-floating-promises
+              flushQueue();
+
+              throw error;
             }
           },
-          () => {
-            // flushQueue should not throw
-            // eslint-disable-next-line @typescript-eslint/no-floating-promises
-            flushQueue();
-          },
         );
+
+        // flushQueue should not throw
+        // eslint-disable-next-line @typescript-eslint/no-floating-promises
+        flushQueue();
 
         return res;
       });
