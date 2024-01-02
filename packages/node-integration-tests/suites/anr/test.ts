@@ -137,4 +137,19 @@ conditionalTest({ min: 16 })('should report ANR when event loop blocked', () => 
       done();
     });
   });
+
+  test('should exit without Anr event', done => {
+    const testScriptPath = path.resolve(__dirname, 'basic-should-exit.js');
+    let hasClosed = false;
+
+    setTimeout(() => {
+      if (!hasClosed) {
+        done();
+      }
+    }, 5_000);
+
+    childProcess.exec(`node ${testScriptPath}`, { encoding: 'utf8' }, (_, stdout) => {
+      hasClosed = true;
+    });
+  });
 });

@@ -134,6 +134,8 @@ export class Anr implements Integration {
         //
       }
     }, options.pollInterval);
+    // we should unref the timer so it doesn't block app exit
+    timer.unref();
 
     worker.on('message', (msg: string) => {
       if (msg === 'session-ended') {
