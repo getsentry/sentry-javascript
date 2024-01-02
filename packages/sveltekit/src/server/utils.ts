@@ -51,6 +51,7 @@ export function rewriteFramesIteratee(frame: StackFrame): StackFrame {
     let strippedFilename;
     if (svelteKitBuildOutDir) {
       strippedFilename = filename.replace(
+        // eslint-disable-next-line @sentry-internal/sdk/no-regexp-constructor -- not end user input + escaped anyway
         new RegExp(`^.*${escapeStringForRegex(join(svelteKitBuildOutDir, 'server'))}/`),
         '',
       );
