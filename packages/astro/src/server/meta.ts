@@ -73,6 +73,7 @@ export function isValidBaggageString(baggage?: string): boolean {
   const keyRegex = "[-!#$%&'*+.^_`|~A-Za-z0-9]+";
   const valueRegex = '[!#-+-./0-9:<=>?@A-Z\\[\\]a-z{-}]+';
   const spaces = '\\s*';
+  // eslint-disable-next-line @sentry-internal/sdk/no-regexp-constructor -- RegExp for readability, no user input
   const baggageRegex = new RegExp(
     `^${keyRegex}${spaces}=${spaces}${valueRegex}(${spaces},${spaces}${keyRegex}${spaces}=${spaces}${valueRegex})*$`,
   );

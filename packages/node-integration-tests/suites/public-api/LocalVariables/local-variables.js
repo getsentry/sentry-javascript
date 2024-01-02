@@ -32,4 +32,6 @@ function one(name) {
   ty.two(name);
 }
 
-one('some name');
+setTimeout(() => {
+  one('some name');
+}, 1000);
