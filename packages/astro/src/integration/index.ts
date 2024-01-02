@@ -28,11 +28,10 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
           client: typeof options.enabled === 'boolean' ? options.enabled : options.enabled?.client ?? true,
           server: typeof options.enabled === 'boolean' ? options.enabled : options.enabled?.server ?? true,
         };
-        const partiallyEnabled = sdkEnabled.client || sdkEnabled.server;
 
+        const sourceMapsNeeded = sdkEnabled.client || sdkEnabled.server;
         const uploadOptions = options.sourceMapsUploadOptions || {};
-
-        const shouldUploadSourcemaps = (partiallyEnabled && uploadOptions?.enabled) ?? true;
+        const shouldUploadSourcemaps = (sourceMapsNeeded && uploadOptions?.enabled) ?? true;
 
         // We don't need to check for AUTH_TOKEN here, because the plugin will pick it up from the env
         if (shouldUploadSourcemaps && command !== 'dev') {
