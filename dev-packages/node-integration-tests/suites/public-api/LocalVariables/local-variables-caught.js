@@ -28,8 +28,10 @@ function one(name) {
   ty.two(name);
 }
 
-try {
-  one('some name');
-} catch (e) {
-  Sentry.captureException(e);
-}
+setTimeout(() => {
+  try {
+    one('some name');
+  } catch (e) {
+    Sentry.captureException(e);
+  }
+}, 1000);

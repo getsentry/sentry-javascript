@@ -15,5 +15,6 @@ module.exports = {
     'no-eq-empty': require('./rules/no-eq-empty'),
     'no-unsupported-es6-methods': require('./rules/no-unsupported-es6-methods'),
     'no-class-field-initializers': require('./rules/no-class-field-initializers'),
+    'no-regexp-constructor': require('./rules/no-regexp-constructor'),
   },
 };
