@@ -102,7 +102,9 @@ export const LOADER_CONFIGS: Record<string, { options: Record<string, unknown>; 
  */
 function generateSentryAlias(): Record<string, string> {
   const rootPackageJson = JSON.parse(fs.readFileSync(ROOT_PACKAGE_JSON_PATH, 'utf8')) as { workspaces: string[] };
-  const packageNames = rootPackageJson.workspaces.map(workspace => workspace.replace('packages/', ''));
+  const packageNames = rootPackageJson.workspaces
+    .filter(workspace => !workspace.startsWith('dev-packages/'))
+    .map(workspace => workspace.replace('packages/', ''));
 
   return Object.fromEntries(
     packageNames.map(packageName => {
