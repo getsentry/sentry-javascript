@@ -42,7 +42,6 @@
       "packages/browser-integration-tests/loader-suites/**/*.js",
       "packages/browser-integration-tests/suites/stacktraces/**/*.js",
       "**/fixtures/*/*.json",
-      "packages/browser/examples/bundle.js",
       "**/*.min.js"
     ]
   },
