@@ -107,7 +107,7 @@ async function sendAnrEvent(frames?: StackFrame[], traceContext?: TraceContext):
         },
       ],
     },
-    tags: options.tags,
+    tags: options.staticTags,
   };
 
   log(JSON.stringify(event));

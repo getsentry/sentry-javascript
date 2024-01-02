@@ -106,7 +106,7 @@ export class Anr implements Integration {
       pollInterval: this._options.pollInterval || DEFAULT_INTERVAL,
       anrThreshold: this._options.anrThreshold || DEFAULT_HANG_THRESHOLD,
       captureStackTrace: !!this._options.captureStackTrace,
-      tags: this._options.tags || {},
+      staticTags: this._options.staticTags || {},
       contexts,
     };
 

@@ -24,7 +24,7 @@ export interface Options {
   /**
    * Tags to include with ANR events.
    */
-  tags: { [key: string]: Primitive };
+  staticTags: { [key: string]: Primitive };
   /**
    * @ignore Internal use only.
    *
