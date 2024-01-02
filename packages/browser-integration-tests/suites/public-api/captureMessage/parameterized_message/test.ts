@@ -3,9 +3,10 @@ import type { Event } from '@sentry/types';
 
 import { sentryTest } from '../../../../utils/fixtures';
 import { getFirstSentryEnvelopeRequest, shouldSkipTracingTest } from '../../../../utils/helpers';
+import { shouldSkipReplayTest } from '../../../../utils/replayHelpers';
 
 sentryTest('should capture a parameterized representation of the message', async ({ getLocalTestPath, page }) => {
-  if (shouldSkipTracingTest()) {
+  if (shouldSkipReplayTest() || !shouldSkipTracingTest()) {
     sentryTest.skip();
   }
 
