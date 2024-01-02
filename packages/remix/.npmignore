@@ -1,4 +1,0 @@
-# The paths in this file are specified so that they align with the file structure in `./build` after this file is copied
-# into it by the prepack script `scripts/prepack.ts`.
-
-!/scripts/**/*
