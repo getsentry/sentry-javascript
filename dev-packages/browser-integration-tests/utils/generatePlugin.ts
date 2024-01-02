@@ -7,8 +7,8 @@ import type { Compiler } from 'webpack';
 import { addStaticAsset, addStaticAssetSymlink } from './staticAssets';
 
 const LOADER_TEMPLATE = fs.readFileSync(path.join(__dirname, '../fixtures/loader.js'), 'utf-8');
-const PACKAGES_DIR = '../../packages';
-const PACKAGE_JSON = '../../package.json';
+const PACKAGES_DIR = path.join(__dirname, '..', '..', '..', 'packages');
+const ROOT_PACKAGE_JSON_PATH = path.join(__dirname, '..', '..', '..', 'package.json');
 
 /**
  * Possible values: See BUNDLE_PATHS.browser
@@ -101,7 +101,7 @@ export const LOADER_CONFIGS: Record<string, { options: Record<string, unknown>; 
  * so that the compiled versions aren't included
  */
 function generateSentryAlias(): Record<string, string> {
-  const rootPackageJson = JSON.parse(fs.readFileSync(PACKAGE_JSON, 'utf8')) as { workspaces: string[] };
+  const rootPackageJson = JSON.parse(fs.readFileSync(ROOT_PACKAGE_JSON_PATH, 'utf8')) as { workspaces: string[] };
   const packageNames = rootPackageJson.workspaces.map(workspace => workspace.replace('packages/', ''));
 
   return Object.fromEntries(
