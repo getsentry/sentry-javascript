@@ -111,7 +111,9 @@ export class Anr implements Integration {
     if (options.captureStackTrace) {
       // eslint-disable-next-line @typescript-eslint/no-var-requires
       const inspector: InspectorApi = require('inspector');
-      inspector.open(0);
+      if (!inspector.url()) {
+        inspector.open(0);
+      }
     }
 
     const { Worker } = getWorkerThreads();
