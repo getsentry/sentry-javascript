@@ -27,6 +27,7 @@ env:
   CACHED_DEPENDENCY_PATHS: |
     ${{ github.workspace }}/node_modules
     ${{ github.workspace }}/packages/*/node_modules
+    ${{ github.workspace }}/dev-packages/*/node_modules
     ~/.cache/ms-playwright/
     ~/.cache/mongodb-binaries/
 
