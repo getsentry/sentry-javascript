@@ -7,5 +7,3 @@ Sentry.init({
   autoSessionTracking: false,
   integrations: [new Sentry.Integrations.Anr({ captureStackTrace: true, anrThreshold: 200 })],
 });
-
-
