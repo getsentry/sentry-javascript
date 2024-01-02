@@ -101,11 +101,14 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
   };
 };
 
+const possibleFileExtensions = ['ts', 'js', 'tsx', 'jsx', 'mjs', 'cjs', 'mts'];
+
 function findDefaultSdkInitFile(type: 'server' | 'client'): string | undefined {
-  const fileExtensions = ['ts', 'js', 'tsx', 'jsx', 'mjs', 'cjs', 'mts'];
-  return fileExtensions
-    .map(ext => path.resolve(path.join(process.cwd(), `sentry.${type}.config.${ext}`)))
-    .find(filename => fs.existsSync(filename));
+  const cwd = process.cwd();
+  return possibleFileExtensions.find(extension => {
+    const filename = path.resolve(path.join(cwd, `sentry.${type}.config.${extension}`));
+    return fs.existsSync(filename);
+  });
 }
 
 function getSourcemapsAssetsGlob(config: AstroConfig): string {
