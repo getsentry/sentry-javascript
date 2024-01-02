@@ -95,13 +95,14 @@ if (newPkgJson[EXPORT_MAP_ENTRY_POINT]) {
 
 if (newPkgJson[TYPES_VERSIONS_ENTRY_POINT]) {
   Object.entries(newPkgJson[TYPES_VERSIONS_ENTRY_POINT]).forEach(([key, val]) => {
-    newPkgJson[TYPES_VERSIONS_ENTRY_POINT][key] = Object.entries(val).reduce((acc, [key, val]) => {
-      const newKey = key.replace(`${buildDir}/`, '');
-      return {
-        ...acc,
-        [newKey]: val.map(v => v.replace(`${buildDir}/`, '')),
-      };
-    }, {});
+    newPkgJson[TYPES_VERSIONS_ENTRY_POINT][key] = Object.entries(val).reduce(
+      (acc, [key, val]) => {
+        const newKey = key.replace(`${buildDir}/`, '');
+        acc[newKey] = val.map(v => v.replace(`${buildDir}/`, ''));
+        return acc;
+      },
+      {} as Record<string, string[]>,
+    );
   });
 }
 

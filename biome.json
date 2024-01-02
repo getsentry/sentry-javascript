@@ -23,6 +23,9 @@
       },
       "nursery": {
         "noUnusedImports": "error"
+      },
+      "performance": {
+        "noAccumulatingSpread": "error"
       }
     },
     "ignore": [".vscode/*", "**/*.json"]
