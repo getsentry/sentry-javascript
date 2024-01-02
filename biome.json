@@ -22,7 +22,8 @@
         "noControlCharactersInRegex": "error"
       },
       "nursery": {
-        "noUnusedImports": "error"
+        "noUnusedImports": "error",
+        "useRegexLiterals": "error"
       },
       "performance": {
         "all": true,
