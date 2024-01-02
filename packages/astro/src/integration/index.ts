@@ -24,9 +24,15 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
         // Will revisit this later.
         const env = process.env;
 
+        const sdkEnabled = {
+          client: typeof options.enabled === 'boolean' ? options.enabled : options.enabled?.client ?? true,
+          server: typeof options.enabled === 'boolean' ? options.enabled : options.enabled?.server ?? true,
+        };
+        const partiallyEnabled = sdkEnabled.client || sdkEnabled.server;
+
         const uploadOptions = options.sourceMapsUploadOptions || {};
 
-        const shouldUploadSourcemaps = uploadOptions?.enabled ?? true;
+        const shouldUploadSourcemaps = (partiallyEnabled && uploadOptions?.enabled) ?? true;
 
         // We don't need to check for AUTH_TOKEN here, because the plugin will pick it up from the env
         if (shouldUploadSourcemaps && command !== 'dev') {
@@ -51,31 +57,35 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
           });
         }
 
-        const pathToClientInit = options.clientInitPath
-          ? path.resolve(options.clientInitPath)
-          : findDefaultSdkInitFile('client');
-        const pathToServerInit = options.serverInitPath
-          ? path.resolve(options.serverInitPath)
-          : findDefaultSdkInitFile('server');
+        if (sdkEnabled.client) {
+          const pathToClientInit = options.clientInitPath
+            ? path.resolve(options.clientInitPath)
+            : findDefaultSdkInitFile('client');
 
-        if (pathToClientInit) {
-          options.debug && console.log(`[sentry-astro] Using ${pathToClientInit} for client init.`);
-          injectScript('page', buildSdkInitFileImportSnippet(pathToClientInit));
-        } else {
-          options.debug && console.log('[sentry-astro] Using default client init.');
-          injectScript('page', buildClientSnippet(options || {}));
+          if (pathToClientInit) {
+            options.debug && console.log(`[sentry-astro] Using ${pathToClientInit} for client init.`);
+            injectScript('page', buildSdkInitFileImportSnippet(pathToClientInit));
+          } else {
+            options.debug && console.log('[sentry-astro] Using default client init.');
+            injectScript('page', buildClientSnippet(options || {}));
+          }
         }
 
-        if (pathToServerInit) {
-          options.debug && console.log(`[sentry-astro] Using ${pathToServerInit} for server init.`);
-          injectScript('page-ssr', buildSdkInitFileImportSnippet(pathToServerInit));
-        } else {
-          options.debug && console.log('[sentry-astro] Using default server init.');
-          injectScript('page-ssr', buildServerSnippet(options || {}));
+        if (sdkEnabled.server) {
+          const pathToServerInit = options.serverInitPath
+            ? path.resolve(options.serverInitPath)
+            : findDefaultSdkInitFile('server');
+          if (pathToServerInit) {
+            options.debug && console.log(`[sentry-astro] Using ${pathToServerInit} for server init.`);
+            injectScript('page-ssr', buildSdkInitFileImportSnippet(pathToServerInit));
+          } else {
+            options.debug && console.log('[sentry-astro] Using default server init.');
+            injectScript('page-ssr', buildServerSnippet(options || {}));
+          }
         }
 
         const isSSR = config && (config.output === 'server' || config.output === 'hybrid');
-        const shouldAddMiddleware = options.autoInstrumentation?.requestHandler !== false;
+        const shouldAddMiddleware = sdkEnabled.server && options.autoInstrumentation?.requestHandler !== false;
 
         // Guarding calling the addMiddleware function because it was only introduced in astro@3.5.0
         // Users on older versions of astro will need to add the middleware manually.
