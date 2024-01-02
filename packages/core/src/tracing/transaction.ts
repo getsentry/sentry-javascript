@@ -82,17 +82,27 @@ export class Transaction extends SpanClass implements TransactionInterface {
     return this._name;
   }
 
-  /** Setter for `name` property, which also sets `source` as custom */
+  /**
+   * Setter for `name` property, which also sets `source` as custom.
+   */
   public set name(newName: string) {
+    // eslint-disable-next-line deprecation/deprecation
     this.setName(newName);
   }
 
   /**
-   * JSDoc
+   * Setter for `name` property, which also sets `source` on the metadata.
+   *
+   * @deprecated Use `updateName()` and `setMetadata()` instead.
    */
   public setName(name: string, source: TransactionMetadata['source'] = 'custom'): void {
     this._name = name;
     this.metadata.source = source;
+  }
+
+  /** @inheritdoc */
+  public updateName(name: string): void {
+    this._name = name;
   }
 
   /**

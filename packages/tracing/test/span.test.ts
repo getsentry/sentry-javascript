@@ -86,7 +86,7 @@ describe('Span', () => {
     test('setName', () => {
       const span = new Span({});
       expect(span.description).toBeUndefined();
-      span.setName('foo');
+      span.updateName('foo');
       expect(span.description).toBe('foo');
     });
   });

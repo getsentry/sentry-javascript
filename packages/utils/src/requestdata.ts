@@ -74,7 +74,9 @@ export function addRequestDataToTransaction(
   if (!transaction) return;
   if (!transaction.metadata.source || transaction.metadata.source === 'url') {
     // Attempt to grab a parameterized route off of the request
-    transaction.setName(...extractPathForTransaction(req, { path: true, method: true }));
+    const [name, source] = extractPathForTransaction(req, { path: true, method: true });
+    transaction.updateName(name);
+    transaction.setMetadata({ source });
   }
   transaction.setData('url', req.originalUrl || req.url);
   if (req.baseUrl) {

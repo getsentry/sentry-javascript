@@ -26,7 +26,7 @@ describe('sveltekitRoutingInstrumentation', () => {
   const mockedStartTransaction = vi.fn().mockImplementation(txnCtx => {
     returnedTransaction = {
       ...txnCtx,
-      setName: vi.fn(),
+      updateName: vi.fn(),
       startChild: vi.fn().mockImplementation(ctx => {
         return { ...mockedRoutingSpan, ...ctx };
       }),
@@ -68,8 +68,9 @@ describe('sveltekitRoutingInstrumentation', () => {
     page.set({ route: { id: 'testRoute' } });
 
     // This should update the transaction name with the parameterized route:
-    expect(returnedTransaction?.setName).toHaveBeenCalledTimes(1);
-    expect(returnedTransaction?.setName).toHaveBeenCalledWith('testRoute', 'route');
+    expect(returnedTransaction?.updateName).toHaveBeenCalledTimes(1);
+    expect(returnedTransaction?.updateName).toHaveBeenCalledWith('testRoute');
+    expect(returnedTransaction?.setMetadata).toHaveBeenCalledWith({ source: 'route' });
   });
 
   it("doesn't start a pageload transaction if `startTransactionOnPageLoad` is false", () => {
