@@ -22,7 +22,8 @@
         "noControlCharactersInRegex": "error"
       },
       "nursery": {
-        "noUnusedImports": "error"
+        "noUnusedImports": "error",
+        "useRegexLiterals": "error"
       },
       "performance": {
         "all": true,
@@ -30,7 +31,7 @@
         "noDelete": "off"
       }
     },
-    "ignore": [".vscode/*", "**/*.json"]
+    "ignore": [".vscode/*", "**/*.json", ".next/**/*", ".svelte-kit/**/*"]
   },
   "files": {
     "ignoreUnknown": true
