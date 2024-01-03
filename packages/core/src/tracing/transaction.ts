@@ -149,6 +149,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
    * @inheritDoc
    */
   public toContext(): TransactionContext {
+    // eslint-disable-next-line deprecation/deprecation
     const spanContext = super.toContext();
 
     return dropUndefinedKeys({
@@ -162,6 +163,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
    * @inheritDoc
    */
   public updateWithContext(transactionContext: TransactionContext): this {
+     // eslint-disable-next-line deprecation/deprecation
     super.updateWithContext(transactionContext);
 
     this.name = transactionContext.name || '';
