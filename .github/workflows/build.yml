@@ -27,6 +27,7 @@ env:
   CACHED_DEPENDENCY_PATHS: |
     ${{ github.workspace }}/node_modules
     ${{ github.workspace }}/packages/*/node_modules
+    ${{ github.workspace }}/dev-packages/*/node_modules
     ~/.cache/ms-playwright/
     ~/.cache/mongodb-binaries/
 
@@ -102,7 +103,7 @@ jobs:
             browser_integration:
               - *shared
               - *browser
-              - 'packages/browser-integration-tests/**'
+              - 'dev-packages/browser-integration-tests/**'
             ember:
               - *shared
               - *browser
@@ -122,7 +123,7 @@ jobs:
             node:
               - *shared
               - 'packages/node/**'
-              - 'packages/node-integration-tests/**'
+              - 'dev-packages/node-integration-tests/**'
             deno:
               - *shared
               - *browser
@@ -601,7 +602,7 @@ jobs:
         env:
           PW_BUNDLE: ${{ matrix.bundle }}
         run: |
-          cd packages/browser-integration-tests
+          cd dev-packages/browser-integration-tests
           yarn test:ci
 
   job_browser_loader_tests:
@@ -658,7 +659,7 @@ jobs:
         env:
           PW_BUNDLE: ${{ matrix.bundle }}
         run: |
-          cd packages/browser-integration-tests
+          cd dev-packages/browser-integration-tests
           yarn test:loader
 
   job_browser_integration_tests:
@@ -762,7 +763,7 @@ jobs:
         env:
           NODE_VERSION: ${{ matrix.node }}
         run: |
-          cd packages/node-integration-tests
+          cd dev-packages/node-integration-tests
           yarn test
 
   job_remix_integration_tests:
@@ -906,7 +907,7 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
-          node-version-file: 'packages/e2e-tests/package.json'
+          node-version-file: 'dev-packages/e2e-tests/package.json'
       - name: Restore caches
         uses: ./.github/actions/restore-cache
         env:
@@ -921,25 +922,25 @@ jobs:
       - name: Get node version
         id: versions
         run: |
-          echo "echo node=$(jq -r '.volta.node' packages/e2e-tests/package.json)" >> $GITHUB_OUTPUT
+          echo "echo node=$(jq -r '.volta.node' dev-packages/e2e-tests/package.json)" >> $GITHUB_OUTPUT
 
       - name: Validate Verdaccio
         run: yarn test:validate
-        working-directory: packages/e2e-tests
+        working-directory: dev-packages/e2e-tests
 
       - name: Prepare Verdaccio
         run: yarn test:prepare
-        working-directory: packages/e2e-tests
+        working-directory: dev-packages/e2e-tests
         env:
           E2E_TEST_PUBLISH_SCRIPT_NODE_VERSION: ${{ steps.versions.outputs.node }}
 
       - name: Build E2E app
-        working-directory: packages/e2e-tests/test-applications/${{ matrix.test-application }}
+        working-directory: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
         timeout-minutes: 5
         run: yarn ${{ matrix.build-command || 'test:build' }}
 
       - name: Run E2E test
-        working-directory: packages/e2e-tests/test-applications/${{ matrix.test-application }}
+        working-directory: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
         timeout-minutes: 5
         run: yarn test:assert
 
@@ -996,12 +997,12 @@ jobs:
 
       - name: Collect
         run: yarn ci:collect
-        working-directory: packages/overhead-metrics
+        working-directory: dev-packages/overhead-metrics
 
       - name: Process
         id: process
         run: yarn ci:process
-        working-directory: packages/overhead-metrics
+        working-directory: dev-packages/overhead-metrics
         # Don't run on forks - the PR comment cannot be added.
         if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
         env:
