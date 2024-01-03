@@ -101,9 +101,11 @@ async function _startWorker(client: NodeClient, _options: Partial<Options>): Pro
     release: initOptions.release,
     dist: initOptions.dist,
     sdkMetadata,
+    appRootPath: _options.appRootPath,
     pollInterval: _options.pollInterval || DEFAULT_INTERVAL,
     anrThreshold: _options.anrThreshold || DEFAULT_HANG_THRESHOLD,
     captureStackTrace: !!_options.captureStackTrace,
+    staticTags: _options.staticTags || {},
     contexts,
   };
 
