@@ -86,7 +86,7 @@ describe('Span', () => {
     test('setName', () => {
       const span = new Span({});
       expect(span.description).toBeUndefined();
-      span.setName('foo');
+      span.updateName('foo');
       expect(span.description).toBe('foo');
     });
   });
@@ -480,7 +480,6 @@ describe('Span', () => {
 
       expect(newContext).toStrictEqual({
         ...originalContext,
-        data: {},
         spanId: expect.any(String),
         startTimestamp: expect.any(Number),
         tags: {},

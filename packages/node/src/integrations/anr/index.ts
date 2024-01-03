@@ -1,7 +1,7 @@
 // TODO (v8): This import can be removed once we only support Node with global URL
 import { URL } from 'url';
-import { getCurrentScope } from '@sentry/core';
-import type { Contexts, Event, EventHint, Integration } from '@sentry/types';
+import { convertIntegrationFnToClass, getCurrentScope } from '@sentry/core';
+import type { Contexts, Event, EventHint, IntegrationFn } from '@sentry/types';
 import { dynamicRequire, logger } from '@sentry/utils';
 import type { Worker, WorkerOptions } from 'worker_threads';
 import type { NodeClient } from '../../client';
@@ -50,108 +50,108 @@ interface InspectorApi {
   url: () => string | undefined;
 }
 
+const INTEGRATION_NAME = 'Anr';
+
+const anrIntegration = ((options: Partial<Options> = {}) => {
+  return {
+    name: INTEGRATION_NAME,
+    setup(client: NodeClient) {
+      if (NODE_VERSION.major < 16) {
+        throw new Error('ANR detection requires Node 16 or later');
+      }
+
+      // setImmediate is used to ensure that all other integrations have been setup
+      setImmediate(() => _startWorker(client, options));
+    },
+  };
+}) satisfies IntegrationFn;
+
 /**
  * Starts a thread to detect App Not Responding (ANR) events
  */
-export class Anr implements Integration {
-  public name: string = 'Anr';
+// eslint-disable-next-line deprecation/deprecation
+export const Anr = convertIntegrationFnToClass(INTEGRATION_NAME, anrIntegration);
 
-  public constructor(private readonly _options: Partial<Options> = {}) {}
+/**
+ * Starts the ANR worker thread
+ */
+async function _startWorker(client: NodeClient, _options: Partial<Options>): Promise<void> {
+  const contexts = await getContexts(client);
+  const dsn = client.getDsn();
 
-  /** @inheritdoc */
-  public setupOnce(): void {
-    // Do nothing
+  if (!dsn) {
+    return;
   }
 
-  /** @inheritdoc */
-  public setup(client: NodeClient): void {
-    if (NODE_VERSION.major < 16) {
-      throw new Error('ANR detection requires Node 16 or later');
-    }
+  // These will not be accurate if sent later from the worker thread
+  delete contexts.app?.app_memory;
+  delete contexts.device?.free_memory;
 
-    // setImmediate is used to ensure that all other integrations have been setup
-    setImmediate(() => this._startWorker(client));
+  const initOptions = client.getOptions();
+
+  const sdkMetadata = client.getSdkMetadata() || {};
+  if (sdkMetadata.sdk) {
+    sdkMetadata.sdk.integrations = initOptions.integrations.map(i => i.name);
   }
 
-  /**
-   * Starts the ANR worker thread
-   */
-  private async _startWorker(client: NodeClient): Promise<void> {
-    const contexts = await getContexts(client);
-    const dsn = client.getDsn();
+  const options: WorkerStartData = {
+    debug: logger.isEnabled(),
+    dsn,
+    environment: initOptions.environment || 'production',
+    release: initOptions.release,
+    dist: initOptions.dist,
+    sdkMetadata,
+    appRootPath: _options.appRootPath,
+    pollInterval: _options.pollInterval || DEFAULT_INTERVAL,
+    anrThreshold: _options.anrThreshold || DEFAULT_HANG_THRESHOLD,
+    captureStackTrace: !!_options.captureStackTrace,
+    staticTags: _options.staticTags || {},
+    contexts,
+  };
 
-    if (!dsn) {
-      return;
-    }
-
-    // These will not be accurate if sent later from the worker thread
-    delete contexts.app?.app_memory;
-    delete contexts.device?.free_memory;
-
-    const initOptions = client.getOptions();
-
-    const sdkMetadata = client.getSdkMetadata() || {};
-    if (sdkMetadata.sdk) {
-      sdkMetadata.sdk.integrations = initOptions.integrations.map(i => i.name);
-    }
-
-    const options: WorkerStartData = {
-      debug: logger.isEnabled(),
-      dsn,
-      environment: initOptions.environment || 'production',
-      release: initOptions.release,
-      dist: initOptions.dist,
-      sdkMetadata,
-      appRootPath: this._options.appRootPath,
-      pollInterval: this._options.pollInterval || DEFAULT_INTERVAL,
-      anrThreshold: this._options.anrThreshold || DEFAULT_HANG_THRESHOLD,
-      captureStackTrace: !!this._options.captureStackTrace,
-      staticTags: this._options.staticTags || {},
-      contexts,
-    };
-
-    if (options.captureStackTrace) {
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
-      const inspector: InspectorApi = require('inspector');
+  if (options.captureStackTrace) {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const inspector: InspectorApi = require('inspector');
+    if (!inspector.url()) {
       inspector.open(0);
     }
-
-    const { Worker } = getWorkerThreads();
-
-    const worker = new Worker(new URL(`data:application/javascript;base64,${base64WorkerScript}`), {
-      workerData: options,
-    });
-    // Ensure this thread can't block app exit
-    worker.unref();
-
-    const timer = setInterval(() => {
-      try {
-        const currentSession = getCurrentScope().getSession();
-        // We need to copy the session object and remove the toJSON method so it can be sent to the worker
-        // serialized without making it a SerializedSession
-        const session = currentSession ? { ...currentSession, toJSON: undefined } : undefined;
-        // message the worker to tell it the main event loop is still running
-        worker.postMessage({ session });
-      } catch (_) {
-        //
-      }
-    }, options.pollInterval);
-
-    worker.on('message', (msg: string) => {
-      if (msg === 'session-ended') {
-        log('ANR event sent from ANR worker. Clearing session in this thread.');
-        getCurrentScope().setSession(undefined);
-      }
-    });
-
-    worker.once('error', (err: Error) => {
-      clearInterval(timer);
-      log('ANR worker error', err);
-    });
-
-    worker.once('exit', (code: number) => {
-      clearInterval(timer);
-      log('ANR worker exit', code);
-    });
   }
+
+  const { Worker } = getWorkerThreads();
+
+  const worker = new Worker(new URL(`data:application/javascript;base64,${base64WorkerScript}`), {
+    workerData: options,
+  });
+  // Ensure this thread can't block app exit
+  worker.unref();
+
+  const timer = setInterval(() => {
+    try {
+      const currentSession = getCurrentScope().getSession();
+      // We need to copy the session object and remove the toJSON method so it can be sent to the worker
+      // serialized without making it a SerializedSession
+      const session = currentSession ? { ...currentSession, toJSON: undefined } : undefined;
+      // message the worker to tell it the main event loop is still running
+      worker.postMessage({ session });
+    } catch (_) {
+      //
+    }
+  }, options.pollInterval);
+
+  worker.on('message', (msg: string) => {
+    if (msg === 'session-ended') {
+      log('ANR event sent from ANR worker. Clearing session in this thread.');
+      getCurrentScope().setSession(undefined);
+    }
+  });
+
+  worker.once('error', (err: Error) => {
+    clearInterval(timer);
+    log('ANR worker error', err);
+  });
+
+  worker.once('exit', (code: number) => {
+    clearInterval(timer);
+    log('ANR worker exit', code);
+  });
 }

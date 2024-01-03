@@ -13,7 +13,7 @@ export { getAutoPerformanceIntegrations } from './integrations/getAutoPerformanc
 export * as Handlers from './sdk/handlers';
 export type { Span } from './types';
 
-export { startSpan, startInactiveSpan, getActiveSpan } from '@sentry/opentelemetry';
+export { startSpan, startSpanManual, startInactiveSpan, getActiveSpan } from '@sentry/opentelemetry';
 export {
   getClient,
   addBreadcrumb,

@@ -4,7 +4,7 @@ import { AddressInfo } from 'net';
 import * as path from 'path';
 import { parse } from 'url';
 import next from 'next';
-import { TestEnv } from '../../../../../../node-integration-tests/utils';
+import { TestEnv } from '../../../../../../../dev-packages/node-integration-tests/utils';
 
 // Type not exported from NextJS
 // @ts-expect-error

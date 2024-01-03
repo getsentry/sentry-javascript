@@ -74,7 +74,9 @@ export function addRequestDataToTransaction(
   if (!transaction) return;
   if (!transaction.metadata.source || transaction.metadata.source === 'url') {
     // Attempt to grab a parameterized route off of the request
-    transaction.setName(...extractPathForTransaction(req, { path: true, method: true }));
+    const [name, source] = extractPathForTransaction(req, { path: true, method: true });
+    transaction.updateName(name);
+    transaction.setMetadata({ source });
   }
   transaction.setData('url', req.originalUrl || req.url);
   if (req.baseUrl) {
@@ -363,7 +365,7 @@ function extractQueryParams(
   try {
     return (
       req.query ||
-      (typeof URL !== undefined && new URL(originalUrl).search.slice(1)) ||
+      (typeof URL !== 'undefined' && new URL(originalUrl).search.slice(1)) ||
       // In Node 8, `URL` isn't in the global scope, so we have to use the built-in module from Node
       (deps && deps.url && deps.url.parse(originalUrl).query) ||
       undefined

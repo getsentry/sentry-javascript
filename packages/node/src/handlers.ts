@@ -329,7 +329,8 @@ export function trpcMiddleware(options: SentryTrpcMiddlewareOptions = {}) {
     const sentryTransaction = getCurrentScope().getTransaction();
 
     if (sentryTransaction) {
-      sentryTransaction.setName(`trpc/${path}`, 'route');
+      sentryTransaction.updateName(`trpc/${path}`);
+      sentryTransaction.setMetadata({ source: 'route' });
       sentryTransaction.op = 'rpc.server';
 
       const trpcContext: Record<string, unknown> = {

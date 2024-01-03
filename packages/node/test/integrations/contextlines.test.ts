@@ -1,17 +1,17 @@
 import * as fs from 'fs';
-import type { StackFrame } from '@sentry/types';
+import type { Event, Integration, StackFrame } from '@sentry/types';
 import { parseStackFrames } from '@sentry/utils';
 
-import { ContextLines, resetFileContentCache } from '../src/integrations/contextlines';
-import { defaultStackParser } from '../src/sdk';
-import { getError } from './helper/error';
+import { ContextLines, resetFileContentCache } from '../../src/integrations/contextlines';
+import { defaultStackParser } from '../../src/sdk';
+import { getError } from '../helper/error';
 
 describe('ContextLines', () => {
   let readFileSpy: jest.SpyInstance;
-  let contextLines: ContextLines;
+  let contextLines: Integration & { processEvent: (event: Event) => Promise<Event> };
 
   async function addContext(frames: StackFrame[]): Promise<void> {
-    await contextLines.addSourceContext({ exception: { values: [{ stacktrace: { frames } }] } });
+    await contextLines.processEvent({ exception: { values: [{ stacktrace: { frames } }] } });
   }
 
   beforeEach(() => {

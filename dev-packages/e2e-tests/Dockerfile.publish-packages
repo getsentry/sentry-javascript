@@ -2,5 +2,5 @@
 ARG NODE_VERSION=18.17.1
 FROM node:${NODE_VERSION}
 
-WORKDIR /sentry-javascript/packages/e2e-tests
+WORKDIR /sentry-javascript/dev-packages/e2e-tests
 CMD [ "yarn", "ts-node", "publish-packages.ts" ]
