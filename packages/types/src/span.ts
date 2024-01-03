@@ -12,6 +12,17 @@ export type SpanOrigin =
   | `${SpanOriginType}.${SpanOriginCategory}.${SpanOriginIntegrationName}`
   | `${SpanOriginType}.${SpanOriginCategory}.${SpanOriginIntegrationName}.${SpanOriginIntegrationPart}`;
 
+// These types are aligned with OpenTelemetry Span Attributes
+export type SpanAttributeValue =
+  | string
+  | number
+  | boolean
+  | Array<null | undefined | string>
+  | Array<null | undefined | number>
+  | Array<null | undefined | boolean>;
+
+export type SpanAttributes = Record<string, SpanAttributeValue | undefined>;
+
 /** Interface holding all properties that can be set on a Span on creation. */
 export interface SpanContext {
   /**
@@ -64,6 +75,11 @@ export interface SpanContext {
    * Data of the Span.
    */
   data?: { [key: string]: any };
+
+  /**
+   * Attributes of the Span.
+   */
+  attributes?: SpanAttributes;
 
   /**
    * Timestamp in seconds (epoch time) indicating when the span started.
@@ -119,6 +135,11 @@ export interface Span extends SpanContext {
   data: { [key: string]: any };
 
   /**
+   * @inheritDoc
+   */
+  attributes: SpanAttributes;
+
+  /**
    * The transaction containing this span
    */
   transaction?: Transaction;
@@ -155,6 +176,18 @@ export interface Span extends SpanContext {
    * @param value Data value
    */
   setData(key: string, value: any): this;
+
+  /**
+   * Set a single attribute on the span.
+   * Set it to `undefined` to remove the attribute.
+   */
+  setAttribute(key: string, value: SpanAttributeValue | undefined): void;
+
+  /**
+   * Set multiple attributes on the span.
+   * Any attribute set to `undefined` will be removed.
+   */
+  setAttributes(attributes: SpanAttributes): void;
 
   /**
    * Sets the status attribute on the current span

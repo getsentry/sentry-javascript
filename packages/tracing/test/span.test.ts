@@ -480,7 +480,6 @@ describe('Span', () => {
 
       expect(newContext).toStrictEqual({
         ...originalContext,
-        data: {},
         spanId: expect.any(String),
         startTimestamp: expect.any(Number),
         tags: {},
