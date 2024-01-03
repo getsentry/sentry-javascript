@@ -299,8 +299,11 @@ export function normalizeUrlToBase(url: string, basePath: string): string {
   } catch (_Oo) {
     // Sometime this breaks
   }
-  return newUrl
-    .replace(/\\/g, '/')
-    .replace(/webpack:\/?/g, '') // Remove intermediate base path
-    .replace(new RegExp(`(file://)?/*${escapedBase}/*`, 'ig'), 'app:///');
+  return (
+    newUrl
+      .replace(/\\/g, '/')
+      .replace(/webpack:\/?/g, '') // Remove intermediate base path
+      // eslint-disable-next-line @sentry-internal/sdk/no-regexp-constructor
+      .replace(new RegExp(`(file://)?/*${escapedBase}/*`, 'ig'), 'app:///')
+  );
 }
