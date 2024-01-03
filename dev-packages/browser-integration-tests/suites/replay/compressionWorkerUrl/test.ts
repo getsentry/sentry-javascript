@@ -35,7 +35,7 @@ sentryTest(
 
     // Ensure to register this _after_ getLocalTestUrl is called, as that also registers a default route for TEST_HOST
     await page.route(`${TEST_HOST}/my-test-worker.js`, route => {
-      const filePath = path.resolve(__dirname, '../../../../replay-worker/examples/worker.min.js');
+      const filePath = path.resolve(__dirname, '../../../../../packages/replay-worker/examples/worker.min.js');
 
       customCompressCalled++;
 

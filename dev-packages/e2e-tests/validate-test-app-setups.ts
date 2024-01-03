@@ -14,7 +14,7 @@ testRecipePaths.forEach(testRecipePath => {
 
   if (!fs.existsSync(npmrcPath)) {
     console.log(
-      `No .npmrc found in test application "${testAppPath}". Please add a .npmrc to this test application that uses the fake test registry. (More info in packages/e2e-tests/README.md)`,
+      `No .npmrc found in test application "${testAppPath}". Please add a .npmrc to this test application that uses the fake test registry. (More info in dev-packages/e2e-tests/README.md)`,
     );
     process.exit(1);
   }
@@ -22,7 +22,7 @@ testRecipePaths.forEach(testRecipePath => {
   const npmrcContents = fs.readFileSync(npmrcPath, 'utf-8');
   if (!npmrcContents.includes('http://localhost:4873')) {
     console.log(
-      `.npmrc in test application "${testAppPath} doesn't contain a reference to the fake test registry at "http://localhost:4873". Please add a .npmrc to this test application that uses the fake test registry. (More info in packages/e2e-tests/README.md)`,
+      `.npmrc in test application "${testAppPath} doesn't contain a reference to the fake test registry at "http://localhost:4873". Please add a .npmrc to this test application that uses the fake test registry. (More info in dev-packages/e2e-tests/README.md)`,
     );
     process.exit(1);
   }
