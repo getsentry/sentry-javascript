@@ -277,3 +277,33 @@ function utf8Length(value: string): number {
 function jsonSize(value: any): number {
   return utf8Length(JSON.stringify(value));
 }
+
+/**
+ * Normalizes URLs in exceptions and stacktraces to a base path so Sentry can fingerprint
+ * across platforms and working directory.
+ *
+ * @param url The URL to be normalized.
+ * @param basePath The application base path.
+ * @returns The normalized URL.
+ */
+export function normalizeUrlToBase(url: string, basePath: string): string {
+  const escapedBase = basePath
+    // Backslash to forward
+    .replace(/\\/g, '/')
+    // Escape RegExp special characters
+    .replace(/[|\\{}()[\]^$+*?.]/g, '\\$&');
+
+  let newUrl = url;
+  try {
+    newUrl = decodeURI(url);
+  } catch (_Oo) {
+    // Sometime this breaks
+  }
+  return (
+    newUrl
+      .replace(/\\/g, '/')
+      .replace(/webpack:\/?/g, '') // Remove intermediate base path
+      // eslint-disable-next-line @sentry-internal/sdk/no-regexp-constructor
+      .replace(new RegExp(`(file://)?/*${escapedBase}/*`, 'ig'), 'app:///')
+  );
+}

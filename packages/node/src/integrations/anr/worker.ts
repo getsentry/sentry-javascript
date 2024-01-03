@@ -6,7 +6,7 @@ import {
   updateSession,
 } from '@sentry/core';
 import type { Event, Session, StackFrame, TraceContext } from '@sentry/types';
-import { callFrameToStackFrame, stripSentryFramesAndReverse, watchdogTimer } from '@sentry/utils';
+import { callFrameToStackFrame, normalizeUrlToBase, stripSentryFramesAndReverse, watchdogTimer } from '@sentry/utils';
 import { Session as InspectorSession } from 'inspector';
 import { parentPort, workerData } from 'worker_threads';
 import { makeNodeTransport } from '../../transports';
@@ -56,6 +56,28 @@ async function sendAbnormalSession(): Promise<void> {
 
 log('Started');
 
+function prepareStackFrames(stackFrames: StackFrame[] | undefined): StackFrame[] | undefined {
+  if (!stackFrames) {
+    return undefined;
+  }
+
+  // Strip Sentry frames and reverse the stack frames so they are in the correct order
+  const strippedFrames = stripSentryFramesAndReverse(stackFrames);
+
+  // If we have an app root path, rewrite the filenames to be relative to the app root
+  if (options.appRootPath) {
+    for (const frame of strippedFrames) {
+      if (!frame.filename) {
+        continue;
+      }
+
+      frame.filename = normalizeUrlToBase(frame.filename, options.appRootPath);
+    }
+  }
+
+  return strippedFrames;
+}
+
 async function sendAnrEvent(frames?: StackFrame[], traceContext?: TraceContext): Promise<void> {
   if (hasSentAnrEvent) {
     return;
@@ -68,7 +90,6 @@ async function sendAnrEvent(frames?: StackFrame[], traceContext?: TraceContext):
   log('Sending event');
 
   const event: Event = {
-    sdk: options.sdkMetadata.sdk,
     contexts: { ...options.contexts, trace: traceContext },
     release: options.release,
     environment: options.environment,
@@ -80,13 +101,13 @@ async function sendAnrEvent(frames?: StackFrame[], traceContext?: TraceContext):
         {
           type: 'ApplicationNotResponding',
           value: `Application Not Responding for at least ${options.anrThreshold} ms`,
-          stacktrace: { frames },
+          stacktrace: { frames: prepareStackFrames(frames) },
           // This ensures the UI doesn't say 'Crashed in' for the stack trace
           mechanism: { type: 'ANR' },
         },
       ],
     },
-    tags: { 'process.name': 'ANR' },
+    tags: options.staticTags,
   };
 
   log(JSON.stringify(event));
@@ -130,8 +151,8 @@ if (options.captureStackTrace) {
       // copy the frames
       const callFrames = [...event.params.callFrames];
 
-      const stackFrames = stripSentryFramesAndReverse(
-        callFrames.map(frame => callFrameToStackFrame(frame, scripts.get(frame.location.scriptId), () => undefined)),
+      const stackFrames = callFrames.map(frame =>
+        callFrameToStackFrame(frame, scripts.get(frame.location.scriptId), () => undefined),
       );
 
       // Evaluate a script in the currently paused context
