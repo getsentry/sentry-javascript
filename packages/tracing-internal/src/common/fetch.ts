@@ -1,4 +1,10 @@
-import { getClient, getCurrentScope, getDynamicSamplingContextFromClient, hasTracingEnabled } from '@sentry/core';
+import {
+  getClient,
+  getCurrentScope,
+  getDynamicSamplingContextFromClient,
+  hasTracingEnabled,
+  spanToTraceHeader,
+} from '@sentry/core';
 import type { Client, HandlerDataFetch, Scope, Span, SpanOrigin } from '@sentry/types';
 import {
   BAGGAGE_HEADER_NAME,
@@ -128,7 +134,7 @@ export function addTracingHeadersToFetchRequest(
 
   const { traceId, sampled, dsc } = scope.getPropagationContext();
 
-  const sentryTraceHeader = span ? span.toTraceparent() : generateSentryTraceHeader(traceId, undefined, sampled);
+  const sentryTraceHeader = span ? spanToTraceHeader(span) : generateSentryTraceHeader(traceId, undefined, sampled);
   const dynamicSamplingContext = transaction
     ? transaction.getDynamicSamplingContext()
     : dsc

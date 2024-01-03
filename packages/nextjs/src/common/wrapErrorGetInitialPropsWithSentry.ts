@@ -1,4 +1,4 @@
-import { addTracingExtensions, getClient, getCurrentScope } from '@sentry/core';
+import { addTracingExtensions, getClient, getCurrentScope, spanToTraceHeader } from '@sentry/core';
 import { dynamicSamplingContextToSentryBaggageHeader } from '@sentry/utils';
 import type { NextPageContext } from 'next';
 import type { ErrorProps } from 'next/error';
@@ -55,7 +55,7 @@ export function wrapErrorGetInitialPropsWithSentry(
 
         const requestTransaction = getTransactionFromRequest(req) ?? getCurrentScope().getTransaction();
         if (requestTransaction) {
-          errorGetInitialProps._sentryTraceData = requestTransaction.toTraceparent();
+          errorGetInitialProps._sentryTraceData = spanToTraceHeader(requestTransaction);
 
           const dynamicSamplingContext = requestTransaction.getDynamicSamplingContext();
           errorGetInitialProps._sentryBaggage = dynamicSamplingContextToSentryBaggageHeader(dynamicSamplingContext);

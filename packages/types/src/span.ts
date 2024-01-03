@@ -225,7 +225,10 @@ export interface Span extends SpanContext {
    */
   isSuccess(): boolean;
 
-  /** Return a traceparent compatible header string */
+  /**
+   * Return a traceparent compatible header string.
+   * @deprecated Use `spanToTraceHeader()` instead.
+   */
   toTraceparent(): string;
 
   /**

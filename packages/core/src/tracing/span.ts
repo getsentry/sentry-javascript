@@ -10,9 +10,10 @@ import type {
   TraceContext,
   Transaction,
 } from '@sentry/types';
-import { dropUndefinedKeys, generateSentryTraceHeader, logger, timestampInSeconds, uuid4 } from '@sentry/utils';
+import { dropUndefinedKeys, logger, timestampInSeconds, uuid4 } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../debug-build';
+import { spanToTraceHeader } from '../utils/spanUtils';
 import { ensureTimestampInSeconds } from './utils';
 
 /**
@@ -320,7 +321,7 @@ export class Span implements SpanInterface {
    * @inheritDoc
    */
   public toTraceparent(): string {
-    return generateSentryTraceHeader(this.traceId, this.spanId, this.sampled);
+    return spanToTraceHeader(this);
   }
 
   /**
