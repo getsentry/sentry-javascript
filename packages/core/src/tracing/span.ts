@@ -13,7 +13,7 @@ import type {
 import { dropUndefinedKeys, logger, timestampInSeconds, uuid4 } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../debug-build';
-import { spanToTraceHeader, spanToTraceContext } from '../utils/spanUtils';
+import { spanToTraceContext, spanToTraceHeader } from '../utils/spanUtils';
 import { ensureTimestampInSeconds } from './utils';
 
 /**
