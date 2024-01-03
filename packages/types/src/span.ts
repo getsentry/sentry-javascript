@@ -212,7 +212,7 @@ export interface Span extends SpanContext {
   /**
    * Update the name of the span.
    */
-  updateName(name: string): void;
+  updateName(name: string): this;
 
   /**
    * Creates a new `Span` while setting the current `Span.id` as `parentSpanId`.

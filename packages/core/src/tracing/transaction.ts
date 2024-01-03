@@ -101,8 +101,9 @@ export class Transaction extends SpanClass implements TransactionInterface {
   }
 
   /** @inheritdoc */
-  public updateName(name: string): void {
+  public updateName(name: string): this {
     this._name = name;
+    return this;
   }
 
   /**

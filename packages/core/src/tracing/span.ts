@@ -277,8 +277,9 @@ export class Span implements SpanInterface {
   /**
    * @inheritDoc
    */
-  public updateName(name: string): void {
+  public updateName(name: string): this {
     this.description = name;
+    return this;
   }
 
   /**
