@@ -209,6 +209,23 @@ describe('span', () => {
     });
   });
 
+  describe('isRecording', () => {
+    it('returns true for sampled span', () => {
+      const span = new Span({ sampled: true });
+      expect(span.isRecording()).toEqual(true);
+    });
+
+    it('returns false for sampled, finished span', () => {
+      const span = new Span({ sampled: true, endTimestamp: Date.now() });
+      expect(span.isRecording()).toEqual(false);
+    });
+
+    it('returns false for unsampled span', () => {
+      const span = new Span({ sampled: false });
+      expect(span.isRecording()).toEqual(false);
+    });
+  });
+
   // Ensure that attributes & data are merged together
   describe('_getData', () => {
     it('works without data & attributes', () => {
