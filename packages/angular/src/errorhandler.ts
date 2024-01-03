@@ -13,7 +13,8 @@ import { runOutsideAngular } from './zone';
 export interface ErrorHandlerOptions {
   logErrors?: boolean;
   showDialog?: boolean;
-  dialogOptions?: Sentry.ReportDialogOptions;
+  // eslint-disable-next-line deprecation/deprecation
+  dialogOptions?: Omit<Sentry.ReportDialogOptions, 'eventId'>;
   /**
    * Custom implementation of error extraction from the raw value captured by the Angular.
    * @param error Value captured by Angular's ErrorHandler provider
@@ -120,6 +121,7 @@ class SentryErrorHandler implements AngularErrorHandler {
       if (client && client.on && !this._registeredAfterSendEventHandler) {
         client.on('afterSendEvent', (event: Event) => {
           if (!event.type) {
+            // eslint-disable-next-line deprecation/deprecation
             Sentry.showReportDialog({ ...this._options.dialogOptions, eventId: event.event_id });
           }
         });

@@ -46,6 +46,7 @@ export {
   makeNodeTransport,
   defaultIntegrations,
   defaultStackParser,
+  // eslint-disable-next-line deprecation/deprecation
   lastEventId,
   flush,
   close,

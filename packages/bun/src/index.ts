@@ -47,6 +47,7 @@ export {
   getGlobalScope,
   getIsolationScope,
   Hub,
+  // eslint-disable-next-line deprecation/deprecation
   lastEventId,
   makeMain,
   runWithAsyncContext,
