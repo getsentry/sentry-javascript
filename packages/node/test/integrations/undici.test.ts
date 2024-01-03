@@ -1,5 +1,5 @@
 import * as http from 'http';
-import type { Transaction} from '@sentry/core';
+import type { Transaction } from '@sentry/core';
 import { spanToTraceHeader } from '@sentry/core';
 import { Hub, makeMain, runWithAsyncContext } from '@sentry/core';
 import type { fetch as FetchType } from 'undici';
