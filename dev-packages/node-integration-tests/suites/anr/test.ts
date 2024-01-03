@@ -120,9 +120,8 @@ conditionalTest({ min: 16 })('should report ANR when event loop blocked', () => 
     let hasClosed = false;
 
     setTimeout(() => {
-      if (!hasClosed) {
-        done();
-      }
+      expect(hasClosed).toBe(true);
+      done();
     }, 5_000);
 
     childProcess.exec(`node ${testScriptPath}`, { encoding: 'utf8' }, (_, stdout) => {
