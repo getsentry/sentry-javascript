@@ -3,6 +3,7 @@ import {
   captureException,
   continueTrace,
   getCurrentScope,
+  handleCallbackErrors,
   runWithAsyncContext,
   startSpanManual,
 } from '@sentry/core';
@@ -69,50 +70,35 @@ export function wrapServerComponentWithSentry<F extends (...args: any[]) => any>
             },
           },
           span => {
-            try {
-              const res = originalFunction.apply(thisArg, args);
-              span?.end();
-              return res;
-            } catch (error) {
-              if (isNotFoundNavigationError(error)) {
-                // We don't want to report "not-found"s
-                span?.setStatus('not_found');
-              } else if (isRedirectNavigationError(error)) {
-                // We don't want to report redirects
-                // Since `startSpan` will automatically set the span status to "internal_error" when an error is thrown,
-                // We cannot set it to `ok` as that will lead to `startSpanManual` overwriting it when the error bubbles up,
-                // so instead we temp. set this to `cancelled` and handle this later before we end the span.
-                span?.setStatus('ok');
-              } else {
-                span?.setStatus('internal_error');
+            return handleCallbackErrors(
+              () => originalFunction.apply(thisArg, args),
+              error => {
+                if (isNotFoundNavigationError(error)) {
+                  // We don't want to report "not-found"s
+                  span?.setStatus('not_found');
+                } else if (isRedirectNavigationError(error)) {
+                  // We don't want to report redirects
+                  span?.setStatus('ok');
+                } else {
+                  span?.setStatus('internal_error');
 
-                captureException(error, {
-                  mechanism: {
-                    handled: false,
-                  },
-                });
-              }
+                  captureException(error, {
+                    mechanism: {
+                      handled: false,
+                    },
+                  });
+                }
+              },
+              () => {
+                span?.end();
 
-              span?.end();
-
-              // flushQueue should not throw
-              // eslint-disable-next-line @typescript-eslint/no-floating-promises
-              flushQueue();
-
-              // flushQueue should not throw
-              // eslint-disable-next-line @typescript-eslint/no-floating-promises
-              flushQueue();
-
-              throw error;
-            }
+                // flushQueue should not throw
+                // eslint-disable-next-line @typescript-eslint/no-floating-promises
+                flushQueue();
+              },
+            );
           },
         );
-
-        // flushQueue should not throw
-        // eslint-disable-next-line @typescript-eslint/no-floating-promises
-        flushQueue();
-
-        return res;
       });
     },
   });
