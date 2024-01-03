@@ -25,7 +25,9 @@
         "noUnusedImports": "error"
       },
       "performance": {
-        "noAccumulatingSpread": "error"
+        "all": true,
+        "noAccumulatingSpread": "error",
+        "noDelete": "off"
       }
     },
     "ignore": [".vscode/*", "**/*.json"]
