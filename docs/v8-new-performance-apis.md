@@ -34,7 +34,7 @@ which can have a nested tree of **Spans**.
 ## The new model: Goodbye Transactions, Hello Spans Everywhere!
 
 In the new model, transactions are conceptually gone. Instead, you will _always_ operate on spans, no matter where in
-the tree you are. Note that in the background, spans _may_ still be bundled up to transaction for the UI. However, this
+the tree you are. Note that in the background, spans _may_ still be grouped into a transaction for the Sentry UI. However, this
 happens transparently, and from an SDK perspective, all you have to think about are spans.
 
 ## The Span schema
@@ -47,7 +47,7 @@ below to see which things used to exist, and how they can/should be mapped going
 | --------------------- | ---------------------------------------------------- |
 | `traceId`             | `spanContext().traceId`                              |
 | `spanId`              | `spanContext().spanId`                               |
-| `parentSpanId`        | Same                                                 |
+| `parentSpanId`        | Unchanged                                                 |
 | `status`              | TODO: new signature                                  |
 | `sampled`             | `spanContext().traceFlags`                           |
 | `startTimestamp`      | `startTime` - note that this has a different format! |
