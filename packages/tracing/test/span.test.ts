@@ -471,7 +471,6 @@ describe('Span', () => {
     });
   });
 
-  /* eslint-disable deprecation/deprecation */
   describe('toContext and updateWithContext', () => {
     test('toContext should return correct context', () => {
       const originalContext = { traceId: 'a', spanId: 'b', sampled: false, description: 'test', op: 'op' };
@@ -552,7 +551,6 @@ describe('Span', () => {
       expect(span.data).toStrictEqual({ data0: 'foo', data1: 'bar' });
     });
   });
-  /* eslint-enable deprecation/deprecation */
 
   describe('getDynamicSamplingContext', () => {
     beforeEach(() => {
