@@ -138,7 +138,7 @@ export const startActiveSpan = startSpan;
 
 /**
  * Similar to `Sentry.startSpan`. Wraps a function with a transaction/span, but does not finish the span
- * after the function is done automatically.
+ * after the function is done automatically. You'll have to call `span.end()` manually.
  *
  * The created span is the active span and will be used as parent by other spans created inside the function
  * and can be accessed via `Sentry.getActiveSpan()`, as long as the function is executed while the scope is active.
