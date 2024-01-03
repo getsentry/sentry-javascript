@@ -135,6 +135,11 @@ module.exports = {
         '@sentry-internal/sdk/no-optional-chaining': 'error',
         '@sentry-internal/sdk/no-nullish-coalescing': 'error',
 
+        // We want to avoid using the RegExp constructor as it can lead to invalid or dangerous regular expressions
+        // if end user input is used in the constructor. It's fine to ignore this rule if it is safe to use the RegExp.
+        // However, we want to flag each use case so that we're aware of the potential danger.
+        '@sentry-internal/sdk/no-regexp-constructor': 'error',
+
         // JSDOC comments are required for classes and methods. As we have a public facing codebase, documentation,
         // even if it may seems excessive at times, is important to emphasize. Turned off in tests.
         'jsdoc/require-jsdoc': [

@@ -3,6 +3,8 @@ import type {
   Instrumenter,
   Primitive,
   Span as SpanInterface,
+  SpanAttributeValue,
+  SpanAttributes,
   SpanContext,
   SpanOrigin,
   TraceContext,
@@ -105,6 +107,11 @@ export class Span implements SpanInterface {
   public data: { [key: string]: any };
 
   /**
+   * @inheritDoc
+   */
+  public attributes: SpanAttributes;
+
+  /**
    * List of spans that were finalized
    */
   public spanRecorder?: SpanRecorder;
@@ -137,6 +144,7 @@ export class Span implements SpanInterface {
     this.startTimestamp = spanContext.startTimestamp || timestampInSeconds();
     this.tags = spanContext.tags || {};
     this.data = spanContext.data || {};
+    this.attributes = spanContext.attributes || {};
     this.instrumenter = spanContext.instrumenter || 'sentry';
     this.origin = spanContext.origin || 'manual';
 
@@ -168,9 +176,11 @@ export class Span implements SpanInterface {
   public get name(): string {
     return this.description || '';
   }
-  /** Update the name of the span. */
+  /**
+   * Update the name of the span.
+   */
   public set name(name: string) {
-    this.setName(name);
+    this.updateName(name);
   }
 
   /**
@@ -217,10 +227,25 @@ export class Span implements SpanInterface {
   /**
    * @inheritDoc
    */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/explicit-module-boundary-types
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public setData(key: string, value: any): this {
     this.data = { ...this.data, [key]: value };
     return this;
+  }
+
+  /** @inheritdoc */
+  public setAttribute(key: string, value: SpanAttributeValue | undefined): void {
+    if (value === undefined) {
+      // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+      delete this.attributes[key];
+    } else {
+      this.attributes[key] = value;
+    }
+  }
+
+  /** @inheritdoc */
+  public setAttributes(attributes: SpanAttributes): void {
+    Object.keys(attributes).forEach(key => this.setAttribute(key, attributes[key]));
   }
 
   /**
@@ -244,11 +269,17 @@ export class Span implements SpanInterface {
     return this;
   }
 
+  /** @inheritdoc */
+  public setName(name: string): void {
+    this.updateName(name);
+  }
+
   /**
    * @inheritDoc
    */
-  public setName(name: string): void {
+  public updateName(name: string): this {
     this.description = name;
+    return this;
   }
 
   /**
@@ -297,7 +328,7 @@ export class Span implements SpanInterface {
    */
   public toContext(): SpanContext {
     return dropUndefinedKeys({
-      data: this.data,
+      data: this._getData(),
       description: this.description,
       endTimestamp: this.endTimestamp,
       op: this.op,
@@ -335,7 +366,7 @@ export class Span implements SpanInterface {
    */
   public getTraceContext(): TraceContext {
     return dropUndefinedKeys({
-      data: Object.keys(this.data).length > 0 ? this.data : undefined,
+      data: this._getData(),
       description: this.description,
       op: this.op,
       parent_span_id: this.parentSpanId,
@@ -365,7 +396,7 @@ export class Span implements SpanInterface {
     origin?: SpanOrigin;
   } {
     return dropUndefinedKeys({
-      data: Object.keys(this.data).length > 0 ? this.data : undefined,
+      data: this._getData(),
       description: this.description,
       op: this.op,
       parent_span_id: this.parentSpanId,
@@ -377,6 +408,36 @@ export class Span implements SpanInterface {
       trace_id: this.traceId,
       origin: this.origin,
     });
+  }
+
+  /**
+   * Get the merged data for this span.
+   * For now, this combines `data` and `attributes` together,
+   * until eventually we can ingest `attributes` directly.
+   */
+  private _getData():
+    | {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        [key: string]: any;
+      }
+    | undefined {
+    const { data, attributes } = this;
+
+    const hasData = Object.keys(data).length > 0;
+    const hasAttributes = Object.keys(attributes).length > 0;
+
+    if (!hasData && !hasAttributes) {
+      return undefined;
+    }
+
+    if (hasData && hasAttributes) {
+      return {
+        ...data,
+        ...attributes,
+      };
+    }
+
+    return hasData ? data : attributes;
   }
 }
 

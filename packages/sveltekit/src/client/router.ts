@@ -56,7 +56,8 @@ function instrumentPageload(startTransactionFn: (context: TransactionContext) =>
     const routeId = page.route && page.route.id;
 
     if (pageloadTransaction && routeId) {
-      pageloadTransaction.setName(routeId, 'route');
+      pageloadTransaction.updateName(routeId);
+      pageloadTransaction.setMetadata({ source: 'route' });
     }
   });
 }

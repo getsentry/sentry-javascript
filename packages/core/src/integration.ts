@@ -165,7 +165,7 @@ function findIndex<T>(arr: T[], callback: (item: T) => boolean): number {
 export function convertIntegrationFnToClass<Fn extends IntegrationFn>(
   name: string,
   fn: Fn,
-): {
+): Integration & {
   id: string;
   new (...args: Parameters<Fn>): Integration &
     ReturnType<Fn> & {
@@ -182,7 +182,7 @@ export function convertIntegrationFnToClass<Fn extends IntegrationFn>(
       };
     },
     { id: name },
-  ) as unknown as {
+  ) as unknown as Integration & {
     id: string;
     new (...args: Parameters<Fn>): Integration &
       ReturnType<Fn> & {

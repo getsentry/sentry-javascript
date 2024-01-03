@@ -61,6 +61,17 @@ describe('`Transaction` class', () => {
         expect(transaction.metadata.source).toEqual('route');
       });
     });
+
+    describe('`updateName` method', () => {
+      it('does not change the source', () => {
+        const transaction = new Transaction({ name: 'dogpark' });
+        transaction.setMetadata({ source: 'route' });
+        transaction.updateName('ballpit');
+
+        expect(transaction.name).toEqual('ballpit');
+        expect(transaction.metadata.source).toEqual('route');
+      });
+    });
   });
 
   describe('setContext', () => {

@@ -12,6 +12,17 @@ export type SpanOrigin =
   | `${SpanOriginType}.${SpanOriginCategory}.${SpanOriginIntegrationName}`
   | `${SpanOriginType}.${SpanOriginCategory}.${SpanOriginIntegrationName}.${SpanOriginIntegrationPart}`;
 
+// These types are aligned with OpenTelemetry Span Attributes
+export type SpanAttributeValue =
+  | string
+  | number
+  | boolean
+  | Array<null | undefined | string>
+  | Array<null | undefined | number>
+  | Array<null | undefined | boolean>;
+
+export type SpanAttributes = Record<string, SpanAttributeValue | undefined>;
+
 /** Interface holding all properties that can be set on a Span on creation. */
 export interface SpanContext {
   /**
@@ -64,6 +75,11 @@ export interface SpanContext {
    * Data of the Span.
    */
   data?: { [key: string]: any };
+
+  /**
+   * Attributes of the Span.
+   */
+  attributes?: SpanAttributes;
 
   /**
    * Timestamp in seconds (epoch time) indicating when the span started.
@@ -119,6 +135,11 @@ export interface Span extends SpanContext {
   data: { [key: string]: any };
 
   /**
+   * @inheritDoc
+   */
+  attributes: SpanAttributes;
+
+  /**
    * The transaction containing this span
    */
   transaction?: Transaction;
@@ -157,6 +178,18 @@ export interface Span extends SpanContext {
   setData(key: string, value: any): this;
 
   /**
+   * Set a single attribute on the span.
+   * Set it to `undefined` to remove the attribute.
+   */
+  setAttribute(key: string, value: SpanAttributeValue | undefined): void;
+
+  /**
+   * Set multiple attributes on the span.
+   * Any attribute set to `undefined` will be removed.
+   */
+  setAttributes(attributes: SpanAttributes): void;
+
+  /**
    * Sets the status attribute on the current span
    * See: {@sentry/tracing SpanStatus} for possible values
    * @param status http code used to set the status
@@ -171,8 +204,15 @@ export interface Span extends SpanContext {
 
   /**
    * Set the name of the span.
+   *
+   * @deprecated Use `updateName()` instead.
    */
   setName(name: string): void;
+
+  /**
+   * Update the name of the span.
+   */
+  updateName(name: string): this;
 
   /**
    * Creates a new `Span` while setting the current `Span.id` as `parentSpanId`.
@@ -188,10 +228,16 @@ export interface Span extends SpanContext {
   /** Return a traceparent compatible header string */
   toTraceparent(): string;
 
-  /** Returns the current span properties as a `SpanContext` */
+  /**
+   * Returns the current span properties as a `SpanContext`.
+   * @deprecated Use `toJSON()` or access the fields directly instead.
+   */
   toContext(): SpanContext;
 
-  /** Updates the current span with a new `SpanContext` */
+  /**
+   * Updates the current span with a new `SpanContext`.
+   * @deprecated Update the fields directly instead.
+   */
   updateWithContext(spanContext: SpanContext): this;
 
   /** Convert the object to JSON for w. spans array info only */

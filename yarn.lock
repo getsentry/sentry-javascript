@@ -4658,40 +4658,40 @@
     magic-string "0.27.0"
     unplugin "1.0.1"
 
-"@sentry/cli-darwin@2.23.0":
-  version "2.23.0"
-  resolved "https://registry.yarnpkg.com/@sentry/cli-darwin/-/cli-darwin-2.23.0.tgz#1a4f149071a77f2e767a9cd7997b0b9257eae59f"
-  integrity sha512-tWuTxvb6P5pA0E+O1/7jKQ6AP45DOOW+BAd7mwBMHZ+5xG3nsvvrRS9hOIzBNPTeB2RyIEXgpQ2Mb6NdD21DBQ==
+"@sentry/cli-darwin@2.23.2":
+  version "2.23.2"
+  resolved "https://registry.yarnpkg.com/@sentry/cli-darwin/-/cli-darwin-2.23.2.tgz#d1fed31063e19bfbdf5d5ab0bb9938f407eb9e33"
+  integrity sha512-7Jw1yEmJxiNan5WJyiAKXascxoe8uccKVaTvEo0JwzgWhPzS71j3eUlthuQuy0xv5Pqw4d89khAP79X/pzW/dw==
 
-"@sentry/cli-linux-arm64@2.23.0":
-  version "2.23.0"
-  resolved "https://registry.yarnpkg.com/@sentry/cli-linux-arm64/-/cli-linux-arm64-2.23.0.tgz#f3f154dc9ee68b4c3e6386ececb7c4b7dbe6cdbe"
-  integrity sha512-KsOckP+b0xAzrRuoP4eiqJ6ASD6SqIplL8BCHOAODQfvWn9rgNwsJWOgKlWwfrJnkJYkpWVYvYeyx0oeUx3N0g==
+"@sentry/cli-linux-arm64@2.23.2":
+  version "2.23.2"
+  resolved "https://registry.yarnpkg.com/@sentry/cli-linux-arm64/-/cli-linux-arm64-2.23.2.tgz#a4171da7de22fd31a359fdd5671b9e445316778c"
+  integrity sha512-Hs2PbK2++r6Lbss44HIDXJwBSIyw1naLdIpOBi9NVLBGZxO2VLt8sQYDhVDv2ZIUijw1aGc5sg8R7R0/6qqr8Q==
 
-"@sentry/cli-linux-arm@2.23.0":
-  version "2.23.0"
-  resolved "https://registry.yarnpkg.com/@sentry/cli-linux-arm/-/cli-linux-arm-2.23.0.tgz#93afbf73c21b69c0e7b605d7508ee8002f90bba0"
-  integrity sha512-1R8ngBDKtPw++Km6VnVTx76ndrBL9BuBBNpF9TUCGftK3ArdaifqoIx8cZ8aKu8sWXLAKO7lHzxL4BNPZvlDiw==
+"@sentry/cli-linux-arm@2.23.2":
+  version "2.23.2"
+  resolved "https://registry.yarnpkg.com/@sentry/cli-linux-arm/-/cli-linux-arm-2.23.2.tgz#3a101ffcc37128eeebd9abdbe033cf9fcbf093ad"
+  integrity sha512-fQZNHsGO6kRPT7nuv/GZ048rA2aEGHcrTZEN6UhgHoowPGGmfSpOqlpdXLME6WYWzWeSBt5Sy5RcxMvPzuDnRQ==
 
-"@sentry/cli-linux-i686@2.23.0":
-  version "2.23.0"
-  resolved "https://registry.yarnpkg.com/@sentry/cli-linux-i686/-/cli-linux-i686-2.23.0.tgz#4a2db236f94474aea127abcb73402c5aa5a48f89"
-  integrity sha512-KRqB98KstBkKh33ZqUq+q8O0U4c01aTWCNPpVrqAX7zikSk0AAJTG8eAtqwDSx949IkKUl8xa6PFLfz+Nb2EMQ==
+"@sentry/cli-linux-i686@2.23.2":
+  version "2.23.2"
+  resolved "https://registry.yarnpkg.com/@sentry/cli-linux-i686/-/cli-linux-i686-2.23.2.tgz#fcbaa045aa8ab2d646d6c27274f88ccc29bb417c"
+  integrity sha512-emogfai7xCySsTAaixjnh0hgzcb2nhEqz7MRYxGA+rSI8IgP1ZMBfdWHA/4fUap0wLNA6vVgvbHlFcBVQcGchA==
 
-"@sentry/cli-linux-x64@2.23.0":
-  version "2.23.0"
-  resolved "https://registry.yarnpkg.com/@sentry/cli-linux-x64/-/cli-linux-x64-2.23.0.tgz#fd0a1ac2fe4841247dcf89e43f3df9a416719259"
-  integrity sha512-USHZ0zzg9qujGYAyRjLeUfLDZOMgNjCr82m0BSBMmlFs4oKwHmO6bSvdi9UzNNcpmkOavNAdUM4jnZWk11i46Q==
+"@sentry/cli-linux-x64@2.23.2":
+  version "2.23.2"
+  resolved "https://registry.yarnpkg.com/@sentry/cli-linux-x64/-/cli-linux-x64-2.23.2.tgz#30404f32d8f32e33a24fed67f11f11ac84da0a6c"
+  integrity sha512-VewJmJRUFvKR3YiPp1pZOZJxrFGLgBHLGEP/9wBkkp3cY+rKrzQ3b7Dlh9v+YOkz1qjF1R1FsAzvsYd9/05dLg==
 
-"@sentry/cli-win32-i686@2.23.0":
-  version "2.23.0"
-  resolved "https://registry.yarnpkg.com/@sentry/cli-win32-i686/-/cli-win32-i686-2.23.0.tgz#0201030d2128a2fba79e3fd7e644052151bb21ed"
-  integrity sha512-lS/B3pONDl18IEu/I//3vcMnosThobyXpqfAm4WYUtFTiw/wwDHgwGgaIjZWm5wMRkPFzYoRFpZfPlUrJd/4cQ==
+"@sentry/cli-win32-i686@2.23.2":
+  version "2.23.2"
+  resolved "https://registry.yarnpkg.com/@sentry/cli-win32-i686/-/cli-win32-i686-2.23.2.tgz#6f77749aad856dceaa9b206c6bd51fbc8caca704"
+  integrity sha512-R8olErQICIV+AdjINxLQYKVGRi49PdSykjs94gfTvJBxb2hvqCpS+LIVS5SFu2UDvT3/9Elq6hXMKxEgYNy0pQ==
 
-"@sentry/cli-win32-x64@2.23.0":
-  version "2.23.0"
-  resolved "https://registry.yarnpkg.com/@sentry/cli-win32-x64/-/cli-win32-x64-2.23.0.tgz#648b99be78af130dbb0a53506d5c55bbe0d46472"
-  integrity sha512-7LP6wA3w93ViYKQR8tMN2i/SfpQzaXqM2SAHI3yfJ3bdREHOV3+/N0mNiWVRvgL0TKNQJS42v2IILLhiDxufHQ==
+"@sentry/cli-win32-x64@2.23.2":
+  version "2.23.2"
+  resolved "https://registry.yarnpkg.com/@sentry/cli-win32-x64/-/cli-win32-x64-2.23.2.tgz#d68ac046568ca951d5bfe7216ae5c52a07a65ecc"
+  integrity sha512-GK9xburDBnpBmjtbWrMK+9I7DRKbEhmjfWLdoTQK593xOHPOzy8lhDZ1u9Lp1mUKUcG1xba4BOFZgNppMYG2cA==
 
 "@sentry/cli@^1.74.4", "@sentry/cli@^1.77.1":
   version "1.77.1"
@@ -4705,10 +4705,17 @@
     proxy-from-env "^1.1.0"
     which "^2.0.2"
 
+<<<<<<< HEAD
 "@sentry/cli@^2.17.0", "@sentry/cli@^2.22.3", "@sentry/cli@^2.23.0":
   version "2.23.0"
   resolved "https://registry.yarnpkg.com/@sentry/cli/-/cli-2.23.0.tgz#d8fa6a514aedfe316a8afc046435b96746e7099f"
   integrity sha512-xFTv7YOaKWMCSPgN8A1jZpxJQhwdES89pqMTWjJOgjmkwFvziuaTM7O7kazps/cACDhJp2lK2j6AT6imhr4t9w==
+=======
+"@sentry/cli@^2.17.0", "@sentry/cli@^2.21.2", "@sentry/cli@^2.23.0":
+  version "2.23.2"
+  resolved "https://registry.yarnpkg.com/@sentry/cli/-/cli-2.23.2.tgz#5b8edd4e6e8fdea05f5d6bb6c84b55d52897c250"
+  integrity sha512-coQoJnts6E/yN21uQyI7sqa89kixXQuIRodOPnIymQtYJZG3DAwqxcCBLMS3NZyVQ3HemeuhhDnE/KFd1mS53Q==
+>>>>>>> 23ef22b115c8868861896cc9003bd4bb6afb0690
   dependencies:
     https-proxy-agent "^5.0.0"
     node-fetch "^2.6.7"
@@ -4716,13 +4723,13 @@
     proxy-from-env "^1.1.0"
     which "^2.0.2"
   optionalDependencies:
-    "@sentry/cli-darwin" "2.23.0"
-    "@sentry/cli-linux-arm" "2.23.0"
-    "@sentry/cli-linux-arm64" "2.23.0"
-    "@sentry/cli-linux-i686" "2.23.0"
-    "@sentry/cli-linux-x64" "2.23.0"
-    "@sentry/cli-win32-i686" "2.23.0"
-    "@sentry/cli-win32-x64" "2.23.0"
+    "@sentry/cli-darwin" "2.23.2"
+    "@sentry/cli-linux-arm" "2.23.2"
+    "@sentry/cli-linux-arm64" "2.23.2"
+    "@sentry/cli-linux-i686" "2.23.2"
+    "@sentry/cli-linux-x64" "2.23.2"
+    "@sentry/cli-win32-i686" "2.23.2"
+    "@sentry/cli-win32-x64" "2.23.2"
 
 "@sentry/vite-plugin@^0.6.1":
   version "0.6.1"
@@ -7430,7 +7437,11 @@ apollo-server@^3.11.1:
 app-module-path@^2.2.0:
   version "2.2.0"
   resolved "https://registry.yarnpkg.com/app-module-path/-/app-module-path-2.2.0.tgz#641aa55dfb7d6a6f0a8141c4b9c0aa50b6c24dd5"
+<<<<<<< HEAD
   integrity sha512-gkco+qxENJV+8vFcDiiFhuoSvRXb2a/QPqpSoWhVz829VNJfOTnELbBmPmNKFxf3xdNnw4DWCkzkDaavcX/1YQ==
+=======
+  integrity sha1-ZBqlXft9am8KgUHEucCqULbCTdU=
+>>>>>>> 23ef22b115c8868861896cc9003bd4bb6afb0690
 
 "aproba@^1.0.3 || ^2.0.0":
   version "2.0.0"
@@ -22350,7 +22361,11 @@ null-check@^1.0.0:
 num2fraction@^1.2.2:
   version "1.2.2"
   resolved "https://registry.yarnpkg.com/num2fraction/-/num2fraction-1.2.2.tgz#6f682b6a027a4e9ddfa4564cd2589d1d4e669ede"
+<<<<<<< HEAD
   integrity sha512-Y1wZESM7VUThYY+4W+X4ySH2maqcA+p7UR+w8VWNWVAd6lwuXXWz/w/Cz43J/dI2I+PS6wD5N+bJUF+gjWvIqg==
+=======
+  integrity sha1-b2gragJ6Tp3fpFZM0lidHU5mnt4=
+>>>>>>> 23ef22b115c8868861896cc9003bd4bb6afb0690
 
 nwsapi@^2.2.0:
   version "2.2.7"
@@ -24780,6 +24795,11 @@ prettier@^2.5.1:
   resolved "https://registry.yarnpkg.com/prettier/-/prettier-2.8.8.tgz#e8c5d7e98a4305ffe3de2e1fc4aca1a71c28b1da"
   integrity sha512-tdN8qQGvNjw4CHbY+XXk0JgCXn9QiF21a55rBe5LJAU+kDyC4WQn4+awm2Xfk2lQMk5fKup9XgzTZtGkjBdP9Q==
 
+prettier@^3.1.1:
+  version "3.1.1"
+  resolved "https://registry.yarnpkg.com/prettier/-/prettier-3.1.1.tgz#6ba9f23165d690b6cbdaa88cb0807278f7019848"
+  integrity sha512-22UbSzg8luF4UuZtzgiUOfcGM8s4tjBv6dJRT7j275NXsy2jb4aJa4NNveul5x4eqlF1wuhuR2RElK71RvmVaw==
+
 pretty-bytes@^5.3.0:
   version "5.6.0"
   resolved "https://registry.yarnpkg.com/pretty-bytes/-/pretty-bytes-5.6.0.tgz#356256f643804773c82f64723fe78c92c62beaeb"
@@ -25575,6 +25595,7 @@ read@^2.0.0:
   dependencies:
     mute-stream "~1.0.0"
 
+<<<<<<< HEAD
 "readable-stream@1 || 2", readable-stream@^2.0.0, readable-stream@^2.0.1, readable-stream@^2.0.2, readable-stream@^2.1.5, readable-stream@^2.2.2, readable-stream@^2.3.3, readable-stream@^2.3.5, readable-stream@^2.3.6, readable-stream@~2.3.6:
   version "2.3.8"
   resolved "https://registry.yarnpkg.com/readable-stream/-/readable-stream-2.3.8.tgz#91125e8042bba1b9887f49345f6277027ce8be9b"
@@ -25598,6 +25619,9 @@ read@^2.0.0:
     util-deprecate "^1.0.1"
 
 readable-stream@2.3.7:
+=======
+"readable-stream@1 || 2", readable-stream@2.3.7, readable-stream@^2.0.0, readable-stream@^2.0.1, readable-stream@^2.0.2, readable-stream@^2.1.5, readable-stream@^2.2.2, readable-stream@^2.3.3, readable-stream@^2.3.5, readable-stream@^2.3.6, readable-stream@~2.3.6:
+>>>>>>> 23ef22b115c8868861896cc9003bd4bb6afb0690
   version "2.3.7"
   resolved "https://registry.yarnpkg.com/readable-stream/-/readable-stream-2.3.7.tgz#1eca1cf711aef814c04f62252a36a62f6cb23b57"
   integrity sha512-Ebho8K4jIbHAxnuxi7o42OrZgF/ZTNcsZj6nRKyUmkhLFq8CHItp/fy6hQZuZmP/n3yZ9VBUbp4zz/mX8hmYPw==
