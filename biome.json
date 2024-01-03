@@ -31,7 +31,7 @@
         "noDelete": "off"
       }
     },
-    "ignore": [".vscode/*", "**/*.json"]
+    "ignore": [".vscode/*", "**/*.json", ".next/**/*", ".svelte-kit/**/*"]
   },
   "files": {
     "ignoreUnknown": true
