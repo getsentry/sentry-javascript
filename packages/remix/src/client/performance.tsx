@@ -1,7 +1,7 @@
-import type { ErrorBoundaryProps } from '@sentry/react';
-import { WINDOW, withErrorBoundary } from '@sentry/react';
-import type { Transaction, TransactionContext } from '@sentry/types';
-import { isNodeEnv, logger } from '@sentry/utils';
+import { ErrorBoundaryProps, getCurrentScope } from '@sentry/react';
+import { withErrorBoundary } from '@sentry/react';
+import type { PropagationContext, TraceparentData, Transaction, TransactionContext } from '@sentry/types';
+import { isNodeEnv, logger, tracingContextFromHeaders } from '@sentry/utils';
 import * as React from 'react';
 
 import { DEBUG_BUILD } from '../utils/debug-build';
@@ -20,6 +20,10 @@ interface RouteMatch<ParamKey extends string = string> {
   pathname: string;
   id: string;
   handle: unknown;
+  data?: {
+    sentryTrace?: string;
+    sentryBaggage?: string;
+  };
 }
 
 type UseEffect = (cb: () => void, deps: unknown[]) => void;
@@ -39,15 +43,8 @@ let _useLocation: UseLocation;
 let _useMatches: UseMatches;
 
 let _customStartTransaction: (context: TransactionContext) => Transaction | undefined;
+let _startTransactionOnPageLoad: boolean;
 let _startTransactionOnLocationChange: boolean;
-
-function getInitPathName(): string | undefined {
-  if (WINDOW && WINDOW.location) {
-    return WINDOW.location.pathname;
-  }
-
-  return undefined;
-}
 
 function isRemixV2(remixVersion: number | undefined): boolean {
   return remixVersion === 2 || getFutureFlagsBrowser()?.v2_errorBoundary || false;
@@ -65,27 +62,30 @@ export function remixRouterInstrumentation(useEffect: UseEffect, useLocation: Us
     startTransactionOnPageLoad = true,
     startTransactionOnLocationChange = true,
   ): void => {
-    const initPathName = getInitPathName();
-    if (startTransactionOnPageLoad && initPathName) {
-      activeTransaction = customStartTransaction({
-        name: initPathName,
-        op: 'pageload',
-        origin: 'auto.pageload.remix',
-        tags: DEFAULT_TAGS,
-        metadata: {
-          source: 'url',
-        },
-      });
-    }
-
     _useEffect = useEffect;
     _useLocation = useLocation;
     _useMatches = useMatches;
 
     _customStartTransaction = customStartTransaction;
+    _startTransactionOnPageLoad = startTransactionOnPageLoad;
     _startTransactionOnLocationChange = startTransactionOnLocationChange;
   };
 }
+
+const getTracingContextFromRouteMatches = (
+  matches: RouteMatch<string>[],
+): {
+  traceparentData?: TraceparentData;
+  dynamicSamplingContext?: Record<string, unknown>;
+  propagationContext: PropagationContext;
+  id: string;
+} => {
+  const currentRouteMatch = matches[matches.length - 1];
+
+  const { sentryTrace, sentryBaggage } = currentRouteMatch.data || {};
+
+  return { id: currentRouteMatch.id, ...tracingContextFromHeaders(sentryTrace, sentryBaggage) };
+};
 
 /**
  * Wraps a remix `root` (see: https://remix.run/docs/en/v1/guides/migrating-react-router-app#creating-the-root-route)
@@ -124,8 +124,25 @@ export function withSentry<P extends Record<string, unknown>, R extends React.Co
     const matches = _useMatches();
 
     _useEffect(() => {
-      if (activeTransaction && matches && matches.length) {
-        activeTransaction.setName(matches[matches.length - 1].id, 'route');
+      if (matches && matches.length) {
+        const { id, traceparentData, dynamicSamplingContext, propagationContext } =
+          getTracingContextFromRouteMatches(matches);
+
+        getCurrentScope().setPropagationContext(propagationContext);
+
+        if (_startTransactionOnPageLoad) {
+          activeTransaction = _customStartTransaction({
+            name: id,
+            op: 'pageload',
+            origin: 'auto.pageload.remix',
+            tags: DEFAULT_TAGS,
+            ...traceparentData,
+            metadata: {
+              source: 'url',
+              dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
+            },
+          });
+        }
       }
 
       isBaseLocation = true;
@@ -145,13 +162,20 @@ export function withSentry<P extends Record<string, unknown>, R extends React.Co
           activeTransaction.end();
         }
 
+        const { id, traceparentData, dynamicSamplingContext, propagationContext } =
+          getTracingContextFromRouteMatches(matches);
+
+        getCurrentScope().setPropagationContext(propagationContext);
+
         activeTransaction = _customStartTransaction({
-          name: matches[matches.length - 1].id,
+          name: id,
           op: 'navigation',
           origin: 'auto.navigation.remix',
           tags: DEFAULT_TAGS,
+          ...traceparentData,
           metadata: {
             source: 'route',
+            dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
           },
         });
       }
