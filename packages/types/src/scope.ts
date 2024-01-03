@@ -1,6 +1,7 @@
 import type { Attachment } from './attachment';
 import type { Breadcrumb } from './breadcrumb';
 import type { Context, Contexts } from './context';
+import type { EventHint } from './event';
 import type { EventProcessor } from './eventprocessor';
 import type { Extra, Extras } from './extra';
 import type { Primitive } from './misc';
@@ -216,4 +217,32 @@ export interface Scope {
    * Get propagation context from the scope, used for distributed tracing
    */
   getPropagationContext(): PropagationContext;
+
+  /**
+   * Capture an exception for this scope.
+   *
+   * @param exception The exception to capture.
+   * @param hint Optinal additional data to attach to the Sentry event.
+   * @returns the id of the captured Sentry event.
+   */
+  captureException(exception: unknown, hint?: EventHint): string;
+
+  /**
+   * Capture a message for this scope.
+   *
+   * @param exception The exception to capture.
+   * @param level An optional severity level to report the message with.
+   * @param hint Optional additional data to attach to the Sentry event.
+   * @returns the id of the captured message.
+   */
+  captureMessage(message: string, level?: SeverityLevel, hint?: EventHint): string;
+
+  /**
+   * Capture a Sentry event for this scope.
+   *
+   * @param exception The event to capture.
+   * @param hint Optional additional data to attach to the Sentry event.
+   * @returns the id of the captured event.
+   */
+  captureEvent(event: Event, hint?: EventHint): string;
 }

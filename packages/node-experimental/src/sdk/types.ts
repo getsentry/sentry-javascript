@@ -3,8 +3,6 @@ import type {
   Breadcrumb,
   Client,
   Contexts,
-  Event,
-  EventHint,
   EventProcessor,
   Extras,
   Hub,
@@ -12,7 +10,6 @@ import type {
   Primitive,
   PropagationContext,
   Scope as BaseScope,
-  Severity,
   SeverityLevel,
   User,
 } from '@sentry/types';
@@ -38,15 +35,6 @@ export interface Scope extends BaseScope {
   clone(scope?: Scope): typeof this;
   setClient(client: Client): void;
   getClient(): Client | undefined;
-  captureException(exception: unknown, hint?: EventHint): string;
-  captureMessage(
-    message: string,
-    // eslint-disable-next-line deprecation/deprecation
-    level?: Severity | SeverityLevel,
-    hint?: EventHint,
-  ): string;
-  captureEvent(event: Event, hint?: EventHint): string;
-  lastEventId(): string | undefined;
   getScopeData(): ScopeData;
 }
 
