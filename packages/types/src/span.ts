@@ -204,8 +204,15 @@ export interface Span extends SpanContext {
 
   /**
    * Set the name of the span.
+   *
+   * @deprecated Use `updateName()` instead.
    */
   setName(name: string): void;
+
+  /**
+   * Update the name of the span.
+   */
+  updateName(name: string): this;
 
   /**
    * Creates a new `Span` while setting the current `Span.id` as `parentSpanId`.

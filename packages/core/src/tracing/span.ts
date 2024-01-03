@@ -176,9 +176,11 @@ export class Span implements SpanInterface {
   public get name(): string {
     return this.description || '';
   }
-  /** Update the name of the span. */
+  /**
+   * Update the name of the span.
+   */
   public set name(name: string) {
-    this.setName(name);
+    this.updateName(name);
   }
 
   /**
@@ -267,11 +269,17 @@ export class Span implements SpanInterface {
     return this;
   }
 
+  /** @inheritdoc */
+  public setName(name: string): void {
+    this.updateName(name);
+  }
+
   /**
    * @inheritDoc
    */
-  public setName(name: string): void {
+  public updateName(name: string): this {
     this.description = name;
+    return this;
   }
 
   /**

@@ -14,6 +14,7 @@ In v8, the Span class is heavily reworked. The following properties & methods ar
 
 * `span.toContext()`: Access the fields directly instead.
 * `span.updateWithContext(newSpanContext)`: Update the fields directly instead.
+* `span.setName(newName)`: Use `span.updateName(newName)` instead.
 
 ## Deprecate `pushScope` & `popScope` in favor of `withScope`
 

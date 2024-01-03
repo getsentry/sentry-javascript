@@ -376,7 +376,9 @@ function instrumentRouter(appOrRouter: ExpressRouter): void {
         // Therefore, we fall back to setting the final route to '/' in this case.
         const finalRoute = req._reconstructedRoute || '/';
 
-        transaction.setName(...extractPathForTransaction(req, { path: true, method: true, customRoute: finalRoute }));
+        const [name, source] = extractPathForTransaction(req, { path: true, method: true, customRoute: finalRoute });
+        transaction.updateName(name);
+        transaction.setMetadata({ source });
       }
     }
 
