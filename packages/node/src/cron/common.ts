@@ -44,6 +44,7 @@ const replacements: [string, string][] = [
  */
 export function replaceCronNames(cronExpression: string): string {
   return replacements.reduce(
+    // eslint-disable-next-line @sentry-internal/sdk/no-regexp-constructor
     (acc, [name, replacement]) => acc.replace(new RegExp(name, 'gi'), replacement),
     cronExpression,
   );
