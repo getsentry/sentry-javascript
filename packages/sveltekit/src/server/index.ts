@@ -63,6 +63,7 @@ export {
   startInactiveSpan,
   startSpanManual,
   continueTrace,
+  cron,
 } from '@sentry/node';
 
 // We can still leave this for the carrier init and type exports
