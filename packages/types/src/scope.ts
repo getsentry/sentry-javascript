@@ -1,7 +1,7 @@
 import type { Attachment } from './attachment';
 import type { Breadcrumb } from './breadcrumb';
 import type { Context, Contexts } from './context';
-import type { EventHint } from './event';
+import type { Event, EventHint } from './event';
 import type { EventProcessor } from './eventprocessor';
 import type { Extra, Extras } from './extra';
 import type { Primitive } from './misc';

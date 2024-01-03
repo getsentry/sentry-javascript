@@ -35,6 +35,7 @@ export interface Scope extends BaseScope {
   clone(scope?: Scope): typeof this;
   setClient(client: Client): void;
   getClient(): Client | undefined;
+  lastEventId(): string | undefined;
   getScopeData(): ScopeData;
 }
 
