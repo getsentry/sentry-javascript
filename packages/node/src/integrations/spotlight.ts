@@ -1,6 +1,7 @@
 import * as http from 'http';
 import { URL } from 'url';
-import type { Client, Envelope, Integration } from '@sentry/types';
+import { convertIntegrationFnToClass } from '@sentry/core';
+import type { Client, Envelope, IntegrationFn } from '@sentry/types';
 import { logger, serializeEnvelope } from '@sentry/utils';
 
 type SpotlightConnectionOptions = {
@@ -11,6 +12,24 @@ type SpotlightConnectionOptions = {
   sidecarUrl?: string;
 };
 
+const INTEGRATION_NAME = 'Spotlight';
+
+const spotlightIntegration = ((options: Partial<SpotlightConnectionOptions> = {}) => {
+  const _options = {
+    sidecarUrl: options.sidecarUrl || 'http://localhost:8969/stream',
+  };
+
+  return {
+    name: INTEGRATION_NAME,
+    setup(client) {
+      if (typeof process === 'object' && process.env && process.env.NODE_ENV !== 'development') {
+        logger.warn("[Spotlight] It seems you're not in dev mode. Do you really want to have Spotlight enabled?");
+      }
+      connectToSpotlight(client, _options);
+    },
+  };
+}) satisfies IntegrationFn;
+
 /**
  * Use this integration to send errors and transactions to Spotlight.
  *
@@ -18,35 +37,8 @@ type SpotlightConnectionOptions = {
  *
  * Important: This integration only works with Node 18 or newer
  */
-export class Spotlight implements Integration {
-  public static id = 'Spotlight';
-  public name = Spotlight.id;
-
-  private readonly _options: Required<SpotlightConnectionOptions>;
-
-  public constructor(options?: SpotlightConnectionOptions) {
-    this._options = {
-      sidecarUrl: options?.sidecarUrl || 'http://localhost:8969/stream',
-    };
-  }
-
-  /**
-   * JSDoc
-   */
-  public setupOnce(): void {
-    // empty but otherwise TS complains
-  }
-
-  /**
-   * Sets up forwarding envelopes to the Spotlight Sidecar
-   */
-  public setup(client: Client): void {
-    if (typeof process === 'object' && process.env && process.env.NODE_ENV !== 'development') {
-      logger.warn("[Spotlight] It seems you're not in dev mode. Do you really want to have Spotlight enabled?");
-    }
-    connectToSpotlight(client, this._options);
-  }
-}
+// eslint-disable-next-line deprecation/deprecation
+export const Spotlight = convertIntegrationFnToClass(INTEGRATION_NAME, spotlightIntegration);
 
 function connectToSpotlight(client: Client, options: Required<SpotlightConnectionOptions>): void {
   const spotlightUrl = parseSidecarUrl(options.sidecarUrl);
