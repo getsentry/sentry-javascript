@@ -64,6 +64,8 @@ In v8, the Span class is heavily reworked. The following properties & methods ar
 * `span.toTraceparent()`: use `spanToTraceHeader(span)` util instead.
 * `span.getTraceContext()`: Use `spanToTraceContext(span)` utility function instead.
 * `span.sampled`: Use `span.isRecording()` instead.
+* `transaction.setMetadata(metadata)`: Use `spanSetMetadata(span, metadata)` utility function instead.
+* `transaction.metadata`: Use `spanGetMetadata(span)` utility function instead.
 
 ## Deprecate `pushScope` & `popScope` in favor of `withScope`
 

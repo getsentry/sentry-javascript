@@ -1,4 +1,5 @@
 import { WINDOW, captureException } from '@sentry/browser';
+import { spanSetMetadata } from '@sentry/core';
 import type { Transaction, TransactionContext, TransactionSource } from '@sentry/types';
 
 import { getActiveTransaction } from './tracing';
@@ -112,7 +113,7 @@ export function vueRouterInstrumentation(
         if (pageloadTransaction) {
           if (pageloadTransaction.metadata.source !== 'custom') {
             pageloadTransaction.updateName(transactionName);
-            pageloadTransaction.setMetadata({ source: transactionSource });
+            spanSetMetadata(pageloadTransaction, { source: transactionSource });
           }
           pageloadTransaction.setData('params', data.params);
           pageloadTransaction.setData('query', data.query);

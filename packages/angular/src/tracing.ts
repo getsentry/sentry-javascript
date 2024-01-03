@@ -8,6 +8,7 @@ import type { ActivatedRouteSnapshot, Event, RouterState } from '@angular/router
 import { NavigationCancel, NavigationError, Router } from '@angular/router';
 import { NavigationEnd, NavigationStart, ResolveEnd } from '@angular/router';
 import { WINDOW, getCurrentScope } from '@sentry/browser';
+import { spanSetMetadata } from '@sentry/core';
 import type { Span, Transaction, TransactionContext } from '@sentry/types';
 import { logger, stripUrlQueryAndFragment, timestampInSeconds } from '@sentry/utils';
 import type { Observable } from 'rxjs';
@@ -119,7 +120,7 @@ export class TraceService implements OnDestroy {
       // TODO (v8 / #5416): revisit the source condition. Do we want to make the parameterized route the default?
       if (transaction && transaction.metadata.source === 'url') {
         transaction.updateName(route);
-        transaction.setMetadata({ source: 'route' });
+        spanSetMetadata(transaction, { source: 'route' });
       }
     }),
   );

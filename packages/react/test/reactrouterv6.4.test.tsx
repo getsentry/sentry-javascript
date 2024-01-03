@@ -12,8 +12,11 @@ import {
   useNavigationType,
 } from 'react-router-6.4';
 
+import * as SentryCore from '@sentry/core';
 import { reactRouterV6Instrumentation, wrapCreateBrowserRouter } from '../src';
 import type { CreateRouterFunction } from '../src/types';
+
+const mockSpanSetMetadata = jest.spyOn(SentryCore, 'spanSetMetadata');
 
 beforeAll(() => {
   // @ts-expect-error need to override global Request because it's not in the jest environment (even with an
@@ -25,7 +28,7 @@ describe('React Router v6.4', () => {
   function createInstrumentation(_opts?: {
     startTransactionOnPageLoad?: boolean;
     startTransactionOnLocationChange?: boolean;
-  }): [jest.Mock, { mockUpdateName: jest.Mock; mockFinish: jest.Mock; mockSetMetadata: jest.Mock }] {
+  }): [jest.Mock, { mockUpdateName: jest.Mock; mockFinish: jest.Mock }] {
     const options = {
       matchPath: _opts ? matchPath : undefined,
       startTransactionOnLocationChange: true,
@@ -34,10 +37,7 @@ describe('React Router v6.4', () => {
     };
     const mockFinish = jest.fn();
     const mockUpdateName = jest.fn();
-    const mockSetMetadata = jest.fn();
-    const mockStartTransaction = jest
-      .fn()
-      .mockReturnValue({ updateName: mockUpdateName, end: mockFinish, setMetadata: mockSetMetadata });
+    const mockStartTransaction = jest.fn().mockReturnValue({ updateName: mockUpdateName, end: mockFinish });
 
     reactRouterV6Instrumentation(
       React.useEffect,
@@ -46,8 +46,12 @@ describe('React Router v6.4', () => {
       createRoutesFromChildren,
       matchRoutes,
     )(mockStartTransaction, options.startTransactionOnPageLoad, options.startTransactionOnLocationChange);
-    return [mockStartTransaction, { mockUpdateName, mockFinish, mockSetMetadata }];
+    return [mockStartTransaction, { mockUpdateName, mockFinish }];
   }
+
+  beforeEach(() => {
+    mockSpanSetMetadata.mockClear();
+  });
 
   describe('wrapCreateBrowserRouter', () => {
     it('starts a pageload transaction', () => {
@@ -246,7 +250,7 @@ describe('React Router v6.4', () => {
     });
 
     it('updates pageload transaction to a parameterized route', () => {
-      const [mockStartTransaction, { mockUpdateName, mockSetMetadata }] = createInstrumentation();
+      const [mockStartTransaction, { mockUpdateName }] = createInstrumentation();
       const sentryCreateBrowserRouter = wrapCreateBrowserRouter(createMemoryRouter as CreateRouterFunction);
 
       const router = sentryCreateBrowserRouter(
@@ -272,7 +276,7 @@ describe('React Router v6.4', () => {
 
       expect(mockStartTransaction).toHaveBeenCalledTimes(1);
       expect(mockUpdateName).toHaveBeenLastCalledWith('/about/:page');
-      expect(mockSetMetadata).toHaveBeenCalledWith({ source: 'route' });
+      expect(mockSpanSetMetadata).toHaveBeenCalledWith(expect.anything(), { source: 'route' });
     });
 
     it('works with `basename` option', () => {

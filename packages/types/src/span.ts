@@ -28,6 +28,8 @@ export type SpanAttributes = Record<string, SpanAttributeValue | undefined>;
 /** This type is aligned with the OpenTelemetry TimeInput type. */
 export type SpanTimeInput = HrTime | number | Date;
 
+export type SpanMetadata = Record<string, unknown>;
+
 /** Interface holding all properties that can be set on a Span on creation. */
 export interface SpanContext {
   /**

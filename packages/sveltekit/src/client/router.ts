@@ -1,4 +1,4 @@
-import { getActiveTransaction } from '@sentry/core';
+import { getActiveTransaction, spanSetMetadata } from '@sentry/core';
 import { WINDOW } from '@sentry/svelte';
 import type { Span, Transaction, TransactionContext } from '@sentry/types';
 
@@ -57,7 +57,7 @@ function instrumentPageload(startTransactionFn: (context: TransactionContext) =>
 
     if (pageloadTransaction && routeId) {
       pageloadTransaction.updateName(routeId);
-      pageloadTransaction.setMetadata({ source: 'route' });
+      spanSetMetadata(pageloadTransaction, { source: 'route' });
     }
   });
 }

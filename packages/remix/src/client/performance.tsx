@@ -1,3 +1,4 @@
+import { spanSetMetadata } from '@sentry/core';
 import type { ErrorBoundaryProps } from '@sentry/react';
 import { WINDOW, withErrorBoundary } from '@sentry/react';
 import type { Transaction, TransactionContext } from '@sentry/types';
@@ -126,7 +127,7 @@ export function withSentry<P extends Record<string, unknown>, R extends React.Co
     _useEffect(() => {
       if (activeTransaction && matches && matches.length) {
         activeTransaction.updateName(matches[matches.length - 1].id);
-        activeTransaction.setMetadata({ source: 'route' });
+        spanSetMetadata(activeTransaction, { source: 'route' });
       }
 
       isBaseLocation = true;

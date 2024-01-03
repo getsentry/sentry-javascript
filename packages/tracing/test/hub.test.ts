@@ -1,11 +1,11 @@
 /* eslint-disable deprecation/deprecation */
 /* eslint-disable @typescript-eslint/unbound-method */
 import { BrowserClient } from '@sentry/browser';
-import { Hub, makeMain } from '@sentry/core';
+import { Hub, makeMain, spanGetMetadata } from '@sentry/core';
 import * as utilsModule from '@sentry/utils'; // for mocking
 import { logger } from '@sentry/utils';
 
-import { BrowserTracing, TRACEPARENT_REGEXP, Transaction, addExtensionMethods, extractTraceparentData } from '../src';
+import { BrowserTracing, TRACEPARENT_REGEXP, addExtensionMethods, extractTraceparentData } from '../src';
 import {
   addDOMPropertiesToGlobal,
   getDefaultBrowserClientOptions,
@@ -16,7 +16,6 @@ import {
 addExtensionMethods();
 
 const mathRandom = jest.spyOn(Math, 'random');
-jest.spyOn(Transaction.prototype, 'setMetadata');
 jest.spyOn(logger, 'warn');
 jest.spyOn(logger, 'log');
 jest.spyOn(logger, 'error');
@@ -284,11 +283,13 @@ describe('Hub', () => {
         const options = getDefaultBrowserClientOptions({ tracesSampler });
         const hub = new Hub(new BrowserClient(options));
         makeMain(hub);
-        hub.startTransaction({ name: 'dogpark', sampled: true });
+        const transaction = hub.startTransaction({ name: 'dogpark', sampled: true });
 
-        expect(Transaction.prototype.setMetadata).toHaveBeenCalledWith({
-          sampleRate: 1.0,
-        });
+        expect(spanGetMetadata(transaction)).toEqual(
+          expect.objectContaining({
+            sampleRate: 1.0,
+          }),
+        );
       });
 
       it('should record sampling method and rate when sampling decision comes from tracesSampler', () => {
@@ -296,31 +297,35 @@ describe('Hub', () => {
         const options = getDefaultBrowserClientOptions({ tracesSampler });
         const hub = new Hub(new BrowserClient(options));
         makeMain(hub);
-        hub.startTransaction({ name: 'dogpark' });
+        const transaction = hub.startTransaction({ name: 'dogpark' });
 
-        expect(Transaction.prototype.setMetadata).toHaveBeenCalledWith({
-          sampleRate: 0.1121,
-        });
+        expect(spanGetMetadata(transaction)).toEqual(
+          expect.objectContaining({
+            sampleRate: 0.1121,
+          }),
+        );
       });
 
       it('should record sampling method when sampling decision is inherited', () => {
         const options = getDefaultBrowserClientOptions({ tracesSampleRate: 0.1121 });
         const hub = new Hub(new BrowserClient(options));
         makeMain(hub);
-        hub.startTransaction({ name: 'dogpark', parentSampled: true });
+        const transaction = hub.startTransaction({ name: 'dogpark', parentSampled: true });
 
-        expect(Transaction.prototype.setMetadata).toHaveBeenCalledTimes(0);
+        expect(spanGetMetadata(transaction).sampleRate).toEqual(undefined);
       });
 
       it('should record sampling method and rate when sampling decision comes from traceSampleRate', () => {
         const options = getDefaultBrowserClientOptions({ tracesSampleRate: 0.1121 });
         const hub = new Hub(new BrowserClient(options));
         makeMain(hub);
-        hub.startTransaction({ name: 'dogpark' });
+        const transaction = hub.startTransaction({ name: 'dogpark' });
 
-        expect(Transaction.prototype.setMetadata).toHaveBeenCalledWith({
-          sampleRate: 0.1121,
-        });
+        expect(spanGetMetadata(transaction)).toEqual(
+          expect.objectContaining({
+            sampleRate: 0.1121,
+          }),
+        );
       });
     });
 

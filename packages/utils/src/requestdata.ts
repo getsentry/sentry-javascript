@@ -76,6 +76,7 @@ export function addRequestDataToTransaction(
     // Attempt to grab a parameterized route off of the request
     const [name, source] = extractPathForTransaction(req, { path: true, method: true });
     transaction.updateName(name);
+    // eslint-disable-next-line deprecation/deprecation
     transaction.setMetadata({ source });
   }
   transaction.setData('url', req.originalUrl || req.url);

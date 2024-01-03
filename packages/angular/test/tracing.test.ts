@@ -1,6 +1,7 @@
 import { Component } from '@angular/core';
 import type { ActivatedRouteSnapshot, CanActivate, RouterStateSnapshot } from '@angular/router';
 
+import * as SentryCore from '@sentry/core';
 import { TraceClassDecorator, TraceDirective, TraceMethodDecorator, instrumentAngularRouting } from '../src';
 import { getParameterizedRouteFromSnapshot } from '../src/tracing';
 import { AppComponent, TestEnv } from './utils/index';
@@ -11,7 +12,6 @@ const defaultStartTransaction = (ctx: any) => {
   transaction = {
     ...ctx,
     updateName: jest.fn(name => (transaction.name = name)),
-    setMetadata: jest.fn(),
   };
 
   return transaction;
@@ -31,9 +31,12 @@ jest.mock('@sentry/browser', () => {
   };
 });
 
+const mockSpanSetMetadata = jest.spyOn(SentryCore, 'spanSetMetadata');
+
 describe('Angular Tracing', () => {
   beforeEach(() => {
     transaction = undefined;
+    mockSpanSetMetadata.mockClear();
   });
 
   describe('instrumentAngularRouting', () => {
@@ -329,7 +332,7 @@ describe('Angular Tracing', () => {
           metadata: { source: 'url' },
         });
         expect(transaction.updateName).toHaveBeenCalledWith(result);
-        expect(transaction.setMetadata).toHaveBeenCalledWith({ source: 'route' });
+        expect(mockSpanSetMetadata).toHaveBeenCalledWith(expect.anything(), { source: 'route' });
 
         env.destroy();
       });

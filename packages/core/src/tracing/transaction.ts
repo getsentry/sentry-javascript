@@ -15,14 +15,12 @@ import { dropUndefinedKeys, logger } from '@sentry/utils';
 import { DEBUG_BUILD } from '../debug-build';
 import type { Hub } from '../hub';
 import { getCurrentHub } from '../hub';
-import { spanTimeInputToSeconds, spanToTraceContext } from '../utils/spanUtils';
+import { spanGetMetadata, spanSetMetadata, spanTimeInputToSeconds, spanToTraceContext } from '../utils/spanUtils';
 import { getDynamicSamplingContextFromClient } from './dynamicSamplingContext';
 import { Span as SpanClass, SpanRecorder } from './span';
 
 /** JSDoc */
 export class Transaction extends SpanClass implements TransactionInterface {
-  public metadata: TransactionMetadata;
-
   /**
    * The reference to the current hub.
    */
@@ -58,11 +56,11 @@ export class Transaction extends SpanClass implements TransactionInterface {
 
     this._name = transactionContext.name || '';
 
-    this.metadata = {
+    spanSetMetadata(this, {
       source: 'custom',
       ...transactionContext.metadata,
       spanMetadata: {},
-    };
+    });
 
     this._trimEnd = transactionContext.trimEnd;
 
@@ -71,12 +69,17 @@ export class Transaction extends SpanClass implements TransactionInterface {
 
     // If Dynamic Sampling Context is provided during the creation of the transaction, we freeze it as it usually means
     // there is incoming Dynamic Sampling Context. (Either through an incoming request, a baggage meta-tag, or other means)
-    const incomingDynamicSamplingContext = this.metadata.dynamicSamplingContext;
+    const incomingDynamicSamplingContext = (
+      spanGetMetadata(this) as { dynamicSamplingContext: DynamicSamplingContext | undefined }
+    ).dynamicSamplingContext;
     if (incomingDynamicSamplingContext) {
       // We shallow copy this in case anything writes to the original reference of the passed in `dynamicSamplingContext`
       this._frozenDynamicSamplingContext = { ...incomingDynamicSamplingContext };
     }
   }
+
+  // This sadly conflicts with the getter/setter ordering :(
+  /* eslint-disable @typescript-eslint/member-ordering */
 
   /** Getter for `name` property */
   public get name(): string {
@@ -92,13 +95,31 @@ export class Transaction extends SpanClass implements TransactionInterface {
   }
 
   /**
+   * Get the metadata for this transaction.
+   * @deprecated Use `spanGetMetadata(transaction)` instead.
+   */
+  public get metadata(): TransactionMetadata {
+    return spanGetMetadata(this) as TransactionMetadata;
+  }
+
+  /**
+   * Update the metadata for this transaction.
+   * @deprecated Use `spanGetMetadata(transaction)` instead.
+   */
+  public set metadata(metadata: TransactionMetadata) {
+    spanSetMetadata(this, metadata);
+  }
+
+  /* eslint-enable @typescript-eslint/member-ordering */
+
+  /**
    * Setter for `name` property, which also sets `source` on the metadata.
    *
    * @deprecated Use `updateName()` and `setMetadata()` instead.
    */
   public setName(name: string, source: TransactionMetadata['source'] = 'custom'): void {
     this._name = name;
-    this.metadata.source = source;
+    spanSetMetadata(this, { source });
   }
 
   /** @inheritdoc */
@@ -138,10 +159,11 @@ export class Transaction extends SpanClass implements TransactionInterface {
   }
 
   /**
-   * @inheritDoc
+   * Set metadata for this transaction.
+   * @deprecated Use `spanSetMetadata(span, metadata)` instead.
    */
   public setMetadata(newMetadata: Partial<TransactionMetadata>): void {
-    this.metadata = { ...this.metadata, ...newMetadata };
+    spanSetMetadata(this, newMetadata);
   }
 
   /**
@@ -202,13 +224,15 @@ export class Transaction extends SpanClass implements TransactionInterface {
     const scope = hub.getScope();
     const dsc = getDynamicSamplingContextFromClient(this.traceId, client, scope);
 
-    const maybeSampleRate = this.metadata.sampleRate;
+    const metadata = spanGetMetadata(this) as TransactionMetadata;
+
+    const maybeSampleRate = metadata.sampleRate;
     if (maybeSampleRate !== undefined) {
       dsc.sample_rate = `${maybeSampleRate}`;
     }
 
     // We don't want to have a transaction name in the DSC if the source is "url" because URLs might contain PII
-    const source = this.metadata.source;
+    const source = metadata.source;
     if (source && source !== 'url') {
       dsc.transaction = this.name;
     }
@@ -277,7 +301,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
       }).endTimestamp;
     }
 
-    const metadata = this.metadata;
+    const metadata = spanGetMetadata(this) as TransactionMetadata;
 
     const transaction: TransactionEvent = {
       contexts: {

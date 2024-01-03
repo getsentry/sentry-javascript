@@ -1,3 +1,4 @@
+import * as SentryCore from '@sentry/core';
 /* eslint-disable @typescript-eslint/unbound-method */
 import type { Transaction } from '@sentry/types';
 import { writable } from 'svelte/store';
@@ -27,7 +28,6 @@ describe('sveltekitRoutingInstrumentation', () => {
     returnedTransaction = {
       ...txnCtx,
       updateName: vi.fn(),
-      setMetadata: vi.fn(),
       startChild: vi.fn().mockImplementation(ctx => {
         return { ...mockedRoutingSpan, ...ctx };
       }),
@@ -50,6 +50,8 @@ describe('sveltekitRoutingInstrumentation', () => {
   it("starts a pageload transaction when it's called with default params", () => {
     svelteKitRoutingInstrumentation(mockedStartTransaction);
 
+    const spanSetMetadataSpy = vi.spyOn(SentryCore, 'spanSetMetadata');
+
     expect(mockedStartTransaction).toHaveBeenCalledTimes(1);
     expect(mockedStartTransaction).toHaveBeenCalledWith({
       name: '/',
@@ -71,7 +73,7 @@ describe('sveltekitRoutingInstrumentation', () => {
     // This should update the transaction name with the parameterized route:
     expect(returnedTransaction?.updateName).toHaveBeenCalledTimes(1);
     expect(returnedTransaction?.updateName).toHaveBeenCalledWith('testRoute');
-    expect(returnedTransaction?.setMetadata).toHaveBeenCalledWith({ source: 'route' });
+    expect(spanSetMetadataSpy).toHaveBeenCalledWith(expect.anything(), { source: 'route' });
   });
 
   it("doesn't start a pageload transaction if `startTransactionOnPageLoad` is false", () => {

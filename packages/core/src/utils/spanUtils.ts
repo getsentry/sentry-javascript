@@ -1,5 +1,7 @@
-import type { Span, SpanTimeInput, TraceContext } from '@sentry/types';
+import type { Span, SpanMetadata, SpanTimeInput, TraceContext } from '@sentry/types';
 import { dropUndefinedKeys, generateSentryTraceHeader, timestampInSeconds } from '@sentry/utils';
+
+const SPAN_METADATA = new WeakMap<Span, SpanMetadata>();
 
 /**
  * Convert a span to a trace context, which can be sent as the `trace` context in an event.
@@ -53,4 +55,20 @@ export function spanTimeInputToSeconds(input: SpanTimeInput | undefined): number
 function ensureTimestampInSeconds(timestamp: number): number {
   const isMs = timestamp > 9999999999;
   return isMs ? timestamp / 1000 : timestamp;
+}
+
+/**
+ * Get the metadata for a span.
+ */
+export function spanGetMetadata(span: Span): SpanMetadata {
+  return SPAN_METADATA.get(span) || {};
+}
+
+/**
+ * Update metadata for a span.
+ * This will merge the given new metadata with existing metadata.
+ */
+export function spanSetMetadata(span: Span, newMetadata: SpanMetadata): void {
+  const existingMetadata = spanGetMetadata(span);
+  SPAN_METADATA.set(span, { ...existingMetadata, ...newMetadata });
 }

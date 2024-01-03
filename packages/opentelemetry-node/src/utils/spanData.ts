@@ -1,5 +1,5 @@
 /* eslint-disable deprecation/deprecation */
-import { Transaction } from '@sentry/core';
+import { Transaction, spanSetMetadata } from '@sentry/core';
 import type { Context, SpanOrigin } from '@sentry/types';
 
 import { getSentrySpan } from './spanMap';
@@ -51,7 +51,7 @@ export function addOtelSpanData(
 
   if (sentrySpan instanceof Transaction) {
     if (metadata) {
-      sentrySpan.setMetadata(metadata);
+      spanSetMetadata(sentrySpan, metadata as Record<string, unknown>);
     }
 
     if (contexts) {

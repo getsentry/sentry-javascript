@@ -1,3 +1,4 @@
+import * as SentryCore from '@sentry/core';
 import { act, render } from '@testing-library/react';
 import { createMemoryHistory } from 'history-4';
 // biome-ignore lint/nursery/noUnusedImports: Need React import for JSX
@@ -7,12 +8,14 @@ import { Route, Router, Switch, matchPath } from 'react-router-4';
 import { reactRouterV4Instrumentation, withSentryRouting } from '../src';
 import type { RouteConfig } from '../src/reactrouter';
 
+const mockSpanSetMetadata = jest.spyOn(SentryCore, 'spanSetMetadata');
+
 describe('React Router v4', () => {
   function createInstrumentation(_opts?: {
     startTransactionOnPageLoad?: boolean;
     startTransactionOnLocationChange?: boolean;
     routes?: RouteConfig[];
-  }): [jest.Mock, any, { mockUpdateName: jest.Mock; mockFinish: jest.Mock; mockSetMetadata: jest.Mock }] {
+  }): [jest.Mock, any, { mockUpdateName: jest.Mock; mockFinish: jest.Mock }] {
     const options = {
       matchPath: _opts && _opts.routes !== undefined ? matchPath : undefined,
       routes: undefined,
@@ -23,17 +26,18 @@ describe('React Router v4', () => {
     const history = createMemoryHistory();
     const mockFinish = jest.fn();
     const mockUpdateName = jest.fn();
-    const mockSetMetadata = jest.fn();
-    const mockStartTransaction = jest
-      .fn()
-      .mockReturnValue({ updateName: mockUpdateName, end: mockFinish, setMetadata: mockSetMetadata });
+    const mockStartTransaction = jest.fn().mockReturnValue({ updateName: mockUpdateName, end: mockFinish });
     reactRouterV4Instrumentation(history, options.routes, options.matchPath)(
       mockStartTransaction,
       options.startTransactionOnPageLoad,
       options.startTransactionOnLocationChange,
     );
-    return [mockStartTransaction, history, { mockUpdateName, mockFinish, mockSetMetadata }];
+    return [mockStartTransaction, history, { mockUpdateName, mockFinish }];
   }
+
+  beforeEach(function () {
+    mockSpanSetMetadata.mockClear();
+  });
 
   it('starts a pageload transaction when instrumentation is started', () => {
     const [mockStartTransaction] = createInstrumentation();
@@ -169,7 +173,7 @@ describe('React Router v4', () => {
   });
 
   it('normalizes transaction name with custom Route', () => {
-    const [mockStartTransaction, history, { mockUpdateName, mockSetMetadata }] = createInstrumentation();
+    const [mockStartTransaction, history, { mockUpdateName }] = createInstrumentation();
     const SentryRoute = withSentryRouting(Route);
     const { getByText } = render(
       <Router history={history}>
@@ -196,11 +200,11 @@ describe('React Router v4', () => {
     });
     expect(mockUpdateName).toHaveBeenCalledTimes(2);
     expect(mockUpdateName).toHaveBeenLastCalledWith('/users/:userid');
-    expect(mockSetMetadata).toHaveBeenCalledWith({ source: 'route' });
+    expect(mockSpanSetMetadata).toHaveBeenCalledWith(expect.anything(), { source: 'route' });
   });
 
   it('normalizes nested transaction names with custom Route', () => {
-    const [mockStartTransaction, history, { mockUpdateName, mockSetMetadata }] = createInstrumentation();
+    const [mockStartTransaction, history, { mockUpdateName }] = createInstrumentation();
     const SentryRoute = withSentryRouting(Route);
     const { getByText } = render(
       <Router history={history}>
@@ -227,7 +231,7 @@ describe('React Router v4', () => {
     });
     expect(mockUpdateName).toHaveBeenCalledTimes(2);
     expect(mockUpdateName).toHaveBeenLastCalledWith('/organizations/:orgid/v1/:teamid');
-    expect(mockSetMetadata).toHaveBeenLastCalledWith({ source: 'route' });
+    expect(mockSpanSetMetadata).toHaveBeenLastCalledWith(expect.anything(), { source: 'route' });
 
     act(() => {
       history.push('/organizations/543');
@@ -244,7 +248,7 @@ describe('React Router v4', () => {
     });
     expect(mockUpdateName).toHaveBeenCalledTimes(3);
     expect(mockUpdateName).toHaveBeenLastCalledWith('/organizations/:orgid');
-    expect(mockSetMetadata).toHaveBeenLastCalledWith({ source: 'route' });
+    expect(mockSpanSetMetadata).toHaveBeenLastCalledWith(expect.anything(), { source: 'route' });
   });
 
   it('matches with route object', () => {

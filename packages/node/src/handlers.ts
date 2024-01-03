@@ -8,6 +8,7 @@ import {
   getCurrentScope,
   hasTracingEnabled,
   runWithAsyncContext,
+  spanSetMetadata,
   startTransaction,
   withScope,
 } from '@sentry/core';
@@ -332,7 +333,7 @@ export function trpcMiddleware(options: SentryTrpcMiddlewareOptions = {}) {
 
     if (sentryTransaction) {
       sentryTransaction.updateName(`trpc/${path}`);
-      sentryTransaction.setMetadata({ source: 'route' });
+      spanSetMetadata(sentryTransaction, { source: 'route' });
       sentryTransaction.op = 'rpc.server';
 
       const trpcContext: Record<string, unknown> = {

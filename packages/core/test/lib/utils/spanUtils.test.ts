@@ -1,6 +1,11 @@
 import { TRACEPARENT_REGEXP, timestampInSeconds } from '@sentry/utils';
-import { Span, spanToTraceHeader } from '../../../src';
-import { spanTimeInputToSeconds } from '../../../src/utils/spanUtils';
+import { Span } from '../../../src/tracing/span';
+import {
+  spanGetMetadata,
+  spanSetMetadata,
+  spanTimeInputToSeconds,
+  spanToTraceHeader,
+} from '../../../src/utils/spanUtils';
 
 describe('spanToTraceHeader', () => {
   test('simple', () => {
@@ -44,5 +49,48 @@ describe('spanTimeInputToSeconds', () => {
     const seconds = Math.floor(timestampInSeconds());
     const timestamp: [number, number] = [seconds, 9000];
     expect(spanTimeInputToSeconds(timestamp)).toEqual(seconds + 0.000009);
+  });
+});
+
+describe('span metadata', () => {
+  it('allows to get empty metadata', () => {
+    const span = new Span();
+    expect(spanGetMetadata(span)).toEqual({});
+  });
+
+  it('allows to set & get metadata', () => {
+    const span = new Span();
+    expect(spanGetMetadata(span)).toEqual({});
+
+    spanSetMetadata(span, { one: 'one', two: 2 });
+    expect(spanGetMetadata(span)).toEqual({ one: 'one', two: 2 });
+
+    // partially overwrite
+    spanSetMetadata(span, { one: 'two' });
+    expect(spanGetMetadata(span)).toEqual({ one: 'two', two: 2 });
+  });
+
+  it('interacts with transaction.metadata correctly', () => {
+    const transaction = new Transaction({ name: 'test' });
+    expect(spanGetMetadata(transaction)).toEqual({
+      source: 'custom',
+      spanMetadata: {},
+    });
+    // eslint-disable-next-line deprecation/deprecation
+    expect(transaction.metadata).toEqual({
+      source: 'custom',
+      spanMetadata: {},
+    });
+
+    spanSetMetadata(transaction, { one: 'one', two: 2 });
+    expect(spanGetMetadata(transaction)).toEqual({ source: 'custom', spanMetadata: {}, one: 'one', two: 2 });
+    // eslint-disable-next-line deprecation/deprecation
+    expect(transaction.metadata).toEqual({ source: 'custom', spanMetadata: {}, one: 'one', two: 2 });
+
+    // eslint-disable-next-line deprecation/deprecation
+    transaction.setMetadata({ one: 'two' });
+    expect(spanGetMetadata(transaction)).toEqual({ source: 'custom', spanMetadata: {}, one: 'two', two: 2 });
+    // eslint-disable-next-line deprecation/deprecation
+    expect(transaction.metadata).toEqual({ source: 'custom', spanMetadata: {}, one: 'two', two: 2 });
   });
 });

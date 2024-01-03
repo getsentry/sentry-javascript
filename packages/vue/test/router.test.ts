@@ -1,4 +1,5 @@
 import * as SentryBrowser from '@sentry/browser';
+import * as SentryCore from '@sentry/core';
 import type { Transaction } from '@sentry/types';
 
 import { vueRouterInstrumentation } from '../src';
@@ -128,13 +129,14 @@ describe('vueRouterInstrumentation()', () => {
       const mockedTxn = {
         updateName: jest.fn(),
         setData: jest.fn(),
-        setMetadata: jest.fn(),
         metadata: {},
       };
       const customMockStartTxn = { ...mockStartTransaction }.mockImplementation(_ => {
         return mockedTxn;
       });
       jest.spyOn(vueTracing, 'getActiveTransaction').mockImplementation(() => mockedTxn as unknown as Transaction);
+
+      const mockSpanSetMetadata = jest.spyOn(SentryCore, 'spanSetMetadata');
 
       // create instrumentation
       const instrument = vueRouterInstrumentation(mockVueRouter);
@@ -165,7 +167,7 @@ describe('vueRouterInstrumentation()', () => {
       expect(mockVueRouter.beforeEach).toHaveBeenCalledTimes(1);
 
       expect(mockedTxn.updateName).toHaveBeenCalledWith(transactionName);
-      expect(mockedTxn.setMetadata).toHaveBeenCalledWith({ source: transactionSource });
+      expect(mockSpanSetMetadata).toHaveBeenCalledWith(expect.anything(), { source: transactionSource });
       expect(mockedTxn.setData).toHaveBeenNthCalledWith(1, 'params', to.params);
       expect(mockedTxn.setData).toHaveBeenNthCalledWith(2, 'query', to.query);
 

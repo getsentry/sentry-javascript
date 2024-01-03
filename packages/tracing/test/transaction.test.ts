@@ -1,5 +1,6 @@
 /* eslint-disable deprecation/deprecation */
 import { BrowserClient, Hub } from '@sentry/browser';
+import { spanSetMetadata } from '@sentry/core';
 
 import { Transaction, addExtensionMethods } from '../src';
 import { getDefaultBrowserClientOptions } from './testutils';
@@ -65,7 +66,7 @@ describe('`Transaction` class', () => {
     describe('`updateName` method', () => {
       it('does not change the source', () => {
         const transaction = new Transaction({ name: 'dogpark' });
-        transaction.setMetadata({ source: 'route' });
+        spanSetMetadata(transaction, { source: 'route' });
         transaction.updateName('ballpit');
 
         expect(transaction.name).toEqual('ballpit');

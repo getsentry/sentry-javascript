@@ -1,4 +1,5 @@
 /* eslint-disable max-lines */
+import { spanSetMetadata } from '@sentry/core';
 import type { Hub, Integration, PolymorphicRequest, Transaction } from '@sentry/types';
 import {
   GLOBAL_OBJ,
@@ -378,7 +379,7 @@ function instrumentRouter(appOrRouter: ExpressRouter): void {
 
         const [name, source] = extractPathForTransaction(req, { path: true, method: true, customRoute: finalRoute });
         transaction.updateName(name);
-        transaction.setMetadata({ source });
+        spanSetMetadata(transaction, { source });
       }
     }
 

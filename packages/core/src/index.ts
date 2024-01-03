@@ -72,7 +72,7 @@ export { createCheckInEnvelope } from './checkin';
 export { hasTracingEnabled } from './utils/hasTracingEnabled';
 export { isSentryRequestUrl } from './utils/isSentryRequestUrl';
 export { handleCallbackErrors } from './utils/handleCallbackErrors';
-export { spanToTraceHeader } from './utils/spanUtils';
+export { spanToTraceHeader, spanSetMetadata, spanGetMetadata } from './utils/spanUtils';
 export { DEFAULT_ENVIRONMENT } from './constants';
 export { ModuleMetadata } from './integrations/metadata';
 export { RequestData } from './integrations/requestdata';

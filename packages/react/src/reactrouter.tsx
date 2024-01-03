@@ -1,4 +1,5 @@
 import { WINDOW } from '@sentry/browser';
+import { spanSetMetadata } from '@sentry/core';
 import type { Transaction, TransactionSource } from '@sentry/types';
 import hoistNonReactStatics from 'hoist-non-react-statics';
 import * as React from 'react';
@@ -166,7 +167,7 @@ export function withSentryRouting<P extends Record<string, any>, R extends React
   const WrappedRoute: React.FC<P> = (props: P) => {
     if (activeTransaction && props && props.computedMatch && props.computedMatch.isExact) {
       activeTransaction.updateName(props.computedMatch.path);
-      activeTransaction.setMetadata({ source: 'route' });
+      spanSetMetadata(activeTransaction, { source: 'route' });
     }
 
     // @ts-expect-error Setting more specific React Component typing for `R` generic above

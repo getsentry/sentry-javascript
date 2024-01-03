@@ -3,6 +3,7 @@ import { isNaN, logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../debug-build';
 import { hasTracingEnabled } from '../utils/hasTracingEnabled';
+import { spanSetMetadata } from '../utils/spanUtils';
 import type { Transaction } from './transaction';
 
 /**
@@ -29,7 +30,7 @@ export function sampleTransaction<T extends Transaction>(
   // if the user has forced a sampling decision by passing a `sampled` value in their transaction context, go with that
   // eslint-disable-next-line deprecation/deprecation
   if (transaction.sampled !== undefined) {
-    transaction.setMetadata({
+    spanSetMetadata(transaction, {
       // eslint-disable-next-line deprecation/deprecation
       sampleRate: Number(transaction.sampled),
     });
@@ -41,20 +42,20 @@ export function sampleTransaction<T extends Transaction>(
   let sampleRate;
   if (typeof options.tracesSampler === 'function') {
     sampleRate = options.tracesSampler(samplingContext);
-    transaction.setMetadata({
+    spanSetMetadata(transaction, {
       sampleRate: Number(sampleRate),
     });
   } else if (samplingContext.parentSampled !== undefined) {
     sampleRate = samplingContext.parentSampled;
   } else if (typeof options.tracesSampleRate !== 'undefined') {
     sampleRate = options.tracesSampleRate;
-    transaction.setMetadata({
-      sampleRate: Number(sampleRate),
+    spanSetMetadata(transaction, {
+      sampleRate,
     });
   } else {
     // When `enableTracing === true`, we use a sample rate of 100%
     sampleRate = 1;
-    transaction.setMetadata({
+    spanSetMetadata(transaction, {
       sampleRate,
     });
   }

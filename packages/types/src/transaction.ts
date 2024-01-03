@@ -4,7 +4,7 @@ import type { Instrumenter } from './instrumenter';
 import type { MeasurementUnit } from './measurement';
 import type { ExtractedNodeRequestData, Primitive, WorkerLocation } from './misc';
 import type { PolymorphicRequest } from './polymorphics';
-import type { Span, SpanAttributes, SpanContext } from './span';
+import type { Span, SpanAttributes, SpanContext, SpanMetadata } from './span';
 
 /**
  * Interface holding Transaction-specific properties
@@ -116,7 +116,7 @@ export interface Transaction extends TransactionContext, Omit<Span, 'setName' | 
 
   /**
    * Set metadata for this transaction.
-   * @hidden
+   * @deprecated Use `spanSetMetadata(span, metadata)` instead.
    */
   setMetadata(newMetadata: Partial<TransactionMetadata>): void;
 
@@ -159,7 +159,7 @@ export interface SamplingContext extends CustomSamplingContext {
   request?: ExtractedNodeRequestData;
 }
 
-export interface TransactionMetadata {
+export interface TransactionMetadata extends SpanMetadata {
   /** The sample rate used when sampling this transaction */
   sampleRate?: number;
 

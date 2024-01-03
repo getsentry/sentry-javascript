@@ -2,6 +2,7 @@
 // https://gist.github.com/wontondon/e8c4bdf2888875e4c755712e99279536
 
 import { WINDOW } from '@sentry/browser';
+import { spanSetMetadata } from '@sentry/core';
 import type { Transaction, TransactionContext, TransactionSource } from '@sentry/types';
 import { getNumberOfUrlSegments, logger } from '@sentry/utils';
 import hoistNonReactStatics from 'hoist-non-react-statics';
@@ -136,7 +137,7 @@ function updatePageloadTransaction(
   if (activeTransaction && branches) {
     const [name, source] = getNormalizedName(routes, location, branches, basename);
     activeTransaction.updateName(name);
-    activeTransaction.setMetadata({ source });
+    spanSetMetadata(activeTransaction, { source });
   }
 }
 

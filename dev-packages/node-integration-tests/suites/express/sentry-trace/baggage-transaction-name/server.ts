@@ -1,4 +1,5 @@
 import http from 'http';
+import { spanSetMetadata } from '@sentry/core';
 import * as Sentry from '@sentry/node';
 import * as Tracing from '@sentry/tracing';
 import cors from 'cors';
@@ -32,7 +33,7 @@ app.get('/test/express', (_req, res) => {
   const transaction = Sentry.getCurrentHub().getScope().getTransaction();
   if (transaction) {
     transaction.traceId = '86f39e84263a4de99c326acab3bfe3bd';
-    transaction.setMetadata({ source: 'route' });
+    spanSetMetadata(transaction, { source: 'route' });
   }
   const headers = http.get('http://somewhere.not.sentry/').getHeaders();
 
