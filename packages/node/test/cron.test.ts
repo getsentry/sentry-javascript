@@ -4,7 +4,7 @@ import { cron } from '../src';
 import type { CronJob, CronJobParams } from '../src/cron/cron';
 import type { NodeCron, NodeCronOptions } from '../src/cron/node-cron';
 
-describe('cron', () => {
+describe('cron check-ins', () => {
   let withMonitorSpy: jest.SpyInstance;
 
   beforeEach(() => {
