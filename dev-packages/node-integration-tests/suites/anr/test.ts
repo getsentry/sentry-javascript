@@ -115,6 +115,21 @@ conditionalTest({ min: 16 })('should report ANR when event loop blocked', () => 
     });
   });
 
+  test('can exit', done => {
+    const testScriptPath = path.resolve(__dirname, 'should-exit.js');
+    let hasClosed = false;
+
+    setTimeout(() => {
+      if (!hasClosed) {
+        done();
+      }
+    }, 5_000);
+
+    childProcess.exec(`node ${testScriptPath}`, { encoding: 'utf8' }, (_, stdout) => {
+      hasClosed = true;
+    });
+  });
+
   test('With session', done => {
     expect.assertions(9);
 
