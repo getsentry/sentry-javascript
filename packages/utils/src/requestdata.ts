@@ -363,7 +363,7 @@ function extractQueryParams(
   try {
     return (
       req.query ||
-      (typeof URL !== undefined && new URL(originalUrl).search.slice(1)) ||
+      (typeof URL !== 'undefined' && new URL(originalUrl).search.slice(1)) ||
       // In Node 8, `URL` isn't in the global scope, so we have to use the built-in module from Node
       (deps && deps.url && deps.url.parse(originalUrl).query) ||
       undefined
