@@ -102,10 +102,16 @@ export interface Transaction extends TransactionContext, Omit<Span, 'setName' | 
    */
   setMeasurement(name: string, value: number, unit: MeasurementUnit): void;
 
-  /** Returns the current transaction properties as a `TransactionContext` */
+  /**
+   * Returns the current transaction properties as a `TransactionContext`.
+   * @deprecated Use `toJSON()` or access the fields directly instead.
+   */
   toContext(): TransactionContext;
 
-  /** Updates the current transaction with a new `TransactionContext` */
+  /**
+   * Updates the current transaction with a new `TransactionContext`.
+   * @deprecated Update the fields directly instead.
+   */
   updateWithContext(transactionContext: TransactionContext): this;
 
   /**
