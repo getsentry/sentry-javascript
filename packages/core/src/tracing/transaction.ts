@@ -14,6 +14,7 @@ import { dropUndefinedKeys, logger, timestampInSeconds } from '@sentry/utils';
 import { DEBUG_BUILD } from '../debug-build';
 import type { Hub } from '../hub';
 import { getCurrentHub } from '../hub';
+import { spanToTraceContext } from '../utils/spanUtils';
 import { getDynamicSamplingContextFromClient } from './dynamicSamplingContext';
 import { Span as SpanClass, SpanRecorder } from './span';
 import { ensureTimestampInSeconds } from './utils';
@@ -283,7 +284,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
       contexts: {
         ...this._contexts,
         // We don't want to override trace context
-        trace: this.getTraceContext(),
+        trace: spanToTraceContext(this),
       },
       spans: finishedSpans,
       start_timestamp: this.startTimestamp,

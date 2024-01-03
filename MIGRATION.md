@@ -16,6 +16,7 @@ In v8, the Span class is heavily reworked. The following properties & methods ar
 * `span.updateWithContext(newSpanContext)`: Update the fields directly instead.
 * `span.setName(newName)`: Use `span.updateName(newName)` instead.
 * `span.toTraceparent()`: use `spanToTraceHeader(span)` util instead.
+* `span.getTraceContext()`: Use `spanToTraceContext(span)` utility function instead.
 
 ## Deprecate `pushScope` & `popScope` in favor of `withScope`
 

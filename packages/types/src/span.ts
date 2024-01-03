@@ -1,3 +1,4 @@
+import type { TraceContext } from './context';
 import type { Instrumenter } from './instrumenter';
 import type { Primitive } from './misc';
 import type { Transaction } from './transaction';
@@ -243,17 +244,11 @@ export interface Span extends SpanContext {
    */
   updateWithContext(spanContext: SpanContext): this;
 
-  /** Convert the object to JSON for w. spans array info only */
-  getTraceContext(): {
-    data?: { [key: string]: any };
-    description?: string;
-    op?: string;
-    parent_span_id?: string;
-    span_id: string;
-    status?: string;
-    tags?: { [key: string]: Primitive };
-    trace_id: string;
-  };
+  /**
+   * Convert the object to JSON for w. spans array info only.
+   * @deprecated Use `spanToTraceContext()` util function instead.
+   */
+  getTraceContext(): TraceContext;
 
   /** Convert the object to JSON */
   toJSON(): {
@@ -267,5 +262,6 @@ export interface Span extends SpanContext {
     tags?: { [key: string]: Primitive };
     timestamp?: number;
     trace_id: string;
+    origin?: SpanOrigin;
   };
 }
