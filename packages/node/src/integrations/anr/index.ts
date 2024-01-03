@@ -122,6 +122,10 @@ export class Anr implements Integration {
     // Ensure this thread can't block app exit
     worker.unref();
 
+    process.on('exit', () => {
+      worker.terminate();
+    });
+
     const timer = setInterval(() => {
       try {
         const currentSession = getCurrentScope().getSession();
