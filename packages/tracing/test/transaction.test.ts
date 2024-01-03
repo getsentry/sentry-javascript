@@ -63,17 +63,10 @@ describe('`Transaction` class', () => {
     });
 
     describe('`updateName` method', () => {
-      it("sets source to `'custom'` if no source provided", () => {
+      it('does not change the source', () => {
         const transaction = new Transaction({ name: 'dogpark' });
+        transaction.setMetadata({ source: 'route' });
         transaction.updateName('ballpit');
-
-        expect(transaction.name).toEqual('ballpit');
-        expect(transaction.metadata.source).toEqual('custom');
-      });
-
-      it('uses given `source` value', () => {
-        const transaction = new Transaction({ name: 'dogpark' });
-        transaction.updateName('ballpit', 'route');
 
         expect(transaction.name).toEqual('ballpit');
         expect(transaction.metadata.source).toEqual('route');

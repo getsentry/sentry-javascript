@@ -27,6 +27,7 @@ describe('sveltekitRoutingInstrumentation', () => {
     returnedTransaction = {
       ...txnCtx,
       updateName: vi.fn(),
+      setMetadata: vi.fn(),
       startChild: vi.fn().mockImplementation(ctx => {
         return { ...mockedRoutingSpan, ...ctx };
       }),
