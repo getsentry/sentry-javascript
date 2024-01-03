@@ -49,7 +49,7 @@ describe('GoogleCloudHttp tracing', () => {
           '{"kind":"bigquery#job","configuration":{"query":{"query":"SELECT true AS foo","destinationTable":{"projectId":"project-id","datasetId":"_7b1eed9bef45ab5fb7345c3d6f662cd767e5ab3e","tableId":"anon101ee25adad33d4f09179679ae9144ad436a210e"},"writeDisposition":"WRITE_TRUNCATE","priority":"INTERACTIVE","useLegacySql":false},"jobType":"QUERY"},"jobReference":{"projectId":"project-id","jobId":"8874c5d5-9cfe-4daa-8390-b0504b97b429","location":"US"},"statistics":{"creationTime":"1603072686488","startTime":"1603072686756","query":{"statementType":"SELECT"}},"status":{"state":"RUNNING"}}',
         );
       nock('https://bigquery.googleapis.com')
-        .get(new RegExp('^/bigquery/v2/projects/project-id/queries/.+$'))
+        .get(/^\/bigquery\/v2\/projects\/project-id\/queries\/.+$/)
         .query(true)
         .reply(
           200,
@@ -67,7 +67,7 @@ describe('GoogleCloudHttp tracing', () => {
       expect(SentryNode.fakeTransaction.startChild).toBeCalledWith({
         op: 'http.client.bigquery',
         origin: 'auto.http.serverless',
-        description: expect.stringMatching(new RegExp('^GET /queries/.+')),
+        description: expect.stringMatching(/^GET \/queries\/.+/),
       });
     });
   });

@@ -2,11 +2,13 @@ import {
   SDK_VERSION,
   captureException,
   continueTrace,
+  convertIntegrationFnToClass,
   getActiveTransaction,
   getCurrentScope,
+  spanToTraceHeader,
   startTransaction,
 } from '@sentry/core';
-import type { Integration } from '@sentry/types';
+import type { IntegrationFn } from '@sentry/types';
 import { dynamicSamplingContextToSentryBaggageHeader, fill } from '@sentry/utils';
 
 import type { Boom, RequestEvent, ResponseObject, Server } from './types';
@@ -92,7 +94,7 @@ export const hapiTracingPlugin = {
 
       if (request.response && isResponseObject(request.response) && transaction) {
         const response = request.response as ResponseObject;
-        response.header('sentry-trace', transaction.toTraceparent());
+        response.header('sentry-trace', spanToTraceHeader(transaction));
 
         const dynamicSamplingContext = dynamicSamplingContextToSentryBaggageHeader(
           transaction.getDynamicSamplingContext(),
@@ -128,45 +130,32 @@ export type HapiOptions = {
   server?: Record<any, any>;
 };
 
+const INTEGRATION_NAME = 'Hapi';
+
+const hapiIntegration = ((options: HapiOptions = {}) => {
+  const server = options.server as undefined | Server;
+
+  return {
+    name: INTEGRATION_NAME,
+    setupOnce() {
+      if (!server) {
+        return;
+      }
+
+      fill(server, 'start', (originalStart: () => void) => {
+        return async function (this: Server) {
+          await this.register(hapiTracingPlugin);
+          await this.register(hapiErrorPlugin);
+          const result = originalStart.apply(this);
+          return result;
+        };
+      });
+    },
+  };
+}) satisfies IntegrationFn;
+
 /**
  * Hapi Framework Integration
  */
-export class Hapi implements Integration {
-  /**
-   * @inheritDoc
-   */
-  public static id: string = 'Hapi';
-
-  /**
-   * @inheritDoc
-   */
-  public name: string;
-
-  public _hapiServer: Server | undefined;
-
-  public constructor(options?: HapiOptions) {
-    if (options?.server) {
-      const server = options.server as unknown as Server;
-
-      this._hapiServer = server;
-    }
-
-    this.name = Hapi.id;
-  }
-
-  /** @inheritDoc */
-  public setupOnce(): void {
-    if (!this._hapiServer) {
-      return;
-    }
-
-    fill(this._hapiServer, 'start', (originalStart: () => void) => {
-      return async function (this: Server) {
-        await this.register(hapiTracingPlugin);
-        await this.register(hapiErrorPlugin);
-        const result = originalStart.apply(this);
-        return result;
-      };
-    });
-  }
-}
+// eslint-disable-next-line deprecation/deprecation
+export const Hapi = convertIntegrationFnToClass(INTEGRATION_NAME, hapiIntegration);

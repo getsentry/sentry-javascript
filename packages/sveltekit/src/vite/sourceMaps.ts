@@ -139,6 +139,7 @@ export async function makeCustomSentryVitePlugin(options?: CustomSentryVitePlugi
 
     transform: async (code, id) => {
       let modifiedCode = code;
+      // eslint-disable-next-line @sentry-internal/sdk/no-regexp-constructor -- not end user input + escaped anyway
       const isServerHooksFile = new RegExp(`/${escapeStringForRegex(serverHooksFile)}(.(js|ts|mjs|mts))?`).test(id);
 
       if (isServerHooksFile) {
@@ -195,6 +196,7 @@ export async function makeCustomSentryVitePlugin(options?: CustomSentryVitePlugi
         if (fs.existsSync(mapFile)) {
           const mapContent = (await fs.promises.readFile(mapFile, 'utf-8')).toString();
           const cleanedMapContent = mapContent.replace(
+            // eslint-disable-next-line @sentry-internal/sdk/no-regexp-constructor -- no user input + escaped anyway
             new RegExp(escapeStringForRegex(WRAPPED_MODULE_SUFFIX), 'gm'),
             '',
           );

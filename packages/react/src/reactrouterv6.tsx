@@ -134,7 +134,9 @@ function updatePageloadTransaction(
     : (_matchRoutes(routes, location, basename) as unknown as RouteMatch[]);
 
   if (activeTransaction && branches) {
-    activeTransaction.setName(...getNormalizedName(routes, location, branches, basename));
+    const [name, source] = getNormalizedName(routes, location, branches, basename);
+    activeTransaction.updateName(name);
+    activeTransaction.setMetadata({ source });
   }
 }
 

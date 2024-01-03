@@ -252,6 +252,7 @@ function convertNextRouteToRegExp(route: string): RegExp {
     )
     .join('/');
 
+  // eslint-disable-next-line @sentry-internal/sdk/no-regexp-constructor -- routeParts are from the build manifest, so no raw user input
   return new RegExp(
     `^${rejoinedRouteParts}${optionalCatchallWildcardRegex}(?:/)?$`, // optional slash at the end
   );

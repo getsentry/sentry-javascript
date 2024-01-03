@@ -1,5 +1,6 @@
 import * as http from 'http';
 import type { Transaction } from '@sentry/core';
+import { spanToTraceHeader } from '@sentry/core';
 import { Hub, makeMain, runWithAsyncContext } from '@sentry/core';
 import type { fetch as FetchType } from 'undici';
 
@@ -207,7 +208,7 @@ conditionalTest({ min: 16 })('Undici integration', () => {
       expect(transaction.spanRecorder?.spans.length).toBe(2);
       const span = transaction.spanRecorder?.spans[1];
 
-      expect(requestHeaders['sentry-trace']).toEqual(span?.toTraceparent());
+      expect(requestHeaders['sentry-trace']).toEqual(spanToTraceHeader(span!));
       expect(requestHeaders['baggage']).toEqual(
         `sentry-environment=production,sentry-public_key=0,sentry-trace_id=${transaction.traceId},sentry-sample_rate=1,sentry-transaction=test-transaction`,
       );

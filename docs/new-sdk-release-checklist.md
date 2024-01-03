@@ -63,7 +63,7 @@ differ slightly for other SDKs depending on how they are structured and how they
       correctly for CDN builds.
 
 - [ ] Make sure it is added to the
-      [Verdaccio config](https://github.com/getsentry/sentry-javascript/blob/develop/packages/e2e-tests/verdaccio-config/config.yaml)
+      [Verdaccio config](https://github.com/getsentry/sentry-javascript/blob/develop/dev-packages/e2e-tests/verdaccio-config/config.yaml)
       for the E2E tests
 
 - [ ] If the package you're adding is a dependency of fullstack framework (e.g. Remix or NextJS) SDKs, make sure that

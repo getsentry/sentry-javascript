@@ -14,6 +14,7 @@ import { dropUndefinedKeys, logger, timestampInSeconds } from '@sentry/utils';
 import { DEBUG_BUILD } from '../debug-build';
 import type { Hub } from '../hub';
 import { getCurrentHub } from '../hub';
+import { spanToTraceContext } from '../utils/spanUtils';
 import { getDynamicSamplingContextFromClient } from './dynamicSamplingContext';
 import { Span as SpanClass, SpanRecorder } from './span';
 import { ensureTimestampInSeconds } from './utils';
@@ -82,17 +83,28 @@ export class Transaction extends SpanClass implements TransactionInterface {
     return this._name;
   }
 
-  /** Setter for `name` property, which also sets `source` as custom */
+  /**
+   * Setter for `name` property, which also sets `source` as custom.
+   */
   public set name(newName: string) {
+    // eslint-disable-next-line deprecation/deprecation
     this.setName(newName);
   }
 
   /**
-   * JSDoc
+   * Setter for `name` property, which also sets `source` on the metadata.
+   *
+   * @deprecated Use `updateName()` and `setMetadata()` instead.
    */
   public setName(name: string, source: TransactionMetadata['source'] = 'custom'): void {
     this._name = name;
     this.metadata.source = source;
+  }
+
+  /** @inheritdoc */
+  public updateName(name: string): this {
+    this._name = name;
+    return this;
   }
 
   /**
@@ -149,6 +161,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
    * @inheritDoc
    */
   public toContext(): TransactionContext {
+    // eslint-disable-next-line deprecation/deprecation
     const spanContext = super.toContext();
 
     return dropUndefinedKeys({
@@ -162,6 +175,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
    * @inheritDoc
    */
   public updateWithContext(transactionContext: TransactionContext): this {
+    // eslint-disable-next-line deprecation/deprecation
     super.updateWithContext(transactionContext);
 
     this.name = transactionContext.name || '';
@@ -270,7 +284,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
       contexts: {
         ...this._contexts,
         // We don't want to override trace context
-        trace: this.getTraceContext(),
+        trace: spanToTraceContext(this),
       },
       spans: finishedSpans,
       start_timestamp: this.startTimestamp,

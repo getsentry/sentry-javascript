@@ -115,21 +115,21 @@ jobs:
 
       - name: Validate Verdaccio
         run: yarn test:validate
-        working-directory: packages/e2e-tests
+        working-directory: dev-packages/e2e-tests
 
       - name: Prepare Verdaccio
         run: yarn test:prepare
-        working-directory: packages/e2e-tests
+        working-directory: dev-packages/e2e-tests
         env:
           E2E_TEST_PUBLISH_SCRIPT_NODE_VERSION: ${{ steps.versions.outputs.node }}
 
       - name: Build E2E app
-        working-directory: packages/e2e-tests/test-applications/${{ matrix.test-application }}
+        working-directory: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
         timeout-minutes: 5
         run: yarn ${{ matrix.build-command }}
 
       - name: Run E2E test
-        working-directory: packages/e2e-tests/test-applications/${{ matrix.test-application }}
+        working-directory: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
         timeout-minutes: 5
         run: yarn test:assert
 

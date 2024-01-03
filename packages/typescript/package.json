@@ -10,6 +10,9 @@
   "publishConfig": {
     "access": "public"
   },
+  "files": [
+    "tsconfig.json"
+  ],
   "peerDependencies": {
     "typescript": "4.9.5"
   },

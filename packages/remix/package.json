@@ -12,6 +12,13 @@
   "engines": {
     "node": ">=14"
   },
+  "files": [
+    "cjs",
+    "esm",
+    "types",
+    "types-ts3.8",
+    "scripts"
+  ],
   "main": "build/cjs/index.server.js",
   "module": "build/esm/index.server.js",
   "browser": "build/esm/index.client.js",
