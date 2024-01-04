@@ -1,6 +1,7 @@
 import type * as http from 'http';
 import type * as https from 'https';
 import type { Hub } from '@sentry/core';
+import { spanToTraceHeader } from '@sentry/core';
 import { addBreadcrumb, getClient, getCurrentScope } from '@sentry/core';
 import { getCurrentHub, getDynamicSamplingContextFromClient, isSentryRequestUrl } from '@sentry/core';
 import type {
@@ -132,7 +133,7 @@ export class Http implements Integration {
     // NOTE: Prior to Node 9, `https` used internals of `http` module, thus we don't patch it.
     // If we do, we'd get double breadcrumbs and double spans for `https` calls.
     // It has been changed in Node 9, so for all versions equal and above, we patch `https` separately.
-    if (NODE_VERSION.major && NODE_VERSION.major > 8) {
+    if (NODE_VERSION.major > 8) {
       // eslint-disable-next-line @typescript-eslint/no-var-requires
       const httpsModule = require('https');
       const wrappedHttpsHandlerMaker = _createWrappedRequestMethodFactory(
@@ -260,7 +261,7 @@ function _createWrappedRequestMethodFactory(
 
       if (shouldAttachTraceData(rawRequestUrl)) {
         if (requestSpan) {
-          const sentryTraceHeader = requestSpan.toTraceparent();
+          const sentryTraceHeader = spanToTraceHeader(requestSpan);
           const dynamicSamplingContext = requestSpan?.transaction?.getDynamicSamplingContext();
           addHeadersToRequestOptions(requestOptions, requestUrl, sentryTraceHeader, dynamicSamplingContext);
         } else {

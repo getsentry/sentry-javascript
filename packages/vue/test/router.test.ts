@@ -126,8 +126,9 @@ describe('vueRouterInstrumentation()', () => {
     'should return instrumentation that instruments VueRouter.beforeEach(%s, %s) for pageloads',
     (fromKey, toKey, transactionName, transactionSource) => {
       const mockedTxn = {
-        setName: jest.fn(),
+        updateName: jest.fn(),
         setData: jest.fn(),
+        setMetadata: jest.fn(),
         metadata: {},
       };
       const customMockStartTxn = { ...mockStartTransaction }.mockImplementation(_ => {
@@ -163,7 +164,8 @@ describe('vueRouterInstrumentation()', () => {
       beforeEachCallback(to, from, mockNext);
       expect(mockVueRouter.beforeEach).toHaveBeenCalledTimes(1);
 
-      expect(mockedTxn.setName).toHaveBeenCalledWith(transactionName, transactionSource);
+      expect(mockedTxn.updateName).toHaveBeenCalledWith(transactionName);
+      expect(mockedTxn.setMetadata).toHaveBeenCalledWith({ source: transactionSource });
       expect(mockedTxn.setData).toHaveBeenNthCalledWith(1, 'params', to.params);
       expect(mockedTxn.setData).toHaveBeenNthCalledWith(2, 'query', to.query);
 
@@ -237,7 +239,7 @@ describe('vueRouterInstrumentation()', () => {
 
   it("doesn't overwrite a pageload transaction name it was set to custom before the router resolved the route", () => {
     const mockedTxn = {
-      setName: jest.fn(),
+      updateName: jest.fn(),
       setData: jest.fn(),
       name: '',
       metadata: {
@@ -279,7 +281,7 @@ describe('vueRouterInstrumentation()', () => {
 
     expect(mockVueRouter.beforeEach).toHaveBeenCalledTimes(1);
 
-    expect(mockedTxn.setName).not.toHaveBeenCalled();
+    expect(mockedTxn.updateName).not.toHaveBeenCalled();
     expect(mockedTxn.metadata.source).toEqual('custom');
     expect(mockedTxn.name).toEqual('customTxnName');
   });

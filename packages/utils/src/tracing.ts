@@ -3,6 +3,7 @@ import type { DynamicSamplingContext, PropagationContext, TraceparentData } from
 import { baggageHeaderToDynamicSamplingContext } from './baggage';
 import { uuid4 } from './misc';
 
+// eslint-disable-next-line @sentry-internal/sdk/no-regexp-constructor -- RegExp is used for readability here
 export const TRACEPARENT_REGEXP = new RegExp(
   '^[ \\t]*' + // whitespace
     '([0-9a-f]{32})?' + // trace_id

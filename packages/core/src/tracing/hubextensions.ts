@@ -4,6 +4,7 @@ import { logger } from '@sentry/utils';
 import { DEBUG_BUILD } from '../debug-build';
 import type { Hub } from '../hub';
 import { getMainCarrier } from '../hub';
+import { spanToTraceHeader } from '../utils/spanUtils';
 import { registerErrorInstrumentation } from './errors';
 import { IdleTransaction } from './idletransaction';
 import { sampleTransaction } from './sampling';
@@ -16,7 +17,7 @@ function traceHeaders(this: Hub): { [key: string]: string } {
 
   return span
     ? {
-        'sentry-trace': span.toTraceparent(),
+        'sentry-trace': spanToTraceHeader(span),
       }
     : {};
 }

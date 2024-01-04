@@ -133,12 +133,32 @@ export function init(options: BrowserOptions = {}): void {
   }
 }
 
-/**
- * Present the user with a report dialog.
- *
- * @param options Everything is optional, we try to fetch all info need from the global scope.
- */
-export function showReportDialog(options: ReportDialogOptions = {}, hub: Hub = getCurrentHub()): void {
+type NewReportDialogOptions = ReportDialogOptions & { eventId: string }; // eslint-disable-line
+
+interface ShowReportDialogFunction {
+  /**
+   * Present the user with a report dialog.
+   *
+   * @param options Everything is optional, we try to fetch all info need from the global scope.
+   */
+  (options: NewReportDialogOptions): void;
+
+  /**
+   * Present the user with a report dialog.
+   *
+   * @param options Everything is optional, we try to fetch all info need from the global scope.
+   *
+   * @deprecated Please always pass an `options` argument with `eventId`. The `hub` argument will not be used in the next version of the SDK.
+   */
+  // eslint-disable-next-line deprecation/deprecation
+  (options?: ReportDialogOptions, hub?: Hub): void;
+}
+
+export const showReportDialog: ShowReportDialogFunction = (
+  // eslint-disable-next-line deprecation/deprecation
+  options: ReportDialogOptions = {},
+  hub: Hub = getCurrentHub(),
+) => {
   // doesn't work without a document (React Native)
   if (!WINDOW.document) {
     DEBUG_BUILD && logger.error('Global document not defined in showReportDialog call');
@@ -159,7 +179,10 @@ export function showReportDialog(options: ReportDialogOptions = {}, hub: Hub = g
     };
   }
 
+  // TODO(v8): Remove this entire if statement. `eventId` will be a required option.
+  // eslint-disable-next-line deprecation/deprecation
   if (!options.eventId) {
+    // eslint-disable-next-line deprecation/deprecation
     options.eventId = hub.lastEventId();
   }
 
@@ -192,7 +215,7 @@ export function showReportDialog(options: ReportDialogOptions = {}, hub: Hub = g
   } else {
     DEBUG_BUILD && logger.error('Not injecting report dialog. No injection point found in HTML');
   }
-}
+};
 
 /**
  * This function is here to be API compatible with the loader.

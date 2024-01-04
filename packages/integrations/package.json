@@ -12,6 +12,12 @@
   "publishConfig": {
     "access": "public"
   },
+  "files": [
+    "cjs",
+    "esm",
+    "types",
+    "types-ts3.8"
+  ],
   "main": "build/npm/cjs/index.js",
   "module": "build/npm/esm/index.js",
   "types": "build/npm/types/index.d.ts",

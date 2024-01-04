@@ -648,7 +648,7 @@ describe('default protocols', () => {
     // intercepting a https:// request with http:// mock. It's a safe bet
     // because the latest versions of nock no longer support Node v8 and lower,
     // so won't bother dealing with this old Node edge case.
-    if (NODE_VERSION.major && NODE_VERSION.major < 9) {
+    if (NODE_VERSION.major < 9) {
       nockProtocol = 'http';
     }
     nock(`${nockProtocol}://${key}.ingest.sentry.io`).get('/api/123122332/store/').reply(200);
@@ -671,7 +671,7 @@ describe('default protocols', () => {
     const proxy = 'http://<PROXY_URL>:3128';
     const agent = HttpsProxyAgent(proxy);
 
-    if (NODE_VERSION.major && NODE_VERSION.major < 9) {
+    if (NODE_VERSION.major < 9) {
       nockProtocol = 'http';
     }
 

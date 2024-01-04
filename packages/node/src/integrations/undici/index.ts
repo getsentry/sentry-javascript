@@ -5,6 +5,7 @@ import {
   getCurrentScope,
   getDynamicSamplingContextFromClient,
   isSentryRequestUrl,
+  spanToTraceHeader,
 } from '@sentry/core';
 import type { EventProcessor, Integration, Span } from '@sentry/types';
 import {
@@ -96,7 +97,7 @@ export class Undici implements Integration {
    */
   public setupOnce(_addGlobalEventProcessor: (callback: EventProcessor) => void): void {
     // Requires Node 16+ to use the diagnostics_channel API.
-    if (NODE_VERSION.major && NODE_VERSION.major < 16) {
+    if (NODE_VERSION.major < 16) {
       return;
     }
 
@@ -183,7 +184,7 @@ export class Undici implements Integration {
         const dynamicSamplingContext = span?.transaction?.getDynamicSamplingContext();
         const sentryBaggageHeader = dynamicSamplingContextToSentryBaggageHeader(dynamicSamplingContext);
 
-        setHeadersOnRequest(request, span.toTraceparent(), sentryBaggageHeader);
+        setHeadersOnRequest(request, spanToTraceHeader(span), sentryBaggageHeader);
       } else {
         const { traceId, sampled, dsc } = scope.getPropagationContext();
         const sentryTrace = generateSentryTraceHeader(traceId, undefined, sampled);

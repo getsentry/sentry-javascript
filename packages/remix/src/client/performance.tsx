@@ -125,7 +125,8 @@ export function withSentry<P extends Record<string, unknown>, R extends React.Co
 
     _useEffect(() => {
       if (activeTransaction && matches && matches.length) {
-        activeTransaction.setName(matches[matches.length - 1].id, 'route');
+        activeTransaction.updateName(matches[matches.length - 1].id);
+        activeTransaction.setMetadata({ source: 'route' });
       }
 
       isBaseLocation = true;

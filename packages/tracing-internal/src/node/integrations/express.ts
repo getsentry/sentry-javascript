@@ -376,7 +376,9 @@ function instrumentRouter(appOrRouter: ExpressRouter): void {
         // Therefore, we fall back to setting the final route to '/' in this case.
         const finalRoute = req._reconstructedRoute || '/';
 
-        transaction.setName(...extractPathForTransaction(req, { path: true, method: true, customRoute: finalRoute }));
+        const [name, source] = extractPathForTransaction(req, { path: true, method: true, customRoute: finalRoute });
+        transaction.updateName(name);
+        transaction.setMetadata({ source });
       }
     }
 
@@ -412,6 +414,7 @@ export const extractOriginalRoute = (
   const orderedKeys = keys.sort((a, b) => a.offset - b.offset);
 
   // add d flag for getting indices from regexp result
+  // eslint-disable-next-line @sentry-internal/sdk/no-regexp-constructor -- regexp comes from express.js
   const pathRegex = new RegExp(regexp, `${regexp.flags}d`);
   /**
    * use custom type cause of TS error with missing indices in RegExpExecArray

@@ -33,7 +33,10 @@ async function buildBundle(integration: string, jsVersion: string): Promise<void
 if (runParallel) {
   // We're building a bundle for each integration and each JavaScript version.
   const tasks = getIntegrations().reduce(
-    (tasks, integration) => [...tasks, buildBundle(integration, 'es5'), buildBundle(integration, 'es6')],
+    (tasks, integration) => {
+      tasks.push(buildBundle(integration, 'es5'), buildBundle(integration, 'es6'));
+      return tasks;
+    },
     [] as Promise<void>[],
   );
 

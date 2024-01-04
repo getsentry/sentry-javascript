@@ -5,15 +5,15 @@ import { Hub } from '@sentry/core';
 import { Integrations } from '../../../src';
 import { getTestClient } from '../../testutils';
 
-const mockTrace = jest.fn();
+const mockStartSpan = jest.fn();
 
 jest.mock('@sentry/core', () => {
   const original = jest.requireActual('@sentry/core');
   return {
     ...original,
-    trace: (...args: unknown[]) => {
-      mockTrace(...args);
-      return original.trace(...args);
+    startSpan: (...args: unknown[]) => {
+      mockStartSpan(...args);
+      return original.startSpan(...args);
     },
   };
 });
@@ -43,16 +43,16 @@ class PrismaClient {
 
 describe('setupOnce', function () {
   beforeEach(() => {
-    mockTrace.mockClear();
-    mockTrace.mockReset();
+    mockStartSpan.mockClear();
+    mockStartSpan.mockReset();
   });
 
   it('should add middleware with $use method correctly', done => {
     const prismaClient = new PrismaClient();
     new Integrations.Prisma({ client: prismaClient });
     void prismaClient.user.create()?.then(() => {
-      expect(mockTrace).toHaveBeenCalledTimes(1);
-      expect(mockTrace).toHaveBeenLastCalledWith(
+      expect(mockStartSpan).toHaveBeenCalledTimes(1);
+      expect(mockStartSpan).toHaveBeenLastCalledWith(
         {
           name: 'user create',
           op: 'db.prisma',
@@ -75,7 +75,7 @@ describe('setupOnce', function () {
     jest.spyOn(sentryCore, 'getCurrentHub').mockReturnValue(hub);
 
     void prismaClient.user.create()?.then(() => {
-      expect(mockTrace).not.toHaveBeenCalled();
+      expect(mockStartSpan).not.toHaveBeenCalled();
       done();
     });
   });

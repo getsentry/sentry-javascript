@@ -25,7 +25,7 @@ describe('React Router v6.4', () => {
   function createInstrumentation(_opts?: {
     startTransactionOnPageLoad?: boolean;
     startTransactionOnLocationChange?: boolean;
-  }): [jest.Mock, { mockSetName: jest.Mock; mockFinish: jest.Mock }] {
+  }): [jest.Mock, { mockUpdateName: jest.Mock; mockFinish: jest.Mock; mockSetMetadata: jest.Mock }] {
     const options = {
       matchPath: _opts ? matchPath : undefined,
       startTransactionOnLocationChange: true,
@@ -33,8 +33,11 @@ describe('React Router v6.4', () => {
       ..._opts,
     };
     const mockFinish = jest.fn();
-    const mockSetName = jest.fn();
-    const mockStartTransaction = jest.fn().mockReturnValue({ setName: mockSetName, end: mockFinish });
+    const mockUpdateName = jest.fn();
+    const mockSetMetadata = jest.fn();
+    const mockStartTransaction = jest
+      .fn()
+      .mockReturnValue({ updateName: mockUpdateName, end: mockFinish, setMetadata: mockSetMetadata });
 
     reactRouterV6Instrumentation(
       React.useEffect,
@@ -43,7 +46,7 @@ describe('React Router v6.4', () => {
       createRoutesFromChildren,
       matchRoutes,
     )(mockStartTransaction, options.startTransactionOnPageLoad, options.startTransactionOnLocationChange);
-    return [mockStartTransaction, { mockSetName, mockFinish }];
+    return [mockStartTransaction, { mockUpdateName, mockFinish, mockSetMetadata }];
   }
 
   describe('wrapCreateBrowserRouter', () => {
@@ -243,7 +246,7 @@ describe('React Router v6.4', () => {
     });
 
     it('updates pageload transaction to a parameterized route', () => {
-      const [mockStartTransaction, { mockSetName }] = createInstrumentation();
+      const [mockStartTransaction, { mockUpdateName, mockSetMetadata }] = createInstrumentation();
       const sentryCreateBrowserRouter = wrapCreateBrowserRouter(createMemoryRouter as CreateRouterFunction);
 
       const router = sentryCreateBrowserRouter(
@@ -268,7 +271,8 @@ describe('React Router v6.4', () => {
       render(<RouterProvider router={router} />);
 
       expect(mockStartTransaction).toHaveBeenCalledTimes(1);
-      expect(mockSetName).toHaveBeenLastCalledWith('/about/:page', 'route');
+      expect(mockUpdateName).toHaveBeenLastCalledWith('/about/:page');
+      expect(mockSetMetadata).toHaveBeenCalledWith({ source: 'route' });
     });
 
     it('works with `basename` option', () => {

@@ -1,8 +1,11 @@
 import { existsSync, readFileSync } from 'fs';
 import { dirname, join } from 'path';
-import type { Event, EventProcessor, Hub, Integration } from '@sentry/types';
+import { convertIntegrationFnToClass } from '@sentry/core';
+import type { IntegrationFn } from '@sentry/types';
 
 let moduleCache: { [key: string]: string };
+
+const INTEGRATION_NAME = 'Modules';
 
 /** Extract information about paths */
 function getPaths(): string[] {
@@ -73,33 +76,20 @@ function _getModules(): { [key: string]: string } {
   return moduleCache;
 }
 
-/** Add node modules / packages to the event */
-export class Modules implements Integration {
-  /**
-   * @inheritDoc
-   */
-  public static id: string = 'Modules';
-
-  /**
-   * @inheritDoc
-   */
-  public name: string = Modules.id;
-
-  /**
-   * @inheritDoc
-   */
-  public setupOnce(_addGlobalEventProcessor: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
-    // noop
-  }
-
-  /** @inheritdoc */
-  public processEvent(event: Event): Event {
-    return {
-      ...event,
-      modules: {
+const modulesIntegration = (() => {
+  return {
+    name: INTEGRATION_NAME,
+    processEvent(event) {
+      event.modules = {
         ...event.modules,
         ..._getModules(),
-      },
-    };
-  }
-}
+      };
+
+      return event;
+    },
+  };
+}) satisfies IntegrationFn;
+
+/** Add node modules / packages to the event */
+// eslint-disable-next-line deprecation/deprecation
+export const Modules = convertIntegrationFnToClass(INTEGRATION_NAME, modulesIntegration);

@@ -10,7 +10,8 @@ let transaction: any;
 const defaultStartTransaction = (ctx: any) => {
   transaction = {
     ...ctx,
-    setName: jest.fn(name => (transaction.name = name)),
+    updateName: jest.fn(name => (transaction.name = name)),
+    setMetadata: jest.fn(),
   };
 
   return transaction;
@@ -110,7 +111,7 @@ describe('Angular Tracing', () => {
             ...ctx.metadata,
             source: 'custom',
           },
-          setName: jest.fn(name => (transaction.name = name)),
+          updateName: jest.fn(name => (transaction.name = name)),
         };
 
         return transaction;
@@ -137,7 +138,7 @@ describe('Angular Tracing', () => {
         metadata: { source: 'url' },
       });
 
-      expect(transaction.setName).toHaveBeenCalledTimes(0);
+      expect(transaction.updateName).toHaveBeenCalledTimes(0);
       expect(transaction.name).toEqual(url);
       expect(transaction.metadata.source).toBe('custom');
 
@@ -327,7 +328,8 @@ describe('Angular Tracing', () => {
           origin: 'auto.navigation.angular',
           metadata: { source: 'url' },
         });
-        expect(transaction.setName).toHaveBeenCalledWith(result, 'route');
+        expect(transaction.updateName).toHaveBeenCalledWith(result);
+        expect(transaction.setMetadata).toHaveBeenCalledWith({ source: 'route' });
 
         env.destroy();
       });

@@ -1,0 +1,67 @@
+{
+  "name": "@sentry-internal/browser-integration-tests",
+  "version": "7.91.0",
+  "main": "index.js",
+  "license": "MIT",
+  "engines": {
+    "node": ">=10"
+  },
+  "private": true,
+  "scripts": {
+    "clean": "rimraf -g suites/**/dist loader-suites/**/dist tmp",
+    "install-browsers": "playwright install --with-deps",
+    "lint": "eslint . --format stylish",
+    "fix": "eslint . --format stylish --fix",
+    "type-check": "tsc",
+    "pretest": "yarn clean && yarn type-check",
+    "test": "playwright test ./suites --project='chromium'",
+    "test:all": "playwright test ./suites",
+    "test:bundle:es5": "PW_BUNDLE=bundle_es5 yarn test",
+    "test:bundle:es5:min": "PW_BUNDLE=bundle_es5_min yarn test",
+    "test:bundle:es6": "PW_BUNDLE=bundle_es6 yarn test",
+    "test:bundle:es6:min": "PW_BUNDLE=bundle_es6_min yarn test",
+    "test:bundle:replay:es6": "PW_BUNDLE=bundle_replay_es6 yarn test",
+    "test:bundle:replay:es6:min": "PW_BUNDLE=bundle_replay_es6_min yarn test",
+    "test:bundle:tracing:es5": "PW_BUNDLE=bundle_tracing_es5 yarn test",
+    "test:bundle:tracing:es5:min": "PW_BUNDLE=bundle_tracing_es5_min yarn test",
+    "test:bundle:tracing:es6": "PW_BUNDLE=bundle_tracing_es6 yarn test",
+    "test:bundle:tracing:es6:min": "PW_BUNDLE=bundle_tracing_es6_min yarn test",
+    "test:bundle:tracing:replay:es6": "PW_BUNDLE=bundle_tracing_replay_es6 yarn test",
+    "test:bundle:tracing:replay:es6:min": "PW_BUNDLE=bundle_tracing_replay_es6_min yarn test",
+    "test:cjs": "PW_BUNDLE=cjs yarn test",
+    "test:esm": "PW_BUNDLE=esm yarn test",
+    "test:loader": "playwright test ./loader-suites --project='chromium'",
+    "test:loader:base": "PW_BUNDLE=loader_base yarn test:loader",
+    "test:loader:eager": "PW_BUNDLE=loader_eager yarn test:loader",
+    "test:loader:tracing": "PW_BUNDLE=loader_tracing yarn test:loader",
+    "test:loader:replay": "PW_BUNDLE=loader_replay yarn test:loader",
+    "test:loader:full": "PW_BUNDLE=loader_tracing_replay yarn test:loader",
+    "test:loader:debug": "PW_BUNDLE=loader_debug yarn test:loader",
+    "test:ci": "playwright test ./suites --reporter='line'",
+    "test:update-snapshots": "yarn test:all --update-snapshots",
+    "test:detect-flaky": "ts-node scripts/detectFlakyTests.ts",
+    "validate:es5": "es-check es5 'fixtures/loader.js'"
+  },
+  "dependencies": {
+    "@babel/preset-typescript": "^7.16.7",
+    "@playwright/test": "^1.31.1",
+    "@sentry/browser": "7.91.0",
+    "@sentry/tracing": "7.91.0",
+    "@sentry-internal/rrweb": "2.6.0",
+    "axios": "1.6.0",
+    "babel-loader": "^8.2.2",
+    "html-webpack-plugin": "^5.5.0",
+    "pako": "^2.1.0",
+    "playwright": "^1.31.1",
+    "webpack": "^5.52.0"
+  },
+  "devDependencies": {
+    "@types/glob": "8.0.0",
+    "@types/node": "^14.6.4",
+    "@types/pako": "^2.0.0",
+    "glob": "8.0.3"
+  },
+  "volta": {
+    "extends": "../../package.json"
+  }
+}

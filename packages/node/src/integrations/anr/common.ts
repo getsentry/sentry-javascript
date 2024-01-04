@@ -1,4 +1,4 @@
-import type { Contexts, DsnComponents, SdkMetadata } from '@sentry/types';
+import type { Contexts, DsnComponents, Primitive, SdkMetadata } from '@sentry/types';
 
 export interface Options {
   /**
@@ -21,6 +21,16 @@ export interface Options {
    * This uses the node debugger which enables the inspector API and opens the required ports.
    */
   captureStackTrace: boolean;
+  /**
+   * Tags to include with ANR events.
+   */
+  staticTags: { [key: string]: Primitive };
+  /**
+   * @ignore Internal use only.
+   *
+   * If this is supplied, stack frame filenames will be rewritten to be relative to this path.
+   */
+  appRootPath: string | undefined;
 }
 
 export interface WorkerStartData extends Options {

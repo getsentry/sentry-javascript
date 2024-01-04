@@ -21,7 +21,7 @@ describe('React Router v6', () => {
   function createInstrumentation(_opts?: {
     startTransactionOnPageLoad?: boolean;
     startTransactionOnLocationChange?: boolean;
-  }): [jest.Mock, { mockSetName: jest.Mock; mockFinish: jest.Mock }] {
+  }): [jest.Mock, { mockUpdateName: jest.Mock; mockFinish: jest.Mock; mockSetMetadata: jest.Mock }] {
     const options = {
       matchPath: _opts ? matchPath : undefined,
       startTransactionOnLocationChange: true,
@@ -29,8 +29,11 @@ describe('React Router v6', () => {
       ..._opts,
     };
     const mockFinish = jest.fn();
-    const mockSetName = jest.fn();
-    const mockStartTransaction = jest.fn().mockReturnValue({ setName: mockSetName, end: mockFinish });
+    const mockUpdateName = jest.fn();
+    const mockSetMetadata = jest.fn();
+    const mockStartTransaction = jest
+      .fn()
+      .mockReturnValue({ updateName: mockUpdateName, end: mockFinish, setMetadata: mockSetMetadata });
 
     reactRouterV6Instrumentation(
       React.useEffect,
@@ -39,7 +42,7 @@ describe('React Router v6', () => {
       createRoutesFromChildren,
       matchRoutes,
     )(mockStartTransaction, options.startTransactionOnPageLoad, options.startTransactionOnLocationChange);
-    return [mockStartTransaction, { mockSetName, mockFinish }];
+    return [mockStartTransaction, { mockUpdateName, mockFinish, mockSetMetadata }];
   }
 
   describe('withSentryReactRouterV6Routing', () => {
@@ -542,7 +545,7 @@ describe('React Router v6', () => {
     });
 
     it('does not add double slashes to URLS', () => {
-      const [mockStartTransaction, { mockSetName }] = createInstrumentation();
+      const [mockStartTransaction, { mockUpdateName, mockSetMetadata }] = createInstrumentation();
       const wrappedUseRoutes = wrapUseRoutes(useRoutes);
 
       const Routes = () =>
@@ -584,11 +587,12 @@ describe('React Router v6', () => {
 
       expect(mockStartTransaction).toHaveBeenCalledTimes(1);
       // should be /tests not //tests
-      expect(mockSetName).toHaveBeenLastCalledWith('/tests', 'route');
+      expect(mockUpdateName).toHaveBeenLastCalledWith('/tests');
+      expect(mockSetMetadata).toHaveBeenCalledWith({ source: 'route' });
     });
 
     it('handles wildcard routes properly', () => {
-      const [mockStartTransaction, { mockSetName }] = createInstrumentation();
+      const [mockStartTransaction, { mockUpdateName, mockSetMetadata }] = createInstrumentation();
       const wrappedUseRoutes = wrapUseRoutes(useRoutes);
 
       const Routes = () =>
@@ -629,7 +633,8 @@ describe('React Router v6', () => {
       );
 
       expect(mockStartTransaction).toHaveBeenCalledTimes(1);
-      expect(mockSetName).toHaveBeenLastCalledWith('/tests/:testId/*', 'route');
+      expect(mockUpdateName).toHaveBeenLastCalledWith('/tests/:testId/*');
+      expect(mockSetMetadata).toHaveBeenCalledWith({ source: 'route' });
     });
   });
 });

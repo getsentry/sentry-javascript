@@ -40,12 +40,14 @@ export {
   setTags,
   setUser,
   spanStatusfromHttpCode,
+  // eslint-disable-next-line deprecation/deprecation
   trace,
   withScope,
   autoDiscoverNodePerformanceMonitoringIntegrations,
   makeNodeTransport,
   defaultIntegrations,
   defaultStackParser,
+  // eslint-disable-next-line deprecation/deprecation
   lastEventId,
   flush,
   close,
@@ -53,9 +55,11 @@ export {
   addRequestDataToEvent,
   DEFAULT_USER_INCLUDES,
   extractRequestData,
+  // eslint-disable-next-line deprecation/deprecation
   deepReadDirSync,
   Integrations,
   Handlers,
+  cron,
 } from '@sentry/node';
 
 // Keeping the `*` exports for backwards compatibility and types

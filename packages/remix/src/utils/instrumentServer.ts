@@ -1,5 +1,12 @@
 /* eslint-disable max-lines */
-import { getActiveTransaction, getClient, getCurrentScope, hasTracingEnabled, runWithAsyncContext } from '@sentry/core';
+import {
+  getActiveTransaction,
+  getClient,
+  getCurrentScope,
+  hasTracingEnabled,
+  runWithAsyncContext,
+  spanToTraceHeader,
+} from '@sentry/core';
 import type { Hub } from '@sentry/node';
 import { captureException, getCurrentHub } from '@sentry/node';
 import type { Transaction, TransactionSource, WrappedFunction } from '@sentry/types';
@@ -28,6 +35,7 @@ import {
 } from './vendor/response';
 import type {
   AppData,
+  AppLoadContext,
   CreateRequestHandlerFunction,
   DataFunction,
   DataFunctionArgs,
@@ -45,9 +53,6 @@ import { normalizeRemixRequest } from './web-fetch';
 
 let FUTURE_FLAGS: FutureConfig | undefined;
 let IS_REMIX_V2: boolean | undefined;
-
-// Flag to track if the core request handler is instrumented.
-export let isRequestHandlerWrapped = false;
 
 const redirectStatusCodes = new Set([301, 302, 303, 307, 308]);
 function isRedirectResponse(response: Response): boolean {
@@ -222,8 +227,13 @@ function makeWrappedDataFunction(
   id: string,
   name: 'action' | 'loader',
   remixVersion: number,
+  manuallyInstrumented: boolean,
 ): DataFunction {
   return async function (this: unknown, args: DataFunctionArgs): Promise<Response | AppData> {
+    if (args.context.__sentry_express_wrapped__ && !manuallyInstrumented) {
+      return origFn.call(this, args);
+    }
+
     let res: Response | AppData;
     const activeTransaction = getActiveTransaction();
     const currentScope = getCurrentScope();
@@ -265,15 +275,15 @@ function makeWrappedDataFunction(
 }
 
 const makeWrappedAction =
-  (id: string, remixVersion: number) =>
+  (id: string, remixVersion: number, manuallyInstrumented: boolean) =>
   (origAction: DataFunction): DataFunction => {
-    return makeWrappedDataFunction(origAction, id, 'action', remixVersion);
+    return makeWrappedDataFunction(origAction, id, 'action', remixVersion, manuallyInstrumented);
   };
 
 const makeWrappedLoader =
-  (id: string, remixVersion: number) =>
+  (id: string, remixVersion: number, manuallyInstrumented: boolean) =>
   (origLoader: DataFunction): DataFunction => {
-    return makeWrappedDataFunction(origLoader, id, 'loader', remixVersion);
+    return makeWrappedDataFunction(origLoader, id, 'loader', remixVersion, manuallyInstrumented);
   };
 
 function getTraceAndBaggage(): {
@@ -290,7 +300,7 @@ function getTraceAndBaggage(): {
       const dynamicSamplingContext = transaction.getDynamicSamplingContext();
 
       return {
-        sentryTrace: span.toTraceparent(),
+        sentryTrace: spanToTraceHeader(span),
         sentryBaggage: dynamicSamplingContextToSentryBaggageHeader(dynamicSamplingContext),
       };
     }
@@ -419,7 +429,13 @@ function wrapRequestHandler(origRequestHandler: RequestHandler, build: ServerBui
   const routes = createRoutes(build.routes);
   const pkg = loadModule<ReactRouterDomPkg>('react-router-dom');
 
-  return async function (this: unknown, request: RemixRequest, loadContext?: unknown): Promise<Response> {
+  return async function (this: unknown, request: RemixRequest, loadContext?: AppLoadContext): Promise<Response> {
+    // This means that the request handler of the adapter (ex: express) is already wrapped.
+    // So we don't want to double wrap it.
+    if (loadContext?.__sentry_express_wrapped__) {
+      return origRequestHandler.call(this, request, loadContext);
+    }
+
     return runWithAsyncContext(async () => {
       const hub = getCurrentHub();
       const options = getClient()?.getOptions();
@@ -473,7 +489,7 @@ function wrapRequestHandler(origRequestHandler: RequestHandler, build: ServerBui
 /**
  * Instruments `remix` ServerBuild for performance tracing and error tracking.
  */
-export function instrumentBuild(build: ServerBuild): ServerBuild {
+export function instrumentBuild(build: ServerBuild, manuallyInstrumented: boolean = false): ServerBuild {
   const routes: ServerRouteManifest = {};
 
   const remixVersion = getRemixVersionFromBuild(build);
@@ -495,12 +511,12 @@ export function instrumentBuild(build: ServerBuild): ServerBuild {
 
     const routeAction = wrappedRoute.module.action as undefined | WrappedFunction;
     if (routeAction && !routeAction.__sentry_original__) {
-      fill(wrappedRoute.module, 'action', makeWrappedAction(id, remixVersion));
+      fill(wrappedRoute.module, 'action', makeWrappedAction(id, remixVersion, manuallyInstrumented));
     }
 
     const routeLoader = wrappedRoute.module.loader as undefined | WrappedFunction;
     if (routeLoader && !routeLoader.__sentry_original__) {
-      fill(wrappedRoute.module, 'loader', makeWrappedLoader(id, remixVersion));
+      fill(wrappedRoute.module, 'loader', makeWrappedLoader(id, remixVersion, manuallyInstrumented));
     }
 
     // Entry module should have a loader function to provide `sentry-trace` and `baggage`
@@ -523,13 +539,9 @@ export function instrumentBuild(build: ServerBuild): ServerBuild {
 function makeWrappedCreateRequestHandler(
   origCreateRequestHandler: CreateRequestHandlerFunction,
 ): CreateRequestHandlerFunction {
-  // To track if this wrapper has been applied, before other wrappers.
-  // Can't track `__sentry_original__` because it's not the same function as the potentially manually wrapped one.
-  isRequestHandlerWrapped = true;
-
   return function (this: unknown, build: ServerBuild, ...args: unknown[]): RequestHandler {
     FUTURE_FLAGS = getFutureFlagsServer(build);
-    const newBuild = instrumentBuild(build);
+    const newBuild = instrumentBuild(build, false);
     const requestHandler = origCreateRequestHandler.call(this, newBuild, ...args);
 
     return wrapRequestHandler(requestHandler, newBuild);

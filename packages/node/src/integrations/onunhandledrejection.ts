@@ -1,5 +1,5 @@
-import { captureException, getClient } from '@sentry/core';
-import type { Client, Integration } from '@sentry/types';
+import { captureException, convertIntegrationFnToClass, getClient } from '@sentry/core';
+import type { Client, IntegrationFn } from '@sentry/types';
 import { consoleSandbox } from '@sentry/utils';
 
 import { logAndExitProcess } from './utils/errorhandling';
@@ -14,35 +14,22 @@ interface OnUnhandledRejectionOptions {
   mode: UnhandledRejectionMode;
 }
 
+const INTEGRATION_NAME = 'OnUnhandledRejection';
+
+const onUnhandledRejectionIntegration = ((options: Partial<OnUnhandledRejectionOptions> = {}) => {
+  const mode = options.mode || 'warn';
+
+  return {
+    name: INTEGRATION_NAME,
+    setup(client) {
+      global.process.on('unhandledRejection', makeUnhandledPromiseHandler(client, { mode }));
+    },
+  };
+}) satisfies IntegrationFn;
+
 /** Global Promise Rejection handler */
-export class OnUnhandledRejection implements Integration {
-  /**
-   * @inheritDoc
-   */
-  public static id: string = 'OnUnhandledRejection';
-
-  /**
-   * @inheritDoc
-   */
-  public name: string = OnUnhandledRejection.id;
-
-  /**
-   * @inheritDoc
-   */
-  public constructor(private readonly _options: OnUnhandledRejectionOptions = { mode: 'warn' }) {}
-
-  /**
-   * @inheritDoc
-   */
-  public setupOnce(): void {
-    // noop
-  }
-
-  /** @inheritdoc */
-  public setup(client: Client): void {
-    global.process.on('unhandledRejection', makeUnhandledPromiseHandler(client, this._options));
-  }
-}
+// eslint-disable-next-line deprecation/deprecation
+export const OnUnhandledRejection = convertIntegrationFnToClass(INTEGRATION_NAME, onUnhandledRejectionIntegration);
 
 /**
  * Send an exception with reason

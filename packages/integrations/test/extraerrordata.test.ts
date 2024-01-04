@@ -178,4 +178,54 @@ describe('ExtraErrorData()', () => {
       },
     });
   });
+
+  it('captures Error causes when captureErrorCause = true', () => {
+    // Error.cause is only available from node 16 upwards
+    const nodeMajorVersion = parseInt(process.versions.node.split('.')[0]);
+    if (nodeMajorVersion < 16) {
+      return;
+    }
+
+    const extraErrorDataWithCauseCapture = new ExtraErrorData({ captureErrorCause: true });
+
+    // @ts-expect-error The typing .d.ts library we have installed isn't aware of Error.cause yet
+    const error = new Error('foo', { cause: { woot: 'foo' } }) as ExtendedError;
+
+    const enhancedEvent = extraErrorDataWithCauseCapture.processEvent(event, {
+      originalException: error,
+    });
+
+    expect(enhancedEvent.contexts).toEqual({
+      Error: {
+        cause: {
+          woot: 'foo',
+        },
+      },
+    });
+  });
+
+  it("doesn't capture Error causes when captureErrorCause != true", () => {
+    // Error.cause is only available from node 16 upwards
+    const nodeMajorVersion = parseInt(process.versions.node.split('.')[0]);
+    if (nodeMajorVersion < 16) {
+      return;
+    }
+
+    const extraErrorDataWithoutCauseCapture = new ExtraErrorData();
+
+    // @ts-expect-error The typing .d.ts library we have installed isn't aware of Error.cause yet
+    const error = new Error('foo', { cause: { woot: 'foo' } }) as ExtendedError;
+
+    const enhancedEvent = extraErrorDataWithoutCauseCapture.processEvent(event, {
+      originalException: error,
+    });
+
+    expect(enhancedEvent.contexts).not.toEqual({
+      Error: {
+        cause: {
+          woot: 'foo',
+        },
+      },
+    });
+  });
 });

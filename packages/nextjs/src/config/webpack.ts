@@ -462,7 +462,7 @@ function isMatchingRule(rule: WebpackModuleRule, projectDir: string): boolean {
   //
   // The next 11 option is ugly, but thankfully 'next', 'babel', and 'loader' do appear in it in the same order as in
   // 'next-babel-loader', so we can use the same regex to test for both.
-  if (!useEntries.some(entry => entry?.loader && new RegExp('next.*(babel|swc).*loader').test(entry.loader))) {
+  if (!useEntries.some(entry => entry?.loader && /next.*(babel|swc).*loader/.test(entry.loader))) {
     return false;
   }
 

@@ -1,6 +1,6 @@
-import { captureException } from '@sentry/core';
+import { captureException, convertIntegrationFnToClass } from '@sentry/core';
 import { getClient } from '@sentry/core';
-import type { Integration } from '@sentry/types';
+import type { IntegrationFn } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
 import type { NodeClient } from '../client';
@@ -38,50 +38,25 @@ interface OnUncaughtExceptionOptions {
   onFatalError?(this: void, firstError: Error, secondError?: Error): void;
 }
 
-/** Global Exception handler */
-export class OnUncaughtException implements Integration {
-  /**
-   * @inheritDoc
-   */
-  public static id: string = 'OnUncaughtException';
+const INTEGRATION_NAME = 'OnUncaughtException';
 
-  /**
-   * @inheritDoc
-   */
-  public name: string = OnUncaughtException.id;
-
-  // CAREFUL: Please think twice before updating the way _options looks because the Next.js SDK depends on it in `index.server.ts`
-  private readonly _options: OnUncaughtExceptionOptions;
-
-  /**
-   * @inheritDoc
-   */
-  public constructor(options: Partial<OnUncaughtExceptionOptions> = {}) {
-    this._options = {
-      exitEvenIfOtherHandlersAreRegistered: true,
-      ...options,
-    };
-  }
-
-  /**
-   * @deprecated This does nothing anymore.
-   */
-  public readonly handler: (error: Error) => void = () => {
-    // noop
+const onUncaughtExceptionIntegration = ((options: Partial<OnUncaughtExceptionOptions> = {}) => {
+  const _options = {
+    exitEvenIfOtherHandlersAreRegistered: true,
+    ...options,
   };
 
-  /**
-   * @inheritDoc
-   */
-  public setupOnce(): void {
-    // noop
-  }
+  return {
+    name: INTEGRATION_NAME,
+    setup(client: NodeClient) {
+      global.process.on('uncaughtException', makeErrorHandler(client, _options));
+    },
+  };
+}) satisfies IntegrationFn;
 
-  /** @inheritdoc */
-  public setup(client: NodeClient): void {
-    global.process.on('uncaughtException', makeErrorHandler(client, this._options));
-  }
-}
+/** Global Exception handler */
+// eslint-disable-next-line deprecation/deprecation
+export const OnUncaughtException = convertIntegrationFnToClass(INTEGRATION_NAME, onUncaughtExceptionIntegration);
 
 type ErrorHandler = { _errorHandler: boolean } & ((error: Error) => void);
 

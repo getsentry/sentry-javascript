@@ -20,7 +20,15 @@ import type {
   TransactionContext,
   User,
 } from '@sentry/types';
-import { GLOBAL_OBJ, consoleSandbox, dateTimestampInSeconds, getGlobalSingleton, logger, uuid4 } from '@sentry/utils';
+import {
+  GLOBAL_OBJ,
+  consoleSandbox,
+  dateTimestampInSeconds,
+  getGlobalSingleton,
+  isThenable,
+  logger,
+  uuid4,
+} from '@sentry/utils';
 
 import { DEFAULT_ENVIRONMENT } from './constants';
 import { DEBUG_BUILD } from './debug-build';
@@ -116,16 +124,33 @@ export class Hub implements HubInterface {
    */
   public constructor(
     client?: Client,
-    scope: Scope = new Scope(),
-    isolationScope = new Scope(),
+    scope?: Scope,
+    isolationScope?: Scope,
     private readonly _version: number = API_VERSION,
   ) {
-    this._stack = [{ scope }];
+    let assignedScope;
+    if (!scope) {
+      assignedScope = new Scope();
+      assignedScope.setClient(client);
+    } else {
+      assignedScope = scope;
+    }
+
+    let assignedIsolationScope;
+    if (!isolationScope) {
+      assignedIsolationScope = new Scope();
+      assignedIsolationScope.setClient(client);
+    } else {
+      assignedIsolationScope = isolationScope;
+    }
+
+    this._stack = [{ scope: assignedScope }];
+
     if (client) {
       this.bindClient(client);
     }
 
-    this._isolationScope = isolationScope;
+    this._isolationScope = assignedIsolationScope;
   }
 
   /**
@@ -177,12 +202,35 @@ export class Hub implements HubInterface {
   public withScope<T>(callback: (scope: Scope) => T): T {
     // eslint-disable-next-line deprecation/deprecation
     const scope = this.pushScope();
+
+    let maybePromiseResult: T;
     try {
-      return callback(scope);
-    } finally {
+      maybePromiseResult = callback(scope);
+    } catch (e) {
       // eslint-disable-next-line deprecation/deprecation
       this.popScope();
+      throw e;
     }
+
+    if (isThenable(maybePromiseResult)) {
+      // @ts-expect-error - isThenable returns the wrong type
+      return maybePromiseResult.then(
+        res => {
+          // eslint-disable-next-line deprecation/deprecation
+          this.popScope();
+          return res;
+        },
+        e => {
+          // eslint-disable-next-line deprecation/deprecation
+          this.popScope();
+          throw e;
+        },
+      );
+    }
+
+    // eslint-disable-next-line deprecation/deprecation
+    this.popScope();
+    return maybePromiseResult;
   }
 
   /**

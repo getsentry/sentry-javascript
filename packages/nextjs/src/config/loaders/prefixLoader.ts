@@ -30,6 +30,7 @@ export default function prefixLoader(this: LoaderThis<LoaderOptions>, userCode: 
   // Fill in placeholders
   let templateCode = fs.readFileSync(templatePath).toString();
   replacements.forEach(([placeholder, value]) => {
+    // eslint-disable-next-line @sentry-internal/sdk/no-regexp-constructor -- user input is escaped
     const placeholderRegex = new RegExp(escapeStringForRegex(placeholder), 'g');
     templateCode = templateCode.replace(placeholderRegex, value);
   });
