@@ -124,16 +124,33 @@ export class Hub implements HubInterface {
    */
   public constructor(
     client?: Client,
-    scope: Scope = new Scope(),
-    isolationScope = new Scope(),
+    scope?: Scope,
+    isolationScope?: Scope,
     private readonly _version: number = API_VERSION,
   ) {
-    this._stack = [{ scope }];
+    let assignedScope;
+    if (!scope) {
+      assignedScope = new Scope();
+      assignedScope.setClient(client);
+    } else {
+      assignedScope = scope;
+    }
+
+    let assignedIsolationScope;
+    if (!isolationScope) {
+      assignedIsolationScope = new Scope();
+      assignedIsolationScope.setClient(client);
+    } else {
+      assignedIsolationScope = isolationScope;
+    }
+
+    this._stack = [{ scope: assignedScope }];
+
     if (client) {
       this.bindClient(client);
     }
 
-    this._isolationScope = isolationScope;
+    this._isolationScope = assignedIsolationScope;
   }
 
   /**

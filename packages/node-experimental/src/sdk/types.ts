@@ -1,7 +1,6 @@
 import type {
   Attachment,
   Breadcrumb,
-  Client,
   Contexts,
   EventProcessor,
   Extras,
@@ -33,8 +32,6 @@ export interface Scope extends BaseScope {
   isolationScope: typeof this | undefined;
   // @ts-expect-error typeof this is what we want here
   clone(scope?: Scope): typeof this;
-  setClient(client: Client): void;
-  getClient(): Client | undefined;
   lastEventId(): string | undefined;
   getScopeData(): ScopeData;
 }

@@ -1,5 +1,6 @@
 import type { Attachment } from './attachment';
 import type { Breadcrumb } from './breadcrumb';
+import type { Client } from './client';
 import type { Context, Contexts } from './context';
 import type { Event, EventHint } from './event';
 import type { EventProcessor } from './eventprocessor';
@@ -48,6 +49,18 @@ export interface ScopeData {
  * Holds additional event information. {@link Scope.applyToEvent} will be called by the client before an event is sent.
  */
 export interface Scope {
+  /**
+   * Update the client on the scope.
+   */
+  setClient(client: Client | undefined): void;
+
+  /**
+   * Get the client assigned to this scope.
+   *
+   * It is generally recommended to use the global function `Sentry.getClient()` instead, unless you know what you are doing.
+   */
+  getClient(): Client | undefined;
+
   /** Add new event processor that will be called after {@link applyToEvent}. */
   addEventProcessor(callback: EventProcessor): this;
 

@@ -1,8 +1,8 @@
-import type { Attachment, Breadcrumb } from '@sentry/types';
+import type { Attachment, Breadcrumb, Client } from '@sentry/types';
 import { applyScopeDataToEvent } from '../../src';
 import { Scope, getGlobalScope, setGlobalScope } from '../../src/scope';
 
-describe('Unit | Scope', () => {
+describe('Scope', () => {
   beforeEach(() => {
     setGlobalScope(undefined);
   });
@@ -186,5 +186,30 @@ describe('Unit | Scope', () => {
       expect(actual).toEqual([attachment1, attachment2]);
     });
     /* eslint-enable deprecation/deprecation */
+  });
+
+  describe('setClient() and getClient()', () => {
+    it('allows storing and retrieving client objects', () => {
+      const fakeClient = {} as Client;
+      const scope = new Scope();
+      scope.setClient(fakeClient);
+      expect(scope.getClient()).toBe(fakeClient);
+    });
+
+    it('defaults to not having a client', () => {
+      const scope = new Scope();
+      expect(scope.getClient()).toBeUndefined();
+    });
+  });
+
+  describe('.clone()', () => {
+    it('will clone a client on the scope', () => {
+      const fakeClient = {} as Client;
+      const scope = new Scope();
+      scope.setClient(fakeClient);
+
+      const clonedScope = scope.clone();
+      expect(clonedScope.getClient()).toBe(fakeClient);
+    });
   });
 });
