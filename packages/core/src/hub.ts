@@ -532,6 +532,9 @@ Sentry.init({...});
   /**
    * Returns if default PII should be sent to Sentry and propagated in ourgoing requests
    * when Tracing is used.
+   *
+   * @deprecated Use top-level `getClient().getOptions().sendDefaultPii` instead. This function
+   * only unnecessarily increased API surface but only wrapped accessing the option.
    */
   public shouldSendDefaultPii(): boolean {
     const client = this.getClient();
