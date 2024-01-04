@@ -7,14 +7,14 @@ import type {
   SpanAttributes,
   SpanContext,
   SpanOrigin,
+  SpanTimeInput,
   TraceContext,
   Transaction,
 } from '@sentry/types';
 import { dropUndefinedKeys, logger, timestampInSeconds, uuid4 } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../debug-build';
-import { spanToTraceContext, spanToTraceHeader } from '../utils/spanUtils';
-import { ensureTimestampInSeconds } from './utils';
+import { spanTimeInputToSeconds, spanToTraceContext, spanToTraceHeader } from '../utils/spanUtils';
 
 /**
  * Keeps track of finished spans for a given transaction
@@ -300,7 +300,7 @@ export class Span implements SpanInterface {
   }
 
   /** @inheritdoc */
-  public end(endTimestamp?: number): void {
+  public end(endTimestamp?: SpanTimeInput): void {
     if (
       DEBUG_BUILD &&
       // Don't call this for transactions
@@ -313,8 +313,7 @@ export class Span implements SpanInterface {
       }
     }
 
-    this.endTimestamp =
-      typeof endTimestamp === 'number' ? ensureTimestampInSeconds(endTimestamp) : timestampInSeconds();
+    this.endTimestamp = spanTimeInputToSeconds(endTimestamp);
   }
 
   /**
