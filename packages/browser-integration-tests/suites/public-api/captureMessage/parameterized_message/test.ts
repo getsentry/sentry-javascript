@@ -2,11 +2,12 @@ import { expect } from '@playwright/test';
 import type { Event } from '@sentry/types';
 
 import { sentryTest } from '../../../../utils/fixtures';
-import { getFirstSentryEnvelopeRequest, shouldSkipTracingTest } from '../../../../utils/helpers';
-import { shouldSkipReplayTest } from '../../../../utils/replayHelpers';
+import { getFirstSentryEnvelopeRequest } from '../../../../utils/helpers';
 
 sentryTest('should capture a parameterized representation of the message', async ({ getLocalTestPath, page }) => {
-  if (shouldSkipReplayTest() || !shouldSkipTracingTest()) {
+  const bundle = process.env.PW_BUNDLE;
+
+  if (bundle && bundle.startsWith('bundle_')) {
     sentryTest.skip();
   }
 
