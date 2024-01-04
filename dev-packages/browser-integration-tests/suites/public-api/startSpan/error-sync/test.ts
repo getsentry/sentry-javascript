@@ -13,7 +13,7 @@ sentryTest('should capture an error within a sync startSpan callback', async ({ 
   const gotoPromise = page.goto(url);
   const envelopePromise = getMultipleSentryEnvelopeRequests<Event>(page, 2);
 
-  const [_, events] = await Promise.all([gotoPromise, envelopePromise]);
+  const [, events] = await Promise.all([gotoPromise, envelopePromise]);
   const txn = events.find(event => event.type === 'transaction');
   const err = events.find(event => !event.type);
 
