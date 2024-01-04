@@ -36,6 +36,7 @@
     },
     "lint": {
       "inputs": ["default"],
+      "dependsOn": ["^build:types", "build:types"],
       "outputs": []
     },
     "test:unit": {
