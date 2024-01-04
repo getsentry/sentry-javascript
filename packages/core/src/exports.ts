@@ -337,6 +337,7 @@ export function getCurrentScope(): Scope {
 export function startSession(context?: SessionContext): Session {
   const client = getClient();
   const isolationScope = getIsolationScope();
+  const currentScope = getCurrentScope();
 
   const { release, environment = DEFAULT_ENVIRONMENT } = (client && client.getOptions()) || {};
 
@@ -352,7 +353,7 @@ export function startSession(context?: SessionContext): Session {
   });
 
   // End existing session if there's one
-  const currentSession = isolationScope.getSession && isolationScope.getSession();
+  const currentSession = isolationScope.getSession();
   if (currentSession && currentSession.status === 'ok') {
     updateSession(currentSession, { status: 'exited' });
   }
@@ -362,6 +363,10 @@ export function startSession(context?: SessionContext): Session {
   // Afterwards we set the new session on the scope
   isolationScope.setSession(session);
 
+  // TODO (v8): Remove this and only use the isolation scope(?).
+  // For v7 though, we can't "soft-break" people using getCurrentHub().getScope().setSession()
+  currentScope.setSession(session);
+
   return session;
 }
 
@@ -370,6 +375,8 @@ export function startSession(context?: SessionContext): Session {
  */
 export function endSession(): void {
   const isolationScope = getIsolationScope();
+  const currentScope = getCurrentScope();
+
   const session = isolationScope.getSession();
   if (session) {
     closeSession(session);
@@ -378,6 +385,10 @@ export function endSession(): void {
 
   // the session is over; take it off of the scope
   isolationScope.setSession();
+
+  // TODO (v8): Remove this and only use the isolation scope(?).
+  // For v7 though, we can't "soft-break" people using getCurrentHub().getScope().setSession()
+  currentScope.setSession();
 }
 
 /**
@@ -385,9 +396,11 @@ export function endSession(): void {
  */
 function _sendSessionUpdate(): void {
   const isolationScope = getIsolationScope();
+  const currentScope = getCurrentScope();
   const client = getClient();
-
-  const session = isolationScope.getSession();
+  // TODO (v8): Remove currentScope and only use the isolation scope(?).
+  // For v7 though, we can't "soft-break" people using getCurrentHub().getScope().setSession()
+  const session = currentScope.getSession() || isolationScope.getSession();
   if (session && client && client.captureSession) {
     client.captureSession(session);
   }
