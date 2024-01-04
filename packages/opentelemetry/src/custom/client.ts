@@ -71,7 +71,7 @@ export function wrapClientClass<
       event: Event,
       hint: EventHint,
       scope?: Scope,
-      isolationScope?: Scope,
+      _isolationScope?: Scope,
     ): PromiseLike<Event | null> {
       let actualScope = scope;
 
