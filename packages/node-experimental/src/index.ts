@@ -22,6 +22,7 @@ export {
   captureMessage,
   addGlobalEventProcessor,
   addEventProcessor,
+  // eslint-disable-next-line deprecation/deprecation
   lastEventId,
   setContext,
   setExtra,
@@ -61,6 +62,7 @@ export {
   runWithAsyncContext,
   SDK_VERSION,
   spanStatusfromHttpCode,
+  // eslint-disable-next-line deprecation/deprecation
   trace,
   captureCheckIn,
   withMonitor,

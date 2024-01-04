@@ -1,4 +1,4 @@
-import { trace } from '@sentry/core';
+import { handleCallbackErrors, startSpan } from '@sentry/core';
 import { captureException } from '@sentry/svelte';
 import { addNonEnumerableProperty, objectify } from '@sentry/utils';
 import type { LoadEvent } from '@sveltejs/kit';
@@ -77,7 +77,7 @@ export function wrapLoadWithSentry<T extends (...args: any) => any>(origLoad: T)
       // `event.route.id` directly. This will still cause invalidations but we get a route name.
       const routeId = routeIdFromDescriptor || event.route.id;
 
-      return trace(
+      return startSpan(
         {
           op: 'function.sveltekit.load',
           origin: 'auto.function.sveltekit',
@@ -87,8 +87,7 @@ export function wrapLoadWithSentry<T extends (...args: any) => any>(origLoad: T)
             source: routeId ? 'route' : 'url',
           },
         },
-        () => wrappingTarget.apply(thisArg, [patchedEvent]),
-        sendErrorToSentry,
+        () => handleCallbackErrors(() => wrappingTarget.apply(thisArg, [patchedEvent]), sendErrorToSentry),
       );
     },
   });

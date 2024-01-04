@@ -34,7 +34,7 @@ afterAll(() => {
   global.Response = origResponse;
 });
 
-const traceSpy = jest.spyOn(coreSdk, 'trace');
+const startSpanSpy = jest.spyOn(coreSdk, 'startSpan');
 
 afterEach(() => {
   jest.clearAllMocks();
@@ -49,15 +49,14 @@ describe('wrapApiHandlerWithSentry', () => {
 
     await wrappedFunction(request);
 
-    expect(traceSpy).toHaveBeenCalledTimes(1);
-    expect(traceSpy).toHaveBeenCalledWith(
+    expect(startSpanSpy).toHaveBeenCalledTimes(1);
+    expect(startSpanSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         metadata: { request: { headers: {}, method: 'POST', url: 'https://sentry.io/' }, source: 'route' },
         name: 'POST /user/[userId]/post/[postId]',
         op: 'http.server',
         origin: 'auto.function.nextjs.withEdgeWrapping',
       }),
-      expect.any(Function),
       expect.any(Function),
     );
   });
@@ -69,15 +68,14 @@ describe('wrapApiHandlerWithSentry', () => {
 
     await wrappedFunction();
 
-    expect(traceSpy).toHaveBeenCalledTimes(1);
-    expect(traceSpy).toHaveBeenCalledWith(
+    expect(startSpanSpy).toHaveBeenCalledTimes(1);
+    expect(startSpanSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         metadata: { source: 'route' },
         name: 'handler (/user/[userId]/post/[postId])',
         op: 'http.server',
         origin: 'auto.function.nextjs.withEdgeWrapping',
       }),
-      expect.any(Function),
       expect.any(Function),
     );
   });
