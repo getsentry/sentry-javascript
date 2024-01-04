@@ -5,6 +5,7 @@ import {
   getClient,
   getCurrentScope,
   getIntegrationsToSetup,
+  getIsolationScope,
   getMainCarrier,
   initAndBind,
   startSession,
@@ -251,7 +252,7 @@ function startSessionTracking(): void {
   // such as calling process.exit() or uncaught exceptions.
   // Ref: https://nodejs.org/api/process.html#process_event_beforeexit
   process.on('beforeExit', () => {
-    const session = getCurrentScope().getSession();
+    const session = getIsolationScope().getSession();
     const terminalStates: SessionStatus[] = ['exited', 'crashed'];
     // Only call endSession, if the Session exists on Scope and SessionStatus is not a
     // Terminal Status i.e. Exited or Crashed because
