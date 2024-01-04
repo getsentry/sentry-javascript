@@ -32,7 +32,7 @@ import {
   Spotlight,
   Undici,
 } from './integrations';
-import { getModuleFromFilename } from './module';
+import { createGetModuleFromFilename } from './module';
 import { makeNodeTransport } from './transports';
 import type { NodeClientOptions, NodeOptions } from './types';
 
@@ -238,7 +238,7 @@ export function getSentryRelease(fallback?: string): string | undefined {
 }
 
 /** Node.js stack parser */
-export const defaultStackParser: StackParser = createStackParser(nodeStackLineParser(getModuleFromFilename));
+export const defaultStackParser: StackParser = createStackParser(nodeStackLineParser(createGetModuleFromFilename()));
 
 /**
  * Enable automatic Session Tracking for the node process.

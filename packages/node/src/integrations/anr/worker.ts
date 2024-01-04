@@ -9,6 +9,8 @@ import type { Event, Session, StackFrame, TraceContext } from '@sentry/types';
 import { callFrameToStackFrame, normalizeUrlToBase, stripSentryFramesAndReverse, watchdogTimer } from '@sentry/utils';
 import { Session as InspectorSession } from 'inspector';
 import { parentPort, workerData } from 'worker_threads';
+
+import { createGetModuleFromFilename } from '../../module';
 import { makeNodeTransport } from '../../transports';
 import type { WorkerStartData } from './common';
 
@@ -151,8 +153,9 @@ if (options.captureStackTrace) {
       // copy the frames
       const callFrames = [...event.params.callFrames];
 
+      const getModuleName = options.appRootPath ? createGetModuleFromFilename(options.appRootPath) : () => undefined;
       const stackFrames = callFrames.map(frame =>
-        callFrameToStackFrame(frame, scripts.get(frame.location.scriptId), () => undefined),
+        callFrameToStackFrame(frame, scripts.get(frame.location.scriptId), getModuleName),
       );
 
       // Evaluate a script in the currently paused context
