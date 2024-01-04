@@ -21,6 +21,10 @@ export declare const defaultStackParser: StackParser;
 
 export declare function close(timeout?: number | undefined): PromiseLike<boolean>;
 export declare function flush(timeout?: number | undefined): PromiseLike<boolean>;
+
+/**
+ * @deprecated This function will be removed in the next major version of the Sentry SDK.
+ */
 export declare function lastEventId(): string | undefined;
 
 export default sentryAstro;

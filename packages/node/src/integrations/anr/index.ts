@@ -122,8 +122,6 @@ async function _startWorker(client: NodeClient, _options: Partial<Options>): Pro
   const worker = new Worker(new URL(`data:application/javascript;base64,${base64WorkerScript}`), {
     workerData: options,
   });
-  // Ensure this thread can't block app exit
-  worker.unref();
 
   process.on('exit', () => {
     worker.terminate();
@@ -160,4 +158,7 @@ async function _startWorker(client: NodeClient, _options: Partial<Options>): Pro
     clearInterval(timer);
     log('ANR worker exit', code);
   });
+
+  // Ensure this thread can't block app exit
+  worker.unref();
 }

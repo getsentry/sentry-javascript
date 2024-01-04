@@ -156,6 +156,8 @@ export function wrap(
 
 /**
  * All properties the report dialog supports
+ *
+ * @deprecated This type will be removed in the next major version of the Sentry SDK. `showReportDialog` will still be around, however the `eventId` option will now be required.
  */
 export interface ReportDialogOptions {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

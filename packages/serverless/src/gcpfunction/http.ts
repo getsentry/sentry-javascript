@@ -1,9 +1,9 @@
-import { Transaction } from '@sentry/core';
+import { Transaction, handleCallbackErrors } from '@sentry/core';
 import type { AddRequestDataToEventOptions } from '@sentry/node';
 import { continueTrace, startSpanManual } from '@sentry/node';
 import { getCurrentScope } from '@sentry/node';
 import { captureException, flush } from '@sentry/node';
-import { isString, isThenable, logger, stripUrlQueryAndFragment } from '@sentry/utils';
+import { isString, logger, stripUrlQueryAndFragment } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../debug-build';
 import { domainify, markEventUnhandled, proxyFunction } from './../utils';
@@ -116,22 +116,12 @@ function _wrapHttpFunction(fn: HttpFunction, wrapOptions: Partial<HttpFunctionWr
             });
         };
 
-        let fnResult;
-        try {
-          fnResult = fn(req, res);
-        } catch (err) {
-          captureException(err, scope => markEventUnhandled(scope));
-          throw err;
-        }
-
-        if (isThenable(fnResult)) {
-          fnResult.then(null, err => {
+        return handleCallbackErrors(
+          () => fn(req, res),
+          err => {
             captureException(err, scope => markEventUnhandled(scope));
-            throw err;
-          });
-        }
-
-        return fnResult;
+          },
+        );
       },
     );
   };

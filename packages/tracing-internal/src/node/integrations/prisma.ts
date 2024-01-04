@@ -1,4 +1,4 @@
-import { getCurrentHub, trace } from '@sentry/core';
+import { getCurrentHub, startSpan } from '@sentry/core';
 import type { Integration } from '@sentry/types';
 import { addNonEnumerableProperty, logger } from '@sentry/utils';
 
@@ -99,7 +99,7 @@ export class Prisma implements Integration {
         const action = params.action;
         const model = params.model;
 
-        return trace(
+        return startSpan(
           {
             name: model ? `${model} ${action}` : action,
             op: 'db.prisma',

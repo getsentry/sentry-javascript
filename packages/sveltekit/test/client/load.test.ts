@@ -7,15 +7,15 @@ import { wrapLoadWithSentry } from '../../src/client/load';
 
 const mockCaptureException = vi.spyOn(SentrySvelte, 'captureException').mockImplementation(() => 'xx');
 
-const mockTrace = vi.fn();
+const mockStartSpan = vi.fn();
 
 vi.mock('@sentry/core', async () => {
   const original = (await vi.importActual('@sentry/core')) as any;
   return {
     ...original,
-    trace: (...args: unknown[]) => {
-      mockTrace(...args);
-      return original.trace(...args);
+    startSpan: (...args: unknown[]) => {
+      mockStartSpan(...args);
+      return original.startSpan(...args);
     },
   };
 });
@@ -39,7 +39,7 @@ beforeAll(() => {
 describe('wrapLoadWithSentry', () => {
   beforeEach(() => {
     mockCaptureException.mockClear();
-    mockTrace.mockClear();
+    mockStartSpan.mockClear();
   });
 
   it('calls captureException', async () => {
@@ -79,8 +79,8 @@ describe('wrapLoadWithSentry', () => {
       const wrappedLoad = wrapLoadWithSentry(load);
       await wrappedLoad(MOCK_LOAD_ARGS);
 
-      expect(mockTrace).toHaveBeenCalledTimes(1);
-      expect(mockTrace).toHaveBeenCalledWith(
+      expect(mockStartSpan).toHaveBeenCalledTimes(1);
+      expect(mockStartSpan).toHaveBeenCalledWith(
         {
           op: 'function.sveltekit.load',
           origin: 'auto.function.sveltekit',
@@ -90,7 +90,6 @@ describe('wrapLoadWithSentry', () => {
             source: 'route',
           },
         },
-        expect.any(Function),
         expect.any(Function),
       );
     });
@@ -108,8 +107,8 @@ describe('wrapLoadWithSentry', () => {
 
       await wrappedLoad(MOCK_LOAD_ARGS);
 
-      expect(mockTrace).toHaveBeenCalledTimes(1);
-      expect(mockTrace).toHaveBeenCalledWith(
+      expect(mockStartSpan).toHaveBeenCalledTimes(1);
+      expect(mockStartSpan).toHaveBeenCalledWith(
         {
           op: 'function.sveltekit.load',
           origin: 'auto.function.sveltekit',
@@ -119,7 +118,6 @@ describe('wrapLoadWithSentry', () => {
             source: 'url',
           },
         },
-        expect.any(Function),
         expect.any(Function),
       );
     });
@@ -152,6 +150,6 @@ describe('wrapLoadWithSentry', () => {
     const wrappedLoad = wrapLoadWithSentry(wrapLoadWithSentry(load));
     await wrappedLoad(MOCK_LOAD_ARGS);
 
-    expect(mockTrace).toHaveBeenCalledTimes(1);
+    expect(mockStartSpan).toHaveBeenCalledTimes(1);
   });
 });

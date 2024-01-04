@@ -115,7 +115,7 @@ conditionalTest({ min: 16 })('should report ANR when event loop blocked', () => 
     });
   });
 
-  test('can exit', done => {
+  test('should exit', done => {
     const testScriptPath = path.resolve(__dirname, 'should-exit.js');
     let hasClosed = false;
 
@@ -124,7 +124,21 @@ conditionalTest({ min: 16 })('should report ANR when event loop blocked', () => 
       done();
     }, 5_000);
 
-    childProcess.exec(`node ${testScriptPath}`, { encoding: 'utf8' }, (_, stdout) => {
+    childProcess.exec(`node ${testScriptPath}`, { encoding: 'utf8' }, () => {
+      hasClosed = true;
+    });
+  });
+
+  test('should exit forced', done => {
+    const testScriptPath = path.resolve(__dirname, 'should-exit-forced.js');
+    let hasClosed = false;
+
+    setTimeout(() => {
+      expect(hasClosed).toBe(true);
+      done();
+    }, 5_000);
+
+    childProcess.exec(`node ${testScriptPath}`, { encoding: 'utf8' }, () => {
       hasClosed = true;
     });
   });

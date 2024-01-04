@@ -1,5 +1,6 @@
+import { handleCallbackErrors } from '@sentry/core';
 import { captureException, flush, getCurrentScope, startSpanManual } from '@sentry/node';
-import { isThenable, logger } from '@sentry/utils';
+import { logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../debug-build';
 import { domainify, markEventUnhandled, proxyFunction } from '../utils';
@@ -58,22 +59,12 @@ function _wrapCloudEventFunction(
         });
 
         if (fn.length > 1) {
-          let fnResult;
-          try {
-            fnResult = (fn as CloudEventFunctionWithCallback)(context, newCallback);
-          } catch (err) {
-            captureException(err, scope => markEventUnhandled(scope));
-            throw err;
-          }
-
-          if (isThenable(fnResult)) {
-            fnResult.then(null, err => {
+          return handleCallbackErrors(
+            () => (fn as CloudEventFunctionWithCallback)(context, newCallback),
+            err => {
               captureException(err, scope => markEventUnhandled(scope));
-              throw err;
-            });
-          }
-
-          return fnResult;
+            },
+          );
         }
 
         return Promise.resolve()

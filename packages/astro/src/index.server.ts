@@ -41,12 +41,14 @@ export {
   setTags,
   setUser,
   spanStatusfromHttpCode,
+  // eslint-disable-next-line deprecation/deprecation
   trace,
   withScope,
   autoDiscoverNodePerformanceMonitoringIntegrations,
   makeNodeTransport,
   defaultIntegrations,
   defaultStackParser,
+  // eslint-disable-next-line deprecation/deprecation
   lastEventId,
   flush,
   close,
