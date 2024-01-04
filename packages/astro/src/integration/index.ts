@@ -1,6 +1,5 @@
 import * as fs from 'fs';
 import * as path from 'path';
-/* eslint-disable no-console */
 import { sentryVitePlugin } from '@sentry/vite-plugin';
 import type { AstroConfig, AstroIntegration } from 'astro';
 
@@ -14,7 +13,7 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
     name: PKG_NAME,
     hooks: {
       // eslint-disable-next-line complexity
-      'astro:config:setup': async ({ updateConfig, injectScript, addMiddleware, config, command }) => {
+      'astro:config:setup': async ({ updateConfig, injectScript, addMiddleware, config, command, logger }) => {
         // The third param here enables loading of all env vars, regardless of prefix
         // see: https://main.vitejs.dev/config/#using-environment-variables-in-config
 
@@ -62,10 +61,10 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
             : findDefaultSdkInitFile('client');
 
           if (pathToClientInit) {
-            options.debug && console.log(`[sentry-astro] Using ${pathToClientInit} for client init.`);
+            options.debug && logger.info(`Using ${pathToClientInit} for client init.`);
             injectScript('page', buildSdkInitFileImportSnippet(pathToClientInit));
           } else {
-            options.debug && console.log('[sentry-astro] Using default client init.');
+            options.debug && logger.info('Using default client init.');
             injectScript('page', buildClientSnippet(options || {}));
           }
         }
@@ -75,11 +74,24 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
             ? path.resolve(options.serverInitPath)
             : findDefaultSdkInitFile('server');
           if (pathToServerInit) {
-            options.debug && console.log(`[sentry-astro] Using ${pathToServerInit} for server init.`);
+            options.debug && logger.info(`Using ${pathToServerInit} for server init.`);
             injectScript('page-ssr', buildSdkInitFileImportSnippet(pathToServerInit));
           } else {
-            options.debug && console.log('[sentry-astro] Using default server init.');
+            options.debug && logger.info('Using default server init.');
             injectScript('page-ssr', buildServerSnippet(options || {}));
+          }
+
+          // Prevent Sentry from being externalized for SSR.
+          // Cloudflare like environments have Node.js APIs are available under `node:` prefix.
+          // Ref: https://developers.cloudflare.com/workers/runtime-apis/nodejs/
+          if (config?.adapter?.name.startsWith('@astro/cloudflare')) {
+            updateConfig({
+              vite: {
+                ssr: {
+                  noExternal: ['@sentry/astro'],
+                },
+              },
+            });
           }
         }
 
@@ -101,11 +113,14 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
   };
 };
 
+const possibleFileExtensions = ['ts', 'js', 'tsx', 'jsx', 'mjs', 'cjs', 'mts'];
+
 function findDefaultSdkInitFile(type: 'server' | 'client'): string | undefined {
-  const fileExtensions = ['ts', 'js', 'tsx', 'jsx', 'mjs', 'cjs', 'mts'];
-  return fileExtensions
-    .map(ext => path.resolve(path.join(process.cwd(), `sentry.${type}.config.${ext}`)))
-    .find(filename => fs.existsSync(filename));
+  const cwd = process.cwd();
+  return possibleFileExtensions.find(extension => {
+    const filename = path.resolve(path.join(cwd, `sentry.${type}.config.${extension}`));
+    return fs.existsSync(filename);
+  });
 }
 
 function getSourcemapsAssetsGlob(config: AstroConfig): string {

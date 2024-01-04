@@ -1,4 +1,4 @@
-import { addTracingExtensions, captureException, continueTrace, trace } from '@sentry/core';
+import { addTracingExtensions, captureException, continueTrace, handleCallbackErrors, startSpan } from '@sentry/core';
 import { winterCGRequestToRequestData } from '@sentry/utils';
 
 import type { EdgeRouteHandler } from '../../edge/types';
@@ -28,7 +28,7 @@ export function withEdgeWrapping<H extends EdgeRouteHandler>(
       baggage,
     });
 
-    return trace(
+    return startSpan(
       {
         ...transactionContext,
         name: options.spanDescription,
@@ -41,7 +41,20 @@ export function withEdgeWrapping<H extends EdgeRouteHandler>(
         },
       },
       async span => {
-        const handlerResult = await handler.apply(this, args);
+        const handlerResult = await handleCallbackErrors(
+          () => handler.apply(this, args),
+          error => {
+            captureException(error, {
+              mechanism: {
+                type: 'instrument',
+                handled: false,
+                data: {
+                  function: options.mechanismFunctionName,
+                },
+              },
+            });
+          },
+        );
 
         if (handlerResult instanceof Response) {
           span?.setHttpStatus(handlerResult.status);
@@ -50,18 +63,6 @@ export function withEdgeWrapping<H extends EdgeRouteHandler>(
         }
 
         return handlerResult;
-      },
-      (err, span) => {
-        span?.setStatus('internal_error');
-        captureException(err, {
-          mechanism: {
-            type: 'instrument',
-            handled: false,
-            data: {
-              function: options.mechanismFunctionName,
-            },
-          },
-        });
       },
     ).finally(() => flushQueue());
   };

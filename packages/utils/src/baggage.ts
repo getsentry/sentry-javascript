@@ -40,10 +40,10 @@ export function baggageHeaderToDynamicSamplingContext(
     // Combine all baggage headers into one object containing the baggage values so we can later read the Sentry-DSC-values from it
     baggageObject = baggageHeader.reduce<Record<string, string>>((acc, curr) => {
       const currBaggageObject = baggageHeaderToObject(curr);
-      return {
-        ...acc,
-        ...currBaggageObject,
-      };
+      for (const key of Object.keys(currBaggageObject)) {
+        acc[key] = currBaggageObject[key];
+      }
+      return acc;
     }, {});
   } else {
     // Return undefined if baggage header is an empty string (technically an empty baggage header is not spec conform but

@@ -3,9 +3,9 @@ import { AddressInfo } from 'net';
 import { createRequestHandler } from '@remix-run/express';
 import { wrapExpressCreateRequestHandler } from '@sentry/remix';
 import express from 'express';
-import { TestEnv } from '../../../../../../node-integration-tests/utils';
+import { TestEnv } from '../../../../../../../dev-packages/node-integration-tests/utils';
 
-export * from '../../../../../../node-integration-tests/utils';
+export * from '../../../../../../../dev-packages/node-integration-tests/utils';
 
 export class RemixTestEnv extends TestEnv {
   private constructor(public readonly server: http.Server, public readonly url: string) {

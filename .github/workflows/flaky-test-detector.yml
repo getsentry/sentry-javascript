@@ -3,7 +3,7 @@ on:
   workflow_dispatch:
   pull_request:
     paths:
-      - 'packages/browser-integration-tests/suites/**'
+      - 'dev-packages/browser-integration-tests/suites/**'
     branches-ignore:
       - master
 
@@ -76,11 +76,11 @@ jobs:
         with:
           list-files: json
           filters: |
-            browser_integration: packages/browser-integration-tests/suites/**
+            browser_integration: dev-packages/browser-integration-tests/suites/**
 
       - name: Detect flaky tests
         run: yarn test:detect-flaky
-        working-directory: packages/browser-integration-tests
+        working-directory: dev-packages/browser-integration-tests
         env:
           CHANGED_TEST_PATHS: ${{ steps.changed.outputs.browser_integration_files }}
           TEST_RUN_COUNT: 'AUTO'

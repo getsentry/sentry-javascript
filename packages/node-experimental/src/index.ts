@@ -13,7 +13,7 @@ export { getAutoPerformanceIntegrations } from './integrations/getAutoPerformanc
 export * as Handlers from './sdk/handlers';
 export type { Span } from './types';
 
-export { startSpan, startInactiveSpan, getActiveSpan } from '@sentry/opentelemetry';
+export { startSpan, startSpanManual, startInactiveSpan, getActiveSpan } from '@sentry/opentelemetry';
 export {
   getClient,
   addBreadcrumb,
@@ -22,6 +22,7 @@ export {
   captureMessage,
   addGlobalEventProcessor,
   addEventProcessor,
+  // eslint-disable-next-line deprecation/deprecation
   lastEventId,
   setContext,
   setExtra,
@@ -49,6 +50,7 @@ export {
   addRequestDataToEvent,
   DEFAULT_USER_INCLUDES,
   extractRequestData,
+  // eslint-disable-next-line deprecation/deprecation
   deepReadDirSync,
   getModuleFromFilename,
   close,
@@ -60,6 +62,7 @@ export {
   runWithAsyncContext,
   SDK_VERSION,
   spanStatusfromHttpCode,
+  // eslint-disable-next-line deprecation/deprecation
   trace,
   captureCheckIn,
   withMonitor,

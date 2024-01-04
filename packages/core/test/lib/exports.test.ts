@@ -35,7 +35,7 @@ describe('withScope', () => {
   });
 
   it('works with a return value', () => {
-    const res = withScope(scope => {
+    const res = withScope(() => {
       return 'foo';
     });
 
@@ -43,7 +43,7 @@ describe('withScope', () => {
   });
 
   it('works with an async function return value', async () => {
-    const res = withScope(async scope => {
+    const res = withScope(async () => {
       return 'foo';
     });
 

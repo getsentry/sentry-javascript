@@ -1,45 +1,35 @@
 import * as util from 'util';
-import { addBreadcrumb, getClient } from '@sentry/core';
-import type { Client, Integration } from '@sentry/types';
+import { addBreadcrumb, convertIntegrationFnToClass, getClient } from '@sentry/core';
+import type { IntegrationFn } from '@sentry/types';
 import { addConsoleInstrumentationHandler, severityLevelFromString } from '@sentry/utils';
 
+const INTEGRATION_NAME = 'Console';
+
+const consoleIntegration = (() => {
+  return {
+    name: INTEGRATION_NAME,
+    setup(client) {
+      addConsoleInstrumentationHandler(({ args, level }) => {
+        if (getClient() !== client) {
+          return;
+        }
+
+        addBreadcrumb(
+          {
+            category: 'console',
+            level: severityLevelFromString(level),
+            message: util.format.apply(undefined, args),
+          },
+          {
+            input: [...args],
+            level,
+          },
+        );
+      });
+    },
+  };
+}) satisfies IntegrationFn;
+
 /** Console module integration */
-export class Console implements Integration {
-  /**
-   * @inheritDoc
-   */
-  public static id: string = 'Console';
-
-  /**
-   * @inheritDoc
-   */
-  public name: string = Console.id;
-
-  /**
-   * @inheritDoc
-   */
-  public setupOnce(): void {
-    // noop
-  }
-
-  /** @inheritdoc */
-  public setup(client: Client): void {
-    addConsoleInstrumentationHandler(({ args, level }) => {
-      if (getClient() !== client) {
-        return;
-      }
-
-      addBreadcrumb(
-        {
-          category: 'console',
-          level: severityLevelFromString(level),
-          message: util.format.apply(undefined, args),
-        },
-        {
-          input: [...args],
-          level,
-        },
-      );
-    });
-  }
-}
+// eslint-disable-next-line deprecation/deprecation
+export const Console = convertIntegrationFnToClass(INTEGRATION_NAME, consoleIntegration);

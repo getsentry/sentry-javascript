@@ -1,4 +1,4 @@
-import { getDynamicSamplingContextFromClient } from '@sentry/core';
+import { getDynamicSamplingContextFromClient, spanToTraceHeader } from '@sentry/core';
 import type { Client, Scope, Span } from '@sentry/types';
 import {
   TRACEPARENT_REGEXP,
@@ -30,7 +30,7 @@ export function getTracingMetaTags(
   const { dsc, sampled, traceId } = scope.getPropagationContext();
   const transaction = span?.transaction;
 
-  const sentryTrace = span ? span.toTraceparent() : generateSentryTraceHeader(traceId, undefined, sampled);
+  const sentryTrace = span ? spanToTraceHeader(span) : generateSentryTraceHeader(traceId, undefined, sampled);
 
   const dynamicSamplingContext = transaction
     ? transaction.getDynamicSamplingContext()
@@ -73,6 +73,7 @@ export function isValidBaggageString(baggage?: string): boolean {
   const keyRegex = "[-!#$%&'*+.^_`|~A-Za-z0-9]+";
   const valueRegex = '[!#-+-./0-9:<=>?@A-Z\\[\\]a-z{-}]+';
   const spaces = '\\s*';
+  // eslint-disable-next-line @sentry-internal/sdk/no-regexp-constructor -- RegExp for readability, no user input
   const baggageRegex = new RegExp(
     `^${keyRegex}${spaces}=${spaces}${valueRegex}(${spaces},${spaces}${keyRegex}${spaces}=${spaces}${valueRegex})*$`,
   );

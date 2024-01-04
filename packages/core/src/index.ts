@@ -17,6 +17,7 @@ export {
   // eslint-disable-next-line deprecation/deprecation
   configureScope,
   flush,
+  // eslint-disable-next-line deprecation/deprecation
   lastEventId,
   startTransaction,
   setContext,
@@ -69,6 +70,8 @@ export { prepareEvent } from './utils/prepareEvent';
 export { createCheckInEnvelope } from './checkin';
 export { hasTracingEnabled } from './utils/hasTracingEnabled';
 export { isSentryRequestUrl } from './utils/isSentryRequestUrl';
+export { handleCallbackErrors } from './utils/handleCallbackErrors';
+export { spanToTraceHeader } from './utils/spanUtils';
 export { DEFAULT_ENVIRONMENT } from './constants';
 export { ModuleMetadata } from './integrations/metadata';
 export { RequestData } from './integrations/requestdata';

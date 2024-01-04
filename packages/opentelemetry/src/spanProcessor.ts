@@ -12,7 +12,7 @@ import { maybeCaptureExceptionForTimedEvent } from './utils/captureExceptionForT
 import { getHubFromContext } from './utils/contextData';
 import { getSpanHub, setSpanFinishScope, setSpanHub, setSpanParent, setSpanScope } from './utils/spanData';
 
-function onSpanStart(span: Span, parentContext: Context, ScopeClass: typeof OpenTelemetryScope): void {
+function onSpanStart(span: Span, parentContext: Context, _ScopeClass: typeof OpenTelemetryScope): void {
   // This is a reliable way to get the parent span - because this is exactly how the parent is identified in the OTEL SDK
   const parentSpan = trace.getSpan(parentContext);
   const hub = getHubFromContext(parentContext);
