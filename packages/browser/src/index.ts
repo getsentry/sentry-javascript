@@ -21,7 +21,7 @@ const INTEGRATIONS = {
 
 export { INTEGRATIONS as Integrations };
 
-export { Replay } from '@sentry/replay';
+export { Replay, ReplayCanvas } from '@sentry/replay';
 export type {
   ReplayEventType,
   ReplayEventWithTime,
