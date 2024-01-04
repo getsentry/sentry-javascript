@@ -22,6 +22,7 @@ export {
   captureMessage,
   addGlobalEventProcessor,
   addEventProcessor,
+  // eslint-disable-next-line deprecation/deprecation
   lastEventId,
   setContext,
   setExtra,

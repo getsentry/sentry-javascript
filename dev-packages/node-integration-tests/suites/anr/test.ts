@@ -124,7 +124,7 @@ conditionalTest({ min: 16 })('should report ANR when event loop blocked', () => 
       done();
     }, 5_000);
 
-    childProcess.exec(`node ${testScriptPath}`, { encoding: 'utf8' }, (_, stdout) => {
+    childProcess.exec(`node ${testScriptPath}`, { encoding: 'utf8' }, () => {
       hasClosed = true;
     });
   });

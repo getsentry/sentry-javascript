@@ -28,7 +28,8 @@ export type ErrorBoundaryProps = {
    * Options to be passed into the Sentry report dialog.
    * No-op if {@link showDialog} is false.
    */
-  dialogOptions?: ReportDialogOptions | undefined;
+  // eslint-disable-next-line deprecation/deprecation
+  dialogOptions?: Omit<ReportDialogOptions, 'eventId'> | undefined;
   /**
    * A fallback component that gets rendered when the error boundary encounters an error.
    *
@@ -111,6 +112,7 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
       this._openFallbackReportDialog = false;
       client.on('afterSendEvent', event => {
         if (!event.type && event.event_id === this._lastEventId) {
+          // eslint-disable-next-line deprecation/deprecation
           showReportDialog({ ...props.dialogOptions, eventId: this._lastEventId });
         }
       });
