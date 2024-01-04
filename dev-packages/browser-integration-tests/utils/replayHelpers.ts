@@ -1,3 +1,4 @@
+/* eslint-disable max-lines */
 import type { fullSnapshotEvent, incrementalSnapshotEvent } from '@sentry-internal/rrweb';
 import { EventType } from '@sentry-internal/rrweb';
 import type { ReplayEventWithTime } from '@sentry/browser';
@@ -5,6 +6,7 @@ import type {
   InternalEventContext,
   RecordingEvent,
   ReplayContainer,
+  ReplayPluginOptions,
   Session,
 } from '@sentry/replay/build/npm/types/types';
 import type { Breadcrumb, Event, ReplayEvent, ReplayRecordingMode } from '@sentry/types';
@@ -171,6 +173,8 @@ export function getReplaySnapshot(page: Page): Promise<{
   _isPaused: boolean;
   _isEnabled: boolean;
   _context: InternalEventContext;
+  _options: ReplayPluginOptions;
+  _hasCanvas: boolean;
   session: Session | undefined;
   recordingMode: ReplayRecordingMode;
 }> {
@@ -182,6 +186,9 @@ export function getReplaySnapshot(page: Page): Promise<{
       _isPaused: replay.isPaused(),
       _isEnabled: replay.isEnabled(),
       _context: replay.getContext(),
+      _options: replay.getOptions(),
+      // We cannot pass the function through as this is serialized
+      _hasCanvas: typeof replay.getOptions()._experiments.canvas?.manager === 'function',
       session: replay.session,
       recordingMode: replay.recordingMode,
     };

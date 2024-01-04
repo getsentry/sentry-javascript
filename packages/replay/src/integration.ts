@@ -318,6 +318,7 @@ Sentry.init({ replaysOnErrorSampleRate: ${errorSampleRate} })`,
 
     return this._replay.getSessionId();
   }
+
   /**
    * Initializes replay.
    */
@@ -325,6 +326,12 @@ Sentry.init({ replaysOnErrorSampleRate: ${errorSampleRate} })`,
     if (!this._replay) {
       return;
     }
+
+    // We have to run this in _initialize, because this runs in setTimeout
+    // So when this runs all integrations have been added
+    // Before this, we cannot access integrations on the client,
+    // so we need to mutate the options here
+    this._maybeLoadFromReplayCanvasIntegration();
 
     this._replay.initializeSampling();
   }
@@ -338,6 +345,40 @@ Sentry.init({ replaysOnErrorSampleRate: ${errorSampleRate} })`,
       options: finalOptions,
       recordingOptions: this._recordingOptions,
     });
+  }
+
+  /** Get canvas options from ReplayCanvas integration, if it is also added. */
+  private _maybeLoadFromReplayCanvasIntegration(): void {
+    // If already defined, skip this...
+    if (this._initialOptions._experiments.canvas) {
+      return;
+    }
+
+    // To save bundle size, we skip checking for stuff here
+    // and instead just try-catch everything - as generally this should all be defined
+    /* eslint-disable @typescript-eslint/no-non-null-assertion */
+    try {
+      const client = getClient()!;
+      const canvasIntegration = client.getIntegrationById!('ReplayCanvas') as Integration & {
+        getOptions(): Partial<ReplayConfiguration>;
+      };
+      if (!canvasIntegration) {
+        return;
+      }
+      const additionalOptions = canvasIntegration.getOptions();
+
+      const mergedExperimentsOptions = {
+        ...this._initialOptions._experiments,
+        ...additionalOptions._experiments,
+      };
+
+      this._initialOptions._experiments = mergedExperimentsOptions;
+
+      this._replay!.getOptions()._experiments = mergedExperimentsOptions;
+    } catch {
+      // ignore errors here
+    }
+    /* eslint-enable @typescript-eslint/no-non-null-assertion */
   }
 }
 
