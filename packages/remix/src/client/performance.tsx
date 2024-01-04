@@ -1,4 +1,4 @@
-import { ErrorBoundaryProps, getCurrentScope } from '@sentry/react';
+import { type ErrorBoundaryProps, getCurrentScope } from '@sentry/react';
 import { withErrorBoundary } from '@sentry/react';
 import type { PropagationContext, TraceparentData, Transaction, TransactionContext } from '@sentry/types';
 import { isNodeEnv, logger, tracingContextFromHeaders } from '@sentry/utils';
@@ -73,18 +73,15 @@ export function remixRouterInstrumentation(useEffect: UseEffect, useLocation: Us
 }
 
 const getTracingContextFromRouteMatches = (
-  matches: RouteMatch<string>[],
+  currentRouteMatch: RouteMatch<string>,
 ): {
   traceparentData?: TraceparentData;
   dynamicSamplingContext?: Record<string, unknown>;
   propagationContext: PropagationContext;
-  id: string;
 } => {
-  const currentRouteMatch = matches[matches.length - 1];
-
   const { sentryTrace, sentryBaggage } = currentRouteMatch.data || {};
 
-  return { id: currentRouteMatch.id, ...tracingContextFromHeaders(sentryTrace, sentryBaggage) };
+  return tracingContextFromHeaders(sentryTrace, sentryBaggage);
 };
 
 /**
@@ -125,14 +122,16 @@ export function withSentry<P extends Record<string, unknown>, R extends React.Co
 
     _useEffect(() => {
       if (matches && matches.length) {
-        const { id, traceparentData, dynamicSamplingContext, propagationContext } =
-          getTracingContextFromRouteMatches(matches);
+        const currentRouteMatch = matches[matches.length - 1];
+
+        const { traceparentData, dynamicSamplingContext, propagationContext } =
+          getTracingContextFromRouteMatches(currentRouteMatch);
 
         getCurrentScope().setPropagationContext(propagationContext);
 
         if (_startTransactionOnPageLoad) {
           activeTransaction = _customStartTransaction({
-            name: id,
+            name: currentRouteMatch.id,
             op: 'pageload',
             origin: 'auto.pageload.remix',
             tags: DEFAULT_TAGS,
@@ -162,13 +161,15 @@ export function withSentry<P extends Record<string, unknown>, R extends React.Co
           activeTransaction.end();
         }
 
-        const { id, traceparentData, dynamicSamplingContext, propagationContext } =
-          getTracingContextFromRouteMatches(matches);
+        const currentRouteMatch = matches[matches.length - 1];
+
+        const { traceparentData, dynamicSamplingContext, propagationContext } =
+          getTracingContextFromRouteMatches(currentRouteMatch);
 
         getCurrentScope().setPropagationContext(propagationContext);
 
         activeTransaction = _customStartTransaction({
-          name: id,
+          name: currentRouteMatch.id,
           op: 'navigation',
           origin: 'auto.navigation.remix',
           tags: DEFAULT_TAGS,
