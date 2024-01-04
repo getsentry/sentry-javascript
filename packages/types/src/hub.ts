@@ -230,22 +230,29 @@ export interface Hub {
    * @param context Optional properties of the new `Session`.
    *
    * @returns The session which was just started
+   *
+   * @deprecated Use top-level `startSession` instead.
    */
   startSession(context?: Session): Session;
 
   /**
    * Ends the session that lives on the current scope and sends it to Sentry
+   *
+   * @deprecated Use top-level `endSession` instead.
    */
   endSession(): void;
 
   /**
    * Sends the current session on the scope to Sentry
+   *
    * @param endSession If set the session will be marked as exited and removed from the scope
+   *
+   * @deprecated Use top-level `captureSession` instead.
    */
   captureSession(endSession?: boolean): void;
 
   /**
-   * Returns if default PII should be sent to Sentry and propagated in ourgoing requests
+   * Returns if default PII should be sent to Sentry and propagated in outgoing requests
    * when Tracing is used.
    *
    * @deprecated Use top-level `getClient().getOptions().sendDefaultPii` instead. This function

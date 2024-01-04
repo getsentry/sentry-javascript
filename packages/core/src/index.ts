@@ -30,6 +30,9 @@ export {
   withScope,
   getClient,
   getCurrentScope,
+  startSession,
+  endSession,
+  captureSession,
 } from './exports';
 export {
   getCurrentHub,

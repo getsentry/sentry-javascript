@@ -1,4 +1,4 @@
-import { getIntegrationsToSetup, hasTracingEnabled } from '@sentry/core';
+import { endSession, getIntegrationsToSetup, hasTracingEnabled, startSession } from '@sentry/core';
 import {
   Integrations,
   defaultIntegrations as defaultNodeIntegrations,
@@ -22,7 +22,7 @@ import { Http } from '../integrations/http';
 import { NodeFetch } from '../integrations/node-fetch';
 import { setOpenTelemetryContextAsyncContextStrategy } from '../otel/asyncContextStrategy';
 import type { NodeExperimentalClientOptions, NodeExperimentalOptions } from '../types';
-import { endSession, getClient, getCurrentScope, getGlobalScope, getIsolationScope, startSession } from './api';
+import { getClient, getCurrentScope, getGlobalScope, getIsolationScope } from './api';
 import { NodeExperimentalClient } from './client';
 import { getGlobalCarrier } from './globals';
 import { setLegacyHubOnCarrier } from './hub';
