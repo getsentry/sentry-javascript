@@ -99,6 +99,8 @@ export function wrapServerComponentWithSentry<F extends (...args: any[]) => any>
             );
           },
         );
+
+        return res;
       });
     },
   });
