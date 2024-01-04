@@ -599,7 +599,7 @@ export class Scope implements ScopeInterface {
   /**
    * Capture a message for this scope.
    *
-   * @param exception The exception to capture.
+   * @param message The message to capture.
    * @param level An optional severity level to report the message with.
    * @param hint Optional additional data to attach to the Sentry event.
    * @returns the id of the captured message.
@@ -632,7 +632,7 @@ export class Scope implements ScopeInterface {
   }
 
   /**
-   * Capture a Sentry event for this scope.
+   * Captures a manually created event for this scope and sends it to Sentry.
    *
    * @param exception The event to capture.
    * @param hint Optional additional data to attach to the Sentry event.

@@ -26,38 +26,33 @@ import type { Scope } from './scope';
 import type { ExclusiveEventHintOrCaptureContext } from './utils/prepareEvent';
 import { parseEventHintOrCaptureContext } from './utils/prepareEvent';
 
-// Note: All functions in this file are typed with a return value of `ReturnType<Hub[HUB_FUNCTION]>`,
-// where HUB_FUNCTION is some method on the Hub class.
-//
-// This is done to make sure the top level SDK methods stay in sync with the hub methods.
-// Although every method here has an explicit return type, some of them (that map to void returns) do not
-// contain `return` keywords. This is done to save on bundle size, as `return` is not minifiable.
-
 /**
  * Captures an exception event and sends it to Sentry.
- * This accepts an event hint as optional second parameter.
- * Alternatively, you can also pass a CaptureContext directly as second parameter.
+ *
+ * @param exception The exception to capture.
+ * @param hint Optinal additional data to attach to the Sentry event.
+ * @returns the id of the captured Sentry event.
  */
 export function captureException(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   exception: any,
   hint?: ExclusiveEventHintOrCaptureContext,
-): ReturnType<Hub['captureException']> {
+): string {
   return getCurrentHub().captureException(exception, parseEventHintOrCaptureContext(hint));
 }
 
 /**
  * Captures a message event and sends it to Sentry.
  *
- * @param message The message to send to Sentry.
- * @param Severity Define the level of the message.
- * @returns The generated eventId.
+ * @param exception The exception to capture.
+ * @param captureContext Define the level of the message or pass in additional data to attach to the message.
+ * @returns the id of the captured message.
  */
 export function captureMessage(
   message: string,
   // eslint-disable-next-line deprecation/deprecation
   captureContext?: CaptureContext | Severity | SeverityLevel,
-): ReturnType<Hub['captureMessage']> {
+): string {
   // This is necessary to provide explicit scopes upgrade, without changing the original
   // arity of the `captureMessage(message, level)` method.
   const level = typeof captureContext === 'string' ? captureContext : undefined;
@@ -68,10 +63,11 @@ export function captureMessage(
 /**
  * Captures a manually created event and sends it to Sentry.
  *
- * @param event The event to send to Sentry.
- * @returns The generated eventId.
+ * @param exception The event to send to Sentry.
+ * @param hint Optional additional data to attach to the Sentry event.
+ * @returns the id of the captured event.
  */
-export function captureEvent(event: Event, hint?: EventHint): ReturnType<Hub['captureEvent']> {
+export function captureEvent(event: Event, hint?: EventHint): string {
   return getCurrentHub().captureEvent(event, hint);
 }
 

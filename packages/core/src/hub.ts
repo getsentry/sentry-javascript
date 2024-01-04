@@ -249,17 +249,13 @@ export class Hub implements HubInterface {
   public captureException(exception: unknown, hint?: EventHint): string {
     const eventId = (this._lastEventId = hint && hint.event_id ? hint.event_id : uuid4());
     const syntheticException = new Error('Sentry syntheticException');
-    this._withClient((client, scope) => {
-      client.captureException(
-        exception,
-        {
-          originalException: exception,
-          syntheticException,
-          ...hint,
-          event_id: eventId,
-        },
-        scope,
-      );
+    this._withClient((_client, scope) => {
+      scope.captureException(exception, {
+        originalException: exception,
+        syntheticException,
+        ...hint,
+        event_id: eventId,
+      });
     });
     return eventId;
   }
@@ -275,18 +271,13 @@ export class Hub implements HubInterface {
   ): string {
     const eventId = (this._lastEventId = hint && hint.event_id ? hint.event_id : uuid4());
     const syntheticException = new Error(message);
-    this._withClient((client, scope) => {
-      client.captureMessage(
-        message,
-        level,
-        {
-          originalException: message,
-          syntheticException,
-          ...hint,
-          event_id: eventId,
-        },
-        scope,
-      );
+    this._withClient((_client, scope) => {
+      scope.captureMessage(message, level, {
+        originalException: message,
+        syntheticException,
+        ...hint,
+        event_id: eventId,
+      });
     });
     return eventId;
   }
@@ -300,8 +291,8 @@ export class Hub implements HubInterface {
       this._lastEventId = eventId;
     }
 
-    this._withClient((client, scope) => {
-      client.captureEvent(event, { ...hint, event_id: eventId }, scope);
+    this._withClient((_client, scope) => {
+      scope.captureEvent(event, { ...hint, event_id: eventId });
     });
     return eventId;
   }
