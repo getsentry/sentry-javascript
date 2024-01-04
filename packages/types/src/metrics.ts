@@ -5,27 +5,21 @@ import type { Primitive } from './misc';
  * An abstract definition of the minimum required API
  * for a metric instance.
  */
-export abstract class MetricInstance {
+export interface MetricInstance {
   /**
    * Returns the weight of the metric.
    */
-  public get weight(): number {
-    return 1;
-  }
+  weight: number;
 
   /**
    * Adds a value to a metric.
    */
-  public add(value: number | string): void {
-    // Override this.
-  }
+  add(value: number | string): void;
 
   /**
    * Serializes the metric into a statsd format string.
    */
-  public toString(): string {
-    return '';
-  }
+  toString(): string;
 }
 
 export interface MetricBucketItem {

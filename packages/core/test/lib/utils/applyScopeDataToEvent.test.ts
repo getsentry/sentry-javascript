@@ -156,9 +156,9 @@ describe('mergeScopeData', () => {
     const breadcrumb2 = { message: '2' } as Breadcrumb;
     const breadcrumb3 = { message: '3' } as Breadcrumb;
 
-    const eventProcessor1 = ((a: unknown) => null) as EventProcessor;
-    const eventProcessor2 = ((b: unknown) => null) as EventProcessor;
-    const eventProcessor3 = ((c: unknown) => null) as EventProcessor;
+    const eventProcessor1 = (() => null) as EventProcessor;
+    const eventProcessor2 = (() => null) as EventProcessor;
+    const eventProcessor3 = (() => null) as EventProcessor;
 
     const data1: ScopeData = {
       eventProcessors: [eventProcessor1],
