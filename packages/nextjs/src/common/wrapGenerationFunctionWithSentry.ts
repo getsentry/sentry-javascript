@@ -6,7 +6,7 @@ import {
   getCurrentScope,
   handleCallbackErrors,
   runWithAsyncContext,
-  startSpan,
+  startSpanManual,
 } from '@sentry/core';
 import type { WebFetchHeaders } from '@sentry/types';
 import { winterCGHeadersToDict } from '@sentry/utils';
@@ -62,7 +62,7 @@ export function wrapGenerationFunctionWithSentry<F extends (...args: any[]) => a
           transactionContext.parentSpanId = commonSpanId;
         }
 
-        return startSpan(
+        return startSpanManual(
           {
             op: 'function.nextjs',
             name: `${componentType}.${generationFunctionIdentifier} (${componentRoute})`,
@@ -98,6 +98,7 @@ export function wrapGenerationFunctionWithSentry<F extends (...args: any[]) => a
                     },
                   });
                 }
+                span?.end();
               },
             );
           },
