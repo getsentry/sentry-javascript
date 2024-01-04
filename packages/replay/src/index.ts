@@ -1,4 +1,5 @@
 export { Replay } from './integration';
+export { ReplayCanvas } from './canvas';
 
 export type {
   ReplayEventType,
