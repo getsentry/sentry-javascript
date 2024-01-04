@@ -3,14 +3,7 @@
     "default": {
       "runner": "nx/tasks-runners/default",
       "options": {
-        "cacheableOperations": [
-          "build:bundle",
-          "build:transpile",
-          "build:types",
-          "lint:eslint",
-          "test:unit",
-          "build:tarball"
-        ],
+        "cacheableOperations": ["build:bundle", "build:transpile", "build:types", "lint", "test:unit", "build:tarball"],
         "cacheDirectory": ".nxcache"
       }
     }
@@ -41,7 +34,7 @@
       "dependsOn": ["^build:types"],
       "outputs": ["{projectRoot}/build/**/*.d.ts"]
     },
-    "lint:eslint": {
+    "lint": {
       "inputs": ["default"],
       "outputs": []
     },
