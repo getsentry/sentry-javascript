@@ -200,7 +200,7 @@ describe('session APIs', () => {
 
       captureSession();
 
-      // this flag indicates the session was sent
+      // this flag indicates the session was sent via BaseClient
       expect(session.init).toBe(false);
 
       // session is still active and on the scope
@@ -208,7 +208,7 @@ describe('session APIs', () => {
       expect(getIsolationScope().getSession()).toBe(session);
     });
 
-    it('captures a session and ends it if requested', () => {
+    it('captures a session and ends it if end is `true`', () => {
       const session = startSession({ release: '1.0.0' });
 
       expect(session.status).toBe('ok');
@@ -217,7 +217,7 @@ describe('session APIs', () => {
 
       captureSession(true);
 
-      // this flag indicates the session was sent
+      // this flag indicates the session was sent via BaseClient
       expect(session.init).toBe(false);
 
       // session is still active and on the scope
