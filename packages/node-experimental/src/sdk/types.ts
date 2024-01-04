@@ -1,7 +1,6 @@
 import type {
   Attachment,
   Breadcrumb,
-  Client,
   Contexts,
   Event,
   EventHint,
