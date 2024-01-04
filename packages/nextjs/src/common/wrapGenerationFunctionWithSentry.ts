@@ -12,6 +12,7 @@ import type { WebFetchHeaders } from '@sentry/types';
 import { winterCGHeadersToDict } from '@sentry/utils';
 
 import type { GenerationFunctionContext } from '../common/types';
+import { isNotFoundNavigationError, isRedirectNavigationError } from './nextNavigationErrorUtils';
 import { commonObjectToPropagationContext } from './utils/commonObjectTracing';
 
 /**
@@ -76,18 +77,28 @@ export function wrapGenerationFunctionWithSentry<F extends (...args: any[]) => a
               },
             },
           },
-          () => {
+          span => {
             return handleCallbackErrors(
               () => originalFunction.apply(thisArg, args),
-              err =>
-                captureException(err, {
-                  mechanism: {
-                    handled: false,
-                    data: {
-                      function: 'wrapGenerationFunctionWithSentry',
+              err => {
+                if (isNotFoundNavigationError(err)) {
+                  // We don't want to report "not-found"s
+                  span?.setStatus('not_found');
+                } else if (isRedirectNavigationError(err)) {
+                  // We don't want to report redirects
+                  span?.setStatus('ok');
+                } else {
+                  span?.setStatus('internal_error');
+                  captureException(err, {
+                    mechanism: {
+                      handled: false,
+                      data: {
+                        function: 'wrapGenerationFunctionWithSentry',
+                      },
                     },
-                  },
-                }),
+                  });
+                }
+              },
             );
           },
         );
