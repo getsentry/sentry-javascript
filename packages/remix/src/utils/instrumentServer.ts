@@ -330,7 +330,7 @@ async function injectTraceAndBaggageToLoaderData(loaderData: AppData, remixVersi
     } else {
       const data = await extractData(loaderData);
 
-      if (typeof data === 'object') {
+      if (data != null && typeof data === 'object') {
         return json(
           { ...data, ...traceAndBaggage, remixVersion },
           {
