@@ -61,6 +61,7 @@ export {
   runWithAsyncContext,
   SDK_VERSION,
   spanStatusfromHttpCode,
+  // eslint-disable-next-line deprecation/deprecation
   trace,
   captureCheckIn,
   withMonitor,

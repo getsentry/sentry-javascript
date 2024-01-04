@@ -1,4 +1,11 @@
-import { addTracingExtensions, captureException, getCurrentScope, runWithAsyncContext, trace } from '@sentry/core';
+import {
+  addTracingExtensions,
+  captureException,
+  getCurrentScope,
+  handleCallbackErrors,
+  runWithAsyncContext,
+  startSpan,
+} from '@sentry/core';
 import { tracingContextFromHeaders, winterCGHeadersToDict } from '@sentry/utils';
 
 import { isRedirectNavigationError } from './nextNavigationErrorUtils';
@@ -26,9 +33,10 @@ export function wrapRouteHandlerWithSentry<F extends (...args: any[]) => any>(
         );
         getCurrentScope().setPropagationContext(propagationContext);
 
-        let res;
+        let result;
+
         try {
-          res = await trace(
+          result = await startSpan(
             {
               op: 'http.server',
               name: `${method} ${parameterizedRoute}`,
@@ -43,7 +51,19 @@ export function wrapRouteHandlerWithSentry<F extends (...args: any[]) => any>(
               },
             },
             async span => {
-              const response: Response = await originalFunction.apply(thisArg, args);
+              const response: Response = await handleCallbackErrors(
+                () => originalFunction.apply(thisArg, args),
+                error => {
+                  // Next.js throws errors when calling `redirect()`. We don't wanna report these.
+                  if (!isRedirectNavigationError(error)) {
+                    captureException(error, {
+                      mechanism: {
+                        handled: false,
+                      },
+                    });
+                  }
+                },
+              );
 
               try {
                 span?.setHttpStatus(response.status);
@@ -52,16 +72,6 @@ export function wrapRouteHandlerWithSentry<F extends (...args: any[]) => any>(
               }
 
               return response;
-            },
-            error => {
-              // Next.js throws errors when calling `redirect()`. We don't wanna report these.
-              if (!isRedirectNavigationError(error)) {
-                captureException(error, {
-                  mechanism: {
-                    handled: false,
-                  },
-                });
-              }
             },
           );
         } finally {
@@ -72,7 +82,7 @@ export function wrapRouteHandlerWithSentry<F extends (...args: any[]) => any>(
           }
         }
 
-        return res;
+        return result;
       });
     },
   });
