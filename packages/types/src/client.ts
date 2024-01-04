@@ -138,8 +138,11 @@ export interface Client<O extends ClientOptions = ClientOptions> {
    */
   getEventProcessors?(): EventProcessor[];
 
-  /** Returns the client's instance of the given integration class, it any. */
+  /** Returns the client's instance of the given integration class, if it exists. */
   getIntegration<T extends Integration>(integration: IntegrationClass<T>): T | null;
+
+  /** Returns the client's instance of the given integration name, if it exists. */
+  getIntegrationById?(integrationId: string): Integration | undefined;
 
   /**
    * Add an integration to the client.
