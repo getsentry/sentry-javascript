@@ -44,6 +44,25 @@ Instead, import this directly from `@sentry/utils`.
 
 Generally, in most cases you should probably use `continueTrace` instead, which abstracts this away from you and handles scope propagation for you.
 
+## Deprecate `lastEventId()`
+
+Instead, if you need the ID of a recently captured event, we recommend using `beforeSend` instead:
+
+```ts
+import * as Sentry from "@sentry/browser";
+
+Sentry.init({
+  dsn: "__DSN__",
+  beforeSend(event, hint) {
+    const lastCapturedEventId = event.event_id;
+
+    // Do something with `lastCapturedEventId` here
+    
+    return event;
+  },
+});
+```
+
 ## Deprecate `timestampWithMs` export - #7878
 
 The `timestampWithMs` util is deprecated in favor of using `timestampInSeconds`.

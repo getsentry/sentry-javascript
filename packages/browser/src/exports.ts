@@ -18,6 +18,8 @@ export type {
 } from '@sentry/types';
 
 export type { BrowserOptions } from './client';
+
+// eslint-disable-next-line deprecation/deprecation
 export type { ReportDialogOptions } from './helpers';
 
 export {
@@ -39,6 +41,7 @@ export {
   getClient,
   getCurrentScope,
   Hub,
+  // eslint-disable-next-line deprecation/deprecation
   lastEventId,
   makeMain,
   Scope,
