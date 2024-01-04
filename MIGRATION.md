@@ -8,6 +8,35 @@ npx @sentry/migr8@latest
 
 This will let you select which updates to run, and automatically update your code. Make sure to still review all code changes!
 
+## Deprecate `Sentry.lastEventId()` and `hub.lastEventId()`
+
+`Sentry.lastEventId()` sometimes causes race conditons, so we are deprecating it in favour of the `beforeSend` callback.
+
+```js
+// Before
+
+Sentry.init({
+  beforeSend(event, hint) {
+    const lastCapturedEventId = Sentry.lastEventId();
+
+    // Do something with `lastCapturedEventId` here
+
+    return event;
+  },
+});
+
+// After
+Sentry.init({
+  beforeSend(event, hint) {
+    const lastCapturedEventId = event.event_id;
+
+    // Do something with `lastCapturedEventId` here
+
+    return event;
+  },
+});
+```
+
 ## Deprecated fields on `Span` and `Transaction`
 
 In v8, the Span class is heavily reworked. The following properties & methods are thus deprecated:
@@ -57,7 +86,7 @@ Sentry.init({
     const lastCapturedEventId = event.event_id;
 
     // Do something with `lastCapturedEventId` here
-    
+
     return event;
   },
 });
