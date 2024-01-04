@@ -3,6 +3,7 @@ import type {
   Attachment,
   Breadcrumb,
   CaptureContext,
+  Client,
   Context,
   Contexts,
   Event,
@@ -100,6 +101,9 @@ export class Scope implements ScopeInterface {
   /** Request Mode Session Status */
   protected _requestSession?: RequestSession;
 
+  /** The client on this scope */
+  protected _client?: Client;
+
   // NOTE: Any field which gets added here should get added not only to the constructor but also to the `clone` method.
 
   public constructor() {
@@ -144,8 +148,23 @@ export class Scope implements ScopeInterface {
     newScope._attachments = [...this._attachments];
     newScope._sdkProcessingMetadata = { ...this._sdkProcessingMetadata };
     newScope._propagationContext = { ...this._propagationContext };
+    newScope._client = this._client;
 
     return newScope;
+  }
+
+  /** Update the client on the scope. */
+  public setClient(client: Client | undefined): void {
+    this._client = client;
+  }
+
+  /**
+   * Get the client assigned to this scope.
+   *
+   * It is generally recommended to use the global function `Sentry.getClient()` instead, unless you know what you are doing.
+   */
+  public getClient(): Client | undefined {
+    return this._client;
   }
 
   /**

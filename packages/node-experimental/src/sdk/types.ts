@@ -36,8 +36,6 @@ export interface Scope extends BaseScope {
   isolationScope: typeof this | undefined;
   // @ts-expect-error typeof this is what we want here
   clone(scope?: Scope): typeof this;
-  setClient(client: Client): void;
-  getClient(): Client | undefined;
   captureException(exception: unknown, hint?: EventHint): string;
   captureMessage(
     message: string,
