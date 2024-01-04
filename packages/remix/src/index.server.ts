@@ -53,9 +53,11 @@ export {
   addRequestDataToEvent,
   DEFAULT_USER_INCLUDES,
   extractRequestData,
+  // eslint-disable-next-line deprecation/deprecation
   deepReadDirSync,
   Integrations,
   Handlers,
+  cron,
 } from '@sentry/node';
 
 // Keeping the `*` exports for backwards compatibility and types

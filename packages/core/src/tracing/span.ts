@@ -13,7 +13,7 @@ import type {
 import { dropUndefinedKeys, logger, timestampInSeconds, uuid4 } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../debug-build';
-import { spanToTraceHeader } from '../utils/spanUtils';
+import { spanToTraceContext, spanToTraceHeader } from '../utils/spanUtils';
 import { ensureTimestampInSeconds } from './utils';
 
 /**
@@ -366,17 +366,7 @@ export class Span implements SpanInterface {
    * @inheritDoc
    */
   public getTraceContext(): TraceContext {
-    return dropUndefinedKeys({
-      data: this._getData(),
-      description: this.description,
-      op: this.op,
-      parent_span_id: this.parentSpanId,
-      span_id: this.spanId,
-      status: this.status,
-      tags: Object.keys(this.tags).length > 0 ? this.tags : undefined,
-      trace_id: this.traceId,
-      origin: this.origin,
-    });
+    return spanToTraceContext(this);
   }
 
   /**
