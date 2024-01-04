@@ -58,6 +58,7 @@ export {
   deepReadDirSync,
   Integrations,
   Handlers,
+  cron,
 } from '@sentry/node';
 
 // Keeping the `*` exports for backwards compatibility and types

@@ -74,7 +74,7 @@ export {
   metrics,
 } from '@sentry/core';
 export type { SpanStatusType } from '@sentry/core';
-export { autoDiscoverNodePerformanceMonitoringIntegrations } from '@sentry/node';
+export { autoDiscoverNodePerformanceMonitoringIntegrations, cron } from '@sentry/node';
 
 export { BunClient } from './client';
 export { defaultIntegrations, init } from './sdk';

@@ -121,8 +121,10 @@ export { INTEGRATIONS as Integrations, Handlers };
 export { hapiErrorPlugin } from './integrations/hapi';
 
 import { instrumentCron } from './cron/cron';
+import { instrumentNodeCron } from './cron/node-cron';
 
 /** Methods to instrument cron libraries for Sentry check-ins */
 export const cron = {
   instrumentCron,
+  instrumentNodeCron,
 };
