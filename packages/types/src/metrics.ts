@@ -16,7 +16,7 @@ export abstract class MetricInstance {
   /**
    * Adds a value to a metric.
    */
-  public add(value: number | string): void {
+  public add(): void {
     // Override this.
   }
 

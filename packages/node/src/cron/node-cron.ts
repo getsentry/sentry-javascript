@@ -35,7 +35,7 @@ export function instrumentNodeCron<T>(lib: Partial<NodeCron> & T): T {
         // When 'get' is called for schedule, return a proxied version of the schedule function
         return new Proxy(target.schedule, {
           apply(target, thisArg, argArray: Parameters<NodeCron['schedule']>) {
-            const [expression, _, options] = argArray;
+            const [expression, , options] = argArray;
 
             if (!options?.name) {
               throw new Error('Missing "name" for scheduled job. A name is required for Sentry check-in monitoring.');
