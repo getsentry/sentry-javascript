@@ -27,7 +27,7 @@
     "build:transpile": {
       "inputs": ["production", "^production"],
       "dependsOn": ["^build:transpile"],
-      "outputs": ["{projectRoot}/build/npm", "{projectRoot}/build/esm", "{projectRoot}/build/cjs"]
+      "outputs": ["{projectRoot}/build"]
     },
     "build:types": {
       "inputs": ["production", "^production"],
