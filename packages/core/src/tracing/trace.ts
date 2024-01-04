@@ -1,10 +1,11 @@
 import type { Span, TransactionContext } from '@sentry/types';
-import { dropUndefinedKeys, isThenable, logger, tracingContextFromHeaders } from '@sentry/utils';
+import { dropUndefinedKeys, logger, tracingContextFromHeaders } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../debug-build';
 import { getCurrentScope, withScope } from '../exports';
 import type { Hub } from '../hub';
 import { getCurrentHub } from '../hub';
+import { handleCallbackErrors } from '../utils/handleCallbackErrors';
 import { hasTracingEnabled } from '../utils/hasTracingEnabled';
 
 /**
@@ -18,6 +19,8 @@ import { hasTracingEnabled } from '../utils/hasTracingEnabled';
  *
  * @internal
  * @private
+ *
+ * @deprecated Use `startSpan` instead.
  */
 export function trace<T>(
   context: TransactionContext,
@@ -37,43 +40,18 @@ export function trace<T>(
 
   scope.setSpan(activeSpan);
 
-  function finishAndSetSpan(): void {
-    activeSpan && activeSpan.end();
-    scope.setSpan(parentSpan);
-  }
-
-  let maybePromiseResult: T;
-  try {
-    maybePromiseResult = callback(activeSpan);
-  } catch (e) {
-    activeSpan && activeSpan.setStatus('internal_error');
-    onError(e, activeSpan);
-    finishAndSetSpan();
-    afterFinish();
-    throw e;
-  }
-
-  if (isThenable(maybePromiseResult)) {
-    // @ts-expect-error - the isThenable check returns the "wrong" type here
-    return maybePromiseResult.then(
-      res => {
-        finishAndSetSpan();
-        afterFinish();
-        return res;
-      },
-      e => {
-        activeSpan && activeSpan.setStatus('internal_error');
-        onError(e, activeSpan);
-        finishAndSetSpan();
-        afterFinish();
-        throw e;
-      },
-    );
-  }
-
-  finishAndSetSpan();
-  afterFinish();
-  return maybePromiseResult;
+  return handleCallbackErrors(
+    () => callback(activeSpan),
+    error => {
+      activeSpan && activeSpan.setStatus('internal_error');
+      onError(error, activeSpan);
+    },
+    () => {
+      activeSpan && activeSpan.end();
+      scope.setSpan(parentSpan);
+      afterFinish();
+    },
+  );
 }
 
 /**
@@ -90,7 +68,6 @@ export function trace<T>(
 export function startSpan<T>(context: TransactionContext, callback: (span: Span | undefined) => T): T {
   const ctx = normalizeContext(context);
 
-  // @ts-expect-error - isThenable returns the wrong type
   return withScope(scope => {
     const hub = getCurrentHub();
     const parentSpan = scope.getSpan();
@@ -98,35 +75,16 @@ export function startSpan<T>(context: TransactionContext, callback: (span: Span 
     const activeSpan = createChildSpanOrTransaction(hub, parentSpan, ctx);
     scope.setSpan(activeSpan);
 
-    function finishAndSetSpan(): void {
-      activeSpan && activeSpan.end();
-    }
-
-    let maybePromiseResult: T;
-    try {
-      maybePromiseResult = callback(activeSpan);
-    } catch (e) {
-      activeSpan && activeSpan.setStatus('internal_error');
-      finishAndSetSpan();
-      throw e;
-    }
-
-    if (isThenable(maybePromiseResult)) {
-      return maybePromiseResult.then(
-        res => {
-          finishAndSetSpan();
-          return res;
-        },
-        e => {
-          activeSpan && activeSpan.setStatus('internal_error');
-          finishAndSetSpan();
-          throw e;
-        },
-      );
-    }
-
-    finishAndSetSpan();
-    return maybePromiseResult;
+    return handleCallbackErrors(
+      () => callback(activeSpan),
+      () => {
+        // Only update the span status if it hasn't been changed yet
+        if (activeSpan && (!activeSpan.status || activeSpan.status === 'ok')) {
+          activeSpan.setStatus('internal_error');
+        }
+      },
+      () => activeSpan && activeSpan.end(),
+    );
   });
 }
 
@@ -152,7 +110,6 @@ export function startSpanManual<T>(
 ): T {
   const ctx = normalizeContext(context);
 
-  // @ts-expect-error - isThenable returns the wrong type
   return withScope(scope => {
     const hub = getCurrentHub();
     const parentSpan = scope.getSpan();
@@ -164,25 +121,15 @@ export function startSpanManual<T>(
       activeSpan && activeSpan.end();
     }
 
-    let maybePromiseResult: T;
-    try {
-      maybePromiseResult = callback(activeSpan, finishAndSetSpan);
-    } catch (e) {
-      activeSpan && activeSpan.setStatus('internal_error');
-      throw e;
-    }
-
-    if (isThenable(maybePromiseResult)) {
-      return maybePromiseResult.then(
-        res => res,
-        e => {
-          activeSpan && activeSpan.setStatus('internal_error');
-          throw e;
-        },
-      );
-    }
-
-    return maybePromiseResult;
+    return handleCallbackErrors(
+      () => callback(activeSpan, finishAndSetSpan),
+      () => {
+        // Only update the span status if it hasn't been changed yet, and the span is not yet finished
+        if (activeSpan && !activeSpan.endTimestamp && (!activeSpan.status || activeSpan.status === 'ok')) {
+          activeSpan.setStatus('internal_error');
+        }
+      },
+    );
   });
 }
 

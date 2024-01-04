@@ -38,6 +38,7 @@ export {
   setTags,
   setUser,
   spanStatusfromHttpCode,
+  // eslint-disable-next-line deprecation/deprecation
   trace,
   withScope,
   autoDiscoverNodePerformanceMonitoringIntegrations,
