@@ -3,8 +3,7 @@ import type { Integration } from '@sentry/types';
 import type { ReplayConfiguration } from './types';
 
 interface ReplayCanvasOptions {
-  fps: number;
-  quality: number;
+  quality: 'low' | 'medium' | 'high';
 }
 
 /** An integration to add canvas recording to replay. */
@@ -21,14 +20,10 @@ export class ReplayCanvas implements Integration {
 
   private _canvasOptions: ReplayCanvasOptions;
 
-  public constructor() {
+  public constructor(options?: Partial<ReplayCanvasOptions>) {
     this.name = ReplayCanvas.id;
-    // TODO FN: Allow to configure this
-    // But since we haven't finalized how to configure this, this is predefined for now
-    // to avoid breaking changes
     this._canvasOptions = {
-      fps: 4,
-      quality: 0.6,
+      quality: options && options.quality || 'medium',
     };
   }
 
@@ -47,6 +42,7 @@ export class ReplayCanvas implements Integration {
         canvas: {
           ...this._canvasOptions,
           manager: getCanvasManager,
+          quality: this._canvasOptions.quality,
         },
       },
     };
