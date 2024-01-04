@@ -1,6 +1,6 @@
 // TODO (v8): This import can be removed once we only support Node with global URL
 import { URL } from 'url';
-import { convertIntegrationFnToClass, getCurrentScope } from '@sentry/core';
+import { convertIntegrationFnToClass, getCurrentScope, getIsolationScope } from '@sentry/core';
 import type { Contexts, Event, EventHint, IntegrationFn } from '@sentry/types';
 import { dynamicRequire, logger } from '@sentry/utils';
 import type { Worker, WorkerOptions } from 'worker_threads';
@@ -129,7 +129,7 @@ async function _startWorker(client: NodeClient, _options: Partial<Options>): Pro
 
   const timer = setInterval(() => {
     try {
-      const currentSession = getCurrentScope().getSession();
+      const currentSession = getCurrentScope().getSession() || getIsolationScope().getSession();
       // We need to copy the session object and remove the toJSON method so it can be sent to the worker
       // serialized without making it a SerializedSession
       const session = currentSession ? { ...currentSession, toJSON: undefined } : undefined;
