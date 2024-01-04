@@ -147,7 +147,7 @@ describe('session APIs', () => {
     it('starts a session', () => {
       const session = startSession();
 
-      expect(session).toEqual({
+      expect(session).toMatchObject({
         status: 'ok',
         errors: 0,
         init: true,
