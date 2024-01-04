@@ -54,6 +54,7 @@ export {
   addRequestDataToEvent,
   DEFAULT_USER_INCLUDES,
   extractRequestData,
+  // eslint-disable-next-line deprecation/deprecation
   deepReadDirSync,
   Integrations,
   Handlers,
@@ -65,6 +66,7 @@ export {
   startInactiveSpan,
   startSpanManual,
   continueTrace,
+  cron,
 } from '@sentry/node';
 
 // We can still leave this for the carrier init and type exports

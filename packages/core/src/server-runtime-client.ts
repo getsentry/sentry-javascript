@@ -22,6 +22,7 @@ import { MetricsAggregator } from './metrics/aggregator';
 import type { Scope } from './scope';
 import { SessionFlusher } from './sessionflusher';
 import { addTracingExtensions, getDynamicSamplingContextFromClient } from './tracing';
+import { spanToTraceContext } from './utils/spanUtils';
 
 export interface ServerRuntimeClientOptions extends ClientOptions<BaseTransportOptions> {
   platform?: string;
@@ -257,7 +258,7 @@ export class ServerRuntimeClient<
     const span = scope.getSpan();
     if (span) {
       const samplingContext = span.transaction ? span.transaction.getDynamicSamplingContext() : undefined;
-      return [samplingContext, span.getTraceContext()];
+      return [samplingContext, spanToTraceContext(span)];
     }
 
     const { traceId, spanId, parentSpanId, dsc } = scope.getPropagationContext();

@@ -1,14 +1,16 @@
 import type { Span } from '@opentelemetry/api';
+import { SpanKind } from '@opentelemetry/api';
 import { TraceFlags, context, trace } from '@opentelemetry/api';
 import type { ReadableSpan } from '@opentelemetry/sdk-trace-base';
 import type { PropagationContext } from '@sentry/types';
 
 import { getCurrentHub } from '../src/custom/hub';
 import { InternalSentrySemanticAttributes } from '../src/semanticAttributes';
-import { startInactiveSpan, startSpan } from '../src/trace';
+import { startInactiveSpan, startSpan, startSpanManual } from '../src/trace';
 import type { AbstractSpan } from '../src/types';
 import { setPropagationContextOnContext } from '../src/utils/contextData';
 import { getActiveSpan, getRootSpan } from '../src/utils/getActiveSpan';
+import { getSpanKind } from '../src/utils/getSpanKind';
 import { getSpanMetadata } from '../src/utils/spanData';
 import { spanHasAttributes, spanHasName } from '../src/utils/spanTypes';
 import { cleanupOtel, mockSdkInit } from './helpers/mockSdkInit';
@@ -231,6 +233,33 @@ describe('trace', () => {
         },
       );
     });
+
+    it('allows to pass base SpanOptions', () => {
+      const date = Date.now() - 1000;
+
+      startSpan(
+        {
+          name: 'outer',
+          kind: SpanKind.CLIENT,
+          attributes: {
+            test1: 'test 1',
+            test2: 2,
+          },
+
+          startTime: date,
+        },
+        span => {
+          expect(span).toBeDefined();
+          expect(getSpanName(span)).toEqual('outer');
+          expect(getSpanAttributes(span)).toEqual({
+            [InternalSentrySemanticAttributes.SAMPLE_RATE]: 1,
+            test1: 'test 1',
+            test2: 2,
+          });
+          expect(getSpanKind(span)).toEqual(SpanKind.CLIENT);
+        },
+      );
+    });
   });
 
   describe('startInactiveSpan', () => {
@@ -296,6 +325,98 @@ describe('trace', () => {
       });
 
       expect(getSpanMetadata(span2)).toEqual({ requestPath: 'test-path' });
+    });
+
+    it('allows to pass base SpanOptions', () => {
+      const date = Date.now() - 1000;
+
+      const span = startInactiveSpan({
+        name: 'outer',
+        kind: SpanKind.CLIENT,
+        attributes: {
+          test1: 'test 1',
+          test2: 2,
+        },
+        startTime: date,
+      });
+
+      expect(span).toBeDefined();
+      expect(getSpanName(span)).toEqual('outer');
+      expect(getSpanAttributes(span)).toEqual({
+        [InternalSentrySemanticAttributes.SAMPLE_RATE]: 1,
+        test1: 'test 1',
+        test2: 2,
+      });
+      expect(getSpanKind(span)).toEqual(SpanKind.CLIENT);
+    });
+  });
+
+  describe('startSpanManual', () => {
+    it('does not automatically finish the span', () => {
+      expect(getActiveSpan()).toEqual(undefined);
+
+      let _outerSpan: Span | undefined;
+      let _innerSpan: Span | undefined;
+
+      const res = startSpanManual({ name: 'outer' }, outerSpan => {
+        expect(outerSpan).toBeDefined();
+        _outerSpan = outerSpan;
+
+        expect(getSpanName(outerSpan)).toEqual('outer');
+        expect(getActiveSpan()).toEqual(outerSpan);
+
+        startSpanManual({ name: 'inner' }, innerSpan => {
+          expect(innerSpan).toBeDefined();
+          _innerSpan = innerSpan;
+
+          expect(getSpanName(innerSpan)).toEqual('inner');
+          expect(getActiveSpan()).toEqual(innerSpan);
+        });
+
+        expect(getSpanEndTime(_innerSpan!)).toEqual([0, 0]);
+
+        _innerSpan!.end();
+
+        expect(getSpanEndTime(_innerSpan!)).not.toEqual([0, 0]);
+
+        return 'test value';
+      });
+
+      expect(getSpanEndTime(_outerSpan!)).toEqual([0, 0]);
+
+      _outerSpan!.end();
+
+      expect(getSpanEndTime(_outerSpan!)).not.toEqual([0, 0]);
+
+      expect(res).toEqual('test value');
+
+      expect(getActiveSpan()).toEqual(undefined);
+    });
+
+    it('allows to pass base SpanOptions', () => {
+      const date = Date.now() - 1000;
+
+      startSpanManual(
+        {
+          name: 'outer',
+          kind: SpanKind.CLIENT,
+          attributes: {
+            test1: 'test 1',
+            test2: 2,
+          },
+          startTime: date,
+        },
+        span => {
+          expect(span).toBeDefined();
+          expect(getSpanName(span)).toEqual('outer');
+          expect(getSpanAttributes(span)).toEqual({
+            [InternalSentrySemanticAttributes.SAMPLE_RATE]: 1,
+            test1: 'test 1',
+            test2: 2,
+          });
+          expect(getSpanKind(span)).toEqual(SpanKind.CLIENT);
+        },
+      );
     });
   });
 });

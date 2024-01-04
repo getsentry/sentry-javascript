@@ -62,7 +62,7 @@ module.exports = {
       },
     },
     {
-      files: ['scenarios/**', 'packages/rollup-utils/**'],
+      files: ['scenarios/**', 'dev-packages/rollup-utils/**'],
       parserOptions: {
         sourceType: 'module',
       },

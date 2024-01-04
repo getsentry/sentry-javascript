@@ -1,1 +1,1 @@
-export * from '../../../../../../browser-integration-tests/utils/helpers';
+export * from '@sentry-internal/browser-integration-tests/utils/helpers';

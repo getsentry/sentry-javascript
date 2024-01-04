@@ -216,7 +216,8 @@ function updateTransactionWithOtelData(transaction: Transaction, otelSpan: OtelS
   transaction.setStatus(mapOtelStatus(otelSpan));
 
   transaction.op = op;
-  transaction.setName(description, source);
+  transaction.updateName(description);
+  transaction.setMetadata({ source });
 }
 
 function convertOtelTimeToSeconds([seconds, nano]: [number, number]): number {

@@ -33,6 +33,7 @@ it('excludes build-time SDK dependencies from nft files', () => {
   expect(rollupEntries.length).toEqual(0);
 
   // We don't want to accidentally remove the wrappers
+  // eslint-disable-next-line deprecation/deprecation
   const wrapperFiles = deepReadDirSync('src/config/wrappers/').filter(filename => filename !== 'types.ts');
   expect(sentryWrapperEntries.length).toEqual(wrapperFiles.length);
 });

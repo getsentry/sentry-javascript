@@ -25,6 +25,7 @@ describe('deepReadDirSync', () => {
     ].map(p => (process.platform === 'win32' ? p.replace(/\//g, '\\') : p));
 
     // compare sets so that order doesn't matter
+    // eslint-disable-next-line deprecation/deprecation
     expect(new Set(deepReadDirSync('./test/fixtures/testDeepReadDirSync'))).toEqual(new Set(expected));
   });
 
@@ -35,6 +36,7 @@ describe('deepReadDirSync', () => {
     fs.mkdtemp(`${tmpDir}${path.sep}`, (err, dirPath) => {
       if (err) throw err;
       try {
+        // eslint-disable-next-line deprecation/deprecation
         expect(deepReadDirSync(dirPath)).toEqual([]);
         done();
       } catch (error) {
@@ -44,10 +46,12 @@ describe('deepReadDirSync', () => {
   });
 
   it('errors if directory does not exist', () => {
+    // eslint-disable-next-line deprecation/deprecation
     expect(() => deepReadDirSync('./IDontExist')).toThrowError('Directory does not exist.');
   });
 
   it('errors if given path is not a directory', () => {
+    // eslint-disable-next-line deprecation/deprecation
     expect(() => deepReadDirSync('package.json')).toThrowError('it is not a directory');
   });
 });

@@ -8,6 +8,16 @@ npx @sentry/migr8@latest
 
 This will let you select which updates to run, and automatically update your code. Make sure to still review all code changes!
 
+## Deprecated fields on `Span` and `Transaction`
+
+In v8, the Span class is heavily reworked. The following properties & methods are thus deprecated:
+
+* `span.toContext()`: Access the fields directly instead.
+* `span.updateWithContext(newSpanContext)`: Update the fields directly instead.
+* `span.setName(newName)`: Use `span.updateName(newName)` instead.
+* `span.toTraceparent()`: use `spanToTraceHeader(span)` util instead.
+* `span.getTraceContext()`: Use `spanToTraceContext(span)` utility function instead.
+
 ## Deprecate `pushScope` & `popScope` in favor of `withScope`
 
 Instead of manually pushing/popping a scope, you should use `Sentry.withScope(callback: (scope: Scope))` instead.

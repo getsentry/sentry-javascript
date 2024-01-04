@@ -361,12 +361,12 @@ describe('Scope', () => {
       const scope = new Scope();
       const span = {
         fake: 'span',
-        getTraceContext: () => ({ a: 'b' }),
+        toJSON: () => ({ origin: 'manual' }),
       } as any;
       scope.setSpan(span);
       const event: Event = {};
       const processedEvent = await scope.applyToEvent(event);
-      expect((processedEvent!.contexts!.trace as any).a).toEqual('b');
+      expect(processedEvent!.contexts!.trace as any).toEqual({ origin: 'manual' });
     });
 
     test('existing trace context in event should take precedence', async () => {
@@ -374,7 +374,7 @@ describe('Scope', () => {
       const scope = new Scope();
       const span = {
         fake: 'span',
-        getTraceContext: () => ({ a: 'b' }),
+        toJSON: () => ({ a: 'b' }),
       } as any;
       scope.setSpan(span);
       const event: Event = {
@@ -392,7 +392,7 @@ describe('Scope', () => {
       const scope = new Scope();
       const transaction = {
         fake: 'span',
-        getTraceContext: () => ({ a: 'b' }),
+        toJSON: () => ({ a: 'b' }),
         name: 'fake transaction',
         getDynamicSamplingContext: () => ({}),
       } as any;
@@ -410,7 +410,7 @@ describe('Scope', () => {
       const transaction = { name: 'fake transaction', getDynamicSamplingContext: () => ({}) };
       const span = {
         fake: 'span',
-        getTraceContext: () => ({ a: 'b' }),
+        toJSON: () => ({ a: 'b' }),
         transaction,
       } as any;
       scope.setSpan(span);

@@ -80,12 +80,14 @@ export { NodeClient } from './client';
 export { makeNodeTransport } from './transports';
 export { defaultIntegrations, init, defaultStackParser, getSentryRelease } from './sdk';
 export { addRequestDataToEvent, DEFAULT_USER_INCLUDES, extractRequestData } from '@sentry/utils';
+// eslint-disable-next-line deprecation/deprecation
 export { deepReadDirSync } from './utils';
 export { getModuleFromFilename } from './module';
 // eslint-disable-next-line deprecation/deprecation
 export { enableAnrDetection } from './integrations/anr/legacy';
 
 import { Integrations as CoreIntegrations } from '@sentry/core';
+import type { Integration, IntegrationClass } from '@sentry/types';
 
 import * as Handlers from './handlers';
 import * as NodeIntegrations from './integrations';
@@ -93,10 +95,35 @@ import * as TracingIntegrations from './tracing/integrations';
 
 const INTEGRATIONS = {
   ...CoreIntegrations,
-  ...NodeIntegrations,
+  // This typecast is somehow needed for now, probably because of the convertIntegrationFnToClass TS shenanigans
+  // This is OK for now but should be resolved in v8 when we just pass the functional integrations directly
+  ...(NodeIntegrations as {
+    Console: IntegrationClass<Integration>;
+    Http: typeof NodeIntegrations.Http;
+    OnUncaughtException: IntegrationClass<Integration>;
+    OnUnhandledRejection: IntegrationClass<Integration>;
+    Modules: IntegrationClass<Integration>;
+    ContextLines: IntegrationClass<Integration>;
+    Context: IntegrationClass<Integration>;
+    RequestData: IntegrationClass<Integration>;
+    LocalVariables: IntegrationClass<Integration>;
+    Undici: typeof NodeIntegrations.Undici;
+    Spotlight: IntegrationClass<Integration>;
+    Anr: IntegrationClass<Integration>;
+    Hapi: IntegrationClass<Integration>;
+  }),
   ...TracingIntegrations,
 };
 
 export { INTEGRATIONS as Integrations, Handlers };
 
 export { hapiErrorPlugin } from './integrations/hapi';
+
+import { instrumentCron } from './cron/cron';
+import { instrumentNodeCron } from './cron/node-cron';
+
+/** Methods to instrument cron libraries for Sentry check-ins */
+export const cron = {
+  instrumentCron,
+  instrumentNodeCron,
+};
