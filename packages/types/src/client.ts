@@ -138,14 +138,11 @@ export interface Client<O extends ClientOptions = ClientOptions> {
    */
   getEventProcessors?(): EventProcessor[];
 
-  /**
-   * Returns the client's instance of the given integration class, it any.
-   * @deprecated Use `getIntegrationByName()` instead.
-   */
+  /** Returns the client's instance of the given integration class, if it exists. */
   getIntegration<T extends Integration>(integration: IntegrationClass<T>): T | null;
 
-  /** Get the instance of the integration with the given name on the client, if it was added. */
-  getIntegrationByName?<T extends Integration = Integration>(name: string): T | undefined;
+  /** Returns the client's instance of the given integration name, if it exists. */
+  getIntegrationById?(integrationId: string): Integration | undefined;
 
   /**
    * Add an integration to the client.
