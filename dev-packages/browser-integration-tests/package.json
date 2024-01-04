@@ -45,6 +45,9 @@
   "dependencies": {
     "@babel/preset-typescript": "^7.16.7",
     "@playwright/test": "^1.31.1",
+    "@sentry/browser": "7.91.0",
+    "@sentry/tracing": "7.91.0",
+    "@sentry-internal/rrweb": "2.6.0",
     "axios": "1.6.0",
     "babel-loader": "^8.2.2",
     "html-webpack-plugin": "^5.5.0",

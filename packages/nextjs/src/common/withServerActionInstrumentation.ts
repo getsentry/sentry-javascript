@@ -3,8 +3,9 @@ import {
   captureException,
   getClient,
   getCurrentScope,
+  handleCallbackErrors,
   runWithAsyncContext,
-  trace,
+  startSpan,
 } from '@sentry/core';
 import { logger, tracingContextFromHeaders } from '@sentry/utils';
 
@@ -83,7 +84,7 @@ async function withServerActionInstrumentationImplementation<A extends (...args:
 
     let res;
     try {
-      res = await trace(
+      res = await startSpan(
         {
           op: 'function.server_action',
           name: `serverAction/${serverActionName}`,
@@ -98,7 +99,9 @@ async function withServerActionInstrumentationImplementation<A extends (...args:
           },
         },
         async span => {
-          const result = await callback();
+          const result = await handleCallbackErrors(callback, error => {
+            captureException(error, { mechanism: { handled: false } });
+          });
 
           if (options.recordResponse !== undefined ? options.recordResponse : sendDefaultPii) {
             span?.setData('server_action_result', result);
@@ -117,9 +120,6 @@ async function withServerActionInstrumentationImplementation<A extends (...args:
           }
 
           return result;
-        },
-        error => {
-          captureException(error, { mechanism: { handled: false } });
         },
       );
     } finally {
