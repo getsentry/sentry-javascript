@@ -10,7 +10,7 @@ This will let you select which updates to run, and automatically update your cod
 
 ## Deprecate `Sentry.lastEventId()` and `hub.lastEventId()`
 
-`Sentry.lastEventId()` sometimes causes race conditons, so we are deprecating it in favour of the `beforeSend` callback.
+`Sentry.lastEventId()` sometimes causes race conditions, so we are deprecating it in favour of the `beforeSend` callback.
 
 ```js
 // Before
@@ -36,6 +36,12 @@ Sentry.init({
   },
 });
 ```
+
+## Deprecated fields on `Hub`
+
+In v8, the Hub class will be removed. The following methods are therefore deprecated:
+
+- `hub.shouldSendDefaultPii()`: Access Sentry client option via `Sentry.getClient().getOptions().sendDefaultPii` instead
 
 ## Deprecated fields on `Span` and `Transaction`
 
