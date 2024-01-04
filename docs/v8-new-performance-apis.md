@@ -1,7 +1,6 @@
 # New Performance APIs in v8
 
-> [!WARNING]
-> This document is WIP. We are working on this while we are preparing v8.
+> [!WARNING] This document is WIP. We are working on this while we are preparing v8.
 
 In v8.0.0, we moved to new performance APIs. These APIs have been introduced in v7, so they can already be used there.
 However, in v8 we have removed the old performance APIs, so you have to update your manual instrumentation usage to the
@@ -34,8 +33,8 @@ which can have a nested tree of **Spans**.
 ## The new model: Goodbye Transactions, Hello Spans Everywhere!
 
 In the new model, transactions are conceptually gone. Instead, you will _always_ operate on spans, no matter where in
-the tree you are. Note that in the background, spans _may_ still be grouped into a transaction for the Sentry UI. However, this
-happens transparently, and from an SDK perspective, all you have to think about are spans.
+the tree you are. Note that in the background, spans _may_ still be grouped into a transaction for the Sentry UI.
+However, this happens transparently, and from an SDK perspective, all you have to think about are spans.
 
 ## The Span schema
 
@@ -47,40 +46,40 @@ below to see which things used to exist, and how they can/should be mapped going
 | --------------------- | ---------------------------------------------------- |
 | `traceId`             | `spanContext().traceId`                              |
 | `spanId`              | `spanContext().spanId`                               |
-| `parentSpanId`        | Unchanged                                                 |
-| `status`              | TODO: new signature                                  |
-| `sampled`             | `spanContext().traceFlags`                           |
+| `parentSpanId`        | Unchanged                                            |
+| `status`              | use utility method TODO                              |
+| `sampled`             | `spanIsSampled(span)`                                |
 | `startTimestamp`      | `startTime` - note that this has a different format! |
-| `tags`                | Use `attributes` instead, or set tags on the scope   |
-| `data`                | Use `attributes` instead.                            |
-| `transaction`         | Removed                                              |
+| `tags`                | `spanGetAttributes(span)`, or set tags on the scope  |
+| `data`                | `spanGetAttributes(span)`                            |
+| `transaction`         | ??? Removed                                          |
 | `instrumenter`        | Removed                                              |
 | `finish()`            | `end()`                                              |
 | `end()`               | Same                                                 |
-| `setTag()`            | `setAttribute()`                                     |
+| `setTag()`            | `setAttribute()`, or set tags on the scope           |
 | `setData()`           | `setAttribute()`                                     |
 | `setStatus()`         | TODO: new signature                                  |
-| `setHttpStatus()`     | ???                                                  |
-| `setName()`           | TODO: `updateName()`                                 |
+| `setHttpStatus()`     | ??? TODO                                             |
+| `setName()`           | `updateName()`                                       |
 | `startChild()`        | Call `Sentry.startSpan()` independently              |
-| `isSuccess()`         | ???                                                  |
-| `toTraceparent()`     | ???                                                  |
-| `toContext()`         | ???                                                  |
-| `updateWithContext()` | ???                                                  |
-| `getTraceContext()`   | ???                                                  |
+| `isSuccess()`         | Removed (TODO)                                       |
+| `toTraceparent()`     | `spanToTraceHeader(span)`                            |
+| `toContext()`         | Removed                                              |
+| `updateWithContext()` | Removed                                              |
+| `getTraceContext()`   | `spanToTraceContext(span)`                           |
 
 In addition, a transaction has this API:
 
-| Old name                    | Replace with                                          |
-| --------------------------- | ----------------------------------------------------- |
-| `name`                      | Same                                                  |
-| `trimEnd`                   | Removed                                               |
-| `parentSampled`             | `spanContext().traceFlags` & `spanContext().isRemote` |
-| `metadata`                  | Removed                                               |
-| `setContext()`              | Set context on scope instead                          |
-| `setMeasurement()`          | ???                                                   |
-| `setMetadata()`             | Removed                                               |
-| `getDynamicSamplingContext` | Removed - use global method instead (??)              |
+| Old name                    | Replace with                                     |
+| --------------------------- | ------------------------------------------------ |
+| `name`                      | `spanGetName(span)` (TODO)                       |
+| `trimEnd`                   | Removed                                          |
+| `parentSampled`             | `spanIsSampled(span)` & `spanContext().isRemote` |
+| `metadata`                  | `spanGetMetadata(span)`                          |
+| `setContext()`              | Set context on scope instead                     |
+| `setMeasurement()`          | ??? TODO                                         |
+| `setMetadata()`             | `spanSetMetadata(span, metadata)`                |
+| `getDynamicSamplingContext` | ??? TODO                                         |
 
 ### Attributes vs. Data vs. Tags vs. Context
 
@@ -227,14 +226,18 @@ In addition to generally changing the performance APIs, there are also some smal
 
 ### Changed `SamplingContext` for `tracesSampler()`
 
-Currently, `tracesSampler()` can receive an arbitrary `SamplingContext` passed as argument.
-While this is not defined anywhere in detail, the shape of this context will change in v8. Going forward, this will mostly receive the attributes of the span, as well as some other relevant data of the span. Some properties we used to (sometimes) pass there, like `req` for node-based SDKs or `location` for browser tracing, will not be passed anymore.
+Currently, `tracesSampler()` can receive an arbitrary `SamplingContext` passed as argument. While this is not defined
+anywhere in detail, the shape of this context will change in v8. Going forward, this will mostly receive the attributes
+of the span, as well as some other relevant data of the span. Some properties we used to (sometimes) pass there, like
+`req` for node-based SDKs or `location` for browser tracing, will not be passed anymore.
 
 ### No more `undefined` spans
 
-In v7, the performance APIs `startSpan()` /  `startInactiveSpan()` / `startSpanManual()` would receive an `undefined` span if tracing was disabled or the span was not sampled.
+In v7, the performance APIs `startSpan()` / `startInactiveSpan()` / `startSpanManual()` would receive an `undefined`
+span if tracing was disabled or the span was not sampled.
 
-In v8, aligning with OpenTelemetry, these will _always_ return a span - _but_ the span may eb a Noop-Span, meaning a span that is never sent. This means you don't have to guard everywhere in your code anymore for the span to exist:
+In v8, aligning with OpenTelemetry, these will _always_ return a span - _but_ the span may eb a Noop-Span, meaning a
+span that is never sent. This means you don't have to guard everywhere in your code anymore for the span to exist:
 
 ```ts
 Sentry.startSpan((span: Span | undefined) => {
