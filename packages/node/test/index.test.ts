@@ -288,6 +288,7 @@ describe('SentryNode', () => {
         hub.bindClient(client);
         expect(getCurrentHub().getClient()).toBe(client);
         expect(getClient()).toBe(client);
+        // eslint-disable-next-line deprecation/deprecation
         hub.captureEvent({ message: 'test domain' });
       });
     });

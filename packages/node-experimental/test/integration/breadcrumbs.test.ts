@@ -27,6 +27,7 @@ describe('Integration | breadcrumbs', () => {
       hub.addBreadcrumb({ timestamp: 123455, message: 'test3' });
 
       const error = new Error('test');
+      // eslint-disable-next-line deprecation/deprecation
       hub.captureException(error);
 
       await client.flush();
@@ -118,6 +119,7 @@ describe('Integration | breadcrumbs', () => {
         hub.addBreadcrumb({ timestamp: 123455, message: 'test3' });
       });
 
+      // eslint-disable-next-line deprecation/deprecation
       hub.captureException(error);
     });
 
@@ -171,6 +173,7 @@ describe('Integration | breadcrumbs', () => {
           hub.addBreadcrumb({ timestamp: 123457, message: 'test2-b' });
         });
 
+        // eslint-disable-next-line deprecation/deprecation
         hub.captureException(error);
       });
     });
@@ -214,6 +217,7 @@ describe('Integration | breadcrumbs', () => {
         hub.addBreadcrumb({ timestamp: 123457, message: 'test2' });
       });
 
+      // eslint-disable-next-line deprecation/deprecation
       hub.captureException(error);
     });
 
@@ -261,6 +265,7 @@ describe('Integration | breadcrumbs', () => {
           startSpan({ name: 'inner3' }, () => {
             hub.addBreadcrumb({ timestamp: 123457, message: 'test4' });
 
+            // eslint-disable-next-line deprecation/deprecation
             hub.captureException(error);
 
             startSpan({ name: 'inner4' }, () => {
@@ -321,6 +326,7 @@ describe('Integration | breadcrumbs', () => {
 
         await new Promise(resolve => setTimeout(resolve, 10));
 
+        // eslint-disable-next-line deprecation/deprecation
         hub.captureException(error);
       });
     });

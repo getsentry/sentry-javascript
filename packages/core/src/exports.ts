@@ -38,6 +38,7 @@ export function captureException(
   exception: any,
   hint?: ExclusiveEventHintOrCaptureContext,
 ): string {
+  // eslint-disable-next-line deprecation/deprecation
   return getCurrentHub().captureException(exception, parseEventHintOrCaptureContext(hint));
 }
 
@@ -57,6 +58,7 @@ export function captureMessage(
   // arity of the `captureMessage(message, level)` method.
   const level = typeof captureContext === 'string' ? captureContext : undefined;
   const context = typeof captureContext !== 'string' ? { captureContext } : undefined;
+  // eslint-disable-next-line deprecation/deprecation
   return getCurrentHub().captureMessage(message, level, context);
 }
 
@@ -68,6 +70,7 @@ export function captureMessage(
  * @returns the id of the captured event.
  */
 export function captureEvent(event: Event, hint?: EventHint): string {
+  // eslint-disable-next-line deprecation/deprecation
   return getCurrentHub().captureEvent(event, hint);
 }
 

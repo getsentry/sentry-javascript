@@ -61,6 +61,7 @@ describe('ModuleMetadata integration', () => {
     const client = new TestClient(options);
     const hub = getCurrentHub();
     hub.bindClient(client);
+    // eslint-disable-next-line deprecation/deprecation
     hub.captureException(new Error('Some error'));
   });
 });

@@ -263,6 +263,8 @@ export class Hub implements HubInterface {
 
   /**
    * @inheritDoc
+   *
+   * @deprecated Use top level `captureException` instead.
    */
   public captureException(exception: unknown, hint?: EventHint): string {
     const eventId = (this._lastEventId = hint && hint.event_id ? hint.event_id : uuid4());
@@ -279,6 +281,8 @@ export class Hub implements HubInterface {
 
   /**
    * @inheritDoc
+   *
+   * @deprecated Use top level `captureMessage` instead.
    */
   public captureMessage(
     message: string,
@@ -300,6 +304,8 @@ export class Hub implements HubInterface {
 
   /**
    * @inheritDoc
+   *
+   * @deprecated Use top level `captureEvent` instead.
    */
   public captureEvent(event: Event, hint?: EventHint): string {
     const eventId = hint && hint.event_id ? hint.event_id : uuid4();
