@@ -8,6 +8,46 @@ npx @sentry/migr8@latest
 
 This will let you select which updates to run, and automatically update your code. Make sure to still review all code changes!
 
+## Deprecate `startTransaction()`
+
+In v8, the old performance API `startTransaction()` (as well as `hub.startTransaction()`) will be removed.
+Instead, use the new performance APIs:
+
+* `startSpan()`
+* `startSpanManual()`
+* `startInactiveSpan()`
+
+You can [read more about the new performance APIs here](./docs/v8-new-performance-apis.md).
+
+## Deprecate `Sentry.lastEventId()` and `hub.lastEventId()`
+
+`Sentry.lastEventId()` sometimes causes race conditons, so we are deprecating it in favour of the `beforeSend` callback.
+
+```js
+// Before
+
+Sentry.init({
+  beforeSend(event, hint) {
+    const lastCapturedEventId = Sentry.lastEventId();
+
+    // Do something with `lastCapturedEventId` here
+
+    return event;
+  },
+});
+
+// After
+Sentry.init({
+  beforeSend(event, hint) {
+    const lastCapturedEventId = event.event_id;
+
+    // Do something with `lastCapturedEventId` here
+
+    return event;
+  },
+});
+```
+
 ## Deprecated fields on `Span` and `Transaction`
 
 In v8, the Span class is heavily reworked. The following properties & methods are thus deprecated:
@@ -17,6 +57,7 @@ In v8, the Span class is heavily reworked. The following properties & methods ar
 * `span.setName(newName)`: Use `span.updateName(newName)` instead.
 * `span.toTraceparent()`: use `spanToTraceHeader(span)` util instead.
 * `span.getTraceContext()`: Use `spanToTraceContext(span)` utility function instead.
+* `span.sampled`: Use `span.isRecording()` instead.
 
 ## Deprecate `pushScope` & `popScope` in favor of `withScope`
 
@@ -57,7 +98,7 @@ Sentry.init({
     const lastCapturedEventId = event.event_id;
 
     // Do something with `lastCapturedEventId` here
-    
+
     return event;
   },
 });

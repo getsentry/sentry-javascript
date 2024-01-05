@@ -55,6 +55,7 @@ function _startTransaction(
 The transaction will not be sampled. Please use the ${configInstrumenter} instrumentation to start transactions.`,
       );
 
+    // eslint-disable-next-line deprecation/deprecation
     transactionContext.sampled = false;
   }
 
@@ -64,7 +65,7 @@ The transaction will not be sampled. Please use the ${configInstrumenter} instru
     transactionContext,
     ...customSamplingContext,
   });
-  if (transaction.sampled) {
+  if (transaction.isRecording()) {
     transaction.initSpanRecorder(options._experiments && (options._experiments.maxSpans as number));
   }
   if (client && client.emit) {
@@ -94,7 +95,7 @@ export function startIdleTransaction(
     transactionContext,
     ...customSamplingContext,
   });
-  if (transaction.sampled) {
+  if (transaction.isRecording()) {
     transaction.initSpanRecorder(options._experiments && (options._experiments.maxSpans as number));
   }
   if (client && client.emit) {

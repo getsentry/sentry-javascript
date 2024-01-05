@@ -13,7 +13,6 @@ function configureSentry() {
 async function main() {
   configureSentry();
   await new Promise(resolve => setTimeout(resolve, 1000));
-  process.exit(0);
 }
 
 main();
