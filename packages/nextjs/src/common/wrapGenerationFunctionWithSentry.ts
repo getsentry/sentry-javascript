@@ -98,6 +98,8 @@ export function wrapGenerationFunctionWithSentry<F extends (...args: any[]) => a
                     },
                   });
                 }
+              },
+              () => {
                 span?.end();
               },
             );
