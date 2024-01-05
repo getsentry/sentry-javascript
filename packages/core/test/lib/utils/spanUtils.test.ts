@@ -1,5 +1,6 @@
 import { TRACEPARENT_REGEXP, timestampInSeconds } from '@sentry/utils';
 import { Span } from '../../../src/tracing/span';
+import { Transaction } from '../../../src/tracing/transaction';
 import {
   spanGetMetadata,
   spanSetMetadata,
