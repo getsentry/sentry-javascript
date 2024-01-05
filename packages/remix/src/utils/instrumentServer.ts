@@ -394,6 +394,8 @@ export function startRequestHandlerTransaction(
   );
   hub.getScope().setPropagationContext(propagationContext);
 
+  // TODO: Refactor this to `startSpan()`
+  // eslint-disable-next-line deprecation/deprecation
   const transaction = hub.startTransaction({
     name,
     op: 'http.server',

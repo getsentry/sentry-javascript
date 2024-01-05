@@ -1,3 +1,4 @@
+import { timestampInSeconds } from '@sentry/utils';
 import { Span } from '../../../src';
 
 describe('span', () => {
@@ -171,6 +172,40 @@ describe('span', () => {
       span.setAttributes({ str: undefined });
 
       expect(Object.keys(span.attributes).length).toEqual(0);
+    });
+  });
+
+  describe('end', () => {
+    it('works without endTimestamp', () => {
+      const span = new Span();
+      const now = timestampInSeconds();
+      span.end();
+
+      expect(span.endTimestamp).toBeGreaterThanOrEqual(now);
+    });
+
+    it('works with endTimestamp in seconds', () => {
+      const span = new Span();
+      const timestamp = timestampInSeconds() - 1;
+      span.end(timestamp);
+
+      expect(span.endTimestamp).toEqual(timestamp);
+    });
+
+    it('works with endTimestamp in milliseconds', () => {
+      const span = new Span();
+      const timestamp = Date.now() - 1000;
+      span.end(timestamp);
+
+      expect(span.endTimestamp).toEqual(timestamp / 1000);
+    });
+
+    it('works with endTimestamp in array form', () => {
+      const span = new Span();
+      const seconds = Math.floor(timestampInSeconds() - 1);
+      span.end([seconds, 0]);
+
+      expect(span.endTimestamp).toEqual(seconds);
     });
   });
 

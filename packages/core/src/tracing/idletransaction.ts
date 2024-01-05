@@ -1,13 +1,13 @@
 /* eslint-disable max-lines */
-import type { TransactionContext } from '@sentry/types';
+import type { SpanTimeInput, TransactionContext } from '@sentry/types';
 import { logger, timestampInSeconds } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../debug-build';
 import type { Hub } from '../hub';
+import { spanTimeInputToSeconds } from '../utils/spanUtils';
 import type { Span } from './span';
 import { SpanRecorder } from './span';
 import { Transaction } from './transaction';
-import { ensureTimestampInSeconds } from './utils';
 
 export const TRACING_DEFAULTS = {
   idleTimeout: 1000,
@@ -138,8 +138,8 @@ export class IdleTransaction extends Transaction {
   }
 
   /** {@inheritDoc} */
-  public end(endTimestamp: number = timestampInSeconds()): string | undefined {
-    const endTimestampInS = ensureTimestampInSeconds(endTimestamp);
+  public end(endTimestamp?: SpanTimeInput): string | undefined {
+    const endTimestampInS = spanTimeInputToSeconds(endTimestamp);
 
     this._finished = true;
     this.activities = {};
@@ -153,7 +153,7 @@ export class IdleTransaction extends Transaction {
         logger.log('[Tracing] finishing IdleTransaction', new Date(endTimestampInS * 1000).toISOString(), this.op);
 
       for (const callback of this._beforeFinishCallbacks) {
-        callback(this, endTimestamp);
+        callback(this, endTimestampInS);
       }
 
       this.spanRecorder.spans = this.spanRecorder.spans.filter((span: Span) => {

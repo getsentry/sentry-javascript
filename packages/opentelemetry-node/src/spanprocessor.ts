@@ -66,6 +66,7 @@ export class SentrySpanProcessor implements OtelSpanProcessor {
       setSentrySpan(otelSpanId, sentryChildSpan);
     } else {
       const traceCtx = getTraceData(otelSpan, parentContext);
+      // eslint-disable-next-line deprecation/deprecation
       const transaction = getCurrentHub().startTransaction({
         name: otelSpan.name,
         ...traceCtx,

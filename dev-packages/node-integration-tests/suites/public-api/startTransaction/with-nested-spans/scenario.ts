@@ -8,6 +8,7 @@ Sentry.init({
   tracesSampleRate: 1.0,
 });
 
+// eslint-disable-next-line deprecation/deprecation
 const transaction = Sentry.startTransaction({ name: 'test_transaction_1' });
 const span_1 = transaction.startChild({
   op: 'span_1',
