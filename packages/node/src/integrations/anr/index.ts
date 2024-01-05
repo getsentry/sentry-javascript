@@ -129,7 +129,7 @@ async function _startWorker(client: NodeClient, _options: Partial<Options>): Pro
 
   const timer = setInterval(() => {
     try {
-      const currentSession = getCurrentHub().getScope().getSession();
+      const currentSession = getCurrentScope().getSession();
       // We need to copy the session object and remove the toJSON method so it can be sent to the worker
       // serialized without making it a SerializedSession
       const session = currentSession ? { ...currentSession, toJSON: undefined } : undefined;
