@@ -1,5 +1,14 @@
 import { getClient } from '@sentry/core';
-import type { Event, EventHint, Exception, Severity, SeverityLevel, StackFrame, StackParser } from '@sentry/types';
+import type {
+  Event,
+  EventHint,
+  Exception,
+  ParameterizedString,
+  Severity,
+  SeverityLevel,
+  StackFrame,
+  StackParser,
+} from '@sentry/types';
 import {
   addExceptionMechanism,
   addExceptionTypeValue,
@@ -9,6 +18,7 @@ import {
   isError,
   isErrorEvent,
   isEvent,
+  isParameterizedString,
   isPlainObject,
   normalizeToSize,
   resolvedSyncPromise,
@@ -167,7 +177,7 @@ export function eventFromException(
  */
 export function eventFromMessage(
   stackParser: StackParser,
-  message: string,
+  message: ParameterizedString,
   // eslint-disable-next-line deprecation/deprecation
   level: Severity | SeverityLevel = 'info',
   hint?: EventHint,
@@ -264,23 +274,32 @@ export function eventFromUnknownInput(
  */
 export function eventFromString(
   stackParser: StackParser,
-  input: string,
+  message: ParameterizedString,
   syntheticException?: Error,
   attachStacktrace?: boolean,
 ): Event {
-  const event: Event = {
-    message: input,
-  };
+  const event: Event = {};
 
   if (attachStacktrace && syntheticException) {
     const frames = parseStackFrames(stackParser, syntheticException);
     if (frames.length) {
       event.exception = {
-        values: [{ value: input, stacktrace: { frames } }],
+        values: [{ value: message, stacktrace: { frames } }],
       };
     }
   }
 
+  if (isParameterizedString(message)) {
+    const { __sentry_template_string__, __sentry_template_values__ } = message;
+
+    event.logentry = {
+      message: __sentry_template_string__,
+      params: __sentry_template_values__,
+    };
+    return event;
+  }
+
+  event.message = message;
   return event;
 }
 
