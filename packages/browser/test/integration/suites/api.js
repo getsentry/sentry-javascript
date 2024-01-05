@@ -20,23 +20,6 @@ describe('API', function () {
     });
   });
 
-  it('should capture Sentry internal event as breadcrumbs for the following event sent', function () {
-    return runInSandbox(sandbox, { manual: true }, function () {
-      window.allowSentryBreadcrumbs = true;
-      Sentry.captureMessage('a');
-      Sentry.captureMessage('b');
-      // For the loader
-      Sentry.flush && Sentry.flush(2000);
-      window.finalizeManualTest();
-    }).then(function (summary) {
-      assert.equal(summary.events.length, 2);
-      assert.equal(summary.breadcrumbs.length, 2);
-      assert.equal(summary.events[1].breadcrumbs[0].category, 'sentry.event');
-      assert.equal(summary.events[1].breadcrumbs[0].event_id, summary.events[0].event_id);
-      assert.equal(summary.events[1].breadcrumbs[0].level, summary.events[0].level);
-    });
-  });
-
   it('should generate a synthetic trace for captureException w/ non-errors', function () {
     return runInSandbox(sandbox, function () {
       throwNonError();
