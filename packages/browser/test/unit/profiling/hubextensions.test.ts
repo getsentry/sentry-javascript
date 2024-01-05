@@ -67,7 +67,7 @@ describe('BrowserProfilingIntegration', () => {
     // @ts-expect-error force api to be undefined
     global.window.Profiler = undefined;
     // set sampled to true so that profiling does not early return
-    const mockTransaction = { sampled: true } as Transaction;
+    const mockTransaction = { isRecording: () => true } as Transaction;
     expect(() => onProfilingStartRouteTransaction(mockTransaction)).not.toThrow();
   });
   it('does not throw if constructor throws', () => {
@@ -80,8 +80,8 @@ describe('BrowserProfilingIntegration', () => {
       }
     }
 
-    // set sampled to true so that profiling does not early return
-    const mockTransaction = { sampled: true } as Transaction;
+    // set isRecording to true so that profiling does not early return
+    const mockTransaction = { isRecording: () => true } as Transaction;
 
     // @ts-expect-error override with our own constructor
     global.window.Profiler = Profiler;

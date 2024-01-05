@@ -1,5 +1,5 @@
 import { BrowserClient } from '@sentry/browser';
-import { Hub, addTracingExtensions, makeMain } from '@sentry/core';
+import { Hub, addTracingExtensions, makeMain, startInactiveSpan, startSpan } from '@sentry/core';
 import type { HandlerDataError, HandlerDataUnhandledRejection } from '@sentry/types';
 
 import { getDefaultBrowserClientOptions } from '../../../../tracing/test/testutils';
@@ -30,17 +30,12 @@ beforeAll(() => {
 });
 
 describe('registerErrorHandlers()', () => {
-  let hub: Hub;
   beforeEach(() => {
     mockAddGlobalErrorInstrumentationHandler.mockClear();
     mockAddGlobalUnhandledRejectionInstrumentationHandler.mockClear();
-    const options = getDefaultBrowserClientOptions();
-    hub = new Hub(new BrowserClient(options));
+    const options = getDefaultBrowserClientOptions({ enableTracing: true });
+    const hub = new Hub(new BrowserClient(options));
     makeMain(hub);
-  });
-
-  afterEach(() => {
-    hub.getScope().setSpan(undefined);
   });
 
   it('registers error instrumentation', () => {
@@ -53,7 +48,8 @@ describe('registerErrorHandlers()', () => {
 
   it('does not set status if transaction is not on scope', () => {
     registerErrorInstrumentation();
-    const transaction = hub.startTransaction({ name: 'test' });
+
+    const transaction = startInactiveSpan({ name: 'test' })!;
     expect(transaction.status).toBe(undefined);
 
     mockErrorCallback({} as HandlerDataError);
@@ -66,22 +62,19 @@ describe('registerErrorHandlers()', () => {
 
   it('sets status for transaction on scope on error', () => {
     registerErrorInstrumentation();
-    const transaction = hub.startTransaction({ name: 'test' });
-    hub.getScope().setSpan(transaction);
 
-    mockErrorCallback({} as HandlerDataError);
-    expect(transaction.status).toBe('internal_error');
-
-    transaction.end();
+    startSpan({ name: 'test' }, span => {
+      mockErrorCallback({} as HandlerDataError);
+      expect(span?.status).toBe('internal_error');
+    });
   });
 
   it('sets status for transaction on scope on unhandledrejection', () => {
     registerErrorInstrumentation();
-    const transaction = hub.startTransaction({ name: 'test' });
-    hub.getScope().setSpan(transaction);
 
-    mockUnhandledRejectionCallback({});
-    expect(transaction.status).toBe('internal_error');
-    transaction.end();
+    startSpan({ name: 'test' }, span => {
+      mockUnhandledRejectionCallback({});
+      expect(span?.status).toBe('internal_error');
+    });
   });
 });

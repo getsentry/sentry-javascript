@@ -12,17 +12,21 @@ import type {
   FinishedCheckIn,
   MonitorConfig,
   Primitive,
+  Session,
+  SessionContext,
   Severity,
   SeverityLevel,
   TransactionContext,
   User,
 } from '@sentry/types';
-import { isThenable, logger, timestampInSeconds, uuid4 } from '@sentry/utils';
+import { GLOBAL_OBJ, isThenable, logger, timestampInSeconds, uuid4 } from '@sentry/utils';
 
+import { DEFAULT_ENVIRONMENT } from './constants';
 import { DEBUG_BUILD } from './debug-build';
 import type { Hub } from './hub';
-import { getCurrentHub } from './hub';
+import { getCurrentHub, getIsolationScope } from './hub';
 import type { Scope } from './scope';
+import { closeSession, makeSession, updateSession } from './session';
 import type { ExclusiveEventHintOrCaptureContext } from './utils/prepareEvent';
 import { parseEventHintOrCaptureContext } from './utils/prepareEvent';
 
@@ -190,11 +194,14 @@ export function withScope<T>(callback: (scope: Scope) => T): T {
  * default values). See {@link Options.tracesSampler}.
  *
  * @returns The transaction which was just started
+ *
+ * @deprecated Use `startSpan()`, `startSpanManual()` or `startInactiveSpan()` instead.
  */
 export function startTransaction(
   context: TransactionContext,
   customSamplingContext?: CustomSamplingContext,
 ): ReturnType<Hub['startTransaction']> {
+  // eslint-disable-next-line deprecation/deprecation
   return getCurrentHub().startTransaction({ ...context }, customSamplingContext);
 }
 
@@ -318,4 +325,100 @@ export function getClient<C extends Client>(): C | undefined {
  */
 export function getCurrentScope(): Scope {
   return getCurrentHub().getScope();
+}
+
+/**
+ * Start a session on the current isolation scope.
+ *
+ * @param context (optional) additional properties to be applied to the returned session object
+ *
+ * @returns the new active session
+ */
+export function startSession(context?: SessionContext): Session {
+  const client = getClient();
+  const isolationScope = getIsolationScope();
+  const currentScope = getCurrentScope();
+
+  const { release, environment = DEFAULT_ENVIRONMENT } = (client && client.getOptions()) || {};
+
+  // Will fetch userAgent if called from browser sdk
+  const { userAgent } = GLOBAL_OBJ.navigator || {};
+
+  const session = makeSession({
+    release,
+    environment,
+    user: isolationScope.getUser(),
+    ...(userAgent && { userAgent }),
+    ...context,
+  });
+
+  // End existing session if there's one
+  const currentSession = isolationScope.getSession();
+  if (currentSession && currentSession.status === 'ok') {
+    updateSession(currentSession, { status: 'exited' });
+  }
+
+  endSession();
+
+  // Afterwards we set the new session on the scope
+  isolationScope.setSession(session);
+
+  // TODO (v8): Remove this and only use the isolation scope(?).
+  // For v7 though, we can't "soft-break" people using getCurrentHub().getScope().setSession()
+  currentScope.setSession(session);
+
+  return session;
+}
+
+/**
+ * End the session on the current isolation scope.
+ */
+export function endSession(): void {
+  const isolationScope = getIsolationScope();
+  const currentScope = getCurrentScope();
+
+  const session = isolationScope.getSession();
+  if (session) {
+    closeSession(session);
+  }
+  _sendSessionUpdate();
+
+  // the session is over; take it off of the scope
+  isolationScope.setSession();
+
+  // TODO (v8): Remove this and only use the isolation scope(?).
+  // For v7 though, we can't "soft-break" people using getCurrentHub().getScope().setSession()
+  currentScope.setSession();
+}
+
+/**
+ * Sends the current Session on the scope
+ */
+function _sendSessionUpdate(): void {
+  const isolationScope = getIsolationScope();
+  const currentScope = getCurrentScope();
+  const client = getClient();
+  // TODO (v8): Remove currentScope and only use the isolation scope(?).
+  // For v7 though, we can't "soft-break" people using getCurrentHub().getScope().setSession()
+  const session = currentScope.getSession() || isolationScope.getSession();
+  if (session && client && client.captureSession) {
+    client.captureSession(session);
+  }
+}
+
+/**
+ * Sends the current session on the scope to Sentry
+ *
+ * @param end If set the session will be marked as exited and removed from the scope.
+ *            Defaults to `false`.
+ */
+export function captureSession(end: boolean = false): void {
+  // both send the update and pull the session from the scope
+  if (end) {
+    endSession();
+    return;
+  }
+
+  // only send the update
+  _sendSessionUpdate();
 }

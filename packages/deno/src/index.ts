@@ -51,6 +51,7 @@ export {
   makeMain,
   runWithAsyncContext,
   Scope,
+  // eslint-disable-next-line deprecation/deprecation
   startTransaction,
   SDK_VERSION,
   setContext,

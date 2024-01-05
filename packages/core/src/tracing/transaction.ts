@@ -4,20 +4,20 @@ import type {
   DynamicSamplingContext,
   MeasurementUnit,
   Measurements,
+  SpanTimeInput,
   Transaction as TransactionInterface,
   TransactionContext,
   TransactionEvent,
   TransactionMetadata,
 } from '@sentry/types';
-import { dropUndefinedKeys, logger, timestampInSeconds } from '@sentry/utils';
+import { dropUndefinedKeys, logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../debug-build';
 import type { Hub } from '../hub';
 import { getCurrentHub } from '../hub';
-import { spanToTraceContext } from '../utils/spanUtils';
+import { spanTimeInputToSeconds, spanToTraceContext } from '../utils/spanUtils';
 import { getDynamicSamplingContextFromClient } from './dynamicSamplingContext';
 import { Span as SpanClass, SpanRecorder } from './span';
-import { ensureTimestampInSeconds } from './utils';
 
 /** JSDoc */
 export class Transaction extends SpanClass implements TransactionInterface {
@@ -147,9 +147,8 @@ export class Transaction extends SpanClass implements TransactionInterface {
   /**
    * @inheritDoc
    */
-  public end(endTimestamp?: number): string | undefined {
-    const timestampInS =
-      typeof endTimestamp === 'number' ? ensureTimestampInSeconds(endTimestamp) : timestampInSeconds();
+  public end(endTimestamp?: SpanTimeInput): string | undefined {
+    const timestampInS = spanTimeInputToSeconds(endTimestamp);
     const transaction = this._finishTransaction(timestampInS);
     if (!transaction) {
       return undefined;

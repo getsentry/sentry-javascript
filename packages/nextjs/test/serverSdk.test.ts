@@ -105,8 +105,9 @@ describe('Server init()', () => {
     const hub = getCurrentHub();
     const transportSend = jest.spyOn(hub.getClient()!.getTransport()!, 'send');
 
-    const transaction = hub.startTransaction({ name: '/404' });
-    transaction.end();
+    SentryNode.startSpan({ name: '/404' }, () => {
+      // noop
+    });
 
     // We need to flush because the event processor pipeline is async whereas transaction.end() is sync.
     await SentryNode.flush();

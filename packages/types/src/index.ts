@@ -89,7 +89,7 @@ export type {
 
 // eslint-disable-next-line deprecation/deprecation
 export type { Severity, SeverityLevel } from './severity';
-export type { Span, SpanContext, SpanOrigin, SpanAttributeValue, SpanAttributes } from './span';
+export type { Span, SpanContext, SpanOrigin, SpanAttributeValue, SpanAttributes, SpanTimeInput } from './span';
 export type { StackFrame } from './stackframe';
 export type { Stacktrace, StackParser, StackLineParser, StackLineParserFn } from './stacktrace';
 export type { TextEncoderInternal } from './textencoder';
@@ -140,3 +140,4 @@ export type {
 export type { BrowserClientReplayOptions, BrowserClientProfilingOptions } from './browseroptions';
 export type { CheckIn, MonitorConfig, FinishedCheckIn, InProgressCheckIn, SerializedCheckIn } from './checkin';
 export type { MetricsAggregator, MetricBucketItem, MetricInstance } from './metrics';
+export type { ParameterizedString } from './parameterize';
