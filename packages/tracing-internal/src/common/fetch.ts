@@ -79,7 +79,8 @@ export function instrumentFetchRequest(
 
   const span =
     shouldCreateSpanResult && parentSpan
-      ? parentSpan.startChild({
+      ? // eslint-disable-next-line deprecation/deprecation
+        parentSpan.startChild({
           data: {
             url,
             type: 'fetch',

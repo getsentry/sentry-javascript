@@ -251,7 +251,8 @@ function _createWrappedRequestMethodFactory(
       const data = getRequestSpanData(requestUrl, requestOptions);
 
       const requestSpan = shouldCreateSpan(rawRequestUrl)
-        ? parentSpan?.startChild({
+        ? // eslint-disable-next-line deprecation/deprecation
+          parentSpan?.startChild({
             op: 'http.client',
             origin: 'auto.http.node.http',
             description: `${data['http.method']} ${data.url}`,

@@ -8,9 +8,9 @@ npx @sentry/migr8@latest
 
 This will let you select which updates to run, and automatically update your code. Make sure to still review all code changes!
 
-## Deprecate `startTransaction()`
+## Deprecate `startTransaction()` & `span.startChild()`
 
-In v8, the old performance API `startTransaction()` (as well as `hub.startTransaction()`) will be removed.
+In v8, the old performance API `startTransaction()` (and `hub.startTransaction()`), as well as `span.startChild()`, will be removed.
 Instead, use the new performance APIs:
 
 * `startSpan()`

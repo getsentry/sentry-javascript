@@ -187,7 +187,10 @@ export class Span implements SpanInterface {
   }
 
   /**
-   * @inheritDoc
+   * Creates a new `Span` while setting the current `Span.id` as `parentSpanId`.
+   * Also the `sampled` decision will be inherited.
+   *
+   * @deprecated Use `startSpan()`, `startSpanManual()` or `startInactiveSpan()` instead.
    */
   public startChild(
     spanContext?: Pick<SpanContext, Exclude<keyof SpanContext, 'sampled' | 'traceId' | 'parentSpanId'>>,

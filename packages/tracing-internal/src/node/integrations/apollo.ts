@@ -190,6 +190,7 @@ function wrapResolver(
     return function (this: unknown, ...args: unknown[]) {
       const scope = getCurrentHub().getScope();
       const parentSpan = scope.getSpan();
+      // eslint-disable-next-line deprecation/deprecation
       const span = parentSpan?.startChild({
         description: `${resolverGroupName}.${resolverName}`,
         op: 'graphql.resolve',

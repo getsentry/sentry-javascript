@@ -117,6 +117,7 @@ function instrumentNavigations(startTransactionFn: (context: TransactionContext)
         // If a routing span is still open from a previous navigation, we finish it.
         routingSpan.end();
       }
+      // eslint-disable-next-line deprecation/deprecation
       routingSpan = activeTransaction.startChild({
         op: 'ui.sveltekit.routing',
         description: 'SvelteKit Route Change',

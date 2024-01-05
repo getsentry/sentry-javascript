@@ -186,6 +186,7 @@ export function pagesRouterInstrumentation(
         // We don't want to finish the navigation transaction on `routeChangeComplete`, since users might want to attach
         // spans to that transaction even after `routeChangeComplete` is fired (eg. HTTP requests in some useEffect
         // hooks). Instead, we'll simply let the navigation transaction finish itself (it's an `IdleTransaction`).
+        // eslint-disable-next-line deprecation/deprecation
         const nextRouteChangeSpan = navigationTransaction.startChild({
           op: 'ui.nextjs.route-change',
           origin: 'auto.ui.nextjs.pages_router_instrumentation',

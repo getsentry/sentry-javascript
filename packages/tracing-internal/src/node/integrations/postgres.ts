@@ -128,6 +128,7 @@ export class Postgres implements LazyLoadedIntegration<PGModule> {
           // ignore
         }
 
+        // eslint-disable-next-line deprecation/deprecation
         const span = parentSpan?.startChild({
           description: typeof config === 'string' ? config : (config as { text: string }).text,
           op: 'db',

@@ -54,6 +54,7 @@ export class GraphQL implements LazyLoadedIntegration<GraphQLModule> {
         const scope = getCurrentHub().getScope();
         const parentSpan = scope.getSpan();
 
+        // eslint-disable-next-line deprecation/deprecation
         const span = parentSpan?.startChild({
           description: 'execute',
           op: 'graphql.execute',

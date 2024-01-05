@@ -184,6 +184,7 @@ function makeWrappedDocumentRequestFunction(remixVersion?: number) {
       const activeTransaction = getActiveTransaction();
 
       try {
+        // eslint-disable-next-line deprecation/deprecation
         const span = activeTransaction?.startChild({
           op: 'function.remix.document_request',
           origin: 'auto.function.remix',
@@ -239,6 +240,7 @@ function makeWrappedDataFunction(
     const currentScope = getCurrentScope();
 
     try {
+      // eslint-disable-next-line deprecation/deprecation
       const span = activeTransaction?.startChild({
         op: `function.remix.${name}`,
         origin: 'auto.ui.remix',

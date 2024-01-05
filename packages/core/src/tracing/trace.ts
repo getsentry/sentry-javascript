@@ -158,7 +158,8 @@ export function startInactiveSpan(context: StartSpanOptions): Span | undefined {
   const hub = getCurrentHub();
   const parentSpan = getActiveSpan();
   return parentSpan
-    ? parentSpan.startChild(ctx)
+    ? // eslint-disable-next-line deprecation/deprecation
+      parentSpan.startChild(ctx)
     : // eslint-disable-next-line deprecation/deprecation
       hub.startTransaction(ctx);
 }
@@ -240,7 +241,8 @@ function createChildSpanOrTransaction(
     return undefined;
   }
   return parentSpan
-    ? parentSpan.startChild(ctx)
+    ? // eslint-disable-next-line deprecation/deprecation
+      parentSpan.startChild(ctx)
     : // eslint-disable-next-line deprecation/deprecation
       hub.startTransaction(ctx);
 }

@@ -7,6 +7,7 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
   const transaction = Sentry.startTransaction({ name: 'test-transaction', op: 'e2e-test' });
   Sentry.getCurrentHub().getScope().setSpan(transaction);
 
+  // eslint-disable-next-line deprecation/deprecation
   const span = transaction.startChild();
 
   span.end();
