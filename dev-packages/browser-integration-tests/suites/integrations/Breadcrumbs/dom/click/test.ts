@@ -7,7 +7,7 @@ import { getFirstSentryEnvelopeRequest } from '../../../../../utils/helpers';
 sentryTest(
   'captures Breadcrumb for clicks & debounces them for a second',
   async ({ getLocalTestUrl, page, browserName }) => {
-    sentryTest.skip(browserName === 'firefox', 'This consistently flakes on firefox.');
+    sentryTest.skip(browserName === 'chromium', 'This consistently flakes on chrome.');
 
     const url = await getLocalTestUrl({ testDir: __dirname });
 
