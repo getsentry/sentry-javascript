@@ -3,6 +3,7 @@
 
 import type { Client, Event, EventType } from '@sentry/types';
 
+import { getCurrentScope, makeMain } from '@sentry/core';
 import { Hub, Scope, getCurrentHub } from '../src';
 
 const clientFn: any = jest.fn();
@@ -18,6 +19,7 @@ function makeClient() {
     getIntegration: jest.fn(),
     setupIntegrations: jest.fn(),
     captureMessage: jest.fn(),
+    captureSession: jest.fn(),
   } as unknown as Client;
 }
 
@@ -451,6 +453,104 @@ describe('Hub', () => {
       };
       const hub = new Hub(testClient);
       expect(hub.shouldSendDefaultPii()).toBe(true);
+    });
+  });
+
+  describe('session APIs', () => {
+    beforeEach(() => {
+      const testClient = makeClient();
+      const hub = new Hub(testClient);
+      makeMain(hub);
+    });
+
+    describe('startSession', () => {
+      it('starts a session', () => {
+        const testClient = makeClient();
+        const hub = new Hub(testClient);
+        makeMain(hub);
+        const session = hub.startSession();
+
+        expect(session).toMatchObject({
+          status: 'ok',
+          errors: 0,
+          init: true,
+          environment: 'production',
+          ignoreDuration: false,
+          sid: expect.any(String),
+          did: undefined,
+          timestamp: expect.any(Number),
+          started: expect.any(Number),
+          duration: expect.any(Number),
+          toJSON: expect.any(Function),
+        });
+      });
+
+      it('ends a previously active session and removes it from the scope', () => {
+        const testClient = makeClient();
+        const hub = new Hub(testClient);
+        makeMain(hub);
+
+        const session1 = hub.startSession();
+
+        expect(session1.status).toBe('ok');
+        expect(getCurrentScope().getSession()).toBe(session1);
+
+        const session2 = hub.startSession();
+
+        expect(session2.status).toBe('ok');
+        expect(session1.status).toBe('exited');
+        expect(getCurrentHub().getScope().getSession()).toBe(session2);
+      });
+    });
+
+    describe('endSession', () => {
+      it('ends a session and removes it from the scope', () => {
+        const testClient = makeClient();
+        const hub = new Hub(testClient);
+        makeMain(hub);
+
+        const session = hub.startSession();
+
+        expect(session.status).toBe('ok');
+        expect(getCurrentScope().getSession()).toBe(session);
+
+        hub.endSession();
+
+        expect(session.status).toBe('exited');
+        expect(getCurrentHub().getScope().getSession()).toBe(undefined);
+      });
+    });
+
+    describe('captureSession', () => {
+      it('captures a session without ending it by default', () => {
+        const testClient = makeClient();
+        const hub = new Hub(testClient);
+        makeMain(hub);
+
+        const session = hub.startSession();
+
+        expect(session.status).toBe('ok');
+        expect(getCurrentScope().getSession()).toBe(session);
+
+        hub.captureSession();
+
+        expect(testClient.captureSession).toHaveBeenCalledWith(expect.objectContaining({ status: 'ok' }));
+      });
+
+      it('captures a session and ends it if end is `true`', () => {
+        const testClient = makeClient();
+        const hub = new Hub(testClient);
+        makeMain(hub);
+
+        const session = hub.startSession();
+
+        expect(session.status).toBe('ok');
+        expect(hub.getScope().getSession()).toBe(session);
+
+        hub.captureSession(true);
+
+        expect(testClient.captureSession).toHaveBeenCalledWith(expect.objectContaining({ status: 'exited' }));
+      });
     });
   });
 });

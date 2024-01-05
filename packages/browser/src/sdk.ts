@@ -1,11 +1,13 @@
 import type { Hub } from '@sentry/core';
 import {
   Integrations as CoreIntegrations,
+  captureSession,
   getClient,
   getCurrentHub,
   getIntegrationsToSetup,
   getReportDialogEndpoint,
   initAndBind,
+  startSession,
 } from '@sentry/core';
 import type { UserFeedback } from '@sentry/types';
 import {
@@ -250,11 +252,6 @@ export function wrap(fn: (...args: any) => any): any {
   return internalWrap(fn)();
 }
 
-function startSessionOnHub(hub: Hub): void {
-  hub.startSession({ ignoreDuration: true });
-  hub.captureSession();
-}
-
 /**
  * Enable automatic Session Tracking for the initial page load.
  */
@@ -264,29 +261,19 @@ function startSessionTracking(): void {
     return;
   }
 
-  const hub = getCurrentHub();
-
-  // The only way for this to be false is for there to be a version mismatch between @sentry/browser (>= 6.0.0) and
-  // @sentry/hub (< 5.27.0). In the simple case, there won't ever be such a mismatch, because the two packages are
-  // pinned at the same version in package.json, but there are edge cases where it's possible. See
-  // https://github.com/getsentry/sentry-javascript/issues/3207 and
-  // https://github.com/getsentry/sentry-javascript/issues/3234 and
-  // https://github.com/getsentry/sentry-javascript/issues/3278.
-  if (!hub.captureSession) {
-    return;
-  }
-
   // The session duration for browser sessions does not track a meaningful
   // concept that can be used as a metric.
   // Automatically captured sessions are akin to page views, and thus we
   // discard their duration.
-  startSessionOnHub(hub);
+  startSession({ ignoreDuration: true });
+  captureSession();
 
   // We want to create a session for every navigation as well
   addHistoryInstrumentationHandler(({ from, to }) => {
     // Don't create an additional session for the initial route or if the location did not change
     if (from !== undefined && from !== to) {
-      startSessionOnHub(getCurrentHub());
+      startSession({ ignoreDuration: true });
+      captureSession();
     }
   });
 }

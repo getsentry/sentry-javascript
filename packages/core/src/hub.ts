@@ -487,10 +487,13 @@ Sentry.init({...});
 
   /**
    * @inheritDoc
+   *
+   * @deprecated Use top level `captureSession` instead.
    */
   public captureSession(endSession: boolean = false): void {
     // both send the update and pull the session from the scope
     if (endSession) {
+      // eslint-disable-next-line deprecation/deprecation
       return this.endSession();
     }
 
@@ -500,6 +503,7 @@ Sentry.init({...});
 
   /**
    * @inheritDoc
+   * @deprecated Use top level `endSession` instead.
    */
   public endSession(): void {
     const layer = this.getStackTop();
@@ -516,6 +520,7 @@ Sentry.init({...});
 
   /**
    * @inheritDoc
+   * @deprecated Use top level `startSession` instead.
    */
   public startSession(context?: SessionContext): Session {
     const { scope, client } = this.getStackTop();
@@ -537,6 +542,7 @@ Sentry.init({...});
     if (currentSession && currentSession.status === 'ok') {
       updateSession(currentSession, { status: 'exited' });
     }
+    // eslint-disable-next-line deprecation/deprecation
     this.endSession();
 
     // Afterwards we set the new session on the scope
