@@ -32,7 +32,7 @@ export function dateTimestampInSeconds(): number {
  *
  * Wrapping the native API works around differences in behavior from different browsers.
  */
-function unixTimestampInSecondsFunc(): () => number {
+function createUnixTimestampInSecondsFunc(): () => number {
   const { performance } = GLOBAL_OBJ as typeof GLOBAL_OBJ & { performance: Performance };
   if (!performance || !performance.now) {
     return dateTimestampInSeconds;
@@ -66,7 +66,7 @@ function unixTimestampInSecondsFunc(): () => number {
  * skew can grow to arbitrary amounts like days, weeks or months.
  * See https://github.com/getsentry/sentry-javascript/issues/2590.
  */
-export const timestampInSeconds = unixTimestampInSecondsFunc();
+export const timestampInSeconds = createUnixTimestampInSecondsFunc();
 
 /**
  * Re-exported with an old name for backwards-compatibility.
