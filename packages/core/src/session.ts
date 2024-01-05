@@ -1,6 +1,5 @@
 import type { SerializedSession, Session, SessionContext, SessionStatus } from '@sentry/types';
 import { dropUndefinedKeys, timestampInSeconds, uuid4 } from '@sentry/utils';
-
 /**
  * Creates a new `Session` object by setting certain default parameters. If optional @param context
  * is passed, the passed properties are applied to the session object.

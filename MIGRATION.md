@@ -52,7 +52,12 @@ Sentry.init({
 
 In v8, the Hub class will be removed. The following methods are therefore deprecated:
 
-- `hub.shouldSendDefaultPii()`: Access Sentry client option via `Sentry.getClient().getOptions().sendDefaultPii` instead
+* `hub.startTransaction()`: See [Deprecation of `startTransaction`](#deprecate-starttransaction)
+* `hub.lastEventId()`: See [Deprecation of `lastEventId`](#deprecate-sentrylasteventid-and-hublasteventid)
+* `hub.startSession()`: Use top-level `Sentry.startSession()` instead
+* `hub.endSession()`: Use top-level `Sentry.endSession()` instead
+* `hub.captureSession()`: Use top-level `Sentry.captureSession()` instead
+* `hub.shouldSendDefaultPii()`: Access Sentry client option via `Sentry.getClient().getOptions().sendDefaultPii` instead
 
 ## Deprecated fields on `Span` and `Transaction`
 

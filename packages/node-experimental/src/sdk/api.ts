@@ -1,7 +1,6 @@
 // PUBLIC APIS
 
 import { context } from '@opentelemetry/api';
-import { DEFAULT_ENVIRONMENT, closeSession, makeSession, updateSession } from '@sentry/core';
 import type {
   Breadcrumb,
   BreadcrumbHint,
@@ -12,12 +11,11 @@ import type {
   Extra,
   Extras,
   Primitive,
-  Session,
   Severity,
   SeverityLevel,
   User,
 } from '@sentry/types';
-import { GLOBAL_OBJ, consoleSandbox, dateTimestampInSeconds } from '@sentry/utils';
+import { consoleSandbox, dateTimestampInSeconds } from '@sentry/utils';
 import { getScopesFromContext, setScopesOnContext } from '../utils/contextData';
 
 import type { ExclusiveEventHintOrCaptureContext } from '../utils/prepareEvent';
@@ -167,61 +165,4 @@ export function setContext(
   context: { [key: string]: any } | null,
 ): void {
   getIsolationScope().setContext(name, context);
-}
-
-/** Start a session on the current isolation scope. */
-export function startSession(context?: Session): Session {
-  const client = getClient();
-  const isolationScope = getIsolationScope();
-
-  const { release, environment = DEFAULT_ENVIRONMENT } = client.getOptions();
-
-  // Will fetch userAgent if called from browser sdk
-  const { userAgent } = GLOBAL_OBJ.navigator || {};
-
-  const session = makeSession({
-    release,
-    environment,
-    user: isolationScope.getUser(),
-    ...(userAgent && { userAgent }),
-    ...context,
-  });
-
-  // End existing session if there's one
-  const currentSession = isolationScope.getSession && isolationScope.getSession();
-  if (currentSession && currentSession.status === 'ok') {
-    updateSession(currentSession, { status: 'exited' });
-  }
-  endSession();
-
-  // Afterwards we set the new session on the scope
-  isolationScope.setSession(session);
-
-  return session;
-}
-
-/** End the session on the current isolation scope. */
-export function endSession(): void {
-  const isolationScope = getIsolationScope();
-  const session = isolationScope.getSession();
-  if (session) {
-    closeSession(session);
-  }
-  _sendSessionUpdate();
-
-  // the session is over; take it off of the scope
-  isolationScope.setSession();
-}
-
-/**
- * Sends the current Session on the scope
- */
-function _sendSessionUpdate(): void {
-  const scope = getCurrentScope();
-  const client = getClient();
-
-  const session = scope.getSession();
-  if (session && client.captureSession) {
-    client.captureSession(session);
-  }
 }
