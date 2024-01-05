@@ -154,6 +154,7 @@ export class Span implements SpanInterface {
     }
     // We want to include booleans as well here
     if ('sampled' in spanContext) {
+      // eslint-disable-next-line deprecation/deprecation
       this.sampled = spanContext.sampled;
     }
     if (spanContext.op) {
@@ -193,6 +194,7 @@ export class Span implements SpanInterface {
     const childSpan = new Span({
       ...spanContext,
       parentSpanId: this.spanId,
+      // eslint-disable-next-line deprecation/deprecation
       sampled: this.sampled,
       traceId: this.traceId,
     });
@@ -351,6 +353,7 @@ export class Span implements SpanInterface {
     this.endTimestamp = spanContext.endTimestamp;
     this.op = spanContext.op;
     this.parentSpanId = spanContext.parentSpanId;
+    // eslint-disable-next-line deprecation/deprecation
     this.sampled = spanContext.sampled;
     this.spanId = spanContext.spanId || this.spanId;
     this.startTimestamp = spanContext.startTimestamp || this.startTimestamp;
@@ -398,6 +401,11 @@ export class Span implements SpanInterface {
       trace_id: this.traceId,
       origin: this.origin,
     });
+  }
+
+  /** @inheritdoc */
+  public isRecording(): boolean {
+    return !this.endTimestamp && !!this.sampled;
   }
 
   /**
