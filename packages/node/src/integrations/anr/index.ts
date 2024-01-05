@@ -1,6 +1,6 @@
 // TODO (v8): This import can be removed once we only support Node with global URL
 import { URL } from 'url';
-import { convertIntegrationFnToClass, getCurrentHub, getCurrentScope } from '@sentry/core';
+import { convertIntegrationFnToClass, getCurrentScope } from '@sentry/core';
 import type { Contexts, Event, EventHint, IntegrationFn } from '@sentry/types';
 import { dynamicRequire, logger } from '@sentry/utils';
 import type { Worker, WorkerOptions } from 'worker_threads';
