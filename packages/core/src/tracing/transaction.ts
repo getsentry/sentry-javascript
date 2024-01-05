@@ -285,6 +285,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
         // We don't want to override trace context
         trace: spanToTraceContext(this),
       },
+      // TODO: Pass spans serialized via `spanToJSON()` here instead in v8.
       spans: finishedSpans,
       start_timestamp: this.startTimestamp,
       tags: this.tags,

@@ -1,6 +1,6 @@
 import { TRACEPARENT_REGEXP, timestampInSeconds } from '@sentry/utils';
 import { Span, spanToTraceHeader } from '../../../src';
-import { spanTimeInputToSeconds } from '../../../src/utils/spanUtils';
+import { spanTimeInputToSeconds, spanToJSON } from '../../../src/utils/spanUtils';
 
 describe('spanToTraceHeader', () => {
   test('simple', () => {
@@ -44,5 +44,74 @@ describe('spanTimeInputToSeconds', () => {
     const seconds = Math.floor(timestampInSeconds());
     const timestamp: [number, number] = [seconds, 9000];
     expect(spanTimeInputToSeconds(timestamp)).toEqual(seconds + 0.000009);
+  });
+});
+
+describe('spanToJSON', () => {
+  it('works with a simple span', () => {
+    const span = new Span();
+    expect(spanToJSON(span)).toEqual({
+      span_id: span.spanId,
+      trace_id: span.traceId,
+      origin: 'manual',
+      start_timestamp: span.startTimestamp,
+    });
+  });
+
+  it('works with a full span', () => {
+    const span = new Span({
+      name: 'test name',
+      op: 'test op',
+      parentSpanId: '1234',
+      spanId: '5678',
+      status: 'ok',
+      tags: {
+        foo: 'bar',
+      },
+      traceId: 'abcd',
+      origin: 'auto',
+      startTimestamp: 123,
+    });
+
+    expect(spanToJSON(span)).toEqual({
+      description: 'test name',
+      op: 'test op',
+      parent_span_id: '1234',
+      span_id: '5678',
+      status: 'ok',
+      tags: {
+        foo: 'bar',
+      },
+      trace_id: 'abcd',
+      origin: 'auto',
+      start_timestamp: 123,
+    });
+  });
+
+  it('works with a custom class without spanToJSON', () => {
+    const span = {
+      toJSON: () => {
+        return {
+          span_id: 'span_id',
+          trace_id: 'trace_id',
+          origin: 'manual',
+          start_timestamp: 123,
+        };
+      },
+    } as unknown as Span;
+
+    expect(spanToJSON(span)).toEqual({
+      span_id: 'span_id',
+      trace_id: 'trace_id',
+      origin: 'manual',
+      start_timestamp: 123,
+    });
+  });
+
+  it('returns empty object if span does not have getter methods', () => {
+    // eslint-disable-next-line
+    const span = new Span().toJSON();
+
+    expect(spanToJSON(span as unknown as Span)).toEqual({});
   });
 });

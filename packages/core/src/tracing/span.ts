@@ -6,6 +6,7 @@ import type {
   SpanAttributeValue,
   SpanAttributes,
   SpanContext,
+  SpanJSON,
   SpanOrigin,
   SpanTimeInput,
   TraceContext,
@@ -372,22 +373,9 @@ export class Span implements SpanInterface {
   }
 
   /**
-   * @inheritDoc
+   * Get JSON representation of this span.
    */
-  public toJSON(): {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    data?: { [key: string]: any };
-    description?: string;
-    op?: string;
-    parent_span_id?: string;
-    span_id: string;
-    start_timestamp: number;
-    status?: string;
-    tags?: { [key: string]: Primitive };
-    timestamp?: number;
-    trace_id: string;
-    origin?: SpanOrigin;
-  } {
+  public getSpanJSON(): SpanJSON {
     return dropUndefinedKeys({
       data: this._getData(),
       description: this.description,
@@ -406,6 +394,14 @@ export class Span implements SpanInterface {
   /** @inheritdoc */
   public isRecording(): boolean {
     return !this.endTimestamp && !!this.sampled;
+  }
+
+  /**
+   * Convert the object to JSON.
+   * @deprecated Use `spanToJSON(span)` instead.
+   */
+  public toJSON(): SpanJSON {
+    return this.getSpanJSON();
   }
 
   /**
