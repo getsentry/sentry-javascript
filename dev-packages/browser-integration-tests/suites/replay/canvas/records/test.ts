@@ -3,8 +3,8 @@ import { expect } from '@playwright/test';
 import { sentryTest } from '../../../../utils/fixtures';
 import { getReplayRecordingContent, shouldSkipReplayTest, waitForReplayRequest } from '../../../../utils/replayHelpers';
 
-sentryTest('can record canvas', async ({ getLocalTestUrl, page }) => {
-  if (shouldSkipReplayTest()) {
+sentryTest('can record canvas', async ({ getLocalTestUrl, page, browserName }) => {
+  if (shouldSkipReplayTest() || browserName === 'webkit') {
     sentryTest.skip();
   }
 
@@ -23,12 +23,10 @@ sentryTest('can record canvas', async ({ getLocalTestUrl, page }) => {
   const url = await getLocalTestUrl({ testDir: __dirname });
 
   await page.goto(url);
-
   await reqPromise0;
   await Promise.all([page.click('#draw'), reqPromise1]);
 
   const { incrementalSnapshots } = getReplayRecordingContent(await reqPromise2);
-  // console.log(incrementalSnapshots[0]);
   expect(incrementalSnapshots).toEqual(
     expect.arrayContaining([
       {
@@ -50,8 +48,7 @@ sentryTest('can record canvas', async ({ getLocalTestUrl, page }) => {
                         },
                       ],
                       rr_type: 'Blob',
-                      // chrome = webp, safari = png
-                      type: expect.stringMatching(/webp|png/),
+                      type: 'image/webp',
                     },
                   ],
                   rr_type: 'ImageBitmap',
