@@ -169,7 +169,7 @@ describeIf(NODE_VERSION.major >= 18)('LocalVariables', () => {
     client.setupIntegrations(true);
 
     const eventProcessors = client['_eventProcessors'];
-    const eventProcessor = eventProcessors.find(processor => processor.id === 'LocalVariablesSync');
+    const eventProcessor = eventProcessors.find(processor => processor.id === 'LocalVariables');
 
     expect(eventProcessor).toBeDefined();
 
@@ -306,7 +306,7 @@ describeIf(NODE_VERSION.major >= 18)('LocalVariables', () => {
     client.setupIntegrations(true);
 
     const eventProcessors = client['_eventProcessors'];
-    const eventProcessor = eventProcessors.find(processor => processor.id === 'LocalVariablesSync');
+    const eventProcessor = eventProcessors.find(processor => processor.id === 'LocalVariables');
 
     expect(eventProcessor).toBeDefined();
   });
@@ -322,7 +322,7 @@ describeIf(NODE_VERSION.major >= 18)('LocalVariables', () => {
     client.setupIntegrations(true);
 
     const eventProcessors = client['_eventProcessors'];
-    const eventProcessor = eventProcessors.find(processor => processor.id === 'LocalVariablesSync');
+    const eventProcessor = eventProcessors.find(processor => processor.id === 'LocalVariables');
 
     expect(eventProcessor).toBeDefined();
   });
