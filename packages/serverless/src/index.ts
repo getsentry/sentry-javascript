@@ -41,6 +41,7 @@ export {
   setTag,
   setTags,
   setUser,
+  // eslint-disable-next-line deprecation/deprecation
   startTransaction,
   withScope,
   NodeClient,

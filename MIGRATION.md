@@ -8,6 +8,17 @@ npx @sentry/migr8@latest
 
 This will let you select which updates to run, and automatically update your code. Make sure to still review all code changes!
 
+## Deprecate `startTransaction()`
+
+In v8, the old performance API `startTransaction()` (as well as `hub.startTransaction()`) will be removed.
+Instead, you have to use the new performance APIs:
+
+* `startSpan()`
+* `startSpanManual()`
+* `startInactiveSpan()`
+
+You can [read more about the new performance APIs here](./docs/v8-new-performance-apis.md).
+
 ## Deprecate `Sentry.lastEventId()` and `hub.lastEventId()`
 
 `Sentry.lastEventId()` sometimes causes race conditons, so we are deprecating it in favour of the `beforeSend` callback.

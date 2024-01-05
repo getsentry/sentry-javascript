@@ -1,4 +1,4 @@
-import { Hub, makeMain } from '@sentry/core';
+import { Hub, makeMain, startSpan } from '@sentry/core';
 import { JSDOM } from 'jsdom';
 
 import { addExtensionMethods } from '../../../tracing/src';
@@ -47,16 +47,15 @@ conditionalTest({ min: 10 })('registerBackgroundTabDetection', () => {
 
   it('finishes a transaction on visibility change', () => {
     registerBackgroundTabDetection();
-    const transaction = hub.startTransaction({ name: 'test' });
-    hub.getScope().setSpan(transaction);
+    startSpan({ name: 'test' }, span => {
+      // Simulate document visibility hidden event
+      // @ts-expect-error need to override global document
+      global.document.hidden = true;
+      events.visibilitychange();
 
-    // Simulate document visibility hidden event
-    // @ts-expect-error need to override global document
-    global.document.hidden = true;
-    events.visibilitychange();
-
-    expect(transaction.status).toBe('cancelled');
-    expect(transaction.tags.visibilitychange).toBe('document.hidden');
-    expect(transaction.endTimestamp).toBeDefined();
+      expect(span?.status).toBe('cancelled');
+      expect(span?.tags.visibilitychange).toBe('document.hidden');
+      expect(span?.endTimestamp).toBeDefined();
+    });
   });
 });

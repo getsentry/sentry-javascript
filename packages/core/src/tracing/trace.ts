@@ -156,7 +156,10 @@ export function startInactiveSpan(context: TransactionContext): Span | undefined
 
   const hub = getCurrentHub();
   const parentSpan = getActiveSpan();
-  return parentSpan ? parentSpan.startChild(ctx) : hub.startTransaction(ctx);
+  return parentSpan
+    ? parentSpan.startChild(ctx)
+    : // eslint-disable-next-line deprecation/deprecation
+      hub.startTransaction(ctx);
 }
 
 /**
@@ -235,7 +238,10 @@ function createChildSpanOrTransaction(
   if (!hasTracingEnabled()) {
     return undefined;
   }
-  return parentSpan ? parentSpan.startChild(ctx) : hub.startTransaction(ctx);
+  return parentSpan
+    ? parentSpan.startChild(ctx)
+    : // eslint-disable-next-line deprecation/deprecation
+      hub.startTransaction(ctx);
 }
 
 function normalizeContext(context: TransactionContext): TransactionContext {

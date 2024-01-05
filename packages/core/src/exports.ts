@@ -190,11 +190,14 @@ export function withScope<T>(callback: (scope: Scope) => T): T {
  * default values). See {@link Options.tracesSampler}.
  *
  * @returns The transaction which was just started
+ *
+ * @deprecated Use `startSpan()`, `startSpanManual()` or `startInactiveSpan()` instead.
  */
 export function startTransaction(
   context: TransactionContext,
   customSamplingContext?: CustomSamplingContext,
 ): ReturnType<Hub['startTransaction']> {
+  // eslint-disable-next-line deprecation/deprecation
   return getCurrentHub().startTransaction({ ...context }, customSamplingContext);
 }
 
