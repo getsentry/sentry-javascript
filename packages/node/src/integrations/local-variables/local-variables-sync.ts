@@ -208,7 +208,7 @@ function tryNewAsyncSession(): AsyncSession | undefined {
   }
 }
 
-const INTEGRATION_NAME = 'LocalVariablesSync';
+const INTEGRATION_NAME = 'LocalVariables';
 
 /**
  * Adds local variables to exception frames
