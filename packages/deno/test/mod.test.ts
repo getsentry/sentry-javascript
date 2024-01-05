@@ -35,7 +35,7 @@ function delay(time: number): Promise<void> {
 
 Deno.test('captureException', async t => {
   let ev: sentryTypes.Event | undefined;
-  const [,client] = getTestClient(event => {
+  const [, client] = getTestClient(event => {
     ev = event;
   });
 
@@ -51,7 +51,7 @@ Deno.test('captureException', async t => {
 
 Deno.test('captureMessage', async t => {
   let ev: sentryTypes.Event | undefined;
-  const [,client] = getTestClient(event => {
+  const [, client] = getTestClient(event => {
     ev = event;
   });
 
