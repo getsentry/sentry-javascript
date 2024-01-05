@@ -4,8 +4,9 @@ import {
   continueTrace,
   getClient,
   getCurrentScope,
+  handleCallbackErrors,
   runWithAsyncContext,
-  trace,
+  startSpan,
 } from '@sentry/core';
 import type { WebFetchHeaders } from '@sentry/types';
 import { winterCGHeadersToDict } from '@sentry/utils';
@@ -60,7 +61,7 @@ export function wrapGenerationFunctionWithSentry<F extends (...args: any[]) => a
           transactionContext.parentSpanId = commonSpanId;
         }
 
-        return trace(
+        return startSpan(
           {
             op: 'function.nextjs',
             name: `${componentType}.${generationFunctionIdentifier} (${componentRoute})`,
@@ -76,17 +77,18 @@ export function wrapGenerationFunctionWithSentry<F extends (...args: any[]) => a
             },
           },
           () => {
-            return originalFunction.apply(thisArg, args);
-          },
-          err => {
-            captureException(err, {
-              mechanism: {
-                handled: false,
-                data: {
-                  function: 'wrapGenerationFunctionWithSentry',
-                },
-              },
-            });
+            return handleCallbackErrors(
+              () => originalFunction.apply(thisArg, args),
+              err =>
+                captureException(err, {
+                  mechanism: {
+                    handled: false,
+                    data: {
+                      function: 'wrapGenerationFunctionWithSentry',
+                    },
+                  },
+                }),
+            );
           },
         );
       });

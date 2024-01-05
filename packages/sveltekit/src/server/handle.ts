@@ -1,4 +1,4 @@
-import { getCurrentScope } from '@sentry/core';
+import { getCurrentScope, spanToTraceHeader } from '@sentry/core';
 import { getActiveTransaction, runWithAsyncContext, startSpan } from '@sentry/core';
 import { captureException } from '@sentry/node';
 /* eslint-disable @sentry-internal/sdk/no-optional-chaining */
@@ -97,7 +97,7 @@ export function addSentryCodeToPage(options: SentryHandleOptions): NonNullable<R
   return ({ html }) => {
     const transaction = getActiveTransaction();
     if (transaction) {
-      const traceparentData = transaction.toTraceparent();
+      const traceparentData = spanToTraceHeader(transaction);
       const dynamicSamplingContext = dynamicSamplingContextToSentryBaggageHeader(
         transaction.getDynamicSamplingContext(),
       );

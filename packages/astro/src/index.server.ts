@@ -41,12 +41,14 @@ export {
   setTags,
   setUser,
   spanStatusfromHttpCode,
+  // eslint-disable-next-line deprecation/deprecation
   trace,
   withScope,
   autoDiscoverNodePerformanceMonitoringIntegrations,
   makeNodeTransport,
   defaultIntegrations,
   defaultStackParser,
+  // eslint-disable-next-line deprecation/deprecation
   lastEventId,
   flush,
   close,
@@ -54,6 +56,7 @@ export {
   addRequestDataToEvent,
   DEFAULT_USER_INCLUDES,
   extractRequestData,
+  // eslint-disable-next-line deprecation/deprecation
   deepReadDirSync,
   Integrations,
   Handlers,
@@ -65,6 +68,7 @@ export {
   startInactiveSpan,
   startSpanManual,
   continueTrace,
+  cron,
 } from '@sentry/node';
 
 // We can still leave this for the carrier init and type exports

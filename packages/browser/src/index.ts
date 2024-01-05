@@ -48,6 +48,7 @@ export {
   extractTraceparentData,
   getActiveTransaction,
   spanStatusfromHttpCode,
+  // eslint-disable-next-line deprecation/deprecation
   trace,
   makeMultiplexedTransport,
   ModuleMetadata,

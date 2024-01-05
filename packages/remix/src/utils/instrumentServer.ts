@@ -1,5 +1,12 @@
 /* eslint-disable max-lines */
-import { getActiveTransaction, getClient, getCurrentScope, hasTracingEnabled, runWithAsyncContext } from '@sentry/core';
+import {
+  getActiveTransaction,
+  getClient,
+  getCurrentScope,
+  hasTracingEnabled,
+  runWithAsyncContext,
+  spanToTraceHeader,
+} from '@sentry/core';
 import type { Hub } from '@sentry/node';
 import { captureException, getCurrentHub } from '@sentry/node';
 import type { Transaction, TransactionSource, WrappedFunction } from '@sentry/types';
@@ -293,7 +300,7 @@ function getTraceAndBaggage(): {
       const dynamicSamplingContext = transaction.getDynamicSamplingContext();
 
       return {
-        sentryTrace: span.toTraceparent(),
+        sentryTrace: spanToTraceHeader(span),
         sentryBaggage: dynamicSamplingContextToSentryBaggageHeader(dynamicSamplingContext),
       };
     }

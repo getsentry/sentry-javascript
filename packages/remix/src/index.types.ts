@@ -25,4 +25,9 @@ declare const runtime: 'client' | 'server';
 
 export const close = runtime === 'client' ? clientSdk.close : serverSdk.close;
 export const flush = runtime === 'client' ? clientSdk.flush : serverSdk.flush;
+
+/**
+ * @deprecated This function will be removed in the next major version of the Sentry SDK.
+ */
+// eslint-disable-next-line deprecation/deprecation
 export const lastEventId = runtime === 'client' ? clientSdk.lastEventId : serverSdk.lastEventId;

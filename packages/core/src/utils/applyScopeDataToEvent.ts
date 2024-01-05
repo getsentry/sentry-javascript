@@ -1,5 +1,6 @@
 import type { Breadcrumb, Event, PropagationContext, ScopeData, Span } from '@sentry/types';
 import { arrayify } from '@sentry/utils';
+import { spanToTraceContext } from './spanUtils';
 
 /**
  * Applies data from the scope to the event and runs all event processors on it.
@@ -161,7 +162,7 @@ function applySdkMetadataToEvent(
 }
 
 function applySpanToEvent(event: Event, span: Span): void {
-  event.contexts = { trace: span.getTraceContext(), ...event.contexts };
+  event.contexts = { trace: spanToTraceContext(span), ...event.contexts };
   const transaction = span.transaction;
   if (transaction) {
     event.sdkProcessingMetadata = {

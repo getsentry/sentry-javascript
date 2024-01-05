@@ -1,4 +1,4 @@
-import { addTracingExtensions, getClient, getCurrentScope } from '@sentry/core';
+import { addTracingExtensions, getClient, getCurrentScope, spanToTraceHeader } from '@sentry/core';
 import { dynamicSamplingContextToSentryBaggageHeader } from '@sentry/utils';
 import type App from 'next/app';
 
@@ -63,7 +63,7 @@ export function wrapAppGetInitialPropsWithSentry(origAppGetInitialProps: AppGetI
         }
 
         if (requestTransaction) {
-          appGetInitialProps.pageProps._sentryTraceData = requestTransaction.toTraceparent();
+          appGetInitialProps.pageProps._sentryTraceData = spanToTraceHeader(requestTransaction);
 
           const dynamicSamplingContext = requestTransaction.getDynamicSamplingContext();
           appGetInitialProps.pageProps._sentryBaggage =

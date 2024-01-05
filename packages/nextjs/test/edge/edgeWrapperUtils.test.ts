@@ -65,7 +65,7 @@ describe('withEdgeWrapping', () => {
   });
 
   it('should return a function that calls trace', async () => {
-    const traceSpy = jest.spyOn(coreSdk, 'trace');
+    const startSpanSpy = jest.spyOn(coreSdk, 'startSpan');
 
     const request = new Request('https://sentry.io/');
     const origFunction = jest.fn(_req => new Response());
@@ -78,15 +78,14 @@ describe('withEdgeWrapping', () => {
 
     await wrappedFunction(request);
 
-    expect(traceSpy).toHaveBeenCalledTimes(1);
-    expect(traceSpy).toHaveBeenCalledWith(
+    expect(startSpanSpy).toHaveBeenCalledTimes(1);
+    expect(startSpanSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         metadata: { request: { headers: {} }, source: 'route' },
         name: 'some label',
         op: 'some op',
         origin: 'auto.function.nextjs.withEdgeWrapping',
       }),
-      expect.any(Function),
       expect.any(Function),
     );
   });

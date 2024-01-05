@@ -101,9 +101,11 @@ async function _startWorker(client: NodeClient, _options: Partial<Options>): Pro
     release: initOptions.release,
     dist: initOptions.dist,
     sdkMetadata,
+    appRootPath: _options.appRootPath,
     pollInterval: _options.pollInterval || DEFAULT_INTERVAL,
     anrThreshold: _options.anrThreshold || DEFAULT_HANG_THRESHOLD,
     captureStackTrace: !!_options.captureStackTrace,
+    staticTags: _options.staticTags || {},
     contexts,
   };
 
@@ -120,8 +122,10 @@ async function _startWorker(client: NodeClient, _options: Partial<Options>): Pro
   const worker = new Worker(new URL(`data:application/javascript;base64,${base64WorkerScript}`), {
     workerData: options,
   });
-  // Ensure this thread can't block app exit
-  worker.unref();
+
+  process.on('exit', () => {
+    worker.terminate();
+  });
 
   const timer = setInterval(() => {
     try {
@@ -135,6 +139,8 @@ async function _startWorker(client: NodeClient, _options: Partial<Options>): Pro
       //
     }
   }, options.pollInterval);
+  // Timer should not block exit
+  timer.unref();
 
   worker.on('message', (msg: string) => {
     if (msg === 'session-ended') {
@@ -152,4 +158,7 @@ async function _startWorker(client: NodeClient, _options: Partial<Options>): Pro
     clearInterval(timer);
     log('ANR worker exit', code);
   });
+
+  // Ensure this thread can't block app exit
+  worker.unref();
 }

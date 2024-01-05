@@ -9,6 +9,7 @@ export { extractTraceparentData, getActiveTransaction } from './utils';
 export { SpanStatus } from './spanstatus';
 export type { SpanStatusType } from './span';
 export {
+  // eslint-disable-next-line deprecation/deprecation
   trace,
   getActiveSpan,
   startSpan,

@@ -1,8 +1,7 @@
 import type { Span, Tracer } from '@opentelemetry/api';
 import { SpanStatusCode, trace } from '@opentelemetry/api';
-import { SDK_VERSION } from '@sentry/core';
+import { SDK_VERSION, handleCallbackErrors } from '@sentry/core';
 import type { Client } from '@sentry/types';
-import { isThenable } from '@sentry/utils';
 
 import { getClient } from './custom/hub';
 import { InternalSentrySemanticAttributes } from './semanticAttributes';
@@ -24,36 +23,15 @@ export function startSpan<T>(spanContext: OpenTelemetrySpanContext, callback: (s
   const { name } = spanContext;
 
   return tracer.startActiveSpan(name, spanContext, span => {
-    function finishSpan(): void {
-      span.end();
-    }
-
     _applySentryAttributesToSpan(span, spanContext);
 
-    let maybePromiseResult: T;
-    try {
-      maybePromiseResult = callback(span);
-    } catch (e) {
-      span.setStatus({ code: SpanStatusCode.ERROR });
-      finishSpan();
-      throw e;
-    }
-
-    if (isThenable(maybePromiseResult)) {
-      Promise.resolve(maybePromiseResult).then(
-        () => {
-          finishSpan();
-        },
-        () => {
-          span.setStatus({ code: SpanStatusCode.ERROR });
-          finishSpan();
-        },
-      );
-    } else {
-      finishSpan();
-    }
-
-    return maybePromiseResult;
+    return handleCallbackErrors(
+      () => callback(span),
+      () => {
+        span.setStatus({ code: SpanStatusCode.ERROR });
+      },
+      () => span.end(),
+    );
   });
 }
 
@@ -71,29 +49,15 @@ export function startSpanManual<T>(spanContext: OpenTelemetrySpanContext, callba
 
   const { name } = spanContext;
 
-  // @ts-expect-error - isThenable returns the wrong type
   return tracer.startActiveSpan(name, spanContext, span => {
     _applySentryAttributesToSpan(span, spanContext);
 
-    let maybePromiseResult: T;
-    try {
-      maybePromiseResult = callback(span);
-    } catch (e) {
-      span.setStatus({ code: SpanStatusCode.ERROR });
-      throw e;
-    }
-
-    if (isThenable(maybePromiseResult)) {
-      return maybePromiseResult.then(
-        res => res,
-        e => {
-          span.setStatus({ code: SpanStatusCode.ERROR });
-          throw e;
-        },
-      );
-    }
-
-    return maybePromiseResult;
+    return handleCallbackErrors(
+      () => callback(span),
+      () => {
+        span.setStatus({ code: SpanStatusCode.ERROR });
+      },
+    );
   });
 }
 

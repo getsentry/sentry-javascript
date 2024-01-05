@@ -88,7 +88,7 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
             updateConfig({
               vite: {
                 ssr: {
-                  noExternal: ['@sentry/astro', '@sentry/node'],
+                  noExternal: ['@sentry/astro'],
                 },
               },
             });

@@ -5,6 +5,7 @@ import {
   convertIntegrationFnToClass,
   getActiveTransaction,
   getCurrentScope,
+  spanToTraceHeader,
   startTransaction,
 } from '@sentry/core';
 import type { IntegrationFn } from '@sentry/types';
@@ -93,7 +94,7 @@ export const hapiTracingPlugin = {
 
       if (request.response && isResponseObject(request.response) && transaction) {
         const response = request.response as ResponseObject;
-        response.header('sentry-trace', transaction.toTraceparent());
+        response.header('sentry-trace', spanToTraceHeader(transaction));
 
         const dynamicSamplingContext = dynamicSamplingContextToSentryBaggageHeader(
           transaction.getDynamicSamplingContext(),
