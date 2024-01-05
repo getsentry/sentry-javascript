@@ -239,6 +239,13 @@ function createChildSpanOrTransaction(
   return parentSpan ? parentSpan.startChild(ctx) : hub.startTransaction(ctx);
 }
 
+/**
+ * This converts StartSpanOptions to TransactionContext.
+ * For the most part (for now) we accept the same options,
+ * but some of them need to be transformed.
+ *
+ * Eventually the StartSpanOptions will be more aligned with OpenTelemetry.
+ */
 function normalizeContext(context: StartSpanOptions): TransactionContext {
   const ctx = { ...context };
   // If a name is set and a description is not, set the description to the name.
