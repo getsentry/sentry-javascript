@@ -11,7 +11,7 @@ This will let you select which updates to run, and automatically update your cod
 ## Deprecate `startTransaction()`
 
 In v8, the old performance API `startTransaction()` (as well as `hub.startTransaction()`) will be removed.
-Instead, you have to use the new performance APIs:
+Instead, use the new performance APIs:
 
 * `startSpan()`
 * `startSpanManual()`
