@@ -1,4 +1,4 @@
-import type { Span, TransactionContext } from '@sentry/types';
+import type { Span, SpanTimeInput, TransactionContext } from '@sentry/types';
 import { dropUndefinedKeys, logger, tracingContextFromHeaders } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../debug-build';
@@ -7,6 +7,12 @@ import type { Hub } from '../hub';
 import { getCurrentHub } from '../hub';
 import { handleCallbackErrors } from '../utils/handleCallbackErrors';
 import { hasTracingEnabled } from '../utils/hasTracingEnabled';
+import { spanTimeInputToSeconds } from '../utils/spanUtils';
+
+interface StartSpanOptions extends TransactionContext {
+  /** A manually specified start time for the created `Span` object. */
+  startTime?: SpanTimeInput;
+}
 
 /**
  * Wraps a function with a transaction/span and finishes the span after the function is done.
@@ -65,7 +71,7 @@ export function trace<T>(
  * or you didn't set `tracesSampleRate`, this function will not generate spans
  * and the `span` returned from the callback will be undefined.
  */
-export function startSpan<T>(context: TransactionContext, callback: (span: Span | undefined) => T): T {
+export function startSpan<T>(context: StartSpanOptions, callback: (span: Span | undefined) => T): T {
   const ctx = normalizeContext(context);
 
   return withScope(scope => {
@@ -105,7 +111,7 @@ export const startActiveSpan = startSpan;
  * and the `span` returned from the callback will be undefined.
  */
 export function startSpanManual<T>(
-  context: TransactionContext,
+  context: StartSpanOptions,
   callback: (span: Span | undefined, finish: () => void) => T,
 ): T {
   const ctx = normalizeContext(context);
@@ -143,17 +149,12 @@ export function startSpanManual<T>(
  * or you didn't set `tracesSampleRate` or `tracesSampler`, this function will not generate spans
  * and the `span` returned from the callback will be undefined.
  */
-export function startInactiveSpan(context: TransactionContext): Span | undefined {
+export function startInactiveSpan(context: StartSpanOptions): Span | undefined {
   if (!hasTracingEnabled()) {
     return undefined;
   }
 
-  const ctx = { ...context };
-  // If a name is set and a description is not, set the description to the name.
-  if (ctx.name !== undefined && ctx.description === undefined) {
-    ctx.description = ctx.name;
-  }
-
+  const ctx = normalizeContext(context);
   const hub = getCurrentHub();
   const parentSpan = getActiveSpan();
   return parentSpan ? parentSpan.startChild(ctx) : hub.startTransaction(ctx);
@@ -238,11 +239,23 @@ function createChildSpanOrTransaction(
   return parentSpan ? parentSpan.startChild(ctx) : hub.startTransaction(ctx);
 }
 
-function normalizeContext(context: TransactionContext): TransactionContext {
+/**
+ * This converts StartSpanOptions to TransactionContext.
+ * For the most part (for now) we accept the same options,
+ * but some of them need to be transformed.
+ *
+ * Eventually the StartSpanOptions will be more aligned with OpenTelemetry.
+ */
+function normalizeContext(context: StartSpanOptions): TransactionContext {
   const ctx = { ...context };
   // If a name is set and a description is not, set the description to the name.
   if (ctx.name !== undefined && ctx.description === undefined) {
     ctx.description = ctx.name;
+  }
+
+  if (context.startTime) {
+    ctx.startTimestamp = spanTimeInputToSeconds(context.startTime);
+    delete ctx.startTime;
   }
 
   return ctx;

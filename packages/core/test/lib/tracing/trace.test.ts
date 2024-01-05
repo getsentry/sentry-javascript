@@ -160,6 +160,14 @@ describe('startSpan', () => {
       expect(ref.spanRecorder.spans[1].status).toEqual(isError ? 'internal_error' : undefined);
     });
 
+    it('allows to pass a `startTime`', () => {
+      const start = startSpan({ name: 'outer', startTime: [1234, 0] }, span => {
+        return span?.startTimestamp;
+      });
+
+      expect(start).toEqual(1234);
+    });
+
     it('allows for span to be mutated', async () => {
       let ref: any = undefined;
       client.on('finishTransaction', transaction => {
@@ -222,6 +230,15 @@ describe('startSpanManual', () => {
     expect(getCurrentScope()).toBe(initialScope);
     expect(initialScope.getSpan()).toBe(undefined);
   });
+
+  it('allows to pass a `startTime`', () => {
+    const start = startSpanManual({ name: 'outer', startTime: [1234, 0] }, span => {
+      span?.end();
+      return span?.startTimestamp;
+    });
+
+    expect(start).toEqual(1234);
+  });
 });
 
 describe('startInactiveSpan', () => {
@@ -247,6 +264,11 @@ describe('startInactiveSpan', () => {
     span?.end();
 
     expect(initialScope.getSpan()).toBeUndefined();
+  });
+
+  it('allows to pass a `startTime`', () => {
+    const span = startInactiveSpan({ name: 'outer', startTime: [1234, 0] });
+    expect(span?.startTimestamp).toEqual(1234);
   });
 });
 
