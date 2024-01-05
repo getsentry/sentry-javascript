@@ -1,6 +1,5 @@
 import type { Span, SpanTimeInput, TraceContext } from '@sentry/types';
 import { dropUndefinedKeys, generateSentryTraceHeader, timestampInSeconds } from '@sentry/utils';
-import { ensureTimestampInSeconds } from '../tracing/utils';
 
 /**
  * Convert a span to a trace context, which can be sent as the `trace` context in an event.
@@ -46,4 +45,12 @@ export function spanTimeInputToSeconds(input: SpanTimeInput | undefined): number
   }
 
   return timestampInSeconds();
+}
+
+/**
+ * Converts a timestamp to second, if it was in milliseconds, or keeps it as second.
+ */
+function ensureTimestampInSeconds(timestamp: number): number {
+  const isMs = timestamp > 9999999999;
+  return isMs ? timestamp / 1000 : timestamp;
 }
