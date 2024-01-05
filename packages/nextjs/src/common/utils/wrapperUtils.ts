@@ -100,6 +100,8 @@ export function withTracedServerSideDataFetcher<F extends (...args: any[]) => Pr
       if (platformSupportsStreaming()) {
         let spanToContinue: Span;
         if (previousSpan === undefined) {
+          // TODO: Refactor this to use `startSpan()`
+          // eslint-disable-next-line deprecation/deprecation
           const newTransaction = startTransaction(
             {
               op: 'http.server',
@@ -136,6 +138,8 @@ export function withTracedServerSideDataFetcher<F extends (...args: any[]) => Pr
           status: 'ok',
         });
       } else {
+        // TODO: Refactor this to use `startSpan()`
+        // eslint-disable-next-line deprecation/deprecation
         dataFetcherSpan = startTransaction({
           op: 'function.nextjs',
           name: `${options.dataFetchingMethodName} (${options.dataFetcherRouteName})`,

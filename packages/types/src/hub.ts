@@ -214,6 +214,8 @@ export interface Hub {
    * default values). See {@link Options.tracesSampler}.
    *
    * @returns The transaction which was just started
+   *
+   * @deprecated Use `startSpan()`, `startSpanManual()` or `startInactiveSpan()` instead.
    */
   startTransaction(context: TransactionContext, customSamplingContext?: CustomSamplingContext): Transaction;
 

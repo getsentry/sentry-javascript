@@ -31,6 +31,7 @@ export {
   Hub,
   makeMain,
   Scope,
+  // eslint-disable-next-line deprecation/deprecation
   startTransaction,
   SDK_VERSION,
   setContext,
