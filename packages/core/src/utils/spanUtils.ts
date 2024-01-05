@@ -24,7 +24,7 @@ export function spanToTraceContext(span: Span): TraceContext {
  * Convert a Span to a Sentry trace header.
  */
 export function spanToTraceHeader(span: Span): string {
-  return generateSentryTraceHeader(span.traceId, span.spanId, span.sampled);
+  return generateSentryTraceHeader(span.traceId, span.spanId, span.isRecording());
 }
 
 /**
