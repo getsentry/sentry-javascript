@@ -33,7 +33,7 @@ export function dateTimestampInSeconds(): number {
  * Wrapping the native API works around differences in behavior from different browsers.
  */
 function createUnixTimestampInSecondsFunc(): () => number {
-  const { performance } = GLOBAL_OBJ as typeof GLOBAL_OBJ & { performance: Performance };
+  const { performance } = GLOBAL_OBJ as typeof GLOBAL_OBJ & { performance?: Performance };
   if (!performance || !performance.now) {
     return dateTimestampInSeconds;
   }
