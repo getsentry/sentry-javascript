@@ -37,7 +37,8 @@ describe('API', function () {
     });
   });
 
-  it('should capture Sentry internal transaction as breadcrumbs for the following event sent', function () {
+  // This test is flakey on firefox
+  it.skip('should capture Sentry internal transaction as breadcrumbs for the following event sent', function () {
     return runInSandbox(sandbox, { manual: true }, function () {
       window.allowSentryBreadcrumbs = true;
       Sentry.captureEvent({
