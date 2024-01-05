@@ -23,7 +23,7 @@ export class ReplayCanvas implements Integration {
   public constructor(options?: Partial<ReplayCanvasOptions>) {
     this.name = ReplayCanvas.id;
     this._canvasOptions = {
-      quality: options && options.quality || 'medium',
+      quality: (options && options.quality) || 'medium',
     };
   }
 
