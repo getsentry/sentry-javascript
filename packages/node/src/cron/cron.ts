@@ -56,6 +56,8 @@ const ERROR_TEXT = 'Automatic instrumentation of CronJob only supports crontab s
  * ```
  */
 export function instrumentCron<T>(lib: T & CronJobConstructor, monitorSlug: string): T {
+  let jobScheduled = false;
+
   return new Proxy(lib, {
     construct(target, args: ConstructorParameters<CronJobConstructor>) {
       const [cronTime, onTick, onComplete, start, timeZone, ...rest] = args;
@@ -63,6 +65,12 @@ export function instrumentCron<T>(lib: T & CronJobConstructor, monitorSlug: stri
       if (typeof cronTime !== 'string') {
         throw new Error(ERROR_TEXT);
       }
+
+      if (jobScheduled) {
+        throw new Error(`A job named '${monitorSlug}' has already been scheduled`);
+      }
+
+      jobScheduled = true;
 
       const cronString = replaceCronNames(cronTime);
 
@@ -89,6 +97,12 @@ export function instrumentCron<T>(lib: T & CronJobConstructor, monitorSlug: stri
           if (typeof cronTime !== 'string') {
             throw new Error(ERROR_TEXT);
           }
+
+          if (jobScheduled) {
+            throw new Error(`A job named '${monitorSlug}' has already been scheduled`);
+          }
+
+          jobScheduled = true;
 
           const cronString = replaceCronNames(cronTime);
 
