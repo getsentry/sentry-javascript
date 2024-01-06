@@ -65,6 +65,8 @@ export {
   metrics,
 } from '@sentry/core';
 
+export { parameterize } from '@sentry/utils';
+
 export { WINDOW } from './helpers';
 export { BrowserClient } from './client';
 export { makeFetchTransport, makeXHRTransport } from './transports';
