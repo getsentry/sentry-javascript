@@ -356,51 +356,6 @@ async function injectTraceAndBaggageToLoaderData(loaderData: AppData, remixVersi
   return { ...loaderData, ...traceAndBaggage, remixVersion };
 }
 
-function makeWrappedRootLoader(remixVersion: number) {
-  return function (origLoader: DataFunction): DataFunction {
-    return async function (this: unknown, args: DataFunctionArgs): Promise<Response | AppData> {
-      const res = await origLoader.call(this, args);
-      const traceAndBaggage = getTraceAndBaggage();
-
-      if (isDeferredData(res)) {
-        res.data['sentryTrace'] = traceAndBaggage.sentryTrace;
-        res.data['sentryBaggage'] = traceAndBaggage.sentryBaggage;
-        res.data['remixVersion'] = remixVersion;
-
-        return res;
-      }
-
-      if (isResponse(res)) {
-        // Note: `redirect` and `catch` responses do not have bodies to extract.
-        // We skip injection of trace and baggage in those cases.
-        // For `redirect`, a valid internal redirection target will have the trace and baggage injected.
-        if (isRedirectResponse(res) || isCatchResponse(res)) {
-          DEBUG_BUILD && logger.warn('Skipping injection of trace and baggage as the response does not have a body');
-          return res;
-        } else {
-          const data = await extractData(res);
-
-          if (typeof data === 'object') {
-            return json(
-              { ...data, ...traceAndBaggage, remixVersion },
-              {
-                headers: res.headers,
-                statusText: res.statusText,
-                status: res.status,
-              },
-            );
-          } else {
-            DEBUG_BUILD && logger.warn('Skipping injection of trace and baggage as the response body is not an object');
-            return res;
-          }
-        }
-      }
-
-      return { ...res, ...traceAndBaggage, remixVersion };
-    };
-  };
-}
-
 /**
  * Creates routes from the server route manifest
  *
