@@ -19,6 +19,7 @@ export {
   flush,
   // eslint-disable-next-line deprecation/deprecation
   lastEventId,
+  // eslint-disable-next-line deprecation/deprecation
   startTransaction,
   setContext,
   setExtra,
@@ -29,6 +30,9 @@ export {
   withScope,
   getClient,
   getCurrentScope,
+  startSession,
+  endSession,
+  captureSession,
 } from './exports';
 export {
   getCurrentHub,

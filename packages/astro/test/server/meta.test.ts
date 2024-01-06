@@ -4,7 +4,7 @@ import { vi } from 'vitest';
 import { getTracingMetaTags, isValidBaggageString } from '../../src/server/meta';
 
 const mockedSpan = {
-  sampled: true,
+  isRecording: () => true,
   traceId: '12345678901234567890123456789012',
   spanId: '1234567890123456',
   transaction: {
@@ -70,7 +70,7 @@ describe('getTracingMetaTags', () => {
     const tags = getTracingMetaTags(
       // @ts-expect-error - only passing a partial span object
       {
-        sampled: true,
+        isRecording: () => true,
         traceId: '12345678901234567890123456789012',
         spanId: '1234567890123456',
         transaction: undefined,
@@ -93,7 +93,7 @@ describe('getTracingMetaTags', () => {
     const tags = getTracingMetaTags(
       // @ts-expect-error - only passing a partial span object
       {
-        sampled: true,
+        isRecording: () => true,
         traceId: '12345678901234567890123456789012',
         spanId: '1234567890123456',
         transaction: undefined,

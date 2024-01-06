@@ -333,6 +333,7 @@ export class BrowserTracing implements Integration {
     this._latestRouteName = finalContext.name;
     this._latestRouteSource = finalContext.metadata && finalContext.metadata.source;
 
+    // eslint-disable-next-line deprecation/deprecation
     if (finalContext.sampled === false) {
       DEBUG_BUILD && logger.log(`[Tracing] Will not send ${finalContext.op} transaction because of beforeNavigate.`);
     }

@@ -63,6 +63,8 @@ export function tracingHandler(): (
 
     const [name, source] = extractPathForTransaction(req, { path: true, method: true });
     const transaction = continueTrace({ sentryTrace, baggage }, ctx =>
+      // TODO: Refactor this to use `startSpan()`
+      // eslint-disable-next-line deprecation/deprecation
       startTransaction(
         {
           name,

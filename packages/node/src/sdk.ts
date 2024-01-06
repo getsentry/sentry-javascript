@@ -1,12 +1,14 @@
 /* eslint-disable max-lines */
 import {
   Integrations as CoreIntegrations,
+  endSession,
   getClient,
-  getCurrentHub,
   getCurrentScope,
   getIntegrationsToSetup,
+  getIsolationScope,
   getMainCarrier,
   initAndBind,
+  startSession,
 } from '@sentry/core';
 import type { SessionStatus, StackParser } from '@sentry/types';
 import {
@@ -244,20 +246,21 @@ export const defaultStackParser: StackParser = createStackParser(nodeStackLinePa
  * Enable automatic Session Tracking for the node process.
  */
 function startSessionTracking(): void {
-  const hub = getCurrentHub();
-  hub.startSession();
+  startSession();
   // Emitted in the case of healthy sessions, error of `mechanism.handled: true` and unhandledrejections because
   // The 'beforeExit' event is not emitted for conditions causing explicit termination,
   // such as calling process.exit() or uncaught exceptions.
   // Ref: https://nodejs.org/api/process.html#process_event_beforeexit
   process.on('beforeExit', () => {
-    const session = hub.getScope().getSession();
+    const session = getIsolationScope().getSession();
     const terminalStates: SessionStatus[] = ['exited', 'crashed'];
     // Only call endSession, if the Session exists on Scope and SessionStatus is not a
     // Terminal Status i.e. Exited or Crashed because
     // "When a session is moved away from ok it must not be updated anymore."
     // Ref: https://develop.sentry.dev/sdk/sessions/
-    if (session && !terminalStates.includes(session.status)) hub.endSession();
+    if (session && !terminalStates.includes(session.status)) {
+      endSession();
+    }
   });
 }
 

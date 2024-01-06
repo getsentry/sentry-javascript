@@ -4,6 +4,93 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.92.0
+
+### Important Changes
+
+#### Deprecations
+
+- feat(core): Add `span.updateName()` and deprecate `span.setName()` (#10018)
+- feat(core): Deprecate `span.getTraceContext()` (#10032)
+- feat(core): Deprecate `span.toTraceparent()` in favor of `spanToTraceHeader()` util (#10031)
+- feat(core): Deprecate `trace` in favor of `startSpan` (#10012)
+- feat(core): Deprecate span `toContext()` and `updateWithContext()` (#10030)
+- ref: Deprecate `deepReadDirSync` (#10016)
+- ref: Deprecate `lastEventId()` (#10043)
+
+Please take a look at the [Migration docs](./MIGRATION.md) for more details. These methods will be removed in the upcoming [v8 major release](https://github.com/getsentry/sentry-javascript/discussions/9802).
+
+#### Cron Monitoring Support for `cron` and `node-cron` libraries
+
+- feat(node): Instrumentation for `cron` library (#9999)
+- feat(node): Instrumentation for `node-cron` library (#9904)
+
+This release adds instrumentation for the `cron` and `node-cron` libraries. This allows you to monitor your cron jobs with [Sentry cron monitors](https://docs.sentry.io/product/crons/).
+
+For [`cron`](https://www.npmjs.com/package/cron):
+
+```js
+import * as Sentry from '@sentry/node';
+import { CronJob } from 'cron';
+
+const CronJobWithCheckIn = Sentry.cron.instrumentCron(CronJob, 'my-cron-job');
+
+// use the constructor
+const job = new CronJobWithCheckIn('* * * * *', () => {
+  console.log('You will see this message every minute');
+});
+
+// or from
+const job = CronJobWithCheckIn.from({
+  cronTime: '* * * * *',
+  onTick: () => {
+    console.log('You will see this message every minute');
+  },
+});
+```
+
+For [`node-cron`](https://www.npmjs.com/package/node-cron):
+
+```js
+import * as Sentry from '@sentry/node';
+import cron from 'node-cron';
+
+const cronWithCheckIn = Sentry.cron.instrumentNodeCron(cron);
+
+cronWithCheckIn.schedule(
+  '* * * * *',
+  () => {
+    console.log('running a task every minute');
+  },
+  { name: 'my-cron-job' },
+);
+```
+
+### Other Changes
+
+- feat(astro): Add `enabled` option to Astro integration options (#10007)
+- feat(core): Add `attributes` to `Span` (#10008)
+- feat(core): Add `setClient()` and `getClient()` to `Scope` (#10055)
+- feat(integrations): Capture error cause with `captureErrorCause` in `ExtraErrorData` integration (#9914)
+- feat(node-experimental): Allow to pass base span options to trace methods (#10006)
+- feat(node): Local variables via async inspector in node 19+ (#9962)
+- fix(astro): handle commonjs related issues (#10042)
+- fix(astro): Handle non-utf8 encoded streams in middleware (#9989)
+- fix(astro): prevent sentry from externalized (#9994)
+- fix(core): Ensure `withScope` sets current scope correctly with async callbacks (#9974)
+- fix(node): ANR fixes and additions  (#9998)
+- fix(node): Anr should not block exit (#10035)
+- fix(node): Correctly resolve module name (#10001)
+- fix(node): Handle inspector already open (#10025)
+- fix(node): Make `NODE_VERSION` properties required (#9964)
+- fix(node): Anr doesn't block exit (#10064)
+- fix(utils): use correct typeof URL validation (#10028)
+- perf(astro): reduce unnecessary path resolutions (#10021)
+- ref(astro): Use astro logger instead of console (#9995)
+- ref(remix): Isolate Express instrumentation from server auto-instrumentation. (#9966)
+
+Work in this release contributed by @joshkel. Thank you for your contribution!
+
 ## 7.91.0
 
 ### Important Changes

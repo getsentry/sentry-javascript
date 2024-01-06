@@ -1,6 +1,7 @@
 import type { TraceContext } from './context';
 import type { Instrumenter } from './instrumenter';
 import type { Primitive } from './misc';
+import type { HrTime } from './opentelemetry';
 import type { Transaction } from './transaction';
 
 type SpanOriginType = 'manual' | 'auto';
@@ -23,6 +24,9 @@ export type SpanAttributeValue =
   | Array<null | undefined | boolean>;
 
 export type SpanAttributes = Record<string, SpanAttributeValue | undefined>;
+
+/** This type is aligned with the OpenTelemetry TimeInput type. */
+export type SpanTimeInput = HrTime | number | Date;
 
 /** Interface holding all properties that can be set on a Span on creation. */
 export interface SpanContext {
@@ -54,6 +58,8 @@ export interface SpanContext {
 
   /**
    * Was this span chosen to be sent as part of the sample?
+   *
+   * @deprecated Use `isRecording()` instead.
    */
   sampled?: boolean;
 
@@ -159,7 +165,7 @@ export interface Span extends SpanContext {
   /**
    * End the current span.
    */
-  end(endTimestamp?: number): void;
+  end(endTimestamp?: SpanTimeInput): void;
 
   /**
    * Sets the tag attribute on the current span.
@@ -264,4 +270,10 @@ export interface Span extends SpanContext {
     trace_id: string;
     origin?: SpanOrigin;
   };
+
+  /**
+   * If this is span is actually recording data.
+   * This will return false if tracing is disabled, this span was not sampled or if the span is already finished.
+   */
+  isRecording(): boolean;
 }

@@ -1,26 +1,6 @@
-import { dynamicRequire, isNodeEnv } from './node';
-import { getGlobalObject } from './worldwide';
+import { GLOBAL_OBJ } from './worldwide';
 
-// eslint-disable-next-line deprecation/deprecation
-const WINDOW = getGlobalObject<Window>();
-
-/**
- * An object that can return the current timestamp in seconds since the UNIX epoch.
- */
-interface TimestampSource {
-  nowSeconds(): number;
-}
-
-/**
- * A TimestampSource implementation for environments that do not support the Performance Web API natively.
- *
- * Note that this TimestampSource does not use a monotonic clock. A call to `nowSeconds` may return a timestamp earlier
- * than a previously returned value. We do not try to emulate a monotonic behavior in order to facilitate debugging. It
- * is more obvious to explain "why does my span have negative duration" than "why my spans have zero duration".
- */
-const dateTimestampSource: TimestampSource = {
-  nowSeconds: () => Date.now() / 1000,
-};
+const ONE_SECOND_IN_MS = 1000;
 
 /**
  * A partial definition of the [Performance Web API]{@link https://developer.mozilla.org/en-US/docs/Web/API/Performance}
@@ -38,88 +18,55 @@ interface Performance {
 }
 
 /**
+ * Returns a timestamp in seconds since the UNIX epoch using the Date API.
+ *
+ * TODO(v8): Return type should be rounded.
+ */
+export function dateTimestampInSeconds(): number {
+  return Date.now() / ONE_SECOND_IN_MS;
+}
+
+/**
  * Returns a wrapper around the native Performance API browser implementation, or undefined for browsers that do not
  * support the API.
  *
  * Wrapping the native API works around differences in behavior from different browsers.
  */
-function getBrowserPerformance(): Performance | undefined {
-  const { performance } = WINDOW;
+function createUnixTimestampInSecondsFunc(): () => number {
+  const { performance } = GLOBAL_OBJ as typeof GLOBAL_OBJ & { performance?: Performance };
   if (!performance || !performance.now) {
-    return undefined;
+    return dateTimestampInSeconds;
   }
 
-  // Replace performance.timeOrigin with our own timeOrigin based on Date.now().
-  //
-  // This is a partial workaround for browsers reporting performance.timeOrigin such that performance.timeOrigin +
-  // performance.now() gives a date arbitrarily in the past.
-  //
-  // Additionally, computing timeOrigin in this way fills the gap for browsers where performance.timeOrigin is
-  // undefined.
-  //
-  // The assumption that performance.timeOrigin + performance.now() ~= Date.now() is flawed, but we depend on it to
-  // interact with data coming out of performance entries.
-  //
-  // Note that despite recommendations against it in the spec, browsers implement the Performance API with a clock that
-  // might stop when the computer is asleep (and perhaps under other circumstances). Such behavior causes
-  // performance.timeOrigin + performance.now() to have an arbitrary skew over Date.now(). In laptop computers, we have
-  // observed skews that can be as long as days, weeks or months.
-  //
-  // See https://github.com/getsentry/sentry-javascript/issues/2590.
-  //
-  // BUG: despite our best intentions, this workaround has its limitations. It mostly addresses timings of pageload
-  // transactions, but ignores the skew built up over time that can aversely affect timestamps of navigation
-  // transactions of long-lived web pages.
-  const timeOrigin = Date.now() - performance.now();
+  // Some browser and environments don't have a timeOrigin, so we fallback to
+  // using Date.now() to compute the starting time.
+  const approxStartingTimeOrigin = Date.now() - performance.now();
+  const timeOrigin = performance.timeOrigin == undefined ? approxStartingTimeOrigin : performance.timeOrigin;
 
-  return {
-    now: () => performance.now(),
-    timeOrigin,
+  // performance.now() is a monotonic clock, which means it starts at 0 when the process begins. To get the current
+  // wall clock time (actual UNIX timestamp), we need to add the starting time origin and the current time elapsed.
+  //
+  // TODO: This does not account for the case where the monotonic clock that powers performance.now() drifts from the
+  // wall clock time, which causes the returned timestamp to be inaccurate. We should investigate how to detect and
+  // correct for this.
+  // See: https://github.com/getsentry/sentry-javascript/issues/2590
+  // See: https://github.com/mdn/content/issues/4713
+  // See: https://dev.to/noamr/when-a-millisecond-is-not-a-millisecond-3h6
+  return () => {
+    return (timeOrigin + performance.now()) / ONE_SECOND_IN_MS;
   };
 }
 
 /**
- * Returns the native Performance API implementation from Node.js. Returns undefined in old Node.js versions that don't
- * implement the API.
- */
-function getNodePerformance(): Performance | undefined {
-  try {
-    const perfHooks = dynamicRequire(module, 'perf_hooks') as { performance: Performance };
-    return perfHooks.performance;
-  } catch (_) {
-    return undefined;
-  }
-}
-
-/**
- * The Performance API implementation for the current platform, if available.
- */
-const platformPerformance: Performance | undefined = isNodeEnv() ? getNodePerformance() : getBrowserPerformance();
-
-const timestampSource: TimestampSource =
-  platformPerformance === undefined
-    ? dateTimestampSource
-    : {
-        nowSeconds: () => (platformPerformance.timeOrigin + platformPerformance.now()) / 1000,
-      };
-
-/**
- * Returns a timestamp in seconds since the UNIX epoch using the Date API.
- */
-export const dateTimestampInSeconds: () => number = dateTimestampSource.nowSeconds.bind(dateTimestampSource);
-
-/**
  * Returns a timestamp in seconds since the UNIX epoch using either the Performance or Date APIs, depending on the
  * availability of the Performance API.
- *
- * See `usingPerformanceAPI` to test whether the Performance API is used.
  *
  * BUG: Note that because of how browsers implement the Performance API, the clock might stop when the computer is
  * asleep. This creates a skew between `dateTimestampInSeconds` and `timestampInSeconds`. The
  * skew can grow to arbitrary amounts like days, weeks or months.
  * See https://github.com/getsentry/sentry-javascript/issues/2590.
  */
-export const timestampInSeconds: () => number = timestampSource.nowSeconds.bind(timestampSource);
+export const timestampInSeconds = createUnixTimestampInSecondsFunc();
 
 /**
  * Re-exported with an old name for backwards-compatibility.
@@ -128,11 +75,6 @@ export const timestampInSeconds: () => number = timestampSource.nowSeconds.bind(
  * @deprecated Use `timestampInSeconds` instead.
  */
 export const timestampWithMs = timestampInSeconds;
-
-/**
- * A boolean that is true when timestampInSeconds uses the Performance API to produce monotonic timestamps.
- */
-export const usingPerformanceAPI = platformPerformance !== undefined;
 
 /**
  * Internal helper to store what is the source of browserPerformanceTimeOrigin below. For debugging only.
@@ -148,7 +90,7 @@ export const browserPerformanceTimeOrigin = ((): number | undefined => {
   // performance.timing.navigationStart, which results in poor results in performance data. We only treat time origin
   // data as reliable if they are within a reasonable threshold of the current time.
 
-  const { performance } = WINDOW;
+  const { performance } = GLOBAL_OBJ as typeof GLOBAL_OBJ & Window;
   if (!performance || !performance.now) {
     _browserPerformanceTimeOriginMode = 'none';
     return undefined;

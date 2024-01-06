@@ -15,6 +15,7 @@ Sentry.init({
 });
 
 async function run(): Promise<void> {
+  // eslint-disable-next-line deprecation/deprecation
   const transaction = Sentry.startTransaction({
     name: 'Test Transaction',
     op: 'transaction',

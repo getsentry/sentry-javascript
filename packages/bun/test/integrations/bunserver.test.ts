@@ -80,7 +80,7 @@ describe('Bun Serve Integration', () => {
     client.on('finishTransaction', transaction => {
       expect(transaction.traceId).toBe(TRACE_ID);
       expect(transaction.parentSpanId).toBe(PARENT_SPAN_ID);
-      expect(transaction.sampled).toBe(true);
+      expect(transaction.isRecording()).toBe(true);
 
       expect(transaction.metadata?.dynamicSamplingContext).toStrictEqual({ version: '1.0', environment: 'production' });
     });

@@ -3,6 +3,7 @@ import * as Sentry from '@sentry/nextjs';
 import type { NextApiRequest, NextApiResponse } from 'next';
 
 export default function handler(req: NextApiRequest, res: NextApiResponse) {
+  // eslint-disable-next-line deprecation/deprecation
   const transaction = Sentry.startTransaction({ name: 'test-transaction', op: 'e2e-test' });
   Sentry.getCurrentHub().getScope().setSpan(transaction);
 

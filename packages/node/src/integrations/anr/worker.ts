@@ -6,7 +6,13 @@ import {
   updateSession,
 } from '@sentry/core';
 import type { Event, Session, StackFrame, TraceContext } from '@sentry/types';
-import { callFrameToStackFrame, normalizeUrlToBase, stripSentryFramesAndReverse, watchdogTimer } from '@sentry/utils';
+import {
+  callFrameToStackFrame,
+  normalizeUrlToBase,
+  stripSentryFramesAndReverse,
+  uuid4,
+  watchdogTimer,
+} from '@sentry/utils';
 import { Session as InspectorSession } from 'inspector';
 import { parentPort, workerData } from 'worker_threads';
 
@@ -92,6 +98,7 @@ async function sendAnrEvent(frames?: StackFrame[], traceContext?: TraceContext):
   log('Sending event');
 
   const event: Event = {
+    event_id: uuid4(),
     contexts: { ...options.contexts, trace: traceContext },
     release: options.release,
     environment: options.environment,

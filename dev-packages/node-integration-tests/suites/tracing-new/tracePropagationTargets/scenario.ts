@@ -10,6 +10,7 @@ Sentry.init({
   integrations: [new Sentry.Integrations.Http({ tracing: true })],
 });
 
+// eslint-disable-next-line deprecation/deprecation
 const transaction = Sentry.startTransaction({ name: 'test_transaction' });
 
 Sentry.getCurrentScope().setSpan(transaction);

@@ -14,6 +14,7 @@ describe('hubextensions', () => {
 
     const mockConsole = jest.spyOn(console, 'warn').mockImplementation(() => {});
 
+    // eslint-disable-next-line deprecation/deprecation
     const transaction = getCurrentHub().startTransaction({ name: 'test' });
     expect(transaction).toEqual({});
 

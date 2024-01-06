@@ -2,12 +2,12 @@ import { withMonitor } from '@sentry/core';
 import { replaceCronNames } from './common';
 
 export interface NodeCronOptions {
-  name?: string;
+  name: string;
   timezone?: string;
 }
 
 export interface NodeCron {
-  schedule: (cronExpression: string, callback: () => void, options?: NodeCronOptions) => unknown;
+  schedule: (cronExpression: string, callback: () => void, options: NodeCronOptions) => unknown;
 }
 
 /**

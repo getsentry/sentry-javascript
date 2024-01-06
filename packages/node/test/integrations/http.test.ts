@@ -1,6 +1,8 @@
 import * as http from 'http';
 import * as https from 'https';
-import type { Span, Transaction } from '@sentry/core';
+import type { Span } from '@sentry/core';
+import { Transaction } from '@sentry/core';
+import { startInactiveSpan } from '@sentry/core';
 import * as sentryCore from '@sentry/core';
 import { Hub, addTracingExtensions } from '@sentry/core';
 import type { TransactionContext } from '@sentry/types';
@@ -36,6 +38,7 @@ describe('tracing', () => {
       ...customOptions,
     });
     const hub = new Hub(new NodeClient(options));
+    sentryCore.makeMain(hub);
     addTracingExtensions();
 
     hub.getScope().setUser({
@@ -47,11 +50,13 @@ describe('tracing', () => {
     jest.spyOn(sentryCore, 'getCurrentScope').mockImplementation(() => hub.getScope());
     jest.spyOn(sentryCore, 'getClient').mockReturnValue(hub.getClient());
 
-    const transaction = hub.startTransaction({
+    const transaction = startInactiveSpan({
       name: 'dogpark',
       traceId: '12312012123120121231201212312012',
       ...customContext,
     });
+
+    expect(transaction).toBeInstanceOf(Transaction);
 
     hub.getScope().setSpan(transaction);
 
@@ -367,7 +372,7 @@ describe('tracing', () => {
 
     function createTransactionAndPutOnScope(hub: Hub) {
       addTracingExtensions();
-      const transaction = hub.startTransaction({ name: 'dogpark' });
+      const transaction = startInactiveSpan({ name: 'dogpark' });
       hub.getScope().setSpan(transaction);
       return transaction;
     }
