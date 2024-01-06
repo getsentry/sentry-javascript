@@ -520,13 +520,7 @@ function wrapRequestHandler(origRequestHandler: RequestHandler, build: ServerBui
         method: request.method,
       });
 
-      const traceAndBaggage = getTraceAndBaggage();
-
-      const sentryLoadContext = loadContext || {};
-      sentryLoadContext.__sentry_trace__ = traceAndBaggage.sentryTrace;
-      sentryLoadContext.__sentry_baggage__ = traceAndBaggage.sentryBaggage;
-
-      const res = (await origRequestHandler.call(this, request, sentryLoadContext)) as Response;
+      const res = (await origRequestHandler.call(this, request, loadContext)) as Response;
 
       if (isResponse(res)) {
         transaction.setHttpStatus(res.status);

@@ -1,5 +1,6 @@
 import { cssBundleHref } from '@remix-run/css-bundle';
-import { LinksFunction, MetaFunction, json } from '@remix-run/node';
+import { LinksFunction, json } from '@remix-run/node';
+import type { MetaFunction } from '@remix-run/node';
 import {
   Links,
   LiveReload,
@@ -11,7 +12,6 @@ import {
   useRouteError,
 } from '@remix-run/react';
 import { captureRemixErrorBoundaryError, withSentry } from '@sentry/remix';
-import type { SentryMetaArgs } from '@sentry/remix';
 
 export const links: LinksFunction = () => [...(cssBundleHref ? [{ rel: 'stylesheet', href: cssBundleHref }] : [])];
 
@@ -23,18 +23,10 @@ export const loader = () => {
   });
 };
 
-export const meta = ({ data }: SentryMetaArgs<MetaFunction<typeof loader>>) => {
+export const meta = ({ data }: MetaFunction<typeof loader>) => {
   return [
     {
       env: data.ENV,
-    },
-    {
-      name: 'sentry-trace',
-      content: data.sentryTrace,
-    },
-    {
-      name: 'baggage',
-      content: data.sentryBaggage,
     },
   ];
 };
