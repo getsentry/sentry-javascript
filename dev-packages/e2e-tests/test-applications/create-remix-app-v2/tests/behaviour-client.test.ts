@@ -207,30 +207,130 @@ test('Sends a client-side ErrorBoundary exception to Sentry', async ({ page }) =
     .toBe(200);
 });
 
-test('Renders `sentry-trace` and `baggage` meta tags for the root route', async ({ page }) => {
-  await page.goto('/');
+test('Continues server-side trace on client-side', async ({ page }) => {
+  await page.goto('/trace-propagation/0');
 
-  const sentryTraceMetaTag = await page.waitForSelector('meta[name="sentry-trace"]', {
-    state: 'attached',
-  });
-  const baggageMetaTag = await page.waitForSelector('meta[name="baggage"]', {
-    state: 'attached',
-  });
+  // Read text from the page inside element id #trace-id
+  const serverTraceId = await (await page.waitForSelector('#trace-id')).innerText();
 
-  expect(sentryTraceMetaTag).toBeTruthy();
-  expect(baggageMetaTag).toBeTruthy();
+  const recordedTransactionsHandle = await page.waitForFunction(() => {
+    if (window.recordedTransactions && window.recordedTransactions?.length >= 1) {
+      return window.recordedTransactions;
+    } else {
+      return undefined;
+    }
+  });
+  const recordedTransactionEventIds = await recordedTransactionsHandle.jsonValue();
+
+  if (recordedTransactionEventIds === undefined) {
+    throw new Error("Application didn't record any transaction event IDs.");
+  }
+
+  let hadPageLoadTransaction = false;
+
+  console.log(`Polling for transaction eventIds: ${JSON.stringify(recordedTransactionEventIds)}`);
+
+  await Promise.all(
+    recordedTransactionEventIds.map(async transactionEventId => {
+      await expect
+        .poll(
+          async () => {
+            try {
+              const response = await axios.get(
+                `https://sentry.io/api/0/projects/${sentryTestOrgSlug}/${sentryTestProject}/events/${transactionEventId}/`,
+                { headers: { Authorization: `Bearer ${authToken}` } },
+              );
+
+              if (response.data.contexts.trace.op === 'pageload') {
+                hadPageLoadTransaction = true;
+              }
+
+              expect(response.data.contexts.trace.trace_id).toBe(serverTraceId);
+
+              return response.status;
+            } catch (e) {
+              if (e instanceof AxiosError && e.response) {
+                if (e.response.status !== 404) {
+                  throw e;
+                } else {
+                  return e.response.status;
+                }
+              } else {
+                throw e;
+              }
+            }
+          },
+          {
+            timeout: EVENT_POLLING_TIMEOUT,
+          },
+        )
+        .toBe(200);
+    }),
+  );
+
+  expect(hadPageLoadTransaction).toBe(true);
 });
 
-test('Renders `sentry-trace` and `baggage` meta tags for a sub-route', async ({ page }) => {
-  await page.goto('/user/123');
+test('Continues server-side trace on client-side when ErrorBoundary is triggered', async ({ page }) => {
+  await page.goto('/trace-propagation/-1');
 
-  const sentryTraceMetaTag = await page.waitForSelector('meta[name="sentry-trace"]', {
-    state: 'attached',
-  });
-  const baggageMetaTag = await page.waitForSelector('meta[name="baggage"]', {
-    state: 'attached',
-  });
+  // Read text from the page inside element id #message
+  const serverTraceId = await (await page.waitForSelector('#message')).innerText();
 
-  expect(sentryTraceMetaTag).toBeTruthy();
-  expect(baggageMetaTag).toBeTruthy();
+  const recordedTransactionsHandle = await page.waitForFunction(() => {
+    if (window.recordedTransactions && window.recordedTransactions?.length >= 1) {
+      return window.recordedTransactions;
+    } else {
+      return undefined;
+    }
+  });
+  const recordedTransactionEventIds = await recordedTransactionsHandle.jsonValue();
+
+  if (recordedTransactionEventIds === undefined) {
+    throw new Error("Application didn't record any transaction event IDs.");
+  }
+
+  let hadPageLoadTransaction = false;
+
+  console.log(`Polling for transaction eventIds: ${JSON.stringify(recordedTransactionEventIds)}`);
+
+  await Promise.all(
+    recordedTransactionEventIds.map(async transactionEventId => {
+      await expect
+        .poll(
+          async () => {
+            try {
+              const response = await axios.get(
+                `https://sentry.io/api/0/projects/${sentryTestOrgSlug}/${sentryTestProject}/events/${transactionEventId}/`,
+                { headers: { Authorization: `Bearer ${authToken}` } },
+              );
+
+              if (response.data.contexts.trace.op === 'pageload') {
+                hadPageLoadTransaction = true;
+              }
+
+              expect(response.data.contexts.trace.trace_id).toBe(serverTraceId);
+
+              return response.status;
+            } catch (e) {
+              if (e instanceof AxiosError && e.response) {
+                if (e.response.status !== 404) {
+                  throw e;
+                } else {
+                  return e.response.status;
+                }
+              } else {
+                throw e;
+              }
+            }
+          },
+          {
+            timeout: EVENT_POLLING_TIMEOUT,
+          },
+        )
+        .toBe(200);
+    }),
+  );
+
+  expect(hadPageLoadTransaction).toBe(true);
 });

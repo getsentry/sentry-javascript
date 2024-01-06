@@ -38,6 +38,7 @@ export function ErrorBoundary() {
   return (
     <div>
       <span>ErrorBoundary Error</span>
+      <span id="message">{error.message}</span>
       <span id="event-id">{eventId}</span>
     </div>
   );
