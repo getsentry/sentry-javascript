@@ -148,19 +148,24 @@ describe('cron check-ins', () => {
 
   describe('node-schedule', () => {
     test('calls withMonitor', done => {
-      expect.assertions(4);
+      expect.assertions(5);
 
       class NodeScheduleMock {
-        scheduleJob(expression: string, callback: () => void): unknown {
-          expect(expression).toBe('* * * Jan,Sep Sun');
+        scheduleJob(
+          nameOrExpression: string | Date | object,
+          expressionOrCallback: string | Date | object | (() => void),
+          callback: () => void,
+        ): unknown {
+          expect(nameOrExpression).toBe('my-cron-job');
+          expect(expressionOrCallback).toBe('* * * Jan,Sep Sun');
           expect(callback).toBeInstanceOf(Function);
           return callback();
         }
       }
 
-      const scheduleWithCheckIn = cron.instrumentNodeSchedule(new NodeScheduleMock(), 'my-cron-job');
+      const scheduleWithCheckIn = cron.instrumentNodeSchedule(new NodeScheduleMock());
 
-      scheduleWithCheckIn.scheduleJob('* * * Jan,Sep Sun', () => {
+      scheduleWithCheckIn.scheduleJob('my-cron-job', '* * * Jan,Sep Sun', () => {
         expect(withMonitorSpy).toHaveBeenCalledTimes(1);
         expect(withMonitorSpy).toHaveBeenLastCalledWith('my-cron-job', expect.anything(), {
           schedule: { type: 'crontab', value: '* * * 1,9 0' },
@@ -171,38 +176,38 @@ describe('cron check-ins', () => {
 
     test('throws without crontab string', () => {
       class NodeScheduleMock {
-        scheduleJob(_: string | Date, __: () => void): unknown {
+        scheduleJob(_: string, __: string | Date, ___: () => void): unknown {
           return undefined;
         }
       }
 
-      const scheduleWithCheckIn = cron.instrumentNodeSchedule(new NodeScheduleMock(), 'my-cron-job');
+      const scheduleWithCheckIn = cron.instrumentNodeSchedule(new NodeScheduleMock());
 
       expect(() => {
-        scheduleWithCheckIn.scheduleJob(new Date(), () => {
+        scheduleWithCheckIn.scheduleJob('my-cron-job', new Date(), () => {
           //
         });
-      }).toThrowError('Automatic instrumentation of "node-schedule" only supports crontab string');
+      }).toThrowError(
+        "Automatic instrumentation of 'node-schedule' requires the first parameter of 'scheduleJob' to be a job name string and the second parameter to be a crontab string",
+      );
     });
 
-    test('throws with multiple jobs same name', () => {
+    test('throws without job name', () => {
       class NodeScheduleMock {
         scheduleJob(_: string, __: () => void): unknown {
           return undefined;
         }
       }
 
-      const scheduleWithCheckIn = cron.instrumentNodeSchedule(new NodeScheduleMock(), 'my-cron-job');
-
-      scheduleWithCheckIn.scheduleJob('* * * * *', () => {
-        //
-      });
+      const scheduleWithCheckIn = cron.instrumentNodeSchedule(new NodeScheduleMock());
 
       expect(() => {
         scheduleWithCheckIn.scheduleJob('* * * * *', () => {
           //
         });
-      }).toThrowError("A job named 'my-cron-job' has already been scheduled");
+      }).toThrowError(
+        "Automatic instrumentation of 'node-schedule' requires the first parameter of 'scheduleJob' to be a job name string and the second parameter to be a crontab string",
+      );
     });
   });
 });
