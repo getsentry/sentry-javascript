@@ -1,11 +1,10 @@
 import { LoaderFunction, json } from '@remix-run/node';
 import { useLoaderData } from '@remix-run/react';
 import * as Sentry from '@sentry/remix';
-import { useEffect, useState } from 'react';
 
 type LoaderData = { traceId: string; paramsId: string };
 
-export const loader: LoaderFunction = async ({ params }) => {
+export const loader: LoaderFunction = async () => {
   const transaction = Sentry.getActiveTransaction();
 
   let traceId = null;
@@ -16,21 +15,11 @@ export const loader: LoaderFunction = async ({ params }) => {
 
   return json({
     traceId,
-    paramsId: params.id,
   });
 };
 
 export default function TracePropagation() {
-  const [count, setCount] = useState(0);
   const data = useLoaderData<LoaderData>();
-
-  useEffect(() => {
-    if (count > 0 && data && data.paramsId === '-1') {
-      throw new Error(data.traceId);
-    } else {
-      setTimeout(() => setCount(count + 1), 0);
-    }
-  }, [count, data]);
 
   return (
     <div>

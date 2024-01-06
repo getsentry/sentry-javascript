@@ -13,7 +13,7 @@ export default function Index() {
           window.capturedExceptionId = eventId;
         }}
       />
-      <Link to="/user/5" id="navigation">
+      <Link to="/user/0" id="navigation">
         navigate
       </Link>
     </div>

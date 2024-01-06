@@ -210,11 +210,14 @@ test('Sends a client-side ErrorBoundary exception to Sentry', async ({ page }) =
 test('Continues server-side trace on client-side', async ({ page }) => {
   await page.goto('/trace-propagation');
 
+  const linkElement = page.locator('id=navigation');
+  await linkElement.click();
+
   // Read text from the page inside element id #trace-id
   const serverTraceId = await (await page.waitForSelector('#trace-id')).innerText();
 
   const recordedTransactionsHandle = await page.waitForFunction(() => {
-    if (window.recordedTransactions && window.recordedTransactions?.length >= 1) {
+    if (window.recordedTransactions && window.recordedTransactions?.length >= 2) {
       return window.recordedTransactions;
     } else {
       return undefined;
@@ -227,6 +230,7 @@ test('Continues server-side trace on client-side', async ({ page }) => {
   }
 
   let hadPageLoadTransaction = false;
+  let hadPageNavigationTransaction = false;
 
   console.log(`Polling for transaction eventIds: ${JSON.stringify(recordedTransactionEventIds)}`);
 
@@ -243,6 +247,10 @@ test('Continues server-side trace on client-side', async ({ page }) => {
 
               if (response.data.contexts.trace.op === 'pageload') {
                 hadPageLoadTransaction = true;
+              }
+
+              if (response.data.contexts.trace.op === 'navigation') {
+                hadPageNavigationTransaction = true;
               }
 
               expect(response.data.contexts.trace.trace_id).toBe(serverTraceId);
@@ -269,4 +277,5 @@ test('Continues server-side trace on client-side', async ({ page }) => {
   );
 
   expect(hadPageLoadTransaction).toBe(true);
+  expect(hadPageNavigationTransaction).toBe(true);
 });

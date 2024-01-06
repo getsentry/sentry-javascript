@@ -1,5 +1,5 @@
 import { LoaderFunction, json } from '@remix-run/node';
-import { useLoaderData } from '@remix-run/react';
+import { Link, useLoaderData } from '@remix-run/react';
 import * as Sentry from '@sentry/remix';
 import { useEffect, useState } from 'react';
 
@@ -26,7 +26,6 @@ export default function TracePropagation() {
 
   useEffect(() => {
     if (count > 0 && data && data.paramsId === '-1') {
-      console.warn('throwing error', data.traceId);
       throw new Error(data.traceId);
     } else {
       setTimeout(() => setCount(count + 1), 0);
@@ -35,9 +34,9 @@ export default function TracePropagation() {
 
   return (
     <div>
-      <a href="/trace-propagation-navigated" id="navigate">
-        Navigate
-      </a>
+      <Link to="/trace-propagation-navigated" id="navigation">
+        navigate
+      </Link>
       <span id="trace-id">{data && data.traceId ? data.traceId : 'Not Found'}</span>
     </div>
   );
