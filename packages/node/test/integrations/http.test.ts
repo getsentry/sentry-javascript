@@ -7,8 +7,8 @@ import * as sentryCore from '@sentry/core';
 import { Hub, addTracingExtensions } from '@sentry/core';
 import type { TransactionContext } from '@sentry/types';
 import { TRACEPARENT_REGEXP, logger } from '@sentry/utils';
-import * as HttpsProxyAgent from 'https-proxy-agent';
 import * as nock from 'nock';
+import { HttpsProxyAgent } from '../../src/proxy';
 
 import type { Breadcrumb } from '../../src';
 import { NodeClient } from '../../src/client';
@@ -673,9 +673,10 @@ describe('default protocols', () => {
     const p = captureBreadcrumb(key);
     let nockProtocol = 'https';
 
-    const proxy = 'http://<PROXY_URL>:3128';
-    const agent = HttpsProxyAgent(proxy);
+    const proxy = 'http://some.url:3128';
+    const agent = new HttpsProxyAgent(proxy);
 
+    // TODO (v8): No longer needed once we drop Node 8 support
     if (NODE_VERSION.major < 9) {
       nockProtocol = 'http';
     }
