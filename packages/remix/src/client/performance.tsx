@@ -1,5 +1,5 @@
 import { type ErrorBoundaryProps, getCurrentScope } from '@sentry/react';
-import { withErrorBoundary } from '@sentry/react';
+import { WINDOW, withErrorBoundary } from '@sentry/react';
 import type { PropagationContext, TraceparentData, Transaction, TransactionContext } from '@sentry/types';
 import { isNodeEnv, logger, tracingContextFromHeaders } from '@sentry/utils';
 import * as React from 'react';
@@ -43,8 +43,15 @@ let _useLocation: UseLocation;
 let _useMatches: UseMatches;
 
 let _customStartTransaction: (context: TransactionContext) => Transaction | undefined;
-let _startTransactionOnPageLoad: boolean;
 let _startTransactionOnLocationChange: boolean;
+
+function getInitPathName(): string | undefined {
+  if (WINDOW && WINDOW.location) {
+    return WINDOW.location.pathname;
+  }
+
+  return undefined;
+}
 
 function isRemixV2(remixVersion: number | undefined): boolean {
   return remixVersion === 2 || getFutureFlagsBrowser()?.v2_errorBoundary || false;
@@ -62,12 +69,25 @@ export function remixRouterInstrumentation(useEffect: UseEffect, useLocation: Us
     startTransactionOnPageLoad = true,
     startTransactionOnLocationChange = true,
   ): void => {
+    const initPathName = getInitPathName();
+
+    if (startTransactionOnPageLoad && initPathName) {
+      activeTransaction = customStartTransaction({
+        name: initPathName,
+        op: 'pageload',
+        origin: 'auto.pageload.remix',
+        tags: DEFAULT_TAGS,
+        metadata: {
+          source: 'url',
+        },
+      });
+    }
+
     _useEffect = useEffect;
     _useLocation = useLocation;
     _useMatches = useMatches;
 
     _customStartTransaction = customStartTransaction;
-    _startTransactionOnPageLoad = startTransactionOnPageLoad;
     _startTransactionOnLocationChange = startTransactionOnLocationChange;
   };
 }
@@ -82,6 +102,46 @@ const getTracingContextFromRouteMatches = (
   const { sentryTrace, sentryBaggage } = currentRouteMatch.data || {};
 
   return tracingContextFromHeaders(sentryTrace, sentryBaggage);
+};
+
+const updatePageLoadTransaction = (transaction: Transaction, currentRouteMatch: RouteMatch<string>): Transaction => {
+  const { traceparentData, dynamicSamplingContext, propagationContext } =
+    getTracingContextFromRouteMatches(currentRouteMatch);
+
+  getCurrentScope().setPropagationContext(propagationContext);
+
+  transaction.updateName(currentRouteMatch.id);
+  transaction.setMetadata({
+    source: 'route',
+    dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
+  });
+
+  transaction.parentSpanId = traceparentData?.parentSpanId;
+  transaction.parentSampled = traceparentData?.parentSampled;
+
+  if (traceparentData?.traceId) {
+    transaction.traceId = traceparentData.traceId;
+  }
+
+  return transaction;
+};
+
+const startNavigationTransaction = (currentRouteMatch: RouteMatch<string>): Transaction | undefined => {
+  const { traceparentData, dynamicSamplingContext, propagationContext } =
+    getTracingContextFromRouteMatches(currentRouteMatch);
+
+  getCurrentScope().setPropagationContext(propagationContext);
+
+  return _customStartTransaction({
+    name: currentRouteMatch.id,
+    op: 'navigation',
+    origin: 'auto.navigation.remix',
+    tags: DEFAULT_TAGS,
+    metadata: {
+      source: 'route',
+      dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
+    },
+  });
 };
 
 /**
@@ -121,27 +181,10 @@ export function withSentry<P extends Record<string, unknown>, R extends React.Co
     const matches = _useMatches();
 
     _useEffect(() => {
-      if (matches && matches.length) {
+      if (activeTransaction && matches && matches.length) {
         const currentRouteMatch = matches[matches.length - 1];
 
-        const { traceparentData, dynamicSamplingContext, propagationContext } =
-          getTracingContextFromRouteMatches(currentRouteMatch);
-
-        getCurrentScope().setPropagationContext(propagationContext);
-
-        if (_startTransactionOnPageLoad) {
-          activeTransaction = _customStartTransaction({
-            name: currentRouteMatch.id,
-            op: 'pageload',
-            origin: 'auto.pageload.remix',
-            tags: DEFAULT_TAGS,
-            ...traceparentData,
-            metadata: {
-              source: 'url',
-              dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
-            },
-          });
-        }
+        activeTransaction = updatePageLoadTransaction(activeTransaction, currentRouteMatch);
       }
 
       isBaseLocation = true;
@@ -163,22 +206,7 @@ export function withSentry<P extends Record<string, unknown>, R extends React.Co
 
         const currentRouteMatch = matches[matches.length - 1];
 
-        const { traceparentData, dynamicSamplingContext, propagationContext } =
-          getTracingContextFromRouteMatches(currentRouteMatch);
-
-        getCurrentScope().setPropagationContext(propagationContext);
-
-        activeTransaction = _customStartTransaction({
-          name: currentRouteMatch.id,
-          op: 'navigation',
-          origin: 'auto.navigation.remix',
-          tags: DEFAULT_TAGS,
-          ...traceparentData,
-          metadata: {
-            source: 'route',
-            dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
-          },
-        });
+        activeTransaction = startNavigationTransaction(currentRouteMatch);
       }
     }, [location]);
 
