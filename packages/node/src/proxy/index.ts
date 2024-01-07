@@ -27,6 +27,7 @@
  */
 
 /* eslint-disable @typescript-eslint/explicit-member-accessibility */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import assert from 'assert';
 import type * as http from 'http';
 import type { OutgoingHttpHeaders } from 'http';
@@ -43,7 +44,6 @@ function debug(...args: unknown[]): void {
   logger.log('[https-proxy-agent]', ...args);
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 type Protocol<T> = T extends `${infer Protocol}:${infer _}` ? Protocol : never;
 
 type ConnectOptsMap = {
