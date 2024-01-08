@@ -6,7 +6,6 @@ import { startSpan } from '@sentry/browser';
 import type { BrowserOptions } from '@sentry/browser';
 import * as Sentry from '@sentry/browser';
 import { SDK_VERSION } from '@sentry/browser';
-import type { Transaction } from '@sentry/types';
 import { GLOBAL_OBJ } from '@sentry/utils';
 import Ember from 'ember';
 
@@ -66,16 +65,6 @@ export function InitSentryForEmber(_runtimeConfig?: BrowserOptions): void {
     });
   }
 }
-
-/**
- * Grabs active transaction off scope.
- *
- * @deprecated You should not rely on the transaction, but just use `startSpan()` APIs instead.
- */
-export const getActiveTransaction = (): Transaction | undefined => {
-  // eslint-disable-next-line deprecation/deprecation
-  return Sentry.getCurrentHub().getScope().getTransaction();
-};
 
 type RouteConstructor = new (...args: ConstructorParameters<typeof Route>) => Route;
 
