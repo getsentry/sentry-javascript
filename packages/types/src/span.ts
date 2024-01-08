@@ -28,6 +28,21 @@ export type SpanAttributes = Record<string, SpanAttributeValue | undefined>;
 /** This type is aligned with the OpenTelemetry TimeInput type. */
 export type SpanTimeInput = HrTime | number | Date;
 
+/** A JSON representation of a span. */
+export interface SpanJSON {
+  data?: { [key: string]: any };
+  description?: string;
+  op?: string;
+  parent_span_id?: string;
+  span_id: string;
+  start_timestamp: number;
+  status?: string;
+  tags?: { [key: string]: Primitive };
+  timestamp?: number;
+  trace_id: string;
+  origin?: SpanOrigin;
+}
+
 /** Interface holding all properties that can be set on a Span on creation. */
 export interface SpanContext {
   /**
@@ -256,20 +271,11 @@ export interface Span extends SpanContext {
    */
   getTraceContext(): TraceContext;
 
-  /** Convert the object to JSON */
-  toJSON(): {
-    data?: { [key: string]: any };
-    description?: string;
-    op?: string;
-    parent_span_id?: string;
-    span_id: string;
-    start_timestamp: number;
-    status?: string;
-    tags?: { [key: string]: Primitive };
-    timestamp?: number;
-    trace_id: string;
-    origin?: SpanOrigin;
-  };
+  /**
+   * Convert the object to JSON.
+   * @deprecated Use `spanToJSON(span)` instead.
+   */
+  toJSON(): SpanJSON;
 
   /**
    * If this is span is actually recording data.
