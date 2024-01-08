@@ -43,10 +43,10 @@ export interface SpanJSON {
   origin?: SpanOrigin;
 }
 
-const TraceFlagNone = 0x0;
-// eslint-disable-next-line no-bitwise
-const TraceFlagSampled = 0x1 << 0;
-export type TraceFlag = typeof TraceFlagNone | typeof TraceFlagSampled;
+// These are aligned with OpenTelemetry trace flags
+type TraceFlagNone = 0x0;
+type TraceFlagSampled = 0x1;
+export type TraceFlag = TraceFlagNone | TraceFlagSampled;
 
 export interface SpanContextData {
   /**

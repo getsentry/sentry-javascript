@@ -3,13 +3,15 @@ import { vi } from 'vitest';
 
 import { getTracingMetaTags, isValidBaggageString } from '../../src/server/meta';
 
+const TRACE_FLAG_SAMPLED = 0x1;
+
 const mockedSpan = {
   isRecording: () => true,
   spanContext: () => {
     return {
       traceId: '12345678901234567890123456789012',
       spanId: '1234567890123456',
-      traceFlags: TraceFlagSampled,
+      traceFlags: TRACE_FLAG_SAMPLED,
     };
   },
   transaction: {
@@ -18,9 +20,6 @@ const mockedSpan = {
     }),
   },
 } as any;
-
-// eslint-disable-next-line no-bitwise
-const TraceFlagSampled = 0x1 << 0;
 
 const mockedClient = {} as any;
 
@@ -83,7 +82,7 @@ describe('getTracingMetaTags', () => {
           return {
             traceId: '12345678901234567890123456789012',
             spanId: '1234567890123456',
-            traceFlags: TraceFlagSampled,
+            traceFlags: TRACE_FLAG_SAMPLED,
           };
         },
         transaction: undefined,
@@ -111,7 +110,7 @@ describe('getTracingMetaTags', () => {
           return {
             traceId: '12345678901234567890123456789012',
             spanId: '1234567890123456',
-            traceFlags: TraceFlagSampled,
+            traceFlags: TRACE_FLAG_SAMPLED,
           };
         },
         transaction: undefined,

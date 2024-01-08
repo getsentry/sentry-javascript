@@ -1,6 +1,6 @@
 import { timestampInSeconds } from '@sentry/utils';
 import { Span } from '../../../src';
-import { TraceFlagNone, TraceFlagSampled } from '../../../src/utils/spanUtils';
+import { TRACE_FLAG_NONE, TRACE_FLAG_SAMPLED } from '../../../src/utils/spanUtils';
 
 describe('span', () => {
   it('works with name', () => {
@@ -233,7 +233,7 @@ describe('span', () => {
       expect(span.spanContext()).toEqual({
         spanId: span['_spanId'],
         traceId: span['_traceId'],
-        traceFlags: TraceFlagNone,
+        traceFlags: TRACE_FLAG_NONE,
       });
     });
 
@@ -242,7 +242,7 @@ describe('span', () => {
       expect(span.spanContext()).toEqual({
         spanId: span['_spanId'],
         traceId: span['_traceId'],
-        traceFlags: TraceFlagSampled,
+        traceFlags: TRACE_FLAG_SAMPLED,
       });
     });
 
@@ -251,7 +251,7 @@ describe('span', () => {
       expect(span.spanContext()).toEqual({
         spanId: span['_spanId'],
         traceId: span['_traceId'],
-        traceFlags: TraceFlagNone,
+        traceFlags: TRACE_FLAG_NONE,
       });
     });
   });

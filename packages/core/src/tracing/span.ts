@@ -17,8 +17,8 @@ import { dropUndefinedKeys, logger, timestampInSeconds, uuid4 } from '@sentry/ut
 
 import { DEBUG_BUILD } from '../debug-build';
 import {
-  TraceFlagNone,
-  TraceFlagSampled,
+  TRACE_FLAG_NONE,
+  TRACE_FLAG_SAMPLED,
   spanTimeInputToSeconds,
   spanToTraceContext,
   spanToTraceHeader,
@@ -240,7 +240,7 @@ export class Span implements SpanInterface {
     return {
       spanId,
       traceId,
-      traceFlags: sampled ? TraceFlagSampled : TraceFlagNone,
+      traceFlags: sampled ? TRACE_FLAG_SAMPLED : TRACE_FLAG_NONE,
     };
   }
 

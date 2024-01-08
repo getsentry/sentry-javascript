@@ -2,15 +2,15 @@ import type { Span, SpanJSON, SpanTimeInput, TraceContext } from '@sentry/types'
 import { dropUndefinedKeys, generateSentryTraceHeader, timestampInSeconds } from '@sentry/utils';
 import type { Span as SpanClass } from '../tracing/span';
 
-export const TraceFlagNone = 0x0;
-// eslint-disable-next-line no-bitwise
-export const TraceFlagSampled = 0x1 << 0;
+// These are aligned with OpenTelemetry trace flags
+export const TRACE_FLAG_NONE = 0x0;
+export const TRACE_FLAG_SAMPLED = 0x1;
 
 /**
  * Convert a span to a trace context, which can be sent as the `trace` context in an event.
  */
 export function spanToTraceContext(span: Span): TraceContext {
-  const { spanId: span_id, traceId: trace_id } = span;
+  const { spanId: span_id, traceId: trace_id } = span.spanContext();
   const { data, description, op, parent_span_id, status, tags, origin } = spanToJSON(span);
 
   return dropUndefinedKeys({
@@ -102,7 +102,9 @@ function spanIsSpanClass(span: Span): span is SpanClass {
  * So in the case where this distinction is important, use this method.
  */
 export function spanIsSampled(span: Span): boolean {
+  // We align our trace flags with the ones OpenTelemetry use
+  // So we also check for sampled the same way they do.
   const { traceFlags } = span.spanContext();
   // eslint-disable-next-line no-bitwise
-  return Boolean(traceFlags & TraceFlagSampled);
+  return Boolean(traceFlags & TRACE_FLAG_SAMPLED);
 }
