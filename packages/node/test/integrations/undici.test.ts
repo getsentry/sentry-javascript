@@ -221,7 +221,9 @@ conditionalTest({ min: 16 })('Undici integration', () => {
 
         expect(requestHeaders['sentry-trace']).toEqual(spanToTraceHeader(span!));
         expect(requestHeaders['baggage']).toEqual(
-          `sentry-environment=production,sentry-public_key=0,sentry-trace_id=${span.traceId},sentry-sample_rate=1,sentry-transaction=test-transaction`,
+          `sentry-environment=production,sentry-public_key=0,sentry-trace_id=${
+            span.spanContext().traceId
+          },sentry-sample_rate=1,sentry-transaction=test-transaction`,
         );
       });
     });

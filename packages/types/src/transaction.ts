@@ -44,14 +44,22 @@ export type TraceparentData = Pick<TransactionContext, 'traceId' | 'parentSpanId
  */
 export interface Transaction extends TransactionContext, Omit<Span, 'setName' | 'name'> {
   /**
-   * @inheritDoc
+   * The ID of the transaction.
+   * @deprecated Use `spanContext().spanId` instead.
    */
   spanId: string;
 
   /**
-   * @inheritDoc
+   * The ID of the trace.
+   * @deprecated Use `spanContext().traceId` instead.
    */
   traceId: string;
+
+  /**
+   * Was this transaction chosen to be sent as part of the sample?
+   * @deprecated Use `spanIsSampled(transaction)` instead.
+   */
+  sampled?: boolean;
 
   /**
    * @inheritDoc

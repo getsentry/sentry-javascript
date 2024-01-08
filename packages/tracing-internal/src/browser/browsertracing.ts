@@ -1,6 +1,12 @@
 /* eslint-disable max-lines */
 import type { Hub, IdleTransaction } from '@sentry/core';
-import { TRACING_DEFAULTS, addTracingExtensions, getActiveTransaction, startIdleTransaction } from '@sentry/core';
+import {
+  TRACING_DEFAULTS,
+  addTracingExtensions,
+  getActiveTransaction,
+  spanIsSampled,
+  startIdleTransaction,
+} from '@sentry/core';
 import type { EventProcessor, Integration, Transaction, TransactionContext, TransactionSource } from '@sentry/types';
 import { getDomElement, logger, tracingContextFromHeaders } from '@sentry/utils';
 
@@ -362,10 +368,10 @@ export class BrowserTracing implements Integration {
       // Navigation transactions should set a new propagation context based on the
       // created idle transaction.
       scope.setPropagationContext({
-        traceId: idleTransaction.traceId,
-        spanId: idleTransaction.spanId,
+        traceId: idleTransaction.spanContext().traceId,
+        spanId: idleTransaction.spanContext().spanId,
         parentSpanId: idleTransaction.parentSpanId,
-        sampled: idleTransaction.sampled,
+        sampled: spanIsSampled(idleTransaction),
       });
     }
 

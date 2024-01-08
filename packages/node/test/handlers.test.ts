@@ -449,7 +449,7 @@ describe('tracingHandler', () => {
       expect(finishTransaction).toHaveBeenCalled();
       expect(span.endTimestamp).toBeLessThanOrEqual(transaction.endTimestamp!);
       expect(sentEvent.spans?.length).toEqual(1);
-      expect(sentEvent.spans?.[0].spanId).toEqual(span.spanId);
+      expect(sentEvent.spans?.[0].spanContext().spanId).toEqual(span.spanContext().spanId);
       done();
     });
   });

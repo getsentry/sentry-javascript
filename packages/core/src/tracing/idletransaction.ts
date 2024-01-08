@@ -45,18 +45,18 @@ export class IdleTransactionSpanRecorder extends SpanRecorder {
   public add(span: Span): void {
     // We should make sure we do not push and pop activities for
     // the transaction that this span recorder belongs to.
-    if (span.spanId !== this.transactionSpanId) {
+    if (span.spanContext().spanId !== this.transactionSpanId) {
       // We patch span.end() to pop an activity after setting an endTimestamp.
       // eslint-disable-next-line @typescript-eslint/unbound-method
       const originalEnd = span.end;
       span.end = (...rest: unknown[]) => {
-        this._popActivity(span.spanId);
+        this._popActivity(span.spanContext().spanId);
         return originalEnd.apply(span, rest);
       };
 
       // We should only push new activities if the span does not have an end timestamp.
       if (span.endTimestamp === undefined) {
-        this._pushActivity(span.spanId);
+        this._pushActivity(span.spanContext().spanId);
       }
     }
 
@@ -123,7 +123,7 @@ export class IdleTransaction extends Transaction {
     if (_onScope) {
       // We set the transaction here on the scope so error events pick up the trace
       // context and attach it to the error.
-      DEBUG_BUILD && logger.log(`Setting idle transaction on scope. Span ID: ${this.spanId}`);
+      DEBUG_BUILD && logger.log(`Setting idle transaction on scope. Span ID: ${this.spanContext().spanId}`);
       _idleHub.getScope().setSpan(this);
     }
 
@@ -158,7 +158,7 @@ export class IdleTransaction extends Transaction {
 
       this.spanRecorder.spans = this.spanRecorder.spans.filter((span: Span) => {
         // If we are dealing with the transaction itself, we just return it
-        if (span.spanId === this.spanId) {
+        if (span.spanContext().spanId === this.spanContext().spanId) {
           return true;
         }
 
@@ -233,7 +233,7 @@ export class IdleTransaction extends Transaction {
         this._popActivity(id);
       };
 
-      this.spanRecorder = new IdleTransactionSpanRecorder(pushActivity, popActivity, this.spanId, maxlen);
+      this.spanRecorder = new IdleTransactionSpanRecorder(pushActivity, popActivity, this.spanContext().spanId, maxlen);
 
       // Start heartbeat so that transactions do not run forever.
       DEBUG_BUILD && logger.log('Starting heartbeat');

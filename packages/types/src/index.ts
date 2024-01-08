@@ -97,6 +97,8 @@ export type {
   SpanAttributes,
   SpanTimeInput,
   SpanJSON,
+  SpanContextData,
+  TraceFlag,
 } from './span';
 export type { StackFrame } from './stackframe';
 export type { Stacktrace, StackParser, StackLineParser, StackLineParserFn } from './stacktrace';

@@ -115,7 +115,7 @@ describe('IdleTransaction', () => {
     getCurrentScope().setSpan(transaction);
 
     const span = startInactiveSpan({ name: 'inner' })!;
-    expect(transaction.activities).toMatchObject({ [span.spanId]: true });
+    expect(transaction.activities).toMatchObject({ [span.spanContext().spanId]: true });
 
     expect(mockFinish).toHaveBeenCalledTimes(0);
 
@@ -145,12 +145,15 @@ describe('IdleTransaction', () => {
 
     startSpanManual({ name: 'inner1' }, span => {
       const childSpan = startInactiveSpan({ name: 'inner2' })!;
-      expect(transaction.activities).toMatchObject({ [span!.spanId]: true, [childSpan.spanId]: true });
+      expect(transaction.activities).toMatchObject({
+        [span!.spanContext().spanId]: true,
+        [childSpan.spanContext().spanId]: true,
+      });
       span?.end();
       jest.advanceTimersByTime(TRACING_DEFAULTS.idleTimeout + 1);
 
       expect(mockFinish).toHaveBeenCalledTimes(0);
-      expect(transaction.activities).toMatchObject({ [childSpan.spanId]: true });
+      expect(transaction.activities).toMatchObject({ [childSpan.spanContext().spanId]: true });
     });
   });
 
@@ -196,14 +199,14 @@ describe('IdleTransaction', () => {
     if (transaction.spanRecorder) {
       const spans = transaction.spanRecorder.spans;
       expect(spans).toHaveLength(3);
-      expect(spans[0].spanId).toBe(transaction.spanId);
+      expect(spans[0].spanContext().spanId).toBe(transaction.spanContext().spanId);
 
       // Regular Span - should not modified
-      expect(spans[1].spanId).toBe(regularSpan.spanId);
+      expect(spans[1].spanContext().spanId).toBe(regularSpan.spanContext().spanId);
       expect(spans[1].endTimestamp).not.toBe(transaction.endTimestamp);
 
       // Cancelled Span - has endtimestamp of transaction
-      expect(spans[2].spanId).toBe(cancelledSpan.spanId);
+      expect(spans[2].spanContext().spanId).toBe(cancelledSpan.spanContext().spanId);
       expect(spans[2].status).toBe('cancelled');
       expect(spans[2].endTimestamp).toBe(transaction.endTimestamp);
     }
@@ -482,13 +485,13 @@ describe('IdleTransactionSpanRecorder', () => {
     expect(spanRecorder.spans).toHaveLength(1);
 
     expect(mockPushActivity).toHaveBeenCalledTimes(1);
-    expect(mockPushActivity).toHaveBeenLastCalledWith(span.spanId);
+    expect(mockPushActivity).toHaveBeenLastCalledWith(span.spanContext().spanId);
     expect(mockPopActivity).toHaveBeenCalledTimes(0);
 
     span.end();
     expect(mockPushActivity).toHaveBeenCalledTimes(1);
     expect(mockPopActivity).toHaveBeenCalledTimes(1);
-    expect(mockPushActivity).toHaveBeenLastCalledWith(span.spanId);
+    expect(mockPushActivity).toHaveBeenLastCalledWith(span.spanContext().spanId);
   });
 
   it('does not push activities if a span has a timestamp', () => {
@@ -507,7 +510,12 @@ describe('IdleTransactionSpanRecorder', () => {
     const mockPopActivity = jest.fn();
 
     const transaction = new IdleTransaction({ name: 'foo' }, hub);
-    const spanRecorder = new IdleTransactionSpanRecorder(mockPushActivity, mockPopActivity, transaction.spanId, 10);
+    const spanRecorder = new IdleTransactionSpanRecorder(
+      mockPushActivity,
+      mockPopActivity,
+      transaction.spanContext().spanId,
+      10,
+    );
 
     spanRecorder.add(transaction);
     expect(mockPushActivity).toHaveBeenCalledTimes(0);
