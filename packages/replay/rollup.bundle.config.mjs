@@ -8,14 +8,6 @@ const baseBundleConfig = makeBaseBundleConfig({
   outputFileBase: () => 'bundles/replay',
 });
 
-const baseCanvasBundleConfig = makeBaseBundleConfig({
-  bundleType: 'addon',
-  entrypoints: ['src/canvas.ts'],
-  jsVersion: 'es6',
-  licenseTitle: '@sentry/replaycanvas',
-  outputFileBase: () => 'bundles/replaycanvas',
-});
-
-const builds = [...makeBundleConfigVariants(baseBundleConfig), ...makeBundleConfigVariants(baseCanvasBundleConfig)];
+const builds = makeBundleConfigVariants(baseBundleConfig);
 
 export default builds;
