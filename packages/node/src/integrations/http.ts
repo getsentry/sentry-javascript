@@ -8,6 +8,7 @@ import {
   getCurrentHub,
   getCurrentScope,
   getDynamicSamplingContextFromClient,
+  getDynamicSamplingContextFromSpan,
   isSentryRequestUrl,
   spanToJSON,
   spanToTraceHeader,
@@ -271,7 +272,7 @@ function _createWrappedRequestMethodFactory(
       if (shouldAttachTraceData(rawRequestUrl)) {
         if (requestSpan) {
           const sentryTraceHeader = spanToTraceHeader(requestSpan);
-          const dynamicSamplingContext = requestSpan?.transaction?.getDynamicSamplingContext();
+          const dynamicSamplingContext = getDynamicSamplingContextFromSpan(requestSpan);
           addHeadersToRequestOptions(requestOptions, requestUrl, sentryTraceHeader, dynamicSamplingContext);
         } else {
           const client = getClient();

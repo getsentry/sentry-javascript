@@ -17,7 +17,7 @@ import type { Hub } from '../hub';
 import { getCurrentHub } from '../hub';
 import { SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '../semanticAttributes';
 import { spanTimeInputToSeconds, spanToTraceContext } from '../utils/spanUtils';
-import { getDynamicSamplingContextFromClient } from './dynamicSamplingContext';
+import { getDynamicSamplingContextFromSpan } from './dynamicSamplingContext';
 import { Span as SpanClass, SpanRecorder } from './span';
 
 /** JSDoc */
@@ -227,43 +227,11 @@ export class Transaction extends SpanClass implements TransactionInterface {
    * @inheritdoc
    *
    * @experimental
+   *
+   * @deprecated Use top-level `getDynamicSamplingContextFromSpan` instead.
    */
   public getDynamicSamplingContext(): Readonly<Partial<DynamicSamplingContext>> {
-    if (this._frozenDynamicSamplingContext) {
-      return this._frozenDynamicSamplingContext;
-    }
-
-    const hub = this._hub || getCurrentHub();
-    const client = hub.getClient();
-
-    if (!client) return {};
-
-    const { _traceId: traceId, _sampled: sampled } = this;
-
-    const scope = hub.getScope();
-    const dsc = getDynamicSamplingContextFromClient(traceId, client, scope);
-
-    // eslint-disable-next-line deprecation/deprecation
-    const maybeSampleRate = this.metadata.sampleRate;
-    if (maybeSampleRate !== undefined) {
-      dsc.sample_rate = `${maybeSampleRate}`;
-    }
-
-    // We don't want to have a transaction name in the DSC if the source is "url" because URLs might contain PII
-    // eslint-disable-next-line deprecation/deprecation
-    const source = this.metadata.source;
-    if (source && source !== 'url') {
-      dsc.transaction = this._name;
-    }
-
-    if (sampled !== undefined) {
-      dsc.sampled = String(sampled);
-    }
-
-    // Uncomment if we want to make DSC immutable
-    // this._frozenDynamicSamplingContext = dsc;
-
-    return dsc;
+    return getDynamicSamplingContextFromSpan(this);
   }
 
   /**
@@ -340,7 +308,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
       type: 'transaction',
       sdkProcessingMetadata: {
         ...metadata,
-        dynamicSamplingContext: this.getDynamicSamplingContext(),
+        dynamicSamplingContext: getDynamicSamplingContextFromSpan(this),
       },
       ...(source && {
         transaction_info: {

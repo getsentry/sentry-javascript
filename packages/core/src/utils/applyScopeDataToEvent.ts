@@ -1,5 +1,6 @@
 import type { Breadcrumb, Event, PropagationContext, ScopeData, Span } from '@sentry/types';
 import { arrayify } from '@sentry/utils';
+import { getDynamicSamplingContextFromSpan } from '../tracing/dynamicSamplingContext';
 import { spanToJSON, spanToTraceContext } from './spanUtils';
 
 /**
@@ -176,7 +177,7 @@ function applySpanToEvent(event: Event, span: Span): void {
   const transaction = span.transaction;
   if (transaction) {
     event.sdkProcessingMetadata = {
-      dynamicSamplingContext: transaction.getDynamicSamplingContext(),
+      dynamicSamplingContext: getDynamicSamplingContextFromSpan(span),
       ...event.sdkProcessingMetadata,
     };
     const transactionName = spanToJSON(transaction).description;

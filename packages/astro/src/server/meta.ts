@@ -1,4 +1,5 @@
 import { getDynamicSamplingContextFromClient, spanToTraceHeader } from '@sentry/core';
+import { getDynamicSamplingContextFromSpan } from '@sentry/core/src/tracing/dynamicSamplingContext';
 import type { Client, Scope, Span } from '@sentry/types';
 import {
   TRACEPARENT_REGEXP,
@@ -33,7 +34,7 @@ export function getTracingMetaTags(
   const sentryTrace = span ? spanToTraceHeader(span) : generateSentryTraceHeader(traceId, undefined, sampled);
 
   const dynamicSamplingContext = transaction
-    ? transaction.getDynamicSamplingContext()
+    ? getDynamicSamplingContextFromSpan(transaction)
     : dsc
       ? dsc
       : client
