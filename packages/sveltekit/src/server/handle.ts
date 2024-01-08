@@ -95,6 +95,7 @@ export function addSentryCodeToPage(options: SentryHandleOptions): NonNullable<R
   const nonce = fetchProxyScriptNonce ? `nonce="${fetchProxyScriptNonce}"` : '';
 
   return ({ html }) => {
+    // eslint-disable-next-line deprecation/deprecation
     const transaction = getActiveTransaction();
     if (transaction) {
       const traceparentData = spanToTraceHeader(transaction);

@@ -108,6 +108,7 @@ export function vueRouterInstrumentation(
       }
 
       if (startTransactionOnPageLoad && isPageLoadNavigation) {
+        // eslint-disable-next-line deprecation/deprecation
         const pageloadTransaction = getActiveTransaction();
         if (pageloadTransaction) {
           if (pageloadTransaction.metadata.source !== 'custom') {

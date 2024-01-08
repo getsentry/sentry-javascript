@@ -47,9 +47,12 @@ export function routingInstrumentation(
 export const instrumentAngularRouting = routingInstrumentation;
 
 /**
- * Grabs active transaction off scope
+ * Grabs active transaction off scope.
+ *
+ * @deprecated You should not rely on the transaction, but just use `startSpan()` APIs instead.
  */
 export function getActiveTransaction(): Transaction | undefined {
+  // eslint-disable-next-line deprecation/deprecation
   return getCurrentScope().getTransaction();
 }
 
@@ -69,6 +72,7 @@ export class TraceService implements OnDestroy {
       }
 
       const strippedUrl = stripUrlQueryAndFragment(navigationEvent.url);
+      // eslint-disable-next-line deprecation/deprecation
       let activeTransaction = getActiveTransaction();
 
       if (!activeTransaction && stashedStartTransactionOnLocationChange) {
@@ -116,6 +120,7 @@ export class TraceService implements OnDestroy {
         (event.state as unknown as RouterState & { root: ActivatedRouteSnapshot }).root,
       );
 
+      // eslint-disable-next-line deprecation/deprecation
       const transaction = getActiveTransaction();
       // TODO (v8 / #5416): revisit the source condition. Do we want to make the parameterized route the default?
       if (transaction && transaction.metadata.source === 'url') {
@@ -182,6 +187,7 @@ export class TraceDirective implements OnInit, AfterViewInit {
       this.componentName = UNKNOWN_COMPONENT;
     }
 
+    // eslint-disable-next-line deprecation/deprecation
     const activeTransaction = getActiveTransaction();
     if (activeTransaction) {
       // eslint-disable-next-line deprecation/deprecation
@@ -225,6 +231,7 @@ export function TraceClassDecorator(): ClassDecorator {
     const originalOnInit = target.prototype.ngOnInit;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     target.prototype.ngOnInit = function (...args: any[]): ReturnType<typeof originalOnInit> {
+      // eslint-disable-next-line deprecation/deprecation
       const activeTransaction = getActiveTransaction();
       if (activeTransaction) {
         // eslint-disable-next-line deprecation/deprecation
@@ -263,6 +270,7 @@ export function TraceMethodDecorator(): MethodDecorator {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     descriptor.value = function (...args: any[]): ReturnType<typeof originalMethod> {
       const now = timestampInSeconds();
+      // eslint-disable-next-line deprecation/deprecation
       const activeTransaction = getActiveTransaction();
       if (activeTransaction) {
         // eslint-disable-next-line deprecation/deprecation

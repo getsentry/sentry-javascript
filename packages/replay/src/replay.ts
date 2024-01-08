@@ -699,6 +699,7 @@ export class ReplayContainer implements ReplayContainerInterface {
    * This is only available if performance is enabled, and if an instrumented router is used.
    */
   public getCurrentRoute(): string | undefined {
+    // eslint-disable-next-line deprecation/deprecation
     const lastTransaction = this.lastTransaction || getCurrentScope().getTransaction();
     if (!lastTransaction || !['route', 'custom'].includes(lastTransaction.metadata.source)) {
       return undefined;

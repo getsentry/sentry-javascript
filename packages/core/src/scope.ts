@@ -321,7 +321,8 @@ export class Scope implements ScopeInterface {
   }
 
   /**
-   * @inheritDoc
+   * Returns the `Transaction` attached to the scope (if there is one).
+   * @deprecated You should not rely on the transaction, but just use `startSpan()` APIs instead.
    */
   public getTransaction(): Transaction | undefined {
     // Often, this span (if it exists at all) will be a transaction, but it's not guaranteed to be. Regardless, it will

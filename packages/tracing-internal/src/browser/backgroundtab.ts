@@ -12,6 +12,7 @@ import { WINDOW } from './types';
 export function registerBackgroundTabDetection(): void {
   if (WINDOW && WINDOW.document) {
     WINDOW.document.addEventListener('visibilitychange', () => {
+      // eslint-disable-next-line deprecation/deprecation
       const activeTransaction = getActiveTransaction() as IdleTransaction;
       if (WINDOW.document.hidden && activeTransaction) {
         const statusType: SpanStatusType = 'cancelled';

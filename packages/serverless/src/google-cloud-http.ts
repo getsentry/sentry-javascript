@@ -53,6 +53,7 @@ function wrapRequestFunction(orig: RequestFunction): RequestFunction {
   return function (this: common.Service, reqOpts: RequestOptions, callback: ResponseCallback): void {
     let span: Span | undefined;
     const scope = getCurrentScope();
+    // eslint-disable-next-line deprecation/deprecation
     const transaction = scope.getTransaction();
     if (transaction) {
       const httpMethod = reqOpts.method || 'GET';

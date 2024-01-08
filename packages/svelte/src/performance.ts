@@ -94,5 +94,6 @@ function recordUpdateSpans(componentName: string, initSpan?: Span): void {
 }
 
 function getActiveTransaction(): Transaction | undefined {
+  // eslint-disable-next-line deprecation/deprecation
   return getCurrentScope().getTransaction();
 }

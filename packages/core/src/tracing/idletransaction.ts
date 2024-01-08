@@ -196,6 +196,7 @@ export class IdleTransaction extends Transaction {
     // if `this._onScope` is `true`, the transaction put itself on the scope when it started
     if (this._onScope) {
       const scope = this._idleHub.getScope();
+      // eslint-disable-next-line deprecation/deprecation
       if (scope.getTransaction() === this) {
         scope.setSpan(undefined);
       }

@@ -147,7 +147,8 @@ export interface Scope {
   getSpan(): Span | undefined;
 
   /**
-   * Returns the `Transaction` attached to the scope (if there is one)
+   * Returns the `Transaction` attached to the scope (if there is one).
+   * @deprecated You should not rely on the transaction, but just use `startSpan()` APIs instead.
    */
   getTransaction(): Transaction | undefined;
 

@@ -24,6 +24,7 @@ const browserProfilingIntegration: IntegrationFn = () => {
     setup(client) {
       const scope = getCurrentScope();
 
+      // eslint-disable-next-line deprecation/deprecation
       const transaction = scope.getTransaction();
 
       if (transaction && isAutomatedPageLoadTransaction(transaction)) {

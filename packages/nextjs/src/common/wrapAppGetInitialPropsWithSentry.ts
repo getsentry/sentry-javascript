@@ -52,6 +52,7 @@ export function wrapAppGetInitialPropsWithSentry(origAppGetInitialProps: AppGetI
           };
         } = await tracedGetInitialProps.apply(thisArg, args);
 
+        // eslint-disable-next-line deprecation/deprecation
         const requestTransaction = getTransactionFromRequest(req) ?? getCurrentScope().getTransaction();
 
         // Per definition, `pageProps` is not optional, however an increased amount of users doesn't seem to call
