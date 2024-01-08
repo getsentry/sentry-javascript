@@ -109,4 +109,29 @@ conditionalTest({ min: 18 })('LocalVariables integration', () => {
       done();
     });
   });
+
+  test('Should not leak memory', done => {
+    const testScriptPath = path.resolve(__dirname, 'local-variables-memory-test.js');
+
+    const child = childProcess.spawn('node', [testScriptPath], {
+      stdio: ['inherit', 'inherit', 'inherit', 'ipc'],
+    });
+
+    let reportedCount = 0;
+
+    child.on('message', msg => {
+      reportedCount++;
+      const rssMb = msg.memUsage.rss / 1024 / 1024;
+      // We shouldn't use more than 100MB of memory
+      expect(rssMb).toBeLessThan(100);
+    });
+
+    // Wait for 20 seconds
+    setTimeout(() => {
+      // Ensure we've had memory usage reported at least 15 times
+      expect(reportedCount).toBeGreaterThan(15);
+      child.kill();
+      done();
+    }, 20000);
+  });
 });
