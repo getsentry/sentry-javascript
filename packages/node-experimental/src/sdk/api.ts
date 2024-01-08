@@ -16,7 +16,7 @@ import type {
   User,
 } from '@sentry/types';
 import { consoleSandbox, dateTimestampInSeconds } from '@sentry/utils';
-import { getScopesFromContext, setScopesOnContext } from '../utils/contextData';
+import { getContextFromScope, getScopesFromContext, setScopesOnContext } from '../utils/contextData';
 
 import type { ExclusiveEventHintOrCaptureContext } from '../utils/prepareEvent';
 import { parseEventHintOrCaptureContext } from '../utils/prepareEvent';
@@ -27,9 +27,39 @@ export { getCurrentScope, getGlobalScope, getIsolationScope, getClient };
 export { setCurrentScope, setIsolationScope } from './scope';
 
 /**
- * Fork a scope from the current scope, and make it the current scope in the given callback
+ * Creates a new scope with and executes the given operation within.
+ * The scope is automatically removed once the operation
+ * finishes or throws.
+ *
+ * This is essentially a convenience function for:
+ *
+ *     pushScope();
+ *     callback();
+ *     popScope();
  */
-export function withScope<T>(callback: (scope: Scope) => T): T {
+export function withScope<T>(callback: (scope: Scope) => T): T;
+/**
+ * Set the given scope as the active scope in the callback.
+ */
+export function withScope<T>(scope: Scope | undefined, callback: (scope: Scope) => T): T;
+/**
+ * Either creates a new active scope, or sets the given scope as active scope in the given callback.
+ */
+export function withScope<T>(
+  ...rest: [callback: (scope: Scope) => T] | [scope: Scope | undefined, callback: (scope: Scope) => T]
+): T {
+  // If a scope is defined, we want to make this the active scope instead of the default one
+  if (rest.length === 2) {
+    const [scope, callback] = rest;
+    if (!scope) {
+      return context.with(context.active(), () => callback(getCurrentScope()));
+    }
+
+    const ctx = getContextFromScope(scope);
+    return context.with(ctx || context.active(), () => callback(getCurrentScope()));
+  }
+
+  const callback = rest[0];
   return context.with(context.active(), () => callback(getCurrentScope()));
 }
 

@@ -12,6 +12,7 @@ import type {
   FinishedCheckIn,
   MonitorConfig,
   Primitive,
+  Scope as ScopeInterface,
   Session,
   SessionContext,
   Severity,
@@ -167,11 +168,33 @@ export function setUser(user: User | null): ReturnType<Hub['setUser']> {
  *     pushScope();
  *     callback();
  *     popScope();
- *
- * @param callback that will be enclosed into push/popScope.
  */
-export function withScope<T>(callback: (scope: Scope) => T): T {
-  return getCurrentHub().withScope(callback);
+export function withScope<T>(callback: (scope: Scope) => T): T;
+/**
+ * Set the given scope as the active scope in the callback.
+ */
+export function withScope<T>(scope: ScopeInterface | undefined, callback: (scope: Scope) => T): T;
+/**
+ * Either creates a new active scope, or sets the given scope as active scope in the given callback.
+ */
+export function withScope<T>(
+  ...rest: [callback: (scope: Scope) => T] | [scope: ScopeInterface | undefined, callback: (scope: Scope) => T]
+): T {
+  // If a scope is defined, we want to make this the active scope instead of the default one
+  if (rest.length === 2) {
+    const [scope, callback] = rest;
+    if (!scope) {
+      return getCurrentHub().withScope(callback);
+    }
+
+    const hub = getCurrentHub();
+    return hub.withScope(() => {
+      hub.getStackTop().scope = scope as Scope;
+      return callback(scope as Scope);
+    });
+  }
+
+  return getCurrentHub().withScope(rest[0]);
 }
 
 /**

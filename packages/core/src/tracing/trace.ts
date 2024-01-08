@@ -1,4 +1,4 @@
-import type { Span, SpanTimeInput, TransactionContext } from '@sentry/types';
+import type { Scope, Span, SpanTimeInput, TransactionContext } from '@sentry/types';
 import { dropUndefinedKeys, logger, tracingContextFromHeaders } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../debug-build';
@@ -12,6 +12,9 @@ import { spanTimeInputToSeconds } from '../utils/spanUtils';
 interface StartSpanOptions extends TransactionContext {
   /** A manually specified start time for the created `Span` object. */
   startTime?: SpanTimeInput;
+
+  /** If defined, start this span off this scope instead off the current scope. */
+  scope?: Scope;
 }
 
 /**
@@ -74,9 +77,10 @@ export function trace<T>(
 export function startSpan<T>(context: StartSpanOptions, callback: (span: Span | undefined) => T): T {
   const ctx = normalizeContext(context);
 
-  return withScope(scope => {
+  return withScope(context.scope, scope => {
     const hub = getCurrentHub();
-    const parentSpan = scope.getSpan();
+    const scopeForSpan = context.scope || scope;
+    const parentSpan = scopeForSpan.getSpan();
 
     const activeSpan = createChildSpanOrTransaction(hub, parentSpan, ctx);
     scope.setSpan(activeSpan);
@@ -116,7 +120,7 @@ export function startSpanManual<T>(
 ): T {
   const ctx = normalizeContext(context);
 
-  return withScope(scope => {
+  return withScope(context.scope, scope => {
     const hub = getCurrentHub();
     const parentSpan = scope.getSpan();
 
@@ -156,7 +160,7 @@ export function startInactiveSpan(context: StartSpanOptions): Span | undefined {
 
   const ctx = normalizeContext(context);
   const hub = getCurrentHub();
-  const parentSpan = getActiveSpan();
+  const parentSpan = context.scope ? context.scope.getSpan() : getActiveSpan();
   return parentSpan
     ? // eslint-disable-next-line deprecation/deprecation
       parentSpan.startChild(ctx)

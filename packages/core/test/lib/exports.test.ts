@@ -134,6 +134,30 @@ describe('withScope', () => {
 
     expect(getCurrentScope()).toBe(scope1);
   });
+
+  it('allows to pass a custom scope', () => {
+    const scope1 = getCurrentScope();
+    scope1.setExtra('x1', 'x1');
+
+    const customScope = new Scope();
+    customScope.setExtra('x2', 'x2');
+
+    withScope(customScope, scope2 => {
+      expect(scope2).not.toBe(scope1);
+      expect(scope2).toBe(customScope);
+      expect(getCurrentScope()).toBe(scope2);
+      expect(scope2['_extra']).toEqual({ x2: 'x2' });
+    });
+
+    withScope(customScope, scope3 => {
+      expect(scope3).not.toBe(scope1);
+      expect(scope3).toBe(customScope);
+      expect(getCurrentScope()).toBe(scope3);
+      expect(scope3['_extra']).toEqual({ x2: 'x2' });
+    });
+
+    expect(getCurrentScope()).toBe(scope1);
+  });
 });
 
 describe('session APIs', () => {
