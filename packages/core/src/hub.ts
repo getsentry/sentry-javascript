@@ -264,7 +264,7 @@ export class Hub implements HubInterface {
   /**
    * @inheritDoc
    *
-   * @deprecated Use top level `captureException` instead.
+   * @deprecated Use `Sentry.captureException()` instead.
    */
   public captureException(exception: unknown, hint?: EventHint): string {
     const eventId = (this._lastEventId = hint && hint.event_id ? hint.event_id : uuid4());
