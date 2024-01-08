@@ -5,14 +5,22 @@ import { getTracingMetaTags, isValidBaggageString } from '../../src/server/meta'
 
 const mockedSpan = {
   isRecording: () => true,
-  traceId: '12345678901234567890123456789012',
-  spanId: '1234567890123456',
+  spanContext: () => {
+    return {
+      traceId: '12345678901234567890123456789012',
+      spanId: '1234567890123456',
+      traceFlags: TraceFlagSampled,
+    };
+  },
   transaction: {
     getDynamicSamplingContext: () => ({
       environment: 'production',
     }),
   },
 } as any;
+
+// eslint-disable-next-line no-bitwise
+const TraceFlagSampled = 0x1 << 0;
 
 const mockedClient = {} as any;
 
@@ -71,8 +79,13 @@ describe('getTracingMetaTags', () => {
       // @ts-expect-error - only passing a partial span object
       {
         isRecording: () => true,
-        traceId: '12345678901234567890123456789012',
-        spanId: '1234567890123456',
+        spanContext: () => {
+          return {
+            traceId: '12345678901234567890123456789012',
+            spanId: '1234567890123456',
+            traceFlags: TraceFlagSampled,
+          };
+        },
         transaction: undefined,
       },
       mockedScope,
@@ -84,7 +97,7 @@ describe('getTracingMetaTags', () => {
     });
   });
 
-  it('returns only the `sentry-trace` tag if no DSC is available', () => {
+  it('returns only the `sentry-trace` tag if no DSC is available without a client', () => {
     vi.spyOn(SentryCore, 'getDynamicSamplingContextFromClient').mockReturnValueOnce({
       trace_id: '',
       public_key: undefined,
@@ -94,8 +107,13 @@ describe('getTracingMetaTags', () => {
       // @ts-expect-error - only passing a partial span object
       {
         isRecording: () => true,
-        traceId: '12345678901234567890123456789012',
-        spanId: '1234567890123456',
+        spanContext: () => {
+          return {
+            traceId: '12345678901234567890123456789012',
+            spanId: '1234567890123456',
+            traceFlags: TraceFlagSampled,
+          };
+        },
         transaction: undefined,
       },
       mockedScope,

@@ -83,9 +83,9 @@ describe('SentrySpanProcessor', () => {
 
     expect(sentrySpanTransaction?.name).toBe('GET /users');
     expect(sentrySpanTransaction?.startTimestamp).toEqual(startTimestampMs / 1000);
-    expect(sentrySpanTransaction?.traceId).toEqual(otelSpan.spanContext().traceId);
+    expect(sentrySpanTransaction?.spanContext().traceId).toEqual(otelSpan.spanContext().traceId);
     expect(sentrySpanTransaction?.parentSpanId).toEqual(otelSpan.parentSpanId);
-    expect(sentrySpanTransaction?.spanId).toEqual(otelSpan.spanContext().spanId);
+    expect(sentrySpanTransaction?.spanContext().spanId).toEqual(otelSpan.spanContext().spanId);
 
     otelSpan.end(endTime);
 
@@ -111,8 +111,8 @@ describe('SentrySpanProcessor', () => {
         expect(sentrySpan).toBeInstanceOf(SentrySpan);
         expect(sentrySpan?.description).toBe('SELECT * FROM users;');
         expect(sentrySpan?.startTimestamp).toEqual(startTimestampMs / 1000);
-        expect(sentrySpan?.spanId).toEqual(childOtelSpan.spanContext().spanId);
-        expect(sentrySpan?.parentSpanId).toEqual(sentrySpanTransaction?.spanId);
+        expect(sentrySpan?.spanContext().spanId).toEqual(childOtelSpan.spanContext().spanId);
+        expect(sentrySpan?.parentSpanId).toEqual(sentrySpanTransaction?.spanContext().spanId);
 
         expect(hub.getScope().getSpan()).toBeUndefined();
 
@@ -151,7 +151,7 @@ describe('SentrySpanProcessor', () => {
         expect(sentrySpan).toBeInstanceOf(Transaction);
         expect(sentrySpan?.name).toBe('SELECT * FROM users;');
         expect(sentrySpan?.startTimestamp).toEqual(startTimestampMs / 1000);
-        expect(sentrySpan?.spanId).toEqual(childOtelSpan.spanContext().spanId);
+        expect(sentrySpan?.spanContext().spanId).toEqual(childOtelSpan.spanContext().spanId);
         expect(sentrySpan?.parentSpanId).toEqual(parentOtelSpan.spanContext().spanId);
 
         expect(hub.getScope().getSpan()).toBeUndefined();
@@ -183,9 +183,9 @@ describe('SentrySpanProcessor', () => {
       const sentrySpan2 = getSpanForOtelSpan(span2);
       const sentrySpan3 = getSpanForOtelSpan(span3);
 
-      expect(sentrySpan1?.parentSpanId).toEqual(sentrySpanTransaction?.spanId);
-      expect(sentrySpan2?.parentSpanId).toEqual(sentrySpanTransaction?.spanId);
-      expect(sentrySpan3?.parentSpanId).toEqual(sentrySpanTransaction?.spanId);
+      expect(sentrySpan1?.parentSpanId).toEqual(sentrySpanTransaction?.spanContext().spanId);
+      expect(sentrySpan2?.parentSpanId).toEqual(sentrySpanTransaction?.spanContext().spanId);
+      expect(sentrySpan3?.parentSpanId).toEqual(sentrySpanTransaction?.spanContext().spanId);
 
       expect(sentrySpan1?.description).toEqual('SELECT * FROM users;');
       expect(sentrySpan2?.description).toEqual('SELECT * FROM companies;');
@@ -245,7 +245,7 @@ describe('SentrySpanProcessor', () => {
         expect(parentSpan?.endTimestamp).toBeDefined();
         expect(childSpan?.endTimestamp).toBeDefined();
         expect(parentSpan?.parentSpanId).toBeUndefined();
-        expect(childSpan?.parentSpanId).toEqual(parentSpan?.spanId);
+        expect(childSpan?.parentSpanId).toEqual(parentSpan?.spanContext().spanId);
       });
     });
   });

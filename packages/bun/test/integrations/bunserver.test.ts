@@ -78,7 +78,7 @@ describe('Bun Serve Integration', () => {
     const SENTRY_BAGGAGE_HEADER = 'sentry-version=1.0,sentry-environment=production';
 
     client.on('finishTransaction', transaction => {
-      expect(transaction.traceId).toBe(TRACE_ID);
+      expect(transaction.spanContext().traceId).toBe(TRACE_ID);
       expect(transaction.parentSpanId).toBe(PARENT_SPAN_ID);
       expect(transaction.isRecording()).toBe(true);
 

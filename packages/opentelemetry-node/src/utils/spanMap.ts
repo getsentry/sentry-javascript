@@ -31,7 +31,7 @@ export function getSentrySpan(spanId: string): SentrySpan | undefined {
 export function setSentrySpan(spanId: string, sentrySpan: SentrySpan): void {
   let ref: SpanRefType = SPAN_REF_ROOT;
 
-  const rootSpanId = sentrySpan.transaction?.spanId;
+  const rootSpanId = sentrySpan.transaction?.spanContext().spanId;
 
   if (rootSpanId && rootSpanId !== spanId) {
     const root = SPAN_MAP.get(rootSpanId);

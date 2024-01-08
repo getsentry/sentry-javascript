@@ -1,5 +1,6 @@
 import { timestampInSeconds } from '@sentry/utils';
 import { Span } from '../../../src';
+import { TraceFlagNone, TraceFlagSampled } from '../../../src/utils/spanUtils';
 
 describe('span', () => {
   it('works with name', () => {
@@ -223,6 +224,35 @@ describe('span', () => {
     it('returns false for unsampled span', () => {
       const span = new Span({ sampled: false });
       expect(span.isRecording()).toEqual(false);
+    });
+  });
+
+  describe('spanContext', () => {
+    it('works with default span', () => {
+      const span = new Span();
+      expect(span.spanContext()).toEqual({
+        spanId: span['_spanId'],
+        traceId: span['_traceId'],
+        traceFlags: TraceFlagNone,
+      });
+    });
+
+    it('works sampled span', () => {
+      const span = new Span({ sampled: true });
+      expect(span.spanContext()).toEqual({
+        spanId: span['_spanId'],
+        traceId: span['_traceId'],
+        traceFlags: TraceFlagSampled,
+      });
+    });
+
+    it('works unsampled span', () => {
+      const span = new Span({ sampled: false });
+      expect(span.spanContext()).toEqual({
+        spanId: span['_spanId'],
+        traceId: span['_traceId'],
+        traceFlags: TraceFlagNone,
+      });
     });
   });
 

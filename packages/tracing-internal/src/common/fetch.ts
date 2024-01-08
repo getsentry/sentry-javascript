@@ -93,8 +93,8 @@ export function instrumentFetchRequest(
       : undefined;
 
   if (span) {
-    handlerData.fetchData.__span = span.spanId;
-    spans[span.spanId] = span;
+    handlerData.fetchData.__span = span.spanContext().spanId;
+    spans[span.spanContext().spanId] = span;
   }
 
   if (shouldAttachHeaders(handlerData.fetchData.url) && client) {

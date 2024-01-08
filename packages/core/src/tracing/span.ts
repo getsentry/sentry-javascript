@@ -6,6 +6,7 @@ import type {
   SpanAttributeValue,
   SpanAttributes,
   SpanContext,
+  SpanContextData,
   SpanJSON,
   SpanOrigin,
   SpanTimeInput,
@@ -15,7 +16,13 @@ import type {
 import { dropUndefinedKeys, logger, timestampInSeconds, uuid4 } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../debug-build';
-import { spanTimeInputToSeconds, spanToTraceContext, spanToTraceHeader } from '../utils/spanUtils';
+import {
+  TraceFlagNone,
+  TraceFlagSampled,
+  spanTimeInputToSeconds,
+  spanToTraceContext,
+  spanToTraceHeader,
+} from '../utils/spanUtils';
 
 /**
  * Keeps track of finished spans for a given transaction
@@ -55,27 +62,12 @@ export class Span implements SpanInterface {
   /**
    * @inheritDoc
    */
-  public traceId: string;
-
-  /**
-   * @inheritDoc
-   */
-  public spanId: string;
-
-  /**
-   * @inheritDoc
-   */
   public parentSpanId?: string;
 
   /**
    * Internal keeper of the status
    */
   public status?: SpanStatusType | string;
-
-  /**
-   * @inheritDoc
-   */
-  public sampled?: boolean;
 
   /**
    * Timestamp in seconds when the span was created.
@@ -133,6 +125,10 @@ export class Span implements SpanInterface {
    */
   public origin?: SpanOrigin;
 
+  protected _traceId: string;
+  protected _spanId: string;
+  protected _sampled: boolean | undefined;
+
   /**
    * You should never call the constructor manually, always use `Sentry.startTransaction()`
    * or call `startChild()` on an existing span.
@@ -141,8 +137,8 @@ export class Span implements SpanInterface {
    * @hidden
    */
   public constructor(spanContext: SpanContext = {}) {
-    this.traceId = spanContext.traceId || uuid4();
-    this.spanId = spanContext.spanId || uuid4().substring(16);
+    this._traceId = spanContext.traceId || uuid4();
+    this._spanId = spanContext.spanId || uuid4().substring(16);
     this.startTimestamp = spanContext.startTimestamp || timestampInSeconds();
     this.tags = spanContext.tags || {};
     this.data = spanContext.data || {};
@@ -155,8 +151,7 @@ export class Span implements SpanInterface {
     }
     // We want to include booleans as well here
     if ('sampled' in spanContext) {
-      // eslint-disable-next-line deprecation/deprecation
-      this.sampled = spanContext.sampled;
+      this._sampled = spanContext.sampled;
     }
     if (spanContext.op) {
       this.op = spanContext.op;
@@ -175,6 +170,9 @@ export class Span implements SpanInterface {
     }
   }
 
+  // This conflicts with another eslint rule :(
+  /* eslint-disable @typescript-eslint/member-ordering */
+
   /** An alias for `description` of the Span. */
   public get name(): string {
     return this.description || '';
@@ -184,6 +182,66 @@ export class Span implements SpanInterface {
    */
   public set name(name: string) {
     this.updateName(name);
+  }
+
+  /**
+   * The ID of the trace.
+   * @deprecated Use `spanContext().traceId` instead.
+   */
+  public get traceId(): string {
+    return this._traceId;
+  }
+
+  /**
+   * The ID of the trace.
+   * @deprecated You cannot update the traceId of a span after span creation.
+   */
+  public set traceId(traceId: string) {
+    this._traceId = traceId;
+  }
+
+  /**
+   * The ID of the span.
+   * @deprecated Use `spanContext().spanId` instead.
+   */
+  public get spanId(): string {
+    return this._spanId;
+  }
+
+  /**
+   * The ID of the span.
+   * @deprecated You cannot update the spanId of a span after span creation.
+   */
+  public set spanId(spanId: string) {
+    this._spanId = spanId;
+  }
+
+  /**
+   * Was this span chosen to be sent as part of the sample?
+   * @deprecated Use `isRecording()` instead.
+   */
+  public get sampled(): boolean | undefined {
+    return this._sampled;
+  }
+
+  /**
+   * Was this span chosen to be sent as part of the sample?
+   * @deprecated You cannot update the sampling decision of a span after span creation.
+   */
+  public set sampled(sampled: boolean | undefined) {
+    this._sampled = sampled;
+  }
+
+  /* eslint-enable @typescript-eslint/member-ordering */
+
+  /** @inheritdoc */
+  public spanContext(): SpanContextData {
+    const { _spanId: spanId, _traceId: traceId, _sampled: sampled } = this;
+    return {
+      spanId,
+      traceId,
+      traceFlags: sampled ? TraceFlagSampled : TraceFlagNone,
+    };
   }
 
   /**
@@ -197,10 +255,9 @@ export class Span implements SpanInterface {
   ): Span {
     const childSpan = new Span({
       ...spanContext,
-      parentSpanId: this.spanId,
-      // eslint-disable-next-line deprecation/deprecation
-      sampled: this.sampled,
-      traceId: this.traceId,
+      parentSpanId: this._spanId,
+      sampled: this._sampled,
+      traceId: this._traceId,
     });
 
     childSpan.spanRecorder = this.spanRecorder;
@@ -213,10 +270,10 @@ export class Span implements SpanInterface {
     if (DEBUG_BUILD && childSpan.transaction) {
       const opStr = (spanContext && spanContext.op) || '< unknown op >';
       const nameStr = childSpan.transaction.name || '< unknown name >';
-      const idStr = childSpan.transaction.spanId;
+      const idStr = childSpan.transaction.spanContext().spanId;
 
       const logMessage = `[Tracing] Starting '${opStr}' span on transaction '${nameStr}' (${idStr}).`;
-      childSpan.transaction.metadata.spanMetadata[childSpan.spanId] = { logMessage };
+      childSpan.transaction.metadata.spanMetadata[childSpan.spanContext().spanId] = { logMessage };
       logger.log(logMessage);
     }
 
@@ -311,9 +368,9 @@ export class Span implements SpanInterface {
       DEBUG_BUILD &&
       // Don't call this for transactions
       this.transaction &&
-      this.transaction.spanId !== this.spanId
+      this.transaction.spanContext().spanId !== this._spanId
     ) {
-      const { logMessage } = this.transaction.metadata.spanMetadata[this.spanId];
+      const { logMessage } = this.transaction.metadata.spanMetadata[this._spanId];
       if (logMessage) {
         logger.log((logMessage as string).replace('Starting', 'Finishing'));
       }
@@ -339,12 +396,12 @@ export class Span implements SpanInterface {
       endTimestamp: this.endTimestamp,
       op: this.op,
       parentSpanId: this.parentSpanId,
-      sampled: this.sampled,
-      spanId: this.spanId,
+      sampled: this._sampled,
+      spanId: this._spanId,
       startTimestamp: this.startTimestamp,
       status: this.status,
       tags: this.tags,
-      traceId: this.traceId,
+      traceId: this._traceId,
     });
   }
 
@@ -357,13 +414,12 @@ export class Span implements SpanInterface {
     this.endTimestamp = spanContext.endTimestamp;
     this.op = spanContext.op;
     this.parentSpanId = spanContext.parentSpanId;
-    // eslint-disable-next-line deprecation/deprecation
-    this.sampled = spanContext.sampled;
-    this.spanId = spanContext.spanId || this.spanId;
+    this._sampled = spanContext.sampled;
+    this._spanId = spanContext.spanId || this._spanId;
     this.startTimestamp = spanContext.startTimestamp || this.startTimestamp;
     this.status = spanContext.status;
     this.tags = spanContext.tags || {};
-    this.traceId = spanContext.traceId || this.traceId;
+    this._traceId = spanContext.traceId || this._traceId;
 
     return this;
   }
@@ -384,19 +440,19 @@ export class Span implements SpanInterface {
       description: this.description,
       op: this.op,
       parent_span_id: this.parentSpanId,
-      span_id: this.spanId,
+      span_id: this._spanId,
       start_timestamp: this.startTimestamp,
       status: this.status,
       tags: Object.keys(this.tags).length > 0 ? this.tags : undefined,
       timestamp: this.endTimestamp,
-      trace_id: this.traceId,
+      trace_id: this._traceId,
       origin: this.origin,
     });
   }
 
   /** @inheritdoc */
   public isRecording(): boolean {
-    return !this.endTimestamp && !!this.sampled;
+    return !this.endTimestamp && !!this._sampled;
   }
 
   /**

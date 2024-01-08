@@ -506,8 +506,8 @@ describe('Span', () => {
         sampled: true,
       });
 
-      expect(span.traceId).toBe('c');
-      expect(span.spanId).toBe('d');
+      expect(span.spanContext().traceId).toBe('c');
+      expect(span.spanContext().spanId).toBe('d');
       expect(span.sampled).toBe(true);
       expect(span.description).toBe(undefined);
       expect(span.op).toBe(undefined);
@@ -541,8 +541,8 @@ describe('Span', () => {
 
       span.updateWithContext(newContext);
 
-      expect(span.traceId).toBe('a');
-      expect(span.spanId).toBe('b');
+      expect(span.spanContext().traceId).toBe('a');
+      expect(span.spanContext().spanId).toBe('b');
       expect(span.description).toBe('new');
       expect(span.endTimestamp).toBe(1);
       expect(span.op).toBe('new-op');

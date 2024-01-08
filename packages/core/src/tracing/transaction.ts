@@ -200,8 +200,10 @@ export class Transaction extends SpanClass implements TransactionInterface {
 
     if (!client) return {};
 
+    const { _traceId: traceId, _sampled: sampled } = this;
+
     const scope = hub.getScope();
-    const dsc = getDynamicSamplingContextFromClient(this.traceId, client, scope);
+    const dsc = getDynamicSamplingContextFromClient(traceId, client, scope);
 
     const maybeSampleRate = this.metadata.sampleRate;
     if (maybeSampleRate !== undefined) {
@@ -214,8 +216,8 @@ export class Transaction extends SpanClass implements TransactionInterface {
       dsc.transaction = this.name;
     }
 
-    if (this.sampled !== undefined) {
-      dsc.sampled = String(this.sampled);
+    if (sampled !== undefined) {
+      dsc.sampled = String(sampled);
     }
 
     // Uncomment if we want to make DSC immutable
@@ -256,7 +258,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
       client.emit('finishTransaction', this);
     }
 
-    if (this.sampled !== true) {
+    if (this._sampled !== true) {
       // At this point if `sampled !== true` we want to discard the transaction.
       DEBUG_BUILD && logger.log('[Tracing] Discarding transaction because its trace was not chosen to be sampled.');
 

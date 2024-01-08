@@ -78,6 +78,7 @@ export { handleCallbackErrors } from './utils/handleCallbackErrors';
 export {
   spanToTraceHeader,
   spanToJSON,
+  spanIsSampled,
 } from './utils/spanUtils';
 export { DEFAULT_ENVIRONMENT } from './constants';
 export { ModuleMetadata } from './integrations/metadata';

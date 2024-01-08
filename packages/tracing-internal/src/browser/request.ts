@@ -289,7 +289,7 @@ export function xhrCallback(
       : undefined;
 
   if (span) {
-    xhr.__sentry_xhr_span_id__ = span.spanId;
+    xhr.__sentry_xhr_span_id__ = span.spanContext().spanId;
     spans[xhr.__sentry_xhr_span_id__] = span;
   }
 

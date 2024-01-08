@@ -1,6 +1,6 @@
 import { TRACEPARENT_REGEXP, timestampInSeconds } from '@sentry/utils';
 import { Span, spanToTraceHeader } from '../../../src';
-import { spanTimeInputToSeconds, spanToJSON } from '../../../src/utils/spanUtils';
+import { spanTimeInputToSeconds, spanToJSON, spanIsSampled } from '../../../src/utils/spanUtils';
 
 describe('spanToTraceHeader', () => {
   test('simple', () => {
@@ -113,5 +113,17 @@ describe('spanToJSON', () => {
     const span = new Span().toJSON();
 
     expect(spanToJSON(span as unknown as Span)).toEqual({});
+  });
+});
+
+describe('spanIsSampled', () => {
+  test('sampled', () => {
+    const span = new Span({ sampled: true });
+    expect(spanIsSampled(span)).toBe(true);
+  });
+
+  test('not sampled', () => {
+    const span = new Span({ sampled: false });
+    expect(spanIsSampled(span)).toBe(false);
   });
 });
