@@ -282,7 +282,7 @@ export class Hub implements HubInterface {
   /**
    * @inheritDoc
    *
-   * @deprecated Use top level `captureMessage` instead.
+   * @deprecated Use  `Sentry.captureMessage()` instead.
    */
   public captureMessage(
     message: string,
