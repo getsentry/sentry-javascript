@@ -1,5 +1,8 @@
-import { getDynamicSamplingContextFromClient, spanToTraceHeader } from '@sentry/core';
-import { getDynamicSamplingContextFromSpan } from '@sentry/core/src/tracing/dynamicSamplingContext';
+import {
+  getDynamicSamplingContextFromClient,
+  getDynamicSamplingContextFromSpan,
+  spanToTraceHeader,
+} from '@sentry/core';
 import type { Client, Scope, Span } from '@sentry/types';
 import {
   TRACEPARENT_REGEXP,
