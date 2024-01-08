@@ -310,6 +310,7 @@ function createRequestSpan(
   if (url.hash) {
     data['http.fragment'] = url.hash;
   }
+  // eslint-disable-next-line deprecation/deprecation
   return activeSpan?.startChild({
     op: 'http.client',
     origin: 'auto.http.node.undici',

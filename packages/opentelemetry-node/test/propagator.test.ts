@@ -65,6 +65,7 @@ describe('SentryPropagator', () => {
         if (type === PerfType.Span) {
           // eslint-disable-next-line @typescript-eslint/no-unused-vars
           const { spanId, ...ctx } = transactionContext;
+          // eslint-disable-next-line deprecation/deprecation
           const span = transaction.startChild({ ...ctx, description: transaction.name });
           setSentrySpan(span.spanId, span);
         }

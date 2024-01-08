@@ -88,6 +88,7 @@ export const instrumentRoutePerformance = <T extends RouteConstructor>(BaseRoute
       return result;
     }
     currentTransaction
+      // eslint-disable-next-line deprecation/deprecation
       .startChild({
         op,
         description,

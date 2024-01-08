@@ -1,4 +1,4 @@
-import type { Attachment, Breadcrumb, Client } from '@sentry/types';
+import type { Attachment, Breadcrumb, Client, Event } from '@sentry/types';
 import { applyScopeDataToEvent } from '../../src';
 import { Scope, getGlobalScope, setGlobalScope } from '../../src/scope';
 
@@ -210,6 +210,258 @@ describe('Scope', () => {
 
       const clonedScope = scope.clone();
       expect(clonedScope.getClient()).toBe(fakeClient);
+    });
+  });
+
+  describe('.captureException()', () => {
+    it('should call captureException() on client with newly generated event ID if not explicitly passed in', () => {
+      const fakeCaptureException = jest.fn(() => 'mock-event-id');
+      const fakeClient = {
+        captureException: fakeCaptureException,
+      } as unknown as Client;
+      const scope = new Scope();
+      scope.setClient(fakeClient);
+
+      const exception = new Error();
+
+      scope.captureException(exception);
+
+      expect(fakeCaptureException).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({ event_id: expect.any(String) }),
+        scope,
+      );
+    });
+
+    it('should return event ID when no client is on the scope', () => {
+      const scope = new Scope();
+
+      const exception = new Error();
+
+      const eventId = scope.captureException(exception);
+
+      expect(eventId).toEqual(expect.any(String));
+    });
+
+    it('should pass exception to captureException() on client', () => {
+      const fakeCaptureException = jest.fn(() => 'mock-event-id');
+      const fakeClient = {
+        captureException: fakeCaptureException,
+      } as unknown as Client;
+      const scope = new Scope();
+      scope.setClient(fakeClient);
+
+      const exception = new Error();
+
+      scope.captureException(exception);
+
+      expect(fakeCaptureException).toHaveBeenCalledWith(exception, expect.anything(), scope);
+    });
+
+    it('should call captureException() on client with a synthetic exception', () => {
+      const fakeCaptureException = jest.fn(() => 'mock-event-id');
+      const fakeClient = {
+        captureException: fakeCaptureException,
+      } as unknown as Client;
+      const scope = new Scope();
+      scope.setClient(fakeClient);
+
+      scope.captureException(new Error());
+
+      expect(fakeCaptureException).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({ syntheticException: expect.any(Error) }),
+        scope,
+      );
+    });
+
+    it('should pass the original exception to captureException() on client', () => {
+      const fakeCaptureException = jest.fn(() => 'mock-event-id');
+      const fakeClient = {
+        captureException: fakeCaptureException,
+      } as unknown as Client;
+      const scope = new Scope();
+      scope.setClient(fakeClient);
+
+      const exception = new Error();
+      scope.captureException(exception);
+
+      expect(fakeCaptureException).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({ originalException: exception }),
+        scope,
+      );
+    });
+
+    it('should forward hint to captureException() on client', () => {
+      const fakeCaptureException = jest.fn(() => 'mock-event-id');
+      const fakeClient = {
+        captureException: fakeCaptureException,
+      } as unknown as Client;
+      const scope = new Scope();
+      scope.setClient(fakeClient);
+
+      scope.captureException(new Error(), { event_id: 'asdf', data: { foo: 'bar' } });
+
+      expect(fakeCaptureException).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({ event_id: 'asdf', data: { foo: 'bar' } }),
+        scope,
+      );
+    });
+  });
+
+  describe('.captureMessage()', () => {
+    it('should call captureMessage() on client with newly generated event ID if not explicitly passed in', () => {
+      const fakeCaptureMessage = jest.fn(() => 'mock-event-id');
+      const fakeClient = {
+        captureMessage: fakeCaptureMessage,
+      } as unknown as Client;
+      const scope = new Scope();
+      scope.setClient(fakeClient);
+
+      scope.captureMessage('foo');
+
+      expect(fakeCaptureMessage).toHaveBeenCalledWith(
+        expect.anything(),
+        undefined,
+        expect.objectContaining({ event_id: expect.any(String) }),
+        scope,
+      );
+    });
+
+    it('should return event ID when no client is on the scope', () => {
+      const scope = new Scope();
+
+      const eventId = scope.captureMessage('foo');
+
+      expect(eventId).toEqual(expect.any(String));
+    });
+
+    it('should pass exception to captureMessage() on client', () => {
+      const fakeCaptureMessage = jest.fn(() => 'mock-event-id');
+      const fakeClient = {
+        captureMessage: fakeCaptureMessage,
+      } as unknown as Client;
+      const scope = new Scope();
+      scope.setClient(fakeClient);
+
+      scope.captureMessage('bar');
+
+      expect(fakeCaptureMessage).toHaveBeenCalledWith('bar', undefined, expect.anything(), scope);
+    });
+
+    it('should call captureMessage() on client with a synthetic exception', () => {
+      const fakeCaptureMessage = jest.fn(() => 'mock-event-id');
+      const fakeClient = {
+        captureMessage: fakeCaptureMessage,
+      } as unknown as Client;
+      const scope = new Scope();
+      scope.setClient(fakeClient);
+
+      scope.captureMessage('foo');
+
+      expect(fakeCaptureMessage).toHaveBeenCalledWith(
+        expect.anything(),
+        undefined,
+        expect.objectContaining({ syntheticException: expect.any(Error) }),
+        scope,
+      );
+    });
+
+    it('should pass the original exception to captureMessage() on client', () => {
+      const fakeCaptureMessage = jest.fn(() => 'mock-event-id');
+      const fakeClient = {
+        captureMessage: fakeCaptureMessage,
+      } as unknown as Client;
+      const scope = new Scope();
+      scope.setClient(fakeClient);
+
+      scope.captureMessage('baz');
+
+      expect(fakeCaptureMessage).toHaveBeenCalledWith(
+        expect.anything(),
+        undefined,
+        expect.objectContaining({ originalException: 'baz' }),
+        scope,
+      );
+    });
+
+    it('should forward level and hint to captureMessage() on client', () => {
+      const fakeCaptureMessage = jest.fn(() => 'mock-event-id');
+      const fakeClient = {
+        captureMessage: fakeCaptureMessage,
+      } as unknown as Client;
+      const scope = new Scope();
+      scope.setClient(fakeClient);
+
+      scope.captureMessage('asdf', 'fatal', { event_id: 'asdf', data: { foo: 'bar' } });
+
+      expect(fakeCaptureMessage).toHaveBeenCalledWith(
+        expect.anything(),
+        'fatal',
+        expect.objectContaining({ event_id: 'asdf', data: { foo: 'bar' } }),
+        scope,
+      );
+    });
+  });
+
+  describe('.captureEvent()', () => {
+    it('should call captureEvent() on client with newly generated event ID if not explicitly passed in', () => {
+      const fakeCaptureEvent = jest.fn(() => 'mock-event-id');
+      const fakeClient = {
+        captureEvent: fakeCaptureEvent,
+      } as unknown as Client;
+      const scope = new Scope();
+      scope.setClient(fakeClient);
+
+      scope.captureEvent({});
+
+      expect(fakeCaptureEvent).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({ event_id: expect.any(String) }),
+        scope,
+      );
+    });
+
+    it('should return event ID when no client is on the scope', () => {
+      const scope = new Scope();
+
+      const eventId = scope.captureEvent({});
+
+      expect(eventId).toEqual(expect.any(String));
+    });
+
+    it('should pass event to captureEvent() on client', () => {
+      const fakeCaptureEvent = jest.fn(() => 'mock-event-id');
+      const fakeClient = {
+        captureEvent: fakeCaptureEvent,
+      } as unknown as Client;
+      const scope = new Scope();
+      scope.setClient(fakeClient);
+
+      const event: Event = { event_id: 'asdf' };
+
+      scope.captureEvent(event);
+
+      expect(fakeCaptureEvent).toHaveBeenCalledWith(event, expect.anything(), scope);
+    });
+
+    it('should forward hint to captureEvent() on client', () => {
+      const fakeCaptureEvent = jest.fn(() => 'mock-event-id');
+      const fakeClient = {
+        captureEvent: fakeCaptureEvent,
+      } as unknown as Client;
+      const scope = new Scope();
+      scope.setClient(fakeClient);
+
+      scope.captureEvent({}, { event_id: 'asdf', data: { foo: 'bar' } });
+
+      expect(fakeCaptureEvent).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({ event_id: 'asdf', data: { foo: 'bar' } }),
+        scope,
+      );
     });
   });
 });

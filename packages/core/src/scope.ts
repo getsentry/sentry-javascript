@@ -24,7 +24,7 @@ import type {
   Transaction,
   User,
 } from '@sentry/types';
-import { dateTimestampInSeconds, isPlainObject, uuid4 } from '@sentry/utils';
+import { dateTimestampInSeconds, isPlainObject, logger, uuid4 } from '@sentry/utils';
 
 import { getGlobalEventProcessors, notifyEventProcessors } from './eventProcessors';
 import { updateSession } from './session';
@@ -579,6 +579,90 @@ export class Scope implements ScopeInterface {
    */
   public getPropagationContext(): PropagationContext {
     return this._propagationContext;
+  }
+
+  /**
+   * Capture an exception for this scope.
+   *
+   * @param exception The exception to capture.
+   * @param hint Optinal additional data to attach to the Sentry event.
+   * @returns the id of the captured Sentry event.
+   */
+  public captureException(exception: unknown, hint?: EventHint): string {
+    const eventId = hint && hint.event_id ? hint.event_id : uuid4();
+
+    if (!this._client) {
+      logger.warn('No client configured on scope - will not capture exception!');
+      return eventId;
+    }
+
+    const syntheticException = new Error('Sentry syntheticException');
+
+    this._client.captureException(
+      exception,
+      {
+        originalException: exception,
+        syntheticException,
+        ...hint,
+        event_id: eventId,
+      },
+      this,
+    );
+
+    return eventId;
+  }
+
+  /**
+   * Capture a message for this scope.
+   *
+   * @param message The message to capture.
+   * @param level An optional severity level to report the message with.
+   * @param hint Optional additional data to attach to the Sentry event.
+   * @returns the id of the captured message.
+   */
+  public captureMessage(message: string, level?: SeverityLevel, hint?: EventHint): string {
+    const eventId = hint && hint.event_id ? hint.event_id : uuid4();
+
+    if (!this._client) {
+      logger.warn('No client configured on scope - will not capture message!');
+      return eventId;
+    }
+
+    const syntheticException = new Error(message);
+
+    this._client.captureMessage(
+      message,
+      level,
+      {
+        originalException: message,
+        syntheticException,
+        ...hint,
+        event_id: eventId,
+      },
+      this,
+    );
+
+    return eventId;
+  }
+
+  /**
+   * Captures a manually created event for this scope and sends it to Sentry.
+   *
+   * @param exception The event to capture.
+   * @param hint Optional additional data to attach to the Sentry event.
+   * @returns the id of the captured event.
+   */
+  public captureEvent(event: Event, hint?: EventHint): string {
+    const eventId = hint && hint.event_id ? hint.event_id : uuid4();
+
+    if (!this._client) {
+      logger.warn('No client configured on scope - will not capture event!');
+      return eventId;
+    }
+
+    this._client.captureEvent(event, { ...hint, event_id: eventId }, this);
+
+    return eventId;
   }
 
   /**

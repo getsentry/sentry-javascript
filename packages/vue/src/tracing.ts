@@ -77,6 +77,7 @@ export const createTracingMixins = (options: TracingOptions): Mixins => {
           if (activeTransaction) {
             this.$_sentryRootSpan =
               this.$_sentryRootSpan ||
+              // eslint-disable-next-line deprecation/deprecation
               activeTransaction.startChild({
                 description: 'Application Render',
                 op: `${VUE_OP}.render`,
@@ -111,6 +112,7 @@ export const createTracingMixins = (options: TracingOptions): Mixins => {
               oldSpan.end();
             }
 
+            // eslint-disable-next-line deprecation/deprecation
             this.$_sentrySpans[operation] = activeTransaction.startChild({
               description: `Vue <${name}>`,
               op: `${VUE_OP}.${operation}`,

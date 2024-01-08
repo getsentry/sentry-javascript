@@ -106,6 +106,7 @@ export class Mysql implements LazyLoadedIntegration<MysqlConnection> {
         const scope = getCurrentHub().getScope();
         const parentSpan = scope.getSpan();
 
+        // eslint-disable-next-line deprecation/deprecation
         const span = parentSpan?.startChild({
           description: typeof options === 'string' ? options : (options as { sql: string }).sql,
           op: 'db',

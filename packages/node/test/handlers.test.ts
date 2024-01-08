@@ -424,6 +424,7 @@ describe('tracingHandler', () => {
   it('waits to finish transaction until all spans are finished, even though `transaction.end()` is registered on `res.finish` event first', done => {
     const transaction = new Transaction({ name: 'mockTransaction', sampled: true });
     transaction.initSpanRecorder();
+    // eslint-disable-next-line deprecation/deprecation
     const span = transaction.startChild({
       description: 'reallyCoolHandler',
       op: 'middleware',
@@ -586,6 +587,7 @@ describe('errorHandler()', () => {
 
     // `sentryErrorMiddleware` uses `withScope`, and we need access to the temporary scope it creates, so monkeypatch
     // `captureException` in order to examine the scope as it exists inside the `withScope` callback
+    // eslint-disable-next-line deprecation/deprecation
     hub.captureException = function (this: sentryCore.Hub, _exception: any) {
       const scope = this.getScope();
       expect((scope as any)._sdkProcessingMetadata.request).toEqual(req);

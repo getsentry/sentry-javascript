@@ -166,6 +166,7 @@ export class Hub implements HubInterface {
   public bindClient(client?: Client): void {
     const top = this.getStackTop();
     top.client = client;
+    top.scope.setClient(client);
     if (client && client.setupIntegrations) {
       client.setupIntegrations();
     }
@@ -262,27 +263,26 @@ export class Hub implements HubInterface {
 
   /**
    * @inheritDoc
+   *
+   * @deprecated Use `Sentry.captureException()` instead.
    */
   public captureException(exception: unknown, hint?: EventHint): string {
     const eventId = (this._lastEventId = hint && hint.event_id ? hint.event_id : uuid4());
     const syntheticException = new Error('Sentry syntheticException');
-    this._withClient((client, scope) => {
-      client.captureException(
-        exception,
-        {
-          originalException: exception,
-          syntheticException,
-          ...hint,
-          event_id: eventId,
-        },
-        scope,
-      );
+    this.getScope().captureException(exception, {
+      originalException: exception,
+      syntheticException,
+      ...hint,
+      event_id: eventId,
     });
+
     return eventId;
   }
 
   /**
    * @inheritDoc
+   *
+   * @deprecated Use  `Sentry.captureMessage()` instead.
    */
   public captureMessage(
     message: string,
@@ -292,24 +292,20 @@ export class Hub implements HubInterface {
   ): string {
     const eventId = (this._lastEventId = hint && hint.event_id ? hint.event_id : uuid4());
     const syntheticException = new Error(message);
-    this._withClient((client, scope) => {
-      client.captureMessage(
-        message,
-        level,
-        {
-          originalException: message,
-          syntheticException,
-          ...hint,
-          event_id: eventId,
-        },
-        scope,
-      );
+    this.getScope().captureMessage(message, level, {
+      originalException: message,
+      syntheticException,
+      ...hint,
+      event_id: eventId,
     });
+
     return eventId;
   }
 
   /**
    * @inheritDoc
+   *
+   * @deprecated Use `Sentry.captureEvent()` instead.
    */
   public captureEvent(event: Event, hint?: EventHint): string {
     const eventId = hint && hint.event_id ? hint.event_id : uuid4();
@@ -317,9 +313,7 @@ export class Hub implements HubInterface {
       this._lastEventId = eventId;
     }
 
-    this._withClient((client, scope) => {
-      client.captureEvent(event, { ...hint, event_id: eventId }, scope);
-    });
+    this.getScope().captureEvent(event, { ...hint, event_id: eventId });
     return eventId;
   }
 

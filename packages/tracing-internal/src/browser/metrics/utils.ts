@@ -18,6 +18,7 @@ export function _startChild(transaction: Transaction, { startTimestamp, ...ctx }
     transaction.startTimestamp = startTimestamp;
   }
 
+  // eslint-disable-next-line deprecation/deprecation
   return transaction.startChild({
     startTimestamp,
     ...ctx,
