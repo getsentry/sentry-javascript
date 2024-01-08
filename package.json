@@ -82,7 +82,8 @@
     "dev-packages/e2e-tests",
     "dev-packages/node-integration-tests",
     "dev-packages/overhead-metrics",
-    "dev-packages/rollup-utils"
+    "dev-packages/rollup-utils",
+    "dev-packages/env-tests/cloudflare-astro"
   ],
   "devDependencies": {
     "@biomejs/biome": "^1.4.0",
