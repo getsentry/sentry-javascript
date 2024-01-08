@@ -189,7 +189,7 @@ function _wrapEventTarget(target: string): void {
     return;
   }
 
-  fill(proto, 'addEventListener', function (original: VoidFunction,): (
+  fill(proto, 'addEventListener', function (original: VoidFunction): (
     eventName: string,
     fn: EventListenerObject,
     options?: boolean | AddEventListenerOptions,

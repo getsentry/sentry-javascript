@@ -35,7 +35,10 @@ export const startServer = async (server: Server) => {
 };
 
 export class NextTestEnv extends TestEnv {
-  private constructor(public readonly server: http.Server, public readonly url: string) {
+  private constructor(
+    public readonly server: http.Server,
+    public readonly url: string,
+  ) {
     super(server, url);
   }
 

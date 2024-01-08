@@ -3,7 +3,8 @@
   "vcs": {
     "enabled": true,
     "clientKind": "git",
-    "useIgnoreFile": true
+    "useIgnoreFile": true,
+    "defaultBranch": "develop"
   },
   "organizeImports": {
     "enabled": true
@@ -17,13 +18,15 @@
         "noUnusedVariables": "error",
         "noPrecisionLoss": "error"
       },
+      "complexity": {
+        "useRegexLiterals": "error"
+      },
       "suspicious": {
         "all": false,
         "noControlCharactersInRegex": "error"
       },
       "nursery": {
-        "noUnusedImports": "error",
-        "useRegexLiterals": "error"
+        "noUnusedImports": "error"
       },
       "performance": {
         "all": true,
@@ -47,8 +50,8 @@
       "dev-packages/browser-integration-tests/suites/**/*.json",
       "dev-packages/browser-integration-tests/loader-suites/**/*.js",
       "dev-packages/browser-integration-tests/suites/stacktraces/**/*.js",
-      "**/fixtures/*/*.json",
-      "**/*.min.js"
+      "fixtures/*/*.json",
+      "*.min.js"
     ]
   },
   "javascript": {
@@ -66,6 +69,10 @@
   "json": {
     "formatter": {
       "enabled": true
+    },
+    "parser": {
+      "allowComments": true,
+      "allowTrailingCommas": true
     }
   }
 }

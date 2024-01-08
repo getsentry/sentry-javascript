@@ -20,7 +20,10 @@ interface ThrowOn {
 class MockDebugSession implements DebugSession {
   private _onPause?: (message: InspectorNotification<Debugger.PausedEventDataType>, callback: () => void) => void;
 
-  constructor(private readonly _vars: Record<string, Record<string, unknown>>, private readonly _throwOn?: ThrowOn) {}
+  constructor(
+    private readonly _vars: Record<string, Record<string, unknown>>,
+    private readonly _throwOn?: ThrowOn,
+  ) {}
 
   public configureAndConnect(
     onPause: (message: InspectorNotification<Debugger.PausedEventDataType>, callback: () => void) => void,
