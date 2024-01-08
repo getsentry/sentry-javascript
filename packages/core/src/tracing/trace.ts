@@ -1,4 +1,15 @@
-import type { Scope, Span, SpanTimeInput, TransactionContext } from '@sentry/types';
+import type {
+  Instrumenter,
+  Primitive,
+  Scope,
+  Span,
+  SpanTimeInput,
+  TransactionContext,
+  TransactionMetadata,
+} from '@sentry/types';
+import type { SpanAttributes } from '@sentry/types';
+import type { SpanOrigin } from '@sentry/types';
+import type { TransactionSource } from '@sentry/types';
 import { dropUndefinedKeys, logger, tracingContextFromHeaders } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../debug-build';
@@ -15,6 +26,97 @@ interface StartSpanOptions extends TransactionContext {
 
   /** If defined, start this span off this scope instead off the current scope. */
   scope?: Scope;
+
+  /** The name of the span. */
+  name: string;
+
+  /** An op for the span. This is a categorization for spans. */
+  op?: string;
+
+  /** The origin of the span - if it comes from auto instrumenation or manual instrumentation. */
+  origin?: SpanOrigin;
+
+  /** Attributes for the span. */
+  attributes?: SpanAttributes;
+
+  // All remaining fields are deprecated
+
+  /**
+   * @deprecated Manually set the end timestamp instead.
+   */
+  trimEnd?: boolean;
+
+  /**
+   * @deprecated This cannot be set manually anymore.
+   */
+  parentSampled?: boolean;
+
+  /**
+   * @deprecated Use attributes or set data on scopes instead.
+   */
+  metadata?: Partial<TransactionMetadata>;
+
+  /**
+   * The name thingy.
+   * @deprecated Use `name` instead.
+   */
+  description?: string;
+
+  /**
+   * @deprecated Use `span.setStatus()` instead.
+   */
+  status?: string;
+
+  /**
+   * @deprecated Use `scope` instead.
+   */
+  parentSpanId?: string;
+
+  /**
+   * @deprecated You cannot manually set the span to sampled anymore.
+   */
+  sampled?: boolean;
+
+  /**
+   * @deprecated You cannot manually set the spanId anymore.
+   */
+  spanId?: string;
+
+  /**
+   * @deprecated You cannot manually set the traceId anymore.
+   */
+  traceId?: string;
+
+  /**
+   * @deprecated Use an attribute instead.
+   */
+  source?: TransactionSource;
+
+  /**
+   * @deprecated Use attributes or set tags on the scope instead.
+   */
+  tags?: { [key: string]: Primitive };
+
+  /**
+   * @deprecated Use attributes instead.
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  data?: { [key: string]: any };
+
+  /**
+   * @deprecated Use `startTime` instead.
+   */
+  startTimestamp?: number;
+
+  /**
+   * @deprecated Use `span.end()` instead.
+   */
+  endTimestamp?: number;
+
+  /**
+   * @deprecated You cannot set the instrumenter manually anymore.
+   */
+  instrumenter?: Instrumenter;
 }
 
 /**
@@ -259,7 +361,7 @@ function createChildSpanOrTransaction(
  */
 function normalizeContext(context: StartSpanOptions): TransactionContext {
   if (context.startTime) {
-    const ctx = { ...context };
+    const ctx: TransactionContext & { startTime?: SpanTimeInput } = { ...context };
     ctx.startTimestamp = spanTimeInputToSeconds(context.startTime);
     delete ctx.startTime;
     return ctx;
