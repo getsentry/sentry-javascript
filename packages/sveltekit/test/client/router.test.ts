@@ -117,6 +117,7 @@ describe('sveltekitRoutingInstrumentation', () => {
       },
     });
 
+    // eslint-disable-next-line deprecation/deprecation
     expect(returnedTransaction?.startChild).toHaveBeenCalledWith({
       op: 'ui.sveltekit.routing',
       origin: 'auto.ui.sveltekit',
@@ -168,6 +169,7 @@ describe('sveltekitRoutingInstrumentation', () => {
         },
       });
 
+      // eslint-disable-next-line deprecation/deprecation
       expect(returnedTransaction?.startChild).toHaveBeenCalledWith({
         op: 'ui.sveltekit.routing',
         origin: 'auto.ui.sveltekit',

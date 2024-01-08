@@ -424,6 +424,7 @@ describe('tracingHandler', () => {
   it('waits to finish transaction until all spans are finished, even though `transaction.end()` is registered on `res.finish` event first', done => {
     const transaction = new Transaction({ name: 'mockTransaction', sampled: true });
     transaction.initSpanRecorder();
+    // eslint-disable-next-line deprecation/deprecation
     const span = transaction.startChild({
       description: 'reallyCoolHandler',
       op: 'middleware',

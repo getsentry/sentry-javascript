@@ -84,6 +84,7 @@ export class TraceService implements OnDestroy {
         if (this._routingSpan) {
           this._routingSpan.end();
         }
+        // eslint-disable-next-line deprecation/deprecation
         this._routingSpan = activeTransaction.startChild({
           description: `${navigationEvent.url}`,
           op: ANGULAR_ROUTING_OP,
@@ -183,6 +184,7 @@ export class TraceDirective implements OnInit, AfterViewInit {
 
     const activeTransaction = getActiveTransaction();
     if (activeTransaction) {
+      // eslint-disable-next-line deprecation/deprecation
       this._tracingSpan = activeTransaction.startChild({
         description: `<${this.componentName}>`,
         op: ANGULAR_INIT_OP,
@@ -225,6 +227,7 @@ export function TraceClassDecorator(): ClassDecorator {
     target.prototype.ngOnInit = function (...args: any[]): ReturnType<typeof originalOnInit> {
       const activeTransaction = getActiveTransaction();
       if (activeTransaction) {
+        // eslint-disable-next-line deprecation/deprecation
         tracingSpan = activeTransaction.startChild({
           description: `<${target.name}>`,
           op: ANGULAR_INIT_OP,
@@ -262,6 +265,7 @@ export function TraceMethodDecorator(): MethodDecorator {
       const now = timestampInSeconds();
       const activeTransaction = getActiveTransaction();
       if (activeTransaction) {
+        // eslint-disable-next-line deprecation/deprecation
         activeTransaction.startChild({
           description: `<${target.constructor.name}>`,
           endTimestamp: now,

@@ -149,6 +149,7 @@ export function _instrumentEmberRouter(
         'routing.instrumentation': '@sentry/ember',
       },
     });
+    // eslint-disable-next-line deprecation/deprecation
     transitionSpan = activeTransaction?.startChild({
       op: 'ui.ember.transition',
       description: `route:${fromRoute} -> route:${toRoute}`,
@@ -212,6 +213,7 @@ function _instrumentEmberRunloop(config: EmberSentryConfig): void {
 
         if ((now - currentQueueStart) * 1000 >= minQueueDuration) {
           activeTransaction
+            // eslint-disable-next-line deprecation/deprecation
             ?.startChild({
               op: `ui.ember.runloop.${queue}`,
               origin: 'auto.ui.ember',
@@ -287,7 +289,7 @@ function processComponentRenderAfter(
 
   if (componentRenderDuration * 1000 >= minComponentDuration) {
     const activeTransaction = getActiveTransaction();
-
+    // eslint-disable-next-line deprecation/deprecation
     activeTransaction?.startChild({
       op,
       description: payload.containerKey || payload.object,
@@ -373,6 +375,7 @@ function _instrumentInitialLoad(config: EmberSentryConfig): void {
   const endTimestamp = startTimestamp + measure.duration / 1000;
 
   const transaction = getActiveTransaction();
+  // eslint-disable-next-line deprecation/deprecation
   const span = transaction?.startChild({
     op: 'ui.ember.init',
     origin: 'auto.ui.ember',

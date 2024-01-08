@@ -56,6 +56,7 @@ function wrapRequestFunction(orig: RequestFunction): RequestFunction {
     const transaction = scope.getTransaction();
     if (transaction) {
       const httpMethod = reqOpts.method || 'GET';
+      // eslint-disable-next-line deprecation/deprecation
       span = transaction.startChild({
         description: `${httpMethod} ${reqOpts.uri}`,
         op: `http.client.${identifyService(this.apiEndpoint)}`,

@@ -131,6 +131,7 @@ export function withTracedServerSideDataFetcher<F extends (...args: any[]) => Pr
           spanToContinue = previousSpan;
         }
 
+        // eslint-disable-next-line deprecation/deprecation
         dataFetcherSpan = spanToContinue.startChild({
           op: 'function.nextjs',
           description: `${options.dataFetchingMethodName} (${options.dataFetcherRouteName})`,
@@ -209,6 +210,7 @@ export async function callDataFetcherTraced<F extends (...args: any[]) => Promis
 
   // Capture the route, since pre-loading, revalidation, etc might mean that this span may happen during another
   // route's transaction
+  // eslint-disable-next-line deprecation/deprecation
   const span = transaction.startChild({
     op: 'function.nextjs',
     origin: 'auto.function.nextjs',

@@ -204,6 +204,7 @@ function createAndFinishSpanForOtelSpan(node: SpanNode, sentryParentSpan: Sentry
   const { op, description, tags, data, origin } = getSpanData(span);
   const allData = { ...removeSentryAttributes(attributes), ...data };
 
+  // eslint-disable-next-line deprecation/deprecation
   const sentrySpan = sentryParentSpan.startChild({
     description,
     op,

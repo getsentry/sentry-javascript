@@ -157,6 +157,7 @@ function wrap(fn: Function, method: Method): (...args: any[]) => void {
       return function (this: NodeJS.Global, req: unknown, res: ExpressResponse & SentryTracingResponse): void {
         const transaction = res.__sentry_transaction;
         if (transaction) {
+          // eslint-disable-next-line deprecation/deprecation
           const span = transaction.startChild({
             description: fn.name,
             op: `middleware.express.${method}`,
@@ -177,6 +178,7 @@ function wrap(fn: Function, method: Method): (...args: any[]) => void {
         next: () => void,
       ): void {
         const transaction = res.__sentry_transaction;
+        // eslint-disable-next-line deprecation/deprecation
         const span = transaction?.startChild({
           description: fn.name,
           op: `middleware.express.${method}`,
@@ -197,6 +199,7 @@ function wrap(fn: Function, method: Method): (...args: any[]) => void {
         next: () => void,
       ): void {
         const transaction = res.__sentry_transaction;
+        // eslint-disable-next-line deprecation/deprecation
         const span = transaction?.startChild({
           description: fn.name,
           op: `middleware.express.${method}`,

@@ -62,6 +62,7 @@ function wrapMakeRequest<TService extends AWSService, TResult>(
     const req = orig.call(this, operation, params);
     req.on('afterBuild', () => {
       if (transaction) {
+        // eslint-disable-next-line deprecation/deprecation
         span = transaction.startChild({
           description: describe(this, operation, params),
           op: 'http.client',

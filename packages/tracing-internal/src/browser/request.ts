@@ -275,7 +275,8 @@ export function xhrCallback(
 
   const span =
     shouldCreateSpanResult && parentSpan
-      ? parentSpan.startChild({
+      ? // eslint-disable-next-line deprecation/deprecation
+        parentSpan.startChild({
           data: {
             type: 'xhr',
             'http.method': sentryXhrData.method,

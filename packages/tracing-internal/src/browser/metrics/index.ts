@@ -76,6 +76,7 @@ export function startTrackingLongTasks(): void {
       const startTime = msToSec((browserPerformanceTimeOrigin as number) + entry.startTime);
       const duration = msToSec(entry.duration);
 
+      // eslint-disable-next-line deprecation/deprecation
       transaction.startChild({
         description: 'Main UI thread blocked',
         op: 'ui.long-task',
@@ -115,6 +116,7 @@ export function startTrackingInteractions(): void {
           span.data = { 'ui.component_name': componentName };
         }
 
+        // eslint-disable-next-line deprecation/deprecation
         transaction.startChild(span);
       }
     }

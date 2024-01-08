@@ -5,6 +5,7 @@ import { _addMeasureSpans, _addResourceSpans } from '../../../src/browser/metric
 describe('_addMeasureSpans', () => {
   const transaction = new Transaction({ op: 'pageload', name: '/' });
   beforeEach(() => {
+    // eslint-disable-next-line deprecation/deprecation
     transaction.startChild = jest.fn();
   });
 
@@ -21,12 +22,12 @@ describe('_addMeasureSpans', () => {
     const startTime = 23;
     const duration = 356;
 
-    // eslint-disable-next-line @typescript-eslint/unbound-method
+    // eslint-disable-next-line @typescript-eslint/unbound-method, deprecation/deprecation
     expect(transaction.startChild).toHaveBeenCalledTimes(0);
     _addMeasureSpans(transaction, entry, startTime, duration, timeOrigin);
-    // eslint-disable-next-line @typescript-eslint/unbound-method
+    // eslint-disable-next-line @typescript-eslint/unbound-method, deprecation/deprecation
     expect(transaction.startChild).toHaveBeenCalledTimes(1);
-    // eslint-disable-next-line @typescript-eslint/unbound-method
+    // eslint-disable-next-line @typescript-eslint/unbound-method, deprecation/deprecation
     expect(transaction.startChild).toHaveBeenLastCalledWith({
       description: 'measure-1',
       startTimestamp: timeOrigin + startTime,
@@ -40,6 +41,7 @@ describe('_addMeasureSpans', () => {
 describe('_addResourceSpans', () => {
   const transaction = new Transaction({ op: 'pageload', name: '/' });
   beforeEach(() => {
+    // eslint-disable-next-line deprecation/deprecation
     transaction.startChild = jest.fn();
   });
 
@@ -54,7 +56,7 @@ describe('_addResourceSpans', () => {
     };
     _addResourceSpans(transaction, entry, '/assets/to/me', 123, 456, 100);
 
-    // eslint-disable-next-line @typescript-eslint/unbound-method
+    // eslint-disable-next-line @typescript-eslint/unbound-method, deprecation/deprecation
     expect(transaction.startChild).toHaveBeenCalledTimes(0);
   });
 
@@ -68,7 +70,7 @@ describe('_addResourceSpans', () => {
     };
     _addResourceSpans(transaction, entry, '/assets/to/me', 123, 456, 100);
 
-    // eslint-disable-next-line @typescript-eslint/unbound-method
+    // eslint-disable-next-line @typescript-eslint/unbound-method, deprecation/deprecation
     expect(transaction.startChild).toHaveBeenCalledTimes(0);
   });
 
@@ -87,9 +89,9 @@ describe('_addResourceSpans', () => {
 
     _addResourceSpans(transaction, entry, '/assets/to/css', startTime, duration, timeOrigin);
 
-    // eslint-disable-next-line @typescript-eslint/unbound-method
+    // eslint-disable-next-line @typescript-eslint/unbound-method, deprecation/deprecation
     expect(transaction.startChild).toHaveBeenCalledTimes(1);
-    // eslint-disable-next-line @typescript-eslint/unbound-method
+    // eslint-disable-next-line @typescript-eslint/unbound-method, deprecation/deprecation
     expect(transaction.startChild).toHaveBeenLastCalledWith({
       data: {
         ['http.decoded_response_content_length']: entry.decodedBodySize,
@@ -135,7 +137,7 @@ describe('_addResourceSpans', () => {
       };
       _addResourceSpans(transaction, entry, '/assets/to/me', 123, 234, 465);
 
-      // eslint-disable-next-line @typescript-eslint/unbound-method
+      // eslint-disable-next-line @typescript-eslint/unbound-method, deprecation/deprecation
       expect(transaction.startChild).toHaveBeenLastCalledWith(
         expect.objectContaining({
           op,
@@ -155,9 +157,9 @@ describe('_addResourceSpans', () => {
 
     _addResourceSpans(transaction, entry, '/assets/to/css', 100, 23, 345);
 
-    // eslint-disable-next-line @typescript-eslint/unbound-method
+    // eslint-disable-next-line @typescript-eslint/unbound-method, deprecation/deprecation
     expect(transaction.startChild).toHaveBeenCalledTimes(1);
-    // eslint-disable-next-line @typescript-eslint/unbound-method
+    // eslint-disable-next-line @typescript-eslint/unbound-method, deprecation/deprecation
     expect(transaction.startChild).toHaveBeenLastCalledWith(
       expect.objectContaining({
         data: {
@@ -180,9 +182,9 @@ describe('_addResourceSpans', () => {
 
     _addResourceSpans(transaction, entry, '/assets/to/css', 100, 23, 345);
 
-    // eslint-disable-next-line @typescript-eslint/unbound-method
+    // eslint-disable-next-line @typescript-eslint/unbound-method, deprecation/deprecation
     expect(transaction.startChild).toHaveBeenCalledTimes(1);
-    // eslint-disable-next-line @typescript-eslint/unbound-method
+    // eslint-disable-next-line @typescript-eslint/unbound-method, deprecation/deprecation
     expect(transaction.startChild).toHaveBeenLastCalledWith(
       expect.objectContaining({
         data: {},
@@ -202,9 +204,9 @@ describe('_addResourceSpans', () => {
 
     _addResourceSpans(transaction, entry, '/assets/to/css', 100, 23, 345);
 
-    // eslint-disable-next-line @typescript-eslint/unbound-method
+    // eslint-disable-next-line @typescript-eslint/unbound-method, deprecation/deprecation
     expect(transaction.startChild).toHaveBeenCalledTimes(1);
-    // eslint-disable-next-line @typescript-eslint/unbound-method
+    // eslint-disable-next-line @typescript-eslint/unbound-method, deprecation/deprecation
     expect(transaction.startChild).toHaveBeenLastCalledWith(
       expect.objectContaining({
         data: {},
