@@ -1,6 +1,6 @@
 import { getCanvasManager } from '@sentry-internal/rrweb';
 import type { Integration } from '@sentry/types';
-import type { ReplayConfiguration } from './types';
+import type { ReplayConfiguration } from '@sentry/replay';
 
 interface ReplayCanvasOptions {
   quality: 'low' | 'medium' | 'high';

@@ -20,7 +20,7 @@ const INTEGRATIONS = {
 
 export { INTEGRATIONS as Integrations };
 
-export { Replay, ReplayCanvas } from '@sentry/replay';
+export { Replay } from '@sentry/replay';
 export type {
   ReplayEventType,
   ReplayEventWithTime,
@@ -32,6 +32,8 @@ export type {
   ReplaySpanFrame,
   ReplaySpanFrameEvent,
 } from '@sentry/replay';
+
+export { ReplayCanvas } from '@sentry-internal/replay-canvas';
 
 export { Feedback } from '@sentry-internal/feedback';
 

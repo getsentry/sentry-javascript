@@ -1,7 +1,7 @@
 export { Replay } from './integration';
-export { ReplayCanvas } from './canvas';
 
 export type {
+  ReplayConfiguration,
   ReplayEventType,
   ReplayEventWithTime,
   ReplayBreadcrumbFrame,

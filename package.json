@@ -66,6 +66,7 @@
     "packages/react",
     "packages/remix",
     "packages/replay",
+    "packages/replay-canvas",
     "packages/replay-worker",
     "packages/serverless",
     "packages/svelte",
