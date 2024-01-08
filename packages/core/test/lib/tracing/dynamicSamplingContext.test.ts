@@ -29,6 +29,7 @@ describe('getDynamicSamplingContextFromSpan', () => {
   test('returns a new DSC, if no DSC was provided during transaction creation', () => {
     const transaction = new Transaction({
       name: 'tx',
+      sampled: true,
       metadata: {
         sampleRate: 0.56,
       },
@@ -39,6 +40,7 @@ describe('getDynamicSamplingContextFromSpan', () => {
     expect(dynamicSamplingContext).toStrictEqual({
       release: '1.0.1',
       environment: 'production',
+      sampled: 'true',
       sample_rate: '0.56',
       trace_id: expect.any(String),
       transaction: 'tx',

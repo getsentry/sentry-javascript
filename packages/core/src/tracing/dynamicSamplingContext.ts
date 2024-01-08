@@ -3,6 +3,7 @@ import { dropUndefinedKeys } from '@sentry/utils';
 
 import { DEFAULT_ENVIRONMENT } from '../constants';
 import { getClient, getCurrentScope } from '../exports';
+import { spanIsSampled, spanToJSON } from '../utils/spanUtils';
 
 /**
  * Creates a dynamic sampling context from a client.
@@ -54,15 +55,14 @@ export function getDynamicSamplingContextFromSpan(span: Span): Readonly<Partial<
   }
 
   // passing emit=false here to only emit later once the DSC is actually populated
-  const dsc = getDynamicSamplingContextFromClient(span.traceId, client, getCurrentScope(), false);
+  const dsc = getDynamicSamplingContextFromClient(spanToJSON(span).trace_id || '', client, getCurrentScope(), false);
 
+  // As long as we use `Transaction`s internally, this should be fine.
+  // TODO: We need to replace this with a `getRootSpan(span)` function though
   const txn = span.transaction as TransactionWithV7FrozenDsc | undefined;
   if (!txn) {
     return dsc;
   }
-
-  // As long as we use `Transaction`s internally, this should be fine.
-  // TODO: We need to replace this with a `getRootSpan(span)` function though
 
   // TODO (v8): Remove v7FrozenDsc as a Transaction will no longer have _frozenDynamicSamplingContext
   // For now we need to avoid breaking users who directly created a txn with a DSC, where this field is still set.
@@ -79,16 +79,14 @@ export function getDynamicSamplingContextFromSpan(span: Span): Readonly<Partial<
 
   // We don't want to have a transaction name in the DSC if the source is "url" because URLs might contain PII
   const source = txn.metadata.source;
+  const jsonSpan = spanToJSON(txn);
+
+  // after JSON conversion, txn.name becomes jsonSpan.description
   if (source && source !== 'url') {
-    dsc.transaction = txn.name;
+    dsc.transaction = jsonSpan.description;
   }
 
-  // TODO: Switch to `spanIsSampled` once we have it
-  // eslint-disable-next-line deprecation/deprecation
-  if (txn.sampled !== undefined) {
-    // eslint-disable-next-line deprecation/deprecation
-    dsc.sampled = String(txn.sampled);
-  }
+  dsc.sampled = String(spanIsSampled(txn));
 
   client.emit && client.emit('createDsc', dsc);
 
