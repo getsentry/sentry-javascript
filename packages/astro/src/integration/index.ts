@@ -84,7 +84,7 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
           // Prevent Sentry from being externalized for SSR.
           // Cloudflare like environments have Node.js APIs are available under `node:` prefix.
           // Ref: https://developers.cloudflare.com/workers/runtime-apis/nodejs/
-          if (config?.adapter?.name.startsWith('@astro/cloudflare')) {
+          if (config?.adapter?.name.startsWith('@astrojs/cloudflare')) {
             updateConfig({
               vite: {
                 ssr: {
