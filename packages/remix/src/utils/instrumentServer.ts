@@ -5,6 +5,7 @@ import {
   getCurrentScope,
   hasTracingEnabled,
   runWithAsyncContext,
+  spanToJSON,
   spanToTraceHeader,
 } from '@sentry/core';
 import type { Hub } from '@sentry/node';
@@ -140,7 +141,8 @@ export async function captureRemixServerException(err: unknown, name: string, re
   const objectifiedErr = objectify(err);
 
   captureException(isResponse(objectifiedErr) ? await extractResponseError(objectifiedErr) : objectifiedErr, scope => {
-    const activeTransactionName = getActiveTransaction()?.name;
+    const transaction = getActiveTransaction();
+    const activeTransactionName = transaction ? spanToJSON(transaction) : undefined;
 
     scope.setSDKProcessingMetadata({
       request: {
@@ -188,7 +190,7 @@ function makeWrappedDocumentRequestFunction(remixVersion?: number) {
         const span = activeTransaction?.startChild({
           op: 'function.remix.document_request',
           origin: 'auto.function.remix',
-          description: activeTransaction.name,
+          description: spanToJSON(activeTransaction).description,
           tags: {
             method: request.method,
             url: request.url,

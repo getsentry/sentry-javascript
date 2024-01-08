@@ -1,5 +1,5 @@
 import { beforeAll, beforeEach, describe, expect, test } from 'bun:test';
-import { Hub, makeMain } from '@sentry/core';
+import { Hub, makeMain, spanToJSON } from '@sentry/core';
 
 import { BunClient } from '../../src/client';
 import { instrumentBunServe } from '../../src/integrations/bunserver';
@@ -30,7 +30,7 @@ describe('Bun Serve Integration', () => {
         'http.status_code': '200',
       });
       expect(transaction.op).toEqual('http.server');
-      expect(transaction.name).toEqual('GET /');
+      expect(spanToJSON(transaction).description).toEqual('GET /');
     });
 
     const server = Bun.serve({
@@ -52,7 +52,7 @@ describe('Bun Serve Integration', () => {
         'http.status_code': '200',
       });
       expect(transaction.op).toEqual('http.server');
-      expect(transaction.name).toEqual('POST /');
+      expect(spanToJSON(transaction).description).toEqual('POST /');
     });
 
     const server = Bun.serve({

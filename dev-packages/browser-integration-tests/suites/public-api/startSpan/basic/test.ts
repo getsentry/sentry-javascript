@@ -29,6 +29,7 @@ sentryTest('should report finished spans as children of the root transaction', a
   expect(transaction.spans).toHaveLength(1);
 
   const span_1 = transaction.spans?.[0];
+  // eslint-disable-next-line deprecation/deprecation
   expect(span_1?.description).toBe('child_span');
   expect(span_1?.parentSpanId).toEqual(rootSpanId);
 });

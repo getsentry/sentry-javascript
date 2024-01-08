@@ -205,7 +205,7 @@ export async function callDataFetcherTraced<F extends (...args: any[]) => Promis
   // right here so making that check will probabably not even be necessary.
   // Logic will be: If there is no active transaction, start one with correct name and source. If there is an active
   // transaction, create a child span with correct name and source.
-  transaction.name = parameterizedRoute;
+  transaction.updateName(parameterizedRoute);
   transaction.metadata.source = 'route';
 
   // Capture the route, since pre-loading, revalidation, etc might mean that this span may happen during another

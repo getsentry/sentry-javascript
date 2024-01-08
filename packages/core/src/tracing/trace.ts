@@ -39,12 +39,11 @@ export function trace<T>(
   // eslint-disable-next-line @typescript-eslint/no-empty-function
   afterFinish: () => void = () => {},
 ): T {
-  const ctx = normalizeContext(context);
-
   const hub = getCurrentHub();
   const scope = getCurrentScope();
   const parentSpan = scope.getSpan();
 
+  const ctx = normalizeContext(context);
   const activeSpan = createChildSpanOrTransaction(hub, parentSpan, ctx);
 
   scope.setSpan(activeSpan);
@@ -259,16 +258,12 @@ function createChildSpanOrTransaction(
  * Eventually the StartSpanOptions will be more aligned with OpenTelemetry.
  */
 function normalizeContext(context: StartSpanOptions): TransactionContext {
-  const ctx = { ...context };
-  // If a name is set and a description is not, set the description to the name.
-  if (ctx.name !== undefined && ctx.description === undefined) {
-    ctx.description = ctx.name;
-  }
-
   if (context.startTime) {
+    const ctx = { ...context };
     ctx.startTimestamp = spanTimeInputToSeconds(context.startTime);
     delete ctx.startTime;
+    return ctx;
   }
 
-  return ctx;
+  return context;
 }

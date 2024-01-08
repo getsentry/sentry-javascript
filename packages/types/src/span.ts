@@ -86,6 +86,8 @@ export interface SpanContextData {
 export interface SpanContext {
   /**
    * Description of the Span.
+   *
+   * @deprecated Use `name` instead.
    */
   description?: string;
 
@@ -165,6 +167,7 @@ export interface SpanContext {
 export interface Span extends SpanContext {
   /**
    * Human-readable identifier for the span. Identical to span.description.
+   * @deprecated Use `spanToJSON(span).description` instead.
    */
   name: string;
 

@@ -20,6 +20,7 @@ import {
   TRACE_FLAG_NONE,
   TRACE_FLAG_SAMPLED,
   spanTimeInputToSeconds,
+  spanToJSON,
   spanToTraceContext,
   spanToTraceHeader,
 } from '../utils/spanUtils';
@@ -87,11 +88,6 @@ export class Span implements SpanInterface {
   /**
    * @inheritDoc
    */
-  public description?: string;
-
-  /**
-   * @inheritDoc
-   */
   public tags: { [key: string]: Primitive };
 
   /**
@@ -128,6 +124,7 @@ export class Span implements SpanInterface {
   protected _traceId: string;
   protected _spanId: string;
   protected _sampled: boolean | undefined;
+  protected _name?: string;
 
   /**
    * You should never call the constructor manually, always use `Sentry.startTransaction()`
@@ -145,6 +142,8 @@ export class Span implements SpanInterface {
     this.attributes = spanContext.attributes || {};
     this.instrumenter = spanContext.instrumenter || 'sentry';
     this.origin = spanContext.origin || 'manual';
+    // eslint-disable-next-line deprecation/deprecation
+    this._name = spanContext.name || spanContext.description;
 
     if (spanContext.parentSpanId) {
       this.parentSpanId = spanContext.parentSpanId;
@@ -156,12 +155,6 @@ export class Span implements SpanInterface {
     if (spanContext.op) {
       this.op = spanContext.op;
     }
-    if (spanContext.description) {
-      this.description = spanContext.description;
-    }
-    if (spanContext.name) {
-      this.description = spanContext.name;
-    }
     if (spanContext.status) {
       this.status = spanContext.status;
     }
@@ -170,18 +163,38 @@ export class Span implements SpanInterface {
     }
   }
 
-  // This conflicts with another eslint rule :(
+  // This rule conflicts with another rule :(
   /* eslint-disable @typescript-eslint/member-ordering */
 
-  /** An alias for `description` of the Span. */
+  /**
+   * An alias for `description` of the Span.
+   * @deprecated Use `spanToJSON(span).description` instead.
+   */
   public get name(): string {
-    return this.description || '';
+    return this._name || '';
   }
   /**
    * Update the name of the span.
+   * @deprecated Use `spanToJSON(span).description` instead.
    */
   public set name(name: string) {
     this.updateName(name);
+  }
+
+  /**
+   * Get the description of the Span.
+   * @deprecated Use `spanToJSON(span).description` instead.
+   */
+  public get description(): string | undefined {
+    return this._name;
+  }
+
+  /**
+   * Get the description of the Span.
+   * @deprecated Use `spanToJSON(span).description` instead.
+   */
+  public set description(description: string | undefined) {
+    this._name = description;
   }
 
   /**
@@ -269,7 +282,7 @@ export class Span implements SpanInterface {
 
     if (DEBUG_BUILD && childSpan.transaction) {
       const opStr = (spanContext && spanContext.op) || '< unknown op >';
-      const nameStr = childSpan.transaction.name || '< unknown name >';
+      const nameStr = spanToJSON(childSpan).description || '< unknown name >';
       const idStr = childSpan.transaction.spanContext().spanId;
 
       const logMessage = `[Tracing] Starting '${opStr}' span on transaction '${nameStr}' (${idStr}).`;
@@ -342,7 +355,7 @@ export class Span implements SpanInterface {
    * @inheritDoc
    */
   public updateName(name: string): this {
-    this.description = name;
+    this._name = name;
     return this;
   }
 
@@ -392,7 +405,7 @@ export class Span implements SpanInterface {
   public toContext(): SpanContext {
     return dropUndefinedKeys({
       data: this._getData(),
-      description: this.description,
+      description: this._name,
       endTimestamp: this.endTimestamp,
       op: this.op,
       parentSpanId: this.parentSpanId,
@@ -410,7 +423,8 @@ export class Span implements SpanInterface {
    */
   public updateWithContext(spanContext: SpanContext): this {
     this.data = spanContext.data || {};
-    this.description = spanContext.description;
+    // eslint-disable-next-line deprecation/deprecation
+    this._name = spanContext.name || spanContext.description;
     this.endTimestamp = spanContext.endTimestamp;
     this.op = spanContext.op;
     this.parentSpanId = spanContext.parentSpanId;
@@ -437,7 +451,7 @@ export class Span implements SpanInterface {
   public getSpanJSON(): SpanJSON {
     return dropUndefinedKeys({
       data: this._getData(),
-      description: this.description,
+      description: this._name,
       op: this.op,
       parent_span_id: this.parentSpanId,
       span_id: this._spanId,
