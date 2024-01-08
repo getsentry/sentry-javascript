@@ -1,6 +1,8 @@
+import cloudflare from '@astrojs/cloudflare';
+import sentry from '@sentry/astro';
 import { defineConfig } from 'astro/config';
-import cloudflare from '@astrojs/cloudflare'
-import sentry from '@sentry/astro'
+
+const dsn = process.env.E2E_TEST_DSN;
 
 // https://astro.build/config
 export default defineConfig({
@@ -10,13 +12,8 @@ export default defineConfig({
   }),
   integrations: [
     sentry({
-      dsn: '',
-      autoInstrumentation: {
-        requestHandler: true,
-      },
-      sourceMapsUploadOptions: {
-        enabled: false,
-      },
+      enabled: Boolean(dsn),
+      dsn,
       clientInitPath: 'sentry.client.mjs',
       serverInitPath: 'sentry.server.mjs',
     }),

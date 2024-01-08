@@ -1,12 +1,13 @@
 {
-  "name": "@sentry-internal/env-tests-cloudflare-astro",
+  "name": "cloudflare-astro",
   "type": "module",
   "version": "0.0.1",
   "private": true,
   "scripts": {
     "dev": "astro dev",
     "start": "astro dev",
-    "build": "astro build",
+    "build": "yarn build:bundle",
+    "build:bundle": "astro build",
     "preview": "astro preview",
     "astro": "astro"
   },
@@ -15,5 +16,8 @@
     "@astrojs/cloudflare": "^8.0.2",
     "@sentry/astro": "7.92.0",
     "@sentry/profiling-node": "^1.3.2"
+  },
+  "volta": {
+    "extends": "../../../package.json"
   }
 }
