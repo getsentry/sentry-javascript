@@ -361,6 +361,7 @@ describe('Scope', () => {
       const scope = new Scope();
       const span = {
         fake: 'span',
+        spanContext: () => ({}),
         toJSON: () => ({ origin: 'manual' }),
       } as any;
       scope.setSpan(span);
@@ -374,6 +375,7 @@ describe('Scope', () => {
       const scope = new Scope();
       const span = {
         fake: 'span',
+        spanContext: () => ({}),
         toJSON: () => ({ a: 'b' }),
       } as any;
       scope.setSpan(span);
@@ -392,6 +394,7 @@ describe('Scope', () => {
       const scope = new Scope();
       const transaction = {
         fake: 'span',
+        spanContext: () => ({}),
         toJSON: () => ({ a: 'b' }),
         name: 'fake transaction',
         getDynamicSamplingContext: () => ({}),
@@ -407,9 +410,15 @@ describe('Scope', () => {
     test('adds `transaction` tag when span on scope', async () => {
       expect.assertions(1);
       const scope = new Scope();
-      const transaction = { name: 'fake transaction', getDynamicSamplingContext: () => ({}) };
+      const transaction = {
+        name: 'fake transaction',
+        spanContext: () => ({}),
+        toJSON: () => ({ description: 'fake transaction' }),
+        getDynamicSamplingContext: () => ({}),
+      };
       const span = {
         fake: 'span',
+        spanContext: () => ({}),
         toJSON: () => ({ a: 'b' }),
         transaction,
       } as any;
