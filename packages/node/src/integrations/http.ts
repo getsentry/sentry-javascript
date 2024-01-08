@@ -1,9 +1,16 @@
 import type * as http from 'http';
 import type * as https from 'https';
 import type { Hub } from '@sentry/core';
-import { spanToTraceHeader } from '@sentry/core';
-import { addBreadcrumb, getClient, getCurrentScope } from '@sentry/core';
-import { getCurrentHub, getDynamicSamplingContextFromClient, isSentryRequestUrl } from '@sentry/core';
+import {
+  addBreadcrumb,
+  getClient,
+  getCurrentHub,
+  getCurrentScope,
+  getDynamicSamplingContextFromClient,
+  isSentryRequestUrl,
+  spanToJSON,
+  spanToTraceHeader,
+} from '@sentry/core';
 import type {
   DynamicSamplingContext,
   EventProcessor,
@@ -293,7 +300,9 @@ function _createWrappedRequestMethodFactory(
             if (res.statusCode) {
               requestSpan.setHttpStatus(res.statusCode);
             }
-            requestSpan.description = cleanSpanDescription(requestSpan.description, requestOptions, req);
+            requestSpan.updateName(
+              cleanSpanDescription(spanToJSON(requestSpan).description || '', requestOptions, req) || '',
+            );
             requestSpan.end();
           }
         })
@@ -306,7 +315,9 @@ function _createWrappedRequestMethodFactory(
           }
           if (requestSpan) {
             requestSpan.setHttpStatus(500);
-            requestSpan.description = cleanSpanDescription(requestSpan.description, requestOptions, req);
+            requestSpan.updateName(
+              cleanSpanDescription(spanToJSON(requestSpan).description || '', requestOptions, req) || '',
+            );
             requestSpan.end();
           }
         });

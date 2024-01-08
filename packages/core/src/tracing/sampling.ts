@@ -3,6 +3,7 @@ import { isNaN, logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../debug-build';
 import { hasTracingEnabled } from '../utils/hasTracingEnabled';
+import { spanToJSON } from '../utils/spanUtils';
 import type { Transaction } from './transaction';
 
 /**
@@ -100,7 +101,8 @@ export function sampleTransaction<T extends Transaction>(
     return transaction;
   }
 
-  DEBUG_BUILD && logger.log(`[Tracing] starting ${transaction.op} transaction - ${transaction.name}`);
+  DEBUG_BUILD &&
+    logger.log(`[Tracing] starting ${transaction.op} transaction - ${spanToJSON(transaction).description}`);
   return transaction;
 }
 

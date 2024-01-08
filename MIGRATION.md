@@ -71,6 +71,8 @@ In v8, the Span class is heavily reworked. The following properties & methods ar
 * `span.sampled`: Use `span.isRecording()` instead.
 * `span.spanId`: Use `span.spanContext().spanId` instead.
 * `span.traceId`: Use `span.spanContext().traceId` instead.
+* `span.name`: Use `spanToJSON(span).description` instead.
+* `span.description`: Use `spanToJSON(span).description` instead.
 
 ## Deprecate `pushScope` & `popScope` in favor of `withScope`
 

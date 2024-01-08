@@ -1,3 +1,4 @@
+import { spanToJSON } from '@sentry/core';
 import { Span, Transaction } from '../../../src';
 import { _startChild } from '../../../src/browser/metrics/utils';
 
@@ -10,7 +11,7 @@ describe('_startChild()', () => {
     });
 
     expect(span).toBeInstanceOf(Span);
-    expect(span.description).toBe('evaluation');
+    expect(spanToJSON(span).description).toBe('evaluation');
     expect(span.op).toBe('script');
   });
 

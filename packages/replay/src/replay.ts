@@ -1,6 +1,6 @@
 /* eslint-disable max-lines */ // TODO: We might want to split this file up
 import { EventType, record } from '@sentry-internal/rrweb';
-import { captureException, getClient, getCurrentScope } from '@sentry/core';
+import { captureException, getClient, getCurrentScope, spanToJSON } from '@sentry/core';
 import type { ReplayRecordingMode, Transaction } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
@@ -704,7 +704,7 @@ export class ReplayContainer implements ReplayContainerInterface {
       return undefined;
     }
 
-    return lastTransaction.name;
+    return spanToJSON(lastTransaction).description;
   }
 
   /**

@@ -28,7 +28,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
    */
   public _hub: Hub;
 
-  private _name: string;
+  protected _name: string;
 
   private _measurements: Measurements;
 
@@ -47,10 +47,6 @@ export class Transaction extends SpanClass implements TransactionInterface {
    */
   public constructor(transactionContext: TransactionContext, hub?: Hub) {
     super(transactionContext);
-    // We need to delete description since it's set by the Span class constructor
-    // but not needed for transactions.
-    delete this.description;
-
     this._measurements = {};
     this._contexts = {};
 
@@ -78,13 +74,17 @@ export class Transaction extends SpanClass implements TransactionInterface {
     }
   }
 
-  /** Getter for `name` property */
+  /**
+   * Getter for `name` property.
+   * @deprecated Use `spanToJSON(span).description` instead.
+   */
   public get name(): string {
     return this._name;
   }
 
   /**
    * Setter for `name` property, which also sets `source` as custom.
+   * @deprecated Use `updateName()` and `setMetadata()` instead.
    */
   public set name(newName: string) {
     // eslint-disable-next-line deprecation/deprecation
@@ -166,7 +166,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
 
     return dropUndefinedKeys({
       ...spanContext,
-      name: this.name,
+      name: this._name,
       trimEnd: this._trimEnd,
     });
   }
@@ -178,8 +178,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
     // eslint-disable-next-line deprecation/deprecation
     super.updateWithContext(transactionContext);
 
-    this.name = transactionContext.name || '';
-
+    this._name = transactionContext.name || '';
     this._trimEnd = transactionContext.trimEnd;
 
     return this;
@@ -213,7 +212,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
     // We don't want to have a transaction name in the DSC if the source is "url" because URLs might contain PII
     const source = this.metadata.source;
     if (source && source !== 'url') {
-      dsc.transaction = this.name;
+      dsc.transaction = this._name;
     }
 
     if (sampled !== undefined) {
@@ -245,9 +244,9 @@ export class Transaction extends SpanClass implements TransactionInterface {
       return undefined;
     }
 
-    if (!this.name) {
+    if (!this._name) {
       DEBUG_BUILD && logger.warn('Transaction has no name, falling back to `<unlabeled transaction>`.');
-      this.name = '<unlabeled transaction>';
+      this._name = '<unlabeled transaction>';
     }
 
     // just sets the end timestamp
@@ -293,7 +292,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
       start_timestamp: this.startTimestamp,
       tags: this.tags,
       timestamp: this.endTimestamp,
-      transaction: this.name,
+      transaction: this._name,
       type: 'transaction',
       sdkProcessingMetadata: {
         ...metadata,
@@ -317,7 +316,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
       transaction.measurements = this._measurements;
     }
 
-    DEBUG_BUILD && logger.log(`[Tracing] Finishing ${this.op} transaction: ${this.name}.`);
+    DEBUG_BUILD && logger.log(`[Tracing] Finishing ${this.op} transaction: ${this._name}.`);
 
     return transaction;
   }

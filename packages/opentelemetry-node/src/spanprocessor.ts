@@ -197,7 +197,7 @@ function updateSpanWithOtelData(sentrySpan: SentrySpan, otelSpan: OtelSpan): voi
   });
 
   sentrySpan.op = op;
-  sentrySpan.description = description;
+  sentrySpan.updateName(description);
 }
 
 function updateTransactionWithOtelData(transaction: Transaction, otelSpan: OtelSpan): void {

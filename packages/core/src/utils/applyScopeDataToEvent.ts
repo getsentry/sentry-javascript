@@ -1,6 +1,6 @@
 import type { Breadcrumb, Event, PropagationContext, ScopeData, Span } from '@sentry/types';
 import { arrayify } from '@sentry/utils';
-import { spanToTraceContext } from './spanUtils';
+import { spanToJSON, spanToTraceContext } from './spanUtils';
 
 /**
  * Applies data from the scope to the event and runs all event processors on it.
@@ -169,7 +169,7 @@ function applySpanToEvent(event: Event, span: Span): void {
       dynamicSamplingContext: transaction.getDynamicSamplingContext(),
       ...event.sdkProcessingMetadata,
     };
-    const transactionName = transaction.name;
+    const transactionName = spanToJSON(transaction).description;
     if (transactionName) {
       event.tags = { transaction: transactionName, ...event.tags };
     }

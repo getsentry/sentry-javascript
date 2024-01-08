@@ -395,8 +395,7 @@ describe('Scope', () => {
       const transaction = {
         fake: 'span',
         spanContext: () => ({}),
-        toJSON: () => ({ a: 'b' }),
-        name: 'fake transaction',
+        toJSON: () => ({ a: 'b', description: 'fake transaction' }),
         getDynamicSamplingContext: () => ({}),
       } as any;
       transaction.transaction = transaction; // because this is a transaction, its `transaction` pointer points to itself
@@ -411,7 +410,6 @@ describe('Scope', () => {
       expect.assertions(1);
       const scope = new Scope();
       const transaction = {
-        name: 'fake transaction',
         spanContext: () => ({}),
         toJSON: () => ({ description: 'fake transaction' }),
         getDynamicSamplingContext: () => ({}),

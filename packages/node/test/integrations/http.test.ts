@@ -90,7 +90,7 @@ describe('tracing', () => {
     expect(spans.length).toEqual(2);
 
     // our span is at index 1 because the transaction itself is at index 0
-    expect(spans[1].description).toEqual('GET http://dogs.are.great/');
+    expect(sentryCore.spanToJSON(spans[1]).description).toEqual('GET http://dogs.are.great/');
     expect(spans[1].op).toEqual('http.client');
   });
 
@@ -104,7 +104,7 @@ describe('tracing', () => {
 
     // only the transaction itself should be there
     expect(spans.length).toEqual(1);
-    expect((spans[0] as Transaction).name).toEqual('dogpark');
+    expect(sentryCore.spanToJSON(spans[0]).description).toEqual('dogpark');
   });
 
   it('attaches the sentry-trace header to outgoing non-sentry requests', async () => {
@@ -292,7 +292,7 @@ describe('tracing', () => {
     expect(spans.length).toEqual(2);
 
     // our span is at index 1 because the transaction itself is at index 0
-    expect(spans[1].description).toEqual('GET http://dogs.are.great/spaniel');
+    expect(sentryCore.spanToJSON(spans[1]).description).toEqual('GET http://dogs.are.great/spaniel');
     expect(spans[1].op).toEqual('http.client');
     expect(spans[1].data['http.method']).toEqual('GET');
     expect(spans[1].data.url).toEqual('http://dogs.are.great/spaniel');
@@ -311,7 +311,7 @@ describe('tracing', () => {
     expect(spans.length).toEqual(2);
 
     // our span is at index 1 because the transaction itself is at index 0
-    expect(spans[1].description).toEqual('GET http://dogs.are.great/spaniel');
+    expect(sentryCore.spanToJSON(spans[1]).description).toEqual('GET http://dogs.are.great/spaniel');
     expect(spans[1].op).toEqual('http.client');
     expect(spans[1].data['http.method']).toEqual('GET');
     expect(spans[1].data.url).toEqual('http://dogs.are.great/spaniel');
@@ -336,7 +336,7 @@ describe('tracing', () => {
     expect(spans.length).toEqual(2);
 
     // our span is at index 1 because the transaction itself is at index 0
-    expect(spans[1].description).toEqual(`GET http://${redactedAuth}dogs.are.great/`);
+    expect(sentryCore.spanToJSON(spans[1]).description).toEqual(`GET http://${redactedAuth}dogs.are.great/`);
   });
 
   describe('Tracing options', () => {

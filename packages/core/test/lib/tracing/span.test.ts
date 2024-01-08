@@ -3,57 +3,61 @@ import { Span } from '../../../src';
 import { TRACE_FLAG_NONE, TRACE_FLAG_SAMPLED } from '../../../src/utils/spanUtils';
 
 describe('span', () => {
-  it('works with name', () => {
-    const span = new Span({ name: 'span name' });
-    expect(span.name).toEqual('span name');
-    expect(span.description).toEqual('span name');
+  describe('name', () => {
+    /* eslint-disable deprecation/deprecation */
+    it('works with name', () => {
+      const span = new Span({ name: 'span name' });
+      expect(span.name).toEqual('span name');
+      expect(span.description).toEqual('span name');
+    });
+
+    it('works with description', () => {
+      const span = new Span({ description: 'span name' });
+      expect(span.name).toEqual('span name');
+      expect(span.description).toEqual('span name');
+    });
+
+    it('works without name', () => {
+      const span = new Span({});
+      expect(span.name).toEqual('');
+      expect(span.description).toEqual(undefined);
+    });
+
+    it('allows to update the name via setter', () => {
+      const span = new Span({ name: 'span name' });
+      expect(span.name).toEqual('span name');
+      expect(span.description).toEqual('span name');
+
+      span.name = 'new name';
+
+      expect(span.name).toEqual('new name');
+      expect(span.description).toEqual('new name');
+    });
+
+    it('allows to update the name via setName', () => {
+      const span = new Span({ name: 'span name' });
+      expect(span.name).toEqual('span name');
+      expect(span.description).toEqual('span name');
+
+      // eslint-disable-next-line deprecation/deprecation
+      span.setName('new name');
+
+      expect(span.name).toEqual('new name');
+      expect(span.description).toEqual('new name');
+    });
+
+    it('allows to update the name via updateName', () => {
+      const span = new Span({ name: 'span name' });
+      expect(span.name).toEqual('span name');
+      expect(span.description).toEqual('span name');
+
+      span.updateName('new name');
+
+      expect(span.name).toEqual('new name');
+      expect(span.description).toEqual('new name');
+    });
   });
-
-  it('works with description', () => {
-    const span = new Span({ description: 'span name' });
-    expect(span.name).toEqual('span name');
-    expect(span.description).toEqual('span name');
-  });
-
-  it('works without name', () => {
-    const span = new Span({});
-    expect(span.name).toEqual('');
-    expect(span.description).toEqual(undefined);
-  });
-
-  it('allows to update the name via setter', () => {
-    const span = new Span({ name: 'span name' });
-    expect(span.name).toEqual('span name');
-    expect(span.description).toEqual('span name');
-
-    span.name = 'new name';
-
-    expect(span.name).toEqual('new name');
-    expect(span.description).toEqual('new name');
-  });
-
-  it('allows to update the name via setName', () => {
-    const span = new Span({ name: 'span name' });
-    expect(span.name).toEqual('span name');
-    expect(span.description).toEqual('span name');
-
-    // eslint-disable-next-line deprecation/deprecation
-    span.setName('new name');
-
-    expect(span.name).toEqual('new name');
-    expect(span.description).toEqual('new name');
-  });
-
-  it('allows to update the name via updateName', () => {
-    const span = new Span({ name: 'span name' });
-    expect(span.name).toEqual('span name');
-    expect(span.description).toEqual('span name');
-
-    span.updateName('new name');
-
-    expect(span.name).toEqual('new name');
-    expect(span.description).toEqual('new name');
-  });
+  /* eslint-enable deprecation/deprecation */
 
   describe('setAttribute', () => {
     it('allows to set attributes', () => {

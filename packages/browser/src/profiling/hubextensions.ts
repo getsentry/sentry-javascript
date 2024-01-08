@@ -1,4 +1,5 @@
 /* eslint-disable complexity */
+import { spanToJSON } from '@sentry/core';
 import type { Transaction } from '@sentry/types';
 import { logger, timestampInSeconds, uuid4 } from '@sentry/utils';
 
@@ -56,7 +57,7 @@ export function startProfileForTransaction(transaction: Transaction): Transactio
   }
 
   if (DEBUG_BUILD) {
-    logger.log(`[Profiling] started profiling transaction: ${transaction.name || transaction.description}`);
+    logger.log(`[Profiling] started profiling transaction: ${spanToJSON(transaction).description}`);
   }
 
   // We create "unique" transaction names to avoid concurrent transactions with same names
@@ -87,11 +88,7 @@ export function startProfileForTransaction(transaction: Transaction): Transactio
     }
     if (processedProfile) {
       if (DEBUG_BUILD) {
-        logger.log(
-          '[Profiling] profile for:',
-          transaction.name || transaction.description,
-          'already exists, returning early',
-        );
+        logger.log('[Profiling] profile for:', spanToJSON(transaction).description, 'already exists, returning early');
       }
       return null;
     }
@@ -105,14 +102,14 @@ export function startProfileForTransaction(transaction: Transaction): Transactio
         }
 
         if (DEBUG_BUILD) {
-          logger.log(`[Profiling] stopped profiling of transaction: ${transaction.name || transaction.description}`);
+          logger.log(`[Profiling] stopped profiling of transaction: ${spanToJSON(transaction).description}`);
         }
 
         // In case of an overlapping transaction, stopProfiling may return null and silently ignore the overlapping profile.
         if (!profile) {
           if (DEBUG_BUILD) {
             logger.log(
-              `[Profiling] profiler returned null profile for: ${transaction.name || transaction.description}`,
+              `[Profiling] profiler returned null profile for: ${spanToJSON(transaction).description}`,
               'this may indicate an overlapping transaction or a call to stopProfiling with a profile title that was never started',
             );
           }
@@ -135,7 +132,7 @@ export function startProfileForTransaction(transaction: Transaction): Transactio
     if (DEBUG_BUILD) {
       logger.log(
         '[Profiling] max profile duration elapsed, stopping profiling for:',
-        transaction.name || transaction.description,
+        spanToJSON(transaction).description,
       );
     }
     // If the timeout exceeds, we want to stop profiling, but not finish the transaction
