@@ -8,6 +8,10 @@ npx @sentry/migr8@latest
 
 This will let you select which updates to run, and automatically update your code. Make sure to still review all code changes!
 
+## Deprecate `scope.getTransaction()` and `getActiveTransaction()`
+
+Instead, you should not rely on the active transaction, but just use `startSpan()` APIs, which handle this for you.
+
 ## Deprecate arguments for `startSpan()` APIs
 
 In v8, the API to start a new span will be reduced from the currently available options.

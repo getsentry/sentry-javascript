@@ -45,6 +45,7 @@ export const hapiErrorPlugin = {
     const server = serverArg as unknown as Server;
 
     server.events.on('request', (request, event) => {
+      // eslint-disable-next-line deprecation/deprecation
       const transaction = getActiveTransaction();
 
       if (request.response && isBoomObject(request.response)) {
@@ -91,6 +92,7 @@ export const hapiTracingPlugin = {
     });
 
     server.ext('onPreResponse', (request, h) => {
+      // eslint-disable-next-line deprecation/deprecation
       const transaction = getActiveTransaction();
 
       if (request.response && isResponseObject(request.response) && transaction) {
@@ -110,6 +112,7 @@ export const hapiTracingPlugin = {
     });
 
     server.ext('onPostHandler', (request, h) => {
+      // eslint-disable-next-line deprecation/deprecation
       const transaction = getActiveTransaction();
 
       if (request.response && isResponseObject(request.response) && transaction) {

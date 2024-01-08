@@ -98,6 +98,7 @@ function instrumentNavigations(startTransactionFn: (context: TransactionContext)
     const parameterizedRouteOrigin = from && from.route.id;
     const parameterizedRouteDestination = to && to.route.id;
 
+    // eslint-disable-next-line deprecation/deprecation
     activeTransaction = getActiveTransaction();
 
     if (!activeTransaction) {

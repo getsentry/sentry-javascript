@@ -2,11 +2,12 @@ import { assert, warn } from '@ember/debug';
 import type Route from '@ember/routing/route';
 import { next } from '@ember/runloop';
 import { getOwnConfig, isDevelopingApp, macroCondition } from '@embroider/macros';
+import { startSpan } from '@sentry/browser';
 import type { BrowserOptions } from '@sentry/browser';
 import * as Sentry from '@sentry/browser';
 import { SDK_VERSION } from '@sentry/browser';
 import type { Transaction } from '@sentry/types';
-import { GLOBAL_OBJ, timestampInSeconds } from '@sentry/utils';
+import { GLOBAL_OBJ } from '@sentry/utils';
 import Ember from 'ember';
 
 import type { EmberSentryConfig, GlobalConfig, OwnConfig } from './types';
@@ -66,7 +67,13 @@ export function InitSentryForEmber(_runtimeConfig?: BrowserOptions): void {
   }
 }
 
+/**
+ * Grabs active transaction off scope.
+ *
+ * @deprecated You should not rely on the transaction, but just use `startSpan()` APIs instead.
+ */
 export const getActiveTransaction = (): Transaction | undefined => {
+  // eslint-disable-next-line deprecation/deprecation
   return Sentry.getCurrentHub().getScope().getTransaction();
 };
 
@@ -80,23 +87,16 @@ export const instrumentRoutePerformance = <T extends RouteConstructor>(BaseRoute
     fn: X,
     args: Parameters<X>,
   ): Promise<ReturnType<X>> => {
-    const startTimestamp = timestampInSeconds();
-    const result = await fn(...args);
-
-    const currentTransaction = getActiveTransaction();
-    if (!currentTransaction) {
-      return result;
-    }
-    currentTransaction
-      // eslint-disable-next-line deprecation/deprecation
-      .startChild({
+    return startSpan(
+      {
         op,
-        description,
+        name: description,
         origin: 'auto.ui.ember',
-        startTimestamp,
-      })
-      .end();
-    return result;
+      },
+      () => {
+        return fn(...args);
+      },
+    );
   };
 
   const routeName = BaseRoute.name;

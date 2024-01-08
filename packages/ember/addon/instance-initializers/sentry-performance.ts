@@ -196,6 +196,7 @@ function _instrumentEmberRunloop(config: EmberSentryConfig): void {
     if (previousInstance) {
       return;
     }
+    // eslint-disable-next-line deprecation/deprecation
     const activeTransaction = getActiveTransaction();
     if (!activeTransaction) {
       return;
@@ -227,6 +228,7 @@ function _instrumentEmberRunloop(config: EmberSentryConfig): void {
 
       // Setup for next queue
 
+      // eslint-disable-next-line deprecation/deprecation
       const stillActiveTransaction = getActiveTransaction();
       if (!stillActiveTransaction) {
         return;
@@ -288,6 +290,7 @@ function processComponentRenderAfter(
   const componentRenderDuration = now - begin.now;
 
   if (componentRenderDuration * 1000 >= minComponentDuration) {
+    // eslint-disable-next-line deprecation/deprecation
     const activeTransaction = getActiveTransaction();
     // eslint-disable-next-line deprecation/deprecation
     activeTransaction?.startChild({
@@ -374,6 +377,7 @@ function _instrumentInitialLoad(config: EmberSentryConfig): void {
   const startTimestamp = (measure.startTime + browserPerformanceTimeOrigin) / 1000;
   const endTimestamp = startTimestamp + measure.duration / 1000;
 
+  // eslint-disable-next-line deprecation/deprecation
   const transaction = getActiveTransaction();
   // eslint-disable-next-line deprecation/deprecation
   const span = transaction?.startChild({

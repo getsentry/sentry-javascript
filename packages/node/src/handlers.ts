@@ -328,6 +328,7 @@ interface TrpcMiddlewareArguments<T> {
 export function trpcMiddleware(options: SentryTrpcMiddlewareOptions = {}) {
   return function <T>({ path, type, next, rawInput }: TrpcMiddlewareArguments<T>): T {
     const clientOptions = getClient()?.getOptions();
+    // eslint-disable-next-line deprecation/deprecation
     const sentryTransaction = getCurrentScope().getTransaction();
 
     if (sentryTransaction) {

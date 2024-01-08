@@ -22,6 +22,7 @@ export {
   createTransport,
   // eslint-disable-next-line deprecation/deprecation
   extractTraceparentData,
+  // eslint-disable-next-line deprecation/deprecation
   getActiveTransaction,
   getHubFromCarrier,
   getCurrentHub,

@@ -194,6 +194,7 @@ export async function callDataFetcherTraced<F extends (...args: any[]) => Promis
 ): Promise<ReturnType<F>> {
   const { parameterizedRoute, dataFetchingMethodName } = options;
 
+  // eslint-disable-next-line deprecation/deprecation
   const transaction = getActiveTransaction();
 
   if (!transaction) {

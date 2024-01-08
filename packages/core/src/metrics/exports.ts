@@ -30,6 +30,7 @@ function addToMetricsAggregator(
     }
     const { unit, tags, timestamp } = data;
     const { release, environment } = client.getOptions();
+    // eslint-disable-next-line deprecation/deprecation
     const transaction = scope.getTransaction();
     const metricTags: Record<string, string> = {};
     if (release) {

@@ -141,6 +141,7 @@ export async function captureRemixServerException(err: unknown, name: string, re
   const objectifiedErr = objectify(err);
 
   captureException(isResponse(objectifiedErr) ? await extractResponseError(objectifiedErr) : objectifiedErr, scope => {
+    // eslint-disable-next-line deprecation/deprecation
     const transaction = getActiveTransaction();
     const activeTransactionName = transaction ? spanToJSON(transaction) : undefined;
 
@@ -183,6 +184,7 @@ function makeWrappedDocumentRequestFunction(remixVersion?: number) {
       loadContext?: Record<string, unknown>,
     ): Promise<Response> {
       let res: Response;
+      // eslint-disable-next-line deprecation/deprecation
       const activeTransaction = getActiveTransaction();
 
       try {
@@ -238,6 +240,7 @@ function makeWrappedDataFunction(
     }
 
     let res: Response | AppData;
+    // eslint-disable-next-line deprecation/deprecation
     const activeTransaction = getActiveTransaction();
     const currentScope = getCurrentScope();
 
@@ -294,6 +297,7 @@ function getTraceAndBaggage(): {
   sentryTrace?: string;
   sentryBaggage?: string;
 } {
+  // eslint-disable-next-line deprecation/deprecation
   const transaction = getActiveTransaction();
   const currentScope = getCurrentScope();
 

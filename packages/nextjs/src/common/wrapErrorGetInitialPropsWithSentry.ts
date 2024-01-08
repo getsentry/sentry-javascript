@@ -53,6 +53,7 @@ export function wrapErrorGetInitialPropsWithSentry(
           _sentryBaggage?: string;
         } = await tracedGetInitialProps.apply(thisArg, args);
 
+        // eslint-disable-next-line deprecation/deprecation
         const requestTransaction = getTransactionFromRequest(req) ?? getCurrentScope().getTransaction();
         if (requestTransaction) {
           errorGetInitialProps._sentryTraceData = spanToTraceHeader(requestTransaction);

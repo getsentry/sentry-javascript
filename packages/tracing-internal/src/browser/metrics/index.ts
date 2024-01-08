@@ -69,6 +69,7 @@ export function startTrackingWebVitals(): () => void {
 export function startTrackingLongTasks(): void {
   addPerformanceInstrumentationHandler('longtask', ({ entries }) => {
     for (const entry of entries) {
+      // eslint-disable-next-line deprecation/deprecation
       const transaction = getActiveTransaction() as IdleTransaction | undefined;
       if (!transaction) {
         return;
@@ -94,6 +95,7 @@ export function startTrackingLongTasks(): void {
 export function startTrackingInteractions(): void {
   addPerformanceInstrumentationHandler('event', ({ entries }) => {
     for (const entry of entries) {
+      // eslint-disable-next-line deprecation/deprecation
       const transaction = getActiveTransaction() as IdleTransaction | undefined;
       if (!transaction) {
         return;

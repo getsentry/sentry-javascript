@@ -46,6 +46,7 @@ export function wrapGetServerSidePropsWithSentry(
         >);
 
         if (serverSideProps && 'props' in serverSideProps) {
+          // eslint-disable-next-line deprecation/deprecation
           const requestTransaction = getTransactionFromRequest(req) ?? getCurrentScope().getTransaction();
           if (requestTransaction) {
             serverSideProps.props._sentryTraceData = spanToTraceHeader(requestTransaction);

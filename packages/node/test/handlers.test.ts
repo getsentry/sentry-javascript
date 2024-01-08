@@ -340,6 +340,7 @@ describe('tracingHandler', () => {
 
     sentryTracingMiddleware(req, res, next);
 
+    // eslint-disable-next-line deprecation/deprecation
     const transaction = sentryCore.getCurrentHub().getScope().getTransaction();
 
     expect(transaction).toBeDefined();
@@ -463,6 +464,7 @@ describe('tracingHandler', () => {
 
     sentryTracingMiddleware(req, res, next);
 
+    // eslint-disable-next-line deprecation/deprecation
     const transaction = sentryCore.getCurrentScope().getTransaction();
 
     expect(transaction?.metadata.request).toEqual(req);

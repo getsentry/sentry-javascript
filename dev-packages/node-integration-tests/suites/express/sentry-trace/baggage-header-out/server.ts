@@ -26,6 +26,7 @@ app.use(Sentry.Handlers.tracingHandler());
 app.use(cors());
 
 app.get('/test/express', (_req, res) => {
+  // eslint-disable-next-line deprecation/deprecation
   const transaction = Sentry.getCurrentHub().getScope().getTransaction();
   if (transaction) {
     // eslint-disable-next-line deprecation/deprecation

@@ -34,6 +34,7 @@ describe('IdleTransaction', () => {
       transaction.initSpanRecorder(10);
 
       const scope = hub.getScope();
+      // eslint-disable-next-line deprecation/deprecation
       expect(scope.getTransaction()).toBe(transaction);
     });
 
@@ -42,6 +43,7 @@ describe('IdleTransaction', () => {
       transaction.initSpanRecorder(10);
 
       const scope = hub.getScope();
+      // eslint-disable-next-line deprecation/deprecation
       expect(scope.getTransaction()).toBe(undefined);
     });
 
@@ -60,6 +62,7 @@ describe('IdleTransaction', () => {
       jest.runAllTimers();
 
       const scope = hub.getScope();
+      // eslint-disable-next-line deprecation/deprecation
       expect(scope.getTransaction()).toBe(undefined);
     });
 
@@ -77,6 +80,7 @@ describe('IdleTransaction', () => {
       jest.runAllTimers();
 
       const scope = hub.getScope();
+      // eslint-disable-next-line deprecation/deprecation
       expect(scope.getTransaction()).toBe(undefined);
     });
 
@@ -99,6 +103,7 @@ describe('IdleTransaction', () => {
       jest.runAllTimers();
 
       const scope = hub.getScope();
+      // eslint-disable-next-line deprecation/deprecation
       expect(scope.getTransaction()).toBe(otherTransaction);
     });
   });
