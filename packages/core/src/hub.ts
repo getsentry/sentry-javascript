@@ -305,7 +305,7 @@ export class Hub implements HubInterface {
   /**
    * @inheritDoc
    *
-   * @deprecated Use top level `captureEvent` instead.
+   * @deprecated Use `Sentry.captureEvent()` instead.
    */
   public captureEvent(event: Event, hint?: EventHint): string {
     const eventId = hint && hint.event_id ? hint.event_id : uuid4();
