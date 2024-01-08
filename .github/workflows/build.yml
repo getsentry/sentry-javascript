@@ -522,22 +522,17 @@ jobs:
       - uses: actions/cache@v3
         name: Check if Playwright browser is cached
         id: playwright-cache
+        if: needs.job_get_metadata.outputs.force_skip_cache == 'false'
         with:
           path: ${{ steps.npm-cache-dir.outputs.dir }}
           key: ${{ runner.os }}-Playwright-${{steps.playwright-version.outputs.version}}
       - name: Install Playwright browser if not cached
-        if: |
-          matrix.node >= 14 &&
-          (steps.playwright-cache.outputs.cache-hit != 'true' ||
-          (needs.job_get_metadata.outputs.is_release == 'false' && needs.job_get_metadata.outputs.force_skip_cache == 'false'))
+        if: steps.playwright-cache.outputs.cache-hit != 'true' && matrix.node >= 14
         run: npx playwright install --with-deps
         env:
           PLAYWRIGHT_BROWSERS_PATH: ${{steps.npm-cache-dir.outputs.dir}}
       - name: Install OS dependencies of Playwright if cache hit
-        if: |
-          matrix.node >= 14 &&
-          (steps.playwright-cache.outputs.cache-hit != 'true' ||
-          (needs.job_get_metadata.outputs.is_release == 'false' && needs.job_get_metadata.outputs.force_skip_cache == 'false'))
+        if: steps.playwright-cache.outputs.cache-hit == 'true' && matrix.node >= 14
         run: npx playwright install-deps
       - name: Run tests
         env:
@@ -593,20 +588,17 @@ jobs:
       - uses: actions/cache@v3
         name: Check if Playwright browser is cached
         id: playwright-cache
+        if: needs.job_get_metadata.outputs.force_skip_cache == 'false'
         with:
           path: ${{ steps.npm-cache-dir.outputs.dir }}
           key: ${{ runner.os }}-Playwright-${{steps.playwright-version.outputs.version}}
       - name: Install Playwright browser if not cached
-        if: |
-          steps.playwright-cache.outputs.cache-hit != 'true' ||
-          (needs.job_get_metadata.outputs.is_release == 'false' && needs.job_get_metadata.outputs.force_skip_cache == 'false')
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
         run: npx playwright install --with-deps
         env:
           PLAYWRIGHT_BROWSERS_PATH: ${{steps.npm-cache-dir.outputs.dir}}
       - name: Install OS dependencies of Playwright if cache hit
-        if: |
-          steps.playwright-cache.outputs.cache-hit != 'true' ||
-          (needs.job_get_metadata.outputs.is_release == 'false' && needs.job_get_metadata.outputs.force_skip_cache == 'false')
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
         run: npx playwright install-deps
       - name: Run Playwright tests
         env:
@@ -654,20 +646,17 @@ jobs:
       - uses: actions/cache@v3
         name: Check if Playwright browser is cached
         id: playwright-cache
+        if: needs.job_get_metadata.outputs.force_skip_cache == 'false'
         with:
           path: ${{ steps.npm-cache-dir.outputs.dir }}
           key: ${{ runner.os }}-Playwright-${{steps.playwright-version.outputs.version}}
       - name: Install Playwright browser if not cached
-        if: |
-          steps.playwright-cache.outputs.cache-hit != 'true' ||
-          (needs.job_get_metadata.outputs.is_release == 'false' && needs.job_get_metadata.outputs.force_skip_cache == 'false')
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
         run: npx playwright install --with-deps
         env:
           PLAYWRIGHT_BROWSERS_PATH: ${{steps.npm-cache-dir.outputs.dir}}
       - name: Install OS dependencies of Playwright if cache hit
-        if: |
-          steps.playwright-cache.outputs.cache-hit != 'true' ||
-          (needs.job_get_metadata.outputs.is_release == 'false' && needs.job_get_metadata.outputs.force_skip_cache == 'false')
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
         run: npx playwright install-deps
       - name: Run Playwright Loader tests
         env:
