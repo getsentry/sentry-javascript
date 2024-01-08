@@ -48,10 +48,14 @@ type TransactionWithV7FrozenDsc = Span & { _frozenDynamicSamplingContext?: Dynam
  * @returns a dynamic sampling context
  */
 export function getDynamicSamplingContextFromSpan(span: Span): Readonly<Partial<DynamicSamplingContext>> {
+  // As long as we use `Transaction`s internally, this should be fine.
+  // TODO: We need to replace this with a `getRootSpan(span)` function though
+  const txn = span.transaction;
+
   // TODO (v8): Remove v7FrozenDsc as a Transaction will no longer have _frozenDynamicSamplingContext
   // For now we need to avoid breaking users who directly created a txn with a DSC, where this field is still set.
   // @see Transaction class constructor
-  const v7FrozenDsc = (span as TransactionWithV7FrozenDsc)._frozenDynamicSamplingContext;
+  const v7FrozenDsc = (txn as TransactionWithV7FrozenDsc)._frozenDynamicSamplingContext;
   if (v7FrozenDsc) {
     return v7FrozenDsc;
   }
@@ -63,7 +67,6 @@ export function getDynamicSamplingContextFromSpan(span: Span): Readonly<Partial<
 
   // passing emit=false here to only emit later once the DSC is actually populated
   const dsc = getDynamicSamplingContextFromClient(span.traceId, client, getCurrentScope(), false);
-  const txn = span.transaction;
   if (!txn) {
     return dsc;
   }
