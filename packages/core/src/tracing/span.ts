@@ -6,15 +6,16 @@ import type {
   SpanAttributeValue,
   SpanAttributes,
   SpanContext,
+  SpanJSON,
   SpanOrigin,
+  SpanTimeInput,
   TraceContext,
   Transaction,
 } from '@sentry/types';
 import { dropUndefinedKeys, logger, timestampInSeconds, uuid4 } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../debug-build';
-import { spanToTraceContext, spanToTraceHeader } from '../utils/spanUtils';
-import { ensureTimestampInSeconds } from './utils';
+import { spanTimeInputToSeconds, spanToTraceContext, spanToTraceHeader } from '../utils/spanUtils';
 
 /**
  * Keeps track of finished spans for a given transaction
@@ -154,6 +155,7 @@ export class Span implements SpanInterface {
     }
     // We want to include booleans as well here
     if ('sampled' in spanContext) {
+      // eslint-disable-next-line deprecation/deprecation
       this.sampled = spanContext.sampled;
     }
     if (spanContext.op) {
@@ -193,6 +195,7 @@ export class Span implements SpanInterface {
     const childSpan = new Span({
       ...spanContext,
       parentSpanId: this.spanId,
+      // eslint-disable-next-line deprecation/deprecation
       sampled: this.sampled,
       traceId: this.traceId,
     });
@@ -300,7 +303,7 @@ export class Span implements SpanInterface {
   }
 
   /** @inheritdoc */
-  public end(endTimestamp?: number): void {
+  public end(endTimestamp?: SpanTimeInput): void {
     if (
       DEBUG_BUILD &&
       // Don't call this for transactions
@@ -313,8 +316,7 @@ export class Span implements SpanInterface {
       }
     }
 
-    this.endTimestamp =
-      typeof endTimestamp === 'number' ? ensureTimestampInSeconds(endTimestamp) : timestampInSeconds();
+    this.endTimestamp = spanTimeInputToSeconds(endTimestamp);
   }
 
   /**
@@ -352,6 +354,7 @@ export class Span implements SpanInterface {
     this.endTimestamp = spanContext.endTimestamp;
     this.op = spanContext.op;
     this.parentSpanId = spanContext.parentSpanId;
+    // eslint-disable-next-line deprecation/deprecation
     this.sampled = spanContext.sampled;
     this.spanId = spanContext.spanId || this.spanId;
     this.startTimestamp = spanContext.startTimestamp || this.startTimestamp;
@@ -370,22 +373,9 @@ export class Span implements SpanInterface {
   }
 
   /**
-   * @inheritDoc
+   * Get JSON representation of this span.
    */
-  public toJSON(): {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    data?: { [key: string]: any };
-    description?: string;
-    op?: string;
-    parent_span_id?: string;
-    span_id: string;
-    start_timestamp: number;
-    status?: string;
-    tags?: { [key: string]: Primitive };
-    timestamp?: number;
-    trace_id: string;
-    origin?: SpanOrigin;
-  } {
+  public getSpanJSON(): SpanJSON {
     return dropUndefinedKeys({
       data: this._getData(),
       description: this.description,
@@ -399,6 +389,19 @@ export class Span implements SpanInterface {
       trace_id: this.traceId,
       origin: this.origin,
     });
+  }
+
+  /** @inheritdoc */
+  public isRecording(): boolean {
+    return !this.endTimestamp && !!this.sampled;
+  }
+
+  /**
+   * Convert the object to JSON.
+   * @deprecated Use `spanToJSON(span)` instead.
+   */
+  public toJSON(): SpanJSON {
+    return this.getSpanJSON();
   }
 
   /**

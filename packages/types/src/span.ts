@@ -1,6 +1,7 @@
 import type { TraceContext } from './context';
 import type { Instrumenter } from './instrumenter';
 import type { Primitive } from './misc';
+import type { HrTime } from './opentelemetry';
 import type { Transaction } from './transaction';
 
 type SpanOriginType = 'manual' | 'auto';
@@ -23,6 +24,24 @@ export type SpanAttributeValue =
   | Array<null | undefined | boolean>;
 
 export type SpanAttributes = Record<string, SpanAttributeValue | undefined>;
+
+/** This type is aligned with the OpenTelemetry TimeInput type. */
+export type SpanTimeInput = HrTime | number | Date;
+
+/** A JSON representation of a span. */
+export interface SpanJSON {
+  data?: { [key: string]: any };
+  description?: string;
+  op?: string;
+  parent_span_id?: string;
+  span_id: string;
+  start_timestamp: number;
+  status?: string;
+  tags?: { [key: string]: Primitive };
+  timestamp?: number;
+  trace_id: string;
+  origin?: SpanOrigin;
+}
 
 /** Interface holding all properties that can be set on a Span on creation. */
 export interface SpanContext {
@@ -54,6 +73,8 @@ export interface SpanContext {
 
   /**
    * Was this span chosen to be sent as part of the sample?
+   *
+   * @deprecated Use `isRecording()` instead.
    */
   sampled?: boolean;
 
@@ -159,7 +180,7 @@ export interface Span extends SpanContext {
   /**
    * End the current span.
    */
-  end(endTimestamp?: number): void;
+  end(endTimestamp?: SpanTimeInput): void;
 
   /**
    * Sets the tag attribute on the current span.
@@ -250,18 +271,15 @@ export interface Span extends SpanContext {
    */
   getTraceContext(): TraceContext;
 
-  /** Convert the object to JSON */
-  toJSON(): {
-    data?: { [key: string]: any };
-    description?: string;
-    op?: string;
-    parent_span_id?: string;
-    span_id: string;
-    start_timestamp: number;
-    status?: string;
-    tags?: { [key: string]: Primitive };
-    timestamp?: number;
-    trace_id: string;
-    origin?: SpanOrigin;
-  };
+  /**
+   * Convert the object to JSON.
+   * @deprecated Use `spanToJSON(span)` instead.
+   */
+  toJSON(): SpanJSON;
+
+  /**
+   * If this is span is actually recording data.
+   * This will return false if tracing is disabled, this span was not sampled or if the span is already finished.
+   */
+  isRecording(): boolean;
 }

@@ -21,13 +21,16 @@ export function sampleTransaction<T extends Transaction>(
 ): T {
   // nothing to do if tracing is not enabled
   if (!hasTracingEnabled(options)) {
+    // eslint-disable-next-line deprecation/deprecation
     transaction.sampled = false;
     return transaction;
   }
 
   // if the user has forced a sampling decision by passing a `sampled` value in their transaction context, go with that
+  // eslint-disable-next-line deprecation/deprecation
   if (transaction.sampled !== undefined) {
     transaction.setMetadata({
+      // eslint-disable-next-line deprecation/deprecation
       sampleRate: Number(transaction.sampled),
     });
     return transaction;
@@ -60,6 +63,7 @@ export function sampleTransaction<T extends Transaction>(
   // only valid values are booleans or numbers between 0 and 1.)
   if (!isValidSampleRate(sampleRate)) {
     DEBUG_BUILD && logger.warn('[Tracing] Discarding transaction because of invalid sample rate.');
+    // eslint-disable-next-line deprecation/deprecation
     transaction.sampled = false;
     return transaction;
   }
@@ -74,15 +78,18 @@ export function sampleTransaction<T extends Transaction>(
             : 'a negative sampling decision was inherited or tracesSampleRate is set to 0'
         }`,
       );
+    // eslint-disable-next-line deprecation/deprecation
     transaction.sampled = false;
     return transaction;
   }
 
   // Now we roll the dice. Math.random is inclusive of 0, but not of 1, so strict < is safe here. In case sampleRate is
   // a boolean, the < comparison will cause it to be automatically cast to 1 if it's true and 0 if it's false.
+  // eslint-disable-next-line deprecation/deprecation
   transaction.sampled = Math.random() < (sampleRate as number | boolean);
 
   // if we're not going to keep it, we're done
+  // eslint-disable-next-line deprecation/deprecation
   if (!transaction.sampled) {
     DEBUG_BUILD &&
       logger.log(

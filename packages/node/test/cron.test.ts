@@ -118,6 +118,7 @@ describe('cron check-ins', () => {
       const cronWithCheckIn = cron.instrumentNodeCron(nodeCron);
 
       expect(() => {
+        // @ts-expect-error Initially missing name
         cronWithCheckIn.schedule('* * * * *', () => {
           //
         });

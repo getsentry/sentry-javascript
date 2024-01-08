@@ -77,3 +77,37 @@ test('Should send a transaction and an error event for a faulty generateViewport
   expect(await transactionPromise).toBeDefined();
   expect(await errorEventPromise).toBeDefined();
 });
+
+test('Should send a transaction event with correct status for a generateMetadata() function invokation with redirect()', async ({
+  page,
+}) => {
+  const testTitle = 'redirect-foobar';
+
+  const transactionPromise = waitForTransaction('nextjs-14', async transactionEvent => {
+    return (
+      transactionEvent?.transaction === 'Page.generateMetadata (/generation-functions/with-redirect)' &&
+      transactionEvent.contexts?.trace?.data?.['searchParams']?.['metadataTitle'] === testTitle
+    );
+  });
+
+  await page.goto(`/generation-functions/with-redirect?metadataTitle=${testTitle}`);
+
+  expect((await transactionPromise).contexts?.trace?.status).toBe('ok');
+});
+
+test('Should send a transaction event with correct status for a generateMetadata() function invokation with notfound()', async ({
+  page,
+}) => {
+  const testTitle = 'notfound-foobar';
+
+  const transactionPromise = waitForTransaction('nextjs-14', async transactionEvent => {
+    return (
+      transactionEvent?.transaction === 'Page.generateMetadata (/generation-functions/with-notfound)' &&
+      transactionEvent.contexts?.trace?.data?.['searchParams']?.['metadataTitle'] === testTitle
+    );
+  });
+
+  await page.goto(`/generation-functions/with-notfound?metadataTitle=${testTitle}`);
+
+  expect((await transactionPromise).contexts?.trace?.status).toBe('not_found');
+});

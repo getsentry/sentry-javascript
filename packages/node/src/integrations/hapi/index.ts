@@ -75,6 +75,7 @@ export const hapiTracingPlugin = {
           baggage: request.headers['baggage'] || undefined,
         },
         transactionContext => {
+          // eslint-disable-next-line deprecation/deprecation
           return startTransaction({
             ...transactionContext,
             op: 'hapi.request',

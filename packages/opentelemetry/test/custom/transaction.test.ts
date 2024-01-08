@@ -1,3 +1,4 @@
+import { spanToJSON } from '@sentry/core';
 import { getCurrentHub } from '../../src/custom/hub';
 import { OpenTelemetryScope } from '../../src/custom/scope';
 import { OpenTelemetryTransaction, startTransaction } from '../../src/custom/transaction';
@@ -157,7 +158,7 @@ describe('startTranscation', () => {
       spanMetadata: {},
     });
 
-    expect(transaction.toJSON()).toEqual(
+    expect(spanToJSON(transaction)).toEqual(
       expect.objectContaining({
         origin: 'manual',
         span_id: expect.any(String),
@@ -186,7 +187,7 @@ describe('startTranscation', () => {
       spanMetadata: {},
     });
 
-    expect(transaction.toJSON()).toEqual(
+    expect(spanToJSON(transaction)).toEqual(
       expect.objectContaining({
         origin: 'manual',
         span_id: 'span1',

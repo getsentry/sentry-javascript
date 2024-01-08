@@ -5,6 +5,7 @@ import { BrowserTracing, Integrations } from '../src';
 describe('index', () => {
   it('patches the global hub to add an implementation for `Hub.startTransaction` as a side effect', () => {
     const hub = getCurrentHub();
+    // eslint-disable-next-line deprecation/deprecation
     const transaction = hub.startTransaction({ name: 'test', endTimestamp: 123 });
     expect(transaction).toBeDefined();
   });

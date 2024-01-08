@@ -13,6 +13,7 @@ const connection = mysql.createConnection({
   password: 'docker',
 });
 
+// eslint-disable-next-line deprecation/deprecation
 const transaction = Sentry.startTransaction({
   op: 'transaction',
   name: 'Test Transaction',
