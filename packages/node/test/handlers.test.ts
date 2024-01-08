@@ -587,6 +587,7 @@ describe('errorHandler()', () => {
 
     // `sentryErrorMiddleware` uses `withScope`, and we need access to the temporary scope it creates, so monkeypatch
     // `captureException` in order to examine the scope as it exists inside the `withScope` callback
+    // eslint-disable-next-line deprecation/deprecation
     hub.captureException = function (this: sentryCore.Hub, _exception: any) {
       const scope = this.getScope();
       expect((scope as any)._sdkProcessingMetadata.request).toEqual(req);

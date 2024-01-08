@@ -153,6 +153,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
     if (!transaction) {
       return undefined;
     }
+    // eslint-disable-next-line deprecation/deprecation
     return this._hub.captureEvent(transaction);
   }
 

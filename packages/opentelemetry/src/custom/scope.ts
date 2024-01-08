@@ -46,6 +46,7 @@ export class OpenTelemetryScope extends Scope {
     newScope._attachments = [...this['_attachments']];
     newScope._sdkProcessingMetadata = { ...this['_sdkProcessingMetadata'] };
     newScope._propagationContext = { ...this['_propagationContext'] };
+    newScope._client = this._client;
 
     return newScope;
   }

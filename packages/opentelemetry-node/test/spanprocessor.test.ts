@@ -888,6 +888,7 @@ describe('SentrySpanProcessor', () => {
 
     tracer.startActiveSpan('GET /users', parentOtelSpan => {
       tracer.startActiveSpan('SELECT * FROM users;', child => {
+        // eslint-disable-next-line deprecation/deprecation
         hub.captureException(new Error('oh nooooo!'));
         otelSpan = child as OtelSpan;
         child.end();
