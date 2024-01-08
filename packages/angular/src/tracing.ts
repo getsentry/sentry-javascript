@@ -8,6 +8,7 @@ import type { ActivatedRouteSnapshot, Event, RouterState } from '@angular/router
 import { NavigationCancel, NavigationError, Router } from '@angular/router';
 import { NavigationEnd, NavigationStart, ResolveEnd } from '@angular/router';
 import { WINDOW, getCurrentScope } from '@sentry/browser';
+import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, spanToJSON } from '@sentry/core';
 import type { Span, Transaction, TransactionContext } from '@sentry/types';
 import { logger, stripUrlQueryAndFragment, timestampInSeconds } from '@sentry/utils';
 import type { Observable } from 'rxjs';
@@ -39,7 +40,9 @@ export function routingInstrumentation(
       name: WINDOW.location.pathname,
       op: 'pageload',
       origin: 'auto.pageload.angular',
-      metadata: { source: 'url' },
+      data: {
+        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+      },
     });
   }
 }
@@ -80,7 +83,9 @@ export class TraceService implements OnDestroy {
           name: strippedUrl,
           op: 'navigation',
           origin: 'auto.navigation.angular',
-          metadata: { source: 'url' },
+          data: {
+            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+          },
         });
       }
 
@@ -123,9 +128,10 @@ export class TraceService implements OnDestroy {
       // eslint-disable-next-line deprecation/deprecation
       const transaction = getActiveTransaction();
       // TODO (v8 / #5416): revisit the source condition. Do we want to make the parameterized route the default?
-      if (transaction && transaction.metadata.source === 'url') {
+      const attributes = (transaction && spanToJSON(transaction).data) || {};
+      if (transaction && attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] === 'url') {
         transaction.updateName(route);
-        transaction.setMetadata({ source: 'route' });
+        transaction.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
       }
     }),
   );

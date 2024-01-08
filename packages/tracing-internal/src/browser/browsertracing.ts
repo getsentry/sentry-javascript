@@ -1,6 +1,7 @@
 /* eslint-disable max-lines */
 import type { Hub, IdleTransaction } from '@sentry/core';
 import {
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   TRACING_DEFAULTS,
   addTracingExtensions,
   getActiveTransaction,
@@ -318,6 +319,7 @@ export class BrowserTracing implements Integration {
       ...context,
       ...traceparentData,
       metadata: {
+        // eslint-disable-next-line deprecation/deprecation
         ...context.metadata,
         dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
       },
@@ -331,13 +333,21 @@ export class BrowserTracing implements Integration {
     const finalContext = modifiedContext === undefined ? { ...expandedContext, sampled: false } : modifiedContext;
 
     // If `beforeNavigate` set a custom name, record that fact
+    // eslint-disable-next-line deprecation/deprecation
     finalContext.metadata =
       finalContext.name !== expandedContext.name
-        ? { ...finalContext.metadata, source: 'custom' }
-        : finalContext.metadata;
+        ? // eslint-disable-next-line deprecation/deprecation
+          { ...finalContext.metadata, source: 'custom' }
+        : // eslint-disable-next-line deprecation/deprecation
+          finalContext.metadata;
 
     this._latestRouteName = finalContext.name;
-    this._latestRouteSource = finalContext.metadata && finalContext.metadata.source;
+
+    const sourceFromData = context.data && context.data[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE];
+    // eslint-disable-next-line deprecation/deprecation
+    const sourceFromMetadata = finalContext.metadata && finalContext.metadata.source;
+
+    this._latestRouteSource = sourceFromData || sourceFromMetadata;
 
     // eslint-disable-next-line deprecation/deprecation
     if (finalContext.sampled === false) {
@@ -423,8 +433,8 @@ export class BrowserTracing implements Integration {
         name: this._latestRouteName,
         op,
         trimEnd: true,
-        metadata: {
-          source: this._latestRouteSource || 'url',
+        data: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: this._latestRouteSource || 'url',
         },
       };
 

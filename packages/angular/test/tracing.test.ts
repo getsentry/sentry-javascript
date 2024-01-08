@@ -1,5 +1,6 @@
 import { Component } from '@angular/core';
 import type { ActivatedRouteSnapshot, CanActivate, RouterStateSnapshot } from '@angular/router';
+import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
 
 import { TraceClassDecorator, TraceDirective, TraceMethodDecorator, instrumentAngularRouting } from '../src';
 import { getParameterizedRouteFromSnapshot } from '../src/tracing';
@@ -11,7 +12,13 @@ const defaultStartTransaction = (ctx: any) => {
   transaction = {
     ...ctx,
     updateName: jest.fn(name => (transaction.name = name)),
-    setMetadata: jest.fn(),
+    setAttribute: jest.fn(),
+    toJSON: () => ({
+      data: {
+        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
+        ...ctx.data,
+      },
+    }),
   };
 
   return transaction;
@@ -45,7 +52,7 @@ describe('Angular Tracing', () => {
         name: '/',
         op: 'pageload',
         origin: 'auto.pageload.angular',
-        metadata: { source: 'url' },
+        data: { [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url' },
       });
     });
   });
@@ -107,11 +114,15 @@ describe('Angular Tracing', () => {
       const customStartTransaction = jest.fn((ctx: any) => {
         transaction = {
           ...ctx,
-          metadata: {
-            ...ctx.metadata,
-            source: 'custom',
-          },
+          toJSON: () => ({
+            data: {
+              ...ctx.data,
+              [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
+            },
+          }),
+          metadata: ctx.metadata,
           updateName: jest.fn(name => (transaction.name = name)),
+          setAttribute: jest.fn(),
         };
 
         return transaction;
@@ -135,12 +146,12 @@ describe('Angular Tracing', () => {
         name: url,
         op: 'pageload',
         origin: 'auto.pageload.angular',
-        metadata: { source: 'url' },
+        data: { [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url' },
       });
 
       expect(transaction.updateName).toHaveBeenCalledTimes(0);
       expect(transaction.name).toEqual(url);
-      expect(transaction.metadata.source).toBe('custom');
+      expect(transaction.toJSON().data).toEqual({ [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom' });
 
       env.destroy();
     });
@@ -326,10 +337,10 @@ describe('Angular Tracing', () => {
           name: url,
           op: 'navigation',
           origin: 'auto.navigation.angular',
-          metadata: { source: 'url' },
+          data: { [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url' },
         });
         expect(transaction.updateName).toHaveBeenCalledWith(result);
-        expect(transaction.setMetadata).toHaveBeenCalledWith({ source: 'route' });
+        expect(transaction.setAttribute).toHaveBeenCalledWith(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
 
         env.destroy();
       });

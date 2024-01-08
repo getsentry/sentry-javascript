@@ -22,6 +22,7 @@ import { isString, logger } from '@sentry/utils';
 import type { Context, Handler } from 'aws-lambda';
 import { performance } from 'perf_hooks';
 
+import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
 import { AWSServices } from './awsservices';
 import { DEBUG_BUILD } from './debug-build';
 import { markEventUnhandled } from './utils';
@@ -348,9 +349,8 @@ export function wrapHandler<TEvent, TResult>(
           op: 'function.aws.lambda',
           origin: 'auto.function.serverless',
           ...continueTraceContext,
-          metadata: {
-            ...continueTraceContext.metadata,
-            source: 'component',
+          attributes: {
+            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
           },
         },
         span => {

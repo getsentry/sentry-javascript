@@ -1,6 +1,6 @@
 /* eslint-disable deprecation/deprecation */
 import { BrowserClient } from '@sentry/browser';
-import { Hub, Scope, makeMain } from '@sentry/core';
+import { Hub, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, Scope, makeMain } from '@sentry/core';
 import type { BaseTransportOptions, ClientOptions, TransactionSource } from '@sentry/types';
 
 import { Span, TRACEPARENT_REGEXP, Transaction } from '../src';
@@ -645,9 +645,7 @@ describe('Span', () => {
     test('is included when transaction metadata is set', () => {
       const spy = jest.spyOn(hub as any, 'captureEvent') as any;
       const transaction = hub.startTransaction({ name: 'test', sampled: true });
-      transaction.setMetadata({
-        source: 'url',
-      });
+      transaction.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'url');
       expect(spy).toHaveBeenCalledTimes(0);
 
       transaction.end();

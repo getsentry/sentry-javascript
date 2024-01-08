@@ -89,6 +89,8 @@ In v8, the Span class is heavily reworked. The following properties & methods ar
 * `span.traceId`: Use `span.spanContext().traceId` instead.
 * `span.name`: Use `spanToJSON(span).description` instead.
 * `span.description`: Use `spanToJSON(span).description` instead.
+* `transaction.setMetadata()`: Use attributes instead, or set data on the scope.
+* `transaction.metadata`: Use attributes instead, or set data on the scope.
 
 ## Deprecate `pushScope` & `popScope` in favor of `withScope`
 

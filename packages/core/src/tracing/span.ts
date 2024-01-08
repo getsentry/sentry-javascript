@@ -126,6 +126,8 @@ export class Span implements SpanInterface {
   protected _sampled: boolean | undefined;
   protected _name?: string;
 
+  private _logMessage?: string;
+
   /**
    * You should never call the constructor manually, always use `Sentry.startTransaction()`
    * or call `startChild()` on an existing span.
@@ -286,8 +288,8 @@ export class Span implements SpanInterface {
       const idStr = childSpan.transaction.spanContext().spanId;
 
       const logMessage = `[Tracing] Starting '${opStr}' span on transaction '${nameStr}' (${idStr}).`;
-      childSpan.transaction.metadata.spanMetadata[childSpan.spanContext().spanId] = { logMessage };
       logger.log(logMessage);
+      this._logMessage = logMessage;
     }
 
     return childSpan;
@@ -383,7 +385,7 @@ export class Span implements SpanInterface {
       this.transaction &&
       this.transaction.spanContext().spanId !== this._spanId
     ) {
-      const { logMessage } = this.transaction.metadata.spanMetadata[this._spanId];
+      const logMessage = this._logMessage;
       if (logMessage) {
         logger.log((logMessage as string).replace('Starting', 'Finishing'));
       }

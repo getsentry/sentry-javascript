@@ -5,6 +5,7 @@ export type { ServerRuntimeClientOptions } from './server-runtime-client';
 export type { RequestDataIntegrationOptions } from './integrations/requestdata';
 
 export * from './tracing';
+export * from './semanticAttributes';
 export { createEventEnvelope, createSessionEnvelope } from './envelope';
 export {
   addBreadcrumb,

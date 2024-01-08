@@ -467,6 +467,7 @@ describe('tracingHandler', () => {
     // eslint-disable-next-line deprecation/deprecation
     const transaction = sentryCore.getCurrentScope().getTransaction();
 
+    // eslint-disable-next-line deprecation/deprecation
     expect(transaction?.metadata.request).toEqual(req);
   });
 });

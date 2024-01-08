@@ -15,14 +15,13 @@ import { dropUndefinedKeys, logger } from '@sentry/utils';
 import { DEBUG_BUILD } from '../debug-build';
 import type { Hub } from '../hub';
 import { getCurrentHub } from '../hub';
+import { SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '../semanticAttributes';
 import { spanTimeInputToSeconds, spanToTraceContext } from '../utils/spanUtils';
 import { getDynamicSamplingContextFromClient } from './dynamicSamplingContext';
 import { Span as SpanClass, SpanRecorder } from './span';
 
 /** JSDoc */
 export class Transaction extends SpanClass implements TransactionInterface {
-  public metadata: TransactionMetadata;
-
   /**
    * The reference to the current hub.
    */
@@ -37,6 +36,8 @@ export class Transaction extends SpanClass implements TransactionInterface {
   private _trimEnd?: boolean;
 
   private _frozenDynamicSamplingContext: Readonly<Partial<DynamicSamplingContext>> | undefined;
+
+  private _metadata: Partial<TransactionMetadata>;
 
   /**
    * This constructor should never be called manually. Those instrumenting tracing should use
@@ -54,10 +55,9 @@ export class Transaction extends SpanClass implements TransactionInterface {
 
     this._name = transactionContext.name || '';
 
-    this.metadata = {
-      source: 'custom',
+    this._metadata = {
+      // eslint-disable-next-line deprecation/deprecation
       ...transactionContext.metadata,
-      spanMetadata: {},
     };
 
     this._trimEnd = transactionContext.trimEnd;
@@ -67,12 +67,15 @@ export class Transaction extends SpanClass implements TransactionInterface {
 
     // If Dynamic Sampling Context is provided during the creation of the transaction, we freeze it as it usually means
     // there is incoming Dynamic Sampling Context. (Either through an incoming request, a baggage meta-tag, or other means)
-    const incomingDynamicSamplingContext = this.metadata.dynamicSamplingContext;
+    const incomingDynamicSamplingContext = this._metadata.dynamicSamplingContext;
     if (incomingDynamicSamplingContext) {
       // We shallow copy this in case anything writes to the original reference of the passed in `dynamicSamplingContext`
       this._frozenDynamicSamplingContext = { ...incomingDynamicSamplingContext };
     }
   }
+
+  // This sadly conflicts with the getter/setter ordering :(
+  /* eslint-disable @typescript-eslint/member-ordering */
 
   /**
    * Getter for `name` property.
@@ -92,13 +95,48 @@ export class Transaction extends SpanClass implements TransactionInterface {
   }
 
   /**
+   * Get the metadata for this transaction.
+   * @deprecated Use `spanGetMetadata(transaction)` instead.
+   */
+  public get metadata(): TransactionMetadata {
+    // We merge attributes in for backwards compatibility
+    return {
+      // Defaults
+      // eslint-disable-next-line deprecation/deprecation
+      source: 'custom',
+      spanMetadata: {},
+
+      // Legacy metadata
+      ...this._metadata,
+
+      // From attributes
+      ...(this.attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] && {
+        source: this.attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] as TransactionMetadata['source'],
+      }),
+      ...(this.attributes[SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE] && {
+        sampleRate: this.attributes[SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE] as TransactionMetadata['sampleRate'],
+      }),
+    };
+  }
+
+  /**
+   * Update the metadata for this transaction.
+   * @deprecated Use `spanGetMetadata(transaction)` instead.
+   */
+  public set metadata(metadata: TransactionMetadata) {
+    this._metadata = metadata;
+  }
+
+  /* eslint-enable @typescript-eslint/member-ordering */
+
+  /**
    * Setter for `name` property, which also sets `source` on the metadata.
    *
    * @deprecated Use `updateName()` and `setMetadata()` instead.
    */
   public setName(name: string, source: TransactionMetadata['source'] = 'custom'): void {
     this._name = name;
-    this.metadata.source = source;
+    this.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, source);
   }
 
   /** @inheritdoc */
@@ -138,10 +176,11 @@ export class Transaction extends SpanClass implements TransactionInterface {
   }
 
   /**
-   * @inheritDoc
+   * Store metadata on this transaction.
+   * @deprecated Use attributes or store data on the scope instead.
    */
   public setMetadata(newMetadata: Partial<TransactionMetadata>): void {
-    this.metadata = { ...this.metadata, ...newMetadata };
+    this._metadata = { ...this._metadata, ...newMetadata };
   }
 
   /**
@@ -204,12 +243,14 @@ export class Transaction extends SpanClass implements TransactionInterface {
     const scope = hub.getScope();
     const dsc = getDynamicSamplingContextFromClient(traceId, client, scope);
 
+    // eslint-disable-next-line deprecation/deprecation
     const maybeSampleRate = this.metadata.sampleRate;
     if (maybeSampleRate !== undefined) {
       dsc.sample_rate = `${maybeSampleRate}`;
     }
 
     // We don't want to have a transaction name in the DSC if the source is "url" because URLs might contain PII
+    // eslint-disable-next-line deprecation/deprecation
     const source = this.metadata.source;
     if (source && source !== 'url') {
       dsc.transaction = this._name;
@@ -279,7 +320,10 @@ export class Transaction extends SpanClass implements TransactionInterface {
       }).endTimestamp;
     }
 
-    const metadata = this.metadata;
+    // eslint-disable-next-line deprecation/deprecation
+    const { metadata } = this;
+    // eslint-disable-next-line deprecation/deprecation
+    const { source } = metadata;
 
     const transaction: TransactionEvent = {
       contexts: {
@@ -298,9 +342,9 @@ export class Transaction extends SpanClass implements TransactionInterface {
         ...metadata,
         dynamicSamplingContext: this.getDynamicSamplingContext(),
       },
-      ...(metadata.source && {
+      ...(source && {
         transaction_info: {
-          source: metadata.source,
+          source,
         },
       }),
     };

@@ -82,6 +82,7 @@ describe('Bun Serve Integration', () => {
       expect(transaction.parentSpanId).toBe(PARENT_SPAN_ID);
       expect(transaction.isRecording()).toBe(true);
 
+      // eslint-disable-next-line deprecation/deprecation
       expect(transaction.metadata?.dynamicSamplingContext).toStrictEqual({ version: '1.0', environment: 'production' });
     });
 

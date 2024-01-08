@@ -1,5 +1,6 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 import {
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   captureException,
   getActiveTransaction,
   getCurrentScope,
@@ -207,7 +208,7 @@ export async function callDataFetcherTraced<F extends (...args: any[]) => Promis
   // Logic will be: If there is no active transaction, start one with correct name and source. If there is an active
   // transaction, create a child span with correct name and source.
   transaction.updateName(parameterizedRoute);
-  transaction.metadata.source = 'route';
+  transaction.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
 
   // Capture the route, since pre-loading, revalidation, etc might mean that this span may happen during another
   // route's transaction
