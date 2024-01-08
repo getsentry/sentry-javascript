@@ -43,6 +43,9 @@ export interface Scope extends BaseScope {
     hint?: EventHint,
   ): string;
   captureEvent(event: Event, hint?: EventHint): string;
+  /**
+   * @deprecated This function will be removed in the next major version of the Sentry SDK.
+   */
   lastEventId(): string | undefined;
   getScopeData(): ScopeData;
 }
