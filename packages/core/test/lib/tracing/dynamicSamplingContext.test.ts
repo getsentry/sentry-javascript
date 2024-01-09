@@ -1,14 +1,18 @@
 import type { TransactionSource } from '@sentry/types';
-import { Hub, makeMain } from '../../../src';
-import { Transaction, getDynamicSamplingContextFromSpan } from '../../../src/tracing';
+import { Hub, SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, makeMain } from '../../../src';
+import { Transaction, getDynamicSamplingContextFromSpan, startInactiveSpan } from '../../../src/tracing';
+import { addTracingExtensions } from '../../../src/tracing';
 import { TestClient, getDefaultTestClientOptions } from '../../mocks/client';
 
 describe('getDynamicSamplingContextFromSpan', () => {
+  let hub: Hub;
   beforeEach(() => {
-    const options = getDefaultTestClientOptions({ tracesSampleRate: 0.0, release: '1.0.1' });
+    const options = getDefaultTestClientOptions({ tracesSampleRate: 1.0, release: '1.0.1' });
     const client = new TestClient(options);
-    const hub = new Hub(client);
+    hub = new Hub(client);
+    hub.bindClient(client);
     makeMain(hub);
+    addTracingExtensions();
   });
 
   afterEach(() => {
@@ -27,15 +31,14 @@ describe('getDynamicSamplingContextFromSpan', () => {
   });
 
   test('returns a new DSC, if no DSC was provided during transaction creation', () => {
-    const transaction = new Transaction({
-      name: 'tx',
-      sampled: true,
-      metadata: {
-        sampleRate: 0.56,
-      },
-    });
+    const transaction = startInactiveSpan({ name: 'tx' });
 
-    const dynamicSamplingContext = getDynamicSamplingContextFromSpan(transaction);
+    // Only setting the attribute manually because we can't "fake" a
+    // sample rate or txn name source anymore like we used to.
+    transaction?.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE, 0.56);
+    transaction?.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
+
+    const dynamicSamplingContext = getDynamicSamplingContextFromSpan(transaction!);
 
     expect(dynamicSamplingContext).toStrictEqual({
       release: '1.0.1',
@@ -70,6 +73,9 @@ describe('getDynamicSamplingContextFromSpan', () => {
           ...(source && { source: source as TransactionSource }),
         },
       });
+
+      // Only setting the attribute manually because we're directly calling new Transaction()
+      transaction?.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, source);
 
       const dsc = getDynamicSamplingContextFromSpan(transaction);
 
