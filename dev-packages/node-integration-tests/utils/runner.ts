@@ -1,6 +1,6 @@
 import { spawn } from 'child_process';
 import { join } from 'path';
-import type { Envelope, Event, SerializedSession } from '@sentry/types';
+import type { Envelope, EnvelopeItemType, Event, SerializedSession } from '@sentry/types';
 
 export function assertSentryEvent(actual: Event, expected: Event): void {
   expect(actual).toMatchObject({
@@ -34,6 +34,7 @@ export function createRunner(...paths: string[]) {
 
   const expectedEnvelopes: Expected[] = [];
   const flags: string[] = [];
+  const ignored: EnvelopeItemType[] = [];
   let hasExited = false;
 
   if (testPath.endsWith('.ts')) {
@@ -47,6 +48,10 @@ export function createRunner(...paths: string[]) {
     },
     withFlags: function (...args: string[]) {
       flags.push(...args);
+      return this;
+    },
+    ignore: function (...types: EnvelopeItemType[]) {
+      ignored.push(...types);
       return this;
     },
     start: function (done?: (e?: unknown) => void) {
@@ -93,6 +98,10 @@ export function createRunner(...paths: string[]) {
 
         for (const item of envelope[1]) {
           const envelopeItemType = item[0].type;
+
+          if (ignored.includes(envelopeItemType)) {
+            continue;
+          }
 
           const expected = expectedEnvelopes.shift();
 

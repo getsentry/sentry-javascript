@@ -35,6 +35,7 @@ conditionalTest({ min: 18 })('LocalVariables integration', () => {
     'Should not include local variables by default',
     done => {
       createRunner(__dirname, 'no-local-variables.js')
+        .ignore('session')
         .expect({
           event: event => {
             const frames = event.exception?.values?.[0].stacktrace?.frames || [];
@@ -56,6 +57,7 @@ conditionalTest({ min: 18 })('LocalVariables integration', () => {
     'Should include local variables when enabled',
     done => {
       createRunner(__dirname, 'local-variables.js')
+        .ignore('session')
         .expect({
           event: event => {
             assertSentryEvent(event, EXPECTED_LOCAL_VARIABLES_EVENT);
@@ -70,6 +72,7 @@ conditionalTest({ min: 18 })('LocalVariables integration', () => {
     'Should include local variables with ESM',
     done => {
       createRunner(__dirname, 'local-variables-caught.mjs')
+        .ignore('session')
         .expect({
           event: event => {
             assertSentryEvent(event, EXPECTED_LOCAL_VARIABLES_EVENT);
@@ -82,6 +85,7 @@ conditionalTest({ min: 18 })('LocalVariables integration', () => {
 
   test('Includes local variables for caught exceptions when enabled', done => {
     createRunner(__dirname, 'local-variables-caught.js')
+      .ignore('session')
       .expect({
         event: event => {
           assertSentryEvent(event, EXPECTED_LOCAL_VARIABLES_EVENT);
