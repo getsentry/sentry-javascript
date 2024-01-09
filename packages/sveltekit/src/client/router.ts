@@ -1,4 +1,4 @@
-import { getActiveTransaction } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, getActiveTransaction } from '@sentry/core';
 import { WINDOW } from '@sentry/svelte';
 import type { Span, Transaction, TransactionContext } from '@sentry/types';
 
@@ -43,8 +43,8 @@ function instrumentPageload(startTransactionFn: (context: TransactionContext) =>
     tags: {
       ...DEFAULT_TAGS,
     },
-    metadata: {
-      source: 'url',
+    attributes: {
+      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
     },
   });
 
@@ -57,7 +57,7 @@ function instrumentPageload(startTransactionFn: (context: TransactionContext) =>
 
     if (pageloadTransaction && routeId) {
       pageloadTransaction.updateName(routeId);
-      pageloadTransaction.setMetadata({ source: 'route' });
+      pageloadTransaction.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
     }
   });
 }
@@ -106,7 +106,7 @@ function instrumentNavigations(startTransactionFn: (context: TransactionContext)
         name: parameterizedRouteDestination || rawRouteDestination || 'unknown',
         op: 'navigation',
         origin: 'auto.navigation.sveltekit',
-        metadata: { source: parameterizedRouteDestination ? 'route' : 'url' },
+        attributes: { [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: parameterizedRouteDestination ? 'route' : 'url' },
         tags: {
           ...DEFAULT_TAGS,
         },

@@ -1,3 +1,4 @@
+import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
 import {
   captureException,
   continueTrace,
@@ -111,6 +112,7 @@ async function instrumentRequest(
 
   try {
     const interpolatedRoute = interpolateRouteFromUrlAndParams(ctx.url.pathname, ctx.params);
+    const source = interpolatedRoute ? 'route' : 'url';
     // storing res in a variable instead of directly returning is necessary to
     // invoke the catch block if next() throws
     const res = await startSpan(
@@ -121,12 +123,13 @@ async function instrumentRequest(
         origin: 'auto.http.astro',
         status: 'ok',
         metadata: {
+          // eslint-disable-next-line deprecation/deprecation
           ...traceCtx?.metadata,
-          source: interpolatedRoute ? 'route' : 'url',
         },
         data: {
           method,
           url: stripUrlQueryAndFragment(ctx.url.href),
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
           ...(ctx.url.search && { 'http.query': ctx.url.search }),
           ...(ctx.url.hash && { 'http.fragment': ctx.url.hash }),
           ...(options.trackHeaders && { headers: allHeaders }),

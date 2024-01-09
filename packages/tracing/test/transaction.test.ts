@@ -1,5 +1,6 @@
 /* eslint-disable deprecation/deprecation */
 import { BrowserClient, Hub } from '@sentry/browser';
+import { SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
 
 import { Transaction, addExtensionMethods } from '../src';
 import { getDefaultBrowserClientOptions } from './testutils';
@@ -65,7 +66,7 @@ describe('`Transaction` class', () => {
     describe('`updateName` method', () => {
       it('does not change the source', () => {
         const transaction = new Transaction({ name: 'dogpark' });
-        transaction.setMetadata({ source: 'route' });
+        transaction.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
         transaction.updateName('ballpit');
 
         expect(transaction.name).toEqual('ballpit');
@@ -162,6 +163,7 @@ describe('`Transaction` class', () => {
           contexts: {
             foo: { key: 'val' },
             trace: {
+              data: { [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1 },
               span_id: transaction.spanId,
               trace_id: transaction.traceId,
               origin: 'manual',
@@ -189,6 +191,7 @@ describe('`Transaction` class', () => {
         expect.objectContaining({
           contexts: {
             trace: {
+              data: { [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1 },
               span_id: transaction.spanId,
               trace_id: transaction.traceId,
               origin: 'manual',

@@ -1,6 +1,7 @@
 import type * as http from 'http';
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import {
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   captureException,
   continueTrace,
   flush,
@@ -71,14 +72,17 @@ export function tracingHandler(): (
           op: 'http.server',
           origin: 'auto.http.node.tracingHandler',
           ...ctx,
+          data: {
+            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
+          },
           metadata: {
+            // eslint-disable-next-line deprecation/deprecation
             ...ctx.metadata,
             // The request should already have been stored in `scope.sdkProcessingMetadata` (which will become
             // `event.sdkProcessingMetadata` the same way the metadata here will) by `sentryRequestMiddleware`, but on the
             // off chance someone is using `sentryTracingMiddleware` without `sentryRequestMiddleware`, it doesn't hurt to
             // be sure
             request: req,
-            source,
           },
         },
         // extra context passed to the tracesSampler
@@ -333,7 +337,7 @@ export function trpcMiddleware(options: SentryTrpcMiddlewareOptions = {}) {
 
     if (sentryTransaction) {
       sentryTransaction.updateName(`trpc/${path}`);
-      sentryTransaction.setMetadata({ source: 'route' });
+      sentryTransaction.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
       sentryTransaction.op = 'rpc.server';
 
       const trpcContext: Record<string, unknown> = {

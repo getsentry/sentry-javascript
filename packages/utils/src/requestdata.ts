@@ -72,10 +72,13 @@ export function addRequestDataToTransaction(
   deps?: InjectedNodeDeps,
 ): void {
   if (!transaction) return;
+  // eslint-disable-next-line deprecation/deprecation
   if (!transaction.metadata.source || transaction.metadata.source === 'url') {
     // Attempt to grab a parameterized route off of the request
     const [name, source] = extractPathForTransaction(req, { path: true, method: true });
     transaction.updateName(name);
+    // TODO: SEMANTIC_ATTRIBUTE_SENTRY_SOURCE is in core, align this once we merge utils & core
+    // eslint-disable-next-line deprecation/deprecation
     transaction.setMetadata({ source });
   }
   transaction.setData('url', req.originalUrl || req.url);

@@ -1,4 +1,5 @@
 import {
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   addTracingExtensions,
   captureException,
   continueTrace,
@@ -108,9 +109,12 @@ export function withSentry(apiHandler: NextApiHandler, parameterizedRoute?: stri
             name: `${reqMethod}${reqPath}`,
             op: 'http.server',
             origin: 'auto.http.nextjs',
+            attributes: {
+              [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+            },
             metadata: {
+              // eslint-disable-next-line deprecation/deprecation
               ...transactionContext.metadata,
-              source: 'route',
               request: req,
             },
           },

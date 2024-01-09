@@ -1,4 +1,5 @@
 import {
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   Transaction,
   captureException,
   continueTrace,
@@ -54,6 +55,7 @@ function instrumentBunServeOptions(serveOptions: Parameters<typeof Bun.serve>[0]
         const parsedUrl = parseUrl(request.url);
         const data: Record<string, unknown> = {
           'http.request.method': request.method || 'GET',
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
         };
         if (parsedUrl.search) {
           data['http.query'] = parsedUrl.search;
@@ -72,8 +74,8 @@ function instrumentBunServeOptions(serveOptions: Parameters<typeof Bun.serve>[0]
                 ...ctx,
                 data,
                 metadata: {
+                  // eslint-disable-next-line deprecation/deprecation
                   ...ctx.metadata,
-                  source: 'url',
                   request: {
                     url,
                     method: request.method,

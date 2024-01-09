@@ -1,3 +1,4 @@
+import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
 import * as SentryNode from '@sentry/node';
 import type { Client } from '@sentry/types';
 import { vi } from 'vitest';
@@ -57,10 +58,9 @@ describe('sentryMiddleware', () => {
         data: {
           method: 'GET',
           url: 'https://mydomain.io/users/123/details',
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
         },
-        metadata: {
-          source: 'route',
-        },
+        metadata: {},
         name: 'GET /users/[id]/details',
         op: 'http.server',
         origin: 'auto.http.astro',
@@ -94,10 +94,9 @@ describe('sentryMiddleware', () => {
         data: {
           method: 'GET',
           url: 'http://localhost:1234/a%xx',
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
         },
-        metadata: {
-          source: 'url',
-        },
+        metadata: {},
         name: 'GET a%xx',
         op: 'http.server',
         origin: 'auto.http.astro',
@@ -159,8 +158,10 @@ describe('sentryMiddleware', () => {
 
     expect(startSpanSpy).toHaveBeenCalledWith(
       expect.objectContaining({
+        data: expect.objectContaining({
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+        }),
         metadata: {
-          source: 'route',
           dynamicSamplingContext: {
             release: '1.0.0',
           },

@@ -2,6 +2,7 @@ import * as domain from 'domain';
 import * as SentryNode from '@sentry/node';
 import type { Event, Integration } from '@sentry/types';
 
+import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
 import * as Sentry from '../src';
 import { wrapCloudEventFunction, wrapEventFunction, wrapHttpFunction } from '../src/gcpfunction';
 import type {
@@ -111,7 +112,10 @@ describe('GCPFunction', () => {
         name: 'POST /path',
         op: 'function.gcp.http',
         origin: 'auto.function.serverless.gcp_http',
-        metadata: { source: 'route' },
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+        },
+        metadata: {},
       };
 
       expect(SentryNode.startSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
@@ -141,11 +145,13 @@ describe('GCPFunction', () => {
         traceId: '12312012123120121231201212312012',
         parentSpanId: '1121201211212012',
         parentSampled: false,
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+        },
         metadata: {
           dynamicSamplingContext: {
             release: '2.12.1',
           },
-          source: 'route',
         },
       };
 
@@ -172,7 +178,10 @@ describe('GCPFunction', () => {
         traceId: '12312012123120121231201212312012',
         parentSpanId: '1121201211212012',
         parentSampled: false,
-        metadata: { dynamicSamplingContext: {}, source: 'route' },
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+        },
+        metadata: { dynamicSamplingContext: {} },
       };
 
       expect(SentryNode.startSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
@@ -251,7 +260,9 @@ describe('GCPFunction', () => {
         name: 'event.type',
         op: 'function.gcp.event',
         origin: 'auto.function.serverless.gcp_event',
-        metadata: { source: 'component' },
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
+        },
       };
 
       expect(SentryNode.startSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
@@ -272,7 +283,9 @@ describe('GCPFunction', () => {
         name: 'event.type',
         op: 'function.gcp.event',
         origin: 'auto.function.serverless.gcp_event',
-        metadata: { source: 'component' },
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
+        },
       };
 
       expect(SentryNode.startSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
@@ -298,7 +311,9 @@ describe('GCPFunction', () => {
         name: 'event.type',
         op: 'function.gcp.event',
         origin: 'auto.function.serverless.gcp_event',
-        metadata: { source: 'component' },
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
+        },
       };
 
       expect(SentryNode.startSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
@@ -323,7 +338,9 @@ describe('GCPFunction', () => {
         name: 'event.type',
         op: 'function.gcp.event',
         origin: 'auto.function.serverless.gcp_event',
-        metadata: { source: 'component' },
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
+        },
       };
 
       expect(SentryNode.startSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
@@ -346,7 +363,9 @@ describe('GCPFunction', () => {
         name: 'event.type',
         op: 'function.gcp.event',
         origin: 'auto.function.serverless.gcp_event',
-        metadata: { source: 'component' },
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
+        },
       };
 
       expect(SentryNode.startSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
@@ -367,7 +386,9 @@ describe('GCPFunction', () => {
         name: 'event.type',
         op: 'function.gcp.event',
         origin: 'auto.function.serverless.gcp_event',
-        metadata: { source: 'component' },
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
+        },
       };
 
       expect(SentryNode.startSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
@@ -389,7 +410,9 @@ describe('GCPFunction', () => {
         name: 'event.type',
         op: 'function.gcp.event',
         origin: 'auto.function.serverless.gcp_event',
-        metadata: { source: 'component' },
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
+        },
       };
 
       expect(SentryNode.startSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
@@ -444,7 +467,9 @@ describe('GCPFunction', () => {
         name: 'event.type',
         op: 'function.gcp.cloud_event',
         origin: 'auto.function.serverless.gcp_cloud_event',
-        metadata: { source: 'component' },
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
+        },
       };
 
       expect(SentryNode.startSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
@@ -465,7 +490,9 @@ describe('GCPFunction', () => {
         name: 'event.type',
         op: 'function.gcp.cloud_event',
         origin: 'auto.function.serverless.gcp_cloud_event',
-        metadata: { source: 'component' },
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
+        },
       };
 
       expect(SentryNode.startSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
@@ -488,7 +515,9 @@ describe('GCPFunction', () => {
         name: 'event.type',
         op: 'function.gcp.cloud_event',
         origin: 'auto.function.serverless.gcp_cloud_event',
-        metadata: { source: 'component' },
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
+        },
       };
 
       expect(SentryNode.startSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
@@ -509,7 +538,9 @@ describe('GCPFunction', () => {
         name: 'event.type',
         op: 'function.gcp.cloud_event',
         origin: 'auto.function.serverless.gcp_cloud_event',
-        metadata: { source: 'component' },
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
+        },
       };
 
       expect(SentryNode.startSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
@@ -531,7 +562,9 @@ describe('GCPFunction', () => {
         name: 'event.type',
         op: 'function.gcp.cloud_event',
         origin: 'auto.function.serverless.gcp_cloud_event',
-        metadata: { source: 'component' },
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
+        },
       };
 
       expect(SentryNode.startSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));

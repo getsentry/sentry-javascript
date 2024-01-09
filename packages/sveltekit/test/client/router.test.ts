@@ -6,6 +6,7 @@ import { vi } from 'vitest';
 
 import { navigating, page } from '$app/stores';
 
+import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
 import { svelteKitRoutingInstrumentation } from '../../src/client/router';
 
 // we have to overwrite the global mock from `vitest.setup.ts` here to reset the
@@ -27,7 +28,7 @@ describe('sveltekitRoutingInstrumentation', () => {
     returnedTransaction = {
       ...txnCtx,
       updateName: vi.fn(),
-      setMetadata: vi.fn(),
+      setAttribute: vi.fn(),
       startChild: vi.fn().mockImplementation(ctx => {
         return { ...mockedRoutingSpan, ...ctx };
       }),
@@ -59,8 +60,8 @@ describe('sveltekitRoutingInstrumentation', () => {
       tags: {
         'routing.instrumentation': '@sentry/sveltekit',
       },
-      metadata: {
-        source: 'url',
+      attributes: {
+        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
       },
     });
 
@@ -71,7 +72,7 @@ describe('sveltekitRoutingInstrumentation', () => {
     // This should update the transaction name with the parameterized route:
     expect(returnedTransaction?.updateName).toHaveBeenCalledTimes(1);
     expect(returnedTransaction?.updateName).toHaveBeenCalledWith('testRoute');
-    expect(returnedTransaction?.setMetadata).toHaveBeenCalledWith({ source: 'route' });
+    expect(returnedTransaction?.setAttribute).toHaveBeenCalledWith(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
   });
 
   it("doesn't start a pageload transaction if `startTransactionOnPageLoad` is false", () => {
@@ -109,9 +110,7 @@ describe('sveltekitRoutingInstrumentation', () => {
       name: '/users/[id]',
       op: 'navigation',
       origin: 'auto.navigation.sveltekit',
-      metadata: {
-        source: 'route',
-      },
+      attributes: { [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route' },
       tags: {
         'routing.instrumentation': '@sentry/sveltekit',
       },
@@ -161,9 +160,7 @@ describe('sveltekitRoutingInstrumentation', () => {
         name: '/users/[id]',
         op: 'navigation',
         origin: 'auto.navigation.sveltekit',
-        metadata: {
-          source: 'route',
-        },
+        attributes: { [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route' },
         tags: {
           'routing.instrumentation': '@sentry/sveltekit',
         },

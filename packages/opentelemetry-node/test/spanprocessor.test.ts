@@ -623,6 +623,7 @@ describe('SentrySpanProcessor', () => {
 
         otelSpan.end();
 
+        // eslint-disable-next-line deprecation/deprecation
         expect(sentrySpan?.transaction?.metadata.source).toBe('url');
       });
     });
@@ -638,6 +639,7 @@ describe('SentrySpanProcessor', () => {
 
         otelSpan.end();
 
+        // eslint-disable-next-line deprecation/deprecation
         expect(sentrySpan?.transaction?.metadata.source).toBe('route');
       });
     });
@@ -653,6 +655,7 @@ describe('SentrySpanProcessor', () => {
 
         otelSpan.end();
 
+        // eslint-disable-next-line deprecation/deprecation
         expect(sentrySpan?.transaction?.metadata.source).toBe('route');
       });
     });

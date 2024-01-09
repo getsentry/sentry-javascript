@@ -30,6 +30,7 @@ export interface TransactionContext extends SpanContext {
 
   /**
    * Metadata associated with the transaction, for internal SDK use.
+   * @deprecated Use attributes or store data on the scope instead.
    */
   metadata?: Partial<TransactionMetadata>;
 }
@@ -88,7 +89,8 @@ export interface Transaction extends TransactionContext, Omit<Span, 'setName' | 
   attributes: SpanAttributes;
 
   /**
-   * Metadata about the transaction
+   * Metadata about the transaction.
+   * @deprecated Use attributes or store data on the scope instead.
    */
   metadata: TransactionMetadata;
 
@@ -130,7 +132,7 @@ export interface Transaction extends TransactionContext, Omit<Span, 'setName' | 
 
   /**
    * Set metadata for this transaction.
-   * @hidden
+   * @deprecated Use attributes or store data on the scope instead.
    */
   setMetadata(newMetadata: Partial<TransactionMetadata>): void;
 
@@ -174,7 +176,10 @@ export interface SamplingContext extends CustomSamplingContext {
 }
 
 export interface TransactionMetadata {
-  /** The sample rate used when sampling this transaction */
+  /**
+   * The sample rate used when sampling this transaction.
+   * @deprecated Use `SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE` attribute instead.
+   */
   sampleRate?: number;
 
   /**
@@ -196,10 +201,16 @@ export interface TransactionMetadata {
   /** TODO: If we rm -rf `instrumentServer`, this can go, too */
   requestPath?: string;
 
-  /** Information on how a transaction name was generated. */
+  /**
+   * Information on how a transaction name was generated.
+   * @deprecated Use `SEMANTIC_ATTRIBUTE_SENTRY_SOURCE` attribute instead.
+   */
   source: TransactionSource;
 
-  /** Metadata for the transaction's spans, keyed by spanId */
+  /**
+   * Metadata for the transaction's spans, keyed by spanId.
+   * @deprecated This will be removed in v8.
+   */
   spanMetadata: { [spanId: string]: { [key: string]: unknown } };
 }
 

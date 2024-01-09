@@ -1,4 +1,5 @@
 import {
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   addTracingExtensions,
   captureException,
   continueTrace,
@@ -69,9 +70,12 @@ export function wrapGenerationFunctionWithSentry<F extends (...args: any[]) => a
             origin: 'auto.function.nextjs',
             ...transactionContext,
             data,
+            attributes: {
+              [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+            },
             metadata: {
+              // eslint-disable-next-line deprecation/deprecation
               ...transactionContext.metadata,
-              source: 'url',
               request: {
                 headers: headers ? winterCGHeadersToDict(headers) : undefined,
               },

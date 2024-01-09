@@ -1,4 +1,5 @@
 import * as coreSdk from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
 
 import { wrapApiHandlerWithSentry } from '../../src/edge';
 
@@ -52,7 +53,12 @@ describe('wrapApiHandlerWithSentry', () => {
     expect(startSpanSpy).toHaveBeenCalledTimes(1);
     expect(startSpanSpy).toHaveBeenCalledWith(
       expect.objectContaining({
-        metadata: { request: { headers: {}, method: 'POST', url: 'https://sentry.io/' }, source: 'route' },
+        metadata: {
+          request: { headers: {}, method: 'POST', url: 'https://sentry.io/' },
+        },
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+        },
         name: 'POST /user/[userId]/post/[postId]',
         op: 'http.server',
         origin: 'auto.function.nextjs.withEdgeWrapping',
@@ -71,7 +77,10 @@ describe('wrapApiHandlerWithSentry', () => {
     expect(startSpanSpy).toHaveBeenCalledTimes(1);
     expect(startSpanSpy).toHaveBeenCalledWith(
       expect.objectContaining({
-        metadata: { source: 'route' },
+        metadata: {},
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+        },
         name: 'handler (/user/[userId]/post/[postId])',
         op: 'http.server',
         origin: 'auto.function.nextjs.withEdgeWrapping',

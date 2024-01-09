@@ -1,4 +1,5 @@
 import { WINDOW, captureException } from '@sentry/browser';
+import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, spanToJSON } from '@sentry/core';
 import type { Transaction, TransactionContext, TransactionSource } from '@sentry/types';
 
 import { getActiveTransaction } from './tracing';
@@ -72,8 +73,8 @@ export function vueRouterInstrumentation(
         op: 'pageload',
         origin: 'auto.pageload.vue',
         tags,
-        metadata: {
-          source: 'url',
+        data: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
         },
       });
     }
@@ -91,7 +92,7 @@ export function vueRouterInstrumentation(
       // hence only '==' instead of '===', because `undefined == null` evaluates to `true`
       const isPageLoadNavigation = from.name == null && from.matched.length === 0;
 
-      const data = {
+      const data: Record<string, unknown> = {
         params: to.params,
         query: to.query,
       };
@@ -111,9 +112,10 @@ export function vueRouterInstrumentation(
         // eslint-disable-next-line deprecation/deprecation
         const pageloadTransaction = getActiveTransaction();
         if (pageloadTransaction) {
-          if (pageloadTransaction.metadata.source !== 'custom') {
+          const attributes = spanToJSON(pageloadTransaction).data || {};
+          if (attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] !== 'custom') {
             pageloadTransaction.updateName(transactionName);
-            pageloadTransaction.setMetadata({ source: transactionSource });
+            pageloadTransaction.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, transactionSource);
           }
           pageloadTransaction.setData('params', data.params);
           pageloadTransaction.setData('query', data.query);
@@ -121,15 +123,13 @@ export function vueRouterInstrumentation(
       }
 
       if (startTransactionOnLocationChange && !isPageLoadNavigation) {
+        data[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] = transactionSource;
         startTransaction({
           name: transactionName,
           op: 'navigation',
           origin: 'auto.navigation.vue',
           tags,
           data,
-          metadata: {
-            source: transactionSource,
-          },
         });
       }
 

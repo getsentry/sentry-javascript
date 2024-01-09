@@ -1,4 +1,5 @@
 // NOTE: I have no idea how to fix this right now, and don't want to waste more time, as it builds just fine — Kamil
+import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
 import * as SentryNode from '@sentry/node';
 import type { Event } from '@sentry/types';
 import type { Callback, Handler } from 'aws-lambda';
@@ -206,7 +207,10 @@ describe('AWSLambda', () => {
         name: 'functionName',
         op: 'function.aws.lambda',
         origin: 'auto.function.serverless',
-        metadata: { source: 'component' },
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
+        },
+        metadata: {},
       };
 
       expect(rv).toStrictEqual(42);
@@ -233,7 +237,10 @@ describe('AWSLambda', () => {
           name: 'functionName',
           op: 'function.aws.lambda',
           origin: 'auto.function.serverless',
-          metadata: { source: 'component' },
+          attributes: {
+            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
+          },
+          metadata: {},
         };
 
         expect(SentryNode.startSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
@@ -274,11 +281,13 @@ describe('AWSLambda', () => {
             origin: 'auto.function.serverless',
             name: 'functionName',
             traceId: '12312012123120121231201212312012',
+            attributes: {
+              [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
+            },
             metadata: {
               dynamicSamplingContext: {
                 release: '2.12.1',
               },
-              source: 'component',
             },
           }),
           expect.any(Function),
@@ -311,7 +320,10 @@ describe('AWSLambda', () => {
           traceId: '12312012123120121231201212312012',
           parentSpanId: '1121201211212012',
           parentSampled: false,
-          metadata: { dynamicSamplingContext: {}, source: 'component' },
+          attributes: {
+            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
+          },
+          metadata: { dynamicSamplingContext: {} },
         };
 
         expect(SentryNode.startSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
@@ -338,7 +350,10 @@ describe('AWSLambda', () => {
         name: 'functionName',
         op: 'function.aws.lambda',
         origin: 'auto.function.serverless',
-        metadata: { source: 'component' },
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
+        },
+        metadata: {},
       };
 
       expect(rv).toStrictEqual(42);
@@ -376,7 +391,10 @@ describe('AWSLambda', () => {
           name: 'functionName',
           op: 'function.aws.lambda',
           origin: 'auto.function.serverless',
-          metadata: { source: 'component' },
+          attributes: {
+            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
+          },
+          metadata: {},
         };
 
         expect(SentryNode.startSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
@@ -418,7 +436,10 @@ describe('AWSLambda', () => {
         name: 'functionName',
         op: 'function.aws.lambda',
         origin: 'auto.function.serverless',
-        metadata: { source: 'component' },
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
+        },
+        metadata: {},
       };
 
       expect(rv).toStrictEqual(42);
@@ -456,7 +477,10 @@ describe('AWSLambda', () => {
           name: 'functionName',
           op: 'function.aws.lambda',
           origin: 'auto.function.serverless',
-          metadata: { source: 'component' },
+          attributes: {
+            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
+          },
+          metadata: {},
         };
 
         expect(SentryNode.startSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
