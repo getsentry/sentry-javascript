@@ -12,7 +12,6 @@ import { logger } from '@sentry/utils';
 
 import {
   BUFFER_CHECKOUT_TIME,
-  CANVAS_QUALITY,
   SESSION_IDLE_EXPIRE_DURATION,
   SESSION_IDLE_PAUSE_DURATION,
   SLOW_CLICK_SCROLL_TIMEOUT,
@@ -145,6 +144,11 @@ export class ReplayContainer implements ReplayContainerInterface {
 
   private _context: InternalEventContext;
 
+  /**
+   * Internal integrations (e.g. canvas)
+   */
+  private _integrations: Record<string, Record<string, unknown>>;
+
   public constructor({
     options,
     recordingOptions,
@@ -163,6 +167,7 @@ export class ReplayContainer implements ReplayContainerInterface {
     this._lastActivity = Date.now();
     this._isEnabled = false;
     this._isPaused = false;
+    this._integrations = {};
     this._hasInitializedCoreListeners = false;
     this._context = {
       errorIds: new Set(),
@@ -338,7 +343,8 @@ export class ReplayContainer implements ReplayContainerInterface {
    */
   public startRecording(): void {
     try {
-      const canvas = this._options._experiments.canvas;
+      const { canvas } = this._integrations;
+
       this._stopRecording = record({
         ...this._recordingOptions,
         // When running in error sampling mode, we need to overwrite `checkoutEveryNms`
@@ -347,12 +353,7 @@ export class ReplayContainer implements ReplayContainerInterface {
         ...(this.recordingMode === 'buffer' && { checkoutEveryNms: BUFFER_CHECKOUT_TIME }),
         emit: getHandleRecordingEmit(this),
         onMutation: this._onMutationHandler,
-        ...(canvas &&
-          canvas.manager && {
-            recordCanvas: true,
-            getCanvasManager: canvas.manager,
-            ...(CANVAS_QUALITY[canvas.quality || 'medium'] || CANVAS_QUALITY.medium),
-          }),
+        ...canvas,
       });
     } catch (err) {
       this._handleException(err);
@@ -715,6 +716,13 @@ export class ReplayContainer implements ReplayContainerInterface {
     }
 
     return spanToJSON(lastTransaction).description;
+  }
+
+  /**
+   * Internal integration use only, should not be public
+   */
+  public addIntegration(name: string, options: Record<string, unknown>): void {
+    this._integrations[name] = options;
   }
 
   /**
