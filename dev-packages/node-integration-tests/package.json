@@ -15,6 +15,7 @@
     "type-check": "tsc",
     "pretest": "run-s --silent prisma:init prisma:init:new",
     "test": "ts-node ./utils/run-tests.ts",
+    "jest": "jest --config ./jest.config.js",
     "test:watch": "yarn test --watch"
   },
   "dependencies": {
