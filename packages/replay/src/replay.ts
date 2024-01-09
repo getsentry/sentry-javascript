@@ -236,6 +236,11 @@ export class ReplayContainer implements ReplayContainerInterface {
     return this._options;
   }
 
+  /** Get the replay integrations. [test only] */
+  public getIntegrations(): Record<string, Record<string, unknown>> {
+    return { ...this._integrations };
+  }
+
   /**
    * Initializes the plugin based on sampling configuration. Should not be
    * called outside of constructor.

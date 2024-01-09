@@ -1,4 +1,5 @@
 import { expect } from '@playwright/test';
+import type { ReplayCanvasIntegrationOptions } from '@sentry-internal/replay-canvas';
 
 import { sentryTest } from '../../../../utils/fixtures';
 import { getReplaySnapshot, shouldSkipReplayTest, waitForReplayRequest } from '../../../../utils/replayHelpers';

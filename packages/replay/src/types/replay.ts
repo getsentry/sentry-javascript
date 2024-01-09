@@ -503,6 +503,7 @@ export interface ReplayContainer {
   updateUserActivity(): void;
   addUpdate(cb: AddUpdateCallback): void;
   getOptions(): ReplayPluginOptions;
+  getIntegrations(): Record<string, Record<string, unknown>>;
   getSessionId(): string | undefined;
   checkAndHandleExpiredSession(): boolean | void;
   setInitialState(): void;
