@@ -403,6 +403,7 @@ export function startRequestHandlerTransaction(
     request.headers['sentry-trace'],
     request.headers.baggage,
   );
+  // eslint-disable-next-line deprecation/deprecation
   hub.getScope().setPropagationContext(propagationContext);
 
   // TODO: Refactor this to `startSpan()`

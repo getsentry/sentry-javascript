@@ -46,6 +46,7 @@ export class VueIntegration implements Integration {
 
   /** Just here for easier testing */
   protected _setupIntegration(hub: Hub): void {
+    // eslint-disable-next-line deprecation/deprecation
     const client = hub.getClient();
     const options: Options = { ...DEFAULT_CONFIG, ...(client && client.getOptions()), ...this._options };
 

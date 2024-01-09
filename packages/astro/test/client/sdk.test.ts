@@ -1,6 +1,7 @@
 import type { BrowserClient } from '@sentry/browser';
+import { getCurrentScope } from '@sentry/browser';
 import * as SentryBrowser from '@sentry/browser';
-import { BrowserTracing, SDK_VERSION, WINDOW, getClient, getCurrentHub } from '@sentry/browser';
+import { BrowserTracing, SDK_VERSION, WINDOW, getClient } from '@sentry/browser';
 import { vi } from 'vitest';
 
 import { init } from '../../../astro/src/client/sdk';
@@ -37,7 +38,7 @@ describe('Sentry client SDK', () => {
     });
 
     it('sets the runtime tag on the scope', () => {
-      const currentScope = getCurrentHub().getScope();
+      const currentScope = getCurrentScope();
 
       // @ts-expect-error need access to protected _tags attribute
       expect(currentScope._tags).toEqual({});

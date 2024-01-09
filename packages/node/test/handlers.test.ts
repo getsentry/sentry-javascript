@@ -1,7 +1,7 @@
 import * as http from 'http';
 import type { Hub } from '@sentry/core';
 import * as sentryCore from '@sentry/core';
-import { Transaction, setAsyncContextStrategy } from '@sentry/core';
+import { Transaction, getClient, getCurrentScope, setAsyncContextStrategy } from '@sentry/core';
 import type { Event, PropagationContext } from '@sentry/types';
 import { SentryError } from '@sentry/utils';
 
@@ -65,7 +65,7 @@ describe('requestHandler', () => {
 
     sentryRequestMiddleware(req, res, next);
 
-    const scope = sentryCore.getCurrentHub().getScope();
+    const scope = getCurrentScope();
     expect(scope?.getRequestSession()).toEqual({ status: 'ok' });
   });
 
@@ -79,7 +79,7 @@ describe('requestHandler', () => {
 
     sentryRequestMiddleware(req, res, next);
 
-    const scope = sentryCore.getCurrentHub().getScope();
+    const scope = getCurrentScope();
     expect(scope?.getRequestSession()).toBeUndefined();
   });
 
@@ -95,7 +95,7 @@ describe('requestHandler', () => {
 
     sentryRequestMiddleware(req, res, next);
 
-    const scope = sentryCore.getCurrentHub().getScope();
+    const scope = getCurrentScope();
     res.emit('finish');
 
     setImmediate(() => {
@@ -116,7 +116,7 @@ describe('requestHandler', () => {
     const captureRequestSession = jest.spyOn<any, any>(client, '_captureRequestSession');
 
     sentryRequestMiddleware(req, res, next);
-    const scope = sentryCore.getCurrentHub().getScope();
+    const scope = getCurrentScope();
     res.emit('finish');
 
     setImmediate(() => {
@@ -163,7 +163,7 @@ describe('requestHandler', () => {
 
     sentryRequestMiddleware(req, res, next);
 
-    const scope = sentryCore.getCurrentHub().getScope();
+    const scope = getCurrentScope();
     expect((scope as any)._sdkProcessingMetadata).toEqual({
       request: req,
       requestDataOptionsFromExpressHandler: requestHandlerOptions,
@@ -191,7 +191,8 @@ describe('tracingHandler', () => {
 
   beforeEach(() => {
     hub = new sentryCore.Hub(new NodeClient(getDefaultNodeClientOptions({ tracesSampleRate: 1.0 })));
-    jest.spyOn(sentryCore, 'getCurrentHub').mockReturnValue(hub);
+    sentryCore.makeMain(hub);
+
     mockAsyncContextStrategy(() => hub);
     req = {
       headers,
@@ -210,7 +211,7 @@ describe('tracingHandler', () => {
 
   function getPropagationContext(): PropagationContext {
     // @ts-expect-error accesing private property for test
-    return hub.getScope()._propagationContext;
+    return getCurrentScope()._propagationContext;
   }
 
   it('creates a transaction when handling a request', () => {
@@ -240,7 +241,7 @@ describe('tracingHandler', () => {
   });
 
   it("doesn't create a transaction if tracing is disabled", () => {
-    delete hub.getClient()?.getOptions().tracesSampleRate;
+    delete getClient()?.getOptions().tracesSampleRate;
     const startTransaction = jest.spyOn(sentryCore, 'startTransaction');
 
     sentryTracingMiddleware(req, res, next);
@@ -341,7 +342,7 @@ describe('tracingHandler', () => {
     sentryTracingMiddleware(req, res, next);
 
     // eslint-disable-next-line deprecation/deprecation
-    const transaction = sentryCore.getCurrentHub().getScope().getTransaction();
+    const transaction = getCurrentScope().getTransaction();
 
     expect(transaction).toBeDefined();
     expect(transaction).toEqual(
@@ -466,6 +467,7 @@ describe('tracingHandler', () => {
     const hub = new sentryCore.Hub(new NodeClient(options));
 
     jest.spyOn(sentryCore, 'getCurrentHub').mockReturnValue(hub);
+    // eslint-disable-next-line deprecation/deprecation
     jest.spyOn(sentryCore, 'getCurrentScope').mockImplementation(() => hub.getScope());
 
     sentryTracingMiddleware(req, res, next);
@@ -519,7 +521,7 @@ describe('errorHandler()', () => {
     // by the`requestHandler`)
     client.initSessionFlusher();
 
-    const scope = sentryCore.getCurrentHub().getScope();
+    const scope = getCurrentScope();
     const hub = new sentryCore.Hub(client);
 
     jest.spyOn<any, any>(client, '_captureRequestSession');
@@ -535,7 +537,7 @@ describe('errorHandler()', () => {
     const options = getDefaultNodeClientOptions({ autoSessionTracking: false, release: '3.3' });
     client = new NodeClient(options);
 
-    const scope = sentryCore.getCurrentHub().getScope();
+    const scope = getCurrentScope();
     const hub = new sentryCore.Hub(client);
 
     jest.spyOn<any, any>(client, '_captureRequestSession');
@@ -562,7 +564,7 @@ describe('errorHandler()', () => {
     hub.run(() => {
       scope?.setRequestSession({ status: 'ok' });
       sentryErrorMiddleware({ name: 'error', message: 'this is an error' }, req, res, () => {
-        const scope = sentryCore.getCurrentHub().getScope();
+        const scope = getCurrentScope();
         const requestSession = scope?.getRequestSession();
         expect(requestSession).toEqual({ status: 'crashed' });
       });
@@ -598,6 +600,7 @@ describe('errorHandler()', () => {
     // `captureException` in order to examine the scope as it exists inside the `withScope` callback
     // eslint-disable-next-line deprecation/deprecation
     hub.captureException = function (this: sentryCore.Hub, _exception: any) {
+      // eslint-disable-next-line deprecation/deprecation
       const scope = this.getScope();
       expect((scope as any)._sdkProcessingMetadata.request).toEqual(req);
     } as any;

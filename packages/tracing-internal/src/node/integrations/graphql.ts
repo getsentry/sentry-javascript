@@ -51,6 +51,7 @@ export class GraphQL implements LazyLoadedIntegration<GraphQLModule> {
 
     fill(pkg, 'execute', function (orig: () => void | Promise<unknown>) {
       return function (this: unknown, ...args: unknown[]) {
+        // eslint-disable-next-line deprecation/deprecation
         const scope = getCurrentHub().getScope();
         // eslint-disable-next-line deprecation/deprecation
         const parentSpan = scope.getSpan();

@@ -1,5 +1,5 @@
-import { setGlobalScope } from '@sentry/core';
-import { getCurrentHub, getSpanScope } from '@sentry/opentelemetry';
+import { getCurrentScope, setGlobalScope } from '@sentry/core';
+import { getClient, getSpanScope } from '@sentry/opentelemetry';
 
 import * as Sentry from '../../src/';
 import type { NodeExperimentalClient } from '../../src/types';
@@ -20,10 +20,9 @@ describe('Integration | Scope', () => {
 
       mockSdkInit({ enableTracing, beforeSend, beforeSendTransaction });
 
-      const hub = getCurrentHub();
-      const client = hub.getClient() as NodeExperimentalClient;
+      const client = getClient() as NodeExperimentalClient;
 
-      const rootScope = hub.getScope();
+      const rootScope = getCurrentScope();
 
       const error = new Error('test error');
       let spanId: string | undefined;
@@ -122,10 +121,8 @@ describe('Integration | Scope', () => {
 
       mockSdkInit({ enableTracing, beforeSend, beforeSendTransaction });
 
-      const hub = getCurrentHub();
-      const client = hub.getClient() as NodeExperimentalClient;
-
-      const rootScope = hub.getScope();
+      const client = getClient() as NodeExperimentalClient;
+      const rootScope = getCurrentScope();
 
       const error1 = new Error('test error 1');
       const error2 = new Error('test error 2');

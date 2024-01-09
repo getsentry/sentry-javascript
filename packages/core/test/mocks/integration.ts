@@ -1,6 +1,6 @@
 import type { Event, EventProcessor, Integration } from '@sentry/types';
 
-import { getCurrentHub, getCurrentScope } from '../../src';
+import { getClient, getCurrentScope } from '../../src';
 
 export class TestIntegration implements Integration {
   public static id: string = 'TestIntegration';
@@ -9,7 +9,7 @@ export class TestIntegration implements Integration {
 
   public setupOnce(): void {
     const eventProcessor: EventProcessor = (event: Event) => {
-      if (!getCurrentHub().getIntegration(TestIntegration)) {
+      if (!getClient()?.getIntegration(TestIntegration)) {
         return event;
       }
 
