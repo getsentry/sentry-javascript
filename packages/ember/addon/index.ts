@@ -9,6 +9,7 @@ import { SDK_VERSION } from '@sentry/browser';
 import { GLOBAL_OBJ } from '@sentry/utils';
 import Ember from 'ember';
 
+import type { Transaction } from '@sentry/types';
 import type { EmberSentryConfig, GlobalConfig, OwnConfig } from './types';
 
 function _getSentryInitConfig(): EmberSentryConfig['sentry'] {
@@ -67,6 +68,11 @@ export function InitSentryForEmber(_runtimeConfig?: BrowserOptions): void {
 }
 
 type RouteConstructor = new (...args: ConstructorParameters<typeof Route>) => Route;
+
+export const getActiveTransaction = (): Transaction | undefined => {
+  // eslint-disable-next-line deprecation/deprecation
+  return Sentry.getCurrentHub().getScope().getTransaction();
+};
 
 export const instrumentRoutePerformance = <T extends RouteConstructor>(BaseRoute: T): T => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
