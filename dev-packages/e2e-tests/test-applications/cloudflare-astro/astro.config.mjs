@@ -14,6 +14,9 @@ export default defineConfig({
     sentry({
       enabled: Boolean(dsn),
       dsn,
+      sourceMapsUploadOptions: {
+        enabled: false,
+      },
       clientInitPath: 'sentry.client.mjs',
       serverInitPath: 'sentry.server.mjs',
     }),
