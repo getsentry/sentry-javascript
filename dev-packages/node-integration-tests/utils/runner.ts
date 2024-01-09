@@ -93,7 +93,8 @@ export function createRunner(...paths: string[]) {
         }
       }
 
-      function checkDone(): void {
+      /** Called after each expect callback to check if we're complete */
+      function expectCallbackCalled(): void {
         envelopeCount++;
         if (envelopeCount === expectedEnvelopeCount) {
           child.kill();
@@ -105,12 +106,14 @@ export function createRunner(...paths: string[]) {
         // Lines can have leading '[something] [{' which we need to remove
         const cleanedLine = line.replace(/^.*?] \[{"/, '[{"');
 
+        // See if we have a port message
         if (cleanedLine.startsWith('{"port":')) {
           const { port } = JSON.parse(cleanedLine) as { port: number };
           serverPort = port;
           return;
         }
 
+        // Skip any lines that don't start with envelope JSON
         if (!cleanedLine.startsWith('[{')) {
           return;
         }
@@ -119,10 +122,6 @@ export function createRunner(...paths: string[]) {
         try {
           envelope = JSON.parse(cleanedLine) as Envelope;
         } catch (_) {
-          //
-        }
-
-        if (!envelope) {
           return;
         }
 
@@ -135,7 +134,7 @@ export function createRunner(...paths: string[]) {
 
           const expected = expectedEnvelopes.shift();
 
-          // Catch any error or failed assertions and pass them to done
+          // Catch any error or failed assertions and pass them to done to end the test quickly
           try {
             if (!expected) {
               throw new Error(`No more expected envelope items but we received a '${envelopeItemType}' item`);
@@ -149,17 +148,17 @@ export function createRunner(...paths: string[]) {
 
             if ('event' in expected) {
               expected.event(item[1] as Event);
-              checkDone();
+              expectCallbackCalled();
             }
 
             if ('transaction' in expected) {
               expected.transaction(item[1] as Event);
-              checkDone();
+              expectCallbackCalled();
             }
 
             if ('session' in expected) {
               expected.session(item[1] as SerializedSession);
-              checkDone();
+              expectCallbackCalled();
             }
           } catch (e) {
             done?.(e);
@@ -168,16 +167,14 @@ export function createRunner(...paths: string[]) {
       }
 
       let buffer = Buffer.alloc(0);
-
       child.stdout.on('data', (data: Buffer) => {
+        // This is horribly memory inefficient but it's only for tests
         buffer = Buffer.concat([buffer, data]);
 
         let splitIndex = -1;
         while ((splitIndex = buffer.indexOf(0xa)) >= 0) {
           const line = buffer.subarray(0, splitIndex).toString();
-
           buffer = Buffer.from(buffer.subarray(splitIndex + 1));
-
           tryParseLine(line);
         }
       });
