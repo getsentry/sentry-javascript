@@ -123,6 +123,7 @@ describe('sveltekitRoutingInstrumentation', () => {
       description: 'SvelteKit Route Change',
     });
 
+    // eslint-disable-next-line deprecation/deprecation
     expect(returnedTransaction?.setTag).toHaveBeenCalledWith('from', '/users');
 
     // We emit `null` here to simulate the end of the navigation lifecycle
@@ -173,6 +174,7 @@ describe('sveltekitRoutingInstrumentation', () => {
         description: 'SvelteKit Route Change',
       });
 
+      // eslint-disable-next-line deprecation/deprecation
       expect(returnedTransaction?.setTag).toHaveBeenCalledWith('from', '/users/[id]');
     });
 

@@ -4,6 +4,7 @@ import {
   captureException,
   continueTrace,
   convertIntegrationFnToClass,
+  getCurrentScope,
   runWithAsyncContext,
   startSpan,
 } from '@sentry/core';
@@ -90,9 +91,10 @@ function instrumentBunServeOptions(serveOptions: Parameters<typeof Bun.serve>[0]
                   >);
                   if (response && response.status) {
                     span?.setHttpStatus(response.status);
-                    span?.setData('http.response.status_code', response.status);
+                    span?.setAttribute('http.response.status_code', response.status);
                     if (span instanceof Transaction) {
-                      span.setContext('response', {
+                      const scope = getCurrentScope();
+                      scope.setContext('response', {
                         headers: response.headers.toJSON(),
                         status_code: response.status,
                       });

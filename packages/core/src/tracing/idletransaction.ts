@@ -146,7 +146,7 @@ export class IdleTransaction extends Transaction {
     this.activities = {};
 
     if (this.op === 'ui.action.click') {
-      this.setTag(FINISH_REASON_TAG, this._finishReason);
+      this.setAttribute(FINISH_REASON_TAG, this._finishReason);
     }
 
     if (this.spanRecorder) {

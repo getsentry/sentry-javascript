@@ -343,6 +343,7 @@ export class BrowserTracing implements Integration {
 
     this._latestRouteName = finalContext.name;
 
+    // eslint-disable-next-line deprecation/deprecation
     const sourceFromData = context.data && context.data[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE];
     // eslint-disable-next-line deprecation/deprecation
     const sourceFromMetadata = finalContext.metadata && finalContext.metadata.source;
