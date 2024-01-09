@@ -8,15 +8,18 @@ export const ErrorBoundary: V2_ErrorBoundaryComponent = () => {
 
   captureRemixErrorBoundaryError(error);
 
+  // We're using this to be able to test trace propagation inside ErrorBoundary.
+  if (error.message) {
+    return <div id="message">{error.message}</div>;
+  }
+
   return <div>error</div>;
 };
 
-export const meta: V2_MetaFunction = ({ data }) => [
+export const meta: V2_MetaFunction = () => [
   { charset: 'utf-8' },
   { title: 'New Remix App' },
   { name: 'viewport', content: 'width=device-width,initial-scale=1' },
-  { name: 'sentry-trace', content: data.sentryTrace },
-  { name: 'baggage', content: data.sentryBaggage },
 ];
 
 export const loader: LoaderFunction = async ({ request }) => {

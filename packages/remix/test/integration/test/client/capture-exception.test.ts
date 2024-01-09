@@ -8,7 +8,6 @@ test('should report a manually captured error.', async ({ page }) => {
   const [errorEnvelope, pageloadEnvelope] = envelopes;
 
   expect(errorEnvelope.level).toBe('error');
-  expect(errorEnvelope.tags?.transaction).toBe('/capture-exception');
   expect(errorEnvelope.exception?.values).toMatchObject([
     {
       type: 'Error',

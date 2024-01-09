@@ -2,12 +2,10 @@ import { LoaderFunction, MetaFunction, defer, json, redirect } from '@remix-run/
 import { Links, LiveReload, Meta, Outlet, Scripts, ScrollRestoration } from '@remix-run/react';
 import { withSentry } from '@sentry/remix';
 
-export const meta: MetaFunction = ({ data }) => ({
+export const meta: MetaFunction = () => ({
   charset: 'utf-8',
   title: 'New Remix App',
   viewport: 'width=device-width,initial-scale=1',
-  'sentry-trace': data.sentryTrace,
-  baggage: data.sentryBaggage,
 });
 
 export const loader: LoaderFunction = async ({ request }) => {

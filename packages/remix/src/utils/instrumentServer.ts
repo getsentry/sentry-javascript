@@ -262,6 +262,10 @@ function makeWrappedDataFunction(
 
       res = await origFn.call(this, args);
 
+      if (name === 'loader') {
+        res = await injectTraceAndBaggageToLoaderData(res, remixVersion);
+      }
+
       currentScope.setSpan(activeTransaction);
       span?.end();
     } catch (err) {
@@ -293,7 +297,10 @@ const makeWrappedLoader =
     return makeWrappedDataFunction(origLoader, id, 'loader', remixVersion, manuallyInstrumented);
   };
 
-function getTraceAndBaggage(): {
+/**
+ *
+ */
+export function getTraceAndBaggage(): {
   sentryTrace?: string;
   sentryBaggage?: string;
 } {
@@ -317,49 +324,44 @@ function getTraceAndBaggage(): {
   return {};
 }
 
-function makeWrappedRootLoader(remixVersion: number) {
-  return function (origLoader: DataFunction): DataFunction {
-    return async function (this: unknown, args: DataFunctionArgs): Promise<Response | AppData> {
-      const res = await origLoader.call(this, args);
-      const traceAndBaggage = getTraceAndBaggage();
+async function injectTraceAndBaggageToLoaderData(loaderData: AppData, remixVersion: number): Promise<AppData> {
+  const traceAndBaggage = getTraceAndBaggage();
 
-      if (isDeferredData(res)) {
-        res.data['sentryTrace'] = traceAndBaggage.sentryTrace;
-        res.data['sentryBaggage'] = traceAndBaggage.sentryBaggage;
-        res.data['remixVersion'] = remixVersion;
+  if (isDeferredData(loaderData)) {
+    loaderData.data['sentryTrace'] = traceAndBaggage.sentryTrace;
+    loaderData.data['sentryBaggage'] = traceAndBaggage.sentryBaggage;
+    loaderData.data['remixVersion'] = remixVersion;
 
-        return res;
+    return loaderData;
+  }
+
+  if (isResponse(loaderData)) {
+    // Note: `redirect` and `catch` responses do not have bodies to extract.
+    // We skip injection of trace and baggage in those cases.
+    // For `redirect`, a valid internal redirection target will have the trace and baggage injected.
+    if (isRedirectResponse(loaderData) || isCatchResponse(loaderData)) {
+      DEBUG_BUILD && logger.warn('Skipping injection of trace and baggage as the response does not have a body');
+      return loaderData;
+    } else {
+      const data = await extractData(loaderData);
+
+      if (data != null && typeof data === 'object') {
+        return json(
+          { ...data, ...traceAndBaggage, remixVersion },
+          {
+            headers: loaderData.headers,
+            statusText: loaderData.statusText,
+            status: loaderData.status,
+          },
+        );
+      } else {
+        DEBUG_BUILD && logger.warn('Skipping injection of trace and baggage as the response body is not an object');
+        return loaderData;
       }
+    }
+  }
 
-      if (isResponse(res)) {
-        // Note: `redirect` and `catch` responses do not have bodies to extract.
-        // We skip injection of trace and baggage in those cases.
-        // For `redirect`, a valid internal redirection target will have the trace and baggage injected.
-        if (isRedirectResponse(res) || isCatchResponse(res)) {
-          DEBUG_BUILD && logger.warn('Skipping injection of trace and baggage as the response does not have a body');
-          return res;
-        } else {
-          const data = await extractData(res);
-
-          if (typeof data === 'object') {
-            return json(
-              { ...data, ...traceAndBaggage, remixVersion },
-              {
-                headers: res.headers,
-                statusText: res.statusText,
-                status: res.status,
-              },
-            );
-          } else {
-            DEBUG_BUILD && logger.warn('Skipping injection of trace and baggage as the response body is not an object');
-            return res;
-          }
-        }
-      }
-
-      return { ...res, ...traceAndBaggage, remixVersion };
-    };
-  };
+  return { ...loaderData, ...traceAndBaggage, remixVersion };
 }
 
 /**
@@ -524,20 +526,14 @@ export function instrumentBuild(build: ServerBuild, manuallyInstrumented: boolea
       fill(wrappedRoute.module, 'action', makeWrappedAction(id, remixVersion, manuallyInstrumented));
     }
 
-    const routeLoader = wrappedRoute.module.loader as undefined | WrappedFunction;
-    if (routeLoader && !routeLoader.__sentry_original__) {
-      fill(wrappedRoute.module, 'loader', makeWrappedLoader(id, remixVersion, manuallyInstrumented));
+    if (!wrappedRoute.module.loader) {
+      wrappedRoute.module.loader = () => ({});
     }
 
-    // Entry module should have a loader function to provide `sentry-trace` and `baggage`
-    // They will be available for the root `meta` function as `data.sentryTrace` and `data.sentryBaggage`
-    if (!wrappedRoute.parentId) {
-      if (!wrappedRoute.module.loader) {
-        wrappedRoute.module.loader = () => ({});
-      }
+    const routeLoader = wrappedRoute.module.loader as undefined | WrappedFunction;
 
-      // We want to wrap the root loader regardless of whether it's already wrapped before.
-      fill(wrappedRoute.module, 'loader', makeWrappedRootLoader(remixVersion));
+    if (routeLoader && !routeLoader.__sentry_original__) {
+      fill(wrappedRoute.module, 'loader', makeWrappedLoader(id, remixVersion, manuallyInstrumented));
     }
 
     routes[id] = wrappedRoute;

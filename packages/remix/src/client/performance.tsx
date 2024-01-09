@@ -1,7 +1,7 @@
-import type { ErrorBoundaryProps } from '@sentry/react';
+import { type ErrorBoundaryProps, getCurrentScope } from '@sentry/react';
 import { WINDOW, withErrorBoundary } from '@sentry/react';
-import type { Transaction, TransactionContext } from '@sentry/types';
-import { isNodeEnv, logger } from '@sentry/utils';
+import type { PropagationContext, TraceparentData, Transaction, TransactionContext } from '@sentry/types';
+import { isNodeEnv, logger, tracingContextFromHeaders } from '@sentry/utils';
 import * as React from 'react';
 
 import { DEBUG_BUILD } from '../utils/debug-build';
@@ -20,6 +20,10 @@ interface RouteMatch<ParamKey extends string = string> {
   pathname: string;
   id: string;
   handle: unknown;
+  data?: {
+    sentryTrace?: string;
+    sentryBaggage?: string;
+  };
 }
 
 type UseEffect = (cb: () => void, deps: unknown[]) => void;
@@ -66,6 +70,7 @@ export function remixRouterInstrumentation(useEffect: UseEffect, useLocation: Us
     startTransactionOnLocationChange = true,
   ): void => {
     const initPathName = getInitPathName();
+
     if (startTransactionOnPageLoad && initPathName) {
       activeTransaction = customStartTransaction({
         name: initPathName,
@@ -86,6 +91,58 @@ export function remixRouterInstrumentation(useEffect: UseEffect, useLocation: Us
     _startTransactionOnLocationChange = startTransactionOnLocationChange;
   };
 }
+
+const getTracingContextFromRouteMatches = (
+  currentRouteMatch: RouteMatch<string>,
+): {
+  traceparentData?: TraceparentData;
+  dynamicSamplingContext?: Record<string, unknown>;
+  propagationContext: PropagationContext;
+} => {
+  const { sentryTrace, sentryBaggage } = currentRouteMatch.data || {};
+
+  return tracingContextFromHeaders(sentryTrace, sentryBaggage);
+};
+
+const updatePageLoadTransaction = (transaction: Transaction, currentRouteMatch: RouteMatch<string>): Transaction => {
+  const { traceparentData, dynamicSamplingContext, propagationContext } =
+    getTracingContextFromRouteMatches(currentRouteMatch);
+
+  getCurrentScope().setPropagationContext(propagationContext);
+
+  transaction.updateName(currentRouteMatch.id);
+  transaction.setMetadata({
+    source: 'route',
+    dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
+  });
+
+  transaction.parentSpanId = traceparentData?.parentSpanId;
+  transaction.parentSampled = traceparentData?.parentSampled;
+
+  if (traceparentData?.traceId) {
+    transaction.traceId = traceparentData.traceId;
+  }
+
+  return transaction;
+};
+
+const startNavigationTransaction = (currentRouteMatch: RouteMatch<string>): Transaction | undefined => {
+  const { traceparentData, dynamicSamplingContext, propagationContext } =
+    getTracingContextFromRouteMatches(currentRouteMatch);
+
+  getCurrentScope().setPropagationContext(propagationContext);
+
+  return _customStartTransaction({
+    name: currentRouteMatch.id,
+    op: 'navigation',
+    origin: 'auto.navigation.remix',
+    tags: DEFAULT_TAGS,
+    metadata: {
+      source: 'route',
+      dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
+    },
+  });
+};
 
 /**
  * Wraps a remix `root` (see: https://remix.run/docs/en/v1/guides/migrating-react-router-app#creating-the-root-route)
@@ -125,8 +182,9 @@ export function withSentry<P extends Record<string, unknown>, R extends React.Co
 
     _useEffect(() => {
       if (activeTransaction && matches && matches.length) {
-        activeTransaction.updateName(matches[matches.length - 1].id);
-        activeTransaction.setMetadata({ source: 'route' });
+        const currentRouteMatch = matches[matches.length - 1];
+
+        activeTransaction = updatePageLoadTransaction(activeTransaction, currentRouteMatch);
       }
 
       isBaseLocation = true;
@@ -146,15 +204,9 @@ export function withSentry<P extends Record<string, unknown>, R extends React.Co
           activeTransaction.end();
         }
 
-        activeTransaction = _customStartTransaction({
-          name: matches[matches.length - 1].id,
-          op: 'navigation',
-          origin: 'auto.navigation.remix',
-          tags: DEFAULT_TAGS,
-          metadata: {
-            source: 'route',
-          },
-        });
+        const currentRouteMatch = matches[matches.length - 1];
+
+        activeTransaction = startNavigationTransaction(currentRouteMatch);
       }
     }, [location]);
 
