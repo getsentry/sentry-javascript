@@ -6,7 +6,7 @@ interface ReplayCanvasOptions {
   quality: 'low' | 'medium' | 'high';
 }
 
-interface ReplayCanvasIntegrationOptions {
+export interface ReplayCanvasIntegrationOptions {
   recordCanvas: true;
   getCanvasManager: (options: ConstructorParameters<typeof CanvasManager>[0]) => CanvasManagerInterface;
   sampling: {

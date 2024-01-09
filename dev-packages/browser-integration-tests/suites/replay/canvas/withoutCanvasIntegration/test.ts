@@ -21,7 +21,7 @@ sentryTest('does not setup up canvas without ReplayCanvas integration', async ({
   await page.goto(url);
 
   const replay = await getReplaySnapshot(page);
-  const canvasOptions = replay._options._experiments?.canvas;
+  const canvasOptions = replay._integrations.canvas;
   expect(canvasOptions).toBe(undefined);
   expect(replay._hasCanvas).toBe(false);
 });

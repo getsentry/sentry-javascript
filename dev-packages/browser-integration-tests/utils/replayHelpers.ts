@@ -174,6 +174,7 @@ export function getReplaySnapshot(page: Page): Promise<{
   _isEnabled: boolean;
   _context: InternalEventContext;
   _options: ReplayPluginOptions;
+  _integrations: Record<string, unknown>;
   _hasCanvas: boolean;
   session: Session | undefined;
   recordingMode: ReplayRecordingMode;
@@ -187,8 +188,9 @@ export function getReplaySnapshot(page: Page): Promise<{
       _isEnabled: replay.isEnabled(),
       _context: replay.getContext(),
       _options: replay.getOptions(),
+      _integrations: replay.getIntegrations(),
       // We cannot pass the function through as this is serialized
-      _hasCanvas: typeof replay.getOptions()._experiments.canvas?.manager === 'function',
+      _hasCanvas: typeof replay.getIntegrations().canvas?.getCanvasManager === 'function',
       session: replay.session,
       recordingMode: replay.recordingMode,
     };
