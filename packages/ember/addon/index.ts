@@ -67,12 +67,17 @@ export function InitSentryForEmber(_runtimeConfig?: BrowserOptions): void {
   }
 }
 
-type RouteConstructor = new (...args: ConstructorParameters<typeof Route>) => Route;
-
+/**
+ * Grabs active transaction off scope.
+ *
+ * @deprecated You should not rely on the transaction, but just use `startSpan()` APIs instead.
+ */
 export const getActiveTransaction = (): Transaction | undefined => {
   // eslint-disable-next-line deprecation/deprecation
   return Sentry.getCurrentHub().getScope().getTransaction();
 };
+
+type RouteConstructor = new (...args: ConstructorParameters<typeof Route>) => Route;
 
 export const instrumentRoutePerformance = <T extends RouteConstructor>(BaseRoute: T): T => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
