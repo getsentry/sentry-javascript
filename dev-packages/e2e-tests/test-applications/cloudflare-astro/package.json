@@ -9,7 +9,8 @@
     "build": "yarn build:bundle",
     "build:bundle": "astro build",
     "preview": "astro preview",
-    "astro": "astro"
+    "astro": "astro",
+    "test:assert": "pnpm version"
   },
   "dependencies": {
     "astro": "^4.1.1",
@@ -18,6 +19,11 @@
     "@sentry/profiling-node": "^1.3.2"
   },
   "volta": {
-    "extends": "../../../package.json"
+    "extends": "../../package.json"
+  },
+  "pnpm": {
+    "overrides": {
+      "@sentry/node": "latest || *"
+    }
   }
 }
