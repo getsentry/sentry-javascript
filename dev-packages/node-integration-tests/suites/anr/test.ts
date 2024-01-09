@@ -53,7 +53,15 @@ const EXPECTED_ANR_EVENT = {
 
 conditionalTest({ min: 16 })('should report ANR when event loop blocked', () => {
   test('dummy test', done => {
-    // The first test in here always fails so maybe this fixed it?
+    // The first test in here always fails so maybe this fixes it?
+    createRunner(__dirname, 'basic.js')
+      .expect({
+        event: _event => {
+          //
+        },
+      })
+      .start();
+
     done();
   });
 
