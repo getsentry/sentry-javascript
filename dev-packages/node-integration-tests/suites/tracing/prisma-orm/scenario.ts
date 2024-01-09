@@ -21,6 +21,7 @@ async function run(): Promise<void> {
     op: 'transaction',
   });
 
+  // eslint-disable-next-line deprecation/deprecation
   Sentry.getCurrentScope().setSpan(transaction);
 
   try {

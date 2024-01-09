@@ -97,6 +97,7 @@ describe('IdleTransaction', () => {
 
       // @ts-expect-error need to pass in hub
       const otherTransaction = new Transaction({ name: 'bar' }, hub);
+      // eslint-disable-next-line deprecation/deprecation
       hub.getScope().setSpan(otherTransaction);
 
       transaction.end();
@@ -117,6 +118,7 @@ describe('IdleTransaction', () => {
     const mockFinish = jest.spyOn(transaction, 'end');
     transaction.initSpanRecorder(10);
     expect(transaction.activities).toMatchObject({});
+    // eslint-disable-next-line deprecation/deprecation
     getCurrentScope().setSpan(transaction);
 
     const span = startInactiveSpan({ name: 'inner' })!;
@@ -135,6 +137,7 @@ describe('IdleTransaction', () => {
     const transaction = new IdleTransaction({ name: 'foo' }, hub);
     transaction.initSpanRecorder(10);
     expect(transaction.activities).toMatchObject({});
+    // eslint-disable-next-line deprecation/deprecation
     getCurrentScope().setSpan(transaction);
 
     startInactiveSpan({ name: 'inner', startTimestamp: 1234, endTimestamp: 5678 });
@@ -146,6 +149,7 @@ describe('IdleTransaction', () => {
     const mockFinish = jest.spyOn(transaction, 'end');
     transaction.initSpanRecorder(10);
     expect(transaction.activities).toMatchObject({});
+    // eslint-disable-next-line deprecation/deprecation
     getCurrentScope().setSpan(transaction);
 
     startSpanManual({ name: 'inner1' }, span => {
@@ -169,6 +173,7 @@ describe('IdleTransaction', () => {
     transaction.initSpanRecorder(10);
     transaction.registerBeforeFinishCallback(mockCallback1);
     transaction.registerBeforeFinishCallback(mockCallback2);
+    // eslint-disable-next-line deprecation/deprecation
     getCurrentScope().setSpan(transaction);
 
     expect(mockCallback1).toHaveBeenCalledTimes(0);
@@ -186,6 +191,7 @@ describe('IdleTransaction', () => {
   it('filters spans on finish', () => {
     const transaction = new IdleTransaction({ name: 'foo', startTimestamp: 1234 }, hub);
     transaction.initSpanRecorder(10);
+    // eslint-disable-next-line deprecation/deprecation
     getCurrentScope().setSpan(transaction);
 
     // regular child - should be kept
@@ -220,6 +226,7 @@ describe('IdleTransaction', () => {
   it('filters out spans that exceed final timeout', () => {
     const transaction = new IdleTransaction({ name: 'foo', startTimestamp: 1234 }, hub, 1000, 3000);
     transaction.initSpanRecorder(10);
+    // eslint-disable-next-line deprecation/deprecation
     getCurrentScope().setSpan(transaction);
 
     const span = startInactiveSpan({ name: 'span', startTimestamp: transaction.startTimestamp + 2 })!;
@@ -256,6 +263,7 @@ describe('IdleTransaction', () => {
     it('does not finish if a activity is started', () => {
       const transaction = new IdleTransaction({ name: 'foo', startTimestamp: 1234 }, hub);
       transaction.initSpanRecorder(10);
+      // eslint-disable-next-line deprecation/deprecation
       getCurrentScope().setSpan(transaction);
 
       startInactiveSpan({ name: 'span' });
@@ -268,6 +276,7 @@ describe('IdleTransaction', () => {
       const idleTimeout = 10;
       const transaction = new IdleTransaction({ name: 'foo', startTimestamp: 1234 }, hub, idleTimeout);
       transaction.initSpanRecorder(10);
+      // eslint-disable-next-line deprecation/deprecation
       getCurrentScope().setSpan(transaction);
 
       startSpan({ name: 'span1' }, () => {});
@@ -285,6 +294,7 @@ describe('IdleTransaction', () => {
       const idleTimeout = 10;
       const transaction = new IdleTransaction({ name: 'foo', startTimestamp: 1234 }, hub, idleTimeout);
       transaction.initSpanRecorder(10);
+      // eslint-disable-next-line deprecation/deprecation
       getCurrentScope().setSpan(transaction);
 
       startSpan({ name: 'span1' }, () => {});
@@ -304,6 +314,7 @@ describe('IdleTransaction', () => {
       const idleTimeout = 10;
       const transaction = new IdleTransaction({ name: 'foo', startTimestamp: 1234 }, hub, idleTimeout);
       transaction.initSpanRecorder(10);
+      // eslint-disable-next-line deprecation/deprecation
       getCurrentScope().setSpan(transaction);
 
       const firstSpan = startInactiveSpan({ name: 'span1' })!;
@@ -319,6 +330,7 @@ describe('IdleTransaction', () => {
       const idleTimeout = 10;
       const transaction = new IdleTransaction({ name: 'foo', startTimestamp: 1234 }, hub, idleTimeout);
       transaction.initSpanRecorder(10);
+      // eslint-disable-next-line deprecation/deprecation
       getCurrentScope().setSpan(transaction);
 
       const firstSpan = startInactiveSpan({ name: 'span1' })!;
@@ -340,6 +352,7 @@ describe('IdleTransaction', () => {
       const idleTimeout = 10;
       const transaction = new IdleTransaction({ name: 'foo', startTimestamp: 1234 }, hub, idleTimeout);
       transaction.initSpanRecorder(10);
+      // eslint-disable-next-line deprecation/deprecation
       getCurrentScope().setSpan(transaction);
 
       startSpan({ name: 'span' }, () => {});
@@ -355,6 +368,7 @@ describe('IdleTransaction', () => {
       const idleTimeout = 10;
       const transaction = new IdleTransaction({ name: 'foo', startTimestamp: 1234 }, hub, idleTimeout);
       transaction.initSpanRecorder(10);
+      // eslint-disable-next-line deprecation/deprecation
       getCurrentScope().setSpan(transaction);
 
       startSpan({ name: 'span' }, () => {});
@@ -402,6 +416,7 @@ describe('IdleTransaction', () => {
       const transaction = new IdleTransaction({ name: 'foo' }, hub, TRACING_DEFAULTS.idleTimeout);
       const mockFinish = jest.spyOn(transaction, 'end');
       transaction.initSpanRecorder(10);
+      // eslint-disable-next-line deprecation/deprecation
       getCurrentScope().setSpan(transaction);
 
       expect(mockFinish).toHaveBeenCalledTimes(0);
@@ -424,6 +439,7 @@ describe('IdleTransaction', () => {
       const transaction = new IdleTransaction({ name: 'foo' }, hub, TRACING_DEFAULTS.idleTimeout, 50000);
       const mockFinish = jest.spyOn(transaction, 'end');
       transaction.initSpanRecorder(10);
+      // eslint-disable-next-line deprecation/deprecation
       getCurrentScope().setSpan(transaction);
 
       expect(mockFinish).toHaveBeenCalledTimes(0);

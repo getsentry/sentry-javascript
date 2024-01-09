@@ -1,4 +1,5 @@
 import {
+  getActiveSpan,
   getClient,
   getCurrentScope,
   getDynamicSamplingContextFromClient,
@@ -73,7 +74,7 @@ export function instrumentFetchRequest(
 
   const scope = getCurrentScope();
   const client = getClient();
-  const parentSpan = scope.getSpan();
+  const parentSpan = getActiveSpan();
 
   const { method, url } = handlerData.fetchData;
 
@@ -129,6 +130,7 @@ export function addTracingHeadersToFetchRequest(
   },
   requestSpan?: Span,
 ): PolymorphicRequestHeaders | undefined {
+  // eslint-disable-next-line deprecation/deprecation
   const span = requestSpan || scope.getSpan();
 
   const transaction = span && span.transaction;

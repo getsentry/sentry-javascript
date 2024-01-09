@@ -1,5 +1,6 @@
 import {
   addBreadcrumb,
+  getActiveSpan,
   getClient,
   getCurrentHub,
   getCurrentScope,
@@ -156,8 +157,7 @@ export class Undici implements Integration {
 
     const clientOptions = client.getOptions();
     const scope = getCurrentScope();
-
-    const parentSpan = scope.getSpan();
+    const parentSpan = getActiveSpan();
 
     const span = this._shouldCreateSpan(stringUrl) ? createRequestSpan(parentSpan, request, stringUrl) : undefined;
     if (span) {

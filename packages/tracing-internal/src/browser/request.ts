@@ -1,5 +1,6 @@
 /* eslint-disable max-lines */
 import {
+  getActiveSpan,
   getClient,
   getCurrentScope,
   getDynamicSamplingContextFromClient,
@@ -271,7 +272,7 @@ export function xhrCallback(
   }
 
   const scope = getCurrentScope();
-  const parentSpan = scope.getSpan();
+  const parentSpan = getActiveSpan();
 
   const span =
     shouldCreateSpanResult && parentSpan

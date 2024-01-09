@@ -308,7 +308,9 @@ export class Scope implements ScopeInterface {
   }
 
   /**
-   * @inheritDoc
+   * Sets the Span on the scope.
+   * @param span Span
+   * @deprecated Instead of setting a span on a scope, use `startSpan()`/`startSpanManual()` instead.
    */
   public setSpan(span?: Span): this {
     this._span = span;
@@ -317,7 +319,8 @@ export class Scope implements ScopeInterface {
   }
 
   /**
-   * @inheritDoc
+   * Returns the `Span` if there is one.
+   * @deprecated Use `getActiveSpan()` instead.
    */
   public getSpan(): Span | undefined {
     return this._span;
@@ -330,7 +333,7 @@ export class Scope implements ScopeInterface {
   public getTransaction(): Transaction | undefined {
     // Often, this span (if it exists at all) will be a transaction, but it's not guaranteed to be. Regardless, it will
     // have a pointer to the currently-active transaction.
-    const span = this.getSpan();
+    const span = this._span;
     return span && span.transaction;
   }
 

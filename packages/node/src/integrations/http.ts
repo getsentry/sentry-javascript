@@ -3,6 +3,7 @@ import type * as https from 'https';
 import type { Hub } from '@sentry/core';
 import {
   addBreadcrumb,
+  getActiveSpan,
   getClient,
   getCurrentHub,
   getCurrentScope,
@@ -253,7 +254,7 @@ function _createWrappedRequestMethodFactory(
       }
 
       const scope = getCurrentScope();
-      const parentSpan = scope.getSpan();
+      const parentSpan = getActiveSpan();
 
       const data = getRequestSpanData(requestUrl, requestOptions);
 

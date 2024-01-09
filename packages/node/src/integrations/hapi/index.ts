@@ -86,6 +86,7 @@ export const hapiTracingPlugin = {
         },
       );
 
+      // eslint-disable-next-line deprecation/deprecation
       getCurrentScope().setSpan(transaction);
 
       return h.continue;

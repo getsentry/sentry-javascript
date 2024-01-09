@@ -90,6 +90,7 @@ describe('Client init()', () => {
     const transportSend = jest.spyOn(hub.getClient()!.getTransport()!, 'send');
 
     // Ensure we have no current span, so our next span is a transaction
+    // eslint-disable-next-line deprecation/deprecation
     getCurrentScope().setSpan(undefined);
 
     SentryReact.startSpan({ name: '/404' }, () => {
