@@ -30,7 +30,7 @@
   },
   "dependencies": {
     "@sentry-internal/feedback": "7.93.0",
-    "@sentry-internal/replay-canvas": "file:../replay-canvas",
+    "@sentry-internal/replay-canvas": "7.93.0",
     "@sentry-internal/tracing": "7.93.0",
     "@sentry/core": "7.93.0",
     "@sentry/replay": "7.93.0",
