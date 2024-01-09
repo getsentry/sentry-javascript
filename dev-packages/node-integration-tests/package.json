@@ -20,7 +20,7 @@
     "lint": "eslint . --format stylish",
     "fix": "eslint . --format stylish --fix",
     "type-check": "tsc",
-    "pretest": "run-s --silent build prisma:init prisma:init:new",
+    "pretest": "run-s --silent prisma:init prisma:init:new",
     "test": "ts-node ./utils/run-tests.ts",
     "jest": "jest --config ./jest.config.js",
     "test:watch": "yarn test --watch"
