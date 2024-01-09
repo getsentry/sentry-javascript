@@ -8,6 +8,10 @@ npx @sentry/migr8@latest
 
 This will let you select which updates to run, and automatically update your code. Make sure to still review all code changes!
 
+## Deprecate `scope.setTransactionName()`
+
+Instead, either set this as attributes or tags, or use an event processor to set `event.transaction`.
+
 ## Deprecate `scope.getTransaction()` and `getActiveTransaction()`
 
 Instead, you should not rely on the active transaction, but just use `startSpan()` APIs, which handle this for you.

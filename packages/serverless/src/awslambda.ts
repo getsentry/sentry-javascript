@@ -224,7 +224,10 @@ function enhanceScopeWithEnvironmentData(scope: Scope, context: Context, startTi
  * @param context AWS Lambda context that will be used to extract some part of the data
  */
 function enhanceScopeWithTransactionData(scope: Scope, context: Context): void {
-  scope.setTransactionName(context.functionName);
+  scope.addEventProcessor(event => {
+    event.transaction = context.functionName;
+    return event;
+  });
   scope.setTag('server_name', process.env._AWS_XRAY_DAEMON_ADDRESS || process.env.SENTRY_NAME || hostname());
   scope.setTag('url', `awslambda:///${context.functionName}`);
 }

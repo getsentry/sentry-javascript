@@ -41,6 +41,7 @@ export interface ScopeData {
   sdkProcessingMetadata: { [key: string]: unknown };
   fingerprint: string[];
   level?: SeverityLevel;
+  /** @deprecated This will be removed in v8. */
   transactionName?: string;
   span?: Span;
 }
@@ -125,6 +126,7 @@ export interface Scope {
 
   /**
    * Sets the transaction name on the scope for future events.
+   * @deprecated Use extra or tags instead.
    */
   setTransactionName(name?: string): this;
 
