@@ -139,9 +139,9 @@ export class Span implements SpanInterface {
     this._traceId = spanContext.traceId || uuid4();
     this._spanId = spanContext.spanId || uuid4().substring(16);
     this.startTimestamp = spanContext.startTimestamp || timestampInSeconds();
-    this.tags = spanContext.tags || {};
-    this.data = spanContext.data || {};
-    this.attributes = spanContext.attributes || {};
+    this.tags = spanContext.tags ? { ...spanContext.tags } : {};
+    this.data = spanContext.data ? { ...spanContext.data } : {};
+    this.attributes = spanContext.attributes ? { ...spanContext.attributes } : {};
     this.instrumenter = spanContext.instrumenter || 'sentry';
     this.origin = spanContext.origin || 'manual';
     // eslint-disable-next-line deprecation/deprecation
