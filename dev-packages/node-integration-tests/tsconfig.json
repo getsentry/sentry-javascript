@@ -6,6 +6,6 @@
   "compilerOptions": {
     // package-specific options
     "esModuleInterop": true,
-    "types": ["node"]
+    "types": ["node", "jest"]
   }
 }
