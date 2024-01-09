@@ -6,13 +6,13 @@
 
 # Sentry Session Replay with Canvas
 
-[![npm version](https://img.shields.io/npm/v/@sentry/replay.svg)](https://www.npmjs.com/package/@sentry/replay)
-[![npm dm](https://img.shields.io/npm/dm/@sentry/replay.svg)](https://www.npmjs.com/package/@sentry/replay)
-[![npm dt](https://img.shields.io/npm/dt/@sentry/replay.svg)](https://www.npmjs.com/package/@sentry/replay)
+[![npm version](https://img.shields.io/npm/v/@sentry-internal/replay-canvas.svg)](https://www.npmjs.com/package/@sentry-internal/replay-canvas)
+[![npm dm](https://img.shields.io/npm/dm/@sentry-internal/replay-canvas.svg)](https://www.npmjs.com/package/@sentry-internal/replay-canvas)
+[![npm dt](https://img.shields.io/npm/dt/@sentry-internal/replay-canvas.svg)](https://www.npmjs.com/package/@sentry-internal/replay-canvas)
 
 ## Pre-requisites
 
-`@sentry/replay` requires Node 12+, and browsers newer than IE11.
+`@sentry-internal/replay-canvas` requires Node 12+, and browsers newer than IE11.
 
 ## Installation
 
