@@ -1,8 +1,9 @@
-import type { Client, DynamicSamplingContext, Scope, Span, Transaction } from '@sentry/types';
+import type { Client, DynamicSamplingContext, Scope, Span, Transaction, TransactionSource } from '@sentry/types';
 import { dropUndefinedKeys } from '@sentry/utils';
 
 import { DEFAULT_ENVIRONMENT } from '../constants';
 import { getClient, getCurrentScope } from '../exports';
+import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '../semanticAttributes';
 import { spanIsSampled, spanToJSON } from '../utils/spanUtils';
 
 /**
@@ -78,7 +79,7 @@ export function getDynamicSamplingContextFromSpan(span: Span): Readonly<Partial<
   }
 
   // We don't want to have a transaction name in the DSC if the source is "url" because URLs might contain PII
-  const source = txn.metadata.source;
+  const source = txn.attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] as TransactionSource | undefined;
   const jsonSpan = spanToJSON(txn);
 
   // after JSON conversion, txn.name becomes jsonSpan.description
