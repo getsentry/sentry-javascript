@@ -89,7 +89,7 @@ function setCause(error: Error & { cause?: Error }, cause: Error): void {
 }
 
 /**
- * A ErrorBoundary component that logs errors to Sentry. Requires React >= 16.
+ * A ErrorBoundary component that logs errors to Sentry.
  * NOTE: If you are a Sentry user, and you are seeing this stack frame, it means the
  * Sentry React SDK ErrorBoundary caught an error invoking your application code. This
  * is expected behavior and NOT indicative of a bug with the Sentry React SDK.
