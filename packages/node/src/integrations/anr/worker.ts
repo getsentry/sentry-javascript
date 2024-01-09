@@ -47,6 +47,7 @@ async function sendAbnormalSession(): Promise<void> {
     updateSession(session, { status: 'abnormal', abnormal_mechanism: 'anr_foreground' });
 
     const envelope = createSessionEnvelope(session, options.dsn, options.sdkMetadata);
+    // Log the envelope so to aid in testing
     log(JSON.stringify(envelope));
 
     await transport.send(envelope);
@@ -118,6 +119,7 @@ async function sendAnrEvent(frames?: StackFrame[], traceContext?: TraceContext):
   };
 
   const envelope = createEventEnvelope(event, options.dsn, options.sdkMetadata);
+  // Log the envelope so to aid in testing
   log(JSON.stringify(envelope));
 
   await transport.send(envelope);

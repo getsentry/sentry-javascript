@@ -1,6 +1,7 @@
 import { spawn } from 'child_process';
 import { join } from 'path';
 import type { Envelope, EnvelopeItemType, Event, SerializedSession } from '@sentry/types';
+import axios from 'axios';
 
 export function assertSentryEvent(actual: Event, expected: Event): void {
   expect(actual).toMatchObject({
@@ -12,6 +13,17 @@ export function assertSentryEvent(actual: Event, expected: Event): void {
 export function assertSentrySession(actual: SerializedSession, expected: Partial<SerializedSession>): void {
   expect(actual).toMatchObject({
     sid: expect.any(String),
+    ...expected,
+  });
+}
+
+export function assertSentryTransaction(actual: Event, expected: Partial<Event>): void {
+  expect(actual).toMatchObject({
+    event_id: expect.any(String),
+    timestamp: expect.anything(),
+    start_timestamp: expect.anything(),
+    spans: expect.any(Array),
+    type: 'transaction',
     ...expected,
   });
 }
@@ -57,6 +69,7 @@ export function createRunner(...paths: string[]) {
     start: function (done?: (e?: unknown) => void) {
       const expectedEnvelopeCount = expectedEnvelopes.length;
       let envelopeCount = 0;
+      let serverPort: number | undefined;
 
       const child = spawn('node', [...flags, testPath]);
 
@@ -69,6 +82,17 @@ export function createRunner(...paths: string[]) {
         done?.(e);
       });
 
+      async function waitForServerPort(timeout = 10_000): Promise<void> {
+        let remaining = timeout;
+        while (serverPort === undefined) {
+          await new Promise<void>(resolve => setTimeout(resolve, 100));
+          remaining -= 100;
+          if (remaining < 0) {
+            throw new Error('Timed out waiting for server port');
+          }
+        }
+      }
+
       function checkDone(): void {
         envelopeCount++;
         if (envelopeCount === expectedEnvelopeCount) {
@@ -80,6 +104,12 @@ export function createRunner(...paths: string[]) {
       function tryParseLine(line: string): void {
         // Lines can have leading '[something] [{' which we need to remove
         const cleanedLine = line.replace(/^.*?] \[{"/, '[{"');
+
+        if (cleanedLine.startsWith('{"port":')) {
+          const { port } = JSON.parse(cleanedLine) as { port: number };
+          serverPort = port;
+          return;
+        }
 
         if (!cleanedLine.startsWith('[{')) {
           return;
@@ -155,6 +185,25 @@ export function createRunner(...paths: string[]) {
       return {
         childHasExited: function (): boolean {
           return hasExited;
+        },
+        makeRequest: async function <T>(
+          method: 'get' | 'post',
+          path: string,
+          headers: Record<string, string> = {},
+        ): Promise<T | undefined> {
+          try {
+            await waitForServerPort();
+
+            const url = `http://localhost:${serverPort}${path}`;
+            if (method === 'get') {
+              return (await axios.get(url, { headers })).data;
+            } else {
+              return (await axios.post(url, { headers })).data;
+            }
+          } catch (e) {
+            done?.(e);
+            return undefined;
+          }
         },
       };
     },
