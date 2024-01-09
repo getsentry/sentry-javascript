@@ -3,7 +3,7 @@ import { dropUndefinedKeys } from '@sentry/utils';
 
 import { DEFAULT_ENVIRONMENT } from '../constants';
 import { getClient, getCurrentScope } from '../exports';
-import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '../semanticAttributes';
+import { SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '../semanticAttributes';
 import { spanIsSampled, spanToJSON } from '../utils/spanUtils';
 
 /**
@@ -15,7 +15,6 @@ export function getDynamicSamplingContextFromClient(
   trace_id: string,
   client: Client,
   scope?: Scope,
-  emitHook: boolean = true,
 ): DynamicSamplingContext {
   const options = client.getOptions();
 
@@ -30,9 +29,7 @@ export function getDynamicSamplingContextFromClient(
     trace_id,
   }) as DynamicSamplingContext;
 
-  if (emitHook) {
-    client.emit && client.emit('createDsc', dsc);
-  }
+  client.emit && client.emit('createDsc', dsc);
 
   return dsc;
 }
@@ -56,7 +53,7 @@ export function getDynamicSamplingContextFromSpan(span: Span): Readonly<Partial<
   }
 
   // passing emit=false here to only emit later once the DSC is actually populated
-  const dsc = getDynamicSamplingContextFromClient(spanToJSON(span).trace_id || '', client, getCurrentScope(), false);
+  const dsc = getDynamicSamplingContextFromClient(spanToJSON(span).trace_id || '', client, getCurrentScope());
 
   // As long as we use `Transaction`s internally, this should be fine.
   // TODO: We need to replace this with a `getRootSpan(span)` function though
@@ -73,8 +70,8 @@ export function getDynamicSamplingContextFromSpan(span: Span): Readonly<Partial<
     return v7FrozenDsc;
   }
 
-  const maybeSampleRate = txn.metadata.sampleRate;
-  if (maybeSampleRate !== undefined) {
+  const maybeSampleRate = txn.attributes[SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE] as number | undefined;
+  if (maybeSampleRate != null) {
     dsc.sample_rate = `${maybeSampleRate}`;
   }
 
