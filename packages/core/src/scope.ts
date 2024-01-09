@@ -89,7 +89,9 @@ export class Scope implements ScopeInterface {
   // eslint-disable-next-line deprecation/deprecation
   protected _level?: Severity | SeverityLevel;
 
-  /** Transaction Name */
+  /**
+   * Transaction Name
+   */
   protected _transactionName?: string;
 
   /** Span */
@@ -281,7 +283,8 @@ export class Scope implements ScopeInterface {
   }
 
   /**
-   * @inheritDoc
+   * Sets the transaction name on the scope for future events.
+   * @deprecated Use extra or tags instead.
    */
   public setTransactionName(name?: string): this {
     this._transactionName = name;

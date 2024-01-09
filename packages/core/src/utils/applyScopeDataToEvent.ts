@@ -37,6 +37,7 @@ export function mergeScopeData(data: ScopeData, mergeData: ScopeData): void {
     eventProcessors,
     attachments,
     propagationContext,
+    // eslint-disable-next-line deprecation/deprecation
     transactionName,
     span,
   } = mergeData;
@@ -52,6 +53,7 @@ export function mergeScopeData(data: ScopeData, mergeData: ScopeData): void {
   }
 
   if (transactionName) {
+    // eslint-disable-next-line deprecation/deprecation
     data.transactionName = transactionName;
   }
 
@@ -122,7 +124,15 @@ export function mergeArray<Prop extends 'breadcrumbs' | 'fingerprint'>(
 }
 
 function applyDataToEvent(event: Event, data: ScopeData): void {
-  const { extra, tags, user, contexts, level, transactionName } = data;
+  const {
+    extra,
+    tags,
+    user,
+    contexts,
+    level,
+    // eslint-disable-next-line deprecation/deprecation
+    transactionName,
+  } = data;
 
   if (extra && Object.keys(extra).length) {
     event.extra = { ...extra, ...event.extra };
