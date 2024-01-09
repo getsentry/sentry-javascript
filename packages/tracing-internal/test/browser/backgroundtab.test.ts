@@ -30,6 +30,7 @@ conditionalTest({ min: 10 })('registerBackgroundTabDetection', () => {
 
   afterEach(() => {
     events = {};
+    // eslint-disable-next-line deprecation/deprecation
     hub.getScope().setSpan(undefined);
   });
 

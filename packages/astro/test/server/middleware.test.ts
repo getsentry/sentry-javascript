@@ -1,6 +1,6 @@
 import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
 import * as SentryNode from '@sentry/node';
-import type { Client } from '@sentry/types';
+import type { Client, Span } from '@sentry/types';
 import { vi } from 'vitest';
 
 import { handleRequest, interpolateRouteFromUrlAndParams } from '../../src/server/middleware';
@@ -15,7 +15,9 @@ vi.mock('../../src/server/meta', () => ({
 describe('sentryMiddleware', () => {
   const startSpanSpy = vi.spyOn(SentryNode, 'startSpan');
 
-  const getSpanMock = vi.fn(() => {});
+  const getSpanMock = vi.fn(() => {
+    return {} as Span | undefined;
+  });
   const setUserMock = vi.fn();
 
   beforeEach(() => {
@@ -26,6 +28,7 @@ describe('sentryMiddleware', () => {
         getSpan: getSpanMock,
       } as any;
     });
+    vi.spyOn(SentryNode, 'getActiveSpan').mockImplementation(getSpanMock);
     vi.spyOn(SentryNode, 'getClient').mockImplementation(() => ({}) as Client);
   });
 

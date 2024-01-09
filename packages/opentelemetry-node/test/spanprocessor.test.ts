@@ -122,6 +122,7 @@ describe('SentrySpanProcessor', () => {
         expect(sentrySpan?.spanContext().spanId).toEqual(childOtelSpan.spanContext().spanId);
         expect(sentrySpan?.parentSpanId).toEqual(sentrySpanTransaction?.spanContext().spanId);
 
+        // eslint-disable-next-line deprecation/deprecation
         expect(hub.getScope().getSpan()).toBeUndefined();
 
         child.end(endTime);
@@ -162,6 +163,7 @@ describe('SentrySpanProcessor', () => {
         expect(sentrySpan?.spanContext().spanId).toEqual(childOtelSpan.spanContext().spanId);
         expect(sentrySpan?.parentSpanId).toEqual(parentOtelSpan.spanContext().spanId);
 
+        // eslint-disable-next-line deprecation/deprecation
         expect(hub.getScope().getSpan()).toBeUndefined();
 
         child.end(endTime);

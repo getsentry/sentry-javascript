@@ -104,6 +104,7 @@ export class Mysql implements LazyLoadedIntegration<MysqlConnection> {
     fill(pkg, 'createQuery', function (orig: () => void) {
       return function (this: unknown, options: unknown, values: unknown, callback: unknown) {
         const scope = getCurrentHub().getScope();
+        // eslint-disable-next-line deprecation/deprecation
         const parentSpan = scope.getSpan();
 
         // eslint-disable-next-line deprecation/deprecation

@@ -101,6 +101,10 @@ export function setupIntegrations(client: Client, integrations: Integration[]): 
 
 /** Setup a single integration.  */
 export function setupIntegration(client: Client, integration: Integration, integrationIndex: IntegrationIndex): void {
+  if (integrationIndex[integration.name]) {
+    DEBUG_BUILD && logger.log(`Integration skipped because it was already installed: ${integration.name}`);
+    return;
+  }
   integrationIndex[integration.name] = integration;
 
   // `setupOnce` is only called the first time

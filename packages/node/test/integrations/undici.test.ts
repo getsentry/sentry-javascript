@@ -1,5 +1,5 @@
 import * as http from 'http';
-import { Transaction, startSpan } from '@sentry/core';
+import { Transaction, getActiveSpan, startSpan } from '@sentry/core';
 import { spanToTraceHeader } from '@sentry/core';
 import { Hub, makeMain, runWithAsyncContext } from '@sentry/core';
 import type { fetch as FetchType } from 'undici';
@@ -182,7 +182,7 @@ conditionalTest({ min: 16 })('Undici integration', () => {
       // ignore
     }
 
-    expect(hub.getScope().getSpan()).toBeUndefined();
+    expect(getActiveSpan()).toBeUndefined();
   });
 
   it('does create a span if `shouldCreateSpanForRequest` is defined', async () => {

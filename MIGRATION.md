@@ -8,6 +8,11 @@ npx @sentry/migr8@latest
 
 This will let you select which updates to run, and automatically update your code. Make sure to still review all code changes!
 
+## Deprecate `scope.getSpan()` and `scope.setSpan()`
+
+Instead, you can get the currently active span via `Sentry.getActiveSpan()`.
+Setting a span on the scope happens automatically when you use the new performance APIs `startSpan()` and `startSpanManual()`.
+
 ## Deprecate `scope.setTransactionName()`
 
 Instead, either set this as attributes or tags, or use an event processor to set `event.transaction`.

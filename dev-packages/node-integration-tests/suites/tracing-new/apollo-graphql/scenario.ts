@@ -30,6 +30,7 @@ const server = new ApolloServer({
 // eslint-disable-next-line deprecation/deprecation
 const transaction = Sentry.startTransaction({ name: 'test_transaction', op: 'transaction' });
 
+// eslint-disable-next-line deprecation/deprecation
 Sentry.getCurrentScope().setSpan(transaction);
 
 // eslint-disable-next-line @typescript-eslint/no-floating-promises

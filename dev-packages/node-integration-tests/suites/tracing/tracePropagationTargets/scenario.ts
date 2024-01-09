@@ -15,6 +15,7 @@ Sentry.init({
 // eslint-disable-next-line deprecation/deprecation
 const transaction = Sentry.startTransaction({ name: 'test_transaction' });
 
+// eslint-disable-next-line deprecation/deprecation
 Sentry.getCurrentScope().setSpan(transaction);
 
 http.get('http://match-this-url.com/api/v0');
