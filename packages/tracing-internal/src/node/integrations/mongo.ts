@@ -175,6 +175,7 @@ export class Mongo implements LazyLoadedIntegration<MongoModule> {
       return function (this: unknown, ...args: unknown[]) {
         const lastArg = args[args.length - 1];
         const scope = getCurrentHub().getScope();
+        // eslint-disable-next-line deprecation/deprecation
         const parentSpan = scope.getSpan();
 
         // Check if the operation was passed a callback. (mapReduce requires a different check, as

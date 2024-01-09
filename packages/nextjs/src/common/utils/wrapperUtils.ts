@@ -2,6 +2,7 @@ import type { IncomingMessage, ServerResponse } from 'http';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   captureException,
+  getActiveSpan,
   getActiveTransaction,
   getCurrentScope,
   runWithAsyncContext,
@@ -86,7 +87,7 @@ export function withTracedServerSideDataFetcher<F extends (...args: any[]) => Pr
   return async function (this: unknown, ...args: Parameters<F>): Promise<ReturnType<F>> {
     return runWithAsyncContext(async () => {
       const scope = getCurrentScope();
-      const previousSpan: Span | undefined = getTransactionFromRequest(req) ?? scope.getSpan();
+      const previousSpan: Span | undefined = getTransactionFromRequest(req) ?? getActiveSpan();
       let dataFetcherSpan;
 
       const sentryTrace =
@@ -156,6 +157,7 @@ export function withTracedServerSideDataFetcher<F extends (...args: any[]) => Pr
         });
       }
 
+      // eslint-disable-next-line deprecation/deprecation
       scope.setSpan(dataFetcherSpan);
       scope.setSDKProcessingMetadata({ request: req });
 
@@ -169,6 +171,7 @@ export function withTracedServerSideDataFetcher<F extends (...args: any[]) => Pr
         throw e;
       } finally {
         dataFetcherSpan.end();
+        // eslint-disable-next-line deprecation/deprecation
         scope.setSpan(previousSpan);
         if (!platformSupportsStreaming()) {
           await flushQueue();

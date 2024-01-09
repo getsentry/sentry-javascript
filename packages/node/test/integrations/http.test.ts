@@ -22,6 +22,7 @@ const originalHttpRequest = http.request;
 
 describe('tracing', () => {
   afterEach(() => {
+    // eslint-disable-next-line deprecation/deprecation
     sentryCore.getCurrentHub().getScope().setSpan(undefined);
   });
 
@@ -48,6 +49,8 @@ describe('tracing', () => {
 
     jest.spyOn(sentryCore, 'getCurrentHub').mockReturnValue(hub);
     jest.spyOn(sentryCore, 'getCurrentScope').mockImplementation(() => hub.getScope());
+    // eslint-disable-next-line deprecation/deprecation
+    jest.spyOn(sentryCore, 'getActiveSpan').mockImplementation(() => hub.getScope().getSpan());
     jest.spyOn(sentryCore, 'getClient').mockReturnValue(hub.getClient());
 
     const transaction = startInactiveSpan({
@@ -58,6 +61,7 @@ describe('tracing', () => {
 
     expect(transaction).toBeInstanceOf(Transaction);
 
+    // eslint-disable-next-line deprecation/deprecation
     hub.getScope().setSpan(transaction);
 
     return transaction;
@@ -75,6 +79,8 @@ describe('tracing', () => {
     const hub = new Hub(new NodeClient(options));
     jest.spyOn(sentryCore, 'getCurrentHub').mockReturnValue(hub);
     jest.spyOn(sentryCore, 'getCurrentScope').mockImplementation(() => hub.getScope());
+    // eslint-disable-next-line deprecation/deprecation
+    jest.spyOn(sentryCore, 'getActiveSpan').mockImplementation(() => hub.getScope().getSpan());
     jest.spyOn(sentryCore, 'getClient').mockReturnValue(hub.getClient());
     return hub;
   }
@@ -361,6 +367,8 @@ describe('tracing', () => {
 
       jest.spyOn(sentryCore, 'getCurrentHub').mockReturnValue(hub);
       jest.spyOn(sentryCore, 'getCurrentScope').mockImplementation(() => hub.getScope());
+      // eslint-disable-next-line deprecation/deprecation
+      jest.spyOn(sentryCore, 'getActiveSpan').mockImplementation(() => hub.getScope().getSpan());
       jest.spyOn(sentryCore, 'getClient').mockReturnValue(hub.getClient());
 
       const client = new NodeClient(options);
@@ -373,6 +381,7 @@ describe('tracing', () => {
     function createTransactionAndPutOnScope(hub: Hub) {
       addTracingExtensions();
       const transaction = startInactiveSpan({ name: 'dogpark' });
+      // eslint-disable-next-line deprecation/deprecation
       hub.getScope().setSpan(transaction);
       return transaction;
     }
@@ -388,6 +397,8 @@ describe('tracing', () => {
 
         jest.spyOn(sentryCore, 'getCurrentHub').mockReturnValue(hub);
         jest.spyOn(sentryCore, 'getCurrentScope').mockImplementation(() => hub.getScope());
+        // eslint-disable-next-line deprecation/deprecation
+        jest.spyOn(sentryCore, 'getActiveSpan').mockImplementation(() => hub.getScope().getSpan());
         jest.spyOn(sentryCore, 'getClient').mockReturnValue(hub.getClient());
 
         httpIntegration.setupOnce(
@@ -497,6 +508,8 @@ describe('tracing', () => {
 
         jest.spyOn(sentryCore, 'getCurrentHub').mockReturnValue(hub);
         jest.spyOn(sentryCore, 'getCurrentScope').mockImplementation(() => hub.getScope());
+        // eslint-disable-next-line deprecation/deprecation
+        jest.spyOn(sentryCore, 'getActiveSpan').mockImplementation(() => hub.getScope().getSpan());
         jest.spyOn(sentryCore, 'getClient').mockReturnValue(hub.getClient());
 
         httpIntegration.setupOnce(

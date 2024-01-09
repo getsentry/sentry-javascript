@@ -255,6 +255,7 @@ export class ServerRuntimeClient<
       return [undefined, undefined];
     }
 
+    // eslint-disable-next-line deprecation/deprecation
     const span = scope.getSpan();
     if (span) {
       const samplingContext = span.transaction ? span.transaction.getDynamicSamplingContext() : undefined;

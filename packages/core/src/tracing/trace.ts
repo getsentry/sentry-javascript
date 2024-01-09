@@ -143,11 +143,13 @@ export function trace<T>(
 ): T {
   const hub = getCurrentHub();
   const scope = getCurrentScope();
+  // eslint-disable-next-line deprecation/deprecation
   const parentSpan = scope.getSpan();
 
   const ctx = normalizeContext(context);
   const activeSpan = createChildSpanOrTransaction(hub, parentSpan, ctx);
 
+  // eslint-disable-next-line deprecation/deprecation
   scope.setSpan(activeSpan);
 
   return handleCallbackErrors(
@@ -158,6 +160,7 @@ export function trace<T>(
     },
     () => {
       activeSpan && activeSpan.end();
+      // eslint-disable-next-line deprecation/deprecation
       scope.setSpan(parentSpan);
       afterFinish();
     },
@@ -180,10 +183,11 @@ export function startSpan<T>(context: StartSpanOptions, callback: (span: Span | 
 
   return withScope(context.scope, scope => {
     const hub = getCurrentHub();
-    const scopeForSpan = context.scope || scope;
-    const parentSpan = scopeForSpan.getSpan();
+    // eslint-disable-next-line deprecation/deprecation
+    const parentSpan = scope.getSpan();
 
     const activeSpan = createChildSpanOrTransaction(hub, parentSpan, ctx);
+    // eslint-disable-next-line deprecation/deprecation
     scope.setSpan(activeSpan);
 
     return handleCallbackErrors(
@@ -223,9 +227,11 @@ export function startSpanManual<T>(
 
   return withScope(context.scope, scope => {
     const hub = getCurrentHub();
+    // eslint-disable-next-line deprecation/deprecation
     const parentSpan = scope.getSpan();
 
     const activeSpan = createChildSpanOrTransaction(hub, parentSpan, ctx);
+    // eslint-disable-next-line deprecation/deprecation
     scope.setSpan(activeSpan);
 
     function finishAndSetSpan(): void {
@@ -261,7 +267,10 @@ export function startInactiveSpan(context: StartSpanOptions): Span | undefined {
 
   const ctx = normalizeContext(context);
   const hub = getCurrentHub();
-  const parentSpan = context.scope ? context.scope.getSpan() : getActiveSpan();
+  const parentSpan = context.scope
+    ? // eslint-disable-next-line deprecation/deprecation
+      context.scope.getSpan()
+    : getActiveSpan();
   return parentSpan
     ? // eslint-disable-next-line deprecation/deprecation
       parentSpan.startChild(ctx)
@@ -273,6 +282,7 @@ export function startInactiveSpan(context: StartSpanOptions): Span | undefined {
  * Returns the currently active span.
  */
 export function getActiveSpan(): Span | undefined {
+  // eslint-disable-next-line deprecation/deprecation
   return getCurrentScope().getSpan();
 }
 

@@ -2,6 +2,7 @@ import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
 import {
   captureException,
   continueTrace,
+  getActiveSpan,
   getClient,
   getCurrentScope,
   runWithAsyncContext,
@@ -70,7 +71,7 @@ export const handleRequest: (options?: MiddlewareOptions) => MiddlewareResponseH
     // if there is an active span, we know that this handle call is nested and hence
     // we don't create a new domain for it. If we created one, nested server calls would
     // create new transactions instead of adding a child span to the currently active span.
-    if (getCurrentScope().getSpan()) {
+    if (getActiveSpan()) {
       return instrumentRequest(ctx, next, handlerOptions);
     }
     return runWithAsyncContext(() => {

@@ -1,6 +1,13 @@
 import { Hub, addTracingExtensions, getCurrentScope, makeMain } from '../../../src';
 import { Scope } from '../../../src/scope';
-import { Span, continueTrace, startInactiveSpan, startSpan, startSpanManual } from '../../../src/tracing';
+import {
+  Span,
+  continueTrace,
+  getActiveSpan,
+  startInactiveSpan,
+  startSpan,
+  startSpanManual,
+} from '../../../src/tracing';
 import { TestClient, getDefaultTestClientOptions } from '../../mocks/client';
 
 beforeAll(() => {
@@ -196,11 +203,11 @@ describe('startSpan', () => {
 
     startSpan({ name: 'GET users/[id]' }, span => {
       expect(getCurrentScope()).not.toBe(initialScope);
-      expect(getCurrentScope().getSpan()).toBe(span);
+      expect(getActiveSpan()).toBe(span);
     });
 
     expect(getCurrentScope()).toBe(initialScope);
-    expect(initialScope.getSpan()).toBe(undefined);
+    expect(getActiveSpan()).toBe(undefined);
   });
 
   it('allows to pass a scope', () => {
@@ -208,18 +215,19 @@ describe('startSpan', () => {
 
     const manualScope = new Scope();
     const parentSpan = new Span({ spanId: 'parent-span-id' });
+    // eslint-disable-next-line deprecation/deprecation
     manualScope.setSpan(parentSpan);
 
     startSpan({ name: 'GET users/[id]', scope: manualScope }, span => {
       expect(getCurrentScope()).not.toBe(initialScope);
       expect(getCurrentScope()).toBe(manualScope);
-      expect(getCurrentScope().getSpan()).toBe(span);
+      expect(getActiveSpan()).toBe(span);
 
       expect(span?.parentSpanId).toBe('parent-span-id');
     });
 
     expect(getCurrentScope()).toBe(initialScope);
-    expect(initialScope.getSpan()).toBe(undefined);
+    expect(getActiveSpan()).toBe(undefined);
   });
 });
 
@@ -238,16 +246,16 @@ describe('startSpanManual', () => {
 
     startSpanManual({ name: 'GET users/[id]' }, (span, finish) => {
       expect(getCurrentScope()).not.toBe(initialScope);
-      expect(getCurrentScope().getSpan()).toBe(span);
+      expect(getActiveSpan()).toBe(span);
 
       finish();
 
       // Is still the active span
-      expect(getCurrentScope().getSpan()).toBe(span);
+      expect(getActiveSpan()).toBe(span);
     });
 
     expect(getCurrentScope()).toBe(initialScope);
-    expect(initialScope.getSpan()).toBe(undefined);
+    expect(getActiveSpan()).toBe(undefined);
   });
 
   it('allows to pass a scope', () => {
@@ -255,22 +263,23 @@ describe('startSpanManual', () => {
 
     const manualScope = new Scope();
     const parentSpan = new Span({ spanId: 'parent-span-id' });
+    // eslint-disable-next-line deprecation/deprecation
     manualScope.setSpan(parentSpan);
 
     startSpanManual({ name: 'GET users/[id]', scope: manualScope }, (span, finish) => {
       expect(getCurrentScope()).not.toBe(initialScope);
       expect(getCurrentScope()).toBe(manualScope);
-      expect(getCurrentScope().getSpan()).toBe(span);
+      expect(getActiveSpan()).toBe(span);
       expect(span?.parentSpanId).toBe('parent-span-id');
 
       finish();
 
       // Is still the active span
-      expect(getCurrentScope().getSpan()).toBe(span);
+      expect(getActiveSpan()).toBe(span);
     });
 
     expect(getCurrentScope()).toBe(initialScope);
-    expect(initialScope.getSpan()).toBe(undefined);
+    expect(getActiveSpan()).toBe(undefined);
   });
 
   it('allows to pass a `startTime`', () => {
@@ -296,34 +305,31 @@ describe('startInactiveSpan', () => {
   });
 
   it('does not set span on scope', () => {
-    const initialScope = getCurrentScope();
-
     const span = startInactiveSpan({ name: 'GET users/[id]' });
 
     expect(span).toBeDefined();
-    expect(initialScope.getSpan()).toBeUndefined();
+    expect(getActiveSpan()).toBeUndefined();
 
     span?.end();
 
-    expect(initialScope.getSpan()).toBeUndefined();
+    expect(getActiveSpan()).toBeUndefined();
   });
 
   it('allows to pass a scope', () => {
-    const initialScope = getCurrentScope();
-
     const manualScope = new Scope();
     const parentSpan = new Span({ spanId: 'parent-span-id' });
+    // eslint-disable-next-line deprecation/deprecation
     manualScope.setSpan(parentSpan);
 
     const span = startInactiveSpan({ name: 'GET users/[id]', scope: manualScope });
 
     expect(span).toBeDefined();
     expect(span?.parentSpanId).toBe('parent-span-id');
-    expect(initialScope.getSpan()).toBeUndefined();
+    expect(getActiveSpan()).toBeUndefined();
 
     span?.end();
 
-    expect(initialScope.getSpan()).toBeUndefined();
+    expect(getActiveSpan()).toBeUndefined();
   });
 
   it('allows to pass a `startTime`', () => {

@@ -1,5 +1,6 @@
 /* eslint-disable max-lines */
 import {
+  getActiveSpan,
   getActiveTransaction,
   getClient,
   getCurrentScope,
@@ -257,11 +258,13 @@ function makeWrappedDataFunction(
 
       if (span) {
         // Assign data function to hub to be able to see `db` transactions (if any) as children.
+        // eslint-disable-next-line deprecation/deprecation
         currentScope.setSpan(span);
       }
 
       res = await origFn.call(this, args);
 
+      // eslint-disable-next-line deprecation/deprecation
       currentScope.setSpan(activeTransaction);
       span?.end();
     } catch (err) {
@@ -299,10 +302,9 @@ function getTraceAndBaggage(): {
 } {
   // eslint-disable-next-line deprecation/deprecation
   const transaction = getActiveTransaction();
-  const currentScope = getCurrentScope();
 
   if (isNodeEnv() && hasTracingEnabled()) {
-    const span = currentScope.getSpan();
+    const span = getActiveSpan();
 
     if (span && transaction) {
       const dynamicSamplingContext = transaction.getDynamicSamplingContext();
@@ -418,6 +420,7 @@ export function startRequestHandlerTransaction(
     },
   });
 
+  // eslint-disable-next-line deprecation/deprecation
   hub.getScope().setSpan(transaction);
   return transaction;
 }

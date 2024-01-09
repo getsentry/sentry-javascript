@@ -25,6 +25,7 @@ const transaction = Sentry.startTransaction({
   name: 'Test Transaction',
 });
 
+// eslint-disable-next-line deprecation/deprecation
 Sentry.getCurrentScope().setSpan(transaction);
 
 const query = connection.query('SELECT 1 + 1 AS solution');

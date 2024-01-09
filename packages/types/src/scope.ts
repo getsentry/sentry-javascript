@@ -140,11 +140,13 @@ export interface Scope {
   /**
    * Sets the Span on the scope.
    * @param span Span
+   * @deprecated Instead of setting a span on a scope, use `startSpan()`/`startSpanManual()` instead.
    */
   setSpan(span?: Span): this;
 
   /**
-   * Returns the `Span` if there is one
+   * Returns the `Span` if there is one.
+   * @deprecated Use `getActiveSpan()` instead.
    */
   getSpan(): Span | undefined;
 

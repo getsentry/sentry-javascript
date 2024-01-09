@@ -124,6 +124,7 @@ export class IdleTransaction extends Transaction {
       // We set the transaction here on the scope so error events pick up the trace
       // context and attach it to the error.
       DEBUG_BUILD && logger.log(`Setting idle transaction on scope. Span ID: ${this.spanContext().spanId}`);
+      // eslint-disable-next-line deprecation/deprecation
       _idleHub.getScope().setSpan(this);
     }
 
@@ -198,6 +199,7 @@ export class IdleTransaction extends Transaction {
       const scope = this._idleHub.getScope();
       // eslint-disable-next-line deprecation/deprecation
       if (scope.getTransaction() === this) {
+        // eslint-disable-next-line deprecation/deprecation
         scope.setSpan(undefined);
       }
     }
