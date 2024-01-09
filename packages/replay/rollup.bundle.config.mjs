@@ -2,7 +2,7 @@ import { makeBaseBundleConfig, makeBundleConfigVariants } from '@sentry-internal
 
 const baseBundleConfig = makeBaseBundleConfig({
   bundleType: 'addon',
-  entrypoints: ['src/integration.ts'],
+  entrypoints: ['src/index.ts'],
   jsVersion: 'es6',
   licenseTitle: '@sentry/replay',
   outputFileBase: () => 'bundles/replay',
