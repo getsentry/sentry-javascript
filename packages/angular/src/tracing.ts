@@ -40,7 +40,7 @@ export function routingInstrumentation(
       name: WINDOW.location.pathname,
       op: 'pageload',
       origin: 'auto.pageload.angular',
-      data: {
+      attributes: {
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
       },
     });
@@ -83,7 +83,7 @@ export class TraceService implements OnDestroy {
           name: strippedUrl,
           op: 'navigation',
           origin: 'auto.navigation.angular',
-          data: {
+          attributes: {
             [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
           },
         });

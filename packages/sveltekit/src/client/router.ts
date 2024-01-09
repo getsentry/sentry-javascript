@@ -43,7 +43,7 @@ function instrumentPageload(startTransactionFn: (context: TransactionContext) =>
     tags: {
       ...DEFAULT_TAGS,
     },
-    data: {
+    attributes: {
       [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
     },
   });
@@ -106,7 +106,7 @@ function instrumentNavigations(startTransactionFn: (context: TransactionContext)
         name: parameterizedRouteDestination || rawRouteDestination || 'unknown',
         op: 'navigation',
         origin: 'auto.navigation.sveltekit',
-        data: { [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: parameterizedRouteDestination ? 'route' : 'url' },
+        attributes: { [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: parameterizedRouteDestination ? 'route' : 'url' },
         tags: {
           ...DEFAULT_TAGS,
         },

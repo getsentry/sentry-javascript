@@ -17,6 +17,7 @@ const defaultStartTransaction = (ctx: any) => {
       data: {
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
         ...ctx.data,
+        ...ctx.attributes,
       },
     }),
   };
@@ -52,7 +53,7 @@ describe('Angular Tracing', () => {
         name: '/',
         op: 'pageload',
         origin: 'auto.pageload.angular',
-        data: { [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url' },
+        attributes: { [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url' },
       });
     });
   });
@@ -146,7 +147,7 @@ describe('Angular Tracing', () => {
         name: url,
         op: 'pageload',
         origin: 'auto.pageload.angular',
-        data: { [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url' },
+        attributes: { [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url' },
       });
 
       expect(transaction.updateName).toHaveBeenCalledTimes(0);
@@ -337,7 +338,7 @@ describe('Angular Tracing', () => {
           name: url,
           op: 'navigation',
           origin: 'auto.navigation.angular',
-          data: { [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url' },
+          attributes: { [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url' },
         });
         expect(transaction.updateName).toHaveBeenCalledWith(result);
         expect(transaction.setAttribute).toHaveBeenCalledWith(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
