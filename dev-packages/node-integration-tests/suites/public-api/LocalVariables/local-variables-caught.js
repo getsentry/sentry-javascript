@@ -1,6 +1,6 @@
 /* eslint-disable no-unused-vars */
 const Sentry = require('@sentry/node');
-const { loggingTransport } = require('@sentry/utils');
+const { loggingTransport } = require('@sentry-internal/node-integration-tests');
 
 Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',

@@ -1,6 +1,6 @@
 /* eslint-disable no-unused-vars */
 import * as Sentry from '@sentry/node';
-import { loggingTransport } from '@sentry/utils';
+import { loggingTransport } from '@sentry-internal/node-integration-tests';
 
 Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
