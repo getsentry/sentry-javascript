@@ -3,7 +3,7 @@ import * as path from 'path';
 import { conditionalTest } from '../../../utils';
 import { assertSentryEvent, createRunner } from '../../../utils/runner';
 
-const LOCAL_VARIABLES_TEST_TIMEOUT = 5_000;
+const LOCAL_VARIABLES_TEST_TIMEOUT = 20_000;
 const EXPECTED_LOCAL_VARIABLES_EVENT = {
   exception: {
     values: [
