@@ -6,10 +6,10 @@ import { startSpan } from '@sentry/browser';
 import type { BrowserOptions } from '@sentry/browser';
 import * as Sentry from '@sentry/browser';
 import { SDK_VERSION } from '@sentry/browser';
-import type { Transaction } from '@sentry/types';
 import { GLOBAL_OBJ } from '@sentry/utils';
 import Ember from 'ember';
 
+import type { Transaction } from '@sentry/types';
 import type { EmberSentryConfig, GlobalConfig, OwnConfig } from './types';
 
 function _getSentryInitConfig(): EmberSentryConfig['sentry'] {
