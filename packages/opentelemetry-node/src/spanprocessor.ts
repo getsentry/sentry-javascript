@@ -194,14 +194,13 @@ function updateSpanWithOtelData(sentrySpan: SentrySpan, otelSpan: OtelSpan): voi
   const { op, description, data } = parseOtelSpanDescription(otelSpan);
 
   sentrySpan.setStatus(mapOtelStatus(otelSpan));
-  sentrySpan.setData('otel.kind', SpanKind[kind]);
 
-  const allData = { ...attributes, ...data };
-
-  Object.keys(allData).forEach(prop => {
-    const value = allData[prop];
-    sentrySpan.setData(prop, value);
-  });
+  const allData = {
+    ...attributes,
+    ...data,
+    'otel.kind': SpanKind[kind],
+  };
+  sentrySpan.setAttributes(allData);
 
   sentrySpan.op = op;
   sentrySpan.updateName(description);
@@ -210,17 +209,14 @@ function updateSpanWithOtelData(sentrySpan: SentrySpan, otelSpan: OtelSpan): voi
 function updateTransactionWithOtelData(transaction: Transaction, otelSpan: OtelSpan): void {
   const { op, description, source, data } = parseOtelSpanDescription(otelSpan);
 
+  // eslint-disable-next-line deprecation/deprecation
   transaction.setContext('otel', {
     attributes: otelSpan.attributes,
     resource: otelSpan.resource.attributes,
   });
 
   const allData = data || {};
-
-  Object.keys(allData).forEach(prop => {
-    const value = allData[prop];
-    transaction.setData(prop, value);
-  });
+  transaction.setAttributes(allData);
 
   transaction.setStatus(mapOtelStatus(otelSpan));
 

@@ -300,10 +300,13 @@ describe('tracing', () => {
     // our span is at index 1 because the transaction itself is at index 0
     expect(sentryCore.spanToJSON(spans[1]).description).toEqual('GET http://dogs.are.great/spaniel');
     expect(spans[1].op).toEqual('http.client');
-    expect(spans[1].data['http.method']).toEqual('GET');
-    expect(spans[1].data.url).toEqual('http://dogs.are.great/spaniel');
-    expect(spans[1].data['http.query']).toEqual('tail=wag&cute=true');
-    expect(spans[1].data['http.fragment']).toEqual('learn-more');
+
+    const spanAttributes = sentryCore.spanToJSON(spans[1]).data || {};
+
+    expect(spanAttributes['http.method']).toEqual('GET');
+    expect(spanAttributes.url).toEqual('http://dogs.are.great/spaniel');
+    expect(spanAttributes['http.query']).toEqual('tail=wag&cute=true');
+    expect(spanAttributes['http.fragment']).toEqual('learn-more');
   });
 
   it('fills in span data from http.RequestOptions object', () => {
@@ -316,13 +319,15 @@ describe('tracing', () => {
 
     expect(spans.length).toEqual(2);
 
+    const spanAttributes = sentryCore.spanToJSON(spans[1]).data || {};
+
     // our span is at index 1 because the transaction itself is at index 0
     expect(sentryCore.spanToJSON(spans[1]).description).toEqual('GET http://dogs.are.great/spaniel');
     expect(spans[1].op).toEqual('http.client');
-    expect(spans[1].data['http.method']).toEqual('GET');
-    expect(spans[1].data.url).toEqual('http://dogs.are.great/spaniel');
-    expect(spans[1].data['http.query']).toEqual('tail=wag&cute=true');
-    expect(spans[1].data['http.fragment']).toEqual('learn-more');
+    expect(spanAttributes['http.method']).toEqual('GET');
+    expect(spanAttributes.url).toEqual('http://dogs.are.great/spaniel');
+    expect(spanAttributes['http.query']).toEqual('tail=wag&cute=true');
+    expect(spanAttributes['http.fragment']).toEqual('learn-more');
   });
 
   it.each([

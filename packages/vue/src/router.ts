@@ -117,7 +117,10 @@ export function vueRouterInstrumentation(
             pageloadTransaction.updateName(transactionName);
             pageloadTransaction.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, transactionSource);
           }
+          // TODO: We need to flatten these to make them attributes
+          // eslint-disable-next-line deprecation/deprecation
           pageloadTransaction.setData('params', data.params);
+          // eslint-disable-next-line deprecation/deprecation
           pageloadTransaction.setData('query', data.query);
         }
       }

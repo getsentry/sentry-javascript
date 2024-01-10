@@ -74,17 +74,20 @@ export interface Transaction extends TransactionContext, Omit<Span, 'setName' | 
   startTimestamp: number;
 
   /**
-   * @inheritDoc
+   * Tags for the transaction.
+   * @deprecated Use `getSpanAttributes(transaction)` instead.
    */
   tags: { [key: string]: Primitive };
 
   /**
-   * @inheritDoc
+   * Data for the transaction.
+   * @deprecated Use `getSpanAttributes(transaction)` instead.
    */
   data: { [key: string]: any };
 
   /**
-   * @inheritDoc
+   * Attributes for the transaction.
+   * @deprecated Use `getSpanAttributes(transaction)` instead.
    */
   attributes: SpanAttributes;
 
@@ -105,7 +108,8 @@ export interface Transaction extends TransactionContext, Omit<Span, 'setName' | 
   setName(name: string, source?: TransactionMetadata['source']): void;
 
   /**
-   * Set the context of a transaction event
+   * Set the context of a transaction event.
+   * @deprecated Use either `.setAttribute()`, or set the context on the scope before creating the transaction.
    */
   setContext(key: string, context: Context): void;
 

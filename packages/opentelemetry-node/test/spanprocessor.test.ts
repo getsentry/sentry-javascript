@@ -320,11 +320,11 @@ describe('SentrySpanProcessor', () => {
 
         const sentrySpan = getSpanForOtelSpan(child);
 
-        expect(sentrySpan?.data).toEqual({});
+        expect(spanToJSON(sentrySpan!).data).toEqual(undefined);
 
         child.end();
 
-        expect(sentrySpan?.data).toEqual({
+        expect(spanToJSON(sentrySpan!).data).toEqual({
           'otel.kind': 'INTERNAL',
           'test-attribute': 'test-value',
           'test-attribute-2': [1, 2, 3],
@@ -539,8 +539,10 @@ describe('SentrySpanProcessor', () => {
 
           child.end();
 
-          expect(sentrySpan ? spanToJSON(sentrySpan).description : undefined).toBe('GET /my/route/{id}');
-          expect(sentrySpan?.data).toEqual({
+          const { description, data } = spanToJSON(sentrySpan!);
+
+          expect(description).toBe('GET /my/route/{id}');
+          expect(data).toEqual({
             'http.method': 'GET',
             'http.route': '/my/route/{id}',
             'http.target': '/my/route/123',
@@ -567,10 +569,10 @@ describe('SentrySpanProcessor', () => {
 
           child.end();
 
-          expect(sentrySpan ? spanToJSON(sentrySpan).description : undefined).toBe(
-            'GET http://example.com/my/route/123',
-          );
-          expect(sentrySpan?.data).toEqual({
+          const { description, data } = spanToJSON(sentrySpan!);
+
+          expect(description).toBe('GET http://example.com/my/route/123');
+          expect(data).toEqual({
             'http.method': 'GET',
             'http.target': '/my/route/123',
             'http.url': 'http://example.com/my/route/123',
@@ -596,10 +598,10 @@ describe('SentrySpanProcessor', () => {
 
           child.end();
 
-          expect(sentrySpan ? spanToJSON(sentrySpan).description : undefined).toBe(
-            'GET http://example.com/my/route/123',
-          );
-          expect(sentrySpan?.data).toEqual({
+          const { description, data } = spanToJSON(sentrySpan!);
+
+          expect(description).toBe('GET http://example.com/my/route/123');
+          expect(data).toEqual({
             'http.method': 'GET',
             'http.target': '/my/route/123',
             'http.url': 'http://example.com/my/route/123?what=123#myHash',

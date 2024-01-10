@@ -372,8 +372,11 @@ describe('tracingHandler', () => {
     setImmediate(() => {
       expect(finishTransaction).toHaveBeenCalled();
       expect(transaction.status).toBe('ok');
+      // eslint-disable-next-line deprecation/deprecation
       expect(transaction.tags).toEqual(expect.objectContaining({ 'http.status_code': '200' }));
-      expect(transaction.data).toEqual(expect.objectContaining({ 'http.response.status_code': 200 }));
+      expect(sentryCore.spanToJSON(transaction).data).toEqual(
+        expect.objectContaining({ 'http.response.status_code': 200 }),
+      );
       done();
     });
   });

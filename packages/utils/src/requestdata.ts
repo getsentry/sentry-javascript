@@ -81,10 +81,12 @@ export function addRequestDataToTransaction(
     // eslint-disable-next-line deprecation/deprecation
     transaction.setMetadata({ source });
   }
-  transaction.setData('url', req.originalUrl || req.url);
+  transaction.setAttribute('url', req.originalUrl || req.url);
   if (req.baseUrl) {
-    transaction.setData('baseUrl', req.baseUrl);
+    transaction.setAttribute('baseUrl', req.baseUrl);
   }
+  // TODO: We need to rewrite this to a flat format?
+  // eslint-disable-next-line deprecation/deprecation
   transaction.setData('query', extractQueryParams(req, deps));
 }
 
@@ -190,6 +192,7 @@ export function extractRequestData(
   },
 ): ExtractedNodeRequestData {
   const { include = DEFAULT_REQUEST_INCLUDES, deps } = options || {};
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const requestData: { [key: string]: any } = {};
 
   // headers:

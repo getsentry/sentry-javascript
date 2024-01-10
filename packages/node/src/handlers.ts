@@ -351,6 +351,8 @@ export function trpcMiddleware(options: SentryTrpcMiddlewareOptions = {}) {
         trpcContext.input = normalize(rawInput);
       }
 
+      // TODO: Can we rewrite this to an attribute? Or set this on the scope?
+      // eslint-disable-next-line deprecation/deprecation
       sentryTransaction.setContext('trpc', trpcContext);
     }
 
