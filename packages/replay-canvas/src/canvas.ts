@@ -61,6 +61,7 @@ const replayCanvasIntegration = ((options: Partial<ReplayCanvasOptions> = {}) =>
 
   return {
     name: INTEGRATION_NAME,
+    setupOnce() {},
     getOptions(): ReplayCanvasIntegrationOptions {
       const { quality } = _canvasOptions;
 
