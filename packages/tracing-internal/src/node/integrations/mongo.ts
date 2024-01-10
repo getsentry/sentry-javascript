@@ -174,6 +174,7 @@ export class Mongo implements LazyLoadedIntegration<MongoModule> {
     fill(collection.prototype, operation, function (orig: () => void | Promise<unknown>) {
       return function (this: unknown, ...args: unknown[]) {
         const lastArg = args[args.length - 1];
+        // eslint-disable-next-line deprecation/deprecation
         const scope = getCurrentHub().getScope();
         // eslint-disable-next-line deprecation/deprecation
         const parentSpan = scope.getSpan();

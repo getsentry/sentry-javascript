@@ -17,6 +17,7 @@ export class OpenTelemetryHub extends Hub {
 
 /** Custom getClient method that uses the custom hub. */
 export function getClient<C extends Client>(): C | undefined {
+  // eslint-disable-next-line deprecation/deprecation
   return getCurrentHub().getClient<C>();
 }
 
@@ -95,7 +96,12 @@ export function getHubFromCarrier(carrier: Carrier): Hub {
  */
 export function ensureHubOnCarrier(carrier: Carrier, parent: Hub = getGlobalHub()): void {
   // If there's no hub on current domain, or it's an old API, assign a new one
-  if (!hasHubOnCarrier(carrier) || getHubFromCarrier(carrier).isOlderThan(API_VERSION)) {
+  if (
+    !hasHubOnCarrier(carrier) ||
+    // eslint-disable-next-line deprecation/deprecation
+    getHubFromCarrier(carrier).isOlderThan(API_VERSION)
+  ) {
+    // eslint-disable-next-line deprecation/deprecation
     const globalHubTopStack = parent.getStackTop();
     setHubOnCarrier(carrier, new OpenTelemetryHub(globalHubTopStack.client, globalHubTopStack.scope.clone()));
   }
@@ -103,7 +109,11 @@ export function ensureHubOnCarrier(carrier: Carrier, parent: Hub = getGlobalHub(
 
 function getGlobalHub(registry: Carrier = getMainCarrier()): Hub {
   // If there's no hub, or its an old API, assign a new one
-  if (!hasHubOnCarrier(registry) || getHubFromCarrier(registry).isOlderThan(API_VERSION)) {
+  if (
+    !hasHubOnCarrier(registry) ||
+    // eslint-disable-next-line deprecation/deprecation
+    getHubFromCarrier(registry).isOlderThan(API_VERSION)
+  ) {
     setHubOnCarrier(registry, new OpenTelemetryHub());
   }
 

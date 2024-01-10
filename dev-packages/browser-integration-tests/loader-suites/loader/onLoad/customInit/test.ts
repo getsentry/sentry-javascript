@@ -30,5 +30,5 @@ sentryTest('always calls onLoad init correctly', async ({ getLocalTestUrl, page 
 
   expect(await page.evaluate('window.__hadSentry')).toEqual(false);
   expect(await page.evaluate('window.__sentryOnLoad')).toEqual(1);
-  expect(await page.evaluate('Sentry.getCurrentHub().getClient().getOptions().sampleRate')).toEqual(0.5);
+  expect(await page.evaluate('Sentry.getClient().getOptions().sampleRate')).toEqual(0.5);
 });

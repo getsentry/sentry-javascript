@@ -68,7 +68,6 @@ const job = scheduleWithCheckIn.scheduleJob('my-cron-job', '* * * * *', () => {
 - fix(node): Revert to only use sync debugger for `LocalVariables` (#10077)
 - fix(node): Update ANR min node version to v16.17.0 (#10107)
 
-
 ## 7.92.0
 
 ### Important Changes

@@ -11,5 +11,5 @@ sentryTest('sentryOnLoad callback is used', async ({ getLocalTestUrl, page }) =>
 
   expect(eventData.message).toBe('Test exception: 0.123');
 
-  expect(await page.evaluate('Sentry.getCurrentHub().getClient().getOptions().tracesSampleRate')).toEqual(0.123);
+  expect(await page.evaluate('Sentry.getClient().getOptions().tracesSampleRate')).toEqual(0.123);
 });

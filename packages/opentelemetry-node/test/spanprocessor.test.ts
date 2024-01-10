@@ -985,7 +985,9 @@ describe('SentrySpanProcessor', () => {
     hub = new Hub(client);
     makeMain(hub);
 
+    // eslint-disable-next-line deprecation/deprecation
     const newHub = new Hub(client, hub.getScope().clone());
+    // eslint-disable-next-line deprecation/deprecation
     newHub.getScope().setTag('foo', 'bar');
 
     const tracer = provider.getTracer('default');

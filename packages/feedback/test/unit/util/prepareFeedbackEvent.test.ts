@@ -1,4 +1,5 @@
 import type { Hub, Scope } from '@sentry/core';
+import { getCurrentScope } from '@sentry/core';
 import { getCurrentHub } from '@sentry/core';
 import type { Client, FeedbackEvent } from '@sentry/types';
 
@@ -14,9 +15,7 @@ describe('Unit | util | prepareFeedbackEvent', () => {
     hub = getCurrentHub();
     client = new TestClient(getDefaultClientOptions());
     hub.bindClient(client);
-
-    client = hub.getClient()!;
-    scope = hub.getScope();
+    scope = getCurrentScope();
   });
 
   afterEach(() => {
