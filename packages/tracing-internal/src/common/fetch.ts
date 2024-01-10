@@ -4,6 +4,7 @@ import {
   getCurrentScope,
   getDynamicSamplingContextFromClient,
   getDynamicSamplingContextFromSpan,
+  getRootSpan,
   hasTracingEnabled,
   spanToTraceHeader,
 } from '@sentry/core';

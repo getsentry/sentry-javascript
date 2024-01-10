@@ -5,6 +5,7 @@ import {
   getCurrentScope,
   getDynamicSamplingContextFromClient,
   getDynamicSamplingContextFromSpan,
+  getRootSpan,
   hasTracingEnabled,
   spanToJSON,
   spanToTraceHeader,
@@ -21,7 +22,6 @@ import {
   stringMatchesSomePattern,
 } from '@sentry/utils';
 
-import { getRootSpan } from '@sentry/core/build/types/utils/spanUtils';
 import { instrumentFetchRequest } from '../common/fetch';
 import { addPerformanceInstrumentationHandler } from './instrument';
 
