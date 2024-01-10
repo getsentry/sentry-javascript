@@ -168,7 +168,6 @@ export class ReplayContainer implements ReplayContainerInterface {
     this._lastActivity = Date.now();
     this._isEnabled = false;
     this._isPaused = false;
-    this._integrations = {};
     this._hasInitializedCoreListeners = false;
     this._context = {
       errorIds: new Set(),
@@ -234,11 +233,6 @@ export class ReplayContainer implements ReplayContainerInterface {
   /** Get the replay integration options. */
   public getOptions(): ReplayPluginOptions {
     return this._options;
-  }
-
-  /** Get the replay integrations. [test only] */
-  public getIntegrations(): Record<string, Record<string, unknown>> {
-    return { ...this._integrations };
   }
 
   /**
@@ -736,13 +730,6 @@ export class ReplayContainer implements ReplayContainerInterface {
     }
 
     return spanToJSON(lastTransaction).description;
-  }
-
-  /**
-   * Internal integration use only, should not be public
-   */
-  public addIntegration(name: string, options: Record<string, unknown>): void {
-    this._integrations[name] = options;
   }
 
   /**
