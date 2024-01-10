@@ -30,13 +30,51 @@ describe('getDynamicSamplingContextFromSpan', () => {
     expect(dynamicSamplingContext).toStrictEqual({ environment: 'myEnv' });
   });
 
-  test('returns a new DSC, if no DSC was provided during transaction creation', () => {
+  test('returns a new DSC, if no DSC was provided during transaction creation (via attributes)', () => {
     const transaction = startInactiveSpan({ name: 'tx' });
 
-    // Only setting the attribute manually because we can't "fake" a
-    // sample rate or txn name source anymore like we used to.
+    // Setting the attribute should overwrite the computed values
     transaction?.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE, 0.56);
     transaction?.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
+
+    const dynamicSamplingContext = getDynamicSamplingContextFromSpan(transaction!);
+
+    expect(dynamicSamplingContext).toStrictEqual({
+      release: '1.0.1',
+      environment: 'production',
+      sampled: 'true',
+      sample_rate: '0.56',
+      trace_id: expect.any(String),
+      transaction: 'tx',
+    });
+  });
+
+  test('returns a new DSC, if no DSC was provided during transaction creation (via deprecated metadata)', () => {
+    const transaction = startInactiveSpan({
+      name: 'tx',
+    });
+
+    const dynamicSamplingContext = getDynamicSamplingContextFromSpan(transaction!);
+
+    expect(dynamicSamplingContext).toStrictEqual({
+      release: '1.0.1',
+      environment: 'production',
+      sampled: 'true',
+      sample_rate: '1',
+      trace_id: expect.any(String),
+      transaction: 'tx',
+    });
+  });
+
+  test('returns a new DSC, if no DSC was provided during transaction creation (via new Txn and deprecated metadata)', () => {
+    const transaction = new Transaction({
+      name: 'tx',
+      metadata: {
+        sampleRate: 0.56,
+        source: 'route',
+      },
+      sampled: true,
+    });
 
     const dynamicSamplingContext = getDynamicSamplingContextFromSpan(transaction!);
 
@@ -56,6 +94,7 @@ describe('getDynamicSamplingContextFromSpan', () => {
         name: 'tx',
         metadata: {
           source: 'url',
+          sampleRate: 0.56,
         },
       });
 

@@ -70,13 +70,15 @@ export function getDynamicSamplingContextFromSpan(span: Span): Readonly<Partial<
     return v7FrozenDsc;
   }
 
-  const maybeSampleRate = txn.attributes[SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE] as number | undefined;
+  // TODO (v8): Replace txn.metadata with txn.attributes[]
+  // We can't do this yet because attributes aren't always set yet.
+  // eslint-disable-next-line deprecation/deprecation
+  const { sampleRate: maybeSampleRate, source } = txn.metadata;
   if (maybeSampleRate != null) {
     dsc.sample_rate = `${maybeSampleRate}`;
   }
 
   // We don't want to have a transaction name in the DSC if the source is "url" because URLs might contain PII
-  const source = txn.attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] as TransactionSource | undefined;
   const jsonSpan = spanToJSON(txn);
 
   // after JSON conversion, txn.name becomes jsonSpan.description
