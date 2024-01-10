@@ -1,4 +1,4 @@
-import type { Client, Event, EventHint, EventProcessor, Hub, Integration, IntegrationFn, Options } from '@sentry/types';
+import type { Client, Event, EventHint, Integration, IntegrationFn, Options } from '@sentry/types';
 import { arrayify, logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from './debug-build';
@@ -171,26 +171,16 @@ export function convertIntegrationFnToClass<Fn extends IntegrationFn>(
   fn: Fn,
 ): Integration & {
   id: string;
-  new (...args: Parameters<Fn>): Integration &
-    ReturnType<Fn> & {
-      setupOnce: (addGlobalEventProcessor?: (callback: EventProcessor) => void, getCurrentHub?: () => Hub) => void;
-    };
+  new (...args: Parameters<Fn>): Integration & ReturnType<Fn>;
 } {
   return Object.assign(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     function ConvertedIntegration(...rest: Parameters<Fn>) {
-      return {
-        // eslint-disable-next-line @typescript-eslint/no-empty-function
-        setupOnce: () => {},
-        ...fn(...rest),
-      };
+      return fn(...rest);
     },
     { id: name },
   ) as unknown as Integration & {
     id: string;
-    new (...args: Parameters<Fn>): Integration &
-      ReturnType<Fn> & {
-        setupOnce: (addGlobalEventProcessor?: (callback: EventProcessor) => void, getCurrentHub?: () => Hub) => void;
-      };
+    new (...args: Parameters<Fn>): Integration & ReturnType<Fn>;
   };
 }
