@@ -952,7 +952,7 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           projectName: ${{ secrets.CLOUDFLARE_PROJECT_NAME }}
-          directory: build
+          directory: dist
           workingDirectory: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
 
   job_required_jobs_passed:
