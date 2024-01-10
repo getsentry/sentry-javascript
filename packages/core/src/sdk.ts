@@ -30,6 +30,7 @@ export function initAndBind<F extends Client, O extends ClientOptions>(
     }
   }
   const hub = getCurrentHub();
+  // eslint-disable-next-line deprecation/deprecation
   const scope = hub.getScope();
   scope.update(options.initialScope);
 

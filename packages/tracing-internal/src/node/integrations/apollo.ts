@@ -188,6 +188,7 @@ function wrapResolver(
 ): void {
   fill(model[resolverGroupName], resolverName, function (orig: () => unknown | Promise<unknown>) {
     return function (this: unknown, ...args: unknown[]) {
+      // eslint-disable-next-line deprecation/deprecation
       const scope = getCurrentHub().getScope();
       // eslint-disable-next-line deprecation/deprecation
       const parentSpan = scope.getSpan();

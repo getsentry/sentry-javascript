@@ -72,7 +72,7 @@ describe('Integration | beforeAddRecordingEvent', () => {
     mockSendReplayRequest = jest.spyOn(SendReplayRequest, 'sendReplayRequest');
 
     jest.runAllTimers();
-    mockTransportSend = SentryCore.getCurrentHub()?.getClient()?.getTransport()?.send as MockTransportSend;
+    mockTransportSend = SentryCore.getClient()?.getTransport()?.send as MockTransportSend;
   });
 
   beforeEach(() => {

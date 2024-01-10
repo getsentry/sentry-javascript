@@ -1,5 +1,4 @@
 import * as SentryNode from '@sentry/node';
-import { getCurrentHub } from '@sentry/node';
 import { GLOBAL_OBJ } from '@sentry/utils';
 
 import { Integrations, init } from '../src/index.server';
@@ -47,7 +46,7 @@ describe('Server init()', () => {
   });
 
   it('sets runtime on scope', () => {
-    const currentScope = getCurrentHub().getScope();
+    const currentScope = SentryNode.getCurrentScope();
 
     // @ts-expect-error need access to protected _tags attribute
     expect(currentScope._tags).toEqual({});

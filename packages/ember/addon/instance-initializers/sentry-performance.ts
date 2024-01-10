@@ -437,7 +437,7 @@ export async function instrumentForPerformance(appInstance: ApplicationInstance)
   });
 
   if (macroCondition(isTesting())) {
-    const client = Sentry.getCurrentHub().getClient();
+    const client = Sentry.getClient();
 
     if (
       client &&
@@ -449,7 +449,7 @@ export async function instrumentForPerformance(appInstance: ApplicationInstance)
     }
   }
 
-  const client = Sentry.getCurrentHub().getClient();
+  const client = Sentry.getClient();
   if (client && client.addIntegration) {
     client.addIntegration(browserTracing);
   }

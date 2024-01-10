@@ -21,7 +21,7 @@ export interface Hub {
    * @param version A version number to compare to.
    * @return True if the given version is newer; otherwise false.
    *
-   * @hidden
+   * @deprecated This will be removed in v8.
    */
   isOlderThan(version: number): boolean;
 
@@ -68,18 +68,28 @@ export interface Hub {
    *     popScope();
    *
    * @param callback that will be enclosed into push/popScope.
+   *
+   * @deprecated Use `Sentry.withScope()` instead.
    */
   withScope<T>(callback: (scope: Scope) => T): T;
 
-  /** Returns the client of the top stack. */
+  /**
+   * Returns the client of the top stack.
+   * @deprecated Use `Sentry.getClient()` instead.
+   */
   getClient(): Client | undefined;
 
-  /** Returns the scope of the top stack */
+  /**
+   * Returns the scope of the top stack.
+   * @deprecated Use `Sentry.getCurrentScope()` instead.
+   */
   getScope(): Scope;
 
   /**
    * Get the currently active isolation scope.
    * The isolation scope is used to isolate data between different hubs.
+   *
+   * @deprecated Use `Sentry.getIsolationScope()` instead.
    */
   getIsolationScope(): Scope;
 
@@ -89,6 +99,8 @@ export interface Hub {
    * @param exception An exception-like object.
    * @param hint May contain additional information about the original exception.
    * @returns The generated eventId.
+   *
+   * @deprecated Use `Sentry.captureException()` instead.
    */
   captureException(exception: any, hint?: EventHint): string;
 
@@ -99,6 +111,8 @@ export interface Hub {
    * @param level Define the level of the message.
    * @param hint May contain additional information about the original exception.
    * @returns The generated eventId.
+   *
+   * @deprecated Use `Sentry.captureMessage()` instead.
    */
   captureMessage(
     message: string,
@@ -112,6 +126,8 @@ export interface Hub {
    *
    * @param event The event to send to Sentry.
    * @param hint May contain additional information about the original exception.
+   *
+   * @deprecated Use `Sentry.captureEvent()` instead.
    */
   captureEvent(event: Event, hint?: EventHint): string;
 
@@ -119,6 +135,8 @@ export interface Hub {
    * This is the getter for lastEventId.
    *
    * @returns The last event id of a captured event.
+   *
+   * @deprecated This will be removed in v8.
    */
   lastEventId(): string | undefined;
 
@@ -130,6 +148,8 @@ export interface Hub {
    *
    * @param breadcrumb The breadcrumb to record.
    * @param hint May contain additional information about the original breadcrumb.
+   *
+   * @deprecated Use `Sentry.addBreadcrumb()` instead.
    */
   addBreadcrumb(breadcrumb: Breadcrumb, hint?: BreadcrumbHint): void;
 
@@ -137,6 +157,8 @@ export interface Hub {
    * Updates user context information for future events.
    *
    * @param user User context object to be set in the current context. Pass `null` to unset the user.
+   *
+   * @deprecated Use `Sentry.setUser()` instead.
    */
   setUser(user: User | null): void;
 
@@ -144,6 +166,8 @@ export interface Hub {
    * Set an object that will be merged sent as tags data with the event.
    *
    * @param tags Tags context object to merge into current context.
+   *
+   * @deprecated Use `Sentry.setTags()` instead.
    */
   setTags(tags: { [key: string]: Primitive }): void;
 
@@ -154,6 +178,8 @@ export interface Hub {
    *
    * @param key String key of tag
    * @param value Value of tag
+   *
+   * @deprecated Use `Sentry.setTag()` instead.
    */
   setTag(key: string, value: Primitive): void;
 
@@ -161,12 +187,16 @@ export interface Hub {
    * Set key:value that will be sent as extra data with the event.
    * @param key String of extra
    * @param extra Any kind of data. This data will be normalized.
+   *
+   * @deprecated Use `Sentry.setExtra()` instead.
    */
   setExtra(key: string, extra: Extra): void;
 
   /**
    * Set an object that will be merged sent as extra data with the event.
    * @param extras Extras object to merge into current context.
+   *
+   * @deprecated Use `Sentry.setExtras()` instead.
    */
   setExtras(extras: Extras): void;
 
@@ -174,6 +204,8 @@ export interface Hub {
    * Sets context data with the given name.
    * @param name of the context
    * @param context Any kind of data. This data will be normalized.
+   *
+   * @deprecated Use `Sentry.setContext()` instead.
    */
   setContext(name: string, context: { [key: string]: any } | null): void;
 
@@ -189,13 +221,23 @@ export interface Hub {
    * For the duration of the callback, this hub will be set as the global current Hub.
    * This function is useful if you want to run your own client and hook into an already initialized one
    * e.g.: Reporting issues to your own sentry when running in your component while still using the users configuration.
+   *
+   * TODO v8: This will be merged with `withScope()`
    */
   run(callback: (hub: Hub) => void): void;
 
-  /** Returns the integration if installed on the current client. */
+  /**
+   * Returns the integration if installed on the current client.
+   *
+   * @deprecated Use `Sentry.getClient().getIntegration()` instead.
+   */
   getIntegration<T extends Integration>(integration: IntegrationClass<T>): T | null;
 
-  /** Returns all trace headers that are currently on the top scope. */
+  /**
+   * Returns all trace headers that are currently on the top scope.
+   *
+   * @deprecated Use `spanToTraceHeader()` instead.
+   */
   traceHeaders(): { [key: string]: string };
 
   /**

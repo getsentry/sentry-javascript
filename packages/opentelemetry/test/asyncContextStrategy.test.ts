@@ -29,12 +29,14 @@ describe('asyncContextStrategy', () => {
 
   test('hub scope inheritance', () => {
     const globalHub = getCurrentHub();
+    // eslint-disable-next-line deprecation/deprecation
     globalHub.setExtra('a', 'b');
 
     runWithAsyncContext(() => {
       const hub1 = getCurrentHub();
       expect(hub1).toEqual(globalHub);
 
+      // eslint-disable-next-line deprecation/deprecation
       hub1.setExtra('c', 'd');
       expect(hub1).not.toEqual(globalHub);
 
@@ -43,6 +45,7 @@ describe('asyncContextStrategy', () => {
         expect(hub2).toEqual(hub1);
         expect(hub2).not.toEqual(globalHub);
 
+        // eslint-disable-next-line deprecation/deprecation
         hub2.setExtra('e', 'f');
         expect(hub2).not.toEqual(hub1);
       });
@@ -53,6 +56,7 @@ describe('asyncContextStrategy', () => {
     async function addRandomExtra(hub: Hub, key: string): Promise<void> {
       return new Promise(resolve => {
         setTimeout(() => {
+          // eslint-disable-next-line deprecation/deprecation
           hub.setExtra(key, Math.random());
           resolve();
         }, 100);
@@ -116,7 +120,9 @@ describe('asyncContextStrategy', () => {
 
     runWithAsyncContext(() => {
       const hub = getCurrentHub();
+      // eslint-disable-next-line deprecation/deprecation
       hub.getStack().push({ client: 'process' } as any);
+      // eslint-disable-next-line deprecation/deprecation
       expect(hub.getStack()[1]).toEqual({ client: 'process' });
       // Just in case so we don't have to worry which one finishes first
       // (although it always should be d2)
@@ -130,7 +136,9 @@ describe('asyncContextStrategy', () => {
 
     runWithAsyncContext(() => {
       const hub = getCurrentHub();
+      // eslint-disable-next-line deprecation/deprecation
       hub.getStack().push({ client: 'local' } as any);
+      // eslint-disable-next-line deprecation/deprecation
       expect(hub.getStack()[1]).toEqual({ client: 'local' });
       setTimeout(() => {
         d2done = true;
