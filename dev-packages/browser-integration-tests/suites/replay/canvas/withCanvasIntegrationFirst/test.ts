@@ -20,6 +20,9 @@ sentryTest('sets up canvas when adding ReplayCanvas integration first', async ({
 
   await page.goto(url);
 
+  page.on('console', (m) => {
+    console.log(m);
+  });
   const replay = await getReplaySnapshot(page);
   const canvasOptions = replay._canvas;
   expect(canvasOptions?.sampling.canvas).toBe(2);

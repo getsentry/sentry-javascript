@@ -357,6 +357,7 @@ Sentry.init({ replaysOnErrorSampleRate: ${errorSampleRate} })`,
   private _maybeLoadFromReplayCanvasIntegration(): void {
     // To save bundle size, we skip checking for stuff here
     // and instead just try-catch everything - as generally this should all be defined
+    console.log("maybeload")
     /* eslint-disable @typescript-eslint/no-non-null-assertion */
     try {
       const client = getClient()!;
@@ -364,10 +365,12 @@ Sentry.init({ replaysOnErrorSampleRate: ${errorSampleRate} })`,
         getOptions(): ReplayCanvasIntegrationOptions;
       };
       if (!canvasIntegration) {
+        console.log('no canvas integration');
         return;
       }
 
       this._replay!['_canvas'] = canvasIntegration.getOptions();
+      console.log(this._replay!['_canvas'])
     } catch {
       // ignore errors here
     }
