@@ -26,7 +26,7 @@ const EXPECTED_ANR_EVENT = {
     values: [
       {
         type: 'ApplicationNotResponding',
-        value: 'Application Not Responding for at least 200 ms',
+        value: 'Application Not Responding for at least 100 ms',
         mechanism: { type: 'ANR' },
         stacktrace: {
           frames: expect.arrayContaining([
@@ -52,19 +52,6 @@ const EXPECTED_ANR_EVENT = {
 };
 
 conditionalTest({ min: 16 })('should report ANR when event loop blocked', () => {
-  test('dummy test', done => {
-    // The first test in here always fails so maybe this fixes it?
-    createRunner(__dirname, 'basic.js')
-      .expect({
-        event: _event => {
-          //
-        },
-      })
-      .start();
-
-    done();
-  });
-
   // TODO (v8): Remove this old API and this test
   test('Legacy API', done => {
     createRunner(__dirname, 'legacy.js')
