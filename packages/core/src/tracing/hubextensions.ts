@@ -60,6 +60,7 @@ The transaction will not be sampled. Please use the ${configInstrumenter} instru
     transactionContext.sampled = false;
   }
 
+  // eslint-disable-next-line deprecation/deprecation
   let transaction = new Transaction(transactionContext, this);
   transaction = sampleTransaction(transaction, options, {
     parentSampled: transactionContext.parentSampled,
@@ -90,6 +91,7 @@ export function startIdleTransaction(
   const client = hub.getClient();
   const options: Partial<ClientOptions> = (client && client.getOptions()) || {};
 
+  // eslint-disable-next-line deprecation/deprecation
   let transaction = new IdleTransaction(transactionContext, hub, idleTimeout, finalTimeout, heartbeatInterval, onScope);
   transaction = sampleTransaction(transaction, options, {
     parentSampled: transactionContext.parentSampled,

@@ -95,6 +95,9 @@ export class IdleTransaction extends Transaction {
 
   private _finishReason: (typeof IDLE_TRANSACTION_FINISH_REASONS)[number];
 
+  /**
+   * @deprecated Transactions will be removed in v8. Use spans instead.
+   */
   public constructor(
     transactionContext: TransactionContext,
     private readonly _idleHub: Hub,
