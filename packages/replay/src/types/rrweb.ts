@@ -51,6 +51,7 @@ export interface CanvasManagerInterface {
   unfreeze(): void;
   lock(): void;
   unlock(): void;
+  snapshot(): void;
 }
 
 export interface CanvasManagerOptions {
