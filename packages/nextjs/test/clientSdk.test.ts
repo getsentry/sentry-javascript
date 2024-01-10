@@ -89,6 +89,7 @@ describe('Client init()', () => {
     const hub = getCurrentHub();
     const transportSend = jest.spyOn(hub.getClient()!.getTransport()!, 'send');
 
+    // TODO
     // Ensure we have no current span, so our next span is a transaction
     // eslint-disable-next-line deprecation/deprecation
     getCurrentScope().setSpan(undefined);

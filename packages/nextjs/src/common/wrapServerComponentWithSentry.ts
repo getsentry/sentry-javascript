@@ -66,6 +66,7 @@ export function wrapServerComponentWithSentry<F extends (...args: any[]) => any>
               [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
             },
             metadata: {
+              // TODO
               // eslint-disable-next-line deprecation/deprecation
               ...transactionContext.metadata,
               request: {

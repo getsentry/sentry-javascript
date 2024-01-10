@@ -74,6 +74,7 @@ export function wrapGenerationFunctionWithSentry<F extends (...args: any[]) => a
               [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
             },
             metadata: {
+              // TODO
               // eslint-disable-next-line deprecation/deprecation
               ...transactionContext.metadata,
               request: {

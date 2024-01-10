@@ -102,7 +102,7 @@ export function withTracedServerSideDataFetcher<F extends (...args: any[]) => Pr
       if (platformSupportsStreaming()) {
         let spanToContinue: Span;
         if (previousSpan === undefined) {
-          // TODO: Refactor this to use `startSpan()`
+          // TODO
           // eslint-disable-next-line deprecation/deprecation
           const newTransaction = startTransaction(
             {
@@ -133,6 +133,7 @@ export function withTracedServerSideDataFetcher<F extends (...args: any[]) => Pr
           spanToContinue = previousSpan;
         }
 
+        // TODO
         // eslint-disable-next-line deprecation/deprecation
         dataFetcherSpan = spanToContinue.startChild({
           op: 'function.nextjs',
@@ -141,7 +142,7 @@ export function withTracedServerSideDataFetcher<F extends (...args: any[]) => Pr
           status: 'ok',
         });
       } else {
-        // TODO: Refactor this to use `startSpan()`
+        // TODO
         // eslint-disable-next-line deprecation/deprecation
         dataFetcherSpan = startTransaction({
           op: 'function.nextjs',
@@ -157,6 +158,7 @@ export function withTracedServerSideDataFetcher<F extends (...args: any[]) => Pr
         });
       }
 
+      // TODO
       // eslint-disable-next-line deprecation/deprecation
       scope.setSpan(dataFetcherSpan);
       scope.setSDKProcessingMetadata({ request: req });
@@ -171,6 +173,7 @@ export function withTracedServerSideDataFetcher<F extends (...args: any[]) => Pr
         throw e;
       } finally {
         dataFetcherSpan.end();
+        // TODO
         // eslint-disable-next-line deprecation/deprecation
         scope.setSpan(previousSpan);
         if (!platformSupportsStreaming()) {
@@ -198,6 +201,7 @@ export async function callDataFetcherTraced<F extends (...args: any[]) => Promis
 ): Promise<ReturnType<F>> {
   const { parameterizedRoute, dataFetchingMethodName } = options;
 
+  // TODO
   // eslint-disable-next-line deprecation/deprecation
   const transaction = getActiveTransaction();
 
@@ -215,6 +219,7 @@ export async function callDataFetcherTraced<F extends (...args: any[]) => Promis
 
   // Capture the route, since pre-loading, revalidation, etc might mean that this span may happen during another
   // route's transaction
+  // TODO
   // eslint-disable-next-line deprecation/deprecation
   const span = transaction.startChild({
     op: 'function.nextjs',

@@ -52,6 +52,7 @@ export function wrapGetServerSidePropsWithSentry(
         >);
 
         if (serverSideProps && 'props' in serverSideProps) {
+          // TODO
           // eslint-disable-next-line deprecation/deprecation
           const requestTransaction = getTransactionFromRequest(req) ?? getCurrentScope().getTransaction();
           if (requestTransaction) {

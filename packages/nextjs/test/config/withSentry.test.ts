@@ -18,6 +18,7 @@ describe('withSentry', () => {
     res.send('Good dog, Maisey!');
   };
 
+  // TODO
   // eslint-disable-next-line deprecation/deprecation
   const wrappedHandlerNoError = withSentry(origHandlerNoError);
 

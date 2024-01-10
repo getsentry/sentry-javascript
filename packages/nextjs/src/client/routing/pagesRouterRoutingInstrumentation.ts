@@ -181,6 +181,7 @@ export function pagesRouterInstrumentation(
       });
 
       if (navigationTransaction) {
+        // TODO
         // In addition to the navigation transaction we're also starting a span to mark Next.js's `routeChangeStart`
         // and `routeChangeComplete` events.
         // We don't want to finish the navigation transaction on `routeChangeComplete`, since users might want to attach

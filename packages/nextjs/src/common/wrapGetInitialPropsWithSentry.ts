@@ -55,6 +55,7 @@ export function wrapGetInitialPropsWithSentry(origGetInitialProps: GetInitialPro
           _sentryBaggage?: string;
         } = (await tracedGetInitialProps.apply(thisArg, args)) ?? {}; // Next.js allows undefined to be returned from a getInitialPropsFunction.
 
+        // TODO
         // eslint-disable-next-line deprecation/deprecation
         const requestTransaction = getTransactionFromRequest(req) ?? getCurrentScope().getTransaction();
         if (requestTransaction) {

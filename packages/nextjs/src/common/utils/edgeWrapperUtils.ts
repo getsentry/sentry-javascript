@@ -43,6 +43,7 @@ export function withEdgeWrapping<H extends EdgeRouteHandler>(
         origin: 'auto.function.nextjs.withEdgeWrapping',
         attributes: { [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route' },
         metadata: {
+          // TODO
           // eslint-disable-next-line deprecation/deprecation
           ...transactionContext.metadata,
           request: req instanceof Request ? winterCGRequestToRequestData(req) : undefined,

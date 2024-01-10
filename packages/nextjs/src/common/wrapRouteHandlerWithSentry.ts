@@ -22,6 +22,7 @@ export function wrapRouteHandlerWithSentry<F extends (...args: any[]) => any>(
   context: RouteHandlerContext,
 ): (...args: Parameters<F>) => ReturnType<F> extends Promise<unknown> ? ReturnType<F> : Promise<ReturnType<F>> {
   addTracingExtensions();
+  // TODO
   // eslint-disable-next-line deprecation/deprecation
   const { method, parameterizedRoute, baggageHeader, sentryTraceHeader, headers } = context;
   return new Proxy(routeHandler, {

@@ -113,6 +113,7 @@ export function withSentry(apiHandler: NextApiHandler, parameterizedRoute?: stri
               [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
             },
             metadata: {
+              // TODO
               // eslint-disable-next-line deprecation/deprecation
               ...transactionContext.metadata,
               request: req,
