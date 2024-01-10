@@ -4,8 +4,8 @@ import type { Span } from '@opentelemetry/sdk-trace-base';
 import { SemanticAttributes } from '@opentelemetry/semantic-conventions';
 import { SentrySpanProcessor, getClient, getSpanFinishScope } from '@sentry/opentelemetry';
 
-import { Http } from '../integrations/http';
-import { NodeFetch } from '../integrations/node-fetch';
+import type { Http } from '../integrations/http';
+import type { NodeFetch } from '../integrations/node-fetch';
 import type { NodeExperimentalClient } from '../types';
 import { getIsolationScope } from './api';
 import { Scope } from './scope';
@@ -33,8 +33,8 @@ export class NodeExperimentalSentrySpanProcessor extends SentrySpanProcessor {
   /** @inheritDoc */
   protected _shouldSendSpanToSentry(span: Span): boolean {
     const client = getClient<NodeExperimentalClient>();
-    const httpIntegration = client ? client.getIntegration(Http) : undefined;
-    const fetchIntegration = client ? client.getIntegration(NodeFetch) : undefined;
+    const httpIntegration = client ? client.getIntegrationByName<Http>('Http') : undefined;
+    const fetchIntegration = client ? client.getIntegrationByName<NodeFetch>('NodeFetch') : undefined;
 
     // If we encounter a client or server span with url & method, we assume this comes from the http instrumentation
     // In this case, if `shouldCreateSpansForRequests` is false, we want to _record_ the span but not _sample_ it,

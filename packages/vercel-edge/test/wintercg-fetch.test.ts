@@ -1,6 +1,6 @@
 import * as internalTracing from '@sentry-internal/tracing';
 import * as sentryCore from '@sentry/core';
-import type { HandlerDataFetch, Integration, IntegrationClass } from '@sentry/types';
+import type { HandlerDataFetch, Integration } from '@sentry/types';
 import * as sentryUtils from '@sentry/utils';
 import { createStackParser } from '@sentry/utils';
 
@@ -8,8 +8,8 @@ import { VercelEdgeClient } from '../src/index';
 import { WinterCGFetch } from '../src/integrations/wintercg-fetch';
 
 class FakeClient extends VercelEdgeClient {
-  getIntegration<T extends Integration>(integration: IntegrationClass<T>): T | null {
-    return new integration();
+  public getIntegrationByName<T extends Integration = Integration>(name: string): T | undefined {
+    return name === 'WinterCGFetch' ? (new WinterCGFetch() as unknown as T) : undefined;
   }
 }
 
