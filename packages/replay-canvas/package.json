@@ -53,7 +53,7 @@
   "homepage": "https://docs.sentry.io/platforms/javascript/session-replay/",
   "devDependencies": {
     "@babel/core": "^7.17.5",
-    "@sentry-internal/rrweb": "2.7.3"
+    "@sentry-internal/rrweb": "2.8.0"
   },
   "dependencies": {
     "@sentry/replay": "7.93.0",
