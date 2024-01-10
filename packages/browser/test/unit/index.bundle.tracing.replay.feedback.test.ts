@@ -1,5 +1,5 @@
 import { BrowserTracing } from '@sentry-internal/tracing';
-import { Feedback, Replay } from '@sentry/browser';
+import { Feedback, Replay, ReplayCanvas } from '@sentry/browser';
 
 import * as TracingReplayFeedbackBundle from '../../src/index.bundle.tracing.replay.feedback';
 
@@ -16,6 +16,7 @@ describe('index.bundle.tracing.replay.feedback', () => {
 
     expect(TracingReplayFeedbackBundle.Integrations.Replay).toBe(Replay);
     expect(TracingReplayFeedbackBundle.Replay).toBe(Replay);
+    expect(TracingReplayFeedbackBundle.ReplayCanvas).toBe(ReplayCanvas);
 
     expect(TracingReplayFeedbackBundle.Integrations.BrowserTracing).toBe(BrowserTracing);
     expect(TracingReplayFeedbackBundle.BrowserTracing).toBe(BrowserTracing);
