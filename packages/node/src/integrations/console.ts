@@ -8,6 +8,8 @@ const INTEGRATION_NAME = 'Console';
 const consoleIntegration = (() => {
   return {
     name: INTEGRATION_NAME,
+    // TODO v8: Remove this
+    setupOnce() {}, // eslint-disable-line @typescript-eslint/no-empty-function
     setup(client) {
       addConsoleInstrumentationHandler(({ args, level }) => {
         if (getClient() !== client) {

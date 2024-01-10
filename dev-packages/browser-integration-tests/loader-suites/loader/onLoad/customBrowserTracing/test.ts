@@ -27,7 +27,7 @@ sentryTest('should handle custom added BrowserTracing integration', async ({ get
   expect(eventData.transaction_info?.source).toEqual('url');
 
   const tracePropagationTargets = await page.evaluate(() => {
-    const browserTracing = (window as any).Sentry.getCurrentHub().getClient().getIntegrationById('BrowserTracing');
+    const browserTracing = (window as any).Sentry.getClient().getIntegrationById('BrowserTracing');
     return browserTracing.options.tracePropagationTargets;
   });
 

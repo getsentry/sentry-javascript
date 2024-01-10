@@ -100,6 +100,7 @@ export function configureScope(callback: (scope: Scope) => void): ReturnType<Hub
  * @param breadcrumb The breadcrumb to record.
  */
 export function addBreadcrumb(breadcrumb: Breadcrumb, hint?: BreadcrumbHint): ReturnType<Hub['addBreadcrumb']> {
+  // eslint-disable-next-line deprecation/deprecation
   getCurrentHub().addBreadcrumb(breadcrumb, hint);
 }
 
@@ -110,6 +111,7 @@ export function addBreadcrumb(breadcrumb: Breadcrumb, hint?: BreadcrumbHint): Re
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function setContext(name: string, context: { [key: string]: any } | null): ReturnType<Hub['setContext']> {
+  // eslint-disable-next-line deprecation/deprecation
   getCurrentHub().setContext(name, context);
 }
 
@@ -118,6 +120,7 @@ export function setContext(name: string, context: { [key: string]: any } | null)
  * @param extras Extras object to merge into current context.
  */
 export function setExtras(extras: Extras): ReturnType<Hub['setExtras']> {
+  // eslint-disable-next-line deprecation/deprecation
   getCurrentHub().setExtras(extras);
 }
 
@@ -127,6 +130,7 @@ export function setExtras(extras: Extras): ReturnType<Hub['setExtras']> {
  * @param extra Any kind of data. This data will be normalized.
  */
 export function setExtra(key: string, extra: Extra): ReturnType<Hub['setExtra']> {
+  // eslint-disable-next-line deprecation/deprecation
   getCurrentHub().setExtra(key, extra);
 }
 
@@ -135,6 +139,7 @@ export function setExtra(key: string, extra: Extra): ReturnType<Hub['setExtra']>
  * @param tags Tags context object to merge into current context.
  */
 export function setTags(tags: { [key: string]: Primitive }): ReturnType<Hub['setTags']> {
+  // eslint-disable-next-line deprecation/deprecation
   getCurrentHub().setTags(tags);
 }
 
@@ -147,6 +152,7 @@ export function setTags(tags: { [key: string]: Primitive }): ReturnType<Hub['set
  * @param value Value of tag
  */
 export function setTag(key: string, value: Primitive): ReturnType<Hub['setTag']> {
+  // eslint-disable-next-line deprecation/deprecation
   getCurrentHub().setTag(key, value);
 }
 
@@ -156,6 +162,7 @@ export function setTag(key: string, value: Primitive): ReturnType<Hub['setTag']>
  * @param user User context object to be set in the current context. Pass `null` to unset the user.
  */
 export function setUser(user: User | null): ReturnType<Hub['setUser']> {
+  // eslint-disable-next-line deprecation/deprecation
   getCurrentHub().setUser(user);
 }
 
@@ -185,16 +192,20 @@ export function withScope<T>(
   if (rest.length === 2) {
     const [scope, callback] = rest;
     if (!scope) {
+      // eslint-disable-next-line deprecation/deprecation
       return getCurrentHub().withScope(callback);
     }
 
     const hub = getCurrentHub();
+    // eslint-disable-next-line deprecation/deprecation
     return hub.withScope(() => {
+      // eslint-disable-next-line deprecation/deprecation
       hub.getStackTop().scope = scope as Scope;
       return callback(scope as Scope);
     });
   }
 
+  // eslint-disable-next-line deprecation/deprecation
   return getCurrentHub().withScope(rest[0]);
 }
 
@@ -342,6 +353,7 @@ export async function close(timeout?: number): Promise<boolean> {
  * @deprecated This function will be removed in the next major version of the Sentry SDK.
  */
 export function lastEventId(): string | undefined {
+  // eslint-disable-next-line deprecation/deprecation
   return getCurrentHub().lastEventId();
 }
 
@@ -349,6 +361,7 @@ export function lastEventId(): string | undefined {
  * Get the currently active client.
  */
 export function getClient<C extends Client>(): C | undefined {
+  // eslint-disable-next-line deprecation/deprecation
   return getCurrentHub().getClient<C>();
 }
 
@@ -356,6 +369,7 @@ export function getClient<C extends Client>(): C | undefined {
  * Get the currently active scope.
  */
 export function getCurrentScope(): Scope {
+  // eslint-disable-next-line deprecation/deprecation
   return getCurrentHub().getScope();
 }
 

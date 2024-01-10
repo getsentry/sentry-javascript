@@ -10,6 +10,15 @@ npx @sentry/migr8@latest
 This will let you select which updates to run, and automatically update your code. Make sure to still review all code
 changes!
 
+## Changed integration interface
+
+In v8, integrations passed to a client will have an optional `setupOnce()` hook. Currently, this hook is always present,
+but in v8 you will not be able to rely on this always existing anymore - any integration _may_ have a `setup` and/or a
+`setupOnce` hook. Additionally, `setupOnce()` will not receive any arguments anymore.
+
+This should not affect most people, but in the case that you are manually calling `integration.setupOnce()` right now,
+make sure to guard it's existence properly.
+
 ## Deprecate `Hub`
 
 The `Hub` has been a very important part of the Sentry SDK API up until now. Hubs were the SDK's "unit of concurrency"

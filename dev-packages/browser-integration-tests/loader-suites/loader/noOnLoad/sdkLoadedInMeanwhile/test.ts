@@ -54,7 +54,7 @@ sentryTest('it does not download the SDK if the SDK was loaded in the meanwhile'
   expect(sentryEventCount).toBe(1);
 
   // Ensure loader does not overwrite init/config
-  const options = await page.evaluate(() => (window as any).Sentry.getCurrentHub().getClient()?.getOptions());
+  const options = await page.evaluate(() => (window as any).Sentry.getClient()?.getOptions());
   expect(options?.replaysSessionSampleRate).toBe(0.42);
 
   expect(eventData.exception?.values?.length).toBe(1);

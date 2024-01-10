@@ -9,7 +9,7 @@ import {
   startSpanManual,
 } from '@sentry/core';
 
-import { Hub, IdleTransaction, Span, makeMain } from '../../core/src';
+import { Hub, IdleTransaction, Span, getClient, makeMain } from '../../core/src';
 import { IdleTransactionSpanRecorder } from '../../core/src/tracing/idletransaction';
 import { getDefaultBrowserClientOptions } from './testutils';
 
@@ -34,7 +34,7 @@ describe('IdleTransaction', () => {
       );
       transaction.initSpanRecorder(10);
 
-      const scope = hub.getScope();
+      const scope = getCurrentScope();
       // eslint-disable-next-line deprecation/deprecation
       expect(scope.getTransaction()).toBe(transaction);
     });
@@ -43,7 +43,7 @@ describe('IdleTransaction', () => {
       const transaction = new IdleTransaction({ name: 'foo' }, hub);
       transaction.initSpanRecorder(10);
 
-      const scope = hub.getScope();
+      const scope = getCurrentScope();
       // eslint-disable-next-line deprecation/deprecation
       expect(scope.getTransaction()).toBe(undefined);
     });
@@ -62,7 +62,7 @@ describe('IdleTransaction', () => {
       transaction.end();
       jest.runAllTimers();
 
-      const scope = hub.getScope();
+      const scope = getCurrentScope();
       // eslint-disable-next-line deprecation/deprecation
       expect(scope.getTransaction()).toBe(undefined);
     });
@@ -80,7 +80,7 @@ describe('IdleTransaction', () => {
       transaction.end();
       jest.runAllTimers();
 
-      const scope = hub.getScope();
+      const scope = getCurrentScope();
       // eslint-disable-next-line deprecation/deprecation
       expect(scope.getTransaction()).toBe(undefined);
     });
@@ -100,12 +100,12 @@ describe('IdleTransaction', () => {
       // eslint-disable-next-line deprecation/deprecation
       const otherTransaction = new Transaction({ name: 'bar' }, hub);
       // eslint-disable-next-line deprecation/deprecation
-      hub.getScope().setSpan(otherTransaction);
+      getCurrentScope().setSpan(otherTransaction);
 
       transaction.end();
       jest.runAllTimers();
 
-      const scope = hub.getScope();
+      const scope = getCurrentScope();
       // eslint-disable-next-line deprecation/deprecation
       expect(scope.getTransaction()).toBe(otherTransaction);
     });
@@ -243,7 +243,7 @@ describe('IdleTransaction', () => {
   it('should record dropped transactions', async () => {
     const transaction = new IdleTransaction({ name: 'foo', startTimestamp: 1234, sampled: false }, hub, 1000);
 
-    const client = hub.getClient()!;
+    const client = getClient()!;
 
     const recordDroppedEventSpy = jest.spyOn(client, 'recordDroppedEvent');
 

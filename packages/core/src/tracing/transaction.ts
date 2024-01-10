@@ -265,6 +265,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
     // just sets the end timestamp
     super.end(endTimestamp);
 
+    // eslint-disable-next-line deprecation/deprecation
     const client = this._hub.getClient();
     if (client && client.emit) {
       client.emit('finishTransaction', this);

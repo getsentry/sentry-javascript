@@ -1,4 +1,4 @@
-import { getClient, getCurrentHub } from '@sentry/core';
+import { getClient, getCurrentScope } from '@sentry/core';
 import type { BrowserClient } from '@sentry/svelte';
 import * as SentrySvelte from '@sentry/svelte';
 import { SDK_VERSION, WINDOW } from '@sentry/svelte';
@@ -39,7 +39,7 @@ describe('Sentry client SDK', () => {
     });
 
     it('sets the runtime tag on the scope', () => {
-      const currentScope = getCurrentHub().getScope();
+      const currentScope = getCurrentScope();
 
       // @ts-expect-error need access to protected _tags attribute
       expect(currentScope._tags).toEqual({});

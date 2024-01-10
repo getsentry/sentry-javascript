@@ -1,4 +1,4 @@
-import { getCurrentHub } from '@sentry/core';
+import { getClient } from '@sentry/core';
 import type { Transport, TransportMakeRequestResponse } from '@sentry/types';
 
 import { DEFAULT_FLUSH_MIN_DELAY } from '../../src/constants';
@@ -30,7 +30,7 @@ describe('Integration | rate-limiting behaviour', () => {
       },
     }));
 
-    mockTransportSend = getCurrentHub()?.getClient()?.getTransport()?.send as MockTransportSend;
+    mockTransportSend = getClient()?.getTransport()?.send as MockTransportSend;
   });
 
   afterEach(async () => {

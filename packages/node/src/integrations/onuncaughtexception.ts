@@ -48,6 +48,8 @@ const onUncaughtExceptionIntegration = ((options: Partial<OnUncaughtExceptionOpt
 
   return {
     name: INTEGRATION_NAME,
+    // TODO v8: Remove this
+    setupOnce() {}, // eslint-disable-line @typescript-eslint/no-empty-function
     setup(client: NodeClient) {
       global.process.on('uncaughtException', makeErrorHandler(client, _options));
     },
