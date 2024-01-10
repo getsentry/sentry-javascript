@@ -10,6 +10,51 @@ npx @sentry/migr8@latest
 This will let you select which updates to run, and automatically update your code. Make sure to still review all code
 changes!
 
+## Deprecate `Hub`
+
+The `Hub` has been a very important part of the Sentry SDK API up until now. Hubs were the SDK's "unit of concurrency"
+to keep track of data across threads and to scope data to certain parts of your code. Because it is overly complicated
+and confusing to power users, it is going to be replaced by a set of new APIs: the "new Scope API".
+
+`Scope`s have existed before in the SDK but we are now expanding on them because we have found them powerful enough to
+fully cover the `Hub` API.
+
+If you are using the `Hub` right now, see the following table on how to migrate to the new API:
+
+| Old `Hub` API          | New `Scope` API                                                                      |
+| ---------------------- | ------------------------------------------------------------------------------------ |
+| `new Hub()`            | `withScope()`, `withIsolationScope()` or `new Scope()`                               |
+| hub.isOlderThan()      | REMOVED - Was used to compare `Hub` instances, which are gonna be removed            |
+| hub.bindClient()       | A combination of `scope.setClient()` and `client.setupIntegrations()`                |
+| hub.pushScope()        | `Sentry.withScope()`                                                                 |
+| hub.popScope()         | `Sentry.withScope()`                                                                 |
+| hub.withScope()        | `Sentry.withScope()`                                                                 |
+| getClient()            | `Sentry.getClient()`                                                                 |
+| getScope()             | `Sentry.getCurrentScope()` to get the currently active scope                         |
+| getIsolationScope()    | `Sentry.getIsolationScope()`                                                         |
+| getStack()             | REMOVED - The stack used to hold scopes. Scopes are used directly now                |
+| getStackTop()          | REMOVED - The stack used to hold scopes. Scopes are used directly now                |
+| captureException()     | `Sentry.captureException()`                                                          |
+| captureMessage()       | `Sentry.captureMessage()`                                                            |
+| captureEvent()         | `Sentry.captureEvent()`                                                              |
+| lastEventId()          | REMOVED - Use event processors or beforeSend instead                                 |
+| addBreadcrumb()        | `Sentry.addBreadcrumb()`                                                             |
+| setUser()              | `Sentry.setUser()`                                                                   |
+| setTags()              | `Sentry.setTags()`                                                                   |
+| setExtras()            | `Sentry.setExtras()`                                                                 |
+| setTag()               | `Sentry.setTag()`                                                                    |
+| setExtra()             | `Sentry.setExtra()`                                                                  |
+| setContext()           | `Sentry.setContext()`                                                                |
+| configureScope()       | REMOVED - Scopes are now the unit of concurrency                                     |
+| run()                  | `Sentry.withScope()` or `Sentry.withIsolationScope()`                                |
+| getIntegration()       | `client.getIntegration()`                                                            |
+| startTransaction()     | `Sentry.startSpan()`, `Sentry.startInactiveSpan()` or `Sentry.startSpanManual()`     |
+| traceHeaders()         | REMOVED - The closest equivalent is now `spanToTraceHeader(getActiveSpan())`         |
+| captureSession()       | `Sentry.captureSession()`                                                            |
+| startSession()         | `Sentry.startSession()`                                                              |
+| endSession()           | `Sentry.endSession()`                                                                |
+| shouldSendDefaultPii() | REMOVED - The closest equivalent is `Sentry.getClient().getOptions().sendDefaultPii` |
+
 ## Deprecate `scope.getSpan()` and `scope.setSpan()`
 
 Instead, you can get the currently active span via `Sentry.getActiveSpan()`. Setting a span on the scope happens
@@ -75,17 +120,6 @@ Sentry.init({
   },
 });
 ```
-
-## Deprecated fields on `Hub`
-
-In v8, the Hub class will be removed. The following methods are therefore deprecated:
-
-- `hub.startTransaction()`: See [Deprecation of `startTransaction`](#deprecate-starttransaction)
-- `hub.lastEventId()`: See [Deprecation of `lastEventId`](#deprecate-sentrylasteventid-and-hublasteventid)
-- `hub.startSession()`: Use top-level `Sentry.startSession()` instead
-- `hub.endSession()`: Use top-level `Sentry.endSession()` instead
-- `hub.captureSession()`: Use top-level `Sentry.captureSession()` instead
-- `hub.shouldSendDefaultPii()`: Access Sentry client option via `Sentry.getClient().getOptions().sendDefaultPii` instead
 
 ## Deprecated fields on `Span` and `Transaction`
 
