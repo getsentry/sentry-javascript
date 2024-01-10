@@ -1,5 +1,5 @@
 /* eslint-disable max-lines */
-import { ReplayCanvasIntegrationOptions } from '@sentry-internal/replay-canvas';
+import type { ReplayCanvasIntegrationOptions } from '@sentry-internal/replay-canvas';
 import type { fullSnapshotEvent, incrementalSnapshotEvent } from '@sentry-internal/rrweb';
 import { EventType } from '@sentry-internal/rrweb';
 import type { ReplayEventWithTime } from '@sentry/browser';
