@@ -1,6 +1,7 @@
 import { TRACEPARENT_REGEXP, timestampInSeconds } from '@sentry/utils';
+import { Transaction } from '../../../build/types';
 import { Span, spanToTraceHeader } from '../../../src';
-import { spanIsSampled, spanTimeInputToSeconds, spanToJSON } from '../../../src/utils/spanUtils';
+import { getRootSpan, spanIsSampled, spanTimeInputToSeconds, spanToJSON } from '../../../src/utils/spanUtils';
 
 describe('spanToTraceHeader', () => {
   test('simple', () => {
@@ -125,5 +126,37 @@ describe('spanIsSampled', () => {
   test('not sampled', () => {
     const span = new Span({ sampled: false });
     expect(spanIsSampled(span)).toBe(false);
+  });
+});
+
+describe('getRootSpan', () => {
+  it('returns the root span of a span (Span)', () => {
+    const root = new Span({ name: 'test' });
+    // @ts-expect-error this is highly illegal and shouldn't happen IRL
+    root.transaction = root;
+
+    // eslint-disable-next-line deprecation/deprecation
+    const childSpan = root.startChild({ name: 'child' });
+    expect(getRootSpan(childSpan)).toBe(root);
+  });
+
+  it('returns the root span of a span (Transaction)', () => {
+    const root = new Transaction({ name: 'test' });
+
+    // eslint-disable-next-line deprecation/deprecation
+    const childSpan = root.startChild({ name: 'child' });
+    expect(getRootSpan(childSpan)).toBe(root);
+  });
+
+  it('returns the span itself if it is a root span', () => {
+    const span = new Transaction({ name: 'test' });
+
+    expect(getRootSpan(span)).toBe(span);
+  });
+
+  it('returns undefined if span has no root span', () => {
+    const span = new Span({ name: 'test' });
+
+    expect(getRootSpan(span)).toBe(undefined);
   });
 });

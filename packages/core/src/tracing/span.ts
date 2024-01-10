@@ -105,6 +105,7 @@ export class Span implements SpanInterface {
 
   /**
    * @inheritDoc
+   * @deprecated Use top level `Sentry.getRootSpan()` instead
    */
   public transaction?: Transaction;
 

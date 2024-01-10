@@ -107,3 +107,15 @@ export function spanIsSampled(span: Span): boolean {
   // eslint-disable-next-line no-bitwise
   return Boolean(traceFlags & TRACE_FLAG_SAMPLED);
 }
+
+/**
+ * Returns the root span of a given span.
+ *
+ * As long as we use `Transaction`s internally, the returned root span
+ * will be a `Transaction` but be aware that this might change in the future.
+ *
+ * If the given span has no root span or transaction, `undefined` is returned.
+ */
+export function getRootSpan(span: Span): Span | undefined {
+  return span.transaction;
+}
