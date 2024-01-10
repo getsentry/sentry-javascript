@@ -8,9 +8,89 @@ npx @sentry/migr8@latest
 
 This will let you select which updates to run, and automatically update your code. Make sure to still review all code changes!
 
+## Deprecate `Hub`
+
+The `Hub` has been a very important part of the Sentry SDK API up until now.
+Hubs were the SDK's "unit of concurrency" to keep track of data across threads and to scope data to certain parts of your code.
+Because it is overly complicated and confusing to power users, it is going to be replaced by a set of new APIs: the "new Scope API".
+
+`Scope`s have existed before in the SDK but we are now expanding on them because we have found them powerful enough to fully cover the `Hub` API.
+
+If you are using the `Hub` right now, see the following table on how to migrate to the new API:
+
+| Old `Hub` API | New `Scope` API |
+| --- | --- |
+| `new Hub()` | `withScope()`, `withIsolationScope()` or `new Scope()` |
+| hub.isOlderThan() | REMOVED - Was used to compare `Hub` instances, which are gonna be removed |
+| hub.bindClient() | A combination of `scope.setClient()` and `client.setupIntegrations()` |
+| hub.pushScope() | `Sentry.withScope()` |
+| hub.popScope() | `Sentry.withScope()` |
+| hub.withScope() | `Sentry.withScope()` |
+| getClient() | `Sentry.getClient()` |
+| getScope() | `Sentry.getCurrentScope()` to get the currently active scope |
+| getIsolationScope() | `Sentry.getIsolationScope()` |
+| getStack() | REMOVED - The stack used to hold scopes. Scopes are used directly now |
+| getStackTop() | REMOVED - The stack used to hold scopes. Scopes are used directly now |
+| captureException() | `Sentry.captureException()` |
+| captureMessage() | `Sentry.captureMessage()` |
+| captureEvent() | `Sentry.captureEvent()` |
+| lastEventId() | REMOVED - Use event processors or beforeSend instead |
+| addBreadcrumb() | `Sentry.addBreadcrumb()` |
+| setUser() | `Sentry.setUser()` |
+| setTags() | `Sentry.setTags()` |
+| setExtras() | `Sentry.setExtras()` |
+| setTag() | `Sentry.setTag()` |
+| setExtra() | `Sentry.setExtra()` |
+| setContext() | `Sentry.setContext()` |
+| configureScope() | REMOVED - Scopes are now the unit of concurrency  |
+| run() | `Sentry.withScope()` or `Sentry.withIsolationScope()` |
+| getIntegration() | `client.getIntegration()` |
+| startTransaction() | `Sentry.startSpan()`, `Sentry.startInactiveSpan()` or `Sentry.startSpanManual()` |
+| traceHeaders() | REMOVED - The closest equivalent is now `spanToTraceHeader(getActiveSpan())`  |
+| captureSession() | `Sentry.captureSession()` |
+| startSession() | `Sentry.startSession()` |
+| endSession() | `Sentry.endSession()` |
+| shouldSendDefaultPii() | REMOVED - The closest equivalent is `Sentry.getClient().getOptions().sendDefaultPii` |
+
+## Deprecate `scope.getSpan()` and `scope.setSpan()`
+
+Instead, you can get the currently active span via `Sentry.getActiveSpan()`.
+Setting a span on the scope happens automatically when you use the new performance APIs `startSpan()` and `startSpanManual()`.
+
+## Deprecate `scope.setTransactionName()`
+
+Instead, either set this as attributes or tags, or use an event processor to set `event.transaction`.
+
+## Deprecate `scope.getTransaction()` and `getActiveTransaction()`
+
+Instead, you should not rely on the active transaction, but just use `startSpan()` APIs, which handle this for you.
+
+## Deprecate arguments for `startSpan()` APIs
+
+In v8, the API to start a new span will be reduced from the currently available options.
+Going forward, only these argument will be passable to `startSpan()`, `startSpanManual()` and `startInactiveSpan()`:
+
+* `name`
+* `attributes`
+* `origin`
+* `op`
+* `startTime`
+* `scope`
+
+## Deprecate `startTransaction()` & `span.startChild()`
+
+In v8, the old performance API `startTransaction()` (and `hub.startTransaction()`), as well as `span.startChild()`, will be removed.
+Instead, use the new performance APIs:
+
+* `startSpan()`
+* `startSpanManual()`
+* `startInactiveSpan()`
+
+You can [read more about the new performance APIs here](./docs/v8-new-performance-apis.md).
+
 ## Deprecate `Sentry.lastEventId()` and `hub.lastEventId()`
 
-`Sentry.lastEventId()` sometimes causes race conditons, so we are deprecating it in favour of the `beforeSend` callback.
+`Sentry.lastEventId()` sometimes causes race conditions, so we are deprecating it in favour of the `beforeSend` callback.
 
 ```js
 // Before
@@ -46,6 +126,19 @@ In v8, the Span class is heavily reworked. The following properties & methods ar
 * `span.setName(newName)`: Use `span.updateName(newName)` instead.
 * `span.toTraceparent()`: use `spanToTraceHeader(span)` util instead.
 * `span.getTraceContext()`: Use `spanToTraceContext(span)` utility function instead.
+* `span.sampled`: Use `span.isRecording()` instead.
+* `span.spanId`: Use `span.spanContext().spanId` instead.
+* `span.traceId`: Use `span.spanContext().traceId` instead.
+* `span.name`: Use `spanToJSON(span).description` instead.
+* `span.description`: Use `spanToJSON(span).description` instead.
+* `span.getDynamicSamplingContext`: Use `getDynamicSamplingContextFromSpan` utility function instead.
+* `transaction.setMetadata()`: Use attributes instead, or set data on the scope.
+* `transaction.metadata`: Use attributes instead, or set data on the scope.
+* `span.tags`: Set tags on the surrounding scope instead, or use attributes.
+* `span.data`: Use `spanToJSON(span).data` instead.
+* `span.setTag()`: Use `span.setAttribute()` instead or set tags on the surrounding scope.
+* `span.setData()`: Use `span.setAttribute()` instead.
+* `transaction.setContext()`: Set context on the surrounding scope instead.
 
 ## Deprecate `pushScope` & `popScope` in favor of `withScope`
 

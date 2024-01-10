@@ -8,6 +8,7 @@ import type { ActivatedRouteSnapshot, Event, RouterState } from '@angular/router
 import { NavigationCancel, NavigationError, Router } from '@angular/router';
 import { NavigationEnd, NavigationStart, ResolveEnd } from '@angular/router';
 import { WINDOW, getCurrentScope } from '@sentry/browser';
+import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, spanToJSON } from '@sentry/core';
 import type { Span, Transaction, TransactionContext } from '@sentry/types';
 import { logger, stripUrlQueryAndFragment, timestampInSeconds } from '@sentry/utils';
 import type { Observable } from 'rxjs';
@@ -39,7 +40,9 @@ export function routingInstrumentation(
       name: WINDOW.location.pathname,
       op: 'pageload',
       origin: 'auto.pageload.angular',
-      metadata: { source: 'url' },
+      attributes: {
+        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+      },
     });
   }
 }
@@ -47,9 +50,12 @@ export function routingInstrumentation(
 export const instrumentAngularRouting = routingInstrumentation;
 
 /**
- * Grabs active transaction off scope
+ * Grabs active transaction off scope.
+ *
+ * @deprecated You should not rely on the transaction, but just use `startSpan()` APIs instead.
  */
 export function getActiveTransaction(): Transaction | undefined {
+  // eslint-disable-next-line deprecation/deprecation
   return getCurrentScope().getTransaction();
 }
 
@@ -69,6 +75,7 @@ export class TraceService implements OnDestroy {
       }
 
       const strippedUrl = stripUrlQueryAndFragment(navigationEvent.url);
+      // eslint-disable-next-line deprecation/deprecation
       let activeTransaction = getActiveTransaction();
 
       if (!activeTransaction && stashedStartTransactionOnLocationChange) {
@@ -76,7 +83,9 @@ export class TraceService implements OnDestroy {
           name: strippedUrl,
           op: 'navigation',
           origin: 'auto.navigation.angular',
-          metadata: { source: 'url' },
+          attributes: {
+            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+          },
         });
       }
 
@@ -84,6 +93,7 @@ export class TraceService implements OnDestroy {
         if (this._routingSpan) {
           this._routingSpan.end();
         }
+        // eslint-disable-next-line deprecation/deprecation
         this._routingSpan = activeTransaction.startChild({
           description: `${navigationEvent.url}`,
           op: ANGULAR_ROUTING_OP,
@@ -115,11 +125,13 @@ export class TraceService implements OnDestroy {
         (event.state as unknown as RouterState & { root: ActivatedRouteSnapshot }).root,
       );
 
+      // eslint-disable-next-line deprecation/deprecation
       const transaction = getActiveTransaction();
       // TODO (v8 / #5416): revisit the source condition. Do we want to make the parameterized route the default?
-      if (transaction && transaction.metadata.source === 'url') {
+      const attributes = (transaction && spanToJSON(transaction).data) || {};
+      if (transaction && attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] === 'url') {
         transaction.updateName(route);
-        transaction.setMetadata({ source: 'route' });
+        transaction.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
       }
     }),
   );
@@ -181,8 +193,10 @@ export class TraceDirective implements OnInit, AfterViewInit {
       this.componentName = UNKNOWN_COMPONENT;
     }
 
+    // eslint-disable-next-line deprecation/deprecation
     const activeTransaction = getActiveTransaction();
     if (activeTransaction) {
+      // eslint-disable-next-line deprecation/deprecation
       this._tracingSpan = activeTransaction.startChild({
         description: `<${this.componentName}>`,
         op: ANGULAR_INIT_OP,
@@ -223,8 +237,10 @@ export function TraceClassDecorator(): ClassDecorator {
     const originalOnInit = target.prototype.ngOnInit;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     target.prototype.ngOnInit = function (...args: any[]): ReturnType<typeof originalOnInit> {
+      // eslint-disable-next-line deprecation/deprecation
       const activeTransaction = getActiveTransaction();
       if (activeTransaction) {
+        // eslint-disable-next-line deprecation/deprecation
         tracingSpan = activeTransaction.startChild({
           description: `<${target.name}>`,
           op: ANGULAR_INIT_OP,
@@ -260,8 +276,10 @@ export function TraceMethodDecorator(): MethodDecorator {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     descriptor.value = function (...args: any[]): ReturnType<typeof originalMethod> {
       const now = timestampInSeconds();
+      // eslint-disable-next-line deprecation/deprecation
       const activeTransaction = getActiveTransaction();
       if (activeTransaction) {
+        // eslint-disable-next-line deprecation/deprecation
         activeTransaction.startChild({
           description: `<${target.constructor.name}>`,
           endTimestamp: now,

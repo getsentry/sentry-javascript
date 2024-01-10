@@ -166,6 +166,7 @@ export class Hub implements HubInterface {
   public bindClient(client?: Client): void {
     const top = this.getStackTop();
     top.client = client;
+    top.scope.setClient(client);
     if (client && client.setupIntegrations) {
       client.setupIntegrations();
     }
@@ -262,27 +263,26 @@ export class Hub implements HubInterface {
 
   /**
    * @inheritDoc
+   *
+   * @deprecated Use `Sentry.captureException()` instead.
    */
   public captureException(exception: unknown, hint?: EventHint): string {
     const eventId = (this._lastEventId = hint && hint.event_id ? hint.event_id : uuid4());
     const syntheticException = new Error('Sentry syntheticException');
-    this._withClient((client, scope) => {
-      client.captureException(
-        exception,
-        {
-          originalException: exception,
-          syntheticException,
-          ...hint,
-          event_id: eventId,
-        },
-        scope,
-      );
+    this.getScope().captureException(exception, {
+      originalException: exception,
+      syntheticException,
+      ...hint,
+      event_id: eventId,
     });
+
     return eventId;
   }
 
   /**
    * @inheritDoc
+   *
+   * @deprecated Use  `Sentry.captureMessage()` instead.
    */
   public captureMessage(
     message: string,
@@ -292,24 +292,20 @@ export class Hub implements HubInterface {
   ): string {
     const eventId = (this._lastEventId = hint && hint.event_id ? hint.event_id : uuid4());
     const syntheticException = new Error(message);
-    this._withClient((client, scope) => {
-      client.captureMessage(
-        message,
-        level,
-        {
-          originalException: message,
-          syntheticException,
-          ...hint,
-          event_id: eventId,
-        },
-        scope,
-      );
+    this.getScope().captureMessage(message, level, {
+      originalException: message,
+      syntheticException,
+      ...hint,
+      event_id: eventId,
     });
+
     return eventId;
   }
 
   /**
    * @inheritDoc
+   *
+   * @deprecated Use `Sentry.captureEvent()` instead.
    */
   public captureEvent(event: Event, hint?: EventHint): string {
     const eventId = hint && hint.event_id ? hint.event_id : uuid4();
@@ -317,9 +313,7 @@ export class Hub implements HubInterface {
       this._lastEventId = eventId;
     }
 
-    this._withClient((client, scope) => {
-      client.captureEvent(event, { ...hint, event_id: eventId }, scope);
-    });
+    this.getScope().captureEvent(event, { ...hint, event_id: eventId });
     return eventId;
   }
 
@@ -440,7 +434,23 @@ export class Hub implements HubInterface {
   }
 
   /**
-   * @inheritDoc
+   * Starts a new `Transaction` and returns it. This is the entry point to manual tracing instrumentation.
+   *
+   * A tree structure can be built by adding child spans to the transaction, and child spans to other spans. To start a
+   * new child span within the transaction or any span, call the respective `.startChild()` method.
+   *
+   * Every child span must be finished before the transaction is finished, otherwise the unfinished spans are discarded.
+   *
+   * The transaction must be finished with a call to its `.end()` method, at which point the transaction with all its
+   * finished child spans will be sent to Sentry.
+   *
+   * @param context Properties of the new `Transaction`.
+   * @param customSamplingContext Information given to the transaction sampling function (along with context-dependent
+   * default values). See {@link Options.tracesSampler}.
+   *
+   * @returns The transaction which was just started
+   *
+   * @deprecated Use `startSpan()`, `startSpanManual()` or `startInactiveSpan()` instead.
    */
   public startTransaction(context: TransactionContext, customSamplingContext?: CustomSamplingContext): Transaction {
     const result = this._callExtensionMethod<Transaction>('startTransaction', context, customSamplingContext);
@@ -471,10 +481,13 @@ Sentry.init({...});
 
   /**
    * @inheritDoc
+   *
+   * @deprecated Use top level `captureSession` instead.
    */
   public captureSession(endSession: boolean = false): void {
     // both send the update and pull the session from the scope
     if (endSession) {
+      // eslint-disable-next-line deprecation/deprecation
       return this.endSession();
     }
 
@@ -484,6 +497,7 @@ Sentry.init({...});
 
   /**
    * @inheritDoc
+   * @deprecated Use top level `endSession` instead.
    */
   public endSession(): void {
     const layer = this.getStackTop();
@@ -500,6 +514,7 @@ Sentry.init({...});
 
   /**
    * @inheritDoc
+   * @deprecated Use top level `startSession` instead.
    */
   public startSession(context?: SessionContext): Session {
     const { scope, client } = this.getStackTop();
@@ -521,6 +536,7 @@ Sentry.init({...});
     if (currentSession && currentSession.status === 'ok') {
       updateSession(currentSession, { status: 'exited' });
     }
+    // eslint-disable-next-line deprecation/deprecation
     this.endSession();
 
     // Afterwards we set the new session on the scope
@@ -532,6 +548,9 @@ Sentry.init({...});
   /**
    * Returns if default PII should be sent to Sentry and propagated in ourgoing requests
    * when Tracing is used.
+   *
+   * @deprecated Use top-level `getClient().getOptions().sendDefaultPii` instead. This function
+   * only unnecessarily increased API surface but only wrapped accessing the option.
    */
   public shouldSendDefaultPii(): boolean {
     const client = this.getClient();

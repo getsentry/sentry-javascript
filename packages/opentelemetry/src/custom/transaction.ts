@@ -11,6 +11,7 @@ export function startTransaction(hub: HubInterface, transactionContext: Transact
   const client = hub.getClient();
   const options: Partial<ClientOptions> = (client && client.getOptions()) || {};
 
+  // eslint-disable-next-line deprecation/deprecation
   const transaction = new OpenTelemetryTransaction(transactionContext, hub as Hub);
   // Since we do not do sampling here, we assume that this is _always_ sampled
   // Any sampling decision happens in OpenTelemetry's sampler

@@ -4,6 +4,7 @@ import { addBreadcrumb, setTag } from '@sentry/core';
 import type { PropagationContext, TransactionEvent } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
+import { spanToJSON } from '@sentry/core';
 import { getCurrentHub } from '../../src/custom/hub';
 import { SentrySpanProcessor } from '../../src/spanProcessor';
 import { startInactiveSpan, startSpan } from '../../src/trace';
@@ -142,7 +143,7 @@ describe('Integration | Transactions', () => {
 
     // note: Currently, spans do not have any context/span added to them
     // This is the same behavior as for the "regular" SDKs
-    expect(spans.map(span => span.toJSON())).toEqual([
+    expect(spans.map(span => spanToJSON(span))).toEqual([
       {
         data: { 'otel.kind': 'INTERNAL' },
         description: 'inner span 1',
@@ -393,7 +394,7 @@ describe('Integration | Transactions', () => {
 
     // note: Currently, spans do not have any context/span added to them
     // This is the same behavior as for the "regular" SDKs
-    expect(spans.map(span => span.toJSON())).toEqual([
+    expect(spans.map(span => spanToJSON(span))).toEqual([
       {
         data: { 'otel.kind': 'INTERNAL' },
         description: 'inner span 1',

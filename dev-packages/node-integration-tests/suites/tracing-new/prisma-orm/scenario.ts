@@ -13,11 +13,13 @@ Sentry.init({
 });
 
 async function run(): Promise<void> {
+  // eslint-disable-next-line deprecation/deprecation
   const transaction = Sentry.startTransaction({
     name: 'Test Transaction',
     op: 'transaction',
   });
 
+  // eslint-disable-next-line deprecation/deprecation
   Sentry.getCurrentScope().setSpan(transaction);
 
   try {

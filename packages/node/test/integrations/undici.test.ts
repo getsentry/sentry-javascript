@@ -1,5 +1,5 @@
 import * as http from 'http';
-import type { Transaction } from '@sentry/core';
+import { Transaction, getActiveSpan, startSpan } from '@sentry/core';
 import { spanToTraceHeader } from '@sentry/core';
 import { Hub, makeMain, runWithAsyncContext } from '@sentry/core';
 import type { fetch as FetchType } from 'undici';
@@ -106,65 +106,73 @@ conditionalTest({ min: 16 })('Undici integration', () => {
       },
     ],
   ])('creates a span with a %s', async (_: string, request, requestInit, expected) => {
-    const transaction = hub.startTransaction({ name: 'test-transaction' }) as Transaction;
-    hub.getScope().setSpan(transaction);
+    await startSpan({ name: 'outer-span' }, async outerSpan => {
+      await fetch(request, requestInit);
 
-    await fetch(request, requestInit);
+      expect(outerSpan).toBeInstanceOf(Transaction);
+      const spans = (outerSpan as Transaction).spanRecorder?.spans || [];
 
-    expect(transaction.spanRecorder?.spans.length).toBe(2);
+      expect(spans.length).toBe(2);
 
-    const span = transaction.spanRecorder?.spans[1];
-    expect(span).toEqual(expect.objectContaining(expected));
+      const span = spans[1];
+      expect(span).toEqual(expect.objectContaining(expected));
+    });
   });
 
   it('creates a span with internal errors', async () => {
-    const transaction = hub.startTransaction({ name: 'test-transaction' }) as Transaction;
-    hub.getScope().setSpan(transaction);
+    await startSpan({ name: 'outer-span' }, async outerSpan => {
+      try {
+        await fetch('http://a-url-that-no-exists.com');
+      } catch (e) {
+        // ignore
+      }
 
-    try {
-      await fetch('http://a-url-that-no-exists.com');
-    } catch (e) {
-      // ignore
-    }
+      expect(outerSpan).toBeInstanceOf(Transaction);
+      const spans = (outerSpan as Transaction).spanRecorder?.spans || [];
 
-    expect(transaction.spanRecorder?.spans.length).toBe(2);
+      expect(spans.length).toBe(2);
 
-    const span = transaction.spanRecorder?.spans[1];
-    expect(span).toEqual(expect.objectContaining({ status: 'internal_error' }));
+      const span = spans[1];
+      expect(span).toEqual(expect.objectContaining({ status: 'internal_error' }));
+    });
   });
 
   it('creates a span for invalid looking urls', async () => {
-    const transaction = hub.startTransaction({ name: 'test-transaction' }) as Transaction;
-    hub.getScope().setSpan(transaction);
+    await startSpan({ name: 'outer-span' }, async outerSpan => {
+      try {
+        // Intentionally add // to the url
+        // fetch accepts this URL, but throws an error later on
+        await fetch('http://a-url-that-no-exists.com//');
+      } catch (e) {
+        // ignore
+      }
 
-    try {
-      // Intentionally add // to the url
-      // fetch accepts this URL, but throws an error later on
-      await fetch('http://a-url-that-no-exists.com//');
-    } catch (e) {
-      // ignore
-    }
+      expect(outerSpan).toBeInstanceOf(Transaction);
+      const spans = (outerSpan as Transaction).spanRecorder?.spans || [];
 
-    expect(transaction.spanRecorder?.spans.length).toBe(2);
+      expect(spans.length).toBe(2);
 
-    const span = transaction.spanRecorder?.spans[1];
-    expect(span).toEqual(expect.objectContaining({ description: 'GET http://a-url-that-no-exists.com//' }));
-    expect(span).toEqual(expect.objectContaining({ status: 'internal_error' }));
+      const span = spans[1];
+      expect(span).toEqual(expect.objectContaining({ description: 'GET http://a-url-that-no-exists.com//' }));
+      expect(span).toEqual(expect.objectContaining({ status: 'internal_error' }));
+    });
   });
 
   it('does not create a span for sentry requests', async () => {
-    const transaction = hub.startTransaction({ name: 'test-transaction' }) as Transaction;
-    hub.getScope().setSpan(transaction);
+    await startSpan({ name: 'outer-span' }, async outerSpan => {
+      try {
+        await fetch(`${SENTRY_DSN}/sub/route`, {
+          method: 'POST',
+        });
+      } catch (e) {
+        // ignore
+      }
 
-    try {
-      await fetch(`${SENTRY_DSN}/sub/route`, {
-        method: 'POST',
-      });
-    } catch (e) {
-      // ignore
-    }
+      expect(outerSpan).toBeInstanceOf(Transaction);
+      const spans = (outerSpan as Transaction).spanRecorder?.spans || [];
 
-    expect(transaction.spanRecorder?.spans.length).toBe(1);
+      expect(spans.length).toBe(1);
+    });
   });
 
   it('does not create a span if there is no active spans', async () => {
@@ -174,24 +182,26 @@ conditionalTest({ min: 16 })('Undici integration', () => {
       // ignore
     }
 
-    expect(hub.getScope().getSpan()).toBeUndefined();
+    expect(getActiveSpan()).toBeUndefined();
   });
 
   it('does create a span if `shouldCreateSpanForRequest` is defined', async () => {
-    const transaction = hub.startTransaction({ name: 'test-transaction' }) as Transaction;
-    hub.getScope().setSpan(transaction);
+    await startSpan({ name: 'outer-span' }, async outerSpan => {
+      expect(outerSpan).toBeInstanceOf(Transaction);
+      const spans = (outerSpan as Transaction).spanRecorder?.spans || [];
 
-    const undoPatch = patchUndici({ shouldCreateSpanForRequest: url => url.includes('yes') });
+      const undoPatch = patchUndici({ shouldCreateSpanForRequest: url => url.includes('yes') });
 
-    await fetch('http://localhost:18100/no', { method: 'POST' });
+      await fetch('http://localhost:18100/no', { method: 'POST' });
 
-    expect(transaction.spanRecorder?.spans.length).toBe(1);
+      expect(spans.length).toBe(1);
 
-    await fetch('http://localhost:18100/yes', { method: 'POST' });
+      await fetch('http://localhost:18100/yes', { method: 'POST' });
 
-    expect(transaction.spanRecorder?.spans.length).toBe(2);
+      expect(spans.length).toBe(2);
 
-    undoPatch();
+      undoPatch();
+    });
   });
 
   // This flakes on CI for some reason: https://github.com/getsentry/sentry-javascript/pull/8449
@@ -200,18 +210,22 @@ conditionalTest({ min: 16 })('Undici integration', () => {
     expect.assertions(3);
 
     await runWithAsyncContext(async () => {
-      const transaction = hub.startTransaction({ name: 'test-transaction' }) as Transaction;
-      hub.getScope().setSpan(transaction);
+      await startSpan({ name: 'outer-span' }, async outerSpan => {
+        expect(outerSpan).toBeInstanceOf(Transaction);
+        const spans = (outerSpan as Transaction).spanRecorder?.spans || [];
 
-      await fetch('http://localhost:18100', { method: 'POST' });
+        await fetch('http://localhost:18100', { method: 'POST' });
 
-      expect(transaction.spanRecorder?.spans.length).toBe(2);
-      const span = transaction.spanRecorder?.spans[1];
+        expect(spans.length).toBe(2);
+        const span = spans[1];
 
-      expect(requestHeaders['sentry-trace']).toEqual(spanToTraceHeader(span!));
-      expect(requestHeaders['baggage']).toEqual(
-        `sentry-environment=production,sentry-public_key=0,sentry-trace_id=${transaction.traceId},sentry-sample_rate=1,sentry-transaction=test-transaction`,
-      );
+        expect(requestHeaders['sentry-trace']).toEqual(spanToTraceHeader(span!));
+        expect(requestHeaders['baggage']).toEqual(
+          `sentry-environment=production,sentry-public_key=0,sentry-trace_id=${
+            span.spanContext().traceId
+          },sentry-sample_rate=1,sentry-transaction=test-transaction`,
+        );
+      });
     });
   });
 
@@ -233,59 +247,62 @@ conditionalTest({ min: 16 })('Undici integration', () => {
   // This flakes on CI for some reason: https://github.com/getsentry/sentry-javascript/pull/8449
   // eslint-disable-next-line jest/no-disabled-tests
   it.skip('attaches headers if `shouldCreateSpanForRequest` does not create a span using propagation context', async () => {
-    const transaction = hub.startTransaction({ name: 'test-transaction' }) as Transaction;
     const scope = hub.getScope();
     const propagationContext = scope.getPropagationContext();
 
-    scope.setSpan(transaction);
+    await startSpan({ name: 'outer-span' }, async outerSpan => {
+      expect(outerSpan).toBeInstanceOf(Transaction);
 
-    const undoPatch = patchUndici({ shouldCreateSpanForRequest: url => url.includes('yes') });
+      const undoPatch = patchUndici({ shouldCreateSpanForRequest: url => url.includes('yes') });
 
-    await fetch('http://localhost:18100/no', { method: 'POST' });
+      await fetch('http://localhost:18100/no', { method: 'POST' });
 
-    expect(requestHeaders['sentry-trace']).toBeDefined();
-    expect(requestHeaders['baggage']).toBeDefined();
+      expect(requestHeaders['sentry-trace']).toBeDefined();
+      expect(requestHeaders['baggage']).toBeDefined();
 
-    expect(requestHeaders['sentry-trace'].includes(propagationContext.traceId)).toBe(true);
-    const firstSpanId = requestHeaders['sentry-trace'].split('-')[1];
+      expect(requestHeaders['sentry-trace'].includes(propagationContext.traceId)).toBe(true);
+      const firstSpanId = requestHeaders['sentry-trace'].split('-')[1];
 
-    await fetch('http://localhost:18100/yes', { method: 'POST' });
+      await fetch('http://localhost:18100/yes', { method: 'POST' });
 
-    expect(requestHeaders['sentry-trace']).toBeDefined();
-    expect(requestHeaders['baggage']).toBeDefined();
+      expect(requestHeaders['sentry-trace']).toBeDefined();
+      expect(requestHeaders['baggage']).toBeDefined();
 
-    expect(requestHeaders['sentry-trace'].includes(propagationContext.traceId)).toBe(false);
+      expect(requestHeaders['sentry-trace'].includes(propagationContext.traceId)).toBe(false);
 
-    const secondSpanId = requestHeaders['sentry-trace'].split('-')[1];
-    expect(firstSpanId).not.toBe(secondSpanId);
+      const secondSpanId = requestHeaders['sentry-trace'].split('-')[1];
+      expect(firstSpanId).not.toBe(secondSpanId);
 
-    undoPatch();
+      undoPatch();
+    });
   });
 
   // This flakes on CI for some reason: https://github.com/getsentry/sentry-javascript/pull/8449
   // eslint-disable-next-line jest/no-disabled-tests
   it.skip('uses tracePropagationTargets', async () => {
-    const transaction = hub.startTransaction({ name: 'test-transaction' }) as Transaction;
-    hub.getScope().setSpan(transaction);
-
     const client = new NodeClient({ ...DEFAULT_OPTIONS, tracePropagationTargets: ['/yes'] });
     hub.bindClient(client);
 
-    expect(transaction.spanRecorder?.spans.length).toBe(1);
+    await startSpan({ name: 'outer-span' }, async outerSpan => {
+      expect(outerSpan).toBeInstanceOf(Transaction);
+      const spans = (outerSpan as Transaction).spanRecorder?.spans || [];
 
-    await fetch('http://localhost:18100/no', { method: 'POST' });
+      expect(spans.length).toBe(1);
 
-    expect(transaction.spanRecorder?.spans.length).toBe(2);
+      await fetch('http://localhost:18100/no', { method: 'POST' });
 
-    expect(requestHeaders['sentry-trace']).toBeUndefined();
-    expect(requestHeaders['baggage']).toBeUndefined();
+      expect(spans.length).toBe(2);
 
-    await fetch('http://localhost:18100/yes', { method: 'POST' });
+      expect(requestHeaders['sentry-trace']).toBeUndefined();
+      expect(requestHeaders['baggage']).toBeUndefined();
 
-    expect(transaction.spanRecorder?.spans.length).toBe(3);
+      await fetch('http://localhost:18100/yes', { method: 'POST' });
 
-    expect(requestHeaders['sentry-trace']).toBeDefined();
-    expect(requestHeaders['baggage']).toBeDefined();
+      expect(spans.length).toBe(3);
+
+      expect(requestHeaders['sentry-trace']).toBeDefined();
+      expect(requestHeaders['baggage']).toBeDefined();
+    });
   });
 
   it('adds a breadcrumb on request', async () => {

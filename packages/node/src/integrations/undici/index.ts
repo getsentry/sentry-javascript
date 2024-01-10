@@ -1,9 +1,11 @@
 import {
   addBreadcrumb,
+  getActiveSpan,
   getClient,
   getCurrentHub,
   getCurrentScope,
   getDynamicSamplingContextFromClient,
+  getDynamicSamplingContextFromSpan,
   isSentryRequestUrl,
   spanToTraceHeader,
 } from '@sentry/core';
@@ -156,8 +158,7 @@ export class Undici implements Integration {
 
     const clientOptions = client.getOptions();
     const scope = getCurrentScope();
-
-    const parentSpan = scope.getSpan();
+    const parentSpan = getActiveSpan();
 
     const span = this._shouldCreateSpan(stringUrl) ? createRequestSpan(parentSpan, request, stringUrl) : undefined;
     if (span) {
@@ -181,7 +182,7 @@ export class Undici implements Integration {
 
     if (shouldAttachTraceData(stringUrl)) {
       if (span) {
-        const dynamicSamplingContext = span?.transaction?.getDynamicSamplingContext();
+        const dynamicSamplingContext = getDynamicSamplingContextFromSpan(span);
         const sentryBaggageHeader = dynamicSamplingContextToSentryBaggageHeader(dynamicSamplingContext);
 
         setHeadersOnRequest(request, spanToTraceHeader(span), sentryBaggageHeader);
@@ -310,6 +311,7 @@ function createRequestSpan(
   if (url.hash) {
     data['http.fragment'] = url.hash;
   }
+  // eslint-disable-next-line deprecation/deprecation
   return activeSpan?.startChild({
     op: 'http.client',
     origin: 'auto.http.node.undici',

@@ -47,6 +47,7 @@ export function trackComponent(options?: TrackComponentOptions): void {
 }
 
 function recordInitSpan(transaction: Transaction, componentName: string): Span {
+  // eslint-disable-next-line deprecation/deprecation
   const initSpan = transaction.startChild({
     op: UI_SVELTE_INIT,
     description: componentName,
@@ -75,6 +76,7 @@ function recordUpdateSpans(componentName: string, initSpan?: Span): void {
     const parentSpan =
       initSpan && !initSpan.endTimestamp && initSpan.transaction === transaction ? initSpan : transaction;
 
+    // eslint-disable-next-line deprecation/deprecation
     updateSpan = parentSpan.startChild({
       op: UI_SVELTE_UPDATE,
       description: componentName,
@@ -92,5 +94,6 @@ function recordUpdateSpans(componentName: string, initSpan?: Span): void {
 }
 
 function getActiveTransaction(): Transaction | undefined {
+  // eslint-disable-next-line deprecation/deprecation
   return getCurrentScope().getTransaction();
 }

@@ -9,11 +9,13 @@ Sentry.init({
   tracesSampleRate: 1.0,
 });
 
+// eslint-disable-next-line deprecation/deprecation
 const transaction = Sentry.startTransaction({
   op: 'transaction',
   name: 'Test Transaction',
 });
 
+// eslint-disable-next-line deprecation/deprecation
 Sentry.getCurrentScope().setSpan(transaction);
 
 const client = new pg.Client();

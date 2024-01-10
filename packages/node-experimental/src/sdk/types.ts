@@ -2,8 +2,6 @@ import type {
   Attachment,
   Breadcrumb,
   Contexts,
-  Event,
-  EventHint,
   EventProcessor,
   Extras,
   Hub,
@@ -11,7 +9,6 @@ import type {
   Primitive,
   PropagationContext,
   Scope as BaseScope,
-  Severity,
   SeverityLevel,
   User,
 } from '@sentry/types';
@@ -35,14 +32,9 @@ export interface Scope extends BaseScope {
   isolationScope: typeof this | undefined;
   // @ts-expect-error typeof this is what we want here
   clone(scope?: Scope): typeof this;
-  captureException(exception: unknown, hint?: EventHint): string;
-  captureMessage(
-    message: string,
-    // eslint-disable-next-line deprecation/deprecation
-    level?: Severity | SeverityLevel,
-    hint?: EventHint,
-  ): string;
-  captureEvent(event: Event, hint?: EventHint): string;
+  /**
+   * @deprecated This function will be removed in the next major version of the Sentry SDK.
+   */
   lastEventId(): string | undefined;
   getScopeData(): ScopeData;
 }

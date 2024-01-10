@@ -1,57 +1,63 @@
+import { timestampInSeconds } from '@sentry/utils';
 import { Span } from '../../../src';
+import { TRACE_FLAG_NONE, TRACE_FLAG_SAMPLED } from '../../../src/utils/spanUtils';
 
 describe('span', () => {
-  it('works with name', () => {
-    const span = new Span({ name: 'span name' });
-    expect(span.name).toEqual('span name');
-    expect(span.description).toEqual('span name');
+  describe('name', () => {
+    /* eslint-disable deprecation/deprecation */
+    it('works with name', () => {
+      const span = new Span({ name: 'span name' });
+      expect(span.name).toEqual('span name');
+      expect(span.description).toEqual('span name');
+    });
+
+    it('works with description', () => {
+      const span = new Span({ description: 'span name' });
+      expect(span.name).toEqual('span name');
+      expect(span.description).toEqual('span name');
+    });
+
+    it('works without name', () => {
+      const span = new Span({});
+      expect(span.name).toEqual('');
+      expect(span.description).toEqual(undefined);
+    });
+
+    it('allows to update the name via setter', () => {
+      const span = new Span({ name: 'span name' });
+      expect(span.name).toEqual('span name');
+      expect(span.description).toEqual('span name');
+
+      span.name = 'new name';
+
+      expect(span.name).toEqual('new name');
+      expect(span.description).toEqual('new name');
+    });
+
+    it('allows to update the name via setName', () => {
+      const span = new Span({ name: 'span name' });
+      expect(span.name).toEqual('span name');
+      expect(span.description).toEqual('span name');
+
+      // eslint-disable-next-line deprecation/deprecation
+      span.setName('new name');
+
+      expect(span.name).toEqual('new name');
+      expect(span.description).toEqual('new name');
+    });
+
+    it('allows to update the name via updateName', () => {
+      const span = new Span({ name: 'span name' });
+      expect(span.name).toEqual('span name');
+      expect(span.description).toEqual('span name');
+
+      span.updateName('new name');
+
+      expect(span.name).toEqual('new name');
+      expect(span.description).toEqual('new name');
+    });
   });
-
-  it('works with description', () => {
-    const span = new Span({ description: 'span name' });
-    expect(span.name).toEqual('span name');
-    expect(span.description).toEqual('span name');
-  });
-
-  it('works without name', () => {
-    const span = new Span({});
-    expect(span.name).toEqual('');
-    expect(span.description).toEqual(undefined);
-  });
-
-  it('allows to update the name via setter', () => {
-    const span = new Span({ name: 'span name' });
-    expect(span.name).toEqual('span name');
-    expect(span.description).toEqual('span name');
-
-    span.name = 'new name';
-
-    expect(span.name).toEqual('new name');
-    expect(span.description).toEqual('new name');
-  });
-
-  it('allows to update the name via setName', () => {
-    const span = new Span({ name: 'span name' });
-    expect(span.name).toEqual('span name');
-    expect(span.description).toEqual('span name');
-
-    // eslint-disable-next-line deprecation/deprecation
-    span.setName('new name');
-
-    expect(span.name).toEqual('new name');
-    expect(span.description).toEqual('new name');
-  });
-
-  it('allows to update the name via updateName', () => {
-    const span = new Span({ name: 'span name' });
-    expect(span.name).toEqual('span name');
-    expect(span.description).toEqual('span name');
-
-    span.updateName('new name');
-
-    expect(span.name).toEqual('new name');
-    expect(span.description).toEqual('new name');
-  });
+  /* eslint-enable deprecation/deprecation */
 
   describe('setAttribute', () => {
     it('allows to set attributes', () => {
@@ -68,7 +74,7 @@ describe('span', () => {
       span.setAttribute('boolArray', [true, false]);
       span.setAttribute('arrayWithUndefined', [1, undefined, 2]);
 
-      expect(span.attributes).toEqual({
+      expect(span['_attributes']).toEqual({
         str: 'bar',
         num: 1,
         zero: 0,
@@ -86,11 +92,11 @@ describe('span', () => {
 
       span.setAttribute('str', 'bar');
 
-      expect(Object.keys(span.attributes).length).toEqual(1);
+      expect(Object.keys(span['_attributes']).length).toEqual(1);
 
       span.setAttribute('str', undefined);
 
-      expect(Object.keys(span.attributes).length).toEqual(0);
+      expect(Object.keys(span['_attributes']).length).toEqual(0);
     });
 
     it('disallows invalid attribute types', () => {
@@ -111,7 +117,7 @@ describe('span', () => {
     it('allows to set attributes', () => {
       const span = new Span();
 
-      const initialAttributes = span.attributes;
+      const initialAttributes = span['_attributes'];
 
       expect(initialAttributes).toEqual({});
 
@@ -129,7 +135,7 @@ describe('span', () => {
       };
       span.setAttributes(newAttributes);
 
-      expect(span.attributes).toEqual({
+      expect(span['_attributes']).toEqual({
         str: 'bar',
         num: 1,
         zero: 0,
@@ -141,14 +147,14 @@ describe('span', () => {
         arrayWithUndefined: [1, undefined, 2],
       });
 
-      expect(span.attributes).not.toBe(newAttributes);
+      expect(span['_attributes']).not.toBe(newAttributes);
 
       span.setAttributes({
         num: 2,
         numArray: [3, 4],
       });
 
-      expect(span.attributes).toEqual({
+      expect(span['_attributes']).toEqual({
         str: 'bar',
         num: 2,
         zero: 0,
@@ -166,11 +172,91 @@ describe('span', () => {
 
       span.setAttribute('str', 'bar');
 
-      expect(Object.keys(span.attributes).length).toEqual(1);
+      expect(Object.keys(span['_attributes']).length).toEqual(1);
 
       span.setAttributes({ str: undefined });
 
-      expect(Object.keys(span.attributes).length).toEqual(0);
+      expect(Object.keys(span['_attributes']).length).toEqual(0);
+    });
+  });
+
+  describe('end', () => {
+    it('works without endTimestamp', () => {
+      const span = new Span();
+      const now = timestampInSeconds();
+      span.end();
+
+      expect(span.endTimestamp).toBeGreaterThanOrEqual(now);
+    });
+
+    it('works with endTimestamp in seconds', () => {
+      const span = new Span();
+      const timestamp = timestampInSeconds() - 1;
+      span.end(timestamp);
+
+      expect(span.endTimestamp).toEqual(timestamp);
+    });
+
+    it('works with endTimestamp in milliseconds', () => {
+      const span = new Span();
+      const timestamp = Date.now() - 1000;
+      span.end(timestamp);
+
+      expect(span.endTimestamp).toEqual(timestamp / 1000);
+    });
+
+    it('works with endTimestamp in array form', () => {
+      const span = new Span();
+      const seconds = Math.floor(timestampInSeconds() - 1);
+      span.end([seconds, 0]);
+
+      expect(span.endTimestamp).toEqual(seconds);
+    });
+  });
+
+  describe('isRecording', () => {
+    it('returns true for sampled span', () => {
+      const span = new Span({ sampled: true });
+      expect(span.isRecording()).toEqual(true);
+    });
+
+    it('returns false for sampled, finished span', () => {
+      const span = new Span({ sampled: true, endTimestamp: Date.now() });
+      expect(span.isRecording()).toEqual(false);
+    });
+
+    it('returns false for unsampled span', () => {
+      const span = new Span({ sampled: false });
+      expect(span.isRecording()).toEqual(false);
+    });
+  });
+
+  describe('spanContext', () => {
+    it('works with default span', () => {
+      const span = new Span();
+      expect(span.spanContext()).toEqual({
+        spanId: span['_spanId'],
+        traceId: span['_traceId'],
+        traceFlags: TRACE_FLAG_NONE,
+      });
+    });
+
+    it('works sampled span', () => {
+      const span = new Span({ sampled: true });
+      expect(span.spanContext()).toEqual({
+        spanId: span['_spanId'],
+        traceId: span['_traceId'],
+        traceFlags: TRACE_FLAG_SAMPLED,
+      });
+    });
+
+    it('works unsampled span', () => {
+      const span = new Span({ sampled: false });
+      expect(span.spanContext()).toEqual({
+        spanId: span['_spanId'],
+        traceId: span['_traceId'],
+        traceFlags: TRACE_FLAG_NONE,
+      });
     });
   });
 
@@ -184,9 +270,11 @@ describe('span', () => {
 
     it('works with data only', () => {
       const span = new Span();
+      // eslint-disable-next-line deprecation/deprecation
       span.setData('foo', 'bar');
 
       expect(span['_getData']()).toEqual({ foo: 'bar' });
+      // eslint-disable-next-line deprecation/deprecation
       expect(span['_getData']()).toBe(span.data);
     });
 
@@ -195,6 +283,7 @@ describe('span', () => {
       span.setAttribute('foo', 'bar');
 
       expect(span['_getData']()).toEqual({ foo: 'bar' });
+      // eslint-disable-next-line deprecation/deprecation
       expect(span['_getData']()).toBe(span.attributes);
     });
 
@@ -202,11 +291,15 @@ describe('span', () => {
       const span = new Span();
       span.setAttribute('foo', 'foo');
       span.setAttribute('bar', 'bar');
+      // eslint-disable-next-line deprecation/deprecation
       span.setData('foo', 'foo2');
+      // eslint-disable-next-line deprecation/deprecation
       span.setData('baz', 'baz');
 
       expect(span['_getData']()).toEqual({ foo: 'foo', bar: 'bar', baz: 'baz' });
+      // eslint-disable-next-line deprecation/deprecation
       expect(span['_getData']()).not.toBe(span.attributes);
+      // eslint-disable-next-line deprecation/deprecation
       expect(span['_getData']()).not.toBe(span.data);
     });
   });

@@ -4,10 +4,15 @@ import { extractTraceparentData as _extractTraceparentData } from '@sentry/utils
 import type { Hub } from '../hub';
 import { getCurrentHub } from '../hub';
 
-/** Grabs active transaction off scope, if any */
+/**
+ * Grabs active transaction off scope.
+ *
+ * @deprecated You should not rely on the transaction, but just use `startSpan()` APIs instead.
+ */
 export function getActiveTransaction<T extends Transaction>(maybeHub?: Hub): T | undefined {
   const hub = maybeHub || getCurrentHub();
   const scope = hub.getScope();
+  // eslint-disable-next-line deprecation/deprecation
   return scope.getTransaction() as T | undefined;
 }
 
@@ -27,11 +32,3 @@ export { stripUrlQueryAndFragment } from '@sentry/utils';
  * @deprecated Import this function from `@sentry/utils` instead
  */
 export const extractTraceparentData = _extractTraceparentData;
-
-/**
- * Converts a timestamp to second, if it was in milliseconds, or keeps it as second.
- */
-export function ensureTimestampInSeconds(timestamp: number): number {
-  const isMs = timestamp > 9999999999;
-  return isMs ? timestamp / 1000 : timestamp;
-}

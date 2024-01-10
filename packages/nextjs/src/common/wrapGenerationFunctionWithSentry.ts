@@ -1,4 +1,5 @@
 import {
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   addTracingExtensions,
   captureException,
   continueTrace,
@@ -6,12 +7,13 @@ import {
   getCurrentScope,
   handleCallbackErrors,
   runWithAsyncContext,
-  startSpan,
+  startSpanManual,
 } from '@sentry/core';
 import type { WebFetchHeaders } from '@sentry/types';
 import { winterCGHeadersToDict } from '@sentry/utils';
 
 import type { GenerationFunctionContext } from '../common/types';
+import { isNotFoundNavigationError, isRedirectNavigationError } from './nextNavigationErrorUtils';
 import { commonObjectToPropagationContext } from './utils/commonObjectTracing';
 
 /**
@@ -61,33 +63,49 @@ export function wrapGenerationFunctionWithSentry<F extends (...args: any[]) => a
           transactionContext.parentSpanId = commonSpanId;
         }
 
-        return startSpan(
+        return startSpanManual(
           {
             op: 'function.nextjs',
             name: `${componentType}.${generationFunctionIdentifier} (${componentRoute})`,
             origin: 'auto.function.nextjs',
             ...transactionContext,
             data,
+            attributes: {
+              [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+            },
             metadata: {
+              // eslint-disable-next-line deprecation/deprecation
               ...transactionContext.metadata,
-              source: 'url',
               request: {
                 headers: headers ? winterCGHeadersToDict(headers) : undefined,
               },
             },
           },
-          () => {
+          span => {
             return handleCallbackErrors(
               () => originalFunction.apply(thisArg, args),
-              err =>
-                captureException(err, {
-                  mechanism: {
-                    handled: false,
-                    data: {
-                      function: 'wrapGenerationFunctionWithSentry',
+              err => {
+                if (isNotFoundNavigationError(err)) {
+                  // We don't want to report "not-found"s
+                  span?.setStatus('not_found');
+                } else if (isRedirectNavigationError(err)) {
+                  // We don't want to report redirects
+                  span?.setStatus('ok');
+                } else {
+                  span?.setStatus('internal_error');
+                  captureException(err, {
+                    mechanism: {
+                      handled: false,
+                      data: {
+                        function: 'wrapGenerationFunctionWithSentry',
+                      },
                     },
-                  },
-                }),
+                  });
+                }
+              },
+              () => {
+                span?.end();
+              },
             );
           },
         );

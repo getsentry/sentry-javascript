@@ -78,6 +78,26 @@ describe('cron check-ins', () => {
         },
       });
     });
+
+    test('throws with multiple jobs same name', () => {
+      const CronJobWithCheckIn = cron.instrumentCron(CronJobMock, 'my-cron-job');
+
+      CronJobWithCheckIn.from({
+        cronTime: '* * * Jan,Sep Sun',
+        onTick: () => {
+          //
+        },
+      });
+
+      expect(() => {
+        CronJobWithCheckIn.from({
+          cronTime: '* * * Jan,Sep Sun',
+          onTick: () => {
+            //
+          },
+        });
+      }).toThrowError("A job named 'my-cron-job' has already been scheduled");
+    });
   });
 
   describe('node-cron', () => {
@@ -118,10 +138,76 @@ describe('cron check-ins', () => {
       const cronWithCheckIn = cron.instrumentNodeCron(nodeCron);
 
       expect(() => {
+        // @ts-expect-error Initially missing name
         cronWithCheckIn.schedule('* * * * *', () => {
           //
         });
       }).toThrowError('Missing "name" for scheduled job. A name is required for Sentry check-in monitoring.');
+    });
+  });
+
+  describe('node-schedule', () => {
+    test('calls withMonitor', done => {
+      expect.assertions(5);
+
+      class NodeScheduleMock {
+        scheduleJob(
+          nameOrExpression: string | Date | object,
+          expressionOrCallback: string | Date | object | (() => void),
+          callback: () => void,
+        ): unknown {
+          expect(nameOrExpression).toBe('my-cron-job');
+          expect(expressionOrCallback).toBe('* * * Jan,Sep Sun');
+          expect(callback).toBeInstanceOf(Function);
+          return callback();
+        }
+      }
+
+      const scheduleWithCheckIn = cron.instrumentNodeSchedule(new NodeScheduleMock());
+
+      scheduleWithCheckIn.scheduleJob('my-cron-job', '* * * Jan,Sep Sun', () => {
+        expect(withMonitorSpy).toHaveBeenCalledTimes(1);
+        expect(withMonitorSpy).toHaveBeenLastCalledWith('my-cron-job', expect.anything(), {
+          schedule: { type: 'crontab', value: '* * * 1,9 0' },
+        });
+        done();
+      });
+    });
+
+    test('throws without crontab string', () => {
+      class NodeScheduleMock {
+        scheduleJob(_: string, __: string | Date, ___: () => void): unknown {
+          return undefined;
+        }
+      }
+
+      const scheduleWithCheckIn = cron.instrumentNodeSchedule(new NodeScheduleMock());
+
+      expect(() => {
+        scheduleWithCheckIn.scheduleJob('my-cron-job', new Date(), () => {
+          //
+        });
+      }).toThrowError(
+        "Automatic instrumentation of 'node-schedule' requires the first parameter of 'scheduleJob' to be a job name string and the second parameter to be a crontab string",
+      );
+    });
+
+    test('throws without job name', () => {
+      class NodeScheduleMock {
+        scheduleJob(_: string, __: () => void): unknown {
+          return undefined;
+        }
+      }
+
+      const scheduleWithCheckIn = cron.instrumentNodeSchedule(new NodeScheduleMock());
+
+      expect(() => {
+        scheduleWithCheckIn.scheduleJob('* * * * *', () => {
+          //
+        });
+      }).toThrowError(
+        "Automatic instrumentation of 'node-schedule' requires the first parameter of 'scheduleJob' to be a job name string and the second parameter to be a crontab string",
+      );
     });
   });
 });

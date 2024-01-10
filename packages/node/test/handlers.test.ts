@@ -340,6 +340,7 @@ describe('tracingHandler', () => {
 
     sentryTracingMiddleware(req, res, next);
 
+    // eslint-disable-next-line deprecation/deprecation
     const transaction = sentryCore.getCurrentHub().getScope().getTransaction();
 
     expect(transaction).toBeDefined();
@@ -360,6 +361,7 @@ describe('tracingHandler', () => {
   });
 
   it('pulls status code from the response', done => {
+    // eslint-disable-next-line deprecation/deprecation
     const transaction = new Transaction({ name: 'mockTransaction' });
     jest.spyOn(sentryCore, 'startTransaction').mockReturnValue(transaction as Transaction);
     const finishTransaction = jest.spyOn(transaction, 'end');
@@ -371,8 +373,11 @@ describe('tracingHandler', () => {
     setImmediate(() => {
       expect(finishTransaction).toHaveBeenCalled();
       expect(transaction.status).toBe('ok');
+      // eslint-disable-next-line deprecation/deprecation
       expect(transaction.tags).toEqual(expect.objectContaining({ 'http.status_code': '200' }));
-      expect(transaction.data).toEqual(expect.objectContaining({ 'http.response.status_code': 200 }));
+      expect(sentryCore.spanToJSON(transaction).data).toEqual(
+        expect.objectContaining({ 'http.response.status_code': 200 }),
+      );
       done();
     });
   });
@@ -408,6 +413,7 @@ describe('tracingHandler', () => {
   });
 
   it('closes the transaction when request processing is done', done => {
+    // eslint-disable-next-line deprecation/deprecation
     const transaction = new Transaction({ name: 'mockTransaction' });
     jest.spyOn(sentryCore, 'startTransaction').mockReturnValue(transaction as Transaction);
     const finishTransaction = jest.spyOn(transaction, 'end');
@@ -422,8 +428,10 @@ describe('tracingHandler', () => {
   });
 
   it('waits to finish transaction until all spans are finished, even though `transaction.end()` is registered on `res.finish` event first', done => {
+    // eslint-disable-next-line deprecation/deprecation
     const transaction = new Transaction({ name: 'mockTransaction', sampled: true });
     transaction.initSpanRecorder();
+    // eslint-disable-next-line deprecation/deprecation
     const span = transaction.startChild({
       description: 'reallyCoolHandler',
       op: 'middleware',
@@ -448,7 +456,7 @@ describe('tracingHandler', () => {
       expect(finishTransaction).toHaveBeenCalled();
       expect(span.endTimestamp).toBeLessThanOrEqual(transaction.endTimestamp!);
       expect(sentEvent.spans?.length).toEqual(1);
-      expect(sentEvent.spans?.[0].spanId).toEqual(span.spanId);
+      expect(sentEvent.spans?.[0].spanContext().spanId).toEqual(span.spanContext().spanId);
       done();
     });
   });
@@ -462,8 +470,10 @@ describe('tracingHandler', () => {
 
     sentryTracingMiddleware(req, res, next);
 
+    // eslint-disable-next-line deprecation/deprecation
     const transaction = sentryCore.getCurrentScope().getTransaction();
 
+    // eslint-disable-next-line deprecation/deprecation
     expect(transaction?.metadata.request).toEqual(req);
   });
 });
@@ -586,6 +596,7 @@ describe('errorHandler()', () => {
 
     // `sentryErrorMiddleware` uses `withScope`, and we need access to the temporary scope it creates, so monkeypatch
     // `captureException` in order to examine the scope as it exists inside the `withScope` callback
+    // eslint-disable-next-line deprecation/deprecation
     hub.captureException = function (this: sentryCore.Hub, _exception: any) {
       const scope = this.getScope();
       expect((scope as any)._sdkProcessingMetadata.request).toEqual(req);

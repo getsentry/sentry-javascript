@@ -4,6 +4,71 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.93.0
+
+### Important Changes
+
+#### Deprecations
+
+As we're moving closer to the next major version of the SDK, more public APIs were deprecated.
+
+To get a head start on migrating to the replacement APIs, please take a look at our
+[migration guide](https://github.com/getsentry/sentry-javascript/blob/develop/MIGRATION.md).
+
+- feat(core): Deprecate `getActiveTransaction()` & `scope.getTransaction()` (#10098)
+- feat(core): Deprecate `Hub.shouldSendDefaultPii` (#10062)
+- feat(core): Deprecate `new Transaction()` (#10125)
+- feat(core): Deprecate `scope.getSpan()` & `scope.setSpan()` (#10114)
+- feat(core): Deprecate `scope.setTransactionName()` (#10113)
+- feat(core): Deprecate `span.startChild()` (#10091)
+- feat(core): Deprecate `startTransaction()` (#10073)
+- feat(core): Deprecate `Transaction.getDynamicSamplingContext` in favor of `getDynamicSamplingContextFromSpan` (#10094)
+- feat(core): Deprecate arguments for `startSpan()` (#10101)
+- feat(core): Deprecate hub capture APIs and add them to `Scope` (#10039)
+- feat(core): Deprecate session APIs on hub and add global replacements (#10054)
+- feat(core): Deprecate span `name` and `description` (#10056)
+- feat(core): Deprecate span `tags`, `data`, `context` & setters (#10053)
+- feat(core): Deprecate transaction metadata in favor of attributes (#10097)
+- feat(core): Deprecate `span.sampled` in favor of `span.isRecording()` (#10034)
+- ref(node-experimental): Deprecate `lastEventId` on scope (#10093)
+
+#### Cron Monitoring Support for `node-schedule` library
+
+This release adds auto instrumented check-ins for the `node-schedule` library.
+
+```ts
+import * as Sentry from '@sentry/node';
+import * as schedule from 'node-schedule';
+
+const scheduleWithCheckIn = Sentry.cron.instrumentNodeSchedule(schedule);
+
+const job = scheduleWithCheckIn.scheduleJob('my-cron-job', '* * * * *', () => {
+  console.log('You will see this message every minute');
+});
+```
+
+- feat(node): Instrumentation for `node-schedule` library (#10086)
+
+### Other Changes
+
+- feat(core): Add `span.spanContext()` (#10037)
+- feat(core): Add `spanToJSON()` method to get span properties (#10074)
+- feat(core): Allow to pass `scope` to `startSpan` APIs (#10076)
+- feat(core): Allow to pass start/end timestamp for spans flexibly (#10060)
+- feat(node): Make `getModuleFromFilename` compatible with ESM (#10061)
+- feat(replay): Update rrweb to 2.7.3 (#10072)
+- feat(utils): Add `parameterize` function (#9145)
+- fix(astro): Use correct package name for CF (#10099)
+- fix(core): Do not run `setup` for integration on client multiple times (#10116)
+- fix(core): Ensure we copy passed in span data/tags/attributes (#10105)
+- fix(cron): Make name required for instrumentNodeCron option (#10070)
+- fix(nextjs): Don't capture not-found and redirect errors in generation functions (#10057)
+- fix(node): `LocalVariables` integration should have correct name (#10084)
+- fix(node): Anr events should have an `event_id` (#10068)
+- fix(node): Revert to only use sync debugger for `LocalVariables` (#10077)
+- fix(node): Update ANR min node version to v16.17.0 (#10107)
+
+
 ## 7.92.0
 
 ### Important Changes

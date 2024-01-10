@@ -10,11 +10,11 @@ import type {
   TransactionContext,
 } from '@sentry/types';
 
+import { endSession, startSession } from '@sentry/core';
 import {
   addBreadcrumb,
   captureEvent,
   configureScope,
-  endSession,
   getClient,
   getCurrentScope,
   lastEventId,
@@ -24,7 +24,6 @@ import {
   setTag,
   setTags,
   setUser,
-  startSession,
   withScope,
 } from './api';
 import { callExtensionMethod, getGlobalCarrier } from './globals';
@@ -121,6 +120,7 @@ export function getCurrentHub(): Hub {
     captureSession(endSession?: boolean): void {
       // both send the update and pull the session from the scope
       if (endSession) {
+        // eslint-disable-next-line deprecation/deprecation
         return this.endSession();
       }
 

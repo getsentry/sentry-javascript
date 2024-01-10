@@ -515,7 +515,7 @@ export function shouldProfileTransaction(transaction: Transaction): boolean {
     return false;
   }
 
-  if (!transaction.sampled) {
+  if (!transaction.isRecording()) {
     if (DEBUG_BUILD) {
       logger.log('[Profiling] Discarding profile because transaction was not sampled.');
     }

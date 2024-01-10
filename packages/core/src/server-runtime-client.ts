@@ -6,6 +6,7 @@ import type {
   Event,
   EventHint,
   MonitorConfig,
+  ParameterizedString,
   SerializedCheckIn,
   Severity,
   SeverityLevel,
@@ -20,7 +21,11 @@ import { getClient } from './exports';
 import { MetricsAggregator } from './metrics/aggregator';
 import type { Scope } from './scope';
 import { SessionFlusher } from './sessionflusher';
-import { addTracingExtensions, getDynamicSamplingContextFromClient } from './tracing';
+import {
+  addTracingExtensions,
+  getDynamicSamplingContextFromClient,
+  getDynamicSamplingContextFromSpan,
+} from './tracing';
 import { spanToTraceContext } from './utils/spanUtils';
 
 export interface ServerRuntimeClientOptions extends ClientOptions<BaseTransportOptions> {
@@ -63,7 +68,7 @@ export class ServerRuntimeClient<
    * @inheritDoc
    */
   public eventFromMessage(
-    message: string,
+    message: ParameterizedString,
     // eslint-disable-next-line deprecation/deprecation
     level: Severity | SeverityLevel = 'info',
     hint?: EventHint,
@@ -254,9 +259,10 @@ export class ServerRuntimeClient<
       return [undefined, undefined];
     }
 
+    // eslint-disable-next-line deprecation/deprecation
     const span = scope.getSpan();
     if (span) {
-      const samplingContext = span.transaction ? span.transaction.getDynamicSamplingContext() : undefined;
+      const samplingContext = span.transaction ? getDynamicSamplingContextFromSpan(span) : undefined;
       return [samplingContext, spanToTraceContext(span)];
     }
 

@@ -1,6 +1,6 @@
 import { BaseClient, getCurrentHub } from '@sentry/core';
 import * as SentryReact from '@sentry/react';
-import { BrowserTracing, WINDOW } from '@sentry/react';
+import { BrowserTracing, WINDOW, getCurrentScope } from '@sentry/react';
 import type { Integration } from '@sentry/types';
 import type { UserIntegrationsFunction } from '@sentry/utils';
 import { logger } from '@sentry/utils';
@@ -89,8 +89,13 @@ describe('Client init()', () => {
     const hub = getCurrentHub();
     const transportSend = jest.spyOn(hub.getClient()!.getTransport()!, 'send');
 
-    const transaction = hub.startTransaction({ name: '/404' });
-    transaction.end();
+    // Ensure we have no current span, so our next span is a transaction
+    // eslint-disable-next-line deprecation/deprecation
+    getCurrentScope().setSpan(undefined);
+
+    SentryReact.startSpan({ name: '/404' }, () => {
+      // noop
+    });
 
     expect(transportSend).not.toHaveBeenCalled();
     expect(captureEvent.mock.results[0].value).toBeUndefined();

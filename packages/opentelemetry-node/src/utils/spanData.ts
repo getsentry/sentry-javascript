@@ -51,6 +51,7 @@ export function addOtelSpanData(
 
   if (sentrySpan instanceof Transaction) {
     if (metadata) {
+      // eslint-disable-next-line deprecation/deprecation
       sentrySpan.setMetadata(metadata);
     }
 

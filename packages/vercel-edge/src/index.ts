@@ -38,6 +38,7 @@ export {
   // eslint-disable-next-line deprecation/deprecation
   extractTraceparentData,
   flush,
+  // eslint-disable-next-line deprecation/deprecation
   getActiveTransaction,
   getHubFromCarrier,
   getCurrentHub,
@@ -51,6 +52,7 @@ export {
   makeMain,
   runWithAsyncContext,
   Scope,
+  // eslint-disable-next-line deprecation/deprecation
   startTransaction,
   SDK_VERSION,
   setContext,

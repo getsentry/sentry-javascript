@@ -27,6 +27,7 @@ export {
   // eslint-disable-next-line deprecation/deprecation
   configureScope,
   createTransport,
+  // eslint-disable-next-line deprecation/deprecation
   getActiveTransaction,
   getCurrentHub,
   getClient,
@@ -41,6 +42,7 @@ export {
   setTag,
   setTags,
   setUser,
+  // eslint-disable-next-line deprecation/deprecation
   startTransaction,
   withScope,
   NodeClient,

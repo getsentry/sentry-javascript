@@ -1,4 +1,11 @@
-import { addTracingExtensions, captureException, continueTrace, handleCallbackErrors, startSpan } from '@sentry/core';
+import {
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  addTracingExtensions,
+  captureException,
+  continueTrace,
+  handleCallbackErrors,
+  startSpan,
+} from '@sentry/core';
 import { winterCGRequestToRequestData } from '@sentry/utils';
 
 import type { EdgeRouteHandler } from '../../edge/types';
@@ -34,10 +41,11 @@ export function withEdgeWrapping<H extends EdgeRouteHandler>(
         name: options.spanDescription,
         op: options.spanOp,
         origin: 'auto.function.nextjs.withEdgeWrapping',
+        attributes: { [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route' },
         metadata: {
+          // eslint-disable-next-line deprecation/deprecation
           ...transactionContext.metadata,
           request: req instanceof Request ? winterCGRequestToRequestData(req) : undefined,
-          source: 'route',
         },
       },
       async span => {

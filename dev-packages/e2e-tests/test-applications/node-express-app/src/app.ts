@@ -34,9 +34,11 @@ app.get('/test-param/:param', function (req, res) {
 });
 
 app.get('/test-transaction', async function (req, res) {
+  // eslint-disable-next-line deprecation/deprecation
   const transaction = Sentry.startTransaction({ name: 'test-transaction', op: 'e2e-test' });
   Sentry.getCurrentScope().setSpan(transaction);
 
+  // eslint-disable-next-line deprecation/deprecation
   const span = transaction.startChild();
 
   span.end();

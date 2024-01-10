@@ -32,8 +32,13 @@ const HOOKS: { [key in Operation]: Hook[] } = {
   update: ['beforeUpdate', 'updated'],
 };
 
-/** Grabs active transaction off scope, if any */
+/**
+ * Grabs active transaction off scope.
+ *
+ * @deprecated You should not rely on the transaction, but just use `startSpan()` APIs instead.
+ */
 export function getActiveTransaction(): Transaction | undefined {
+  // eslint-disable-next-line deprecation/deprecation
   return getCurrentScope().getTransaction();
 }
 
@@ -73,10 +78,12 @@ export const createTracingMixins = (options: TracingOptions): Mixins => {
         const isRoot = this.$root === this;
 
         if (isRoot) {
+          // eslint-disable-next-line deprecation/deprecation
           const activeTransaction = getActiveTransaction();
           if (activeTransaction) {
             this.$_sentryRootSpan =
               this.$_sentryRootSpan ||
+              // eslint-disable-next-line deprecation/deprecation
               activeTransaction.startChild({
                 description: 'Application Render',
                 op: `${VUE_OP}.render`,
@@ -101,6 +108,7 @@ export const createTracingMixins = (options: TracingOptions): Mixins => {
         // Start a new span if current hook is a 'before' hook.
         // Otherwise, retrieve the current span and finish it.
         if (internalHook == internalHooks[0]) {
+          // eslint-disable-next-line deprecation/deprecation
           const activeTransaction = (this.$root && this.$root.$_sentryRootSpan) || getActiveTransaction();
           if (activeTransaction) {
             // Cancel old span for this hook operation in case it didn't get cleaned up. We're not actually sure if it
@@ -111,6 +119,7 @@ export const createTracingMixins = (options: TracingOptions): Mixins => {
               oldSpan.end();
             }
 
+            // eslint-disable-next-line deprecation/deprecation
             this.$_sentrySpans[operation] = activeTransaction.startChild({
               description: `Vue <${name}>`,
               op: `${VUE_OP}.${operation}`,

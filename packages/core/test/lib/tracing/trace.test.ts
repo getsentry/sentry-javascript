@@ -1,6 +1,13 @@
-import type { Span } from '@sentry/types';
 import { Hub, addTracingExtensions, getCurrentScope, makeMain } from '../../../src';
-import { continueTrace, startInactiveSpan, startSpan, startSpanManual } from '../../../src/tracing';
+import { Scope } from '../../../src/scope';
+import {
+  Span,
+  continueTrace,
+  getActiveSpan,
+  startInactiveSpan,
+  startSpan,
+  startSpanManual,
+} from '../../../src/tracing';
 import { TestClient, getDefaultTestClientOptions } from '../../mocks/client';
 
 beforeAll(() => {
@@ -79,18 +86,6 @@ describe('startSpan', () => {
 
       expect(ref.name).toEqual('GET users/[id]');
       expect(ref.status).toEqual(isError ? 'internal_error' : undefined);
-    });
-
-    it('creates & finishes span', async () => {
-      let _span: Span | undefined;
-      startSpan({ name: 'GET users/[id]' }, span => {
-        expect(span).toBeDefined();
-        expect(span?.endTimestamp).toBeUndefined();
-        _span = span;
-      });
-
-      expect(_span).toBeDefined();
-      expect(_span?.endTimestamp).toBeDefined();
     });
 
     it('allows traceparent information to be overriden', async () => {
@@ -181,18 +176,58 @@ describe('startSpan', () => {
       expect(ref.spanRecorder.spans).toHaveLength(2);
       expect(ref.spanRecorder.spans[1].op).toEqual('db.query');
     });
+  });
 
-    it('forks the scope', () => {
-      const initialScope = getCurrentScope();
-
-      startSpan({ name: 'GET users/[id]' }, span => {
-        expect(getCurrentScope()).not.toBe(initialScope);
-        expect(getCurrentScope().getSpan()).toBe(span);
-      });
-
-      expect(getCurrentScope()).toBe(initialScope);
-      expect(initialScope.getSpan()).toBe(undefined);
+  it('creates & finishes span', async () => {
+    let _span: Span | undefined;
+    startSpan({ name: 'GET users/[id]' }, span => {
+      expect(span).toBeDefined();
+      expect(span?.endTimestamp).toBeUndefined();
+      _span = span as Span;
     });
+
+    expect(_span).toBeDefined();
+    expect(_span?.endTimestamp).toBeDefined();
+  });
+
+  it('allows to pass a `startTime`', () => {
+    const start = startSpan({ name: 'outer', startTime: [1234, 0] }, span => {
+      return span?.startTimestamp;
+    });
+
+    expect(start).toEqual(1234);
+  });
+
+  it('forks the scope', () => {
+    const initialScope = getCurrentScope();
+
+    startSpan({ name: 'GET users/[id]' }, span => {
+      expect(getCurrentScope()).not.toBe(initialScope);
+      expect(getActiveSpan()).toBe(span);
+    });
+
+    expect(getCurrentScope()).toBe(initialScope);
+    expect(getActiveSpan()).toBe(undefined);
+  });
+
+  it('allows to pass a scope', () => {
+    const initialScope = getCurrentScope();
+
+    const manualScope = new Scope();
+    const parentSpan = new Span({ spanId: 'parent-span-id' });
+    // eslint-disable-next-line deprecation/deprecation
+    manualScope.setSpan(parentSpan);
+
+    startSpan({ name: 'GET users/[id]', scope: manualScope }, span => {
+      expect(getCurrentScope()).not.toBe(initialScope);
+      expect(getCurrentScope()).toBe(manualScope);
+      expect(getActiveSpan()).toBe(span);
+
+      expect(span?.parentSpanId).toBe('parent-span-id');
+    });
+
+    expect(getCurrentScope()).toBe(initialScope);
+    expect(getActiveSpan()).toBe(undefined);
   });
 });
 
@@ -211,16 +246,49 @@ describe('startSpanManual', () => {
 
     startSpanManual({ name: 'GET users/[id]' }, (span, finish) => {
       expect(getCurrentScope()).not.toBe(initialScope);
-      expect(getCurrentScope().getSpan()).toBe(span);
+      expect(getActiveSpan()).toBe(span);
 
       finish();
 
       // Is still the active span
-      expect(getCurrentScope().getSpan()).toBe(span);
+      expect(getActiveSpan()).toBe(span);
     });
 
     expect(getCurrentScope()).toBe(initialScope);
-    expect(initialScope.getSpan()).toBe(undefined);
+    expect(getActiveSpan()).toBe(undefined);
+  });
+
+  it('allows to pass a scope', () => {
+    const initialScope = getCurrentScope();
+
+    const manualScope = new Scope();
+    const parentSpan = new Span({ spanId: 'parent-span-id' });
+    // eslint-disable-next-line deprecation/deprecation
+    manualScope.setSpan(parentSpan);
+
+    startSpanManual({ name: 'GET users/[id]', scope: manualScope }, (span, finish) => {
+      expect(getCurrentScope()).not.toBe(initialScope);
+      expect(getCurrentScope()).toBe(manualScope);
+      expect(getActiveSpan()).toBe(span);
+      expect(span?.parentSpanId).toBe('parent-span-id');
+
+      finish();
+
+      // Is still the active span
+      expect(getActiveSpan()).toBe(span);
+    });
+
+    expect(getCurrentScope()).toBe(initialScope);
+    expect(getActiveSpan()).toBe(undefined);
+  });
+
+  it('allows to pass a `startTime`', () => {
+    const start = startSpanManual({ name: 'outer', startTime: [1234, 0] }, span => {
+      span?.end();
+      return span?.startTimestamp;
+    });
+
+    expect(start).toEqual(1234);
   });
 });
 
@@ -237,16 +305,36 @@ describe('startInactiveSpan', () => {
   });
 
   it('does not set span on scope', () => {
-    const initialScope = getCurrentScope();
-
     const span = startInactiveSpan({ name: 'GET users/[id]' });
 
     expect(span).toBeDefined();
-    expect(initialScope.getSpan()).toBeUndefined();
+    expect(getActiveSpan()).toBeUndefined();
 
     span?.end();
 
-    expect(initialScope.getSpan()).toBeUndefined();
+    expect(getActiveSpan()).toBeUndefined();
+  });
+
+  it('allows to pass a scope', () => {
+    const manualScope = new Scope();
+    const parentSpan = new Span({ spanId: 'parent-span-id' });
+    // eslint-disable-next-line deprecation/deprecation
+    manualScope.setSpan(parentSpan);
+
+    const span = startInactiveSpan({ name: 'GET users/[id]', scope: manualScope });
+
+    expect(span).toBeDefined();
+    expect(span?.parentSpanId).toBe('parent-span-id');
+    expect(getActiveSpan()).toBeUndefined();
+
+    span?.end();
+
+    expect(getActiveSpan()).toBeUndefined();
+  });
+
+  it('allows to pass a `startTime`', () => {
+    const span = startInactiveSpan({ name: 'outer', startTime: [1234, 0] });
+    expect(span?.startTimestamp).toEqual(1234);
   });
 });
 

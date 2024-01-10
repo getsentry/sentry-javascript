@@ -11,7 +11,6 @@ export const continueTrace = origSentry.continueTrace;
 
 export const fakeScope = {
   addEventProcessor: jest.fn(),
-  setTransactionName: jest.fn(),
   setTag: jest.fn(),
   setContext: jest.fn(),
   setSpan: jest.fn(),
@@ -46,7 +45,6 @@ export const resetMocks = (): void => {
   fakeSpan.setHttpStatus.mockClear();
 
   fakeScope.addEventProcessor.mockClear();
-  fakeScope.setTransactionName.mockClear();
   fakeScope.setTag.mockClear();
   fakeScope.setContext.mockClear();
   fakeScope.setSpan.mockClear();

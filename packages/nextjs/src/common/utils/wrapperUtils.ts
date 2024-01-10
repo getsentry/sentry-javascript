@@ -1,6 +1,8 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 import {
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   captureException,
+  getActiveSpan,
   getActiveTransaction,
   getCurrentScope,
   runWithAsyncContext,
@@ -85,7 +87,7 @@ export function withTracedServerSideDataFetcher<F extends (...args: any[]) => Pr
   return async function (this: unknown, ...args: Parameters<F>): Promise<ReturnType<F>> {
     return runWithAsyncContext(async () => {
       const scope = getCurrentScope();
-      const previousSpan: Span | undefined = getTransactionFromRequest(req) ?? scope.getSpan();
+      const previousSpan: Span | undefined = getTransactionFromRequest(req) ?? getActiveSpan();
       let dataFetcherSpan;
 
       const sentryTrace =
@@ -100,6 +102,8 @@ export function withTracedServerSideDataFetcher<F extends (...args: any[]) => Pr
       if (platformSupportsStreaming()) {
         let spanToContinue: Span;
         if (previousSpan === undefined) {
+          // TODO: Refactor this to use `startSpan()`
+          // eslint-disable-next-line deprecation/deprecation
           const newTransaction = startTransaction(
             {
               op: 'http.server',
@@ -129,6 +133,7 @@ export function withTracedServerSideDataFetcher<F extends (...args: any[]) => Pr
           spanToContinue = previousSpan;
         }
 
+        // eslint-disable-next-line deprecation/deprecation
         dataFetcherSpan = spanToContinue.startChild({
           op: 'function.nextjs',
           description: `${options.dataFetchingMethodName} (${options.dataFetcherRouteName})`,
@@ -136,6 +141,8 @@ export function withTracedServerSideDataFetcher<F extends (...args: any[]) => Pr
           status: 'ok',
         });
       } else {
+        // TODO: Refactor this to use `startSpan()`
+        // eslint-disable-next-line deprecation/deprecation
         dataFetcherSpan = startTransaction({
           op: 'function.nextjs',
           name: `${options.dataFetchingMethodName} (${options.dataFetcherRouteName})`,
@@ -150,6 +157,7 @@ export function withTracedServerSideDataFetcher<F extends (...args: any[]) => Pr
         });
       }
 
+      // eslint-disable-next-line deprecation/deprecation
       scope.setSpan(dataFetcherSpan);
       scope.setSDKProcessingMetadata({ request: req });
 
@@ -163,6 +171,7 @@ export function withTracedServerSideDataFetcher<F extends (...args: any[]) => Pr
         throw e;
       } finally {
         dataFetcherSpan.end();
+        // eslint-disable-next-line deprecation/deprecation
         scope.setSpan(previousSpan);
         if (!platformSupportsStreaming()) {
           await flushQueue();
@@ -189,6 +198,7 @@ export async function callDataFetcherTraced<F extends (...args: any[]) => Promis
 ): Promise<ReturnType<F>> {
   const { parameterizedRoute, dataFetchingMethodName } = options;
 
+  // eslint-disable-next-line deprecation/deprecation
   const transaction = getActiveTransaction();
 
   if (!transaction) {
@@ -200,11 +210,12 @@ export async function callDataFetcherTraced<F extends (...args: any[]) => Promis
   // right here so making that check will probabably not even be necessary.
   // Logic will be: If there is no active transaction, start one with correct name and source. If there is an active
   // transaction, create a child span with correct name and source.
-  transaction.name = parameterizedRoute;
-  transaction.metadata.source = 'route';
+  transaction.updateName(parameterizedRoute);
+  transaction.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
 
   // Capture the route, since pre-loading, revalidation, etc might mean that this span may happen during another
   // route's transaction
+  // eslint-disable-next-line deprecation/deprecation
   const span = transaction.startChild({
     op: 'function.nextjs',
     origin: 'auto.function.nextjs',
