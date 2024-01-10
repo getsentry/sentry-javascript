@@ -25,6 +25,7 @@ import { GLOBAL_OBJ, isThenable, logger, timestampInSeconds, uuid4 } from '@sent
 import { DEFAULT_ENVIRONMENT } from './constants';
 import { DEBUG_BUILD } from './debug-build';
 import type { Hub } from './hub';
+import { runWithAsyncContext } from './hub';
 import { getCurrentHub, getIsolationScope } from './hub';
 import type { Scope } from './scope';
 import { closeSession, makeSession, updateSession } from './session';
@@ -195,6 +196,15 @@ export function withScope<T>(
   }
 
   return getCurrentHub().withScope(rest[0]);
+}
+
+/**
+ * TODO
+ */
+export function withIsolationScope<T>(callback: (isolationScope: Scope) => T): T {
+  return runWithAsyncContext(() => {
+    return callback(getIsolationScope());
+  });
 }
 
 /**
