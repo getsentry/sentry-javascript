@@ -45,6 +45,8 @@ export class Transaction extends SpanClass implements TransactionInterface {
    * @internal
    * @hideconstructor
    * @hidden
+   *
+   * @deprecated Transactions will be removed in v8. Use spans instead.
    */
   public constructor(transactionContext: TransactionContext, hub?: Hub) {
     super(transactionContext);

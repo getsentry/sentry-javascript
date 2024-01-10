@@ -60,6 +60,7 @@ describe('SentryPropagator', () => {
       }
 
       function createTransactionAndMaybeSpan(type: PerfType, transactionContext: TransactionContext) {
+        // eslint-disable-next-line deprecation/deprecation
         const transaction = new Transaction(transactionContext, hub);
         setSentrySpan(transaction.spanContext().spanId, transaction);
         if (type === PerfType.Span) {
