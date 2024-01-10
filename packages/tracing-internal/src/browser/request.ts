@@ -4,6 +4,7 @@ import {
   getClient,
   getCurrentScope,
   getDynamicSamplingContextFromClient,
+  getDynamicSamplingContextFromSpan,
   hasTracingEnabled,
   spanToJSON,
   spanToTraceHeader,
@@ -298,7 +299,7 @@ export function xhrCallback(
   if (xhr.setRequestHeader && shouldAttachHeaders(sentryXhrData.url)) {
     if (span) {
       const transaction = span && span.transaction;
-      const dynamicSamplingContext = transaction && transaction.getDynamicSamplingContext();
+      const dynamicSamplingContext = transaction && getDynamicSamplingContextFromSpan(transaction);
       const sentryBaggageHeader = dynamicSamplingContextToSentryBaggageHeader(dynamicSamplingContext);
       setHeaderOnXhr(xhr, spanToTraceHeader(span), sentryBaggageHeader);
     } else {

@@ -5,6 +5,7 @@ import {
   getCurrentHub,
   getCurrentScope,
   getDynamicSamplingContextFromClient,
+  getDynamicSamplingContextFromSpan,
   isSentryRequestUrl,
   spanToTraceHeader,
 } from '@sentry/core';
@@ -181,7 +182,7 @@ export class Undici implements Integration {
 
     if (shouldAttachTraceData(stringUrl)) {
       if (span) {
-        const dynamicSamplingContext = span?.transaction?.getDynamicSamplingContext();
+        const dynamicSamplingContext = getDynamicSamplingContextFromSpan(span);
         const sentryBaggageHeader = dynamicSamplingContextToSentryBaggageHeader(dynamicSamplingContext);
 
         setHeadersOnRequest(request, spanToTraceHeader(span), sentryBaggageHeader);

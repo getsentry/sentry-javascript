@@ -571,24 +571,19 @@ describe('Span', () => {
         hub,
       );
 
-      const hubSpy = jest.spyOn(hub.getClient()!, 'getOptions');
-
       const dynamicSamplingContext = transaction.getDynamicSamplingContext();
 
-      expect(hubSpy).not.toHaveBeenCalled();
       expect(dynamicSamplingContext).toStrictEqual({ environment: 'myEnv' });
     });
 
     test('should return new DSC, if no DSC was provided during transaction creation', () => {
-      const transaction = new Transaction(
-        {
-          name: 'tx',
-          metadata: {
-            sampleRate: 0.56,
-          },
+      const transaction = new Transaction({
+        name: 'tx',
+        metadata: {
+          sampleRate: 0.56,
         },
-        hub,
-      );
+        sampled: true,
+      });
 
       const getOptionsSpy = jest.spyOn(hub.getClient()!, 'getOptions');
 
@@ -598,6 +593,7 @@ describe('Span', () => {
       expect(dynamicSamplingContext).toStrictEqual({
         release: '1.0.1',
         environment: 'production',
+        sampled: 'true',
         sample_rate: '0.56',
         trace_id: expect.any(String),
         transaction: 'tx',
