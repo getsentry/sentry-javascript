@@ -140,7 +140,11 @@ export interface Transaction extends TransactionContext, Omit<Span, 'setName' | 
    */
   setMetadata(newMetadata: Partial<TransactionMetadata>): void;
 
-  /** Return the current Dynamic Sampling Context of this transaction */
+  /**
+   * Return the current Dynamic Sampling Context of this transaction
+   *
+   * @deprecated Use top-level `getDynamicSamplingContextFromSpan` instead.
+   */
   getDynamicSamplingContext(): Partial<DynamicSamplingContext>;
 }
 

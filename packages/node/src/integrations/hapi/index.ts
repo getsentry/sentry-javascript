@@ -5,6 +5,7 @@ import {
   convertIntegrationFnToClass,
   getActiveTransaction,
   getCurrentScope,
+  getDynamicSamplingContextFromSpan,
   spanToTraceHeader,
   startTransaction,
 } from '@sentry/core';
@@ -101,7 +102,7 @@ export const hapiTracingPlugin = {
         response.header('sentry-trace', spanToTraceHeader(transaction));
 
         const dynamicSamplingContext = dynamicSamplingContextToSentryBaggageHeader(
-          transaction.getDynamicSamplingContext(),
+          getDynamicSamplingContextFromSpan(transaction),
         );
 
         if (dynamicSamplingContext) {

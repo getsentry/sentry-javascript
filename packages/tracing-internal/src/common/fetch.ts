@@ -3,6 +3,7 @@ import {
   getClient,
   getCurrentScope,
   getDynamicSamplingContextFromClient,
+  getDynamicSamplingContextFromSpan,
   hasTracingEnabled,
   spanToTraceHeader,
 } from '@sentry/core';
@@ -139,7 +140,7 @@ export function addTracingHeadersToFetchRequest(
 
   const sentryTraceHeader = span ? spanToTraceHeader(span) : generateSentryTraceHeader(traceId, undefined, sampled);
   const dynamicSamplingContext = transaction
-    ? transaction.getDynamicSamplingContext()
+    ? getDynamicSamplingContextFromSpan(transaction)
     : dsc
       ? dsc
       : getDynamicSamplingContextFromClient(traceId, client, scope);

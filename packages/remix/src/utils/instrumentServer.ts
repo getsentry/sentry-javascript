@@ -4,6 +4,7 @@ import {
   getActiveTransaction,
   getClient,
   getCurrentScope,
+  getDynamicSamplingContextFromSpan,
   hasTracingEnabled,
   runWithAsyncContext,
   spanToJSON,
@@ -307,7 +308,7 @@ function getTraceAndBaggage(): {
     const span = getActiveSpan();
 
     if (span && transaction) {
-      const dynamicSamplingContext = transaction.getDynamicSamplingContext();
+      const dynamicSamplingContext = getDynamicSamplingContextFromSpan(transaction);
 
       return {
         sentryTrace: spanToTraceHeader(span),
