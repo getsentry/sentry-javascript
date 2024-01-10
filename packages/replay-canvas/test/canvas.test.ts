@@ -4,11 +4,14 @@ it('initializes with default options', () => {
   const rc = new ReplayCanvas();
 
   expect(rc.getOptions()).toEqual({
-    _experiments: {
-      canvas: {
-        manager: expect.any(Function),
-        quality: 'medium',
-      },
+    recordCanvas: true,
+    getCanvasManager: expect.any(Function),
+    sampling: {
+      canvas: 2,
+    },
+    dataURLOptions: {
+      type: 'image/webp',
+      quality: 0.4,
     },
   });
 });
@@ -17,11 +20,14 @@ it('initializes with quality option', () => {
   const rc = new ReplayCanvas({ quality: 'low' });
 
   expect(rc.getOptions()).toEqual({
-    _experiments: {
-      canvas: {
-        manager: expect.any(Function),
-        quality: 'low',
-      },
+    recordCanvas: true,
+    getCanvasManager: expect.any(Function),
+    sampling: {
+      canvas: 1,
+    },
+    dataURLOptions: {
+      type: 'image/webp',
+      quality: 0.25,
     },
   });
 });
