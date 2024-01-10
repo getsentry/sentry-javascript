@@ -649,7 +649,10 @@ describe('addIntegration', () => {
 describe('convertIntegrationFnToClass', () => {
   /* eslint-disable deprecation/deprecation */
   it('works with a minimal integration', () => {
-    const integrationFn = () => ({ name: 'testName' });
+    const integrationFn = () => ({
+      name: 'testName',
+      setupOnce: () => {},
+    });
 
     const IntegrationClass = convertIntegrationFnToClass('testName', integrationFn);
 
@@ -663,7 +666,10 @@ describe('convertIntegrationFnToClass', () => {
   });
 
   it('works with options', () => {
-    const integrationFn = (_options: { num: number }) => ({ name: 'testName' });
+    const integrationFn = (_options: { num: number }) => ({
+      name: 'testName',
+      setupOnce: () => {},
+    });
 
     const IntegrationClass = convertIntegrationFnToClass('testName', integrationFn);
 

@@ -20,6 +20,8 @@ const captureConsoleIntegration = ((options: CaptureConsoleOptions = {}) => {
 
   return {
     name: INTEGRATION_NAME,
+    // TODO v8: Remove this
+    setupOnce() {}, // eslint-disable-line @typescript-eslint/no-empty-function
     setup(client) {
       if (!('console' in GLOBAL_OBJ)) {
         return;
