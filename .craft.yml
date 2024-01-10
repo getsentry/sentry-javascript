@@ -32,10 +32,6 @@ targets:
   - name: npm
     id: '@sentry-internal/feedback'
     includeNames: /^sentry-internal-feedback-\d.*\.tgz$/
-  ## 1.8 ReplayCanvas package (browser only)
-  - name: npm
-    id: '@sentry-internal/replay-canvas'
-    includeNames: /^sentry-internal-replay-canvas-\d.*\.tgz$/
 
   ## 2. Browser & Node SDKs
   - name: npm
