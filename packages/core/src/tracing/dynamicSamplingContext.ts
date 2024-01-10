@@ -3,7 +3,7 @@ import { dropUndefinedKeys } from '@sentry/utils';
 
 import { DEFAULT_ENVIRONMENT } from '../constants';
 import { getClient, getCurrentScope } from '../exports';
-import { spanIsSampled, spanToJSON } from '../utils/spanUtils';
+import { getRootSpan, spanIsSampled, spanToJSON } from '../utils/spanUtils';
 
 /**
  * Creates a dynamic sampling context from a client.
@@ -54,9 +54,8 @@ export function getDynamicSamplingContextFromSpan(span: Span): Readonly<Partial<
   // passing emit=false here to only emit later once the DSC is actually populated
   const dsc = getDynamicSamplingContextFromClient(spanToJSON(span).trace_id || '', client, getCurrentScope());
 
-  // As long as we use `Transaction`s internally, this should be fine.
-  // TODO: We need to replace this with a `getRootSpan(span)` function though
-  const txn = span.transaction as TransactionWithV7FrozenDsc | undefined;
+  // TODO (v8): Remove v7FrozenDsc as a Transaction will no longer have _frozenDynamicSamplingContext
+  const txn = getRootSpan(span) as TransactionWithV7FrozenDsc | undefined;
   if (!txn) {
     return dsc;
   }

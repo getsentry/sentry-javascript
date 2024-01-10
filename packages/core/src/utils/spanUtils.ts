@@ -117,5 +117,7 @@ export function spanIsSampled(span: Span): boolean {
  * If the given span has no root span or transaction, `undefined` is returned.
  */
 export function getRootSpan(span: Span): Span | undefined {
+  // TODO (v8): Remove this check and just return span
+  // eslint-disable-next-line deprecation/deprecation
   return span.transaction;
 }

@@ -1,6 +1,5 @@
 import { TRACEPARENT_REGEXP, timestampInSeconds } from '@sentry/utils';
-import { Transaction } from '../../../build/types';
-import { Span, spanToTraceHeader } from '../../../src';
+import { Span, Transaction, spanToTraceHeader } from '../../../src';
 import { getRootSpan, spanIsSampled, spanTimeInputToSeconds, spanToJSON } from '../../../src/utils/spanUtils';
 
 describe('spanToTraceHeader', () => {
@@ -133,6 +132,7 @@ describe('getRootSpan', () => {
   it('returns the root span of a span (Span)', () => {
     const root = new Span({ name: 'test' });
     // @ts-expect-error this is highly illegal and shouldn't happen IRL
+    // eslint-disable-next-line deprecation/deprecation
     root.transaction = root;
 
     // eslint-disable-next-line deprecation/deprecation
@@ -141,6 +141,7 @@ describe('getRootSpan', () => {
   });
 
   it('returns the root span of a span (Transaction)', () => {
+    // eslint-disable-next-line deprecation/deprecation
     const root = new Transaction({ name: 'test' });
 
     // eslint-disable-next-line deprecation/deprecation
@@ -149,6 +150,7 @@ describe('getRootSpan', () => {
   });
 
   it('returns the span itself if it is a root span', () => {
+    // eslint-disable-next-line deprecation/deprecation
     const span = new Transaction({ name: 'test' });
 
     expect(getRootSpan(span)).toBe(span);
