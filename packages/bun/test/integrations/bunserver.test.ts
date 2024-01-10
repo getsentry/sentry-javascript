@@ -26,6 +26,7 @@ describe('Bun Serve Integration', () => {
   test('generates a transaction around a request', async () => {
     client.on('finishTransaction', transaction => {
       expect(transaction.status).toBe('ok');
+      // eslint-disable-next-line deprecation/deprecation
       expect(transaction.tags).toEqual({
         'http.status_code': '200',
       });
@@ -48,6 +49,7 @@ describe('Bun Serve Integration', () => {
   test('generates a post transaction', async () => {
     client.on('finishTransaction', transaction => {
       expect(transaction.status).toBe('ok');
+      // eslint-disable-next-line deprecation/deprecation
       expect(transaction.tags).toEqual({
         'http.status_code': '200',
       });

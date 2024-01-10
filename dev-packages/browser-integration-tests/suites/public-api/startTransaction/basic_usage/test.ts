@@ -31,6 +31,7 @@ sentryTest('should report finished spans as children of the root transaction', a
   const span_1 = transaction.spans?.[0];
   expect(span_1?.op).toBe('span_1');
   expect(span_1?.parentSpanId).toEqual(rootSpanId);
+  // eslint-disable-next-line deprecation/deprecation
   expect(span_1?.data).toMatchObject({ foo: 'bar', baz: [1, 2, 3] });
 
   const span_3 = transaction.spans?.[1];

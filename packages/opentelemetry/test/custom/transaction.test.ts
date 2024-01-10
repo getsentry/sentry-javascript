@@ -17,6 +17,7 @@ describe('NodeExperimentalTransaction', () => {
     const hub = getCurrentHub();
     hub.bindClient(client);
 
+    // eslint-disable-next-line deprecation/deprecation
     const transaction = new OpenTelemetryTransaction({ name: 'test', sampled: true }, hub);
 
     const res = transaction.finishWithScope();
@@ -63,6 +64,7 @@ describe('NodeExperimentalTransaction', () => {
     const hub = getCurrentHub();
     hub.bindClient(client);
 
+    // eslint-disable-next-line deprecation/deprecation
     const transaction = new OpenTelemetryTransaction({ name: 'test', startTimestamp: 123456, sampled: true }, hub);
 
     const res = transaction.finishWithScope(1234567);
@@ -87,6 +89,7 @@ describe('NodeExperimentalTransaction', () => {
     const hub = getCurrentHub();
     hub.bindClient(client);
 
+    // eslint-disable-next-line deprecation/deprecation
     const transaction = new OpenTelemetryTransaction({ name: 'test', startTimestamp: 123456, sampled: true }, hub);
 
     const scope = new OpenTelemetryScope();

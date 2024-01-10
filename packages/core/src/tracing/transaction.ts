@@ -45,6 +45,8 @@ export class Transaction extends SpanClass implements TransactionInterface {
    * @internal
    * @hideconstructor
    * @hidden
+   *
+   * @deprecated Transactions will be removed in v8. Use spans instead.
    */
   public constructor(transactionContext: TransactionContext, hub?: Hub) {
     super(transactionContext);
@@ -110,11 +112,11 @@ export class Transaction extends SpanClass implements TransactionInterface {
       ...this._metadata,
 
       // From attributes
-      ...(this.attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] && {
-        source: this.attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] as TransactionMetadata['source'],
+      ...(this._attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] && {
+        source: this._attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] as TransactionMetadata['source'],
       }),
-      ...(this.attributes[SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE] && {
-        sampleRate: this.attributes[SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE] as TransactionMetadata['sampleRate'],
+      ...(this._attributes[SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE] && {
+        sampleRate: this._attributes[SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE] as TransactionMetadata['sampleRate'],
       }),
     };
   }
@@ -157,7 +159,8 @@ export class Transaction extends SpanClass implements TransactionInterface {
   }
 
   /**
-   * @inheritDoc
+   * Set the context of a transaction event.
+   * @deprecated Use either `.setAttribute()`, or set the context on the scope before creating the transaction.
    */
   public setContext(key: string, context: Context | null): void {
     if (context === null) {
@@ -334,6 +337,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
       // TODO: Pass spans serialized via `spanToJSON()` here instead in v8.
       spans: finishedSpans,
       start_timestamp: this.startTimestamp,
+      // eslint-disable-next-line deprecation/deprecation
       tags: this.tags,
       timestamp: this.endTimestamp,
       transaction: this._name,

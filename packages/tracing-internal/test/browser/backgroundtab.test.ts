@@ -55,6 +55,7 @@ conditionalTest({ min: 10 })('registerBackgroundTabDetection', () => {
       events.visibilitychange();
 
       expect(span?.status).toBe('cancelled');
+      // eslint-disable-next-line deprecation/deprecation
       expect(span?.tags.visibilitychange).toBe('document.hidden');
       expect(span?.endTimestamp).toBeDefined();
     });

@@ -86,7 +86,14 @@ export { defaultIntegrations, init, defaultStackParser, getSentryRelease } from 
 export { addRequestDataToEvent, DEFAULT_USER_INCLUDES, extractRequestData } from '@sentry/utils';
 // eslint-disable-next-line deprecation/deprecation
 export { deepReadDirSync } from './utils';
-export { getModuleFromFilename } from './module';
+
+import { createGetModuleFromFilename } from './module';
+/**
+ * @deprecated use `createGetModuleFromFilename` instead.
+ */
+export const getModuleFromFilename = createGetModuleFromFilename();
+export { createGetModuleFromFilename };
+
 // eslint-disable-next-line deprecation/deprecation
 export { enableAnrDetection } from './integrations/anr/legacy';
 

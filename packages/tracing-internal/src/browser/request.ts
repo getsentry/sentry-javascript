@@ -5,6 +5,7 @@ import {
   getCurrentScope,
   getDynamicSamplingContextFromClient,
   hasTracingEnabled,
+  spanToJSON,
   spanToTraceHeader,
 } from '@sentry/core';
 import type { HandlerDataXhr, SentryWrappedXMLHttpRequest, Span } from '@sentry/types';
@@ -146,9 +147,9 @@ function isPerformanceResourceTiming(entry: PerformanceEntry): entry is Performa
  * @param span A span that has yet to be finished, must contain `url` on data.
  */
 function addHTTPTimings(span: Span): void {
-  const url = span.data.url;
+  const { url } = spanToJSON(span).data || {};
 
-  if (!url) {
+  if (!url || typeof url !== 'string') {
     return;
   }
 
@@ -156,7 +157,7 @@ function addHTTPTimings(span: Span): void {
     entries.forEach(entry => {
       if (isPerformanceResourceTiming(entry) && entry.name.endsWith(url)) {
         const spanData = resourceTimingEntryToSpanData(entry);
-        spanData.forEach(data => span.setData(...data));
+        spanData.forEach(data => span.setAttribute(...data));
         // In the next tick, clean this handler up
         // We have to wait here because otherwise this cleans itself up before it is fully done
         setTimeout(cleanup);

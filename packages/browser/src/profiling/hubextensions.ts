@@ -156,6 +156,8 @@ export function startProfileForTransaction(transaction: Transaction): Transactio
     // Always call onProfileHandler to ensure stopProfiling is called and the timeout is cleared.
     void onProfileHandler().then(
       () => {
+        // TODO: Can we rewrite this to use attributes?
+        // eslint-disable-next-line deprecation/deprecation
         transaction.setContext('profile', { profile_id: profileId, start_timestamp: startTimestamp });
         originalEnd();
       },

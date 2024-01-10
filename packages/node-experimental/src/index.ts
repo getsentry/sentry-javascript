@@ -52,7 +52,9 @@ export {
   extractRequestData,
   // eslint-disable-next-line deprecation/deprecation
   deepReadDirSync,
+  // eslint-disable-next-line deprecation/deprecation
   getModuleFromFilename,
+  createGetModuleFromFilename,
   close,
   createTransport,
   // eslint-disable-next-line deprecation/deprecation

@@ -86,20 +86,17 @@ export class Span implements SpanInterface {
   public op?: string;
 
   /**
-   * @inheritDoc
+   * Tags for the span.
+   * @deprecated Use `getSpanAttributes(span)` instead.
    */
   public tags: { [key: string]: Primitive };
 
   /**
-   * @inheritDoc
+   * Data for the span.
+   * @deprecated Use `getSpanAttributes(span)` instead.
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public data: { [key: string]: any };
-
-  /**
-   * @inheritDoc
-   */
-  public attributes: SpanAttributes;
 
   /**
    * List of spans that were finalized
@@ -125,6 +122,7 @@ export class Span implements SpanInterface {
   protected _spanId: string;
   protected _sampled: boolean | undefined;
   protected _name?: string;
+  protected _attributes: SpanAttributes;
 
   private _logMessage?: string;
 
@@ -139,9 +137,11 @@ export class Span implements SpanInterface {
     this._traceId = spanContext.traceId || uuid4();
     this._spanId = spanContext.spanId || uuid4().substring(16);
     this.startTimestamp = spanContext.startTimestamp || timestampInSeconds();
+    // eslint-disable-next-line deprecation/deprecation
     this.tags = spanContext.tags ? { ...spanContext.tags } : {};
+    // eslint-disable-next-line deprecation/deprecation
     this.data = spanContext.data ? { ...spanContext.data } : {};
-    this.attributes = spanContext.attributes ? { ...spanContext.attributes } : {};
+    this._attributes = spanContext.attributes ? { ...spanContext.attributes } : {};
     this.instrumenter = spanContext.instrumenter || 'sentry';
     this.origin = spanContext.origin || 'manual';
     // eslint-disable-next-line deprecation/deprecation
@@ -165,7 +165,7 @@ export class Span implements SpanInterface {
     }
   }
 
-  // This rule conflicts with another rule :(
+  // This rule conflicts with another eslint rule :(
   /* eslint-disable @typescript-eslint/member-ordering */
 
   /**
@@ -175,6 +175,7 @@ export class Span implements SpanInterface {
   public get name(): string {
     return this._name || '';
   }
+
   /**
    * Update the name of the span.
    * @deprecated Use `spanToJSON(span).description` instead.
@@ -247,6 +248,22 @@ export class Span implements SpanInterface {
     this._sampled = sampled;
   }
 
+  /**
+   * Attributes for the span.
+   * @deprecated Use `getSpanAttributes(span)` instead.
+   */
+  public get attributes(): SpanAttributes {
+    return this._attributes;
+  }
+
+  /**
+   * Attributes for the span.
+   * @deprecated Use `setAttributes()` instead.
+   */
+  public set attributes(attributes: SpanAttributes) {
+    this._attributes = attributes;
+  }
+
   /* eslint-enable @typescript-eslint/member-ordering */
 
   /** @inheritdoc */
@@ -296,18 +313,29 @@ export class Span implements SpanInterface {
   }
 
   /**
-   * @inheritDoc
+   * Sets the tag attribute on the current span.
+   *
+   * Can also be used to unset a tag, by passing `undefined`.
+   *
+   * @param key Tag key
+   * @param value Tag value
+   * @deprecated Use `setAttribute()` instead.
    */
   public setTag(key: string, value: Primitive): this {
+    // eslint-disable-next-line deprecation/deprecation
     this.tags = { ...this.tags, [key]: value };
     return this;
   }
 
   /**
-   * @inheritDoc
+   * Sets the data attribute on the current span
+   * @param key Data key
+   * @param value Data value
+   * @deprecated Use `setAttribute()` instead.
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public setData(key: string, value: any): this {
+    // eslint-disable-next-line deprecation/deprecation
     this.data = { ...this.data, [key]: value };
     return this;
   }
@@ -316,9 +344,9 @@ export class Span implements SpanInterface {
   public setAttribute(key: string, value: SpanAttributeValue | undefined): void {
     if (value === undefined) {
       // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
-      delete this.attributes[key];
+      delete this._attributes[key];
     } else {
-      this.attributes[key] = value;
+      this._attributes[key] = value;
     }
   }
 
@@ -339,7 +367,9 @@ export class Span implements SpanInterface {
    * @inheritDoc
    */
   public setHttpStatus(httpStatus: number): this {
+    // eslint-disable-next-line deprecation/deprecation
     this.setTag('http.status_code', String(httpStatus));
+    // eslint-disable-next-line deprecation/deprecation
     this.setData('http.response.status_code', httpStatus);
     const spanStatus = spanStatusfromHttpCode(httpStatus);
     if (spanStatus !== 'unknown_error') {
@@ -415,6 +445,7 @@ export class Span implements SpanInterface {
       spanId: this._spanId,
       startTimestamp: this.startTimestamp,
       status: this.status,
+      // eslint-disable-next-line deprecation/deprecation
       tags: this.tags,
       traceId: this._traceId,
     });
@@ -424,6 +455,7 @@ export class Span implements SpanInterface {
    * @inheritDoc
    */
   public updateWithContext(spanContext: SpanContext): this {
+    // eslint-disable-next-line deprecation/deprecation
     this.data = spanContext.data || {};
     // eslint-disable-next-line deprecation/deprecation
     this._name = spanContext.name || spanContext.description;
@@ -434,6 +466,7 @@ export class Span implements SpanInterface {
     this._spanId = spanContext.spanId || this._spanId;
     this.startTimestamp = spanContext.startTimestamp || this.startTimestamp;
     this.status = spanContext.status;
+    // eslint-disable-next-line deprecation/deprecation
     this.tags = spanContext.tags || {};
     this._traceId = spanContext.traceId || this._traceId;
 
@@ -459,6 +492,7 @@ export class Span implements SpanInterface {
       span_id: this._spanId,
       start_timestamp: this.startTimestamp,
       status: this.status,
+      // eslint-disable-next-line deprecation/deprecation
       tags: Object.keys(this.tags).length > 0 ? this.tags : undefined,
       timestamp: this.endTimestamp,
       trace_id: this._traceId,
@@ -490,7 +524,8 @@ export class Span implements SpanInterface {
         [key: string]: any;
       }
     | undefined {
-    const { data, attributes } = this;
+    // eslint-disable-next-line deprecation/deprecation
+    const { data, _attributes: attributes } = this;
 
     const hasData = Object.keys(data).length > 0;
     const hasAttributes = Object.keys(attributes).length > 0;

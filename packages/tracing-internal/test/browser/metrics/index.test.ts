@@ -3,6 +3,7 @@ import type { ResourceEntry } from '../../../src/browser/metrics';
 import { _addMeasureSpans, _addResourceSpans } from '../../../src/browser/metrics';
 
 describe('_addMeasureSpans', () => {
+  // eslint-disable-next-line deprecation/deprecation
   const transaction = new Transaction({ op: 'pageload', name: '/' });
   beforeEach(() => {
     // eslint-disable-next-line deprecation/deprecation
@@ -39,6 +40,7 @@ describe('_addMeasureSpans', () => {
 });
 
 describe('_addResourceSpans', () => {
+  // eslint-disable-next-line deprecation/deprecation
   const transaction = new Transaction({ op: 'pageload', name: '/' });
   beforeEach(() => {
     // eslint-disable-next-line deprecation/deprecation
