@@ -360,8 +360,8 @@ Sentry.init({ replaysOnErrorSampleRate: ${errorSampleRate} })`,
     /* eslint-disable @typescript-eslint/no-non-null-assertion */
     try {
       const client = getClient()!;
-      const canvasIntegration = client.getIntegrationByName!('ReplayCanvas') as Integration & {
-        getOptions(): ReplayCanvasIntegrationOptions;
+      const canvasIntegration = client.getIntegrationById!('ReplayCanvas') as Integration & {
+        getOptions(): Partial<ReplayConfiguration>;
       };
       if (!canvasIntegration) {
         return;
