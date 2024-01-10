@@ -38,6 +38,7 @@ import type {
   RecordingEvent,
   RecordingOptions,
   ReplayBreadcrumbFrame,
+  ReplayCanvasIntegrationOptions,
   ReplayContainer as ReplayContainerInterface,
   ReplayPerformanceEntry,
   ReplayPluginOptions,
@@ -145,9 +146,9 @@ export class ReplayContainer implements ReplayContainerInterface {
   private _context: InternalEventContext;
 
   /**
-   * Internal integrations (e.g. canvas)
+   * Internal use for canvas recording options
    */
-  private _integrations: Record<string, Record<string, unknown>>;
+  private _canvas: ReplayCanvasIntegrationOptions | undefined;
 
   public constructor({
     options,
@@ -167,7 +168,6 @@ export class ReplayContainer implements ReplayContainerInterface {
     this._lastActivity = Date.now();
     this._isEnabled = false;
     this._isPaused = false;
-    this._integrations = {};
     this._hasInitializedCoreListeners = false;
     this._context = {
       errorIds: new Set(),
@@ -226,11 +226,6 @@ export class ReplayContainer implements ReplayContainerInterface {
   /** Get the replay integration options. */
   public getOptions(): ReplayPluginOptions {
     return this._options;
-  }
-
-  /** Get the replay integrations. [test only] */
-  public getIntegrations(): Record<string, Record<string, unknown>> {
-    return { ...this._integrations };
   }
 
   /**
@@ -348,7 +343,7 @@ export class ReplayContainer implements ReplayContainerInterface {
    */
   public startRecording(): void {
     try {
-      const { canvas } = this._integrations;
+      const canvasOptions = this._canvas;
 
       this._stopRecording = record({
         ...this._recordingOptions,
@@ -358,7 +353,14 @@ export class ReplayContainer implements ReplayContainerInterface {
         ...(this.recordingMode === 'buffer' && { checkoutEveryNms: BUFFER_CHECKOUT_TIME }),
         emit: getHandleRecordingEmit(this),
         onMutation: this._onMutationHandler,
-        ...canvas,
+        ...(canvasOptions
+          ? {
+              recordCanvas: canvasOptions.recordCanvas,
+              getCanvasManager: canvasOptions.getCanvasManager,
+              sampling: canvasOptions.sampling,
+              dataURLOptions: canvasOptions.dataURLOptions,
+            }
+          : {}),
       });
     } catch (err) {
       this._handleException(err);
@@ -721,13 +723,6 @@ export class ReplayContainer implements ReplayContainerInterface {
     }
 
     return spanToJSON(lastTransaction).description;
-  }
-
-  /**
-   * Internal integration use only, should not be public
-   */
-  public addIntegration(name: string, options: Record<string, unknown>): void {
-    this._integrations[name] = options;
   }
 
   /**

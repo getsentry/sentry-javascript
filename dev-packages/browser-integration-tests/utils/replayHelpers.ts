@@ -1,4 +1,5 @@
 /* eslint-disable max-lines */
+import { ReplayCanvasIntegrationOptions } from '@sentry-internal/replay-canvas';
 import type { fullSnapshotEvent, incrementalSnapshotEvent } from '@sentry-internal/rrweb';
 import { EventType } from '@sentry-internal/rrweb';
 import type { ReplayEventWithTime } from '@sentry/browser';
@@ -174,13 +175,17 @@ export function getReplaySnapshot(page: Page): Promise<{
   _isEnabled: boolean;
   _context: InternalEventContext;
   _options: ReplayPluginOptions;
-  _integrations: Record<string, unknown>;
+  _canvas: ReplayCanvasIntegrationOptions | undefined;
   _hasCanvas: boolean;
   session: Session | undefined;
   recordingMode: ReplayRecordingMode;
 }> {
   return page.evaluate(() => {
-    const replayIntegration = (window as unknown as Window & { Replay: { _replay: ReplayContainer } }).Replay;
+    const replayIntegration = (
+      window as unknown as Window & {
+        Replay: { _replay: ReplayContainer & { _canvas: ReplayCanvasIntegrationOptions | undefined } };
+      }
+    ).Replay;
     const replay = replayIntegration._replay;
 
     const replaySnapshot = {
@@ -188,9 +193,9 @@ export function getReplaySnapshot(page: Page): Promise<{
       _isEnabled: replay.isEnabled(),
       _context: replay.getContext(),
       _options: replay.getOptions(),
-      _integrations: replay.getIntegrations(),
+      _canvas: replay['_canvas'],
       // We cannot pass the function through as this is serialized
-      _hasCanvas: typeof replay.getIntegrations().canvas?.getCanvasManager === 'function',
+      _hasCanvas: typeof replay['_canvas']?.getCanvasManager === 'function',
       session: replay.session,
       recordingMode: replay.recordingMode,
     };
