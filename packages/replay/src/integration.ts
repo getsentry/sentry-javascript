@@ -10,7 +10,13 @@ import {
   MIN_REPLAY_DURATION_LIMIT,
 } from './constants';
 import { ReplayContainer } from './replay';
-import type { RecordingOptions, ReplayConfiguration, ReplayPluginOptions, SendBufferedReplayOptions } from './types';
+import type {
+  RecordingOptions,
+  ReplayCanvasIntegrationOptions,
+  ReplayConfiguration,
+  ReplayPluginOptions,
+  SendBufferedReplayOptions,
+} from './types';
 import { getPrivacyOptions } from './util/getPrivacyOptions';
 import { maskAttribute } from './util/maskAttribute';
 
@@ -360,7 +366,7 @@ Sentry.init({ replaysOnErrorSampleRate: ${errorSampleRate} })`,
     try {
       const client = getClient()!;
       const canvasIntegration = client.getIntegrationById!('ReplayCanvas') as Integration & {
-        getOptions(): Partial<ReplayConfiguration>;
+        getOptions(): ReplayCanvasIntegrationOptions;
       };
       if (!canvasIntegration) {
         return;

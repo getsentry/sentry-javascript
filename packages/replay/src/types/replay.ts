@@ -14,7 +14,7 @@ import type { SKIPPED, THROTTLED } from '../util/throttle';
 import type { AllPerformanceEntry, AllPerformanceEntryData, ReplayPerformanceEntry } from './performance';
 import type { ReplayFrameEvent } from './replayFrame';
 import type { ReplayNetworkRequestOrResponse } from './request';
-import type { CanvasManagerInterface, GetCanvasManagerOptions, ReplayEventWithTime, RrwebRecordOptions } from './rrweb';
+import type { CanvasManagerInterface, CanvasManagerOptions, ReplayEventWithTime, RrwebRecordOptions } from './rrweb';
 
 export type RecordingEvent = ReplayFrameEvent | ReplayEventWithTime;
 export type RecordingOptions = RrwebRecordOptions;
@@ -538,4 +538,16 @@ export interface SlowClickConfig {
   timeout: number;
   scrollTimeout: number;
   ignoreSelector: string;
+}
+
+export interface ReplayCanvasIntegrationOptions {
+  recordCanvas: true;
+  getCanvasManager: (options: CanvasManagerOptions) => CanvasManagerInterface;
+  sampling: {
+    canvas: number;
+  };
+  dataURLOptions: {
+    type: string;
+    quality: number;
+  };
 }

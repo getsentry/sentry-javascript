@@ -53,7 +53,7 @@ export interface CanvasManagerInterface {
   unlock(): void;
 }
 
-export interface GetCanvasManagerOptions {
+export interface CanvasManagerOptions {
   recordCanvas: boolean;
   blockClass: string | RegExp;
   blockSelector: string | null;
