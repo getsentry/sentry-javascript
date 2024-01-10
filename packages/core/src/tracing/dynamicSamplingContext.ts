@@ -1,9 +1,8 @@
-import type { Client, DynamicSamplingContext, Scope, Span, Transaction, TransactionSource } from '@sentry/types';
+import type { Client, DynamicSamplingContext, Scope, Span, Transaction } from '@sentry/types';
 import { dropUndefinedKeys } from '@sentry/utils';
 
 import { DEFAULT_ENVIRONMENT } from '../constants';
 import { getClient, getCurrentScope } from '../exports';
-import { SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '../semanticAttributes';
 import { spanIsSampled, spanToJSON } from '../utils/spanUtils';
 
 /**
