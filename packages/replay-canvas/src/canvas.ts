@@ -73,4 +73,6 @@ const replayCanvasIntegration = ((options: Partial<ReplayCanvasOptions> = {}) =>
   };
 }) satisfies IntegrationFn;
 
+// TODO(v8)
+// eslint-disable-next-line deprecation/deprecation
 export const ReplayCanvas = convertIntegrationFnToClass(INTEGRATION_NAME, replayCanvasIntegration);
