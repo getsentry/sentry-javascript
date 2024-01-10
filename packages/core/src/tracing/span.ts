@@ -16,10 +16,10 @@ import type {
 import { dropUndefinedKeys, logger, timestampInSeconds, uuid4 } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../debug-build';
+import { getRootSpan } from '../utils/getRootSpan';
 import {
   TRACE_FLAG_NONE,
   TRACE_FLAG_SAMPLED,
-  getRootSpan,
   spanTimeInputToSeconds,
   spanToJSON,
   spanToTraceContext,

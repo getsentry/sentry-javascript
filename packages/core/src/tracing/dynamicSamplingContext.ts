@@ -3,7 +3,8 @@ import { dropUndefinedKeys } from '@sentry/utils';
 
 import { DEFAULT_ENVIRONMENT } from '../constants';
 import { getClient, getCurrentScope } from '../exports';
-import { getRootSpan, spanIsSampled, spanToJSON } from '../utils/spanUtils';
+import { getRootSpan } from '../utils/getRootSpan';
+import { spanIsSampled, spanToJSON } from '../utils/spanUtils';
 
 /**
  * Creates a dynamic sampling context from a client.

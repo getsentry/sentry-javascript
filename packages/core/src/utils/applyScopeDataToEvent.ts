@@ -1,7 +1,8 @@
 import type { Breadcrumb, Event, PropagationContext, ScopeData, Span } from '@sentry/types';
 import { arrayify } from '@sentry/utils';
 import { getDynamicSamplingContextFromSpan } from '../tracing/dynamicSamplingContext';
-import { getRootSpan, spanToJSON, spanToTraceContext } from './spanUtils';
+import { getRootSpan } from './getRootSpan';
+import { spanToJSON, spanToTraceContext } from './spanUtils';
 
 /**
  * Applies data from the scope to the event and runs all event processors on it.
