@@ -58,7 +58,7 @@ export function instrumentFetchRequest(
         if (contentLength) {
           const contentLengthNum = parseInt(contentLength);
           if (contentLengthNum > 0) {
-            span.setData('http.response_content_length', contentLengthNum);
+            span.setAttribute('http.response_content_length', contentLengthNum);
           }
         }
       } else if (handlerData.error) {

@@ -74,7 +74,7 @@ describe('span', () => {
       span.setAttribute('boolArray', [true, false]);
       span.setAttribute('arrayWithUndefined', [1, undefined, 2]);
 
-      expect(span.attributes).toEqual({
+      expect(span['_attributes']).toEqual({
         str: 'bar',
         num: 1,
         zero: 0,
@@ -92,11 +92,11 @@ describe('span', () => {
 
       span.setAttribute('str', 'bar');
 
-      expect(Object.keys(span.attributes).length).toEqual(1);
+      expect(Object.keys(span['_attributes']).length).toEqual(1);
 
       span.setAttribute('str', undefined);
 
-      expect(Object.keys(span.attributes).length).toEqual(0);
+      expect(Object.keys(span['_attributes']).length).toEqual(0);
     });
 
     it('disallows invalid attribute types', () => {
@@ -117,7 +117,7 @@ describe('span', () => {
     it('allows to set attributes', () => {
       const span = new Span();
 
-      const initialAttributes = span.attributes;
+      const initialAttributes = span['_attributes'];
 
       expect(initialAttributes).toEqual({});
 
@@ -135,7 +135,7 @@ describe('span', () => {
       };
       span.setAttributes(newAttributes);
 
-      expect(span.attributes).toEqual({
+      expect(span['_attributes']).toEqual({
         str: 'bar',
         num: 1,
         zero: 0,
@@ -147,14 +147,14 @@ describe('span', () => {
         arrayWithUndefined: [1, undefined, 2],
       });
 
-      expect(span.attributes).not.toBe(newAttributes);
+      expect(span['_attributes']).not.toBe(newAttributes);
 
       span.setAttributes({
         num: 2,
         numArray: [3, 4],
       });
 
-      expect(span.attributes).toEqual({
+      expect(span['_attributes']).toEqual({
         str: 'bar',
         num: 2,
         zero: 0,
@@ -172,11 +172,11 @@ describe('span', () => {
 
       span.setAttribute('str', 'bar');
 
-      expect(Object.keys(span.attributes).length).toEqual(1);
+      expect(Object.keys(span['_attributes']).length).toEqual(1);
 
       span.setAttributes({ str: undefined });
 
-      expect(Object.keys(span.attributes).length).toEqual(0);
+      expect(Object.keys(span['_attributes']).length).toEqual(0);
     });
   });
 
@@ -270,9 +270,11 @@ describe('span', () => {
 
     it('works with data only', () => {
       const span = new Span();
+      // eslint-disable-next-line deprecation/deprecation
       span.setData('foo', 'bar');
 
       expect(span['_getData']()).toEqual({ foo: 'bar' });
+      // eslint-disable-next-line deprecation/deprecation
       expect(span['_getData']()).toBe(span.data);
     });
 
@@ -281,6 +283,7 @@ describe('span', () => {
       span.setAttribute('foo', 'bar');
 
       expect(span['_getData']()).toEqual({ foo: 'bar' });
+      // eslint-disable-next-line deprecation/deprecation
       expect(span['_getData']()).toBe(span.attributes);
     });
 
@@ -288,11 +291,15 @@ describe('span', () => {
       const span = new Span();
       span.setAttribute('foo', 'foo');
       span.setAttribute('bar', 'bar');
+      // eslint-disable-next-line deprecation/deprecation
       span.setData('foo', 'foo2');
+      // eslint-disable-next-line deprecation/deprecation
       span.setData('baz', 'baz');
 
       expect(span['_getData']()).toEqual({ foo: 'foo', bar: 'bar', baz: 'baz' });
+      // eslint-disable-next-line deprecation/deprecation
       expect(span['_getData']()).not.toBe(span.attributes);
+      // eslint-disable-next-line deprecation/deprecation
       expect(span['_getData']()).not.toBe(span.data);
     });
   });

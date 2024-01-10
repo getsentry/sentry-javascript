@@ -26,6 +26,8 @@ export function registerBackgroundTabDetection(): void {
         if (!activeTransaction.status) {
           activeTransaction.setStatus(statusType);
         }
+        // TODO: Can we rewrite this to an attribute?
+        // eslint-disable-next-line deprecation/deprecation
         activeTransaction.setTag('visibilitychange', 'document.hidden');
         activeTransaction.end();
       }

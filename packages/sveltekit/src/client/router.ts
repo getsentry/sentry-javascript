@@ -124,6 +124,7 @@ function instrumentNavigations(startTransactionFn: (context: TransactionContext)
         description: 'SvelteKit Route Change',
         origin: 'auto.ui.sveltekit',
       });
+      // eslint-disable-next-line deprecation/deprecation
       activeTransaction.setTag('from', parameterizedRouteOrigin);
     }
   });

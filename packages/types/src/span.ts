@@ -129,11 +129,13 @@ export interface SpanContext {
 
   /**
    * Tags of the Span.
+   * @deprecated Pass `attributes` instead.
    */
   tags?: { [key: string]: Primitive };
 
   /**
    * Data of the Span.
+   * @deprecated Pass `attributes` instead.
    */
   data?: { [key: string]: any };
 
@@ -195,17 +197,20 @@ export interface Span extends SpanContext {
   startTimestamp: number;
 
   /**
-   * @inheritDoc
+   * Tags for the span.
+   * @deprecated Use `getSpanAttributes(span)` instead.
    */
   tags: { [key: string]: Primitive };
 
   /**
-   * @inheritDoc
+   * Data for the span.
+   * @deprecated Use `getSpanAttributes(span)` instead.
    */
   data: { [key: string]: any };
 
   /**
-   * @inheritDoc
+   * Attributes for the span.
+   * @deprecated Use `getSpanAttributes(span)` instead.
    */
   attributes: SpanAttributes;
 
@@ -243,6 +248,7 @@ export interface Span extends SpanContext {
    *
    * @param key Tag key
    * @param value Tag value
+   * @deprecated Use `setAttribute()` instead.
    */
   setTag(key: string, value: Primitive): this;
 
@@ -250,6 +256,7 @@ export interface Span extends SpanContext {
    * Sets the data attribute on the current span
    * @param key Data key
    * @param value Data value
+   * @deprecated Use `setAttribute()` instead.
    */
   setData(key: string, value: any): this;
 

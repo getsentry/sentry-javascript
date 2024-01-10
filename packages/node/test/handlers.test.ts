@@ -361,6 +361,7 @@ describe('tracingHandler', () => {
   });
 
   it('pulls status code from the response', done => {
+    // eslint-disable-next-line deprecation/deprecation
     const transaction = new Transaction({ name: 'mockTransaction' });
     jest.spyOn(sentryCore, 'startTransaction').mockReturnValue(transaction as Transaction);
     const finishTransaction = jest.spyOn(transaction, 'end');
@@ -372,8 +373,11 @@ describe('tracingHandler', () => {
     setImmediate(() => {
       expect(finishTransaction).toHaveBeenCalled();
       expect(transaction.status).toBe('ok');
+      // eslint-disable-next-line deprecation/deprecation
       expect(transaction.tags).toEqual(expect.objectContaining({ 'http.status_code': '200' }));
-      expect(transaction.data).toEqual(expect.objectContaining({ 'http.response.status_code': 200 }));
+      expect(sentryCore.spanToJSON(transaction).data).toEqual(
+        expect.objectContaining({ 'http.response.status_code': 200 }),
+      );
       done();
     });
   });
@@ -409,6 +413,7 @@ describe('tracingHandler', () => {
   });
 
   it('closes the transaction when request processing is done', done => {
+    // eslint-disable-next-line deprecation/deprecation
     const transaction = new Transaction({ name: 'mockTransaction' });
     jest.spyOn(sentryCore, 'startTransaction').mockReturnValue(transaction as Transaction);
     const finishTransaction = jest.spyOn(transaction, 'end');
@@ -423,6 +428,7 @@ describe('tracingHandler', () => {
   });
 
   it('waits to finish transaction until all spans are finished, even though `transaction.end()` is registered on `res.finish` event first', done => {
+    // eslint-disable-next-line deprecation/deprecation
     const transaction = new Transaction({ name: 'mockTransaction', sampled: true });
     transaction.initSpanRecorder();
     // eslint-disable-next-line deprecation/deprecation

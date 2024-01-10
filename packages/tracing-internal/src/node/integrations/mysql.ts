@@ -73,7 +73,7 @@ export class Mysql implements LazyLoadedIntegration<MysqlConnection> {
       DEBUG_BUILD && logger.error('Mysql Integration was unable to instrument `mysql` config.');
     }
 
-    function spanDataFromConfig(): Record<string, unknown> {
+    function spanDataFromConfig(): Record<string, string | number | undefined> {
       if (!mySqlConfig) {
         return {};
       }
@@ -91,7 +91,7 @@ export class Mysql implements LazyLoadedIntegration<MysqlConnection> {
 
       const data = spanDataFromConfig();
       Object.keys(data).forEach(key => {
-        span.setData(key, data[key]);
+        span.setAttribute(key, data[key]);
       });
 
       span.end();
