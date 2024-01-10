@@ -32,6 +32,10 @@ const mockedScope = {
 describe('getTracingMetaTags', () => {
   it('returns the tracing tags from the span, if it is provided', () => {
     {
+      vi.spyOn(SentryCore, 'getDynamicSamplingContextFromSpan').mockReturnValueOnce({
+        environment: 'production',
+      });
+
       const tags = getTracingMetaTags(mockedSpan, mockedScope, mockedClient);
 
       expect(tags).toEqual({

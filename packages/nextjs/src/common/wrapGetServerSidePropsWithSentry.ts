@@ -1,4 +1,10 @@
-import { addTracingExtensions, getClient, getCurrentScope, spanToTraceHeader } from '@sentry/core';
+import {
+  addTracingExtensions,
+  getClient,
+  getCurrentScope,
+  getDynamicSamplingContextFromSpan,
+  spanToTraceHeader,
+} from '@sentry/core';
 import { dynamicSamplingContextToSentryBaggageHeader } from '@sentry/utils';
 import type { GetServerSideProps } from 'next';
 
@@ -51,7 +57,7 @@ export function wrapGetServerSidePropsWithSentry(
           if (requestTransaction) {
             serverSideProps.props._sentryTraceData = spanToTraceHeader(requestTransaction);
 
-            const dynamicSamplingContext = requestTransaction.getDynamicSamplingContext();
+            const dynamicSamplingContext = getDynamicSamplingContextFromSpan(requestTransaction);
             serverSideProps.props._sentryBaggage = dynamicSamplingContextToSentryBaggageHeader(dynamicSamplingContext);
           }
         }
