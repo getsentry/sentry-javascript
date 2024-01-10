@@ -1,6 +1,7 @@
 import { CanvasManager } from '@sentry-internal/rrweb';
+import { convertIntegrationFnToClass } from '@sentry/core';
 import type { CanvasManagerInterface } from '@sentry/replay';
-import type { Integration } from '@sentry/types';
+import { IntegrationFn } from '@sentry/types';
 
 interface ReplayCanvasOptions {
   quality: 'low' | 'medium' | 'high';
@@ -48,43 +49,28 @@ const CANVAS_QUALITY = {
   },
 };
 
-/** An integration to add canvas recording to replay. */
-export class ReplayCanvas implements Integration {
-  /**
-   * @inheritDoc
-   */
-  public static id: string = 'ReplayCanvas';
+const INTEGRATION_NAME = 'ReplayCanvas';
 
-  /**
-   * @inheritDoc
-   */
-  public name: string;
+/**
+ * An integration to add canvas recording to replay.
+ */
+const replayCanvasIntegration = ((options: Partial<ReplayCanvasOptions> = {}) => {
+  const _canvasOptions = {
+    quality: options.quality || 'medium',
+  };
 
-  private _canvasOptions: ReplayCanvasOptions;
+  return {
+    name: INTEGRATION_NAME,
+    getOptions(): ReplayCanvasIntegrationOptions {
+      const { quality } = _canvasOptions;
 
-  public constructor(options: Partial<ReplayCanvasOptions> = {}) {
-    this.name = ReplayCanvas.id;
-    this._canvasOptions = {
-      quality: options.quality || 'medium',
-    };
-  }
+      return {
+        recordCanvas: true,
+        getCanvasManager: (options: ConstructorParameters<typeof CanvasManager>[0]) => new CanvasManager(options),
+        ...(CANVAS_QUALITY[quality || 'medium'] || CANVAS_QUALITY.medium),
+      };
+    }
+  };
+}) satisfies IntegrationFn;
 
-  /** @inheritdoc */
-  public setupOnce(): void {
-    // noop
-  }
-
-  /**
-   * Get the options that should be merged into replay options.
-   * This is what is actually called by the Replay integration to setup canvas.
-   */
-  public getOptions(): ReplayCanvasIntegrationOptions {
-    const { quality } = this._canvasOptions;
-
-    return {
-      recordCanvas: true,
-      getCanvasManager: (options: ConstructorParameters<typeof CanvasManager>[0]) => new CanvasManager(options),
-      ...(CANVAS_QUALITY[quality || 'medium'] || CANVAS_QUALITY.medium),
-    };
-  }
-}
+export const ReplayCanvasIntegration = convertIntegrationFnToClass(replayCanvasIntegration, INTEGRATION_NAME);
