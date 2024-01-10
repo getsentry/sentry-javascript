@@ -1,5 +1,5 @@
 import { conditionalTest } from '../../utils';
-import { assertSentryEvent, assertSentrySession, createRunner } from '../../utils/runner';
+import { createRunner } from '../../utils/runner';
 
 const EXPECTED_ANR_EVENT = {
   // Ensure we have context
@@ -54,44 +54,19 @@ const EXPECTED_ANR_EVENT = {
 conditionalTest({ min: 16 })('should report ANR when event loop blocked', () => {
   // TODO (v8): Remove this old API and this test
   test('Legacy API', done => {
-    createRunner(__dirname, 'legacy.js')
-      .expect({
-        event: event => {
-          assertSentryEvent(event, EXPECTED_ANR_EVENT);
-        },
-      })
-      .start(done);
+    createRunner(__dirname, 'legacy.js').expect({ event: EXPECTED_ANR_EVENT }).start(done);
   });
 
   test('CJS', done => {
-    createRunner(__dirname, 'basic.js')
-      .expect({
-        event: event => {
-          assertSentryEvent(event, EXPECTED_ANR_EVENT);
-        },
-      })
-      .start(done);
+    createRunner(__dirname, 'basic.js').expect({ event: EXPECTED_ANR_EVENT }).start(done);
   });
 
   test('ESM', done => {
-    createRunner(__dirname, 'basic.mjs')
-      .expect({
-        event: event => {
-          assertSentryEvent(event, EXPECTED_ANR_EVENT);
-        },
-      })
-      .start(done);
+    createRunner(__dirname, 'basic.mjs').expect({ event: EXPECTED_ANR_EVENT }).start(done);
   });
 
   test('With --inspect', done => {
-    createRunner(__dirname, 'basic.mjs')
-      .withFlags('--inspect')
-      .expect({
-        event: event => {
-          assertSentryEvent(event, EXPECTED_ANR_EVENT);
-        },
-      })
-      .start(done);
+    createRunner(__dirname, 'basic.mjs').withFlags('--inspect').expect({ event: EXPECTED_ANR_EVENT }).start(done);
   });
 
   test('should exit', done => {
@@ -115,28 +90,16 @@ conditionalTest({ min: 16 })('should report ANR when event loop blocked', () => 
   test('With session', done => {
     createRunner(__dirname, 'basic-session.js')
       .expect({
-        session: session => {
-          assertSentrySession(session, {
-            status: 'abnormal',
-            abnormal_mechanism: 'anr_foreground',
-          });
+        session: {
+          status: 'abnormal',
+          abnormal_mechanism: 'anr_foreground',
         },
       })
-      .expect({
-        event: event => {
-          assertSentryEvent(event, EXPECTED_ANR_EVENT);
-        },
-      })
+      .expect({ event: EXPECTED_ANR_EVENT })
       .start(done);
   });
 
   test('from forked process', done => {
-    createRunner(__dirname, 'forker.js')
-      .expect({
-        event: event => {
-          assertSentryEvent(event, EXPECTED_ANR_EVENT);
-        },
-      })
-      .start(done);
+    createRunner(__dirname, 'forker.js').expect({ event: EXPECTED_ANR_EVENT }).start(done);
   });
 });

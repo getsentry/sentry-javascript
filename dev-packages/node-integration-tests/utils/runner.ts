@@ -30,13 +30,13 @@ export function assertSentryTransaction(actual: Event, expected: Partial<Event>)
 
 type Expected =
   | {
-      event: (event: Event) => void;
+      event: Partial<Event> | ((event: Event) => void);
     }
   | {
-      transaction: (event: Event) => void;
+      transaction: Partial<Event> | ((event: Event) => void);
     }
   | {
-      session: (event: SerializedSession) => void;
+      session: Partial<SerializedSession> | ((event: SerializedSession) => void);
     };
 
 /** */
@@ -147,17 +147,35 @@ export function createRunner(...paths: string[]) {
             }
 
             if ('event' in expected) {
-              expected.event(item[1] as Event);
+              const event = item[1] as Event;
+              if (typeof expected.event === 'function') {
+                expected.event(event);
+              } else {
+                assertSentryEvent(event, expected.event);
+              }
+
               expectCallbackCalled();
             }
 
             if ('transaction' in expected) {
-              expected.transaction(item[1] as Event);
+              const event = item[1] as Event;
+              if (typeof expected.transaction === 'function') {
+                expected.transaction(event);
+              } else {
+                assertSentryTransaction(event, expected.transaction);
+              }
+
               expectCallbackCalled();
             }
 
             if ('session' in expected) {
-              expected.session(item[1] as SerializedSession);
+              const session = item[1] as SerializedSession;
+              if (typeof expected.session === 'function') {
+                expected.session(session);
+              } else {
+                assertSentrySession(session, expected.session);
+              }
+
               expectCallbackCalled();
             }
           } catch (e) {
