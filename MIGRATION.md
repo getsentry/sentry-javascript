@@ -11,7 +11,7 @@ This will let you select which updates to run, and automatically update your cod
 ## Deprecate `Hub`
 
 The `Hub` has been a very important part of the Sentry SDK API up until now.
-Hubs were the SDKs "unit of concurrency" to keep track of data across threads and to scope data to certain parts of your code.
+Hubs were the SDK's "unit of concurrency" to keep track of data across threads and to scope data to certain parts of your code.
 Because it is overly complicated and confusing to power users, it is going to be replaced by a set of new APIs: the "new Scope API".
 
 `Scope`s have existed before in the SDK but we are now expanding on them because we have found them powerful enough to fully cover the `Hub` API.
