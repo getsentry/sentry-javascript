@@ -102,7 +102,7 @@ describe('RewriteFrames', () => {
 
   describe('default iteratee appends basename to `app:///` if frame starts with `/`', () => {
     beforeEach(() => {
-      rewriteFrames = new RewriteFrames();
+      rewriteFrames = new RewriteFrames() as IntegrationWithProcessEvent;
     });
 
     it('transforms exceptionEvent frames', () => {
@@ -123,7 +123,7 @@ describe('RewriteFrames', () => {
     beforeEach(() => {
       rewriteFrames = new RewriteFrames({
         prefix: 'foobar/',
-      });
+      }) as IntegrationWithProcessEvent;
     });
 
     it('transforms exceptionEvent frames', () => {
@@ -135,7 +135,7 @@ describe('RewriteFrames', () => {
 
   describe('default iteratee appends basename to `app:///` if frame starts with Windows path prefix', () => {
     beforeEach(() => {
-      rewriteFrames = new RewriteFrames();
+      rewriteFrames = new RewriteFrames() as IntegrationWithProcessEvent;
     });
 
     it('transforms windowsExceptionEvent frames (C:\\)', () => {
@@ -167,7 +167,7 @@ describe('RewriteFrames', () => {
     beforeEach(() => {
       rewriteFrames = new RewriteFrames({
         root: '/www',
-      });
+      }) as IntegrationWithProcessEvent;
     });
 
     it('transforms exceptionEvent frames', () => {
@@ -208,7 +208,7 @@ describe('RewriteFrames', () => {
           ...frame,
           function: 'whoops',
         }),
-      });
+      }) as IntegrationWithProcessEvent;
     });
 
     it('transforms exceptionEvent frames', () => {
@@ -222,7 +222,7 @@ describe('RewriteFrames', () => {
 
   describe('can process events that contain multiple stacktraces', () => {
     it('with defaults', () => {
-      rewriteFrames = new RewriteFrames();
+      rewriteFrames = new RewriteFrames() as IntegrationWithProcessEvent;
       const event = rewriteFrames.processEvent(multipleStacktracesEvent);
       // first stacktrace
       expect(event.exception!.values![0].stacktrace!.frames![0].filename).toEqual('app:///file1.js');
@@ -238,7 +238,7 @@ describe('RewriteFrames', () => {
     it('with custom root', () => {
       rewriteFrames = new RewriteFrames({
         root: '/www',
-      });
+      }) as IntegrationWithProcessEvent;
       const event = rewriteFrames.processEvent(multipleStacktracesEvent);
       // first stacktrace
       expect(event.exception!.values![0].stacktrace!.frames![0].filename).toEqual('app:///src/app/file1.js');
@@ -257,7 +257,7 @@ describe('RewriteFrames', () => {
           ...frame,
           function: 'whoops',
         }),
-      });
+      }) as IntegrationWithProcessEvent;
       const event = rewriteFrames.processEvent(multipleStacktracesEvent);
       // first stacktrace
       expect(event.exception!.values![0].stacktrace!.frames![0].filename).toEqual('/www/src/app/file1.js');
@@ -279,7 +279,7 @@ describe('RewriteFrames', () => {
 
   describe('bails when unable to extract frames', () => {
     it('no exception values', () => {
-      rewriteFrames = new RewriteFrames({});
+      rewriteFrames = new RewriteFrames({}) as IntegrationWithProcessEvent;
       const brokenEvent = {
         exception: {
           values: undefined,
@@ -289,7 +289,7 @@ describe('RewriteFrames', () => {
     });
 
     it('no frames', () => {
-      rewriteFrames = new RewriteFrames({});
+      rewriteFrames = new RewriteFrames({}) as IntegrationWithProcessEvent;
       const brokenEvent = {
         exception: {
           values: [

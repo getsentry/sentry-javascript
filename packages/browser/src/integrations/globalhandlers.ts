@@ -1,6 +1,14 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { captureEvent, convertIntegrationFnToClass, getClient } from '@sentry/core';
-import type { Client, Event, IntegrationFn, Primitive, StackParser } from '@sentry/types';
+import type {
+  Client,
+  Event,
+  Integration,
+  IntegrationClass,
+  IntegrationFn,
+  Primitive,
+  StackParser,
+} from '@sentry/types';
 import {
   addGlobalErrorInstrumentationHandler,
   addGlobalUnhandledRejectionInstrumentationHandler,
@@ -22,7 +30,7 @@ type GlobalHandlersIntegrations = Record<GlobalHandlersIntegrationsOptionKeys, b
 
 const INTEGRATION_NAME = 'GlobalHandlers';
 
-const globalHandlersIntegrations: IntegrationFn = (options: Partial<GlobalHandlersIntegrations> = {}) => {
+export const globalHandlersIntegration = ((options: Partial<GlobalHandlersIntegrations> = {}) => {
   const _options = {
     onerror: true,
     onunhandledrejection: true,
@@ -45,11 +53,14 @@ const globalHandlersIntegrations: IntegrationFn = (options: Partial<GlobalHandle
       }
     },
   };
-};
+}) satisfies IntegrationFn;
 
 /** Global handlers */
 // eslint-disable-next-line deprecation/deprecation
-export const GlobalHandlers = convertIntegrationFnToClass(INTEGRATION_NAME, globalHandlersIntegrations);
+export const GlobalHandlers = convertIntegrationFnToClass(
+  INTEGRATION_NAME,
+  globalHandlersIntegration,
+) as IntegrationClass<Integration> & { new (options?: Partial<GlobalHandlersIntegrations>): Integration };
 
 function _installGlobalOnErrorHandler(client: Client): void {
   addGlobalErrorInstrumentationHandler(data => {

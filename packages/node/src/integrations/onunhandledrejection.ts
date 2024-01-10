@@ -1,5 +1,5 @@
 import { captureException, convertIntegrationFnToClass, getClient } from '@sentry/core';
-import type { Client, IntegrationFn } from '@sentry/types';
+import type { Client, Integration, IntegrationClass, IntegrationFn } from '@sentry/types';
 import { consoleSandbox } from '@sentry/utils';
 
 import { logAndExitProcess } from './utils/errorhandling';
@@ -16,7 +16,7 @@ interface OnUnhandledRejectionOptions {
 
 const INTEGRATION_NAME = 'OnUnhandledRejection';
 
-const onUnhandledRejectionIntegration = ((options: Partial<OnUnhandledRejectionOptions> = {}) => {
+export const onUnhandledRejectionIntegration = ((options: Partial<OnUnhandledRejectionOptions> = {}) => {
   const mode = options.mode || 'warn';
 
   return {
@@ -31,7 +31,10 @@ const onUnhandledRejectionIntegration = ((options: Partial<OnUnhandledRejectionO
 
 /** Global Promise Rejection handler */
 // eslint-disable-next-line deprecation/deprecation
-export const OnUnhandledRejection = convertIntegrationFnToClass(INTEGRATION_NAME, onUnhandledRejectionIntegration);
+export const OnUnhandledRejection = convertIntegrationFnToClass(
+  INTEGRATION_NAME,
+  onUnhandledRejectionIntegration,
+) as IntegrationClass<Integration> & { new (options?: Partial<{ mode: UnhandledRejectionMode }>): Integration };
 
 /**
  * Send an exception with reason

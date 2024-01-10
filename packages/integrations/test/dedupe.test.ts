@@ -1,4 +1,4 @@
-import type { Event as SentryEvent, Exception, StackFrame, Stacktrace } from '@sentry/types';
+import type { Client, Event as SentryEvent, Exception, StackFrame, Stacktrace } from '@sentry/types';
 
 import { Dedupe, _shouldDropEvent } from '../src/dedupe';
 
@@ -179,25 +179,29 @@ describe('Dedupe', () => {
     it('ignores consecutive errors', () => {
       const integration = new Dedupe();
 
-      expect(integration.processEvent(clone(exceptionEvent))).not.toBeNull();
-      expect(integration.processEvent(clone(exceptionEvent))).toBeNull();
-      expect(integration.processEvent(clone(exceptionEvent))).toBeNull();
+      expect(integration.processEvent!(clone(exceptionEvent), {}, {} as Client)).not.toBeNull();
+      expect(integration.processEvent!(clone(exceptionEvent), {}, {} as Client)).toBeNull();
+      expect(integration.processEvent!(clone(exceptionEvent), {}, {} as Client)).toBeNull();
     });
 
     it('ignores transactions between errors', () => {
       const integration = new Dedupe();
 
-      expect(integration.processEvent(clone(exceptionEvent))).not.toBeNull();
+      expect(integration.processEvent!(clone(exceptionEvent), {}, {} as Client)).not.toBeNull();
       expect(
-        integration.processEvent({
-          event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2',
-          message: 'someMessage',
-          transaction: 'wat',
-          type: 'transaction',
-        }),
+        integration.processEvent!(
+          {
+            event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2',
+            message: 'someMessage',
+            transaction: 'wat',
+            type: 'transaction',
+          },
+          {},
+          {} as Client,
+        ),
       ).not.toBeNull();
-      expect(integration.processEvent(clone(exceptionEvent))).toBeNull();
-      expect(integration.processEvent(clone(exceptionEvent))).toBeNull();
+      expect(integration.processEvent!(clone(exceptionEvent), {}, {} as Client)).toBeNull();
+      expect(integration.processEvent!(clone(exceptionEvent), {}, {} as Client)).toBeNull();
     });
   });
 });

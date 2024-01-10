@@ -47,7 +47,7 @@ interface ContextLinesOptions {
   frameContextLines?: number;
 }
 
-const denoContextLinesIntegration: IntegrationFn = (options: ContextLinesOptions = {}) => {
+export const denoContextLinesIntegration = ((options: ContextLinesOptions = {}) => {
   const contextLines = options.frameContextLines !== undefined ? options.frameContextLines : DEFAULT_LINES_OF_CONTEXT;
 
   return {
@@ -58,7 +58,7 @@ const denoContextLinesIntegration: IntegrationFn = (options: ContextLinesOptions
       return addSourceContext(event, contextLines);
     },
   };
-};
+}) satisfies IntegrationFn;
 
 /** Add node modules / packages to the event */
 // eslint-disable-next-line deprecation/deprecation

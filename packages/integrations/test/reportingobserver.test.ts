@@ -68,7 +68,7 @@ describe('ReportingObserver', () => {
         () => undefined,
         () => mockHub,
       );
-      reportingObserverIntegration.setup(mockClient);
+      reportingObserverIntegration.setup!(mockClient);
 
       expect(mockReportingObserverConstructor).toHaveBeenCalledTimes(1);
       expect(mockReportingObserverConstructor).toHaveBeenCalledWith(
@@ -83,7 +83,7 @@ describe('ReportingObserver', () => {
         () => undefined,
         () => mockHub,
       );
-      reportingObserverIntegration.setup(mockClient);
+      reportingObserverIntegration.setup!(mockClient);
 
       expect(mockReportingObserverConstructor).toHaveBeenCalledTimes(1);
       expect(mockReportingObserverConstructor).toHaveBeenCalledWith(
@@ -98,7 +98,7 @@ describe('ReportingObserver', () => {
         () => undefined,
         () => mockHub,
       );
-      reportingObserverIntegration.setup(mockClient);
+      reportingObserverIntegration.setup!(mockClient);
 
       expect(mockReportingObserverConstructor).toHaveBeenCalledTimes(1);
       expect(mockReportingObserverConstructor).toHaveBeenCalledWith(
@@ -113,7 +113,7 @@ describe('ReportingObserver', () => {
         () => undefined,
         () => mockHub,
       );
-      reportingObserverIntegration.setup(mockClient);
+      reportingObserverIntegration.setup!(mockClient);
 
       expect(mockObserve).toHaveBeenCalledTimes(1);
     });
@@ -143,7 +143,7 @@ describe('ReportingObserver', () => {
         () => undefined,
         () => mockHub,
       );
-      reportingObserverIntegration.setup(mockClient);
+      reportingObserverIntegration.setup!(mockClient);
       const handler = mockReportingObserverConstructor.mock.calls[0][0];
 
       handler([
@@ -160,7 +160,7 @@ describe('ReportingObserver', () => {
         () => undefined,
         () => mockHub,
       );
-      reportingObserverIntegration.setup(mockClient);
+      reportingObserverIntegration.setup!(mockClient);
       const handler = mockReportingObserverConstructor.mock.calls[0][0];
 
       handler([
@@ -178,7 +178,7 @@ describe('ReportingObserver', () => {
         () => undefined,
         () => mockHub,
       );
-      reportingObserverIntegration.setup(mockClient);
+      reportingObserverIntegration.setup!(mockClient);
       const handler = mockReportingObserverConstructor.mock.calls[0][0];
 
       const report1 = { type: 'crash', url: 'some url 1', body: { crashId: 'id1' } } as const;
@@ -196,7 +196,7 @@ describe('ReportingObserver', () => {
         () => undefined,
         () => mockHub,
       );
-      reportingObserverIntegration.setup(mockClient);
+      reportingObserverIntegration.setup!(mockClient);
       const handler = mockReportingObserverConstructor.mock.calls[0][0];
 
       handler([{ type: 'crash', url: 'some url' }]);
@@ -210,7 +210,7 @@ describe('ReportingObserver', () => {
         () => undefined,
         () => mockHub,
       );
-      reportingObserverIntegration.setup(mockClient);
+      reportingObserverIntegration.setup!(mockClient);
       const handler = mockReportingObserverConstructor.mock.calls[0][0];
 
       const report = {
@@ -231,7 +231,7 @@ describe('ReportingObserver', () => {
         () => undefined,
         () => mockHub,
       );
-      reportingObserverIntegration.setup(mockClient);
+      reportingObserverIntegration.setup!(mockClient);
       const handler = mockReportingObserverConstructor.mock.calls[0][0];
 
       const report = {
@@ -251,7 +251,7 @@ describe('ReportingObserver', () => {
         () => undefined,
         () => mockHub,
       );
-      reportingObserverIntegration.setup(mockClient);
+      reportingObserverIntegration.setup!(mockClient);
       const handler = mockReportingObserverConstructor.mock.calls[0][0];
 
       const report = {
@@ -271,7 +271,7 @@ describe('ReportingObserver', () => {
         () => undefined,
         () => mockHub,
       );
-      reportingObserverIntegration.setup(mockClient);
+      reportingObserverIntegration.setup!(mockClient);
       const handler = mockReportingObserverConstructor.mock.calls[0][0];
 
       const report = {
@@ -290,7 +290,7 @@ describe('ReportingObserver', () => {
         () => undefined,
         () => mockHub,
       );
-      reportingObserverIntegration.setup(mockClient);
+      reportingObserverIntegration.setup!(mockClient);
       const handler = mockReportingObserverConstructor.mock.calls[0][0];
 
       const report = { type: 'crash', url: 'some url', body: { crashId: '', reason: '' } } as const;
@@ -306,7 +306,7 @@ describe('ReportingObserver', () => {
         () => undefined,
         () => mockHub,
       );
-      reportingObserverIntegration.setup(mockClient);
+      reportingObserverIntegration.setup!(mockClient);
       const handler = mockReportingObserverConstructor.mock.calls[0][0];
 
       const report = {
@@ -326,7 +326,7 @@ describe('ReportingObserver', () => {
         () => undefined,
         () => mockHub,
       );
-      reportingObserverIntegration.setup(mockClient);
+      reportingObserverIntegration.setup!(mockClient);
       const handler = mockReportingObserverConstructor.mock.calls[0][0];
 
       const report = {

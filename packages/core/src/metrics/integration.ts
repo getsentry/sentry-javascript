@@ -5,7 +5,7 @@ import { BrowserMetricsAggregator } from './browser-aggregator';
 
 const INTEGRATION_NAME = 'MetricsAggregator';
 
-const metricsAggregatorIntegration: IntegrationFn = () => {
+export const metricsAggregatorIntegration = (() => {
   return {
     name: INTEGRATION_NAME,
     // TODO v8: Remove this
@@ -14,7 +14,7 @@ const metricsAggregatorIntegration: IntegrationFn = () => {
       client.metricsAggregator = new BrowserMetricsAggregator(client);
     },
   };
-};
+}) satisfies IntegrationFn;
 
 /**
  * Enables Sentry metrics monitoring.

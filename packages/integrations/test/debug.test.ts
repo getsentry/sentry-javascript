@@ -2,11 +2,7 @@ import type { Client, Event, EventHint, Integration } from '@sentry/types';
 
 import { Debug } from '../src/debug';
 
-interface IntegrationWithSetup extends Integration {
-  setup: (client: Client) => void;
-}
-
-function testEventLogged(integration: IntegrationWithSetup, testEvent?: Event, testEventHint?: EventHint) {
+function testEventLogged(integration: Integration, testEvent?: Event, testEventHint?: EventHint) {
   const callbacks: ((event: Event, hint?: EventHint) => void)[] = [];
 
   const client: Client = {
@@ -16,7 +12,7 @@ function testEventLogged(integration: IntegrationWithSetup, testEvent?: Event, t
     },
   } as Client;
 
-  integration.setup(client);
+  integration.setup!(client);
 
   expect(callbacks.length).toEqual(1);
 

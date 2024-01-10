@@ -3,7 +3,7 @@ import type { IntegrationFn } from '@sentry/types';
 
 const INTEGRATION_NAME = 'SessionTiming';
 
-const sessionTimingIntegration = (() => {
+export const sessionTimingIntegration = (() => {
   const startTime = Date.now();
 
   return {

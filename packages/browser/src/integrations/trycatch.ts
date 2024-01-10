@@ -1,5 +1,5 @@
 import { convertIntegrationFnToClass } from '@sentry/core';
-import type { IntegrationFn, WrappedFunction } from '@sentry/types';
+import type { Integration, IntegrationClass, IntegrationFn, WrappedFunction } from '@sentry/types';
 import { fill, getFunctionName, getOriginalFunction } from '@sentry/utils';
 
 import { WINDOW, wrap } from '../helpers';
@@ -50,7 +50,7 @@ interface TryCatchOptions {
   eventTarget: boolean | string[];
 }
 
-const tryCatchIntegration: IntegrationFn = (options: Partial<TryCatchOptions> = {}) => {
+export const browserApiErrorsIntegration = ((options: Partial<TryCatchOptions> = {}) => {
   const _options = {
     XMLHttpRequest: true,
     eventTarget: true,
@@ -88,11 +88,22 @@ const tryCatchIntegration: IntegrationFn = (options: Partial<TryCatchOptions> = 
       }
     },
   };
-};
+}) satisfies IntegrationFn;
 
 /** Wrap timer functions and event targets to catch errors and provide better meta data */
 // eslint-disable-next-line deprecation/deprecation
-export const TryCatch = convertIntegrationFnToClass(INTEGRATION_NAME, tryCatchIntegration);
+export const TryCatch = convertIntegrationFnToClass(
+  INTEGRATION_NAME,
+  browserApiErrorsIntegration,
+) as IntegrationClass<Integration> & {
+  new (options?: {
+    setTimeout: boolean;
+    setInterval: boolean;
+    requestAnimationFrame: boolean;
+    XMLHttpRequest: boolean;
+    eventTarget: boolean | string[];
+  }): Integration;
+};
 
 function _wrapTimeFunction(original: () => void): () => number {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

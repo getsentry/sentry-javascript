@@ -52,7 +52,7 @@ async function addDenoRuntimeContext(event: Event): Promise<Event> {
   return event;
 }
 
-const denoContextIntegration: IntegrationFn = () => {
+export const denoContextIntegration = (() => {
   return {
     name: INTEGRATION_NAME,
     // TODO v8: Remove this
@@ -61,7 +61,7 @@ const denoContextIntegration: IntegrationFn = () => {
       return addDenoRuntimeContext(event);
     },
   };
-};
+}) satisfies IntegrationFn;
 
 /** Adds Deno context to events. */
 // eslint-disable-next-line deprecation/deprecation

@@ -1,3 +1,4 @@
+import type { Hub } from '@sentry/types';
 import { fill } from '../../../../utils/src/object';
 import { FunctionToString } from '../../../src/integrations/functiontostring';
 
@@ -18,7 +19,10 @@ describe('FunctionToString', () => {
     expect(foo.bar.toString()).not.toBe(originalFunction);
 
     const fts = new FunctionToString();
-    fts.setupOnce();
+    fts.setupOnce(
+      () => {},
+      () => ({}) as Hub,
+    );
 
     expect(foo.bar.toString()).toBe(originalFunction);
   });

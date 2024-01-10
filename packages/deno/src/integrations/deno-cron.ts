@@ -11,7 +11,7 @@ const INTEGRATION_NAME = 'DenoCron';
 
 const SETUP_CLIENTS = new WeakMap<Client, boolean>();
 
-const denoCronIntegration = (() => {
+export const denoCronIntegration = (() => {
   return {
     name: INTEGRATION_NAME,
     setupOnce() {
@@ -36,6 +36,7 @@ const denoCronIntegration = (() => {
             options = opt1;
           }
 
+          /** When a cron was called. */
           async function cronCalled(): Promise<void> {
             if (SETUP_CLIENTS.has(getClient() as Client)) {
               return;

@@ -17,6 +17,7 @@ import type {
   DynamicSamplingContext,
   EventProcessor,
   Integration,
+  IntegrationFn,
   SanitizedRequestData,
   TracePropagationTargets,
 } from '@sentry/types';
@@ -29,6 +30,7 @@ import {
   stringMatchesSomePattern,
 } from '@sentry/utils';
 
+import type { IntegrationFnResult } from '@sentry/types';
 import type { NodeClient } from '../client';
 import { DEBUG_BUILD } from '../debug-build';
 import { NODE_VERSION } from '../nodeVersion';
@@ -75,6 +77,10 @@ interface HttpOptions {
    */
   tracing?: TracingOptions | boolean;
 }
+
+export const httpIntegration = ((options: HttpOptions = {}) => {
+  return new Http(options) as unknown as IntegrationFnResult;
+}) satisfies IntegrationFn;
 
 /**
  * The http module integration instruments Node's internal http module. It creates breadcrumbs, transactions for outgoing

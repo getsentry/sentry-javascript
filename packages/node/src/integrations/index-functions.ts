@@ -1,0 +1,13 @@
+export { consoleIntegration } from './console';
+export { httpIntegration } from './http';
+export { onUncaughtExceptionIntegration } from './onuncaughtexception';
+export { onUnhandledRejectionIntegration } from './onunhandledrejection';
+export { modulesIntegration } from './modules';
+export { contextLinesIntegration } from './contextlines';
+export { nodeContextIntegration } from './context';
+export { requestDataIntegration } from '@sentry/core';
+export { localVariablesIntegration } from './local-variables';
+export { undiciIntegration } from './undici';
+export { spotlightIntegration } from './spotlight';
+export { anrIntegration } from './anr';
+export { hapiIntegration } from './hapi';

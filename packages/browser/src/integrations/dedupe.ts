@@ -6,7 +6,7 @@ import { DEBUG_BUILD } from '../debug-build';
 
 const INTEGRATION_NAME = 'Dedupe';
 
-const dedupeIntegration: IntegrationFn = () => {
+export const dedupeIntegration = (() => {
   let previousEvent: Event | undefined;
 
   return {
@@ -31,7 +31,7 @@ const dedupeIntegration: IntegrationFn = () => {
       return (previousEvent = currentEvent);
     },
   };
-};
+}) satisfies IntegrationFn;
 
 /** Deduplication filter */
 // eslint-disable-next-line deprecation/deprecation

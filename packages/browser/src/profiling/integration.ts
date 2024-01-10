@@ -18,7 +18,7 @@ import {
 
 const INTEGRATION_NAME = 'BrowserProfiling';
 
-const browserProfilingIntegration: IntegrationFn = () => {
+export const browserProfilingIntegration = (() => {
   return {
     name: INTEGRATION_NAME,
     // TODO v8: Remove this
@@ -100,7 +100,7 @@ const browserProfilingIntegration: IntegrationFn = () => {
       });
     },
   };
-};
+}) satisfies IntegrationFn;
 
 /**
  * Browser profiling integration. Stores any event that has contexts["profile"]["profile_id"]

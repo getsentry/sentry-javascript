@@ -13,7 +13,7 @@ type GlobalHandlersIntegrations = Record<GlobalHandlersIntegrationsOptionKeys, b
 const INTEGRATION_NAME = 'GlobalHandlers';
 let isExiting = false;
 
-const globalHandlersIntegration: IntegrationFn = (options?: GlobalHandlersIntegrations) => {
+export const globalHandlersIntegration = ((options?: GlobalHandlersIntegrations) => {
   const _options = {
     error: true,
     unhandledrejection: true,
@@ -33,7 +33,7 @@ const globalHandlersIntegration: IntegrationFn = (options?: GlobalHandlersIntegr
       }
     },
   };
-};
+}) satisfies IntegrationFn;
 
 /** Global handlers */
 // eslint-disable-next-line deprecation/deprecation

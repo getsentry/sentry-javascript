@@ -5,7 +5,7 @@ import { addConsoleInstrumentationHandler, severityLevelFromString } from '@sent
 
 const INTEGRATION_NAME = 'Console';
 
-const consoleIntegration = (() => {
+export const consoleIntegration = (() => {
   return {
     name: INTEGRATION_NAME,
     // TODO v8: Remove this

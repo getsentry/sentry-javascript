@@ -1,4 +1,4 @@
-import type { Client, Event, EventHint, Integration, IntegrationFn, Options } from '@sentry/types';
+import type { Client, Event, EventHint, Integration, IntegrationClass, IntegrationFn, Options } from '@sentry/types';
 import { arrayify, logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from './debug-build';
@@ -166,21 +166,11 @@ function findIndex<T>(arr: T[], callback: (item: T) => boolean): number {
  *
  * @deprecated This will be removed in v8!
  */
-export function convertIntegrationFnToClass<Fn extends IntegrationFn>(
-  name: string,
-  fn: Fn,
-): Integration & {
-  id: string;
-  new (...args: Parameters<Fn>): Integration & ReturnType<Fn>;
-} {
+export function convertIntegrationFnToClass(name: string, fn: IntegrationFn): IntegrationClass<Integration> {
   return Object.assign(
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    function ConvertedIntegration(...rest: Parameters<Fn>) {
-      return fn(...rest);
+    function ConvertedIntegration(options?: Options) {
+      return fn(options);
     },
     { id: name },
-  ) as unknown as Integration & {
-    id: string;
-    new (...args: Parameters<Fn>): Integration & ReturnType<Fn>;
-  };
+  ) as unknown as IntegrationClass<Integration>;
 }

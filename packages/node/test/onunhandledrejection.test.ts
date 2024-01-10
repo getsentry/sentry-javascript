@@ -21,7 +21,7 @@ jest.mock('@sentry/core', () => {
 describe('unhandled promises', () => {
   test('install global listener', () => {
     const integration = new OnUnhandledRejection();
-    integration.setup(client);
+    integration.setup!(client);
     expect(process.listeners('unhandledRejection')).toHaveLength(1);
   });
 

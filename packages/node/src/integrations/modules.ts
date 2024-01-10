@@ -76,7 +76,7 @@ function _getModules(): { [key: string]: string } {
   return moduleCache;
 }
 
-const modulesIntegration = (() => {
+export const modulesIntegration = (() => {
   return {
     name: INTEGRATION_NAME,
     // TODO v8: Remove this

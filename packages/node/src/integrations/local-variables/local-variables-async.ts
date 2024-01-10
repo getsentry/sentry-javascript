@@ -70,7 +70,7 @@ const INTEGRATION_NAME = 'LocalVariablesAsync';
 /**
  * Adds local variables to exception frames
  */
-export const localVariablesAsync: IntegrationFn = (options: Options = {}) => {
+export const localVariablesAsyncIntegration = ((options: Options = {}) => {
   const cachedFrames: LRUMap<string, FrameVariables[]> = new LRUMap(20);
   let rateLimiter: RateLimitIncrement | undefined;
   let shouldProcessEvent = false;
@@ -245,10 +245,10 @@ export const localVariablesAsync: IntegrationFn = (options: Options = {}) => {
       return event;
     },
   };
-};
+}) satisfies IntegrationFn;
 
 /**
  * Adds local variables to exception frames
  */
 // eslint-disable-next-line deprecation/deprecation
-export const LocalVariablesAsync = convertIntegrationFnToClass(INTEGRATION_NAME, localVariablesAsync);
+export const LocalVariablesAsync = convertIntegrationFnToClass(INTEGRATION_NAME, localVariablesAsyncIntegration);

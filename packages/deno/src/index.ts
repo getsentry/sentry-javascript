@@ -90,3 +90,9 @@ const INTEGRATIONS = {
 };
 
 export { INTEGRATIONS as Integrations };
+
+export { denoContextIntegration } from './integrations/context';
+export { denoContextLinesIntegration } from './integrations/contextlines';
+export { denoCronIntegration } from './integrations/deno-cron';
+export { globalHandlersIntegration } from './integrations/globalhandlers';
+export { normalizePathsIntegration } from './integrations/normalizepaths';

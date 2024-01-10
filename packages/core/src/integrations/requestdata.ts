@@ -1,4 +1,4 @@
-import type { Client, IntegrationFn, Transaction } from '@sentry/types';
+import type { Client, Integration, IntegrationClass, IntegrationFn, Transaction } from '@sentry/types';
 import type { AddRequestDataToEventOptions, TransactionNamingScheme } from '@sentry/utils';
 import { addRequestDataToEvent, extractPathForTransaction } from '@sentry/utils';
 import { convertIntegrationFnToClass } from '../integration';
@@ -47,7 +47,7 @@ const DEFAULT_OPTIONS = {
 
 const INTEGRATION_NAME = 'RequestData';
 
-const requestDataIntegration: IntegrationFn = (options: RequestDataIntegrationOptions = {}) => {
+export const requestDataIntegration = ((options: RequestDataIntegrationOptions = {}) => {
   const _addRequestData = addRequestDataToEvent;
   const _options: Required<RequestDataIntegrationOptions> = {
     ...DEFAULT_OPTIONS,
@@ -129,12 +129,39 @@ const requestDataIntegration: IntegrationFn = (options: RequestDataIntegrationOp
       return processedEvent;
     },
   };
-};
+}) satisfies IntegrationFn;
 
 /** Add data about a request to an event. Primarily for use in Node-based SDKs, but included in `@sentry/integrations`
  * so it can be used in cross-platform SDKs like `@sentry/nextjs`. */
 // eslint-disable-next-line deprecation/deprecation
-export const RequestData = convertIntegrationFnToClass(INTEGRATION_NAME, requestDataIntegration);
+export const RequestData = convertIntegrationFnToClass(
+  INTEGRATION_NAME,
+  requestDataIntegration,
+) as IntegrationClass<Integration> & {
+  new (options?: {
+    /**
+     * Controls what data is pulled from the request and added to the event
+     */
+    include?: {
+      cookies?: boolean;
+      data?: boolean;
+      headers?: boolean;
+      ip?: boolean;
+      query_string?: boolean;
+      url?: boolean;
+      user?:
+        | boolean
+        | {
+            id?: boolean;
+            username?: boolean;
+            email?: boolean;
+          };
+    };
+
+    /** Whether to identify transactions by parameterized path, parameterized path with method, or handler name */
+    transactionNamingScheme?: TransactionNamingScheme;
+  }): Integration;
+};
 
 /** Convert this integration's options to match what `addRequestDataToEvent` expects */
 /** TODO: Can possibly be deleted once https://github.com/getsentry/sentry-javascript/issues/5718 is fixed */

@@ -1,6 +1,6 @@
 import { readFile } from 'fs';
 import { convertIntegrationFnToClass } from '@sentry/core';
-import type { Event, IntegrationFn, StackFrame } from '@sentry/types';
+import type { Event, Integration, IntegrationClass, IntegrationFn, StackFrame } from '@sentry/types';
 import { LRUMap, addContextToFrame } from '@sentry/utils';
 
 const FILE_CONTENT_CACHE = new LRUMap<string, string[] | null>(100);
@@ -35,7 +35,7 @@ interface ContextLinesOptions {
   frameContextLines?: number;
 }
 
-const contextLinesIntegration = ((options: ContextLinesOptions = {}) => {
+export const contextLinesIntegration = ((options: ContextLinesOptions = {}) => {
   const contextLines = options.frameContextLines !== undefined ? options.frameContextLines : DEFAULT_LINES_OF_CONTEXT;
 
   return {
@@ -50,7 +50,10 @@ const contextLinesIntegration = ((options: ContextLinesOptions = {}) => {
 
 /** Add node modules / packages to the event */
 // eslint-disable-next-line deprecation/deprecation
-export const ContextLines = convertIntegrationFnToClass(INTEGRATION_NAME, contextLinesIntegration);
+export const ContextLines = convertIntegrationFnToClass(
+  INTEGRATION_NAME,
+  contextLinesIntegration,
+) as IntegrationClass<Integration> & { new (options?: { frameContextLines?: number }): Integration };
 
 async function addSourceContext(event: Event, contextLines: number): Promise<Event> {
   // keep a lookup map of which files we've already enqueued to read,

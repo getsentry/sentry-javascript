@@ -3,7 +3,8 @@ import type { Event, IntegrationFn, StackFrame } from '@sentry/types';
 
 const INTEGRATION_NAME = 'Transaction';
 
-const transactionIntegration = (() => {
+// TODO: This will be removed in v8.
+const transactionFromExceptionStacktraceIntegration = (() => {
   return {
     name: INTEGRATION_NAME,
     // TODO v8: Remove this
@@ -26,9 +27,12 @@ const transactionIntegration = (() => {
   };
 }) satisfies IntegrationFn;
 
-/** Add node transaction to the event */
+/**
+ * Add node transaction to the event
+ * @deprecated This integration will be removed in v8.
+ */
 // eslint-disable-next-line deprecation/deprecation
-export const Transaction = convertIntegrationFnToClass(INTEGRATION_NAME, transactionIntegration);
+export const Transaction = convertIntegrationFnToClass(INTEGRATION_NAME, transactionFromExceptionStacktraceIntegration);
 
 function _getFramesFromEvent(event: Event): StackFrame[] {
   const exception = event.exception && event.exception.values && event.exception.values[0];

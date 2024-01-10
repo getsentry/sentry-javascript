@@ -1,4 +1,4 @@
-import type { Event, IntegrationFn, StackFrame } from '@sentry/types';
+import type { Event, Integration, IntegrationClass, IntegrationFn, StackFrame } from '@sentry/types';
 import { getEventDescription, logger, stringMatchesSomePattern } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../debug-build';
@@ -30,7 +30,7 @@ export interface InboundFiltersOptions {
 }
 
 const INTEGRATION_NAME = 'InboundFilters';
-const inboundFiltersIntegration: IntegrationFn = (options: Partial<InboundFiltersOptions>) => {
+export const inboundFiltersIntegration = ((options: Partial<InboundFiltersOptions> = {}) => {
   return {
     name: INTEGRATION_NAME,
     // TODO v8: Remove this
@@ -41,11 +41,26 @@ const inboundFiltersIntegration: IntegrationFn = (options: Partial<InboundFilter
       return _shouldDropEvent(event, mergedOptions) ? null : event;
     },
   };
-};
+}) satisfies IntegrationFn;
 
 /** Inbound filters configurable by the user */
 // eslint-disable-next-line deprecation/deprecation
-export const InboundFilters = convertIntegrationFnToClass(INTEGRATION_NAME, inboundFiltersIntegration);
+export const InboundFilters = convertIntegrationFnToClass(
+  INTEGRATION_NAME,
+  inboundFiltersIntegration,
+) as IntegrationClass<Integration> & {
+  new (
+    options?: Partial<{
+      allowUrls: Array<string | RegExp>;
+      denyUrls: Array<string | RegExp>;
+      ignoreErrors: Array<string | RegExp>;
+      ignoreTransactions: Array<string | RegExp>;
+      ignoreInternal: boolean;
+      disableErrorDefaults: boolean;
+      disableTransactionDefaults: boolean;
+    }>,
+  ): Integration;
+};
 
 function _mergeOptions(
   internalOptions: Partial<InboundFiltersOptions> = {},

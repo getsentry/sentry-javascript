@@ -9,6 +9,8 @@ import {
   spanToTraceHeader,
 } from '@sentry/core';
 import type { EventProcessor, Integration, Span } from '@sentry/types';
+import type { IntegrationFnResult } from '@sentry/types';
+import type { IntegrationFn } from '@sentry/types';
 import {
   LRUMap,
   dynamicRequire,
@@ -48,6 +50,10 @@ export interface UndiciOptions {
    */
   shouldCreateSpanForRequest?: (url: string) => boolean;
 }
+
+export const undiciIntegration = ((options: Partial<UndiciOptions> = {}) => {
+  return new Undici(options) as unknown as IntegrationFnResult;
+}) satisfies IntegrationFn;
 
 // Please note that you cannot use `console.log` to debug the callbacks registered to the `diagnostics_channel` API.
 // To debug, you can use `writeFileSync` to write to a file:

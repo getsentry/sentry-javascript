@@ -6,7 +6,7 @@ import { addMetadataToStackFrames, stripMetadataFromStackFrames } from '../metad
 
 const INTEGRATION_NAME = 'ModuleMetadata';
 
-const moduleMetadataIntegration: IntegrationFn = () => {
+export const moduleMetadataIntegration = (() => {
   return {
     name: INTEGRATION_NAME,
     // TODO v8: Remove this
@@ -37,7 +37,7 @@ const moduleMetadataIntegration: IntegrationFn = () => {
       return event;
     },
   };
-};
+}) satisfies IntegrationFn;
 
 /**
  * Adds module metadata to stack frames.

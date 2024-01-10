@@ -90,3 +90,4 @@ export {
   wrap,
 } from './sdk';
 export { GlobalHandlers, TryCatch, Breadcrumbs, LinkedErrors, HttpContext, Dedupe } from './integrations';
+export * from './integrations/index-functions';

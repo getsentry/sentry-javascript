@@ -70,6 +70,11 @@ export {
   convertIntegrationFnToClass,
 } from './integration';
 export { FunctionToString, InboundFilters, LinkedErrors } from './integrations';
+export { inboundFiltersIntegration } from './integrations/inboundfilters';
+export { linkedErrorsIntegration } from './integrations/linkederrors';
+export { functionToStringIntegration } from './integrations/functiontostring';
+export { requestDataIntegration } from './integrations/requestdata';
+export { moduleMetadataIntegration } from './integrations/metadata';
 export { applyScopeDataToEvent, mergeScopeData } from './utils/applyScopeDataToEvent';
 export { prepareEvent } from './utils/prepareEvent';
 export { createCheckInEnvelope } from './checkin';

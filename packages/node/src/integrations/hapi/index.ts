@@ -138,7 +138,7 @@ export type HapiOptions = {
 
 const INTEGRATION_NAME = 'Hapi';
 
-const hapiIntegration = ((options: HapiOptions = {}) => {
+export const hapiIntegration = ((options: HapiOptions = {}) => {
   const server = options.server as undefined | Server;
 
   return {

@@ -5,7 +5,7 @@ import { WINDOW } from '../helpers';
 
 const INTEGRATION_NAME = 'HttpContext';
 
-const httpContextIntegration: IntegrationFn = () => {
+export const httpContextIntegration = (() => {
   return {
     name: INTEGRATION_NAME,
     // TODO v8: Remove this
@@ -31,7 +31,7 @@ const httpContextIntegration: IntegrationFn = () => {
       event.request = request;
     },
   };
-};
+}) satisfies IntegrationFn;
 
 /** HttpContext integration collects information about HTTP request headers */
 // eslint-disable-next-line deprecation/deprecation

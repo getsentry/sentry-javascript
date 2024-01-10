@@ -16,7 +16,7 @@ describe('ContextLines', () => {
 
   beforeEach(() => {
     readFileSpy = jest.spyOn(fs, 'readFile');
-    contextLines = new ContextLines();
+    contextLines = new ContextLines() as Integration & { processEvent: (event: Event) => Promise<Event> };
     resetFileContentCache();
   });
 
@@ -98,7 +98,9 @@ describe('ContextLines', () => {
     });
 
     test('parseStack with no context', async () => {
-      contextLines = new ContextLines({ frameContextLines: 0 });
+      contextLines = new ContextLines({ frameContextLines: 0 }) as Integration & {
+        processEvent: (event: Event) => Promise<Event>;
+      };
 
       expect.assertions(1);
       const frames = parseStackFrames(defaultStackParser, new Error('test'));
@@ -110,7 +112,7 @@ describe('ContextLines', () => {
 
   test('does not attempt to readfile multiple times if it fails', async () => {
     expect.assertions(1);
-    contextLines = new ContextLines({});
+    contextLines = new ContextLines({}) as Integration & { processEvent: (event: Event) => Promise<Event> };
 
     readFileSpy.mockImplementation(() => {
       throw new Error("ENOENT: no such file or directory, open '/does/not/exist.js'");

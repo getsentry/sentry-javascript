@@ -30,7 +30,7 @@ describe('Spotlight', () => {
     };
     const integration = new Spotlight();
     // @ts-expect-error - this is fine in tests
-    integration.setup(clientWithSpy);
+    integration.setup!(clientWithSpy);
     expect(clientWithSpy.on).toHaveBeenCalledWith('beforeEnvelope', expect.any(Function));
   });
 
@@ -51,7 +51,7 @@ describe('Spotlight', () => {
 
     const integration = new Spotlight();
     // @ts-expect-error - this is fine in tests
-    integration.setup(clientWithSpy);
+    integration.setup!(clientWithSpy);
 
     const envelope = createEnvelope<EventEnvelope>({ event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2', sent_at: '123' }, [
       [{ type: 'event' }, { event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2' }],
@@ -90,7 +90,7 @@ describe('Spotlight', () => {
 
     const integration = new Spotlight({ sidecarUrl: 'http://mylocalhost:8888/abcd' });
     // @ts-expect-error - this is fine in tests
-    integration.setup(clientWithSpy);
+    integration.setup!(clientWithSpy);
 
     const envelope = createEnvelope<EventEnvelope>({ event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2', sent_at: '123' }, [
       [{ type: 'event' }, { event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2' }],
@@ -115,7 +115,7 @@ describe('Spotlight', () => {
   describe('no-ops if', () => {
     it('an invalid URL is passed', () => {
       const integration = new Spotlight({ sidecarUrl: 'invalid-url' });
-      integration.setup(client);
+      integration.setup!(client);
       expect(loggerSpy).toHaveBeenCalledWith(expect.stringContaining('Invalid sidecar URL: invalid-url'));
     });
 
@@ -125,7 +125,7 @@ describe('Spotlight', () => {
       // @ts-expect-error - this is fine in tests
       delete client.on;
       // @ts-expect-error - this is fine in tests
-      integration.setup(clientWithoutHooks);
+      integration.setup!(clientWithoutHooks);
       expect(loggerSpy).toHaveBeenCalledWith(expect.stringContaining(' missing method on SDK client (`client.on`)'));
     });
   });
@@ -135,7 +135,7 @@ describe('Spotlight', () => {
     process.env.NODE_ENV = 'production';
 
     const integration = new Spotlight({ sidecarUrl: 'http://localhost:8969' });
-    integration.setup(client);
+    integration.setup!(client);
 
     expect(loggerSpy).toHaveBeenCalledWith(
       expect.stringContaining("It seems you're not in dev mode. Do you really want to have Spotlight enabled?"),
@@ -149,7 +149,7 @@ describe('Spotlight', () => {
     process.env.NODE_ENV = 'development';
 
     const integration = new Spotlight({ sidecarUrl: 'http://localhost:8969' });
-    integration.setup(client);
+    integration.setup!(client);
 
     expect(loggerSpy).not.toHaveBeenCalledWith(
       expect.stringContaining("It seems you're not in dev mode. Do you really want to have Spotlight enabled?"),
@@ -165,7 +165,7 @@ describe('Spotlight', () => {
     delete global.process;
 
     const integration = new Spotlight({ sidecarUrl: 'http://localhost:8969' });
-    integration.setup(client);
+    integration.setup!(client);
 
     expect(loggerSpy).not.toHaveBeenCalledWith(
       expect.stringContaining("It seems you're not in dev mode. Do you really want to have Spotlight enabled?"),
@@ -181,7 +181,7 @@ describe('Spotlight', () => {
     delete process.env;
 
     const integration = new Spotlight({ sidecarUrl: 'http://localhost:8969' });
-    integration.setup(client);
+    integration.setup!(client);
 
     expect(loggerSpy).not.toHaveBeenCalledWith(
       expect.stringContaining("It seems you're not in dev mode. Do you really want to have Spotlight enabled?"),

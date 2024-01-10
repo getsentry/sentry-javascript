@@ -1,9 +1,13 @@
-import type { Event as SentryEvent, ExtendedError } from '@sentry/types';
+import type { Client, Event, Event as SentryEvent, EventHint, ExtendedError } from '@sentry/types';
 
 import { ExtraErrorData } from '../src/extraerrordata';
 
 const extraErrorData = new ExtraErrorData();
 let event: SentryEvent;
+
+function processEvent(event: Event, hint: EventHint): Event {
+  return extraErrorData.processEvent!(event, hint, {} as Client) as Event;
+}
 
 describe('ExtraErrorData()', () => {
   beforeEach(() => {
@@ -15,7 +19,7 @@ describe('ExtraErrorData()', () => {
     error.baz = 42;
     error.foo = 'bar';
 
-    const enhancedEvent = extraErrorData.processEvent(event, {
+    const enhancedEvent = processEvent(event, {
       originalException: error,
     });
 
@@ -31,7 +35,7 @@ describe('ExtraErrorData()', () => {
     const error = new TypeError('foo') as ExtendedError;
     error.cause = new SyntaxError('bar');
 
-    const enhancedEvent = extraErrorData.processEvent(event, {
+    const enhancedEvent = processEvent(event, {
       originalException: error,
     });
 
@@ -52,7 +56,7 @@ describe('ExtraErrorData()', () => {
       },
     };
 
-    const enhancedEvent = extraErrorData.processEvent(event, {
+    const enhancedEvent = processEvent(event, {
       originalException: error,
     });
 
@@ -76,7 +80,7 @@ describe('ExtraErrorData()', () => {
     const error = new TypeError('foo') as ExtendedError;
     error.baz = 42;
 
-    const enhancedEvent = extraErrorData.processEvent(event, {
+    const enhancedEvent = processEvent(event, {
       originalException: error,
     });
 
@@ -91,7 +95,7 @@ describe('ExtraErrorData()', () => {
   it('should return event if originalException is not an Error object', () => {
     const error = 'error message, not object';
 
-    const enhancedEvent = extraErrorData.processEvent(event, {
+    const enhancedEvent = processEvent(event, {
       originalException: error,
     });
 
@@ -99,13 +103,13 @@ describe('ExtraErrorData()', () => {
   });
 
   it('should return event if there is no SentryEventHint', () => {
-    const enhancedEvent = extraErrorData.processEvent(event, {});
+    const enhancedEvent = processEvent(event, {});
 
     expect(enhancedEvent).toEqual(event);
   });
 
   it('should return event if there is no originalException', () => {
-    const enhancedEvent = extraErrorData.processEvent(event, {
+    const enhancedEvent = processEvent(event, {
       // @ts-expect-error Allow event to have extra properties
       notOriginalException: 'fooled you',
     });
@@ -124,7 +128,7 @@ describe('ExtraErrorData()', () => {
       };
     };
 
-    const enhancedEvent = extraErrorData.processEvent(event, {
+    const enhancedEvent = processEvent(event, {
       originalException: error,
     });
 
@@ -147,7 +151,7 @@ describe('ExtraErrorData()', () => {
       };
     };
 
-    const enhancedEvent = extraErrorData.processEvent(event, {
+    const enhancedEvent = processEvent(event, {
       originalException: error,
     });
 
@@ -167,7 +171,7 @@ describe('ExtraErrorData()', () => {
       };
     };
 
-    const enhancedEvent = extraErrorData.processEvent(event, {
+    const enhancedEvent = processEvent(event, {
       originalException: error,
     });
 
@@ -191,9 +195,13 @@ describe('ExtraErrorData()', () => {
     // @ts-expect-error The typing .d.ts library we have installed isn't aware of Error.cause yet
     const error = new Error('foo', { cause: { woot: 'foo' } }) as ExtendedError;
 
-    const enhancedEvent = extraErrorDataWithCauseCapture.processEvent(event, {
-      originalException: error,
-    });
+    const enhancedEvent = extraErrorDataWithCauseCapture.processEvent!(
+      event,
+      {
+        originalException: error,
+      },
+      {} as Client,
+    ) as Event;
 
     expect(enhancedEvent.contexts).toEqual({
       Error: {
@@ -216,9 +224,13 @@ describe('ExtraErrorData()', () => {
     // @ts-expect-error The typing .d.ts library we have installed isn't aware of Error.cause yet
     const error = new Error('foo', { cause: { woot: 'foo' } }) as ExtendedError;
 
-    const enhancedEvent = extraErrorDataWithoutCauseCapture.processEvent(event, {
-      originalException: error,
-    });
+    const enhancedEvent = extraErrorDataWithoutCauseCapture.processEvent!(
+      event,
+      {
+        originalException: error,
+      },
+      {} as Client,
+    ) as Event;
 
     expect(enhancedEvent.contexts).not.toEqual({
       Error: {

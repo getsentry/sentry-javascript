@@ -213,7 +213,7 @@ const INTEGRATION_NAME = 'LocalVariables';
 /**
  * Adds local variables to exception frames
  */
-export const localVariablesSync: IntegrationFn = (
+export const localVariablesSyncIntegration = ((
   options: Options = {},
   session: DebugSession | undefined = tryNewAsyncSession(),
 ) => {
@@ -385,10 +385,10 @@ export const localVariablesSync: IntegrationFn = (
       return cachedFrames.values()[0];
     },
   };
-};
+}) satisfies IntegrationFn;
 
 /**
  * Adds local variables to exception frames
  */
 // eslint-disable-next-line deprecation/deprecation
-export const LocalVariablesSync = convertIntegrationFnToClass(INTEGRATION_NAME, localVariablesSync);
+export const LocalVariablesSync = convertIntegrationFnToClass(INTEGRATION_NAME, localVariablesSyncIntegration);

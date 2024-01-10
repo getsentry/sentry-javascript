@@ -1,7 +1,7 @@
 import * as http from 'http';
 import { URL } from 'url';
 import { convertIntegrationFnToClass } from '@sentry/core';
-import type { Client, Envelope, IntegrationFn } from '@sentry/types';
+import type { Client, Envelope, Integration, IntegrationClass, IntegrationFn } from '@sentry/types';
 import { logger, serializeEnvelope } from '@sentry/utils';
 
 type SpotlightConnectionOptions = {
@@ -14,7 +14,7 @@ type SpotlightConnectionOptions = {
 
 const INTEGRATION_NAME = 'Spotlight';
 
-const spotlightIntegration = ((options: Partial<SpotlightConnectionOptions> = {}) => {
+export const spotlightIntegration = ((options: Partial<SpotlightConnectionOptions> = {}) => {
   const _options = {
     sidecarUrl: options.sidecarUrl || 'http://localhost:8969/stream',
   };
@@ -40,7 +40,16 @@ const spotlightIntegration = ((options: Partial<SpotlightConnectionOptions> = {}
  * Important: This integration only works with Node 18 or newer
  */
 // eslint-disable-next-line deprecation/deprecation
-export const Spotlight = convertIntegrationFnToClass(INTEGRATION_NAME, spotlightIntegration);
+export const Spotlight = convertIntegrationFnToClass(
+  INTEGRATION_NAME,
+  spotlightIntegration,
+) as IntegrationClass<Integration> & {
+  new (
+    options?: Partial<{
+      sidecarUrl?: string;
+    }>,
+  ): Integration;
+};
 
 function connectToSpotlight(client: Client, options: Required<SpotlightConnectionOptions>): void {
   const spotlightUrl = parseSidecarUrl(options.sidecarUrl);

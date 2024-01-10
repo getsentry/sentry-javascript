@@ -6,7 +6,7 @@ import { DEBUG_BUILD } from './debug-build';
 
 const INTEGRATION_NAME = 'Dedupe';
 
-const dedupeIntegration = (() => {
+export const dedupeIntegration = (() => {
   let previousEvent: Event | undefined;
 
   return {

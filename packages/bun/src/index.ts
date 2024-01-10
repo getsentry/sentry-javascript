@@ -94,3 +94,5 @@ const INTEGRATIONS = {
 };
 
 export { INTEGRATIONS as Integrations };
+
+export { bunServerIntegration } from './integrations/bunserver';

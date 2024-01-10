@@ -5,7 +5,7 @@ import { DEBUG_BUILD } from '../debug-build';
 import { getClient, getCurrentScope } from '../exports';
 import { spanToJSON } from '../utils/spanUtils';
 import { COUNTER_METRIC_TYPE, DISTRIBUTION_METRIC_TYPE, GAUGE_METRIC_TYPE, SET_METRIC_TYPE } from './constants';
-import { MetricsAggregator } from './integration';
+import { MetricsAggregator, metricsAggregatorIntegration } from './integration';
 import type { MetricType } from './types';
 
 interface MetricData {
@@ -90,4 +90,5 @@ export const metrics = {
   set,
   gauge,
   MetricsAggregator,
+  metricsAggregatorIntegration,
 };

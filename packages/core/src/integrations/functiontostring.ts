@@ -6,7 +6,7 @@ let originalFunctionToString: () => void;
 
 const INTEGRATION_NAME = 'FunctionToString';
 
-const functionToStringIntegration: IntegrationFn = () => {
+export const functionToStringIntegration = (() => {
   return {
     name: INTEGRATION_NAME,
     setupOnce() {
@@ -26,7 +26,7 @@ const functionToStringIntegration: IntegrationFn = () => {
       }
     },
   };
-};
+}) satisfies IntegrationFn;
 
 /** Patch toString calls to return proper name for wrapped functions */
 // eslint-disable-next-line deprecation/deprecation

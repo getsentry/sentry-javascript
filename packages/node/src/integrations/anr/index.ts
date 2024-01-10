@@ -1,7 +1,7 @@
 // TODO (v8): This import can be removed once we only support Node with global URL
 import { URL } from 'url';
 import { convertIntegrationFnToClass, getCurrentScope } from '@sentry/core';
-import type { Contexts, Event, EventHint, IntegrationFn } from '@sentry/types';
+import type { Client, Contexts, Event, EventHint, Integration, IntegrationClass, IntegrationFn } from '@sentry/types';
 import { dynamicRequire, logger } from '@sentry/utils';
 import type { Worker, WorkerOptions } from 'worker_threads';
 import type { NodeClient } from '../../client';
@@ -52,7 +52,7 @@ interface InspectorApi {
 
 const INTEGRATION_NAME = 'Anr';
 
-const anrIntegration = ((options: Partial<Options> = {}) => {
+export const anrIntegration = ((options: Partial<Options> = {}) => {
   return {
     name: INTEGRATION_NAME,
     // TODO v8: Remove this
@@ -74,7 +74,9 @@ const anrIntegration = ((options: Partial<Options> = {}) => {
  * ANR detection requires Node 16.17.0 or later
  */
 // eslint-disable-next-line deprecation/deprecation
-export const Anr = convertIntegrationFnToClass(INTEGRATION_NAME, anrIntegration);
+export const Anr = convertIntegrationFnToClass(INTEGRATION_NAME, anrIntegration) as IntegrationClass<Integration> & {
+  new (options?: Partial<Options>): Integration & { setup(client: Client): void };
+};
 
 /**
  * Starts the ANR worker thread

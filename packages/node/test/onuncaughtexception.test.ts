@@ -20,7 +20,7 @@ jest.mock('@sentry/core', () => {
 describe('uncaught exceptions', () => {
   test('install global listener', () => {
     const integration = new OnUncaughtException();
-    integration.setup(client);
+    integration.setup!(client);
     expect(process.listeners('uncaughtException')).toHaveLength(1);
   });
 
