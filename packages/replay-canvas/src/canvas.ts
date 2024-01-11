@@ -1,15 +1,16 @@
-import { CanvasManager } from '@sentry-internal/rrweb';
 import { convertIntegrationFnToClass } from '@sentry/core';
-import type { CanvasManagerInterface } from '@sentry/replay';
+import { CanvasManager } from '@sentry-internal/rrweb';
+import type { CanvasManagerInterface, CanvasManagerOptions } from '@sentry/replay';
 import type { IntegrationFn } from '@sentry/types';
 
 interface ReplayCanvasOptions {
   quality: 'low' | 'medium' | 'high';
 }
 
+type GetCanvasManager = (options: CanvasManagerOptions) => CanvasManagerInterface;
 export interface ReplayCanvasIntegrationOptions {
   recordCanvas: true;
-  getCanvasManager: (options: ConstructorParameters<typeof CanvasManager>[0]) => CanvasManagerInterface;
+  getCanvasManager: GetCanvasManager;
   sampling: {
     canvas: number;
   };
@@ -68,7 +69,7 @@ const replayCanvasIntegration = ((options: Partial<ReplayCanvasOptions> = {}) =>
 
       return {
         recordCanvas: true,
-        getCanvasManager: (options: ConstructorParameters<typeof CanvasManager>[0]) => new CanvasManager(options),
+        getCanvasManager: (options: CanvasManagerOptions) => new CanvasManager(options),
         ...(CANVAS_QUALITY[quality || 'medium'] || CANVAS_QUALITY.medium),
       };
     },

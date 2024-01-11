@@ -12,6 +12,7 @@ export type {
   ReplaySpanFrame,
   ReplaySpanFrameEvent,
   CanvasManagerInterface,
+  CanvasManagerOptions,
 } from './types';
 
 // TODO (v8): Remove deprecated types
