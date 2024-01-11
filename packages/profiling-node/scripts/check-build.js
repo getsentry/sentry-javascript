@@ -9,7 +9,7 @@ function clean(err) {
 function recompileFromSource() {
   // eslint-disable-next-line no-console
   console.log('@sentry/profiling-node: Compiling from source...');
-  let spawn = child_process.spawnSync('npm', ['run', 'build:configure'], {
+  let spawn = child_process.spawnSync('npm', ['run', 'build:bindings:configure'], {
     stdio: ['inherit', 'inherit', 'pipe'],
     env: process.env,
     shell: true

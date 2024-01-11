@@ -43,7 +43,7 @@
     "build:bindings:configure:arm64": "node-gyp configure --arch=arm64 --target_arch=arm64",
     "build:bindings": "node-gyp build && node scripts/copy-target.js",
     "build:bindings:arm64": "node-gyp build --arch=arm64 && node scripts/copy-target.js",
-    "build:dev": "yarn clean && yarn build:configure && yarn build",
+    "build:dev": "yarn clean && yarn build:bindings:configure && yarn build",
     "test:watch": "cross-env SENTRY_PROFILER_BINARY_DIR=./build jest --watch",
     "test:bundle": "node test-binaries.esbuild.js",
     "test:setup:bundle": "(npm link && cd demo_app && npm install && npm link @sentry/profiling-node)",
