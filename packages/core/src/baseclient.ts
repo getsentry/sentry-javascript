@@ -314,12 +314,19 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   }
 
   /**
-   * Sets up the integrations
+   * This is an internal function to setup all integrations that should run on the client.
+   * @deprecated Use `client.init()` instead.
    */
   public setupIntegrations(forceInitialize?: boolean): void {
     if ((forceInitialize && !this._integrationsInitialized) || (this._isEnabled() && !this._integrationsInitialized)) {
-      this._integrations = setupIntegrations(this, this._options.integrations);
-      this._integrationsInitialized = true;
+      this._setupIntegrations();
+    }
+  }
+
+  /** @inheritdoc */
+  public init(): void {
+    if (this._isEnabled()) {
+      this._setupIntegrations();
     }
   }
 
@@ -511,6 +518,13 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   }
 
   /* eslint-enable @typescript-eslint/unified-signatures */
+
+  /** Setup integrations for this client. */
+  protected _setupIntegrations(): void {
+    this._integrations = setupIntegrations(this, this._options.integrations);
+    // TODO v8: We don't need this flag anymore
+    this._integrationsInitialized = true;
+  }
 
   /** Updates existing session based on the provided event */
   protected _updateSessionFromEvent(session: Session, event: Event): void {

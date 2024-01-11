@@ -64,6 +64,10 @@ If you are using the `Hub` right now, see the following table on how to migrate 
 | endSession()           | `Sentry.endSession()`                                                                |
 | shouldSendDefaultPii() | REMOVED - The closest equivalent is `Sentry.getClient().getOptions().sendDefaultPii` |
 
+## Deprecate `client.setupIntegrations()`
+
+Instead, use the new `client.init()` method. You should probably not use this directly and instead use `Sentry.init()`, which calls this under the hood. But if you have a special use case that requires that, you can call `client.init()` instead now.
+
 ## Deprecate `scope.getSpan()` and `scope.setSpan()`
 
 Instead, you can get the currently active span via `Sentry.getActiveSpan()`. Setting a span on the scope happens
