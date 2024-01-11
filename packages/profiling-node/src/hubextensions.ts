@@ -160,6 +160,7 @@ export function __PRIVATE__wrapStartTransactionWithProfiling(startTransaction: S
     const transaction: Transaction = startTransaction.call(this, transactionContext, customSamplingContext);
 
     // Client is required if we want to profile
+    // eslint-disable-next-line deprecation/deprecation
     const client = this.getClient() as NodeClient | undefined;
     if (!client) {
       return transaction;

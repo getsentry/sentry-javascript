@@ -433,6 +433,7 @@ jobs:
     name: Profiling Node Unit Tests
     needs: [job_get_metadata, job_build]
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v4
@@ -1158,6 +1159,7 @@ jobs:
     needs: [job_get_metadata, job_build]
     runs-on: ${{ matrix.os }}
     container: ${{ matrix.container }}
+    timeout-minutes: 10
     strategy:
       fail-fast: false
       matrix:
