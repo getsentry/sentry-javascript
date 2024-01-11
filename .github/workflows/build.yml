@@ -262,38 +262,6 @@ jobs:
       # `job_build` can't see `job_install_deps` and what it returned)
       dependency_cache_key: ${{ needs.job_install_deps.outputs.dependency_cache_key }}
 
-  job_pack_profiling_node:
-    name: Extract Binaries and Pack Profiling Node
-    runs-on: ubuntu-latest
-    needs: [job_get_metadata, job_compile_bindings_profiling_node]
-    timeout-minutes: 5
-    steps:
-      - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ env.HEAD_COMMIT }}
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version-file: 'package.json'
-
-      - run: |
-          cd packages/profiling-node
-          yarn install --frozen-lockfile
-
-      - run: |
-          cd packages/profiling-node
-          yarn build:lib
-
-      - uses: actions/download-artifact@v4.0.0
-        with:
-          name: profiling-node-binaries-${{ github.sha }}
-          path: packages/profiling-node/lib/
-
-      - run: |
-          cd packages/profiling-node
-          yarn pack
-
   job_size_check:
     name: Size Check
     needs: [job_get_metadata, job_build, job_compile_bindings_profiling_node]
@@ -1253,3 +1221,35 @@ jobs:
           name: profiling-node-binaries-${{ github.sha }}
           path: |
             ${{ github.workspace }}/packages/profiling-node/lib/*.node
+
+  job_pack_profiling_node:
+    name: Extract Binaries and Pack Profiling Node
+    runs-on: ubuntu-latest
+    needs: [job_get_metadata, job_compile_bindings_profiling_node]
+    timeout-minutes: 5
+    steps:
+      - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.HEAD_COMMIT }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: 'package.json'
+
+      - run: |
+          cd packages/profiling-node
+          yarn install --frozen-lockfile
+
+      - run: |
+          cd packages/profiling-node
+          yarn build:lib
+
+      - uses: actions/download-artifact@v4.0.0
+        with:
+          name: profiling-node-binaries-${{ github.sha }}
+          path: packages/profiling-node/lib/
+
+      - run: |
+          cd packages/profiling-node
+          yarn pack
