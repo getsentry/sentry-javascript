@@ -1,5 +1,5 @@
-import { convertIntegrationFnToClass } from '@sentry/core';
 import { CanvasManager } from '@sentry-internal/rrweb';
+import { convertIntegrationFnToClass } from '@sentry/core';
 import type { CanvasManagerInterface, CanvasManagerOptions } from '@sentry/replay';
 import type { IntegrationFn } from '@sentry/types';
 
