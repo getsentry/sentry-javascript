@@ -442,16 +442,20 @@ jobs:
         with:
           node-version: 20
       - uses: actions/setup-python@v4
-      - run: |
+      - name: install dependencies
+        run: |
           cd packages/profiling-node
           yarn install --frozen-lockfile
-      - run: |
+      - name: configure node-gyp
+        run: |
           cd packages/profiling-node
           yarn build:bindings:configure
-      - run: |
+      - name: build lib and bindings
+        run: |
           cd packages/profiling-node
           yarn build
-      - run: |
+      - name: unit test
+        run: |
           cd packages/profiling-node
           yarn test
 
@@ -1346,11 +1350,13 @@ jobs:
         with:
           node-version-file: 'package.json'
 
-      - run: |
+      - name: install dependencies
+        run: |
           cd packages/profiling-node
           yarn install --frozen-lockfile
 
-      - run: |
+      - name: Build lib
+        run: |
           cd packages/profiling-node
           yarn build:lib
 
@@ -1359,6 +1365,7 @@ jobs:
           name: profiling-node-binaries-${{ github.sha }}
           path: packages/profiling-node/lib/
 
-      - run: |
+      - name: pack profiling node
+        run: |
           cd packages/profiling-node
           yarn pack
