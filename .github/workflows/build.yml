@@ -267,192 +267,10 @@ jobs:
       # `job_build` can't see `job_install_deps` and what it returned)
       dependency_cache_key: ${{ needs.job_install_deps.outputs.dependency_cache_key }}
 
-  job_build_bindings_profiling_node:
-    name: Build Profiling Bindings (v${{ matrix.node }}) ${{ matrix.target_platform || matrix.os }}, ${{ matrix.node || matrix.container }}, ${{ matrix.arch || matrix.container }}, ${{ contains(matrix.container, 'alpine') && 'musl' || 'glibc'  }}
-    needs: [job_get_metadata, job_install_deps]
-    runs-on: ${{ matrix.os }}
-    container: ${{ matrix.container }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          # x64 glibc
-          - os: ubuntu-20.04
-            node: 16
-          - os: ubuntu-20.04
-            node: 18
-          - os: ubuntu-20.04
-            node: 20
-
-          # x64 musl
-          - os: ubuntu-20.04
-            container: node:16-alpine3.16
-            node: 16
-          - os: ubuntu-20.04
-            container: node:18-alpine3.17
-            node: 18
-          - os: ubuntu-20.04
-            container: node:20-alpine3.17
-            node: 20
-
-          # arm64 glibc
-          - os: ubuntu-20.04
-            arch: arm64
-            node: 16
-          - os: ubuntu-20.04
-            arch: arm64
-            node: 18
-          - os: ubuntu-20.04
-            arch: arm64
-            node: 20
-
-          # arm64 musl
-          - os: ubuntu-20.04
-            container: node:16-alpine3.16
-            arch: arm64
-            node: 16
-          - os: ubuntu-20.04
-            arch: arm64
-            container: node:18-alpine3.17
-            node: 18
-          - os: ubuntu-20.04
-            arch: arm64
-            container: node:20-alpine3.17
-            node: 20
-
-            # macos x64
-          - os: macos-11
-            node: 16
-            arch: x64
-          - os: macos-11
-            node: 18
-            arch: x64
-          - os: macos-11
-            node: 20
-            arch: x64
-
-            # macos arm64
-          - os: macos-12
-            arch: arm64
-            node: 16
-            target_platform: darwin
-
-          - os: macos-12
-            arch: arm64
-            node: 18
-            target_platform: darwin
-
-          - os: macos-12
-            arch: arm64
-            node: 20
-            target_platform: darwin
-
-            # windows x64
-          - os: windows-2019
-            node: 16
-            arch: x64
-
-          - os: windows-2019
-            node: 18
-            arch: x64
-
-          - os: windows-2019
-            node: 20
-            arch: x64
-    steps:
-      - name: setup (alpine)
-        if: contains(matrix.container, 'alpine')
-        run: apk add --no-cache build-base python3 g++ make curl
-
-      - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ env.HEAD_COMMIT }}
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: ${{ matrix.node }}
-
-      - uses: actions/setup-python@v4
-        name: Setup python
-
-      - name: Install dependencies
-        run: |
-          cd packages/profiling-node
-          yarn install --ignore-scripts --frozen-lockfile --ignore-engines
-
-      # configure build test copy x64
-      - name: Configure gyp
-        if: matrix.arch != 'arm64'
-        run: |
-          cd packages/profiling-node
-          yarn build:bindings:configure
-
-      - name: Build bindings
-        if: matrix.arch != 'arm64'
-        run: |
-          cd packages/profiling-node
-          yarn build:bindings
-
-      - name: setup (arm64, ${{ contains(matrix.container, 'alpine') && 'musl' || 'glibc'  }})
-        if: matrix.arch == 'arm64' && !contains(matrix.container, 'alpine') && matrix.target_platform != 'darwin'
-        run: |
-          sudo apt-get update
-          sudo apt install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
-
-      - name: "Configure gyp (arm64, ${{ contains(matrix.container, 'alpine') && 'musl' || 'glibc'  }})"
-        if: matrix.arch == 'arm64' && matrix.target_platform != 'darwin'
-        run: |
-          cd packages/profiling-node
-          yarn build:bindings:configure:arm64
-
-      - name: Setup musl cross compiler
-        if: contains(matrix.container, 'alpine')
-        run: |
-          cd packages/profiling-node
-          curl -OL https://musl.cc/aarch64-linux-musl-cross.tgz
-          tar -xzvf aarch64-linux-musl-cross.tgz
-          $(pwd)/aarch64-linux-musl-cross/bin/aarch64-linux-musl-gcc --version
-
-      - name: "Build bindings (arm64, ${{ contains(matrix.container, 'alpine') && 'musl' || 'glibc'  }})"
-        if: matrix.arch == 'arm64' && contains(matrix.container, 'alpine') && matrix.target_platform != 'darwin'
-        run: |
-          cd packages/profiling-node
-          CC=$(pwd)/aarch64-linux-musl-cross/bin/aarch64-linux-musl-gcc \
-          CXX=$(pwd)/aarch64-linux-musl-cross/bin/aarch64-linux-musl-g++ \
-          BUILD_ARCH=arm64 yarn build:bindings
-
-      - name: "Build bindings (arm64, ${{ contains(matrix.container, 'alpine') && 'musl' || 'glibc'  }})"
-        if: matrix.arch == 'arm64' && !contains(matrix.container, 'alpine') && matrix.target_platform != 'darwin'
-        run: |
-          cd packages/profiling-node
-          CC=aarch64-linux-gnu-gcc \
-          CXX=aarch64-linux-gnu-g++ \
-          BUILD_ARCH=arm64 yarn build:bindings:arm64
-
-      - name: "Configure gyp (arm64, darwin)"
-        if: matrix.arch == 'arm64' && matrix.target_platform == 'darwin'
-        run: |
-          cd packages/profiling-node
-          yarn build:bindings:configure:arm64
-
-      - name: "Build bindings (arm64, darwin)"
-        if: matrix.arch == 'arm64' && matrix.target_platform == 'darwin'
-        run: |
-          cd packages/profiling-node
-          BUILD_PLATFORM=darwin BUILD_ARCH=arm64 yarn build:bindings:arm64
-
-      - name: Archive binary
-        uses: actions/upload-artifact@v4.0.0
-        with:
-          name: profiling-node-binaries-${{ github.sha }}
-          path: |
-            ${{ github.workspace }}/packages/profiling-node/lib/*.node
-
   job_pack_profiling_node:
     name: Extract Binaries and Pack Profiling Node
     runs-on: ubuntu-latest
-    needs: [job_get_metadata, job_build_bindings_profiling_node]
+    needs: [job_get_metadata, job_compile_bindings_profiling_node]
     timeout-minutes: 5
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
@@ -483,7 +301,7 @@ jobs:
 
   job_size_check:
     name: Size Check
-    needs: [job_get_metadata, job_build, job_build_bindings_profiling_node]
+    needs: [job_get_metadata, job_build, job_compile_bindings_profiling_node]
     timeout-minutes: 15
     runs-on: ubuntu-20.04
     if:
@@ -518,7 +336,7 @@ jobs:
     name: Lint
     # Even though the linter only checks source code, not built code, it needs the built code in order check that all
     # inter-package dependencies resolve cleanly.
-    needs: [job_get_metadata, job_build, job_build_bindings_profiling_node]
+    needs: [job_get_metadata, job_build, job_compile_bindings_profiling_node]
     timeout-minutes: 10
     runs-on: ubuntu-20.04
     steps:
@@ -587,7 +405,7 @@ jobs:
 
   job_artifacts:
     name: Upload Artifacts
-    needs: [job_get_metadata, job_build, job_build_bindings_profiling_node]
+    needs: [job_get_metadata, job_build, job_compile_bindings_profiling_node]
     runs-on: ubuntu-20.04
     # Build artifacts are only needed for releasing workflow.
     if: needs.job_get_metadata.outputs.is_release == 'true'
@@ -1363,3 +1181,184 @@ jobs:
         with:
           name: ${{ steps.process.outputs.artifactName }}
           path: ${{ steps.process.outputs.artifactPath }}
+  job_compile_bindings_profiling_node:
+    name: Compile Profiling Bindings (v${{ matrix.node }}) ${{ matrix.target_platform || matrix.os }}, ${{ matrix.node || matrix.container }}, ${{ matrix.arch || matrix.container }}, ${{ contains(matrix.container, 'alpine') && 'musl' || 'glibc'  }}
+    needs: [job_get_metadata, job_build]
+    runs-on: ${{ matrix.os }}
+    container: ${{ matrix.container }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # x64 glibc
+          - os: ubuntu-20.04
+            node: 16
+          - os: ubuntu-20.04
+            node: 18
+          - os: ubuntu-20.04
+            node: 20
+
+          # x64 musl
+          - os: ubuntu-20.04
+            container: node:16-alpine3.16
+            node: 16
+          - os: ubuntu-20.04
+            container: node:18-alpine3.17
+            node: 18
+          - os: ubuntu-20.04
+            container: node:20-alpine3.17
+            node: 20
+
+          # arm64 glibc
+          - os: ubuntu-20.04
+            arch: arm64
+            node: 16
+          - os: ubuntu-20.04
+            arch: arm64
+            node: 18
+          - os: ubuntu-20.04
+            arch: arm64
+            node: 20
+
+          # arm64 musl
+          - os: ubuntu-20.04
+            container: node:16-alpine3.16
+            arch: arm64
+            node: 16
+          - os: ubuntu-20.04
+            arch: arm64
+            container: node:18-alpine3.17
+            node: 18
+          - os: ubuntu-20.04
+            arch: arm64
+            container: node:20-alpine3.17
+            node: 20
+
+            # macos x64
+          - os: macos-11
+            node: 16
+            arch: x64
+          - os: macos-11
+            node: 18
+            arch: x64
+          - os: macos-11
+            node: 20
+            arch: x64
+
+            # macos arm64
+          - os: macos-12
+            arch: arm64
+            node: 16
+            target_platform: darwin
+
+          - os: macos-12
+            arch: arm64
+            node: 18
+            target_platform: darwin
+
+          - os: macos-12
+            arch: arm64
+            node: 20
+            target_platform: darwin
+
+            # windows x64
+          - os: windows-2019
+            node: 16
+            arch: x64
+
+          - os: windows-2019
+            node: 18
+            arch: x64
+
+          - os: windows-2019
+            node: 20
+            arch: x64
+    steps:
+      - name: setup (alpine)
+        if: contains(matrix.container, 'alpine')
+        run: apk add --no-cache build-base python3 g++ make curl
+
+      - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.HEAD_COMMIT }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+
+      - uses: actions/setup-python@v4
+        name: Setup python
+
+      - name: Install dependencies
+        run: |
+          cd packages/profiling-node
+          yarn install --ignore-scripts --frozen-lockfile --ignore-engines
+
+      # configure build test copy x64
+      - name: Configure gyp
+        if: matrix.arch != 'arm64'
+        run: |
+          cd packages/profiling-node
+          yarn build:bindings:configure
+
+      - name: Build bindings
+        if: matrix.arch != 'arm64'
+        run: |
+          cd packages/profiling-node
+          yarn build:bindings
+
+      - name: setup (arm64, ${{ contains(matrix.container, 'alpine') && 'musl' || 'glibc'  }})
+        if: matrix.arch == 'arm64' && !contains(matrix.container, 'alpine') && matrix.target_platform != 'darwin'
+        run: |
+          sudo apt-get update
+          sudo apt install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
+
+      - name: "Configure gyp (arm64, ${{ contains(matrix.container, 'alpine') && 'musl' || 'glibc'  }})"
+        if: matrix.arch == 'arm64' && matrix.target_platform != 'darwin'
+        run: |
+          cd packages/profiling-node
+          yarn build:bindings:configure:arm64
+
+      - name: Setup musl cross compiler
+        if: contains(matrix.container, 'alpine')
+        run: |
+          cd packages/profiling-node
+          curl -OL https://musl.cc/aarch64-linux-musl-cross.tgz
+          tar -xzvf aarch64-linux-musl-cross.tgz
+          $(pwd)/aarch64-linux-musl-cross/bin/aarch64-linux-musl-gcc --version
+
+      - name: "Build bindings (arm64, ${{ contains(matrix.container, 'alpine') && 'musl' || 'glibc'  }})"
+        if: matrix.arch == 'arm64' && contains(matrix.container, 'alpine') && matrix.target_platform != 'darwin'
+        run: |
+          cd packages/profiling-node
+          CC=$(pwd)/aarch64-linux-musl-cross/bin/aarch64-linux-musl-gcc \
+          CXX=$(pwd)/aarch64-linux-musl-cross/bin/aarch64-linux-musl-g++ \
+          BUILD_ARCH=arm64 yarn build:bindings
+
+      - name: "Build bindings (arm64, ${{ contains(matrix.container, 'alpine') && 'musl' || 'glibc'  }})"
+        if: matrix.arch == 'arm64' && !contains(matrix.container, 'alpine') && matrix.target_platform != 'darwin'
+        run: |
+          cd packages/profiling-node
+          CC=aarch64-linux-gnu-gcc \
+          CXX=aarch64-linux-gnu-g++ \
+          BUILD_ARCH=arm64 yarn build:bindings:arm64
+
+      - name: "Configure gyp (arm64, darwin)"
+        if: matrix.arch == 'arm64' && matrix.target_platform == 'darwin'
+        run: |
+          cd packages/profiling-node
+          yarn build:bindings:configure:arm64
+
+      - name: "Build bindings (arm64, darwin)"
+        if: matrix.arch == 'arm64' && matrix.target_platform == 'darwin'
+        run: |
+          cd packages/profiling-node
+          BUILD_PLATFORM=darwin BUILD_ARCH=arm64 yarn build:bindings:arm64
+
+      - name: Archive binary
+        uses: actions/upload-artifact@v4.0.0
+        with:
+          name: profiling-node-binaries-${{ github.sha }}
+          path: |
+            ${{ github.workspace }}/packages/profiling-node/lib/*.node
