@@ -383,7 +383,7 @@ export function startSession(context?: SessionContext): Session {
   const session = makeSession({
     release,
     environment,
-    user: isolationScope.getUser(),
+    user: currentScope.getUser() || isolationScope.getUser(),
     ...(userAgent && { userAgent }),
     ...context,
   });
@@ -413,7 +413,7 @@ export function endSession(): void {
   const isolationScope = getIsolationScope();
   const currentScope = getCurrentScope();
 
-  const session = isolationScope.getSession();
+  const session = currentScope.getSession() || isolationScope.getSession();
   if (session) {
     closeSession(session);
   }
