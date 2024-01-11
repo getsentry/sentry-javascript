@@ -2,6 +2,7 @@ import { spawn } from 'child_process';
 import { join } from 'path';
 import type { Envelope, EnvelopeItemType, Event, SerializedSession } from '@sentry/types';
 import axios from 'axios';
+import { createBasicSentryServer } from './server';
 
 export function assertSentryEvent(actual: Event, expected: Event): void {
   expect(actual).toMatchObject({
@@ -28,6 +29,18 @@ export function assertSentryTransaction(actual: Event, expected: Partial<Event>)
   });
 }
 
+/** Promise only resolves when fn returns true */
+async function waitFor(fn: () => boolean, timeout = 10_000): Promise<void> {
+  let remaining = timeout;
+  while (fn() === false) {
+    await new Promise<void>(resolve => setTimeout(resolve, 100));
+    remaining -= 100;
+    if (remaining < 0) {
+      throw new Error('Timed out waiting for server port');
+    }
+  }
+}
+
 type Expected =
   | {
       event: Partial<Event> | ((event: Event) => void);
@@ -39,7 +52,7 @@ type Expected =
       session: Partial<SerializedSession> | ((event: SerializedSession) => void);
     };
 
-/** */
+/** Creates a test runner */
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
 export function createRunner(...paths: string[]) {
   const testPath = join(...paths);
@@ -47,7 +60,7 @@ export function createRunner(...paths: string[]) {
   const expectedEnvelopes: Expected[] = [];
   const flags: string[] = [];
   const ignored: EnvelopeItemType[] = [];
-  let hasExited = false;
+  let withSentryServer = false;
 
   if (testPath.endsWith('.ts')) {
     flags.push('-r', 'ts-node/register');
@@ -62,69 +75,32 @@ export function createRunner(...paths: string[]) {
       flags.push(...args);
       return this;
     },
+    withMockSentryServer: function () {
+      withSentryServer = true;
+      return this;
+    },
     ignore: function (...types: EnvelopeItemType[]) {
       ignored.push(...types);
       return this;
     },
     start: function (done?: (e?: unknown) => void) {
       const expectedEnvelopeCount = expectedEnvelopes.length;
+
       let envelopeCount = 0;
-      let serverPort: number | undefined;
-
-      const child = spawn('node', [...flags, testPath]);
-
-      child.on('close', () => {
-        hasExited = true;
-      });
-
-      // Pass error to done to end the test quickly
-      child.on('error', e => {
-        done?.(e);
-      });
-
-      async function waitForServerPort(timeout = 10_000): Promise<void> {
-        let remaining = timeout;
-        while (serverPort === undefined) {
-          await new Promise<void>(resolve => setTimeout(resolve, 100));
-          remaining -= 100;
-          if (remaining < 0) {
-            throw new Error('Timed out waiting for server port');
-          }
-        }
-      }
+      let scenarioServerPort: number | undefined;
+      let hasExited = false;
+      let child: ReturnType<typeof spawn> | undefined;
 
       /** Called after each expect callback to check if we're complete */
       function expectCallbackCalled(): void {
         envelopeCount++;
         if (envelopeCount === expectedEnvelopeCount) {
-          child.kill();
+          child?.kill();
           done?.();
         }
       }
 
-      function tryParseLine(line: string): void {
-        // Lines can have leading '[something] [{' which we need to remove
-        const cleanedLine = line.replace(/^.*?] \[{"/, '[{"');
-
-        // See if we have a port message
-        if (cleanedLine.startsWith('{"port":')) {
-          const { port } = JSON.parse(cleanedLine) as { port: number };
-          serverPort = port;
-          return;
-        }
-
-        // Skip any lines that don't start with envelope JSON
-        if (!cleanedLine.startsWith('[{')) {
-          return;
-        }
-
-        let envelope: Envelope | undefined;
-        try {
-          envelope = JSON.parse(cleanedLine) as Envelope;
-        } catch (_) {
-          return;
-        }
-
+      function newEnvelope(envelope: Envelope): void {
         for (const item of envelope[1]) {
           const envelopeItemType = item[0].type;
 
@@ -184,17 +160,70 @@ export function createRunner(...paths: string[]) {
         }
       }
 
-      let buffer = Buffer.alloc(0);
-      child.stdout.on('data', (data: Buffer) => {
-        // This is horribly memory inefficient but it's only for tests
-        buffer = Buffer.concat([buffer, data]);
+      const serverStartup: Promise<number | undefined> = withSentryServer
+        ? createBasicSentryServer(newEnvelope)
+        : Promise.resolve(undefined);
 
-        let splitIndex = -1;
-        while ((splitIndex = buffer.indexOf(0xa)) >= 0) {
-          const line = buffer.subarray(0, splitIndex).toString();
-          buffer = Buffer.from(buffer.subarray(splitIndex + 1));
-          tryParseLine(line);
+      // eslint-disable-next-line @typescript-eslint/no-floating-promises
+      serverStartup.then(mockServerPort => {
+        const env = mockServerPort
+          ? { ...process.env, SENTRY_DSN: `http://public@localhost:${mockServerPort}/1337` }
+          : process.env;
+
+        // eslint-disable-next-line no-console
+        if (process.env.DEBUG) console.log('starting scenario', testPath, flags, env.SENTRY_DSN);
+
+        child = spawn('node', [...flags, testPath], { env });
+
+        child.on('close', () => {
+          hasExited = true;
+        });
+
+        // Pass error to done to end the test quickly
+        child.on('error', e => {
+          // eslint-disable-next-line no-console
+          if (process.env.DEBUG) console.log('scenario error', e);
+          done?.(e);
+        });
+
+        function tryParseEnvelopeFromStdoutLine(line: string): void {
+          // Lines can have leading '[something] [{' which we need to remove
+          const cleanedLine = line.replace(/^.*?] \[{"/, '[{"');
+
+          // See if we have a port message
+          if (cleanedLine.startsWith('{"port":')) {
+            const { port } = JSON.parse(cleanedLine) as { port: number };
+            scenarioServerPort = port;
+            return;
+          }
+
+          // Skip any lines that don't start with envelope JSON
+          if (!cleanedLine.startsWith('[{')) {
+            return;
+          }
+
+          try {
+            const envelope = JSON.parse(cleanedLine) as Envelope;
+            newEnvelope(envelope);
+          } catch (_) {
+            //
+          }
         }
+
+        let buffer = Buffer.alloc(0);
+        child.stdout.on('data', (data: Buffer) => {
+          // This is horribly memory inefficient but it's only for tests
+          buffer = Buffer.concat([buffer, data]);
+
+          let splitIndex = -1;
+          while ((splitIndex = buffer.indexOf(0xa)) >= 0) {
+            const line = buffer.subarray(0, splitIndex).toString();
+            buffer = Buffer.from(buffer.subarray(splitIndex + 1));
+            // eslint-disable-next-line no-console
+            if (process.env.DEBUG) console.log('line', line);
+            tryParseEnvelopeFromStdoutLine(line);
+          }
+        });
       });
 
       return {
@@ -207,9 +236,9 @@ export function createRunner(...paths: string[]) {
           headers: Record<string, string> = {},
         ): Promise<T | undefined> {
           try {
-            await waitForServerPort();
+            await waitFor(() => scenarioServerPort !== undefined);
 
-            const url = `http://localhost:${serverPort}${path}`;
+            const url = `http://localhost:${scenarioServerPort}${path}`;
             if (method === 'get') {
               return (await axios.get(url, { headers })).data;
             } else {
