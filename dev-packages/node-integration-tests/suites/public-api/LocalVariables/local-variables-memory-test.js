@@ -1,12 +1,11 @@
 /* eslint-disable no-unused-vars */
 const Sentry = require('@sentry/node');
+const { loggingTransport } = require('@sentry-internal/node-integration-tests');
 
 Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
   includeLocalVariables: true,
-  beforeSend: _ => {
-    return null;
-  },
+  transport: loggingTransport,
   // Stop the rate limiting from kicking in
   integrations: [new Sentry.Integrations.LocalVariables({ maxExceptionsPerSecond: 10000000 })],
 });

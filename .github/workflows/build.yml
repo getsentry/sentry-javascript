@@ -35,6 +35,7 @@ env:
 
   # packages/utils/cjs and packages/utils/esm: Symlinks to the folders inside of `build`, needed for tests
   CACHED_BUILD_PATHS: |
+    ${{ github.workspace }}/dev-packages/*/build
     ${{ github.workspace }}/packages/*/build
     ${{ github.workspace }}/packages/ember/*.d.ts
     ${{ github.workspace }}/packages/gatsby/*.d.ts
