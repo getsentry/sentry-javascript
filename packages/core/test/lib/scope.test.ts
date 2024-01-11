@@ -496,7 +496,7 @@ describe('isolation scope', () => {
       expect.assertions(1);
       withIsolationScope(_scope1 => {
         withIsolationScope(scope2 => {
-          expect(getCurrentScope()).toBe(scope2);
+          expect(getIsolationScope()).toBe(scope2);
           done();
         });
       });
