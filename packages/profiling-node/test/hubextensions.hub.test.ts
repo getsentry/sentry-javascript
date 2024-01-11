@@ -133,7 +133,9 @@ describe('hubextensions', () => {
     transaction.finish();
 
     await Sentry.flush(1000);
-    expect(logSpy.mock?.[logSpy.mock.calls.length - 1]?.[0]).toBe('[Profiling] Discarding profile because it contains less than 2 samples');
+    expect(logSpy.mock?.[logSpy.mock.calls.length - 1]?.[0]).toBe(
+      '[Profiling] Discarding profile because it contains less than 2 samples',
+    );
 
     expect((transport.send as any).mock.calls[0][0][1][0][0].type).toBe('transaction');
     // eslint-disable-next-line @typescript-eslint/unbound-method
