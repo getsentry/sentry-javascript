@@ -38,8 +38,5 @@
   "editor.codeActionsOnSave": {
     "source.organizeImports.biome": "explicit",
   },
-  "editor.defaultFormatter": "biomejs.biome",
-  "files.associations": {
-    "functional": "cpp"
-  }
+  "editor.defaultFormatter": "biomejs.biome"
 }
