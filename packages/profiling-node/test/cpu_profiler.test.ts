@@ -1,5 +1,5 @@
 import { CpuProfilerBindings, PrivateCpuProfilerBindings } from '../src/cpu_profiler';
-import type { ThreadCpuProfile, RawThreadCpuProfile } from '../src/types';
+import type { RawThreadCpuProfile, ThreadCpuProfile } from '../src/types';
 
 // Required because we test a hypothetical long profile
 // and we cannot use advance timers as the c++ relies on
@@ -17,7 +17,7 @@ const fibonacci = (n: number): number => {
   return fibonacci(n - 1) + fibonacci(n - 2);
 };
 
-const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 const profiled = async (name: string, fn: () => void) => {
   CpuProfilerBindings.startProfiling(name);
   await fn();
@@ -141,7 +141,7 @@ describe('Profiler bindings', () => {
         return 0;
       }
       const v = await recurseToDepth(depth - 1);
-      return v
+      return v;
     };
 
     const profile = await profiled('profiled-program', async () => {
@@ -225,15 +225,15 @@ describe('Profiler bindings', () => {
     // the cause of low sample count. https://github.com/actions/runner-images/issues/1336 seems relevant.
     if (process.platform === 'darwin' || process.platform === 'win32') {
       if (profile.samples.length < 2) {
-        fail(`Only ${  profile.samples.length  } samples obtained on ${  process.platform  }, expected at least 2`);
+        fail(`Only ${profile.samples.length} samples obtained on ${process.platform}, expected at least 2`);
       }
     } else {
       if (profile.samples.length < 6) {
-        fail(`Only ${  profile.samples.length  } samples obtained on ${  process.platform  }, expected at least 6`);
+        fail(`Only ${profile.samples.length} samples obtained on ${process.platform}, expected at least 6`);
       }
     }
     if (profile.samples.length > 15) {
-      fail(`Too many samples on ${  process.platform  }, got ${  profile.samples.length}`);
+      fail(`Too many samples on ${process.platform}, got ${profile.samples.length}`);
     }
   });
 
@@ -249,7 +249,7 @@ describe('Profiler bindings', () => {
     expect(heap_usage.values.length).toBeGreaterThan(6);
     expect(heap_usage.values.length).toBeLessThanOrEqual(11);
     expect(heap_usage.unit).toBe('byte');
-    expect(heap_usage.values.every((v) => isValidMeasurementValue(v.value))).toBe(true);
+    expect(heap_usage.values.every(v => isValidMeasurementValue(v.value))).toBe(true);
     assertValidMeasurements(profile.measurements['memory_footprint']);
   });
 
@@ -264,7 +264,7 @@ describe('Profiler bindings', () => {
     }
     expect(cpu_usage.values.length).toBeGreaterThan(6);
     expect(cpu_usage.values.length).toBeLessThanOrEqual(11);
-    expect(cpu_usage.values.every((v) => isValidMeasurementValue(v.value))).toBe(true);
+    expect(cpu_usage.values.every(v => isValidMeasurementValue(v.value))).toBe(true);
     expect(cpu_usage.unit).toBe('percent');
     assertValidMeasurements(profile.measurements['cpu_usage']);
   });
@@ -296,7 +296,7 @@ describe('Profiler bindings', () => {
     });
 
     // @ts-expect-error deopt reasons are disabled for now as we need to figure out the backend support
-    const hasDeoptimizedFrame = profile.frames.some((f) => f.deopt_reasons && f.deopt_reasons.length > 0);
+    const hasDeoptimizedFrame = profile.frames.some(f => f.deopt_reasons && f.deopt_reasons.length > 0);
     expect(hasDeoptimizedFrame).toBe(true);
   });
 });

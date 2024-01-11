@@ -1,9 +1,9 @@
 import * as Sentry from '@sentry/node';
 import type { Transport } from '@sentry/types';
 
-import { ProfilingIntegration } from '../src/index';
-import { NodeClient } from '@sentry/node';
 import { getMainCarrier } from '@sentry/core';
+import { NodeClient } from '@sentry/node';
+import { ProfilingIntegration } from '../src/index';
 import type { Profile } from '../src/types';
 
 interface MockTransport extends Transport {
@@ -19,7 +19,7 @@ function makeStaticTransport(): MockTransport {
     },
     flush: function () {
       return Promise.resolve(true);
-    }
+    },
   };
 }
 
@@ -34,15 +34,15 @@ function makeClientWithoutHooks(): [NodeClient, MockTransport] {
     environment: 'test-environment',
     dsn: 'https://7fa19397baaf433f919fbe02228d5470@o1137848.ingest.sentry.io/6625302',
     integrations: [integration],
-    transport: () => transport
+    transport: () => transport,
   });
   client.setupIntegrations = () => {
     integration.setupOnce(
-      (cb) => {
+      cb => {
         // @ts-expect-error __SENTRY__ is private
         getMainCarrier().__SENTRY__.globalEventProcessors = [cb];
       },
-      () => Sentry.getCurrentHub()
+      () => Sentry.getCurrentHub(),
     );
   };
   // @ts-expect-error override private property
@@ -51,20 +51,20 @@ function makeClientWithoutHooks(): [NodeClient, MockTransport] {
 }
 
 function findAllProfiles(transport: MockTransport): [any, Profile][] | null {
-  return transport?.events.filter((call) => {
+  return transport?.events.filter(call => {
     return call[0][1][0][0].type === 'profile';
   });
 }
 
 function findProfile(transport: MockTransport): Profile | null {
   return (
-    transport?.events.find((call) => {
+    transport?.events.find(call => {
       return call[0][1][0][0].type === 'profile';
     })?.[0][1][0][1] ?? null
   );
 }
 
-const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 describe('Sentry - Profiling', () => {
   beforeEach(() => {

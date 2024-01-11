@@ -3,12 +3,12 @@ const esbuild = require('esbuild');
 let missingBindingsPlugin = {
   name: 'MissingBindings',
   setup(build) {
-    build.onResolve({ filter: /\.node$/ }, (args) => ({
+    build.onResolve({ filter: /\.node$/ }, args => ({
       path: args.path,
       namespace: 'missing-bindings',
-      external: true
+      external: true,
     }));
-  }
+  },
 };
 
 esbuild.build({
@@ -19,5 +19,5 @@ esbuild.build({
   target: 'node16',
   bundle: true,
   tsconfig: './tsconfig.json',
-  plugins: [missingBindingsPlugin]
+  plugins: [missingBindingsPlugin],
 });

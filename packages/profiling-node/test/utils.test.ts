@@ -1,25 +1,25 @@
-import type { SdkMetadata, DsnComponents, Event } from '@sentry/types';
-import { createEnvelope, uuid4, addItemToEnvelope } from '@sentry/utils';
+import type { DsnComponents, Event, SdkMetadata } from '@sentry/types';
+import { addItemToEnvelope, createEnvelope, uuid4 } from '@sentry/utils';
 
 import {
-  isValidSampleRate,
-  isValidProfile,
   addProfilesToEnvelope,
-  findProfiledTransactionsFromEnvelope
+  findProfiledTransactionsFromEnvelope,
+  isValidProfile,
+  isValidSampleRate,
 } from '../src/utils';
 
-import {
-  maybeRemoveProfileFromSdkMetadata,
-  isProfiledTransactionEvent,
-  createProfilingEventEnvelope
-} from '../src/utils';
 import type { Profile, ProfiledEvent } from '../src/types';
+import {
+  createProfilingEventEnvelope,
+  isProfiledTransactionEvent,
+  maybeRemoveProfileFromSdkMetadata,
+} from '../src/utils';
 
 function makeSdkMetadata(props: Partial<SdkMetadata['sdk']>): SdkMetadata {
   return {
     sdk: {
-      ...props
-    }
+      ...props,
+    },
   };
 }
 
@@ -28,19 +28,19 @@ function makeDsn(props: Partial<DsnComponents>): DsnComponents {
     protocol: 'http',
     projectId: '1',
     host: 'localhost',
-    ...props
+    ...props,
   };
 }
 
 function makeEvent(
   props: Partial<ProfiledEvent>,
-  profile: NonNullable<ProfiledEvent['sdkProcessingMetadata']['profile']>
+  profile: NonNullable<ProfiledEvent['sdkProcessingMetadata']['profile']>,
 ): ProfiledEvent {
   return { ...props, sdkProcessingMetadata: { profile: profile } };
 }
 
 function makeProfile(
-  props: Partial<ProfiledEvent['sdkProcessingMetadata']['profile']>
+  props: Partial<ProfiledEvent['sdkProcessingMetadata']['profile']>,
 ): NonNullable<ProfiledEvent['sdkProcessingMetadata']['profile']> {
   return {
     profile_id: '1',
@@ -48,12 +48,12 @@ function makeProfile(
     stacks: [],
     samples: [
       { elapsed_since_start_ns: '0', thread_id: '0', stack_id: 0 },
-      { elapsed_since_start_ns: '10', thread_id: '0', stack_id: 0 }
+      { elapsed_since_start_ns: '10', thread_id: '0', stack_id: 0 },
     ],
     measurements: {},
     resources: [],
     frames: [],
-    ...props
+    ...props,
   };
 }
 
@@ -69,13 +69,13 @@ describe('isProfiledTransactionEvent', () => {
 describe('maybeRemoveProfileFromSdkMetadata', () => {
   it('removes profile', () => {
     expect(maybeRemoveProfileFromSdkMetadata({ sdkProcessingMetadata: { profile: {} } })).toEqual({
-      sdkProcessingMetadata: {}
+      sdkProcessingMetadata: {},
     });
   });
 
   it('does nothing', () => {
     expect(maybeRemoveProfileFromSdkMetadata({ sdkProcessingMetadata: { something: {} } })).toEqual({
-      sdkProcessingMetadata: { something: {} }
+      sdkProcessingMetadata: { something: {} },
     });
   });
 });
@@ -86,17 +86,17 @@ describe('createProfilingEventEnvelope', () => {
     delete profile.profile_id;
 
     expect(() =>
-      createProfilingEventEnvelope(makeEvent({ type: 'transaction' }, profile), makeDsn({}), makeSdkMetadata({}))
+      createProfilingEventEnvelope(makeEvent({ type: 'transaction' }, profile), makeDsn({}), makeSdkMetadata({})),
     ).toThrow('Cannot construct profiling event envelope without a valid profile id. Got undefined instead.');
   });
   it('throws if profile is undefined', () => {
     expect(() =>
       // @ts-expect-error mock profile as undefined
-      createProfilingEventEnvelope(makeEvent({ type: 'transaction' }, undefined), makeDsn({}), makeSdkMetadata({}))
+      createProfilingEventEnvelope(makeEvent({ type: 'transaction' }, undefined), makeDsn({}), makeSdkMetadata({})),
     ).toThrow('Cannot construct profiling event envelope without a valid profile. Got undefined instead.');
     expect(() =>
       // @ts-expect-error mock profile as null
-      createProfilingEventEnvelope(makeEvent({ type: 'transaction' }, null), makeDsn({}), makeSdkMetadata({}))
+      createProfilingEventEnvelope(makeEvent({ type: 'transaction' }, null), makeDsn({}), makeSdkMetadata({})),
     ).toThrow('Cannot construct profiling event envelope without a valid profile. Got null instead.');
   });
 
@@ -107,9 +107,9 @@ describe('createProfilingEventEnvelope', () => {
         makeProfile({
           samples: [
             { elapsed_since_start_ns: '0', thread_id: '0', stack_id: 0 },
-            { elapsed_since_start_ns: '0', thread_id: '0', stack_id: 0 }
-          ]
-        })
+            { elapsed_since_start_ns: '0', thread_id: '0', stack_id: 0 },
+          ],
+        }),
       ),
       makeDsn({}),
       makeSdkMetadata({
@@ -118,9 +118,9 @@ describe('createProfilingEventEnvelope', () => {
         integrations: ['integration1', 'integration2'],
         packages: [
           { name: 'package1', version: '1.2.3' },
-          { name: 'package2', version: '4.5.6' }
-        ]
-      })
+          { name: 'package2', version: '4.5.6' },
+        ],
+      }),
     );
     expect(envelope?.[1][0]?.[0].type).toBe('profile');
   });
@@ -130,8 +130,8 @@ describe('createProfilingEventEnvelope', () => {
       makeEvent(
         { type: 'transaction' },
         makeProfile({
-          samples: [{ elapsed_since_start_ns: '0', thread_id: '0', stack_id: 0 }]
-        })
+          samples: [{ elapsed_since_start_ns: '0', thread_id: '0', stack_id: 0 }],
+        }),
       ),
       makeDsn({}),
       makeSdkMetadata({
@@ -140,9 +140,9 @@ describe('createProfilingEventEnvelope', () => {
         integrations: ['integration1', 'integration2'],
         packages: [
           { name: 'package1', version: '1.2.3' },
-          { name: 'package2', version: '4.5.6' }
-        ]
-      })
+          { name: 'package2', version: '4.5.6' },
+        ],
+      }),
     );
     expect(envelope).toBe(null);
   });
@@ -153,8 +153,8 @@ describe('createProfilingEventEnvelope', () => {
       makeDsn({}),
       makeSdkMetadata({
         name: 'sentry.javascript.node',
-        version: '1.2.3'
-      })
+        version: '1.2.3',
+      }),
     );
 
     expect(envelope && envelope[0]?.sdk?.name).toBe('sentry.javascript.node');
@@ -165,7 +165,7 @@ describe('createProfilingEventEnvelope', () => {
     const envelope = createProfilingEventEnvelope(
       makeEvent({ type: 'transaction' }, makeProfile({})),
       makeDsn({}),
-      undefined
+      undefined,
     );
 
     expect(envelope?.[0].sdk).toBe(undefined);
@@ -180,10 +180,10 @@ describe('createProfilingEventEnvelope', () => {
         protocol: 'https',
         path: 'path',
         port: '9000',
-        publicKey: 'publicKey'
+        publicKey: 'publicKey',
       }),
       makeSdkMetadata({}),
-      'tunnel'
+      'tunnel',
     );
 
     expect(envelope?.[0].dsn).toBe('https://publicKey@sentry.io:9000/path/123');
@@ -193,7 +193,7 @@ describe('createProfilingEventEnvelope', () => {
     const envelope = createProfilingEventEnvelope(
       makeEvent({ type: 'transaction' }, makeProfile({})),
       makeDsn({}),
-      makeSdkMetadata({})
+      makeSdkMetadata({}),
     );
     const profile = envelope?.[1][0]?.[1] as unknown as Profile;
 
@@ -215,11 +215,11 @@ describe('createProfilingEventEnvelope', () => {
           // @ts-expect-error force invalid value
           { type: 'error' },
           // @ts-expect-error mock tid as undefined
-          makeProfile({ samples: [{ stack_id: 0, thread_id: undefined, elapsed_since_start_ns: '0' }] })
+          makeProfile({ samples: [{ stack_id: 0, thread_id: undefined, elapsed_since_start_ns: '0' }] }),
         ),
         makeDsn({}),
-        makeSdkMetadata({})
-      )
+        makeSdkMetadata({}),
+      ),
     ).toThrow('Profiling events may only be attached to transactions, this should never occur.');
   });
 
@@ -238,21 +238,21 @@ describe('createProfilingEventEnvelope', () => {
           contexts: {
             trace: {
               span_id: 'span_id',
-              trace_id: 'trace_id'
-            }
-          }
+              trace_id: 'trace_id',
+            },
+          },
         },
         makeProfile({
           samples: [
             // @ts-expect-error mock tid as undefined
             { stack_id: 0, thread_id: undefined, elapsed_since_start_ns: '0' },
             // @ts-expect-error mock tid as undefined
-            { stack_id: 0, thread_id: undefined, elapsed_since_start_ns: '0' }
-          ]
-        })
+            { stack_id: 0, thread_id: undefined, elapsed_since_start_ns: '0' },
+          ],
+        }),
       ),
       makeDsn({}),
-      makeSdkMetadata({})
+      makeSdkMetadata({}),
     );
 
     const profile = envelope?.[1][0]?.[1] as unknown as Profile;
@@ -282,7 +282,7 @@ describe('isValidSampleRate', () => {
     [' ', false],
     [{}, false],
     [[], false],
-    [() => null, false]
+    [() => null, false],
   ])('value %s is %s', (input, expected) => {
     expect(isValidSampleRate(input)).toBe(expected);
   });
@@ -323,9 +323,9 @@ describe('findProfiledTransactionsFromEnvelope', () => {
       type: 'transaction',
       contexts: {
         profile: {
-          profile_id: uuid4()
-        }
-      }
+          profile_id: uuid4(),
+        },
+      },
     };
 
     const envelope = addItemToEnvelope(createEnvelope({}), [{ type: 'transaction' }, txnWithProfile]);
@@ -336,7 +336,7 @@ describe('findProfiledTransactionsFromEnvelope', () => {
     const txnWithProfile: Event = {
       event_id: uuid4(),
       type: 'transaction',
-      contexts: {}
+      contexts: {},
     };
 
     const envelope = addItemToEnvelope(createEnvelope({}), [{ type: 'transaction' }, txnWithProfile]);
@@ -349,9 +349,9 @@ describe('findProfiledTransactionsFromEnvelope', () => {
       type: 'replay_event',
       contexts: {
         profile: {
-          profile_id: uuid4()
-        }
-      }
+          profile_id: uuid4(),
+        },
+      },
     };
 
     // @ts-expect-error replay event is partial

@@ -5,21 +5,21 @@ module.exports = {
   entry: path.resolve(__dirname, './index.js'),
   mode: 'production',
   optimization: {
-    minimize: false
+    minimize: false,
   },
   module: {
     rules: [
       {
         test: /\.node$/,
-        loader: 'file-loader'
-      }
-    ]
+        loader: 'file-loader',
+      },
+    ],
   },
   resolve: {
-    extensions: ['.tsx', '.ts', '.js']
+    extensions: ['.tsx', '.ts', '.js'],
   },
   output: {
     filename: 'index.js',
     path: path.resolve(__dirname, './dist/webpack'),
-  }
+  },
 };
