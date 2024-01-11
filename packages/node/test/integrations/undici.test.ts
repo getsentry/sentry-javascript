@@ -1,5 +1,5 @@
 import * as http from 'http';
-import { Transaction, getActiveSpan, startSpan } from '@sentry/core';
+import { Transaction, getActiveSpan, getClient, getCurrentScope, startSpan } from '@sentry/core';
 import { spanToTraceHeader } from '@sentry/core';
 import { Hub, makeMain, runWithAsyncContext } from '@sentry/core';
 import type { fetch as FetchType } from 'undici';
@@ -232,7 +232,7 @@ conditionalTest({ min: 16 })('Undici integration', () => {
   // This flakes on CI for some reason: https://github.com/getsentry/sentry-javascript/pull/8449
   // eslint-disable-next-line jest/no-disabled-tests
   it.skip('attaches the sentry trace and baggage headers if there is no active span', async () => {
-    const scope = hub.getScope();
+    const scope = getCurrentScope();
 
     await fetch('http://localhost:18100', { method: 'POST' });
 
@@ -247,7 +247,7 @@ conditionalTest({ min: 16 })('Undici integration', () => {
   // This flakes on CI for some reason: https://github.com/getsentry/sentry-javascript/pull/8449
   // eslint-disable-next-line jest/no-disabled-tests
   it.skip('attaches headers if `shouldCreateSpanForRequest` does not create a span using propagation context', async () => {
-    const scope = hub.getScope();
+    const scope = getCurrentScope();
     const propagationContext = scope.getPropagationContext();
 
     await startSpan({ name: 'outer-span' }, async outerSpan => {
@@ -417,7 +417,7 @@ function setupTestServer() {
 
 function patchUndici(userOptions: Partial<UndiciOptions>): () => void {
   try {
-    const undici = hub.getClient()!.getIntegration(Undici);
+    const undici = getClient()!.getIntegration(Undici);
     // @ts-expect-error need to access private property
     options = { ...undici._options };
     // @ts-expect-error need to access private property
@@ -428,7 +428,7 @@ function patchUndici(userOptions: Partial<UndiciOptions>): () => void {
 
   return () => {
     try {
-      const undici = hub.getClient()!.getIntegration(Undici);
+      const undici = getClient()!.getIntegration(Undici);
       // @ts-expect-error Need to override readonly property
       undici!['_options'] = { ...options };
     } catch (_) {

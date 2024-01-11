@@ -1,6 +1,6 @@
 import { SemanticAttributes } from '@opentelemetry/semantic-conventions';
 
-import { getCurrentHub } from '../../src/custom/hub';
+import { getClient } from '../../src/custom/hub';
 import { startSpan } from '../../src/trace';
 import type { TestClientInterface } from '../helpers/TestClient';
 import { cleanupOtel, mockSdkInit } from '../helpers/mockSdkInit';
@@ -16,8 +16,7 @@ describe('Integration | OTEL TimedEvents', () => {
 
     mockSdkInit({ beforeSend, beforeSendTransaction, enableTracing: true });
 
-    const hub = getCurrentHub();
-    const client = hub.getClient() as TestClientInterface;
+    const client = getClient() as TestClientInterface;
 
     startSpan({ name: 'test' }, span => {
       span.addEvent('exception', {

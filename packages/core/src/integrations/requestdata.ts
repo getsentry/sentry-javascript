@@ -71,7 +71,8 @@ const requestDataIntegration: IntegrationFn = (options: RequestDataIntegrationOp
 
   return {
     name: INTEGRATION_NAME,
-
+    // TODO v8: Remove this
+    setupOnce() {}, // eslint-disable-line @typescript-eslint/no-empty-function
     processEvent(event, _hint, client) {
       // Note: In the long run, most of the logic here should probably move into the request data utility functions. For
       // the moment it lives here, though, until https://github.com/getsentry/sentry-javascript/issues/5718 is addressed.

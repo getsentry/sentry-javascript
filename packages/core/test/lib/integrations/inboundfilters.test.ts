@@ -37,7 +37,7 @@ function createInboundFiltersEventProcessor(
     }),
   );
 
-  client.setupIntegrations();
+  client.init();
 
   const eventProcessors = client['_eventProcessors'];
   const eventProcessor = eventProcessors.find(processor => processor.id === 'InboundFilters');

@@ -358,7 +358,7 @@ describe('continueTrace', () => {
 
     expect(result).toEqual(expectedContext);
 
-    const scope = hub.getScope();
+    const scope = getCurrentScope();
 
     expect(scope.getPropagationContext()).toEqual({
       sampled: undefined,
@@ -392,7 +392,7 @@ describe('continueTrace', () => {
 
     expect(result).toEqual(expectedContext);
 
-    const scope = hub.getScope();
+    const scope = getCurrentScope();
 
     expect(scope.getPropagationContext()).toEqual({
       sampled: false,
@@ -430,7 +430,7 @@ describe('continueTrace', () => {
 
     expect(result).toEqual(expectedContext);
 
-    const scope = hub.getScope();
+    const scope = getCurrentScope();
 
     expect(scope.getPropagationContext()).toEqual({
       dsc: {
@@ -472,7 +472,7 @@ describe('continueTrace', () => {
 
     expect(result).toEqual(expectedContext);
 
-    const scope = hub.getScope();
+    const scope = getCurrentScope();
 
     expect(scope.getPropagationContext()).toEqual({
       dsc: {

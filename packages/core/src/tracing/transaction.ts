@@ -66,6 +66,8 @@ export class Transaction extends SpanClass implements TransactionInterface {
     this._trimEnd = transactionContext.trimEnd;
 
     // this is because transactions are also spans, and spans have a transaction pointer
+    // TODO (v8): Replace this with another way to set the root span
+    // eslint-disable-next-line deprecation/deprecation
     this.transaction = this;
 
     // If Dynamic Sampling Context is provided during the creation of the transaction, we freeze it as it usually means
@@ -265,6 +267,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
     // just sets the end timestamp
     super.end(endTimestamp);
 
+    // eslint-disable-next-line deprecation/deprecation
     const client = this._hub.getClient();
     if (client && client.emit) {
       client.emit('finishTransaction', this);

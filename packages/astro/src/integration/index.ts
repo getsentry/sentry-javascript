@@ -88,7 +88,10 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
             updateConfig({
               vite: {
                 ssr: {
-                  noExternal: ['@sentry/astro'],
+                  // @sentry/node is required in case we have 2 different @sentry/node
+                  // packages installed in the same project.
+                  // Ref: https://github.com/getsentry/sentry-javascript/issues/10121
+                  noExternal: ['@sentry/astro', '@sentry/node'],
                 },
               },
             });

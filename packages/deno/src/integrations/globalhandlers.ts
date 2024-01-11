@@ -22,6 +22,8 @@ const globalHandlersIntegration: IntegrationFn = (options?: GlobalHandlersIntegr
 
   return {
     name: INTEGRATION_NAME,
+    // TODO v8: Remove this
+    setupOnce() {}, // eslint-disable-line @typescript-eslint/no-empty-function
     setup(client) {
       if (_options.error) {
         installGlobalErrorHandler(client);

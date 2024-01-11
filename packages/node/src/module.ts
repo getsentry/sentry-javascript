@@ -34,16 +34,15 @@ export function createGetModuleFromFilename(
       dir = '.';
     }
 
-    let n = dir.lastIndexOf('/node_modules');
+    const n = dir.lastIndexOf('/node_modules');
     if (n > -1) {
       return `${dir.slice(n + 14).replace(/\//g, '.')}:${file}`;
     }
 
     // Let's see if it's a part of the main module
     // To be a part of main module, it has to share the same base
-    n = `${dir}/`.lastIndexOf(normalizedBase, 0);
-    if (n === 0) {
-      let moduleName = dir.slice(normalizedBase.length).replace(/\//g, '.');
+    if (dir.startsWith(normalizedBase)) {
+      let moduleName = dir.slice(normalizedBase.length + 1).replace(/\//g, '.');
 
       if (moduleName) {
         moduleName += ':';

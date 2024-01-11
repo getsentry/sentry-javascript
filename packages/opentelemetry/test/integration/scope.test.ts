@@ -1,6 +1,6 @@
-import { captureException, setTag, withScope } from '@sentry/core';
+import { captureException, getCurrentScope, setTag, withScope } from '@sentry/core';
 
-import { OpenTelemetryHub, getCurrentHub } from '../../src/custom/hub';
+import { OpenTelemetryHub, getClient, getCurrentHub } from '../../src/custom/hub';
 import { OpenTelemetryScope } from '../../src/custom/scope';
 import { startSpan } from '../../src/trace';
 import { getSpanScope } from '../../src/utils/spanData';
@@ -23,9 +23,9 @@ describe('Integration | Scope', () => {
       mockSdkInit({ enableTracing, beforeSend, beforeSendTransaction });
 
       const hub = getCurrentHub();
-      const client = hub.getClient() as TestClientInterface;
+      const client = getClient() as TestClientInterface;
 
-      const rootScope = hub.getScope();
+      const rootScope = getCurrentScope();
 
       expect(hub).toBeInstanceOf(OpenTelemetryHub);
       expect(rootScope).toBeInstanceOf(OpenTelemetryScope);
@@ -128,9 +128,8 @@ describe('Integration | Scope', () => {
       mockSdkInit({ enableTracing, beforeSend, beforeSendTransaction });
 
       const hub = getCurrentHub();
-      const client = hub.getClient() as TestClientInterface;
-
-      const rootScope = hub.getScope();
+      const client = getClient() as TestClientInterface;
+      const rootScope = getCurrentScope();
 
       expect(hub).toBeInstanceOf(OpenTelemetryHub);
       expect(rootScope).toBeInstanceOf(OpenTelemetryScope);

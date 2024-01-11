@@ -104,7 +104,7 @@ Update your \`Sentry.init\` call with an appropriate config option:
 });
 
 function runInit(options: Partial<Options>): void {
-  const hasRunBefore = Sentry.getCurrentHub().getIntegration(VueIntegration);
+  const hasRunBefore = Sentry.getClient()?.getIntegration(VueIntegration);
 
   const integration = new VueIntegration();
 

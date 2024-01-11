@@ -13,7 +13,7 @@ module('Acceptance | Sentry Session Replay', function (hooks) {
   test('Test replay', async function (assert) {
     await visit('/replay');
 
-    const integration = Sentry.getCurrentHub().getIntegration(Sentry.Replay);
+    const integration = Sentry.getClient()?.getIntegration(Sentry.Replay);
     assert.ok(integration);
 
     const replay = (integration as Sentry.Replay)['_replay'] as ReplayContainer;

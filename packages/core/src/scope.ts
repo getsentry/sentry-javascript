@@ -334,6 +334,9 @@ export class Scope implements ScopeInterface {
     // Often, this span (if it exists at all) will be a transaction, but it's not guaranteed to be. Regardless, it will
     // have a pointer to the currently-active transaction.
     const span = this._span;
+    // Cannot replace with getRootSpan because getRootSpan returns a span, not a transaction
+    // Also, this method will be removed anyway.
+    // eslint-disable-next-line deprecation/deprecation
     return span && span.transaction;
   }
 

@@ -1,4 +1,4 @@
-import { BaseClient, getCurrentHub } from '@sentry/core';
+import { BaseClient, getClient } from '@sentry/core';
 import * as SentryReact from '@sentry/react';
 import { BrowserTracing, WINDOW, getCurrentScope } from '@sentry/react';
 import type { Integration } from '@sentry/types';
@@ -70,7 +70,7 @@ describe('Client init()', () => {
   });
 
   it('sets runtime on scope', () => {
-    const currentScope = getCurrentHub().getScope();
+    const currentScope = getCurrentScope();
 
     // @ts-expect-error need access to protected _tags attribute
     expect(currentScope._tags).toEqual({});
@@ -86,8 +86,7 @@ describe('Client init()', () => {
       dsn: 'https://dogsarebadatkeepingsecrets@squirrelchasers.ingest.sentry.io/12312012',
       tracesSampleRate: 1.0,
     });
-    const hub = getCurrentHub();
-    const transportSend = jest.spyOn(hub.getClient()!.getTransport()!, 'send');
+    const transportSend = jest.spyOn(getClient()!.getTransport()!, 'send');
 
     // Ensure we have no current span, so our next span is a transaction
     // eslint-disable-next-line deprecation/deprecation

@@ -4,6 +4,7 @@ import {
   getCurrentScope,
   getDynamicSamplingContextFromClient,
   getDynamicSamplingContextFromSpan,
+  getRootSpan,
   hasTracingEnabled,
   spanToTraceHeader,
 } from '@sentry/core';
@@ -134,7 +135,7 @@ export function addTracingHeadersToFetchRequest(
   // eslint-disable-next-line deprecation/deprecation
   const span = requestSpan || scope.getSpan();
 
-  const transaction = span && span.transaction;
+  const transaction = span && getRootSpan(span);
 
   const { traceId, sampled, dsc } = scope.getPropagationContext();
 

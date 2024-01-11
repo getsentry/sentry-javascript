@@ -183,7 +183,11 @@ export function init(options: NodeOptions = {}): void {
     const client = getClient();
     if (client && client.addIntegration) {
       // force integrations to be setup even if no DSN was set
-      client.setupIntegrations(true);
+      // If they have already been added before, they will be ignored anyhow
+      const integrations = client.getOptions().integrations;
+      for (const integration of integrations) {
+        client.addIntegration(integration);
+      }
       client.addIntegration(
         new Spotlight({ sidecarUrl: typeof options.spotlight === 'string' ? options.spotlight : undefined }),
       );

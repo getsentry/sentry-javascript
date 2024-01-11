@@ -1,7 +1,7 @@
 import { createGetModuleFromFilename } from '../src/module';
 
-const getModuleFromFilenameWindows = createGetModuleFromFilename('C:\\Users\\Tim\\', true);
-const getModuleFromFilenamePosix = createGetModuleFromFilename('/Users/Tim/');
+const getModuleFromFilenameWindows = createGetModuleFromFilename('C:\\Users\\Tim', true);
+const getModuleFromFilenamePosix = createGetModuleFromFilename('/Users/Tim');
 
 describe('createGetModuleFromFilename', () => {
   test('Windows', () => {

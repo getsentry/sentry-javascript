@@ -74,7 +74,7 @@ export function InitSentryForEmber(_runtimeConfig?: BrowserOptions): void {
  */
 export const getActiveTransaction = (): Transaction | undefined => {
   // eslint-disable-next-line deprecation/deprecation
-  return Sentry.getCurrentHub().getScope().getTransaction();
+  return Sentry.getCurrentScope().getTransaction();
 };
 
 type RouteConstructor = new (...args: ConstructorParameters<typeof Route>) => Route;

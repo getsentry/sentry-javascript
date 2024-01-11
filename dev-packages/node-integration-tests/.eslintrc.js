@@ -6,7 +6,7 @@ module.exports = {
   extends: ['../../.eslintrc.js'],
   overrides: [
     {
-      files: ['utils/**/*.ts'],
+      files: ['utils/**/*.ts', 'src/**/*.ts'],
       parserOptions: {
         project: ['tsconfig.json'],
         sourceType: 'module',
