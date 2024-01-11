@@ -26,6 +26,7 @@ function makeClientWithoutHooks(): [NodeClient, Transport] {
     integrations: [integration],
     transport: _opts => transport,
   });
+  // eslint-disable-next-line deprecation/deprecation
   client.setupIntegrations = () => {
     integration.setupOnce(
       cb => {
@@ -59,6 +60,7 @@ function makeClientWithHooks(): [NodeClient, Transport] {
       }),
   });
 
+  // eslint-disable-next-line deprecation/deprecation
   client.setupIntegrations = () => {
     integration.setupOnce(
       cb => {

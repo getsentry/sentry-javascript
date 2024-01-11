@@ -12,13 +12,13 @@
 #include <unordered_map>
 
 static const uint8_t kMaxStackDepth(128);
-static const float kSamplingFrequency(99.0);  // 99 to avoid lockstep sampling
+static const float kSamplingFrequency(99.0); // 99 to avoid lockstep sampling
 static const float kSamplingHz(1 / kSamplingFrequency);
 static const int kSamplingInterval(kSamplingHz * 1e6);
-static const v8::CpuProfilingNamingMode kNamingMode(
-    v8::CpuProfilingNamingMode::kDebugNaming);
-static const v8::CpuProfilingLoggingMode kDefaultLoggingMode(
-    v8::CpuProfilingLoggingMode::kEagerLogging);
+static const v8::CpuProfilingNamingMode
+    kNamingMode(v8::CpuProfilingNamingMode::kDebugNaming);
+static const v8::CpuProfilingLoggingMode
+    kDefaultLoggingMode(v8::CpuProfilingLoggingMode::kEagerLogging);
 
 // Allow users to override the default logging mode via env variable. This is
 // useful because sometimes the flow of the profiled program can be to execute
@@ -57,7 +57,7 @@ enum class ProfileStatus {
 };
 
 class MeasurementsTicker {
- private:
+private:
   uv_timer_t timer;
   uint64_t period_ms;
   std::unordered_map<std::string,
@@ -69,7 +69,7 @@ class MeasurementsTicker {
   v8::HeapStatistics heap_stats;
   uv_cpu_info_t cpu_stats;
 
- public:
+public:
   MeasurementsTicker(uv_loop_t *loop)
       : period_ms(100), isolate(v8::Isolate::GetCurrent()) {
     uv_timer_init(loop, &timer);
@@ -218,7 +218,7 @@ void MeasurementsTicker::remove_cpu_listener(
 };
 
 class Profiler {
- public:
+public:
   std::unordered_map<std::string, SentryProfile *> active_profiles;
 
   MeasurementsTicker measurements_ticker;
@@ -231,7 +231,7 @@ class Profiler {
 };
 
 class SentryProfile {
- private:
+private:
   uint64_t started_at;
   uint16_t heap_write_index = 0;
   uint16_t cpu_write_index = 0;
@@ -248,7 +248,7 @@ class SentryProfile {
   ProfileStatus status = ProfileStatus::kNotStarted;
   std::string id;
 
- public:
+public:
   explicit SentryProfile(const char *id)
       : started_at(uv_hrtime()),
         memory_sampler_cb([this](uint64_t ts, v8::HeapStatistics &stats) {
@@ -280,8 +280,7 @@ class SentryProfile {
           return false;
         }),
 
-        status(ProfileStatus::kNotStarted),
-        id(id) {
+        status(ProfileStatus::kNotStarted), id(id) {
     heap_stats_ts.reserve(300);
     heap_stats_usage.reserve(300);
     cpu_stats_ts.reserve(300);
@@ -453,10 +452,10 @@ static napi_value GetFrameModuleWrapped(napi_env env, napi_callback_info info) {
   return napi_module;
 }
 
-napi_value CreateFrameNode(
-    const napi_env &env, const v8::CpuProfileNode &node,
-    std::unordered_map<std::string, std::string> &module_cache,
-    napi_value &resources) {
+napi_value
+CreateFrameNode(const napi_env &env, const v8::CpuProfileNode &node,
+                std::unordered_map<std::string, std::string> &module_cache,
+                napi_value &resources) {
   napi_value js_node;
   napi_create_object(env, &js_node);
 
@@ -664,10 +663,11 @@ static void GetSamples(const napi_env &env, const v8::CpuProfile *profile,
   }
 }
 
-static napi_value TranslateMeasurementsDouble(
-    const napi_env &env, const char *unit, const uint16_t size,
-    const std::vector<double> &values,
-    const std::vector<uint64_t> &timestamps) {
+static napi_value
+TranslateMeasurementsDouble(const napi_env &env, const char *unit,
+                            const uint16_t size,
+                            const std::vector<double> &values,
+                            const std::vector<uint64_t> &timestamps) {
   if (size > values.size() || size > timestamps.size()) {
     napi_throw_range_error(env, "NAPI_ERROR",
                            "CPU measurement size is larger than the number of "
@@ -718,10 +718,10 @@ static napi_value TranslateMeasurementsDouble(
   return measurement;
 }
 
-static napi_value TranslateMeasurements(
-    const napi_env &env, const char *unit, const uint16_t size,
-    const std::vector<uint64_t> &values,
-    const std::vector<uint64_t> &timestamps) {
+static napi_value
+TranslateMeasurements(const napi_env &env, const char *unit,
+                      const uint16_t size, const std::vector<uint64_t> &values,
+                      const std::vector<uint64_t> &timestamps) {
   if (size > values.size() || size > timestamps.size()) {
     napi_throw_range_error(env, "NAPI_ERROR",
                            "Memory measurement size is larger than the number "

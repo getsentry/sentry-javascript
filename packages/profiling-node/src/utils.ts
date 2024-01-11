@@ -461,6 +461,7 @@ export function applyDebugMetadata(resource_paths: ReadonlyArray<string>): Debug
   }
 
   const hub = Sentry.getCurrentHub();
+  // eslint-disable-next-line deprecation/deprecation
   const client = hub.getClient();
   const options = client && client.getOptions();
 

@@ -56,6 +56,7 @@ export class ProfilingIntegration implements Integration {
    */
   public setupOnce(addGlobalEventProcessor: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
     this.getCurrentHub = getCurrentHub;
+    // eslint-disable-next-line deprecation/deprecation
     const client = this.getCurrentHub().getClient() as NodeClient;
 
     if (client && typeof client.on === 'function') {
@@ -202,6 +203,7 @@ export class ProfilingIntegration implements Integration {
       // If either of them is not available, we remove the profile from the transaction event.
       // and forward it to the next event processor.
       const hub = this.getCurrentHub();
+      // eslint-disable-next-line deprecation/deprecation
       const client = hub.getClient();
       if (!client) {
         if (isDebugBuild()) {

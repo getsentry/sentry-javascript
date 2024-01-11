@@ -36,6 +36,7 @@ function makeClientWithoutHooks(): [NodeClient, MockTransport] {
     integrations: [integration],
     transport: () => transport,
   });
+  // eslint-disable-next-line deprecation/deprecation
   client.setupIntegrations = () => {
     integration.setupOnce(
       cb => {
