@@ -81,7 +81,6 @@
     "node-abi": "^3.52.0"
   },
   "devDependencies": {
-    "@sentry-internal/eslint-config-sdk": "^7.91.0",
     "@sentry/core": "^7.86.0",
     "@sentry/hub": "^7.87.0",
     "@sentry/node": "^7.87.0",
