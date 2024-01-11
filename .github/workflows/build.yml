@@ -263,7 +263,7 @@ jobs:
       dependency_cache_key: ${{ needs.job_install_deps.outputs.dependency_cache_key }}
 
   job_build_bindings_profiling_node:
-    name: Build Profiling Bindings Node (${{ matrix.os }}) (${{ matrix.target_platform }}, ${{ matrix.node || matrix.container }}, ${{ matrix.arch || matrix.container }}, ${{ contains(matrix.container, 'alpine') && 'musl' || 'glibc'  }})
+    name: Build Profiling Bindings Node (${{ matrix.node }}) ${{ matrix.target_platform || matrix.os }}, ${{ matrix.node || matrix.container }}, ${{ matrix.arch || matrix.container }}, ${{ contains(matrix.container, 'alpine') && 'musl' || 'glibc'  }})
     needs: [job_get_metadata, job_install_deps]
     runs-on: ${{ matrix.os }}
     container: ${{ matrix.container }}
