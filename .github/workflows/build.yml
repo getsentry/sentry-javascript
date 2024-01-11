@@ -269,7 +269,7 @@ jobs:
 
   job_size_check:
     name: Size Check
-    needs: [job_get_metadata, job_build, job_compile_bindings_profiling_node]
+    needs: [job_get_metadata, job_build]
     timeout-minutes: 15
     runs-on: ubuntu-20.04
     if:
@@ -304,7 +304,7 @@ jobs:
     name: Lint
     # Even though the linter only checks source code, not built code, it needs the built code in order check that all
     # inter-package dependencies resolve cleanly.
-    needs: [job_get_metadata, job_build, job_compile_bindings_profiling_node]
+    needs: [job_get_metadata, job_build]
     timeout-minutes: 10
     runs-on: ubuntu-20.04
     steps:
