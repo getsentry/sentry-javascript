@@ -110,6 +110,12 @@ export class Span implements SpanInterface {
 
   /**
    * The instrumenter that created this span.
+   *
+   * TODO (v8): This can probably be replaced by an `instanceOf` check of the span class.
+   *            the instrumenter can only be sentry or otel so we can check the span instance
+   *            to verify which one it is and remove this field entirely.
+   *
+   * @deprecated This field will be removed.
    */
   public instrumenter: Instrumenter;
 
@@ -142,6 +148,7 @@ export class Span implements SpanInterface {
     // eslint-disable-next-line deprecation/deprecation
     this.data = spanContext.data ? { ...spanContext.data } : {};
     this._attributes = spanContext.attributes ? { ...spanContext.attributes } : {};
+    // eslint-disable-next-line deprecation/deprecation
     this.instrumenter = spanContext.instrumenter || 'sentry';
     this.origin = spanContext.origin || 'manual';
     // eslint-disable-next-line deprecation/deprecation

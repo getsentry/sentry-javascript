@@ -221,6 +221,8 @@ export interface Span extends SpanContext {
 
   /**
    * The instrumenter that created this span.
+   *
+   * @deprecated this field will be removed.
    */
   instrumenter: Instrumenter;
 
