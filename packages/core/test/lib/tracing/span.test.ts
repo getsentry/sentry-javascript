@@ -1,6 +1,6 @@
 import { timestampInSeconds } from '@sentry/utils';
 import { Span } from '../../../src';
-import { TRACE_FLAG_NONE, TRACE_FLAG_SAMPLED } from '../../../src/utils/spanUtils';
+import { TRACE_FLAG_NONE, TRACE_FLAG_SAMPLED, spanToJSON } from '../../../src/utils/spanUtils';
 
 describe('span', () => {
   describe('name', () => {
@@ -186,7 +186,7 @@ describe('span', () => {
       const now = timestampInSeconds();
       span.end();
 
-      expect(span.endTimestamp).toBeGreaterThanOrEqual(now);
+      expect(spanToJSON(span).timestamp).toBeGreaterThanOrEqual(now);
     });
 
     it('works with endTimestamp in seconds', () => {
@@ -194,7 +194,7 @@ describe('span', () => {
       const timestamp = timestampInSeconds() - 1;
       span.end(timestamp);
 
-      expect(span.endTimestamp).toEqual(timestamp);
+      expect(spanToJSON(span).timestamp).toEqual(timestamp);
     });
 
     it('works with endTimestamp in milliseconds', () => {
@@ -202,7 +202,7 @@ describe('span', () => {
       const timestamp = Date.now() - 1000;
       span.end(timestamp);
 
-      expect(span.endTimestamp).toEqual(timestamp / 1000);
+      expect(spanToJSON(span).timestamp).toEqual(timestamp / 1000);
     });
 
     it('works with endTimestamp in array form', () => {
@@ -210,7 +210,17 @@ describe('span', () => {
       const seconds = Math.floor(timestampInSeconds() - 1);
       span.end([seconds, 0]);
 
-      expect(span.endTimestamp).toEqual(seconds);
+      expect(spanToJSON(span).timestamp).toEqual(seconds);
+    });
+
+    it('skips if span is already ended', () => {
+      const startTimestamp = timestampInSeconds() - 5;
+      const endTimestamp = timestampInSeconds() - 1;
+      const span = new Span({ startTimestamp, endTimestamp });
+
+      span.end();
+
+      expect(spanToJSON(span).timestamp).toBe(endTimestamp);
     });
   });
 

@@ -1,12 +1,14 @@
-import * as path from 'path';
+import { cleanupChildProcesses, createRunner } from '../../../../utils/runner';
+import type { TestAPIResponse } from './server';
 
-import { TestEnv } from '../../../../utils/index';
-import type { TestAPIResponse } from '../server';
+afterAll(() => {
+  cleanupChildProcesses();
+});
 
-test('should attach a `baggage` header to an outgoing request.', async () => {
-  const env = await TestEnv.init(__dirname, `${path.resolve(__dirname, '.')}/server.ts`);
+test('should attach a baggage header to an outgoing request.', async () => {
+  const runner = createRunner(__dirname, 'server.ts').start();
 
-  const response = (await env.getAPIResponse(`${env.url}/express`)) as TestAPIResponse;
+  const response = await runner.makeRequest<TestAPIResponse>('get', '/test/express');
 
   expect(response).toBeDefined();
   expect(response).toMatchObject({

@@ -2,6 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { Hub } from '@sentry/browser';
 import { getCurrentHub } from '@sentry/browser';
+import { spanToJSON } from '@sentry/core';
 import type { Span, Transaction } from '@sentry/types';
 import { timestampInSeconds } from '@sentry/utils';
 import hoistNonReactStatics from 'hoist-non-react-statics';
@@ -124,7 +125,7 @@ class Profiler extends React.Component<ProfilerProps> {
         endTimestamp: timestampInSeconds(),
         op: REACT_RENDER_OP,
         origin: 'auto.ui.react.profiler',
-        startTimestamp: this._mountSpan.endTimestamp,
+        startTimestamp: spanToJSON(this._mountSpan).timestamp,
         data: { 'ui.component_name': name },
       });
     }
@@ -211,7 +212,7 @@ function useProfiler(
           endTimestamp: timestampInSeconds(),
           op: REACT_RENDER_OP,
           origin: 'auto.ui.react.profiler',
-          startTimestamp: mountSpan.endTimestamp,
+          startTimestamp: spanToJSON(mountSpan).timestamp,
           data: { 'ui.component_name': name },
         });
       }
@@ -224,7 +225,10 @@ function useProfiler(
 export { withProfiler, Profiler, useProfiler };
 
 /** Grabs active transaction off scope */
-export function getActiveTransaction<T extends Transaction>(hub: Hub = getCurrentHub()): T | undefined {
+export function getActiveTransaction<T extends Transaction>(
+  // eslint-disable-next-line deprecation/deprecation
+  hub: Hub = getCurrentHub(),
+): T | undefined {
   if (hub) {
     // eslint-disable-next-line deprecation/deprecation
     const scope = hub.getScope();

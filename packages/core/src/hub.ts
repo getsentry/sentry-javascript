@@ -147,6 +147,7 @@ export class Hub implements HubInterface {
     this._stack = [{ scope: assignedScope }];
 
     if (client) {
+      // eslint-disable-next-line deprecation/deprecation
       this.bindClient(client);
     }
 
@@ -166,14 +167,19 @@ export class Hub implements HubInterface {
   }
 
   /**
-   * @inheritDoc
+   * This binds the given client to the current scope.
+   * @param client An SDK client (client) instance.
+   *
+   * @deprecated Use `initAndBind()` directly, or `setCurrentClient()` and/or `client.init()` instead.
    */
   public bindClient(client?: Client): void {
     // eslint-disable-next-line deprecation/deprecation
     const top = this.getStackTop();
     top.client = client;
     top.scope.setClient(client);
+    // eslint-disable-next-line deprecation/deprecation
     if (client && client.setupIntegrations) {
+      // eslint-disable-next-line deprecation/deprecation
       client.setupIntegrations();
     }
   }
@@ -385,6 +391,14 @@ export class Hub implements HubInterface {
       client.emit('beforeAddBreadcrumb', finalBreadcrumb, hint);
     }
 
+    // TODO(v8): I know this comment doesn't make much sense because the hub will be deprecated but I still wanted to
+    // write it down. In theory, we would have to add the breadcrumbs to the isolation scope here, however, that would
+    // duplicate all of the breadcrumbs. There was the possibility of adding breadcrumbs to both, the isolation scope
+    // and the normal scope, and deduplicating it down the line in the event processing pipeline. However, that would
+    // have been very fragile, because the breadcrumb objects would have needed to keep their identity all throughout
+    // the event processing pipeline.
+    // In the new implementation, the top level `Sentry.addBreadcrumb()` should ONLY write to the isolation scope.
+
     scope.addBreadcrumb(finalBreadcrumb, maxBreadcrumbs);
   }
 
@@ -393,8 +407,11 @@ export class Hub implements HubInterface {
    * @deprecated Use `Sentry.setUser()` instead.
    */
   public setUser(user: User | null): void {
+    // TODO(v8): The top level `Sentry.setUser()` function should write ONLY to the isolation scope.
     // eslint-disable-next-line deprecation/deprecation
     this.getScope().setUser(user);
+    // eslint-disable-next-line deprecation/deprecation
+    this.getIsolationScope().setUser(user);
   }
 
   /**
@@ -402,8 +419,11 @@ export class Hub implements HubInterface {
    * @deprecated Use `Sentry.setTags()` instead.
    */
   public setTags(tags: { [key: string]: Primitive }): void {
+    // TODO(v8): The top level `Sentry.setTags()` function should write ONLY to the isolation scope.
     // eslint-disable-next-line deprecation/deprecation
     this.getScope().setTags(tags);
+    // eslint-disable-next-line deprecation/deprecation
+    this.getIsolationScope().setTags(tags);
   }
 
   /**
@@ -411,8 +431,11 @@ export class Hub implements HubInterface {
    * @deprecated Use `Sentry.setExtras()` instead.
    */
   public setExtras(extras: Extras): void {
+    // TODO(v8): The top level `Sentry.setExtras()` function should write ONLY to the isolation scope.
     // eslint-disable-next-line deprecation/deprecation
     this.getScope().setExtras(extras);
+    // eslint-disable-next-line deprecation/deprecation
+    this.getIsolationScope().setExtras(extras);
   }
 
   /**
@@ -420,8 +443,11 @@ export class Hub implements HubInterface {
    * @deprecated Use `Sentry.setTag()` instead.
    */
   public setTag(key: string, value: Primitive): void {
+    // TODO(v8): The top level `Sentry.setTag()` function should write ONLY to the isolation scope.
     // eslint-disable-next-line deprecation/deprecation
     this.getScope().setTag(key, value);
+    // eslint-disable-next-line deprecation/deprecation
+    this.getIsolationScope().setTag(key, value);
   }
 
   /**
@@ -429,8 +455,11 @@ export class Hub implements HubInterface {
    * @deprecated Use `Sentry.setExtra()` instead.
    */
   public setExtra(key: string, extra: Extra): void {
+    // TODO(v8): The top level `Sentry.setExtra()` function should write ONLY to the isolation scope.
     // eslint-disable-next-line deprecation/deprecation
     this.getScope().setExtra(key, extra);
+    // eslint-disable-next-line deprecation/deprecation
+    this.getIsolationScope().setExtra(key, extra);
   }
 
   /**
@@ -439,8 +468,11 @@ export class Hub implements HubInterface {
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public setContext(name: string, context: { [key: string]: any } | null): void {
+    // TODO(v8): The top level `Sentry.setContext()` function should write ONLY to the isolation scope.
     // eslint-disable-next-line deprecation/deprecation
     this.getScope().setContext(name, context);
+    // eslint-disable-next-line deprecation/deprecation
+    this.getIsolationScope().setContext(name, context);
   }
 
   /**
@@ -460,23 +492,26 @@ export class Hub implements HubInterface {
    * @inheritDoc
    */
   public run(callback: (hub: Hub) => void): void {
+    // eslint-disable-next-line deprecation/deprecation
     const oldHub = makeMain(this);
     try {
       callback(this);
     } finally {
+      // eslint-disable-next-line deprecation/deprecation
       makeMain(oldHub);
     }
   }
 
   /**
    * @inheritDoc
-   * @deprecated Use `Sentry.getClient().getIntegration()` instead.
+   * @deprecated Use `Sentry.getClient().getIntegrationByName()` instead.
    */
   public getIntegration<T extends Integration>(integration: IntegrationClass<T>): T | null {
     // eslint-disable-next-line deprecation/deprecation
     const client = this.getClient();
     if (!client) return null;
     try {
+      // eslint-disable-next-line deprecation/deprecation
       return client.getIntegration(integration);
     } catch (_oO) {
       DEBUG_BUILD && logger.warn(`Cannot retrieve integration ${integration.id} from the current Hub`);
@@ -661,6 +696,8 @@ export function getMainCarrier(): Carrier {
  * Replaces the current main hub with the passed one on the global object
  *
  * @returns The old replaced hub
+ *
+ * @deprecated Use `setCurrentClient()` instead.
  */
 export function makeMain(hub: Hub): Hub {
   const registry = getMainCarrier();
@@ -675,6 +712,8 @@ export function makeMain(hub: Hub): Hub {
  * If a hub is already registered in the global carrier but this module
  * contains a more recent version, it replaces the registered version.
  * Otherwise, the currently registered hub will be returned.
+ *
+ * @deprecated Use the respective replacement method directly instead.
  */
 export function getCurrentHub(): Hub {
   // Get main carrier (global for every environment)

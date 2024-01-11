@@ -1,5 +1,5 @@
-import { convertIntegrationFnToClass } from '@sentry/core';
-import type { Event, IntegrationFn, StackFrame } from '@sentry/types';
+import { convertIntegrationFnToClass, defineIntegration } from '@sentry/core';
+import type { Event, Integration, IntegrationClass, IntegrationFn, StackFrame } from '@sentry/types';
 import { GLOBAL_OBJ, addContextToFrame, stripUrlQueryAndFragment } from '@sentry/utils';
 
 const WINDOW = GLOBAL_OBJ as typeof GLOBAL_OBJ & Window;
@@ -18,7 +18,7 @@ interface ContextLinesOptions {
   frameContextLines?: number;
 }
 
-const contextLinesIntegration: IntegrationFn = (options: ContextLinesOptions = {}) => {
+const _contextLinesIntegration = ((options: ContextLinesOptions = {}) => {
   const contextLines = options.frameContextLines != null ? options.frameContextLines : DEFAULT_LINES_OF_CONTEXT;
 
   return {
@@ -29,7 +29,9 @@ const contextLinesIntegration: IntegrationFn = (options: ContextLinesOptions = {
       return addSourceContext(event, contextLines);
     },
   };
-};
+}) satisfies IntegrationFn;
+
+export const contextLinesIntegration = defineIntegration(_contextLinesIntegration);
 
 /**
  * Collects source context lines around the lines of stackframes pointing to JS embedded in
@@ -41,9 +43,13 @@ const contextLinesIntegration: IntegrationFn = (options: ContextLinesOptions = {
  *
  * Use this integration if you have inline JS code in HTML pages that can't be accessed
  * by our backend (e.g. due to a login-protected page).
+ *
+ * @deprecated Use `contextLinesIntegration()` instead.
  */
 // eslint-disable-next-line deprecation/deprecation
-export const ContextLines = convertIntegrationFnToClass(INTEGRATION_NAME, contextLinesIntegration);
+export const ContextLines = convertIntegrationFnToClass(INTEGRATION_NAME, contextLinesIntegration) as IntegrationClass<
+  Integration & { processEvent: (event: Event) => Event }
+> & { new (options?: { frameContextLines?: number }): Integration };
 
 /**
  * Processes an event and adds context lines.

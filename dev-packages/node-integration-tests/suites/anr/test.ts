@@ -1,188 +1,109 @@
-import * as childProcess from 'child_process';
-import * as path from 'path';
-import type { Event } from '@sentry/node';
-import type { SerializedSession } from '@sentry/types';
 import { conditionalTest } from '../../utils';
+import { cleanupChildProcesses, createRunner } from '../../utils/runner';
 
-/** The output will contain logging so we need to find the line that parses as JSON */
-function parseJsonLines<T extends unknown[]>(input: string, expected: number): T {
-  const results = input
-    .split('\n')
-    .map(line => {
-      const trimmed = line.startsWith('[ANR Worker] ') ? line.slice(13) : line;
-      try {
-        return JSON.parse(trimmed) as T;
-      } catch {
-        return undefined;
-      }
-    })
-    .filter(a => a) as T;
-
-  expect(results.length).toEqual(expected);
-
-  return results;
-}
+const EXPECTED_ANR_EVENT = {
+  // Ensure we have context
+  contexts: {
+    trace: {
+      span_id: expect.any(String),
+      trace_id: expect.any(String),
+    },
+    device: {
+      arch: expect.any(String),
+    },
+    app: {
+      app_start_time: expect.any(String),
+    },
+    os: {
+      name: expect.any(String),
+    },
+    culture: {
+      timezone: expect.any(String),
+    },
+  },
+  // and an exception that is our ANR
+  exception: {
+    values: [
+      {
+        type: 'ApplicationNotResponding',
+        value: 'Application Not Responding for at least 100 ms',
+        mechanism: { type: 'ANR' },
+        stacktrace: {
+          frames: expect.arrayContaining([
+            {
+              colno: expect.any(Number),
+              lineno: expect.any(Number),
+              filename: expect.any(String),
+              function: '?',
+              in_app: true,
+            },
+            {
+              colno: expect.any(Number),
+              lineno: expect.any(Number),
+              filename: expect.any(String),
+              function: 'longWork',
+              in_app: true,
+            },
+          ]),
+        },
+      },
+    ],
+  },
+};
 
 conditionalTest({ min: 16 })('should report ANR when event loop blocked', () => {
-  test('CJS', done => {
-    expect.assertions(13);
-
-    const testScriptPath = path.resolve(__dirname, 'basic.js');
-
-    childProcess.exec(`node ${testScriptPath}`, { encoding: 'utf8' }, (_, stdout) => {
-      const [event] = parseJsonLines<[Event]>(stdout, 1);
-
-      expect(event.exception?.values?.[0].mechanism).toEqual({ type: 'ANR' });
-      expect(event.exception?.values?.[0].type).toEqual('ApplicationNotResponding');
-      expect(event.exception?.values?.[0].value).toEqual('Application Not Responding for at least 200 ms');
-      expect(event.exception?.values?.[0].stacktrace?.frames?.length).toBeGreaterThan(4);
-
-      expect(event.exception?.values?.[0].stacktrace?.frames?.[2].function).toEqual('?');
-      expect(event.exception?.values?.[0].stacktrace?.frames?.[3].function).toEqual('longWork');
-
-      expect(event.contexts?.trace?.trace_id).toBeDefined();
-      expect(event.contexts?.trace?.span_id).toBeDefined();
-
-      expect(event.contexts?.device?.arch).toBeDefined();
-      expect(event.contexts?.app?.app_start_time).toBeDefined();
-      expect(event.contexts?.os?.name).toBeDefined();
-      expect(event.contexts?.culture?.timezone).toBeDefined();
-
-      done();
-    });
+  afterAll(() => {
+    cleanupChildProcesses();
   });
 
+  // TODO (v8): Remove this old API and this test
   test('Legacy API', done => {
-    // TODO (v8): Remove this old API and this test
-    expect.assertions(9);
+    createRunner(__dirname, 'legacy.js').expect({ event: EXPECTED_ANR_EVENT }).start(done);
+  });
 
-    const testScriptPath = path.resolve(__dirname, 'legacy.js');
-
-    childProcess.exec(`node ${testScriptPath}`, { encoding: 'utf8' }, (_, stdout) => {
-      const [event] = parseJsonLines<[Event]>(stdout, 1);
-
-      expect(event.exception?.values?.[0].mechanism).toEqual({ type: 'ANR' });
-      expect(event.exception?.values?.[0].type).toEqual('ApplicationNotResponding');
-      expect(event.exception?.values?.[0].value).toEqual('Application Not Responding for at least 200 ms');
-      expect(event.exception?.values?.[0].stacktrace?.frames?.length).toBeGreaterThan(4);
-
-      expect(event.exception?.values?.[0].stacktrace?.frames?.[2].function).toEqual('?');
-      expect(event.exception?.values?.[0].stacktrace?.frames?.[3].function).toEqual('longWork');
-
-      expect(event.contexts?.trace?.trace_id).toBeDefined();
-      expect(event.contexts?.trace?.span_id).toBeDefined();
-
-      done();
-    });
+  test('CJS', done => {
+    createRunner(__dirname, 'basic.js').expect({ event: EXPECTED_ANR_EVENT }).start(done);
   });
 
   test('ESM', done => {
-    expect.assertions(7);
-
-    const testScriptPath = path.resolve(__dirname, 'basic.mjs');
-
-    childProcess.exec(`node ${testScriptPath}`, { encoding: 'utf8' }, (_, stdout) => {
-      const [event] = parseJsonLines<[Event]>(stdout, 1);
-
-      expect(event.exception?.values?.[0].mechanism).toEqual({ type: 'ANR' });
-      expect(event.exception?.values?.[0].type).toEqual('ApplicationNotResponding');
-      expect(event.exception?.values?.[0].value).toEqual('Application Not Responding for at least 200 ms');
-      expect(event.exception?.values?.[0].stacktrace?.frames?.length).toBeGreaterThanOrEqual(4);
-      expect(event.exception?.values?.[0].stacktrace?.frames?.[2].function).toEqual('?');
-      expect(event.exception?.values?.[0].stacktrace?.frames?.[3].function).toEqual('longWork');
-
-      done();
-    });
+    createRunner(__dirname, 'basic.mjs').expect({ event: EXPECTED_ANR_EVENT }).start(done);
   });
 
   test('With --inspect', done => {
-    expect.assertions(7);
-
-    const testScriptPath = path.resolve(__dirname, 'basic.js');
-
-    childProcess.exec(`node --inspect ${testScriptPath}`, { encoding: 'utf8' }, (_, stdout) => {
-      const [event] = parseJsonLines<[Event]>(stdout, 1);
-
-      expect(event.exception?.values?.[0].mechanism).toEqual({ type: 'ANR' });
-      expect(event.exception?.values?.[0].type).toEqual('ApplicationNotResponding');
-      expect(event.exception?.values?.[0].value).toEqual('Application Not Responding for at least 200 ms');
-      expect(event.exception?.values?.[0].stacktrace?.frames?.length).toBeGreaterThan(4);
-
-      expect(event.exception?.values?.[0].stacktrace?.frames?.[2].function).toEqual('?');
-      expect(event.exception?.values?.[0].stacktrace?.frames?.[3].function).toEqual('longWork');
-
-      done();
-    });
+    createRunner(__dirname, 'basic.mjs').withFlags('--inspect').expect({ event: EXPECTED_ANR_EVENT }).start(done);
   });
 
   test('should exit', done => {
-    const testScriptPath = path.resolve(__dirname, 'should-exit.js');
-    let hasClosed = false;
+    const runner = createRunner(__dirname, 'should-exit.js').start();
 
     setTimeout(() => {
-      expect(hasClosed).toBe(true);
+      expect(runner.childHasExited()).toBe(true);
       done();
     }, 5_000);
-
-    childProcess.exec(`node ${testScriptPath}`, { encoding: 'utf8' }, () => {
-      hasClosed = true;
-    });
   });
 
   test('should exit forced', done => {
-    const testScriptPath = path.resolve(__dirname, 'should-exit-forced.js');
-    let hasClosed = false;
+    const runner = createRunner(__dirname, 'should-exit-forced.js').start();
 
     setTimeout(() => {
-      expect(hasClosed).toBe(true);
+      expect(runner.childHasExited()).toBe(true);
       done();
     }, 5_000);
-
-    childProcess.exec(`node ${testScriptPath}`, { encoding: 'utf8' }, () => {
-      hasClosed = true;
-    });
   });
 
   test('With session', done => {
-    expect.assertions(9);
-
-    const testScriptPath = path.resolve(__dirname, 'basic-session.js');
-
-    childProcess.exec(`node ${testScriptPath}`, { encoding: 'utf8' }, (_, stdout) => {
-      const [session, event] = parseJsonLines<[SerializedSession, Event]>(stdout, 2);
-
-      expect(event.exception?.values?.[0].mechanism).toEqual({ type: 'ANR' });
-      expect(event.exception?.values?.[0].type).toEqual('ApplicationNotResponding');
-      expect(event.exception?.values?.[0].value).toEqual('Application Not Responding for at least 200 ms');
-      expect(event.exception?.values?.[0].stacktrace?.frames?.length).toBeGreaterThan(4);
-
-      expect(event.exception?.values?.[0].stacktrace?.frames?.[2].function).toEqual('?');
-      expect(event.exception?.values?.[0].stacktrace?.frames?.[3].function).toEqual('longWork');
-
-      expect(session.status).toEqual('abnormal');
-      expect(session.abnormal_mechanism).toEqual('anr_foreground');
-
-      done();
-    });
+    createRunner(__dirname, 'basic-session.js')
+      .expect({
+        session: {
+          status: 'abnormal',
+          abnormal_mechanism: 'anr_foreground',
+        },
+      })
+      .expect({ event: EXPECTED_ANR_EVENT })
+      .start(done);
   });
 
   test('from forked process', done => {
-    expect.assertions(7);
-
-    const testScriptPath = path.resolve(__dirname, 'forker.js');
-
-    childProcess.exec(`node ${testScriptPath}`, { encoding: 'utf8' }, (_, stdout) => {
-      const [event] = parseJsonLines<[Event]>(stdout, 1);
-
-      expect(event.exception?.values?.[0].mechanism).toEqual({ type: 'ANR' });
-      expect(event.exception?.values?.[0].type).toEqual('ApplicationNotResponding');
-      expect(event.exception?.values?.[0].value).toEqual('Application Not Responding for at least 200 ms');
-      expect(event.exception?.values?.[0].stacktrace?.frames?.length).toBeGreaterThan(4);
-
-      expect(event.exception?.values?.[0].stacktrace?.frames?.[2].function).toEqual('?');
-      expect(event.exception?.values?.[0].stacktrace?.frames?.[3].function).toEqual('longWork');
-
-      done();
-    });
+    createRunner(__dirname, 'forker.js').expect({ event: EXPECTED_ANR_EVENT }).start(done);
   });
 });

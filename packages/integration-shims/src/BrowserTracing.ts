@@ -23,7 +23,7 @@ class BrowserTracingShim implements Integration {
 
     consoleSandbox(() => {
       // eslint-disable-next-line no-console
-      console.error('You are using new BrowserTracing() even though this bundle does not include tracing.');
+      console.warn('You are using new BrowserTracing() even though this bundle does not include tracing.');
     });
   }
 

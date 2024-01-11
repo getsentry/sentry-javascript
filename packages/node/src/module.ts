@@ -10,7 +10,7 @@ function normalizeWindowsPath(path: string): string {
 
 /** Creates a function that gets the module name from a filename */
 export function createGetModuleFromFilename(
-  basePath: string = dirname(process.argv[1]),
+  basePath: string = process.argv[1] ? dirname(process.argv[1]) : process.cwd(),
   isWindows: boolean = sep === '\\',
 ): (filename: string | undefined) => string | undefined {
   const normalizedBase = isWindows ? normalizeWindowsPath(basePath) : basePath;
@@ -34,16 +34,15 @@ export function createGetModuleFromFilename(
       dir = '.';
     }
 
-    let n = dir.lastIndexOf('/node_modules');
+    const n = dir.lastIndexOf('/node_modules');
     if (n > -1) {
       return `${dir.slice(n + 14).replace(/\//g, '.')}:${file}`;
     }
 
     // Let's see if it's a part of the main module
     // To be a part of main module, it has to share the same base
-    n = `${dir}/`.lastIndexOf(normalizedBase, 0);
-    if (n === 0) {
-      let moduleName = dir.slice(normalizedBase.length).replace(/\//g, '.');
+    if (dir.startsWith(normalizedBase)) {
+      let moduleName = dir.slice(normalizedBase.length + 1).replace(/\//g, '.');
 
       if (moduleName) {
         moduleName += ':';

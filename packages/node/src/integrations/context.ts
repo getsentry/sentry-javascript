@@ -12,6 +12,8 @@ import type {
   CultureContext,
   DeviceContext,
   Event,
+  Integration,
+  IntegrationClass,
   IntegrationFn,
   OsContext,
 } from '@sentry/types';
@@ -35,7 +37,7 @@ interface ContextOptions {
   cloudResource?: boolean;
 }
 
-const contextIntegration = ((options: ContextOptions = {}) => {
+const nodeContextIntegration = ((options: ContextOptions = {}) => {
   let cachedContext: Promise<Contexts> | undefined;
 
   const _options = {
@@ -47,6 +49,7 @@ const contextIntegration = ((options: ContextOptions = {}) => {
     ...options,
   };
 
+  /** Add contexts to the event. Caches the context so we only look it up once. */
   async function addContext(event: Event): Promise<Event> {
     if (cachedContext === undefined) {
       cachedContext = _getContexts();
@@ -66,6 +69,7 @@ const contextIntegration = ((options: ContextOptions = {}) => {
     return event;
   }
 
+  /** Get the contexts from node. */
   async function _getContexts(): Promise<Contexts> {
     const contexts: Contexts = {};
 
@@ -108,7 +112,17 @@ const contextIntegration = ((options: ContextOptions = {}) => {
 
 /** Add node modules / packages to the event */
 // eslint-disable-next-line deprecation/deprecation
-export const Context = convertIntegrationFnToClass(INTEGRATION_NAME, contextIntegration);
+export const Context = convertIntegrationFnToClass(INTEGRATION_NAME, nodeContextIntegration) as IntegrationClass<
+  Integration & { processEvent: (event: Event) => Promise<Event> }
+> & {
+  new (options?: {
+    app?: boolean;
+    os?: boolean;
+    device?: { cpu?: boolean; memory?: boolean } | boolean;
+    culture?: boolean;
+    cloudResource?: boolean;
+  }): Integration;
+};
 
 /**
  * Updates the context with dynamic values that can change

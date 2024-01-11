@@ -41,6 +41,7 @@ export {
   // eslint-disable-next-line deprecation/deprecation
   getActiveTransaction,
   getHubFromCarrier,
+  // eslint-disable-next-line deprecation/deprecation
   getCurrentHub,
   getClient,
   getCurrentScope,
@@ -49,7 +50,9 @@ export {
   Hub,
   // eslint-disable-next-line deprecation/deprecation
   lastEventId,
+  // eslint-disable-next-line deprecation/deprecation
   makeMain,
+  setCurrentClient,
   runWithAsyncContext,
   Scope,
   // eslint-disable-next-line deprecation/deprecation
@@ -65,6 +68,7 @@ export {
   // eslint-disable-next-line deprecation/deprecation
   trace,
   withScope,
+  withIsolationScope,
   captureCheckIn,
   withMonitor,
   setMeasurement,
@@ -73,6 +77,10 @@ export {
   startInactiveSpan,
   startSpanManual,
   metrics,
+  inboundFiltersIntegration,
+  linkedErrorsIntegration,
+  functionToStringIntegration,
+  requestDataIntegration,
 } from '@sentry/core';
 export type { SpanStatusType } from '@sentry/core';
 
@@ -85,6 +93,7 @@ import { Integrations as CoreIntegrations } from '@sentry/core';
 import * as DenoIntegrations from './integrations';
 
 const INTEGRATIONS = {
+  // eslint-disable-next-line deprecation/deprecation
   ...CoreIntegrations,
   ...DenoIntegrations,
 };

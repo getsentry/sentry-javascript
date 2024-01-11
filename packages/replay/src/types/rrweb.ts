@@ -51,6 +51,7 @@ export interface CanvasManagerInterface {
   unfreeze(): void;
   lock(): void;
   unlock(): void;
+  snapshot(): void;
 }
 
 export interface CanvasManagerOptions {
@@ -64,4 +65,7 @@ export interface CanvasManagerOptions {
     type: string;
     quality: number;
   }>;
+  mutationCb: (p: any) => void;
+  win: typeof globalThis & Window;
+  mirror: any;
 }

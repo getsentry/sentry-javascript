@@ -75,6 +75,7 @@ function addClientIntegrations(options: BrowserOptions): void {
   // is set there, we set it here as well, just in case something has gone wrong with the injection.
   const assetPrefixPath = globalWithInjectedValues.__rewriteFramesAssetPrefixPath__ || '';
 
+  // eslint-disable-next-line deprecation/deprecation
   const defaultRewriteFramesIntegration = new RewriteFrames({
     // Turn `<origin>/<path>/_next/static/...` into `app:///_next/static/...`
     iteratee: frame => {

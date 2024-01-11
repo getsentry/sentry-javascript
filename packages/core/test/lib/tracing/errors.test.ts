@@ -1,5 +1,5 @@
 import { BrowserClient } from '@sentry/browser';
-import { Hub, addTracingExtensions, makeMain, startInactiveSpan, startSpan } from '@sentry/core';
+import { Hub, addTracingExtensions, makeMain, spanToJSON, startInactiveSpan, startSpan } from '@sentry/core';
 import type { HandlerDataError, HandlerDataUnhandledRejection } from '@sentry/types';
 
 import { getDefaultBrowserClientOptions } from '../../../../tracing/test/testutils';
@@ -35,6 +35,7 @@ describe('registerErrorHandlers()', () => {
     mockAddGlobalUnhandledRejectionInstrumentationHandler.mockClear();
     const options = getDefaultBrowserClientOptions({ enableTracing: true });
     const hub = new Hub(new BrowserClient(options));
+    // eslint-disable-next-line deprecation/deprecation
     makeMain(hub);
   });
 
@@ -50,13 +51,20 @@ describe('registerErrorHandlers()', () => {
     registerErrorInstrumentation();
 
     const transaction = startInactiveSpan({ name: 'test' })!;
+    // eslint-disable-next-line deprecation/deprecation
     expect(transaction.status).toBe(undefined);
+    expect(spanToJSON(transaction).status).toBe(undefined);
 
     mockErrorCallback({} as HandlerDataError);
+    // eslint-disable-next-line deprecation/deprecation
     expect(transaction.status).toBe(undefined);
+    expect(spanToJSON(transaction).status).toBe(undefined);
 
     mockUnhandledRejectionCallback({});
+    // eslint-disable-next-line deprecation/deprecation
     expect(transaction.status).toBe(undefined);
+    expect(spanToJSON(transaction).status).toBe(undefined);
+
     transaction.end();
   });
 
@@ -65,7 +73,9 @@ describe('registerErrorHandlers()', () => {
 
     startSpan({ name: 'test' }, span => {
       mockErrorCallback({} as HandlerDataError);
-      expect(span?.status).toBe('internal_error');
+      // eslint-disable-next-line deprecation/deprecation
+      expect(span!.status).toBe('internal_error');
+      expect(spanToJSON(span!).status).toBe('internal_error');
     });
   });
 
@@ -74,7 +84,9 @@ describe('registerErrorHandlers()', () => {
 
     startSpan({ name: 'test' }, span => {
       mockUnhandledRejectionCallback({});
-      expect(span?.status).toBe('internal_error');
+      // eslint-disable-next-line deprecation/deprecation
+      expect(span!.status).toBe('internal_error');
+      expect(spanToJSON(span!).status).toBe('internal_error');
     });
   });
 });

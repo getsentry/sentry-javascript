@@ -441,8 +441,8 @@ export async function instrumentForPerformance(appInstance: ApplicationInstance)
 
     if (
       client &&
-      (client as BrowserClient).getIntegrationById &&
-      (client as BrowserClient).getIntegrationById('BrowserTracing')
+      (client as BrowserClient).getIntegrationByName &&
+      (client as BrowserClient).getIntegrationByName('BrowserTracing')
     ) {
       // Initializers are called more than once in tests, causing the integrations to not be setup correctly.
       return;

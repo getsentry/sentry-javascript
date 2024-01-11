@@ -115,7 +115,7 @@ export const createTracingMixins = (options: TracingOptions): Mixins => {
             // will ever be the case that cleanup hooks re not called, but we had users report that spans didn't get
             // finished so we finish the span before starting a new one, just to be sure.
             const oldSpan = this.$_sentrySpans[operation];
-            if (oldSpan && !oldSpan.endTimestamp) {
+            if (oldSpan) {
               oldSpan.end();
             }
 

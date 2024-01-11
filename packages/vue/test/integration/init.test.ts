@@ -104,7 +104,7 @@ Update your \`Sentry.init\` call with an appropriate config option:
 });
 
 function runInit(options: Partial<Options>): void {
-  const hasRunBefore = Sentry.getClient()?.getIntegration(VueIntegration);
+  const hasRunBefore = Sentry.getClient()?.getIntegrationByName?.(VueIntegration.id);
 
   const integration = new VueIntegration();
 
@@ -119,6 +119,6 @@ function runInit(options: Partial<Options>): void {
   // If we've already had this integration registered before
   // if that's the case, `setup()` will not be run, so we need to manually run it :(
   if (hasRunBefore) {
-    integration['_setupIntegration'](Sentry.getCurrentHub());
+    integration['_setupIntegration'](Sentry.getClient());
   }
 }

@@ -17,6 +17,7 @@ import type {
   SessionContext,
   Severity,
   SeverityLevel,
+  Span,
   TransactionContext,
   User,
 } from '@sentry/types';
@@ -25,6 +26,7 @@ import { GLOBAL_OBJ, isThenable, logger, timestampInSeconds, uuid4 } from '@sent
 import { DEFAULT_ENVIRONMENT } from './constants';
 import { DEBUG_BUILD } from './debug-build';
 import type { Hub } from './hub';
+import { runWithAsyncContext } from './hub';
 import { getCurrentHub, getIsolationScope } from './hub';
 import type { Scope } from './scope';
 import { closeSession, makeSession, updateSession } from './session';
@@ -35,7 +37,7 @@ import { parseEventHintOrCaptureContext } from './utils/prepareEvent';
  * Captures an exception event and sends it to Sentry.
  *
  * @param exception The exception to capture.
- * @param hint Optinal additional data to attach to the Sentry event.
+ * @param hint Optional additional data to attach to the Sentry event.
  * @returns the id of the captured Sentry event.
  */
 export function captureException(
@@ -187,15 +189,17 @@ export function withScope<T>(scope: ScopeInterface | undefined, callback: (scope
 export function withScope<T>(
   ...rest: [callback: (scope: Scope) => T] | [scope: ScopeInterface | undefined, callback: (scope: Scope) => T]
 ): T {
+  // eslint-disable-next-line deprecation/deprecation
+  const hub = getCurrentHub();
+
   // If a scope is defined, we want to make this the active scope instead of the default one
   if (rest.length === 2) {
     const [scope, callback] = rest;
     if (!scope) {
       // eslint-disable-next-line deprecation/deprecation
-      return getCurrentHub().withScope(callback);
+      return hub.withScope(callback);
     }
 
-    const hub = getCurrentHub();
     // eslint-disable-next-line deprecation/deprecation
     return hub.withScope(() => {
       // eslint-disable-next-line deprecation/deprecation
@@ -205,7 +209,42 @@ export function withScope<T>(
   }
 
   // eslint-disable-next-line deprecation/deprecation
-  return getCurrentHub().withScope(rest[0]);
+  return hub.withScope(rest[0]);
+}
+
+/**
+ * Attempts to fork the current isolation scope and the current scope based on the current async context strategy. If no
+ * async context strategy is set, the isolation scope and the current scope will not be forked (this is currently the
+ * case, for example, in the browser).
+ *
+ * Usage of this function in environments without async context strategy is discouraged and may lead to unexpected behaviour.
+ *
+ * This function is intended for Sentry SDK and SDK integration development. It is not recommended to be used in "normal"
+ * applications directly because it comes with pitfalls. Use at your own risk!
+ *
+ * @param callback The callback in which the passed isolation scope is active. (Note: In environments without async
+ * context strategy, the currently active isolation scope may change within execution of the callback.)
+ * @returns The same value that `callback` returns.
+ */
+export function withIsolationScope<T>(callback: (isolationScope: Scope) => T): T {
+  return runWithAsyncContext(() => {
+    return callback(getIsolationScope());
+  });
+}
+
+/**
+ * Forks the current scope and sets the provided span as active span in the context of the provided callback.
+ *
+ * @param span Spans started in the context of the provided callback will be children of this span.
+ * @param callback Execution context in which the provided span will be active. Is passed the newly forked scope.
+ * @returns the value returned from the provided callback function.
+ */
+export function withActiveSpan<T>(span: Span, callback: (scope: Scope) => T): T {
+  return withScope(scope => {
+    // eslint-disable-next-line deprecation/deprecation
+    scope.setSpan(span);
+    return callback(scope);
+  });
 }
 
 /**
@@ -383,7 +422,7 @@ export function startSession(context?: SessionContext): Session {
   const session = makeSession({
     release,
     environment,
-    user: isolationScope.getUser(),
+    user: currentScope.getUser() || isolationScope.getUser(),
     ...(userAgent && { userAgent }),
     ...context,
   });
@@ -413,7 +452,7 @@ export function endSession(): void {
   const isolationScope = getIsolationScope();
   const currentScope = getCurrentScope();
 
-  const session = isolationScope.getSession();
+  const session = currentScope.getSession() || isolationScope.getSession();
   if (session) {
     closeSession(session);
   }

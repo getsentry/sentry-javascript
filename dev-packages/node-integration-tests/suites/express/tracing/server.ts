@@ -1,3 +1,4 @@
+import { loggingTransport, startExpressServerAndSendPortToRunner } from '@sentry-internal/node-integration-tests';
 import * as Sentry from '@sentry/node';
 import cors from 'cors';
 import express from 'express';
@@ -11,6 +12,7 @@ Sentry.init({
   tracePropagationTargets: [/^(?!.*test).*$/],
   integrations: [new Sentry.Integrations.Http({ tracing: true }), new Sentry.Integrations.Express({ app })],
   tracesSampleRate: 1.0,
+  transport: loggingTransport,
 });
 
 app.use(Sentry.Handlers.requestHandler());
@@ -36,4 +38,4 @@ app.get(['/test/arr/:id', /\/test\/arr[0-9]*\/required(path)?(\/optionalPath)?\/
 
 app.use(Sentry.Handlers.errorHandler());
 
-export default app;
+startExpressServerAndSendPortToRunner(app);

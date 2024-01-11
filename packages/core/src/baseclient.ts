@@ -314,12 +314,19 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   }
 
   /**
-   * Sets up the integrations
+   * This is an internal function to setup all integrations that should run on the client.
+   * @deprecated Use `client.init()` instead.
    */
   public setupIntegrations(forceInitialize?: boolean): void {
     if ((forceInitialize && !this._integrationsInitialized) || (this._isEnabled() && !this._integrationsInitialized)) {
-      this._integrations = setupIntegrations(this, this._options.integrations);
-      this._integrationsInitialized = true;
+      this._setupIntegrations();
+    }
+  }
+
+  /** @inheritdoc */
+  public init(): void {
+    if (this._isEnabled()) {
+      this._setupIntegrations();
     }
   }
 
@@ -327,13 +334,24 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
    * Gets an installed integration by its `id`.
    *
    * @returns The installed integration or `undefined` if no integration with that `id` was installed.
+   * @deprecated Use `getIntegrationByName()` instead.
    */
   public getIntegrationById(integrationId: string): Integration | undefined {
-    return this._integrations[integrationId];
+    return this.getIntegrationByName(integrationId);
   }
 
   /**
-   * @inheritDoc
+   * Gets an installed integration by its name.
+   *
+   * @returns The installed integration or `undefined` if no integration with that `name` was installed.
+   */
+  public getIntegrationByName<T extends Integration = Integration>(integrationName: string): T | undefined {
+    return this._integrations[integrationName] as T | undefined;
+  }
+
+  /**
+   * Returns the client's instance of the given integration class, it any.
+   * @deprecated Use `getIntegrationByName()` instead.
    */
   public getIntegration<T extends Integration>(integration: IntegrationClass<T>): T | null {
     try {
@@ -511,6 +529,13 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   }
 
   /* eslint-enable @typescript-eslint/unified-signatures */
+
+  /** Setup integrations for this client. */
+  protected _setupIntegrations(): void {
+    this._integrations = setupIntegrations(this, this._options.integrations);
+    // TODO v8: We don't need this flag anymore
+    this._integrationsInitialized = true;
+  }
 
   /** Updates existing session based on the provided event */
   protected _updateSessionFromEvent(session: Session, event: Event): void {

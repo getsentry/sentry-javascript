@@ -1,5 +1,13 @@
-import { convertIntegrationFnToClass } from '@sentry/core';
-import type { Contexts, Event, EventHint, ExtendedError, IntegrationFn } from '@sentry/types';
+import { convertIntegrationFnToClass, defineIntegration } from '@sentry/core';
+import type {
+  Contexts,
+  Event,
+  EventHint,
+  ExtendedError,
+  Integration,
+  IntegrationClass,
+  IntegrationFn,
+} from '@sentry/types';
 import { addNonEnumerableProperty, isError, isPlainObject, logger, normalize } from '@sentry/utils';
 
 import { DEBUG_BUILD } from './debug-build';
@@ -20,7 +28,7 @@ interface ExtraErrorDataOptions {
   captureErrorCause: boolean;
 }
 
-const extraErrorDataIntegration = ((options: Partial<ExtraErrorDataOptions> = {}) => {
+const _extraErrorDataIntegration = ((options: Partial<ExtraErrorDataOptions> = {}) => {
   const depth = options.depth || 3;
 
   // TODO(v8): Flip the default for this option to true
@@ -36,9 +44,24 @@ const extraErrorDataIntegration = ((options: Partial<ExtraErrorDataOptions> = {}
   };
 }) satisfies IntegrationFn;
 
-/** Extract additional data for from original exceptions. */
+export const extraErrorDataIntegration = defineIntegration(_extraErrorDataIntegration);
+
+/**
+ * Extract additional data for from original exceptions.
+ * @deprecated Use `extraErrorDataIntegration()` instead.
+ */
 // eslint-disable-next-line deprecation/deprecation
-export const ExtraErrorData = convertIntegrationFnToClass(INTEGRATION_NAME, extraErrorDataIntegration);
+export const ExtraErrorData = convertIntegrationFnToClass(
+  INTEGRATION_NAME,
+  extraErrorDataIntegration,
+) as IntegrationClass<Integration & { processEvent: (event: Event, hint: EventHint) => Event }> & {
+  new (
+    options?: Partial<{
+      depth: number;
+      captureErrorCause: boolean;
+    }>,
+  ): Integration;
+};
 
 function _enhanceEventWithErrorData(
   event: Event,

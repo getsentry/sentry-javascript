@@ -10,6 +10,42 @@ npx @sentry/migr8@latest
 This will let you select which updates to run, and automatically update your code. Make sure to still review all code
 changes!
 
+## Deprecate `getCurrentHub()`
+
+In v8, you will no longer have a Hub, only Scopes as a concept. This also means that `getCurrentHub()` will eventually
+be removed.
+
+Instead of `getCurrentHub()`, use the respective replacement API directly - see [Deprecate Hub](#deprecate-hub) for
+details.
+
+## Deprecate class-based integrations
+
+In v7, integrations are classes and can be added as e.g. `integrations: [new Sentry.Integrations.ContextLines()]`. In
+v8, integrations will not be classes anymore, but instead functions. Both the use as a class, as well as accessing
+integrations from the `Integrations.XXX` hash, is deprecated in favor of using the new functional integrations
+
+- for example, `new Integrations.LinkedErrors()` becomes `linkedErrorsIntegration()`.
+
+The following list shows how integrations should be migrated:
+
+| Old                      | New                             |
+| ------------------------ | ------------------------------- |
+| `new InboundFilters()`   | `inboundFiltersIntegrations()`  |
+| `new FunctionToString()` | `functionToStringIntegration()` |
+| `new LinkedErrors()`     | `linkedErrorsIntegration()`     |
+| `new ModuleMetadata()`   | `moduleMetadataIntegration()`   |
+| `new RequestData()`      | `requestDataIntegration()`      |
+
+## Deprecate `hub.bindClient()` and `makeMain()`
+
+Instead, either directly use `initAndBind()`, or the new APIs `setCurrentClient()` and `client.init()`. See
+[Initializing the SDK in v8](./docs/v8-initializing.md) for more details.
+
+## Deprecate `Transaction` integration
+
+This pluggable integration from `@sentry/integrations` will be removed in v8. It was already undocumented and is not
+necessary for the SDK to work as expected.
+
 ## Changed integration interface
 
 In v8, integrations passed to a client will have an optional `setupOnce()` hook. Currently, this hook is always present,
@@ -18,6 +54,16 @@ but in v8 you will not be able to rely on this always existing anymore - any int
 
 This should not affect most people, but in the case that you are manually calling `integration.setupOnce()` right now,
 make sure to guard it's existence properly.
+
+## Deprecate `getIntegration()` and `getIntegrationById()`
+
+This deprecates `getIntegration()` on both the hub & the client, as well as `getIntegrationById()` on the baseclient.
+Instead, use `getIntegrationByName()`. You can optionally pass an integration generic to make it easier to work with
+typescript:
+
+```ts
+const replay = getClient().getIntegrationByName<Replay>('Replay');
+```
 
 ## Deprecate `Hub`
 
@@ -34,7 +80,7 @@ If you are using the `Hub` right now, see the following table on how to migrate 
 | ---------------------- | ------------------------------------------------------------------------------------ |
 | `new Hub()`            | `withScope()`, `withIsolationScope()` or `new Scope()`                               |
 | hub.isOlderThan()      | REMOVED - Was used to compare `Hub` instances, which are gonna be removed            |
-| hub.bindClient()       | A combination of `scope.setClient()` and `client.setupIntegrations()`                |
+| hub.bindClient()       | A combination of `scope.setClient()` and `client.init()`                             |
 | hub.pushScope()        | `Sentry.withScope()`                                                                 |
 | hub.popScope()         | `Sentry.withScope()`                                                                 |
 | hub.withScope()        | `Sentry.withScope()`                                                                 |
@@ -63,6 +109,12 @@ If you are using the `Hub` right now, see the following table on how to migrate 
 | startSession()         | `Sentry.startSession()`                                                              |
 | endSession()           | `Sentry.endSession()`                                                                |
 | shouldSendDefaultPii() | REMOVED - The closest equivalent is `Sentry.getClient().getOptions().sendDefaultPii` |
+
+## Deprecate `client.setupIntegrations()`
+
+Instead, use the new `client.init()` method. You should probably not use this directly and instead use `Sentry.init()`,
+which calls this under the hood. But if you have a special use case that requires that, you can call `client.init()`
+instead now.
 
 ## Deprecate `scope.getSpan()` and `scope.setSpan()`
 
@@ -145,13 +197,24 @@ In v8, the Span class is heavily reworked. The following properties & methods ar
 - `span.name`: Use `spanToJSON(span).description` instead.
 - `span.description`: Use `spanToJSON(span).description` instead.
 - `span.getDynamicSamplingContext`: Use `getDynamicSamplingContextFromSpan` utility function instead.
-- `transaction.setMetadata()`: Use attributes instead, or set data on the scope.
-- `transaction.metadata`: Use attributes instead, or set data on the scope.
 - `span.tags`: Set tags on the surrounding scope instead, or use attributes.
 - `span.data`: Use `spanToJSON(span).data` instead.
 - `span.setTag()`: Use `span.setAttribute()` instead or set tags on the surrounding scope.
 - `span.setData()`: Use `span.setAttribute()` instead.
+- `span.instrumenter` This field was removed and will be replaced internally.
+- `span.transaction`: Use `getRootSpan` utility function instead.
+- `span.spanRecorder`: Span recording will be handled internally by the SDK.
+- `span.status`: Use `.setStatus` to set or update and `spanToJSON()` to read the span status.
+- `span.op`: Use `startSpan` functions to set, `setAttribute()` to update and `spanToJSON` to read the span operation.
+- `transaction.setMetadata()`: Use attributes instead, or set data on the scope.
+- `transaction.metadata`: Use attributes instead, or set data on the scope.
 - `transaction.setContext()`: Set context on the surrounding scope instead.
+- `transaction.setMeasurement()`: Use `Sentry.setMeasurement()` instead. In v8, setting measurements will be limited to
+  the currently active root span.
+- `transaction.setName()`: Set the name with `.updateName()` and the source with `.setAttribute()` instead.
+- `span.startTimestamp`: use `spanToJSON(span).start_timestamp` instead. You cannot update this anymore in v8.
+- `span.endTimestamp`: use `spanToJSON(span).timestamp` instead. You cannot update this anymore in v8. You can pass a
+  custom end timestamp to `span.end(endTimestamp)`.
 
 ## Deprecate `pushScope` & `popScope` in favor of `withScope`
 

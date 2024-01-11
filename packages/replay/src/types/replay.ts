@@ -232,10 +232,6 @@ export interface ReplayPluginOptions extends ReplayNetworkOptions {
   _experiments: Partial<{
     captureExceptions: boolean;
     traceInternals: boolean;
-    canvas: {
-      quality?: 'low' | 'medium' | 'high';
-      manager: (options: GetCanvasManagerOptions) => CanvasManagerInterface;
-    };
   }>;
 }
 
@@ -489,6 +485,7 @@ export interface ReplayContainer {
   ) => typeof THROTTLED | typeof SKIPPED | Promise<AddEventResult | null>;
   isEnabled(): boolean;
   isPaused(): boolean;
+  isRecordingCanvas(): boolean;
   getContext(): InternalEventContext;
   initializeSampling(): void;
   start(): void;

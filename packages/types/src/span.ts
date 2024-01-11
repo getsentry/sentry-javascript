@@ -192,9 +192,16 @@ export interface Span extends SpanContext {
   sampled?: boolean;
 
   /**
-   * @inheritDoc
+   * Timestamp in seconds (epoch time) indicating when the span started.
+   * @deprecated Use `spanToJSON()` instead.
    */
   startTimestamp: number;
+
+  /**
+   * Timestamp in seconds (epoch time) indicating when the span ended.
+   * @deprecated Use `spanToJSON()` instead.
+   */
+  endTimestamp?: number;
 
   /**
    * Tags for the span.
@@ -216,13 +223,25 @@ export interface Span extends SpanContext {
 
   /**
    * The transaction containing this span
+   * @deprecated Use top level `Sentry.getRootSpan()` instead
    */
   transaction?: Transaction;
 
   /**
    * The instrumenter that created this span.
+   *
+   * @deprecated this field will be removed.
    */
   instrumenter: Instrumenter;
+
+  /**
+   * Completion status of the Span.
+   *
+   * See: {@sentry/tracing SpanStatus} for possible values
+   *
+   * @deprecated Use `.setStatus` to set or update and `spanToJSON()` to read the status.
+   */
+  status?: string;
 
   /**
    * Get context data for this span.
@@ -232,7 +251,10 @@ export interface Span extends SpanContext {
 
   /**
    * Sets the finish timestamp on the current span.
+   *
    * @param endTimestamp Takes an endTimestamp if the end should not be the time when you call this function.
+   *
+   * @deprecated Use `.end()` instead.
    */
   finish(endTimestamp?: number): void;
 

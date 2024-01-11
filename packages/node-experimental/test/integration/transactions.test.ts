@@ -84,7 +84,7 @@ describe('Integration | Transactions', () => {
           },
           runtime: { name: 'node', version: expect.any(String) },
           trace: {
-            data: { 'otel.kind': 'INTERNAL' },
+            data: { 'otel.kind': 'INTERNAL', 'sentry.op': 'test op' },
             op: 'test op',
             span_id: expect.any(String),
             status: 'ok',
@@ -244,7 +244,7 @@ describe('Integration | Transactions', () => {
             },
           }),
           trace: {
-            data: { 'otel.kind': 'INTERNAL' },
+            data: { 'otel.kind': 'INTERNAL', 'sentry.op': 'test op' },
             op: 'test op',
             span_id: expect.any(String),
             status: 'ok',
@@ -286,7 +286,7 @@ describe('Integration | Transactions', () => {
             },
           }),
           trace: {
-            data: { 'otel.kind': 'INTERNAL' },
+            data: { 'otel.kind': 'INTERNAL', 'sentry.op': 'test op b' },
             op: 'test op b',
             span_id: expect.any(String),
             status: 'ok',
@@ -363,7 +363,7 @@ describe('Integration | Transactions', () => {
             attributes: {},
           }),
           trace: {
-            data: { 'otel.kind': 'INTERNAL' },
+            data: { 'otel.kind': 'INTERNAL', 'sentry.op': 'test op' },
             op: 'test op',
             span_id: expect.any(String),
             parent_span_id: parentSpanId,
@@ -512,8 +512,8 @@ describe('Integration | Transactions', () => {
 
     const client = getClient() as NodeExperimentalClient;
 
-    jest.spyOn(client, 'getIntegration').mockImplementation(integrationClass => {
-      if (integrationClass.name === 'Http') {
+    jest.spyOn(client, 'getIntegrationByName').mockImplementation(name => {
+      if (name === 'Http') {
         return {
           shouldCreateSpansForRequests: false,
         } as Http;
@@ -576,8 +576,8 @@ describe('Integration | Transactions', () => {
 
     const client = getClient() as NodeExperimentalClient;
 
-    jest.spyOn(client, 'getIntegration').mockImplementation(integrationClass => {
-      if (integrationClass.name === 'NodeFetch') {
+    jest.spyOn(client, 'getIntegrationByName').mockImplementation(name => {
+      if (name === 'NodeFetch') {
         return {
           shouldCreateSpansForRequests: false,
         } as NodeFetch;

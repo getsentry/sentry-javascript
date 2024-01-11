@@ -14,6 +14,7 @@ if (WINDOW.Sentry && WINDOW.Sentry.Integrations) {
 
 const INTEGRATIONS = {
   ...windowIntegrations,
+  // eslint-disable-next-line deprecation/deprecation
   ...CoreIntegrations,
   ...BrowserIntegrations,
 };
@@ -32,6 +33,8 @@ export type {
   ReplaySpanFrame,
   ReplaySpanFrameEvent,
 } from '@sentry/replay';
+
+export { ReplayCanvas } from '@sentry-internal/replay-canvas';
 
 export { Feedback } from '@sentry-internal/feedback';
 
@@ -52,7 +55,9 @@ export {
   // eslint-disable-next-line deprecation/deprecation
   trace,
   makeMultiplexedTransport,
+  // eslint-disable-next-line deprecation/deprecation
   ModuleMetadata,
+  moduleMetadataIntegration,
 } from '@sentry/core';
 export type { SpanStatusType } from '@sentry/core';
 export type { Span } from '@sentry/types';

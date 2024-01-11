@@ -1,11 +1,11 @@
 {
   "extends": "../../tsconfig.json",
 
-  "include": ["utils/**/*.ts"],
+  "include": ["utils/**/*.ts", "src/**/*.ts"],
 
   "compilerOptions": {
     // package-specific options
     "esModuleInterop": true,
-    "types": ["node"]
+    "types": ["node", "jest"]
   }
 }
