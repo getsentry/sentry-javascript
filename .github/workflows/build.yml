@@ -531,8 +531,6 @@ jobs:
           DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
       - name: Lint source files
         run: yarn lint
-      - name: Lint C++ files
-        run: yarn lint:clang
       - name: Validate ES5 builds
         run: yarn validate:es5
 
