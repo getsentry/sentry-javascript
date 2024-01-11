@@ -1,0 +1,17 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "outDir": "lib",
+    "module": "CommonJS",
+    "declaration": false,
+    "emitDeclarationOnly": false,
+    "types": ["node"],
+  },
+  "exclude": [
+    "scripts/**/*",
+    "lib/**/*",
+    "demo_app/**/*",
+    "jest.config.js"
+  ],
+  "include": ["src/**/*.ts"]
+}
