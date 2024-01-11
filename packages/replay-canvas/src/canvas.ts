@@ -59,6 +59,8 @@ const replayCanvasIntegration = ((options: Partial<ReplayCanvasOptions> = {}) =>
     quality: options.quality || 'medium',
   };
 
+  let _canvasManager: CanvasManager;
+
   return {
     name: INTEGRATION_NAME,
     getOptions(): ReplayCanvasIntegrationOptions {
@@ -66,10 +68,14 @@ const replayCanvasIntegration = ((options: Partial<ReplayCanvasOptions> = {}) =>
 
       return {
         recordCanvas: true,
-        getCanvasManager: (options: ConstructorParameters<typeof CanvasManager>[0]) => new CanvasManager(options),
+        getCanvasManager: (options: CanvasManagerOptions) => _canvasManager = new CanvasManager(options),
         ...(CANVAS_QUALITY[quality || 'medium'] || CANVAS_QUALITY.medium),
       };
     },
+    snapshot(canvasElement?: HTMLCanvasElement):void {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      _canvasManager.snapshot(canvasElement);
+    }
   };
 }) satisfies IntegrationFn;
 
