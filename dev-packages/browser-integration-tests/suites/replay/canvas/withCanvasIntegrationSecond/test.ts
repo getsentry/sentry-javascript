@@ -1,12 +1,14 @@
 import { expect } from '@playwright/test';
 
 import { sentryTest } from '../../../../utils/fixtures';
-import { getReplaySnapshot, shouldSkipReplayTest } from '../../../../utils/replayHelpers';
+import { getReplaySnapshot, shouldSkipReplayTest, waitForReplayRequest } from '../../../../utils/replayHelpers';
 
 sentryTest('sets up canvas when adding ReplayCanvas integration after Replay', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipReplayTest()) {
     sentryTest.skip();
   }
+
+  const reqPromise0 = waitForReplayRequest(page, 0);
 
   await page.route('https://dsn.ingest.sentry.io/**/*', route => {
     return route.fulfill({
@@ -19,6 +21,7 @@ sentryTest('sets up canvas when adding ReplayCanvas integration after Replay', a
   const url = await getLocalTestUrl({ testDir: __dirname });
 
   await page.goto(url);
+  await reqPromise0;
 
   const replay = await getReplaySnapshot(page);
   const canvasOptions = replay._canvas;
