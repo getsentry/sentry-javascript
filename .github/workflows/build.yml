@@ -379,7 +379,7 @@ jobs:
       - name: Install dependencies
         run: |
           cd packages/profiling-node
-          yarn install --ignore-scripts --frozen-lockfile
+          yarn install --ignore-scripts --frozen-lockfile --ignore-engines
 
       # configure build test copy x64
       - name: Configure gyp
