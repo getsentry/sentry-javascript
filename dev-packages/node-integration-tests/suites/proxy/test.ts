@@ -9,4 +9,4 @@ test('proxies sentry requests', done => {
       },
     })
     .start(done);
-}, 10000);
+});
