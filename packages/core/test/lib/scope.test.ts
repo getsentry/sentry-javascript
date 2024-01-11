@@ -491,5 +491,15 @@ describe('isolation scope', () => {
         done();
       });
     });
+
+    it('will always make the inner most passed scope the current scope when nesting calls', done => {
+      expect.assertions(1);
+      withIsolationScope(_scope1 => {
+        withIsolationScope(scope2 => {
+          expect(getCurrentScope()).toBe(scope2);
+          done();
+        });
+      });
+    });
   });
 });
