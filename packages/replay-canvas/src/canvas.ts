@@ -67,7 +67,6 @@ const replayCanvasIntegration = ((options: Partial<ReplayCanvasOptions> = {}) =>
     getOptions(): ReplayCanvasIntegrationOptions {
       const { quality } = _canvasOptions;
 
-      console.log('getoptions');
       return {
         recordCanvas: true,
         getCanvasManager: (options: CanvasManagerOptions) => new CanvasManager(options),
