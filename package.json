@@ -27,7 +27,6 @@
     "link:yarn": "lerna exec yarn link",
     "lint": "run-s lint:lerna lint:biome lint:prettier",
     "lint:lerna": "lerna run lint",
-    "lint:clang": "lerna run lint:clang",
     "lint:biome": "biome check .",
     "lint:prettier": "prettier **/*.md *.md **/*.css --check",
     "validate:es5": "lerna run validate:es5",
