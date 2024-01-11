@@ -268,7 +268,7 @@ jobs:
       dependency_cache_key: ${{ needs.job_install_deps.outputs.dependency_cache_key }}
 
   job_build_bindings_profiling_node:
-    name: ${{ matrix.os }} (${{ matrix.target_platform }} node=${{ matrix.node || matrix.container }}, arch=${{ matrix.arch || matrix.container }}, compiler=${{ contains(matrix.container, 'alpine') && 'musl' || 'glibc'  }})
+    name: Build Profiling Bindings ${{ matrix.os }} (${{ matrix.target_platform }} node=${{ matrix.node || matrix.container }}, arch=${{ matrix.arch || matrix.container }}, compiler=${{ contains(matrix.container, 'alpine') && 'musl' || 'glibc'  }})
     needs: [job_get_metadata, job_install_deps]
     runs-on: ${{ matrix.os }}
     container: ${{ matrix.container }}
@@ -653,12 +653,20 @@ jobs:
           ref: ${{ env.HEAD_COMMIT }}
       - uses: actions/setup-node@v4
         with:
-          node-version: 'package.json'
+          node-version: 20
       - uses: actions/setup-python@v4
-      - run: yarn install --frozen-lockfile
-      - run: yarn build:bindings:configure
-      - run: yarn build
-      - run: yarn test
+      - run: |
+          cd packages/profiling-node
+          yarn install --frozen-lockfile
+      - run: |
+          cd packages/profiling-node
+          yarn build:bindings:configure
+      - run: |
+          cd packages/profiling-node
+          yarn build
+      - run: |
+          cd packages/profiling-node
+          yarn test
 
   job_bun_unit_tests:
     name: Bun Unit Tests
