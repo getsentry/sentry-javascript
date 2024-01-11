@@ -4,11 +4,7 @@ module.exports = {
   },
   extends: ['../../.eslintrc.js'],
 
-  ignorePatterns: [
-    'lib/**/*',
-    'examples/**/*',
-    'jest.co'
-  ],
+  ignorePatterns: ['lib/**/*', 'examples/**/*', 'jest.co'],
   rules: {
     '@sentry-internal/sdk/no-optional-chaining': 'off',
     '@sentry-internal/sdk/no-nullish-coalescing': 'off',

@@ -2,7 +2,7 @@ const rollupNativePlugin = require('rollup-plugin-natives');
 const path = require('path');
 
 const commonjs = require('@rollup/plugin-commonjs');
-const {nodeResolve} = require('@rollup/plugin-node-resolve');
+const { nodeResolve } = require('@rollup/plugin-node-resolve');
 
 module.exports = {
   input: path.resolve(__dirname, './index.js'),
@@ -12,10 +12,10 @@ module.exports = {
   },
   plugins: [
     nodeResolve({
-      extensions: ['.js', '.ts']
+      extensions: ['.js', '.ts'],
     }),
     commonjs({
-      strictRequires: true
+      strictRequires: true,
     }),
     rollupNativePlugin({
       // Where we want to physically put the extracted .node files
@@ -24,5 +24,5 @@ module.exports = {
       // Path to the same folder, relative to the output bundle js
       destDir: path.resolve(__dirname, './dist/rollup'),
     }),
-  ]
+  ],
 };

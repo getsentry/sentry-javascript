@@ -1,21 +1,19 @@
-import { execSync } from "child_process";
-import { exit } from "process";
-import {error, log} from "console"
+import { execSync } from 'child_process';
+import { error, log } from 'console';
+import { exit } from 'process';
 
+const args = ['--Werror', '-i', '--style=file', 'bindings/cpu_profiler.cc'];
+const cmd = `./node_modules/.bin/clang-format ${args.join(' ')}`;
 
-const args = ["--Werror", "-i", "--style=file", "bindings/cpu_profiler.cc"];
-const cmd  = `./node_modules/.bin/clang-format ${args.join(" ")}`;
+execSync(cmd);
 
-execSync(cmd)
+log('clang-format: done, checking tree...');
 
-log("clang-format: done, checking tree...")
+const diff = execSync(`git status --short`).toString();
 
-const diff = execSync(`git status --short`).toString()
-
-if(diff) {
-    error("clang-format: check failed ❌")
-    exit(1)
+if (diff) {
+  error('clang-format: check failed ❌');
+  exit(1);
 }
 
-log("clang-format: check passed ✅")
-
+log('clang-format: check passed ✅');

@@ -1,10 +1,10 @@
-import type { Hub, TransactionContext, CustomSamplingContext, Transaction } from '@sentry/types';
-import { logger, uuid4 } from '@sentry/utils';
-import type { NodeClient } from '@sentry/node';
 import { getMainCarrier } from '@sentry/core';
+import type { NodeClient } from '@sentry/node';
+import type { CustomSamplingContext, Hub, Transaction, TransactionContext } from '@sentry/types';
+import { logger, uuid4 } from '@sentry/utils';
 
-import { isDebugBuild } from './env';
 import { CpuProfilerBindings } from './cpu_profiler';
+import { isDebugBuild } from './env';
 import { isValidSampleRate } from './utils';
 
 export const MAX_PROFILE_DURATION_MS = 30 * 1000;
@@ -12,7 +12,7 @@ export const MAX_PROFILE_DURATION_MS = 30 * 1000;
 type StartTransaction = (
   this: Hub,
   transactionContext: TransactionContext,
-  customSamplingContext?: CustomSamplingContext
+  customSamplingContext?: CustomSamplingContext,
 ) => Transaction;
 
 /**
@@ -22,7 +22,7 @@ type StartTransaction = (
 export function maybeProfileTransaction(
   client: NodeClient | undefined,
   transaction: Transaction,
-  customSamplingContext?: CustomSamplingContext
+  customSamplingContext?: CustomSamplingContext,
 ): string | undefined {
   // profilesSampleRate is multiplied with tracesSampleRate to get the final sampling rate. We dont perform
   // the actual multiplication to get the final rate, but we discard the profile if the transaction was sampled,
@@ -72,7 +72,7 @@ export function maybeProfileTransaction(
           typeof profilesSampler === 'function'
             ? 'profileSampler returned 0 or false'
             : 'a negative sampling decision was inherited or profileSampleRate is set to 0'
-        }`
+        }`,
       );
     }
     return;
@@ -86,8 +86,8 @@ export function maybeProfileTransaction(
     if (isDebugBuild()) {
       logger.log(
         `[Profiling] Discarding profile because it's not included in the random sample (sampling rate = ${Number(
-          profilesSampleRate
-        )})`
+          profilesSampleRate,
+        )})`,
       );
     }
     return;
@@ -96,7 +96,7 @@ export function maybeProfileTransaction(
   const profile_id = uuid4();
   CpuProfilerBindings.startProfiling(profile_id);
   if (isDebugBuild()) {
-    logger.log(`[Profiling] started profiling transaction: ${  transaction.name}`);
+    logger.log(`[Profiling] started profiling transaction: ${transaction.name}`);
   }
 
   // set transaction context - do this regardless if profiling fails down the line
@@ -112,8 +112,8 @@ export function maybeProfileTransaction(
  */
 export function stopTransactionProfile(
   transaction: Transaction,
-  profile_id: string | undefined
-): ReturnType<typeof CpuProfilerBindings['stopProfiling']> | null {
+  profile_id: string | undefined,
+): ReturnType<(typeof CpuProfilerBindings)['stopProfiling']> | null {
   // Should not happen, but satisfy the type checker and be safe regardless.
   if (!profile_id) {
     return null;
@@ -122,15 +122,15 @@ export function stopTransactionProfile(
   const profile = CpuProfilerBindings.stopProfiling(profile_id);
 
   if (isDebugBuild()) {
-    logger.log(`[Profiling] stopped profiling of transaction: ${  transaction.name}`);
+    logger.log(`[Profiling] stopped profiling of transaction: ${transaction.name}`);
   }
 
   // In case of an overlapping transaction, stopProfiling may return null and silently ignore the overlapping profile.
   if (!profile) {
     if (isDebugBuild()) {
       logger.log(
-        `[Profiling] profiler returned null profile for: ${  transaction.name}`,
-        'this may indicate an overlapping transaction or a call to stopProfiling with a profile title that was never started'
+        `[Profiling] profiler returned null profile for: ${transaction.name}`,
+        'this may indicate an overlapping transaction or a call to stopProfiling with a profile title that was never started',
       );
     }
     return null;
@@ -150,7 +150,7 @@ export function __PRIVATE__wrapStartTransactionWithProfiling(startTransaction: S
   return function wrappedStartTransaction(
     this: Hub,
     transactionContext: TransactionContext,
-    customSamplingContext?: CustomSamplingContext
+    customSamplingContext?: CustomSamplingContext,
   ): Transaction {
     const transaction: Transaction = startTransaction.call(this, transactionContext, customSamplingContext);
 
@@ -173,7 +173,7 @@ export function __PRIVATE__wrapStartTransactionWithProfiling(startTransaction: S
     // event of an error or user mistake (calling transaction.finish multiple times), it is important that the behavior of onProfileHandler
     // is idempotent as we do not want any timings or profiles to be overriden by the last call to onProfileHandler.
     // After the original finish method is called, the event will be reported through the integration and delegated to transport.
-    let profile: ReturnType<typeof CpuProfilerBindings['stopProfiling']> | null = null;
+    let profile: ReturnType<(typeof CpuProfilerBindings)['stopProfiling']> | null = null;
 
     const options = client.getOptions();
     // Not intended for external use, hence missing types, but we want to profile a couple of things at Sentry that
@@ -248,7 +248,7 @@ function _addProfilingExtensionMethods(): void {
 
   carrier.__SENTRY__.extensions['startTransaction'] = __PRIVATE__wrapStartTransactionWithProfiling(
     // This is patched by sentry/tracing, we are going to re-patch it...
-    carrier.__SENTRY__.extensions['startTransaction'] as StartTransaction
+    carrier.__SENTRY__.extensions['startTransaction'] as StartTransaction,
   );
 }
 

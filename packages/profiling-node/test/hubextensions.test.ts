@@ -1,16 +1,16 @@
 import type {
   BaseTransportOptions,
   ClientOptions,
-  Hub,
   Context,
+  Hub,
   Transaction,
-  TransactionMetadata
+  TransactionMetadata,
 } from '@sentry/types';
 
 import type { NodeClient } from '@sentry/node';
 
-import { __PRIVATE__wrapStartTransactionWithProfiling } from '../src/hubextensions';
 import { CpuProfilerBindings } from '../src/cpu_profiler';
+import { __PRIVATE__wrapStartTransactionWithProfiling } from '../src/hubextensions';
 
 function makeTransactionMock(options = {}): Transaction {
   return {
@@ -35,13 +35,13 @@ function makeTransactionMock(options = {}): Transaction {
     setMetadata(this: Transaction, metadata: Partial<TransactionMetadata>) {
       this.metadata = { ...metadata } as TransactionMetadata;
     },
-    ...options
+    ...options,
   } as unknown as Transaction;
 }
 
 function makeHubMock({
   profilesSampleRate,
-  client
+  client,
 }: {
   profilesSampleRate: number | undefined;
   client?: Partial<NodeClient>;
@@ -51,12 +51,12 @@ function makeHubMock({
       return {
         getOptions: jest.fn().mockImplementation(() => {
           return {
-            profilesSampleRate
+            profilesSampleRate,
           } as unknown as ClientOptions<BaseTransportOptions>;
         }),
-        ...(client ?? {})
+        ...(client ?? {}),
       };
-    })
+    }),
   } as unknown as Hub;
 }
 
@@ -161,8 +161,8 @@ describe('hubextensions', () => {
       profilesSampleRate: undefined,
       client: {
         // @ts-expect-error partial client
-        getOptions: () => options
-      }
+        getOptions: () => options,
+      },
     });
     const startTransaction = jest.fn().mockImplementation(() => makeTransactionMock());
 
@@ -182,8 +182,8 @@ describe('hubextensions', () => {
       profilesSampleRate: NaN,
       client: {
         // @ts-expect-error partial client
-        getOptions: () => options
-      }
+        getOptions: () => options,
+      },
     });
     const startTransaction = jest.fn().mockImplementation(() => makeTransactionMock());
 
@@ -202,8 +202,8 @@ describe('hubextensions', () => {
       profilesSampleRate: undefined,
       client: {
         // @ts-expect-error partial client
-        getOptions: () => options
-      }
+        getOptions: () => options,
+      },
     });
     const startTransaction = jest.fn().mockImplementation(() => makeTransactionMock());
 
@@ -214,7 +214,7 @@ describe('hubextensions', () => {
 
     expect(options.profilesSampler).toHaveBeenCalledWith({
       ...samplingContext,
-      transactionContext: transaction.toContext()
+      transactionContext: transaction.toContext(),
     });
   });
 
@@ -225,8 +225,8 @@ describe('hubextensions', () => {
       profilesSampleRate: 0,
       client: {
         // @ts-expect-error partial client
-        getOptions: () => options
-      }
+        getOptions: () => options,
+      },
     });
     const startTransaction = jest.fn().mockImplementation(() => makeTransactionMock());
 

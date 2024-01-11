@@ -1,9 +1,9 @@
 import { arch as _arch, platform as _platform } from 'os';
-import { env, versions } from 'process';
-import { threadId } from 'worker_threads';
-import { getAbi } from 'node-abi';
 import { join, resolve } from 'path';
 import { familySync } from 'detect-libc';
+import { getAbi } from 'node-abi';
+import { env, versions } from 'process';
+import { threadId } from 'worker_threads';
 
 import { GLOBAL_OBJ, logger } from '@sentry/utils';
 import { isDebugBuild } from './env';
@@ -13,7 +13,7 @@ const stdlib = familySync();
 const platform = process.env['BUILD_PLATFORM'] || _platform();
 const arch = process.env['BUILD_ARCH'] || _arch();
 const abi = getAbi(versions.node, 'node');
-const identifier = [platform, arch, stdlib, abi].filter((c) => c !== undefined && c !== null).join('-');
+const identifier = [platform, arch, stdlib, abi].filter(c => c !== undefined && c !== null).join('-');
 
 const built_from_source_path = resolve(__dirname, `./sentry_cpu_profiler-${identifier}`);
 
@@ -31,7 +31,7 @@ export function importCppBindingsModule(): PrivateV8CpuProfilerBindings {
   // If a user specifies a different binary dir, they are in control of the binaries being moved there
   if (env['SENTRY_PROFILER_BINARY_DIR']) {
     const binaryPath = join(resolve(env['SENTRY_PROFILER_BINARY_DIR']), `sentry_cpu_profiler-${identifier}`);
-    return require(`${binaryPath  }.node`);
+    return require(`${binaryPath}.node`);
   }
 
   /* eslint-disable no-fallthrough */
@@ -127,7 +127,7 @@ export function importCppBindingsModule(): PrivateV8CpuProfilerBindings {
       }
     }
   }
-  return require(`${built_from_source_path  }.node`);
+  return require(`${built_from_source_path}.node`);
 }
 
 const PrivateCpuProfilerBindings: PrivateV8CpuProfilerBindings = importCppBindingsModule();
@@ -150,7 +150,7 @@ const CpuProfilerBindings: V8CpuProfilerBindings = {
       return null;
     }
     return PrivateCpuProfilerBindings.stopProfiling(name, threadId, !!GLOBAL_OBJ._sentryDebugIds);
-  }
+  },
 };
 
 export { PrivateCpuProfilerBindings };

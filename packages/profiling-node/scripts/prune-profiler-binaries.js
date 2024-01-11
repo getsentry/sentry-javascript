@@ -48,7 +48,7 @@ Arguments:\n
 --target_arch: The architecture the code will be running on. Example: x64, arm64\n
 --target_stdlib: The standard library the code will be running on. Example: glibc, musl\n
 --dry-run: Do not delete any files, just print the files that would be deleted.\n
---help: Print this help message.\n`
+--help: Print this help message.\n`,
   );
   process.exit(0);
 }
@@ -58,7 +58,7 @@ const ARGV_ERRORS = [];
 const NODE_TO_ABI = {
   16: '93',
   18: '108',
-  20: '115'
+  20: '115',
 };
 
 if (NODE) {
@@ -72,21 +72,21 @@ if (NODE) {
     NODE = NODE_TO_ABI['20'];
   } else {
     ARGV_ERRORS.push(
-      '❌ Sentry: Invalid node version passed as argument, please make sure --target_node is a valid major node version. Supported versions are 16, 18 and 20.'
+      '❌ Sentry: Invalid node version passed as argument, please make sure --target_node is a valid major node version. Supported versions are 16, 18 and 20.',
     );
   }
 }
 
 if (!SOURCE_DIR) {
   ARGV_ERRORS.push(
-    '❌ Sentry: Missing target_dir_path argument. target_dir_path should point to the directory containing the final bundled code. If you are using webpack, this would be the equivalent of output.path option.'
+    '❌ Sentry: Missing target_dir_path argument. target_dir_path should point to the directory containing the final bundled code. If you are using webpack, this would be the equivalent of output.path option.',
   );
 }
 
 if (!PLATFORM && !ARCH && !STDLIB) {
   ARGV_ERRORS.push(
     `❌ Sentry: Missing argument values, pruning requires either --target_platform, --target_arch or --targer_stdlib to be passed as argument values.\n Example: sentry-prune-profiler-binaries --target_platform=linux --target_arch=x64 --target_stdlib=glibc\n
-If you are unsure about the execution environment, you can opt to skip some values, but at least one value must be passed.`
+If you are unsure about the execution environment, you can opt to skip some values, but at least one value must be passed.`,
   );
 }
 
@@ -107,16 +107,16 @@ async function findSentryProfilerBinaries(source_dir) {
 
     for (const file of fs.readdirSync(dir)) {
       if (SENTRY__PROFILER_BIN_REGEXP.test(file)) {
-        binaries.add(`${dir  }/${  file}`);
+        binaries.add(`${dir}/${file}`);
         continue;
       }
 
-      if (fs.statSync(`${dir  }/${  file}`).isDirectory()) {
+      if (fs.statSync(`${dir}/${file}`).isDirectory()) {
         if (file === 'node_modules') {
           continue;
         }
 
-        queue.push(`${dir  }/${  file}`);
+        queue.push(`${dir}/${file}`);
       }
     }
   }
@@ -126,11 +126,11 @@ async function findSentryProfilerBinaries(source_dir) {
 
 function bytesToHumanReadable(bytes) {
   if (bytes < 1024) {
-    return `${bytes  } Bytes`;
+    return `${bytes} Bytes`;
   } else if (bytes < 1048576) {
-    return `${(bytes / 1024).toFixed(2)  } KiB`;
+    return `${(bytes / 1024).toFixed(2)} KiB`;
   } else {
-    return `${(bytes / 1048576).toFixed(2)  } MiB`;
+    return `${(bytes / 1048576).toFixed(2)} MiB`;
   }
 }
 
@@ -138,10 +138,10 @@ async function prune(binaries) {
   let bytesSaved = 0;
   let removedBinariesCount = 0;
 
-  const conditions = [PLATFORM, ARCH, STDLIB, NODE].filter((n) => !!n);
+  const conditions = [PLATFORM, ARCH, STDLIB, NODE].filter(n => !!n);
 
   for (const binary of binaries) {
-    if (conditions.every((condition) => binary.includes(condition))) {
+    if (conditions.every(condition => binary.includes(condition))) {
       continue;
     }
 
@@ -163,7 +163,7 @@ async function prune(binaries) {
   if (removedBinariesCount === 0) {
     // eslint-disable-next-line no-console
     console.log(
-      '❌ Sentry: no binaries pruned, please make sure target argument values are valid or use --help for more information.'
+      '❌ Sentry: no binaries pruned, please make sure target argument values are valid or use --help for more information.',
     );
     return;
   }
@@ -173,7 +173,7 @@ async function prune(binaries) {
     console.log(
       `✅ Sentry: would have pruned ${removedBinariesCount} ${
         removedBinariesCount === 1 ? 'binary' : 'binaries'
-      } and saved ${bytesToHumanReadable(bytesSaved)}.`
+      } and saved ${bytesToHumanReadable(bytesSaved)}.`,
     );
     return;
   }
@@ -182,11 +182,11 @@ async function prune(binaries) {
   console.log(
     `✅ Sentry: pruned ${removedBinariesCount} ${
       removedBinariesCount === 1 ? 'binary' : 'binaries'
-    }, saved ${bytesToHumanReadable(bytesSaved)} in total.`
+    }, saved ${bytesToHumanReadable(bytesSaved)} in total.`,
   );
 }
 
 (async () => {
   const binaries = await findSentryProfilerBinaries(SOURCE_DIR);
   await prune(binaries);
-})()
+})();

@@ -5,7 +5,7 @@ Sentry.init({
   dsn: '',
   integrations: [new profiling.ProfilingIntegration()],
   tracesSampleRate: 1,
-  profilesSampleRate: 1
+  profilesSampleRate: 1,
 });
 
 const transaction = Sentry.startTransaction({ name: `${process.env['BUNDLER']}-application-build` });

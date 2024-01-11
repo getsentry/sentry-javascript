@@ -15,6 +15,6 @@ esbuild.build({
   bundle: true,
   tsconfig: './tsconfig.json',
   loader: {
-    '.node': 'copy'
-  }
+    '.node': 'copy',
+  },
 });

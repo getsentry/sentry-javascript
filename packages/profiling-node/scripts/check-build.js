@@ -12,7 +12,7 @@ function recompileFromSource() {
   let spawn = child_process.spawnSync('npm', ['run', 'build:bindings:configure'], {
     stdio: ['inherit', 'inherit', 'pipe'],
     env: process.env,
-    shell: true
+    shell: true,
   });
 
   if (spawn.status !== 0) {
@@ -26,7 +26,7 @@ function recompileFromSource() {
   spawn = child_process.spawnSync('npm', ['run', 'build:bindings'], {
     stdio: ['inherit', 'inherit', 'pipe'],
     env: process.env,
-    shell: true
+    shell: true,
   });
   if (spawn.status !== 0) {
     // eslint-disable-next-line no-console

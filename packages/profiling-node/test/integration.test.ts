@@ -1,7 +1,7 @@
 import { EventEmitter } from 'events';
 
-import { logger } from '@sentry/utils';
 import type { Event, Hub, Transport } from '@sentry/types';
+import { logger } from '@sentry/utils';
 
 import { ProfilingIntegration } from '../src/integration';
 import type { ProfiledEvent } from '../src/types';
@@ -21,20 +21,20 @@ function makeProfiledEvent(): ProfiledEvent {
           {
             elapsed_since_start_ns: '0',
             thread_id: '0',
-            stack_id: 0
+            stack_id: 0,
           },
           {
             elapsed_since_start_ns: '1',
             thread_id: '0',
-            stack_id: 0
-          }
+            stack_id: 0,
+          },
         ],
         measurements: {},
         frames: [],
         stacks: [],
-        resources: []
-      }
-    }
+        resources: [],
+      },
+    },
   };
 }
 
@@ -48,7 +48,7 @@ describe('ProfilingIntegration', () => {
 
     const getCurrentHub = jest.fn().mockImplementation(() => {
       return {
-        getClient: jest.fn()
+        getClient: jest.fn(),
       };
     });
     const addGlobalEventProcessor = () => void 0;
@@ -61,7 +61,7 @@ describe('ProfilingIntegration', () => {
     it('does not call transporter if null profile is received', () => {
       const transport: Transport = {
         send: jest.fn().mockImplementation(() => Promise.resolve()),
-        flush: jest.fn().mockImplementation(() => Promise.resolve())
+        flush: jest.fn().mockImplementation(() => Promise.resolve()),
       };
       const integration = new ProfilingIntegration();
 
@@ -71,15 +71,15 @@ describe('ProfilingIntegration', () => {
             return {
               getOptions: () => {
                 return {
-                  _metadata: {}
+                  _metadata: {},
                 };
               },
               getDsn: () => {
                 return {};
               },
-              getTransport: () => transport
+              getTransport: () => transport,
             };
-          }
+          },
         } as Hub;
       });
       const addGlobalEventProcessor = () => void 0;
@@ -88,14 +88,14 @@ describe('ProfilingIntegration', () => {
       integration.handleGlobalEvent({
         type: 'transaction',
         sdkProcessingMetadata: {
-          profile: null
-        }
+          profile: null,
+        },
       });
       // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(transport.send).not.toHaveBeenCalled();
     });
 
-    it('when Hub.getClient returns undefined', async() => {
+    it('when Hub.getClient returns undefined', async () => {
       const logSpy = jest.spyOn(logger, 'log');
       const integration = new ProfilingIntegration();
 
@@ -107,7 +107,7 @@ describe('ProfilingIntegration', () => {
 
       assertCleanProfile(await integration.handleGlobalEvent(makeProfiledEvent()));
       expect(logSpy).toHaveBeenCalledWith(
-        '[Profiling] getClient did not return a Client, removing profile from event and forwarding to next event processors.'
+        '[Profiling] getClient did not return a Client, removing profile from event and forwarding to next event processors.',
       );
     });
     it('when getDsn returns undefined', async () => {
@@ -118,9 +118,9 @@ describe('ProfilingIntegration', () => {
         return {
           getClient: () => {
             return {
-              getDsn: () => undefined
+              getDsn: () => undefined,
             };
-          }
+          },
         } as Hub;
       });
       const addGlobalEventProcessor = () => void 0;
@@ -128,7 +128,7 @@ describe('ProfilingIntegration', () => {
 
       assertCleanProfile(await integration.handleGlobalEvent(makeProfiledEvent()));
       expect(logSpy).toHaveBeenCalledWith(
-        '[Profiling] getDsn did not return a Dsn, removing profile from event and forwarding to next event processors.'
+        '[Profiling] getDsn did not return a Dsn, removing profile from event and forwarding to next event processors.',
       );
     });
     it('when getTransport returns undefined', async () => {
@@ -142,9 +142,9 @@ describe('ProfilingIntegration', () => {
               getDsn: () => {
                 return {};
               },
-              getTransport: () => undefined
+              getTransport: () => undefined,
             };
-          }
+          },
         } as Hub;
       });
       const addGlobalEventProcessor = () => void 0;
@@ -152,7 +152,7 @@ describe('ProfilingIntegration', () => {
 
       assertCleanProfile(await integration.handleGlobalEvent(makeProfiledEvent()));
       expect(logSpy).toHaveBeenCalledWith(
-        '[Profiling] getTransport did not return a Transport, removing profile from event and forwarding to next event processors.'
+        '[Profiling] getTransport did not return a Transport, removing profile from event and forwarding to next event processors.',
       );
     });
 
@@ -160,7 +160,7 @@ describe('ProfilingIntegration', () => {
       const logSpy = jest.spyOn(logger, 'log');
       const transport: Transport = {
         send: jest.fn().mockImplementation(() => Promise.resolve()),
-        flush: jest.fn().mockImplementation(() => Promise.resolve())
+        flush: jest.fn().mockImplementation(() => Promise.resolve()),
       };
       const integration = new ProfilingIntegration();
 
@@ -170,15 +170,15 @@ describe('ProfilingIntegration', () => {
             return {
               getOptions: () => {
                 return {
-                  _metadata: {}
+                  _metadata: {},
                 };
               },
               getDsn: () => {
                 return {};
               },
-              getTransport: () => transport
+              getTransport: () => transport,
             };
-          }
+          },
         } as Hub;
       });
       const addGlobalEventProcessor = () => void 0;
@@ -193,7 +193,7 @@ describe('ProfilingIntegration', () => {
     it('does not call transporter if null profile is received', () => {
       const transport: Transport = {
         send: jest.fn().mockImplementation(() => Promise.resolve()),
-        flush: jest.fn().mockImplementation(() => Promise.resolve())
+        flush: jest.fn().mockImplementation(() => Promise.resolve()),
       };
       const integration = new ProfilingIntegration();
       const emitter = new EventEmitter();
@@ -206,15 +206,15 @@ describe('ProfilingIntegration', () => {
               emit: emitter.emit.bind(emitter),
               getOptions: () => {
                 return {
-                  _metadata: {}
+                  _metadata: {},
                 };
               },
               getDsn: () => {
                 return {};
               },
-              getTransport: () => transport
+              getTransport: () => transport,
             } as any;
-          }
+          },
         } as Hub;
       });
 
@@ -228,7 +228,7 @@ describe('ProfilingIntegration', () => {
     it('binds to startTransaction, finishTransaction and beforeEnvelope', () => {
       const transport: Transport = {
         send: jest.fn().mockImplementation(() => Promise.resolve()),
-        flush: jest.fn().mockImplementation(() => Promise.resolve())
+        flush: jest.fn().mockImplementation(() => Promise.resolve()),
       };
       const integration = new ProfilingIntegration();
       const emitter = new EventEmitter();
@@ -241,15 +241,15 @@ describe('ProfilingIntegration', () => {
               emit: emitter.emit.bind(emitter),
               getOptions: () => {
                 return {
-                  _metadata: {}
+                  _metadata: {},
                 };
               },
               getDsn: () => {
                 return {};
               },
-              getTransport: () => transport
+              getTransport: () => transport,
             } as any;
-          }
+          },
         } as Hub;
       });
 

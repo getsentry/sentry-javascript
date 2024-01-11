@@ -1,27 +1,27 @@
 /* eslint-disable max-lines */
 import os from 'os';
-import { versions, env } from 'process';
-import { isMainThread, threadId } from 'worker_threads';
 import type {
-  SdkInfo,
-  SdkMetadata,
-  StackParser,
-  StackFrame,
-  DynamicSamplingContext,
+  Context,
   DsnComponents,
-  Event,
-  EventItem,
+  DynamicSamplingContext,
   Envelope,
+  Event,
   EventEnvelope,
   EventEnvelopeHeaders,
-  Context,
+  EventItem,
+  SdkInfo,
+  SdkMetadata,
+  StackFrame,
+  StackParser,
 } from '@sentry/types';
+import { env, versions } from 'process';
+import { isMainThread, threadId } from 'worker_threads';
 
 import * as Sentry from '@sentry/node';
-import { GLOBAL_OBJ, createEnvelope, dropUndefinedKeys, dsnToString, logger, forEachEnvelopeItem } from '@sentry/utils';
+import { GLOBAL_OBJ, createEnvelope, dropUndefinedKeys, dsnToString, forEachEnvelopeItem, logger } from '@sentry/utils';
 
 import { isDebugBuild } from './env';
-import type { ProfiledEvent, RawThreadCpuProfile, Profile, ThreadCpuProfile } from './types';
+import type { Profile, ProfiledEvent, RawThreadCpuProfile, ThreadCpuProfile } from './types';
 import type { DebugImage } from './types';
 
 // We require the file because if we import it, it will be included in the bundle.
@@ -70,9 +70,9 @@ export function enrichWithThreadInformation(profile: ThreadCpuProfile | RawThrea
     stacks: profile.stacks,
     thread_metadata: {
       [THREAD_ID_STRING]: {
-        name: THREAD_NAME
-      }
-    }
+        name: THREAD_NAME,
+      },
+    },
   };
 }
 
@@ -121,7 +121,7 @@ function createEventEnvelopeHeaders(
   event: Event,
   sdkInfo: SdkInfo | undefined,
   tunnel: string | undefined,
-  dsn: DsnComponents
+  dsn: DsnComponents,
 ): EventEnvelopeHeaders {
   const dynamicSamplingContext = event.sdkProcessingMetadata && event.sdkProcessingMetadata['dynamicSamplingContext'];
 
@@ -132,8 +132,8 @@ function createEventEnvelopeHeaders(
     ...(!!tunnel && { dsn: dsnToString(dsn) }),
     ...(event.type === 'transaction' &&
       dynamicSamplingContext && {
-        trace: dropUndefinedKeys({ ...dynamicSamplingContext }) as DynamicSamplingContext
-      })
+        trace: dropUndefinedKeys({ ...dynamicSamplingContext }) as DynamicSamplingContext,
+      }),
   };
 }
 
@@ -153,13 +153,13 @@ export function createProfilingEventFromTransaction(event: ProfiledEvent): Profi
   const rawProfile = event.sdkProcessingMetadata['profile'];
   if (rawProfile === undefined || rawProfile === null) {
     throw new TypeError(
-      `Cannot construct profiling event envelope without a valid profile. Got ${rawProfile} instead.`
+      `Cannot construct profiling event envelope without a valid profile. Got ${rawProfile} instead.`,
     );
   }
 
   if (!rawProfile.profile_id) {
     throw new TypeError(
-      `Cannot construct profiling event envelope without a valid profile id. Got ${rawProfile.profile_id} instead.`
+      `Cannot construct profiling event envelope without a valid profile id. Got ${rawProfile.profile_id} instead.`,
     );
   }
 
@@ -173,8 +173,8 @@ export function createProfilingEventFromTransaction(event: ProfiledEvent): Profi
     event_id: event.event_id ?? '',
     transaction: event.transaction ?? '',
     start_timestamp: event.start_timestamp ? event.start_timestamp * 1000 : Date.now(),
-    trace_id: event.contexts?.['trace']?.['trace_id'] ??  '',
-    profile_id: rawProfile.profile_id
+    trace_id: event.contexts?.['trace']?.['trace_id'] ?? '',
+    profile_id: rawProfile.profile_id,
   });
 }
 
@@ -195,8 +195,8 @@ export function createProfilingEvent(profile: RawThreadCpuProfile, event: Event)
     event_id: event.event_id ?? '',
     transaction: event.transaction ?? '',
     start_timestamp: event.start_timestamp ? event.start_timestamp * 1000 : Date.now(),
-    trace_id: event.contexts?.['trace']?.['trace_id'] ??  '',
-    profile_id: profile.profile_id
+    trace_id: event.contexts?.['trace']?.['trace_id'] ?? '',
+    profile_id: profile.profile_id,
   });
 }
 
@@ -216,7 +216,7 @@ function createProfilePayload(
     transaction,
     start_timestamp,
     trace_id,
-    profile_id
+    profile_id,
   }: {
     release: string;
     environment: string;
@@ -225,14 +225,14 @@ function createProfilePayload(
     start_timestamp: number;
     trace_id: string | undefined;
     profile_id: string;
-  }
+  },
 ): Profile {
   // Log a warning if the profile has an invalid traceId (should be uuidv4).
   // All profiles and transactions are rejected if this is the case and we want to
   // warn users that this is happening if they enable debug flag
   if (trace_id && trace_id.length !== 32) {
     if (isDebugBuild()) {
-      logger.log(`[Profiling] Invalid traceId: ${  trace_id  } on profiled event`);
+      logger.log(`[Profiling] Invalid traceId: ${trace_id} on profiled event`);
     }
   }
 
@@ -248,30 +248,30 @@ function createProfilePayload(
     measurements: cpuProfile.measurements,
     runtime: {
       name: 'node',
-      version: versions.node || ''
+      version: versions.node || '',
     },
     os: {
       name: PLATFORM,
       version: RELEASE,
-      build_number: VERSION
+      build_number: VERSION,
     },
     device: {
       locale: env['LC_ALL'] || env['LC_MESSAGES'] || env['LANG'] || env['LANGUAGE'] || '',
       model: MODEL,
       manufacturer: TYPE,
       architecture: ARCH,
-      is_emulator: false
+      is_emulator: false,
     },
     debug_meta: {
-      images: applyDebugMetadata(cpuProfile.resources)
+      images: applyDebugMetadata(cpuProfile.resources),
     },
     profile: enrichedThreadProfile,
     transaction: {
       name: transaction,
       id: event_id,
       trace_id: trace_id || '',
-      active_thread_id: THREAD_ID_STRING
-    }
+      active_thread_id: THREAD_ID_STRING,
+    },
   };
 
   return profile;
@@ -289,7 +289,7 @@ export function createProfilingEventEnvelope(
   event: ProfiledEvent,
   dsn: DsnComponents,
   metadata?: SdkMetadata,
-  tunnel?: string
+  tunnel?: string,
 ): EventEnvelope | null {
   const sdkInfo = getSdkMetadataForEnvelopeHeader(metadata);
   enhanceEventWithSdkInfo(event, metadata && metadata.sdk);
@@ -303,10 +303,10 @@ export function createProfilingEventEnvelope(
 
   const envelopeItem: EventItem = [
     {
-      type: 'profile'
+      type: 'profile',
     },
     // @ts-expect-error profile is not part of EventItem yet
-    profile
+    profile,
   ];
 
   return createEnvelope<EventEnvelope>(envelopeHeaders, [envelopeItem]);
@@ -349,8 +349,8 @@ export function isValidSampleRate(rate: unknown): boolean {
     if (isDebugBuild()) {
       logger.warn(
         `[Profiling] Invalid sample rate. Sample rate must be a boolean or a number between 0 and 1. Got ${JSON.stringify(
-          rate
-        )} of type ${JSON.stringify(typeof rate)}.`
+          rate,
+        )} of type ${JSON.stringify(typeof rate)}.`,
       );
     }
     return false;
@@ -429,11 +429,10 @@ export function findProfiledTransactionsFromEnvelope(envelope: Envelope): Event[
     for (let j = 1; j < item.length; j++) {
       const event = item[j];
 
-      if(!event){
+      if (!event) {
         // Shouldnt happen, but lets be safe
-        continue
+        continue;
       }
-
 
       // @ts-expect-error profile_id is not part of the metadata type
       const profile_id = (event.contexts as Context)?.['profile']?.['profile_id'];
@@ -509,7 +508,7 @@ export function applyDebugMetadata(resource_paths: ReadonlyArray<string>): Debug
       images.push({
         type: 'sourcemap',
         code_file: resource,
-        debug_id: filenameDebugIdMap[resource] as string
+        debug_id: filenameDebugIdMap[resource] as string,
       });
     }
   }

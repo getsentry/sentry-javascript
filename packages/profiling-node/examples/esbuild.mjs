@@ -1,5 +1,5 @@
-import esbuild from 'esbuild';
 import path from 'path';
+import esbuild from 'esbuild';
 
 import { URL, fileURLToPath } from 'url';
 
@@ -13,7 +13,7 @@ esbuild.build({
   outdir: path.resolve(__dirname, './dist/esbuild'),
   bundle: true,
   loader: {
-    '.node': 'copy'
+    '.node': 'copy',
   },
-  tsconfig: path.resolve(__dirname, '../tsconfig.json')
+  tsconfig: path.resolve(__dirname, '../tsconfig.json'),
 });

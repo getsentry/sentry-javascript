@@ -1,24 +1,24 @@
 import type { NodeClient } from '@sentry/node';
-import type { Integration, EventProcessor, Hub, Event, Transaction } from '@sentry/types';
+import type { Event, EventProcessor, Hub, Integration, Transaction } from '@sentry/types';
 
 import { logger } from '@sentry/utils';
 
 import { isDebugBuild } from './env';
-import type { RawThreadCpuProfile, Profile } from './types';
 import {
+  MAX_PROFILE_DURATION_MS,
   addProfilingExtensionMethods,
   maybeProfileTransaction,
   stopTransactionProfile,
-  MAX_PROFILE_DURATION_MS
 } from './hubextensions';
+import type { Profile, RawThreadCpuProfile } from './types';
 
 import {
   addProfilesToEnvelope,
-  maybeRemoveProfileFromSdkMetadata,
-  createProfilingEventEnvelope,
   createProfilingEvent,
+  createProfilingEventEnvelope,
+  findProfiledTransactionsFromEnvelope,
   isProfiledTransactionEvent,
-  findProfiledTransactionsFromEnvelope
+  maybeRemoveProfileFromSdkMetadata,
 } from './utils';
 
 const MAX_PROFILE_QUEUE_LENGTH = 50;
@@ -42,12 +42,12 @@ function addToProfileQueue(profile: RawThreadCpuProfile): void {
  */
 export class ProfilingIntegration implements Integration {
   /**
-  * @inheritDoc
-  */
+   * @inheritDoc
+   */
   public readonly name: string;
   public getCurrentHub?: () => Hub;
 
-  public constructor(){
+  public constructor() {
     this.name = 'ProfilingIntegration';
   }
 
@@ -93,7 +93,7 @@ export class ProfilingIntegration implements Integration {
         }
       });
 
-      client.on('finishTransaction', (transaction) => {
+      client.on('finishTransaction', transaction => {
         // @ts-expect-error profile_id is not part of the metadata type
         const profile_id = transaction.metadata.profile_id;
         if (profile_id && typeof profile_id === 'string') {
@@ -124,7 +124,7 @@ export class ProfilingIntegration implements Integration {
         const profilesToAddToEnvelope: Profile[] = [];
 
         for (const profiledTransaction of profiledTransactionEvents) {
-          const profileContext = profiledTransaction.contexts?.['profile']
+          const profileContext = profiledTransaction.contexts?.['profile'];
           const profile_id = profileContext?.['profile_id'];
 
           if (!profile_id) {
@@ -138,7 +138,7 @@ export class ProfilingIntegration implements Integration {
           }
 
           // We need to find both a profile and a transaction event for the same profile_id.
-          const profileIndex = PROFILE_QUEUE.findIndex((p) => p.profile_id === profile_id);
+          const profileIndex = PROFILE_QUEUE.findIndex(p => p.profile_id === profile_id);
           if (profileIndex === -1) {
             if (isDebugBuild()) {
               logger.log(`[Profiling] Could not retrieve profile for transaction: ${profile_id}`);
@@ -167,7 +167,7 @@ export class ProfilingIntegration implements Integration {
             // @ts-expect-error bad overload due to unknown event
             client.emit('preprocessEvent', profile, {
               event_id: profiledTransaction.event_id,
-              integrations
+              integrations,
             });
           }
 
@@ -202,7 +202,7 @@ export class ProfilingIntegration implements Integration {
       if (!client) {
         if (isDebugBuild()) {
           logger.log(
-            '[Profiling] getClient did not return a Client, removing profile from event and forwarding to next event processors.'
+            '[Profiling] getClient did not return a Client, removing profile from event and forwarding to next event processors.',
           );
         }
         return maybeRemoveProfileFromSdkMetadata(event);
@@ -212,7 +212,7 @@ export class ProfilingIntegration implements Integration {
       if (!dsn) {
         if (isDebugBuild()) {
           logger.log(
-            '[Profiling] getDsn did not return a Dsn, removing profile from event and forwarding to next event processors.'
+            '[Profiling] getDsn did not return a Dsn, removing profile from event and forwarding to next event processors.',
           );
         }
         return maybeRemoveProfileFromSdkMetadata(event);
@@ -222,7 +222,7 @@ export class ProfilingIntegration implements Integration {
       if (!transport) {
         if (isDebugBuild()) {
           logger.log(
-            '[Profiling] getTransport did not return a Transport, removing profile from event and forwarding to next event processors.'
+            '[Profiling] getTransport did not return a Transport, removing profile from event and forwarding to next event processors.',
           );
         }
         return maybeRemoveProfileFromSdkMetadata(event);

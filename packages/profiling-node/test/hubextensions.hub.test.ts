@@ -1,12 +1,12 @@
 import * as Sentry from '@sentry/node';
 
-import { ProfilingIntegration } from '../src/index';
-import { CpuProfilerBindings } from '../src/cpu_profiler';
-import { logger, createEnvelope } from '@sentry/utils';
-import { GLOBAL_OBJ } from '@sentry/utils';
-import { NodeClient } from '@sentry/node';
 import { getMainCarrier } from '@sentry/core';
+import { NodeClient } from '@sentry/node';
 import type { Transport } from '@sentry/types';
+import { createEnvelope, logger } from '@sentry/utils';
+import { GLOBAL_OBJ } from '@sentry/utils';
+import { CpuProfilerBindings } from '../src/cpu_profiler';
+import { ProfilingIntegration } from '../src/index';
 
 function makeClientWithoutHooks(): [NodeClient, Transport] {
   const integration = new ProfilingIntegration();
@@ -14,7 +14,7 @@ function makeClientWithoutHooks(): [NodeClient, Transport] {
     url: 'https://7fa19397baaf433f919fbe02228d5470@o1137848.ingest.sentry.io/6625302',
     recordDroppedEvent: () => {
       return undefined;
-    }
+    },
   });
   const client = new NodeClient({
     stackParser: Sentry.defaultStackParser,
@@ -24,15 +24,15 @@ function makeClientWithoutHooks(): [NodeClient, Transport] {
     environment: 'test-environment',
     dsn: 'https://7fa19397baaf433f919fbe02228d5470@o1137848.ingest.sentry.io/6625302',
     integrations: [integration],
-    transport: (_opts) => transport
+    transport: _opts => transport,
   });
   client.setupIntegrations = () => {
     integration.setupOnce(
-      (cb) => {
+      cb => {
         // @ts-expect-error __SENTRY__ is a private property
         getMainCarrier().__SENTRY__.globalEventProcessors = [cb];
       },
-      () => Sentry.getCurrentHub()
+      () => Sentry.getCurrentHub(),
     );
   };
   // @ts-expect-error override private
@@ -50,29 +50,29 @@ function makeClientWithHooks(): [NodeClient, Transport] {
     environment: 'test-environment',
     dsn: 'https://7fa19397baaf433f919fbe02228d5470@o1137848.ingest.sentry.io/6625302',
     integrations: [integration],
-    transport: (_opts) =>
+    transport: _opts =>
       Sentry.makeNodeTransport({
         url: 'https://7fa19397baaf433f919fbe02228d5470@o1137848.ingest.sentry.io/6625302',
         recordDroppedEvent: () => {
           return undefined;
-        }
-      })
+        },
+      }),
   });
 
   client.setupIntegrations = () => {
     integration.setupOnce(
-      (cb) => {
+      cb => {
         // @ts-expect-error __SENTRY__ is a private property
         getMainCarrier().__SENTRY__.globalEventProcessors = [cb];
       },
-      () => Sentry.getCurrentHub()
+      () => Sentry.getCurrentHub(),
     );
   };
 
   return [client, client.getTransport() as Transport];
 }
 
-const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 describe('hubextensions', () => {
   beforeEach(() => {
@@ -114,14 +114,14 @@ describe('hubextensions', () => {
           {
             stack_id: 0,
             thread_id: '0',
-            elapsed_since_start_ns: '10'
-          }
+            elapsed_since_start_ns: '10',
+          },
         ],
         measurements: {},
         stacks: [[0]],
         frames: [],
         resources: [],
-        profiler_logging_mode: 'lazy'
+        profiler_logging_mode: 'lazy',
       };
     });
 
@@ -151,19 +151,19 @@ describe('hubextensions', () => {
           {
             stack_id: 0,
             thread_id: '0',
-            elapsed_since_start_ns: '10'
+            elapsed_since_start_ns: '10',
           },
           {
             stack_id: 0,
             thread_id: '0',
-            elapsed_since_start_ns: '10'
-          }
+            elapsed_since_start_ns: '10',
+          },
         ],
         measurements: {},
         resources: [],
         stacks: [[0]],
         frames: [],
-        profiler_logging_mode: 'lazy'
+        profiler_logging_mode: 'lazy',
       };
     });
 
@@ -228,12 +228,12 @@ describe('hubextensions', () => {
       client.emit(
         'beforeEnvelope',
         // @ts-expect-error transaction is partial
-        createEnvelope({ type: 'transaction' }, { type: 'transaction', contexts: { profile: {} } })
+        createEnvelope({ type: 'transaction' }, { type: 'transaction', contexts: { profile: {} } }),
       );
       client.emit(
         'beforeEnvelope',
         // @ts-expect-error transaction is partial
-        createEnvelope({ type: 'transaction' }, { type: 'transaction', contexts: { profile: { profile_id: null } } })
+        createEnvelope({ type: 'transaction' }, { type: 'transaction', contexts: { profile: { profile_id: null } } }),
       );
 
       // Emit is sync, so we can just assert that we got here
@@ -280,8 +280,8 @@ describe('hubextensions', () => {
       expect(onPreprocessEvent.mock.calls[1][0]).toMatchObject({
         profile: {
           samples: expect.arrayContaining([expect.anything()]),
-          stacks: expect.arrayContaining([expect.anything()])
-        }
+          stacks: expect.arrayContaining([expect.anything()]),
+        },
       });
     });
   });
@@ -367,7 +367,7 @@ describe('hubextensions', () => {
     GLOBAL_OBJ._sentryDebugIds = {
       'Error\n    at filename.js (filename.js:36:15)': 'aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaa',
       'Error\n    at filename2.js (filename2.js:36:15)': 'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb',
-      'Error\n    at filename3.js (filename3.js:36:15)': 'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb'
+      'Error\n    at filename3.js (filename3.js:36:15)': 'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb',
     };
 
     jest.spyOn(CpuProfilerBindings, 'stopProfiling').mockImplementation(() => {
@@ -376,19 +376,19 @@ describe('hubextensions', () => {
           {
             stack_id: 0,
             thread_id: '0',
-            elapsed_since_start_ns: '10'
+            elapsed_since_start_ns: '10',
           },
           {
             stack_id: 0,
             thread_id: '0',
-            elapsed_since_start_ns: '10'
-          }
+            elapsed_since_start_ns: '10',
+          },
         ],
         measurements: {},
         resources: ['filename.js', 'filename2.js'],
         stacks: [[0]],
         frames: [],
-        profiler_logging_mode: 'lazy'
+        profiler_logging_mode: 'lazy',
       };
     });
 
@@ -410,15 +410,15 @@ describe('hubextensions', () => {
           {
             type: 'sourcemap',
             debug_id: 'aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaa',
-            code_file: 'filename.js'
+            code_file: 'filename.js',
           },
           {
             type: 'sourcemap',
             debug_id: 'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb',
-            code_file: 'filename2.js'
-          }
-        ]
-      }
+            code_file: 'filename2.js',
+          },
+        ],
+      },
     });
   });
 });
