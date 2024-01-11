@@ -1,5 +1,5 @@
 /* eslint-disable max-lines */
-import * as os from 'os';
+import os from 'os';
 import { versions, env } from 'process';
 import { isMainThread, threadId } from 'worker_threads';
 import type {
@@ -31,12 +31,16 @@ const THREAD_ID_STRING = String(threadId);
 const THREAD_NAME = isMainThread ? 'main' : 'worker';
 const FORMAT_VERSION = '1';
 
+// Os machine was backported to 16.18, but this was not reflected in the types
+// @ts-expect-error ignore missing
+const machine = typeof os.machine === 'function' ? os.machine() : os.arch();
+
 // Machine properties (eval only once)
 const PLATFORM = os.platform();
 const RELEASE = os.release();
 const VERSION = os.version();
 const TYPE = os.type();
-const MODEL = os.machine ? os.machine() : os.arch();
+const MODEL = machine();
 const ARCH = os.arch();
 
 /**
@@ -51,7 +55,7 @@ function isRawThreadCpuProfile(profile: ThreadCpuProfile | RawThreadCpuProfile):
 /**
  * Enriches the profile with threadId of the current thread.
  * This is done in node as we seem to not be able to get the info from C native code.
- * 
+ *
  * @param {ThreadCpuProfile | RawThreadCpuProfile} profile
  * @returns {ThreadCpuProfile}
  */
@@ -73,7 +77,7 @@ export function enrichWithThreadInformation(profile: ThreadCpuProfile | RawThrea
 }
 
 /**
- * Extract sdk info from from the API metadata 
+ * Extract sdk info from from the API metadata
  * @param {SdkMetadata | undefined} metadata
  * @returns {SdkInfo | undefined}
  */
@@ -88,7 +92,7 @@ function getSdkMetadataForEnvelopeHeader(metadata?: SdkMetadata): SdkInfo | unde
 /**
  * Apply SdkInfo (name, version, packages, integrations) to the corresponding event key.
  * Merge with existing data if any.
- * 
+ *
  * @param {Event} event
  * @param {SdkInfo | undefined} sdkInfo
  * @returns {Event}
@@ -106,7 +110,7 @@ function enhanceEventWithSdkInfo(event: Event, sdkInfo?: SdkInfo): Event {
 }
 
 /**
- * 
+ *
  * @param {Event} event
  * @param {SdkInfo | undefined} sdkInfo
  * @param {string | undefined} tunnel
@@ -321,7 +325,7 @@ export function isProfiledTransactionEvent(event: Event): event is ProfiledEvent
  * Due to how profiles are attached to event metadata, we may sometimes want to remove them to ensure
  * they are not processed by other Sentry integrations. This can be the case when we cannot construct a valid
  * profile from the data we have or some of the mechanisms to send the event (Hub, Transport etc) are not available to us.
- * 
+ *
  * @param {Event | ProfiledEvent} event
  * @returns {Event}
  */
@@ -433,7 +437,7 @@ export function findProfiledTransactionsFromEnvelope(envelope: Envelope): Event[
 
       // @ts-expect-error profile_id is not part of the metadata type
       const profile_id = (event.contexts as Context)?.['profile']?.['profile_id'];
-      
+
       if (event && profile_id) {
         events.push(item[j] as Event);
       }
