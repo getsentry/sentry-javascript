@@ -16,6 +16,7 @@ import type {
 import { dropUndefinedKeys, logger, timestampInSeconds, uuid4 } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../debug-build';
+import { getRootSpan } from '../utils/getRootSpan';
 import {
   TRACE_FLAG_NONE,
   TRACE_FLAG_SAMPLED,
@@ -105,6 +106,7 @@ export class Span implements SpanInterface {
 
   /**
    * @inheritDoc
+   * @deprecated Use top level `Sentry.getRootSpan()` instead
    */
   public transaction?: Transaction;
 
@@ -304,12 +306,16 @@ export class Span implements SpanInterface {
       childSpan.spanRecorder.add(childSpan);
     }
 
-    childSpan.transaction = this.transaction;
+    const rootSpan = getRootSpan(this);
+    // TODO: still set span.transaction here until we have a more permanent solution
+    // Probably similarly to the weakmap we hold in node-experimental
+    // eslint-disable-next-line deprecation/deprecation
+    childSpan.transaction = rootSpan as Transaction;
 
-    if (DEBUG_BUILD && childSpan.transaction) {
+    if (DEBUG_BUILD && rootSpan) {
       const opStr = (spanContext && spanContext.op) || '< unknown op >';
       const nameStr = spanToJSON(childSpan).description || '< unknown name >';
-      const idStr = childSpan.transaction.spanContext().spanId;
+      const idStr = rootSpan.spanContext().spanId;
 
       const logMessage = `[Tracing] Starting '${opStr}' span on transaction '${nameStr}' (${idStr}).`;
       logger.log(logMessage);
@@ -416,11 +422,12 @@ export class Span implements SpanInterface {
 
   /** @inheritdoc */
   public end(endTimestamp?: SpanTimeInput): void {
+    const rootSpan = getRootSpan(this);
     if (
       DEBUG_BUILD &&
       // Don't call this for transactions
-      this.transaction &&
-      this.transaction.spanContext().spanId !== this._spanId
+      rootSpan &&
+      rootSpan.spanContext().spanId !== this._spanId
     ) {
       const logMessage = this._logMessage;
       if (logMessage) {

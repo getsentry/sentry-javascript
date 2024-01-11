@@ -152,6 +152,7 @@ In v8, the Span class is heavily reworked. The following properties & methods ar
 - `span.setTag()`: Use `span.setAttribute()` instead or set tags on the surrounding scope.
 - `span.setData()`: Use `span.setAttribute()` instead.
 - `span.instrumenter` This field was removed and will be replaced internally.
+- `span.transaction`: Use `getRootSpan` utility function instead.
 - `transaction.setContext()`: Set context on the surrounding scope instead.
 
 ## Deprecate `pushScope` & `popScope` in favor of `withScope`

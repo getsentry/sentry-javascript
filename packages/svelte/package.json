@@ -30,6 +30,7 @@
   },
   "dependencies": {
     "@sentry/browser": "7.93.0",
+    "@sentry/core": "7.93.0",
     "@sentry/types": "7.93.0",
     "@sentry/utils": "7.93.0",
     "magic-string": "^0.30.0"

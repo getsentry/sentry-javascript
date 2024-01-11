@@ -216,6 +216,7 @@ export interface Span extends SpanContext {
 
   /**
    * The transaction containing this span
+   * @deprecated Use top level `Sentry.getRootSpan()` instead
    */
   transaction?: Transaction;
 
