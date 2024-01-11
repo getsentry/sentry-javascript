@@ -6,7 +6,7 @@ module.exports = {
 
   ignorePatterns: [
     'lib/**/*',
-    'demo_app/**/*',
+    'examples/**/*',
     'jest.co'
   ],
   rules: {
