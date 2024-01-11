@@ -4705,17 +4705,10 @@
     proxy-from-env "^1.1.0"
     which "^2.0.2"
 
-<<<<<<< HEAD
-"@sentry/cli@^2.17.0", "@sentry/cli@^2.22.3", "@sentry/cli@^2.23.0":
-  version "2.23.0"
-  resolved "https://registry.yarnpkg.com/@sentry/cli/-/cli-2.23.0.tgz#d8fa6a514aedfe316a8afc046435b96746e7099f"
-  integrity sha512-xFTv7YOaKWMCSPgN8A1jZpxJQhwdES89pqMTWjJOgjmkwFvziuaTM7O7kazps/cACDhJp2lK2j6AT6imhr4t9w==
-=======
-"@sentry/cli@^2.17.0", "@sentry/cli@^2.21.2", "@sentry/cli@^2.23.0":
+"@sentry/cli@^2.17.0", "@sentry/cli@^2.23.0":
   version "2.23.2"
   resolved "https://registry.yarnpkg.com/@sentry/cli/-/cli-2.23.2.tgz#5b8edd4e6e8fdea05f5d6bb6c84b55d52897c250"
   integrity sha512-coQoJnts6E/yN21uQyI7sqa89kixXQuIRodOPnIymQtYJZG3DAwqxcCBLMS3NZyVQ3HemeuhhDnE/KFd1mS53Q==
->>>>>>> 23ef22b115c8868861896cc9003bd4bb6afb0690
   dependencies:
     https-proxy-agent "^5.0.0"
     node-fetch "^2.6.7"
@@ -4730,6 +4723,25 @@
     "@sentry/cli-linux-x64" "2.23.2"
     "@sentry/cli-win32-i686" "2.23.2"
     "@sentry/cli-win32-x64" "2.23.2"
+
+"@sentry/cli@^2.22.3":
+  version "2.23.0"
+  resolved "https://registry.yarnpkg.com/@sentry/cli/-/cli-2.23.0.tgz#d8fa6a514aedfe316a8afc046435b96746e7099f"
+  integrity sha512-xFTv7YOaKWMCSPgN8A1jZpxJQhwdES89pqMTWjJOgjmkwFvziuaTM7O7kazps/cACDhJp2lK2j6AT6imhr4t9w==
+  dependencies:
+    https-proxy-agent "^5.0.0"
+    node-fetch "^2.6.7"
+    progress "^2.0.3"
+    proxy-from-env "^1.1.0"
+    which "^2.0.2"
+  optionalDependencies:
+    "@sentry/cli-darwin" "2.23.0"
+    "@sentry/cli-linux-arm" "2.23.0"
+    "@sentry/cli-linux-arm64" "2.23.0"
+    "@sentry/cli-linux-i686" "2.23.0"
+    "@sentry/cli-linux-x64" "2.23.0"
+    "@sentry/cli-win32-i686" "2.23.0"
+    "@sentry/cli-win32-x64" "2.23.0"
 
 "@sentry/vite-plugin@^0.6.1":
   version "0.6.1"
@@ -7437,11 +7449,7 @@ apollo-server@^3.11.1:
 app-module-path@^2.2.0:
   version "2.2.0"
   resolved "https://registry.yarnpkg.com/app-module-path/-/app-module-path-2.2.0.tgz#641aa55dfb7d6a6f0a8141c4b9c0aa50b6c24dd5"
-<<<<<<< HEAD
-  integrity sha512-gkco+qxENJV+8vFcDiiFhuoSvRXb2a/QPqpSoWhVz829VNJfOTnELbBmPmNKFxf3xdNnw4DWCkzkDaavcX/1YQ==
-=======
   integrity sha1-ZBqlXft9am8KgUHEucCqULbCTdU=
->>>>>>> 23ef22b115c8868861896cc9003bd4bb6afb0690
 
 "aproba@^1.0.3 || ^2.0.0":
   version "2.0.0"
@@ -22361,11 +22369,7 @@ null-check@^1.0.0:
 num2fraction@^1.2.2:
   version "1.2.2"
   resolved "https://registry.yarnpkg.com/num2fraction/-/num2fraction-1.2.2.tgz#6f682b6a027a4e9ddfa4564cd2589d1d4e669ede"
-<<<<<<< HEAD
-  integrity sha512-Y1wZESM7VUThYY+4W+X4ySH2maqcA+p7UR+w8VWNWVAd6lwuXXWz/w/Cz43J/dI2I+PS6wD5N+bJUF+gjWvIqg==
-=======
   integrity sha1-b2gragJ6Tp3fpFZM0lidHU5mnt4=
->>>>>>> 23ef22b115c8868861896cc9003bd4bb6afb0690
 
 nwsapi@^2.2.0:
   version "2.2.7"
@@ -25595,11 +25599,10 @@ read@^2.0.0:
   dependencies:
     mute-stream "~1.0.0"
 
-<<<<<<< HEAD
-"readable-stream@1 || 2", readable-stream@^2.0.0, readable-stream@^2.0.1, readable-stream@^2.0.2, readable-stream@^2.1.5, readable-stream@^2.2.2, readable-stream@^2.3.3, readable-stream@^2.3.5, readable-stream@^2.3.6, readable-stream@~2.3.6:
-  version "2.3.8"
-  resolved "https://registry.yarnpkg.com/readable-stream/-/readable-stream-2.3.8.tgz#91125e8042bba1b9887f49345f6277027ce8be9b"
-  integrity sha512-8p0AUk4XODgIewSi0l8Epjs+EVnWiK7NoDIEGU0HhE7+ZyY8D1IMY7odu5lRrFXGg71L15KG8QrPmum45RTtdA==
+"readable-stream@1 || 2", readable-stream@2.3.7, readable-stream@^2.0.0, readable-stream@^2.0.1, readable-stream@^2.0.2, readable-stream@^2.1.5, readable-stream@^2.2.2, readable-stream@^2.3.3, readable-stream@^2.3.5, readable-stream@^2.3.6, readable-stream@~2.3.6:
+  version "2.3.7"
+  resolved "https://registry.yarnpkg.com/readable-stream/-/readable-stream-2.3.7.tgz#1eca1cf711aef814c04f62252a36a62f6cb23b57"
+  integrity sha512-Ebho8K4jIbHAxnuxi7o42OrZgF/ZTNcsZj6nRKyUmkhLFq8CHItp/fy6hQZuZmP/n3yZ9VBUbp4zz/mX8hmYPw==
   dependencies:
     core-util-is "~1.0.0"
     inherits "~2.0.3"
@@ -25617,22 +25620,6 @@ read@^2.0.0:
     inherits "^2.0.3"
     string_decoder "^1.1.1"
     util-deprecate "^1.0.1"
-
-readable-stream@2.3.7:
-=======
-"readable-stream@1 || 2", readable-stream@2.3.7, readable-stream@^2.0.0, readable-stream@^2.0.1, readable-stream@^2.0.2, readable-stream@^2.1.5, readable-stream@^2.2.2, readable-stream@^2.3.3, readable-stream@^2.3.5, readable-stream@^2.3.6, readable-stream@~2.3.6:
->>>>>>> 23ef22b115c8868861896cc9003bd4bb6afb0690
-  version "2.3.7"
-  resolved "https://registry.yarnpkg.com/readable-stream/-/readable-stream-2.3.7.tgz#1eca1cf711aef814c04f62252a36a62f6cb23b57"
-  integrity sha512-Ebho8K4jIbHAxnuxi7o42OrZgF/ZTNcsZj6nRKyUmkhLFq8CHItp/fy6hQZuZmP/n3yZ9VBUbp4zz/mX8hmYPw==
-  dependencies:
-    core-util-is "~1.0.0"
-    inherits "~2.0.3"
-    isarray "~1.0.0"
-    process-nextick-args "~2.0.0"
-    safe-buffer "~5.1.1"
-    string_decoder "~1.1.1"
-    util-deprecate "~1.0.1"
 
 readable-stream@~1.0.2:
   version "1.0.34"
