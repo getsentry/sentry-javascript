@@ -66,7 +66,9 @@ If you are using the `Hub` right now, see the following table on how to migrate 
 
 ## Deprecate `client.setupIntegrations()`
 
-Instead, use the new `client.init()` method. You should probably not use this directly and instead use `Sentry.init()`, which calls this under the hood. But if you have a special use case that requires that, you can call `client.init()` instead now.
+Instead, use the new `client.init()` method. You should probably not use this directly and instead use `Sentry.init()`,
+which calls this under the hood. But if you have a special use case that requires that, you can call `client.init()`
+instead now.
 
 ## Deprecate `scope.getSpan()` and `scope.setSpan()`
 
