@@ -78,6 +78,7 @@ export class ProfilingIntegration implements Integration {
           // Enqueue a timeout to prevent profiles from running over max duration.
           PROFILE_TIMEOUTS[profile_id] = global.setTimeout(() => {
             if (isDebugBuild()) {
+              // eslint-disable-next-line deprecation/deprecation
               logger.log('[Profiling] max profile duration elapsed, stopping profiling for:', transaction.name);
             }
 
@@ -87,14 +88,17 @@ export class ProfilingIntegration implements Integration {
             }
           }, maxProfileDurationMs);
 
+          // eslint-disable-next-line deprecation/deprecation
           transaction.setContext('profile', { profile_id });
           // @ts-expect-error profile_id is not part of the metadata type
+          // eslint-disable-next-line deprecation/deprecation
           transaction.setMetadata({ profile_id: profile_id });
         }
       });
 
       client.on('finishTransaction', transaction => {
         // @ts-expect-error profile_id is not part of the metadata type
+        // eslint-disable-next-line deprecation/deprecation
         const profile_id = transaction.metadata.profile_id;
         if (profile_id && typeof profile_id === 'string') {
           if (PROFILE_TIMEOUTS[profile_id]) {

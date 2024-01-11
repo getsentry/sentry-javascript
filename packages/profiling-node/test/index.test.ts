@@ -82,6 +82,7 @@ describe('Sentry - Profiling', () => {
       const hub = Sentry.getCurrentHub();
       hub.bindClient(client);
 
+      // eslint-disable-next-line deprecation/deprecation
       const transaction = Sentry.startTransaction({ name: 'title' });
       await wait(500);
       transaction.finish();
@@ -95,7 +96,9 @@ describe('Sentry - Profiling', () => {
       const hub = Sentry.getCurrentHub();
       hub.bindClient(client);
 
+      // eslint-disable-next-line deprecation/deprecation
       const t1 = Sentry.startTransaction({ name: 'outer' });
+      // eslint-disable-next-line deprecation/deprecation
       const t2 = Sentry.startTransaction({ name: 'inner' });
       await wait(500);
 
@@ -115,7 +118,9 @@ describe('Sentry - Profiling', () => {
       const hub = Sentry.getCurrentHub();
       hub.bindClient(client);
 
+      // eslint-disable-next-line deprecation/deprecation
       const t1 = Sentry.startTransaction({ name: 'same-title' });
+      // eslint-disable-next-line deprecation/deprecation
       const t2 = Sentry.startTransaction({ name: 'same-title' });
       await wait(500);
       t2.finish();
@@ -131,6 +136,7 @@ describe('Sentry - Profiling', () => {
       const hub = Sentry.getCurrentHub();
       hub.bindClient(client);
 
+      // eslint-disable-next-line deprecation/deprecation
       const transaction = Sentry.startTransaction({ name: 'title' });
       await wait(500);
       transaction.finish();
