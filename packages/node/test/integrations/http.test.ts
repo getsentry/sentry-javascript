@@ -2,7 +2,7 @@ import * as http from 'http';
 import * as https from 'https';
 import type { Span } from '@sentry/core';
 import { Transaction } from '@sentry/core';
-import { startInactiveSpan } from '@sentry/core';
+import { getClient, getCurrentScope, startInactiveSpan } from '@sentry/core';
 import * as sentryCore from '@sentry/core';
 import { Hub, addTracingExtensions } from '@sentry/core';
 import type { TransactionContext } from '@sentry/types';
@@ -22,7 +22,8 @@ const originalHttpRequest = http.request;
 
 describe('tracing', () => {
   afterEach(() => {
-    sentryCore.getCurrentHub().getScope().setSpan(undefined);
+    // eslint-disable-next-line deprecation/deprecation
+    sentryCore.getCurrentScope().setSpan(undefined);
   });
 
   function createTransactionOnScope(
@@ -41,14 +42,18 @@ describe('tracing', () => {
     sentryCore.makeMain(hub);
     addTracingExtensions();
 
+    // eslint-disable-next-line deprecation/deprecation
     hub.getScope().setUser({
       id: 'uid123',
       segment: 'segmentA',
     });
 
     jest.spyOn(sentryCore, 'getCurrentHub').mockReturnValue(hub);
+    // eslint-disable-next-line deprecation/deprecation
     jest.spyOn(sentryCore, 'getCurrentScope').mockImplementation(() => hub.getScope());
-    jest.spyOn(sentryCore, 'getClient').mockReturnValue(hub.getClient());
+    // eslint-disable-next-line deprecation/deprecation
+    jest.spyOn(sentryCore, 'getActiveSpan').mockImplementation(() => hub.getScope().getSpan());
+    jest.spyOn(sentryCore, 'getClient').mockReturnValue(getClient());
 
     const transaction = startInactiveSpan({
       name: 'dogpark',
@@ -58,12 +63,13 @@ describe('tracing', () => {
 
     expect(transaction).toBeInstanceOf(Transaction);
 
-    hub.getScope().setSpan(transaction);
+    // eslint-disable-next-line deprecation/deprecation
+    getCurrentScope().setSpan(transaction);
 
     return transaction;
   }
 
-  function getHub(customOptions: Partial<NodeClientOptions> = {}) {
+  function setupMockHub(customOptions: Partial<NodeClientOptions> = {}) {
     const options = getDefaultNodeClientOptions({
       dsn: 'https://dogsarebadatkeepingsecrets@squirrelchasers.ingest.sentry.io/12312012',
       tracesSampleRate: 1.0,
@@ -74,8 +80,11 @@ describe('tracing', () => {
     });
     const hub = new Hub(new NodeClient(options));
     jest.spyOn(sentryCore, 'getCurrentHub').mockReturnValue(hub);
+    // eslint-disable-next-line deprecation/deprecation
     jest.spyOn(sentryCore, 'getCurrentScope').mockImplementation(() => hub.getScope());
-    jest.spyOn(sentryCore, 'getClient').mockReturnValue(hub.getClient());
+    // eslint-disable-next-line deprecation/deprecation
+    jest.spyOn(sentryCore, 'getActiveSpan').mockImplementation(() => hub.getScope().getSpan());
+    jest.spyOn(sentryCore, 'getClient').mockReturnValue(getClient());
     return hub;
   }
 
@@ -90,7 +99,7 @@ describe('tracing', () => {
     expect(spans.length).toEqual(2);
 
     // our span is at index 1 because the transaction itself is at index 0
-    expect(spans[1].description).toEqual('GET http://dogs.are.great/');
+    expect(sentryCore.spanToJSON(spans[1]).description).toEqual('GET http://dogs.are.great/');
     expect(spans[1].op).toEqual('http.client');
   });
 
@@ -104,7 +113,7 @@ describe('tracing', () => {
 
     // only the transaction itself should be there
     expect(spans.length).toEqual(1);
-    expect((spans[0] as Transaction).name).toEqual('dogpark');
+    expect(sentryCore.spanToJSON(spans[0]).description).toEqual('dogpark');
   });
 
   it('attaches the sentry-trace header to outgoing non-sentry requests', async () => {
@@ -207,7 +216,7 @@ describe('tracing', () => {
   it('generates and uses propagation context to attach baggage and sentry-trace header', async () => {
     nock('http://dogs.are.great').get('/').reply(200);
 
-    const { traceId } = sentryCore.getCurrentHub().getScope().getPropagationContext();
+    const { traceId } = getCurrentScope().getPropagationContext();
 
     const request = http.get('http://dogs.are.great/');
     const sentryTraceHeader = request.getHeader('sentry-trace') as string;
@@ -228,8 +237,8 @@ describe('tracing', () => {
   it('uses incoming propagation context to attach baggage and sentry-trace', async () => {
     nock('http://dogs.are.great').get('/').reply(200);
 
-    const hub = getHub();
-    hub.getScope().setPropagationContext({
+    setupMockHub();
+    getCurrentScope().setPropagationContext({
       traceId: '86f39e84263a4de99c326acab3bfe3bd',
       spanId: '86f39e84263a4de9',
       sampled: true,
@@ -292,12 +301,15 @@ describe('tracing', () => {
     expect(spans.length).toEqual(2);
 
     // our span is at index 1 because the transaction itself is at index 0
-    expect(spans[1].description).toEqual('GET http://dogs.are.great/spaniel');
+    expect(sentryCore.spanToJSON(spans[1]).description).toEqual('GET http://dogs.are.great/spaniel');
     expect(spans[1].op).toEqual('http.client');
-    expect(spans[1].data['http.method']).toEqual('GET');
-    expect(spans[1].data.url).toEqual('http://dogs.are.great/spaniel');
-    expect(spans[1].data['http.query']).toEqual('tail=wag&cute=true');
-    expect(spans[1].data['http.fragment']).toEqual('learn-more');
+
+    const spanAttributes = sentryCore.spanToJSON(spans[1]).data || {};
+
+    expect(spanAttributes['http.method']).toEqual('GET');
+    expect(spanAttributes.url).toEqual('http://dogs.are.great/spaniel');
+    expect(spanAttributes['http.query']).toEqual('tail=wag&cute=true');
+    expect(spanAttributes['http.fragment']).toEqual('learn-more');
   });
 
   it('fills in span data from http.RequestOptions object', () => {
@@ -310,13 +322,15 @@ describe('tracing', () => {
 
     expect(spans.length).toEqual(2);
 
+    const spanAttributes = sentryCore.spanToJSON(spans[1]).data || {};
+
     // our span is at index 1 because the transaction itself is at index 0
-    expect(spans[1].description).toEqual('GET http://dogs.are.great/spaniel');
+    expect(sentryCore.spanToJSON(spans[1]).description).toEqual('GET http://dogs.are.great/spaniel');
     expect(spans[1].op).toEqual('http.client');
-    expect(spans[1].data['http.method']).toEqual('GET');
-    expect(spans[1].data.url).toEqual('http://dogs.are.great/spaniel');
-    expect(spans[1].data['http.query']).toEqual('tail=wag&cute=true');
-    expect(spans[1].data['http.fragment']).toEqual('learn-more');
+    expect(spanAttributes['http.method']).toEqual('GET');
+    expect(spanAttributes.url).toEqual('http://dogs.are.great/spaniel');
+    expect(spanAttributes['http.query']).toEqual('tail=wag&cute=true');
+    expect(spanAttributes['http.fragment']).toEqual('learn-more');
   });
 
   it.each([
@@ -336,7 +350,7 @@ describe('tracing', () => {
     expect(spans.length).toEqual(2);
 
     // our span is at index 1 because the transaction itself is at index 0
-    expect(spans[1].description).toEqual(`GET http://${redactedAuth}dogs.are.great/`);
+    expect(sentryCore.spanToJSON(spans[1]).description).toEqual(`GET http://${redactedAuth}dogs.are.great/`);
   });
 
   describe('Tracing options', () => {
@@ -360,8 +374,11 @@ describe('tracing', () => {
       const hub = new Hub();
 
       jest.spyOn(sentryCore, 'getCurrentHub').mockReturnValue(hub);
+      // eslint-disable-next-line deprecation/deprecation
       jest.spyOn(sentryCore, 'getCurrentScope').mockImplementation(() => hub.getScope());
-      jest.spyOn(sentryCore, 'getClient').mockReturnValue(hub.getClient());
+      // eslint-disable-next-line deprecation/deprecation
+      jest.spyOn(sentryCore, 'getActiveSpan').mockImplementation(() => hub.getScope().getSpan());
+      jest.spyOn(sentryCore, 'getClient').mockReturnValue(getClient());
 
       const client = new NodeClient(options);
       jest.spyOn(hub, 'getClient').mockImplementation(() => client);
@@ -370,10 +387,11 @@ describe('tracing', () => {
       return hub;
     }
 
-    function createTransactionAndPutOnScope(hub: Hub) {
+    function createTransactionAndPutOnScope() {
       addTracingExtensions();
       const transaction = startInactiveSpan({ name: 'dogpark' });
-      hub.getScope().setSpan(transaction);
+      // eslint-disable-next-line deprecation/deprecation
+      getCurrentScope().setSpan(transaction);
       return transaction;
     }
 
@@ -387,15 +405,18 @@ describe('tracing', () => {
         const hub = createHub({ shouldCreateSpanForRequest: () => false });
 
         jest.spyOn(sentryCore, 'getCurrentHub').mockReturnValue(hub);
+        // eslint-disable-next-line deprecation/deprecation
         jest.spyOn(sentryCore, 'getCurrentScope').mockImplementation(() => hub.getScope());
-        jest.spyOn(sentryCore, 'getClient').mockReturnValue(hub.getClient());
+        // eslint-disable-next-line deprecation/deprecation
+        jest.spyOn(sentryCore, 'getActiveSpan').mockImplementation(() => hub.getScope().getSpan());
+        jest.spyOn(sentryCore, 'getClient').mockReturnValue(getClient());
 
         httpIntegration.setupOnce(
           () => undefined,
           () => hub,
         );
 
-        const transaction = createTransactionAndPutOnScope(hub);
+        const transaction = createTransactionAndPutOnScope();
         const spans = (transaction as unknown as Span).spanRecorder?.spans as Span[];
 
         const request = http.get(url);
@@ -408,7 +429,7 @@ describe('tracing', () => {
         expect(request.getHeader('sentry-trace')).toBeDefined();
         expect(request.getHeader('baggage')).toBeDefined();
 
-        const propagationContext = hub.getScope().getPropagationContext();
+        const propagationContext = getCurrentScope().getPropagationContext();
 
         expect((request.getHeader('sentry-trace') as string).includes(propagationContext.traceId)).toBe(true);
         expect(request.getHeader('baggage')).toEqual(
@@ -440,7 +461,7 @@ describe('tracing', () => {
             () => hub,
           );
 
-          createTransactionAndPutOnScope(hub);
+          createTransactionAndPutOnScope();
 
           const request = http.get(url);
 
@@ -472,7 +493,7 @@ describe('tracing', () => {
             () => hub,
           );
 
-          createTransactionAndPutOnScope(hub);
+          createTransactionAndPutOnScope();
 
           const request = http.get(url);
 
@@ -496,15 +517,18 @@ describe('tracing', () => {
         const hub = createHub();
 
         jest.spyOn(sentryCore, 'getCurrentHub').mockReturnValue(hub);
+        // eslint-disable-next-line deprecation/deprecation
         jest.spyOn(sentryCore, 'getCurrentScope').mockImplementation(() => hub.getScope());
-        jest.spyOn(sentryCore, 'getClient').mockReturnValue(hub.getClient());
+        // eslint-disable-next-line deprecation/deprecation
+        jest.spyOn(sentryCore, 'getActiveSpan').mockImplementation(() => hub.getScope().getSpan());
+        jest.spyOn(sentryCore, 'getClient').mockReturnValue(getClient());
 
         httpIntegration.setupOnce(
           () => undefined,
           () => hub,
         );
 
-        const transaction = createTransactionAndPutOnScope(hub);
+        const transaction = createTransactionAndPutOnScope();
         const spans = (transaction as unknown as Span).spanRecorder?.spans as Span[];
 
         const request = http.get(url);
@@ -517,7 +541,7 @@ describe('tracing', () => {
         expect(request.getHeader('sentry-trace')).toBeDefined();
         expect(request.getHeader('baggage')).toBeDefined();
 
-        const propagationContext = hub.getScope().getPropagationContext();
+        const propagationContext = getCurrentScope().getPropagationContext();
 
         expect((request.getHeader('sentry-trace') as string).includes(propagationContext.traceId)).toBe(true);
         expect(request.getHeader('baggage')).toEqual(
@@ -549,7 +573,7 @@ describe('tracing', () => {
             () => hub,
           );
 
-          createTransactionAndPutOnScope(hub);
+          createTransactionAndPutOnScope();
 
           const request = http.get(url);
 
@@ -581,7 +605,7 @@ describe('tracing', () => {
             () => hub,
           );
 
-          createTransactionAndPutOnScope(hub);
+          createTransactionAndPutOnScope();
 
           const request = http.get(url);
 
@@ -597,6 +621,7 @@ describe('default protocols', () => {
   function captureBreadcrumb(key: string): Promise<Breadcrumb> {
     const hub = new Hub();
     jest.spyOn(sentryCore, 'getCurrentHub').mockReturnValue(hub);
+    // eslint-disable-next-line deprecation/deprecation
     jest.spyOn(sentryCore, 'addBreadcrumb').mockImplementation((...rest) => hub.addBreadcrumb(...rest));
 
     let resolve: (value: Breadcrumb | PromiseLike<Breadcrumb>) => void;

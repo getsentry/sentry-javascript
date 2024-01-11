@@ -20,6 +20,8 @@ const debugIntegration = ((options: DebugOptions = {}) => {
 
   return {
     name: INTEGRATION_NAME,
+    // TODO v8: Remove this
+    setupOnce() {}, // eslint-disable-line @typescript-eslint/no-empty-function
     setup(client) {
       if (!client.on) {
         return;

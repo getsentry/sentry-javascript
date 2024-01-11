@@ -12,6 +12,7 @@ import { WINDOW } from './types';
 export function registerBackgroundTabDetection(): void {
   if (WINDOW && WINDOW.document) {
     WINDOW.document.addEventListener('visibilitychange', () => {
+      // eslint-disable-next-line deprecation/deprecation
       const activeTransaction = getActiveTransaction() as IdleTransaction;
       if (WINDOW.document.hidden && activeTransaction) {
         const statusType: SpanStatusType = 'cancelled';
@@ -25,6 +26,8 @@ export function registerBackgroundTabDetection(): void {
         if (!activeTransaction.status) {
           activeTransaction.setStatus(statusType);
         }
+        // TODO: Can we rewrite this to an attribute?
+        // eslint-disable-next-line deprecation/deprecation
         activeTransaction.setTag('visibilitychange', 'document.hidden');
         activeTransaction.end();
       }

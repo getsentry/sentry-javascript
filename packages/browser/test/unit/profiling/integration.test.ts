@@ -50,7 +50,8 @@ describe('BrowserProfilingIntegration', () => {
 
     const client = Sentry.getClient<BrowserClient>();
 
-    const currentTransaction = Sentry.getCurrentHub().getScope().getTransaction();
+    // eslint-disable-next-line deprecation/deprecation
+    const currentTransaction = Sentry.getCurrentScope().getTransaction();
     expect(currentTransaction?.op).toBe('pageload');
     currentTransaction?.end();
     await client?.flush(1000);

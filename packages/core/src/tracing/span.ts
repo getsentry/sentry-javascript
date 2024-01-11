@@ -6,6 +6,7 @@ import type {
   SpanAttributeValue,
   SpanAttributes,
   SpanContext,
+  SpanContextData,
   SpanJSON,
   SpanOrigin,
   SpanTimeInput,
@@ -15,7 +16,14 @@ import type {
 import { dropUndefinedKeys, logger, timestampInSeconds, uuid4 } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../debug-build';
-import { spanTimeInputToSeconds, spanToTraceContext, spanToTraceHeader } from '../utils/spanUtils';
+import {
+  TRACE_FLAG_NONE,
+  TRACE_FLAG_SAMPLED,
+  spanTimeInputToSeconds,
+  spanToJSON,
+  spanToTraceContext,
+  spanToTraceHeader,
+} from '../utils/spanUtils';
 
 /**
  * Keeps track of finished spans for a given transaction
@@ -55,27 +63,12 @@ export class Span implements SpanInterface {
   /**
    * @inheritDoc
    */
-  public traceId: string;
-
-  /**
-   * @inheritDoc
-   */
-  public spanId: string;
-
-  /**
-   * @inheritDoc
-   */
   public parentSpanId?: string;
 
   /**
    * Internal keeper of the status
    */
   public status?: SpanStatusType | string;
-
-  /**
-   * @inheritDoc
-   */
-  public sampled?: boolean;
 
   /**
    * Timestamp in seconds when the span was created.
@@ -93,25 +86,17 @@ export class Span implements SpanInterface {
   public op?: string;
 
   /**
-   * @inheritDoc
-   */
-  public description?: string;
-
-  /**
-   * @inheritDoc
+   * Tags for the span.
+   * @deprecated Use `getSpanAttributes(span)` instead.
    */
   public tags: { [key: string]: Primitive };
 
   /**
-   * @inheritDoc
+   * Data for the span.
+   * @deprecated Use `getSpanAttributes(span)` instead.
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public data: { [key: string]: any };
-
-  /**
-   * @inheritDoc
-   */
-  public attributes: SpanAttributes;
 
   /**
    * List of spans that were finalized
@@ -133,6 +118,14 @@ export class Span implements SpanInterface {
    */
   public origin?: SpanOrigin;
 
+  protected _traceId: string;
+  protected _spanId: string;
+  protected _sampled: boolean | undefined;
+  protected _name?: string;
+  protected _attributes: SpanAttributes;
+
+  private _logMessage?: string;
+
   /**
    * You should never call the constructor manually, always use `Sentry.startTransaction()`
    * or call `startChild()` on an existing span.
@@ -141,31 +134,28 @@ export class Span implements SpanInterface {
    * @hidden
    */
   public constructor(spanContext: SpanContext = {}) {
-    this.traceId = spanContext.traceId || uuid4();
-    this.spanId = spanContext.spanId || uuid4().substring(16);
+    this._traceId = spanContext.traceId || uuid4();
+    this._spanId = spanContext.spanId || uuid4().substring(16);
     this.startTimestamp = spanContext.startTimestamp || timestampInSeconds();
-    this.tags = spanContext.tags || {};
-    this.data = spanContext.data || {};
-    this.attributes = spanContext.attributes || {};
+    // eslint-disable-next-line deprecation/deprecation
+    this.tags = spanContext.tags ? { ...spanContext.tags } : {};
+    // eslint-disable-next-line deprecation/deprecation
+    this.data = spanContext.data ? { ...spanContext.data } : {};
+    this._attributes = spanContext.attributes ? { ...spanContext.attributes } : {};
     this.instrumenter = spanContext.instrumenter || 'sentry';
     this.origin = spanContext.origin || 'manual';
+    // eslint-disable-next-line deprecation/deprecation
+    this._name = spanContext.name || spanContext.description;
 
     if (spanContext.parentSpanId) {
       this.parentSpanId = spanContext.parentSpanId;
     }
     // We want to include booleans as well here
     if ('sampled' in spanContext) {
-      // eslint-disable-next-line deprecation/deprecation
-      this.sampled = spanContext.sampled;
+      this._sampled = spanContext.sampled;
     }
     if (spanContext.op) {
       this.op = spanContext.op;
-    }
-    if (spanContext.description) {
-      this.description = spanContext.description;
-    }
-    if (spanContext.name) {
-      this.description = spanContext.name;
     }
     if (spanContext.status) {
       this.status = spanContext.status;
@@ -175,29 +165,131 @@ export class Span implements SpanInterface {
     }
   }
 
-  /** An alias for `description` of the Span. */
+  // This rule conflicts with another eslint rule :(
+  /* eslint-disable @typescript-eslint/member-ordering */
+
+  /**
+   * An alias for `description` of the Span.
+   * @deprecated Use `spanToJSON(span).description` instead.
+   */
   public get name(): string {
-    return this.description || '';
+    return this._name || '';
   }
+
   /**
    * Update the name of the span.
+   * @deprecated Use `spanToJSON(span).description` instead.
    */
   public set name(name: string) {
     this.updateName(name);
   }
 
   /**
-   * @inheritDoc
+   * Get the description of the Span.
+   * @deprecated Use `spanToJSON(span).description` instead.
+   */
+  public get description(): string | undefined {
+    return this._name;
+  }
+
+  /**
+   * Get the description of the Span.
+   * @deprecated Use `spanToJSON(span).description` instead.
+   */
+  public set description(description: string | undefined) {
+    this._name = description;
+  }
+
+  /**
+   * The ID of the trace.
+   * @deprecated Use `spanContext().traceId` instead.
+   */
+  public get traceId(): string {
+    return this._traceId;
+  }
+
+  /**
+   * The ID of the trace.
+   * @deprecated You cannot update the traceId of a span after span creation.
+   */
+  public set traceId(traceId: string) {
+    this._traceId = traceId;
+  }
+
+  /**
+   * The ID of the span.
+   * @deprecated Use `spanContext().spanId` instead.
+   */
+  public get spanId(): string {
+    return this._spanId;
+  }
+
+  /**
+   * The ID of the span.
+   * @deprecated You cannot update the spanId of a span after span creation.
+   */
+  public set spanId(spanId: string) {
+    this._spanId = spanId;
+  }
+
+  /**
+   * Was this span chosen to be sent as part of the sample?
+   * @deprecated Use `isRecording()` instead.
+   */
+  public get sampled(): boolean | undefined {
+    return this._sampled;
+  }
+
+  /**
+   * Was this span chosen to be sent as part of the sample?
+   * @deprecated You cannot update the sampling decision of a span after span creation.
+   */
+  public set sampled(sampled: boolean | undefined) {
+    this._sampled = sampled;
+  }
+
+  /**
+   * Attributes for the span.
+   * @deprecated Use `getSpanAttributes(span)` instead.
+   */
+  public get attributes(): SpanAttributes {
+    return this._attributes;
+  }
+
+  /**
+   * Attributes for the span.
+   * @deprecated Use `setAttributes()` instead.
+   */
+  public set attributes(attributes: SpanAttributes) {
+    this._attributes = attributes;
+  }
+
+  /* eslint-enable @typescript-eslint/member-ordering */
+
+  /** @inheritdoc */
+  public spanContext(): SpanContextData {
+    const { _spanId: spanId, _traceId: traceId, _sampled: sampled } = this;
+    return {
+      spanId,
+      traceId,
+      traceFlags: sampled ? TRACE_FLAG_SAMPLED : TRACE_FLAG_NONE,
+    };
+  }
+
+  /**
+   * Creates a new `Span` while setting the current `Span.id` as `parentSpanId`.
+   * Also the `sampled` decision will be inherited.
+   *
+   * @deprecated Use `startSpan()`, `startSpanManual()` or `startInactiveSpan()` instead.
    */
   public startChild(
     spanContext?: Pick<SpanContext, Exclude<keyof SpanContext, 'sampled' | 'traceId' | 'parentSpanId'>>,
   ): Span {
     const childSpan = new Span({
       ...spanContext,
-      parentSpanId: this.spanId,
-      // eslint-disable-next-line deprecation/deprecation
-      sampled: this.sampled,
-      traceId: this.traceId,
+      parentSpanId: this._spanId,
+      sampled: this._sampled,
+      traceId: this._traceId,
     });
 
     childSpan.spanRecorder = this.spanRecorder;
@@ -209,30 +301,41 @@ export class Span implements SpanInterface {
 
     if (DEBUG_BUILD && childSpan.transaction) {
       const opStr = (spanContext && spanContext.op) || '< unknown op >';
-      const nameStr = childSpan.transaction.name || '< unknown name >';
-      const idStr = childSpan.transaction.spanId;
+      const nameStr = spanToJSON(childSpan).description || '< unknown name >';
+      const idStr = childSpan.transaction.spanContext().spanId;
 
       const logMessage = `[Tracing] Starting '${opStr}' span on transaction '${nameStr}' (${idStr}).`;
-      childSpan.transaction.metadata.spanMetadata[childSpan.spanId] = { logMessage };
       logger.log(logMessage);
+      this._logMessage = logMessage;
     }
 
     return childSpan;
   }
 
   /**
-   * @inheritDoc
+   * Sets the tag attribute on the current span.
+   *
+   * Can also be used to unset a tag, by passing `undefined`.
+   *
+   * @param key Tag key
+   * @param value Tag value
+   * @deprecated Use `setAttribute()` instead.
    */
   public setTag(key: string, value: Primitive): this {
+    // eslint-disable-next-line deprecation/deprecation
     this.tags = { ...this.tags, [key]: value };
     return this;
   }
 
   /**
-   * @inheritDoc
+   * Sets the data attribute on the current span
+   * @param key Data key
+   * @param value Data value
+   * @deprecated Use `setAttribute()` instead.
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public setData(key: string, value: any): this {
+    // eslint-disable-next-line deprecation/deprecation
     this.data = { ...this.data, [key]: value };
     return this;
   }
@@ -241,9 +344,9 @@ export class Span implements SpanInterface {
   public setAttribute(key: string, value: SpanAttributeValue | undefined): void {
     if (value === undefined) {
       // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
-      delete this.attributes[key];
+      delete this._attributes[key];
     } else {
-      this.attributes[key] = value;
+      this._attributes[key] = value;
     }
   }
 
@@ -264,7 +367,9 @@ export class Span implements SpanInterface {
    * @inheritDoc
    */
   public setHttpStatus(httpStatus: number): this {
+    // eslint-disable-next-line deprecation/deprecation
     this.setTag('http.status_code', String(httpStatus));
+    // eslint-disable-next-line deprecation/deprecation
     this.setData('http.response.status_code', httpStatus);
     const spanStatus = spanStatusfromHttpCode(httpStatus);
     if (spanStatus !== 'unknown_error') {
@@ -282,7 +387,7 @@ export class Span implements SpanInterface {
    * @inheritDoc
    */
   public updateName(name: string): this {
-    this.description = name;
+    this._name = name;
     return this;
   }
 
@@ -308,9 +413,9 @@ export class Span implements SpanInterface {
       DEBUG_BUILD &&
       // Don't call this for transactions
       this.transaction &&
-      this.transaction.spanId !== this.spanId
+      this.transaction.spanContext().spanId !== this._spanId
     ) {
-      const { logMessage } = this.transaction.metadata.spanMetadata[this.spanId];
+      const logMessage = this._logMessage;
       if (logMessage) {
         logger.log((logMessage as string).replace('Starting', 'Finishing'));
       }
@@ -332,16 +437,17 @@ export class Span implements SpanInterface {
   public toContext(): SpanContext {
     return dropUndefinedKeys({
       data: this._getData(),
-      description: this.description,
+      description: this._name,
       endTimestamp: this.endTimestamp,
       op: this.op,
       parentSpanId: this.parentSpanId,
-      sampled: this.sampled,
-      spanId: this.spanId,
+      sampled: this._sampled,
+      spanId: this._spanId,
       startTimestamp: this.startTimestamp,
       status: this.status,
+      // eslint-disable-next-line deprecation/deprecation
       tags: this.tags,
-      traceId: this.traceId,
+      traceId: this._traceId,
     });
   }
 
@@ -349,18 +455,20 @@ export class Span implements SpanInterface {
    * @inheritDoc
    */
   public updateWithContext(spanContext: SpanContext): this {
+    // eslint-disable-next-line deprecation/deprecation
     this.data = spanContext.data || {};
-    this.description = spanContext.description;
+    // eslint-disable-next-line deprecation/deprecation
+    this._name = spanContext.name || spanContext.description;
     this.endTimestamp = spanContext.endTimestamp;
     this.op = spanContext.op;
     this.parentSpanId = spanContext.parentSpanId;
-    // eslint-disable-next-line deprecation/deprecation
-    this.sampled = spanContext.sampled;
-    this.spanId = spanContext.spanId || this.spanId;
+    this._sampled = spanContext.sampled;
+    this._spanId = spanContext.spanId || this._spanId;
     this.startTimestamp = spanContext.startTimestamp || this.startTimestamp;
     this.status = spanContext.status;
+    // eslint-disable-next-line deprecation/deprecation
     this.tags = spanContext.tags || {};
-    this.traceId = spanContext.traceId || this.traceId;
+    this._traceId = spanContext.traceId || this._traceId;
 
     return this;
   }
@@ -378,22 +486,23 @@ export class Span implements SpanInterface {
   public getSpanJSON(): SpanJSON {
     return dropUndefinedKeys({
       data: this._getData(),
-      description: this.description,
+      description: this._name,
       op: this.op,
       parent_span_id: this.parentSpanId,
-      span_id: this.spanId,
+      span_id: this._spanId,
       start_timestamp: this.startTimestamp,
       status: this.status,
+      // eslint-disable-next-line deprecation/deprecation
       tags: Object.keys(this.tags).length > 0 ? this.tags : undefined,
       timestamp: this.endTimestamp,
-      trace_id: this.traceId,
+      trace_id: this._traceId,
       origin: this.origin,
     });
   }
 
   /** @inheritdoc */
   public isRecording(): boolean {
-    return !this.endTimestamp && !!this.sampled;
+    return !this.endTimestamp && !!this._sampled;
   }
 
   /**
@@ -415,7 +524,8 @@ export class Span implements SpanInterface {
         [key: string]: any;
       }
     | undefined {
-    const { data, attributes } = this;
+    // eslint-disable-next-line deprecation/deprecation
+    const { data, _attributes: attributes } = this;
 
     const hasData = Object.keys(data).length > 0;
     const hasAttributes = Object.keys(attributes).length > 0;

@@ -1,3 +1,4 @@
+import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
 import { render } from '@testing-library/react';
 import { Request } from 'node-fetch';
 import * as React from 'react';
@@ -25,7 +26,7 @@ describe('React Router v6.4', () => {
   function createInstrumentation(_opts?: {
     startTransactionOnPageLoad?: boolean;
     startTransactionOnLocationChange?: boolean;
-  }): [jest.Mock, { mockUpdateName: jest.Mock; mockFinish: jest.Mock; mockSetMetadata: jest.Mock }] {
+  }): [jest.Mock, { mockUpdateName: jest.Mock; mockFinish: jest.Mock; mockSetAttribute: jest.Mock }] {
     const options = {
       matchPath: _opts ? matchPath : undefined,
       startTransactionOnLocationChange: true,
@@ -34,10 +35,10 @@ describe('React Router v6.4', () => {
     };
     const mockFinish = jest.fn();
     const mockUpdateName = jest.fn();
-    const mockSetMetadata = jest.fn();
+    const mockSetAttribute = jest.fn();
     const mockStartTransaction = jest
       .fn()
-      .mockReturnValue({ updateName: mockUpdateName, end: mockFinish, setMetadata: mockSetMetadata });
+      .mockReturnValue({ updateName: mockUpdateName, end: mockFinish, setAttribute: mockSetAttribute });
 
     reactRouterV6Instrumentation(
       React.useEffect,
@@ -46,7 +47,7 @@ describe('React Router v6.4', () => {
       createRoutesFromChildren,
       matchRoutes,
     )(mockStartTransaction, options.startTransactionOnPageLoad, options.startTransactionOnLocationChange);
-    return [mockStartTransaction, { mockUpdateName, mockFinish, mockSetMetadata }];
+    return [mockStartTransaction, { mockUpdateName, mockFinish, mockSetAttribute }];
   }
 
   describe('wrapCreateBrowserRouter', () => {
@@ -246,7 +247,7 @@ describe('React Router v6.4', () => {
     });
 
     it('updates pageload transaction to a parameterized route', () => {
-      const [mockStartTransaction, { mockUpdateName, mockSetMetadata }] = createInstrumentation();
+      const [mockStartTransaction, { mockUpdateName, mockSetAttribute }] = createInstrumentation();
       const sentryCreateBrowserRouter = wrapCreateBrowserRouter(createMemoryRouter as CreateRouterFunction);
 
       const router = sentryCreateBrowserRouter(
@@ -272,7 +273,7 @@ describe('React Router v6.4', () => {
 
       expect(mockStartTransaction).toHaveBeenCalledTimes(1);
       expect(mockUpdateName).toHaveBeenLastCalledWith('/about/:page');
-      expect(mockSetMetadata).toHaveBeenCalledWith({ source: 'route' });
+      expect(mockSetAttribute).toHaveBeenCalledWith(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
     });
 
     it('works with `basename` option', () => {

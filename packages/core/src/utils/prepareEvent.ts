@@ -15,6 +15,7 @@ import { DEFAULT_ENVIRONMENT } from '../constants';
 import { getGlobalEventProcessors, notifyEventProcessors } from '../eventProcessors';
 import { Scope, getGlobalScope } from '../scope';
 import { applyScopeDataToEvent, mergeScopeData } from './applyScopeDataToEvent';
+import { spanToJSON } from './spanUtils';
 
 /**
  * This type makes sure that we get either a CaptureContext, OR an EventHint.
@@ -326,10 +327,14 @@ function normalizeEvent(event: Event | null, depth: number, maxBreadth: number):
   // event.spans[].data may contain circular/dangerous data so we need to normalize it
   if (event.spans) {
     normalized.spans = event.spans.map(span => {
-      // We cannot use the spread operator here because `toJSON` on `span` is non-enumerable
-      if (span.data) {
-        span.data = normalize(span.data, depth, maxBreadth);
+      const data = spanToJSON(span).data;
+
+      if (data) {
+        // This is a bit weird, as we generally have `Span` instances here, but to be safe we do not assume so
+        // eslint-disable-next-line deprecation/deprecation
+        span.data = normalize(data, depth, maxBreadth);
       }
+
       return span;
     });
   }

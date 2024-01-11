@@ -104,19 +104,16 @@ async function withServerActionInstrumentationImplementation<A extends (...args:
           });
 
           if (options.recordResponse !== undefined ? options.recordResponse : sendDefaultPii) {
-            span?.setData('server_action_result', result);
+            span?.setAttribute('server_action_result', result);
           }
 
           if (options.formData) {
-            const formDataObject: Record<string, unknown> = {};
             options.formData.forEach((value, key) => {
-              if (typeof value === 'string') {
-                formDataObject[key] = value;
-              } else {
-                formDataObject[key] = '[non-string value]';
-              }
+              span?.setAttribute(
+                `server_action_form_data.${key}`,
+                typeof value === 'string' ? value : '[non-string value]',
+              );
             });
-            span?.setData('server_action_form_data', formDataObject);
           }
 
           return result;

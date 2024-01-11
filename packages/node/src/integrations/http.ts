@@ -1,9 +1,18 @@
 import type * as http from 'http';
 import type * as https from 'https';
 import type { Hub } from '@sentry/core';
-import { spanToTraceHeader } from '@sentry/core';
-import { addBreadcrumb, getClient, getCurrentScope } from '@sentry/core';
-import { getCurrentHub, getDynamicSamplingContextFromClient, isSentryRequestUrl } from '@sentry/core';
+import {
+  addBreadcrumb,
+  getActiveSpan,
+  getClient,
+  getCurrentHub,
+  getCurrentScope,
+  getDynamicSamplingContextFromClient,
+  getDynamicSamplingContextFromSpan,
+  isSentryRequestUrl,
+  spanToJSON,
+  spanToTraceHeader,
+} from '@sentry/core';
 import type {
   DynamicSamplingContext,
   EventProcessor,
@@ -105,6 +114,7 @@ export class Http implements Integration {
       return;
     }
 
+    // eslint-disable-next-line deprecation/deprecation
     const clientOptions = setupOnceGetCurrentHub().getClient<NodeClient>()?.getOptions();
 
     // Do not auto-instrument for other instrumenter
@@ -211,6 +221,7 @@ function _createWrappedRequestMethodFactory(
     req: http.ClientRequest,
     res?: http.IncomingMessage,
   ): void {
+    // eslint-disable-next-line deprecation/deprecation
     if (!getCurrentHub().getIntegration(Http)) {
       return;
     }
@@ -246,12 +257,13 @@ function _createWrappedRequestMethodFactory(
       }
 
       const scope = getCurrentScope();
-      const parentSpan = scope.getSpan();
+      const parentSpan = getActiveSpan();
 
       const data = getRequestSpanData(requestUrl, requestOptions);
 
       const requestSpan = shouldCreateSpan(rawRequestUrl)
-        ? parentSpan?.startChild({
+        ? // eslint-disable-next-line deprecation/deprecation
+          parentSpan?.startChild({
             op: 'http.client',
             origin: 'auto.http.node.http',
             description: `${data['http.method']} ${data.url}`,
@@ -262,7 +274,7 @@ function _createWrappedRequestMethodFactory(
       if (shouldAttachTraceData(rawRequestUrl)) {
         if (requestSpan) {
           const sentryTraceHeader = spanToTraceHeader(requestSpan);
-          const dynamicSamplingContext = requestSpan?.transaction?.getDynamicSamplingContext();
+          const dynamicSamplingContext = getDynamicSamplingContextFromSpan(requestSpan);
           addHeadersToRequestOptions(requestOptions, requestUrl, sentryTraceHeader, dynamicSamplingContext);
         } else {
           const client = getClient();
@@ -292,7 +304,9 @@ function _createWrappedRequestMethodFactory(
             if (res.statusCode) {
               requestSpan.setHttpStatus(res.statusCode);
             }
-            requestSpan.description = cleanSpanDescription(requestSpan.description, requestOptions, req);
+            requestSpan.updateName(
+              cleanSpanDescription(spanToJSON(requestSpan).description || '', requestOptions, req) || '',
+            );
             requestSpan.end();
           }
         })
@@ -305,7 +319,9 @@ function _createWrappedRequestMethodFactory(
           }
           if (requestSpan) {
             requestSpan.setHttpStatus(500);
-            requestSpan.description = cleanSpanDescription(requestSpan.description, requestOptions, req);
+            requestSpan.updateName(
+              cleanSpanDescription(spanToJSON(requestSpan).description || '', requestOptions, req) || '',
+            );
             requestSpan.end();
           }
         });

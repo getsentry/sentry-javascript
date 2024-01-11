@@ -1,6 +1,6 @@
 /* eslint-disable deprecation/deprecation */
 import { BrowserClient } from '@sentry/browser';
-import { Hub, Scope, makeMain } from '@sentry/core';
+import { Hub, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, Scope, makeMain } from '@sentry/core';
 import type { BaseTransportOptions, ClientOptions, TransactionSource } from '@sentry/types';
 
 import { Span, TRACEPARENT_REGEXP, Transaction } from '../src';
@@ -506,8 +506,8 @@ describe('Span', () => {
         sampled: true,
       });
 
-      expect(span.traceId).toBe('c');
-      expect(span.spanId).toBe('d');
+      expect(span.spanContext().traceId).toBe('c');
+      expect(span.spanContext().spanId).toBe('d');
       expect(span.sampled).toBe(true);
       expect(span.description).toBe(undefined);
       expect(span.op).toBe(undefined);
@@ -541,8 +541,8 @@ describe('Span', () => {
 
       span.updateWithContext(newContext);
 
-      expect(span.traceId).toBe('a');
-      expect(span.spanId).toBe('b');
+      expect(span.spanContext().traceId).toBe('a');
+      expect(span.spanContext().spanId).toBe('b');
       expect(span.description).toBe('new');
       expect(span.endTimestamp).toBe(1);
       expect(span.op).toBe('new-op');
@@ -571,24 +571,19 @@ describe('Span', () => {
         hub,
       );
 
-      const hubSpy = jest.spyOn(hub.getClient()!, 'getOptions');
-
       const dynamicSamplingContext = transaction.getDynamicSamplingContext();
 
-      expect(hubSpy).not.toHaveBeenCalled();
       expect(dynamicSamplingContext).toStrictEqual({ environment: 'myEnv' });
     });
 
     test('should return new DSC, if no DSC was provided during transaction creation', () => {
-      const transaction = new Transaction(
-        {
-          name: 'tx',
-          metadata: {
-            sampleRate: 0.56,
-          },
+      const transaction = new Transaction({
+        name: 'tx',
+        metadata: {
+          sampleRate: 0.56,
         },
-        hub,
-      );
+        sampled: true,
+      });
 
       const getOptionsSpy = jest.spyOn(hub.getClient()!, 'getOptions');
 
@@ -598,6 +593,7 @@ describe('Span', () => {
       expect(dynamicSamplingContext).toStrictEqual({
         release: '1.0.1',
         environment: 'production',
+        sampled: 'true',
         sample_rate: '0.56',
         trace_id: expect.any(String),
         transaction: 'tx',
@@ -645,9 +641,7 @@ describe('Span', () => {
     test('is included when transaction metadata is set', () => {
       const spy = jest.spyOn(hub as any, 'captureEvent') as any;
       const transaction = hub.startTransaction({ name: 'test', sampled: true });
-      transaction.setMetadata({
-        source: 'url',
-      });
+      transaction.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'url');
       expect(spy).toHaveBeenCalledTimes(0);
 
       transaction.end();

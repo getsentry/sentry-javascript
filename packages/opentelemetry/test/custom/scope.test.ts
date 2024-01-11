@@ -81,12 +81,14 @@ describe('NodeExperimentalScope', () => {
     // Pretend we have a _span set
     scope['_span'] = {} as any;
 
+    // eslint-disable-next-line deprecation/deprecation
     expect(scope.getSpan()).toBeUndefined();
   });
 
   it('setSpan is a noop', () => {
     const scope = new OpenTelemetryScope();
 
+    // eslint-disable-next-line deprecation/deprecation
     scope.setSpan({} as any);
 
     expect(scope['_span']).toBeUndefined();

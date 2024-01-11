@@ -1,9 +1,12 @@
 /* eslint-disable max-lines */
 import {
+  getActiveSpan,
   getClient,
   getCurrentScope,
   getDynamicSamplingContextFromClient,
+  getDynamicSamplingContextFromSpan,
   hasTracingEnabled,
+  spanToJSON,
   spanToTraceHeader,
 } from '@sentry/core';
 import type { HandlerDataXhr, SentryWrappedXMLHttpRequest, Span } from '@sentry/types';
@@ -145,9 +148,9 @@ function isPerformanceResourceTiming(entry: PerformanceEntry): entry is Performa
  * @param span A span that has yet to be finished, must contain `url` on data.
  */
 function addHTTPTimings(span: Span): void {
-  const url = span.data.url;
+  const { url } = spanToJSON(span).data || {};
 
-  if (!url) {
+  if (!url || typeof url !== 'string') {
     return;
   }
 
@@ -155,7 +158,7 @@ function addHTTPTimings(span: Span): void {
     entries.forEach(entry => {
       if (isPerformanceResourceTiming(entry) && entry.name.endsWith(url)) {
         const spanData = resourceTimingEntryToSpanData(entry);
-        spanData.forEach(data => span.setData(...data));
+        spanData.forEach(data => span.setAttribute(...data));
         // In the next tick, clean this handler up
         // We have to wait here because otherwise this cleans itself up before it is fully done
         setTimeout(cleanup);
@@ -271,11 +274,12 @@ export function xhrCallback(
   }
 
   const scope = getCurrentScope();
-  const parentSpan = scope.getSpan();
+  const parentSpan = getActiveSpan();
 
   const span =
     shouldCreateSpanResult && parentSpan
-      ? parentSpan.startChild({
+      ? // eslint-disable-next-line deprecation/deprecation
+        parentSpan.startChild({
           data: {
             type: 'xhr',
             'http.method': sentryXhrData.method,
@@ -288,14 +292,14 @@ export function xhrCallback(
       : undefined;
 
   if (span) {
-    xhr.__sentry_xhr_span_id__ = span.spanId;
+    xhr.__sentry_xhr_span_id__ = span.spanContext().spanId;
     spans[xhr.__sentry_xhr_span_id__] = span;
   }
 
   if (xhr.setRequestHeader && shouldAttachHeaders(sentryXhrData.url)) {
     if (span) {
       const transaction = span && span.transaction;
-      const dynamicSamplingContext = transaction && transaction.getDynamicSamplingContext();
+      const dynamicSamplingContext = transaction && getDynamicSamplingContextFromSpan(transaction);
       const sentryBaggageHeader = dynamicSamplingContextToSentryBaggageHeader(dynamicSamplingContext);
       setHeaderOnXhr(xhr, spanToTraceHeader(span), sentryBaggageHeader);
     } else {

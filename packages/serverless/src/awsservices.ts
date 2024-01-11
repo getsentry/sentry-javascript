@@ -58,10 +58,12 @@ function wrapMakeRequest<TService extends AWSService, TResult>(
   return function (this: TService, operation: string, params?: GenericParams, callback?: MakeRequestCallback<TResult>) {
     let span: Span | undefined;
     const scope = getCurrentScope();
+    // eslint-disable-next-line deprecation/deprecation
     const transaction = scope.getTransaction();
     const req = orig.call(this, operation, params);
     req.on('afterBuild', () => {
       if (transaction) {
+        // eslint-disable-next-line deprecation/deprecation
         span = transaction.startChild({
           description: describe(this, operation, params),
           op: 'http.client',

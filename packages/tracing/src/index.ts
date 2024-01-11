@@ -62,6 +62,7 @@ export const addExtensionMethods = addExtensionMethodsT;
  *
  * `getActiveTransaction` can be imported from `@sentry/node`, `@sentry/browser`, or your framework SDK
  */
+// eslint-disable-next-line deprecation/deprecation
 export const getActiveTransaction = getActiveTransactionT;
 
 /**

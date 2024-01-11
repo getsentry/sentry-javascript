@@ -17,8 +17,8 @@ describe('NodeExperimentalTransaction', () => {
     const hub = getCurrentHub();
     hub.bindClient(client);
 
-    const transaction = new OpenTelemetryTransaction({ name: 'test' }, hub);
-    transaction.sampled = true;
+    // eslint-disable-next-line deprecation/deprecation
+    const transaction = new OpenTelemetryTransaction({ name: 'test', sampled: true }, hub);
 
     const res = transaction.finishWithScope();
 
@@ -64,8 +64,8 @@ describe('NodeExperimentalTransaction', () => {
     const hub = getCurrentHub();
     hub.bindClient(client);
 
-    const transaction = new OpenTelemetryTransaction({ name: 'test', startTimestamp: 123456 }, hub);
-    transaction.sampled = true;
+    // eslint-disable-next-line deprecation/deprecation
+    const transaction = new OpenTelemetryTransaction({ name: 'test', startTimestamp: 123456, sampled: true }, hub);
 
     const res = transaction.finishWithScope(1234567);
 
@@ -89,8 +89,8 @@ describe('NodeExperimentalTransaction', () => {
     const hub = getCurrentHub();
     hub.bindClient(client);
 
-    const transaction = new OpenTelemetryTransaction({ name: 'test', startTimestamp: 123456 }, hub);
-    transaction.sampled = true;
+    // eslint-disable-next-line deprecation/deprecation
+    const transaction = new OpenTelemetryTransaction({ name: 'test', startTimestamp: 123456, sampled: true }, hub);
 
     const scope = new OpenTelemetryScope();
     scope.setTags({
@@ -149,10 +149,10 @@ describe('startTranscation', () => {
     const transaction = startTransaction(hub, { name: 'test' });
 
     expect(transaction).toBeInstanceOf(OpenTelemetryTransaction);
-
-    expect(transaction.sampled).toBe(undefined);
+    expect(transaction['_sampled']).toBe(undefined);
     expect(transaction.spanRecorder).toBeDefined();
     expect(transaction.spanRecorder?.spans).toHaveLength(1);
+    // eslint-disable-next-line deprecation/deprecation
     expect(transaction.metadata).toEqual({
       source: 'custom',
       spanMetadata: {},
@@ -181,7 +181,7 @@ describe('startTranscation', () => {
     });
 
     expect(transaction).toBeInstanceOf(OpenTelemetryTransaction);
-
+    // eslint-disable-next-line deprecation/deprecation
     expect(transaction.metadata).toEqual({
       source: 'custom',
       spanMetadata: {},

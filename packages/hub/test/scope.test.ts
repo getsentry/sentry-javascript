@@ -361,6 +361,7 @@ describe('Scope', () => {
       const scope = new Scope();
       const span = {
         fake: 'span',
+        spanContext: () => ({}),
         toJSON: () => ({ origin: 'manual' }),
       } as any;
       scope.setSpan(span);
@@ -374,6 +375,7 @@ describe('Scope', () => {
       const scope = new Scope();
       const span = {
         fake: 'span',
+        spanContext: () => ({}),
         toJSON: () => ({ a: 'b' }),
       } as any;
       scope.setSpan(span);
@@ -392,8 +394,8 @@ describe('Scope', () => {
       const scope = new Scope();
       const transaction = {
         fake: 'span',
-        toJSON: () => ({ a: 'b' }),
-        name: 'fake transaction',
+        spanContext: () => ({}),
+        toJSON: () => ({ a: 'b', description: 'fake transaction' }),
         getDynamicSamplingContext: () => ({}),
       } as any;
       transaction.transaction = transaction; // because this is a transaction, its `transaction` pointer points to itself
@@ -407,9 +409,14 @@ describe('Scope', () => {
     test('adds `transaction` tag when span on scope', async () => {
       expect.assertions(1);
       const scope = new Scope();
-      const transaction = { name: 'fake transaction', getDynamicSamplingContext: () => ({}) };
+      const transaction = {
+        spanContext: () => ({}),
+        toJSON: () => ({ description: 'fake transaction' }),
+        getDynamicSamplingContext: () => ({}),
+      };
       const span = {
         fake: 'span',
+        spanContext: () => ({}),
         toJSON: () => ({ a: 'b' }),
         transaction,
       } as any;

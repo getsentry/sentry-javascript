@@ -2,13 +2,14 @@ import { assert, warn } from '@ember/debug';
 import type Route from '@ember/routing/route';
 import { next } from '@ember/runloop';
 import { getOwnConfig, isDevelopingApp, macroCondition } from '@embroider/macros';
+import { startSpan } from '@sentry/browser';
 import type { BrowserOptions } from '@sentry/browser';
 import * as Sentry from '@sentry/browser';
 import { SDK_VERSION } from '@sentry/browser';
-import type { Transaction } from '@sentry/types';
-import { GLOBAL_OBJ, timestampInSeconds } from '@sentry/utils';
+import { GLOBAL_OBJ } from '@sentry/utils';
 import Ember from 'ember';
 
+import type { Transaction } from '@sentry/types';
 import type { EmberSentryConfig, GlobalConfig, OwnConfig } from './types';
 
 function _getSentryInitConfig(): EmberSentryConfig['sentry'] {
@@ -66,8 +67,14 @@ export function InitSentryForEmber(_runtimeConfig?: BrowserOptions): void {
   }
 }
 
+/**
+ * Grabs active transaction off scope.
+ *
+ * @deprecated You should not rely on the transaction, but just use `startSpan()` APIs instead.
+ */
 export const getActiveTransaction = (): Transaction | undefined => {
-  return Sentry.getCurrentHub().getScope().getTransaction();
+  // eslint-disable-next-line deprecation/deprecation
+  return Sentry.getCurrentScope().getTransaction();
 };
 
 type RouteConstructor = new (...args: ConstructorParameters<typeof Route>) => Route;
@@ -80,22 +87,16 @@ export const instrumentRoutePerformance = <T extends RouteConstructor>(BaseRoute
     fn: X,
     args: Parameters<X>,
   ): Promise<ReturnType<X>> => {
-    const startTimestamp = timestampInSeconds();
-    const result = await fn(...args);
-
-    const currentTransaction = getActiveTransaction();
-    if (!currentTransaction) {
-      return result;
-    }
-    currentTransaction
-      .startChild({
+    return startSpan(
+      {
         op,
-        description,
+        name: description,
         origin: 'auto.ui.ember',
-        startTimestamp,
-      })
-      .end();
-    return result;
+      },
+      () => {
+        return fn(...args);
+      },
+    );
   };
 
   const routeName = BaseRoute.name;

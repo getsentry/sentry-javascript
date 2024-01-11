@@ -1,4 +1,4 @@
-import { getCurrentHub } from '@sentry/browser';
+import { captureException } from '@sentry/core';
 import { consoleSandbox } from '@sentry/utils';
 
 import type { ViewModel, Vue, VueOptions } from './types';
@@ -30,7 +30,7 @@ export const attachErrorHandler = (app: Vue, options: VueOptions): void => {
 
     // Capture exception in the next event loop, to make sure that all breadcrumbs are recorded in time.
     setTimeout(() => {
-      getCurrentHub().captureException(error, {
+      captureException(error, {
         captureContext: { contexts: { vue: metadata } },
         mechanism: { handled: false },
       });

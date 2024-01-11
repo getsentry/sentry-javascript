@@ -1,7 +1,7 @@
 /* eslint-disable deprecation/deprecation */
 /* eslint-disable @typescript-eslint/unbound-method */
 import { BrowserClient } from '@sentry/browser';
-import { Hub, makeMain } from '@sentry/core';
+import { Hub, SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE, makeMain } from '@sentry/core';
 import * as utilsModule from '@sentry/utils'; // for mocking
 import { logger } from '@sentry/utils';
 
@@ -16,7 +16,7 @@ import {
 addExtensionMethods();
 
 const mathRandom = jest.spyOn(Math, 'random');
-jest.spyOn(Transaction.prototype, 'setMetadata');
+jest.spyOn(Transaction.prototype, 'setAttribute');
 jest.spyOn(logger, 'warn');
 jest.spyOn(logger, 'log');
 jest.spyOn(logger, 'error');
@@ -286,9 +286,7 @@ describe('Hub', () => {
         makeMain(hub);
         hub.startTransaction({ name: 'dogpark', sampled: true });
 
-        expect(Transaction.prototype.setMetadata).toHaveBeenCalledWith({
-          sampleRate: 1.0,
-        });
+        expect(Transaction.prototype.setAttribute).toHaveBeenCalledWith(SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE, 1);
       });
 
       it('should record sampling method and rate when sampling decision comes from tracesSampler', () => {
@@ -298,9 +296,7 @@ describe('Hub', () => {
         makeMain(hub);
         hub.startTransaction({ name: 'dogpark' });
 
-        expect(Transaction.prototype.setMetadata).toHaveBeenCalledWith({
-          sampleRate: 0.1121,
-        });
+        expect(Transaction.prototype.setAttribute).toHaveBeenCalledWith(SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE, 0.1121);
       });
 
       it('should record sampling method when sampling decision is inherited', () => {
@@ -309,7 +305,7 @@ describe('Hub', () => {
         makeMain(hub);
         hub.startTransaction({ name: 'dogpark', parentSampled: true });
 
-        expect(Transaction.prototype.setMetadata).toHaveBeenCalledTimes(0);
+        expect(Transaction.prototype.setAttribute).toHaveBeenCalledTimes(0);
       });
 
       it('should record sampling method and rate when sampling decision comes from traceSampleRate', () => {
@@ -318,9 +314,7 @@ describe('Hub', () => {
         makeMain(hub);
         hub.startTransaction({ name: 'dogpark' });
 
-        expect(Transaction.prototype.setMetadata).toHaveBeenCalledWith({
-          sampleRate: 0.1121,
-        });
+        expect(Transaction.prototype.setAttribute).toHaveBeenCalledWith(SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE, 0.1121);
       });
     });
 

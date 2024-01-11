@@ -858,6 +858,7 @@ jobs:
       matrix:
         test-application:
           [
+            'cloudflare-astro',
             'node-express-app',
             'create-react-app',
             'create-next-app',
@@ -943,6 +944,16 @@ jobs:
         working-directory: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
         timeout-minutes: 5
         run: yarn test:assert
+
+      - name: Deploy Astro to Cloudflare
+        uses: cloudflare/pages-action@v1
+        if: matrix.test-application == 'cloudflare-astro'
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          projectName: ${{ secrets.CLOUDFLARE_PROJECT_NAME }}
+          directory: dist
+          workingDirectory: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
 
   job_required_jobs_passed:
     name: All required jobs passed or were skipped

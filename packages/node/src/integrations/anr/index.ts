@@ -55,9 +55,11 @@ const INTEGRATION_NAME = 'Anr';
 const anrIntegration = ((options: Partial<Options> = {}) => {
   return {
     name: INTEGRATION_NAME,
+    // TODO v8: Remove this
+    setupOnce() {}, // eslint-disable-line @typescript-eslint/no-empty-function
     setup(client: NodeClient) {
-      if (NODE_VERSION.major < 16) {
-        throw new Error('ANR detection requires Node 16 or later');
+      if (NODE_VERSION.major < 16 || (NODE_VERSION.major === 16 && NODE_VERSION.minor < 17)) {
+        throw new Error('ANR detection requires Node 16.17.0 or later');
       }
 
       // setImmediate is used to ensure that all other integrations have been setup
@@ -68,6 +70,8 @@ const anrIntegration = ((options: Partial<Options> = {}) => {
 
 /**
  * Starts a thread to detect App Not Responding (ANR) events
+ *
+ * ANR detection requires Node 16.17.0 or later
  */
 // eslint-disable-next-line deprecation/deprecation
 export const Anr = convertIntegrationFnToClass(INTEGRATION_NAME, anrIntegration);

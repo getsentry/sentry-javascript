@@ -10,6 +10,9 @@ import { JSDOM } from 'jsdom';
 
 import { onProfilingStartRouteTransaction } from '../../../src';
 
+// eslint-disable-next-line no-bitwise
+const TraceFlagSampled = 0x1 << 0;
+
 // @ts-expect-error store a reference so we can reset it later
 const globalDocument = global.document;
 // @ts-expect-error store a reference so we can reset it later
@@ -67,9 +70,17 @@ describe('BrowserProfilingIntegration', () => {
     // @ts-expect-error force api to be undefined
     global.window.Profiler = undefined;
     // set sampled to true so that profiling does not early return
-    const mockTransaction = { isRecording: () => true } as Transaction;
+    const mockTransaction = {
+      isRecording: () => true,
+      spanContext: () => ({
+        traceId: '12345678901234567890123456789012',
+        spanId: '1234567890123456',
+        traceFlags: TraceFlagSampled,
+      }),
+    } as Transaction;
     expect(() => onProfilingStartRouteTransaction(mockTransaction)).not.toThrow();
   });
+
   it('does not throw if constructor throws', () => {
     const spy = jest.fn();
 
@@ -80,8 +91,15 @@ describe('BrowserProfilingIntegration', () => {
       }
     }
 
-    // set isRecording to true so that profiling does not early return
-    const mockTransaction = { isRecording: () => true } as Transaction;
+    // set sampled to true so that profiling does not early return
+    const mockTransaction = {
+      isRecording: () => true,
+      spanContext: () => ({
+        traceId: '12345678901234567890123456789012',
+        spanId: '1234567890123456',
+        traceFlags: TraceFlagSampled,
+      }),
+    } as Transaction;
 
     // @ts-expect-error override with our own constructor
     global.window.Profiler = Profiler;

@@ -215,33 +215,22 @@ export class FooterComponent implements OnInit {
 }
 ```
 
-You can also add your own custom spans by attaching them to the current active transaction using `getActiveTransaction`
-helper. For example, if you'd like to track the duration of Angular boostraping process, you can do it as follows:
+You can also add your own custom spans via `startSpan()`. For example, if you'd like to track the duration of Angular boostraping process, you can do it as follows:
 
 ```javascript
 import { enableProdMode } from '@angular/core';
 import { platformBrowserDynamic } from '@angular/platform-browser-dynamic';
-import { init, getActiveTransaction } from '@sentry/angular-ivy';
+import { init, startSpan } from '@sentry/angular';
 
 import { AppModule } from './app/app.module';
 
 // ...
-
-const activeTransaction = getActiveTransaction();
-const boostrapSpan =
-  activeTransaction &&
-  activeTransaction.startChild({
-    description: 'platform-browser-dynamic',
-    op: 'ui.angular.bootstrap',
-  });
-
-platformBrowserDynamic()
-  .bootstrapModule(AppModule)
-  .then(() => console.log(`Bootstrap success`))
-  .catch(err => console.error(err));
-  .finally(() => {
-    if (bootstrapSpan) {
-      boostrapSpan.finish();
-    }
-  })
+startSpan({
+  name: 'platform-browser-dynamic',
+  op: 'ui.angular.bootstrap'
+  },
+  async () => {
+    await platformBrowserDynamic().bootstrapModule(AppModule);
+  }
+);
 ```

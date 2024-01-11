@@ -7,6 +7,7 @@ import type { Hub } from '@sentry/types';
  * @returns boolean
  */
 export function shouldDisableAutoInstrumentation(getCurrentHub: () => Hub): boolean {
+  // eslint-disable-next-line deprecation/deprecation
   const clientOptions = getCurrentHub().getClient()?.getOptions();
   const instrumenter = clientOptions?.instrumenter || 'sentry';
 

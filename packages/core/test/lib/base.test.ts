@@ -122,6 +122,7 @@ describe('BaseClient', () => {
       const hub = new Hub(client, scope);
 
       scope.addBreadcrumb({ message: 'hello' }, 100);
+      // eslint-disable-next-line deprecation/deprecation
       hub.addBreadcrumb({ message: 'world' });
 
       expect((scope as any)._breadcrumbs[1].message).toEqual('world');
@@ -136,6 +137,7 @@ describe('BaseClient', () => {
       const hub = new Hub(client, scope);
 
       scope.addBreadcrumb({ message: 'hello' }, 100);
+      // eslint-disable-next-line deprecation/deprecation
       hub.addBreadcrumb({ message: 'world' });
 
       expect((scope as any)._breadcrumbs[1].timestamp).toBeGreaterThan(1);
@@ -150,6 +152,7 @@ describe('BaseClient', () => {
       const hub = new Hub(client, scope);
 
       scope.addBreadcrumb({ message: 'hello' }, 100);
+      // eslint-disable-next-line deprecation/deprecation
       hub.addBreadcrumb({ message: 'world' });
 
       expect((scope as any)._breadcrumbs.length).toEqual(1);
@@ -164,7 +167,8 @@ describe('BaseClient', () => {
       const scope = new Scope();
       const hub = new Hub(client, scope);
 
-      hub.addBreadcrumb({ message: 'hello' });
+      scope.addBreadcrumb({ message: 'hello' });
+      // eslint-disable-next-line deprecation/deprecation
       hub.addBreadcrumb({ message: 'world' });
 
       expect((scope as any)._breadcrumbs).toHaveLength(2);
@@ -179,6 +183,7 @@ describe('BaseClient', () => {
       const scope = new Scope();
       const hub = new Hub(client, scope);
 
+      // eslint-disable-next-line deprecation/deprecation
       hub.addBreadcrumb({ message: 'hello' });
 
       expect((scope as any)._breadcrumbs[0].message).toEqual('hello');
@@ -193,6 +198,7 @@ describe('BaseClient', () => {
       const scope = new Scope();
       const hub = new Hub(client, scope);
 
+      // eslint-disable-next-line deprecation/deprecation
       hub.addBreadcrumb({ message: 'hello' });
 
       expect((scope as any)._breadcrumbs[0].message).toEqual('changed');
@@ -207,6 +213,7 @@ describe('BaseClient', () => {
       const scope = new Scope();
       const hub = new Hub(client, scope);
 
+      // eslint-disable-next-line deprecation/deprecation
       hub.addBreadcrumb({ message: 'hello' });
 
       expect((scope as any)._breadcrumbs.length).toEqual(0);
@@ -221,6 +228,7 @@ describe('BaseClient', () => {
       const scope = new Scope();
       const hub = new Hub(client, scope);
 
+      // eslint-disable-next-line deprecation/deprecation
       hub.addBreadcrumb({ message: 'hello' }, { data: 'someRandomThing' });
 
       expect((scope as any)._breadcrumbs[0].message).toEqual('hello');
@@ -613,7 +621,9 @@ describe('BaseClient', () => {
       const client = new TestClient(options);
       const scope = new Scope();
       const hub = new Hub(client, scope);
+      // eslint-disable-next-line deprecation/deprecation
       hub.addBreadcrumb({ message: '1' });
+      // eslint-disable-next-line deprecation/deprecation
       hub.addBreadcrumb({ message: '2' });
 
       client.captureEvent({ message: 'message' }, undefined, scope);

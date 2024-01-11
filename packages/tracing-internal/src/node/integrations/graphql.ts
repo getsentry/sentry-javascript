@@ -51,15 +51,19 @@ export class GraphQL implements LazyLoadedIntegration<GraphQLModule> {
 
     fill(pkg, 'execute', function (orig: () => void | Promise<unknown>) {
       return function (this: unknown, ...args: unknown[]) {
+        // eslint-disable-next-line deprecation/deprecation
         const scope = getCurrentHub().getScope();
+        // eslint-disable-next-line deprecation/deprecation
         const parentSpan = scope.getSpan();
 
+        // eslint-disable-next-line deprecation/deprecation
         const span = parentSpan?.startChild({
           description: 'execute',
           op: 'graphql.execute',
           origin: 'auto.graphql.graphql',
         });
 
+        // eslint-disable-next-line deprecation/deprecation
         scope?.setSpan(span);
 
         const rv = orig.call(this, ...args);
@@ -67,6 +71,7 @@ export class GraphQL implements LazyLoadedIntegration<GraphQLModule> {
         if (isThenable(rv)) {
           return rv.then((res: unknown) => {
             span?.end();
+            // eslint-disable-next-line deprecation/deprecation
             scope?.setSpan(parentSpan);
 
             return res;
@@ -74,6 +79,7 @@ export class GraphQL implements LazyLoadedIntegration<GraphQLModule> {
         }
 
         span?.end();
+        // eslint-disable-next-line deprecation/deprecation
         scope?.setSpan(parentSpan);
         return rv;
       };

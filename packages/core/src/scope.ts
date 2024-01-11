@@ -24,7 +24,7 @@ import type {
   Transaction,
   User,
 } from '@sentry/types';
-import { dateTimestampInSeconds, isPlainObject, uuid4 } from '@sentry/utils';
+import { dateTimestampInSeconds, isPlainObject, logger, uuid4 } from '@sentry/utils';
 
 import { getGlobalEventProcessors, notifyEventProcessors } from './eventProcessors';
 import { updateSession } from './session';
@@ -89,7 +89,9 @@ export class Scope implements ScopeInterface {
   // eslint-disable-next-line deprecation/deprecation
   protected _level?: Severity | SeverityLevel;
 
-  /** Transaction Name */
+  /**
+   * Transaction Name
+   */
   protected _transactionName?: string;
 
   /** Span */
@@ -281,7 +283,8 @@ export class Scope implements ScopeInterface {
   }
 
   /**
-   * @inheritDoc
+   * Sets the transaction name on the scope for future events.
+   * @deprecated Use extra or tags instead.
    */
   public setTransactionName(name?: string): this {
     this._transactionName = name;
@@ -305,7 +308,9 @@ export class Scope implements ScopeInterface {
   }
 
   /**
-   * @inheritDoc
+   * Sets the Span on the scope.
+   * @param span Span
+   * @deprecated Instead of setting a span on a scope, use `startSpan()`/`startSpanManual()` instead.
    */
   public setSpan(span?: Span): this {
     this._span = span;
@@ -314,19 +319,21 @@ export class Scope implements ScopeInterface {
   }
 
   /**
-   * @inheritDoc
+   * Returns the `Span` if there is one.
+   * @deprecated Use `getActiveSpan()` instead.
    */
   public getSpan(): Span | undefined {
     return this._span;
   }
 
   /**
-   * @inheritDoc
+   * Returns the `Transaction` attached to the scope (if there is one).
+   * @deprecated You should not rely on the transaction, but just use `startSpan()` APIs instead.
    */
   public getTransaction(): Transaction | undefined {
     // Often, this span (if it exists at all) will be a transaction, but it's not guaranteed to be. Regardless, it will
     // have a pointer to the currently-active transaction.
-    const span = this.getSpan();
+    const span = this._span;
     return span && span.transaction;
   }
 
@@ -579,6 +586,90 @@ export class Scope implements ScopeInterface {
    */
   public getPropagationContext(): PropagationContext {
     return this._propagationContext;
+  }
+
+  /**
+   * Capture an exception for this scope.
+   *
+   * @param exception The exception to capture.
+   * @param hint Optinal additional data to attach to the Sentry event.
+   * @returns the id of the captured Sentry event.
+   */
+  public captureException(exception: unknown, hint?: EventHint): string {
+    const eventId = hint && hint.event_id ? hint.event_id : uuid4();
+
+    if (!this._client) {
+      logger.warn('No client configured on scope - will not capture exception!');
+      return eventId;
+    }
+
+    const syntheticException = new Error('Sentry syntheticException');
+
+    this._client.captureException(
+      exception,
+      {
+        originalException: exception,
+        syntheticException,
+        ...hint,
+        event_id: eventId,
+      },
+      this,
+    );
+
+    return eventId;
+  }
+
+  /**
+   * Capture a message for this scope.
+   *
+   * @param message The message to capture.
+   * @param level An optional severity level to report the message with.
+   * @param hint Optional additional data to attach to the Sentry event.
+   * @returns the id of the captured message.
+   */
+  public captureMessage(message: string, level?: SeverityLevel, hint?: EventHint): string {
+    const eventId = hint && hint.event_id ? hint.event_id : uuid4();
+
+    if (!this._client) {
+      logger.warn('No client configured on scope - will not capture message!');
+      return eventId;
+    }
+
+    const syntheticException = new Error(message);
+
+    this._client.captureMessage(
+      message,
+      level,
+      {
+        originalException: message,
+        syntheticException,
+        ...hint,
+        event_id: eventId,
+      },
+      this,
+    );
+
+    return eventId;
+  }
+
+  /**
+   * Captures a manually created event for this scope and sends it to Sentry.
+   *
+   * @param exception The event to capture.
+   * @param hint Optional additional data to attach to the Sentry event.
+   * @returns the id of the captured event.
+   */
+  public captureEvent(event: Event, hint?: EventHint): string {
+    const eventId = hint && hint.event_id ? hint.event_id : uuid4();
+
+    if (!this._client) {
+      logger.warn('No client configured on scope - will not capture event!');
+      return eventId;
+    }
+
+    this._client.captureEvent(event, { ...hint, event_id: eventId }, this);
+
+    return eventId;
   }
 
   /**

@@ -1,4 +1,4 @@
-import type { Client, Event, EventHint, EventProcessor, Hub, Integration, IntegrationFn, Options } from '@sentry/types';
+import type { Client, Event, EventHint, Integration, IntegrationFn, Options } from '@sentry/types';
 import { arrayify, logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from './debug-build';
@@ -101,6 +101,10 @@ export function setupIntegrations(client: Client, integrations: Integration[]): 
 
 /** Setup a single integration.  */
 export function setupIntegration(client: Client, integration: Integration, integrationIndex: IntegrationIndex): void {
+  if (integrationIndex[integration.name]) {
+    DEBUG_BUILD && logger.log(`Integration skipped because it was already installed: ${integration.name}`);
+    return;
+  }
   integrationIndex[integration.name] = integration;
 
   // `setupOnce` is only called the first time
@@ -167,26 +171,16 @@ export function convertIntegrationFnToClass<Fn extends IntegrationFn>(
   fn: Fn,
 ): Integration & {
   id: string;
-  new (...args: Parameters<Fn>): Integration &
-    ReturnType<Fn> & {
-      setupOnce: (addGlobalEventProcessor?: (callback: EventProcessor) => void, getCurrentHub?: () => Hub) => void;
-    };
+  new (...args: Parameters<Fn>): Integration & ReturnType<Fn>;
 } {
   return Object.assign(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     function ConvertedIntegration(...rest: Parameters<Fn>) {
-      return {
-        // eslint-disable-next-line @typescript-eslint/no-empty-function
-        setupOnce: () => {},
-        ...fn(...rest),
-      };
+      return fn(...rest);
     },
     { id: name },
   ) as unknown as Integration & {
     id: string;
-    new (...args: Parameters<Fn>): Integration &
-      ReturnType<Fn> & {
-        setupOnce: (addGlobalEventProcessor?: (callback: EventProcessor) => void, getCurrentHub?: () => Hub) => void;
-      };
+    new (...args: Parameters<Fn>): Integration & ReturnType<Fn>;
   };
 }

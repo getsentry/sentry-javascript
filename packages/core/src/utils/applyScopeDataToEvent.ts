@@ -1,6 +1,7 @@
 import type { Breadcrumb, Event, PropagationContext, ScopeData, Span } from '@sentry/types';
 import { arrayify } from '@sentry/utils';
-import { spanToTraceContext } from './spanUtils';
+import { getDynamicSamplingContextFromSpan } from '../tracing/dynamicSamplingContext';
+import { spanToJSON, spanToTraceContext } from './spanUtils';
 
 /**
  * Applies data from the scope to the event and runs all event processors on it.
@@ -37,6 +38,7 @@ export function mergeScopeData(data: ScopeData, mergeData: ScopeData): void {
     eventProcessors,
     attachments,
     propagationContext,
+    // eslint-disable-next-line deprecation/deprecation
     transactionName,
     span,
   } = mergeData;
@@ -52,6 +54,7 @@ export function mergeScopeData(data: ScopeData, mergeData: ScopeData): void {
   }
 
   if (transactionName) {
+    // eslint-disable-next-line deprecation/deprecation
     data.transactionName = transactionName;
   }
 
@@ -122,7 +125,15 @@ export function mergeArray<Prop extends 'breadcrumbs' | 'fingerprint'>(
 }
 
 function applyDataToEvent(event: Event, data: ScopeData): void {
-  const { extra, tags, user, contexts, level, transactionName } = data;
+  const {
+    extra,
+    tags,
+    user,
+    contexts,
+    level,
+    // eslint-disable-next-line deprecation/deprecation
+    transactionName,
+  } = data;
 
   if (extra && Object.keys(extra).length) {
     event.extra = { ...extra, ...event.extra };
@@ -166,10 +177,10 @@ function applySpanToEvent(event: Event, span: Span): void {
   const transaction = span.transaction;
   if (transaction) {
     event.sdkProcessingMetadata = {
-      dynamicSamplingContext: transaction.getDynamicSamplingContext(),
+      dynamicSamplingContext: getDynamicSamplingContextFromSpan(span),
       ...event.sdkProcessingMetadata,
     };
-    const transactionName = transaction.name;
+    const transactionName = spanToJSON(transaction).description;
     if (transactionName) {
       event.tags = { transaction: transactionName, ...event.tags };
     }

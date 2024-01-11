@@ -69,6 +69,7 @@ export function startTrackingWebVitals(): () => void {
 export function startTrackingLongTasks(): void {
   addPerformanceInstrumentationHandler('longtask', ({ entries }) => {
     for (const entry of entries) {
+      // eslint-disable-next-line deprecation/deprecation
       const transaction = getActiveTransaction() as IdleTransaction | undefined;
       if (!transaction) {
         return;
@@ -76,6 +77,7 @@ export function startTrackingLongTasks(): void {
       const startTime = msToSec((browserPerformanceTimeOrigin as number) + entry.startTime);
       const duration = msToSec(entry.duration);
 
+      // eslint-disable-next-line deprecation/deprecation
       transaction.startChild({
         description: 'Main UI thread blocked',
         op: 'ui.long-task',
@@ -93,6 +95,7 @@ export function startTrackingLongTasks(): void {
 export function startTrackingInteractions(): void {
   addPerformanceInstrumentationHandler('event', ({ entries }) => {
     for (const entry of entries) {
+      // eslint-disable-next-line deprecation/deprecation
       const transaction = getActiveTransaction() as IdleTransaction | undefined;
       if (!transaction) {
         return;
@@ -112,9 +115,10 @@ export function startTrackingInteractions(): void {
 
         const componentName = getComponentName(entry.target);
         if (componentName) {
-          span.data = { 'ui.component_name': componentName };
+          span.attributes = { 'ui.component_name': componentName };
         }
 
+        // eslint-disable-next-line deprecation/deprecation
         transaction.startChild(span);
       }
     }
@@ -444,10 +448,14 @@ function _trackNavigator(transaction: Transaction): void {
   const connection = navigator.connection;
   if (connection) {
     if (connection.effectiveType) {
+      // TODO: Can we rewrite this to an attribute?
+      // eslint-disable-next-line deprecation/deprecation
       transaction.setTag('effectiveConnectionType', connection.effectiveType);
     }
 
     if (connection.type) {
+      // TODO: Can we rewrite this to an attribute?
+      // eslint-disable-next-line deprecation/deprecation
       transaction.setTag('connectionType', connection.type);
     }
 
@@ -457,10 +465,14 @@ function _trackNavigator(transaction: Transaction): void {
   }
 
   if (isMeasurementValue(navigator.deviceMemory)) {
+    // TODO: Can we rewrite this to an attribute?
+    // eslint-disable-next-line deprecation/deprecation
     transaction.setTag('deviceMemory', `${navigator.deviceMemory} GB`);
   }
 
   if (isMeasurementValue(navigator.hardwareConcurrency)) {
+    // TODO: Can we rewrite this to an attribute?
+    // eslint-disable-next-line deprecation/deprecation
     transaction.setTag('hardwareConcurrency', String(navigator.hardwareConcurrency));
   }
 }
@@ -473,18 +485,26 @@ function _tagMetricInfo(transaction: Transaction): void {
     // Capture Properties of the LCP element that contributes to the LCP.
 
     if (_lcpEntry.element) {
+      // TODO: Can we rewrite this to an attribute?
+      // eslint-disable-next-line deprecation/deprecation
       transaction.setTag('lcp.element', htmlTreeAsString(_lcpEntry.element));
     }
 
     if (_lcpEntry.id) {
+      // TODO: Can we rewrite this to an attribute?
+      // eslint-disable-next-line deprecation/deprecation
       transaction.setTag('lcp.id', _lcpEntry.id);
     }
 
     if (_lcpEntry.url) {
       // Trim URL to the first 200 characters.
+      // TODO: Can we rewrite this to an attribute?
+      // eslint-disable-next-line deprecation/deprecation
       transaction.setTag('lcp.url', _lcpEntry.url.trim().slice(0, 200));
     }
 
+    // TODO: Can we rewrite this to an attribute?
+    // eslint-disable-next-line deprecation/deprecation
     transaction.setTag('lcp.size', _lcpEntry.size);
   }
 
@@ -492,6 +512,8 @@ function _tagMetricInfo(transaction: Transaction): void {
   if (_clsEntry && _clsEntry.sources) {
     DEBUG_BUILD && logger.log('[Measurements] Adding CLS Data');
     _clsEntry.sources.forEach((source, index) =>
+      // TODO: Can we rewrite this to an attribute?
+      // eslint-disable-next-line deprecation/deprecation
       transaction.setTag(`cls.source.${index + 1}`, htmlTreeAsString(source.node)),
     );
   }

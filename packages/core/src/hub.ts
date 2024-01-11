@@ -154,7 +154,12 @@ export class Hub implements HubInterface {
   }
 
   /**
-   * @inheritDoc
+   * Checks if this hub's version is older than the given version.
+   *
+   * @param version A version number to compare to.
+   * @return True if the given version is newer; otherwise false.
+   *
+   * @deprecated This will be removed in v8.
    */
   public isOlderThan(version: number): boolean {
     return this._version < version;
@@ -164,8 +169,10 @@ export class Hub implements HubInterface {
    * @inheritDoc
    */
   public bindClient(client?: Client): void {
+    // eslint-disable-next-line deprecation/deprecation
     const top = this.getStackTop();
     top.client = client;
+    top.scope.setClient(client);
     if (client && client.setupIntegrations) {
       client.setupIntegrations();
     }
@@ -178,8 +185,11 @@ export class Hub implements HubInterface {
    */
   public pushScope(): Scope {
     // We want to clone the content of prev scope
+    // eslint-disable-next-line deprecation/deprecation
     const scope = this.getScope().clone();
+    // eslint-disable-next-line deprecation/deprecation
     this.getStack().push({
+      // eslint-disable-next-line deprecation/deprecation
       client: this.getClient(),
       scope,
     });
@@ -192,12 +202,16 @@ export class Hub implements HubInterface {
    * @deprecated Use `withScope` instead.
    */
   public popScope(): boolean {
+    // eslint-disable-next-line deprecation/deprecation
     if (this.getStack().length <= 1) return false;
+    // eslint-disable-next-line deprecation/deprecation
     return !!this.getStack().pop();
   }
 
   /**
    * @inheritDoc
+   *
+   * @deprecated Use `Sentry.withScope()` instead.
    */
   public withScope<T>(callback: (scope: Scope) => T): T {
     // eslint-disable-next-line deprecation/deprecation
@@ -235,54 +249,70 @@ export class Hub implements HubInterface {
 
   /**
    * @inheritDoc
+   *
+   * @deprecated Use `Sentry.getClient()` instead.
    */
   public getClient<C extends Client>(): C | undefined {
+    // eslint-disable-next-line deprecation/deprecation
     return this.getStackTop().client as C;
   }
 
-  /** Returns the scope of the top stack. */
+  /**
+   * Returns the scope of the top stack.
+   *
+   * @deprecated Use `Sentry.getCurrentScope()` instead.
+   */
   public getScope(): Scope {
+    // eslint-disable-next-line deprecation/deprecation
     return this.getStackTop().scope;
   }
 
-  /** @inheritdoc */
+  /**
+   * @deprecated Use `Sentry.getIsolationScope()` instead.
+   */
   public getIsolationScope(): Scope {
     return this._isolationScope;
   }
 
-  /** Returns the scope stack for domains or the process. */
+  /**
+   * Returns the scope stack for domains or the process.
+   * @deprecated This will be removed in v8.
+   */
   public getStack(): Layer[] {
     return this._stack;
   }
 
-  /** Returns the topmost scope layer in the order domain > local > process. */
+  /**
+   * Returns the topmost scope layer in the order domain > local > process.
+   * @deprecated This will be removed in v8.
+   */
   public getStackTop(): Layer {
     return this._stack[this._stack.length - 1];
   }
 
   /**
    * @inheritDoc
+   *
+   * @deprecated Use `Sentry.captureException()` instead.
    */
   public captureException(exception: unknown, hint?: EventHint): string {
     const eventId = (this._lastEventId = hint && hint.event_id ? hint.event_id : uuid4());
     const syntheticException = new Error('Sentry syntheticException');
-    this._withClient((client, scope) => {
-      client.captureException(
-        exception,
-        {
-          originalException: exception,
-          syntheticException,
-          ...hint,
-          event_id: eventId,
-        },
-        scope,
-      );
+    // eslint-disable-next-line deprecation/deprecation
+    this.getScope().captureException(exception, {
+      originalException: exception,
+      syntheticException,
+      ...hint,
+      event_id: eventId,
     });
+
     return eventId;
   }
 
   /**
    * @inheritDoc
+   *
+   * @deprecated Use  `Sentry.captureMessage()` instead.
    */
   public captureMessage(
     message: string,
@@ -292,39 +322,36 @@ export class Hub implements HubInterface {
   ): string {
     const eventId = (this._lastEventId = hint && hint.event_id ? hint.event_id : uuid4());
     const syntheticException = new Error(message);
-    this._withClient((client, scope) => {
-      client.captureMessage(
-        message,
-        level,
-        {
-          originalException: message,
-          syntheticException,
-          ...hint,
-          event_id: eventId,
-        },
-        scope,
-      );
+    // eslint-disable-next-line deprecation/deprecation
+    this.getScope().captureMessage(message, level, {
+      originalException: message,
+      syntheticException,
+      ...hint,
+      event_id: eventId,
     });
+
     return eventId;
   }
 
   /**
    * @inheritDoc
+   *
+   * @deprecated Use `Sentry.captureEvent()` instead.
    */
   public captureEvent(event: Event, hint?: EventHint): string {
     const eventId = hint && hint.event_id ? hint.event_id : uuid4();
     if (!event.type) {
       this._lastEventId = eventId;
     }
-
-    this._withClient((client, scope) => {
-      client.captureEvent(event, { ...hint, event_id: eventId }, scope);
-    });
+    // eslint-disable-next-line deprecation/deprecation
+    this.getScope().captureEvent(event, { ...hint, event_id: eventId });
     return eventId;
   }
 
   /**
    * @inheritDoc
+   *
+   * @deprecated This will be removed in v8.
    */
   public lastEventId(): string | undefined {
     return this._lastEventId;
@@ -332,8 +359,11 @@ export class Hub implements HubInterface {
 
   /**
    * @inheritDoc
+   *
+   * @deprecated Use `Sentry.addBreadcrumb()` instead.
    */
   public addBreadcrumb(breadcrumb: Breadcrumb, hint?: BreadcrumbHint): void {
+    // eslint-disable-next-line deprecation/deprecation
     const { scope, client } = this.getStackTop();
 
     if (!client) return;
@@ -360,44 +390,56 @@ export class Hub implements HubInterface {
 
   /**
    * @inheritDoc
+   * @deprecated Use `Sentry.setUser()` instead.
    */
   public setUser(user: User | null): void {
+    // eslint-disable-next-line deprecation/deprecation
     this.getScope().setUser(user);
   }
 
   /**
    * @inheritDoc
+   * @deprecated Use `Sentry.setTags()` instead.
    */
   public setTags(tags: { [key: string]: Primitive }): void {
+    // eslint-disable-next-line deprecation/deprecation
     this.getScope().setTags(tags);
   }
 
   /**
    * @inheritDoc
+   * @deprecated Use `Sentry.setExtras()` instead.
    */
   public setExtras(extras: Extras): void {
+    // eslint-disable-next-line deprecation/deprecation
     this.getScope().setExtras(extras);
   }
 
   /**
    * @inheritDoc
+   * @deprecated Use `Sentry.setTag()` instead.
    */
   public setTag(key: string, value: Primitive): void {
+    // eslint-disable-next-line deprecation/deprecation
     this.getScope().setTag(key, value);
   }
 
   /**
    * @inheritDoc
+   * @deprecated Use `Sentry.setExtra()` instead.
    */
   public setExtra(key: string, extra: Extra): void {
+    // eslint-disable-next-line deprecation/deprecation
     this.getScope().setExtra(key, extra);
   }
 
   /**
    * @inheritDoc
+   * @deprecated Use `Sentry.setContext()` instead.
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public setContext(name: string, context: { [key: string]: any } | null): void {
+    // eslint-disable-next-line deprecation/deprecation
     this.getScope().setContext(name, context);
   }
 
@@ -407,6 +449,7 @@ export class Hub implements HubInterface {
    * @deprecated Use `getScope()` directly.
    */
   public configureScope(callback: (scope: Scope) => void): void {
+    // eslint-disable-next-line deprecation/deprecation
     const { scope, client } = this.getStackTop();
     if (client) {
       callback(scope);
@@ -427,8 +470,10 @@ export class Hub implements HubInterface {
 
   /**
    * @inheritDoc
+   * @deprecated Use `Sentry.getClient().getIntegration()` instead.
    */
   public getIntegration<T extends Integration>(integration: IntegrationClass<T>): T | null {
+    // eslint-disable-next-line deprecation/deprecation
     const client = this.getClient();
     if (!client) return null;
     try {
@@ -462,6 +507,7 @@ export class Hub implements HubInterface {
     const result = this._callExtensionMethod<Transaction>('startTransaction', context, customSamplingContext);
 
     if (DEBUG_BUILD && !result) {
+      // eslint-disable-next-line deprecation/deprecation
       const client = this.getClient();
       if (!client) {
         logger.warn(
@@ -480,6 +526,7 @@ Sentry.init({...});
 
   /**
    * @inheritDoc
+   * @deprecated Use `spanToTraceHeader()` instead.
    */
   public traceHeaders(): { [key: string]: string } {
     return this._callExtensionMethod<{ [key: string]: string }>('traceHeaders');
@@ -506,6 +553,7 @@ Sentry.init({...});
    * @deprecated Use top level `endSession` instead.
    */
   public endSession(): void {
+    // eslint-disable-next-line deprecation/deprecation
     const layer = this.getStackTop();
     const scope = layer.scope;
     const session = scope.getSession();
@@ -523,6 +571,7 @@ Sentry.init({...});
    * @deprecated Use top level `startSession` instead.
    */
   public startSession(context?: SessionContext): Session {
+    // eslint-disable-next-line deprecation/deprecation
     const { scope, client } = this.getStackTop();
     const { release, environment = DEFAULT_ENVIRONMENT } = (client && client.getOptions()) || {};
 
@@ -559,6 +608,7 @@ Sentry.init({...});
    * only unnecessarily increased API surface but only wrapped accessing the option.
    */
   public shouldSendDefaultPii(): boolean {
+    // eslint-disable-next-line deprecation/deprecation
     const client = this.getClient();
     const options = client && client.getOptions();
     return Boolean(options && options.sendDefaultPii);
@@ -568,24 +618,12 @@ Sentry.init({...});
    * Sends the current Session on the scope
    */
   private _sendSessionUpdate(): void {
+    // eslint-disable-next-line deprecation/deprecation
     const { scope, client } = this.getStackTop();
 
     const session = scope.getSession();
     if (session && client && client.captureSession) {
       client.captureSession(session);
-    }
-  }
-
-  /**
-   * Internal helper function to call a method on the top client if it exists.
-   *
-   * @param method The method to call on the client.
-   * @param args Arguments to pass to the client function.
-   */
-  private _withClient(callback: (client: Client, scope: Scope) => void): void {
-    const { scope, client } = this.getStackTop();
-    if (client) {
-      callback(client, scope);
     }
   }
 
@@ -660,12 +698,18 @@ export function getCurrentHub(): Hub {
  * meaning that it will remain stable for the same Hub.
  */
 export function getIsolationScope(): Scope {
+  // eslint-disable-next-line deprecation/deprecation
   return getCurrentHub().getIsolationScope();
 }
 
 function getGlobalHub(registry: Carrier = getMainCarrier()): Hub {
   // If there's no hub, or its an old API, assign a new one
-  if (!hasHubOnCarrier(registry) || getHubFromCarrier(registry).isOlderThan(API_VERSION)) {
+
+  if (
+    !hasHubOnCarrier(registry) ||
+    // eslint-disable-next-line deprecation/deprecation
+    getHubFromCarrier(registry).isOlderThan(API_VERSION)
+  ) {
     setHubOnCarrier(registry, new Hub());
   }
 
@@ -680,9 +724,16 @@ function getGlobalHub(registry: Carrier = getMainCarrier()): Hub {
  */
 export function ensureHubOnCarrier(carrier: Carrier, parent: Hub = getGlobalHub()): void {
   // If there's no hub on current domain, or it's an old API, assign a new one
-  if (!hasHubOnCarrier(carrier) || getHubFromCarrier(carrier).isOlderThan(API_VERSION)) {
+  if (
+    !hasHubOnCarrier(carrier) ||
+    // eslint-disable-next-line deprecation/deprecation
+    getHubFromCarrier(carrier).isOlderThan(API_VERSION)
+  ) {
+    // eslint-disable-next-line deprecation/deprecation
     const client = parent.getClient();
+    // eslint-disable-next-line deprecation/deprecation
     const scope = parent.getScope();
+    // eslint-disable-next-line deprecation/deprecation
     const isolationScope = parent.getIsolationScope();
     setHubOnCarrier(carrier, new Hub(client, scope.clone(), isolationScope.clone()));
   }

@@ -1,23 +1,16 @@
-import type { Hub, Scope } from '@sentry/core';
+import { getClient, getCurrentScope } from '@sentry/core';
 import { getCurrentHub } from '@sentry/core';
-import type { Client, ReplayEvent } from '@sentry/types';
+import type { ReplayEvent } from '@sentry/types';
 
 import { REPLAY_EVENT_NAME } from '../../../src/constants';
 import { prepareReplayEvent } from '../../../src/util/prepareReplayEvent';
 import { TestClient, getDefaultClientOptions } from '../../utils/TestClient';
 
 describe('Unit | util | prepareReplayEvent', () => {
-  let hub: Hub;
-  let client: Client;
-  let scope: Scope;
-
   beforeEach(() => {
-    hub = getCurrentHub();
-    client = new TestClient(getDefaultClientOptions());
+    const hub = getCurrentHub();
+    const client = new TestClient(getDefaultClientOptions());
     hub.bindClient(client);
-
-    client = hub.getClient()!;
-    scope = hub.getScope();
 
     jest.spyOn(client, 'getSdkMetadata').mockImplementation(() => {
       return {
@@ -34,6 +27,9 @@ describe('Unit | util | prepareReplayEvent', () => {
   });
 
   it('works', async () => {
+    const client = getClient()!;
+    const scope = getCurrentScope()!;
+
     expect(client).toBeDefined();
     expect(scope).toBeDefined();
 

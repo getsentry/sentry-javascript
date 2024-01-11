@@ -2,6 +2,7 @@ import type { Client, IntegrationFn, Transaction } from '@sentry/types';
 import type { AddRequestDataToEventOptions, TransactionNamingScheme } from '@sentry/utils';
 import { addRequestDataToEvent, extractPathForTransaction } from '@sentry/utils';
 import { convertIntegrationFnToClass } from '../integration';
+import { spanToJSON } from '../utils/spanUtils';
 
 export type RequestDataIntegrationOptions = {
   /**
@@ -70,7 +71,8 @@ const requestDataIntegration: IntegrationFn = (options: RequestDataIntegrationOp
 
   return {
     name: INTEGRATION_NAME,
-
+    // TODO v8: Remove this
+    setupOnce() {}, // eslint-disable-line @typescript-eslint/no-empty-function
     processEvent(event, _hint, client) {
       // Note: In the long run, most of the logic here should probably move into the request data utility functions. For
       // the moment it lives here, though, until https://github.com/getsentry/sentry-javascript/issues/5718 is addressed.
@@ -105,18 +107,20 @@ const requestDataIntegration: IntegrationFn = (options: RequestDataIntegrationOp
       const reqWithTransaction = req as { _sentryTransaction?: Transaction };
       const transaction = reqWithTransaction._sentryTransaction;
       if (transaction) {
+        const name = spanToJSON(transaction).description || '';
+
         // TODO (v8): Remove the nextjs check and just base it on `transactionNamingScheme` for all SDKs. (We have to
         // keep it the way it is for the moment, because changing the names of transactions in Sentry has the potential
         // to break things like alert rules.)
         const shouldIncludeMethodInTransactionName =
           getSDKName(client) === 'sentry.javascript.nextjs'
-            ? transaction.name.startsWith('/api')
+            ? name.startsWith('/api')
             : transactionNamingScheme !== 'path';
 
         const [transactionValue] = extractPathForTransaction(req, {
           path: true,
           method: shouldIncludeMethodInTransactionName,
-          customRoute: transaction.name,
+          customRoute: name,
         });
 
         processedEvent.transaction = transactionValue;

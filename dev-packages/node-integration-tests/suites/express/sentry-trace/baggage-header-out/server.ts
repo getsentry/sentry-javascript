@@ -26,8 +26,10 @@ app.use(Sentry.Handlers.tracingHandler());
 app.use(cors());
 
 app.get('/test/express', (_req, res) => {
-  const transaction = Sentry.getCurrentHub().getScope().getTransaction();
+  // eslint-disable-next-line deprecation/deprecation
+  const transaction = Sentry.getCurrentScope().getTransaction();
   if (transaction) {
+    // eslint-disable-next-line deprecation/deprecation
     transaction.traceId = '86f39e84263a4de99c326acab3bfe3bd';
   }
   const headers = http.get('http://somewhere.not.sentry/').getHeaders();
