@@ -30,9 +30,11 @@ function makeTransactionMock(options = {}): Transaction {
       this.contexts[key] = context;
     },
     setTag(this: Transaction, key: string, value: any) {
+      // eslint-disable-next-line deprecation/deprecation
       this.tags[key] = value;
     },
     setMetadata(this: Transaction, metadata: Partial<TransactionMetadata>) {
+      // eslint-disable-next-line deprecation/deprecation
       this.metadata = { ...metadata } as TransactionMetadata;
     },
     ...options,

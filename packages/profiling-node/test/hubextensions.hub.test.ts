@@ -93,6 +93,7 @@ describe('hubextensions', () => {
 
     const transportSpy = jest.spyOn(transport, 'send').mockReturnValue(Promise.resolve());
 
+    // eslint-disable-next-line deprecation/deprecation
     const transaction = Sentry.getCurrentHub().startTransaction({ name: 'profile_hub' });
     await wait(500);
     transaction.finish();
@@ -127,11 +128,12 @@ describe('hubextensions', () => {
 
     jest.spyOn(transport, 'send').mockReturnValue(Promise.resolve());
 
+    // eslint-disable-next-line deprecation/deprecation
     const transaction = Sentry.getCurrentHub().startTransaction({ name: 'profile_hub' });
     transaction.finish();
 
     await Sentry.flush(1000);
-    expect(logSpy.mock?.lastCall?.[0]).toBe('[Profiling] Discarding profile because it contains less than 2 samples');
+    expect(logSpy.mock?.[logSpy.mock.calls.length-1]?.[0]).toBe('[Profiling] Discarding profile because it contains less than 2 samples');
 
     expect((transport.send as any).mock.calls[0][0][1][0][0].type).toBe('transaction');
     // eslint-disable-next-line @typescript-eslint/unbound-method
@@ -169,6 +171,7 @@ describe('hubextensions', () => {
 
     jest.spyOn(transport, 'send').mockReturnValue(Promise.resolve());
 
+    // eslint-disable-next-line deprecation/deprecation
     const transaction = Sentry.getCurrentHub().startTransaction({ name: 'profile_hub', traceId: 'boop' });
     await wait(500);
     transaction.finish();
@@ -188,6 +191,7 @@ describe('hubextensions', () => {
 
       jest.spyOn(transport, 'send').mockReturnValue(Promise.resolve());
 
+      // eslint-disable-next-line deprecation/deprecation
       const transaction = hub.startTransaction({ name: 'profile_hub' });
       await wait(500);
       transaction.finish();
@@ -195,7 +199,7 @@ describe('hubextensions', () => {
       await Sentry.flush(1000);
 
       expect(startProfilingSpy).toHaveBeenCalledTimes(1);
-      expect((stopProfilingSpy.mock.lastCall?.[0] as string).length).toBe(32);
+      expect((stopProfilingSpy.mock[stopProfilingSpy.mock.calls.length-1]?.[0] as string).length).toBe(32);
     });
 
     it('sends profile in the same envelope as transaction', async () => {
@@ -205,6 +209,7 @@ describe('hubextensions', () => {
 
       const transportSpy = jest.spyOn(transport, 'send').mockReturnValue(Promise.resolve());
 
+      // eslint-disable-next-line deprecation/deprecation
       const transaction = hub.startTransaction({ name: 'profile_hub' });
       await wait(500);
       transaction.finish();
@@ -252,6 +257,7 @@ describe('hubextensions', () => {
         return Promise.resolve();
       });
 
+      // eslint-disable-next-line deprecation/deprecation
       const transaction = hub.startTransaction({ name: 'profile_hub' });
       await wait(500);
       transaction.finish();
@@ -271,6 +277,7 @@ describe('hubextensions', () => {
 
       client.on('preprocessEvent', onPreprocessEvent);
 
+      // eslint-disable-next-line deprecation/deprecation
       const transaction = hub.startTransaction({ name: 'profile_hub' });
       await wait(500);
       transaction.finish();
@@ -295,6 +302,7 @@ describe('hubextensions', () => {
       const startProfilingSpy = jest.spyOn(CpuProfilerBindings, 'startProfiling');
       const stopProfilingSpy = jest.spyOn(CpuProfilerBindings, 'stopProfiling');
 
+      // eslint-disable-next-line deprecation/deprecation
       const transaction = hub.startTransaction({ name: 'profile_hub' });
       await wait(500);
       transaction.finish();
@@ -302,7 +310,7 @@ describe('hubextensions', () => {
       await Sentry.flush(1000);
 
       expect(startProfilingSpy).toHaveBeenCalledTimes(1);
-      expect((stopProfilingSpy.mock.lastCall?.[0] as string).length).toBe(32);
+      expect((stopProfilingSpy.mock[startProfilingSpy.mock.calls.length-1]?.[0] as string).length).toBe(32);
     });
 
     it('sends profile in separate envelope', async () => {
@@ -315,6 +323,7 @@ describe('hubextensions', () => {
         return Promise.resolve();
       });
 
+      // eslint-disable-next-line deprecation/deprecation
       const transaction = hub.startTransaction({ name: 'profile_hub' });
       await wait(500);
       transaction.finish();
@@ -330,7 +339,7 @@ describe('hubextensions', () => {
       // it seems that in node 19 globals (or least part of them) are a readonly object
       // so when useFakeTimers is called it throws an error because it cannot override
       // a readonly property of performance on global object. Use legacyFakeTimers for now
-      jest.useFakeTimers({ legacyFakeTimers: true });
+      jest.useFakeTimers('legacy');
       const startProfilingSpy = jest.spyOn(CpuProfilerBindings, 'startProfiling');
       const stopProfilingSpy = jest.spyOn(CpuProfilerBindings, 'stopProfiling');
 
@@ -338,12 +347,13 @@ describe('hubextensions', () => {
       const hub = Sentry.getCurrentHub();
       hub.bindClient(client);
 
+      // eslint-disable-next-line deprecation/deprecation
       const transaction = Sentry.getCurrentHub().startTransaction({ name: 'timeout_transaction' });
       expect(startProfilingSpy).toHaveBeenCalledTimes(1);
       jest.advanceTimersByTime(30001);
 
       expect(stopProfilingSpy).toHaveBeenCalledTimes(1);
-      expect((stopProfilingSpy.mock.lastCall?.[0] as string).length).toBe(32);
+      expect((stopProfilingSpy.mock.calls[startProfilingSpy.mock.calls.length-1]?.[0] as string).length).toBe(32);
 
       transaction.finish();
       expect(stopProfilingSpy).toHaveBeenCalledTimes(1);
@@ -357,6 +367,7 @@ describe('hubextensions', () => {
     const hub = Sentry.getCurrentHub();
     hub.bindClient(client);
 
+    // eslint-disable-next-line deprecation/deprecation
     const transaction = Sentry.getCurrentHub().startTransaction({ name: 'txn' });
     transaction.finish();
     transaction.finish();
@@ -398,6 +409,7 @@ describe('hubextensions', () => {
 
     const transportSpy = jest.spyOn(transport, 'send').mockReturnValue(Promise.resolve());
 
+    // eslint-disable-next-line deprecation/deprecation
     const transaction = hub.startTransaction({ name: 'profile_hub' });
     await wait(500);
     transaction.finish();

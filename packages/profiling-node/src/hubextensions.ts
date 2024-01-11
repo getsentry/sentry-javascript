@@ -27,6 +27,7 @@ export function maybeProfileTransaction(
   // profilesSampleRate is multiplied with tracesSampleRate to get the final sampling rate. We dont perform
   // the actual multiplication to get the final rate, but we discard the profile if the transaction was sampled,
   // so anything after this block from here is based on the transaction sampling.
+  // eslint-disable-next-line deprecation/deprecation
   if (!transaction.sampled) {
     return;
   }
@@ -52,6 +53,7 @@ export function maybeProfileTransaction(
 
   // Prefer sampler to sample rate if both are provided.
   if (typeof profilesSampler === 'function') {
+    // eslint-disable-next-line deprecation/deprecation
     profilesSampleRate = profilesSampler({ transactionContext: transaction.toContext(), ...customSamplingContext });
   }
 
@@ -96,6 +98,7 @@ export function maybeProfileTransaction(
   const profile_id = uuid4();
   CpuProfilerBindings.startProfiling(profile_id);
   if (isDebugBuild()) {
+    // eslint-disable-next-line deprecation/deprecation
     logger.log(`[Profiling] started profiling transaction: ${transaction.name}`);
   }
 
@@ -122,6 +125,7 @@ export function stopTransactionProfile(
   const profile = CpuProfilerBindings.stopProfiling(profile_id);
 
   if (isDebugBuild()) {
+    // eslint-disable-next-line deprecation/deprecation
     logger.log(`[Profiling] stopped profiling of transaction: ${transaction.name}`);
   }
 
@@ -129,6 +133,7 @@ export function stopTransactionProfile(
   if (!profile) {
     if (isDebugBuild()) {
       logger.log(
+        // eslint-disable-next-line deprecation/deprecation
         `[Profiling] profiler returned null profile for: ${transaction.name}`,
         'this may indicate an overlapping transaction or a call to stopProfiling with a profile title that was never started',
       );
@@ -184,6 +189,7 @@ export function __PRIVATE__wrapStartTransactionWithProfiling(startTransaction: S
     // Enqueue a timeout to prevent profiles from running over max duration.
     let maxDurationTimeoutID: NodeJS.Timeout | void = global.setTimeout(() => {
       if (isDebugBuild()) {
+        // eslint-disable-next-line deprecation/deprecation
         logger.log('[Profiling] max profile duration elapsed, stopping profiling for:', transaction.name);
       }
       profile = stopTransactionProfile(transaction, profile_id);
@@ -211,6 +217,7 @@ export function __PRIVATE__wrapStartTransactionWithProfiling(startTransaction: S
       }
 
       // @ts-expect-error profile is not part of metadata
+      // eslint-disable-next-line deprecation/deprecation
       transaction.setMetadata({ profile });
       return originalFinish();
     }
