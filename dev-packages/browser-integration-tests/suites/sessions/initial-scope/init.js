@@ -11,9 +11,6 @@ Sentry.init({
       email: 'user@name.com',
       username: 'user1337',
     },
-    tags: {
-      test: 'abc',
-    },
   },
   debug: true,
 });

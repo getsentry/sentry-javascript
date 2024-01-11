@@ -13,7 +13,7 @@ sentryTest('should start a new session on pageload.', async ({ getLocalTestPath,
   expect(session.init).toBe(true);
   expect(session.errors).toBe(0);
   expect(session.status).toBe('ok');
-  expect(session.did).toBe('dsdd');
+  expect(session.did).toBe('1337');
 });
 
 sentryTest('should start a new session with navigation.', async ({ getLocalTestPath, page, browserName }) => {
@@ -37,4 +37,5 @@ sentryTest('should start a new session with navigation.', async ({ getLocalTestP
   expect(newSession.status).toBe('ok');
   expect(newSession.sid).toBeDefined();
   expect(initSession.sid).not.toBe(newSession.sid);
+  expect(newSession.did).toBe('1337');
 });
