@@ -72,7 +72,7 @@ const replayCanvasIntegration = ((options: Partial<ReplayCanvasOptions> = {}) =>
         ...(CANVAS_QUALITY[quality || 'medium'] || CANVAS_QUALITY.medium),
       };
     },
-    snapshot(canvasElement?: HTMLCanvasElement):void {
+    async snapshot(canvasElement?: HTMLCanvasElement) {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       _canvasManager.snapshot(canvasElement);
     }
