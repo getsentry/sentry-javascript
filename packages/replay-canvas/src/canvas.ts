@@ -4,10 +4,12 @@ import type { CanvasManagerInterface } from '@sentry/replay';
 import type { IntegrationFn } from '@sentry/types';
 
 interface ReplayCanvasOptions {
+  enableManualSnapshot?: boolean;
   quality: 'low' | 'medium' | 'high';
 }
 
 export interface ReplayCanvasIntegrationOptions {
+  enableManualSnapshot?: boolean;
   recordCanvas: true;
   getCanvasManager: (options: ConstructorParameters<typeof CanvasManager>[0]) => CanvasManagerInterface;
   sampling: {
@@ -67,6 +69,7 @@ const replayCanvasIntegration = ((options: Partial<ReplayCanvasOptions> = {}) =>
       const { quality } = _canvasOptions;
 
       return {
+        enableManualSnapshot: options.enableManualSnapshot,
         recordCanvas: true,
         getCanvasManager: (options: CanvasManagerOptions) => _canvasManager = new CanvasManager(options),
         ...(CANVAS_QUALITY[quality || 'medium'] || CANVAS_QUALITY.medium),
