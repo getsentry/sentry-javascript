@@ -238,7 +238,7 @@ export interface Span extends SpanContext {
    *
    * @param endTimestamp Takes an endTimestamp if the end should not be the time when you call this function.
    *
-   * @deprecated Use `end()` instead.
+   * @deprecated Use `.end()` instead.
    */
   finish(endTimestamp?: number): void;
 
