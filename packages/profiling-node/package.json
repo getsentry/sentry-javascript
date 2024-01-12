@@ -56,7 +56,7 @@
     "test:rollup:build": "rollup --config ./examples/rollup.config.js",
     "test:rollup:run": "BUNDLER=rollup node ./examples/dist/rollup/index.js",
     "test:rollup": "yarn test:rollup:build && yarn test:rollup:run",
-    "test": "cross-env SENTRY_PROFILER_BINARY_DIR=./lib jest --config jest.config.js",
+    "test": "cross-env SENTRY_PROFILER_BINARY_DIR=./lib jest --config jest.config.js"
   },
   "keywords": [
     "profiling",
