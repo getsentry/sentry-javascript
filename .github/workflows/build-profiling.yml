@@ -42,7 +42,7 @@ jobs:
       - name: configure node-gyp
         run: |
           cd packages/profiling-node
-          npm run build:bindings:configure
+          yarn build:bindings:configure
       - name: build lib and bindings
         run: |
           cd packages/profiling-node
