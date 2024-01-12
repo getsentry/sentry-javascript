@@ -1,5 +1,5 @@
 import { conditionalTest } from '../../utils';
-import { createRunner } from '../../utils/runner';
+import { cleanupChildProcesses, createRunner } from '../../utils/runner';
 
 const EXPECTED_ANR_EVENT = {
   // Ensure we have context
@@ -52,6 +52,10 @@ const EXPECTED_ANR_EVENT = {
 };
 
 conditionalTest({ min: 16 })('should report ANR when event loop blocked', () => {
+  afterAll(() => {
+    cleanupChildProcesses();
+  });
+
   // TODO (v8): Remove this old API and this test
   test('Legacy API', done => {
     createRunner(__dirname, 'legacy.js').expect({ event: EXPECTED_ANR_EVENT }).start(done);

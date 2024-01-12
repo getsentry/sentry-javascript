@@ -1,4 +1,4 @@
-import { spawn } from 'child_process';
+import { ChildProcess, spawn } from 'child_process';
 import { join } from 'path';
 import type { Envelope, EnvelopeItemType, Event, SerializedSession } from '@sentry/types';
 import axios from 'axios';
@@ -26,6 +26,14 @@ export function assertSentryTransaction(actual: Event, expected: Partial<Event>)
     type: 'transaction',
     ...expected,
   });
+}
+
+const CHILD_PROCESSES = new Set<ChildProcess>();
+
+export function cleanupChildProcesses(): void {
+  for (const child of CHILD_PROCESSES) {
+    child.kill();
+  }
 }
 
 type Expected =
@@ -72,6 +80,8 @@ export function createRunner(...paths: string[]) {
       let serverPort: number | undefined;
 
       const child = spawn('node', [...flags, testPath]);
+
+      CHILD_PROCESSES.add(child);
 
       child.on('close', () => {
         hasExited = true;
@@ -208,16 +218,16 @@ export function createRunner(...paths: string[]) {
         ): Promise<T | undefined> {
           try {
             await waitForServerPort();
-
-            const url = `http://localhost:${serverPort}${path}`;
-            if (method === 'get') {
-              return (await axios.get(url, { headers })).data;
-            } else {
-              return (await axios.post(url, { headers })).data;
-            }
           } catch (e) {
             done?.(e);
             return undefined;
+          }
+
+          const url = `http://localhost:${serverPort}${path}`;
+          if (method === 'get') {
+            return (await axios.get(url, { headers })).data;
+          } else {
+            return (await axios.post(url, { headers })).data;
           }
         },
       };
