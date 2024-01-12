@@ -35,17 +35,17 @@ jobs:
         with:
           node-version: 18
       - uses: actions/setup-python@v5
-      - name: install dependencies
+      - name: Install dependencies
         run: |
           cd packages/profiling-node
           yarn install --ignore-scripts --frozen-lockfile
-      - name: configure node-gyp
+      - name: Configure node-gyp
         run: |
           cd packages/profiling-node
           yarn build:bindings:configure
-      - name: build lib and bindings
-        run: yarn lerna run build:transpile --scope=@sentry/profiling-node --include-dependencies
-      - name: unit test
+      - name: Build Dependencies
+        run: yarn build
+      - name: Unit Test
         run: |
           cd packages/profiling-node
           yarn test
