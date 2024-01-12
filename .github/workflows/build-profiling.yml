@@ -1,5 +1,5 @@
 
-name: 'Build & Test'
+name: 'Build & Test Profiling Node'
 on:
   push:
     branches:
