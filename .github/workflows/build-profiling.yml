@@ -20,7 +20,7 @@ env:
   HEAD_COMMIT: ${{ github.event.inputs.commit || github.sha }}
 
 jobs:
-  job_profiling_node_unit_tests:
+  profiling_node_separate:
     name: Profiling Node Unit Tests
     # needs: [job_get_metadata]
     # needs: [job_get_metadata, job_build]
