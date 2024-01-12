@@ -46,4 +46,4 @@ jobs:
       - name: Build Dependencies
         run: yarn build
       - name: Unit Test
-        run: lerna run test --scope @sentry/profiling-node
+        run: yarn lerna run test --scope @sentry/profiling-node
