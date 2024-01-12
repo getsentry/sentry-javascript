@@ -70,12 +70,12 @@ export const getSearch = (parsedURL: URL): string => {
 export const normalizeRemixRequest = (request: RemixRequest): Record<string, any> => {
   const { requestInternalsSymbol, bodyInternalsSymbol } = getInternalSymbols(request);
 
-  if (!requestInternalsSymbol) {
-    throw new Error('Could not find request internals symbol');
+  if (!requestInternalsSymbol && !request.headers) {
+    throw new Error('Could not find request headers');
   }
 
-  const { parsedURL } = request[requestInternalsSymbol];
-  const headers = new Headers(request[requestInternalsSymbol].headers);
+  const parsedURL = requestInternalsSymbol ? request[requestInternalsSymbol].parsedURL : new URL(request.url);
+  const headers = requestInternalsSymbol ? new Headers(request[requestInternalsSymbol].headers) : request.headers;
 
   // Fetch step 1.3
   if (!headers.has('Accept')) {
