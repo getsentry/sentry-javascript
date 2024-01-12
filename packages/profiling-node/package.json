@@ -76,14 +76,14 @@
   },
   "dependencies": {
     "detect-libc": "^2.0.2",
-    "node-abi": "^3.52.0"
+    "node-abi": "^3.52.0",
+    "@sentry/core": "7.93.0",
+    "@sentry/hub": "7.93.0",
+    "@sentry/node": "7.93.0",
+    "@sentry/types": "7.93.0",
+    "@sentry/utils": "7.93.0"
   },
   "devDependencies": {
-    "@sentry/core": "^7.86.0",
-    "@sentry/hub": "^7.87.0",
-    "@sentry/node": "^7.87.0",
-    "@sentry/types": "^7.87.0",
-    "@sentry/utils": "^7.87.0",
     "@types/node": "16.18.70",
     "@types/node-abi": "^3.0.0",
     "clang-format": "^1.8.0",
