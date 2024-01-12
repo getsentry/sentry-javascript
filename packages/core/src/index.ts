@@ -29,6 +29,7 @@ export {
   setTags,
   setUser,
   withScope,
+  withIsolationScope,
   getClient,
   getCurrentScope,
   startSession,

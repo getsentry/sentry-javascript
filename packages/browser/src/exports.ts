@@ -60,6 +60,7 @@ export {
   setTags,
   setUser,
   withScope,
+  withIsolationScope,
   FunctionToString,
   InboundFilters,
   metrics,
