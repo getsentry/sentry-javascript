@@ -412,14 +412,16 @@ jobs:
           ref: ${{ env.HEAD_COMMIT }}
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 18
       - uses: actions/setup-python@v5
       - name: install dependencies
         run: |
           cd packages/profiling-node
           yarn install --frozen-lockfile
       - name: configure node-gyp
-        run: yarn build:bindings:configure
+        run: |
+          cd packages/profiling-node
+          yarn build:bindings:configure
       - name: build lib and bindings
         run: |
           cd packages/profiling-node
