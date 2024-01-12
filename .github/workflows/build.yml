@@ -431,9 +431,10 @@ jobs:
 
   job_profiling_node_unit_tests:
     name: Profiling Node Unit Tests
-    needs: [job_get_metadata, job_build]
+    needs: [job_get_metadata]
+    # needs: [job_get_metadata, job_build]
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v4
@@ -442,7 +443,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
       - name: install dependencies
         run: |
           cd packages/profiling-node
@@ -1253,15 +1254,15 @@ jobs:
         run: apk add --no-cache build-base python3 g++ make curl
 
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           ref: ${{ env.HEAD_COMMIT }}
 
-      - uses: actions/setup-node@v3
+      - uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
 
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         name: Setup python
 
       - name: Install dependencies
