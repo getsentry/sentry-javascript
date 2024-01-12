@@ -431,7 +431,7 @@ jobs:
 
   job_profiling_node_unit_tests:
     name: Profiling Node Unit Tests
-    # needs: [job_get_metadata]
+    needs: [job_get_metadata]
     # needs: [job_get_metadata, job_build]
     runs-on: ubuntu-latest
     timeout-minutes: 10

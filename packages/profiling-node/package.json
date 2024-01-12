@@ -57,7 +57,6 @@
     "test:rollup:run": "BUNDLER=rollup node ./examples/dist/rollup/index.js",
     "test:rollup": "yarn test:rollup:build && yarn test:rollup:run",
     "test": "cross-env SENTRY_PROFILER_BINARY_DIR=./lib jest --config jest.config.js",
-    "test:https": "node ./test.js"
   },
   "keywords": [
     "profiling",
