@@ -137,7 +137,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
   /**
    * Setter for `name` property, which also sets `source` on the metadata.
    *
-   * @deprecated Use `updateName()` and `setMetadata()` instead.
+   * @deprecated Use `.updateName()` and `.setAttribute()` instead.
    */
   public setName(name: string, source: TransactionMetadata['source'] = 'custom'): void {
     this._name = name;

@@ -391,7 +391,11 @@ export class Span implements SpanInterface {
     return this;
   }
 
-  /** @inheritdoc */
+  /**
+   * @inheritdoc
+   *
+   * @deprecated Use `.updateName()` instead.
+   */
   public setName(name: string): void {
     this.updateName(name);
   }

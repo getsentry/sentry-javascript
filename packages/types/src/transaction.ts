@@ -104,6 +104,8 @@ export interface Transaction extends TransactionContext, Omit<Span, 'setName' | 
 
   /**
    * Set the name of the transaction
+   *
+   * @deprecated Use `.updateName()` and `.setAttribute()` instead.
    */
   setName(name: string, source?: TransactionMetadata['source']): void;
 
