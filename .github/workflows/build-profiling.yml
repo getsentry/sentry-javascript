@@ -44,9 +44,7 @@ jobs:
           cd packages/profiling-node
           yarn build:bindings:configure
       - name: build lib and bindings
-        run: |
-          cd packages/profiling-node
-          yarn build:transpile
+        run: yarn lerna run build:transpile --scope=@sentry/profiling-node --include-dependencies
       - name: unit test
         run: |
           cd packages/profiling-node
