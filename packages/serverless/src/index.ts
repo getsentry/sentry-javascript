@@ -45,6 +45,7 @@ export {
   // eslint-disable-next-line deprecation/deprecation
   startTransaction,
   withScope,
+  withIsolationScope,
   NodeClient,
   makeNodeTransport,
   close,
