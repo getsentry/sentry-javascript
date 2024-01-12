@@ -46,7 +46,7 @@ jobs:
       - name: build lib and bindings
         run: |
           cd packages/profiling-node
-          yarn build
+          yarn build:transpile
       - name: unit test
         run: |
           cd packages/profiling-node
