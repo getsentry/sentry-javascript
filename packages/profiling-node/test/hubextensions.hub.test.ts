@@ -98,6 +98,7 @@ describe('hubextensions', () => {
     // eslint-disable-next-line deprecation/deprecation
     const transaction = Sentry.getCurrentHub().startTransaction({ name: 'profile_hub' });
     await wait(500);
+    // eslint-disable-next-line deprecation/deprecation
     transaction.finish();
 
     await Sentry.flush(1000);
@@ -132,6 +133,7 @@ describe('hubextensions', () => {
 
     // eslint-disable-next-line deprecation/deprecation
     const transaction = Sentry.getCurrentHub().startTransaction({ name: 'profile_hub' });
+    // eslint-disable-next-line deprecation/deprecation
     transaction.finish();
 
     await Sentry.flush(1000);
@@ -178,6 +180,7 @@ describe('hubextensions', () => {
     // eslint-disable-next-line deprecation/deprecation
     const transaction = Sentry.getCurrentHub().startTransaction({ name: 'profile_hub', traceId: 'boop' });
     await wait(500);
+    // eslint-disable-next-line deprecation/deprecation
     transaction.finish();
 
     await Sentry.flush(1000);
@@ -198,6 +201,7 @@ describe('hubextensions', () => {
       // eslint-disable-next-line deprecation/deprecation
       const transaction = hub.startTransaction({ name: 'profile_hub' });
       await wait(500);
+      // eslint-disable-next-line deprecation/deprecation
       transaction.finish();
 
       await Sentry.flush(1000);
@@ -216,6 +220,7 @@ describe('hubextensions', () => {
       // eslint-disable-next-line deprecation/deprecation
       const transaction = hub.startTransaction({ name: 'profile_hub' });
       await wait(500);
+      // eslint-disable-next-line deprecation/deprecation
       transaction.finish();
 
       await Sentry.flush(1000);
@@ -264,6 +269,7 @@ describe('hubextensions', () => {
       // eslint-disable-next-line deprecation/deprecation
       const transaction = hub.startTransaction({ name: 'profile_hub' });
       await wait(500);
+      // eslint-disable-next-line deprecation/deprecation
       transaction.finish();
 
       await Sentry.flush(1000);
@@ -284,6 +290,7 @@ describe('hubextensions', () => {
       // eslint-disable-next-line deprecation/deprecation
       const transaction = hub.startTransaction({ name: 'profile_hub' });
       await wait(500);
+      // eslint-disable-next-line deprecation/deprecation
       transaction.finish();
 
       await Sentry.flush(1000);
@@ -309,6 +316,7 @@ describe('hubextensions', () => {
       // eslint-disable-next-line deprecation/deprecation
       const transaction = hub.startTransaction({ name: 'profile_hub' });
       await wait(500);
+      // eslint-disable-next-line deprecation/deprecation
       transaction.finish();
 
       await Sentry.flush(1000);
@@ -330,6 +338,7 @@ describe('hubextensions', () => {
       // eslint-disable-next-line deprecation/deprecation
       const transaction = hub.startTransaction({ name: 'profile_hub' });
       await wait(500);
+      // eslint-disable-next-line deprecation/deprecation
       transaction.finish();
 
       await Sentry.flush(1000);
@@ -359,6 +368,7 @@ describe('hubextensions', () => {
       expect(stopProfilingSpy).toHaveBeenCalledTimes(1);
       expect((stopProfilingSpy.mock.calls[startProfilingSpy.mock.calls.length - 1]?.[0] as string).length).toBe(32);
 
+      // eslint-disable-next-line deprecation/deprecation
       transaction.finish();
       expect(stopProfilingSpy).toHaveBeenCalledTimes(1);
     });
@@ -373,7 +383,9 @@ describe('hubextensions', () => {
 
     // eslint-disable-next-line deprecation/deprecation
     const transaction = Sentry.getCurrentHub().startTransaction({ name: 'txn' });
+    // eslint-disable-next-line deprecation/deprecation
     transaction.finish();
+    // eslint-disable-next-line deprecation/deprecation
     transaction.finish();
     expect(stopProfilingSpy).toHaveBeenCalledTimes(1);
   });
@@ -416,6 +428,7 @@ describe('hubextensions', () => {
     // eslint-disable-next-line deprecation/deprecation
     const transaction = hub.startTransaction({ name: 'profile_hub' });
     await wait(500);
+    // eslint-disable-next-line deprecation/deprecation
     transaction.finish();
 
     await Sentry.flush(1000);
