@@ -1,8 +1,9 @@
-import type { Event, IntegrationFn, StackFrame } from '@sentry/types';
+/* eslint-disable jsdoc/require-jsdoc */
+import type { Client, Event, EventHint, Integration, StackFrame } from '@sentry/types';
 import { getEventDescription, logger, stringMatchesSomePattern } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../debug-build';
-import { convertIntegrationFnToClass } from '../integration';
+import { defineSentryIntegration } from '../integration';
 
 // "Script error." is hard coded into browsers for errors that it can't read.
 // this is the result of a script being pulled in from an external domain and CORS.
@@ -30,22 +31,37 @@ export interface InboundFiltersOptions {
 }
 
 const INTEGRATION_NAME = 'InboundFilters';
-const inboundFiltersIntegration: IntegrationFn = (options: Partial<InboundFiltersOptions>) => {
-  return {
-    name: INTEGRATION_NAME,
-    // TODO v8: Remove this
-    setupOnce() {}, // eslint-disable-line @typescript-eslint/no-empty-function
-    processEvent(event, _hint, client) {
-      const clientOptions = client.getOptions();
-      const mergedOptions = _mergeOptions(options, clientOptions);
-      return _shouldDropEvent(event, mergedOptions) ? null : event;
-    },
-  };
-};
 
-/** Inbound filters configurable by the user */
-// eslint-disable-next-line deprecation/deprecation
-export const InboundFilters = convertIntegrationFnToClass(INTEGRATION_NAME, inboundFiltersIntegration);
+export const inboundFiltersIntegration = defineSentryIntegration((options?: Partial<InboundFiltersOptions>) => {
+  // eslint-disable-next-line deprecation/deprecation
+  return new InboundFilters(options);
+});
+
+/**
+ * Inbound filters configurable by the user
+ *
+ * @deprecated Use `inboundFiltersIntegration()` instead.
+ */
+export class InboundFilters implements Integration {
+  public static id = INTEGRATION_NAME;
+
+  public name: string;
+
+  public constructor(private _options?: Partial<InboundFiltersOptions>) {
+    this.name = INTEGRATION_NAME;
+  }
+
+  // TODO v8: Remove this
+  public setupOnce(): void {
+    // noop
+  }
+
+  public preprocessEvent(event: Event, hint: EventHint | undefined, client: Client): Event | null {
+    const clientOptions = client.getOptions();
+    const mergedOptions = _mergeOptions(this._options, clientOptions);
+    return _shouldDropEvent(event, mergedOptions) ? null : event;
+  }
+}
 
 function _mergeOptions(
   internalOptions: Partial<InboundFiltersOptions> = {},

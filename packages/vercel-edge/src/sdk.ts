@@ -16,7 +16,9 @@ declare const process: {
 const nodeStackParser = createStackParser(nodeStackLineParser());
 
 export const defaultIntegrations = [
+  // eslint-disable-next-line deprecation/deprecation
   new CoreIntegrations.InboundFilters(),
+  // eslint-disable-next-line deprecation/deprecation
   new CoreIntegrations.FunctionToString(),
   new CoreIntegrations.LinkedErrors(),
   new WinterCGFetch(),

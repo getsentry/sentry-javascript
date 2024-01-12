@@ -184,3 +184,11 @@ export function convertIntegrationFnToClass<Fn extends IntegrationFn>(
     new (...args: Parameters<Fn>): Integration & ReturnType<Fn>;
   };
 }
+
+/**
+ * Utility function to aid with creating Sentry SDK integrations.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function defineSentryIntegration<F extends (...args: any[]) => Integration>(integrationFactory: F): F {
+  return integrationFactory;
+}
