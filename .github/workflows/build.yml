@@ -401,12 +401,13 @@ jobs:
 
   job_profiling_node_unit_tests:
     name: Profiling Node Unit Tests
-    needs: [job_get_metadata]
+    # needs: [job_get_metadata]
     # needs: [job_get_metadata, job_build]
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
+      # - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
+      - name: Check out current commit
         uses: actions/checkout@v4
         with:
           ref: ${{ env.HEAD_COMMIT }}
@@ -421,7 +422,7 @@ jobs:
       - name: test https
         run: |
           cd packages/profiling-node
-          node test.js
+          yarn test:https
       - name: configure node-gyp
         run: |
           cd packages/profiling-node
