@@ -418,6 +418,10 @@ jobs:
         run: |
           cd packages/profiling-node
           yarn install --ignore-scripts --frozen-lockfile
+      - name: test https
+        run: |
+          cd packages/profiling-node
+          node test.js
       - name: configure node-gyp
         run: |
           cd packages/profiling-node
