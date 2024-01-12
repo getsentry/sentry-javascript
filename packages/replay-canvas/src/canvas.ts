@@ -71,14 +71,14 @@ const replayCanvasIntegration = ((options: Partial<ReplayCanvasOptions> = {}) =>
       return {
         enableManualSnapshot: options.enableManualSnapshot,
         recordCanvas: true,
-        getCanvasManager: (options: CanvasManagerOptions) => _canvasManager = new CanvasManager(options),
+        getCanvasManager: (options: CanvasManagerOptions) => (_canvasManager = new CanvasManager(options)),
         ...(CANVAS_QUALITY[quality || 'medium'] || CANVAS_QUALITY.medium),
       };
     },
     async snapshot(canvasElement?: HTMLCanvasElement) {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       _canvasManager.snapshot(canvasElement);
-    }
+    },
   };
 }) satisfies IntegrationFn;
 
