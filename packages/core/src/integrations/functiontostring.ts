@@ -7,7 +7,7 @@ let originalFunctionToString: () => void;
 const INTEGRATION_NAME = 'FunctionToString';
 
 /**
- * Patch toString calls to return proper name for wrapped functions
+ * Patch toString calls to return proper name for wrapped functions.
  */
 export const functionToStringIntegration = defineSentryIntegration(() => {
   // eslint-disable-next-line deprecation/deprecation
@@ -15,9 +15,7 @@ export const functionToStringIntegration = defineSentryIntegration(() => {
 });
 
 /**
- * Patch toString calls to return proper name for wrapped functions
- *
- * @deprecated Use `functionToStringIntegration()` instead.
+ * Patch toString calls to return proper name for wrapped functions.
  */
 export class FunctionToString implements Integration {
   public static id = INTEGRATION_NAME;

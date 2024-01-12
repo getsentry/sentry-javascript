@@ -38,9 +38,7 @@ export const inboundFiltersIntegration = defineSentryIntegration((options?: Part
 });
 
 /**
- * Inbound filters configurable by the user
- *
- * @deprecated Use `inboundFiltersIntegration()` instead.
+ * Inbound filters configurable by the user.
  */
 export class InboundFilters implements Integration {
   public static id = INTEGRATION_NAME;
