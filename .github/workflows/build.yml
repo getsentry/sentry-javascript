@@ -417,7 +417,7 @@ jobs:
       - name: install dependencies
         run: |
           cd packages/profiling-node
-          yarn install --frozen-lockfile
+          yarn install --ignore-scripts --frozen-lockfile
       - name: configure node-gyp
         run: |
           cd packages/profiling-node
