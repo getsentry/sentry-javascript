@@ -197,6 +197,7 @@ export function __PRIVATE__wrapStartTransactionWithProfiling(startTransaction: S
     }, maxProfileDurationMs);
 
     // We need to reference the original finish call to avoid creating an infinite loop
+    // eslint-disable-next-line deprecation/deprecation
     const originalFinish = transaction.finish.bind(transaction);
 
     // Wrap the transaction finish method to stop profiling and set the profile on the transaction.
@@ -223,6 +224,7 @@ export function __PRIVATE__wrapStartTransactionWithProfiling(startTransaction: S
       return originalFinish();
     }
 
+    // eslint-disable-next-line deprecation/deprecation
     transaction.finish = profilingWrappedTransactionFinish;
     return transaction;
   };

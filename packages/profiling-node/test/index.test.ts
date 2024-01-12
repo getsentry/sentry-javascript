@@ -86,6 +86,7 @@ describe('Sentry - Profiling', () => {
       // eslint-disable-next-line deprecation/deprecation
       const transaction = Sentry.startTransaction({ name: 'title' });
       await wait(500);
+      // eslint-disable-next-line deprecation/deprecation
       transaction.finish();
 
       await Sentry.flush(500);
@@ -140,7 +141,9 @@ describe('Sentry - Profiling', () => {
       // eslint-disable-next-line deprecation/deprecation
       const transaction = Sentry.startTransaction({ name: 'title' });
       await wait(500);
+      // eslint-disable-next-line deprecation/deprecation
       transaction.finish();
+      // eslint-disable-next-line deprecation/deprecation
       transaction.finish();
 
       await Sentry.flush(500);
