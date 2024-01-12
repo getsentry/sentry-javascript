@@ -1156,11 +1156,11 @@ jobs:
         run: apk add --no-cache build-base python3 g++ make curl
 
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
-        uses: actions/checkout@v4
+        uses: actions/checkout@v3
         with:
           ref: ${{ env.HEAD_COMMIT }}
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v3
         with:
           node-version: ${{ matrix.node }}
 
