@@ -1,4 +1,5 @@
-import { ChildProcess, spawn } from 'child_process';
+import type { ChildProcess } from 'child_process';
+import { spawn } from 'child_process';
 import { join } from 'path';
 import type { Envelope, EnvelopeItemType, Event, SerializedSession } from '@sentry/types';
 import axios from 'axios';

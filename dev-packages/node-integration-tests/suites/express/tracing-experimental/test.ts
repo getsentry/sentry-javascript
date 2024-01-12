@@ -1,6 +1,7 @@
+import { conditionalTest } from '../../../utils';
 import { cleanupChildProcesses, createRunner } from '../../../utils/runner';
 
-describe('express tracing experimental', () => {
+conditionalTest({ min: 14 })('express tracing experimental', () => {
   afterAll(() => {
     cleanupChildProcesses();
   });
