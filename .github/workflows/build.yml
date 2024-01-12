@@ -419,9 +419,7 @@ jobs:
           cd packages/profiling-node
           yarn install --frozen-lockfile
       - name: configure node-gyp
-        run: |
-          cd packages/profiling-node
-          yarn build:bindings:configure
+        run: yarn build:bindings:configure
       - name: build lib and bindings
         run: |
           cd packages/profiling-node
