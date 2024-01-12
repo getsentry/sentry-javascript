@@ -46,6 +46,4 @@ jobs:
       - name: Build Dependencies
         run: yarn build
       - name: Unit Test
-        run: |
-          cd packages/profiling-node
-          yarn test
+        run: lerna run test --scope @sentry/profiling-node
