@@ -91,12 +91,16 @@ export function createRunner(...paths: string[]) {
       let hasExited = false;
       let child: ReturnType<typeof spawn> | undefined;
 
+      function complete(error?: Error): void {
+        child?.kill();
+        done?.(error);
+      }
+
       /** Called after each expect callback to check if we're complete */
       function expectCallbackCalled(): void {
         envelopeCount++;
         if (envelopeCount === expectedEnvelopeCount) {
-          child?.kill();
-          done?.();
+          complete();
         }
       }
 
@@ -155,7 +159,7 @@ export function createRunner(...paths: string[]) {
               expectCallbackCalled();
             }
           } catch (e) {
-            done?.(e);
+            complete(e as Error);
           }
         }
       }
@@ -183,7 +187,7 @@ export function createRunner(...paths: string[]) {
         child.on('error', e => {
           // eslint-disable-next-line no-console
           if (process.env.DEBUG) console.log('scenario error', e);
-          done?.(e);
+          complete(e);
         });
 
         function tryParseEnvelopeFromStdoutLine(line: string): void {
@@ -237,16 +241,16 @@ export function createRunner(...paths: string[]) {
         ): Promise<T | undefined> {
           try {
             await waitFor(() => scenarioServerPort !== undefined);
-
-            const url = `http://localhost:${scenarioServerPort}${path}`;
-            if (method === 'get') {
-              return (await axios.get(url, { headers })).data;
-            } else {
-              return (await axios.post(url, { headers })).data;
-            }
           } catch (e) {
-            done?.(e);
+            complete(e as Error);
             return undefined;
+          }
+
+          const url = `http://localhost:${scenarioServerPort}${path}`;
+          if (method === 'get') {
+            return (await axios.get(url, { headers })).data;
+          } else {
+            return (await axios.post(url, { headers })).data;
           }
         },
       };
