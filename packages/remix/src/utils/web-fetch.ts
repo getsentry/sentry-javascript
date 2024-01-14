@@ -1,3 +1,4 @@
+/* eslint-disable complexity */
 // Based on Remix's implementation of Fetch API
 // https://github.com/remix-run/web-std-io/blob/d2a003fe92096aaf97ab2a618b74875ccaadc280/packages/fetch/
 // The MIT License (MIT)
@@ -88,7 +89,7 @@ export const normalizeRemixRequest = (request: RemixRequest): Record<string, any
     contentLengthValue = '0';
   }
 
-  if (request.body !== null) {
+  if (request.body !== null && request[bodyInternalsSymbol]) {
     const totalBytes = request[bodyInternalsSymbol].size;
     // Set Content-Length if totalBytes is a number (that is not NaN)
     if (typeof totalBytes === 'number' && !Number.isNaN(totalBytes)) {
