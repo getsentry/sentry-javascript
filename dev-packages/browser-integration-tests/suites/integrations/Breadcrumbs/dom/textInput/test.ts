@@ -25,15 +25,17 @@ sentryTest('captures Breadcrumb for events on inputs & debounced them', async ({
 
   await page.click('#input1');
   // Not debounced because other event type
-  await page.type('#input1', 'John', { delay: 1 });
+  await page.locator('#input1').pressSequentially('John', { delay: 1 });
+
   // This should be debounced
-  await page.type('#input1', 'Abby', { delay: 1 });
+  await page.locator('#input1').pressSequentially('Abby', { delay: 1 });
+
   // not debounced because other target
-  await page.type('#input2', 'Anne', { delay: 1 });
+  await page.locator('#input2').pressSequentially('Anne', { delay: 1 });
 
   // Wait a second for the debounce to finish
   await page.waitForTimeout(1000);
-  await page.type('#input2', 'John', { delay: 1 });
+  await page.locator('#input2').pressSequentially('John', { delay: 1 });
 
   await page.evaluate('Sentry.captureException("test exception")');
 
@@ -87,7 +89,7 @@ sentryTest(
     await page.goto(url);
 
     await page.click('#annotated-input');
-    await page.type('#annotated-input', 'John', { delay: 1 });
+    await page.locator('#annotated-input').pressSequentially('John', { delay: 1 });
 
     await page.evaluate('Sentry.captureException("test exception")');
     const eventData = await promise;
