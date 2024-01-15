@@ -1,5 +1,5 @@
 import type { Breadcrumb, Event, PropagationContext, ScopeData, Span } from '@sentry/types';
-import { arrayify } from '@sentry/utils';
+import { arrayify, dropUndefinedKeys } from '@sentry/utils';
 import { getDynamicSamplingContextFromSpan } from '../tracing/dynamicSamplingContext';
 import { getRootSpan } from './getRootSpan';
 import { spanToJSON, spanToTraceContext } from './spanUtils';
@@ -129,21 +129,30 @@ function applyDataToEvent(event: Event, data: ScopeData): void {
     transactionName,
   } = data;
 
-  if (extra && Object.keys(extra).length) {
-    event.extra = { ...extra, ...event.extra };
+  const cleanedExtra = dropUndefinedKeys(extra);
+  if (cleanedExtra && Object.keys(cleanedExtra).length) {
+    event.extra = { ...cleanedExtra, ...event.extra };
   }
-  if (tags && Object.keys(tags).length) {
-    event.tags = { ...tags, ...event.tags };
+
+  const cleanedTags = dropUndefinedKeys(tags);
+  if (cleanedTags && Object.keys(cleanedTags).length) {
+    event.tags = { ...cleanedTags, ...event.tags };
   }
-  if (user && Object.keys(user).length) {
-    event.user = { ...user, ...event.user };
+
+  const cleanedUser = dropUndefinedKeys(user);
+  if (cleanedUser && Object.keys(cleanedUser).length) {
+    event.user = { ...cleanedUser, ...event.user };
   }
-  if (contexts && Object.keys(contexts).length) {
-    event.contexts = { ...contexts, ...event.contexts };
+
+  const cleanedContexts = dropUndefinedKeys(contexts);
+  if (cleanedContexts && Object.keys(cleanedContexts).length) {
+    event.contexts = { ...cleanedContexts, ...event.contexts };
   }
+
   if (level) {
     event.level = level;
   }
+
   if (transactionName) {
     event.transaction = transactionName;
   }
