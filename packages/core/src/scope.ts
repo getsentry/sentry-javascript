@@ -189,10 +189,18 @@ export class Scope implements ScopeInterface {
    * @inheritDoc
    */
   public setUser(user: User | null): this {
-    this._user = user || {};
+    this._user = user || {
+      email: undefined,
+      id: undefined,
+      ip_address: undefined,
+      segment: undefined,
+      username: undefined,
+    };
+
     if (this._session) {
       updateSession(this._session, { user });
     }
+
     this._notifyScopeListeners();
     return this;
   }
