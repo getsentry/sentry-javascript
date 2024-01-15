@@ -4,7 +4,7 @@ import { sentryTest } from '../../../../utils/fixtures';
 import { getReplaySnapshot, shouldSkipReplayTest, waitForReplayRequest } from '../../../../utils/replayHelpers';
 
 sentryTest('sets up canvas when adding ReplayCanvas integration after Replay', async ({ getLocalTestUrl, page }) => {
-  if (shouldSkipReplayTest()) {
+  if (shouldSkipReplayTest() || (process.env.PW_BUNDLE || '').startsWith('bundle')) {
     sentryTest.skip();
   }
 

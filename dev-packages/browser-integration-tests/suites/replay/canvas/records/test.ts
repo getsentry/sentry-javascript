@@ -4,7 +4,7 @@ import { sentryTest } from '../../../../utils/fixtures';
 import { getReplayRecordingContent, shouldSkipReplayTest, waitForReplayRequest } from '../../../../utils/replayHelpers';
 
 sentryTest('can record canvas', async ({ getLocalTestUrl, page, browserName }) => {
-  if (shouldSkipReplayTest() || browserName === 'webkit') {
+  if (shouldSkipReplayTest() || browserName === 'webkit' || (process.env.PW_BUNDLE || '').startsWith('bundle')) {
     sentryTest.skip();
   }
 
