@@ -149,7 +149,8 @@ export function addTracingHeadersToFetchRequest(
   const sentryBaggageHeader = dynamicSamplingContextToSentryBaggageHeader(dynamicSamplingContext);
 
   const headers =
-    typeof Request !== 'undefined' && isInstanceOf(request, Request) ? (request as Request).headers : options.headers;
+    options.headers ||
+    (typeof Request !== 'undefined' && isInstanceOf(request, Request) ? (request as Request).headers : undefined);
 
   if (!headers) {
     return { 'sentry-trace': sentryTraceHeader, baggage: sentryBaggageHeader };
