@@ -454,7 +454,7 @@ export class Span implements SpanInterface {
   /**
    * @inheritDoc
    *
-   * @deprecated Use `toJSON()` or access the fields directly instead.
+   * @deprecated Use `spanToJSON()` or access the fields directly instead.
    */
   public toContext(): SpanContext {
     return dropUndefinedKeys({
