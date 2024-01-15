@@ -90,10 +90,9 @@ export function mergeAndOverwriteScopeData<
   Prop extends 'extra' | 'tags' | 'user' | 'contexts' | 'sdkProcessingMetadata',
   Data extends ScopeData,
 >(data: Data, prop: Prop, mergeVal: Data[Prop]): void {
-  // Clone object
-  data[prop] = { ...data[prop] };
-
-  if (mergeVal) {
+  if (mergeVal && Object.keys(mergeVal).length) {
+    // Clone object
+    data[prop] = { ...data[prop] };
     for (const key in mergeVal) {
       if (Object.prototype.hasOwnProperty.call(mergeVal, key)) {
         data[prop][key] = mergeVal[key];
