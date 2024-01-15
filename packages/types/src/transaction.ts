@@ -99,11 +99,15 @@ export interface Transaction extends TransactionContext, Omit<Span, 'setName' | 
 
   /**
    * The instrumenter that created this transaction.
+   *
+   * @deprecated This field will be removed in v8.
    */
   instrumenter: Instrumenter;
 
   /**
    * Set the name of the transaction
+   *
+   * @deprecated Use `.updateName()` and `.setAttribute()` instead.
    */
   setName(name: string, source?: TransactionMetadata['source']): void;
 

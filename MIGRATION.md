@@ -151,15 +151,16 @@ In v8, the Span class is heavily reworked. The following properties & methods ar
 - `span.name`: Use `spanToJSON(span).description` instead.
 - `span.description`: Use `spanToJSON(span).description` instead.
 - `span.getDynamicSamplingContext`: Use `getDynamicSamplingContextFromSpan` utility function instead.
-- `transaction.setMetadata()`: Use attributes instead, or set data on the scope.
-- `transaction.metadata`: Use attributes instead, or set data on the scope.
 - `span.tags`: Set tags on the surrounding scope instead, or use attributes.
 - `span.data`: Use `spanToJSON(span).data` instead.
 - `span.setTag()`: Use `span.setAttribute()` instead or set tags on the surrounding scope.
 - `span.setData()`: Use `span.setAttribute()` instead.
 - `span.instrumenter` This field was removed and will be replaced internally.
 - `span.transaction`: Use `getRootSpan` utility function instead.
+- `transaction.setMetadata()`: Use attributes instead, or set data on the scope.
+- `transaction.metadata`: Use attributes instead, or set data on the scope.
 - `transaction.setContext()`: Set context on the surrounding scope instead.
+- `transaction.setName()`: Set the name with `.updateName()` and the source with `.setAttribute()` instead.
 
 ## Deprecate `pushScope` & `popScope` in favor of `withScope`
 
