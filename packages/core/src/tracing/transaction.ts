@@ -176,6 +176,8 @@ export class Transaction extends SpanClass implements TransactionInterface {
 
   /**
    * @inheritDoc
+   *
+   * @deprecated Use top-level `setMeasurement()` instead.
    */
   public setMeasurement(name: string, value: number, unit: MeasurementUnit = ''): void {
     this._measurements[name] = { value, unit };
