@@ -23,7 +23,7 @@ describe('mergeArray', () => {
   });
 });
 
-describe('mergePropOverwrite', () => {
+describe('mergeAndOverwriteScopeData', () => {
   it.each([
     [{}, {}, {}],
     [{ a: 'aa' }, {}, { a: 'aa' }],
