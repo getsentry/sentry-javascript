@@ -1,6 +1,8 @@
+import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
 import {
   captureException,
   continueTrace,
+  getActiveSpan,
   getClient,
   getCurrentScope,
   runWithAsyncContext,
@@ -69,7 +71,7 @@ export const handleRequest: (options?: MiddlewareOptions) => MiddlewareResponseH
     // if there is an active span, we know that this handle call is nested and hence
     // we don't create a new domain for it. If we created one, nested server calls would
     // create new transactions instead of adding a child span to the currently active span.
-    if (getCurrentScope().getSpan()) {
+    if (getActiveSpan()) {
       return instrumentRequest(ctx, next, handlerOptions);
     }
     return runWithAsyncContext(() => {
@@ -111,6 +113,7 @@ async function instrumentRequest(
 
   try {
     const interpolatedRoute = interpolateRouteFromUrlAndParams(ctx.url.pathname, ctx.params);
+    const source = interpolatedRoute ? 'route' : 'url';
     // storing res in a variable instead of directly returning is necessary to
     // invoke the catch block if next() throws
     const res = await startSpan(
@@ -121,12 +124,13 @@ async function instrumentRequest(
         origin: 'auto.http.astro',
         status: 'ok',
         metadata: {
+          // eslint-disable-next-line deprecation/deprecation
           ...traceCtx?.metadata,
-          source: interpolatedRoute ? 'route' : 'url',
         },
         data: {
           method,
           url: stripUrlQueryAndFragment(ctx.url.href),
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
           ...(ctx.url.search && { 'http.query': ctx.url.search }),
           ...(ctx.url.hash && { 'http.fragment': ctx.url.hash }),
           ...(options.trackHeaders && { headers: allHeaders }),

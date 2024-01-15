@@ -15,20 +15,19 @@ import { dropUndefinedKeys, logger } from '@sentry/utils';
 import { DEBUG_BUILD } from '../debug-build';
 import type { Hub } from '../hub';
 import { getCurrentHub } from '../hub';
+import { SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '../semanticAttributes';
 import { spanTimeInputToSeconds, spanToTraceContext } from '../utils/spanUtils';
-import { getDynamicSamplingContextFromClient } from './dynamicSamplingContext';
+import { getDynamicSamplingContextFromSpan } from './dynamicSamplingContext';
 import { Span as SpanClass, SpanRecorder } from './span';
 
 /** JSDoc */
 export class Transaction extends SpanClass implements TransactionInterface {
-  public metadata: TransactionMetadata;
-
   /**
    * The reference to the current hub.
    */
   public _hub: Hub;
 
-  private _name: string;
+  protected _name: string;
 
   private _measurements: Measurements;
 
@@ -36,7 +35,10 @@ export class Transaction extends SpanClass implements TransactionInterface {
 
   private _trimEnd?: boolean;
 
+  // DO NOT yet remove this property, it is used in a hack for v7 backwards compatibility.
   private _frozenDynamicSamplingContext: Readonly<Partial<DynamicSamplingContext>> | undefined;
+
+  private _metadata: Partial<TransactionMetadata>;
 
   /**
    * This constructor should never be called manually. Those instrumenting tracing should use
@@ -44,13 +46,11 @@ export class Transaction extends SpanClass implements TransactionInterface {
    * @internal
    * @hideconstructor
    * @hidden
+   *
+   * @deprecated Transactions will be removed in v8. Use spans instead.
    */
   public constructor(transactionContext: TransactionContext, hub?: Hub) {
     super(transactionContext);
-    // We need to delete description since it's set by the Span class constructor
-    // but not needed for transactions.
-    delete this.description;
-
     this._measurements = {};
     this._contexts = {};
 
@@ -58,33 +58,41 @@ export class Transaction extends SpanClass implements TransactionInterface {
 
     this._name = transactionContext.name || '';
 
-    this.metadata = {
-      source: 'custom',
+    this._metadata = {
+      // eslint-disable-next-line deprecation/deprecation
       ...transactionContext.metadata,
-      spanMetadata: {},
     };
 
     this._trimEnd = transactionContext.trimEnd;
 
     // this is because transactions are also spans, and spans have a transaction pointer
+    // TODO (v8): Replace this with another way to set the root span
+    // eslint-disable-next-line deprecation/deprecation
     this.transaction = this;
 
     // If Dynamic Sampling Context is provided during the creation of the transaction, we freeze it as it usually means
     // there is incoming Dynamic Sampling Context. (Either through an incoming request, a baggage meta-tag, or other means)
-    const incomingDynamicSamplingContext = this.metadata.dynamicSamplingContext;
+    const incomingDynamicSamplingContext = this._metadata.dynamicSamplingContext;
     if (incomingDynamicSamplingContext) {
       // We shallow copy this in case anything writes to the original reference of the passed in `dynamicSamplingContext`
       this._frozenDynamicSamplingContext = { ...incomingDynamicSamplingContext };
     }
   }
 
-  /** Getter for `name` property */
+  // This sadly conflicts with the getter/setter ordering :(
+  /* eslint-disable @typescript-eslint/member-ordering */
+
+  /**
+   * Getter for `name` property.
+   * @deprecated Use `spanToJSON(span).description` instead.
+   */
   public get name(): string {
     return this._name;
   }
 
   /**
    * Setter for `name` property, which also sets `source` as custom.
+   * @deprecated Use `updateName()` and `setMetadata()` instead.
    */
   public set name(newName: string) {
     // eslint-disable-next-line deprecation/deprecation
@@ -92,13 +100,48 @@ export class Transaction extends SpanClass implements TransactionInterface {
   }
 
   /**
+   * Get the metadata for this transaction.
+   * @deprecated Use `spanGetMetadata(transaction)` instead.
+   */
+  public get metadata(): TransactionMetadata {
+    // We merge attributes in for backwards compatibility
+    return {
+      // Defaults
+      // eslint-disable-next-line deprecation/deprecation
+      source: 'custom',
+      spanMetadata: {},
+
+      // Legacy metadata
+      ...this._metadata,
+
+      // From attributes
+      ...(this._attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] && {
+        source: this._attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] as TransactionMetadata['source'],
+      }),
+      ...(this._attributes[SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE] && {
+        sampleRate: this._attributes[SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE] as TransactionMetadata['sampleRate'],
+      }),
+    };
+  }
+
+  /**
+   * Update the metadata for this transaction.
+   * @deprecated Use `spanGetMetadata(transaction)` instead.
+   */
+  public set metadata(metadata: TransactionMetadata) {
+    this._metadata = metadata;
+  }
+
+  /* eslint-enable @typescript-eslint/member-ordering */
+
+  /**
    * Setter for `name` property, which also sets `source` on the metadata.
    *
-   * @deprecated Use `updateName()` and `setMetadata()` instead.
+   * @deprecated Use `.updateName()` and `.setAttribute()` instead.
    */
   public setName(name: string, source: TransactionMetadata['source'] = 'custom'): void {
     this._name = name;
-    this.metadata.source = source;
+    this.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, source);
   }
 
   /** @inheritdoc */
@@ -119,7 +162,8 @@ export class Transaction extends SpanClass implements TransactionInterface {
   }
 
   /**
-   * @inheritDoc
+   * Set the context of a transaction event.
+   * @deprecated Use either `.setAttribute()`, or set the context on the scope before creating the transaction.
    */
   public setContext(key: string, context: Context | null): void {
     if (context === null) {
@@ -132,16 +176,19 @@ export class Transaction extends SpanClass implements TransactionInterface {
 
   /**
    * @inheritDoc
+   *
+   * @deprecated Use top-level `setMeasurement()` instead.
    */
   public setMeasurement(name: string, value: number, unit: MeasurementUnit = ''): void {
     this._measurements[name] = { value, unit };
   }
 
   /**
-   * @inheritDoc
+   * Store metadata on this transaction.
+   * @deprecated Use attributes or store data on the scope instead.
    */
   public setMetadata(newMetadata: Partial<TransactionMetadata>): void {
-    this.metadata = { ...this.metadata, ...newMetadata };
+    this._metadata = { ...this._metadata, ...newMetadata };
   }
 
   /**
@@ -153,6 +200,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
     if (!transaction) {
       return undefined;
     }
+    // eslint-disable-next-line deprecation/deprecation
     return this._hub.captureEvent(transaction);
   }
 
@@ -165,7 +213,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
 
     return dropUndefinedKeys({
       ...spanContext,
-      name: this.name,
+      name: this._name,
       trimEnd: this._trimEnd,
     });
   }
@@ -177,8 +225,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
     // eslint-disable-next-line deprecation/deprecation
     super.updateWithContext(transactionContext);
 
-    this.name = transactionContext.name || '';
-
+    this._name = transactionContext.name || '';
     this._trimEnd = transactionContext.trimEnd;
 
     return this;
@@ -188,39 +235,11 @@ export class Transaction extends SpanClass implements TransactionInterface {
    * @inheritdoc
    *
    * @experimental
+   *
+   * @deprecated Use top-level `getDynamicSamplingContextFromSpan` instead.
    */
   public getDynamicSamplingContext(): Readonly<Partial<DynamicSamplingContext>> {
-    if (this._frozenDynamicSamplingContext) {
-      return this._frozenDynamicSamplingContext;
-    }
-
-    const hub = this._hub || getCurrentHub();
-    const client = hub.getClient();
-
-    if (!client) return {};
-
-    const scope = hub.getScope();
-    const dsc = getDynamicSamplingContextFromClient(this.traceId, client, scope);
-
-    const maybeSampleRate = this.metadata.sampleRate;
-    if (maybeSampleRate !== undefined) {
-      dsc.sample_rate = `${maybeSampleRate}`;
-    }
-
-    // We don't want to have a transaction name in the DSC if the source is "url" because URLs might contain PII
-    const source = this.metadata.source;
-    if (source && source !== 'url') {
-      dsc.transaction = this.name;
-    }
-
-    if (this.sampled !== undefined) {
-      dsc.sampled = String(this.sampled);
-    }
-
-    // Uncomment if we want to make DSC immutable
-    // this._frozenDynamicSamplingContext = dsc;
-
-    return dsc;
+    return getDynamicSamplingContextFromSpan(this);
   }
 
   /**
@@ -242,20 +261,21 @@ export class Transaction extends SpanClass implements TransactionInterface {
       return undefined;
     }
 
-    if (!this.name) {
+    if (!this._name) {
       DEBUG_BUILD && logger.warn('Transaction has no name, falling back to `<unlabeled transaction>`.');
-      this.name = '<unlabeled transaction>';
+      this._name = '<unlabeled transaction>';
     }
 
     // just sets the end timestamp
     super.end(endTimestamp);
 
+    // eslint-disable-next-line deprecation/deprecation
     const client = this._hub.getClient();
     if (client && client.emit) {
       client.emit('finishTransaction', this);
     }
 
-    if (this.sampled !== true) {
+    if (this._sampled !== true) {
       // At this point if `sampled !== true` we want to discard the transaction.
       DEBUG_BUILD && logger.log('[Tracing] Discarding transaction because its trace was not chosen to be sampled.');
 
@@ -277,7 +297,10 @@ export class Transaction extends SpanClass implements TransactionInterface {
       }).endTimestamp;
     }
 
-    const metadata = this.metadata;
+    // eslint-disable-next-line deprecation/deprecation
+    const { metadata } = this;
+    // eslint-disable-next-line deprecation/deprecation
+    const { source } = metadata;
 
     const transaction: TransactionEvent = {
       contexts: {
@@ -285,19 +308,21 @@ export class Transaction extends SpanClass implements TransactionInterface {
         // We don't want to override trace context
         trace: spanToTraceContext(this),
       },
+      // TODO: Pass spans serialized via `spanToJSON()` here instead in v8.
       spans: finishedSpans,
       start_timestamp: this.startTimestamp,
+      // eslint-disable-next-line deprecation/deprecation
       tags: this.tags,
       timestamp: this.endTimestamp,
-      transaction: this.name,
+      transaction: this._name,
       type: 'transaction',
       sdkProcessingMetadata: {
         ...metadata,
-        dynamicSamplingContext: this.getDynamicSamplingContext(),
+        dynamicSamplingContext: getDynamicSamplingContextFromSpan(this),
       },
-      ...(metadata.source && {
+      ...(source && {
         transaction_info: {
-          source: metadata.source,
+          source,
         },
       }),
     };
@@ -313,7 +338,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
       transaction.measurements = this._measurements;
     }
 
-    DEBUG_BUILD && logger.log(`[Tracing] Finishing ${this.op} transaction: ${this.name}.`);
+    DEBUG_BUILD && logger.log(`[Tracing] Finishing ${this.op} transaction: ${this._name}.`);
 
     return transaction;
   }

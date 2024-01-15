@@ -21,14 +21,14 @@ sentryTest(
     });
 
     const hasCustomIntegration = await page.evaluate(() => {
-      return !!(window as any).Sentry.getCurrentHub().getClient().getIntegrationById('CustomIntegration');
+      return !!(window as any).Sentry.getClient().getIntegrationByName('CustomIntegration');
     });
 
     const hasReplay = await page.evaluate(() => {
-      return !!(window as any).Sentry.getCurrentHub().getClient().getIntegrationById('Replay');
+      return !!(window as any).Sentry.getClient().getIntegrationByName('Replay');
     });
     const hasBrowserTracing = await page.evaluate(() => {
-      return !!(window as any).Sentry.getCurrentHub().getClient().getIntegrationById('BrowserTracing');
+      return !!(window as any).Sentry.getClient().getIntegrationByName('BrowserTracing');
     });
 
     expect(hasCustomIntegration).toEqual(true);

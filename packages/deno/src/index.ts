@@ -38,6 +38,7 @@ export {
   extractTraceparentData,
   continueTrace,
   flush,
+  // eslint-disable-next-line deprecation/deprecation
   getActiveTransaction,
   getHubFromCarrier,
   getCurrentHub,
@@ -64,6 +65,7 @@ export {
   // eslint-disable-next-line deprecation/deprecation
   trace,
   withScope,
+  withIsolationScope,
   captureCheckIn,
   withMonitor,
   setMeasurement,

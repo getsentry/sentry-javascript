@@ -256,7 +256,7 @@ describe('callbacks', () => {
 
       expect(finishedSpan).toBeDefined();
       expect(finishedSpan).toBeInstanceOf(Span);
-      expect(finishedSpan.data).toEqual({
+      expect(sentryCore.spanToJSON(finishedSpan).data).toEqual({
         'http.response_content_length': 123,
         'http.method': 'GET',
         'http.response.status_code': 404,

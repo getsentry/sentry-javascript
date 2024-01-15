@@ -208,7 +208,7 @@ function tryNewAsyncSession(): AsyncSession | undefined {
   }
 }
 
-const INTEGRATION_NAME = 'LocalVariablesSync';
+const INTEGRATION_NAME = 'LocalVariables';
 
 /**
  * Adds local variables to exception frames
@@ -326,6 +326,8 @@ export const localVariablesSync: IntegrationFn = (
 
   return {
     name: INTEGRATION_NAME,
+    // TODO v8: Remove this
+    setupOnce() {}, // eslint-disable-line @typescript-eslint/no-empty-function
     setup(client: NodeClient) {
       const clientOptions = client.getOptions();
 

@@ -3,8 +3,8 @@ import type { ExportResult } from '@opentelemetry/core';
 import { ExportResultCode } from '@opentelemetry/core';
 import type { ReadableSpan, SpanExporter } from '@opentelemetry/sdk-trace-base';
 import { SemanticAttributes } from '@opentelemetry/semantic-conventions';
-import { flush } from '@sentry/core';
-import type { DynamicSamplingContext, Span as SentrySpan, SpanOrigin, TransactionSource } from '@sentry/types';
+import { flush, getCurrentScope } from '@sentry/core';
+import type { DynamicSamplingContext, Scope, Span as SentrySpan, SpanOrigin, TransactionSource } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
 import { getCurrentHub } from './custom/hub';
@@ -110,13 +110,24 @@ function maybeSend(spans: ReadableSpan[]): ReadableSpan[] {
 
     // Now finish the transaction, which will send it together with all the spans
     // We make sure to use the finish scope
-    const scope = getSpanFinishScope(span);
+    const scope = getScopeForTransactionFinish(span);
     transaction.finishWithScope(convertOtelTimeToSeconds(span.endTime), scope);
   });
 
   return Array.from(remaining)
     .map(node => node.span)
     .filter((span): span is ReadableSpan => !!span);
+}
+
+function getScopeForTransactionFinish(span: ReadableSpan): Scope {
+  // The finish scope should normally always be there (and it is already a clone),
+  // but for the sake of type safety we fall back to a clone of the current scope
+  const scope = getSpanFinishScope(span) || getCurrentScope().clone();
+  scope.setContext('otel', {
+    attributes: removeSentryAttributes(span.attributes),
+    resource: span.resource.attributes,
+  });
+  return scope;
 }
 
 function getCompletedRootNodes(nodes: SpanNode[]): SpanNodeCompleted[] {
@@ -176,11 +187,6 @@ function createTransactionForOtelSpan(span: ReadableSpan): OpenTelemetryTransact
     sampled: true,
   }) as OpenTelemetryTransaction;
 
-  transaction.setContext('otel', {
-    attributes: removeSentryAttributes(span.attributes),
-    resource: span.resource.attributes,
-  });
-
   return transaction;
 }
 
@@ -204,6 +210,7 @@ function createAndFinishSpanForOtelSpan(node: SpanNode, sentryParentSpan: Sentry
   const { op, description, tags, data, origin } = getSpanData(span);
   const allData = { ...removeSentryAttributes(attributes), ...data };
 
+  // eslint-disable-next-line deprecation/deprecation
   const sentrySpan = sentryParentSpan.startChild({
     description,
     op,
@@ -273,9 +280,8 @@ function getTags(span: ReadableSpan): Record<string, string> {
   const tags: Record<string, string> = {};
 
   if (attributes[SemanticAttributes.HTTP_STATUS_CODE]) {
-    const statusCode = attributes[SemanticAttributes.HTTP_STATUS_CODE] as string;
-
-    tags['http.status_code'] = statusCode;
+    const statusCode = attributes[SemanticAttributes.HTTP_STATUS_CODE] as string | number;
+    tags['http.status_code'] = `${statusCode}`;
   }
 
   return tags;

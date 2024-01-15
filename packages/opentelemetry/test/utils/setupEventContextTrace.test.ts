@@ -45,6 +45,7 @@ describe('setupEventContextTrace', () => {
 
   it('works with no active span', async () => {
     const error = new Error('test');
+    // eslint-disable-next-line deprecation/deprecation
     hub.captureException(error);
     await client.flush();
 
@@ -79,6 +80,7 @@ describe('setupEventContextTrace', () => {
 
       client.tracer.startActiveSpan('inner', innerSpan => {
         innerId = innerSpan?.spanContext().spanId;
+        // eslint-disable-next-line deprecation/deprecation
         hub.captureException(error);
       });
     });

@@ -22,6 +22,7 @@ import { isString, logger } from '@sentry/utils';
 import type { Context, Handler } from 'aws-lambda';
 import { performance } from 'perf_hooks';
 
+import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
 import { AWSServices } from './awsservices';
 import { DEBUG_BUILD } from './debug-build';
 import { markEventUnhandled } from './utils';
@@ -223,7 +224,10 @@ function enhanceScopeWithEnvironmentData(scope: Scope, context: Context, startTi
  * @param context AWS Lambda context that will be used to extract some part of the data
  */
 function enhanceScopeWithTransactionData(scope: Scope, context: Context): void {
-  scope.setTransactionName(context.functionName);
+  scope.addEventProcessor(event => {
+    event.transaction = context.functionName;
+    return event;
+  });
   scope.setTag('server_name', process.env._AWS_XRAY_DAEMON_ADDRESS || process.env.SENTRY_NAME || hostname());
   scope.setTag('url', `awslambda:///${context.functionName}`);
 }
@@ -348,9 +352,8 @@ export function wrapHandler<TEvent, TResult>(
           op: 'function.aws.lambda',
           origin: 'auto.function.serverless',
           ...continueTraceContext,
-          metadata: {
-            ...continueTraceContext.metadata,
-            source: 'component',
+          attributes: {
+            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
           },
         },
         span => {

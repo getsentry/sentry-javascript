@@ -1,4 +1,5 @@
 /* eslint-disable max-lines */
+import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, spanToJSON } from '@sentry/core';
 import type { Hub, Integration, PolymorphicRequest, Transaction } from '@sentry/types';
 import {
   GLOBAL_OBJ,
@@ -157,6 +158,7 @@ function wrap(fn: Function, method: Method): (...args: any[]) => void {
       return function (this: NodeJS.Global, req: unknown, res: ExpressResponse & SentryTracingResponse): void {
         const transaction = res.__sentry_transaction;
         if (transaction) {
+          // eslint-disable-next-line deprecation/deprecation
           const span = transaction.startChild({
             description: fn.name,
             op: `middleware.express.${method}`,
@@ -177,6 +179,7 @@ function wrap(fn: Function, method: Method): (...args: any[]) => void {
         next: () => void,
       ): void {
         const transaction = res.__sentry_transaction;
+        // eslint-disable-next-line deprecation/deprecation
         const span = transaction?.startChild({
           description: fn.name,
           op: `middleware.express.${method}`,
@@ -197,6 +200,7 @@ function wrap(fn: Function, method: Method): (...args: any[]) => void {
         next: () => void,
       ): void {
         const transaction = res.__sentry_transaction;
+        // eslint-disable-next-line deprecation/deprecation
         const span = transaction?.startChild({
           description: fn.name,
           op: `middleware.express.${method}`,
@@ -371,14 +375,15 @@ function instrumentRouter(appOrRouter: ExpressRouter): void {
       }
 
       const transaction = res.__sentry_transaction;
-      if (transaction && transaction.metadata.source !== 'custom') {
+      const attributes = (transaction && spanToJSON(transaction).data) || {};
+      if (transaction && attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] !== 'custom') {
         // If the request URL is '/' or empty, the reconstructed route will be empty.
         // Therefore, we fall back to setting the final route to '/' in this case.
         const finalRoute = req._reconstructedRoute || '/';
 
         const [name, source] = extractPathForTransaction(req, { path: true, method: true, customRoute: finalRoute });
         transaction.updateName(name);
-        transaction.setMetadata({ source });
+        transaction.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, source);
       }
     }
 

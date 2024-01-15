@@ -46,6 +46,7 @@ export {
   setMeasurement,
   // eslint-disable-next-line deprecation/deprecation
   extractTraceparentData,
+  // eslint-disable-next-line deprecation/deprecation
   getActiveTransaction,
   spanStatusfromHttpCode,
   // eslint-disable-next-line deprecation/deprecation

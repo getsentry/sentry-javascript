@@ -6,6 +6,8 @@ const INTEGRATION_NAME = 'Transaction';
 const transactionIntegration = (() => {
   return {
     name: INTEGRATION_NAME,
+    // TODO v8: Remove this
+    setupOnce() {}, // eslint-disable-line @typescript-eslint/no-empty-function
     processEvent(event) {
       const frames = _getFramesFromEvent(event);
 
@@ -24,7 +26,10 @@ const transactionIntegration = (() => {
   };
 }) satisfies IntegrationFn;
 
-/** Add node transaction to the event */
+/**
+ * Add node transaction to the event.
+ * @deprecated This integration will be removed in v8.
+ */
 // eslint-disable-next-line deprecation/deprecation
 export const Transaction = convertIntegrationFnToClass(INTEGRATION_NAME, transactionIntegration);
 

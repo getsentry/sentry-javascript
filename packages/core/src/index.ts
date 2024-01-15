@@ -5,6 +5,7 @@ export type { ServerRuntimeClientOptions } from './server-runtime-client';
 export type { RequestDataIntegrationOptions } from './integrations/requestdata';
 
 export * from './tracing';
+export * from './semanticAttributes';
 export { createEventEnvelope, createSessionEnvelope } from './envelope';
 export {
   addBreadcrumb,
@@ -28,8 +29,12 @@ export {
   setTags,
   setUser,
   withScope,
+  withIsolationScope,
   getClient,
   getCurrentScope,
+  startSession,
+  endSession,
+  captureSession,
 } from './exports';
 export {
   getCurrentHub,
@@ -72,7 +77,12 @@ export { createCheckInEnvelope } from './checkin';
 export { hasTracingEnabled } from './utils/hasTracingEnabled';
 export { isSentryRequestUrl } from './utils/isSentryRequestUrl';
 export { handleCallbackErrors } from './utils/handleCallbackErrors';
-export { spanToTraceHeader } from './utils/spanUtils';
+export {
+  spanToTraceHeader,
+  spanToJSON,
+  spanIsSampled,
+} from './utils/spanUtils';
+export { getRootSpan } from './utils/getRootSpan';
 export { DEFAULT_ENVIRONMENT } from './constants';
 export { ModuleMetadata } from './integrations/metadata';
 export { RequestData } from './integrations/requestdata';

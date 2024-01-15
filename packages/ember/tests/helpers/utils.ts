@@ -1,3 +1,4 @@
+import { spanToJSON } from '@sentry/core';
 import type { Event } from '@sentry/types';
 
 const defaultAssertOptions = {
@@ -67,7 +68,7 @@ export function assertSentryTransactions(
   const filteredSpans = spans
     .filter(span => !span.op?.startsWith('ui.ember.runloop.'))
     .map(s => {
-      return `${s.op} | ${s.description}`;
+      return `${s.op} | ${spanToJSON(s).description}`;
     });
 
   assert.true(

@@ -1,4 +1,4 @@
-import { getIntegrationsToSetup, hasTracingEnabled } from '@sentry/core';
+import { endSession, getIntegrationsToSetup, hasTracingEnabled, startSession } from '@sentry/core';
 import {
   Integrations,
   defaultIntegrations as defaultNodeIntegrations,
@@ -6,7 +6,7 @@ import {
   getSentryRelease,
   makeNodeTransport,
 } from '@sentry/node';
-import type { Integration } from '@sentry/types';
+import type { Client, Integration } from '@sentry/types';
 import {
   consoleSandbox,
   dropUndefinedKeys,
@@ -22,7 +22,7 @@ import { Http } from '../integrations/http';
 import { NodeFetch } from '../integrations/node-fetch';
 import { setOpenTelemetryContextAsyncContextStrategy } from '../otel/asyncContextStrategy';
 import type { NodeExperimentalClientOptions, NodeExperimentalOptions } from '../types';
-import { endSession, getClient, getCurrentScope, getGlobalScope, getIsolationScope, startSession } from './api';
+import { getClient, getCurrentScope, getGlobalScope, getIsolationScope } from './api';
 import { NodeExperimentalClient } from './client';
 import { getGlobalCarrier } from './globals';
 import { setLegacyHubOnCarrier } from './hub';
@@ -67,7 +67,9 @@ export function init(options: NodeExperimentalOptions | undefined = {}): void {
   // unless somebody specifically sets a different one on a scope/isolations cope
   getGlobalScope().setClient(client);
 
-  client.setupIntegrations();
+  if (isEnabled(client)) {
+    client.init();
+  }
 
   if (options.autoSessionTracking) {
     startSessionTracking();
@@ -79,7 +81,11 @@ export function init(options: NodeExperimentalOptions | undefined = {}): void {
     const client = getClient();
     if (client.addIntegration) {
       // force integrations to be setup even if no DSN was set
-      client.setupIntegrations(true);
+      // If they have already been added before, they will be ignored anyhow
+      const integrations = client.getOptions().integrations;
+      for (const integration of integrations) {
+        client.addIntegration(integration);
+      }
       client.addIntegration(
         new Integrations.Spotlight({
           sidecarUrl: typeof options.spotlight === 'string' ? options.spotlight : undefined,
@@ -212,4 +218,8 @@ function startSessionTracking(): void {
       endSession();
     }
   });
+}
+
+function isEnabled(client: Client): boolean {
+  return client.getOptions().enabled !== false && client.getTransport() !== undefined;
 }

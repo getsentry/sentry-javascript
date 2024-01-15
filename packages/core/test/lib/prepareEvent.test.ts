@@ -9,7 +9,7 @@ import type {
   ScopeContext,
 } from '@sentry/types';
 import { GLOBAL_OBJ, createStackParser } from '@sentry/utils';
-import { getCurrentHub, getIsolationScope, setGlobalScope } from '../../src';
+import { getIsolationScope, setGlobalScope } from '../../src';
 
 import { Scope, getGlobalScope } from '../../src/scope';
 import {
@@ -192,7 +192,7 @@ describe('parseEventHintOrCaptureContext', () => {
 describe('prepareEvent', () => {
   beforeEach(() => {
     setGlobalScope(undefined);
-    getCurrentHub().getIsolationScope().clear();
+    getIsolationScope().clear();
   });
 
   it('works without any scope data', async () => {

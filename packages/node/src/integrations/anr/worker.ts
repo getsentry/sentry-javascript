@@ -15,6 +15,8 @@ import {
 } from '@sentry/utils';
 import { Session as InspectorSession } from 'inspector';
 import { parentPort, workerData } from 'worker_threads';
+
+import { createGetModuleFromFilename } from '../../module';
 import { makeNodeTransport } from '../../transports';
 import type { WorkerStartData } from './common';
 
@@ -46,9 +48,10 @@ async function sendAbnormalSession(): Promise<void> {
     log('Sending abnormal session');
     updateSession(session, { status: 'abnormal', abnormal_mechanism: 'anr_foreground' });
 
-    log(JSON.stringify(session));
-
     const envelope = createSessionEnvelope(session, options.dsn, options.sdkMetadata);
+    // Log the envelope so to aid in testing
+    log(JSON.stringify(envelope));
+
     await transport.send(envelope);
 
     try {
@@ -117,9 +120,10 @@ async function sendAnrEvent(frames?: StackFrame[], traceContext?: TraceContext):
     tags: options.staticTags,
   };
 
-  log(JSON.stringify(event));
-
   const envelope = createEventEnvelope(event, options.dsn, options.sdkMetadata);
+  // Log the envelope so to aid in testing
+  log(JSON.stringify(envelope));
+
   await transport.send(envelope);
   await transport.flush(2000);
 
@@ -158,8 +162,9 @@ if (options.captureStackTrace) {
       // copy the frames
       const callFrames = [...event.params.callFrames];
 
+      const getModuleName = options.appRootPath ? createGetModuleFromFilename(options.appRootPath) : () => undefined;
       const stackFrames = callFrames.map(frame =>
-        callFrameToStackFrame(frame, scripts.get(frame.location.scriptId), () => undefined),
+        callFrameToStackFrame(frame, scripts.get(frame.location.scriptId), getModuleName),
       );
 
       // Evaluate a script in the currently paused context

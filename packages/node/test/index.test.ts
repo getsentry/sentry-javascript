@@ -286,8 +286,10 @@ describe('SentryNode', () => {
       runWithAsyncContext(() => {
         const hub = getCurrentHub();
         hub.bindClient(client);
+        // eslint-disable-next-line deprecation/deprecation
         expect(getCurrentHub().getClient()).toBe(client);
         expect(getClient()).toBe(client);
+        // eslint-disable-next-line deprecation/deprecation
         hub.captureEvent({ message: 'test domain' });
       });
     });
@@ -465,7 +467,7 @@ describe('SentryNode initialization', () => {
     it('defaults to sentry instrumenter', () => {
       init({ dsn });
 
-      const instrumenter = (getCurrentHub()?.getClient()?.getOptions() as NodeClientOptions).instrumenter;
+      const instrumenter = (getClient()?.getOptions() as NodeClientOptions).instrumenter;
 
       expect(instrumenter).toEqual('sentry');
     });
@@ -473,7 +475,7 @@ describe('SentryNode initialization', () => {
     it('allows to set instrumenter', () => {
       init({ dsn, instrumenter: 'otel' });
 
-      const instrumenter = (getCurrentHub()?.getClient()?.getOptions() as NodeClientOptions).instrumenter;
+      const instrumenter = (getClient()?.getOptions() as NodeClientOptions).instrumenter;
 
       expect(instrumenter).toEqual('otel');
     });
@@ -484,7 +486,7 @@ describe('SentryNode initialization', () => {
       process.env.SENTRY_TRACE = '12312012123120121231201212312012-1121201211212012-0';
       process.env.SENTRY_BAGGAGE = 'sentry-release=1.0.0,sentry-environment=production';
 
-      getCurrentHub().getScope().clear();
+      getCurrentScope().clear();
     });
 
     afterEach(() => {
@@ -496,7 +498,7 @@ describe('SentryNode initialization', () => {
       init({ dsn });
 
       // @ts-expect-error accessing private method for test
-      expect(getCurrentHub().getScope()._propagationContext).toEqual({
+      expect(getCurrentScope()._propagationContext).toEqual({
         traceId: '12312012123120121231201212312012',
         parentSpanId: '1121201211212012',
         spanId: expect.any(String),
@@ -515,7 +517,7 @@ describe('SentryNode initialization', () => {
         init({ dsn });
 
         // @ts-expect-error accessing private method for test
-        expect(getCurrentHub().getScope()._propagationContext.traceId).not.toEqual('12312012123120121231201212312012');
+        expect(getCurrentScope()._propagationContext.traceId).not.toEqual('12312012123120121231201212312012');
 
         delete process.env.SENTRY_USE_ENVIRONMENT;
       },

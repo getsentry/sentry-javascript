@@ -38,6 +38,7 @@ export {
   // eslint-disable-next-line deprecation/deprecation
   extractTraceparentData,
   flush,
+  // eslint-disable-next-line deprecation/deprecation
   getActiveTransaction,
   getHubFromCarrier,
   getCurrentHub,
@@ -64,6 +65,7 @@ export {
   // eslint-disable-next-line deprecation/deprecation
   trace,
   withScope,
+  withIsolationScope,
   captureCheckIn,
   withMonitor,
   setMeasurement,
@@ -85,7 +87,14 @@ export { defaultIntegrations, init, defaultStackParser, getSentryRelease } from 
 export { addRequestDataToEvent, DEFAULT_USER_INCLUDES, extractRequestData, parameterize } from '@sentry/utils';
 // eslint-disable-next-line deprecation/deprecation
 export { deepReadDirSync } from './utils';
-export { getModuleFromFilename } from './module';
+
+import { createGetModuleFromFilename } from './module';
+/**
+ * @deprecated use `createGetModuleFromFilename` instead.
+ */
+export const getModuleFromFilename = createGetModuleFromFilename();
+export { createGetModuleFromFilename };
+
 // eslint-disable-next-line deprecation/deprecation
 export { enableAnrDetection } from './integrations/anr/legacy';
 
@@ -124,9 +133,11 @@ export { hapiErrorPlugin } from './integrations/hapi';
 
 import { instrumentCron } from './cron/cron';
 import { instrumentNodeCron } from './cron/node-cron';
+import { instrumentNodeSchedule } from './cron/node-schedule';
 
 /** Methods to instrument cron libraries for Sentry check-ins */
 export const cron = {
   instrumentCron,
   instrumentNodeCron,
+  instrumentNodeSchedule,
 };

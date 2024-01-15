@@ -1,5 +1,5 @@
 import { beforeAll, beforeEach, describe, expect, test } from 'bun:test';
-import { Hub, makeMain } from '@sentry/core';
+import { Hub, getDynamicSamplingContextFromSpan, makeMain, spanIsSampled, spanToJSON } from '@sentry/core';
 
 import { BunClient } from '../../src/client';
 import { instrumentBunServe } from '../../src/integrations/bunserver';
@@ -26,11 +26,12 @@ describe('Bun Serve Integration', () => {
   test('generates a transaction around a request', async () => {
     client.on('finishTransaction', transaction => {
       expect(transaction.status).toBe('ok');
+      // eslint-disable-next-line deprecation/deprecation
       expect(transaction.tags).toEqual({
         'http.status_code': '200',
       });
       expect(transaction.op).toEqual('http.server');
-      expect(transaction.name).toEqual('GET /');
+      expect(spanToJSON(transaction).description).toEqual('GET /');
     });
 
     const server = Bun.serve({
@@ -48,11 +49,12 @@ describe('Bun Serve Integration', () => {
   test('generates a post transaction', async () => {
     client.on('finishTransaction', transaction => {
       expect(transaction.status).toBe('ok');
+      // eslint-disable-next-line deprecation/deprecation
       expect(transaction.tags).toEqual({
         'http.status_code': '200',
       });
       expect(transaction.op).toEqual('http.server');
-      expect(transaction.name).toEqual('POST /');
+      expect(spanToJSON(transaction).description).toEqual('POST /');
     });
 
     const server = Bun.serve({
@@ -78,11 +80,18 @@ describe('Bun Serve Integration', () => {
     const SENTRY_BAGGAGE_HEADER = 'sentry-version=1.0,sentry-environment=production';
 
     client.on('finishTransaction', transaction => {
-      expect(transaction.traceId).toBe(TRACE_ID);
+      expect(transaction.spanContext().traceId).toBe(TRACE_ID);
       expect(transaction.parentSpanId).toBe(PARENT_SPAN_ID);
-      expect(transaction.isRecording()).toBe(true);
+      expect(spanIsSampled(transaction)).toBe(true);
+      // span.endTimestamp is already set in `finishTransaction` hook
+      expect(transaction.isRecording()).toBe(false);
 
+      // eslint-disable-next-line deprecation/deprecation
       expect(transaction.metadata?.dynamicSamplingContext).toStrictEqual({ version: '1.0', environment: 'production' });
+      expect(getDynamicSamplingContextFromSpan(transaction)).toStrictEqual({
+        version: '1.0',
+        environment: 'production',
+      });
     });
 
     const server = Bun.serve({

@@ -2,7 +2,14 @@ import type { Context } from '@opentelemetry/api';
 import { SpanKind, context, trace } from '@opentelemetry/api';
 import { suppressTracing } from '@opentelemetry/core';
 import type { Span as OtelSpan, SpanProcessor as OtelSpanProcessor } from '@opentelemetry/sdk-trace-base';
-import { Transaction, addEventProcessor, addTracingExtensions, getClient, getCurrentHub } from '@sentry/core';
+import {
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  Transaction,
+  addEventProcessor,
+  addTracingExtensions,
+  getClient,
+  getCurrentHub,
+} from '@sentry/core';
 import type { DynamicSamplingContext, Span as SentrySpan, TraceparentData, TransactionContext } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
@@ -56,6 +63,7 @@ export class SentrySpanProcessor implements OtelSpanProcessor {
     const sentryParentSpan = otelParentSpanId && getSentrySpan(otelParentSpanId);
 
     if (sentryParentSpan) {
+      // eslint-disable-next-line deprecation/deprecation
       const sentryChildSpan = sentryParentSpan.startChild({
         description: otelSpan.name,
         instrumenter: 'otel',
@@ -186,39 +194,35 @@ function updateSpanWithOtelData(sentrySpan: SentrySpan, otelSpan: OtelSpan): voi
   const { op, description, data } = parseOtelSpanDescription(otelSpan);
 
   sentrySpan.setStatus(mapOtelStatus(otelSpan));
-  sentrySpan.setData('otel.kind', SpanKind[kind]);
 
-  const allData = { ...attributes, ...data };
-
-  Object.keys(allData).forEach(prop => {
-    const value = allData[prop];
-    sentrySpan.setData(prop, value);
-  });
+  const allData = {
+    ...attributes,
+    ...data,
+    'otel.kind': SpanKind[kind],
+  };
+  sentrySpan.setAttributes(allData);
 
   sentrySpan.op = op;
-  sentrySpan.description = description;
+  sentrySpan.updateName(description);
 }
 
 function updateTransactionWithOtelData(transaction: Transaction, otelSpan: OtelSpan): void {
   const { op, description, source, data } = parseOtelSpanDescription(otelSpan);
 
+  // eslint-disable-next-line deprecation/deprecation
   transaction.setContext('otel', {
     attributes: otelSpan.attributes,
     resource: otelSpan.resource.attributes,
   });
 
   const allData = data || {};
-
-  Object.keys(allData).forEach(prop => {
-    const value = allData[prop];
-    transaction.setData(prop, value);
-  });
+  transaction.setAttributes(allData);
 
   transaction.setStatus(mapOtelStatus(otelSpan));
 
   transaction.op = op;
   transaction.updateName(description);
-  transaction.setMetadata({ source });
+  transaction.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, source);
 }
 
 function convertOtelTimeToSeconds([seconds, nano]: [number, number]): number {

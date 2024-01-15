@@ -104,7 +104,9 @@ export class Postgres implements LazyLoadedIntegration<PGModule> {
      */
     fill(Client.prototype, 'query', function (orig: PgClientQuery) {
       return function (this: PgClientThis, config: unknown, values: unknown, callback: unknown) {
+        // eslint-disable-next-line deprecation/deprecation
         const scope = getCurrentHub().getScope();
+        // eslint-disable-next-line deprecation/deprecation
         const parentSpan = scope.getSpan();
 
         const data: Record<string, string | number> = {
@@ -128,6 +130,7 @@ export class Postgres implements LazyLoadedIntegration<PGModule> {
           // ignore
         }
 
+        // eslint-disable-next-line deprecation/deprecation
         const span = parentSpan?.startChild({
           description: typeof config === 'string' ? config : (config as { text: string }).text,
           op: 'db',

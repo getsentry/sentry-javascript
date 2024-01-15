@@ -3,10 +3,17 @@ import { vi } from 'vitest';
 
 import { getTracingMetaTags, isValidBaggageString } from '../../src/server/meta';
 
+const TRACE_FLAG_SAMPLED = 0x1;
+
 const mockedSpan = {
   isRecording: () => true,
-  traceId: '12345678901234567890123456789012',
-  spanId: '1234567890123456',
+  spanContext: () => {
+    return {
+      traceId: '12345678901234567890123456789012',
+      spanId: '1234567890123456',
+      traceFlags: TRACE_FLAG_SAMPLED,
+    };
+  },
   transaction: {
     getDynamicSamplingContext: () => ({
       environment: 'production',
@@ -25,6 +32,10 @@ const mockedScope = {
 describe('getTracingMetaTags', () => {
   it('returns the tracing tags from the span, if it is provided', () => {
     {
+      vi.spyOn(SentryCore, 'getDynamicSamplingContextFromSpan').mockReturnValueOnce({
+        environment: 'production',
+      });
+
       const tags = getTracingMetaTags(mockedSpan, mockedScope, mockedClient);
 
       expect(tags).toEqual({
@@ -71,8 +82,13 @@ describe('getTracingMetaTags', () => {
       // @ts-expect-error - only passing a partial span object
       {
         isRecording: () => true,
-        traceId: '12345678901234567890123456789012',
-        spanId: '1234567890123456',
+        spanContext: () => {
+          return {
+            traceId: '12345678901234567890123456789012',
+            spanId: '1234567890123456',
+            traceFlags: TRACE_FLAG_SAMPLED,
+          };
+        },
         transaction: undefined,
       },
       mockedScope,
@@ -84,7 +100,7 @@ describe('getTracingMetaTags', () => {
     });
   });
 
-  it('returns only the `sentry-trace` tag if no DSC is available', () => {
+  it('returns only the `sentry-trace` tag if no DSC is available without a client', () => {
     vi.spyOn(SentryCore, 'getDynamicSamplingContextFromClient').mockReturnValueOnce({
       trace_id: '',
       public_key: undefined,
@@ -94,8 +110,13 @@ describe('getTracingMetaTags', () => {
       // @ts-expect-error - only passing a partial span object
       {
         isRecording: () => true,
-        traceId: '12345678901234567890123456789012',
-        spanId: '1234567890123456',
+        spanContext: () => {
+          return {
+            traceId: '12345678901234567890123456789012',
+            spanId: '1234567890123456',
+            traceFlags: TRACE_FLAG_SAMPLED,
+          };
+        },
         transaction: undefined,
       },
       mockedScope,

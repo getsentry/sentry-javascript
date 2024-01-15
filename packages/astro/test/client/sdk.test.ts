@@ -1,6 +1,7 @@
 import type { BrowserClient } from '@sentry/browser';
+import { getCurrentScope } from '@sentry/browser';
 import * as SentryBrowser from '@sentry/browser';
-import { BrowserTracing, SDK_VERSION, WINDOW, getClient, getCurrentHub } from '@sentry/browser';
+import { BrowserTracing, SDK_VERSION, WINDOW, getClient } from '@sentry/browser';
 import { vi } from 'vitest';
 
 import { init } from '../../../astro/src/client/sdk';
@@ -37,7 +38,7 @@ describe('Sentry client SDK', () => {
     });
 
     it('sets the runtime tag on the scope', () => {
-      const currentScope = getCurrentHub().getScope();
+      const currentScope = getCurrentScope();
 
       // @ts-expect-error need access to protected _tags attribute
       expect(currentScope._tags).toEqual({});
@@ -60,7 +61,7 @@ describe('Sentry client SDK', () => {
         });
 
         const integrationsToInit = browserInit.mock.calls[0][0]?.integrations;
-        const browserTracing = getClient<BrowserClient>()?.getIntegrationById('BrowserTracing');
+        const browserTracing = getClient<BrowserClient>()?.getIntegrationByName('BrowserTracing');
 
         expect(integrationsToInit).toContainEqual(expect.objectContaining({ name: 'BrowserTracing' }));
         expect(browserTracing).toBeDefined();
@@ -76,7 +77,7 @@ describe('Sentry client SDK', () => {
         });
 
         const integrationsToInit = browserInit.mock.calls[0][0]?.integrations;
-        const browserTracing = getClient<BrowserClient>()?.getIntegrationById('BrowserTracing');
+        const browserTracing = getClient<BrowserClient>()?.getIntegrationByName('BrowserTracing');
 
         expect(integrationsToInit).not.toContainEqual(expect.objectContaining({ name: 'BrowserTracing' }));
         expect(browserTracing).toBeUndefined();
@@ -91,7 +92,7 @@ describe('Sentry client SDK', () => {
         });
 
         const integrationsToInit = browserInit.mock.calls[0][0]?.integrations;
-        const browserTracing = getClient<BrowserClient>()?.getIntegrationById('BrowserTracing');
+        const browserTracing = getClient<BrowserClient>()?.getIntegrationByName('BrowserTracing');
 
         expect(integrationsToInit).not.toContainEqual(expect.objectContaining({ name: 'BrowserTracing' }));
         expect(browserTracing).toBeUndefined();
@@ -108,7 +109,7 @@ describe('Sentry client SDK', () => {
 
         const integrationsToInit = browserInit.mock.calls[0][0]?.integrations;
 
-        const browserTracing = getClient<BrowserClient>()?.getIntegrationById('BrowserTracing') as BrowserTracing;
+        const browserTracing = getClient<BrowserClient>()?.getIntegrationByName('BrowserTracing') as BrowserTracing;
         const options = browserTracing.options;
 
         expect(integrationsToInit).toContainEqual(expect.objectContaining({ name: 'BrowserTracing' }));

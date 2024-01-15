@@ -7,11 +7,15 @@ test('should auto-instrument `mysql` package when using query without callback',
   expect(envelope).toHaveLength(3);
 
   assertSentryTransaction(envelope[2], {
-    transaction: 'Test Transaction',
-    tags: {
-      result_done: 'yes',
-      result_done2: 'yes',
+    contexts: {
+      trace: {
+        data: {
+          result_done: 'yes',
+          result_done2: 'yes',
+        },
+      },
     },
+    transaction: 'Test Transaction',
     spans: [
       {
         description: 'SELECT 1 + 1 AS solution',

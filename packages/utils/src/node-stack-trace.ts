@@ -35,7 +35,7 @@ export function filenameIsInApp(filename: string, isNative: boolean = false): bo
       // It's not internal if it's an absolute linux path
       !filename.startsWith('/') &&
       // It's not internal if it's an absolute windows path
-      !filename.includes(':\\') &&
+      !filename.match(/^[A-Z]:/) &&
       // It's not internal if the path is starting with a dot
       !filename.startsWith('.') &&
       // It's not internal if the frame has a protocol. In node, this is usually the case if the file got pre-processed with a bundler like webpack
@@ -102,6 +102,11 @@ export function node(getModule?: GetModuleFn): StackLineParserFn {
 
       let filename = lineMatch[2] && lineMatch[2].startsWith('file://') ? lineMatch[2].slice(7) : lineMatch[2];
       const isNative = lineMatch[5] === 'native';
+
+      // If it's a Windows path, trim the leading slash so that `/C:/foo` becomes `C:/foo`
+      if (filename && filename.match(/\/[A-Z]:/)) {
+        filename = filename.slice(1);
+      }
 
       if (!filename && lineMatch[5] && !isNative) {
         filename = lineMatch[5];

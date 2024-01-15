@@ -2,7 +2,9 @@ import type { Options, SamplingContext } from '@sentry/types';
 import { isNaN, logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../debug-build';
+import { SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE } from '../semanticAttributes';
 import { hasTracingEnabled } from '../utils/hasTracingEnabled';
+import { spanToJSON } from '../utils/spanUtils';
 import type { Transaction } from './transaction';
 
 /**
@@ -29,10 +31,8 @@ export function sampleTransaction<T extends Transaction>(
   // if the user has forced a sampling decision by passing a `sampled` value in their transaction context, go with that
   // eslint-disable-next-line deprecation/deprecation
   if (transaction.sampled !== undefined) {
-    transaction.setMetadata({
-      // eslint-disable-next-line deprecation/deprecation
-      sampleRate: Number(transaction.sampled),
-    });
+    // eslint-disable-next-line deprecation/deprecation
+    transaction.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE, Number(transaction.sampled));
     return transaction;
   }
 
@@ -41,22 +41,16 @@ export function sampleTransaction<T extends Transaction>(
   let sampleRate;
   if (typeof options.tracesSampler === 'function') {
     sampleRate = options.tracesSampler(samplingContext);
-    transaction.setMetadata({
-      sampleRate: Number(sampleRate),
-    });
+    transaction.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE, Number(sampleRate));
   } else if (samplingContext.parentSampled !== undefined) {
     sampleRate = samplingContext.parentSampled;
   } else if (typeof options.tracesSampleRate !== 'undefined') {
     sampleRate = options.tracesSampleRate;
-    transaction.setMetadata({
-      sampleRate: Number(sampleRate),
-    });
+    transaction.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE, Number(sampleRate));
   } else {
     // When `enableTracing === true`, we use a sample rate of 100%
     sampleRate = 1;
-    transaction.setMetadata({
-      sampleRate,
-    });
+    transaction.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE, sampleRate);
   }
 
   // Since this is coming from the user (or from a function provided by the user), who knows what we might get. (The
@@ -100,7 +94,8 @@ export function sampleTransaction<T extends Transaction>(
     return transaction;
   }
 
-  DEBUG_BUILD && logger.log(`[Tracing] starting ${transaction.op} transaction - ${transaction.name}`);
+  DEBUG_BUILD &&
+    logger.log(`[Tracing] starting ${transaction.op} transaction - ${spanToJSON(transaction).description}`);
   return transaction;
 }
 

@@ -1,6 +1,13 @@
 /* eslint-disable max-lines */
 import type { Hub, IdleTransaction } from '@sentry/core';
-import { TRACING_DEFAULTS, addTracingExtensions, getActiveTransaction, startIdleTransaction } from '@sentry/core';
+import {
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  TRACING_DEFAULTS,
+  addTracingExtensions,
+  getActiveTransaction,
+  spanIsSampled,
+  startIdleTransaction,
+} from '@sentry/core';
 import type { EventProcessor, Integration, Transaction, TransactionContext, TransactionSource } from '@sentry/types';
 import { getDomElement, logger, tracingContextFromHeaders } from '@sentry/utils';
 
@@ -223,6 +230,7 @@ export class BrowserTracing implements Integration {
   public setupOnce(_: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
     this._getCurrentHub = getCurrentHub;
     const hub = getCurrentHub();
+    // eslint-disable-next-line deprecation/deprecation
     const client = hub.getClient();
     const clientOptions = client && client.getOptions();
 
@@ -312,6 +320,7 @@ export class BrowserTracing implements Integration {
       ...context,
       ...traceparentData,
       metadata: {
+        // eslint-disable-next-line deprecation/deprecation
         ...context.metadata,
         dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
       },
@@ -325,13 +334,22 @@ export class BrowserTracing implements Integration {
     const finalContext = modifiedContext === undefined ? { ...expandedContext, sampled: false } : modifiedContext;
 
     // If `beforeNavigate` set a custom name, record that fact
+    // eslint-disable-next-line deprecation/deprecation
     finalContext.metadata =
       finalContext.name !== expandedContext.name
-        ? { ...finalContext.metadata, source: 'custom' }
-        : finalContext.metadata;
+        ? // eslint-disable-next-line deprecation/deprecation
+          { ...finalContext.metadata, source: 'custom' }
+        : // eslint-disable-next-line deprecation/deprecation
+          finalContext.metadata;
 
     this._latestRouteName = finalContext.name;
-    this._latestRouteSource = finalContext.metadata && finalContext.metadata.source;
+
+    // eslint-disable-next-line deprecation/deprecation
+    const sourceFromData = context.data && context.data[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE];
+    // eslint-disable-next-line deprecation/deprecation
+    const sourceFromMetadata = finalContext.metadata && finalContext.metadata.source;
+
+    this._latestRouteSource = sourceFromData || sourceFromMetadata;
 
     // eslint-disable-next-line deprecation/deprecation
     if (finalContext.sampled === false) {
@@ -352,6 +370,7 @@ export class BrowserTracing implements Integration {
       heartbeatInterval,
     );
 
+    // eslint-disable-next-line deprecation/deprecation
     const scope = hub.getScope();
 
     // If it's a pageload and there is a meta tag set
@@ -362,10 +381,10 @@ export class BrowserTracing implements Integration {
       // Navigation transactions should set a new propagation context based on the
       // created idle transaction.
       scope.setPropagationContext({
-        traceId: idleTransaction.traceId,
-        spanId: idleTransaction.spanId,
+        traceId: idleTransaction.spanContext().traceId,
+        spanId: idleTransaction.spanContext().spanId,
         parentSpanId: idleTransaction.parentSpanId,
-        sampled: idleTransaction.sampled,
+        sampled: spanIsSampled(idleTransaction),
       });
     }
 
@@ -384,6 +403,7 @@ export class BrowserTracing implements Integration {
       const { idleTimeout, finalTimeout, heartbeatInterval } = this.options;
       const op = 'ui.action.click';
 
+      // eslint-disable-next-line deprecation/deprecation
       const currentTransaction = getActiveTransaction();
       if (currentTransaction && currentTransaction.op && ['navigation', 'pageload'].includes(currentTransaction.op)) {
         DEBUG_BUILD &&
@@ -416,8 +436,8 @@ export class BrowserTracing implements Integration {
         name: this._latestRouteName,
         op,
         trimEnd: true,
-        metadata: {
-          source: this._latestRouteSource || 'url',
+        data: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: this._latestRouteSource || 'url',
         },
       };
 

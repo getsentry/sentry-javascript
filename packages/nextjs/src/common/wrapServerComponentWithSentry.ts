@@ -1,4 +1,5 @@
 import {
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   addTracingExtensions,
   captureException,
   continueTrace,
@@ -61,12 +62,15 @@ export function wrapServerComponentWithSentry<F extends (...args: any[]) => any>
             name: `${componentType} Server Component (${componentRoute})`,
             status: 'ok',
             origin: 'auto.function.nextjs',
+            attributes: {
+              [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
+            },
             metadata: {
+              // eslint-disable-next-line deprecation/deprecation
               ...transactionContext.metadata,
               request: {
                 headers: completeHeadersDict,
               },
-              source: 'component',
             },
           },
           span => {

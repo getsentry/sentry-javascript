@@ -1,6 +1,6 @@
 import type { Attributes, Span as WriteableSpan, SpanKind, TimeInput, Tracer } from '@opentelemetry/api';
 import type { BasicTracerProvider, ReadableSpan, Span } from '@opentelemetry/sdk-trace-base';
-import type { SpanOrigin, TransactionMetadata, TransactionSource } from '@sentry/types';
+import type { Scope, SpanOrigin, TransactionMetadata, TransactionSource } from '@sentry/types';
 
 export interface OpenTelemetryClient {
   tracer: Tracer;
@@ -13,6 +13,7 @@ export interface OpenTelemetrySpanContext {
   metadata?: Partial<TransactionMetadata>;
   origin?: SpanOrigin;
   source?: TransactionSource;
+  scope?: Scope;
 
   // Base SpanOptions we support
   attributes?: Attributes;

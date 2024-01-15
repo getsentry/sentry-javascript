@@ -27,7 +27,7 @@ sentryTest('should handle custom added Replay integration', async ({ getLocalTes
   expect(eventData.segment_id).toBe(0);
 
   const useCompression = await page.evaluate(() => {
-    const replay = (window as any).Sentry.getCurrentHub().getClient().getIntegrationById('Replay');
+    const replay = (window as any).Sentry.getClient().getIntegrationByName('Replay');
     return replay._replay.getOptions().useCompression;
   });
 

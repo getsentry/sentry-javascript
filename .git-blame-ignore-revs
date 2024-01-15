@@ -9,3 +9,6 @@
 
 # chore: Rename `integration-tests` -> `browser-integration-tests` (#7455)
 ef6b3c7877d5fc8031c08bb28b0ffafaeb01f501
+
+# chore: Enforce formatting of MD files in repository root #10127
+aecf26f22dbf65ce2c0caadc4ce71b46266c9f45

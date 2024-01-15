@@ -1,4 +1,4 @@
-import { getCurrentHub } from '@sentry/core';
+import { getCurrentScope } from '@sentry/core';
 
 import * as HandleScope from '../../../src/coreHandlers/handleScope';
 import { mockSdk } from './../../index';
@@ -22,7 +22,7 @@ describe('Integration | coreHandlers | handleScope', () => {
 
     expect(mockHandleScopeListener).toHaveBeenCalledTimes(1);
 
-    getCurrentHub().getScope().addBreadcrumb({ category: 'console', message: 'testing' });
+    getCurrentScope().addBreadcrumb({ category: 'console', message: 'testing' });
 
     expect(mockHandleScope).toHaveBeenCalledTimes(1);
     expect(mockHandleScope).toHaveReturnedWith(expect.objectContaining({ category: 'console', message: 'testing' }));
@@ -31,7 +31,7 @@ describe('Integration | coreHandlers | handleScope', () => {
 
     // This will trigger breadcrumb/scope listener, but handleScope should return
     // null because breadcrumbs has not changed
-    getCurrentHub().getScope().setUser({ email: 'foo@foo.com' });
+    getCurrentScope().setUser({ email: 'foo@foo.com' });
     expect(mockHandleScope).toHaveBeenCalledTimes(1);
     expect(mockHandleScope).toHaveReturnedWith(null);
   });

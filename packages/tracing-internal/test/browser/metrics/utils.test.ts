@@ -1,8 +1,10 @@
+import { spanToJSON } from '@sentry/core';
 import { Span, Transaction } from '../../../src';
 import { _startChild } from '../../../src/browser/metrics/utils';
 
 describe('_startChild()', () => {
   it('creates a span with given properties', () => {
+    // eslint-disable-next-line deprecation/deprecation
     const transaction = new Transaction({ name: 'test' });
     const span = _startChild(transaction, {
       description: 'evaluation',
@@ -10,11 +12,12 @@ describe('_startChild()', () => {
     });
 
     expect(span).toBeInstanceOf(Span);
-    expect(span.description).toBe('evaluation');
+    expect(spanToJSON(span).description).toBe('evaluation');
     expect(span.op).toBe('script');
   });
 
   it('adjusts the start timestamp if child span starts before transaction', () => {
+    // eslint-disable-next-line deprecation/deprecation
     const transaction = new Transaction({ name: 'test', startTimestamp: 123 });
     const span = _startChild(transaction, {
       description: 'script.js',
@@ -27,6 +30,7 @@ describe('_startChild()', () => {
   });
 
   it('does not adjust start timestamp if child span starts after transaction', () => {
+    // eslint-disable-next-line deprecation/deprecation
     const transaction = new Transaction({ name: 'test', startTimestamp: 123 });
     const span = _startChild(transaction, {
       description: 'script.js',

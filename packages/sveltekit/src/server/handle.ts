@@ -1,4 +1,4 @@
-import { getCurrentScope, spanToTraceHeader } from '@sentry/core';
+import { getActiveSpan, getCurrentScope, getDynamicSamplingContextFromSpan, spanToTraceHeader } from '@sentry/core';
 import { getActiveTransaction, runWithAsyncContext, startSpan } from '@sentry/core';
 import { captureException } from '@sentry/node';
 /* eslint-disable @sentry-internal/sdk/no-optional-chaining */
@@ -95,11 +95,12 @@ export function addSentryCodeToPage(options: SentryHandleOptions): NonNullable<R
   const nonce = fetchProxyScriptNonce ? `nonce="${fetchProxyScriptNonce}"` : '';
 
   return ({ html }) => {
+    // eslint-disable-next-line deprecation/deprecation
     const transaction = getActiveTransaction();
     if (transaction) {
       const traceparentData = spanToTraceHeader(transaction);
       const dynamicSamplingContext = dynamicSamplingContextToSentryBaggageHeader(
-        transaction.getDynamicSamplingContext(),
+        getDynamicSamplingContextFromSpan(transaction),
       );
       const contentMeta = `<head>
     <meta name="sentry-trace" content="${traceparentData}"/>
@@ -142,7 +143,7 @@ export function sentryHandle(handlerOptions?: SentryHandleOptions): Handle {
     // if there is an active transaction, we know that this handle call is nested and hence
     // we don't create a new domain for it. If we created one, nested server calls would
     // create new transactions instead of adding a child span to the currently active span.
-    if (getCurrentScope().getSpan()) {
+    if (getActiveSpan()) {
       return instrumentHandle(input, options);
     }
     return runWithAsyncContext(() => {

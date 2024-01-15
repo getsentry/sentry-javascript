@@ -4,7 +4,8 @@ import { addBreadcrumb, setTag } from '@sentry/core';
 import type { PropagationContext, TransactionEvent } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
-import { getCurrentHub } from '../../src/custom/hub';
+import { spanToJSON } from '@sentry/core';
+import { getClient } from '../../src/custom/hub';
 import { SentrySpanProcessor } from '../../src/spanProcessor';
 import { startInactiveSpan, startSpan } from '../../src/trace';
 import { setPropagationContextOnContext } from '../../src/utils/contextData';
@@ -22,8 +23,7 @@ describe('Integration | Transactions', () => {
 
     mockSdkInit({ enableTracing: true, beforeSendTransaction });
 
-    const hub = getCurrentHub();
-    const client = hub.getClient() as TestClientInterface;
+    const client = getClient() as TestClientInterface;
 
     addBreadcrumb({ message: 'test breadcrumb 1', timestamp: 123456 });
     setTag('outer.tag', 'test value');
@@ -142,7 +142,7 @@ describe('Integration | Transactions', () => {
 
     // note: Currently, spans do not have any context/span added to them
     // This is the same behavior as for the "regular" SDKs
-    expect(spans.map(span => span.toJSON())).toEqual([
+    expect(spans.map(span => spanToJSON(span))).toEqual([
       {
         data: { 'otel.kind': 'INTERNAL' },
         description: 'inner span 1',
@@ -173,8 +173,7 @@ describe('Integration | Transactions', () => {
 
     mockSdkInit({ enableTracing: true, beforeSendTransaction });
 
-    const hub = getCurrentHub();
-    const client = hub.getClient() as TestClientInterface;
+    const client = getClient() as TestClientInterface;
 
     addBreadcrumb({ message: 'test breadcrumb 1', timestamp: 123456 });
 
@@ -331,8 +330,7 @@ describe('Integration | Transactions', () => {
 
     mockSdkInit({ enableTracing: true, beforeSendTransaction });
 
-    const hub = getCurrentHub();
-    const client = hub.getClient() as TestClientInterface;
+    const client = getClient() as TestClientInterface;
 
     // We simulate the correct context we'd normally get from the SentryPropagator
     context.with(
@@ -393,7 +391,7 @@ describe('Integration | Transactions', () => {
 
     // note: Currently, spans do not have any context/span added to them
     // This is the same behavior as for the "regular" SDKs
-    expect(spans.map(span => span.toJSON())).toEqual([
+    expect(spans.map(span => spanToJSON(span))).toEqual([
       {
         data: { 'otel.kind': 'INTERNAL' },
         description: 'inner span 1',
@@ -431,8 +429,7 @@ describe('Integration | Transactions', () => {
 
     mockSdkInit({ enableTracing: true, beforeSendTransaction });
 
-    const hub = getCurrentHub();
-    const client = hub.getClient() as TestClientInterface;
+    const client = getClient() as TestClientInterface;
     const provider = getProvider();
     const multiSpanProcessor = provider?.activeSpanProcessor as
       | (SpanProcessor & { _spanProcessors?: SpanProcessor[] })

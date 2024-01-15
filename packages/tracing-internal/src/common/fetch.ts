@@ -1,7 +1,10 @@
 import {
+  getActiveSpan,
   getClient,
   getCurrentScope,
   getDynamicSamplingContextFromClient,
+  getDynamicSamplingContextFromSpan,
+  getRootSpan,
   hasTracingEnabled,
   spanToTraceHeader,
 } from '@sentry/core';
@@ -57,7 +60,7 @@ export function instrumentFetchRequest(
         if (contentLength) {
           const contentLengthNum = parseInt(contentLength);
           if (contentLengthNum > 0) {
-            span.setData('http.response_content_length', contentLengthNum);
+            span.setAttribute('http.response_content_length', contentLengthNum);
           }
         }
       } else if (handlerData.error) {
@@ -73,13 +76,14 @@ export function instrumentFetchRequest(
 
   const scope = getCurrentScope();
   const client = getClient();
-  const parentSpan = scope.getSpan();
+  const parentSpan = getActiveSpan();
 
   const { method, url } = handlerData.fetchData;
 
   const span =
     shouldCreateSpanResult && parentSpan
-      ? parentSpan.startChild({
+      ? // eslint-disable-next-line deprecation/deprecation
+        parentSpan.startChild({
           data: {
             url,
             type: 'fetch',
@@ -92,8 +96,8 @@ export function instrumentFetchRequest(
       : undefined;
 
   if (span) {
-    handlerData.fetchData.__span = span.spanId;
-    spans[span.spanId] = span;
+    handlerData.fetchData.__span = span.spanContext().spanId;
+    spans[span.spanContext().spanId] = span;
   }
 
   if (shouldAttachHeaders(handlerData.fetchData.url) && client) {
@@ -128,15 +132,16 @@ export function addTracingHeadersToFetchRequest(
   },
   requestSpan?: Span,
 ): PolymorphicRequestHeaders | undefined {
+  // eslint-disable-next-line deprecation/deprecation
   const span = requestSpan || scope.getSpan();
 
-  const transaction = span && span.transaction;
+  const transaction = span && getRootSpan(span);
 
   const { traceId, sampled, dsc } = scope.getPropagationContext();
 
   const sentryTraceHeader = span ? spanToTraceHeader(span) : generateSentryTraceHeader(traceId, undefined, sampled);
   const dynamicSamplingContext = transaction
-    ? transaction.getDynamicSamplingContext()
+    ? getDynamicSamplingContextFromSpan(transaction)
     : dsc
       ? dsc
       : getDynamicSamplingContextFromClient(traceId, client, scope);
@@ -144,7 +149,8 @@ export function addTracingHeadersToFetchRequest(
   const sentryBaggageHeader = dynamicSamplingContextToSentryBaggageHeader(dynamicSamplingContext);
 
   const headers =
-    typeof Request !== 'undefined' && isInstanceOf(request, Request) ? (request as Request).headers : options.headers;
+    options.headers ||
+    (typeof Request !== 'undefined' && isInstanceOf(request, Request) ? (request as Request).headers : undefined);
 
   if (!headers) {
     return { 'sentry-trace': sentryTraceHeader, baggage: sentryBaggageHeader };

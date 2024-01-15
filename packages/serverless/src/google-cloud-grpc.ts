@@ -109,8 +109,10 @@ function fillGrpcFunction(stub: Stub, serviceIdentifier: string, methodName: str
         }
         let span: Span | undefined;
         const scope = getCurrentScope();
+        // eslint-disable-next-line deprecation/deprecation
         const transaction = scope.getTransaction();
         if (transaction) {
+          // eslint-disable-next-line deprecation/deprecation
           span = transaction.startChild({
             description: `${callType} ${methodName}`,
             op: `grpc.${serviceIdentifier}`,
