@@ -270,25 +270,27 @@ sentryTest('captures request headers as Headers instance', async ({ getLocalTest
   const replayRequestPromise1 = waitForReplayRequest(page, 0);
 
   const url = await getLocalTestPath({ testDir: __dirname });
-  await page.goto(url);
 
-  await page.evaluate(() => {
-    const headers = new Headers();
-    headers.append('Accept', 'application/json');
-    headers.append('Content-Type', 'application/json');
-    headers.append('Cache', 'no-cache');
-    headers.append('X-Custom-Header', 'foo');
+  await Promise.all([
+    page.goto(url),
+    page.evaluate(() => {
+      const headers = new Headers();
+      headers.append('Accept', 'application/json');
+      headers.append('Content-Type', 'application/json');
+      headers.append('Cache', 'no-cache');
+      headers.append('X-Custom-Header', 'foo');
 
-    /* eslint-disable */
-    fetch('http://localhost:7654/foo', {
-      method: 'POST',
-      headers,
-    }).then(() => {
-      // @ts-expect-error Sentry is a global
-      Sentry.captureException('test error');
-    });
-    /* eslint-enable */
-  });
+      /* eslint-disable */
+      fetch('http://localhost:7654/foo', {
+        method: 'POST',
+        headers,
+      }).then(() => {
+        // @ts-expect-error Sentry is a global
+        Sentry.captureException('test error');
+      });
+      /* eslint-enable */
+    }),
+  ]);
 
   const request = await requestPromise;
   const eventData = envelopeRequestParser(request);

@@ -28,7 +28,7 @@ sentryTest('mutation after threshold results in slow click', async ({ forceFlush
       return breadcrumbs.some(breadcrumb => breadcrumb.category === 'ui.slowClickDetected');
     }),
 
-    page.click('#mutationButton'),
+    page.locator('#mutationButton').click(),
   ]);
 
   const { breadcrumbs } = getCustomRecordingEvents(req1);
@@ -86,7 +86,7 @@ sentryTest('multiple clicks are counted', async ({ getLocalTestUrl, page }) => {
 
       return breadcrumbs.some(breadcrumb => breadcrumb.category === 'ui.slowClickDetected');
     }),
-    page.click('#mutationButton', { clickCount: 4 }),
+    page.locator('#mutationButton').click({ clickCount: 4 }),
   ]);
 
   const { breadcrumbs } = getCustomRecordingEvents(req1);
@@ -156,7 +156,7 @@ sentryTest('immediate mutation does not trigger slow click', async ({ forceFlush
 
       return breadcrumbs.some(breadcrumb => breadcrumb.category === 'ui.click');
     }),
-    page.click('#mutationButtonImmediately'),
+    page.locator('#mutationButtonImmediately').click(),
   ]);
 
   const { breadcrumbs } = getCustomRecordingEvents(req1);
@@ -213,7 +213,7 @@ sentryTest('inline click handler does not trigger slow click', async ({ forceFlu
 
       return breadcrumbs.some(breadcrumb => breadcrumb.category === 'ui.click');
     }),
-    page.click('#mutationButtonInline'),
+    page.locator('#mutationButtonInline').click(),
   ]);
 
   const { breadcrumbs } = getCustomRecordingEvents(req1);
@@ -262,7 +262,7 @@ sentryTest('mouseDown events are considered', async ({ getLocalTestUrl, page }) 
 
       return breadcrumbs.some(breadcrumb => breadcrumb.category === 'ui.click');
     }),
-    page.click('#mouseDownButton'),
+    page.locator('#mouseDownButton').click(),
   ]);
 
   const { breadcrumbs } = getCustomRecordingEvents(req1);

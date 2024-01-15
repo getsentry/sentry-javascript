@@ -11,7 +11,7 @@ sentryTest('should finish pageload transaction when the page goes background', a
   const url = await getLocalTestPath({ testDir: __dirname });
 
   await page.goto(url);
-  await page.click('#go-background');
+  await page.locator('#go-background').click();
 
   const pageloadTransaction = await getFirstSentryEnvelopeRequest<Event>(page);
 

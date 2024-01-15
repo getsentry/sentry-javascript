@@ -73,8 +73,8 @@ window.Replay._replay.eventBuffer.addEvent = (...args) => {
 };
 `);
 
-    void page.click('#button1');
-    void page.click('#button2');
+    void page.locator('#button1').click();
+    void page.locator('#button2').click();
 
     // Should immediately skip retrying and just cancel, no backoff
     // This waitForTimeout call should be okay, as we're not checking for any

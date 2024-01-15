@@ -26,7 +26,7 @@ sentryTest('click is ignored on ignoreSelectors', async ({ getLocalTestUrl, page
 
       return breadcrumbs.some(breadcrumb => breadcrumb.category === 'ui.click');
     }),
-    page.click('#mutationIgnoreButton'),
+    page.locator('#mutationIgnoreButton').click(),
   ]);
 
   const { breadcrumbs } = getCustomRecordingEvents(req1);
@@ -77,7 +77,7 @@ sentryTest('click is ignored on div', async ({ getLocalTestUrl, page }) => {
       return breadcrumbs.some(breadcrumb => breadcrumb.category === 'ui.click');
     }),
 
-    await page.click('#mutationDiv'),
+    await page.locator('#mutationDiv').click(),
   ]);
 
   const { breadcrumbs } = getCustomRecordingEvents(req1);

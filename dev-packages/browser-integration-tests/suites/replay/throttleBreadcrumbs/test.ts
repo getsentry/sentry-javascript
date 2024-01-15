@@ -29,7 +29,7 @@ sentryTest(
     await forceFlushReplay();
     const res0 = getCustomRecordingEvents(await reqPromise0);
 
-    await page.click('[data-console]');
+    await page.locator('[data-console]').click();
     await forceFlushReplay();
 
     const res1 = getCustomRecordingEvents(await reqPromise1);

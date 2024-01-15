@@ -23,15 +23,16 @@ sentryTest('captures Breadcrumb for clicks & debounces them for a second', async
 
   await page.goto(url);
 
-  await page.click('#button1');
+  await page.locator('#button1').click();
+
   // not debounced because other target
-  await page.click('#button2');
+  await page.locator('#button2').click();
   // This should be debounced
-  await page.click('#button2');
+  await page.locator('#button2').click();
 
   // Wait a second for the debounce to finish
   await page.waitForTimeout(1000);
-  await page.click('#button2');
+  await page.locator('#button2').click();
 
   const [eventData] = await Promise.all([promise, page.evaluate('Sentry.captureException("test exception")')]);
 
@@ -76,7 +77,7 @@ sentryTest(
     const promise = getFirstSentryEnvelopeRequest<Event>(page);
 
     await page.goto(url);
-    await page.click('#annotated-button');
+    await page.locator('#annotated-button').click();
     await page.evaluate('Sentry.captureException("test exception")');
 
     const eventData = await promise;

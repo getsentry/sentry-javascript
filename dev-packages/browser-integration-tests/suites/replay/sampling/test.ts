@@ -22,7 +22,7 @@ sentryTest('should not send replays if both sample rates are 0', async ({ getLoc
   const url = await getLocalTestPath({ testDir: __dirname });
   await page.goto(url);
 
-  await page.click('button');
+  await page.locator('button').click();
 
   const replay = await getReplaySnapshot(page);
 

@@ -26,7 +26,7 @@ sentryTest('mutation after timeout results in slow click', async ({ getLocalTest
 
       return breadcrumbs.some(breadcrumb => breadcrumb.category === 'ui.slowClickDetected');
     }),
-    page.click('#mutationButtonLate'),
+    page.locator('#mutationButtonLate').click(),
   ]);
 
   const { breadcrumbs } = getCustomRecordingEvents(req1);
@@ -82,7 +82,7 @@ sentryTest('console.log results in slow click', async ({ getLocalTestUrl, page }
       return breadcrumbs.some(breadcrumb => breadcrumb.category === 'ui.slowClickDetected');
     }),
 
-    page.click('#consoleLogButton'),
+    page.locator('#consoleLogButton').click(),
   ]);
 
   const { breadcrumbs } = getCustomRecordingEvents(req1);

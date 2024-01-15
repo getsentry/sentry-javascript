@@ -26,7 +26,7 @@ sentryTest('immediate scroll does not trigger slow click', async ({ getLocalTest
 
       return breadcrumbs.some(breadcrumb => breadcrumb.category === 'ui.click');
     }),
-    page.click('#scrollButton'),
+    page.locator('#scrollButton').click(),
   ]);
 
   const { breadcrumbs } = getCustomRecordingEvents(req1);
@@ -75,7 +75,7 @@ sentryTest('late scroll triggers slow click', async ({ getLocalTestUrl, page }) 
 
       return breadcrumbs.some(breadcrumb => breadcrumb.category === 'ui.slowClickDetected');
     }),
-    page.click('#scrollLateButton'),
+    page.locator('#scrollLateButton').click(),
   ]);
 
   const { breadcrumbs } = getCustomRecordingEvents(req1);

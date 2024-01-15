@@ -31,7 +31,7 @@ sentryTest('slow click that triggers error is captured', async ({ getLocalTestUr
 
       return breadcrumbs.some(breadcrumb => breadcrumb.category === 'ui.slowClickDetected');
     }),
-    page.click('#buttonError'),
+    page.locator('#buttonError').click(),
   ]);
 
   const { breadcrumbs } = getCustomRecordingEvents(req0);
@@ -105,7 +105,7 @@ sentryTest(
 
         return breadcrumbs.some(breadcrumb => breadcrumb.category === 'ui.click');
       }),
-      page.click('#buttonErrorMutation'),
+      page.locator('#buttonErrorMutation').click(),
     ]);
 
     const { breadcrumbs } = getCustomRecordingEvents(req1);

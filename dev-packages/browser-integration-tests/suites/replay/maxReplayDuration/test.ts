@@ -28,7 +28,7 @@ sentryTest('keeps track of max duration across reloads', async ({ getLocalTestPa
 
   await new Promise(resolve => setTimeout(resolve, MAX_REPLAY_DURATION / 2));
 
-  await Promise.all([page.reload(), page.click('#button1')]);
+  await Promise.all([page.reload(), page.locator('#button1').click()]);
 
   // After the second reload, we should have a new session (because we exceeded max age)
   const reqPromise3 = waitForReplayRequest(page, 0);
@@ -38,7 +38,7 @@ sentryTest('keeps track of max duration across reloads', async ({ getLocalTestPa
   const [req0, req1] = await Promise.all([
     reqPromise0,
     reqPromise1,
-    page.click('#button1'),
+    page.locator('#button1').click(),
     page.evaluate(
       `Object.defineProperty(document, 'visibilityState', {
     configurable: true,

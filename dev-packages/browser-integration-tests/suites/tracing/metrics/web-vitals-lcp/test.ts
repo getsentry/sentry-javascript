@@ -18,7 +18,7 @@ sentryTest('should capture a LCP vital with element details.', async ({ browserN
   const [eventData] = await Promise.all([
     getFirstSentryEnvelopeRequest<Event>(page),
     page.goto(url),
-    page.click('button'),
+    page.locator('button').click(),
   ]);
 
   expect(eventData.measurements).toBeDefined();
