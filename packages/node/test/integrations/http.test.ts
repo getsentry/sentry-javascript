@@ -80,6 +80,7 @@ describe('tracing', () => {
     // our span is at index 1 because the transaction itself is at index 0
     expect(spanToJSON(spans[1]).description).toEqual('GET http://dogs.are.great/');
     expect(spans[1].op).toEqual('http.client');
+    expect(spanToJSON(spans[1]).op).toEqual('http.client');
   });
 
   it("doesn't create a span for outgoing sentry requests", () => {
@@ -283,7 +284,9 @@ describe('tracing', () => {
 
     // our span is at index 1 because the transaction itself is at index 0
     expect(spanToJSON(spans[1]).description).toEqual('GET http://dogs.are.great/spaniel');
+    // eslint-disable-next-line deprecation/deprecation
     expect(spans[1].op).toEqual('http.client');
+    expect(spanToJSON(spans[1]).op).toEqual('http.client');
 
     const spanAttributes = spanToJSON(spans[1]).data || {};
 
@@ -308,7 +311,9 @@ describe('tracing', () => {
 
     // our span is at index 1 because the transaction itself is at index 0
     expect(spanToJSON(spans[1]).description).toEqual('GET http://dogs.are.great/spaniel');
+    // eslint-disable-next-line deprecation/deprecation
     expect(spans[1].op).toEqual('http.client');
+    expect(spanToJSON(spans[1]).op).toEqual('http.client');
     expect(spanAttributes['http.method']).toEqual('GET');
     expect(spanAttributes.url).toEqual('http://dogs.are.great/spaniel');
     expect(spanAttributes['http.query']).toEqual('tail=wag&cute=true');
@@ -391,6 +396,7 @@ describe('tracing', () => {
         const request = http.get(url);
 
         // There should be no http spans
+        // eslint-disable-next-line deprecation/deprecation
         const httpSpans = spans.filter(span => span.op?.startsWith('http'));
         expect(httpSpans.length).toBe(0);
 
@@ -497,6 +503,7 @@ describe('tracing', () => {
         const request = http.get(url);
 
         // There should be no http spans
+        // eslint-disable-next-line deprecation/deprecation
         const httpSpans = spans.filter(span => span.op?.startsWith('http'));
         expect(httpSpans.length).toBe(0);
 

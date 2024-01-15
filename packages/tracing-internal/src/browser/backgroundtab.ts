@@ -2,6 +2,7 @@ import type { IdleTransaction, SpanStatusType } from '@sentry/core';
 import { getActiveTransaction, spanToJSON } from '@sentry/core';
 import { logger } from '@sentry/utils';
 
+import { spanToJSON } from '@sentry/core';
 import { DEBUG_BUILD } from '../common/debug-build';
 import { WINDOW } from './types';
 
@@ -19,7 +20,9 @@ export function registerBackgroundTabDetection(): void {
 
         DEBUG_BUILD &&
           logger.log(
-            `[Tracing] Transaction: ${statusType} -> since tab moved to the background, op: ${activeTransaction.op}`,
+            `[Tracing] Transaction: ${statusType} -> since tab moved to the background, op: ${
+              spanToJSON(activeTransaction).op
+            }`,
           );
         // We should not set status if it is already set, this prevent important statuses like
         // error or data loss from being overwritten on transaction.

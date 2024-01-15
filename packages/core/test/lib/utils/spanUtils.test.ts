@@ -87,6 +87,9 @@ describe('spanToJSON', () => {
       origin: 'auto',
       start_timestamp: 123,
       timestamp: 456,
+      data: {
+        'sentry.op': 'test op',
+      },
     });
   });
 

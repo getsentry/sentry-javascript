@@ -16,6 +16,7 @@ import type {
 import { dropUndefinedKeys, logger, timestampInSeconds, uuid4 } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../debug-build';
+import { SEMANTIC_ATTRIBUTE_SENTRY_OP } from '../semanticAttributes';
 import { getRootSpan } from '../utils/getRootSpan';
 import {
   TRACE_FLAG_NONE,
@@ -66,11 +67,6 @@ export class Span implements SpanInterface {
    * @inheritDoc
    */
   public parentSpanId?: string;
-
-  /**
-   * @inheritDoc
-   */
-  public op?: string;
 
   /**
    * Tags for the span.
@@ -158,7 +154,7 @@ export class Span implements SpanInterface {
       this._sampled = spanContext.sampled;
     }
     if (spanContext.op) {
-      this.op = spanContext.op;
+      this.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, spanContext.op);
     }
     if (spanContext.status) {
       this._status = spanContext.status;
@@ -315,6 +311,25 @@ export class Span implements SpanInterface {
    */
   public set status(status: SpanStatusType | string | undefined) {
     this._status = status;
+  }
+
+  /**
+   * Operation of the span
+   *
+   * @deprecated Use `spanToJSON().op` to read the op instead.
+   */
+  public get op(): string | undefined {
+    return this._attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP] as string | undefined;
+  }
+
+  /**
+   * Operation of the span
+   *
+   * @deprecated Use `startSpan()` functions to set or `span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'op')
+   *             to update the span instead.
+   */
+  public set op(op: string | undefined) {
+    this.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, op);
   }
 
   /* eslint-enable @typescript-eslint/member-ordering */
@@ -512,6 +527,7 @@ export class Span implements SpanInterface {
       data: this._getData(),
       description: this._name,
       endTimestamp: this._endTime,
+      // eslint-disable-next-line deprecation/deprecation
       op: this.op,
       parentSpanId: this.parentSpanId,
       sampled: this._sampled,
@@ -535,6 +551,7 @@ export class Span implements SpanInterface {
     // eslint-disable-next-line deprecation/deprecation
     this._name = spanContext.name || spanContext.description;
     this._endTime = spanContext.endTimestamp;
+    // eslint-disable-next-line deprecation/deprecation
     this.op = spanContext.op;
     this.parentSpanId = spanContext.parentSpanId;
     this._sampled = spanContext.sampled;
@@ -569,7 +586,7 @@ export class Span implements SpanInterface {
     return dropUndefinedKeys({
       data: this._getData(),
       description: this._name,
-      op: this.op,
+      op: this._attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP] as string | undefined,
       parent_span_id: this.parentSpanId,
       span_id: this._spanId,
       start_timestamp: this._startTime,

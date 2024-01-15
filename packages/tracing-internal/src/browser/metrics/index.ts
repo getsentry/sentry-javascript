@@ -1,10 +1,10 @@
 /* eslint-disable max-lines */
 import type { IdleTransaction, Transaction } from '@sentry/core';
-import { spanToJSON } from '@sentry/core';
 import { getActiveTransaction, setMeasurement } from '@sentry/core';
 import type { Measurements, SpanContext } from '@sentry/types';
 import { browserPerformanceTimeOrigin, getComponentName, htmlTreeAsString, logger } from '@sentry/utils';
 
+import { spanToJSON } from '@sentry/core';
 import { DEBUG_BUILD } from '../../common/debug-build';
 import {
   addClsInstrumentationHandler,
@@ -186,7 +186,7 @@ export function addPerformanceEntries(transaction: Transaction): void {
   let responseStartTimestamp: number | undefined;
   let requestStartTimestamp: number | undefined;
 
-  const transactionStartTime = spanToJSON(transaction).start_timestamp;
+  const { op, start_timestamp: transactionStartTime } = spanToJSON(transaction);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   performanceEntries.slice(_performanceCursor).forEach((entry: Record<string, any>) => {
@@ -239,7 +239,7 @@ export function addPerformanceEntries(transaction: Transaction): void {
   _trackNavigator(transaction);
 
   // Measurements are only available for pageload transactions
-  if (transaction.op === 'pageload') {
+  if (op === 'pageload') {
     // Generate TTFB (Time to First Byte), which measured as the time between the beginning of the transaction and the
     // start of the response in milliseconds
     if (typeof responseStartTimestamp === 'number' && transactionStartTime) {
