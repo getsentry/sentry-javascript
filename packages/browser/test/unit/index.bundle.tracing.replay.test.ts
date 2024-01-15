@@ -1,7 +1,6 @@
 import { Feedback as FeedbackShim } from '@sentry-internal/integration-shims';
 import { BrowserTracing } from '@sentry-internal/tracing';
 import { Replay } from '@sentry/browser';
-import { ReplayCanvas } from '@sentry/browser';
 
 import * as TracingReplayBundle from '../../src/index.bundle.tracing.replay';
 
@@ -18,7 +17,6 @@ describe('index.bundle.tracing.replay', () => {
 
     expect(TracingReplayBundle.Integrations.Replay).toBe(Replay);
     expect(TracingReplayBundle.Replay).toBe(Replay);
-    expect(TracingReplayBundle.ReplayCanvas).toBe(ReplayCanvas);
 
     expect(TracingReplayBundle.Integrations.BrowserTracing).toBe(BrowserTracing);
     expect(TracingReplayBundle.BrowserTracing).toBe(BrowserTracing);
