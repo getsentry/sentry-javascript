@@ -675,7 +675,7 @@ describe('convertIntegrationFnToClass', () => {
 
     expect(IntegrationClass.id).toBe('testName');
 
-    // @ts-expect-error This should fail TS without options
+    // not type safe options by default :(
     new IntegrationClass();
 
     const integration = new IntegrationClass({ num: 3 });

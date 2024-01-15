@@ -1,5 +1,5 @@
 import { convertIntegrationFnToClass, getClient, withMonitor } from '@sentry/core';
-import type { Client, IntegrationFn } from '@sentry/types';
+import type { Client, Integration, IntegrationClass, IntegrationFn } from '@sentry/types';
 import { parseScheduleToString } from './deno-cron-format';
 
 type CronOptions = { backoffSchedule?: number[]; signal?: AbortSignal };
@@ -62,4 +62,6 @@ const denoCronIntegration = (() => {
 
 /** Instruments Deno.cron to automatically capture cron check-ins */
 // eslint-disable-next-line deprecation/deprecation
-export const DenoCron = convertIntegrationFnToClass(INTEGRATION_NAME, denoCronIntegration);
+export const DenoCron = convertIntegrationFnToClass(INTEGRATION_NAME, denoCronIntegration) as IntegrationClass<
+  Integration & { setup: (client: Client) => void }
+>;
