@@ -1,5 +1,5 @@
 /* eslint-disable deprecation/deprecation */
-import { Hub, TRACING_DEFAULTS, makeMain } from '@sentry/core';
+import { Hub, TRACING_DEFAULTS, makeMain, setCurrentClient } from '@sentry/core';
 import * as hubExtensions from '@sentry/core';
 import type { BaseTransportOptions, ClientOptions, DsnComponents, HandlerDataHistory } from '@sentry/types';
 import { JSDOM } from 'jsdom';
@@ -659,7 +659,9 @@ conditionalTest({ min: 10 })('BrowserTracing', () => {
 
       const tracesSampler = jest.fn();
       const options = getDefaultBrowserClientOptions({ tracesSampler });
-      hub.bindClient(new TestClient(options));
+      const client = new TestClient(options);
+      setCurrentClient(client);
+      client.init();
       // setting up the BrowserTracing integration automatically starts a pageload transaction
       createBrowserTracing(true);
 
@@ -676,7 +678,9 @@ conditionalTest({ min: 10 })('BrowserTracing', () => {
 
       const tracesSampler = jest.fn();
       const options = getDefaultBrowserClientOptions({ tracesSampler });
-      hub.bindClient(new TestClient(options));
+      const client = new TestClient(options);
+      setCurrentClient(client);
+      client.init();
       // setting up the BrowserTracing integration normally automatically starts a pageload transaction, but that's not
       // what we're testing here
       createBrowserTracing(true, { startTransactionOnPageLoad: false });

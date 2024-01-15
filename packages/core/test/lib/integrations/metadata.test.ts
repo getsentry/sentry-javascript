@@ -2,7 +2,7 @@ import { TextDecoder, TextEncoder } from 'util';
 import type { Event } from '@sentry/types';
 import { GLOBAL_OBJ, createStackParser, nodeStackLineParser, parseEnvelope } from '@sentry/utils';
 
-import { ModuleMetadata, createTransport, getCurrentHub } from '../../../src';
+import { ModuleMetadata, captureException, createTransport, setCurrentClient } from '../../../src';
 import { TestClient, getDefaultTestClientOptions } from '../../mocks/client';
 
 const stackParser = createStackParser(nodeStackLineParser());
@@ -59,9 +59,9 @@ describe('ModuleMetadata integration', () => {
     });
 
     const client = new TestClient(options);
-    const hub = getCurrentHub();
-    hub.bindClient(client);
-    // eslint-disable-next-line deprecation/deprecation
-    hub.captureException(new Error('Some error'));
+    setCurrentClient(client);
+    client.init();
+
+    captureException(new Error('Some error'));
   });
 });

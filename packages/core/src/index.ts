@@ -41,6 +41,7 @@ export {
   getIsolationScope,
   getHubFromCarrier,
   Hub,
+  // eslint-disable-next-line deprecation/deprecation
   makeMain,
   getMainCarrier,
   runWithAsyncContext,
@@ -59,7 +60,7 @@ export {
 export { getEnvelopeEndpointWithUrlEncodedAuth, getReportDialogEndpoint } from './api';
 export { BaseClient, addEventProcessor } from './baseclient';
 export { ServerRuntimeClient } from './server-runtime-client';
-export { initAndBind } from './sdk';
+export { initAndBind, setCurrentClient } from './sdk';
 export { createTransport } from './transports/base';
 export { makeOfflineTransport } from './transports/offline';
 export { makeMultiplexedTransport } from './transports/multiplexed';

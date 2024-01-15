@@ -1,4 +1,5 @@
-import { Scope, getClient, getCurrentHub } from '@sentry/browser';
+import { Scope, getClient, setCurrentClient } from '@sentry/browser';
+import type { Client } from '@sentry/types';
 import { fireEvent, render, screen } from '@testing-library/react';
 import * as React from 'react';
 import { useState } from 'react';
@@ -442,13 +443,17 @@ describe('ErrorBoundary', () => {
 
     it('shows a Sentry Report Dialog with correct options if client has hooks', () => {
       let callback: any;
-      const hub = getCurrentHub();
-      // @ts-expect-error mock client
-      hub.bindClient({
+
+      const clientBefore = getClient();
+
+      const client = {
         on: (name: string, cb: any) => {
           callback = cb;
         },
-      });
+      } as Client;
+
+      setCurrentClient(client);
+
       const options = { title: 'custom title' };
       render(
         <TestApp fallback={<p>You have hit an error</p>} showDialog dialogOptions={options}>
@@ -467,7 +472,7 @@ describe('ErrorBoundary', () => {
       expect(mockShowReportDialog).toHaveBeenCalledTimes(1);
       expect(mockShowReportDialog).toHaveBeenCalledWith({ ...options, eventId: EVENT_ID });
 
-      hub.bindClient(undefined);
+      setCurrentClient(clientBefore!);
     });
 
     it('resets to initial state when reset', async () => {

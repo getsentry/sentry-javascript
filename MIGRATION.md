@@ -10,7 +10,12 @@ npx @sentry/migr8@latest
 This will let you select which updates to run, and automatically update your code. Make sure to still review all code
 changes!
 
-## Deprecated `Transaction` integration
+## Deprecate `hub.bindClient()` and `makeMain()`
+
+Instead, either directly use `initAndBind()`, or the new APIs `setCurrentClient()` and `client.init()`. See
+[Initializing the SDK in v8](./docs/v8-initializing.md) for more details.
+
+## Deprecate `Transaction` integration
 
 This pluggable integration from `@sentry/integrations` will be removed in v8. It was already undocumented and is not
 necessary for the SDK to work as expected.

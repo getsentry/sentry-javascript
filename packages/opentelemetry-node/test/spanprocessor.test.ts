@@ -47,6 +47,7 @@ describe('SentrySpanProcessor', () => {
 
     client = new NodeClient(DEFAULT_NODE_CLIENT_OPTIONS);
     hub = new Hub(client);
+    // eslint-disable-next-line deprecation/deprecation
     makeMain(hub);
 
     spanProcessor = new SentrySpanProcessor();
@@ -891,6 +892,7 @@ describe('SentrySpanProcessor', () => {
       },
     });
     hub = new Hub(client);
+    // eslint-disable-next-line deprecation/deprecation
     makeMain(hub);
 
     // Need to register the spanprocessor again
@@ -937,6 +939,7 @@ describe('SentrySpanProcessor', () => {
       },
     });
     hub = new Hub(client);
+    // eslint-disable-next-line deprecation/deprecation
     makeMain(hub);
 
     const tracer = provider.getTracer('default');
@@ -983,6 +986,7 @@ describe('SentrySpanProcessor', () => {
     });
 
     hub = new Hub(client);
+    // eslint-disable-next-line deprecation/deprecation
     makeMain(hub);
 
     // eslint-disable-next-line deprecation/deprecation
@@ -994,6 +998,7 @@ describe('SentrySpanProcessor', () => {
 
     tracer.startActiveSpan('GET /users', parentOtelSpan => {
       tracer.startActiveSpan('SELECT * FROM users;', child => {
+        // eslint-disable-next-line deprecation/deprecation
         makeMain(newHub);
         child.end();
       });
