@@ -189,6 +189,8 @@ export class Scope implements ScopeInterface {
    * @inheritDoc
    */
   public setUser(user: User | null): this {
+    // If null is passed we want to unset everything, but still define keys,
+    // so that later down in the pipeline any existing values are cleared.
     this._user = user || {
       email: undefined,
       id: undefined,
