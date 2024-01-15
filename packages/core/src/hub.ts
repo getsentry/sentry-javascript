@@ -472,13 +472,14 @@ export class Hub implements HubInterface {
 
   /**
    * @inheritDoc
-   * @deprecated Use `Sentry.getClient().getIntegration()` instead.
+   * @deprecated Use `Sentry.getClient().getIntegrationByName()` instead.
    */
   public getIntegration<T extends Integration>(integration: IntegrationClass<T>): T | null {
     // eslint-disable-next-line deprecation/deprecation
     const client = this.getClient();
     if (!client) return null;
     try {
+      // eslint-disable-next-line deprecation/deprecation
       return client.getIntegration(integration);
     } catch (_oO) {
       DEBUG_BUILD && logger.warn(`Cannot retrieve integration ${integration.id} from the current Hub`);

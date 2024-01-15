@@ -49,7 +49,7 @@ export class WinterCGFetch implements Integration {
     const spans: Record<string, Span> = {};
 
     addFetchInstrumentationHandler(handlerData => {
-      if (!getClient()?.getIntegration(WinterCGFetch)) {
+      if (!getClient()?.getIntegrationByName?.('WinterCGFetch')) {
         return;
       }
 

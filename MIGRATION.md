@@ -19,6 +19,16 @@ but in v8 you will not be able to rely on this always existing anymore - any int
 This should not affect most people, but in the case that you are manually calling `integration.setupOnce()` right now,
 make sure to guard it's existence properly.
 
+## Deprecate `getIntegration()` and `getIntegrationById()`
+
+This deprecates `getIntegration()` on both the hub & the client, as well as `getIntegrationById()` on the baseclient.
+Instead, use `getIntegrationByName()`. You can optionally pass an integration generic to make it easier to work with
+typescript:
+
+```ts
+const replay = getClient().getIntegrationByName<Replay>('Replay');
+```
+
 ## Deprecate `Hub`
 
 The `Hub` has been a very important part of the Sentry SDK API up until now. Hubs were the SDK's "unit of concurrency"

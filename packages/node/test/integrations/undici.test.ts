@@ -417,7 +417,7 @@ function setupTestServer() {
 
 function patchUndici(userOptions: Partial<UndiciOptions>): () => void {
   try {
-    const undici = getClient()!.getIntegration(Undici);
+    const undici = getClient()!.getIntegrationByName!('Undici');
     // @ts-expect-error need to access private property
     options = { ...undici._options };
     // @ts-expect-error need to access private property
@@ -428,7 +428,7 @@ function patchUndici(userOptions: Partial<UndiciOptions>): () => void {
 
   return () => {
     try {
-      const undici = getClient()!.getIntegration(Undici);
+      const undici = getClient()!.getIntegrationByName!('Undici');
       // @ts-expect-error Need to override readonly property
       undici!['_options'] = { ...options };
     } catch (_) {
