@@ -444,6 +444,8 @@ export class Span implements SpanInterface {
 
   /**
    * @inheritDoc
+   *
+   * @deprecated Use `spanToTraceHeader()` instead.
    */
   public toTraceparent(): string {
     return spanToTraceHeader(this);
@@ -451,6 +453,8 @@ export class Span implements SpanInterface {
 
   /**
    * @inheritDoc
+   *
+   * @deprecated Use `toJSON()` or access the fields directly instead.
    */
   public toContext(): SpanContext {
     return dropUndefinedKeys({
@@ -471,6 +475,8 @@ export class Span implements SpanInterface {
 
   /**
    * @inheritDoc
+   *
+   * @deprecated Update the fields directly instead.
    */
   public updateWithContext(spanContext: SpanContext): this {
     // eslint-disable-next-line deprecation/deprecation
@@ -493,6 +499,8 @@ export class Span implements SpanInterface {
 
   /**
    * @inheritDoc
+   *
+   * @deprecated Use `spanToTraceContext()` util function instead.
    */
   public getTraceContext(): TraceContext {
     return spanToTraceContext(this);
