@@ -46,6 +46,7 @@ export {
   // eslint-disable-next-line deprecation/deprecation
   trace,
   withScope,
+  withIsolationScope,
   autoDiscoverNodePerformanceMonitoringIntegrations,
   makeNodeTransport,
   defaultIntegrations,

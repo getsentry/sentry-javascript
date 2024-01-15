@@ -167,6 +167,7 @@ export const showReportDialog: ShowReportDialogFunction = (
     return;
   }
 
+  // eslint-disable-next-line deprecation/deprecation
   const { client, scope } = hub.getStackTop();
   const dsn = options.dsn || (client && client.getDsn());
   if (!dsn) {

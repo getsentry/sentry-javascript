@@ -47,6 +47,8 @@ const httpClientIntegration = ((options: Partial<HttpClientOptions> = {}) => {
 
   return {
     name: INTEGRATION_NAME,
+    // TODO v8: Remove this
+    setupOnce() {}, // eslint-disable-line @typescript-eslint/no-empty-function
     setup(client): void {
       _wrapFetch(client, _options);
       _wrapXHR(client, _options);

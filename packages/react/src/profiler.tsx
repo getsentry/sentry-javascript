@@ -226,6 +226,7 @@ export { withProfiler, Profiler, useProfiler };
 /** Grabs active transaction off scope */
 export function getActiveTransaction<T extends Transaction>(hub: Hub = getCurrentHub()): T | undefined {
   if (hub) {
+    // eslint-disable-next-line deprecation/deprecation
     const scope = hub.getScope();
     // eslint-disable-next-line deprecation/deprecation
     return scope.getTransaction() as T | undefined;

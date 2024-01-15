@@ -114,6 +114,7 @@ export class Http implements Integration {
       return;
     }
 
+    // eslint-disable-next-line deprecation/deprecation
     const clientOptions = setupOnceGetCurrentHub().getClient<NodeClient>()?.getOptions();
 
     // Do not auto-instrument for other instrumenter
@@ -220,6 +221,7 @@ function _createWrappedRequestMethodFactory(
     req: http.ClientRequest,
     res?: http.IncomingMessage,
   ): void {
+    // eslint-disable-next-line deprecation/deprecation
     if (!getCurrentHub().getIntegration(Http)) {
       return;
     }

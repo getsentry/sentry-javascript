@@ -29,6 +29,7 @@ export {
   setTags,
   setUser,
   withScope,
+  withIsolationScope,
   getClient,
   getCurrentScope,
   startSession,
@@ -81,6 +82,7 @@ export {
   spanToJSON,
   spanIsSampled,
 } from './utils/spanUtils';
+export { getRootSpan } from './utils/getRootSpan';
 export { DEFAULT_ENVIRONMENT } from './constants';
 export { ModuleMetadata } from './integrations/metadata';
 export { RequestData } from './integrations/requestdata';

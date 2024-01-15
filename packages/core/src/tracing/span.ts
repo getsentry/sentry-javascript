@@ -16,6 +16,7 @@ import type {
 import { dropUndefinedKeys, logger, timestampInSeconds, uuid4 } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../debug-build';
+import { getRootSpan } from '../utils/getRootSpan';
 import {
   TRACE_FLAG_NONE,
   TRACE_FLAG_SAMPLED,
@@ -105,11 +106,18 @@ export class Span implements SpanInterface {
 
   /**
    * @inheritDoc
+   * @deprecated Use top level `Sentry.getRootSpan()` instead
    */
   public transaction?: Transaction;
 
   /**
    * The instrumenter that created this span.
+   *
+   * TODO (v8): This can probably be replaced by an `instanceOf` check of the span class.
+   *            the instrumenter can only be sentry or otel so we can check the span instance
+   *            to verify which one it is and remove this field entirely.
+   *
+   * @deprecated This field will be removed.
    */
   public instrumenter: Instrumenter;
 
@@ -142,6 +150,7 @@ export class Span implements SpanInterface {
     // eslint-disable-next-line deprecation/deprecation
     this.data = spanContext.data ? { ...spanContext.data } : {};
     this._attributes = spanContext.attributes ? { ...spanContext.attributes } : {};
+    // eslint-disable-next-line deprecation/deprecation
     this.instrumenter = spanContext.instrumenter || 'sentry';
     this.origin = spanContext.origin || 'manual';
     // eslint-disable-next-line deprecation/deprecation
@@ -297,12 +306,16 @@ export class Span implements SpanInterface {
       childSpan.spanRecorder.add(childSpan);
     }
 
-    childSpan.transaction = this.transaction;
+    const rootSpan = getRootSpan(this);
+    // TODO: still set span.transaction here until we have a more permanent solution
+    // Probably similarly to the weakmap we hold in node-experimental
+    // eslint-disable-next-line deprecation/deprecation
+    childSpan.transaction = rootSpan as Transaction;
 
-    if (DEBUG_BUILD && childSpan.transaction) {
+    if (DEBUG_BUILD && rootSpan) {
       const opStr = (spanContext && spanContext.op) || '< unknown op >';
       const nameStr = spanToJSON(childSpan).description || '< unknown name >';
-      const idStr = childSpan.transaction.spanContext().spanId;
+      const idStr = rootSpan.spanContext().spanId;
 
       const logMessage = `[Tracing] Starting '${opStr}' span on transaction '${nameStr}' (${idStr}).`;
       logger.log(logMessage);
@@ -378,7 +391,11 @@ export class Span implements SpanInterface {
     return this;
   }
 
-  /** @inheritdoc */
+  /**
+   * @inheritdoc
+   *
+   * @deprecated Use `.updateName()` instead.
+   */
   public setName(name: string): void {
     this.updateName(name);
   }
@@ -409,11 +426,12 @@ export class Span implements SpanInterface {
 
   /** @inheritdoc */
   public end(endTimestamp?: SpanTimeInput): void {
+    const rootSpan = getRootSpan(this);
     if (
       DEBUG_BUILD &&
       // Don't call this for transactions
-      this.transaction &&
-      this.transaction.spanContext().spanId !== this._spanId
+      rootSpan &&
+      rootSpan.spanContext().spanId !== this._spanId
     ) {
       const logMessage = this._logMessage;
       if (logMessage) {

@@ -162,11 +162,11 @@ describeIf(NODE_VERSION.major >= 18)('LocalVariables', () => {
     const options = getDefaultNodeClientOptions({
       stackParser: defaultStackParser,
       includeLocalVariables: true,
-      integrations: [localVariables],
+      integrations: [],
     });
 
     const client = new NodeClient(options);
-    client.setupIntegrations(true);
+    client.addIntegration(localVariables);
 
     const eventProcessors = client['_eventProcessors'];
     const eventProcessor = eventProcessors.find(processor => processor.id === 'LocalVariables');
@@ -253,11 +253,11 @@ describeIf(NODE_VERSION.major >= 18)('LocalVariables', () => {
     const options = getDefaultNodeClientOptions({
       stackParser: defaultStackParser,
       includeLocalVariables: true,
-      integrations: [localVariables],
+      integrations: [],
     });
 
     const client = new NodeClient(options);
-    client.setupIntegrations(true);
+    client.addIntegration(localVariables);
 
     await session.runPause(exceptionEvent100Frames);
 
@@ -278,11 +278,11 @@ describeIf(NODE_VERSION.major >= 18)('LocalVariables', () => {
     const options = getDefaultNodeClientOptions({
       stackParser: defaultStackParser,
       includeLocalVariables: true,
-      integrations: [localVariables],
+      integrations: [],
     });
 
     const client = new NodeClient(options);
-    client.setupIntegrations(true);
+    client.addIntegration(localVariables);
 
     const nonExceptionEvent = {
       method: exceptionEvent.method,
@@ -299,11 +299,11 @@ describeIf(NODE_VERSION.major >= 18)('LocalVariables', () => {
     const localVariables = new LocalVariablesSync({}, session);
     const options = getDefaultNodeClientOptions({
       stackParser: defaultStackParser,
-      integrations: [localVariables],
+      integrations: [],
     });
 
     const client = new NodeClient(options);
-    client.setupIntegrations(true);
+    client.addIntegration(localVariables);
 
     const eventProcessors = client['_eventProcessors'];
     const eventProcessor = eventProcessors.find(processor => processor.id === 'LocalVariables');
@@ -315,11 +315,11 @@ describeIf(NODE_VERSION.major >= 18)('LocalVariables', () => {
     const localVariables = new LocalVariablesSync({}, undefined);
     const options = getDefaultNodeClientOptions({
       stackParser: defaultStackParser,
-      integrations: [localVariables],
+      integrations: [],
     });
 
     const client = new NodeClient(options);
-    client.setupIntegrations(true);
+    client.addIntegration(localVariables);
 
     const eventProcessors = client['_eventProcessors'];
     const eventProcessor = eventProcessors.find(processor => processor.id === 'LocalVariables');
@@ -336,11 +336,11 @@ describeIf(NODE_VERSION.major >= 18)('LocalVariables', () => {
     const options = getDefaultNodeClientOptions({
       stackParser: defaultStackParser,
       includeLocalVariables: true,
-      integrations: [localVariables],
+      integrations: [],
     });
 
     const client = new NodeClient(options);
-    client.setupIntegrations(true);
+    client.addIntegration(localVariables);
 
     await session.runPause(exceptionEvent);
     await session.runPause(exceptionEvent);

@@ -69,6 +69,8 @@ const normalizePathsIntegration: IntegrationFn = () => {
 
   return {
     name: INTEGRATION_NAME,
+    // TODO v8: Remove this
+    setupOnce() {}, // eslint-disable-line @typescript-eslint/no-empty-function
     processEvent(event) {
       // This error.stack hopefully contains paths that traverse the app cwd
       const error = new Error();

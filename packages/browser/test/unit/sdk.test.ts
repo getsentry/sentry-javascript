@@ -42,7 +42,7 @@ jest.mock('@sentry/core', () => {
           return new Scope();
         },
         bindClient(client: Client): boolean {
-          client.setupIntegrations();
+          client.init!();
           return true;
         },
       };

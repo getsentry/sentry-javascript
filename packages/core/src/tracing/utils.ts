@@ -11,6 +11,7 @@ import { getCurrentHub } from '../hub';
  */
 export function getActiveTransaction<T extends Transaction>(maybeHub?: Hub): T | undefined {
   const hub = maybeHub || getCurrentHub();
+  // eslint-disable-next-line deprecation/deprecation
   const scope = hub.getScope();
   // eslint-disable-next-line deprecation/deprecation
   return scope.getTransaction() as T | undefined;

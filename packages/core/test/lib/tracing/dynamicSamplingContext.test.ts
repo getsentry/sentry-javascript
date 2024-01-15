@@ -20,6 +20,7 @@ describe('getDynamicSamplingContextFromSpan', () => {
   });
 
   test('returns the DSC provided during transaction creation', () => {
+    // eslint-disable-next-line deprecation/deprecation -- using old API on purpose
     const transaction = new Transaction({
       name: 'tx',
       metadata: { dynamicSamplingContext: { environment: 'myEnv' } },
@@ -67,6 +68,7 @@ describe('getDynamicSamplingContextFromSpan', () => {
   });
 
   test('returns a new DSC, if no DSC was provided during transaction creation (via new Txn and deprecated metadata)', () => {
+    // eslint-disable-next-line deprecation/deprecation -- using old API on purpose
     const transaction = new Transaction({
       name: 'tx',
       metadata: {
@@ -90,6 +92,7 @@ describe('getDynamicSamplingContextFromSpan', () => {
 
   describe('Including transaction name in DSC', () => {
     test('is not included if transaction source is url', () => {
+      // eslint-disable-next-line deprecation/deprecation -- using old API on purpose
       const transaction = new Transaction({
         name: 'tx',
         metadata: {
@@ -106,7 +109,7 @@ describe('getDynamicSamplingContextFromSpan', () => {
       ['is included if transaction source is parameterized route/url', 'route'],
       ['is included if transaction source is a custom name', 'custom'],
     ])('%s', (_: string, source) => {
-      const transaction = new Transaction({
+      const transaction = startInactiveSpan({
         name: 'tx',
         metadata: {
           ...(source && { source: source as TransactionSource }),
@@ -116,7 +119,7 @@ describe('getDynamicSamplingContextFromSpan', () => {
       // Only setting the attribute manually because we're directly calling new Transaction()
       transaction?.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, source);
 
-      const dsc = getDynamicSamplingContextFromSpan(transaction);
+      const dsc = getDynamicSamplingContextFromSpan(transaction!);
 
       expect(dsc.transaction).toEqual('tx');
     });

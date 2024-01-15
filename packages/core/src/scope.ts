@@ -189,10 +189,20 @@ export class Scope implements ScopeInterface {
    * @inheritDoc
    */
   public setUser(user: User | null): this {
-    this._user = user || {};
+    // If null is passed we want to unset everything, but still define keys,
+    // so that later down in the pipeline any existing values are cleared.
+    this._user = user || {
+      email: undefined,
+      id: undefined,
+      ip_address: undefined,
+      segment: undefined,
+      username: undefined,
+    };
+
     if (this._session) {
       updateSession(this._session, { user });
     }
+
     this._notifyScopeListeners();
     return this;
   }
@@ -334,6 +344,9 @@ export class Scope implements ScopeInterface {
     // Often, this span (if it exists at all) will be a transaction, but it's not guaranteed to be. Regardless, it will
     // have a pointer to the currently-active transaction.
     const span = this._span;
+    // Cannot replace with getRootSpan because getRootSpan returns a span, not a transaction
+    // Also, this method will be removed anyway.
+    // eslint-disable-next-line deprecation/deprecation
     return span && span.transaction;
   }
 

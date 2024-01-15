@@ -94,6 +94,7 @@ export function getCurrentHub(): Hub {
     },
 
     getIntegration<T extends Integration>(integration: IntegrationClass<T>): T | null {
+      // eslint-disable-next-line deprecation/deprecation
       return getClient().getIntegration(integration);
     },
 

@@ -1,6 +1,7 @@
 import {
   getDynamicSamplingContextFromClient,
   getDynamicSamplingContextFromSpan,
+  getRootSpan,
   spanToTraceHeader,
 } from '@sentry/core';
 import type { Client, Scope, Span } from '@sentry/types';
@@ -32,12 +33,12 @@ export function getTracingMetaTags(
   client: Client | undefined,
 ): { sentryTrace: string; baggage?: string } {
   const { dsc, sampled, traceId } = scope.getPropagationContext();
-  const transaction = span?.transaction;
+  const rootSpan = span && getRootSpan(span);
 
   const sentryTrace = span ? spanToTraceHeader(span) : generateSentryTraceHeader(traceId, undefined, sampled);
 
-  const dynamicSamplingContext = transaction
-    ? getDynamicSamplingContextFromSpan(transaction)
+  const dynamicSamplingContext = rootSpan
+    ? getDynamicSamplingContextFromSpan(rootSpan)
     : dsc
       ? dsc
       : client

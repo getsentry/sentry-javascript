@@ -6,6 +6,8 @@ const INTEGRATION_NAME = 'Transaction';
 const transactionIntegration = (() => {
   return {
     name: INTEGRATION_NAME,
+    // TODO v8: Remove this
+    setupOnce() {}, // eslint-disable-line @typescript-eslint/no-empty-function
     processEvent(event) {
       const frames = _getFramesFromEvent(event);
 
