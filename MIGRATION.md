@@ -175,6 +175,8 @@ In v8, the Span class is heavily reworked. The following properties & methods ar
 - `transaction.setMetadata()`: Use attributes instead, or set data on the scope.
 - `transaction.metadata`: Use attributes instead, or set data on the scope.
 - `transaction.setContext()`: Set context on the surrounding scope instead.
+- `transaction.setMeasurement()`: Use `Sentry.setMeasurement()` instead. In v8, setting measurements will be limited to
+  the currently active root span.
 - `transaction.setName()`: Set the name with `.updateName()` and the source with `.setAttribute()` instead.
 
 ## Deprecate `pushScope` & `popScope` in favor of `withScope`

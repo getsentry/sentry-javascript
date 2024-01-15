@@ -1,6 +1,6 @@
 /* eslint-disable max-lines */
 import type { IdleTransaction, Transaction } from '@sentry/core';
-import { getActiveTransaction } from '@sentry/core';
+import { getActiveTransaction, setMeasurement } from '@sentry/core';
 import type { Measurements, SpanContext } from '@sentry/types';
 import { browserPerformanceTimeOrigin, getComponentName, htmlTreeAsString, logger } from '@sentry/utils';
 
@@ -296,11 +296,7 @@ export function addPerformanceEntries(transaction: Transaction): void {
     }
 
     Object.keys(_measurements).forEach(measurementName => {
-      transaction.setMeasurement(
-        measurementName,
-        _measurements[measurementName].value,
-        _measurements[measurementName].unit,
-      );
+      setMeasurement(measurementName, _measurements[measurementName].value, _measurements[measurementName].unit);
     });
 
     _tagMetricInfo(transaction);
