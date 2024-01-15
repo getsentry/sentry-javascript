@@ -44,11 +44,11 @@ export function mergeScopeData(data: ScopeData, mergeData: ScopeData): void {
     span,
   } = mergeData;
 
-  mergePropOverwrite(data, 'extra', extra);
-  mergePropOverwrite(data, 'tags', tags);
-  mergePropOverwrite(data, 'user', user);
-  mergePropOverwrite(data, 'contexts', contexts);
-  mergePropOverwrite(data, 'sdkProcessingMetadata', sdkProcessingMetadata);
+  mergeAndOverwriteScopeData(data, 'extra', extra);
+  mergeAndOverwriteScopeData(data, 'tags', tags);
+  mergeAndOverwriteScopeData(data, 'user', user);
+  mergeAndOverwriteScopeData(data, 'contexts', contexts);
+  mergeAndOverwriteScopeData(data, 'sdkProcessingMetadata', sdkProcessingMetadata);
 
   if (level) {
     data.level = level;
@@ -83,28 +83,17 @@ export function mergeScopeData(data: ScopeData, mergeData: ScopeData): void {
 }
 
 /**
- * Merge properties, overwriting existing keys.
+ * Merges certain scope data. Undefined values will overwrite any existing values.
  * Exported only for tests.
  */
-export function mergePropOverwrite<
+export function mergeAndOverwriteScopeData<
   Prop extends 'extra' | 'tags' | 'user' | 'contexts' | 'sdkProcessingMetadata',
-  Data extends ScopeData | Event,
+  Data extends ScopeData,
 >(data: Data, prop: Prop, mergeVal: Data[Prop]): void {
-  if (mergeVal && Object.keys(mergeVal).length) {
-    data[prop] = { ...data[prop], ...mergeVal };
-  }
-}
-
-/**
- * Merge properties, keeping existing keys.
- * Exported only for tests.
- */
-export function mergePropKeep<
-  Prop extends 'extra' | 'tags' | 'user' | 'contexts' | 'sdkProcessingMetadata',
-  Data extends ScopeData | Event,
->(data: Data, prop: Prop, mergeVal: Data[Prop]): void {
-  if (mergeVal && Object.keys(mergeVal).length) {
-    data[prop] = { ...mergeVal, ...data[prop] };
+  for (const key in mergeVal) {
+    if (Object.prototype.hasOwnProperty.call(mergeVal, key)) {
+      data[prop][key] = mergeVal[key];
+    }
   }
 }
 
