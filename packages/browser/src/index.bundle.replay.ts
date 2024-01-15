@@ -1,6 +1,5 @@
 // This is exported so the loader does not fail when switching off Replay/Tracing
 import { BrowserTracing, Feedback, addTracingExtensions } from '@sentry-internal/integration-shims';
-import { ReplayCanvas } from '@sentry-internal/replay-canvas';
 import { Replay } from '@sentry/replay';
 
 import * as Sentry from './index.bundle.base';
@@ -11,5 +10,5 @@ Sentry.Integrations.Replay = Replay;
 Sentry.Integrations.BrowserTracing = BrowserTracing;
 
 export * from './index.bundle.base';
-export { BrowserTracing, addTracingExtensions, Replay, ReplayCanvas, Feedback };
+export { BrowserTracing, addTracingExtensions, Replay, Feedback };
 // Note: We do not export a shim for `Span` here, as that is quite complex and would blow up the bundle
