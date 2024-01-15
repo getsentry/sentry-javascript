@@ -1,10 +1,5 @@
 import type { Attachment, Breadcrumb, EventProcessor, ScopeData } from '@sentry/types';
-import {
-  mergeArray,
-  mergePropKeep,
-  mergePropOverwrite,
-  mergeScopeData,
-} from '../../../src/utils/applyScopeDataToEvent';
+import { mergeAndOverwriteScopeData, mergeArray, mergeScopeData } from '../../../src/utils/applyScopeDataToEvent';
 
 describe('mergeArray', () => {
   it.each([
@@ -28,55 +23,19 @@ describe('mergeArray', () => {
   });
 });
 
-describe('mergePropKeep', () => {
-  it.each([
-    [{}, {}, {}],
-    [{ a: 'aa' }, {}, { a: 'aa' }],
-    [{ a: 'aa' }, { b: 'bb' }, { a: 'aa', b: 'bb' }],
-    // Does not overwrite existing keys
-    [{ a: 'aa' }, { b: 'bb', a: 'cc' }, { a: 'aa', b: 'bb' }],
-  ])('works with %s and %s', (a, b, expected) => {
-    const data = { tags: a } as unknown as ScopeData;
-    mergePropKeep(data, 'tags', b);
-    expect(data.tags).toEqual(expected);
-  });
-
-  it('does not deep merge', () => {
-    const data = {
-      contexts: {
-        app: { app_version: 'v1' },
-        culture: { display_name: 'name1' },
-      },
-    } as unknown as ScopeData;
-    mergePropKeep(data, 'contexts', {
-      os: { name: 'os1' },
-      app: { app_name: 'name1' },
-    });
-    expect(data.contexts).toEqual({
-      os: { name: 'os1' },
-      culture: { display_name: 'name1' },
-      app: { app_version: 'v1' },
-    });
-  });
-
-  it('does not mutate the original object if no changes are made', () => {
-    const tags = { a: 'aa' };
-    const data = { tags } as unknown as ScopeData;
-    mergePropKeep(data, 'tags', {});
-    expect(data.tags).toBe(tags);
-  });
-});
-
-describe('mergePropOverwrite', () => {
+describe('mergeAndOverwriteScopeData', () => {
   it.each([
     [{}, {}, {}],
     [{ a: 'aa' }, {}, { a: 'aa' }],
     [{ a: 'aa' }, { b: 'bb' }, { a: 'aa', b: 'bb' }],
     // overwrites existing keys
     [{ a: 'aa' }, { b: 'bb', a: 'cc' }, { a: 'cc', b: 'bb' }],
-  ])('works with %s and %s', (a, b, expected) => {
-    const data = { tags: a } as unknown as ScopeData;
-    mergePropOverwrite(data, 'tags', b);
+    // undefined values overwrite existing values
+    [{ a: 'defined' }, { a: undefined, b: 'defined' }, { a: undefined, b: 'defined' }],
+    [{ a: 'defined' }, { a: null, b: 'defined' }, { a: null, b: 'defined' }],
+  ])('works with %s and %s', (oldData, newData, expected) => {
+    const data = { tags: oldData } as unknown as ScopeData;
+    mergeAndOverwriteScopeData(data, 'tags', newData);
     expect(data.tags).toEqual(expected);
   });
 
@@ -87,7 +46,7 @@ describe('mergePropOverwrite', () => {
         culture: { display_name: 'name1' },
       },
     } as unknown as ScopeData;
-    mergePropOverwrite(data, 'contexts', {
+    mergeAndOverwriteScopeData(data, 'contexts', {
       os: { name: 'os1' },
       app: { app_name: 'name1' },
     });
@@ -101,7 +60,7 @@ describe('mergePropOverwrite', () => {
   it('does not mutate the original object if no changes are made', () => {
     const tags = { a: 'aa' };
     const data = { tags } as unknown as ScopeData;
-    mergePropOverwrite(data, 'tags', {});
+    mergeAndOverwriteScopeData(data, 'tags', {});
     expect(data.tags).toBe(tags);
   });
 });
