@@ -59,25 +59,26 @@ const INTEGRATION_NAME = 'ReplayCanvas';
 const replayCanvasIntegration = ((options: Partial<ReplayCanvasOptions> = {}) => {
   const _canvasOptions = {
     quality: options.quality || 'medium',
+    enableManualSnapshot: options.enableManualSnapshot,
   };
 
-  let _canvasManager: CanvasManager;
+  let canvasManagerResolve: (value: CanvasManager) => void;
+  const _canvasManager: Promise<CanvasManager> = new Promise((resolve) => canvasManagerResolve = resolve);
 
   return {
     name: INTEGRATION_NAME,
     getOptions(): ReplayCanvasIntegrationOptions {
-      const { quality } = _canvasOptions;
+      const { quality, enableManualSnapshot } = _canvasOptions;
 
       return {
-        enableManualSnapshot: options.enableManualSnapshot,
         recordCanvas: true,
-        getCanvasManager: (options: CanvasManagerOptions) => (_canvasManager = new CanvasManager(options)),
+        getCanvasManager: (options: CanvasManagerOptions) => (canvasManagerResolve(new CanvasManager({ ...options, isManualSnapshot: enableManualSnapshot } ))),
         ...(CANVAS_QUALITY[quality || 'medium'] || CANVAS_QUALITY.medium),
       };
     },
     async snapshot(canvasElement?: HTMLCanvasElement) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      _canvasManager.snapshot(canvasElement);
+      const canvasManager = await _canvasManager;
+      canvasManager.snapshot(canvasElement);
     },
   };
 }) satisfies IntegrationFn;

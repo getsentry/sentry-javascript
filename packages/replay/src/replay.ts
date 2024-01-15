@@ -355,7 +355,6 @@ export class ReplayContainer implements ReplayContainerInterface {
         onMutation: this._onMutationHandler,
         ...(canvasOptions
           ? {
-              isManualSnapshot: canvasOptions.enableManualSnapshot,
               recordCanvas: canvasOptions.recordCanvas,
               getCanvasManager: canvasOptions.getCanvasManager,
               sampling: canvasOptions.sampling,
