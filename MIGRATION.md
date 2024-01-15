@@ -10,6 +10,11 @@ npx @sentry/migr8@latest
 This will let you select which updates to run, and automatically update your code. Make sure to still review all code
 changes!
 
+## Deprecated `Transaction` integration
+
+This pluggable integration from `@sentry/integrations` will be removed in v8. It was already undocumented and is not
+necessary for the SDK to work as expected.
+
 ## Changed integration interface
 
 In v8, integrations passed to a client will have an optional `setupOnce()` hook. Currently, this hook is always present,

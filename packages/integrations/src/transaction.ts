@@ -26,7 +26,10 @@ const transactionIntegration = (() => {
   };
 }) satisfies IntegrationFn;
 
-/** Add node transaction to the event */
+/**
+ * Add node transaction to the event.
+ * @deprecated This integration will be removed in v8.
+ */
 // eslint-disable-next-line deprecation/deprecation
 export const Transaction = convertIntegrationFnToClass(INTEGRATION_NAME, transactionIntegration);
 
