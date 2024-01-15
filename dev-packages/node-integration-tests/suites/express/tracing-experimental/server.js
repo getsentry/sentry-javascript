@@ -16,7 +16,6 @@ const express = require('express');
 
 const app = express();
 
-app.use(Sentry.Handlers.requestHandler());
 
 app.use(cors());
 
