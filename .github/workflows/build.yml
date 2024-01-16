@@ -1154,7 +1154,7 @@ jobs:
 
   job_compile_bindings_profiling_node:
     name: Compile & Test Profiling Bindings (v${{ matrix.node }}) ${{ matrix.target_platform || matrix.os }}, ${{ matrix.node || matrix.container }}, ${{ matrix.arch || matrix.container }}, ${{ contains(matrix.container, 'alpine') && 'musl' || 'glibc'  }}
-    needs: [job_get_metadata, job_build]
+    needs: [job_get_metadata, job_install_deps, job_build]
     runs-on: ${{ matrix.os }}
     container: ${{ matrix.container }}
     timeout-minutes: 10
@@ -1274,7 +1274,7 @@ jobs:
         uses: actions/cache/restore@v3
         with:
           path: ${{ env.CACHED_BUILD_PATHS }}
-          key: ${{ needs.job_install_deps.outputs.build_cache_key }}
+          key: ${{ env.BUILD_CACHE_KEY }}
           fail-on-cache-miss: true
 
       # configure build test copy x64
