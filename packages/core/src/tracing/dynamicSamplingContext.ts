@@ -19,6 +19,7 @@ export function getDynamicSamplingContextFromClient(
   const options = client.getOptions();
 
   const { publicKey: public_key } = client.getDsn() || {};
+  // TODO(v8): Remove segment from User
   const { segment: user_segment } = (scope && scope.getUser()) || {};
 
   const dsc = dropUndefinedKeys({
