@@ -1166,6 +1166,9 @@ jobs:
       - name: Setup python
         uses: actions/setup-python@v5
 
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile --ignore-engines --ignore-scripts
+
       # configure build test copy x64
       - name: Configure node-gyp
         if: matrix.arch != 'arm64'
