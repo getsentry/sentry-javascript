@@ -485,6 +485,7 @@ export interface ReplayContainer {
   ) => typeof THROTTLED | typeof SKIPPED | Promise<AddEventResult | null>;
   isEnabled(): boolean;
   isPaused(): boolean;
+  isRecordingCanvas(): boolean;
   getContext(): InternalEventContext;
   initializeSampling(): void;
   start(): void;

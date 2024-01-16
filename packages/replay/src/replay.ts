@@ -223,6 +223,13 @@ export class ReplayContainer implements ReplayContainerInterface {
     return this._isPaused;
   }
 
+  /**
+   * Determine if canvas recording is enabled
+   */
+  public isRecordingCanvas(): boolean {
+    return Boolean(this._canvas);
+  }
+
   /** Get the replay integration options. */
   public getOptions(): ReplayPluginOptions {
     return this._options;
