@@ -1,5 +1,5 @@
 import { convertIntegrationFnToClass } from '@sentry/core';
-import type { IntegrationFn } from '@sentry/types';
+import type { Event, Integration, IntegrationClass, IntegrationFn } from '@sentry/types';
 import { createStackParser, dirname, nodeStackLineParser } from '@sentry/utils';
 
 const INTEGRATION_NAME = 'NormalizePaths';
@@ -55,10 +55,11 @@ function getCwd(): string | undefined {
   return undefined;
 }
 
-const normalizePathsIntegration: IntegrationFn = () => {
+const normalizePathsIntegration = (() => {
   // Cached here
   let appRoot: string | undefined;
 
+  /** Get the app root, and cache it after it was first fetched. */
   function getAppRoot(error: Error): string | undefined {
     if (appRoot === undefined) {
       appRoot = getCwd() || appRootFromErrorStack(error);
@@ -95,8 +96,11 @@ const normalizePathsIntegration: IntegrationFn = () => {
       return event;
     },
   };
-};
+}) satisfies IntegrationFn;
 
 /** Normalises paths to the app root directory. */
 // eslint-disable-next-line deprecation/deprecation
-export const NormalizePaths = convertIntegrationFnToClass(INTEGRATION_NAME, normalizePathsIntegration);
+export const NormalizePaths = convertIntegrationFnToClass(
+  INTEGRATION_NAME,
+  normalizePathsIntegration,
+) as IntegrationClass<Integration & { processEvent: (event: Event) => Event }>;

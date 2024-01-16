@@ -35,6 +35,7 @@ describe('registerErrorHandlers()', () => {
     mockAddGlobalUnhandledRejectionInstrumentationHandler.mockClear();
     const options = getDefaultBrowserClientOptions({ enableTracing: true });
     const hub = new Hub(new BrowserClient(options));
+    // eslint-disable-next-line deprecation/deprecation
     makeMain(hub);
   });
 

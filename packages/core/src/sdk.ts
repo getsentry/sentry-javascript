@@ -35,5 +35,32 @@ export function initAndBind<F extends Client, O extends ClientOptions>(
   scope.update(options.initialScope);
 
   const client = new clientClass(options);
-  hub.bindClient(client);
+  setCurrentClient(client);
+  initializeClient(client);
+}
+
+/**
+ * Make the given client the current client.
+ */
+export function setCurrentClient(client: Client): void {
+  const hub = getCurrentHub();
+  // eslint-disable-next-line deprecation/deprecation
+  const top = hub.getStackTop();
+  top.client = client;
+  top.scope.setClient(client);
+}
+
+/**
+ * Initialize the client for the current scope.
+ * Make sure to call this after `setCurrentClient()`.
+ */
+function initializeClient(client: Client): void {
+  if (client.init) {
+    client.init();
+    // TODO v8: Remove this fallback
+    // eslint-disable-next-line deprecation/deprecation
+  } else if (client.setupIntegrations) {
+    // eslint-disable-next-line deprecation/deprecation
+    client.setupIntegrations();
+  }
 }

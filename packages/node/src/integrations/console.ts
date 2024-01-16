@@ -1,6 +1,6 @@
 import * as util from 'util';
 import { addBreadcrumb, convertIntegrationFnToClass, getClient } from '@sentry/core';
-import type { IntegrationFn } from '@sentry/types';
+import type { Client, Integration, IntegrationClass, IntegrationFn } from '@sentry/types';
 import { addConsoleInstrumentationHandler, severityLevelFromString } from '@sentry/utils';
 
 const INTEGRATION_NAME = 'Console';
@@ -34,4 +34,6 @@ const consoleIntegration = (() => {
 
 /** Console module integration */
 // eslint-disable-next-line deprecation/deprecation
-export const Console = convertIntegrationFnToClass(INTEGRATION_NAME, consoleIntegration);
+export const Console = convertIntegrationFnToClass(INTEGRATION_NAME, consoleIntegration) as IntegrationClass<
+  Integration & { setup: (client: Client) => void }
+>;

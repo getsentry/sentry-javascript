@@ -1,4 +1,5 @@
 import http from 'http';
+import { loggingTransport, startExpressServerAndSendPortToRunner } from '@sentry-internal/node-integration-tests';
 import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
 import * as Sentry from '@sentry/node';
 import * as Tracing from '@sentry/tracing';
@@ -20,6 +21,7 @@ Sentry.init({
   tracesSampleRate: 1.0,
   // TODO: We're rethinking the mechanism for including Pii data in DSC, hence commenting out sendDefaultPii for now
   // sendDefaultPii: true,
+  transport: loggingTransport,
 });
 
 Sentry.setUser({ id: 'user123', segment: 'SegmentA' });
@@ -45,4 +47,4 @@ app.get('/test/express', (_req, res) => {
 
 app.use(Sentry.Handlers.errorHandler());
 
-export default app;
+startExpressServerAndSendPortToRunner(app);

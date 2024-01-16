@@ -25,8 +25,8 @@ describe('_startChild()', () => {
       startTimestamp: 100,
     });
 
-    expect(transaction.startTimestamp).toEqual(span.startTimestamp);
-    expect(transaction.startTimestamp).toEqual(100);
+    expect(spanToJSON(transaction).start_timestamp).toEqual(spanToJSON(span).start_timestamp);
+    expect(spanToJSON(transaction).start_timestamp).toEqual(100);
   });
 
   it('does not adjust start timestamp if child span starts after transaction', () => {
@@ -38,7 +38,7 @@ describe('_startChild()', () => {
       startTimestamp: 150,
     });
 
-    expect(transaction.startTimestamp).not.toEqual(span.startTimestamp);
-    expect(transaction.startTimestamp).toEqual(123);
+    expect(spanToJSON(transaction).start_timestamp).not.toEqual(spanToJSON(span).start_timestamp);
+    expect(spanToJSON(transaction).start_timestamp).toEqual(123);
   });
 });

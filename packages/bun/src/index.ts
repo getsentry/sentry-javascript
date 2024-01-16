@@ -50,7 +50,9 @@ export {
   Hub,
   // eslint-disable-next-line deprecation/deprecation
   lastEventId,
+  // eslint-disable-next-line deprecation/deprecation
   makeMain,
+  setCurrentClient,
   runWithAsyncContext,
   Scope,
   // eslint-disable-next-line deprecation/deprecation

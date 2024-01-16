@@ -28,6 +28,8 @@ export interface Hub {
   /**
    * This binds the given client to the current scope.
    * @param client An SDK client (client) instance.
+   *
+   * @deprecated Use `initAndBind()` directly.
    */
   bindClient(client?: Client): void;
 

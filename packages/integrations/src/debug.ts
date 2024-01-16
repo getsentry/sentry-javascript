@@ -1,5 +1,5 @@
 import { convertIntegrationFnToClass } from '@sentry/core';
-import type { Event, EventHint, IntegrationFn } from '@sentry/types';
+import type { Client, Event, EventHint, Integration, IntegrationClass, IntegrationFn } from '@sentry/types';
 import { consoleSandbox } from '@sentry/utils';
 
 const INTEGRATION_NAME = 'Debug';
@@ -58,4 +58,11 @@ const debugIntegration = ((options: DebugOptions = {}) => {
  * This integration should not be used in production
  */
 // eslint-disable-next-line deprecation/deprecation
-export const Debug = convertIntegrationFnToClass(INTEGRATION_NAME, debugIntegration);
+export const Debug = convertIntegrationFnToClass(INTEGRATION_NAME, debugIntegration) as IntegrationClass<
+  Integration & { setup: (client: Client) => void }
+> & {
+  new (options?: {
+    stringify?: boolean;
+    debugger?: boolean;
+  }): Integration;
+};

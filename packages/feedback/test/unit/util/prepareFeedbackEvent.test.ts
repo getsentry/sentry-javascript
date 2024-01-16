@@ -1,20 +1,19 @@
-import type { Hub, Scope } from '@sentry/core';
+import type { Scope } from '@sentry/core';
+import { setCurrentClient } from '@sentry/core';
 import { getCurrentScope } from '@sentry/core';
-import { getCurrentHub } from '@sentry/core';
-import type { Client, FeedbackEvent } from '@sentry/types';
+import type { FeedbackEvent } from '@sentry/types';
 
 import { prepareFeedbackEvent } from '../../../src/util/prepareFeedbackEvent';
 import { TestClient, getDefaultClientOptions } from '../../utils/TestClient';
 
 describe('Unit | util | prepareFeedbackEvent', () => {
-  let hub: Hub;
-  let client: Client;
+  let client: TestClient;
   let scope: Scope;
 
   beforeEach(() => {
-    hub = getCurrentHub();
     client = new TestClient(getDefaultClientOptions());
-    hub.bindClient(client);
+    setCurrentClient(client);
+    client.init();
     scope = getCurrentScope();
   });
 

@@ -1,5 +1,4 @@
-import { getClient, getCurrentScope } from '@sentry/core';
-import { getCurrentHub } from '@sentry/core';
+import { getClient, getCurrentScope, setCurrentClient } from '@sentry/core';
 import type { ReplayEvent } from '@sentry/types';
 
 import { REPLAY_EVENT_NAME } from '../../../src/constants';
@@ -8,9 +7,9 @@ import { TestClient, getDefaultClientOptions } from '../../utils/TestClient';
 
 describe('Unit | util | prepareReplayEvent', () => {
   beforeEach(() => {
-    const hub = getCurrentHub();
     const client = new TestClient(getDefaultClientOptions());
-    hub.bindClient(client);
+    setCurrentClient(client);
+    client.init();
 
     jest.spyOn(client, 'getSdkMetadata').mockImplementation(() => {
       return {

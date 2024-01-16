@@ -17,6 +17,7 @@ import type {
   SessionContext,
   Severity,
   SeverityLevel,
+  Span,
   TransactionContext,
   User,
 } from '@sentry/types';
@@ -226,6 +227,21 @@ export function withScope<T>(
 export function withIsolationScope<T>(callback: (isolationScope: Scope) => T): T {
   return runWithAsyncContext(() => {
     return callback(getIsolationScope());
+  });
+}
+
+/**
+ * Forks the current scope and sets the provided span as active span in the context of the provided callback.
+ *
+ * @param span Spans started in the context of the provided callback will be children of this span.
+ * @param callback Execution context in which the provided span will be active. Is passed the newly forked scope.
+ * @returns the value returned from the provided callback function.
+ */
+export function withActiveSpan<T>(span: Span, callback: (scope: Scope) => T): T {
+  return withScope(scope => {
+    // eslint-disable-next-line deprecation/deprecation
+    scope.setSpan(span);
+    return callback(scope);
   });
 }
 

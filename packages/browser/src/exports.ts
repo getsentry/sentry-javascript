@@ -43,7 +43,10 @@ export {
   Hub,
   // eslint-disable-next-line deprecation/deprecation
   lastEventId,
+  // eslint-disable-next-line deprecation/deprecation
+  // eslint-disable-next-line deprecation/deprecation
   makeMain,
+  setCurrentClient,
   Scope,
   // eslint-disable-next-line deprecation/deprecation
   startTransaction,
