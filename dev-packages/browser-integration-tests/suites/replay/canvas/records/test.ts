@@ -34,7 +34,6 @@ sentryTest('can record canvas', async ({ getLocalTestUrl, page, browserName }) =
     },
   ]);
 
-
   await Promise.all([page.click('#draw'), reqPromise1]);
 
   const { incrementalSnapshots } = getReplayRecordingContent(await reqPromise2);
