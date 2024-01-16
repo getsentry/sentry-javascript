@@ -505,8 +505,10 @@ jobs:
         with:
           node-version: 20
       - uses: actions/setup-python@v5
-      - name: Install dependencies
-        run: yarn install --ignore-scripts --frozen-lockfile
+      - name: Restore caches
+        uses: ./.github/actions/restore-cache
+        env:
+          DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
       - name: Build Configure node-gyp
         run: yarn lerna run build:bindings:configure --scope @sentry/profiling-node
       - name: Build
@@ -1165,11 +1167,13 @@ jobs:
       - name: Setup python
         uses: actions/setup-python@v5
 
-      - name: Install Dependencies
-        run: yarn install --ignore-scripts --frozen-lockfile --ignore-engines
+      - name: Restore caches
+        uses: ./.github/actions/restore-cache
+        env:
+          DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
 
       - name: Build dependencies
-        run: yarn build
+        run: yarn build --scope @sentry/profiling-node
 
       # configure build test copy x64
       - name: Configure node-gyp
@@ -1234,7 +1238,7 @@ jobs:
   job_build_profiling_node:
     name: Extract Binaries and Pack Profiling Node
     runs-on: ubuntu-latest
-    needs: [job_get_metadata, job_compile_bindings_profiling_node]
+    needs: [job_get_metadata, job_build, job_compile_bindings_profiling_node]
     timeout-minutes: 5
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
@@ -1247,8 +1251,10 @@ jobs:
         with:
           node-version: 20
 
-      - name: Install Dependencies
-        run: yarn install --frozen-lockfile
+      - name: Restore caches
+        uses: ./.github/actions/restore-cache
+        env:
+          DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
 
       - name: Build TS files
         run: yarn lerna run build:lib --scope @sentry/profiling-node
