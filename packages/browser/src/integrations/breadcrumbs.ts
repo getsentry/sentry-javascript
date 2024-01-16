@@ -8,6 +8,8 @@ import type {
   HandlerDataFetch,
   HandlerDataHistory,
   HandlerDataXhr,
+  Integration,
+  IntegrationClass,
   IntegrationFn,
 } from '@sentry/types';
 import type {
@@ -55,7 +57,7 @@ const MAX_ALLOWED_STRING_LENGTH = 1024;
 
 const INTEGRATION_NAME = 'Breadcrumbs';
 
-const breadcrumbsIntegration: IntegrationFn = (options: Partial<BreadcrumbsOptions> = {}) => {
+const breadcrumbsIntegration = ((options: Partial<BreadcrumbsOptions> = {}) => {
   const _options = {
     console: true,
     dom: true,
@@ -91,13 +93,31 @@ const breadcrumbsIntegration: IntegrationFn = (options: Partial<BreadcrumbsOptio
       }
     },
   };
-};
+}) satisfies IntegrationFn;
 
 /**
  * Default Breadcrumbs instrumentations
  */
 // eslint-disable-next-line deprecation/deprecation
-export const Breadcrumbs = convertIntegrationFnToClass(INTEGRATION_NAME, breadcrumbsIntegration);
+export const Breadcrumbs = convertIntegrationFnToClass(INTEGRATION_NAME, breadcrumbsIntegration) as IntegrationClass<
+  Integration & { setup: (client: Client) => void }
+> & {
+  new (
+    options?: Partial<{
+      console: boolean;
+      dom:
+        | boolean
+        | {
+            serializeAttribute?: string | string[];
+            maxStringLength?: number;
+          };
+      fetch: boolean;
+      history: boolean;
+      sentry: boolean;
+      xhr: boolean;
+    }>,
+  ): Integration;
+};
 
 /**
  * Adds a breadcrumb for Sentry events or transactions if this option is enabled.

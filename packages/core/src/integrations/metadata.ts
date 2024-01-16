@@ -1,4 +1,4 @@
-import type { EventItem, IntegrationFn } from '@sentry/types';
+import type { Client, Event, EventHint, EventItem, Integration, IntegrationClass, IntegrationFn } from '@sentry/types';
 import { forEachEnvelopeItem } from '@sentry/utils';
 import { convertIntegrationFnToClass } from '../integration';
 
@@ -6,7 +6,7 @@ import { addMetadataToStackFrames, stripMetadataFromStackFrames } from '../metad
 
 const INTEGRATION_NAME = 'ModuleMetadata';
 
-const moduleMetadataIntegration: IntegrationFn = () => {
+const moduleMetadataIntegration = (() => {
   return {
     name: INTEGRATION_NAME,
     // TODO v8: Remove this
@@ -37,7 +37,7 @@ const moduleMetadataIntegration: IntegrationFn = () => {
       return event;
     },
   };
-};
+}) satisfies IntegrationFn;
 
 /**
  * Adds module metadata to stack frames.
@@ -49,4 +49,12 @@ const moduleMetadataIntegration: IntegrationFn = () => {
  * our sources
  */
 // eslint-disable-next-line deprecation/deprecation
-export const ModuleMetadata = convertIntegrationFnToClass(INTEGRATION_NAME, moduleMetadataIntegration);
+export const ModuleMetadata = convertIntegrationFnToClass(
+  INTEGRATION_NAME,
+  moduleMetadataIntegration,
+) as IntegrationClass<
+  Integration & {
+    setup: (client: Client) => void;
+    processEvent: (event: Event, hint: EventHint, client: Client) => Event;
+  }
+>;
