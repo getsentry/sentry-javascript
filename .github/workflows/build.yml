@@ -1266,17 +1266,19 @@ jobs:
       - name: Install dependencies
         run: yarn install --frozen-lockfile --ignore-engines --ignore-scripts
 
-      - name: Install git
-        run: |
-
-          if [[ "$OSTYPE" == "linux-gnu"* ]]; then
-            sudo apt-get update
-            sudo apt-get install -y git
-          elif [[ "$OSTYPE" == "darwin"* ]]; then
-            brew install git
-          elif [[ "$OSTYPE" == "win32" ]]; then
-            choco install git
-          fi
+      # - name: Install git cli
+      #   run: |
+      #     if [[ "$OSTYPE" == "linux-gnu"* ]]; then
+      #       sudo apt-get update
+      #       sudo apt-get install -y git
+      #     elif [[ "$OSTYPE" == "darwin"* ]]; then
+      #       brew install git
+      #     elif [[ "$OSTYPE" == "win32" ]]; then
+      #       choco install git
+      #     else
+      #       echo "Unknown OS"
+      #       exit 1
+      #     fi
       - name: Restore build cache
         uses: actions/cache/restore@v3
         with:
