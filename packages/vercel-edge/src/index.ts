@@ -78,6 +78,11 @@ export {
   startSpanManual,
   continueTrace,
   metrics,
+  functionToStringIntegration,
+  inboundFiltersIntegration,
+  linkedErrorsIntegration,
+  moduleMetadataIntegration,
+  requestDataIntegration,
 } from '@sentry/core';
 export type { SpanStatusType } from '@sentry/core';
 
@@ -89,6 +94,7 @@ import { Integrations as CoreIntegrations, RequestData } from '@sentry/core';
 import { WinterCGFetch } from './integrations/wintercg-fetch';
 
 const INTEGRATIONS = {
+  // eslint-disable-next-line deprecation/deprecation
   ...CoreIntegrations,
   WinterCGFetch,
   RequestData,

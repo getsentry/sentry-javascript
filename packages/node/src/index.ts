@@ -80,6 +80,11 @@ export {
   startSpanManual,
   continueTrace,
   metrics,
+  functionToStringIntegration,
+  inboundFiltersIntegration,
+  linkedErrorsIntegration,
+  moduleMetadataIntegration,
+  requestDataIntegration,
 } from '@sentry/core';
 export type { SpanStatusType } from '@sentry/core';
 export { autoDiscoverNodePerformanceMonitoringIntegrations } from './tracing';
@@ -108,6 +113,7 @@ import * as NodeIntegrations from './integrations';
 import * as TracingIntegrations from './tracing/integrations';
 
 const INTEGRATIONS = {
+  // eslint-disable-next-line deprecation/deprecation
   ...CoreIntegrations,
   ...NodeIntegrations,
   ...TracingIntegrations,

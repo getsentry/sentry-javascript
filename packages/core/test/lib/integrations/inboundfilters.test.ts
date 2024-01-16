@@ -33,6 +33,7 @@ function createInboundFiltersEventProcessor(
       dsn: PUBLIC_DSN,
       ...clientOptions,
       defaultIntegrations: false,
+      // eslint-disable-next-line deprecation/deprecation
       integrations: [new InboundFilters(options)],
     }),
   );

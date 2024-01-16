@@ -1,4 +1,4 @@
-import { SDK_VERSION, getReportDialogEndpoint } from '@sentry/core';
+import { InboundFilters, SDK_VERSION, getReportDialogEndpoint } from '@sentry/core';
 import type { WrappedFunction } from '@sentry/types';
 import * as utils from '@sentry/utils';
 
@@ -6,7 +6,6 @@ import type { Event } from '../../src';
 import { setCurrentClient } from '../../src';
 import {
   BrowserClient,
-  Integrations,
   Scope,
   WINDOW,
   addBreadcrumb,
@@ -269,7 +268,10 @@ describe('SentryBrowser', () => {
       const options = getDefaultBrowserClientOptions({
         beforeSend: localBeforeSend,
         dsn,
-        integrations: [new Integrations.InboundFilters({ ignoreErrors: ['capture'] })],
+        integrations: [
+          // eslint-disable-next-line deprecation/deprecation
+          new InboundFilters({ ignoreErrors: ['capture'] }),
+        ],
       });
       const client = new BrowserClient(options);
       setCurrentClient(client);

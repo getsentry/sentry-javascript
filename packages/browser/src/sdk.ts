@@ -1,6 +1,7 @@
 import type { Hub } from '@sentry/core';
 import {
-  Integrations as CoreIntegrations,
+  FunctionToString,
+  InboundFilters,
   captureSession,
   getClient,
   getCurrentHub,
@@ -26,9 +27,10 @@ import { Breadcrumbs, Dedupe, GlobalHandlers, HttpContext, LinkedErrors, TryCatc
 import { defaultStackParser } from './stack-parsers';
 import { makeFetchTransport, makeXHRTransport } from './transports';
 
+/* eslint-disable deprecation/deprecation */
 export const defaultIntegrations = [
-  new CoreIntegrations.InboundFilters(),
-  new CoreIntegrations.FunctionToString(),
+  new InboundFilters(),
+  new FunctionToString(),
   new TryCatch(),
   new Breadcrumbs(),
   new GlobalHandlers(),
@@ -36,6 +38,7 @@ export const defaultIntegrations = [
   new Dedupe(),
   new HttpContext(),
 ];
+/* eslint-enable deprecation/deprecation */
 
 /**
  * A magic string that build tooling can leverage in order to inject a release value into the SDK.
