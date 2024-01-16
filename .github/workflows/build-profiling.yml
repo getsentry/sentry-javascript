@@ -43,5 +43,7 @@ jobs:
           yarn build:bindings:configure
       - name: Build Dependencies
         run: yarn build
+      - name: List bindings
+        run: ls -l packages/profiling-node/lib
       - name: Unit Test
         run: yarn lerna run test --scope @sentry/profiling-node
