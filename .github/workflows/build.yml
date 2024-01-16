@@ -1329,7 +1329,9 @@ jobs:
           BUILD_PLATFORM=darwin BUILD_ARCH=arm64 yarn build:bindings:arm64
 
       - name: Archive Binary
-        uses: actions/upload-artifact@v4.0.0
+        # @TODO: v4 breaks convenient merging of same name artifacts
+        # https://github.com/actions/upload-artifact/issues/478
+        uses: actions/upload-artifact@v3
         with:
           name: profiling-node-binaries-${{ github.sha }}
           path: |
@@ -1362,7 +1364,9 @@ jobs:
           yarn build:lib
 
       - name: Extract Built Binaries
-        uses: actions/download-artifact@v4.0.0
+        # @TODO: v4 breaks convenient merging of same name artifacts
+        # https://github.com/actions/upload-artifact/issues/478
+        uses: actions/download-artifact@v3
         with:
           name: profiling-node-binaries-${{ github.sha }}
           path: packages/profiling-node/lib/
