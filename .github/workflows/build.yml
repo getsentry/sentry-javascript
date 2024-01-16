@@ -429,32 +429,6 @@ jobs:
       - name: Compute test coverage
         uses: codecov/codecov-action@v4
 
-  job_profiling_node_unit_tests:
-    name: Profiling Node Unit Tests
-    needs: [job_get_metadata]
-    # needs: [job_get_metadata, job_build]
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      # - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
-      - name: Check out current commit
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ env.HEAD_COMMIT }}
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 18
-      - uses: actions/setup-python@v5
-      - name: Install Dependencies
-        run: yarn install --ignore-scripts --frozen-lockfile
-      - name: Build Configure node-gyp
-        run: yarn lerna run build:bindings:configure --scope @sentry/profiling-node
-      - name: Build
-        run: yarn build
-      - name: Unit Tests
-        run: yarn lerna run test --scope @sentry/profiling-node
-
   job_bun_unit_tests:
     name: Bun Unit Tests
     needs: [job_get_metadata, job_build]
@@ -1150,7 +1124,7 @@ jobs:
           name: ${{ steps.process.outputs.artifactName }}
           path: ${{ steps.process.outputs.artifactPath }}
   job_compile_bindings_profiling_node:
-    name: Compile Profiling Bindings (v${{ matrix.node }}) ${{ matrix.target_platform || matrix.os }}, ${{ matrix.node || matrix.container }}, ${{ matrix.arch || matrix.container }}, ${{ contains(matrix.container, 'alpine') && 'musl' || 'glibc'  }}
+    name: Compile & Test Profiling Bindings (v${{ matrix.node }}) ${{ matrix.target_platform || matrix.os }}, ${{ matrix.node || matrix.container }}, ${{ matrix.arch || matrix.container }}, ${{ contains(matrix.container, 'alpine') && 'musl' || 'glibc'  }}
     needs: [job_get_metadata, job_build]
     runs-on: ${{ matrix.os }}
     container: ${{ matrix.container }}
@@ -1278,7 +1252,7 @@ jobs:
           sudo apt-get update
           sudo apt install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
 
-      - name: "Configure node-gyp (arm64, ${{ contains(matrix.container, 'alpine') && 'musl' || 'glibc'  }})"
+      - name: Configure node-gyp (arm64, ${{ contains(matrix.container, 'alpine') && 'musl' || 'glibc'  }})
         if: matrix.arch == 'arm64' && matrix.target_platform != 'darwin'
         run:  yarn lerna run build:bindings:configure:arm64 --scope @sentry/profiling-node
 
@@ -1289,27 +1263,30 @@ jobs:
           tar -xzvf aarch64-linux-musl-cross.tgz
           $(pwd)/aarch64-linux-musl-cross/bin/aarch64-linux-musl-gcc --version
 
-      - name: "Build Bindings (arm64, ${{ contains(matrix.container, 'alpine') && 'musl' || 'glibc'  }})"
+      - name: Build Bindings (arm64, ${{ contains(matrix.container, 'alpine') && 'musl' || 'glibc'  }})
         if: matrix.arch == 'arm64' && contains(matrix.container, 'alpine') && matrix.target_platform != 'darwin'
         run:
           CC=$(pwd)/aarch64-linux-musl-cross/bin/aarch64-linux-musl-gcc \
           CXX=$(pwd)/aarch64-linux-musl-cross/bin/aarch64-linux-musl-g++ \
           BUILD_ARCH=arm64 yarn lerna run build:bindings --scope @sentry/profiling-node
 
-      - name: "Build Bindings (arm64, ${{ contains(matrix.container, 'alpine') && 'musl' || 'glibc'  }})"
+      - name: Build Bindings (arm64, ${{ contains(matrix.container, 'alpine') && 'musl' || 'glibc'  }})
         if: matrix.arch == 'arm64' && !contains(matrix.container, 'alpine') && matrix.target_platform != 'darwin'
         run: |
           CC=aarch64-linux-gnu-gcc \
           CXX=aarch64-linux-gnu-g++ \
           BUILD_ARCH=arm64 yarn lerna run build:bindings:arm64 --scope @sentry/profiling-node
 
-      - name: "Configure node-gyp (arm64, darwin)"
+      - name: Configure node-gyp (arm64, darwin)
         if: matrix.arch == 'arm64' && matrix.target_platform == 'darwin'
         run: yarn lerna run build:bindings:configure:arm64 --scope @sentry/profiling-node
 
-      - name: "Build Bindings (arm64, darwin)"
+      - name: Build Bindings (arm64, darwin)
         if: matrix.arch == 'arm64' && matrix.target_platform == 'darwin'
         run: BUILD_PLATFORM=darwin BUILD_ARCH=arm64 yarn lerna run build:bindings:arm64 --scope @sentry/profiling-node
+
+      - name: Test Bindings
+        run: yarn lerna run test --scope @sentry/profiling-node
 
       - name: Archive Binary
         # @TODO: v4 breaks convenient merging of same name artifacts
@@ -1331,7 +1308,7 @@ jobs:
         with:
           ref: ${{ env.HEAD_COMMIT }}
 
-      - name: "Setup Node"
+      - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 20
