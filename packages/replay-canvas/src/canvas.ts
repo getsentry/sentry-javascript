@@ -1,7 +1,7 @@
 import { CanvasManager } from '@sentry-internal/rrweb';
 import { convertIntegrationFnToClass } from '@sentry/core';
 import type { CanvasManagerInterface, CanvasManagerOptions } from '@sentry/replay';
-import type { IntegrationFn } from '@sentry/types';
+import type { Integration, IntegrationClass, IntegrationFn } from '@sentry/types';
 
 interface ReplayCanvasOptions {
   quality: 'low' | 'medium' | 'high';
@@ -78,4 +78,8 @@ const replayCanvasIntegration = ((options: Partial<ReplayCanvasOptions> = {}) =>
 
 // TODO(v8)
 // eslint-disable-next-line deprecation/deprecation
-export const ReplayCanvas = convertIntegrationFnToClass(INTEGRATION_NAME, replayCanvasIntegration);
+export const ReplayCanvas = convertIntegrationFnToClass(INTEGRATION_NAME, replayCanvasIntegration) as IntegrationClass<
+  Integration & {
+    getOptions: () => ReplayCanvasIntegrationOptions
+  }
+>;
