@@ -1268,7 +1268,7 @@ jobs:
       - name: Build dependencies
         # We'll ignore @sentry/profiling-node so that we can configure node-gyp
         # for the target env that we want to build binaries for.
-        run: yarn build
+        run: yarn build --ignore @sentry-internal/feedback --ignore @sentry/astro --ignore @sentry/profiling-node
 
         # Run clean after build because yarn build --ignore @sentry/profiling-node
         # will fail with a cryptic message on missing types?
