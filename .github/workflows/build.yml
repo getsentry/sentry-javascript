@@ -1277,6 +1277,7 @@ jobs:
             --ignore @sentry/deno \
             --ignore @sentry/bun \
             --ignore @sentry/opentelemetry \
+            --ignore @sentry/vercel-edge \
             --ignore @sentry/react \
             --ignore @sentry/remix \
             --ignore @sentry/replay \
@@ -1285,7 +1286,6 @@ jobs:
             --ignore @sentry/vue \
             --ignore @sentry/wasm  \
             --ignore @sentry-internal/feedback \
-            --ignore @sentry-internal/integration-shims \
             --ignore @sentry-internal/replay-worker \
             --ignore @sentry-internal/node-integration-tests
 
