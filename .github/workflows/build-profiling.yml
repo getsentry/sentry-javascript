@@ -37,11 +37,9 @@ jobs:
       - uses: actions/setup-python@v5
       - name: Install dependencies
         run: yarn install --ignore-scripts --frozen-lockfile
-      - name: Configure node-gyp
-        run: |
-          cd packages/profiling-node
-          yarn build:bindings:configure
-      - name: Build Dependencies
+      - name: Build Configure node-gyp
+        run: yarn lerna run build:bindings:configure --scope @sentry/profiling-node
+      - name: Build
         run: yarn build
       - name: List bindings
         run: ls -l packages/profiling-node/lib
