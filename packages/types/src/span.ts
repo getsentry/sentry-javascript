@@ -235,6 +235,15 @@ export interface Span extends SpanContext {
   instrumenter: Instrumenter;
 
   /**
+   * Completion status of the Span.
+   *
+   * See: {@sentry/tracing SpanStatus} for possible values
+   *
+   * @deprecated Use `.setStatus` to set or update and `spanToJSON()` to read the status.
+   */
+  status?: string;
+
+  /**
    * Get context data for this span.
    * This includes the spanId & the traceId.
    */
