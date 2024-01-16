@@ -512,7 +512,7 @@ jobs:
       - name: Build Configure node-gyp
         run: yarn lerna run build:bindings:configure --scope @sentry/profiling-node
       - name: Build
-        run: yarn build
+        run: yarn build --scope @sentry/profiling-node
       - name: List bindings
         run: ls -l packages/profiling-node/lib
       - name: Unit Test
