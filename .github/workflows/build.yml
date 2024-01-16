@@ -522,7 +522,7 @@ jobs:
         uses: codecov/codecov-action@v4
 
   job_profiling_node_unit_tests:
-    name: Profiling Node Unit Tests
+    name: Node Profiling Unit Tests
     needs: [job_get_metadata, job_build]
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -1262,13 +1262,13 @@ jobs:
       - name: Setup python
         uses: actions/setup-python@v5
 
-      - name: Build dependencies
+      - name: Install dependencies
         run: yarn install --frozen-lockfile --ignore-scripts --ignore-engines
 
       - name: Build dependencies
         # We'll ignore @sentry/profiling-node so that we can configure node-gyp
         # for the target env that we want to build binaries for.
-        run: yarn lerna run build --ignore @sentry/profiling-node
+        run: yarn build --ignore @sentry/profiling-node
 
       # configure build test copy x64
       - name: Configure node-gyp
