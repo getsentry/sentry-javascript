@@ -1,4 +1,4 @@
-import { Hub, makeMain, startSpan } from '@sentry/core';
+import { Hub, makeMain, spanToJSON, startSpan } from '@sentry/core';
 import { JSDOM } from 'jsdom';
 
 import { addExtensionMethods } from '../../../tracing/src';
@@ -58,7 +58,7 @@ conditionalTest({ min: 10 })('registerBackgroundTabDetection', () => {
       expect(span?.status).toBe('cancelled');
       // eslint-disable-next-line deprecation/deprecation
       expect(span?.tags.visibilitychange).toBe('document.hidden');
-      expect(span?.endTimestamp).toBeDefined();
+      expect(spanToJSON(span!).timestamp).toBeDefined();
     });
   });
 });

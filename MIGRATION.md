@@ -183,6 +183,9 @@ In v8, the Span class is heavily reworked. The following properties & methods ar
 - `transaction.setMeasurement()`: Use `Sentry.setMeasurement()` instead. In v8, setting measurements will be limited to
   the currently active root span.
 - `transaction.setName()`: Set the name with `.updateName()` and the source with `.setAttribute()` instead.
+- `span.startTimestamp`: use `spanToJSON(span).start_timestamp` instead. You cannot update this anymore in v8.
+- `span.endTimestamp`: use `spanToJSON(span).timestamp` instead. You cannot update this anymore in v8. You can pass a
+  custom end timestamp to `span.end(endTimestamp)`.
 
 ## Deprecate `pushScope` & `popScope` in favor of `withScope`
 

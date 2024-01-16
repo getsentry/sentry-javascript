@@ -462,7 +462,7 @@ describe('tracingHandler', () => {
     setImmediate(() => {
       expect(finishSpan).toHaveBeenCalled();
       expect(finishTransaction).toHaveBeenCalled();
-      expect(span.endTimestamp).toBeLessThanOrEqual(transaction.endTimestamp!);
+      expect(spanToJSON(span).timestamp).toBeLessThanOrEqual(spanToJSON(transaction).timestamp!);
       expect(sentEvent.spans?.length).toEqual(1);
       expect(sentEvent.spans?.[0].spanContext().spanId).toEqual(span.spanContext().spanId);
       done();

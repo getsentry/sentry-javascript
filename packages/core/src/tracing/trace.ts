@@ -242,7 +242,7 @@ export function startSpanManual<T>(
       () => callback(activeSpan, finishAndSetSpan),
       () => {
         // Only update the span status if it hasn't been changed yet, and the span is not yet finished
-        if (activeSpan && !activeSpan.endTimestamp && (!activeSpan.status || activeSpan.status === 'ok')) {
+        if (activeSpan && activeSpan.isRecording() && (!activeSpan.status || activeSpan.status === 'ok')) {
           activeSpan.setStatus('internal_error');
         }
       },

@@ -4,7 +4,7 @@ import { logger, timestampInSeconds } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../debug-build';
 import type { Hub } from '../hub';
-import { spanTimeInputToSeconds } from '../utils/spanUtils';
+import { spanTimeInputToSeconds, spanToJSON } from '../utils/spanUtils';
 import type { Span } from './span';
 import { SpanRecorder } from './span';
 import { Transaction } from './transaction';
@@ -55,7 +55,7 @@ export class IdleTransactionSpanRecorder extends SpanRecorder {
       };
 
       // We should only push new activities if the span does not have an end timestamp.
-      if (span.endTimestamp === undefined) {
+      if (spanToJSON(span).timestamp === undefined) {
         this._pushActivity(span.spanContext().spanId);
       }
     }
@@ -167,18 +167,19 @@ export class IdleTransaction extends Transaction {
         }
 
         // We cancel all pending spans with status "cancelled" to indicate the idle transaction was finished early
-        if (!span.endTimestamp) {
-          span.endTimestamp = endTimestampInS;
+        if (!spanToJSON(span).timestamp) {
           span.setStatus('cancelled');
+          span.end(endTimestampInS);
           DEBUG_BUILD &&
             logger.log('[Tracing] cancelling span since transaction ended early', JSON.stringify(span, undefined, 2));
         }
 
-        const spanStartedBeforeTransactionFinish = span.startTimestamp < endTimestampInS;
+        const { start_timestamp: startTime, timestamp: endTime } = spanToJSON(span);
+        const spanStartedBeforeTransactionFinish = startTime && startTime < endTimestampInS;
 
         // Add a delta with idle timeout so that we prevent false positives
         const timeoutWithMarginOfError = (this._finalTimeout + this._idleTimeout) / 1000;
-        const spanEndedBeforeFinalTimeout = span.endTimestamp - this.startTimestamp < timeoutWithMarginOfError;
+        const spanEndedBeforeFinalTimeout = endTime && startTime && endTime - startTime < timeoutWithMarginOfError;
 
         if (DEBUG_BUILD) {
           const stringifiedSpan = JSON.stringify(span, undefined, 2);
