@@ -1,9 +1,10 @@
 /* eslint-disable deprecation/deprecation */
-import { Hub, TRACING_DEFAULTS, makeMain, setCurrentClient } from '@sentry/core';
+import { Hub, TRACING_DEFAULTS, makeMain, setCurrentClient, spanToJSON } from '@sentry/core';
 import * as hubExtensions from '@sentry/core';
 import type { BaseTransportOptions, ClientOptions, DsnComponents, HandlerDataHistory } from '@sentry/types';
 import { JSDOM } from 'jsdom';
 
+import { timestampInSeconds } from '@sentry/utils';
 import type { IdleTransaction } from '../../../tracing/src';
 import { getActiveTransaction } from '../../../tracing/src';
 import { conditionalTest, getDefaultBrowserClientOptions } from '../../../tracing/test/testutils';
@@ -178,12 +179,12 @@ conditionalTest({ min: 10 })('BrowserTracing', () => {
 
       const transaction = getActiveTransaction(hub) as IdleTransaction;
       const span = transaction.startChild();
-      span.end();
 
-      if (span.endTimestamp) {
-        transaction.end(span.endTimestamp + 12345);
-      }
-      expect(transaction.endTimestamp).toBe(span.endTimestamp);
+      const timestamp = timestampInSeconds();
+      span.end(timestamp);
+      transaction.end(timestamp + 12345);
+
+      expect(spanToJSON(transaction).timestamp).toBe(timestamp);
     });
 
     // TODO (v8): remove these tests
@@ -507,20 +508,20 @@ conditionalTest({ min: 10 })('BrowserTracing', () => {
         createBrowserTracing(true);
         const transaction1 = getActiveTransaction(hub) as IdleTransaction;
         expect(transaction1.op).toBe('pageload');
-        expect(transaction1.endTimestamp).not.toBeDefined();
+        expect(spanToJSON(transaction1).timestamp).not.toBeDefined();
 
         mockChangeHistory({ to: 'here', from: 'there' });
         const transaction2 = getActiveTransaction(hub) as IdleTransaction;
         expect(transaction2.op).toBe('navigation');
 
-        expect(transaction1.endTimestamp).toBeDefined();
+        expect(spanToJSON(transaction1).timestamp).toBeDefined();
       });
 
       it('is not created if startTransactionOnLocationChange is false', () => {
         createBrowserTracing(true, { startTransactionOnLocationChange: false });
         const transaction1 = getActiveTransaction(hub) as IdleTransaction;
         expect(transaction1.op).toBe('pageload');
-        expect(transaction1.endTimestamp).not.toBeDefined();
+        expect(spanToJSON(transaction1).timestamp).not.toBeDefined();
 
         mockChangeHistory({ to: 'here', from: 'there' });
         const transaction2 = getActiveTransaction(hub) as IdleTransaction;

@@ -85,7 +85,7 @@ export class Mysql implements LazyLoadedIntegration<MysqlConnection> {
     }
 
     function finishSpan(span: Span | undefined): void {
-      if (!span || span.endTimestamp) {
+      if (!span) {
         return;
       }
 

@@ -72,16 +72,6 @@ export class Span implements SpanInterface {
   public status?: SpanStatusType | string;
 
   /**
-   * Timestamp in seconds when the span was created.
-   */
-  public startTimestamp: number;
-
-  /**
-   * Timestamp in seconds when the span ended.
-   */
-  public endTimestamp?: number;
-
-  /**
    * @inheritDoc
    */
   public op?: string;
@@ -131,6 +121,10 @@ export class Span implements SpanInterface {
   protected _sampled: boolean | undefined;
   protected _name?: string;
   protected _attributes: SpanAttributes;
+  /** Epoch timestamp in seconds when the span started. */
+  protected _startTime: number;
+  /** Epoch timestamp in seconds when the span ended. */
+  protected _endTime?: number;
 
   private _logMessage?: string;
 
@@ -144,7 +138,7 @@ export class Span implements SpanInterface {
   public constructor(spanContext: SpanContext = {}) {
     this._traceId = spanContext.traceId || uuid4();
     this._spanId = spanContext.spanId || uuid4().substring(16);
-    this.startTimestamp = spanContext.startTimestamp || timestampInSeconds();
+    this._startTime = spanContext.startTimestamp || timestampInSeconds();
     // eslint-disable-next-line deprecation/deprecation
     this.tags = spanContext.tags ? { ...spanContext.tags } : {};
     // eslint-disable-next-line deprecation/deprecation
@@ -170,7 +164,7 @@ export class Span implements SpanInterface {
       this.status = spanContext.status;
     }
     if (spanContext.endTimestamp) {
-      this.endTimestamp = spanContext.endTimestamp;
+      this._endTime = spanContext.endTimestamp;
     }
   }
 
@@ -271,6 +265,38 @@ export class Span implements SpanInterface {
    */
   public set attributes(attributes: SpanAttributes) {
     this._attributes = attributes;
+  }
+
+  /**
+   * Timestamp in seconds (epoch time) indicating when the span started.
+   * @deprecated Use `spanToJSON()` instead.
+   */
+  public get startTimestamp(): number {
+    return this._startTime;
+  }
+
+  /**
+   * Timestamp in seconds (epoch time) indicating when the span started.
+   * @deprecated In v8, you will not be able to update the span start time after creation.
+   */
+  public set startTimestamp(startTime: number) {
+    this._startTime = startTime;
+  }
+
+  /**
+   * Timestamp in seconds when the span ended.
+   * @deprecated Use `spanToJSON()` instead.
+   */
+  public get endTimestamp(): number | undefined {
+    return this._endTime;
+  }
+
+  /**
+   * Timestamp in seconds when the span ended.
+   * @deprecated Set the end time via `span.end()` instead.
+   */
+  public set endTimestamp(endTime: number | undefined) {
+    this._endTime = endTime;
   }
 
   /* eslint-enable @typescript-eslint/member-ordering */
@@ -426,6 +452,10 @@ export class Span implements SpanInterface {
 
   /** @inheritdoc */
   public end(endTimestamp?: SpanTimeInput): void {
+    // If already ended, skip
+    if (this._endTime) {
+      return;
+    }
     const rootSpan = getRootSpan(this);
     if (
       DEBUG_BUILD &&
@@ -439,7 +469,7 @@ export class Span implements SpanInterface {
       }
     }
 
-    this.endTimestamp = spanTimeInputToSeconds(endTimestamp);
+    this._endTime = spanTimeInputToSeconds(endTimestamp);
   }
 
   /**
@@ -460,12 +490,12 @@ export class Span implements SpanInterface {
     return dropUndefinedKeys({
       data: this._getData(),
       description: this._name,
-      endTimestamp: this.endTimestamp,
+      endTimestamp: this._endTime,
       op: this.op,
       parentSpanId: this.parentSpanId,
       sampled: this._sampled,
       spanId: this._spanId,
-      startTimestamp: this.startTimestamp,
+      startTimestamp: this._startTime,
       status: this.status,
       // eslint-disable-next-line deprecation/deprecation
       tags: this.tags,
@@ -483,12 +513,12 @@ export class Span implements SpanInterface {
     this.data = spanContext.data || {};
     // eslint-disable-next-line deprecation/deprecation
     this._name = spanContext.name || spanContext.description;
-    this.endTimestamp = spanContext.endTimestamp;
+    this._endTime = spanContext.endTimestamp;
     this.op = spanContext.op;
     this.parentSpanId = spanContext.parentSpanId;
     this._sampled = spanContext.sampled;
     this._spanId = spanContext.spanId || this._spanId;
-    this.startTimestamp = spanContext.startTimestamp || this.startTimestamp;
+    this._startTime = spanContext.startTimestamp || this._startTime;
     this.status = spanContext.status;
     // eslint-disable-next-line deprecation/deprecation
     this.tags = spanContext.tags || {};
@@ -521,11 +551,11 @@ export class Span implements SpanInterface {
       op: this.op,
       parent_span_id: this.parentSpanId,
       span_id: this._spanId,
-      start_timestamp: this.startTimestamp,
+      start_timestamp: this._startTime,
       status: this.status,
       // eslint-disable-next-line deprecation/deprecation
       tags: Object.keys(this.tags).length > 0 ? this.tags : undefined,
-      timestamp: this.endTimestamp,
+      timestamp: this._endTime,
       trace_id: this._traceId,
       origin: this.origin,
     });
@@ -533,7 +563,7 @@ export class Span implements SpanInterface {
 
   /** @inheritdoc */
   public isRecording(): boolean {
-    return !this.endTimestamp && !!this._sampled;
+    return !this._endTime && !!this._sampled;
   }
 
   /**

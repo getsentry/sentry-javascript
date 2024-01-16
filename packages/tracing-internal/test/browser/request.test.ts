@@ -172,7 +172,7 @@ describe('callbacks', () => {
       // triggered by response coming back
       instrumentFetchRequest(postRequestFetchHandlerData, alwaysCreateSpan, alwaysAttachHeaders, spans);
 
-      expect(newSpan.endTimestamp).toBeDefined();
+      expect(spanToJSON(newSpan).timestamp).toBeDefined();
     });
 
     it('sets response status on finish', () => {
@@ -364,7 +364,7 @@ describe('callbacks', () => {
       // triggered by response coming back
       xhrCallback(postRequestXHRHandlerData, alwaysCreateSpan, alwaysAttachHeaders, spans);
 
-      expect(newSpan.endTimestamp).toBeDefined();
+      expect(spanToJSON(newSpan).timestamp).toBeDefined();
     });
 
     it('sets response status on finish', () => {

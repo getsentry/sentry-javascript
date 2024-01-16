@@ -192,9 +192,16 @@ export interface Span extends SpanContext {
   sampled?: boolean;
 
   /**
-   * @inheritDoc
+   * Timestamp in seconds (epoch time) indicating when the span started.
+   * @deprecated Use `spanToJSON()` instead.
    */
   startTimestamp: number;
+
+  /**
+   * Timestamp in seconds (epoch time) indicating when the span ended.
+   * @deprecated Use `spanToJSON()` instead.
+   */
+  endTimestamp?: number;
 
   /**
    * Tags for the span.

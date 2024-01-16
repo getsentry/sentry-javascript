@@ -1,5 +1,6 @@
 /* eslint-disable max-lines */
 import type { IdleTransaction, Transaction } from '@sentry/core';
+import { spanToJSON } from '@sentry/core';
 import { getActiveTransaction, setMeasurement } from '@sentry/core';
 import type { Measurements, SpanContext } from '@sentry/types';
 import { browserPerformanceTimeOrigin, getComponentName, htmlTreeAsString, logger } from '@sentry/utils';
@@ -185,12 +186,14 @@ export function addPerformanceEntries(transaction: Transaction): void {
   let responseStartTimestamp: number | undefined;
   let requestStartTimestamp: number | undefined;
 
+  const transactionStartTime = spanToJSON(transaction).start_timestamp;
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   performanceEntries.slice(_performanceCursor).forEach((entry: Record<string, any>) => {
     const startTime = msToSec(entry.startTime);
     const duration = msToSec(entry.duration);
 
-    if (transaction.op === 'navigation' && timeOrigin + startTime < transaction.startTimestamp) {
+    if (transaction.op === 'navigation' && transactionStartTime && timeOrigin + startTime < transactionStartTime) {
       return;
     }
 
@@ -239,10 +242,10 @@ export function addPerformanceEntries(transaction: Transaction): void {
   if (transaction.op === 'pageload') {
     // Generate TTFB (Time to First Byte), which measured as the time between the beginning of the transaction and the
     // start of the response in milliseconds
-    if (typeof responseStartTimestamp === 'number') {
+    if (typeof responseStartTimestamp === 'number' && transactionStartTime) {
       DEBUG_BUILD && logger.log('[Measurements] Adding TTFB');
       _measurements['ttfb'] = {
-        value: (responseStartTimestamp - transaction.startTimestamp) * 1000,
+        value: (responseStartTimestamp - transactionStartTime) * 1000,
         unit: 'millisecond',
       };
 
@@ -257,7 +260,7 @@ export function addPerformanceEntries(transaction: Transaction): void {
     }
 
     ['fcp', 'fp', 'lcp'].forEach(name => {
-      if (!_measurements[name] || timeOrigin >= transaction.startTimestamp) {
+      if (!_measurements[name] || !transactionStartTime || timeOrigin >= transactionStartTime) {
         return;
       }
       // The web vitals, fcp, fp, lcp, and ttfb, all measure relative to timeOrigin.
@@ -267,7 +270,7 @@ export function addPerformanceEntries(transaction: Transaction): void {
       const measurementTimestamp = timeOrigin + msToSec(oldValue);
 
       // normalizedValue should be in milliseconds
-      const normalizedValue = Math.abs((measurementTimestamp - transaction.startTimestamp) * 1000);
+      const normalizedValue = Math.abs((measurementTimestamp - transactionStartTime) * 1000);
       const delta = normalizedValue - oldValue;
 
       DEBUG_BUILD && logger.log(`[Measurements] Normalized ${name} from ${oldValue} to ${normalizedValue} (${delta})`);
