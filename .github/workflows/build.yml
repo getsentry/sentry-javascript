@@ -511,10 +511,6 @@ jobs:
           DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
       - name: Build Configure node-gyp
         run: yarn lerna run build:bindings:configure --scope @sentry/profiling-node
-      - name: Build
-        run: yarn build --scope @sentry/profiling-node
-      - name: List bindings
-        run: ls -l packages/profiling-node/lib
       - name: Unit Test
         run: yarn lerna run test --scope @sentry/profiling-node
 
