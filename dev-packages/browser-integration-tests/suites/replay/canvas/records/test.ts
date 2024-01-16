@@ -24,6 +24,17 @@ sentryTest('can record canvas', async ({ getLocalTestUrl, page, browserName }) =
 
   await page.goto(url);
   await reqPromise0;
+  const content0 = getReplayRecordingContent(await reqPromise0);
+  expect(content0.optionsEvents).toEqual([
+    {
+      tag: 'options',
+      payload: expect.objectContaining({
+        shouldRecordCanvas: true,
+      }),
+    },
+  ]);
+
+
   await Promise.all([page.click('#draw'), reqPromise1]);
 
   const { incrementalSnapshots } = getReplayRecordingContent(await reqPromise2);

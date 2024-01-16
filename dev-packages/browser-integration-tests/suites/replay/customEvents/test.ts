@@ -227,6 +227,7 @@ sentryTest(
           networkCaptureBodies: true,
           networkRequestHasHeaders: true,
           networkResponseHasHeaders: true,
+          shouldRecordCanvas: false,
         },
       },
     ]);
