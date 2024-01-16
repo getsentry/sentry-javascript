@@ -54,7 +54,7 @@ jobs:
         run: echo "dir=$(npm config get cache)" >> $GITHUB_OUTPUT
       - name: Get Playwright version
         id: playwright-version
-        run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> $GITHUB_OUTPUT
+        run: echo "version=$(node -p "require('playwright/package.json').version")" >> $GITHUB_OUTPUT
       - uses: actions/cache@v3
         name: Check if Playwright browser is cached
         id: playwright-cache
