@@ -580,7 +580,7 @@ describe('SentrySpanProcessor', () => {
 
           child.end();
 
-          const { description, data } = spanToJSON(sentrySpan!);
+          const { description, data, op } = spanToJSON(sentrySpan!);
 
           expect(description).toBe('GET http://example.com/my/route/123');
           expect(data).toEqual({
@@ -589,7 +589,9 @@ describe('SentrySpanProcessor', () => {
             'http.url': 'http://example.com/my/route/123',
             'otel.kind': 'INTERNAL',
             url: 'http://example.com/my/route/123',
+            'sentry.op': 'http',
           });
+          expect(op).toBe('http');
 
           parentOtelSpan.end();
         });
@@ -609,7 +611,7 @@ describe('SentrySpanProcessor', () => {
 
           child.end();
 
-          const { description, data } = spanToJSON(sentrySpan!);
+          const { description, data, op } = spanToJSON(sentrySpan!);
 
           expect(description).toBe('GET http://example.com/my/route/123');
           expect(data).toEqual({
@@ -620,7 +622,9 @@ describe('SentrySpanProcessor', () => {
             url: 'http://example.com/my/route/123',
             'http.query': '?what=123',
             'http.fragment': '#myHash',
+            'sentry.op': 'http',
           });
+          expect(op).toBe('http');
 
           parentOtelSpan.end();
         });
