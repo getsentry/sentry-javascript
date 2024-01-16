@@ -560,6 +560,7 @@ describe('SentrySpanProcessor', () => {
             'http.url': 'http://example.com/my/route/123',
             'otel.kind': 'INTERNAL',
             url: 'http://example.com/my/route/123',
+            'sentry.op': 'http',
           });
 
           parentOtelSpan.end();
