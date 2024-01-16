@@ -91,6 +91,7 @@ describe('hubextensions', () => {
   it('pulls environment from sdk init', async () => {
     const [client, transport] = makeClientWithoutHooks();
     const hub = Sentry.getCurrentHub();
+    // eslint-disable-next-line deprecation/deprecation
     hub.bindClient(client);
 
     const transportSpy = jest.spyOn(transport, 'send').mockReturnValue(Promise.resolve());
@@ -110,6 +111,7 @@ describe('hubextensions', () => {
 
     const [client, transport] = makeClientWithoutHooks();
     const hub = Sentry.getCurrentHub();
+    // eslint-disable-next-line deprecation/deprecation
     hub.bindClient(client);
 
     jest.spyOn(CpuProfilerBindings, 'stopProfiling').mockImplementation(() => {
@@ -151,6 +153,7 @@ describe('hubextensions', () => {
 
     const [client, transport] = makeClientWithoutHooks();
     const hub = Sentry.getCurrentHub();
+    // eslint-disable-next-line deprecation/deprecation
     hub.bindClient(client);
 
     jest.spyOn(CpuProfilerBindings, 'stopProfiling').mockImplementation(() => {
@@ -191,6 +194,7 @@ describe('hubextensions', () => {
     it('calls profiler when transaction is started/stopped', async () => {
       const [client, transport] = makeClientWithHooks();
       const hub = Sentry.getCurrentHub();
+      // eslint-disable-next-line deprecation/deprecation
       hub.bindClient(client);
 
       const startProfilingSpy = jest.spyOn(CpuProfilerBindings, 'startProfiling');
@@ -213,6 +217,7 @@ describe('hubextensions', () => {
     it('sends profile in the same envelope as transaction', async () => {
       const [client, transport] = makeClientWithHooks();
       const hub = Sentry.getCurrentHub();
+      // eslint-disable-next-line deprecation/deprecation
       hub.bindClient(client);
 
       const transportSpy = jest.spyOn(transport, 'send').mockReturnValue(Promise.resolve());
@@ -233,6 +238,7 @@ describe('hubextensions', () => {
     it('does not crash if transaction has no profile context or it is invalid', async () => {
       const [client] = makeClientWithHooks();
       const hub = Sentry.getCurrentHub();
+      // eslint-disable-next-line deprecation/deprecation
       hub.bindClient(client);
 
       // @ts-expect-error transaction is partial
@@ -257,6 +263,7 @@ describe('hubextensions', () => {
     it('if transaction was profiled, but profiler returned null', async () => {
       const [client, transport] = makeClientWithHooks();
       const hub = Sentry.getCurrentHub();
+      // eslint-disable-next-line deprecation/deprecation
       hub.bindClient(client);
 
       jest.spyOn(CpuProfilerBindings, 'stopProfiling').mockReturnValue(null);
@@ -282,6 +289,7 @@ describe('hubextensions', () => {
     it('emits preprocessEvent for profile', async () => {
       const [client] = makeClientWithHooks();
       const hub = Sentry.getCurrentHub();
+      // eslint-disable-next-line deprecation/deprecation
       hub.bindClient(client);
       const onPreprocessEvent = jest.fn();
 
@@ -308,6 +316,7 @@ describe('hubextensions', () => {
     it('calls profiler when transaction is started/stopped', async () => {
       const [client] = makeClientWithoutHooks();
       const hub = Sentry.getCurrentHub();
+      // eslint-disable-next-line deprecation/deprecation
       hub.bindClient(client);
 
       const startProfilingSpy = jest.spyOn(CpuProfilerBindings, 'startProfiling');
@@ -328,6 +337,7 @@ describe('hubextensions', () => {
     it('sends profile in separate envelope', async () => {
       const [client, transport] = makeClientWithoutHooks();
       const hub = Sentry.getCurrentHub();
+      // eslint-disable-next-line deprecation/deprecation
       hub.bindClient(client);
 
       const transportSpy = jest.spyOn(transport, 'send').mockImplementation(() => {
@@ -358,6 +368,7 @@ describe('hubextensions', () => {
 
       const [client] = makeClientWithoutHooks();
       const hub = Sentry.getCurrentHub();
+      // eslint-disable-next-line deprecation/deprecation
       hub.bindClient(client);
 
       // eslint-disable-next-line deprecation/deprecation
@@ -379,6 +390,7 @@ describe('hubextensions', () => {
 
     const [client] = makeClientWithoutHooks();
     const hub = Sentry.getCurrentHub();
+    // eslint-disable-next-line deprecation/deprecation
     hub.bindClient(client);
 
     // eslint-disable-next-line deprecation/deprecation
@@ -421,6 +433,7 @@ describe('hubextensions', () => {
 
     const [client, transport] = makeClientWithHooks();
     const hub = Sentry.getCurrentHub();
+    // eslint-disable-next-line deprecation/deprecation
     hub.bindClient(client);
 
     const transportSpy = jest.spyOn(transport, 'send').mockReturnValue(Promise.resolve());
