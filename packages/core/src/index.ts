@@ -90,3 +90,5 @@ import * as Integrations from './integrations';
 export { metrics } from './metrics/exports';
 
 export { Integrations };
+
+export { parameterize } from '@sentry/utils';

@@ -64,9 +64,8 @@ export {
   FunctionToString,
   InboundFilters,
   metrics,
+  parameterize,
 } from '@sentry/core';
-
-export { parameterize } from '@sentry/utils';
 
 export { WINDOW } from './helpers';
 export { BrowserClient } from './client';
