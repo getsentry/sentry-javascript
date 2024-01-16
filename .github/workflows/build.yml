@@ -344,7 +344,7 @@ jobs:
 
   job_artifacts:
     name: Upload Artifacts
-    needs: [job_get_metadata, job_build, job_compile_bindings_profiling_node]
+    needs: [job_get_metadata, job_build, job_build_profiling_node]
     runs-on: ubuntu-20.04
     # Build artifacts are only needed for releasing workflow.
     if: needs.job_get_metadata.outputs.is_release == 'true'
@@ -490,6 +490,31 @@ jobs:
           yarn test-ci-node
       - name: Compute test coverage
         uses: codecov/codecov-action@v3
+
+  job_profiling_node_unit_tests:
+    name: Profiling Node Unit Tests
+    needs: [job_get_metadata, job_build]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out current commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.HEAD_COMMIT }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - uses: actions/setup-python@v5
+      - name: Install dependencies
+        run: yarn install --ignore-scripts --frozen-lockfile
+      - name: Build Configure node-gyp
+        run: yarn lerna run build:bindings:configure --scope @sentry/profiling-node
+      - name: Build
+        run: yarn build
+      - name: List bindings
+        run: ls -l packages/profiling-node/lib
+      - name: Unit Test
+        run: yarn lerna run test --scope @sentry/profiling-node
 
   job_nextjs_integration_test:
     name: Nextjs (Node ${{ matrix.node }}) Tests
@@ -961,11 +986,13 @@ jobs:
     needs:
       [
         job_build,
+        job_build_profiling_node,
         job_browser_build_tests,
         job_browser_unit_tests,
         job_bun_unit_tests,
         job_deno_unit_tests,
         job_node_unit_tests,
+        job_profiling_node_unit_tests,
         job_nextjs_integration_test,
         job_node_integration_tests,
         job_browser_playwright_tests,
@@ -1026,6 +1053,7 @@ jobs:
         with:
           name: ${{ steps.process.outputs.artifactName }}
           path: ${{ steps.process.outputs.artifactPath }}
+
   job_compile_bindings_profiling_node:
     name: Compile & Test Profiling Bindings (v${{ matrix.node }}) ${{ matrix.target_platform || matrix.os }}, ${{ matrix.node || matrix.container }}, ${{ matrix.arch || matrix.container }}, ${{ contains(matrix.container, 'alpine') && 'musl' || 'glibc'  }}
     needs: [job_get_metadata, job_build]
@@ -1140,6 +1168,9 @@ jobs:
       - name: Install Dependencies
         run: yarn install --ignore-scripts --frozen-lockfile --ignore-engines
 
+      - name: Build dependencies
+        run: yarn build
+
       # configure build test copy x64
       - name: Configure node-gyp
         if: matrix.arch != 'arm64'
@@ -1200,7 +1231,7 @@ jobs:
           path: |
             ${{ github.workspace }}/packages/profiling-node/lib/*.node
 
-  job_pack_profiling_node:
+  job_build_profiling_node:
     name: Extract Binaries and Pack Profiling Node
     runs-on: ubuntu-latest
     needs: [job_get_metadata, job_compile_bindings_profiling_node]
