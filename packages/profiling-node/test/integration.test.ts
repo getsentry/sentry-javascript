@@ -41,7 +41,7 @@ function makeProfiledEvent(): ProfiledEvent {
 describe('ProfilingIntegration', () => {
   afterEach(() => {
     jest.clearAllMocks();
-  })
+  });
   it('has a name', () => {
     expect(new ProfilingIntegration().name).toBe('ProfilingIntegration');
   });
