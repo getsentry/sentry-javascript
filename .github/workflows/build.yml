@@ -1268,7 +1268,10 @@ jobs:
       - name: Build dependencies
         # We'll ignore @sentry/profiling-node so that we can configure node-gyp
         # for the target env that we want to build binaries for.
-        run: yarn build --ignore @sentry/profiling-node
+        run: yarn build
+
+      - name: Clean profiling-node node-gyp
+        run: yarn lerna run clean --scope @sentry/profiling-node
 
       # configure build test copy x64
       - name: Configure node-gyp
@@ -1364,3 +1367,9 @@ jobs:
 
       - name: Pack Profiling Node
         run: yarn lerna run pack --scope @sentry/profiling-node
+
+  # job_e2e_profiling_node:
+  #   name: "E2E Profiling Node Tests"
+  #   runs-on: ubuntu-latest
+  #   needs: [job_get_metadata, job_build_profiling_node]
+  #   timeout-minutes: 10
