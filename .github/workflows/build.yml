@@ -447,21 +447,15 @@ jobs:
           node-version: 18
       - uses: actions/setup-python@v5
       - name: Install Dependencies
-        run: |
-          cd packages/profiling-node
-          yarn install --ignore-scripts --frozen-lockfile
+        run: yarn install --ignore-scripts --frozen-lockfile
       - name: Configure node-gyp
         run: |
           cd packages/profiling-node
           yarn build:bindings:configure
       - name: Build Lib and Bindings
-        run: |
-          cd packages/profiling-node
-          yarn build
+        run: yarn build
       - name: Unit Tests
-        run: |
-          cd packages/profiling-node
-          yarn test
+        run: yarn lerna run test --scope @sentry/profiling-node
 
   job_bun_unit_tests:
     name: Bun Unit Tests
