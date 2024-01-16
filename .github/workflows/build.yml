@@ -127,6 +127,7 @@ jobs:
               - *shared
               - 'packages/node/**'
               - 'packages/node-experimental/**'
+              - 'packages/profiling-node/**'
               - 'dev-packages/node-integration-tests/**'
             deno:
               - *shared
@@ -1261,19 +1262,6 @@ jobs:
 
       - name: Setup python
         uses: actions/setup-python@v5
-
-      - name: Install dependencies
-        run: yarn install --frozen-lockfile --ignore-scripts --ignore-engines
-
-      - name: Build dependencies
-        # We'll ignore @sentry/profiling-node so that we can configure node-gyp
-        # for the target env that we want to build binaries for.
-        run: yarn build --ignore @sentry-internal/feedback --ignore @sentry/astro --ignore @sentry/profiling-node
-
-        # Run clean after build because yarn build --ignore @sentry/profiling-node
-        # will fail with a cryptic message on missing types?
-      - name: Clean profiling-node node-gyp
-        run: yarn lerna run clean --scope @sentry/profiling-node
 
       # configure build test copy x64
       - name: Configure node-gyp
