@@ -139,7 +139,8 @@ describe('hubextensions', () => {
     transaction.finish();
 
     await Sentry.flush(1000);
-    expect(logSpy.mock?.[logSpy.mock.calls.length - 1]?.[0]).toBe(
+
+    expect(logSpy.mock?.calls[logSpy.mock.calls.length - 1]?.[0]).toBe(
       '[Profiling] Discarding profile because it contains less than 2 samples',
     );
 
@@ -211,7 +212,7 @@ describe('hubextensions', () => {
       await Sentry.flush(1000);
 
       expect(startProfilingSpy).toHaveBeenCalledTimes(1);
-      expect((stopProfilingSpy.mock[stopProfilingSpy.mock.calls.length - 1]?.[0] as string).length).toBe(32);
+      expect((stopProfilingSpy.mock.calls[stopProfilingSpy.mock.calls.length - 1]?.[0] as string).length).toBe(32);
     });
 
     it('sends profile in the same envelope as transaction', async () => {
@@ -331,7 +332,7 @@ describe('hubextensions', () => {
       await Sentry.flush(1000);
 
       expect(startProfilingSpy).toHaveBeenCalledTimes(1);
-      expect((stopProfilingSpy.mock[startProfilingSpy.mock.calls.length - 1]?.[0] as string).length).toBe(32);
+      expect((stopProfilingSpy.mock.calls[startProfilingSpy.mock.calls.length - 1]?.[0] as string).length).toBe(32);
     });
 
     it('sends profile in separate envelope', async () => {
