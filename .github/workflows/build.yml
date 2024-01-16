@@ -1164,22 +1164,16 @@ jobs:
         uses: actions/setup-python@v5
 
       - name: Install Dependencies
-        run: |
-          cd packages/profiling-node
-          yarn install --ignore-scripts --frozen-lockfile --ignore-engines
+        run: yarn install --ignore-scripts --frozen-lockfile --ignore-engines
 
       # configure build test copy x64
       - name: Configure node-gyp
         if: matrix.arch != 'arm64'
-        run: |
-          cd packages/profiling-node
-          yarn build:bindings:configure
+        run: yarn lerna run build:bindings:configure --scope @sentry/profiling-node
 
       - name: Build Bindings
         if: matrix.arch != 'arm64'
-        run: |
-          cd packages/profiling-node
-          yarn build:bindings
+        run: yarn lerna run build:bindings --scope @sentry/profiling-node
 
       - name: Setup (arm64, ${{ contains(matrix.container, 'alpine') && 'musl' || 'glibc'  }})
         if: matrix.arch == 'arm64' && !contains(matrix.container, 'alpine') && matrix.target_platform != 'darwin'
@@ -1189,45 +1183,36 @@ jobs:
 
       - name: "Configure node-gyp (arm64, ${{ contains(matrix.container, 'alpine') && 'musl' || 'glibc'  }})"
         if: matrix.arch == 'arm64' && matrix.target_platform != 'darwin'
-        run: |
-          cd packages/profiling-node
-          yarn build:bindings:configure:arm64
+        run:  yarn lerna run build:bindings:configure:arm64 --scope @sentry/profiling-node
 
       - name: Setup Musl
         if: contains(matrix.container, 'alpine')
         run: |
-          cd packages/profiling-node
           curl -OL https://musl.cc/aarch64-linux-musl-cross.tgz
           tar -xzvf aarch64-linux-musl-cross.tgz
           $(pwd)/aarch64-linux-musl-cross/bin/aarch64-linux-musl-gcc --version
 
       - name: "Build Bindings (arm64, ${{ contains(matrix.container, 'alpine') && 'musl' || 'glibc'  }})"
         if: matrix.arch == 'arm64' && contains(matrix.container, 'alpine') && matrix.target_platform != 'darwin'
-        run: |
-          cd packages/profiling-node
+        run:
           CC=$(pwd)/aarch64-linux-musl-cross/bin/aarch64-linux-musl-gcc \
           CXX=$(pwd)/aarch64-linux-musl-cross/bin/aarch64-linux-musl-g++ \
-          BUILD_ARCH=arm64 yarn build:bindings
+          BUILD_ARCH=arm64 yarn lerna run build:bindings --scope @sentry/profiling-node
 
       - name: "Build Bindings (arm64, ${{ contains(matrix.container, 'alpine') && 'musl' || 'glibc'  }})"
         if: matrix.arch == 'arm64' && !contains(matrix.container, 'alpine') && matrix.target_platform != 'darwin'
         run: |
-          cd packages/profiling-node
           CC=aarch64-linux-gnu-gcc \
           CXX=aarch64-linux-gnu-g++ \
-          BUILD_ARCH=arm64 yarn build:bindings:arm64
+          BUILD_ARCH=arm64 yarn lerna run build:bindings:arm64 --scope @sentry/profiling-node
 
       - name: "Configure node-gyp (arm64, darwin)"
         if: matrix.arch == 'arm64' && matrix.target_platform == 'darwin'
-        run: |
-          cd packages/profiling-node
-          yarn build:bindings:configure:arm64
+        run: yarn lerna run build:bindings:configure:arm64 --scope @sentry/profiling-node
 
       - name: "Build Bindings (arm64, darwin)"
         if: matrix.arch == 'arm64' && matrix.target_platform == 'darwin'
-        run: |
-          cd packages/profiling-node
-          BUILD_PLATFORM=darwin BUILD_ARCH=arm64 yarn build:bindings:arm64
+        run: BUILD_PLATFORM=darwin BUILD_ARCH=arm64 yarn lerna run build:bindings:arm64 --scope @sentry/profiling-node
 
       - name: Archive Binary
         # @TODO: v4 breaks convenient merging of same name artifacts
@@ -1255,14 +1240,10 @@ jobs:
           node-version: 20
 
       - name: Install Dependencies
-        run: |
-          cd packages/profiling-node
-          yarn install --frozen-lockfile
+        run: yarn install --frozen-lockfile
 
       - name: Build TS files
-        run: |
-          cd packages/profiling-node
-          yarn build:lib
+        run: yarn lerna run build:lib --scope @sentry/profiling-node
 
       - name: Extract Built Binaries
         # @TODO: v4 breaks convenient merging of same name artifacts
@@ -1273,6 +1254,4 @@ jobs:
           path: packages/profiling-node/lib/
 
       - name: Pack Profiling Node
-        run: |
-          cd packages/profiling-node
-          yarn pack
+        run: yarn lerna run pack --scope @sentry/profiling-node
