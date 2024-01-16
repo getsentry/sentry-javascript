@@ -154,7 +154,9 @@ describe('startTranscation', () => {
 
     expect(transaction).toBeInstanceOf(OpenTelemetryTransaction);
     expect(transaction['_sampled']).toBe(undefined);
+    // eslint-disable-next-line deprecation/deprecation
     expect(transaction.spanRecorder).toBeDefined();
+    // eslint-disable-next-line deprecation/deprecation
     expect(transaction.spanRecorder?.spans).toHaveLength(1);
     // eslint-disable-next-line deprecation/deprecation
     expect(transaction.metadata).toEqual({

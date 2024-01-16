@@ -152,6 +152,7 @@ export class IdleTransaction extends Transaction {
       this.setAttribute(FINISH_REASON_TAG, this._finishReason);
     }
 
+    // eslint-disable-next-line deprecation/deprecation
     if (this.spanRecorder) {
       DEBUG_BUILD &&
         logger.log('[Tracing] finishing IdleTransaction', new Date(endTimestampInS * 1000).toISOString(), this.op);
@@ -160,6 +161,7 @@ export class IdleTransaction extends Transaction {
         callback(this, endTimestampInS);
       }
 
+      // eslint-disable-next-line deprecation/deprecation
       this.spanRecorder.spans = this.spanRecorder.spans.filter((span: Span) => {
         // If we are dealing with the transaction itself, we just return it
         if (span.spanContext().spanId === this.spanContext().spanId) {
@@ -227,6 +229,7 @@ export class IdleTransaction extends Transaction {
    * @inheritDoc
    */
   public initSpanRecorder(maxlen?: number): void {
+    // eslint-disable-next-line deprecation/deprecation
     if (!this.spanRecorder) {
       const pushActivity = (id: string): void => {
         if (this._finished) {
@@ -241,12 +244,14 @@ export class IdleTransaction extends Transaction {
         this._popActivity(id);
       };
 
+      // eslint-disable-next-line deprecation/deprecation
       this.spanRecorder = new IdleTransactionSpanRecorder(pushActivity, popActivity, this.spanContext().spanId, maxlen);
 
       // Start heartbeat so that transactions do not run forever.
       DEBUG_BUILD && logger.log('Starting heartbeat');
       this._pingHeartbeat();
     }
+    // eslint-disable-next-line deprecation/deprecation
     this.spanRecorder.add(this);
   }
 
