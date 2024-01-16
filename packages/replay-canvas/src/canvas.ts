@@ -71,6 +71,7 @@ const replayCanvasIntegration = ((options: Partial<ReplayCanvasOptions> = {}) =>
       const { quality, enableManualSnapshot } = _canvasOptions;
 
       return {
+        enableManualSnapshot,
         recordCanvas: true,
         getCanvasManager: (options: CanvasManagerOptions) => {
           const manager = new CanvasManager({ ...options, isManualSnapshot: enableManualSnapshot });
