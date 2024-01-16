@@ -56,6 +56,7 @@
     "@sentry-internal/rrweb": "2.8.0"
   },
   "dependencies": {
+    "@sentry/core": "7.93.0",
     "@sentry/replay": "7.93.0",
     "@sentry/types": "7.93.0"
   },
