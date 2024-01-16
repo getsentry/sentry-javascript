@@ -1186,11 +1186,11 @@ jobs:
       # configure build test copy x64
       - name: Configure node-gyp
         if: matrix.arch != 'arm64'
-        run: yarn lerna run build:bindings:configure --scope @sentry/profiling-node
+        run: cd packages/profiling-node && yarn build:bindings:configure --scope @sentry/profiling-node
 
       - name: Build Bindings
         if: matrix.arch != 'arm64'
-        run: yarn lerna run build:bindings --scope @sentry/profiling-node
+        run: cd packages/profiling-node && yarn build:bindings --scope @sentry/profiling-node
 
       - name: Setup (arm64| ${{ contains(matrix.container, 'alpine') && 'musl' || 'glibc'  }})
         if: matrix.arch == 'arm64' && !contains(matrix.container, 'alpine') && matrix.target_platform != 'darwin'
@@ -1200,7 +1200,7 @@ jobs:
 
       - name: Configure node-gyp (arm64, ${{ contains(matrix.container, 'alpine') && 'musl' || 'glibc'  }})
         if: matrix.arch == 'arm64' && matrix.target_platform != 'darwin'
-        run:  yarn lerna run build:bindings:configure:arm64 --scope @sentry/profiling-node
+        run: cd packages/profiling-node && yarn build:bindings:configure:arm64 --scope @sentry/profiling-node
 
       - name: Setup Musl
         if: contains(matrix.container, 'alpine')
@@ -1212,27 +1212,29 @@ jobs:
       - name: Build Bindings (arm64, ${{ contains(matrix.container, 'alpine') && 'musl' || 'glibc'  }})
         if: matrix.arch == 'arm64' && contains(matrix.container, 'alpine') && matrix.target_platform != 'darwin'
         run:
+          cd packages/profiling-node &&
           CC=$(pwd)/aarch64-linux-musl-cross/bin/aarch64-linux-musl-gcc \
           CXX=$(pwd)/aarch64-linux-musl-cross/bin/aarch64-linux-musl-g++ \
-          BUILD_ARCH=arm64 yarn lerna run build:bindings --scope @sentry/profiling-node
+          BUILD_ARCH=arm64 yarn build:bindings --scope @sentry/profiling-node
 
       - name: Build Bindings (arm64, ${{ contains(matrix.container, 'alpine') && 'musl' || 'glibc'  }})
         if: matrix.arch == 'arm64' && !contains(matrix.container, 'alpine') && matrix.target_platform != 'darwin'
         run: |
+          cd packages/profiling-node &&
           CC=aarch64-linux-gnu-gcc \
           CXX=aarch64-linux-gnu-g++ \
-          BUILD_ARCH=arm64 yarn lerna run build:bindings:arm64 --scope @sentry/profiling-node
+          BUILD_ARCH=arm64 yarn build:bindings:arm64 --scope @sentry/profiling-node
 
       - name: Configure node-gyp (arm64, darwin)
         if: matrix.arch == 'arm64' && matrix.target_platform == 'darwin'
-        run: yarn lerna run build:bindings:configure:arm64 --scope @sentry/profiling-node
+        run: cd packages/profiling-node && yarn build:bindings:configure:arm64 --scope @sentry/profiling-node
 
       - name: Build Bindings (arm64, darwin)
         if: matrix.arch == 'arm64' && matrix.target_platform == 'darwin'
-        run: BUILD_PLATFORM=darwin BUILD_ARCH=arm64 yarn lerna run build:bindings:arm64 --scope @sentry/profiling-node
+        run: cd packages/profiling-node && BUILD_PLATFORM=darwin BUILD_ARCH=arm64 yarn build:bindings:arm64 --scope @sentry/profiling-node
 
       - name: Test Bindings
-        run: yarn lerna run test --scope @sentry/profiling-node
+        run: cd packages/profiling-node && yarn test --scope @sentry/profiling-node
 
       - name: Archive Binary
         # @TODO: v4 breaks convenient merging of same name artifacts
