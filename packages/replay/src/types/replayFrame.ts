@@ -114,7 +114,6 @@ export interface ReplayMultiClickFrame extends ReplayBaseBreadcrumbFrame {
 
 interface ReplayOptionFrame {
   blockAllMedia: boolean;
-  canvas: boolean;
   errorSampleRate: number;
   maskAllInputs: boolean;
   maskAllText: boolean;
