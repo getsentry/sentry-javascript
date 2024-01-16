@@ -1,5 +1,5 @@
 /* eslint-disable max-lines */
-import os from 'os';
+import * as os from 'node:os';
 import type {
   Context,
   DsnComponents,
@@ -40,7 +40,7 @@ const PLATFORM = os.platform();
 const RELEASE = os.release();
 const VERSION = os.version();
 const TYPE = os.type();
-const MODEL = machine();
+const MODEL = machine;
 const ARCH = os.arch();
 
 /**
