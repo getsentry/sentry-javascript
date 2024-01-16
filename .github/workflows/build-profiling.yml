@@ -36,9 +36,7 @@ jobs:
           node-version: 18
       - uses: actions/setup-python@v5
       - name: Install dependencies
-        run: |
-          cd packages/profiling-node
-          yarn install --ignore-scripts --frozen-lockfile
+        run: yarn install --ignore-scripts --frozen-lockfile
       - name: Configure node-gyp
         run: |
           cd packages/profiling-node
