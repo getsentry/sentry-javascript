@@ -1,6 +1,7 @@
 // PUBLIC APIS
 
-import { context } from '@opentelemetry/api';
+import type { Span } from '@opentelemetry/api';
+import { context, trace } from '@opentelemetry/api';
 import type {
   Breadcrumb,
   BreadcrumbHint,
@@ -61,6 +62,18 @@ export function withScope<T>(
 
   const callback = rest[0];
   return context.with(context.active(), () => callback(getCurrentScope()));
+}
+
+/**
+ * Forks the current scope and sets the provided span as active span in the context of the provided callback.
+ *
+ * @param span Spans started in the context of the provided callback will be children of this span.
+ * @param callback Execution context in which the provided span will be active. Is passed the newly forked scope.
+ * @returns the value returned from the provided callback function.
+ */
+export function withActiveSpan<T>(span: Span, callback: (scope: Scope) => T): T {
+  const newContextWithActiveSpan = trace.setSpan(context.active(), span);
+  return context.with(newContextWithActiveSpan, () => callback(getCurrentScope()));
 }
 
 /**
