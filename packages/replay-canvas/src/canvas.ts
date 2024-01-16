@@ -63,7 +63,7 @@ const replayCanvasIntegration = ((options: Partial<ReplayCanvasOptions> = {}) =>
   };
 
   let canvasManagerResolve: (value: CanvasManager) => void;
-  const _canvasManager: Promise<CanvasManager> = new Promise((resolve) => canvasManagerResolve = resolve);
+  const _canvasManager: Promise<CanvasManager> = new Promise(resolve => (canvasManagerResolve = resolve));
 
   return {
     name: INTEGRATION_NAME,
@@ -72,7 +72,11 @@ const replayCanvasIntegration = ((options: Partial<ReplayCanvasOptions> = {}) =>
 
       return {
         recordCanvas: true,
-        getCanvasManager: (options: CanvasManagerOptions) => (canvasManagerResolve(new CanvasManager({ ...options, isManualSnapshot: enableManualSnapshot } ))),
+        getCanvasManager: (options: CanvasManagerOptions) => {
+          const manager = new CanvasManager({ ...options, isManualSnapshot: enableManualSnapshot });
+          canvasManagerResolve(manager);
+          return manager;
+        },
         ...(CANVAS_QUALITY[quality || 'medium'] || CANVAS_QUALITY.medium),
       };
     },

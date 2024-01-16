@@ -17,10 +17,9 @@ it('initializes with default options', () => {
 });
 
 it('initializes with quality option and manual snapshot', () => {
-  const rc = new ReplayCanvas({ enableManualSnapshot: true, quality: 'low' });
+  const rc = new ReplayCanvas({ quality: 'low' });
 
   expect(rc.getOptions()).toEqual({
-    enableManualSnapshot: true,
     recordCanvas: true,
     getCanvasManager: expect.any(Function),
     sampling: {
