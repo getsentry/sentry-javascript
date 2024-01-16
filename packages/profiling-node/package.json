@@ -41,7 +41,7 @@
     "lint:fix:clang": "node clang-format.js --fix",
     "build": "yarn build:lib && yarn build:bindings:configure && yarn build:bindings",
     "build:lib": "yarn build:types && node esbuild.js",
-    "build:transpile": "yarn build:configure && yarn build:bindings && yarn build:lib",
+    "build:transpile": "yarn build:bindings:configure && yarn build:bindings && yarn build:lib",
     "build:types": "tsc -p tsconfig.types.json",
     "build:bindings:configure": "node-gyp configure --verbose",
     "build:bindings:configure:arm64": "node-gyp configure --arch=arm64 --target_arch=arm64 --verbose",
