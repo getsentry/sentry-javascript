@@ -111,6 +111,7 @@ conditionalTest({ min: 16 })('Undici integration', () => {
       await fetch(request, requestInit);
 
       expect(outerSpan).toBeInstanceOf(Transaction);
+      // eslint-disable-next-line deprecation/deprecation
       const spans = (outerSpan as Transaction).spanRecorder?.spans || [];
 
       expect(spans.length).toBe(2);
@@ -129,6 +130,7 @@ conditionalTest({ min: 16 })('Undici integration', () => {
       }
 
       expect(outerSpan).toBeInstanceOf(Transaction);
+      // eslint-disable-next-line deprecation/deprecation
       const spans = (outerSpan as Transaction).spanRecorder?.spans || [];
 
       expect(spans.length).toBe(2);
@@ -149,6 +151,7 @@ conditionalTest({ min: 16 })('Undici integration', () => {
       }
 
       expect(outerSpan).toBeInstanceOf(Transaction);
+      // eslint-disable-next-line deprecation/deprecation
       const spans = (outerSpan as Transaction).spanRecorder?.spans || [];
 
       expect(spans.length).toBe(2);
@@ -170,6 +173,7 @@ conditionalTest({ min: 16 })('Undici integration', () => {
       }
 
       expect(outerSpan).toBeInstanceOf(Transaction);
+      // eslint-disable-next-line deprecation/deprecation
       const spans = (outerSpan as Transaction).spanRecorder?.spans || [];
 
       expect(spans.length).toBe(1);
@@ -189,6 +193,7 @@ conditionalTest({ min: 16 })('Undici integration', () => {
   it('does create a span if `shouldCreateSpanForRequest` is defined', async () => {
     await startSpan({ name: 'outer-span' }, async outerSpan => {
       expect(outerSpan).toBeInstanceOf(Transaction);
+      // eslint-disable-next-line deprecation/deprecation
       const spans = (outerSpan as Transaction).spanRecorder?.spans || [];
 
       const undoPatch = patchUndici({ shouldCreateSpanForRequest: url => url.includes('yes') });
@@ -213,6 +218,7 @@ conditionalTest({ min: 16 })('Undici integration', () => {
     await runWithAsyncContext(async () => {
       await startSpan({ name: 'outer-span' }, async outerSpan => {
         expect(outerSpan).toBeInstanceOf(Transaction);
+        // eslint-disable-next-line deprecation/deprecation
         const spans = (outerSpan as Transaction).spanRecorder?.spans || [];
 
         await fetch('http://localhost:18100', { method: 'POST' });
@@ -287,6 +293,7 @@ conditionalTest({ min: 16 })('Undici integration', () => {
 
     await startSpan({ name: 'outer-span' }, async outerSpan => {
       expect(outerSpan).toBeInstanceOf(Transaction);
+      // eslint-disable-next-line deprecation/deprecation
       const spans = (outerSpan as Transaction).spanRecorder?.spans || [];
 
       expect(spans.length).toBe(1);

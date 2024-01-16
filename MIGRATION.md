@@ -177,6 +177,7 @@ In v8, the Span class is heavily reworked. The following properties & methods ar
 - `span.setData()`: Use `span.setAttribute()` instead.
 - `span.instrumenter` This field was removed and will be replaced internally.
 - `span.transaction`: Use `getRootSpan` utility function instead.
+- `span.spanRecorder`: Span recording will be handled internally by the SDK.
 - `transaction.setMetadata()`: Use attributes instead, or set data on the scope.
 - `transaction.metadata`: Use attributes instead, or set data on the scope.
 - `transaction.setContext()`: Set context on the surrounding scope instead.

@@ -70,6 +70,7 @@ describe('tracing', () => {
     nock('http://dogs.are.great').get('/').reply(200);
 
     const transaction = createTransactionOnScope();
+    // eslint-disable-next-line deprecation/deprecation
     const spans = (transaction as unknown as Span).spanRecorder?.spans as Span[];
 
     http.get('http://dogs.are.great/');
@@ -85,6 +86,7 @@ describe('tracing', () => {
     nock('http://squirrelchasers.ingest.sentry.io').get('/api/12312012/store/').reply(200);
 
     const transaction = createTransactionOnScope();
+    // eslint-disable-next-line deprecation/deprecation
     const spans = (transaction as unknown as Span).spanRecorder?.spans as Span[];
 
     http.get('http://squirrelchasers.ingest.sentry.io/api/12312012/store/');
@@ -272,6 +274,7 @@ describe('tracing', () => {
     nock('http://dogs.are.great').get('/spaniel?tail=wag&cute=true#learn-more').reply(200);
 
     const transaction = createTransactionOnScope();
+    // eslint-disable-next-line deprecation/deprecation
     const spans = (transaction as unknown as Span).spanRecorder?.spans as Span[];
 
     http.get('http://dogs.are.great/spaniel?tail=wag&cute=true#learn-more');
@@ -294,6 +297,7 @@ describe('tracing', () => {
     nock('http://dogs.are.great').get('/spaniel?tail=wag&cute=true#learn-more').reply(200);
 
     const transaction = createTransactionOnScope();
+    // eslint-disable-next-line deprecation/deprecation
     const spans = (transaction as unknown as Span).spanRecorder?.spans as Span[];
 
     http.request({ method: 'GET', host: 'dogs.are.great', path: '/spaniel?tail=wag&cute=true#learn-more' });
@@ -321,6 +325,7 @@ describe('tracing', () => {
     nock(`http://${auth}@dogs.are.great`).get('/').reply(200);
 
     const transaction = createTransactionOnScope();
+    // eslint-disable-next-line deprecation/deprecation
     const spans = (transaction as unknown as Span).spanRecorder?.spans as Span[];
 
     http.get(`http://${auth}@dogs.are.great/`);
@@ -380,6 +385,7 @@ describe('tracing', () => {
         );
 
         const transaction = createTransactionAndPutOnScope();
+        // eslint-disable-next-line deprecation/deprecation
         const spans = (transaction as unknown as Span).spanRecorder?.spans as Span[];
 
         const request = http.get(url);
@@ -485,6 +491,7 @@ describe('tracing', () => {
         );
 
         const transaction = createTransactionAndPutOnScope();
+        // eslint-disable-next-line deprecation/deprecation
         const spans = (transaction as unknown as Span).spanRecorder?.spans as Span[];
 
         const request = http.get(url);
