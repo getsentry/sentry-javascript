@@ -62,9 +62,6 @@
     "test:rollup": "yarn test:rollup:build && yarn test:rollup:run",
     "test": "cross-env SENTRY_PROFILER_BINARY_DIR=lib jest --config jest.config.js"
   },
-  "peerDependencies": {
-    "@sentry/node": "^7.44.1"
-  },
   "dependencies": {
     "detect-libc": "^2.0.2",
     "node-abi": "^3.52.0"
