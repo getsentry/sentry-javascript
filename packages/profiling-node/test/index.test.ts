@@ -81,6 +81,7 @@ describe('Sentry - Profiling', () => {
     it('profiles a transaction', async () => {
       const [client, transport] = makeClientWithoutHooks();
       const hub = Sentry.getCurrentHub();
+      // eslint-disable-next-line deprecation/deprecation
       hub.bindClient(client);
 
       // eslint-disable-next-line deprecation/deprecation
@@ -96,6 +97,7 @@ describe('Sentry - Profiling', () => {
     it('can profile overlapping transactions', async () => {
       const [client, transport] = makeClientWithoutHooks();
       const hub = Sentry.getCurrentHub();
+      // eslint-disable-next-line deprecation/deprecation
       hub.bindClient(client);
 
       // eslint-disable-next-line deprecation/deprecation
@@ -104,7 +106,9 @@ describe('Sentry - Profiling', () => {
       const t2 = Sentry.startTransaction({ name: 'inner' });
       await wait(500);
 
+      // eslint-disable-next-line deprecation/deprecation
       t2.finish();
+      // eslint-disable-next-line deprecation/deprecation
       t1.finish();
 
       await Sentry.flush(500);
@@ -118,6 +122,7 @@ describe('Sentry - Profiling', () => {
     it('does not discard overlapping transaction with same title', async () => {
       const [client, transport] = makeClientWithoutHooks();
       const hub = Sentry.getCurrentHub();
+      // eslint-disable-next-line deprecation/deprecation
       hub.bindClient(client);
 
       // eslint-disable-next-line deprecation/deprecation
@@ -125,7 +130,9 @@ describe('Sentry - Profiling', () => {
       // eslint-disable-next-line deprecation/deprecation
       const t2 = Sentry.startTransaction({ name: 'same-title' });
       await wait(500);
+      // eslint-disable-next-line deprecation/deprecation
       t2.finish();
+      // eslint-disable-next-line deprecation/deprecation
       t1.finish();
 
       await Sentry.flush(500);
@@ -136,6 +143,7 @@ describe('Sentry - Profiling', () => {
     it('does not crash if finish is called multiple times', async () => {
       const [client, transport] = makeClientWithoutHooks();
       const hub = Sentry.getCurrentHub();
+      // eslint-disable-next-line deprecation/deprecation
       hub.bindClient(client);
 
       // eslint-disable-next-line deprecation/deprecation
