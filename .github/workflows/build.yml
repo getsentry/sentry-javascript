@@ -1165,13 +1165,13 @@ jobs:
       - name: Setup python
         uses: actions/setup-python@v5
 
-      - name: Restore caches
-        uses: ./.github/actions/restore-cache
-        env:
-          DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
+      - name: Build dependencies
+        run: yarn install --frozen-lockfile --ignore-scripts --ignore-engines
 
       - name: Build dependencies
-        run: yarn build --scope @sentry/profiling-node
+        # We'll ignore @sentry/profiling-node so that we can configure node-gyp
+        # for the target env that we want to build binaries for.
+        run: yarn build --ignore @sentry/profiling-node
 
       # configure build test copy x64
       - name: Configure node-gyp
