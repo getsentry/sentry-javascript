@@ -68,11 +68,6 @@ export class Span implements SpanInterface {
   public parentSpanId?: string;
 
   /**
-   * Internal keeper of the status
-   */
-  public status?: SpanStatusType | string;
-
-  /**
    * @inheritDoc
    */
   public op?: string;
@@ -128,6 +123,8 @@ export class Span implements SpanInterface {
   protected _startTime: number;
   /** Epoch timestamp in seconds when the span ended. */
   protected _endTime?: number;
+  /** Internal keeper of the status */
+  protected _status?: SpanStatusType | string;
 
   private _logMessage?: string;
 
@@ -164,7 +161,7 @@ export class Span implements SpanInterface {
       this.op = spanContext.op;
     }
     if (spanContext.status) {
-      this.status = spanContext.status;
+      this._status = spanContext.status;
     }
     if (spanContext.endTimestamp) {
       this._endTime = spanContext.endTimestamp;
@@ -302,6 +299,24 @@ export class Span implements SpanInterface {
     this._endTime = endTime;
   }
 
+  /**
+   * The status of the span.
+   *
+   * @deprecated Use `spanToJSON().status` instead to get the status.
+   */
+  public get status(): SpanStatusType | string | undefined {
+    return this._status;
+  }
+
+  /**
+   * The status of the span.
+   *
+   * @deprecated Use `.setStatus()` instead to set or update the status.
+   */
+  public set status(status: SpanStatusType | string | undefined) {
+    this._status = status;
+  }
+
   /* eslint-enable @typescript-eslint/member-ordering */
 
   /** @inheritdoc */
@@ -404,7 +419,7 @@ export class Span implements SpanInterface {
    * @inheritDoc
    */
   public setStatus(value: SpanStatusType): this {
-    this.status = value;
+    this._status = value;
     return this;
   }
 
@@ -444,7 +459,7 @@ export class Span implements SpanInterface {
    * @inheritDoc
    */
   public isSuccess(): boolean {
-    return this.status === 'ok';
+    return this._status === 'ok';
   }
 
   /**
@@ -502,7 +517,7 @@ export class Span implements SpanInterface {
       sampled: this._sampled,
       spanId: this._spanId,
       startTimestamp: this._startTime,
-      status: this.status,
+      status: this._status,
       // eslint-disable-next-line deprecation/deprecation
       tags: this.tags,
       traceId: this._traceId,
@@ -525,7 +540,7 @@ export class Span implements SpanInterface {
     this._sampled = spanContext.sampled;
     this._spanId = spanContext.spanId || this._spanId;
     this._startTime = spanContext.startTimestamp || this._startTime;
-    this.status = spanContext.status;
+    this._status = spanContext.status;
     // eslint-disable-next-line deprecation/deprecation
     this.tags = spanContext.tags || {};
     this._traceId = spanContext.traceId || this._traceId;
@@ -558,7 +573,7 @@ export class Span implements SpanInterface {
       parent_span_id: this.parentSpanId,
       span_id: this._spanId,
       start_timestamp: this._startTime,
-      status: this.status,
+      status: this._status,
       // eslint-disable-next-line deprecation/deprecation
       tags: Object.keys(this.tags).length > 0 ? this.tags : undefined,
       timestamp: this._endTime,
