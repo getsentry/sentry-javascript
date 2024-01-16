@@ -108,3 +108,5 @@ const Integrations = INTEGRATIONS;
 
 // eslint-disable-next-line deprecation/deprecation
 export { Integrations };
+
+export { parameterize } from '@sentry/utils';

@@ -72,9 +72,8 @@ export {
   metrics,
   functionToStringIntegration,
   inboundFiltersIntegration,
+  parameterize,
 } from '@sentry/core';
-
-export { parameterize } from '@sentry/utils';
 
 export { WINDOW } from './helpers';
 export { BrowserClient } from './client';
