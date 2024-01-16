@@ -1,12 +1,14 @@
-import * as path from 'path';
-
-import { TestEnv } from '../../../../utils/index';
+import { cleanupChildProcesses, createRunner } from '../../../../utils/runner';
 import type { TestAPIResponse } from '../server';
 
-test('Includes transaction in baggage if the transaction name is parameterized', async () => {
-  const env = await TestEnv.init(__dirname, `${path.resolve(__dirname, '.')}/server.ts`);
+afterAll(() => {
+  cleanupChildProcesses();
+});
 
-  const response = (await env.getAPIResponse(`${env.url}/express`)) as TestAPIResponse;
+test('Includes transaction in baggage if the transaction name is parameterized', async () => {
+  const runner = createRunner(__dirname, 'server.ts').start();
+
+  const response = await runner.makeRequest<TestAPIResponse>('get', '/test/express');
 
   expect(response).toBeDefined();
   expect(response).toMatchObject({

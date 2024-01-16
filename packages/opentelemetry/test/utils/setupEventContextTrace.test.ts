@@ -28,6 +28,7 @@ describe('setupEventContextTrace', () => {
     );
 
     hub = new OpenTelemetryHub(client);
+    // eslint-disable-next-line deprecation/deprecation
     makeMain(hub);
 
     setupEventContextTrace(client);

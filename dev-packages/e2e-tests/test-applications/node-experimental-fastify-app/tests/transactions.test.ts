@@ -33,7 +33,7 @@ test('Sends an API route transaction', async ({ baseURL }) => {
           span_id: expect.any(String),
           status: 'ok',
           tags: {
-            'http.status_code': 200,
+            'http.status_code': '200',
           },
           trace_id: expect.any(String),
           origin: 'auto.http.otel.http',
@@ -85,7 +85,7 @@ test('Sends an API route transaction', async ({ baseURL }) => {
         },
       ],
       tags: {
-        'http.status_code': 200,
+        'http.status_code': '200',
       },
       transaction: 'GET /test-transaction',
       type: 'transaction',

@@ -1,5 +1,5 @@
 import { captureException, captureMessage, convertIntegrationFnToClass, getClient, withScope } from '@sentry/core';
-import type { CaptureContext, IntegrationFn } from '@sentry/types';
+import type { CaptureContext, Client, Integration, IntegrationClass, IntegrationFn } from '@sentry/types';
 import {
   CONSOLE_LEVELS,
   GLOBAL_OBJ,
@@ -40,7 +40,12 @@ const captureConsoleIntegration = ((options: CaptureConsoleOptions = {}) => {
 
 /** Send Console API calls as Sentry Events */
 // eslint-disable-next-line deprecation/deprecation
-export const CaptureConsole = convertIntegrationFnToClass(INTEGRATION_NAME, captureConsoleIntegration);
+export const CaptureConsole = convertIntegrationFnToClass(
+  INTEGRATION_NAME,
+  captureConsoleIntegration,
+) as IntegrationClass<Integration & { setup: (client: Client) => void }> & {
+  new (options?: { levels?: string[] }): Integration;
+};
 
 function consoleHandler(args: unknown[], level: string): void {
   const captureContext: CaptureContext = {

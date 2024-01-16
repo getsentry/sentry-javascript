@@ -212,7 +212,7 @@ import {Feedback} from '@sentry-internal/feedback';
 
 function MyFeedbackButton() {
     const client = getCurrentHub().getClient<BrowserClient>();
-    const feedback = client?.getIntegration(Feedback);
+    const feedback = client?.getIntegrationByName('Feedback');
 
     // Don't render custom feedback button if Feedback integration not installed
     if (!feedback) {
@@ -258,7 +258,7 @@ import {BrowserClient, getCurrentHub} from '@sentry/react';
 import {Feedback} from '@sentry-internal/feedback';
 
 document.getElementById('my-feedback-form').addEventListener('submit', (event) => {
-  const feedback = getCurrentHub().getClient<BrowserClient>()?.getIntegration(Feedback);
+  const feedback = getCurrentHub().getClient<BrowserClient>()?.getIntegrationByName('Feedback');
   const formData = new FormData(event.currentTarget);
   feedback.sendFeedback(formData);
   event.preventDefault();

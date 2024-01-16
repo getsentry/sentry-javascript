@@ -47,6 +47,7 @@ describe('BrowserProfilingIntegration', () => {
       },
     };
 
+    // eslint-disable-next-line deprecation/deprecation
     hub.bindClient(client);
   });
 

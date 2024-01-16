@@ -1,4 +1,11 @@
-import { LinkedErrors, SDK_VERSION, getMainCarrier, initAndBind, runWithAsyncContext } from '@sentry/core';
+import {
+  LinkedErrors,
+  SDK_VERSION,
+  getMainCarrier,
+  initAndBind,
+  runWithAsyncContext,
+  setCurrentClient,
+} from '@sentry/core';
 import type { EventHint, Integration } from '@sentry/types';
 import { GLOBAL_OBJ } from '@sentry/utils';
 
@@ -92,7 +99,8 @@ describe('SentryNode', () => {
         stackParser: defaultStackParser,
       });
       const client = new NodeClient(options);
-      getCurrentHub().bindClient(client);
+      setCurrentClient(client);
+      client.init();
       addBreadcrumb({ message: 'test1' });
       addBreadcrumb({ message: 'test2' });
       captureMessage('event');
@@ -128,7 +136,9 @@ describe('SentryNode', () => {
         },
         dsn,
       });
-      getCurrentHub().bindClient(new NodeClient(options));
+      const client = new NodeClient(options);
+      setCurrentClient(client);
+      client.init();
       getCurrentScope().setTag('test', '1');
       try {
         throw new Error('test');
@@ -153,7 +163,9 @@ describe('SentryNode', () => {
         },
         dsn,
       });
-      getCurrentHub().bindClient(new NodeClient(options));
+      const client = new NodeClient(options);
+      setCurrentClient(client);
+      client.init();
       getCurrentScope().setTag('test', '1');
       try {
         throw 'test string exception';
@@ -184,7 +196,8 @@ describe('SentryNode', () => {
         integrations: [new ContextLines()],
       });
       const client = new NodeClient(options);
-      getCurrentHub().bindClient(client);
+      setCurrentClient(client);
+      client.init();
       getCurrentScope().setTag('test', '1');
       try {
         throw new Error('test');
@@ -224,7 +237,9 @@ describe('SentryNode', () => {
         },
         dsn,
       });
-      getCurrentHub().bindClient(new NodeClient(options));
+      const client = new NodeClient(options);
+      setCurrentClient(client);
+      client.init();
       try {
         throw new Error('test');
       } catch (e) {
@@ -249,7 +264,9 @@ describe('SentryNode', () => {
         },
         dsn,
       });
-      getCurrentHub().bindClient(new NodeClient(options));
+      const client = new NodeClient(options);
+      setCurrentClient(client);
+      client.init();
       captureMessage('test');
     });
 
@@ -265,7 +282,9 @@ describe('SentryNode', () => {
         },
         dsn,
       });
-      getCurrentHub().bindClient(new NodeClient(options));
+      const client = new NodeClient(options);
+      setCurrentClient(client);
+      client.init();
       captureEvent({ message: 'test event' });
     });
 
@@ -285,7 +304,9 @@ describe('SentryNode', () => {
 
       runWithAsyncContext(() => {
         const hub = getCurrentHub();
-        hub.bindClient(client);
+        setCurrentClient(client);
+        client.init();
+
         // eslint-disable-next-line deprecation/deprecation
         expect(getCurrentHub().getClient()).toBe(client);
         expect(getClient()).toBe(client);
@@ -308,7 +329,9 @@ describe('SentryNode', () => {
         },
         dsn,
       });
-      getCurrentHub().bindClient(new NodeClient(options));
+      const client = new NodeClient(options);
+      setCurrentClient(client);
+      client.init();
       try {
         // eslint-disable-next-line no-inner-declarations
         function testy(): void {

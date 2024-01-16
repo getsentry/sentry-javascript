@@ -1,4 +1,4 @@
-import type { IntegrationFn } from '@sentry/types';
+import type { Client, Event, EventHint, Integration, IntegrationClass, IntegrationFn } from '@sentry/types';
 import { applyAggregateErrorsToEvent, exceptionFromError } from '@sentry/utils';
 import { convertIntegrationFnToClass } from '../integration';
 
@@ -12,7 +12,7 @@ const DEFAULT_LIMIT = 5;
 
 const INTEGRATION_NAME = 'LinkedErrors';
 
-const linkedErrorsIntegration: IntegrationFn = (options: LinkedErrorsOptions = {}) => {
+const linkedErrorsIntegration = ((options: LinkedErrorsOptions = {}) => {
   const limit = options.limit || DEFAULT_LIMIT;
   const key = options.key || DEFAULT_KEY;
 
@@ -34,8 +34,10 @@ const linkedErrorsIntegration: IntegrationFn = (options: LinkedErrorsOptions = {
       );
     },
   };
-};
+}) satisfies IntegrationFn;
 
 /** Adds SDK info to an event. */
 // eslint-disable-next-line deprecation/deprecation
-export const LinkedErrors = convertIntegrationFnToClass(INTEGRATION_NAME, linkedErrorsIntegration);
+export const LinkedErrors = convertIntegrationFnToClass(INTEGRATION_NAME, linkedErrorsIntegration) as IntegrationClass<
+  Integration & { preprocessEvent: (event: Event, hint: EventHint, client: Client) => void }
+> & { new (options?: { key?: string; limit?: number }): Integration };

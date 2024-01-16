@@ -9,6 +9,7 @@ export function setMeasurement(name: string, value: number, unit: MeasurementUni
   // eslint-disable-next-line deprecation/deprecation
   const transaction = getActiveTransaction();
   if (transaction) {
+    // eslint-disable-next-line deprecation/deprecation
     transaction.setMeasurement(name, value, unit);
   }
 }

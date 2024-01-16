@@ -7,6 +7,7 @@ export { Offline } from './offline';
 export { ReportingObserver } from './reportingobserver';
 export { RewriteFrames } from './rewriteframes';
 export { SessionTiming } from './sessiontiming';
+// eslint-disable-next-line deprecation/deprecation
 export { Transaction } from './transaction';
 export { HttpClient } from './httpclient';
 export { ContextLines } from './contextlines';

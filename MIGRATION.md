@@ -10,6 +10,16 @@ npx @sentry/migr8@latest
 This will let you select which updates to run, and automatically update your code. Make sure to still review all code
 changes!
 
+## Deprecate `hub.bindClient()` and `makeMain()`
+
+Instead, either directly use `initAndBind()`, or the new APIs `setCurrentClient()` and `client.init()`. See
+[Initializing the SDK in v8](./docs/v8-initializing.md) for more details.
+
+## Deprecate `Transaction` integration
+
+This pluggable integration from `@sentry/integrations` will be removed in v8. It was already undocumented and is not
+necessary for the SDK to work as expected.
+
 ## Changed integration interface
 
 In v8, integrations passed to a client will have an optional `setupOnce()` hook. Currently, this hook is always present,
@@ -18,6 +28,16 @@ but in v8 you will not be able to rely on this always existing anymore - any int
 
 This should not affect most people, but in the case that you are manually calling `integration.setupOnce()` right now,
 make sure to guard it's existence properly.
+
+## Deprecate `getIntegration()` and `getIntegrationById()`
+
+This deprecates `getIntegration()` on both the hub & the client, as well as `getIntegrationById()` on the baseclient.
+Instead, use `getIntegrationByName()`. You can optionally pass an integration generic to make it easier to work with
+typescript:
+
+```ts
+const replay = getClient().getIntegrationByName<Replay>('Replay');
+```
 
 ## Deprecate `Hub`
 
@@ -151,15 +171,21 @@ In v8, the Span class is heavily reworked. The following properties & methods ar
 - `span.name`: Use `spanToJSON(span).description` instead.
 - `span.description`: Use `spanToJSON(span).description` instead.
 - `span.getDynamicSamplingContext`: Use `getDynamicSamplingContextFromSpan` utility function instead.
-- `transaction.setMetadata()`: Use attributes instead, or set data on the scope.
-- `transaction.metadata`: Use attributes instead, or set data on the scope.
 - `span.tags`: Set tags on the surrounding scope instead, or use attributes.
 - `span.data`: Use `spanToJSON(span).data` instead.
 - `span.setTag()`: Use `span.setAttribute()` instead or set tags on the surrounding scope.
 - `span.setData()`: Use `span.setAttribute()` instead.
 - `span.instrumenter` This field was removed and will be replaced internally.
 - `span.transaction`: Use `getRootSpan` utility function instead.
+- `transaction.setMetadata()`: Use attributes instead, or set data on the scope.
+- `transaction.metadata`: Use attributes instead, or set data on the scope.
 - `transaction.setContext()`: Set context on the surrounding scope instead.
+- `transaction.setMeasurement()`: Use `Sentry.setMeasurement()` instead. In v8, setting measurements will be limited to
+  the currently active root span.
+- `transaction.setName()`: Set the name with `.updateName()` and the source with `.setAttribute()` instead.
+- `span.startTimestamp`: use `spanToJSON(span).start_timestamp` instead. You cannot update this anymore in v8.
+- `span.endTimestamp`: use `spanToJSON(span).timestamp` instead. You cannot update this anymore in v8. You can pass a
+  custom end timestamp to `span.end(endTimestamp)`.
 
 ## Deprecate `pushScope` & `popScope` in favor of `withScope`
 

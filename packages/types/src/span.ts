@@ -192,9 +192,16 @@ export interface Span extends SpanContext {
   sampled?: boolean;
 
   /**
-   * @inheritDoc
+   * Timestamp in seconds (epoch time) indicating when the span started.
+   * @deprecated Use `spanToJSON()` instead.
    */
   startTimestamp: number;
+
+  /**
+   * Timestamp in seconds (epoch time) indicating when the span ended.
+   * @deprecated Use `spanToJSON()` instead.
+   */
+  endTimestamp?: number;
 
   /**
    * Tags for the span.
@@ -235,7 +242,10 @@ export interface Span extends SpanContext {
 
   /**
    * Sets the finish timestamp on the current span.
+   *
    * @param endTimestamp Takes an endTimestamp if the end should not be the time when you call this function.
+   *
+   * @deprecated Use `.end()` instead.
    */
   finish(endTimestamp?: number): void;
 

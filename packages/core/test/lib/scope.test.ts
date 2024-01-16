@@ -1,5 +1,5 @@
 import type { Attachment, Breadcrumb, Client, Event } from '@sentry/types';
-import { applyScopeDataToEvent } from '../../src';
+import { applyScopeDataToEvent, getCurrentScope, getIsolationScope, withIsolationScope } from '../../src';
 import { Scope, getGlobalScope, setGlobalScope } from '../../src/scope';
 
 describe('Scope', () => {
@@ -462,6 +462,44 @@ describe('Scope', () => {
         expect.objectContaining({ event_id: 'asdf', data: { foo: 'bar' } }),
         scope,
       );
+    });
+  });
+});
+
+describe('isolation scope', () => {
+  describe('withIsolationScope()', () => {
+    it('will pass an isolation scope without Sentry.init()', done => {
+      expect.assertions(1);
+      withIsolationScope(scope => {
+        expect(scope).toBeDefined();
+        done();
+      });
+    });
+
+    it('will make the passed isolation scope the active isolation scope within the callback', done => {
+      expect.assertions(1);
+      withIsolationScope(scope => {
+        expect(getIsolationScope()).toBe(scope);
+        done();
+      });
+    });
+
+    it('will pass an isolation scope that is different from the current active scope', done => {
+      expect.assertions(1);
+      withIsolationScope(scope => {
+        expect(getCurrentScope()).not.toBe(scope);
+        done();
+      });
+    });
+
+    it('will always make the inner most passed scope the current scope when nesting calls', done => {
+      expect.assertions(1);
+      withIsolationScope(_scope1 => {
+        withIsolationScope(scope2 => {
+          expect(getIsolationScope()).toBe(scope2);
+          done();
+        });
+      });
     });
   });
 });

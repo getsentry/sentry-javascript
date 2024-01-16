@@ -1,6 +1,6 @@
 /* eslint-disable deprecation/deprecation */
 import { BrowserClient } from '@sentry/browser';
-import { Hub, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, Scope, makeMain } from '@sentry/core';
+import { Hub, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, Scope, makeMain, spanToJSON } from '@sentry/core';
 import type { BaseTransportOptions, ClientOptions, TransactionSource } from '@sentry/types';
 
 import { Span, TRACEPARENT_REGEXP, Transaction } from '../src';
@@ -172,9 +172,9 @@ describe('Span', () => {
   describe('finish', () => {
     test('simple', () => {
       const span = new Span({});
-      expect(span.endTimestamp).toBeUndefined();
+      expect(spanToJSON(span).timestamp).toBeUndefined();
       span.end();
-      expect(span.endTimestamp).toBeGreaterThan(1);
+      expect(spanToJSON(span).timestamp).toBeGreaterThan(1);
     });
 
     describe('hub.startTransaction', () => {
@@ -299,25 +299,25 @@ describe('Span', () => {
   describe('end', () => {
     test('simple', () => {
       const span = new Span({});
-      expect(span.endTimestamp).toBeUndefined();
+      expect(spanToJSON(span).timestamp).toBeUndefined();
       span.end();
-      expect(span.endTimestamp).toBeGreaterThan(1);
+      expect(spanToJSON(span).timestamp).toBeGreaterThan(1);
     });
 
     test('with endTime in seconds', () => {
       const span = new Span({});
-      expect(span.endTimestamp).toBeUndefined();
+      expect(spanToJSON(span).timestamp).toBeUndefined();
       const endTime = Date.now() / 1000;
       span.end(endTime);
-      expect(span.endTimestamp).toBe(endTime);
+      expect(spanToJSON(span).timestamp).toBe(endTime);
     });
 
     test('with endTime in milliseconds', () => {
       const span = new Span({});
-      expect(span.endTimestamp).toBeUndefined();
+      expect(spanToJSON(span).timestamp).toBeUndefined();
       const endTime = Date.now();
       span.end(endTime);
-      expect(span.endTimestamp).toBe(endTime / 1000);
+      expect(spanToJSON(span).timestamp).toBe(endTime / 1000);
     });
 
     describe('hub.startTransaction', () => {
@@ -544,7 +544,7 @@ describe('Span', () => {
       expect(span.spanContext().traceId).toBe('a');
       expect(span.spanContext().spanId).toBe('b');
       expect(span.description).toBe('new');
-      expect(span.endTimestamp).toBe(1);
+      expect(spanToJSON(span).timestamp).toBe(1);
       expect(span.op).toBe('new-op');
       expect(span.sampled).toBe(true);
       expect(span.tags).toStrictEqual({ tag1: 'bye' });

@@ -10,7 +10,7 @@ function normalizeWindowsPath(path: string): string {
 
 /** Creates a function that gets the module name from a filename */
 export function createGetModuleFromFilename(
-  basePath: string = dirname(process.argv[1]),
+  basePath: string = process.argv[1] ? dirname(process.argv[1]) : process.cwd(),
   isWindows: boolean = sep === '\\',
 ): (filename: string | undefined) => string | undefined {
   const normalizedBase = isWindows ? normalizeWindowsPath(basePath) : basePath;

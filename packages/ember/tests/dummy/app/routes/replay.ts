@@ -5,9 +5,8 @@ import * as Sentry from '@sentry/ember';
 export default class ReplayRoute extends Route {
   public async beforeModel(): Promise<void> {
     const { Replay } = Sentry;
-
-    if (!Sentry.getClient()!.getIntegration(Replay)) {
-      const client = Sentry.getClient() as BrowserClient;
+    const client = Sentry.getClient<BrowserClient>();
+    if (client && !client.getIntegrationByName('Replay')) {
       client.addIntegration(new Replay());
     }
   }
