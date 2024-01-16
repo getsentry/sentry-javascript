@@ -1,5 +1,5 @@
 import { hasTracingEnabled } from '@sentry/core';
-import type { Hub, Integration } from '@sentry/types';
+import type { Client, Hub, Integration } from '@sentry/types';
 import { GLOBAL_OBJ, arrayify, consoleSandbox } from '@sentry/utils';
 
 import { DEFAULT_HOOKS } from './constants';
@@ -41,13 +41,12 @@ export class VueIntegration implements Integration {
 
   /** @inheritDoc */
   public setupOnce(_addGlobalEventProcessor: unknown, getCurrentHub: () => Hub): void {
-    this._setupIntegration(getCurrentHub());
+    // eslint-disable-next-line deprecation/deprecation
+    this._setupIntegration(getCurrentHub().getClient());
   }
 
   /** Just here for easier testing */
-  protected _setupIntegration(hub: Hub): void {
-    // eslint-disable-next-line deprecation/deprecation
-    const client = hub.getClient();
+  protected _setupIntegration(client: Client | undefined): void {
     const options: Options = { ...DEFAULT_CONFIG, ...(client && client.getOptions()), ...this._options };
 
     if (!options.Vue && !options.app) {

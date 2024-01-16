@@ -303,6 +303,7 @@ describe('SentryNode', () => {
       const client = new NodeClient(options);
 
       runWithAsyncContext(() => {
+        // eslint-disable-next-line deprecation/deprecation
         const hub = getCurrentHub();
         setCurrentClient(client);
         client.init();

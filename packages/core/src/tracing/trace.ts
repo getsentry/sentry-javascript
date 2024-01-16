@@ -141,6 +141,7 @@ export function trace<T>(
   // eslint-disable-next-line @typescript-eslint/no-empty-function
   afterFinish: () => void = () => {},
 ): T {
+  // eslint-disable-next-line deprecation/deprecation
   const hub = getCurrentHub();
   const scope = getCurrentScope();
   // eslint-disable-next-line deprecation/deprecation
@@ -182,6 +183,7 @@ export function startSpan<T>(context: StartSpanOptions, callback: (span: Span | 
   const ctx = normalizeContext(context);
 
   return withScope(context.scope, scope => {
+    // eslint-disable-next-line deprecation/deprecation
     const hub = getCurrentHub();
     // eslint-disable-next-line deprecation/deprecation
     const parentSpan = scope.getSpan();
@@ -226,6 +228,7 @@ export function startSpanManual<T>(
   const ctx = normalizeContext(context);
 
   return withScope(context.scope, scope => {
+    // eslint-disable-next-line deprecation/deprecation
     const hub = getCurrentHub();
     // eslint-disable-next-line deprecation/deprecation
     const parentSpan = scope.getSpan();
@@ -266,6 +269,7 @@ export function startInactiveSpan(context: StartSpanOptions): Span | undefined {
   }
 
   const ctx = normalizeContext(context);
+  // eslint-disable-next-line deprecation/deprecation
   const hub = getCurrentHub();
   const parentSpan = context.scope
     ? // eslint-disable-next-line deprecation/deprecation

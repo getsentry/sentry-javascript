@@ -119,6 +119,6 @@ function runInit(options: Partial<Options>): void {
   // If we've already had this integration registered before
   // if that's the case, `setup()` will not be run, so we need to manually run it :(
   if (hasRunBefore) {
-    integration['_setupIntegration'](Sentry.getCurrentHub());
+    integration['_setupIntegration'](Sentry.getClient());
   }
 }

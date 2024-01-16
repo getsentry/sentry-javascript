@@ -10,6 +10,14 @@ npx @sentry/migr8@latest
 This will let you select which updates to run, and automatically update your code. Make sure to still review all code
 changes!
 
+## Deprecate `getCurrentHub()`
+
+In v8, you will no longer have a Hub, only Scopes as a concept. This also means that `getCurrentHub()` will eventually
+be removed.
+
+Instead of `getCurrentHub()`, use the respective replacement API directly - see [Deprecate Hub](#deprecate-hub) for
+details.
+
 ## Deprecate `hub.bindClient()` and `makeMain()`
 
 Instead, either directly use `initAndBind()`, or the new APIs `setCurrentClient()` and `client.init()`. See
@@ -54,7 +62,7 @@ If you are using the `Hub` right now, see the following table on how to migrate 
 | ---------------------- | ------------------------------------------------------------------------------------ |
 | `new Hub()`            | `withScope()`, `withIsolationScope()` or `new Scope()`                               |
 | hub.isOlderThan()      | REMOVED - Was used to compare `Hub` instances, which are gonna be removed            |
-| hub.bindClient()       | A combination of `scope.setClient()` and `client.setupIntegrations()`                |
+| hub.bindClient()       | A combination of `scope.setClient()` and `client.init()`                             |
 | hub.pushScope()        | `Sentry.withScope()`                                                                 |
 | hub.popScope()         | `Sentry.withScope()`                                                                 |
 | hub.withScope()        | `Sentry.withScope()`                                                                 |

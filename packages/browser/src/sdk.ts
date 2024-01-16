@@ -159,6 +159,7 @@ interface ShowReportDialogFunction {
 export const showReportDialog: ShowReportDialogFunction = (
   // eslint-disable-next-line deprecation/deprecation
   options: ReportDialogOptions = {},
+  // eslint-disable-next-line deprecation/deprecation
   hub: Hub = getCurrentHub(),
 ) => {
   // doesn't work without a document (React Native)

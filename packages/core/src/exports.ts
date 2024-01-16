@@ -189,15 +189,17 @@ export function withScope<T>(scope: ScopeInterface | undefined, callback: (scope
 export function withScope<T>(
   ...rest: [callback: (scope: Scope) => T] | [scope: ScopeInterface | undefined, callback: (scope: Scope) => T]
 ): T {
+  // eslint-disable-next-line deprecation/deprecation
+  const hub = getCurrentHub();
+
   // If a scope is defined, we want to make this the active scope instead of the default one
   if (rest.length === 2) {
     const [scope, callback] = rest;
     if (!scope) {
       // eslint-disable-next-line deprecation/deprecation
-      return getCurrentHub().withScope(callback);
+      return hub.withScope(callback);
     }
 
-    const hub = getCurrentHub();
     // eslint-disable-next-line deprecation/deprecation
     return hub.withScope(() => {
       // eslint-disable-next-line deprecation/deprecation
@@ -207,7 +209,7 @@ export function withScope<T>(
   }
 
   // eslint-disable-next-line deprecation/deprecation
-  return getCurrentHub().withScope(rest[0]);
+  return hub.withScope(rest[0]);
 }
 
 /**

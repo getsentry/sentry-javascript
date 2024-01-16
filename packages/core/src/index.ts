@@ -37,6 +37,7 @@ export {
   captureSession,
 } from './exports';
 export {
+  // eslint-disable-next-line deprecation/deprecation
   getCurrentHub,
   getIsolationScope,
   getHubFromCarrier,
