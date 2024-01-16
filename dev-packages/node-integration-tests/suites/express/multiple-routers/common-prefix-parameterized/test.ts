@@ -1,11 +1,13 @@
-import { TestEnv, assertSentryEvent } from '../../../../utils/index';
+import { cleanupChildProcesses, createRunner } from '../../../../utils/runner';
 
-test('should construct correct urls with multiple parameterized routers.', async () => {
-  const env = await TestEnv.init(__dirname, `${__dirname}/server.ts`);
-  const event = await env.getEnvelopeRequest({ url: env.url.replace('test', 'api/v1/user/1234/') });
+afterAll(() => {
+  cleanupChildProcesses();
+});
 
-  assertSentryEvent(event[2] as any, {
-    message: 'Custom Message',
-    transaction: 'GET /api/v1/user/:userId',
-  });
+test('should construct correct urls with multiple parameterized routers.', done => {
+  createRunner(__dirname, 'server.ts')
+    .ignore('transaction', 'session', 'sessions')
+    .expect({ event: { message: 'Custom Message', transaction: 'GET /api/v1/user/:userId' } })
+    .start(done)
+    .makeRequest('get', '/api/v1/user/1234/');
 });

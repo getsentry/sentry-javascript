@@ -1,3 +1,4 @@
+import { loggingTransport, startExpressServerAndSendPortToRunner } from '@sentry-internal/node-integration-tests';
 import * as Sentry from '@sentry/node';
 import * as Tracing from '@sentry/tracing';
 import express from 'express';
@@ -10,6 +11,7 @@ Sentry.init({
   // eslint-disable-next-line deprecation/deprecation
   integrations: [new Sentry.Integrations.Http({ tracing: true }), new Tracing.Integrations.Express({ app })],
   tracesSampleRate: 1.0,
+  transport: loggingTransport,
 });
 
 app.use(Sentry.Handlers.requestHandler());
@@ -32,4 +34,4 @@ app.use('/api/api/v1', APIv1.use('/sub-router', APIv1));
 
 app.use(Sentry.Handlers.errorHandler());
 
-export default app;
+startExpressServerAndSendPortToRunner(app);
