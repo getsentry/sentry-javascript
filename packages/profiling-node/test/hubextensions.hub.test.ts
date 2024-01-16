@@ -78,13 +78,14 @@ const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 describe('hubextensions', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
     jest.useRealTimers();
     // We will mock the carrier as if it has been initialized by the SDK, else everything is short circuited
     getMainCarrier().__SENTRY__ = {};
     GLOBAL_OBJ._sentryDebugIds = undefined as any;
   });
   afterEach(() => {
+    jest.clearAllMocks();
+    jest.restoreAllMocks();
     delete getMainCarrier().__SENTRY__;
   });
 
