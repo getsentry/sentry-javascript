@@ -508,6 +508,11 @@ export class Span implements SpanInterface {
 
   /**
    * Get JSON representation of this span.
+   *
+   * @hidden
+   * @internal This method is purely for internal purposes and should not be used outside
+   * of SDK code. If you need to get a JSON representation of a span,
+   * use `spanToJSON(span)` instead.
    */
   public getSpanJSON(): SpanJSON {
     return dropUndefinedKeys({
