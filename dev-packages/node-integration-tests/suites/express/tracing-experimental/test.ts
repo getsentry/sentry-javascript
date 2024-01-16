@@ -23,7 +23,7 @@ conditionalTest({ min: 14 })('express tracing experimental', () => {
                 op: 'http.server',
                 status: 'ok',
                 tags: {
-                  'http.status_code': 200,
+                  'http.status_code': '200',
                 },
               },
             },
@@ -63,7 +63,7 @@ conditionalTest({ min: 14 })('express tracing experimental', () => {
                 op: 'http.server',
                 status: 'ok',
                 tags: {
-                  'http.status_code': 200,
+                  'http.status_code': '200',
                 },
               },
             },
@@ -95,7 +95,7 @@ conditionalTest({ min: 14 })('express tracing experimental', () => {
                   op: 'http.server',
                   status: 'ok',
                   tags: {
-                    'http.status_code': 200,
+                    'http.status_code': '200',
                   },
                 },
               },
@@ -135,7 +135,7 @@ conditionalTest({ min: 14 })('express tracing experimental', () => {
                 op: 'http.server',
                 status: 'ok',
                 tags: {
-                  'http.status_code': 200,
+                  'http.status_code': '200',
                 },
               },
             },
