@@ -122,7 +122,7 @@ export function createOptionsEvent(replay: ReplayContainer): ReplayOptionFrameEv
     data: {
       tag: 'options',
       payload: {
-        canvas: replay.isRecordingCanvas(),
+        shouldRecordCanvas: replay.isRecordingCanvas(),
         sessionSampleRate: options.sessionSampleRate,
         errorSampleRate: options.errorSampleRate,
         useCompressionOption: options.useCompression,

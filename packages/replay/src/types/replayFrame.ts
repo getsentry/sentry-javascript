@@ -114,7 +114,6 @@ export interface ReplayMultiClickFrame extends ReplayBaseBreadcrumbFrame {
 
 interface ReplayOptionFrame {
   blockAllMedia: boolean;
-  canvas: boolean;
   errorSampleRate: number;
   maskAllInputs: boolean;
   maskAllText: boolean;
@@ -123,6 +122,7 @@ interface ReplayOptionFrame {
   networkRequestHasHeaders: boolean;
   networkResponseHasHeaders: boolean;
   sessionSampleRate: number;
+  shouldRecordCanvas: boolean;
   useCompression: boolean;
   useCompressionOption: boolean;
 }
