@@ -30,6 +30,7 @@ describe('withScope', () => {
   beforeEach(() => {
     const client = getTestClient();
     const hub = new Hub(client);
+    // eslint-disable-next-line deprecation/deprecation
     makeMain(hub);
   });
 
@@ -171,6 +172,7 @@ describe('session APIs', () => {
   beforeEach(() => {
     const client = getTestClient();
     const hub = new Hub(client);
+    // eslint-disable-next-line deprecation/deprecation
     makeMain(hub);
   });
 

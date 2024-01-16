@@ -618,6 +618,7 @@ describe('addIntegration', () => {
 
     const client = getTestClient();
     const hub = new Hub(client);
+    // eslint-disable-next-line deprecation/deprecation
     makeMain(hub);
 
     const integration = new CustomIntegration();
@@ -635,6 +636,7 @@ describe('addIntegration', () => {
     }
 
     const hub = new Hub();
+    // eslint-disable-next-line deprecation/deprecation
     makeMain(hub);
 
     const integration = new CustomIntegration();

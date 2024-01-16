@@ -1,5 +1,5 @@
 import * as http from 'http';
-import { Transaction, getActiveSpan, getClient, getCurrentScope, startSpan } from '@sentry/core';
+import { Transaction, getActiveSpan, getClient, getCurrentScope, setCurrentClient, startSpan } from '@sentry/core';
 import { spanToTraceHeader } from '@sentry/core';
 import { Hub, makeMain, runWithAsyncContext } from '@sentry/core';
 import type { fetch as FetchType } from 'undici';
@@ -36,6 +36,7 @@ const DEFAULT_OPTIONS = getDefaultNodeClientOptions({
 beforeEach(() => {
   const client = new NodeClient(DEFAULT_OPTIONS);
   hub = new Hub(client);
+  // eslint-disable-next-line deprecation/deprecation
   makeMain(hub);
 });
 
@@ -281,7 +282,8 @@ conditionalTest({ min: 16 })('Undici integration', () => {
   // eslint-disable-next-line jest/no-disabled-tests
   it.skip('uses tracePropagationTargets', async () => {
     const client = new NodeClient({ ...DEFAULT_OPTIONS, tracePropagationTargets: ['/yes'] });
-    hub.bindClient(client);
+    setCurrentClient(client);
+    client.init();
 
     await startSpan({ name: 'outer-span' }, async outerSpan => {
       expect(outerSpan).toBeInstanceOf(Transaction);
@@ -324,7 +326,8 @@ conditionalTest({ min: 16 })('Undici integration', () => {
         return breadcrumb;
       },
     });
-    hub.bindClient(client);
+    setCurrentClient(client);
+    client.init();
 
     await fetch('http://localhost:18100', { method: 'POST' });
   });
@@ -348,7 +351,8 @@ conditionalTest({ min: 16 })('Undici integration', () => {
         return breadcrumb;
       },
     });
-    hub.bindClient(client);
+    setCurrentClient(client);
+    client.init();
 
     try {
       await fetch('http://a-url-that-no-exists.com');

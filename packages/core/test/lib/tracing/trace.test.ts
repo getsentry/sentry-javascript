@@ -27,6 +27,7 @@ describe('startSpan', () => {
     const options = getDefaultTestClientOptions({ tracesSampleRate: 0.0 });
     client = new TestClient(options);
     hub = new Hub(client);
+    // eslint-disable-next-line deprecation/deprecation
     makeMain(hub);
   });
 
@@ -343,6 +344,7 @@ describe('continueTrace', () => {
     const options = getDefaultTestClientOptions({ tracesSampleRate: 0.0 });
     client = new TestClient(options);
     hub = new Hub(client);
+    // eslint-disable-next-line deprecation/deprecation
     makeMain(hub);
   });
 

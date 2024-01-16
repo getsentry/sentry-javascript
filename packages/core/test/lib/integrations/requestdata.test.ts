@@ -1,6 +1,7 @@
 import type { IncomingMessage } from 'http';
 import type { RequestDataIntegrationOptions } from '@sentry/core';
-import { RequestData, getCurrentHub } from '@sentry/core';
+import { setCurrentClient } from '@sentry/core';
+import { RequestData } from '@sentry/core';
 import type { Event, EventProcessor } from '@sentry/types';
 import * as sentryUtils from '@sentry/utils';
 
@@ -27,7 +28,8 @@ function initWithRequestDataIntegrationOptions(integrationOptions: RequestDataIn
     }),
   );
 
-  getCurrentHub().bindClient(client);
+  setCurrentClient(client);
+  client.init();
 
   const eventProcessors = client['_eventProcessors'] as EventProcessor[];
   const eventProcessor = eventProcessors.find(processor => processor.id === 'RequestData');

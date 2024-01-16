@@ -1,7 +1,15 @@
 import * as http from 'http';
-import type { Hub } from '@sentry/core';
 import * as sentryCore from '@sentry/core';
-import { Transaction, getClient, getCurrentScope, setAsyncContextStrategy } from '@sentry/core';
+import {
+  Hub,
+  Scope,
+  Transaction,
+  getClient,
+  getCurrentScope,
+  makeMain,
+  setAsyncContextStrategy,
+  spanToJSON,
+} from '@sentry/core';
 import type { Event, PropagationContext } from '@sentry/types';
 import { SentryError } from '@sentry/utils';
 
@@ -58,7 +66,7 @@ describe('requestHandler', () => {
   it('autoSessionTracking is enabled, sets requestSession status to ok, when handling a request', () => {
     const options = getDefaultNodeClientOptions({ autoSessionTracking: true, release: '1.2' });
     client = new NodeClient(options);
-    const hub = new sentryCore.Hub(client);
+    const hub = new Hub(client);
 
     jest.spyOn(sentryCore, 'getCurrentHub').mockReturnValue(hub);
     mockAsyncContextStrategy(() => hub);
@@ -72,7 +80,7 @@ describe('requestHandler', () => {
   it('autoSessionTracking is disabled, does not set requestSession, when handling a request', () => {
     const options = getDefaultNodeClientOptions({ autoSessionTracking: false, release: '1.2' });
     client = new NodeClient(options);
-    const hub = new sentryCore.Hub(client);
+    const hub = new Hub(client);
 
     jest.spyOn(sentryCore, 'getCurrentHub').mockReturnValue(hub);
     mockAsyncContextStrategy(() => hub);
@@ -86,7 +94,7 @@ describe('requestHandler', () => {
   it('autoSessionTracking is enabled, calls _captureRequestSession, on response finish', done => {
     const options = getDefaultNodeClientOptions({ autoSessionTracking: true, release: '1.2' });
     client = new NodeClient(options);
-    const hub = new sentryCore.Hub(client);
+    const hub = new Hub(client);
 
     jest.spyOn(sentryCore, 'getCurrentHub').mockReturnValue(hub);
     mockAsyncContextStrategy(() => hub);
@@ -108,7 +116,7 @@ describe('requestHandler', () => {
   it('autoSessionTracking is disabled, does not call _captureRequestSession, on response finish', done => {
     const options = getDefaultNodeClientOptions({ autoSessionTracking: false, release: '1.2' });
     client = new NodeClient(options);
-    const hub = new sentryCore.Hub(client);
+    const hub = new Hub(client);
 
     jest.spyOn(sentryCore, 'getCurrentHub').mockReturnValue(hub);
     mockAsyncContextStrategy(() => hub);
@@ -154,7 +162,7 @@ describe('requestHandler', () => {
   });
 
   it('stores request and request data options in `sdkProcessingMetadata`', () => {
-    const hub = new sentryCore.Hub(new NodeClient(getDefaultNodeClientOptions()));
+    const hub = new Hub(new NodeClient(getDefaultNodeClientOptions()));
     jest.spyOn(sentryCore, 'getCurrentHub').mockReturnValue(hub);
     mockAsyncContextStrategy(() => hub);
 
@@ -182,7 +190,7 @@ describe('tracingHandler', () => {
 
   const sentryTracingMiddleware = tracingHandler();
 
-  let hub: sentryCore.Hub, req: http.IncomingMessage, res: http.ServerResponse, next: () => undefined;
+  let hub: Hub, req: http.IncomingMessage, res: http.ServerResponse, next: () => undefined;
 
   function createNoOpSpy() {
     const noop = { noop: () => undefined }; // this is wrapped in an object so jest can spy on it
@@ -190,8 +198,9 @@ describe('tracingHandler', () => {
   }
 
   beforeEach(() => {
-    hub = new sentryCore.Hub(new NodeClient(getDefaultNodeClientOptions({ tracesSampleRate: 1.0 })));
-    sentryCore.makeMain(hub);
+    hub = new Hub(new NodeClient(getDefaultNodeClientOptions({ tracesSampleRate: 1.0 })));
+    // eslint-disable-next-line deprecation/deprecation
+    makeMain(hub);
 
     mockAsyncContextStrategy(() => hub);
     req = {
@@ -312,7 +321,7 @@ describe('tracingHandler', () => {
   it('extracts request data for sampling context', () => {
     const tracesSampler = jest.fn();
     const options = getDefaultNodeClientOptions({ tracesSampler });
-    const hub = new sentryCore.Hub(new NodeClient(options));
+    const hub = new Hub(new NodeClient(options));
     mockAsyncContextStrategy(() => hub);
 
     hub.run(() => {
@@ -334,7 +343,7 @@ describe('tracingHandler', () => {
 
   it('puts its transaction on the scope', () => {
     const options = getDefaultNodeClientOptions({ tracesSampleRate: 1.0 });
-    const hub = new sentryCore.Hub(new NodeClient(options));
+    const hub = new Hub(new NodeClient(options));
 
     jest.spyOn(sentryCore, 'getCurrentHub').mockReturnValue(hub);
     mockAsyncContextStrategy(() => hub);
@@ -376,9 +385,7 @@ describe('tracingHandler', () => {
       expect(transaction.status).toBe('ok');
       // eslint-disable-next-line deprecation/deprecation
       expect(transaction.tags).toEqual(expect.objectContaining({ 'http.status_code': '200' }));
-      expect(sentryCore.spanToJSON(transaction).data).toEqual(
-        expect.objectContaining({ 'http.response.status_code': 200 }),
-      );
+      expect(spanToJSON(transaction).data).toEqual(expect.objectContaining({ 'http.response.status_code': 200 }));
       done();
     });
   });
@@ -464,7 +471,7 @@ describe('tracingHandler', () => {
 
   it('stores request in transaction metadata', () => {
     const options = getDefaultNodeClientOptions({ tracesSampleRate: 1.0 });
-    const hub = new sentryCore.Hub(new NodeClient(options));
+    const hub = new Hub(new NodeClient(options));
 
     jest.spyOn(sentryCore, 'getCurrentHub').mockReturnValue(hub);
     // eslint-disable-next-line deprecation/deprecation
@@ -473,7 +480,7 @@ describe('tracingHandler', () => {
     sentryTracingMiddleware(req, res, next);
 
     // eslint-disable-next-line deprecation/deprecation
-    const transaction = sentryCore.getCurrentScope().getTransaction();
+    const transaction = getCurrentScope().getTransaction();
 
     // eslint-disable-next-line deprecation/deprecation
     expect(transaction?.metadata.request).toEqual(req);
@@ -522,7 +529,7 @@ describe('errorHandler()', () => {
     client.initSessionFlusher();
 
     const scope = getCurrentScope();
-    const hub = new sentryCore.Hub(client);
+    const hub = new Hub(client);
 
     jest.spyOn<any, any>(client, '_captureRequestSession');
     jest.spyOn(sentryCore, 'getCurrentHub').mockReturnValue(hub);
@@ -538,7 +545,7 @@ describe('errorHandler()', () => {
     client = new NodeClient(options);
 
     const scope = getCurrentScope();
-    const hub = new sentryCore.Hub(client);
+    const hub = new Hub(client);
 
     jest.spyOn<any, any>(client, '_captureRequestSession');
     jest.spyOn(sentryCore, 'getCurrentHub').mockReturnValue(hub);
@@ -555,8 +562,8 @@ describe('errorHandler()', () => {
     // It is required to initialise SessionFlusher to capture Session Aggregates (it is usually initialised
     // by the`requestHandler`)
     client.initSessionFlusher();
-    const scope = new sentryCore.Scope();
-    const hub = new sentryCore.Hub(client, scope);
+    const scope = new Scope();
+    const hub = new Hub(client, scope);
     mockAsyncContextStrategy(() => hub);
 
     jest.spyOn<any, any>(client, '_captureRequestSession');
@@ -577,8 +584,8 @@ describe('errorHandler()', () => {
     // It is required to initialise SessionFlusher to capture Session Aggregates (it is usually initialised
     // by the`requestHandler`)
     client.initSessionFlusher();
-    const scope = new sentryCore.Scope();
-    const hub = new sentryCore.Hub(client, scope);
+    const scope = new Scope();
+    const hub = new Hub(client, scope);
 
     jest.spyOn<any, any>(client, '_captureRequestSession');
     jest.spyOn(sentryCore, 'getCurrentHub').mockReturnValue(hub);
@@ -592,14 +599,15 @@ describe('errorHandler()', () => {
     const options = getDefaultNodeClientOptions({});
     client = new NodeClient(options);
 
-    const hub = new sentryCore.Hub(client);
+    const hub = new Hub(client);
     mockAsyncContextStrategy(() => hub);
-    sentryCore.makeMain(hub);
+    // eslint-disable-next-line deprecation/deprecation
+    makeMain(hub);
 
     // `sentryErrorMiddleware` uses `withScope`, and we need access to the temporary scope it creates, so monkeypatch
     // `captureException` in order to examine the scope as it exists inside the `withScope` callback
     // eslint-disable-next-line deprecation/deprecation
-    hub.captureException = function (this: sentryCore.Hub, _exception: any) {
+    hub.captureException = function (this: Hub, _exception: any) {
       // eslint-disable-next-line deprecation/deprecation
       const scope = this.getScope();
       expect((scope as any)._sdkProcessingMetadata.request).toEqual(req);

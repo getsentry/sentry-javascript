@@ -30,7 +30,9 @@ export {
   getHubFromCarrier,
   getCurrentHub,
   Hub,
+  // eslint-disable-next-line deprecation/deprecation
   makeMain,
+  setCurrentClient,
   Scope,
   // eslint-disable-next-line deprecation/deprecation
   startTransaction,

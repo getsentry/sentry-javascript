@@ -16,6 +16,7 @@ conditionalTest({ min: 10 })('registerBackgroundTabDetection', () => {
 
     const options = getDefaultBrowserClientOptions({ tracesSampleRate: 1 });
     hub = new Hub(new TestClient(options));
+    // eslint-disable-next-line deprecation/deprecation
     makeMain(hub);
 
     // If we do not add extension methods, invoking hub.startTransaction returns undefined

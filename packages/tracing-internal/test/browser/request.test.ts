@@ -1,5 +1,6 @@
 /* eslint-disable deprecation/deprecation */
 import * as sentryCore from '@sentry/core';
+import { Hub, makeMain, spanToJSON } from '@sentry/core';
 import type { HandlerDataFetch, HandlerDataXhr, SentryWrappedXMLHttpRequest } from '@sentry/types';
 import * as utils from '@sentry/utils';
 import { SENTRY_XHR_DATA_KEY } from '@sentry/utils';
@@ -59,7 +60,7 @@ describe('instrumentOutgoingRequests', () => {
 });
 
 describe('callbacks', () => {
-  let hub: sentryCore.Hub;
+  let hub: Hub;
   let transaction: Transaction;
   const alwaysCreateSpan = () => true;
   const alwaysAttachHeaders = () => true;
@@ -68,8 +69,8 @@ describe('callbacks', () => {
 
   beforeAll(() => {
     const options = getDefaultBrowserClientOptions({ tracesSampleRate: 1 });
-    hub = new sentryCore.Hub(new TestClient(options));
-    sentryCore.makeMain(hub);
+    hub = new Hub(new TestClient(options));
+    makeMain(hub);
   });
 
   beforeEach(() => {
@@ -256,7 +257,7 @@ describe('callbacks', () => {
 
       expect(finishedSpan).toBeDefined();
       expect(finishedSpan).toBeInstanceOf(Span);
-      expect(sentryCore.spanToJSON(finishedSpan).data).toEqual({
+      expect(spanToJSON(finishedSpan).data).toEqual({
         'http.response_content_length': 123,
         'http.method': 'GET',
         'http.response.status_code': 404,
