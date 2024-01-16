@@ -1268,26 +1268,7 @@ jobs:
       - name: Build dependencies
         # We'll ignore @sentry/profiling-node so that we can configure node-gyp
         # for the target env that we want to build binaries for.
-        run: |
-          yarn lerna run build \
-            --ignore @sentry/angular \
-            --ignore @sentry/angular-ivy \
-            --ignore @sentry/astro \
-            --ignore @sentry/browser \
-            --ignore @sentry/deno \
-            --ignore @sentry/bun \
-            --ignore @sentry/opentelemetry \
-            --ignore @sentry/vercel-edge \
-            --ignore @sentry/react \
-            --ignore @sentry/remix \
-            --ignore @sentry/replay \
-            --ignore @sentry/svelte \
-            --ignore @sentry/sveltekit \
-            --ignore @sentry/vue \
-            --ignore @sentry/wasm  \
-            --ignore @sentry-internal/feedback \
-            --ignore @sentry-internal/replay-worker \
-            --ignore @sentry-internal/node-integration-tests
+        run: yarn lerna run build --ignore @sentry/profiling-node
 
       # configure build test copy x64
       - name: Configure node-gyp
