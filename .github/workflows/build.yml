@@ -1270,6 +1270,8 @@ jobs:
         # for the target env that we want to build binaries for.
         run: yarn build
 
+        # Run clean after build because yarn build --ignore @sentry/profiling-node
+        # will fail with a cryptic message on missing types?
       - name: Clean profiling-node node-gyp
         run: yarn lerna run clean --scope @sentry/profiling-node
 
