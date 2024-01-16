@@ -75,7 +75,7 @@ function recordUpdateSpans(componentName: string, initSpan?: Span): void {
     // If we are initializing the component when the update span is started, we start it as child
     // of the init span. Else, we start it as a child of the transaction.
     const parentSpan =
-      initSpan && !initSpan.endTimestamp && getRootSpan(initSpan) === transaction ? initSpan : transaction;
+      initSpan && initSpan.isRecording() && getRootSpan(initSpan) === transaction ? initSpan : transaction;
 
     // eslint-disable-next-line deprecation/deprecation
     updateSpan = parentSpan.startChild({

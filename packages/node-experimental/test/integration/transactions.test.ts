@@ -512,8 +512,8 @@ describe('Integration | Transactions', () => {
 
     const client = getClient() as NodeExperimentalClient;
 
-    jest.spyOn(client, 'getIntegration').mockImplementation(integrationClass => {
-      if (integrationClass.name === 'Http') {
+    jest.spyOn(client, 'getIntegrationByName').mockImplementation(name => {
+      if (name === 'Http') {
         return {
           shouldCreateSpansForRequests: false,
         } as Http;
@@ -576,8 +576,8 @@ describe('Integration | Transactions', () => {
 
     const client = getClient() as NodeExperimentalClient;
 
-    jest.spyOn(client, 'getIntegration').mockImplementation(integrationClass => {
-      if (integrationClass.name === 'NodeFetch') {
+    jest.spyOn(client, 'getIntegrationByName').mockImplementation(name => {
+      if (name === 'NodeFetch') {
         return {
           shouldCreateSpansForRequests: false,
         } as NodeFetch;

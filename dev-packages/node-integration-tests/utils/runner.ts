@@ -1,3 +1,4 @@
+import type { ChildProcess } from 'child_process';
 import { spawn } from 'child_process';
 import { join } from 'path';
 import type { Envelope, EnvelopeItemType, Event, SerializedSession } from '@sentry/types';
@@ -27,6 +28,14 @@ export function assertSentryTransaction(actual: Event, expected: Partial<Event>)
     type: 'transaction',
     ...expected,
   });
+}
+
+const CHILD_PROCESSES = new Set<ChildProcess>();
+
+export function cleanupChildProcesses(): void {
+  for (const child of CHILD_PROCESSES) {
+    child.kill();
+  }
 }
 
 /** Promise only resolves when fn returns true */
@@ -178,6 +187,8 @@ export function createRunner(...paths: string[]) {
         if (process.env.DEBUG) console.log('starting scenario', testPath, flags, env.SENTRY_DSN);
 
         child = spawn('node', [...flags, testPath], { env });
+
+        CHILD_PROCESSES.add(child);
 
         child.on('close', () => {
           hasExited = true;

@@ -1,5 +1,5 @@
 import * as http from 'http';
-import { Transaction, getActiveSpan, getClient, getCurrentScope, startSpan } from '@sentry/core';
+import { Transaction, getActiveSpan, getClient, getCurrentScope, setCurrentClient, startSpan } from '@sentry/core';
 import { spanToTraceHeader } from '@sentry/core';
 import { Hub, makeMain, runWithAsyncContext } from '@sentry/core';
 import type { fetch as FetchType } from 'undici';
@@ -36,6 +36,7 @@ const DEFAULT_OPTIONS = getDefaultNodeClientOptions({
 beforeEach(() => {
   const client = new NodeClient(DEFAULT_OPTIONS);
   hub = new Hub(client);
+  // eslint-disable-next-line deprecation/deprecation
   makeMain(hub);
 });
 
@@ -110,6 +111,7 @@ conditionalTest({ min: 16 })('Undici integration', () => {
       await fetch(request, requestInit);
 
       expect(outerSpan).toBeInstanceOf(Transaction);
+      // eslint-disable-next-line deprecation/deprecation
       const spans = (outerSpan as Transaction).spanRecorder?.spans || [];
 
       expect(spans.length).toBe(2);
@@ -128,6 +130,7 @@ conditionalTest({ min: 16 })('Undici integration', () => {
       }
 
       expect(outerSpan).toBeInstanceOf(Transaction);
+      // eslint-disable-next-line deprecation/deprecation
       const spans = (outerSpan as Transaction).spanRecorder?.spans || [];
 
       expect(spans.length).toBe(2);
@@ -148,6 +151,7 @@ conditionalTest({ min: 16 })('Undici integration', () => {
       }
 
       expect(outerSpan).toBeInstanceOf(Transaction);
+      // eslint-disable-next-line deprecation/deprecation
       const spans = (outerSpan as Transaction).spanRecorder?.spans || [];
 
       expect(spans.length).toBe(2);
@@ -169,6 +173,7 @@ conditionalTest({ min: 16 })('Undici integration', () => {
       }
 
       expect(outerSpan).toBeInstanceOf(Transaction);
+      // eslint-disable-next-line deprecation/deprecation
       const spans = (outerSpan as Transaction).spanRecorder?.spans || [];
 
       expect(spans.length).toBe(1);
@@ -188,6 +193,7 @@ conditionalTest({ min: 16 })('Undici integration', () => {
   it('does create a span if `shouldCreateSpanForRequest` is defined', async () => {
     await startSpan({ name: 'outer-span' }, async outerSpan => {
       expect(outerSpan).toBeInstanceOf(Transaction);
+      // eslint-disable-next-line deprecation/deprecation
       const spans = (outerSpan as Transaction).spanRecorder?.spans || [];
 
       const undoPatch = patchUndici({ shouldCreateSpanForRequest: url => url.includes('yes') });
@@ -212,6 +218,7 @@ conditionalTest({ min: 16 })('Undici integration', () => {
     await runWithAsyncContext(async () => {
       await startSpan({ name: 'outer-span' }, async outerSpan => {
         expect(outerSpan).toBeInstanceOf(Transaction);
+        // eslint-disable-next-line deprecation/deprecation
         const spans = (outerSpan as Transaction).spanRecorder?.spans || [];
 
         await fetch('http://localhost:18100', { method: 'POST' });
@@ -281,10 +288,12 @@ conditionalTest({ min: 16 })('Undici integration', () => {
   // eslint-disable-next-line jest/no-disabled-tests
   it.skip('uses tracePropagationTargets', async () => {
     const client = new NodeClient({ ...DEFAULT_OPTIONS, tracePropagationTargets: ['/yes'] });
-    hub.bindClient(client);
+    setCurrentClient(client);
+    client.init();
 
     await startSpan({ name: 'outer-span' }, async outerSpan => {
       expect(outerSpan).toBeInstanceOf(Transaction);
+      // eslint-disable-next-line deprecation/deprecation
       const spans = (outerSpan as Transaction).spanRecorder?.spans || [];
 
       expect(spans.length).toBe(1);
@@ -324,7 +333,8 @@ conditionalTest({ min: 16 })('Undici integration', () => {
         return breadcrumb;
       },
     });
-    hub.bindClient(client);
+    setCurrentClient(client);
+    client.init();
 
     await fetch('http://localhost:18100', { method: 'POST' });
   });
@@ -348,7 +358,8 @@ conditionalTest({ min: 16 })('Undici integration', () => {
         return breadcrumb;
       },
     });
-    hub.bindClient(client);
+    setCurrentClient(client);
+    client.init();
 
     try {
       await fetch('http://a-url-that-no-exists.com');
@@ -417,7 +428,7 @@ function setupTestServer() {
 
 function patchUndici(userOptions: Partial<UndiciOptions>): () => void {
   try {
-    const undici = getClient()!.getIntegration(Undici);
+    const undici = getClient()!.getIntegrationByName!('Undici');
     // @ts-expect-error need to access private property
     options = { ...undici._options };
     // @ts-expect-error need to access private property
@@ -428,7 +439,7 @@ function patchUndici(userOptions: Partial<UndiciOptions>): () => void {
 
   return () => {
     try {
-      const undici = getClient()!.getIntegration(Undici);
+      const undici = getClient()!.getIntegrationByName!('Undici');
       // @ts-expect-error Need to override readonly property
       undici!['_options'] = { ...options };
     } catch (_) {

@@ -35,7 +35,9 @@ export {
   getGlobalScope,
   getIsolationScope,
   getHubFromCarrier,
+  // eslint-disable-next-line deprecation/deprecation
   makeMain,
+  setCurrentClient,
   setContext,
   setExtra,
   setExtras,
@@ -45,6 +47,7 @@ export {
   // eslint-disable-next-line deprecation/deprecation
   startTransaction,
   withScope,
+  withIsolationScope,
   NodeClient,
   makeNodeTransport,
   close,

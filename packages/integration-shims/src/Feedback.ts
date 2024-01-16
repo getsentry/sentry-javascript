@@ -23,7 +23,7 @@ class FeedbackShim implements Integration {
 
     consoleSandbox(() => {
       // eslint-disable-next-line no-console
-      console.error('You are using new Feedback() even though this bundle does not include Feedback.');
+      console.warn('You are using new Feedback() even though this bundle does not include Feedback.');
     });
   }
 

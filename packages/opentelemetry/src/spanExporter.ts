@@ -280,9 +280,8 @@ function getTags(span: ReadableSpan): Record<string, string> {
   const tags: Record<string, string> = {};
 
   if (attributes[SemanticAttributes.HTTP_STATUS_CODE]) {
-    const statusCode = attributes[SemanticAttributes.HTTP_STATUS_CODE] as string;
-
-    tags['http.status_code'] = statusCode;
+    const statusCode = attributes[SemanticAttributes.HTTP_STATUS_CODE] as string | number;
+    tags['http.status_code'] = `${statusCode}`;
   }
 
   return tags;

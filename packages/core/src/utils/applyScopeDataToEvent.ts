@@ -1,5 +1,5 @@
 import type { Breadcrumb, Event, PropagationContext, ScopeData, Span } from '@sentry/types';
-import { arrayify } from '@sentry/utils';
+import { arrayify, dropUndefinedKeys } from '@sentry/utils';
 import { getDynamicSamplingContextFromSpan } from '../tracing/dynamicSamplingContext';
 import { getRootSpan } from './getRootSpan';
 import { spanToJSON, spanToTraceContext } from './spanUtils';
@@ -44,11 +44,11 @@ export function mergeScopeData(data: ScopeData, mergeData: ScopeData): void {
     span,
   } = mergeData;
 
-  mergePropOverwrite(data, 'extra', extra);
-  mergePropOverwrite(data, 'tags', tags);
-  mergePropOverwrite(data, 'user', user);
-  mergePropOverwrite(data, 'contexts', contexts);
-  mergePropOverwrite(data, 'sdkProcessingMetadata', sdkProcessingMetadata);
+  mergeAndOverwriteScopeData(data, 'extra', extra);
+  mergeAndOverwriteScopeData(data, 'tags', tags);
+  mergeAndOverwriteScopeData(data, 'user', user);
+  mergeAndOverwriteScopeData(data, 'contexts', contexts);
+  mergeAndOverwriteScopeData(data, 'sdkProcessingMetadata', sdkProcessingMetadata);
 
   if (level) {
     data.level = level;
@@ -83,28 +83,21 @@ export function mergeScopeData(data: ScopeData, mergeData: ScopeData): void {
 }
 
 /**
- * Merge properties, overwriting existing keys.
+ * Merges certain scope data. Undefined values will overwrite any existing values.
  * Exported only for tests.
  */
-export function mergePropOverwrite<
+export function mergeAndOverwriteScopeData<
   Prop extends 'extra' | 'tags' | 'user' | 'contexts' | 'sdkProcessingMetadata',
-  Data extends ScopeData | Event,
+  Data extends ScopeData,
 >(data: Data, prop: Prop, mergeVal: Data[Prop]): void {
   if (mergeVal && Object.keys(mergeVal).length) {
-    data[prop] = { ...data[prop], ...mergeVal };
-  }
-}
-
-/**
- * Merge properties, keeping existing keys.
- * Exported only for tests.
- */
-export function mergePropKeep<
-  Prop extends 'extra' | 'tags' | 'user' | 'contexts' | 'sdkProcessingMetadata',
-  Data extends ScopeData | Event,
->(data: Data, prop: Prop, mergeVal: Data[Prop]): void {
-  if (mergeVal && Object.keys(mergeVal).length) {
-    data[prop] = { ...mergeVal, ...data[prop] };
+    // Clone object
+    data[prop] = { ...data[prop] };
+    for (const key in mergeVal) {
+      if (Object.prototype.hasOwnProperty.call(mergeVal, key)) {
+        data[prop][key] = mergeVal[key];
+      }
+    }
   }
 }
 
@@ -136,21 +129,30 @@ function applyDataToEvent(event: Event, data: ScopeData): void {
     transactionName,
   } = data;
 
-  if (extra && Object.keys(extra).length) {
-    event.extra = { ...extra, ...event.extra };
+  const cleanedExtra = dropUndefinedKeys(extra);
+  if (cleanedExtra && Object.keys(cleanedExtra).length) {
+    event.extra = { ...cleanedExtra, ...event.extra };
   }
-  if (tags && Object.keys(tags).length) {
-    event.tags = { ...tags, ...event.tags };
+
+  const cleanedTags = dropUndefinedKeys(tags);
+  if (cleanedTags && Object.keys(cleanedTags).length) {
+    event.tags = { ...cleanedTags, ...event.tags };
   }
-  if (user && Object.keys(user).length) {
-    event.user = { ...user, ...event.user };
+
+  const cleanedUser = dropUndefinedKeys(user);
+  if (cleanedUser && Object.keys(cleanedUser).length) {
+    event.user = { ...cleanedUser, ...event.user };
   }
-  if (contexts && Object.keys(contexts).length) {
-    event.contexts = { ...contexts, ...event.contexts };
+
+  const cleanedContexts = dropUndefinedKeys(contexts);
+  if (cleanedContexts && Object.keys(cleanedContexts).length) {
+    event.contexts = { ...cleanedContexts, ...event.contexts };
   }
+
   if (level) {
     event.level = level;
   }
+
   if (transactionName) {
     event.transaction = transactionName;
   }

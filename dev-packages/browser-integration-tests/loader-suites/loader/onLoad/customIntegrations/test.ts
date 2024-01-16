@@ -24,14 +24,14 @@ sentryTest('should handle custom added integrations & default integrations', asy
   });
 
   const hasCustomIntegration = await page.evaluate(() => {
-    return !!(window as any).Sentry.getClient().getIntegrationById('CustomIntegration');
+    return !!(window as any).Sentry.getClient().getIntegrationByName('CustomIntegration');
   });
 
   const hasReplay = await page.evaluate(() => {
-    return !!(window as any).Sentry.getClient().getIntegrationById('Replay');
+    return !!(window as any).Sentry.getClient().getIntegrationByName('Replay');
   });
   const hasBrowserTracing = await page.evaluate(() => {
-    return !!(window as any).Sentry.getClient().getIntegrationById('BrowserTracing');
+    return !!(window as any).Sentry.getClient().getIntegrationByName('BrowserTracing');
   });
 
   expect(hasCustomIntegration).toEqual(true);

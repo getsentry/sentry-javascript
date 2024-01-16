@@ -62,7 +62,7 @@ describe('Sentry client SDK', () => {
         });
 
         const integrationsToInit = svelteInit.mock.calls[0][0].integrations;
-        const browserTracing = getClient<BrowserClient>()?.getIntegrationById('BrowserTracing');
+        const browserTracing = getClient<BrowserClient>()?.getIntegrationByName('BrowserTracing');
 
         expect(integrationsToInit).toContainEqual(expect.objectContaining({ name: 'BrowserTracing' }));
         expect(browserTracing).toBeDefined();
@@ -78,7 +78,7 @@ describe('Sentry client SDK', () => {
         });
 
         const integrationsToInit = svelteInit.mock.calls[0][0].integrations;
-        const browserTracing = getClient<BrowserClient>()?.getIntegrationById('BrowserTracing');
+        const browserTracing = getClient<BrowserClient>()?.getIntegrationByName('BrowserTracing');
 
         expect(integrationsToInit).not.toContainEqual(expect.objectContaining({ name: 'BrowserTracing' }));
         expect(browserTracing).toBeUndefined();
@@ -97,7 +97,7 @@ describe('Sentry client SDK', () => {
         });
 
         const integrationsToInit = svelteInit.mock.calls[0][0].integrations;
-        const browserTracing = getClient<BrowserClient>()?.getIntegrationById('BrowserTracing');
+        const browserTracing = getClient<BrowserClient>()?.getIntegrationByName('BrowserTracing');
 
         expect(integrationsToInit).not.toContainEqual(expect.objectContaining({ name: 'BrowserTracing' }));
         expect(browserTracing).toBeUndefined();
@@ -115,7 +115,7 @@ describe('Sentry client SDK', () => {
 
         const integrationsToInit = svelteInit.mock.calls[0][0].integrations;
 
-        const browserTracing = getClient<BrowserClient>()?.getIntegrationById('BrowserTracing') as BrowserTracing;
+        const browserTracing = getClient<BrowserClient>()?.getIntegrationByName('BrowserTracing') as BrowserTracing;
         const options = browserTracing.options;
 
         expect(integrationsToInit).toContainEqual(expect.objectContaining({ name: 'BrowserTracing' }));

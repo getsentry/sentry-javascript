@@ -1,5 +1,5 @@
 import { captureMessage, convertIntegrationFnToClass, getClient, withScope } from '@sentry/core';
-import type { Client, IntegrationFn } from '@sentry/types';
+import type { Client, Integration, IntegrationClass, IntegrationFn } from '@sentry/types';
 import { GLOBAL_OBJ, supportsReportingObserver } from '@sentry/utils';
 
 const WINDOW = GLOBAL_OBJ as typeof GLOBAL_OBJ & Window;
@@ -51,6 +51,7 @@ const SETUP_CLIENTS = new WeakMap<Client, boolean>();
 const reportingObserverIntegration = ((options: ReportingObserverOptions = {}) => {
   const types = options.types || ['crash', 'deprecation', 'intervention'];
 
+  /** Handler for the reporting observer. */
   function handler(reports: Report[]): void {
     if (!SETUP_CLIENTS.has(getClient() as Client)) {
       return;
@@ -116,4 +117,11 @@ const reportingObserverIntegration = ((options: ReportingObserverOptions = {}) =
 
 /** Reporting API integration - https://w3c.github.io/reporting/ */
 // eslint-disable-next-line deprecation/deprecation
-export const ReportingObserver = convertIntegrationFnToClass(INTEGRATION_NAME, reportingObserverIntegration);
+export const ReportingObserver = convertIntegrationFnToClass(
+  INTEGRATION_NAME,
+  reportingObserverIntegration,
+) as IntegrationClass<Integration & { setup: (client: Client) => void }> & {
+  new (options?: {
+    types?: ReportTypes[];
+  }): Integration;
+};

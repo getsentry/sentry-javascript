@@ -1,5 +1,5 @@
 import { convertIntegrationFnToClass } from '@sentry/core';
-import type { Event, IntegrationFn, StackFrame, Stacktrace } from '@sentry/types';
+import type { Event, Integration, IntegrationClass, IntegrationFn, StackFrame, Stacktrace } from '@sentry/types';
 import { basename, relative } from '@sentry/utils';
 
 type StackFrameIteratee = (frame: StackFrame) => StackFrame;
@@ -41,6 +41,7 @@ const rewriteFramesIntegration = ((options: RewriteFramesOptions = {}) => {
       return frame;
     });
 
+  /** Process an exception event. */
   function _processExceptionsEvent(event: Event): Event {
     try {
       return {
@@ -60,6 +61,7 @@ const rewriteFramesIntegration = ((options: RewriteFramesOptions = {}) => {
     }
   }
 
+  /** Process a stack trace. */
   function _processStacktrace(stacktrace?: Stacktrace): Stacktrace {
     return {
       ...stacktrace,
@@ -85,4 +87,9 @@ const rewriteFramesIntegration = ((options: RewriteFramesOptions = {}) => {
 
 /** Rewrite event frames paths */
 // eslint-disable-next-line deprecation/deprecation
-export const RewriteFrames = convertIntegrationFnToClass(INTEGRATION_NAME, rewriteFramesIntegration);
+export const RewriteFrames = convertIntegrationFnToClass(
+  INTEGRATION_NAME,
+  rewriteFramesIntegration,
+) as IntegrationClass<Integration & { processEvent: (event: Event) => Event }> & {
+  new (options?: { root?: string; prefix?: string; iteratee?: StackFrameIteratee }): Integration;
+};

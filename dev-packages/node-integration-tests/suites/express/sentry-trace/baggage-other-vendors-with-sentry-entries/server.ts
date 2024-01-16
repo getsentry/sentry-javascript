@@ -1,4 +1,5 @@
-import http from 'http';
+import * as http from 'http';
+import { loggingTransport, startExpressServerAndSendPortToRunner } from '@sentry-internal/node-integration-tests';
 import * as Sentry from '@sentry/node';
 import * as Tracing from '@sentry/tracing';
 import cors from 'cors';
@@ -17,6 +18,7 @@ Sentry.init({
   // eslint-disable-next-line deprecation/deprecation
   integrations: [new Sentry.Integrations.Http({ tracing: true }), new Tracing.Integrations.Express({ app })],
   tracesSampleRate: 1.0,
+  transport: loggingTransport,
 });
 
 app.use(Sentry.Handlers.requestHandler());
@@ -42,4 +44,4 @@ app.get('/test/express', (_req, res) => {
 
 app.use(Sentry.Handlers.errorHandler());
 
-export default app;
+startExpressServerAndSendPortToRunner(app);

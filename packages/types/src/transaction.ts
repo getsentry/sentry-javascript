@@ -99,11 +99,15 @@ export interface Transaction extends TransactionContext, Omit<Span, 'setName' | 
 
   /**
    * The instrumenter that created this transaction.
+   *
+   * @deprecated This field will be removed in v8.
    */
   instrumenter: Instrumenter;
 
   /**
    * Set the name of the transaction
+   *
+   * @deprecated Use `.updateName()` and `.setAttribute()` instead.
    */
   setName(name: string, source?: TransactionMetadata['source']): void;
 
@@ -119,6 +123,8 @@ export interface Transaction extends TransactionContext, Omit<Span, 'setName' | 
    * @param name Name of the measurement
    * @param value Value of the measurement
    * @param unit Unit of the measurement. (Defaults to an empty string)
+   *
+   * @deprecated Use top-level `setMeasurement()` instead.
    */
   setMeasurement(name: string, value: number, unit: MeasurementUnit): void;
 

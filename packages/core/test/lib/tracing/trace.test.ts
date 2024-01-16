@@ -1,4 +1,4 @@
-import { Hub, addTracingExtensions, getCurrentScope, makeMain } from '../../../src';
+import { Hub, addTracingExtensions, getCurrentScope, makeMain, spanToJSON } from '../../../src';
 import { Scope } from '../../../src/scope';
 import {
   Span,
@@ -27,6 +27,7 @@ describe('startSpan', () => {
     const options = getDefaultTestClientOptions({ tracesSampleRate: 0.0 });
     client = new TestClient(options);
     hub = new Hub(client);
+    // eslint-disable-next-line deprecation/deprecation
     makeMain(hub);
   });
 
@@ -182,17 +183,17 @@ describe('startSpan', () => {
     let _span: Span | undefined;
     startSpan({ name: 'GET users/[id]' }, span => {
       expect(span).toBeDefined();
-      expect(span?.endTimestamp).toBeUndefined();
+      expect(spanToJSON(span!).timestamp).toBeUndefined();
       _span = span as Span;
     });
 
     expect(_span).toBeDefined();
-    expect(_span?.endTimestamp).toBeDefined();
+    expect(spanToJSON(_span!).timestamp).toBeDefined();
   });
 
   it('allows to pass a `startTime`', () => {
     const start = startSpan({ name: 'outer', startTime: [1234, 0] }, span => {
-      return span?.startTimestamp;
+      return spanToJSON(span!).start_timestamp;
     });
 
     expect(start).toEqual(1234);
@@ -235,9 +236,9 @@ describe('startSpanManual', () => {
   it('creates & finishes span', async () => {
     startSpanManual({ name: 'GET users/[id]' }, (span, finish) => {
       expect(span).toBeDefined();
-      expect(span?.endTimestamp).toBeUndefined();
+      expect(spanToJSON(span!).timestamp).toBeUndefined();
       finish();
-      expect(span?.endTimestamp).toBeDefined();
+      expect(spanToJSON(span!).timestamp).toBeDefined();
     });
   });
 
@@ -285,7 +286,7 @@ describe('startSpanManual', () => {
   it('allows to pass a `startTime`', () => {
     const start = startSpanManual({ name: 'outer', startTime: [1234, 0] }, span => {
       span?.end();
-      return span?.startTimestamp;
+      return spanToJSON(span!).start_timestamp;
     });
 
     expect(start).toEqual(1234);
@@ -297,11 +298,11 @@ describe('startInactiveSpan', () => {
     const span = startInactiveSpan({ name: 'GET users/[id]' });
 
     expect(span).toBeDefined();
-    expect(span?.endTimestamp).toBeUndefined();
+    expect(spanToJSON(span!).timestamp).toBeUndefined();
 
     span?.end();
 
-    expect(span?.endTimestamp).toBeDefined();
+    expect(spanToJSON(span!).timestamp).toBeDefined();
   });
 
   it('does not set span on scope', () => {
@@ -334,7 +335,7 @@ describe('startInactiveSpan', () => {
 
   it('allows to pass a `startTime`', () => {
     const span = startInactiveSpan({ name: 'outer', startTime: [1234, 0] });
-    expect(span?.startTimestamp).toEqual(1234);
+    expect(spanToJSON(span!).start_timestamp).toEqual(1234);
   });
 });
 
@@ -343,6 +344,7 @@ describe('continueTrace', () => {
     const options = getDefaultTestClientOptions({ tracesSampleRate: 0.0 });
     client = new TestClient(options);
     hub = new Hub(client);
+    // eslint-disable-next-line deprecation/deprecation
     makeMain(hub);
   });
 

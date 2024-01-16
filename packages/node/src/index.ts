@@ -49,7 +49,9 @@ export {
   Hub,
   // eslint-disable-next-line deprecation/deprecation
   lastEventId,
+  // eslint-disable-next-line deprecation/deprecation
   makeMain,
+  setCurrentClient,
   runWithAsyncContext,
   Scope,
   // eslint-disable-next-line deprecation/deprecation
@@ -65,6 +67,7 @@ export {
   // eslint-disable-next-line deprecation/deprecation
   trace,
   withScope,
+  withIsolationScope,
   captureCheckIn,
   withMonitor,
   setMeasurement,
@@ -98,7 +101,6 @@ export { createGetModuleFromFilename };
 export { enableAnrDetection } from './integrations/anr/legacy';
 
 import { Integrations as CoreIntegrations } from '@sentry/core';
-import type { Integration, IntegrationClass } from '@sentry/types';
 
 import * as Handlers from './handlers';
 import * as NodeIntegrations from './integrations';
@@ -106,23 +108,7 @@ import * as TracingIntegrations from './tracing/integrations';
 
 const INTEGRATIONS = {
   ...CoreIntegrations,
-  // This typecast is somehow needed for now, probably because of the convertIntegrationFnToClass TS shenanigans
-  // This is OK for now but should be resolved in v8 when we just pass the functional integrations directly
-  ...(NodeIntegrations as {
-    Console: IntegrationClass<Integration>;
-    Http: typeof NodeIntegrations.Http;
-    OnUncaughtException: IntegrationClass<Integration>;
-    OnUnhandledRejection: IntegrationClass<Integration>;
-    Modules: IntegrationClass<Integration>;
-    ContextLines: IntegrationClass<Integration>;
-    Context: IntegrationClass<Integration>;
-    RequestData: IntegrationClass<Integration>;
-    LocalVariables: IntegrationClass<Integration>;
-    Undici: typeof NodeIntegrations.Undici;
-    Spotlight: IntegrationClass<Integration>;
-    Anr: IntegrationClass<Integration>;
-    Hapi: IntegrationClass<Integration>;
-  }),
+  ...NodeIntegrations,
   ...TracingIntegrations,
 };
 

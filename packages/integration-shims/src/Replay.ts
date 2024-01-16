@@ -23,7 +23,7 @@ class ReplayShim implements Integration {
 
     consoleSandbox(() => {
       // eslint-disable-next-line no-console
-      console.error('You are using new Replay() even though this bundle does not include replay.');
+      console.warn('You are using new Replay() even though this bundle does not include replay.');
     });
   }
 

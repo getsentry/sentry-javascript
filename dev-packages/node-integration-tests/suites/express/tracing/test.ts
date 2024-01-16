@@ -1,7 +1,12 @@
-import { createRunner } from '../../../utils/runner';
+import { cleanupChildProcesses, createRunner } from '../../../utils/runner';
+
+afterAll(() => {
+  cleanupChildProcesses();
+});
 
 test('should create and send transactions for Express routes and spans for middlewares.', done => {
   createRunner(__dirname, 'server.ts')
+    .ignore('session', 'sessions')
     .expect({
       transaction: {
         contexts: {
@@ -33,6 +38,7 @@ test('should create and send transactions for Express routes and spans for middl
 
 test('should set a correct transaction name for routes specified in RegEx', done => {
   createRunner(__dirname, 'server.ts')
+    .ignore('session', 'sessions')
     .expect({
       transaction: {
         transaction: 'GET /\\/test\\/regex/',
@@ -64,6 +70,7 @@ test.each([['array1'], ['array5']])(
   'should set a correct transaction name for routes consisting of arrays of routes',
   ((segment: string, done: () => void) => {
     createRunner(__dirname, 'server.ts')
+      .ignore('session', 'sessions')
       .expect({
         transaction: {
           transaction: 'GET /test/array1,/\\/test\\/array[2-9]',
@@ -103,6 +110,7 @@ test.each([
   ['arr/requiredPath/optionalPath/lastParam'],
 ])('should handle more complex regexes in route arrays correctly', ((segment: string, done: () => void) => {
   createRunner(__dirname, 'server.ts')
+    .ignore('session', 'sessions')
     .expect({
       transaction: {
         transaction: 'GET /test/arr/:id,/\\/test\\/arr[0-9]*\\/required(path)?(\\/optionalPath)?\\/(lastParam)?',

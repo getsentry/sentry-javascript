@@ -62,6 +62,7 @@ export const getMainCarrier = getMainCarrierCore;
 /**
  * @deprecated This export has moved to @sentry/core. The @sentry/hub package will be removed in v8.
  */
+// eslint-disable-next-line deprecation/deprecation
 export const makeMain = makeMainCore;
 
 /**

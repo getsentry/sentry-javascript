@@ -1496,7 +1496,7 @@ describe('BaseClient', () => {
       client.setupIntegrations();
 
       expect(Object.keys((client as any)._integrations).length).toEqual(1);
-      expect(client.getIntegration(TestIntegration)).toBeTruthy();
+      expect(client.getIntegrationByName(TestIntegration.id)).toBeTruthy();
     });
 
     test('sets up each integration on `init` call', () => {
@@ -1507,7 +1507,7 @@ describe('BaseClient', () => {
       client.init();
 
       expect(Object.keys((client as any)._integrations).length).toEqual(1);
-      expect(client.getIntegration(TestIntegration)).toBeTruthy();
+      expect(client.getIntegrationByName(TestIntegration.id)).toBeTruthy();
     });
 
     test('skips installation for `setupIntegrations()` if DSN is not provided', () => {
@@ -1519,7 +1519,7 @@ describe('BaseClient', () => {
       client.setupIntegrations();
 
       expect(Object.keys((client as any)._integrations).length).toEqual(0);
-      expect(client.getIntegration(TestIntegration)).toBeFalsy();
+      expect(client.getIntegrationByName(TestIntegration.id)).toBeFalsy();
     });
 
     test('skips installation for `init()` if DSN is not provided', () => {
@@ -1530,7 +1530,7 @@ describe('BaseClient', () => {
       client.init();
 
       expect(Object.keys((client as any)._integrations).length).toEqual(0);
-      expect(client.getIntegration(TestIntegration)).toBeFalsy();
+      expect(client.getIntegrationByName(TestIntegration.id)).toBeFalsy();
     });
 
     test('skips installation for `setupIntegrations()` if `enabled` is set to `false`', () => {
@@ -1546,7 +1546,7 @@ describe('BaseClient', () => {
       client.setupIntegrations();
 
       expect(Object.keys((client as any)._integrations).length).toEqual(0);
-      expect(client.getIntegration(TestIntegration)).toBeFalsy();
+      expect(client.getIntegrationByName(TestIntegration.id)).toBeFalsy();
     });
 
     test('skips installation for `init()` if `enabled` is set to `false`', () => {
@@ -1561,7 +1561,7 @@ describe('BaseClient', () => {
       client.init();
 
       expect(Object.keys((client as any)._integrations).length).toEqual(0);
-      expect(client.getIntegration(TestIntegration)).toBeFalsy();
+      expect(client.getIntegrationByName(TestIntegration.id)).toBeFalsy();
     });
 
     test('skips installation if integrations are already installed', () => {
@@ -1577,7 +1577,7 @@ describe('BaseClient', () => {
       client.setupIntegrations();
 
       expect(Object.keys((client as any)._integrations).length).toEqual(1);
-      expect(client.getIntegration(TestIntegration)).toBeTruthy();
+      expect(client.getIntegrationByName(TestIntegration.id)).toBeTruthy();
       expect(setupIntegrationsHelper).toHaveBeenCalledTimes(1);
 
       // ...but it shouldn't try to install a second time
@@ -1597,7 +1597,7 @@ describe('BaseClient', () => {
       client.init();
 
       expect(Object.keys((client as any)._integrations).length).toEqual(1);
-      expect(client.getIntegration(TestIntegration)).toBeTruthy();
+      expect(client.getIntegrationByName(TestIntegration.id)).toBeTruthy();
       expect(setupIntegrationsHelper).toHaveBeenCalledTimes(1);
 
       client.init();
