@@ -86,6 +86,7 @@ test('Propagates trace for outgoing http requests', async ({ baseURL }) => {
             url: 'http://localhost:3030/test-inbound-headers',
             'otel.kind': 'SERVER',
             'http.response.status_code': 200,
+            'sentry.op': 'http.server',
           },
           op: 'http.server',
           parent_span_id: outgoingHttpSpanId,
