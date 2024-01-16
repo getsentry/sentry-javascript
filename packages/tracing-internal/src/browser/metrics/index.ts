@@ -226,7 +226,8 @@ export function addPerformanceEntries(transaction: Transaction): void {
       }
       case 'resource': {
         const resourceName = (entry.name as string).replace(WINDOW.location.origin, '');
-        _addResourceSpans(transaction, entry, resourceName, startTime, duration, timeOrigin);
+        const resourceOrigin = new URL(entry.name as string).origin;
+        _addResourceSpans(transaction, entry, resourceName, resourceOrigin, startTime, duration, timeOrigin);
         break;
       }
       default:
@@ -402,6 +403,7 @@ export function _addResourceSpans(
   transaction: Transaction,
   entry: ResourceEntry,
   resourceName: string,
+  resourceOrigin: string,
   startTime: number,
   duration: number,
   timeOrigin: number,
@@ -419,6 +421,9 @@ export function _addResourceSpans(
   setResourceEntrySizeData(data, entry, 'decodedBodySize', 'http.decoded_response_content_length');
   if ('renderBlockingStatus' in entry) {
     data['resource.render_blocking_status'] = entry.renderBlockingStatus;
+  }
+  if (resourceOrigin) {
+    data['span.domain'] = resourceOrigin;
   }
 
   const startTimestamp = timeOrigin + startTime;
