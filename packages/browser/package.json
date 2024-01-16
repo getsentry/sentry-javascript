@@ -30,7 +30,6 @@
   },
   "dependencies": {
     "@sentry-internal/feedback": "7.93.0",
-    "@sentry-internal/replay-canvas": "7.93.0",
     "@sentry-internal/tracing": "7.93.0",
     "@sentry/core": "7.93.0",
     "@sentry/replay": "7.93.0",
@@ -38,6 +37,7 @@
     "@sentry/utils": "7.93.0"
   },
   "devDependencies": {
+    "@sentry-internal/replay-canvas": "7.93.0",
     "@sentry-internal/integration-shims": "7.93.0",
     "@types/md5": "2.1.33",
     "btoa": "^1.2.1",
