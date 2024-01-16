@@ -1269,9 +1269,25 @@ jobs:
         # We'll ignore @sentry/profiling-node so that we can configure node-gyp
         # for the target env that we want to build binaries for.
         run:
-          yarn build \
-            --ignore @sentry/{angular,angular-ivy,astro,browser,deno,bun,react,remix,replay,svelte,sveltekit,vue,wasm} \
-            --ignore @sentry-internal/{feedback}
+          yarn lerna run build \
+            --ignore @sentry/angular \
+            --ignore @sentry/angular-ivy \
+            --ignore @sentry/astro \
+            --ignore @sentry/browser \
+            --ignore @sentry/deno \
+            --ignore @sentry/bun \
+            --ignore @sentry/opentelemetry \
+            --ignore @sentry/react \
+            --ignore @sentry/remix \
+            --ignore @sentry/replay \
+            --ignore @sentry/svelte \
+            --ignore @sentry/sveltekit \
+            --ignore @sentry/vue \
+            --ignore @sentry/wasm  \
+            --ignore @sentry-internal/feedback \
+            --ignore @sentry-internal/integration-shims \
+            --ignore @sentry-internal/replay-worker \
+            --ignore @sentry-internal/node-integration-tests
 
       # configure build test copy x64
       - name: Configure node-gyp
@@ -1282,7 +1298,7 @@ jobs:
         if: matrix.arch != 'arm64'
         run: yarn lerna run build:bindings --scope @sentry/profiling-node
 
-      - name: Setup (arm64, ${{ contains(matrix.container, 'alpine') && 'musl' || 'glibc'  }})
+      - name: Setup (arm64| ${{ contains(matrix.container, 'alpine') && 'musl' || 'glibc'  }})
         if: matrix.arch == 'arm64' && !contains(matrix.container, 'alpine') && matrix.target_platform != 'darwin'
         run: |
           sudo apt-get update
