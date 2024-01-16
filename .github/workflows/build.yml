@@ -1166,12 +1166,15 @@ jobs:
       - name: Setup python
         uses: actions/setup-python@v5
 
-      - name: Restore dependency cache
-        uses: actions/cache/restore@v3
-        with:
-          path: ${{ env.CACHED_DEPENDENCY_PATHS }}
-          key: ${{ needs.job_install_deps.outputs.dependency_cache_key }}
-          fail-on-cache-miss: true
+      - name: Install Dependencies
+        run: yarn install --frozen-lockfile --ignore-engines --ignore-scripts
+
+      # - name: Restore dependency cache
+      #   uses: actions/cache/restore@v3
+      #   with:
+      #     path: ${{ env.CACHED_DEPENDENCY_PATHS }}
+      #     key: ${{ needs.job_install_deps.outputs.dependency_cache_key }}
+      #     fail-on-cache-miss: true
 
       - name: Restore build cache
         uses: actions/cache/restore@v3
