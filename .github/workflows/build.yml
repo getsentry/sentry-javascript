@@ -1171,6 +1171,9 @@ jobs:
         if: contains(matrix.os, 'windows')
         run: choco install git
 
+      - name: Install yarn
+        run: npm i -g yarn
+
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v4
         with:
