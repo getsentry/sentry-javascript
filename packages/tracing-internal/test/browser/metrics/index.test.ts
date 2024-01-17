@@ -191,7 +191,9 @@ describe('_addResourceSpans', () => {
           ['http.response_content_length']: entry.encodedBodySize,
           ['http.response_transfer_size']: entry.transferSize,
           ['resource.render_blocking_status']: entry.renderBlockingStatus,
-          ['resource.render_blocking_status']: entry.renderBlockingStatus,
+          ['url.scheme']: 'https:',
+          ['server.address']: 'example.com',
+          ['url.same_origin']: true,
         },
       }),
     );
