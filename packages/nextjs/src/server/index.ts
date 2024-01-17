@@ -134,6 +134,7 @@ function addServerIntegrations(options: NodeOptions): void {
     // eslint-disable-next-line @sentry-internal/sdk/no-regexp-constructor -- user input is escaped
     const SOURCEMAP_FILENAME_REGEX = new RegExp(escapeStringForRegex(distDirAbsPath));
 
+    // eslint-disable-next-line deprecation/deprecation
     const defaultRewriteFramesIntegration = new RewriteFrames({
       iteratee: frame => {
         frame.filename = frame.filename?.replace(SOURCEMAP_FILENAME_REGEX, 'app:///_next');

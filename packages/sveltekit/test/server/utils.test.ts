@@ -79,7 +79,9 @@ describe('rewriteFramesIteratee', () => {
       module: '3-ab34d22f.js',
     };
 
+    // eslint-disable-next-line deprecation/deprecation
     const originalRewriteFrames = new RewriteFrames();
+    // eslint-disable-next-line deprecation/deprecation
     const rewriteFrames = new RewriteFrames({ iteratee: rewriteFramesIteratee });
 
     const event: Event = {

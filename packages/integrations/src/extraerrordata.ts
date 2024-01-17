@@ -1,4 +1,4 @@
-import { convertIntegrationFnToClass } from '@sentry/core';
+import { convertIntegrationFnToClass, defineIntegration } from '@sentry/core';
 import type {
   Contexts,
   Event,
@@ -28,7 +28,7 @@ interface ExtraErrorDataOptions {
   captureErrorCause: boolean;
 }
 
-const extraErrorDataIntegration = ((options: Partial<ExtraErrorDataOptions> = {}) => {
+const _extraErrorDataIntegration = ((options: Partial<ExtraErrorDataOptions> = {}) => {
   const depth = options.depth || 3;
 
   // TODO(v8): Flip the default for this option to true
@@ -44,7 +44,12 @@ const extraErrorDataIntegration = ((options: Partial<ExtraErrorDataOptions> = {}
   };
 }) satisfies IntegrationFn;
 
-/** Extract additional data for from original exceptions. */
+export const extraErrorDataIntegration = defineIntegration(_extraErrorDataIntegration);
+
+/**
+ * Extract additional data for from original exceptions.
+ * @deprecated Use `extraErrorDataIntegration()` instead.
+ */
 // eslint-disable-next-line deprecation/deprecation
 export const ExtraErrorData = convertIntegrationFnToClass(
   INTEGRATION_NAME,

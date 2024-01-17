@@ -23,6 +23,7 @@ export function init(options: NodeOptions): void {
 
 function addServerIntegrations(options: NodeOptions): void {
   options.integrations = addOrUpdateIntegration(
+    // eslint-disable-next-line deprecation/deprecation
     new RewriteFrames({ iteratee: rewriteFramesIteratee }),
     options.integrations || [],
   );

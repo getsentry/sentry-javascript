@@ -1,9 +1,15 @@
 import type { Event, Integration, StackFrame } from '@sentry/types';
 
+import type { rewriteFramesIntegration } from '../src/rewriteframes';
 import { RewriteFrames } from '../src/rewriteframes';
 
 interface IntegrationWithProcessEvent extends Integration {
   processEvent(event: Event): Event;
+}
+
+function getIntegration(...args: Parameters<typeof rewriteFramesIntegration>) {
+  // eslint-disable-next-line deprecation/deprecation
+  return new RewriteFrames(...args);
 }
 
 let rewriteFrames: IntegrationWithProcessEvent;
@@ -102,7 +108,7 @@ describe('RewriteFrames', () => {
 
   describe('default iteratee appends basename to `app:///` if frame starts with `/`', () => {
     beforeEach(() => {
-      rewriteFrames = new RewriteFrames();
+      rewriteFrames = getIntegration();
     });
 
     it('transforms exceptionEvent frames', () => {
@@ -121,7 +127,7 @@ describe('RewriteFrames', () => {
 
   describe('default iteratee prepends custom prefix to basename if frame starts with `/`', () => {
     beforeEach(() => {
-      rewriteFrames = new RewriteFrames({
+      rewriteFrames = getIntegration({
         prefix: 'foobar/',
       });
     });
@@ -135,7 +141,7 @@ describe('RewriteFrames', () => {
 
   describe('default iteratee appends basename to `app:///` if frame starts with Windows path prefix', () => {
     beforeEach(() => {
-      rewriteFrames = new RewriteFrames();
+      rewriteFrames = getIntegration();
     });
 
     it('transforms windowsExceptionEvent frames (C:\\)', () => {
@@ -165,7 +171,7 @@ describe('RewriteFrames', () => {
 
   describe('can use custom root to perform `relative` on filepaths', () => {
     beforeEach(() => {
-      rewriteFrames = new RewriteFrames({
+      rewriteFrames = getIntegration({
         root: '/www',
       });
     });
@@ -203,7 +209,7 @@ describe('RewriteFrames', () => {
 
   describe('can use custom iteratee', () => {
     beforeEach(() => {
-      rewriteFrames = new RewriteFrames({
+      rewriteFrames = getIntegration({
         iteratee: (frame: StackFrame) => ({
           ...frame,
           function: 'whoops',
@@ -222,7 +228,7 @@ describe('RewriteFrames', () => {
 
   describe('can process events that contain multiple stacktraces', () => {
     it('with defaults', () => {
-      rewriteFrames = new RewriteFrames();
+      rewriteFrames = getIntegration();
       const event = rewriteFrames.processEvent(multipleStacktracesEvent);
       // first stacktrace
       expect(event.exception!.values![0].stacktrace!.frames![0].filename).toEqual('app:///file1.js');
@@ -236,7 +242,7 @@ describe('RewriteFrames', () => {
     });
 
     it('with custom root', () => {
-      rewriteFrames = new RewriteFrames({
+      rewriteFrames = getIntegration({
         root: '/www',
       });
       const event = rewriteFrames.processEvent(multipleStacktracesEvent);
@@ -252,7 +258,7 @@ describe('RewriteFrames', () => {
     });
 
     it('with custom iteratee', () => {
-      rewriteFrames = new RewriteFrames({
+      rewriteFrames = getIntegration({
         iteratee: (frame: StackFrame) => ({
           ...frame,
           function: 'whoops',
@@ -279,7 +285,7 @@ describe('RewriteFrames', () => {
 
   describe('bails when unable to extract frames', () => {
     it('no exception values', () => {
-      rewriteFrames = new RewriteFrames({});
+      rewriteFrames = getIntegration({});
       const brokenEvent = {
         exception: {
           values: undefined,
@@ -289,7 +295,7 @@ describe('RewriteFrames', () => {
     });
 
     it('no frames', () => {
-      rewriteFrames = new RewriteFrames({});
+      rewriteFrames = getIntegration({});
       const brokenEvent = {
         exception: {
           values: [
