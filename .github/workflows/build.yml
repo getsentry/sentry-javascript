@@ -1246,6 +1246,11 @@ jobs:
             node: 20
             arch: x64
     steps:
+      - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.HEAD_COMMIT }}
+
       - name: Install git (alpine)
         if: contains(matrix.container, 'alpine')
         run: |
@@ -1263,11 +1268,6 @@ jobs:
       - name: Install git (windows)
         if: contains(matrix.os, 'windows')
         run: choco install git
-
-      - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ env.HEAD_COMMIT }}
 
       - name: Setup Node
         uses: actions/setup-node@v4
