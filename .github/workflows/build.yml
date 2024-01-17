@@ -1287,6 +1287,11 @@ jobs:
         with:
           python-version: '3.11'
 
+      - name: Print which python
+        run: |
+          which python
+          echo "python: ${{ steps.python-setup.outputs.python-path }}"
+
       - name: Install Dependencies
         run: yarn install --frozen-lockfile --ignore-engines --ignore-scripts
 
