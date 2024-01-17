@@ -1182,7 +1182,7 @@ jobs:
         run: choco install git
 
       - name: Build
-        run: arn build --ignore @sentry/profiling-npde
+        run: yarn build --ignore @sentry/profiling-npde
 
       # configure build test copy x64
       - name: Configure node-gyp
