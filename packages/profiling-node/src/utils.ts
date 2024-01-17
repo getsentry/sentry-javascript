@@ -1,5 +1,5 @@
 /* eslint-disable max-lines */
-import * as os from 'node:os';
+import * as os from 'os';
 import type {
   Context,
   DsnComponents,
