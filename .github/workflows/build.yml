@@ -1203,7 +1203,7 @@ jobs:
         if: matrix.arch == 'arm64' && matrix.target_platform != 'darwin'
         run: |
           cd packages/profiling-node
-          yarn build:bindings:configure:arm64 --scoApe @sentry/profiling-node
+          yarn build:bindings:configure:arm64 --scope @sentry/profiling-node
 
       - name: Configure node-gyp (arm64, darwin)
         if: matrix.arch == 'arm64' && matrix.target_platform == 'darwin'
