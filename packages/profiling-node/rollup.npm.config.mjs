@@ -7,6 +7,4 @@ if (!cjsConfig) {
   throw new Error('CJS config is required for profiling-node.');
 }
 
-export default {
-  ...cjsConfig,
-};
+export default cjsConfig;
