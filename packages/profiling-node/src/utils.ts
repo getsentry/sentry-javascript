@@ -1,5 +1,5 @@
 /* eslint-disable max-lines */
-import * as os from 'os';
+import os from 'os';
 import type {
   Context,
   DsnComponents,
@@ -38,7 +38,6 @@ const machine = typeof os.machine === 'function' ? os.machine() : os.arch();
 // Machine properties (eval only once)
 const PLATFORM = os.platform();
 const RELEASE = os.release();
-// @ts-expect-error version was
 const VERSION = os.version();
 const TYPE = os.type();
 const MODEL = machine;
