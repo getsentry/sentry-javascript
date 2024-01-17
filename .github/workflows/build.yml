@@ -1283,8 +1283,12 @@ jobs:
 
       - name: Setup python
         uses: actions/setup-python@v4
+        id: python-setup
         with:
           python-version: '3.11'
+
+      - name: Set npm python path
+        run: npm config set python "${{ steps.python-setup.outputs.python-path }}"
 
       - name: Install Dependencies
         run: yarn install --frozen-lockfile --ignore-engines --ignore-scripts
