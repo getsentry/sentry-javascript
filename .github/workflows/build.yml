@@ -1340,10 +1340,8 @@ jobs:
           cd packages/profiling-node
           BUILD_PLATFORM=darwin BUILD_ARCH=arm64 yarn build:bindings:arm64
 
-      - name: Test Bindings
-        run: |
-          cd packages/profiling-node
-          yarn test
+      - name: Unit Test
+        run: yarn lerna run test --scope @sentry/profiling-node
 
       - name: Archive Binary
         # @TODO: v4 breaks convenient merging of same name artifacts
