@@ -355,11 +355,6 @@ Sentry.init({ replaysOnErrorSampleRate: ${errorSampleRate} })`,
 
   /** Get canvas options from ReplayCanvas integration, if it is also added. */
   private _maybeLoadFromReplayCanvasIntegration(): void {
-    // If already defined, skip this...
-    if (this._initialOptions._experiments.canvas) {
-      return;
-    }
-
     // To save bundle size, we skip checking for stuff here
     // and instead just try-catch everything - as generally this should all be defined
     /* eslint-disable @typescript-eslint/no-non-null-assertion */
@@ -371,16 +366,8 @@ Sentry.init({ replaysOnErrorSampleRate: ${errorSampleRate} })`,
       if (!canvasIntegration) {
         return;
       }
-      const additionalOptions = canvasIntegration.getOptions();
 
-      const mergedExperimentsOptions = {
-        ...this._initialOptions._experiments,
-        ...additionalOptions._experiments,
-      };
-
-      this._initialOptions._experiments = mergedExperimentsOptions;
-
-      this._replay!.getOptions()._experiments = mergedExperimentsOptions;
+      this._replay!['_canvas'] = canvasIntegration.getOptions();
     } catch {
       // ignore errors here
     }

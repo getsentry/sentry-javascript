@@ -1,17 +1,18 @@
 import { CanvasManager } from '@sentry-internal/rrweb';
 import { convertIntegrationFnToClass } from '@sentry/core';
-import type { CanvasManagerInterface } from '@sentry/replay';
-import type { IntegrationFn } from '@sentry/types';
+import type { CanvasManagerInterface, CanvasManagerOptions } from '@sentry/replay';
+import type { Integration, IntegrationClass, IntegrationFn } from '@sentry/types';
 
 interface ReplayCanvasOptions {
   enableManualSnapshot?: boolean;
   quality: 'low' | 'medium' | 'high';
 }
 
+type GetCanvasManager = (options: CanvasManagerOptions) => CanvasManagerInterface;
 export interface ReplayCanvasIntegrationOptions {
   enableManualSnapshot?: boolean;
   recordCanvas: true;
-  getCanvasManager: (options: ConstructorParameters<typeof CanvasManager>[0]) => CanvasManagerInterface;
+  getCanvasManager: GetCanvasManager;
   sampling: {
     canvas: number;
   };
@@ -67,6 +68,8 @@ const replayCanvasIntegration = ((options: Partial<ReplayCanvasOptions> = {}) =>
 
   return {
     name: INTEGRATION_NAME,
+    // eslint-disable-next-line @typescript-eslint/no-empty-function
+    setupOnce() {},
     getOptions(): ReplayCanvasIntegrationOptions {
       const { quality, enableManualSnapshot } = _canvasOptions;
 
@@ -88,4 +91,10 @@ const replayCanvasIntegration = ((options: Partial<ReplayCanvasOptions> = {}) =>
   };
 }) satisfies IntegrationFn;
 
-export const ReplayCanvas = convertIntegrationFnToClass(INTEGRATION_NAME, replayCanvasIntegration);
+// TODO(v8)
+// eslint-disable-next-line deprecation/deprecation
+export const ReplayCanvas = convertIntegrationFnToClass(INTEGRATION_NAME, replayCanvasIntegration) as IntegrationClass<
+  Integration & {
+    getOptions: () => ReplayCanvasIntegrationOptions;
+  }
+>;
