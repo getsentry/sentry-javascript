@@ -1165,7 +1165,7 @@ jobs:
           git config --global --add safe.directory "*"
 
       - name: Install yarn
-        run: npm i -g yarn --force
+        run: npm i -g yarn@1.22.19 --force
 
       - name: Setup python
         uses: actions/setup-python@v4
