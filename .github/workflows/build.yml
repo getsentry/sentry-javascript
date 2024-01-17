@@ -1297,7 +1297,7 @@ jobs:
       # build monorepo
       - name: Build Packages
         run: |
-          yarn build --ignore @sentry/profiling-node --ignore @sentry/integrations --ignore @sentry/astro --ignore @sentry/serverless --ignore @sentry/browser
+          yarn build --ignore @sentry/profiling-node --ignore --ignore @sentry/astro --ignore @sentry/serverless --ignore @sentry/browser
 
       # build bindings
       - name: Build Bindings
