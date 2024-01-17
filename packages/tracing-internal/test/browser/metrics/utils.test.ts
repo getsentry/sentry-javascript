@@ -13,7 +13,9 @@ describe('_startChild()', () => {
 
     expect(span).toBeInstanceOf(Span);
     expect(spanToJSON(span).description).toBe('evaluation');
+    // eslint-disable-next-line deprecation/deprecation
     expect(span.op).toBe('script');
+    expect(spanToJSON(span).op).toBe('script');
   });
 
   it('adjusts the start timestamp if child span starts before transaction', () => {

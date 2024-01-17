@@ -204,7 +204,7 @@ function updateSpanWithOtelData(sentrySpan: SentrySpan, otelSpan: OtelSpan): voi
   };
   sentrySpan.setAttributes(allData);
 
-  sentrySpan.op = op;
+  sentrySpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, op);
   sentrySpan.updateName(description);
 }
 

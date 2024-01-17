@@ -1,6 +1,7 @@
 import { expect } from '@playwright/test';
 import type { Event } from '@sentry/types';
 
+import { spanToJSON } from '@sentry/core';
 import { sentryTest } from '../../../../utils/fixtures';
 import { getFirstSentryEnvelopeRequest, shouldSkipTracingTest } from '../../../../utils/helpers';
 
@@ -20,7 +21,9 @@ sentryTest('should capture FP vital.', async ({ browserName, getLocalTestPath, p
   const fpSpan = eventData.spans?.filter(({ description }) => description === 'first-paint')[0];
 
   expect(fpSpan).toBeDefined();
+  // eslint-disable-next-line deprecation/deprecation
   expect(fpSpan?.op).toBe('paint');
+  expect(spanToJSON(fpSpan!).op).toBe('paint');
   expect(fpSpan?.parentSpanId).toBe(eventData.contexts?.trace_span_id);
 });
 
@@ -39,6 +42,8 @@ sentryTest('should capture FCP vital.', async ({ getLocalTestPath, page }) => {
   const fcpSpan = eventData.spans?.filter(({ description }) => description === 'first-contentful-paint')[0];
 
   expect(fcpSpan).toBeDefined();
+  // eslint-disable-next-line deprecation/deprecation
   expect(fcpSpan?.op).toBe('paint');
+  expect(spanToJSON(fcpSpan!).op).toBe('paint');
   expect(fcpSpan?.parentSpanId).toBe(eventData.contexts?.trace_span_id);
 });
