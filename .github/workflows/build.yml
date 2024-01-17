@@ -1202,7 +1202,7 @@ jobs:
           yarn build:bindings:configure:arm64
 
       - name: Build Monorepo
-        run: yarn build --ignore @sentry/serverless
+        run: yarn build --ignore @sentry/serverless --ignore @sentry/browser
 
       # build bindings
       - name: Build Bindings
