@@ -1253,7 +1253,7 @@ jobs:
           ln -sf python3 /usr/bin/python
 
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
-        uses: actions/checkout@v3
+        uses: actions/checkout@v2
         with:
           ref: ${{ env.HEAD_COMMIT }}
 
