@@ -1,6 +1,23 @@
+import { GLOBAL_OBJ } from '@sentry/utils';
 import { Transaction } from '../../../src';
 import type { ResourceEntry } from '../../../src/browser/metrics';
 import { _addMeasureSpans, _addResourceSpans } from '../../../src/browser/metrics';
+import { WINDOW } from '../../../src/browser/types';
+
+const mockWindowLocation = {
+  ancestorOrigins: {},
+  href: "https://github.com/getsentry/sentry-javascript/pull/10205/files",
+  origin: "https://github.com",
+  protocol: "https:",
+  host: "github.com",
+  hostname: "github.com",
+  port: "",
+  pathname: "/getsentry/sentry-javascript/pull/10205/files",
+  search: "",
+  hash: ""
+} as Window['location'];
+
+WINDOW.location = mockWindowLocation;
 
 describe('_addMeasureSpans', () => {
   // eslint-disable-next-line deprecation/deprecation
@@ -100,6 +117,9 @@ describe('_addResourceSpans', () => {
         ['http.response_content_length']: entry.encodedBodySize,
         ['http.response_transfer_size']: entry.transferSize,
         ['resource.render_blocking_status']: entry.renderBlockingStatus,
+        ['url.scheme']: WINDOW.location.protocol,
+        ['server.address']: WINDOW.location.host,
+        ['url.same_origin']: false,
       },
       description: '/assets/to/css',
       endTimestamp: timeOrigin + startTime + duration,
