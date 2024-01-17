@@ -1059,7 +1059,7 @@ jobs:
 
   job_compile_bindings_profiling_node:
     name: Compile & Test Profiling Bindings (v${{ matrix.node }}) ${{ matrix.target_platform || matrix.os }}, ${{ matrix.node || matrix.container }}, ${{ matrix.arch || matrix.container }}, ${{ contains(matrix.container, 'alpine') && 'musl' || 'glibc'  }}
-    needs: [job_get_metadata]
+    needs: [job_get_metadata, job_install_deps]
     runs-on: ${{ matrix.os }}
     container: ${{ matrix.container }}
     timeout-minutes: 20
@@ -1161,6 +1161,13 @@ jobs:
         uses: actions/checkout@v2
         with:
           ref: ${{ env.HEAD_COMMIT }}
+
+      - name: Check dependency cache
+        uses: actions/cache/restore@v3
+        with:
+          path: ${{ env.CACHED_DEPENDENCY_PATHS }}
+          key: ${{ needs.job_install_deps.outputs.dependency_cache_key }}
+          fail-on-cache-miss: true
 
       - name: Configure safe directory
         run: |
