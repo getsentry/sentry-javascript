@@ -1172,7 +1172,7 @@ jobs:
         if: ${{ !contains(matrix.container, 'alpine') }}
         id: python-setup
         with:
-          python-version: '3.11'
+          python-version: '3.8.10'
 
       - name: Setup Node
         uses: actions/setup-node@v3
