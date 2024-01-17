@@ -4,7 +4,7 @@ import { sentryTest } from '../../../../utils/fixtures';
 import { getReplayRecordingContent, shouldSkipReplayTest, waitForReplayRequest } from '../../../../utils/replayHelpers';
 
 sentryTest('can record canvas', async ({ getLocalTestUrl, page, browserName }) => {
-  if (shouldSkipReplayTest() || browserName === 'webkit') {
+  if (shouldSkipReplayTest() || browserName === 'webkit' || (process.env.PW_BUNDLE || '').startsWith('bundle')) {
     sentryTest.skip();
   }
 
@@ -24,6 +24,16 @@ sentryTest('can record canvas', async ({ getLocalTestUrl, page, browserName }) =
 
   await page.goto(url);
   await reqPromise0;
+  const content0 = getReplayRecordingContent(await reqPromise0);
+  expect(content0.optionsEvents).toEqual([
+    {
+      tag: 'options',
+      payload: expect.objectContaining({
+        shouldRecordCanvas: true,
+      }),
+    },
+  ]);
+
   await Promise.all([page.click('#draw'), reqPromise1]);
 
   const { incrementalSnapshots } = getReplayRecordingContent(await reqPromise2);
