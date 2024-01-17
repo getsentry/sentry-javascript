@@ -56,6 +56,7 @@ export interface CanvasManagerInterface {
 
 export interface CanvasManagerOptions {
   recordCanvas: boolean;
+  enableManualSnapshot?: boolean;
   blockClass: string | RegExp;
   blockSelector: string | null;
   unblockSelector: string | null;

@@ -538,6 +538,7 @@ export interface SlowClickConfig {
 }
 
 export interface ReplayCanvasIntegrationOptions {
+  enableManualSnapshot?: boolean;
   recordCanvas: true;
   getCanvasManager: (options: CanvasManagerOptions) => CanvasManagerInterface;
   sampling: {
