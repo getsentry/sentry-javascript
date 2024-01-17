@@ -1065,71 +1065,71 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # x64 glibc
-          # - os: ubuntu-20.04
-          #   node: 16
-          # - os: ubuntu-20.04
-          #   node: 18
+            # x64 glibc
+          - os: ubuntu-20.04
+            node: 16
+          - os: ubuntu-20.04
+            node: 18
           - os: ubuntu-20.04
             node: 20
 
-          # x64 musl
-          # - os: ubuntu-20.04
-          #   container: node:16-alpine3.16
-          #   node: 16
-          # - os: ubuntu-20.04
-          #   container: node:18-alpine3.17
-          #   node: 18
+            # x64 musl
+          - os: ubuntu-20.04
+            container: node:16-alpine3.16
+            node: 16
+          - os: ubuntu-20.04
+            container: node:18-alpine3.17
+            node: 18
           - os: ubuntu-20.04
             container: node:20-alpine3.17
             node: 20
 
-          # arm64 glibc
-          # - os: ubuntu-20.04
-          #   arch: arm64
-          #   node: 16
-          # - os: ubuntu-20.04
-          #   arch: arm64
-          #   node: 18
+            # arm64 glibc
+          - os: ubuntu-20.04
+            arch: arm64
+            node: 16
+          - os: ubuntu-20.04
+            arch: arm64
+            node: 18
           - os: ubuntu-20.04
             arch: arm64
             node: 20
 
-          # arm64 musl
-          # - os: ubuntu-20.04
-          #   container: node:16-alpine3.16
-          #   arch: arm64
-          #   node: 16
-          # - os: ubuntu-20.04
-          #   arch: arm64
-          #   container: node:18-alpine3.17
-          #   node: 18
+            # arm64 musl
+          - os: ubuntu-20.04
+            container: node:16-alpine3.16
+            arch: arm64
+            node: 16
+          - os: ubuntu-20.04
+            arch: arm64
+            container: node:18-alpine3.17
+            node: 18
           - os: ubuntu-20.04
             arch: arm64
             container: node:20-alpine3.17
             node: 20
 
             # macos x64
-          # - os: macos-11
-          #   node: 16
-          #   arch: x64
-          # - os: macos-11
-          #   node: 18
-          #   arch: x64
+          - os: macos-11
+            node: 16
+            arch: x64
+          - os: macos-11
+            node: 18
+            arch: x64
           - os: macos-11
             node: 20
             arch: x64
 
             # macos arm64
-          # - os: macos-12
-          #   arch: arm64
-          #   node: 16
-          #   target_platform: darwin
+          - os: macos-12
+            arch: arm64
+            node: 16
+            target_platform: darwin
 
-          # - os: macos-12
-          #   arch: arm64
-          #   node: 18
-          #   target_platform: darwin
+          - os: macos-12
+            arch: arm64
+            node: 18
+            target_platform: darwin
 
           - os: macos-12
             arch: arm64
@@ -1137,13 +1137,13 @@ jobs:
             target_platform: darwin
 
             # windows x64
-          # - os: windows-2019
-          #   node: 16
-          #   arch: x64
+          - os: windows-2019
+            node: 16
+            arch: x64
 
-          # - os: windows-2019
-          #   node: 18
-          #   arch: x64
+          - os: windows-2019
+            node: 18
+            arch: x64
 
           - os: windows-2019
             node: 20
