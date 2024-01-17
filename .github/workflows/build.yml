@@ -1250,23 +1250,23 @@ jobs:
         if: contains(matrix.container, 'alpine')
         run: apk add --no-cache build-base python3 g++ make curl
 
-      - name: Install tools (alpine)
+      - name: Install git (alpine)
         if: contains(matrix.container, 'alpine')
         run: |
-          apk add --no-cache git zip
+          apk add --no-cache git
           git config --global --add safe.directory '*'
 
-      - name: Install tools (ubuntu)
+      - name: Install git (ubuntu)
         if: contains(matrix.os, 'ubuntu') && !contains(matrix.container, 'alpine')
-        run: sudo apt-get install -y git zip
+        run: sudo apt-get install -y git
 
-      - name: Install tools (macos)
+      - name: Install git (macos)
         if: contains(matrix.os, 'macos')
-        run: brew install git zip
+        run: brew install git
 
-      - name: Install tools (windows)
+      - name: Install git (windows)
         if: contains(matrix.os, 'windows')
-        run: choco install git zip
+        run: choco install git
 
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v4
@@ -1285,7 +1285,7 @@ jobs:
         run: yarn install --frozen-lockfile --ignore-engines --ignore-scripts
 
       - name: Build
-        run: yarn build --ignore @sentry/profiling-node --ignore @sentry/astro
+        run: yarn build --ignore @sentry/profiling-node --ignore @sentry/astro --ignore @sentry/serverless
 
       # configure build test copy x64
       - name: Configure node-gyp
