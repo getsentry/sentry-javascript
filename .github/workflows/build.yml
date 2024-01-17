@@ -1170,7 +1170,7 @@ jobs:
         run: yarn install --frozen-lockfile --ignore-engines --ignore-scripts
 
       - name: Build
-        run: yarn build --ignore @sentry/profiling-npde
+        run: LICENSE_COMMIT_HASH=none yarn build --ignore @sentry/profiling-node
 
       # configure build test copy x64
       - name: Configure node-gyp
