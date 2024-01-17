@@ -1192,16 +1192,28 @@ jobs:
       - name: Install Dependencies
         run: yarn install --frozen-lockfile --ignore-engines --ignore-scripts
 
-      - name: Build
-        run: |
-          yarn build --ignore @sentry/profiling-node --ignore @sentry/integrations --ignore @sentry/astro --ignore @sentry/serverless --ignore @sentry/browser
-
-      # configure build test copy x64
+      # configure node-gyp
       - name: Configure node-gyp
         if: matrix.arch != 'arm64'
         run: |
           yarn lerna run build:bindings:configure --scope @sentry/profiling-node
 
+      - name: Configure node-gyp (arm64, ${{ contains(matrix.container, 'alpine') && 'musl' || 'glibc'  }})
+        if: matrix.arch == 'arm64' && matrix.target_platform != 'darwin'
+        run: |
+          yarn lerna run build:bindings:configure:arm64 --scope @sentry/profiling-node
+
+      - name: Configure node-gyp (arm64, darwin)
+        if: matrix.arch == 'arm64' && matrix.target_platform == 'darwin'
+        run: |
+          yarn lerna run build:bindings:configure:arm64 --scope @sentry/profiling-node
+
+      # build monorepo
+      - name: Build
+        run: |
+          yarn build --ignore @sentry/profiling-node --ignore @sentry/integrations --ignore @sentry/astro --ignore @sentry/serverless --ignore @sentry/browser
+
+      # build bindings
       - name: Build Bindings
         if: matrix.arch != 'arm64'
         run: |
@@ -1212,11 +1224,6 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
-
-      - name: Configure node-gyp (arm64, ${{ contains(matrix.container, 'alpine') && 'musl' || 'glibc'  }})
-        if: matrix.arch == 'arm64' && matrix.target_platform != 'darwin'
-        run: |
-          yarn lerna run build:bindings:configure:arm64 --scope @sentry/profiling-node
 
       - name: Setup Musl
         if: contains(matrix.container, 'alpine')
@@ -1238,11 +1245,6 @@ jobs:
           CC=aarch64-linux-gnu-gcc \
           CXX=aarch64-linux-gnu-g++ \
           BUILD_ARCH=arm64 yarn lerna run build:bindings:arm64 --scope @sentry/profiling-node
-
-      - name: Configure node-gyp (arm64, darwin)
-        if: matrix.arch == 'arm64' && matrix.target_platform == 'darwin'
-        run: |
-          yarn lerna run build:bindings:configure:arm64 --scope @sentry/profiling-node
 
       - name: Build Bindings (arm64, darwin)
         if: matrix.arch == 'arm64' && matrix.target_platform == 'darwin'
