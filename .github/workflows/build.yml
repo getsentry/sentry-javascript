@@ -1197,11 +1197,6 @@ jobs:
           cd packages/profiling-node
           yarn build:bindings:configure:arm64
 
-      # build monorepo
-      - name: Build Packages
-        run: |
-          yarn build --ignore @sentry/profiling-node --ignore @sentry/astro --ignore @sentry/serverless --ignore @sentry/browser
-
       # build bindings
       - name: Build Bindings
         if: matrix.arch != 'arm64'
