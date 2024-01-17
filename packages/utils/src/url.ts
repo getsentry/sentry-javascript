@@ -1,4 +1,4 @@
-export type PartialURL = {
+type PartialURL = {
   host?: string;
   path?: string;
   protocol?: string;
