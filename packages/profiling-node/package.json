@@ -6,7 +6,7 @@
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/profiling-node",
   "author": "Sentry",
   "license": "MIT",
-  "main": "lib/index.js",
+  "main": "lib/npm/index.js",
   "types": "lib/types/index.d.ts",
   "typesVersions": {
     "<4.9": {
@@ -25,13 +25,11 @@
     "access": "public"
   },
   "files": [
-    "lib",
     "bindings",
     "binding.gyp",
     "LICENSE",
     "README.md",
     "package.json",
-    "package-lock.json",
     "scripts/binaries.js",
     "scripts/check-build.js",
     "scripts/copy-target.js",
@@ -59,6 +57,7 @@
     "build:dev": "yarn clean && yarn build:bindings:configure && yarn build",
     "build:transpile:watch": "rollup -c rollup.npm.config.mjs --watch",
     "build:watch": "run-p build:transpile:watch build:types:watch",
+    "build:tarball": "ts-node ../../scripts/prepack.ts --bundles && npm pack ./build/npm",
     "test:watch": "cross-env SENTRY_PROFILER_BINARY_DIR=build jest --watch",
     "test:bundle": "node test-binaries.esbuild.js",
     "test:setup:bundle": "(npm link && cd examples && npm install && npm link @sentry/profiling-node)",
@@ -71,7 +70,7 @@
     "test:rollup:build": "rollup --config examples/rollup.config.js",
     "test:rollup:run": "BUNDLER=rollup node examples/dist/rollup/index.js",
     "test:rollup": "yarn test:rollup:build && yarn test:rollup:run",
-    "test": "cross-env SENTRY_PROFILER_BINARY_DIR=lib jest --config jest.config.js"
+    "test": "cross-env SENTRY_PROFILER_BINARY_DIR=lib/npm jest --config jest.config.js"
   },
   "dependencies": {
     "detect-libc": "^2.0.2",
