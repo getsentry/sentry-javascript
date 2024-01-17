@@ -430,7 +430,7 @@ export function _addResourceSpans(
     data['server.address'] = resourceUrl.host;
   }
 
-  data['url.same_origin'] = resourceUrl.host === window.location.host;
+  data['url.same_origin'] = resourceUrl.host === WINDOW.location.host;
 
   const startTimestamp = timeOrigin + startTime;
   const endTimestamp = startTimestamp + duration;
