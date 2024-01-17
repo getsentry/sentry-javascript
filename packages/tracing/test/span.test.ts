@@ -484,6 +484,9 @@ describe('Span', () => {
         startTimestamp: expect.any(Number),
         tags: {},
         traceId: expect.any(String),
+        data: {
+          'sentry.op': 'op',
+        },
       });
     });
 
@@ -535,6 +538,9 @@ describe('Span', () => {
         tags: {
           tag1: 'bye',
         },
+        data: {
+          ...span.toContext().data,
+        },
       };
 
       if (newContext.data) newContext.data.data1 = 'bar';
@@ -548,7 +554,7 @@ describe('Span', () => {
       expect(span.op).toBe('new-op');
       expect(span.sampled).toBe(true);
       expect(span.tags).toStrictEqual({ tag1: 'bye' });
-      expect(span.data).toStrictEqual({ data0: 'foo', data1: 'bar' });
+      expect(span.data).toStrictEqual({ data0: 'foo', data1: 'bar', 'sentry.op': 'op' });
     });
   });
 

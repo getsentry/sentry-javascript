@@ -37,6 +37,7 @@ test('should correctly instrument `fetch` for performance tracing', async ({ pag
           type: 'fetch',
           'http.response_content_length': expect.any(Number),
           'http.response.status_code': 200,
+          'sentry.op': 'http.client',
         },
         description: 'GET http://example.com',
         op: 'http.client',

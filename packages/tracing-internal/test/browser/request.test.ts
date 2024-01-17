@@ -263,7 +263,9 @@ describe('callbacks', () => {
         'http.response.status_code': 404,
         type: 'fetch',
         url: 'http://dogs.are.great/',
+        'sentry.op': 'http.client',
       });
+      expect(finishedSpan.op).toBe('http.client');
     });
   });
 
