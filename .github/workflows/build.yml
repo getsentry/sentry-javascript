@@ -1153,23 +1153,23 @@ jobs:
         if: contains(matrix.container, 'alpine')
         run: apk add --no-cache build-base python3 g++ make curl
 
-      - name: Install git (alpine)
+      - name: Install tools (alpine)
         if: contains(matrix.container, 'alpine')
         run: |
-          apk add --no-cache git
+          apk add --no-cache git zip
           git config --global --add safe.directory '*'
 
-      - name: Install git (ubuntu)
+      - name: Install tools (ubuntu)
         if: contains(matrix.os, 'ubuntu') && !contains(matrix.container, 'alpine')
-        run: sudo apt-get install -y git
+        run: sudo apt-get install -y git zip
 
-      - name: Install git (macos)
+      - name: Install tools (macos)
         if: contains(matrix.os, 'macos')
-        run: brew install git
+        run: brew install git zip
 
-      - name: Install git (windows)
+      - name: Install tools (windows)
         if: contains(matrix.os, 'windows')
-        run: choco install git
+        run: choco install git zip
 
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v4
