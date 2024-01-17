@@ -60,7 +60,7 @@ jobs:
         id: playwright-cache
         with:
           path: ${{ steps.npm-cache-dir.outputs.dir }}
-          key: ${{ runner.os }}-Playwright-${{steps.playwright-version.outputs.version}}
+          key: ${{ runner.os }}-Playwright-${{steps.playwright-version.outputs.version}}-latest
       - name: Install Playwright browser if not cached
         if: steps.playwright-cache.outputs.cache-hit != 'true'
         run: npx playwright install --with-deps
