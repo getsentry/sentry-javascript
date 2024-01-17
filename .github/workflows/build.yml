@@ -1283,6 +1283,7 @@ jobs:
 
       - name: Setup python
         uses: actions/setup-python@v4
+        if: ${{ !contains(matrix.container, 'alpine') }}
         with:
           python-version: '3.10'
 
