@@ -1190,14 +1190,6 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Set npm python path
-        if: ${{ !contains(matrix.os, 'windows') }}
-        run: export npm_config_python=${{ steps.python-setup.outputs.python-path }}
-
-      - name: Set npm python path (Windows)
-        if: ${{ contains(matrix.os, 'windows') }}
-        run: set npm_config_python=${{ steps.python-setup.outputs.python-path }}
-
       - name: Install Dependencies
         run: yarn install --frozen-lockfile --ignore-engines --ignore-scripts
 
@@ -1206,19 +1198,19 @@ jobs:
         if: matrix.arch != 'arm64'
         run: |
           cd packages/profiling-node
-          yarn build:bindings:configure
+          PYTHON=${{ steps.python-setup.outputs.python-path }} yarn build:bindings:configure
 
       - name: Configure node-gyp (arm64, ${{ contains(matrix.container, 'alpine') && 'musl' || 'glibc'  }})
         if: matrix.arch == 'arm64' && matrix.target_platform != 'darwin'
         run: |
           cd packages/profiling-node
-          yarn build:bindings:configure:arm64
+          PYTHON=${{ steps.python-setup.outputs.python-path }} yarn build:bindings:configure:arm64
 
       - name: Configure node-gyp (arm64, darwin)
         if: matrix.arch == 'arm64' && matrix.target_platform == 'darwin'
         run: |
           cd packages/profiling-node
-          yarn build:bindings:configure:arm64
+          PYTHON=${{ steps.python-setup.outputs.python-path }} yarn build:bindings:configure:arm64
 
       # build monorepo
       - name: Build Packages
