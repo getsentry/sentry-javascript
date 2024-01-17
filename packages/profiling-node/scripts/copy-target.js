@@ -6,7 +6,7 @@ const binaries = require('./binaries.js');
 const build = path.resolve(__dirname, '..', 'lib');
 
 if (!fs.existsSync(build)) {
-  fs.mkdirSync(build, {recursive: true});
+  fs.mkdirSync(build, { recursive: true });
 }
 
 const source = path.join(__dirname, '..', 'build', 'Release', 'sentry_cpu_profiler.node');
