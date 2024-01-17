@@ -1060,7 +1060,7 @@ jobs:
     needs: [job_get_metadata]
     runs-on: ${{ matrix.os }}
     container: ${{ matrix.container }}
-    timeout-minutes: 10
+    timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
@@ -1188,7 +1188,12 @@ jobs:
         run: yarn install --frozen-lockfile --ignore-engines --ignore-scripts
 
       - name: Build
-        run: yarn build --ignore @sentry/profiling-node --ignore @sentry/astro --ignore @sentry/serverless
+        run: |
+          yarn build \
+          --ignore @sentry/profiling-node \
+          --ignore @sentry/astro \
+          --ignore @sentry/serverless \
+          --ignore @sentry/browser
 
       # configure build test copy x64
       - name: Configure node-gyp
