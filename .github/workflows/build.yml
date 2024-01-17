@@ -1268,7 +1268,7 @@ jobs:
 
       - name: Install git (ubuntu)
         if: contains(matrix.os, 'ubuntu')
-        run: sudo apt-get install -y git-all
+        run: sudo apt-get install -y git
 
       - name: Install git (macos)
         if: contains(matrix.os, 'macos')
