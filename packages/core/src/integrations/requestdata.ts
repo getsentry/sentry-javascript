@@ -9,7 +9,7 @@ import type {
 } from '@sentry/types';
 import type { AddRequestDataToEventOptions, TransactionNamingScheme } from '@sentry/utils';
 import { addRequestDataToEvent, extractPathForTransaction } from '@sentry/utils';
-import { convertIntegrationFnToClass } from '../integration';
+import { convertIntegrationFnToClass, defineIntegration } from '../integration';
 import { spanToJSON } from '../utils/spanUtils';
 
 export type RequestDataIntegrationOptions = {
@@ -55,7 +55,7 @@ const DEFAULT_OPTIONS = {
 
 const INTEGRATION_NAME = 'RequestData';
 
-const requestDataIntegration = ((options: RequestDataIntegrationOptions = {}) => {
+const _requestDataIntegration = ((options: RequestDataIntegrationOptions = {}) => {
   const _addRequestData = addRequestDataToEvent;
   const _options: Required<RequestDataIntegrationOptions> = {
     ...DEFAULT_OPTIONS,
@@ -139,8 +139,13 @@ const requestDataIntegration = ((options: RequestDataIntegrationOptions = {}) =>
   };
 }) satisfies IntegrationFn;
 
-/** Add data about a request to an event. Primarily for use in Node-based SDKs, but included in `@sentry/integrations`
- * so it can be used in cross-platform SDKs like `@sentry/nextjs`. */
+export const requestDataIntegration = defineIntegration(_requestDataIntegration);
+
+/**
+ * Add data about a request to an event. Primarily for use in Node-based SDKs, but included in `@sentry/integrations`
+ * so it can be used in cross-platform SDKs like `@sentry/nextjs`.
+ * @deprecated Use `requestDataIntegration()` instead.
+ */
 // eslint-disable-next-line deprecation/deprecation
 export const RequestData = convertIntegrationFnToClass(INTEGRATION_NAME, requestDataIntegration) as IntegrationClass<
   Integration & { processEvent: (event: Event, hint: EventHint, client: Client) => Event }

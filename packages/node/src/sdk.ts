@@ -1,6 +1,8 @@
 /* eslint-disable max-lines */
 import {
-  Integrations as CoreIntegrations,
+  FunctionToString,
+  InboundFilters,
+  LinkedErrors,
   endSession,
   getClient,
   getCurrentScope,
@@ -38,11 +40,12 @@ import { createGetModuleFromFilename } from './module';
 import { makeNodeTransport } from './transports';
 import type { NodeClientOptions, NodeOptions } from './types';
 
+/* eslint-disable deprecation/deprecation */
 export const defaultIntegrations = [
   // Common
-  new CoreIntegrations.InboundFilters(),
-  new CoreIntegrations.FunctionToString(),
-  new CoreIntegrations.LinkedErrors(),
+  new InboundFilters(),
+  new FunctionToString(),
+  new LinkedErrors(),
   // Native Wrappers
   new Console(),
   new Http(),
@@ -57,6 +60,7 @@ export const defaultIntegrations = [
   new Modules(),
   new RequestData(),
 ];
+/* eslint-enable deprecation/deprecation */
 
 /**
  * The Sentry Node SDK Client.

@@ -1,4 +1,13 @@
-import type { Client, Event, EventHint, Integration, IntegrationClass, IntegrationFn, Options } from '@sentry/types';
+import type {
+  Client,
+  Event,
+  EventHint,
+  Integration,
+  IntegrationClass,
+  IntegrationFn,
+  IntegrationFnResult,
+  Options,
+} from '@sentry/types';
 import { arrayify, logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from './debug-build';
@@ -176,4 +185,12 @@ export function convertIntegrationFnToClass<Fn extends IntegrationFn>(
     },
     { id: name },
   ) as unknown as IntegrationClass<Integration>;
+}
+
+/**
+ * Define an integration function that can be used to create an integration instance.
+ * Note that this by design hides the implementation details of the integration, as they are considered internal.
+ */
+export function defineIntegration<Fn extends IntegrationFn>(fn: Fn): (...args: Parameters<Fn>) => IntegrationFnResult {
+  return fn;
 }

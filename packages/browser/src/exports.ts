@@ -65,9 +65,13 @@ export {
   setUser,
   withScope,
   withIsolationScope,
+  // eslint-disable-next-line deprecation/deprecation
   FunctionToString,
+  // eslint-disable-next-line deprecation/deprecation
   InboundFilters,
   metrics,
+  functionToStringIntegration,
+  inboundFiltersIntegration,
 } from '@sentry/core';
 
 export { WINDOW } from './helpers';

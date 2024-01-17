@@ -18,6 +18,24 @@ be removed.
 Instead of `getCurrentHub()`, use the respective replacement API directly - see [Deprecate Hub](#deprecate-hub) for
 details.
 
+## Deprecate class-based integrations
+
+In v7, integrations are classes and can be added as e.g. `integrations: [new Sentry.Integrations.ContextLines()]`. In
+v8, integrations will not be classes anymore, but instead functions. Both the use as a class, as well as accessing
+integrations from the `Integrations.XXX` hash, is deprecated in favor of using the new functional integrations
+
+- for example, `new Integrations.LinkedErrors()` becomes `linkedErrorsIntegration()`.
+
+The following list shows how integrations should be migrated:
+
+| Old                      | New                             |
+| ------------------------ | ------------------------------- |
+| `new InboundFilters()`   | `inboundFiltersIntegrations()`  |
+| `new FunctionToString()` | `functionToStringIntegration()` |
+| `new LinkedErrors()`     | `linkedErrorsIntegration()`     |
+| `new ModuleMetadata()`   | `moduleMetadataIntegration()`   |
+| `new RequestData()`      | `requestDataIntegration()`      |
+
 ## Deprecate `hub.bindClient()` and `makeMain()`
 
 Instead, either directly use `initAndBind()`, or the new APIs `setCurrentClient()` and `client.init()`. See

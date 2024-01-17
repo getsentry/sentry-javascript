@@ -17,6 +17,7 @@ describe('FunctionToString', () => {
 
     expect(foo.bar.toString()).not.toBe(originalFunction);
 
+    // eslint-disable-next-line deprecation/deprecation
     const fts = new FunctionToString();
     fts.setupOnce();
 

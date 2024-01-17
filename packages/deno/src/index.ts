@@ -77,6 +77,10 @@ export {
   startInactiveSpan,
   startSpanManual,
   metrics,
+  inboundFiltersIntegration,
+  linkedErrorsIntegration,
+  functionToStringIntegration,
+  requestDataIntegration,
 } from '@sentry/core';
 export type { SpanStatusType } from '@sentry/core';
 
@@ -89,6 +93,7 @@ import { Integrations as CoreIntegrations } from '@sentry/core';
 import * as DenoIntegrations from './integrations';
 
 const INTEGRATIONS = {
+  // eslint-disable-next-line deprecation/deprecation
   ...CoreIntegrations,
   ...DenoIntegrations,
 };
