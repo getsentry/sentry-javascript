@@ -472,6 +472,8 @@ export class Span implements SpanInterface {
 
   /**
    * @inheritDoc
+   *
+   * @deprecated Use `spanToJSON(span).status === 'ok'` instead.
    */
   public isSuccess(): boolean {
     return this._status === 'ok';

@@ -329,6 +329,8 @@ export interface Span extends SpanContext {
 
   /**
    * Determines whether span was successful (HTTP200)
+   *
+   * @deprecated Use `spanToJSON(span).status === 'ok'` instead.
    */
   isSuccess(): boolean;
 
