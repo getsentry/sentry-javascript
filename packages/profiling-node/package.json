@@ -60,16 +60,6 @@
     "build:tarball": "npm pack ./lib",
     "test:watch": "cross-env SENTRY_PROFILER_BINARY_DIR=build jest --watch",
     "test:bundle": "node test-binaries.esbuild.js",
-    "test:setup:bundle": "(npm link && cd examples && npm install && npm link @sentry/profiling-node)",
-    "test:esbuild:build": "node examples/esbuild.js",
-    "test:esbuild:run": "BUNDLER=esbuild node examples/dist/esbuild/index.js",
-    "test:esbuild": "yarn test:esbuild:build && yarn test:esbuild:run",
-    "test:webpack:build": "webpack --config examples/webpack.config.js",
-    "test:webpack:run": "BUNDLER=webpack node examples/dist/webpack/index.js",
-    "test:webpack": "yarn test:webpack:build && yarn test:webpack:run",
-    "test:rollup:build": "rollup --config examples/rollup.config.js",
-    "test:rollup:run": "BUNDLER=rollup node examples/dist/rollup/index.js",
-    "test:rollup": "yarn test:rollup:build && yarn test:rollup:run",
     "test": "cross-env SENTRY_PROFILER_BINARY_DIR=lib jest --config jest.config.js"
   },
   "dependencies": {
