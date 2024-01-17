@@ -1299,7 +1299,7 @@ jobs:
           yarn build:bindings:configure:arm64
 
       - name: Build Monorepo
-        run: yarn build
+        run: yarn build --ignore @sentry/serverless
 
       # build bindings
       - name: Build Bindings
