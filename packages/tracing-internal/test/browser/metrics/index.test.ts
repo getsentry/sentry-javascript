@@ -236,7 +236,12 @@ describe('_addResourceSpans', () => {
     // eslint-disable-next-line @typescript-eslint/unbound-method, deprecation/deprecation
     expect(transaction.startChild).toHaveBeenLastCalledWith(
       expect.objectContaining({
-        data: {},
+        data: { "server.address": "example.com", "url.same_origin": true, "url.scheme": "https" },
+        "description": "/assets/to/css",
+        "endTimestamp": 468,
+        "op": "resource.css",
+        "origin": "auto.resource.browser.metrics",
+        "startTimestamp": 445,
       }),
     );
   });
