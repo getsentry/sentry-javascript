@@ -29,9 +29,7 @@ import { terser } from 'rollup-plugin-terser';
  * @returns An instance of the `rollup-plugin-license` plugin
  */
 export function makeLicensePlugin(title) {
-  const commitHash =
-    process.env.LICENSE_COMMIT_HASH ||
-    childProcess.execSync('git rev-parse --short HEAD', { encoding: 'utf-8' }).trim();
+  const commitHash = childProcess.execSync('git rev-parse --short HEAD', { encoding: 'utf-8' }).trim();
 
   const plugin = license({
     banner: {
