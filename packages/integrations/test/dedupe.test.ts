@@ -1,5 +1,6 @@
 import type { Event as SentryEvent, Exception, StackFrame, Stacktrace } from '@sentry/types';
 
+import type { dedupeIntegration } from '../src/dedupe';
 import { Dedupe, _shouldDropEvent } from '../src/dedupe';
 
 type EventWithException = SentryEvent & {
@@ -12,6 +13,11 @@ type StacktraceWithFrames = Stacktrace & { frames: StackFrame[] };
 
 function clone<T>(data: T): T {
   return JSON.parse(JSON.stringify(data));
+}
+
+function getIntegration(...args: Parameters<typeof dedupeIntegration>) {
+  // eslint-disable-next-line deprecation/deprecation
+  return new Dedupe(...args);
 }
 
 const messageEvent: EventWithException = {
@@ -177,7 +183,7 @@ describe('Dedupe', () => {
 
   describe('processEvent', () => {
     it('ignores consecutive errors', () => {
-      const integration = new Dedupe();
+      const integration = getIntegration();
 
       expect(integration.processEvent(clone(exceptionEvent))).not.toBeNull();
       expect(integration.processEvent(clone(exceptionEvent))).toBeNull();
@@ -185,7 +191,7 @@ describe('Dedupe', () => {
     });
 
     it('ignores transactions between errors', () => {
-      const integration = new Dedupe();
+      const integration = getIntegration();
 
       expect(integration.processEvent(clone(exceptionEvent))).not.toBeNull();
       expect(

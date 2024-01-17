@@ -1,4 +1,4 @@
-import { captureMessage, convertIntegrationFnToClass, getClient, withScope } from '@sentry/core';
+import { captureMessage, convertIntegrationFnToClass, defineIntegration, getClient, withScope } from '@sentry/core';
 import type { Client, Integration, IntegrationClass, IntegrationFn } from '@sentry/types';
 import { GLOBAL_OBJ, supportsReportingObserver } from '@sentry/utils';
 
@@ -48,7 +48,7 @@ interface ReportingObserverOptions {
 
 const SETUP_CLIENTS = new WeakMap<Client, boolean>();
 
-const reportingObserverIntegration = ((options: ReportingObserverOptions = {}) => {
+const _reportingObserverIntegration = ((options: ReportingObserverOptions = {}) => {
   const types = options.types || ['crash', 'deprecation', 'intervention'];
 
   /** Handler for the reporting observer. */
@@ -115,7 +115,12 @@ const reportingObserverIntegration = ((options: ReportingObserverOptions = {}) =
   };
 }) satisfies IntegrationFn;
 
-/** Reporting API integration - https://w3c.github.io/reporting/ */
+export const reportingObserverIntegration = defineIntegration(_reportingObserverIntegration);
+
+/**
+ * Reporting API integration - https://w3c.github.io/reporting/
+ * @deprecated Use `reportingObserverIntegration()` instead.
+ */
 // eslint-disable-next-line deprecation/deprecation
 export const ReportingObserver = convertIntegrationFnToClass(
   INTEGRATION_NAME,

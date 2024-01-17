@@ -1,6 +1,7 @@
 import * as SentryCore from '@sentry/core';
 import type { Client, Hub } from '@sentry/types';
 
+import type { reportingObserverIntegration } from '../src/reportingobserver';
 import { ReportingObserver } from '../src/reportingobserver';
 
 const mockScope = {
@@ -26,6 +27,11 @@ class MockReportingObserver {
   }
 }
 
+function getIntegration(...args: Parameters<typeof reportingObserverIntegration>) {
+  // eslint-disable-next-line deprecation/deprecation
+  return new ReportingObserver(...args);
+}
+
 describe('ReportingObserver', () => {
   let mockClient: Client;
 
@@ -49,7 +55,7 @@ describe('ReportingObserver', () => {
       // Act like ReportingObserver is unavailable
       delete (global as any).ReportingObserver;
 
-      const reportingObserverIntegration = new ReportingObserver();
+      const reportingObserverIntegration = getIntegration();
 
       expect(() => {
         reportingObserverIntegration.setupOnce(
@@ -63,7 +69,7 @@ describe('ReportingObserver', () => {
     });
 
     it('should use default report types', () => {
-      const reportingObserverIntegration = new ReportingObserver();
+      const reportingObserverIntegration = getIntegration();
       reportingObserverIntegration.setupOnce(
         () => undefined,
         () => mockHub,
@@ -78,7 +84,7 @@ describe('ReportingObserver', () => {
     });
 
     it('should use user-provided report types', () => {
-      const reportingObserverIntegration = new ReportingObserver({ types: ['crash'] });
+      const reportingObserverIntegration = getIntegration({ types: ['crash'] });
       reportingObserverIntegration.setupOnce(
         () => undefined,
         () => mockHub,
@@ -93,7 +99,7 @@ describe('ReportingObserver', () => {
     });
 
     it('should use `buffered` option', () => {
-      const reportingObserverIntegration = new ReportingObserver();
+      const reportingObserverIntegration = getIntegration();
       reportingObserverIntegration.setupOnce(
         () => undefined,
         () => mockHub,
@@ -108,7 +114,7 @@ describe('ReportingObserver', () => {
     });
 
     it('should call `observe` function', () => {
-      const reportingObserverIntegration = new ReportingObserver();
+      const reportingObserverIntegration = getIntegration();
       reportingObserverIntegration.setupOnce(
         () => undefined,
         () => mockHub,
@@ -121,7 +127,7 @@ describe('ReportingObserver', () => {
 
   describe('handler', () => {
     it('should abort gracefully and not do anything when integration is not installed', () => {
-      const reportingObserverIntegration = new ReportingObserver();
+      const reportingObserverIntegration = getIntegration();
       reportingObserverIntegration.setupOnce(
         () => undefined,
         () => mockHub,
@@ -138,7 +144,7 @@ describe('ReportingObserver', () => {
     });
 
     it('should capture messages', () => {
-      const reportingObserverIntegration = new ReportingObserver();
+      const reportingObserverIntegration = getIntegration();
       reportingObserverIntegration.setupOnce(
         () => undefined,
         () => mockHub,
@@ -155,7 +161,7 @@ describe('ReportingObserver', () => {
     });
 
     it('should set extra including the url of a report', () => {
-      const reportingObserverIntegration = new ReportingObserver();
+      const reportingObserverIntegration = getIntegration();
       reportingObserverIntegration.setupOnce(
         () => undefined,
         () => mockHub,
@@ -173,7 +179,7 @@ describe('ReportingObserver', () => {
     });
 
     it('should set extra including the report body if available', () => {
-      const reportingObserverIntegration = new ReportingObserver();
+      const reportingObserverIntegration = getIntegration();
       reportingObserverIntegration.setupOnce(
         () => undefined,
         () => mockHub,
@@ -191,7 +197,7 @@ describe('ReportingObserver', () => {
     });
 
     it('should not set extra report body extra when no body is set', () => {
-      const reportingObserverIntegration = new ReportingObserver();
+      const reportingObserverIntegration = getIntegration();
       reportingObserverIntegration.setupOnce(
         () => undefined,
         () => mockHub,
@@ -205,7 +211,7 @@ describe('ReportingObserver', () => {
     });
 
     it('should capture report details from body on crash report', () => {
-      const reportingObserverIntegration = new ReportingObserver();
+      const reportingObserverIntegration = getIntegration();
       reportingObserverIntegration.setupOnce(
         () => undefined,
         () => mockHub,
@@ -226,7 +232,7 @@ describe('ReportingObserver', () => {
     });
 
     it('should capture report message from body on deprecation report', () => {
-      const reportingObserverIntegration = new ReportingObserver();
+      const reportingObserverIntegration = getIntegration();
       reportingObserverIntegration.setupOnce(
         () => undefined,
         () => mockHub,
@@ -246,7 +252,7 @@ describe('ReportingObserver', () => {
     });
 
     it('should capture report message from body on intervention report', () => {
-      const reportingObserverIntegration = new ReportingObserver();
+      const reportingObserverIntegration = getIntegration();
       reportingObserverIntegration.setupOnce(
         () => undefined,
         () => mockHub,
@@ -266,7 +272,7 @@ describe('ReportingObserver', () => {
     });
 
     it('should use fallback message when no body is available', () => {
-      const reportingObserverIntegration = new ReportingObserver();
+      const reportingObserverIntegration = getIntegration();
       reportingObserverIntegration.setupOnce(
         () => undefined,
         () => mockHub,
@@ -285,7 +291,7 @@ describe('ReportingObserver', () => {
     });
 
     it('should use fallback message when no body details are available for crash report', () => {
-      const reportingObserverIntegration = new ReportingObserver();
+      const reportingObserverIntegration = getIntegration();
       reportingObserverIntegration.setupOnce(
         () => undefined,
         () => mockHub,
@@ -301,7 +307,7 @@ describe('ReportingObserver', () => {
     });
 
     it('should use fallback message when no body message is available for deprecation report', () => {
-      const reportingObserverIntegration = new ReportingObserver();
+      const reportingObserverIntegration = getIntegration();
       reportingObserverIntegration.setupOnce(
         () => undefined,
         () => mockHub,
@@ -321,7 +327,7 @@ describe('ReportingObserver', () => {
     });
 
     it('should use fallback message when no body message is available for intervention report', () => {
-      const reportingObserverIntegration = new ReportingObserver();
+      const reportingObserverIntegration = getIntegration();
       reportingObserverIntegration.setupOnce(
         () => undefined,
         () => mockHub,
