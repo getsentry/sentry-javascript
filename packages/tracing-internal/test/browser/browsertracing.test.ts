@@ -411,6 +411,7 @@ conditionalTest({ min: 10 })('BrowserTracing', () => {
         expect.any(Boolean),
         expect.any(Object),
         expect.any(Number),
+        true,
       );
     });
 
@@ -419,6 +420,7 @@ conditionalTest({ min: 10 })('BrowserTracing', () => {
         createBrowserTracing(true, { routingInstrumentation: customInstrumentRouting });
         const mockFinish = jest.fn();
         const transaction = getActiveTransaction(hub) as IdleTransaction;
+        transaction.sendAutoFinishSignal();
         transaction.end = mockFinish;
 
         const span = transaction.startChild(); // activities = 1
@@ -433,6 +435,7 @@ conditionalTest({ min: 10 })('BrowserTracing', () => {
         createBrowserTracing(true, { idleTimeout: 2000, routingInstrumentation: customInstrumentRouting });
         const mockFinish = jest.fn();
         const transaction = getActiveTransaction(hub) as IdleTransaction;
+        transaction.sendAutoFinishSignal();
         transaction.end = mockFinish;
 
         const span = transaction.startChild(); // activities = 1
@@ -461,6 +464,7 @@ conditionalTest({ min: 10 })('BrowserTracing', () => {
         createBrowserTracing(true, { heartbeatInterval: interval, routingInstrumentation: customInstrumentRouting });
         const mockFinish = jest.fn();
         const transaction = getActiveTransaction(hub) as IdleTransaction;
+        transaction.sendAutoFinishSignal();
         transaction.end = mockFinish;
 
         const span = transaction.startChild(); // activities = 1
