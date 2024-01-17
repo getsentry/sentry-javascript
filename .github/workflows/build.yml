@@ -997,6 +997,7 @@ jobs:
             'node-experimental-fastify-app',
             'node-hapi-app',
             'node-exports-test-app',
+            'node-profiling'
           ]
         build-command:
           - false
@@ -1399,9 +1400,3 @@ jobs:
 
       - name: Pack Profiling Node
         run: yarn build:tarball --scope @sentry/profiling-node
-
-  # job_e2e_profiling_node:
-  #   name: "E2E Profiling Node Tests"
-  #   runs-on: ubuntu-latest
-  #   needs: [job_get_metadata, job_build_profiling_node]
-  #   timeout-minutes: 10
