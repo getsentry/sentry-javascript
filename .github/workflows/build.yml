@@ -1193,16 +1193,11 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
 
-      - name: Print which python
-        run: |
-          which python
-          echo "python: ${{ steps.python-setup.outputs.python-path }}"
-
-      - name: Verify python cmd
-        run: |
-          ls -la ${{ steps.python-setup.outputs.python-path }}
-          ${{ steps.python-setup.outputs.python-path }} --version
-          ${{ steps.python-setup.outputs.python-path }} -c "import sys; print(sys.version_info)"
+      # - name: Test python cmd
+      #   run: |
+      #     which python
+      #     echo "python: ${{ steps.python-setup.outputs.python-path }}"
+      #     python -c "import sys; print(sys.version_info)"
 
       - name: Install Dependencies
         run: yarn install --frozen-lockfile --ignore-engines --ignore-scripts
