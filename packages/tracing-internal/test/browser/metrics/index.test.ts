@@ -1,4 +1,3 @@
-import { GLOBAL_OBJ, parseUrl } from '@sentry/utils';
 import { Transaction } from '../../../src';
 import type { ResourceEntry } from '../../../src/browser/metrics';
 import { _addMeasureSpans, _addResourceSpans } from '../../../src/browser/metrics';
