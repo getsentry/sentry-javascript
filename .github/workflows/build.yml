@@ -1191,6 +1191,7 @@ jobs:
       - name: Setup Musl
         if: contains(matrix.container, 'alpine')
         run: |
+          cd packages/profiling-node
           curl -OL https://musl.cc/aarch64-linux-musl-cross.tgz
           tar -xzvf aarch64-linux-musl-cross.tgz
           $(pwd)/aarch64-linux-musl-cross/bin/aarch64-linux-musl-gcc --version
@@ -1226,25 +1227,28 @@ jobs:
       - name: Build Bindings (arm64, ${{ contains(matrix.container, 'alpine') && 'musl' || 'glibc'  }})
         if: matrix.arch == 'arm64' && contains(matrix.container, 'alpine') && matrix.target_platform != 'darwin'
         run: |
+          cd packages/profiling-node
           CC=$(pwd)/aarch64-linux-musl-cross/bin/aarch64-linux-musl-gcc \
           CXX=$(pwd)/aarch64-linux-musl-cross/bin/aarch64-linux-musl-g++ \
           BUILD_ARCH=arm64 \
-          yarn lerna run build:bindings --scope @sentry/profiling-node
+          yarn build:bindings
 
       - name: Build Bindings (arm64, ${{ contains(matrix.container, 'alpine') && 'musl' || 'glibc'  }})
         if: matrix.arch == 'arm64' && !contains(matrix.container, 'alpine') && matrix.target_platform != 'darwin'
         run: |
+          cd packages/profiling-node
           CC=aarch64-linux-gnu-gcc \
           CXX=aarch64-linux-gnu-g++ \
           BUILD_ARCH=arm64 \
-          yarn lerna run build:bindings:arm64 --scope @sentry/profiling-node
+          yarn build:bindings:arm64
 
       - name: Build Bindings (arm64, darwin)
         if: matrix.arch == 'arm64' && matrix.target_platform == 'darwin'
         run: |
+          cd packages/profiling-node
           BUILD_PLATFORM=darwin \
           BUILD_ARCH=arm64 \
-          yarn lerna run build:bindings:arm64 --scope @sentry/profiling-node
+          yarn build:bindings:arm64
 
       - name: Test Bindings
         if: matrix.arch != 'arm64'
