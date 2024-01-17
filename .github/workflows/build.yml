@@ -1246,6 +1246,24 @@ jobs:
             node: 20
             arch: x64
     steps:
+      - name: Install git (alpine)
+        if: contains(matrix.container, 'alpine')
+        run: |
+          apk add --no-cache git
+          git config --global --add safe.directory '*'
+
+      - name: Install git (ubuntu)
+        if: contains(matrix.os, 'ubuntu') && !contains(matrix.container, 'alpine')
+        run: sudo apt-get install -y git
+
+      - name: Install git (macos)
+        if: contains(matrix.os, 'macos')
+        run: brew install git
+
+      - name: Install git (windows)
+        if: contains(matrix.os, 'windows')
+        run: choco install git
+
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v4
         with:
@@ -1264,24 +1282,6 @@ jobs:
       - name: Setup (alpine)
         if: contains(matrix.container, 'alpine')
         run: apk add --no-cache build-base python3 g++ make curl
-
-      - name: Install git (alpine)
-        if: contains(matrix.container, 'alpine')
-        run: |
-          apk add --no-cache git
-          git config --global --add safe.directory '*'
-
-      - name: Install git (ubuntu)
-        if: contains(matrix.os, 'ubuntu') && !contains(matrix.container, 'alpine')
-        run: sudo apt-get install -y git
-
-      - name: Install git (macos)
-        if: contains(matrix.os, 'macos')
-        run: brew install git
-
-      - name: Install git (windows)
-        if: contains(matrix.os, 'windows')
-        run: choco install git
 
       - name: Install yarn
         run: npm i -g yarn --force
