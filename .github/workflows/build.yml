@@ -1160,6 +1160,10 @@ jobs:
         with:
           ref: ${{ env.HEAD_COMMIT }}
 
+      - name: Configure safe directory
+        run: |
+          git config --global --add safe.directory "*"
+
       - name: Install yarn
         run: npm i -g yarn --force
 
