@@ -368,7 +368,20 @@ export class BrowserTracing implements Integration {
       true,
       { location }, // for use in the tracesSampler
       heartbeatInterval,
+      isPageloadTransaction, // should wait for finish signal if it is a pageload transaction
     );
+
+    if (isPageloadTransaction) {
+      WINDOW.document.addEventListener('readystatechange', () => {
+        if (WINDOW.document.readyState === 'interactive') {
+          idleTransaction.sendAutoFinishSignal();
+        }
+      });
+
+      if (WINDOW.document.readyState === 'interactive') {
+        idleTransaction.sendAutoFinishSignal();
+      }
+    }
 
     // eslint-disable-next-line deprecation/deprecation
     const scope = hub.getScope();
