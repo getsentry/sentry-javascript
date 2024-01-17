@@ -8,6 +8,13 @@
   "license": "MIT",
   "main": "lib/index.js",
   "types": "lib/types/index.d.ts",
+  "typesVersions": {
+    "<4.9": {
+      "lib/types/index.d.ts": [
+        "lib/types-ts3.8/index.d.ts"
+      ]
+    }
+  },
   "bin": {
     "sentry-prune-profiler-binaries": "scripts/prune-profiler-binaries.js"
   },
@@ -42,7 +49,8 @@
     "build": "yarn build:lib && yarn build:bindings:configure && yarn build:bindings",
     "build:lib": "yarn build:types && rollup -c rollup.npm.config.mjs",
     "build:transpile": "yarn build:bindings:configure && yarn build:bindings && yarn build:lib",
-    "build:types": "tsc -p tsconfig.types.json",
+    "build:types:downlevel": "yarn downlevel-dts lib/types lib/types-ts3.8 --to ts3.8",
+    "build:types": "tsc -p tsconfig.types.json && yarn build:types:downlevel",
     "build:types:watch": "tsc -p tsconfig.types.json --watch",
     "build:bindings:configure": "node-gyp configure --verbose",
     "build:bindings:configure:arm64": "node-gyp configure --arch=arm64 --target_arch=arm64 --verbose",
