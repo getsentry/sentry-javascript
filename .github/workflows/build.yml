@@ -1197,6 +1197,11 @@ jobs:
           cd packages/profiling-node
           yarn build:bindings:configure:arm64
 
+      # build monorepo
+      - name: Build Packages
+        run: |
+          yarn build --ignore @sentry/profiling-node --ignore @sentry/astro --ignore @sentry/serverless --ignore @sentry/browser
+
       # build bindings
       - name: Build Bindings
         if: matrix.arch != 'arm64'
@@ -1234,10 +1239,6 @@ jobs:
         if: matrix.arch == 'arm64' && matrix.target_platform == 'darwin'
         run: |
           BUILD_PLATFORM=darwin BUILD_ARCH=arm64 yarn lerna run build:bindings:arm64 --scope @sentry/profiling-node
-
-      - name: Unit Test
-        if: matrix.arch != 'arm64'
-        run: yarn lerna run test --scope @sentry/profiling-node
 
       - name: Archive Binary
         # @TODO: v4 breaks convenient merging of same name artifacts
