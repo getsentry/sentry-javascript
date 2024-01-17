@@ -1263,7 +1263,7 @@ jobs:
         with:
           name: profiling-node-binaries-${{ github.sha }}
           path: |
-            ${{ github.workspace }}/packages/profiling-node/lib/npm/*.node
+            ${{ github.workspace }}/packages/profiling-node/lib/*.node
 
   job_build_profiling_node:
     name: Extract Binaries and Pack Profiling Node
@@ -1295,10 +1295,13 @@ jobs:
         uses: actions/download-artifact@v3
         with:
           name: profiling-node-binaries-${{ github.sha }}
-          path: packages/profiling-node/lib/npm/
+          path: packages/profiling-node/lib/
+
+      - name: List binaries
+        run: ls -la packages/profiling-node/lib/
 
       - name: Pack Profiling Node
-        run: yarn lerna run pack --scope @sentry/profiling-node
+        run: yarn build:tarball --scope @sentry/profiling-node
 
   # job_e2e_profiling_node:
   #   name: "E2E Profiling Node Tests"
