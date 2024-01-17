@@ -1,7 +1,6 @@
 import { expect } from '@playwright/test';
 import type { Event } from '@sentry/types';
 
-import { spanToJSON } from '@sentry/core';
 import { sentryTest } from '../../../../utils/fixtures';
 import { getFirstSentryEnvelopeRequest, shouldSkipTracingTest } from '../../../../utils/helpers';
 
@@ -30,9 +29,9 @@ sentryTest('should report finished spans as children of the root transaction', a
   expect(transaction.spans).toHaveLength(3);
 
   const span_1 = transaction.spans?.[0];
+
   // eslint-disable-next-line deprecation/deprecation
   expect(span_1?.op).toBe('span_1');
-  expect(spanToJSON(span_1!).op).toBe('span_1');
   expect(span_1?.parentSpanId).toEqual(rootSpanId);
   // eslint-disable-next-line deprecation/deprecation
   expect(span_1?.data).toMatchObject({ foo: 'bar', baz: [1, 2, 3] });
@@ -40,13 +39,11 @@ sentryTest('should report finished spans as children of the root transaction', a
   const span_3 = transaction.spans?.[1];
   // eslint-disable-next-line deprecation/deprecation
   expect(span_3?.op).toBe('span_3');
-  expect(spanToJSON(span_3!).op).toBe('span_3');
   expect(span_3?.parentSpanId).toEqual(rootSpanId);
 
   const span_5 = transaction.spans?.[2];
   // eslint-disable-next-line deprecation/deprecation
   expect(span_5?.op).toBe('span_5');
-  expect(spanToJSON(span_5!).op).toBe('span_5');
   // eslint-disable-next-line deprecation/deprecation
   expect(span_5?.parentSpanId).toEqual(span_3?.spanId);
 });
