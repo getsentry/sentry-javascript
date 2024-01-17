@@ -1187,7 +1187,7 @@ jobs:
       - name: Setup python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.10'
+          python-version: '3.11'
 
       - name: Install Dependencies
         run: yarn install --frozen-lockfile --ignore-engines --ignore-scripts
@@ -1201,7 +1201,7 @@ jobs:
       - name: Configure node-gyp (arm64, ${{ contains(matrix.container, 'alpine') && 'musl' || 'glibc'  }})
         if: matrix.arch == 'arm64' && matrix.target_platform != 'darwin'
         run: |
-          yarn lerna run build:bindings:configure:arm64 --scope @sentry/profiling-node
+          yarn lerna run build:bindings:configure:arm64 --scoApe @sentry/profiling-node
 
       - name: Configure node-gyp (arm64, darwin)
         if: matrix.arch == 'arm64' && matrix.target_platform == 'darwin'
@@ -1209,7 +1209,7 @@ jobs:
           yarn lerna run build:bindings:configure:arm64 --scope @sentry/profiling-node
 
       # build monorepo
-      - name: Build
+      - name: Build Packages
         run: |
           yarn build --ignore @sentry/profiling-node --ignore @sentry/integrations --ignore @sentry/astro --ignore @sentry/serverless --ignore @sentry/browser
 
