@@ -13,7 +13,7 @@ if (!cjsConfig) {
 const config = {
   ...cjsConfig,
   input: 'src/index.ts',
-  output: { ...cjsConfig.output, dir: 'lib', format: 'cjs', preserveModules: false },
+  output: { ...cjsConfig.output, file: 'lib/index.js', format: 'cjs', dir: undefined, preserveModules: false },
   plugins: [resolve(), commonjs(), typescript({ tsconfig: './tsconfig.json' })],
 };
 
