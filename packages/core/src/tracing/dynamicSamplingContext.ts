@@ -20,6 +20,7 @@ export function getDynamicSamplingContextFromClient(
 
   const { publicKey: public_key } = client.getDsn() || {};
   // TODO(v8): Remove segment from User
+  // eslint-disable-next-line deprecation/deprecation
   const { segment: user_segment } = (scope && scope.getUser()) || {};
 
   const dsc = dropUndefinedKeys({
