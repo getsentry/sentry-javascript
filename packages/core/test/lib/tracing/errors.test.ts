@@ -75,7 +75,7 @@ describe('registerErrorHandlers()', () => {
       mockErrorCallback({} as HandlerDataError);
       // eslint-disable-next-line deprecation/deprecation
       expect(span!.status).toBe('internal_error');
-      expect(spanToJSON(span!).status).toBe(undefined);
+      expect(spanToJSON(span!).status).toBe('internal_error');
     });
   });
 
@@ -86,7 +86,7 @@ describe('registerErrorHandlers()', () => {
       mockUnhandledRejectionCallback({});
       // eslint-disable-next-line deprecation/deprecation
       expect(span!.status).toBe('internal_error');
-      expect(spanToJSON(span!).status).toBe(undefined);
+      expect(spanToJSON(span!).status).toBe('internal_error');
     });
   });
 });
