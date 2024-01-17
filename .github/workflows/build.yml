@@ -1174,13 +1174,16 @@ jobs:
 
       - name: Setup (alpine)
         if: contains(matrix.container, 'alpine')
-        run: apk add --no-cache build-base g++ make curl
+        run: |
+          apk add --no-cache build-base g++ make curl python3
+          ln -sf python3 /usr/bin/python
 
       - name: Install yarn
         run: npm i -g yarn --force
 
       - name: Setup python
         uses: actions/setup-python@v4
+        if: ${{ !contains(matrix.container, 'alpine') }}
         id: python-setup
         with:
           python-version: '3.11'
