@@ -1266,8 +1266,20 @@ jobs:
       - name: Install Dependencies
         run: yarn install --frozen-lockfile --ignore-engines --ignore-scripts
 
+      - name: Install git (linux)
+        if: contains(matrix.os, 'ubuntu')
+        run: sudo apt-get install -y git
+
+      - name: Install git (macos)
+        if: contains(matrix.os, 'macos')
+        run: brew install git
+
+      - name: Install git (windows)
+        if: contains(matrix.os, 'windows')
+        run: choco install git
+
       - name: Build
-        run: LICENSE_COMMIT_HASH=none yarn build --ignore @sentry/profiling-node
+        run: arn build --ignore @sentry/profiling-npde
 
       # configure build test copy x64
       - name: Configure node-gyp
