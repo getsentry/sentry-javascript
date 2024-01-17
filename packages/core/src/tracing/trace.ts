@@ -18,7 +18,7 @@ import type { Hub } from '../hub';
 import { getCurrentHub } from '../hub';
 import { handleCallbackErrors } from '../utils/handleCallbackErrors';
 import { hasTracingEnabled } from '../utils/hasTracingEnabled';
-import { spanTimeInputToSeconds } from '../utils/spanUtils';
+import { spanTimeInputToSeconds, spanToJSON } from '../utils/spanUtils';
 
 interface StartSpanOptions extends TransactionContext {
   /** A manually specified start time for the created `Span` object. */
@@ -196,8 +196,11 @@ export function startSpan<T>(context: StartSpanOptions, callback: (span: Span | 
       () => callback(activeSpan),
       () => {
         // Only update the span status if it hasn't been changed yet
-        if (activeSpan && (!activeSpan.status || activeSpan.status === 'ok')) {
-          activeSpan.setStatus('internal_error');
+        if (activeSpan) {
+          const { status } = spanToJSON(activeSpan);
+          if (!status || status === 'ok') {
+            activeSpan.setStatus('internal_error');
+          }
         }
       },
       () => activeSpan && activeSpan.end(),
@@ -245,8 +248,11 @@ export function startSpanManual<T>(
       () => callback(activeSpan, finishAndSetSpan),
       () => {
         // Only update the span status if it hasn't been changed yet, and the span is not yet finished
-        if (activeSpan && activeSpan.isRecording() && (!activeSpan.status || activeSpan.status === 'ok')) {
-          activeSpan.setStatus('internal_error');
+        if (activeSpan && activeSpan.isRecording()) {
+          const { status } = spanToJSON(activeSpan);
+          if (!status || status === 'ok') {
+            activeSpan.setStatus('internal_error');
+          }
         }
       },
     );

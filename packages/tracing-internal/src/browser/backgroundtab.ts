@@ -1,5 +1,5 @@
 import type { IdleTransaction, SpanStatusType } from '@sentry/core';
-import { getActiveTransaction } from '@sentry/core';
+import { getActiveTransaction, spanToJSON } from '@sentry/core';
 import { logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../common/debug-build';
@@ -23,7 +23,7 @@ export function registerBackgroundTabDetection(): void {
           );
         // We should not set status if it is already set, this prevent important statuses like
         // error or data loss from being overwritten on transaction.
-        if (!activeTransaction.status) {
+        if (!spanToJSON(activeTransaction).status) {
           activeTransaction.setStatus(statusType);
         }
         // TODO: Can we rewrite this to an attribute?
