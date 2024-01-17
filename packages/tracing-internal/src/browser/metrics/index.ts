@@ -3,7 +3,7 @@ import type { IdleTransaction, Transaction } from '@sentry/core';
 import { spanToJSON } from '@sentry/core';
 import { getActiveTransaction, setMeasurement } from '@sentry/core';
 import type { Measurements, SpanContext } from '@sentry/types';
-import { browserPerformanceTimeOrigin, getComponentName, htmlTreeAsString, logger } from '@sentry/utils';
+import { browserPerformanceTimeOrigin, getComponentName, htmlTreeAsString, logger, parseUrl } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../../common/debug-build';
 import {
@@ -226,8 +226,8 @@ export function addPerformanceEntries(transaction: Transaction): void {
       }
       case 'resource': {
         const resourceName = (entry.name as string).replace(WINDOW.location.origin, '');
-        const resourceOrigin = new URL(entry.name as string).origin;
-        _addResourceSpans(transaction, entry, resourceName, resourceOrigin, startTime, duration, timeOrigin);
+        const resourceUrl = parseUrl(entry.name as string);
+        _addResourceSpans(transaction, entry, resourceName, resourceUrl, startTime, duration, timeOrigin);
         break;
       }
       default:
@@ -403,7 +403,7 @@ export function _addResourceSpans(
   transaction: Transaction,
   entry: ResourceEntry,
   resourceName: string,
-  resourceOrigin: string,
+  resourceUrl: ReturnType<typeof parseUrl>,
   startTime: number,
   duration: number,
   timeOrigin: number,
@@ -422,9 +422,15 @@ export function _addResourceSpans(
   if ('renderBlockingStatus' in entry) {
     data['resource.render_blocking_status'] = entry.renderBlockingStatus;
   }
-  if (resourceOrigin) {
-    data['span.domain'] = resourceOrigin;
+  if (resourceUrl.protocol) {
+    data['url.scheme'] = resourceUrl.protocol;
   }
+
+  if (resourceUrl.host) {
+    data['server.address'] = resourceUrl.host;
+  }
+
+  data['url.same_origin'] = resourceUrl.host === window.location.host;
 
   const startTimestamp = timeOrigin + startTime;
   const endTimestamp = startTimestamp + duration;
