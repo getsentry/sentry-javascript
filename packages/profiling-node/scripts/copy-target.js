@@ -3,14 +3,14 @@ const path = require('path');
 const process = require('process');
 const binaries = require('./binaries.js');
 
-const build = path.resolve(__dirname, '..', 'lib');
+const build = path.resolve(__dirname, '..', 'lib', 'npm');
 
 if (!fs.existsSync(build)) {
   fs.mkdirSync(build);
 }
 
 const source = path.join(__dirname, '..', 'build', 'Release', 'sentry_cpu_profiler.node');
-const target = path.join(__dirname, '..', 'lib', binaries.getModuleName());
+const target = path.join(__dirname, '..', 'lib', 'npm', binaries.getModuleName());
 
 if (!fs.existsSync(source)) {
   // eslint-disable-next-line no-console
