@@ -1288,7 +1288,12 @@ jobs:
           python-version: '3.11'
 
       - name: Set npm python path
-        run: npm config set python "${{ steps.python-setup.outputs.python-path }}"
+        if: ${{ !contains(matrix.os, 'windows') }}
+        run: export npm_config_python=${{ steps.python-setup.outputs.python-path }}
+
+      - name: Set npm python path (Windows)
+        if: ${{ contains(matrix.os, 'windows') }}
+        run: set npm_config_python=${{ steps.python-setup.outputs.python-path }}
 
       - name: Install Dependencies
         run: yarn install --frozen-lockfile --ignore-engines --ignore-scripts
