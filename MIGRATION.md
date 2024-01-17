@@ -205,6 +205,7 @@ In v8, the Span class is heavily reworked. The following properties & methods ar
 - `span.transaction`: Use `getRootSpan` utility function instead.
 - `span.spanRecorder`: Span recording will be handled internally by the SDK.
 - `span.status`: Use `.setStatus` to set or update and `spanToJSON()` to read the span status.
+- `span.op`: Use `startSpan` functions to set, `setAttribute()` to update and `spanToJSON` to read the span operation.
 - `transaction.setMetadata()`: Use attributes instead, or set data on the scope.
 - `transaction.metadata`: Use attributes instead, or set data on the scope.
 - `transaction.setContext()`: Set context on the surrounding scope instead.

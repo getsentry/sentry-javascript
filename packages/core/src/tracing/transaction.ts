@@ -344,6 +344,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
       transaction.measurements = this._measurements;
     }
 
+    // eslint-disable-next-line deprecation/deprecation
     DEBUG_BUILD && logger.log(`[Tracing] Finishing ${this.op} transaction: ${this._name}.`);
 
     return transaction;

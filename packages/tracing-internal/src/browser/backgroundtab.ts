@@ -17,13 +17,13 @@ export function registerBackgroundTabDetection(): void {
       if (WINDOW.document.hidden && activeTransaction) {
         const statusType: SpanStatusType = 'cancelled';
 
+        const { op, status } = spanToJSON(activeTransaction);
+
         DEBUG_BUILD &&
-          logger.log(
-            `[Tracing] Transaction: ${statusType} -> since tab moved to the background, op: ${activeTransaction.op}`,
-          );
+          logger.log(`[Tracing] Transaction: ${statusType} -> since tab moved to the background, op: ${op}`);
         // We should not set status if it is already set, this prevent important statuses like
         // error or data loss from being overwritten on transaction.
-        if (!spanToJSON(activeTransaction).status) {
+        if (!status) {
           activeTransaction.setStatus(statusType);
         }
         // TODO: Can we rewrite this to an attribute?
