@@ -106,21 +106,29 @@ describe('Span', () => {
       expect(span.data['http.response.status_code']).toBe(404);
     });
 
+    // TODO (v8): Remove
     test('isSuccess', () => {
       const span = new Span({});
       expect(span.isSuccess()).toBe(false);
+      expect(spanToJSON(span).status).not.toBe('ok');
       span.setHttpStatus(200);
       expect(span.isSuccess()).toBe(true);
+      expect(spanToJSON(span).status).toBe('ok');
       span.setStatus('permission_denied');
       expect(span.isSuccess()).toBe(false);
+      expect(spanToJSON(span).status).not.toBe('ok');
       span.setHttpStatus(0);
       expect(span.isSuccess()).toBe(false);
+      expect(spanToJSON(span).status).not.toBe('ok');
       span.setHttpStatus(-1);
       expect(span.isSuccess()).toBe(false);
+      expect(spanToJSON(span).status).not.toBe('ok');
       span.setHttpStatus(99);
       expect(span.isSuccess()).toBe(false);
+      expect(spanToJSON(span).status).not.toBe('ok');
       span.setHttpStatus(100);
       expect(span.isSuccess()).toBe(true);
+      expect(spanToJSON(span).status).toBe('ok');
     });
   });
 
