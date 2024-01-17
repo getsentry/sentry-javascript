@@ -17,5 +17,4 @@ const config = {
   plugins: [resolve(), commonjs(), typescript({ tsconfig: './tsconfig.json' })],
 };
 
-
 export default config;
