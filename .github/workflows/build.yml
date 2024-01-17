@@ -1248,7 +1248,7 @@ jobs:
     steps:
       - name: Setup (alpine)
         if: contains(matrix.container, 'alpine')
-        run: apk add --no-cache build-base python3 g++ make curl
+        run: apk add --no-cache build-base git python3 g++ make curl
 
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v4
@@ -1265,10 +1265,6 @@ jobs:
 
       - name: Install Dependencies
         run: yarn install --frozen-lockfile --ignore-engines --ignore-scripts
-
-      - name: Install git (linux)
-        if: contains(matrix.os, 'ubuntu')
-        run: apt-get install -y git
 
       - name: Install git (macos)
         if: contains(matrix.os, 'macos')
