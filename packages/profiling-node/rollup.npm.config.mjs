@@ -14,7 +14,12 @@ const config = {
   ...cjsConfig,
   input: 'src/index.ts',
   output: { ...cjsConfig.output, file: 'lib/index.js', format: 'cjs', dir: undefined, preserveModules: false },
-  plugins: [plugins.makeLicensePlugin('Sentry Node Profiling'), resolve(), commonjs(), typescript({ tsconfig: './tsconfig.json' })],
+  plugins: [
+    plugins.makeLicensePlugin('Sentry Node Profiling'),
+    resolve(),
+    commonjs(),
+    typescript({ tsconfig: './tsconfig.json' }),
+  ],
 };
 
 export default config;
