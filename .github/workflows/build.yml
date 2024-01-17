@@ -1246,6 +1246,21 @@ jobs:
             node: 20
             arch: x64
     steps:
+      - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.HEAD_COMMIT }}
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+
+      - name: Setup python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
       - name: Setup (alpine)
         if: contains(matrix.container, 'alpine')
         run: apk add --no-cache build-base python3 g++ make curl
@@ -1270,21 +1285,6 @@ jobs:
 
       - name: Install yarn
         run: npm i -g yarn --force
-
-      - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ env.HEAD_COMMIT }}
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ matrix.node }}
-
-      - name: Setup python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.10'
 
       - name: Install Dependencies
         run: yarn install --frozen-lockfile --ignore-engines --ignore-scripts
