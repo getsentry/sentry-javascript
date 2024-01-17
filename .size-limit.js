@@ -15,6 +15,13 @@ module.exports = [
     limit: '75 KB',
   },
   {
+    name: '@sentry/browser (incl. Tracing, Replay with Canvas) - Webpack (gzipped)',
+    path: 'packages/browser/build/npm/esm/index.js',
+    import: '{ init, Replay, BrowserTracing, ReplayCanvas }',
+    gzip: true,
+    limit: '90 KB',
+  },
+  {
     name: '@sentry/browser (incl. Tracing, Replay) - Webpack with treeshaking flags (gzipped)',
     path: 'packages/browser/build/npm/esm/index.js',
     import: '{ init, Replay, BrowserTracing }',

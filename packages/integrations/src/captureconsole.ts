@@ -1,4 +1,11 @@
-import { captureException, captureMessage, convertIntegrationFnToClass, getClient, withScope } from '@sentry/core';
+import {
+  captureException,
+  captureMessage,
+  convertIntegrationFnToClass,
+  defineIntegration,
+  getClient,
+  withScope,
+} from '@sentry/core';
 import type { CaptureContext, Client, Integration, IntegrationClass, IntegrationFn } from '@sentry/types';
 import {
   CONSOLE_LEVELS,
@@ -15,7 +22,7 @@ interface CaptureConsoleOptions {
 
 const INTEGRATION_NAME = 'CaptureConsole';
 
-const captureConsoleIntegration = ((options: CaptureConsoleOptions = {}) => {
+const _captureConsoleIntegration = ((options: CaptureConsoleOptions = {}) => {
   const levels = options.levels || CONSOLE_LEVELS;
 
   return {
@@ -38,7 +45,12 @@ const captureConsoleIntegration = ((options: CaptureConsoleOptions = {}) => {
   };
 }) satisfies IntegrationFn;
 
-/** Send Console API calls as Sentry Events */
+export const captureConsoleIntegration = defineIntegration(_captureConsoleIntegration);
+
+/**
+ * Send Console API calls as Sentry Events.
+ * @deprecated Use `captureConsoleIntegration()` instead.
+ */
 // eslint-disable-next-line deprecation/deprecation
 export const CaptureConsole = convertIntegrationFnToClass(
   INTEGRATION_NAME,

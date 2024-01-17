@@ -120,10 +120,9 @@ const possibleFileExtensions = ['ts', 'js', 'tsx', 'jsx', 'mjs', 'cjs', 'mts'];
 
 function findDefaultSdkInitFile(type: 'server' | 'client'): string | undefined {
   const cwd = process.cwd();
-  return possibleFileExtensions.find(extension => {
-    const filename = path.resolve(path.join(cwd, `sentry.${type}.config.${extension}`));
-    return fs.existsSync(filename);
-  });
+  return possibleFileExtensions
+    .map(e => path.resolve(path.join(cwd, `sentry.${type}.config.${e}`)))
+    .find(filename => fs.existsSync(filename));
 }
 
 function getSourcemapsAssetsGlob(config: AstroConfig): string {

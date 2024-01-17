@@ -1,9 +1,15 @@
 import type { Client, Event, EventHint, Integration } from '@sentry/types';
 
+import type { debugIntegration } from '../src/debug';
 import { Debug } from '../src/debug';
 
 interface IntegrationWithSetup extends Integration {
   setup: (client: Client) => void;
+}
+
+function getIntegration(...args: Parameters<typeof debugIntegration>) {
+  // eslint-disable-next-line deprecation/deprecation
+  return new Debug(...args);
 }
 
 function testEventLogged(integration: IntegrationWithSetup, testEvent?: Event, testEventHint?: EventHint) {
@@ -42,7 +48,7 @@ describe('Debug integration setup should register an event processor that', () =
   });
 
   it('logs an event', () => {
-    const debugIntegration = new Debug();
+    const debugIntegration = getIntegration();
     const testEvent = { event_id: 'some event' };
 
     testEventLogged(debugIntegration, testEvent);
@@ -52,7 +58,7 @@ describe('Debug integration setup should register an event processor that', () =
   });
 
   it('logs an event hint if available', () => {
-    const debugIntegration = new Debug();
+    const debugIntegration = getIntegration();
 
     const testEvent = { event_id: 'some event' };
     const testEventHint = { event_id: 'some event hint' };
@@ -65,7 +71,7 @@ describe('Debug integration setup should register an event processor that', () =
   });
 
   it('logs events in stringified format when `stringify` option was set', () => {
-    const debugIntegration = new Debug({ stringify: true });
+    const debugIntegration = getIntegration({ stringify: true });
     const testEvent = { event_id: 'some event' };
 
     testEventLogged(debugIntegration, testEvent);
@@ -75,7 +81,7 @@ describe('Debug integration setup should register an event processor that', () =
   });
 
   it('logs event hints in stringified format when `stringify` option was set', () => {
-    const debugIntegration = new Debug({ stringify: true });
+    const debugIntegration = getIntegration({ stringify: true });
 
     const testEvent = { event_id: 'some event' };
     const testEventHint = { event_id: 'some event hint' };

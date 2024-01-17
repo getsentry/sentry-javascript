@@ -62,7 +62,7 @@ below to see which things used to exist, and how they can/should be mapped going
 | `setHttpStatus()`     | ??? TODO                                             |
 | `setName()`           | `updateName()`                                       |
 | `startChild()`        | Call `Sentry.startSpan()` independently              |
-| `isSuccess()`         | Removed (TODO)                                       |
+| `isSuccess()`         | `spanToJSON(span).status === 'ok'`                   |
 | `toTraceparent()`     | `spanToTraceHeader(span)`                            |
 | `toContext()`         | Removed                                              |
 | `updateWithContext()` | Removed                                              |

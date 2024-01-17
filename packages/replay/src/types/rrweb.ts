@@ -51,10 +51,12 @@ export interface CanvasManagerInterface {
   unfreeze(): void;
   lock(): void;
   unlock(): void;
+  snapshot(): void;
 }
 
-export interface GetCanvasManagerOptions {
+export interface CanvasManagerOptions {
   recordCanvas: boolean;
+  enableManualSnapshot?: boolean;
   blockClass: string | RegExp;
   blockSelector: string | null;
   unblockSelector: string | null;
@@ -63,4 +65,7 @@ export interface GetCanvasManagerOptions {
     type: string;
     quality: number;
   }>;
+  mutationCb: (p: any) => void;
+  win: typeof globalThis & Window;
+  mirror: any;
 }
