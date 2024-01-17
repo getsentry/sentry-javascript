@@ -1,4 +1,4 @@
-import type { Hub } from '@sentry/core';
+import { Hub, getClient } from '@sentry/core';
 import type { EventProcessor, SpanContext } from '@sentry/types';
 import { fill, isThenable, loadModule, logger } from '@sentry/utils';
 
@@ -175,15 +175,21 @@ export class Mongo implements LazyLoadedIntegration<MongoModule> {
       return function (this: unknown, ...args: unknown[]) {
         const lastArg = args[args.length - 1];
         // eslint-disable-next-line deprecation/deprecation
-        const scope = getCurrentHub().getScope();
+        const hub = getCurrentHub();
+        // eslint-disable-next-line deprecation/deprecation
+        const scope = hub.getScope();
+        // eslint-disable-next-line deprecation/deprecation
+        const client = hub.getClient();
         // eslint-disable-next-line deprecation/deprecation
         const parentSpan = scope.getSpan();
+
+        const sendDefaultPii = client?.getOptions().sendDefaultPii;
 
         // Check if the operation was passed a callback. (mapReduce requires a different check, as
         // its (non-callback) arguments can also be functions.)
         if (typeof lastArg !== 'function' || (operation === 'mapReduce' && args.length === 2)) {
           // eslint-disable-next-line deprecation/deprecation
-          const span = parentSpan?.startChild(getSpanContext(this, operation, args));
+          const span = parentSpan?.startChild(getSpanContext(this, operation, args, sendDefaultPii));
           const maybePromiseOrCursor = orig.call(this, ...args);
 
           if (isThenable(maybePromiseOrCursor)) {
@@ -232,6 +238,7 @@ export class Mongo implements LazyLoadedIntegration<MongoModule> {
     collection: MongoCollection,
     operation: Operation,
     args: unknown[],
+    sendDefaultPii: boolean | undefined = false,
   ): SpanContext {
     const data: { [key: string]: string } = {
       'db.system': 'mongodb',
@@ -254,7 +261,7 @@ export class Mongo implements LazyLoadedIntegration<MongoModule> {
       ? this._describeOperations.includes(operation)
       : this._describeOperations;
 
-    if (!signature || !shouldDescribe) {
+    if (!signature || !shouldDescribe || !sendDefaultPii) {
       return spanContext;
     }
 
