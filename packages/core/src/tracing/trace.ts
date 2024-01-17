@@ -18,7 +18,7 @@ import type { Hub } from '../hub';
 import { getCurrentHub } from '../hub';
 import { handleCallbackErrors } from '../utils/handleCallbackErrors';
 import { hasTracingEnabled } from '../utils/hasTracingEnabled';
-import { spanTimeInputToSeconds } from '../utils/spanUtils';
+import { spanTimeInputToSeconds, spanToJSON } from '../utils/spanUtils';
 
 interface StartSpanOptions extends TransactionContext {
   /** A manually specified start time for the created `Span` object. */
@@ -141,6 +141,7 @@ export function trace<T>(
   // eslint-disable-next-line @typescript-eslint/no-empty-function
   afterFinish: () => void = () => {},
 ): T {
+  // eslint-disable-next-line deprecation/deprecation
   const hub = getCurrentHub();
   const scope = getCurrentScope();
   // eslint-disable-next-line deprecation/deprecation
@@ -182,6 +183,7 @@ export function startSpan<T>(context: StartSpanOptions, callback: (span: Span | 
   const ctx = normalizeContext(context);
 
   return withScope(context.scope, scope => {
+    // eslint-disable-next-line deprecation/deprecation
     const hub = getCurrentHub();
     // eslint-disable-next-line deprecation/deprecation
     const parentSpan = scope.getSpan();
@@ -194,8 +196,11 @@ export function startSpan<T>(context: StartSpanOptions, callback: (span: Span | 
       () => callback(activeSpan),
       () => {
         // Only update the span status if it hasn't been changed yet
-        if (activeSpan && (!activeSpan.status || activeSpan.status === 'ok')) {
-          activeSpan.setStatus('internal_error');
+        if (activeSpan) {
+          const { status } = spanToJSON(activeSpan);
+          if (!status || status === 'ok') {
+            activeSpan.setStatus('internal_error');
+          }
         }
       },
       () => activeSpan && activeSpan.end(),
@@ -226,6 +231,7 @@ export function startSpanManual<T>(
   const ctx = normalizeContext(context);
 
   return withScope(context.scope, scope => {
+    // eslint-disable-next-line deprecation/deprecation
     const hub = getCurrentHub();
     // eslint-disable-next-line deprecation/deprecation
     const parentSpan = scope.getSpan();
@@ -242,8 +248,11 @@ export function startSpanManual<T>(
       () => callback(activeSpan, finishAndSetSpan),
       () => {
         // Only update the span status if it hasn't been changed yet, and the span is not yet finished
-        if (activeSpan && activeSpan.isRecording() && (!activeSpan.status || activeSpan.status === 'ok')) {
-          activeSpan.setStatus('internal_error');
+        if (activeSpan && activeSpan.isRecording()) {
+          const { status } = spanToJSON(activeSpan);
+          if (!status || status === 'ok') {
+            activeSpan.setStatus('internal_error');
+          }
         }
       },
     );
@@ -266,6 +275,7 @@ export function startInactiveSpan(context: StartSpanOptions): Span | undefined {
   }
 
   const ctx = normalizeContext(context);
+  // eslint-disable-next-line deprecation/deprecation
   const hub = getCurrentHub();
   const parentSpan = context.scope
     ? // eslint-disable-next-line deprecation/deprecation

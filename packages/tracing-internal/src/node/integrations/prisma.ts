@@ -92,6 +92,7 @@ export class Prisma implements Integration {
       }
 
       options.client.$use((params, next: (params: PrismaMiddlewareParams) => Promise<unknown>) => {
+        // eslint-disable-next-line deprecation/deprecation
         if (shouldDisableAutoInstrumentation(getCurrentHub)) {
           return next(params);
         }

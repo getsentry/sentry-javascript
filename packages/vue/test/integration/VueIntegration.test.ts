@@ -36,7 +36,7 @@ describe('Sentry.VueIntegration', () => {
 
     // This would normally happen through client.addIntegration()
     const integration = new Sentry.VueIntegration({ app });
-    integration['_setupIntegration'](Sentry.getCurrentHub());
+    integration['_setupIntegration'](Sentry.getClient());
 
     app.mount(el);
 
@@ -58,7 +58,7 @@ describe('Sentry.VueIntegration', () => {
 
     // This would normally happen through client.addIntegration()
     const integration = new Sentry.VueIntegration({ app });
-    integration['_setupIntegration'](Sentry.getCurrentHub());
+    integration['_setupIntegration'](Sentry.getClient());
 
     expect(warnings).toEqual([
       '[@sentry/vue]: Misconfigured SDK. Vue app is already mounted. Make sure to call `app.mount()` after `Sentry.init()`.',

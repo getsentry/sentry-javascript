@@ -214,6 +214,7 @@ describe('SentryNode', () => {
       expect.assertions(15);
       const options = getDefaultNodeClientOptions({
         stackParser: defaultStackParser,
+        // eslint-disable-next-line deprecation/deprecation
         integrations: [new ContextLines(), new LinkedErrors()],
         beforeSend: (event: Event) => {
           expect(event.exception).not.toBeUndefined();
@@ -303,6 +304,7 @@ describe('SentryNode', () => {
       const client = new NodeClient(options);
 
       runWithAsyncContext(() => {
+        // eslint-disable-next-line deprecation/deprecation
         const hub = getCurrentHub();
         setCurrentClient(client);
         client.init();

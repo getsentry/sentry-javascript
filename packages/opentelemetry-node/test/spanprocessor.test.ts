@@ -344,11 +344,15 @@ describe('SentrySpanProcessor', () => {
     const transaction = getSpanForOtelSpan(otelSpan) as Transaction;
 
     // status is only set after end
+    // eslint-disable-next-line deprecation/deprecation
     expect(transaction?.status).toBe(undefined);
+    expect(spanToJSON(transaction!).status).toBe(undefined);
 
     otelSpan.end();
 
+    // eslint-disable-next-line deprecation/deprecation
     expect(transaction?.status).toBe('ok');
+    expect(spanToJSON(transaction!).status).toBe('ok');
   });
 
   it('sets status for span', async () => {
@@ -358,11 +362,15 @@ describe('SentrySpanProcessor', () => {
       tracer.startActiveSpan('SELECT * FROM users;', child => {
         const sentrySpan = getSpanForOtelSpan(child);
 
+        // eslint-disable-next-line deprecation/deprecation
         expect(sentrySpan?.status).toBe(undefined);
+        expect(spanToJSON(sentrySpan!).status).toBe(undefined);
 
         child.end();
 
+        // eslint-disable-next-line deprecation/deprecation
         expect(sentrySpan?.status).toBe('ok');
+        expect(spanToJSON(sentrySpan!).status).toBe('ok');
 
         parentOtelSpan.end();
       });
@@ -444,7 +452,9 @@ describe('SentrySpanProcessor', () => {
         }
 
         otelSpan.end();
+        // eslint-disable-next-line deprecation/deprecation
         expect(transaction?.status).toBe(expected);
+        expect(spanToJSON(transaction!).status).toBe(expected);
       },
     );
   });

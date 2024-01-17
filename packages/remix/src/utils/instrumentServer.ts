@@ -452,6 +452,7 @@ function wrapRequestHandler(origRequestHandler: RequestHandler, build: ServerBui
     }
 
     return runWithAsyncContext(async () => {
+      // eslint-disable-next-line deprecation/deprecation
       const hub = getCurrentHub();
       const options = getClient()?.getOptions();
       const scope = getCurrentScope();
