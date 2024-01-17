@@ -43,6 +43,7 @@ function makeClientWithoutHooks(): [NodeClient, MockTransport] {
         // @ts-expect-error __SENTRY__ is private
         getMainCarrier().__SENTRY__.globalEventProcessors = [cb];
       },
+      // eslint-disable-next-line deprecation/deprecation
       () => Sentry.getCurrentHub(),
     );
   };
@@ -80,6 +81,7 @@ describe('Sentry - Profiling', () => {
   describe('without hooks', () => {
     it('profiles a transaction', async () => {
       const [client, transport] = makeClientWithoutHooks();
+      // eslint-disable-next-line deprecation/deprecation
       const hub = Sentry.getCurrentHub();
       // eslint-disable-next-line deprecation/deprecation
       hub.bindClient(client);
@@ -96,6 +98,7 @@ describe('Sentry - Profiling', () => {
 
     it('can profile overlapping transactions', async () => {
       const [client, transport] = makeClientWithoutHooks();
+      // eslint-disable-next-line deprecation/deprecation
       const hub = Sentry.getCurrentHub();
       // eslint-disable-next-line deprecation/deprecation
       hub.bindClient(client);
@@ -121,6 +124,7 @@ describe('Sentry - Profiling', () => {
 
     it('does not discard overlapping transaction with same title', async () => {
       const [client, transport] = makeClientWithoutHooks();
+      // eslint-disable-next-line deprecation/deprecation
       const hub = Sentry.getCurrentHub();
       // eslint-disable-next-line deprecation/deprecation
       hub.bindClient(client);
@@ -142,6 +146,7 @@ describe('Sentry - Profiling', () => {
 
     it('does not crash if finish is called multiple times', async () => {
       const [client, transport] = makeClientWithoutHooks();
+      // eslint-disable-next-line deprecation/deprecation
       const hub = Sentry.getCurrentHub();
       // eslint-disable-next-line deprecation/deprecation
       hub.bindClient(client);

@@ -33,6 +33,7 @@ function makeClientWithoutHooks(): [NodeClient, Transport] {
         // @ts-expect-error __SENTRY__ is a private property
         getMainCarrier().__SENTRY__.globalEventProcessors = [cb];
       },
+      // eslint-disable-next-line deprecation/deprecation
       () => Sentry.getCurrentHub(),
     );
   };
@@ -67,6 +68,7 @@ function makeClientWithHooks(): [NodeClient, Transport] {
         // @ts-expect-error __SENTRY__ is a private property
         getMainCarrier().__SENTRY__.globalEventProcessors = [cb];
       },
+      // eslint-disable-next-line deprecation/deprecation
       () => Sentry.getCurrentHub(),
     );
   };
@@ -91,6 +93,7 @@ describe('hubextensions', () => {
 
   it('pulls environment from sdk init', async () => {
     const [client, transport] = makeClientWithoutHooks();
+    // eslint-disable-next-line deprecation/deprecation
     const hub = Sentry.getCurrentHub();
     // eslint-disable-next-line deprecation/deprecation
     hub.bindClient(client);
@@ -111,6 +114,7 @@ describe('hubextensions', () => {
     const logSpy = jest.spyOn(logger, 'log');
 
     const [client, transport] = makeClientWithoutHooks();
+    // eslint-disable-next-line deprecation/deprecation
     const hub = Sentry.getCurrentHub();
     // eslint-disable-next-line deprecation/deprecation
     hub.bindClient(client);
@@ -154,6 +158,7 @@ describe('hubextensions', () => {
     const logSpy = jest.spyOn(logger, 'log');
 
     const [client, transport] = makeClientWithoutHooks();
+    // eslint-disable-next-line deprecation/deprecation
     const hub = Sentry.getCurrentHub();
     // eslint-disable-next-line deprecation/deprecation
     hub.bindClient(client);
@@ -195,6 +200,7 @@ describe('hubextensions', () => {
   describe('with hooks', () => {
     it('calls profiler when transaction is started/stopped', async () => {
       const [client, transport] = makeClientWithHooks();
+      // eslint-disable-next-line deprecation/deprecation
       const hub = Sentry.getCurrentHub();
       // eslint-disable-next-line deprecation/deprecation
       hub.bindClient(client);
@@ -218,6 +224,7 @@ describe('hubextensions', () => {
 
     it('sends profile in the same envelope as transaction', async () => {
       const [client, transport] = makeClientWithHooks();
+      // eslint-disable-next-line deprecation/deprecation
       const hub = Sentry.getCurrentHub();
       // eslint-disable-next-line deprecation/deprecation
       hub.bindClient(client);
@@ -239,6 +246,7 @@ describe('hubextensions', () => {
 
     it('does not crash if transaction has no profile context or it is invalid', async () => {
       const [client] = makeClientWithHooks();
+      // eslint-disable-next-line deprecation/deprecation
       const hub = Sentry.getCurrentHub();
       // eslint-disable-next-line deprecation/deprecation
       hub.bindClient(client);
@@ -264,6 +272,7 @@ describe('hubextensions', () => {
 
     it('if transaction was profiled, but profiler returned null', async () => {
       const [client, transport] = makeClientWithHooks();
+      // eslint-disable-next-line deprecation/deprecation
       const hub = Sentry.getCurrentHub();
       // eslint-disable-next-line deprecation/deprecation
       hub.bindClient(client);
@@ -290,6 +299,7 @@ describe('hubextensions', () => {
 
     it('emits preprocessEvent for profile', async () => {
       const [client] = makeClientWithHooks();
+      // eslint-disable-next-line deprecation/deprecation
       const hub = Sentry.getCurrentHub();
       // eslint-disable-next-line deprecation/deprecation
       hub.bindClient(client);
@@ -317,6 +327,7 @@ describe('hubextensions', () => {
   describe('without hooks', () => {
     it('calls profiler when transaction is started/stopped', async () => {
       const [client] = makeClientWithoutHooks();
+      // eslint-disable-next-line deprecation/deprecation
       const hub = Sentry.getCurrentHub();
       // eslint-disable-next-line deprecation/deprecation
       hub.bindClient(client);
@@ -338,6 +349,7 @@ describe('hubextensions', () => {
 
     it('sends profile in separate envelope', async () => {
       const [client, transport] = makeClientWithoutHooks();
+      // eslint-disable-next-line deprecation/deprecation
       const hub = Sentry.getCurrentHub();
       // eslint-disable-next-line deprecation/deprecation
       hub.bindClient(client);
@@ -369,6 +381,7 @@ describe('hubextensions', () => {
       const stopProfilingSpy = jest.spyOn(CpuProfilerBindings, 'stopProfiling');
 
       const [client] = makeClientWithoutHooks();
+      // eslint-disable-next-line deprecation/deprecation
       const hub = Sentry.getCurrentHub();
       // eslint-disable-next-line deprecation/deprecation
       hub.bindClient(client);
@@ -391,6 +404,7 @@ describe('hubextensions', () => {
     const stopProfilingSpy = jest.spyOn(CpuProfilerBindings, 'stopProfiling');
 
     const [client] = makeClientWithoutHooks();
+    // eslint-disable-next-line deprecation/deprecation
     const hub = Sentry.getCurrentHub();
     // eslint-disable-next-line deprecation/deprecation
     hub.bindClient(client);
@@ -434,6 +448,7 @@ describe('hubextensions', () => {
     });
 
     const [client, transport] = makeClientWithHooks();
+    // eslint-disable-next-line deprecation/deprecation
     const hub = Sentry.getCurrentHub();
     // eslint-disable-next-line deprecation/deprecation
     hub.bindClient(client);

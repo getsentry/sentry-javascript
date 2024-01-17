@@ -460,6 +460,7 @@ export function applyDebugMetadata(resource_paths: ReadonlyArray<string>): Debug
     return [];
   }
 
+  // eslint-disable-next-line deprecation/deprecation
   const hub = Sentry.getCurrentHub();
   // eslint-disable-next-line deprecation/deprecation
   const client = hub.getClient();
