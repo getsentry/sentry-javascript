@@ -1294,6 +1294,7 @@ jobs:
 
       - name: Verify python cmd
         run: |
+          ls -la ${{ steps.python-setup.outputs.python-path }}
           ${{ steps.python-setup.outputs.python-path }} --version
           ${{ steps.python-setup.outputs.python-path }} -c "import sys; print(sys.version_info)"
 
