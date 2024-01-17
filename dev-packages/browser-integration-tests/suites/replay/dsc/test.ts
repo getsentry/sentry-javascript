@@ -33,7 +33,10 @@ sentryTest(
     await page.evaluate(() => {
       const scope = (window as unknown as TestWindow).Sentry.getCurrentScope();
       scope.setUser({ id: 'user123', segment: 'segmentB' });
-      scope.setTransactionName('testTransactionDSC');
+      scope.addEventProcessor(event => {
+        event.transaction = 'testTransactionDSC';
+        return event;
+      });
     });
 
     const req0 = await transactionReq;
@@ -78,7 +81,10 @@ sentryTest(
     await page.evaluate(() => {
       const scope = (window as unknown as TestWindow).Sentry.getCurrentScope();
       scope.setUser({ id: 'user123', segment: 'segmentB' });
-      scope.setTransactionName('testTransactionDSC');
+      scope.addEventProcessor(event => {
+        event.transaction = 'testTransactionDSC';
+        return event;
+      });
     });
 
     const req0 = await transactionReq;
@@ -135,7 +141,10 @@ sentryTest(
     await page.evaluate(() => {
       const scope = (window as unknown as TestWindow).Sentry.getCurrentScope();
       scope.setUser({ id: 'user123', segment: 'segmentB' });
-      scope.setTransactionName('testTransactionDSC');
+      scope.addEventProcessor(event => {
+        event.transaction = 'testTransactionDSC';
+        return event;
+      });
     });
 
     const req0 = await transactionReq;
@@ -183,7 +192,10 @@ sentryTest(
     await page.evaluate(async () => {
       const scope = (window as unknown as TestWindow).Sentry.getCurrentScope();
       scope.setUser({ id: 'user123', segment: 'segmentB' });
-      scope.setTransactionName('testTransactionDSC');
+      scope.addEventProcessor(event => {
+        event.transaction = 'testTransactionDSC';
+        return event;
+      });
     });
 
     const req0 = await transactionReq;

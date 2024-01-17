@@ -3,8 +3,9 @@ import { logger } from '@sentry/utils';
 import type { BaseClient } from '../baseclient';
 import { DEBUG_BUILD } from '../debug-build';
 import { getClient, getCurrentScope } from '../exports';
+import { spanToJSON } from '../utils/spanUtils';
 import { COUNTER_METRIC_TYPE, DISTRIBUTION_METRIC_TYPE, GAUGE_METRIC_TYPE, SET_METRIC_TYPE } from './constants';
-import { MetricsAggregator } from './integration';
+import { MetricsAggregator, metricsAggregatorIntegration } from './integration';
 import type { MetricType } from './types';
 
 interface MetricData {
@@ -29,6 +30,7 @@ function addToMetricsAggregator(
     }
     const { unit, tags, timestamp } = data;
     const { release, environment } = client.getOptions();
+    // eslint-disable-next-line deprecation/deprecation
     const transaction = scope.getTransaction();
     const metricTags: Record<string, string> = {};
     if (release) {
@@ -38,7 +40,7 @@ function addToMetricsAggregator(
       metricTags.environment = environment;
     }
     if (transaction) {
-      metricTags.transaction = transaction.name;
+      metricTags.transaction = spanToJSON(transaction).description || '';
     }
 
     DEBUG_BUILD && logger.log(`Adding value of ${value} to ${metricType} metric ${name}`);
@@ -87,5 +89,8 @@ export const metrics = {
   distribution,
   set,
   gauge,
+  /** @deprecated Use `metrics.metricsAggregratorIntegration()` instead. */
+  // eslint-disable-next-line deprecation/deprecation
   MetricsAggregator,
+  metricsAggregatorIntegration,
 };

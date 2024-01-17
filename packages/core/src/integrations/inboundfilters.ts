@@ -1,8 +1,8 @@
-import type { Event, IntegrationFn, StackFrame } from '@sentry/types';
+import type { Client, Event, EventHint, Integration, IntegrationClass, IntegrationFn, StackFrame } from '@sentry/types';
 import { getEventDescription, logger, stringMatchesSomePattern } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../debug-build';
-import { convertIntegrationFnToClass } from '../integration';
+import { convertIntegrationFnToClass, defineIntegration } from '../integration';
 
 // "Script error." is hard coded into browsers for errors that it can't read.
 // this is the result of a script being pulled in from an external domain and CORS.
@@ -30,20 +30,42 @@ export interface InboundFiltersOptions {
 }
 
 const INTEGRATION_NAME = 'InboundFilters';
-const inboundFiltersIntegration: IntegrationFn = (options: Partial<InboundFiltersOptions>) => {
+const _inboundFiltersIntegration = ((options: Partial<InboundFiltersOptions> = {}) => {
   return {
     name: INTEGRATION_NAME,
+    // TODO v8: Remove this
+    setupOnce() {}, // eslint-disable-line @typescript-eslint/no-empty-function
     processEvent(event, _hint, client) {
       const clientOptions = client.getOptions();
       const mergedOptions = _mergeOptions(options, clientOptions);
       return _shouldDropEvent(event, mergedOptions) ? null : event;
     },
   };
-};
+}) satisfies IntegrationFn;
 
-/** Inbound filters configurable by the user */
+export const inboundFiltersIntegration = defineIntegration(_inboundFiltersIntegration);
+
+/**
+ * Inbound filters configurable by the user.
+ * @deprecated Use `inboundFiltersIntegration()` instead.
+ */
 // eslint-disable-next-line deprecation/deprecation
-export const InboundFilters = convertIntegrationFnToClass(INTEGRATION_NAME, inboundFiltersIntegration);
+export const InboundFilters = convertIntegrationFnToClass(
+  INTEGRATION_NAME,
+  inboundFiltersIntegration,
+) as IntegrationClass<Integration & { preprocessEvent: (event: Event, hint: EventHint, client: Client) => void }> & {
+  new (
+    options?: Partial<{
+      allowUrls: Array<string | RegExp>;
+      denyUrls: Array<string | RegExp>;
+      ignoreErrors: Array<string | RegExp>;
+      ignoreTransactions: Array<string | RegExp>;
+      ignoreInternal: boolean;
+      disableErrorDefaults: boolean;
+      disableTransactionDefaults: boolean;
+    }>,
+  ): Integration;
+};
 
 function _mergeOptions(
   internalOptions: Partial<InboundFiltersOptions> = {},

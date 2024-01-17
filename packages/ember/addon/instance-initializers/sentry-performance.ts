@@ -12,7 +12,7 @@ import type { Span, Transaction } from '@sentry/types';
 import { GLOBAL_OBJ, browserPerformanceTimeOrigin, timestampInSeconds } from '@sentry/utils';
 
 import type { BrowserClient } from '..';
-import { getActiveTransaction } from '..';
+import { getActiveSpan, startInactiveSpan } from '..';
 import type { EmberRouterMain, EmberSentryConfig, GlobalConfig, OwnConfig, StartTransactionFunction } from '../types';
 
 type SentryTestRouterService = RouterService & {
@@ -149,9 +149,9 @@ export function _instrumentEmberRouter(
         'routing.instrumentation': '@sentry/ember',
       },
     });
-    transitionSpan = activeTransaction?.startChild({
+    transitionSpan = startInactiveSpan({
       op: 'ui.ember.transition',
-      description: `route:${fromRoute} -> route:${toRoute}`,
+      name: `route:${fromRoute} -> route:${toRoute}`,
       origin: 'auto.ui.ember',
     });
   });
@@ -195,8 +195,8 @@ function _instrumentEmberRunloop(config: EmberSentryConfig): void {
     if (previousInstance) {
       return;
     }
-    const activeTransaction = getActiveTransaction();
-    if (!activeTransaction) {
+    const activeSpan = getActiveSpan();
+    if (!activeSpan) {
       return;
     }
     if (currentQueueSpan) {
@@ -211,22 +211,20 @@ function _instrumentEmberRunloop(config: EmberSentryConfig): void {
         const minQueueDuration = minimumRunloopQueueDuration ?? 5;
 
         if ((now - currentQueueStart) * 1000 >= minQueueDuration) {
-          activeTransaction
-            ?.startChild({
-              op: `ui.ember.runloop.${queue}`,
-              origin: 'auto.ui.ember',
-              startTimestamp: currentQueueStart,
-              endTimestamp: now,
-            })
-            .end();
+          startInactiveSpan({
+            name: 'runloop',
+            op: `ui.ember.runloop.${queue}`,
+            origin: 'auto.ui.ember',
+            startTimestamp: currentQueueStart,
+          })?.end(now);
         }
         currentQueueStart = undefined;
       }
 
       // Setup for next queue
 
-      const stillActiveTransaction = getActiveTransaction();
-      if (!stillActiveTransaction) {
+      const stillActiveSpan = getActiveSpan();
+      if (!stillActiveSpan) {
         return;
       }
       currentQueueStart = timestampInSeconds();
@@ -286,15 +284,12 @@ function processComponentRenderAfter(
   const componentRenderDuration = now - begin.now;
 
   if (componentRenderDuration * 1000 >= minComponentDuration) {
-    const activeTransaction = getActiveTransaction();
-
-    activeTransaction?.startChild({
+    startInactiveSpan({
+      name: payload.containerKey || payload.object,
       op,
-      description: payload.containerKey || payload.object,
       origin: 'auto.ui.ember',
       startTimestamp: begin.now,
-      endTimestamp: now,
-    });
+    })?.end(now);
   }
 }
 
@@ -372,13 +367,12 @@ function _instrumentInitialLoad(config: EmberSentryConfig): void {
   const startTimestamp = (measure.startTime + browserPerformanceTimeOrigin) / 1000;
   const endTimestamp = startTimestamp + measure.duration / 1000;
 
-  const transaction = getActiveTransaction();
-  const span = transaction?.startChild({
+  startInactiveSpan({
     op: 'ui.ember.init',
+    name: 'init',
     origin: 'auto.ui.ember',
     startTimestamp,
-  });
-  span?.end(endTimestamp);
+  })?.end(endTimestamp);
   performance.clearMarks(startName);
   performance.clearMarks(endName);
 
@@ -443,19 +437,19 @@ export async function instrumentForPerformance(appInstance: ApplicationInstance)
   });
 
   if (macroCondition(isTesting())) {
-    const client = Sentry.getCurrentHub().getClient();
+    const client = Sentry.getClient();
 
     if (
       client &&
-      (client as BrowserClient).getIntegrationById &&
-      (client as BrowserClient).getIntegrationById('BrowserTracing')
+      (client as BrowserClient).getIntegrationByName &&
+      (client as BrowserClient).getIntegrationByName('BrowserTracing')
     ) {
       // Initializers are called more than once in tests, causing the integrations to not be setup correctly.
       return;
     }
   }
 
-  const client = Sentry.getCurrentHub().getClient();
+  const client = Sentry.getClient();
   if (client && client.addIntegration) {
     client.addIntegration(browserTracing);
   }

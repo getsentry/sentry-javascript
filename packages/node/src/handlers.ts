@@ -1,9 +1,11 @@
 import type * as http from 'http';
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import {
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   captureException,
   continueTrace,
   flush,
+  getActiveSpan,
   getClient,
   getCurrentScope,
   hasTracingEnabled,
@@ -71,14 +73,17 @@ export function tracingHandler(): (
           op: 'http.server',
           origin: 'auto.http.node.tracingHandler',
           ...ctx,
+          data: {
+            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
+          },
           metadata: {
+            // eslint-disable-next-line deprecation/deprecation
             ...ctx.metadata,
             // The request should already have been stored in `scope.sdkProcessingMetadata` (which will become
             // `event.sdkProcessingMetadata` the same way the metadata here will) by `sentryRequestMiddleware`, but on the
             // off chance someone is using `sentryTracingMiddleware` without `sentryRequestMiddleware`, it doesn't hurt to
             // be sure
             request: req,
-            source,
           },
         },
         // extra context passed to the tracesSampler
@@ -87,6 +92,7 @@ export function tracingHandler(): (
     );
 
     // We put the transaction on the scope so users can attach children to it
+    // eslint-disable-next-line deprecation/deprecation
     getCurrentScope().setSpan(transaction);
 
     // We also set __sentry_transaction on the response so people can grab the transaction there to add
@@ -271,7 +277,8 @@ export function errorHandler(options?: {
         // For some reason we need to set the transaction on the scope again
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         const transaction = (res as any).__sentry_transaction as Span;
-        if (transaction && _scope.getSpan() === undefined) {
+        if (transaction && !getActiveSpan()) {
+          // eslint-disable-next-line deprecation/deprecation
           _scope.setSpan(transaction);
         }
 
@@ -328,11 +335,12 @@ interface TrpcMiddlewareArguments<T> {
 export function trpcMiddleware(options: SentryTrpcMiddlewareOptions = {}) {
   return function <T>({ path, type, next, rawInput }: TrpcMiddlewareArguments<T>): T {
     const clientOptions = getClient()?.getOptions();
+    // eslint-disable-next-line deprecation/deprecation
     const sentryTransaction = getCurrentScope().getTransaction();
 
     if (sentryTransaction) {
       sentryTransaction.updateName(`trpc/${path}`);
-      sentryTransaction.setMetadata({ source: 'route' });
+      sentryTransaction.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
       sentryTransaction.op = 'rpc.server';
 
       const trpcContext: Record<string, unknown> = {
@@ -343,6 +351,8 @@ export function trpcMiddleware(options: SentryTrpcMiddlewareOptions = {}) {
         trpcContext.input = normalize(rawInput);
       }
 
+      // TODO: Can we rewrite this to an attribute? Or set this on the scope?
+      // eslint-disable-next-line deprecation/deprecation
       sentryTransaction.setContext('trpc', trpcContext);
     }
 

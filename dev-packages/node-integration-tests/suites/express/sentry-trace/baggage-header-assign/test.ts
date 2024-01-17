@@ -1,13 +1,16 @@
-import * as path from 'path';
-
-import { TestEnv } from '../../../../utils/index';
+import { cleanupChildProcesses, createRunner } from '../../../../utils/runner';
 import type { TestAPIResponse } from '../server';
 
+afterAll(() => {
+  cleanupChildProcesses();
+});
+
 test('Should not overwrite baggage if the incoming request already has Sentry baggage data.', async () => {
-  const env = await TestEnv.init(__dirname, `${path.resolve(__dirname, '..')}/server.ts`);
-  const response = (await env.getAPIResponse(`${env.url}/express`, {
+  const runner = createRunner(__dirname, '..', 'server.ts').start();
+
+  const response = await runner.makeRequest<TestAPIResponse>('get', '/test/express', {
     baggage: 'sentry-release=2.0.0,sentry-environment=myEnv',
-  })) as TestAPIResponse;
+  });
 
   expect(response).toBeDefined();
   expect(response).toMatchObject({
@@ -19,12 +22,12 @@ test('Should not overwrite baggage if the incoming request already has Sentry ba
 });
 
 test('Should propagate sentry trace baggage data from an incoming to an outgoing request.', async () => {
-  const env = await TestEnv.init(__dirname, `${path.resolve(__dirname, '..')}/server.ts`);
+  const runner = createRunner(__dirname, '..', 'server.ts').start();
 
-  const response = (await env.getAPIResponse(`${env.url}/express`, {
+  const response = await runner.makeRequest<TestAPIResponse>('get', '/test/express', {
     'sentry-trace': '',
     baggage: 'sentry-release=2.0.0,sentry-environment=myEnv,dogs=great',
-  })) as TestAPIResponse;
+  });
 
   expect(response).toBeDefined();
   expect(response).toMatchObject({
@@ -36,11 +39,11 @@ test('Should propagate sentry trace baggage data from an incoming to an outgoing
 });
 
 test('Should not propagate baggage if sentry-trace header is present in incoming request but no baggage header', async () => {
-  const env = await TestEnv.init(__dirname, `${path.resolve(__dirname, '..')}/server.ts`);
+  const runner = createRunner(__dirname, '..', 'server.ts').start();
 
-  const response = (await env.getAPIResponse(`${env.url}/express`, {
+  const response = await runner.makeRequest<TestAPIResponse>('get', '/test/express', {
     'sentry-trace': '',
-  })) as TestAPIResponse;
+  });
 
   expect(response).toBeDefined();
   expect(response).toMatchObject({
@@ -51,12 +54,12 @@ test('Should not propagate baggage if sentry-trace header is present in incoming
 });
 
 test('Should not propagate baggage and ignore original 3rd party baggage entries if sentry-trace header is present', async () => {
-  const env = await TestEnv.init(__dirname, `${path.resolve(__dirname, '..')}/server.ts`);
+  const runner = createRunner(__dirname, '..', 'server.ts').start();
 
-  const response = (await env.getAPIResponse(`${env.url}/express`, {
+  const response = await runner.makeRequest<TestAPIResponse>('get', '/test/express', {
     'sentry-trace': '',
     baggage: 'foo=bar',
-  })) as TestAPIResponse;
+  });
 
   expect(response).toBeDefined();
   expect(response).toMatchObject({
@@ -67,9 +70,9 @@ test('Should not propagate baggage and ignore original 3rd party baggage entries
 });
 
 test('Should populate and propagate sentry baggage if sentry-trace header does not exist', async () => {
-  const env = await TestEnv.init(__dirname, `${path.resolve(__dirname, '..')}/server.ts`);
+  const runner = createRunner(__dirname, '..', 'server.ts').start();
 
-  const response = (await env.getAPIResponse(`${env.url}/express`, {})) as TestAPIResponse;
+  const response = await runner.makeRequest<TestAPIResponse>('get', '/test/express');
 
   expect(response).toBeDefined();
   expect(response).toMatchObject({
@@ -84,11 +87,11 @@ test('Should populate and propagate sentry baggage if sentry-trace header does n
 });
 
 test('Should populate Sentry and ignore 3rd party content if sentry-trace header does not exist', async () => {
-  const env = await TestEnv.init(__dirname, `${path.resolve(__dirname, '..')}/server.ts`);
+  const runner = createRunner(__dirname, '..', 'server.ts').start();
 
-  const response = (await env.getAPIResponse(`${env.url}/express`, {
+  const response = await runner.makeRequest<TestAPIResponse>('get', '/test/express', {
     baggage: 'foo=bar,bar=baz',
-  })) as TestAPIResponse;
+  });
 
   expect(response).toBeDefined();
   expect(response).toMatchObject({

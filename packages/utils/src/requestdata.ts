@@ -72,16 +72,21 @@ export function addRequestDataToTransaction(
   deps?: InjectedNodeDeps,
 ): void {
   if (!transaction) return;
+  // eslint-disable-next-line deprecation/deprecation
   if (!transaction.metadata.source || transaction.metadata.source === 'url') {
     // Attempt to grab a parameterized route off of the request
     const [name, source] = extractPathForTransaction(req, { path: true, method: true });
     transaction.updateName(name);
+    // TODO: SEMANTIC_ATTRIBUTE_SENTRY_SOURCE is in core, align this once we merge utils & core
+    // eslint-disable-next-line deprecation/deprecation
     transaction.setMetadata({ source });
   }
-  transaction.setData('url', req.originalUrl || req.url);
+  transaction.setAttribute('url', req.originalUrl || req.url);
   if (req.baseUrl) {
-    transaction.setData('baseUrl', req.baseUrl);
+    transaction.setAttribute('baseUrl', req.baseUrl);
   }
+  // TODO: We need to rewrite this to a flat format?
+  // eslint-disable-next-line deprecation/deprecation
   transaction.setData('query', extractQueryParams(req, deps));
 }
 
@@ -187,6 +192,7 @@ export function extractRequestData(
   },
 ): ExtractedNodeRequestData {
   const { include = DEFAULT_REQUEST_INCLUDES, deps } = options || {};
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const requestData: { [key: string]: any } = {};
 
   // headers:

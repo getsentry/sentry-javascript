@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from 'fs';
 import { dirname, join } from 'path';
 import { convertIntegrationFnToClass } from '@sentry/core';
-import type { IntegrationFn } from '@sentry/types';
+import type { Event, Integration, IntegrationClass, IntegrationFn } from '@sentry/types';
 
 let moduleCache: { [key: string]: string };
 
@@ -79,6 +79,8 @@ function _getModules(): { [key: string]: string } {
 const modulesIntegration = (() => {
   return {
     name: INTEGRATION_NAME,
+    // TODO v8: Remove this
+    setupOnce() {}, // eslint-disable-line @typescript-eslint/no-empty-function
     processEvent(event) {
       event.modules = {
         ...event.modules,
@@ -92,4 +94,6 @@ const modulesIntegration = (() => {
 
 /** Add node modules / packages to the event */
 // eslint-disable-next-line deprecation/deprecation
-export const Modules = convertIntegrationFnToClass(INTEGRATION_NAME, modulesIntegration);
+export const Modules = convertIntegrationFnToClass(INTEGRATION_NAME, modulesIntegration) as IntegrationClass<
+  Integration & { processEvent: (event: Event) => Event }
+>;

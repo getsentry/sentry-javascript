@@ -1,16 +1,18 @@
 import { convertIntegrationFnToClass } from '@sentry/core';
-import type { Event, Exception, IntegrationFn, StackFrame } from '@sentry/types';
+import type { Event, Exception, Integration, IntegrationClass, IntegrationFn, StackFrame } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../debug-build';
 
 const INTEGRATION_NAME = 'Dedupe';
 
-const dedupeIntegration: IntegrationFn = () => {
+const dedupeIntegration = (() => {
   let previousEvent: Event | undefined;
 
   return {
     name: INTEGRATION_NAME,
+    // TODO v8: Remove this
+    setupOnce() {}, // eslint-disable-line @typescript-eslint/no-empty-function
     processEvent(currentEvent) {
       // We want to ignore any non-error type events, e.g. transactions or replays
       // These should never be deduped, and also not be compared against as _previousEvent.
@@ -29,11 +31,13 @@ const dedupeIntegration: IntegrationFn = () => {
       return (previousEvent = currentEvent);
     },
   };
-};
+}) satisfies IntegrationFn;
 
 /** Deduplication filter */
 // eslint-disable-next-line deprecation/deprecation
-export const Dedupe = convertIntegrationFnToClass(INTEGRATION_NAME, dedupeIntegration);
+export const Dedupe = convertIntegrationFnToClass(INTEGRATION_NAME, dedupeIntegration) as IntegrationClass<
+  Integration & { processEvent: (event: Event) => Event }
+>;
 
 function _shouldDropEvent(currentEvent: Event, previousEvent?: Event): boolean {
   if (!previousEvent) {

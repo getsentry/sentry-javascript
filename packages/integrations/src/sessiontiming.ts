@@ -1,5 +1,5 @@
 import { convertIntegrationFnToClass } from '@sentry/core';
-import type { IntegrationFn } from '@sentry/types';
+import type { Event, Integration, IntegrationClass, IntegrationFn } from '@sentry/types';
 
 const INTEGRATION_NAME = 'SessionTiming';
 
@@ -8,6 +8,8 @@ const sessionTimingIntegration = (() => {
 
   return {
     name: INTEGRATION_NAME,
+    // TODO v8: Remove this
+    setupOnce() {}, // eslint-disable-line @typescript-eslint/no-empty-function
     processEvent(event) {
       const now = Date.now();
 
@@ -26,4 +28,7 @@ const sessionTimingIntegration = (() => {
 
 /** This function adds duration since Sentry was initialized till the time event was sent */
 // eslint-disable-next-line deprecation/deprecation
-export const SessionTiming = convertIntegrationFnToClass(INTEGRATION_NAME, sessionTimingIntegration);
+export const SessionTiming = convertIntegrationFnToClass(
+  INTEGRATION_NAME,
+  sessionTimingIntegration,
+) as IntegrationClass<Integration & { processEvent: (event: Event) => Event }>;

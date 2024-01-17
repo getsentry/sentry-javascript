@@ -50,8 +50,8 @@ below to see which things used to exist, and how they can/should be mapped going
 | `status`              | use utility method TODO                              |
 | `sampled`             | `spanIsSampled(span)`                                |
 | `startTimestamp`      | `startTime` - note that this has a different format! |
-| `tags`                | `spanGetAttributes(span)`, or set tags on the scope  |
-| `data`                | `spanGetAttributes(span)`                            |
+| `tags`                | use attributes, or set tags on the scope             |
+| `data`                | `spanToJSON(span).data`                              |
 | `transaction`         | ??? Removed                                          |
 | `instrumenter`        | Removed                                              |
 | `finish()`            | `end()`                                              |
@@ -72,13 +72,13 @@ In addition, a transaction has this API:
 
 | Old name                    | Replace with                                     |
 | --------------------------- | ------------------------------------------------ |
-| `name`                      | `spanGetName(span)` (TODO)                       |
+| `name`                      | `spanToJSON(span).description`                   |
 | `trimEnd`                   | Removed                                          |
 | `parentSampled`             | `spanIsSampled(span)` & `spanContext().isRemote` |
-| `metadata`                  | `spanGetMetadata(span)`                          |
+| `metadata`                  | Use attributes instead or set on scope           |
 | `setContext()`              | Set context on scope instead                     |
 | `setMeasurement()`          | ??? TODO                                         |
-| `setMetadata()`             | `spanSetMetadata(span, metadata)`                |
+| `setMetadata()`             | Use attributes instead or set on scope           |
 | `getDynamicSamplingContext` | ??? TODO                                         |
 
 ### Attributes vs. Data vs. Tags vs. Context

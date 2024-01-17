@@ -12,7 +12,9 @@ import { Transaction } from './transaction';
 
 /** Returns all trace headers that are currently on the top scope. */
 function traceHeaders(this: Hub): { [key: string]: string } {
+  // eslint-disable-next-line deprecation/deprecation
   const scope = this.getScope();
+  // eslint-disable-next-line deprecation/deprecation
   const span = scope.getSpan();
 
   return span
@@ -42,6 +44,7 @@ function _startTransaction(
   transactionContext: TransactionContext,
   customSamplingContext?: CustomSamplingContext,
 ): Transaction {
+  // eslint-disable-next-line deprecation/deprecation
   const client = this.getClient();
   const options: Partial<ClientOptions> = (client && client.getOptions()) || {};
 
@@ -59,6 +62,7 @@ The transaction will not be sampled. Please use the ${configInstrumenter} instru
     transactionContext.sampled = false;
   }
 
+  // eslint-disable-next-line deprecation/deprecation
   let transaction = new Transaction(transactionContext, this);
   transaction = sampleTransaction(transaction, options, {
     parentSampled: transactionContext.parentSampled,
@@ -86,9 +90,11 @@ export function startIdleTransaction(
   customSamplingContext?: CustomSamplingContext,
   heartbeatInterval?: number,
 ): IdleTransaction {
+  // eslint-disable-next-line deprecation/deprecation
   const client = hub.getClient();
   const options: Partial<ClientOptions> = (client && client.getOptions()) || {};
 
+  // eslint-disable-next-line deprecation/deprecation
   let transaction = new IdleTransaction(transactionContext, hub, idleTimeout, finalTimeout, heartbeatInterval, onScope);
   transaction = sampleTransaction(transaction, options, {
     parentSampled: transactionContext.parentSampled,

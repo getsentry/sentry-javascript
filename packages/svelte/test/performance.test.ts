@@ -6,16 +6,18 @@ import DummyComponent from './components/Dummy.svelte';
 
 let returnUndefinedTransaction = false;
 
-const testTransaction: { spans: any[]; startChild: jest.Mock; end: jest.Mock } = {
+const testTransaction: { spans: any[]; startChild: jest.Mock; end: jest.Mock; isRecording: () => boolean } = {
   spans: [],
   startChild: jest.fn(),
   end: jest.fn(),
+  isRecording: () => true,
 };
 const testUpdateSpan = { end: jest.fn() };
 const testInitSpan: any = {
   transaction: testTransaction,
   end: jest.fn(),
   startChild: jest.fn(),
+  isRecording: () => true,
 };
 
 jest.mock('@sentry/core', () => {
@@ -48,7 +50,7 @@ describe('Sentry.trackComponent()', () => {
     });
 
     testInitSpan.end = jest.fn();
-    testInitSpan.endTimestamp = undefined;
+    testInitSpan.isRecording = () => true;
     returnUndefinedTransaction = false;
   });
 
@@ -75,7 +77,7 @@ describe('Sentry.trackComponent()', () => {
   it('creates an update span, when the component is updated', async () => {
     // Make the end() function actually end the initSpan
     testInitSpan.end.mockImplementation(() => {
-      testInitSpan.endTimestamp = Date.now();
+      testInitSpan.isRecording = () => false;
     });
 
     // first we create the component
@@ -171,7 +173,7 @@ describe('Sentry.trackComponent()', () => {
   it("doesn't record update spans, if there's no ongoing transaction at that time", async () => {
     // Make the end() function actually end the initSpan
     testInitSpan.end.mockImplementation(() => {
-      testInitSpan.endTimestamp = Date.now();
+      testInitSpan.isRecording = () => false;
     });
 
     // first we create the component

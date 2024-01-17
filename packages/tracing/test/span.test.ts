@@ -1,6 +1,6 @@
 /* eslint-disable deprecation/deprecation */
 import { BrowserClient } from '@sentry/browser';
-import { Hub, Scope, makeMain } from '@sentry/core';
+import { Hub, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, Scope, makeMain, spanToJSON } from '@sentry/core';
 import type { BaseTransportOptions, ClientOptions, TransactionSource } from '@sentry/types';
 
 import { Span, TRACEPARENT_REGEXP, Transaction } from '../src';
@@ -172,9 +172,9 @@ describe('Span', () => {
   describe('finish', () => {
     test('simple', () => {
       const span = new Span({});
-      expect(span.endTimestamp).toBeUndefined();
+      expect(spanToJSON(span).timestamp).toBeUndefined();
       span.end();
-      expect(span.endTimestamp).toBeGreaterThan(1);
+      expect(spanToJSON(span).timestamp).toBeGreaterThan(1);
     });
 
     describe('hub.startTransaction', () => {
@@ -299,25 +299,25 @@ describe('Span', () => {
   describe('end', () => {
     test('simple', () => {
       const span = new Span({});
-      expect(span.endTimestamp).toBeUndefined();
+      expect(spanToJSON(span).timestamp).toBeUndefined();
       span.end();
-      expect(span.endTimestamp).toBeGreaterThan(1);
+      expect(spanToJSON(span).timestamp).toBeGreaterThan(1);
     });
 
     test('with endTime in seconds', () => {
       const span = new Span({});
-      expect(span.endTimestamp).toBeUndefined();
+      expect(spanToJSON(span).timestamp).toBeUndefined();
       const endTime = Date.now() / 1000;
       span.end(endTime);
-      expect(span.endTimestamp).toBe(endTime);
+      expect(spanToJSON(span).timestamp).toBe(endTime);
     });
 
     test('with endTime in milliseconds', () => {
       const span = new Span({});
-      expect(span.endTimestamp).toBeUndefined();
+      expect(spanToJSON(span).timestamp).toBeUndefined();
       const endTime = Date.now();
       span.end(endTime);
-      expect(span.endTimestamp).toBe(endTime / 1000);
+      expect(spanToJSON(span).timestamp).toBe(endTime / 1000);
     });
 
     describe('hub.startTransaction', () => {
@@ -506,8 +506,8 @@ describe('Span', () => {
         sampled: true,
       });
 
-      expect(span.traceId).toBe('c');
-      expect(span.spanId).toBe('d');
+      expect(span.spanContext().traceId).toBe('c');
+      expect(span.spanContext().spanId).toBe('d');
       expect(span.sampled).toBe(true);
       expect(span.description).toBe(undefined);
       expect(span.op).toBe(undefined);
@@ -541,10 +541,10 @@ describe('Span', () => {
 
       span.updateWithContext(newContext);
 
-      expect(span.traceId).toBe('a');
-      expect(span.spanId).toBe('b');
+      expect(span.spanContext().traceId).toBe('a');
+      expect(span.spanContext().spanId).toBe('b');
       expect(span.description).toBe('new');
-      expect(span.endTimestamp).toBe(1);
+      expect(spanToJSON(span).timestamp).toBe(1);
       expect(span.op).toBe('new-op');
       expect(span.sampled).toBe(true);
       expect(span.tags).toStrictEqual({ tag1: 'bye' });
@@ -571,24 +571,19 @@ describe('Span', () => {
         hub,
       );
 
-      const hubSpy = jest.spyOn(hub.getClient()!, 'getOptions');
-
       const dynamicSamplingContext = transaction.getDynamicSamplingContext();
 
-      expect(hubSpy).not.toHaveBeenCalled();
       expect(dynamicSamplingContext).toStrictEqual({ environment: 'myEnv' });
     });
 
     test('should return new DSC, if no DSC was provided during transaction creation', () => {
-      const transaction = new Transaction(
-        {
-          name: 'tx',
-          metadata: {
-            sampleRate: 0.56,
-          },
+      const transaction = new Transaction({
+        name: 'tx',
+        metadata: {
+          sampleRate: 0.56,
         },
-        hub,
-      );
+        sampled: true,
+      });
 
       const getOptionsSpy = jest.spyOn(hub.getClient()!, 'getOptions');
 
@@ -598,6 +593,7 @@ describe('Span', () => {
       expect(dynamicSamplingContext).toStrictEqual({
         release: '1.0.1',
         environment: 'production',
+        sampled: 'true',
         sample_rate: '0.56',
         trace_id: expect.any(String),
         transaction: 'tx',
@@ -645,9 +641,7 @@ describe('Span', () => {
     test('is included when transaction metadata is set', () => {
       const spy = jest.spyOn(hub as any, 'captureEvent') as any;
       const transaction = hub.startTransaction({ name: 'test', sampled: true });
-      transaction.setMetadata({
-        source: 'url',
-      });
+      transaction.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'url');
       expect(spy).toHaveBeenCalledTimes(0);
 
       transaction.end();

@@ -174,12 +174,15 @@ export class Mongo implements LazyLoadedIntegration<MongoModule> {
     fill(collection.prototype, operation, function (orig: () => void | Promise<unknown>) {
       return function (this: unknown, ...args: unknown[]) {
         const lastArg = args[args.length - 1];
+        // eslint-disable-next-line deprecation/deprecation
         const scope = getCurrentHub().getScope();
+        // eslint-disable-next-line deprecation/deprecation
         const parentSpan = scope.getSpan();
 
         // Check if the operation was passed a callback. (mapReduce requires a different check, as
         // its (non-callback) arguments can also be functions.)
         if (typeof lastArg !== 'function' || (operation === 'mapReduce' && args.length === 2)) {
+          // eslint-disable-next-line deprecation/deprecation
           const span = parentSpan?.startChild(getSpanContext(this, operation, args));
           const maybePromiseOrCursor = orig.call(this, ...args);
 
@@ -211,6 +214,7 @@ export class Mongo implements LazyLoadedIntegration<MongoModule> {
           }
         }
 
+        // eslint-disable-next-line deprecation/deprecation
         const span = parentSpan?.startChild(getSpanContext(this, operation, args.slice(0, -1)));
 
         return orig.call(this, ...args.slice(0, -1), function (err: Error, result: unknown) {

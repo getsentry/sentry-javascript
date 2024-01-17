@@ -4,7 +4,7 @@ import { logger, timestampInSeconds } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../debug-build';
 import type { Hub } from '../hub';
-import { spanTimeInputToSeconds } from '../utils/spanUtils';
+import { spanTimeInputToSeconds, spanToJSON } from '../utils/spanUtils';
 import type { Span } from './span';
 import { SpanRecorder } from './span';
 import { Transaction } from './transaction';
@@ -45,18 +45,18 @@ export class IdleTransactionSpanRecorder extends SpanRecorder {
   public add(span: Span): void {
     // We should make sure we do not push and pop activities for
     // the transaction that this span recorder belongs to.
-    if (span.spanId !== this.transactionSpanId) {
+    if (span.spanContext().spanId !== this.transactionSpanId) {
       // We patch span.end() to pop an activity after setting an endTimestamp.
       // eslint-disable-next-line @typescript-eslint/unbound-method
       const originalEnd = span.end;
       span.end = (...rest: unknown[]) => {
-        this._popActivity(span.spanId);
+        this._popActivity(span.spanContext().spanId);
         return originalEnd.apply(span, rest);
       };
 
       // We should only push new activities if the span does not have an end timestamp.
-      if (span.endTimestamp === undefined) {
-        this._pushActivity(span.spanId);
+      if (spanToJSON(span).timestamp === undefined) {
+        this._pushActivity(span.spanContext().spanId);
       }
     }
 
@@ -95,6 +95,9 @@ export class IdleTransaction extends Transaction {
 
   private _finishReason: (typeof IDLE_TRANSACTION_FINISH_REASONS)[number];
 
+  /**
+   * @deprecated Transactions will be removed in v8. Use spans instead.
+   */
   public constructor(
     transactionContext: TransactionContext,
     private readonly _idleHub: Hub,
@@ -123,7 +126,8 @@ export class IdleTransaction extends Transaction {
     if (_onScope) {
       // We set the transaction here on the scope so error events pick up the trace
       // context and attach it to the error.
-      DEBUG_BUILD && logger.log(`Setting idle transaction on scope. Span ID: ${this.spanId}`);
+      DEBUG_BUILD && logger.log(`Setting idle transaction on scope. Span ID: ${this.spanContext().spanId}`);
+      // eslint-disable-next-line deprecation/deprecation
       _idleHub.getScope().setSpan(this);
     }
 
@@ -145,9 +149,10 @@ export class IdleTransaction extends Transaction {
     this.activities = {};
 
     if (this.op === 'ui.action.click') {
-      this.setTag(FINISH_REASON_TAG, this._finishReason);
+      this.setAttribute(FINISH_REASON_TAG, this._finishReason);
     }
 
+    // eslint-disable-next-line deprecation/deprecation
     if (this.spanRecorder) {
       DEBUG_BUILD &&
         logger.log('[Tracing] finishing IdleTransaction', new Date(endTimestampInS * 1000).toISOString(), this.op);
@@ -156,25 +161,27 @@ export class IdleTransaction extends Transaction {
         callback(this, endTimestampInS);
       }
 
+      // eslint-disable-next-line deprecation/deprecation
       this.spanRecorder.spans = this.spanRecorder.spans.filter((span: Span) => {
         // If we are dealing with the transaction itself, we just return it
-        if (span.spanId === this.spanId) {
+        if (span.spanContext().spanId === this.spanContext().spanId) {
           return true;
         }
 
         // We cancel all pending spans with status "cancelled" to indicate the idle transaction was finished early
-        if (!span.endTimestamp) {
-          span.endTimestamp = endTimestampInS;
+        if (!spanToJSON(span).timestamp) {
           span.setStatus('cancelled');
+          span.end(endTimestampInS);
           DEBUG_BUILD &&
             logger.log('[Tracing] cancelling span since transaction ended early', JSON.stringify(span, undefined, 2));
         }
 
-        const spanStartedBeforeTransactionFinish = span.startTimestamp < endTimestampInS;
+        const { start_timestamp: startTime, timestamp: endTime } = spanToJSON(span);
+        const spanStartedBeforeTransactionFinish = startTime && startTime < endTimestampInS;
 
         // Add a delta with idle timeout so that we prevent false positives
         const timeoutWithMarginOfError = (this._finalTimeout + this._idleTimeout) / 1000;
-        const spanEndedBeforeFinalTimeout = span.endTimestamp - this.startTimestamp < timeoutWithMarginOfError;
+        const spanEndedBeforeFinalTimeout = endTime && startTime && endTime - startTime < timeoutWithMarginOfError;
 
         if (DEBUG_BUILD) {
           const stringifiedSpan = JSON.stringify(span, undefined, 2);
@@ -195,8 +202,11 @@ export class IdleTransaction extends Transaction {
 
     // if `this._onScope` is `true`, the transaction put itself on the scope when it started
     if (this._onScope) {
+      // eslint-disable-next-line deprecation/deprecation
       const scope = this._idleHub.getScope();
+      // eslint-disable-next-line deprecation/deprecation
       if (scope.getTransaction() === this) {
+        // eslint-disable-next-line deprecation/deprecation
         scope.setSpan(undefined);
       }
     }
@@ -219,6 +229,7 @@ export class IdleTransaction extends Transaction {
    * @inheritDoc
    */
   public initSpanRecorder(maxlen?: number): void {
+    // eslint-disable-next-line deprecation/deprecation
     if (!this.spanRecorder) {
       const pushActivity = (id: string): void => {
         if (this._finished) {
@@ -233,12 +244,14 @@ export class IdleTransaction extends Transaction {
         this._popActivity(id);
       };
 
-      this.spanRecorder = new IdleTransactionSpanRecorder(pushActivity, popActivity, this.spanId, maxlen);
+      // eslint-disable-next-line deprecation/deprecation
+      this.spanRecorder = new IdleTransactionSpanRecorder(pushActivity, popActivity, this.spanContext().spanId, maxlen);
 
       // Start heartbeat so that transactions do not run forever.
       DEBUG_BUILD && logger.log('Starting heartbeat');
       this._pingHeartbeat();
     }
+    // eslint-disable-next-line deprecation/deprecation
     this.spanRecorder.add(this);
   }
 

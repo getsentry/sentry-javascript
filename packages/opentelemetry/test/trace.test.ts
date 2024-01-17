@@ -4,7 +4,7 @@ import { TraceFlags, context, trace } from '@opentelemetry/api';
 import type { ReadableSpan } from '@opentelemetry/sdk-trace-base';
 import type { PropagationContext } from '@sentry/types';
 
-import { getCurrentHub } from '../src/custom/hub';
+import { getClient } from '../src/custom/hub';
 import { InternalSentrySemanticAttributes } from '../src/semanticAttributes';
 import { startInactiveSpan, startSpan, startSpanManual } from '../src/trace';
 import type { AbstractSpan } from '../src/types';
@@ -503,7 +503,7 @@ describe('trace (sampling)', () => {
 
       // Now let's mutate the tracesSampleRate so that the next entry _should_ not be sampled
       // but it will because of parent sampling
-      const client = getCurrentHub().getClient();
+      const client = getClient();
       client!.getOptions().tracesSampleRate = 0.5;
 
       startSpan({ name: 'inner' }, innerSpan => {
@@ -526,7 +526,7 @@ describe('trace (sampling)', () => {
 
       // Now let's mutate the tracesSampleRate so that the next entry _should_ be sampled
       // but it will remain unsampled because of parent sampling
-      const client = getCurrentHub().getClient();
+      const client = getClient();
       client!.getOptions().tracesSampleRate = 1;
 
       startSpan({ name: 'inner' }, innerSpan => {

@@ -1,6 +1,7 @@
 /* eslint-disable max-lines */
 import type { IdleTransaction, Transaction } from '@sentry/core';
-import { getActiveTransaction } from '@sentry/core';
+import { spanToJSON } from '@sentry/core';
+import { getActiveTransaction, setMeasurement } from '@sentry/core';
 import type { Measurements, SpanContext } from '@sentry/types';
 import { browserPerformanceTimeOrigin, getComponentName, htmlTreeAsString, logger } from '@sentry/utils';
 
@@ -69,6 +70,7 @@ export function startTrackingWebVitals(): () => void {
 export function startTrackingLongTasks(): void {
   addPerformanceInstrumentationHandler('longtask', ({ entries }) => {
     for (const entry of entries) {
+      // eslint-disable-next-line deprecation/deprecation
       const transaction = getActiveTransaction() as IdleTransaction | undefined;
       if (!transaction) {
         return;
@@ -76,6 +78,7 @@ export function startTrackingLongTasks(): void {
       const startTime = msToSec((browserPerformanceTimeOrigin as number) + entry.startTime);
       const duration = msToSec(entry.duration);
 
+      // eslint-disable-next-line deprecation/deprecation
       transaction.startChild({
         description: 'Main UI thread blocked',
         op: 'ui.long-task',
@@ -93,6 +96,7 @@ export function startTrackingLongTasks(): void {
 export function startTrackingInteractions(): void {
   addPerformanceInstrumentationHandler('event', ({ entries }) => {
     for (const entry of entries) {
+      // eslint-disable-next-line deprecation/deprecation
       const transaction = getActiveTransaction() as IdleTransaction | undefined;
       if (!transaction) {
         return;
@@ -112,9 +116,10 @@ export function startTrackingInteractions(): void {
 
         const componentName = getComponentName(entry.target);
         if (componentName) {
-          span.data = { 'ui.component_name': componentName };
+          span.attributes = { 'ui.component_name': componentName };
         }
 
+        // eslint-disable-next-line deprecation/deprecation
         transaction.startChild(span);
       }
     }
@@ -181,12 +186,14 @@ export function addPerformanceEntries(transaction: Transaction): void {
   let responseStartTimestamp: number | undefined;
   let requestStartTimestamp: number | undefined;
 
+  const transactionStartTime = spanToJSON(transaction).start_timestamp;
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   performanceEntries.slice(_performanceCursor).forEach((entry: Record<string, any>) => {
     const startTime = msToSec(entry.startTime);
     const duration = msToSec(entry.duration);
 
-    if (transaction.op === 'navigation' && timeOrigin + startTime < transaction.startTimestamp) {
+    if (transaction.op === 'navigation' && transactionStartTime && timeOrigin + startTime < transactionStartTime) {
       return;
     }
 
@@ -235,10 +242,10 @@ export function addPerformanceEntries(transaction: Transaction): void {
   if (transaction.op === 'pageload') {
     // Generate TTFB (Time to First Byte), which measured as the time between the beginning of the transaction and the
     // start of the response in milliseconds
-    if (typeof responseStartTimestamp === 'number') {
+    if (typeof responseStartTimestamp === 'number' && transactionStartTime) {
       DEBUG_BUILD && logger.log('[Measurements] Adding TTFB');
       _measurements['ttfb'] = {
-        value: (responseStartTimestamp - transaction.startTimestamp) * 1000,
+        value: (responseStartTimestamp - transactionStartTime) * 1000,
         unit: 'millisecond',
       };
 
@@ -253,7 +260,7 @@ export function addPerformanceEntries(transaction: Transaction): void {
     }
 
     ['fcp', 'fp', 'lcp'].forEach(name => {
-      if (!_measurements[name] || timeOrigin >= transaction.startTimestamp) {
+      if (!_measurements[name] || !transactionStartTime || timeOrigin >= transactionStartTime) {
         return;
       }
       // The web vitals, fcp, fp, lcp, and ttfb, all measure relative to timeOrigin.
@@ -263,7 +270,7 @@ export function addPerformanceEntries(transaction: Transaction): void {
       const measurementTimestamp = timeOrigin + msToSec(oldValue);
 
       // normalizedValue should be in milliseconds
-      const normalizedValue = Math.abs((measurementTimestamp - transaction.startTimestamp) * 1000);
+      const normalizedValue = Math.abs((measurementTimestamp - transactionStartTime) * 1000);
       const delta = normalizedValue - oldValue;
 
       DEBUG_BUILD && logger.log(`[Measurements] Normalized ${name} from ${oldValue} to ${normalizedValue} (${delta})`);
@@ -292,11 +299,7 @@ export function addPerformanceEntries(transaction: Transaction): void {
     }
 
     Object.keys(_measurements).forEach(measurementName => {
-      transaction.setMeasurement(
-        measurementName,
-        _measurements[measurementName].value,
-        _measurements[measurementName].unit,
-      );
+      setMeasurement(measurementName, _measurements[measurementName].value, _measurements[measurementName].unit);
     });
 
     _tagMetricInfo(transaction);
@@ -369,21 +372,27 @@ function _addPerformanceNavigationTiming(
 /** Create request and response related spans */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function _addRequest(transaction: Transaction, entry: Record<string, any>, timeOrigin: number): void {
-  _startChild(transaction, {
-    op: 'browser',
-    origin: 'auto.browser.browser.metrics',
-    description: 'request',
-    startTimestamp: timeOrigin + msToSec(entry.requestStart as number),
-    endTimestamp: timeOrigin + msToSec(entry.responseEnd as number),
-  });
+  if (entry.responseEnd) {
+    // It is possible that we are collecting these metrics when the page hasn't finished loading yet, for example when the HTML slowly streams in.
+    // In this case, ie. when the document request hasn't finished yet, `entry.responseEnd` will be 0.
+    // In order not to produce faulty spans, where the end timestamp is before the start timestamp, we will only collect
+    // these spans when the responseEnd value is available. The backend (Relay) would drop the entire transaction if it contained faulty spans.
+    _startChild(transaction, {
+      op: 'browser',
+      origin: 'auto.browser.browser.metrics',
+      description: 'request',
+      startTimestamp: timeOrigin + msToSec(entry.requestStart as number),
+      endTimestamp: timeOrigin + msToSec(entry.responseEnd as number),
+    });
 
-  _startChild(transaction, {
-    op: 'browser',
-    origin: 'auto.browser.browser.metrics',
-    description: 'response',
-    startTimestamp: timeOrigin + msToSec(entry.responseStart as number),
-    endTimestamp: timeOrigin + msToSec(entry.responseEnd as number),
-  });
+    _startChild(transaction, {
+      op: 'browser',
+      origin: 'auto.browser.browser.metrics',
+      description: 'response',
+      startTimestamp: timeOrigin + msToSec(entry.responseStart as number),
+      endTimestamp: timeOrigin + msToSec(entry.responseEnd as number),
+    });
+  }
 }
 
 export interface ResourceEntry extends Record<string, unknown> {
@@ -444,10 +453,14 @@ function _trackNavigator(transaction: Transaction): void {
   const connection = navigator.connection;
   if (connection) {
     if (connection.effectiveType) {
+      // TODO: Can we rewrite this to an attribute?
+      // eslint-disable-next-line deprecation/deprecation
       transaction.setTag('effectiveConnectionType', connection.effectiveType);
     }
 
     if (connection.type) {
+      // TODO: Can we rewrite this to an attribute?
+      // eslint-disable-next-line deprecation/deprecation
       transaction.setTag('connectionType', connection.type);
     }
 
@@ -457,10 +470,14 @@ function _trackNavigator(transaction: Transaction): void {
   }
 
   if (isMeasurementValue(navigator.deviceMemory)) {
+    // TODO: Can we rewrite this to an attribute?
+    // eslint-disable-next-line deprecation/deprecation
     transaction.setTag('deviceMemory', `${navigator.deviceMemory} GB`);
   }
 
   if (isMeasurementValue(navigator.hardwareConcurrency)) {
+    // TODO: Can we rewrite this to an attribute?
+    // eslint-disable-next-line deprecation/deprecation
     transaction.setTag('hardwareConcurrency', String(navigator.hardwareConcurrency));
   }
 }
@@ -473,18 +490,26 @@ function _tagMetricInfo(transaction: Transaction): void {
     // Capture Properties of the LCP element that contributes to the LCP.
 
     if (_lcpEntry.element) {
+      // TODO: Can we rewrite this to an attribute?
+      // eslint-disable-next-line deprecation/deprecation
       transaction.setTag('lcp.element', htmlTreeAsString(_lcpEntry.element));
     }
 
     if (_lcpEntry.id) {
+      // TODO: Can we rewrite this to an attribute?
+      // eslint-disable-next-line deprecation/deprecation
       transaction.setTag('lcp.id', _lcpEntry.id);
     }
 
     if (_lcpEntry.url) {
       // Trim URL to the first 200 characters.
+      // TODO: Can we rewrite this to an attribute?
+      // eslint-disable-next-line deprecation/deprecation
       transaction.setTag('lcp.url', _lcpEntry.url.trim().slice(0, 200));
     }
 
+    // TODO: Can we rewrite this to an attribute?
+    // eslint-disable-next-line deprecation/deprecation
     transaction.setTag('lcp.size', _lcpEntry.size);
   }
 
@@ -492,6 +517,8 @@ function _tagMetricInfo(transaction: Transaction): void {
   if (_clsEntry && _clsEntry.sources) {
     DEBUG_BUILD && logger.log('[Measurements] Adding CLS Data');
     _clsEntry.sources.forEach((source, index) =>
+      // TODO: Can we rewrite this to an attribute?
+      // eslint-disable-next-line deprecation/deprecation
       transaction.setTag(`cls.source.${index + 1}`, htmlTreeAsString(source.node)),
     );
   }

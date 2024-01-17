@@ -1,5 +1,5 @@
 import { convertIntegrationFnToClass } from '@sentry/core';
-import type { Event, IntegrationFn } from '@sentry/types';
+import type { Event, Integration, IntegrationClass, IntegrationFn } from '@sentry/types';
 
 const INTEGRATION_NAME = 'DenoContext';
 
@@ -52,15 +52,19 @@ async function addDenoRuntimeContext(event: Event): Promise<Event> {
   return event;
 }
 
-const denoContextIntegration: IntegrationFn = () => {
+const denoContextIntegration = (() => {
   return {
     name: INTEGRATION_NAME,
+    // TODO v8: Remove this
+    setupOnce() {}, // eslint-disable-line @typescript-eslint/no-empty-function
     processEvent(event) {
       return addDenoRuntimeContext(event);
     },
   };
-};
+}) satisfies IntegrationFn;
 
 /** Adds Deno context to events. */
 // eslint-disable-next-line deprecation/deprecation
-export const DenoContext = convertIntegrationFnToClass(INTEGRATION_NAME, denoContextIntegration);
+export const DenoContext = convertIntegrationFnToClass(INTEGRATION_NAME, denoContextIntegration) as IntegrationClass<
+  Integration & { processEvent: (event: Event) => Promise<Event> }
+>;

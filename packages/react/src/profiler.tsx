@@ -2,6 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { Hub } from '@sentry/browser';
 import { getCurrentHub } from '@sentry/browser';
+import { spanToJSON } from '@sentry/core';
 import type { Span, Transaction } from '@sentry/types';
 import { timestampInSeconds } from '@sentry/utils';
 import hoistNonReactStatics from 'hoist-non-react-statics';
@@ -59,6 +60,7 @@ class Profiler extends React.Component<ProfilerProps> {
 
     const activeTransaction = getActiveTransaction();
     if (activeTransaction) {
+      // eslint-disable-next-line deprecation/deprecation
       this._mountSpan = activeTransaction.startChild({
         description: `<${name}>`,
         op: REACT_MOUNT_OP,
@@ -85,6 +87,7 @@ class Profiler extends React.Component<ProfilerProps> {
       const changedProps = Object.keys(updateProps).filter(k => updateProps[k] !== this.props.updateProps[k]);
       if (changedProps.length > 0) {
         const now = timestampInSeconds();
+        // eslint-disable-next-line deprecation/deprecation
         this._updateSpan = this._mountSpan.startChild({
           data: {
             changedProps,
@@ -116,12 +119,13 @@ class Profiler extends React.Component<ProfilerProps> {
     if (this._mountSpan && includeRender) {
       // If we were able to obtain the spanId of the mount activity, we should set the
       // next activity as a child to the component mount activity.
+      // eslint-disable-next-line deprecation/deprecation
       this._mountSpan.startChild({
         description: `<${name}>`,
         endTimestamp: timestampInSeconds(),
         op: REACT_RENDER_OP,
         origin: 'auto.ui.react.profiler',
-        startTimestamp: this._mountSpan.endTimestamp,
+        startTimestamp: spanToJSON(this._mountSpan).timestamp,
         data: { 'ui.component_name': name },
       });
     }
@@ -183,6 +187,7 @@ function useProfiler(
 
     const activeTransaction = getActiveTransaction();
     if (activeTransaction) {
+      // eslint-disable-next-line deprecation/deprecation
       return activeTransaction.startChild({
         description: `<${name}>`,
         op: REACT_MOUNT_OP,
@@ -201,12 +206,13 @@ function useProfiler(
 
     return (): void => {
       if (mountSpan && options.hasRenderSpan) {
+        // eslint-disable-next-line deprecation/deprecation
         mountSpan.startChild({
           description: `<${name}>`,
           endTimestamp: timestampInSeconds(),
           op: REACT_RENDER_OP,
           origin: 'auto.ui.react.profiler',
-          startTimestamp: mountSpan.endTimestamp,
+          startTimestamp: spanToJSON(mountSpan).timestamp,
           data: { 'ui.component_name': name },
         });
       }
@@ -219,9 +225,14 @@ function useProfiler(
 export { withProfiler, Profiler, useProfiler };
 
 /** Grabs active transaction off scope */
-export function getActiveTransaction<T extends Transaction>(hub: Hub = getCurrentHub()): T | undefined {
+export function getActiveTransaction<T extends Transaction>(
+  // eslint-disable-next-line deprecation/deprecation
+  hub: Hub = getCurrentHub(),
+): T | undefined {
   if (hub) {
+    // eslint-disable-next-line deprecation/deprecation
     const scope = hub.getScope();
+    // eslint-disable-next-line deprecation/deprecation
     return scope.getTransaction() as T | undefined;
   }
 

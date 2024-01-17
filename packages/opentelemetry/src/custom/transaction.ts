@@ -8,9 +8,11 @@ import { uuid4 } from '@sentry/utils';
  * with some OTEL specifics.
  */
 export function startTransaction(hub: HubInterface, transactionContext: TransactionContext): Transaction {
+  // eslint-disable-next-line deprecation/deprecation
   const client = hub.getClient();
   const options: Partial<ClientOptions> = (client && client.getOptions()) || {};
 
+  // eslint-disable-next-line deprecation/deprecation
   const transaction = new OpenTelemetryTransaction(transactionContext, hub as Hub);
   // Since we do not do sampling here, we assume that this is _always_ sampled
   // Any sampling decision happens in OpenTelemetry's sampler
@@ -36,6 +38,7 @@ export class OpenTelemetryTransaction extends Transaction {
       return undefined;
     }
 
+    // eslint-disable-next-line deprecation/deprecation
     const client = this._hub.getClient();
 
     if (!client) {

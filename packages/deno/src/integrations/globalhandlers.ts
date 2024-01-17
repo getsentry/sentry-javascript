@@ -3,7 +3,15 @@ import { convertIntegrationFnToClass } from '@sentry/core';
 import { captureEvent } from '@sentry/core';
 import { getClient } from '@sentry/core';
 import { flush } from '@sentry/core';
-import type { Client, Event, IntegrationFn, Primitive, StackParser } from '@sentry/types';
+import type {
+  Client,
+  Event,
+  Integration,
+  IntegrationClass,
+  IntegrationFn,
+  Primitive,
+  StackParser,
+} from '@sentry/types';
 import { eventFromUnknownInput, isPrimitive } from '@sentry/utils';
 
 type GlobalHandlersIntegrationsOptionKeys = 'error' | 'unhandledrejection';
@@ -13,7 +21,7 @@ type GlobalHandlersIntegrations = Record<GlobalHandlersIntegrationsOptionKeys, b
 const INTEGRATION_NAME = 'GlobalHandlers';
 let isExiting = false;
 
-const globalHandlersIntegration: IntegrationFn = (options?: GlobalHandlersIntegrations) => {
+const globalHandlersIntegration = ((options?: GlobalHandlersIntegrations) => {
   const _options = {
     error: true,
     unhandledrejection: true,
@@ -22,6 +30,8 @@ const globalHandlersIntegration: IntegrationFn = (options?: GlobalHandlersIntegr
 
   return {
     name: INTEGRATION_NAME,
+    // TODO v8: Remove this
+    setupOnce() {}, // eslint-disable-line @typescript-eslint/no-empty-function
     setup(client) {
       if (_options.error) {
         installGlobalErrorHandler(client);
@@ -31,11 +41,14 @@ const globalHandlersIntegration: IntegrationFn = (options?: GlobalHandlersIntegr
       }
     },
   };
-};
+}) satisfies IntegrationFn;
 
 /** Global handlers */
 // eslint-disable-next-line deprecation/deprecation
-export const GlobalHandlers = convertIntegrationFnToClass(INTEGRATION_NAME, globalHandlersIntegration);
+export const GlobalHandlers = convertIntegrationFnToClass(
+  INTEGRATION_NAME,
+  globalHandlersIntegration,
+) as IntegrationClass<Integration & { setup: (client: Client) => void }>;
 
 function installGlobalErrorHandler(client: Client): void {
   globalThis.addEventListener('error', data => {

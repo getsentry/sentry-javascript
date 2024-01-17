@@ -21,6 +21,7 @@ sentryTest('should capture a FID vital.', async ({ browserName, getLocalTestPath
   expect(eventData.measurements).toBeDefined();
   expect(eventData.measurements?.fid?.value).toBeDefined();
 
+  // eslint-disable-next-line deprecation/deprecation
   const fidSpan = eventData.spans?.filter(({ description }) => description === 'first input delay')[0];
 
   expect(fidSpan).toBeDefined();

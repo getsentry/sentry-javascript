@@ -19,5 +19,5 @@ export {
   startSpanManual,
   continueTrace,
 } from './trace';
-export { getDynamicSamplingContextFromClient } from './dynamicSamplingContext';
+export { getDynamicSamplingContextFromClient, getDynamicSamplingContextFromSpan } from './dynamicSamplingContext';
 export { setMeasurement } from './measurement';

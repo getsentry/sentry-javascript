@@ -1,4 +1,10 @@
-import { addTracingExtensions, getClient, getCurrentScope, spanToTraceHeader } from '@sentry/core';
+import {
+  addTracingExtensions,
+  getClient,
+  getCurrentScope,
+  getDynamicSamplingContextFromSpan,
+  spanToTraceHeader,
+} from '@sentry/core';
 import { dynamicSamplingContextToSentryBaggageHeader } from '@sentry/utils';
 import type App from 'next/app';
 
@@ -52,6 +58,7 @@ export function wrapAppGetInitialPropsWithSentry(origAppGetInitialProps: AppGetI
           };
         } = await tracedGetInitialProps.apply(thisArg, args);
 
+        // eslint-disable-next-line deprecation/deprecation
         const requestTransaction = getTransactionFromRequest(req) ?? getCurrentScope().getTransaction();
 
         // Per definition, `pageProps` is not optional, however an increased amount of users doesn't seem to call
@@ -65,7 +72,7 @@ export function wrapAppGetInitialPropsWithSentry(origAppGetInitialProps: AppGetI
         if (requestTransaction) {
           appGetInitialProps.pageProps._sentryTraceData = spanToTraceHeader(requestTransaction);
 
-          const dynamicSamplingContext = requestTransaction.getDynamicSamplingContext();
+          const dynamicSamplingContext = getDynamicSamplingContextFromSpan(requestTransaction);
           appGetInitialProps.pageProps._sentryBaggage =
             dynamicSamplingContextToSentryBaggageHeader(dynamicSamplingContext);
         }

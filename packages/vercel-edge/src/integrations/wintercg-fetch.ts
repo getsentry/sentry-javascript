@@ -1,5 +1,5 @@
 import { instrumentFetchRequest } from '@sentry-internal/tracing';
-import { addBreadcrumb, getClient, getCurrentHub, isSentryRequestUrl } from '@sentry/core';
+import { addBreadcrumb, getClient, isSentryRequestUrl } from '@sentry/core';
 import type { FetchBreadcrumbData, FetchBreadcrumbHint, HandlerDataFetch, Integration, Span } from '@sentry/types';
 import { LRUMap, addFetchInstrumentationHandler, stringMatchesSomePattern } from '@sentry/utils';
 
@@ -49,8 +49,7 @@ export class WinterCGFetch implements Integration {
     const spans: Record<string, Span> = {};
 
     addFetchInstrumentationHandler(handlerData => {
-      const hub = getCurrentHub();
-      if (!hub.getIntegration(WinterCGFetch)) {
+      if (!getClient()?.getIntegrationByName?.('WinterCGFetch')) {
         return;
       }
 

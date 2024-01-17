@@ -30,6 +30,7 @@ export interface TransactionContext extends SpanContext {
 
   /**
    * Metadata associated with the transaction, for internal SDK use.
+   * @deprecated Use attributes or store data on the scope instead.
    */
   metadata?: Partial<TransactionMetadata>;
 }
@@ -44,14 +45,28 @@ export type TraceparentData = Pick<TransactionContext, 'traceId' | 'parentSpanId
  */
 export interface Transaction extends TransactionContext, Omit<Span, 'setName' | 'name'> {
   /**
-   * @inheritDoc
+   * Human-readable identifier for the transaction.
+   * @deprecated Use `spanToJSON(span).description` instead.
+   */
+  name: string;
+
+  /**
+   * The ID of the transaction.
+   * @deprecated Use `spanContext().spanId` instead.
    */
   spanId: string;
 
   /**
-   * @inheritDoc
+   * The ID of the trace.
+   * @deprecated Use `spanContext().traceId` instead.
    */
   traceId: string;
+
+  /**
+   * Was this transaction chosen to be sent as part of the sample?
+   * @deprecated Use `spanIsSampled(transaction)` instead.
+   */
+  sampled?: boolean;
 
   /**
    * @inheritDoc
@@ -59,37 +74,46 @@ export interface Transaction extends TransactionContext, Omit<Span, 'setName' | 
   startTimestamp: number;
 
   /**
-   * @inheritDoc
+   * Tags for the transaction.
+   * @deprecated Use `getSpanAttributes(transaction)` instead.
    */
   tags: { [key: string]: Primitive };
 
   /**
-   * @inheritDoc
+   * Data for the transaction.
+   * @deprecated Use `getSpanAttributes(transaction)` instead.
    */
   data: { [key: string]: any };
 
   /**
-   * @inheritDoc
+   * Attributes for the transaction.
+   * @deprecated Use `getSpanAttributes(transaction)` instead.
    */
   attributes: SpanAttributes;
 
   /**
-   * Metadata about the transaction
+   * Metadata about the transaction.
+   * @deprecated Use attributes or store data on the scope instead.
    */
   metadata: TransactionMetadata;
 
   /**
    * The instrumenter that created this transaction.
+   *
+   * @deprecated This field will be removed in v8.
    */
   instrumenter: Instrumenter;
 
   /**
    * Set the name of the transaction
+   *
+   * @deprecated Use `.updateName()` and `.setAttribute()` instead.
    */
   setName(name: string, source?: TransactionMetadata['source']): void;
 
   /**
-   * Set the context of a transaction event
+   * Set the context of a transaction event.
+   * @deprecated Use either `.setAttribute()`, or set the context on the scope before creating the transaction.
    */
   setContext(key: string, context: Context): void;
 
@@ -99,6 +123,8 @@ export interface Transaction extends TransactionContext, Omit<Span, 'setName' | 
    * @param name Name of the measurement
    * @param value Value of the measurement
    * @param unit Unit of the measurement. (Defaults to an empty string)
+   *
+   * @deprecated Use top-level `setMeasurement()` instead.
    */
   setMeasurement(name: string, value: number, unit: MeasurementUnit): void;
 
@@ -116,11 +142,15 @@ export interface Transaction extends TransactionContext, Omit<Span, 'setName' | 
 
   /**
    * Set metadata for this transaction.
-   * @hidden
+   * @deprecated Use attributes or store data on the scope instead.
    */
   setMetadata(newMetadata: Partial<TransactionMetadata>): void;
 
-  /** Return the current Dynamic Sampling Context of this transaction */
+  /**
+   * Return the current Dynamic Sampling Context of this transaction
+   *
+   * @deprecated Use top-level `getDynamicSamplingContextFromSpan` instead.
+   */
   getDynamicSamplingContext(): Partial<DynamicSamplingContext>;
 }
 
@@ -160,7 +190,10 @@ export interface SamplingContext extends CustomSamplingContext {
 }
 
 export interface TransactionMetadata {
-  /** The sample rate used when sampling this transaction */
+  /**
+   * The sample rate used when sampling this transaction.
+   * @deprecated Use `SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE` attribute instead.
+   */
   sampleRate?: number;
 
   /**
@@ -182,10 +215,16 @@ export interface TransactionMetadata {
   /** TODO: If we rm -rf `instrumentServer`, this can go, too */
   requestPath?: string;
 
-  /** Information on how a transaction name was generated. */
+  /**
+   * Information on how a transaction name was generated.
+   * @deprecated Use `SEMANTIC_ATTRIBUTE_SENTRY_SOURCE` attribute instead.
+   */
   source: TransactionSource;
 
-  /** Metadata for the transaction's spans, keyed by spanId */
+  /**
+   * Metadata for the transaction's spans, keyed by spanId.
+   * @deprecated This will be removed in v8.
+   */
   spanMetadata: { [spanId: string]: { [key: string]: unknown } };
 }
 

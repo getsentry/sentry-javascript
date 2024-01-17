@@ -15,6 +15,7 @@ const transaction = Sentry.startTransaction({
   name: 'Test Transaction',
 });
 
+// eslint-disable-next-line deprecation/deprecation
 Sentry.getCurrentScope().setSpan(transaction);
 
 const client = new pg.Client();

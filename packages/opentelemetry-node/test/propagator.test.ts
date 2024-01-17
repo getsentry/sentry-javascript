@@ -48,6 +48,7 @@ describe('SentryPropagator', () => {
       };
       // @ts-expect-error Use mock client for unit tests
       const hub: Hub = new Hub(client);
+      // eslint-disable-next-line deprecation/deprecation
       makeMain(hub);
 
       afterEach(() => {
@@ -60,13 +61,15 @@ describe('SentryPropagator', () => {
       }
 
       function createTransactionAndMaybeSpan(type: PerfType, transactionContext: TransactionContext) {
+        // eslint-disable-next-line deprecation/deprecation
         const transaction = new Transaction(transactionContext, hub);
-        setSentrySpan(transaction.spanId, transaction);
+        setSentrySpan(transaction.spanContext().spanId, transaction);
         if (type === PerfType.Span) {
           // eslint-disable-next-line @typescript-eslint/no-unused-vars
           const { spanId, ...ctx } = transactionContext;
-          const span = transaction.startChild({ ...ctx, description: transaction.name });
-          setSentrySpan(span.spanId, span);
+          // eslint-disable-next-line deprecation/deprecation
+          const span = transaction.startChild({ ...ctx, name: transactionContext.name });
+          setSentrySpan(span.spanContext().spanId, span);
         }
       }
 

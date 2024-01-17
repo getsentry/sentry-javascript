@@ -1,6 +1,6 @@
 import { runWithAsyncContext } from '@sentry/core';
 import * as SentryNode from '@sentry/node';
-import { NodeClient, getCurrentHub } from '@sentry/node';
+import { NodeClient, getClient, getCurrentHub, getCurrentScope } from '@sentry/node';
 import type { Integration } from '@sentry/types';
 import { GLOBAL_OBJ, logger } from '@sentry/utils';
 
@@ -71,7 +71,7 @@ describe('Server init()', () => {
   });
 
   it('sets runtime on scope', () => {
-    const currentScope = getCurrentHub().getScope();
+    const currentScope = getCurrentScope();
 
     // @ts-expect-error need access to protected _tags attribute
     expect(currentScope._tags).toEqual({});
@@ -87,7 +87,7 @@ describe('Server init()', () => {
   // is resolved when importing.
 
   it('does not apply `vercel` tag when not running on vercel', () => {
-    const currentScope = getCurrentHub().getScope();
+    const currentScope = getCurrentScope();
 
     expect(process.env.VERCEL).toBeUndefined();
 
@@ -102,8 +102,7 @@ describe('Server init()', () => {
       dsn: 'https://dogsarebadatkeepingsecrets@squirrelchasers.ingest.sentry.io/12312012',
       tracesSampleRate: 1.0,
     });
-    const hub = getCurrentHub();
-    const transportSend = jest.spyOn(hub.getClient()!.getTransport()!, 'send');
+    const transportSend = jest.spyOn(getClient()!.getTransport()!, 'send');
 
     SentryNode.startSpan({ name: '/404' }, () => {
       // noop
@@ -117,28 +116,38 @@ describe('Server init()', () => {
   });
 
   it("initializes both global hub and domain hub when there's an active domain", () => {
+    // eslint-disable-next-line deprecation/deprecation
     const globalHub = getCurrentHub();
 
     runWithAsyncContext(() => {
+      // eslint-disable-next-line deprecation/deprecation
       const globalHub2 = getCurrentHub();
       // If we call runWithAsyncContext before init, it executes the callback in the same context as there is no
       // strategy yet
       expect(globalHub2).toBe(globalHub);
+      // eslint-disable-next-line deprecation/deprecation
       expect(globalHub.getClient()).toBeUndefined();
+      // eslint-disable-next-line deprecation/deprecation
       expect(globalHub2.getClient()).toBeUndefined();
 
       init({});
 
       runWithAsyncContext(() => {
+        // eslint-disable-next-line deprecation/deprecation
         const domainHub = getCurrentHub();
         // this tag should end up only in the domain hub
+        // eslint-disable-next-line deprecation/deprecation
         domainHub.setTag('dogs', 'areGreat');
 
+        // eslint-disable-next-line deprecation/deprecation
         expect(globalHub.getClient()).toEqual(expect.any(NodeClient));
+        // eslint-disable-next-line deprecation/deprecation
         expect(domainHub.getClient()).toBe(globalHub.getClient());
         // @ts-expect-error need access to protected _tags attribute
+        // eslint-disable-next-line deprecation/deprecation
         expect(globalHub.getScope()._tags).toEqual({ runtime: 'node' });
         // @ts-expect-error need access to protected _tags attribute
+        // eslint-disable-next-line deprecation/deprecation
         expect(domainHub.getScope()._tags).toEqual({ runtime: 'node', dogs: 'areGreat' });
       });
     });

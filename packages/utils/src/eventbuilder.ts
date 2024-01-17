@@ -74,7 +74,11 @@ export function eventFromUnknownInput(
   exception: unknown,
   hint?: EventHint,
 ): Event {
-  const client = typeof getHubOrClient === 'function' ? getHubOrClient().getClient() : getHubOrClient;
+  const client =
+    typeof getHubOrClient === 'function'
+      ? // eslint-disable-next-line deprecation/deprecation
+        getHubOrClient().getClient()
+      : getHubOrClient;
 
   let ex: unknown = exception;
   const providedMechanism: Mechanism | undefined =

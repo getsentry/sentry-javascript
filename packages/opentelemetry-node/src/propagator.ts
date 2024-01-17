@@ -1,7 +1,7 @@
 import type { Baggage, Context, TextMapGetter, TextMapSetter } from '@opentelemetry/api';
 import { TraceFlags, isSpanContextValid, propagation, trace } from '@opentelemetry/api';
 import { W3CBaggagePropagator, isTracingSuppressed } from '@opentelemetry/core';
-import { spanToTraceHeader } from '@sentry/core';
+import { getDynamicSamplingContextFromSpan, getRootSpan, spanToTraceHeader } from '@sentry/core';
 import {
   SENTRY_BAGGAGE_KEY_PREFIX,
   baggageHeaderToDynamicSamplingContext,
@@ -35,8 +35,8 @@ export class SentryPropagator extends W3CBaggagePropagator {
     if (span) {
       setter.set(carrier, SENTRY_TRACE_HEADER, spanToTraceHeader(span));
 
-      if (span.transaction) {
-        const dynamicSamplingContext = span.transaction.getDynamicSamplingContext();
+      if (getRootSpan(span)) {
+        const dynamicSamplingContext = getDynamicSamplingContextFromSpan(span);
         baggage = Object.entries(dynamicSamplingContext).reduce<Baggage>((b, [dscKey, dscValue]) => {
           if (dscValue) {
             return b.setEntry(`${SENTRY_BAGGAGE_KEY_PREFIX}${dscKey}`, { value: dscValue });

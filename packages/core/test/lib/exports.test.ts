@@ -6,7 +6,14 @@ import {
   getCurrentScope,
   getIsolationScope,
   makeMain,
+  setContext,
+  setExtra,
+  setExtras,
+  setTag,
+  setTags,
+  setUser,
   startSession,
+  withIsolationScope,
   withScope,
 } from '../../src';
 import { TestClient, getDefaultTestClientOptions } from '../mocks/client';
@@ -23,6 +30,7 @@ describe('withScope', () => {
   beforeEach(() => {
     const client = getTestClient();
     const hub = new Hub(client);
+    // eslint-disable-next-line deprecation/deprecation
     makeMain(hub);
   });
 
@@ -134,12 +142,37 @@ describe('withScope', () => {
 
     expect(getCurrentScope()).toBe(scope1);
   });
+
+  it('allows to pass a custom scope', () => {
+    const scope1 = getCurrentScope();
+    scope1.setExtra('x1', 'x1');
+
+    const customScope = new Scope();
+    customScope.setExtra('x2', 'x2');
+
+    withScope(customScope, scope2 => {
+      expect(scope2).not.toBe(scope1);
+      expect(scope2).toBe(customScope);
+      expect(getCurrentScope()).toBe(scope2);
+      expect(scope2['_extra']).toEqual({ x2: 'x2' });
+    });
+
+    withScope(customScope, scope3 => {
+      expect(scope3).not.toBe(scope1);
+      expect(scope3).toBe(customScope);
+      expect(getCurrentScope()).toBe(scope3);
+      expect(scope3['_extra']).toEqual({ x2: 'x2' });
+    });
+
+    expect(getCurrentScope()).toBe(scope1);
+  });
 });
 
 describe('session APIs', () => {
   beforeEach(() => {
     const client = getTestClient();
     const hub = new Hub(client);
+    // eslint-disable-next-line deprecation/deprecation
     makeMain(hub);
   });
 
@@ -223,6 +256,62 @@ describe('session APIs', () => {
       // session is still active and on the scope
       expect(session.status).toBe('exited');
       expect(getIsolationScope().getSession()).toBe(undefined);
+    });
+  });
+
+  describe('setUser', () => {
+    it('should write to the isolation scope', () => {
+      withIsolationScope(isolationScope => {
+        setUser({ id: 'foo' });
+        expect(isolationScope.getScopeData().user.id).toBe('foo');
+      });
+    });
+  });
+
+  describe('setTags', () => {
+    it('should write to the isolation scope', () => {
+      withIsolationScope(isolationScope => {
+        setTags({ wee: true, woo: false });
+        expect(isolationScope.getScopeData().tags['wee']).toBe(true);
+        expect(isolationScope.getScopeData().tags['woo']).toBe(false);
+      });
+    });
+  });
+
+  describe('setTag', () => {
+    it('should write to the isolation scope', () => {
+      withIsolationScope(isolationScope => {
+        setTag('foo', true);
+        expect(isolationScope.getScopeData().tags['foo']).toBe(true);
+      });
+    });
+  });
+
+  describe('setExtras', () => {
+    it('should write to the isolation scope', () => {
+      withIsolationScope(isolationScope => {
+        setExtras({ wee: { foo: 'bar' }, woo: { foo: 'bar' } });
+        expect(isolationScope.getScopeData().extra?.wee).toEqual({ foo: 'bar' });
+        expect(isolationScope.getScopeData().extra?.woo).toEqual({ foo: 'bar' });
+      });
+    });
+  });
+
+  describe('setExtra', () => {
+    it('should write to the isolation scope', () => {
+      withIsolationScope(isolationScope => {
+        setExtra('foo', { bar: 'baz' });
+        expect(isolationScope.getScopeData().extra?.foo).toEqual({ bar: 'baz' });
+      });
+    });
+  });
+
+  describe('setContext', () => {
+    it('should write to the isolation scope', () => {
+      withIsolationScope(isolationScope => {
+        setContext('foo', { bar: 'baz' });
+        expect(isolationScope.getScopeData().contexts?.foo?.bar).toBe('baz');
+      });
     });
   });
 });

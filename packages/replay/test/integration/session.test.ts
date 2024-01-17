@@ -1,4 +1,4 @@
-import { getCurrentHub } from '@sentry/core';
+import { getClient } from '@sentry/core';
 import type { Transport } from '@sentry/types';
 
 import {
@@ -43,7 +43,7 @@ describe('Integration | session', () => {
       },
     }));
 
-    const mockTransport = getCurrentHub()?.getClient()?.getTransport()?.send as jest.MockedFunction<Transport['send']>;
+    const mockTransport = getClient()?.getTransport()?.send as jest.MockedFunction<Transport['send']>;
     mockTransport?.mockClear();
   });
 

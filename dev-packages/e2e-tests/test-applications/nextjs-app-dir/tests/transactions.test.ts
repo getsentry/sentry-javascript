@@ -130,12 +130,29 @@ test('Should send a transaction for instrumented server actions', async ({ page 
   await page.getByText('Run Action').click();
 
   expect(await serverComponentTransactionPromise).toBeDefined();
-  expect((await serverComponentTransactionPromise).contexts?.trace?.data?.['server_action_form_data']).toEqual(
-    expect.objectContaining({ 'some-text-value': 'some-default-value' }),
-  );
+  expect(
+    (await serverComponentTransactionPromise).contexts?.trace?.data?.['server_action_form_data.some-text-value'],
+  ).toEqual('some-default-value');
   expect((await serverComponentTransactionPromise).contexts?.trace?.data?.['server_action_result']).toEqual({
     city: 'Vienna',
   });
 
   expect(Object.keys((await serverComponentTransactionPromise).request?.headers || {}).length).toBeGreaterThan(0);
+});
+
+test('Will not include spans in pageload transaction with faulty timestamps for slow loading pages', async ({
+  page,
+}) => {
+  const pageloadTransactionEventPromise = waitForTransaction('nextjs-13-app-dir', transactionEvent => {
+    return (
+      transactionEvent?.contexts?.trace?.op === 'pageload' && transactionEvent?.transaction === '/very-slow-component'
+    );
+  });
+
+  await page.goto('/very-slow-component');
+
+  const pageLoadTransaction = await pageloadTransactionEventPromise;
+
+  // @ts-expect-error We are looking at the serialized span format here
+  expect(pageLoadTransaction.spans?.filter(span => span.timestamp < span.start_timestamp)).toHaveLength(0);
 });

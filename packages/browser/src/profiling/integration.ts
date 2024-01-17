@@ -1,5 +1,5 @@
 import { convertIntegrationFnToClass, getCurrentScope } from '@sentry/core';
-import type { EventEnvelope, IntegrationFn, Transaction } from '@sentry/types';
+import type { Client, EventEnvelope, Integration, IntegrationClass, IntegrationFn, Transaction } from '@sentry/types';
 import type { Profile } from '@sentry/types/src/profiling';
 import { logger } from '@sentry/utils';
 
@@ -18,12 +18,15 @@ import {
 
 const INTEGRATION_NAME = 'BrowserProfiling';
 
-const browserProfilingIntegration: IntegrationFn = () => {
+const browserProfilingIntegration = (() => {
   return {
     name: INTEGRATION_NAME,
+    // TODO v8: Remove this
+    setupOnce() {}, // eslint-disable-line @typescript-eslint/no-empty-function
     setup(client) {
       const scope = getCurrentScope();
 
+      // eslint-disable-next-line deprecation/deprecation
       const transaction = scope.getTransaction();
 
       if (transaction && isAutomatedPageLoadTransaction(transaction)) {
@@ -97,7 +100,7 @@ const browserProfilingIntegration: IntegrationFn = () => {
       });
     },
   };
-};
+}) satisfies IntegrationFn;
 
 /**
  * Browser profiling integration. Stores any event that has contexts["profile"]["profile_id"]
@@ -109,4 +112,7 @@ const browserProfilingIntegration: IntegrationFn = () => {
  * @experimental
  */
 // eslint-disable-next-line deprecation/deprecation
-export const BrowserProfilingIntegration = convertIntegrationFnToClass(INTEGRATION_NAME, browserProfilingIntegration);
+export const BrowserProfilingIntegration = convertIntegrationFnToClass(
+  INTEGRATION_NAME,
+  browserProfilingIntegration,
+) as IntegrationClass<Integration & { setup: (client: Client) => void }>;

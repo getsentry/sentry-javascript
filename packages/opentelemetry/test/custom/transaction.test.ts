@@ -1,3 +1,4 @@
+import { setCurrentClient, spanToJSON } from '@sentry/core';
 import { getCurrentHub } from '../../src/custom/hub';
 import { OpenTelemetryScope } from '../../src/custom/scope';
 import { OpenTelemetryTransaction, startTransaction } from '../../src/custom/transaction';
@@ -14,10 +15,11 @@ describe('NodeExperimentalTransaction', () => {
     const mockSend = jest.spyOn(client, 'captureEvent').mockImplementation(() => 'mocked');
 
     const hub = getCurrentHub();
-    hub.bindClient(client);
+    setCurrentClient(client);
+    client.init();
 
-    const transaction = new OpenTelemetryTransaction({ name: 'test' }, hub);
-    transaction.sampled = true;
+    // eslint-disable-next-line deprecation/deprecation
+    const transaction = new OpenTelemetryTransaction({ name: 'test', sampled: true }, hub);
 
     const res = transaction.finishWithScope();
 
@@ -61,10 +63,11 @@ describe('NodeExperimentalTransaction', () => {
     const mockSend = jest.spyOn(client, 'captureEvent').mockImplementation(() => 'mocked');
 
     const hub = getCurrentHub();
-    hub.bindClient(client);
+    setCurrentClient(client);
+    client.init();
 
-    const transaction = new OpenTelemetryTransaction({ name: 'test', startTimestamp: 123456 }, hub);
-    transaction.sampled = true;
+    // eslint-disable-next-line deprecation/deprecation
+    const transaction = new OpenTelemetryTransaction({ name: 'test', startTimestamp: 123456, sampled: true }, hub);
 
     const res = transaction.finishWithScope(1234567);
 
@@ -86,10 +89,11 @@ describe('NodeExperimentalTransaction', () => {
     const mockSend = jest.spyOn(client, 'captureEvent').mockImplementation(() => 'mocked');
 
     const hub = getCurrentHub();
-    hub.bindClient(client);
+    setCurrentClient(client);
+    client.init();
 
-    const transaction = new OpenTelemetryTransaction({ name: 'test', startTimestamp: 123456 }, hub);
-    transaction.sampled = true;
+    // eslint-disable-next-line deprecation/deprecation
+    const transaction = new OpenTelemetryTransaction({ name: 'test', startTimestamp: 123456, sampled: true }, hub);
 
     const scope = new OpenTelemetryScope();
     scope.setTags({
@@ -143,21 +147,24 @@ describe('startTranscation', () => {
   it('creates a NodeExperimentalTransaction', () => {
     const client = new TestClient(getDefaultTestClientOptions());
     const hub = getCurrentHub();
-    hub.bindClient(client);
+    setCurrentClient(client);
+    client.init();
 
     const transaction = startTransaction(hub, { name: 'test' });
 
     expect(transaction).toBeInstanceOf(OpenTelemetryTransaction);
-
-    expect(transaction.sampled).toBe(undefined);
+    expect(transaction['_sampled']).toBe(undefined);
+    // eslint-disable-next-line deprecation/deprecation
     expect(transaction.spanRecorder).toBeDefined();
+    // eslint-disable-next-line deprecation/deprecation
     expect(transaction.spanRecorder?.spans).toHaveLength(1);
+    // eslint-disable-next-line deprecation/deprecation
     expect(transaction.metadata).toEqual({
       source: 'custom',
       spanMetadata: {},
     });
 
-    expect(transaction.toJSON()).toEqual(
+    expect(spanToJSON(transaction)).toEqual(
       expect.objectContaining({
         origin: 'manual',
         span_id: expect.any(String),
@@ -170,7 +177,8 @@ describe('startTranscation', () => {
   it('allows to pass data to transaction', () => {
     const client = new TestClient(getDefaultTestClientOptions());
     const hub = getCurrentHub();
-    hub.bindClient(client);
+    setCurrentClient(client);
+    client.init();
 
     const transaction = startTransaction(hub, {
       name: 'test',
@@ -180,13 +188,13 @@ describe('startTranscation', () => {
     });
 
     expect(transaction).toBeInstanceOf(OpenTelemetryTransaction);
-
+    // eslint-disable-next-line deprecation/deprecation
     expect(transaction.metadata).toEqual({
       source: 'custom',
       spanMetadata: {},
     });
 
-    expect(transaction.toJSON()).toEqual(
+    expect(spanToJSON(transaction)).toEqual(
       expect.objectContaining({
         origin: 'manual',
         span_id: 'span1',

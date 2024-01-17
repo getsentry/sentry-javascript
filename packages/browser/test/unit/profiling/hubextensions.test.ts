@@ -4,11 +4,14 @@ const patchedEncoder = (!global.window.TextEncoder && (global.window.TextEncoder
 // @ts-expect-error patch the encoder on the window, else importing JSDOM fails (deleted in afterAll)
 const patchedDecoder = (!global.window.TextDecoder && (global.window.TextDecoder = TextDecoder)) || true;
 
-import { getCurrentHub } from '@sentry/core';
+import { setCurrentClient } from '@sentry/core';
 import type { Transaction } from '@sentry/types';
 import { JSDOM } from 'jsdom';
 
 import { onProfilingStartRouteTransaction } from '../../../src';
+
+// eslint-disable-next-line no-bitwise
+const TraceFlagSampled = 0x1 << 0;
 
 // @ts-expect-error store a reference so we can reset it later
 const globalDocument = global.document;
@@ -27,7 +30,6 @@ describe('BrowserProfilingIntegration', () => {
     // @ts-expect-error need to override global document
     global.location = dom.window.location;
 
-    const hub = getCurrentHub();
     const client: any = {
       getDsn() {
         return {};
@@ -44,7 +46,7 @@ describe('BrowserProfilingIntegration', () => {
       },
     };
 
-    hub.bindClient(client);
+    setCurrentClient(client);
   });
 
   // Reset back to previous values
@@ -67,9 +69,17 @@ describe('BrowserProfilingIntegration', () => {
     // @ts-expect-error force api to be undefined
     global.window.Profiler = undefined;
     // set sampled to true so that profiling does not early return
-    const mockTransaction = { isRecording: () => true } as Transaction;
+    const mockTransaction = {
+      isRecording: () => true,
+      spanContext: () => ({
+        traceId: '12345678901234567890123456789012',
+        spanId: '1234567890123456',
+        traceFlags: TraceFlagSampled,
+      }),
+    } as Transaction;
     expect(() => onProfilingStartRouteTransaction(mockTransaction)).not.toThrow();
   });
+
   it('does not throw if constructor throws', () => {
     const spy = jest.fn();
 
@@ -80,8 +90,15 @@ describe('BrowserProfilingIntegration', () => {
       }
     }
 
-    // set isRecording to true so that profiling does not early return
-    const mockTransaction = { isRecording: () => true } as Transaction;
+    // set sampled to true so that profiling does not early return
+    const mockTransaction = {
+      isRecording: () => true,
+      spanContext: () => ({
+        traceId: '12345678901234567890123456789012',
+        spanId: '1234567890123456',
+        traceFlags: TraceFlagSampled,
+      }),
+    } as Transaction;
 
     // @ts-expect-error override with our own constructor
     global.window.Profiler = Profiler;

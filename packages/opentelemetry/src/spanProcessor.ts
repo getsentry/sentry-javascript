@@ -31,8 +31,9 @@ function onSpanStart(span: Span, parentContext: Context, _ScopeClass: typeof Ope
 
   // We need the scope at time of span creation in order to apply it to the event when the span is finished
   if (actualHub) {
+    // eslint-disable-next-line deprecation/deprecation
     const scope = actualHub.getScope();
-    setSpanScope(span, actualHub.getScope());
+    setSpanScope(span, scope);
     setSpanHub(span, actualHub);
 
     // Use this scope for finishing the span

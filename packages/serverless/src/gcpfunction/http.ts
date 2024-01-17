@@ -1,4 +1,4 @@
-import { Transaction, handleCallbackErrors } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, Transaction, handleCallbackErrors } from '@sentry/core';
 import type { AddRequestDataToEventOptions } from '@sentry/node';
 import { continueTrace, startSpanManual } from '@sentry/node';
 import { getCurrentScope } from '@sentry/node';
@@ -79,10 +79,8 @@ function _wrapHttpFunction(fn: HttpFunction, wrapOptions: Partial<HttpFunctionWr
         name: `${reqMethod} ${reqUrl}`,
         op: 'function.gcp.http',
         origin: 'auto.function.serverless.gcp_http',
-
-        metadata: {
-          ...continueTraceContext.metadata,
-          source: 'route',
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
         },
       },
       span => {

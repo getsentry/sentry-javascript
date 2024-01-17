@@ -1,10 +1,13 @@
 /* eslint-disable max-lines */
 import {
+  getActiveSpan,
   getActiveTransaction,
   getClient,
   getCurrentScope,
+  getDynamicSamplingContextFromSpan,
   hasTracingEnabled,
   runWithAsyncContext,
+  spanToJSON,
   spanToTraceHeader,
 } from '@sentry/core';
 import type { Hub } from '@sentry/node';
@@ -140,7 +143,9 @@ export async function captureRemixServerException(err: unknown, name: string, re
   const objectifiedErr = objectify(err);
 
   captureException(isResponse(objectifiedErr) ? await extractResponseError(objectifiedErr) : objectifiedErr, scope => {
-    const activeTransactionName = getActiveTransaction()?.name;
+    // eslint-disable-next-line deprecation/deprecation
+    const transaction = getActiveTransaction();
+    const activeTransactionName = transaction ? spanToJSON(transaction) : undefined;
 
     scope.setSDKProcessingMetadata({
       request: {
@@ -181,13 +186,15 @@ function makeWrappedDocumentRequestFunction(remixVersion?: number) {
       loadContext?: Record<string, unknown>,
     ): Promise<Response> {
       let res: Response;
+      // eslint-disable-next-line deprecation/deprecation
       const activeTransaction = getActiveTransaction();
 
       try {
+        // eslint-disable-next-line deprecation/deprecation
         const span = activeTransaction?.startChild({
           op: 'function.remix.document_request',
           origin: 'auto.function.remix',
-          description: activeTransaction.name,
+          description: spanToJSON(activeTransaction).description,
           tags: {
             method: request.method,
             url: request.url,
@@ -235,10 +242,12 @@ function makeWrappedDataFunction(
     }
 
     let res: Response | AppData;
+    // eslint-disable-next-line deprecation/deprecation
     const activeTransaction = getActiveTransaction();
     const currentScope = getCurrentScope();
 
     try {
+      // eslint-disable-next-line deprecation/deprecation
       const span = activeTransaction?.startChild({
         op: `function.remix.${name}`,
         origin: 'auto.ui.remix',
@@ -250,11 +259,13 @@ function makeWrappedDataFunction(
 
       if (span) {
         // Assign data function to hub to be able to see `db` transactions (if any) as children.
+        // eslint-disable-next-line deprecation/deprecation
         currentScope.setSpan(span);
       }
 
       res = await origFn.call(this, args);
 
+      // eslint-disable-next-line deprecation/deprecation
       currentScope.setSpan(activeTransaction);
       span?.end();
     } catch (err) {
@@ -290,14 +301,14 @@ function getTraceAndBaggage(): {
   sentryTrace?: string;
   sentryBaggage?: string;
 } {
+  // eslint-disable-next-line deprecation/deprecation
   const transaction = getActiveTransaction();
-  const currentScope = getCurrentScope();
 
   if (isNodeEnv() && hasTracingEnabled()) {
-    const span = currentScope.getSpan();
+    const span = getActiveSpan();
 
     if (span && transaction) {
-      const dynamicSamplingContext = transaction.getDynamicSamplingContext();
+      const dynamicSamplingContext = getDynamicSamplingContextFromSpan(transaction);
 
       return {
         sentryTrace: spanToTraceHeader(span),
@@ -392,6 +403,7 @@ export function startRequestHandlerTransaction(
     request.headers['sentry-trace'],
     request.headers.baggage,
   );
+  // eslint-disable-next-line deprecation/deprecation
   hub.getScope().setPropagationContext(propagationContext);
 
   // TODO: Refactor this to `startSpan()`
@@ -410,6 +422,7 @@ export function startRequestHandlerTransaction(
     },
   });
 
+  // eslint-disable-next-line deprecation/deprecation
   hub.getScope().setSpan(transaction);
   return transaction;
 }
@@ -439,6 +452,7 @@ function wrapRequestHandler(origRequestHandler: RequestHandler, build: ServerBui
     }
 
     return runWithAsyncContext(async () => {
+      // eslint-disable-next-line deprecation/deprecation
       const hub = getCurrentHub();
       const options = getClient()?.getOptions();
       const scope = getCurrentScope();

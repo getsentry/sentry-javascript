@@ -1,4 +1,5 @@
 import * as SentryBrowser from '@sentry/browser';
+import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
 import type { Transaction } from '@sentry/types';
 
 import { vueRouterInstrumentation } from '../src';
@@ -100,10 +101,8 @@ describe('vueRouterInstrumentation()', () => {
       expect(mockStartTransaction).toHaveBeenCalledTimes(2);
       expect(mockStartTransaction).toHaveBeenCalledWith({
         name: transactionName,
-        metadata: {
-          source: transactionSource,
-        },
         data: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: transactionSource,
           params: to.params,
           query: to.query,
         },
@@ -128,7 +127,7 @@ describe('vueRouterInstrumentation()', () => {
       const mockedTxn = {
         updateName: jest.fn(),
         setData: jest.fn(),
-        setMetadata: jest.fn(),
+        setAttribute: jest.fn(),
         metadata: {},
       };
       const customMockStartTxn = { ...mockStartTransaction }.mockImplementation(_ => {
@@ -146,8 +145,8 @@ describe('vueRouterInstrumentation()', () => {
       expect(customMockStartTxn).toHaveBeenCalledTimes(1);
       expect(customMockStartTxn).toHaveBeenCalledWith({
         name: '/',
-        metadata: {
-          source: 'url',
+        data: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
         },
         op: 'pageload',
         origin: 'auto.pageload.vue',
@@ -165,7 +164,7 @@ describe('vueRouterInstrumentation()', () => {
       expect(mockVueRouter.beforeEach).toHaveBeenCalledTimes(1);
 
       expect(mockedTxn.updateName).toHaveBeenCalledWith(transactionName);
-      expect(mockedTxn.setMetadata).toHaveBeenCalledWith({ source: transactionSource });
+      expect(mockedTxn.setAttribute).toHaveBeenCalledWith(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, transactionSource);
       expect(mockedTxn.setData).toHaveBeenNthCalledWith(1, 'params', to.params);
       expect(mockedTxn.setData).toHaveBeenNthCalledWith(2, 'query', to.query);
 
@@ -190,10 +189,8 @@ describe('vueRouterInstrumentation()', () => {
     // first startTx call happens when the instrumentation is initialized (for pageloads)
     expect(mockStartTransaction).toHaveBeenLastCalledWith({
       name: '/login',
-      metadata: {
-        source: 'route',
-      },
       data: {
+        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
         params: to.params,
         query: to.query,
       },
@@ -222,10 +219,8 @@ describe('vueRouterInstrumentation()', () => {
     // first startTx call happens when the instrumentation is initialized (for pageloads)
     expect(mockStartTransaction).toHaveBeenLastCalledWith({
       name: 'login-screen',
-      metadata: {
-        source: 'custom',
-      },
       data: {
+        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
         params: to.params,
         query: to.query,
       },
@@ -241,10 +236,13 @@ describe('vueRouterInstrumentation()', () => {
     const mockedTxn = {
       updateName: jest.fn(),
       setData: jest.fn(),
+      setAttribute: jest.fn(),
       name: '',
-      metadata: {
-        source: 'url',
-      },
+      toJSON: () => ({
+        data: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+        },
+      }),
     };
     const customMockStartTxn = { ...mockStartTransaction }.mockImplementation(_ => {
       return mockedTxn;
@@ -261,8 +259,8 @@ describe('vueRouterInstrumentation()', () => {
     expect(customMockStartTxn).toHaveBeenCalledTimes(1);
     expect(customMockStartTxn).toHaveBeenCalledWith({
       name: '/',
-      metadata: {
-        source: 'url',
+      data: {
+        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
       },
       op: 'pageload',
       origin: 'auto.pageload.vue',
@@ -274,7 +272,11 @@ describe('vueRouterInstrumentation()', () => {
     // now we give the transaction a custom name, thereby simulating what would
     // happen when users use the `beforeNavigate` hook
     mockedTxn.name = 'customTxnName';
-    mockedTxn.metadata.source = 'custom';
+    mockedTxn.toJSON = () => ({
+      data: {
+        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
+      },
+    });
 
     const beforeEachCallback = mockVueRouter.beforeEach.mock.calls[0][0];
     beforeEachCallback(testRoutes['normalRoute1'], testRoutes['initialPageloadRoute'], mockNext);
@@ -282,7 +284,7 @@ describe('vueRouterInstrumentation()', () => {
     expect(mockVueRouter.beforeEach).toHaveBeenCalledTimes(1);
 
     expect(mockedTxn.updateName).not.toHaveBeenCalled();
-    expect(mockedTxn.metadata.source).toEqual('custom');
+    expect(mockedTxn.setAttribute).not.toHaveBeenCalled();
     expect(mockedTxn.name).toEqual('customTxnName');
   });
 
@@ -344,10 +346,8 @@ describe('vueRouterInstrumentation()', () => {
     // first startTx call happens when the instrumentation is initialized (for pageloads)
     expect(mockStartTransaction).toHaveBeenLastCalledWith({
       name: '/login',
-      metadata: {
-        source: 'route',
-      },
       data: {
+        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
         params: to.params,
         query: to.query,
       },

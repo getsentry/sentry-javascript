@@ -1,4 +1,6 @@
 import http from 'http';
+import { loggingTransport, startExpressServerAndSendPortToRunner } from '@sentry-internal/node-integration-tests';
+import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
 import * as Sentry from '@sentry/node';
 import * as Tracing from '@sentry/tracing';
 import cors from 'cors';
@@ -19,6 +21,7 @@ Sentry.init({
   tracesSampleRate: 1.0,
   // TODO: We're rethinking the mechanism for including Pii data in DSC, hence commenting out sendDefaultPii for now
   // sendDefaultPii: true,
+  transport: loggingTransport,
 });
 
 Sentry.setUser({ id: 'user123', segment: 'SegmentA' });
@@ -29,10 +32,12 @@ app.use(Sentry.Handlers.tracingHandler());
 app.use(cors());
 
 app.get('/test/express', (_req, res) => {
-  const transaction = Sentry.getCurrentHub().getScope().getTransaction();
+  // eslint-disable-next-line deprecation/deprecation
+  const transaction = Sentry.getCurrentScope().getTransaction();
   if (transaction) {
+    // eslint-disable-next-line deprecation/deprecation
     transaction.traceId = '86f39e84263a4de99c326acab3bfe3bd';
-    transaction.setMetadata({ source: 'route' });
+    transaction.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
   }
   const headers = http.get('http://somewhere.not.sentry/').getHeaders();
 
@@ -42,4 +47,4 @@ app.get('/test/express', (_req, res) => {
 
 app.use(Sentry.Handlers.errorHandler());
 
-export default app;
+startExpressServerAndSendPortToRunner(app);

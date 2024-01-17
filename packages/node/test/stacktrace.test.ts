@@ -354,6 +354,63 @@ describe('Stack parsing', () => {
     ]);
   });
 
+  test('parses with async frames Windows', () => {
+    // https://github.com/getsentry/sentry-javascript/issues/4692#issuecomment-1063835795
+    const err = new Error();
+    err.stack =
+      'Error: Client request error\n' +
+      '    at Object.httpRequestError (file:///C:/code/node_modules/@waroncancer/gaia/lib/error/error-factory.js:17:73)\n' +
+      '    at Object.run (file:///C:/code/node_modules/@waroncancer/gaia/lib/http-client/http-client.js:81:36)\n' +
+      '    at processTicksAndRejections (node:internal/process/task_queues:96:5)\n' +
+      '    at async Object.send (file:///C:/code/lib/post-created/send-post-created-notification-module.js:17:27)\n' +
+      '    at async each (file:///C:/code/lib/process-post-events-module.js:14:21)\n';
+
+    const frames = parseStackFrames(stackParser, err);
+
+    expect(frames).toEqual([
+      {
+        filename: 'C:/code/lib/process-post-events-module.js',
+        module: 'process-post-events-module',
+        function: 'each',
+        lineno: 14,
+        colno: 21,
+        in_app: true,
+      },
+      {
+        filename: 'C:/code/lib/post-created/send-post-created-notification-module.js',
+        module: 'send-post-created-notification-module',
+        function: 'Object.send',
+        lineno: 17,
+        colno: 27,
+        in_app: true,
+      },
+      {
+        filename: 'node:internal/process/task_queues',
+        module: 'task_queues',
+        function: 'processTicksAndRejections',
+        lineno: 96,
+        colno: 5,
+        in_app: false,
+      },
+      {
+        filename: 'C:/code/node_modules/@waroncancer/gaia/lib/http-client/http-client.js',
+        module: '@waroncancer.gaia.lib.http-client:http-client',
+        function: 'Object.run',
+        lineno: 81,
+        colno: 36,
+        in_app: false,
+      },
+      {
+        filename: 'C:/code/node_modules/@waroncancer/gaia/lib/error/error-factory.js',
+        module: '@waroncancer.gaia.lib.error:error-factory',
+        function: 'Object.httpRequestError',
+        lineno: 17,
+        colno: 73,
+        in_app: false,
+      },
+    ]);
+  });
+
   test('parses with colons in paths', () => {
     const err = new Error();
     err.stack =

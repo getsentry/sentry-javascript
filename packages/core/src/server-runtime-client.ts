@@ -21,7 +21,12 @@ import { getClient } from './exports';
 import { MetricsAggregator } from './metrics/aggregator';
 import type { Scope } from './scope';
 import { SessionFlusher } from './sessionflusher';
-import { addTracingExtensions, getDynamicSamplingContextFromClient } from './tracing';
+import {
+  addTracingExtensions,
+  getDynamicSamplingContextFromClient,
+  getDynamicSamplingContextFromSpan,
+} from './tracing';
+import { getRootSpan } from './utils/getRootSpan';
 import { spanToTraceContext } from './utils/spanUtils';
 
 export interface ServerRuntimeClientOptions extends ClientOptions<BaseTransportOptions> {
@@ -255,9 +260,10 @@ export class ServerRuntimeClient<
       return [undefined, undefined];
     }
 
+    // eslint-disable-next-line deprecation/deprecation
     const span = scope.getSpan();
     if (span) {
-      const samplingContext = span.transaction ? span.transaction.getDynamicSamplingContext() : undefined;
+      const samplingContext = getRootSpan(span) ? getDynamicSamplingContextFromSpan(span) : undefined;
       return [samplingContext, spanToTraceContext(span)];
     }
 

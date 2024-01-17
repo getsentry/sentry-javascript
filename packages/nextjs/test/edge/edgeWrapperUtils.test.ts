@@ -1,4 +1,5 @@
 import * as coreSdk from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
 
 import { withEdgeWrapping } from '../../src/common/utils/edgeWrapperUtils';
 
@@ -81,7 +82,12 @@ describe('withEdgeWrapping', () => {
     expect(startSpanSpy).toHaveBeenCalledTimes(1);
     expect(startSpanSpy).toHaveBeenCalledWith(
       expect.objectContaining({
-        metadata: { request: { headers: {} }, source: 'route' },
+        metadata: {
+          request: { headers: {} },
+        },
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+        },
         name: 'some label',
         op: 'some op',
         origin: 'auto.function.nextjs.withEdgeWrapping',

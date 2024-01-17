@@ -1,7 +1,8 @@
 import { SpanKind, TraceFlags, context, trace } from '@opentelemetry/api';
 import type { SpanProcessor } from '@opentelemetry/sdk-trace-base';
 import { SemanticAttributes } from '@opentelemetry/semantic-conventions';
-import { SentrySpanProcessor, getCurrentHub, setPropagationContextOnContext } from '@sentry/opentelemetry';
+import { spanToJSON } from '@sentry/core';
+import { SentrySpanProcessor, getClient, setPropagationContextOnContext } from '@sentry/opentelemetry';
 import type { Integration, PropagationContext, TransactionEvent } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
@@ -145,7 +146,7 @@ describe('Integration | Transactions', () => {
 
     // note: Currently, spans do not have any context/span added to them
     // This is the same behavior as for the "regular" SDKs
-    expect(spans.map(span => span.toJSON())).toEqual([
+    expect(spans.map(span => spanToJSON(span))).toEqual([
       {
         data: { 'otel.kind': 'INTERNAL' },
         description: 'inner span 1',
@@ -337,8 +338,7 @@ describe('Integration | Transactions', () => {
 
     mockSdkInit({ enableTracing: true, beforeSendTransaction });
 
-    const hub = getCurrentHub();
-    const client = hub.getClient() as NodeExperimentalClient;
+    const client = getClient() as NodeExperimentalClient;
 
     // We simulate the correct context we'd normally get from the SentryPropagator
     context.with(
@@ -399,7 +399,7 @@ describe('Integration | Transactions', () => {
 
     // note: Currently, spans do not have any context/span added to them
     // This is the same behavior as for the "regular" SDKs
-    expect(spans.map(span => span.toJSON())).toEqual([
+    expect(spans.map(span => spanToJSON(span))).toEqual([
       {
         data: { 'otel.kind': 'INTERNAL' },
         description: 'inner span 1',
@@ -437,8 +437,7 @@ describe('Integration | Transactions', () => {
 
     mockSdkInit({ enableTracing: true, beforeSendTransaction });
 
-    const hub = getCurrentHub();
-    const client = hub.getClient() as NodeExperimentalClient;
+    const client = getClient() as NodeExperimentalClient;
     const provider = getProvider();
     const multiSpanProcessor = provider?.activeSpanProcessor as
       | (SpanProcessor & { _spanProcessors?: SpanProcessor[] })
@@ -511,11 +510,10 @@ describe('Integration | Transactions', () => {
 
     jest.useFakeTimers();
 
-    const hub = getCurrentHub();
-    const client = hub.getClient() as NodeExperimentalClient;
+    const client = getClient() as NodeExperimentalClient;
 
-    jest.spyOn(client, 'getIntegration').mockImplementation(integrationClass => {
-      if (integrationClass.name === 'Http') {
+    jest.spyOn(client, 'getIntegrationByName').mockImplementation(name => {
+      if (name === 'Http') {
         return {
           shouldCreateSpansForRequests: false,
         } as Http;
@@ -576,11 +574,10 @@ describe('Integration | Transactions', () => {
 
     jest.useFakeTimers();
 
-    const hub = getCurrentHub();
-    const client = hub.getClient() as NodeExperimentalClient;
+    const client = getClient() as NodeExperimentalClient;
 
-    jest.spyOn(client, 'getIntegration').mockImplementation(integrationClass => {
-      if (integrationClass.name === 'NodeFetch') {
+    jest.spyOn(client, 'getIntegrationByName').mockImplementation(name => {
+      if (name === 'NodeFetch') {
         return {
           shouldCreateSpansForRequests: false,
         } as NodeFetch;

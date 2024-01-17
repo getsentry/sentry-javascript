@@ -1,6 +1,6 @@
 import { TextEncoder } from 'util';
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
-import { getCurrentHub } from '@sentry/core';
+import { getClient } from '@sentry/core';
 import type { ReplayRecordingData, Transport } from '@sentry/types';
 import * as SentryUtils from '@sentry/utils';
 
@@ -155,7 +155,7 @@ const toHaveSentReplay = function (
   _received: jest.Mocked<ReplayContainer>,
   expected?: SentReplayExpected | { sample: SentReplayExpected; inverse: boolean },
 ) {
-  const { calls } = (getCurrentHub().getClient()?.getTransport()?.send as MockTransport).mock;
+  const { calls } = (getClient()?.getTransport()?.send as MockTransport).mock;
 
   let result: CheckCallForSentReplayResult;
 
@@ -214,7 +214,7 @@ const toHaveLastSentReplay = function (
   _received: jest.Mocked<ReplayContainer>,
   expected?: SentReplayExpected | { sample: SentReplayExpected; inverse: boolean },
 ) {
-  const { calls } = (getCurrentHub().getClient()?.getTransport()?.send as MockTransport).mock;
+  const { calls } = (getClient()?.getTransport()?.send as MockTransport).mock;
   const replayCalls = getReplayCalls(calls);
 
   const lastCall = replayCalls[calls.length - 1]?.[0];

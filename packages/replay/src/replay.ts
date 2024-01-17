@@ -1,6 +1,12 @@
 /* eslint-disable max-lines */ // TODO: We might want to split this file up
 import { EventType, record } from '@sentry-internal/rrweb';
-import { captureException, getClient, getCurrentScope } from '@sentry/core';
+import {
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  captureException,
+  getClient,
+  getCurrentScope,
+  spanToJSON,
+} from '@sentry/core';
 import type { ReplayRecordingMode, Transaction } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
@@ -699,12 +705,16 @@ export class ReplayContainer implements ReplayContainerInterface {
    * This is only available if performance is enabled, and if an instrumented router is used.
    */
   public getCurrentRoute(): string | undefined {
+    // eslint-disable-next-line deprecation/deprecation
     const lastTransaction = this.lastTransaction || getCurrentScope().getTransaction();
-    if (!lastTransaction || !['route', 'custom'].includes(lastTransaction.metadata.source)) {
+
+    const attributes = (lastTransaction && spanToJSON(lastTransaction).data) || {};
+    const source = attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE];
+    if (!lastTransaction || !source || !['route', 'custom'].includes(source)) {
       return undefined;
     }
 
-    return lastTransaction.name;
+    return spanToJSON(lastTransaction).description;
   }
 
   /**

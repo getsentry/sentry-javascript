@@ -1,7 +1,7 @@
 import * as http from 'http';
 import { URL } from 'url';
 import { convertIntegrationFnToClass } from '@sentry/core';
-import type { Client, Envelope, IntegrationFn } from '@sentry/types';
+import type { Client, Envelope, Integration, IntegrationClass, IntegrationFn } from '@sentry/types';
 import { logger, serializeEnvelope } from '@sentry/utils';
 
 type SpotlightConnectionOptions = {
@@ -21,6 +21,8 @@ const spotlightIntegration = ((options: Partial<SpotlightConnectionOptions> = {}
 
   return {
     name: INTEGRATION_NAME,
+    // TODO v8: Remove this
+    setupOnce() {}, // eslint-disable-line @typescript-eslint/no-empty-function
     setup(client) {
       if (typeof process === 'object' && process.env && process.env.NODE_ENV !== 'development') {
         logger.warn("[Spotlight] It seems you're not in dev mode. Do you really want to have Spotlight enabled?");
@@ -38,7 +40,15 @@ const spotlightIntegration = ((options: Partial<SpotlightConnectionOptions> = {}
  * Important: This integration only works with Node 18 or newer
  */
 // eslint-disable-next-line deprecation/deprecation
-export const Spotlight = convertIntegrationFnToClass(INTEGRATION_NAME, spotlightIntegration);
+export const Spotlight = convertIntegrationFnToClass(INTEGRATION_NAME, spotlightIntegration) as IntegrationClass<
+  Integration & { setup: (client: Client) => void }
+> & {
+  new (
+    options?: Partial<{
+      sidecarUrl?: string;
+    }>,
+  ): Integration;
+};
 
 function connectToSpotlight(client: Client, options: Required<SpotlightConnectionOptions>): void {
   const spotlightUrl = parseSidecarUrl(options.sidecarUrl);

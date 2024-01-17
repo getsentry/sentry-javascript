@@ -1,5 +1,5 @@
 import { convertIntegrationFnToClass } from '@sentry/core';
-import type { Event, IntegrationFn, StackFrame } from '@sentry/types';
+import type { Event, Integration, IntegrationClass, IntegrationFn, StackFrame } from '@sentry/types';
 import { LRUMap, addContextToFrame } from '@sentry/utils';
 
 const INTEGRATION_NAME = 'ContextLines';
@@ -47,20 +47,25 @@ interface ContextLinesOptions {
   frameContextLines?: number;
 }
 
-const denoContextLinesIntegration: IntegrationFn = (options: ContextLinesOptions = {}) => {
+const denoContextLinesIntegration = ((options: ContextLinesOptions = {}) => {
   const contextLines = options.frameContextLines !== undefined ? options.frameContextLines : DEFAULT_LINES_OF_CONTEXT;
 
   return {
     name: INTEGRATION_NAME,
+    // TODO v8: Remove this
+    setupOnce() {}, // eslint-disable-line @typescript-eslint/no-empty-function
     processEvent(event) {
       return addSourceContext(event, contextLines);
     },
   };
-};
+}) satisfies IntegrationFn;
 
 /** Add node modules / packages to the event */
 // eslint-disable-next-line deprecation/deprecation
-export const ContextLines = convertIntegrationFnToClass(INTEGRATION_NAME, denoContextLinesIntegration);
+export const ContextLines = convertIntegrationFnToClass(
+  INTEGRATION_NAME,
+  denoContextLinesIntegration,
+) as IntegrationClass<Integration & { processEvent: (event: Event) => Promise<Event> }>;
 
 /** Processes an event and adds context lines */
 async function addSourceContext(event: Event, contextLines: number): Promise<Event> {

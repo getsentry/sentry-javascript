@@ -1,6 +1,7 @@
 import { Breadcrumbs, Dedupe } from '@sentry/browser';
 import type { ServerRuntimeClientOptions } from '@sentry/core';
-import { Integrations as CoreIntegrations, getIntegrationsToSetup, initAndBind } from '@sentry/core';
+import { FunctionToString, InboundFilters, LinkedErrors } from '@sentry/core';
+import { getIntegrationsToSetup, initAndBind } from '@sentry/core';
 import type { StackParser } from '@sentry/types';
 import { createStackParser, nodeStackLineParser, stackParserFromStackParserOptions } from '@sentry/utils';
 
@@ -9,11 +10,12 @@ import { ContextLines, DenoContext, GlobalHandlers, NormalizePaths } from './int
 import { makeFetchTransport } from './transports';
 import type { DenoOptions } from './types';
 
+/* eslint-disable deprecation/deprecation */
 export const defaultIntegrations = [
   // Common
-  new CoreIntegrations.InboundFilters(),
-  new CoreIntegrations.FunctionToString(),
-  new CoreIntegrations.LinkedErrors(),
+  new InboundFilters(),
+  new FunctionToString(),
+  new LinkedErrors(),
   // From Browser
   new Dedupe(),
   new Breadcrumbs({
@@ -27,6 +29,7 @@ export const defaultIntegrations = [
   new NormalizePaths(),
   new GlobalHandlers(),
 ];
+/* eslint-enable deprecation/deprecation */
 
 const defaultStackParser: StackParser = createStackParser(nodeStackLineParser());
 
