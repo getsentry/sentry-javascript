@@ -6,7 +6,7 @@
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/profiling-node",
   "author": "Sentry",
   "license": "MIT",
-  "main": "lib/npm/index.js",
+  "main": "lib/index.js",
   "types": "lib/types/index.d.ts",
   "typesVersions": {
     "<4.9": {
@@ -70,7 +70,7 @@
     "test:rollup:build": "rollup --config examples/rollup.config.js",
     "test:rollup:run": "BUNDLER=rollup node examples/dist/rollup/index.js",
     "test:rollup": "yarn test:rollup:build && yarn test:rollup:run",
-    "test": "cross-env SENTRY_PROFILER_BINARY_DIR=lib/npm jest --config jest.config.js"
+    "test": "cross-env SENTRY_PROFILER_BINARY_DIR=lib jest --config jest.config.js"
   },
   "dependencies": {
     "detect-libc": "^2.0.2",
