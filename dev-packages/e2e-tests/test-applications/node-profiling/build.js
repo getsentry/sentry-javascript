@@ -13,7 +13,6 @@ esbuild.build({
   target: 'esnext',
   format: 'cjs',
   bundle: true,
-  tsconfig: './tsconfig.json',
   loader: {
     '.node': 'copy',
   },
