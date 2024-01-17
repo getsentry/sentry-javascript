@@ -423,7 +423,7 @@ export function _addResourceSpans(
     data['resource.render_blocking_status'] = entry.renderBlockingStatus;
   }
   if (parsedUrl.protocol) {
-    data['url.scheme'] = parsedUrl.protocol;
+    data['url.scheme'] = parsedUrl.protocol.split(':').pop(); // the protocol returned by parseUrl includes a :, but OTEL spec does not, so we remove it.
   }
 
   if (parsedUrl.host) {

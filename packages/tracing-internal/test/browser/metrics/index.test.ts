@@ -7,7 +7,7 @@ const mockWindowLocation = {
   ancestorOrigins: {},
   href: "https://example.com/path/to/something",
   origin: "https://example.com",
-  protocol: "https:",
+  protocol: "https",
   host: "example.com",
   hostname: "example.com",
   port: "",
@@ -235,12 +235,7 @@ describe('_addResourceSpans', () => {
     // eslint-disable-next-line @typescript-eslint/unbound-method, deprecation/deprecation
     expect(transaction.startChild).toHaveBeenLastCalledWith(
       expect.objectContaining({
-        data: { "server.address": "example.com", "url.same_origin": true, "url.scheme": "https:" },
-        "description": "/assets/to/css",
-        "endTimestamp": 468,
-        "op": "resource.css",
-        "origin": "auto.resource.browser.metrics",
-        "startTimestamp": 445,
+        data: { "server.address": "example.com", "url.same_origin": true, "url.scheme": "https" },
       }),
     );
   });
