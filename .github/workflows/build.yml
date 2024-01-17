@@ -1154,28 +1154,10 @@ jobs:
         with:
           ref: ${{ env.HEAD_COMMIT }}
 
-      - name: Install git (alpine)
-        if: contains(matrix.container, 'alpine')
-        run: |
-          apk add --no-cache git
-          git config --global --add safe.directory '*'
-
-      - name: Install git (ubuntu)
-        if: contains(matrix.os, 'ubuntu') && !contains(matrix.container, 'alpine')
-        run: sudo apt-get install -y git
-
-      - name: Install git (macos)
-        if: contains(matrix.os, 'macos')
-        run: brew install git
-
-      - name: Install git (windows)
-        if: contains(matrix.os, 'windows')
-        run: choco install git
-
       - name: Setup (alpine)
         if: contains(matrix.container, 'alpine')
         run: |
-          apk add --no-cache build-base g++ make curl python3
+          apk add --no-cache build-base git g++ make curl python3
           ln -sf python3 /usr/bin/python
 
       - name: Install yarn
@@ -1193,12 +1175,6 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
 
-      # - name: Test python cmd
-      #   run: |
-      #     which python
-      #     echo "python: ${{ steps.python-setup.outputs.python-path }}"
-      #     python -c "import sys; print(sys.version_info)"
-
       - name: Install Dependencies
         run: yarn install --frozen-lockfile --ignore-engines --ignore-scripts
 
@@ -1207,19 +1183,19 @@ jobs:
         if: matrix.arch != 'arm64'
         run: |
           cd packages/profiling-node
-          yarn build:bindings:configure --python=${{ steps.python-setup.outputs.python-path }}
+          yarn build:bindings:configure
 
       - name: Configure node-gyp (arm64, ${{ contains(matrix.container, 'alpine') && 'musl' || 'glibc'  }})
         if: matrix.arch == 'arm64' && matrix.target_platform != 'darwin'
         run: |
           cd packages/profiling-node
-          yarn build:bindings:configure:arm64 --python=${{ steps.python-setup.outputs.python-path }}
+          yarn build:bindings:configure:arm64
 
       - name: Configure node-gyp (arm64, darwin)
         if: matrix.arch == 'arm64' && matrix.target_platform == 'darwin'
         run: |
           cd packages/profiling-node
-          yarn build:bindings:configure:arm64 --python=${{ steps.python-setup.outputs.python-path }}
+          yarn build:bindings:configure:arm64
 
       # build monorepo
       - name: Build Packages
