@@ -174,6 +174,14 @@ export interface Span extends SpanContext {
   name: string;
 
   /**
+   * Operation of the Span.
+   *
+   * @deprecated Use `startSpan()` functions to set, `span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'op')
+   * to update and `spanToJSON().op` to read the op instead
+   */
+  op?: string;
+
+  /**
    * The ID of the span.
    * @deprecated Use `spanContext().spanId` instead.
    */
