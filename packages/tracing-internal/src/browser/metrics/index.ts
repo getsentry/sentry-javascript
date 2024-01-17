@@ -372,21 +372,27 @@ function _addPerformanceNavigationTiming(
 /** Create request and response related spans */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function _addRequest(transaction: Transaction, entry: Record<string, any>, timeOrigin: number): void {
-  _startChild(transaction, {
-    op: 'browser',
-    origin: 'auto.browser.browser.metrics',
-    description: 'request',
-    startTimestamp: timeOrigin + msToSec(entry.requestStart as number),
-    endTimestamp: timeOrigin + msToSec(entry.responseEnd as number),
-  });
+  if (entry.responseEnd) {
+    // It is possible that we are collecting these metrics when the page hasn't finished loading yet, for example when the HTML slowly streams in.
+    // In this case, ie. when the document request hasn't finished yet, `entry.responseEnd` will be 0.
+    // In order not to produce faulty spans, where the end timestamp is before the start timestamp, we will only collect
+    // these spans when the responseEnd value is available. The backend (Relay) would drop the entire transaction if it contained faulty spans.
+    _startChild(transaction, {
+      op: 'browser',
+      origin: 'auto.browser.browser.metrics',
+      description: 'request',
+      startTimestamp: timeOrigin + msToSec(entry.requestStart as number),
+      endTimestamp: timeOrigin + msToSec(entry.responseEnd as number),
+    });
 
-  _startChild(transaction, {
-    op: 'browser',
-    origin: 'auto.browser.browser.metrics',
-    description: 'response',
-    startTimestamp: timeOrigin + msToSec(entry.responseStart as number),
-    endTimestamp: timeOrigin + msToSec(entry.responseEnd as number),
-  });
+    _startChild(transaction, {
+      op: 'browser',
+      origin: 'auto.browser.browser.metrics',
+      description: 'response',
+      startTimestamp: timeOrigin + msToSec(entry.responseStart as number),
+      endTimestamp: timeOrigin + msToSec(entry.responseEnd as number),
+    });
+  }
 }
 
 export interface ResourceEntry extends Record<string, unknown> {
