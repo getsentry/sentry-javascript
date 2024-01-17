@@ -83,7 +83,6 @@ export {
   functionToStringIntegration,
   inboundFiltersIntegration,
   linkedErrorsIntegration,
-  moduleMetadataIntegration,
   requestDataIntegration,
 } from '@sentry/core';
 export type { SpanStatusType } from '@sentry/core';

@@ -79,7 +79,6 @@ export {
   metrics,
   inboundFiltersIntegration,
   linkedErrorsIntegration,
-  moduleMetadataIntegration,
   functionToStringIntegration,
   requestDataIntegration,
 } from '@sentry/core';
