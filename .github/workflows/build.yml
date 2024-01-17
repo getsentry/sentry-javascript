@@ -1172,11 +1172,6 @@ jobs:
         if: contains(matrix.os, 'windows')
         run: choco install git
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ matrix.node }}
-
       - name: Setup (alpine)
         if: contains(matrix.container, 'alpine')
         run: apk add --no-cache build-base g++ make curl
@@ -1190,10 +1185,20 @@ jobs:
         with:
           python-version: '3.11'
 
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+
       - name: Print which python
         run: |
           which python
           echo "python: ${{ steps.python-setup.outputs.python-path }}"
+
+      - name: Verify python cmd
+        run: |
+          ${{ steps.python-setup.outputs.python-path }} --version
+          ${{ steps.python-setup.outputs.python-path }} -c "import sys; print(sys.version_info)"
 
       - name: Install Dependencies
         run: yarn install --frozen-lockfile --ignore-engines --ignore-scripts
