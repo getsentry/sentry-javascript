@@ -1189,11 +1189,7 @@ jobs:
 
       - name: Build
         run: |
-          yarn build \
-          --ignore @sentry/profiling-node \
-          --ignore @sentry/astro \
-          --ignore @sentry/serverless \
-          --ignore @sentry/browser
+          yarn build --ignore "@sentry/{profiling-node,astro,serverless,browser}"
 
       # configure build test copy x64
       - name: Configure node-gyp
