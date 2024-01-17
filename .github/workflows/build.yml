@@ -855,7 +855,7 @@ jobs:
           # On develop branch, we want to _store_ the cache (so it can be used by other branches), but never _restore_ from it
           restore-keys: ${{ env.NX_CACHE_RESTORE_KEYS }}
       - name: Build tarballs
-        run: yarn build:tarball
+        run: yarn build:tarball --ignore @sentry/profiling-node
       - name: Stores tarballs in cache
         uses: actions/cache/save@v3
         with:
@@ -1139,15 +1139,15 @@ jobs:
             target_platform: darwin
 
             # windows x64
-          - os: windows-2019
+          - os: windows-2022
             node: 16
             arch: x64
 
-          - os: windows-2019
+          - os: windows-2022
             node: 18
             arch: x64
 
-          - os: windows-2019
+          - os: windows-2022
             node: 20
             arch: x64
     steps:
@@ -1174,7 +1174,9 @@ jobs:
           git config --global --add safe.directory "*"
 
       - name: Install yarn
-        run: npm i -g yarn@1.22.19 --force
+        run: |
+          npm i -g yarn@1.22.19 --force
+          yarn config set network-timeout 600000 -g
 
       - name: Setup python
         uses: actions/setup-python@v4
