@@ -1312,9 +1312,6 @@ jobs:
           cd packages/profiling-node
           yarn build:bindings:configure:arm64
 
-      - name: Build Monorepo
-        run: yarn build --ignore @sentry/serverless --ignore @sentry/browser
-
       # build bindings
       - name: Build Bindings
         if: matrix.arch != 'arm64'
@@ -1346,6 +1343,9 @@ jobs:
           BUILD_PLATFORM=darwin \
           BUILD_ARCH=arm64 \
           yarn build:bindings:arm64
+
+      - name: Build Monorepo
+        run: yarn build --ignore @sentry/serverless --ignore @sentry/browser
 
       - name: Test Bindings
         if: matrix.arch != 'arm64'
