@@ -119,6 +119,7 @@ export class SentrySpanProcessor implements OtelSpanProcessor {
       return;
     }
 
+    // eslint-disable-next-line deprecation/deprecation
     const hub = getCurrentHub();
     otelSpan.events.forEach(event => {
       maybeCaptureExceptionForTimedEvent(hub, event, otelSpan);
@@ -126,7 +127,7 @@ export class SentrySpanProcessor implements OtelSpanProcessor {
 
     if (sentrySpan instanceof Transaction) {
       updateTransactionWithOtelData(sentrySpan, otelSpan);
-      sentrySpan.setHub(getCurrentHub());
+      sentrySpan.setHub(hub);
     } else {
       updateSpanWithOtelData(sentrySpan, otelSpan);
     }

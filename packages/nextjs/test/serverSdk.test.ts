@@ -116,9 +116,11 @@ describe('Server init()', () => {
   });
 
   it("initializes both global hub and domain hub when there's an active domain", () => {
+    // eslint-disable-next-line deprecation/deprecation
     const globalHub = getCurrentHub();
 
     runWithAsyncContext(() => {
+      // eslint-disable-next-line deprecation/deprecation
       const globalHub2 = getCurrentHub();
       // If we call runWithAsyncContext before init, it executes the callback in the same context as there is no
       // strategy yet
@@ -131,6 +133,7 @@ describe('Server init()', () => {
       init({});
 
       runWithAsyncContext(() => {
+        // eslint-disable-next-line deprecation/deprecation
         const domainHub = getCurrentHub();
         // this tag should end up only in the domain hub
         // eslint-disable-next-line deprecation/deprecation

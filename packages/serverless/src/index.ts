@@ -29,6 +29,7 @@ export {
   createTransport,
   // eslint-disable-next-line deprecation/deprecation
   getActiveTransaction,
+  // eslint-disable-next-line deprecation/deprecation
   getCurrentHub,
   getClient,
   getCurrentScope,
