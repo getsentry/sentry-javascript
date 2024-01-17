@@ -1267,7 +1267,7 @@ jobs:
         run: yarn install --frozen-lockfile --ignore-engines --ignore-scripts
 
       - name: Install git (ubuntu)
-        if: contains(matrix.os, 'ubuntu')
+        if: contains(matrix.os, 'ubuntu') && !contains(matrix.container, 'alpine')
         run: sudo apt-get install -y git
 
       - name: Install git (macos)
