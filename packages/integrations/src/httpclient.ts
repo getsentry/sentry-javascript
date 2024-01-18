@@ -1,4 +1,10 @@
-import { captureEvent, convertIntegrationFnToClass, getClient, isSentryRequestUrl } from '@sentry/core';
+import {
+  captureEvent,
+  convertIntegrationFnToClass,
+  defineIntegration,
+  getClient,
+  isSentryRequestUrl,
+} from '@sentry/core';
 import type {
   Client,
   Event as SentryEvent,
@@ -45,7 +51,7 @@ interface HttpClientOptions {
   failedRequestTargets: HttpRequestTarget[];
 }
 
-const httpClientIntegration = ((options: Partial<HttpClientOptions> = {}) => {
+const _httpClientIntegration = ((options: Partial<HttpClientOptions> = {}) => {
   const _options: HttpClientOptions = {
     failedRequestStatusCodes: [[500, 599]],
     failedRequestTargets: [/.*/],
@@ -63,7 +69,12 @@ const httpClientIntegration = ((options: Partial<HttpClientOptions> = {}) => {
   };
 }) satisfies IntegrationFn;
 
-/** HTTPClient integration creates events for failed client side HTTP requests. */
+export const httpClientIntegration = defineIntegration(_httpClientIntegration);
+
+/**
+ * Create events for failed client side HTTP requests.
+ * @deprecated Use `httpClientIntegration()` instead.
+ */
 // eslint-disable-next-line deprecation/deprecation
 export const HttpClient = convertIntegrationFnToClass(INTEGRATION_NAME, httpClientIntegration) as IntegrationClass<
   Integration & { setup: (client: Client) => void }

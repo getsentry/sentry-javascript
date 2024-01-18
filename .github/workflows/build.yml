@@ -100,6 +100,7 @@ jobs:
               - *shared
               - 'packages/browser/**'
               - 'packages/replay/**'
+              - 'packages/replay-canvas/**'
               - 'packages/feedback/**'
             browser_integration:
               - *shared
@@ -371,6 +372,7 @@ jobs:
             ${{ github.workspace }}/packages/browser/build/bundles/**
             ${{ github.workspace }}/packages/integrations/build/bundles/**
             ${{ github.workspace }}/packages/replay/build/bundles/**
+            ${{ github.workspace }}/packages/replay-canvas/build/bundles/**
             ${{ github.workspace }}/packages/**/*.tgz
             ${{ github.workspace }}/packages/serverless/build/aws/dist-serverless/*.zip
 

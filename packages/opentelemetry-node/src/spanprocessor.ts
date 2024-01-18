@@ -3,6 +3,7 @@ import { SpanKind, context, trace } from '@opentelemetry/api';
 import { suppressTracing } from '@opentelemetry/core';
 import type { Span as OtelSpan, SpanProcessor as OtelSpanProcessor } from '@opentelemetry/sdk-trace-base';
 import {
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   Transaction,
   addEventProcessor,
@@ -203,7 +204,7 @@ function updateSpanWithOtelData(sentrySpan: SentrySpan, otelSpan: OtelSpan): voi
   };
   sentrySpan.setAttributes(allData);
 
-  sentrySpan.op = op;
+  sentrySpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, op);
   sentrySpan.updateName(description);
 }
 
@@ -221,7 +222,7 @@ function updateTransactionWithOtelData(transaction: Transaction, otelSpan: OtelS
 
   transaction.setStatus(mapOtelStatus(otelSpan));
 
-  transaction.op = op;
+  transaction.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, op);
   transaction.updateName(description);
   transaction.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, source);
 }

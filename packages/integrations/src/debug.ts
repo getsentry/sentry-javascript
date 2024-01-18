@@ -1,4 +1,4 @@
-import { convertIntegrationFnToClass } from '@sentry/core';
+import { convertIntegrationFnToClass, defineIntegration } from '@sentry/core';
 import type { Client, Event, EventHint, Integration, IntegrationClass, IntegrationFn } from '@sentry/types';
 import { consoleSandbox } from '@sentry/utils';
 
@@ -11,7 +11,7 @@ interface DebugOptions {
   debugger?: boolean;
 }
 
-const debugIntegration = ((options: DebugOptions = {}) => {
+const _debugIntegration = ((options: DebugOptions = {}) => {
   const _options = {
     debugger: false,
     stringify: false,
@@ -53,9 +53,13 @@ const debugIntegration = ((options: DebugOptions = {}) => {
   };
 }) satisfies IntegrationFn;
 
+export const debugIntegration = defineIntegration(_debugIntegration);
+
 /**
  * Integration to debug sent Sentry events.
- * This integration should not be used in production
+ * This integration should not be used in production.
+ *
+ * @deprecated Use `debugIntegration()` instead.
  */
 // eslint-disable-next-line deprecation/deprecation
 export const Debug = convertIntegrationFnToClass(INTEGRATION_NAME, debugIntegration) as IntegrationClass<

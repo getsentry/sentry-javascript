@@ -34,6 +34,8 @@ export type {
   ReplaySpanFrameEvent,
 } from '@sentry/replay';
 
+export { ReplayCanvas } from '@sentry-internal/replay-canvas';
+
 export { Feedback } from '@sentry-internal/feedback';
 
 export {

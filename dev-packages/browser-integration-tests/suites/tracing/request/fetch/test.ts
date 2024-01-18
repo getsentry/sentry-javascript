@@ -25,6 +25,7 @@ sentryTest('should create spans for multiple fetch requests', async ({ getLocalT
   const envelopes = await getMultipleSentryEnvelopeRequests<Event>(page, 2, { url, timeout: 10000 });
   const tracingEvent = envelopes[envelopes.length - 1]; // last envelope contains tracing data on all browsers
 
+  // eslint-disable-next-line deprecation/deprecation
   const requestSpans = tracingEvent.spans?.filter(({ op }) => op === 'http.client');
 
   expect(requestSpans).toHaveLength(3);

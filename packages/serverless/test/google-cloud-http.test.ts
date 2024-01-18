@@ -6,13 +6,6 @@ import * as nock from 'nock';
 
 import { GoogleCloudHttp } from '../src/google-cloud-http';
 
-/**
- * Why @ts-expect-error some Sentry.X calls
- *
- * A hack-ish way to contain everything related to mocks in the same __mocks__ file.
- * Thanks to this, we don't have to do more magic than necessary. Just add and export desired method and assert on it.
- */
-
 describe('GoogleCloudHttp tracing', () => {
   beforeAll(() => {
     new GoogleCloudHttp().setupOnce();
@@ -57,17 +50,15 @@ describe('GoogleCloudHttp tracing', () => {
         );
       const resp = await bigquery.query('SELECT true AS foo');
       expect(resp).toEqual([[{ foo: true }]]);
-      // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeTransaction.startChild).toBeCalledWith({
+      expect(SentryNode.startInactiveSpan).toBeCalledWith({
         op: 'http.client.bigquery',
         origin: 'auto.http.serverless',
-        description: 'POST /jobs',
+        name: 'POST /jobs',
       });
-      // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeTransaction.startChild).toBeCalledWith({
+      expect(SentryNode.startInactiveSpan).toBeCalledWith({
         op: 'http.client.bigquery',
         origin: 'auto.http.serverless',
-        description: expect.stringMatching(/^GET \/queries\/.+/),
+        name: expect.stringMatching(/^GET \/queries\/.+/),
       });
     });
   });
