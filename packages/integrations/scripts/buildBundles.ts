@@ -17,7 +17,7 @@ function getIntegrations(): string[] {
 async function buildBundle(integration: string, jsVersion: string): Promise<void> {
   return new Promise((resolve, reject) => {
     const child = spawn('yarn', ['--silent', 'rollup', '--config', 'rollup.bundle.config.mjs'], {
-      shell : true,
+      shell: true, // required to run on Windows
       env: { ...process.env, INTEGRATION_FILE: integration, JS_VERSION: jsVersion },
     });
 
