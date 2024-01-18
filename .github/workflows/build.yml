@@ -1077,7 +1077,7 @@ jobs:
 
   job_compile_bindings_profiling_node:
     name: Compile & Test Profiling Bindings (v${{ matrix.node }}) ${{ matrix.target_platform || matrix.os }}, ${{ matrix.node || matrix.container }}, ${{ matrix.arch || matrix.container }}, ${{ contains(matrix.container, 'alpine') && 'musl' || 'glibc'  }}
-    needs: [job_get_metadata, job_install_deps]
+    needs: [job_get_metadata, job_install_deps, job_build]
     runs-on: ${{ matrix.os }}
     container: ${{ matrix.container }}
     timeout-minutes: 20
@@ -1180,11 +1180,20 @@ jobs:
         with:
           ref: ${{ env.HEAD_COMMIT }}
 
-      - name: Check dependency cache
+      - name: Restore dependency cache
         uses: actions/cache/restore@v3
+        id: restore-dependencies
         with:
           path: ${{ env.CACHED_DEPENDENCY_PATHS }}
           key: ${{ needs.job_install_deps.outputs.dependency_cache_key }}
+          enableCrossOsArchive: true
+
+      - name: Restore build cache
+        uses: actions/cache/restore@v3
+        id: restore-build
+        with:
+          path: ${{ env.CACHED_BUILD_PATHS }}
+          key: ${{ needs.job_build.outputs.dependency_cache_key }}
           enableCrossOsArchive: true
 
       - name: Configure safe directory
@@ -1209,6 +1218,7 @@ jobs:
           node-version: ${{ matrix.node }}
 
       - name: Install Dependencies
+        if: steps.restore-dependencies.outputs.cache-hit != 'true'
         run: yarn install --frozen-lockfile --ignore-engines --ignore-scripts
 
       - name: Setup (arm64| ${{ contains(matrix.container, 'alpine') && 'musl' || 'glibc'  }})
@@ -1277,6 +1287,7 @@ jobs:
           yarn build:bindings:arm64
 
       - name: Build Monorepo
+        if: steps.restore-build.outputs.cache-hit != 'true'
         run: yarn build --ignore @sentry/serverless --ignore @sentry/browser --ignore @sentry/astro
 
       - name: Test Bindings
