@@ -9,11 +9,9 @@ import esbuild from 'esbuild';
 esbuild.build({
   platform: 'node',
   entryPoints: ['./index.js'],
-  outfile: './dist/index.js',
+  outdir: './dist',
   target: 'esnext',
   format: 'cjs',
   bundle: true,
-  loader: {
-    '.node': 'copy',
-  },
+  loader: { '.node': 'copy' },
 });
