@@ -1,3 +1,4 @@
+import { JSDOM } from 'jsdom';
 import { Transaction } from '../../../src';
 import type { ResourceEntry } from '../../../src/browser/metrics';
 import { _addMeasureSpans, _addResourceSpans } from '../../../src/browser/metrics';
@@ -17,6 +18,13 @@ const mockWindowLocation = {
 } as Window['location'];
 
 const originalWindowLocation = WINDOW.location;
+// @ts-expect-error store a reference so we can reset it later
+const globalDocument = global.document;
+// @ts-expect-error store a reference so we can reset it later
+const globalWindow = global.window;
+// @ts-expect-error store a reference so we can reset it later
+const globalLocation = global.location;
+
 console.log('\n\n WINDOW!! \n\n');
 console.log(WINDOW.location);
 console.log('\n\n');
@@ -65,14 +73,11 @@ describe('_addResourceSpans', () => {
   const transaction = new Transaction({ op: 'pageload', name: '/' });
 
   beforeAll(() => {
-    WINDOW.location = mockWindowLocation;
-    console.log('\n\n MOCK WINDOW!! \n\n');
-    console.log(WINDOW.location);
-    console.log('\n\n');
+    setGlobalLocation(mockWindowLocation);
   });
 
   afterAll(() => {
-    WINDOW.location = originalWindowLocation;
+    resetGlobalLocation();
   });
 
   beforeEach(() => {
@@ -265,3 +270,26 @@ describe('_addResourceSpans', () => {
     );
   });
 });
+
+const setGlobalLocation = (location: Location) => {
+  const dom = new JSDOM();
+  // @ts-expect-error need to override global document
+  global.document = dom.window.document;
+  // @ts-expect-error need to override global document
+  global.window = dom.window;
+  // @ts-expect-error need to override global document
+  global.location = dom.window.location;
+
+  WINDOW.location = location;
+}
+
+const resetGlobalLocation = () => {
+  // @ts-expect-error need to override global document
+  global.document = globalDocument;
+  // @ts-expect-error need to override global document
+  global.window = globalWindow;
+  // @ts-expect-error need to override global document
+  global.location = globalLocation;
+
+  WINDOW.location = originalWindowLocation;
+}
