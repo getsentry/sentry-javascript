@@ -32,8 +32,7 @@
     "@sentry-internal/tracing": "7.93.0",
     "@sentry/core": "7.93.0",
     "@sentry/types": "7.93.0",
-    "@sentry/utils": "7.93.0",
-    "https-proxy-agent": "^5.0.0"
+    "@sentry/utils": "7.93.0"
   },
   "devDependencies": {
     "@types/cookie": "0.5.2",
