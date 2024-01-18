@@ -222,7 +222,7 @@ export function dropUndefinedKeys<T>(inputValue: T): T {
 }
 
 function _dropUndefinedKeys<T>(inputValue: T, memoizationMap: Map<unknown, unknown>): T {
-  if (isPlainObject(inputValue)) {
+  if (isPojo(inputValue)) {
     // If this node has already been visited due to a circular reference, return the object it was mapped to in the new object
     const memoVal = memoizationMap.get(inputValue);
     if (memoVal !== undefined) {
@@ -261,6 +261,19 @@ function _dropUndefinedKeys<T>(inputValue: T, memoizationMap: Map<unknown, unkno
   }
 
   return inputValue;
+}
+
+function isPojo(input: unknown): input is Record<string, unknown> {
+  if (!isPlainObject(input)) {
+    return false;
+  }
+
+  try {
+    const name = (Object.getPrototypeOf(input) as { constructor: { name: string } }).constructor.name;
+    return !name || name === 'Object';
+  } catch {
+    return true;
+  }
 }
 
 /**

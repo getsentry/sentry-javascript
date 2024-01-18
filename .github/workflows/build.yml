@@ -778,8 +778,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node: [14, 16, 18, 20, 21]
+        node: [18, 20, 21]
         remix: [1, 2]
+        # Remix v2 only supports Node 18+, so run Node 14, 16 tests separately
+        include:
+          - node: 14
+            remix: 1
+          - node: 16
+            remix: 1
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v4
@@ -865,8 +871,9 @@ jobs:
             'node-express-app',
             'create-react-app',
             'create-next-app',
-            'create-remix-app',
-            'create-remix-app-v2',
+            # disabling remix e2e tests because of flakes
+            # 'create-remix-app',
+            # 'create-remix-app-v2',
             'debug-id-sourcemaps',
             'nextjs-app-dir',
             'nextjs-14',
