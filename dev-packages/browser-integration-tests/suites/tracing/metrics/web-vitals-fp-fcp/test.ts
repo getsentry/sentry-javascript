@@ -22,7 +22,8 @@ sentryTest('should capture FP vital.', async ({ browserName, getLocalTestPath, p
   expect(fpSpan).toBeDefined();
   // eslint-disable-next-line deprecation/deprecation
   expect(fpSpan?.op).toBe('paint');
-  expect(fpSpan?.parentSpanId).toBe(eventData.contexts?.trace_span_id);
+  // @ts-expect-error this property is not defined on Event
+  expect(fpSpan?.parent_span_id).toBe(eventData.contexts?.trace.span_id);
 });
 
 sentryTest('should capture FCP vital.', async ({ getLocalTestPath, page }) => {
@@ -42,5 +43,6 @@ sentryTest('should capture FCP vital.', async ({ getLocalTestPath, page }) => {
   expect(fcpSpan).toBeDefined();
   // eslint-disable-next-line deprecation/deprecation
   expect(fcpSpan?.op).toBe('paint');
-  expect(fcpSpan?.parentSpanId).toBe(eventData.contexts?.trace_span_id);
+  // @ts-expect-error this property is not defined on Event
+  expect(fcpSpan?.parent_span_id).toBe(eventData.contexts?.trace.span_id);
 });

@@ -24,12 +24,13 @@ sentryTest('should report finished spans as children of the root transaction', a
   const url = await getLocalTestPath({ testDir: __dirname });
   const transaction = await getFirstSentryEnvelopeRequest<Event>(page, url);
 
-  const rootSpanId = transaction?.contexts?.trace?.spanId;
+  const rootSpanId = transaction?.contexts?.trace?.span_id;
 
   expect(transaction.spans).toHaveLength(1);
 
   const span_1 = transaction.spans?.[0];
   // eslint-disable-next-line deprecation/deprecation
   expect(span_1?.description).toBe('child_span');
-  expect(span_1?.parentSpanId).toEqual(rootSpanId);
+  // @ts-expect-error this property is not defined on Event. But in fact, `parent_span_id` is correct here
+  expect(span_1?.parent_span_id).toEqual(rootSpanId);
 });

@@ -27,5 +27,6 @@ sentryTest('should capture a FID vital.', async ({ browserName, getLocalTestPath
   expect(fidSpan).toBeDefined();
   // eslint-disable-next-line deprecation/deprecation
   expect(fidSpan?.op).toBe('ui.action');
-  expect(fidSpan?.parentSpanId).toBe(eventData.contexts?.trace_span_id);
+  // @ts-expect-error this property is not defined on Event
+  expect(fidSpan?.parent_span_id).toBe(eventData.contexts?.trace?.span_id);
 });

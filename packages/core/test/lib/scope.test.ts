@@ -7,6 +7,7 @@ import {
   getCurrentScope,
   getIsolationScope,
   makeMain,
+  spanToJSON,
   startInactiveSpan,
   startSpan,
   withIsolationScope,
@@ -548,7 +549,9 @@ describe('withActiveSpan()', () => {
 
     withActiveSpan(inactiveSpan!, () => {
       startSpan({ name: 'child-span' }, childSpan => {
+        // eslint-disable-next-line deprecation/deprecation
         expect(childSpan?.parentSpanId).toBe(inactiveSpan?.spanContext().spanId);
+        expect(spanToJSON(childSpan!).parent_span_id).toBe(inactiveSpan?.spanContext().spanId);
         done();
       });
     });
