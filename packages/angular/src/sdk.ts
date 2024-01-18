@@ -1,6 +1,7 @@
 import { VERSION } from '@angular/core';
 import type { BrowserOptions } from '@sentry/browser';
-import { SDK_VERSION, defaultIntegrations, init as browserInit, setContext } from '@sentry/browser';
+import { getDefaultIntegrations } from '@sentry/browser';
+import { SDK_VERSION, init as browserInit, setContext } from '@sentry/browser';
 import type { SdkMetadata } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
@@ -18,7 +19,7 @@ export function init(options: BrowserOptions): void {
     // see:
     //  - https://github.com/getsentry/sentry-javascript/issues/5417#issuecomment-1453407097
     //  - https://github.com/getsentry/sentry-javascript/issues/2744
-    defaultIntegrations: defaultIntegrations.filter(integration => {
+    defaultIntegrations: getDefaultIntegrations(options).filter(integration => {
       return integration.name !== 'TryCatch';
     }),
     ...options,

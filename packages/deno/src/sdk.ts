@@ -2,7 +2,7 @@ import { Breadcrumbs, Dedupe } from '@sentry/browser';
 import type { ServerRuntimeClientOptions } from '@sentry/core';
 import { FunctionToString, InboundFilters, LinkedErrors } from '@sentry/core';
 import { getIntegrationsToSetup, initAndBind } from '@sentry/core';
-import type { StackParser } from '@sentry/types';
+import type { Integration, Options, StackParser } from '@sentry/types';
 import { createStackParser, nodeStackLineParser, stackParserFromStackParserOptions } from '@sentry/utils';
 
 import { DenoClient } from './client';
@@ -10,12 +10,14 @@ import { ContextLines, DenoContext, GlobalHandlers, NormalizePaths } from './int
 import { makeFetchTransport } from './transports';
 import type { DenoOptions } from './types';
 
-/* eslint-disable deprecation/deprecation */
+/** @deprecated Use `getDefaultIntegrations(options)` instead. */
 export const defaultIntegrations = [
+  /* eslint-disable deprecation/deprecation */
   // Common
   new InboundFilters(),
   new FunctionToString(),
   new LinkedErrors(),
+  /* eslint-enable deprecation/deprecation */
   // From Browser
   new Dedupe(),
   new Breadcrumbs({
@@ -29,7 +31,15 @@ export const defaultIntegrations = [
   new NormalizePaths(),
   new GlobalHandlers(),
 ];
-/* eslint-enable deprecation/deprecation */
+
+/** Get the default integrations for the Deno SDK. */
+export function getDefaultIntegrations(_options: Options): Integration[] {
+  // We return a copy of the defaultIntegrations here to avoid mutating this
+  return [
+    // eslint-disable-next-line deprecation/deprecation
+    ...defaultIntegrations,
+  ];
+}
 
 const defaultStackParser: StackParser = createStackParser(nodeStackLineParser());
 
@@ -89,10 +99,9 @@ const defaultStackParser: StackParser = createStackParser(nodeStackLineParser())
  * @see {@link DenoOptions} for documentation on configuration options.
  */
 export function init(options: DenoOptions = {}): void {
-  options.defaultIntegrations =
-    options.defaultIntegrations === false
-      ? []
-      : [...(Array.isArray(options.defaultIntegrations) ? options.defaultIntegrations : defaultIntegrations)];
+  if (options.defaultIntegrations === undefined) {
+    options.defaultIntegrations = getDefaultIntegrations(options);
+  }
 
   const clientOptions: ServerRuntimeClientOptions = {
     ...options,
