@@ -17,6 +17,9 @@ const mockWindowLocation = {
 } as Window['location'];
 
 const originalWindowLocation = WINDOW.location;
+console.log('\n\n WINDOW!! \n\n');
+console.log(WINDOW);
+console.log('\n\n');
 const resourceEntryName = 'https://example.com/assets/to/css';
 
 describe('_addMeasureSpans', () => {
@@ -63,6 +66,9 @@ describe('_addResourceSpans', () => {
 
   beforeAll(() => {
     WINDOW.location = mockWindowLocation;
+    console.log('\n\n MOCK WINDOW!! \n\n');
+    console.log(WINDOW);
+    console.log('\n\n');
   });
 
   afterAll(() => {
