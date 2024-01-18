@@ -1,6 +1,6 @@
 import type { EventEmitter } from 'events';
-import { getCurrentScope } from '@sentry/node';
-import type { Integration, Span } from '@sentry/types';
+import { startInactiveSpan } from '@sentry/node';
+import type { Integration } from '@sentry/types';
 import { fill } from '@sentry/utils';
 
 interface GrpcFunction extends CallableFunction {
@@ -107,18 +107,11 @@ function fillGrpcFunction(stub: Stub, serviceIdentifier: string, methodName: str
         if (typeof ret?.on !== 'function') {
           return ret;
         }
-        let span: Span | undefined;
-        const scope = getCurrentScope();
-        // eslint-disable-next-line deprecation/deprecation
-        const transaction = scope.getTransaction();
-        if (transaction) {
-          // eslint-disable-next-line deprecation/deprecation
-          span = transaction.startChild({
-            description: `${callType} ${methodName}`,
-            op: `grpc.${serviceIdentifier}`,
-            origin: 'auto.grpc.serverless',
-          });
-        }
+        const span = startInactiveSpan({
+          name: `${callType} ${methodName}`,
+          op: `grpc.${serviceIdentifier}`,
+          origin: 'auto.grpc.serverless',
+        });
         ret.on('status', () => {
           if (span) {
             span.end();

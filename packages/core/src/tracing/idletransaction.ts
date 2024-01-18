@@ -95,6 +95,8 @@ export class IdleTransaction extends Transaction {
 
   private _finishReason: (typeof IDLE_TRANSACTION_FINISH_REASONS)[number];
 
+  private _autoFinishAllowed: boolean;
+
   /**
    * @deprecated Transactions will be removed in v8. Use spans instead.
    */
@@ -113,6 +115,15 @@ export class IdleTransaction extends Transaction {
     private readonly _heartbeatInterval: number = TRACING_DEFAULTS.heartbeatInterval,
     // Whether or not the transaction should put itself on the scope when it starts and pop itself off when it ends
     private readonly _onScope: boolean = false,
+    /**
+     * When set to `true`, will disable the idle timeout (`_idleTimeout` option) and heartbeat mechanisms (`_heartbeatInterval`
+     * option) until the `sendAutoFinishSignal()` method is called. The final timeout mechanism (`_finalTimeout` option)
+     * will not be affected by this option, meaning the transaction will definitely be finished when the final timeout is
+     * reached, no matter what this option is configured to.
+     *
+     * Defaults to `false`.
+     */
+    delayAutoFinishUntilSignal: boolean = false,
   ) {
     super(transactionContext, _idleHub);
 
@@ -122,6 +133,7 @@ export class IdleTransaction extends Transaction {
     this._idleTimeoutCanceledPermanently = false;
     this._beforeFinishCallbacks = [];
     this._finishReason = IDLE_TRANSACTION_FINISH_REASONS[4];
+    this._autoFinishAllowed = !delayAutoFinishUntilSignal;
 
     if (_onScope) {
       // We set the transaction here on the scope so error events pick up the trace
@@ -131,7 +143,10 @@ export class IdleTransaction extends Transaction {
       _idleHub.getScope().setSpan(this);
     }
 
-    this._restartIdleTimeout();
+    if (!delayAutoFinishUntilSignal) {
+      this._restartIdleTimeout();
+    }
+
     setTimeout(() => {
       if (!this._finished) {
         this.setStatus('deadline_exceeded');
@@ -217,7 +232,7 @@ export class IdleTransaction extends Transaction {
   }
 
   /**
-   * Register a callback function that gets excecuted before the transaction finishes.
+   * Register a callback function that gets executed before the transaction finishes.
    * Useful for cleanup or if you want to add any additional spans based on current context.
    *
    * This is exposed because users have no other way of running something before an idle transaction
@@ -299,6 +314,17 @@ export class IdleTransaction extends Transaction {
   }
 
   /**
+   * Permits the IdleTransaction to automatically end itself via the idle timeout and heartbeat mechanisms when the `delayAutoFinishUntilSignal` option was set to `true`.
+   */
+  public sendAutoFinishSignal(): void {
+    if (!this._autoFinishAllowed) {
+      DEBUG_BUILD && logger.log('[Tracing] Received finish signal for idle transaction.');
+      this._restartIdleTimeout();
+      this._autoFinishAllowed = true;
+    }
+  }
+
+  /**
    * Restarts idle timeout, if there is no running idle timeout it will start one.
    */
   private _restartIdleTimeout(endTimestamp?: Parameters<IdleTransaction['end']>[0]): void {
@@ -337,8 +363,10 @@ export class IdleTransaction extends Transaction {
     if (Object.keys(this.activities).length === 0) {
       const endTimestamp = timestampInSeconds();
       if (this._idleTimeoutCanceledPermanently) {
-        this._finishReason = IDLE_TRANSACTION_FINISH_REASONS[5];
-        this.end(endTimestamp);
+        if (this._autoFinishAllowed) {
+          this._finishReason = IDLE_TRANSACTION_FINISH_REASONS[5];
+          this.end(endTimestamp);
+        }
       } else {
         // We need to add the timeout here to have the real endtimestamp of the transaction
         // Remember timestampInSeconds is in seconds, timeout is in ms
@@ -368,10 +396,12 @@ export class IdleTransaction extends Transaction {
     this._prevHeartbeatString = heartbeatString;
 
     if (this._heartbeatCounter >= 3) {
-      DEBUG_BUILD && logger.log('[Tracing] Transaction finished because of no change for 3 heart beats');
-      this.setStatus('deadline_exceeded');
-      this._finishReason = IDLE_TRANSACTION_FINISH_REASONS[0];
-      this.end();
+      if (this._autoFinishAllowed) {
+        DEBUG_BUILD && logger.log('[Tracing] Transaction finished because of no change for 3 heart beats');
+        this.setStatus('deadline_exceeded');
+        this._finishReason = IDLE_TRANSACTION_FINISH_REASONS[0];
+        this.end();
+      }
     } else {
       this._pingHeartbeat();
     }
