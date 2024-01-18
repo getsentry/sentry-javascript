@@ -367,7 +367,7 @@ jobs:
         uses: ./.github/actions/restore-cache
         env:
           DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
-      - name: Pack
+      - name: Profiling
         # Profiling tarball is built separately as we assemble the precompiled binaries
         run: yarn build:tarball --ignore @sentry/profiling-node
 
@@ -876,6 +876,7 @@ jobs:
       - name: Build tarballs
         run: yarn build:tarball --ignore @sentry/profiling-node
 
+      # Rebuild profiling by compiling TS and pulling the precompiled binaries
       - name: Build Profiling Node
         run: yarn lerna run build:lib --scope @sentry/profiling-node
 
@@ -889,11 +890,7 @@ jobs:
 
       - name: Build Profiling tarball
         run: yarn build:tarball --scope @sentry/profiling-node
-
-      - name: Sanity check profiling
-        run: |
-          ls -la ${{ github.workspace }}/packages/profiling-node
-          ls -la ${{ github.workspace }}/packages/profiling-node/lib
+      # End rebuild profiling
 
       - name: Stores tarballs in cache
         uses: actions/cache/save@v3
@@ -983,11 +980,21 @@ jobs:
         env:
           DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
 
-      - name: Restore profiling tarball
-        uses: actions/cache/restore@v3
+      # Rebuild profiling by compiling TS and pulling the precompiled binaries
+      - name: Build Profiling Node
+        run: yarn lerna run build:lib --scope @sentry/profiling-node
+
+      - name: Extract Profiling Node Prebuilt Binaries
+        # @TODO: v4 breaks convenient merging of same name artifacts
+        # https://github.com/actions/upload-artifact/issues/478
+        uses: actions/download-artifact@v3
         with:
-          path: ${{ github.workspace }}/packages/profiling-node/*.tgz
-          key: ${{ env.BUILD_CACHE_TARBALL_KEY }}
+          name: profiling-node-binaries-${{ github.sha }}
+          path: ${{ github.workspace }}/packages/profiling-node/lib/
+
+      - name: Build Profiling tarball
+        run: yarn build:tarball --scope @sentry/profiling-node
+      # End rebuild profiling
 
       - name: Restore tarball cache
         uses: actions/cache/restore@v3
