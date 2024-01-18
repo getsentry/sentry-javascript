@@ -262,15 +262,13 @@ describe('_addResourceSpans', () => {
 });
 
 const setGlobalLocation = (location: Location) => {
-  // @ts-expect-error need to override global document
+  // @ts-expect-error need to delete this in order to set to new value
   delete WINDOW.location;
   WINDOW.location = mockWindowLocation;
-
-  console.log('\n\n WINDOW origin!! \n\n');
-  console.log(WINDOW.location.origin);
-  console.log('\n\n');
-}
+};
 
 const resetGlobalLocation = () => {
+  // @ts-expect-error
+  delete WINDOW.location;
   WINDOW.location = originalLocation;
-}
+};
