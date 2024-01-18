@@ -40,6 +40,14 @@ export const wasmIntegration = defineIntegration(_wasmIntegration);
  *
  * This also hooks the WebAssembly loading browser API so that module
  * registrations are intercepted.
+ *
+ * @deprecated Use `wasmIntegration` export instead
+ *
+ * import { wasmIntegration } from '@sentry/wasm';
+ *
+ * ```
+ * Sentry.init({ integrations: [wasmIntegration()] });
+ * ```
  */
 // eslint-disable-next-line deprecation/deprecation
 export const Wasm = convertIntegrationFnToClass(INTEGRATION_NAME, wasmIntegration) as IntegrationClass<
