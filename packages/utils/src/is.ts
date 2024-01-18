@@ -113,7 +113,16 @@ export function isPrimitive(wat: unknown): wat is Primitive {
  * @returns A boolean representing the result.
  */
 export function isPlainObject(wat: unknown): wat is Record<string, unknown> {
-  return isBuiltin(wat, 'Object');
+  if (!isBuiltin(wat, 'Object')) {
+    return false;
+  }
+
+  try {
+    const name = (Object.getPrototypeOf(wat) as { constructor: { name: string } }).constructor.name;
+    return !name || name === 'Object';
+  } catch {
+    return true;
+  }
 }
 
 /**
