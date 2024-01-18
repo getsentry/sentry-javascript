@@ -16,6 +16,7 @@ import type {
 import { dropUndefinedKeys, logger, timestampInSeconds, uuid4 } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../debug-build';
+import { SEMANTIC_ATTRIBUTE_SENTRY_OP } from '../semanticAttributes';
 import { getRootSpan } from '../utils/getRootSpan';
 import {
   TRACE_FLAG_NONE,
@@ -50,6 +51,7 @@ export class SpanRecorder {
    */
   public add(span: Span): void {
     if (this.spans.length > this._maxlen) {
+      // eslint-disable-next-line deprecation/deprecation
       span.spanRecorder = undefined;
     } else {
       this.spans.push(span);
@@ -67,16 +69,6 @@ export class Span implements SpanInterface {
   public parentSpanId?: string;
 
   /**
-   * Internal keeper of the status
-   */
-  public status?: SpanStatusType | string;
-
-  /**
-   * @inheritDoc
-   */
-  public op?: string;
-
-  /**
    * Tags for the span.
    * @deprecated Use `getSpanAttributes(span)` instead.
    */
@@ -91,6 +83,8 @@ export class Span implements SpanInterface {
 
   /**
    * List of spans that were finalized
+   *
+   * @deprecated This property will no longer be public. Span recording will be handled internally.
    */
   public spanRecorder?: SpanRecorder;
 
@@ -125,6 +119,8 @@ export class Span implements SpanInterface {
   protected _startTime: number;
   /** Epoch timestamp in seconds when the span ended. */
   protected _endTime?: number;
+  /** Internal keeper of the status */
+  protected _status?: SpanStatusType | string;
 
   private _logMessage?: string;
 
@@ -158,10 +154,10 @@ export class Span implements SpanInterface {
       this._sampled = spanContext.sampled;
     }
     if (spanContext.op) {
-      this.op = spanContext.op;
+      this.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, spanContext.op);
     }
     if (spanContext.status) {
-      this.status = spanContext.status;
+      this._status = spanContext.status;
     }
     if (spanContext.endTimestamp) {
       this._endTime = spanContext.endTimestamp;
@@ -299,6 +295,43 @@ export class Span implements SpanInterface {
     this._endTime = endTime;
   }
 
+  /**
+   * The status of the span.
+   *
+   * @deprecated Use `spanToJSON().status` instead to get the status.
+   */
+  public get status(): SpanStatusType | string | undefined {
+    return this._status;
+  }
+
+  /**
+   * The status of the span.
+   *
+   * @deprecated Use `.setStatus()` instead to set or update the status.
+   */
+  public set status(status: SpanStatusType | string | undefined) {
+    this._status = status;
+  }
+
+  /**
+   * Operation of the span
+   *
+   * @deprecated Use `spanToJSON().op` to read the op instead.
+   */
+  public get op(): string | undefined {
+    return this._attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP] as string | undefined;
+  }
+
+  /**
+   * Operation of the span
+   *
+   * @deprecated Use `startSpan()` functions to set or `span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'op')
+   *             to update the span instead.
+   */
+  public set op(op: string | undefined) {
+    this.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, op);
+  }
+
   /* eslint-enable @typescript-eslint/member-ordering */
 
   /** @inheritdoc */
@@ -327,8 +360,11 @@ export class Span implements SpanInterface {
       traceId: this._traceId,
     });
 
+    // eslint-disable-next-line deprecation/deprecation
     childSpan.spanRecorder = this.spanRecorder;
+    // eslint-disable-next-line deprecation/deprecation
     if (childSpan.spanRecorder) {
+      // eslint-disable-next-line deprecation/deprecation
       childSpan.spanRecorder.add(childSpan);
     }
 
@@ -398,7 +434,7 @@ export class Span implements SpanInterface {
    * @inheritDoc
    */
   public setStatus(value: SpanStatusType): this {
-    this.status = value;
+    this._status = value;
     return this;
   }
 
@@ -436,9 +472,11 @@ export class Span implements SpanInterface {
 
   /**
    * @inheritDoc
+   *
+   * @deprecated Use `spanToJSON(span).status === 'ok'` instead.
    */
   public isSuccess(): boolean {
-    return this.status === 'ok';
+    return this._status === 'ok';
   }
 
   /**
@@ -491,12 +529,13 @@ export class Span implements SpanInterface {
       data: this._getData(),
       description: this._name,
       endTimestamp: this._endTime,
+      // eslint-disable-next-line deprecation/deprecation
       op: this.op,
       parentSpanId: this.parentSpanId,
       sampled: this._sampled,
       spanId: this._spanId,
       startTimestamp: this._startTime,
-      status: this.status,
+      status: this._status,
       // eslint-disable-next-line deprecation/deprecation
       tags: this.tags,
       traceId: this._traceId,
@@ -514,12 +553,13 @@ export class Span implements SpanInterface {
     // eslint-disable-next-line deprecation/deprecation
     this._name = spanContext.name || spanContext.description;
     this._endTime = spanContext.endTimestamp;
+    // eslint-disable-next-line deprecation/deprecation
     this.op = spanContext.op;
     this.parentSpanId = spanContext.parentSpanId;
     this._sampled = spanContext.sampled;
     this._spanId = spanContext.spanId || this._spanId;
     this._startTime = spanContext.startTimestamp || this._startTime;
-    this.status = spanContext.status;
+    this._status = spanContext.status;
     // eslint-disable-next-line deprecation/deprecation
     this.tags = spanContext.tags || {};
     this._traceId = spanContext.traceId || this._traceId;
@@ -548,11 +588,11 @@ export class Span implements SpanInterface {
     return dropUndefinedKeys({
       data: this._getData(),
       description: this._name,
-      op: this.op,
+      op: this._attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP] as string | undefined,
       parent_span_id: this.parentSpanId,
       span_id: this._spanId,
       start_timestamp: this._startTime,
-      status: this.status,
+      status: this._status,
       // eslint-disable-next-line deprecation/deprecation
       tags: Object.keys(this.tags).length > 0 ? this.tags : undefined,
       timestamp: this._endTime,

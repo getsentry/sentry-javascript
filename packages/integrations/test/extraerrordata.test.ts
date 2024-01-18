@@ -1,8 +1,14 @@
 import type { Event as SentryEvent, ExtendedError } from '@sentry/types';
 
+import type { extraErrorDataIntegration } from '../src/extraerrordata';
 import { ExtraErrorData } from '../src/extraerrordata';
 
-const extraErrorData = new ExtraErrorData();
+function getIntegration(...args: Parameters<typeof extraErrorDataIntegration>) {
+  // eslint-disable-next-line deprecation/deprecation
+  return new ExtraErrorData(...args);
+}
+
+const extraErrorData = getIntegration();
 let event: SentryEvent;
 
 describe('ExtraErrorData()', () => {
@@ -186,7 +192,7 @@ describe('ExtraErrorData()', () => {
       return;
     }
 
-    const extraErrorDataWithCauseCapture = new ExtraErrorData({ captureErrorCause: true });
+    const extraErrorDataWithCauseCapture = getIntegration({ captureErrorCause: true });
 
     // @ts-expect-error The typing .d.ts library we have installed isn't aware of Error.cause yet
     const error = new Error('foo', { cause: { woot: 'foo' } }) as ExtendedError;
@@ -211,7 +217,7 @@ describe('ExtraErrorData()', () => {
       return;
     }
 
-    const extraErrorDataWithoutCauseCapture = new ExtraErrorData();
+    const extraErrorDataWithoutCauseCapture = getIntegration();
 
     // @ts-expect-error The typing .d.ts library we have installed isn't aware of Error.cause yet
     const error = new Error('foo', { cause: { woot: 'foo' } }) as ExtendedError;

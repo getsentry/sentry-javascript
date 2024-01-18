@@ -1,4 +1,4 @@
-import { captureCheckIn, getCurrentHub } from '@sentry/core';
+import { Hub, captureCheckIn, makeMain, setCurrentClient } from '@sentry/core';
 import type { Client, Integration } from '@sentry/types';
 
 import { installedIntegrations } from '../../src/integration';
@@ -39,21 +39,22 @@ describe('SDK', () => {
 });
 
 describe('captureCheckIn', () => {
+  afterEach(function () {
+    const hub = new Hub();
+    // eslint-disable-next-line deprecation/deprecation
+    makeMain(hub);
+  });
+
   it('returns an id when client is defined', () => {
-    const hub = getCurrentHub();
-    jest.spyOn(hub, 'getClient').mockImplementation(() => {
-      return {
-        captureCheckIn: () => 'some-id-wasd-1234',
-      } as unknown as Client;
-    });
+    const client = {
+      captureCheckIn: () => 'some-id-wasd-1234',
+    } as unknown as Client;
+    setCurrentClient(client);
 
     expect(captureCheckIn({ monitorSlug: 'gogogo', status: 'in_progress' })).toStrictEqual('some-id-wasd-1234');
   });
 
   it('returns an id when client is undefined', () => {
-    const hub = getCurrentHub();
-    jest.spyOn(hub, 'getClient').mockImplementation(() => undefined);
-
     expect(captureCheckIn({ monitorSlug: 'gogogo', status: 'in_progress' })).toStrictEqual(expect.any(String));
   });
 });

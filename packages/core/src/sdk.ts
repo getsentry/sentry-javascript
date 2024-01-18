@@ -2,6 +2,7 @@ import type { Client, ClientOptions } from '@sentry/types';
 import { consoleSandbox, logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from './debug-build';
+import { getCurrentScope } from './exports';
 import { getCurrentHub } from './hub';
 
 /** A class object that can instantiate Client objects. */
@@ -29,9 +30,7 @@ export function initAndBind<F extends Client, O extends ClientOptions>(
       });
     }
   }
-  const hub = getCurrentHub();
-  // eslint-disable-next-line deprecation/deprecation
-  const scope = hub.getScope();
+  const scope = getCurrentScope();
   scope.update(options.initialScope);
 
   const client = new clientClass(options);
@@ -43,6 +42,7 @@ export function initAndBind<F extends Client, O extends ClientOptions>(
  * Make the given client the current client.
  */
 export function setCurrentClient(client: Client): void {
+  // eslint-disable-next-line deprecation/deprecation
   const hub = getCurrentHub();
   // eslint-disable-next-line deprecation/deprecation
   const top = hub.getStackTop();

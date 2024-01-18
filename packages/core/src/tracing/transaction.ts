@@ -54,6 +54,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
     this._measurements = {};
     this._contexts = {};
 
+    // eslint-disable-next-line deprecation/deprecation
     this._hub = hub || getCurrentHub();
 
     this._name = transactionContext.name || '';
@@ -155,9 +156,12 @@ export class Transaction extends SpanClass implements TransactionInterface {
    * @param maxlen maximum number of spans that can be recorded
    */
   public initSpanRecorder(maxlen: number = 1000): void {
+    // eslint-disable-next-line deprecation/deprecation
     if (!this.spanRecorder) {
+      // eslint-disable-next-line deprecation/deprecation
       this.spanRecorder = new SpanRecorder(maxlen);
     }
+    // eslint-disable-next-line deprecation/deprecation
     this.spanRecorder.add(this);
   }
 
@@ -286,8 +290,10 @@ export class Transaction extends SpanClass implements TransactionInterface {
       return undefined;
     }
 
+    // eslint-disable-next-line deprecation/deprecation
     const finishedSpans = this.spanRecorder
-      ? this.spanRecorder.spans.filter(span => span !== this && spanToJSON(span).timestamp)
+      ? // eslint-disable-next-line deprecation/deprecation
+        this.spanRecorder.spans.filter(span => span !== this && spanToJSON(span).timestamp)
       : [];
 
     if (this._trimEnd && finishedSpans.length > 0) {
@@ -338,6 +344,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
       transaction.measurements = this._measurements;
     }
 
+    // eslint-disable-next-line deprecation/deprecation
     DEBUG_BUILD && logger.log(`[Tracing] Finishing ${this.op} transaction: ${this._name}.`);
 
     return transaction;

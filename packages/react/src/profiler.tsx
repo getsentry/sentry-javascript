@@ -1,9 +1,6 @@
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import type { Hub } from '@sentry/browser';
-import { getCurrentHub } from '@sentry/browser';
-import { spanToJSON } from '@sentry/core';
-import type { Span, Transaction } from '@sentry/types';
+import { startInactiveSpan } from '@sentry/browser';
+import { spanToJSON, withActiveSpan } from '@sentry/core';
+import type { Span } from '@sentry/types';
 import { timestampInSeconds } from '@sentry/utils';
 import hoistNonReactStatics from 'hoist-non-react-statics';
 import * as React from 'react';
@@ -58,16 +55,12 @@ class Profiler extends React.Component<ProfilerProps> {
       return;
     }
 
-    const activeTransaction = getActiveTransaction();
-    if (activeTransaction) {
-      // eslint-disable-next-line deprecation/deprecation
-      this._mountSpan = activeTransaction.startChild({
-        description: `<${name}>`,
-        op: REACT_MOUNT_OP,
-        origin: 'auto.ui.react.profiler',
-        data: { 'ui.component_name': name },
-      });
-    }
+    this._mountSpan = startInactiveSpan({
+      name: `<${name}>`,
+      op: REACT_MOUNT_OP,
+      origin: 'auto.ui.react.profiler',
+      attributes: { 'ui.component_name': name },
+    });
   }
 
   // If a component mounted, we can finish the mount activity.
@@ -87,16 +80,17 @@ class Profiler extends React.Component<ProfilerProps> {
       const changedProps = Object.keys(updateProps).filter(k => updateProps[k] !== this.props.updateProps[k]);
       if (changedProps.length > 0) {
         const now = timestampInSeconds();
-        // eslint-disable-next-line deprecation/deprecation
-        this._updateSpan = this._mountSpan.startChild({
-          data: {
-            changedProps,
-            'ui.component_name': this.props.name,
-          },
-          description: `<${this.props.name}>`,
-          op: REACT_UPDATE_OP,
-          origin: 'auto.ui.react.profiler',
-          startTimestamp: now,
+        this._updateSpan = withActiveSpan(this._mountSpan, () => {
+          return startInactiveSpan({
+            name: `<${this.props.name}>`,
+            op: REACT_UPDATE_OP,
+            origin: 'auto.ui.react.profiler',
+            startTimestamp: now,
+            attributes: {
+              'ui.component_name': this.props.name,
+              'ui.react.changed_props': changedProps,
+            },
+          });
         });
       }
     }
@@ -114,19 +108,24 @@ class Profiler extends React.Component<ProfilerProps> {
   // If a component is unmounted, we can say it is no longer on the screen.
   // This means we can finish the span representing the component render.
   public componentWillUnmount(): void {
+    const endTimestamp = timestampInSeconds();
     const { name, includeRender = true } = this.props;
 
     if (this._mountSpan && includeRender) {
-      // If we were able to obtain the spanId of the mount activity, we should set the
-      // next activity as a child to the component mount activity.
-      // eslint-disable-next-line deprecation/deprecation
-      this._mountSpan.startChild({
-        description: `<${name}>`,
-        endTimestamp: timestampInSeconds(),
-        op: REACT_RENDER_OP,
-        origin: 'auto.ui.react.profiler',
-        startTimestamp: spanToJSON(this._mountSpan).timestamp,
-        data: { 'ui.component_name': name },
+      const startTimestamp = spanToJSON(this._mountSpan).timestamp;
+      withActiveSpan(this._mountSpan, () => {
+        const renderSpan = startInactiveSpan({
+          name: `<${name}>`,
+          op: REACT_RENDER_OP,
+          origin: 'auto.ui.react.profiler',
+          startTimestamp,
+          attributes: { 'ui.component_name': name },
+        });
+        if (renderSpan) {
+          // Have to cast to Span because the type of _mountSpan is Span | undefined
+          // and not getting narrowed properly
+          renderSpan.end(endTimestamp);
+        }
       });
     }
   }
@@ -144,6 +143,7 @@ class Profiler extends React.Component<ProfilerProps> {
  * @param WrappedComponent component that is wrapped by Profiler
  * @param options the {@link ProfilerProps} you can pass into the Profiler
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function withProfiler<P extends Record<string, any>>(
   WrappedComponent: React.ComponentType<P>,
   // We do not want to have `updateProps` given in options, it is instead filled through the HOC.
@@ -185,18 +185,12 @@ function useProfiler(
       return undefined;
     }
 
-    const activeTransaction = getActiveTransaction();
-    if (activeTransaction) {
-      // eslint-disable-next-line deprecation/deprecation
-      return activeTransaction.startChild({
-        description: `<${name}>`,
-        op: REACT_MOUNT_OP,
-        origin: 'auto.ui.react.profiler',
-        data: { 'ui.component_name': name },
-      });
-    }
-
-    return undefined;
+    return startInactiveSpan({
+      name: `<${name}>`,
+      op: REACT_MOUNT_OP,
+      origin: 'auto.ui.react.profiler',
+      attributes: { 'ui.component_name': name },
+    });
   });
 
   React.useEffect(() => {
@@ -206,15 +200,21 @@ function useProfiler(
 
     return (): void => {
       if (mountSpan && options.hasRenderSpan) {
-        // eslint-disable-next-line deprecation/deprecation
-        mountSpan.startChild({
-          description: `<${name}>`,
-          endTimestamp: timestampInSeconds(),
+        const startTimestamp = spanToJSON(mountSpan).timestamp;
+        const endTimestamp = timestampInSeconds();
+
+        const renderSpan = startInactiveSpan({
+          name: `<${name}>`,
           op: REACT_RENDER_OP,
           origin: 'auto.ui.react.profiler',
-          startTimestamp: spanToJSON(mountSpan).timestamp,
-          data: { 'ui.component_name': name },
+          startTimestamp,
+          attributes: { 'ui.component_name': name },
         });
+        if (renderSpan) {
+          // Have to cast to Span because the type of _mountSpan is Span | undefined
+          // and not getting narrowed properly
+          renderSpan.end(endTimestamp);
+        }
       }
     };
     // We only want this to run once.
@@ -223,15 +223,3 @@ function useProfiler(
 }
 
 export { withProfiler, Profiler, useProfiler };
-
-/** Grabs active transaction off scope */
-export function getActiveTransaction<T extends Transaction>(hub: Hub = getCurrentHub()): T | undefined {
-  if (hub) {
-    // eslint-disable-next-line deprecation/deprecation
-    const scope = hub.getScope();
-    // eslint-disable-next-line deprecation/deprecation
-    return scope.getTransaction() as T | undefined;
-  }
-
-  return undefined;
-}

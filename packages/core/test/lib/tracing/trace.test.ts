@@ -1,4 +1,11 @@
-import { Hub, addTracingExtensions, getCurrentScope, makeMain, spanToJSON } from '../../../src';
+import {
+  Hub,
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  addTracingExtensions,
+  getCurrentScope,
+  makeMain,
+  spanToJSON,
+} from '../../../src';
 import { Scope } from '../../../src/scope';
 import {
   Span,
@@ -116,6 +123,27 @@ describe('startSpan', () => {
       expect(ref.parentSpanId).toEqual('1234567890123456');
     });
 
+    // TODO (v8): Remove this test in favour of the one below
+    it('(deprecated op) allows for transaction to be mutated', async () => {
+      let ref: any = undefined;
+      client.on('finishTransaction', transaction => {
+        ref = transaction;
+      });
+      try {
+        await startSpan({ name: 'GET users/[id]' }, span => {
+          if (span) {
+            // eslint-disable-next-line deprecation/deprecation
+            span.op = 'http.server';
+          }
+          return callback();
+        });
+      } catch (e) {
+        //
+      }
+
+      expect(spanToJSON(ref).op).toEqual('http.server');
+    });
+
     it('allows for transaction to be mutated', async () => {
       let ref: any = undefined;
       client.on('finishTransaction', transaction => {
@@ -124,7 +152,7 @@ describe('startSpan', () => {
       try {
         await startSpan({ name: 'GET users/[id]' }, span => {
           if (span) {
-            span.op = 'http.server';
+            span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'http.server');
           }
           return callback();
         });
@@ -156,7 +184,8 @@ describe('startSpan', () => {
       expect(ref.spanRecorder.spans[1].status).toEqual(isError ? 'internal_error' : undefined);
     });
 
-    it('allows for span to be mutated', async () => {
+    // TODO (v8): Remove this test in favour of the one below
+    it('(deprecated op) allows for span to be mutated', async () => {
       let ref: any = undefined;
       client.on('finishTransaction', transaction => {
         ref = transaction;
@@ -165,6 +194,7 @@ describe('startSpan', () => {
         await startSpan({ name: 'GET users/[id]', parentSampled: true }, () => {
           return startSpan({ name: 'SELECT * from users' }, childSpan => {
             if (childSpan) {
+              // eslint-disable-next-line deprecation/deprecation
               childSpan.op = 'db.query';
             }
             return callback();
@@ -176,6 +206,28 @@ describe('startSpan', () => {
 
       expect(ref.spanRecorder.spans).toHaveLength(2);
       expect(ref.spanRecorder.spans[1].op).toEqual('db.query');
+    });
+
+    it('allows for span to be mutated', async () => {
+      let ref: any = undefined;
+      client.on('finishTransaction', transaction => {
+        ref = transaction;
+      });
+      try {
+        await startSpan({ name: 'GET users/[id]', parentSampled: true }, () => {
+          return startSpan({ name: 'SELECT * from users' }, childSpan => {
+            if (childSpan) {
+              childSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'db.query');
+            }
+            return callback();
+          });
+        });
+      } catch (e) {
+        //
+      }
+
+      expect(ref.spanRecorder.spans).toHaveLength(2);
+      expect(spanToJSON(ref.spanRecorder.spans[1]).op).toEqual('db.query');
     });
   });
 

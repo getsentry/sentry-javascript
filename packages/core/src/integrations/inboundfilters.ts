@@ -2,7 +2,7 @@ import type { Client, Event, EventHint, Integration, IntegrationClass, Integrati
 import { getEventDescription, logger, stringMatchesSomePattern } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../debug-build';
-import { convertIntegrationFnToClass } from '../integration';
+import { convertIntegrationFnToClass, defineIntegration } from '../integration';
 
 // "Script error." is hard coded into browsers for errors that it can't read.
 // this is the result of a script being pulled in from an external domain and CORS.
@@ -30,7 +30,7 @@ export interface InboundFiltersOptions {
 }
 
 const INTEGRATION_NAME = 'InboundFilters';
-const inboundFiltersIntegration = ((options: Partial<InboundFiltersOptions> = {}) => {
+const _inboundFiltersIntegration = ((options: Partial<InboundFiltersOptions> = {}) => {
   return {
     name: INTEGRATION_NAME,
     // TODO v8: Remove this
@@ -43,7 +43,12 @@ const inboundFiltersIntegration = ((options: Partial<InboundFiltersOptions> = {}
   };
 }) satisfies IntegrationFn;
 
-/** Inbound filters configurable by the user */
+export const inboundFiltersIntegration = defineIntegration(_inboundFiltersIntegration);
+
+/**
+ * Inbound filters configurable by the user.
+ * @deprecated Use `inboundFiltersIntegration()` instead.
+ */
 // eslint-disable-next-line deprecation/deprecation
 export const InboundFilters = convertIntegrationFnToClass(
   INTEGRATION_NAME,

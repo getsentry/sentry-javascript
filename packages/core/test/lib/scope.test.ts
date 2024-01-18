@@ -528,7 +528,7 @@ describe('withActiveSpan()', () => {
     const client = new TestClient(options);
     const scope = new Scope();
     const hub = new Hub(client, scope);
-    makeMain(hub);
+    makeMain(hub); // eslint-disable-line deprecation/deprecation
   });
 
   it('should set the active span within the callback', () => {

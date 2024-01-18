@@ -11,13 +11,6 @@ import * as nock from 'nock';
 
 import { GoogleCloudGrpc } from '../src/google-cloud-grpc';
 
-/**
- * Why @ts-expect-error some Sentry.X calls
- *
- * A hack-ish way to contain everything related to mocks in the same __mocks__ file.
- * Thanks to this, we don't have to do more magic than necessary. Just add and export desired method and assert on it.
- */
-
 const spyConnect = jest.spyOn(http2, 'connect');
 
 /** Fake HTTP2 stream */
@@ -126,11 +119,10 @@ describe('GoogleCloudGrpc tracing', () => {
       mockHttp2Session().mockUnaryRequest(Buffer.from('00000000120a1031363337303834313536363233383630', 'hex'));
       const resp = await pubsub.topic('nicetopic').publish(Buffer.from('data'));
       expect(resp).toEqual('1637084156623860');
-      // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeTransaction.startChild).toBeCalledWith({
+      expect(SentryNode.startInactiveSpan).toBeCalledWith({
         op: 'grpc.pubsub',
         origin: 'auto.grpc.serverless',
-        description: 'unary call publish',
+        name: 'unary call publish',
       });
       await pubsub.close();
     });

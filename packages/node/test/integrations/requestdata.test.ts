@@ -21,6 +21,7 @@ const path = '/by/the/trees/';
 const queryString = 'chase=me&please=thankyou';
 
 function initWithRequestDataIntegrationOptions(integrationOptions: RequestDataIntegrationOptions): EventProcessor {
+  // eslint-disable-next-line deprecation/deprecation
   const requestDataIntegration = new RequestData({
     ...integrationOptions,
   });
