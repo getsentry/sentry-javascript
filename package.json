@@ -120,7 +120,7 @@
     "jest": "^27.5.1",
     "jest-environment-node": "^27.5.1",
     "jsdom": "^21.1.2",
-    "lerna": "7.1.1",
+    "lerna": "7.4.2",
     "madge": "7.0.0",
     "nodemon": "^2.0.16",
     "npm-run-all2": "^6.2.0",
