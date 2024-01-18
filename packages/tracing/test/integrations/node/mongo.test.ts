@@ -50,13 +50,14 @@ describe('patchOperation()', () => {
   let scope = new Scope();
   let parentSpan: Span;
   let childSpan: Span;
+  let testClient = getTestClient({});
 
   beforeAll(() => {
     new Integrations.Mongo({
       operations: ['insertOne', 'initializeOrderedBulkOp'],
     }).setupOnce(
       () => undefined,
-      () => new Hub(undefined, scope),
+      () => new Hub(testClient, scope),
     );
   });
 
@@ -64,6 +65,7 @@ describe('patchOperation()', () => {
     scope = new Scope();
     parentSpan = new Span();
     childSpan = parentSpan.startChild();
+    testClient = getTestClient({});
     jest.spyOn(scope, 'getSpan').mockReturnValueOnce(parentSpan);
     jest.spyOn(parentSpan, 'startChild').mockReturnValueOnce(childSpan);
     jest.spyOn(childSpan, 'end');
@@ -77,7 +79,6 @@ describe('patchOperation()', () => {
           'db.mongodb.collection': 'mockedCollectionName',
           'db.name': 'mockedDbName',
           'db.operation': 'insertOne',
-          'db.mongodb.doc': JSON.stringify(doc),
           'db.system': 'mongodb',
         },
         op: 'db',
@@ -97,7 +98,25 @@ describe('patchOperation()', () => {
         'db.mongodb.collection': 'mockedCollectionName',
         'db.name': 'mockedDbName',
         'db.operation': 'insertOne',
-        'db.mongodb.doc': JSON.stringify(doc),
+        'db.system': 'mongodb',
+      },
+      op: 'db',
+      origin: 'auto.db.mongo',
+      description: 'insertOne',
+    });
+    expect(childSpan.end).toBeCalled();
+  });
+
+  it('attaches mongodb operation spans if sendDefaultPii is enabled', async () => {
+    testClient.getOptions().sendDefaultPii = true;
+    await collection.insertOne(doc, {});
+    expect(scope.getSpan).toBeCalled();
+    expect(parentSpan.startChild).toBeCalledWith({
+      data: {
+        'db.mongodb.collection': 'mockedCollectionName',
+        'db.mongodb.doc': '{"name":"PickleRick","answer":42}',
+        'db.name': 'mockedDbName',
+        'db.operation': 'insertOne',
         'db.system': 'mongodb',
       },
       op: 'db',

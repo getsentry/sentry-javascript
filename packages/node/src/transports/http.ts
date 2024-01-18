@@ -12,7 +12,7 @@ import type {
   TransportRequestExecutor,
 } from '@sentry/types';
 import { consoleSandbox } from '@sentry/utils';
-import { HttpsProxyAgent } from 'https-proxy-agent';
+import { HttpsProxyAgent } from '../proxy';
 
 import type { HTTPModule } from './http-module';
 

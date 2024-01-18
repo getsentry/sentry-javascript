@@ -210,6 +210,29 @@ describe('dropUndefinedKeys()', () => {
     });
   });
 
+  describe('class instances', () => {
+    class MyClass {
+      public a = 'foo';
+      public b = undefined;
+    }
+
+    test('ignores class instance', () => {
+      const instance = new MyClass();
+      const result = dropUndefinedKeys(instance);
+      expect(result).toEqual({ a: 'foo', b: undefined });
+      expect(result).toBeInstanceOf(MyClass);
+      expect(Object.prototype.hasOwnProperty.call(result, 'b')).toBe(true);
+    });
+
+    test('ignores nested instances', () => {
+      const instance = new MyClass();
+      const result = dropUndefinedKeys({ a: [instance] });
+      expect(result).toEqual({ a: [instance] });
+      expect(result.a[0]).toBeInstanceOf(MyClass);
+      expect(Object.prototype.hasOwnProperty.call(result.a[0], 'b')).toBe(true);
+    });
+  });
+
   test('should not throw on objects with circular reference', () => {
     const chicken: any = {
       food: undefined,
