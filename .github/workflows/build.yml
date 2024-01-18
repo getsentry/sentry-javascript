@@ -35,6 +35,8 @@ env:
 
   # DEPENDENCY_CACHE_KEY: can't be set here because we don't have access to yarn.lock
 
+  # WARNING: this disables cross os caching as ~ and
+  # github.workspace evaluate to differents paths
   # packages/utils/cjs and packages/utils/esm: Symlinks to the folders inside of `build`, needed for tests
   CACHED_BUILD_PATHS: |
     ${{ github.workspace }}/dev-packages/*/build
