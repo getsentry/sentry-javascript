@@ -5,6 +5,7 @@ import {
   isErrorEvent,
   isInstanceOf,
   isNaN,
+  isPlainObject,
   isPrimitive,
   isThenable,
   isVueViewModel,
@@ -142,5 +143,29 @@ describe('isVueViewModel()', () => {
     expect(isVueViewModel({ __isVue: true })).toEqual(true);
 
     expect(isVueViewModel({ foo: true })).toEqual(false);
+  });
+});
+
+describe('isPlainObject', () => {
+  class MyClass {
+    public foo: string = 'bar';
+  }
+
+  it.each([
+    [{}, true],
+    [true, false],
+    [false, false],
+    [undefined, false],
+    [null, false],
+    ['', false],
+    [1, false],
+    [0, false],
+    [{ aha: 'yes' }, true],
+    [new Object({ aha: 'yes' }), true],
+    [new String('aa'), false],
+    [new MyClass(), true],
+    [{ ...new MyClass() }, true],
+  ])('%s is %s', (value, expected) => {
+    expect(isPlainObject(value)).toBe(expected);
   });
 });
