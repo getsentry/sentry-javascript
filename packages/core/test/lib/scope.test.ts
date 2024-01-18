@@ -544,7 +544,7 @@ describe('withActiveSpan()', () => {
   });
 
   it('should create child spans when calling startSpan within the callback', done => {
-    expect.assertions(1);
+    expect.assertions(2);
     const inactiveSpan = startInactiveSpan({ name: 'inactive-span' });
 
     withActiveSpan(inactiveSpan!, () => {
