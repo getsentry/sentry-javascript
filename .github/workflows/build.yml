@@ -1277,7 +1277,7 @@ jobs:
           yarn build:bindings:arm64
 
       - name: Build Monorepo
-        run: yarn lerna run build:transpile,build:types --ignore @sentry/serverless --ignore @sentry/browser --ignore @sentry/astro
+        run: yarn build --ignore @sentry/serverless --ignore @sentry/browser --ignore @sentry/astro
 
       - name: Test Bindings
         if: matrix.arch != 'arm64'
