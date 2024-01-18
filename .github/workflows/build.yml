@@ -398,6 +398,13 @@ jobs:
       - name: Pack
         # Profiling tarball is built separately as we assemble the precompiled binaries
         run: yarn build:tarball --ignore @sentry/profiling-node
+
+      - name: Restore profiling tarball
+        uses: actions/download-artifact@v3
+        with:
+          name: profiling-node-tarball-${{ github.sha }}
+          path: packages/profiling-node
+
       - name: Archive artifacts
         uses: actions/upload-artifact@v4.3.0
         with:
@@ -1407,7 +1414,7 @@ jobs:
 
   job_build_profiling_node:
     name: Extract Binaries and Pack Profiling Node
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     needs: [job_get_metadata, job_build, job_compile_bindings_profiling_node]
     timeout-minutes: 5
     steps:
