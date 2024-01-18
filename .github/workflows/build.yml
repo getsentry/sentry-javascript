@@ -1181,7 +1181,7 @@ jobs:
     needs: [job_get_metadata, job_install_deps, job_build]
     runs-on: ${{ matrix.os }}
     container: ${{ matrix.container }}
-    timeout-minutes: 20
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
