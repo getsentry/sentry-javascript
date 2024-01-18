@@ -1,4 +1,3 @@
-import { JSDOM } from 'jsdom';
 import { Transaction } from '../../../src';
 import type { ResourceEntry } from '../../../src/browser/metrics';
 import { _addMeasureSpans, _addResourceSpans } from '../../../src/browser/metrics';
@@ -17,17 +16,9 @@ const mockWindowLocation = {
   hash: '',
 } as Window['location'];
 
-const originalWindowLocation = WINDOW.location;
-// @ts-expect-error store a reference so we can reset it later
-const globalDocument = global.document;
-// @ts-expect-error store a reference so we can reset it later
-const globalWindow = global.window;
 // @ts-expect-error store a reference so we can reset it later
 const globalLocation = global.location;
 
-console.log('\n\n WINDOW!! \n\n');
-console.log(WINDOW.location);
-console.log('\n\n');
 const resourceEntryName = 'https://example.com/assets/to/css';
 
 describe('_addMeasureSpans', () => {
@@ -272,24 +263,15 @@ describe('_addResourceSpans', () => {
 });
 
 const setGlobalLocation = (location: Location) => {
-  const dom = new JSDOM();
   // @ts-expect-error need to override global document
-  global.document = dom.window.document;
-  // @ts-expect-error need to override global document
-  global.window = dom.window;
-  // @ts-expect-error need to override global document
-  global.location = dom.window.location;
+  global.location = mockWindowLocation;
 
-  WINDOW.location = location;
+  console.log('\n\n WINDOW origin!! \n\n');
+  console.log(WINDOW.location.origin);
+  console.log('\n\n');
 }
 
 const resetGlobalLocation = () => {
   // @ts-expect-error need to override global document
-  global.document = globalDocument;
-  // @ts-expect-error need to override global document
-  global.window = globalWindow;
-  // @ts-expect-error need to override global document
   global.location = globalLocation;
-
-  WINDOW.location = originalWindowLocation;
 }
