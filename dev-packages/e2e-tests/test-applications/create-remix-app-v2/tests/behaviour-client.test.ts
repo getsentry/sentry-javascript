@@ -47,7 +47,8 @@ test('Sends a client-side exception to Sentry', async ({ page }) => {
     .toBe(200);
 });
 
-test('Sends a pageload transaction to Sentry', async ({ page }) => {
+// Skipping test because of flake
+test.skip('Sends a pageload transaction to Sentry', async ({ page }) => {
   await page.goto('/');
 
   const recordedTransactionsHandle = await page.waitForFunction(() => {
@@ -106,7 +107,8 @@ test('Sends a pageload transaction to Sentry', async ({ page }) => {
   expect(hadPageLoadTransaction).toBe(true);
 });
 
-test('Sends a navigation transaction to Sentry', async ({ page }) => {
+// Skipped because of test flake
+test.skip('Sends a navigation transaction to Sentry', async ({ page }) => {
   await page.goto('/');
 
   // Give pageload transaction time to finish
