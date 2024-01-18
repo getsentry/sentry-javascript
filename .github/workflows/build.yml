@@ -958,16 +958,24 @@ jobs:
       - name: Build tarballs
         run: yarn build:tarball --ignore @sentry/profiling-node
 
-      - name: Restore profiling tarball
+      - name: Build Profiling Node
+        run: yarn lerna run build:lib --scope @sentry/profiling-node
+
+      - name: Extract Profiling Node Prebuilt Binaries
+        # @TODO: v4 breaks convenient merging of same name artifacts
+        # https://github.com/actions/upload-artifact/issues/478
         uses: actions/download-artifact@v3
         with:
-          name: profiling-node-tarball-${{ github.sha }}
-          path: packages/profiling-node
+          name: profiling-node-binaries-${{ github.sha }}
+          path: ${{ github.workspace }}/packages/profiling-node/lib/
 
-      - name: Log profiling tarball
+      - name: Build Profiling tarball
+        run: yarn build:tarball --scope @sentry/profiling-node
+
+      - name: Sanity check profiling
         run: |
-          ls -la packages/profiling-node
-          tar -t packages/profiling-node/profiling-node-tarball-${{ github.sha }}
+          ls -la ${{ github.workspace }}/packages/profiling-node
+          ls -la ${{ github.workspace }}/packages/profiling-node/lib
 
       - name: Stores tarballs in cache
         uses: actions/cache/save@v4
@@ -1433,16 +1441,7 @@ jobs:
         env:
           DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
 
-      - name: Build TS files
-        run: yarn lerna run build:lib --scope @sentry/profiling-node
 
-      - name: Extract Built Binaries
-        # @TODO: v4 breaks convenient merging of same name artifacts
-        # https://github.com/actions/upload-artifact/issues/478
-        uses: actions/download-artifact@v3
-        with:
-          name: profiling-node-binaries-${{ github.sha }}
-          path: ${{ github.workspace }}/packages/profiling-node/lib/
 
       - name: List binaries
         run: ls -la packages/profiling-node/lib/
