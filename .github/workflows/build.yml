@@ -104,6 +104,7 @@ jobs:
               - *shared
               - 'packages/browser/**'
               - 'packages/replay/**'
+              - 'packages/replay-canvas/**'
               - 'packages/feedback/**'
             browser_integration:
               - *shared
@@ -377,6 +378,7 @@ jobs:
             ${{ github.workspace }}/packages/browser/build/bundles/**
             ${{ github.workspace }}/packages/integrations/build/bundles/**
             ${{ github.workspace }}/packages/replay/build/bundles/**
+            ${{ github.workspace }}/packages/replay-canvas/build/bundles/**
             ${{ github.workspace }}/packages/**/*.tgz
             ${{ github.workspace }}/packages/serverless/build/aws/dist-serverless/*.zip
 
@@ -906,8 +908,9 @@ jobs:
             'node-express-app',
             'create-react-app',
             'create-next-app',
-            'create-remix-app',
-            'create-remix-app-v2',
+            # disabling remix e2e tests because of flakes
+            # 'create-remix-app',
+            # 'create-remix-app-v2',
             'debug-id-sourcemaps',
             'nextjs-app-dir',
             'nextjs-14',
