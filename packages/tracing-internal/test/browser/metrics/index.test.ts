@@ -16,13 +16,13 @@ const mockWindowLocation = {
   hash: ""
 } as Window['location'];
 
-WINDOW.location = mockWindowLocation;
-
+const originalWindowLocation = WINDOW.location;
 const resourceEntryName = 'https://example.com/assets/to/css';
 
 describe('_addMeasureSpans', () => {
   // eslint-disable-next-line deprecation/deprecation
   const transaction = new Transaction({ op: 'pageload', name: '/' });
+
   beforeEach(() => {
     // eslint-disable-next-line deprecation/deprecation
     transaction.startChild = jest.fn();
@@ -60,6 +60,15 @@ describe('_addMeasureSpans', () => {
 describe('_addResourceSpans', () => {
   // eslint-disable-next-line deprecation/deprecation
   const transaction = new Transaction({ op: 'pageload', name: '/' });
+
+  beforeAll(() => {
+    WINDOW.location = mockWindowLocation;
+  })
+
+  afterAll(() => {
+    WINDOW.location = originalWindowLocation;
+  })
+
   beforeEach(() => {
     // eslint-disable-next-line deprecation/deprecation
     transaction.startChild = jest.fn();
