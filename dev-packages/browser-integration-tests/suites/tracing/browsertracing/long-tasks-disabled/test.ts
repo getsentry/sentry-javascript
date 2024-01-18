@@ -16,6 +16,7 @@ sentryTest('should not capture long task when flag is disabled.', async ({ brows
   const url = await getLocalTestPath({ testDir: __dirname });
 
   const eventData = await getFirstSentryEnvelopeRequest<Event>(page, url);
+  // eslint-disable-next-line deprecation/deprecation
   const uiSpans = eventData.spans?.filter(({ op }) => op?.startsWith('ui'));
 
   expect(uiSpans?.length).toBe(0);

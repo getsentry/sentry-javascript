@@ -8,13 +8,6 @@ import * as Sentry from '../src';
 
 const { wrapHandler } = Sentry.AWSLambda;
 
-/**
- * Why @ts-expect-error some Sentry.X calls
- *
- * A hack-ish way to contain everything related to mocks in the same __mocks__ file.
- * Thanks to this, we don't have to do more magic than necessary. Just add and export desired method and assert on it.
- */
-
 // Default `timeoutWarningLimit` is 500ms so leaving some space for it to trigger when necessary
 const DEFAULT_EXECUTION_TIME = 100;
 let fakeEvent: { [key: string]: unknown };

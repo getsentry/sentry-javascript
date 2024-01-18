@@ -18,6 +18,7 @@ sentryTest('should add resource spans to pageload transaction', async ({ getLoca
   const url = await getLocalTestPath({ testDir: __dirname });
 
   const eventData = await getFirstSentryEnvelopeRequest<Event>(page, url);
+  // eslint-disable-next-line deprecation/deprecation
   const resourceSpans = eventData.spans?.filter(({ op }) => op?.startsWith('resource'));
 
   // Webkit 16.0 (which is linked to Playwright 1.27.1) consistently creates 2 consectutive spans for `css`,

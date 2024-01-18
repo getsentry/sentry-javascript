@@ -35,6 +35,7 @@ export {
   startSession,
   endSession,
   captureSession,
+  withActiveSpan,
 } from './exports';
 export {
   // eslint-disable-next-line deprecation/deprecation
