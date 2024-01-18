@@ -42,7 +42,7 @@ export function makeExtractPolyfillsPlugin() {
 
       // The index.js file of the tuils package will include identifiers named after polyfills so we would inject the
       // polyfills, however that would override the exports so we should just skip that file.
-      const isUtilsPackage = process.cwd().endsWith(`packages${path.delimiter}utils`);
+      const isUtilsPackage = process.cwd().endsWith(`packages${path.sep}utils`);
       if (isUtilsPackage && sourceFile === 'index.js') {
         return null;
       }
@@ -192,9 +192,9 @@ function createImportOrRequireNode(polyfillNodes, currentSourceFile, moduleForma
 
   // Since our polyfills live in `@sentry/utils`, if we're importing or requiring them there the path will have to be
   // relative
-  const isUtilsPackage = process.cwd().endsWith(`packages${path.delimiter}utils`);
+  const isUtilsPackage = process.cwd().endsWith(`packages${path.sep}utils`);
   const importSource = literal(
-    isUtilsPackage ? `.${path.delimiter}${path.relative(path.dirname(currentSourceFile), 'buildPolyfills')}` : '@sentry/utils',
+    isUtilsPackage ? `.${path.sep}${path.relative(path.dirname(currentSourceFile), 'buildPolyfills')}` : '@sentry/utils',
   );
 
   // This is the `x, y, z` of inside of `import { x, y, z }` or `var { x, y, z }`
