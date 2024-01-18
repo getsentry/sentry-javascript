@@ -1,14 +1,12 @@
 import * as Sentry from '@sentry/node';
 
 import { getMainCarrier } from '@sentry/core';
-import { NodeClient } from '@sentry/node';
 import type { Transport } from '@sentry/types';
-import { createEnvelope, logger } from '@sentry/utils';
-import { GLOBAL_OBJ } from '@sentry/utils';
+import { createEnvelope, logger, GLOBAL_OBJ } from '@sentry/utils';
 import { CpuProfilerBindings } from '../src/cpu_profiler';
 import { ProfilingIntegration } from '../src/index';
 
-function makeClientWithoutHooks(): [NodeClient, Transport] {
+function makeClientWithoutHooks(): [Sentry.NodeClient, Transport] {
   const integration = new ProfilingIntegration();
   const transport = Sentry.makeNodeTransport({
     url: 'https://7fa19397baaf433f919fbe02228d5470@o1137848.ingest.sentry.io/6625302',
@@ -16,7 +14,7 @@ function makeClientWithoutHooks(): [NodeClient, Transport] {
       return undefined;
     },
   });
-  const client = new NodeClient({
+  const client = new Sentry.NodeClient({
     stackParser: Sentry.defaultStackParser,
     tracesSampleRate: 1,
     profilesSampleRate: 1,
@@ -42,9 +40,9 @@ function makeClientWithoutHooks(): [NodeClient, Transport] {
   return [client, transport];
 }
 
-function makeClientWithHooks(): [NodeClient, Transport] {
+function makeClientWithHooks(): [Sentry.NodeClient, Transport] {
   const integration = new ProfilingIntegration();
-  const client = new NodeClient({
+  const client = new Sentry.NodeClient({
     stackParser: Sentry.defaultStackParser,
     tracesSampleRate: 1,
     profilesSampleRate: 1,

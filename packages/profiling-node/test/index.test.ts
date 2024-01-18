@@ -2,7 +2,6 @@ import * as Sentry from '@sentry/node';
 import type { Transport } from '@sentry/types';
 
 import { getMainCarrier } from '@sentry/core';
-import { NodeClient } from '@sentry/node';
 import { ProfilingIntegration } from '../src/index';
 import type { Profile } from '../src/types';
 
@@ -23,10 +22,10 @@ function makeStaticTransport(): MockTransport {
   };
 }
 
-function makeClientWithoutHooks(): [NodeClient, MockTransport] {
+function makeClientWithoutHooks(): [Sentry.NodeClient, MockTransport] {
   const integration = new ProfilingIntegration();
   const transport = makeStaticTransport();
-  const client = new NodeClient({
+  const client = new Sentry.NodeClient({
     stackParser: Sentry.defaultStackParser,
     tracesSampleRate: 1,
     profilesSampleRate: 1,
