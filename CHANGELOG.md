@@ -4,6 +4,82 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.94.0
+
+### Important Changes
+
+#### Deprecations
+
+As we're moving closer to the next major version of the SDK, more public APIs were deprecated.
+
+To get a head start on migrating to the replacement APIs, please take a look at our
+[migration guide](https://github.com/getsentry/sentry-javascript/blob/develop/MIGRATION.md).
+
+- feat: Deprecate user segment field (#10210)
+- feat(core): Deprecate `finish` on `Span` interface in favour of `end` (#10161)
+- feat(core): Deprecate `getCurrentHub()` (#10200)
+- feat(core): Deprecate `hub.bindClient()` & `makeMain()` (#10188)
+- feat(core): Deprecate `Span.instrumenter` (#10139)
+- feat(core): Deprecate `Span.isSuccess()` in favor of reading span status (#10213)
+- feat(core): Deprecate `Span.op` in favor of op attribute (#10189)
+- feat(core): Deprecate `Span.spanRecorder` (#10199)
+- feat(core): Deprecate `Span.status` (#10208)
+- feat(core): Deprecate `Span.transaction` in favor of `getRootSpan` (#10134)
+- feat(core): Deprecate `Transaction.instrumenter` (#10162)
+- feat(core): Deprecate `Transaction.setMeasurement` in favor of `setMeasurement` (#10182)
+- feat(core): Deprecate integration classes & `Integrations.X` (#10198)
+- feat(core): Deprecate methods on `Hub` (#10124)
+- feat(core): Deprecate remaining `setName` declarations on `Transaction` and `Span` (#10164)
+- feat(core): Deprecate span `startTimestamp` & `endTimestamp` (#10192)
+- feat(core): Deprecate `hub.bindClient()` and `makeMain()` (#10118)
+- feat(types): Deprecate `op` on `Span` interface (#10217)
+- feat(integrations): Deprecate `Transaction` integration (#10178)
+- feat(integrations): Deprecate pluggable integration classes (#10211)
+
+#### Replay & Canvas
+
+We have added a new `ReplayCanvas` integration (#10112), which you can add to capture the contents of canvas elements
+with Replay.
+
+Just add it _in addition_ to the regular replay integration:
+
+```js
+Sentry.init({
+  integrations: [new Sentry.Replay(), new Sentry.ReplayCanvas()],
+});
+```
+
+### Other Changes
+
+- feat(core): Add `client.getIntegrationByName()` (#10130)
+- feat(core): Add `client.init()` to replace `client.setupIntegrations()` (#10118)
+- feat(core): Add `withActiveSpan` (#10195)
+- feat(core): Add `withIsolationScope` (#10141)
+- feat(core): Streamline integration function results to be compatible (#10135)
+- feat(core): Write data from `setUser`, `setTags`, `setExtras`, `setTag`, `setExtra`, and `setContext` to isolation
+  scope (#10163)
+- feat(core): Add domain information to resource span data #10205
+- feat(feedback): Export sendFeedback from @sentry/browser (#10231)
+- feat(node): Update and vendor https-proxy-agent (#10088)
+- feat(node-experimental): Add `withActiveSpan` (#10194)
+- feat(replays): Add snapshot function to replay canvas integration (#10066)
+- feat(types): Add `SerializedEvent` interface (pre v8) (#10240)
+- feat(types): Add support for new monitor config thresholds (#10225)
+- fix: Ensure all integration classes have correct types (#10183)
+- fix(astro): Fix import path when using external init files with default path (#10214)
+- fix(cdn): Emit console warning instead of error for integration shims (#10193)
+- fix(core): Take user from current scope when starting a session (#10153)
+- fix(node-experimental): Ensure `http.status_code` is always a string (#10177)
+- fix(node): Guard against `process.argv[1]` being undefined (#10155)
+- fix(node): Module name resolution (#10144)
+- fix(node): Remove leading slash in Windows filenames (#10147)
+- fix(remix): Capture thrown fetch responses. (#10166)
+- fix(tracing): Gate mongo operation span data behind sendDefaultPii (#10227)
+- fix(tracing-internal): Delay pageload transaction finish until document is interactive (#10215)
+- fix(tracing-internal): Only collect request/response spans when browser performance timing is available (#10207)
+- fix(tracing-internal): Prefer `fetch` init headers over `fetch` input headers (#10176)
+- fix(utils): Ensure dropUndefinedKeys() does not break class instances (#10245)
+
 ## 7.93.0
 
 ### Important Changes
