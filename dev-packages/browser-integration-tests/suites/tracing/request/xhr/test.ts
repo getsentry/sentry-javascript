@@ -13,6 +13,7 @@ sentryTest('should create spans for multiple XHR requests', async ({ getLocalTes
   const url = await getLocalTestPath({ testDir: __dirname });
 
   const eventData = await getFirstSentryEnvelopeRequest<Event>(page, url);
+  // eslint-disable-next-line deprecation/deprecation
   const requestSpans = eventData.spans?.filter(({ op }) => op === 'http.client');
 
   expect(requestSpans).toHaveLength(3);
