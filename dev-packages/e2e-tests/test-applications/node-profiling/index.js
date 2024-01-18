@@ -1,5 +1,5 @@
 const Sentry = require('@sentry/node');
-const Profiling = require('./lib');
+const Profiling = require('@sentry/profiling-node');
 
 const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
 
