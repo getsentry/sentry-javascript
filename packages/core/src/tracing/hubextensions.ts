@@ -89,13 +89,22 @@ export function startIdleTransaction(
   onScope?: boolean,
   customSamplingContext?: CustomSamplingContext,
   heartbeatInterval?: number,
+  delayAutoFinishUntilSignal: boolean = false,
 ): IdleTransaction {
   // eslint-disable-next-line deprecation/deprecation
   const client = hub.getClient();
   const options: Partial<ClientOptions> = (client && client.getOptions()) || {};
 
   // eslint-disable-next-line deprecation/deprecation
-  let transaction = new IdleTransaction(transactionContext, hub, idleTimeout, finalTimeout, heartbeatInterval, onScope);
+  let transaction = new IdleTransaction(
+    transactionContext,
+    hub,
+    idleTimeout,
+    finalTimeout,
+    heartbeatInterval,
+    onScope,
+    delayAutoFinishUntilSignal,
+  );
   transaction = sampleTransaction(transaction, options, {
     parentSampled: transactionContext.parentSampled,
     transactionContext,
