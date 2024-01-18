@@ -1361,7 +1361,7 @@ jobs:
       - name: Test Bindings
         if: matrix.arch != 'arm64'
         run: |
-          yarn lerna run test:bindings --scope @sentry/profiling-node
+          yarn lerna run test --scope @sentry/profiling-node
 
       - name: Archive Binary
         # @TODO: v4 breaks convenient merging of same name artifacts
