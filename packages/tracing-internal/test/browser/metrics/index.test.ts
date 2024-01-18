@@ -16,8 +16,7 @@ const mockWindowLocation = {
   hash: '',
 } as Window['location'];
 
-// @ts-expect-error store a reference so we can reset it later
-const globalLocation = global.location;
+const originalLocation = WINDOW.location;
 
 const resourceEntryName = 'https://example.com/assets/to/css';
 
@@ -264,7 +263,8 @@ describe('_addResourceSpans', () => {
 
 const setGlobalLocation = (location: Location) => {
   // @ts-expect-error need to override global document
-  global.location = mockWindowLocation;
+  delete WINDOW.location;
+  WINDOW.location = mockWindowLocation;
 
   console.log('\n\n WINDOW origin!! \n\n');
   console.log(WINDOW.location.origin);
@@ -272,6 +272,5 @@ const setGlobalLocation = (location: Location) => {
 }
 
 const resetGlobalLocation = () => {
-  // @ts-expect-error need to override global document
-  global.location = globalLocation;
+  WINDOW.location = originalLocation;
 }
