@@ -24,6 +24,8 @@ concurrency:
 env:
   HEAD_COMMIT: ${{ github.event.inputs.commit || github.sha }}
 
+  # WARNING: this disables cross os caching as ~ and
+  # github.workspace evaluate to differents paths
   CACHED_DEPENDENCY_PATHS: |
     ${{ github.workspace }}/node_modules
     ${{ github.workspace }}/packages/*/node_modules
@@ -1289,6 +1291,13 @@ jobs:
       - name: Build Monorepo
         if: steps.restore-build.outputs.cache-hit != 'true'
         run: yarn build --ignore @sentry/serverless --ignore @sentry/browser --ignore @sentry/astro
+
+      - name: Store file
+        uses: actions/upload-artifact@v2
+        with:
+          name: windows-cjs-utils
+          path: |
+            ${{ github.workspace }}/packages/utils/build/cjs
 
       - name: Test Bindings
         if: matrix.arch != 'arm64'
