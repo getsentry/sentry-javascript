@@ -5,9 +5,11 @@ Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
   release: '1.0',
   tracesSampleRate: 1.0,
-  debug: true,
   transport: loggingTransport,
 });
+
+// Stop the process from exiting before the transaction is sent
+setInterval(() => {}, 1000);
 
 // Must be required after Sentry is initialized
 const { MongoClient } = require('mongodb');
@@ -40,8 +42,6 @@ async function run() {
       }
     },
   );
-
-  Sentry.flush(2000);
 }
 
 // eslint-disable-next-line @typescript-eslint/no-floating-promises
