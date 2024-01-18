@@ -1,25 +1,16 @@
 import type { BrowserOptions } from '@sentry/browser';
-import { SDK_VERSION, init as browserInit } from '@sentry/browser';
-import type { SdkMetadata } from '@sentry/types';
+import { init as browserInit } from '@sentry/browser';
+import { applySdkMetadata } from '@sentry/core';
 
 /**
  * Inits the React SDK
  */
 export function init(options: BrowserOptions): void {
   const opts = {
-    _metadata: {} as SdkMetadata,
     ...options,
   };
 
-  opts._metadata.sdk = opts._metadata.sdk || {
-    name: 'sentry.javascript.react',
-    packages: [
-      {
-        name: 'npm:@sentry/react',
-        version: SDK_VERSION,
-      },
-    ],
-    version: SDK_VERSION,
-  };
+  applySdkMetadata(opts, 'react');
+
   browserInit(opts);
 }

@@ -5,7 +5,7 @@ import { getOwnConfig, isDevelopingApp, macroCondition } from '@embroider/macros
 import { startSpan } from '@sentry/browser';
 import type { BrowserOptions } from '@sentry/browser';
 import * as Sentry from '@sentry/browser';
-import { SDK_VERSION } from '@sentry/browser';
+import { applySdkMetadata } from '@sentry/core';
 import { GLOBAL_OBJ } from '@sentry/utils';
 import Ember from 'ember';
 
@@ -33,17 +33,7 @@ export function InitSentryForEmber(_runtimeConfig?: BrowserOptions): void {
   Object.assign(environmentConfig.sentry, _runtimeConfig || {});
   const initConfig = Object.assign({}, environmentConfig.sentry);
 
-  initConfig._metadata = initConfig._metadata || {};
-  initConfig._metadata.sdk = {
-    name: 'sentry.javascript.ember',
-    packages: [
-      {
-        name: 'npm:@sentry/ember',
-        version: SDK_VERSION,
-      },
-    ],
-    version: SDK_VERSION,
-  };
+  applySdkMetadata(initConfig, 'ember');
 
   // Persist Sentry init options so they are identical when performance initializers call init again.
   const sentryInitConfig = _getSentryInitConfig();

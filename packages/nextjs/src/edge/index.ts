@@ -1,5 +1,4 @@
-import { SDK_VERSION, addTracingExtensions } from '@sentry/core';
-import type { SdkMetadata } from '@sentry/types';
+import { addTracingExtensions, applySdkMetadata } from '@sentry/core';
 import type { VercelEdgeOptions } from '@sentry/vercel-edge';
 import { getDefaultIntegrations, init as vercelEdgeInit } from '@sentry/vercel-edge';
 
@@ -21,21 +20,11 @@ export function init(options: VercelEdgeOptions = {}): void {
   const customDefaultIntegrations = [...getDefaultIntegrations(options), rewriteFramesIntegration()];
 
   const opts = {
-    _metadata: {} as SdkMetadata,
     defaultIntegrations: customDefaultIntegrations,
     ...options,
   };
 
-  opts._metadata.sdk = opts._metadata.sdk || {
-    name: 'sentry.javascript.nextjs',
-    packages: [
-      {
-        name: 'npm:@sentry/nextjs',
-        version: SDK_VERSION,
-      },
-    ],
-    version: SDK_VERSION,
-  };
+  applySdkMetadata(opts, 'nextjs');
 
   vercelEdgeInit(opts);
 }

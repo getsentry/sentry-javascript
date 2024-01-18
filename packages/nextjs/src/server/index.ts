@@ -1,4 +1,4 @@
-import { addTracingExtensions, getClient } from '@sentry/core';
+import { addTracingExtensions, applySdkMetadata, getClient } from '@sentry/core';
 import type { NodeOptions } from '@sentry/node';
 import {
   Integrations as OriginalIntegrations,
@@ -12,7 +12,6 @@ import { logger } from '@sentry/utils';
 import { DEBUG_BUILD } from '../common/debug-build';
 import { devErrorSymbolicationEventProcessor } from '../common/devErrorSymbolicationEventProcessor';
 import { getVercelEnv } from '../common/getVercelEnv';
-import { buildMetadata } from '../common/metadata';
 import { isBuild } from '../common/utils/isBuild';
 import { Http } from './httpIntegration';
 import { OnUncaughtException } from './onUncaughtExceptionIntegration';
@@ -109,7 +108,7 @@ export function init(options: NodeOptions): void {
     return;
   }
 
-  buildMetadata(opts, ['nextjs', 'node']);
+  applySdkMetadata(opts, 'nextjs', ['nextjs', 'node']);
 
   nodeInit(opts);
 
