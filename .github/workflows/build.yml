@@ -1357,7 +1357,7 @@ jobs:
         run: yarn build:tarball --scope @sentry/profiling-node
 
       - name: Archive profiling artifacts
-        uses: actions/upload-artifact@v4.0.0
+        uses: actions/upload-artifact@v3
         with:
           name: profiling-node-tarball-${{ github.sha }}
           path: |
