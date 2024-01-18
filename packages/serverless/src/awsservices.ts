@@ -1,4 +1,4 @@
-import { getCurrentScope } from '@sentry/node';
+import { startInactiveSpan } from '@sentry/node';
 import type { Integration, Span } from '@sentry/types';
 import { fill } from '@sentry/utils';
 // 'aws-sdk/global' import is expected to be type-only so it's erased in the final .js file.
@@ -57,19 +57,13 @@ function wrapMakeRequest<TService extends AWSService, TResult>(
 ): MakeRequestFunction<GenericParams, TResult> {
   return function (this: TService, operation: string, params?: GenericParams, callback?: MakeRequestCallback<TResult>) {
     let span: Span | undefined;
-    const scope = getCurrentScope();
-    // eslint-disable-next-line deprecation/deprecation
-    const transaction = scope.getTransaction();
     const req = orig.call(this, operation, params);
     req.on('afterBuild', () => {
-      if (transaction) {
-        // eslint-disable-next-line deprecation/deprecation
-        span = transaction.startChild({
-          description: describe(this, operation, params),
-          op: 'http.client',
-          origin: 'auto.http.serverless',
-        });
-      }
+      span = startInactiveSpan({
+        name: describe(this, operation, params),
+        op: 'http.client',
+        origin: 'auto.http.serverless',
+      });
     });
     req.on('complete', () => {
       if (span) {

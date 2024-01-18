@@ -1,8 +1,8 @@
 // '@google-cloud/common' import is expected to be type-only so it's erased in the final .js file.
 // When TypeScript compiler is upgraded, use `import type` syntax to explicitly assert that we don't want to load a module here.
 import type * as common from '@google-cloud/common';
-import { getCurrentScope } from '@sentry/node';
-import type { Integration, Span } from '@sentry/types';
+import { startInactiveSpan } from '@sentry/node';
+import type { Integration } from '@sentry/types';
 import { fill } from '@sentry/utils';
 
 type RequestOptions = common.DecorateRequestOptions;
@@ -51,19 +51,12 @@ export class GoogleCloudHttp implements Integration {
 /** Returns a wrapped function that makes a request with tracing enabled */
 function wrapRequestFunction(orig: RequestFunction): RequestFunction {
   return function (this: common.Service, reqOpts: RequestOptions, callback: ResponseCallback): void {
-    let span: Span | undefined;
-    const scope = getCurrentScope();
-    // eslint-disable-next-line deprecation/deprecation
-    const transaction = scope.getTransaction();
-    if (transaction) {
-      const httpMethod = reqOpts.method || 'GET';
-      // eslint-disable-next-line deprecation/deprecation
-      span = transaction.startChild({
-        description: `${httpMethod} ${reqOpts.uri}`,
-        op: `http.client.${identifyService(this.apiEndpoint)}`,
-        origin: 'auto.http.serverless',
-      });
-    }
+    const httpMethod = reqOpts.method || 'GET';
+    const span = startInactiveSpan({
+      name: `${httpMethod} ${reqOpts.uri}`,
+      op: `http.client.${identifyService(this.apiEndpoint)}`,
+      origin: 'auto.http.serverless',
+    });
     orig.call(this, reqOpts, (...args: Parameters<ResponseCallback>) => {
       if (span) {
         span.end();
