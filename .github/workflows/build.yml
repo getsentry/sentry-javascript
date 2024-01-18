@@ -378,7 +378,7 @@ jobs:
 
   job_artifacts:
     name: Upload Artifacts
-    needs: [job_get_metadata, job_build, job_build_profiling_node]
+    needs: [job_get_metadata, job_build, job_compile_bindings_profiling_node]
     runs-on: ubuntu-20.04
     # Build artifacts are only needed for releasing workflow.
     if: needs.job_get_metadata.outputs.is_release == 'true'
@@ -932,7 +932,7 @@ jobs:
     if:
       (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) &&
       github.actor != 'dependabot[bot]'
-    needs: [job_get_metadata, job_build, job_build_profiling_node]
+    needs: [job_get_metadata, job_build, job_compile_bindings_profiling_node]
     runs-on: ubuntu-20.04-large-js
     timeout-minutes: 15
     steps:
@@ -1122,7 +1122,7 @@ jobs:
     needs:
       [
         job_build,
-        job_build_profiling_node,
+        job_compile_bindings_profiling_node,
         job_browser_build_tests,
         job_browser_unit_tests,
         job_bun_unit_tests,
@@ -1419,39 +1419,3 @@ jobs:
           name: profiling-node-binaries-${{ github.sha }}
           path: |
             ${{ github.workspace }}/packages/profiling-node/lib/*.node
-
-  job_build_profiling_node:
-    name: Extract Binaries and Pack Profiling Node
-    runs-on: ubuntu-20.04
-    needs: [job_get_metadata, job_build, job_compile_bindings_profiling_node]
-    timeout-minutes: 5
-    steps:
-      - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ env.HEAD_COMMIT }}
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-
-      - name: Restore caches
-        uses: ./.github/actions/restore-cache
-        env:
-          DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
-
-
-
-      - name: List binaries
-        run: ls -la packages/profiling-node/lib/
-
-      - name: Pack Profiling Node
-        run: yarn build:tarball --scope @sentry/profiling-node
-
-      - name: Archive profiling artifacts
-        uses: actions/upload-artifact@v3
-        with:
-          name: profiling-node-tarball-${{ github.sha }}
-          path: |
-            ${{ github.workspace }}/packages/profiling-node/*.tgz
