@@ -25,6 +25,7 @@
     "access": "public"
   },
   "files": [
+    "lib",
     "bindings",
     "binding.gyp",
     "LICENSE",

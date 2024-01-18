@@ -1391,13 +1391,6 @@ jobs:
         if: steps.restore-build.outputs.cache-hit != 'true'
         run: yarn build --ignore @sentry/serverless --ignore @sentry/browser --ignore @sentry/astro
 
-      - name: Store file
-        uses: actions/upload-artifact@v2
-        with:
-          name: windows-cjs-utils
-          path: |
-            ${{ github.workspace }}/packages/utils/build/cjs
-
       - name: Test Bindings
         if: matrix.arch != 'arm64'
         run: |
@@ -1442,7 +1435,7 @@ jobs:
         uses: actions/download-artifact@v3
         with:
           name: profiling-node-binaries-${{ github.sha }}
-          path: packages/profiling-node/lib/
+          path: ${{ github.workspace }}/packages/profiling-node/lib/
 
       - name: List binaries
         run: ls -la packages/profiling-node/lib/
