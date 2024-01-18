@@ -946,6 +946,18 @@ jobs:
           restore-keys: ${{ env.NX_CACHE_RESTORE_KEYS }}
       - name: Build tarballs
         run: yarn build:tarball --ignore @sentry/profiling-node
+
+      - name: Restore profiling tarball
+        uses: actions/download-artifact@v3
+        with:
+          name: profiling-node-tarball-${{ github.sha }}
+          path: packages/profiling-node
+
+      - name: Log profiling tarball
+        run: |
+          ls -la packages/profiling-node
+          tar -t packages/profiling-node/profiling-node-tarball-${{ github.sha }}
+
       - name: Stores tarballs in cache
         uses: actions/cache/save@v4
         with:
@@ -1038,6 +1050,12 @@ jobs:
         uses: ./.github/actions/restore-cache
         env:
           DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
+
+      - name: Restore profiling tarball
+        uses: actions/cache/restore@v3
+        with:
+          path: ${{ github.workspace }}/packages/profiling-node/*.tgz
+          key: ${{ env.BUILD_CACHE_TARBALL_KEY }}
 
       - name: Restore tarball cache
         uses: actions/cache/restore@v4
@@ -1409,3 +1427,10 @@ jobs:
 
       - name: Pack Profiling Node
         run: yarn build:tarball --scope @sentry/profiling-node
+
+      - name: Archive profiling artifacts
+        uses: actions/upload-artifact@v4.0.0
+        with:
+          name: profiling-node-tarball-${{ github.sha }}
+          path: |
+            ${{ github.workspace }}/packages/profiling-node/*.tgz
