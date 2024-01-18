@@ -13,10 +13,9 @@
   "dependencies": {
     "@sentry/node": "latest || *",
     "@sentry/types": "latest || *",
-    "esbuild": "^0.17.18"
+    "esbuild": "^0.19.11"
   },
-  "devDependencies": {
-  },
+  "devDependencies": {},
   "volta": {
     "extends": "../../package.json"
   }
