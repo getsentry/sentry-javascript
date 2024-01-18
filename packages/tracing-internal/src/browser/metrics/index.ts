@@ -2,7 +2,7 @@
 import type { IdleTransaction, Transaction } from '@sentry/core';
 import { getActiveTransaction, setMeasurement } from '@sentry/core';
 import type { Measurements, SpanContext } from '@sentry/types';
-import { browserPerformanceTimeOrigin, getComponentName, htmlTreeAsString, logger } from '@sentry/utils';
+import { browserPerformanceTimeOrigin, getComponentName, htmlTreeAsString, logger, parseUrl } from '@sentry/utils';
 
 import { spanToJSON } from '@sentry/core';
 import { DEBUG_BUILD } from '../../common/debug-build';
@@ -226,8 +226,7 @@ export function addPerformanceEntries(transaction: Transaction): void {
         break;
       }
       case 'resource': {
-        const resourceName = (entry.name as string).replace(WINDOW.location.origin, '');
-        _addResourceSpans(transaction, entry, resourceName, startTime, duration, timeOrigin);
+        _addResourceSpans(transaction, entry, entry.name as string, startTime, duration, timeOrigin);
         break;
       }
       default:
@@ -408,7 +407,7 @@ export interface ResourceEntry extends Record<string, unknown> {
 export function _addResourceSpans(
   transaction: Transaction,
   entry: ResourceEntry,
-  resourceName: string,
+  resourceUrl: string,
   startTime: number,
   duration: number,
   timeOrigin: number,
@@ -419,20 +418,32 @@ export function _addResourceSpans(
     return;
   }
 
+  const parsedUrl = parseUrl(resourceUrl);
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const data: Record<string, any> = {};
   setResourceEntrySizeData(data, entry, 'transferSize', 'http.response_transfer_size');
   setResourceEntrySizeData(data, entry, 'encodedBodySize', 'http.response_content_length');
   setResourceEntrySizeData(data, entry, 'decodedBodySize', 'http.decoded_response_content_length');
+
   if ('renderBlockingStatus' in entry) {
     data['resource.render_blocking_status'] = entry.renderBlockingStatus;
   }
+  if (parsedUrl.protocol) {
+    data['url.scheme'] = parsedUrl.protocol.split(':').pop(); // the protocol returned by parseUrl includes a :, but OTEL spec does not, so we remove it.
+  }
+
+  if (parsedUrl.host) {
+    data['server.address'] = parsedUrl.host;
+  }
+
+  data['url.same_origin'] = resourceUrl.includes(WINDOW.location.origin);
 
   const startTimestamp = timeOrigin + startTime;
   const endTimestamp = startTimestamp + duration;
 
   _startChild(transaction, {
-    description: resourceName,
+    description: resourceUrl.replace(WINDOW.location.origin, ''),
     endTimestamp,
     op: entry.initiatorType ? `resource.${entry.initiatorType}` : 'resource.other',
     origin: 'auto.resource.browser.metrics',
