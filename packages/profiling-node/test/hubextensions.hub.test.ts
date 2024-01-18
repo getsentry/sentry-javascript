@@ -2,7 +2,7 @@ import * as Sentry from '@sentry/node';
 
 import { getMainCarrier } from '@sentry/core';
 import type { Transport } from '@sentry/types';
-import { createEnvelope, logger, GLOBAL_OBJ } from '@sentry/utils';
+import { GLOBAL_OBJ, createEnvelope, logger } from '@sentry/utils';
 import { CpuProfilerBindings } from '../src/cpu_profiler';
 import { ProfilingIntegration } from '../src/index';
 
