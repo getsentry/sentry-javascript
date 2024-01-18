@@ -328,7 +328,7 @@ export class IdleTransaction extends Transaction {
   private _restartIdleTimeout(endTimestamp?: Parameters<IdleTransaction['end']>[0]): void {
     this.cancelIdleTimeout();
     this._idleTimeoutID = setTimeout(() => {
-      if (!this._finished && Object.keys(this.activities).length === 0 && this._autoFinishAllowed) {
+      if (!this._finished && Object.keys(this.activities).length === 0) {
         this._finishReason = IDLE_TRANSACTION_FINISH_REASONS[1];
         this.end(endTimestamp);
       }
