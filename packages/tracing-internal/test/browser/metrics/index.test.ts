@@ -261,10 +261,10 @@ describe('_addResourceSpans', () => {
   });
 });
 
-const setGlobalLocation = () => {
+const setGlobalLocation = (location: Location) => {
   // @ts-expect-error need to delete this in order to set to new value
   delete WINDOW.location;
-  WINDOW.location = mockWindowLocation;
+  WINDOW.location = location;
 };
 
 const resetGlobalLocation = () => {
