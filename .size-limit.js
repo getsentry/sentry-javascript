@@ -55,6 +55,13 @@ module.exports = [
     limit: '50 KB',
   },
   {
+    name: '@sentry/browser (incl. sendFeedback) - Webpack (gzipped)',
+    path: 'packages/browser/build/npm/esm/index.js',
+    import: '{ init, sendFeedback }',
+    gzip: true,
+    limit: '50 KB',
+  },
+  {
     name: '@sentry/browser - Webpack (gzipped)',
     path: 'packages/browser/build/npm/esm/index.js',
     import: '{ init }',
