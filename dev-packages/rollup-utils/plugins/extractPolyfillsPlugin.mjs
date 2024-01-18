@@ -192,7 +192,7 @@ function createImportOrRequireNode(polyfillNodes, currentSourceFile, moduleForma
 
   // Since our polyfills live in `@sentry/utils`, if we're importing or requiring them there the path will have to be
   // relative
-  const isUtilsPackage = process.cwd().endsWith('packages/utils');
+  const isUtilsPackage = process.cwd().endsWith(path.join('packages', 'utils'));
   const importSource = literal(
     isUtilsPackage ? `./${path.relative(path.dirname(currentSourceFile), 'buildPolyfills')}` : '@sentry/utils',
   );

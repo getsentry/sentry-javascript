@@ -36,7 +36,7 @@ export type {
 
 export { ReplayCanvas } from '@sentry-internal/replay-canvas';
 
-export { Feedback } from '@sentry-internal/feedback';
+export { Feedback, sendFeedback } from '@sentry-internal/feedback';
 
 export {
   BrowserTracing,
