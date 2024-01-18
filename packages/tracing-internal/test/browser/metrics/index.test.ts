@@ -5,15 +5,15 @@ import { WINDOW } from '../../../src/browser/types';
 
 const mockWindowLocation = {
   ancestorOrigins: {},
-  href: "https://example.com/path/to/something",
-  origin: "https://example.com",
-  protocol: "https",
-  host: "example.com",
-  hostname: "example.com",
-  port: "",
-  pathname: "/path/to/something",
-  search: "",
-  hash: ""
+  href: 'https://example.com/path/to/something',
+  origin: 'https://example.com',
+  protocol: 'https',
+  host: 'example.com',
+  hostname: 'example.com',
+  port: '',
+  pathname: '/path/to/something',
+  search: '',
+  hash: '',
 } as Window['location'];
 
 const originalWindowLocation = WINDOW.location;
@@ -63,11 +63,11 @@ describe('_addResourceSpans', () => {
 
   beforeAll(() => {
     WINDOW.location = mockWindowLocation;
-  })
+  });
 
   afterAll(() => {
     WINDOW.location = originalWindowLocation;
-  })
+  });
 
   beforeEach(() => {
     // eslint-disable-next-line deprecation/deprecation
@@ -222,14 +222,13 @@ describe('_addResourceSpans', () => {
     // eslint-disable-next-line @typescript-eslint/unbound-method, deprecation/deprecation
     expect(transaction.startChild).toHaveBeenLastCalledWith(
       expect.objectContaining({
-        data: { "server.address": "example.com", "url.same_origin": true, "url.scheme": "https" },
-        description: "/assets/to/css",
+        data: { 'server.address': 'example.com', 'url.same_origin': true, 'url.scheme': 'https' },
+        description: '/assets/to/css',
         endTimestamp: 468,
-        op: "resource.css",
-        origin: "auto.resource.browser.metrics",
-        startTimestamp: 445
-      }
-      ),
+        op: 'resource.css',
+        origin: 'auto.resource.browser.metrics',
+        startTimestamp: 445,
+      }),
     );
   });
 
@@ -250,12 +249,12 @@ describe('_addResourceSpans', () => {
     // eslint-disable-next-line @typescript-eslint/unbound-method, deprecation/deprecation
     expect(transaction.startChild).toHaveBeenLastCalledWith(
       expect.objectContaining({
-        data: { "server.address": "example.com", "url.same_origin": true, "url.scheme": "https" },
-        description: "/assets/to/css",
+        data: { 'server.address': 'example.com', 'url.same_origin': true, 'url.scheme': 'https' },
+        description: '/assets/to/css',
         endTimestamp: 468,
-        op: "resource.css",
-        origin: "auto.resource.browser.metrics",
-        startTimestamp: 445
+        op: 'resource.css',
+        origin: 'auto.resource.browser.metrics',
+        startTimestamp: 445,
       }),
     );
   });
