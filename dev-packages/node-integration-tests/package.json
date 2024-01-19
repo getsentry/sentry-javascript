@@ -42,6 +42,7 @@
     "mongodb": "^3.7.3",
     "mongodb-memory-server-global": "^7.6.3",
     "mysql": "^2.18.1",
+    "mysql2": "^3.7.1",
     "nock": "^13.1.0",
     "pg": "^8.7.3",
     "proxy": "^2.1.1",

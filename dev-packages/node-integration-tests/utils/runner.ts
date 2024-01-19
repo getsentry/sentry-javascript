@@ -1,5 +1,4 @@
-import type { ChildProcess } from 'child_process';
-import { spawn } from 'child_process';
+import { spawn, spawnSync } from 'child_process';
 import { join } from 'path';
 import type { Envelope, EnvelopeItemType, Event, SerializedSession } from '@sentry/types';
 import axios from 'axios';
@@ -30,13 +29,16 @@ export function assertSentryTransaction(actual: Event, expected: Partial<Event>)
   });
 }
 
-const CHILD_PROCESSES = new Set<ChildProcess>();
+const CLEANUP_STEPS = new Set<VoidFunction>();
 
 export function cleanupChildProcesses(): void {
-  for (const child of CHILD_PROCESSES) {
-    child.kill();
+  for (const step of CLEANUP_STEPS) {
+    step();
   }
+  CLEANUP_STEPS.clear();
 }
+
+process.on('exit', cleanupChildProcesses);
 
 /** Promise only resolves when fn returns true */
 async function waitFor(fn: () => boolean, timeout = 10_000): Promise<void> {
@@ -48,6 +50,58 @@ async function waitFor(fn: () => boolean, timeout = 10_000): Promise<void> {
       throw new Error('Timed out waiting for server port');
     }
   }
+}
+
+type VoidFunction = () => void;
+
+interface DockerOptions {
+  /**
+   * The working directory to run docker compose in
+   */
+  workingDirectory: string[];
+  /**
+   * The strings to look for in the output to know that the docker compose is ready for the test to be run
+   */
+  readyMatches: string[];
+}
+
+/**
+ * Runs docker compose up and waits for the readyMatches to appear in the output
+ *
+ * Returns a function that can be called to docker compose down
+ */
+async function runDockerCompose(options: DockerOptions): Promise<VoidFunction> {
+  return new Promise((resolve, reject) => {
+    const cwd = join(...options.workingDirectory);
+    const close = (): void => {
+      spawnSync('docker', ['compose', 'down', '--volumes'], { cwd });
+    };
+
+    // ensure we're starting fresh
+    close();
+
+    const child = spawn('docker', ['compose', 'up'], { cwd });
+
+    const timeout = setTimeout(() => {
+      close();
+      reject(new Error('Timed out waiting for docker-compose'));
+    }, 60_000);
+
+    function newData(data: Buffer): void {
+      const text = data.toString('utf8');
+
+      for (const match of options.readyMatches) {
+        if (text.includes(match)) {
+          child.stdout.removeAllListeners();
+          clearTimeout(timeout);
+          resolve(close);
+        }
+      }
+    }
+
+    child.stdout.on('data', newData);
+    child.stderr.on('data', newData);
+  });
 }
 
 type Expected =
@@ -70,6 +124,7 @@ export function createRunner(...paths: string[]) {
   const flags: string[] = [];
   const ignored: EnvelopeItemType[] = [];
   let withSentryServer = false;
+  let dockerOptions: DockerOptions | undefined;
 
   if (testPath.endsWith('.ts')) {
     flags.push('-r', 'ts-node/register');
@@ -90,6 +145,10 @@ export function createRunner(...paths: string[]) {
     },
     ignore: function (...types: EnvelopeItemType[]) {
       ignored.push(...types);
+      return this;
+    },
+    withDockerCompose: function (options: DockerOptions) {
+      dockerOptions = options;
       return this;
     },
     start: function (done?: (e?: unknown) => void) {
@@ -177,69 +236,83 @@ export function createRunner(...paths: string[]) {
         ? createBasicSentryServer(newEnvelope)
         : Promise.resolve(undefined);
 
+      const dockerStartup: Promise<VoidFunction | undefined> = dockerOptions
+        ? runDockerCompose(dockerOptions)
+        : Promise.resolve(undefined);
+
+      const startup = Promise.all([dockerStartup, serverStartup]);
+
       // eslint-disable-next-line @typescript-eslint/no-floating-promises
-      serverStartup.then(mockServerPort => {
-        const env = mockServerPort
-          ? { ...process.env, SENTRY_DSN: `http://public@localhost:${mockServerPort}/1337` }
-          : process.env;
+      startup
+        .then(([dockerChild, mockServerPort]) => {
+          if (dockerChild) {
+            CLEANUP_STEPS.add(dockerChild);
+          }
 
-        // eslint-disable-next-line no-console
-        if (process.env.DEBUG) console.log('starting scenario', testPath, flags, env.SENTRY_DSN);
+          const env = mockServerPort
+            ? { ...process.env, SENTRY_DSN: `http://public@localhost:${mockServerPort}/1337` }
+            : process.env;
 
-        child = spawn('node', [...flags, testPath], { env });
-
-        CHILD_PROCESSES.add(child);
-
-        child.on('close', () => {
-          hasExited = true;
-        });
-
-        // Pass error to done to end the test quickly
-        child.on('error', e => {
           // eslint-disable-next-line no-console
-          if (process.env.DEBUG) console.log('scenario error', e);
-          complete(e);
-        });
+          if (process.env.DEBUG) console.log('starting scenario', testPath, flags, env.SENTRY_DSN);
 
-        function tryParseEnvelopeFromStdoutLine(line: string): void {
-          // Lines can have leading '[something] [{' which we need to remove
-          const cleanedLine = line.replace(/^.*?] \[{"/, '[{"');
+          child = spawn('node', [...flags, testPath], { env });
 
-          // See if we have a port message
-          if (cleanedLine.startsWith('{"port":')) {
-            const { port } = JSON.parse(cleanedLine) as { port: number };
-            scenarioServerPort = port;
-            return;
-          }
+          CLEANUP_STEPS.add(() => {
+            child?.kill();
+          });
 
-          // Skip any lines that don't start with envelope JSON
-          if (!cleanedLine.startsWith('[{')) {
-            return;
-          }
+          child.on('close', () => {
+            hasExited = true;
+          });
 
-          try {
-            const envelope = JSON.parse(cleanedLine) as Envelope;
-            newEnvelope(envelope);
-          } catch (_) {
-            //
-          }
-        }
-
-        let buffer = Buffer.alloc(0);
-        child.stdout.on('data', (data: Buffer) => {
-          // This is horribly memory inefficient but it's only for tests
-          buffer = Buffer.concat([buffer, data]);
-
-          let splitIndex = -1;
-          while ((splitIndex = buffer.indexOf(0xa)) >= 0) {
-            const line = buffer.subarray(0, splitIndex).toString();
-            buffer = Buffer.from(buffer.subarray(splitIndex + 1));
+          // Pass error to done to end the test quickly
+          child.on('error', e => {
             // eslint-disable-next-line no-console
-            if (process.env.DEBUG) console.log('line', line);
-            tryParseEnvelopeFromStdoutLine(line);
+            if (process.env.DEBUG) console.log('scenario error', e);
+            complete(e);
+          });
+
+          function tryParseEnvelopeFromStdoutLine(line: string): void {
+            // Lines can have leading '[something] [{' which we need to remove
+            const cleanedLine = line.replace(/^.*?] \[{"/, '[{"');
+
+            // See if we have a port message
+            if (cleanedLine.startsWith('{"port":')) {
+              const { port } = JSON.parse(cleanedLine) as { port: number };
+              scenarioServerPort = port;
+              return;
+            }
+
+            // Skip any lines that don't start with envelope JSON
+            if (!cleanedLine.startsWith('[{')) {
+              return;
+            }
+
+            try {
+              const envelope = JSON.parse(cleanedLine) as Envelope;
+              newEnvelope(envelope);
+            } catch (_) {
+              //
+            }
           }
-        });
-      });
+
+          let buffer = Buffer.alloc(0);
+          child.stdout.on('data', (data: Buffer) => {
+            // This is horribly memory inefficient but it's only for tests
+            buffer = Buffer.concat([buffer, data]);
+
+            let splitIndex = -1;
+            while ((splitIndex = buffer.indexOf(0xa)) >= 0) {
+              const line = buffer.subarray(0, splitIndex).toString();
+              buffer = Buffer.from(buffer.subarray(splitIndex + 1));
+              // eslint-disable-next-line no-console
+              if (process.env.DEBUG) console.log('line', line);
+              tryParseEnvelopeFromStdoutLine(line);
+            }
+          });
+        })
+        .catch(e => complete(e));
 
       return {
         childHasExited: function (): boolean {
