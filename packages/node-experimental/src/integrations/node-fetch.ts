@@ -4,10 +4,13 @@ import type { Instrumentation } from '@opentelemetry/instrumentation';
 import { addBreadcrumb, hasTracingEnabled } from '@sentry/core';
 import { _INTERNAL, getClient, getSpanKind } from '@sentry/opentelemetry';
 import type { Integration } from '@sentry/types';
+import { parseSemver } from '@sentry/utils';
 
 import type { NodeExperimentalClient } from '../types';
 import { addOriginToSpan } from '../utils/addOriginToSpan';
 import { NodePerformanceIntegration } from './NodePerformanceIntegration';
+
+const NODE_VERSION: ReturnType<typeof parseSemver> = parseSemver(process.versions.node);
 
 interface NodeFetchOptions {
   /**
@@ -65,6 +68,11 @@ export class NodeFetch extends NodePerformanceIntegration<NodeFetchOptions> impl
 
   /** @inheritDoc */
   public setupInstrumentation(): void | Instrumentation[] {
+    // Only add NodeFetch if Node >= 16, as previous versions do not support it
+    if (!NODE_VERSION.major || NODE_VERSION.major < 16) {
+      return;
+    }
+
     try {
       // eslint-disable-next-line @typescript-eslint/no-var-requires
       const { FetchInstrumentation } = require('opentelemetry-instrumentation-fetch-node');

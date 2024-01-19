@@ -1,4 +1,4 @@
-import { SDK_VERSION, defaultIntegrations, init as browserInit } from '@sentry/browser';
+import { SDK_VERSION, getDefaultIntegrations, init as browserInit } from '@sentry/browser';
 
 import { vueIntegration } from './integration';
 import type { Options, TracingOptions } from './types';
@@ -22,7 +22,7 @@ export function init(
         version: SDK_VERSION,
       },
     },
-    defaultIntegrations: [...defaultIntegrations, vueIntegration()],
+    defaultIntegrations: [...getDefaultIntegrations(config), vueIntegration()],
     ...config,
   };
 

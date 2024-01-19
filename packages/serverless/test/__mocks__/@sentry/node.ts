@@ -1,5 +1,6 @@
 const origSentry = jest.requireActual('@sentry/node');
 export const defaultIntegrations = origSentry.defaultIntegrations; // eslint-disable-line @typescript-eslint/no-unsafe-member-access
+export const getDefaultIntegrations = origSentry.getDefaultIntegrations; // eslint-disable-line @typescript-eslint/no-unsafe-member-access
 export const Handlers = origSentry.Handlers; // eslint-disable-line @typescript-eslint/no-unsafe-member-access
 export const Integrations = origSentry.Integrations;
 export const addRequestDataToEvent = origSentry.addRequestDataToEvent;

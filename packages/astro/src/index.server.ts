@@ -52,7 +52,9 @@ export {
   withIsolationScope,
   autoDiscoverNodePerformanceMonitoringIntegrations,
   makeNodeTransport,
+  // eslint-disable-next-line deprecation/deprecation
   defaultIntegrations,
+  getDefaultIntegrations,
   defaultStackParser,
   // eslint-disable-next-line deprecation/deprecation
   lastEventId,

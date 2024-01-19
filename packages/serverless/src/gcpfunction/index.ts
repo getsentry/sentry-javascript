@@ -1,5 +1,11 @@
-import * as Sentry from '@sentry/node';
-import type { Integration, SdkMetadata } from '@sentry/types';
+import type { NodeOptions } from '@sentry/node';
+import {
+  SDK_VERSION,
+  defaultIntegrations as defaultNodeIntegrations,
+  getDefaultIntegrations as getDefaultNodeIntegrations,
+  init as initNode,
+} from '@sentry/node';
+import type { Integration, Options, SdkMetadata } from '@sentry/types';
 
 import { GoogleCloudGrpc } from '../google-cloud-grpc';
 import { GoogleCloudHttp } from '../google-cloud-http';
@@ -8,19 +14,30 @@ export * from './http';
 export * from './events';
 export * from './cloud_events';
 
+/** @deprecated Use `getDefaultIntegrations(options)` instead. */
 export const defaultIntegrations: Integration[] = [
-  ...Sentry.defaultIntegrations,
+  // eslint-disable-next-line deprecation/deprecation
+  ...defaultNodeIntegrations,
   new GoogleCloudHttp({ optional: true }), // We mark this integration optional since '@google-cloud/common' module could be missing.
   new GoogleCloudGrpc({ optional: true }), // We mark this integration optional since 'google-gax' module could be missing.
 ];
 
+/** Get the default integrations for the GCP SDK. */
+export function getDefaultIntegrations(options: Options): Integration[] {
+  return [
+    ...getDefaultNodeIntegrations(options),
+    new GoogleCloudHttp({ optional: true }), // We mark this integration optional since '@google-cloud/common' module could be missing.
+    new GoogleCloudGrpc({ optional: true }), // We mark this integration optional since 'google-gax' module could be missing.
+  ];
+}
+
 /**
  * @see {@link Sentry.init}
  */
-export function init(options: Sentry.NodeOptions = {}): void {
+export function init(options: NodeOptions = {}): void {
   const opts = {
     _metadata: {} as SdkMetadata,
-    defaultIntegrations,
+    defaultIntegrations: getDefaultIntegrations(options),
     ...options,
   };
 
@@ -30,11 +47,11 @@ export function init(options: Sentry.NodeOptions = {}): void {
     packages: [
       {
         name: 'npm:@sentry/serverless',
-        version: Sentry.SDK_VERSION,
+        version: SDK_VERSION,
       },
     ],
-    version: Sentry.SDK_VERSION,
+    version: SDK_VERSION,
   };
 
-  Sentry.init(opts);
+  initNode(opts);
 }

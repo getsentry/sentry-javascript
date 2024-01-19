@@ -25,6 +25,7 @@ export declare const Integrations: typeof clientSdk.Integrations &
   typeof edgeSdk.Integrations;
 
 export declare const defaultIntegrations: Integration[];
+export declare const getDefaultIntegrations: (options: Options) => Integration[];
 export declare const defaultStackParser: StackParser;
 
 export declare function getSentryRelease(fallback?: string): string | undefined;

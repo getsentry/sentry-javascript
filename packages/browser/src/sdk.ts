@@ -10,7 +10,7 @@ import {
   initAndBind,
   startSession,
 } from '@sentry/core';
-import type { UserFeedback } from '@sentry/types';
+import type { Integration, Options, UserFeedback } from '@sentry/types';
 import {
   addHistoryInstrumentationHandler,
   logger,
@@ -27,10 +27,12 @@ import { Breadcrumbs, Dedupe, GlobalHandlers, HttpContext, LinkedErrors, TryCatc
 import { defaultStackParser } from './stack-parsers';
 import { makeFetchTransport, makeXHRTransport } from './transports';
 
-/* eslint-disable deprecation/deprecation */
+/** @deprecated Use `getDefaultIntegrations(options)` instead. */
 export const defaultIntegrations = [
+  /* eslint-disable deprecation/deprecation */
   new InboundFilters(),
   new FunctionToString(),
+  /* eslint-enable deprecation/deprecation */
   new TryCatch(),
   new Breadcrumbs(),
   new GlobalHandlers(),
@@ -38,7 +40,15 @@ export const defaultIntegrations = [
   new Dedupe(),
   new HttpContext(),
 ];
-/* eslint-enable deprecation/deprecation */
+
+/** Get the default integrations for the browser SDK. */
+export function getDefaultIntegrations(_options: Options): Integration[] {
+  // We return a copy of the defaultIntegrations here to avoid mutating this
+  return [
+    // eslint-disable-next-line deprecation/deprecation
+    ...defaultIntegrations,
+  ];
+}
 
 /**
  * A magic string that build tooling can leverage in order to inject a release value into the SDK.
@@ -104,7 +114,7 @@ declare const __SENTRY_RELEASE__: string | undefined;
  */
 export function init(options: BrowserOptions = {}): void {
   if (options.defaultIntegrations === undefined) {
-    options.defaultIntegrations = defaultIntegrations;
+    options.defaultIntegrations = getDefaultIntegrations(options);
   }
   if (options.release === undefined) {
     // This allows build tooling to find-and-replace __SENTRY_RELEASE__ to inject a release value

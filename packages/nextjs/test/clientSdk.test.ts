@@ -184,7 +184,7 @@ describe('Client init()', () => {
         });
 
         const reactInitOptions = reactInit.mock.calls[0][0] as ModifiedInitOptionsIntegrationFunction;
-        const materializedIntegrations = reactInitOptions.integrations(SentryReact.defaultIntegrations);
+        const materializedIntegrations = reactInitOptions.integrations(SentryReact.getDefaultIntegrations({}));
         const browserTracingIntegration = findIntegrationByName(materializedIntegrations, 'BrowserTracing');
 
         expect(browserTracingIntegration).toEqual(
