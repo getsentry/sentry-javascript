@@ -13,7 +13,6 @@
   "dependencies": {
     "@sentry/node": "latest || *",
     "@sentry/profiling-node": "latest || *",
-    "esbuild": "^0.19.11"
   },
   "devDependencies": {},
   "volta": {
