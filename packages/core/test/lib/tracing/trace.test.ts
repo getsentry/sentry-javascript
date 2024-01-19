@@ -276,6 +276,8 @@ describe('startSpan', () => {
       expect(getCurrentScope()).toBe(manualScope);
       expect(getActiveSpan()).toBe(span);
 
+      expect(spanToJSON(span!).parent_span_id).toBe('parent-span-id');
+      // eslint-disable-next-line deprecation/deprecation
       expect(span?.parentSpanId).toBe('parent-span-id');
     });
 
@@ -323,6 +325,8 @@ describe('startSpanManual', () => {
       expect(getCurrentScope()).not.toBe(initialScope);
       expect(getCurrentScope()).toBe(manualScope);
       expect(getActiveSpan()).toBe(span);
+      expect(spanToJSON(span!).parent_span_id).toBe('parent-span-id');
+      // eslint-disable-next-line deprecation/deprecation
       expect(span?.parentSpanId).toBe('parent-span-id');
 
       finish();
@@ -377,6 +381,8 @@ describe('startInactiveSpan', () => {
     const span = startInactiveSpan({ name: 'GET users/[id]', scope: manualScope });
 
     expect(span).toBeDefined();
+    expect(spanToJSON(span!).parent_span_id).toBe('parent-span-id');
+    // eslint-disable-next-line deprecation/deprecation
     expect(span?.parentSpanId).toBe('parent-span-id');
     expect(getActiveSpan()).toBeUndefined();
 

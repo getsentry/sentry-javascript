@@ -1,26 +1,18 @@
 import type { BrowserOptions } from '@sentry/browser';
-import { SDK_VERSION, addEventProcessor, init as browserInit } from '@sentry/browser';
-import type { EventProcessor, SdkMetadata } from '@sentry/types';
+import { addEventProcessor, init as browserInit } from '@sentry/browser';
+import { applySdkMetadata } from '@sentry/core';
+import type { EventProcessor } from '@sentry/types';
 import { getDomElement } from '@sentry/utils';
 /**
  * Inits the Svelte SDK
  */
 export function init(options: BrowserOptions): void {
   const opts = {
-    _metadata: {} as SdkMetadata,
     ...options,
   };
 
-  opts._metadata.sdk = opts._metadata.sdk || {
-    name: 'sentry.javascript.svelte',
-    packages: [
-      {
-        name: 'npm:@sentry/svelte',
-        version: SDK_VERSION,
-      },
-    ],
-    version: SDK_VERSION,
-  };
+  applySdkMetadata(opts, 'svelte');
+
   browserInit(opts);
 
   detectAndReportSvelteKit();

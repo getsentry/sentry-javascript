@@ -55,6 +55,9 @@ describe('spanToJSON', () => {
       trace_id: span.spanContext().traceId,
       origin: 'manual',
       start_timestamp: span['_startTime'],
+      data: {
+        'sentry.origin': 'manual',
+      },
     });
   });
 
@@ -89,6 +92,7 @@ describe('spanToJSON', () => {
       timestamp: 456,
       data: {
         'sentry.op': 'test op',
+        'sentry.origin': 'auto',
       },
     });
   });

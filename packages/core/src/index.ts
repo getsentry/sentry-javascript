@@ -86,6 +86,7 @@ export {
   spanIsSampled,
 } from './utils/spanUtils';
 export { getRootSpan } from './utils/getRootSpan';
+export { applySdkMetadata } from './utils/sdkMetadata';
 export { DEFAULT_ENVIRONMENT } from './constants';
 /* eslint-disable deprecation/deprecation */
 export { ModuleMetadata } from './integrations/metadata';

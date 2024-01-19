@@ -12,11 +12,12 @@ import {
   defaultIntegrations as nodeDefaultIntegrations,
   flush,
   getCurrentScope,
+  getDefaultIntegrations as getNodeDefaultIntegrations,
   init as initNode,
   startSpanManual,
   withScope,
 } from '@sentry/node';
-import type { Integration, SdkMetadata, Span } from '@sentry/types';
+import type { Integration, Options, SdkMetadata, Span } from '@sentry/types';
 import { isString, logger } from '@sentry/utils';
 // NOTE: I have no idea how to fix this right now, and don't want to waste more time, as it builds just fine — Kamil
 import type { Context, Handler } from 'aws-lambda';
@@ -66,7 +67,17 @@ export interface WrapperOptions {
   startTrace: boolean;
 }
 
-export const defaultIntegrations: Integration[] = [...nodeDefaultIntegrations, new AWSServices({ optional: true })];
+/** @deprecated Use `getDefaultIntegrations(options)` instead. */
+export const defaultIntegrations: Integration[] = [
+  // eslint-disable-next-line deprecation/deprecation
+  ...nodeDefaultIntegrations,
+  new AWSServices({ optional: true }),
+];
+
+/** Get the default integrations for the AWSLambda SDK. */
+export function getDefaultIntegrations(options: Options): Integration[] {
+  return [...getNodeDefaultIntegrations(options), new AWSServices({ optional: true })];
+}
 
 interface AWSLambdaOptions extends NodeOptions {
   /**
@@ -84,7 +95,7 @@ interface AWSLambdaOptions extends NodeOptions {
 export function init(options: AWSLambdaOptions = {}): void {
   const opts = {
     _metadata: {} as SdkMetadata,
-    defaultIntegrations,
+    defaultIntegrations: getDefaultIntegrations(options),
     ...options,
   };
 

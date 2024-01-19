@@ -3,7 +3,7 @@ import { assertSnapshot } from 'https://deno.land/std@0.202.0/testing/snapshot.t
 
 import type { sentryTypes } from '../build-test/index.js';
 import { sentryUtils } from '../build-test/index.js';
-import { DenoClient, Hub, Scope, defaultIntegrations } from '../build/index.mjs';
+import { DenoClient, Hub, Scope, getDefaultIntegrations } from '../build/index.mjs';
 import { getNormalizedEvent } from './normalize.ts';
 import { makeTestTransport } from './transport.ts';
 
@@ -14,7 +14,7 @@ function getTestClient(
   const client = new DenoClient({
     dsn: 'https://233a45e5efe34c47a3536797ce15dafa@nothing.here/5650507',
     debug: true,
-    integrations: [...defaultIntegrations, ...integrations],
+    integrations: [...getDefaultIntegrations({}), ...integrations],
     stackParser: sentryUtils.createStackParser(sentryUtils.nodeStackLineParser()),
     transport: makeTestTransport(envelope => {
       callback(getNormalizedEvent(envelope));

@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { Transaction } from '@sentry/types';
+import { SerializedEvent } from '@sentry/types';
 import { countEnvelopes, getMultipleSentryEnvelopeRequests } from './utils/helpers';
 
 test('should correctly instrument `fetch` for performance tracing', async ({ page }) => {
@@ -12,7 +12,7 @@ test('should correctly instrument `fetch` for performance tracing', async ({ pag
     });
   });
 
-  const transaction = await getMultipleSentryEnvelopeRequests<Transaction>(page, 1, {
+  const transaction = await getMultipleSentryEnvelopeRequests<SerializedEvent>(page, 1, {
     url: '/fetch',
     envelopeType: 'transaction',
   });
@@ -27,7 +27,6 @@ test('should correctly instrument `fetch` for performance tracing', async ({ pag
     },
   });
 
-  // @ts-expect-error - We know that `spans` is inside Transaction envelopes
   expect(transaction[0].spans).toEqual(
     expect.arrayContaining([
       expect.objectContaining({
@@ -38,6 +37,7 @@ test('should correctly instrument `fetch` for performance tracing', async ({ pag
           'http.response_content_length': expect.any(Number),
           'http.response.status_code': 200,
           'sentry.op': 'http.client',
+          'sentry.origin': 'auto.http.browser',
         },
         description: 'GET http://example.com',
         op: 'http.client',
@@ -47,6 +47,7 @@ test('should correctly instrument `fetch` for performance tracing', async ({ pag
         timestamp: expect.any(Number),
         trace_id: expect.any(String),
         status: expect.any(String),
+        origin: 'auto.http.browser',
       }),
     ]),
   );

@@ -6,6 +6,7 @@ import {
   addTracingExtensions,
   getActiveTransaction,
   spanIsSampled,
+  spanToJSON,
   startIdleTransaction,
 } from '@sentry/core';
 import type { EventProcessor, Integration, Transaction, TransactionContext, TransactionSource } from '@sentry/types';
@@ -396,7 +397,7 @@ export class BrowserTracing implements Integration {
       scope.setPropagationContext({
         traceId: idleTransaction.spanContext().traceId,
         spanId: idleTransaction.spanContext().spanId,
-        parentSpanId: idleTransaction.parentSpanId,
+        parentSpanId: spanToJSON(idleTransaction).parent_span_id,
         sampled: spanIsSampled(idleTransaction),
       });
     }

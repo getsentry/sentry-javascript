@@ -1,9 +1,8 @@
-import { hasTracingEnabled } from '@sentry/core';
+import { applySdkMetadata, hasTracingEnabled } from '@sentry/core';
 import type { BrowserOptions } from '@sentry/svelte';
 import { BrowserTracing, WINDOW, getCurrentScope, init as initSvelteSdk } from '@sentry/svelte';
 import { addOrUpdateIntegration } from '@sentry/utils';
 
-import { applySdkMetadata } from '../common/metadata';
 import { svelteKitRoutingInstrumentation } from './router';
 
 type WindowWithSentryFetchProxy = typeof WINDOW & {
@@ -19,7 +18,7 @@ declare const __SENTRY_TRACING__: boolean;
  * @param options Configuration options for the SDK.
  */
 export function init(options: BrowserOptions): void {
-  applySdkMetadata(options, ['sveltekit', 'svelte']);
+  applySdkMetadata(options, 'sveltekit', ['sveltekit', 'svelte']);
 
   addClientIntegrations(options);
 
