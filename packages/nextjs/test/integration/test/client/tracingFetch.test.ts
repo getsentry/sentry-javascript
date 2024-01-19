@@ -37,7 +37,7 @@ test('should correctly instrument `fetch` for performance tracing', async ({ pag
           'http.response_content_length': expect.any(Number),
           'http.response.status_code': 200,
           'sentry.op': 'http.client',
-          'sentry.origin': 'auto.http.client',
+          'sentry.origin': 'auto.http.browser',
         },
         description: 'GET http://example.com',
         op: 'http.client',
@@ -47,7 +47,7 @@ test('should correctly instrument `fetch` for performance tracing', async ({ pag
         timestamp: expect.any(Number),
         trace_id: expect.any(String),
         status: expect.any(String),
-        origin: 'auto.http.client',
+        origin: 'auto.http.browser',
       }),
     ]),
   );
