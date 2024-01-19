@@ -10,6 +10,7 @@ import {
   getDynamicSamplingContextFromClient,
   getDynamicSamplingContextFromSpan,
   isSentryRequestUrl,
+  setHttpStatus,
   spanToJSON,
   spanToTraceHeader,
 } from '@sentry/core';
@@ -302,7 +303,7 @@ function _createWrappedRequestMethodFactory(
           }
           if (requestSpan) {
             if (res.statusCode) {
-              requestSpan.setHttpStatus(res.statusCode);
+              setHttpStatus(requestSpan, res.statusCode);
             }
             requestSpan.updateName(
               cleanSpanDescription(spanToJSON(requestSpan).description || '', requestOptions, req) || '',
@@ -318,7 +319,7 @@ function _createWrappedRequestMethodFactory(
             addRequestBreadcrumb('error', data, req);
           }
           if (requestSpan) {
-            requestSpan.setHttpStatus(500);
+            setHttpStatus(requestSpan, 500);
             requestSpan.updateName(
               cleanSpanDescription(spanToJSON(requestSpan).description || '', requestOptions, req) || '',
             );

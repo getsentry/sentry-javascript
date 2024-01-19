@@ -10,6 +10,7 @@ import {
   getCurrentScope,
   hasTracingEnabled,
   runWithAsyncContext,
+  setHttpStatus,
   startTransaction,
   withScope,
 } from '@sentry/core';
@@ -105,7 +106,7 @@ export function tracingHandler(): (
       // closes
       setImmediate(() => {
         addRequestDataToTransaction(transaction, req);
-        transaction.setHttpStatus(res.statusCode);
+        setHttpStatus(transaction, res.statusCode);
         transaction.end();
       });
     });

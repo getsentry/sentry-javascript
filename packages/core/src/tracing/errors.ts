@@ -5,7 +5,7 @@ import {
 } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../debug-build';
-import type { SpanStatusType } from './span';
+import type { SpanStatusType } from './spanstatus';
 import { getActiveTransaction } from './utils';
 
 let errorsInstrumented = false;
