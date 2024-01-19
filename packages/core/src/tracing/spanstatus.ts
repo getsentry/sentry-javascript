@@ -135,7 +135,7 @@ export function setHttpStatus(span: Span, httpStatus: number): void {
   // eslint-disable-next-line deprecation/deprecation
   span.setTag('http.status_code', String(httpStatus));
   // eslint-disable-next-line deprecation/deprecation
-  span.setTag('http.response.status_code', httpStatus);
+  span.setData('http.response.status_code', httpStatus);
 
   const spanStatus = spanStatusfromHttpCode(httpStatus);
   if (spanStatus !== 'unknown_error') {
