@@ -173,6 +173,9 @@ describe('Span', () => {
         span_id: 'd',
         trace_id: 'c',
         origin: 'manual',
+        data: {
+          'sentry.origin': 'manual',
+        },
       });
     });
   });
@@ -474,6 +477,9 @@ describe('Span', () => {
       expect(context).toStrictEqual({
         span_id: 'd',
         trace_id: 'c',
+        data: {
+          'sentry.origin': 'manual',
+        },
         origin: 'manual',
       });
     });
@@ -481,7 +487,13 @@ describe('Span', () => {
 
   describe('toContext and updateWithContext', () => {
     test('toContext should return correct context', () => {
-      const originalContext = { traceId: 'a', spanId: 'b', sampled: false, description: 'test', op: 'op' };
+      const originalContext = {
+        traceId: 'a',
+        spanId: 'b',
+        sampled: false,
+        description: 'test',
+        op: 'op',
+      };
       const span = new Span(originalContext);
 
       const newContext = span.toContext();
@@ -494,6 +506,7 @@ describe('Span', () => {
         traceId: expect.any(String),
         data: {
           'sentry.op': 'op',
+          'sentry.origin': 'manual',
         },
       });
     });
@@ -562,7 +575,12 @@ describe('Span', () => {
       expect(span.op).toBe('new-op');
       expect(span.sampled).toBe(true);
       expect(span.tags).toStrictEqual({ tag1: 'bye' });
-      expect(span.data).toStrictEqual({ data0: 'foo', data1: 'bar', 'sentry.op': 'op' });
+      expect(span.data).toStrictEqual({
+        data0: 'foo',
+        data1: 'bar',
+        'sentry.op': 'op',
+        'sentry.origin': 'manual',
+      });
     });
   });
 

@@ -16,7 +16,7 @@ import type {
 import { dropUndefinedKeys, logger, timestampInSeconds, uuid4 } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../debug-build';
-import { SEMANTIC_ATTRIBUTE_SENTRY_OP } from '../semanticAttributes';
+import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../semanticAttributes';
 import { getRootSpan } from '../utils/getRootSpan';
 import {
   TRACE_FLAG_NONE,
@@ -100,11 +100,6 @@ export class Span implements SpanInterface {
    */
   public instrumenter: Instrumenter;
 
-  /**
-   * The origin of the span, giving context about what created the span.
-   */
-  public origin?: SpanOrigin;
-
   protected _traceId: string;
   protected _spanId: string;
   protected _parentSpanId?: string;
@@ -138,7 +133,9 @@ export class Span implements SpanInterface {
     this._attributes = spanContext.attributes ? { ...spanContext.attributes } : {};
     // eslint-disable-next-line deprecation/deprecation
     this.instrumenter = spanContext.instrumenter || 'sentry';
-    this.origin = spanContext.origin || 'manual';
+
+    this.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, spanContext.origin || 'manual');
+
     // eslint-disable-next-line deprecation/deprecation
     this._name = spanContext.name || spanContext.description;
 
@@ -344,6 +341,24 @@ export class Span implements SpanInterface {
    */
   public set op(op: string | undefined) {
     this.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, op);
+  }
+
+  /**
+   * The origin of the span, giving context about what created the span.
+   *
+   * @deprecated Use `spanToJSON().origin` to read the origin instead.
+   */
+  public get origin(): SpanOrigin | undefined {
+    return this._attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] as SpanOrigin | undefined;
+  }
+
+  /**
+   * The origin of the span, giving context about what created the span.
+   *
+   * @deprecated Use `startSpan()` functions to set the origin instead.
+   */
+  public set origin(origin: SpanOrigin | undefined) {
+    this.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, origin);
   }
 
   /* eslint-enable @typescript-eslint/member-ordering */
@@ -611,7 +626,7 @@ export class Span implements SpanInterface {
       tags: Object.keys(this.tags).length > 0 ? this.tags : undefined,
       timestamp: this._endTime,
       trace_id: this._traceId,
-      origin: this.origin,
+      origin: this._attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] as SpanOrigin | undefined,
     });
   }
 

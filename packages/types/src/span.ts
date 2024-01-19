@@ -166,7 +166,7 @@ export interface SpanContext {
 }
 
 /** Span holding trace_id, span_id */
-export interface Span extends Omit<SpanContext, 'op' | 'status'> {
+export interface Span extends Omit<SpanContext, 'op' | 'status' | 'origin'> {
   /**
    * Human-readable identifier for the span. Identical to span.description.
    * @deprecated Use `spanToJSON(span).description` instead.
@@ -257,6 +257,13 @@ export interface Span extends Omit<SpanContext, 'op' | 'status'> {
    * @deprecated Use `.setStatus` to set or update and `spanToJSON()` to read the status.
    */
   status?: string;
+
+  /**
+   * The origin of the span, giving context about what created the span.
+   *
+   * @deprecated Use `startSpan` function to set and `spanToJSON(span).origin` to read the origin instead.
+   */
+  origin?: SpanOrigin;
 
   /**
    * Get context data for this span.

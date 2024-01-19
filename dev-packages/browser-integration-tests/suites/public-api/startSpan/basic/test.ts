@@ -24,11 +24,11 @@ sentryTest('should report finished spans as children of the root transaction', a
   const url = await getLocalTestPath({ testDir: __dirname });
   const transaction = await getFirstSentryEnvelopeRequest<SerializedEvent>(page, url);
 
-  const rootSpanId = transaction?.contexts?.trace?.span_id;
-
   expect(transaction.spans).toHaveLength(1);
 
   const span_1 = transaction.spans?.[0];
   expect(span_1?.description).toBe('child_span');
-  expect(span_1?.parent_span_id).toEqual(rootSpanId);
+  expect(span_1?.parent_span_id).toEqual(transaction?.contexts?.trace?.span_id);
+  expect(span_1?.origin).toEqual('manual');
+  expect(span_1?.data?.['sentry.origin']).toEqual('manual');
 });

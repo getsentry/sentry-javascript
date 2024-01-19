@@ -344,7 +344,8 @@ describe('SentrySpanProcessor', () => {
 
         const sentrySpan = getSpanForOtelSpan(child);
 
-        expect(spanToJSON(sentrySpan!).data).toEqual(undefined);
+        // origin is set by default to 'manual'
+        expect(spanToJSON(sentrySpan!).data).toEqual({ 'sentry.origin': 'manual' });
 
         child.end();
 
@@ -354,6 +355,7 @@ describe('SentrySpanProcessor', () => {
           'test-attribute-2': [1, 2, 3],
           'test-attribute-3': 0,
           'test-attribute-4': false,
+          'sentry.origin': 'manual',
         });
       });
 
@@ -592,6 +594,7 @@ describe('SentrySpanProcessor', () => {
             'otel.kind': 'INTERNAL',
             url: 'http://example.com/my/route/123',
             'sentry.op': 'http',
+            'sentry.origin': 'manual',
           });
 
           parentOtelSpan.end();
@@ -622,6 +625,7 @@ describe('SentrySpanProcessor', () => {
             'otel.kind': 'INTERNAL',
             url: 'http://example.com/my/route/123',
             'sentry.op': 'http',
+            'sentry.origin': 'manual',
           });
           expect(op).toBe('http');
 
@@ -655,6 +659,7 @@ describe('SentrySpanProcessor', () => {
             'http.query': '?what=123',
             'http.fragment': '#myHash',
             'sentry.op': 'http',
+            'sentry.origin': 'manual',
           });
           expect(op).toBe('http');
 
