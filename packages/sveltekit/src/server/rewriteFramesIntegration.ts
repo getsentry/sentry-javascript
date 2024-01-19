@@ -31,8 +31,10 @@ export const rewriteFramesIntegration = defineIntegration(customRewriteFramesInt
  * module name to the original file name correctly, leading to individual error groups for
  * each module. Removing the `module` field makes the grouping algorithm fall back to the
  * `filename` field, which is correctly resolved and hence grouping works as expected.
+ *
+ * Exported for tests only.
  */
-function rewriteFramesIteratee(frame: StackFrame): StackFrame {
+export function rewriteFramesIteratee(frame: StackFrame): StackFrame {
   if (!frame.filename) {
     return frame;
   }

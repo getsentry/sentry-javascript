@@ -14,7 +14,7 @@ export function init(options: NodeOptions): void {
     defaultIntegrations: [...getDefaultNodeIntegrations(options), rewriteFramesIntegration()],
     ...options,
   };
-  
+
   applySdkMetadata(opts, 'sveltekit', ['sveltekit', 'node']);
 
   initNodeSdk(opts);

@@ -23,7 +23,7 @@ export function init(options: BrowserOptions): void {
     defaultIntegrations: getDefaultIntegrations(options),
     ...options,
   };
-  
+
   applySdkMetadata(opts, 'sveltekit', ['sveltekit', 'svelte']);
 
   fixBrowserTracingIntegration(opts);
