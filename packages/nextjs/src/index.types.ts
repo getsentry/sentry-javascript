@@ -28,6 +28,9 @@ export declare const defaultIntegrations: Integration[];
 export declare const getDefaultIntegrations: (options: Options) => Integration[];
 export declare const defaultStackParser: StackParser;
 
+// eslint-disable-next-line deprecation/deprecation
+export declare const rewriteFramesIntegration: typeof clientSdk.rewriteFramesIntegration;
+
 export declare function getSentryRelease(fallback?: string): string | undefined;
 
 export declare const ErrorBoundary: typeof clientSdk.ErrorBoundary;
