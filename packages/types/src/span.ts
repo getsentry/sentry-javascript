@@ -188,6 +188,13 @@ export interface Span extends Omit<SpanContext, 'op' | 'status'> {
   spanId: string;
 
   /**
+   * Parent Span ID
+   *
+   * @deprecated Use `spanToJSON(span).parent_span_id` instead.
+   */
+  parentSpanId?: string;
+
+  /**
    * The ID of the trace.
    * @deprecated Use `spanContext().traceId` instead.
    */

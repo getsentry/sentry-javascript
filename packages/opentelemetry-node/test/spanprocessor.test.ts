@@ -93,6 +93,8 @@ describe('SentrySpanProcessor', () => {
     expect(spanToJSON(sentrySpanTransaction!).description).toBe('GET /users');
     expect(spanToJSON(sentrySpanTransaction!).start_timestamp).toEqual(startTimestampMs / 1000);
     expect(sentrySpanTransaction?.spanContext().traceId).toEqual(otelSpan.spanContext().traceId);
+    expect(spanToJSON(sentrySpanTransaction!).parent_span_id).toEqual(otelSpan.parentSpanId);
+    // eslint-disable-next-line deprecation/deprecation
     expect(sentrySpanTransaction?.parentSpanId).toEqual(otelSpan.parentSpanId);
     expect(sentrySpanTransaction?.spanContext().spanId).toEqual(otelSpan.spanContext().spanId);
 
@@ -121,6 +123,9 @@ describe('SentrySpanProcessor', () => {
         expect(sentrySpan ? spanToJSON(sentrySpan).description : undefined).toBe('SELECT * FROM users;');
         expect(spanToJSON(sentrySpan!).start_timestamp).toEqual(startTimestampMs / 1000);
         expect(sentrySpan?.spanContext().spanId).toEqual(childOtelSpan.spanContext().spanId);
+
+        expect(spanToJSON(sentrySpan!).parent_span_id).toEqual(sentrySpanTransaction?.spanContext().spanId);
+        // eslint-disable-next-line deprecation/deprecation
         expect(sentrySpan?.parentSpanId).toEqual(sentrySpanTransaction?.spanContext().spanId);
 
         // eslint-disable-next-line deprecation/deprecation
@@ -162,6 +167,9 @@ describe('SentrySpanProcessor', () => {
         expect(spanToJSON(sentrySpan!).description).toBe('SELECT * FROM users;');
         expect(spanToJSON(sentrySpan!).start_timestamp).toEqual(startTimestampMs / 1000);
         expect(sentrySpan?.spanContext().spanId).toEqual(childOtelSpan.spanContext().spanId);
+
+        expect(spanToJSON(sentrySpan!).parent_span_id).toEqual(parentOtelSpan.spanContext().spanId);
+        // eslint-disable-next-line deprecation/deprecation
         expect(sentrySpan?.parentSpanId).toEqual(parentOtelSpan.spanContext().spanId);
 
         // eslint-disable-next-line deprecation/deprecation
@@ -194,8 +202,16 @@ describe('SentrySpanProcessor', () => {
       const sentrySpan2 = getSpanForOtelSpan(span2);
       const sentrySpan3 = getSpanForOtelSpan(span3);
 
+      expect(spanToJSON(sentrySpan1!).parent_span_id).toEqual(sentrySpanTransaction?.spanContext().spanId);
+      // eslint-disable-next-line deprecation/deprecation
       expect(sentrySpan1?.parentSpanId).toEqual(sentrySpanTransaction?.spanContext().spanId);
+
+      expect(spanToJSON(sentrySpan2!).parent_span_id).toEqual(sentrySpanTransaction?.spanContext().spanId);
+      // eslint-disable-next-line deprecation/deprecation
       expect(sentrySpan2?.parentSpanId).toEqual(sentrySpanTransaction?.spanContext().spanId);
+
+      expect(spanToJSON(sentrySpan3!).parent_span_id).toEqual(sentrySpanTransaction?.spanContext().spanId);
+      // eslint-disable-next-line deprecation/deprecation
       expect(sentrySpan3?.parentSpanId).toEqual(sentrySpanTransaction?.spanContext().spanId);
 
       expect(spanToJSON(sentrySpan1!).description).toEqual('SELECT * FROM users;');
@@ -255,7 +271,14 @@ describe('SentrySpanProcessor', () => {
         expect(childSpan).toBeInstanceOf(Transaction);
         expect(spanToJSON(parentSpan!).timestamp).toBeDefined();
         expect(spanToJSON(childSpan!).timestamp).toBeDefined();
+        expect(spanToJSON(parentSpan!).parent_span_id).toBeUndefined();
+
+        expect(spanToJSON(parentSpan!).parent_span_id).toBeUndefined();
+        // eslint-disable-next-line deprecation/deprecation
         expect(parentSpan?.parentSpanId).toBeUndefined();
+
+        expect(spanToJSON(childSpan!).parent_span_id).toEqual(parentSpan?.spanContext().spanId);
+        // eslint-disable-next-line deprecation/deprecation
         expect(childSpan?.parentSpanId).toEqual(parentSpan?.spanContext().spanId);
       });
     });

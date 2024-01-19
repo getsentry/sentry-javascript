@@ -64,11 +64,6 @@ export class SpanRecorder {
  */
 export class Span implements SpanInterface {
   /**
-   * @inheritDoc
-   */
-  public parentSpanId?: string;
-
-  /**
    * Tags for the span.
    * @deprecated Use `getSpanAttributes(span)` instead.
    */
@@ -112,6 +107,7 @@ export class Span implements SpanInterface {
 
   protected _traceId: string;
   protected _spanId: string;
+  protected _parentSpanId?: string;
   protected _sampled: boolean | undefined;
   protected _name?: string;
   protected _attributes: SpanAttributes;
@@ -147,7 +143,7 @@ export class Span implements SpanInterface {
     this._name = spanContext.name || spanContext.description;
 
     if (spanContext.parentSpanId) {
-      this.parentSpanId = spanContext.parentSpanId;
+      this._parentSpanId = spanContext.parentSpanId;
     }
     // We want to include booleans as well here
     if ('sampled' in spanContext) {
@@ -229,6 +225,24 @@ export class Span implements SpanInterface {
    */
   public set spanId(spanId: string) {
     this._spanId = spanId;
+  }
+
+  /**
+   * @inheritDoc
+   *
+   * @deprecated Use `startSpan` functions instead.
+   */
+  public set parentSpanId(string) {
+    this._parentSpanId = string;
+  }
+
+  /**
+   * @inheritDoc
+   *
+   * @deprecated Use `spanToJSON(span).parent_span_id` instead.
+   */
+  public get parentSpanId(): string | undefined {
+    return this._parentSpanId;
   }
 
   /**
@@ -531,7 +545,7 @@ export class Span implements SpanInterface {
       endTimestamp: this._endTime,
       // eslint-disable-next-line deprecation/deprecation
       op: this.op,
-      parentSpanId: this.parentSpanId,
+      parentSpanId: this._parentSpanId,
       sampled: this._sampled,
       spanId: this._spanId,
       startTimestamp: this._startTime,
@@ -555,7 +569,7 @@ export class Span implements SpanInterface {
     this._endTime = spanContext.endTimestamp;
     // eslint-disable-next-line deprecation/deprecation
     this.op = spanContext.op;
-    this.parentSpanId = spanContext.parentSpanId;
+    this._parentSpanId = spanContext.parentSpanId;
     this._sampled = spanContext.sampled;
     this._spanId = spanContext.spanId || this._spanId;
     this._startTime = spanContext.startTimestamp || this._startTime;
@@ -589,7 +603,7 @@ export class Span implements SpanInterface {
       data: this._getData(),
       description: this._name,
       op: this._attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP] as string | undefined,
-      parent_span_id: this.parentSpanId,
+      parent_span_id: this._parentSpanId,
       span_id: this._spanId,
       start_timestamp: this._startTime,
       status: this._status,

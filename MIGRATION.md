@@ -193,6 +193,7 @@ In v8, the Span class is heavily reworked. The following properties & methods ar
 - `span.getTraceContext()`: Use `spanToTraceContext(span)` utility function instead.
 - `span.sampled`: Use `span.isRecording()` instead.
 - `span.spanId`: Use `span.spanContext().spanId` instead.
+- `span.parentSpanId`: Use `spanToJSON(span).parent_span_id` instead.
 - `span.traceId`: Use `span.spanContext().traceId` instead.
 - `span.name`: Use `spanToJSON(span).description` instead.
 - `span.description`: Use `spanToJSON(span).description` instead.
