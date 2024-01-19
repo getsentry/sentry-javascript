@@ -259,6 +259,13 @@ export interface Span extends Omit<SpanContext, 'op' | 'status'> {
   status?: string;
 
   /**
+   * The origin of the span, giving context about what created the span.
+   *
+   * @deprecated Use `startSpan` function to set and `spanToJSON(span).origin` to read the origin instead.
+   */
+  origin?: SpanOrigin;
+
+  /**
    * Get context data for this span.
    * This includes the spanId & the traceId.
    */
