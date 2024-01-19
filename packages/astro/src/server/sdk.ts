@@ -1,6 +1,5 @@
-import { getCurrentScope } from '@sentry/core';
 import type { NodeOptions } from '@sentry/node';
-import { init as initNodeSdk } from '@sentry/node';
+import { init as initNodeSdk, setTag } from '@sentry/node';
 
 import { applySdkMetadata } from '../common/metadata';
 
@@ -13,5 +12,5 @@ export function init(options: NodeOptions): void {
 
   initNodeSdk(options);
 
-  getCurrentScope().setTag('runtime', 'node');
+  setTag('runtime', 'node');
 }
