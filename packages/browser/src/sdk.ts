@@ -1,7 +1,6 @@
 import type { Hub } from '@sentry/core';
+import { functionToStringIntegration, inboundFiltersIntegration } from '@sentry/core';
 import {
-  FunctionToString,
-  InboundFilters,
   captureSession,
   getClient,
   getCurrentHub,
@@ -23,22 +22,25 @@ import { BrowserClient } from './client';
 import { DEBUG_BUILD } from './debug-build';
 import type { ReportDialogOptions } from './helpers';
 import { WINDOW, wrap as internalWrap } from './helpers';
-import { Breadcrumbs, Dedupe, GlobalHandlers, HttpContext, LinkedErrors, TryCatch } from './integrations';
+import { breadcrumbsIntegration } from './integrations/breadcrumbs';
+import { dedupeIntegration } from './integrations/dedupe';
+import { globalHandlersIntegration } from './integrations/globalhandlers';
+import { httpContextIntegration } from './integrations/httpcontext';
+import { linkedErrorsIntegration } from './integrations/linkederrors';
+import { browserApiErrorsIntegration } from './integrations/trycatch';
 import { defaultStackParser } from './stack-parsers';
 import { makeFetchTransport, makeXHRTransport } from './transports';
 
 /** @deprecated Use `getDefaultIntegrations(options)` instead. */
 export const defaultIntegrations = [
-  /* eslint-disable deprecation/deprecation */
-  new InboundFilters(),
-  new FunctionToString(),
-  /* eslint-enable deprecation/deprecation */
-  new TryCatch(),
-  new Breadcrumbs(),
-  new GlobalHandlers(),
-  new LinkedErrors(),
-  new Dedupe(),
-  new HttpContext(),
+  inboundFiltersIntegration(),
+  functionToStringIntegration(),
+  browserApiErrorsIntegration(),
+  breadcrumbsIntegration(),
+  globalHandlersIntegration(),
+  linkedErrorsIntegration(),
+  dedupeIntegration(),
+  httpContextIntegration(),
 ];
 
 /** Get the default integrations for the browser SDK. */

@@ -28,17 +28,31 @@ integrations from the `Integrations.XXX` hash, is deprecated in favor of using t
 
 The following list shows how integrations should be migrated:
 
-| Old                      | New                             | Packages                                                                                                |
-| ------------------------ | ------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| `new InboundFilters()`   | `inboundFiltersIntegration()`   | `@sentry/core`, `@sentry/browser`, `@sentry/node`, `@sentry/deno`, `@sentry/bun`, `@sentry/vercel-edge` |
-| `new FunctionToString()` | `functionToStringIntegration()` | `@sentry/core`, `@sentry/browser`, `@sentry/node`, `@sentry/deno`, `@sentry/bun`, `@sentry/vercel-edge` |
-| `new LinkedErrors()`     | `linkedErrorsIntegration()`     | `@sentry/core`, `@sentry/browser`, `@sentry/node`, `@sentry/deno`, `@sentry/bun`, `@sentry/vercel-edge` |
-| `new ModuleMetadata()`   | `moduleMetadataIntegration()`   | `@sentry/core`, `@sentry/browser`                                                                       |
-| `new RequestData()`      | `requestDataIntegration()`      | `@sentry/core`, `@sentry/node`, `@sentry/deno`, `@sentry/bun`, `@sentry/vercel-edge`                    |
-| `new Wasm() `            | `wasmIntegration()`             | `@sentry/wasm`                                                                                          |
-| `new Replay()`           | `replayIntegration()`           | `@sentry/browser`                                                                                       |
-| `new ReplayCanvas()`     | `replayCanvasIntegration()`     | `@sentry/browser`                                                                                       |
-| `new Feedback()`         | `feedbackIntegration()`         | `@sentry/browser`                                                                                       |
+| Old                       | New                              | Packages                                                                                                |
+| ------------------------- | -------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `new InboundFilters()`    | `inboundFiltersIntegration()`    | `@sentry/core`, `@sentry/browser`, `@sentry/node`, `@sentry/deno`, `@sentry/bun`, `@sentry/vercel-edge` |
+| `new FunctionToString()`  | `functionToStringIntegration()`  | `@sentry/core`, `@sentry/browser`, `@sentry/node`, `@sentry/deno`, `@sentry/bun`, `@sentry/vercel-edge` |
+| `new LinkedErrors()`      | `linkedErrorsIntegration()`      | `@sentry/core`, `@sentry/browser`, `@sentry/node`, `@sentry/deno`, `@sentry/bun`, `@sentry/vercel-edge` |
+| `new ModuleMetadata()`    | `moduleMetadataIntegration()`    | `@sentry/core`, `@sentry/browser`                                                                       |
+| `new RequestData()`       | `requestDataIntegration()`       | `@sentry/core`, `@sentry/node`, `@sentry/deno`, `@sentry/bun`, `@sentry/vercel-edge`                    |
+| `new Wasm() `             | `wasmIntegration()`              | `@sentry/wasm`                                                                                          |
+| `new Replay()`            | `replayIntegration()`            | `@sentry/browser`                                                                                       |
+| `new ReplayCanvas()`      | `replayCanvasIntegration()`      | `@sentry/browser`                                                                                       |
+| `new Feedback()`          | `feedbackIntegration()`          | `@sentry/browser`                                                                                       |
+| `new CaptureConsole()`    | `captureConsoleIntegration()`    | `@sentry/integrations`                                                                                  |
+| `new Debug()`             | `debugIntegration()`             | `@sentry/integrations`                                                                                  |
+| `new Dedupe()`            | `dedupeIntegration()`            | `@sentry/browser`, `@sentry/integrations`, `@sentry/deno`                                               |
+| `new ExtraErrorData()`    | `extraErrorDataIntegration()`    | `@sentry/integrations`                                                                                  |
+| `new ReportingObserver()` | `reportingObserverIntegration()` | `@sentry/integrations`                                                                                  |
+| `new RewriteFrames()`     | `rewriteFramesIntegration()`     | `@sentry/integrations`                                                                                  |
+| `new SessionTiming()`     | `sessionTimingIntegration()`     | `@sentry/integrations`                                                                                  |
+| `new HttpClient()`        | `httpClientIntegration()`        | `@sentry/integrations`                                                                                  |
+| `new ContextLines()`      | `contextLinesIntegration()`      | `@sentry/browser`                                                                                       |
+| `new Breadcrumbs()`       | `breadcrumbsIntegration()`       | `@sentry/browser`, `@sentry/deno`                                                                       |
+| `new GlobalHandlers()`    | `globalHandlersIntegration()`    | `@sentry/browser`                                                                                       |
+| `new HttpContext()`       | `httpContextIntegration()`       | `@sentry/browser`                                                                                       |
+| `new TryCatch()`          | `browserApiErrorsIntegration()`  | `@sentry/browser`, `@sentry/deno`                                                                       |
+| `new VueIntegration()`    | `vueIntegration()`               | `@sentry/vue`                                                                                           |
 
 ## Deprecate `hub.bindClient()` and `makeMain()`
 

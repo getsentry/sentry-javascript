@@ -1,4 +1,4 @@
-import { convertIntegrationFnToClass } from '@sentry/core';
+import { convertIntegrationFnToClass, defineIntegration } from '@sentry/core';
 import type { Integration, IntegrationClass, IntegrationFn, WrappedFunction } from '@sentry/types';
 import { fill, getFunctionName, getOriginalFunction } from '@sentry/utils';
 
@@ -50,7 +50,7 @@ interface TryCatchOptions {
   eventTarget: boolean | string[];
 }
 
-const browserApiErrorsIntegration = ((options: Partial<TryCatchOptions> = {}) => {
+const _browserApiErrorsIntegration = ((options: Partial<TryCatchOptions> = {}) => {
   const _options = {
     XMLHttpRequest: true,
     eventTarget: true,
@@ -90,7 +90,12 @@ const browserApiErrorsIntegration = ((options: Partial<TryCatchOptions> = {}) =>
   };
 }) satisfies IntegrationFn;
 
-/** Wrap timer functions and event targets to catch errors and provide better meta data */
+export const browserApiErrorsIntegration = defineIntegration(_browserApiErrorsIntegration);
+
+/**
+ * Wrap timer functions and event targets to catch errors and provide better meta data.
+ * @deprecated Use `browserApiErrorsIntegration()` instead.
+ */
 // eslint-disable-next-line deprecation/deprecation
 export const TryCatch = convertIntegrationFnToClass(
   INTEGRATION_NAME,

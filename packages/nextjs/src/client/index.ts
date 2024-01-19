@@ -18,7 +18,9 @@ export * from '@sentry/react';
 export { nextRouterInstrumentation } from './routing/nextRoutingInstrumentation';
 export { captureUnderscoreErrorException } from '../common/_error';
 
+/** @deprecated Import the integration function directly, e.g. `inboundFiltersIntegration()` instead of `new Integrations.InboundFilter(). */
 export const Integrations = {
+  // eslint-disable-next-line deprecation/deprecation
   ...OriginalIntegrations,
   BrowserTracing,
 };
