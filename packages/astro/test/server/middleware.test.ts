@@ -58,6 +58,9 @@ describe('sentryMiddleware', () => {
 
     expect(startSpanSpy).toHaveBeenCalledWith(
       {
+        attributes: {
+          'sentry.origin': 'auto.http.astro',
+        },
         data: {
           method: 'GET',
           url: 'https://mydomain.io/users/123/details',
@@ -66,7 +69,6 @@ describe('sentryMiddleware', () => {
         metadata: {},
         name: 'GET /users/[id]/details',
         op: 'http.server',
-        origin: 'auto.http.astro',
         status: 'ok',
       },
       expect.any(Function), // the `next` function
@@ -94,6 +96,9 @@ describe('sentryMiddleware', () => {
 
     expect(startSpanSpy).toHaveBeenCalledWith(
       {
+        attributes: {
+          'sentry.origin': 'auto.http.astro',
+        },
         data: {
           method: 'GET',
           url: 'http://localhost:1234/a%xx',
@@ -102,7 +107,6 @@ describe('sentryMiddleware', () => {
         metadata: {},
         name: 'GET a%xx',
         op: 'http.server',
-        origin: 'auto.http.astro',
         status: 'ok',
       },
       expect.any(Function), // the `next` function

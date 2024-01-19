@@ -20,7 +20,7 @@ import { handleCallbackErrors } from '../utils/handleCallbackErrors';
 import { hasTracingEnabled } from '../utils/hasTracingEnabled';
 import { spanTimeInputToSeconds, spanToJSON } from '../utils/spanUtils';
 
-interface StartSpanOptions extends TransactionContext {
+interface StartSpanOptions extends Omit<TransactionContext, 'origin'> {
   /** A manually specified start time for the created `Span` object. */
   startTime?: SpanTimeInput;
 
@@ -33,7 +33,11 @@ interface StartSpanOptions extends TransactionContext {
   /** An op for the span. This is a categorization for spans. */
   op?: string;
 
-  /** The origin of the span - if it comes from auto instrumenation or manual instrumentation. */
+  /**
+   * The origin of the span - if it comes from auto instrumentation or manual instrumentation.
+   *
+   * @deprecated Set `attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]` instead.
+   */
   origin?: SpanOrigin;
 
   /** Attributes for the span. */

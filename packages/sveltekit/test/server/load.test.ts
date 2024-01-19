@@ -1,4 +1,4 @@
-import { addTracingExtensions } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, addTracingExtensions } from '@sentry/core';
 import * as SentryNode from '@sentry/node';
 import type { Load, ServerLoad } from '@sveltejs/kit';
 import { error, redirect } from '@sveltejs/kit';
@@ -197,8 +197,10 @@ describe('wrapLoadWithSentry calls trace', () => {
     expect(mockStartSpan).toHaveBeenCalledTimes(1);
     expect(mockStartSpan).toHaveBeenCalledWith(
       {
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.sveltekit',
+        },
         op: 'function.sveltekit.load',
-        origin: 'auto.function.sveltekit',
         name: '/users/[id]',
         status: 'ok',
         metadata: {
@@ -216,8 +218,10 @@ describe('wrapLoadWithSentry calls trace', () => {
     expect(mockStartSpan).toHaveBeenCalledTimes(1);
     expect(mockStartSpan).toHaveBeenCalledWith(
       {
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.sveltekit',
+        },
         op: 'function.sveltekit.load',
-        origin: 'auto.function.sveltekit',
         name: '/users/123',
         status: 'ok',
         metadata: {
@@ -250,8 +254,10 @@ describe('wrapServerLoadWithSentry calls trace', () => {
     expect(mockStartSpan).toHaveBeenCalledTimes(1);
     expect(mockStartSpan).toHaveBeenCalledWith(
       {
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.sveltekit',
+        },
         op: 'function.sveltekit.server.load',
-        origin: 'auto.function.sveltekit',
         name: '/users/[id]',
         parentSampled: true,
         parentSpanId: '1234567890abcdef',
@@ -284,8 +290,10 @@ describe('wrapServerLoadWithSentry calls trace', () => {
     expect(mockStartSpan).toHaveBeenCalledTimes(1);
     expect(mockStartSpan).toHaveBeenCalledWith(
       {
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.sveltekit',
+        },
         op: 'function.sveltekit.server.load',
-        origin: 'auto.function.sveltekit',
         name: '/users/[id]',
         status: 'ok',
         data: {
@@ -306,8 +314,10 @@ describe('wrapServerLoadWithSentry calls trace', () => {
     expect(mockStartSpan).toHaveBeenCalledTimes(1);
     expect(mockStartSpan).toHaveBeenCalledWith(
       {
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.sveltekit',
+        },
         op: 'function.sveltekit.server.load',
-        origin: 'auto.function.sveltekit',
         name: '/users/[id]',
         parentSampled: true,
         parentSpanId: '1234567890abcdef',
@@ -335,8 +345,10 @@ describe('wrapServerLoadWithSentry calls trace', () => {
     expect(mockStartSpan).toHaveBeenCalledTimes(1);
     expect(mockStartSpan).toHaveBeenCalledWith(
       {
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.sveltekit',
+        },
         op: 'function.sveltekit.server.load',
-        origin: 'auto.function.sveltekit',
         name: '/users/123',
         parentSampled: true,
         parentSpanId: '1234567890abcdef',

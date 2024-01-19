@@ -1,5 +1,6 @@
 /* eslint-disable max-lines */
 import {
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   getActiveSpan,
   getActiveTransaction,
   getClient,
@@ -411,7 +412,9 @@ export function startRequestHandlerTransaction(
   const transaction = hub.startTransaction({
     name,
     op: 'http.server',
-    origin: 'auto.http.remix',
+    attributes: {
+      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.remix',
+    },
     tags: {
       method: request.method,
     },
