@@ -41,6 +41,7 @@ export {
   // eslint-disable-next-line deprecation/deprecation
   getActiveTransaction,
   getHubFromCarrier,
+  // eslint-disable-next-line deprecation/deprecation
   getCurrentHub,
   getClient,
   getCurrentScope,
@@ -80,13 +81,24 @@ export {
   continueTrace,
   parameterize,
   metrics,
+  functionToStringIntegration,
+  inboundFiltersIntegration,
+  linkedErrorsIntegration,
+  requestDataIntegration,
 } from '@sentry/core';
 export type { SpanStatusType } from '@sentry/core';
 export { autoDiscoverNodePerformanceMonitoringIntegrations } from './tracing';
 
 export { NodeClient } from './client';
 export { makeNodeTransport } from './transports';
-export { defaultIntegrations, init, defaultStackParser, getSentryRelease } from './sdk';
+export {
+  // eslint-disable-next-line deprecation/deprecation
+  defaultIntegrations,
+  getDefaultIntegrations,
+  init,
+  defaultStackParser,
+  getSentryRelease,
+} from './sdk';
 export { addRequestDataToEvent, DEFAULT_USER_INCLUDES, extractRequestData } from '@sentry/utils';
 // eslint-disable-next-line deprecation/deprecation
 export { deepReadDirSync } from './utils';
@@ -108,6 +120,7 @@ import * as NodeIntegrations from './integrations';
 import * as TracingIntegrations from './tracing/integrations';
 
 const INTEGRATIONS = {
+  // eslint-disable-next-line deprecation/deprecation
   ...CoreIntegrations,
   ...NodeIntegrations,
   ...TracingIntegrations,

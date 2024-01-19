@@ -93,6 +93,8 @@ describe('SentrySpanProcessor', () => {
     expect(spanToJSON(sentrySpanTransaction!).description).toBe('GET /users');
     expect(spanToJSON(sentrySpanTransaction!).start_timestamp).toEqual(startTimestampMs / 1000);
     expect(sentrySpanTransaction?.spanContext().traceId).toEqual(otelSpan.spanContext().traceId);
+    expect(spanToJSON(sentrySpanTransaction!).parent_span_id).toEqual(otelSpan.parentSpanId);
+    // eslint-disable-next-line deprecation/deprecation
     expect(sentrySpanTransaction?.parentSpanId).toEqual(otelSpan.parentSpanId);
     expect(sentrySpanTransaction?.spanContext().spanId).toEqual(otelSpan.spanContext().spanId);
 
@@ -121,6 +123,9 @@ describe('SentrySpanProcessor', () => {
         expect(sentrySpan ? spanToJSON(sentrySpan).description : undefined).toBe('SELECT * FROM users;');
         expect(spanToJSON(sentrySpan!).start_timestamp).toEqual(startTimestampMs / 1000);
         expect(sentrySpan?.spanContext().spanId).toEqual(childOtelSpan.spanContext().spanId);
+
+        expect(spanToJSON(sentrySpan!).parent_span_id).toEqual(sentrySpanTransaction?.spanContext().spanId);
+        // eslint-disable-next-line deprecation/deprecation
         expect(sentrySpan?.parentSpanId).toEqual(sentrySpanTransaction?.spanContext().spanId);
 
         // eslint-disable-next-line deprecation/deprecation
@@ -162,6 +167,9 @@ describe('SentrySpanProcessor', () => {
         expect(spanToJSON(sentrySpan!).description).toBe('SELECT * FROM users;');
         expect(spanToJSON(sentrySpan!).start_timestamp).toEqual(startTimestampMs / 1000);
         expect(sentrySpan?.spanContext().spanId).toEqual(childOtelSpan.spanContext().spanId);
+
+        expect(spanToJSON(sentrySpan!).parent_span_id).toEqual(parentOtelSpan.spanContext().spanId);
+        // eslint-disable-next-line deprecation/deprecation
         expect(sentrySpan?.parentSpanId).toEqual(parentOtelSpan.spanContext().spanId);
 
         // eslint-disable-next-line deprecation/deprecation
@@ -194,8 +202,16 @@ describe('SentrySpanProcessor', () => {
       const sentrySpan2 = getSpanForOtelSpan(span2);
       const sentrySpan3 = getSpanForOtelSpan(span3);
 
+      expect(spanToJSON(sentrySpan1!).parent_span_id).toEqual(sentrySpanTransaction?.spanContext().spanId);
+      // eslint-disable-next-line deprecation/deprecation
       expect(sentrySpan1?.parentSpanId).toEqual(sentrySpanTransaction?.spanContext().spanId);
+
+      expect(spanToJSON(sentrySpan2!).parent_span_id).toEqual(sentrySpanTransaction?.spanContext().spanId);
+      // eslint-disable-next-line deprecation/deprecation
       expect(sentrySpan2?.parentSpanId).toEqual(sentrySpanTransaction?.spanContext().spanId);
+
+      expect(spanToJSON(sentrySpan3!).parent_span_id).toEqual(sentrySpanTransaction?.spanContext().spanId);
+      // eslint-disable-next-line deprecation/deprecation
       expect(sentrySpan3?.parentSpanId).toEqual(sentrySpanTransaction?.spanContext().spanId);
 
       expect(spanToJSON(sentrySpan1!).description).toEqual('SELECT * FROM users;');
@@ -255,7 +271,14 @@ describe('SentrySpanProcessor', () => {
         expect(childSpan).toBeInstanceOf(Transaction);
         expect(spanToJSON(parentSpan!).timestamp).toBeDefined();
         expect(spanToJSON(childSpan!).timestamp).toBeDefined();
+        expect(spanToJSON(parentSpan!).parent_span_id).toBeUndefined();
+
+        expect(spanToJSON(parentSpan!).parent_span_id).toBeUndefined();
+        // eslint-disable-next-line deprecation/deprecation
         expect(parentSpan?.parentSpanId).toBeUndefined();
+
+        expect(spanToJSON(childSpan!).parent_span_id).toEqual(parentSpan?.spanContext().spanId);
+        // eslint-disable-next-line deprecation/deprecation
         expect(childSpan?.parentSpanId).toEqual(parentSpan?.spanContext().spanId);
       });
     });
@@ -321,7 +344,8 @@ describe('SentrySpanProcessor', () => {
 
         const sentrySpan = getSpanForOtelSpan(child);
 
-        expect(spanToJSON(sentrySpan!).data).toEqual(undefined);
+        // origin is set by default to 'manual'
+        expect(spanToJSON(sentrySpan!).data).toEqual({ 'sentry.origin': 'manual' });
 
         child.end();
 
@@ -331,6 +355,7 @@ describe('SentrySpanProcessor', () => {
           'test-attribute-2': [1, 2, 3],
           'test-attribute-3': 0,
           'test-attribute-4': false,
+          'sentry.origin': 'manual',
         });
       });
 
@@ -344,11 +369,15 @@ describe('SentrySpanProcessor', () => {
     const transaction = getSpanForOtelSpan(otelSpan) as Transaction;
 
     // status is only set after end
+    // eslint-disable-next-line deprecation/deprecation
     expect(transaction?.status).toBe(undefined);
+    expect(spanToJSON(transaction!).status).toBe(undefined);
 
     otelSpan.end();
 
+    // eslint-disable-next-line deprecation/deprecation
     expect(transaction?.status).toBe('ok');
+    expect(spanToJSON(transaction!).status).toBe('ok');
   });
 
   it('sets status for span', async () => {
@@ -358,11 +387,15 @@ describe('SentrySpanProcessor', () => {
       tracer.startActiveSpan('SELECT * FROM users;', child => {
         const sentrySpan = getSpanForOtelSpan(child);
 
+        // eslint-disable-next-line deprecation/deprecation
         expect(sentrySpan?.status).toBe(undefined);
+        expect(spanToJSON(sentrySpan!).status).toBe(undefined);
 
         child.end();
 
+        // eslint-disable-next-line deprecation/deprecation
         expect(sentrySpan?.status).toBe('ok');
+        expect(spanToJSON(sentrySpan!).status).toBe('ok');
 
         parentOtelSpan.end();
       });
@@ -444,7 +477,9 @@ describe('SentrySpanProcessor', () => {
         }
 
         otelSpan.end();
+        // eslint-disable-next-line deprecation/deprecation
         expect(transaction?.status).toBe(expected);
+        expect(spanToJSON(transaction!).status).toBe(expected);
       },
     );
   });
@@ -459,12 +494,16 @@ describe('SentrySpanProcessor', () => {
 
           child.updateName('new name');
 
+          // eslint-disable-next-line deprecation/deprecation
           expect(sentrySpan?.op).toBe(undefined);
+          expect(sentrySpan && spanToJSON(sentrySpan).op).toBe(undefined);
           expect(sentrySpan ? spanToJSON(sentrySpan).description : undefined).toBe('SELECT * FROM users;');
 
           child.end();
 
+          // eslint-disable-next-line deprecation/deprecation
           expect(sentrySpan?.op).toBe(undefined);
+          expect(sentrySpan && spanToJSON(sentrySpan).op).toBe(undefined);
           expect(sentrySpan ? spanToJSON(sentrySpan).description : undefined).toBe('new name');
 
           parentOtelSpan.end();
@@ -483,7 +522,9 @@ describe('SentrySpanProcessor', () => {
 
           child.end();
 
+          // eslint-disable-next-line deprecation/deprecation
           expect(sentrySpan?.op).toBe('http.client');
+          expect(spanToJSON(sentrySpan!).op).toBe('http.client');
 
           parentOtelSpan.end();
         });
@@ -501,7 +542,9 @@ describe('SentrySpanProcessor', () => {
 
           child.end();
 
+          // eslint-disable-next-line deprecation/deprecation
           expect(sentrySpan?.op).toBe('http.server');
+          expect(spanToJSON(sentrySpan!).op).toBe('http.server');
 
           parentOtelSpan.end();
         });
@@ -550,6 +593,8 @@ describe('SentrySpanProcessor', () => {
             'http.url': 'http://example.com/my/route/123',
             'otel.kind': 'INTERNAL',
             url: 'http://example.com/my/route/123',
+            'sentry.op': 'http',
+            'sentry.origin': 'manual',
           });
 
           parentOtelSpan.end();
@@ -570,7 +615,7 @@ describe('SentrySpanProcessor', () => {
 
           child.end();
 
-          const { description, data } = spanToJSON(sentrySpan!);
+          const { description, data, op } = spanToJSON(sentrySpan!);
 
           expect(description).toBe('GET http://example.com/my/route/123');
           expect(data).toEqual({
@@ -579,7 +624,10 @@ describe('SentrySpanProcessor', () => {
             'http.url': 'http://example.com/my/route/123',
             'otel.kind': 'INTERNAL',
             url: 'http://example.com/my/route/123',
+            'sentry.op': 'http',
+            'sentry.origin': 'manual',
           });
+          expect(op).toBe('http');
 
           parentOtelSpan.end();
         });
@@ -599,7 +647,7 @@ describe('SentrySpanProcessor', () => {
 
           child.end();
 
-          const { description, data } = spanToJSON(sentrySpan!);
+          const { description, data, op } = spanToJSON(sentrySpan!);
 
           expect(description).toBe('GET http://example.com/my/route/123');
           expect(data).toEqual({
@@ -610,7 +658,10 @@ describe('SentrySpanProcessor', () => {
             url: 'http://example.com/my/route/123',
             'http.query': '?what=123',
             'http.fragment': '#myHash',
+            'sentry.op': 'http',
+            'sentry.origin': 'manual',
           });
+          expect(op).toBe('http');
 
           parentOtelSpan.end();
         });
@@ -677,8 +728,12 @@ describe('SentrySpanProcessor', () => {
 
           child.end();
 
+          const { description, op } = spanToJSON(sentrySpan!);
+
+          // eslint-disable-next-line deprecation/deprecation
           expect(sentrySpan?.op).toBe('db');
-          expect(sentrySpan ? spanToJSON(sentrySpan).description : undefined).toBe('SELECT * FROM users');
+          expect(op).toBe('db');
+          expect(description).toBe('SELECT * FROM users');
 
           parentOtelSpan.end();
         });
@@ -696,8 +751,12 @@ describe('SentrySpanProcessor', () => {
 
           child.end();
 
+          const { description, op } = spanToJSON(sentrySpan!);
+
+          // eslint-disable-next-line deprecation/deprecation
           expect(sentrySpan?.op).toBe('db');
-          expect(sentrySpan ? spanToJSON(sentrySpan).description : undefined).toBe('fetch users from DB');
+          expect(op).toBe('db');
+          expect(description).toBe('fetch users from DB');
 
           parentOtelSpan.end();
         });
@@ -715,8 +774,11 @@ describe('SentrySpanProcessor', () => {
 
           child.end();
 
+          const { op, description } = spanToJSON(sentrySpan!);
+          // eslint-disable-next-line deprecation/deprecation
           expect(sentrySpan?.op).toBe('rpc');
-          expect(sentrySpan ? spanToJSON(sentrySpan).description : undefined).toBe('test operation');
+          expect(op).toBe('rpc');
+          expect(description).toBe('test operation');
 
           parentOtelSpan.end();
         });
@@ -734,8 +796,12 @@ describe('SentrySpanProcessor', () => {
 
           child.end();
 
+          const { op, description } = spanToJSON(sentrySpan!);
+
+          // eslint-disable-next-line deprecation/deprecation
           expect(sentrySpan?.op).toBe('message');
-          expect(sentrySpan ? spanToJSON(sentrySpan).description : undefined).toBe('test operation');
+          expect(op).toBe('message');
+          expect(description).toBe('test operation');
 
           parentOtelSpan.end();
         });
@@ -753,8 +819,12 @@ describe('SentrySpanProcessor', () => {
 
           child.end();
 
+          const { op, description } = spanToJSON(sentrySpan!);
+
+          // eslint-disable-next-line deprecation/deprecation
           expect(sentrySpan?.op).toBe('test faas trigger');
-          expect(sentrySpan ? spanToJSON(sentrySpan).description : undefined).toBe('test operation');
+          expect(op).toBe('test faas trigger');
+          expect(description).toBe('test operation');
 
           parentOtelSpan.end();
         });
@@ -770,7 +840,10 @@ describe('SentrySpanProcessor', () => {
         parentOtelSpan.setAttribute(SemanticAttributes.FAAS_TRIGGER, 'test faas trigger');
         parentOtelSpan.end();
 
+        // eslint-disable-next-line deprecation/deprecation
         expect(transaction.op).toBe('test faas trigger');
+        expect(spanToJSON(transaction).op).toBe('test faas trigger');
+
         expect(spanToJSON(transaction).description).toBe('test operation');
       });
     });

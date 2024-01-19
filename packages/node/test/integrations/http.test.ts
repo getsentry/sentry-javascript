@@ -6,8 +6,8 @@ import { getCurrentScope, makeMain, setUser, spanToJSON, startInactiveSpan } fro
 import { Hub, addTracingExtensions } from '@sentry/core';
 import type { TransactionContext } from '@sentry/types';
 import { TRACEPARENT_REGEXP, logger } from '@sentry/utils';
-import * as HttpsProxyAgent from 'https-proxy-agent';
 import * as nock from 'nock';
+import { HttpsProxyAgent } from '../../src/proxy';
 
 import type { Breadcrumb } from '../../src';
 import { NodeClient } from '../../src/client';
@@ -79,7 +79,9 @@ describe('tracing', () => {
 
     // our span is at index 1 because the transaction itself is at index 0
     expect(spanToJSON(spans[1]).description).toEqual('GET http://dogs.are.great/');
+    // eslint-disable-next-line deprecation/deprecation
     expect(spans[1].op).toEqual('http.client');
+    expect(spanToJSON(spans[1]).op).toEqual('http.client');
   });
 
   it("doesn't create a span for outgoing sentry requests", () => {
@@ -283,7 +285,9 @@ describe('tracing', () => {
 
     // our span is at index 1 because the transaction itself is at index 0
     expect(spanToJSON(spans[1]).description).toEqual('GET http://dogs.are.great/spaniel');
+    // eslint-disable-next-line deprecation/deprecation
     expect(spans[1].op).toEqual('http.client');
+    expect(spanToJSON(spans[1]).op).toEqual('http.client');
 
     const spanAttributes = spanToJSON(spans[1]).data || {};
 
@@ -308,7 +312,9 @@ describe('tracing', () => {
 
     // our span is at index 1 because the transaction itself is at index 0
     expect(spanToJSON(spans[1]).description).toEqual('GET http://dogs.are.great/spaniel');
+    // eslint-disable-next-line deprecation/deprecation
     expect(spans[1].op).toEqual('http.client');
+    expect(spanToJSON(spans[1]).op).toEqual('http.client');
     expect(spanAttributes['http.method']).toEqual('GET');
     expect(spanAttributes.url).toEqual('http://dogs.are.great/spaniel');
     expect(spanAttributes['http.query']).toEqual('tail=wag&cute=true');
@@ -391,6 +397,7 @@ describe('tracing', () => {
         const request = http.get(url);
 
         // There should be no http spans
+        // eslint-disable-next-line deprecation/deprecation
         const httpSpans = spans.filter(span => span.op?.startsWith('http'));
         expect(httpSpans.length).toBe(0);
 
@@ -497,6 +504,7 @@ describe('tracing', () => {
         const request = http.get(url);
 
         // There should be no http spans
+        // eslint-disable-next-line deprecation/deprecation
         const httpSpans = spans.filter(span => span.op?.startsWith('http'));
         expect(httpSpans.length).toBe(0);
 
@@ -659,9 +667,10 @@ describe('default protocols', () => {
     const p = captureBreadcrumb(key);
     let nockProtocol = 'https';
 
-    const proxy = 'http://<PROXY_URL>:3128';
-    const agent = HttpsProxyAgent(proxy);
+    const proxy = 'http://some.url:3128';
+    const agent = new HttpsProxyAgent(proxy);
 
+    // TODO (v8): No longer needed once we drop Node 8 support
     if (NODE_VERSION.major < 9) {
       nockProtocol = 'http';
     }

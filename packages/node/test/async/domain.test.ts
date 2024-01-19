@@ -1,3 +1,4 @@
+/* eslint-disable deprecation/deprecation */
 import { Hub, makeMain } from '@sentry/core';
 import { getIsolationScope, withIsolationScope } from '@sentry/core';
 import { getCurrentHub, runWithAsyncContext, setAsyncContextStrategy } from '@sentry/core';

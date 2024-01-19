@@ -10,6 +10,33 @@ npx @sentry/migr8@latest
 This will let you select which updates to run, and automatically update your code. Make sure to still review all code
 changes!
 
+## Deprecate `getCurrentHub()`
+
+In v8, you will no longer have a Hub, only Scopes as a concept. This also means that `getCurrentHub()` will eventually
+be removed.
+
+Instead of `getCurrentHub()`, use the respective replacement API directly - see [Deprecate Hub](#deprecate-hub) for
+details.
+
+## Deprecate class-based integrations
+
+In v7, integrations are classes and can be added as e.g. `integrations: [new Sentry.Integrations.ContextLines()]`. In
+v8, integrations will not be classes anymore, but instead functions. Both the use as a class, as well as accessing
+integrations from the `Integrations.XXX` hash, is deprecated in favor of using the new functional integrations
+
+- for example, `new Integrations.LinkedErrors()` becomes `linkedErrorsIntegration()`.
+
+The following list shows how integrations should be migrated:
+
+| Old                      | New                             | Packages                                                                                                |
+| ------------------------ | ------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `new InboundFilters()`   | `inboundFiltersIntegration()`   | `@sentry/core`, `@sentry/browser`, `@sentry/node`, `@sentry/deno`, `@sentry/bun`, `@sentry/vercel-edge` |
+| `new FunctionToString()` | `functionToStringIntegration()` | `@sentry/core`, `@sentry/browser`, `@sentry/node`, `@sentry/deno`, `@sentry/bun`, `@sentry/vercel-edge` |
+| `new LinkedErrors()`     | `linkedErrorsIntegration()`     | `@sentry/core`, `@sentry/browser`, `@sentry/node`, `@sentry/deno`, `@sentry/bun`, `@sentry/vercel-edge` |
+| `new ModuleMetadata()`   | `moduleMetadataIntegration()`   | `@sentry/core`, `@sentry/browser`                                                                       |
+| `new RequestData()`      | `requestDataIntegration()`      | `@sentry/core`, `@sentry/node`, `@sentry/deno`, `@sentry/bun`, `@sentry/vercel-edge`                    |
+| `new Wasm() `            | `wasmIntegration()`             | `@sentry/wasm`                                                                                          |
+
 ## Deprecate `hub.bindClient()` and `makeMain()`
 
 Instead, either directly use `initAndBind()`, or the new APIs `setCurrentClient()` and `client.init()`. See
@@ -54,7 +81,7 @@ If you are using the `Hub` right now, see the following table on how to migrate 
 | ---------------------- | ------------------------------------------------------------------------------------ |
 | `new Hub()`            | `withScope()`, `withIsolationScope()` or `new Scope()`                               |
 | hub.isOlderThan()      | REMOVED - Was used to compare `Hub` instances, which are gonna be removed            |
-| hub.bindClient()       | A combination of `scope.setClient()` and `client.setupIntegrations()`                |
+| hub.bindClient()       | A combination of `scope.setClient()` and `client.init()`                             |
 | hub.pushScope()        | `Sentry.withScope()`                                                                 |
 | hub.popScope()         | `Sentry.withScope()`                                                                 |
 | hub.withScope()        | `Sentry.withScope()`                                                                 |
@@ -167,6 +194,7 @@ In v8, the Span class is heavily reworked. The following properties & methods ar
 - `span.getTraceContext()`: Use `spanToTraceContext(span)` utility function instead.
 - `span.sampled`: Use `span.isRecording()` instead.
 - `span.spanId`: Use `span.spanContext().spanId` instead.
+- `span.parentSpanId`: Use `spanToJSON(span).parent_span_id` instead.
 - `span.traceId`: Use `span.spanContext().traceId` instead.
 - `span.name`: Use `spanToJSON(span).description` instead.
 - `span.description`: Use `spanToJSON(span).description` instead.
@@ -178,6 +206,9 @@ In v8, the Span class is heavily reworked. The following properties & methods ar
 - `span.instrumenter` This field was removed and will be replaced internally.
 - `span.transaction`: Use `getRootSpan` utility function instead.
 - `span.spanRecorder`: Span recording will be handled internally by the SDK.
+- `span.status`: Use `.setStatus` to set or update and `spanToJSON()` to read the span status.
+- `span.op`: Use `startSpan` functions to set, `setAttribute()` to update and `spanToJSON` to read the span operation.
+- `span.isSuccess`: Use `spanToJSON(span).status === 'ok'` instead.
 - `transaction.setMetadata()`: Use attributes instead, or set data on the scope.
 - `transaction.metadata`: Use attributes instead, or set data on the scope.
 - `transaction.setContext()`: Set context on the surrounding scope instead.

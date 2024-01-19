@@ -3,6 +3,7 @@ import { NodeClient, SDK_VERSION } from '@sentry/node';
 import type { Tracer } from '@opentelemetry/api';
 import { trace } from '@opentelemetry/api';
 import type { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
+import { applySdkMetadata } from '@sentry/core';
 import type { CaptureContext, Event, EventHint } from '@sentry/types';
 import { Scope, getIsolationScope } from './scope';
 
@@ -12,17 +13,7 @@ export class NodeExperimentalClient extends NodeClient {
   private _tracer: Tracer | undefined;
 
   public constructor(options: ConstructorParameters<typeof NodeClient>[0]) {
-    options._metadata = options._metadata || {};
-    options._metadata.sdk = options._metadata.sdk || {
-      name: 'sentry.javascript.node-experimental',
-      packages: [
-        {
-          name: 'npm:@sentry/node-experimental',
-          version: SDK_VERSION,
-        },
-      ],
-      version: SDK_VERSION,
-    };
+    applySdkMetadata(options, 'node-experimental');
 
     super(options);
   }

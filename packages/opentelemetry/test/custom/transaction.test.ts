@@ -28,6 +28,9 @@ describe('NodeExperimentalTransaction', () => {
       expect.objectContaining({
         contexts: {
           trace: {
+            data: {
+              'sentry.origin': 'manual',
+            },
             span_id: expect.any(String),
             trace_id: expect.any(String),
             origin: 'manual',
@@ -109,6 +112,9 @@ describe('NodeExperimentalTransaction', () => {
       expect.objectContaining({
         contexts: {
           trace: {
+            data: {
+              'sentry.origin': 'manual',
+            },
             span_id: expect.any(String),
             trace_id: expect.any(String),
             origin: 'manual',

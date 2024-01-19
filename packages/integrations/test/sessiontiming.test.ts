@@ -1,5 +1,6 @@
 import { SessionTiming } from '../src/sessiontiming';
 
+// eslint-disable-next-line deprecation/deprecation
 const sessionTiming = new SessionTiming();
 
 describe('SessionTiming', () => {

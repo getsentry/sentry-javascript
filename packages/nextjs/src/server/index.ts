@@ -1,21 +1,33 @@
-import * as path from 'path';
-import { addTracingExtensions, getClient } from '@sentry/core';
-import { RewriteFrames } from '@sentry/integrations';
+import { addTracingExtensions, applySdkMetadata, getClient } from '@sentry/core';
 import type { NodeOptions } from '@sentry/node';
-import { Integrations, getCurrentScope, init as nodeInit } from '@sentry/node';
+import {
+  Integrations as OriginalIntegrations,
+  getCurrentScope,
+  getDefaultIntegrations,
+  init as nodeInit,
+} from '@sentry/node';
 import type { EventProcessor } from '@sentry/types';
-import type { IntegrationWithExclusionOption } from '@sentry/utils';
-import { addOrUpdateIntegration, escapeStringForRegex, logger } from '@sentry/utils';
+import { logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../common/debug-build';
 import { devErrorSymbolicationEventProcessor } from '../common/devErrorSymbolicationEventProcessor';
 import { getVercelEnv } from '../common/getVercelEnv';
-import { buildMetadata } from '../common/metadata';
 import { isBuild } from '../common/utils/isBuild';
+import { Http } from './httpIntegration';
+import { OnUncaughtException } from './onUncaughtExceptionIntegration';
+import { rewriteFramesIntegration } from './rewriteFramesIntegration';
 
 export { createReduxEnhancer } from '@sentry/react';
 export * from '@sentry/node';
 export { captureUnderscoreErrorException } from '../common/_error';
+
+export const Integrations = {
+  ...OriginalIntegrations,
+  Http,
+  OnUncaughtException,
+};
+
+export { rewriteFramesIntegration };
 
 /**
  * A passthrough error boundary for the server that doesn't depend on any react. Error boundaries don't catch SSR errors
@@ -52,10 +64,6 @@ export function showReportDialog(): void {
   return;
 }
 
-const globalWithInjectedValues = global as typeof global & {
-  __rewriteFramesDistDir__?: string;
-};
-
 // TODO (v8): Remove this
 /**
  * @deprecated This constant will be removed in the next major update.
@@ -72,8 +80,18 @@ export function init(options: NodeOptions): void {
     return;
   }
 
+  const customDefaultIntegrations = [
+    ...getDefaultIntegrations(options).filter(
+      integration => !['Http', 'OnUncaughtException'].includes(integration.name),
+    ),
+    rewriteFramesIntegration(),
+    new Http(),
+    new OnUncaughtException(),
+  ];
+
   const opts = {
     environment: process.env.SENTRY_ENVIRONMENT || getVercelEnv(false) || process.env.NODE_ENV,
+    defaultIntegrations: customDefaultIntegrations,
     ...options,
     // Right now we only capture frontend sessions for Next.js
     autoSessionTracking: false,
@@ -90,9 +108,7 @@ export function init(options: NodeOptions): void {
     return;
   }
 
-  buildMetadata(opts, ['nextjs', 'node']);
-
-  addServerIntegrations(opts);
+  applySdkMetadata(opts, 'nextjs', ['nextjs', 'node']);
 
   nodeInit(opts);
 
@@ -119,44 +135,6 @@ export function init(options: NodeOptions): void {
 
 function sdkAlreadyInitialized(): boolean {
   return !!getClient();
-}
-
-function addServerIntegrations(options: NodeOptions): void {
-  let integrations = options.integrations || [];
-
-  // This value is injected at build time, based on the output directory specified in the build config. Though a default
-  // is set there, we set it here as well, just in case something has gone wrong with the injection.
-  const distDirName = globalWithInjectedValues.__rewriteFramesDistDir__;
-  if (distDirName) {
-    // nextjs always puts the build directory at the project root level, which is also where you run `next start` from, so
-    // we can read in the project directory from the currently running process
-    const distDirAbsPath = path.resolve(distDirName).replace(/(\/|\\)$/, ''); // We strip trailing slashes because "app:///_next" also doesn't have one
-    // eslint-disable-next-line @sentry-internal/sdk/no-regexp-constructor -- user input is escaped
-    const SOURCEMAP_FILENAME_REGEX = new RegExp(escapeStringForRegex(distDirAbsPath));
-
-    const defaultRewriteFramesIntegration = new RewriteFrames({
-      iteratee: frame => {
-        frame.filename = frame.filename?.replace(SOURCEMAP_FILENAME_REGEX, 'app:///_next');
-        return frame;
-      },
-    });
-    integrations = addOrUpdateIntegration(defaultRewriteFramesIntegration, integrations);
-  }
-
-  const defaultOnUncaughtExceptionIntegration: IntegrationWithExclusionOption = new Integrations.OnUncaughtException({
-    exitEvenIfOtherHandlersAreRegistered: false,
-  });
-  defaultOnUncaughtExceptionIntegration.allowExclusionByUser = true;
-  integrations = addOrUpdateIntegration(defaultOnUncaughtExceptionIntegration, integrations, {
-    _options: { exitEvenIfOtherHandlersAreRegistered: false },
-  });
-
-  const defaultHttpTracingIntegration = new Integrations.Http({ tracing: true });
-  integrations = addOrUpdateIntegration(defaultHttpTracingIntegration, integrations, {
-    _tracing: {},
-  });
-
-  options.integrations = integrations;
 }
 
 // TODO (v8): Remove this

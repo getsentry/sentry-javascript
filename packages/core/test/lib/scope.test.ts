@@ -7,6 +7,7 @@ import {
   getCurrentScope,
   getIsolationScope,
   makeMain,
+  spanToJSON,
   startInactiveSpan,
   startSpan,
   withIsolationScope,
@@ -543,12 +544,14 @@ describe('withActiveSpan()', () => {
   });
 
   it('should create child spans when calling startSpan within the callback', done => {
-    expect.assertions(1);
+    expect.assertions(2);
     const inactiveSpan = startInactiveSpan({ name: 'inactive-span' });
 
     withActiveSpan(inactiveSpan!, () => {
       startSpan({ name: 'child-span' }, childSpan => {
+        // eslint-disable-next-line deprecation/deprecation
         expect(childSpan?.parentSpanId).toBe(inactiveSpan?.spanContext().spanId);
+        expect(spanToJSON(childSpan!).parent_span_id).toBe(inactiveSpan?.spanContext().spanId);
         done();
       });
     });

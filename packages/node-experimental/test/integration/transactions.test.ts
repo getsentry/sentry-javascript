@@ -84,7 +84,11 @@ describe('Integration | Transactions', () => {
           },
           runtime: { name: 'node', version: expect.any(String) },
           trace: {
-            data: { 'otel.kind': 'INTERNAL' },
+            data: {
+              'otel.kind': 'INTERNAL',
+              'sentry.op': 'test op',
+              'sentry.origin': 'auto.test',
+            },
             op: 'test op',
             span_id: expect.any(String),
             status: 'ok',
@@ -148,7 +152,10 @@ describe('Integration | Transactions', () => {
     // This is the same behavior as for the "regular" SDKs
     expect(spans.map(span => spanToJSON(span))).toEqual([
       {
-        data: { 'otel.kind': 'INTERNAL' },
+        data: {
+          'otel.kind': 'INTERNAL',
+          'sentry.origin': 'manual',
+        },
         description: 'inner span 1',
         origin: 'manual',
         parent_span_id: expect.any(String),
@@ -159,7 +166,11 @@ describe('Integration | Transactions', () => {
         trace_id: expect.any(String),
       },
       {
-        data: { 'otel.kind': 'INTERNAL', 'test.inner': 'test value' },
+        data: {
+          'otel.kind': 'INTERNAL',
+          'test.inner': 'test value',
+          'sentry.origin': 'manual',
+        },
         description: 'inner span 2',
         origin: 'manual',
         parent_span_id: expect.any(String),
@@ -244,7 +255,11 @@ describe('Integration | Transactions', () => {
             },
           }),
           trace: {
-            data: { 'otel.kind': 'INTERNAL' },
+            data: {
+              'otel.kind': 'INTERNAL',
+              'sentry.op': 'test op',
+              'sentry.origin': 'auto.test',
+            },
             op: 'test op',
             span_id: expect.any(String),
             status: 'ok',
@@ -286,7 +301,11 @@ describe('Integration | Transactions', () => {
             },
           }),
           trace: {
-            data: { 'otel.kind': 'INTERNAL' },
+            data: {
+              'otel.kind': 'INTERNAL',
+              'sentry.op': 'test op b',
+              'sentry.origin': 'manual',
+            },
             op: 'test op b',
             span_id: expect.any(String),
             status: 'ok',
@@ -363,7 +382,11 @@ describe('Integration | Transactions', () => {
             attributes: {},
           }),
           trace: {
-            data: { 'otel.kind': 'INTERNAL' },
+            data: {
+              'otel.kind': 'INTERNAL',
+              'sentry.op': 'test op',
+              'sentry.origin': 'auto.test',
+            },
             op: 'test op',
             span_id: expect.any(String),
             parent_span_id: parentSpanId,
@@ -401,7 +424,10 @@ describe('Integration | Transactions', () => {
     // This is the same behavior as for the "regular" SDKs
     expect(spans.map(span => spanToJSON(span))).toEqual([
       {
-        data: { 'otel.kind': 'INTERNAL' },
+        data: {
+          'otel.kind': 'INTERNAL',
+          'sentry.origin': 'manual',
+        },
         description: 'inner span 1',
         origin: 'manual',
         parent_span_id: expect.any(String),
@@ -412,7 +438,10 @@ describe('Integration | Transactions', () => {
         trace_id: traceId,
       },
       {
-        data: { 'otel.kind': 'INTERNAL' },
+        data: {
+          'otel.kind': 'INTERNAL',
+          'sentry.origin': 'manual',
+        },
         description: 'inner span 2',
         origin: 'manual',
         parent_span_id: expect.any(String),

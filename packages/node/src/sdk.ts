@@ -1,6 +1,8 @@
 /* eslint-disable max-lines */
 import {
-  Integrations as CoreIntegrations,
+  FunctionToString,
+  InboundFilters,
+  LinkedErrors,
   endSession,
   getClient,
   getCurrentScope,
@@ -10,7 +12,7 @@ import {
   initAndBind,
   startSession,
 } from '@sentry/core';
-import type { SessionStatus, StackParser } from '@sentry/types';
+import type { Integration, Options, SessionStatus, StackParser } from '@sentry/types';
 import {
   GLOBAL_OBJ,
   createStackParser,
@@ -38,11 +40,15 @@ import { createGetModuleFromFilename } from './module';
 import { makeNodeTransport } from './transports';
 import type { NodeClientOptions, NodeOptions } from './types';
 
+/** @deprecated Use `getDefaultIntegrations(options)` instead. */
+
 export const defaultIntegrations = [
+  /* eslint-disable deprecation/deprecation */
   // Common
-  new CoreIntegrations.InboundFilters(),
-  new CoreIntegrations.FunctionToString(),
-  new CoreIntegrations.LinkedErrors(),
+  new InboundFilters(),
+  new FunctionToString(),
+  new LinkedErrors(),
+  /* eslint-enable deprecation/deprecation */
   // Native Wrappers
   new Console(),
   new Http(),
@@ -55,8 +61,22 @@ export const defaultIntegrations = [
   new LocalVariables(),
   new Context(),
   new Modules(),
+  // eslint-disable-next-line deprecation/deprecation
   new RequestData(),
 ];
+
+/** Get the default integrations for the Node SDK. */
+export function getDefaultIntegrations(_options: Options): Integration[] {
+  const carrier = getMainCarrier();
+
+  const autoloadedIntegrations = carrier.__SENTRY__?.integrations || [];
+
+  return [
+    // eslint-disable-next-line deprecation/deprecation
+    ...defaultIntegrations,
+    ...autoloadedIntegrations,
+  ];
+}
 
 /**
  * The Sentry Node SDK Client.
@@ -115,19 +135,11 @@ export const defaultIntegrations = [
  */
 // eslint-disable-next-line complexity
 export function init(options: NodeOptions = {}): void {
-  const carrier = getMainCarrier();
-
   setNodeAsyncContextStrategy();
 
-  const autoloadedIntegrations = carrier.__SENTRY__?.integrations || [];
-
-  options.defaultIntegrations =
-    options.defaultIntegrations === false
-      ? []
-      : [
-          ...(Array.isArray(options.defaultIntegrations) ? options.defaultIntegrations : defaultIntegrations),
-          ...autoloadedIntegrations,
-        ];
+  if (options.defaultIntegrations === undefined) {
+    options.defaultIntegrations = getDefaultIntegrations(options);
+  }
 
   if (options.dsn === undefined && process.env.SENTRY_DSN) {
     options.dsn = process.env.SENTRY_DSN;

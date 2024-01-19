@@ -3,6 +3,7 @@ import { Integrations as CoreIntegrations } from '@sentry/core';
 import * as NodeExperimentalIntegrations from './integrations';
 
 const INTEGRATIONS = {
+  // eslint-disable-next-line deprecation/deprecation
   ...CoreIntegrations,
   ...NodeExperimentalIntegrations,
 };

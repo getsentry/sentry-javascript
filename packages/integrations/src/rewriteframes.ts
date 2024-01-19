@@ -1,4 +1,4 @@
-import { convertIntegrationFnToClass } from '@sentry/core';
+import { convertIntegrationFnToClass, defineIntegration } from '@sentry/core';
 import type { Event, Integration, IntegrationClass, IntegrationFn, StackFrame, Stacktrace } from '@sentry/types';
 import { basename, relative } from '@sentry/utils';
 
@@ -12,7 +12,7 @@ interface RewriteFramesOptions {
   iteratee?: StackFrameIteratee;
 }
 
-const rewriteFramesIntegration = ((options: RewriteFramesOptions = {}) => {
+const _rewriteFramesIntegration = ((options: RewriteFramesOptions = {}) => {
   const root = options.root;
   const prefix = options.prefix || 'app:///';
 
@@ -85,7 +85,12 @@ const rewriteFramesIntegration = ((options: RewriteFramesOptions = {}) => {
   };
 }) satisfies IntegrationFn;
 
-/** Rewrite event frames paths */
+export const rewriteFramesIntegration = defineIntegration(_rewriteFramesIntegration);
+
+/**
+ * Rewrite event frames paths.
+ * @deprecated Use `rewriteFramesIntegration()` instead.
+ */
 // eslint-disable-next-line deprecation/deprecation
 export const RewriteFrames = convertIntegrationFnToClass(
   INTEGRATION_NAME,

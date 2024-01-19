@@ -1,6 +1,6 @@
 import * as SentryBrowser from '@sentry/browser';
 
-import { defaultIntegrations, init } from '../src/index';
+import { getDefaultIntegrations, init } from '../src/index';
 
 describe('init', () => {
   it('sets the Angular version (if available) in the global scope', () => {
@@ -30,16 +30,23 @@ describe('init', () => {
       expect(options.defaultIntegrations).not.toContainEqual(expect.objectContaining({ name: 'TryCatch' }));
     });
 
-    it.each([false as const, defaultIntegrations])(
-      "doesn't filter if `defaultIntegrations` is set to %s",
-      defaultIntegrations => {
-        init({ defaultIntegrations });
+    it("doesn't filter if `defaultIntegrations` is set to `false`", () => {
+      init({ defaultIntegrations: false });
 
-        expect(browserInitSpy).toHaveBeenCalledTimes(1);
+      expect(browserInitSpy).toHaveBeenCalledTimes(1);
 
-        const options = browserInitSpy.mock.calls[0][0] || {};
-        expect(options.defaultIntegrations).toEqual(defaultIntegrations);
-      },
-    );
+      const options = browserInitSpy.mock.calls[0][0] || {};
+      expect(options.defaultIntegrations).toEqual(false);
+    });
+
+    it("doesn't filter if `defaultIntegrations` is overwritten", () => {
+      const defaultIntegrations = getDefaultIntegrations({});
+      init({ defaultIntegrations });
+
+      expect(browserInitSpy).toHaveBeenCalledTimes(1);
+
+      const options = browserInitSpy.mock.calls[0][0] || {};
+      expect(options.defaultIntegrations).toEqual(defaultIntegrations);
+    });
   });
 });

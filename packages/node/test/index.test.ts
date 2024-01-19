@@ -23,7 +23,7 @@ import {
 } from '../src';
 import { setNodeAsyncContextStrategy } from '../src/async';
 import { ContextLines } from '../src/integrations';
-import { defaultStackParser } from '../src/sdk';
+import { defaultStackParser, getDefaultIntegrations } from '../src/sdk';
 import type { NodeClientOptions } from '../src/types';
 import { getDefaultNodeClientOptions } from './helper/node-client-options';
 
@@ -214,6 +214,7 @@ describe('SentryNode', () => {
       expect.assertions(15);
       const options = getDefaultNodeClientOptions({
         stackParser: defaultStackParser,
+        // eslint-disable-next-line deprecation/deprecation
         integrations: [new ContextLines(), new LinkedErrors()],
         beforeSend: (event: Event) => {
           expect(event.exception).not.toBeUndefined();
@@ -303,6 +304,7 @@ describe('SentryNode', () => {
       const client = new NodeClient(options);
 
       runWithAsyncContext(() => {
+        // eslint-disable-next-line deprecation/deprecation
         const hub = getCurrentHub();
         setCurrentClient(client);
         client.init();
@@ -434,23 +436,13 @@ describe('SentryNode initialization', () => {
   });
 
   describe('autoloaded integrations', () => {
-    it('should attach single integration to default integrations', () => {
+    it('should attach integrations to default integrations', () => {
       withAutoloadedIntegrations([new MockIntegration('foo')], () => {
         init({
-          defaultIntegrations: [new MockIntegration('bar')],
+          defaultIntegrations: [...getDefaultIntegrations({}), new MockIntegration('bar')],
         });
         const integrations = (initAndBind as jest.Mock).mock.calls[0][1].defaultIntegrations;
-        expect(integrations.map((i: { name: string }) => i.name)).toEqual(['bar', 'foo']);
-      });
-    });
-
-    it('should attach multiple integrations to default integrations', () => {
-      withAutoloadedIntegrations([new MockIntegration('foo'), new MockIntegration('bar')], () => {
-        init({
-          defaultIntegrations: [new MockIntegration('baz'), new MockIntegration('qux')],
-        });
-        const integrations = (initAndBind as jest.Mock).mock.calls[0][1].defaultIntegrations;
-        expect(integrations.map((i: { name: string }) => i.name)).toEqual(['baz', 'qux', 'foo', 'bar']);
+        expect(integrations.map((i: { name: string }) => i.name)).toEqual(expect.arrayContaining(['foo', 'bar']));
       });
     });
 
@@ -460,7 +452,7 @@ describe('SentryNode initialization', () => {
           defaultIntegrations: false,
         });
         const integrations = (initAndBind as jest.Mock).mock.calls[0][1].defaultIntegrations;
-        expect(integrations).toEqual([]);
+        expect(integrations).toEqual(false);
       });
     });
   });

@@ -106,7 +106,7 @@ export function isPrimitive(wat: unknown): wat is Primitive {
 }
 
 /**
- * Checks whether given value's type is an object literal
+ * Checks whether given value's type is an object literal, or a class instance.
  * {@link isPlainObject}.
  *
  * @param wat A value to be checked.

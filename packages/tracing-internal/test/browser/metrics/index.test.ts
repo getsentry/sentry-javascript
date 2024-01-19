@@ -1,10 +1,29 @@
 import { Transaction } from '../../../src';
 import type { ResourceEntry } from '../../../src/browser/metrics';
 import { _addMeasureSpans, _addResourceSpans } from '../../../src/browser/metrics';
+import { WINDOW } from '../../../src/browser/types';
+
+const mockWindowLocation = {
+  ancestorOrigins: {},
+  href: 'https://example.com/path/to/something',
+  origin: 'https://example.com',
+  protocol: 'https',
+  host: 'example.com',
+  hostname: 'example.com',
+  port: '',
+  pathname: '/path/to/something',
+  search: '',
+  hash: '',
+} as Window['location'];
+
+const originalLocation = WINDOW.location;
+
+const resourceEntryName = 'https://example.com/assets/to/css';
 
 describe('_addMeasureSpans', () => {
   // eslint-disable-next-line deprecation/deprecation
   const transaction = new Transaction({ op: 'pageload', name: '/' });
+
   beforeEach(() => {
     // eslint-disable-next-line deprecation/deprecation
     transaction.startChild = jest.fn();
@@ -42,6 +61,15 @@ describe('_addMeasureSpans', () => {
 describe('_addResourceSpans', () => {
   // eslint-disable-next-line deprecation/deprecation
   const transaction = new Transaction({ op: 'pageload', name: '/' });
+
+  beforeAll(() => {
+    setGlobalLocation(mockWindowLocation);
+  });
+
+  afterAll(() => {
+    resetGlobalLocation();
+  });
+
   beforeEach(() => {
     // eslint-disable-next-line deprecation/deprecation
     transaction.startChild = jest.fn();
@@ -56,7 +84,7 @@ describe('_addResourceSpans', () => {
       decodedBodySize: 256,
       renderBlockingStatus: 'non-blocking',
     };
-    _addResourceSpans(transaction, entry, '/assets/to/me', 123, 456, 100);
+    _addResourceSpans(transaction, entry, resourceEntryName, 123, 456, 100);
 
     // eslint-disable-next-line @typescript-eslint/unbound-method, deprecation/deprecation
     expect(transaction.startChild).toHaveBeenCalledTimes(0);
@@ -70,7 +98,7 @@ describe('_addResourceSpans', () => {
       decodedBodySize: 256,
       renderBlockingStatus: 'non-blocking',
     };
-    _addResourceSpans(transaction, entry, '/assets/to/me', 123, 456, 100);
+    _addResourceSpans(transaction, entry, 'https://example.com/assets/to/me', 123, 456, 100);
 
     // eslint-disable-next-line @typescript-eslint/unbound-method, deprecation/deprecation
     expect(transaction.startChild).toHaveBeenCalledTimes(0);
@@ -89,7 +117,7 @@ describe('_addResourceSpans', () => {
     const startTime = 23;
     const duration = 356;
 
-    _addResourceSpans(transaction, entry, '/assets/to/css', startTime, duration, timeOrigin);
+    _addResourceSpans(transaction, entry, resourceEntryName, startTime, duration, timeOrigin);
 
     // eslint-disable-next-line @typescript-eslint/unbound-method, deprecation/deprecation
     expect(transaction.startChild).toHaveBeenCalledTimes(1);
@@ -100,6 +128,9 @@ describe('_addResourceSpans', () => {
         ['http.response_content_length']: entry.encodedBodySize,
         ['http.response_transfer_size']: entry.transferSize,
         ['resource.render_blocking_status']: entry.renderBlockingStatus,
+        ['url.scheme']: 'https',
+        ['server.address']: 'example.com',
+        ['url.same_origin']: true,
       },
       description: '/assets/to/css',
       endTimestamp: timeOrigin + startTime + duration,
@@ -137,7 +168,7 @@ describe('_addResourceSpans', () => {
       const entry: ResourceEntry = {
         initiatorType,
       };
-      _addResourceSpans(transaction, entry, '/assets/to/me', 123, 234, 465);
+      _addResourceSpans(transaction, entry, 'https://example.com/assets/to/me', 123, 234, 465);
 
       // eslint-disable-next-line @typescript-eslint/unbound-method, deprecation/deprecation
       expect(transaction.startChild).toHaveBeenLastCalledWith(
@@ -157,7 +188,7 @@ describe('_addResourceSpans', () => {
       renderBlockingStatus: 'non-blocking',
     };
 
-    _addResourceSpans(transaction, entry, '/assets/to/css', 100, 23, 345);
+    _addResourceSpans(transaction, entry, resourceEntryName, 100, 23, 345);
 
     // eslint-disable-next-line @typescript-eslint/unbound-method, deprecation/deprecation
     expect(transaction.startChild).toHaveBeenCalledTimes(1);
@@ -169,6 +200,9 @@ describe('_addResourceSpans', () => {
           ['http.response_content_length']: entry.encodedBodySize,
           ['http.response_transfer_size']: entry.transferSize,
           ['resource.render_blocking_status']: entry.renderBlockingStatus,
+          ['url.scheme']: 'https',
+          ['server.address']: 'example.com',
+          ['url.same_origin']: true,
         },
       }),
     );
@@ -182,14 +216,19 @@ describe('_addResourceSpans', () => {
       decodedBodySize: 2147483647,
     };
 
-    _addResourceSpans(transaction, entry, '/assets/to/css', 100, 23, 345);
+    _addResourceSpans(transaction, entry, resourceEntryName, 100, 23, 345);
 
     // eslint-disable-next-line @typescript-eslint/unbound-method, deprecation/deprecation
     expect(transaction.startChild).toHaveBeenCalledTimes(1);
     // eslint-disable-next-line @typescript-eslint/unbound-method, deprecation/deprecation
     expect(transaction.startChild).toHaveBeenLastCalledWith(
       expect.objectContaining({
-        data: {},
+        data: { 'server.address': 'example.com', 'url.same_origin': true, 'url.scheme': 'https' },
+        description: '/assets/to/css',
+        endTimestamp: 468,
+        op: 'resource.css',
+        origin: 'auto.resource.browser.metrics',
+        startTimestamp: 445,
       }),
     );
   });
@@ -204,15 +243,32 @@ describe('_addResourceSpans', () => {
       decodedBodySize: null,
     } as unknown as ResourceEntry;
 
-    _addResourceSpans(transaction, entry, '/assets/to/css', 100, 23, 345);
+    _addResourceSpans(transaction, entry, resourceEntryName, 100, 23, 345);
 
     // eslint-disable-next-line @typescript-eslint/unbound-method, deprecation/deprecation
     expect(transaction.startChild).toHaveBeenCalledTimes(1);
     // eslint-disable-next-line @typescript-eslint/unbound-method, deprecation/deprecation
     expect(transaction.startChild).toHaveBeenLastCalledWith(
       expect.objectContaining({
-        data: {},
+        data: { 'server.address': 'example.com', 'url.same_origin': true, 'url.scheme': 'https' },
+        description: '/assets/to/css',
+        endTimestamp: 468,
+        op: 'resource.css',
+        origin: 'auto.resource.browser.metrics',
+        startTimestamp: 445,
       }),
     );
   });
 });
+
+const setGlobalLocation = (location: Location) => {
+  // @ts-expect-error need to delete this in order to set to new value
+  delete WINDOW.location;
+  WINDOW.location = location;
+};
+
+const resetGlobalLocation = () => {
+  // @ts-expect-error need to delete this in order to set to new value
+  delete WINDOW.location;
+  WINDOW.location = originalLocation;
+};

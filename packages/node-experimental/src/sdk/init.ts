@@ -3,15 +3,15 @@ import {
   Integrations,
   defaultIntegrations as defaultNodeIntegrations,
   defaultStackParser,
+  getDefaultIntegrations as getDefaultNodeIntegrations,
   getSentryRelease,
   makeNodeTransport,
 } from '@sentry/node';
-import type { Client, Integration } from '@sentry/types';
+import type { Client, Integration, Options } from '@sentry/types';
 import {
   consoleSandbox,
   dropUndefinedKeys,
   logger,
-  parseSemver,
   stackParserFromStackParserOptions,
   tracingContextFromHeaders,
 } from '@sentry/utils';
@@ -28,17 +28,24 @@ import { getGlobalCarrier } from './globals';
 import { setLegacyHubOnCarrier } from './hub';
 import { initOtel } from './initOtel';
 
-const NODE_VERSION: ReturnType<typeof parseSemver> = parseSemver(process.versions.node);
 const ignoredDefaultIntegrations = ['Http', 'Undici'];
 
+/** @deprecated Use `getDefaultIntegrations(options)` instead. */
 export const defaultIntegrations: Integration[] = [
+  // eslint-disable-next-line deprecation/deprecation
   ...defaultNodeIntegrations.filter(i => !ignoredDefaultIntegrations.includes(i.name)),
   new Http(),
+  new NodeFetch(),
 ];
 
-// Only add NodeFetch if Node >= 16, as previous versions do not support it
-if (NODE_VERSION.major && NODE_VERSION.major >= 16) {
-  defaultIntegrations.push(new NodeFetch());
+/** Get the default integrations for the Node Experimental SDK. */
+export function getDefaultIntegrations(options: Options): Integration[] {
+  return [
+    ...getDefaultNodeIntegrations(options).filter(i => !ignoredDefaultIntegrations.includes(i.name)),
+    new Http(),
+    new NodeFetch(),
+    ...(hasTracingEnabled(options) ? getAutoPerformanceIntegrations() : []),
+  ];
 }
 
 /**
@@ -103,18 +110,9 @@ function getClientOptions(options: NodeExperimentalOptions): NodeExperimentalCli
   const carrier = getGlobalCarrier();
   setLegacyHubOnCarrier(carrier);
 
-  const isTracingEnabled = hasTracingEnabled(options);
-
-  const autoloadedIntegrations = carrier.integrations || [];
-
-  const fullDefaultIntegrations =
-    options.defaultIntegrations === false
-      ? []
-      : [
-          ...(Array.isArray(options.defaultIntegrations) ? options.defaultIntegrations : defaultIntegrations),
-          ...(isTracingEnabled ? getAutoPerformanceIntegrations() : []),
-          ...autoloadedIntegrations,
-        ];
+  if (options.defaultIntegrations === undefined) {
+    options.defaultIntegrations = getDefaultIntegrations(options);
+  }
 
   const release = getRelease(options.release);
 
@@ -146,7 +144,7 @@ function getClientOptions(options: NodeExperimentalOptions): NodeExperimentalCli
     instrumenter: 'otel',
     stackParser: stackParserFromStackParserOptions(options.stackParser || defaultStackParser),
     integrations: getIntegrationsToSetup({
-      defaultIntegrations: fullDefaultIntegrations,
+      defaultIntegrations: options.defaultIntegrations,
       integrations: options.integrations,
     }),
   };

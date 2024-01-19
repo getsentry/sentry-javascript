@@ -1,27 +1,27 @@
-import { hasTracingEnabled } from '@sentry/core';
-import { RewriteFrames } from '@sentry/integrations';
+import { applySdkMetadata, hasTracingEnabled } from '@sentry/core';
 import type { BrowserOptions } from '@sentry/react';
 import {
-  BrowserTracing,
-  Integrations,
-  defaultRequestInstrumentationOptions,
+  Integrations as OriginalIntegrations,
   getCurrentScope,
+  getDefaultIntegrations as getReactDefaultIntegrations,
   init as reactInit,
 } from '@sentry/react';
-import type { EventProcessor } from '@sentry/types';
-import { addOrUpdateIntegration } from '@sentry/utils';
+import type { EventProcessor, Integration } from '@sentry/types';
 
 import { devErrorSymbolicationEventProcessor } from '../common/devErrorSymbolicationEventProcessor';
 import { getVercelEnv } from '../common/getVercelEnv';
-import { buildMetadata } from '../common/metadata';
-import { nextRouterInstrumentation } from './routing/nextRoutingInstrumentation';
+import { BrowserTracing } from './browserTracingIntegration';
+import { rewriteFramesIntegration } from './rewriteFramesIntegration';
 import { applyTunnelRouteOption } from './tunnelRoute';
 
 export * from '@sentry/react';
 export { nextRouterInstrumentation } from './routing/nextRoutingInstrumentation';
 export { captureUnderscoreErrorException } from '../common/_error';
 
-export { Integrations };
+export const Integrations = {
+  ...OriginalIntegrations,
+  BrowserTracing,
+};
 
 // Previously we expected users to import `BrowserTracing` like this:
 //
@@ -33,26 +33,23 @@ export { Integrations };
 //
 // import { BrowserTracing } from '@sentry/nextjs';
 // const instance = new BrowserTracing();
-export { BrowserTracing };
+export { BrowserTracing, rewriteFramesIntegration };
 
 // Treeshakable guard to remove all code related to tracing
 declare const __SENTRY_TRACING__: boolean;
-
-const globalWithInjectedValues = global as typeof global & {
-  __rewriteFramesAssetPrefixPath__: string;
-};
 
 /** Inits the Sentry NextJS SDK on the browser with the React SDK. */
 export function init(options: BrowserOptions): void {
   const opts = {
     environment: getVercelEnv(true) || process.env.NODE_ENV,
+    defaultIntegrations: getDefaultIntegrations(options),
     ...options,
   };
 
-  applyTunnelRouteOption(opts);
-  buildMetadata(opts, ['nextjs', 'react']);
+  fixBrowserTracingIntegration(opts);
 
-  addClientIntegrations(opts);
+  applyTunnelRouteOption(opts);
+  applySdkMetadata(opts, 'nextjs', ['nextjs', 'react']);
 
   reactInit(opts);
 
@@ -68,71 +65,53 @@ export function init(options: BrowserOptions): void {
   }
 }
 
-function addClientIntegrations(options: BrowserOptions): void {
-  let integrations = options.integrations || [];
+// TODO v8: Remove this again
+// We need to handle BrowserTracing passed to `integrations` that comes from `@sentry/tracing`, not `@sentry/sveltekit` :(
+function fixBrowserTracingIntegration(options: BrowserOptions): void {
+  const { integrations } = options;
+  if (!integrations) {
+    return;
+  }
 
-  // This value is injected at build time, based on the output directory specified in the build config. Though a default
-  // is set there, we set it here as well, just in case something has gone wrong with the injection.
-  const assetPrefixPath = globalWithInjectedValues.__rewriteFramesAssetPrefixPath__ || '';
+  if (Array.isArray(integrations)) {
+    options.integrations = maybeUpdateBrowserTracingIntegration(integrations);
+  } else {
+    options.integrations = defaultIntegrations => {
+      const userFinalIntegrations = integrations(defaultIntegrations);
 
-  const defaultRewriteFramesIntegration = new RewriteFrames({
-    // Turn `<origin>/<path>/_next/static/...` into `app:///_next/static/...`
-    iteratee: frame => {
-      try {
-        const { origin } = new URL(frame.filename as string);
-        frame.filename = frame.filename?.replace(origin, 'app://').replace(assetPrefixPath, '');
-      } catch (err) {
-        // Filename wasn't a properly formed URL, so there's nothing we can do
-      }
+      return maybeUpdateBrowserTracingIntegration(userFinalIntegrations);
+    };
+  }
+}
 
-      // We need to URI-decode the filename because Next.js has wildcard routes like "/users/[id].js" which show up as "/users/%5id%5.js" in Error stacktraces.
-      // The corresponding sources that Next.js generates have proper brackets so we also need proper brackets in the frame so that source map resolving works.
-      if (frame.filename && frame.filename.startsWith('app:///_next')) {
-        frame.filename = decodeURI(frame.filename);
-      }
+function maybeUpdateBrowserTracingIntegration(integrations: Integration[]): Integration[] {
+  const browserTracing = integrations.find(integration => integration.name === 'BrowserTracing');
+  // If BrowserTracing was added, but it is not our forked version,
+  // replace it with our forked version with the same options
+  if (browserTracing && !(browserTracing instanceof BrowserTracing)) {
+    const options: ConstructorParameters<typeof BrowserTracing>[0] = (browserTracing as BrowserTracing).options;
+    // These two options are overwritten by the custom integration
+    delete options.routingInstrumentation;
+    // eslint-disable-next-line deprecation/deprecation
+    delete options.tracingOrigins;
+    integrations[integrations.indexOf(browserTracing)] = new BrowserTracing(options);
+  }
 
-      if (
-        frame.filename &&
-        frame.filename.match(
-          /^app:\/\/\/_next\/static\/chunks\/(main-|main-app-|polyfills-|webpack-|framework-|framework\.)[0-9a-f]+\.js$/,
-        )
-      ) {
-        // We don't care about these frames. It's Next.js internal code.
-        frame.in_app = false;
-      }
+  return integrations;
+}
 
-      return frame;
-    },
-  });
-  integrations = addOrUpdateIntegration(defaultRewriteFramesIntegration, integrations);
+function getDefaultIntegrations(options: BrowserOptions): Integration[] {
+  const customDefaultIntegrations = [...getReactDefaultIntegrations(options), rewriteFramesIntegration()];
 
   // This evaluates to true unless __SENTRY_TRACING__ is text-replaced with "false", in which case everything inside
   // will get treeshaken away
   if (typeof __SENTRY_TRACING__ === 'undefined' || __SENTRY_TRACING__) {
     if (hasTracingEnabled(options)) {
-      const defaultBrowserTracingIntegration = new BrowserTracing({
-        // eslint-disable-next-line deprecation/deprecation
-        tracingOrigins:
-          process.env.NODE_ENV === 'development'
-            ? [
-                // Will match any URL that contains "localhost" but not "webpack.hot-update.json" - The webpack dev-server
-                // has cors and it doesn't like extra headers when it's accessed from a different URL.
-                // TODO(v8): Ideally we rework our tracePropagationTargets logic so this hack won't be necessary anymore (see issue #9764)
-                /^(?=.*localhost)(?!.*webpack\.hot-update\.json).*/,
-                /^\/(?!\/)/,
-              ]
-            : // eslint-disable-next-line deprecation/deprecation
-              [...defaultRequestInstrumentationOptions.tracingOrigins, /^(api\/)/],
-        routingInstrumentation: nextRouterInstrumentation,
-      });
-
-      integrations = addOrUpdateIntegration(defaultBrowserTracingIntegration, integrations, {
-        'options.routingInstrumentation': nextRouterInstrumentation,
-      });
+      customDefaultIntegrations.push(new BrowserTracing());
     }
   }
 
-  options.integrations = integrations;
+  return customDefaultIntegrations;
 }
 
 /**

@@ -40,6 +40,7 @@ export declare function wrapLoadWithSentry<T extends (...args: any) => any>(orig
 export declare const Integrations: typeof clientSdk.Integrations & typeof serverSdk.Integrations;
 
 export declare const defaultIntegrations: Integration[];
+export declare const getDefaultIntegrations: (options: Options) => Integration[];
 export declare const defaultStackParser: StackParser;
 
 export declare function close(timeout?: number | undefined): PromiseLike<boolean>;

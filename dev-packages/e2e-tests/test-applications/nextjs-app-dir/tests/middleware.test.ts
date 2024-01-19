@@ -63,7 +63,14 @@ test('Should trace outgoing fetch requests inside middleware and create breadcru
   expect(middlewareTransaction.spans).toEqual(
     expect.arrayContaining([
       {
-        data: { 'http.method': 'GET', 'http.response.status_code': 200, type: 'fetch', url: 'http://localhost:3030/' },
+        data: {
+          'http.method': 'GET',
+          'http.response.status_code': 200,
+          type: 'fetch',
+          url: 'http://localhost:3030/',
+          'sentry.op': 'http.client',
+          'sentry.origin': 'auto.http.wintercg_fetch',
+        },
         description: 'GET http://localhost:3030/',
         op: 'http.client',
         origin: 'auto.http.wintercg_fetch',

@@ -106,21 +106,29 @@ describe('Span', () => {
       expect(span.data['http.response.status_code']).toBe(404);
     });
 
+    // TODO (v8): Remove
     test('isSuccess', () => {
       const span = new Span({});
       expect(span.isSuccess()).toBe(false);
+      expect(spanToJSON(span).status).not.toBe('ok');
       span.setHttpStatus(200);
       expect(span.isSuccess()).toBe(true);
+      expect(spanToJSON(span).status).toBe('ok');
       span.setStatus('permission_denied');
       expect(span.isSuccess()).toBe(false);
+      expect(spanToJSON(span).status).not.toBe('ok');
       span.setHttpStatus(0);
       expect(span.isSuccess()).toBe(false);
+      expect(spanToJSON(span).status).not.toBe('ok');
       span.setHttpStatus(-1);
       expect(span.isSuccess()).toBe(false);
+      expect(spanToJSON(span).status).not.toBe('ok');
       span.setHttpStatus(99);
       expect(span.isSuccess()).toBe(false);
+      expect(spanToJSON(span).status).not.toBe('ok');
       span.setHttpStatus(100);
       expect(span.isSuccess()).toBe(true);
+      expect(spanToJSON(span).status).toBe('ok');
     });
   });
 
@@ -165,6 +173,9 @@ describe('Span', () => {
         span_id: 'd',
         trace_id: 'c',
         origin: 'manual',
+        data: {
+          'sentry.origin': 'manual',
+        },
       });
     });
   });
@@ -466,6 +477,9 @@ describe('Span', () => {
       expect(context).toStrictEqual({
         span_id: 'd',
         trace_id: 'c',
+        data: {
+          'sentry.origin': 'manual',
+        },
         origin: 'manual',
       });
     });
@@ -473,7 +487,13 @@ describe('Span', () => {
 
   describe('toContext and updateWithContext', () => {
     test('toContext should return correct context', () => {
-      const originalContext = { traceId: 'a', spanId: 'b', sampled: false, description: 'test', op: 'op' };
+      const originalContext = {
+        traceId: 'a',
+        spanId: 'b',
+        sampled: false,
+        description: 'test',
+        op: 'op',
+      };
       const span = new Span(originalContext);
 
       const newContext = span.toContext();
@@ -484,6 +504,10 @@ describe('Span', () => {
         startTimestamp: expect.any(Number),
         tags: {},
         traceId: expect.any(String),
+        data: {
+          'sentry.op': 'op',
+          'sentry.origin': 'manual',
+        },
       });
     });
 
@@ -535,6 +559,9 @@ describe('Span', () => {
         tags: {
           tag1: 'bye',
         },
+        data: {
+          ...span.toContext().data,
+        },
       };
 
       if (newContext.data) newContext.data.data1 = 'bar';
@@ -548,7 +575,12 @@ describe('Span', () => {
       expect(span.op).toBe('new-op');
       expect(span.sampled).toBe(true);
       expect(span.tags).toStrictEqual({ tag1: 'bye' });
-      expect(span.data).toStrictEqual({ data0: 'foo', data1: 'bar' });
+      expect(span.data).toStrictEqual({
+        data0: 'foo',
+        data1: 'bar',
+        'sentry.op': 'op',
+        'sentry.origin': 'manual',
+      });
     });
   });
 

@@ -28,6 +28,8 @@ test('Sends an API route transaction', async ({ baseURL }) => {
             url: 'http://localhost:3030/test-transaction',
             'otel.kind': 'SERVER',
             'http.response.status_code': 200,
+            'sentry.op': 'http.server',
+            'sentry.origin': 'auto.http.otel.http',
           },
           op: 'http.server',
           span_id: expect.any(String),
@@ -47,6 +49,7 @@ test('Sends an API route transaction', async ({ baseURL }) => {
             'fastify.type': 'request_handler',
             'http.route': '/test-transaction',
             'otel.kind': 'INTERNAL',
+            'sentry.origin': 'auto.http.otel.fastify',
           },
           description: 'request handler - fastify -> app-auto-0',
           parent_span_id: expect.any(String),
@@ -60,6 +63,7 @@ test('Sends an API route transaction', async ({ baseURL }) => {
         {
           data: {
             'otel.kind': 'INTERNAL',
+            'sentry.origin': 'manual',
           },
           description: 'test-span',
           parent_span_id: expect.any(String),
@@ -73,6 +77,7 @@ test('Sends an API route transaction', async ({ baseURL }) => {
         {
           data: {
             'otel.kind': 'INTERNAL',
+            'sentry.origin': 'manual',
           },
           description: 'child-span',
           parent_span_id: expect.any(String),

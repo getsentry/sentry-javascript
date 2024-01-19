@@ -27,6 +27,7 @@ describe('ModuleMetadata integration', () => {
       dsn: 'https://username@domain/123',
       enableSend: true,
       stackParser,
+      // eslint-disable-next-line deprecation/deprecation
       integrations: [new ModuleMetadata()],
       beforeSend: (event, _hint) => {
         // copy the frames since reverse in in-place

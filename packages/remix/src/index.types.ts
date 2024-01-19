@@ -3,7 +3,7 @@
 export * from './index.client';
 export * from './index.server';
 
-import type { Integration, StackParser } from '@sentry/types';
+import type { Integration, Options, StackParser } from '@sentry/types';
 
 import * as clientSdk from './index.client';
 import * as serverSdk from './index.server';
@@ -16,6 +16,7 @@ export declare function init(options: RemixOptions): void;
 export declare const Integrations: typeof clientSdk.Integrations & typeof serverSdk.Integrations;
 
 export declare const defaultIntegrations: Integration[];
+export declare const getDefaultIntegrations: (options: Options) => Integration[];
 export declare const defaultStackParser: StackParser;
 
 // This variable is not a runtime variable but just a type to tell typescript that the methods below can either come

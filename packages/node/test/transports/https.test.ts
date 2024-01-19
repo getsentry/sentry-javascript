@@ -19,7 +19,7 @@ jest.mock('@sentry/core', () => {
   };
 });
 
-import * as httpProxyAgent from 'https-proxy-agent';
+import * as httpProxyAgent from '../../src/proxy';
 
 const SUCCESS = 200;
 const RATE_LIMIT = 429;
