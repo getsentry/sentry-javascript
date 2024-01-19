@@ -1,5 +1,6 @@
 import type { Scope } from '@sentry/core';
-import { BaseClient, SDK_VERSION } from '@sentry/core';
+import { applySdkMetadata } from '@sentry/core';
+import { BaseClient } from '@sentry/core';
 import type {
   BrowserClientProfilingOptions,
   BrowserClientReplayOptions,
@@ -50,18 +51,7 @@ export class BrowserClient extends BaseClient<BrowserClientOptions> {
    */
   public constructor(options: BrowserClientOptions) {
     const sdkSource = WINDOW.SENTRY_SDK_SOURCE || getSDKSource();
-
-    options._metadata = options._metadata || {};
-    options._metadata.sdk = options._metadata.sdk || {
-      name: 'sentry.javascript.browser',
-      packages: [
-        {
-          name: `${sdkSource}:@sentry/browser`,
-          version: SDK_VERSION,
-        },
-      ],
-      version: SDK_VERSION,
-    };
+    applySdkMetadata(options, 'browser', ['browser'], sdkSource);
 
     super(options);
 

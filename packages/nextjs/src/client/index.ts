@@ -1,4 +1,4 @@
-import { hasTracingEnabled } from '@sentry/core';
+import { applySdkMetadata, hasTracingEnabled } from '@sentry/core';
 import type { BrowserOptions } from '@sentry/react';
 import {
   Integrations as OriginalIntegrations,
@@ -10,7 +10,6 @@ import type { EventProcessor, Integration } from '@sentry/types';
 
 import { devErrorSymbolicationEventProcessor } from '../common/devErrorSymbolicationEventProcessor';
 import { getVercelEnv } from '../common/getVercelEnv';
-import { buildMetadata } from '../common/metadata';
 import { BrowserTracing } from './browserTracingIntegration';
 import { rewriteFramesIntegration } from './rewriteFramesIntegration';
 import { applyTunnelRouteOption } from './tunnelRoute';
@@ -50,7 +49,7 @@ export function init(options: BrowserOptions): void {
   fixBrowserTracingIntegration(opts);
 
   applyTunnelRouteOption(opts);
-  buildMetadata(opts, ['nextjs', 'react']);
+  applySdkMetadata(opts, 'nextjs', ['nextjs', 'react']);
 
   reactInit(opts);
 

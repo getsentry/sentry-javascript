@@ -5,10 +5,8 @@ import {
   init as initBrowserSdk,
   setTag,
 } from '@sentry/browser';
-import { hasTracingEnabled } from '@sentry/core';
+import { applySdkMetadata, hasTracingEnabled } from '@sentry/core';
 import type { Integration } from '@sentry/types';
-
-import { applySdkMetadata } from '../common/metadata';
 
 // Treeshakable guard to remove all code related to tracing
 declare const __SENTRY_TRACING__: boolean;
@@ -24,7 +22,7 @@ export function init(options: BrowserOptions): void {
     ...options,
   };
 
-  applySdkMetadata(opts, ['astro', 'browser']);
+  applySdkMetadata(opts, 'astro', ['astro', 'browser']);
 
   initBrowserSdk(opts);
 

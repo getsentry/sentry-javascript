@@ -1,6 +1,7 @@
 import * as os from 'os';
 import type { ServerRuntimeClientOptions } from '@sentry/core';
-import { SDK_VERSION, ServerRuntimeClient } from '@sentry/core';
+import { applySdkMetadata } from '@sentry/core';
+import { ServerRuntimeClient } from '@sentry/core';
 
 import type { BunClientOptions } from './types';
 
@@ -16,17 +17,7 @@ export class BunClient extends ServerRuntimeClient<BunClientOptions> {
    * @param options Configuration options for this SDK.
    */
   public constructor(options: BunClientOptions) {
-    options._metadata = options._metadata || {};
-    options._metadata.sdk = options._metadata.sdk || {
-      name: 'sentry.javascript.bun',
-      packages: [
-        {
-          name: 'npm:@sentry/bun',
-          version: SDK_VERSION,
-        },
-      ],
-      version: SDK_VERSION,
-    };
+    applySdkMetadata(options, 'bun');
 
     const clientOptions: ServerRuntimeClientOptions = {
       ...options,
