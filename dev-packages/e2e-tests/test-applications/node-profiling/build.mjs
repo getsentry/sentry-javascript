@@ -6,12 +6,12 @@
 // which will copy all binaries to the outfile folder and throw if any of them are missing.
 import esbuild from 'esbuild';
 
-esbuild.build({
+esbuild.buildSync({
   platform: 'node',
   entryPoints: ['./index.js'],
   outdir: './dist',
   target: 'esnext',
-  format: 'esm',
+  format: 'cjs',
   bundle: true,
   loader: { '.node': 'copy' },
 });
