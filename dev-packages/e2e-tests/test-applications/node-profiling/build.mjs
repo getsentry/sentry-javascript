@@ -11,7 +11,7 @@ esbuild.build({
   entryPoints: ['./index.js'],
   outdir: './dist',
   target: 'esnext',
-  format: 'cjs',
+  format: 'esm',
   bundle: true,
   loader: { '.node': 'copy' },
 });
