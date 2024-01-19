@@ -4,6 +4,8 @@ import type { SdkMetadata } from '@sentry/types';
 import { GLOBAL_OBJ, addOrUpdateIntegration, escapeStringForRegex } from '@sentry/utils';
 import type { VercelEdgeOptions } from '@sentry/vercel-edge';
 import { init as vercelEdgeInit } from '@sentry/vercel-edge';
+// This is exported to warn when server/edge SDK inits invoke client only modules and to avoid compilation warnings for uninvoked client only configuration
+export { BrowserTracing, Feedback, Replay } from '@sentry-internal/integration-shims';
 
 import { isBuild } from '../common/utils/isBuild';
 
