@@ -3,7 +3,7 @@ import type { Event, EventProcessor, Hub, Integration, Transaction } from '@sent
 
 import { logger } from '@sentry/utils';
 
-import { isDebugBuild } from './env';
+import { DEBUG_BUILD } from './debug-build';
 import {
   MAX_PROFILE_DURATION_MS,
   addProfilingExtensionMethods,
@@ -78,10 +78,9 @@ export class ProfilingIntegration implements Integration {
 
           // Enqueue a timeout to prevent profiles from running over max duration.
           PROFILE_TIMEOUTS[profile_id] = global.setTimeout(() => {
-            if (isDebugBuild()) {
+            DEBUG_BUILD &&
               // eslint-disable-next-line deprecation/deprecation
               logger.log('[Profiling] max profile duration elapsed, stopping profiling for:', transaction.name);
-            }
 
             const profile = stopTransactionProfile(transaction, profile_id);
             if (profile) {
@@ -145,17 +144,13 @@ export class ProfilingIntegration implements Integration {
           // We need to find both a profile and a transaction event for the same profile_id.
           const profileIndex = PROFILE_QUEUE.findIndex(p => p.profile_id === profile_id);
           if (profileIndex === -1) {
-            if (isDebugBuild()) {
-              logger.log(`[Profiling] Could not retrieve profile for transaction: ${profile_id}`);
-            }
+            DEBUG_BUILD && logger.log(`[Profiling] Could not retrieve profile for transaction: ${profile_id}`);
             continue;
           }
 
           const cpuProfile = PROFILE_QUEUE[profileIndex];
           if (!cpuProfile) {
-            if (isDebugBuild()) {
-              logger.log(`[Profiling] Could not retrieve profile for transaction: ${profile_id}`);
-            }
+            DEBUG_BUILD && logger.log(`[Profiling] Could not retrieve profile for transaction: ${profile_id}`);
             continue;
           }
 
@@ -208,38 +203,33 @@ export class ProfilingIntegration implements Integration {
       const client = hub.getClient();
 
       if (!client) {
-        if (isDebugBuild()) {
+        DEBUG_BUILD &&
           logger.log(
             '[Profiling] getClient did not return a Client, removing profile from event and forwarding to next event processors.',
           );
-        }
         return maybeRemoveProfileFromSdkMetadata(event);
       }
 
       const dsn = client.getDsn();
       if (!dsn) {
-        if (isDebugBuild()) {
+        DEBUG_BUILD &&
           logger.log(
             '[Profiling] getDsn did not return a Dsn, removing profile from event and forwarding to next event processors.',
           );
-        }
         return maybeRemoveProfileFromSdkMetadata(event);
       }
 
       const transport = client.getTransport();
       if (!transport) {
-        if (isDebugBuild()) {
+        DEBUG_BUILD &&
           logger.log(
             '[Profiling] getTransport did not return a Transport, removing profile from event and forwarding to next event processors.',
           );
-        }
         return maybeRemoveProfileFromSdkMetadata(event);
       }
 
       // If all required components are available, we construct a profiling event envelope and send it to Sentry.
-      if (isDebugBuild()) {
-        logger.log('[Profiling] Preparing envelope and sending a profiling event');
-      }
+      DEBUG_BUILD && logger.log('[Profiling] Preparing envelope and sending a profiling event');
       const envelope = createProfilingEventEnvelope(event, dsn);
 
       if (envelope) {

@@ -6,7 +6,7 @@ import { env, versions } from 'process';
 import { threadId } from 'worker_threads';
 
 import { GLOBAL_OBJ, logger } from '@sentry/utils';
-import { isDebugBuild } from './env';
+import { DEBUG_BUILD } from './debug-build';
 import type { PrivateV8CpuProfilerBindings, V8CpuProfilerBindings } from './types';
 
 const stdlib = familySync();
@@ -134,9 +134,7 @@ const PrivateCpuProfilerBindings: PrivateV8CpuProfilerBindings = importCppBindin
 const CpuProfilerBindings: V8CpuProfilerBindings = {
   startProfiling(name: string) {
     if (!PrivateCpuProfilerBindings) {
-      if (isDebugBuild()) {
-        logger.log('[Profiling] Bindings not loaded, ignoring call to startProfiling.');
-      }
+      DEBUG_BUILD && logger.log('[Profiling] Bindings not loaded, ignoring call to startProfiling.');
       return;
     }
 
@@ -144,9 +142,8 @@ const CpuProfilerBindings: V8CpuProfilerBindings = {
   },
   stopProfiling(name: string) {
     if (!PrivateCpuProfilerBindings) {
-      if (isDebugBuild()) {
+      DEBUG_BUILD &&
         logger.log('[Profiling] Bindings not loaded or profile was never started, ignoring call to stopProfiling.');
-      }
       return null;
     }
     return PrivateCpuProfilerBindings.stopProfiling(name, threadId, !!GLOBAL_OBJ._sentryDebugIds);

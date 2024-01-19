@@ -4,7 +4,7 @@ import type { CustomSamplingContext, Hub, Transaction, TransactionContext } from
 import { logger, uuid4 } from '@sentry/utils';
 
 import { CpuProfilerBindings } from './cpu_profiler';
-import { isDebugBuild } from './env';
+import { DEBUG_BUILD } from './debug-build';
 import { isValidSampleRate } from './utils';
 
 export const MAX_PROFILE_DURATION_MS = 30 * 1000;
@@ -34,17 +34,13 @@ export function maybeProfileTransaction(
 
   // Client and options are required for profiling
   if (!client) {
-    if (isDebugBuild()) {
-      logger.log('[Profiling] Profiling disabled, no client found.');
-    }
+    DEBUG_BUILD && logger.log('[Profiling] Profiling disabled, no client found.');
     return;
   }
 
   const options = client.getOptions();
   if (!options) {
-    if (isDebugBuild()) {
-      logger.log('[Profiling] Profiling disabled, no options found.');
-    }
+    DEBUG_BUILD && logger.log('[Profiling] Profiling disabled, no options found.');
     return;
   }
 
@@ -60,15 +56,13 @@ export function maybeProfileTransaction(
   // Since this is coming from the user (or from a function provided by the user), who knows what we might get. (The
   // only valid values are booleans or numbers between 0 and 1.)
   if (!isValidSampleRate(profilesSampleRate)) {
-    if (isDebugBuild()) {
-      logger.warn('[Profiling] Discarding profile because of invalid sample rate.');
-    }
+    DEBUG_BUILD && logger.warn('[Profiling] Discarding profile because of invalid sample rate.');
     return;
   }
 
   // if the function returned 0 (or false), or if `profileSampleRate` is 0, it's a sign the profile should be dropped
   if (!profilesSampleRate) {
-    if (isDebugBuild()) {
+    DEBUG_BUILD &&
       logger.log(
         `[Profiling] Discarding profile because ${
           typeof profilesSampler === 'function'
@@ -76,7 +70,6 @@ export function maybeProfileTransaction(
             : 'a negative sampling decision was inherited or profileSampleRate is set to 0'
         }`,
       );
-    }
     return;
   }
 
@@ -85,22 +78,20 @@ export function maybeProfileTransaction(
   const sampled = profilesSampleRate === true ? true : Math.random() < profilesSampleRate;
   // Check if we should sample this profile
   if (!sampled) {
-    if (isDebugBuild()) {
+    DEBUG_BUILD &&
       logger.log(
         `[Profiling] Discarding profile because it's not included in the random sample (sampling rate = ${Number(
           profilesSampleRate,
         )})`,
       );
-    }
     return;
   }
 
   const profile_id = uuid4();
   CpuProfilerBindings.startProfiling(profile_id);
-  if (isDebugBuild()) {
+  DEBUG_BUILD &&
     // eslint-disable-next-line deprecation/deprecation
     logger.log(`[Profiling] started profiling transaction: ${transaction.name}`);
-  }
 
   // set transaction context - do this regardless if profiling fails down the line
   // so that we can still see the profile_id in the transaction context
@@ -124,20 +115,18 @@ export function stopTransactionProfile(
 
   const profile = CpuProfilerBindings.stopProfiling(profile_id);
 
-  if (isDebugBuild()) {
+  DEBUG_BUILD &&
     // eslint-disable-next-line deprecation/deprecation
     logger.log(`[Profiling] stopped profiling of transaction: ${transaction.name}`);
-  }
 
   // In case of an overlapping transaction, stopProfiling may return null and silently ignore the overlapping profile.
   if (!profile) {
-    if (isDebugBuild()) {
+    DEBUG_BUILD &&
       logger.log(
         // eslint-disable-next-line deprecation/deprecation
         `[Profiling] profiler returned null profile for: ${transaction.name}`,
         'this may indicate an overlapping transaction or a call to stopProfiling with a profile title that was never started',
       );
-    }
     return null;
   }
 
@@ -189,10 +178,10 @@ export function __PRIVATE__wrapStartTransactionWithProfiling(startTransaction: S
 
     // Enqueue a timeout to prevent profiles from running over max duration.
     let maxDurationTimeoutID: NodeJS.Timeout | void = global.setTimeout(() => {
-      if (isDebugBuild()) {
+      DEBUG_BUILD &&
         // eslint-disable-next-line deprecation/deprecation
         logger.log('[Profiling] max profile duration elapsed, stopping profiling for:', transaction.name);
-      }
+
       profile = stopTransactionProfile(transaction, profile_id);
     }, maxProfileDurationMs);
 
@@ -238,23 +227,17 @@ export function __PRIVATE__wrapStartTransactionWithProfiling(startTransaction: S
 function _addProfilingExtensionMethods(): void {
   const carrier = getMainCarrier();
   if (!carrier.__SENTRY__) {
-    if (isDebugBuild()) {
-      logger.log("[Profiling] Can't find main carrier, profiling won't work.");
-    }
+    DEBUG_BUILD && logger.log("[Profiling] Can't find main carrier, profiling won't work.");
     return;
   }
 
   carrier.__SENTRY__.extensions = carrier.__SENTRY__.extensions || {};
   if (!carrier.__SENTRY__.extensions['startTransaction']) {
-    if (isDebugBuild()) {
-      logger.log('[Profiling] startTransaction does not exists, profiling will not work.');
-    }
+    DEBUG_BUILD && logger.log('[Profiling] startTransaction does not exists, profiling will not work.');
     return;
   }
 
-  if (isDebugBuild()) {
-    logger.log('[Profiling] startTransaction exists, patching it with profiling functionality...');
-  }
+  DEBUG_BUILD && logger.log('[Profiling] startTransaction exists, patching it with profiling functionality...');
 
   carrier.__SENTRY__.extensions['startTransaction'] = __PRIVATE__wrapStartTransactionWithProfiling(
     // This is patched by sentry/tracing, we are going to re-patch it...
