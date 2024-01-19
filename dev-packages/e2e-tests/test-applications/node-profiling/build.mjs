@@ -13,5 +13,5 @@ esbuild.build({
   target: 'esnext',
   format: 'cjs',
   bundle: true,
-  // loader: { '.node': 'copy' },
+  loader: { '.node': 'copy' },
 });
