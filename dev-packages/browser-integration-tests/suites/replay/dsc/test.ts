@@ -6,7 +6,11 @@ import { sentryTest } from '../../../utils/fixtures';
 import { envelopeRequestParser, shouldSkipTracingTest, waitForTransactionRequest } from '../../../utils/helpers';
 import { getReplaySnapshot, shouldSkipReplayTest, waitForReplayRunning } from '../../../utils/replayHelpers';
 
-type TestWindow = Window & { Sentry: typeof Sentry; Replay: Sentry.Replay };
+type TestWindow = Window & {
+  Sentry: typeof Sentry;
+  // eslint-disable-next-line deprecation/deprecation
+  Replay: Sentry.Replay;
+};
 
 sentryTest(
   'should add replay_id to dsc of transactions when in session mode',

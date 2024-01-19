@@ -1,2 +1,6 @@
 export { sendFeedback } from './sendFeedback';
-export { Feedback } from './integration';
+export {
+  // eslint-disable-next-line deprecation/deprecation
+  Feedback,
+  feedbackIntegration,
+} from './integration';

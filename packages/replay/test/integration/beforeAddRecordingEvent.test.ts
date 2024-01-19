@@ -23,6 +23,7 @@ type MockTransportSend = jest.MockedFunction<Transport['send']>;
 
 describe('Integration | beforeAddRecordingEvent', () => {
   let replay: ReplayContainer;
+  // eslint-disable-next-line deprecation/deprecation
   let integration: Replay;
   let mockTransportSend: MockTransportSend;
   let mockSendReplayRequest: jest.SpyInstance<any>;

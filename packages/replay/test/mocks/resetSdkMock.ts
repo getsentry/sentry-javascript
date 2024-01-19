@@ -13,6 +13,7 @@ export async function resetSdkMock({ replayOptions, sentryOptions, autoStart }: 
   domHandler: DomHandler;
   mockRecord: RecordMock;
   replay: ReplayContainer;
+  // eslint-disable-next-line deprecation/deprecation
   integration: ReplayIntegration;
 }> {
   let domHandler: DomHandler;

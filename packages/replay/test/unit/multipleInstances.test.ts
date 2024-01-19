@@ -1,10 +1,10 @@
-import { Replay } from '../../src';
+import { replayIntegration } from '../../src/integration';
 
 describe('Unit | multipleInstances', () => {
   it('throws on creating multiple instances', function () {
     expect(() => {
-      new Replay();
-      new Replay();
+      replayIntegration();
+      replayIntegration();
     }).toThrow();
   });
 });

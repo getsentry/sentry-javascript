@@ -1,7 +1,7 @@
-import { ReplayCanvas } from '../src/canvas';
+import { _replayCanvasIntegration } from '../src/canvas';
 
 it('initializes with default options', () => {
-  const rc = new ReplayCanvas();
+  const rc = _replayCanvasIntegration();
 
   expect(rc.getOptions()).toEqual({
     recordCanvas: true,
@@ -17,7 +17,7 @@ it('initializes with default options', () => {
 });
 
 it('initializes with quality option and manual snapshot', () => {
-  const rc = new ReplayCanvas({ enableManualSnapshot: true, quality: 'low' });
+  const rc = _replayCanvasIntegration({ enableManualSnapshot: true, quality: 'low' });
 
   expect(rc.getOptions()).toEqual({
     enableManualSnapshot: true,

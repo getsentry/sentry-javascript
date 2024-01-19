@@ -51,8 +51,10 @@ class MockTransport implements Transport {
 
 export async function mockSdk({ replayOptions, sentryOptions, autoStart = true }: MockSdkParams = {}): Promise<{
   replay: ReplayContainer;
+  // eslint-disable-next-line deprecation/deprecation
   integration: ReplayIntegration;
 }> {
+  // eslint-disable-next-line deprecation/deprecation
   const { Replay } = await import('../../src');
 
   // Scope this to the test, instead of the module
