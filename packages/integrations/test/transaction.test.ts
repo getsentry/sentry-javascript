@@ -1,5 +1,6 @@
 import { Transaction } from '../src/transaction';
 
+// eslint-disable-next-line deprecation/deprecation
 const transaction = new Transaction();
 
 describe('Transaction', () => {

@@ -17,6 +17,7 @@ import type {
   SessionContext,
   Severity,
   SeverityLevel,
+  Span,
   TransactionContext,
   User,
 } from '@sentry/types';
@@ -188,15 +189,17 @@ export function withScope<T>(scope: ScopeInterface | undefined, callback: (scope
 export function withScope<T>(
   ...rest: [callback: (scope: Scope) => T] | [scope: ScopeInterface | undefined, callback: (scope: Scope) => T]
 ): T {
+  // eslint-disable-next-line deprecation/deprecation
+  const hub = getCurrentHub();
+
   // If a scope is defined, we want to make this the active scope instead of the default one
   if (rest.length === 2) {
     const [scope, callback] = rest;
     if (!scope) {
       // eslint-disable-next-line deprecation/deprecation
-      return getCurrentHub().withScope(callback);
+      return hub.withScope(callback);
     }
 
-    const hub = getCurrentHub();
     // eslint-disable-next-line deprecation/deprecation
     return hub.withScope(() => {
       // eslint-disable-next-line deprecation/deprecation
@@ -206,7 +209,7 @@ export function withScope<T>(
   }
 
   // eslint-disable-next-line deprecation/deprecation
-  return getCurrentHub().withScope(rest[0]);
+  return hub.withScope(rest[0]);
 }
 
 /**
@@ -226,6 +229,21 @@ export function withScope<T>(
 export function withIsolationScope<T>(callback: (isolationScope: Scope) => T): T {
   return runWithAsyncContext(() => {
     return callback(getIsolationScope());
+  });
+}
+
+/**
+ * Forks the current scope and sets the provided span as active span in the context of the provided callback.
+ *
+ * @param span Spans started in the context of the provided callback will be children of this span.
+ * @param callback Execution context in which the provided span will be active. Is passed the newly forked scope.
+ * @returns the value returned from the provided callback function.
+ */
+export function withActiveSpan<T>(span: Span, callback: (scope: Scope) => T): T {
+  return withScope(scope => {
+    // eslint-disable-next-line deprecation/deprecation
+    scope.setSpan(span);
+    return callback(scope);
   });
 }
 

@@ -1,4 +1,11 @@
-import { Hub, addTracingExtensions, getCurrentScope, makeMain } from '../../../src';
+import {
+  Hub,
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  addTracingExtensions,
+  getCurrentScope,
+  makeMain,
+  spanToJSON,
+} from '../../../src';
 import { Scope } from '../../../src/scope';
 import {
   Span,
@@ -27,6 +34,7 @@ describe('startSpan', () => {
     const options = getDefaultTestClientOptions({ tracesSampleRate: 0.0 });
     client = new TestClient(options);
     hub = new Hub(client);
+    // eslint-disable-next-line deprecation/deprecation
     makeMain(hub);
   });
 
@@ -115,6 +123,27 @@ describe('startSpan', () => {
       expect(ref.parentSpanId).toEqual('1234567890123456');
     });
 
+    // TODO (v8): Remove this test in favour of the one below
+    it('(deprecated op) allows for transaction to be mutated', async () => {
+      let ref: any = undefined;
+      client.on('finishTransaction', transaction => {
+        ref = transaction;
+      });
+      try {
+        await startSpan({ name: 'GET users/[id]' }, span => {
+          if (span) {
+            // eslint-disable-next-line deprecation/deprecation
+            span.op = 'http.server';
+          }
+          return callback();
+        });
+      } catch (e) {
+        //
+      }
+
+      expect(spanToJSON(ref).op).toEqual('http.server');
+    });
+
     it('allows for transaction to be mutated', async () => {
       let ref: any = undefined;
       client.on('finishTransaction', transaction => {
@@ -123,7 +152,7 @@ describe('startSpan', () => {
       try {
         await startSpan({ name: 'GET users/[id]' }, span => {
           if (span) {
-            span.op = 'http.server';
+            span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'http.server');
           }
           return callback();
         });
@@ -155,7 +184,8 @@ describe('startSpan', () => {
       expect(ref.spanRecorder.spans[1].status).toEqual(isError ? 'internal_error' : undefined);
     });
 
-    it('allows for span to be mutated', async () => {
+    // TODO (v8): Remove this test in favour of the one below
+    it('(deprecated op) allows for span to be mutated', async () => {
       let ref: any = undefined;
       client.on('finishTransaction', transaction => {
         ref = transaction;
@@ -164,6 +194,7 @@ describe('startSpan', () => {
         await startSpan({ name: 'GET users/[id]', parentSampled: true }, () => {
           return startSpan({ name: 'SELECT * from users' }, childSpan => {
             if (childSpan) {
+              // eslint-disable-next-line deprecation/deprecation
               childSpan.op = 'db.query';
             }
             return callback();
@@ -176,23 +207,45 @@ describe('startSpan', () => {
       expect(ref.spanRecorder.spans).toHaveLength(2);
       expect(ref.spanRecorder.spans[1].op).toEqual('db.query');
     });
+
+    it('allows for span to be mutated', async () => {
+      let ref: any = undefined;
+      client.on('finishTransaction', transaction => {
+        ref = transaction;
+      });
+      try {
+        await startSpan({ name: 'GET users/[id]', parentSampled: true }, () => {
+          return startSpan({ name: 'SELECT * from users' }, childSpan => {
+            if (childSpan) {
+              childSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'db.query');
+            }
+            return callback();
+          });
+        });
+      } catch (e) {
+        //
+      }
+
+      expect(ref.spanRecorder.spans).toHaveLength(2);
+      expect(spanToJSON(ref.spanRecorder.spans[1]).op).toEqual('db.query');
+    });
   });
 
   it('creates & finishes span', async () => {
     let _span: Span | undefined;
     startSpan({ name: 'GET users/[id]' }, span => {
       expect(span).toBeDefined();
-      expect(span?.endTimestamp).toBeUndefined();
+      expect(spanToJSON(span!).timestamp).toBeUndefined();
       _span = span as Span;
     });
 
     expect(_span).toBeDefined();
-    expect(_span?.endTimestamp).toBeDefined();
+    expect(spanToJSON(_span!).timestamp).toBeDefined();
   });
 
   it('allows to pass a `startTime`', () => {
     const start = startSpan({ name: 'outer', startTime: [1234, 0] }, span => {
-      return span?.startTimestamp;
+      return spanToJSON(span!).start_timestamp;
     });
 
     expect(start).toEqual(1234);
@@ -223,6 +276,8 @@ describe('startSpan', () => {
       expect(getCurrentScope()).toBe(manualScope);
       expect(getActiveSpan()).toBe(span);
 
+      expect(spanToJSON(span!).parent_span_id).toBe('parent-span-id');
+      // eslint-disable-next-line deprecation/deprecation
       expect(span?.parentSpanId).toBe('parent-span-id');
     });
 
@@ -235,9 +290,9 @@ describe('startSpanManual', () => {
   it('creates & finishes span', async () => {
     startSpanManual({ name: 'GET users/[id]' }, (span, finish) => {
       expect(span).toBeDefined();
-      expect(span?.endTimestamp).toBeUndefined();
+      expect(spanToJSON(span!).timestamp).toBeUndefined();
       finish();
-      expect(span?.endTimestamp).toBeDefined();
+      expect(spanToJSON(span!).timestamp).toBeDefined();
     });
   });
 
@@ -270,6 +325,8 @@ describe('startSpanManual', () => {
       expect(getCurrentScope()).not.toBe(initialScope);
       expect(getCurrentScope()).toBe(manualScope);
       expect(getActiveSpan()).toBe(span);
+      expect(spanToJSON(span!).parent_span_id).toBe('parent-span-id');
+      // eslint-disable-next-line deprecation/deprecation
       expect(span?.parentSpanId).toBe('parent-span-id');
 
       finish();
@@ -285,7 +342,7 @@ describe('startSpanManual', () => {
   it('allows to pass a `startTime`', () => {
     const start = startSpanManual({ name: 'outer', startTime: [1234, 0] }, span => {
       span?.end();
-      return span?.startTimestamp;
+      return spanToJSON(span!).start_timestamp;
     });
 
     expect(start).toEqual(1234);
@@ -297,11 +354,11 @@ describe('startInactiveSpan', () => {
     const span = startInactiveSpan({ name: 'GET users/[id]' });
 
     expect(span).toBeDefined();
-    expect(span?.endTimestamp).toBeUndefined();
+    expect(spanToJSON(span!).timestamp).toBeUndefined();
 
     span?.end();
 
-    expect(span?.endTimestamp).toBeDefined();
+    expect(spanToJSON(span!).timestamp).toBeDefined();
   });
 
   it('does not set span on scope', () => {
@@ -324,6 +381,8 @@ describe('startInactiveSpan', () => {
     const span = startInactiveSpan({ name: 'GET users/[id]', scope: manualScope });
 
     expect(span).toBeDefined();
+    expect(spanToJSON(span!).parent_span_id).toBe('parent-span-id');
+    // eslint-disable-next-line deprecation/deprecation
     expect(span?.parentSpanId).toBe('parent-span-id');
     expect(getActiveSpan()).toBeUndefined();
 
@@ -334,7 +393,7 @@ describe('startInactiveSpan', () => {
 
   it('allows to pass a `startTime`', () => {
     const span = startInactiveSpan({ name: 'outer', startTime: [1234, 0] });
-    expect(span?.startTimestamp).toEqual(1234);
+    expect(spanToJSON(span!).start_timestamp).toEqual(1234);
   });
 });
 
@@ -343,6 +402,7 @@ describe('continueTrace', () => {
     const options = getDefaultTestClientOptions({ tracesSampleRate: 0.0 });
     client = new TestClient(options);
     hub = new Hub(client);
+    // eslint-disable-next-line deprecation/deprecation
     makeMain(hub);
   });
 

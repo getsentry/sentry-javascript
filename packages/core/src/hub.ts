@@ -147,6 +147,7 @@ export class Hub implements HubInterface {
     this._stack = [{ scope: assignedScope }];
 
     if (client) {
+      // eslint-disable-next-line deprecation/deprecation
       this.bindClient(client);
     }
 
@@ -166,7 +167,10 @@ export class Hub implements HubInterface {
   }
 
   /**
-   * @inheritDoc
+   * This binds the given client to the current scope.
+   * @param client An SDK client (client) instance.
+   *
+   * @deprecated Use `initAndBind()` directly, or `setCurrentClient()` and/or `client.init()` instead.
    */
   public bindClient(client?: Client): void {
     // eslint-disable-next-line deprecation/deprecation
@@ -488,10 +492,12 @@ export class Hub implements HubInterface {
    * @inheritDoc
    */
   public run(callback: (hub: Hub) => void): void {
+    // eslint-disable-next-line deprecation/deprecation
     const oldHub = makeMain(this);
     try {
       callback(this);
     } finally {
+      // eslint-disable-next-line deprecation/deprecation
       makeMain(oldHub);
     }
   }
@@ -690,6 +696,8 @@ export function getMainCarrier(): Carrier {
  * Replaces the current main hub with the passed one on the global object
  *
  * @returns The old replaced hub
+ *
+ * @deprecated Use `setCurrentClient()` instead.
  */
 export function makeMain(hub: Hub): Hub {
   const registry = getMainCarrier();
@@ -704,6 +712,8 @@ export function makeMain(hub: Hub): Hub {
  * If a hub is already registered in the global carrier but this module
  * contains a more recent version, it replaces the registered version.
  * Otherwise, the currently registered hub will be returned.
+ *
+ * @deprecated Use the respective replacement method directly instead.
  */
 export function getCurrentHub(): Hub {
   // Get main carrier (global for every environment)

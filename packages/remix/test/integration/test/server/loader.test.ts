@@ -50,6 +50,33 @@ describe.each(['builtin', 'express'])('Remix API Loaders with adapter = %s', ada
     });
   });
 
+  it('reports a thrown error response the loader', async () => {
+    const env = await RemixTestEnv.init(adapter);
+    const url = `${env.url}/loader-throw-response/-1`;
+
+    const envelopes = await env.getMultipleEnvelopeRequest({ url, count: 1, envelopeType: ['event'] });
+    const event = envelopes[0][2];
+
+    assertSentryEvent(event, {
+      exception: {
+        values: [
+          {
+            type: 'Error',
+            value: 'Not found',
+            stacktrace: expect.any(Object),
+            mechanism: {
+              data: {
+                function: 'loader',
+              },
+              handled: false,
+              type: 'instrument',
+            },
+          },
+        ],
+      },
+    });
+  });
+
   it('correctly instruments a parameterized Remix API loader', async () => {
     const env = await RemixTestEnv.init(adapter);
     const url = `${env.url}/loader-json-response/123123`;
@@ -250,7 +277,8 @@ describe.each(['builtin', 'express'])('Remix API Loaders with adapter = %s', ada
 
     const envelopesCount = await env.countEnvelopes({
       url,
-      envelopeType: ['event'],
+      envelopeType: 'event',
+      timeout: 3000,
     });
 
     expect(envelopesCount).toBe(0);

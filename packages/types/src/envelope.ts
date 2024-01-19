@@ -20,6 +20,9 @@ export type DynamicSamplingContext = {
   release?: string;
   environment?: string;
   transaction?: string;
+  /**
+   * @deprecated Functonality for segment has been removed.
+   */
   user_segment?: string;
   replay_id?: string;
   sampled?: string;
@@ -80,6 +83,7 @@ type CheckInItemHeaders = { type: 'check_in' };
 type StatsdItemHeaders = { type: 'statsd'; length: number };
 type ProfileItemHeaders = { type: 'profile' };
 
+// TODO (v8): Replace `Event` with `SerializedEvent`
 export type EventItem = BaseEnvelopeItem<EventItemHeaders, Event>;
 export type AttachmentItem = BaseEnvelopeItem<AttachmentItemHeaders, string | Uint8Array>;
 export type UserFeedbackItem = BaseEnvelopeItem<UserFeedbackItemHeaders, UserFeedback>;

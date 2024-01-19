@@ -4,9 +4,7 @@ import { NodeClient, getClient, getCurrentHub, getCurrentScope } from '@sentry/n
 import type { Integration } from '@sentry/types';
 import { GLOBAL_OBJ, logger } from '@sentry/utils';
 
-import { init } from '../src/server';
-
-const { Integrations } = SentryNode;
+import { Integrations, init } from '../src/server';
 
 // normally this is set as part of the build process, so mock it here
 (GLOBAL_OBJ as typeof GLOBAL_OBJ & { __rewriteFramesDistDir__: string }).__rewriteFramesDistDir__ = '.next';
@@ -57,7 +55,7 @@ describe('Server init()', () => {
         // TODO: If we upgrde to Jest 28+, we can follow Jest's example matcher and create an
         // `expect.ArrayContainingInAnyOrder`. See
         // https://github.com/facebook/jest/blob/main/examples/expect-extend/toBeWithinRange.ts.
-        integrations: expect.any(Array),
+        defaultIntegrations: expect.any(Array),
       }),
     );
   });
@@ -116,9 +114,11 @@ describe('Server init()', () => {
   });
 
   it("initializes both global hub and domain hub when there's an active domain", () => {
+    // eslint-disable-next-line deprecation/deprecation
     const globalHub = getCurrentHub();
 
     runWithAsyncContext(() => {
+      // eslint-disable-next-line deprecation/deprecation
       const globalHub2 = getCurrentHub();
       // If we call runWithAsyncContext before init, it executes the callback in the same context as there is no
       // strategy yet
@@ -131,6 +131,7 @@ describe('Server init()', () => {
       init({});
 
       runWithAsyncContext(() => {
+        // eslint-disable-next-line deprecation/deprecation
         const domainHub = getCurrentHub();
         // this tag should end up only in the domain hub
         // eslint-disable-next-line deprecation/deprecation
@@ -152,15 +153,22 @@ describe('Server init()', () => {
 
   describe('integrations', () => {
     // Options passed by `@sentry/nextjs`'s `init` to `@sentry/node`'s `init` after modifying them
-    type ModifiedInitOptions = { integrations: Integration[] };
+    type ModifiedInitOptions = { integrations: Integration[]; defaultIntegrations: Integration[] };
 
     it('adds default integrations', () => {
       init({});
 
       const nodeInitOptions = nodeInit.mock.calls[0][0] as ModifiedInitOptions;
-      const rewriteFramesIntegration = findIntegrationByName(nodeInitOptions.integrations, 'RewriteFrames');
+      const rewriteFramesIntegration = findIntegrationByName(nodeInitOptions.defaultIntegrations, 'RewriteFrames');
+      const httpIntegration = findIntegrationByName(nodeInitOptions.defaultIntegrations, 'Http');
+      const onUncaughtExceptionIntegration = findIntegrationByName(
+        nodeInitOptions.defaultIntegrations,
+        'OnUncaughtException',
+      );
 
       expect(rewriteFramesIntegration).toBeDefined();
+      expect(httpIntegration).toBeDefined();
+      expect(onUncaughtExceptionIntegration).toBeDefined();
     });
 
     it('supports passing unrelated integrations through options', () => {
@@ -173,42 +181,18 @@ describe('Server init()', () => {
     });
 
     describe('`Http` integration', () => {
-      it('adds `Http` integration with tracing enabled if `tracesSampleRate` is set', () => {
+      it('adds `Http` integration with tracing enabled by default', () => {
         init({ tracesSampleRate: 1.0 });
 
         const nodeInitOptions = nodeInit.mock.calls[0][0] as ModifiedInitOptions;
-        const httpIntegration = findIntegrationByName(nodeInitOptions.integrations, 'Http');
+        const httpIntegration = findIntegrationByName(nodeInitOptions.defaultIntegrations, 'Http');
 
         expect(httpIntegration).toBeDefined();
         expect(httpIntegration).toEqual(expect.objectContaining({ _tracing: {} }));
       });
 
-      it('adds `Http` integration with tracing enabled if `tracesSampler` is set', () => {
-        init({ tracesSampler: () => true });
-
-        const nodeInitOptions = nodeInit.mock.calls[0][0] as ModifiedInitOptions;
-        const httpIntegration = findIntegrationByName(nodeInitOptions.integrations, 'Http');
-
-        expect(httpIntegration).toBeDefined();
-        expect(httpIntegration).toEqual(expect.objectContaining({ _tracing: {} }));
-      });
-
-      it('forces `_tracing = true` if `tracesSampleRate` is set', () => {
+      it('forces `_tracing = true` even if set to false', () => {
         init({
-          tracesSampleRate: 1.0,
-          integrations: [new Integrations.Http({ tracing: false })],
-        });
-
-        const nodeInitOptions = nodeInit.mock.calls[0][0] as ModifiedInitOptions;
-        const httpIntegration = findIntegrationByName(nodeInitOptions.integrations, 'Http');
-
-        expect(httpIntegration).toBeDefined();
-        expect(httpIntegration).toEqual(expect.objectContaining({ _tracing: {} }));
-      });
-
-      it('forces `_tracing = true` if `tracesSampler` is set', () => {
-        init({
-          tracesSampler: () => true,
           integrations: [new Integrations.Http({ tracing: false })],
         });
 

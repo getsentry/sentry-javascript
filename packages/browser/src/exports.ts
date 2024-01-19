@@ -37,13 +37,17 @@ export {
   createTransport,
   flush,
   getHubFromCarrier,
+  // eslint-disable-next-line deprecation/deprecation
   getCurrentHub,
   getClient,
   getCurrentScope,
   Hub,
   // eslint-disable-next-line deprecation/deprecation
   lastEventId,
+  // eslint-disable-next-line deprecation/deprecation
+  // eslint-disable-next-line deprecation/deprecation
   makeMain,
+  setCurrentClient,
   Scope,
   // eslint-disable-next-line deprecation/deprecation
   startTransaction,
@@ -61,9 +65,13 @@ export {
   setUser,
   withScope,
   withIsolationScope,
+  // eslint-disable-next-line deprecation/deprecation
   FunctionToString,
+  // eslint-disable-next-line deprecation/deprecation
   InboundFilters,
   metrics,
+  functionToStringIntegration,
+  inboundFiltersIntegration,
 } from '@sentry/core';
 
 export { WINDOW } from './helpers';
@@ -81,7 +89,9 @@ export {
 export { eventFromException, eventFromMessage, exceptionFromError } from './eventbuilder';
 export { createUserFeedbackEnvelope } from './userfeedback';
 export {
+  // eslint-disable-next-line deprecation/deprecation
   defaultIntegrations,
+  getDefaultIntegrations,
   forceLoad,
   init,
   onLoad,

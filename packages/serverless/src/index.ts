@@ -29,13 +29,16 @@ export {
   createTransport,
   // eslint-disable-next-line deprecation/deprecation
   getActiveTransaction,
+  // eslint-disable-next-line deprecation/deprecation
   getCurrentHub,
   getClient,
   getCurrentScope,
   getGlobalScope,
   getIsolationScope,
   getHubFromCarrier,
+  // eslint-disable-next-line deprecation/deprecation
   makeMain,
+  setCurrentClient,
   setContext,
   setExtra,
   setExtras,
@@ -49,7 +52,9 @@ export {
   NodeClient,
   makeNodeTransport,
   close,
+  // eslint-disable-next-line deprecation/deprecation
   defaultIntegrations,
+  getDefaultIntegrations,
   defaultStackParser,
   flush,
   getSentryRelease,

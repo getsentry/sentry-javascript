@@ -1,10 +1,9 @@
-import { getCurrentScope } from '@sentry/core';
+import { applySdkMetadata, getCurrentScope } from '@sentry/core';
 import { RewriteFrames } from '@sentry/integrations';
 import type { NodeOptions } from '@sentry/node';
 import { init as initNodeSdk } from '@sentry/node';
 import { addOrUpdateIntegration } from '@sentry/utils';
 
-import { applySdkMetadata } from '../common/metadata';
 import { rewriteFramesIteratee } from './utils';
 
 /**
@@ -12,7 +11,7 @@ import { rewriteFramesIteratee } from './utils';
  * @param options
  */
 export function init(options: NodeOptions): void {
-  applySdkMetadata(options, ['sveltekit', 'node']);
+  applySdkMetadata(options, 'sveltekit', ['sveltekit', 'node']);
 
   addServerIntegrations(options);
 
@@ -23,6 +22,7 @@ export function init(options: NodeOptions): void {
 
 function addServerIntegrations(options: NodeOptions): void {
   options.integrations = addOrUpdateIntegration(
+    // eslint-disable-next-line deprecation/deprecation
     new RewriteFrames({ iteratee: rewriteFramesIteratee }),
     options.integrations || [],
   );

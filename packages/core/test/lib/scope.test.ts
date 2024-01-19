@@ -1,6 +1,21 @@
 import type { Attachment, Breadcrumb, Client, Event } from '@sentry/types';
-import { applyScopeDataToEvent, getCurrentScope, getIsolationScope, withIsolationScope } from '../../src';
+import {
+  Hub,
+  addTracingExtensions,
+  applyScopeDataToEvent,
+  getActiveSpan,
+  getCurrentScope,
+  getIsolationScope,
+  makeMain,
+  spanToJSON,
+  startInactiveSpan,
+  startSpan,
+  withIsolationScope,
+} from '../../src';
+
+import { withActiveSpan } from '../../src/exports';
 import { Scope, getGlobalScope, setGlobalScope } from '../../src/scope';
+import { TestClient, getDefaultTestClientOptions } from '../mocks/client';
 
 describe('Scope', () => {
   beforeEach(() => {
@@ -499,6 +514,45 @@ describe('isolation scope', () => {
           expect(getIsolationScope()).toBe(scope2);
           done();
         });
+      });
+    });
+  });
+});
+
+describe('withActiveSpan()', () => {
+  beforeAll(() => {
+    addTracingExtensions();
+  });
+
+  beforeEach(() => {
+    const options = getDefaultTestClientOptions({ enableTracing: true });
+    const client = new TestClient(options);
+    const scope = new Scope();
+    const hub = new Hub(client, scope);
+    makeMain(hub); // eslint-disable-line deprecation/deprecation
+  });
+
+  it('should set the active span within the callback', () => {
+    expect.assertions(2);
+    const inactiveSpan = startInactiveSpan({ name: 'inactive-span' });
+
+    expect(getActiveSpan()).not.toBe(inactiveSpan);
+
+    withActiveSpan(inactiveSpan!, () => {
+      expect(getActiveSpan()).toBe(inactiveSpan);
+    });
+  });
+
+  it('should create child spans when calling startSpan within the callback', done => {
+    expect.assertions(2);
+    const inactiveSpan = startInactiveSpan({ name: 'inactive-span' });
+
+    withActiveSpan(inactiveSpan!, () => {
+      startSpan({ name: 'child-span' }, childSpan => {
+        // eslint-disable-next-line deprecation/deprecation
+        expect(childSpan?.parentSpanId).toBe(inactiveSpan?.spanContext().spanId);
+        expect(spanToJSON(childSpan!).parent_span_id).toBe(inactiveSpan?.spanContext().spanId);
+        done();
       });
     });
   });

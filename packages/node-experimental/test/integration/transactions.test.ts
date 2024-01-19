@@ -84,7 +84,7 @@ describe('Integration | Transactions', () => {
           },
           runtime: { name: 'node', version: expect.any(String) },
           trace: {
-            data: { 'otel.kind': 'INTERNAL' },
+            data: { 'otel.kind': 'INTERNAL', 'sentry.op': 'test op' },
             op: 'test op',
             span_id: expect.any(String),
             status: 'ok',
@@ -244,7 +244,7 @@ describe('Integration | Transactions', () => {
             },
           }),
           trace: {
-            data: { 'otel.kind': 'INTERNAL' },
+            data: { 'otel.kind': 'INTERNAL', 'sentry.op': 'test op' },
             op: 'test op',
             span_id: expect.any(String),
             status: 'ok',
@@ -286,7 +286,7 @@ describe('Integration | Transactions', () => {
             },
           }),
           trace: {
-            data: { 'otel.kind': 'INTERNAL' },
+            data: { 'otel.kind': 'INTERNAL', 'sentry.op': 'test op b' },
             op: 'test op b',
             span_id: expect.any(String),
             status: 'ok',
@@ -363,7 +363,7 @@ describe('Integration | Transactions', () => {
             attributes: {},
           }),
           trace: {
-            data: { 'otel.kind': 'INTERNAL' },
+            data: { 'otel.kind': 'INTERNAL', 'sentry.op': 'test op' },
             op: 'test op',
             span_id: expect.any(String),
             parent_span_id: parentSpanId,

@@ -1,10 +1,17 @@
-import type { Hub } from '@sentry/core';
+/* eslint-disable deprecation/deprecation */
+import { Hub, makeMain } from '@sentry/core';
 import { getIsolationScope, withIsolationScope } from '@sentry/core';
 import { getCurrentHub, runWithAsyncContext, setAsyncContextStrategy } from '@sentry/core';
 
 import { setDomainAsyncContextStrategy } from '../../src/async/domain';
 
 describe('setDomainAsyncContextStrategy()', () => {
+  beforeEach(() => {
+    const hub = new Hub();
+    // eslint-disable-next-line deprecation/deprecation
+    makeMain(hub);
+  });
+
   afterEach(() => {
     // clear the strategy
     setAsyncContextStrategy(undefined);

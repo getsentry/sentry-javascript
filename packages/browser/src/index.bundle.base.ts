@@ -16,6 +16,7 @@ if (WINDOW.Sentry && WINDOW.Sentry.Integrations) {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const INTEGRATIONS: Record<string, new (...args: any[]) => Integration> = {
   ...windowIntegrations,
+  // eslint-disable-next-line deprecation/deprecation
   ...CoreIntegrations,
   ...BrowserIntegrations,
 };

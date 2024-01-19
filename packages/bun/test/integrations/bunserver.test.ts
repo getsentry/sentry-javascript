@@ -20,6 +20,7 @@ describe('Bun Serve Integration', () => {
     const options = getDefaultBunClientOptions({ tracesSampleRate: 1, debug: true });
     client = new BunClient(options);
     hub = new Hub(client);
+    // eslint-disable-next-line deprecation/deprecation
     makeMain(hub);
   });
 

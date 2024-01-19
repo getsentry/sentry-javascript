@@ -17,6 +17,7 @@ export declare function init(options: Options | clientSdk.BrowserOptions | serve
 export declare const Integrations: typeof clientSdk.Integrations & typeof serverSdk.Integrations;
 
 export declare const defaultIntegrations: Integration[];
+export declare const getDefaultIntegrations: (options: Options) => Integration[];
 export declare const defaultStackParser: StackParser;
 
 export declare function close(timeout?: number | undefined): PromiseLike<boolean>;

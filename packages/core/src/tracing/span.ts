@@ -16,6 +16,7 @@ import type {
 import { dropUndefinedKeys, logger, timestampInSeconds, uuid4 } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../debug-build';
+import { SEMANTIC_ATTRIBUTE_SENTRY_OP } from '../semanticAttributes';
 import { getRootSpan } from '../utils/getRootSpan';
 import {
   TRACE_FLAG_NONE,
@@ -50,6 +51,7 @@ export class SpanRecorder {
    */
   public add(span: Span): void {
     if (this.spans.length > this._maxlen) {
+      // eslint-disable-next-line deprecation/deprecation
       span.spanRecorder = undefined;
     } else {
       this.spans.push(span);
@@ -61,31 +63,6 @@ export class SpanRecorder {
  * Span contains all data about a span
  */
 export class Span implements SpanInterface {
-  /**
-   * @inheritDoc
-   */
-  public parentSpanId?: string;
-
-  /**
-   * Internal keeper of the status
-   */
-  public status?: SpanStatusType | string;
-
-  /**
-   * Timestamp in seconds when the span was created.
-   */
-  public startTimestamp: number;
-
-  /**
-   * Timestamp in seconds when the span ended.
-   */
-  public endTimestamp?: number;
-
-  /**
-   * @inheritDoc
-   */
-  public op?: string;
-
   /**
    * Tags for the span.
    * @deprecated Use `getSpanAttributes(span)` instead.
@@ -101,6 +78,8 @@ export class Span implements SpanInterface {
 
   /**
    * List of spans that were finalized
+   *
+   * @deprecated This property will no longer be public. Span recording will be handled internally.
    */
   public spanRecorder?: SpanRecorder;
 
@@ -128,9 +107,16 @@ export class Span implements SpanInterface {
 
   protected _traceId: string;
   protected _spanId: string;
+  protected _parentSpanId?: string;
   protected _sampled: boolean | undefined;
   protected _name?: string;
   protected _attributes: SpanAttributes;
+  /** Epoch timestamp in seconds when the span started. */
+  protected _startTime: number;
+  /** Epoch timestamp in seconds when the span ended. */
+  protected _endTime?: number;
+  /** Internal keeper of the status */
+  protected _status?: SpanStatusType | string;
 
   private _logMessage?: string;
 
@@ -144,7 +130,7 @@ export class Span implements SpanInterface {
   public constructor(spanContext: SpanContext = {}) {
     this._traceId = spanContext.traceId || uuid4();
     this._spanId = spanContext.spanId || uuid4().substring(16);
-    this.startTimestamp = spanContext.startTimestamp || timestampInSeconds();
+    this._startTime = spanContext.startTimestamp || timestampInSeconds();
     // eslint-disable-next-line deprecation/deprecation
     this.tags = spanContext.tags ? { ...spanContext.tags } : {};
     // eslint-disable-next-line deprecation/deprecation
@@ -157,20 +143,20 @@ export class Span implements SpanInterface {
     this._name = spanContext.name || spanContext.description;
 
     if (spanContext.parentSpanId) {
-      this.parentSpanId = spanContext.parentSpanId;
+      this._parentSpanId = spanContext.parentSpanId;
     }
     // We want to include booleans as well here
     if ('sampled' in spanContext) {
       this._sampled = spanContext.sampled;
     }
     if (spanContext.op) {
-      this.op = spanContext.op;
+      this.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, spanContext.op);
     }
     if (spanContext.status) {
-      this.status = spanContext.status;
+      this._status = spanContext.status;
     }
     if (spanContext.endTimestamp) {
-      this.endTimestamp = spanContext.endTimestamp;
+      this._endTime = spanContext.endTimestamp;
     }
   }
 
@@ -242,6 +228,24 @@ export class Span implements SpanInterface {
   }
 
   /**
+   * @inheritDoc
+   *
+   * @deprecated Use `startSpan` functions instead.
+   */
+  public set parentSpanId(string) {
+    this._parentSpanId = string;
+  }
+
+  /**
+   * @inheritDoc
+   *
+   * @deprecated Use `spanToJSON(span).parent_span_id` instead.
+   */
+  public get parentSpanId(): string | undefined {
+    return this._parentSpanId;
+  }
+
+  /**
    * Was this span chosen to be sent as part of the sample?
    * @deprecated Use `isRecording()` instead.
    */
@@ -273,6 +277,75 @@ export class Span implements SpanInterface {
     this._attributes = attributes;
   }
 
+  /**
+   * Timestamp in seconds (epoch time) indicating when the span started.
+   * @deprecated Use `spanToJSON()` instead.
+   */
+  public get startTimestamp(): number {
+    return this._startTime;
+  }
+
+  /**
+   * Timestamp in seconds (epoch time) indicating when the span started.
+   * @deprecated In v8, you will not be able to update the span start time after creation.
+   */
+  public set startTimestamp(startTime: number) {
+    this._startTime = startTime;
+  }
+
+  /**
+   * Timestamp in seconds when the span ended.
+   * @deprecated Use `spanToJSON()` instead.
+   */
+  public get endTimestamp(): number | undefined {
+    return this._endTime;
+  }
+
+  /**
+   * Timestamp in seconds when the span ended.
+   * @deprecated Set the end time via `span.end()` instead.
+   */
+  public set endTimestamp(endTime: number | undefined) {
+    this._endTime = endTime;
+  }
+
+  /**
+   * The status of the span.
+   *
+   * @deprecated Use `spanToJSON().status` instead to get the status.
+   */
+  public get status(): SpanStatusType | string | undefined {
+    return this._status;
+  }
+
+  /**
+   * The status of the span.
+   *
+   * @deprecated Use `.setStatus()` instead to set or update the status.
+   */
+  public set status(status: SpanStatusType | string | undefined) {
+    this._status = status;
+  }
+
+  /**
+   * Operation of the span
+   *
+   * @deprecated Use `spanToJSON().op` to read the op instead.
+   */
+  public get op(): string | undefined {
+    return this._attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP] as string | undefined;
+  }
+
+  /**
+   * Operation of the span
+   *
+   * @deprecated Use `startSpan()` functions to set or `span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'op')
+   *             to update the span instead.
+   */
+  public set op(op: string | undefined) {
+    this.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, op);
+  }
+
   /* eslint-enable @typescript-eslint/member-ordering */
 
   /** @inheritdoc */
@@ -301,8 +374,11 @@ export class Span implements SpanInterface {
       traceId: this._traceId,
     });
 
+    // eslint-disable-next-line deprecation/deprecation
     childSpan.spanRecorder = this.spanRecorder;
+    // eslint-disable-next-line deprecation/deprecation
     if (childSpan.spanRecorder) {
+      // eslint-disable-next-line deprecation/deprecation
       childSpan.spanRecorder.add(childSpan);
     }
 
@@ -372,7 +448,7 @@ export class Span implements SpanInterface {
    * @inheritDoc
    */
   public setStatus(value: SpanStatusType): this {
-    this.status = value;
+    this._status = value;
     return this;
   }
 
@@ -410,9 +486,11 @@ export class Span implements SpanInterface {
 
   /**
    * @inheritDoc
+   *
+   * @deprecated Use `spanToJSON(span).status === 'ok'` instead.
    */
   public isSuccess(): boolean {
-    return this.status === 'ok';
+    return this._status === 'ok';
   }
 
   /**
@@ -426,6 +504,10 @@ export class Span implements SpanInterface {
 
   /** @inheritdoc */
   public end(endTimestamp?: SpanTimeInput): void {
+    // If already ended, skip
+    if (this._endTime) {
+      return;
+    }
     const rootSpan = getRootSpan(this);
     if (
       DEBUG_BUILD &&
@@ -439,11 +521,13 @@ export class Span implements SpanInterface {
       }
     }
 
-    this.endTimestamp = spanTimeInputToSeconds(endTimestamp);
+    this._endTime = spanTimeInputToSeconds(endTimestamp);
   }
 
   /**
    * @inheritDoc
+   *
+   * @deprecated Use `spanToTraceHeader()` instead.
    */
   public toTraceparent(): string {
     return spanToTraceHeader(this);
@@ -451,18 +535,21 @@ export class Span implements SpanInterface {
 
   /**
    * @inheritDoc
+   *
+   * @deprecated Use `spanToJSON()` or access the fields directly instead.
    */
   public toContext(): SpanContext {
     return dropUndefinedKeys({
       data: this._getData(),
       description: this._name,
-      endTimestamp: this.endTimestamp,
+      endTimestamp: this._endTime,
+      // eslint-disable-next-line deprecation/deprecation
       op: this.op,
-      parentSpanId: this.parentSpanId,
+      parentSpanId: this._parentSpanId,
       sampled: this._sampled,
       spanId: this._spanId,
-      startTimestamp: this.startTimestamp,
-      status: this.status,
+      startTimestamp: this._startTime,
+      status: this._status,
       // eslint-disable-next-line deprecation/deprecation
       tags: this.tags,
       traceId: this._traceId,
@@ -471,19 +558,22 @@ export class Span implements SpanInterface {
 
   /**
    * @inheritDoc
+   *
+   * @deprecated Update the fields directly instead.
    */
   public updateWithContext(spanContext: SpanContext): this {
     // eslint-disable-next-line deprecation/deprecation
     this.data = spanContext.data || {};
     // eslint-disable-next-line deprecation/deprecation
     this._name = spanContext.name || spanContext.description;
-    this.endTimestamp = spanContext.endTimestamp;
+    this._endTime = spanContext.endTimestamp;
+    // eslint-disable-next-line deprecation/deprecation
     this.op = spanContext.op;
-    this.parentSpanId = spanContext.parentSpanId;
+    this._parentSpanId = spanContext.parentSpanId;
     this._sampled = spanContext.sampled;
     this._spanId = spanContext.spanId || this._spanId;
-    this.startTimestamp = spanContext.startTimestamp || this.startTimestamp;
-    this.status = spanContext.status;
+    this._startTime = spanContext.startTimestamp || this._startTime;
+    this._status = spanContext.status;
     // eslint-disable-next-line deprecation/deprecation
     this.tags = spanContext.tags || {};
     this._traceId = spanContext.traceId || this._traceId;
@@ -493,6 +583,8 @@ export class Span implements SpanInterface {
 
   /**
    * @inheritDoc
+   *
+   * @deprecated Use `spanToTraceContext()` util function instead.
    */
   public getTraceContext(): TraceContext {
     return spanToTraceContext(this);
@@ -500,19 +592,24 @@ export class Span implements SpanInterface {
 
   /**
    * Get JSON representation of this span.
+   *
+   * @hidden
+   * @internal This method is purely for internal purposes and should not be used outside
+   * of SDK code. If you need to get a JSON representation of a span,
+   * use `spanToJSON(span)` instead.
    */
   public getSpanJSON(): SpanJSON {
     return dropUndefinedKeys({
       data: this._getData(),
       description: this._name,
-      op: this.op,
-      parent_span_id: this.parentSpanId,
+      op: this._attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP] as string | undefined,
+      parent_span_id: this._parentSpanId,
       span_id: this._spanId,
-      start_timestamp: this.startTimestamp,
-      status: this.status,
+      start_timestamp: this._startTime,
+      status: this._status,
       // eslint-disable-next-line deprecation/deprecation
       tags: Object.keys(this.tags).length > 0 ? this.tags : undefined,
-      timestamp: this.endTimestamp,
+      timestamp: this._endTime,
       trace_id: this._traceId,
       origin: this.origin,
     });
@@ -520,7 +617,7 @@ export class Span implements SpanInterface {
 
   /** @inheritdoc */
   public isRecording(): boolean {
-    return !this.endTimestamp && !!this._sampled;
+    return !this._endTime && !!this._sampled;
   }
 
   /**

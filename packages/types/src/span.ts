@@ -166,7 +166,7 @@ export interface SpanContext {
 }
 
 /** Span holding trace_id, span_id */
-export interface Span extends SpanContext {
+export interface Span extends Omit<SpanContext, 'op' | 'status'> {
   /**
    * Human-readable identifier for the span. Identical to span.description.
    * @deprecated Use `spanToJSON(span).description` instead.
@@ -174,10 +174,25 @@ export interface Span extends SpanContext {
   name: string;
 
   /**
+   * Operation of the Span.
+   *
+   * @deprecated Use `startSpan()` functions to set, `span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'op')
+   * to update and `spanToJSON().op` to read the op instead
+   */
+  op?: string;
+
+  /**
    * The ID of the span.
    * @deprecated Use `spanContext().spanId` instead.
    */
   spanId: string;
+
+  /**
+   * Parent Span ID
+   *
+   * @deprecated Use `spanToJSON(span).parent_span_id` instead.
+   */
+  parentSpanId?: string;
 
   /**
    * The ID of the trace.
@@ -192,9 +207,16 @@ export interface Span extends SpanContext {
   sampled?: boolean;
 
   /**
-   * @inheritDoc
+   * Timestamp in seconds (epoch time) indicating when the span started.
+   * @deprecated Use `spanToJSON()` instead.
    */
   startTimestamp: number;
+
+  /**
+   * Timestamp in seconds (epoch time) indicating when the span ended.
+   * @deprecated Use `spanToJSON()` instead.
+   */
+  endTimestamp?: number;
 
   /**
    * Tags for the span.
@@ -226,6 +248,15 @@ export interface Span extends SpanContext {
    * @deprecated this field will be removed.
    */
   instrumenter: Instrumenter;
+
+  /**
+   * Completion status of the Span.
+   *
+   * See: {@sentry/tracing SpanStatus} for possible values
+   *
+   * @deprecated Use `.setStatus` to set or update and `spanToJSON()` to read the status.
+   */
+  status?: string;
 
   /**
    * Get context data for this span.
@@ -313,6 +344,8 @@ export interface Span extends SpanContext {
 
   /**
    * Determines whether span was successful (HTTP200)
+   *
+   * @deprecated Use `spanToJSON(span).status === 'ok'` instead.
    */
   isSuccess(): boolean;
 

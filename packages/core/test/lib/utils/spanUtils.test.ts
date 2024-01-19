@@ -54,7 +54,7 @@ describe('spanToJSON', () => {
       span_id: span.spanContext().spanId,
       trace_id: span.spanContext().traceId,
       origin: 'manual',
-      start_timestamp: span.startTimestamp,
+      start_timestamp: span['_startTime'],
     });
   });
 
@@ -71,6 +71,7 @@ describe('spanToJSON', () => {
       traceId: 'abcd',
       origin: 'auto',
       startTimestamp: 123,
+      endTimestamp: 456,
     });
 
     expect(spanToJSON(span)).toEqual({
@@ -85,6 +86,10 @@ describe('spanToJSON', () => {
       trace_id: 'abcd',
       origin: 'auto',
       start_timestamp: 123,
+      timestamp: 456,
+      data: {
+        'sentry.op': 'test op',
+      },
     });
   });
 

@@ -42,6 +42,7 @@ export {
   // eslint-disable-next-line deprecation/deprecation
   getActiveTransaction,
   getHubFromCarrier,
+  // eslint-disable-next-line deprecation/deprecation
   getCurrentHub,
   getClient,
   getCurrentScope,
@@ -50,7 +51,9 @@ export {
   Hub,
   // eslint-disable-next-line deprecation/deprecation
   lastEventId,
+  // eslint-disable-next-line deprecation/deprecation
   makeMain,
+  setCurrentClient,
   runWithAsyncContext,
   Scope,
   // eslint-disable-next-line deprecation/deprecation
@@ -76,12 +79,21 @@ export {
   startSpanManual,
   continueTrace,
   metrics,
+  functionToStringIntegration,
+  inboundFiltersIntegration,
+  linkedErrorsIntegration,
+  requestDataIntegration,
 } from '@sentry/core';
 export type { SpanStatusType } from '@sentry/core';
 export { autoDiscoverNodePerformanceMonitoringIntegrations, cron } from '@sentry/node';
 
 export { BunClient } from './client';
-export { defaultIntegrations, init } from './sdk';
+export {
+  // eslint-disable-next-line deprecation/deprecation
+  defaultIntegrations,
+  getDefaultIntegrations,
+  init,
+} from './sdk';
 
 import { Integrations as CoreIntegrations } from '@sentry/core';
 import { Integrations as NodeIntegrations } from '@sentry/node';
@@ -89,6 +101,7 @@ import { Integrations as NodeIntegrations } from '@sentry/node';
 import * as BunIntegrations from './integrations';
 
 const INTEGRATIONS = {
+  // eslint-disable-next-line deprecation/deprecation
   ...CoreIntegrations,
   ...NodeIntegrations,
   ...BunIntegrations,

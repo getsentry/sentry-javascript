@@ -1,4 +1,4 @@
-import { spanToJSON } from '@sentry/core';
+import { setCurrentClient, spanToJSON } from '@sentry/core';
 import { getCurrentHub } from '../../src/custom/hub';
 import { OpenTelemetryScope } from '../../src/custom/scope';
 import { OpenTelemetryTransaction, startTransaction } from '../../src/custom/transaction';
@@ -15,7 +15,8 @@ describe('NodeExperimentalTransaction', () => {
     const mockSend = jest.spyOn(client, 'captureEvent').mockImplementation(() => 'mocked');
 
     const hub = getCurrentHub();
-    hub.bindClient(client);
+    setCurrentClient(client);
+    client.init();
 
     // eslint-disable-next-line deprecation/deprecation
     const transaction = new OpenTelemetryTransaction({ name: 'test', sampled: true }, hub);
@@ -62,7 +63,8 @@ describe('NodeExperimentalTransaction', () => {
     const mockSend = jest.spyOn(client, 'captureEvent').mockImplementation(() => 'mocked');
 
     const hub = getCurrentHub();
-    hub.bindClient(client);
+    setCurrentClient(client);
+    client.init();
 
     // eslint-disable-next-line deprecation/deprecation
     const transaction = new OpenTelemetryTransaction({ name: 'test', startTimestamp: 123456, sampled: true }, hub);
@@ -87,7 +89,8 @@ describe('NodeExperimentalTransaction', () => {
     const mockSend = jest.spyOn(client, 'captureEvent').mockImplementation(() => 'mocked');
 
     const hub = getCurrentHub();
-    hub.bindClient(client);
+    setCurrentClient(client);
+    client.init();
 
     // eslint-disable-next-line deprecation/deprecation
     const transaction = new OpenTelemetryTransaction({ name: 'test', startTimestamp: 123456, sampled: true }, hub);
@@ -144,13 +147,16 @@ describe('startTranscation', () => {
   it('creates a NodeExperimentalTransaction', () => {
     const client = new TestClient(getDefaultTestClientOptions());
     const hub = getCurrentHub();
-    hub.bindClient(client);
+    setCurrentClient(client);
+    client.init();
 
     const transaction = startTransaction(hub, { name: 'test' });
 
     expect(transaction).toBeInstanceOf(OpenTelemetryTransaction);
     expect(transaction['_sampled']).toBe(undefined);
+    // eslint-disable-next-line deprecation/deprecation
     expect(transaction.spanRecorder).toBeDefined();
+    // eslint-disable-next-line deprecation/deprecation
     expect(transaction.spanRecorder?.spans).toHaveLength(1);
     // eslint-disable-next-line deprecation/deprecation
     expect(transaction.metadata).toEqual({
@@ -171,7 +177,8 @@ describe('startTranscation', () => {
   it('allows to pass data to transaction', () => {
     const client = new TestClient(getDefaultTestClientOptions());
     const hub = getCurrentHub();
-    hub.bindClient(client);
+    setCurrentClient(client);
+    client.init();
 
     const transaction = startTransaction(hub, {
       name: 'test',

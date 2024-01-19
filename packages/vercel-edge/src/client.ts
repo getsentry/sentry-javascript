@@ -1,5 +1,6 @@
 import type { ServerRuntimeClientOptions } from '@sentry/core';
-import { SDK_VERSION, ServerRuntimeClient } from '@sentry/core';
+import { applySdkMetadata } from '@sentry/core';
+import { ServerRuntimeClient } from '@sentry/core';
 
 import type { VercelEdgeClientOptions } from './types';
 
@@ -19,17 +20,8 @@ export class VercelEdgeClient extends ServerRuntimeClient<VercelEdgeClientOption
    * @param options Configuration options for this SDK.
    */
   public constructor(options: VercelEdgeClientOptions) {
+    applySdkMetadata(options, 'vercel-edge');
     options._metadata = options._metadata || {};
-    options._metadata.sdk = options._metadata.sdk || {
-      name: 'sentry.javascript.vercel-edge',
-      packages: [
-        {
-          name: 'npm:@sentry/vercel-edge',
-          version: SDK_VERSION,
-        },
-      ],
-      version: SDK_VERSION,
-    };
 
     const clientOptions: ServerRuntimeClientOptions = {
       ...options,

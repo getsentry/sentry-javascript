@@ -239,8 +239,11 @@ describe('sentryAstro integration', () => {
     await integration.hooks['astro:config:setup']({ updateConfig, injectScript, config });
 
     expect(injectScript).toHaveBeenCalledTimes(2);
-    expect(injectScript).toHaveBeenCalledWith('page', expect.stringContaining('my-client-init-path.js'));
-    expect(injectScript).toHaveBeenCalledWith('page-ssr', expect.stringContaining('my-server-init-path.js'));
+    expect(injectScript).toHaveBeenCalledWith('page', expect.stringMatching(/^import ".*\/my-client-init-path.js"/));
+    expect(injectScript).toHaveBeenCalledWith(
+      'page-ssr',
+      expect.stringMatching(/^import ".*\/my-server-init-path.js"/),
+    );
   });
 
   it.each(['server', 'hybrid'])(

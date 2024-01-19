@@ -1,7 +1,7 @@
 import * as childProcess from 'child_process';
 import * as path from 'path';
 import { conditionalTest } from '../../../utils';
-import { createRunner } from '../../../utils/runner';
+import { cleanupChildProcesses, createRunner } from '../../../utils/runner';
 
 const EXPECTED_LOCAL_VARIABLES_EVENT = {
   exception: {
@@ -30,6 +30,10 @@ const EXPECTED_LOCAL_VARIABLES_EVENT = {
 };
 
 conditionalTest({ min: 18 })('LocalVariables integration', () => {
+  afterAll(() => {
+    cleanupChildProcesses();
+  });
+
   test('Should not include local variables by default', done => {
     createRunner(__dirname, 'no-local-variables.js')
       .ignore('session')

@@ -18,6 +18,7 @@ export const ReplayRecordingData = [
         networkRequestHasHeaders: true,
         networkResponseHasHeaders: true,
         sessionSampleRate: 1,
+        shouldRecordCanvas: false,
         useCompression: false,
         useCompressionOption: true,
       },

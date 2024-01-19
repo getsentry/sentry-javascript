@@ -123,6 +123,8 @@ export interface Transaction extends TransactionContext, Omit<Span, 'setName' | 
    * @param name Name of the measurement
    * @param value Value of the measurement
    * @param unit Unit of the measurement. (Defaults to an empty string)
+   *
+   * @deprecated Use top-level `setMeasurement()` instead.
    */
   setMeasurement(name: string, value: number, unit: MeasurementUnit): void;
 

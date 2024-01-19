@@ -1,17 +1,21 @@
 /* eslint-disable max-lines */
-import { Integrations as CoreIntegrations } from '@sentry/core';
+import { FunctionToString, InboundFilters, LinkedErrors } from '@sentry/core';
 import { Integrations as NodeIntegrations, init as initNode } from '@sentry/node';
+import type { Integration, Options } from '@sentry/types';
 
 import { BunClient } from './client';
 import { BunServer } from './integrations';
 import { makeFetchTransport } from './transports';
 import type { BunOptions } from './types';
 
+/** @deprecated Use `getDefaultIntegrations(options)` instead. */
 export const defaultIntegrations = [
+  /* eslint-disable deprecation/deprecation */
   // Common
-  new CoreIntegrations.InboundFilters(),
-  new CoreIntegrations.FunctionToString(),
-  new CoreIntegrations.LinkedErrors(),
+  new InboundFilters(),
+  new FunctionToString(),
+  new LinkedErrors(),
+  /* eslint-enable deprecation/deprecation */
   // Native Wrappers
   new NodeIntegrations.Console(),
   new NodeIntegrations.Http(),
@@ -28,6 +32,15 @@ export const defaultIntegrations = [
   // Bun Specific
   new BunServer(),
 ];
+
+/** Get the default integrations for the Bun SDK. */
+export function getDefaultIntegrations(_options: Options): Integration[] {
+  // We return a copy of the defaultIntegrations here to avoid mutating this
+  return [
+    // eslint-disable-next-line deprecation/deprecation
+    ...defaultIntegrations,
+  ];
+}
 
 /**
  * The Sentry Bun SDK Client.
@@ -88,9 +101,9 @@ export function init(options: BunOptions = {}): void {
   options.clientClass = BunClient;
   options.transport = options.transport || makeFetchTransport;
 
-  options.defaultIntegrations =
-    options.defaultIntegrations === false
-      ? []
-      : [...(Array.isArray(options.defaultIntegrations) ? options.defaultIntegrations : defaultIntegrations)];
+  if (options.defaultIntegrations === undefined) {
+    options.defaultIntegrations = getDefaultIntegrations(options);
+  }
+
   initNode(options);
 }

@@ -1,6 +1,7 @@
 import type { Hub } from '@sentry/core';
 import {
-  Integrations as CoreIntegrations,
+  FunctionToString,
+  InboundFilters,
   captureSession,
   getClient,
   getCurrentHub,
@@ -9,7 +10,7 @@ import {
   initAndBind,
   startSession,
 } from '@sentry/core';
-import type { UserFeedback } from '@sentry/types';
+import type { Integration, Options, UserFeedback } from '@sentry/types';
 import {
   addHistoryInstrumentationHandler,
   logger,
@@ -26,9 +27,12 @@ import { Breadcrumbs, Dedupe, GlobalHandlers, HttpContext, LinkedErrors, TryCatc
 import { defaultStackParser } from './stack-parsers';
 import { makeFetchTransport, makeXHRTransport } from './transports';
 
+/** @deprecated Use `getDefaultIntegrations(options)` instead. */
 export const defaultIntegrations = [
-  new CoreIntegrations.InboundFilters(),
-  new CoreIntegrations.FunctionToString(),
+  /* eslint-disable deprecation/deprecation */
+  new InboundFilters(),
+  new FunctionToString(),
+  /* eslint-enable deprecation/deprecation */
   new TryCatch(),
   new Breadcrumbs(),
   new GlobalHandlers(),
@@ -36,6 +40,15 @@ export const defaultIntegrations = [
   new Dedupe(),
   new HttpContext(),
 ];
+
+/** Get the default integrations for the browser SDK. */
+export function getDefaultIntegrations(_options: Options): Integration[] {
+  // We return a copy of the defaultIntegrations here to avoid mutating this
+  return [
+    // eslint-disable-next-line deprecation/deprecation
+    ...defaultIntegrations,
+  ];
+}
 
 /**
  * A magic string that build tooling can leverage in order to inject a release value into the SDK.
@@ -101,7 +114,7 @@ declare const __SENTRY_RELEASE__: string | undefined;
  */
 export function init(options: BrowserOptions = {}): void {
   if (options.defaultIntegrations === undefined) {
-    options.defaultIntegrations = defaultIntegrations;
+    options.defaultIntegrations = getDefaultIntegrations(options);
   }
   if (options.release === undefined) {
     // This allows build tooling to find-and-replace __SENTRY_RELEASE__ to inject a release value
@@ -159,6 +172,7 @@ interface ShowReportDialogFunction {
 export const showReportDialog: ShowReportDialogFunction = (
   // eslint-disable-next-line deprecation/deprecation
   options: ReportDialogOptions = {},
+  // eslint-disable-next-line deprecation/deprecation
   hub: Hub = getCurrentHub(),
 ) => {
   // doesn't work without a document (React Native)

@@ -6,6 +6,7 @@ import {
   addTracingExtensions,
   getActiveTransaction,
   spanIsSampled,
+  spanToJSON,
   startIdleTransaction,
 } from '@sentry/core';
 import type { EventProcessor, Integration, Transaction, TransactionContext, TransactionSource } from '@sentry/types';
@@ -368,7 +369,20 @@ export class BrowserTracing implements Integration {
       true,
       { location }, // for use in the tracesSampler
       heartbeatInterval,
+      isPageloadTransaction, // should wait for finish signal if it's a pageload transaction
     );
+
+    if (isPageloadTransaction) {
+      WINDOW.document.addEventListener('readystatechange', () => {
+        if (['interactive', 'complete'].includes(WINDOW.document.readyState)) {
+          idleTransaction.sendAutoFinishSignal();
+        }
+      });
+
+      if (['interactive', 'complete'].includes(WINDOW.document.readyState)) {
+        idleTransaction.sendAutoFinishSignal();
+      }
+    }
 
     // eslint-disable-next-line deprecation/deprecation
     const scope = hub.getScope();
@@ -383,7 +397,7 @@ export class BrowserTracing implements Integration {
       scope.setPropagationContext({
         traceId: idleTransaction.spanContext().traceId,
         spanId: idleTransaction.spanContext().spanId,
-        parentSpanId: idleTransaction.parentSpanId,
+        parentSpanId: spanToJSON(idleTransaction).parent_span_id,
         sampled: spanIsSampled(idleTransaction),
       });
     }

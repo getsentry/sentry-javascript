@@ -1,12 +1,24 @@
-import type { Hub } from '@sentry/core';
-import { getIsolationScope } from '@sentry/core';
-import { withIsolationScope } from '@sentry/core';
-import { getCurrentHub, runWithAsyncContext, setAsyncContextStrategy } from '@sentry/core';
+/* eslint-disable deprecation/deprecation */
+import {
+  Hub,
+  getCurrentHub,
+  getIsolationScope,
+  makeMain,
+  runWithAsyncContext,
+  setAsyncContextStrategy,
+  withIsolationScope,
+} from '@sentry/core';
 
 import { setHooksAsyncContextStrategy } from '../../src/async/hooks';
 import { conditionalTest } from '../utils';
 
 conditionalTest({ min: 12 })('setHooksAsyncContextStrategy()', () => {
+  beforeEach(() => {
+    const hub = new Hub();
+    // eslint-disable-next-line deprecation/deprecation
+    makeMain(hub);
+  });
+
   afterEach(() => {
     // clear the strategy
     setAsyncContextStrategy(undefined);
