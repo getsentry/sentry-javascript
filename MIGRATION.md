@@ -28,13 +28,14 @@ integrations from the `Integrations.XXX` hash, is deprecated in favor of using t
 
 The following list shows how integrations should be migrated:
 
-| Old                      | New                             |
-| ------------------------ | ------------------------------- |
-| `new InboundFilters()`   | `inboundFiltersIntegrations()`  |
-| `new FunctionToString()` | `functionToStringIntegration()` |
-| `new LinkedErrors()`     | `linkedErrorsIntegration()`     |
-| `new ModuleMetadata()`   | `moduleMetadataIntegration()`   |
-| `new RequestData()`      | `requestDataIntegration()`      |
+| Old                      | New                             | Packages                                                                                                |
+| ------------------------ | ------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `new InboundFilters()`   | `inboundFiltersIntegration()`   | `@sentry/core`, `@sentry/browser`, `@sentry/node`, `@sentry/deno`, `@sentry/bun`, `@sentry/vercel-edge` |
+| `new FunctionToString()` | `functionToStringIntegration()` | `@sentry/core`, `@sentry/browser`, `@sentry/node`, `@sentry/deno`, `@sentry/bun`, `@sentry/vercel-edge` |
+| `new LinkedErrors()`     | `linkedErrorsIntegration()`     | `@sentry/core`, `@sentry/browser`, `@sentry/node`, `@sentry/deno`, `@sentry/bun`, `@sentry/vercel-edge` |
+| `new ModuleMetadata()`   | `moduleMetadataIntegration()`   | `@sentry/core`, `@sentry/browser`                                                                       |
+| `new RequestData()`      | `requestDataIntegration()`      | `@sentry/core`, `@sentry/node`, `@sentry/deno`, `@sentry/bun`, `@sentry/vercel-edge`                    |
+| `new Wasm() `            | `wasmIntegration()`             | `@sentry/wasm`                                                                                          |
 
 ## Deprecate `hub.bindClient()` and `makeMain()`
 
