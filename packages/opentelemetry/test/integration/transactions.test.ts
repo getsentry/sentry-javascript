@@ -5,7 +5,7 @@ import type { PropagationContext, TransactionEvent } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
 import { spanToJSON } from '@sentry/core';
-import { getCurrentHub } from '../../src/custom/hub';
+import { getClient } from '../../src/custom/hub';
 import { SentrySpanProcessor } from '../../src/spanProcessor';
 import { startInactiveSpan, startSpan } from '../../src/trace';
 import { setPropagationContextOnContext } from '../../src/utils/contextData';
@@ -23,8 +23,7 @@ describe('Integration | Transactions', () => {
 
     mockSdkInit({ enableTracing: true, beforeSendTransaction });
 
-    const hub = getCurrentHub();
-    const client = hub.getClient() as TestClientInterface;
+    const client = getClient() as TestClientInterface;
 
     addBreadcrumb({ message: 'test breadcrumb 1', timestamp: 123456 });
     setTag('outer.tag', 'test value');
@@ -84,7 +83,7 @@ describe('Integration | Transactions', () => {
             },
           },
           trace: {
-            data: { 'otel.kind': 'INTERNAL' },
+            data: { 'otel.kind': 'INTERNAL', 'sentry.op': 'test op' },
             op: 'test op',
             span_id: expect.any(String),
             status: 'ok',
@@ -145,7 +144,9 @@ describe('Integration | Transactions', () => {
     // This is the same behavior as for the "regular" SDKs
     expect(spans.map(span => spanToJSON(span))).toEqual([
       {
-        data: { 'otel.kind': 'INTERNAL' },
+        data: {
+          'otel.kind': 'INTERNAL',
+        },
         description: 'inner span 1',
         origin: 'manual',
         parent_span_id: expect.any(String),
@@ -174,8 +175,7 @@ describe('Integration | Transactions', () => {
 
     mockSdkInit({ enableTracing: true, beforeSendTransaction });
 
-    const hub = getCurrentHub();
-    const client = hub.getClient() as TestClientInterface;
+    const client = getClient() as TestClientInterface;
 
     addBreadcrumb({ message: 'test breadcrumb 1', timestamp: 123456 });
 
@@ -238,7 +238,7 @@ describe('Integration | Transactions', () => {
             },
           }),
           trace: {
-            data: { 'otel.kind': 'INTERNAL' },
+            data: { 'otel.kind': 'INTERNAL', 'sentry.op': 'test op' },
             op: 'test op',
             span_id: expect.any(String),
             status: 'ok',
@@ -280,7 +280,7 @@ describe('Integration | Transactions', () => {
             },
           }),
           trace: {
-            data: { 'otel.kind': 'INTERNAL' },
+            data: { 'otel.kind': 'INTERNAL', 'sentry.op': 'test op b' },
             op: 'test op b',
             span_id: expect.any(String),
             status: 'ok',
@@ -332,8 +332,7 @@ describe('Integration | Transactions', () => {
 
     mockSdkInit({ enableTracing: true, beforeSendTransaction });
 
-    const hub = getCurrentHub();
-    const client = hub.getClient() as TestClientInterface;
+    const client = getClient() as TestClientInterface;
 
     // We simulate the correct context we'd normally get from the SentryPropagator
     context.with(
@@ -358,7 +357,10 @@ describe('Integration | Transactions', () => {
             attributes: {},
           }),
           trace: {
-            data: { 'otel.kind': 'INTERNAL' },
+            data: {
+              'otel.kind': 'INTERNAL',
+              'sentry.op': 'test op',
+            },
             op: 'test op',
             span_id: expect.any(String),
             parent_span_id: parentSpanId,
@@ -432,8 +434,7 @@ describe('Integration | Transactions', () => {
 
     mockSdkInit({ enableTracing: true, beforeSendTransaction });
 
-    const hub = getCurrentHub();
-    const client = hub.getClient() as TestClientInterface;
+    const client = getClient() as TestClientInterface;
     const provider = getProvider();
     const multiSpanProcessor = provider?.activeSpanProcessor as
       | (SpanProcessor & { _spanProcessors?: SpanProcessor[] })

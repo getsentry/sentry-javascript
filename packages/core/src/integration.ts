@@ -1,4 +1,13 @@
-import type { Client, Event, EventHint, EventProcessor, Hub, Integration, IntegrationFn, Options } from '@sentry/types';
+import type {
+  Client,
+  Event,
+  EventHint,
+  Integration,
+  IntegrationClass,
+  IntegrationFn,
+  IntegrationFnResult,
+  Options,
+} from '@sentry/types';
 import { arrayify, logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from './debug-build';
@@ -169,28 +178,19 @@ function findIndex<T>(arr: T[], callback: (item: T) => boolean): number {
 export function convertIntegrationFnToClass<Fn extends IntegrationFn>(
   name: string,
   fn: Fn,
-): Integration & {
-  id: string;
-  new (...args: Parameters<Fn>): Integration &
-    ReturnType<Fn> & {
-      setupOnce: (addGlobalEventProcessor?: (callback: EventProcessor) => void, getCurrentHub?: () => Hub) => void;
-    };
-} {
+): IntegrationClass<Integration> {
   return Object.assign(
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    function ConvertedIntegration(...rest: Parameters<Fn>) {
-      return {
-        // eslint-disable-next-line @typescript-eslint/no-empty-function
-        setupOnce: () => {},
-        ...fn(...rest),
-      };
+    function ConvertedIntegration(...args: Parameters<Fn>): Integration {
+      return fn(...args);
     },
     { id: name },
-  ) as unknown as Integration & {
-    id: string;
-    new (...args: Parameters<Fn>): Integration &
-      ReturnType<Fn> & {
-        setupOnce: (addGlobalEventProcessor?: (callback: EventProcessor) => void, getCurrentHub?: () => Hub) => void;
-      };
-  };
+  ) as unknown as IntegrationClass<Integration>;
+}
+
+/**
+ * Define an integration function that can be used to create an integration instance.
+ * Note that this by design hides the implementation details of the integration, as they are considered internal.
+ */
+export function defineIntegration<Fn extends IntegrationFn>(fn: Fn): (...args: Parameters<Fn>) => IntegrationFnResult {
+  return fn;
 }

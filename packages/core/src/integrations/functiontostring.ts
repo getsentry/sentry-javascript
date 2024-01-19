@@ -1,12 +1,12 @@
-import type { IntegrationFn, WrappedFunction } from '@sentry/types';
+import type { Integration, IntegrationClass, IntegrationFn, WrappedFunction } from '@sentry/types';
 import { getOriginalFunction } from '@sentry/utils';
-import { convertIntegrationFnToClass } from '../integration';
+import { convertIntegrationFnToClass, defineIntegration } from '../integration';
 
 let originalFunctionToString: () => void;
 
 const INTEGRATION_NAME = 'FunctionToString';
 
-const functionToStringIntegration: IntegrationFn = () => {
+const _functionToStringIntegration = (() => {
   return {
     name: INTEGRATION_NAME,
     setupOnce() {
@@ -26,8 +26,16 @@ const functionToStringIntegration: IntegrationFn = () => {
       }
     },
   };
-};
+}) satisfies IntegrationFn;
 
-/** Patch toString calls to return proper name for wrapped functions */
+export const functionToStringIntegration = defineIntegration(_functionToStringIntegration);
+
+/**
+ * Patch toString calls to return proper name for wrapped functions.
+ * @deprecated Use `functionToStringIntegration()` instead.
+ */
 // eslint-disable-next-line deprecation/deprecation
-export const FunctionToString = convertIntegrationFnToClass(INTEGRATION_NAME, functionToStringIntegration);
+export const FunctionToString = convertIntegrationFnToClass(
+  INTEGRATION_NAME,
+  functionToStringIntegration,
+) as IntegrationClass<Integration & { setupOnce: () => void }>;

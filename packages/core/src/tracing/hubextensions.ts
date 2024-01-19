@@ -12,6 +12,7 @@ import { Transaction } from './transaction';
 
 /** Returns all trace headers that are currently on the top scope. */
 function traceHeaders(this: Hub): { [key: string]: string } {
+  // eslint-disable-next-line deprecation/deprecation
   const scope = this.getScope();
   // eslint-disable-next-line deprecation/deprecation
   const span = scope.getSpan();
@@ -43,6 +44,7 @@ function _startTransaction(
   transactionContext: TransactionContext,
   customSamplingContext?: CustomSamplingContext,
 ): Transaction {
+  // eslint-disable-next-line deprecation/deprecation
   const client = this.getClient();
   const options: Partial<ClientOptions> = (client && client.getOptions()) || {};
 
@@ -87,12 +89,22 @@ export function startIdleTransaction(
   onScope?: boolean,
   customSamplingContext?: CustomSamplingContext,
   heartbeatInterval?: number,
+  delayAutoFinishUntilSignal: boolean = false,
 ): IdleTransaction {
+  // eslint-disable-next-line deprecation/deprecation
   const client = hub.getClient();
   const options: Partial<ClientOptions> = (client && client.getOptions()) || {};
 
   // eslint-disable-next-line deprecation/deprecation
-  let transaction = new IdleTransaction(transactionContext, hub, idleTimeout, finalTimeout, heartbeatInterval, onScope);
+  let transaction = new IdleTransaction(
+    transactionContext,
+    hub,
+    idleTimeout,
+    finalTimeout,
+    heartbeatInterval,
+    onScope,
+    delayAutoFinishUntilSignal,
+  );
   transaction = sampleTransaction(transaction, options, {
     parentSampled: transactionContext.parentSampled,
     transactionContext,

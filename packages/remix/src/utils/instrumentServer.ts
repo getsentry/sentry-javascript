@@ -69,12 +69,12 @@ function isCatchResponse(response: Response): boolean {
 async function extractResponseError(response: Response): Promise<unknown> {
   const responseData = await extractData(response);
 
-  if (typeof responseData === 'string') {
-    return responseData;
+  if (typeof responseData === 'string' && responseData.length > 0) {
+    return new Error(responseData);
   }
 
   if (response.statusText) {
-    return response.statusText;
+    return new Error(response.statusText);
   }
 
   return responseData;
@@ -92,7 +92,7 @@ export function wrapRemixHandleError(err: unknown, { request }: DataFunctionArgs
   // We are skipping thrown responses here as they are handled by
   // `captureRemixServerException` at loader / action level
   // We don't want to capture them twice.
-  // This function if only for capturing unhandled server-side exceptions.
+  // This function is only for capturing unhandled server-side exceptions.
   // https://remix.run/docs/en/main/file-conventions/entry.server#thrown-responses
   // https://remix.run/docs/en/v1/api/conventions#throwing-responses-in-loaders
   if (isResponse(err) || isRouteErrorResponse(err)) {
@@ -145,7 +145,7 @@ export async function captureRemixServerException(err: unknown, name: string, re
   captureException(isResponse(objectifiedErr) ? await extractResponseError(objectifiedErr) : objectifiedErr, scope => {
     // eslint-disable-next-line deprecation/deprecation
     const transaction = getActiveTransaction();
-    const activeTransactionName = transaction ? spanToJSON(transaction) : undefined;
+    const activeTransactionName = transaction ? spanToJSON(transaction).description : undefined;
 
     scope.setSDKProcessingMetadata({
       request: {
@@ -403,6 +403,7 @@ export function startRequestHandlerTransaction(
     request.headers['sentry-trace'],
     request.headers.baggage,
   );
+  // eslint-disable-next-line deprecation/deprecation
   hub.getScope().setPropagationContext(propagationContext);
 
   // TODO: Refactor this to `startSpan()`
@@ -451,6 +452,7 @@ function wrapRequestHandler(origRequestHandler: RequestHandler, build: ServerBui
     }
 
     return runWithAsyncContext(async () => {
+      // eslint-disable-next-line deprecation/deprecation
       const hub = getCurrentHub();
       const options = getClient()?.getOptions();
       const scope = getCurrentScope();

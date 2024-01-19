@@ -1,20 +1,26 @@
 import * as internalTracing from '@sentry-internal/tracing';
 import * as sentryCore from '@sentry/core';
-import type { HandlerDataFetch, Integration, IntegrationClass } from '@sentry/types';
+import type { HandlerDataFetch, Integration } from '@sentry/types';
 import * as sentryUtils from '@sentry/utils';
 import { createStackParser } from '@sentry/utils';
 
 import { VercelEdgeClient } from '../src/index';
 import { WinterCGFetch } from '../src/integrations/wintercg-fetch';
 
-class FakeHub extends sentryCore.Hub {
-  getIntegration<T extends Integration>(integration: IntegrationClass<T>): T | null {
-    return new integration();
+class FakeClient extends VercelEdgeClient {
+  public getIntegrationByName<T extends Integration = Integration>(name: string): T | undefined {
+    return name === 'WinterCGFetch' ? (new WinterCGFetch() as unknown as T) : undefined;
   }
 }
 
-const fakeHubInstance = new FakeHub(
-  new VercelEdgeClient({
+const addFetchInstrumentationHandlerSpy = jest.spyOn(sentryUtils, 'addFetchInstrumentationHandler');
+const instrumentFetchRequestSpy = jest.spyOn(internalTracing, 'instrumentFetchRequest');
+const addBreadcrumbSpy = jest.spyOn(sentryCore, 'addBreadcrumb');
+
+beforeEach(() => {
+  jest.clearAllMocks();
+
+  const client = new FakeClient({
     dsn: 'https://public@dsn.ingest.sentry.io/1337',
     enableTracing: true,
     tracesSampleRate: 1,
@@ -25,19 +31,9 @@ const fakeHubInstance = new FakeHub(
     }),
     tracePropagationTargets: ['http://my-website.com/'],
     stackParser: createStackParser(),
-  }),
-);
+  });
 
-jest.spyOn(sentryCore, 'getCurrentHub').mockImplementation(() => fakeHubInstance);
-jest.spyOn(sentryCore, 'getCurrentScope').mockImplementation(() => fakeHubInstance.getScope());
-jest.spyOn(sentryCore, 'getClient').mockImplementation(() => fakeHubInstance.getClient());
-
-const addFetchInstrumentationHandlerSpy = jest.spyOn(sentryUtils, 'addFetchInstrumentationHandler');
-const instrumentFetchRequestSpy = jest.spyOn(internalTracing, 'instrumentFetchRequest');
-const addBreadcrumbSpy = jest.spyOn(sentryCore, 'addBreadcrumb');
-
-beforeEach(() => {
-  jest.clearAllMocks();
+  jest.spyOn(sentryCore, 'getClient').mockImplementation(() => client);
 });
 
 describe('WinterCGFetch instrumentation', () => {

@@ -4,6 +4,7 @@ import {
   getCurrentScope,
   getDynamicSamplingContextFromClient,
   getDynamicSamplingContextFromSpan,
+  getRootSpan,
   hasTracingEnabled,
   spanToTraceHeader,
 } from '@sentry/core';
@@ -134,7 +135,7 @@ export function addTracingHeadersToFetchRequest(
   // eslint-disable-next-line deprecation/deprecation
   const span = requestSpan || scope.getSpan();
 
-  const transaction = span && span.transaction;
+  const transaction = span && getRootSpan(span);
 
   const { traceId, sampled, dsc } = scope.getPropagationContext();
 
@@ -148,7 +149,8 @@ export function addTracingHeadersToFetchRequest(
   const sentryBaggageHeader = dynamicSamplingContextToSentryBaggageHeader(dynamicSamplingContext);
 
   const headers =
-    typeof Request !== 'undefined' && isInstanceOf(request, Request) ? (request as Request).headers : options.headers;
+    options.headers ||
+    (typeof Request !== 'undefined' && isInstanceOf(request, Request) ? (request as Request).headers : undefined);
 
   if (!headers) {
     return { 'sentry-trace': sentryTraceHeader, baggage: sentryBaggageHeader };

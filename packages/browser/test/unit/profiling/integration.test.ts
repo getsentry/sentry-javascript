@@ -36,7 +36,6 @@ describe('BrowserProfilingIntegration', () => {
     Sentry.init({
       tracesSampleRate: 1,
       profilesSampleRate: 1,
-      debug: true,
       environment: 'test-environment',
       dsn: 'https://7fa19397baaf433f919fbe02228d5470@o1137848.ingest.sentry.io/6625302',
       transport: _opts => {
@@ -51,7 +50,7 @@ describe('BrowserProfilingIntegration', () => {
     const client = Sentry.getClient<BrowserClient>();
 
     // eslint-disable-next-line deprecation/deprecation
-    const currentTransaction = Sentry.getCurrentHub().getScope().getTransaction();
+    const currentTransaction = Sentry.getCurrentScope().getTransaction();
     expect(currentTransaction?.op).toBe('pageload');
     currentTransaction?.end();
     await client?.flush(1000);

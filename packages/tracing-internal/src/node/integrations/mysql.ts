@@ -85,7 +85,7 @@ export class Mysql implements LazyLoadedIntegration<MysqlConnection> {
     }
 
     function finishSpan(span: Span | undefined): void {
-      if (!span || span.endTimestamp) {
+      if (!span) {
         return;
       }
 
@@ -103,6 +103,7 @@ export class Mysql implements LazyLoadedIntegration<MysqlConnection> {
     //    function (options, values, callback) => void
     fill(pkg, 'createQuery', function (orig: () => void) {
       return function (this: unknown, options: unknown, values: unknown, callback: unknown) {
+        // eslint-disable-next-line deprecation/deprecation
         const scope = getCurrentHub().getScope();
         // eslint-disable-next-line deprecation/deprecation
         const parentSpan = scope.getSpan();

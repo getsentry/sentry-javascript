@@ -66,12 +66,15 @@ export function assertSentryTransactions(
   // instead of checking the specific order of runloop spans (which is brittle),
   // we check (below) that _any_ runloop spans are added
   const filteredSpans = spans
+    // eslint-disable-next-line deprecation/deprecation
     .filter(span => !span.op?.startsWith('ui.ember.runloop.'))
     .map(s => {
+      // eslint-disable-next-line deprecation/deprecation
       return `${s.op} | ${spanToJSON(s).description}`;
     });
 
   assert.true(
+    // eslint-disable-next-line deprecation/deprecation
     spans.some(span => span.op?.startsWith('ui.ember.runloop.')),
     'it captures runloop spans',
   );

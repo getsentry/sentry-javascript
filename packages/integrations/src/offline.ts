@@ -81,6 +81,7 @@ export class Offline implements Integration {
     }
 
     const eventProcessor: EventProcessor = event => {
+      // eslint-disable-next-line deprecation/deprecation
       if (this.hub && this.hub.getIntegration(Offline)) {
         // cache if we are positively offline
         if ('navigator' in WINDOW && 'onLine' in WINDOW.navigator && !WINDOW.navigator.onLine) {

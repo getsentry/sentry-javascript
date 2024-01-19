@@ -35,6 +35,7 @@ export function maybeCaptureExceptionForTimedEvent(hub: Hub, event: TimedEvent, 
     syntheticError.name = type;
   }
 
+  // eslint-disable-next-line deprecation/deprecation
   hub.captureException(syntheticError, {
     captureContext: otelSpan
       ? {

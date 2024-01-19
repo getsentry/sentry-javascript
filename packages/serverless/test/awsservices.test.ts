@@ -4,13 +4,6 @@ import * as nock from 'nock';
 
 import { AWSServices } from '../src/awsservices';
 
-/**
- * Why @ts-expect-error some Sentry.X calls
- *
- * A hack-ish way to contain everything related to mocks in the same __mocks__ file.
- * Thanks to this, we don't have to do more magic than necessary. Just add and export desired method and assert on it.
- */
-
 describe('AWSServices', () => {
   beforeAll(() => {
     new AWSServices().setupOnce();
@@ -30,11 +23,10 @@ describe('AWSServices', () => {
       nock('https://foo.s3.amazonaws.com').get('/bar').reply(200, 'contents');
       const data = await s3.getObject({ Bucket: 'foo', Key: 'bar' }).promise();
       expect(data.Body?.toString('utf-8')).toEqual('contents');
-      // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeTransaction.startChild).toBeCalledWith({
+      expect(SentryNode.startInactiveSpan).toBeCalledWith({
         op: 'http.client',
         origin: 'auto.http.serverless',
-        description: 'aws.s3.getObject foo',
+        name: 'aws.s3.getObject foo',
       });
       // @ts-expect-error see "Why @ts-expect-error" note
       expect(SentryNode.fakeSpan.end).toBeCalled();
@@ -48,11 +40,10 @@ describe('AWSServices', () => {
         expect(data.Body?.toString('utf-8')).toEqual('contents');
         done();
       });
-      // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeTransaction.startChild).toBeCalledWith({
+      expect(SentryNode.startInactiveSpan).toBeCalledWith({
         op: 'http.client',
         origin: 'auto.http.serverless',
-        description: 'aws.s3.getObject foo',
+        name: 'aws.s3.getObject foo',
       });
     });
   });
@@ -64,11 +55,10 @@ describe('AWSServices', () => {
       nock('https://lambda.eu-north-1.amazonaws.com').post('/2015-03-31/functions/foo/invocations').reply(201, 'reply');
       const data = await lambda.invoke({ FunctionName: 'foo' }).promise();
       expect(data.Payload?.toString('utf-8')).toEqual('reply');
-      // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeTransaction.startChild).toBeCalledWith({
+      expect(SentryNode.startInactiveSpan).toBeCalledWith({
         op: 'http.client',
         origin: 'auto.http.serverless',
-        description: 'aws.lambda.invoke foo',
+        name: 'aws.lambda.invoke foo',
       });
     });
   });

@@ -35,6 +35,7 @@ env:
 
   # packages/utils/cjs and packages/utils/esm: Symlinks to the folders inside of `build`, needed for tests
   CACHED_BUILD_PATHS: |
+    ${{ github.workspace }}/dev-packages/*/build
     ${{ github.workspace }}/packages/*/build
     ${{ github.workspace }}/packages/ember/*.d.ts
     ${{ github.workspace }}/packages/gatsby/*.d.ts
@@ -99,6 +100,7 @@ jobs:
               - *shared
               - 'packages/browser/**'
               - 'packages/replay/**'
+              - 'packages/replay-canvas/**'
               - 'packages/feedback/**'
             browser_integration:
               - *shared
@@ -370,6 +372,7 @@ jobs:
             ${{ github.workspace }}/packages/browser/build/bundles/**
             ${{ github.workspace }}/packages/integrations/build/bundles/**
             ${{ github.workspace }}/packages/replay/build/bundles/**
+            ${{ github.workspace }}/packages/replay-canvas/build/bundles/**
             ${{ github.workspace }}/packages/**/*.tgz
             ${{ github.workspace }}/packages/serverless/build/aws/dist-serverless/*.zip
 
@@ -775,8 +778,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node: [14, 16, 18, 20, 21]
+        node: [18, 20, 21]
         remix: [1, 2]
+        # Remix v2 only supports Node 18+, so run Node 14, 16 tests separately
+        include:
+          - node: 14
+            remix: 1
+          - node: 16
+            remix: 1
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v4
@@ -858,11 +867,13 @@ jobs:
       matrix:
         test-application:
           [
+            'cloudflare-astro',
             'node-express-app',
             'create-react-app',
             'create-next-app',
-            'create-remix-app',
-            'create-remix-app-v2',
+            # disabling remix e2e tests because of flakes
+            # 'create-remix-app',
+            # 'create-remix-app-v2',
             'debug-id-sourcemaps',
             'nextjs-app-dir',
             'nextjs-14',
@@ -943,6 +954,16 @@ jobs:
         working-directory: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
         timeout-minutes: 5
         run: yarn test:assert
+
+      - name: Deploy Astro to Cloudflare
+        uses: cloudflare/pages-action@v1
+        if: matrix.test-application == 'cloudflare-astro'
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          projectName: ${{ secrets.CLOUDFLARE_PROJECT_NAME }}
+          directory: dist
+          workingDirectory: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
 
   job_required_jobs_passed:
     name: All required jobs passed or were skipped

@@ -14,12 +14,6 @@ import type {
   Request,
   Response,
 } from '../src/gcpfunction/general';
-/**
- * Why @ts-expect-error some Sentry.X calls
- *
- * A hack-ish way to contain everything related to mocks in the same __mocks__ file.
- * Thanks to this, we don't have to do more magic than necessary. Just add and export desired method and assert on it.
- */
 
 describe('GCPFunction', () => {
   afterEach(() => {

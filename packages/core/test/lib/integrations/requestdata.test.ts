@@ -1,6 +1,7 @@
 import type { IncomingMessage } from 'http';
 import type { RequestDataIntegrationOptions } from '@sentry/core';
-import { RequestData, getCurrentHub } from '@sentry/core';
+import { setCurrentClient } from '@sentry/core';
+import { RequestData } from '@sentry/core';
 import type { Event, EventProcessor } from '@sentry/types';
 import * as sentryUtils from '@sentry/utils';
 
@@ -16,6 +17,7 @@ const path = '/by/the/trees/';
 const queryString = 'chase=me&please=thankyou';
 
 function initWithRequestDataIntegrationOptions(integrationOptions: RequestDataIntegrationOptions): EventProcessor {
+  // eslint-disable-next-line deprecation/deprecation
   const requestDataIntegration = new RequestData({
     ...integrationOptions,
   });
@@ -27,7 +29,8 @@ function initWithRequestDataIntegrationOptions(integrationOptions: RequestDataIn
     }),
   );
 
-  getCurrentHub().bindClient(client);
+  setCurrentClient(client);
+  client.init();
 
   const eventProcessors = client['_eventProcessors'] as EventProcessor[];
   const eventProcessor = eventProcessors.find(processor => processor.id === 'RequestData');

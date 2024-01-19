@@ -2,7 +2,6 @@ import {
   addBreadcrumb,
   getActiveSpan,
   getClient,
-  getCurrentHub,
   getCurrentScope,
   getDynamicSamplingContextFromClient,
   getDynamicSamplingContextFromSpan,
@@ -138,8 +137,8 @@ export class Undici implements Integration {
   }
 
   private _onRequestCreate = (message: unknown): void => {
-    const hub = getCurrentHub();
-    if (!hub.getIntegration(Undici)) {
+    // eslint-disable-next-line deprecation/deprecation
+    if (!getClient()?.getIntegration(Undici)) {
       return;
     }
 
@@ -197,8 +196,8 @@ export class Undici implements Integration {
   };
 
   private _onRequestEnd = (message: unknown): void => {
-    const hub = getCurrentHub();
-    if (!hub.getIntegration(Undici)) {
+    // eslint-disable-next-line deprecation/deprecation
+    if (!getClient()?.getIntegration(Undici)) {
       return;
     }
 
@@ -237,8 +236,8 @@ export class Undici implements Integration {
   };
 
   private _onRequestError = (message: unknown): void => {
-    const hub = getCurrentHub();
-    if (!hub.getIntegration(Undici)) {
+    // eslint-disable-next-line deprecation/deprecation
+    if (!getClient()?.getIntegration(Undici)) {
       return;
     }
 

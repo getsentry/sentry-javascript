@@ -7,7 +7,11 @@ import type { Client, DsnComponents, Hub } from '@sentry/types';
  * TODO(v8): Remove Hub fallback type
  */
 export function isSentryRequestUrl(url: string, hubOrClient: Hub | Client | undefined): boolean {
-  const client = hubOrClient && isHub(hubOrClient) ? hubOrClient.getClient() : hubOrClient;
+  const client =
+    hubOrClient && isHub(hubOrClient)
+      ? // eslint-disable-next-line deprecation/deprecation
+        hubOrClient.getClient()
+      : hubOrClient;
   const dsn = client && client.getDsn();
   const tunnel = client && client.getOptions().tunnel;
 
@@ -31,5 +35,6 @@ function removeTrailingSlash(str: string): string {
 }
 
 function isHub(hubOrClient: Hub | Client | undefined): hubOrClient is Hub {
+  // eslint-disable-next-line deprecation/deprecation
   return (hubOrClient as Hub).getClient !== undefined;
 }

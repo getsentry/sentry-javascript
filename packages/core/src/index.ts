@@ -29,17 +29,21 @@ export {
   setTags,
   setUser,
   withScope,
+  withIsolationScope,
   getClient,
   getCurrentScope,
   startSession,
   endSession,
   captureSession,
+  withActiveSpan,
 } from './exports';
 export {
+  // eslint-disable-next-line deprecation/deprecation
   getCurrentHub,
   getIsolationScope,
   getHubFromCarrier,
   Hub,
+  // eslint-disable-next-line deprecation/deprecation
   makeMain,
   getMainCarrier,
   runWithAsyncContext,
@@ -58,7 +62,7 @@ export {
 export { getEnvelopeEndpointWithUrlEncodedAuth, getReportDialogEndpoint } from './api';
 export { BaseClient, addEventProcessor } from './baseclient';
 export { ServerRuntimeClient } from './server-runtime-client';
-export { initAndBind } from './sdk';
+export { initAndBind, setCurrentClient } from './sdk';
 export { createTransport } from './transports/base';
 export { makeOfflineTransport } from './transports/offline';
 export { makeMultiplexedTransport } from './transports/multiplexed';
@@ -66,10 +70,10 @@ export { SDK_VERSION } from './version';
 export {
   getIntegrationsToSetup,
   addIntegration,
+  defineIntegration,
   // eslint-disable-next-line deprecation/deprecation
   convertIntegrationFnToClass,
 } from './integration';
-export { FunctionToString, InboundFilters, LinkedErrors } from './integrations';
 export { applyScopeDataToEvent, mergeScopeData } from './utils/applyScopeDataToEvent';
 export { prepareEvent } from './utils/prepareEvent';
 export { createCheckInEnvelope } from './checkin';
@@ -81,10 +85,25 @@ export {
   spanToJSON,
   spanIsSampled,
 } from './utils/spanUtils';
+export { getRootSpan } from './utils/getRootSpan';
 export { DEFAULT_ENVIRONMENT } from './constants';
+/* eslint-disable deprecation/deprecation */
 export { ModuleMetadata } from './integrations/metadata';
 export { RequestData } from './integrations/requestdata';
-import * as Integrations from './integrations';
+export { InboundFilters } from './integrations/inboundfilters';
+export { FunctionToString } from './integrations/functiontostring';
+export { LinkedErrors } from './integrations/linkederrors';
+/* eslint-enable deprecation/deprecation */
+import * as INTEGRATIONS from './integrations';
+export { functionToStringIntegration } from './integrations/functiontostring';
+export { inboundFiltersIntegration } from './integrations/inboundfilters';
+export { linkedErrorsIntegration } from './integrations/linkederrors';
+export { moduleMetadataIntegration } from './integrations/metadata';
+export { requestDataIntegration } from './integrations/requestdata';
 export { metrics } from './metrics/exports';
 
+/** @deprecated Import the integration function directly, e.g. `inboundFiltersIntegration()` instead of `new Integrations.InboundFilter(). */
+const Integrations = INTEGRATIONS;
+
+// eslint-disable-next-line deprecation/deprecation
 export { Integrations };

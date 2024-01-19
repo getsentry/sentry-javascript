@@ -10,6 +10,7 @@ describe('OpenTelemetryHub', () => {
     const hub2 = getCurrentHub();
     expect(hub2).toBe(hub);
 
+    // eslint-disable-next-line deprecation/deprecation
     const scope = hub.getScope();
     expect(scope).toBeDefined();
     expect(scope).toBeInstanceOf(OpenTelemetryScope);
@@ -18,6 +19,7 @@ describe('OpenTelemetryHub', () => {
   it('hub gets correct scope on initialization', () => {
     const hub = new OpenTelemetryHub();
 
+    // eslint-disable-next-line deprecation/deprecation
     const scope = hub.getScope();
     expect(scope).toBeDefined();
     expect(scope).toBeInstanceOf(OpenTelemetryScope);
@@ -30,6 +32,7 @@ describe('OpenTelemetryHub', () => {
     const scope = hub.pushScope();
     expect(scope).toBeInstanceOf(OpenTelemetryScope);
 
+    // eslint-disable-next-line deprecation/deprecation
     const scope2 = hub.getScope();
     expect(scope2).toBe(scope);
   });
@@ -37,6 +40,7 @@ describe('OpenTelemetryHub', () => {
   it('withScope() creates correct scope', () => {
     const hub = new OpenTelemetryHub();
 
+    // eslint-disable-next-line deprecation/deprecation
     hub.withScope(scope => {
       expect(scope).toBeInstanceOf(OpenTelemetryScope);
     });

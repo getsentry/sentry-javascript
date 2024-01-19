@@ -1,13 +1,11 @@
 /* eslint-disable no-unused-vars */
+import { loggingTransport } from '@sentry-internal/node-integration-tests';
 import * as Sentry from '@sentry/node';
 
 Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
   includeLocalVariables: true,
-  beforeSend: event => {
-    // eslint-disable-next-line no-console
-    console.log(JSON.stringify(event));
-  },
+  transport: loggingTransport,
 });
 
 class Some {

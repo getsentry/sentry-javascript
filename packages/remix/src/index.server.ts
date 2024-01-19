@@ -28,9 +28,12 @@ export {
   // eslint-disable-next-line deprecation/deprecation
   getActiveTransaction,
   getHubFromCarrier,
+  // eslint-disable-next-line deprecation/deprecation
   getCurrentHub,
   Hub,
+  // eslint-disable-next-line deprecation/deprecation
   makeMain,
+  setCurrentClient,
   Scope,
   // eslint-disable-next-line deprecation/deprecation
   startTransaction,
@@ -45,6 +48,7 @@ export {
   // eslint-disable-next-line deprecation/deprecation
   trace,
   withScope,
+  withIsolationScope,
   autoDiscoverNodePerformanceMonitoringIntegrations,
   makeNodeTransport,
   defaultIntegrations,

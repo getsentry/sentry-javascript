@@ -12,7 +12,6 @@ import { logger } from '@sentry/utils';
 
 import {
   BUFFER_CHECKOUT_TIME,
-  CANVAS_QUALITY,
   SESSION_IDLE_EXPIRE_DURATION,
   SESSION_IDLE_PAUSE_DURATION,
   SLOW_CLICK_SCROLL_TIMEOUT,
@@ -39,6 +38,7 @@ import type {
   RecordingEvent,
   RecordingOptions,
   ReplayBreadcrumbFrame,
+  ReplayCanvasIntegrationOptions,
   ReplayContainer as ReplayContainerInterface,
   ReplayPerformanceEntry,
   ReplayPluginOptions,
@@ -145,6 +145,11 @@ export class ReplayContainer implements ReplayContainerInterface {
 
   private _context: InternalEventContext;
 
+  /**
+   * Internal use for canvas recording options
+   */
+  private _canvas: ReplayCanvasIntegrationOptions | undefined;
+
   public constructor({
     options,
     recordingOptions,
@@ -216,6 +221,13 @@ export class ReplayContainer implements ReplayContainerInterface {
   /** If recording is currently paused. */
   public isPaused(): boolean {
     return this._isPaused;
+  }
+
+  /**
+   * Determine if canvas recording is enabled
+   */
+  public isRecordingCanvas(): boolean {
+    return Boolean(this._canvas);
   }
 
   /** Get the replay integration options. */
@@ -338,7 +350,8 @@ export class ReplayContainer implements ReplayContainerInterface {
    */
   public startRecording(): void {
     try {
-      const canvas = this._options._experiments.canvas;
+      const canvasOptions = this._canvas;
+
       this._stopRecording = record({
         ...this._recordingOptions,
         // When running in error sampling mode, we need to overwrite `checkoutEveryNms`
@@ -347,12 +360,14 @@ export class ReplayContainer implements ReplayContainerInterface {
         ...(this.recordingMode === 'buffer' && { checkoutEveryNms: BUFFER_CHECKOUT_TIME }),
         emit: getHandleRecordingEmit(this),
         onMutation: this._onMutationHandler,
-        ...(canvas &&
-          canvas.manager && {
-            recordCanvas: true,
-            getCanvasManager: canvas.manager,
-            ...(CANVAS_QUALITY[canvas.quality || 'medium'] || CANVAS_QUALITY.medium),
-          }),
+        ...(canvasOptions
+          ? {
+              recordCanvas: canvasOptions.recordCanvas,
+              getCanvasManager: canvasOptions.getCanvasManager,
+              sampling: canvasOptions.sampling,
+              dataURLOptions: canvasOptions.dataURLOptions,
+            }
+          : {}),
       });
     } catch (err) {
       this._handleException(err);

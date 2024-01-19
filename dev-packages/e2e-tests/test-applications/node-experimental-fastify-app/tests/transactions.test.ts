@@ -28,12 +28,13 @@ test('Sends an API route transaction', async ({ baseURL }) => {
             url: 'http://localhost:3030/test-transaction',
             'otel.kind': 'SERVER',
             'http.response.status_code': 200,
+            'sentry.op': 'http.server',
           },
           op: 'http.server',
           span_id: expect.any(String),
           status: 'ok',
           tags: {
-            'http.status_code': 200,
+            'http.status_code': '200',
           },
           trace_id: expect.any(String),
           origin: 'auto.http.otel.http',
@@ -85,7 +86,7 @@ test('Sends an API route transaction', async ({ baseURL }) => {
         },
       ],
       tags: {
-        'http.status_code': 200,
+        'http.status_code': '200',
       },
       transaction: 'GET /test-transaction',
       type: 'transaction',

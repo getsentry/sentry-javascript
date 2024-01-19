@@ -230,6 +230,7 @@ export class BrowserTracing implements Integration {
   public setupOnce(_: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
     this._getCurrentHub = getCurrentHub;
     const hub = getCurrentHub();
+    // eslint-disable-next-line deprecation/deprecation
     const client = hub.getClient();
     const clientOptions = client && client.getOptions();
 
@@ -367,8 +368,22 @@ export class BrowserTracing implements Integration {
       true,
       { location }, // for use in the tracesSampler
       heartbeatInterval,
+      isPageloadTransaction, // should wait for finish signal if it's a pageload transaction
     );
 
+    if (isPageloadTransaction) {
+      WINDOW.document.addEventListener('readystatechange', () => {
+        if (['interactive', 'complete'].includes(WINDOW.document.readyState)) {
+          idleTransaction.sendAutoFinishSignal();
+        }
+      });
+
+      if (['interactive', 'complete'].includes(WINDOW.document.readyState)) {
+        idleTransaction.sendAutoFinishSignal();
+      }
+    }
+
+    // eslint-disable-next-line deprecation/deprecation
     const scope = hub.getScope();
 
     // If it's a pageload and there is a meta tag set

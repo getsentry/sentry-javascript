@@ -1,4 +1,11 @@
-import { Integrations as CoreIntegrations, RequestData, getIntegrationsToSetup, initAndBind } from '@sentry/core';
+import {
+  FunctionToString,
+  InboundFilters,
+  LinkedErrors,
+  RequestData,
+  getIntegrationsToSetup,
+  initAndBind,
+} from '@sentry/core';
 import type { Integration } from '@sentry/types';
 import { GLOBAL_OBJ, createStackParser, nodeStackLineParser, stackParserFromStackParserOptions } from '@sentry/utils';
 
@@ -16,9 +23,11 @@ declare const process: {
 const nodeStackParser = createStackParser(nodeStackLineParser());
 
 export const defaultIntegrations = [
-  new CoreIntegrations.InboundFilters(),
-  new CoreIntegrations.FunctionToString(),
-  new CoreIntegrations.LinkedErrors(),
+  /* eslint-disable deprecation/deprecation */
+  new InboundFilters(),
+  new FunctionToString(),
+  new LinkedErrors(),
+  /* eslint-enable deprecation/deprecation */
   new WinterCGFetch(),
 ];
 
@@ -31,6 +40,7 @@ export function init(options: VercelEdgeOptions = {}): void {
   // TODO(v8): Add the request data integration by default.
   // We don't want to add this functionality OOTB without a breaking change because it might contain PII
   if (options.sendDefaultPii) {
+    // eslint-disable-next-line deprecation/deprecation
     sdkDefaultIntegrations.push(new RequestData());
   }
 

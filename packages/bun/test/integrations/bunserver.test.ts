@@ -1,5 +1,5 @@
 import { beforeAll, beforeEach, describe, expect, test } from 'bun:test';
-import { Hub, makeMain, spanToJSON } from '@sentry/core';
+import { Hub, getDynamicSamplingContextFromSpan, makeMain, spanIsSampled, spanToJSON } from '@sentry/core';
 
 import { BunClient } from '../../src/client';
 import { instrumentBunServe } from '../../src/integrations/bunserver';
@@ -20,6 +20,7 @@ describe('Bun Serve Integration', () => {
     const options = getDefaultBunClientOptions({ tracesSampleRate: 1, debug: true });
     client = new BunClient(options);
     hub = new Hub(client);
+    // eslint-disable-next-line deprecation/deprecation
     makeMain(hub);
   });
 
@@ -82,10 +83,16 @@ describe('Bun Serve Integration', () => {
     client.on('finishTransaction', transaction => {
       expect(transaction.spanContext().traceId).toBe(TRACE_ID);
       expect(transaction.parentSpanId).toBe(PARENT_SPAN_ID);
-      expect(transaction.isRecording()).toBe(true);
+      expect(spanIsSampled(transaction)).toBe(true);
+      // span.endTimestamp is already set in `finishTransaction` hook
+      expect(transaction.isRecording()).toBe(false);
 
       // eslint-disable-next-line deprecation/deprecation
       expect(transaction.metadata?.dynamicSamplingContext).toStrictEqual({ version: '1.0', environment: 'production' });
+      expect(getDynamicSamplingContextFromSpan(transaction)).toStrictEqual({
+        version: '1.0',
+        environment: 'production',
+      });
     });
 
     const server = Bun.serve({

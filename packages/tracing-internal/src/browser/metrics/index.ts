@@ -1,9 +1,10 @@
 /* eslint-disable max-lines */
 import type { IdleTransaction, Transaction } from '@sentry/core';
-import { getActiveTransaction } from '@sentry/core';
+import { getActiveTransaction, setMeasurement } from '@sentry/core';
 import type { Measurements, SpanContext } from '@sentry/types';
-import { browserPerformanceTimeOrigin, getComponentName, htmlTreeAsString, logger } from '@sentry/utils';
+import { browserPerformanceTimeOrigin, getComponentName, htmlTreeAsString, logger, parseUrl } from '@sentry/utils';
 
+import { spanToJSON } from '@sentry/core';
 import { DEBUG_BUILD } from '../../common/debug-build';
 import {
   addClsInstrumentationHandler,
@@ -185,12 +186,15 @@ export function addPerformanceEntries(transaction: Transaction): void {
   let responseStartTimestamp: number | undefined;
   let requestStartTimestamp: number | undefined;
 
+  const { op, start_timestamp: transactionStartTime } = spanToJSON(transaction);
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   performanceEntries.slice(_performanceCursor).forEach((entry: Record<string, any>) => {
     const startTime = msToSec(entry.startTime);
     const duration = msToSec(entry.duration);
 
-    if (transaction.op === 'navigation' && timeOrigin + startTime < transaction.startTimestamp) {
+    // eslint-disable-next-line deprecation/deprecation
+    if (transaction.op === 'navigation' && transactionStartTime && timeOrigin + startTime < transactionStartTime) {
       return;
     }
 
@@ -222,8 +226,7 @@ export function addPerformanceEntries(transaction: Transaction): void {
         break;
       }
       case 'resource': {
-        const resourceName = (entry.name as string).replace(WINDOW.location.origin, '');
-        _addResourceSpans(transaction, entry, resourceName, startTime, duration, timeOrigin);
+        _addResourceSpans(transaction, entry, entry.name as string, startTime, duration, timeOrigin);
         break;
       }
       default:
@@ -236,13 +239,13 @@ export function addPerformanceEntries(transaction: Transaction): void {
   _trackNavigator(transaction);
 
   // Measurements are only available for pageload transactions
-  if (transaction.op === 'pageload') {
+  if (op === 'pageload') {
     // Generate TTFB (Time to First Byte), which measured as the time between the beginning of the transaction and the
     // start of the response in milliseconds
-    if (typeof responseStartTimestamp === 'number') {
+    if (typeof responseStartTimestamp === 'number' && transactionStartTime) {
       DEBUG_BUILD && logger.log('[Measurements] Adding TTFB');
       _measurements['ttfb'] = {
-        value: (responseStartTimestamp - transaction.startTimestamp) * 1000,
+        value: (responseStartTimestamp - transactionStartTime) * 1000,
         unit: 'millisecond',
       };
 
@@ -257,7 +260,7 @@ export function addPerformanceEntries(transaction: Transaction): void {
     }
 
     ['fcp', 'fp', 'lcp'].forEach(name => {
-      if (!_measurements[name] || timeOrigin >= transaction.startTimestamp) {
+      if (!_measurements[name] || !transactionStartTime || timeOrigin >= transactionStartTime) {
         return;
       }
       // The web vitals, fcp, fp, lcp, and ttfb, all measure relative to timeOrigin.
@@ -267,7 +270,7 @@ export function addPerformanceEntries(transaction: Transaction): void {
       const measurementTimestamp = timeOrigin + msToSec(oldValue);
 
       // normalizedValue should be in milliseconds
-      const normalizedValue = Math.abs((measurementTimestamp - transaction.startTimestamp) * 1000);
+      const normalizedValue = Math.abs((measurementTimestamp - transactionStartTime) * 1000);
       const delta = normalizedValue - oldValue;
 
       DEBUG_BUILD && logger.log(`[Measurements] Normalized ${name} from ${oldValue} to ${normalizedValue} (${delta})`);
@@ -296,11 +299,7 @@ export function addPerformanceEntries(transaction: Transaction): void {
     }
 
     Object.keys(_measurements).forEach(measurementName => {
-      transaction.setMeasurement(
-        measurementName,
-        _measurements[measurementName].value,
-        _measurements[measurementName].unit,
-      );
+      setMeasurement(measurementName, _measurements[measurementName].value, _measurements[measurementName].unit);
     });
 
     _tagMetricInfo(transaction);
@@ -373,21 +372,27 @@ function _addPerformanceNavigationTiming(
 /** Create request and response related spans */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function _addRequest(transaction: Transaction, entry: Record<string, any>, timeOrigin: number): void {
-  _startChild(transaction, {
-    op: 'browser',
-    origin: 'auto.browser.browser.metrics',
-    description: 'request',
-    startTimestamp: timeOrigin + msToSec(entry.requestStart as number),
-    endTimestamp: timeOrigin + msToSec(entry.responseEnd as number),
-  });
+  if (entry.responseEnd) {
+    // It is possible that we are collecting these metrics when the page hasn't finished loading yet, for example when the HTML slowly streams in.
+    // In this case, ie. when the document request hasn't finished yet, `entry.responseEnd` will be 0.
+    // In order not to produce faulty spans, where the end timestamp is before the start timestamp, we will only collect
+    // these spans when the responseEnd value is available. The backend (Relay) would drop the entire transaction if it contained faulty spans.
+    _startChild(transaction, {
+      op: 'browser',
+      origin: 'auto.browser.browser.metrics',
+      description: 'request',
+      startTimestamp: timeOrigin + msToSec(entry.requestStart as number),
+      endTimestamp: timeOrigin + msToSec(entry.responseEnd as number),
+    });
 
-  _startChild(transaction, {
-    op: 'browser',
-    origin: 'auto.browser.browser.metrics',
-    description: 'response',
-    startTimestamp: timeOrigin + msToSec(entry.responseStart as number),
-    endTimestamp: timeOrigin + msToSec(entry.responseEnd as number),
-  });
+    _startChild(transaction, {
+      op: 'browser',
+      origin: 'auto.browser.browser.metrics',
+      description: 'response',
+      startTimestamp: timeOrigin + msToSec(entry.responseStart as number),
+      endTimestamp: timeOrigin + msToSec(entry.responseEnd as number),
+    });
+  }
 }
 
 export interface ResourceEntry extends Record<string, unknown> {
@@ -402,7 +407,7 @@ export interface ResourceEntry extends Record<string, unknown> {
 export function _addResourceSpans(
   transaction: Transaction,
   entry: ResourceEntry,
-  resourceName: string,
+  resourceUrl: string,
   startTime: number,
   duration: number,
   timeOrigin: number,
@@ -413,20 +418,32 @@ export function _addResourceSpans(
     return;
   }
 
+  const parsedUrl = parseUrl(resourceUrl);
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const data: Record<string, any> = {};
   setResourceEntrySizeData(data, entry, 'transferSize', 'http.response_transfer_size');
   setResourceEntrySizeData(data, entry, 'encodedBodySize', 'http.response_content_length');
   setResourceEntrySizeData(data, entry, 'decodedBodySize', 'http.decoded_response_content_length');
+
   if ('renderBlockingStatus' in entry) {
     data['resource.render_blocking_status'] = entry.renderBlockingStatus;
   }
+  if (parsedUrl.protocol) {
+    data['url.scheme'] = parsedUrl.protocol.split(':').pop(); // the protocol returned by parseUrl includes a :, but OTEL spec does not, so we remove it.
+  }
+
+  if (parsedUrl.host) {
+    data['server.address'] = parsedUrl.host;
+  }
+
+  data['url.same_origin'] = resourceUrl.includes(WINDOW.location.origin);
 
   const startTimestamp = timeOrigin + startTime;
   const endTimestamp = startTimestamp + duration;
 
   _startChild(transaction, {
-    description: resourceName,
+    description: resourceUrl.replace(WINDOW.location.origin, ''),
     endTimestamp,
     op: entry.initiatorType ? `resource.${entry.initiatorType}` : 'resource.other',
     origin: 'auto.resource.browser.metrics',

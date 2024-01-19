@@ -4,12 +4,13 @@ import {
   TRACING_DEFAULTS,
   Transaction,
   getCurrentScope,
+  spanToJSON,
   startInactiveSpan,
   startSpan,
   startSpanManual,
 } from '@sentry/core';
 
-import { Hub, IdleTransaction, Span, makeMain } from '../../core/src';
+import { Hub, IdleTransaction, Span, getClient, makeMain } from '../../core/src';
 import { IdleTransactionSpanRecorder } from '../../core/src/tracing/idletransaction';
 import { getDefaultBrowserClientOptions } from './testutils';
 
@@ -34,7 +35,7 @@ describe('IdleTransaction', () => {
       );
       transaction.initSpanRecorder(10);
 
-      const scope = hub.getScope();
+      const scope = getCurrentScope();
       // eslint-disable-next-line deprecation/deprecation
       expect(scope.getTransaction()).toBe(transaction);
     });
@@ -43,7 +44,7 @@ describe('IdleTransaction', () => {
       const transaction = new IdleTransaction({ name: 'foo' }, hub);
       transaction.initSpanRecorder(10);
 
-      const scope = hub.getScope();
+      const scope = getCurrentScope();
       // eslint-disable-next-line deprecation/deprecation
       expect(scope.getTransaction()).toBe(undefined);
     });
@@ -62,7 +63,7 @@ describe('IdleTransaction', () => {
       transaction.end();
       jest.runAllTimers();
 
-      const scope = hub.getScope();
+      const scope = getCurrentScope();
       // eslint-disable-next-line deprecation/deprecation
       expect(scope.getTransaction()).toBe(undefined);
     });
@@ -80,7 +81,7 @@ describe('IdleTransaction', () => {
       transaction.end();
       jest.runAllTimers();
 
-      const scope = hub.getScope();
+      const scope = getCurrentScope();
       // eslint-disable-next-line deprecation/deprecation
       expect(scope.getTransaction()).toBe(undefined);
     });
@@ -100,12 +101,12 @@ describe('IdleTransaction', () => {
       // eslint-disable-next-line deprecation/deprecation
       const otherTransaction = new Transaction({ name: 'bar' }, hub);
       // eslint-disable-next-line deprecation/deprecation
-      hub.getScope().setSpan(otherTransaction);
+      getCurrentScope().setSpan(otherTransaction);
 
       transaction.end();
       jest.runAllTimers();
 
-      const scope = hub.getScope();
+      const scope = getCurrentScope();
       // eslint-disable-next-line deprecation/deprecation
       expect(scope.getTransaction()).toBe(otherTransaction);
     });
@@ -197,16 +198,22 @@ describe('IdleTransaction', () => {
     getCurrentScope().setSpan(transaction);
 
     // regular child - should be kept
-    const regularSpan = startInactiveSpan({ name: 'span1', startTimestamp: transaction.startTimestamp + 2 })!;
+    const regularSpan = startInactiveSpan({
+      name: 'span1',
+      startTimestamp: spanToJSON(transaction).start_timestamp! + 2,
+    })!;
 
     // discardedSpan - startTimestamp is too large
     startInactiveSpan({ name: 'span2', startTimestamp: 645345234 });
 
     // Should be cancelled - will not finish
-    const cancelledSpan = startInactiveSpan({ name: 'span3', startTimestamp: transaction.startTimestamp + 4 })!;
+    const cancelledSpan = startInactiveSpan({
+      name: 'span3',
+      startTimestamp: spanToJSON(transaction).start_timestamp! + 4,
+    })!;
 
-    regularSpan.end(regularSpan.startTimestamp + 4);
-    transaction.end(transaction.startTimestamp + 10);
+    regularSpan.end(spanToJSON(regularSpan).start_timestamp! + 4);
+    transaction.end(spanToJSON(transaction).start_timestamp! + 10);
 
     expect(transaction.spanRecorder).toBeDefined();
     if (transaction.spanRecorder) {
@@ -216,12 +223,12 @@ describe('IdleTransaction', () => {
 
       // Regular Span - should not modified
       expect(spans[1].spanContext().spanId).toBe(regularSpan.spanContext().spanId);
-      expect(spans[1].endTimestamp).not.toBe(transaction.endTimestamp);
+      expect(spans[1]['_endTime']).not.toBe(spanToJSON(transaction).timestamp);
 
       // Cancelled Span - has endtimestamp of transaction
       expect(spans[2].spanContext().spanId).toBe(cancelledSpan.spanContext().spanId);
       expect(spans[2].status).toBe('cancelled');
-      expect(spans[2].endTimestamp).toBe(transaction.endTimestamp);
+      expect(spans[2]['_endTime']).toBe(spanToJSON(transaction).timestamp);
     }
   });
 
@@ -231,10 +238,10 @@ describe('IdleTransaction', () => {
     // eslint-disable-next-line deprecation/deprecation
     getCurrentScope().setSpan(transaction);
 
-    const span = startInactiveSpan({ name: 'span', startTimestamp: transaction.startTimestamp + 2 })!;
-    span.end(span.startTimestamp + 10 + 30 + 1);
+    const span = startInactiveSpan({ name: 'span', startTimestamp: spanToJSON(transaction).start_timestamp! + 2 })!;
+    span.end(spanToJSON(span).start_timestamp! + 10 + 30 + 1);
 
-    transaction.end(transaction.startTimestamp + 50);
+    transaction.end(spanToJSON(transaction).start_timestamp! + 50);
 
     expect(transaction.spanRecorder).toBeDefined();
     expect(transaction.spanRecorder!.spans).toHaveLength(1);
@@ -243,12 +250,12 @@ describe('IdleTransaction', () => {
   it('should record dropped transactions', async () => {
     const transaction = new IdleTransaction({ name: 'foo', startTimestamp: 1234, sampled: false }, hub, 1000);
 
-    const client = hub.getClient()!;
+    const client = getClient()!;
 
     const recordDroppedEventSpy = jest.spyOn(client, 'recordDroppedEvent');
 
     transaction.initSpanRecorder(10);
-    transaction.end(transaction.startTimestamp + 10);
+    transaction.end(spanToJSON(transaction).start_timestamp! + 10);
 
     expect(recordDroppedEventSpy).toHaveBeenCalledWith('sample_rate', 'transaction');
   });
@@ -259,7 +266,7 @@ describe('IdleTransaction', () => {
       transaction.initSpanRecorder(10);
 
       jest.advanceTimersByTime(TRACING_DEFAULTS.idleTimeout);
-      expect(transaction.endTimestamp).toBeDefined();
+      expect(spanToJSON(transaction).timestamp).toBeDefined();
     });
 
     it('does not finish if a activity is started', () => {
@@ -271,7 +278,7 @@ describe('IdleTransaction', () => {
       startInactiveSpan({ name: 'span' });
 
       jest.advanceTimersByTime(TRACING_DEFAULTS.idleTimeout);
-      expect(transaction.endTimestamp).toBeUndefined();
+      expect(spanToJSON(transaction).timestamp).toBeUndefined();
     });
 
     it('does not finish when idleTimeout is not exceed after last activity finished', () => {
@@ -289,7 +296,7 @@ describe('IdleTransaction', () => {
 
       jest.advanceTimersByTime(8);
 
-      expect(transaction.endTimestamp).toBeUndefined();
+      expect(spanToJSON(transaction).timestamp).toBeUndefined();
     });
 
     it('finish when idleTimeout is exceeded after last activity finished', () => {
@@ -307,7 +314,7 @@ describe('IdleTransaction', () => {
 
       jest.advanceTimersByTime(10);
 
-      expect(transaction.endTimestamp).toBeDefined();
+      expect(spanToJSON(transaction).timestamp).toBeDefined();
     });
   });
 
@@ -325,7 +332,7 @@ describe('IdleTransaction', () => {
       firstSpan.end();
       secondSpan.end();
 
-      expect(transaction.endTimestamp).toBeDefined();
+      expect(spanToJSON(transaction).timestamp).toBeDefined();
     });
 
     it('permanent idle timeout cancel finished the transaction with the last child', () => {
@@ -341,13 +348,13 @@ describe('IdleTransaction', () => {
       const thirdSpan = startInactiveSpan({ name: 'span3' })!;
 
       firstSpan.end();
-      expect(transaction.endTimestamp).toBeUndefined();
+      expect(spanToJSON(transaction).timestamp).toBeUndefined();
 
       secondSpan.end();
-      expect(transaction.endTimestamp).toBeUndefined();
+      expect(spanToJSON(transaction).timestamp).toBeUndefined();
 
       thirdSpan.end();
-      expect(transaction.endTimestamp).toBeDefined();
+      expect(spanToJSON(transaction).timestamp).toBeDefined();
     });
 
     it('permanent idle timeout cancel finishes transaction if there are no activities', () => {
@@ -363,7 +370,7 @@ describe('IdleTransaction', () => {
 
       transaction.cancelIdleTimeout(undefined, { restartOnChildSpanChange: false });
 
-      expect(transaction.endTimestamp).toBeDefined();
+      expect(spanToJSON(transaction).timestamp).toBeDefined();
     });
 
     it('default idle cancel timeout is restarted by child span change', () => {
@@ -382,10 +389,10 @@ describe('IdleTransaction', () => {
       startSpan({ name: 'span' }, () => {});
 
       jest.advanceTimersByTime(8);
-      expect(transaction.endTimestamp).toBeUndefined();
+      expect(spanToJSON(transaction).timestamp).toBeUndefined();
 
       jest.advanceTimersByTime(2);
-      expect(transaction.endTimestamp).toBeDefined();
+      expect(spanToJSON(transaction).timestamp).toBeDefined();
     });
   });
 

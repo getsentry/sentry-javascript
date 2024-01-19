@@ -50,6 +50,7 @@ function wrapExpressRequestHandler(
       res.end = wrapEndMethod(res.end);
 
       const request = extractRequestData(req);
+      // eslint-disable-next-line deprecation/deprecation
       const hub = getCurrentHub();
       const options = getClient()?.getOptions();
       const scope = getCurrentScope();

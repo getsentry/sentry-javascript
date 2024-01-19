@@ -16,7 +16,7 @@ import { DEBUG_BUILD } from '../debug-build';
 import type { Hub } from '../hub';
 import { getCurrentHub } from '../hub';
 import { SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '../semanticAttributes';
-import { spanTimeInputToSeconds, spanToTraceContext } from '../utils/spanUtils';
+import { spanTimeInputToSeconds, spanToJSON, spanToTraceContext } from '../utils/spanUtils';
 import { getDynamicSamplingContextFromSpan } from './dynamicSamplingContext';
 import { Span as SpanClass, SpanRecorder } from './span';
 
@@ -54,6 +54,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
     this._measurements = {};
     this._contexts = {};
 
+    // eslint-disable-next-line deprecation/deprecation
     this._hub = hub || getCurrentHub();
 
     this._name = transactionContext.name || '';
@@ -66,6 +67,8 @@ export class Transaction extends SpanClass implements TransactionInterface {
     this._trimEnd = transactionContext.trimEnd;
 
     // this is because transactions are also spans, and spans have a transaction pointer
+    // TODO (v8): Replace this with another way to set the root span
+    // eslint-disable-next-line deprecation/deprecation
     this.transaction = this;
 
     // If Dynamic Sampling Context is provided during the creation of the transaction, we freeze it as it usually means
@@ -135,7 +138,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
   /**
    * Setter for `name` property, which also sets `source` on the metadata.
    *
-   * @deprecated Use `updateName()` and `setMetadata()` instead.
+   * @deprecated Use `.updateName()` and `.setAttribute()` instead.
    */
   public setName(name: string, source: TransactionMetadata['source'] = 'custom'): void {
     this._name = name;
@@ -153,9 +156,12 @@ export class Transaction extends SpanClass implements TransactionInterface {
    * @param maxlen maximum number of spans that can be recorded
    */
   public initSpanRecorder(maxlen: number = 1000): void {
+    // eslint-disable-next-line deprecation/deprecation
     if (!this.spanRecorder) {
+      // eslint-disable-next-line deprecation/deprecation
       this.spanRecorder = new SpanRecorder(maxlen);
     }
+    // eslint-disable-next-line deprecation/deprecation
     this.spanRecorder.add(this);
   }
 
@@ -174,6 +180,8 @@ export class Transaction extends SpanClass implements TransactionInterface {
 
   /**
    * @inheritDoc
+   *
+   * @deprecated Use top-level `setMeasurement()` instead.
    */
   public setMeasurement(name: string, value: number, unit: MeasurementUnit = ''): void {
     this._measurements[name] = { value, unit };
@@ -253,7 +261,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
    */
   protected _finishTransaction(endTimestamp?: number): TransactionEvent | undefined {
     // This transaction is already finished, so we should not flush it again.
-    if (this.endTimestamp !== undefined) {
+    if (this._endTime !== undefined) {
       return undefined;
     }
 
@@ -265,6 +273,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
     // just sets the end timestamp
     super.end(endTimestamp);
 
+    // eslint-disable-next-line deprecation/deprecation
     const client = this._hub.getClient();
     if (client && client.emit) {
       client.emit('finishTransaction', this);
@@ -281,15 +290,17 @@ export class Transaction extends SpanClass implements TransactionInterface {
       return undefined;
     }
 
-    const finishedSpans = this.spanRecorder ? this.spanRecorder.spans.filter(s => s !== this && s.endTimestamp) : [];
+    // eslint-disable-next-line deprecation/deprecation
+    const finishedSpans = this.spanRecorder
+      ? // eslint-disable-next-line deprecation/deprecation
+        this.spanRecorder.spans.filter(span => span !== this && spanToJSON(span).timestamp)
+      : [];
 
     if (this._trimEnd && finishedSpans.length > 0) {
-      this.endTimestamp = finishedSpans.reduce((prev: SpanClass, current: SpanClass) => {
-        if (prev.endTimestamp && current.endTimestamp) {
-          return prev.endTimestamp > current.endTimestamp ? prev : current;
-        }
-        return prev;
-      }).endTimestamp;
+      const endTimes = finishedSpans.map(span => spanToJSON(span).timestamp).filter(Boolean) as number[];
+      this._endTime = endTimes.reduce((prev, current) => {
+        return prev > current ? prev : current;
+      });
     }
 
     // eslint-disable-next-line deprecation/deprecation
@@ -305,10 +316,10 @@ export class Transaction extends SpanClass implements TransactionInterface {
       },
       // TODO: Pass spans serialized via `spanToJSON()` here instead in v8.
       spans: finishedSpans,
-      start_timestamp: this.startTimestamp,
+      start_timestamp: this._startTime,
       // eslint-disable-next-line deprecation/deprecation
       tags: this.tags,
-      timestamp: this.endTimestamp,
+      timestamp: this._endTime,
       transaction: this._name,
       type: 'transaction',
       sdkProcessingMetadata: {
@@ -333,6 +344,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
       transaction.measurements = this._measurements;
     }
 
+    // eslint-disable-next-line deprecation/deprecation
     DEBUG_BUILD && logger.log(`[Tracing] Finishing ${this.op} transaction: ${this._name}.`);
 
     return transaction;

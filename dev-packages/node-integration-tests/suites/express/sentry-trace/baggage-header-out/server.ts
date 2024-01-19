@@ -1,4 +1,5 @@
 import http from 'http';
+import { loggingTransport, startExpressServerAndSendPortToRunner } from '@sentry-internal/node-integration-tests';
 import * as Sentry from '@sentry/node';
 import * as Tracing from '@sentry/tracing';
 import cors from 'cors';
@@ -16,6 +17,7 @@ Sentry.init({
   // eslint-disable-next-line deprecation/deprecation
   integrations: [new Sentry.Integrations.Http({ tracing: true }), new Tracing.Integrations.Express({ app })],
   tracesSampleRate: 1.0,
+  transport: loggingTransport,
 });
 
 Sentry.setUser({ id: 'user123', segment: 'SegmentA' });
@@ -27,7 +29,7 @@ app.use(cors());
 
 app.get('/test/express', (_req, res) => {
   // eslint-disable-next-line deprecation/deprecation
-  const transaction = Sentry.getCurrentHub().getScope().getTransaction();
+  const transaction = Sentry.getCurrentScope().getTransaction();
   if (transaction) {
     // eslint-disable-next-line deprecation/deprecation
     transaction.traceId = '86f39e84263a4de99c326acab3bfe3bd';
@@ -40,4 +42,4 @@ app.get('/test/express', (_req, res) => {
 
 app.use(Sentry.Handlers.errorHandler());
 
-export default app;
+startExpressServerAndSendPortToRunner(app);

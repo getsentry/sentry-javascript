@@ -13,14 +13,14 @@ import { getSanitizedUrlString, parseUrl } from '@sentry/utils';
 
 const INTEGRATION_NAME = 'BunServer';
 
-const bunServerIntegration: IntegrationFn = () => {
+const bunServerIntegration = (() => {
   return {
     name: INTEGRATION_NAME,
     setupOnce() {
       instrumentBunServe();
     },
   };
-};
+}) satisfies IntegrationFn;
 
 /**
  * Instruments `Bun.serve` to automatically create transactions and capture errors.

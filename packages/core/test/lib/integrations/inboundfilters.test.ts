@@ -33,11 +33,12 @@ function createInboundFiltersEventProcessor(
       dsn: PUBLIC_DSN,
       ...clientOptions,
       defaultIntegrations: false,
+      // eslint-disable-next-line deprecation/deprecation
       integrations: [new InboundFilters(options)],
     }),
   );
 
-  client.setupIntegrations();
+  client.init();
 
   const eventProcessors = client['_eventProcessors'];
   const eventProcessor = eventProcessors.find(processor => processor.id === 'InboundFilters');

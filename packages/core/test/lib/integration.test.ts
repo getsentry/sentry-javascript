@@ -618,6 +618,7 @@ describe('addIntegration', () => {
 
     const client = getTestClient();
     const hub = new Hub(client);
+    // eslint-disable-next-line deprecation/deprecation
     makeMain(hub);
 
     const integration = new CustomIntegration();
@@ -635,6 +636,7 @@ describe('addIntegration', () => {
     }
 
     const hub = new Hub();
+    // eslint-disable-next-line deprecation/deprecation
     makeMain(hub);
 
     const integration = new CustomIntegration();
@@ -649,7 +651,10 @@ describe('addIntegration', () => {
 describe('convertIntegrationFnToClass', () => {
   /* eslint-disable deprecation/deprecation */
   it('works with a minimal integration', () => {
-    const integrationFn = () => ({ name: 'testName' });
+    const integrationFn = () => ({
+      name: 'testName',
+      setupOnce: () => {},
+    });
 
     const IntegrationClass = convertIntegrationFnToClass('testName', integrationFn);
 
@@ -663,13 +668,16 @@ describe('convertIntegrationFnToClass', () => {
   });
 
   it('works with options', () => {
-    const integrationFn = (_options: { num: number }) => ({ name: 'testName' });
+    const integrationFn = (_options: { num: number }) => ({
+      name: 'testName',
+      setupOnce: () => {},
+    });
 
     const IntegrationClass = convertIntegrationFnToClass('testName', integrationFn);
 
     expect(IntegrationClass.id).toBe('testName');
 
-    // @ts-expect-error This should fail TS without options
+    // not type safe options by default :(
     new IntegrationClass();
 
     const integration = new IntegrationClass({ num: 3 });
