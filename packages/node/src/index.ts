@@ -79,6 +79,7 @@ export {
   startInactiveSpan,
   startSpanManual,
   continueTrace,
+  parameterize,
   metrics,
   functionToStringIntegration,
   inboundFiltersIntegration,
@@ -98,7 +99,7 @@ export {
   defaultStackParser,
   getSentryRelease,
 } from './sdk';
-export { addRequestDataToEvent, DEFAULT_USER_INCLUDES, extractRequestData, parameterize } from '@sentry/utils';
+export { addRequestDataToEvent, DEFAULT_USER_INCLUDES, extractRequestData } from '@sentry/utils';
 // eslint-disable-next-line deprecation/deprecation
 export { deepReadDirSync } from './utils';
 

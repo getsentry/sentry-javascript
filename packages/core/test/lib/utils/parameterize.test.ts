@@ -1,6 +1,6 @@
 import type { ParameterizedString } from '@sentry/types';
 
-import { parameterize } from '../src/parameterize';
+import { parameterize } from '../../../src/utils/parameterize';
 
 describe('parameterize()', () => {
   test('works with empty string', () => {
