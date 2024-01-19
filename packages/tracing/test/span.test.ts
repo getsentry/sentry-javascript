@@ -1,7 +1,7 @@
 /* eslint-disable deprecation/deprecation */
 import { BrowserClient } from '@sentry/browser';
 import { Hub, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, Scope, makeMain, spanToJSON } from '@sentry/core';
-import type { BaseTransportOptions, ClientOptions, SpanOrigin, TransactionSource } from '@sentry/types';
+import type { BaseTransportOptions, ClientOptions, TransactionSource } from '@sentry/types';
 
 import { Span, TRACEPARENT_REGEXP, Transaction } from '../src';
 import { getDefaultBrowserClientOptions } from './testutils';
