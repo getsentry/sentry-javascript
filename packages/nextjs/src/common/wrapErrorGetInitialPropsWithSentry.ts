@@ -1,5 +1,6 @@
 import {
   addTracingExtensions,
+  getActiveSpan,
   getClient,
   getCurrentScope,
   getDynamicSamplingContextFromSpan,
@@ -10,11 +11,7 @@ import type { NextPageContext } from 'next';
 import type { ErrorProps } from 'next/error';
 
 import { isBuild } from './utils/isBuild';
-import {
-  getTransactionFromRequest,
-  withErrorInstrumentation,
-  withTracedServerSideDataFetcher,
-} from './utils/wrapperUtils';
+import { getSpanFromRequest, withErrorInstrumentation, withTracedServerSideDataFetcher } from './utils/wrapperUtils';
 
 type ErrorGetInitialProps = (context: NextPageContext) => Promise<ErrorProps>;
 
@@ -59,13 +56,11 @@ export function wrapErrorGetInitialPropsWithSentry(
           _sentryBaggage?: string;
         } = await tracedGetInitialProps.apply(thisArg, args);
 
-        // TODO
-        // eslint-disable-next-line deprecation/deprecation
-        const requestTransaction = getTransactionFromRequest(req) ?? getCurrentScope().getTransaction();
-        if (requestTransaction) {
-          errorGetInitialProps._sentryTraceData = spanToTraceHeader(requestTransaction);
+        const requestSpan = getSpanFromRequest(req) ?? getActiveSpan();
+        if (requestSpan) {
+          errorGetInitialProps._sentryTraceData = spanToTraceHeader(requestSpan);
 
-          const dynamicSamplingContext = getDynamicSamplingContextFromSpan(requestTransaction);
+          const dynamicSamplingContext = getDynamicSamplingContextFromSpan(requestSpan);
           errorGetInitialProps._sentryBaggage = dynamicSamplingContextToSentryBaggageHeader(dynamicSamplingContext);
         }
 

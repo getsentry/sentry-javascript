@@ -1,7 +1,7 @@
 import {
   addTracingExtensions,
+  getActiveSpan,
   getClient,
-  getCurrentScope,
   getDynamicSamplingContextFromSpan,
   spanToTraceHeader,
 } from '@sentry/core';
@@ -9,11 +9,7 @@ import { dynamicSamplingContextToSentryBaggageHeader } from '@sentry/utils';
 import type { NextPage } from 'next';
 
 import { isBuild } from './utils/isBuild';
-import {
-  getTransactionFromRequest,
-  withErrorInstrumentation,
-  withTracedServerSideDataFetcher,
-} from './utils/wrapperUtils';
+import { getSpanFromRequest, withErrorInstrumentation, withTracedServerSideDataFetcher } from './utils/wrapperUtils';
 
 type GetInitialProps = Required<NextPage>['getInitialProps'];
 
@@ -55,13 +51,11 @@ export function wrapGetInitialPropsWithSentry(origGetInitialProps: GetInitialPro
           _sentryBaggage?: string;
         } = (await tracedGetInitialProps.apply(thisArg, args)) ?? {}; // Next.js allows undefined to be returned from a getInitialPropsFunction.
 
-        // TODO
-        // eslint-disable-next-line deprecation/deprecation
-        const requestTransaction = getTransactionFromRequest(req) ?? getCurrentScope().getTransaction();
-        if (requestTransaction) {
-          initialProps._sentryTraceData = spanToTraceHeader(requestTransaction);
+        const requestSpan = getSpanFromRequest(req) ?? getActiveSpan();
+        if (requestSpan) {
+          initialProps._sentryTraceData = spanToTraceHeader(requestSpan);
 
-          const dynamicSamplingContext = getDynamicSamplingContextFromSpan(requestTransaction);
+          const dynamicSamplingContext = getDynamicSamplingContextFromSpan(requestSpan);
           initialProps._sentryBaggage = dynamicSamplingContextToSentryBaggageHeader(dynamicSamplingContext);
         }
 

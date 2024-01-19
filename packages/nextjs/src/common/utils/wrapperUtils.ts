@@ -8,7 +8,7 @@ import {
   runWithAsyncContext,
   startTransaction,
 } from '@sentry/core';
-import type { Span, Transaction } from '@sentry/types';
+import type { Span } from '@sentry/types';
 import { isString, tracingContextFromHeaders } from '@sentry/utils';
 
 import { platformSupportsStreaming } from './platformSupportsStreaming';
@@ -16,7 +16,7 @@ import { autoEndTransactionOnResponseEnd, flushQueue } from './responseEnd';
 
 declare module 'http' {
   interface IncomingMessage {
-    _sentryTransaction?: Transaction;
+    _sentrySpan?: Span;
   }
 }
 
@@ -27,12 +27,12 @@ declare module 'http' {
  * @param req The Next.js datafetcher request object
  * @returns the Transaction on the request object if there is one, or `undefined` if the request object didn't have one.
  */
-export function getTransactionFromRequest(req: IncomingMessage): Transaction | undefined {
-  return req._sentryTransaction;
+export function getSpanFromRequest(req: IncomingMessage): Span | undefined {
+  return req._sentrySpan;
 }
 
-function setTransactionOnRequest(transaction: Transaction, req: IncomingMessage): void {
-  req._sentryTransaction = transaction;
+function setSpanOnRequest(span: Span, req: IncomingMessage): void {
+  req._sentrySpan = span;
 }
 
 /**
@@ -87,7 +87,7 @@ export function withTracedServerSideDataFetcher<F extends (...args: any[]) => Pr
   return async function (this: unknown, ...args: Parameters<F>): Promise<ReturnType<F>> {
     return runWithAsyncContext(async () => {
       const scope = getCurrentScope();
-      const previousSpan: Span | undefined = getTransactionFromRequest(req) ?? getActiveSpan();
+      const previousSpan = getSpanFromRequest(req) ?? getActiveSpan();
       let dataFetcherSpan;
 
       const sentryTrace =
@@ -127,7 +127,7 @@ export function withTracedServerSideDataFetcher<F extends (...args: any[]) => Pr
 
           // Link the transaction and the request together, so that when we would normally only have access to one, it's
           // still possible to grab the other.
-          setTransactionOnRequest(newTransaction, req);
+          setSpanOnRequest(newTransaction, req);
           spanToContinue = newTransaction;
         } else {
           spanToContinue = previousSpan;
