@@ -166,7 +166,7 @@ export interface SpanContext {
 }
 
 /** Span holding trace_id, span_id */
-export interface Span extends Omit<SpanContext, 'op' | 'status'> {
+export interface Span extends Omit<SpanContext, 'op' | 'status' | 'origin'> {
   /**
    * Human-readable identifier for the span. Identical to span.description.
    * @deprecated Use `spanToJSON(span).description` instead.
