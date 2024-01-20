@@ -6,7 +6,7 @@
 // which will copy all binaries to the outfile folder and throw if any of them are missing.
 import esbuild from 'esbuild';
 
-console.log("Running build using esbuild version", esbuild.version)
+console.log('Running build using esbuild version', esbuild.version);
 
 esbuild.buildSync({
   platform: 'node',
