@@ -12,7 +12,7 @@
   },
   "dependencies": {
     "@sentry/node": "latest || *",
-    "@sentry/profiling-node": "latest || *",
+    "@sentry/profiling-node": "latest || *"
   },
   "devDependencies": {},
   "volta": {
