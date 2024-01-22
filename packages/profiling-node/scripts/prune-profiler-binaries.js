@@ -1,4 +1,8 @@
 #! /usr/bin/env node
+
+// This is a build scripts, so some logging is desireable as it allows
+// us to follow the code path that triggered the error.
+/* eslint-disable no-console */
 const fs = require('fs');
 
 let SOURCE_DIR, PLATFORM, ARCH, STDLIB, NODE, HELP;
@@ -37,7 +41,6 @@ for (let i = 0; i < process.argv.length; i++) {
 }
 
 if (HELP) {
-  // eslint-disable-next-line no-console
   console.log(
     `\nSentry: Prune profiler binaries\n
 Usage: sentry-prune-profiler-binaries --target_dir_path=... --target_platform=... --target_arch=... --target_stdlib=...\n
@@ -91,7 +94,6 @@ If you are unsure about the execution environment, you can opt to skip some valu
 }
 
 if (ARGV_ERRORS.length > 0) {
-  // eslint-disable-next-line no-console
   console.log(ARGV_ERRORS.join('\n'));
   process.exit(1);
 }
@@ -150,18 +152,15 @@ async function prune(binaries) {
     removedBinariesCount++;
 
     if (process.argv.includes('--dry-run')) {
-      // eslint-disable-next-line no-console
       console.log(`Sentry: would have pruned ${binary} (${bytesToHumanReadable(stats.size)})`);
       continue;
     }
 
-    // eslint-disable-next-line no-console
     console.log(`Sentry: pruned ${binary} (${bytesToHumanReadable(stats.size)})`);
     fs.unlinkSync(binary);
   }
 
   if (removedBinariesCount === 0) {
-    // eslint-disable-next-line no-console
     console.log(
       '❌ Sentry: no binaries pruned, please make sure target argument values are valid or use --help for more information.',
     );
@@ -169,7 +168,6 @@ async function prune(binaries) {
   }
 
   if (process.argv.includes('--dry-run')) {
-    // eslint-disable-next-line no-console
     console.log(
       `✅ Sentry: would have pruned ${removedBinariesCount} ${
         removedBinariesCount === 1 ? 'binary' : 'binaries'
@@ -178,7 +176,6 @@ async function prune(binaries) {
     return;
   }
 
-  // eslint-disable-next-line no-console
   console.log(
     `✅ Sentry: pruned ${removedBinariesCount} ${
       removedBinariesCount === 1 ? 'binary' : 'binaries'
