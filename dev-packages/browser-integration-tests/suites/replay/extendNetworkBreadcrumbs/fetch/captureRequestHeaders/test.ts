@@ -271,26 +271,25 @@ sentryTest('captures request headers as Headers instance', async ({ getLocalTest
 
   const url = await getLocalTestPath({ testDir: __dirname });
 
-  await Promise.all([
-    page.goto(url),
-    page.evaluate(() => {
-      const headers = new Headers();
-      headers.append('Accept', 'application/json');
-      headers.append('Content-Type', 'application/json');
-      headers.append('Cache', 'no-cache');
-      headers.append('X-Custom-Header', 'foo');
+  await page.goto(url);
 
-      /* eslint-disable */
-      fetch('http://localhost:7654/foo', {
-        method: 'POST',
-        headers,
-      }).then(() => {
-        // @ts-expect-error Sentry is a global
-        Sentry.captureException('test error');
-      });
-      /* eslint-enable */
-    }),
-  ]);
+  await page.evaluate(() => {
+    const headers = new Headers();
+    headers.append('Accept', 'application/json');
+    headers.append('Content-Type', 'application/json');
+    headers.append('Cache', 'no-cache');
+    headers.append('X-Custom-Header', 'foo');
+
+    /* eslint-disable */
+    fetch('http://localhost:7654/foo', {
+      method: 'POST',
+      headers,
+    }).then(() => {
+      // @ts-expect-error Sentry is a global
+      Sentry.captureException('test error');
+    });
+    /* eslint-enable */
+  });
 
   const request = await requestPromise;
   const eventData = envelopeRequestParser(request);
