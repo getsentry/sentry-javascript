@@ -1,3 +1,6 @@
+// This is a build scripts, so some logging is desireable as it allows
+// us to follow the code path that triggered the error.
+/* eslint-disable no-console */
 const fs = require('fs');
 const path = require('path');
 const process = require('process');
@@ -13,15 +16,12 @@ const source = path.join(__dirname, '..', 'build', 'Release', 'sentry_cpu_profil
 const target = path.join(__dirname, '..', 'lib', binaries.getModuleName());
 
 if (!fs.existsSync(source)) {
-  // eslint-disable-next-line no-console
   console.log('Source file does not exist:', source);
   process.exit(1);
 } else {
   if (fs.existsSync(target)) {
-    // eslint-disable-next-line no-console
     console.log('Target file already exists, overwriting it');
   }
-  // eslint-disable-next-line no-console
   console.log('Renaming', source, 'to', target);
   fs.renameSync(source, target);
 }
