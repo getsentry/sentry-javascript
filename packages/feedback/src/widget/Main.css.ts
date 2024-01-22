@@ -28,10 +28,10 @@ function getThemedCssVariables(theme: FeedbackTheme): string {
   --input-background: ${theme.inputBackground};
   --input-foreground: ${theme.inputForeground};
   --input-border: ${theme.inputBorder};
-  --input-border-radius: ${theme.inputBorderRadius};
   --input-outline-focus: ${theme.inputOutlineFocus};
 
   --form-border-radius: ${theme.formBorderRadius};
+  --form-content-border-radius: ${theme.formContentBorderRadius};
   `;
 }
 

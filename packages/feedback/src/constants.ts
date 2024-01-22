@@ -39,10 +39,10 @@ const LIGHT_THEME = {
   inputBackground: INHERIT,
   inputForeground: INHERIT,
   inputBorder: 'var(--border)',
-  inputBorderRadius: '6px',
   inputOutlineFocus: SUBMIT_COLOR,
 
   formBorderRadius: '20px',
+  formContentBorderRadius: '6px',
 };
 
 export const DEFAULT_THEME = {
