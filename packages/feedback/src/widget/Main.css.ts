@@ -8,6 +8,7 @@ function getThemedCssVariables(theme: FeedbackTheme): string {
   --error: ${theme.error};
   --success: ${theme.success};
   --border: ${theme.border};
+  --border-radius: ${theme.borderRadius};
   --box-shadow: ${theme.boxShadow};
 
   --submit-background: ${theme.submitBackground};
@@ -20,6 +21,7 @@ function getThemedCssVariables(theme: FeedbackTheme): string {
   --cancel-background: ${theme.cancelBackground};
   --cancel-background-hover: ${theme.cancelBackgroundHover};
   --cancel-border: ${theme.cancelBorder};
+  --cancel-border-radius: ${theme.cancelBorderRadius};
   --cancel-outline-focus: ${theme.cancelOutlineFocus};
   --cancel-foreground: ${theme.cancelForeground};
   --cancel-foreground-hover: ${theme.cancelForegroundHover};
@@ -27,7 +29,10 @@ function getThemedCssVariables(theme: FeedbackTheme): string {
   --input-background: ${theme.inputBackground};
   --input-foreground: ${theme.inputForeground};
   --input-border: ${theme.inputBorder};
+  --input-border-radius: ${theme.inputBorderRadius};
   --input-outline-focus: ${theme.inputOutlineFocus};
+
+  --form-border-radius: ${theme.formBorderRadius};
   `;
 }
 

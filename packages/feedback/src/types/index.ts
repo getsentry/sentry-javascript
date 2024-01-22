@@ -216,6 +216,10 @@ export interface FeedbackTheme {
    */
   border: string;
   /**
+   * Border styling for actor and dialog
+   */
+  borderRadius: string;
+  /**
    * Box shadow for actor and dialog
    */
   boxShadow: string;
@@ -271,6 +275,10 @@ export interface FeedbackTheme {
    */
   cancelBorder: string;
   /**
+   * Border radius for buttons
+   */
+  cancelBorderRadius: string;
+  /**
    * Border style for the cancel button, in the focued state
    */
   cancelOutlineFocus: string;
@@ -296,9 +304,17 @@ export interface FeedbackTheme {
    */
   inputBorder: string;
   /**
+   * Border radius for form inputs
+   */
+  inputBorderRadius: string;
+  /**
    * Border styles for form inputs when focused
    */
   inputOutlineFocus: string;
+  /**
+   * Border radius for dialog
+   */
+  formBorderRadius: string;
 }
 
 export interface FeedbackThemes {
