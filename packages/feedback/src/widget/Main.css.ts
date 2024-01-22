@@ -21,7 +21,6 @@ function getThemedCssVariables(theme: FeedbackTheme): string {
   --cancel-background: ${theme.cancelBackground};
   --cancel-background-hover: ${theme.cancelBackgroundHover};
   --cancel-border: ${theme.cancelBorder};
-  --cancel-border-radius: ${theme.cancelBorderRadius};
   --cancel-outline-focus: ${theme.cancelOutlineFocus};
   --cancel-foreground: ${theme.cancelForeground};
   --cancel-foreground-hover: ${theme.cancelForegroundHover};

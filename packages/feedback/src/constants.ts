@@ -32,7 +32,6 @@ const LIGHT_THEME = {
   cancelBackground: 'transparent',
   cancelBackgroundHover: 'var(--background-hover)',
   cancelBorder: 'var(--border)',
-  cancelBorderRadius: '6px',
   cancelOutlineFocus: 'var(--input-outline-focus)',
   cancelForeground: 'var(--foreground)',
   cancelForegroundHover: 'var(--foreground)',

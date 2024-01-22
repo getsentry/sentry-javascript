@@ -216,7 +216,7 @@ export interface FeedbackTheme {
    */
   border: string;
   /**
-   * Border styling for actor and dialog
+   * Border radius styling for actor and dialog
    */
   borderRadius: string;
   /**
@@ -274,10 +274,6 @@ export interface FeedbackTheme {
    * Border style for the cancel button
    */
   cancelBorder: string;
-  /**
-   * Border radius for buttons
-   */
-  cancelBorderRadius: string;
   /**
    * Border style for the cancel button, in the focued state
    */
