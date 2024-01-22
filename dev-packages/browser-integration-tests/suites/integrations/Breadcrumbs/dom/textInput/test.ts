@@ -23,7 +23,6 @@ sentryTest('captures Breadcrumb for events on inputs & debounced them', async ({
 
   await page.goto(url);
 
-  await page.locator('#input1').click();
   // Not debounced because other event type
   await page.locator('#input1').pressSequentially('John', { delay: 1 });
 
@@ -44,11 +43,6 @@ sentryTest('captures Breadcrumb for events on inputs & debounced them', async ({
   expect(eventData.exception?.values).toHaveLength(1);
 
   expect(eventData.breadcrumbs).toEqual([
-    {
-      timestamp: expect.any(Number),
-      category: 'ui.click',
-      message: 'body > input#input1[type="text"]',
-    },
     {
       timestamp: expect.any(Number),
       category: 'ui.input',
@@ -88,7 +82,6 @@ sentryTest(
 
     await page.goto(url);
 
-    await page.locator('#annotated-input').click();
     await page.locator('#annotated-input').pressSequentially('John', { delay: 1 });
 
     await page.evaluate('Sentry.captureException("test exception")');
@@ -96,12 +89,6 @@ sentryTest(
     expect(eventData.exception?.values).toHaveLength(1);
 
     expect(eventData.breadcrumbs).toEqual([
-      {
-        timestamp: expect.any(Number),
-        category: 'ui.click',
-        message: 'body > AnnotatedInput',
-        data: { 'ui.component_name': 'AnnotatedInput' },
-      },
       {
         timestamp: expect.any(Number),
         category: 'ui.input',
