@@ -31,7 +31,8 @@
   "dependencies": {
     "@sentry/browser": "7.94.1",
     "@sentry/types": "7.94.1",
-    "@sentry/utils": "7.94.1"
+    "@sentry/utils": "7.94.1",
+    "@sentry/core": "7.94.1"
   },
   "scripts": {
     "build": "run-p build:transpile build:bundle build:types",
