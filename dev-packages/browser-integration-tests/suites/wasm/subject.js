@@ -1,3 +1,5 @@
+import * as Sentry from '@sentry/browser';
+
 window.events = [];
 
 window.getEvent = async () => {
