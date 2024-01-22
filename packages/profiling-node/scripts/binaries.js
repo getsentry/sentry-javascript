@@ -11,13 +11,13 @@ function getModuleName() {
 
   if (platform === 'darwin' && arch === 'arm64') {
     const identifier = [platform, 'arm64', abi.getAbi(process.versions.node, 'node')]
-      .filter(c => c !== undefined && c !== null)
+      .filter(Boolean)
       .join('-');
     return `sentry_cpu_profiler-${identifier}.node`;
   }
 
   const identifier = [platform, arch, stdlib, abi.getAbi(process.versions.node, 'node')]
-    .filter(c => c !== undefined && c !== null)
+    .filter(Boolean)
     .join('-');
 
   return `sentry_cpu_profiler-${identifier}.node`;
