@@ -297,6 +297,7 @@ jobs:
           # Else, we fall back to the default handling of the action
           run_for_branch: ${{ (needs.job_get_metadata.outputs.is_release == 'true' && 'true') || '' }}
 
+
   job_lint:
     name: Lint
     # Even though the linter only checks source code, not built code, it needs the built code in order check that all
