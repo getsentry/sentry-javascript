@@ -245,7 +245,7 @@ export function addPerformanceEntries(transaction: Transaction): void {
     if (typeof responseStartTimestamp === 'number' && transactionStartTime) {
       DEBUG_BUILD && logger.log('[Measurements] Adding TTFB');
       _measurements['ttfb'] = {
-        value: (responseStartTimestamp - transactionStartTime) * 1000,
+        value: Math.max(responseStartTimestamp - transactionStartTime, 0) * 1000,
         unit: 'millisecond',
       };
 
