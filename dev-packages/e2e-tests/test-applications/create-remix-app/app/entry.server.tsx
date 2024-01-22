@@ -19,7 +19,6 @@ Sentry.init({
   dsn: process.env.E2E_TEST_DSN,
   // Performance Monitoring
   tracesSampleRate: 1.0, // Capture 100% of the transactions, reduce in production!
-  debug: true,
 });
 
 export const handleError = Sentry.wrapRemixHandleError;
