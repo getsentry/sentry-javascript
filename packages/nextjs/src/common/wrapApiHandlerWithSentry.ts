@@ -4,10 +4,19 @@ import {
   captureException,
   continueTrace,
   getCurrentScope,
-  runWithAsyncContext,
+  startSpan,
   startSpanManual,
+  withIsolationScope,
+  withScope,
 } from '@sentry/core';
-import { consoleSandbox, isString, logger, objectify, stripUrlQueryAndFragment } from '@sentry/utils';
+import {
+  consoleSandbox,
+  isString,
+  logger,
+  objectify,
+  stripUrlQueryAndFragment,
+  tracingContextFromHeaders,
+} from '@sentry/utils';
 
 import type { AugmentedNextApiRequest, AugmentedNextApiResponse, NextApiHandler } from './types';
 import { platformSupportsStreaming } from './utils/platformSupportsStreaming';
@@ -76,11 +85,18 @@ export function withSentry(apiHandler: NextApiHandler, parameterizedRoute?: stri
 
       addTracingExtensions();
 
-      return runWithAsyncContext(async () => {
+      return withIsolationScope(async isolationScope => {
+        const { propagationContext } = tracingContextFromHeaders(
+          req.headers && isString(req.headers['sentry-trace']) ? req.headers['sentry-trace'] : undefined,
+          req.headers?.baggage,
+        );
+
         const transactionContext = continueTrace({
           sentryTrace: req.headers && isString(req.headers['sentry-trace']) ? req.headers['sentry-trace'] : undefined,
           baggage: req.headers?.baggage,
         });
+
+        isolationScope.setPropagationContext(propagationContext);
 
         // prefer the parameterized route, if we have it (which we will if we've auto-wrapped the route handler)
         let reqPath = parameterizedRoute;
