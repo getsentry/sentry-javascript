@@ -133,6 +133,10 @@ jobs:
               - 'packages/node-experimental/**'
               - 'packages/profiling-node/**'
               - 'dev-packages/node-integration-tests/**'
+            profiling_node:
+              - *shared
+              - 'packages/node/**'
+              - 'packages/profiling-node/**'
             deno:
               - *shared
               - *browser
@@ -150,6 +154,7 @@ jobs:
       changed_ember: ${{ steps.changed.outputs.ember }}
       changed_remix: ${{ steps.changed.outputs.remix }}
       changed_node: ${{ steps.changed.outputs.node }}
+      changed_profiling_node: ${{ steps.changed.outputs.profiling_node }}
       changed_deno: ${{ steps.changed.outputs.deno }}
       changed_browser: ${{ steps.changed.outputs.browser }}
       changed_browser_integration: ${{ steps.changed.outputs.browser_integration }}
@@ -537,6 +542,7 @@ jobs:
   job_profiling_node_unit_tests:
     name: Node Profiling Unit Tests
     needs: [job_get_metadata, job_build]
+    if: needs.job_get_metadata.outputs.changed_profiling_node == 'true' || github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -1416,7 +1422,7 @@ jobs:
 
       - name: Build Monorepo
         if: steps.restore-build.outputs.cache-hit != 'true'
-        run: yarn build --ignore @sentry/serverless --ignore @sentry/browser --ignore @sentry/astro
+        run: yarn build --scope @sentry/profiling-node
 
       - name: Test Bindings
         if: matrix.arch != 'arm64'
