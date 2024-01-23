@@ -61,7 +61,8 @@
   "dependencies": {
     "@sentry/core": "7.94.1",
     "@sentry/replay": "7.94.1",
-    "@sentry/types": "7.94.1"
+    "@sentry/types": "7.94.1",
+    "@sentry/utils": "7.94.1"
   },
   "engines": {
     "node": ">=12"
