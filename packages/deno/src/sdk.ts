@@ -1,6 +1,6 @@
-import { Breadcrumbs, Dedupe } from '@sentry/browser';
+import { breadcrumbsIntegration, dedupeIntegration } from '@sentry/browser';
 import type { ServerRuntimeClientOptions } from '@sentry/core';
-import { FunctionToString, InboundFilters, LinkedErrors } from '@sentry/core';
+import { functionToStringIntegration, inboundFiltersIntegration, linkedErrorsIntegration } from '@sentry/core';
 import { getIntegrationsToSetup, initAndBind } from '@sentry/core';
 import type { Integration, Options, StackParser } from '@sentry/types';
 import { createStackParser, nodeStackLineParser, stackParserFromStackParserOptions } from '@sentry/utils';
@@ -12,15 +12,13 @@ import type { DenoOptions } from './types';
 
 /** @deprecated Use `getDefaultIntegrations(options)` instead. */
 export const defaultIntegrations = [
-  /* eslint-disable deprecation/deprecation */
   // Common
-  new InboundFilters(),
-  new FunctionToString(),
-  new LinkedErrors(),
-  /* eslint-enable deprecation/deprecation */
+  inboundFiltersIntegration(),
+  functionToStringIntegration(),
+  linkedErrorsIntegration(),
   // From Browser
-  new Dedupe(),
-  new Breadcrumbs({
+  dedupeIntegration(),
+  breadcrumbsIntegration({
     dom: false,
     history: false,
     xhr: false,

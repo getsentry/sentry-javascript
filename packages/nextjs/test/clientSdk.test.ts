@@ -6,7 +6,7 @@ import type { Integration } from '@sentry/types';
 import { logger } from '@sentry/utils';
 import { JSDOM } from 'jsdom';
 
-import { BrowserTracing, Integrations, init, nextRouterInstrumentation } from '../src/client';
+import { BrowserTracing, breadcrumbsIntegration, init, nextRouterInstrumentation } from '../src/client';
 
 const reactInit = jest.spyOn(SentryReact, 'init');
 const captureEvent = jest.spyOn(BaseClient.prototype, 'captureEvent');
@@ -108,12 +108,12 @@ describe('Client init()', () => {
     type ModifiedInitOptionsIntegrationArray = { defaultIntegrations: Integration[]; integrations: Integration[] };
 
     it('supports passing unrelated integrations through options', () => {
-      init({ integrations: [new Integrations.Breadcrumbs({ console: false })] });
+      init({ integrations: [breadcrumbsIntegration({ console: false })] });
 
       const reactInitOptions = reactInit.mock.calls[0][0] as ModifiedInitOptionsIntegrationArray;
-      const breadcrumbsIntegration = findIntegrationByName(reactInitOptions.integrations, 'Breadcrumbs');
+      const installedBreadcrumbsIntegration = findIntegrationByName(reactInitOptions.integrations, 'Breadcrumbs');
 
-      expect(breadcrumbsIntegration).toBeDefined();
+      expect(installedBreadcrumbsIntegration).toBeDefined();
     });
 
     describe('`BrowserTracing` integration', () => {
