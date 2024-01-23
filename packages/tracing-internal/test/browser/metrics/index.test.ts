@@ -1,5 +1,6 @@
 import { Transaction } from '../../../src';
-import { ResourceEntry, _addTtfbToMeasurements } from '../../../src/browser/metrics';
+import type { ResourceEntry } from '../../../src/browser/metrics';
+import { _addTtfbToMeasurements } from '../../../src/browser/metrics';
 import { _addMeasureSpans, _addResourceSpans } from '../../../src/browser/metrics';
 import { WINDOW } from '../../../src/browser/types';
 
