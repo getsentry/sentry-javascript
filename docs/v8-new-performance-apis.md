@@ -46,7 +46,7 @@ below to see which things used to exist, and how they can/should be mapped going
 | --------------------- | ---------------------------------------------------- |
 | `traceId`             | `spanContext().traceId`                              |
 | `spanId`              | `spanContext().spanId`                               |
-| `parentSpanId`        | Unchanged                                            |
+| `parentSpanId`        | `spanToJSON(span).parent_span_id`                    |
 | `status`              | use utility method TODO                              |
 | `sampled`             | `spanIsSampled(span)`                                |
 | `startTimestamp`      | `startTime` - note that this has a different format! |

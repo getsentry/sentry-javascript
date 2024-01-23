@@ -1,5 +1,6 @@
 import { Transaction } from '../../../src';
 import type { ResourceEntry } from '../../../src/browser/metrics';
+import { _addTtfbToMeasurements } from '../../../src/browser/metrics';
 import { _addMeasureSpans, _addResourceSpans } from '../../../src/browser/metrics';
 import { WINDOW } from '../../../src/browser/types';
 
@@ -258,6 +259,34 @@ describe('_addResourceSpans', () => {
         startTimestamp: 445,
       }),
     );
+  });
+});
+
+describe('_addTtfbToMeasurements', () => {
+  it('adds ttfb to measurements', () => {
+    const measurements = {};
+    _addTtfbToMeasurements(measurements, 300, 200, 100);
+    expect(measurements).toEqual({
+      ttfb: {
+        unit: 'millisecond',
+        value: 200000,
+      },
+      'ttfb.requestTime': {
+        unit: 'millisecond',
+        value: 100000,
+      },
+    });
+  });
+
+  it('does not add negative ttfb', () => {
+    const measurements = {};
+    _addTtfbToMeasurements(measurements, 100, 200, 300);
+    expect(measurements).toEqual({
+      ttfb: {
+        unit: 'millisecond',
+        value: 0,
+      },
+    });
   });
 });
 

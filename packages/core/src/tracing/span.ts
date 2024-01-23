@@ -16,7 +16,7 @@ import type {
 import { dropUndefinedKeys, logger, timestampInSeconds, uuid4 } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../debug-build';
-import { SEMANTIC_ATTRIBUTE_SENTRY_OP } from '../semanticAttributes';
+import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../semanticAttributes';
 import { getRootSpan } from '../utils/getRootSpan';
 import {
   TRACE_FLAG_NONE,
@@ -64,11 +64,6 @@ export class SpanRecorder {
  */
 export class Span implements SpanInterface {
   /**
-   * @inheritDoc
-   */
-  public parentSpanId?: string;
-
-  /**
    * Tags for the span.
    * @deprecated Use `getSpanAttributes(span)` instead.
    */
@@ -105,13 +100,9 @@ export class Span implements SpanInterface {
    */
   public instrumenter: Instrumenter;
 
-  /**
-   * The origin of the span, giving context about what created the span.
-   */
-  public origin?: SpanOrigin;
-
   protected _traceId: string;
   protected _spanId: string;
+  protected _parentSpanId?: string;
   protected _sampled: boolean | undefined;
   protected _name?: string;
   protected _attributes: SpanAttributes;
@@ -142,12 +133,14 @@ export class Span implements SpanInterface {
     this._attributes = spanContext.attributes ? { ...spanContext.attributes } : {};
     // eslint-disable-next-line deprecation/deprecation
     this.instrumenter = spanContext.instrumenter || 'sentry';
-    this.origin = spanContext.origin || 'manual';
+
+    this.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, spanContext.origin || 'manual');
+
     // eslint-disable-next-line deprecation/deprecation
     this._name = spanContext.name || spanContext.description;
 
     if (spanContext.parentSpanId) {
-      this.parentSpanId = spanContext.parentSpanId;
+      this._parentSpanId = spanContext.parentSpanId;
     }
     // We want to include booleans as well here
     if ('sampled' in spanContext) {
@@ -229,6 +222,24 @@ export class Span implements SpanInterface {
    */
   public set spanId(spanId: string) {
     this._spanId = spanId;
+  }
+
+  /**
+   * @inheritDoc
+   *
+   * @deprecated Use `startSpan` functions instead.
+   */
+  public set parentSpanId(string) {
+    this._parentSpanId = string;
+  }
+
+  /**
+   * @inheritDoc
+   *
+   * @deprecated Use `spanToJSON(span).parent_span_id` instead.
+   */
+  public get parentSpanId(): string | undefined {
+    return this._parentSpanId;
   }
 
   /**
@@ -330,6 +341,24 @@ export class Span implements SpanInterface {
    */
   public set op(op: string | undefined) {
     this.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, op);
+  }
+
+  /**
+   * The origin of the span, giving context about what created the span.
+   *
+   * @deprecated Use `spanToJSON().origin` to read the origin instead.
+   */
+  public get origin(): SpanOrigin | undefined {
+    return this._attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] as SpanOrigin | undefined;
+  }
+
+  /**
+   * The origin of the span, giving context about what created the span.
+   *
+   * @deprecated Use `startSpan()` functions to set the origin instead.
+   */
+  public set origin(origin: SpanOrigin | undefined) {
+    this.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, origin);
   }
 
   /* eslint-enable @typescript-eslint/member-ordering */
@@ -531,7 +560,7 @@ export class Span implements SpanInterface {
       endTimestamp: this._endTime,
       // eslint-disable-next-line deprecation/deprecation
       op: this.op,
-      parentSpanId: this.parentSpanId,
+      parentSpanId: this._parentSpanId,
       sampled: this._sampled,
       spanId: this._spanId,
       startTimestamp: this._startTime,
@@ -555,7 +584,7 @@ export class Span implements SpanInterface {
     this._endTime = spanContext.endTimestamp;
     // eslint-disable-next-line deprecation/deprecation
     this.op = spanContext.op;
-    this.parentSpanId = spanContext.parentSpanId;
+    this._parentSpanId = spanContext.parentSpanId;
     this._sampled = spanContext.sampled;
     this._spanId = spanContext.spanId || this._spanId;
     this._startTime = spanContext.startTimestamp || this._startTime;
@@ -589,7 +618,7 @@ export class Span implements SpanInterface {
       data: this._getData(),
       description: this._name,
       op: this._attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP] as string | undefined,
-      parent_span_id: this.parentSpanId,
+      parent_span_id: this._parentSpanId,
       span_id: this._spanId,
       start_timestamp: this._startTime,
       status: this._status,
@@ -597,7 +626,7 @@ export class Span implements SpanInterface {
       tags: Object.keys(this.tags).length > 0 ? this.tags : undefined,
       timestamp: this._endTime,
       trace_id: this._traceId,
-      origin: this.origin,
+      origin: this._attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] as SpanOrigin | undefined,
     });
   }
 

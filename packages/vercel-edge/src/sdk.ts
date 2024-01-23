@@ -6,7 +6,7 @@ import {
   getIntegrationsToSetup,
   initAndBind,
 } from '@sentry/core';
-import type { Integration } from '@sentry/types';
+import type { Integration, Options } from '@sentry/types';
 import { GLOBAL_OBJ, createStackParser, nodeStackLineParser, stackParserFromStackParserOptions } from '@sentry/utils';
 
 import { setAsyncLocalStorageAsyncContextStrategy } from './async';
@@ -22,6 +22,7 @@ declare const process: {
 
 const nodeStackParser = createStackParser(nodeStackLineParser());
 
+/** @deprecated Use `getDefaultIntegrations(options)` instead. */
 export const defaultIntegrations = [
   /* eslint-disable deprecation/deprecation */
   new InboundFilters(),
@@ -31,21 +32,22 @@ export const defaultIntegrations = [
   new WinterCGFetch(),
 ];
 
+/** Get the default integrations for the browser SDK. */
+export function getDefaultIntegrations(options: Options): Integration[] {
+  return [
+    // eslint-disable-next-line deprecation/deprecation
+    ...defaultIntegrations,
+    // eslint-disable-next-line deprecation/deprecation
+    ...(options.sendDefaultPii ? [new RequestData()] : []),
+  ];
+}
+
 /** Inits the Sentry NextJS SDK on the Edge Runtime. */
 export function init(options: VercelEdgeOptions = {}): void {
   setAsyncLocalStorageAsyncContextStrategy();
 
-  const sdkDefaultIntegrations: Integration[] = [...defaultIntegrations];
-
-  // TODO(v8): Add the request data integration by default.
-  // We don't want to add this functionality OOTB without a breaking change because it might contain PII
-  if (options.sendDefaultPii) {
-    // eslint-disable-next-line deprecation/deprecation
-    sdkDefaultIntegrations.push(new RequestData());
-  }
-
   if (options.defaultIntegrations === undefined) {
-    options.defaultIntegrations = sdkDefaultIntegrations;
+    options.defaultIntegrations = getDefaultIntegrations(options);
   }
 
   if (options.dsn === undefined && process.env.SENTRY_DSN) {

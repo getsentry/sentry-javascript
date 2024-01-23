@@ -1,5 +1,4 @@
 import * as Sentry from '@sentry/node';
-import { parameterize } from '@sentry/utils';
 
 Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
@@ -9,4 +8,4 @@ Sentry.init({
 const x = 'first';
 const y = 'second';
 
-Sentry.captureMessage(parameterize`This is a log statement with ${x} and ${y} params`);
+Sentry.captureMessage(Sentry.parameterize`This is a log statement with ${x} and ${y} params`);

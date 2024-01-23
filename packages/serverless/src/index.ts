@@ -32,6 +32,7 @@ export {
   // eslint-disable-next-line deprecation/deprecation
   getCurrentHub,
   getClient,
+  isInitialized,
   getCurrentScope,
   getGlobalScope,
   getIsolationScope,
@@ -52,7 +53,9 @@ export {
   NodeClient,
   makeNodeTransport,
   close,
+  // eslint-disable-next-line deprecation/deprecation
   defaultIntegrations,
+  getDefaultIntegrations,
   defaultStackParser,
   flush,
   getSentryRelease,
@@ -74,4 +77,5 @@ export {
   startInactiveSpan,
   startSpanManual,
   continueTrace,
+  parameterize,
 } from '@sentry/node';

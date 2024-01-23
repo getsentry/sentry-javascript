@@ -17,6 +17,7 @@ type MockRunFlush = jest.MockedFunction<ReplayContainer['_runFlush']>;
 
 describe('Integration | stop', () => {
   let replay: ReplayContainer;
+  // eslint-disable-next-line deprecation/deprecation
   let integration: Replay;
   const prevLocation = WINDOW.location;
 

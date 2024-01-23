@@ -38,7 +38,7 @@ export function createDialogStyles(d: Document): HTMLStyleElement {
   top: var(--top);
 
   border: var(--border);
-  border-radius: 20px;
+  border-radius: var(--form-border-radius);
   background-color: var(--background);
   color: var(--foreground);
 
@@ -113,7 +113,7 @@ export function createDialogStyles(d: Document): HTMLStyleElement {
   background-color: var(--input-background);
   box-sizing: border-box;
   border: var(--input-border);
-  border-radius: 6px;
+  border-radius: var(--form-content-border-radius);
   color: var(--input-foreground);
   font-size: 14px;
   font-weight: 500;
@@ -138,7 +138,7 @@ export function createDialogStyles(d: Document): HTMLStyleElement {
 .btn {
   line-height: inherit;
   border: var(--cancel-border);
-  border-radius: 6px;
+  border-radius: var(--form-content-border-radius);
   cursor: pointer;
   font-size: 14px;
   font-weight: 600;
@@ -178,7 +178,7 @@ export function createDialogStyles(d: Document): HTMLStyleElement {
 .success-message {
   background-color: var(--background);
   border: var(--border);
-  border-radius: 12px;
+  border-radius: var(--border-radius);
   box-shadow: var(--box-shadow);
   font-weight: 600;
   color: var(--success);

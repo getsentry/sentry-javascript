@@ -10,6 +10,12 @@ npx @sentry/migr8@latest
 This will let you select which updates to run, and automatically update your code. Make sure to still review all code
 changes!
 
+## Deprecate using `getClient()` to check if the SDK was initialized
+
+In v8, `getClient()` will stop returning `undefined` if `Sentry.init()` was not called. For cases where this may be used
+to check if Sentry was actually initialized, using `getClient()` will thus not work anymore. Instead, you should use the
+new `Sentry.isInitialized()` utility to check this.
+
 ## Deprecate `getCurrentHub()`
 
 In v8, you will no longer have a Hub, only Scopes as a concept. This also means that `getCurrentHub()` will eventually
@@ -28,13 +34,17 @@ integrations from the `Integrations.XXX` hash, is deprecated in favor of using t
 
 The following list shows how integrations should be migrated:
 
-| Old                      | New                             |
-| ------------------------ | ------------------------------- |
-| `new InboundFilters()`   | `inboundFiltersIntegrations()`  |
-| `new FunctionToString()` | `functionToStringIntegration()` |
-| `new LinkedErrors()`     | `linkedErrorsIntegration()`     |
-| `new ModuleMetadata()`   | `moduleMetadataIntegration()`   |
-| `new RequestData()`      | `requestDataIntegration()`      |
+| Old                      | New                             | Packages                                                                                                |
+| ------------------------ | ------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `new InboundFilters()`   | `inboundFiltersIntegration()`   | `@sentry/core`, `@sentry/browser`, `@sentry/node`, `@sentry/deno`, `@sentry/bun`, `@sentry/vercel-edge` |
+| `new FunctionToString()` | `functionToStringIntegration()` | `@sentry/core`, `@sentry/browser`, `@sentry/node`, `@sentry/deno`, `@sentry/bun`, `@sentry/vercel-edge` |
+| `new LinkedErrors()`     | `linkedErrorsIntegration()`     | `@sentry/core`, `@sentry/browser`, `@sentry/node`, `@sentry/deno`, `@sentry/bun`, `@sentry/vercel-edge` |
+| `new ModuleMetadata()`   | `moduleMetadataIntegration()`   | `@sentry/core`, `@sentry/browser`                                                                       |
+| `new RequestData()`      | `requestDataIntegration()`      | `@sentry/core`, `@sentry/node`, `@sentry/deno`, `@sentry/bun`, `@sentry/vercel-edge`                    |
+| `new Wasm() `            | `wasmIntegration()`             | `@sentry/wasm`                                                                                          |
+| `new Replay()`           | `replayIntegration()`           | `@sentry/browser`                                                                                       |
+| `new ReplayCanvas()`     | `replayCanvasIntegration()`     | `@sentry/browser`                                                                                       |
+| `new Feedback()`         | `feedbackIntegration()`         | `@sentry/browser`                                                                                       |
 
 ## Deprecate `hub.bindClient()` and `makeMain()`
 
@@ -193,6 +203,7 @@ In v8, the Span class is heavily reworked. The following properties & methods ar
 - `span.getTraceContext()`: Use `spanToTraceContext(span)` utility function instead.
 - `span.sampled`: Use `span.isRecording()` instead.
 - `span.spanId`: Use `span.spanContext().spanId` instead.
+- `span.parentSpanId`: Use `spanToJSON(span).parent_span_id` instead.
 - `span.traceId`: Use `span.spanContext().traceId` instead.
 - `span.name`: Use `spanToJSON(span).description` instead.
 - `span.description`: Use `spanToJSON(span).description` instead.

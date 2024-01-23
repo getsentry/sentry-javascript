@@ -1,7 +1,5 @@
-import { SDK_VERSION } from '@sentry/core';
-import type { Options, SdkInfo } from '@sentry/types';
-
-const PACKAGE_NAME_PREFIX = 'npm:@sentry/';
+import type { Options } from '@sentry/types';
+import { SDK_VERSION } from '../version';
 
 /**
  * A builder for the SDK metadata in the options for the SDK initialization.
@@ -16,16 +14,19 @@ const PACKAGE_NAME_PREFIX = 'npm:@sentry/';
  * @param options SDK options object that gets mutated
  * @param names list of package names
  */
-export function applySdkMetadata(options: Options, names: string[]): void {
-  options._metadata = options._metadata || {};
-  options._metadata.sdk =
-    options._metadata.sdk ||
-    ({
-      name: 'sentry.javascript.astro',
+export function applySdkMetadata(options: Options, name: string, names = [name], source = 'npm'): void {
+  const metadata = options._metadata || {};
+
+  if (!metadata.sdk) {
+    metadata.sdk = {
+      name: `sentry.javascript.${name}`,
       packages: names.map(name => ({
-        name: `${PACKAGE_NAME_PREFIX}${name}`,
+        name: `${source}:@sentry/${name}`,
         version: SDK_VERSION,
       })),
       version: SDK_VERSION,
-    } as SdkInfo);
+    };
+  }
+
+  options._metadata = metadata;
 }

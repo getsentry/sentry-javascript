@@ -1,4 +1,10 @@
-import { Feedback as FeedbackShim, Replay as ReplayShim } from '@sentry-internal/integration-shims';
+/* eslint-disable deprecation/deprecation */
+import {
+  Feedback as FeedbackShim,
+  Replay as ReplayShim,
+  feedbackIntegration as feedbackIntegrationShim,
+  replayIntegration as replayIntegrationShim,
+} from '@sentry-internal/integration-shims';
 import { BrowserTracing } from '@sentry-internal/tracing';
 
 import * as TracingBundle from '../../src/index.bundle.tracing';
@@ -16,10 +22,12 @@ describe('index.bundle.tracing', () => {
 
     expect(TracingBundle.Integrations.Replay).toBe(ReplayShim);
     expect(TracingBundle.Replay).toBe(ReplayShim);
+    expect(TracingBundle.replayIntegration).toBe(replayIntegrationShim);
 
     expect(TracingBundle.Integrations.BrowserTracing).toBe(BrowserTracing);
     expect(TracingBundle.BrowserTracing).toBe(BrowserTracing);
 
     expect(TracingBundle.Feedback).toBe(FeedbackShim);
+    expect(TracingBundle.feedbackIntegration).toBe(feedbackIntegrationShim);
   });
 });

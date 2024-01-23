@@ -1,6 +1,5 @@
 import type { Event } from '@sentry/types';
 
-import type { Replay as ReplayIntegration } from '../../../src';
 import { REPLAY_EVENT_NAME, SESSION_IDLE_EXPIRE_DURATION } from '../../../src/constants';
 import { handleGlobalEventListener } from '../../../src/coreHandlers/handleGlobalEvent';
 import type { ReplayContainer } from '../../../src/replay';
@@ -130,8 +129,7 @@ describe('Integration | coreHandlers | handleGlobalEvent', () => {
   });
 
   it('tags errors and transactions with replay id for session samples', async () => {
-    let integration: ReplayIntegration;
-    ({ replay, integration } = await resetSdkMock({}));
+    const { replay, integration } = await resetSdkMock({});
     // @ts-expect-error protected but ok to use for testing
     integration._initialize();
     const transaction = Transaction();

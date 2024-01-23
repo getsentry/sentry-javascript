@@ -50,6 +50,8 @@ function setNestedKey(obj: Record<string, any>, keyPath: string, value: unknown)
  * @param userIntegrations Integrations defined by the user.
  * @param forcedOptions Options with which to patch an existing user-derived instance on the integration.
  * @returns A final integrations array.
+ *
+ * @deprecated This will be removed in v8.
  */
 export function addOrUpdateIntegration<T extends UserIntegrations>(
   defaultIntegrationInstance: Integration,

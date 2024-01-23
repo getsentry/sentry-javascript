@@ -76,12 +76,14 @@ function runTest(testOptions: {
 
   let integrations;
   if (typeof userIntegrations === 'function') {
+    // eslint-disable-next-line deprecation/deprecation
     const wrappedUserIntegrationsFunction = addOrUpdateIntegration(forcedDogIntegrationInstance, userIntegrations, {
       dogName: 'Charlie',
       descriptor: 'goofy',
     });
     integrations = wrappedUserIntegrationsFunction(underlyingDefaultIntegrations);
   } else {
+    // eslint-disable-next-line deprecation/deprecation
     integrations = addOrUpdateIntegration(
       forcedDogIntegrationInstance,
       userIntegrations,

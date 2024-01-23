@@ -40,6 +40,7 @@ export {
   // eslint-disable-next-line deprecation/deprecation
   getCurrentHub,
   getClient,
+  isInitialized,
   getCurrentScope,
   Hub,
   // eslint-disable-next-line deprecation/deprecation
@@ -72,6 +73,7 @@ export {
   metrics,
   functionToStringIntegration,
   inboundFiltersIntegration,
+  parameterize,
 } from '@sentry/core';
 
 export { WINDOW } from './helpers';
@@ -89,7 +91,9 @@ export {
 export { eventFromException, eventFromMessage, exceptionFromError } from './eventbuilder';
 export { createUserFeedbackEnvelope } from './userfeedback';
 export {
+  // eslint-disable-next-line deprecation/deprecation
   defaultIntegrations,
+  getDefaultIntegrations,
   forceLoad,
   init,
   onLoad,

@@ -45,6 +45,7 @@ export {
   // eslint-disable-next-line deprecation/deprecation
   getCurrentHub,
   getClient,
+  isInitialized,
   getCurrentScope,
   getGlobalScope,
   getIsolationScope,
@@ -83,12 +84,18 @@ export {
   inboundFiltersIntegration,
   linkedErrorsIntegration,
   requestDataIntegration,
+  parameterize,
 } from '@sentry/core';
 export type { SpanStatusType } from '@sentry/core';
 export { autoDiscoverNodePerformanceMonitoringIntegrations, cron } from '@sentry/node';
 
 export { BunClient } from './client';
-export { defaultIntegrations, init } from './sdk';
+export {
+  // eslint-disable-next-line deprecation/deprecation
+  defaultIntegrations,
+  getDefaultIntegrations,
+  init,
+} from './sdk';
 
 import { Integrations as CoreIntegrations } from '@sentry/core';
 import { Integrations as NodeIntegrations } from '@sentry/node';

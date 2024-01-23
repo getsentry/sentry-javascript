@@ -67,6 +67,7 @@ sentryTest(
     // Start buffering and assert that it is enabled
     expect(
       await page.evaluate(() => {
+        // eslint-disable-next-line deprecation/deprecation
         const replayIntegration = (window as unknown as Window & { Replay: InstanceType<typeof Replay> }).Replay;
         // @ts-expect-error private
         const replay = replayIntegration._replay;
@@ -87,6 +88,7 @@ sentryTest(
     const [req0] = await Promise.all([
       reqPromise0,
       page.evaluate(async () => {
+        // eslint-disable-next-line deprecation/deprecation
         const replayIntegration = (window as unknown as Window & { Replay: Replay }).Replay;
         await replayIntegration.flush();
       }),
@@ -210,6 +212,7 @@ sentryTest(
     // Start buffering and assert that it is enabled
     expect(
       await page.evaluate(() => {
+        // eslint-disable-next-line deprecation/deprecation
         const replayIntegration = (window as unknown as Window & { Replay: InstanceType<typeof Replay> }).Replay;
         // @ts-expect-error private
         const replay = replayIntegration._replay;
@@ -230,6 +233,7 @@ sentryTest(
     const [req0] = await Promise.all([
       reqPromise0,
       page.evaluate(async () => {
+        // eslint-disable-next-line deprecation/deprecation
         const replayIntegration = (window as unknown as Window & { Replay: Replay }).Replay;
         await replayIntegration.flush({ continueRecording: false });
       }),
@@ -324,6 +328,7 @@ sentryTest(
     // Start buffering and assert that it is enabled
     expect(
       await page.evaluate(() => {
+        // eslint-disable-next-line deprecation/deprecation
         const replayIntegration = (window as unknown as Window & { Replay: InstanceType<typeof Replay> }).Replay;
         const replay = replayIntegration['_replay'];
         replayIntegration.startBuffering();
@@ -342,6 +347,7 @@ sentryTest(
     expect(errorEvent0.tags?.replayId).toBeUndefined();
 
     await page.evaluate(async () => {
+      // eslint-disable-next-line deprecation/deprecation
       const replayIntegration = (window as unknown as Window & { Replay: Replay }).Replay;
       replayIntegration['_replay'].getOptions().errorSampleRate = 1.0;
     });

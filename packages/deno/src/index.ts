@@ -44,6 +44,7 @@ export {
   // eslint-disable-next-line deprecation/deprecation
   getCurrentHub,
   getClient,
+  isInitialized,
   getCurrentScope,
   getGlobalScope,
   getIsolationScope,
@@ -86,7 +87,12 @@ export type { SpanStatusType } from '@sentry/core';
 
 export { DenoClient } from './client';
 
-export { defaultIntegrations, init } from './sdk';
+export {
+  // eslint-disable-next-line deprecation/deprecation
+  defaultIntegrations,
+  getDefaultIntegrations,
+  init,
+} from './sdk';
 
 import { Integrations as CoreIntegrations } from '@sentry/core';
 

@@ -1,3 +1,4 @@
+import { GLOBAL_OBJ } from '@sentry/utils';
 import {
   Hub,
   Scope,
@@ -16,6 +17,7 @@ import {
   withIsolationScope,
   withScope,
 } from '../../src';
+import { isInitialized } from '../../src/exports';
 import { TestClient, getDefaultTestClientOptions } from '../mocks/client';
 
 function getTestClient(): TestClient {
@@ -313,5 +315,21 @@ describe('session APIs', () => {
         expect(isolationScope.getScopeData().contexts?.foo?.bar).toBe('baz');
       });
     });
+  });
+});
+
+describe('isInitialized', () => {
+  it('returns false if no client is setup', () => {
+    GLOBAL_OBJ.__SENTRY__.hub = undefined;
+    expect(isInitialized()).toBe(false);
+  });
+
+  it('returns true if client is setup', () => {
+    const client = getTestClient();
+    const hub = new Hub(client);
+    // eslint-disable-next-line deprecation/deprecation
+    makeMain(hub);
+
+    expect(isInitialized()).toBe(true);
   });
 });

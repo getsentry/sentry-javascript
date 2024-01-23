@@ -28,6 +28,7 @@ export {
   // eslint-disable-next-line deprecation/deprecation
   getCurrentHub,
   getClient,
+  isInitialized,
   getCurrentScope,
   getGlobalScope,
   getIsolationScope,
@@ -52,7 +53,9 @@ export {
   withIsolationScope,
   autoDiscoverNodePerformanceMonitoringIntegrations,
   makeNodeTransport,
+  // eslint-disable-next-line deprecation/deprecation
   defaultIntegrations,
+  getDefaultIntegrations,
   defaultStackParser,
   // eslint-disable-next-line deprecation/deprecation
   lastEventId,
@@ -75,6 +78,7 @@ export {
   startSpanManual,
   continueTrace,
   cron,
+  parameterize,
 } from '@sentry/node';
 
 // We can still leave this for the carrier init and type exports

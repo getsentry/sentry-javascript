@@ -40,7 +40,6 @@ export class NodeExperimentalSentrySpanProcessor extends SentrySpanProcessor {
     // In this case, if `shouldCreateSpansForRequests` is false, we want to _record_ the span but not _sample_ it,
     // So we can generate a breadcrumb for it but no span will be sent
     if (
-      httpIntegration &&
       (span.kind === SpanKind.CLIENT || span.kind === SpanKind.SERVER) &&
       span.attributes[SemanticAttributes.HTTP_URL] &&
       span.attributes[SemanticAttributes.HTTP_METHOD]

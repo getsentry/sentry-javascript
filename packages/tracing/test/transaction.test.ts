@@ -1,6 +1,10 @@
 /* eslint-disable deprecation/deprecation */
 import { BrowserClient, Hub } from '@sentry/browser';
-import { SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
+import {
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+} from '@sentry/core';
 
 import { Transaction, addExtensionMethods } from '../src';
 import { getDefaultBrowserClientOptions } from './testutils';
@@ -163,7 +167,10 @@ describe('`Transaction` class', () => {
           contexts: {
             foo: { key: 'val' },
             trace: {
-              data: { [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1 },
+              data: {
+                [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
+                [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'manual',
+              },
               span_id: transaction.spanId,
               trace_id: transaction.traceId,
               origin: 'manual',
@@ -191,7 +198,10 @@ describe('`Transaction` class', () => {
         expect.objectContaining({
           contexts: {
             trace: {
-              data: { [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1 },
+              data: {
+                [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
+                [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'manual',
+              },
               span_id: transaction.spanId,
               trace_id: transaction.traceId,
               origin: 'manual',

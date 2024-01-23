@@ -395,6 +395,13 @@ export function getClient<C extends Client>(): C | undefined {
 }
 
 /**
+ * Returns true if Sentry has been properly initialized.
+ */
+export function isInitialized(): boolean {
+  return !!getClient();
+}
+
+/**
  * Get the currently active scope.
  */
 export function getCurrentScope(): Scope {

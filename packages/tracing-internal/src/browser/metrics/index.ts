@@ -240,24 +240,7 @@ export function addPerformanceEntries(transaction: Transaction): void {
 
   // Measurements are only available for pageload transactions
   if (op === 'pageload') {
-    // Generate TTFB (Time to First Byte), which measured as the time between the beginning of the transaction and the
-    // start of the response in milliseconds
-    if (typeof responseStartTimestamp === 'number' && transactionStartTime) {
-      DEBUG_BUILD && logger.log('[Measurements] Adding TTFB');
-      _measurements['ttfb'] = {
-        value: (responseStartTimestamp - transactionStartTime) * 1000,
-        unit: 'millisecond',
-      };
-
-      if (typeof requestStartTimestamp === 'number' && requestStartTimestamp <= responseStartTimestamp) {
-        // Capture the time spent making the request and receiving the first byte of the response.
-        // This is the time between the start of the request and the start of the response in milliseconds.
-        _measurements['ttfb.requestTime'] = {
-          value: (responseStartTimestamp - requestStartTimestamp) * 1000,
-          unit: 'millisecond',
-        };
-      }
-    }
+    _addTtfbToMeasurements(_measurements, responseStartTimestamp, requestStartTimestamp, transactionStartTime);
 
     ['fcp', 'fp', 'lcp'].forEach(name => {
       if (!_measurements[name] || !transactionStartTime || timeOrigin >= transactionStartTime) {
@@ -545,5 +528,43 @@ function setResourceEntrySizeData(
   const entryVal = entry[key];
   if (entryVal != null && entryVal < MAX_INT_AS_BYTES) {
     data[dataKey] = entryVal;
+  }
+}
+
+/**
+ * Add ttfb information to measurements
+ *
+ * Exported for tests
+ */
+export function _addTtfbToMeasurements(
+  _measurements: Measurements,
+  responseStartTimestamp: number | undefined,
+  requestStartTimestamp: number | undefined,
+  transactionStartTime: number | undefined,
+): void {
+  // Generate TTFB (Time to First Byte), which measured as the time between the beginning of the transaction and the
+  // start of the response in milliseconds
+  if (typeof responseStartTimestamp === 'number' && transactionStartTime) {
+    DEBUG_BUILD && logger.log('[Measurements] Adding TTFB');
+    _measurements['ttfb'] = {
+      // As per https://developer.mozilla.org/en-US/docs/Web/API/PerformanceResourceTiming/responseStart,
+      // responseStart can be 0 if the request is coming straight from the cache.
+      // This might lead us to calculate a negative ttfb if we don't use Math.max here.
+      //
+      // This logic is the same as what is in the web-vitals library to calculate ttfb
+      // https://github.com/GoogleChrome/web-vitals/blob/2301de5015e82b09925238a228a0893635854587/src/onTTFB.ts#L92
+      // TODO(abhi): We should use the web-vitals library instead of this custom calculation.
+      value: Math.max(responseStartTimestamp - transactionStartTime, 0) * 1000,
+      unit: 'millisecond',
+    };
+
+    if (typeof requestStartTimestamp === 'number' && requestStartTimestamp <= responseStartTimestamp) {
+      // Capture the time spent making the request and receiving the first byte of the response.
+      // This is the time between the start of the request and the start of the response in milliseconds.
+      _measurements['ttfb.requestTime'] = {
+        value: (responseStartTimestamp - requestStartTimestamp) * 1000,
+        unit: 'millisecond',
+      };
+    }
   }
 }
