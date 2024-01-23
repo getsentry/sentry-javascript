@@ -44,7 +44,7 @@ describe('BrowserProfilingIntegration', () => {
           send,
         };
       },
-      integrations: [new Sentry.BrowserTracing(), new BrowserProfilingIntegration()],
+      integrations: [Sentry.browserTracingIntegration(), new BrowserProfilingIntegration()],
     });
 
     const client = Sentry.getClient<BrowserClient>();

@@ -1,6 +1,12 @@
 // This is exported so the loader does not fail when switching off Replay/Tracing
 import { Feedback, feedbackIntegration } from '@sentry-internal/feedback';
-import { BrowserTracing, Replay, addTracingExtensions, replayIntegration } from '@sentry-internal/integration-shims';
+import {
+  BrowserTracing,
+  Replay,
+  addTracingExtensions,
+  browserTracingIntegration,
+  replayIntegration,
+} from '@sentry-internal/integration-shims';
 
 import * as Sentry from './index.bundle.base';
 
@@ -8,11 +14,14 @@ import * as Sentry from './index.bundle.base';
 // eslint-disable-next-line deprecation/deprecation
 Sentry.Integrations.Replay = Replay;
 
+// eslint-disable-next-line deprecation/deprecation
 Sentry.Integrations.BrowserTracing = BrowserTracing;
 
 export * from './index.bundle.base';
 export {
+  // eslint-disable-next-line deprecation/deprecation
   BrowserTracing,
+  browserTracingIntegration,
   addTracingExtensions,
   // eslint-disable-next-line deprecation/deprecation
   Replay,

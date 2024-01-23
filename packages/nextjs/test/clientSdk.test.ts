@@ -6,7 +6,8 @@ import type { Integration } from '@sentry/types';
 import { logger } from '@sentry/utils';
 import { JSDOM } from 'jsdom';
 
-import { BrowserTracing, breadcrumbsIntegration, init, nextRouterInstrumentation } from '../src/client';
+import type { BrowserTracing } from '../src/client';
+import { breadcrumbsIntegration, browserTracingIntegration, init, nextRouterInstrumentation } from '../src/client';
 
 const reactInit = jest.spyOn(SentryReact, 'init');
 const captureEvent = jest.spyOn(BaseClient.prototype, 'captureEvent');
@@ -124,6 +125,7 @@ describe('Client init()', () => {
         });
 
         const client = getClient<BrowserClient>()!;
+        // eslint-disable-next-line deprecation/deprecation
         const browserTracingIntegration = client.getIntegrationByName<BrowserTracing>('BrowserTracing');
 
         expect(browserTracingIntegration).toBeDefined();
@@ -141,6 +143,7 @@ describe('Client init()', () => {
         });
 
         const client = getClient<BrowserClient>()!;
+        // eslint-disable-next-line deprecation/deprecation
         const browserTracingIntegration = client.getIntegrationByName<BrowserTracing>('BrowserTracing');
 
         expect(browserTracingIntegration).toBeDefined();
@@ -157,6 +160,7 @@ describe('Client init()', () => {
         });
 
         const client = getClient<BrowserClient>()!;
+        // eslint-disable-next-line deprecation/deprecation
         const browserTracingIntegration = client.getIntegrationByName<BrowserTracing>('BrowserTracing');
 
         expect(browserTracingIntegration).toBeUndefined();
@@ -166,14 +170,15 @@ describe('Client init()', () => {
         init({
           dsn: TEST_DSN,
           tracesSampleRate: 1.0,
-          integrations: [new BrowserTracing({ startTransactionOnLocationChange: false })],
+          integrations: [browserTracingIntegration({ startTransactionOnLocationChange: false })],
         });
 
         const client = getClient<BrowserClient>()!;
-        const browserTracingIntegration = client.getIntegrationByName<BrowserTracing>('BrowserTracing');
+        // eslint-disable-next-line deprecation/deprecation
+        const integration = client.getIntegrationByName<BrowserTracing>('BrowserTracing');
 
-        expect(browserTracingIntegration).toBeDefined();
-        expect(browserTracingIntegration?.options).toEqual(
+        expect(integration).toBeDefined();
+        expect(integration?.options).toEqual(
           expect.objectContaining({
             routingInstrumentation: nextRouterInstrumentation,
             // This proves it's still the user's copy
@@ -186,15 +191,19 @@ describe('Client init()', () => {
         init({
           dsn: TEST_DSN,
           tracesSampleRate: 1.0,
-          integrations: defaults => [...defaults, new BrowserTracing({ startTransactionOnLocationChange: false })],
+          integrations: defaults => [
+            ...defaults,
+            browserTracingIntegration({ startTransactionOnLocationChange: false }),
+          ],
         });
 
         const client = getClient<BrowserClient>()!;
 
-        const browserTracingIntegration = client.getIntegrationByName<BrowserTracing>('BrowserTracing');
+        // eslint-disable-next-line deprecation/deprecation
+        const integration = client.getIntegrationByName<BrowserTracing>('BrowserTracing');
 
-        expect(browserTracingIntegration).toBeDefined();
-        expect(browserTracingIntegration?.options).toEqual(
+        expect(integration).toBeDefined();
+        expect(integration?.options).toEqual(
           expect.objectContaining({
             routingInstrumentation: nextRouterInstrumentation,
             // This proves it's still the user's copy

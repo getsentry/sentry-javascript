@@ -159,6 +159,14 @@ const DEFAULT_BROWSER_TRACING_OPTIONS: BrowserTracingOptions = {
  * The integration can be configured with a variety of options, and can be extended to use
  * any routing library. This integration uses {@see IdleTransaction} to create transactions.
  */
+export function browserTracingIntegration(options?: Partial<BrowserTracingOptions>): Integration {
+  // eslint-disable-next-line deprecation/deprecation
+  return new BrowserTracing(options);
+}
+
+/**
+ * @deprecated Use `browserTracingIntegration()` instead.
+ */
 export class BrowserTracing implements Integration {
   // This class currently doesn't have a static `id` field like the other integration classes, because it prevented
   // @sentry/tracing from being treeshaken. Tree shakers do not like static fields, because they behave like side effects.

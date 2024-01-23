@@ -1,7 +1,7 @@
-import type { BrowserClient } from '@sentry/browser';
+import type { BrowserClient, BrowserTracing } from '@sentry/browser';
 import { getCurrentScope } from '@sentry/browser';
 import * as SentryBrowser from '@sentry/browser';
-import { BrowserTracing, SDK_VERSION, WINDOW, getClient } from '@sentry/browser';
+import { SDK_VERSION, WINDOW, browserTracingIntegration, getClient } from '@sentry/browser';
 import { vi } from 'vitest';
 
 import { init } from '../../../astro/src/client/sdk';
@@ -103,12 +103,13 @@ describe('Sentry client SDK', () => {
       it('Overrides the automatically default BrowserTracing instance with a a user-provided instance', () => {
         init({
           dsn: 'https://public@dsn.ingest.sentry.io/1337',
-          integrations: [new BrowserTracing({ finalTimeout: 10, startTransactionOnLocationChange: false })],
+          integrations: [browserTracingIntegration({ finalTimeout: 10, startTransactionOnLocationChange: false })],
           enableTracing: true,
         });
 
         const integrationsToInit = browserInit.mock.calls[0][0]?.defaultIntegrations;
 
+        // eslint-disable-next-line deprecation/deprecation
         const browserTracing = getClient<BrowserClient>()?.getIntegrationByName('BrowserTracing') as BrowserTracing;
         const options = browserTracing.options;
 
