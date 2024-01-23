@@ -1,9 +1,10 @@
 import { applySdkMetadata, hasTracingEnabled } from '@sentry/core';
 import type { BrowserOptions } from '@sentry/svelte';
-import { BrowserTracing, WINDOW, getCurrentScope, init as initSvelteSdk } from '@sentry/svelte';
-import { addOrUpdateIntegration } from '@sentry/utils';
+import { getDefaultIntegrations as getDefaultSvelteIntegrations } from '@sentry/svelte';
+import { WINDOW, getCurrentScope, init as initSvelteSdk } from '@sentry/svelte';
+import type { Integration } from '@sentry/types';
 
-import { svelteKitRoutingInstrumentation } from './router';
+import { BrowserTracing } from './browserTracingIntegration';
 
 type WindowWithSentryFetchProxy = typeof WINDOW & {
   _sentryFetchProxy?: typeof fetch;
@@ -18,15 +19,20 @@ declare const __SENTRY_TRACING__: boolean;
  * @param options Configuration options for the SDK.
  */
 export function init(options: BrowserOptions): void {
-  applySdkMetadata(options, 'sveltekit', ['sveltekit', 'svelte']);
+  const opts = {
+    defaultIntegrations: getDefaultIntegrations(options),
+    ...options,
+  };
 
-  addClientIntegrations(options);
+  applySdkMetadata(opts, 'sveltekit', ['sveltekit', 'svelte']);
+
+  fixBrowserTracingIntegration(opts);
 
   // 1. Switch window.fetch to our fetch proxy we injected earlier
   const actualFetch = switchToFetchProxy();
 
   // 2. Initialize the SDK which will instrument our proxy
-  initSvelteSdk(options);
+  initSvelteSdk(opts);
 
   // 3. Restore the original fetch now that our proxy is instrumented
   if (actualFetch) {
@@ -36,24 +42,49 @@ export function init(options: BrowserOptions): void {
   getCurrentScope().setTag('runtime', 'browser');
 }
 
-function addClientIntegrations(options: BrowserOptions): void {
-  let integrations = options.integrations || [];
+// TODO v8: Remove this again
+// We need to handle BrowserTracing passed to `integrations` that comes from `@sentry/tracing`, not `@sentry/sveltekit` :(
+function fixBrowserTracingIntegration(options: BrowserOptions): void {
+  const { integrations } = options;
+  if (!integrations) {
+    return;
+  }
 
-  // This evaluates to true unless __SENTRY_TRACING__ is text-replaced with "false",
-  // in which case everything inside will get treeshaken away
+  if (Array.isArray(integrations)) {
+    options.integrations = maybeUpdateBrowserTracingIntegration(integrations);
+  } else {
+    options.integrations = defaultIntegrations => {
+      const userFinalIntegrations = integrations(defaultIntegrations);
+
+      return maybeUpdateBrowserTracingIntegration(userFinalIntegrations);
+    };
+  }
+}
+
+function maybeUpdateBrowserTracingIntegration(integrations: Integration[]): Integration[] {
+  const browserTracing = integrations.find(integration => integration.name === 'BrowserTracing');
+  // If BrowserTracing was added, but it is not our forked version,
+  // replace it with our forked version with the same options
+  if (browserTracing && !(browserTracing instanceof BrowserTracing)) {
+    const options: ConstructorParameters<typeof BrowserTracing>[0] = (browserTracing as BrowserTracing).options;
+    // This option is overwritten by the custom integration
+    delete options.routingInstrumentation;
+    integrations[integrations.indexOf(browserTracing)] = new BrowserTracing(options);
+  }
+
+  return integrations;
+}
+
+function getDefaultIntegrations(options: BrowserOptions): Integration[] | undefined {
+  // This evaluates to true unless __SENTRY_TRACING__ is text-replaced with "false", in which case everything inside
+  // will get treeshaken away
   if (typeof __SENTRY_TRACING__ === 'undefined' || __SENTRY_TRACING__) {
     if (hasTracingEnabled(options)) {
-      const defaultBrowserTracingIntegration = new BrowserTracing({
-        routingInstrumentation: svelteKitRoutingInstrumentation,
-      });
-
-      integrations = addOrUpdateIntegration(defaultBrowserTracingIntegration, integrations, {
-        'options.routingInstrumentation': svelteKitRoutingInstrumentation,
-      });
+      return [...getDefaultSvelteIntegrations(options), new BrowserTracing()];
     }
   }
 
-  options.integrations = integrations;
+  return undefined;
 }
 
 /**

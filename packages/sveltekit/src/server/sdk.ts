@@ -1,29 +1,23 @@
 import { applySdkMetadata, getCurrentScope } from '@sentry/core';
-import { RewriteFrames } from '@sentry/integrations';
 import type { NodeOptions } from '@sentry/node';
+import { getDefaultIntegrations as getDefaultNodeIntegrations } from '@sentry/node';
 import { init as initNodeSdk } from '@sentry/node';
-import { addOrUpdateIntegration } from '@sentry/utils';
 
-import { rewriteFramesIteratee } from './utils';
+import { rewriteFramesIntegration } from './rewriteFramesIntegration';
 
 /**
  *
  * @param options
  */
 export function init(options: NodeOptions): void {
-  applySdkMetadata(options, 'sveltekit', ['sveltekit', 'node']);
+  const opts = {
+    defaultIntegrations: [...getDefaultNodeIntegrations(options), rewriteFramesIntegration()],
+    ...options,
+  };
 
-  addServerIntegrations(options);
+  applySdkMetadata(opts, 'sveltekit', ['sveltekit', 'node']);
 
-  initNodeSdk(options);
+  initNodeSdk(opts);
 
   getCurrentScope().setTag('runtime', 'node');
-}
-
-function addServerIntegrations(options: NodeOptions): void {
-  options.integrations = addOrUpdateIntegration(
-    // eslint-disable-next-line deprecation/deprecation
-    new RewriteFrames({ iteratee: rewriteFramesIteratee }),
-    options.integrations || [],
-  );
 }
