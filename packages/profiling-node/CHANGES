@@ -1,3 +1,8 @@
+## This is an old changelog.
+
+The profiling-node package has since been migrated to sentry-javascript monorepo. Any changes to this package made after
+the migration are now tracked in the root CHANGELOG.md.
+
 ## 1.3.3
 
 ### Various fixes & improvements
@@ -63,7 +68,7 @@
 
 - deps(sentry): bump sentry deps (#203) by @sanjaytwisk
 - build(deps-dev): bump @babel/traverse from 7.22.20 to 7.23.2 (#202) by @dependabot
-- feat(preprocessEvent): emit preprocessEvent for profiles  (#198) by @JonasBa
+- feat(preprocessEvent): emit preprocessEvent for profiles (#198) by @JonasBa
 - Update README.md to include Next.js 13+ bundling (#200) by @Negan1911
 
 ## 1.2.1
@@ -109,7 +114,8 @@
 
 - bindings: prebuild more binaries for node 20 (#177) by @JonasBa
 - build(deps): bump semver from 6.3.0 to 6.3.1 (#175) by @dependabot
-- ref(profiling): change import so contextReplacementPlugin can ignore warning and attempt to provide darwin binaries (#176) by @JonasBa
+- ref(profiling): change import so contextReplacementPlugin can ignore warning and attempt to provide darwin binaries
+  (#176) by @JonasBa
 
 ## 1.0.9
 
@@ -497,4 +503,3 @@
 - fix(ci): run ci for release (#28) by @JonasBa
 - chore(craft): add bump version script (#26) by @JonasBa
 - chore(changelog): add changelog (#25) by @JonasBa
-
