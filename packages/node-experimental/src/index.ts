@@ -17,6 +17,7 @@ export type { Span } from './types';
 export { startSpan, startSpanManual, startInactiveSpan, getActiveSpan } from '@sentry/opentelemetry';
 export {
   getClient,
+  isInitialized,
   addBreadcrumb,
   captureException,
   captureEvent,

@@ -31,6 +31,7 @@ export {
   withScope,
   withIsolationScope,
   getClient,
+  isInitialized,
   getCurrentScope,
   startSession,
   endSession,
