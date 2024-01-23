@@ -542,7 +542,7 @@ jobs:
   job_profiling_node_unit_tests:
     name: Node Profiling Unit Tests
     needs: [job_get_metadata, job_build]
-    if: needs.job_get_metadata.outputs.changed_profiling_node == 'true' || github.event_name != 'pull_request'
+    if: needs.job_get_metadata.outputs.changed_node || needs.job_get_metadata.outputs.changed_profiling_node == 'true' || github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -1212,6 +1212,12 @@ jobs:
   job_compile_bindings_profiling_node:
     name: Compile & Test Profiling Bindings (v${{ matrix.node }}) ${{ matrix.target_platform || matrix.os }}, ${{ matrix.node || matrix.container }}, ${{ matrix.arch || matrix.container }}, ${{ contains(matrix.container, 'alpine') && 'musl' || 'glibc'  }}
     needs: [job_get_metadata, job_install_deps, job_build]
+    # Compiling bindings can be very slow (especially on windows), so only run precompile
+    # if profiling or profiling node package had changed or if we are on a release branch.
+    if: |
+      (needs.job_get_metadata.outputs.changed_profiling_node == 'true') ||
+      (needs.job_get_metadata.outputs.is_release) ||
+      (github.event_name != 'pull_request')
     runs-on: ${{ matrix.os }}
     container: ${{ matrix.container }}
     timeout-minutes: 30
