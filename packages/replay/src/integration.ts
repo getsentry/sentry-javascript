@@ -1,5 +1,5 @@
 import { getClient } from '@sentry/core';
-import type { BrowserClientReplayOptions, Integration } from '@sentry/types';
+import type { BrowserClientReplayOptions, Integration, IntegrationFn } from '@sentry/types';
 import { consoleSandbox, dropUndefinedKeys, isBrowser } from '@sentry/utils';
 
 import {
@@ -30,8 +30,14 @@ let _initialized = false;
 type InitialReplayPluginOptions = Omit<ReplayPluginOptions, 'sessionSampleRate' | 'errorSampleRate'> &
   Partial<Pick<ReplayPluginOptions, 'sessionSampleRate' | 'errorSampleRate'>>;
 
+export const replayIntegration = ((options?: InitialReplayPluginOptions) => {
+  // eslint-disable-next-line deprecation/deprecation
+  return new Replay(options);
+}) satisfies IntegrationFn;
+
 /**
  * The main replay integration class, to be passed to `init({  integrations: [] })`.
+ * @deprecated Use `replayIntegration()` instead.
  */
 export class Replay implements Integration {
   /**
@@ -111,6 +117,7 @@ export class Replay implements Integration {
     // eslint-disable-next-line deprecation/deprecation
     ignoreClass,
   }: ReplayConfiguration = {}) {
+    // eslint-disable-next-line deprecation/deprecation
     this.name = Replay.id;
 
     const privacyOptions = getPrivacyOptions({

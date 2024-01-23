@@ -21,7 +21,11 @@ const INTEGRATIONS = {
 
 export { INTEGRATIONS as Integrations };
 
-export { Replay } from '@sentry/replay';
+export {
+  // eslint-disable-next-line deprecation/deprecation
+  Replay,
+  replayIntegration,
+} from '@sentry/replay';
 export type {
   ReplayEventType,
   ReplayEventWithTime,
@@ -34,9 +38,18 @@ export type {
   ReplaySpanFrameEvent,
 } from '@sentry/replay';
 
-export { ReplayCanvas } from '@sentry-internal/replay-canvas';
+export {
+  // eslint-disable-next-line deprecation/deprecation
+  ReplayCanvas,
+  replayCanvasIntegration,
+} from '@sentry-internal/replay-canvas';
 
-export { Feedback, sendFeedback } from '@sentry-internal/feedback';
+export {
+  // eslint-disable-next-line deprecation/deprecation
+  Feedback,
+  feedbackIntegration,
+  sendFeedback,
+} from '@sentry-internal/feedback';
 
 export {
   BrowserTracing,

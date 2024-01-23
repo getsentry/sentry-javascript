@@ -1,4 +1,8 @@
-export { Replay } from './integration';
+export {
+  // eslint-disable-next-line deprecation/deprecation
+  Replay,
+  replayIntegration,
+} from './integration';
 
 export type {
   ReplayConfiguration,

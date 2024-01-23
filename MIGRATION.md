@@ -36,6 +36,9 @@ The following list shows how integrations should be migrated:
 | `new ModuleMetadata()`   | `moduleMetadataIntegration()`   | `@sentry/core`, `@sentry/browser`                                                                       |
 | `new RequestData()`      | `requestDataIntegration()`      | `@sentry/core`, `@sentry/node`, `@sentry/deno`, `@sentry/bun`, `@sentry/vercel-edge`                    |
 | `new Wasm() `            | `wasmIntegration()`             | `@sentry/wasm`                                                                                          |
+| `new Replay()`           | `replayIntegration()`           | `@sentry/browser`                                                                                       |
+| `new ReplayCanvas()`     | `replayCanvasIntegration()`     | `@sentry/browser`                                                                                       |
+| `new Feedback()`         | `feedbackIntegration()`         | `@sentry/browser`                                                                                       |
 
 ## Deprecate `hub.bindClient()` and `makeMain()`
 
