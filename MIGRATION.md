@@ -10,6 +10,12 @@ npx @sentry/migr8@latest
 This will let you select which updates to run, and automatically update your code. Make sure to still review all code
 changes!
 
+## Deprecate using `getClient()` to check if the SDK was initialized
+
+In v8, `getClient()` will stop returning `undefined` if `Sentry.init()` was not called. For cases where this may be used
+to check if Sentry was actually initialized, using `getClient()` will thus not work anymore. Instead, you should use the
+new `Sentry.isInitialized()` utility to check this.
+
 ## Deprecate `getCurrentHub()`
 
 In v8, you will no longer have a Hub, only Scopes as a concept. This also means that `getCurrentHub()` will eventually

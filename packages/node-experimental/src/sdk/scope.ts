@@ -65,6 +65,11 @@ export function getClient<C extends Client>(): C {
   return {} as C;
 }
 
+/** If the SDK was initialized. */
+export function isInitialized(): boolean {
+  return !!getClient().getDsn();
+}
+
 /** A fork of the classic scope with some otel specific stuff. */
 export class Scope extends OpenTelemetryScope implements ScopeInterface {
   // Overwrite this if you want to use a specific isolation scope here
