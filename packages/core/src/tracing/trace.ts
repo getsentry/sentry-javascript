@@ -281,11 +281,32 @@ export function startInactiveSpan(context: StartSpanOptions): Span | undefined {
     ? // eslint-disable-next-line deprecation/deprecation
       context.scope.getSpan()
     : getActiveSpan();
-  return parentSpan
-    ? // eslint-disable-next-line deprecation/deprecation
-      parentSpan.startChild(ctx)
-    : // eslint-disable-next-line deprecation/deprecation
-      hub.startTransaction(ctx);
+
+  if (parentSpan) {
+    // eslint-disable-next-line deprecation/deprecation
+    return parentSpan.startChild(ctx);
+  } else {
+    const isolationScope = getIsolationScope();
+    const scope = getCurrentScope();
+
+    const { traceId, dsc, parentSpanId, sampled } = {
+      ...isolationScope.getPropagationContext(),
+      ...scope.getPropagationContext(),
+    };
+
+    // eslint-disable-next-line deprecation/deprecation
+    return hub.startTransaction({
+      traceId,
+      parentSpanId,
+      parentSampled: sampled,
+      ...ctx,
+      metadata: {
+        dynamicSamplingContext: dsc,
+        // eslint-disable-next-line deprecation/deprecation
+        ...ctx.metadata,
+      },
+    });
+  }
 }
 
 /**
@@ -365,11 +386,32 @@ function createChildSpanOrTransaction(
   if (!hasTracingEnabled()) {
     return undefined;
   }
-  return parentSpan
-    ? // eslint-disable-next-line deprecation/deprecation
-      parentSpan.startChild(ctx)
-    : // eslint-disable-next-line deprecation/deprecation
-      hub.startTransaction(ctx);
+
+  if (parentSpan) {
+    // eslint-disable-next-line deprecation/deprecation
+    return parentSpan.startChild(ctx);
+  } else {
+    const isolationScope = getIsolationScope();
+    const scope = getCurrentScope();
+
+    const { traceId, dsc, parentSpanId, sampled } = {
+      ...isolationScope.getPropagationContext(),
+      ...scope.getPropagationContext(),
+    };
+
+    // eslint-disable-next-line deprecation/deprecation
+    return hub.startTransaction({
+      traceId,
+      parentSpanId,
+      parentSampled: sampled,
+      ...ctx,
+      metadata: {
+        dynamicSamplingContext: dsc,
+        // eslint-disable-next-line deprecation/deprecation
+        ...ctx.metadata,
+      },
+    });
+  }
 }
 
 /**
