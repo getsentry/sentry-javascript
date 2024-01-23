@@ -4,6 +4,47 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.95.0
+
+### Important Changes
+
+#### Deprecations
+
+This release includes some deprecations in preparation for v8.
+
+Most notably, it deprecates the `Replay` & `Feedback` classes in favor of a functional replacement:
+
+```js
+import * as Sentry from '@sentry/browser';
+
+Sentry.init({
+  integrations: [
+    // Instead of
+    new Sentry.Replay(),
+    new Sentry.Feedback(),
+    // Use the functional replacement:
+    Sentry.replayIntegration(),
+    Sentry.feedbackIntegration(),
+  ],
+});
+```
+
+- feat(core): Deprecate `Span.origin` in favor of `sentry.origin` attribute (#10260)
+- feat(core): Deprecate `Span.parentSpanId` (#10244)
+- feat(core): Expose `isInitialized()` to replace checking via `getClient` (#10296)
+- feat(replay): Deprecate `Replay`, `ReplayCanvas`, `Feedback` classes (#10270)
+- feat(wasm): Deprecate `Wasm` integration class (#10230)
+
+### Other Changes
+
+- feat: Make `parameterize` function available through browser and node API (#10085)
+- feat(feedback): Configure feedback border radius (#10289)
+- feat(sveltekit): Update default integration handling & deprecate `addOrUpdateIntegration` (#10263)
+- fix(replay-canvas): Add missing dependency on @sentry/utils (#10279)
+- fix(tracing): Don't send negative ttfb (#10286)
+
+Work in this release contributed by @AleshaOleg. Thank you for your contribution!
+
 ## 7.94.1
 
 This release fixes a publishing issue.
