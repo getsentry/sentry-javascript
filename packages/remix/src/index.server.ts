@@ -68,6 +68,7 @@ export {
   Integrations,
   Handlers,
   cron,
+  parameterize,
 } from '@sentry/node';
 
 // Keeping the `*` exports for backwards compatibility and types

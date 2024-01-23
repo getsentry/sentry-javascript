@@ -72,6 +72,7 @@ export {
   metrics,
   functionToStringIntegration,
   inboundFiltersIntegration,
+  parameterize,
 } from '@sentry/core';
 
 export { WINDOW } from './helpers';
