@@ -69,7 +69,6 @@
   },
   "devDependencies": {
     "@sentry/core": "7.93.0",
-    "@sentry/hub": "7.93.0",
     "@sentry/node": "7.93.0",
     "@sentry/types": "7.93.0",
     "@sentry/utils": "7.93.0",
