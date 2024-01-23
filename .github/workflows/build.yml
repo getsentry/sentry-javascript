@@ -1248,9 +1248,11 @@ jobs:
           git config --global --add safe.directory "*"
 
       - name: Install yarn
-        run: |
-          npm i -g yarn@1.22.19 --force
-          yarn config set network-timeout 600000 -g
+        run: npm i -g yarn@1.22.19 --force
+
+      - name: Increase yarn network timeout on Windows
+        if: contains(matrix.os, 'windows')
+        run: yarn config set network-timeout 600000 -g
 
       - name: Setup python
         uses: actions/setup-python@v4

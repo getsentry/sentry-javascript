@@ -75,7 +75,7 @@ We currently ship prebuilt binaries for a few of the most common platforms and n
 - Linux x64 (glibc)
 - Windows x64
 
-For a more detailed list, see our build.yml workflow.
+For a more detailed list, see job_compile_bindings_profiling_node job in our build.yml github action workflow.
 
 ### Bundling
 
@@ -296,6 +296,6 @@ to exploring the possibilities. Please file an issue if you have suggestions or 
 ### How much overhead will this profiler add?
 
 The profiler uses the kEagerLogging option by default which trades off fast calls to startProfiling for a small amount
-of constant CPU overhead. If you are using kEagerLogging then the tradeoff is reversed and there will be no CPU overhead
-while the profiler is not running, but calls to startProfiling could be slow (in our tests, this varies by environments
-and node versions, but could be in the order of a couple 100ms).
+of constant CPU overhead. If you are using kEagerLogging then the tradeoff is reversed and there will be a small CPU
+overhead while the profiler is not running, but calls to startProfiling could be slow (in our tests, this varies by
+environments and node versions, but could be in the order of a couple 100ms).
