@@ -198,7 +198,7 @@ export function createRunner(...paths: string[]) {
         if (ensureNoErrorOutput) {
           child.stderr.on('data', (data: Buffer) => {
             const output = data.toString();
-            complete(new Error(`Unexpected no error output but got: ${output}`));
+            complete(new Error(`Expected no error output but got: '${output}'`));
           });
         }
 
