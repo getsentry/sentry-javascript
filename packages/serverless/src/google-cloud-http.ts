@@ -1,9 +1,12 @@
-// '@google-cloud/common' import is expected to be type-only so it's erased in the final .js file.
-// When TypeScript compiler is upgraded, use `import type` syntax to explicitly assert that we don't want to load a module here.
 import type * as common from '@google-cloud/common';
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
+import {
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  convertIntegrationFnToClass,
+  defineIntegration,
+  getClient,
+} from '@sentry/core';
 import { startInactiveSpan } from '@sentry/node';
-import type { Integration } from '@sentry/types';
+import type { Client, Integration, IntegrationClass, IntegrationFn } from '@sentry/types';
 import { fill } from '@sentry/utils';
 
 type RequestOptions = common.DecorateRequestOptions;
@@ -13,53 +16,57 @@ interface RequestFunction extends CallableFunction {
   (reqOpts: RequestOptions, callback: ResponseCallback): void;
 }
 
-/** Google Cloud Platform service requests tracking for RESTful APIs */
-export class GoogleCloudHttp implements Integration {
-  /**
-   * @inheritDoc
-   */
-  public static id: string = 'GoogleCloudHttp';
+const INTEGRATION_NAME = 'GoogleCloudHttp';
 
-  /**
-   * @inheritDoc
-   */
-  public name: string;
+const SETUP_CLIENTS = new WeakMap<Client, boolean>();
 
-  private readonly _optional: boolean;
-
-  public constructor(options: { optional?: boolean } = {}) {
-    this.name = GoogleCloudHttp.id;
-
-    this._optional = options.optional || false;
-  }
-
-  /**
-   * @inheritDoc
-   */
-  public setupOnce(): void {
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
-      const commonModule = require('@google-cloud/common') as typeof common;
-      fill(commonModule.Service.prototype, 'request', wrapRequestFunction);
-    } catch (e) {
-      if (!this._optional) {
-        throw e;
+const _googleCloudHttpIntegration = ((options: { optional?: boolean } = {}) => {
+  const optional = options.optional || false;
+  return {
+    name: INTEGRATION_NAME,
+    setupOnce() {
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        const commonModule = require('@google-cloud/common') as typeof common;
+        fill(commonModule.Service.prototype, 'request', wrapRequestFunction);
+      } catch (e) {
+        if (!optional) {
+          throw e;
+        }
       }
-    }
-  }
-}
+    },
+    setup(client) {
+      SETUP_CLIENTS.set(client, true);
+    },
+  };
+}) satisfies IntegrationFn;
+
+export const googleCloudHttpIntegration = defineIntegration(_googleCloudHttpIntegration);
+
+/**
+ * Google Cloud Platform service requests tracking for RESTful APIs.
+ *
+ * @deprecated Use `googleCloudHttpIntegration()` instead.
+ */
+// eslint-disable-next-line deprecation/deprecation
+export const GoogleCloudHttp = convertIntegrationFnToClass(
+  INTEGRATION_NAME,
+  googleCloudHttpIntegration,
+) as IntegrationClass<Integration>;
 
 /** Returns a wrapped function that makes a request with tracing enabled */
 function wrapRequestFunction(orig: RequestFunction): RequestFunction {
   return function (this: common.Service, reqOpts: RequestOptions, callback: ResponseCallback): void {
     const httpMethod = reqOpts.method || 'GET';
-    const span = startInactiveSpan({
-      name: `${httpMethod} ${reqOpts.uri}`,
-      op: `http.client.${identifyService(this.apiEndpoint)}`,
-      attributes: {
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.serverless',
-      },
-    });
+    const span = SETUP_CLIENTS.has(getClient() as Client)
+      ? startInactiveSpan({
+          name: `${httpMethod} ${reqOpts.uri}`,
+          op: `http.client.${identifyService(this.apiEndpoint)}`,
+          attributes: {
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.serverless',
+          },
+        })
+      : undefined;
     orig.call(this, reqOpts, (...args: Parameters<ResponseCallback>) => {
       if (span) {
         span.end();

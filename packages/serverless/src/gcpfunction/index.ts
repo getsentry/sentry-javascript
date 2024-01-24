@@ -8,7 +8,7 @@ import {
 import type { Integration, Options, SdkMetadata } from '@sentry/types';
 
 import { googleCloudGrpcIntegration } from '../google-cloud-grpc';
-import { GoogleCloudHttp } from '../google-cloud-http';
+import { googleCloudHttpIntegration } from '../google-cloud-http';
 
 export * from './http';
 export * from './events';
@@ -18,7 +18,7 @@ export * from './cloud_events';
 export const defaultIntegrations: Integration[] = [
   // eslint-disable-next-line deprecation/deprecation
   ...defaultNodeIntegrations,
-  new GoogleCloudHttp({ optional: true }), // We mark this integration optional since '@google-cloud/common' module could be missing.
+  googleCloudHttpIntegration({ optional: true }), // We mark this integration optional since '@google-cloud/common' module could be missing.
   googleCloudGrpcIntegration({ optional: true }), // We mark this integration optional since 'google-gax' module could be missing.
 ];
 
@@ -26,7 +26,7 @@ export const defaultIntegrations: Integration[] = [
 export function getDefaultIntegrations(options: Options): Integration[] {
   return [
     ...getDefaultNodeIntegrations(options),
-    new GoogleCloudHttp({ optional: true }), // We mark this integration optional since '@google-cloud/common' module could be missing.
+    googleCloudHttpIntegration({ optional: true }), // We mark this integration optional since '@google-cloud/common' module could be missing.
     googleCloudGrpcIntegration({ optional: true }), // We mark this integration optional since 'google-gax' module could be missing.
   ];
 }
