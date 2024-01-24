@@ -60,5 +60,10 @@ export type ComponentTrackingInitOptions = {
 } & SpanOptions;
 
 export type TrackComponentOptions = {
+  /**
+   * The name of the component to be used in the recorded spans.
+   *
+   * @default to <Svelte Component> if not specified
+   */
   componentName?: string;
 } & SpanOptions;
