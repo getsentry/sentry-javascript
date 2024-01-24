@@ -1,9 +1,7 @@
 import { conditionalTest } from '../../../utils';
 import { createRunner } from '../../../utils/runner';
 
-// Node 10 is not supported by `graphql-js`
-// Ref: https://github.com/graphql/graphql-js/blob/main/package.json
-conditionalTest({ min: 12 })('GraphQL/Apollo Tests', () => {
+conditionalTest({ min: 14 })('GraphQL/Apollo Tests', () => {
   const EXPECTED_TRANSACTION = {
     transaction: 'Test Transaction',
     spans: expect.arrayContaining([
