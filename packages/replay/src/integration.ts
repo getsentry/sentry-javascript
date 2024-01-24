@@ -30,7 +30,7 @@ let _initialized = false;
 type InitialReplayPluginOptions = Omit<ReplayPluginOptions, 'sessionSampleRate' | 'errorSampleRate'> &
   Partial<Pick<ReplayPluginOptions, 'sessionSampleRate' | 'errorSampleRate'>>;
 
-export const replayIntegration = ((options?: InitialReplayPluginOptions) => {
+export const replayIntegration = ((options?: ReplayConfiguration) => {
   // eslint-disable-next-line deprecation/deprecation
   return new Replay(options);
 }) satisfies IntegrationFn;
