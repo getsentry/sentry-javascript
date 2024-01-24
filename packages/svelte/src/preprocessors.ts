@@ -21,8 +21,6 @@ export const FIRST_PASS_COMPONENT_TRACKING_PREPROC_ID = 'FIRST_PASS_COMPONENT_TR
 export function componentTrackingPreprocessor(options?: ComponentTrackingInitOptions): PreprocessorGroup {
   const mergedOptions = { ...defaultComponentTrackingOptions, ...options };
 
-  console.log('mergedOptions', mergedOptions);
-
   const visitedFiles = new Set<string>();
   const visitedFilesMarkup = new Set<string>();
 

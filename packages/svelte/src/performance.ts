@@ -55,7 +55,6 @@ function recordInitSpan(transaction: Transaction, componentName: string): Span {
   });
 
   onMount(() => {
-    console.log('END SPAN', componentName);
     initSpan.end();
   });
 
