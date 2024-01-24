@@ -18,7 +18,7 @@ interface AWSService {
 
 const INTEGRATION_NAME = 'AWSServices';
 
-export const SETUP_CLIENTS = new WeakMap<Client, boolean>();
+const SETUP_CLIENTS = new WeakMap<Client, boolean>();
 
 const _awsServicesIntegration = ((options: { optional?: boolean } = {}) => {
   const optional = options.optional || false;
