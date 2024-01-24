@@ -36,6 +36,7 @@
     "apollo-server": "^3.11.1",
     "axios": "^0.27.2",
     "cors": "^2.8.5",
+    "cron": "^3.1.6",
     "express": "^4.17.3",
     "graphql": "^16.3.0",
     "http-terminator": "^3.2.0",

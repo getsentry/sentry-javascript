@@ -70,6 +70,7 @@ export function createRunner(...paths: string[]) {
   const flags: string[] = [];
   const ignored: EnvelopeItemType[] = [];
   let withSentryServer = false;
+  let ensureNoErrorOutput = false;
 
   if (testPath.endsWith('.ts')) {
     flags.push('-r', 'ts-node/register');
@@ -90,6 +91,10 @@ export function createRunner(...paths: string[]) {
     },
     ignore: function (...types: EnvelopeItemType[]) {
       ignored.push(...types);
+      return this;
+    },
+    ensureNoErrorOutput: function () {
+      ensureNoErrorOutput = true;
       return this;
     },
     start: function (done?: (e?: unknown) => void) {
@@ -190,8 +195,19 @@ export function createRunner(...paths: string[]) {
 
         CHILD_PROCESSES.add(child);
 
+        if (ensureNoErrorOutput) {
+          child.stderr.on('data', (data: Buffer) => {
+            const output = data.toString();
+            complete(new Error(`Expected no error output but got: '${output}'`));
+          });
+        }
+
         child.on('close', () => {
           hasExited = true;
+
+          if (ensureNoErrorOutput) {
+            complete();
+          }
         });
 
         // Pass error to done to end the test quickly
