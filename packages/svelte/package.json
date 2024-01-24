@@ -18,8 +18,8 @@
   "type": "module",
   "exports": {
     ".": {
+      "default": "./build/esm/index.js",
       "import": "./build/esm/index.js",
-      "svelte": "./build/esm/index.js",
       "require": "./build/cjs/index.js",
       "types": "./build/types/index.d.ts",
       "typesVersions": {
