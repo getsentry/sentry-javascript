@@ -1,7 +1,6 @@
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, getActiveSpan } from '@sentry/browser';
 import type { Span } from '@sentry/types';
 import { afterUpdate, beforeUpdate, onMount } from 'svelte';
-import { current_component } from 'svelte/internal';
 
 import { getRootSpan, startInactiveSpan, withActiveSpan } from '@sentry/core';
 import { DEFAULT_COMPONENT_NAME, UI_SVELTE_INIT, UI_SVELTE_UPDATE } from './constants';
@@ -32,7 +31,7 @@ export function trackComponent(options?: TrackComponentOptions): void {
 
   // current_component.ctor.name is likely to give us the component's name automatically
   // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-  const componentName = `<${customComponentName || current_component.constructor.name || DEFAULT_COMPONENT_NAME}>`;
+  const componentName = `<${customComponentName || DEFAULT_COMPONENT_NAME}>`;
 
   let initSpan: Span | undefined = undefined;
   if (mergedOptions.trackInit) {
@@ -53,6 +52,7 @@ function recordInitSpan(componentName: string): Span | undefined {
   });
 
   onMount(() => {
+    console.log('END SPAN', componentName);
     initSpan.end();
   });
 
