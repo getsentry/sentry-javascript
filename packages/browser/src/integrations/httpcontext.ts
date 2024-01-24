@@ -1,11 +1,11 @@
-import { convertIntegrationFnToClass } from '@sentry/core';
+import { convertIntegrationFnToClass, defineIntegration } from '@sentry/core';
 import type { Event, Integration, IntegrationClass, IntegrationFn } from '@sentry/types';
 
 import { WINDOW } from '../helpers';
 
 const INTEGRATION_NAME = 'HttpContext';
 
-const httpContextIntegration = (() => {
+const _httpContextIntegration = (() => {
   return {
     name: INTEGRATION_NAME,
     // TODO v8: Remove this
@@ -33,7 +33,12 @@ const httpContextIntegration = (() => {
   };
 }) satisfies IntegrationFn;
 
-/** HttpContext integration collects information about HTTP request headers */
+export const httpContextIntegration = defineIntegration(_httpContextIntegration);
+
+/**
+ * HttpContext integration collects information about HTTP request headers.
+ * @deprecated Use `httpContextIntegration()` instead.
+ */
 // eslint-disable-next-line deprecation/deprecation
 export const HttpContext = convertIntegrationFnToClass(INTEGRATION_NAME, httpContextIntegration) as IntegrationClass<
   Integration & { preprocessEvent: (event: Event) => void }

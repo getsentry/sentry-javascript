@@ -14,7 +14,10 @@ import sentryAstro from './index.server';
 export declare function init(options: Options | clientSdk.BrowserOptions | serverSdk.NodeOptions): void;
 
 // We export a merged Integrations object so that users can (at least typing-wise) use all integrations everywhere.
+// eslint-disable-next-line deprecation/deprecation
 export declare const Integrations: typeof clientSdk.Integrations & typeof serverSdk.Integrations;
+
+export declare const linkedErrorsIntegration: typeof clientSdk.linkedErrorsIntegration;
 
 export declare const defaultIntegrations: Integration[];
 export declare const getDefaultIntegrations: (options: Options) => Integration[];

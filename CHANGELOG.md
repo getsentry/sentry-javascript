@@ -4,6 +4,35 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.96.0
+
+### Important Changes
+
+#### Deprecations
+
+This release includes some deprecations for integrations in `@sentry/browser` and frontend framework SDKs
+(`@sentry/react`, `@sentry/vue`, etc.). Please take a look at our
+[migration guide](https://github.com/getsentry/sentry-javascript/blob/develop/MIGRATION.md) for more details.
+
+- feat(browser): Export functional integrations & deprecate classes (#10267)
+
+#### Web Vitals Fix for LCP and CLS
+
+This release fixes an issue with the Web Vitals integration where LCP and CLS were not being captured correctly,
+increasing capture rate by 10-30% for some apps. LCP and CLS capturing issues were introduced with version `7.75.0`.
+
+- fix(tracing): Ensure web vitals are correctly stopped/captured (#10323)
+
+### Other Changes
+
+- feat(react): Add `stripBasename` option for React Router 6. (#10314)
+- fix(node): Fix `node-cron` types and add test (#10315)
+- fix(node): Fix downleveled types entry point (#10321)
+- fix(node): LocalVariables integration should use setupOnce (#10307)
+- fix(replay): Fix type for options of replayIntegration (#10325)
+
+Work in this release contributed by @Shubhdeep12. Thank you for your contribution!
+
 ## 7.95.0
 
 ### Important Changes

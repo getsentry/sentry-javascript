@@ -1,5 +1,5 @@
 /* eslint-disable max-lines */
-import { convertIntegrationFnToClass } from '@sentry/core';
+import { convertIntegrationFnToClass, getClient } from '@sentry/core';
 import type { Event, Exception, Integration, IntegrationClass, IntegrationFn, StackParser } from '@sentry/types';
 import { LRUMap, logger } from '@sentry/utils';
 import type { Debugger, InspectorNotification, Runtime, Session } from 'inspector';
@@ -326,12 +326,11 @@ const localVariablesSyncIntegration = ((
 
   return {
     name: INTEGRATION_NAME,
-    // TODO v8: Remove this
-    setupOnce() {}, // eslint-disable-line @typescript-eslint/no-empty-function
-    setup(client: NodeClient) {
-      const clientOptions = client.getOptions();
+    setupOnce() {
+      const client = getClient<NodeClient>();
+      const clientOptions = client?.getOptions();
 
-      if (session && clientOptions.includeLocalVariables) {
+      if (session && clientOptions?.includeLocalVariables) {
         // Only setup this integration if the Node version is >= v18
         // https://github.com/getsentry/sentry-javascript/issues/7697
         const unsupportedNodeVersion = NODE_VERSION.major < 18;

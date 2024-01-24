@@ -26,6 +26,7 @@ describe('React Router v6.4', () => {
   function createInstrumentation(_opts?: {
     startTransactionOnPageLoad?: boolean;
     startTransactionOnLocationChange?: boolean;
+    stripBasename?: boolean;
   }): [jest.Mock, { mockUpdateName: jest.Mock; mockFinish: jest.Mock; mockSetAttribute: jest.Mock }] {
     const options = {
       matchPath: _opts ? matchPath : undefined,
@@ -46,6 +47,7 @@ describe('React Router v6.4', () => {
       useNavigationType,
       createRoutesFromChildren,
       matchRoutes,
+      options.stripBasename,
     )(mockStartTransaction, options.startTransactionOnPageLoad, options.startTransactionOnLocationChange);
     return [mockStartTransaction, { mockUpdateName, mockFinish, mockSetAttribute }];
   }
@@ -353,6 +355,94 @@ describe('React Router v6.4', () => {
       expect(mockStartTransaction).toHaveBeenCalledTimes(2);
       expect(mockStartTransaction).toHaveBeenLastCalledWith({
         name: '/admin/:orgId/users/:userId',
+        op: 'navigation',
+        origin: 'auto.navigation.react.reactrouterv6',
+        tags: { 'routing.instrumentation': 'react-router-v6' },
+        metadata: { source: 'route' },
+      });
+    });
+
+    it('strips `basename` from transaction names of parameterized paths', () => {
+      const [mockStartTransaction] = createInstrumentation({
+        stripBasename: true,
+      });
+      const sentryCreateBrowserRouter = wrapCreateBrowserRouter(createMemoryRouter as CreateRouterFunction);
+
+      const router = sentryCreateBrowserRouter(
+        [
+          {
+            path: '/',
+            element: <Navigate to="/some-org-id/users/some-user-id" />,
+          },
+          {
+            path: ':orgId',
+            children: [
+              {
+                path: 'users',
+                children: [
+                  {
+                    path: ':userId',
+                    element: <div>User</div>,
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+        {
+          initialEntries: ['/admin'],
+          basename: '/admin',
+        },
+      );
+
+      // @ts-expect-error router is fine
+      render(<RouterProvider router={router} />);
+
+      expect(mockStartTransaction).toHaveBeenCalledTimes(2);
+      expect(mockStartTransaction).toHaveBeenLastCalledWith({
+        name: '/:orgId/users/:userId',
+        op: 'navigation',
+        origin: 'auto.navigation.react.reactrouterv6',
+        tags: { 'routing.instrumentation': 'react-router-v6' },
+        metadata: { source: 'route' },
+      });
+    });
+
+    it('strips `basename` from transaction names of non-parameterized paths', () => {
+      const [mockStartTransaction] = createInstrumentation({
+        stripBasename: true,
+      });
+      const sentryCreateBrowserRouter = wrapCreateBrowserRouter(createMemoryRouter as CreateRouterFunction);
+
+      const router = sentryCreateBrowserRouter(
+        [
+          {
+            path: '/',
+            element: <Navigate to="/about/us" />,
+          },
+          {
+            path: 'about',
+            element: <div>About</div>,
+            children: [
+              {
+                path: 'us',
+                element: <div>Us</div>,
+              },
+            ],
+          },
+        ],
+        {
+          initialEntries: ['/app'],
+          basename: '/app',
+        },
+      );
+
+      // @ts-expect-error router is fine
+      render(<RouterProvider router={router} />);
+
+      expect(mockStartTransaction).toHaveBeenCalledTimes(2);
+      expect(mockStartTransaction).toHaveBeenLastCalledWith({
+        name: '/about/us',
         op: 'navigation',
         origin: 'auto.navigation.react.reactrouterv6',
         tags: { 'routing.instrumentation': 'react-router-v6' },

@@ -1,5 +1,5 @@
 /* eslint-disable max-lines */
-import { addBreadcrumb, convertIntegrationFnToClass, getClient } from '@sentry/core';
+import { addBreadcrumb, convertIntegrationFnToClass, defineIntegration, getClient } from '@sentry/core';
 import type {
   Client,
   Event as SentryEvent,
@@ -57,7 +57,7 @@ const MAX_ALLOWED_STRING_LENGTH = 1024;
 
 const INTEGRATION_NAME = 'Breadcrumbs';
 
-const breadcrumbsIntegration = ((options: Partial<BreadcrumbsOptions> = {}) => {
+const _breadcrumbsIntegration = ((options: Partial<BreadcrumbsOptions> = {}) => {
   const _options = {
     console: true,
     dom: true,
@@ -95,8 +95,12 @@ const breadcrumbsIntegration = ((options: Partial<BreadcrumbsOptions> = {}) => {
   };
 }) satisfies IntegrationFn;
 
+export const breadcrumbsIntegration = defineIntegration(_breadcrumbsIntegration);
+
 /**
  * Default Breadcrumbs instrumentations
+ *
+ * @deprecated Use `breadcrumbsIntegration()` instead.
  */
 // eslint-disable-next-line deprecation/deprecation
 export const Breadcrumbs = convertIntegrationFnToClass(INTEGRATION_NAME, breadcrumbsIntegration) as IntegrationClass<

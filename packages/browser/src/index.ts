@@ -12,6 +12,7 @@ if (WINDOW.Sentry && WINDOW.Sentry.Integrations) {
   windowIntegrations = WINDOW.Sentry.Integrations;
 }
 
+/** @deprecated Import the integration function directly, e.g. `inboundFiltersIntegration()` instead of `new Integrations.InboundFilter(). */
 const INTEGRATIONS = {
   ...windowIntegrations,
   // eslint-disable-next-line deprecation/deprecation
@@ -19,6 +20,7 @@ const INTEGRATIONS = {
   ...BrowserIntegrations,
 };
 
+// eslint-disable-next-line deprecation/deprecation
 export { INTEGRATIONS as Integrations };
 
 export {

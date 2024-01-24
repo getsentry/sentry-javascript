@@ -39,7 +39,8 @@ let _lcpEntry: LargestContentfulPaint | undefined;
 let _clsEntry: LayoutShift | undefined;
 
 /**
- * Start tracking web vitals
+ * Start tracking web vitals.
+ * The callback returned by this function can be used to stop tracking & ensure all measurements are final & captured.
  *
  * @returns A function that forces web vitals collection
  */
@@ -129,7 +130,7 @@ export function startTrackingInteractions(): void {
 /** Starts tracking the Cumulative Layout Shift on the current page. */
 function _trackCLS(): () => void {
   return addClsInstrumentationHandler(({ metric }) => {
-    const entry = metric.entries.pop();
+    const entry = metric.entries[metric.entries.length - 1];
     if (!entry) {
       return;
     }
@@ -137,13 +138,13 @@ function _trackCLS(): () => void {
     DEBUG_BUILD && logger.log('[Measurements] Adding CLS');
     _measurements['cls'] = { value: metric.value, unit: '' };
     _clsEntry = entry as LayoutShift;
-  });
+  }, true);
 }
 
 /** Starts tracking the Largest Contentful Paint on the current page. */
 function _trackLCP(): () => void {
   return addLcpInstrumentationHandler(({ metric }) => {
-    const entry = metric.entries.pop();
+    const entry = metric.entries[metric.entries.length - 1];
     if (!entry) {
       return;
     }
@@ -151,13 +152,13 @@ function _trackLCP(): () => void {
     DEBUG_BUILD && logger.log('[Measurements] Adding LCP');
     _measurements['lcp'] = { value: metric.value, unit: 'millisecond' };
     _lcpEntry = entry as LargestContentfulPaint;
-  });
+  }, true);
 }
 
 /** Starts tracking the First Input Delay on the current page. */
 function _trackFID(): () => void {
   return addFidInstrumentationHandler(({ metric }) => {
-    const entry = metric.entries.pop();
+    const entry = metric.entries[metric.entries.length - 1];
     if (!entry) {
       return;
     }

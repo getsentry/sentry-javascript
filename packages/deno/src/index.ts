@@ -94,6 +94,7 @@ export {
   init,
 } from './sdk';
 
+export { breadcrumbsIntegration, dedupeIntegration } from '@sentry/browser';
 import { Integrations as CoreIntegrations } from '@sentry/core';
 
 import * as DenoIntegrations from './integrations';
