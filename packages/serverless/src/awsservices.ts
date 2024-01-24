@@ -1,6 +1,6 @@
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
-import { startInactiveSpan } from '@sentry/node';
-import type { Integration, Span } from '@sentry/types';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, convertIntegrationFnToClass, defineIntegration } from '@sentry/core';
+import { getClient, startInactiveSpan } from '@sentry/node';
+import type { Client, Integration, IntegrationClass, IntegrationFn, Span } from '@sentry/types';
 import { fill } from '@sentry/utils';
 // 'aws-sdk/global' import is expected to be type-only so it's erased in the final .js file.
 // When TypeScript compiler is upgraded, use `import type` syntax to explicitly assert that we don't want to load a module here.
@@ -16,63 +16,70 @@ interface AWSService {
   serviceIdentifier: string;
 }
 
-/** AWS service requests tracking */
-export class AWSServices implements Integration {
-  /**
-   * @inheritDoc
-   */
-  public static id: string = 'AWSServices';
+const INTEGRATION_NAME = 'AWSServices';
 
-  /**
-   * @inheritDoc
-   */
-  public name: string;
+export const SETUP_CLIENTS = new WeakMap<Client, boolean>();
 
-  private readonly _optional: boolean;
-
-  public constructor(options: { optional?: boolean } = {}) {
-    this.name = AWSServices.id;
-
-    this._optional = options.optional || false;
-  }
-
-  /**
-   * @inheritDoc
-   */
-  public setupOnce(): void {
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
-      const awsModule = require('aws-sdk/global') as typeof AWS;
-      fill(awsModule.Service.prototype, 'makeRequest', wrapMakeRequest);
-    } catch (e) {
-      if (!this._optional) {
-        throw e;
+const _awsServicesIntegration = ((options: { optional?: boolean } = {}) => {
+  const optional = options.optional || false;
+  return {
+    name: INTEGRATION_NAME,
+    setupOnce() {
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        const awsModule = require('aws-sdk/global') as typeof AWS;
+        fill(awsModule.Service.prototype, 'makeRequest', wrapMakeRequest);
+      } catch (e) {
+        if (!optional) {
+          throw e;
+        }
       }
-    }
-  }
-}
+    },
+    setup(client) {
+      SETUP_CLIENTS.set(client, true);
+    },
+  };
+}) satisfies IntegrationFn;
 
-/** */
+export const awsServicesIntegration = defineIntegration(_awsServicesIntegration);
+
+/**
+ * AWS Service Request Tracking.
+ *
+ * @deprecated Use `awsServicesIntegration()` instead.
+ */
+// eslint-disable-next-line deprecation/deprecation
+export const AWSServices = convertIntegrationFnToClass(
+  INTEGRATION_NAME,
+  awsServicesIntegration,
+) as IntegrationClass<Integration>;
+
+/**
+ * Patches AWS SDK request to create `http.client` spans.
+ */
 function wrapMakeRequest<TService extends AWSService, TResult>(
   orig: MakeRequestFunction<GenericParams, TResult>,
 ): MakeRequestFunction<GenericParams, TResult> {
   return function (this: TService, operation: string, params?: GenericParams, callback?: MakeRequestCallback<TResult>) {
     let span: Span | undefined;
     const req = orig.call(this, operation, params);
-    req.on('afterBuild', () => {
-      span = startInactiveSpan({
-        name: describe(this, operation, params),
-        op: 'http.client',
-        attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.serverless',
-        },
+
+    if (SETUP_CLIENTS.has(getClient() as Client)) {
+      req.on('afterBuild', () => {
+        span = startInactiveSpan({
+          name: describe(this, operation, params),
+          op: 'http.client',
+          attributes: {
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.serverless',
+          },
+        });
       });
-    });
-    req.on('complete', () => {
-      if (span) {
-        span.end();
-      }
-    });
+      req.on('complete', () => {
+        if (span) {
+          span.end();
+        }
+      });
+    }
 
     if (callback) {
       req.send(callback);
