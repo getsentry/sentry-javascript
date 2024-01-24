@@ -60,16 +60,38 @@ export interface BrowserTracingOptions extends RequestInstrumentationOptions {
   heartbeatInterval: number;
 
   /**
-   * Flag to enable/disable creation of `navigation` transaction on history changes.
+   * If a span should be created on location (history) changes.
+   * Default: true
+   */
+  instrumentNavigation: boolean;
+
+  /**
+   * If a span should be created on pageload.
+   * Default: true
+   */
+  instrumentPageLoad: boolean;
+
+  /**
+   * Flag spans where tabs moved to background with "cancelled". Browser background tab timing is
+   * not suited towards doing precise measurements of operations. By default, we recommend that this option
+   * be enabled as background transactions can mess up your statistics in nondeterministic ways.
    *
    * Default: true
    */
   startTransactionOnLocationChange: boolean;
 
   /**
+   * Flag to enable/disable creation of `navigation` transaction on history changes.
+   * Default: true
+   * @deprecated Configure `instrumentNavigation` instead.
+   */
+  startTransactionOnLocationChange?: boolean;
+
+  /**
    * Flag to enable/disable creation of `pageload` transaction on first pageload.
    *
    * Default: true
+   * @deprecated Configure `instrumentPageLoad` instead.
    */
   startTransactionOnPageLoad: boolean;
 
@@ -145,19 +167,16 @@ const DEFAULT_BROWSER_TRACING_OPTIONS: BrowserTracingOptions = {
   ...TRACING_DEFAULTS,
   markBackgroundTransactions: true,
   routingInstrumentation: instrumentRoutingWithDefaults,
-  startTransactionOnLocationChange: true,
-  startTransactionOnPageLoad: true,
+  instrumentNavigation: true,
+  instrumentPageLoad: true,
+  markBackgroundSpan: true,
   enableLongTask: true,
   _experiments: {},
   ...defaultRequestInstrumentationOptions,
 };
 
 /**
- * The Browser Tracing integration automatically instruments browser pageload/navigation
- * actions as transactions, and captures requests, metrics and errors as spans.
- *
- * The integration can be configured with a variety of options, and can be extended to use
- * any routing library. This integration uses {@see IdleTransaction} to create transactions.
+ * @deprecated Use `browserTracingIntegration()` instead.
  */
 export class BrowserTracing implements Integration {
   // This class currently doesn't have a static `id` field like the other integration classes, because it prevented
@@ -194,6 +213,29 @@ export class BrowserTracing implements Integration {
         // eslint-disable-next-line deprecation/deprecation
         (_options.tracePropagationTargets || _options.tracingOrigins)
       );
+    }
+
+    // Migrate legacy options
+    // TODO v8: Remove this
+    /* eslint-disable deprecation/deprecation */
+    if (typeof _options.startTransactionOnPageLoad === 'boolean') {
+      _options.instrumentPageLoad = _options.startTransactionOnPageLoad;
+    }
+    if (typeof _options.startTransactionOnLocationChange === 'boolean') {
+      _options.instrumentNavigation = _options.startTransactionOnLocationChange;
+    }
+    if (typeof _options.markBackgroundTransactions === 'boolean') {
+      _options.markBackgroundSpan = _options.markBackgroundTransactions;
+    }
+    /* eslint-enable deprecation/deprecation */
+
+    // TODO (v8): remove this block after tracingOrigins is removed
+    // Set tracePropagationTargets to tracingOrigins if specified by the user
+    // In case both are specified, tracePropagationTargets takes precedence
+    // eslint-disable-next-line deprecation/deprecation
+    if (!_options.tracePropagationTargets && _options.tracingOrigins) {
+      // eslint-disable-next-line deprecation/deprecation
+      _options.tracePropagationTargets = _options.tracingOrigins;
     }
 
     this.options = {
@@ -237,9 +279,9 @@ export class BrowserTracing implements Integration {
 
     const {
       routingInstrumentation: instrumentRouting,
-      startTransactionOnLocationChange,
-      startTransactionOnPageLoad,
-      markBackgroundTransactions,
+      instrumentNavigation,
+      instrumentPageLoad,
+      markBackgroundSpan,
       traceFetch,
       traceXHR,
       shouldCreateSpanForRequest,
@@ -275,8 +317,8 @@ export class BrowserTracing implements Integration {
 
         return transaction;
       },
-      startTransactionOnPageLoad,
-      startTransactionOnLocationChange,
+      instrumentPageLoad,
+      instrumentNavigation,
     );
 
     if (markBackgroundTransactions) {

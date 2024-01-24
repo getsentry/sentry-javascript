@@ -10,6 +10,33 @@ npx @sentry/migr8@latest
 This will let you select which updates to run, and automatically update your code. Make sure to still review all code
 changes!
 
+## Deprecate `new BrowserTracing()` in favor of `browserTracingIntegration()`
+
+In v8, you have to use the functional style for the browser tracing integration. This works mostly the same, but some of
+the options have changed:
+
+- `startTransactionOnPageLoad` --> `instrumentPageLoad`
+- `startTransactionOnLocationChange` --> `instrumentNavigation`
+- `markBackgroundTransactions` --> `markBackgroundSpan`
+- `beforeNavigate` --> `beforeStartSpan`
+
+Finally, instead of `routingInstrumentation`, you have to disable instrumentation via e.g.
+`instrumentNavigation: false`, and can then manually emit events like this:
+
+```js
+// Example router event
+router.on('routeChange', route => {
+  Sentry.getClient().emit('startNavigationSpan', {
+    name: route.name,
+    op: 'navigation',
+  });
+
+  const activeSpan = Sentry.getActiveSpan(); // <-- this will hold the navigation span
+});
+```
+
+The new `browserTracingIntegration()` will pick these up and create the correct spans.
+
 ## Deprecate using `getClient()` to check if the SDK was initialized
 
 In v8, `getClient()` will stop returning `undefined` if `Sentry.init()` was not called. For cases where this may be used

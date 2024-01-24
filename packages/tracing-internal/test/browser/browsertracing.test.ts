@@ -699,4 +699,58 @@ conditionalTest({ min: 10 })('BrowserTracing', () => {
       );
     });
   });
+
+  describe('options', () => {
+    // These are important enough to check with a test as incorrect defaults could
+    // break a lot of users' configurations.
+    it('is created with default settings', () => {
+      const browserTracing = createBrowserTracing();
+
+      expect(browserTracing.options).toEqual({
+        enableLongTask: true,
+        _experiments: {},
+        ...TRACING_DEFAULTS,
+        routingInstrumentation: instrumentRoutingWithDefaults,
+        spanOnLocationChange: true,
+        spanOnPageLoad: true,
+        markBackgroundSpan: true,
+        ...defaultRequestInstrumentationOptions,
+      });
+    });
+
+    it('handles legacy `startTransactionOnLocationChange` option', () => {
+      const integration = new BrowserTracing({ startTransactionOnLocationChange: false });
+      expect(integration.options.instrumentNavigation).toBe(false);
+    });
+
+    it('handles legacy `startTransactionOnPageLoad` option', () => {
+      const integration = new BrowserTracing({ startTransactionOnPageLoad: false });
+      expect(integration.options.instrumentPageLoad).toBe(false);
+    });
+
+    it('handles legacy `markBackgroundTransactions` option', () => {
+      const integration = new BrowserTracing({ markBackgroundTransactions: false });
+      expect(integration.options.markBackgroundSpan).toBe(false);
+    });
+
+    it('allows to disable enableLongTask via _experiments', () => {
+      const browserTracing = createBrowserTracing(false, {
+        _experiments: {
+          enableLongTask: false,
+        },
+      });
+
+      expect(browserTracing.options.enableLongTask).toBe(false);
+      expect(browserTracing.options._experiments.enableLongTask).toBe(false);
+    });
+
+    it('allows to disable enableLongTask', () => {
+      const browserTracing = createBrowserTracing(false, {
+        enableLongTask: false,
+      });
+
+      expect(browserTracing.options.enableLongTask).toBe(false);
+      expect(browserTracing.options._experiments.enableLongTask).toBe(undefined);
+    });
+  });
 });
