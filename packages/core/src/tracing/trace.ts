@@ -243,6 +243,13 @@ export function continueTrace<V>(
   },
   callback?: (transactionContext: Partial<TransactionContext>) => V,
 ): V | Partial<TransactionContext> {
+  // TODO(v8): Change this function so it doesn't do anything besides setting the propagation context on the current scope:
+  /*
+    const propagationContext = propagationContextFromHeaders(sentryTrace, baggage);
+    getCurrentScope().setPropagationContext(propagationContext);
+    return;
+  */
+
   const currentScope = getCurrentScope();
 
   const { traceparentData, dynamicSamplingContext, propagationContext } = tracingContextFromHeaders(

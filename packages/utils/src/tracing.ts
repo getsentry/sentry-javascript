@@ -45,6 +45,8 @@ export function extractTraceparentData(traceparent?: string): TraceparentData | 
 
 /**
  * Create tracing context from incoming headers.
+ *
+ * @deprecated Use `propagationContextFromHeaders` instead.
  */
 export function tracingContextFromHeaders(
   sentryTrace: Parameters<typeof extractTraceparentData>[0],
@@ -79,6 +81,34 @@ export function tracingContextFromHeaders(
         sampled: parentSampled,
         dsc: dynamicSamplingContext || {}, // If we have traceparent data but no DSC it means we are not head of trace and we must freeze it
       },
+    };
+  }
+}
+
+/**
+ * Create a propagation context from incoming headers.
+ */
+export function propagationContextFromHeaders(
+  sentryTrace: string | undefined,
+  baggage: string | number | boolean | string[] | null | undefined,
+): PropagationContext {
+  const traceparentData = extractTraceparentData(sentryTrace);
+  const dynamicSamplingContext = baggageHeaderToDynamicSamplingContext(baggage);
+
+  const { traceId, parentSpanId, parentSampled } = traceparentData || {};
+
+  if (!traceparentData) {
+    return {
+      traceId: traceId || uuid4(),
+      spanId: uuid4().substring(16),
+    };
+  } else {
+    return {
+      traceId: traceId || uuid4(),
+      parentSpanId: parentSpanId || uuid4().substring(16),
+      spanId: uuid4().substring(16),
+      sampled: parentSampled,
+      dsc: dynamicSamplingContext || {}, // If we have traceparent data but no DSC it means we are not head of trace and we must freeze it
     };
   }
 }
