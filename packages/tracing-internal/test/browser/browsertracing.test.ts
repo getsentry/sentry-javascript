@@ -85,61 +85,6 @@ conditionalTest({ min: 10 })('BrowserTracing', () => {
     return instance;
   }
 
-  // These are important enough to check with a test as incorrect defaults could
-  // break a lot of users' configurations.
-  it('is created with default settings', () => {
-    const browserTracing = createBrowserTracing();
-
-    expect(browserTracing.options).toEqual({
-      enableLongTask: true,
-      _experiments: {},
-      ...TRACING_DEFAULTS,
-      markBackgroundTransactions: true,
-      routingInstrumentation: instrumentRoutingWithDefaults,
-      startTransactionOnLocationChange: true,
-      startTransactionOnPageLoad: true,
-      ...defaultRequestInstrumentationOptions,
-    });
-  });
-
-  it('is allows to disable enableLongTask via _experiments', () => {
-    const browserTracing = createBrowserTracing(false, {
-      _experiments: {
-        enableLongTask: false,
-      },
-    });
-
-    expect(browserTracing.options).toEqual({
-      enableLongTask: false,
-      ...TRACING_DEFAULTS,
-      markBackgroundTransactions: true,
-      routingInstrumentation: instrumentRoutingWithDefaults,
-      startTransactionOnLocationChange: true,
-      startTransactionOnPageLoad: true,
-      ...defaultRequestInstrumentationOptions,
-      _experiments: {
-        enableLongTask: false,
-      },
-    });
-  });
-
-  it('is allows to disable enableLongTask', () => {
-    const browserTracing = createBrowserTracing(false, {
-      enableLongTask: false,
-    });
-
-    expect(browserTracing.options).toEqual({
-      enableLongTask: false,
-      _experiments: {},
-      ...TRACING_DEFAULTS,
-      markBackgroundTransactions: true,
-      routingInstrumentation: instrumentRoutingWithDefaults,
-      startTransactionOnLocationChange: true,
-      startTransactionOnPageLoad: true,
-      ...defaultRequestInstrumentationOptions,
-    });
-  });
-
   /**
    * All of these tests under `describe('route transaction')` are tested with
    * `browserTracing.options = { routingInstrumentation: customInstrumentRouting }`,
@@ -384,6 +329,71 @@ conditionalTest({ min: 10 })('BrowserTracing', () => {
         expect(transaction.metadata.source).toBe('url');
 
         expect(mockBeforeNavigation).toHaveBeenCalledTimes(1);
+      });
+    });
+
+    describe('beforeStartSpan', () => {
+      it('is called on transaction creation', () => {
+        const beforeStartSpan = jest.fn().mockReturnValue({ name: 'here/is/my/path' });
+        createBrowserTracing(true, {
+          beforeStartSpan,
+          routingInstrumentation: customInstrumentRouting,
+        });
+        const transaction = getActiveTransaction(hub) as IdleTransaction;
+        expect(transaction).toBeDefined();
+
+        expect(beforeStartSpan).toHaveBeenCalledTimes(1);
+      });
+
+      it('can override default context values', () => {
+        const beforeStartSpan = jest.fn(ctx => ({
+          ...ctx,
+          op: 'not-pageload',
+        }));
+        createBrowserTracing(true, {
+          beforeStartSpan,
+          routingInstrumentation: customInstrumentRouting,
+        });
+        const transaction = getActiveTransaction(hub) as IdleTransaction;
+        expect(transaction).toBeDefined();
+        expect(transaction.op).toBe('not-pageload');
+
+        expect(beforeStartSpan).toHaveBeenCalledTimes(1);
+      });
+
+      it("sets transaction name source to `'custom'` if name is changed", () => {
+        const beforeStartSpan = jest.fn(ctx => ({
+          ...ctx,
+          name: 'newName',
+        }));
+        createBrowserTracing(true, {
+          beforeStartSpan,
+          routingInstrumentation: customInstrumentRouting,
+        });
+        const transaction = getActiveTransaction(hub) as IdleTransaction;
+        expect(transaction).toBeDefined();
+        expect(transaction.name).toBe('newName');
+        expect(transaction.metadata.source).toBe('custom');
+
+        expect(beforeStartSpan).toHaveBeenCalledTimes(1);
+      });
+
+      it('sets transaction name source to default `url` if name is not changed', () => {
+        const beforeStartSpan = jest.fn(ctx => ({
+          ...ctx,
+        }));
+        createBrowserTracing(true, {
+          beforeStartSpan,
+          routingInstrumentation: (customStartTransaction: (obj: any) => void) => {
+            customStartTransaction({ name: 'a/path', op: 'pageload', metadata: { source: 'url' } });
+          },
+        });
+        const transaction = getActiveTransaction(hub) as IdleTransaction;
+        expect(transaction).toBeDefined();
+        expect(transaction.name).toBe('a/path');
+        expect(transaction.metadata.source).toBe('url');
+
+        expect(beforeStartSpan).toHaveBeenCalledTimes(1);
       });
     });
 
@@ -697,6 +707,60 @@ conditionalTest({ min: 10 })('BrowserTracing', () => {
           transactionContext: expect.objectContaining({ op: 'navigation' }),
         }),
       );
+    });
+  });
+
+  describe('options', () => {
+    // These are important enough to check with a test as incorrect defaults could
+    // break a lot of users' configurations.
+    it('is created with default settings', () => {
+      const browserTracing = createBrowserTracing();
+
+      expect(browserTracing.options).toEqual({
+        enableLongTask: true,
+        _experiments: {},
+        ...TRACING_DEFAULTS,
+        routingInstrumentation: instrumentRoutingWithDefaults,
+        spanOnLocationChange: true,
+        spanOnPageLoad: true,
+        markBackgroundSpan: true,
+        ...defaultRequestInstrumentationOptions,
+      });
+    });
+
+    it('handles legacy `startTransactionOnLocationChange` option', () => {
+      const integration = new BrowserTracing({ startTransactionOnLocationChange: false });
+      expect(integration.options.spanOnLocationChange).toBe(false);
+    });
+
+    it('handles legacy `startTransactionOnPageLoad` option', () => {
+      const integration = new BrowserTracing({ startTransactionOnPageLoad: false });
+      expect(integration.options.spanOnPageLoad).toBe(false);
+    });
+
+    it('handles legacy `markBackgroundTransactions` option', () => {
+      const integration = new BrowserTracing({ markBackgroundTransactions: false });
+      expect(integration.options.markBackgroundSpan).toBe(false);
+    });
+
+    it('allows to disable enableLongTask via _experiments', () => {
+      const browserTracing = createBrowserTracing(false, {
+        _experiments: {
+          enableLongTask: false,
+        },
+      });
+
+      expect(browserTracing.options.enableLongTask).toBe(false);
+      expect(browserTracing.options._experiments.enableLongTask).toBe(false);
+    });
+
+    it('allows to disable enableLongTask', () => {
+      const browserTracing = createBrowserTracing(false, {
+        enableLongTask: false,
+      });
+
+      expect(browserTracing.options.enableLongTask).toBe(false);
+      expect(browserTracing.options._experiments.enableLongTask).toBe(undefined);
     });
   });
 });

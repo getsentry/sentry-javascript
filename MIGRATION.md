@@ -10,6 +10,16 @@ npx @sentry/migr8@latest
 This will let you select which updates to run, and automatically update your code. Make sure to still review all code
 changes!
 
+## Deprecate transaction-related options to `BrowserTracing`
+
+When configuring the `BrowserTracing` integration, some options have been renamed:
+
+- `startTransactionOnPageLoad` --> `spanOnPageLoad`
+- `startTransactionOnLocationChange` --> `spanOnLocationChange`
+- `markBackgroundTransactions` --> `markBackgroundSpan`
+
+Also, `beforeNavigate` is replaced with a `beforeStartSpan` callback, which receives `StartSpanOptions`.
+
 ## Deprecate using `getClient()` to check if the SDK was initialized
 
 In v8, `getClient()` will stop returning `undefined` if `Sentry.init()` was not called. For cases where this may be used
