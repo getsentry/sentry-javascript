@@ -1,5 +1,6 @@
 import type { Debugger, InspectorNotification } from 'inspector';
 
+import * as SentryCore from '@sentry/core';
 import { NodeClient, defaultStackParser } from '../../src';
 import { createRateLimiter } from '../../src/integrations/local-variables/common';
 import type { FrameVariables } from '../../src/integrations/local-variables/common';
@@ -166,6 +167,7 @@ describeIf(NODE_VERSION.major >= 18)('LocalVariables', () => {
     });
 
     const client = new NodeClient(options);
+    jest.spyOn(SentryCore, 'getClient').mockImplementation(() => client);
     client.addIntegration(localVariables);
 
     const eventProcessors = client['_eventProcessors'];
@@ -257,6 +259,7 @@ describeIf(NODE_VERSION.major >= 18)('LocalVariables', () => {
     });
 
     const client = new NodeClient(options);
+    jest.spyOn(SentryCore, 'getClient').mockImplementation(() => client);
     client.addIntegration(localVariables);
 
     await session.runPause(exceptionEvent100Frames);
@@ -282,6 +285,7 @@ describeIf(NODE_VERSION.major >= 18)('LocalVariables', () => {
     });
 
     const client = new NodeClient(options);
+    jest.spyOn(SentryCore, 'getClient').mockImplementation(() => client);
     client.addIntegration(localVariables);
 
     const nonExceptionEvent = {
@@ -303,6 +307,7 @@ describeIf(NODE_VERSION.major >= 18)('LocalVariables', () => {
     });
 
     const client = new NodeClient(options);
+    jest.spyOn(SentryCore, 'getClient').mockImplementation(() => client);
     client.addIntegration(localVariables);
 
     const eventProcessors = client['_eventProcessors'];
@@ -319,6 +324,7 @@ describeIf(NODE_VERSION.major >= 18)('LocalVariables', () => {
     });
 
     const client = new NodeClient(options);
+    jest.spyOn(SentryCore, 'getClient').mockImplementation(() => client);
     client.addIntegration(localVariables);
 
     const eventProcessors = client['_eventProcessors'];
@@ -340,6 +346,7 @@ describeIf(NODE_VERSION.major >= 18)('LocalVariables', () => {
     });
 
     const client = new NodeClient(options);
+    jest.spyOn(SentryCore, 'getClient').mockImplementation(() => client);
     client.addIntegration(localVariables);
 
     await session.runPause(exceptionEvent);
