@@ -4,7 +4,8 @@ import * as SentrySvelte from '@sentry/svelte';
 import { SDK_VERSION, WINDOW } from '@sentry/svelte';
 import { vi } from 'vitest';
 
-import { BrowserTracing, init } from '../../src/client';
+import type { BrowserTracing } from '../../src/client';
+import { browserTracingIntegration, init } from '../../src/client';
 import { svelteKitRoutingInstrumentation } from '../../src/client/router';
 
 const svelteInit = vi.spyOn(SentrySvelte, 'init');
@@ -100,10 +101,11 @@ describe('Sentry client SDK', () => {
       it('Merges a user-provided BrowserTracing integration with the automatically added one', () => {
         init({
           dsn: 'https://public@dsn.ingest.sentry.io/1337',
-          integrations: [new BrowserTracing({ finalTimeout: 10, startTransactionOnLocationChange: false })],
+          integrations: [browserTracingIntegration({ finalTimeout: 10, startTransactionOnLocationChange: false })],
           enableTracing: true,
         });
 
+        // eslint-disable-next-line deprecation/deprecation
         const browserTracing = getClient<BrowserClient>()?.getIntegrationByName('BrowserTracing') as BrowserTracing;
         const options = browserTracing.options;
 

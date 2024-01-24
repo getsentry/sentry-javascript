@@ -4,7 +4,7 @@ import { getDefaultIntegrations as getDefaultSvelteIntegrations } from '@sentry/
 import { WINDOW, getCurrentScope, init as initSvelteSdk } from '@sentry/svelte';
 import type { Integration } from '@sentry/types';
 
-import { BrowserTracing } from './browserTracingIntegration';
+import { BrowserTracing, browserTracingIntegration } from './browserTracingIntegration';
 
 type WindowWithSentryFetchProxy = typeof WINDOW & {
   _sentryFetchProxy?: typeof fetch;
@@ -65,11 +65,13 @@ function maybeUpdateBrowserTracingIntegration(integrations: Integration[]): Inte
   const browserTracing = integrations.find(integration => integration.name === 'BrowserTracing');
   // If BrowserTracing was added, but it is not our forked version,
   // replace it with our forked version with the same options
+  // eslint-disable-next-line deprecation/deprecation
   if (browserTracing && !(browserTracing instanceof BrowserTracing)) {
+    // eslint-disable-next-line deprecation/deprecation
     const options: ConstructorParameters<typeof BrowserTracing>[0] = (browserTracing as BrowserTracing).options;
     // This option is overwritten by the custom integration
     delete options.routingInstrumentation;
-    integrations[integrations.indexOf(browserTracing)] = new BrowserTracing(options);
+    integrations[integrations.indexOf(browserTracing)] = browserTracingIntegration(options);
   }
 
   return integrations;
@@ -80,7 +82,7 @@ function getDefaultIntegrations(options: BrowserOptions): Integration[] | undefi
   // will get treeshaken away
   if (typeof __SENTRY_TRACING__ === 'undefined' || __SENTRY_TRACING__) {
     if (hasTracingEnabled(options)) {
-      return [...getDefaultSvelteIntegrations(options), new BrowserTracing()];
+      return [...getDefaultSvelteIntegrations(options), browserTracingIntegration()];
     }
   }
 

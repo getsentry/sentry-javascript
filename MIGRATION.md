@@ -46,6 +46,7 @@ The following list shows how integrations should be migrated:
 
 | Old                       | New                              | Packages                                                                                                |
 | ------------------------- | -------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `new BrowserTracing()`    | `browserTracingIntegration()`    | `@sentry/browser`                                                                                       |
 | `new InboundFilters()`    | `inboundFiltersIntegration()`    | `@sentry/core`, `@sentry/browser`, `@sentry/node`, `@sentry/deno`, `@sentry/bun`, `@sentry/vercel-edge` |
 | `new FunctionToString()`  | `functionToStringIntegration()`  | `@sentry/core`, `@sentry/browser`, `@sentry/node`, `@sentry/deno`, `@sentry/bun`, `@sentry/vercel-edge` |
 | `new LinkedErrors()`      | `linkedErrorsIntegration()`      | `@sentry/core`, `@sentry/browser`, `@sentry/node`, `@sentry/deno`, `@sentry/bun`, `@sentry/vercel-edge` |

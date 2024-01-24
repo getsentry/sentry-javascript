@@ -1,10 +1,14 @@
 import { BrowserTracing as OriginalBrowserTracing, defaultRequestInstrumentationOptions } from '@sentry/react';
+import type { Integration } from '@sentry/types';
 import { nextRouterInstrumentation } from '../index.client';
 
 /**
  * A custom BrowserTracing integration for Next.js.
+ * @deprecated Use `browserTracingIntegration()` instead.
  */
+// eslint-disable-next-line deprecation/deprecation
 export class BrowserTracing extends OriginalBrowserTracing {
+  // eslint-disable-next-line deprecation/deprecation
   public constructor(options?: ConstructorParameters<typeof OriginalBrowserTracing>[0]) {
     super({
       // eslint-disable-next-line deprecation/deprecation
@@ -23,4 +27,13 @@ export class BrowserTracing extends OriginalBrowserTracing {
       ...options,
     });
   }
+}
+
+/**
+ * A custom BrowserTracing integration for Next.js.
+ */
+// eslint-disable-next-line deprecation/deprecation
+export function browserTracingIntegration(options?: ConstructorParameters<typeof BrowserTracing>[0]): Integration {
+  // eslint-disable-next-line deprecation/deprecation
+  return new BrowserTracing(options);
 }
