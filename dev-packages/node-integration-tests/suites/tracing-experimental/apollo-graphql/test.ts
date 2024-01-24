@@ -1,8 +1,6 @@
 import { conditionalTest } from '../../../utils';
 import { createRunner } from '../../../utils/runner';
 
-jest.setTimeout(10000);
-
 // Node 10 is not supported by `graphql-js`
 // Ref: https://github.com/graphql/graphql-js/blob/main/package.json
 conditionalTest({ min: 12 })('GraphQL/Apollo Tests', () => {
