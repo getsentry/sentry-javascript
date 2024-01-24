@@ -326,7 +326,6 @@ const localVariablesSyncIntegration = ((
 
   return {
     name: INTEGRATION_NAME,
-    // TODO v8: Remove this
     setupOnce() {
       const client = getClient<NodeClient>();
       const clientOptions = client?.getOptions();
