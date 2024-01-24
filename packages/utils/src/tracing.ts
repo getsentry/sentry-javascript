@@ -48,6 +48,7 @@ export function extractTraceparentData(traceparent?: string): TraceparentData | 
  *
  * @deprecated Use `propagationContextFromHeaders` instead.
  */
+// TODO(v8): Remove this function
 export function tracingContextFromHeaders(
   sentryTrace: Parameters<typeof extractTraceparentData>[0],
   baggage: Parameters<typeof baggageHeaderToDynamicSamplingContext>[0],
