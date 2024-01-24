@@ -30,8 +30,8 @@ sentryTest(
     expect(eventData.tags?.['lcp.size']).toBe(107400);
     expect(eventData.tags?.['lcp.url']).toBe('https://example.com/path/to/image.png');
 
-    const lcp = await page.evaluate('window._LCP');
-    const lcp2 = await page.evaluate('window._LCP2');
+    const lcp = await (await page.waitForFunction('window._LCP')).jsonValue();
+    const lcp2 = await (await page.waitForFunction('window._LCP2')).jsonValue();
     const lcp3 = await page.evaluate('window._LCP3');
 
     expect(lcp).toEqual(107400);
@@ -41,10 +41,8 @@ sentryTest(
 
     // Adding a handler after LCP is completed still triggers the handler
     await page.evaluate('window.ADD_HANDLER()');
-    // wait for everything to settle...
-    await page.waitForTimeout(100);
+    const lcp3_2 = await (await page.waitForFunction('window._LCP3')).jsonValue();
 
-    const lcp3_2 = await page.evaluate('window._LCP3');
     expect(lcp3_2).toEqual(107400);
   },
 );
