@@ -5,10 +5,13 @@ import type { Event } from '@sentry/types';
 import { sentryTest } from '../../../../utils/fixtures';
 import { getFirstSentryEnvelopeRequest, shouldSkipTracingTest } from '../../../../utils/helpers';
 
+const bundle = process.env.PW_BUNDLE || '';
+
 sentryTest(
   'should capture metrics for LCP instrumentation handlers',
   async ({ browserName, getLocalTestPath, page }) => {
-    if (shouldSkipTracingTest() || browserName !== 'chromium') {
+    // This uses a utility that is not exported in CDN bundles
+    if (shouldSkipTracingTest() || browserName !== 'chromium' || bundle.startsWith('bundle')) {
       sentryTest.skip();
     }
 
