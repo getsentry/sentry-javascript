@@ -12,6 +12,7 @@ if (WINDOW.Sentry && WINDOW.Sentry.Integrations) {
   windowIntegrations = WINDOW.Sentry.Integrations;
 }
 
+/** @deprecated Import the integration function directly, e.g. `inboundFiltersIntegration()` instead of `new Integrations.InboundFilter(). */
 const INTEGRATIONS = {
   ...windowIntegrations,
   // eslint-disable-next-line deprecation/deprecation
@@ -19,9 +20,14 @@ const INTEGRATIONS = {
   ...BrowserIntegrations,
 };
 
+// eslint-disable-next-line deprecation/deprecation
 export { INTEGRATIONS as Integrations };
 
-export { Replay } from '@sentry/replay';
+export {
+  // eslint-disable-next-line deprecation/deprecation
+  Replay,
+  replayIntegration,
+} from '@sentry/replay';
 export type {
   ReplayEventType,
   ReplayEventWithTime,
@@ -34,9 +40,18 @@ export type {
   ReplaySpanFrameEvent,
 } from '@sentry/replay';
 
-export { ReplayCanvas } from '@sentry-internal/replay-canvas';
+export {
+  // eslint-disable-next-line deprecation/deprecation
+  ReplayCanvas,
+  replayCanvasIntegration,
+} from '@sentry-internal/replay-canvas';
 
-export { Feedback, sendFeedback } from '@sentry-internal/feedback';
+export {
+  // eslint-disable-next-line deprecation/deprecation
+  Feedback,
+  feedbackIntegration,
+  sendFeedback,
+} from '@sentry-internal/feedback';
 
 export {
   BrowserTracing,

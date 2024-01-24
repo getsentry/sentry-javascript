@@ -1,5 +1,6 @@
 import * as SentryNode from '@sentry/node';
-import { SDK_VERSION } from '@sentry/node';
+import type { NodeClient } from '@sentry/node';
+import { SDK_VERSION, getClient } from '@sentry/node';
 import { GLOBAL_OBJ } from '@sentry/utils';
 
 import { init } from '../../src/server/sdk';
@@ -45,6 +46,15 @@ describe('Sentry server SDK', () => {
 
       // @ts-expect-error need access to protected _tags attribute
       expect(currentScope._tags).toEqual({ runtime: 'node' });
+    });
+
+    it('adds rewriteFramesIntegration by default', () => {
+      init({
+        dsn: 'https://public@dsn.ingest.sentry.io/1337',
+      });
+
+      const rewriteFramesIntegration = getClient<NodeClient>()?.getIntegrationByName('RewriteFrames');
+      expect(rewriteFramesIntegration).toBeDefined();
     });
   });
 });

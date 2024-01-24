@@ -20,13 +20,19 @@ export declare function init(
 ): void;
 
 // We export a merged Integrations object so that users can (at least typing-wise) use all integrations everywhere.
+// eslint-disable-next-line deprecation/deprecation
 export declare const Integrations: typeof clientSdk.Integrations &
   typeof serverSdk.Integrations &
   typeof edgeSdk.Integrations;
 
+export declare const linkedErrorsIntegration: typeof clientSdk.linkedErrorsIntegration;
+
 export declare const defaultIntegrations: Integration[];
 export declare const getDefaultIntegrations: (options: Options) => Integration[];
 export declare const defaultStackParser: StackParser;
+
+// eslint-disable-next-line deprecation/deprecation
+export declare const rewriteFramesIntegration: typeof clientSdk.rewriteFramesIntegration;
 
 export declare function getSentryRelease(fallback?: string): string | undefined;
 

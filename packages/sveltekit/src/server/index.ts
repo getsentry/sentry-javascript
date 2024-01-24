@@ -25,6 +25,7 @@ export {
   // eslint-disable-next-line deprecation/deprecation
   getCurrentHub,
   getClient,
+  isInitialized,
   getCurrentScope,
   getGlobalScope,
   getIsolationScope,
@@ -74,6 +75,7 @@ export {
   startSpanManual,
   continueTrace,
   cron,
+  parameterize,
 } from '@sentry/node';
 
 // We can still leave this for the carrier init and type exports

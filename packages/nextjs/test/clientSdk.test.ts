@@ -1,12 +1,12 @@
-import { BaseClient, getClient } from '@sentry/core';
+import { BaseClient } from '@sentry/core';
 import * as SentryReact from '@sentry/react';
-import { BrowserTracing, WINDOW, getCurrentScope } from '@sentry/react';
+import type { BrowserClient } from '@sentry/react';
+import { WINDOW, getClient, getCurrentScope } from '@sentry/react';
 import type { Integration } from '@sentry/types';
-import type { UserIntegrationsFunction } from '@sentry/utils';
 import { logger } from '@sentry/utils';
 import { JSDOM } from 'jsdom';
 
-import { Integrations, init, nextRouterInstrumentation } from '../src/client';
+import { BrowserTracing, breadcrumbsIntegration, init, nextRouterInstrumentation } from '../src/client';
 
 const reactInit = jest.spyOn(SentryReact, 'init');
 const captureEvent = jest.spyOn(BaseClient.prototype, 'captureEvent');
@@ -30,6 +30,8 @@ afterAll(() => {
 function findIntegrationByName(integrations: Integration[] = [], name: string): Integration | undefined {
   return integrations.find(integration => integration.name === name);
 }
+
+const TEST_DSN = 'https://public@dsn.ingest.sentry.io/1337';
 
 describe('Client init()', () => {
   afterEach(() => {
@@ -60,7 +62,7 @@ describe('Client init()', () => {
           },
         },
         environment: 'test',
-        integrations: expect.arrayContaining([
+        defaultIntegrations: expect.arrayContaining([
           expect.objectContaining({
             name: 'RewriteFrames',
           }),
@@ -103,97 +105,100 @@ describe('Client init()', () => {
 
   describe('integrations', () => {
     // Options passed by `@sentry/nextjs`'s `init` to `@sentry/react`'s `init` after modifying them
-    type ModifiedInitOptionsIntegrationArray = { integrations: Integration[] };
-    type ModifiedInitOptionsIntegrationFunction = { integrations: UserIntegrationsFunction };
+    type ModifiedInitOptionsIntegrationArray = { defaultIntegrations: Integration[]; integrations: Integration[] };
 
     it('supports passing unrelated integrations through options', () => {
-      init({ integrations: [new Integrations.Breadcrumbs({ console: false })] });
+      init({ integrations: [breadcrumbsIntegration({ console: false })] });
 
       const reactInitOptions = reactInit.mock.calls[0][0] as ModifiedInitOptionsIntegrationArray;
-      const breadcrumbsIntegration = findIntegrationByName(reactInitOptions.integrations, 'Breadcrumbs');
+      const installedBreadcrumbsIntegration = findIntegrationByName(reactInitOptions.integrations, 'Breadcrumbs');
 
-      expect(breadcrumbsIntegration).toBeDefined();
+      expect(installedBreadcrumbsIntegration).toBeDefined();
     });
 
     describe('`BrowserTracing` integration', () => {
       it('adds `BrowserTracing` integration if `tracesSampleRate` is set', () => {
-        init({ tracesSampleRate: 1.0 });
+        init({
+          dsn: TEST_DSN,
+          tracesSampleRate: 1.0,
+        });
 
-        const reactInitOptions = reactInit.mock.calls[0][0] as ModifiedInitOptionsIntegrationArray;
-        const browserTracingIntegration = findIntegrationByName(reactInitOptions.integrations, 'BrowserTracing');
+        const client = getClient<BrowserClient>()!;
+        const browserTracingIntegration = client.getIntegrationByName<BrowserTracing>('BrowserTracing');
 
         expect(browserTracingIntegration).toBeDefined();
-        expect(browserTracingIntegration).toEqual(
+        expect(browserTracingIntegration?.options).toEqual(
           expect.objectContaining({
-            options: expect.objectContaining({
-              routingInstrumentation: nextRouterInstrumentation,
-            }),
+            routingInstrumentation: nextRouterInstrumentation,
           }),
         );
       });
 
       it('adds `BrowserTracing` integration if `tracesSampler` is set', () => {
-        init({ tracesSampler: () => true });
+        init({
+          dsn: TEST_DSN,
+          tracesSampler: () => true,
+        });
 
-        const reactInitOptions = reactInit.mock.calls[0][0] as ModifiedInitOptionsIntegrationArray;
-        const browserTracingIntegration = findIntegrationByName(reactInitOptions.integrations, 'BrowserTracing');
+        const client = getClient<BrowserClient>()!;
+        const browserTracingIntegration = client.getIntegrationByName<BrowserTracing>('BrowserTracing');
 
         expect(browserTracingIntegration).toBeDefined();
-        expect(browserTracingIntegration).toEqual(
+        expect(browserTracingIntegration?.options).toEqual(
           expect.objectContaining({
-            options: expect.objectContaining({
-              routingInstrumentation: nextRouterInstrumentation,
-            }),
+            routingInstrumentation: nextRouterInstrumentation,
           }),
         );
       });
 
       it('does not add `BrowserTracing` integration if tracing not enabled in SDK', () => {
-        init({});
+        init({
+          dsn: TEST_DSN,
+        });
 
-        const reactInitOptions = reactInit.mock.calls[0][0] as ModifiedInitOptionsIntegrationArray;
-        const browserTracingIntegration = findIntegrationByName(reactInitOptions.integrations, 'BrowserTracing');
+        const client = getClient<BrowserClient>()!;
+        const browserTracingIntegration = client.getIntegrationByName<BrowserTracing>('BrowserTracing');
 
         expect(browserTracingIntegration).toBeUndefined();
       });
 
       it('forces correct router instrumentation if user provides `BrowserTracing` in an array', () => {
         init({
+          dsn: TEST_DSN,
           tracesSampleRate: 1.0,
           integrations: [new BrowserTracing({ startTransactionOnLocationChange: false })],
         });
 
-        const reactInitOptions = reactInit.mock.calls[0][0] as ModifiedInitOptionsIntegrationArray;
-        const browserTracingIntegration = findIntegrationByName(reactInitOptions.integrations, 'BrowserTracing');
+        const client = getClient<BrowserClient>()!;
+        const browserTracingIntegration = client.getIntegrationByName<BrowserTracing>('BrowserTracing');
 
-        expect(browserTracingIntegration).toEqual(
+        expect(browserTracingIntegration).toBeDefined();
+        expect(browserTracingIntegration?.options).toEqual(
           expect.objectContaining({
-            options: expect.objectContaining({
-              routingInstrumentation: nextRouterInstrumentation,
-              // This proves it's still the user's copy
-              startTransactionOnLocationChange: false,
-            }),
+            routingInstrumentation: nextRouterInstrumentation,
+            // This proves it's still the user's copy
+            startTransactionOnLocationChange: false,
           }),
         );
       });
 
       it('forces correct router instrumentation if user provides `BrowserTracing` in a function', () => {
         init({
+          dsn: TEST_DSN,
           tracesSampleRate: 1.0,
           integrations: defaults => [...defaults, new BrowserTracing({ startTransactionOnLocationChange: false })],
         });
 
-        const reactInitOptions = reactInit.mock.calls[0][0] as ModifiedInitOptionsIntegrationFunction;
-        const materializedIntegrations = reactInitOptions.integrations(SentryReact.getDefaultIntegrations({}));
-        const browserTracingIntegration = findIntegrationByName(materializedIntegrations, 'BrowserTracing');
+        const client = getClient<BrowserClient>()!;
 
-        expect(browserTracingIntegration).toEqual(
+        const browserTracingIntegration = client.getIntegrationByName<BrowserTracing>('BrowserTracing');
+
+        expect(browserTracingIntegration).toBeDefined();
+        expect(browserTracingIntegration?.options).toEqual(
           expect.objectContaining({
-            options: expect.objectContaining({
-              routingInstrumentation: nextRouterInstrumentation,
-              // This proves it's still the user's copy
-              startTransactionOnLocationChange: false,
-            }),
+            routingInstrumentation: nextRouterInstrumentation,
+            // This proves it's still the user's copy
+            startTransactionOnLocationChange: false,
           }),
         );
       });

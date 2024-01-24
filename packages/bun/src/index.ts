@@ -45,6 +45,7 @@ export {
   // eslint-disable-next-line deprecation/deprecation
   getCurrentHub,
   getClient,
+  isInitialized,
   getCurrentScope,
   getGlobalScope,
   getIsolationScope,
@@ -83,6 +84,7 @@ export {
   inboundFiltersIntegration,
   linkedErrorsIntegration,
   requestDataIntegration,
+  parameterize,
 } from '@sentry/core';
 export type { SpanStatusType } from '@sentry/core';
 export { autoDiscoverNodePerformanceMonitoringIntegrations, cron } from '@sentry/node';

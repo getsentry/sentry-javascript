@@ -264,6 +264,7 @@ describe('callbacks', () => {
         type: 'fetch',
         url: 'http://dogs.are.great/',
         'sentry.op': 'http.client',
+        'sentry.origin': 'auto.http.browser',
       });
       expect(finishedSpan.op).toBe('http.client');
     });

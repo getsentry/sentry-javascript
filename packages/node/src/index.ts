@@ -44,6 +44,7 @@ export {
   // eslint-disable-next-line deprecation/deprecation
   getCurrentHub,
   getClient,
+  isInitialized,
   getCurrentScope,
   getGlobalScope,
   getIsolationScope,
@@ -79,6 +80,7 @@ export {
   startInactiveSpan,
   startSpanManual,
   continueTrace,
+  parameterize,
   metrics,
   functionToStringIntegration,
   inboundFiltersIntegration,

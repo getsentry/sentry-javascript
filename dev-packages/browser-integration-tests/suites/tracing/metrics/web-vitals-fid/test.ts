@@ -1,5 +1,5 @@
 import { expect } from '@playwright/test';
-import type { Event } from '@sentry/types';
+import type { SerializedEvent } from '@sentry/types';
 
 import { sentryTest } from '../../../../utils/fixtures';
 import { getFirstSentryEnvelopeRequest, shouldSkipTracingTest } from '../../../../utils/helpers';
@@ -16,16 +16,14 @@ sentryTest('should capture a FID vital.', async ({ browserName, getLocalTestPath
   // To trigger FID
   await page.click('#fid-btn');
 
-  const eventData = await getFirstSentryEnvelopeRequest<Event>(page);
+  const eventData = await getFirstSentryEnvelopeRequest<SerializedEvent>(page);
 
   expect(eventData.measurements).toBeDefined();
   expect(eventData.measurements?.fid?.value).toBeDefined();
 
-  // eslint-disable-next-line deprecation/deprecation
   const fidSpan = eventData.spans?.filter(({ description }) => description === 'first input delay')[0];
 
   expect(fidSpan).toBeDefined();
-  // eslint-disable-next-line deprecation/deprecation
   expect(fidSpan?.op).toBe('ui.action');
-  expect(fidSpan?.parentSpanId).toBe(eventData.contexts?.trace_span_id);
+  expect(fidSpan?.parent_span_id).toBe(eventData.contexts?.trace?.span_id);
 });

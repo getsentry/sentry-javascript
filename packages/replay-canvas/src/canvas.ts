@@ -1,5 +1,5 @@
 import { CanvasManager } from '@sentry-internal/rrweb';
-import { convertIntegrationFnToClass } from '@sentry/core';
+import { convertIntegrationFnToClass, defineIntegration } from '@sentry/core';
 import type { CanvasManagerInterface, CanvasManagerOptions } from '@sentry/replay';
 import type { Integration, IntegrationClass, IntegrationFn } from '@sentry/types';
 
@@ -54,10 +54,8 @@ const CANVAS_QUALITY = {
 
 const INTEGRATION_NAME = 'ReplayCanvas';
 
-/**
- * An integration to add canvas recording to replay.
- */
-const replayCanvasIntegration = ((options: Partial<ReplayCanvasOptions> = {}) => {
+/** Exported only for type safe tests. */
+export const _replayCanvasIntegration = ((options: Partial<ReplayCanvasOptions> = {}) => {
   const _canvasOptions = {
     quality: options.quality || 'medium',
     enableManualSnapshot: options.enableManualSnapshot,
@@ -91,7 +89,14 @@ const replayCanvasIntegration = ((options: Partial<ReplayCanvasOptions> = {}) =>
   };
 }) satisfies IntegrationFn;
 
-// TODO(v8)
+/**
+ * Add this in addition to `replayIntegration()` to enable canvas recording.
+ */
+export const replayCanvasIntegration = defineIntegration(_replayCanvasIntegration);
+
+/**
+ * @deprecated Use `replayCanvasIntegration()` instead
+ */
 // eslint-disable-next-line deprecation/deprecation
 export const ReplayCanvas = convertIntegrationFnToClass(INTEGRATION_NAME, replayCanvasIntegration) as IntegrationClass<
   Integration & {

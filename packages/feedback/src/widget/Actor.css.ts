@@ -11,7 +11,7 @@ export function createActorStyles(d: Document): HTMLStyleElement {
   align-items: center;
   gap: 8px;
 
-  border-radius: 12px;
+  border-radius: var(--border-radius);
   cursor: pointer;
   font-size: 14px;
   font-weight: 600;

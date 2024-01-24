@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
-import { captureEvent, convertIntegrationFnToClass, getClient } from '@sentry/core';
+import { captureEvent, convertIntegrationFnToClass, defineIntegration, getClient } from '@sentry/core';
 import type {
   Client,
   Event,
@@ -30,7 +30,7 @@ type GlobalHandlersIntegrations = Record<GlobalHandlersIntegrationsOptionKeys, b
 
 const INTEGRATION_NAME = 'GlobalHandlers';
 
-const globalHandlersIntegration = ((options: Partial<GlobalHandlersIntegrations> = {}) => {
+const _globalHandlersIntegration = ((options: Partial<GlobalHandlersIntegrations> = {}) => {
   const _options = {
     onerror: true,
     onunhandledrejection: true,
@@ -55,7 +55,12 @@ const globalHandlersIntegration = ((options: Partial<GlobalHandlersIntegrations>
   };
 }) satisfies IntegrationFn;
 
-/** Global handlers */
+export const globalHandlersIntegration = defineIntegration(_globalHandlersIntegration);
+
+/**
+ * Global handlers.
+ * @deprecated Use `globalHandlersIntegration()` instead.
+ */
 // eslint-disable-next-line deprecation/deprecation
 export const GlobalHandlers = convertIntegrationFnToClass(
   INTEGRATION_NAME,

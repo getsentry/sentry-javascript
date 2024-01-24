@@ -1,7 +1,7 @@
 import * as SentryUtils from '@sentry/utils';
 
 import { ACTOR_LABEL } from '../src/constants';
-import { Feedback } from '../src/integration';
+import { feedbackIntegration } from '../src/integration';
 
 jest.spyOn(SentryUtils, 'isBrowser').mockImplementation(() => true);
 
@@ -14,7 +14,7 @@ jest.mock('../src/util/sendFeedbackRequest', () => {
 });
 
 describe('Feedback integration', () => {
-  let feedback: Feedback;
+  let feedback: ReturnType<typeof feedbackIntegration>;
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -27,7 +27,7 @@ describe('Feedback integration', () => {
   });
 
   it('autoinjects widget with actor', () => {
-    feedback = new Feedback();
+    feedback = feedbackIntegration();
     feedback.setupOnce();
     const widget = feedback.getWidget();
     expect(widget?.actor?.el).toBeInstanceOf(HTMLButtonElement);
@@ -40,7 +40,7 @@ describe('Feedback integration', () => {
   });
 
   it('does not create a widget with `autoInject: false`', () => {
-    feedback = new Feedback({ autoInject: false });
+    feedback = feedbackIntegration({ autoInject: false });
     feedback.setupOnce();
     const widget = feedback.getWidget();
     expect(widget?.actor?.el).toBeUndefined();
@@ -49,7 +49,7 @@ describe('Feedback integration', () => {
   });
 
   it('opens (and closes) dialog when calling `openDialog` without injecting an actor', () => {
-    feedback = new Feedback({ autoInject: false });
+    feedback = feedbackIntegration({ autoInject: false });
     feedback.setupOnce();
 
     let widget = feedback.getWidget();
@@ -75,7 +75,7 @@ describe('Feedback integration', () => {
     const myActor = document.createElement('div');
     myActor.textContent = 'my button';
 
-    feedback = new Feedback({ autoInject: false });
+    feedback = feedbackIntegration({ autoInject: false });
     let widget = feedback.getWidget();
     expect(widget).toBe(null);
 
@@ -92,7 +92,7 @@ describe('Feedback integration', () => {
   });
 
   it('creates multiple widgets and removes them', () => {
-    feedback = new Feedback({ autoInject: false });
+    feedback = feedbackIntegration({ autoInject: false });
 
     feedback.createWidget();
     expect(feedback.getWidget()?.actor?.el).toBeInstanceOf(HTMLButtonElement);

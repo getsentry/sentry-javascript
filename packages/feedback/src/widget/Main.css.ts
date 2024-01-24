@@ -8,6 +8,7 @@ function getThemedCssVariables(theme: FeedbackTheme): string {
   --error: ${theme.error};
   --success: ${theme.success};
   --border: ${theme.border};
+  --border-radius: ${theme.borderRadius};
   --box-shadow: ${theme.boxShadow};
 
   --submit-background: ${theme.submitBackground};
@@ -28,6 +29,9 @@ function getThemedCssVariables(theme: FeedbackTheme): string {
   --input-foreground: ${theme.inputForeground};
   --input-border: ${theme.inputBorder};
   --input-outline-focus: ${theme.inputOutlineFocus};
+
+  --form-border-radius: ${theme.formBorderRadius};
+  --form-content-border-radius: ${theme.formContentBorderRadius};
   `;
 }
 

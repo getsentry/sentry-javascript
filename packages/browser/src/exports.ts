@@ -40,6 +40,7 @@ export {
   // eslint-disable-next-line deprecation/deprecation
   getCurrentHub,
   getClient,
+  isInitialized,
   getCurrentScope,
   Hub,
   // eslint-disable-next-line deprecation/deprecation
@@ -72,6 +73,7 @@ export {
   metrics,
   functionToStringIntegration,
   inboundFiltersIntegration,
+  parameterize,
 } from '@sentry/core';
 
 export { WINDOW } from './helpers';
@@ -100,4 +102,13 @@ export {
   // eslint-disable-next-line deprecation/deprecation
   wrap,
 } from './sdk';
+
+export { breadcrumbsIntegration } from './integrations/breadcrumbs';
+export { dedupeIntegration } from './integrations/dedupe';
+export { globalHandlersIntegration } from './integrations/globalhandlers';
+export { httpContextIntegration } from './integrations/httpcontext';
+export { linkedErrorsIntegration } from './integrations/linkederrors';
+export { browserApiErrorsIntegration } from './integrations/trycatch';
+
+// eslint-disable-next-line deprecation/deprecation
 export { GlobalHandlers, TryCatch, Breadcrumbs, LinkedErrors, HttpContext, Dedupe } from './integrations';

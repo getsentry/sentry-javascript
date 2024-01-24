@@ -5,6 +5,8 @@ import { consoleSandbox } from '@sentry/utils';
  * This is a shim for the Replay integration.
  * It is needed in order for the CDN bundles to continue working when users add/remove replay
  * from it, without changing their config. This is necessary for the loader mechanism.
+ *
+ * @deprecated Use `replayIntegration()` instead.
  */
 class ReplayShim implements Integration {
   /**
@@ -19,6 +21,7 @@ class ReplayShim implements Integration {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public constructor(_options: any) {
+    // eslint-disable-next-line deprecation/deprecation
     this.name = ReplayShim.id;
 
     consoleSandbox(() => {
@@ -48,4 +51,15 @@ class ReplayShim implements Integration {
   }
 }
 
+/**
+ * This is a shim for the Replay integration.
+ * It is needed in order for the CDN bundles to continue working when users add/remove replay
+ * from it, without changing their config. This is necessary for the loader mechanism.
+ */
+export function replayIntegration(_options: unknown): Integration {
+  // eslint-disable-next-line deprecation/deprecation
+  return new ReplayShim({});
+}
+
+// eslint-disable-next-line deprecation/deprecation
 export { ReplayShim as Replay };

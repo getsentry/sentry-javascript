@@ -1,3 +1,4 @@
+import { applySdkMetadata } from '@sentry/core';
 import type { NodeOptions } from '@sentry/node';
 import { getClient } from '@sentry/node';
 import { getCurrentScope, init as nodeInit } from '@sentry/node';
@@ -5,7 +6,6 @@ import { logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from './utils/debug-build';
 import { instrumentServer } from './utils/instrumentServer';
-import { buildMetadata } from './utils/metadata';
 import type { RemixOptions } from './utils/remixOptions';
 
 // We need to explicitly export @sentry/node as they end up under `default` in ESM builds
@@ -68,6 +68,7 @@ export {
   Integrations,
   Handlers,
   cron,
+  parameterize,
 } from '@sentry/node';
 
 // Keeping the `*` exports for backwards compatibility and types
@@ -87,7 +88,7 @@ function sdkAlreadyInitialized(): boolean {
 
 /** Initializes Sentry Remix SDK on Node. */
 export function init(options: RemixOptions): void {
-  buildMetadata(options, ['remix', 'node']);
+  applySdkMetadata(options, 'remix', ['remix', 'node']);
 
   if (sdkAlreadyInitialized()) {
     DEBUG_BUILD && logger.log('SDK already initialized');

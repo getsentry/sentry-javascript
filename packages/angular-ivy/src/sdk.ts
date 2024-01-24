@@ -1,8 +1,7 @@
 import { VERSION } from '@angular/core';
 import type { BrowserOptions } from '@sentry/browser';
-import { getDefaultIntegrations } from '@sentry/browser';
-import { SDK_VERSION, init as browserInit, setContext } from '@sentry/browser';
-import type { SdkMetadata } from '@sentry/types';
+import { getDefaultIntegrations, init as browserInit, setContext } from '@sentry/browser';
+import { applySdkMetadata } from '@sentry/core';
 import { logger } from '@sentry/utils';
 
 import { IS_DEBUG_BUILD } from './flags';
@@ -12,7 +11,6 @@ import { IS_DEBUG_BUILD } from './flags';
  */
 export function init(options: BrowserOptions): void {
   const opts = {
-    _metadata: {} as SdkMetadata,
     // Filter out TryCatch integration as it interferes with our Angular `ErrorHandler`:
     // TryCatch would catch certain errors before they reach the `ErrorHandler` and thus provide a
     // lower fidelity error than what `SentryErrorHandler` (see errorhandler.ts) would provide.
@@ -25,16 +23,7 @@ export function init(options: BrowserOptions): void {
     ...options,
   };
 
-  opts._metadata.sdk = opts._metadata.sdk || {
-    name: 'sentry.javascript.angular-ivy',
-    packages: [
-      {
-        name: 'npm:@sentry/angular-ivy',
-        version: SDK_VERSION,
-      },
-    ],
-    version: SDK_VERSION,
-  };
+  applySdkMetadata(opts, 'angular-ivy');
 
   checkAndSetAngularVersion();
   browserInit(opts);
