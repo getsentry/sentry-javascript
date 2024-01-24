@@ -73,6 +73,8 @@ interface Metric {
 
 type InstrumentHandlerType = InstrumentHandlerTypeMetric | InstrumentHandlerTypePerformanceObserver;
 
+type StopListening = undefined | void | (() => void);
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type InstrumentHandlerCallback = (data: any) => void;
 
@@ -88,17 +90,29 @@ let _previousLcp: Metric | undefined;
 /**
  * Add a callback that will be triggered when a CLS metric is available.
  * Returns a cleanup callback which can be called to remove the instrumentation handler.
+ *
+ * Pass `stopOnCallback = true` to stop listening for CLS when the cleanup callback is called.
+ * This will lead to the CLS being finalized and frozen.
  */
-export function addClsInstrumentationHandler(callback: (data: { metric: Metric }) => void): CleanupHandlerCallback {
-  return addMetricObserver('cls', callback, instrumentCls, _previousCls);
+export function addClsInstrumentationHandler(
+  callback: (data: { metric: Metric }) => void,
+  stopOnCallback = false,
+): CleanupHandlerCallback {
+  return addMetricObserver('cls', callback, instrumentCls, _previousCls, stopOnCallback);
 }
 
 /**
  * Add a callback that will be triggered when a LCP metric is available.
  * Returns a cleanup callback which can be called to remove the instrumentation handler.
+ *
+ * Pass `stopOnCallback = true` to stop listening for LCP when the cleanup callback is called.
+ * This will lead to the LCP being finalized and frozen.
  */
-export function addLcpInstrumentationHandler(callback: (data: { metric: Metric }) => void): CleanupHandlerCallback {
-  return addMetricObserver('lcp', callback, instrumentLcp, _previousLcp);
+export function addLcpInstrumentationHandler(
+  callback: (data: { metric: Metric }) => void,
+  stopOnCallback = false,
+): CleanupHandlerCallback {
+  return addMetricObserver('lcp', callback, instrumentLcp, _previousLcp, stopOnCallback);
 }
 
 /**
@@ -158,8 +172,8 @@ function triggerHandlers(type: InstrumentHandlerType, data: unknown): void {
   }
 }
 
-function instrumentCls(): void {
-  onCLS(metric => {
+function instrumentCls(): StopListening {
+  return onCLS(metric => {
     triggerHandlers('cls', {
       metric,
     });
@@ -168,7 +182,7 @@ function instrumentCls(): void {
 }
 
 function instrumentFid(): void {
-  onFID(metric => {
+  return onFID(metric => {
     triggerHandlers('fid', {
       metric,
     });
@@ -176,8 +190,8 @@ function instrumentFid(): void {
   });
 }
 
-function instrumentLcp(): void {
-  onLCP(metric => {
+function instrumentLcp(): StopListening {
+  return onLCP(metric => {
     triggerHandlers('lcp', {
       metric,
     });
@@ -188,13 +202,16 @@ function instrumentLcp(): void {
 function addMetricObserver(
   type: InstrumentHandlerTypeMetric,
   callback: InstrumentHandlerCallback,
-  instrumentFn: () => void,
+  instrumentFn: () => StopListening,
   previousValue: Metric | undefined,
+  stopOnCallback = false,
 ): CleanupHandlerCallback {
   addHandler(type, callback);
 
+  let stopListening: StopListening | undefined;
+
   if (!instrumented[type]) {
-    instrumentFn();
+    stopListening = instrumentFn();
     instrumented[type] = true;
   }
 
@@ -202,7 +219,7 @@ function addMetricObserver(
     callback({ metric: previousValue });
   }
 
-  return getCleanupCallback(type, callback);
+  return getCleanupCallback(type, callback, stopOnCallback ? stopListening : undefined);
 }
 
 function instrumentPerformanceObserver(type: InstrumentHandlerTypePerformanceObserver): void {
@@ -228,8 +245,16 @@ function addHandler(type: InstrumentHandlerType, handler: InstrumentHandlerCallb
 }
 
 // Get a callback which can be called to remove the instrumentation handler
-function getCleanupCallback(type: InstrumentHandlerType, callback: InstrumentHandlerCallback): CleanupHandlerCallback {
+function getCleanupCallback(
+  type: InstrumentHandlerType,
+  callback: InstrumentHandlerCallback,
+  stopListening: StopListening,
+): CleanupHandlerCallback {
   return () => {
+    if (stopListening) {
+      stopListening();
+    }
+
     const typeHandlers = handlers[type];
 
     if (!typeHandlers) {
