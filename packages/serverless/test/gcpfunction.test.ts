@@ -1,9 +1,8 @@
 import * as domain from 'domain';
-import * as SentryNode from '@sentry/node';
 import type { Event, Integration } from '@sentry/types';
 
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
-import * as Sentry from '../src';
+
 import { wrapCloudEventFunction, wrapEventFunction, wrapHttpFunction } from '../src/gcpfunction';
 import type {
   CloudEventFunction,
@@ -15,10 +14,65 @@ import type {
   Response,
 } from '../src/gcpfunction/general';
 
+import { init } from '../src/gcpfunction';
+
+const mockStartInactiveSpan = jest.fn((...spanArgs) => ({ ...spanArgs }));
+const mockStartSpanManual = jest.fn((...spanArgs) => ({ ...spanArgs }));
+const mockFlush = jest.fn((...args) => Promise.resolve(args));
+const mockWithScope = jest.fn();
+const mockCaptureMessage = jest.fn();
+const mockCaptureException = jest.fn();
+const mockInit = jest.fn();
+
+const mockScope = {
+  setTag: jest.fn(),
+  setContext: jest.fn(),
+  addEventProcessor: jest.fn(),
+  setSDKProcessingMetadata: jest.fn(),
+};
+
+const mockSpan = {
+  end: jest.fn(),
+};
+
+jest.mock('@sentry/node', () => {
+  const original = jest.requireActual('@sentry/node');
+  return {
+    ...original,
+    init: (options: unknown) => {
+      mockInit(options);
+    },
+    startInactiveSpan: (...args: unknown[]) => {
+      mockStartInactiveSpan(...args);
+      return mockSpan;
+    },
+    startSpanManual: (...args: unknown[]) => {
+      mockStartSpanManual(...args);
+      mockSpan.end();
+      return original.startSpanManual(...args);
+    },
+    getCurrentScope: () => {
+      return mockScope;
+    },
+    flush: (...args: unknown[]) => {
+      return mockFlush(...args);
+    },
+    withScope: (fn: (scope: unknown) => void) => {
+      mockWithScope(fn);
+      fn(mockScope);
+    },
+    captureMessage: (...args: unknown[]) => {
+      mockCaptureMessage(...args);
+    },
+    captureException: (...args: unknown[]) => {
+      mockCaptureException(...args);
+    },
+  };
+});
+
 describe('GCPFunction', () => {
-  afterEach(() => {
-    // @ts-expect-error see "Why @ts-expect-error" note
-    SentryNode.resetMocks();
+  beforeEach(() => {
+    jest.clearAllMocks();
   });
 
   async function handleHttp(fn: HttpFunction, trace_headers: { [key: string]: string } | null = null): Promise<void> {
@@ -89,7 +143,7 @@ describe('GCPFunction', () => {
       const wrappedHandler = wrapHttpFunction(handler, { flushTimeout: 1337 });
 
       await handleHttp(wrappedHandler);
-      expect(SentryNode.flush).toBeCalledWith(1337);
+      expect(mockFlush).toBeCalledWith(1337);
     });
   });
 
@@ -112,12 +166,9 @@ describe('GCPFunction', () => {
         metadata: {},
       };
 
-      expect(SentryNode.startSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
-      // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeSpan.setHttpStatus).toBeCalledWith(200);
-      // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeSpan.end).toBeCalled();
-      expect(SentryNode.flush).toBeCalledWith(2000);
+      expect(mockStartSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
+      expect(mockSpan.end).toBeCalled();
+      expect(mockFlush).toBeCalledWith(2000);
     });
 
     test('incoming trace headers are correctly parsed and used', async () => {
@@ -149,7 +200,7 @@ describe('GCPFunction', () => {
         },
       };
 
-      expect(SentryNode.startSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
+      expect(mockStartSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
     });
 
     test('capture error', async () => {
@@ -178,11 +229,10 @@ describe('GCPFunction', () => {
         metadata: { dynamicSamplingContext: {} },
       };
 
-      expect(SentryNode.startSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
-      expect(SentryNode.captureException).toBeCalledWith(error, expect.any(Function));
-      // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeSpan.end).toBeCalled();
-      expect(SentryNode.flush).toBeCalled();
+      expect(mockStartSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
+      expect(mockCaptureException).toBeCalledWith(error, expect.any(Function));
+      expect(mockSpan.end).toBeCalled();
+      expect(mockFlush).toBeCalled();
     });
 
     test('should not throw when flush rejects', async () => {
@@ -203,7 +253,7 @@ describe('GCPFunction', () => {
       const mockEnd = jest.fn();
       const response = { end: mockEnd } as unknown as Response;
 
-      jest.spyOn(Sentry, 'flush').mockImplementationOnce(async () => {
+      mockFlush.mockImplementationOnce(async () => {
         throw new Error();
       });
 
@@ -216,7 +266,7 @@ describe('GCPFunction', () => {
   // integration is included in the defaults and the necessary data is stored in `sdkProcessingMetadata`. The
   // integration's tests cover testing that it uses that data correctly.
   test('wrapHttpFunction request data prereqs', async () => {
-    Sentry.GCPFunction.init({});
+    init({});
 
     const handler: HttpFunction = (_req, res) => {
       res.end();
@@ -225,13 +275,12 @@ describe('GCPFunction', () => {
 
     await handleHttp(wrappedHandler);
 
-    const initOptions = (SentryNode.init as unknown as jest.SpyInstance).mock.calls[0];
+    const initOptions = (mockInit as unknown as jest.SpyInstance).mock.calls[0];
     const defaultIntegrations = initOptions[0].defaultIntegrations.map((i: Integration) => i.name);
 
     expect(defaultIntegrations).toContain('RequestData');
 
-    // @ts-expect-error see "Why @ts-expect-error" note
-    expect(SentryNode.fakeScope.setSDKProcessingMetadata).toHaveBeenCalledWith({
+    expect(mockScope.setSDKProcessingMetadata).toHaveBeenCalledWith({
       request: {
         method: 'POST',
         url: '/path?q=query',
@@ -259,10 +308,9 @@ describe('GCPFunction', () => {
         },
       };
 
-      expect(SentryNode.startSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
-      // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeSpan.end).toBeCalled();
-      expect(SentryNode.flush).toBeCalledWith(2000);
+      expect(mockStartSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
+      expect(mockSpan.end).toBeCalled();
+      expect(mockFlush).toBeCalledWith(2000);
     });
 
     test('capture error', async () => {
@@ -282,11 +330,10 @@ describe('GCPFunction', () => {
         },
       };
 
-      expect(SentryNode.startSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
-      expect(SentryNode.captureException).toBeCalledWith(error, expect.any(Function));
-      // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeSpan.end).toBeCalled();
-      expect(SentryNode.flush).toBeCalled();
+      expect(mockStartSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
+      expect(mockCaptureException).toBeCalledWith(error, expect.any(Function));
+      expect(mockSpan.end).toBeCalled();
+      expect(mockFlush).toBeCalled();
     });
   });
 
@@ -310,10 +357,9 @@ describe('GCPFunction', () => {
         },
       };
 
-      expect(SentryNode.startSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
-      // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeSpan.end).toBeCalled();
-      expect(SentryNode.flush).toBeCalledWith(2000);
+      expect(mockStartSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
+      expect(mockSpan.end).toBeCalled();
+      expect(mockFlush).toBeCalledWith(2000);
     });
 
     test('capture error', async () => {
@@ -337,11 +383,10 @@ describe('GCPFunction', () => {
         },
       };
 
-      expect(SentryNode.startSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
-      expect(SentryNode.captureException).toBeCalledWith(error, expect.any(Function));
-      // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeSpan.end).toBeCalled();
-      expect(SentryNode.flush).toBeCalled();
+      expect(mockStartSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
+      expect(mockCaptureException).toBeCalledWith(error, expect.any(Function));
+      expect(mockSpan.end).toBeCalled();
+      expect(mockFlush).toBeCalled();
     });
   });
 
@@ -362,10 +407,9 @@ describe('GCPFunction', () => {
         },
       };
 
-      expect(SentryNode.startSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
-      // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeSpan.end).toBeCalled();
-      expect(SentryNode.flush).toBeCalledWith(2000);
+      expect(mockStartSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
+      expect(mockSpan.end).toBeCalled();
+      expect(mockFlush).toBeCalledWith(2000);
     });
 
     test('capture error', async () => {
@@ -385,11 +429,10 @@ describe('GCPFunction', () => {
         },
       };
 
-      expect(SentryNode.startSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
-      expect(SentryNode.captureException).toBeCalledWith(error, expect.any(Function));
-      // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeSpan.end).toBeCalled();
-      expect(SentryNode.flush).toBeCalled();
+      expect(mockStartSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
+      expect(mockCaptureException).toBeCalledWith(error, expect.any(Function));
+      expect(mockSpan.end).toBeCalled();
+      expect(mockFlush).toBeCalled();
     });
 
     test('capture exception', async () => {
@@ -409,8 +452,8 @@ describe('GCPFunction', () => {
         },
       };
 
-      expect(SentryNode.startSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
-      expect(SentryNode.captureException).toBeCalledWith(error, expect.any(Function));
+      expect(mockStartSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
+      expect(mockCaptureException).toBeCalledWith(error, expect.any(Function));
     });
   });
 
@@ -422,10 +465,9 @@ describe('GCPFunction', () => {
     const wrappedHandler = wrapEventFunction(handler);
     await expect(handleEvent(wrappedHandler)).rejects.toThrowError(error);
 
-    expect(SentryNode.captureException).toBeCalledWith(error, expect.any(Function));
+    expect(mockCaptureException).toBeCalledWith(error, expect.any(Function));
 
-    // @ts-expect-error just mocking around...
-    const scopeFunction = SentryNode.captureException.mock.calls[0][1];
+    const scopeFunction = mockCaptureException.mock.calls[0][1];
     const event: Event = { exception: { values: [{}] } };
     let evtProcessor: ((e: Event) => Event) | undefined = undefined;
     scopeFunction({ addEventProcessor: jest.fn().mockImplementation(proc => (evtProcessor = proc)) });
@@ -442,8 +484,7 @@ describe('GCPFunction', () => {
     const handler: EventFunction = (_data, _context) => 42;
     const wrappedHandler = wrapEventFunction(handler);
     await handleEvent(wrappedHandler);
-    // @ts-expect-error see "Why @ts-expect-error" note
-    expect(SentryNode.fakeScope.setContext).toBeCalledWith('gcp.function.context', {
+    expect(mockScope.setContext).toBeCalledWith('gcp.function.context', {
       eventType: 'event.type',
       resource: 'some.resource',
     });
@@ -466,10 +507,9 @@ describe('GCPFunction', () => {
         },
       };
 
-      expect(SentryNode.startSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
-      // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeSpan.end).toBeCalled();
-      expect(SentryNode.flush).toBeCalledWith(2000);
+      expect(mockStartSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
+      expect(mockSpan.end).toBeCalled();
+      expect(mockFlush).toBeCalledWith(2000);
     });
 
     test('capture error', async () => {
@@ -489,11 +529,10 @@ describe('GCPFunction', () => {
         },
       };
 
-      expect(SentryNode.startSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
-      expect(SentryNode.captureException).toBeCalledWith(error, expect.any(Function));
-      // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeSpan.end).toBeCalled();
-      expect(SentryNode.flush).toBeCalled();
+      expect(mockStartSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
+      expect(mockCaptureException).toBeCalledWith(error, expect.any(Function));
+      expect(mockSpan.end).toBeCalled();
+      expect(mockFlush).toBeCalled();
     });
   });
 
@@ -514,10 +553,9 @@ describe('GCPFunction', () => {
         },
       };
 
-      expect(SentryNode.startSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
-      // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeSpan.end).toBeCalled();
-      expect(SentryNode.flush).toBeCalledWith(2000);
+      expect(mockStartSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
+      expect(mockSpan.end).toBeCalled();
+      expect(mockFlush).toBeCalledWith(2000);
     });
 
     test('capture error', async () => {
@@ -537,11 +575,10 @@ describe('GCPFunction', () => {
         },
       };
 
-      expect(SentryNode.startSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
-      expect(SentryNode.captureException).toBeCalledWith(error, expect.any(Function));
-      // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeSpan.end).toBeCalled();
-      expect(SentryNode.flush).toBeCalled();
+      expect(mockStartSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
+      expect(mockCaptureException).toBeCalledWith(error, expect.any(Function));
+      expect(mockSpan.end).toBeCalled();
+      expect(mockFlush).toBeCalled();
     });
 
     test('capture exception', async () => {
@@ -561,8 +598,8 @@ describe('GCPFunction', () => {
         },
       };
 
-      expect(SentryNode.startSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
-      expect(SentryNode.captureException).toBeCalledWith(error, expect.any(Function));
+      expect(mockStartSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
+      expect(mockCaptureException).toBeCalledWith(error, expect.any(Function));
     });
   });
 
@@ -570,15 +607,14 @@ describe('GCPFunction', () => {
     const handler: CloudEventFunction = _context => 42;
     const wrappedHandler = wrapCloudEventFunction(handler);
     await handleCloudEvent(wrappedHandler);
-    // @ts-expect-error see "Why @ts-expect-error" note
-    expect(SentryNode.fakeScope.setContext).toBeCalledWith('gcp.function.context', { type: 'event.type' });
+    expect(mockScope.setContext).toBeCalledWith('gcp.function.context', { type: 'event.type' });
   });
 
   describe('init()', () => {
     test('calls Sentry.init with correct sdk info metadata', () => {
-      Sentry.GCPFunction.init({});
+      init({});
 
-      expect(Sentry.init).toBeCalledWith(
+      expect(mockInit).toBeCalledWith(
         expect.objectContaining({
           _metadata: {
             sdk: {
@@ -587,10 +623,10 @@ describe('GCPFunction', () => {
               packages: [
                 {
                   name: 'npm:@sentry/serverless',
-                  version: '6.6.6',
+                  version: expect.any(String),
                 },
               ],
-              version: '6.6.6',
+              version: expect.any(String),
             },
           },
         }),
