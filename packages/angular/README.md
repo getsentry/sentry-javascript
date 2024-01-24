@@ -93,14 +93,13 @@ Registering a Trace Service is a 3-step process.
    instrumentation:
 
 ```javascript
-import { init, instrumentAngularRouting, BrowserTracing } from '@sentry/angular';
+import { init, browserTracingIntegration } from '@sentry/angular';
 
 init({
   dsn: '__DSN__',
   integrations: [
-    new BrowserTracing({
+    browserTracingIntegration({
       tracingOrigins: ['localhost', 'https://yourserver.io/api'],
-      routingInstrumentation: instrumentAngularRouting,
     }),
   ],
   tracesSampleRate: 1,

@@ -7,9 +7,13 @@ import type { ActivatedRouteSnapshot, Event, RouterState } from '@angular/router
 // eslint-disable-next-line @typescript-eslint/consistent-type-imports
 import { NavigationCancel, NavigationError, Router } from '@angular/router';
 import { NavigationEnd, NavigationStart, ResolveEnd } from '@angular/router';
-import { WINDOW, getCurrentScope } from '@sentry/browser';
+import {
+  WINDOW,
+  browserTracingIntegration as originalBrowserTracingIntegration,
+  getCurrentScope,
+} from '@sentry/browser';
 import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, spanToJSON } from '@sentry/core';
-import type { Span, Transaction, TransactionContext } from '@sentry/types';
+import type { Integration, Span, Transaction, TransactionContext } from '@sentry/types';
 import { logger, stripUrlQueryAndFragment, timestampInSeconds } from '@sentry/utils';
 import type { Observable } from 'rxjs';
 import { Subscription } from 'rxjs';
@@ -48,6 +52,18 @@ export function routingInstrumentation(
 }
 
 export const instrumentAngularRouting = routingInstrumentation;
+
+/**
+ * A custom BrowserTracing integration for Angular.
+ */
+export function browserTracingIntegration(
+  options?: Parameters<typeof originalBrowserTracingIntegration>[0],
+): Integration {
+  return originalBrowserTracingIntegration({
+    routingInstrumentation: instrumentAngularRouting,
+    ...options,
+  });
+}
 
 /**
  * Grabs active transaction off scope.
