@@ -20,8 +20,8 @@
   "types": "build/types/index.d.ts",
   "typesVersions": {
     "<4.9": {
-      "build/npm/types/index.d.ts": [
-        "build/npm/types-ts3.8/index.d.ts"
+      "build/types/index.d.ts": [
+        "build/types-ts3.8/index.d.ts"
       ]
     }
   },
