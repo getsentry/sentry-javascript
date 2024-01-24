@@ -100,7 +100,6 @@ export type {
   SpanContextData,
   TraceFlag,
 } from './span';
-export type { StartSpanOptions } from './startSpanOptions';
 export type { StackFrame } from './stackframe';
 export type { Stacktrace, StackParser, StackLineParser, StackLineParserFn } from './stacktrace';
 export type { TextEncoderInternal } from './textencoder';

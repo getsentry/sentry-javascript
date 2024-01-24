@@ -3,16 +3,9 @@ export {
   Feedback,
   feedbackIntegration,
 } from './Feedback';
-
 export {
   // eslint-disable-next-line deprecation/deprecation
   Replay,
   replayIntegration,
 } from './Replay';
-
-export {
-  // eslint-disable-next-line deprecation/deprecation
-  BrowserTracing,
-  browserTracingIntegration,
-  addTracingExtensions,
-} from './BrowserTracing';
+export { BrowserTracing, addTracingExtensions } from './BrowserTracing';

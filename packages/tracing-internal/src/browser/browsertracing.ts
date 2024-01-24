@@ -1,4 +1,4 @@
-/* eslint-disable max-lines, complexity */
+/* eslint-disable max-lines */
 import type { Hub, IdleTransaction } from '@sentry/core';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
@@ -9,14 +9,7 @@ import {
   spanToJSON,
   startIdleTransaction,
 } from '@sentry/core';
-import type {
-  EventProcessor,
-  Integration,
-  StartSpanOptions,
-  Transaction,
-  TransactionContext,
-  TransactionSource,
-} from '@sentry/types';
+import type { EventProcessor, Integration, Transaction, TransactionContext, TransactionSource } from '@sentry/types';
 import { getDomElement, logger, tracingContextFromHeaders } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../common/debug-build';
@@ -67,48 +60,27 @@ export interface BrowserTracingOptions extends RequestInstrumentationOptions {
   heartbeatInterval: number;
 
   /**
-   * If a span should be created on location (history) changes.
-   * Default: true
-   */
-  spanOnLocationChange: boolean;
-
-  /**
-   * If a span should be created on pageload.
-   * Default: true
-   */
-  spanOnPageLoad: boolean;
-
-  /**
-   * Flag spans where tabs moved to background with "cancelled". Browser background tab timing is
-   * not suited towards doing precise measurements of operations. By default, we recommend that this option
-   * be enabled as background transactions can mess up your statistics in nondeterministic ways.
+   * Flag to enable/disable creation of `navigation` transaction on history changes.
    *
    * Default: true
    */
-  markBackgroundSpan: boolean;
-
-  /**
-   * Flag to enable/disable creation of `navigation` transaction on history changes.
-   * Default: true
-   * @deprecated Configure `spanOnLocationChange` instead.
-   */
-  startTransactionOnLocationChange?: boolean;
+  startTransactionOnLocationChange: boolean;
 
   /**
    * Flag to enable/disable creation of `pageload` transaction on first pageload.
+   *
    * Default: true
-   * @deprecated Configure `spanOnPageLoad` instead.
    */
-  startTransactionOnPageLoad?: boolean;
+  startTransactionOnPageLoad: boolean;
 
   /**
    * Flag Transactions where tabs moved to background with "cancelled". Browser background tab timing is
    * not suited towards doing precise measurements of operations. By default, we recommend that this option
    * be enabled as background transactions can mess up your statistics in nondeterministic ways.
+   *
    * Default: true
-   * @deprecated Configure `markBackgroundSpan` instead.
    */
-  markBackgroundTransactions?: boolean;
+  markBackgroundTransactions: boolean;
 
   /**
    * If true, Sentry will capture long tasks and add them to the corresponding transaction.
@@ -146,12 +118,6 @@ export interface BrowserTracingOptions extends RequestInstrumentationOptions {
   }>;
 
   /**
-   * A callback which is called before a span for a pageload or navigation is started.
-   * It receives the options passed to `startSpan`, and expects to return an updated options object.
-   */
-  beforeStartSpan?: (options: StartSpanOptions) => StartSpanOptions;
-
-  /**
    * beforeNavigate is called before a pageload/navigation transaction is created and allows users to modify transaction
    * context data, or drop the transaction entirely (by setting `sampled = false` in the context).
    *
@@ -160,8 +126,6 @@ export interface BrowserTracingOptions extends RequestInstrumentationOptions {
    * @param context: The context data which will be passed to `startTransaction` by default
    *
    * @returns A (potentially) modified context object, with `sampled = false` if the transaction should be dropped.
-   *
-   * @deprecated Use `beforeStartSpan` instead.
    */
   beforeNavigate?(this: void, context: TransactionContext): TransactionContext | undefined;
 
@@ -179,10 +143,10 @@ export interface BrowserTracingOptions extends RequestInstrumentationOptions {
 
 const DEFAULT_BROWSER_TRACING_OPTIONS: BrowserTracingOptions = {
   ...TRACING_DEFAULTS,
+  markBackgroundTransactions: true,
   routingInstrumentation: instrumentRoutingWithDefaults,
-  spanOnLocationChange: true,
-  spanOnPageLoad: true,
-  markBackgroundSpan: true,
+  startTransactionOnLocationChange: true,
+  startTransactionOnPageLoad: true,
   enableLongTask: true,
   _experiments: {},
   ...defaultRequestInstrumentationOptions,
@@ -194,14 +158,6 @@ const DEFAULT_BROWSER_TRACING_OPTIONS: BrowserTracingOptions = {
  *
  * The integration can be configured with a variety of options, and can be extended to use
  * any routing library. This integration uses {@see IdleTransaction} to create transactions.
- */
-export function browserTracingIntegration(options?: Partial<BrowserTracingOptions>): Integration {
-  // eslint-disable-next-line deprecation/deprecation
-  return new BrowserTracing(options);
-}
-
-/**
- * @deprecated Use `browserTracingIntegration()` instead.
  */
 export class BrowserTracing implements Integration {
   // This class currently doesn't have a static `id` field like the other integration classes, because it prevented
@@ -226,7 +182,7 @@ export class BrowserTracing implements Integration {
 
   private _hasSetTracePropagationTargets: boolean;
 
-  public constructor(_options: Partial<BrowserTracingOptions> = {}) {
+  public constructor(_options?: Partial<BrowserTracingOptions>) {
     this.name = BROWSER_TRACING_INTEGRATION_ID;
     this._hasSetTracePropagationTargets = false;
 
@@ -234,32 +190,10 @@ export class BrowserTracing implements Integration {
 
     if (DEBUG_BUILD) {
       this._hasSetTracePropagationTargets = !!(
+        _options &&
         // eslint-disable-next-line deprecation/deprecation
         (_options.tracePropagationTargets || _options.tracingOrigins)
       );
-    }
-
-    // Migrate legacy options
-    // TODO v8: Remove this
-    /* eslint-disable deprecation/deprecation */
-    if (typeof _options.startTransactionOnPageLoad === 'boolean') {
-      _options.spanOnPageLoad = _options.startTransactionOnPageLoad;
-    }
-    if (typeof _options.startTransactionOnLocationChange === 'boolean') {
-      _options.spanOnLocationChange = _options.startTransactionOnLocationChange;
-    }
-    if (typeof _options.markBackgroundTransactions === 'boolean') {
-      _options.markBackgroundSpan = _options.markBackgroundTransactions;
-    }
-    /* eslint-enable deprecation/deprecation */
-
-    // TODO (v8): remove this block after tracingOrigins is removed
-    // Set tracePropagationTargets to tracingOrigins if specified by the user
-    // In case both are specified, tracePropagationTargets takes precedence
-    // eslint-disable-next-line deprecation/deprecation
-    if (!_options.tracePropagationTargets && _options.tracingOrigins) {
-      // eslint-disable-next-line deprecation/deprecation
-      _options.tracePropagationTargets = _options.tracingOrigins;
     }
 
     this.options = {
@@ -271,6 +205,15 @@ export class BrowserTracing implements Integration {
     // TODO (v8): Remove this in v8
     if (this.options._experiments.enableLongTask !== undefined) {
       this.options.enableLongTask = this.options._experiments.enableLongTask;
+    }
+
+    // TODO (v8): remove this block after tracingOrigins is removed
+    // Set tracePropagationTargets to tracingOrigins if specified by the user
+    // In case both are specified, tracePropagationTargets takes precedence
+    // eslint-disable-next-line deprecation/deprecation
+    if (_options && !_options.tracePropagationTargets && _options.tracingOrigins) {
+      // eslint-disable-next-line deprecation/deprecation
+      this.options.tracePropagationTargets = _options.tracingOrigins;
     }
 
     this._collectWebVitals = startTrackingWebVitals();
@@ -294,9 +237,9 @@ export class BrowserTracing implements Integration {
 
     const {
       routingInstrumentation: instrumentRouting,
-      spanOnPageLoad,
-      spanOnLocationChange,
-      markBackgroundSpan,
+      startTransactionOnLocationChange,
+      startTransactionOnPageLoad,
+      markBackgroundTransactions,
       traceFetch,
       traceXHR,
       shouldCreateSpanForRequest,
@@ -332,11 +275,11 @@ export class BrowserTracing implements Integration {
 
         return transaction;
       },
-      spanOnPageLoad,
-      spanOnLocationChange,
+      startTransactionOnPageLoad,
+      startTransactionOnLocationChange,
     );
 
-    if (markBackgroundSpan) {
+    if (markBackgroundTransactions) {
       registerBackgroundTabDetection();
     }
 
@@ -363,14 +306,7 @@ export class BrowserTracing implements Integration {
 
     const hub = this._getCurrentHub();
 
-    const {
-      // eslint-disable-next-line deprecation/deprecation
-      beforeNavigate,
-      beforeStartSpan,
-      idleTimeout,
-      finalTimeout,
-      heartbeatInterval,
-    } = this.options;
+    const { beforeNavigate, idleTimeout, finalTimeout, heartbeatInterval } = this.options;
 
     const isPageloadTransaction = context.op === 'pageload';
 
@@ -392,11 +328,7 @@ export class BrowserTracing implements Integration {
       trimEnd: true,
     };
 
-    const contextAfterProcessing = beforeStartSpan ? beforeStartSpan(expandedContext) : expandedContext;
-
-    const modifiedContext =
-      // eslint-disable-next-line deprecation/deprecation
-      typeof beforeNavigate === 'function' ? beforeNavigate(contextAfterProcessing) : contextAfterProcessing;
+    const modifiedContext = typeof beforeNavigate === 'function' ? beforeNavigate(expandedContext) : expandedContext;
 
     // For backwards compatibility reasons, beforeNavigate can return undefined to "drop" the transaction (prevent it
     // from being sent to Sentry).
