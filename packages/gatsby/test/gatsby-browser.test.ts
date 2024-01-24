@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { onClientEntry } from '../gatsby-browser';
-import { browserTracingIntegration } from '../src/index';
+import { BrowserTracing } from '../src/index';
 
 (global as any).__SENTRY_RELEASE__ = '683f3a6ab819d47d23abfca9a914c81f0524d35b';
 (global as any).__SENTRY_DSN__ = 'https://examplePublicKey@o0.ingest.sentry.io/0';
@@ -141,7 +141,7 @@ describe('onClientEntry', () => {
   });
 
   it('only defines a single `BrowserTracing` integration', () => {
-    const integrations = [browserTracingIntegration()];
+    const integrations = [new BrowserTracing()];
     onClientEntry(undefined, { tracesSampleRate: 0.5, integrations });
 
     expect(sentryInit).toHaveBeenLastCalledWith(

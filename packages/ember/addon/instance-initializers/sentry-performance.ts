@@ -404,11 +404,11 @@ export async function instrumentForPerformance(appInstance: ApplicationInstance)
   // Maintaining backwards compatibility with config.browserTracingOptions, but passing it with Sentry options is preferred.
   const browserTracingOptions = config.browserTracingOptions || config.sentry.browserTracingOptions || {};
 
-  const { browserTracingIntegration } = await import('@sentry/browser');
+  const { BrowserTracing } = await import('@sentry/browser');
 
   const idleTimeout = config.transitionTimeout || 5000;
 
-  const browserTracing = browserTracingIntegration({
+  const browserTracing = new BrowserTracing({
     routingInstrumentation: (customStartTransaction, startTransactionOnPageLoad) => {
       // eslint-disable-next-line ember/no-private-routing-service
       const routerMain = appInstance.lookup('router:main') as EmberRouterMain;

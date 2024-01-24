@@ -5,8 +5,6 @@ import { consoleSandbox } from '@sentry/utils';
  * This is a shim for the BrowserTracing integration.
  * It is needed in order for the CDN bundles to continue working when users add/remove tracing
  * from it, without changing their config. This is necessary for the loader mechanism.
- *
- * @deprecated Use `browserTracingIntegration()` instead.
  */
 class BrowserTracingShim implements Integration {
   /**
@@ -21,7 +19,6 @@ class BrowserTracingShim implements Integration {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public constructor(_options: any) {
-    // eslint-disable-next-line deprecation/deprecation
     this.name = BrowserTracingShim.id;
 
     consoleSandbox(() => {
@@ -36,21 +33,7 @@ class BrowserTracingShim implements Integration {
   }
 }
 
-/**
- * This is a shim for the BrowserTracing integration.
- * It is needed in order for the CDN bundles to continue working when users add/remove tracing
- * from it, without changing their config. This is necessary for the loader mechanism.
- */
-function browserTracingIntegrationShim(): Integration {
-  // eslint-disable-next-line deprecation/deprecation
-  return new BrowserTracingShim({});
-}
-
-export {
-  // eslint-disable-next-line deprecation/deprecation
-  BrowserTracingShim as BrowserTracing,
-  browserTracingIntegrationShim as browserTracingIntegration,
-};
+export { BrowserTracingShim as BrowserTracing };
 
 /** Shim function */
 export function addTracingExtensions(): void {

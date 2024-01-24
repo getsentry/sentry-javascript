@@ -10,7 +10,7 @@ import type { EventProcessor, Integration } from '@sentry/types';
 
 import { devErrorSymbolicationEventProcessor } from '../common/devErrorSymbolicationEventProcessor';
 import { getVercelEnv } from '../common/getVercelEnv';
-import { BrowserTracing, browserTracingIntegration } from './browserTracingIntegration';
+import { BrowserTracing } from './browserTracingIntegration';
 import { rewriteFramesIntegration } from './rewriteFramesIntegration';
 import { applyTunnelRouteOption } from './tunnelRoute';
 
@@ -35,12 +35,7 @@ export const Integrations = {
 //
 // import { BrowserTracing } from '@sentry/nextjs';
 // const instance = new BrowserTracing();
-export {
-  // eslint-disable-next-line deprecation/deprecation
-  BrowserTracing,
-  browserTracingIntegration,
-  rewriteFramesIntegration,
-};
+export { BrowserTracing, rewriteFramesIntegration };
 
 // Treeshakable guard to remove all code related to tracing
 declare const __SENTRY_TRACING__: boolean;
@@ -95,15 +90,13 @@ function maybeUpdateBrowserTracingIntegration(integrations: Integration[]): Inte
   const browserTracing = integrations.find(integration => integration.name === 'BrowserTracing');
   // If BrowserTracing was added, but it is not our forked version,
   // replace it with our forked version with the same options
-  // eslint-disable-next-line deprecation/deprecation
   if (browserTracing && !(browserTracing instanceof BrowserTracing)) {
-    // eslint-disable-next-line deprecation/deprecation
     const options: ConstructorParameters<typeof BrowserTracing>[0] = (browserTracing as BrowserTracing).options;
     // These two options are overwritten by the custom integration
     delete options.routingInstrumentation;
     // eslint-disable-next-line deprecation/deprecation
     delete options.tracingOrigins;
-    integrations[integrations.indexOf(browserTracing)] = browserTracingIntegration(options);
+    integrations[integrations.indexOf(browserTracing)] = new BrowserTracing(options);
   }
 
   return integrations;
@@ -116,7 +109,7 @@ function getDefaultIntegrations(options: BrowserOptions): Integration[] {
   // will get treeshaken away
   if (typeof __SENTRY_TRACING__ === 'undefined' || __SENTRY_TRACING__) {
     if (hasTracingEnabled(options)) {
-      customDefaultIntegrations.push(browserTracingIntegration());
+      customDefaultIntegrations.push(new BrowserTracing());
     }
   }
 
