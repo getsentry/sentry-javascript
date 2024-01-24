@@ -41,6 +41,8 @@ sentryTest(
 
     // Adding a handler after LCP is completed still triggers the handler
     await page.evaluate('window.ADD_HANDLER()');
+    // wait for everything to settle...
+    await page.waitForTimeout(100);
 
     const lcp3_2 = await page.evaluate('window._LCP3');
     expect(lcp3_2).toEqual(107400);
