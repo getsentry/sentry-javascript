@@ -35,6 +35,7 @@ let _createRoutesFromChildren: CreateRoutesFromChildren;
 let _matchRoutes: MatchRoutes;
 let _customStartTransaction: (context: TransactionContext) => Transaction | undefined;
 let _startTransactionOnLocationChange: boolean;
+let _stripBasename: boolean = false;
 
 const SENTRY_TAGS = {
   'routing.instrumentation': 'react-router-v6',
@@ -46,6 +47,7 @@ export function reactRouterV6Instrumentation(
   useNavigationType: UseNavigationType,
   createRoutesFromChildren: CreateRoutesFromChildren,
   matchRoutes: MatchRoutes,
+  stripBasename?: boolean,
 ) {
   return (
     customStartTransaction: (context: TransactionContext) => Transaction | undefined,
@@ -70,10 +72,38 @@ export function reactRouterV6Instrumentation(
     _useNavigationType = useNavigationType;
     _matchRoutes = matchRoutes;
     _createRoutesFromChildren = createRoutesFromChildren;
+    _stripBasename = stripBasename || false;
 
     _customStartTransaction = customStartTransaction;
     _startTransactionOnLocationChange = startTransactionOnLocationChange;
   };
+}
+
+/**
+ * Strip the basename from a pathname if exists.
+ *
+ * Vendored and modified from `react-router`
+ * https://github.com/remix-run/react-router/blob/462bb712156a3f739d6139a0f14810b76b002df6/packages/router/utils.ts#L1038
+ */
+function stripBasenameFromPathname(pathname: string, basename: string): string {
+  if (!basename || basename === '/') {
+    return pathname;
+  }
+
+  if (!pathname.toLowerCase().startsWith(basename.toLowerCase())) {
+    return pathname;
+  }
+
+  // We want to leave trailing slash behavior in the user's control, so if they
+  // specify a basename with a trailing slash, we should support it
+  const startIndex = basename.endsWith('/') ? basename.length - 1 : basename.length;
+  const nextChar = pathname.charAt(startIndex);
+  if (nextChar && nextChar !== '/') {
+    // pathname does not start with basename/
+    return pathname;
+  }
+
+  return pathname.slice(startIndex) || '/';
 }
 
 function getNormalizedName(
@@ -83,7 +113,7 @@ function getNormalizedName(
   basename: string = '',
 ): [string, TransactionSource] {
   if (!routes || routes.length === 0) {
-    return [location.pathname, 'url'];
+    return [_stripBasename ? stripBasenameFromPathname(location.pathname, basename) : location.pathname, 'url'];
   }
 
   let pathBuilder = '';
@@ -95,7 +125,7 @@ function getNormalizedName(
       if (route) {
         // Early return if index route
         if (route.index) {
-          return [branch.pathname, 'route'];
+          return [_stripBasename ? stripBasenameFromPathname(branch.pathname, basename) : branch.pathname, 'route'];
         }
 
         const path = route.path;
@@ -112,16 +142,16 @@ function getNormalizedName(
               // We should not count wildcard operators in the url segments calculation
               pathBuilder.slice(-2) !== '/*'
             ) {
-              return [basename + newPath, 'route'];
+              return [(_stripBasename ? '' : basename) + newPath, 'route'];
             }
-            return [basename + pathBuilder, 'route'];
+            return [(_stripBasename ? '' : basename) + pathBuilder, 'route'];
           }
         }
       }
     }
   }
 
-  return [location.pathname, 'url'];
+  return [_stripBasename ? stripBasenameFromPathname(location.pathname, basename) : location.pathname, 'url'];
 }
 
 function updatePageloadTransaction(
