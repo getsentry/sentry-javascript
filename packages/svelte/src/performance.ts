@@ -52,7 +52,6 @@ function recordInitSpan(componentName: string): Span | undefined {
   });
 
   onMount(() => {
-    console.log('END SPAN', componentName);
     initSpan.end();
   });
 
