@@ -4,7 +4,15 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.97.0
+
+Note: The 7.96.0 release was incomplete. This release is partially encompassing changes from `7.96.0`.
+
+- feat(react): Add `stripBasename` option for React Router 6 (#10314)
+
 ## 7.96.0
+
+Note: This release was incomplete. Not all Sentry SDK packages were released for this version. Please upgrade to 7.97.0 directly.
 
 ### Important Changes
 
@@ -25,7 +33,6 @@ increasing capture rate by 10-30% for some apps. LCP and CLS capturing issues we
 
 ### Other Changes
 
-- feat(react): Add `stripBasename` option for React Router 6. (#10314)
 - fix(node): Fix `node-cron` types and add test (#10315)
 - fix(node): Fix downleveled types entry point (#10321)
 - fix(node): LocalVariables integration should use setupOnce (#10307)
