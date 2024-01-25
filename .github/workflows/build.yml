@@ -747,7 +747,7 @@ jobs:
           DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
       - name: Check for dts files that reference stuff in the temporary build folder
         run: |
-          if grep -r --include "*.d.ts" --exclude-dir ".nxcache" 'import("@sentry/.*/build' .; then
+          if grep -r --include "*.d.ts" --exclude-dir ".nxcache" 'import("@sentry(-internal)?/[^/]*/build' .; then
             echo "Found illegal TypeScript import statement."
             exit 1
           fi
