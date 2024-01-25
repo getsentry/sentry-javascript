@@ -37,8 +37,8 @@ const denoCronIntegration = (() => {
           }
 
           async function cronCalled(): Promise<void> {
-            if (SETUP_CLIENTS.has(getClient() as Client)) {
-              return;
+            if (!SETUP_CLIENTS.has(getClient() as Client)) {
+              return fn();
             }
 
             await withMonitor(monitorSlug, async () => fn(), {
