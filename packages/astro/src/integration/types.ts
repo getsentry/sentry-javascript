@@ -126,6 +126,33 @@ type SdkEnabledOptions = {
       };
 };
 
+type SdkTunnelOptions = {
+  /**
+   * Options for tunneling.
+   */
+  tunnelRoute?: {
+    /**
+     * Where the route should be output in the browser, for example `/api/sy`. It's recommended
+     * not to put terms related to Sentry or tracking as they can be flagged and blocked by
+     * ad-blockers.
+     *
+     * @see https://docs.astro.build/en/reference/integrations-reference/#injectroute-option
+     */
+    pattern: string;
+    /**
+     * The project slug of your Sentry project.
+     *
+     * @default "sentry.io"
+     */
+    host?: string;
+    /**
+     * Restricts to what project your tunnel can forward Sentry events to. There should be at least
+     * one project id.
+     */
+    projectIds: Array<string>;
+  };
+};
+
 /**
  * A subset of Sentry SDK options that can be set via the `sentryAstro` integration.
  * Some options (e.g. integrations) are set by default and cannot be changed here.
@@ -140,4 +167,5 @@ export type SentryOptions = SdkInitPaths &
   Pick<BrowserOptions, 'replaysSessionSampleRate' | 'replaysOnErrorSampleRate'> &
   SourceMapsOptions &
   InstrumentationOptions &
-  SdkEnabledOptions;
+  SdkEnabledOptions &
+  SdkTunnelOptions;

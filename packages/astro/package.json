@@ -40,6 +40,12 @@
       "import": "./build/esm/integration/middleware/index.js",
       "require": "./build/cjs/integration/middleware/index.js",
       "types": "./build/types/integration/middleware/index.types.d.ts"
+    },
+    "./tunnel": {
+      "node": "./build/esm/integration/tunnel.js",
+      "import": "./build/esm/integration/tunnel.js",
+      "require": "./build/cjs/integration/tunnel.js",
+      "types": "./build/types/integration/tunnel.types.d.ts"
     }
   },
   "publishConfig": {

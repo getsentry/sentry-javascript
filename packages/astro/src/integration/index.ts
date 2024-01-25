@@ -13,7 +13,15 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
     name: PKG_NAME,
     hooks: {
       // eslint-disable-next-line complexity
-      'astro:config:setup': async ({ updateConfig, injectScript, addMiddleware, config, command, logger }) => {
+      'astro:config:setup': async ({
+        updateConfig,
+        injectScript,
+        addMiddleware,
+        config,
+        command,
+        logger,
+        injectRoute,
+      }) => {
         // The third param here enables loading of all env vars, regardless of prefix
         // see: https://main.vitejs.dev/config/#using-environment-variables-in-config
 
@@ -109,6 +117,19 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
           addMiddleware({
             order: 'pre',
             entrypoint: '@sentry/astro/middleware',
+          });
+        }
+
+        if (options.tunnelRoute) {
+          if (options.tunnelRoute.projectIds.length === 0) {
+            throw new Error(
+              'When using the `tunnelRoute` configuration, you need to provide at least one project Id in `projectIds`',
+            );
+          }
+
+          injectRoute({
+            pattern: options.tunnelRoute.pattern,
+            entryPoint: '@sentry/astro/tunnel',
           });
         }
       },
