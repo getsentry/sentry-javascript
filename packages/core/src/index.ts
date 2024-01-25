@@ -3,6 +3,7 @@ export type { AsyncContextStrategy, Carrier, Layer, RunWithAsyncContextOptions }
 export type { OfflineStore, OfflineTransportOptions } from './transports/offline';
 export type { ServerRuntimeClientOptions } from './server-runtime-client';
 export type { RequestDataIntegrationOptions } from './integrations/requestdata';
+export type { IntegrationIndex } from './integration';
 
 export * from './tracing';
 export * from './semanticAttributes';
