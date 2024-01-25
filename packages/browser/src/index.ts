@@ -54,9 +54,13 @@ export {
 } from '@sentry-internal/feedback';
 
 export {
+  // eslint-disable-next-line deprecation/deprecation
   BrowserTracing,
   defaultRequestInstrumentationOptions,
   instrumentOutgoingRequests,
+  browserTracingIntegration,
+  browserTracingStartNavigationSpan,
+  browserTracingStartPageLoadSpan,
 } from '@sentry-internal/tracing';
 export type { RequestInstrumentationOptions } from '@sentry-internal/tracing';
 export {

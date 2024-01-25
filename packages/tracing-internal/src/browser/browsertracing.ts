@@ -72,15 +72,6 @@ export interface BrowserTracingOptions extends RequestInstrumentationOptions {
   instrumentPageLoad: boolean;
 
   /**
-   * Flag spans where tabs moved to background with "cancelled". Browser background tab timing is
-   * not suited towards doing precise measurements of operations. By default, we recommend that this option
-   * be enabled as background transactions can mess up your statistics in nondeterministic ways.
-   *
-   * Default: true
-   */
-  startTransactionOnLocationChange: boolean;
-
-  /**
    * Flag to enable/disable creation of `navigation` transaction on history changes.
    * Default: true
    * @deprecated Configure `instrumentNavigation` instead.
@@ -93,7 +84,16 @@ export interface BrowserTracingOptions extends RequestInstrumentationOptions {
    * Default: true
    * @deprecated Configure `instrumentPageLoad` instead.
    */
-  startTransactionOnPageLoad: boolean;
+  startTransactionOnPageLoad?: boolean;
+
+  /**
+   * Flag spans where tabs moved to background with "cancelled". Browser background tab timing is
+   * not suited towards doing precise measurements of operations. By default, we recommend that this option
+   * be enabled as background transactions can mess up your statistics in nondeterministic ways.
+   *
+   * Default: true
+   */
+  markBackgroundSpan: boolean;
 
   /**
    * Flag Transactions where tabs moved to background with "cancelled". Browser background tab timing is
@@ -101,8 +101,9 @@ export interface BrowserTracingOptions extends RequestInstrumentationOptions {
    * be enabled as background transactions can mess up your statistics in nondeterministic ways.
    *
    * Default: true
+   * @deprecated Configure `markBackgroundSpan` instead.
    */
-  markBackgroundTransactions: boolean;
+  markBackgroundTransactions?: boolean;
 
   /**
    * If true, Sentry will capture long tasks and add them to the corresponding transaction.
@@ -201,7 +202,7 @@ export class BrowserTracing implements Integration {
 
   private _hasSetTracePropagationTargets: boolean;
 
-  public constructor(_options?: Partial<BrowserTracingOptions>) {
+  public constructor(_options: Partial<BrowserTracingOptions> = {}) {
     this.name = BROWSER_TRACING_INTEGRATION_ID;
     this._hasSetTracePropagationTargets = false;
 
@@ -321,7 +322,7 @@ export class BrowserTracing implements Integration {
       instrumentNavigation,
     );
 
-    if (markBackgroundTransactions) {
+    if (markBackgroundSpan) {
       registerBackgroundTabDetection();
     }
 

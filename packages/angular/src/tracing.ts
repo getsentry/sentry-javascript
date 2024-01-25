@@ -10,15 +10,10 @@ import { NavigationEnd, NavigationStart, ResolveEnd } from '@angular/router';
 import {
   WINDOW,
   browserTracingIntegration as originalBrowserTracingIntegration,
+  browserTracingStartNavigationSpan,
   getCurrentScope,
 } from '@sentry/browser';
-import {
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-  getActiveSpan,
-  getClient,
-  spanToJSON,
-  startInactiveSpan,
-} from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, getActiveSpan, spanToJSON, startInactiveSpan } from '@sentry/core';
 import type { Integration, Span, Transaction, TransactionContext } from '@sentry/types';
 import { logger, stripUrlQueryAndFragment, timestampInSeconds } from '@sentry/utils';
 import type { Observable } from 'rxjs';
@@ -110,10 +105,9 @@ export class TraceService implements OnDestroy {
 
       const strippedUrl = stripUrlQueryAndFragment(navigationEvent.url);
 
-      const client = getClient();
-      if (hooksBasedInstrumentation && client && client.emit) {
+      if (hooksBasedInstrumentation) {
         if (!getActiveSpan()) {
-          client.emit('startNavigationSpan', {
+          browserTracingStartNavigationSpan({
             name: strippedUrl,
             op: 'navigation',
             origin: 'auto.navigation.angular',

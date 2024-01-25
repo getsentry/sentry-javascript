@@ -8,7 +8,11 @@ export {
   BROWSER_TRACING_INTEGRATION_ID,
 } from './browsertracing';
 
-export { browserTracingIntegration } from './browserTracingIntegration';
+export {
+  browserTracingIntegration,
+  browserTracingStartNavigationSpan,
+  browserTracingStartPageLoadSpan,
+} from './browserTracingIntegration';
 
 export { instrumentOutgoingRequests, defaultRequestInstrumentationOptions } from './request';
 

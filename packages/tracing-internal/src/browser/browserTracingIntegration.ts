@@ -1,5 +1,5 @@
 /* eslint-disable max-lines, complexity */
-import type { IdleTransaction } from '@sentry/core';
+import { IdleTransaction, getClient } from '@sentry/core';
 import { defineIntegration, getCurrentHub } from '@sentry/core';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
@@ -347,7 +347,7 @@ export const _browserTracingIntegration = ((_options: Partial<BrowserTracingOpti
           origin: 'auto.pageload.browser',
           metadata: { source: 'url' },
         };
-        client.emit('startPageLoadSpan', context);
+        browserTracingStartPageLoadSpan(context);
       }
 
       if (options.instrumentNavigation && client.emit) {
@@ -381,9 +381,7 @@ export const _browserTracingIntegration = ((_options: Partial<BrowserTracingOpti
               metadata: { source: 'url' },
             };
 
-            // We know this is fine because we checked above...
-            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-            client.emit!('startNavigationSpan', context);
+            browserTracingStartNavigationSpan(context);
           }
         });
       }
@@ -408,6 +406,32 @@ export const _browserTracingIntegration = ((_options: Partial<BrowserTracingOpti
 }) as IntegrationFn;
 
 export const browserTracingIntegration = defineIntegration(_browserTracingIntegration);
+
+/**
+ * Manually start a page load span.
+ * This will only do something if the BrowserTracing integration has been setup.
+ */
+export function browserTracingStartPageLoadSpan(spanOptions: StartSpanOptions): void {
+  const client = getClient();
+  if (!client || !client.emit) {
+    return;
+  }
+
+  client.emit('startPageLoadSpan', spanOptions);
+}
+
+/**
+ * Manually start a navigation span.
+ * This will only do something if the BrowserTracing integration has been setup.
+ */
+export function browserTracingStartNavigationSpan(spanOptions: StartSpanOptions): void {
+  const client = getClient();
+  if (!client || !client.emit) {
+    return;
+  }
+
+  client.emit('startNavigationSpan', spanOptions);
+}
 
 /** Returns the value of a meta tag */
 export function getMetaContent(metaName: string): string | undefined {
