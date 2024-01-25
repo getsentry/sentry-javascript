@@ -1,4 +1,5 @@
 import type { ServerRuntimeClient } from '@sentry/core';
+import { defineIntegration } from '@sentry/core';
 import { convertIntegrationFnToClass } from '@sentry/core';
 import { captureEvent } from '@sentry/core';
 import { getClient } from '@sentry/core';
@@ -21,7 +22,7 @@ type GlobalHandlersIntegrations = Record<GlobalHandlersIntegrationsOptionKeys, b
 const INTEGRATION_NAME = 'GlobalHandlers';
 let isExiting = false;
 
-const globalHandlersIntegration = ((options?: GlobalHandlersIntegrations) => {
+const _globalHandlersIntegration = ((options?: GlobalHandlersIntegrations) => {
   const _options = {
     error: true,
     unhandledrejection: true,
@@ -43,12 +44,20 @@ const globalHandlersIntegration = ((options?: GlobalHandlersIntegrations) => {
   };
 }) satisfies IntegrationFn;
 
-/** Global handlers */
+export const globalHandlersIntegration = defineIntegration(_globalHandlersIntegration);
+
+/**
+ * Global handlers.
+ * @deprecated Use `globalHandlersIntergation()` instead.
+ */
 // eslint-disable-next-line deprecation/deprecation
 export const GlobalHandlers = convertIntegrationFnToClass(
   INTEGRATION_NAME,
   globalHandlersIntegration,
 ) as IntegrationClass<Integration & { setup: (client: Client) => void }>;
+
+// eslint-disable-next-line deprecation/deprecation
+export type GlobalHandlers = typeof GlobalHandlers;
 
 function installGlobalErrorHandler(client: Client): void {
   globalThis.addEventListener('error', data => {
