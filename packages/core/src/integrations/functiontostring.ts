@@ -4,7 +4,6 @@ import { getClient } from '../exports';
 import { convertIntegrationFnToClass, defineIntegration } from '../integration';
 
 let originalFunctionToString: () => void;
-let hasSetup = false;
 
 const INTEGRATION_NAME = 'FunctionToString';
 
@@ -14,10 +13,6 @@ const _functionToStringIntegration = (() => {
   return {
     name: INTEGRATION_NAME,
     setupOnce() {
-      if (hasSetup) {
-        return;
-      }
-
       // eslint-disable-next-line @typescript-eslint/unbound-method
       originalFunctionToString = Function.prototype.toString;
 
@@ -31,8 +26,6 @@ const _functionToStringIntegration = (() => {
             SETUP_CLIENTS.has(getClient() as Client) && originalFunction !== undefined ? originalFunction : this;
           return originalFunctionToString.apply(context, args);
         };
-
-        hasSetup = true;
       } catch {
         // ignore errors here, just don't patch this
       }
