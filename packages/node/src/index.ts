@@ -127,11 +127,13 @@ const INTEGRATIONS = {
   ...TracingIntegrations,
 };
 
+// TODO(v8): Remove all of these exports. They were part of a hotfix #10339 where we produced wrong .d.ts files because we were packing packages inside the /build folder.
 export type { LocalVariablesIntegrationOptions } from './integrations/local-variables/common';
 export type { DebugSession } from './integrations/local-variables/local-variables-sync';
 export type { AnrIntegrationOptions } from './integrations/anr/common';
-
 export { Undici } from './integrations/undici';
+export { Http } from './integrations/http';
+// ---
 
 export { INTEGRATIONS as Integrations, Handlers };
 
