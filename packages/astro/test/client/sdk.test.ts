@@ -1,5 +1,6 @@
-import type { BrowserClient } from '@sentry/browser';
-import { getCurrentScope } from '@sentry/browser';
+import type { BrowserClient} from '@sentry/browser';
+import { getActiveSpan } from '@sentry/browser';
+import { browserTracingIntegration, getCurrentScope } from '@sentry/browser';
 import * as SentryBrowser from '@sentry/browser';
 import { BrowserTracing, SDK_VERSION, WINDOW, getClient } from '@sentry/browser';
 import { vi } from 'vitest';
@@ -100,7 +101,7 @@ describe('Sentry client SDK', () => {
         delete globalThis.__SENTRY_TRACING__;
       });
 
-      it('Overrides the automatically default BrowserTracing instance with a a user-provided instance', () => {
+      it('Overrides the automatically default BrowserTracing instance with a a user-provided BrowserTracing instance', () => {
         init({
           dsn: 'https://public@dsn.ingest.sentry.io/1337',
           integrations: [new BrowserTracing({ finalTimeout: 10, startTransactionOnLocationChange: false })],
@@ -117,6 +118,22 @@ describe('Sentry client SDK', () => {
 
         // This shows that the user-configured options are still here
         expect(options.finalTimeout).toEqual(10);
+      });
+
+      it('Overrides the automatically default BrowserTracing instance with a a user-provided browserTracingIntergation instance', () => {
+        init({
+          dsn: 'https://public@dsn.ingest.sentry.io/1337',
+          integrations: [
+            browserTracingIntegration({ finalTimeout: 10, instrumentNavigation: false, instrumentPageLoad: false }),
+          ],
+          enableTracing: true,
+        });
+
+        const browserTracing = getClient<BrowserClient>()?.getIntegrationByName('BrowserTracing');
+        expect(browserTracing).toBeDefined();
+
+        // no active span means the settings were respected
+        expect(getActiveSpan()).toBeUndefined();
       });
     });
   });

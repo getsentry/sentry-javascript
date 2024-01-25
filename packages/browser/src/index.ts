@@ -57,6 +57,9 @@ export {
   BrowserTracing,
   defaultRequestInstrumentationOptions,
   instrumentOutgoingRequests,
+  browserTracingIntegration,
+  startBrowserTracingNavigationSpan,
+  startBrowserTracingPageLoadSpan,
 } from '@sentry-internal/tracing';
 export type { RequestInstrumentationOptions } from '@sentry-internal/tracing';
 export {

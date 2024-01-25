@@ -3,6 +3,7 @@ import {
   BrowserTracing,
   Feedback,
   addTracingExtensions,
+  browserTracingIntegration,
   feedbackIntegration,
 } from '@sentry-internal/integration-shims';
 import { Replay, replayIntegration } from '@sentry/replay';
@@ -18,6 +19,7 @@ Sentry.Integrations.BrowserTracing = BrowserTracing;
 export * from './index.bundle.base';
 export {
   BrowserTracing,
+  browserTracingIntegration,
   addTracingExtensions,
   // eslint-disable-next-line deprecation/deprecation
   Replay,

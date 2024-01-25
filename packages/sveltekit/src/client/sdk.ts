@@ -1,5 +1,5 @@
 import { applySdkMetadata, hasTracingEnabled } from '@sentry/core';
-import type { BrowserOptions } from '@sentry/svelte';
+import type { BrowserOptions, browserTracingIntegration } from '@sentry/svelte';
 import { getDefaultIntegrations as getDefaultSvelteIntegrations } from '@sentry/svelte';
 import { WINDOW, getCurrentScope, init as initSvelteSdk } from '@sentry/svelte';
 import type { Integration } from '@sentry/types';
@@ -61,11 +61,28 @@ function fixBrowserTracingIntegration(options: BrowserOptions): void {
   }
 }
 
+function isNewBrowserTracingIntegration(
+  integration: Integration,
+): integration is Integration & { options?: Parameters<typeof browserTracingIntegration>[0] } {
+  return !!integration.afterAllSetup && !!(integration as BrowserTracing).options;
+}
+
 function maybeUpdateBrowserTracingIntegration(integrations: Integration[]): Integration[] {
   const browserTracing = integrations.find(integration => integration.name === 'BrowserTracing');
+
+  if (!browserTracing) {
+    return integrations;
+  }
+
+  // If `browserTracingIntegration()` was added, we need to force-convert it to our custom one
+  if (isNewBrowserTracingIntegration(browserTracing)) {
+    const { options } = browserTracing;
+    integrations[integrations.indexOf(browserTracing)] = new BrowserTracing(options);
+  }
+
   // If BrowserTracing was added, but it is not our forked version,
   // replace it with our forked version with the same options
-  if (browserTracing && !(browserTracing instanceof BrowserTracing)) {
+  if (!(browserTracing instanceof BrowserTracing)) {
     const options: ConstructorParameters<typeof BrowserTracing>[0] = (browserTracing as BrowserTracing).options;
     // This option is overwritten by the custom integration
     delete options.routingInstrumentation;

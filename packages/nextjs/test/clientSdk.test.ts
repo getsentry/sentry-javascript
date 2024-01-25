@@ -1,6 +1,7 @@
 import { BaseClient } from '@sentry/core';
 import * as SentryReact from '@sentry/react';
-import type { BrowserClient } from '@sentry/react';
+import type { BrowserClient} from '@sentry/react';
+import { browserTracingIntegration } from '@sentry/react';
 import { WINDOW, getClient, getCurrentScope } from '@sentry/react';
 import type { Integration } from '@sentry/types';
 import { logger } from '@sentry/utils';
@@ -166,7 +167,7 @@ describe('Client init()', () => {
         init({
           dsn: TEST_DSN,
           tracesSampleRate: 1.0,
-          integrations: [new BrowserTracing({ startTransactionOnLocationChange: false })],
+          integrations: [new BrowserTracing({ finalTimeout: 10 })],
         });
 
         const client = getClient<BrowserClient>()!;
@@ -177,7 +178,27 @@ describe('Client init()', () => {
           expect.objectContaining({
             routingInstrumentation: nextRouterInstrumentation,
             // This proves it's still the user's copy
-            startTransactionOnLocationChange: false,
+            finalTimeout: 10,
+          }),
+        );
+      });
+
+      it('forces correct router instrumentation if user provides `browserTracingIntegration`', () => {
+        init({
+          dsn: TEST_DSN,
+          integrations: [browserTracingIntegration({ finalTimeout: 10 })],
+          enableTracing: true,
+        });
+
+        const client = getClient<BrowserClient>()!;
+        const integration = client.getIntegrationByName<BrowserTracing>('BrowserTracing');
+
+        expect(integration).toBeDefined();
+        expect(integration?.options).toEqual(
+          expect.objectContaining({
+            routingInstrumentation: nextRouterInstrumentation,
+            // This proves it's still the user's copy
+            finalTimeout: 10,
           }),
         );
       });
