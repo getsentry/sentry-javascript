@@ -53,6 +53,7 @@ import { createEventEnvelope, createSessionEnvelope } from './envelope';
 import { getClient } from './exports';
 import { getIsolationScope } from './hub';
 import type { IntegrationIndex } from './integration';
+import { afterSetupIntegrations } from './integration';
 import { setupIntegration, setupIntegrations } from './integration';
 import { createMetricEnvelope } from './metrics/envelope';
 import type { Scope } from './scope';
@@ -532,7 +533,10 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
 
   /** Setup integrations for this client. */
   protected _setupIntegrations(): void {
-    this._integrations = setupIntegrations(this, this._options.integrations);
+    const { integrations } = this._options;
+    this._integrations = setupIntegrations(this, integrations);
+    afterSetupIntegrations(this, integrations);
+
     // TODO v8: We don't need this flag anymore
     this._integrationsInitialized = true;
   }
