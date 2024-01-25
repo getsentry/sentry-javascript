@@ -42,14 +42,14 @@ describe('SDK', () => {
       const integration1 = {
         name: 'integration1',
         setupOnce: jest.fn(() => list.push('setupOnce1')),
-        afterSetup: jest.fn(() => list.push('afterSetup1')),
+        afterAllSetup: jest.fn(() => list.push('afterAllSetup1')),
       } satisfies IntegrationFnResult;
 
       const integration2 = {
         name: 'integration2',
         setupOnce: jest.fn(() => list.push('setupOnce2')),
         setup: jest.fn(() => list.push('setup2')),
-        afterSetup: jest.fn(() => list.push('afterSetup2')),
+        afterAllSetup: jest.fn(() => list.push('afterAllSetup2')),
       } satisfies IntegrationFnResult;
 
       const integration3 = {
@@ -69,8 +69,8 @@ describe('SDK', () => {
       expect(integration2.setup).toHaveBeenCalledTimes(1);
       expect(integration3.setup).toHaveBeenCalledTimes(1);
 
-      expect(integration1.afterSetup).toHaveBeenCalledTimes(1);
-      expect(integration2.afterSetup).toHaveBeenCalledTimes(1);
+      expect(integration1.afterAllSetup).toHaveBeenCalledTimes(1);
+      expect(integration2.afterAllSetup).toHaveBeenCalledTimes(1);
 
       expect(list).toEqual([
         'setupOnce1',
@@ -78,8 +78,8 @@ describe('SDK', () => {
         'setup2',
         'setupOnce3',
         'setup3',
-        'afterSetup1',
-        'afterSetup2',
+        'afterAllSetup1',
+        'afterAllSetup2',
       ]);
     });
   });

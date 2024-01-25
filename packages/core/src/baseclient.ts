@@ -52,7 +52,7 @@ import { DEBUG_BUILD } from './debug-build';
 import { createEventEnvelope, createSessionEnvelope } from './envelope';
 import { getClient } from './exports';
 import { getIsolationScope } from './hub';
-import type { IntegrationIndex} from './integration';
+import type { IntegrationIndex } from './integration';
 import { afterSetupIntegrations } from './integration';
 import { setupIntegration, setupIntegrations } from './integration';
 import { createMetricEnvelope } from './metrics/envelope';

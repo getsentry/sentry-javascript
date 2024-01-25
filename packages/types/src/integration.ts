@@ -43,7 +43,7 @@ export interface IntegrationFnResult {
    * This hook is triggered after `setupOnce()` and `setup()` have been called for all integrations.
    * You can use it if it is important that all other integrations have been run before.
    */
-  afterSetup?(client: Client): void;
+  afterAllSetup?(client: Client): void;
 
   /**
    * An optional hook that allows to preprocess an event _before_ it is passed to all other event processors.
@@ -93,7 +93,7 @@ export interface Integration {
    * This hook is triggered after `setupOnce()` and `setup()` have been called for all integrations.
    * You can use it if it is important that all other integrations have been run before.
    */
-  afterSetup?(client: Client): void;
+  afterAllSetup?(client: Client): void;
 
   /**
    * An optional hook that allows to preprocess an event _before_ it is passed to all other event processors.

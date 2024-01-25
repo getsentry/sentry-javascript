@@ -109,13 +109,13 @@ export function setupIntegrations(client: Client, integrations: Integration[]): 
 }
 
 /**
- * Execute the `afterSetup` hooks of the given integrations.
+ * Execute the `afterAllSetup` hooks of the given integrations.
  */
 export function afterSetupIntegrations(client: Client, integrations: Integration[]): void {
   for (const integration of integrations) {
     // guard against empty provided integrations
-    if (integration && integration.afterSetup) {
-      integration.afterSetup(client);
+    if (integration && integration.afterAllSetup) {
+      integration.afterAllSetup(client);
     }
   }
 }
