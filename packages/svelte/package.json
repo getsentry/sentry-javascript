@@ -54,8 +54,8 @@
   },
   "devDependencies": {
     "@testing-library/svelte": "^3.2.1",
-    "svelte": "3.49.0",
-    "svelte-jester": "^2.3.2"
+    "@sveltejs/vite-plugin-svelte": "latest",
+    "svelte": "3.49.0"
   },
   "scripts": {
     "build": "run-p build:transpile build:types",
@@ -73,8 +73,8 @@
     "clean": "rimraf build coverage sentry-svelte-*.tgz",
     "fix": "eslint . --format stylish --fix",
     "lint": "eslint . --format stylish",
-    "test": "jest",
-    "test:watch": "jest --watch",
+    "test": "vitest",
+    "test:watch": "vitest --watch",
     "yalc:publish": "ts-node ../../scripts/prepack.ts && yalc publish build --push --sig"
   },
   "volta": {

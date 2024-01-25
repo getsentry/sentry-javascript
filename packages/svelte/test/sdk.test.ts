@@ -3,11 +3,12 @@ import * as SentryBrowser from '@sentry/browser';
 import type { EventProcessor } from '@sentry/types';
 
 import { detectAndReportSvelteKit, init as svelteInit, isSvelteKitApp } from '../src/sdk';
+import { vi } from 'vitest';
 
 let passedEventProcessor: EventProcessor | undefined;
 
-const browserInit = jest.spyOn(SentryBrowser, 'init');
-const addEventProcessor = jest
+const browserInit = vi.spyOn(SentryBrowser, 'init');
+const addEventProcessor = vi
   .spyOn(SentryBrowser, 'addEventProcessor')
   .mockImplementation((eventProcessor: EventProcessor) => {
     passedEventProcessor = eventProcessor;
@@ -16,7 +17,7 @@ const addEventProcessor = jest
 
 describe('Initialize Svelte SDk', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('has the correct metadata', () => {
@@ -74,7 +75,7 @@ describe('Initialize Svelte SDk', () => {
 describe('detectAndReportSvelteKit()', () => {
   const originalHtmlBody = document.body.innerHTML;
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     document.body.innerHTML = originalHtmlBody;
     passedEventProcessor = undefined;
   });
