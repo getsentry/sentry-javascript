@@ -34,6 +34,6 @@ export const POST: APIRoute = async ({ request }) => {
 
     return Response(null, { status: 204 });
   } catch (error) {
-    return Response.json({ message: error.message }, { status: 400 });
+    return Response.json({ message: (error as Error).message }, { status: 400 });
   }
 };
