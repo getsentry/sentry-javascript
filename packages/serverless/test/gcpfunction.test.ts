@@ -2,7 +2,7 @@ import * as domain from 'domain';
 import * as SentryNode from '@sentry/node';
 import type { Event, Integration } from '@sentry/types';
 
-import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
 import * as Sentry from '../src';
 import { wrapCloudEventFunction, wrapEventFunction, wrapHttpFunction } from '../src/gcpfunction';
 import type {
@@ -105,9 +105,9 @@ describe('GCPFunction', () => {
       const fakeTransactionContext = {
         name: 'POST /path',
         op: 'function.gcp.http',
-        origin: 'auto.function.serverless.gcp_http',
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.serverless.gcp_http',
         },
         metadata: {},
       };
@@ -135,12 +135,12 @@ describe('GCPFunction', () => {
       const fakeTransactionContext = {
         name: 'POST /path',
         op: 'function.gcp.http',
-        origin: 'auto.function.serverless.gcp_http',
         traceId: '12312012123120121231201212312012',
         parentSpanId: '1121201211212012',
         parentSampled: false,
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.serverless.gcp_http',
         },
         metadata: {
           dynamicSamplingContext: {
@@ -168,12 +168,12 @@ describe('GCPFunction', () => {
       const fakeTransactionContext = {
         name: 'POST /path',
         op: 'function.gcp.http',
-        origin: 'auto.function.serverless.gcp_http',
         traceId: '12312012123120121231201212312012',
         parentSpanId: '1121201211212012',
         parentSampled: false,
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.serverless.gcp_http',
         },
         metadata: { dynamicSamplingContext: {} },
       };
@@ -253,9 +253,9 @@ describe('GCPFunction', () => {
       const fakeTransactionContext = {
         name: 'event.type',
         op: 'function.gcp.event',
-        origin: 'auto.function.serverless.gcp_event',
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.serverless.gcp_event',
         },
       };
 
@@ -276,9 +276,9 @@ describe('GCPFunction', () => {
       const fakeTransactionContext = {
         name: 'event.type',
         op: 'function.gcp.event',
-        origin: 'auto.function.serverless.gcp_event',
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.serverless.gcp_event',
         },
       };
 
@@ -304,9 +304,9 @@ describe('GCPFunction', () => {
       const fakeTransactionContext = {
         name: 'event.type',
         op: 'function.gcp.event',
-        origin: 'auto.function.serverless.gcp_event',
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.serverless.gcp_event',
         },
       };
 
@@ -331,9 +331,9 @@ describe('GCPFunction', () => {
       const fakeTransactionContext = {
         name: 'event.type',
         op: 'function.gcp.event',
-        origin: 'auto.function.serverless.gcp_event',
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.serverless.gcp_event',
         },
       };
 
@@ -356,9 +356,9 @@ describe('GCPFunction', () => {
       const fakeTransactionContext = {
         name: 'event.type',
         op: 'function.gcp.event',
-        origin: 'auto.function.serverless.gcp_event',
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.serverless.gcp_event',
         },
       };
 
@@ -379,9 +379,9 @@ describe('GCPFunction', () => {
       const fakeTransactionContext = {
         name: 'event.type',
         op: 'function.gcp.event',
-        origin: 'auto.function.serverless.gcp_event',
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.serverless.gcp_event',
         },
       };
 
@@ -403,9 +403,9 @@ describe('GCPFunction', () => {
       const fakeTransactionContext = {
         name: 'event.type',
         op: 'function.gcp.event',
-        origin: 'auto.function.serverless.gcp_event',
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.serverless.gcp_event',
         },
       };
 
@@ -460,9 +460,9 @@ describe('GCPFunction', () => {
       const fakeTransactionContext = {
         name: 'event.type',
         op: 'function.gcp.cloud_event',
-        origin: 'auto.function.serverless.gcp_cloud_event',
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.serverless.gcp_cloud_event',
         },
       };
 
@@ -483,9 +483,9 @@ describe('GCPFunction', () => {
       const fakeTransactionContext = {
         name: 'event.type',
         op: 'function.gcp.cloud_event',
-        origin: 'auto.function.serverless.gcp_cloud_event',
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.serverless.gcp_cloud_event',
         },
       };
 
@@ -508,9 +508,9 @@ describe('GCPFunction', () => {
       const fakeTransactionContext = {
         name: 'event.type',
         op: 'function.gcp.cloud_event',
-        origin: 'auto.function.serverless.gcp_cloud_event',
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.serverless.gcp_cloud_event',
         },
       };
 
@@ -531,9 +531,9 @@ describe('GCPFunction', () => {
       const fakeTransactionContext = {
         name: 'event.type',
         op: 'function.gcp.cloud_event',
-        origin: 'auto.function.serverless.gcp_cloud_event',
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.serverless.gcp_cloud_event',
         },
       };
 
@@ -555,9 +555,9 @@ describe('GCPFunction', () => {
       const fakeTransactionContext = {
         name: 'event.type',
         op: 'function.gcp.cloud_event',
-        origin: 'auto.function.serverless.gcp_cloud_event',
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.serverless.gcp_cloud_event',
         },
       };
 

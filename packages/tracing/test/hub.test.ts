@@ -305,8 +305,8 @@ describe('Hub', () => {
         makeMain(hub);
         hub.startTransaction({ name: 'dogpark', parentSampled: true });
 
-        // length 1 because `sentry.origin` is set on span initialization
-        expect(Transaction.prototype.setAttribute).toHaveBeenCalledTimes(1);
+        // length 2 because origin and op are set as attributes on span initialization
+        expect(Transaction.prototype.setAttribute).toHaveBeenCalledTimes(2);
       });
 
       it('should record sampling method and rate when sampling decision comes from traceSampleRate', () => {

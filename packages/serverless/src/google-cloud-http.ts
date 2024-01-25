@@ -1,6 +1,7 @@
 // '@google-cloud/common' import is expected to be type-only so it's erased in the final .js file.
 // When TypeScript compiler is upgraded, use `import type` syntax to explicitly assert that we don't want to load a module here.
 import type * as common from '@google-cloud/common';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import { startInactiveSpan } from '@sentry/node';
 import type { Integration } from '@sentry/types';
 import { fill } from '@sentry/utils';
@@ -55,7 +56,9 @@ function wrapRequestFunction(orig: RequestFunction): RequestFunction {
     const span = startInactiveSpan({
       name: `${httpMethod} ${reqOpts.uri}`,
       op: `http.client.${identifyService(this.apiEndpoint)}`,
-      origin: 'auto.http.serverless',
+      attributes: {
+        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.serverless',
+      },
     });
     orig.call(this, reqOpts, (...args: Parameters<ResponseCallback>) => {
       if (span) {

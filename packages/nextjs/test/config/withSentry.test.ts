@@ -1,5 +1,5 @@
 import * as SentryCore from '@sentry/core';
-import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, addTracingExtensions } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, addTracingExtensions } from '@sentry/core';
 import type { NextApiRequest, NextApiResponse } from 'next';
 
 import type { AugmentedNextApiResponse, NextApiHandler } from '../../src/common/types';
@@ -44,9 +44,9 @@ describe('withSentry', () => {
         {
           name: 'GET http://dogs.are.great',
           op: 'http.server',
-          origin: 'auto.http.nextjs',
           attributes: {
             [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.nextjs',
           },
           metadata: {
             request: expect.objectContaining({ url: 'http://dogs.are.great' }),

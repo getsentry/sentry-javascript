@@ -1,10 +1,10 @@
 /* eslint-disable @sentry-internal/sdk/no-optional-chaining */
-import { getCurrentScope, startSpan } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, getCurrentScope, startSpan } from '@sentry/core';
 import { captureException } from '@sentry/node';
-import type { TransactionContext } from '@sentry/types';
 import { addNonEnumerableProperty, objectify } from '@sentry/utils';
 import type { LoadEvent, ServerLoadEvent } from '@sveltejs/kit';
 
+import type { TransactionContext } from '@sentry/types';
 import type { SentryWrappedFlag } from '../common/utils';
 import { isHttpError, isRedirect } from '../common/utils';
 import { flushIfServerless, getTracePropagationData } from './utils';
@@ -67,7 +67,9 @@ export function wrapLoadWithSentry<T extends (...args: any) => any>(origLoad: T)
 
       const traceLoadContext: TransactionContext = {
         op: 'function.sveltekit.load',
-        origin: 'auto.function.sveltekit',
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.sveltekit',
+        },
         name: routeId ? routeId : event.url.pathname,
         status: 'ok',
         metadata: {
@@ -134,7 +136,9 @@ export function wrapServerLoadWithSentry<T extends (...args: any) => any>(origSe
 
       const traceLoadContext: TransactionContext = {
         op: 'function.sveltekit.server.load',
-        origin: 'auto.function.sveltekit',
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.sveltekit',
+        },
         name: routeId ? routeId : event.url.pathname,
         status: 'ok',
         metadata: {
