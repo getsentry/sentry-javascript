@@ -75,6 +75,9 @@ export const GoogleCloudGrpc = convertIntegrationFnToClass(
   googleCloudGrpcIntegration,
 ) as IntegrationClass<Integration>;
 
+// eslint-disable-next-line deprecation/deprecation
+export type GoogleCloudGrpc = typeof GoogleCloudGrpc;
+
 /** Returns a wrapped function that returns a stub with tracing enabled */
 function wrapCreateStub(origCreate: CreateStubFunc): CreateStubFunc {
   return async function (this: unknown, ...args: Parameters<CreateStubFunc>) {

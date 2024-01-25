@@ -54,6 +54,9 @@ export const AWSServices = convertIntegrationFnToClass(
   awsServicesIntegration,
 ) as IntegrationClass<Integration>;
 
+// eslint-disable-next-line deprecation/deprecation
+export type AWSServices = typeof AWSServices;
+
 /**
  * Patches AWS SDK request to create `http.client` spans.
  */

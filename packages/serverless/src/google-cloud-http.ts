@@ -54,6 +54,9 @@ export const GoogleCloudHttp = convertIntegrationFnToClass(
   googleCloudHttpIntegration,
 ) as IntegrationClass<Integration>;
 
+// eslint-disable-next-line deprecation/deprecation
+export type GoogleCloudHttp = typeof GoogleCloudHttp;
+
 /** Returns a wrapped function that makes a request with tracing enabled */
 function wrapRequestFunction(orig: RequestFunction): RequestFunction {
   return function (this: common.Service, reqOpts: RequestOptions, callback: ResponseCallback): void {
