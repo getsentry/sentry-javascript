@@ -5,6 +5,7 @@ import {
   getCurrentScope,
   makeMain,
   spanToJSON,
+  withScope,
 } from '../../../src';
 import { Scope } from '../../../src/scope';
 import {
@@ -284,6 +285,22 @@ describe('startSpan', () => {
     expect(getCurrentScope()).toBe(initialScope);
     expect(getActiveSpan()).toBe(undefined);
   });
+
+  it("picks up the trace id off the parent scope's propagation context", () => {
+    expect.assertions(1);
+    withScope(scope => {
+      scope.setPropagationContext({
+        traceId: '99999999999999999999999999999999',
+        spanId: '1212121212121212',
+        dsc: {},
+        parentSpanId: '4242424242424242',
+      });
+
+      startSpan({ name: 'span' }, span => {
+        expect(span?.spanContext().traceId).toBe('99999999999999999999999999999999');
+      });
+    });
+  });
 });
 
 describe('startSpanManual', () => {
@@ -347,6 +364,23 @@ describe('startSpanManual', () => {
 
     expect(start).toEqual(1234);
   });
+
+  it("picks up the trace id off the parent scope's propagation context", () => {
+    expect.assertions(1);
+    withScope(scope => {
+      scope.setPropagationContext({
+        traceId: '99999999999999999999999999999991',
+        spanId: '1212121212121212',
+        dsc: {},
+        parentSpanId: '4242424242424242',
+      });
+
+      startSpanManual({ name: 'span' }, span => {
+        expect(span?.spanContext().traceId).toBe('99999999999999999999999999999991');
+        span?.end();
+      });
+    });
+  });
 });
 
 describe('startInactiveSpan', () => {
@@ -394,6 +428,22 @@ describe('startInactiveSpan', () => {
   it('allows to pass a `startTime`', () => {
     const span = startInactiveSpan({ name: 'outer', startTime: [1234, 0] });
     expect(spanToJSON(span!).start_timestamp).toEqual(1234);
+  });
+
+  it("picks up the trace id off the parent scope's propagation context", () => {
+    expect.assertions(1);
+    withScope(scope => {
+      scope.setPropagationContext({
+        traceId: '99999999999999999999999999999991',
+        spanId: '1212121212121212',
+        dsc: {},
+        parentSpanId: '4242424242424242',
+      });
+
+      const span = startInactiveSpan({ name: 'span' });
+      expect(span?.spanContext().traceId).toBe('99999999999999999999999999999991');
+      span?.end();
+    });
   });
 });
 

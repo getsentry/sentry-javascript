@@ -15,6 +15,7 @@ import { dropUndefinedKeys, logger, tracingContextFromHeaders } from '@sentry/ut
 import { DEBUG_BUILD } from '../debug-build';
 import { getCurrentScope, withScope } from '../exports';
 import type { Hub } from '../hub';
+import { getIsolationScope } from '../hub';
 import { getCurrentHub } from '../hub';
 import { handleCallbackErrors } from '../utils/handleCallbackErrors';
 import { hasTracingEnabled } from '../utils/hasTracingEnabled';
