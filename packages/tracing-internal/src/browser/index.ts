@@ -7,6 +7,8 @@ export {
   browserTracingIntegration,
   startBrowserTracingNavigationSpan,
   startBrowserTracingPageLoadSpan,
+  disableDefaultBrowserTracingNavigationSpan,
+  disableDefaultBrowserTracingPageLoadSpan,
 } from './browserTracingIntegration';
 
 export { instrumentOutgoingRequests, defaultRequestInstrumentationOptions } from './request';

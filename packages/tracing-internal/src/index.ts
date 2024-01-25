@@ -17,6 +17,8 @@ export {
   browserTracingIntegration,
   startBrowserTracingNavigationSpan,
   startBrowserTracingPageLoadSpan,
+  disableDefaultBrowserTracingNavigationSpan,
+  disableDefaultBrowserTracingPageLoadSpan,
   BROWSER_TRACING_INTEGRATION_ID,
   instrumentOutgoingRequests,
   defaultRequestInstrumentationOptions,

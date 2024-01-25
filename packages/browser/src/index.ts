@@ -60,6 +60,8 @@ export {
   browserTracingIntegration,
   startBrowserTracingNavigationSpan,
   startBrowserTracingPageLoadSpan,
+  disableDefaultBrowserTracingNavigationSpan,
+  disableDefaultBrowserTracingPageLoadSpan,
 } from '@sentry-internal/tracing';
 export type { RequestInstrumentationOptions } from '@sentry-internal/tracing';
 export {

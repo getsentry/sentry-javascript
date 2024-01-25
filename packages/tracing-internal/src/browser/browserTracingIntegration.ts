@@ -458,6 +458,22 @@ export function startBrowserTracingNavigationSpan(spanOptions: StartSpanOptions)
   shouldUseDefaultNavigationSpan = false;
 }
 
+/**
+ * Use this method if you want to disable the default navigation span.
+ * This is useful if you want to add custom routing instrumentation.
+ */
+export function disableDefaultBrowserTracingNavigationSpan(disable = true): void {
+  shouldUseDefaultNavigationSpan = !disable;
+}
+
+/**
+ * Use this method if you want to disable the default page load span.
+ * This is useful if you want to add custom routing instrumentation.
+ */
+export function disableDefaultBrowserTracingPageLoadSpan(disable = true): void {
+  shouldUseDefaultPageLoadSpan = !disable;
+}
+
 /** Returns the value of a meta tag */
 export function getMetaContent(metaName: string): string | undefined {
   // Can't specify generic to `getDomElement` because tracing can be used
