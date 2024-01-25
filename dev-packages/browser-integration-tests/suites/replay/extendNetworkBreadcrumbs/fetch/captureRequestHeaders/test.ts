@@ -270,6 +270,7 @@ sentryTest('captures request headers as Headers instance', async ({ getLocalTest
   const replayRequestPromise1 = waitForReplayRequest(page, 0);
 
   const url = await getLocalTestPath({ testDir: __dirname });
+
   await page.goto(url);
 
   await page.evaluate(() => {

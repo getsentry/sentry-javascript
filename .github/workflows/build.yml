@@ -727,6 +727,32 @@ jobs:
           cd packages/utils
           yarn test:package
 
+  job_check_for_faulty_dts:
+    name: Check for faulty .d.ts files
+    needs: [job_get_metadata, job_build]
+    runs-on: ubuntu-20.04
+    timeout-minutes: 5
+    steps:
+      - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.HEAD_COMMIT }}
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: 'package.json'
+      - name: Restore caches
+        uses: ./.github/actions/restore-cache
+        env:
+          DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
+      - name: Check for dts files that reference stuff in the temporary build folder
+        run: |
+          if grep -r --include "*.d.ts" --exclude-dir ".nxcache" 'import("@sentry(-internal)?/[^/]*/build' .; then
+            echo "Found illegal TypeScript import statement."
+            exit 1
+          fi
+
+
   job_node_integration_tests:
     name:
       Node (${{ matrix.node }})${{ (matrix.typescript && format(' (TS {0})', matrix.typescript)) || '' }} Integration

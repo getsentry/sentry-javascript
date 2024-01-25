@@ -23,7 +23,7 @@ sentryTest(
     // We have to click in order to ensure the LCP is generated, leading to consistent results
     async function gotoPageAndClick() {
       await page.goto(url);
-      await page.click('#noop');
+      await page.locator('#noop').click();
     }
     const [res0] = await Promise.all([waitForReplayRequest(page, 0), gotoPageAndClick()]);
     await forceFlushReplay();
@@ -33,7 +33,7 @@ sentryTest(
         const parsed = getReplayRecordingContent(res);
         return !!parsed.incrementalSnapshots.length || !!parsed.fullSnapshots.length;
       }),
-      page.click('#button-add'),
+      page.locator('#button-add').click(),
       forceFlushReplay(),
     ]);
 
@@ -42,7 +42,7 @@ sentryTest(
         const parsed = getReplayRecordingContent(res);
         return !!parsed.incrementalSnapshots.length || !!parsed.fullSnapshots.length;
       }),
-      page.click('#button-modify'),
+      page.locator('#button-modify').click(),
       forceFlushReplay(),
     ]);
 
@@ -51,7 +51,7 @@ sentryTest(
         const parsed = getReplayRecordingContent(res);
         return !!parsed.incrementalSnapshots.length || !!parsed.fullSnapshots.length;
       }),
-      page.click('#button-remove'),
+      page.locator('#button-remove').click(),
       forceFlushReplay(),
     ]);
 

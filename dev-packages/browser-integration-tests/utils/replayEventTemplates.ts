@@ -60,7 +60,7 @@ export function getExpectedReplayEvent(customExpectedReplayEvent: Partial<Replay
 
 export const expectedNavigationPerformanceSpan = {
   op: 'navigation.navigate',
-  description: '',
+  description: expect.any(String),
   startTimestamp: expect.any(Number),
   endTimestamp: expect.any(Number),
   data: {
@@ -88,7 +88,7 @@ export const expectedNavigationPushPerformanceSpan = {
 
 export const expectedReloadPerformanceSpan = {
   op: 'navigation.reload',
-  description: '',
+  description: expect.any(String),
   startTimestamp: expect.any(Number),
   endTimestamp: expect.any(Number),
   data: {

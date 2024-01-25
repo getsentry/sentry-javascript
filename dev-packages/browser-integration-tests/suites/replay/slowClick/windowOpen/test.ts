@@ -30,7 +30,7 @@ sentryTest('window.open() is considered for slow click', async ({ getLocalTestUr
   const context = browser.contexts()[0];
   const waitForNewPage = context.waitForEvent('page');
 
-  await page.click('#windowOpenButton');
+  await page.locator('#windowOpenButton').click();
 
   const { breadcrumbs } = getCustomRecordingEvents(await reqPromise1);
 

@@ -68,10 +68,10 @@ export class BookingAppScenario implements Scenario {
     await page.goto(url, { waitUntil: 'load', timeout: 60000 });
 
     // Click "Update"
-    await page.click('#search button');
+    await page.locator('#search button').click();
 
     for (let i = 1; i < 10; i++) {
-      await page.click(`.result:nth-child(${i}) [data-select]`);
+      await page.locator(`.result:nth-child(${i}) [data-select]`).click();
     }
 
     // Wait for flushing, which we set to 2000ms - to be safe, we add 1s on top

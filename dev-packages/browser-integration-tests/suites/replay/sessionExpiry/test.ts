@@ -46,7 +46,7 @@ sentryTest('handles an expired session', async ({ browserName, forceFlushReplay,
   // We wait for another segment 0
   const reqPromise2 = waitForReplayRequest(page, 0);
 
-  await page.click('#button1');
+  await page.locator('#button1').click();
   await forceFlushReplay();
   const req1 = await reqPromise1;
 
@@ -58,7 +58,7 @@ sentryTest('handles an expired session', async ({ browserName, forceFlushReplay,
 
   await new Promise(resolve => setTimeout(resolve, SESSION_TIMEOUT));
 
-  await page.click('#button2');
+  await page.locator('#button2').click();
   await forceFlushReplay();
   const req2 = await reqPromise2;
 

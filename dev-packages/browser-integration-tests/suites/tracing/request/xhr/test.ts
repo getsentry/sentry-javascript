@@ -1,4 +1,3 @@
-import type { Request } from '@playwright/test';
 import { expect } from '@playwright/test';
 import type { Event } from '@sentry/types';
 
@@ -46,10 +45,10 @@ sentryTest('should attach `sentry-trace` header to multiple XHR requests', async
 
   expect(requests).toHaveLength(3);
 
-  requests?.forEach(async (request: Request) => {
-    const requestHeaders = await request.allHeaders();
+  for (const request of requests) {
+    const requestHeaders = request.headers();
     expect(requestHeaders).toMatchObject({
       'sentry-trace': expect.any(String),
     });
-  });
+  }
 });

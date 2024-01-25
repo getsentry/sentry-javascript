@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { BrowserOptions } from '@sentry/browser';
 
-// This is not great, but kinda necessary to make it woth with Vue@2 and Vue@3 at the same time.
+// This is not great, but kinda necessary to make it work with Vue@2 and Vue@3 at the same time.
 export interface Vue {
   config: {
     errorHandler?: any;

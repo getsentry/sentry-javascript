@@ -14,7 +14,7 @@ sentryTest('should capture a FID vital.', async ({ browserName, getLocalTestPath
 
   await page.goto(url);
   // To trigger FID
-  await page.click('#fid-btn');
+  await page.locator('#fid-btn').click();
 
   const eventData = await getFirstSentryEnvelopeRequest<SerializedEvent>(page);
 

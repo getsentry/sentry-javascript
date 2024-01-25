@@ -27,9 +27,9 @@ sentryTest(
     await forceFlushReplay();
     expect(callsToSentry).toEqual(0);
 
-    await page.click('#error');
+    await page.locator('#error').click();
 
-    await page.click('#log');
+    await page.locator('#log').click();
     await forceFlushReplay();
 
     // Only sent once, but since API failed we do not go into session mode

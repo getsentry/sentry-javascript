@@ -26,7 +26,7 @@ sentryTest('does not capture slow click when slowClickTimeout === 0', async ({ g
 
       return breadcrumbs.some(breadcrumb => breadcrumb.category === 'ui.click');
     }),
-    page.click('#mutationButton'),
+    page.locator('#mutationButton').click(),
   ]);
 
   const { breadcrumbs } = getCustomRecordingEvents(req1);
