@@ -8,7 +8,7 @@ sentryTest('should update session when an error is thrown.', async ({ getLocalTe
   const url = await getLocalTestPath({ testDir: __dirname });
   const pageloadSession = await getFirstSentryEnvelopeRequest<SessionContext>(page, url);
   const updatedSession = (
-    await Promise.all([page.click('#throw-error'), getFirstSentryEnvelopeRequest<SessionContext>(page)])
+    await Promise.all([page.locator('#throw-error').click(), getFirstSentryEnvelopeRequest<SessionContext>(page)])
   )[1];
 
   expect(pageloadSession).toBeDefined();
@@ -26,7 +26,7 @@ sentryTest('should update session when an exception is captured.', async ({ getL
 
   const pageloadSession = await getFirstSentryEnvelopeRequest<SessionContext>(page, url);
   const updatedSession = (
-    await Promise.all([page.click('#capture-exception'), getFirstSentryEnvelopeRequest<SessionContext>(page)])
+    await Promise.all([page.locator('#capture-exception').click(), getFirstSentryEnvelopeRequest<SessionContext>(page)])
   )[1];
 
   expect(pageloadSession).toBeDefined();

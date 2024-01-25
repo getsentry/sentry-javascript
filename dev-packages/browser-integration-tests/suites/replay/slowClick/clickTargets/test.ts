@@ -54,7 +54,7 @@ import { getCustomRecordingEvents, shouldSkipReplayTest, waitForReplayRequest } 
           return breadcrumbs.some(breadcrumb => breadcrumb.category === 'ui.slowClickDetected');
         }),
 
-        page.click(`#${id}`),
+        page.locator(`#${id}`).click(),
       ]);
 
       const { breadcrumbs } = getCustomRecordingEvents(req1);
@@ -109,7 +109,7 @@ import { getCustomRecordingEvents, shouldSkipReplayTest, waitForReplayRequest } 
 
           return breadcrumbs.some(breadcrumb => breadcrumb.category === 'ui.click');
         }),
-        page.click(`#${id}`),
+        page.locator(`#${id}`).click(),
       ]);
 
       const { breadcrumbs } = getCustomRecordingEvents(req1);

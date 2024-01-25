@@ -44,7 +44,7 @@ sentryTest('handles an inactive session', async ({ getLocalTestPath, page, brows
   const stringifiedSnapshot = normalize(fullSnapshots0[0]);
   expect(stringifiedSnapshot).toMatchSnapshot('snapshot-0.json');
 
-  await page.click('#button1');
+  await page.locator('#button1').click();
 
   // Now we wait for the session timeout, nothing should be sent in the meanwhile
   await new Promise(resolve => setTimeout(resolve, SESSION_PAUSED));
@@ -67,7 +67,7 @@ sentryTest('handles an inactive session', async ({ getLocalTestPath, page, brows
   const reqPromise1 = waitForReplayRequest(page);
 
   // Trigger an action, should resume the recording
-  await page.click('#button2');
+  await page.locator('#button2').click();
   const req1 = await reqPromise1;
 
   const replay3 = await getReplaySnapshot(page);

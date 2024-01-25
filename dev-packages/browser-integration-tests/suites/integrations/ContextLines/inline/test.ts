@@ -19,7 +19,7 @@ sentryTest(
 
     const eventReqPromise = waitForErrorRequestOnUrl(page, url);
 
-    const clickPromise = page.click('#inline-error-btn');
+    const clickPromise = page.locator('#inline-error-btn').click();
 
     const [req] = await Promise.all([eventReqPromise, clickPromise]);
 

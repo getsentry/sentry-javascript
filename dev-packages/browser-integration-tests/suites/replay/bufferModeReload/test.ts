@@ -28,7 +28,7 @@ sentryTest('continues buffer session in session mode after error & reload', asyn
   await page.goto(url);
 
   // buffer session captures an error & switches to session mode
-  await page.click('#buttonError');
+  await page.locator('#buttonError').click();
   await new Promise(resolve => setTimeout(resolve, 300));
   await reqPromise1;
 

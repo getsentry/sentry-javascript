@@ -26,7 +26,7 @@ sentryTest('should start a new session with navigation.', async ({ getLocalTestP
 
   const initSession = await getFirstSentryEnvelopeRequest<SessionContext>(page, url);
 
-  await page.click('#navigate');
+  await page.locator('#navigate').click();
 
   const newSession = await getFirstSentryEnvelopeRequest<SessionContext>(page, url);
 

@@ -25,7 +25,7 @@ sentryTest('should capture replays (@sentry/browser export)', async ({ getLocalT
   await page.goto(url);
   const replayEvent0 = getReplayEvent(await reqPromise0);
 
-  await page.click('button');
+  await page.locator('button').click();
   const replayEvent1 = getReplayEvent(await reqPromise1);
 
   expect(replayEvent0).toBeDefined();

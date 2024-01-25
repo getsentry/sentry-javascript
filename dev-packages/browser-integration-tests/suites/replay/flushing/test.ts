@@ -36,7 +36,7 @@ sentryTest('replay events are flushed after max flush delay was reached', async 
   expect(replayEvent0).toEqual(getExpectedReplayEvent());
 
   // trigger one mouse click
-  void page.click('#something');
+  void page.locator('#something').click();
 
   // this must eventually lead to a flush after the max delay was reached
   const replayEvent1 = getReplayEvent(await reqPromise1);
@@ -46,7 +46,7 @@ sentryTest('replay events are flushed after max flush delay was reached', async 
   for (let i = 0; i < 700; i++) {
     setTimeout(async () => {
       try {
-        await page.click('#something');
+        await page.locator('#something').click();
       } catch {
         // ignore errors here, we don't care if the page is closed
       }
