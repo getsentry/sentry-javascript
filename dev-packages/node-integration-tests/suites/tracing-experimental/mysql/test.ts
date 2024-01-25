@@ -1,7 +1,11 @@
 import { conditionalTest } from '../../../utils';
-import { createRunner } from '../../../utils/runner';
+import { cleanupChildProcesses, createRunner } from '../../../utils/runner';
 
 conditionalTest({ min: 14 })('mysql auto instrumentation', () => {
+  afterAll(() => {
+    cleanupChildProcesses();
+  });
+
   test('should auto-instrument `mysql` package when using connection.connect()', done => {
     const EXPECTED_TRANSACTION = {
       transaction: 'Test Transaction',
