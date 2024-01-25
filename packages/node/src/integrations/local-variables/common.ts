@@ -95,7 +95,7 @@ export interface FrameVariables {
   vars?: Variables;
 }
 
-export interface Options {
+export interface LocalVariablesIntegrationOptions {
   /**
    * Capture local variables for both caught and uncaught exceptions
    *

@@ -127,6 +127,12 @@ const INTEGRATIONS = {
   ...TracingIntegrations,
 };
 
+export type { LocalVariablesIntegrationOptions } from './integrations/local-variables/common'
+export type { DebugSession } from './integrations/local-variables/local-variables-sync'
+export type { AnrIntegrationOptions } from './integrations/anr/common'
+
+export { Undici} from './integrations/undici'
+
 export { INTEGRATIONS as Integrations, Handlers };
 
 export { hapiErrorPlugin } from './integrations/hapi';

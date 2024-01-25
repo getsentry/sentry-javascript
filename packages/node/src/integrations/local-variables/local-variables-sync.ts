@@ -6,7 +6,7 @@ import type { Debugger, InspectorNotification, Runtime, Session } from 'inspecto
 import type { NodeClient } from '../../client';
 
 import { NODE_VERSION } from '../../nodeVersion';
-import type { FrameVariables, Options, PausedExceptionEvent, RateLimitIncrement, Variables } from './common';
+import type { FrameVariables, LocalVariablesIntegrationOptions, PausedExceptionEvent, RateLimitIncrement, Variables } from './common';
 import { createRateLimiter, functionNamesMatch, hashFrames, hashFromStack } from './common';
 
 type OnPauseEvent = InspectorNotification<Debugger.PausedEventDataType>;
@@ -214,7 +214,7 @@ const INTEGRATION_NAME = 'LocalVariables';
  * Adds local variables to exception frames
  */
 const localVariablesSyncIntegration = ((
-  options: Options = {},
+  options: LocalVariablesIntegrationOptions = {},
   session: DebugSession | undefined = tryNewAsyncSession(),
 ) => {
   const cachedFrames: LRUMap<string, FrameVariables[]> = new LRUMap(20);
@@ -394,5 +394,5 @@ export const LocalVariablesSync = convertIntegrationFnToClass(
   INTEGRATION_NAME,
   localVariablesSyncIntegration,
 ) as IntegrationClass<Integration & { processEvent: (event: Event) => Event; setup: (client: NodeClient) => void }> & {
-  new (options?: Options, session?: DebugSession): Integration;
+  new (options?: LocalVariablesIntegrationOptions, session?: DebugSession): Integration;
 };

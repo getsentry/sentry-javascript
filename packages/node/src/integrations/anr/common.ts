@@ -1,6 +1,6 @@
 import type { Contexts, DsnComponents, Primitive, SdkMetadata } from '@sentry/types';
 
-export interface Options {
+export interface AnrIntegrationOptions {
   /**
    * Interval to send heartbeat messages to the ANR worker.
    *
@@ -33,7 +33,7 @@ export interface Options {
   appRootPath: string | undefined;
 }
 
-export interface WorkerStartData extends Options {
+export interface WorkerStartData extends AnrIntegrationOptions {
   debug: boolean;
   sdkMetadata: SdkMetadata;
   dsn: DsnComponents;
