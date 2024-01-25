@@ -108,6 +108,18 @@ export function setupIntegrations(client: Client, integrations: Integration[]): 
   return integrationIndex;
 }
 
+/**
+ * Execute the `afterSetup` hooks of the given integrations.
+ */
+export function afterSetupIntegrations(client: Client, integrations: Integration[]): void {
+  for (const integration of integrations) {
+    // guard against empty provided integrations
+    if (integration && integration.afterSetup) {
+      integration.afterSetup(client);
+    }
+  }
+}
+
 /** Setup a single integration.  */
 export function setupIntegration(client: Client, integration: Integration, integrationIndex: IntegrationIndex): void {
   if (integrationIndex[integration.name]) {

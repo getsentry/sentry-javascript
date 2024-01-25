@@ -1,5 +1,5 @@
 import { Hub, captureCheckIn, makeMain, setCurrentClient } from '@sentry/core';
-import type { Client, Integration } from '@sentry/types';
+import type { Client, Integration, IntegrationFnResult } from '@sentry/types';
 
 import { installedIntegrations } from '../../src/integration';
 import { initAndBind } from '../../src/sdk';
@@ -34,6 +34,53 @@ describe('SDK', () => {
       initAndBind(TestClient, options);
       expect((integrations[0].setupOnce as jest.Mock).mock.calls.length).toBe(1);
       expect((integrations[1].setupOnce as jest.Mock).mock.calls.length).toBe(1);
+    });
+
+    test('calls hooks in the correct order', () => {
+      const list: string[] = [];
+
+      const integration1 = {
+        name: 'integration1',
+        setupOnce: jest.fn(() => list.push('setupOnce1')),
+        afterSetup: jest.fn(() => list.push('afterSetup1')),
+      } satisfies IntegrationFnResult;
+
+      const integration2 = {
+        name: 'integration2',
+        setupOnce: jest.fn(() => list.push('setupOnce2')),
+        setup: jest.fn(() => list.push('setup2')),
+        afterSetup: jest.fn(() => list.push('afterSetup2')),
+      } satisfies IntegrationFnResult;
+
+      const integration3 = {
+        name: 'integration3',
+        setupOnce: jest.fn(() => list.push('setupOnce3')),
+        setup: jest.fn(() => list.push('setup3')),
+      } satisfies IntegrationFnResult;
+
+      const integrations: Integration[] = [integration1, integration2, integration3];
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, integrations });
+      initAndBind(TestClient, options);
+
+      expect(integration1.setupOnce).toHaveBeenCalledTimes(1);
+      expect(integration2.setupOnce).toHaveBeenCalledTimes(1);
+      expect(integration3.setupOnce).toHaveBeenCalledTimes(1);
+
+      expect(integration2.setup).toHaveBeenCalledTimes(1);
+      expect(integration3.setup).toHaveBeenCalledTimes(1);
+
+      expect(integration1.afterSetup).toHaveBeenCalledTimes(1);
+      expect(integration2.afterSetup).toHaveBeenCalledTimes(1);
+
+      expect(list).toEqual([
+        'setupOnce1',
+        'setupOnce2',
+        'setup2',
+        'setupOnce3',
+        'setup3',
+        'afterSetup1',
+        'afterSetup2',
+      ]);
     });
   });
 });
