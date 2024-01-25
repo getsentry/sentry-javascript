@@ -128,10 +128,13 @@ export function spanStatusfromHttpCode(httpStatus: number): SpanStatusType {
  * Additionally, the span's status is updated, depending on the http code.
  */
 export function setHttpStatus(span: Span, httpStatus: number): void {
-  span.setAttribute('http.status_code', String(httpStatus));
-  span.setAttribute('http.response.status_code', httpStatus);
-
   // TODO (v8): Remove these calls
+  // Relay does not require us to send the status code as a tag
+  // For now, just because users might expect it to land as a tag we keep sending it.
+  // Same with data.
+  // In v8, we replace both, simply with
+  // span.setAttribute('http.response.status_code', httpStatus);
+
   // eslint-disable-next-line deprecation/deprecation
   span.setTag('http.status_code', String(httpStatus));
   // eslint-disable-next-line deprecation/deprecation
