@@ -1,6 +1,6 @@
 import { BaseClient } from '@sentry/core';
 import * as SentryReact from '@sentry/react';
-import type { BrowserClient} from '@sentry/react';
+import type { BrowserClient } from '@sentry/react';
 import { browserTracingIntegration } from '@sentry/react';
 import { WINDOW, getClient, getCurrentScope } from '@sentry/react';
 import type { Integration } from '@sentry/types';

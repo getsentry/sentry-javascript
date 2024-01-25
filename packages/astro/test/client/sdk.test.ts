@@ -1,4 +1,4 @@
-import type { BrowserClient} from '@sentry/browser';
+import type { BrowserClient } from '@sentry/browser';
 import { getActiveSpan } from '@sentry/browser';
 import { browserTracingIntegration, getCurrentScope } from '@sentry/browser';
 import * as SentryBrowser from '@sentry/browser';
