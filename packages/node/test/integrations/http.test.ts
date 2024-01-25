@@ -55,6 +55,7 @@ describe('tracing', () => {
     const options = getDefaultNodeClientOptions({
       dsn: 'https://dogsarebadatkeepingsecrets@squirrelchasers.ingest.sentry.io/12312012',
       tracesSampleRate: 1.0,
+      // eslint-disable-next-line deprecation/deprecation
       integrations: [new HttpIntegration({ tracing: true })],
       release: '1.0.0',
       environment: 'production',
@@ -256,6 +257,7 @@ describe('tracing', () => {
     const options = getDefaultNodeClientOptions({
       dsn: 'https://dogsarebadatkeepingsecrets@squirrelchasers.ingest.sentry.io/12312012',
       tracesSampleRate: 1.0,
+      // eslint-disable-next-line deprecation/deprecation
       integrations: [new HttpIntegration({ tracing: true })],
       release: '1.0.0',
       environment: 'production',
@@ -263,6 +265,7 @@ describe('tracing', () => {
     });
     const hub = new Hub(new NodeClient(options));
 
+    // eslint-disable-next-line deprecation/deprecation
     const integration = new HttpIntegration();
     integration.setupOnce(
       () => {},
@@ -381,6 +384,7 @@ describe('tracing', () => {
         const url = 'http://dogs.are.great/api/v1/index/';
         nock(url).get(/.*/).reply(200);
 
+        // eslint-disable-next-line deprecation/deprecation
         const httpIntegration = new HttpIntegration({ tracing: true });
 
         const hub = createHub({ shouldCreateSpanForRequest: () => false });
@@ -428,6 +432,7 @@ describe('tracing', () => {
         (url, tracePropagationTargets) => {
           nock(url).get(/.*/).reply(200);
 
+          // eslint-disable-next-line deprecation/deprecation
           const httpIntegration = new HttpIntegration({ tracing: true });
 
           const hub = createHub({ tracePropagationTargets });
@@ -460,6 +465,7 @@ describe('tracing', () => {
         (url, tracePropagationTargets) => {
           nock(url).get(/.*/).reply(200);
 
+          // eslint-disable-next-line deprecation/deprecation
           const httpIntegration = new HttpIntegration({ tracing: true });
 
           const hub = createHub({ tracePropagationTargets });
@@ -484,6 +490,7 @@ describe('tracing', () => {
         const url = 'http://dogs.are.great/api/v1/index/';
         nock(url).get(/.*/).reply(200);
 
+        // eslint-disable-next-line deprecation/deprecation
         const httpIntegration = new HttpIntegration({
           tracing: {
             shouldCreateSpanForRequest: () => false,
@@ -535,6 +542,7 @@ describe('tracing', () => {
         (url, tracePropagationTargets) => {
           nock(url).get(/.*/).reply(200);
 
+          // eslint-disable-next-line deprecation/deprecation
           const httpIntegration = new HttpIntegration({ tracing: { tracePropagationTargets } });
 
           const hub = createHub();
@@ -567,6 +575,7 @@ describe('tracing', () => {
         (url, tracePropagationTargets) => {
           nock(url).get(/.*/).reply(200);
 
+          // eslint-disable-next-line deprecation/deprecation
           const httpIntegration = new HttpIntegration({ tracing: { tracePropagationTargets } });
 
           const hub = createHub();
@@ -596,6 +605,7 @@ describe('default protocols', () => {
     });
     const options = getDefaultNodeClientOptions({
       dsn: 'https://dogsarebadatkeepingsecrets@squirrelchasers.ingest.sentry.io/12312012',
+      // eslint-disable-next-line deprecation/deprecation
       integrations: [new HttpIntegration({ breadcrumbs: true })],
       beforeBreadcrumb: (b: Breadcrumb) => {
         if ((b.data?.url as string).includes(key)) {

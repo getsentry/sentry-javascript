@@ -122,22 +122,36 @@ import * as Handlers from './handlers';
 import * as NodeIntegrations from './integrations';
 import * as TracingIntegrations from './tracing/integrations';
 
-const INTEGRATIONS = {
+/** @deprecated Import the integration function directly, e.g. `inboundFiltersIntegration()` instead of `new Integrations.InboundFilter(). */
+export const Integrations = {
   // eslint-disable-next-line deprecation/deprecation
   ...CoreIntegrations,
   ...NodeIntegrations,
   ...TracingIntegrations,
 };
 
+export { consoleIntegration } from './integrations/console';
+export { onUncaughtExceptionIntegration } from './integrations/onuncaughtexception';
+export { onUnhandledRejectionIntegration } from './integrations/onunhandledrejection';
+export { modulesIntegration } from './integrations/modules';
+export { contextLinesIntegration } from './integrations/contextlines';
+export { nodeContextIntegration } from './integrations/context';
+export { localVariablesIntegration } from './integrations/local-variables';
+export { spotlightIntegration } from './integrations/spotlight';
+export { anrIntegration } from './integrations/anr';
+export { hapiIntegration } from './integrations/hapi';
+// eslint-disable-next-line deprecation/deprecation
+export { Undici, undiciIntegration } from './integrations/undici';
+// eslint-disable-next-line deprecation/deprecation
+export { Http, httpIntegration } from './integrations/http';
+
 // TODO(v8): Remove all of these exports. They were part of a hotfix #10339 where we produced wrong .d.ts files because we were packing packages inside the /build folder.
 export type { LocalVariablesIntegrationOptions } from './integrations/local-variables/common';
 export type { DebugSession } from './integrations/local-variables/local-variables-sync';
 export type { AnrIntegrationOptions } from './integrations/anr/common';
-export { Undici } from './integrations/undici';
-export { Http } from './integrations/http';
 // ---
 
-export { INTEGRATIONS as Integrations, Handlers };
+export { Handlers };
 
 export { hapiErrorPlugin } from './integrations/hapi';
 

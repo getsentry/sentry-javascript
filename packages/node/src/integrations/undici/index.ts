@@ -1,5 +1,6 @@
 import {
   addBreadcrumb,
+  defineIntegration,
   getActiveSpan,
   getClient,
   getCurrentScope,
@@ -10,7 +11,7 @@ import {
   setHttpStatus,
   spanToTraceHeader,
 } from '@sentry/core';
-import type { EventProcessor, Integration, Span } from '@sentry/types';
+import type { EventProcessor, Integration, IntegrationFn, IntegrationFnResult, Span } from '@sentry/types';
 import {
   LRUMap,
   dynamicRequire,
@@ -37,6 +38,13 @@ export enum ChannelName {
   RequestEnd = 'undici:request:headers',
   RequestError = 'undici:request:error',
 }
+
+const _undiciIntegration = ((options?: UndiciOptions) => {
+  // eslint-disable-next-line deprecation/deprecation
+  return new Undici(options) as unknown as IntegrationFnResult;
+}) satisfies IntegrationFn;
+
+export const undiciIntegration = defineIntegration(_undiciIntegration);
 
 export interface UndiciOptions {
   /**
@@ -71,6 +79,8 @@ export interface UndiciOptions {
  * Supports Undici 4.7.0 or higher.
  *
  * Requires Node 16.17.0 or higher.
+ *
+ * @deprecated Use `undiciIntegration()` instead.
  */
 export class Undici implements Integration {
   /**
@@ -81,6 +91,7 @@ export class Undici implements Integration {
   /**
    * @inheritDoc
    */
+  // eslint-disable-next-line deprecation/deprecation
   public name: string = Undici.id;
 
   private readonly _options: UndiciOptions;

@@ -1,6 +1,6 @@
 import * as http from 'http';
 import { URL } from 'url';
-import { convertIntegrationFnToClass } from '@sentry/core';
+import { convertIntegrationFnToClass, defineIntegration } from '@sentry/core';
 import type { Client, Envelope, Integration, IntegrationClass, IntegrationFn } from '@sentry/types';
 import { logger, serializeEnvelope } from '@sentry/utils';
 
@@ -14,7 +14,7 @@ type SpotlightConnectionOptions = {
 
 const INTEGRATION_NAME = 'Spotlight';
 
-const spotlightIntegration = ((options: Partial<SpotlightConnectionOptions> = {}) => {
+const _spotlightIntegration = ((options: Partial<SpotlightConnectionOptions> = {}) => {
   const _options = {
     sidecarUrl: options.sidecarUrl || 'http://localhost:8969/stream',
   };
@@ -32,12 +32,16 @@ const spotlightIntegration = ((options: Partial<SpotlightConnectionOptions> = {}
   };
 }) satisfies IntegrationFn;
 
+export const spotlightIntegration = defineIntegration(_spotlightIntegration);
+
 /**
  * Use this integration to send errors and transactions to Spotlight.
  *
  * Learn more about spotlight at https://spotlightjs.com
  *
- * Important: This integration only works with Node 18 or newer
+ * Important: This integration only works with Node 18 or newer.
+ *
+ * @deprecated Use `spotlightIntegration()` instead.
  */
 // eslint-disable-next-line deprecation/deprecation
 export const Spotlight = convertIntegrationFnToClass(INTEGRATION_NAME, spotlightIntegration) as IntegrationClass<
@@ -49,6 +53,9 @@ export const Spotlight = convertIntegrationFnToClass(INTEGRATION_NAME, spotlight
     }>,
   ): Integration;
 };
+
+// eslint-disable-next-line deprecation/deprecation
+export type Spotlight = typeof Spotlight;
 
 function connectToSpotlight(client: Client, options: Required<SpotlightConnectionOptions>): void {
   const spotlightUrl = parseSidecarUrl(options.sidecarUrl);

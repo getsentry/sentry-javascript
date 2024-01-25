@@ -1,7 +1,7 @@
 import type * as http from 'http';
 import type * as https from 'https';
 import type { Hub } from '@sentry/core';
-import { getIsolationScope } from '@sentry/core';
+import { getIsolationScope, defineIntegration } from '@sentry/core';
 import {
   addBreadcrumb,
   getActiveSpan,
@@ -15,7 +15,15 @@ import {
   spanToJSON,
   spanToTraceHeader,
 } from '@sentry/core';
-import type { EventProcessor, Integration, SanitizedRequestData, TracePropagationTargets } from '@sentry/types';
+import type {
+  DynamicSamplingContext,
+  EventProcessor,
+  Integration,
+  IntegrationFn,
+  IntegrationFnResult,
+  SanitizedRequestData,
+  TracePropagationTargets,
+} from '@sentry/types';
 import {
   LRUMap,
   dynamicSamplingContextToSentryBaggageHeader,
@@ -72,9 +80,18 @@ interface HttpOptions {
   tracing?: TracingOptions | boolean;
 }
 
+const _httpIntegration = ((options?: HttpOptions) => {
+  // eslint-disable-next-line deprecation/deprecation
+  return new Http(options) as unknown as IntegrationFnResult;
+}) satisfies IntegrationFn;
+
+export const httpIntegration = defineIntegration(_httpIntegration);
+
 /**
  * The http module integration instruments Node's internal http module. It creates breadcrumbs, transactions for outgoing
  * http requests and attaches trace data when tracing is enabled via its `tracing` option.
+ *
+ * @deprecated Use `httpIntegration()` instead.
  */
 export class Http implements Integration {
   /**
@@ -85,6 +102,7 @@ export class Http implements Integration {
   /**
    * @inheritDoc
    */
+  // eslint-disable-next-line deprecation/deprecation
   public name: string = Http.id;
 
   private readonly _breadcrumbs: boolean;

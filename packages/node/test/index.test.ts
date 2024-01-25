@@ -10,6 +10,7 @@ import type { EventHint, Integration } from '@sentry/types';
 import { GLOBAL_OBJ } from '@sentry/utils';
 
 import type { Event } from '../src';
+import { contextLinesIntegration } from '../src';
 import {
   NodeClient,
   addBreadcrumb,
@@ -193,7 +194,7 @@ describe('SentryNode', () => {
         stackParser: defaultStackParser,
         beforeSend,
         dsn,
-        integrations: [new ContextLines()],
+        integrations: [contextLinesIntegration()],
       });
       const client = new NodeClient(options);
       setCurrentClient(client);
