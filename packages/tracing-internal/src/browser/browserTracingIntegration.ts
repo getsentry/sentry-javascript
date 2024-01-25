@@ -329,6 +329,9 @@ export const _browserTracingIntegration = ((_options: Partial<BrowserTracingOpti
 
       if (client.on) {
         client.on('startNavigationSpan', (context: StartSpanOptions) => {
+          // We check this inside of the hook handler, so that if a custom instrumentation triggers this,
+          // we don't need to check this option in the instrumentation, but can simply invoke it
+          // without needing to know the options of this integration
           if (!options.instrumentNavigation) {
             return;
           }
@@ -342,6 +345,9 @@ export const _browserTracingIntegration = ((_options: Partial<BrowserTracingOpti
         });
 
         client.on('startPageLoadSpan', (context: StartSpanOptions) => {
+          // We check this inside of the hook handler, so that if a custom instrumentation triggers this,
+          // we don't need to check this option in the instrumentation, but can simply invoke it
+          // without needing to know the options of this integration
           if (!options.instrumentPageLoad) {
             return;
           }
@@ -385,6 +391,7 @@ export const _browserTracingIntegration = ((_options: Partial<BrowserTracingOpti
 
           if (from !== to) {
             startingUrl = undefined;
+            // We check this in here again, as a custom instrumentation may have been triggered in the meanwhile
             if (shouldUseDefaultNavigationSpan) {
               const context: StartSpanOptions = {
                 name: WINDOW.location.pathname,
