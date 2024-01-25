@@ -6,7 +6,13 @@ import type { Debugger, InspectorNotification, Runtime, Session } from 'inspecto
 import type { NodeClient } from '../../client';
 
 import { NODE_VERSION } from '../../nodeVersion';
-import type { FrameVariables, LocalVariablesIntegrationOptions, PausedExceptionEvent, RateLimitIncrement, Variables } from './common';
+import type {
+  FrameVariables,
+  LocalVariablesIntegrationOptions,
+  PausedExceptionEvent,
+  RateLimitIncrement,
+  Variables,
+} from './common';
 import { createRateLimiter, functionNamesMatch, hashFrames, hashFromStack } from './common';
 
 type OnPauseEvent = InspectorNotification<Debugger.PausedEventDataType>;

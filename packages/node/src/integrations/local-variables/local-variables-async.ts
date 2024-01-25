@@ -6,7 +6,13 @@ import type { Debugger, InspectorNotification, Runtime } from 'inspector';
 
 import type { NodeClient } from '../../client';
 import type { NodeClientOptions } from '../../types';
-import type { FrameVariables, LocalVariablesIntegrationOptions, PausedExceptionEvent, RateLimitIncrement, Variables } from './common';
+import type {
+  FrameVariables,
+  LocalVariablesIntegrationOptions,
+  PausedExceptionEvent,
+  RateLimitIncrement,
+  Variables,
+} from './common';
 import { createRateLimiter, functionNamesMatch, hashFrames, hashFromStack } from './common';
 
 async function unrollArray(session: Session, objectId: string, name: string, vars: Variables): Promise<void> {
