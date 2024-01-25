@@ -4,6 +4,7 @@ import { BigQuery } from '@google-cloud/bigquery';
 import * as SentryNode from '@sentry/node';
 import * as nock from 'nock';
 
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import { GoogleCloudHttp } from '../src/google-cloud-http';
 
 describe('GoogleCloudHttp tracing', () => {
@@ -52,13 +53,17 @@ describe('GoogleCloudHttp tracing', () => {
       expect(resp).toEqual([[{ foo: true }]]);
       expect(SentryNode.startInactiveSpan).toBeCalledWith({
         op: 'http.client.bigquery',
-        origin: 'auto.http.serverless',
         name: 'POST /jobs',
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.serverless',
+        },
       });
       expect(SentryNode.startInactiveSpan).toBeCalledWith({
         op: 'http.client.bigquery',
-        origin: 'auto.http.serverless',
         name: expect.stringMatching(/^GET \/queries\/.+/),
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.serverless',
+        },
       });
     });
   });

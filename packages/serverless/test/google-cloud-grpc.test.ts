@@ -9,6 +9,7 @@ import * as SentryNode from '@sentry/node';
 import * as http2 from 'http2';
 import * as nock from 'nock';
 
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import { GoogleCloudGrpc } from '../src/google-cloud-grpc';
 
 const spyConnect = jest.spyOn(http2, 'connect');
@@ -121,7 +122,9 @@ describe('GoogleCloudGrpc tracing', () => {
       expect(resp).toEqual('1637084156623860');
       expect(SentryNode.startInactiveSpan).toBeCalledWith({
         op: 'grpc.pubsub',
-        origin: 'auto.grpc.serverless',
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.grpc.serverless',
+        },
         name: 'unary call publish',
       });
       await pubsub.close();
