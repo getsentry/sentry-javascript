@@ -164,7 +164,6 @@ test('Propagates trace for outgoing fetch requests', async ({ baseURL }) => {
             'sentry.origin': 'auto.http.otel.http',
           },
           op: 'http.server',
-          parent_span_id: expect.any(String),
           span_id: expect.any(String),
           status: 'ok',
           tags: {
