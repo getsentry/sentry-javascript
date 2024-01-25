@@ -745,8 +745,13 @@ jobs:
         uses: ./.github/actions/restore-cache
         env:
           DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
-      - name: Run browser build tests
-        run: \! grep -r --include "*.d.ts" --exclude-dir ".nxcache" 'import("@sentry/.*/build' .
+      - name: Check for dts files that reference stuff in the temporary build folder
+        run: |
+          if grep -r --include "*.d.ts" --exclude-dir ".nxcache" 'import("@sentry/.*/build' .; then
+            echo "Found illegal TypeScript import statement."
+            exit 1
+          fi
+
 
   job_node_integration_tests:
     name:
