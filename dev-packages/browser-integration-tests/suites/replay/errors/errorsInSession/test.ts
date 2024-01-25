@@ -42,7 +42,7 @@ sentryTest(
     await page.goto(url);
     const req0 = await reqPromise0;
 
-    await page.click('#error');
+    await page.locator('#error').click();
     await forceFlushReplay();
     const req1 = await reqPromise1;
 
@@ -107,7 +107,7 @@ sentryTest(
     await page.goto(url);
     await reqPromise0;
 
-    await page.click('#drop');
+    await page.locator('#drop').click();
     await forceFlushReplay();
     const req1 = await reqPromise1;
 

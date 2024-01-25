@@ -229,6 +229,40 @@ describe('startSpan', () => {
       expect(ref.spanRecorder.spans).toHaveLength(2);
       expect(spanToJSON(ref.spanRecorder.spans[1]).op).toEqual('db.query');
     });
+
+    it.each([
+      { origin: 'auto.http.browser' },
+      { attributes: { 'sentry.origin': 'auto.http.browser' } },
+      // attribute should take precedence over top level origin
+      { origin: 'manual', attributes: { 'sentry.origin': 'auto.http.browser' } },
+    ])('correctly sets the span origin', async () => {
+      let ref: any = undefined;
+      client.on('finishTransaction', transaction => {
+        ref = transaction;
+      });
+      try {
+        await startSpan({ name: 'GET users/[id]', origin: 'auto.http.browser' }, () => {
+          return callback();
+        });
+      } catch (e) {
+        //
+      }
+
+      const jsonSpan = spanToJSON(ref);
+      expect(jsonSpan).toEqual({
+        data: {
+          'sentry.origin': 'auto.http.browser',
+          'sentry.sample_rate': 0,
+        },
+        origin: 'auto.http.browser',
+        description: 'GET users/[id]',
+        span_id: expect.any(String),
+        start_timestamp: expect.any(Number),
+        status: isError ? 'internal_error' : undefined,
+        timestamp: expect.any(Number),
+        trace_id: expect.any(String),
+      });
+    });
   });
 
   it('creates & finishes span', async () => {

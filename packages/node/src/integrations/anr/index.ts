@@ -6,7 +6,7 @@ import { dynamicRequire, logger } from '@sentry/utils';
 import type { Worker, WorkerOptions } from 'worker_threads';
 import type { NodeClient } from '../../client';
 import { NODE_VERSION } from '../../nodeVersion';
-import type { Options, WorkerStartData } from './common';
+import type { AnrIntegrationOptions, WorkerStartData } from './common';
 import { base64WorkerScript } from './worker-script';
 
 const DEFAULT_INTERVAL = 50;
@@ -52,7 +52,7 @@ interface InspectorApi {
 
 const INTEGRATION_NAME = 'Anr';
 
-const anrIntegration = ((options: Partial<Options> = {}) => {
+const anrIntegration = ((options: Partial<AnrIntegrationOptions> = {}) => {
   return {
     name: INTEGRATION_NAME,
     // TODO v8: Remove this
@@ -77,13 +77,13 @@ const anrIntegration = ((options: Partial<Options> = {}) => {
 export const Anr = convertIntegrationFnToClass(INTEGRATION_NAME, anrIntegration) as IntegrationClass<
   Integration & { setup: (client: NodeClient) => void }
 > & {
-  new (options?: Partial<Options>): Integration & { setup(client: Client): void };
+  new (options?: Partial<AnrIntegrationOptions>): Integration & { setup(client: Client): void };
 };
 
 /**
  * Starts the ANR worker thread
  */
-async function _startWorker(client: NodeClient, _options: Partial<Options>): Promise<void> {
+async function _startWorker(client: NodeClient, _options: Partial<AnrIntegrationOptions>): Promise<void> {
   const contexts = await getContexts(client);
   const dsn = client.getDsn();
 

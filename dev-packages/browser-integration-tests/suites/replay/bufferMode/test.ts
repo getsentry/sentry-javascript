@@ -48,8 +48,8 @@ sentryTest(
     const url = await getLocalTestPath({ testDir: __dirname });
 
     await page.goto(url);
-    await page.click('#go-background');
-    await page.click('#error');
+    await page.locator('#go-background').click();
+    await page.locator('#error').click();
     await new Promise(resolve => setTimeout(resolve, 1000));
 
     // error, no replays
@@ -76,9 +76,9 @@ sentryTest(
       }),
     ).toBe(true);
 
-    await page.click('#log');
-    await page.click('#go-background');
-    await page.click('#error2');
+    await page.locator('#log').click();
+    await page.locator('#go-background').click();
+    await page.locator('#error2').click();
     await new Promise(resolve => setTimeout(resolve, 1000));
 
     // 2 errors
@@ -98,8 +98,8 @@ sentryTest(
     await reqErrorPromise;
     expect(callsToSentry).toBeGreaterThanOrEqual(3);
 
-    await page.click('#log');
-    await page.click('#go-background');
+    await page.locator('#log').click();
+    await page.locator('#go-background').click();
 
     // Switches to session mode and then goes to background
     const req1 = await reqPromise1;
@@ -193,8 +193,8 @@ sentryTest(
     const url = await getLocalTestPath({ testDir: __dirname });
 
     await page.goto(url);
-    await page.click('#go-background');
-    await page.click('#error');
+    await page.locator('#go-background').click();
+    await page.locator('#error').click();
     await new Promise(resolve => setTimeout(resolve, 1000));
 
     // error, no replays
@@ -221,9 +221,9 @@ sentryTest(
       }),
     ).toBe(true);
 
-    await page.click('#log');
-    await page.click('#go-background');
-    await page.click('#error2');
+    await page.locator('#log').click();
+    await page.locator('#go-background').click();
+    await page.locator('#error2').click();
     await new Promise(resolve => setTimeout(resolve, 1000));
 
     // 2 errors
@@ -243,8 +243,8 @@ sentryTest(
     await reqErrorPromise;
     expect(callsToSentry).toEqual(3);
 
-    await page.click('#log');
-    await page.click('#go-background');
+    await page.locator('#log').click();
+    await page.locator('#go-background').click();
 
     // Has stopped recording, should make no more calls to Sentry
     expect(callsToSentry).toEqual(3);
@@ -336,8 +336,8 @@ sentryTest(
       }),
     ).toBe(true);
 
-    await page.click('#go-background');
-    await page.click('#error');
+    await page.locator('#go-background').click();
+    await page.locator('#error').click();
     await new Promise(resolve => setTimeout(resolve, 1000));
 
     // 1 unsampled error, no replay
@@ -357,7 +357,7 @@ sentryTest(
     const [req0] = await Promise.all([
       // 1 unsampled error, 1 sampled error -> 1 flush
       reqPromise0,
-      page.click('#error2'),
+      page.locator('#error2').click(),
     ]);
 
     const reqError1 = await reqErrorPromise1;

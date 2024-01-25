@@ -43,7 +43,7 @@ ${changedPaths.join('\n')}
   try {
     await new Promise<void>((resolve, reject) => {
       const cp = childProcess.spawn(
-        `yarn playwright test ${
+        `npx playwright test ${
           testPaths.length ? testPaths.join(' ') : './suites'
         } --reporter='line' --repeat-each ${runCount}`,
         { shell: true, cwd },

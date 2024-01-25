@@ -1,5 +1,5 @@
 import {
-  getActiveSpan,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   getClient,
   getCurrentScope,
   getDynamicSamplingContextFromClient,
@@ -7,6 +7,7 @@ import {
   getRootSpan,
   hasTracingEnabled,
   spanToTraceHeader,
+  startInactiveSpan,
 } from '@sentry/core';
 import type { Client, HandlerDataFetch, Scope, Span, SpanOrigin } from '@sentry/types';
 import {
@@ -76,24 +77,21 @@ export function instrumentFetchRequest(
 
   const scope = getCurrentScope();
   const client = getClient();
-  const parentSpan = getActiveSpan();
 
   const { method, url } = handlerData.fetchData;
 
-  const span =
-    shouldCreateSpanResult && parentSpan
-      ? // eslint-disable-next-line deprecation/deprecation
-        parentSpan.startChild({
-          data: {
-            url,
-            type: 'fetch',
-            'http.method': method,
-          },
-          description: `${method} ${url}`,
-          op: 'http.client',
-          origin: spanOrigin,
-        })
-      : undefined;
+  const span = shouldCreateSpanResult
+    ? startInactiveSpan({
+        attributes: {
+          url,
+          type: 'fetch',
+          'http.method': method,
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: spanOrigin,
+        },
+        name: `${method} ${url}`,
+        op: 'http.client',
+      })
+    : undefined;
 
   if (span) {
     handlerData.fetchData.__span = span.spanContext().spanId;

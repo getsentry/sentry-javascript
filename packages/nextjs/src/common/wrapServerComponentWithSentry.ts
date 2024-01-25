@@ -10,6 +10,7 @@ import {
 } from '@sentry/core';
 import { winterCGHeadersToDict } from '@sentry/utils';
 
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import { isNotFoundNavigationError, isRedirectNavigationError } from '../common/nextNavigationErrorUtils';
 import type { ServerComponentContext } from '../common/types';
 import { commonObjectToPropagationContext } from './utils/commonObjectTracing';
@@ -61,9 +62,9 @@ export function wrapServerComponentWithSentry<F extends (...args: any[]) => any>
             op: 'function.nextjs',
             name: `${componentType} Server Component (${componentRoute})`,
             status: 'ok',
-            origin: 'auto.function.nextjs',
             attributes: {
               [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
+              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.nextjs',
             },
             metadata: {
               // eslint-disable-next-line deprecation/deprecation

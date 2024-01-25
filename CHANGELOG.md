@@ -4,6 +4,51 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.98.0
+
+This release primarily fixes some type declaration errors:
+
+- feat(core): Export `IntegrationIndex` type (#10337)
+- fix(nextjs): Fix Http integration type declaration (#10338)
+- fix(node): Fix type definitions (#10339)
+
+## 7.97.0
+
+Note: The 7.96.0 release was incomplete. This release is partially encompassing changes from `7.96.0`.
+
+- feat(react): Add `stripBasename` option for React Router 6 (#10314)
+
+## 7.96.0
+
+Note: This release was incomplete. Not all Sentry SDK packages were released for this version. Please upgrade to 7.97.0
+directly.
+
+### Important Changes
+
+#### Deprecations
+
+This release includes some deprecations for integrations in `@sentry/browser` and frontend framework SDKs
+(`@sentry/react`, `@sentry/vue`, etc.). Please take a look at our
+[migration guide](https://github.com/getsentry/sentry-javascript/blob/develop/MIGRATION.md) for more details.
+
+- feat(browser): Export functional integrations & deprecate classes (#10267)
+
+#### Web Vitals Fix for LCP and CLS
+
+This release fixes an issue with the Web Vitals integration where LCP and CLS were not being captured correctly,
+increasing capture rate by 10-30% for some apps. LCP and CLS capturing issues were introduced with version `7.75.0`.
+
+- fix(tracing): Ensure web vitals are correctly stopped/captured (#10323)
+
+### Other Changes
+
+- fix(node): Fix `node-cron` types and add test (#10315)
+- fix(node): Fix downleveled types entry point (#10321)
+- fix(node): LocalVariables integration should use setupOnce (#10307)
+- fix(replay): Fix type for options of replayIntegration (#10325)
+
+Work in this release contributed by @Shubhdeep12. Thank you for your contribution!
+
 ## 7.95.0
 
 ### Important Changes

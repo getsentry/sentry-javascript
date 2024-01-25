@@ -47,7 +47,7 @@ sentryTest(
 
     expect(replayEvent0).toEqual(getExpectedReplayEvent({ segment_id: 0 }));
 
-    await page.click('button');
+    await page.locator('#img-button').click();
 
     const replayEvent1 = getReplayEvent(await reqPromise1);
     const { performanceSpans: performanceSpans1 } = getCustomRecordingEvents(await reqPromise1);
@@ -104,7 +104,7 @@ sentryTest(
     await page.goto(url);
     await reqPromise0;
 
-    await page.click('#error');
+    await page.locator('#error').click();
     await forceFlushReplay();
     const req1 = await reqPromise1;
     const content1 = getReplayRecordingContent(req1);
@@ -131,7 +131,7 @@ sentryTest(
       ]),
     );
 
-    await page.click('#img');
+    await page.locator('#img').click();
     await forceFlushReplay();
     const req2 = await reqPromise2;
     const content2 = getReplayRecordingContent(req2);
@@ -139,11 +139,12 @@ sentryTest(
       expect.arrayContaining([
         {
           ...expectedClickBreadcrumb,
-          message: 'body > button[title="Button title"]',
+          message: 'body > button#img-button[title="Button title"]',
           data: {
             nodeId: expect.any(Number),
             node: {
               attributes: {
+                id: 'img-button',
                 title: '****** *****',
               },
               id: expect.any(Number),
@@ -155,7 +156,7 @@ sentryTest(
       ]),
     );
 
-    await page.click('.sentry-unmask');
+    await page.locator('.sentry-unmask').click();
     await forceFlushReplay();
     const req3 = await reqPromise3;
     const content3 = getReplayRecordingContent(req3);
@@ -206,7 +207,7 @@ sentryTest(
     await page.goto(url);
     await forceFlushReplay();
 
-    await page.click('#error');
+    await page.locator('#error').click();
     await forceFlushReplay();
 
     const req0 = await reqPromise0;

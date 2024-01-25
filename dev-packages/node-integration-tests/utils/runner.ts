@@ -125,6 +125,7 @@ export function createRunner(...paths: string[]) {
   const ignored: EnvelopeItemType[] = [];
   let withSentryServer = false;
   let dockerOptions: DockerOptions | undefined;
+  let ensureNoErrorOutput = false;
 
   if (testPath.endsWith('.ts')) {
     flags.push('-r', 'ts-node/register');
@@ -149,6 +150,10 @@ export function createRunner(...paths: string[]) {
     },
     withDockerCompose: function (options: DockerOptions) {
       dockerOptions = options;
+      return this;
+    },
+    ensureNoErrorOutput: function () {
+      ensureNoErrorOutput = true;
       return this;
     },
     start: function (done?: (e?: unknown) => void) {
@@ -262,8 +267,19 @@ export function createRunner(...paths: string[]) {
             child?.kill();
           });
 
+          if (ensureNoErrorOutput) {
+            child.stderr.on('data', (data: Buffer) => {
+              const output = data.toString();
+              complete(new Error(`Expected no error output but got: '${output}'`));
+            });
+          }
+
           child.on('close', () => {
             hasExited = true;
+
+            if (ensureNoErrorOutput) {
+              complete();
+            }
           });
 
           // Pass error to done to end the test quickly

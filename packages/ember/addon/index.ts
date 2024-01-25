@@ -5,7 +5,7 @@ import { getOwnConfig, isDevelopingApp, macroCondition } from '@embroider/macros
 import { startSpan } from '@sentry/browser';
 import type { BrowserOptions } from '@sentry/browser';
 import * as Sentry from '@sentry/browser';
-import { applySdkMetadata } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, applySdkMetadata } from '@sentry/core';
 import { GLOBAL_OBJ } from '@sentry/utils';
 import Ember from 'ember';
 
@@ -82,9 +82,11 @@ export const instrumentRoutePerformance = <T extends RouteConstructor>(BaseRoute
   ): Promise<ReturnType<X>> => {
     return startSpan(
       {
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'ember',
+        },
         op,
         name: description,
-        origin: 'auto.ui.ember',
       },
       () => {
         return fn(...args);

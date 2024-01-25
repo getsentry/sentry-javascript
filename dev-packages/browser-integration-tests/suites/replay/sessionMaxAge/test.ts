@@ -59,7 +59,7 @@ sentryTest('handles session that exceeds max age', async ({ forceFlushReplay, ge
   // Wait half of the session max age (after initial flush), but account for potentially slow runners
   const timePassed1 = Date.now() - startTimestamp;
   await new Promise(resolve => setTimeout(resolve, Math.max(MAX_REPLAY_DURATION / 2 - timePassed1, 0)));
-  await page.click('#button1');
+  await page.locator('#button1').click();
   await forceFlushReplay();
 
   const req1 = await reqPromise1;
@@ -73,7 +73,7 @@ sentryTest('handles session that exceeds max age', async ({ forceFlushReplay, ge
   // Wait for session to expire
   const timePassed2 = Date.now() - startTimestamp;
   await new Promise(resolve => setTimeout(resolve, Math.max(MAX_REPLAY_DURATION - timePassed2, 0)));
-  await page.click('#button2');
+  await page.locator('#button2').click();
   await forceFlushReplay();
 
   const req2 = await reqPromise2;

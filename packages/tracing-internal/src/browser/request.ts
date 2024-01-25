@@ -1,6 +1,6 @@
 /* eslint-disable max-lines */
 import {
-  getActiveSpan,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   getClient,
   getCurrentScope,
   getDynamicSamplingContextFromClient,
@@ -9,6 +9,7 @@ import {
   hasTracingEnabled,
   spanToJSON,
   spanToTraceHeader,
+  startInactiveSpan,
 } from '@sentry/core';
 import type { HandlerDataXhr, SentryWrappedXMLHttpRequest, Span } from '@sentry/types';
 import {
@@ -275,22 +276,19 @@ export function xhrCallback(
   }
 
   const scope = getCurrentScope();
-  const parentSpan = getActiveSpan();
 
-  const span =
-    shouldCreateSpanResult && parentSpan
-      ? // eslint-disable-next-line deprecation/deprecation
-        parentSpan.startChild({
-          data: {
-            type: 'xhr',
-            'http.method': sentryXhrData.method,
-            url: sentryXhrData.url,
-          },
-          description: `${sentryXhrData.method} ${sentryXhrData.url}`,
-          op: 'http.client',
-          origin: 'auto.http.browser',
-        })
-      : undefined;
+  const span = shouldCreateSpanResult
+    ? startInactiveSpan({
+        attributes: {
+          type: 'xhr',
+          'http.method': sentryXhrData.method,
+          url: sentryXhrData.url,
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.browser',
+        },
+        name: `${sentryXhrData.method} ${sentryXhrData.url}`,
+        op: 'http.client',
+      })
+    : undefined;
 
   if (span) {
     xhr.__sentry_xhr_span_id__ = span.spanContext().spanId;

@@ -24,7 +24,7 @@ sentryTest(
     await page.goto(url);
     await waitForReplayRunning(page);
 
-    await page.click('#drop');
+    await page.locator('#drop').click();
     await forceFlushReplay();
 
     expect(await getReplaySnapshot(page)).toEqual(

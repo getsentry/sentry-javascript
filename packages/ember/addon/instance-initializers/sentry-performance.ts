@@ -11,6 +11,7 @@ import type { ExtendedBackburner } from '@sentry/ember/runloop';
 import type { Span, Transaction } from '@sentry/types';
 import { GLOBAL_OBJ, browserPerformanceTimeOrigin, timestampInSeconds } from '@sentry/utils';
 
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import type { BrowserClient } from '..';
 import { getActiveSpan, startInactiveSpan } from '..';
 import type { EmberRouterMain, EmberSentryConfig, GlobalConfig, OwnConfig, StartTransactionFunction } from '../types';
@@ -150,9 +151,11 @@ export function _instrumentEmberRouter(
       },
     });
     transitionSpan = startInactiveSpan({
+      attributes: {
+        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.ember',
+      },
       op: 'ui.ember.transition',
       name: `route:${fromRoute} -> route:${toRoute}`,
-      origin: 'auto.ui.ember',
     });
   });
 
@@ -212,9 +215,11 @@ function _instrumentEmberRunloop(config: EmberSentryConfig): void {
 
         if ((now - currentQueueStart) * 1000 >= minQueueDuration) {
           startInactiveSpan({
+            attributes: {
+              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.ember',
+            },
             name: 'runloop',
             op: `ui.ember.runloop.${queue}`,
-            origin: 'auto.ui.ember',
             startTimestamp: currentQueueStart,
           })?.end(now);
         }
@@ -370,7 +375,9 @@ function _instrumentInitialLoad(config: EmberSentryConfig): void {
   startInactiveSpan({
     op: 'ui.ember.init',
     name: 'init',
-    origin: 'auto.ui.ember',
+    attributes: {
+      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.ember',
+    },
     startTimestamp,
   })?.end(endTimestamp);
   performance.clearMarks(startName);

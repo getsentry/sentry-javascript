@@ -23,7 +23,7 @@ import { isString, logger } from '@sentry/utils';
 import type { Context, Handler } from 'aws-lambda';
 import { performance } from 'perf_hooks';
 
-import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
 import { AWSServices } from './awsservices';
 import { DEBUG_BUILD } from './debug-build';
 import { markEventUnhandled } from './utils';
@@ -361,10 +361,10 @@ export function wrapHandler<TEvent, TResult>(
         {
           name: context.functionName,
           op: 'function.aws.lambda',
-          origin: 'auto.function.serverless',
           ...continueTraceContext,
           attributes: {
             [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.serverless',
           },
         },
         span => {

@@ -1,12 +1,18 @@
 /* eslint-disable max-lines */
-import { convertIntegrationFnToClass } from '@sentry/core';
+import { convertIntegrationFnToClass, getClient } from '@sentry/core';
 import type { Event, Exception, Integration, IntegrationClass, IntegrationFn, StackParser } from '@sentry/types';
 import { LRUMap, logger } from '@sentry/utils';
 import type { Debugger, InspectorNotification, Runtime, Session } from 'inspector';
 import type { NodeClient } from '../../client';
 
 import { NODE_VERSION } from '../../nodeVersion';
-import type { FrameVariables, Options, PausedExceptionEvent, RateLimitIncrement, Variables } from './common';
+import type {
+  FrameVariables,
+  LocalVariablesIntegrationOptions,
+  PausedExceptionEvent,
+  RateLimitIncrement,
+  Variables,
+} from './common';
 import { createRateLimiter, functionNamesMatch, hashFrames, hashFromStack } from './common';
 
 type OnPauseEvent = InspectorNotification<Debugger.PausedEventDataType>;
@@ -214,7 +220,7 @@ const INTEGRATION_NAME = 'LocalVariables';
  * Adds local variables to exception frames
  */
 const localVariablesSyncIntegration = ((
-  options: Options = {},
+  options: LocalVariablesIntegrationOptions = {},
   session: DebugSession | undefined = tryNewAsyncSession(),
 ) => {
   const cachedFrames: LRUMap<string, FrameVariables[]> = new LRUMap(20);
@@ -326,12 +332,11 @@ const localVariablesSyncIntegration = ((
 
   return {
     name: INTEGRATION_NAME,
-    // TODO v8: Remove this
-    setupOnce() {}, // eslint-disable-line @typescript-eslint/no-empty-function
-    setup(client: NodeClient) {
-      const clientOptions = client.getOptions();
+    setupOnce() {
+      const client = getClient<NodeClient>();
+      const clientOptions = client?.getOptions();
 
-      if (session && clientOptions.includeLocalVariables) {
+      if (session && clientOptions?.includeLocalVariables) {
         // Only setup this integration if the Node version is >= v18
         // https://github.com/getsentry/sentry-javascript/issues/7697
         const unsupportedNodeVersion = NODE_VERSION.major < 18;
@@ -395,5 +400,5 @@ export const LocalVariablesSync = convertIntegrationFnToClass(
   INTEGRATION_NAME,
   localVariablesSyncIntegration,
 ) as IntegrationClass<Integration & { processEvent: (event: Event) => Event; setup: (client: NodeClient) => void }> & {
-  new (options?: Options, session?: DebugSession): Integration;
+  new (options?: LocalVariablesIntegrationOptions, session?: DebugSession): Integration;
 };

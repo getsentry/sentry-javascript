@@ -54,9 +54,11 @@ describe('setupOnce', function () {
       expect(mockStartSpan).toHaveBeenCalledTimes(1);
       expect(mockStartSpan).toHaveBeenLastCalledWith(
         {
+          attributes: {
+            'sentry.origin': 'auto.db.prisma',
+          },
           name: 'user create',
           op: 'db.prisma',
-          origin: 'auto.db.prisma',
           data: { 'db.system': 'postgresql', 'db.prisma.version': '3.1.2', 'db.operation': 'create' },
         },
         expect.any(Function),

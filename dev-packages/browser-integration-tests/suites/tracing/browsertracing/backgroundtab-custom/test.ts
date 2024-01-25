@@ -19,7 +19,7 @@ sentryTest('should finish a custom transaction when the page goes background', a
   const pageloadTransaction = await getFirstSentryEnvelopeRequest<Event>(page, url);
   expect(pageloadTransaction).toBeDefined();
 
-  await page.click('#start-transaction');
+  await page.locator('#start-transaction').click();
   const transactionHandle = await page.evaluateHandle('window.transaction');
 
   const id_before = await getPropertyValue(transactionHandle, 'span_id');
@@ -31,7 +31,7 @@ sentryTest('should finish a custom transaction when the page goes background', a
   expect(status_before).toBeUndefined();
   expect(tags_before).toStrictEqual({});
 
-  await page.click('#go-background');
+  await page.locator('#go-background').click();
 
   const id_after = await getPropertyValue(transactionHandle, 'span_id');
   const name_after = await getPropertyValue(transactionHandle, 'name');
