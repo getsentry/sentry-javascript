@@ -346,7 +346,7 @@ export function continueTrace<V>(
   const transactionContext: Partial<TransactionContext> = {
     ...traceparentData,
     metadata: dropUndefinedKeys({
-      dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
+      dynamicSamplingContext,
     }),
   };
 

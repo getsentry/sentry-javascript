@@ -106,11 +106,6 @@ describe('Integration | Transactions', () => {
             trace_id: expect.any(String),
             transaction: 'test name',
           }),
-          propagationContext: {
-            sampled: undefined,
-            spanId: expect.any(String),
-            traceId: expect.any(String),
-          },
           sampleRate: 1,
           source: 'task',
           spanMetadata: expect.any(Object),
