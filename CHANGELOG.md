@@ -4,6 +4,14 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.98.0
+
+This release primarily fixes some type declaration errors:
+
+- feat(core): Export `IntegrationIndex` type (#10337)
+- fix(nextjs): Fix Http integration type declaration (#10338)
+- fix(node): Fix type definitions (#10339)
+
 ## 7.97.0
 
 Note: The 7.96.0 release was incomplete. This release is partially encompassing changes from `7.96.0`.
