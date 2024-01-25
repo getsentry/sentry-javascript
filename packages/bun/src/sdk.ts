@@ -1,6 +1,19 @@
 /* eslint-disable max-lines */
-import { FunctionToString, InboundFilters, LinkedErrors } from '@sentry/core';
-import { Integrations as NodeIntegrations, init as initNode } from '@sentry/node';
+import {
+  functionToStringIntegration,
+  inboundFiltersIntegration,
+  linkedErrorsIntegration,
+  requestDataIntegration,
+} from '@sentry/core';
+import {
+  consoleIntegration,
+  contextLinesIntegration,
+  httpIntegration,
+  init as initNode,
+  modulesIntegration,
+  nodeContextIntegration,
+  undiciIntegration,
+} from '@sentry/node';
 import type { Integration, Options } from '@sentry/types';
 
 import { BunClient } from './client';
@@ -10,25 +23,23 @@ import type { BunOptions } from './types';
 
 /** @deprecated Use `getDefaultIntegrations(options)` instead. */
 export const defaultIntegrations = [
-  /* eslint-disable deprecation/deprecation */
   // Common
-  new InboundFilters(),
-  new FunctionToString(),
-  new LinkedErrors(),
-  /* eslint-enable deprecation/deprecation */
+  inboundFiltersIntegration(),
+  functionToStringIntegration(),
+  linkedErrorsIntegration(),
+  requestDataIntegration(),
   // Native Wrappers
-  new NodeIntegrations.Console(),
-  new NodeIntegrations.Http(),
-  new NodeIntegrations.Undici(),
+  consoleIntegration(),
+  httpIntegration(),
+  undiciIntegration(),
   // Global Handlers # TODO (waiting for https://github.com/oven-sh/bun/issues/5091)
   // new NodeIntegrations.OnUncaughtException(),
   // new NodeIntegrations.OnUnhandledRejection(),
   // Event Info
-  new NodeIntegrations.ContextLines(),
+  contextLinesIntegration(),
   // new NodeIntegrations.LocalVariables(), # does't work with Bun
-  new NodeIntegrations.Context(),
-  new NodeIntegrations.Modules(),
-  new NodeIntegrations.RequestData(),
+  nodeContextIntegration(),
+  modulesIntegration(),
   // Bun Specific
   new BunServer(),
 ];

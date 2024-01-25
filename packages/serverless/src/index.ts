@@ -72,6 +72,7 @@ export {
   // eslint-disable-next-line deprecation/deprecation
   deepReadDirSync,
   Handlers,
+  // eslint-disable-next-line deprecation/deprecation
   Integrations,
   setMeasurement,
   getActiveSpan,
@@ -93,4 +94,11 @@ export {
   // eslint-disable-next-line deprecation/deprecation
   extractTraceparentData,
   runWithAsyncContext,
+  consoleIntegration,
+  onUncaughtExceptionIntegration,
+  onUnhandledRejectionIntegration,
+  modulesIntegration,
+  contextLinesIntegration,
+  nodeContextIntegration,
+  localVariablesIntegration,
 } from '@sentry/node';

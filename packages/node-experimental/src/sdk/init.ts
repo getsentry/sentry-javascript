@@ -1,11 +1,11 @@
 import { endSession, getIntegrationsToSetup, hasTracingEnabled, startSession } from '@sentry/core';
 import {
-  Integrations,
   defaultIntegrations as defaultNodeIntegrations,
   defaultStackParser,
   getDefaultIntegrations as getDefaultNodeIntegrations,
   getSentryRelease,
   makeNodeTransport,
+  spotlightIntegration,
 } from '@sentry/node';
 import type { Client, Integration, Options } from '@sentry/types';
 import {
@@ -94,7 +94,7 @@ export function init(options: NodeExperimentalOptions | undefined = {}): void {
         client.addIntegration(integration);
       }
       client.addIntegration(
-        new Integrations.Spotlight({
+        spotlightIntegration({
           sidecarUrl: typeof options.spotlight === 'string' ? options.spotlight : undefined,
         }),
       );
