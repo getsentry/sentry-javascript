@@ -12,7 +12,8 @@ Note: The 7.96.0 release was incomplete. This release is partially encompassing 
 
 ## 7.96.0
 
-Note: This release was incomplete. Not all Sentry SDK packages were released for this version. Please upgrade to 7.97.0 directly.
+Note: This release was incomplete. Not all Sentry SDK packages were released for this version. Please upgrade to 7.97.0
+directly.
 
 ### Important Changes
 
