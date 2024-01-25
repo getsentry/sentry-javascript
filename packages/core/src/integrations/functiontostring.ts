@@ -1,15 +1,23 @@
-import type { Integration, IntegrationClass, IntegrationFn, WrappedFunction } from '@sentry/types';
+import type { Client, Integration, IntegrationClass, IntegrationFn, WrappedFunction } from '@sentry/types';
 import { getOriginalFunction } from '@sentry/utils';
+import { getClient } from '../exports';
 import { convertIntegrationFnToClass, defineIntegration } from '../integration';
 
 let originalFunctionToString: () => void;
+let hasSetup = false;
 
 const INTEGRATION_NAME = 'FunctionToString';
+
+const SETUP_CLIENTS = new WeakMap<Client, boolean>();
 
 const _functionToStringIntegration = (() => {
   return {
     name: INTEGRATION_NAME,
     setupOnce() {
+      if (hasSetup) {
+        return;
+      }
+
       // eslint-disable-next-line @typescript-eslint/unbound-method
       originalFunctionToString = Function.prototype.toString;
 
@@ -18,20 +26,39 @@ const _functionToStringIntegration = (() => {
       try {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         Function.prototype.toString = function (this: WrappedFunction, ...args: any[]): string {
-          const context = getOriginalFunction(this) || this;
+          const originalFunction = getOriginalFunction(this);
+          const context =
+            SETUP_CLIENTS.has(getClient() as Client) && originalFunction !== undefined ? originalFunction : this;
           return originalFunctionToString.apply(context, args);
         };
+
+        hasSetup = true;
       } catch {
         // ignore errors here, just don't patch this
       }
     },
+    setup(client) {
+      SETUP_CLIENTS.set(client, true);
+    },
   };
 }) satisfies IntegrationFn;
 
+/**
+ * Patch toString calls to return proper name for wrapped functions.
+ *
+ * ```js
+ * Sentry.init({
+ *   integrations: [
+ *     functionToStringIntegration(),
+ *   ],
+ * });
+ * ```
+ */
 export const functionToStringIntegration = defineIntegration(_functionToStringIntegration);
 
 /**
  * Patch toString calls to return proper name for wrapped functions.
+ *
  * @deprecated Use `functionToStringIntegration()` instead.
  */
 // eslint-disable-next-line deprecation/deprecation
@@ -39,3 +66,6 @@ export const FunctionToString = convertIntegrationFnToClass(
   INTEGRATION_NAME,
   functionToStringIntegration,
 ) as IntegrationClass<Integration & { setupOnce: () => void }>;
+
+// eslint-disable-next-line deprecation/deprecation
+export type FunctionToString = typeof FunctionToString;
