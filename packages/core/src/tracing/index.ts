@@ -7,7 +7,12 @@ export { Transaction } from './transaction';
 export { extractTraceparentData, getActiveTransaction } from './utils';
 // eslint-disable-next-line deprecation/deprecation
 export { SpanStatus } from './spanstatus';
-export { setHttpStatus, spanStatusfromHttpCode } from './spanstatus';
+export {
+  setHttpStatus,
+  // eslint-disable-next-line deprecation/deprecation
+  spanStatusfromHttpCode,
+  getSpanStatusFromHttpCode,
+} from './spanstatus';
 export type { SpanStatusType } from './spanstatus';
 export {
   // eslint-disable-next-line deprecation/deprecation

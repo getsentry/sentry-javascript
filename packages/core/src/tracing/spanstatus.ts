@@ -83,7 +83,7 @@ export type SpanStatusType =
  * @param httpStatus The HTTP response status code.
  * @returns The span status or unknown_error.
  */
-export function spanStatusfromHttpCode(httpStatus: number): SpanStatusType {
+export function getSpanStatusFromHttpCode(httpStatus: number): SpanStatusType {
   if (httpStatus < 400 && httpStatus >= 100) {
     return 'ok';
   }
@@ -124,6 +124,17 @@ export function spanStatusfromHttpCode(httpStatus: number): SpanStatusType {
 }
 
 /**
+ * Converts a HTTP status code into a {@link SpanStatusType}.
+ *
+ * @deprecated Use {@link spanStatusFromHttpCode} instead.
+ * This export will be removed in v8 as the signature contains a typo.
+ *
+ * @param httpStatus The HTTP response status code.
+ * @returns The span status or unknown_error.
+ */
+export const spanStatusfromHttpCode = getSpanStatusFromHttpCode;
+
+/**
  * Sets the Http status attributes on the current span based on the http code.
  * Additionally, the span's status is updated, depending on the http code.
  */
@@ -140,7 +151,7 @@ export function setHttpStatus(span: Span, httpStatus: number): void {
   // eslint-disable-next-line deprecation/deprecation
   span.setData('http.response.status_code', httpStatus);
 
-  const spanStatus = spanStatusfromHttpCode(httpStatus);
+  const spanStatus = getSpanStatusFromHttpCode(httpStatus);
   if (spanStatus !== 'unknown_error') {
     span.setStatus(spanStatus);
   }
