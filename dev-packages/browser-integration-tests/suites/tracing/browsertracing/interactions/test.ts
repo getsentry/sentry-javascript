@@ -1,6 +1,6 @@
 import type { Route } from '@playwright/test';
 import { expect } from '@playwright/test';
-import type { Event, Span, SpanContext, Transaction } from '@sentry/types';
+import type { SerializedEvent, Span, SpanContext, Transaction } from '@sentry/types';
 
 import { sentryTest } from '../../../../utils/fixtures';
 import {
@@ -30,7 +30,7 @@ sentryTest('should capture interaction transaction. @firefox', async ({ browserN
   const url = await getLocalTestPath({ testDir: __dirname });
 
   await page.goto(url);
-  await getFirstSentryEnvelopeRequest<Event>(page);
+  await getFirstSentryEnvelopeRequest<SerializedEvent>(page);
 
   await page.locator('[data-test-id=interaction-button]').click();
   await page.locator('.clicked[data-test-id=interaction-button]').isVisible();
@@ -70,12 +70,12 @@ sentryTest(
 
     const url = await getLocalTestPath({ testDir: __dirname });
     await page.goto(url);
-    await getFirstSentryEnvelopeRequest<Event>(page);
+    await getFirstSentryEnvelopeRequest<SerializedEvent>(page);
 
     for (let i = 0; i < 4; i++) {
       await wait(100);
       await page.locator('[data-test-id=interaction-button]').click();
-      const envelope = await getMultipleSentryEnvelopeRequests<Event>(page, 1);
+      const envelope = await getMultipleSentryEnvelopeRequests<SerializedEvent>(page, 1);
       expect(envelope[0].spans).toHaveLength(1);
     }
   },
@@ -97,11 +97,11 @@ sentryTest(
     const url = await getLocalTestPath({ testDir: __dirname });
 
     await page.goto(url);
-    await getFirstSentryEnvelopeRequest<Event>(page);
+    await getFirstSentryEnvelopeRequest<SerializedEvent>(page);
 
     await page.locator('[data-test-id=annotated-button]').click();
 
-    const envelopes = await getMultipleSentryEnvelopeRequests<TransactionJSON>(page, 1);
+    const envelopes = await getMultipleSentryEnvelopeRequests<SerializedEvent>(page, 1);
     expect(envelopes).toHaveLength(1);
     const eventData = envelopes[0];
 
