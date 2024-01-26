@@ -14,6 +14,7 @@ sentryTest(
 
     let requestCount = 0;
     page.on('request', request => {
+      console.log(request.url());
       expect(request.url()).not.toContain(url);
       requestCount++;
     });
