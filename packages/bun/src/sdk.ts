@@ -11,8 +11,8 @@ import {
   httpIntegration,
   init as initNode,
   modulesIntegration,
+  nativeNodeFetchintegration,
   nodeContextIntegration,
-  undiciIntegration,
 } from '@sentry/node';
 import type { Integration, Options } from '@sentry/types';
 
@@ -31,7 +31,7 @@ export const defaultIntegrations = [
   // Native Wrappers
   consoleIntegration(),
   httpIntegration(),
-  undiciIntegration(),
+  nativeNodeFetchintegration(),
   // Global Handlers # TODO (waiting for https://github.com/oven-sh/bun/issues/5091)
   // new NodeIntegrations.OnUncaughtException(),
   // new NodeIntegrations.OnUnhandledRejection(),

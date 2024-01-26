@@ -6,7 +6,7 @@ import type { fetch as FetchType } from 'undici';
 
 import { NodeClient } from '../../src/client';
 import type { UndiciOptions } from '../../src/integrations/undici';
-import { undiciIntegration } from '../../src/integrations/undici';
+import { nativeNodeFetchintegration } from '../../src/integrations/undici';
 import { getDefaultNodeClientOptions } from '../helper/node-client-options';
 import { conditionalTest } from '../utils';
 
@@ -30,7 +30,7 @@ beforeAll(async () => {
 const DEFAULT_OPTIONS = getDefaultNodeClientOptions({
   dsn: SENTRY_DSN,
   tracesSampler: () => true,
-  integrations: [undiciIntegration()],
+  integrations: [nativeNodeFetchintegration()],
 });
 
 beforeEach(() => {

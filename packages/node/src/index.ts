@@ -141,7 +141,7 @@ export { spotlightIntegration } from './integrations/spotlight';
 export { anrIntegration } from './integrations/anr';
 export { hapiIntegration } from './integrations/hapi';
 // eslint-disable-next-line deprecation/deprecation
-export { Undici, undiciIntegration } from './integrations/undici';
+export { Undici, nativeNodeFetchintegration } from './integrations/undici';
 // eslint-disable-next-line deprecation/deprecation
 export { Http, httpIntegration } from './integrations/http';
 

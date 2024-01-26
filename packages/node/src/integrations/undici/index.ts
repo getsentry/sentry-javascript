@@ -39,12 +39,12 @@ export enum ChannelName {
   RequestError = 'undici:request:error',
 }
 
-const _undiciIntegration = ((options?: UndiciOptions) => {
+const _nativeNodeFetchintegration = ((options?: UndiciOptions) => {
   // eslint-disable-next-line deprecation/deprecation
   return new Undici(options) as unknown as IntegrationFnResult;
 }) satisfies IntegrationFn;
 
-export const undiciIntegration = defineIntegration(_undiciIntegration);
+export const nativeNodeFetchintegration = defineIntegration(_nativeNodeFetchintegration);
 
 export interface UndiciOptions {
   /**
@@ -80,7 +80,7 @@ export interface UndiciOptions {
  *
  * Requires Node 16.17.0 or higher.
  *
- * @deprecated Use `undiciIntegration()` instead.
+ * @deprecated Use `nativeNodeFetchintegration()` instead.
  */
 export class Undici implements Integration {
   /**

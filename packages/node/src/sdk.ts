@@ -33,7 +33,7 @@ import { modulesIntegration } from './integrations/modules';
 import { onUncaughtExceptionIntegration } from './integrations/onuncaughtexception';
 import { onUnhandledRejectionIntegration } from './integrations/onunhandledrejection';
 import { spotlightIntegration } from './integrations/spotlight';
-import { undiciIntegration } from './integrations/undici';
+import { nativeNodeFetchintegration } from './integrations/undici';
 import { createGetModuleFromFilename } from './module';
 import { makeNodeTransport } from './transports';
 import type { NodeClientOptions, NodeOptions } from './types';
@@ -48,7 +48,7 @@ export const defaultIntegrations = [
   // Native Wrappers
   consoleIntegration(),
   httpIntegration(),
-  undiciIntegration(),
+  nativeNodeFetchintegration(),
   // Global Handlers
   onUncaughtExceptionIntegration(),
   onUnhandledRejectionIntegration(),
