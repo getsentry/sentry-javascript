@@ -229,13 +229,7 @@ export const _browserTracingIntegration = ((_options: Partial<BrowserTracingOpti
           finalContext.metadata;
 
     latestRouteName = finalContext.name;
-
-    // eslint-disable-next-line deprecation/deprecation
-    const sourceFromData = context.data && context.data[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE];
-    // eslint-disable-next-line deprecation/deprecation
-    const sourceFromMetadata = finalContext.metadata && finalContext.metadata.source;
-
-    latestRouteSource = sourceFromData || sourceFromMetadata;
+    latestRouteSource = getSource(finalContext);
 
     // eslint-disable-next-line deprecation/deprecation
     if (finalContext.sampled === false) {
@@ -542,4 +536,14 @@ function registerInteractionListener(
   ['click'].forEach(type => {
     addEventListener(type, registerInteractionTransaction, { once: false, capture: true });
   });
+}
+
+function getSource(context: TransactionContext): TransactionSource | undefined {
+  const sourceFromAttributes = context.attributes && context.attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE];
+  // eslint-disable-next-line deprecation/deprecation
+  const sourceFromData = context.data && context.data[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE];
+  // eslint-disable-next-line deprecation/deprecation
+  const sourceFromMetadata = context.metadata && context.metadata.source;
+
+  return sourceFromAttributes || sourceFromData || sourceFromMetadata;
 }
