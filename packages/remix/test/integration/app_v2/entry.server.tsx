@@ -13,7 +13,11 @@ import type { EntryContext } from '@remix-run/node';
 import { RemixServer } from '@remix-run/react';
 import { renderToString } from 'react-dom/server';
 
-export const handleError = Sentry.wrapRemixHandleError;
+const handleErrorImpl = () => {
+  Sentry.setTag('remix-test-tag', 'remix-test-value');
+};
+
+export const handleError = Sentry.wrapHandleErrorWithSentry(handleErrorImpl);
 
 export default function handleRequest(
   request: Request,
