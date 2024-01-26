@@ -1,5 +1,7 @@
 import * as domain from 'domain';
+import * as SentryCore from '@sentry/core';
 import * as SentryNode from '@sentry/node';
+
 import type { Event, Integration } from '@sentry/types';
 
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
@@ -16,6 +18,8 @@ import type {
 } from '../src/gcpfunction/general';
 
 describe('GCPFunction', () => {
+  const setHttpStatusSpy = jest.spyOn(SentryCore, 'setHttpStatus').mockImplementation(() => {});
+
   afterEach(() => {
     // @ts-expect-error see "Why @ts-expect-error" note
     SentryNode.resetMocks();
@@ -114,7 +118,7 @@ describe('GCPFunction', () => {
 
       expect(SentryNode.startSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
       // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeSpan.setHttpStatus).toBeCalledWith(200);
+      expect(setHttpStatusSpy).toBeCalledWith(SentryNode.fakeSpan, 200);
       // @ts-expect-error see "Why @ts-expect-error" note
       expect(SentryNode.fakeSpan.end).toBeCalled();
       expect(SentryNode.flush).toBeCalledWith(2000);
