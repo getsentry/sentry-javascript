@@ -20,11 +20,16 @@ sentryTest(
 
     await page.goto(url);
 
-    // There are 6 requests in the page:
+    // Here are the requests that should exist:
     // 1. HTML page
     // 2. Init JS bundle
     // 3. Subject JS bundle
+    // 4 [OPTIONAl] CDN JS bundle
     // and then 3 fetch requests
-    expect(requestCount).toBe(6);
+    if (process.env.PW_BUNDLE && process.env.PW_BUNDLE.startsWith('bundle_')) {
+      expect(requestCount).toBe(7);
+    } else {
+      expect(requestCount).toBe(6);
+    }
   },
 );
