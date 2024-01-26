@@ -71,7 +71,8 @@ function connectToSpotlight(client: Client, options: Required<SpotlightConnectio
 
     const serializedEnvelope = serializeEnvelope(envelope);
 
-    const req = http.request(
+    const request = getNativeHttpRequest();
+    const req = request(
       {
         method: 'POST',
         path: spotlightUrl.pathname,
@@ -109,4 +110,23 @@ function parseSidecarUrl(url: string): URL | undefined {
     logger.warn(`[Spotlight] Invalid sidecar URL: ${url}`);
     return undefined;
   }
+}
+
+type HttpRequestImpl = typeof http.request;
+type WrappedHttpRequest = HttpRequestImpl & { __sentry_original__: HttpRequestImpl };
+
+/**
+ * We want to get an unpatched http request implementation to avoid capturing our own calls.
+ */
+export function getNativeHttpRequest(): HttpRequestImpl {
+  const { request } = http;
+  if (isWrapped(request)) {
+    return request.__sentry_original__;
+  }
+
+  return request;
+}
+
+function isWrapped(impl: HttpRequestImpl): impl is WrappedHttpRequest {
+  return '__sentry_original__' in impl;
 }
