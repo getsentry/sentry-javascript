@@ -1,7 +1,7 @@
 import { expect } from '@playwright/test';
 
 import { sentryTest } from '../../../../utils/fixtures';
-import { shouldSkipTracingTest } from '../../../../utils/helpers';
+import { envelopeUrlRegex, shouldSkipTracingTest } from '../../../../utils/helpers';
 
 sentryTest(
   'there should be no span created for xhr requests with no active span',
@@ -14,7 +14,7 @@ sentryTest(
 
     let requestCount = 0;
     page.on('request', request => {
-      expect(request.url()).not.toContain(url);
+      expect(envelopeUrlRegex.test(request.url())).toBe(false);
       requestCount++;
     });
 
