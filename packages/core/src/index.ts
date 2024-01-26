@@ -87,6 +87,7 @@ export {
   spanToTraceHeader,
   spanToJSON,
   spanIsSampled,
+  spanToTraceContext,
 } from './utils/spanUtils';
 export { getRootSpan } from './utils/getRootSpan';
 export { applySdkMetadata } from './utils/sdkMetadata';
