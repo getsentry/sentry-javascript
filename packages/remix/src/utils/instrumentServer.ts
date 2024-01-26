@@ -115,9 +115,9 @@ export const wrapRemixHandleError = sentryHandleError;
  * Remix Docs: https://remix.run/docs/en/main/file-conventions/entry.server#handleerror
  */
 export function wrapHandleErrorWithSentry(
-  origHandleError: (err: unknown, args: unknown) => void,
-): (err: unknown, args: unknown) => void {
-  return function (this: unknown, err: unknown, args: unknown): void {
+  origHandleError: (err: unknown, args: { request: unknown }) => void,
+): (err: unknown, args: { request: unknown }) => void {
+  return function (this: unknown, err: unknown, args: { request: unknown }): void {
     // This is expected to be void but just in case it changes in the future.
     const res = origHandleError.call(this, err, args);
 
