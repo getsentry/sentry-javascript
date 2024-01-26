@@ -1,9 +1,9 @@
 import type { Scope } from '@sentry/core';
 import { act, render } from '@testing-library/svelte';
 
+import { vi } from 'vitest';
 // linter doesn't like Svelte component imports
 import DummyComponent from './components/Dummy.svelte';
-import { vi } from 'vitest';
 
 let returnUndefinedTransaction = false;
 
@@ -21,8 +21,8 @@ const testInitSpan: any = {
   isRecording: () => true,
 };
 
-vi.mock('@sentry/core', () => {
-  const original = vi.importActual('@sentry/core');
+vi.mock('@sentry/core', async () => {
+  const original = await vi.importActual('@sentry/core');
   return {
     ...original,
     getCurrentScope(): Scope {

@@ -2,8 +2,8 @@ import { SDK_VERSION } from '@sentry/browser';
 import * as SentryBrowser from '@sentry/browser';
 import type { EventProcessor } from '@sentry/types';
 
-import { detectAndReportSvelteKit, init as svelteInit, isSvelteKitApp } from '../src/sdk';
 import { vi } from 'vitest';
+import { detectAndReportSvelteKit, init as svelteInit, isSvelteKitApp } from '../src/sdk';
 
 let passedEventProcessor: EventProcessor | undefined;
 
