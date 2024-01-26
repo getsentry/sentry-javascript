@@ -368,8 +368,14 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
    * @inheritDoc
    */
   public addIntegration(integration: Integration): void {
+    const isAlreadyInstalled = this._integrations[integration.name];
+
+    // This hook takes care of only installing if not already installed
     setupIntegration(this, integration, this._integrations);
-    afterSetupIntegrations(this, [integration]);
+    // Here we need to check manually to make sure to not run this multiple times
+    if (!isAlreadyInstalled) {
+      afterSetupIntegrations(this, [integration]);
+    }
   }
 
   /**

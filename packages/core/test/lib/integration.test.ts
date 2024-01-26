@@ -671,6 +671,38 @@ describe('addIntegration', () => {
     expect(setup).toHaveBeenCalledTimes(1);
     expect(setupAfterAll).toHaveBeenCalledTimes(1);
   });
+
+  it('does not trigger hooks if already installed', () => {
+    const logs = jest.spyOn(logger, 'log');
+
+    class CustomIntegration implements Integration {
+      name = 'test';
+      setupOnce = jest.fn();
+      setup = jest.fn();
+      afterAllSetup = jest.fn();
+    }
+
+    const client = getTestClient();
+    const hub = new Hub(client);
+    // eslint-disable-next-line deprecation/deprecation
+    makeMain(hub);
+
+    const integration1 = new CustomIntegration();
+    const integration2 = new CustomIntegration();
+    addIntegration(integration1);
+
+    expect(integration1.setupOnce).toHaveBeenCalledTimes(1);
+    expect(integration1.setup).toHaveBeenCalledTimes(1);
+    expect(integration1.afterAllSetup).toHaveBeenCalledTimes(1);
+
+    addIntegration(integration2);
+
+    expect(integration2.setupOnce).toHaveBeenCalledTimes(0);
+    expect(integration2.setup).toHaveBeenCalledTimes(0);
+    expect(integration2.afterAllSetup).toHaveBeenCalledTimes(0);
+
+    expect(logs).toHaveBeenCalledWith('Integration skipped because it was already installed: test');
+  });
 });
 
 describe('convertIntegrationFnToClass', () => {
