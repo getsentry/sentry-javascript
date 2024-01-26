@@ -1,6 +1,7 @@
 import { Feedback, feedbackIntegration } from '@sentry-internal/feedback';
 import { BrowserTracing, Span, addExtensionMethods } from '@sentry-internal/tracing';
 import { Replay, replayIntegration } from '@sentry/replay';
+import { bundleBrowserTracingIntegration as browserTracingIntegration } from './helpers';
 
 import * as Sentry from './index.bundle.base';
 
@@ -23,6 +24,7 @@ export {
   feedbackIntegration,
   replayIntegration,
   BrowserTracing,
+  browserTracingIntegration,
   Span,
   addExtensionMethods,
 };

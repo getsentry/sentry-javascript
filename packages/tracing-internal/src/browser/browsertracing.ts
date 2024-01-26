@@ -344,13 +344,7 @@ export class BrowserTracing implements Integration {
           finalContext.metadata;
 
     this._latestRouteName = finalContext.name;
-
-    // eslint-disable-next-line deprecation/deprecation
-    const sourceFromData = context.data && context.data[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE];
-    // eslint-disable-next-line deprecation/deprecation
-    const sourceFromMetadata = finalContext.metadata && finalContext.metadata.source;
-
-    this._latestRouteSource = sourceFromData || sourceFromMetadata;
+    this._latestRouteSource = getSource(finalContext);
 
     // eslint-disable-next-line deprecation/deprecation
     if (finalContext.sampled === false) {
@@ -480,4 +474,14 @@ export function getMetaContent(metaName: string): string | undefined {
   const metaTag = getDomElement(`meta[name=${metaName}]`);
   // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
   return metaTag ? metaTag.getAttribute('content') : undefined;
+}
+
+function getSource(context: TransactionContext): TransactionSource | undefined {
+  const sourceFromAttributes = context.attributes && context.attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE];
+  // eslint-disable-next-line deprecation/deprecation
+  const sourceFromData = context.data && context.data[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE];
+  // eslint-disable-next-line deprecation/deprecation
+  const sourceFromMetadata = context.metadata && context.metadata.source;
+
+  return sourceFromAttributes || sourceFromData || sourceFromMetadata;
 }

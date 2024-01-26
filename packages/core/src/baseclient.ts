@@ -26,6 +26,7 @@ import type {
   SessionAggregates,
   Severity,
   SeverityLevel,
+  StartSpanOptions,
   Transaction,
   TransactionEvent,
   Transport,
@@ -483,6 +484,12 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   ): void;
 
   /** @inheritdoc */
+  public on(hook: 'startPageLoadSpan', callback: (options: StartSpanOptions) => void): void;
+
+  /** @inheritdoc */
+  public on(hook: 'startNavigationSpan', callback: (options: StartSpanOptions) => void): void;
+
+  /** @inheritdoc */
   public on(hook: string, callback: unknown): void {
     if (!this._hooks[hook]) {
       this._hooks[hook] = [];
@@ -521,6 +528,12 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
 
   /** @inheritdoc */
   public emit(hook: 'beforeSendFeedback', feedback: FeedbackEvent, options?: { includeReplay: boolean }): void;
+
+  /** @inheritdoc */
+  public emit(hook: 'startPageLoadSpan', options: StartSpanOptions): void;
+
+  /** @inheritdoc */
+  public emit(hook: 'startNavigationSpan', options: StartSpanOptions): void;
 
   /** @inheritdoc */
   public emit(hook: string, ...rest: unknown[]): void {

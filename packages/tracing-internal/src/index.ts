@@ -14,6 +14,11 @@ export type { LazyLoadedIntegration } from './node';
 
 export {
   BrowserTracing,
+  browserTracingIntegration,
+  startBrowserTracingNavigationSpan,
+  startBrowserTracingPageLoadSpan,
+  disableDefaultBrowserTracingNavigationSpan,
+  disableDefaultBrowserTracingPageLoadSpan,
   BROWSER_TRACING_INTEGRATION_ID,
   instrumentOutgoingRequests,
   defaultRequestInstrumentationOptions,

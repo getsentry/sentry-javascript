@@ -15,6 +15,7 @@ import type { Scope } from './scope';
 import type { SdkMetadata } from './sdkmetadata';
 import type { Session, SessionAggregates } from './session';
 import type { Severity, SeverityLevel } from './severity';
+import type { StartSpanOptions } from './startSpanOptions';
 import type { Transaction } from './transaction';
 import type { Transport, TransportMakeRequestResponse } from './transport';
 
@@ -273,6 +274,16 @@ export interface Client<O extends ClientOptions = ClientOptions> {
   ): void;
 
   /**
+   * A hook for BrowserTracing to trigger a span start for a page load.
+   */
+  on?(hook: 'startPageLoadSpan', callback: (options: StartSpanOptions) => void): void;
+
+  /**
+   * A hook for BrowserTracing to trigger a span for a navigation.
+   */
+  on?(hook: 'startNavigationSpan', callback: (options: StartSpanOptions) => void): void;
+
+  /**
    * Fire a hook event for transaction start.
    * Expects to be given a transaction as the second argument.
    */
@@ -332,6 +343,16 @@ export interface Client<O extends ClientOptions = ClientOptions> {
    * third argument.
    */
   emit?(hook: 'beforeSendFeedback', feedback: FeedbackEvent, options?: { includeReplay?: boolean }): void;
+
+  /**
+   * Emit a hook event for BrowserTracing to trigger a span start for a page load.
+   */
+  emit?(hook: 'startPageLoadSpan', options: StartSpanOptions): void;
+
+  /**
+   * Emit a hook event for BrowserTracing to trigger a span for a navigation.
+   */
+  emit?(hook: 'startNavigationSpan', options: StartSpanOptions): void;
 
   /* eslint-enable @typescript-eslint/unified-signatures */
 }
