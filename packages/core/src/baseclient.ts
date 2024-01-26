@@ -369,6 +369,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
    */
   public addIntegration(integration: Integration): void {
     setupIntegration(this, integration, this._integrations);
+    afterSetupIntegrations(this, [integration]);
   }
 
   /**
