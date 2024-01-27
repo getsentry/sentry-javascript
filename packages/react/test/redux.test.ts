@@ -5,6 +5,7 @@ import { createReduxEnhancer } from '../src/redux';
 
 const mockAddBreadcrumb = jest.fn();
 const mockSetContext = jest.fn();
+const mockAddEventProcessor = Sentry.addEventProcessor as jest.Mock;
 
 jest.mock('@sentry/browser', () => ({
   ...jest.requireActual('@sentry/browser'),
@@ -12,12 +13,11 @@ jest.mock('@sentry/browser', () => ({
     return {
       addBreadcrumb: mockAddBreadcrumb,
       setContext: mockSetContext,
+      addEventProcessor: mockAddEventProcessor,
     };
   },
   addEventProcessor: jest.fn(),
 }));
-
-const mockAddEventProcessor = Sentry.addEventProcessor as jest.Mock;
 
 afterEach(() => {
   mockAddBreadcrumb.mockReset();
